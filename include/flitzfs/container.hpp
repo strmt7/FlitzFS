@@ -45,7 +45,10 @@ ContainerInfo pack_new(const std::filesystem::path& input,
 // A deliberately single-reader interface. Do not concurrently invoke Reader methods.
 class Reader {
  public:
-  static Reader open(const std::filesystem::path& container);
+  // Admission applies to serialized index bytes BEFORE index allocation/read.
+  // Parsing also uses a separate entry vector: this is not a process-RAM limit.
+  static Reader open(const std::filesystem::path& container,
+                     std::uint64_t max_index_bytes = 32ULL * 1024ULL * 1024ULL);
   Reader(const Reader&) = delete;
   Reader& operator=(const Reader&) = delete;
   Reader(Reader&&) noexcept = default;

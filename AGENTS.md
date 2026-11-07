@@ -25,4 +25,16 @@ The owner's highest-priority requirements are: **do not format or repartition dr
 
 ## Present release boundary
 
-The project has a **single-file CPU-only `.flfs` prototype and a bounded, per-file synchronized in-memory read-only catalog and pure C++ Windows virtual-path projection**. No GPU, encryption, WinFsp integration, mounted drive, service, filesystem driver, or FlitzZip archive compatibility is implemented. `Reader` is explicitly single-threaded; `ReadOnlyCatalog` serializes reads per file, but is not safe to move or destroy during in-flight calls. Do not silently enable any of these features in a patch release.
+Version 0.2 adds an **OFF-by-default native WinFsp read-only callback backend**
+to the CPU `.flfs` container, synchronized catalog and Windows-path projection.
+Read `docs/WINFSP_CALLBACKS.md` before touching it. Callback tests use synthetic
+files and the user-mode SDK DLL only: no filesystem creation, mount, dispatcher,
+driver installation, persistent service or GPU operation. The pinned SDK staging
+script may run only on disposable GitHub-hosted Windows runners, never on the
+owner's PC. A successful callback test is not a mounted-filesystem qualification.
+
+Reader is single-threaded; catalogs lock each file. Native callbacks additionally
+bound handles and concurrent decodes. Destruction/move must not race callbacks.
+Encryption, authentication, HIP execution, writable volumes and `.flzip`
+compatibility remain unimplemented. Keep optional behavior opt-in and report
+actual test coverage without upgrading partial tests into production claims.
