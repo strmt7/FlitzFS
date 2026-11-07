@@ -77,6 +77,9 @@ try {
         $key = $record.StringData(1)
         $filename = ($record.StringData(2) -split '\|')[-1]
         if (-not $wanted.ContainsKey($filename)) { continue }
+        # v2.1 Product.wxs duplicates the DLL for OS-specific installer components.
+        # Select the exact AMD64 component; never choose a payload by iteration order.
+        if ($filename -eq 'winfsp-x64.dll' -and $key -ne 'FILE.winfsp_x64.dll.x64') { continue }
         if ($copied.ContainsKey($filename)) { throw "Ambiguous SDK table entry: $filename" }
         $matches = @($all | Where-Object { $_.Name -eq $key })
         if ($matches.Count -eq 0) { $matches = @($all | Where-Object { $_.Name -eq $filename }) }
