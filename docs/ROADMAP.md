@@ -1,22 +1,45 @@
 # Development gates and acceptance criteria
 
-This is a staged plan, NOT a claim that all items are already implemented.
+This is a staged plan, not a claim that the full product is implemented.
+Development stays on `main`; research, regressions and actual CI results gate
+promotion. No new branches, force pushes or owner-PC operations are needed.
 
-| Stage | Deliverable | Promotion gate |
+| Stage | Status / deliverable | Promotion evidence or remaining gate |
 |---|---|---|
-| **M1: CPU chunk core** | Existing v1 `.flfs` pack, range-read, verify, new-only extraction | Linux CPU tests, raw-only tests, sanitizer checks, Windows CI, corruption/fault tests. Source must always be retained. |
-| **M1.5: OS-handle and catalog foundation** | No-follow regular-file reads, exact Zstd frames, bounded in-memory virtual directory tree | CPU Zstd/raw, sanitizers, Windows CI, malicious namespace tests; no mount or writes from catalog |
-| **M1.6: read concurrency and bounded catalog verification** | Per-file locking for mutable decoded cache and Windows file position; bounded whole-catalog corruption checks | Multithreaded deterministic tests; CPU Zstd/raw, ASan/UBSan, Windows CI; no mounts |
-| **M1.7: Windows-path projection, no mount** | Strict read-only virtual path translation and EOF short-read adapter | Bounded CLI-less projection tests on Linux and Windows; no WinFsp dependency; reject traversal and unsupported paths |
-| **M2: FlitzZip compatibility** | Read-only `.flzip` archive adapter, independently verified per-block metadata | Reference corpus byte-for-byte; reject malicious paths, malformed metadata, oversized decoding; license/API review. |
-| **M3: Windows read-only mount** | WinFsp user-mode mount for disposable test datasets | Windows automated integration suite; no mountpoint collisions; no unexpected privilege escalation or driver installation; clean unmount/restart; independent CPU export. |
-| **M4: Adaptive CPU/HIP** | Bounded GPU decode batches; H2D/kernel/D2H telemetry and CPU fallback | Optional test on supported RX 9070 XT using tiny synthetic buffer, GPU busy/driver-loss tests, confirmed no hangs; measurable end-to-end advantage. |
-| **M5: Authenticated, immutable store** | AEAD per record and authenticated metadata; password/key management | Third-party crypto; nonce/rollback analysis; fuzz/authentication failure tests; cross-platform CPU recovery. |
-| **M6: Transactional writes** | Append-only landing log, COW metadata, durable flush contract, compaction | Fault injection and crash recovery across every commit point; out-of-space and concurrent-access tests. |
-| **M7: Limited writable preview** | Opt-in mounted disposable Windows data folder | Windows ACL, mapped I/O, rename, locking, app-compatibility, long soak; full backups; no automatic use on user volumes. |
+| M1: CPU chunk core | Implemented experimental v1 pack/read/verify/new-only extraction | CPU codecs, corruption/bounds tests, Linux/Windows CI; retain original data |
+| M1.5: OS handles and catalog | Implemented regular-file reads, exact Zstd frames, bounded virtual tree | No-follow/special-file tests, case/path/collision tests, codec/raw/sanitizer CI |
+| M1.6: concurrency and verification | Implemented per-file locks and bounded whole-catalog verification | Deterministic concurrent byte parity and corruption detection |
+| M1.7: Windows virtual projection | Implemented root-relative ASCII translation and short reads | Portable tests and Windows CPU CI; no mount |
+| M1.8 / release 0.2: native callback foundation | Implemented OFF-by-default WinFsp read-only backend, pre-allocation budgets and physical-path guards | Direct real-SDK Windows callback tests plus Linux/raw/sanitizers; this is NOT mounted qualification |
+| M2: FlitzZip compatibility | Not implemented: read-only .flzip adapter | Source/license/API review; independently verified block integrity; malicious corpus and byte-for-byte reference tests |
+| M3: Windows read-only mount | Not implemented: lifecycle layer and disposable mount | No collisions/recursion; explicit driver provisioning; clean unmount/restart; actual ACL/mapped-I/O/cancellation/app tests; CPU export |
+| M4: adaptive CPU/HIP | Not implemented: bounded GPU batches and measured routing | Tiny synthetic opt-in tests, independent CPU parity, headroom/timeout handling, full H2D/kernel/D2H timing and demonstrated end-to-end benefit |
+| M5: authenticated immutable store | Not implemented: AEAD records, authenticated manifest, key handling | Vetted crypto; nonce/clone/rollback analysis; authentication-negative/fuzz tests; independent recovery |
+| M6: transactional writes | Not implemented: append log, COW metadata, durable flush and compaction | Fault injection at every commit, out-of-space handling and acknowledged-write recovery |
+| M7: limited writable preview | Not implemented: opt-in disposable mounted folder | M6 plus ACL/locking/mapped I/O/rename/app tests and independent backups; never automatic sole-copy use |
+
+The native callback milestone was advanced ahead of archive compatibility to
+test Windows ABI semantics independently of FlitzZip integration. It does not
+skip or imply either of those later gates. The current virtual namespace is a
+small in-memory catalog, not a persistent directory store.
+
+## Immediate integration checklist
+
+- Keep the now-tested native callback interface separate from mount lifecycle.
+- Define disposable mountpoint reservation, explicit driver presence checks,
+  resource supervision, cancellation/shutdown and immutable backing containment.
+- Retain the no-install/no-mount callback lane as a fast regression check.
+- Build `.flzip` CPU compatibility from real source and retained fixtures,
+  without importing unsafe GPU initialization or claiming existing parity.
+- Design persistent manifest and authenticated-record formats before writable
+  storage, rather than stretching the single-stream v1 file into a journal.
 
 ## Performance comparison matrix
 
-All comparisons must use the same data, cache state and equivalent durability. Measure: allocated backing bytes including metadata; logical throughput; 4 KiB random-read p50/p95/p99 latency; sequential read/write speed; CPU/VRAM/RAM use; H2D and D2H transfer time; GPU busy-vs-idle effects; power where measured; application-visible latency; write amplification and recovery time. Compare raw NTFS, CPU-only FlitzFS, GPU-enabled FlitzFS, and Windows built-in compression when applicable.
-
-Run correctness and safety suites before optional performance workloads. Heavy benchmarks and stress tests should **never** be enabled by default in CI or on the user's PC.
+Use the same data, cache state and equivalent durability. Measure actual
+allocated backing bytes including metadata; logical throughput; 4 KiB random
+p50/p95/p99 latency; sequential throughput; CPU/RAM/VRAM; H2D/kernel/D2H time;
+GPU busy-vs-idle effects; measured power; write amplification; recovery time.
+Compare raw NTFS, CPU FlitzFS, GPU FlitzFS and built-in Windows compression when
+applicable. Correctness runs are not performance evidence. Heavy benchmarks,
+stress tests and GPU workloads remain disabled by default.

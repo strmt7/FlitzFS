@@ -1,55 +1,115 @@
-# CPU storage-core validation — M1 through M1.6 CI and local M1.7
+# Validation ledger — experimental release 0.2
 
-**Environment:** isolated Linux build container, 7 November 2026. GCC 14.2.0, Clang 17.0.0, CMake 3.31.6, Zstandard 1.5.7. No Windows machine, mounted filesystem, AMD RX 9070 XT, HIP runtime, or physical disk benchmark was used.
+Date: **7 November 2026**. This page distinguishes implemented functionality,
+executed tests and unpassed integration gates. It supersedes earlier statements
+that Windows CPU/native callback validation was still pending. Historical
+results remain in Git history and the earlier CI runs below.
 
-| Check | Result | What was actually verified |
+## Latest code qualification
+
+Code commit: **`dcb3a8b313af6e7b77453acf9474e506ef5bc83f`**.
+GitHub Actions: [run 42377524934](https://github.com/strmt7/FlitzFS/actions/runs/42377524934)
+completed **success**. The preceding physical-path safety commit
+`62907088f767b2d67481bfb36ffff9bc3ef9bbfe` also passed all five jobs in
+[run 42376916260](https://github.com/strmt7/FlitzFS/actions/runs/42376916260).
+
+| Lane | Actual coverage | Result |
 |---|---|---|
-| GCC + Zstandard build and CTest | PASS | Compiles and runs CPU codec tests. |
-| GCC raw-only build and CTest | PASS | Compiles and runs without Zstd; raw-only fallback works. |
-| Clang + AddressSanitizer + UndefinedBehaviorSanitizer | PASS | Current deterministic tests produced no sanitizer reports. |
-| CLI smoke test | PASS | `pack`, `info`, `verify`, `probe`, `extract`; SHA-256 byte-identical round trip; existing-output refusal. |
-| GitHub Actions Linux (M1) | PASS | Build and bounded unit tests passed on push/PR CI of commit 84efaa8. |
-| GitHub Actions Windows MSVC (M1) | PASS | Raw-only build passed for M1 (84efaa8) and M1.5 (51adb76) in GitHub Windows CI run 42369383337. M1.6 concurrency additions passed Windows CI run 42370249875. |
-| In-memory read-only catalog (M1.5) | PASS on Windows/Linux CI for commit 51adb76 | Nested paths, case-insensitive lookup, collision/traversal rejection, random reads; no mount. |
-| Per-file synchronized catalog reads (M1.6) | PASS Windows/Linux CI for commit 63ec05f | Four deterministic concurrent reader threads, independently pinned backing files, no mount. |
-| Bounded whole-catalog verification (M1.6) | PASS Windows/Linux CI for commit 63ec05f | 32 MiB default, 256 MiB maximum, rejects admission violations, decodes and detects corrupted disposable fixture. |
-| In-process virtual Windows path projection (M1.7) | LOCAL Linux PASS; Windows CI pending | Root-relative ASCII paths, Win32-like EOF short reads, forged NUL/control/UNC/traversal path rejection, bounded read sizes, no mount. |
-| WinFsp integration | NOT IMPLEMENTED | No mount calls or filesystem driver are present. |
-| AMD HIP device / GPU workload | NOT IMPLEMENTED | No GPU touched; no claim of GPU correctness or performance. |
-| Encryption, authentication, crash recovery | NOT IMPLEMENTED | CRC32 is accidental corruption detection only. |
+| Ubuntu 24.04 + CPU Zstandard | Five portable CTest executables | PASS |
+| Ubuntu 24.04 raw-only | Five portable executables without codec dependency | PASS |
+| Windows Server 2022 / MSVC raw-only | Five portable executables on Windows | PASS |
+| Linux Clang ASan + UBSan | Five portable executables, fail on sanitizer report | PASS |
+| Windows Server 2022 / MSVC + Zstandard + WinFsp SDK | Portable tests plus native callback executable (six total) | PASS |
 
-## Deterministic test coverage
+The final portable sources were also rebuilt and tested locally with GCC 14.2
+plus Zstandard, GCC raw-only, and Clang 17 ASan/UBSan: five executables in each
+configuration, **15 passed executions**. This is a count of executable suites,
+not a claim of thousands of independent tests or a performance benchmark.
 
-- Zero-length container round trip.
-- CPU Zstandard or raw fallback on compressible and pseudo-random data.
-- Whole-file and cross-chunk arbitrary byte-range reads; bounded repeated deterministic pseudo-random probes.
-- Per-chunk CRC checks and full-file verify; corrupt compressed payload rejection.
-- Missing footer, tampered header, invalid codec and descriptor sizes, changed reserved fields and forged index with recomputed index checksum.
-- Existing target/sentinel preserved during pack and extraction attempts.
-- Input/output budgets, zero-length and out-of-range access rejection.
-- POSIX symlink input, container, and target refusal (Linux only).
+The native lane builds commit-pinned Zstandard 1.5.7 and asserts that its
+compressible fixture actually generated Zstandard chunks. It uses the official
+WinFsp 2.1 user-mode headers/library/DLL, not substitute SDK declarations.
+The tests invoke callbacks directly against a user-mode FSP_FILE_SYSTEM struct.
+**No filesystem is created, dispatcher started, mount assigned or kernel driver
+installed/loaded by the test code.** No operations ran on the owner's PC/GPU.
 
-## Known limitations
+## What this development round added and checked
 
-Passing the above is not equivalent to a fuzzing campaign, end-to-end Windows filesystem proof, power-loss test, thread sanitizer pass, or security audit. The format is experimental and should not hold sole copies of personal data. Windows CI for the latest milestone, Windows path normalization, and hostile concurrent mutation must be validated before recommending any local PC use. No operations have been performed on the owner's PC.
+- **Entire filename validation:** a regression reproduced the previous bug
+  where validation stopped at the first dot. ADS syntax, wildcards, control/NUL,
+  separators and unsupported high bytes in extensions now fail validation.
+- **Pre-allocation admission:** index size is checked against the remaining
+  catalog allowance before reading or allocating it. Tiny forged headers prove
+  rejection before reaching absent index/footer payloads. Empty indices can
+  fit a zero budget. Serialized-index size is not a full process-memory cap.
+- **Native callbacks:** typed NTSTATUS failures, Open/Close, stable metadata,
+  short/EOF reads, cross-chunk byte parity, readonly Flush and explicit denials
+  for create/write/delete/truncate/rename/ACL/label mutations.
+- **Native lifecycle and bounds:** Cleanup preserves later reads until Close;
+  two concurrent readers are byte-exact; 256-context exhaustion fails closed;
+  stale-close tokens do not close a newly reused slot. Invalid read sizes and
+  null buffers are rejected. Construction refuses a corrupted fixture.
+- **Security descriptors:** valid protected single-owner read/execute ACE,
+  correct size negotiation, no write grant and no undersized-buffer overwrite.
+  This is not qualification of actual mounted authorization or source ACL parity.
+- **Directory continuation:** SDK-packed records, short output buffers, markers,
+  case folding and dot entries. A portable regression reproduced skipped
+  punctuation/space-prefixed names with plain lexical markers. The shared
+  explicit dot-rank comparator and expanded native pagination test now pass.
+- **Physical host paths:** pure no-I/O tests cover device/extended namespaces,
+  reserved aliases including superscript digits, streams, NUL, ambiguous suffixes
+  and length limits. Synthetic integration tests ensure NUL paths cannot create
+  a truncated-name output. No test opens a physical device.
 
-## M1.5–M1.7 additions
+## Dependency and CI failures retained, not hidden
 
-- Pinned OS-level read-only regular-file handles with final-component symlink/reparse refusal; FIFO nonblocking rejection on POSIX.
-- Single frame Zstandard parser checks, including forged index with trailing-frame garbage.
-- In-memory directory catalog with strict ASCII relative path names, case-insensitive lookup, collision and reserved-device rejection.
-- Rechecked CPU Zstd/raw, ASan/UBSan. Results below should be updated only after the exact remote commit passes.
+The first native run stopped on duplicate DLL names in the official MSI. A
+narrow correction then exposed a duplicated import-library basename: the SDK
+and optional fsext payloads have the same filename. Both failures were in SDK
+staging, not suppressed tests. The final extractor selects exact component IDs
+from pinned v2.1 Product.wxs, verifies the release checksum, and still rejects
+ambiguous payloads. It never executes installer/custom actions.
 
-## M1.6 concurrency gate (7 November 2026, local Linux)
+The corrected initial callback milestone passed in
+[run 42376512623](https://github.com/strmt7/FlitzFS/actions/runs/42376512623).
+The Windows build logs include an upstream WinFsp alignment-padding warning
+(C4324), and the pinned checkout v4 action triggers a Node20-deprecation warning
+while the hosted runner forces Node24. Neither is hidden or presented as a
+warning-free build. No broad warning suppression was added.
 
-- Verified on a 4-thread bounded concurrency probe with 32 reads per thread, byte-for-byte comparison against disposable fixtures.
-- `ReadOnlyCatalog::verify_all` rejects a too-small **aggregate** logical-byte budget before decoding and detects a corrupted payload in a newly created test fixture.
-- `flitzfs verify` now refuses to decode containers above its default 256 MiB logical-byte budget unless `--max-mib N` is specified (up to 4096).
-- Linux GCC+Zstd and raw-only tests pass. Clang+ASan/UBSan pass locally. ThreadSanitizer, actual Windows runtime callbacks, and AMD HIP are not qualified.
-- CI must be rechecked against the exact new `main` commit; local results are not Windows proof.
+## Research rounds and decisions
 
-## M1.7 virtual path gate (7 November 2026, local Linux)
+The detailed ABI/lifetime/security/dependency research is in
+[WINFSP_CALLBACKS.md](WINFSP_CALLBACKS.md). Subsequent rounds checked:
 
-- Three executable test suites pass in each of Zstd-enabled GCC, raw-only GCC and Clang ASan/UBSan (9 CTest executions in total).
-- Projection tests exercise paths from prospective WinFsp callbacks without installing or loading WinFsp, plus short reads across EOF and zero reads beyond EOF.
-- No Windows CI confirmation for M1.7 until the exact commit has a passing run.
+1. Exact SDK component identities, rather than selecting the first matching
+   filename: [WinFsp v2.1 Product.wxs](https://github.com/winfsp/winfsp/blob/v2.1/build/VStudio/installer/Product.wxs).
+2. Microsoft namespace/device alias semantics before physical I/O:
+   [Naming Files, Paths, and Namespaces](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file).
+3. Directory markers must use the same order as emitted directory records,
+   including special dot entries: [WinFsp native API](https://winfsp.dev/doc/WinFsp-API-winfsp.h/).
+
+The prior review of all 13 other repositories remains in
+[RESEARCH_2026-11-07.md](RESEARCH_2026-11-07.md). No other repository was modified
+and no private code was copied into this public project.
+
+## Earlier retained milestones
+
+M1: CPU core `84efaa8`; M1.5: handle/catalog commit `51adb76`, Windows CI
+42369383337; M1.6: concurrency commit `63ec05f`, CI 42370249875; M1.7: projection
+commit `f39e927`, CI 42370565055. Older local-only qualification notes describe
+their point in time, not the current native callback state.
+
+## Explicitly NOT qualified or implemented
+
+There is still no mount executable, persistent directory manifest, `.flzip`
+compatibility, AMD HIP execution, encryption/authentication, transactional
+writable volume or power-loss recovery. Mounted Windows I/O, mmap, shutdown and
+cancellation, real ACL enforcement, Windows 11, application compatibility,
+ThreadSanitizer, long soaks, broad fuzzing, independent security audit and
+end-to-end performance comparisons remain unpassed. Parent-path link/race
+containment is incomplete; lexical gates are not a general sandbox.
+
+Passing these tests does not establish production safety, immunity to hangs or
+resource exhaustion, or any GPU speed/compression advantage. Preserve original
+data and do not install or mount this preview on the owner's PC automatically.

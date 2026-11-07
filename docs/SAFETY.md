@@ -1,56 +1,102 @@
 # FlitzFS safety gates and threat model
 
-The user's primary constraints are: **no formatting, no lost data, no drive modification, no system freezes, no resource exhaustion**. These are treated as engineering requirements and release blockers. No software can honestly guarantee immunity from all software, firmware, hardware, or power-loss failures; therefore new code must remain isolated from original data until it has evidence of correct behavior.
+The owner's primary constraints are **no formatting, no lost data, no system
+freezes and no resource exhaustion**. These remain release blockers, not claims
+that finite tests can prove immunity to software, hardware or power failures.
+Use isolated synthetic fixtures; never rely on this preview for sole-copy data.
 
-## Present implementation: allowed effects
+## Current permitted effects (0.2)
 
-- Read the explicitly supplied input file/container path using a validated regular-file handle, with final-component no-follow and POSIX nonblocking open.
-- Create ONE explicitly supplied **new** ordinary output file; never overwrite or delete an existing one.
-- Create small, uniquely named test fixtures in a newly created temporary directory when running the unit tests.
-- Compile on a developer's own build host or GitHub runner, without privileged operations.
+The CLI reads explicitly supplied ordinary files and can create one explicitly
+supplied NEW output. OS-exclusive creation prevents replacing an existing path.
+The catalog, projection and optional WinFsp callback backend have no write API.
+The backend returns explicit write-protected statuses for mutation callbacks.
 
-No mounts, raw devices, disk partition APIs, volume formatting, boot modifications, Windows service registration, scheduled tasks, registry updates, filesystem minifilters, GPU compute, or encryption are implemented. This milestone does not need administrator privileges. The in-memory catalog and Windows virtual-path projection have no writes or filesystem mounts. Tests never invoke `remove_all`, format utilities, or shell commands to alter drives.
+There is **no mount executable, filesystem creation, dispatcher startup, raw-disk
+access, partitioning, formatting, service registration, scheduled task, GPU
+execution or encryption**. The owner's Windows PC and AMD GPU have not been used.
 
-## Resource limits enforced in the code
+Tests create small, uniquely scoped temporary fixtures and remove only their own
+listed files, not directory trees. Hosted Windows CI stages a checksum-pinned
+SDK by extracting the MSI and reading its tables in mode 0; it never runs the
+installer, installs a driver, selects a .sys payload for use, or starts a service.
+Normal CMake configuration downloads and installs nothing.
 
-| Resource / behavior | Default or bound |
+## Enforced resource limits
+
+| Resource | Bound |
 |---|---|
-| Maximum file to pack | 256 MiB by default; up to 4 GiB only with explicit budget |
-| Maximum file to extract or verify via CLI | 256 MiB by default; up to 4 GiB only with explicit budget |
-| Chunk bytes | 4 KiB–1 MiB, power of two; default 128 KiB |
-| Metadata entries | At most 1,048,576, each 32 bytes |
+| Pack input; CLI extract/verify logical bytes | 256 MiB default; explicit maximum 4 GiB |
+| Chunk | 4 KiB to 1 MiB, power of two; default 128 KiB |
+| Stored chunk | At most 2 MiB |
 | Single random read | At most 4 MiB |
-| Stored compressed chunk | At most 2 MiB |
-| Decoded read cache | One 1 MiB-or-smaller chunk per Reader |
-| In-memory virtual catalog | At most 16 read handles and 4 MiB aggregate index metadata; no persistent mount |
-| Catalog full verification | Default 32 MiB total decoded bytes; upper limit 256 MiB, preflighted before decoding |
-| Concurrent catalog reads | Per-file mutex protecting mutable decoder cache / shared Windows file pointer; no background thread pool |
-| Windows virtual path projection | Strict root-relative ASCII only; 240 characters after the root separator; no OS path resolution |
-| Virtual projection read | Maximum 4 MiB per request, short reads at EOF |
-| Zstd decoded output | At most 1 MiB, checked against single-frame metadata; single-shot decoder window is not independently capped |
-| CPU compression level | 1–5 only; one CPU stream, no parallel workers |
-| Disk-space preflight | Refuse projected output unless 1 GiB additional space remains |
-| Output path | Exclusive new-file creation; existing paths are never replaced |
-| GPU memory and scheduling | Not used at all |
+| Reader cache | One decoded chunk, at most 1 MiB |
+| Reader index | At most 1,048,576 entries / 32 MiB serialized index |
+| Catalog | At most 16 backing files; 4 MiB aggregate serialized index |
+| Index admission | Checked before index buffer/entry-array allocation |
+| Catalog full verification | 32 MiB default; at most 256 MiB, preflighted |
+| Native adapter startup verification | Fixed 32 MiB aggregate logical-byte budget |
+| Native adapter | At most 257 nodes, 256 open contexts, two active decodes |
+| Virtual paths | ASCII only, 240 characters total, 100 per component, depth 16 |
+| CPU compression | Levels 1 to 5; one stream |
+| Output disk-space preflight | Worst-case output plus 1 GiB available reserve |
+| CI | Two requested build jobs; sequential CTest, 45 seconds per test, 10 minutes per workflow job |
+| GPU resources | Not used |
 
-These checks reduce risk but do not protect against concurrent disk filling, I/O driver bugs, quota changes, hardware faults, unexpectedly high OS allocation overhead, memory fragmentation, or a malicious concurrent process changing backing files. The check is performed once before writing; the OS can still return ENOSPC later. Interrupted writes can leave a partial new file. Output correctness must always be verified before discarding the original.
+The serialized-index cap is **not** a full process-RAM ceiling: decoded caches,
+entry arrays, SDK/runtime memory and allocator overhead are separate. The active
+read limit does not cap all callers of the lower-level catalog. Direct Reader
+calls are single-threaded; catalog reads/verification lock each backing file.
+No object may be moved or destroyed while its callbacks are running.
 
-## Threat-model limitations
+## Path and handle boundaries
 
-- CRC32 is **not authentication**. Anyone who can edit the container can recompute it. This version does NOT protect confidentiality or tampering.
-- Input files or container files can change during processing; v1 does not snapshot or lock them. Handles are pinned to an opened object, but other processes can still mutate underlying content (particularly on POSIX). Use immutable copies for testing.
-- The format parser bounds lengths and checks arithmetic, but has not been through a professional security audit or an exhaustive external fuzzing campaign.
-- Zstd decompression requires a trusted and patched Zstd library; an intentionally malformed stream is handled as an error, not as trusted data.
-- There is no read-only WinFsp mount yet: the M1.7 projection is an in-process mapping, not a driver/API callback implementation. No claim is made about full filesystem semantics, Windows crash recovery, ACLs, mmap, paging, or WinFsp callback safety. M1.6 covers simultaneous read-only `ReadOnlyCatalog::read` calls against a live, nonmoving catalog; object lifetime and every other callback remain separate gates.
+Virtual paths and physical host paths have different policies. Virtual paths
+never resolve an OS directory, and reject traversal, controls, streams, reserved
+names and all unsupported characters, including characters after a dot.
 
-## Explicit prohibitions for later work
+Physical Windows paths are screened BEFORE OS opening/creation for device and
+extended namespaces, UNC paths, drive-relative syntax, stream colons, NUL,
+reserved DOS aliases (including superscript COM/LPT digits), invalid characters
+and ambiguous component suffixes. Windows-created output handles are checked
+as ordinary disk files before writing. Input handles reject final-component
+reparse points; POSIX uses no-follow/nonblocking open followed by regular-file
+validation and now rejects embedded NUL explicitly as well.
 
-1. **Never** run `format`, `diskpart`, repartition, change drive letters, format a volume, use raw disk/PhysicalDrive writes, or mount a test filesystem over an existing nonempty directory.
-2. **Never** install a driver, launch stress tests, change AMD overclock/voltage settings, or create scheduled tests automatically on the user's machine.
-3. **Never** put the storage backing directory, service binaries, journals, or recovery utility inside the virtual drive they operate.
-4. **Never** enable write access on important personal data until the isolated crash/recovery test suite passes and independent backups exist.
-5. Do not treat a GPU result as valid until the CPU reference decoder confirms its bytes and a safe fallback exists.
+These checks are not a complete sandbox. Parent-directory reparse/symlink
+containment, changed drive mappings and hostile concurrent directory mutation
+are not fully controlled. Use a trusted, disposable local directory. Do not
+advertise arbitrary attacker-controlled paths as safe.
 
-## Environmental scope of this milestone
+## Integrity, identity and durability limitations
 
-All compilation and tests included in the handoff were performed in an isolated Linux container, **not on the user's Windows PC**. No AMD GPU was accessible. Passing those tests does not establish Windows, HIP, WinFsp, power-loss, or performance qualification.
+- CRC32 is accidental-corruption detection, **not authentication**. An attacker
+  can modify data and recompute it. Confidentiality is not provided.
+- Windows readers use read-only sharing, blocking ordinary new write/delete
+  opens while the handle is held. This is not a storage snapshot or proof
+  against every form of mutation; POSIX backing data can still change.
+- Zstandard is trusted dependency code. Frame/output checks bound our records,
+  but do not constitute an independent codec audit or whole-process bound.
+- The optional adapter verifies all data before exposing callbacks, but has no
+  authenticated persistent manifest. Its owner-only descriptor does not retain
+  source ACLs. Timestamps are synthetic and allocation sizes are logical sizes
+  rounded to 4096, not physical compressed storage use.
+- New-file writes can leave partial new files on interruption. The footer and
+  flush do not establish transactional filesystem recovery. Preserve originals.
+- Free-space checks are preflight checks, not reservations. Concurrent disk
+  filling, quotas, driver faults and power loss can still cause errors.
+- Passing native callbacks does not qualify mounted I/O, actual authorization,
+  memory mapping, kernel cancellation/shutdown, Windows 11, or arbitrary apps.
+
+## Prohibitions for later work
+
+Never format, repartition, alter boot state or write raw disks. Never install a
+driver, mount over existing data, change GPU tuning, run stress tests, register
+services or schedule persistence automatically on the owner's machine. Keep
+backing stores, recovery tools and binaries outside any eventual virtual volume.
+Never enable writes on important data before isolated recovery tests and
+independent backups. GPU output must match an independent CPU reference.
+
+Current evidence is recorded in [VALIDATION.md](VALIDATION.md). Linux tests and
+GitHub-hosted Windows tests are distinct from tests on the owner's PC; none of
+the latter have been performed. No production-safety guarantee is made.
