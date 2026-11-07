@@ -105,6 +105,17 @@ int main() {
       refuse([&] { (void)flitzfs::ReadOnlyCatalog::create({{invalid, f1}}); },
              "malformed or reserved virtual path accepted");
     }
+    // The entire component, not merely its stem, must be validated.
+    for (const auto& invalid : {"safe.txt:stream", "safe.ext?", "safe.ext*", "safe.ext\\tail",
+                                "safe.ext<", "safe.ext>", "safe.ext|", "safe.ext\""}) {
+      refuse([&] { (void)flitzfs::ReadOnlyCatalog::create({{invalid, f1}}); },
+             "forbidden extension character accepted");
+    }
+    for (char byte : {char(0), char(1), char(31), char(127), char(128), char(255)}) {
+      const auto invalid = std::string("safe.ext") + byte + "tail";
+      refuse([&] { (void)flitzfs::ReadOnlyCatalog::create({{invalid, f1}}); },
+             "control/non-ASCII extension character accepted");
+    }
     refuse([&] { (void)flitzfs::ReadOnlyCatalog::create({{"Data.X", f1}, {"data.x", f2}}); },
            "case-folded path collision accepted");
     refuse([&] { (void)flitzfs::ReadOnlyCatalog::create({{"docs", f1}, {"Docs/child", f2}}); },

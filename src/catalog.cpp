@@ -31,13 +31,14 @@ std::string key_for(std::string_view path, bool allow_root) {
     auto component = path.substr(pos, len);
     if (component == "." || component == ".." || component.back() == '.' || component.back() == ' ') reject();
     std::string stem;
+    bool in_stem = true;
     for (char c : component) {
       const bool allowed = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
           (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_' ||
           c == ' ' || c == '(' || c == ')';
       if (!allowed) reject();
-      if (c == '.') break;
-      stem.push_back(ascii_lower(c));
+      if (c == '.') in_stem = false;
+      if (in_stem) stem.push_back(ascii_lower(c));
     }
     if (stem == "con" || stem == "prn" || stem == "aux" || stem == "nul" ||
         stem == "conin$" || stem == "conout$" || stem == "clock$" ||
