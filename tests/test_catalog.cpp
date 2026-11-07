@@ -100,7 +100,7 @@ int main() {
     refuse([&] { (void)catalog.stat("docs/notpresent"); }, "missing file accepted");
 
     for (const auto& invalid : {"/absolute", "../up", "a/../b", "a/./b", "a//b", "a/",
-                                "C:/drive", "a\\windows", "a:b", "CON.txt", "COM1", "nul",
+                                "C:/drive", "a\\windows", "a:b", "CON.txt", "COM1", "COM0", "NUL .txt", "nul",
                                 "name.", "name ", "folder/PRN.any", "folder\\relative", "folder//dup"}) {
       refuse([&] { (void)flitzfs::ReadOnlyCatalog::create({{invalid, f1}}); },
              "malformed or reserved virtual path accepted");

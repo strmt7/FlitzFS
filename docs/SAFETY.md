@@ -12,14 +12,17 @@ supplied NEW output. OS-exclusive creation prevents replacing an existing path.
 The catalog, projection and optional WinFsp callback backend have no write API.
 The backend returns explicit write-protected statuses for mutation callbacks.
 
-There is **no mount executable, filesystem creation, dispatcher startup, raw-disk
-access, partitioning, formatting, service registration, scheduled task, GPU
-execution or encryption**. The owner's Windows PC and AMD GPU have not been used.
+Default builds and CTest do **not** create a filesystem, start a dispatcher,
+install a driver or mount anything. The separate optional hosted-CI probe below
+performs actual driver-backed synthetic mounts and forced-helper recovery.
+There is no raw-disk access, partitioning, formatting, scheduled task, GPU
+execution or encryption. The owner's Windows PC and AMD GPU have not been used.
 
 Tests create small, uniquely scoped temporary fixtures and remove only their own
-listed files, not directory trees. Hosted Windows CI stages a checksum-pinned
-SDK by extracting the MSI and reading its tables in mode 0; it never runs the
-installer, installs a driver, selects a .sys payload for use, or starts a service.
+listed files, not directory trees. The normal hosted Windows callback lane
+stages a checksum-pinned SDK by extracting the MSI and reading its tables in
+mode 0; that lane never runs the installer or starts a driver/service. A separate
+explicit integration job provisions only its disposable VM as documented below.
 Normal CMake configuration downloads and installs nothing.
 
 ## Enforced resource limits
@@ -33,6 +36,7 @@ Normal CMake configuration downloads and installs nothing.
 | Reader cache | One decoded chunk, at most 1 MiB |
 | Reader index | At most 1,048,576 entries / 32 MiB serialized index |
 | Catalog | At most 16 backing files; 4 MiB aggregate serialized index |
+| Plaintext catalog manifest | 8 KiB, 16 records, sibling-only container references |
 | Index admission | Checked before index buffer/entry-array allocation |
 | Catalog full verification | 32 MiB default; at most 256 MiB, preflighted |
 | Native adapter startup verification | Fixed 32 MiB aggregate logical-byte budget |
@@ -100,3 +104,18 @@ independent backups. GPU output must match an independent CPU reference.
 Current evidence is recorded in [VALIDATION.md](VALIDATION.md). Linux tests and
 GitHub-hosted Windows tests are distinct from tests on the owner's PC; none of
 the latter have been performed. No production-safety guarantee is made.
+
+## Disposable live integration boundary
+
+The normal core, callback and injected-session tests remain no-mount/no-driver.
+The optional live integration probe and its explicit hosted-CI-only installer
+are governed by `LIVE_MOUNT_PROBE.md`. Only a fresh disposable hosted Windows VM
+may receive the pinned driver. The probe creates synthetic files, pins ordinary
+ancestors, rejects an occupied mountpoint and retains originals. No owner-PC
+operation is authorized. Job limits are not a driver-memory or kernel sandbox.
+
+Manifest loading is read-only, bounded before allocation and restricted to
+lexical sibling filenames. Final link rejection does not authenticate metadata
+or contain hostile parent links/hardlinks. The manifest directory is trusted
+input. No collection loader silently follows absolute references or accepts
+malformed names. See `CATALOG_MANIFEST.md`.

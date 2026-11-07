@@ -5,7 +5,7 @@ executed tests and unpassed integration gates. It supersedes earlier statements
 that Windows CPU/native callback validation was still pending. Historical
 results remain in Git history and the earlier CI runs below.
 
-## Latest code qualification
+## Initial callback-only code qualification (historical)
 
 Code commit: **`dcb3a8b313af6e7b77453acf9474e506ef5bc83f`**.
 GitHub Actions: [run 42377524934](https://github.com/strmt7/FlitzFS/actions/runs/42377524934)
@@ -102,14 +102,51 @@ their point in time, not the current native callback state.
 
 ## Explicitly NOT qualified or implemented
 
-There is still no mount executable, persistent directory manifest, `.flzip`
-compatibility, AMD HIP execution, encryption/authentication, transactional
-writable volume or power-loss recovery. Mounted Windows I/O, mmap, shutdown and
-cancellation, real ACL enforcement, Windows 11, application compatibility,
-ThreadSanitizer, long soaks, broad fuzzing, independent security audit and
-end-to-end performance comparisons remain unpassed. Parent-path link/race
-containment is incomplete; lexical gates are not a general sandbox.
+There is still no general-purpose mount application, `.flzip` compatibility,
+AMD HIP execution, encryption/authentication, transactional writable volume or
+power-loss recovery. The synthetic hosted mount and process-crash qualifications
+are recorded below; persistent plaintext catalogs are now implemented. These
+do not qualify in-flight cancellation, cross-user ACL enforcement, Windows 11,
+broad application compatibility, ThreadSanitizer, long soaks, broad fuzzing,
+independent security audit or end-to-end performance comparisons. Parent-path
+link/race containment is incomplete; lexical gates are not a general sandbox.
 
 Passing these tests does not establish production safety, immunity to hangs or
 resource exhaustion, or any GPU speed/compression advantage. Preserve original
 data and do not install or mount this preview on the owner's PC automatically.
+
+## Continuation: lifecycle, process limits and real-mount probe
+
+At base `41cff2eea5d77f5b9582cca16c4b3c192f1e6a7b`, Actions run 42380771960
+completed all five existing jobs successfully, including Windows Job Object and
+injected lifecycle tests. The optional synthetic live probe is a new, separate
+qualification gate. Read `LIVE_MOUNT_PROBE.md`; no previous callback-only result
+counts as a real-mounted result. Run 42384272839 at
+`913b9e2f980a85b7564a23bd2b825ee7dae51f3c` subsequently passed all six jobs,
+including actual driver-backed synthetic mounted I/O.
+
+## Actual process-crash/remount evidence
+
+Run 42385143601 at `e4d5a1d9eb1b0f9b121841a7c053e8ac06aa3ab1` passed all six
+jobs. In Windows job 128441114383 the supervised normal mount returned 0,
+the deliberately abandoned mounted child returned timeout 1460 with termination
+confirmed, and a separate recovery/remount child returned 0. The readiness
+receipt was required, original/backing bytes matched, the mount disappeared,
+and the same directory was mounted and read again before clean shutdown.
+
+Recorded peak job committed bytes were 9,846,784 (normal), 9,842,688 (terminated)
+and 9,547,776 (recovery), below the enforced 128 MiB cap. These are committed
+process/job bytes, not total physical RAM, kernel memory or performance results.
+This is not a power-loss, in-flight cancellation or Windows 11 qualification.
+
+## Persistent catalog continuation
+
+The new bounded manifest parser/loader, real CLI smoke tests and persisted
+live-probe bindings require their matching commit's Windows CI. Portable
+validation passed all 12 CTest entries (eight test executables plus four real
+CLI invocations) in each of GCC/Zstandard, GCC/raw-only and Clang ASan/UBSan,
+for 36 executions. The manifest tests reproduced and repaired a reserved-name
+normalization gap before publication. These are correctness tests, not speed
+benchmarks or proof of production safety.
+No remote-control credentials, owner-PC logs or private repository content are
+part of these artifacts. No commands were executed on the owner's PC.

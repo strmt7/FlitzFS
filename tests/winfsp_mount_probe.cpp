@@ -2,6 +2,7 @@
 #include "winfsp_session.hpp"
 #include "bounded_process.hpp"
 #include "flitzfs/container.hpp"
+#include "flitzfs/catalog_manifest.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -175,6 +176,10 @@ std::vector<std::byte> synthetic_data() {
   for (std::size_t i = 0; i < data.size(); ++i) data[i] = static_cast<std::byte>((i / 31 + i % 251) % 256);
   return data;
 }
+std::string synthetic_manifest() {
+  return flitzfs::serialize_catalog_manifest({
+      {"Data/sample.bin", "synthetic.flfs"}, {"Data/other.txt", "empty.flfs"}, {"empty.bin", "empty.flfs"}});
+}
 void probe(bool abandon_mount) {
   require_probe_job();
   stage = 3;
@@ -190,8 +195,10 @@ void probe(bool abandon_mount) {
   require(packed.zstd_chunk_count > 0, "mount probe requires actual Zstandard chunks");
   (void)flitzfs::pack_new(empty, empty_archive);
   const auto archive_bytes = read_all(archive, static_cast<std::size_t>(packed.container_bytes));
-  const std::vector<flitzfs::CatalogSource> sources{
-      {"Data/sample.bin", archive}, {"Data/other.txt", empty_archive}, {"empty.bin", empty_archive}};
+  const auto manifest = synthetic_manifest();
+  const auto* text_begin = reinterpret_cast<const std::byte*>(manifest.data());
+  write_new(fixture.root / L"collection.flcatalog", {text_begin, text_begin + manifest.size()});
+  const auto sources = flitzfs::read_catalog_manifest_sources(fixture.root / L"collection.flcatalog");
   stage = 4;
   const auto occupied = fixture.root / L"occupied";
   checked(CreateDirectoryW(occupied.c_str(), nullptr), "collision fixture creation");
@@ -305,7 +312,6 @@ void recover(std::uint32_t previous_process) {
   stage = 15;
   const auto data = synthetic_data();
   const auto archive = fixture.root / L"synthetic.flfs";
-  const auto empty_archive = fixture.root / L"empty.flfs";
   require(read_all(fixture.root / L"synthetic.bin", data.size()) == data, "source changed after termination");
   auto checked_reader = flitzfs::Reader::open(archive);
   const auto& info = checked_reader.info();
@@ -320,8 +326,11 @@ void recover(std::uint32_t previous_process) {
   require(read_all(fixture.root / L"occupied" / L"sentinel.bin", sentinel.size()) == sentinel,
       "collision sentinel changed after forced termination");
   stage = 16;
-  const std::vector<flitzfs::CatalogSource> sources{
-      {"Data/sample.bin", archive}, {"Data/other.txt", empty_archive}, {"empty.bin", empty_archive}};
+  const auto manifest = synthetic_manifest();
+  const auto persisted = read_all(fixture.root / L"collection.flcatalog", manifest.size());
+  require(std::memcmp(persisted.data(), manifest.data(), manifest.size()) == 0,
+      "catalog manifest changed after termination");
+  const auto sources = flitzfs::read_catalog_manifest_sources(fixture.root / L"collection.flcatalog");
   flitzfs::WinFspReadOnlySession session(sources, live_api());
   const auto status = session.start({mount.native(), 30, true});
   if (!NT_SUCCESS(status)) throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),

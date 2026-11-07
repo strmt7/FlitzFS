@@ -1,4 +1,5 @@
 #include "flitzfs/container.hpp"
+#include "flitzfs/catalog_manifest.hpp"
 
 #include <charconv>
 #include <cstdint>
@@ -13,15 +14,19 @@
 namespace {
 void usage() {
   std::cout <<
-    "FlitzFS CPU core preview v0.1 (NOT a mounted filesystem)\n"
+    "FlitzFS CPU core preview v0.2 (NOT a mounted filesystem)\n"
     "Operations never overwrite, format, partition, delete, or modify input files.\n"
-    "No GPU operations, encryption, or filesystem drivers are present.\n\n"
+    "This executable has no GPU, encryption, driver-install or mount commands.\n\n"
     "Usage:\n"
     "  flitzfs pack    <existing-input-file> <NEW-output.flfs> [--chunk-kib N] [--level N] [--max-mib N]\n"
     "  flitzfs info    <existing-input.flfs>\n"
     "  flitzfs verify  <existing-input.flfs> [--max-mib N]\n"
     "  flitzfs probe   <existing-input.flfs> <offset> <length>\n"
     "  flitzfs extract <existing-input.flfs> <NEW-output-file> [--max-mib N]\n\n"
+    "  flitzfs catalog-list   <existing.flcatalog> [virtual-directory]\n"
+    "  flitzfs catalog-verify <existing.flcatalog>\n"
+    "  flitzfs catalog-probe  <existing.flcatalog> <virtual-file> <offset> <length>\n\n"
+    "Catalog manifests: at most 8 KiB, 16 sibling .flfs files; plaintext, NOT authenticated.\n"
     "Maximum probe length: 4 MiB. Pack chunk size: 4..1024 KiB, power of two.\n"
     "Default pack/extract budget: 256 MiB. Explicit cap: 4096 MiB.\n"
     "Requires at least 1 GiB of free disk space after projected output size.\n"
@@ -54,6 +59,29 @@ int main(int argc, char** argv) {
       return 0;
     }
     const auto command = std::string_view(argv[1]);
+    if (command == "catalog-list" && (argc == 3 || argc == 4)) {
+      auto catalog = flitzfs::load_catalog_manifest(argv[2]);
+      for (const auto& entry : catalog.list(argc == 4 ? argv[3] : ""))
+        std::cout << (entry.directory ? "directory" : "file") << '\t'
+                  << entry.logical_bytes << '\t' << entry.path << '\n';
+      std::cout << "Metadata only; use catalog-verify for bounded payload verification.\n";
+      return 0;
+    }
+    if (command == "catalog-verify" && argc == 3) {
+      auto catalog = flitzfs::load_catalog_manifest(argv[2]);
+      catalog.verify_all();
+      std::cout << "Catalog payloads verified under the 32 MiB total budget; NOT authenticated.\n";
+      return 0;
+    }
+    if (command == "catalog-probe" && argc == 6) {
+      const auto offset = parse_u64(argv[4]);
+      const auto size = parse_u64(argv[5]);
+      if (size > flitzfs::kMaxSingleReadBytes) throw std::runtime_error("probe length exceeds 4 MiB");
+      auto catalog = flitzfs::load_catalog_manifest(argv[2]);
+      const auto bytes = catalog.read(argv[3], offset, static_cast<std::uint32_t>(size));
+      std::cout << "Read and CRC-checked " << bytes.size() << " catalog bytes.\n";
+      return 0;
+    }
     if (command == "pack") {
       if (argc < 4) { usage(); return 2; }
       flitzfs::PackOptions options;
