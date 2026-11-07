@@ -81,18 +81,9 @@ std::uint32_t crc32(const std::uint8_t* data, std::size_t length) noexcept {
   return ~crc;
 }
 
-void read_exact(std::ifstream& file, Bytes& bytes, std::size_t length) {
+void read_exact(ReadOnlyFile& file, Bytes& bytes, std::uint64_t offset, std::size_t length) {
   bytes.resize(length);
-  if (length == 0) return;
-  if (length > static_cast<std::size_t>((std::numeric_limits<std::streamsize>::max)())) fail("read size exceeds stream limit");
-  file.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(length));
-  if (file.gcount() != static_cast<std::streamsize>(length) || !file) fail("short read or damaged backing file");
-}
-void seek_exact(std::ifstream& file, std::uint64_t offset) {
-  if (offset > static_cast<std::uint64_t>((std::numeric_limits<std::streamoff>::max)())) fail("offset exceeds seek range");
-  file.clear();
-  file.seekg(static_cast<std::streamoff>(offset), std::ios::beg);
-  if (!file) fail("unable to seek backing file");
+  file.read_exact_at(offset, bytes.data(), length);
 }
 
 void validate_chunk_size(std::uint32_t value) {
@@ -255,8 +246,14 @@ Bytes decode_payload(const Bytes& stored, std::size_t expected, std::uint8_t cod
   ZSTD_DCtx* raw = ZSTD_createDCtx();
   if (!raw) fail("cannot allocate Zstd decoder context");
   std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> ctx(raw, &ZSTD_freeDCtx);
-  const auto param = ZSTD_DCtx_setParameter(ctx.get(), ZSTD_d_windowLogMax, 20);
-  if (ZSTD_isError(param)) fail("cannot cap Zstd window size");
+  // Single-shot decompression has bounded output but windowLogMax only governs
+  // streaming. Check the authored single-frame size and reject concatenated frames.
+  const auto frame_bytes = ZSTD_findFrameCompressedSize(stored.data(), stored.size());
+  if (ZSTD_isError(frame_bytes) || frame_bytes != stored.size())
+    fail("Zstd chunk must contain exactly one complete frame");
+  const auto frame_decoded = ZSTD_getFrameContentSize(stored.data(), stored.size());
+  if (frame_decoded != static_cast<unsigned long long>(expected))
+    fail("Zstd frame content size disagrees with chunk index");
   const auto n = ZSTD_decompressDCtx(ctx.get(), decoded.data(), decoded.size(), stored.data(), stored.size());
   if (ZSTD_isError(n) || n != expected) fail("Zstd block decompression failed");
   return decoded;
@@ -273,20 +270,11 @@ ContainerInfo pack_new(const std::filesystem::path& input, const std::filesystem
   if (options.zstd_level < 1 || options.zstd_level > 5) fail("CPU Zstd level limited to [1,5] in the safety prototype");
   if (options.max_input_bytes > kMaxExplicitInputBytes || options.max_input_bytes == 0)
     fail("input budget must be between 1 byte and 4 GiB");
-  std::error_code source_ec;
-  const auto source_status = std::filesystem::symlink_status(input, source_ec);
-  if (source_ec || !std::filesystem::is_regular_file(source_status))
-    fail("input must be an ordinary non-symlink file");
-  std::ifstream source(input, std::ios::binary | std::ios::ate);
-  if (!source) fail("cannot open source for reading");
-  const auto end = source.tellg();
-  if (end < 0) fail("cannot determine source length");
-  const auto logical = static_cast<std::uint64_t>(end);
+  auto source = ReadOnlyFile::open(input);
+  const auto logical = source.size();
   if (logical > options.max_input_bytes) fail("input exceeds explicitly configured size budget");
   const auto count = logical / options.chunk_bytes + (logical % options.chunk_bytes != 0 ? 1U : 0U);
   if (count > kMaxChunks) fail("source exceeds chunk-index resource budget");
-  source.seekg(0, std::ios::beg);
-  if (!source) fail("cannot rewind input");
 
   // Check worst-case raw payload + index before exclusive creation.
   // Compression will never increase stored payload size because raw fallback is used.
@@ -302,7 +290,7 @@ ContainerInfo pack_new(const std::filesystem::path& input, const std::filesystem
   for (std::uint64_t i = 0; i < count; ++i) {
     const auto n = static_cast<std::uint32_t>((std::min)(remaining, std::uint64_t(options.chunk_bytes)));
     Bytes decoded;
-    read_exact(source, decoded, n);
+    read_exact(source, decoded, logical - remaining, n);
     std::uint8_t codec = 0;
     Bytes encoded;
 #ifdef FLITZFS_HAS_ZSTD
@@ -333,20 +321,12 @@ ContainerInfo pack_new(const std::filesystem::path& input, const std::filesystem
 }
 
 Reader Reader::open(const std::filesystem::path& container) {
-  std::error_code source_ec;
-  const auto source_status = std::filesystem::symlink_status(container, source_ec);
-  if (source_ec || !std::filesystem::is_regular_file(source_status))
-    fail("container must be an ordinary non-symlink file");
-  std::ifstream f(container, std::ios::binary | std::ios::ate);
-  if (!f) fail("cannot open container");
-  const auto end = f.tellg();
-  if (end < 0 || end < static_cast<std::streamoff>(kHeaderBytes + kFooterBytes))
-    fail("container is too short");
-  const auto file_size = static_cast<std::uint64_t>(end);
+  auto f = ReadOnlyFile::open(container);
+  const auto file_size = f.size();
+  if (file_size < kHeaderBytes + kFooterBytes) fail("container is too short");
 
-  seek_exact(f, 0);
   Bytes header;
-  read_exact(f, header, kHeaderBytes);
+  read_exact(f, header, 0, kHeaderBytes);
   if (!std::equal(kMagic.begin(), kMagic.end(), header.begin())) fail("bad container magic");
   if (get_u32(header, 8) != kVersion) fail("unsupported container version");
   const auto chunk_size = get_u32(header, 12);
@@ -357,9 +337,8 @@ Reader Reader::open(const std::filesystem::path& container) {
   if (count > kMaxChunks || count != logical / chunk_size + (logical % chunk_size != 0 ? 1U : 0U))
     fail("invalid or excessive chunk count");
 
-  seek_exact(f, file_size - kFooterBytes);
   Bytes footer;
-  read_exact(f, footer, kFooterBytes);
+  read_exact(f, footer, file_size - kFooterBytes, kFooterBytes);
   if (!std::equal(kFooterMagic.begin(), kFooterMagic.end(), footer.begin())) fail("bad or missing commit footer");
   const auto index_offset = get_u64(footer, 8);
   const auto index_size = get_u64(footer, 16);
@@ -370,9 +349,8 @@ Reader Reader::open(const std::filesystem::path& container) {
       index_size != (file_size - kFooterBytes) - index_offset)
     fail("index boundary or reserved field invalid");
 
-  seek_exact(f, index_offset);
   Bytes index;
-  read_exact(f, index, static_cast<std::size_t>(index_size));
+  read_exact(f, index, index_offset, static_cast<std::size_t>(index_size));
   if (crc32(index.data(), index.size()) != index_crc) fail("index checksum mismatch");
   std::vector<Entry> entries;
   entries.reserve(static_cast<std::size_t>(count));
@@ -407,9 +385,8 @@ Reader Reader::open(const std::filesystem::path& container) {
 std::vector<std::byte> Reader::read_chunk(std::size_t index) {
   if (index >= entries_.size()) fail("chunk out of range");
   const auto& e = entries_[index];
-  seek_exact(file_, e.offset);
   Bytes stored;
-  read_exact(file_, stored, e.stored_bytes);
+  read_exact(file_, stored, e.offset, e.stored_bytes);
   auto decoded = decode_payload(stored, e.decoded_bytes, e.codec);
   if (crc32(decoded.data(), decoded.size()) != e.crc32) fail("chunk CRC mismatch");
   std::vector<std::byte> result(decoded.size());

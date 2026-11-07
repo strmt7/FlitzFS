@@ -15,8 +15,8 @@ The owner's highest-priority requirements are: **do not format or repartition dr
 
 ## Development workflow
 
-1. Inspect current git history and user changes before editing; preserve existing repo content, branch policies and licensing. Never force-push.
-2. Work in small commits/PRs; mark all generated artifacts **experimental**. Use official documentation for WinFsp, Microsoft Windows I/O, AMD HIP/ROCm, Zstd and cryptographic dependencies.
+1. Inspect current git history and user changes before editing; preserve existing repo content and licensing. Develop and commit directly to `main` only; do not create development branches or PRs. Never force-push.
+2. Work in small, validated commits on `main`; mark all generated artifacts **experimental**. Use official documentation for WinFsp, Microsoft Windows I/O, AMD HIP/ROCm, Zstd and cryptographic dependencies.
 3. Extend deterministic byte-for-byte tests and malicious-input rejection before adding new storage features.
 4. Run CPU-only unit tests, raw-only build, ASan/UBSan where supported, and CI on both Windows and Linux. Do not substitute Linux success for Windows qualification.
 5. Design filesystem changes with explicit rollback/recovery, correct flush durability, no data loss under kill/power failure, and an independent CPU reader.
@@ -25,4 +25,4 @@ The owner's highest-priority requirements are: **do not format or repartition dr
 
 ## Present release boundary
 
-Milestone 1 is a **single-file CPU-only `.flfs` prototype**. No GPU, encryption, mounted drive, service, filesystem driver, or FlitzZip archive compatibility is implemented. `Reader` is explicitly single-threaded. Do not silently enable any of these features in a patch release.
+The project has a **single-file CPU-only `.flfs` prototype and a bounded, in-memory read-only catalog**. No GPU, encryption, mounted drive, service, filesystem driver, or FlitzZip archive compatibility is implemented. `Reader` is explicitly single-threaded. Do not silently enable any of these features in a patch release.

@@ -12,6 +12,10 @@
 #include <string>
 #include <vector>
 
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
+
 namespace fs = std::filesystem;
 
 struct TempScope {
@@ -251,6 +255,56 @@ int main() {
       fs::copy_file(archive, mutation, fs::copy_options::none);
       alter_byte(mutation, static_cast<std::uint64_t>((j % 2 == 0) ? j : fs::file_size(mutation) - 1u - j));
       expect_failure([&] { (void)flitzfs::Reader::open(mutation); }, "damaged metadata rejection");
+    }
+
+
+#ifndef _WIN32
+    // The open must fail immediately on a FIFO, never blocking while waiting
+    // for a peer. The fixture belongs exclusively to this test directory.
+    const auto fifo = tmp.name("not-a-file-fifo");
+    require(::mkfifo(fifo.c_str(), 0600) == 0, "create FIFO fixture");
+    expect_failure([&] { (void)flitzfs::Reader::open(fifo); }, "FIFO is not an archive");
+    expect_failure([&] { (void)flitzfs::pack_new(fifo, tmp.dir / "fifo-refused.flfs"); }, "FIFO is not an input");
+    require(!fs::exists(tmp.dir / "fifo-refused.flfs"), "FIFO refusal creates no output");
+
+    // Once opened, reads refer to the same OS file handle even after rename.
+    const auto pinned = tmp.name("pin-before-rename.flfs");
+    const auto renamed = tmp.name("pinned-after-rename.flfs");
+    fs::copy_file(archive, pinned, fs::copy_options::none);
+    auto pinned_reader = flitzfs::Reader::open(pinned);
+    fs::rename(pinned, renamed);
+    compare_range(pinned_reader, pattern, 128u * 1024u - 10u, 37u);
+#endif
+
+    // Forge a valid metadata index that points to a zstd frame plus trailing
+    // garbage. A single frame is required: valid CRC metadata is not enough.
+    const auto single_input = tmp.name("one-frame-input");
+    const auto single_archive = tmp.name("one-frame.flfs");
+    put(single_input, make_pattern(64u * 1024u));
+    const auto single_info = flitzfs::pack_new(single_input, single_archive);
+    if (single_info.zstd_chunk_count == 1) {
+      auto bytes = load(single_archive);
+      const auto old_footer = bytes.size() - 32u;
+      const auto old_index = static_cast<std::size_t>(test_u64le(bytes, old_footer + 8u));
+      require(bytes[old_index + 20u] == 1u, "single-frame test uses zstd");
+      bytes.insert(bytes.begin() + static_cast<std::ptrdiff_t>(old_index), 0xffu);
+      const auto index = old_index + 1u;
+      const auto footer = old_footer + 1u;
+      const auto encoded = static_cast<std::uint32_t>(bytes[index + 8u]) |
+          (static_cast<std::uint32_t>(bytes[index + 9u]) << 8) |
+          (static_cast<std::uint32_t>(bytes[index + 10u]) << 16) |
+          (static_cast<std::uint32_t>(bytes[index + 11u]) << 24);
+      for (unsigned i = 0; i < 4; ++i)
+        bytes[index + 8u + i] = static_cast<unsigned char>((encoded + 1u) >> (8u * i));
+      for (unsigned i = 0; i < 8; ++i)
+        bytes[footer + 8u + i] = static_cast<unsigned char>(static_cast<std::uint64_t>(index) >> (8u * i));
+      const auto crc = test_crc32(bytes.data() + index, 32u);
+      for (unsigned i = 0; i < 4; ++i)
+        bytes[footer + 24u + i] = static_cast<unsigned char>(crc >> (8u * i));
+      const auto trailing = tmp.name("trailing-frame-garbage.flfs");
+      put(trailing, bytes);
+      auto malformed = flitzfs::Reader::open(trailing);
+      expect_failure([&] { malformed.verify_all(); }, "trailing zstd bytes rejected");
     }
 
     expect_failure([&] { flitzfs::PackOptions bad; bad.chunk_bytes = 12345; (void)flitzfs::pack_new(source, tmp.dir / "bad.flfs", bad); }, "bad chunk size");

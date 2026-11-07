@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
+#include "flitzfs/read_only_file.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -70,11 +70,11 @@ class Reader {
     std::uint8_t codec{};
   };
 
-  Reader(std::ifstream file, ContainerInfo info, std::vector<Entry> entries)
+  Reader(ReadOnlyFile file, ContainerInfo info, std::vector<Entry> entries)
     : file_(std::move(file)), info_(info), entries_(std::move(entries)) {}
 
   std::vector<std::byte> read_chunk(std::size_t index);
-  std::ifstream file_;
+  ReadOnlyFile file_;
   ContainerInfo info_;
   std::vector<Entry> entries_;
   // Single most-recently used decoded chunk, bounded by kMaxChunkBytes.

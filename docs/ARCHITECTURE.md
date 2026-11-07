@@ -16,6 +16,21 @@ read -> validate container index -> locate touched chunks
 
 The container reader deliberately has **no** filesystem mount calls, user-PC API calls, AMD GPU device initialization, encryption, file deletion, volume creation, shell commands, background tasks, or service installation.
 
+## Stage 1.5: bounded in-memory read-only directory catalog (implemented)
+
+`ReadOnlyCatalog` maps up to 16 existing independently indexed `.flfs` files onto
+conservative, relative ASCII virtual paths. It builds parent directories, handles
+ASCII case-insensitive lookups, rejects traversal/reserved Windows names and
+collisions, and delegates byte-range reads to pinned read-only `Reader` objects.
+A 4 MiB aggregate index-data budget limits the catalog. It neither persists
+metadata nor mounts a Windows drive; there is no mutation API.
+
+**Important:** Catalog construction validates metadata, not every chunk payload;
+reads verify the touched chunks. The catalog is single-threaded. It is a
+building block for eventual WinFsp callbacks, not a complete virtual volume.
+Unicode names, Windows ACLs, timestamps, security descriptors, concurrent
+callbacks, cache eviction, and persistently authenticated manifests are future gates.
+
 ## Stage 2: read-only Windows mount, only after tests
 
 WinFsp is a reasonable user-mode filesystem bridge for Windows. The future adapter will translate open, read, metadata, directory enumeration and memory-mapped reads into bounded requests against a new immutable chunk/object store. Start in a disposable test mount folder with NO persistence of the mount across reboot. Never mount over an existing directory containing data. Retain a read-only CPU export path that does not require the mounted filesystem.
