@@ -68,7 +68,7 @@ int wmain(int argc, wchar_t** argv) {
     const auto executable = self();
     auto run = [&](std::vector<std::wstring> args, DWORD expected, flitzfs::ProcessBudget budget = {}) {
       const auto result = flitzfs::run_bounded_process(executable, args, budget);
-      require(result.exit_confirmed && !result.timed_out && result.exit_code == expected, "child result mismatch");
+      require(result.process_id != 0 && result.process_id != GetCurrentProcessId() && result.exit_confirmed && !result.timed_out && result.exit_code == expected, "child result mismatch");
       require(result.peak_committed_bytes <= budget.memory_mib * 1024ULL * 1024, "job memory accounting exceeded cap");
     };
     run({L"--child-probe"}, 73);
@@ -80,7 +80,7 @@ int wmain(int argc, wchar_t** argv) {
     run({L"--child-allocation"}, 73, memory_limited);
     flitzfs::ProcessBudget quick; quick.timeout_ms = 50;
     const auto timed = flitzfs::run_bounded_process(executable, {L"--child-sleep"}, quick);
-    require(timed.timed_out && timed.exit_confirmed && timed.exit_code == ERROR_TIMEOUT, "timeout not terminated/confirmed");
+    require(timed.process_id != 0 && timed.timed_out && timed.exit_confirmed && timed.exit_code == ERROR_TIMEOUT, "timeout not terminated/confirmed");
     bool rejected = false;
     try { flitzfs::ProcessBudget invalid; invalid.memory_mib = 0;
       (void)flitzfs::run_bounded_process(executable, {}, invalid); }
