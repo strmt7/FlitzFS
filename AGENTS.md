@@ -38,3 +38,13 @@ bound handles and concurrent decodes. Destruction/move must not race callbacks.
 Encryption, authentication, HIP execution, writable volumes and `.flzip`
 compatibility remain unimplemented. Keep optional behavior opt-in and report
 actual test coverage without upgrading partial tests into production claims.
+
+## Explicit isolated integration exception
+
+The optional hosted-CI-only mount probe is documented in `docs/LIVE_MOUNT_PROBE.md`.
+Normal builds and CTest remain no-mount/no-driver. Only the separate
+`windows-mount` job may provision the pinned driver on a disposable GitHub-hosted
+Windows VM, after the ordinary CI gates pass. Never transfer that permission to
+the owner's PC, a self-hosted runner, arbitrary files or an existing mountpoint.
+The probe must keep its 128 MiB/20% CPU/30-second process limits and synthetic-only
+input policy. Kernel faults cannot be covered by a no-freeze guarantee.
