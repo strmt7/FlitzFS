@@ -11,7 +11,7 @@ promotion. No new branches, force pushes or owner-PC operations are needed.
 | M1.6: concurrency and verification | Implemented per-file locks and bounded whole-catalog verification | Deterministic concurrent byte parity and corruption detection |
 | M1.7: Windows virtual projection | Implemented root-relative ASCII translation and short reads | Portable tests and Windows CPU CI; no mount |
 | M1.8 / release 0.2: native callback foundation | Implemented OFF-by-default WinFsp read-only backend, pre-allocation budgets and physical-path guards | Direct real-SDK Windows callback tests plus Linux/raw/sanitizers; this is NOT mounted qualification |
-| M2: FlitzZip compatibility | Not implemented: read-only .flzip adapter | Source/license/API review; independently verified block integrity; malicious corpus and byte-for-byte reference tests |
+| M2: FlitzZip compatibility | Implemented bounded CPU raw/fill/pattern/Deflate/Zstd snapshot reader, CLI and projection route | Exact supported subset in FLZIP_READONLY.md; native GPU codecs/full CLI parity remain unimplemented; serializer and mounted qualification depend on matching CI |
 | M3: Windows read-only mount | Lifecycle, live synthetic reads and process-crash/remount probe implemented; see per-commit CI | No collisions/recursion; explicit driver provisioning; clean unmount/restart; actual ACL/mapped-I/O/cancellation/app tests; CPU export |
 | M4: adaptive CPU/HIP | Not implemented: bounded GPU batches and measured routing | Tiny synthetic opt-in tests, independent CPU parity, headroom/timeout handling, full H2D/kernel/D2H timing and demonstrated end-to-end benefit |
 | M5: authenticated immutable store | Not implemented: AEAD records, authenticated manifest, key handling | Vetted crypto; nonce/clone/rollback analysis; authentication-negative/fuzz tests; independent recovery |
@@ -36,8 +36,8 @@ satisfy M5 authenticated metadata or M6 mutable/durable transactions.
 - Define disposable mountpoint reservation, explicit driver presence checks,
   resource supervision, cancellation/shutdown and immutable backing containment.
 - Retain the no-install/no-mount callback lane as a fast regression check.
-- Build `.flzip` CPU compatibility from real source and retained fixtures,
-  without importing unsafe GPU initialization or claiming existing parity.
+- Expand `.flzip` CPU compatibility only from source-pinned contracts and independent
+  fixtures; retain explicit unsupported-codec failures and no HIP initialization.
 - Keep the implemented plaintext manifest distinct from future authenticated
   records and transactional metadata; do not stretch v1 containers into a journal.
 

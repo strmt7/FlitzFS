@@ -119,3 +119,14 @@ lexical sibling filenames. Final link rejection does not authenticate metadata
 or contain hostile parent links/hardlinks. The manifest directory is trusted
 input. No collection loader silently follows absolute references or accepts
 malformed names. See `CATALOG_MANIFEST.md`.
+
+## Bounded FLZIP compatibility boundary
+
+The external archive route uses a verified in-memory byte copy and does not
+modify its backing file. All file CRCs are checked before names or ranges are
+exposed; CRC is not authentication. Maximum archive/index/block/logical sizes
+and the 16-file ceiling remain fixed. A per-snapshot mutex serializes its decoded
+cache through catalog callbacks. `.flcatalog` does not implicitly accept FLZIP
+paths. Read FLZIP_READONLY.md for stricter-than-upstream compatibility limits.
+The hosted real-mount test retains the existing OS process limits and fixture
+isolation; it is never automatically run on the owner's PC.

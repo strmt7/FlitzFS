@@ -2,6 +2,7 @@
 
 #include <winfsp/winfsp.h>
 #include "flitzfs/catalog.hpp"
+#include "flitzfs/projection.hpp"
 #include <memory>
 #include <vector>
 
@@ -13,6 +14,7 @@ class WinFspReadOnly final {
  public:
   // Fully verify at most 32 MiB of logical content before exposing callbacks.
   explicit WinFspReadOnly(const std::vector<CatalogSource>& sources);
+  explicit WinFspReadOnly(ReadOnlyProjection projection);
   ~WinFspReadOnly();
   WinFspReadOnly(const WinFspReadOnly&) = delete;
   WinFspReadOnly& operator=(const WinFspReadOnly&) = delete;

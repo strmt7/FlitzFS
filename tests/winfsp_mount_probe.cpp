@@ -3,6 +3,8 @@
 #include "bounded_process.hpp"
 #include "flitzfs/container.hpp"
 #include "flitzfs/catalog_manifest.hpp"
+#include "flitzfs/flzip_reader.hpp"
+#include "flzip_test_fixture.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -278,6 +280,66 @@ void probe(bool abandon_mount) {
   require(read_all(sentinel, sentinel_data.size()) == sentinel_data, "unrelated collision fixture changed");
   flitzfs::Reader::open(archive).verify_all();
 }
+// Same native mount interface, now fed by a verified immutable .flzip snapshot.
+// All bytes, paths and codec choices are synthetic and fixed by this test.
+void flzip_probe() {
+  require_probe_job(); stage = 20;
+  Fixture fixture;
+  const auto data = synthetic_data();
+  using namespace flzip_fixture;
+  const Bytes first(data.begin(), data.begin() + 128 * 1024);
+  const Bytes second(data.begin() + 128 * 1024, data.end());
+  const auto patterned = pattern(9001);
+  const auto deflated = compressed(2, pattern(8193, "Deflate native interoperability").plain);
+  const auto zip = archive({
+      {"Data/sample.bin", false, {compressed(8, first), compressed(8, second)}},
+      {"filled.bin", false, {fill(4097, 19)}},
+      {"pattern.bin", false, {patterned}},
+      {"deflated.bin", false, {deflated}},
+      {"empty.bin", false, {}}, {"EmptyDir", true, {}}}, 6);
+  const auto source = fixture.root / L"native.flzip";
+  write_new(source, zip.bytes);
+  stage = 21;
+  auto projection = flitzfs::ReadOnlyProjection::open_flzip(source);
+  const auto mount = fixture.root / L"mount";
+  flitzfs::WinFspReadOnlySession session(std::move(projection), live_api());
+  const auto status = session.start({mount.native(), 30, true});
+  if (!NT_SUCCESS(status)) throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
+      std::system_category(), "FLZIP session startup");
+  stage = 22;
+  const auto virtual_file = mount / L"data" / L"SAMPLE.BIN";
+  require(read_all(virtual_file, data.size()) == data, "mounted FLZIP Zstandard parity");
+  require(read_all(mount / L"filled.bin", 4097) == Bytes(4097, std::byte{19}), "mounted FLZIP fill parity");
+  require(read_all(mount / L"pattern.bin", patterned.plain.size()) == patterned.plain, "mounted FLZIP pattern parity");
+  require(read_all(mount / L"deflated.bin", deflated.plain.size()) == deflated.plain, "mounted FLZIP Deflate parity");
+  require(read_all(mount / L"empty.bin", 0).empty(), "mounted FLZIP empty file");
+  check_mapping(virtual_file, data);
+  {
+    Handle file(CreateFileW(virtual_file.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr));
+    checked(file.value != INVALID_HANDLE_VALUE, "FLZIP random open");
+    LARGE_INTEGER offset{}; offset.QuadPart = 128 * 1024 - 13;
+    checked(SetFilePointerEx(file.value, offset, nullptr, FILE_BEGIN), "FLZIP random seek");
+    std::array<std::byte, 64> bytes{}; DWORD got = 0;
+    checked(ReadFile(file.value, bytes.data(), static_cast<DWORD>(bytes.size()), &got, nullptr), "FLZIP random read");
+    require(got == bytes.size() && std::equal(bytes.begin(), bytes.end(), data.begin() + offset.QuadPart), "FLZIP cross-block parity");
+    Handle denied(CreateFileW(virtual_file.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr));
+    require(denied.value == INVALID_HANDLE_VALUE, "FLZIP write grant");
+    require(!DeleteFileW(virtual_file.c_str()), "FLZIP delete allowed");
+  }
+  stage = 23;
+  require(enumerate(mount / L"*") == std::set<std::wstring>{L"Data",L"EmptyDir",L"deflated.bin",L"empty.bin",L"filled.bin",L"pattern.bin"}, "FLZIP directory enumeration");
+  require(enumerate(mount / L"Data" / L"s*.bin") == std::set<std::wstring>{L"sample.bin"}, "FLZIP wildcard filtering");
+  std::atomic<bool> parity{true};
+  auto worker = [&]() {try {for(unsigned i=0;i<2;++i) if(read_all(virtual_file,data.size()) != data) parity=false;} catch(...) {parity=false;}};
+  {std::jthread one(worker);std::jthread two(worker);}
+  require(parity, "FLZIP concurrent mounted parity");
+  stage = 24;
+  session.stop();
+  require(session.dispatcher_stopped() && !session.dispatcher_stopped_unexpectedly(), "FLZIP clean shutdown");
+  require(GetFileAttributesW(mount.c_str()) == INVALID_FILE_ATTRIBUTES, "FLZIP mount remained");
+  require(read_all(source,zip.bytes.size()) == zip.bytes, "FLZIP input changed");
+}
 // The only recovery selector is the PID returned by this executable's supervisor.
 // No path, namespace, volume, or existing user file is accepted as an argument.
 std::uint32_t process_number(std::wstring_view text) {
@@ -357,6 +419,7 @@ int wmain(int argc, wchar_t** argv) {
       recover(process_number(argv[2])); return 0;
     }
     require(argc == 2, "unexpected probe argument");
+    if (mode == L"--probe-flzip-child") { flzip_probe(); return 0; }
     if (mode == L"--probe-child") { probe(false); return 0; }
     if (mode == L"--probe-crash-child") { probe(true); return 0; }
     require(mode == L"--run-disposable-ci", "unknown probe mode");
@@ -364,6 +427,12 @@ int wmain(int argc, wchar_t** argv) {
     const auto n = GetModuleFileNameW(nullptr, path, 512);
     require(n && n < 512, "probe executable path unavailable");
     flitzfs::ProcessBudget budget; budget.timeout_ms = 30000;
+    const auto native_zip = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)), {L"--probe-flzip-child"}, budget);
+    std::cout << "flzip_probe exit=" << native_zip.exit_code << " stage=" << (native_zip.exit_code >> 16U)
+        << " detail=" << (native_zip.exit_code & 0xffffU) << " timed_out=" << native_zip.timed_out
+        << " exit_confirmed=" << native_zip.exit_confirmed << " peak_commit_bytes=" << native_zip.peak_committed_bytes << '\n';
+    require(native_zip.exit_confirmed && !native_zip.timed_out && native_zip.exit_code == 0, "supervised FLZIP mount failed");
+    std::cout << "PASS: real mounted FLZIP Zstandard/Deflate/fill/pattern, mapped/random/concurrent reads, write rejection and unchanged source.\n";
     const auto result = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)), {L"--probe-child"}, budget);
     std::cout << "mount_probe exit=" << result.exit_code << " stage=" << (result.exit_code >> 16U)
         << " detail=" << (result.exit_code & 0xffffU) << " timed_out=" << result.timed_out

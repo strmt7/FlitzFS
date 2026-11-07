@@ -102,7 +102,7 @@ their point in time, not the current native callback state.
 
 ## Explicitly NOT qualified or implemented
 
-There is still no general-purpose mount application, `.flzip` compatibility,
+There is still no general-purpose mount application or full `.flzip` codec compatibility,
 AMD HIP execution, encryption/authentication, transactional writable volume or
 power-loss recovery. The synthetic hosted mount and process-crash qualifications
 are recorded below; persistent plaintext catalogs are now implemented. These
@@ -150,3 +150,25 @@ normalization gap before publication. These are correctness tests, not speed
 benchmarks or proof of production safety.
 No remote-control credentials, owner-PC logs or private repository content are
 part of these artifacts. No commands were executed on the owner's PC.
+
+## Bounded FLZIP CPU compatibility continuation
+
+Baseline `a7eea03d33a4119e37023205d25cfa6c4909abd7` was retrieved as a
+commit-bound artifact, verified by SHA-256, and its complete source tree matched
+`c807d158a4e2a3b8dbd148b7355000e9c9cecedc`. All 12 baseline CTest entries
+passed locally before implementation.
+
+The added reader/parser, snapshot/cache, catalog/projection, and CLI tests cover
+raw/fill/pattern and optional Deflate/Zstd. Negative cases include version/kind
+mismatches, count/length limits, overlapping payloads, path conflicts, CRC errors
+in unrequested files, exact-stream violations, unknown Zstd output size,
+truncations and deterministic mutations. The CLI test runs 12 real subprocess
+checks and confirms all five synthetic fixture hashes remain unchanged.
+
+All 14 portable CTest entries passed in each of local GCC with Zstandard 1.5.7
+and zlib 1.3.1, raw-only GCC, and Clang ASan/UBSan: 42 entry executions. This count
+includes the CLI contract as one entry, not 12 separately counted CTest entries.
+Windows/native constructor ABI, the upstream serializer oracle, zlib 1.4 static
+staging and actual mounted FLZIP behavior still require the new commit's CI.
+Pending checks must not be reported as passed. No owner-PC/GPU access or remote-control credential is
+part of this change. See FLZIP_READONLY.md for scope and primary research.

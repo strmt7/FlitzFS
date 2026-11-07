@@ -73,3 +73,10 @@ This single-file container holds exactly one logical byte stream. It is **not** 
 The 0.2 native callback backend supplies an in-memory namespace and synthetic
 metadata around existing containers. It writes none of that metadata into v1,
 and does not change its bytes, codec identifiers or integrity guarantees.
+
+## External FLZIP input is a separate format
+
+The read-only FLZIP adapter described in `FLZIP_READONLY.md` does not change
+`.flfs` v1 bytes or codec identifiers. Its SUZP/SUZF framing and file-wide CRCs
+are parsed independently, with verification before exposure. Never interpret
+FLZIP as a `.flfs`, ZIP alias, or authenticated container.

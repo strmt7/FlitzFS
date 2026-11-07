@@ -123,3 +123,14 @@ library. Compress before encryption. Keep CPU-only recovery independent of GPU
 availability. Writable support additionally needs an append-only landing log,
 copy-on-write metadata, explicit flush semantics, compaction/free-space reserves
 and fault injection at every commit point before any mounted write preview.
+
+## Verified external FLZIP view
+
+`FlzipReader` privately owns bounded compressed bytes, parsed nodes and at most
+one decoded block. No caller gets a view until every file CRC passes. The
+catalog's explicit `open_flzip` factory serializes mutable cache operations;
+immutable namespace queries are safe while the catalog remains alive. The
+projection and native callback layers consume the same catalog API. This avoids
+forking Windows I/O semantics for another archive format. There is no GPU
+initialization, writable adapter or implicit FLZIP import in `.flcatalog`.
+The test-only upstream index serializer is not linked into the product.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include "flitzfs/catalog.hpp"
 
 #include <cstdint>
@@ -15,6 +16,7 @@ namespace flitzfs {
 class ReadOnlyProjection final {
  public:
   static ReadOnlyProjection create(const std::vector<CatalogSource>& files);
+  static ReadOnlyProjection open_flzip(const std::filesystem::path& archive);
   ReadOnlyProjection(const ReadOnlyProjection&) = delete;
   ReadOnlyProjection& operator=(const ReadOnlyProjection&) = delete;
   ReadOnlyProjection(ReadOnlyProjection&&) noexcept = default;

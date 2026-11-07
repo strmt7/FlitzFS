@@ -35,8 +35,8 @@ owner's PC. A successful callback test is not a mounted-filesystem qualification
 
 Reader is single-threaded; catalogs lock each file. Native callbacks additionally
 bound handles and concurrent decodes. Destruction/move must not race callbacks.
-Encryption, authentication, HIP execution, writable volumes and `.flzip`
-compatibility remain unimplemented. Keep optional behavior opt-in and report
+Encryption, authentication, HIP execution and writable volumes remain unimplemented.
+FLZIP compatibility is a bounded CPU subset; consult `docs/FLZIP_READONLY.md`. Keep optional behavior opt-in and report
 actual test coverage without upgrading partial tests into production claims.
 
 ## Explicit isolated integration exception
@@ -53,3 +53,8 @@ The bounded plaintext collection manifest and read-only CLI are described in
 `docs/CATALOG_MANIFEST.md`. They do not implement encryption, authentication,
 transactional writes, or hostile-directory sandboxing. Keep the existing
 namespace and index budgets; validate all references before backing access.
+
+The FLZIP snapshot reader must verify every file before exposure, never initialize
+HIP, and reject unavailable codecs explicitly. Preserve its physical/index/
+block/logical caps. The upstream serializer oracle is test-only, read-only and
+commit-pinned; never edit other repositories or claim full CLI interoperability.

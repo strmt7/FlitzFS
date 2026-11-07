@@ -1,0 +1,51 @@
+name: Pinned FlitzZip serializer interoperability
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  serializer-oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check out reviewed FlitzZip reference without running its build scripts
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: strmt7/FlitzZip
+          ref: 4e6a1bb0d144611a09dcbc65276faa676e923882
+          path: .ci-deps/flitzzip
+          sparse-checkout: src/core
+          persist-credentials: false
+      - name: Check out pinned zlib security-fix release
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: madler/zlib
+          ref: 99623ef7097352da7993ba614161fd6a311e046e # v1.4
+          path: .ci-deps/zlib
+          persist-credentials: false
+      - name: Install CPU Zstandard development library
+        run: sudo apt-get update && sudo apt-get install -y libzstd-dev
+      - name: Build pinned zlib without installing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S .ci-deps/zlib -B .ci-deps/zlib-build -DCMAKE_BUILD_TYPE=Release -DZLIB_BUILD_TESTING=OFF -DZLIB_BUILD_SHARED=OFF -DZLIB_BUILD_STATIC=ON -DZLIB_INSTALL=OFF
+          cmake --build .ci-deps/zlib-build --target zlibstatic --parallel 2
+          test -f .ci-deps/zlib-build/libz.a
+          mkdir .ci-deps/zlib-build/flitzfs-headers
+          cp .ci-deps/zlib/zlib.h .ci-deps/zlib-build/zconf.h .ci-deps/zlib-build/flitzfs-headers/
+      - name: Configure test-only upstream serialization oracle
+        run: >-
+          cmake -S . -B build-oracle -DCMAKE_BUILD_TYPE=Release
+          -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_ZLIB=ON
+          -DZLIB_INCLUDE_DIR=${{ github.workspace }}/.ci-deps/zlib-build/flitzfs-headers
+          -DZLIB_LIBRARY_RELEASE=${{ github.workspace }}/.ci-deps/zlib-build/libz.a
+          -DFLITZFS_FLITZZIP_SOURCE=${{ github.workspace }}/.ci-deps/flitzzip
+      - name: Build with at most two workers
+        run: cmake --build build-oracle --parallel 2
+      - name: Verify independent serialization and all portable tests
+        run: ctest --test-dir build-oracle --output-on-failure --timeout 45 --parallel 1
