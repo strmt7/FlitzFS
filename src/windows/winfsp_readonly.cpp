@@ -1,5 +1,6 @@
 #include "winfsp_readonly.hpp"
 #include "flitzfs/catalog_error.hpp"
+#include "flitzfs/directory_order.hpp"
 #include "flitzfs/projection.hpp"
 
 #include <sddl.h>
@@ -264,7 +265,7 @@ struct WinFspReadOnly::Impl {
       }
       after = fold(after);
       auto append = [&](const Node& value, const std::string& name) {
-        if (marker && fold(name) <= after) return true;
+        if (marker && !directory_name_after(name, after)) return true;
         alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte, sizeof(FSP_FSCTL_DIR_INFO) + 200> scratch{};
         auto* item = reinterpret_cast<FSP_FSCTL_DIR_INFO*>(scratch.data());
         item->Size = static_cast<UINT16>(sizeof(FSP_FSCTL_DIR_INFO) + name.size() * sizeof(wchar_t));

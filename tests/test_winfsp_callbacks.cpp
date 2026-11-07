@@ -80,7 +80,8 @@ int main() {
     (void)flitzfs::pack_new(empty_input, empty_archive);
     const auto original_size = fs::file_size(archive);
     {
-      flitzfs::WinFspReadOnly adapter({{"Docs/Alpha.bin", archive}, {"Docs/Beta.bin", empty_archive}});
+      flitzfs::WinFspReadOnly adapter({{"Docs/Alpha.bin", archive}, {"Docs/Beta.bin", empty_archive},
+          {"Docs/ a.bin", empty_archive}, {"Docs/(a).bin", empty_archive}});
       FSP_FILE_SYSTEM fs_context{}; // No filesystem creation, driver, dispatcher or mount.
       adapter.bind_callbacks(fs_context);
       const auto& cb = adapter.callbacks();
@@ -148,7 +149,7 @@ int main() {
       require(cb.GetSecurity(&fs_context, file, &sentinel, &too_small) == STATUS_BUFFER_OVERFLOW && sentinel == std::byte{0x7e}, "security copy bounds");
       alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte, 1024> entries{};
       require(cb.ReadDirectory(&fs_context, directory, nullptr, nullptr, entries.data(), static_cast<ULONG>(entries.size()), &count) == STATUS_SUCCESS, "directory enumeration");
-      require(names(entries.data(), count) == std::vector<std::wstring>{L".", L"..", L"Alpha.bin", L"Beta.bin"}, "directory record names/order");
+      require(names(entries.data(), count) == std::vector<std::wstring>{L".", L"..", L" a.bin", L"(a).bin", L"Alpha.bin", L"Beta.bin"}, "directory record names/order");
       std::vector<std::wstring> collected;
       std::wstring marker;
       for (unsigned page = 0; page < 8; ++page) {
@@ -159,7 +160,7 @@ int main() {
         collected.insert(collected.end(), batch.begin(), batch.end());
         marker = batch.back();
       }
-      require(collected == std::vector<std::wstring>{L".", L"..", L"Alpha.bin", L"Beta.bin"}, "directory marker continuation");
+      require(collected == std::vector<std::wstring>{L".", L"..", L" a.bin", L"(a).bin", L"Alpha.bin", L"Beta.bin"}, "directory marker continuation");
       require(cb.ReadDirectory(&fs_context, directory, nullptr, name(L"alpha.BIN"), entries.data(), 1024, &count) == STATUS_SUCCESS && names(entries.data(), count) == std::vector<std::wstring>{L"Beta.bin"}, "case folded directory marker");
       require(cb.ReadDirectory(&fs_context, directory, nullptr, nullptr, entries.data(), 1, &count) == STATUS_BUFFER_OVERFLOW && !count, "directory tiny buffer");
       require(cb.ReadDirectory(&fs_context, file, nullptr, nullptr, entries.data(), 1024, &count) == STATUS_NOT_A_DIRECTORY, "enumerating a file");

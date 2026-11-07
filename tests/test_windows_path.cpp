@@ -1,4 +1,6 @@
 #include "flitzfs/windows_path.hpp"
+#include "flitzfs/directory_order.hpp"
+#include <array>
 #include <iostream>
 #include <initializer_list>
 #include <stdexcept>
@@ -28,6 +30,15 @@ int main() {
     if (flitzfs::ordinary_windows_file_path(std::wstring(256, L'a')) ||
         flitzfs::ordinary_windows_file_path(std::wstring(32768, L'a')))
       throw std::runtime_error("name or path budget bypassed");
+    constexpr std::array<std::string_view, 8> ordered{
+        ".", "..", " a.bin", "(a).bin", "-a.bin", ".hidden", "Alpha.bin", "Beta.bin"};
+    for (std::size_t i = 0; i < ordered.size(); ++i)
+      for (std::size_t j = 0; j < ordered.size(); ++j)
+        if (flitzfs::directory_name_after(ordered[i], ordered[j]) != (i > j))
+          throw std::runtime_error("directory marker ordering skipped or repeated an entry");
+    if (flitzfs::directory_name_after("ALPHA.bin", "alpha.BIN") ||
+        !flitzfs::directory_name_after("beta.bin", "ALPHA.bin"))
+      throw std::runtime_error("directory marker case folding");
     std::cout << "PASS: lexical host path gate, device aliases, namespaces, streams and NUL; no OS I/O\n";
     return 0;
   } catch (const std::exception& e) { std::cerr << "FAIL: " << e.what() << '\n'; return 1; }
