@@ -76,8 +76,8 @@ int wmain(int argc, wchar_t** argv) {
     run({L"--child-args", L"", L"a b", L"tab\tvalue", L"quote\"value", L"trailing\\",
         L"before\\\"quote", L"two\\\\", L"plain"}, 73);
     run({L"--child-spawn"}, 73);
-    flitzfs::ProcessBudget small; small.memory_mib = 64;
-    run({L"--child-allocation"}, 73, small);
+    flitzfs::ProcessBudget memory_limited; memory_limited.memory_mib = 64;
+    run({L"--child-allocation"}, 73, memory_limited);
     flitzfs::ProcessBudget quick; quick.timeout_ms = 50;
     const auto timed = flitzfs::run_bounded_process(executable, {L"--child-sleep"}, quick);
     require(timed.timed_out && timed.exit_confirmed && timed.exit_code == ERROR_TIMEOUT, "timeout not terminated/confirmed");
