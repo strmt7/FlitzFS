@@ -16,13 +16,15 @@ No mounts, raw devices, disk partition APIs, volume formatting, boot modificatio
 | Resource / behavior | Default or bound |
 |---|---|
 | Maximum file to pack | 256 MiB by default; up to 4 GiB only with explicit budget |
-| Maximum file to extract | 256 MiB by default; up to 4 GiB only with explicit budget |
+| Maximum file to extract or verify via CLI | 256 MiB by default; up to 4 GiB only with explicit budget |
 | Chunk bytes | 4 KiB–1 MiB, power of two; default 128 KiB |
 | Metadata entries | At most 1,048,576, each 32 bytes |
 | Single random read | At most 4 MiB |
 | Stored compressed chunk | At most 2 MiB |
 | Decoded read cache | One 1 MiB-or-smaller chunk per Reader |
 | In-memory virtual catalog | At most 16 read handles and 4 MiB aggregate index metadata; no persistent mount |
+| Catalog full verification | Default 32 MiB total decoded bytes; upper limit 256 MiB, preflighted before decoding |
+| Concurrent catalog reads | Per-file mutex protecting mutable decoder cache / shared Windows file pointer; no background thread pool |
 | Zstd decoded output | At most 1 MiB, checked against single-frame metadata; single-shot decoder window is not independently capped |
 | CPU compression level | 1–5 only; one CPU stream, no parallel workers |
 | Disk-space preflight | Refuse projected output unless 1 GiB additional space remains |
@@ -37,7 +39,7 @@ These checks reduce risk but do not protect against concurrent disk filling, I/O
 - Input files or container files can change during processing; v1 does not snapshot or lock them. Handles are pinned to an opened object, but other processes can still mutate underlying content (particularly on POSIX). Use immutable copies for testing.
 - The format parser bounds lengths and checks arithmetic, but has not been through a professional security audit or an exhaustive external fuzzing campaign.
 - Zstd decompression requires a trusted and patched Zstd library; an intentionally malformed stream is handled as an error, not as trusted data.
-- There is no read-only WinFsp mount yet, so no claim is made about filesystem semantics, Windows crash recovery, ACLs, mmap, paging, or concurrent access.
+- There is no read-only WinFsp mount yet, so no claim is made about full filesystem semantics, Windows crash recovery, ACLs, mmap, paging, or WinFsp callback safety. M1.6 covers simultaneous read-only `ReadOnlyCatalog::read` calls against a live, nonmoving catalog; object lifetime and every other callback remain separate gates.
 
 ## Explicit prohibitions for later work
 

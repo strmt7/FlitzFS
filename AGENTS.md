@@ -25,4 +25,4 @@ The owner's highest-priority requirements are: **do not format or repartition dr
 
 ## Present release boundary
 
-The project has a **single-file CPU-only `.flfs` prototype and a bounded, in-memory read-only catalog**. No GPU, encryption, mounted drive, service, filesystem driver, or FlitzZip archive compatibility is implemented. `Reader` is explicitly single-threaded. Do not silently enable any of these features in a patch release.
+The project has a **single-file CPU-only `.flfs` prototype and a bounded, per-file synchronized in-memory read-only catalog**. No GPU, encryption, mounted drive, service, filesystem driver, or FlitzZip archive compatibility is implemented. `Reader` is explicitly single-threaded; `ReadOnlyCatalog` serializes reads per file, but is not safe to move or destroy during in-flight calls. Do not silently enable any of these features in a patch release.
