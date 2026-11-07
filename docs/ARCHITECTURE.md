@@ -1,74 +1,107 @@
-# Architecture / deliberately staged development
+# Architecture: implemented layers and remaining gates
 
-## Today: bounded CPU-only chunk core
+## Implemented in 0.2
 
 ```text
-ordinary source file (read only)
-    -> bounded 4KiB..1MiB chunks
-    -> CPU Zstandard or raw fallback
-    -> CRC32 of each logical chunk
-    -> NEW .flfs file (never overwrite)
+CLI pack: ordinary source -> bounded CPU Zstd/raw chunks -> NEW .flfs v1
+CLI read: validated index -> touched chunks -> CPU decode + CRC -> range
 
-read -> validate container index -> locate touched chunks
-     -> bounded CPU decompress -> verify chunk CRC32 -> tiny verified-chunk cache
-     -> return requested range
+optional native WinFsp callbacks (no mount or dispatcher)
+    -> immutable metadata and owner-only descriptors
+    -> bounded opaque open contexts and active reads
+    -> ReadOnlyProjection (Windows virtual path + EOF semantics)
+    -> ReadOnlyCatalog (namespace + per-file synchronization)
+    -> Reader (indexed chunks + one decoded-chunk cache)
+    -> pinned ReadOnlyFile handle (ordinary existing file only)
 ```
 
-The container reader deliberately has **no** filesystem mount calls, user-PC API calls, AMD GPU device initialization, encryption, file deletion, volume creation, shell commands, background tasks, or service installation.
+### Container and host I/O
 
-## Stage 1.5: bounded in-memory read-only directory catalog (implemented)
+The v1 container holds one logical byte stream. It uses independent chunks and
+CRC32, not encryption or authentication. `Reader::open(path, index_budget)`
+validates header/counts and rejects excess serialized-index bytes before index
+allocation. Its absolute ceiling is 32 MiB; catalogs pass their remaining 4 MiB
+aggregate allowance. Entry vectors and caches consume additional memory.
 
-`ReadOnlyCatalog` maps up to 16 existing independently indexed `.flfs` files onto
-conservative, relative ASCII virtual paths. It builds parent directories, handles
-ASCII case-insensitive lookups, rejects traversal/reserved Windows names and
-collisions, and delegates byte-range reads to pinned read-only `Reader` objects.
-A 4 MiB aggregate index-data budget limits the catalog. It neither persists
-metadata nor mounts a Windows drive; there is no mutation API.
+Physical host paths are screened separately from virtual names. Windows host
+paths reject dangerous namespaces, DOS device aliases and stream/NUL syntax
+before OS operations; input/output handles are validated as ordinary files.
+POSIX reads reject final symlinks and blocking special files. Parent-directory
+link containment and malicious concurrent mutations remain limitations.
 
-**Important:** Catalog construction validates metadata, not every chunk payload;
-reads verify the touched chunks. In M1.6 the catalog serializes reads and full
-verification **per backing file**, protecting the mutable cache and Windows file
-pointer without unnecessarily serializing independent files. Direct `Reader`
-usage remains single-threaded. The catalog supports an explicit `verify_all`
-operation with a default 32 MiB total decoded-byte limit, at most 256 MiB.
-This verifies payloads without writing; it never turns CRC32 into authentication.
-WinFsp callbacks, catalog lifetime under concurrent requests, Unicode names,
-Windows ACLs, timestamps, security descriptors, cache eviction, and
-persistently authenticated manifests remain future gates.
+Pack/extract only create NEW files. Existing outputs cannot be replaced; no
+source deletion occurs. Interrupted operations may leave a partial new file.
+There is no transactional writable filesystem, snapshot or recovery journal.
 
-## Stage 1.7: in-process virtual Windows path projection (implemented, no mount)
+### Catalog and projection
 
-`ReadOnlyProjection` accepts only root-relative `\`-delimited ASCII virtual paths,
-including `\` for the root; it translates to the catalog's canonical `/` paths
-without accessing real OS paths. Drive-qualified, UNC, traversal, control,
-embedded NUL, and Unicode names are rejected. Read requests admit at most 4 MiB
-and return a **short read** when they cross EOF, or zero bytes when at/past EOF.
-These semantics are independently unit-tested across CPU codecs and are intended
-for a future WinFsp callback translation. Error-code mapping, Windows metadata,
-callback lifetime/cancellation, actual mounting, and live WinFsp tests remain
-**unimplemented**.
+The catalog accepts up to 16 `.flfs` sources and builds a conservative ASCII,
+case-insensitive directory tree. Name validation covers the entire component,
+not just the stem. Paths are at most 240 characters, components 100, depth 16.
+Conflicting file/directory names and duplicate case-folded names are rejected.
 
-## Stage 2: read-only Windows mount, only after tests
+Construction validates metadata, not every payload. Reads check touched chunks;
+`verify_all` explicitly checks payloads under an aggregate 32 MiB default / 256
+MiB maximum budget. Per-file mutexes protect the reader cache and Windows file
+position. Direct Reader calls remain single-threaded.
 
-WinFsp is a reasonable user-mode filesystem bridge for Windows. The future adapter will translate open, read, metadata, directory enumeration and memory-mapped reads into bounded requests against a new immutable chunk/object store. Start in a disposable test mount folder with NO persistence of the mount across reboot. Never mount over an existing directory containing data. Retain a read-only CPU export path that does not require the mounted filesystem.
+`ReadOnlyProjection` translates root-relative Windows virtual names without
+resolving real OS paths. It admits reads up to 4 MiB and returns short reads at
+EOF. Typed errors allow native status translation without parsing messages.
 
-File and directory metadata, per-block checksums, availability of independent decoding, and a secure path normalization model must be defined before exposing untrusted data through WinFsp. The current v1 single-file container is a backend experiment, not that metadata model.
+### Native WinFsp read-only callbacks
 
-## Stage 3: bounded adaptive HIP backend
+The OFF-by-default `WinFspReadOnly` backend implements the actual native SDK
+interface. It verifies at most 32 MiB total content before exposure, returns
+metadata/security/directory records, handles short/EOF reads and rejects all
+implemented mutations. `Cleanup` preserves contexts until `Close`, allowing
+subsequent paging-style reads. Fixed handle slots use monotonically increasing
+tokens so a stale close cannot affect a reused slot.
 
-HIP is planned as an *optional* strategy, not a requirement to read the data. Before enabling any AMD GPU work on a Windows computer, first measure equivalent CPU-only performance and inspect the current driver/ROCm qualification status. Any initial GPU experiment must:
+There are at most 256 contexts and two active decodes. The callback boundary
+converts failures to NTSTATUS and never throws through the C ABI. Directory
+continuation uses one order: `.` then `..`, then ASCII case-folded ordinary
+names. Explicit dot ranks prevent leading-space or punctuation names from being
+skipped, and prevent dot entries from repeating on later pages.
 
-- Be opt-in, run without a mount, and be bounded to a fixed small test buffer copied from disposable test data.
-- Bound the total GPU allocation (proposed first cap <= 128 MiB), queue depth (1), and job duration; avoid long-running compute kernels that might trigger Windows TDR resets.
-- Never operate on sole-copy user data; compare decoded bytes to CPU reference and abort on a mismatch.
-- Allow a clean CPU fallback for GPU busy, driver restart, loss of allocation, or codec failure.
-- Time all H2D transfers, kernels, D2H transfers, synchronization, and filesystem handoff, not only device-kernel duration.
-- Run with low scheduling priority where available and refuse tests when free RAM/VRAM headroom is inadequate.
+Metadata is synthetic and lifetime-local: file IDs last for one adapter, times
+reflect construction, and allocation sizes are logical sizes rounded to 4096.
+The process user gets a protected read/execute ACE; source ACLs are not retained.
+The caller must stop all callbacks before destroying the adapter.
 
-A GPU device *alone* cannot make a transparent Windows read faster. Small requests and GPU-contended workloads may strongly favor CPU decoding. Codec selection belongs in a measured deadline-aware policy.
+Direct callback tests link the official SDK/DLL but do not create a filesystem,
+install a driver, start a dispatcher or mount anything. See
+[WINFSP_CALLBACKS.md](WINFSP_CALLBACKS.md) for ABI research and dependency pins.
 
-## Stage 4: encryption and transactional writes
+## Next: read-only mounted integration (not implemented)
 
-A writable encrypted store will require authenticated per-chunk records, persistent versioned metadata, an independently recoverable commit protocol, nonce uniqueness despite crashes/restore, and an authenticated metadata/extent map. CRC32 is suitable only as an accidental-corruption detector. The proposal is compression-before-authenticated-encryption, initially using a vetted CPU AEAD implementation (e.g., XChaCha20-Poly1305) and a deliberately designed key hierarchy.
+A lifecycle layer must create/stop the filesystem and dispatcher, reserve a
+nonconflicting mount point, prevent backing-path recursion, and enforce process
+budgets. First integration belongs on a disposable Windows environment, using
+copied synthetic data and an explicitly provisioned trusted driver. No automatic
+driver installation or mount on the owner's PC is authorized by this preview.
 
-Crash/kill/power-loss tests must establish which operations were acknowledged as durable, and recovery must be possible without an AMD GPU. Only then would a writable WinFsp mount be enabled for disposable test data.
+Qualification needs clean unmount/restart, open/close races, cancellation,
+memory-mapped reads, directory pagination, actual access checks and independent
+CPU export. Callback tests alone do not pass those gates. Persistent catalog
+configuration and FlitzZip format compatibility also remain separate work.
+
+## Later: adaptive HIP (not implemented)
+
+HIP will be optional; CPU decoding must always remain available. Initial GPU
+experiments must be opt-in, without a mount, with tiny synthetic buffers, one
+queued batch, bounded allocation and duration, and byte parity against CPU.
+The proposed first memory cap is at most 128 MiB, not permission to allocate it
+without checking actual headroom. Do not alter clocks, voltage, TDR or drivers.
+Measure complete host/device transfers, kernels, synchronization and application
+handoff; do not infer throughput from GPU-local bandwidth. Busy GPUs and small
+requests require measured CPU fallback policies.
+
+## Later: authenticated and writable storage (not implemented)
+
+Design versioned AEAD records, authenticated metadata, key hierarchy, password
+unlocking and nonce safety across crashes/clones/restores with a vetted crypto
+library. Compress before encryption. Keep CPU-only recovery independent of GPU
+availability. Writable support additionally needs an append-only landing log,
+copy-on-write metadata, explicit flush semantics, compaction/free-space reserves
+and fault injection at every commit point before any mounted write preview.

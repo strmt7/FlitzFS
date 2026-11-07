@@ -51,13 +51,25 @@ An incomplete write without a valid footer will not be accepted as a container. 
 
 ## Bounded parsing invariants
 
-- At most 1,048,576 chunks and 32 MiB of index metadata.
-- No input-derived allocation happens before field and range validation.
+- At most 1,048,576 chunks and 32 MiB of serialized index metadata.
+- Input-derived sizes are checked before the corresponding buffers are allocated.
 - Max decoded chunk = 1 MiB; max encoded chunk = 2 MiB; max single random read = 4 MiB.
 - A header/index inconsistency is rejected before payload decoding.
 - `info` is metadata validation only; `verify` is required to check all stored chunks.
 - Zstd compression falls back to raw data whenever it does not save at least 17 bytes.
 
+### Reader admission in release 0.2 (no wire-format change)
+
+`Reader::open(path, max_index_bytes)` may impose a smaller serialized-index
+allowance. The count is checked against it before the index buffer is read or
+allocated. Empty indices can fit a zero allowance. Catalogs pass the remainder
+of a 4 MiB aggregate allowance when opening each file. Parsed entry arrays and
+other allocations are additional memory; this is not a total process-RAM cap.
+
 ## Compatibility and migration
 
 This single-file container holds exactly one logical byte stream. It is **not** the `.flzip` native archive format, and it is not itself a directory tree. File paths, ACLs, links, timestamps, immutable object IDs, journaling, and encryption metadata belong to later format generations. Data must be migrated explicitly rather than silently reinterpreting v1 as a writable filesystem.
+
+The 0.2 native callback backend supplies an in-memory namespace and synthetic
+metadata around existing containers. It writes none of that metadata into v1,
+and does not change its bytes, codec identifiers or integrity guarantees.
