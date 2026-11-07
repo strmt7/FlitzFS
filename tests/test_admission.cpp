@@ -53,6 +53,16 @@ int main() {
     const auto packed = fixture.file("source.flfs");
     { std::ofstream f(source, std::ios::binary); f << "bounded metadata"; require(bool(f), "fixture write"); }
     (void)flitzfs::pack_new(source, packed);
+    auto input_alias = source.native();
+    input_alias.push_back(0);
+    input_alias += source.filename().native();
+    rejects([&] { (void)flitzfs::ReadOnlyFile::open(fs::path(input_alias)); }, "path");
+    const auto nul_target = fixture.file("nul-target.bin");
+    auto output_alias = nul_target.native();
+    output_alias.push_back(0);
+    output_alias += source.filename().native();
+    rejects([&] { (void)flitzfs::pack_new(source, fs::path(output_alias)); }, "path");
+    require(!fs::exists(nul_target), "NUL output created a truncated-name file");
     require(flitzfs::Reader::open(packed, 32).info().chunk_count == 1, "exact index cap rejected");
     rejects([&] { (void)flitzfs::Reader::open(packed, 31); }, "index admission budget");
     rejects([&] { (void)flitzfs::Reader::open(packed, 0); }, "index admission budget");

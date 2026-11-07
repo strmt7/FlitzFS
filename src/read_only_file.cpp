@@ -1,4 +1,5 @@
 #include "flitzfs/read_only_file.hpp"
+#include "flitzfs/windows_path.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -30,11 +31,8 @@ namespace {
 ReadOnlyFile::ReadOnlyFile(void* h, std::uint64_t n) noexcept : handle_(h), size_(n) {}
 ReadOnlyFile ReadOnlyFile::open(const std::filesystem::path& path) {
   if (path.empty() || path.filename().empty()) fail("read path must refer to a file");
-  const auto native = path.wstring();
-  if (native.rfind(L"\\\\", 0) == 0 || native.rfind(L"\\??\\", 0) == 0 ||
-      (path.has_root_name() && !path.has_root_directory()) ||
-      path.filename().wstring().find(L':') != std::wstring::npos)
-    fail("network, device and alternate-stream input paths are not supported");
+  if (!ordinary_windows_file_path(path.native()))
+    fail("unsafe Windows file path rejected before OS open");
 
   // No write/delete access. Reparse points remain reparse points at the opened handle.
   HANDLE h = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
@@ -84,6 +82,7 @@ void ReadOnlyFile::read_exact_at(std::uint64_t offset, void* dst, std::size_t le
 ReadOnlyFile::ReadOnlyFile(int fd, std::uint64_t n) noexcept : fd_(fd), size_(n) {}
 ReadOnlyFile ReadOnlyFile::open(const std::filesystem::path& path) {
   if (path.empty() || path.filename().empty()) fail("read path must refer to a file");
+  if (path.native().find(char(0)) != std::string::npos) fail("embedded NUL in read path");
   // O_NONBLOCK avoids an attacker-controlled FIFO/other special file freezing open().
   // O_NOFOLLOW validates the exact final path component at open time.
   const int fd = ::open(path.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);

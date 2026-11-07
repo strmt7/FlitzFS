@@ -10,7 +10,7 @@ if(FLITZFS_REQUIRE_ZSTD AND NOT FLITZFS_WITH_ZSTD)
   message(FATAL_ERROR "REQUIRE_ZSTD conflicts with WITH_ZSTD=OFF")
 endif()
 
-add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp)
+add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp)
 target_include_directories(flitzfs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(flitzfs_core PUBLIC cxx_std_20)
 
@@ -53,7 +53,10 @@ if(FLITZFS_BUILD_TESTS)
   add_executable(flitzfs_admission_tests tests/test_admission.cpp)
   target_link_libraries(flitzfs_admission_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_admission_test COMMAND flitzfs_admission_tests)
-  set_tests_properties(bounded_core_test bounded_catalog_test bounded_projection_test bounded_admission_test PROPERTIES TIMEOUT 45)
+  add_executable(flitzfs_windows_path_tests tests/test_windows_path.cpp)
+  target_link_libraries(flitzfs_windows_path_tests PRIVATE flitzfs_core)
+  add_test(NAME bounded_windows_path_test COMMAND flitzfs_windows_path_tests)
+  set_tests_properties(bounded_core_test bounded_catalog_test bounded_projection_test bounded_admission_test bounded_windows_path_test PROPERTIES TIMEOUT 45)
 endif()
 
 # The SDK is supplied explicitly. Configuration never downloads or installs it.
