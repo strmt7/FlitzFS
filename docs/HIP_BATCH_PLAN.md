@@ -90,7 +90,7 @@ CPU tests execute the exact allocation-free device function in reverse task
 order and check output canaries and independent CPU results. These are host
 semantic tests. The separate Linux LLVM compile-only lane checks a linked ELF64
 AMDGPU code object, gfx1201 identity, kernel symbol and metadata, and retains
-source/tool/code-object hashes. No compiled binary is installed or released.
+source/code-object hashes and observed compiler/linker versions. No compiled binary is installed or released.
 This avoids downloading the 4.87 GB / 14.84 GB unpacked Windows SDK merely to
 check a small arithmetic-only kernel. It does not qualify that Windows SDK.
 
@@ -109,3 +109,20 @@ out because this isolated container cannot resolve the repository hostname. No
 compiler was installed locally. Offline device compilation is delegated to the
 explicit GitHub-hosted compile-only lane, not represented as locally completed.
 The owner PC, storage devices and AMD GPU remain untouched.
+
+## Compiler-stage correction and executed evidence
+
+The initial hosted compiler run reached device generation but failed because
+HIP device-only `-c` defaults to linked/bundled output, not a relocatable object.
+The qualification script was corrected using LLVM 19.1.1's own driver regression:
+`-fhip-emit-relocatable --no-offload-new-driver`, followed by validation of an
+ELF relocatable AMDGPU object before explicit linking. Final architecture,
+shared-object, symbol, metadata and resource checks remain in place.
+
+Reference: https://github.com/llvm/llvm-project/blob/llvmorg-19.1.1/clang/test/Driver/hip-device-compile.hip
+
+The corrected run compiled/linked a gfx1201 code object without loading or
+executing it. Matching CI IDs, compiler identity, hashes and test scope are
+recorded in [HIP_BATCH_VALIDATION.md](HIP_BATCH_VALIDATION.md). Tool version
+strings are observed provenance, not authenticated compiler-binary identities
+or a reproducible-build/security attestation.

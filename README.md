@@ -1,8 +1,8 @@
 # FlitzFS
 
-> **0.3.1 experimental CPU storage, native FLZIP decoding and Windows callbacks.**
+> **0.3.2 experimental CPU storage, native FLZIP decoding and Windows callbacks.**
 > This is not yet a general-purpose mounted filesystem, encryption product or
-> GPU implementation. Do not store the only copy of valuable data in this format.
+> GPU-accelerated product. Do not store the only copy of valuable data in this format.
 > No tests have been executed on the owner's Windows PC or AMD GPU.
 
 FlitzFS develops transparent compressed Windows storage with eventual AMD HIP
@@ -161,3 +161,25 @@ No build downloads dependencies automatically. See
 [native-codec plan and evidence](docs/NATIVE_CODEC_PLAN.md) and
 [bounded compatibility](docs/FLZIP_READONLY.md). Windows, upstream-reference
 and mounted assertions must be matched to the exact commit's Actions results.
+
+## Bounded HIP-kernel preparation (0.3.2)
+
+The first standalone HIP kernel candidate decodes raw, fill, pattern, static
+prefix, adaptive prefix and Huffman segments. It is not loaded by the product.
+The CPU-tested batch planner admits at most eight 64 KiB blocks and 256 KiB
+total output. An independent CPU result, complete per-task status, generation,
+deadline and fresh adapter-matched memory budget are required before the result
+gate accepts candidate bytes. Failed/late results cannot reopen the gate.
+
+The Windows DXGI collector uses a verified LUID/node mask, not adapter order or
+HIP's optimistic Windows free-memory estimate. The collector is compiled, but
+ordinary tests reject invalid requests before querying an adapter. These tests
+do not establish a successful query on AMD hardware. Default commands still
+never initialize HIP or perform GPU work. All existing file formats are unchanged.
+
+A separate offline CI lane compiles the actual HIP source into a gfx1201 AMDGPU
+code object without loading it. CPU execution of the shared kernel body is
+semantic testing, not a GPU benchmark. Live worker integration, hardware parity,
+GPU timeout handling and Windows HIP toolchain qualification remain unpassed.
+Read [the research, acceptance plan and limits](docs/HIP_BATCH_PLAN.md) and
+[executed qualification evidence](docs/HIP_BATCH_VALIDATION.md).
