@@ -19,7 +19,7 @@ void usage() {
     "Usage:\n"
     "  flitzfs pack    <existing-input-file> <NEW-output.flfs> [--chunk-kib N] [--level N] [--max-mib N]\n"
     "  flitzfs info    <existing-input.flfs>\n"
-    "  flitzfs verify  <existing-input.flfs>\n"
+    "  flitzfs verify  <existing-input.flfs> [--max-mib N]\n"
     "  flitzfs probe   <existing-input.flfs> <offset> <length>\n"
     "  flitzfs extract <existing-input.flfs> <NEW-output-file> [--max-mib N]\n\n"
     "Maximum probe length: 4 MiB. Pack chunk size: 4..1024 KiB, power of two.\n"
@@ -82,8 +82,17 @@ int main(int argc, char** argv) {
       std::cout << "Note: info validates metadata, not all compressed payloads. Use verify.\n";
       return 0;
     }
-    if (command == "verify" && argc == 3) {
+    if (command == "verify" && (argc == 3 || argc == 5)) {
       auto reader = flitzfs::Reader::open(argv[2]);
+      auto max_bytes = flitzfs::kDefaultMaxInputBytes;
+      if (argc == 5) {
+        if (std::string_view(argv[3]) != "--max-mib") throw std::runtime_error("unknown verify option");
+        const auto n = parse_u64(argv[4]);
+        if (n == 0 || n > 4096) throw std::runtime_error("max-mib must be 1..4096");
+        max_bytes = n * 1024ULL * 1024ULL;
+      }
+      if (reader.info().logical_bytes > max_bytes)
+        throw std::runtime_error("verification exceeds explicitly configured size budget");
       reader.verify_all();
       std::cout << "Every chunk decoded and checked (CRC32 detects accidental corruption, NOT tampering).\n";
       return 0;

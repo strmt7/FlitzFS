@@ -26,10 +26,15 @@ A 4 MiB aggregate index-data budget limits the catalog. It neither persists
 metadata nor mounts a Windows drive; there is no mutation API.
 
 **Important:** Catalog construction validates metadata, not every chunk payload;
-reads verify the touched chunks. The catalog is single-threaded. It is a
-building block for eventual WinFsp callbacks, not a complete virtual volume.
-Unicode names, Windows ACLs, timestamps, security descriptors, concurrent
-callbacks, cache eviction, and persistently authenticated manifests are future gates.
+reads verify the touched chunks. In M1.6 the catalog serializes reads and full
+verification **per backing file**, protecting the mutable cache and Windows file
+pointer without unnecessarily serializing independent files. Direct `Reader`
+usage remains single-threaded. The catalog supports an explicit `verify_all`
+operation with a default 32 MiB total decoded-byte limit, at most 256 MiB.
+This verifies payloads without writing; it never turns CRC32 into authentication.
+WinFsp callbacks, catalog lifetime under concurrent requests, Unicode names,
+Windows ACLs, timestamps, security descriptors, cache eviction, and
+persistently authenticated manifests remain future gates.
 
 ## Stage 2: read-only Windows mount, only after tests
 

@@ -1,6 +1,8 @@
 #include "flitzfs/catalog.hpp"
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -10,6 +12,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -115,6 +118,67 @@ int main() {
       too_many.push_back({"file" + std::to_string(i), f1});
     refuse([&] { (void)flitzfs::ReadOnlyCatalog::create(too_many); }, "file budget bypassed");
     require(flitzfs::ReadOnlyCatalog::create({}).list("").empty(), "empty catalog root");
+    // Explicitly admitted full-catalog verification: reject oversized budgets
+    // before touching any compressed payload. No file is created.
+    catalog.verify_all();
+    catalog.verify_all(alpha.size() + beta.size());
+    refuse([&] { catalog.verify_all(alpha.size() + beta.size() - 1U); },
+           "total catalog verification budget bypassed");
+    refuse([&] { catalog.verify_all(0); }, "zero verification budget accepted");
+    refuse([&] { catalog.verify_all(flitzfs::kMaxCatalogVerificationBytes + 1U); },
+           "verification maximum budget bypassed");
+
+    // Simulate concurrent future WinFsp readers: same backing file shares a
+    // mutable decoded-chunk cache and the Windows kernel file pointer. Per-file
+    // mutex must protect both, without imposing a global lock on other files.
+    std::atomic<bool> concurrent_ok{true};
+    {
+      std::array<std::jthread, 4> workers;
+      for (std::size_t tid = 0; tid < workers.size(); ++tid) {
+        workers[tid] = std::jthread([&, tid] {
+          try {
+            for (std::size_t j = 0; j < 32; ++j) {
+              const auto start = (tid * 1'273U + j * 15'817U) % (alpha.size() - 1'000U);
+              const auto data = catalog.read("docs/alpha.txt", start, 1'000U);
+              if (data.size() != 1'000U) { concurrent_ok.store(false); return; }
+              for (std::size_t k = 0; k < data.size(); ++k) {
+                if (std::to_integer<unsigned char>(data[k]) != alpha[start + k]) {
+                  concurrent_ok.store(false); return;
+                }
+              }
+              if (j % 3U == 0) {
+                const auto sample = catalog.read("docs/nested/beta.bin", 17U + tid, 64U);
+                for (std::size_t k = 0; k < sample.size(); ++k) {
+                  if (std::to_integer<unsigned char>(sample[k]) != beta[17U + tid + k]) {
+                    concurrent_ok.store(false); return;
+                  }
+                }
+              }
+            }
+          } catch (const std::exception&) { concurrent_ok.store(false); }
+        });
+      }
+    }  // std::jthread destructors join before reading concurrent_ok.
+    require(concurrent_ok.load(), "concurrent catalog reads must be byte exact");
+
+    // A valid container index cannot hide a corrupt payload: explicit
+    // verification must read and check the backing bytes, not just metadata.
+    const auto damaged = fixture.file("damaged.flfs");
+    (void)flitzfs::pack_new(src1, damaged);
+    {
+      std::fstream file(damaged, std::ios::binary | std::ios::in | std::ios::out);
+      require(static_cast<bool>(file), "cannot open disposable corruption fixture");
+      file.seekg(40);  // v1 begins payloads immediately after 40-byte header.
+      char value = 0;
+      file.read(&value, 1);
+      require(static_cast<bool>(file), "cannot read disposable payload byte");
+      file.seekp(40);
+      value = static_cast<char>(static_cast<unsigned char>(value) ^ 0x7fU);
+      file.write(&value, 1);
+      require(static_cast<bool>(file), "cannot corrupt disposable payload byte");
+    }
+    auto damaged_catalog = flitzfs::ReadOnlyCatalog::create({{"damaged.bin", damaged}});
+    refuse([&] { damaged_catalog.verify_all(); }, "catalog failed to detect corrupt payload");
     require(fs::file_size(f1) != 0 && fs::file_size(f2) != 0, "source archives unchanged");
 
     std::cout << "PASS: read-only path catalog, ASCII case-folded lookup, collision and bounds checks\n";

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -61,16 +62,16 @@ ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files)
   if (files.size() > kMaxCatalogFiles)
     throw std::runtime_error("FlitzFS: catalog exceeds open-handle count budget");
   ReadOnlyCatalog out;
-  out.nodes_.emplace("", Node{{"", true, 0}, nullptr});
+  out.nodes_.emplace("", Node{{"", true, 0}, nullptr, nullptr});
   // Validate all paths and file/directory collisions BEFORE opening archives.
   for (const auto& file : files) {
     const auto key = key_for(file.virtual_path, false);
     for (const auto& parent : ancestor_keys(key)) {
       const auto display_prefix = file.virtual_path.substr(0, parent.size());
-      auto [it, inserted] = out.nodes_.try_emplace(parent, Node{{display_prefix, true, 0}, nullptr});
+      auto [it, inserted] = out.nodes_.try_emplace(parent, Node{{display_prefix, true, 0}, nullptr, nullptr});
       if (!inserted && !it->second.entry.directory) reject();
     }
-    if (!out.nodes_.emplace(key, Node{{file.virtual_path, false, 0}, nullptr}).second) reject();
+    if (!out.nodes_.emplace(key, Node{{file.virtual_path, false, 0}, nullptr, nullptr}).second) reject();
   }
 
   std::uint64_t indexed = 0;
@@ -83,6 +84,7 @@ ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files)
     auto& node = out.nodes_.at(key_for(file.virtual_path, false));
     node.entry.logical_bytes = reader->info().logical_bytes;
     node.reader = std::move(reader);
+    node.read_guard = std::make_unique<std::mutex>();
   }
   return out;
 }
@@ -115,6 +117,29 @@ std::vector<std::byte> ReadOnlyCatalog::read(std::string_view path,
   const auto it = nodes_.find(key);
   if (it == nodes_.end() || !it->second.reader)
     throw std::runtime_error("FlitzFS: virtual regular file not found");
+  // WinFsp can dispatch multiple read requests concurrently. Serialize
+  // only a single file's mutable Reader cache and Windows shared file pointer.
+  std::lock_guard<std::mutex> guard(*it->second.read_guard);
   return it->second.reader->read(offset, bytes);
+}
+
+void ReadOnlyCatalog::verify_all(std::uint64_t max_total_logical_bytes) {
+  if (max_total_logical_bytes == 0 || max_total_logical_bytes > kMaxCatalogVerificationBytes)
+    throw std::runtime_error("FlitzFS: catalog verification budget must be within 1..256 MiB");
+  std::uint64_t total = 0;
+  for (const auto& [key, node] : nodes_) {
+    (void)key;
+    if (!node.reader) continue;
+    const auto bytes = node.entry.logical_bytes;
+    if (bytes > max_total_logical_bytes - total)
+      throw std::runtime_error("FlitzFS: catalog verification exceeds total logical-byte budget");
+    total += bytes;
+  }
+  for (auto& [key, node] : nodes_) {
+    (void)key;
+    if (!node.reader) continue;
+    std::lock_guard<std::mutex> guard(*node.read_guard);
+    node.reader->verify_all();
+  }
 }
 }  // namespace flitzfs
