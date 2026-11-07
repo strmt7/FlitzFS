@@ -47,14 +47,14 @@ NTSTATUS preflight(PWSTR device, PWSTR path) {
   return s.failure == Failure::preflight ? STATUS_ACCESS_DENIED : STATUS_SUCCESS;
 }
 NTSTATUS create(PWSTR, const FSP_FSCTL_VOLUME_PARAMS* parameters,
-    const FSP_FILE_SYSTEM_INTERFACE* interface, FSP_FILE_SYSTEM** result) {
+    const FSP_FILE_SYSTEM_INTERFACE* callbacks, FSP_FILE_SYSTEM** result) {
   auto& s = *active; s.record('c');
   s.invariant = s.invariant && parameters->ReadOnlyVolume &&
       parameters->UmFileContextIsUserContext2 && parameters->IrpCapacity == 100;
   *result = nullptr;
   if (s.failure == Failure::create) return STATUS_INSUFFICIENT_RESOURCES;
   if (s.failure == Failure::create_null_success) return STATUS_SUCCESS;
-  s.fs.Interface = interface;
+  s.fs.Interface = callbacks;
   *result = &s.fs;
   return s.failure == Failure::create_partial ? STATUS_INSUFFICIENT_RESOURCES : STATUS_SUCCESS;
 }
