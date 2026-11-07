@@ -31,7 +31,8 @@ struct FlzipInfo {
   std::size_t files = 0;
   std::size_t blocks = 0;
 };
-// Reports compiled CPU decode capability, not GPU availability or full format support.
+// Reports compiled outer-kind support, not GPU availability or full format support.
+// A composed frame can still require an unavailable optional LZ4 inner stage.
 bool flzip_codec_available(std::uint8_t kind) noexcept;
 
 // Experimental, bounded CPU-only snapshot. Every file is CRC-checked before

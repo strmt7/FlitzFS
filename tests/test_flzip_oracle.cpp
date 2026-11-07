@@ -1,7 +1,7 @@
 // Test-only interoperability oracle, linked to the real pinned upstream writer.
 #include "core/archive_index.hpp"
 #include "flitzfs/flzip_reader.hpp"
-#include "flzip_test_fixture.hpp"
+#include "flzip_native_fixture.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -58,6 +58,9 @@ int main() {
     require(flitzfs::flzip_codec_available(codec),"oracle lane requires both CPU codecs");
     const auto block=compressed(codec,pattern(9001,"reference writer and CPU codec").plain);
     compare({{"mixed.bin",false,{raw(text("prefix")),block,fill(37,19),pattern(4099),raw(text("suffix"))}}},codec==8?6:1);
+  }
+  for(const auto& block:flzip_fixture::native_samples()) {
+    compare({{"native.bin",false,{block}}},flzip_fixture::minimum_version(block.kind));
   }
   std::cout<<"PASS: byte-exact pinned FlitzZip index/footer serializer parity; supported codec fixtures decode correctly.\n";
   return 0;

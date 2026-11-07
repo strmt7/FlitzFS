@@ -5,7 +5,7 @@ freezes and no resource exhaustion**. These remain release blockers, not claims
 that finite tests can prove immunity to software, hardware or power failures.
 Use isolated synthetic fixtures; never rely on this preview for sole-copy data.
 
-## Current permitted effects (0.2)
+## Current permitted effects (0.3.1)
 
 The CLI reads explicitly supplied ordinary files and can create one explicitly
 supplied NEW output. OS-exclusive creation prevents replacing an existing path.
@@ -33,7 +33,10 @@ Normal CMake configuration downloads and installs nothing.
 | Chunk | 4 KiB to 1 MiB, power of two; default 128 KiB |
 | Stored chunk | At most 2 MiB |
 | Single random read | At most 4 MiB |
-| Reader cache | One decoded chunk, at most 1 MiB |
+| `.flfs` reader cache | One decoded chunk, at most 1 MiB |
+| FLZIP snapshot / logical bytes / index | 34 MiB / 32 MiB / 1 MiB |
+| FLZIP decoded block / cache | At most 16 MiB each; one cached block |
+| FLZIP composition scratch | At most one extra decoded block, 16 MiB maximum |
 | Reader index | At most 1,048,576 entries / 32 MiB serialized index |
 | Catalog | At most 16 backing files; 4 MiB aggregate serialized index |
 | Plaintext catalog manifest | 8 KiB, 16 records, sibling-only container references |
@@ -130,3 +133,13 @@ cache through catalog callbacks. `.flcatalog` does not implicitly accept FLZIP
 paths. Read FLZIP_READONLY.md for stricter-than-upstream compatibility limits.
 The hosted real-mount test retains the existing OS process limits and fixture
 isolation; it is never automatically run on the owner's PC.
+
+## Native FLZIP CPU decoder expansion
+
+Native entropy/dictionary/sparse/composition frames are decoded only on the CPU.
+The same snapshot, logical, block, namespace and verification bounds remain.
+Compositions admit no recursion and at most one extra 16 MiB block temporary.
+LZ4 decoding uses the bounded library API with exact output extents. No HIP
+runtime, GPU experiment or owner-PC access is introduced. This extends the
+parser attack surface; deterministic negatives and sanitizers are not a formal
+security proof. The compiled reference decoder exists only in optional tests.

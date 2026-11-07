@@ -113,8 +113,9 @@ int main() {
     try {auto changed=FlzipReader::from_bytes(bytes);changed.verify_all();}
     catch(const flitzfs::FlzipError&){}catch(const flitzfs::CatalogError&){}
   }
-  // Known unsupported native codecs must never silently fall back to a different codec.
-  for(std::uint8_t kind:{4,5,6,7,9,10,11,12,13}) {
+  // Missing optional codecs must never silently fall back to a different codec.
+  for(std::uint8_t kind:{2,6,8}) {
+    if(flitzfs::flzip_codec_available(kind)) continue;
     auto f=archive({mixed},11);replace(f.bytes,f.block_fields[0],kind,1);
     bool unsupported=false;try{(void)FlzipReader::from_bytes(f.bytes);}
     catch(const flitzfs::FlzipError& e){unsupported=e.code()==flitzfs::FlzipErrorCode::unsupported_codec;}

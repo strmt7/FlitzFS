@@ -1,6 +1,7 @@
 #include "flitzfs/flzip_reader.hpp"
 #include "flitzfs/catalog_error.hpp"
 #include "flitzfs/read_only_file.hpp"
+#include "flzip_native.hpp"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -68,7 +69,7 @@ void admit_codec(std::uint8_t kind, std::uint32_t version) {
 } // namespace
 
 bool flzip_codec_available(std::uint8_t kind) noexcept {
-  if (kind == 0 || kind == 1 || kind == 3) return true;
+  if (kind == 0 || kind == 1 || detail::native_flzip_codec_available(kind)) return true;
 #ifdef FLITZFS_HAS_ZLIB
   if (kind == 2) return true;
 #endif
@@ -199,9 +200,8 @@ struct FlzipReader::Impl {
     Bytes out(b.decoded);
     if (b.kind == 0) std::memcpy(out.data(), source.data(), out.size());
     else if (b.kind == 1) std::fill(out.begin(), out.end(), static_cast<std::byte>(b.fill));
-    else if (b.kind == 3) {
-      for (std::size_t i = 0; i < out.size(); ++i) out[i] = source[i % source.size()];
-    }
+    else if (detail::native_flzip_codec_available(b.kind))
+      detail::decode_flzip_native(b.kind, b.fill, source, out);
 #ifdef FLITZFS_HAS_ZLIB
     else if (b.kind == 2) {
       uLongf decoded = b.decoded; uLong consumed = b.encoded;

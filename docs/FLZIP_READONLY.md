@@ -2,16 +2,16 @@
 
 ## Plan and acceptance gates — 7 November 2026
 
-This milestone implements a deliberately limited CPU reader, not all FlitzZip
-codecs or a new archive writer. Source of truth: `strmt7/FlitzZip` at
+This milestone implements a deliberately bounded CPU reader, not the full
+FlitzZip product or a new archive writer. Source of truth: `strmt7/FlitzZip` at
 `4e6a1bb0d144611a09dcbc65276faa676e923882`, particularly `archive_index.cpp`,
 `archive.cpp`, `archive_block_types.hpp` and `docs/native-flzip-format.md`.
 No upstream project is modified, no HIP runtime is linked/initialized, and
 `.flfs`/`.flcatalog` formats remain unchanged.
 
 1. Preserve SUZP/SUZF layout, little-endian framing and version-kind rules.
-2. Support raw/fill/pattern and optional CPU Deflate/Zstandard blocks. Reject
-   unimplemented native entropy/dictionary/composition codecs explicitly.
+2. Support all defined block kinds through bounded CPU decoding. Optional
+   Deflate/Zstandard/LZ4 dependencies fail explicitly when unavailable.
 3. Snapshot at most 34 MiB of archive bytes. Admit at most 1 MiB of index,
    256 records, 16 files, 8192 blocks, 257 virtual nodes, 16 MiB per decoded
    block and 32 MiB total logical output **before** decoding. No user option
@@ -93,11 +93,13 @@ archive works. The `.flcatalog` v1 grammar still references only `.flfs` files.
 
 ## Supported subset, explicitly not full FlitzZip support
 
-Versions 1–11 are recognized only when **every block** uses supported kinds:
-raw (0), fill (1), pattern (3), optional zlib-wrapped Deflate (2), or optional
-Zstandard (8; version 6+). Native prefix, adaptive prefix, dictionary, sparse,
-Huffman, compound and byte-plane codecs are rejected with `unsupported_codec`.
-No required-HIP fallback is claimed and no HIP code is executed.
+Versions 1–11 enforce their original version/kind rules. CPU implementations
+cover raw (0), fill (1), pattern (3), static prefix (4), adaptive prefix (5),
+short sparse (7), long sparse (9), Huffman (10), compound (11), byte-plane (12)
+and independent byte-plane contexts (13). Deflate (2), dictionary (6) and
+Zstandard (8) require zlib, LZ4 and Zstandard respectively. Compositions may
+contain dictionary stages and fail explicitly without LZ4, even though their
+outer kind is recognized. No required-HIP fallback or GPU execution is claimed.
 
 Namespace limits are deliberately narrower than FlitzZip: conservative ASCII,
 240-character paths, 100-character components, depth 16 and 16 ordinary files.
@@ -109,24 +111,31 @@ Archives accepted by upstream may therefore exceed this reader's subset.
 
 `FLITZFS_WITH_ZLIB` optionally enables Deflate support; `FLITZFS_REQUIRE_ZLIB`
 turns a missing dependency into configuration failure. CPU-only minimal builds
-can explicitly disable both zlib and Zstandard, retaining raw/fill/pattern.
-The native Windows and serializer-oracle CI lanes build zlib v1.4 at
+can explicitly disable all three external codecs, retaining the self-contained
+CPU native encodings and compositions that do not need dictionary decoding.
+All codec-enabled hosted CI lanes build zlib v1.4 at
 `99623ef7097352da7993ba614161fd6a311e046e`. Headers/static library are staged only
-inside the disposable checkout; there is no system zlib installation. Other
-Linux lanes exercise their distribution library; local compatibility results use
+inside the disposable checkout; there is no system zlib installation. Windows/oracle lanes also pin LZ4 1.11.0 at
+`c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc`; other Linux lanes exercise their
+distribution LZ4/Zstandard. Local compatibility results use LZ4 1.10.0,
 zlib 1.3.1 and Zstandard 1.5.7. Dependency availability and correctness tests are
 not a security certification; production packaging remains unqualified.
 
 ## Independent oracle and provenance
 
 The optional `FLITZFS_FLITZZIP_SOURCE` CMake path must identify the reviewed
-upstream commit with no tracked core modifications. Only `archive_index.cpp`
-and its headers are compiled, in a test executable. Upstream CMake scripts,
-GUI and GPU code are not run. Fixtures are checked byte-for-byte against the
-real upstream index writer and footer integer primitives, and their payloads
-are independently decoded by FlitzFS. This is **serializer interoperability**,
-not full FlitzZip CLI or native-GPU-codec compatibility. FlitzZip's AGPL-3.0
-license remains upstream; no upstream code or binary is vendored or republished.
+upstream commit with no tracked core modifications. The real `archive_index.cpp`
+and headers check metadata serialization. A separate test-only oracle extracts
+exact primitive CPU decoder functions from the reviewed `archive_blocks.cpp`
+blob, verifies its Git blob identity, and uses the upstream composition parsers.
+No upstream runtime, GPU, GUI or CMake script is linked or executed. The generated
+reference unit stays in the test build directory; it is not product code.
+
+Independent fixture encoders are compared byte-for-byte with the pinned index
+writer, original bytes, the independent FlitzFS decoder and the reference CPU
+materializers. This is bounded serializer/decoder interoperability, not the full
+FlitzZip CLI or actual HIP encoder qualification. Preserve upstream AGPL-3.0
+provenance for generated reference code; no upstream source/binary is vendored.
 
 ## Security and resource limits
 
@@ -139,8 +148,23 @@ is immutable after validation. Parent directories remain trusted, not sandboxed.
 Limits cover individual buffers and collections, not arbitrary process RSS or
 kernel memory. The live synthetic probe additionally retains its OS-enforced
 128 MiB committed-memory/20% CPU/one-process/30-second job. Default CTest never
-mounts or installs a driver. The new hosted `.flzip` probe covers Zstandard,
+mounts or installs a driver. The hosted `.flzip` probe covers native entropy/dictionary/composition families, Zstandard,
 Deflate, fill/pattern, empty files/directories, random/mapped/concurrent reads,
 write denial, clean shutdown and unchanged backing. The earlier `.flfs`
 forced-termination recovery test remains separate; do not extend that evidence
 to FLZIP crash recovery without its own executed test.
+
+### Native decoder memory and framing
+
+Entropy segments decode 4 KiB at a time; dictionary segments decode at most
+64 KiB through `LZ4_decompress_safe`. Tables are bounded by the admitted decoded
+extent, never by an unchecked input count. Huffman tables must be complete and
+prefix-consistent. Sparse corrections are ordered, in range and nonredundant.
+Composition stages form a closed, nonrecursive set, with exact dense framing.
+The byte-plane inverse is an exact permutation including incomplete tails.
+
+Composed codecs use at most one extra decoded-block-sized temporary (16 MiB
+maximum), in addition to existing snapshot/output/cache allowances. This is
+not a global process-memory limit. Legacy unused prefix-segment padding remains
+accepted for compatibility. Whole-file CRC still precedes exposure and is not
+cryptographic authentication. See NATIVE_CODEC_PLAN.md for source pins and tests.

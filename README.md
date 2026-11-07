@@ -1,6 +1,6 @@
 # FlitzFS
 
-> **0.3.0 experimental CPU storage, bounded FLZIP reading and native callbacks.**
+> **0.3.1 experimental CPU storage, native FLZIP decoding and Windows callbacks.**
 > This is not yet a general-purpose mounted filesystem, encryption product or
 > GPU implementation. Do not store the only copy of valuable data in this format.
 > No tests have been executed on the owner's Windows PC or AMD GPU.
@@ -55,12 +55,13 @@ This metadata is plaintext and unauthenticated, not an encrypted store.
 
 ## Bounded FlitzZip compatibility
 
-The separate CPU FLZIP reader supports raw, fill, pattern, and optional
-Deflate/Zstandard blocks after whole-archive CRC verification. It uses an
-immutable in-memory copy with 34 MiB physical/32 MiB logical caps and supports
-at most 16 files. Native GPU entropy/dictionary/composition encodings and
-non-ASCII paths are explicitly unsupported. See [the exact compatibility
-contract](docs/FLZIP_READONLY.md) before treating an archive as supported.
+The separate CPU FLZIP reader implements all block kinds in the pinned v1–11
+contract, including native entropy/dictionary/composition encodings. Deflate,
+Zstandard and dictionary decoding require their optional codec libraries.
+Every file is CRC-checked before exposure. The immutable snapshot is limited to
+34 MiB physical/32 MiB logical bytes and at most 16 files. Non-ASCII paths and
+archives exceeding the documented limits remain unsupported. See [the exact
+compatibility contract](docs/FLZIP_READONLY.md). This does not initialize a GPU.
 
 `flzip-list`, `flzip-verify`, and `flzip-probe` are read-only. The same reader
 feeds the catalog/projection/native callback API. This is not a general-purpose
@@ -71,7 +72,7 @@ mount command or authentication. Existing `.flfs`/`.flcatalog` formats are uncha
 There is no general-purpose mount application, virtual-drive product, custom
 filter driver, AMD GPU initialization, encryption or authenticated storage. An
 optional synthetic-only hosted-CI mount probe exists. Writable transactions,
-power-loss recovery, authenticated snapshots and complete `.flzip` codec compatibility remain future work.
+power-loss recovery, authenticated snapshots and full FlitzZip product parity remain future work.
 Synthetic read-only process-termination recovery is tested separately. CRC32
 detects accidental corruption, not malicious tampering.
 
@@ -91,8 +92,9 @@ ctest --test-dir build -C Release --output-on-failure --timeout 45 --parallel 1
 With Zstandard headers/library available, CPU compression is enabled. Otherwise
 the `.flfs` packer stores raw chunks and cannot decode existing Zstandard chunks.
 Use `-DFLITZFS_REQUIRE_ZSTD=ON` to reject missing dependencies rather than silently
-falling back. For a codec-free build, set both `-DFLITZFS_WITH_ZSTD=OFF` and
-`-DFLITZFS_WITH_ZLIB=OFF`. Optional zlib supplies FLZIP Deflate reading only.
+falling back. To disable external codec libraries, set `-DFLITZFS_WITH_ZSTD=OFF`,
+`-DFLITZFS_WITH_ZLIB=OFF` and `-DFLITZFS_WITH_LZ4=OFF`. Self-contained native
+FLZIP representations remain readable; unavailable codecs fail explicitly.
 Windows raw-only builds require Visual Studio and CMake. The optional native
 callback build and SDK layout are documented in [WINFSP_CALLBACKS.md](docs/WINFSP_CALLBACKS.md).
 Normal configuration performs no downloads or installation.
@@ -143,3 +145,19 @@ callback tests.
 Reuse FlitzZip only after source-level compatibility, provenance and safety
 review. No private repository code, credentials, personal paths, generated
 binaries or SDK payloads are committed. Development stays on `main` only.
+
+## Native-format CPU recovery (0.3.1)
+
+The bounded FLZIP reader now implements static/adaptive prefix, Huffman,
+short/long sparse patterns, optional LZ4 dictionary segments, compound frames,
+byte-plane transforms and independent byte-plane contexts. With the three
+optional codec libraries present, all block kinds defined by the pinned v1–11
+contract are recognized. This does not lift path, archive or resource limits,
+and it is **CPU recovery of GPU-native encodings, not GPU acceleration**.
+
+`FLITZFS_WITH_LZ4=OFF` removes dictionary decoding; dependent composed frames
+fail explicitly. `FLITZFS_REQUIRE_LZ4=ON` makes missing LZ4 a configure error.
+No build downloads dependencies automatically. See
+[native-codec plan and evidence](docs/NATIVE_CODEC_PLAN.md) and
+[bounded compatibility](docs/FLZIP_READONLY.md). Windows, upstream-reference
+and mounted assertions must be matched to the exact commit's Actions results.

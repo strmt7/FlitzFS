@@ -4,7 +4,7 @@
 #include "flitzfs/container.hpp"
 #include "flitzfs/catalog_manifest.hpp"
 #include "flitzfs/flzip_reader.hpp"
-#include "flzip_test_fixture.hpp"
+#include "flzip_native_fixture.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -291,12 +291,15 @@ void flzip_probe() {
   const Bytes second(data.begin() + 128 * 1024, data.end());
   const auto patterned = pattern(9001);
   const auto deflated = compressed(2, pattern(8193, "Deflate native interoperability").plain);
+  const Record native_record{"native-codecs.bin", false, native_samples()};
+  const auto native_bytes = plain(native_record);
+  require(flitzfs::flzip_codec_available(6), "mount lane requires the LZ4 decoder");
   const auto zip = archive({
       {"Data/sample.bin", false, {compressed(8, first), compressed(8, second)}},
       {"filled.bin", false, {fill(4097, 19)}},
       {"pattern.bin", false, {patterned}},
       {"deflated.bin", false, {deflated}},
-      {"empty.bin", false, {}}, {"EmptyDir", true, {}}}, 6);
+      {"empty.bin", false, {}}, {"EmptyDir", true, {}}, native_record}, 11);
   const auto source = fixture.root / L"native.flzip";
   write_new(source, zip.bytes);
   stage = 21;
@@ -313,6 +316,8 @@ void flzip_probe() {
   require(read_all(mount / L"pattern.bin", patterned.plain.size()) == patterned.plain, "mounted FLZIP pattern parity");
   require(read_all(mount / L"deflated.bin", deflated.plain.size()) == deflated.plain, "mounted FLZIP Deflate parity");
   require(read_all(mount / L"empty.bin", 0).empty(), "mounted FLZIP empty file");
+  require(read_all(mount / L"native-codecs.bin", native_bytes.size()) == native_bytes, "mounted native codec byte parity");
+  check_mapping(mount / L"native-codecs.bin", native_bytes);
   check_mapping(virtual_file, data);
   {
     Handle file(CreateFileW(virtual_file.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
@@ -328,7 +333,7 @@ void flzip_probe() {
     require(!DeleteFileW(virtual_file.c_str()), "FLZIP delete allowed");
   }
   stage = 23;
-  require(enumerate(mount / L"*") == std::set<std::wstring>{L"Data",L"EmptyDir",L"deflated.bin",L"empty.bin",L"filled.bin",L"pattern.bin"}, "FLZIP directory enumeration");
+  require(enumerate(mount / L"*") == std::set<std::wstring>{L"Data",L"EmptyDir",L"deflated.bin",L"empty.bin",L"filled.bin",L"native-codecs.bin",L"pattern.bin"}, "FLZIP directory enumeration");
   require(enumerate(mount / L"Data" / L"s*.bin") == std::set<std::wstring>{L"sample.bin"}, "FLZIP wildcard filtering");
   std::atomic<bool> parity{true};
   auto worker = [&]() {try {for(unsigned i=0;i<2;++i) if(read_all(virtual_file,data.size()) != data) parity=false;} catch(...) {parity=false;}};
@@ -432,7 +437,7 @@ int wmain(int argc, wchar_t** argv) {
         << " detail=" << (native_zip.exit_code & 0xffffU) << " timed_out=" << native_zip.timed_out
         << " exit_confirmed=" << native_zip.exit_confirmed << " peak_commit_bytes=" << native_zip.peak_committed_bytes << '\n';
     require(native_zip.exit_confirmed && !native_zip.timed_out && native_zip.exit_code == 0, "supervised FLZIP mount failed");
-    std::cout << "PASS: real mounted FLZIP Zstandard/Deflate/fill/pattern, mapped/random/concurrent reads, write rejection and unchanged source.\n";
+    std::cout << "PASS: real mounted FLZIP native entropy/dictionary/composition and CPU codecs, mapped/random/concurrent reads, write rejection and unchanged source.\n";
     const auto result = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)), {L"--probe-child"}, budget);
     std::cout << "mount_probe exit=" << result.exit_code << " stage=" << (result.exit_code >> 16U)
         << " detail=" << (result.exit_code & 0xffffU) << " timed_out=" << result.timed_out
