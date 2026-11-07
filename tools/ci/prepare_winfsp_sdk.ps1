@@ -62,13 +62,21 @@ if ($all.Count -gt 2048 -or ($all | Measure-Object Length -Sum).Sum -gt 64MB) {
 # Windows Installer database mode 0 is read-only. No install/custom actions run.
 $installer = New-Object -ComObject WindowsInstaller.Installer
 $database = $installer.OpenDatabase($msi, 0)
-$view = $database.OpenView('SELECT `File`, `FileName` FROM `File`')
+$view = $database.OpenView('SELECT `File`, `FileName`, `Component_` FROM `File`')
 $view.Execute()
 $wanted = @{
     'winfsp.h' = 'include/winfsp/winfsp.h'
     'fsctl.h' = 'include/winfsp/fsctl.h'
     'winfsp-x64.lib' = 'lib/winfsp-x64.lib'
     'winfsp-x64.dll' = 'bin/winfsp-x64.dll'
+}
+# Component identities are taken from the pinned v2.1 Product.wxs. The
+# optional fsext library has the same basename but is NOT the public SDK library.
+$components = @{
+    'winfsp.h' = 'C.winfsp.h'
+    'fsctl.h' = 'C.fsctl.h'
+    'winfsp-x64.lib' = 'C.winfsp_x64.lib'
+    'winfsp-x64.dll' = 'C.winfsp_x64.dll.x64'
 }
 $sdk = Join-Path $root 'sdk'
 $copied = @{}
@@ -77,9 +85,7 @@ try {
         $key = $record.StringData(1)
         $filename = ($record.StringData(2) -split '\|')[-1]
         if (-not $wanted.ContainsKey($filename)) { continue }
-        # v2.1 Product.wxs duplicates the DLL for OS-specific installer components.
-        # Select the exact AMD64 component; never choose a payload by iteration order.
-        if ($filename -eq 'winfsp-x64.dll' -and $key -ne 'FILE.winfsp_x64.dll.x64') { continue }
+        if ($record.StringData(3) -ne $components[$filename]) { continue }
         if ($copied.ContainsKey($filename)) { throw "Ambiguous SDK table entry: $filename" }
         $matches = @($all | Where-Object { $_.Name -eq $key })
         if ($matches.Count -eq 0) { $matches = @($all | Where-Object { $_.Name -eq $filename }) }
