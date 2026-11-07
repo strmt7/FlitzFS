@@ -1,0 +1,25 @@
+name: Offline HIP kernel qualification (no GPU)
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  gfx1201-compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install distribution LLVM compiler only (no AMD driver/runtime)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-19 lld-19
+      - name: Compile real HIP device code without loading a GPU
+        run: python3 tools/ci/compile_hip_candidate.py --clang clang++-19 --lld ld.lld-19 --output "${{ runner.temp }}/flitzfs-hip-offline"
+      - name: Retain source-bound compile evidence, not a release binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: hip-compile-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-hip-offline/qualification.json
+          if-no-files-found: error
+          retention-days: 3
