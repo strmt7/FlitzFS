@@ -1,10 +1,10 @@
 #include "flitzfs/container.hpp"
+#include "flitzfs/windows_path.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cerrno>
 #include <cstring>
-#include <cwctype>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -95,32 +95,11 @@ void validate_output_path(const std::filesystem::path& path) {
   if (path.empty() || path.filename().empty() || path == path.root_path())
     fail("output must be a specific new ordinary file");
 #ifdef _WIN32
-  // Refuse direct Win32/NT device namespaces, as well as DOS-reserved device names.
-  // Extended-length paths are deliberately disabled in this conservative prototype.
-  const auto s = path.wstring();
-  if (s.rfind(L"\\\\.\\", 0) == 0 || s.rfind(L"\\\\?\\", 0) == 0 ||
-      s.rfind(L"\\??\\", 0) == 0) fail("device/extended namespace output is forbidden");
-  if (path.has_root_name() && !path.has_root_directory())
-    fail("drive-relative Windows output paths are forbidden");
-  auto filename = path.filename().wstring();
-  if (!filename.empty() && (filename.back() == L'.' || filename.back() == L' '))
-    fail("Windows output filename must not end with a dot or space");
-  if (filename.find(L':') != std::wstring::npos)
-    fail("NTFS alternate data stream output is forbidden");
-  if (s.rfind(L"\\\\", 0) == 0)
-    fail("network and device-style output paths are forbidden in this prototype");
-  while (!filename.empty() && (filename.back() == L'.' || filename.back() == L' ')) filename.pop_back();
-  if (filename.empty()) fail("blank Windows output filename is forbidden");
-  const auto dot = filename.find(L'.');
-  auto stem = filename.substr(0, dot);
-  std::transform(stem.begin(), stem.end(), stem.begin(), [](wchar_t c) { return static_cast<wchar_t>(std::towupper(c)); });
-  if (stem == L"CON" || stem == L"PRN" || stem == L"AUX" || stem == L"NUL" ||
-      stem == L"CONIN$" || stem == L"CONOUT$" || stem == L"CLOCK$" ||
-      (stem.size() == 4 && ((stem.substr(0, 3) == L"COM") || (stem.substr(0, 3) == L"LPT")) &&
-       stem[3] >= L'1' && stem[3] <= L'9'))
-    fail("reserved Windows device filename is forbidden");
+  if (!ordinary_windows_file_path(path.native()))
+    fail("unsafe Windows output path rejected before OS creation");
 
 #else
+  if (path.native().find(char(0)) != std::string::npos) fail("embedded NUL in output path");
   const auto s = path.lexically_normal().string();
   if (s == "/dev" || s.rfind("/dev/", 0) == 0 ||
       s == "/proc" || s.rfind("/proc/", 0) == 0 ||
@@ -149,6 +128,14 @@ class NewFileWriter {
     handle_ = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
                           FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
     if (handle_ == INVALID_HANDLE_VALUE) fail("cannot create output exclusively (Windows error " + std::to_string(GetLastError()) + ")");
+    FILE_ATTRIBUTE_TAG_INFO attr{};
+    if (GetFileType(handle_) != FILE_TYPE_DISK ||
+        !GetFileInformationByHandleEx(handle_, FileAttributeTagInfo, &attr, sizeof(attr)) ||
+        (attr.FileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT))) {
+      CloseHandle(handle_);
+      handle_ = INVALID_HANDLE_VALUE;
+      fail("created output is not an ordinary regular file");
+    }
 #else
     fd_ = ::open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
     if (fd_ < 0) fail("cannot create output exclusively: " + std::string(std::strerror(errno)));
