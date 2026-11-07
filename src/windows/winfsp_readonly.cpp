@@ -1,3 +1,4 @@
+#include <utility>
 #include "winfsp_readonly.hpp"
 #include "flitzfs/catalog_error.hpp"
 #include "flitzfs/directory_order.hpp"
@@ -103,8 +104,8 @@ struct WinFspReadOnly::Impl {
   UINT64 timestamp = 0;
   UINT64 total_bytes = 0;
 
-  explicit Impl(const std::vector<CatalogSource>& sources)
-      : projection(ReadOnlyProjection::create(sources)), security(owner_descriptor()) {
+  explicit Impl(ReadOnlyProjection source)
+      : projection(std::move(source)), security(owner_descriptor()) {
     projection.verify_all(kDefaultCatalogVerificationBytes);
     FILETIME now{};
     GetSystemTimeAsFileTime(&now);
@@ -284,7 +285,10 @@ struct WinFspReadOnly::Impl {
   }
 };
 
-WinFspReadOnly::WinFspReadOnly(const std::vector<CatalogSource>& sources) : impl_(std::make_unique<Impl>(sources)) {}
+WinFspReadOnly::WinFspReadOnly(const std::vector<CatalogSource>& sources)
+    : WinFspReadOnly(ReadOnlyProjection::create(sources)) {}
+WinFspReadOnly::WinFspReadOnly(ReadOnlyProjection projection)
+    : impl_(std::make_unique<Impl>(std::move(projection))) {}
 WinFspReadOnly::~WinFspReadOnly() = default;
 bool WinFspReadOnly::dispatcher_stopped() const noexcept {
   return impl_->dispatcher_stop.load(std::memory_order_acquire) != 0;

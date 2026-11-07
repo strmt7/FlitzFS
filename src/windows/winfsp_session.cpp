@@ -1,3 +1,4 @@
+#include <utility>
 #include "winfsp_session.hpp"
 #include <new>
 #include <stdexcept>
@@ -13,6 +14,8 @@ WinFspSessionApi checked(WinFspSessionApi api) {
 }
 WinFspReadOnlySession::WinFspReadOnlySession(const std::vector<CatalogSource>& sources,
     WinFspSessionApi api) : api_(checked(api)), adapter_(sources) {}
+WinFspReadOnlySession::WinFspReadOnlySession(ReadOnlyProjection projection,
+    WinFspSessionApi api) : api_(checked(api)), adapter_(std::move(projection)) {}
 WinFspReadOnlySession::~WinFspReadOnlySession() { stop(); }
 
 NTSTATUS WinFspReadOnlySession::start(const ReadOnlyMountPlan& plan) noexcept {

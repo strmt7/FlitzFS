@@ -33,6 +33,9 @@ std::string virtual_path(std::wstring_view name) {
 ReadOnlyProjection ReadOnlyProjection::create(const std::vector<CatalogSource>& files) {
   return ReadOnlyProjection(ReadOnlyCatalog::create(files));
 }
+ReadOnlyProjection ReadOnlyProjection::open_flzip(const std::filesystem::path& archive) {
+  return ReadOnlyProjection(ReadOnlyCatalog::open_flzip(archive));
+}
 CatalogEntry ReadOnlyProjection::stat(std::wstring_view winfsp_path) const {
   return catalog_.stat(virtual_path(winfsp_path));
 }

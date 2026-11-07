@@ -25,6 +25,7 @@ enum class SessionState { ready, starting, running, stopped, failed };
 class WinFspReadOnlySession final {
  public:
   WinFspReadOnlySession(const std::vector<CatalogSource>& sources, WinFspSessionApi api);
+  WinFspReadOnlySession(ReadOnlyProjection projection, WinFspSessionApi api);
   ~WinFspReadOnlySession();
   WinFspReadOnlySession(const WinFspReadOnlySession&) = delete;
   WinFspReadOnlySession& operator=(const WinFspReadOnlySession&) = delete;

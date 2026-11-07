@@ -1,5 +1,6 @@
 #include "flitzfs/catalog.hpp"
 #include "flitzfs/catalog_error.hpp"
+#include "flitzfs/flzip_reader.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -61,6 +62,10 @@ std::vector<std::string> ancestor_keys(const std::string& key) {
 }
 }  // namespace
 
+std::string canonical_catalog_path(std::string_view path, bool allow_root) {
+  return key_for(path, allow_root);
+}
+
 ReadOnlyCatalog ReadOnlyCatalog::namespace_for(const std::vector<CatalogSource>& files) {
   if (files.size() > kMaxCatalogFiles)
     throw CatalogError(CatalogErrorCode::limit, "FlitzFS: catalog exceeds open-handle count budget");
@@ -101,7 +106,15 @@ ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files)
   return out;
 }
 
+ReadOnlyCatalog ReadOnlyCatalog::open_flzip(const std::filesystem::path& archive) {
+  ReadOnlyCatalog out;
+  out.flzip_ = std::make_shared<FlzipReader>(FlzipReader::open(archive));
+  out.flzip_guard_ = std::make_unique<std::mutex>();
+  return out;
+}
+
 CatalogEntry ReadOnlyCatalog::stat(std::string_view path) const {
+  if (flzip_) return flzip_->stat(path);
   const auto key = key_for(path, true);
   const auto it = nodes_.find(key);
   if (it == nodes_.end()) throw CatalogError(CatalogErrorCode::not_found, "FlitzFS: virtual entry not found");
@@ -109,6 +122,7 @@ CatalogEntry ReadOnlyCatalog::stat(std::string_view path) const {
 }
 
 std::vector<CatalogEntry> ReadOnlyCatalog::list(std::string_view directory) const {
+  if (flzip_) return flzip_->list(directory);
   const auto key = key_for(directory, true);
   const auto it = nodes_.find(key);
   if (it == nodes_.end())
@@ -127,6 +141,10 @@ std::vector<CatalogEntry> ReadOnlyCatalog::list(std::string_view directory) cons
 
 std::vector<std::byte> ReadOnlyCatalog::read(std::string_view path,
                                              std::uint64_t offset, std::uint32_t bytes) {
+  if (flzip_) {
+    std::lock_guard guard(*flzip_guard_);
+    return flzip_->read(path, offset, bytes);
+  }
   const auto key = key_for(path, false);
   const auto it = nodes_.find(key);
   if (it == nodes_.end())
@@ -142,6 +160,13 @@ std::vector<std::byte> ReadOnlyCatalog::read(std::string_view path,
 void ReadOnlyCatalog::verify_all(std::uint64_t max_total_logical_bytes) {
   if (max_total_logical_bytes == 0 || max_total_logical_bytes > kMaxCatalogVerificationBytes)
     throw CatalogError(CatalogErrorCode::limit, "FlitzFS: catalog verification budget must be within 1..256 MiB");
+  if (flzip_) {
+    if (flzip_->info().logical_bytes > max_total_logical_bytes)
+      throw CatalogError(CatalogErrorCode::limit, "FLZIP verification exceeds logical-byte budget");
+    std::lock_guard guard(*flzip_guard_);
+    flzip_->verify_all();
+    return;
+  }
   std::uint64_t total = 0;
   for (const auto& [key, node] : nodes_) {
     (void)key;

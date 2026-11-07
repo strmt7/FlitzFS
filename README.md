@@ -1,6 +1,6 @@
 # FlitzFS
 
-> **0.2.0 experimental CPU storage and native read-only callback preview.**
+> **0.3.0 experimental CPU storage, bounded FLZIP reading and native callbacks.**
 > This is not yet a general-purpose mounted filesystem, encryption product or
 > GPU implementation. Do not store the only copy of valuable data in this format.
 > No tests have been executed on the owner's Windows PC or AMD GPU.
@@ -53,12 +53,25 @@ unsafe names and namespace collisions before opening backing containers.
 See [the versioned manifest format and limitations](docs/CATALOG_MANIFEST.md).
 This metadata is plaintext and unauthenticated, not an encrypted store.
 
+## Bounded FlitzZip compatibility
+
+The separate CPU FLZIP reader supports raw, fill, pattern, and optional
+Deflate/Zstandard blocks after whole-archive CRC verification. It uses an
+immutable in-memory copy with 34 MiB physical/32 MiB logical caps and supports
+at most 16 files. Native GPU entropy/dictionary/composition encodings and
+non-ASCII paths are explicitly unsupported. See [the exact compatibility
+contract](docs/FLZIP_READONLY.md) before treating an archive as supported.
+
+`flzip-list`, `flzip-verify`, and `flzip-probe` are read-only. The same reader
+feeds the catalog/projection/native callback API. This is not a general-purpose
+mount command or authentication. Existing `.flfs`/`.flcatalog` formats are unchanged.
+
 ## Not implemented or qualified
 
 There is no general-purpose mount application, virtual-drive product, custom
 filter driver, AMD GPU initialization, encryption or authenticated storage. An
 optional synthetic-only hosted-CI mount probe exists. Writable transactions,
-power-loss recovery, snapshots and `.flzip` compatibility remain future work.
+power-loss recovery, authenticated snapshots and complete `.flzip` codec compatibility remain future work.
 Synthetic read-only process-termination recovery is tested separately. CRC32
 detects accidental corruption, not malicious tampering.
 
@@ -76,9 +89,10 @@ ctest --test-dir build -C Release --output-on-failure --timeout 45 --parallel 1
 ```
 
 With Zstandard headers/library available, CPU compression is enabled. Otherwise
-the default build is raw-only and cannot decode existing Zstandard chunks.
+the `.flfs` packer stores raw chunks and cannot decode existing Zstandard chunks.
 Use `-DFLITZFS_REQUIRE_ZSTD=ON` to reject missing dependencies rather than silently
-falling back. Use `-DFLITZFS_WITH_ZSTD=OFF` for an explicit raw-only build.
+falling back. For a codec-free build, set both `-DFLITZFS_WITH_ZSTD=OFF` and
+`-DFLITZFS_WITH_ZLIB=OFF`. Optional zlib supplies FLZIP Deflate reading only.
 Windows raw-only builds require Visual Studio and CMake. The optional native
 callback build and SDK layout are documented in [WINFSP_CALLBACKS.md](docs/WINFSP_CALLBACKS.md).
 Normal configuration performs no downloads or installation.
