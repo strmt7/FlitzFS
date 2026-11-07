@@ -5,6 +5,7 @@ This is a staged plan, NOT a claim that all items are already implemented.
 | Stage | Deliverable | Promotion gate |
 |---|---|---|
 | **M1: CPU chunk core** | Existing v1 `.flfs` pack, range-read, verify, new-only extraction | Linux CPU tests, raw-only tests, sanitizer checks, Windows CI, corruption/fault tests. Source must always be retained. |
+| **M1.5: OS-handle and catalog foundation** | No-follow regular-file reads, exact Zstd frames, bounded in-memory virtual directory tree | CPU Zstd/raw, sanitizers, Windows CI, malicious namespace tests; no mount or writes from catalog |
 | **M2: FlitzZip compatibility** | Read-only `.flzip` archive adapter, independently verified per-block metadata | Reference corpus byte-for-byte; reject malicious paths, malformed metadata, oversized decoding; license/API review. |
 | **M3: Windows read-only mount** | WinFsp user-mode mount for disposable test datasets | Windows automated integration suite; no mountpoint collisions; no unexpected privilege escalation or driver installation; clean unmount/restart; independent CPU export. |
 | **M4: Adaptive CPU/HIP** | Bounded GPU decode batches; H2D/kernel/D2H telemetry and CPU fallback | Optional test on supported RX 9070 XT using tiny synthetic buffer, GPU busy/driver-loss tests, confirmed no hangs; measurable end-to-end advantage. |

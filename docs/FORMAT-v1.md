@@ -35,7 +35,7 @@ All integer fields are unsigned, little-endian. No implicit packing or machine-d
 | 21 | 3 | Reserved = 0 |
 | 24 | 8 | Reserved = 0 |
 
-Payload records must be contiguous and ordered; no holes, overlaps, dangling payloads, or trailing bytes are accepted. Raw chunk length must equal decoded length. Zstd decoding is additionally constrained by an explicit 1 MiB maximum window.
+Payload records must be contiguous and ordered; no holes, overlaps, dangling payloads, or trailing bytes are accepted. Raw chunk length must equal decoded length. Zstd decoding requires exactly one complete frame whose declared decoded length equals the chunk index. Single-shot decompression is bounded by the index maximum of 1 MiB; `ZSTD_d_windowLogMax` does not cap the window in this mode.
 
 ### Footer (32 bytes)
 

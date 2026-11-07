@@ -4,12 +4,12 @@ The user's primary constraints are: **no formatting, no lost data, no drive modi
 
 ## Present implementation: allowed effects
 
-- Read the explicitly supplied input file/container path.
+- Read the explicitly supplied input file/container path using a validated regular-file handle, with final-component no-follow and POSIX nonblocking open.
 - Create ONE explicitly supplied **new** ordinary output file; never overwrite or delete an existing one.
 - Create small, uniquely named test fixtures in a newly created temporary directory when running the unit tests.
 - Compile on a developer's own build host or GitHub runner, without privileged operations.
 
-No mounts, raw devices, disk partition APIs, volume formatting, boot modifications, Windows service registration, scheduled tasks, registry updates, filesystem minifilters, GPU compute, or encryption are implemented. This milestone does not need administrator privileges. Tests never invoke `remove_all`, format utilities, or shell commands to alter drives.
+No mounts, raw devices, disk partition APIs, volume formatting, boot modifications, Windows service registration, scheduled tasks, registry updates, filesystem minifilters, GPU compute, or encryption are implemented. This milestone does not need administrator privileges. The in-memory catalog has no writes or filesystem mounts. Tests never invoke `remove_all`, format utilities, or shell commands to alter drives.
 
 ## Resource limits enforced in the code
 
@@ -22,7 +22,8 @@ No mounts, raw devices, disk partition APIs, volume formatting, boot modificatio
 | Single random read | At most 4 MiB |
 | Stored compressed chunk | At most 2 MiB |
 | Decoded read cache | One 1 MiB-or-smaller chunk per Reader |
-| Zstd decoder window | At most 1 MiB |
+| In-memory virtual catalog | At most 16 read handles and 4 MiB aggregate index metadata; no persistent mount |
+| Zstd decoded output | At most 1 MiB, checked against single-frame metadata; single-shot decoder window is not independently capped |
 | CPU compression level | 1–5 only; one CPU stream, no parallel workers |
 | Disk-space preflight | Refuse projected output unless 1 GiB additional space remains |
 | Output path | Exclusive new-file creation; existing paths are never replaced |
@@ -33,7 +34,7 @@ These checks reduce risk but do not protect against concurrent disk filling, I/O
 ## Threat-model limitations
 
 - CRC32 is **not authentication**. Anyone who can edit the container can recompute it. This version does NOT protect confidentiality or tampering.
-- Input files or container files can change during processing; v1 does not snapshot or lock them. Use immutable copies for testing.
+- Input files or container files can change during processing; v1 does not snapshot or lock them. Handles are pinned to an opened object, but other processes can still mutate underlying content (particularly on POSIX). Use immutable copies for testing.
 - The format parser bounds lengths and checks arithmetic, but has not been through a professional security audit or an exhaustive external fuzzing campaign.
 - Zstd decompression requires a trusted and patched Zstd library; an intentionally malformed stream is handled as an error, not as trusted data.
 - There is no read-only WinFsp mount yet, so no claim is made about filesystem semantics, Windows crash recovery, ACLs, mmap, paging, or concurrent access.
