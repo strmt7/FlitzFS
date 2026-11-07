@@ -64,3 +64,13 @@ closed composition stages, one-block scratch and optional LZ4 semantics. Never
 infer actual GPU execution from codec names. The test-only upstream decoder
 extractor must verify the exact blob before selecting functions; do not weaken
 that check or link the generated oracle into product targets.
+
+## GPU preparation boundary (0.3.2)
+
+Read `docs/HIP_BATCH_PLAN.md` before changing the GPU batch, device kernel or
+DXGI collector. The kernel is compiled offline only, never loaded automatically.
+The default CLI and filesystem paths remain CPU-only. CPU semantic tests of the
+shared device body must not be described as GPU execution. Keep 8-block/64-KiB/
+256-KiB batch bounds, independent CPU comparison, fail-closed memory telemetry,
+immutable owned input, one outstanding request and terminal failure semantics.
+No actual-runtime integration or owner-device experiment is qualified yet.

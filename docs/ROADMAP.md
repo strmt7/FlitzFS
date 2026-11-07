@@ -13,7 +13,7 @@ promotion. No new branches, force pushes or owner-PC operations are needed.
 | M1.8 / release 0.2: native callback foundation | Implemented OFF-by-default WinFsp read-only backend, pre-allocation budgets and physical-path guards | Direct real-SDK Windows callback tests plus Linux/raw/sanitizers; this is NOT mounted qualification |
 | M2: FlitzZip compatibility | Implemented bounded CPU v1–11 block decoding, CLI and projection route | Exact supported subset in FLZIP_READONLY.md; GPU execution/full CLI parity remain unimplemented; native CPU/reference/mounted qualification depends on matching CI |
 | M3: Windows read-only mount | Lifecycle, live synthetic reads and process-crash/remount probe implemented; see per-commit CI | No collisions/recursion; explicit driver provisioning; clean unmount/restart; actual ACL/mapped-I/O/cancellation/app tests; CPU export |
-| M4: adaptive CPU/HIP | Not implemented: bounded GPU batches and measured routing | Tiny synthetic opt-in tests, independent CPU parity, headroom/timeout handling, full H2D/kernel/D2H timing and demonstrated end-to-end benefit |
+| M4: adaptive CPU/HIP | Bounded six-kind batch/kernel candidate and result gate implemented; offline gfx1201 compilation only | Live supervised runtime, Windows HIP compiler/hardware qualification, real GPU parity, H2D/kernel/D2H timing and measured routing remain unimplemented/unqualified |
 | M5: authenticated immutable store | Not implemented: AEAD records, authenticated manifest, key handling | Vetted crypto; nonce/clone/rollback analysis; authentication-negative/fuzz tests; independent recovery |
 | M6: transactional writes | Not implemented: append log, COW metadata, durable flush and compaction | Fault injection at every commit, out-of-space handling and acknowledged-write recovery |
 | M7: limited writable preview | Not implemented: opt-in disposable mounted folder | M6 plus ACL/locking/mapped I/O/rename/app tests and independent backups; never automatic sole-copy use |
@@ -50,3 +50,13 @@ GPU busy-vs-idle effects; measured power; write amplification; recovery time.
 Compare raw NTFS, CPU FlitzFS, GPU FlitzFS and built-in Windows compression when
 applicable. Correctness runs are not performance evidence. Heavy benchmarks,
 stress tests and GPU workloads remain disabled by default.
+
+## GPU preparation addition (0.3.2)
+
+The immutable batch planner, independent CPU reference, allocation-free HIP
+kernel candidate and result gate are described in HIP_BATCH_PLAN.md. Offline
+compilation and CPU semantic tests are evidence only for their named stages;
+see HIP_BATCH_VALIDATION.md. No runtime loading, kernel launch, speedup or
+filesystem GPU integration is implied. The next gate must provide an explicit
+supervised worker, exact adapter/module admission and end-to-end hardware tests
+before changing normal CPU-only behavior.
