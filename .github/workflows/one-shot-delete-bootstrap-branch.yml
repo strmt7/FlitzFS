@@ -1,0 +1,28 @@
+name: One-shot removal of superseded bootstrap branch
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/one-shot-delete-bootstrap-branch.yml]
+permissions: {}
+jobs:
+  prune-exact-branch:
+    if: ${{ github.repository == 'strmt7/FlitzFS' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      contents: write
+    steps:
+      - name: Delete only the unchanged, explicitly superseded bootstrap branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          expected='84efaa804bfb81d28b1520aad6e382b1c88200a2'
+          branch='development/safe-cpu-core-20261107'
+          actual="$(gh api "/repos/strmt7/FlitzFS/git/ref/heads/${branch}" --jq '.object.sha')"
+          if [[ "$actual" != "$expected" ]]; then
+            printf 'Ref changed: expected %s but got %s. No deletion.\n' "$expected" "$actual" >&2
+            exit 1
+          fi
+          gh api -X DELETE "/repos/strmt7/FlitzFS/git/refs/heads/${branch}"
