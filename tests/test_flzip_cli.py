@@ -39,7 +39,7 @@ def main() -> None:
             "renamed.bin": golden,
             "corrupt.flzip": bytes([golden[0] ^ 1]) + golden[1:],
             "truncated.flzip": golden[:-1],
-            "unsupported.flzip": native(b"0123456789abcdef", kind=4, version=2),
+            "unsupported.flzip": native(b"0123456789abcdef", kind=14, version=11),
         }
         for name, data in fixtures.items():
             path = root / name
@@ -69,7 +69,7 @@ def main() -> None:
         run(["flzip-probe", good, "../test.bin", "0", "1"], 1, "invalid")
         run(["flzip-verify", str(root / "corrupt.flzip")], 1, "CRC mismatch")
         run(["flzip-verify", str(root / "truncated.flzip")], 1, "footer")
-        run(["flzip-verify", str(root / "unsupported.flzip")], 1, "codec is not available")
+        run(["flzip-verify", str(root / "unsupported.flzip")], 1, "invalid for its declared version")
         run(["flzip-probe", good, "Data/test.bin", "0", "4194305"], 1, "exceeds 4 MiB")
         for path, digest in before.items():
             if hashlib.sha256(path.read_bytes()).hexdigest() != digest:

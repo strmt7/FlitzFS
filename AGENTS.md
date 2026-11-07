@@ -36,7 +36,7 @@ owner's PC. A successful callback test is not a mounted-filesystem qualification
 Reader is single-threaded; catalogs lock each file. Native callbacks additionally
 bound handles and concurrent decodes. Destruction/move must not race callbacks.
 Encryption, authentication, HIP execution and writable volumes remain unimplemented.
-FLZIP compatibility is a bounded CPU subset; consult `docs/FLZIP_READONLY.md`. Keep optional behavior opt-in and report
+FLZIP compatibility covers the pinned block kinds within a bounded CPU subset; consult `docs/FLZIP_READONLY.md`. Keep optional behavior opt-in and report
 actual test coverage without upgrading partial tests into production claims.
 
 ## Explicit isolated integration exception
@@ -58,3 +58,9 @@ The FLZIP snapshot reader must verify every file before exposure, never initiali
 HIP, and reject unavailable codecs explicitly. Preserve its physical/index/
 block/logical caps. The upstream serializer oracle is test-only, read-only and
 commit-pinned; never edit other repositories or claim full CLI interoperability.
+
+Native GPU-format decoding is CPU-only. Consult `docs/NATIVE_CODEC_PLAN.md` for
+closed composition stages, one-block scratch and optional LZ4 semantics. Never
+infer actual GPU execution from codec names. The test-only upstream decoder
+extractor must verify the exact blob before selecting functions; do not weaken
+that check or link the generated oracle into product targets.
