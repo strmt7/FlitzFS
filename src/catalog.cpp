@@ -41,10 +41,11 @@ std::string key_for(std::string_view path, bool allow_root) {
       if (c == '.') in_stem = false;
       if (in_stem) stem.push_back(ascii_lower(c));
     }
+    while (!stem.empty() && stem.back() == ' ') stem.pop_back();
     if (stem == "con" || stem == "prn" || stem == "aux" || stem == "nul" ||
         stem == "conin$" || stem == "conout$" || stem == "clock$" ||
         (stem.size() == 4 && ((stem.substr(0, 3) == "com") || (stem.substr(0, 3) == "lpt")) &&
-         stem[3] >= '1' && stem[3] <= '9')) reject();
+         stem[3] >= '0' && stem[3] <= '9')) reject();
     for (const char c : component) key.push_back(ascii_lower(c));
     if (stop == std::string_view::npos) break;
     key.push_back('/');
@@ -60,7 +61,7 @@ std::vector<std::string> ancestor_keys(const std::string& key) {
 }
 }  // namespace
 
-ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files) {
+ReadOnlyCatalog ReadOnlyCatalog::namespace_for(const std::vector<CatalogSource>& files) {
   if (files.size() > kMaxCatalogFiles)
     throw CatalogError(CatalogErrorCode::limit, "FlitzFS: catalog exceeds open-handle count budget");
   ReadOnlyCatalog out;
@@ -76,6 +77,15 @@ ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files)
     if (!out.nodes_.emplace(key, Node{{file.virtual_path, false, 0}, nullptr, nullptr}).second) reject();
   }
 
+  return out;
+}
+
+void ReadOnlyCatalog::validate_layout(const std::vector<CatalogSource>& files) {
+  (void)namespace_for(files);
+}
+
+ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files) {
+  auto out = namespace_for(files);
   std::uint64_t indexed = 0;
   for (const auto& file : files) {
     auto reader = std::make_unique<Reader>(Reader::open(file.container, kMaxCatalogIndexBytes - indexed));

@@ -58,9 +58,10 @@ ACL test, Windows 11 qualification, or a promise of no possible system freeze.
 The data files and snapshot are not durable-write evidence; there are no writes
 through the mounted volume. No cleanup deletes fixture data. The VM is discarded.
 
-Normal Linux and Windows CPU unit tests remain mount-free. The new live
-assertions are pending their matching hosted `windows-mount` run; previous
-successful jobs cannot establish these newly added results.
+Normal Linux and Windows CPU unit tests remain mount-free. The initial live
+crash/recovery assertions passed in run 42385143601. Later persistent-manifest
+integration needs its own matching `windows-mount` result; prior successes do
+not qualify subsequent changes.
 
 ## Primary references
 

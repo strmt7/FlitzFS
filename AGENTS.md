@@ -48,3 +48,8 @@ Windows VM, after the ordinary CI gates pass. Never transfer that permission to
 the owner's PC, a self-hosted runner, arbitrary files or an existing mountpoint.
 The probe must keep its 128 MiB/20% CPU/30-second process limits and synthetic-only
 input policy. Kernel faults cannot be covered by a no-freeze guarantee.
+
+The bounded plaintext collection manifest and read-only CLI are described in
+`docs/CATALOG_MANIFEST.md`. They do not implement encryption, authentication,
+transactional writes, or hostile-directory sandboxing. Keep the existing
+namespace and index budgets; validate all references before backing access.

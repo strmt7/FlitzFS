@@ -15,7 +15,7 @@
 namespace flitzfs {
 
 // In-memory, read-only directory view over independently indexed .flfs files.
-// It is NOT a mounted filesystem and intentionally has no persistent manifest.
+// Persistence is supplied separately by catalog_manifest.hpp; this class owns the live view.
 struct CatalogSource {
   std::string virtual_path;  // relative '/'-separated conservative ASCII path
   std::filesystem::path container;
@@ -33,6 +33,8 @@ constexpr std::uint64_t kMaxCatalogVerificationBytes = 256ULL * 1024ULL * 1024UL
 
 class ReadOnlyCatalog final {
  public:
+  // Validate namespace/count collisions without opening any backing file.
+  static void validate_layout(const std::vector<CatalogSource>& files);
   static ReadOnlyCatalog create(const std::vector<CatalogSource>& files);
   ReadOnlyCatalog(const ReadOnlyCatalog&) = delete;
   ReadOnlyCatalog& operator=(const ReadOnlyCatalog&) = delete;
@@ -57,6 +59,7 @@ class ReadOnlyCatalog final {
     std::unique_ptr<Reader> reader;
     std::unique_ptr<std::mutex> read_guard;
   };
+  static ReadOnlyCatalog namespace_for(const std::vector<CatalogSource>& files);
   ReadOnlyCatalog() = default;
   std::map<std::string, Node> nodes_;
 };

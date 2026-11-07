@@ -6,7 +6,8 @@
 CLI pack: ordinary source -> bounded CPU Zstd/raw chunks -> NEW .flfs v1
 CLI read: validated index -> touched chunks -> CPU decode + CRC -> range
 
-optional native WinFsp callbacks (no mount or dispatcher)
+optional WinFsp session (explicit lifecycle provider)
+    -> native read-only callbacks
     -> immutable metadata and owner-only descriptors
     -> bounded opaque open contexts and active reads
     -> ReadOnlyProjection (Windows virtual path + EOF semantics)
@@ -34,6 +35,12 @@ source deletion occurs. Interrupted operations may leave a partial new file.
 There is no transactional writable filesystem, snapshot or recovery journal.
 
 ### Catalog and projection
+
+The optional 8 KiB plaintext `.flcatalog` manifest binds up to 16 virtual names
+to sibling `.flfs` filenames. Pure parsing validates all names and collisions
+before the loader opens backing files. CLI list/verify/probe operations and the
+hosted live probe use this layer. Metadata is not authenticated or encrypted;
+parents must be trusted. See `CATALOG_MANIFEST.md`.
 
 The catalog accepts up to 16 `.flfs` sources and builds a conservative ASCII,
 case-insensitive directory tree. Name validation covers the entire component,
@@ -73,18 +80,29 @@ Direct callback tests link the official SDK/DLL but do not create a filesystem,
 install a driver, start a dispatcher or mount anything. See
 [WINFSP_CALLBACKS.md](WINFSP_CALLBACKS.md) for ABI research and dependency pins.
 
-## Next: read-only mounted integration (not implemented)
+## Read-only mounted integration and process supervision
 
-A lifecycle layer must create/stop the filesystem and dispatcher, reserve a
-nonconflicting mount point, prevent backing-path recursion, and enforce process
-budgets. First integration belongs on a disposable Windows environment, using
-copied synthetic data and an explicitly provisioned trusted driver. No automatic
-driver installation or mount on the owner's PC is authorized by this preview.
+The implemented lifecycle layer takes an explicit WinFsp API provider and
+starts at most two dispatcher workers before exposing a namespace. It stops and
+joins those callbacks before releasing the adapter. Injected tests exercise
+startup failures, rollback, stop notifications and single-use ownership.
+A separate Windows Job Object runner limits trusted CPU helpers before they
+execute: default 128 MiB committed memory, maximum 20% CPU, one active process,
+below-normal priority and bounded waits. This is not a security or kernel sandbox.
 
-Qualification needs clean unmount/restart, open/close races, cancellation,
-memory-mapped reads, directory pagination, actual access checks and independent
-CPU export. Callback tests alone do not pass those gates. Persistent catalog
-configuration and FlitzZip format compatibility also remain separate work.
+The optional hosted-only synthetic probe uses the real provider, a fresh
+pinned fixture parent and create-only directory leaf. It verifies ordinary,
+random and mapped reads, enumeration, mutation rejection and orderly shutdown.
+A second child is forcibly terminated after proving working mounted I/O; a
+third verifies unchanged backing data and remounts it. See `LIVE_MOUNT_PROBE.md`
+and `CRASH_RECOVERY_PROBE.md` for exact qualification scope and run evidence.
+Only its explicit disposable hosted-Windows lane may provision the driver.
+No automatic driver installation or mount on the owner's PC is authorized.
+
+A general-purpose mount application, in-flight cancellation/open-close races,
+cross-user authorization, Windows 11, broad application compatibility and
+FlitzZip format compatibility remain separate gates. Persistent plaintext
+configuration does not satisfy transactional or authenticated metadata needs.
 
 ## Later: adaptive HIP (not implemented)
 

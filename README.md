@@ -1,8 +1,8 @@
 # FlitzFS
 
 > **0.2.0 experimental CPU storage and native read-only callback preview.**
-> This is not yet a mounted Windows filesystem, encryption product or GPU
-> implementation. Do not store the only copy of valuable data in this format.
+> This is not yet a general-purpose mounted filesystem, encryption product or
+> GPU implementation. Do not store the only copy of valuable data in this format.
 > No tests have been executed on the owner's Windows PC or AMD GPU.
 
 FlitzFS develops transparent compressed Windows storage with eventual AMD HIP
@@ -35,12 +35,32 @@ create a filesystem, install/load a kernel driver, assign a mount point, start
 a dispatcher or modify Windows services. See [native architecture, research,
 bounds and tests](docs/WINFSP_CALLBACKS.md).
 
+## Isolated integration work
+
+An explicit lifecycle layer now handles startup and rollback, and a Windows Job
+Object runner limits trusted CPU helpers. The optional live probe tests actual
+read-only mounted I/O using synthetic files; see [its acceptance gates and limits](docs/LIVE_MOUNT_PROBE.md).
+It is not part of default CTest and accepts no user data or mount paths.
+The separate [process-crash probe](docs/CRASH_RECOVERY_PROBE.md) tests supervised
+termination, unchanged backing data, independent CPU verification and remount.
+
+## Persistent read-only collections
+
+An 8 KiB/16-record `.flcatalog` manifest now maps virtual names to sibling
+containers. Use `catalog-list`, `catalog-verify` and `catalog-probe` to inspect
+and read a collection without mounting it. The loader is read-only and rejects
+unsafe names and namespace collisions before opening backing containers.
+See [the versioned manifest format and limitations](docs/CATALOG_MANIFEST.md).
+This metadata is plaintext and unauthenticated, not an encrypted store.
+
 ## Not implemented or qualified
 
-There is no mount executable, virtual drive, filter driver, persistent manifest,
-service, AMD GPU initialization, encryption or authenticated storage. Writable
-transactions, crash recovery, snapshots and `.flzip` compatibility remain future
-work. CRC32 detects accidental corruption, not malicious tampering.
+There is no general-purpose mount application, virtual-drive product, custom
+filter driver, AMD GPU initialization, encryption or authenticated storage. An
+optional synthetic-only hosted-CI mount probe exists. Writable transactions,
+power-loss recovery, snapshots and `.flzip` compatibility remain future work.
+Synthetic read-only process-termination recovery is tested separately. CRC32
+detects accidental corruption, not malicious tampering.
 
 The `.flfs` v1 format is experimental. Keep source files and independent backups.
 Direct Reader calls are single-threaded; catalog operations serialize per file.
@@ -82,17 +102,20 @@ it never replaces the input or an existing output. Keep source data unmodified.
 
 ## Safety and evidence
 
-There are no disk-formatting, partitioning, raw-sector, privileged service or
-GPU operations in the code. Test fixtures are uniquely scoped and small; tests
-never recursively delete directories. Free-space checks and resource limits
+There are no disk-formatting, partitioning, raw-sector or GPU operations.
+Driver provisioning is isolated to the explicitly opted-in disposable hosted-CI
+mount lane; it is forbidden on the owner machine. Test fixtures are uniquely
+scoped and small; tests never recursively delete directories. Free-space checks and resource limits
 reduce risk but cannot guarantee safety against concurrent disk use, hardware
 failure or software defects. The owner machine is not used for testing.
 
 GitHub CI separates Linux Zstandard, Linux raw-only, Windows raw-only, Linux
 ASan/UBSan, and Windows native callbacks with commit-pinned Zstandard. SDK
 provisioning is checksum-pinned extraction on disposable hosted runners, not
-installer execution. Check the exact commit's Actions results; do not infer a
-Windows/native pass from Linux results or infer mount qualification from native
+installer execution in those lanes. A separate gated `windows-mount` job
+provisions the verified official driver on its disposable VM only; see the
+[synthetic mount probe contract](docs/LIVE_MOUNT_PROBE.md). Check the exact
+commit's Actions results; do not infer a Windows/native pass from Linux results or infer mount qualification from native
 callback tests.
 
 ## Design references
