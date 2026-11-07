@@ -36,6 +36,18 @@ WinFsp callbacks, catalog lifetime under concurrent requests, Unicode names,
 Windows ACLs, timestamps, security descriptors, cache eviction, and
 persistently authenticated manifests remain future gates.
 
+## Stage 1.7: in-process virtual Windows path projection (implemented, no mount)
+
+`ReadOnlyProjection` accepts only root-relative `\`-delimited ASCII virtual paths,
+including `\` for the root; it translates to the catalog's canonical `/` paths
+without accessing real OS paths. Drive-qualified, UNC, traversal, control,
+embedded NUL, and Unicode names are rejected. Read requests admit at most 4 MiB
+and return a **short read** when they cross EOF, or zero bytes when at/past EOF.
+These semantics are independently unit-tested across CPU codecs and are intended
+for a future WinFsp callback translation. Error-code mapping, Windows metadata,
+callback lifetime/cancellation, actual mounting, and live WinFsp tests remain
+**unimplemented**.
+
 ## Stage 2: read-only Windows mount, only after tests
 
 WinFsp is a reasonable user-mode filesystem bridge for Windows. The future adapter will translate open, read, metadata, directory enumeration and memory-mapped reads into bounded requests against a new immutable chunk/object store. Start in a disposable test mount folder with NO persistence of the mount across reboot. Never mount over an existing directory containing data. Retain a read-only CPU export path that does not require the mounted filesystem.

@@ -9,7 +9,7 @@ The user's primary constraints are: **no formatting, no lost data, no drive modi
 - Create small, uniquely named test fixtures in a newly created temporary directory when running the unit tests.
 - Compile on a developer's own build host or GitHub runner, without privileged operations.
 
-No mounts, raw devices, disk partition APIs, volume formatting, boot modifications, Windows service registration, scheduled tasks, registry updates, filesystem minifilters, GPU compute, or encryption are implemented. This milestone does not need administrator privileges. The in-memory catalog has no writes or filesystem mounts. Tests never invoke `remove_all`, format utilities, or shell commands to alter drives.
+No mounts, raw devices, disk partition APIs, volume formatting, boot modifications, Windows service registration, scheduled tasks, registry updates, filesystem minifilters, GPU compute, or encryption are implemented. This milestone does not need administrator privileges. The in-memory catalog and Windows virtual-path projection have no writes or filesystem mounts. Tests never invoke `remove_all`, format utilities, or shell commands to alter drives.
 
 ## Resource limits enforced in the code
 
@@ -25,6 +25,8 @@ No mounts, raw devices, disk partition APIs, volume formatting, boot modificatio
 | In-memory virtual catalog | At most 16 read handles and 4 MiB aggregate index metadata; no persistent mount |
 | Catalog full verification | Default 32 MiB total decoded bytes; upper limit 256 MiB, preflighted before decoding |
 | Concurrent catalog reads | Per-file mutex protecting mutable decoder cache / shared Windows file pointer; no background thread pool |
+| Windows virtual path projection | Strict root-relative ASCII only; 240 characters after the root separator; no OS path resolution |
+| Virtual projection read | Maximum 4 MiB per request, short reads at EOF |
 | Zstd decoded output | At most 1 MiB, checked against single-frame metadata; single-shot decoder window is not independently capped |
 | CPU compression level | 1–5 only; one CPU stream, no parallel workers |
 | Disk-space preflight | Refuse projected output unless 1 GiB additional space remains |
@@ -39,7 +41,7 @@ These checks reduce risk but do not protect against concurrent disk filling, I/O
 - Input files or container files can change during processing; v1 does not snapshot or lock them. Handles are pinned to an opened object, but other processes can still mutate underlying content (particularly on POSIX). Use immutable copies for testing.
 - The format parser bounds lengths and checks arithmetic, but has not been through a professional security audit or an exhaustive external fuzzing campaign.
 - Zstd decompression requires a trusted and patched Zstd library; an intentionally malformed stream is handled as an error, not as trusted data.
-- There is no read-only WinFsp mount yet, so no claim is made about full filesystem semantics, Windows crash recovery, ACLs, mmap, paging, or WinFsp callback safety. M1.6 covers simultaneous read-only `ReadOnlyCatalog::read` calls against a live, nonmoving catalog; object lifetime and every other callback remain separate gates.
+- There is no read-only WinFsp mount yet: the M1.7 projection is an in-process mapping, not a driver/API callback implementation. No claim is made about full filesystem semantics, Windows crash recovery, ACLs, mmap, paging, or WinFsp callback safety. M1.6 covers simultaneous read-only `ReadOnlyCatalog::read` calls against a live, nonmoving catalog; object lifetime and every other callback remain separate gates.
 
 ## Explicit prohibitions for later work
 

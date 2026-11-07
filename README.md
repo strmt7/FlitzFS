@@ -1,6 +1,6 @@
 # FlitzFS
 
-> **Milestone 1.6 / experimental CPU-only container and concurrency-safe read-only catalog core**. This source tree is a **development prototype**, not a mounted Windows filesystem, an encryption product, or a GPU implementation. It has not been tested on the owner's Windows PC or AMD GPU. **Do not store your only copy of valuable data in this format.**
+> **Milestone 1.7 / experimental CPU-only container, concurrency-safe catalog, and Windows-path projection**. This source tree is a **development prototype**, not a mounted Windows filesystem, an encryption product, or a GPU implementation. It has not been tested on the owner's Windows PC or AMD GPU. **Do not store your only copy of valuable data in this format.**
 
 FlitzFS explores a Windows virtual filesystem for compressed and eventually authenticated/encrypted data, with adaptive CPU/GPU processing. This milestone provides the first independently addressable, corruption-checked `.flfs` chunk container plus a small, in-memory virtual directory catalog. It is intentionally isolated from any disk formatting, drive mounting, kernel, GPU, or disk-management APIs.
 
@@ -9,17 +9,18 @@ FlitzFS explores a Windows virtual filesystem for compressed and eventually auth
 - C++20 streaming pack/read/extract and `flitzfs` command-line utility.
 - Read-only OS-handle source and container reader: pinned regular-file handles, no-follow final symlinks/reparse points, nonblocking special-file rejection on POSIX, strict offset reads.
 - Small in-memory `ReadOnlyCatalog` for up to 16 `.flfs` sources: virtual nested directories, safe conservative ASCII path validation, case-insensitive lookup, collision detection, 4 MiB total index budget, per-file read synchronization, and explicit 32 MiB default / 256 MiB maximum whole-catalog verification; no mount, persistent manifest, or write operations.
+- Read-only `ReadOnlyProjection` API for Windows-style virtual paths, strict ASCII-only translation, metadata/directory listing, and bounded short reads at EOF. No WinFsp dependency or mount operation.
 - 128 KiB default independently compressed chunks (selectable powers of two between 4 KiB and 1 MiB).
 - Per-chunk Zstandard compression (when the library is available); automatic raw fallback when Zstd is not useful.
 - Random byte-range reads without decompressing unrelated chunks; 4 MiB per-call cap; bounded single-chunk decoded cache.
 - Bounded, verified metadata index plus a final commit footer; decoded-chunk CRC32 checks.
 - New-file-only output creation (`CREATE_NEW` on Windows, `O_CREAT|O_EXCL|O_NOFOLLOW` on POSIX); no overwrites, renames, deletions, or recursion.
 - Default 256 MiB input/extraction cap (up to 4 GiB with explicit `--max-mib`); single-threaded CPU processing; at least 1 GiB of projected free-space headroom before writing.
-- CPU-focused tests for round trips, random access, malformed metadata, truncation, corruption, case-insensitive catalog names, concurrent catalog reads, bounded whole-catalog verification, path traversal, nonregular file inputs, range limits, and refusing existing outputs.
+- CPU-focused tests for round trips, random access, malformed metadata, truncation, corruption, case-insensitive catalog names, concurrent catalog reads, bounded whole-catalog verification, Windows-style path translation and EOF short reads, path traversal, nonregular file inputs, range limits, and refusing existing outputs.
 
 ## Not implemented
 
-- **No WinFsp mount or virtual drive. No Windows filesystem filter or disk driver.**
+- **No WinFsp mount or virtual drive. No Windows filesystem filter or disk driver.** The Windows-path projection is a pure in-process API; it does not implement actual WinFsp callbacks.
 - **No AMD HIP/GPU operations** (not even device initialization).
 - **No encryption or authentication.** CRC32 catches accidental corruption, not deliberate tampering.
 - No persisted directory tree or mounted folder, concurrent writes, journaling, snapshots, crash-safe mutable filesystem, or migration from `.flzip` yet. Direct `Reader` calls are single-threaded; catalog reads are synchronized per file, and catalog moves/destruction during active requests are not supported.
