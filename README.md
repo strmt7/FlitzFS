@@ -1,42 +1,69 @@
 # FlitzFS
 
-> **Milestone 1.7 / experimental CPU-only container, concurrency-safe catalog, and Windows-path projection**. This source tree is a **development prototype**, not a mounted Windows filesystem, an encryption product, or a GPU implementation. It has not been tested on the owner's Windows PC or AMD GPU. **Do not store your only copy of valuable data in this format.**
+> **0.2.0 experimental CPU storage and native read-only callback preview.**
+> This is not yet a mounted Windows filesystem, encryption product or GPU
+> implementation. Do not store the only copy of valuable data in this format.
+> No tests have been executed on the owner's Windows PC or AMD GPU.
 
-FlitzFS explores a Windows virtual filesystem for compressed and eventually authenticated/encrypted data, with adaptive CPU/GPU processing. This milestone provides the first independently addressable, corruption-checked `.flfs` chunk container plus a small, in-memory virtual directory catalog. It is intentionally isolated from any disk formatting, drive mounting, kernel, GPU, or disk-management APIs.
+FlitzFS develops transparent compressed Windows storage with eventual AMD HIP
+acceleration and authenticated encryption. Current code provides independently
+addressable `.flfs` chunks, a synchronized read-only directory catalog, a portable
+Windows-path projection, and an optional native WinFsp callback adapter.
 
-## Implemented now
+## Implemented
 
-- C++20 streaming pack/read/extract and `flitzfs` command-line utility.
-- Read-only OS-handle source and container reader: pinned regular-file handles, no-follow final symlinks/reparse points, nonblocking special-file rejection on POSIX, strict offset reads.
-- Small in-memory `ReadOnlyCatalog` for up to 16 `.flfs` sources: virtual nested directories, safe conservative ASCII path validation, case-insensitive lookup, collision detection, 4 MiB total index budget, per-file read synchronization, and explicit 32 MiB default / 256 MiB maximum whole-catalog verification; no mount, persistent manifest, or write operations.
-- Read-only `ReadOnlyProjection` API for Windows-style virtual paths, strict ASCII-only translation, metadata/directory listing, and bounded short reads at EOF. No WinFsp dependency or mount operation.
-- 128 KiB default independently compressed chunks (selectable powers of two between 4 KiB and 1 MiB).
-- Per-chunk Zstandard compression (when the library is available); automatic raw fallback when Zstd is not useful.
-- Random byte-range reads without decompressing unrelated chunks; 4 MiB per-call cap; bounded single-chunk decoded cache.
-- Bounded, verified metadata index plus a final commit footer; decoded-chunk CRC32 checks.
-- New-file-only output creation (`CREATE_NEW` on Windows, `O_CREAT|O_EXCL|O_NOFOLLOW` on POSIX); no overwrites, renames, deletions, or recursion.
-- Default 256 MiB input/extraction cap (up to 4 GiB with explicit `--max-mib`); single-threaded CPU processing; at least 1 GiB of projected free-space headroom before writing.
-- CPU-focused tests for round trips, random access, malformed metadata, truncation, corruption, case-insensitive catalog names, concurrent catalog reads, bounded whole-catalog verification, Windows-style path translation and EOF short reads, path traversal, nonregular file inputs, range limits, and refusing existing outputs.
+- C++20 streaming pack/read/extract CLI; CPU Zstandard with raw fallback.
+- Independently checked chunks, 128 KiB default (4 KiB to 1 MiB, power of two),
+  random access with a 4 MiB request limit and a one-chunk cache per reader.
+- Read-only regular-file OS handles, final symlink/reparse-point rejection,
+  strict offset reads, index validation and per-chunk CRC32 corruption checks.
+- New-file-only pack/extract creation, no force/overwrite mode, 256 MiB default
+  input/output budgets, explicit 4 GiB ceiling and 1 GiB free-space reserve.
+- Up to 16 virtual files with nested directories, conservative ASCII names,
+  case-insensitive lookup, collision rejection and per-file read locks.
+- A 4 MiB aggregate serialized index limit enforced before index allocation.
+  This limit is not a complete process-memory ceiling.
+- Whole-catalog verification: 32 MiB default, 256 MiB maximum; Windows-style
+  projection with bounded short reads and typed errors.
+- **Optional native WinFsp read-only callbacks**, OFF by default: Open/Close,
+  metadata, owner-only descriptors, reads, paginated directory enumeration and
+  explicit write rejection. At most 256 open contexts and two active decodes;
+  all contents verified under a 32 MiB total budget before callback exposure.
 
-## Not implemented
+The native callback tests link the official user-mode SDK DLL but do **not**
+create a filesystem, install/load a kernel driver, assign a mount point, start
+a dispatcher or modify Windows services. See [native architecture, research,
+bounds and tests](docs/WINFSP_CALLBACKS.md).
 
-- **No WinFsp mount or virtual drive. No Windows filesystem filter or disk driver.** The Windows-path projection is a pure in-process API; it does not implement actual WinFsp callbacks.
-- **No AMD HIP/GPU operations** (not even device initialization).
-- **No encryption or authentication.** CRC32 catches accidental corruption, not deliberate tampering.
-- No persisted directory tree or mounted folder, concurrent writes, journaling, snapshots, crash-safe mutable filesystem, or migration from `.flzip` yet. Direct `Reader` calls are single-threaded; catalog reads are synchronized per file, and catalog moves/destruction during active requests are not supported.
-- The `.flfs` format is preliminary and not a stable promise. CRC32 is not an integrity guarantee against deliberate changes.
+## Not implemented or qualified
+
+There is no mount executable, virtual drive, filter driver, persistent manifest,
+service, AMD GPU initialization, encryption or authenticated storage. Writable
+transactions, crash recovery, snapshots and `.flzip` compatibility remain future
+work. CRC32 detects accidental corruption, not malicious tampering.
+
+The `.flfs` v1 format is experimental. Keep source files and independent backups.
+Direct Reader calls are single-threaded; catalog operations serialize per file.
+Never move or destroy a catalog/adapter while callbacks are active. Callback
+unit tests do not prove mounted Windows behavior or full NTFS compatibility.
 
 ## Build and bounded CPU tests
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFLITZFS_BUILD_TESTS=ON
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel 2
-ctest --test-dir build -C Release --output-on-failure --timeout 45
+ctest --test-dir build -C Release --output-on-failure --timeout 45 --parallel 1
 ```
 
-With Zstandard headers and library available, CMake enables CPU Zstd. Without them, it builds a raw-only container implementation; a raw-only build cannot decode an existing container that contains Zstd chunks. On Windows, a Visual Studio compiler and CMake are sufficient for the raw-only variant.
+With Zstandard headers/library available, CPU compression is enabled. Otherwise
+the default build is raw-only and cannot decode existing Zstandard chunks.
+Use `-DFLITZFS_REQUIRE_ZSTD=ON` to reject missing dependencies rather than silently
+falling back. Use `-DFLITZFS_WITH_ZSTD=OFF` for an explicit raw-only build.
+Windows raw-only builds require Visual Studio and CMake. The optional native
+callback build and SDK layout are documented in [WINFSP_CALLBACKS.md](docs/WINFSP_CALLBACKS.md).
+Normal configuration performs no downloads or installation.
 
-### CLI (only on expendable test files)
+### CLI — only on expendable test files
 
 ```sh
 flitzfs pack sample.dat new-sample.flfs
@@ -46,23 +73,36 @@ flitzfs probe new-sample.flfs 4096 2048
 flitzfs extract new-sample.flfs newly-extracted.dat
 ```
 
-All `pack`/`extract` targets **must be names that do not exist**. There is deliberately no `--force` flag. `info` validates the index; `verify` decodes and checks all chunks, subject to a 256 MiB default and optional explicit 1..4096 MiB verification budget. `pack` may leave an invalid *new* output if interrupted. This is an experimental format: always retain the source file.
+Pack/extract outputs must not exist; exclusivity is enforced at OS creation.
+`info` checks metadata, not all payloads. `verify` checks every decoded chunk
+under a 256 MiB default limit. Explicit `--max-mib` accepts 1..4096 for pack,
+extract and verify. Pack also accepts `--chunk-kib` (4..1024, power of two) and
+`--level` (1..5). Interrupted pack/extract can leave a partial **new** output;
+it never replaces the input or an existing output. Keep source data unmodified.
 
-Options for `pack`: `--chunk-kib 128`, `--level 3` (Zstd 1..5), `--max-mib 256` (1..4096). Option for `extract` or `verify`: `--max-mib 256` (1..4096). Defaults are conservative by design.
+## Safety and evidence
 
-## Safety scope
+There are no disk-formatting, partitioning, raw-sector, privileged service or
+GPU operations in the code. Test fixtures are uniquely scoped and small; tests
+never recursively delete directories. Free-space checks and resource limits
+reduce risk but cannot guarantee safety against concurrent disk use, hardware
+failure or software defects. The owner machine is not used for testing.
 
-See [SAFETY.md](docs/SAFETY.md) before any experiment. The code is designed to operate only on explicitly named ordinary files; it does **not** enumerate drives, write raw sectors, format disks, modify Windows services, or schedule background workloads. The free-space check is preventative, not a guarantee against concurrent disk usage, hardware failure, or software defects. Tests should remain isolated and should never use original data.
+GitHub CI separates Linux Zstandard, Linux raw-only, Windows raw-only, Linux
+ASan/UBSan, and Windows native callbacks with commit-pinned Zstandard. SDK
+provisioning is checksum-pinned extraction on disposable hosted runners, not
+installer execution. Check the exact commit's Actions results; do not infer a
+Windows/native pass from Linux results or infer mount qualification from native
+callback tests.
 
-## Research and design inputs
+## Design references
 
-[Research and cross-repository review, 7 November 2026](docs/RESEARCH_2026-11-07.md) records current Windows/WinFsp, AMD HIP, Zstandard, supply-chain guidance, and an inventory of techniques considered from the maintainer's other repositories. No code was copied from the other repositories.
+- [Current native callback milestone and research](docs/WINFSP_CALLBACKS.md)
+- [Wire format v1](docs/FORMAT-v1.md)
+- [Safety and threat model](docs/SAFETY.md)
+- [Architecture](docs/ARCHITECTURE.md) and [development gates](docs/ROADMAP.md)
+- [Prior research and all 13 other repository reviews](docs/RESEARCH_2026-11-07.md)
 
-## Design and next milestones
-
-- [Format v1](docs/FORMAT-v1.md): layout, bounds and verification contract.
-- [Architecture](docs/ARCHITECTURE.md): how the current core is intended to support a WinFsp read-only mount and eventual GPU batching.
-- [Safety and threat model](docs/SAFETY.md): resource limits, corruption/integrity limits, and explicit no-go operations.
-- [Development gates](docs/ROADMAP.md): acceptance criteria before mounts, GPU tests, encryption or writable volumes.
-
-**Reuse FlitzZip implementations only after code-level compatibility, license, and resource-safety review.** This first milestone does not silently copy archive code or claim `.flzip` interoperability.
+Reuse FlitzZip only after source-level compatibility, provenance and safety
+review. No private repository code, credentials, personal paths, generated
+binaries or SDK payloads are committed. Development stays on `main` only.

@@ -320,7 +320,8 @@ ContainerInfo pack_new(const std::filesystem::path& input, const std::filesystem
   return {options.chunk_bytes, logical, next_offset + index.size() + footer.size(), count, zstd_count};
 }
 
-Reader Reader::open(const std::filesystem::path& container) {
+Reader Reader::open(const std::filesystem::path& container, std::uint64_t max_index_bytes) {
+  if (max_index_bytes > kMaxIndexBytes) fail("index admission budget exceeds hard limit");
   auto f = ReadOnlyFile::open(container);
   const auto file_size = f.size();
   if (file_size < kHeaderBytes + kFooterBytes) fail("container is too short");
@@ -336,6 +337,8 @@ Reader Reader::open(const std::filesystem::path& container) {
   if (get_u64(header, 32) != 0) fail("unsupported header flags");
   if (count > kMaxChunks || count != logical / chunk_size + (logical % chunk_size != 0 ? 1U : 0U))
     fail("invalid or excessive chunk count");
+  if (count * kIndexEntryBytes > max_index_bytes)
+    fail("container exceeds index admission budget");
 
   Bytes footer;
   read_exact(f, footer, file_size - kFooterBytes, kFooterBytes);

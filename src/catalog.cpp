@@ -1,4 +1,5 @@
 #include "flitzfs/catalog.hpp"
+#include "flitzfs/catalog_error.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -11,7 +12,7 @@
 
 namespace flitzfs {
 namespace {
-[[noreturn]] void reject() { throw std::runtime_error("FlitzFS: invalid or conflicting virtual catalog path"); }
+[[noreturn]] void reject() { throw CatalogError(CatalogErrorCode::invalid_path, "FlitzFS: invalid or conflicting virtual catalog path"); }
 
 char ascii_lower(char c) {
   if (c >= 'A' && c <= 'Z') return static_cast<char>(c - 'A' + 'a');
@@ -61,7 +62,7 @@ std::vector<std::string> ancestor_keys(const std::string& key) {
 
 ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files) {
   if (files.size() > kMaxCatalogFiles)
-    throw std::runtime_error("FlitzFS: catalog exceeds open-handle count budget");
+    throw CatalogError(CatalogErrorCode::limit, "FlitzFS: catalog exceeds open-handle count budget");
   ReadOnlyCatalog out;
   out.nodes_.emplace("", Node{{"", true, 0}, nullptr, nullptr});
   // Validate all paths and file/directory collisions BEFORE opening archives.
@@ -77,10 +78,10 @@ ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files)
 
   std::uint64_t indexed = 0;
   for (const auto& file : files) {
-    auto reader = std::make_unique<Reader>(Reader::open(file.container));
+    auto reader = std::make_unique<Reader>(Reader::open(file.container, kMaxCatalogIndexBytes - indexed));
     const auto footprint = reader->info().chunk_count * 32ULL;
     if (footprint > kMaxCatalogIndexBytes - indexed)
-      throw std::runtime_error("FlitzFS: catalog index-memory budget exceeded");
+      throw CatalogError(CatalogErrorCode::limit, "FlitzFS: catalog index-memory budget exceeded");
     indexed += footprint;
     auto& node = out.nodes_.at(key_for(file.virtual_path, false));
     node.entry.logical_bytes = reader->info().logical_bytes;
@@ -93,15 +94,17 @@ ReadOnlyCatalog ReadOnlyCatalog::create(const std::vector<CatalogSource>& files)
 CatalogEntry ReadOnlyCatalog::stat(std::string_view path) const {
   const auto key = key_for(path, true);
   const auto it = nodes_.find(key);
-  if (it == nodes_.end()) throw std::runtime_error("FlitzFS: virtual entry not found");
+  if (it == nodes_.end()) throw CatalogError(CatalogErrorCode::not_found, "FlitzFS: virtual entry not found");
   return it->second.entry;
 }
 
 std::vector<CatalogEntry> ReadOnlyCatalog::list(std::string_view directory) const {
   const auto key = key_for(directory, true);
   const auto it = nodes_.find(key);
-  if (it == nodes_.end() || !it->second.entry.directory)
-    throw std::runtime_error("FlitzFS: virtual directory not found");
+  if (it == nodes_.end())
+    throw CatalogError(CatalogErrorCode::not_found, "FlitzFS: virtual entry not found");
+  if (!it->second.entry.directory)
+    throw CatalogError(CatalogErrorCode::not_directory, "FlitzFS: not a virtual directory");
   std::vector<CatalogEntry> result;
   for (const auto& [entry_key, node] : nodes_) {
     if (entry_key.empty()) continue;
@@ -116,8 +119,10 @@ std::vector<std::byte> ReadOnlyCatalog::read(std::string_view path,
                                              std::uint64_t offset, std::uint32_t bytes) {
   const auto key = key_for(path, false);
   const auto it = nodes_.find(key);
-  if (it == nodes_.end() || !it->second.reader)
-    throw std::runtime_error("FlitzFS: virtual regular file not found");
+  if (it == nodes_.end())
+    throw CatalogError(CatalogErrorCode::not_found, "FlitzFS: virtual entry not found");
+  if (!it->second.reader)
+    throw CatalogError(CatalogErrorCode::is_directory, "FlitzFS: cannot read a virtual directory");
   // WinFsp can dispatch multiple read requests concurrently. Serialize
   // only a single file's mutable Reader cache and Windows shared file pointer.
   std::lock_guard<std::mutex> guard(*it->second.read_guard);
@@ -126,14 +131,14 @@ std::vector<std::byte> ReadOnlyCatalog::read(std::string_view path,
 
 void ReadOnlyCatalog::verify_all(std::uint64_t max_total_logical_bytes) {
   if (max_total_logical_bytes == 0 || max_total_logical_bytes > kMaxCatalogVerificationBytes)
-    throw std::runtime_error("FlitzFS: catalog verification budget must be within 1..256 MiB");
+    throw CatalogError(CatalogErrorCode::limit, "FlitzFS: catalog verification budget must be within 1..256 MiB");
   std::uint64_t total = 0;
   for (const auto& [key, node] : nodes_) {
     (void)key;
     if (!node.reader) continue;
     const auto bytes = node.entry.logical_bytes;
     if (bytes > max_total_logical_bytes - total)
-      throw std::runtime_error("FlitzFS: catalog verification exceeds total logical-byte budget");
+      throw CatalogError(CatalogErrorCode::limit, "FlitzFS: catalog verification exceeds total logical-byte budget");
     total += bytes;
   }
   for (auto& [key, node] : nodes_) {
