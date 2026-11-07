@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import resource
 import shutil
@@ -73,11 +72,18 @@ def main() -> None:
     version = run([compiler, "--version"]).splitlines()[0]
     linker_version = run([linker, "--version"]).splitlines()[0]
     common = [compiler, "-x", "hip", "--cuda-device-only", "--offload-arch=gfx1201",
+              "-fhip-emit-relocatable", "--no-offload-new-driver",
               "-nogpuinc", "-nogpulib", "-std=c++17", "-O2", "-fno-exceptions", "-fno-rtti",
               "-Wall", "-Wextra", "-Werror", "-I", str(root / "include"), str(files[0])]
     obj = output / "decode-gfx1201.o"
     module = output / "decode-gfx1201.hsaco"
     run([*common, "-c", "-o", str(obj)])
+    # HIP -c alone produces a linked/bundled code object. Explicit relocatable
+    # emission is covered by LLVM 19's hip-device-compile.hip driver tests.
+    relocatable = read_bounded(obj)
+    if (len(relocatable) < 64 or relocatable[:7] != b"\x7fELF\x02\x01\x01"
+            or struct.unpack_from("<HH", relocatable, 16) != (1, 224)):
+        raise ValueError("HIP compiler did not emit an AMDGPU relocatable object")
     run([linker, "-shared", "--no-undefined", str(obj), "-o", str(module)])
     data = read_bounded(module)
     # ELF64 little-endian shared AMDGPU, GFX1201 low-byte machine flag (0x4e).
