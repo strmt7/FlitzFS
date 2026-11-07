@@ -4,6 +4,7 @@
 
 namespace flitzfs {
 struct ProcessResult {
+  std::uint32_t process_id = 0; // identity of the launched helper, not a live process handle
   std::uint32_t exit_code = 0;
   bool timed_out = false;
   bool exit_confirmed = false;

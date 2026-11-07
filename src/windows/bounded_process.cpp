@@ -83,6 +83,7 @@ ProcessResult run_bounded_process(const std::filesystem::path& executable,
     failed("creation-time job verification", ERROR_ACCESS_DENIED);
   if (ResumeThread(thread.value) == static_cast<DWORD>(-1)) failed("bounded child resume");
   ProcessResult result;
+  result.process_id = process.dwProcessId;
   auto wait = WaitForSingleObject(child.value, budget.timeout_ms);
   if (wait == WAIT_TIMEOUT) {
     result.timed_out = true;

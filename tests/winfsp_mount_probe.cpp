@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <limits>
 #include <set>
 #include <stdexcept>
 #include <string_view>
@@ -70,7 +71,7 @@ struct Fixture {
         GetFileType(handle.value) == FILE_TYPE_DISK, "unsafe fixture ancestor");
     pins.push_back(std::move(handle));
   }
-  Fixture() {
+  explicit Fixture(std::uint32_t previous_process = 0) {
     const auto base = environment(L"RUNNER_TEMP");
     require(flitzfs::valid_mount_plan({base + L"\\probe", 15, true}), "invalid runner temporary path");
     pin(base.substr(0, 3));
@@ -81,10 +82,11 @@ struct Fixture {
     checked(GetDiskFreeSpaceExW(base.c_str(), &available, nullptr, nullptr), "fixture free space");
     require(available.QuadPart >= flitzfs::kFreeSpaceReserveBytes + 4 * 1024 * 1024,
         "fixture storage reserve unavailable");
-    root = fs::path(base) / (L"flitzfs-probe-" + std::to_wstring(GetCurrentProcessId()) +
-        L"-" + std::to_wstring(GetTickCount64()));
+    root = fs::path(base) / (L"flitzfs-probe-" +
+        std::to_wstring(previous_process ? previous_process : GetCurrentProcessId()));
     require(flitzfs::valid_mount_plan({(root / L"mount").native(), 15, true}), "fixture path too long");
-    checked(CreateDirectoryW(root.c_str(), nullptr), "exclusive fixture directory creation");
+    if (!previous_process)
+      checked(CreateDirectoryW(root.c_str(), nullptr), "exclusive fixture directory creation");
     pin(root.native());
   }
   // Leave fixture files for VM disposal; never recursively remove anything.
@@ -151,7 +153,7 @@ flitzfs::WinFspSessionApi live_api() {
       FspFileSystemSetMountPoint, FspFileSystemStopDispatcher,
       FspFileSystemRemoveMountPoint, FspFileSystemDelete};
 }
-void probe() {
+void require_probe_job() {
   stage = 2;
   BOOL in_job = FALSE;
   checked(IsProcessInJob(GetCurrentProcess(), nullptr, &in_job), "probe job membership");
@@ -167,10 +169,17 @@ void probe() {
       (limits.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) &&
       cpu.ControlFlags == (JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP) &&
       cpu.CpuRate == 2000, "probe launched outside required job limits");
-  stage = 3;
-  Fixture fixture;
+}
+std::vector<std::byte> synthetic_data() {
   std::vector<std::byte> data(192 * 1024 + 17);
   for (std::size_t i = 0; i < data.size(); ++i) data[i] = static_cast<std::byte>((i / 31 + i % 251) % 256);
+  return data;
+}
+void probe(bool abandon_mount) {
+  require_probe_job();
+  stage = 3;
+  Fixture fixture;
+  const auto data = synthetic_data();
   const auto input = fixture.root / L"synthetic.bin";
   const auto archive = fixture.root / L"synthetic.flfs";
   const auto empty = fixture.root / L"empty.bin";
@@ -245,6 +254,14 @@ void probe() {
   { std::jthread first(reader); std::jthread second(reader); }
   require(parallel_ok.load(), "concurrent mounted reads");
   stage = 12;
+  if (abandon_mount) {
+    // Readiness is recorded only after real mounted reads and write denial pass.
+    // These are synthetic snapshots, not user backups or durable-write evidence.
+    write_new(fixture.root / L"baseline.flfs", archive_bytes);
+    write_new(fixture.root / L"mounted.ready", {std::byte{0x46}, std::byte{0x53}, std::byte{1}});
+    Sleep(30000); // Supervisor must kill this child at 15 seconds, without teardown.
+    throw std::runtime_error("supervisor did not terminate the mounted helper");
+  }
   session.stop(); session.stop();
   require(session.dispatcher_stopped() && !session.dispatcher_stopped_unexpectedly(), "dispatcher shutdown");
   require(GetFileAttributesW(mount.c_str()) == INVALID_FILE_ATTRIBUTES, "owned mount directory remained");
@@ -254,13 +271,85 @@ void probe() {
   require(read_all(sentinel, sentinel_data.size()) == sentinel_data, "unrelated collision fixture changed");
   flitzfs::Reader::open(archive).verify_all();
 }
+// The only recovery selector is the PID returned by this executable's supervisor.
+// No path, namespace, volume, or existing user file is accepted as an argument.
+std::uint32_t process_number(std::wstring_view text) {
+  require(!text.empty() && text.size() <= 10, "invalid recovery process identity");
+  std::uint64_t result = 0;
+  for (const auto c : text) {
+    require(c >= L'0' && c <= L'9', "non-numeric recovery process identity");
+    result = result * 10 + static_cast<unsigned>(c - L'0');
+    require(result <= (std::numeric_limits<std::uint32_t>::max)(), "recovery process identity overflow");
+  }
+  require(result != 0, "zero recovery process identity");
+  return static_cast<std::uint32_t>(result);
+}
+void recover(std::uint32_t previous_process) {
+  require_probe_job();
+  stage = 14;
+  Fixture fixture(previous_process);
+  const std::vector<std::byte> ready{std::byte{0x46}, std::byte{0x53}, std::byte{1}};
+  require(read_all(fixture.root / L"mounted.ready", ready.size()) == ready,
+      "killed helper did not reach verified mounted state");
+  const auto mount = fixture.root / L"mount";
+  const auto absent = [&]() {
+    if (GetFileAttributesW(mount.c_str()) != INVALID_FILE_ATTRIBUTES) return false;
+    const auto error = GetLastError();
+    require(error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND, "mount disappearance query failed");
+    return true;
+  };
+  // Bounded observation only. Never delete or forcibly repair a stale junction.
+  const auto deadline = GetTickCount64() + 2000;
+  while (!absent() && GetTickCount64() < deadline) Sleep(20);
+  require(absent(), "terminated helper left a mount directory behind");
+  stage = 15;
+  const auto data = synthetic_data();
+  const auto archive = fixture.root / L"synthetic.flfs";
+  const auto empty_archive = fixture.root / L"empty.flfs";
+  require(read_all(fixture.root / L"synthetic.bin", data.size()) == data, "source changed after termination");
+  auto checked_reader = flitzfs::Reader::open(archive);
+  const auto& info = checked_reader.info();
+  require(info.logical_bytes == data.size() && info.container_bytes <= data.size() + 4096 &&
+      info.zstd_chunk_count > 0, "recovered container metadata differs");
+  checked_reader.verify_all();
+  require(checked_reader.read(0, static_cast<std::uint32_t>(data.size())) == data, "independent recovery parity");
+  const auto n = static_cast<std::size_t>(info.container_bytes);
+  require(read_all(archive, n) == read_all(fixture.root / L"baseline.flfs", n),
+      "backing bytes changed after forced termination");
+  const std::vector<std::byte> sentinel{std::byte{11}, std::byte{29}};
+  require(read_all(fixture.root / L"occupied" / L"sentinel.bin", sentinel.size()) == sentinel,
+      "collision sentinel changed after forced termination");
+  stage = 16;
+  const std::vector<flitzfs::CatalogSource> sources{
+      {"Data/sample.bin", archive}, {"Data/other.txt", empty_archive}, {"empty.bin", empty_archive}};
+  flitzfs::WinFspReadOnlySession session(sources, live_api());
+  const auto status = session.start({mount.native(), 30, true});
+  if (!NT_SUCCESS(status)) throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
+      std::system_category(), "remount after terminated helper");
+  stage = 17;
+  const auto file = mount / L"Data" / L"sample.bin";
+  require(read_all(file, data.size()) == data, "remounted read parity");
+  check_mapping(file, data);
+  require(read_all(mount / L"empty.bin", 0).empty(), "remounted empty file");
+  stage = 18;
+  session.stop();
+  require(session.dispatcher_stopped() && !session.dispatcher_stopped_unexpectedly(), "remount clean shutdown");
+  require(absent(), "remount directory remained");
+  require(read_all(archive, n) == read_all(fixture.root / L"baseline.flfs", n), "remount altered backing");
+}
 } // namespace
 int wmain(int argc, wchar_t** argv) {
   try {
     require_hosted_opt_in();
-    require(argc == 2, "explicit probe mode required");
+    require(argc == 2 || argc == 3, "explicit probe mode required");
     const std::wstring_view mode(argv[1]);
-    if (mode == L"--probe-child") { probe(); return 0; }
+    if (mode == L"--probe-recover-child") {
+      require(argc == 3, "recovery identity missing");
+      recover(process_number(argv[2])); return 0;
+    }
+    require(argc == 2, "unexpected probe argument");
+    if (mode == L"--probe-child") { probe(false); return 0; }
+    if (mode == L"--probe-crash-child") { probe(true); return 0; }
     require(mode == L"--run-disposable-ci", "unknown probe mode");
     wchar_t path[512]{};
     const auto n = GetModuleFileNameW(nullptr, path, 512);
@@ -272,6 +361,21 @@ int wmain(int argc, wchar_t** argv) {
         << " exit_confirmed=" << result.exit_confirmed << " peak_commit_bytes=" << result.peak_committed_bytes << '\n';
     require(result.exit_confirmed && !result.timed_out && result.exit_code == 0, "supervised mount probe failed");
     std::cout << "PASS: real mounted Zstd reads, EOF, random/mapped I/O, enumeration, write rejection, shutdown and backing parity.\n";
+    budget.timeout_ms = 15000;
+    const auto killed = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)), {L"--probe-crash-child"}, budget);
+    std::cout << "crash_probe exit=" << killed.exit_code << " timed_out=" << killed.timed_out
+        << " exit_confirmed=" << killed.exit_confirmed << " peak_commit_bytes=" << killed.peak_committed_bytes << '\n';
+    require(killed.process_id != 0 && killed.timed_out && killed.exit_confirmed &&
+        killed.exit_code == ERROR_TIMEOUT, "mounted helper was not forcibly terminated");
+    budget.timeout_ms = 30000;
+    const auto recovered = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)),
+        {L"--probe-recover-child", std::to_wstring(killed.process_id)}, budget);
+    std::cout << "recovery_probe exit=" << recovered.exit_code << " stage=" << (recovered.exit_code >> 16U)
+        << " detail=" << (recovered.exit_code & 0xffffU) << " timed_out=" << recovered.timed_out
+        << " exit_confirmed=" << recovered.exit_confirmed << " peak_commit_bytes=" << recovered.peak_committed_bytes << '\n';
+    require(recovered.exit_confirmed && !recovered.timed_out && recovered.exit_code == 0,
+        "post-termination verification/remount failed");
+    std::cout << "PASS: supervisor termination of a verified live mount, automatic mount removal, unchanged backing, independent CPU recovery and same-path remount.\n";
     return 0;
   } catch (const std::system_error& error) {
     std::cerr << "stage=" << stage << " " << error.what() << '\n';
