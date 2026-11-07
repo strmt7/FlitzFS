@@ -67,3 +67,6 @@ uses upstream headers. It compares fixtures with both implementations; the
 product does not link any extracted code. Windows mounted tests additionally
 read and map a mixed-native file using all new families under unchanged resource
 caps. The first published commit still requires its matching CI outcomes.
+
+Completed implementation-commit CI results are recorded in
+[NATIVE_CODEC_VALIDATION.md](NATIVE_CODEC_VALIDATION.md).
