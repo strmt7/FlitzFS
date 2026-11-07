@@ -98,6 +98,8 @@ struct WinFspReadOnly::Impl {
   std::mutex handle_guard;
   std::uintptr_t next_token = 1;
   std::atomic<unsigned> active_reads{0};
+  // 0: not notified; 1: normal stop; 2: external/abnormal stop.
+  std::atomic<unsigned> dispatcher_stop{0};
   UINT64 timestamp = 0;
   UINT64 total_bytes = 0;
 
@@ -284,6 +286,12 @@ struct WinFspReadOnly::Impl {
 
 WinFspReadOnly::WinFspReadOnly(const std::vector<CatalogSource>& sources) : impl_(std::make_unique<Impl>(sources)) {}
 WinFspReadOnly::~WinFspReadOnly() = default;
+bool WinFspReadOnly::dispatcher_stopped() const noexcept {
+  return impl_->dispatcher_stop.load(std::memory_order_acquire) != 0;
+}
+bool WinFspReadOnly::dispatcher_stopped_unexpectedly() const noexcept {
+  return impl_->dispatcher_stop.load(std::memory_order_acquire) == 2;
+}
 void WinFspReadOnly::bind_callbacks(FSP_FILE_SYSTEM& fs) noexcept { fs.UserContext = impl_.get(); }
 FSP_FSCTL_VOLUME_PARAMS WinFspReadOnly::parameters() const noexcept {
   FSP_FSCTL_VOLUME_PARAMS result{};
@@ -306,6 +314,13 @@ FSP_FSCTL_VOLUME_PARAMS WinFspReadOnly::parameters() const noexcept {
 const FSP_FILE_SYSTEM_INTERFACE& WinFspReadOnly::callbacks() noexcept {
   static const auto table = [] {
     FSP_FILE_SYSTEM_INTERFACE result{};
+    result.DispatcherStopped = [](FSP_FILE_SYSTEM* fs, BOOLEAN normally) {
+      if (fs && fs->UserContext) {
+        unsigned pending = 0;
+        static_cast<Impl*>(fs->UserContext)->dispatcher_stop.compare_exchange_strong(
+            pending, normally ? 1U : 2U, std::memory_order_acq_rel);
+      }
+    };
     result.GetVolumeInfo = Impl::volume;
     result.GetSecurityByName = Impl::security_by_name;
     result.Open = Impl::open;
