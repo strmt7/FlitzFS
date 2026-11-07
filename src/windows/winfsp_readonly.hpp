@@ -20,6 +20,9 @@ class WinFspReadOnly final {
   void bind_callbacks(FSP_FILE_SYSTEM& filesystem) noexcept;
   static const FSP_FILE_SYSTEM_INTERFACE& callbacks() noexcept;
   FSP_FSCTL_VOLUME_PARAMS parameters() const noexcept;
+  // Written by the last dispatcher callback; observing does not tear down resources.
+  bool dispatcher_stopped() const noexcept;
+  bool dispatcher_stopped_unexpectedly() const noexcept;
   static constexpr std::size_t max_open_handles = 256;
  private:
   struct Impl;
