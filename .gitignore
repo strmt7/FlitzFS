@@ -1,0 +1,11 @@
+/build/
+/out/
+/.vs/
+/.idea/
+*.flfs
+*.flfs.partial
+*.swp
+*.user
+/build-*/
+/CMakeFiles/
+/.cache/
