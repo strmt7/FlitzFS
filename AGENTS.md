@@ -13,6 +13,13 @@ The owner's highest-priority requirements are: **do not format or repartition dr
 - Guard resource use with explicit hard caps, disk-space reserves, bounded queues, timeouts, and CPU fallback. If resource headroom cannot be determined, fail closed.
 - Do not declare real-world data safety, full NTFS compatibility, Windows qualification, or HIP speed improvements from tests that did not evaluate those properties.
 
+## Owner-controlled development state
+
+The owner alone decides when to release. Do not add or bump product numbering,
+create tags/releases, publish packages or call development commits releases.
+Identify progress by implemented behavior, exact commit hashes and executed
+checks. Preserve existing wire compatibility and historical evidence.
+
 ## Development workflow
 
 1. Inspect current git history and user changes before editing; preserve existing repo content and licensing. Develop and commit directly to `main` only; do not create development branches or PRs. Never force-push.
@@ -23,9 +30,9 @@ The owner's highest-priority requirements are: **do not format or repartition dr
 6. Run any system-level or GPU tests only after the source is audited and the test harness enforces strict resource budgets and kill-switch behavior; never use primary disks or unique user data.
 7. Update README, FORMAT, SAFETY, ROADMAP, and validation results with actual measured facts, not projected results.
 
-## Present release boundary
+## Present development boundary
 
-Version 0.2 adds an **OFF-by-default native WinFsp read-only callback backend**
+The project has an **OFF-by-default native WinFsp read-only callback backend**
 to the CPU `.flfs` container, synchronized catalog and Windows-path projection.
 Read `docs/WINFSP_CALLBACKS.md` before touching it. Callback tests use synthetic
 files and the user-mode SDK DLL only: no filesystem creation, mount, dispatcher,
@@ -65,7 +72,7 @@ infer actual GPU execution from codec names. The test-only upstream decoder
 extractor must verify the exact blob before selecting functions; do not weaken
 that check or link the generated oracle into product targets.
 
-## GPU preparation boundary (0.3.2)
+## GPU preparation boundary
 
 Read `docs/HIP_BATCH_PLAN.md` before changing the GPU batch, device kernel or
 DXGI collector. The kernel is compiled offline only, never loaded automatically.
@@ -74,3 +81,12 @@ shared device body must not be described as GPU execution. Keep 8-block/64-KiB/
 256-KiB batch bounds, independent CPU comparison, fail-closed memory telemetry,
 immutable owned input, one outstanding request and terminal failure semantics.
 No actual-runtime integration or owner-device experiment is qualified yet.
+
+## Worker transport boundary
+
+Read `docs/WORKER_CHANNEL.md` before changing worker frames or process exchange.
+Normal file operations still never launch a worker. The Windows fixture runs
+only the same trusted test binary and CPU semantics. Do not call those results
+GPU execution. Keep bounded memory-only frames, one exchange at a time, protected
+local-session objects, successful confirmed child exit before reply copying,
+independent reference comparison, and no automatic runtime retries.
