@@ -134,15 +134,19 @@ WorkerExchangeResult run_worker_exchange(const std::filesystem::path& helper,
   std::memcpy(input.bytes(),request.data(),request.size());
   input.control()->published=static_cast<LONG>(request.size());
   MemoryBarrier();
-  WorkerExchangeResult result;
+  WorkerExchangeResult result;result.channel_token=token;
   result.process=run_bounded_process(helper,command,budget);
   if(!result.process.exit_confirmed) {result.code=WorkerExchangeCode::exit_unconfirmed;return result;}
+  // Only inspect publication after confirmed child exit, including failure.
+  // This diagnostic never permits timed-out or unsuccessful output to escape.
+  MemoryBarrier();
+  const LONG length=output.control()->published;
+  result.publication_observed=output.intact(reply_magic) &&
+      length>=static_cast<LONG>(kWorkerHeaderBytes) && length<=static_cast<LONG>(kWorkerReplyLimit);
   if(result.process.timed_out) {result.code=WorkerExchangeCode::timed_out;return result;}
   if(result.process.exit_code) {result.code=WorkerExchangeCode::worker_failed;return result;}
   // Wait on child exit is the synchronization boundary; there is no live helper
   // able to mutate this reply. No success is inferred from shared flags alone.
-  MemoryBarrier();
-  const LONG length=output.control()->published;
   if(!input.intact(request_magic) || !output.intact(reply_magic) ||
       input.control()->published!=static_cast<LONG>(request.size()) ||
       std::memcmp(input.bytes(),request.data(),request.size()) ||
