@@ -120,6 +120,13 @@ int wmain(int argc,wchar_t** argv){try{
   const auto executable=self();const auto batch=mixed();const auto request=encode_worker_request(batch,221);
   const auto warmup=run_worker_exchange(executable,{L"ok"},request);
   check(warmup.code==WorkerExchangeCode::completed,"worker warmup exchange");
+  struct HandleObservation { const wchar_t* step=nullptr; DWORD count=0; };
+  std::array<HandleObservation,48> observations{};std::size_t observed=0;
+  auto observe=[&](const wchar_t* step) {
+    DWORD count=0;check(GetProcessHandleCount(GetCurrentProcess(),&count),"observe handle count");
+    check(observed<observations.size(),"observation bound");observations[observed++]={step,count};
+  };
+  observe(L"warmup");
   DWORD initial_handles=0;check(GetProcessHandleCount(GetCurrentProcess(),&initial_handles),"initial handle count");
   for(const auto* mode:{L"ok",L"security",L"double"}) {
     auto result=run_worker_exchange(executable,{mode},request);
@@ -127,33 +134,43 @@ int wmain(int argc,wchar_t** argv){try{
     auto reply=accept_worker_reply(result.response,batch,221,WorkerExecution::cpu_semantics);
     check(reply.bytes==Bytes(batch.cpu_reference().begin(),batch.cpu_reference().end()),"cross-process byte parity");
     check(result.process.peak_committed_bytes<=128ULL*1024*1024,"worker memory cap exceeded");
+    observe(mode);
   }
   for(const auto* mode:{L"bad-wire",L"wrong-id",L"wrong-backend",L"bad-status",L"bad-bytes",L"trailing"}) {
     const auto result=run_worker_exchange(executable,{mode},request);
     check(result.code==WorkerExchangeCode::completed,"malformed reply test did not reach validation");
     rejects([&]{accept_worker_reply(result.response,batch,221,WorkerExecution::cpu_semantics);});
+    observe(mode);
   }
   for(const auto* mode:{L"exit-empty",L"oversize",L"tamper-input",L"tamper-guard",L"tamper-length",L"tamper-header"}) {
     const auto result=run_worker_exchange(executable,{mode},request);
     check(result.code==WorkerExchangeCode::invalid_response && result.response.empty(),"invalid transport output escaped");
+    observe(mode);
   }
   for(const auto* mode:{L"exit-bad",L"publish-fail"}) {
     const auto result=run_worker_exchange(executable,{mode},request);
     check(result.code==WorkerExchangeCode::worker_failed && result.response.empty(),"failed helper output escaped");
+    observe(mode);
   }
   ProcessBudget quick;quick.timeout_ms=1000;
   const auto timed=run_worker_exchange(executable,{L"publish-hang"},request,quick);
   check(timed.code==WorkerExchangeCode::timed_out && timed.process.exit_confirmed && timed.response.empty(),"timed-out response escaped");
+  observe(L"timeout");
   const auto recovered=run_worker_exchange(executable,{L"ok"},request);
   check(recovered.code==WorkerExchangeCode::completed,"fresh isolated exchange after timeout failed");
   (void)accept_worker_reply(recovered.response,batch,221,WorkerExecution::cpu_semantics);
+  observe(L"recovery");
   for(const auto* token:{L"",L"..",L"Global\\name",L"0123456789abcdef0123456789abcdefff!",L"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"})
     rejects([&]{(void)WorkerChannel::open(token);});
   rejects([&]{run_worker_exchange(executable,{},{});});
   auto oversized=request;oversized.resize(kWorkerRequestLimit+1);
   rejects([&]{run_worker_exchange(executable,{},oversized);});
   rejects([&]{run_worker_exchange(executable,std::vector<std::wstring>(15,L"arg"),request);});
+  observe(L"argument-rejections");
   DWORD final_handles=0;check(GetProcessHandleCount(GetCurrentProcess(),&final_handles),"final handle count");
+  for(std::size_t i=0;i<observed;++i)
+    std::wcerr<<L"handle_observation "<<observations[i].step<<L"="<<observations[i].count<<L'\n';
+  std::cerr<<"handle_totals initial="<<initial_handles<<" final="<<final_handles<<'\n';
   check(final_handles<=initial_handles,"worker channel handles accumulated");
   std::cout<<"PASS: "<<checks<<" real Windows worker exchange checks; CPU semantics only, no GPU or data files.\n";
   return 0;
