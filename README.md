@@ -1,6 +1,8 @@
 # FlitzFS
 
-> **0.3.2 experimental CPU storage, native FLZIP decoding and Windows callbacks.**
+**Initial development. Release decisions belong to the repository owner.**
+
+> **Experimental CPU storage, native FLZIP decoding and Windows callbacks.**
 > This is not yet a general-purpose mounted filesystem, encryption product or
 > GPU-accelerated product. Do not store the only copy of valuable data in this format.
 > No tests have been executed on the owner's Windows PC or AMD GPU.
@@ -146,7 +148,7 @@ Reuse FlitzZip only after source-level compatibility, provenance and safety
 review. No private repository code, credentials, personal paths, generated
 binaries or SDK payloads are committed. Development stays on `main` only.
 
-## Native-format CPU recovery (0.3.1)
+## Native-format CPU recovery
 
 The bounded FLZIP reader now implements static/adaptive prefix, Huffman,
 short/long sparse patterns, optional LZ4 dictionary segments, compound frames,
@@ -162,7 +164,7 @@ No build downloads dependencies automatically. See
 [bounded compatibility](docs/FLZIP_READONLY.md). Windows, upstream-reference
 and mounted assertions must be matched to the exact commit's Actions results.
 
-## Bounded HIP-kernel preparation (0.3.2)
+## Bounded HIP-kernel preparation
 
 The first standalone HIP kernel candidate decodes raw, fill, pattern, static
 prefix, adaptive prefix and Huffman segments. It is not loaded by the product.
@@ -183,3 +185,12 @@ semantic testing, not a GPU benchmark. Live worker integration, hardware parity,
 GPU timeout handling and Windows HIP toolchain qualification remain unpassed.
 Read [the research, acceptance plan and limits](docs/HIP_BATCH_PLAN.md) and
 [executed qualification evidence](docs/HIP_BATCH_VALIDATION.md).
+
+## Isolated worker communication
+
+The bounded batch now has a memory-only worker message format and a Windows
+shared-memory exchange under the existing process supervisor. No application
+data files, inherited handles or shell are used. Replies are withheld until a
+confirmed successful helper exit and checked against the independent CPU result.
+The test helper runs CPU semantics only; HIP runtime loading, real GPU execution
+and automatic filesystem routing remain disabled. See [worker design and tests](docs/WORKER_CHANNEL.md).
