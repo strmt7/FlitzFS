@@ -58,6 +58,17 @@ void check_security(std::wstring_view token) {
   check(EqualSid(const_cast<DWORD*>(&allowed->SidStart),reinterpret_cast<TOKEN_USER*>(storage.data())->User.Sid),
       "mapping grants another principal");
 }
+void check_closed(const WorkerExchangeResult& result) {
+  check(result.process.exit_confirmed && result.channel_token.size()==32,"missing completed exchange identity");
+  for(bool reply:{false,true}) {
+    const auto name=L"Local\\FlitzFS.worker."+result.channel_token+(reply?L".reply":L".request");
+    SetLastError(ERROR_SUCCESS);
+    const auto handle=OpenFileMappingW(FILE_MAP_READ,FALSE,name.c_str());
+    const auto error=GetLastError();
+    if(handle)CloseHandle(handle);
+    check(!handle && error==ERROR_FILE_NOT_FOUND,"worker mapping retained a handle or view");
+  }
+}
 void check_job() {
   JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu{};
   check(QueryInformationJobObject(nullptr,JobObjectExtendedLimitInformation,&limits,sizeof(limits),nullptr) &&
@@ -118,8 +129,14 @@ int wmain(int argc,wchar_t** argv){try{
   if(argc==4 && std::wstring_view(argv[2])==L"--worker-channel")return child(argv[1],argv[3]);
   check(argc==1,"unexpected worker test arguments");
   const auto executable=self();const auto batch=mixed();const auto request=encode_worker_request(batch,221);
-  const auto warmup=run_worker_exchange(executable,{L"ok"},request);
-  check(warmup.code==WorkerExchangeCode::completed,"worker warmup exchange");
+  // Warm the full success path, including validation/copying and object-lifetime
+  // queries, before measuring process-wide handles. No growth allowance follows.
+  for(unsigned i=0;i<2;++i) {
+    const auto warmup=run_worker_exchange(executable,{L"ok"},request);
+    check(warmup.code==WorkerExchangeCode::completed,"worker warmup exchange");
+    (void)accept_worker_reply(warmup.response,batch,221,WorkerExecution::cpu_semantics);
+    check_closed(warmup);
+  }
   struct HandleObservation { const wchar_t* step=nullptr; DWORD count=0; };
   std::array<HandleObservation,48> observations{};std::size_t observed=0;
   auto observe=[&](const wchar_t* step) {
@@ -134,31 +151,38 @@ int wmain(int argc,wchar_t** argv){try{
     auto reply=accept_worker_reply(result.response,batch,221,WorkerExecution::cpu_semantics);
     check(reply.bytes==Bytes(batch.cpu_reference().begin(),batch.cpu_reference().end()),"cross-process byte parity");
     check(result.process.peak_committed_bytes<=128ULL*1024*1024,"worker memory cap exceeded");
+    check_closed(result);
     observe(mode);
   }
   for(const auto* mode:{L"bad-wire",L"wrong-id",L"wrong-backend",L"bad-status",L"bad-bytes",L"trailing"}) {
     const auto result=run_worker_exchange(executable,{mode},request);
     check(result.code==WorkerExchangeCode::completed,"malformed reply test did not reach validation");
     rejects([&]{accept_worker_reply(result.response,batch,221,WorkerExecution::cpu_semantics);});
+    check_closed(result);
     observe(mode);
   }
   for(const auto* mode:{L"exit-empty",L"oversize",L"tamper-input",L"tamper-guard",L"tamper-length",L"tamper-header"}) {
     const auto result=run_worker_exchange(executable,{mode},request);
     check(result.code==WorkerExchangeCode::invalid_response && result.response.empty(),"invalid transport output escaped");
+    check_closed(result);
     observe(mode);
   }
   for(const auto* mode:{L"exit-bad",L"publish-fail"}) {
     const auto result=run_worker_exchange(executable,{mode},request);
     check(result.code==WorkerExchangeCode::worker_failed && result.response.empty(),"failed helper output escaped");
+    check(result.publication_observed==(std::wstring_view(mode)==L"publish-fail"),"failure publication evidence");
+    check_closed(result);
     observe(mode);
   }
-  ProcessBudget quick;quick.timeout_ms=1000;
+  ProcessBudget quick;quick.timeout_ms=2000;
   const auto timed=run_worker_exchange(executable,{L"publish-hang"},request,quick);
-  check(timed.code==WorkerExchangeCode::timed_out && timed.process.exit_confirmed && timed.response.empty(),"timed-out response escaped");
+  check(timed.code==WorkerExchangeCode::timed_out && timed.process.exit_confirmed && timed.publication_observed && timed.response.empty(),"timed-out response escaped");
+  check_closed(timed);
   observe(L"timeout");
   const auto recovered=run_worker_exchange(executable,{L"ok"},request);
   check(recovered.code==WorkerExchangeCode::completed,"fresh isolated exchange after timeout failed");
   (void)accept_worker_reply(recovered.response,batch,221,WorkerExecution::cpu_semantics);
+  check_closed(recovered);
   observe(L"recovery");
   for(const auto* token:{L"",L"..",L"Global\\name",L"0123456789abcdef0123456789abcdefff!",L"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"})
     rejects([&]{(void)WorkerChannel::open(token);});
@@ -167,6 +191,14 @@ int wmain(int argc,wchar_t** argv){try{
   rejects([&]{run_worker_exchange(executable,{},oversized);});
   rejects([&]{run_worker_exchange(executable,std::vector<std::wstring>(15,L"arg"),request);});
   observe(L"argument-rejections");
+  // Repeated complete transactions must not accumulate process handles or keep
+  // either mapping alive. This is not a stress test: four tiny serial requests.
+  for(unsigned i=0;i<4;++i) {
+    const auto result=run_worker_exchange(executable,{L"ok"},request);
+    check(result.code==WorkerExchangeCode::completed,"repeat exchange failed");
+    (void)accept_worker_reply(result.response,batch,221,WorkerExecution::cpu_semantics);
+    check_closed(result);observe(L"repeat");
+  }
   DWORD final_handles=0;check(GetProcessHandleCount(GetCurrentProcess(),&final_handles),"final handle count");
   for(std::size_t i=0;i<observed;++i)
     std::wcerr<<L"handle_observation "<<observations[i].step<<L"="<<observations[i].count<<L'\n';

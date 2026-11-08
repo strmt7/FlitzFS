@@ -10,6 +10,8 @@ enum class WorkerExchangeCode { completed, worker_failed, timed_out, exit_unconf
 struct WorkerExchangeResult {
   WorkerExchangeCode code = WorkerExchangeCode::invalid_response;
   ProcessResult process;
+  bool publication_observed = false; // Diagnostic only, sampled after confirmed exit; never acceptance.
+  std::wstring channel_token; // Nonsecret correlation ID; objects must be gone after confirmed exit.
   std::vector<std::byte> response;
 };
 // One trusted helper, one exchange, one process-wide in-flight exchange. Reuses
