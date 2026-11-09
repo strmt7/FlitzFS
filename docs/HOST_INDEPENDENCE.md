@@ -121,7 +121,8 @@ The parent has Linux 512 MiB address-space/30 CPU-second/no-core limits or a
 Windows idle-priority 768 MiB job/20% CPU/two-process/15 CPU-seconds-per-process
 containment. Commands have ten-second wall deadlines; Linux children additionally
 have 256 MiB/five CPU-second ceilings. Synthetic file bytes excluding the
-executable are capped at 8 MiB; 2 GiB backing-volume headroom is required.
+executable must total at most 8 MiB, checked before accepting the receipt;
+2 GiB backing-volume headroom is required.
 Receipts bind binary SHA-256, commit, imports, environment and executed commands.
 
 These source changes and checks require successful exact-commit CI before
