@@ -65,6 +65,14 @@ jobs:
       - name: Build source-pinned bounded native codecs
         if: runner.os == 'Linux' && matrix.zstd == 'ON'
         run: python tools/ci/build_linux_codecs.py
+      - name: Check out exact native write-reuse baseline
+        if: runner.os == 'Linux' && matrix.zstd == 'OFF'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: strmt7/FlitzFS
+          ref: 94d0b3d85764843c6d7855c889137c8ea103689d
+          path: .ci-deps/reuse-baseline
+          persist-credentials: false
       - name: Configure minimal build
         if: matrix.zstd == 'OFF'
         run: cmake -S . -B build -DFLITZFS_PORTABLE_CPU=ON -DFLITZFS_WITH_ZSTD=${{ matrix.zstd }} -DFLITZFS_REQUIRE_ZSTD=${{ matrix.zstd }} -DFLITZFS_WITH_LZ4=${{ matrix.zstd }} -DFLITZFS_REQUIRE_LZ4=${{ matrix.zstd }} -DCMAKE_BUILD_TYPE=Release
@@ -78,6 +86,28 @@ jobs:
       - name: Independently inspect native error runtime handle initialization
         if: runner.os == 'Windows'
         run: ./build/Release/flitzfs_worker_exchange_tests.exe --native-error-resource-probe
+      - name: Prove identical-write regression against the immutable baseline
+        if: runner.os == 'Linux' && matrix.zstd == 'OFF'
+        shell: python
+        run: |
+          import subprocess
+          commands = [
+              ["cmake", "-S", ".ci-deps/reuse-baseline", "-B", "build-reuse-baseline",
+               "-DFLITZFS_BUILD_TESTS=OFF", "-DFLITZFS_WITH_ZSTD=OFF", "-DFLITZFS_WITH_LZ4=OFF",
+               "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"],
+              ["cmake", "--build", "build-reuse-baseline", "--target", "flitzfs_core", "--parallel", "2"],
+              ["clang++", "-std=c++20", "-O2", "-I", "include", "-I", "src",
+               "tests/test_native_filesystem.cpp", "build-reuse-baseline/libflitzfs_core.a",
+               "build-reuse-baseline/libflitzfs_blake3.a", "-o", "build-reuse-baseline/native-reuse-regression"],
+          ]
+          for command in commands:
+              subprocess.run(command, check=True, timeout=90)
+          result = subprocess.run(["build-reuse-baseline/native-reuse-regression"],
+                                  capture_output=True, text=True, timeout=45)
+          print(result.stdout)
+          print(result.stderr)
+          if result.returncode != 1 or not result.stderr.strip().endswith(": identical full write replaced payload records"):
+              raise RuntimeError("prior implementation did not reproduce the specific write-amplification regression")
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure --timeout 45 --parallel 1
 
@@ -97,7 +127,7 @@ jobs:
         run: |
           from pathlib import Path
           for line in Path("build/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith("Native staging evidence:"):
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:")):
                   print(line)
       - name: Retain bounded CPU test evidence
         if: always()
@@ -176,7 +206,7 @@ jobs:
         run: |
           from pathlib import Path
           for line in Path("build-asan/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith("Native staging evidence:"):
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:")):
                   print(line)
       - name: Retain sanitizer test evidence
         if: always()
@@ -247,7 +277,7 @@ jobs:
         run: |
           from pathlib import Path
           for line in Path("build-native/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith("Native staging evidence:"):
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:")):
                   print(line)
       - name: Retain native Windows test evidence
         if: always()

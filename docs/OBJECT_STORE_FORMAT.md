@@ -314,3 +314,11 @@ two independently sealed manifest units and three barriers. New status fields
 report checkpoint identity/mode/degradation. Verified same-state peer metadata
 may repair a selected catalog loss; no older object set is accepted as repair.
 The legacy single-publication descriptions above remain the legacy protocol.
+
+## Native unchanged-record reuse
+
+The native file layer can omit a payload put when exact verified bytes are
+unchanged at the same inode/block. Its metadata transaction still publishes
+through the normal replicated protocol. Existing immutable record identities
+and wire bytes remain valid; this requires no object-format change, shared
+payload ownership or new compression dependency. See NATIVE_FILESYSTEM.md.

@@ -169,3 +169,13 @@ reclamation, resource-priority/learning or AMD-runtime/application gates.
   and abandonment checks run as CPU-only hosted fixtures. Production recovery-
   policy/runtime identity integration, automatic private AMD component setup,
   actual HIP dispatch and hardware fault/benefit qualification remain required.
+
+## Redundant payload writes
+
+The native file layer elides exact unchanged bytes and ordered updates that
+restore the same inode/block contents. It preserves metadata publication,
+replicated barriers, source-read verification, independent recovery and all
+existing limits. NATIVE_FILESYSTEM.md specifies the bounded comparison cost and
+fault/regression checks. This reduces one source of encoding/write amplification;
+it does not establish a throughput advantage over other filesystems or implement
+background learning, writable mounts, production capacity or GPU dispatch.

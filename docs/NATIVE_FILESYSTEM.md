@@ -109,6 +109,46 @@ data from touched data and metadata; the latter two must fence before writes.
 Production scaling still needs indexed metadata/allocation, reclamation, quotas,
 concurrency and application qualification.
 
+### Exact unchanged-extent reuse
+
+A nonempty write compares its requested range with the verified staged bytes.
+If no bytes change, it keeps the existing extent record instead of re-encoding
+and appending it. The file size, modified sequence and namespace transaction
+still update, and publication still uses all three replicated-checkpoint
+barriers. This is payload write elision, not a weakened durability mode.
+
+Multiple ordered operations can temporarily change, zero or remove a block and
+then restore its original contents. For such possible reversions, staging reads
+and verifies the original record again and compares all 65,536 decoded bytes.
+It reuses that record only for the same original inode and logical block. This
+happens before allocating pending object IDs, so another inode cannot take a
+restored ID. Rename preserves that identity; delete/recreate does not. Exact
+comparison introduces no hash-collision decision. Truncate/regrow still exposes
+zeros unless subsequent writes explicitly restore the discarded bytes.
+
+Single changed writes retain the existing one-source-read path. A possible
+reversion may add one verified original-extent read per retained dirty block,
+with one temporary 64 KiB comparison buffer at a time, released before output
+mutation copies and encoding. The 63 dirty buffers and all input/live/physical
+caps are unchanged. Dirty buffers plus this decoded scratch are at most 4 MiB;
+that subtotal excludes namespace, graph, decoder/encoded storage and allocator
+overheads. The existing 64 MiB staging admission allowance remains an admission
+reserve, not a whole-process memory guarantee.
+
+RAM checks inspect actual payload record generations and offsets, backing
+write bytes, appended history and the three barriers. They cover unchanged
+full/partial/cross-extent writes, repeated real edits, zero/restoration,
+shrink/regrow, already-zero truncate tails, rename, object-ID allocation order,
+delete/recreate, sparse zeros, retained snapshots and independent reopen.
+A second-read corruption case must fence before writes. Every observed
+write/flush of an elided rename transaction is faulted under all three RAM
+persistence-failure modes in raw and automatic compression, followed by
+independent recovery and further reuse. These additions do not expand the
+separate hosted process-kill matrix or establish physical power-loss safety.
+The Linux raw CI lane also runs the strengthened test against the exact prior
+implementation and requires its specific identical-write failure before
+accepting the current suite.
+
 ## Native metadata bytes
 
 Object ID 1 stores the namespace; object IDs 2..256 store live extent records.

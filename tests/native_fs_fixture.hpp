@@ -34,6 +34,9 @@ class Ram final:public StoreByteIo {
  public:
   Bytes live,stable;std::size_t calls=0,writes=0,fail_at=(std::numeric_limits<std::size_t>::max)();
   mutable std::uint64_t read_bytes=0,read_calls=0;
+  std::uint64_t write_bytes=0;std::size_t flushes=0;
+  std::uint64_t corrupt_read_offset=(std::numeric_limits<std::uint64_t>::max)(),corrupt_read_number=0;
+  mutable std::uint64_t matching_reads=0;
   unsigned failure=0;
   std::uint64_t extent() const override{return live.size();}
   StoreIoContract contract() const noexcept override{return {65536,true};}
@@ -42,6 +45,8 @@ class Ram final:public StoreByteIo {
     if(at>live.size() || out.size()>live.size()-at)throw std::runtime_error("RAM read");
     read_bytes+=out.size();++read_calls;
     std::copy_n(live.begin()+static_cast<std::ptrdiff_t>(at),out.size(),out.begin());
+    // Synthetic bad backing bytes on a selected repeated read, never owner data.
+    if(at==corrupt_read_offset && ++matching_reads==corrupt_read_number && !out.empty())out[0]^=std::byte{1};
   }
   static void copy(Bytes& to,std::uint64_t at,std::span<const std::byte> in) {
     if(at>kStoreMaxPhysicalBytes || in.size()>kStoreMaxPhysicalBytes-at)throw std::runtime_error("RAM cap");
@@ -49,7 +54,7 @@ class Ram final:public StoreByteIo {
     std::copy(in.begin(),in.end(),to.begin()+static_cast<std::ptrdiff_t>(at));
   }
   void write_exact(std::uint64_t at,std::span<const std::byte> in) override {
-    const bool fail=calls++==fail_at;++writes;
+    const bool fail=calls++==fail_at;++writes;write_bytes+=in.size();
     if(fail) {
       if(failure==1){copy(live,at,in.first(in.size()/2));copy(stable,at,in.first(in.size()/2));}
       if(failure==2) {
@@ -62,7 +67,7 @@ class Ram final:public StoreByteIo {
     copy(live,at,in);
   }
   void flush() override {
-    const bool fail=calls++==fail_at;if(fail && failure==0)throw std::runtime_error("injected native flush failure");
+    ++flushes;const bool fail=calls++==fail_at;if(fail && failure==0)throw std::runtime_error("injected native flush failure");
     stable=live;if(fail)throw std::runtime_error("injected native post-flush failure");
   }
 };

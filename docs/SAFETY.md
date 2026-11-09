@@ -263,3 +263,13 @@ retirement. Failed observation disables further transport admission instead of
 reopening a PID or repeatedly creating workers. CPU-selected gates remain
 terminal. This does not qualify a HIP runtime/driver, protected installer or
 no-freeze guarantee, and authorizes no owner-PC execution.
+
+## Exact unchanged-data reuse
+
+Payload reuse requires verified exact bytes at the same inode/block identity.
+Possible multi-operation reversions re-read and verify the original before ID
+allocation; failed verification fences before publication. No payload sharing,
+cross-inode deduplication or reduced flush mode is introduced. Nonempty writes
+still commit namespace metadata through three barriers. The additional decoded
+comparison scratch is bounded to one 64 KiB extent within the existing staging
+admission envelope; it does not authorize owner-host execution or raise caps.

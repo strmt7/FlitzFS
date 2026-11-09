@@ -73,3 +73,15 @@ Inspect executed exact-commit results before calling the migration compatible.
 Research-provider Python/locked packages and broader end-user runtime portability
 remain open qualification work; old reference commits are intentional immutable
 comparison evidence. This upgrade performs no owner-PC installation.
+
+## Isolated semantic-tool qualification
+
+CocoIndex Code 0.2.43 is now qualified off-host with real source-bound searches;
+HOSTED_ROUTING.md records the binary-only private CPU environment and source/
+model/package receipts. Its released commit and official wheel URL, size and
+SHA-256 join the native latest-release audit, using the actual provisioning
+constants. The semantic lane uses qualified Python 3.14 because its complete
+binary-only package graph was unavailable on 3.15; normal build tooling remains
+3.15. This is a development provider, not a filesystem runtime or learning model.
+The separate Crawl4AI provider's older locked graph remains an explicit review
+item, so this does not claim universal transitive freshness.
