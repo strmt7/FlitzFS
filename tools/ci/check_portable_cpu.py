@@ -228,11 +228,14 @@ def main():
         output=work/("restored \u03a9 \u4e2d "+str(index)+".bin")
         before=digest(source_file)
         text=call(["pack",source_file,image,"--chunk-kib","64","--level","3"])
+        counts=[line for line in text.splitlines() if line.startswith(b"CPU Zstandard chunks: ")]
+        require(len(counts)==1,"compression capability evidence missing or duplicated")
+        compressed_chunks=int(counts[0].split(b": ",1)[1])
         if args.codecs=="native":
-            require(b"CPU Zstandard chunks: 0\n" not in text and image.stat().st_size<len(payload)//4,
+            require(compressed_chunks>0 and image.stat().st_size<len(payload)//4,
                     "native package did not actually use bundled compression")
         else:
-            require(b"CPU Zstandard chunks: 0\n" in text,"raw package unexpectedly requires a codec")
+            require(compressed_chunks==0,"raw package unexpectedly requires a codec")
         image_before=digest(image)
         call(["info",image])
         call(["verify",image])

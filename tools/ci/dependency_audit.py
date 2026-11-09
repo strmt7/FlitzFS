@@ -71,7 +71,7 @@ class Capture:
             path="repos/"+repo+"/git/tags/"+item["sha"]
         raise RuntimeError("annotated tag depth budget")
 
-def version(command):
+def command_version(command):
     path=shutil.which(command)
     if not path:
         return None
@@ -107,16 +107,16 @@ def main():
         for (kind,platform),artifact in ARTIFACTS.items():
             if kind!=tool:
                 continue
-            version,url,size,digest=artifact
+            artifact_version,url,size,digest=artifact
             asset=next((a for a in value["assets"] if a["browser_download_url"]==url),None)
             if asset is None or asset["size"]!=size or asset.get("digest")!="sha256:"+digest:
                 raise RuntimeError("official tool artifact pin differs from latest release identity")
-            if value["tag_name"] not in ("v"+version,"llvmorg-"+version):
+            if value["tag_name"] not in ("v"+artifact_version,"llvmorg-"+artifact_version):
                 raise RuntimeError("staged build-tool version behind latest stable")
     report=dict(experimental=True,commit=os.environ["GITHUB_SHA"],
         scope="Known native dependency pins and Actions; installed-tool inventory. Dependabot is checked separately in authenticated GitHub Security UI.",
         dependencies=rows,build_tool_releases=tools,
-        installed=dict(python=sys.version,cmake=version("cmake"),ctest=version("ctest"),clang=version("clang++")),
+        installed=dict(python=sys.version,cmake=command_version("cmake"),ctest=command_version("ctest"),clang=command_version("clang++")),
         declared_tool_work_remaining=dict(reviewed_research_python="3.13",
             note="Research-provider lock/runtime freshness and broader portability qualification remain open"),
         dependabot=dict(scope="Not queried by this workflow; authenticated GitHub Security UI is authoritative"),
