@@ -46,12 +46,10 @@ design. Codec selection is open; existing algorithms are candidates rather than
 a fixed registry inherited from another application. Compression gains must
 include metadata, padding, dictionaries, retained history and write amplification.
 
-FlitzZip is the owner's earlier engineering reference for useful compression,
-GPU and resource-management mechanisms. Archive compatibility, archive import,
-ZIP/unzip operations and mounting archives are outside FlitzFS product scope.
-The former archive reader and its CLI/catalog/mount routes have been removed.
-Mechanism provenance and narrowly scoped test-only reference comparisons remain
-documented in [extent codec research](docs/EXTENT_CODECS.md).
+Compression research is evaluated against filesystem workloads: mixed file
+types, partial updates, random reads, durable commits and independent CPU
+recovery. Candidate mechanisms and their source attribution are documented in
+[extent codec research](docs/EXTENT_CODECS.md).
 
 ## Building
 
@@ -70,11 +68,11 @@ dictionary mechanisms. Require dependencies explicitly with
 FLITZFS_REQUIRE_ZSTD/FLITZFS_REQUIRE_LZ4; disable them with the corresponding
 FLITZFS_WITH_* options. Configuration downloads or installs nothing.
 
-The CLI is a development utility for native .flfs backing images and read-only
-.flcatalog fixtures. Its pack/extract commands create/export a single native
-test image; they do not handle archives and are not the intended application
-workflow of the finished filesystem. Outputs must be new paths; original files
-remain unchanged. See [the native image format](docs/FORMAT-v1.md) and
+The CLI is a diagnostic utility for native .flfs backing images and read-only
+.flcatalog fixtures. Its current pack/extract commands construct a single native
+test image or read its bytes for validation. Normal application access through
+a writable mounted filesystem remains to be implemented. Outputs must be new
+paths; original files remain unchanged. See [the native image format](docs/FORMAT-v1.md) and
 [catalog diagnostics](docs/CATALOG_MANIFEST.md).
 
 ## Qualification still required

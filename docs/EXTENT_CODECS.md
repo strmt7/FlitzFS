@@ -1,13 +1,9 @@
 # Experimental filesystem compression mechanisms
 
 FlitzFS needs native compressed extents with independent CPU recovery.
-This module supplies bounded candidate mechanisms; it does not read archives,
-serialize archive directories or define the final filesystem codec registry.
-
-The earlier archive-reader experiment was outside the owner's intended scope.
-Its reader, public API, CLI commands, catalog/projection factories, serializer
-oracle and mounted-archive probe have been removed. Git history retains that
-work as historical evidence. Archive compatibility is not a roadmap gate.
+This module supplies bounded candidate mechanisms for filesystem research.
+The final extent format and codec selection must follow filesystem workloads,
+durability requirements and measured compression/throughput tradeoffs.
 
 ## Retained mechanisms and scope
 
@@ -35,8 +31,10 @@ do not establish GPU execution, hardware parity or speedup.
 ## Source provenance and independent checks
 
 Mechanism research used the owner's FlitzZip repository at
-4e6a1bb0d144611a09dcbc65276faa676e923882. The CPU implementation is independent;
-test-only encoders generate payloads directly, without archive envelopes.
+4e6a1bb0d144611a09dcbc65276faa676e923882 as a source of compression and GPU
+engineering ideas. This is source provenance, not a filesystem format or product
+dependency. The CPU implementation is independent; test-only encoders generate
+extent payloads directly.
 The optional FLITZFS_EXTENT_REFERENCE_SOURCE comparison requires that exact
 upstream commit and an unchanged reviewed source blob, extracts only selected
 CPU mechanism functions, and links them into a test executable. No upstream
