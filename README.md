@@ -85,8 +85,9 @@ mount command or authentication. Existing `.flfs`/`.flcatalog` formats are uncha
 
 There is no general-purpose mount application, virtual-drive product, custom
 filter driver, AMD GPU initialization, encryption or authenticated storage. An
-optional synthetic-only hosted-CI mount probe exists. Writable transactions,
-power-loss recovery, authenticated snapshots and full FlitzZip product parity remain future work.
+optional synthetic-only hosted-CI mount probe exists. A separate bounded raw-object transaction library now exists; writable mounted
+transactions, physical power-loss qualification, authenticated snapshots and
+full FlitzZip product parity remain future work.
 Synthetic read-only process-termination recovery is tested separately. CRC32
 detects accidental corruption, not malicious tampering.
 
@@ -230,3 +231,15 @@ independent acknowledged-history oracle. Torn writes, write subsets and
 write-unit collateral damage are injected; four deliberately broken controls
 must be detected. This is protocol evidence, not a writable filesystem or
 physical power-loss qualification. See [assumptions and tests](docs/PERSISTENCE_MODEL.md).
+
+## Transactional object foundation
+
+The experimental [object-store core](docs/OBJECT_STORE_FORMAT.md) adds atomic
+bounded updates, immutable snapshots, two-barrier publication, separate root
+failure domains, BLAKE3 integrity and independent CPU reopen. New backing files
+use exclusive creation; uncertain I/O poisons a writer. It stores raw objects
+only, has no mounted/CLI/GPU route, and cannot reopen an existing image writable.
+Persistence depends on an explicitly qualified backend contract; declaring the
+contract does not qualify hardware. Fault tests run in RAM and actual file-I/O
+checks run only on disposable hosted VMs. This advances the transaction engine,
+not a claim of production durability or improved compression.
