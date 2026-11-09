@@ -46,6 +46,7 @@ class Child:
         self.thread=threading.Thread(target=reader,daemon=True)
         self.thread.start()
         self.end=time.monotonic()+15
+        self.context=dict(operation=args[1],policy=args[4],phase=args[5],pid=self.process.pid)
 
     def read(self):
         while True:
@@ -53,7 +54,9 @@ class Child:
                 raise RuntimeError("probe output reader failed") from self.error
             remaining=min(self.end,DEADLINE)-time.monotonic()
             if remaining<=0:
-                raise TimeoutError("probe process deadline")
+                limit="overall campaign" if DEADLINE<=self.end else "individual process"
+                raise TimeoutError(limit+" deadline: "+json.dumps(dict(**self.context,
+                    returncode=self.process.poll(),campaign_seconds=180,process_seconds=15)))
             try:
                 line=self.lines.get(timeout=min(remaining,0.25))
                 break
@@ -184,40 +187,124 @@ def case(binary,policy,phase,cut):
             path.unlink(missing_ok=True)
         root.rmdir()
 
+def validate_partitions(partition,partitions):
+    if partitions not in (1,2) or not 0<=partition<partitions:
+        raise RuntimeError("partition bounds: one full campaign or two disjoint partitions required")
+
+def merge_reports(reports):
+    if len(reports)!=2:
+        raise RuntimeError("exactly two bounded Windows campaign reports required")
+    first=reports[0]
+    if first.get("platform")!="nt" or first.get("partitions")!=2:
+        raise RuntimeError("partition merge requires Windows reports")
+    shared=("schema","commit","platform","partitions","planned_cases","coverage","scope","limits")
+    if first.get("schema")!=2 or not first.get("commit") or not first.get("complete"):
+        raise RuntimeError("incomplete or invalid partition report")
+    for report in reports:
+        if any(report.get(key)!=first.get(key) for key in shared) or not report.get("complete"):
+            raise RuntimeError("partition identities/coverage/limits differ or are incomplete")
+    if {report.get("partition") for report in reports}!={0,1}:
+        raise RuntimeError("missing or repeated campaign partition")
+    expected=[]
+    for coverage in first["coverage"]:
+        for cut,event in enumerate(coverage["events"],1):
+            expected.append((coverage["policy"],coverage["phase"],cut,event["op"]))
+    if not 0<len(expected)<=MAX_CASES or len(expected)!=first["planned_cases"]:
+        raise RuntimeError("partition planned coverage exceeds budget or changed")
+    result={}
+    for report in reports:
+        if report.get("cases")!=len(report["results"]):
+            raise RuntimeError("partition result count differs")
+        for row in report["results"]:
+            ordinal=row.get("ordinal")
+            if type(ordinal) is not int or not 0<=ordinal<len(expected) or ordinal in result or ordinal%2!=report["partition"]:
+                raise RuntimeError("overlapping/misrouted/missing fault case")
+            if (row["policy"],row["phase"],row["cut"],row["operation"])!=expected[ordinal]:
+                raise RuntimeError("partition fault identity differs from complete trace")
+            if row.get("forced_exit") in (None,0) or not row["acknowledged"]<=row["recovered"]<row["continued"]:
+                raise RuntimeError("partition recovery oracle failed")
+            result[ordinal]=row
+    if set(result)!=set(range(len(expected))):
+        raise RuntimeError("partition union omits fault points")
+    merged=dict(first)
+    merged.update(partition=None,cases=len(result),results=[result[i] for i in range(len(expected))],
+                  partition_elapsed_seconds=[r["elapsed_seconds"] for r in reports],
+                  elapsed_seconds=sum(r["elapsed_seconds"] for r in reports))
+    return merged
+
 def main():
     if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
         raise RuntimeError("disposable hosted VM required")
     parser=argparse.ArgumentParser()
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--build",type=Path,default=Path("build-store-crash"))
+    parser.add_argument("--partition",type=int,default=0)
+    parser.add_argument("--partitions",type=int,default=1)
+    parser.add_argument("--merge",type=Path,nargs=2)
     args=parser.parse_args()
+    if args.merge:
+        reports=[]
+        for path in args.merge:
+            if not path.is_file() or path.stat().st_size>4*1024*1024:
+                raise RuntimeError("partition report file budget")
+            reports.append(json.loads(path.read_text(encoding="utf-8")))
+        report=merge_reports(reports)
+        with args.output.open("x",encoding="utf-8") as output:
+            json.dump(report,output,indent=2);output.write("\n")
+        print(json.dumps(dict(commit=report["commit"],platform=report["platform"],cases=report["cases"],
+            partitions=2,outcome="complete disjoint union; every acknowledged byte recovered and continued")))
+        return
+    validate_partitions(args.partition,args.partitions)
+    if args.partitions==2 and os.name!="nt":
+        raise RuntimeError("split campaign is a Windows hosted fixture only")
     binary=(args.build/("Release" if os.name=="nt" else "")/
             ("flitzfs_store_crash_probe.exe" if os.name=="nt" else "flitzfs_store_crash_probe")).resolve()
-    rows=[];coverage=[]
-    for policy in ("raw","auto"):
-        for phase in ("mutation","repair","files","compact","checkpoint"):
-            events,result=case(binary,policy,phase,None)
-            coverage.append(dict(policy=policy,phase=phase,events=events,completed=result))
-            for cut in range(1,len(events)+1):
-                if len(rows)>=MAX_CASES:
-                    raise RuntimeError("fault case budget")
-                observed,result=case(binary,policy,phase,cut)
-                if observed!=events[:cut]:
-                    raise RuntimeError("fault trace changed between cases")
-                rows.append(dict(policy=policy,phase=phase,cut=cut,operation=observed[-1]["op"],**result))
     root=Path(__file__).resolve().parents[2]
     head=subprocess.run(["git","-C",str(root),"rev-parse","HEAD"],check=True,capture_output=True,text=True,timeout=5).stdout.strip()
-    report=dict(schema=1,commit=head,platform=os.name,cases=len(rows),coverage=coverage,results=rows,
+    rows=[];coverage=[]
+    report=dict(schema=2,commit=head,platform=os.name,cases=0,coverage=coverage,results=rows,complete=False,
+        partition=args.partition,partitions=args.partitions,planned_cases=0,
         scope="Process termination at I/O boundaries, including reverted native extent reuse, owned ordinary files; not physical power loss or mounted writes",
-        limits=dict(total_seconds=180,process_seconds=15,cases=1024,events=256,event_bytes=256,
-                    queued_events=8,fixture_bytes=3145728,
+        limits=dict(partition_seconds=180,campaign_seconds=180*args.partitions,process_seconds=15,
+                    cases=1024,events=256,event_bytes=256,queued_events=8,fixture_bytes=3145728,
                     windows_process_bytes=805306368,windows_cpu_percent=20,
                     posix_address_bytes=536870912,posix_cpu_seconds=15))
-    with args.output.open("x",encoding="utf-8") as output:
-        json.dump(report,output,indent=2);output.write("\n")
-    print(json.dumps(dict(commit=head,platform=os.name,cases=len(rows),
-        scopes=[dict(policy=x["policy"],phase=x["phase"],events=len(x["events"])) for x in coverage],
-        outcome="all acknowledged bytes recovered, new commit independently reopened, unrelated fixture unchanged")))
+    started=time.monotonic()
+    try:
+        ordinal=0
+        for policy in ("raw","auto"):
+            for phase in ("mutation","repair","files","compact","checkpoint"):
+                report["active_case"]=dict(policy=policy,phase=phase,cut=None)
+                events,result=case(binary,policy,phase,None)
+                coverage.append(dict(policy=policy,phase=phase,events=events,completed=result))
+                for cut in range(1,len(events)+1):
+                    if ordinal>=MAX_CASES:
+                        raise RuntimeError("aggregate fault case budget")
+                    current=ordinal;ordinal+=1
+                    if current%args.partitions!=args.partition:
+                        continue
+                    report["active_case"]=dict(policy=policy,phase=phase,cut=cut,ordinal=current)
+                    observed,result=case(binary,policy,phase,cut)
+                    if observed!=events[:cut]:
+                        raise RuntimeError("fault trace changed between cases")
+                    rows.append(dict(policy=policy,phase=phase,cut=cut,ordinal=current,
+                                     operation=observed[-1]["op"],**result))
+        report["planned_cases"]=ordinal
+        if len(rows)!=len(range(args.partition,ordinal,args.partitions)):
+            raise RuntimeError("fault partition coverage incomplete")
+        report["complete"]=True
+        report.pop("active_case",None)
+    except BaseException as error:
+        report["error"]=type(error).__name__+": "+str(error)
+        raise
+    finally:
+        report["cases"]=len(rows)
+        report["elapsed_seconds"]=round(time.monotonic()-started,3)
+        with args.output.open("x",encoding="utf-8") as output:
+            json.dump(report,output,indent=2);output.write("\n")
+        print(json.dumps({key:report.get(key) for key in
+            ("commit","platform","cases","planned_cases","partition","partitions","complete",
+             "elapsed_seconds","active_case","error")}),flush=True)
 
 if __name__=="__main__":
     main()

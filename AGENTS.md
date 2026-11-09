@@ -279,3 +279,31 @@ latest-release pointer. Consult the CURRENT FlitzZip SDK lock, bootstrap, runtim
 loader and compile/resource mechanisms before reimplementing GPU infrastructure.
 Use source-bound evidence, preserve whole-distribution identity and adapt only
 filesystem requirements; never add archive product formats or commands.
+
+
+## Windows-only product target (owner clarification, 9 November 2026)
+
+FlitzFS is a non-native Windows filesystem ONLY for the current product scope.
+Target the latest stable supported Windows 11 release for the selected AMD64
+architecture, with a Windows helper application and qualified filesystem-driver
+integration. Do not add Linux/macOS product support, old-Windows compatibility
+layers, installers or release matrices. Verify the current Windows release,
+SDK/WDK and driver acceptance rules from recent authoritative sources before
+selecting or changing the target; Insider/preview is not implied by "latest".
+
+Existing non-Windows CPU/sanitizer jobs are internal analysis of shared algorithms,
+not a Linux product or supported-platform claim. Preserve useful corruption and
+recovery tests; stop developing non-Windows product packaging/features. Windows
+Server runner results are development checks, not proof of latest Windows 11
+client qualification.
+
+Research existing Windows non-native filesystems, their real kernel/user-mode
+boundaries, Windows file semantics, driver distribution/signing and safe service/
+app lifecycle before committing to new driver architecture. Prefer verified
+mechanism reuse over an unnecessary new kernel implementation. Keep compression,
+learning and HIP faults outside the kernel-facing critical path. Product driver
+qualification must preserve current Windows security settings; never remove Code
+Integrity policies, disable Secure Boot/HVCI or enable test signing on the owner PC.
+All driver/app/mount/fault tests remain off-host. The Windows app/driver product
+requirements do not authorize any host installation, privilege, persistence or
+testing exception.

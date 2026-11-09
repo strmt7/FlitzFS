@@ -138,3 +138,45 @@ process retirement and fresh telemetry cannot clear this quarantine; a separatel
 qualified recovery generation must advance. A CPU fixture uses pressure
 hysteresis. A valid, independently checked late reply can remain pressure; the
 selected CPU bytes never change. See GPU_WORKER_CONTROLLER.md for test scope.
+
+
+## Typed-entry checkpoint and current-source limitation
+
+At fddd1b7108d8a6e1b4d9359475749c27b22ffe85, the complete ROCm compile/link
+run 42686078956 (job 129393145918) passed with the real typed kernel binder and
+separate module. Native Windows CPU run 129393147149 passed 27 CTest entries,
+including 528 worker assertions with handles 88 to 88; raw Windows run
+129393146564 passed 25 entries, 529 worker assertions and handles 87 to 87.
+These tests include expected-HIP cancellation/timeout/expiry quarantine and
+separate recovery evidence, but all helper execution remained CPU semantics.
+
+Native research run 42686078775 (job 129393145786) accepted the selected 10.1.0
+memory/error references and current Microsoft TDR guidance. The Doxygen stream
+page returned a Cloudflare challenge (HTTP 429 after 307) and was rejected with
+its native failure/digests retained. The research job correctly failed; do not
+describe it as complete or bypass its challenge. A separately published stream-
+management reference linked from the successful current pages is requested
+normally through the same reviewed crawler.
+
+The actual observed HIP GITHASH resolves to the current ROCm/rocm-systems
+monorepo, not the legacy HIP or CLR release repositories:
+7da43026e4f2ef7600433c38c820732f7a205d22, dated 25 September 2026.
+The native repository API verified these exact source paths:
+
+- projects/hip/include/hip/hip_runtime_api.h
+- projects/hip/docs/reference/hip_runtime_api/modules/stream_management.rst
+- projects/clr/hipamd/src/hip_stream.cpp
+
+This source is bound through the selected package's actual observed identity;
+it is not an independently selected replacement HIP distribution. The header
+documents lower numerical stream priorities as higher priority, possible waiting
+in hipStreamDestroy and implicit device synchronization in hipFree. Its priority-
+range comment says "under development", whereas the exact implementation returns
+Low/High enum values and clamps requested creation priorities. Preserve this
+source/documentation distinction. Neither fact proves OS scheduling isolation or
+a latency/driver-cleanup guarantee; low-impact background work still needs actual
+hardware and Windows scheduling evidence.
+
+Native source references:
+https://github.com/ROCm/rocm-systems/blob/7da43026e4f2ef7600433c38c820732f7a205d22/projects/hip/include/hip/hip_runtime_api.h
+https://github.com/ROCm/rocm-systems/blob/7da43026e4f2ef7600433c38c820732f7a205d22/projects/clr/hipamd/src/hip_stream.cpp

@@ -203,3 +203,39 @@ combined fixture images, with existing per-process/time limits. The controller
 rejects overflow; no cases may be silently omitted or budgets raised to pass.
 Only disposable hosted VMs execute this test; ordinary owner-PC files and mounted
 writes remain outside its authorization and qualification.
+
+
+## Bounded Windows campaign partitions and failure evidence
+
+At fddd1b7108d8a6e1b4d9359475749c27b22ffe85, Windows run 42686079473
+(job 129393153713) failed at approximately 180 seconds in the recovery reader.
+The old reader called either its individual 15-second deadline OR the shared
+180-second campaign deadline "probe process deadline", and the old controller
+produced no partial report on failure. No data-corruption result was reported,
+but this was NOT a passing recovery campaign. Linux passed separately; it cannot
+qualify the Windows failure.
+
+The controller now names the expired budget and operation/policy/phase/PID,
+records the active cut and completed cases on failure, and uploads incomplete
+reports with a nonzero workflow result. It never counts partial coverage as
+success. The individual process deadline, 768 MiB/20% Windows child ceiling,
+eight-event queue, 256-event/256-byte bounds and 3 MiB aggregate image fixture
+remain unchanged.
+
+Windows now runs TWO sequential, deterministically disjoint campaigns from the
+same build, each under the existing 180-second campaign bound. Every baseline
+trace is admitted before selecting even/odd global fault ordinals. Each campaign
+retains the 1024 aggregate planned-case cap; no sampled case or fault point is
+dropped. The full run has an explicit maximum 360-second campaign allowance
+instead of 180, with unchanged peak resource caps and the existing 20-minute
+job ceiling. This deliberate VM-only allowance accommodates the complete Windows
+fault matrix without relaxing a stuck child's 15-second limit. It is unrelated
+to GPU retry/recovery policy or permission for host work.
+
+A schema-2 merge must prove identical commit/platform/trace/limits, both distinct
+partitions, exact ordinal-to-fault identity, nonzero forced exits, preserved
+acknowledged history and continued commits, with a complete nonoverlapping union.
+Missing, relabelled, incomplete, differently configured or duplicate coverage is
+rejected. Only that merged report can represent the complete Windows campaign.
+Failure reports are retained without being promoted to recovery evidence.
+The new no-I/O report tests cover the union oracle and its negative cases.

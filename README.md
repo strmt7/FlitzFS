@@ -1,6 +1,9 @@
 # FlitzFS
 
-FlitzFS is an experimental compressed filesystem under development. Its goal
+FlitzFS is an experimental **Windows-only compressed filesystem** under development,
+targeting the latest stable Windows 11 on AMD64 with a Windows helper application
+and qualified filesystem-driver integration. Older Windows and other operating
+systems are outside the current product scope. Its goal
 is high sustained read/write throughput combined with exceptional lossless
 storage reduction across arbitrary file types, using modern AMD GPUs where
 they provide a measured benefit and retaining independent CPU recovery.
@@ -10,6 +13,10 @@ Writable mounted storage and actual GPU execution remain unqualified. Keep
 independent copies of valuable data. All current development and tests run
 on disposable hosted machines; no storage, drivers or GPU tests run on the
 owner's PC.
+
+The Windows app, full writable driver integration and latest Windows 11 client
+qualification remain unfinished. Existing Linux CPU/sanitizer jobs are internal
+algorithm checks, not Linux product support. See [the Windows product contract](docs/WINDOWS_PRODUCT.md).
 
 ## Current filesystem components
 

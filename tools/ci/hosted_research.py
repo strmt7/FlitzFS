@@ -54,6 +54,29 @@ ROCM_RUNTIME_SOURCES = (
 )
 
 
+WINDOWS_TARGET_SOURCES = (
+    ("windows11-current-release", "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information", "Windows 11", "Version"),
+    ("windows-sdk-current", "https://learn.microsoft.com/en-us/windows/apps/windows-sdk/downloads", "Windows SDK", "10.0."),
+    ("windows-current-driver-policy", "https://support.microsoft.com/en-us/windows/hardware/drivers/the-windows-driver-policy", "WHCP", "enforcement"),
+    ("windows-current-fsd-guide", "https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/file-system-driver-design-guide", "file system", "driver"),
+)
+WINDOWS_FRAMEWORK_SOURCES = (
+    ("winfsp-current-design", "https://winfsp.dev/doc/WinFsp-Design/", "FSD", "kernel"),
+    ("winfsp-current-service", "https://winfsp.dev/doc/WinFsp-Service-Architecture/", "service", "Launcher"),
+    ("winfsp-current-compatibility", "https://winfsp.dev/doc/WinFsp-Compatibility/", "NTFS", "Flush"),
+    ("winfsp-current-testing", "https://winfsp.dev/doc/WinFsp-Testing/", "test", "winfsp-tests"),
+)
+WINDOWS_ALTERNATIVE_SOURCES = (
+    ("dokan-current-design", "https://dokan-dev.github.io/", "Dokan", "driver"),
+    ("winbtrfs-current-design", "https://github.com/maharmstone/btrfs", "WinBtrfs", "Windows 11"),
+    ("windows-current-projfs", "https://learn.microsoft.com/en-us/windows/win32/projfs/projected-file-system", "provider", "write"),
+    ("windows-current-cloud-files", "https://learn.microsoft.com/en-us/windows/win32/cfapi/build-a-cloud-file-sync-engine", "Cloud", "hydration"),
+)
+ROCM_STREAM_SOURCES = (
+    ("hip-current-stream-management", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html", "hipStreamCreateWithPriority", "hipStreamDestroy"),
+)
+
+
 def guard():
     if os.name != "posix" or os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("RUNNER_ENVIRONMENT") != "github-hosted":
         raise RuntimeError("Requires a disposable GitHub-hosted Linux VM")
@@ -83,7 +106,9 @@ async def capture(args):
     args.output.mkdir(parents=False, exist_ok=False)
     rows = []
     async with AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False, use_persistent_context=False)) as owner:
-        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-current": ROCM_CURRENT_SOURCES, "rocm-runtime": ROCM_RUNTIME_SOURCES}[args.source_group]
+        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-current": ROCM_CURRENT_SOURCES, "rocm-runtime": ROCM_RUNTIME_SOURCES, "windows-target": WINDOWS_TARGET_SOURCES,
+                    "windows-framework": WINDOWS_FRAMEWORK_SOURCES, "windows-alternatives": WINDOWS_ALTERNATIVE_SOURCES,
+                    "rocm-stream": ROCM_STREAM_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -108,10 +133,12 @@ async def capture(args):
                     print(json.dumps({"native_navigation": name, "official_links": selected_links}), flush=True)
                 offset = markdown.lower().rfind(term.lower())
                 print(json.dumps({"review": name, "excerpt": markdown[max(0, offset-200):offset+1100]}), flush=True)
-                if args.source_group == "rocm-runtime":
+                if args.source_group in ("rocm-runtime", "rocm-stream") or args.source_group.startswith("windows-"):
                     terms = ("hipStreamCreateWithPriority", "hipStreamQuery", "hipStreamDestroy",
                              "hipFree", "hipMalloc", "hipErrorContext", "hipErrorLaunch",
-                             "hipErrorOutOfMemory", "priority", "process")
+                             "hipErrorOutOfMemory", "priority", "process", "26H2", "26H1", "10.0.",
+                             "WHCP", "enforcement", "kernel", "driver", "Flush", "cach", "IRP",
+                             "service", "security", "hydration", "NTFS", "WriteFile")
                     excerpts = []
                     for term in terms:
                         positions = [match.start() for match in re.finditer(re.escape(term), markdown, re.I)]
@@ -119,8 +146,8 @@ async def capture(args):
                             excerpts.append({"term": term, "offset": offset,
                                 "text": markdown[max(0, offset-160):offset+950]})
                     print(json.dumps({"runtime_source_review": name,
-                        "excerpts": excerpts[:20]}), flush=True)
-                if args.source_group in ("rocm-current", "rocm-runtime"):
+                        "excerpts": excerpts[:40]}), flush=True)
+                if args.source_group in ("rocm-current", "rocm-runtime", "rocm-stream") or args.source_group.startswith("windows-"):
                     print(json.dumps({"current_source_review": name,
                         "opening": markdown[:10000],
                         "headings": [line for line in markdown.splitlines() if line.startswith("#")][:48],
@@ -141,7 +168,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-current", "rocm-runtime") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -151,7 +178,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current", "rocm-runtime"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)
