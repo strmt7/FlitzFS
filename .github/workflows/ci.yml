@@ -121,13 +121,13 @@ jobs:
           binary = Path("build/Release/flitzfs.exe") if sys.platform == "win32" else Path("build/flitzfs")
           subprocess.run([sys.executable, "tools/ci/check_portable_cpu.py", str(binary), "--codecs", "raw"], check=True, timeout=120)
 
-      - name: Report native staging read counts
+      - name: Report native staging and worker lifecycle evidence
         if: success()
         shell: python
         run: |
           from pathlib import Path
           for line in Path("build/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native staging evidence:", "Native reuse evidence:")):
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain bounded CPU test evidence
         if: always()
@@ -200,13 +200,13 @@ jobs:
           UBSAN_OPTIONS: halt_on_error=1
         run: ctest --test-dir build-asan --output-on-failure --timeout 45 --parallel 1
 
-      - name: Report native staging read counts
+      - name: Report native staging and worker lifecycle evidence
         if: success()
         shell: python
         run: |
           from pathlib import Path
           for line in Path("build-asan/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native staging evidence:", "Native reuse evidence:")):
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain sanitizer test evidence
         if: always()
@@ -271,13 +271,13 @@ jobs:
       - name: Exercise actual callbacks without a mounted filesystem
         run: ctest --test-dir build-native -C Release --output-on-failure --timeout 45 --parallel 1
 
-      - name: Report native staging read counts
+      - name: Report native staging and worker lifecycle evidence
         if: success()
         shell: python
         run: |
           from pathlib import Path
           for line in Path("build-native/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native staging evidence:", "Native reuse evidence:")):
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain native Windows test evidence
         if: always()

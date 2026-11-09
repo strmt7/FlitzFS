@@ -35,7 +35,9 @@ class GpuWorkerController final {
   std::span<const std::byte> use_cpu_fallback() noexcept;
   // Signals only; process teardown remains on the bounded supervisor.
   bool request_cancel() const noexcept;
-  // Zero-time exact child AND supervisor confirmation. No discovery or sleep.
+  // Classify any late immutable result once, then zero-time confirm exact
+  // child AND supervisor exit. Never changes selected bytes; no discovery,
+  // process wait or sleep. Late verification is bounded by one batch.
   bool try_retire() noexcept;
   std::span<const std::byte> selected_bytes() const noexcept;
   GpuWorkerState state() const noexcept {return state_;}
@@ -45,7 +47,7 @@ class GpuWorkerController final {
   std::uint32_t process_id() const noexcept;
  private:
   void report(GpuRecoveryOutcome outcome) noexcept;
-  void select_cpu(GpuRecoveryOutcome outcome,GpuGateCode why) noexcept;
+  void select_cpu(GpuRecoveryOutcome outcome,GpuGateCode why,bool finalize=true) noexcept;
   GpuRecoveryPolicy policy_;
   WorkerExecution expected_;
   GpuWorkerState state_=GpuWorkerState::idle;

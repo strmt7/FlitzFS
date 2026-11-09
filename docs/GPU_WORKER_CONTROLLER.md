@@ -26,7 +26,11 @@ declares execution type; it does not attest that a GPU ran.
 use_cpu_fallback selects CPU for a waiting request without an OS/runtime call.
 Cancellation is a separate explicit signal. The supervisor still enforces its
 process deadline if a caller forgets cancellation. Once either result is selected,
-later replies/polls cannot change it or report the outcome twice. selected_bytes
+later replies/polls cannot change its bytes. CPU selection/deadline does not
+fabricate a final worker outcome: the pending policy ticket remains active until
+try_retire can classify the immutable result. A late missing component or corrupt
+reply still blocks that configuration; a valid late reply remains pressure rather
+than retrospectively accepting expired output. Each ticket is reported once. selected_bytes
 is a borrowed immutable span valid until the next begin/destruction; consume it
 before replacing the current request. Callers must bound retained results.
 
@@ -34,8 +38,12 @@ A new request can select its own CPU bytes while a previous helper is retiring.
 Its batch replaces only the completed foreground request; the previous session
 retains its independently owned frames, exact process observation and supervisor.
 The policy's active ticket prevents a replacement worker even if configuration
-identity changes. try_retire confirms BOTH exact child and supervisor-thread exit,
-then releases that same policy ticket and session. No PID reopening, sleep,
+identity changes. Keep the OLD gate/reference/generation until any late result
+has been classified, even if a later CPU request has different data. try_retire
+then confirms BOTH exact child and supervisor-thread exit and releases that same
+policy ticket/session. It may verify one bounded immutable late reply; it never
+waits for the worker. Failure counters change on actual outcome reporting, not
+merely because CPU was selected. No PID reopening, sleep,
 driver cleanup, discovery scan or replacement queue occurs in the controller.
 
 Destroying a controller abandons its session to the existing supervised lifetime;
@@ -69,9 +77,15 @@ nor installs dependencies. CPU operation must remain possible without them.
 
 ## Resource and validation boundary
 
-The controller owns one current prepared CPU batch OR one result gate, one
-bounded session and constant policy state. Selected gate bytes and decoded reply
-copies retain the existing 256 KiB output/task limits. It creates no extra
+The controller owns at most one result gate, one current CPU batch, one bounded
+session and constant policy state. The old gate and a different CPU batch can
+coexist through retirement. Two prepared-equivalent buffers plus one accepted
+output OR late-validation candidate/status have at most 1,315,616 logical bytes
+under the current constants; a static assertion keeps this subtotal below
+2 MiB. It excludes container/allocator overhead, caller preparation workspaces,
+transport buffers and thread/runtime storage. Existing physical/commit headroom
+is checked AFTER the prepared/gate buffers exist; it is not a reservation.
+Selected gate bytes and decoded reply copies retain the 256 KiB output/task limits. It creates no extra
 thread, queue or OS object; transport retains its one supervisor, one child,
 128 MiB process/job limit, 20% CPU cap, creation-time assignment and headroom
 checks. A current CPU batch may coexist with the previous session's retiring
@@ -84,7 +98,8 @@ and CPU semantic execution. They cover denied/no-work routes, overlap without
 consuming input, successful terminal selection, unavailable-configuration
 suppression, corrupt-result quarantine across A-to-B-to-A, actual CPU bytes while
 the exact helper remains live, a different CPU request during retirement,
-one-time reporting, two-success recovery and deadline cancellation/retirement.
+one-time reporting, late unavailable/corrupt-result classification (including a
+different CPU request), two-success recovery and deadline cancellation/retirement.
 The existing strict zero-handle-growth assertion includes these tests.
 Read exact-commit CI results before calling the implementation qualified.
 

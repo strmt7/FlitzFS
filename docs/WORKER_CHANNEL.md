@@ -246,3 +246,10 @@ another worker remains forbidden. GPU_WORKER_CONTROLLER.md specifies terminal
 selection, failure classification, bounded ownership and external trust
 prerequisites. Hosted tests still run CPU helpers only; real HIP dispatch,
 qualified discovery/provisioning and normal filesystem routing remain absent.
+
+CPU result selection and final worker-outcome reporting are separate. A pending
+ticket keeps the old gate/reference/generation until immutable late output can
+be classified, even if a later CPU request replaces foreground bytes. Late
+unavailability/corruption strengthens configuration suppression without changing
+terminal CPU data or double-counting failures; retirement still requires both
+exact child and supervisor. This bounds one old gate plus one current CPU batch.

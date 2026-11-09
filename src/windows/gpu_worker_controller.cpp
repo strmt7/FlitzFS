@@ -6,6 +6,12 @@
 
 namespace flitzfs {
 namespace {
+constexpr std::size_t prepared_buffers=2*gpu_detail::max_batch_bytes+
+    gpu_detail::max_tasks*sizeof(gpu_detail::Task);
+// One pending gate + one later CPU batch; either one accepted output or a
+// temporary late-validation candidate/status vector. Transport is separate.
+static_assert(2*prepared_buffers+gpu_detail::max_batch_bytes+
+    gpu_detail::max_tasks*sizeof(std::uint32_t)<=2U*1024*1024);
 GpuRecoveryOutcome supervisor_failure(const WorkerExchangeSession& session) noexcept {
   try {
     if(const auto error=session.failure())std::rethrow_exception(error);
@@ -53,17 +59,33 @@ void GpuWorkerController::report(GpuRecoveryOutcome outcome) noexcept {
   if(!policy_.finish(ticket_,outcome,false))disabled_=true;
   reported_=true;
 }
-void GpuWorkerController::select_cpu(GpuRecoveryOutcome outcome,GpuGateCode why) noexcept {
+void GpuWorkerController::select_cpu(GpuRecoveryOutcome outcome,GpuGateCode why,bool finalize) noexcept {
   if(gate_)(void)gate_->use_cpu_fallback();
-  last_gate_=why;state_=GpuWorkerState::cpu_selected;report(outcome);
+  last_gate_=why;state_=GpuWorkerState::cpu_selected;
+  if(finalize)report(outcome);
 }
 bool GpuWorkerController::try_retire() noexcept {
   if(!ticket_)return !session_ && WorkerExchangeSession::available();
-  if(!reported_)return false;
+  if(!reported_) {
+    if(state_==GpuWorkerState::waiting || !session_)return false;
+    const auto* late=session_->try_result();
+    if(!late)return false;
+    auto outcome=transport_failure(*session_,late->code);
+    if(late->code==WorkerExchangeCode::completed) {
+      // Terminal CPU bytes stay untouched. Late integrity/availability evidence
+      // still belongs to THIS pending configuration before its ticket retires.
+      outcome=GpuRecoveryOutcome::temporary_pressure;
+      try {(void)accept_worker_reply(late->response,gate_->batch(),generation_,expected_);}
+      catch(const std::bad_alloc&){} // Resource failure is not corruption proof.
+      catch(...){outcome=GpuRecoveryOutcome::integrity_failure;}
+    }
+    report(outcome);
+  }
   const bool confirmed=session_?session_->retirement_confirmed():WorkerExchangeSession::available();
   if(!confirmed)return false;
   if(!policy_.confirm_quiescent(ticket_)){disabled_=true;return false;}
-  session_.reset();ticket_=0;reported_=false;
+  session_.reset();ticket_=0;reported_=false;generation_=0;
+  if(cpu_)gate_.reset(); // Old gate is no longer needed by the current CPU request.
   return WorkerExchangeSession::available();
 }
 GpuWorkerStart GpuWorkerController::begin(PreparedGpuBatch&& batch,
@@ -73,8 +95,11 @@ GpuWorkerStart GpuWorkerController::begin(PreparedGpuBatch&& batch,
   if(state_==GpuWorkerState::waiting)
     return {{GpuRouteReason::worker_busy},GpuGateCode::wrong_state,false};
   (void)try_retire();
-  gate_.reset();cpu_.emplace(std::move(batch));state_=GpuWorkerState::cpu_selected;
-  last_gate_=GpuGateCode::wrong_state;generation_=0;
+  // Retain the pending gate/reference through late-result classification even
+  // when a later request selects DIFFERENT CPU bytes. At most one of each.
+  if(!ticket_){gate_.reset();generation_=0;}
+  cpu_.emplace(std::move(batch));state_=GpuWorkerState::cpu_selected;
+  last_gate_=GpuGateCode::wrong_state;
   if(disabled_)return {{GpuRouteReason::exhausted},last_gate_,false};
   if(!deadline || deadline>100) {
     last_gate_=GpuGateCode::invalid_budget;
@@ -112,7 +137,7 @@ GpuWorkerState GpuWorkerController::poll(const GpuMemorySnapshot& after,std::uin
   if(state_!=GpuWorkerState::waiting)return state_;
   const auto expiry=gate_->expire(now);
   if(expiry!=GpuGateCode::admitted) {
-    select_cpu(GpuRecoveryOutcome::temporary_pressure,expiry);
+    select_cpu(GpuRecoveryOutcome::temporary_pressure,expiry,false);
     (void)request_cancel();return state_;
   }
   const auto* result=session_->try_result();
@@ -136,7 +161,7 @@ GpuWorkerState GpuWorkerController::poll(const GpuMemorySnapshot& after,std::uin
 }
 std::span<const std::byte> GpuWorkerController::use_cpu_fallback() noexcept {
   if(state_==GpuWorkerState::waiting)
-    select_cpu(GpuRecoveryOutcome::temporary_pressure,GpuGateCode::worker_failed);
+    select_cpu(GpuRecoveryOutcome::temporary_pressure,GpuGateCode::worker_failed,false);
   return selected_bytes();
 }
 bool GpuWorkerController::request_cancel() const noexcept {
@@ -147,7 +172,7 @@ std::uint32_t GpuWorkerController::process_id() const noexcept {
 }
 std::span<const std::byte> GpuWorkerController::selected_bytes() const noexcept {
   if(state_==GpuWorkerState::cpu_selected)
-    return gate_?gate_->batch().cpu_reference():cpu_?cpu_->cpu_reference():std::span<const std::byte>{};
+    return cpu_?cpu_->cpu_reference():gate_?gate_->batch().cpu_reference():std::span<const std::byte>{};
   return state_==GpuWorkerState::worker_selected?gate_->accepted_bytes():std::span<const std::byte>{};
 }
 } // namespace flitzfs
