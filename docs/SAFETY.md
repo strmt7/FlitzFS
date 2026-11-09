@@ -186,3 +186,15 @@ have been removed. Historical archive qualification is not current product
 coverage or a development requirement. Internal compression mechanisms remain
 bounded CPU components with separately tested GPU preparation; they do not
 imply an archive product or GPU runtime availability.
+
+## Compressed transaction recovery
+
+Native object records now bind compressed bytes and decoded content separately.
+Private CPU round-trip verification precedes backing writes. Failed codecs or
+resource admission return an error before publication; actual write/flush errors
+still poison the writer and may have an indeterminate durable outcome. No
+latest-root corruption is silently rolled back. Custom Zstandard allocators
+have 16 MiB encoder / 2 MiB decoder ceilings; transaction/output bounds and file
+headroom checks remain mandatory. These limits do not prove total process safety
+or hardware power-loss durability. No GPU, owner-PC process or writable mount
+is enabled by this compression integration.

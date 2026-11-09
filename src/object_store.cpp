@@ -1,6 +1,7 @@
 #include "flitzfs/object_store.hpp"
 #include "record_digest.hpp"
 #include "store_file.hpp"
+#include "store_codec.hpp"
 #include <algorithm>
 #include <limits>
 #include <optional>
@@ -53,7 +54,7 @@ std::uint64_t aligned(std::uint64_t n) { return (n+kStoreCommitUnit-1)/kStoreCom
 
 struct Entry {
   std::uint64_t id=0,generation=0,offset=0;
-  std::uint32_t bytes=0;
+  std::uint32_t bytes=0,stored=0;
   Digest digest{};
 };
 struct State {
@@ -62,10 +63,12 @@ struct State {
   std::uint64_t generation=0,end=0;
   std::vector<Entry> entries;
   bool degraded=false;
+  std::shared_ptr<detail::StoreCodecDecoder> decoder=std::make_shared<detail::StoreCodecDecoder>();
 };
 StoreCommitInfo state_info(const State& s) {
   std::uint64_t total=0;for(const auto& e:s.entries) total+=e.bytes;
-  return {s.generation,s.end,total,s.entries.size(),s.degraded};
+  std::uint64_t stored=0;for(const auto& e:s.entries) stored+=e.stored;
+  return {s.generation,s.end,total,s.entries.size(),s.degraded,stored};
 }
 Bytes manifest(const State& s) {
   Bytes b(kManifestHeader+s.entries.size()*kEntryBytes);
@@ -74,7 +77,7 @@ Bytes manifest(const State& s) {
   for(std::size_t i=0;i<s.entries.size();++i) {
     const auto at=kManifestHeader+i*kEntryBytes;const auto& e=s.entries[i];
     put64(b,at,e.id);put64(b,at+8,e.generation);put64(b,at+16,e.offset);
-    put32(b,at+24,e.bytes);put32(b,at+28,static_cast<std::uint32_t>(kDataHeader)+e.bytes);
+    put32(b,at+24,e.bytes);put32(b,at+28,static_cast<std::uint32_t>(kDataHeader)+e.stored);
     copy_field(b,at+32,e.digest);
   }
   return b;
@@ -133,13 +136,16 @@ State load(std::shared_ptr<StoreByteIo> image) {
   std::uint64_t total=0,previous=0;
   for(std::size_t i=0;i<r.count;++i) {
     const auto at=kManifestHeader+i*kEntryBytes;
-    Entry e{get64(index,at),get64(index,at+8),get64(index,at+16),get32(index,at+24),field<32>(index,at+32)};
+    Entry e{get64(index,at),get64(index,at+8),get64(index,at+16),get32(index,at+24),0,field<32>(index,at+32)};
+    const auto record_bytes=get32(index,at+28);
+    if(record_bytes<kDataHeader || record_bytes-kDataHeader>e.bytes) fail("manifest stored-byte budget");
+    e.stored=record_bytes-static_cast<std::uint32_t>(kDataHeader);
     if(!e.id || e.id<=previous || !e.generation || e.generation>r.generation ||
-        e.bytes>kStoreMaxObjectBytes || get32(index,at+28)!=kDataHeader+e.bytes ||
-        e.offset<kDataStart || e.offset>r.index || kDataHeader+e.bytes>r.index-e.offset)
+        e.bytes>kStoreMaxObjectBytes ||
+        e.offset<kDataStart || e.offset>r.index || kDataHeader+e.stored>r.index-e.offset)
       fail("manifest entry extent or ordering");
     for(const auto& old:s.entries)
-      if(e.offset<old.offset+kDataHeader+old.bytes && old.offset<e.offset+kDataHeader+e.bytes)
+      if(e.offset<old.offset+kDataHeader+old.stored && old.offset<e.offset+kDataHeader+e.stored)
         fail("overlapping object records");
     total+=e.bytes;previous=e.id;s.entries.push_back(e);
   }
@@ -148,13 +154,18 @@ State load(std::shared_ptr<StoreByteIo> image) {
 }
 Bytes read_object(const State& s,const Entry& e) {
   std::array<std::byte,kDataHeader> h{};s.image->read_exact(e.offset,h);
-  if(!magic(h,kDataMagic) || get32(h,8)!=1 || get32(h,12)!=0 || get64(h,16)!=e.id ||
-      get64(h,24)!=e.generation || get32(h,32)!=e.bytes || get32(h,36)!=e.bytes ||
-      field<16>(h,40)!=s.id || !zero(std::span<const std::byte>(h).subspan(56,40)) ||
+  const auto codec=get32(h,12);
+  if(!magic(h,kDataMagic) || get32(h,8)!=1 || get64(h,16)!=e.id ||
+      get64(h,24)!=e.generation || get32(h,32)!=e.bytes || get32(h,36)!=e.stored ||
+      field<16>(h,40)!=s.id || !detail::store_codec_framing(codec,e.bytes,e.stored) ||
+      !zero(std::span<const std::byte>(h).subspan(codec==detail::kStoreRaw?56:88,codec==detail::kStoreRaw?40:8)) ||
       field<32>(h,96)!=e.digest) fail("object identity, codec or framing");
-  Bytes bytes(e.bytes);if(!bytes.empty()) s.image->read_exact(e.offset+kDataHeader,bytes);
-  if(detail::record_digest(std::span<const std::byte>(h).first(96),bytes)!=e.digest) fail("object content digest mismatch");
-  return bytes;
+  Bytes stored(e.stored);if(!stored.empty()) s.image->read_exact(e.offset+kDataHeader,stored);
+  if(detail::record_digest(std::span<const std::byte>(h).first(96),stored)!=e.digest) fail("object stored digest mismatch");
+  if(codec==detail::kStoreRaw) return stored; // Historical raw bytes remain unchanged.
+  auto decoded=s.decoder->decode(codec,stored,e.bytes);
+  if(detail::record_digest(decoded)!=field<32>(h,56)) fail("object decoded digest mismatch");
+  return decoded;
 }
 void verify(const State& s) { for(const auto& e:s.entries) (void)read_object(s,e); }
 void write_zeros(StoreByteIo& image,std::uint64_t offset,std::uint64_t end) {
@@ -167,7 +178,10 @@ void write_zeros(StoreByteIo& image,std::uint64_t offset,std::uint64_t end) {
 }
 
 struct ObjectStoreSnapshot::Impl { State state; };
-struct ObjectStoreWriter::Impl { State state;bool poisoned=false; };
+struct ObjectStoreWriter::Impl {
+  State state;bool poisoned=false;detail::StoreCodecEncoder encoder;
+  explicit Impl(StoreCompressionOptions options):encoder(options){}
+};
 ObjectStoreSnapshot::ObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)) {}
 ObjectStoreSnapshot::ObjectStoreSnapshot(ObjectStoreSnapshot&&) noexcept=default;
 ObjectStoreSnapshot& ObjectStoreSnapshot::operator=(ObjectStoreSnapshot&&) noexcept=default;
@@ -188,7 +202,7 @@ StoreCommitInfo ObjectStoreSnapshot::info() const noexcept { return impl_ ? stat
 std::vector<StoreObjectInfo> ObjectStoreSnapshot::list() const {
   if(!impl_) fail("moved-from snapshot");
   std::vector<StoreObjectInfo> result;result.reserve(impl_->state.entries.size());
-  for(const auto& e:impl_->state.entries) result.push_back({e.id,e.generation,e.bytes});
+  for(const auto& e:impl_->state.entries) result.push_back({e.id,e.generation,e.bytes,e.stored});
   return result;
 }
 Bytes ObjectStoreSnapshot::read(std::uint64_t id) const {
@@ -200,11 +214,11 @@ Bytes ObjectStoreSnapshot::read(std::uint64_t id) const {
 }
 void ObjectStoreSnapshot::verify_all() const { if(!impl_) fail("moved-from snapshot");verify(impl_->state); }
 
-ObjectStoreWriter ObjectStoreWriter::create(std::shared_ptr<StoreByteIo> image,StoreIdentity id) {
-  admit_identity(id);
+ObjectStoreWriter ObjectStoreWriter::create(std::shared_ptr<StoreByteIo> image,StoreIdentity id,StoreCompressionOptions compression) {
+  admit_identity(id);detail::validate_store_compression(compression);
   if(!image || image->extent()!=0) fail("writer requires a new empty exclusive image");
   admit_contract(image->contract());
-  auto p=std::make_unique<Impl>();p->state={std::move(image),id,0,kDataStart+kStoreCommitUnit,{},false};
+  auto p=std::make_unique<Impl>(compression);p->state={std::move(image),id,0,kDataStart+kStoreCommitUnit,{},false};
   auto& s=p->state;const auto index=manifest(s);
   s.image->admit_write(s.end);
   write_zeros(*s.image,0,kDataStart);
@@ -215,9 +229,9 @@ ObjectStoreWriter ObjectStoreWriter::create(std::shared_ptr<StoreByteIo> image,S
   s.image->flush();
   return ObjectStoreWriter(std::move(p));
 }
-ObjectStoreWriter ObjectStoreWriter::create_file(const std::filesystem::path& path,StoreIdentity id,StoreIoContract c) {
-  admit_identity(id);admit_contract(c);
-  return create(detail::new_store_file(path,c),id);
+ObjectStoreWriter ObjectStoreWriter::create_file(const std::filesystem::path& path,StoreIdentity id,StoreIoContract c,StoreCompressionOptions compression) {
+  admit_identity(id);admit_contract(c);detail::validate_store_compression(compression);
+  return create(detail::new_store_file(path,c),id,compression);
 }
 StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes) {
   if(!impl_) fail("moved-from writer");
@@ -233,6 +247,7 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
   }
   const auto& old=impl_->state;
   if(old.generation==(std::numeric_limits<std::uint64_t>::max)()) fail("generation exhausted");
+  old.image->admit_write(old.end); // Admit headroom before private copies or codec work.
   State next=old;next.generation++;next.degraded=false;
   struct Prepared {std::uint64_t offset;std::array<std::byte,kDataHeader> header;Bytes data;};
   std::vector<Prepared> prepared;prepared.reserve(changes.size());
@@ -244,14 +259,16 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
       if(it==next.entries.end() || it->id!=m.id) fail("cannot erase missing object");
       next.entries.erase(it);continue;
     }
-    Prepared record{cursor,{},m.bytes};
+    auto encoded=impl_->encoder.encode(m.bytes);
+    Prepared record{cursor,{},std::move(encoded.payload)};
     auto& h=record.header;
-    copy_field(h,0,kDataMagic);put32(h,8,1);put64(h,16,m.id);put64(h,24,next.generation);
-    put32(h,32,static_cast<std::uint32_t>(m.bytes.size()));put32(h,36,static_cast<std::uint32_t>(m.bytes.size()));
+    copy_field(h,0,kDataMagic);put32(h,8,1);put32(h,12,encoded.codec);put64(h,16,m.id);put64(h,24,next.generation);
+    put32(h,32,static_cast<std::uint32_t>(m.bytes.size()));put32(h,36,static_cast<std::uint32_t>(record.data.size()));
     copy_field(h,40,next.id);
+    if(encoded.codec!=detail::kStoreRaw) copy_field(h,56,encoded.decoded_digest);
     const auto digest=detail::record_digest(std::span<const std::byte>(h).first(96),record.data);
     copy_field(h,96,digest);
-    Entry e{m.id,next.generation,cursor,static_cast<std::uint32_t>(m.bytes.size()),digest};
+    Entry e{m.id,next.generation,cursor,static_cast<std::uint32_t>(m.bytes.size()),static_cast<std::uint32_t>(record.data.size()),digest};
     if(it!=next.entries.end() && it->id==m.id) *it=e;else next.entries.insert(it,e);
     cursor+=kDataHeader+record.data.size();prepared.push_back(std::move(record));
   }

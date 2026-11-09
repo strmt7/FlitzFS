@@ -70,3 +70,19 @@ candidate remains offline-compiled preparation. There is no new codec,
 ratio improvement, deduplication, writable mounted store or measured GPU speedup
 in this checkpoint. Future format work must retain an independent CPU recovery
 path and explicitly define migration and transactional recovery.
+
+## Transactional native compression implementation
+
+The object engine now selects raw, implicit zero, verified motifs and optional
+bounded Zstandard records before two-barrier publication. Private compressed
+candidates must pass CPU round-trip comparison; committed records bind stored
+and decoded integrity. Unknown/already-compressed bytes retain a raw route.
+This advances automatic native storage compression; it does not establish
+superiority over other filesystems or actual GPU acceleration.
+
+OBJECT_STORE_FORMAT.md specifies the policy, allocator ceilings, compatibility
+and hosted RAM comparison. The comparison reports complete physical image end
+and read/write/verification costs separately. It is an initial controlled
+native-engine experiment, not the requested popular-suite/multiple-filesystem
+qualification. Broad corpora, dictionaries, redundancy across extents, durable
+namespace writes, reclamation and actual AMD runtime measurements remain required.

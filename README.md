@@ -17,8 +17,9 @@ owner's PC.
   reads, index validation, corruption checks and reused CPU codec workspaces.
 - An experimental transactional object core: atomic bounded updates, immutable
   snapshots, integrity-bound metadata, alternating recovery roots, two durable
-  publication barriers and independent CPU reopen. It currently stores raw
-  objects and has no writable mounted route. See [the format and assumptions](docs/OBJECT_STORE_FORMAT.md).
+  publication barriers and independent CPU reopen. It now supports native raw, zero, repeated-pattern and optional Zstandard
+  records, with private CPU round-trip verification and decoded-content integrity.
+  It has no writable mounted route. See [the format and assumptions](docs/OBJECT_STORE_FORMAT.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.
 - Optional native WinFsp read-only callbacks, disabled by default. Hosted VM

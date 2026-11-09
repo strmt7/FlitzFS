@@ -98,5 +98,10 @@ Never interpret those model envelopes as .flfs containers.
 ## Separate transactional object experiment
 
 OBJECT_STORE_FORMAT.md defines distinct FLTXR001/FLTXIDX1/FLTXDAT1 records for
-an experimental raw-object transaction library. It does not modify .flfs v1,
+an experimental native object transaction library. It does not modify .flfs v1,
 its codecs, CRCs, CLI or callback route. No automatic format migration exists.
+
+The separate transaction experiment now admits raw, zero, motif and bounded
+Zstandard object records with decoded-content integrity. These are not .flfs
+v1 codec changes; historical native image bytes and chunk semantics remain
+unchanged. See OBJECT_STORE_FORMAT.md for the separate record contract.
