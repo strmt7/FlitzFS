@@ -538,6 +538,156 @@ class Sparse final:public StoreByteIo {
     }
   }
 };
+
+StoreIdentity copied_identity(){auto id=identity();id[1]=std::byte{92};return id;}
+void equal_objects(const ObjectStoreSnapshot& source,const ObjectStoreSnapshot& target) {
+  const auto a=source.list(),b=target.list();
+  require(a.size()==b.size() && source.info().logical_bytes==target.info().logical_bytes,"compaction inventory changed");
+  require(source.info().stored_payload_bytes==target.info().stored_payload_bytes,"compaction recompressed preserved payloads");
+  for(std::size_t i=0;i<a.size();++i) {
+    require(a[i].id==b[i].id && a[i].generation==b[i].generation &&
+        a[i].logical_bytes==b[i].logical_bytes && a[i].stored_payload_bytes==b[i].stored_payload_bytes,"compaction object metadata changed");
+    require(source.read(a[i].id)==target.read(a[i].id),"compaction logical byte mismatch");
+  }
+}
+bool valid_locator(const Bytes& bytes,std::size_t slot) {
+  const auto at=slot*static_cast<std::size_t>(kStoreCommitUnit);
+  if(at>bytes.size() || bytes.size()-at<4096)return false;
+  const auto digest=detail::record_digest(std::span<const std::byte>(bytes).subspan(at,4064));
+  return std::equal(digest.begin(),digest.end(),bytes.begin()+static_cast<std::ptrdiff_t>(at+4064));
+}
+void compacted_copies() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    auto ram=std::make_shared<Ram>();std::optional<ObjectStoreSnapshot> source,old;
+    const StoreCompressionOptions options{mode,6,false};
+    {
+      auto writer=ObjectStoreWriter::create(ram,identity(),options);writer.commit(initial());old.emplace(writer.snapshot());
+      const StoreMutation motif{9,false,Bytes(131073,std::byte{42})};writer.commit({&motif,1});
+      for(unsigned i=0;i<8;++i){const StoreMutation m{1,false,bytes(128,i+20)};writer.commit({&m,1});}
+      source.emplace(writer.snapshot());auto rejected=std::make_shared<Ram>();
+      rejects([&]{(void)ObjectStoreWriter::compact(*source,rejected,copied_identity(),options);},"active writer copied");
+      require(rejected->writes==0,"active source rejection wrote target");
+    }
+    const auto original=ram->live;const auto source_calls=ram->calls;
+    auto target=std::make_shared<Ram>();
+    rejects([&]{(void)ObjectStoreWriter::compact(*source,target,identity(),options);},"same compaction identity accepted");
+    rejects([&]{(void)ObjectStoreWriter::compact(*source,target,{},options);},"zero compaction identity accepted");
+    rejects([&]{(void)ObjectStoreWriter::compact(*old,target,copied_identity(),options);},"stale snapshot compacted");
+    target->declared={};
+    rejects([&]{(void)ObjectStoreWriter::compact(*source,target,copied_identity(),options);},"unknown target contract copied");
+    target->declared={65536,true};target->pressure=true;
+    rejects([&]{(void)ObjectStoreWriter::compact(*source,target,copied_identity(),options);},"compaction resource admission ignored");
+    target->pressure=false;require(target->writes==0 && target->live.empty(),"compaction argument rejection wrote target");
+    bool checked=false;
+    target->before_write=[&](auto,auto){
+      if(checked)return;checked=true;
+      rejects([&]{(void)ObjectStoreWriter::resume(ram,identity(),source->info().generation,options);},"source compaction lease bypassed");
+      rejects([&]{(void)ObjectStoreWriter::create(target,copied_identity(),options);},"target compaction lease bypassed");
+    };
+    {
+      auto copied=ObjectStoreWriter::compact(*source,target,copied_identity(),options);target->before_write={};
+      auto snapshot=copied.snapshot();equal_objects(*source,snapshot);
+      require(checked && snapshot.identity()==copied_identity() && !snapshot.info().degraded_root &&
+          snapshot.info().generation==source->info().generation+2,"compaction publication pair invalid");
+      require(snapshot.info().physical_end<source->info().physical_end,"compaction did not remove retained history");
+      // Codec IDs and payload bytes survive; only identity-bound headers/hash
+      // chains and physical references change.
+      const auto old_index=static_cast<std::size_t>(u64(original,(source->info().generation%2)*65536+32));
+      const auto new_index=static_cast<std::size_t>(u64(target->live,(snapshot.info().generation%2)*65536+32));
+      const auto objects=source->list();
+      for(std::size_t i=0;i<objects.size();++i) {
+        const auto from=static_cast<std::size_t>(u64(original,old_index+64+64*i+16));
+        const auto to=static_cast<std::size_t>(u64(target->live,new_index+64+64*i+16));
+        require(std::equal(original.begin()+static_cast<std::ptrdiff_t>(from+12),original.begin()+static_cast<std::ptrdiff_t>(from+16),
+                           target->live.begin()+static_cast<std::ptrdiff_t>(to+12)),"compaction changed codec ID");
+        require(std::equal(original.begin()+static_cast<std::ptrdiff_t>(from+128),
+                           original.begin()+static_cast<std::ptrdiff_t>(from+128+objects[i].stored_payload_bytes),
+                           target->live.begin()+static_cast<std::ptrdiff_t>(to+128)),"compaction changed stored payload");
+      }
+      const StoreMutation more{99,false,bytes(31,91)};copied.commit({&more,1});
+      require(copied.snapshot().read(99)==more.bytes,"compacted writer continuation failed");
+      rejects([&]{(void)ObjectStoreWriter::compact(*source,target,copied_identity(),options);},"existing target overwritten");
+    }
+    require(ram->live==original && ram->calls==source_calls,"compaction wrote/flushed source");
+    equal_objects(*source,ObjectStoreSnapshot::open(image(original)));
+    require(old->read(1)==bytes(97,1),"compaction invalidated an old snapshot");
+    auto retry=std::make_shared<Ram>();{auto copy=ObjectStoreWriter::compact(*source,retry,copied_identity(),options);copy.snapshot().verify_all();}
+    equal_objects(*source,ObjectStoreSnapshot::open(image(retry->stable)));
+  }
+  // Full manifest count exercises 32-bit count parsing and two 16 KiB catalogs.
+  auto ram=std::make_shared<Ram>();
+  {
+    auto writer=ObjectStoreWriter::create(ram,identity());std::vector<StoreMutation> batch;
+    for(std::size_t i=1;i<=kStoreMaxObjects;++i)batch.push_back({i,false,bytes(3,static_cast<unsigned>(i))});
+    writer.commit(batch);
+  }
+  auto source=ObjectStoreSnapshot::open(ram);auto target=std::make_shared<Ram>();
+  {auto copy=ObjectStoreWriter::compact(source,target,copied_identity());equal_objects(source,copy.snapshot());}
+  require(ObjectStoreSnapshot::open(image(target->stable)).list().size()==kStoreMaxObjects,"full-count compacted reopen");
+  auto empty=std::make_shared<Ram>();{auto writer=ObjectStoreWriter::create(empty,identity());}
+  auto initial=ObjectStoreSnapshot::open(empty);auto empty_copy=std::make_shared<Ram>();
+  {auto writer=ObjectStoreWriter::compact(initial,empty_copy,copied_identity());require(writer.snapshot().info().generation==0,"initial empty copy not initial");}
+  {
+    auto writer=ObjectStoreWriter::resume(empty,identity(),0);
+    const StoreMutation add{1,false,{std::byte{1}}},erase{1,true,{}};
+    writer.commit({&add,1});writer.commit({&erase,1});
+  }
+  auto erased=ObjectStoreSnapshot::open(empty);auto erased_copy=std::make_shared<Ram>();
+  {auto writer=ObjectStoreWriter::compact(erased,erased_copy,copied_identity());require(writer.snapshot().list().empty() &&
+      writer.snapshot().info().generation==erased.info().generation+2,"positive empty copy invalid");}
+  auto exhausted=empty->stable;
+  for(std::size_t slot=0;slot<2;++slot) {
+    const auto root=slot*65536,index=static_cast<std::size_t>(u64(exhausted,root+32));
+    const auto generation=(std::numeric_limits<std::uint64_t>::max)()-(1-slot);
+    put64(exhausted,root+16,generation);put64(exhausted,index+16,generation);manifest_digest(exhausted,root);
+  }
+  auto terminal=ObjectStoreSnapshot::open(image(std::move(exhausted)));auto denied=std::make_shared<Ram>();
+  rejects([&]{(void)ObjectStoreWriter::compact(terminal,denied,copied_identity());},"exhausted compaction generation accepted");
+  require(denied->writes==0,"generation rejection wrote target");
+}
+void compaction_faults() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    const StoreCompressionOptions options{mode,6,false};
+    auto source_backend=std::make_shared<Ram>();
+    {
+      auto writer=ObjectStoreWriter::create(source_backend,identity(),options);writer.commit(initial());
+      const StoreMutation motif{9,false,Bytes(8193,std::byte{42})};writer.commit({&motif,1});
+    }
+    const auto untouched=source_backend->stable;const auto source_calls=source_backend->calls;
+    auto source=ObjectStoreSnapshot::open(source_backend);
+    auto probe=std::make_shared<Ram>();std::optional<std::size_t> first_root;
+    probe->before_write=[&](auto at,auto input){
+      if(!first_root && (at==0 || at==65536) && input.size()==4096 && input[0]==std::byte{'F'})
+        first_root=probe->calls-1;
+    };
+    {auto copy=ObjectStoreWriter::compact(source,probe,copied_identity(),options);}
+    const auto operations=probe->calls;require(first_root.has_value(),"compaction publication trace missing");
+    for(unsigned failure=0;failure<3;++failure)for(std::size_t step=0;step<operations;++step) {
+      auto target=std::make_shared<Ram>();target->failure=failure;target->fail_call=step;
+      rejects([&]{(void)ObjectStoreWriter::compact(source,target,copied_identity(),options);},"compaction fault not propagated");
+      require(source_backend->live==untouched && source_backend->calls==source_calls,"failed compaction touched source");
+      source.verify_all();
+      const bool recoverable=valid_locator(target->stable,0)||valid_locator(target->stable,1);
+      if(step>*first_root+1)require(recoverable,"peer publication damaged a flushed baseline");
+      if(recoverable) {
+        auto backend=image(target->stable);auto snapshot=ObjectStoreSnapshot::open(backend);
+        equal_objects(source,snapshot);
+        require(snapshot.info().generation>=source.info().generation+1 && snapshot.info().generation<=source.info().generation+2,"partial compaction generation");
+        auto writer=ObjectStoreWriter::resume(backend,copied_identity(),snapshot.info().generation,options);
+        const StoreMutation more{99,false,bytes(23,19)};writer.commit({&more,1});
+        require(ObjectStoreSnapshot::open(image(backend->stable)).read(99)==more.bytes,"failed-copy recovery continuation");
+      } else rejects([&]{(void)ObjectStoreSnapshot::open(image(target->stable));},"rootless partial copy exposed");
+    }
+    // An ownership-contract violation is detected before root publication.
+    auto changed=image(untouched);auto snapshot=ObjectStoreSnapshot::open(changed);auto target=std::make_shared<Ram>();bool once=false;
+    const auto index=static_cast<std::size_t>(u64(untouched,(snapshot.info().generation%2)*65536+32));
+    const auto record=static_cast<std::size_t>(u64(untouched,index+64+16));
+    target->before_write=[&](auto,auto){if(!once){once=true;changed->live[record+128]^=std::byte{1};}};
+    rejects([&]{(void)ObjectStoreWriter::compact(snapshot,target,copied_identity(),options);},"changing source copied");
+    require(!valid_locator(target->live,0)&&!valid_locator(target->live,1),"unstable source published a target root");
+  }
+}
+
 void history_cap() {
   auto ram=std::make_shared<Sparse>();auto writer=ObjectStoreWriter::create(ram,identity());
   const StoreMutation empty{1,false,{}};
@@ -550,7 +700,7 @@ void history_cap() {
 }
 int main() {
   try {
-    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();history_cap();
+    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();compacted_copies();compaction_faults();history_cap();
     std::cout<<"PASS: "<<checks<<" object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\n";
     return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

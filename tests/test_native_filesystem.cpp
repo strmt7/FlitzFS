@@ -297,6 +297,49 @@ void dirty_budget() {
   }
 }
 
+
+void native_compacted_copies() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    auto ram=std::make_shared<Ram>();std::optional<NativeFilesystemSnapshot> source,old;
+    {
+      auto writer=fresh(ram,mode);writer.apply(baseline());old.emplace(writer.snapshot());writer.apply(update());
+      source.emplace(writer.snapshot());auto rejected=std::make_shared<Ram>();auto id=identity();id[2]=std::byte{11};
+      rejects([&]{(void)NativeFilesystemWriter::compact(*source,rejected,id,{mode,6,false});},"active native source copied");
+      require(rejected->live.empty(),"active native source changed target");
+    }
+    const auto untouched=ram->live;const auto calls=ram->calls;
+    const auto info=source->stat("target.bin");auto id=identity();id[2]=std::byte{11};
+    auto target=std::make_shared<Ram>();
+    rejects([&]{(void)NativeFilesystemWriter::compact(*source,target,identity());},"same native volume identity copied");
+    rejects([&]{(void)NativeFilesystemWriter::compact(*source,target,{});},"zero native volume identity copied");
+    rejects([&]{(void)NativeFilesystemWriter::compact(*old,target,id);},"stale native snapshot copied");
+    require(target->live.empty(),"native compaction admission wrote bytes");
+    {
+      auto copy=NativeFilesystemWriter::compact(*source,target,id,{mode,6,false});
+      auto snapshot=copy.snapshot();expected(snapshot,true);
+      const auto got=snapshot.stat("target.bin");
+      require(snapshot.identity()==id && snapshot.sequence()==source->sequence() &&
+          got.inode==info.inode && got.created_sequence==info.created_sequence && got.modified_sequence==info.modified_sequence &&
+          snapshot.storage_info().generation==source->storage_info().generation+2,"native compaction identity/sequence metadata");
+      require(snapshot.storage_info().physical_end<source->storage_info().physical_end,"native history not compacted");
+      const std::array<NativeFileMutation,2> more{{file_create("continued"),file_write("continued",0,data(3073,91))}};
+      copy.apply(more);expected(copy.snapshot(),true,true);
+    }
+    expected(NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(target->stable))),true,true);
+    require(ram->live==untouched && ram->calls==calls,"native source modified");
+    expected(*source,true);expected(*old,false);
+    for(unsigned slot=0;slot<2;++slot) {
+      auto damaged=image(target->stable);
+      std::fill_n(damaged->live.begin()+static_cast<std::ptrdiff_t>(slot*kStoreCommitUnit),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+      auto survivor=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(damaged));
+      // The older root is the complete compacted source; newest adds continued.
+      const bool continued=survivor.sequence()>source->sequence();expected(survivor,true,continued);
+      auto repaired=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(damaged,id,survivor.storage_info().generation,{mode,6,false}));
+      expected(repaired.snapshot(),true,continued);repaired.snapshot().verify_all();
+    }
+  }
+}
+
 void independent_model() {
   auto ram=std::make_shared<Ram>();auto fs=fresh(ram);std::map<std::string,Bytes> expected_bytes;
   for(const auto* name:{"a","b","c"}){file_apply(fs,file_create(name));expected_bytes[name]={};}
@@ -321,7 +364,7 @@ void independent_model() {
 }
 }
 int main(){
-  try{normal_operations();sparse_and_admission();capacity_and_rollback();rename_depth_admission();transactional_faults();malicious_metadata();scalable_staging_and_integrity();dirty_budget();independent_model();
+  try{normal_operations();sparse_and_admission();capacity_and_rollback();rename_depth_admission();transactional_faults();malicious_metadata();scalable_staging_and_integrity();dirty_budget();native_compacted_copies();independent_model();
     std::cout<<"PASS: "<<checks<<" native filesystem assertions; directories, stable IDs, sparse ranges, truncation, atomic rename/data and crash recovery.\n";return 0;
   }catch(const std::exception& e){std::cerr<<"native filesystem failure after "<<checks<<": "<<e.what()<<'\n';return 1;}
 }

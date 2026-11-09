@@ -108,6 +108,14 @@ class ObjectStoreWriter final {
   // No ordinary-file resume factory or CLI/mount route is enabled.
   static ObjectStoreWriter resume(std::shared_ptr<StoreByteIo> image,StoreIdentity expected_identity,
       std::uint64_t expected_generation,StoreCompressionOptions compression={});
+  // Copy only latest live objects to a NEW empty backend, preserving source.
+  // Source must be quiescent (destroy its writer first). New identity must
+  // differ; generic object bytes/codecs remain unchanged. Native filesystem
+  // clients must use their own compact() to rebind namespace identity.
+  // Failure retains source and partial target; never retries/overwrites either.
+  static ObjectStoreWriter compact(const ObjectStoreSnapshot& source,
+      std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
+      StoreCompressionOptions compression={});
   // New ordinary file only; never replaces a path or deletes a partial new file.
   // Contract is explicit: this API does NOT qualify a physical device.
   static ObjectStoreWriter create_file(const std::filesystem::path& path,
@@ -127,6 +135,10 @@ class ObjectStoreWriter final {
   bool poisoned() const noexcept;
  private:
   friend class NativeFilesystemWriter;
+  static ObjectStoreWriter compact_replacing(const ObjectStoreSnapshot& source,
+      std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
+      std::uint64_t replacement_id,std::span<const std::byte> replacement,
+      StoreCompressionOptions compression);
   // Internal cached last-ack view only. Reads still verify complete records;
   // public snapshot/open always verify all reachable records before exposure.
   ObjectStoreSnapshot snapshot_for_staging() const;

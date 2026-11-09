@@ -3,6 +3,7 @@
 #include "flitzfs/read_only_file.hpp"
 #include "store_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "record_digest.hpp"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -85,10 +86,13 @@ class Traced final:public StoreByteIo {
  public:
   bool armed=false;
   explicit Traced(std::shared_ptr<StoreByteIo> inner):inner_(std::move(inner)){}
-  void event(const char* operation,std::uint64_t at=0,std::size_t bytes=0,std::uint64_t generation=0) {
+  void event(const char* operation,std::uint64_t at=0,std::size_t bytes=0,std::uint64_t generation=0,
+             std::string_view source_digest={}) {
     require(++sequence_<=128,"event budget");
     std::cout<<"{\"event\":"<<sequence_<<",\"op\":\""<<operation<<"\",\"offset\":"<<at
-             <<",\"bytes\":"<<bytes<<",\"generation\":"<<generation<<"}\n"<<std::flush;
+             <<",\"bytes\":"<<bytes<<",\"generation\":"<<generation;
+    if(!source_digest.empty())std::cout<<",\"source_digest\":\""<<source_digest<<"\"";
+    std::cout<<"}\n"<<std::flush;
     require(bool(std::cout),"event output");advance();
   }
   std::uint64_t extent() const override{return inner_->extent();}
@@ -160,6 +164,83 @@ void native_file_recover(const fs::path& path,std::uint64_t floor,StoreCompressi
   native_fixture::expected(reopened,changed,true);
   std::cout<<"{\"recovered\":"<<generation<<",\"continued\":"<<continued<<"}\n"<<std::flush;
 }
+
+StoreIdentity copy_identity(bool retry=false){auto value=id();value[2]=retry?std::byte{22}:std::byte{21};return value;}
+std::string file_digest(const fs::path& path) {
+  auto file=ReadOnlyFile::open(path);require(file.size()<=2*1024*1024,"source digest bound");
+  Bytes bytes(static_cast<std::size_t>(file.size()));file.read_exact_at(0,bytes.data(),bytes.size());
+  const auto digest=detail::record_digest(bytes);constexpr char hex[]="0123456789abcdef";
+  std::string out;out.reserve(64);
+  for(auto byte:digest){const auto n=std::to_integer<unsigned char>(byte);out+=hex[n>>4];out+=hex[n&15];}
+  return out;
+}
+bool has_root(const fs::path& path) {
+  auto file=ReadOnlyFile::open(path);
+  for(unsigned slot=0;slot<2;++slot) {
+    const auto at=slot*kStoreCommitUnit;
+    if(at>file.size() || file.size()-at<4096)continue;
+    std::array<std::byte,4096> bytes{};file.read_exact_at(at,bytes.data(),bytes.size());
+    const auto digest=detail::record_digest(std::span<const std::byte>(bytes).first(4064));
+    if(std::equal(digest.begin(),digest.end(),bytes.begin()+4064))return true;
+  }
+  return false;
+}
+void native_compact_write(const fs::path& root,StoreCompressionOptions options) {
+  const auto path=root/"image.fltx";
+  {
+    auto files=NativeFilesystemWriter::initialize(ObjectStoreWriter::create_file(path,id(),{4096,true},options));
+    files.apply(native_fixture::baseline());files.apply(native_fixture::update());
+    native_fixture::expected(files.snapshot(),true);
+  }
+  auto source=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
+  const auto digest=file_digest(path);
+  auto trace=std::make_shared<Traced>(detail::new_store_file(root/"copy.fltx",{4096,true}));
+  trace->event("ack",0,0,3,digest);trace->armed=true;
+  auto copy=NativeFilesystemWriter::compact(source,trace,copy_identity(),options);
+  trace->armed=false;
+  require(copy.snapshot().storage_info().generation==5 && copy.snapshot().sequence()==3,"compacted publication generation");
+  native_fixture::expected(copy.snapshot(),true);
+  require(file_digest(path)==digest,"compaction changed source bytes");
+  trace->event("ack",0,0,5,digest);
+  std::cout<<"{\"done\":true}\n"<<std::flush;
+}
+void native_compact_recover(const fs::path& root,std::uint64_t floor,
+    const std::string& expected_digest,StoreCompressionOptions options) {
+  const auto path=root/"image.fltx",copied=root/"copy.fltx",retry=root/"retry.fltx";
+  require(file_digest(path)==expected_digest,"acknowledged source bytes changed during compaction");
+  auto source=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
+  require(source.identity()==id() && source.storage_info().generation==3 && source.sequence()==3,"compaction source baseline");
+  native_fixture::expected(source,true);
+  const bool published=has_root(copied);
+  require(published || floor==3,"acknowledged compacted destination lost");
+  std::uint64_t recovered=3,continued=0;StoreIdentity target_id=copy_identity(!published);
+  const auto target=published?copied:retry;
+  const std::array<NativeFileMutation,2> more{{native_fixture::file_create("continued"),native_fixture::file_write("continued",0,native_fixture::data(3073,91))}};
+  if(published) {
+    {
+      auto snapshot=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(copied));
+      recovered=snapshot.storage_info().generation;
+      require(snapshot.identity()==target_id && snapshot.sequence()==3 && recovered>=4 && recovered<=5 && recovered>=floor,
+              "partial compacted destination");
+      native_fixture::expected(snapshot,true);
+    }
+    auto files=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(
+        detail::reopen_store_file_for_hosted_test(copied,{4096,true}),target_id,recovered,options));
+    continued=files.apply(more).storage.generation;native_fixture::expected(files.snapshot(),true,true);
+  } else {
+    // Never truncate/reuse the partial destination. Start a separately owned
+    // NEW path/identity from the still-byte-exact acknowledged source.
+    auto files=NativeFilesystemWriter::compact(source,detail::new_store_file(retry,{4096,true}),target_id,options);
+    continued=files.apply(more).storage.generation;native_fixture::expected(files.snapshot(),true,true);
+  }
+  auto reopened=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(target));
+  require(reopened.identity()==target_id && reopened.storage_info().generation==continued && reopened.sequence()==4,
+          "compacted continuation did not persist");
+  native_fixture::expected(reopened,true,true);
+  require(file_digest(path)==expected_digest,"recovery modified compaction source");
+  std::cout<<"{\"recovered\":"<<recovered<<",\"continued\":"<<continued<<"}\n"<<std::flush;
+}
+
 void recover_probe(const fs::path& path,bool repair,std::uint64_t floor,StoreCompressionOptions options) {
   std::uint64_t generation=0,continued=0;bool changed=false;
   {
@@ -184,19 +265,26 @@ void recover_probe(const fs::path& path,bool repair,std::uint64_t floor,StoreCom
 int main(int argc,char** argv) {
   try {
     hosted();contain();
-    require(argc==7,"probe role, parent, token, policy, phase, floor required");
+    require(argc==7 || argc==8,"probe role, parent, token, policy, phase, floor and optional source digest required");
     const std::string role(argv[1]),token(argv[3]),policy(argv[4]),phase(argv[5]),floor_text(argv[6]);
     require((role=="write"||role=="recover") && (policy=="raw"||policy=="auto") &&
-            (phase=="mutation"||phase=="repair"||phase=="files"),"invalid probe scope");
+            (phase=="mutation"||phase=="repair"||phase=="files"||phase=="compact"),"invalid probe scope");
+    require(argc==((phase=="compact" && role=="recover")?8:7),"invalid source digest argument scope");
+    const std::string digest=argc==8?argv[7]:"";
+    if(argc==8)require(digest.size()==64 && std::all_of(digest.begin(),digest.end(),
+        [](char c){return (c>='0'&&c<='9')||(c>='a'&&c<='f');}),"invalid source digest");
     std::uint64_t floor=0;const auto parsed=std::from_chars(floor_text.data(),floor_text.data()+floor_text.size(),floor);
     require(parsed.ec==std::errc{} && parsed.ptr==floor_text.data()+floor_text.size() &&
-            (role=="write"?floor==0:(floor>=1&&floor<=(phase=="files"?3U:2U))),"invalid acknowledgement floor");
+            (role=="write"?floor==0:(phase=="compact"?(floor==3||floor==5):(floor>=1&&floor<=(phase=="files"?3U:2U)))),"invalid acknowledgement floor");
     // Controller sees resource admission before allowing filesystem/corpus work.
     std::cout<<"{\"ready\":true}\n"<<std::flush;advance();
     const fs::path root(argv[2]);owned_parent(root,token);
     StoreCompressionOptions options;options.mode=policy=="raw"?StoreCompressionMode::raw:StoreCompressionMode::automatic;
     options.require_zstd=policy=="auto";
-    if(phase=="files") {
+    if(phase=="compact") {
+      if(role=="write")native_compact_write(root,options);
+      else native_compact_recover(root,floor,digest,options);
+    } else if(phase=="files") {
       if(role=="write")native_file_write(root/"image.fltx",options);
       else native_file_recover(root/"image.fltx",floor,options);
     } else if(role=="write")write_probe(root/"image.fltx",phase=="repair",options);

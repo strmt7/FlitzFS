@@ -140,3 +140,17 @@ open and resume still fully verify reachable data. NATIVE_FILESYSTEM.md defines
 the immutable-backend assumption and delayed detection of untouched corruption.
 These are developmental scaling steps; multi-gigabyte allocation, reclamation,
 writable mounted semantics and hardware qualification remain outstanding.
+
+## Compacted copy and autonomous maintenance direction
+
+COMPACTED_COPY.md supplies a source-preserving native relocation primitive:
+latest-snapshot/lease checks, a new volume identity, CPU-verified copied records,
+two complete separately flushed roots, interruption recovery and continuation.
+It excludes obsolete history from the destination; source storage is retained.
+Automatic durable handoff, reader retirement and actual reclamation remain.
+
+AUTONOMOUS_MAINTENANCE.md records the required workload-driven learning,
+automatic compression/layout/fragmentation improvement, low-priority bounded
+CPU/GPU execution and verified redundant self-repair. Learning state is advisory
+and cannot authorize unsafe publication or replace independent CPU recovery.
+The executor/model/replica-repair mechanisms are not implemented by copying.

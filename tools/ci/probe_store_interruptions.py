@@ -12,7 +12,7 @@ import threading
 import time
 
 DEADLINE=time.monotonic()+180
-MAX_CASES=320
+MAX_CASES=640
 
 class Child:
     def __init__(self,args):
@@ -103,7 +103,8 @@ def execute(binary,root,token,policy,phase,cut):
     child=Child(args)
     events=[]
     acknowledged=0
-    generations=(2,3) if phase=="files" else (1,2)
+    generations=(3,5) if phase=="compact" else ((2,3) if phase=="files" else (1,2))
+    source_digest=None
     forced=None
     try:
         if child.read()!={"ready":True}:
@@ -126,6 +127,13 @@ def execute(binary,root,token,policy,phase,cut):
                 if generation not in generations or generation<acknowledged:
                     raise RuntimeError("acknowledgement oracle")
                 acknowledged=generation
+                if phase=="compact":
+                    digest=event.get("source_digest")
+                    if not isinstance(digest,str) or len(digest)!=64 or any(c not in "0123456789abcdef" for c in digest):
+                        raise RuntimeError("missing source integrity oracle")
+                    if source_digest is not None and digest!=source_digest:
+                        raise RuntimeError("source integrity oracle changed")
+                    source_digest=digest
             if event["event"]==cut:
                 forced=child.kill()
                 break
@@ -134,7 +142,12 @@ def execute(binary,root,token,policy,phase,cut):
         child.close()
     if acknowledged not in generations:
         raise RuntimeError("no acknowledged baseline")
-    recover=Child([str(binary),"recover",str(root),token,policy,phase,str(acknowledged)])
+    recovery_args=[str(binary),"recover",str(root),token,policy,phase,str(acknowledged)]
+    if phase=="compact":
+        if source_digest is None:
+            raise RuntimeError("missing compaction source oracle")
+        recovery_args.append(source_digest)
+    recover=Child(recovery_args)
     try:
         if recover.read()!={"ready":True}:
             raise RuntimeError("recovery resource admission handshake")
@@ -151,6 +164,7 @@ def case(binary,policy,phase,cut):
     root=Path(tempfile.mkdtemp(prefix="flitzfs-store-crash-")).resolve()
     token=secrets.token_hex(16)
     marker=root/".owner";sentinel=root/"unrelated.bin";image=root/"image.fltx"
+    copied=root/"copy.fltx";retry=root/"retry.fltx";images=(image,copied,retry)
     expected=bytes(range(256))
     try:
         with marker.open("xb") as output:
@@ -160,12 +174,12 @@ def case(binary,policy,phase,cut):
         events,result=execute(binary,root,token,policy,phase,cut)
         if sentinel.read_bytes()!=expected or marker.read_bytes()!=token.encode("ascii"):
             raise RuntimeError("unrelated owned fixture changed")
-        if image.stat().st_size>2*1024*1024:
+        if sum(path.stat().st_size for path in images if path.exists())>2*1024*1024:
             raise RuntimeError("fixture physical budget")
         return events,result
     finally:
         # Only these individually recorded names in our exclusively created parent.
-        for path in (image,sentinel,marker):
+        for path in (*images,sentinel,marker):
             path.unlink(missing_ok=True)
         root.rmdir()
 
@@ -180,7 +194,7 @@ def main():
             ("flitzfs_store_crash_probe.exe" if os.name=="nt" else "flitzfs_store_crash_probe")).resolve()
     rows=[];coverage=[]
     for policy in ("raw","auto"):
-        for phase in ("mutation","repair","files"):
+        for phase in ("mutation","repair","files","compact"):
             events,result=case(binary,policy,phase,None)
             coverage.append(dict(policy=policy,phase=phase,events=events,completed=result))
             for cut in range(1,len(events)+1):
@@ -194,7 +208,7 @@ def main():
     head=subprocess.run(["git","-C",str(root),"rev-parse","HEAD"],check=True,capture_output=True,text=True,timeout=5).stdout.strip()
     report=dict(schema=1,commit=head,platform=os.name,cases=len(rows),coverage=coverage,results=rows,
         scope="Process termination at I/O boundaries, owned ordinary files; not physical power loss or mounted writes",
-        limits=dict(total_seconds=180,process_seconds=15,cases=320,event_bytes=256,
+        limits=dict(total_seconds=180,process_seconds=15,cases=640,event_bytes=256,
                     queued_events=8,fixture_bytes=2097152,
                     windows_process_bytes=805306368,windows_cpu_percent=20,
                     posix_address_bytes=536870912,posix_cpu_seconds=15))

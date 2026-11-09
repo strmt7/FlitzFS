@@ -226,3 +226,18 @@ all reachable data. Untouched-media corruption is detected at full verification
 or its next read, not automatically on every unrelated write.
 Do not infer physical power-cut, writable Windows application or GPU safety
 from these bounded CPU/process tests.
+
+## Compacted-copy and autonomous-maintenance boundary
+
+Compaction copies into an empty NEW volume identity and keeps the source and
+partial destinations. It performs no source write/flush, truncation, deletion,
+path replacement or automatic background launch. Source ownership is quiescent;
+ordinary store readers take cooperating shared OS locks. Root publication and
+resource limits are specified in COMPACTED_COPY.md.
+
+Future learning/maintenance must obey AUTONOMOUS_MAINTENANCE.md: very low
+CPU/I/O/GPU priority, hard aggregate budgets, fresh headroom, foreground yielding,
+bounded debt, isolated cancellation and evidence-aware GPU recovery. No such
+executor is enabled yet. Redundant repair must preserve acknowledged history and
+stop when a safe reconstruction cannot be verified. No universal immunity to
+future bugs/media failure or loss of all copies is claimed.

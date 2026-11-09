@@ -21,6 +21,10 @@ class ReadOnlyFile final {
 
   std::uint64_t size() const noexcept { return size_; }
   void read_exact_at(std::uint64_t offset, void* destination, std::size_t length) const;
+  // Pin a cooperating store reader against exclusive writers, without waiting.
+  // POSIX advisory flock; Windows already denies write/delete sharing.
+  // Refresh size from the same opened handle after successful admission.
+  void lock_shared_nonblocking();
 
  private:
 #ifdef _WIN32
