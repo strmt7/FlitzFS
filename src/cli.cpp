@@ -4,14 +4,34 @@
 #include <charconv>
 #include <cstdint>
 #include <exception>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
+#include <utility>
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace {
+// Windows argv is converted from UTF-16 once; paths must then be interpreted as
+// UTF-8 rather than through the machine's active ANSI code page.
+// POSIX native filenames retain their original bytes, including non-UTF-8 names.
+std::filesystem::path os_path(const char* text) {
+#ifdef _WIN32
+  return std::filesystem::u8path(text);
+#else
+  return std::filesystem::path(text);
+#endif
+}
 void usage() {
   std::cout <<
     "FlitzFS experimental filesystem-image diagnostics (NOT a mounted filesystem)\n"
@@ -52,7 +72,7 @@ void print_info(const flitzfs::ContainerInfo& info) {
 }
 } // namespace
 
-int main(int argc, char** argv) {
+int run_cli(int argc, const char* const* argv) {
   try {
     if (argc <= 1 || std::string_view(argv[1]) == "--help" || std::string_view(argv[1]) == "help") {
       usage();
@@ -60,7 +80,7 @@ int main(int argc, char** argv) {
     }
     const auto command = std::string_view(argv[1]);
     if (command == "catalog-list" && (argc == 3 || argc == 4)) {
-      auto catalog = flitzfs::load_catalog_manifest(argv[2]);
+      auto catalog = flitzfs::load_catalog_manifest(os_path(argv[2]));
       for (const auto& entry : catalog.list(argc == 4 ? argv[3] : ""))
         std::cout << (entry.directory ? "directory" : "file") << '\t'
                   << entry.logical_bytes << '\t' << entry.path << '\n';
@@ -68,7 +88,7 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (command == "catalog-verify" && argc == 3) {
-      auto catalog = flitzfs::load_catalog_manifest(argv[2]);
+      auto catalog = flitzfs::load_catalog_manifest(os_path(argv[2]));
       catalog.verify_all();
       std::cout << "Catalog payloads verified under the 32 MiB total budget; NOT authenticated.\n";
       return 0;
@@ -77,7 +97,7 @@ int main(int argc, char** argv) {
       const auto offset = parse_u64(argv[4]);
       const auto size = parse_u64(argv[5]);
       if (size > flitzfs::kMaxSingleReadBytes) throw std::runtime_error("probe length exceeds 4 MiB");
-      auto catalog = flitzfs::load_catalog_manifest(argv[2]);
+      auto catalog = flitzfs::load_catalog_manifest(os_path(argv[2]));
       const auto bytes = catalog.read(argv[3], offset, static_cast<std::uint32_t>(size));
       std::cout << "Read and CRC-checked " << bytes.size() << " catalog bytes.\n";
       return 0;
@@ -101,17 +121,17 @@ int main(int argc, char** argv) {
           options.zstd_level = static_cast<int>(raw);
         } else throw std::runtime_error("unknown option: " + std::string(key));
       }
-      print_info(flitzfs::pack_new(argv[2], argv[3], options));
+      print_info(flitzfs::pack_new(os_path(argv[2]), os_path(argv[3]), options));
       std::cout << "Created NEW container successfully.\n";
       return 0;
     }
     if (command == "info" && argc == 3) {
-      print_info(flitzfs::Reader::open(argv[2]).info());
+      print_info(flitzfs::Reader::open(os_path(argv[2])).info());
       std::cout << "Note: info validates metadata, not all compressed payloads. Use verify.\n";
       return 0;
     }
     if (command == "verify" && (argc == 3 || argc == 5)) {
-      auto reader = flitzfs::Reader::open(argv[2]);
+      auto reader = flitzfs::Reader::open(os_path(argv[2]));
       auto max_bytes = flitzfs::kDefaultMaxInputBytes;
       if (argc == 5) {
         if (std::string_view(argv[3]) != "--max-mib") throw std::runtime_error("unknown verify option");
@@ -126,7 +146,7 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (command == "probe" && argc == 5) {
-      auto reader = flitzfs::Reader::open(argv[2]);
+      auto reader = flitzfs::Reader::open(os_path(argv[2]));
       const auto offset = parse_u64(argv[3]);
       const auto size = parse_u64(argv[4]);
       if (size > flitzfs::kMaxSingleReadBytes) throw std::runtime_error("probe length exceeds 4 MiB");
@@ -135,7 +155,7 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (command == "extract" && (argc == 4 || argc == 6)) {
-      auto reader = flitzfs::Reader::open(argv[2]);
+      auto reader = flitzfs::Reader::open(os_path(argv[2]));
       std::uint64_t max_bytes = flitzfs::kDefaultMaxInputBytes;
       if (argc == 6) {
         if (std::string_view(argv[4]) != "--max-mib") throw std::runtime_error("unknown extraction option");
@@ -143,7 +163,7 @@ int main(int argc, char** argv) {
         if (n == 0 || n > 4096) throw std::runtime_error("max-mib must be 1..4096");
         max_bytes = n * 1024ULL * 1024ULL;
       }
-      reader.extract_new(argv[3], max_bytes);
+      reader.extract_new(os_path(argv[3]), max_bytes);
       std::cout << "Extracted to a NEW file; no existing file was replaced.\n";
       return 0;
     }
@@ -154,3 +174,36 @@ int main(int argc, char** argv) {
     return 1;
   }
 }
+
+#ifdef _WIN32
+int wmain(int argc, wchar_t** argv) {
+  try {
+    if (argc < 0 || argc > 64) throw std::runtime_error("too many command arguments");
+    std::vector<std::string> arguments;
+    arguments.reserve(static_cast<std::size_t>(argc));
+    for (int i = 0; i < argc; ++i) {
+      const int count = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+                                           argv[i], -1, nullptr, 0, nullptr, nullptr);
+      if (count <= 0 || count > 131072)
+        throw std::runtime_error("invalid or oversized Unicode command argument");
+      std::string text(static_cast<std::size_t>(count), '\0');
+      if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, argv[i], -1,
+                              text.data(), count, nullptr, nullptr) != count)
+        throw std::runtime_error("Unicode command argument conversion failed");
+      text.pop_back(); // The conversion included its terminal NUL.
+      arguments.push_back(std::move(text));
+    }
+    std::vector<const char*> pointers;
+    pointers.reserve(arguments.size());
+    for (const auto& argument : arguments) pointers.push_back(argument.c_str());
+    return run_cli(argc, pointers.data());
+  } catch (const std::exception& error) {
+    std::cerr << "ERROR: " << error.what() << "\n";
+    return 1;
+  }
+}
+#else
+int main(int argc, char** argv) {
+  return run_cli(argc, argv);
+}
+#endif

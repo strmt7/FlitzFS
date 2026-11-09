@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/**'
       - 'tools/ci/dependency_audit.py'
+      - 'tools/ci/prepare_hosted_tools.py'
+      - 'tools/ci/test_hosted_tools.py'
       - 'CMakeLists.txt'
       - 'third_party/**'
 permissions:

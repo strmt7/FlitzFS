@@ -67,7 +67,7 @@ jobs:
         run: python tools/ci/build_linux_codecs.py
       - name: Configure minimal build
         if: matrix.zstd == 'OFF'
-        run: cmake -S . -B build -DFLITZFS_WITH_ZSTD=${{ matrix.zstd }} -DFLITZFS_REQUIRE_ZSTD=${{ matrix.zstd }} -DFLITZFS_WITH_LZ4=${{ matrix.zstd }} -DFLITZFS_REQUIRE_LZ4=${{ matrix.zstd }} -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -DFLITZFS_PORTABLE_CPU=ON -DFLITZFS_WITH_ZSTD=${{ matrix.zstd }} -DFLITZFS_REQUIRE_ZSTD=${{ matrix.zstd }} -DFLITZFS_WITH_LZ4=${{ matrix.zstd }} -DFLITZFS_REQUIRE_LZ4=${{ matrix.zstd }} -DCMAKE_BUILD_TYPE=Release
       - name: Configure codec-enabled build
         if: runner.os == 'Linux' && matrix.zstd == 'ON'
         run: >-
@@ -77,6 +77,16 @@ jobs:
         run: cmake --build build --config Release --parallel 2
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure --timeout 45 --parallel 1
+
+      - name: Verify relocated raw-only CPU executable
+        if: matrix.zstd == 'OFF'
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+          import sys
+          binary = Path("build/Release/flitzfs.exe") if sys.platform == "win32" else Path("build/flitzfs")
+          subprocess.run([sys.executable, "tools/ci/check_portable_cpu.py", str(binary), "--codecs", "raw"], check=True, timeout=120)
 
       - name: Report native staging read counts
         if: success()
@@ -91,7 +101,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cpu-tests-${{ runner.os }}-${{ matrix.zstd }}-${{ github.sha }}
-          path: build/Testing/Temporary/LastTest.log
+          path: |
+            build/Testing/Temporary/LastTest.log
+            ${{ runner.temp }}/flitzfs-portable-*/portability.json
           retention-days: 30
           if-no-files-found: warn
 

@@ -88,3 +88,44 @@ most a 2 GiB window with an additional 2 GiB available-memory reserve, and uses
 the public ZstdFile window_log_max option. Each pass closes/releases that decoder
 before starting another. The 4 GiB process address-space ceiling remains.
 Filesystem record-decoder ceilings and foreground behavior are unchanged.
+
+## Self-contained CPU build and qualification
+
+The explicit FLITZFS_PORTABLE_CPU=ON build selects the static MSVC runtime on
+Windows and fully static linkage on Linux. This option is deliberately separate
+from sanitizer/developer builds and historical comparison lanes. Optional
+third-party codecs must also be supplied as static libraries with compatible
+runtime settings; the hosted builders do that from exact reviewed source pins.
+Unsupported OS/compiler combinations and shared FlitzFS library builds fail
+explicitly. This is a CPU diagnostic executable, not a mounted product package.
+
+Windows CLI arguments now enter through wmain, convert strictly from UTF-16
+to UTF-8, and explicitly reconstruct Windows filesystem paths as UTF-8. OS file
+access still uses the existing wide-character path validation and file APIs.
+POSIX paths retain their original bytes; no locale-dependent recoding is added.
+Catalog virtual-path grammar remains unchanged.
+
+The hosted-only check_portable_cpu.py reads the executable's actual PE/ELF loader
+metadata before execution. Linux must have neither a dynamic interpreter nor
+dynamic segment; Windows admits only a small explicit set of OS DLL names and
+rejects delay imports, codec/GPU/SDK and VC/UCRT dependencies. It then moves a
+package containing only that executable into a fresh Unicode/space-containing
+directory, uses a different working directory and an environment with an empty
+PATH directory and no build/runtime library variables. Windows retains only its
+OS root identity. Fixtures exercise actual bundled compression, independent byte
+readback, Unicode OS paths, catalog commands and existing-file overwrite refusal.
+Linux additionally checks a filename containing a non-UTF-8 byte.
+
+Every fixture is new on a disposable hosted VM and is retained, not deleted.
+The parent has Linux 512 MiB address-space/30 CPU-second/no-core limits or a
+Windows idle-priority 768 MiB job/20% CPU/two-process/15 CPU-seconds-per-process
+containment. Commands have ten-second wall deadlines; Linux children additionally
+have 256 MiB/five CPU-second ceilings. Synthetic file bytes excluding the
+executable are capped at 8 MiB; 2 GiB backing-volume headroom is required.
+Receipts bind binary SHA-256, commit, imports, environment and executed commands.
+
+These source changes and checks require successful exact-commit CI before
+qualification. They do not establish compatibility with every Linux kernel or
+Windows build, a complete installer, optional GPU provisioning, protected
+integration or full filesystem portability. Existing default build behavior,
+storage formats and historical comparator link settings are preserved.
