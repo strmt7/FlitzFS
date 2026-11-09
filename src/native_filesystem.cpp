@@ -411,6 +411,22 @@ NativeFilesystemWriter NativeFilesystemWriter::resume(ObjectStoreWriter objects)
   auto snapshot=objects.snapshot();auto model=decode(snapshot);
   return NativeFilesystemWriter(std::make_unique<Impl>(std::move(objects),std::move(model)));
 }
+
+NativeFilesystemWriter NativeFilesystemWriter::compact(const NativeFilesystemSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression) {
+  if(!source.impl_)fail(Code::invalid_operation,"moved-from native compaction source");
+  if(id==source.identity() || id==StoreIdentity{} || !target)
+    fail(Code::invalid_operation,"native compaction requires a new target identity");
+  try {
+    auto model=decode(source.impl_->objects);model.identity=id;
+    const auto metadata=encode(model);
+    return resume(ObjectStoreWriter::compact_replacing(source.impl_->objects,
+        std::move(target),id,kNamespaceObject,metadata,compression));
+  }catch(const std::bad_alloc&){fail(Code::limit,"native compaction allocation failure");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"native compaction failed; retain source and partial target");}
+}
+
 NativeFsCommit NativeFilesystemWriter::apply(std::span<const NativeFileMutation> operations) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(operations.empty() || operations.size()>16)fail(Code::limit,"native operation count");

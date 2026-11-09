@@ -19,7 +19,10 @@ owner's PC.
   snapshots, integrity-bound metadata, alternating recovery roots, two durable
   publication barriers and independent CPU reopen. It now supports native raw, zero, repeated-pattern and optional Zstandard
   records, with private CPU round-trip verification and decoded-content integrity.
-  It has no writable mounted route. See [the format and assumptions](docs/OBJECT_STORE_FORMAT.md).
+  A verified compaction path copies live data into a new volume identity and
+  retains the source; it does not replace/delete backing files or enable mounted
+  writes. See [the format and assumptions](docs/OBJECT_STORE_FORMAT.md) and
+  [copy protocol](docs/COMPACTED_COPY.md).
 - A native transactional file layer with persistent directories and inode IDs,
   sparse 64 KiB extents, partial writes, truncate/regrow, rename/replace, deletion
   and immutable snapshots. It currently admits 256 inodes and 255 nonzero extents;
@@ -51,6 +54,14 @@ types, partial updates, random reads, durable commits and independent CPU
 recovery. Candidate mechanisms and their source attribution are documented in
 [extent codec research](docs/EXTENT_CODECS.md).
 
+The final filesystem must learn from file contents and observed workloads,
+automatically improve compression/layout, and repair from verified redundancy.
+Background work must run at very low priority with strict resource caps and
+yield to applications, while using qualified AMD acceleration where beneficial.
+These mechanisms remain unfinished; [the required architecture and
+qualification gates](docs/AUTONOMOUS_MAINTENANCE.md) distinguish them from
+implemented storage primitives.
+
 ## Building
 
 Use a disposable development VM for this repository under the owner's current
@@ -80,7 +91,7 @@ paths; original files remain unchanged. See [the native image format](docs/FORMA
 The object engine remains limited to 256 objects, 16 MiB total decoded live data,
 1 MiB per object, 4 MiB new
 payload per transaction and 64 MiB retained physical history. There is no
-public existing-file writable reopen, reclamation, production namespace scaling,
+public existing-file writable reopen, automatic reclaim/handoff, production namespace scaling,
 authenticated encryption or general-purpose writable mount application.
 
 A successful flush is meaningful only under qualified backend/device

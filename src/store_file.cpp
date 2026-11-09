@@ -73,6 +73,7 @@ class Input final:public StoreByteIo {
   ReadOnlyFile file_;
  public:
   explicit Input(const std::filesystem::path& p):file_(ReadOnlyFile::open(p)) {
+    file_.lock_shared_nonblocking();
     if(file_.size()>kStoreMaxPhysicalBytes) fail("physical input cap");
   }
   std::uint64_t extent() const override { return file_.size(); }

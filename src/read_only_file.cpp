@@ -16,6 +16,7 @@
   #include <cstring>
   #include <fcntl.h>
   #include <sys/stat.h>
+  #include <sys/file.h>
   #include <sys/types.h>
   #include <unistd.h>
 #endif
@@ -59,6 +60,12 @@ ReadOnlyFile& ReadOnlyFile::operator=(ReadOnlyFile&& other) noexcept {
 }
 ReadOnlyFile::~ReadOnlyFile() { if (handle_ != nullptr) CloseHandle(static_cast<HANDLE>(handle_)); }
 
+void ReadOnlyFile::lock_shared_nonblocking() {
+  LARGE_INTEGER size{};
+  if(!GetFileSizeEx(static_cast<HANDLE>(handle_),&size) || size.QuadPart<0)
+    fail("cannot qualify shared store reader extent");
+  size_=static_cast<std::uint64_t>(size.QuadPart);
+}
 void ReadOnlyFile::read_exact_at(std::uint64_t offset, void* dst, std::size_t length) const {
   if (offset > size_ || length > size_ - offset) fail("read is outside the pinned file length");
   if (length != 0 && dst == nullptr) fail("null destination");
@@ -106,6 +113,13 @@ ReadOnlyFile& ReadOnlyFile::operator=(ReadOnlyFile&& other) noexcept {
 }
 ReadOnlyFile::~ReadOnlyFile() { if (fd_ >= 0) ::close(fd_); }
 
+void ReadOnlyFile::lock_shared_nonblocking() {
+  if(::flock(fd_,LOCK_SH|LOCK_NB)!=0)fail("store reader cannot acquire a shared lock");
+  struct stat st{};
+  if(::fstat(fd_,&st)!=0 || !S_ISREG(st.st_mode) || st.st_size<0)
+    fail("cannot qualify shared store reader extent");
+  size_=static_cast<std::uint64_t>(st.st_size);
+}
 void ReadOnlyFile::read_exact_at(std::uint64_t offset, void* dst, std::size_t length) const {
   if (offset > size_ || length > size_ - offset) fail("read is outside the pinned file length");
   if (length != 0 && dst == nullptr) fail("null destination");

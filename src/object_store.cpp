@@ -158,20 +158,37 @@ State load(std::shared_ptr<StoreByteIo> image) {
     if(ranges[i].first<ranges[i-1].second)fail("overlapping object records");
   return s;
 }
-Bytes read_object(const State& s,const Entry& e) {
-  std::array<std::byte,kDataHeader> h{};s.image->read_exact(e.offset,h);
+struct StoredRecord {std::array<std::byte,kDataHeader> header{};Bytes payload;};
+StoredRecord read_record(const State& s,const Entry& e) {
+  StoredRecord record;auto& h=record.header;s.image->read_exact(e.offset,h);
   const auto codec=get32(h,12);
   if(!magic(h,kDataMagic) || get32(h,8)!=1 || get64(h,16)!=e.id ||
       get64(h,24)!=e.generation || get32(h,32)!=e.bytes || get32(h,36)!=e.stored ||
       field<16>(h,40)!=s.id || !detail::store_codec_framing(codec,e.bytes,e.stored) ||
       !zero(std::span<const std::byte>(h).subspan(codec==detail::kStoreRaw?56:88,codec==detail::kStoreRaw?40:8)) ||
       field<32>(h,96)!=e.digest) fail("object identity, codec or framing");
-  Bytes stored(e.stored);if(!stored.empty()) s.image->read_exact(e.offset+kDataHeader,stored);
-  if(detail::record_digest(std::span<const std::byte>(h).first(96),stored)!=e.digest) fail("object stored digest mismatch");
-  if(codec==detail::kStoreRaw) return stored; // Historical raw bytes remain unchanged.
-  auto decoded=s.decoder->decode(codec,stored,e.bytes);
-  if(detail::record_digest(decoded)!=field<32>(h,56)) fail("object decoded digest mismatch");
+  record.payload.resize(e.stored);
+  if(!record.payload.empty())s.image->read_exact(e.offset+kDataHeader,record.payload);
+  if(detail::record_digest(std::span<const std::byte>(h).first(96),record.payload)!=e.digest) fail("object stored digest mismatch");
+  return record;
+}
+Bytes read_object(const State& s,const Entry& e) {
+  auto record=read_record(s,e);const auto codec=get32(record.header,12);
+  if(codec==detail::kStoreRaw)return std::move(record.payload); // Historical raw bytes unchanged.
+  auto decoded=s.decoder->decode(codec,record.payload,e.bytes);
+  if(detail::record_digest(decoded)!=field<32>(record.header,56)) fail("object decoded digest mismatch");
   return decoded;
+}
+bool same_state(const State& a,const State& b) {
+  if(a.id!=b.id || a.generation!=b.generation || a.end!=b.end ||
+      a.index_offset!=b.index_offset || a.selected_slot!=b.selected_slot || a.degraded!=b.degraded ||
+      a.entries.size()!=b.entries.size())return false;
+  for(std::size_t i=0;i<a.entries.size();++i) {
+    const auto& x=a.entries[i];const auto& y=b.entries[i];
+    if(x.id!=y.id || x.generation!=y.generation || x.offset!=y.offset ||
+        x.bytes!=y.bytes || x.stored!=y.stored || x.digest!=y.digest)return false;
+  }
+  return true;
 }
 void verify(const State& s) { for(const auto& e:s.entries) (void)read_object(s,e); }
 void write_zeros(StoreByteIo& image,std::uint64_t offset,std::uint64_t end) {
@@ -312,6 +329,104 @@ ObjectStoreWriter ObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,S
   p->append_floor=aligned(image->extent());
   return ObjectStoreWriter(std::move(p));
 }
+
+ObjectStoreWriter ObjectStoreWriter::compact(const ObjectStoreSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions options) {
+  return compact_replacing(source,std::move(target),id,0,{},options);
+}
+ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t replacement_id,
+    std::span<const std::byte> replacement,StoreCompressionOptions options) {
+  if(!source.impl_)fail("moved-from compaction source");
+  admit_identity(id);detail::validate_store_compression(options);
+  const auto& cached=source.impl_->state;
+  if(id==cached.id || !target || target==cached.image)fail("compaction requires a distinct new identity and target");
+  if(replacement.size()>kStoreMaxObjectBytes || (!replacement_id && !replacement.empty()))
+    fail("invalid compaction replacement");
+  // Read-only ownership for this operation uses the same per-backend lease.
+  // OS/custom backend owners must additionally exclude different facades.
+  Impl::Lease source_lease(cached.image);
+  auto original=load(cached.image);verify(original);
+  if(!same_state(original,cached))fail("compaction source is not the latest recovered snapshot");
+  const auto source_extent=original.image->extent();
+  if(original.generation==0) {
+    if(replacement_id)fail("cannot replace an object in an empty initial source");
+    return create(std::move(target),id,options);
+  }
+  if(original.generation>(std::numeric_limits<std::uint64_t>::max)()-2)
+    fail("compaction generation exhausted");
+  auto p=std::make_unique<Impl>(options,target);
+  if(target->extent()!=0)fail("compaction requires a new empty target");
+  admit_contract(target->contract());
+  State baseline=original;baseline.image=target;baseline.id=id;
+  baseline.generation=original.generation+1;baseline.degraded=false;
+  baseline.decoder=std::make_shared<detail::StoreCodecDecoder>();
+  std::optional<detail::EncodedStoreObject> substitute;
+  if(replacement_id) {
+    auto it=std::lower_bound(baseline.entries.begin(),baseline.entries.end(),replacement_id,
+                            [](const Entry& e,auto key){return e.id<key;});
+    if(it==baseline.entries.end() || it->id!=replacement_id)fail("compaction replacement object missing");
+    const auto logical=state_info(original).logical_bytes-it->bytes+replacement.size();
+    if(logical>kStoreMaxLogicalBytes)fail("compaction decoded-byte budget");
+    target->admit_write(kDataStart); // Headroom before private encoding.
+    substitute=p->encoder.encode(Bytes(replacement.begin(),replacement.end()));
+    it->bytes=static_cast<std::uint32_t>(replacement.size());
+    it->stored=static_cast<std::uint32_t>(substitute->payload.size());
+    it->generation=baseline.generation;
+  }
+  std::uint64_t cursor=kDataStart;
+  for(auto& e:baseline.entries){e.offset=cursor;cursor+=kDataHeader+e.stored;}
+  const auto index_bytes=kManifestHeader+kEntryBytes*baseline.entries.size();
+  baseline.index_offset=cursor;baseline.selected_slot=static_cast<unsigned>(baseline.generation%2);
+  baseline.end=aligned(cursor+2*index_bytes);
+  if(baseline.end>kStoreMaxPhysicalBytes)fail("compaction physical budget");
+  target->admit_write(baseline.end);
+  // Failure before publication leaves only a partial NEW destination. Keep a
+  // single record payload in scratch, rather than the whole live volume.
+  write_zeros(*target,0,kDataStart);
+  for(std::size_t i=0;i<baseline.entries.size();++i) {
+    target->admit_write(baseline.end);
+    auto& e=baseline.entries[i];StoredRecord record;
+    if(e.id==replacement_id) {
+      auto& h=record.header;copy_field(h,0,kDataMagic);put32(h,8,1);
+      put32(h,12,substitute->codec);put64(h,16,e.id);put64(h,24,e.generation);
+      put32(h,32,e.bytes);put32(h,36,e.stored);
+      if(substitute->codec!=detail::kStoreRaw)copy_field(h,56,substitute->decoded_digest);
+      record.payload=std::move(substitute->payload);
+    } else record=read_record(original,original.entries[i]);
+    copy_field(record.header,40,id);
+    e.digest=detail::record_digest(std::span<const std::byte>(record.header).first(96),record.payload);
+    copy_field(record.header,96,e.digest);
+    target->write_exact(e.offset,record.header);
+    if(!record.payload.empty())target->write_exact(e.offset+kDataHeader,record.payload);
+  }
+  // Independently decode target bytes before exposing any root. Recheck that
+  // the exclusively owned source still matches the selected baseline.
+  verify(baseline);
+  auto checked=load(original.image);verify(checked);
+  if(original.image->extent()!=source_extent || !same_state(original,checked))
+    fail("compaction source changed during copy");
+  const auto first=manifest(baseline);
+  State newest=baseline;++newest.generation;newest.index_offset=baseline.index_offset+first.size();
+  newest.selected_slot=static_cast<unsigned>(newest.generation%2);
+  const auto second=manifest(newest);
+  const auto first_root=root(baseline,baseline.selected_slot,baseline.index_offset,first);
+  const auto second_root=root(newest,newest.selected_slot,newest.index_offset,second);
+  target->admit_write(newest.end);
+  target->write_exact(baseline.index_offset,first);
+  target->write_exact(newest.index_offset,second);
+  write_zeros(*target,newest.index_offset+second.size(),newest.end);
+  target->flush();
+  target->write_exact(baseline.selected_slot*kStoreCommitUnit,first_root);
+  target->flush(); // A complete baseline survives damage to the peer root.
+  target->write_exact(newest.selected_slot*kStoreCommitUnit,second_root);
+  target->flush();
+  p->state=load(target);verify(p->state);
+  if(!same_state(p->state,newest))fail("compaction publication readback differs");
+  p->append_floor=p->state.end;
+  return ObjectStoreWriter(std::move(p));
+}
+
 ObjectStoreWriter ObjectStoreWriter::create_file(const std::filesystem::path& path,StoreIdentity id,StoreIoContract c,StoreCompressionOptions compression) {
   admit_identity(id);admit_contract(c);detail::validate_store_compression(compression);
   return create(detail::new_store_file(path,c),id,compression);

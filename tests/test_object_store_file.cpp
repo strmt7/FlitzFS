@@ -79,6 +79,7 @@ int main() {
       require(leased_bytes==file_bytes_before,"rejected identity/generation changed bytes");
       auto writer=ObjectStoreWriter::resume(backend,id(),2);
       rejects([&]{(void)detail::reopen_store_file_for_hosted_test(backing,{4096,true});},"second OS writer acquired backing");
+      rejects([&]{(void)ObjectStoreSnapshot::open_file(backing);},"store reader bypassed OS writer exclusion");
       auto retained=writer.snapshot();
       const StoreMutation added{3,false,Bytes(65537)};
       require(writer.commit({&added,1}).generation==3,"resumed file commit failed");
@@ -89,6 +90,29 @@ int main() {
       auto recovered=ObjectStoreSnapshot::open_file(backing);
       require(recovered.info().generation==3 && recovered.read(1)==replacement &&
               recovered.read(2).empty() && recovered.read(3)==Bytes(65537),"resumed file independently reopened incorrectly");
+    }
+
+    const auto copied_path=fixture.file("compacted-store.fltx");
+    const auto immutable_source=file_bytes(backing);
+    auto copy_id=id();copy_id[1]=std::byte{97};
+    {
+      auto source=ObjectStoreSnapshot::open_file(backing);
+      auto second_reader=ObjectStoreSnapshot::open_file(backing);
+      rejects([&]{(void)detail::reopen_store_file_for_hosted_test(backing,{4096,true});},"shared store reader allowed writer");
+      {
+        auto copy=ObjectStoreWriter::compact(source,detail::new_store_file(copied_path,{4096,true}),copy_id);
+        require(copy.snapshot().identity()==copy_id && copy.snapshot().read(1)==replacement &&
+            copy.snapshot().read(3)==Bytes(65537),"ordinary-file compacted copy mismatch");
+      }
+      auto reopened=ObjectStoreSnapshot::open_file(copied_path);reopened.verify_all();
+      require(reopened.info().generation==source.info().generation+2 && second_reader.read(1)==replacement,"compacted file roots/source reader");
+      rejects([&]{(void)detail::new_store_file(copied_path,{4096,true});},"compaction target path overwritten");
+    }
+    require(file_bytes(backing)==immutable_source,"ordinary-file compaction changed source");
+    {
+      auto backend=detail::reopen_store_file_for_hosted_test(backing,{4096,true});
+      auto writer=ObjectStoreWriter::resume(backend,id(),3);
+      require(writer.snapshot().read(1)==replacement,"shared source reader did not release OS exclusion");
     }
     const auto alias=fixture.file("alias.fltx");fs::create_hard_link(backing,alias);
     const auto linked_before=file_bytes(backing);

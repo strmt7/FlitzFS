@@ -23,8 +23,9 @@ Use one control thread. Do not race the writer, snapshots, caller mutation
 inputs or backend. A shared_ptr keeps the backing handle alive; it does not
 make arbitrary implementations exclusive or immutable. Custom backends must
 enforce exclusive ownership. The file backend keeps its own handle; on POSIX
-its process-level exclusivity does not exclude an unrelated process modifying
-the same inode. This is not hostile-directory or hostile-process isolation.
+its advisory locks do not exclude a noncooperating process modifying
+the same inode. Store input handles now acquire shared nonblocking locks on the
+same opened POSIX descriptor; cooperating exclusive file writers are excluded. This is not hostile-directory or hostile-process isolation.
 
 A transaction supplies 1..256 unique nonzero object IDs, puts and/or erases.
 Each payload is at most 1 MiB; new payload bytes total at most 4 MiB; the final
@@ -34,8 +35,10 @@ count. Final-inventory admission precedes codec work, permits put-before-erase
 replacement at capacity and rejects aggregate overflow before writes. Inputs are privately
 copied and validated before backing writes. Erasing a missing ID is an error.
 A snapshot preserves its generation and old immutable record references;
-updates do not replace bytes referenced by an earlier snapshot. No reclaim,
-compaction, public ordinary-file writable reopen, filesystem names or ACLs exist yet.
+updates do not replace bytes referenced by an earlier snapshot. Verified
+new-volume compaction copies are now available; COMPACTED_COPY.md defines source
+leases, identity rebinding and publication. There is no automatic reclaim,
+ordinary-file writable reopen, filesystem names or ACL support in the object API.
 
 The physical history is capped at 64 MiB. Full history, invalid arguments and
 resource admission failures reject before writes and leave a writer usable.

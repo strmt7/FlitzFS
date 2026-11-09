@@ -150,3 +150,21 @@ After interruption, snapshot physical_end names the COMMITTED end. The backing
 may be larger because of orphaned writes; backend extent is authoritative for
 remaining physical capacity. A later commit incorporates that tail into its
 new committed end. Resume does not pretend orphan bytes are free space.
+
+## Compacted-copy extension
+
+COMPACTED_COPY.md adds latest-snapshot copying into an empty, distinct volume
+identity. The source is held quiescent and never modified. Ordinary store input
+handles now acquire cooperating shared locks; exclusive OS writers cannot
+bypass those readers. POSIX exclusion remains advisory.
+
+The current hosted controller additionally covers native compaction with source
+generation 3 and destination publication generations 4..5. A source BLAKE3
+digest is captured at its acknowledgement and passed to a new recovery process.
+Every cut must preserve it, validate any published destination, or retry into a
+separate new path/identity, then commit a continuation and reopen independently.
+No partial file is truncated/reused. The case ceiling is now 640; the existing
+128-event, 256-byte-line, eight-item-queue, 15-second-child/180-second-total and
+process CPU/memory limits remain. The combined image files are capped at 2 MiB.
+Historical 320/256-case limits above describe earlier controllers. None of
+these tests establishes physical power-loss or autonomous maintenance safety.

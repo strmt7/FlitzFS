@@ -157,3 +157,23 @@ touched record; preserve full before-exposure verification on public snapshots,
 open and resume, and document delayed detection of untouched-media corruption. Keep logical sparse size separate from
 physical allocation and history. The extended hosted process probe covers native
 file transactions but remains distinct from physical power-loss qualification.
+
+## Compaction and autonomous-maintenance boundary
+
+Read docs/COMPACTED_COPY.md before changing relocation/copy publication. Preserve
+a quiescent latest source, distinct NEW destination identity, source bytes,
+bounded single-record scratch, CPU verification, two separately flushed roots
+and partial-output retention. Native namespaces must explicitly rebind identity.
+Do not add in-place deletion, automatic path replacement or background execution
+without their separate handoff/reclamation/priority/resource qualification.
+
+Read docs/AUTONOMOUS_MAINTENANCE.md. The owner requires event/evidence-driven
+self-learning of contents and workloads, automatic compression/layout and
+fragmentation improvement, AMD acceleration with independent CPU recovery, and
+verified redundant self-repair without routine intervention. Background CPU/I/O/
+GPU work must have very low priority, hard aggregate caps and foreground yielding.
+Unknown headroom/unsafe accelerator health means no work. A timer alone is not
+a learning/scheduling decision. Advisory model errors must not bypass integrity,
+durability, ownership or recovery gates. Do not promise immunity to every future
+bug or physical loss of all redundant copies; never silently discard acknowledged
+data or call detection alone self-repair.
