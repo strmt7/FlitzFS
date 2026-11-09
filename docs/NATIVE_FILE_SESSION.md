@@ -182,3 +182,13 @@ stored format/bounds remain unchanged. Regression cases include the byte
 boundary, traversal, reserved names and empty mutation paths, requiring no
 backing I/O or healthy-owner fencing. Directory enumeration also has a
 positive owned-context identity check.
+
+
+## Real synchronized Flush addition
+
+The session now exposes file-context and volume forms of a real shared-image
+barrier, with exact checkpoint metadata and pre/post namespace validation.
+Contexts, requests, latches and detached data remain unchanged. Cleaned contexts
+stay valid until Close; stale contexts reject before I/O. NATIVE_FLUSH.md defines
+fencing and coverage limits. Actual Windows cached/mapped/write-through/cancel
+behavior and the writable callback adapter remain unfinished.

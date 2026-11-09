@@ -142,6 +142,11 @@ class ObjectStoreWriter final {
   // Publication generation advances twice; checkpoint_generation identifies
   // the shared logical checkpoint even if either root is lost later.
   StoreCommitInfo commit_replicated(std::span<const StoreMutation> mutations);
+  // Real backend barrier with exact current metadata/extent checks before and
+  // after. No writes, generation advance, repair, trim or payload scrub.
+  // Preflight allocation pressure leaves a healthy writer; metadata/I/O failure
+  // and ANY failure after barrier entry terminally fence it.
+  StoreCommitInfo flush_checkpoint();
   ObjectStoreSnapshot snapshot() const;
   bool poisoned() const noexcept;
  private:

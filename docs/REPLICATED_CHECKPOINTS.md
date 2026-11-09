@@ -139,3 +139,10 @@ fully CPU-readable, but ordinary native resume refuses it until the caller
 selects separately qualified closed-session recovery. That recovery cannot
 infer old context retirement from root generation or elapsed time. See
 NATIVE_FILE_LIFETIME.md.
+
+
+The explicit Flush API reuses current-root/manifest admission and exact state
+comparison before and after a real backing barrier. It does not repair damaged
+replicas or publish a new pair, and rejects a changed/degraded checkpoint.
+Normal replicated mutations retain their unchanged three barriers. See
+NATIVE_FLUSH.md for failure fencing and assurance limits.

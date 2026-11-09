@@ -722,6 +722,32 @@ Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offse
     throw;
   }catch(const std::exception&){impl_->poisoned=true;fail(Code::storage_failure,"native range read failed");}
 }
+NativeFsCommit NativeFilesystemWriter::flush() {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  bool completed=false;
+  try {
+    (void)checked_namespace();
+    NativeFsCommit result;result.sequence=impl_->model.sequence;
+    result.storage=impl_->objects.flush_checkpoint();completed=true;
+    (void)checked_namespace();
+    return result;
+  }catch(const std::bad_alloc&) {
+    if(completed || impl_->objects.poisoned()) {
+      impl_->poisoned=true;fail(Code::storage_failure,"native flush completion could not be verified");
+    }
+    fail(Code::limit,"native flush preflight allocation failure");
+  }catch(const NativeFsError& error) {
+    if(completed || impl_->objects.poisoned() || error.code()==Code::corrupt ||
+        error.code()==Code::storage_failure) {
+      impl_->poisoned=true;fail(Code::storage_failure,"native flush state verification failed");
+    }
+    throw;
+  }catch(const std::exception&) {
+    impl_->poisoned=true;fail(Code::storage_failure,"native backend flush failed; recover independently");
+  }catch(...) {
+    impl_->poisoned=true;fail(Code::storage_failure,"unknown native backend flush failure");
+  }
+}
 NativeFilesystemSnapshot NativeFilesystemWriter::snapshot() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native writer");
   try{return NativeFilesystemSnapshot::open(impl_->objects.snapshot());}

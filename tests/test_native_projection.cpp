@@ -15,6 +15,11 @@ template<class F> void rejects(F&& action,const char* why) {
 int main(){try {
   Fixture fixture;const auto expected=make_image(fixture.image(),false);
   const auto original=read_image(fixture.image());const auto bytes=data();
+  const auto flushed=fixture.root/L"flushed.fltx";
+  const auto synced=make_image(flushed,false,kNativeMaxFileBytes,true);
+  require(synced.sequence==expected.sequence && synced.storage.generation==expected.storage.generation &&
+      read_image(flushed)==original,"real ordinary-file flush altered native image bytes/generation");
+  NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(flushed)).verify_all();
   {
     auto view=ReadOnlyProjection::open_native_file(fixture.image(),identity());
     const auto info=view.native_info();

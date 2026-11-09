@@ -176,3 +176,9 @@ retains post-Cleanup I/O and controls final inode retirement:
 [NATIVE_FILE_SESSION.md](docs/NATIVE_FILE_SESSION.md). Verified committed-view
 queries avoid full-volume scans per range request. The Windows writable adapter,
 helper app and external context-retirement qualification remain unfinished.
+
+
+Native file/volume Flush now reaches a real backing barrier with checkpoint
+and namespace validation; see [NATIVE_FLUSH.md](docs/NATIVE_FLUSH.md). It preserves
+generations and live contexts and fences failed/unverified completion. Writable
+Windows ABI/cache/application qualification remains unfinished.

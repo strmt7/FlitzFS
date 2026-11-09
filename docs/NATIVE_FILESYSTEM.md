@@ -331,3 +331,9 @@ per callback while retaining all full snapshot/open/resume gates. No stored
 format, old public structure layout, capacity or publication change follows.
 Windows adapter/app/ACL/share/flush and external context-retirement proof remain
 unfinished.
+
+
+NativeFilesystemWriter::flush now validates its namespace before/after a real
+shared-image checkpoint barrier, preserving namespace sequence, records and
+created-inode state. It is not a zero-mutation apply or a full payload scrub.
+NATIVE_FLUSH.md specifies the unchanged publication and failure assumptions.
