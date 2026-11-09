@@ -221,3 +221,19 @@ The native file layer advances persistent filesystem semantics. Writable mounted
 callbacks, user/application compatibility, Unicode/metadata/security semantics,
 scalable allocation/reclamation, physical persistence qualification, broad
 compression/throughput comparisons and actual AMD GPU integration remain unmet.
+
+## Replicated acknowledgement protection
+
+Native initialize/apply now use REPLICATED_CHECKPOINTS.md. Each file transaction
+publishes two roots naming the SAME current namespace/data references, with
+manifests in separate 64 KiB units and three durability barriers. Publication
+generation advances twice; namespace sequence advances once. Qualified resume
+repairs degraded checkpoint metadata before returning, and legacy writable
+admission promotes publication without changing logical inode/content/sequence
+bytes. No public existing-file or mounted write factory is added.
+
+Tests now require latest contents after loss of EITHER current root or EITHER
+manifest unit, then repair and a different continued commit. Write staging also
+rechecks checkpoint health before publication; the added bounded metadata reads
+are included in backing-read counts. Payload replication/reconstruction,
+physical power-loss/device assumptions and automatic maintenance remain separate.

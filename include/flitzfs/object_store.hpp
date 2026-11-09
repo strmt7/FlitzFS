@@ -72,6 +72,9 @@ struct StoreCommitInfo {
   std::size_t objects=0;
   bool degraded_root=false; // Only one valid root: report explicitly; no mounted routing.
   std::uint64_t stored_payload_bytes=0; // Active payload only; excludes metadata/padding/history.
+  std::uint64_t checkpoint_generation=0; // Stable first publication of a replicated object set.
+  bool replicated_checkpoint=false; // Replicated format; inspect degraded_checkpoint.
+  bool degraded_checkpoint=false; // Missing/stale root or damaged manifest replica.
 };
 
 class ObjectStoreSnapshot final {
@@ -131,10 +134,16 @@ class ObjectStoreWriter final {
   // poisons the writer. A successful result means backend flush completed;
   // physical durability remains conditional on the declared backend contract.
   StoreCommitInfo commit(std::span<const StoreMutation> mutations);
+  // Two current roots + two separately sealed manifests; three durable barriers.
+  // Once upgraded, ordinary commit() preserves replicated publication.
+  // Publication generation advances twice; checkpoint_generation identifies
+  // the shared logical checkpoint even if either root is lost later.
+  StoreCommitInfo commit_replicated(std::span<const StoreMutation> mutations);
   ObjectStoreSnapshot snapshot() const;
   bool poisoned() const noexcept;
  private:
   friend class NativeFilesystemWriter;
+  StoreCommitInfo commit_impl(std::span<const StoreMutation> mutations,bool replicated);
   static ObjectStoreWriter compact_replacing(const ObjectStoreSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,

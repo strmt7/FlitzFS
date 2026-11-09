@@ -16,8 +16,10 @@ owner's PC.
 - Native independently addressable raw/Zstandard chunk storage, with bounded
   reads, index validation, corruption checks and reused CPU codec workspaces.
 - An experimental transactional object core: atomic bounded updates, immutable
-  snapshots, integrity-bound metadata, alternating recovery roots, two durable
-  publication barriers and independent CPU reopen. It now supports native raw, zero, repeated-pattern and optional Zstandard
+  snapshots, integrity-bound metadata and independent CPU reopen. Native file
+  transactions now publish replicated current checkpoints through three durable
+  barriers, with separate root and manifest units; legacy object mode remains
+  readable. See [the checkpoint protocol](docs/REPLICATED_CHECKPOINTS.md). It now supports native raw, zero, repeated-pattern and optional Zstandard
   records, with private CPU round-trip verification and decoded-content integrity.
   A verified compaction path copies live data into a new volume identity and
   retains the source; it does not replace/delete backing files or enable mounted

@@ -4,6 +4,7 @@
 #include "store_codec.hpp"
 #include <algorithm>
 #include <limits>
+#include <new>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -66,11 +67,14 @@ struct State {
   std::shared_ptr<detail::StoreCodecDecoder> decoder=std::make_shared<detail::StoreCodecDecoder>();
   std::uint64_t index_offset=0;
   unsigned selected_slot=0;
+  bool replicated=false,degraded_checkpoint=false;
+  std::uint64_t peer_index_offset=0,checkpoint_generation=0;
 };
 StoreCommitInfo state_info(const State& s) {
   std::uint64_t total=0;for(const auto& e:s.entries) total+=e.bytes;
   std::uint64_t stored=0;for(const auto& e:s.entries) stored+=e.stored;
-  return {s.generation,s.end,total,s.entries.size(),s.degraded,stored};
+  return {s.generation,s.end,total,s.entries.size(),s.degraded,stored,
+          s.replicated?s.checkpoint_generation:s.generation,s.replicated,s.degraded_checkpoint};
 }
 Bytes manifest(const State& s) {
   Bytes b(kManifestHeader+s.entries.size()*kEntryBytes);
@@ -86,10 +90,11 @@ Bytes manifest(const State& s) {
 }
 Bytes root(const State& s,unsigned slot,std::uint64_t index_offset,const Bytes& index) {
   Bytes b(kRootBytes);
-  copy_field(b,0,kRootMagic);put32(b,8,1);put32(b,12,slot);put64(b,16,s.generation);
+  copy_field(b,0,kRootMagic);put32(b,8,s.replicated?2U:1U);put32(b,12,slot);put64(b,16,s.generation);
   put64(b,24,s.end);put64(b,32,index_offset);put32(b,40,static_cast<std::uint32_t>(index.size()));
   put32(b,44,static_cast<std::uint32_t>(s.entries.size()));copy_field(b,48,s.id);
   copy_field(b,64,detail::record_digest(index));
+  if(s.replicated){put64(b,96,s.peer_index_offset);put64(b,104,s.checkpoint_generation);}
   copy_field(b,kRootBytes-32,detail::record_digest(std::span<const std::byte>(b).first(kRootBytes-32)));
   return b;
 }
@@ -98,21 +103,38 @@ struct Root {
   std::uint64_t generation=0,end=0,index=0;
   std::uint32_t index_bytes=0,count=0;
   Digest digest{};
+  bool replicated=false;
+  std::uint64_t peer_index=0,checkpoint_generation=0;
 };
 std::optional<Root> read_root(StoreByteIo& image,unsigned slot,std::uint64_t extent) {
   Bytes b(kRootBytes);image.read_exact(slot*kStoreCommitUnit,b);
   if(field<32>(b,kRootBytes-32)!=detail::record_digest(std::span<const std::byte>(b).first(kRootBytes-32))) return {};
   // A valid digest with unsupported/invalid semantics is not a torn candidate.
   // Refuse it explicitly rather than silently rolling back to an older root.
-  if(!magic(b,kRootMagic) || get32(b,8)!=1) fail("unsupported intact root format");
-  if(get32(b,12)!=slot || !zero(std::span<const std::byte>(b).subspan(96,kRootBytes-32-96)))
+  const auto format=get32(b,8);
+  if(!magic(b,kRootMagic) || (format!=1 && format!=2)) fail("unsupported intact root format");
+  const auto reserved=format==2?112U:96U;
+  if(get32(b,12)!=slot || !zero(std::span<const std::byte>(b).subspan(reserved,kRootBytes-32-reserved)))
     fail("intact root identity/reserved fields invalid");
   Root r{field<16>(b,48),get64(b,16),get64(b,24),get64(b,32),get32(b,40),get32(b,44),field<32>(b,64)};
+  r.replicated=format==2;
+  if(r.replicated){r.peer_index=get64(b,96);r.checkpoint_generation=get64(b,104);}
   if(!nonzero(r.id) || (r.generation && r.generation%2!=slot) ||
       r.end<kDataStart+kStoreCommitUnit || r.end>extent || r.end>kStoreMaxPhysicalBytes ||
       r.end%kStoreCommitUnit || r.count>kStoreMaxObjects ||
       r.index_bytes!=kManifestHeader+r.count*kEntryBytes || r.index<kDataStart ||
       r.index>r.end || r.index_bytes>r.end-r.index) fail("intact root fields outside resource/format limits");
+  if(r.replicated) {
+    const auto low=(std::min)(r.index,r.peer_index),high=(std::max)(r.index,r.peer_index);
+    if(!r.checkpoint_generation || r.checkpoint_generation==(std::numeric_limits<std::uint64_t>::max)() ||
+        (r.generation!=r.checkpoint_generation && r.generation!=r.checkpoint_generation+1) ||
+        low<kDataStart || r.peer_index>r.end || r.index_bytes>r.end-r.peer_index ||
+        low%kStoreCommitUnit || high%kStoreCommitUnit ||
+        high-low!=kStoreCommitUnit || high+kStoreCommitUnit!=r.end ||
+        r.index_bytes>kStoreCommitUnit ||
+        (r.generation==r.checkpoint_generation ? r.index!=low : r.index!=high))
+      fail("intact replicated root layout/generation invalid");
+  }
   return r;
 }
 State load(std::shared_ptr<StoreByteIo> image) {
@@ -131,13 +153,46 @@ State load(std::shared_ptr<StoreByteIo> image) {
   const auto& r=choose_a ? *a : *b;
   State s{std::move(image),r.id,r.generation,r.end,{},!(a && b)};
   s.index_offset=r.index;s.selected_slot=choose_a?0U:1U;
-  Bytes index(r.index_bytes);s.image->read_exact(r.index,index);
-  if(detail::record_digest(index)!=r.digest) fail("latest root has corrupt manifest; refusing silent rollback");
+  s.replicated=r.replicated;s.peer_index_offset=r.peer_index;s.checkpoint_generation=r.checkpoint_generation;
+  const auto& other=choose_a?b:a;
+  if(!r.replicated && other && other->replicated)fail("intact checkpoint format downgrade");
+  auto candidate=[&](std::uint64_t at,std::uint64_t generation)->std::optional<Bytes> {
+    Bytes bytes(r.index_bytes);
+    try{s.image->read_exact(at,bytes);}
+    catch(const std::bad_alloc&){throw;}
+    catch(const std::exception&){return {};}
+    if(get64(bytes,16)!=generation)return {};
+    put64(bytes,16,r.generation);
+    if(detail::record_digest(bytes)!=r.digest)return {};
+    return bytes;
+  };
+  Bytes index;
+  if(!r.replicated) {
+    index.resize(r.index_bytes);s.image->read_exact(r.index,index);
+    if(detail::record_digest(index)!=r.digest)fail("latest root has corrupt manifest; refusing silent rollback");
+  } else {
+    const auto peer_generation=r.generation==r.checkpoint_generation?r.checkpoint_generation+1:r.checkpoint_generation;
+    auto own=candidate(r.index,r.generation),peer=candidate(r.peer_index,peer_generation);
+    if(!own && !peer)fail("both current manifest replicas invalid; refusing older checkpoint");
+    index=own?std::move(*own):std::move(*peer);
+    const bool paired=other && other->replicated &&
+        other->checkpoint_generation==r.checkpoint_generation &&
+        other->index==r.peer_index && other->peer_index==r.index &&
+        other->end==r.end && other->count==r.count && other->index_bytes==r.index_bytes;
+    if(other && r.generation!=r.checkpoint_generation && !paired)
+      fail("conflicting intact replicated root pair");
+    if(paired) {
+      auto matching=index;put64(matching,16,other->generation);
+      if(detail::record_digest(matching)!=other->digest)fail("replicated roots name different object sets");
+    }
+    s.degraded_checkpoint=!paired || !own || !peer;
+  }
   if(!magic(index,kIndexMagic) || get32(index,8)!=1 || get32(index,12)!=r.count ||
       get64(index,16)!=r.generation || field<16>(index,32)!=r.id ||
       !zero(std::span<const std::byte>(index).subspan(48,16))) fail("manifest identity/framing");
   s.entries.reserve(r.count);
   std::uint64_t total=0,previous=0;
+  const auto data_limit=r.replicated?(std::min)(r.index,r.peer_index):r.index;
   for(std::size_t i=0;i<r.count;++i) {
     const auto at=kManifestHeader+i*kEntryBytes;
     Entry e{get64(index,at),get64(index,at+8),get64(index,at+16),get32(index,at+24),0,field<32>(index,at+32)};
@@ -146,7 +201,7 @@ State load(std::shared_ptr<StoreByteIo> image) {
     e.stored=record_bytes-static_cast<std::uint32_t>(kDataHeader);
     if(!e.id || e.id<=previous || !e.generation || e.generation>r.generation ||
         e.bytes>kStoreMaxObjectBytes ||
-        e.offset<kDataStart || e.offset>r.index || kDataHeader+e.stored>r.index-e.offset)
+        e.offset<kDataStart || e.offset>data_limit || kDataHeader+e.stored>data_limit-e.offset)
       fail("manifest entry extent or ordering");
     total+=e.bytes;previous=e.id;s.entries.push_back(e);
   }
@@ -182,6 +237,8 @@ Bytes read_object(const State& s,const Entry& e) {
 bool same_state(const State& a,const State& b) {
   if(a.id!=b.id || a.generation!=b.generation || a.end!=b.end ||
       a.index_offset!=b.index_offset || a.selected_slot!=b.selected_slot || a.degraded!=b.degraded ||
+      a.replicated!=b.replicated || a.degraded_checkpoint!=b.degraded_checkpoint ||
+      a.peer_index_offset!=b.peer_index_offset || a.checkpoint_generation!=b.checkpoint_generation ||
       a.entries.size()!=b.entries.size())return false;
   for(std::size_t i=0;i<a.entries.size();++i) {
     const auto& x=a.entries[i];const auto& y=b.entries[i];
@@ -197,6 +254,39 @@ void write_zeros(StoreByteIo& image,std::uint64_t offset,std::uint64_t end) {
     const auto count=static_cast<std::size_t>((std::min)(end-offset,std::uint64_t(zeroes.size())));
     image.write_exact(offset,std::span<const std::byte>(zeroes).first(count));offset+=count;
   }
+}
+
+struct ReplicatedPlan {
+  State first,last;
+  Bytes first_index,last_index,first_root,last_root;
+  std::uint64_t data_end=0;
+};
+ReplicatedPlan replicated_plan(State first,std::uint64_t data_end) {
+  if(first.generation==0 || first.generation==(std::numeric_limits<std::uint64_t>::max)())
+    fail("replicated checkpoint generation exhausted");
+  first.replicated=true;first.degraded=false;first.degraded_checkpoint=false;
+  first.checkpoint_generation=first.generation;
+  first.index_offset=aligned(data_end);first.peer_index_offset=first.index_offset+kStoreCommitUnit;
+  first.end=first.peer_index_offset+kStoreCommitUnit;
+  if(first.end>kStoreMaxPhysicalBytes)fail("replicated checkpoint physical history budget");
+  first.selected_slot=static_cast<unsigned>(first.generation%2);
+  State last=first;++last.generation;std::swap(last.index_offset,last.peer_index_offset);
+  last.selected_slot=static_cast<unsigned>(last.generation%2);
+  auto a=manifest(first),b=manifest(last);
+  auto x=root(first,first.selected_slot,first.index_offset,a),y=root(last,last.selected_slot,last.index_offset,b);
+  return {std::move(first),std::move(last),std::move(a),std::move(b),std::move(x),std::move(y),data_end};
+}
+void publish_replicated(const ReplicatedPlan& plan,StoreByteIo& image) {
+  write_zeros(image,plan.data_end,plan.first.index_offset);
+  image.write_exact(plan.first.index_offset,plan.first_index);
+  write_zeros(image,plan.first.index_offset+plan.first_index.size(),plan.last.index_offset);
+  image.write_exact(plan.last.index_offset,plan.last_index);
+  write_zeros(image,plan.last.index_offset+plan.last_index.size(),plan.last.end);
+  image.flush();
+  image.write_exact(plan.first.selected_slot*kStoreCommitUnit,plan.first_root);
+  image.flush();
+  image.write_exact(plan.last.selected_slot*kStoreCommitUnit,plan.last_root);
+  image.flush();
 }
 }
 
@@ -280,17 +370,21 @@ ObjectStoreWriter ObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,S
     image->flush();
     if(image->extent()!=observed_extent) fail("backend extent changed during recovery fence");
     auto checked=load(image);verify(checked);
-    bool same=checked.id==state.id && checked.generation==state.generation && checked.end==state.end &&
-        checked.index_offset==state.index_offset && checked.selected_slot==state.selected_slot && checked.degraded==state.degraded &&
-        checked.entries.size()==state.entries.size();
-    if(same)for(std::size_t i=0;i<state.entries.size();++i) {
-      const auto& a=checked.entries[i];const auto& b=state.entries[i];
-      same=same && a.id==b.id && a.generation==b.generation && a.offset==b.offset &&
-          a.bytes==b.bytes && a.stored==b.stored && a.digest==b.digest;
-    }
-    if(!same) fail("backend recovery state changed during fence");
+    if(!same_state(checked,state))fail("backend recovery state changed during fence");
     state=std::move(checked);
   };
+  if(state.replicated && state.degraded_checkpoint) {
+    if(state.generation>(std::numeric_limits<std::uint64_t>::max)()-2)fail("replicated repair generation exhausted");
+    State first=state;++first.generation;
+    const auto plan=replicated_plan(std::move(first),p->append_floor);
+    image->admit_write(plan.last.end);
+    fence();
+    publish_replicated(plan,*image);
+    p->state=load(image);verify(p->state);
+    if(!same_state(p->state,plan.last))fail("replicated repair did not restore a complete checkpoint");
+    p->append_floor=aligned(image->extent());
+    return ObjectStoreWriter(std::move(p));
+  }
   if(!state.degraded) {
     // A complete latest root may have been visible before its failed final
     // flush. Adopt it only after fencing all prior backend writes durably.
@@ -376,10 +470,8 @@ ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot
   }
   std::uint64_t cursor=kDataStart;
   for(auto& e:baseline.entries){e.offset=cursor;cursor+=kDataHeader+e.stored;}
-  const auto index_bytes=kManifestHeader+kEntryBytes*baseline.entries.size();
-  baseline.index_offset=cursor;baseline.selected_slot=static_cast<unsigned>(baseline.generation%2);
-  baseline.end=aligned(cursor+2*index_bytes);
-  if(baseline.end>kStoreMaxPhysicalBytes)fail("compaction physical budget");
+  auto plan=replicated_plan(baseline,cursor);
+  baseline.end=plan.last.end;
   target->admit_write(baseline.end);
   // Failure before publication leaves only a partial NEW destination. Keep a
   // single record payload in scratch, rather than the whole live volume.
@@ -406,23 +498,13 @@ ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot
   auto checked=load(original.image);verify(checked);
   if(original.image->extent()!=source_extent || !same_state(original,checked))
     fail("compaction source changed during copy");
-  const auto first=manifest(baseline);
-  State newest=baseline;++newest.generation;newest.index_offset=baseline.index_offset+first.size();
-  newest.selected_slot=static_cast<unsigned>(newest.generation%2);
-  const auto second=manifest(newest);
-  const auto first_root=root(baseline,baseline.selected_slot,baseline.index_offset,first);
-  const auto second_root=root(newest,newest.selected_slot,newest.index_offset,second);
-  target->admit_write(newest.end);
-  target->write_exact(baseline.index_offset,first);
-  target->write_exact(newest.index_offset,second);
-  write_zeros(*target,newest.index_offset+second.size(),newest.end);
-  target->flush();
-  target->write_exact(baseline.selected_slot*kStoreCommitUnit,first_root);
-  target->flush(); // A complete baseline survives damage to the peer root.
-  target->write_exact(newest.selected_slot*kStoreCommitUnit,second_root);
-  target->flush();
+  // Record digests were rebound while streaming; finish the replica plan only
+  // after those exact digests are known, before publishing any locator.
+  plan=replicated_plan(std::move(baseline),cursor);
+  target->admit_write(plan.last.end);
+  publish_replicated(plan,*target);
   p->state=load(target);verify(p->state);
-  if(!same_state(p->state,newest))fail("compaction publication readback differs");
+  if(!same_state(p->state,plan.last))fail("compaction publication readback differs");
   p->append_floor=p->state.end;
   return ObjectStoreWriter(std::move(p));
 }
@@ -432,6 +514,12 @@ ObjectStoreWriter ObjectStoreWriter::create_file(const std::filesystem::path& pa
   return create(detail::new_store_file(path,c),id,compression);
 }
 StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes) {
+  return commit_impl(changes,impl_ && impl_->state.replicated);
+}
+StoreCommitInfo ObjectStoreWriter::commit_replicated(std::span<const StoreMutation> changes) {
+  return commit_impl(changes,true);
+}
+StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> changes,bool replicated) {
   if(!impl_) fail("moved-from writer");
   if(impl_->poisoned) fail("writer poisoned; destroy it before independent recovery");
   if(changes.empty() || changes.size()>kStoreMaxObjects) fail("mutation count must be 1..256");
@@ -444,7 +532,7 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
     if(input_bytes>kStoreMaxTransactionBytes) fail("transaction memory budget");
   }
   const auto& old=impl_->state;
-  if(old.generation==(std::numeric_limits<std::uint64_t>::max)()) fail("generation exhausted");
+  if(old.generation>(std::numeric_limits<std::uint64_t>::max)()-(replicated?2U:1U)) fail("generation exhausted");
   // Admit the FINAL inventory before compression/private payload copies. Puts
   // may precede erases in the supplied batch without transient count failures.
   auto count=old.entries.size();auto logical=state_info(old).logical_bytes;
@@ -458,6 +546,16 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
   if(count>kStoreMaxObjects)fail("object-count budget");
   if(logical>kStoreMaxLogicalBytes)fail("live decoded-byte budget");
   old.image->admit_write(impl_->append_floor); // Admit headroom before private copies or codec work.
+  if(replicated) {
+    // A newly lost root must not turn the next peer write into destruction of
+    // the sole survivor. Recheck metadata, not all unchanged data payloads.
+    try {
+      const auto checked=load(old.image);
+      if(!same_state(checked,old) || checked.degraded_checkpoint)
+        fail("checkpoint changed/degraded; independent recovery required");
+    }catch(const std::bad_alloc&){throw;}
+    catch(const std::exception&){impl_->poisoned=true;throw;}
+  }
   State next=old;next.generation++;next.degraded=false;
   struct Prepared {std::uint64_t offset;std::array<std::byte,kDataHeader> header;Bytes data;};
   std::vector<Prepared> prepared;prepared.reserve(changes.size());
@@ -483,6 +581,19 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
     cursor+=kDataHeader+record.data.size();prepared.push_back(std::move(record));
   }
   if(next.entries.size()>kStoreMaxObjects) fail("object-count budget");
+  if(replicated) {
+    auto plan=replicated_plan(std::move(next),cursor);
+    plan.last.image->admit_write(plan.last.end);
+    try {
+      for(const auto& p:prepared) {
+        plan.last.image->write_exact(p.offset,p.header);
+        if(!p.data.empty())plan.last.image->write_exact(p.offset+kDataHeader,p.data);
+      }
+      publish_replicated(plan,*plan.last.image);
+    }catch(...){impl_->poisoned=true;throw;}
+    impl_->state=std::move(plan.last);impl_->append_floor=impl_->state.end;
+    return state_info(impl_->state);
+  }
   const auto index=manifest(next);
   const auto index_offset=cursor;next.index_offset=index_offset;
   next.selected_slot=static_cast<unsigned>(next.generation%2);
@@ -513,6 +624,7 @@ ObjectStoreSnapshot ObjectStoreWriter::snapshot() const {
   if(!impl_) fail("moved-from writer");
   auto p=std::make_unique<ObjectStoreSnapshot::Impl>();p->state=impl_->state;
   p->state.degraded=p->state.degraded || impl_->poisoned;
+  p->state.degraded_checkpoint=p->state.degraded_checkpoint || (p->state.replicated && impl_->poisoned);
   verify(p->state);return ObjectStoreSnapshot(std::move(p));
 }
 bool ObjectStoreWriter::poisoned() const noexcept { return !impl_ || impl_->poisoned; }

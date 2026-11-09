@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Verify pinned digest source
@@ -32,7 +32,7 @@ jobs:
       - name: Verify filesystem product boundary
         run: python tools/ci/verify_filesystem_scope.py
       - name: Check out pinned CPU compression source
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: meta/zstd
           ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
@@ -43,7 +43,7 @@ jobs:
       - name: Force writer termination and independently continue recovered images
         run: python tools/ci/probe_store_interruptions.py --output "${{ runner.temp }}/native-store-interruptions.json"
       - name: Retain exact-commit recovery evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: store-interruptions-${{ matrix.os }}-${{ github.sha }}
           path: ${{ runner.temp }}/native-store-interruptions.json

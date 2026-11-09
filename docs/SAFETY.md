@@ -241,3 +241,14 @@ bounded debt, isolated cancellation and evidence-aware GPU recovery. No such
 executor is enabled yet. Redundant repair must preserve acknowledged history and
 stop when a safe reconstruction cannot be verified. No universal immunity to
 future bugs/media failure or loss of all copies is claimed.
+
+## Replicated current-checkpoint boundary
+
+Native writes and positive compacted copies now use the replicated metadata
+protocol in REPLICATED_CHECKPOINTS.md. A surviving current root/manifest can
+recover the same latest acknowledged object set after one root/catalog unit
+loss; independent resume restores redundancy before further mutation. A health
+preflight prevents overwriting a sole survivor after unnoticed metadata loss.
+Legacy generic mode has its older fault envelope. Data payload replicas and
+physical/device/GPU/background-maintenance qualification remain unimplemented.
+All extra metadata, padding, barriers and history consume the stated budgets.

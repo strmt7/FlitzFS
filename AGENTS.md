@@ -183,3 +183,27 @@ acknowledged transaction. Fresh compaction roots have identical contents;
 ordinary historical roots can differ. Preserve that distinction in recovery
 oracles and qualify replicated current-commit/acknowledgement state before
 claiming arbitrary-root/media self-healing.
+
+## Replicated current-checkpoint boundary
+
+Read docs/REPLICATED_CHECKPOINTS.md before changing root format 2, native commit
+publication, peer-manifest admission or repair. Preserve legacy raw-mode bytes
+and reads; upgraded commits are sticky. Native writable admission uses two
+current roots, separate catalog units, three barriers and pre-write metadata
+health fencing. Repair may only use the bound SAME object set, must append
+beyond uncertain tails, and must retain every acknowledged byte. Both-copy or
+payload loss must fail rather than fabricate or silently select older contents.
+Checkpoint generation is a publication-group identity, not namespace sequence.
+Keep current 1024-case/256-event/3-MiB-combined-fixture hosted caps and existing
+process CPU/memory/time bounds. This is metadata replication, not generic data-
+replica self-healing or permission for owner-PC execution.
+
+## Dependency freshness and alerts
+
+Read docs/DEPENDENCY_AUDIT.md. The owner requires latest compatible dependency,
+package and tool versions and a real Dependabot alert check. Use official native
+release/tag identities and immutable reviewed pins; preserve historical benchmark
+oracles. Test upgrades off-host. Unknown access, missing pages or a token-scope
+failure is NOT a zero-alert result. Capture and disclose it; never print tokens,
+change unrelated provider registrations or modify owner-PC tools. Remaining
+compiler/CMake/runtime/transitive-provider work must not be labelled complete.

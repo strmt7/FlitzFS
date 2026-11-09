@@ -700,6 +700,139 @@ void compaction_faults() {
   }
 }
 
+
+void replicated_contents(const ObjectStoreSnapshot& snapshot,bool more=false) {
+  require(snapshot.list().size()==(more?3U:2U),"replicated namespace partial");
+  require(snapshot.read(1)==bytes(128,3) && snapshot.read(3)==bytes(257,4),"latest replicated acknowledgement lost");
+  rejects([&]{(void)snapshot.read(2);},"replicated deletion rolled back");
+  if(more)require(snapshot.read(99)==bytes(23,91),"replicated continuation lost");
+}
+void replicated_media_recovery() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    const StoreCompressionOptions options{mode,6,false};
+    auto ram=std::make_shared<Ram>();std::optional<ObjectStoreSnapshot> old;
+    {
+      auto writer=ObjectStoreWriter::create(ram,identity(),options);
+      require(writer.commit_replicated(initial()).generation==2,"first replicated publication generation");
+      old.emplace(writer.snapshot());
+      const auto committed=writer.commit(updated()); // Sticky protection on ordinary commit.
+      require(committed.generation==4 && committed.checkpoint_generation==3 &&
+          committed.replicated_checkpoint && !committed.degraded_checkpoint,"replication downgrade or invalid checkpoint identity");
+    }
+    const auto acknowledged=ram->stable;auto latest=ObjectStoreSnapshot::open(ram);
+    replicated_contents(latest);
+    const auto root=static_cast<std::size_t>((latest.info().generation%2)*kStoreCommitUnit);
+    const std::array<std::uint64_t,4> units{{0,kStoreCommitUnit,u64(acknowledged,root+32),u64(acknowledged,root+96)}};
+    require(units[2]!=units[3] && units[2]%kStoreCommitUnit==0 && units[3]%kStoreCommitUnit==0,"metadata replicas share a failure unit");
+    for(const auto unit:units) {
+      auto damaged=image(acknowledged);
+      std::fill_n(damaged->live.begin()+static_cast<std::ptrdiff_t>(unit),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+      auto survivor=ObjectStoreSnapshot::open(damaged);replicated_contents(survivor);
+      require(survivor.info().replicated_checkpoint && survivor.info().degraded_checkpoint &&
+          survivor.info().checkpoint_generation==latest.info().checkpoint_generation,"replica loss not explicitly reported");
+      {
+        auto writer=ObjectStoreWriter::resume(damaged,identity(),survivor.info().generation,options);
+        auto repaired=writer.snapshot();replicated_contents(repaired);
+        require(!repaired.info().degraded_root && !repaired.info().degraded_checkpoint &&
+            repaired.info().replicated_checkpoint,"replicated resume did not restore redundancy");
+        if(unit>=2*kStoreCommitUnit)
+          require(std::all_of(damaged->live.begin()+static_cast<std::ptrdiff_t>(unit),
+              damaged->live.begin()+static_cast<std::ptrdiff_t>(unit+kStoreCommitUnit),
+              [](auto byte){return byte==std::byte{0};}),"repair overwrote the damaged catalog instead of appending");
+        const StoreMutation more{99,false,bytes(23,91)};writer.commit({&more,1});
+      }
+      auto reopened=ObjectStoreSnapshot::open(image(damaged->stable));replicated_contents(reopened,true);
+      // Every current acknowledgement survives either root OR either catalog,
+      // including after repair followed by a different transaction.
+      const auto at=static_cast<std::size_t>((reopened.info().generation%2)*kStoreCommitUnit);
+      const std::array<std::uint64_t,4> next{{0,kStoreCommitUnit,u64(damaged->stable,at+32),u64(damaged->stable,at+96)}};
+      for(const auto lost:next) {
+        auto copy=damaged->stable;
+        std::fill_n(copy.begin()+static_cast<std::ptrdiff_t>(lost),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+        replicated_contents(ObjectStoreSnapshot::open(image(std::move(copy))),true);
+      }
+    }
+    require(old->read(1)==bytes(97,1) && old->read(2)==bytes(33,2),"replicated publication invalidated old snapshot");
+    for(bool roots:{false,true}) {
+      auto lost=acknowledged;
+      const auto a=roots?0:units[2],b=roots?kStoreCommitUnit:units[3];
+      std::fill_n(lost.begin()+static_cast<std::ptrdiff_t>(a),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+      std::fill_n(lost.begin()+static_cast<std::ptrdiff_t>(b),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+      rejects([&]{(void)ObjectStoreSnapshot::open(image(lost));},"lost both current replicas but accepted older history");
+    }
+    auto data_lost=acknowledged;const auto index=static_cast<std::size_t>(u64(data_lost,root+32));
+    const auto record=static_cast<std::size_t>(u64(data_lost,index+64+16));data_lost[record+128]^=std::byte{1};
+    rejects([&]{(void)ObjectStoreSnapshot::open(image(data_lost));},"metadata mirroring fabricated missing payload");
+    for(unsigned field=0;field<4;++field) {
+      auto bad=acknowledged;
+      if(field==0)put64(bad,root+96,u64(bad,root+32));
+      if(field==1)put64(bad,root+104,0);
+      if(field==2)bad[root+112]=std::byte{1};
+      if(field==3)put32(bad,root+8,3);
+      root_digest(bad,root);
+      rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"intact unsupported replica semantics accepted");
+    }
+  }
+}
+void replicated_faults_and_fencing() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    const StoreCompressionOptions options{mode,6,false};
+    auto seed=std::make_shared<Ram>();
+    {auto writer=ObjectStoreWriter::create(seed,identity(),options);writer.commit_replicated(initial());}
+    const auto baseline=seed->stable;
+    auto probe=image(baseline);
+    {
+      auto writer=ObjectStoreWriter::resume(probe,identity(),2,options);probe->calls=0;writer.commit(updated());
+    }
+    const auto steps=probe->calls;
+    for(unsigned fault=0;fault<3;++fault)for(std::size_t step=0;step<steps;++step) {
+      auto ram=image(baseline);ram->stable=baseline;
+      {
+        auto writer=ObjectStoreWriter::resume(ram,identity(),2,options);
+        ram->calls=0;ram->fail_call=step;ram->failure=fault;
+        rejects([&]{writer.commit(updated());},"replicated write fault not propagated");
+        require(writer.poisoned(),"replicated I/O failure not terminal");
+      }
+      auto recovered=image(ram->stable);auto snapshot=ObjectStoreSnapshot::open(recovered);
+      if(snapshot.info().checkpoint_generation==1)
+        require(snapshot.read(1)==bytes(97,1) && snapshot.read(2)==bytes(33,2),"old replicated acknowledgement lost");
+      else {
+        require(snapshot.info().checkpoint_generation==3,"fabricated replicated checkpoint");
+        replicated_contents(snapshot);
+      }
+      auto writer=ObjectStoreWriter::resume(recovered,identity(),snapshot.info().generation,options);
+      require(!writer.snapshot().info().degraded_checkpoint,"interrupted publication did not recover redundancy");
+    }
+    // Fence an unnoticed root loss before touching the remaining locator.
+    auto ram=image(baseline);
+    {
+      auto writer=ObjectStoreWriter::resume(ram,identity(),2,options);
+      std::fill_n(ram->live.begin(),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+      const auto calls=ram->calls;
+      rejects([&]{writer.commit(updated());},"replicated writer overwrote a sole surviving root");
+      require(writer.poisoned() && ram->calls==calls,"checkpoint health fence wrote before recovery");
+      require(writer.snapshot().read(2)==bytes(33,2),"fenced writer lost cached acknowledged objects");
+    }
+    auto survivor=ObjectStoreSnapshot::open(ram);
+    {auto writer=ObjectStoreWriter::resume(ram,identity(),survivor.info().generation,options);
+      require(writer.snapshot().read(2)==bytes(33,2),"root-loss recovery lost acknowledgement");}
+    // Inject every repair write/flush failure after selected catalog loss.
+    auto damaged=baseline;const auto catalog=u64(damaged,32);
+    std::fill_n(damaged.begin()+static_cast<std::ptrdiff_t>(catalog),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+    auto repair_probe=image(damaged);
+    {auto writer=ObjectStoreWriter::resume(repair_probe,identity(),2,options);}
+    const auto repair_steps=repair_probe->calls;
+    for(unsigned fault=0;fault<3;++fault)for(std::size_t step=0;step<repair_steps;++step) {
+      auto broken=image(damaged);broken->stable=damaged;broken->failure=fault;broken->fail_call=step;
+      rejects([&]{(void)ObjectStoreWriter::resume(broken,identity(),2,options);},"replicated repair fault not propagated");
+      auto disk=image(broken->stable);auto remaining=ObjectStoreSnapshot::open(disk);
+      require(remaining.read(1)==bytes(97,1) && remaining.read(2)==bytes(33,2),"failed repair lost acknowledged contents");
+      auto writer=ObjectStoreWriter::resume(disk,identity(),remaining.info().generation,options);
+      require(writer.snapshot().info().replicated_checkpoint && !writer.snapshot().info().degraded_checkpoint,"repair retry did not restore replicas");
+    }
+  }
+}
+
 void history_cap() {
   auto ram=std::make_shared<Sparse>();auto writer=ObjectStoreWriter::create(ram,identity());
   const StoreMutation empty{1,false,{}};
@@ -712,7 +845,7 @@ void history_cap() {
 }
 int main() {
   try {
-    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();compacted_copies();compaction_faults();history_cap();
+    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();compacted_copies();compaction_faults();replicated_media_recovery();replicated_faults_and_fencing();history_cap();
     std::cout<<"PASS: "<<checks<<" object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\n";
     return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
