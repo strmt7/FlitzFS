@@ -2,11 +2,12 @@
 #include "bounded_process.hpp"
 #include "flitzfs/worker_wire.hpp"
 #include <memory>
+#include <exception>
 #include <span>
 #include <string_view>
 
 namespace flitzfs {
-enum class WorkerExchangeCode { completed, worker_failed, timed_out, exit_unconfirmed, invalid_response };
+enum class WorkerExchangeCode { completed, worker_failed, timed_out, cancelled, exit_unconfirmed, invalid_response, supervisor_failed };
 struct WorkerExchangeResult {
   WorkerExchangeCode code = WorkerExchangeCode::invalid_response;
   ProcessResult process;
@@ -23,6 +24,42 @@ struct WorkerExchangeResult {
 WorkerExchangeResult run_worker_exchange(const std::filesystem::path& helper,
     const std::vector<std::wstring>& arguments, std::span<const std::byte> request,
     ProcessBudget budget = {});
+
+// Explicit asynchronous transport for a supervisor/controller, never an
+// automatic filesystem/driver route. Polling results and selecting a separate
+// GpuResultGate CPU fallback do not wait for or clean up a helper.
+// Abandoning this object detaches ownership, NOT the process: the bounded
+// supervisor retains request/mappings/process identity and the admission lease
+// until exact-child retirement. No second session/thread is queued.
+class WorkerExchangeSession final {
+ public:
+  static WorkerExchangeSession start(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments, std::span<const std::byte> request,
+      ProcessBudget budget = {});
+  ~WorkerExchangeSession();
+  WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
+  WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;
+  WorkerExchangeSession(const WorkerExchangeSession&) = delete;
+  WorkerExchangeSession& operator=(const WorkerExchangeSession&) = delete;
+  // Immutable after publication. nullptr means pending; a ready reply flag
+  // inside the child mapping never authorizes a live-process result.
+  const WorkerExchangeResult* try_result() const noexcept;
+  std::exception_ptr failure() const noexcept;
+  bool retirement_confirmed() const noexcept;
+  std::uint32_t process_id() const noexcept;
+  // Signals only. TerminateJobObject and exit waits run on the supervisor.
+  bool request_cancel() const noexcept;
+  // Diagnostic/controller admission only; zero-time thread observation, no
+  // blocking wait, discovery scan or automatic retry.
+  static bool available() noexcept;
+ private:
+  struct Impl;
+  explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
+  WorkerExchangeResult wait_result(); // Legacy synchronous adapter only.
+  friend WorkerExchangeResult run_worker_exchange(const std::filesystem::path&,
+      const std::vector<std::wstring>&, std::span<const std::byte>, ProcessBudget);
+  std::unique_ptr<Impl> impl_;
+};
 
 // Child endpoint. The parent appends --worker-channel TOKEN to the supplied
 // helper arguments. TOKEN is exactly 32 lowercase hex digits, not a pathname.

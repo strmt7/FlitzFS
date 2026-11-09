@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace {
 using namespace flitzfs;
@@ -124,6 +125,82 @@ PreparedGpuBatch mixed() {
   for(const auto& b:blocks)views.push_back({b.kind,b.fill,static_cast<std::uint32_t>(b.plain.size()),b.encoded});
   return PreparedGpuBatch::prepare(views);
 }
+
+template<class Predicate> void eventually(Predicate&& predicate,DWORD milliseconds,const char* why) {
+  const auto start=GetTickCount64();
+  while(!predicate()) {
+    check(GetTickCount64()-start<milliseconds,why);
+    Sleep(5); // Bounded fixture synchronization, never a production retry policy.
+  }
+}
+GpuMemorySnapshot synthetic_memory(std::array<std::byte,8> luid) {
+  GpuMemorySnapshot memory;
+  memory.luid=luid;memory.node_mask=1;memory.captured_ms=100;
+  memory.dedicated_bytes=memory.local_budget=1024ULL*1024*1024;
+  memory.local_usage=16ULL*1024*1024;memory.valid=memory.amd_hardware=true;
+  return memory; // Explicit test evidence. No real adapter telemetry is queried.
+}
+void asynchronous_fallback(const std::filesystem::path& executable) {
+  std::array<std::byte,8> luid{};luid[0]=std::byte{1};
+  GpuResultGate gate(mixed(),luid,1);
+  const auto attempt=gate.begin(true,synthetic_memory(luid),100);
+  check(attempt.code==GpuGateCode::admitted,"synthetic gate admission");
+  const auto request=encode_worker_request(gate.batch(),attempt.generation);
+  ProcessBudget budget;budget.timeout_ms=5000;
+  auto session=WorkerExchangeSession::start(executable,{L"publish-hang"},request,budget);
+  check(!WorkerExchangeSession::available(),"active asynchronous worker lost admission lease");
+  eventually([&]{return session.process_id()!=0 || session.try_result();},2000,"asynchronous child did not start");
+  check(session.process_id()!=0 && !session.try_result(),"hanging helper returned before fallback fixture");
+  HANDLE child=OpenProcess(SYNCHRONIZE,FALSE,session.process_id());
+  check(child!=nullptr,"fixture exact live child observation");
+  struct CloseChild {HANDLE value;~CloseChild(){CloseHandle(value);}} close{child};
+  check(WaitForSingleObject(child,0)==WAIT_TIMEOUT,"helper already exited before CPU selection");
+  const auto cpu=gate.use_cpu_fallback();
+  check(gate.state()==GpuGateState::poisoned &&
+      std::equal(cpu.begin(),cpu.end(),gate.batch().cpu_reference().begin()),
+      "asynchronous CPU fallback changed verified bytes");
+  // This proves selection did not wait for teardown, without a noisy latency
+  // threshold: the exact helper is STILL alive after CPU bytes are available.
+  check(WaitForSingleObject(child,0)==WAIT_TIMEOUT && !session.try_result(),
+      "CPU fallback waited for the helper to exit");
+  for(unsigned i=0;i<16;++i)
+    rejects([&]{(void)WorkerExchangeSession::start(executable,{L"ok"},request);});
+  rejects([&]{(void)run_worker_exchange(executable,{L"ok"},request);});
+  check(session.request_cancel(),"asynchronous cancellation signal");
+  eventually([&]{return session.try_result()!=nullptr;},4000,"cancelled helper did not return");
+  const auto* result=session.try_result();
+  check(result && result->code==WorkerExchangeCode::cancelled &&
+      result->process.cancelled && !result->process.timed_out &&
+      result->process.exit_confirmed && result->response.empty() && !session.failure(),
+      "cancelled candidate escaped or exit was unconfirmed");
+  eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},
+      2000,"confirmed asynchronous retirement did not release admission");
+  check_closed(*result);
+  GpuBatchReply late{attempt.generation,Bytes(cpu.begin(),cpu.end()),
+      std::vector<std::uint32_t>(gate.batch().tasks().size(),gpu_detail::success)};
+  check(gate.complete(std::move(late),synthetic_memory(luid),101)==GpuGateCode::wrong_state &&
+      gate.state()==GpuGateState::poisoned,"late result reopened CPU-selected gate");
+  std::cout<<"PASS: verified CPU bytes became available while the exact helper remained live; cancellation ran separately.\n";
+}
+void abandoned_session(const std::filesystem::path& executable,const std::vector<std::byte>& request) {
+  HANDLE child=nullptr;
+  {
+    ProcessBudget budget;budget.timeout_ms=2000;
+    auto session=WorkerExchangeSession::start(executable,{L"publish-hang"},request,budget);
+    eventually([&]{return session.process_id()!=0 || session.try_result();},2000,"abandonment helper did not start");
+    check(session.process_id()!=0 && !session.try_result(),"abandonment fixture failed");
+    child=OpenProcess(SYNCHRONIZE,FALSE,session.process_id());
+    check(child!=nullptr && WaitForSingleObject(child,0)==WAIT_TIMEOUT,"abandonment child not live");
+  }
+  struct CloseChild {HANDLE value;~CloseChild(){CloseHandle(value);}} close{child};
+  check(WaitForSingleObject(child,0)==WAIT_TIMEOUT && !WorkerExchangeSession::available(),
+      "destroyed session waited or prematurely released worker ownership");
+  rejects([&]{(void)WorkerExchangeSession::start(executable,{L"ok"},request);});
+  eventually([&]{return WaitForSingleObject(child,0)==WAIT_OBJECT_0 && WorkerExchangeSession::available();},
+      5000,"abandoned helper was not supervised/retired");
+  std::cout<<"PASS: abandoned session retained supervision and blocked replacement until exact-child exit.\n";
+}
+
 }
 int wmain(int argc,wchar_t** argv){try{
   if(argc==4 && std::wstring_view(argv[2])==L"--worker-channel")return child(argv[1],argv[3]);
@@ -191,6 +268,37 @@ int wmain(int argc,wchar_t** argv){try{
   rejects([&]{run_worker_exchange(executable,{},oversized);});
   rejects([&]{run_worker_exchange(executable,std::vector<std::wstring>(15,L"arg"),request);});
   observe(L"argument-rejections");
+  {
+    auto original=WorkerExchangeSession::start(executable,{L"ok"},request);
+    auto moved=std::move(original);
+    check(!original.try_result() && !original.process_id() && !original.request_cancel(),
+        "moved-from session retained transport ownership");
+    eventually([&]{return moved.try_result()!=nullptr;},3000,"asynchronous success did not publish");
+    const auto* result=moved.try_result();
+    check(result && result->code==WorkerExchangeCode::completed && !moved.failure(),
+        "asynchronous successful child failed");
+    const auto reply=accept_worker_reply(result->response,batch,221,WorkerExecution::cpu_semantics);
+    check(reply.bytes==Bytes(batch.cpu_reference().begin(),batch.cpu_reference().end()),
+        "asynchronous actual byte parity");
+    eventually([&]{return moved.retirement_confirmed() && WorkerExchangeSession::available();},
+        2000,"successful asynchronous supervisor did not retire");
+    check_closed(*result);
+  }
+  observe(L"async-success");
+  asynchronous_fallback(executable);
+  observe(L"async-fallback");
+  abandoned_session(executable,request);
+  observe(L"async-abandoned");
+  {
+    auto failed=WorkerExchangeSession::start(executable.parent_path()/L"missing-flitzfs-worker.exe",{L"ok"},request);
+    eventually([&]{return failed.try_result()!=nullptr;},2000,"missing helper supervisor did not finish");
+    eventually([&]{return WorkerExchangeSession::available();},2000,"failed supervisor thread did not retire");
+    check(failed.try_result()->code==WorkerExchangeCode::supervisor_failed &&
+        failed.try_result()->response.empty() && failed.failure() &&
+        failed.retirement_confirmed() && WorkerExchangeSession::available(),
+        "supervisor failure was accepted or leaked admission");
+  }
+  observe(L"async-launch-failure");
   // Repeated complete transactions must not accumulate process handles or keep
   // either mapping alive. This is not a stress test: four tiny serial requests.
   for(unsigned i=0;i<4;++i) {

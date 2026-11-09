@@ -232,3 +232,12 @@ checks from check_portable_cpu.py on each OS. Static codec sources and Windows
 CRT settings must agree. CLI Windows OS paths use UTF-16 argv/explicit UTF-8
 conversion; POSIX native filename bytes must remain unchanged. These checks
 never install a driver, mount a volume or authorize owner-PC execution.
+
+The explicit Windows WorkerExchangeSession separates CPU fallback from process
+teardown. Preserve exact HANDLE observation, single-launch observers, creation-
+time job assignment, private stop events, one process/thread admission lease,
+continued supervision after abandonment, and immutable post-exit results.
+Replacement needs both process and supervisor-thread retirement. Unknown waits
+disable admission; never reopen a PID, spin, drop limits or infer driver repair
+from time. Normal CLI/callback paths remain CPU-only; this is not a live HIP
+worker or permission for owner-PC execution.

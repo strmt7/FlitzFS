@@ -118,3 +118,10 @@ It preserves orphan tails and repairs a missing root without overwriting the
 survivor. Public file factories remain new-file-only. Read
 [the protocol and hosted interruption gates](docs/STORE_RESUME_AND_INTERRUPTION.md).
 This is storage-core development; the new native file layer remains separate from writable mounted callbacks.
+
+The explicit Windows worker transport now has an asynchronous session: verified
+CPU bytes can be selected while a separately supervised helper is still live.
+Cancellation and exact process/thread retirement stay outside CPU selection.
+This remains CPU-tested infrastructure; no normal filesystem read loads HIP or
+automatically starts a worker. See docs/WORKER_CHANNEL.md for its ownership and
+qualification boundaries.

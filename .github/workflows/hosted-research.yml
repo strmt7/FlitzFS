@@ -58,11 +58,26 @@ jobs:
             "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_research.py" \
             --provider "$GITHUB_WORKSPACE/.ci-provider" --home "$RUNNER_TEMP/flitzfs-admitted-crawler" \
             --output "$RUNNER_TEMP/flitzfs-durability-sources"
+      - name: Read exact process-lifetime sources with native receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python_path="$(command -v python)"
+          sudo systemd-run --wait --collect --pipe --service-type=exec \
+            --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
+            --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=360 \
+            --setenv=GITHUB_ACTIONS=true --setenv=RUNNER_ENVIRONMENT=github-hosted \
+            --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
+            "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_research.py" \
+            --provider "$GITHUB_WORKSPACE/.ci-provider" --home "$RUNNER_TEMP/flitzfs-admitted-crawler" \
+            --output "$RUNNER_TEMP/flitzfs-worker-sources" --source-group process
       - name: Retain native captures and failures
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: research-${{ github.sha }}
-          path: ${{ runner.temp }}/flitzfs-durability-sources
+          path: |
+            ${{ runner.temp }}/flitzfs-durability-sources
+            ${{ runner.temp }}/flitzfs-worker-sources
           if-no-files-found: warn
           retention-days: 30

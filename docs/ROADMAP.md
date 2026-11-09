@@ -163,3 +163,9 @@ the previously identified latest-root-loss metadata gap for upgraded checkpoints
 REPLICATED_CHECKPOINTS.md specifies the exact fault envelope and costs. It does
 not close file-payload redundancy, physical persistence, automatic handoff/
 reclamation, resource-priority/learning or AMD-runtime/application gates.
+
+- Asynchronous Windows transport now separates CPU-result selection from helper
+  cancellation and exact process/thread retirement. Its single-slot lifetime
+  and abandonment checks run as CPU-only hosted fixtures. Production recovery-
+  policy/runtime identity integration, automatic private AMD component setup,
+  actual HIP dispatch and hardware fault/benefit qualification remain required.
