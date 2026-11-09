@@ -148,3 +148,11 @@ indices, rather than independently assembled headers or compiler assumptions.
 HIP_RUNTIME_WORKER.md defines source provenance, bounded hosted compilation,
 header observations and deferred module loading. Ordinary CPU builds still
 require no SDK; no owner-PC operation or live GPU result follows from compilation.
+
+
+The separate current-SDK module now exposes a typed filesystem kernel entry
+table using the current FlitzZip deferred-registration pattern. Its typed address
+is bound by the HIP translation unit and its task ABI, sizes, limits and launch
+geometry are checked explicitly. The actual module is linked only on disposable
+hosted VMs; no caller loads it yet. CPU semantic table tests and SDK compilation
+remain separate from live execution and performance qualification.

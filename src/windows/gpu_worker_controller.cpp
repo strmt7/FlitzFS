@@ -30,10 +30,14 @@ GpuRecoveryOutcome supervisor_failure(const WorkerExchangeSession& session) noex
   return GpuRecoveryOutcome::device_fault; // Unknown failure never proves repair.
 }
 GpuRecoveryOutcome transport_failure(const WorkerExchangeSession& session,
-    WorkerExchangeCode code) noexcept {
+    WorkerExchangeCode code,WorkerExecution expected) noexcept {
   switch(code) {
     case WorkerExchangeCode::timed_out:
-    case WorkerExchangeCode::cancelled:return GpuRecoveryOutcome::temporary_pressure;
+    case WorkerExchangeCode::cancelled:
+      // Exact process retirement says nothing about a HIP context/driver.
+      // CPU fixtures can use pressure hysteresis; HIP needs recovery evidence.
+      return expected==WorkerExecution::hip?GpuRecoveryOutcome::device_fault:
+          GpuRecoveryOutcome::temporary_pressure;
     case WorkerExchangeCode::invalid_response:return GpuRecoveryOutcome::integrity_failure;
     case WorkerExchangeCode::supervisor_failed:return supervisor_failure(session);
     default:return GpuRecoveryOutcome::device_fault;
@@ -70,7 +74,7 @@ bool GpuWorkerController::try_retire() noexcept {
     if(state_==GpuWorkerState::waiting || !session_)return false;
     const auto* late=session_->try_result();
     if(!late)return false;
-    auto outcome=transport_failure(*session_,late->code);
+    auto outcome=transport_failure(*session_,late->code,expected_);
     if(late->code==WorkerExchangeCode::completed) {
       // Terminal CPU bytes stay untouched. Late integrity/availability evidence
       // still belongs to THIS pending configuration before its ticket retires.
@@ -143,7 +147,7 @@ GpuWorkerState GpuWorkerController::poll(const GpuMemorySnapshot& after,std::uin
   const auto* result=session_->try_result();
   if(!result)return state_;
   if(result->code!=WorkerExchangeCode::completed) {
-    select_cpu(transport_failure(*session_,result->code),GpuGateCode::worker_failed);
+    select_cpu(transport_failure(*session_,result->code,expected_),GpuGateCode::worker_failed);
     return state_;
   }
   try {

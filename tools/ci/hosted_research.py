@@ -46,6 +46,14 @@ ROCM_CURRENT_SOURCES = (
 )
 
 
+ROCM_RUNTIME_SOURCES = (
+    ("hip-current-streams", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/doxygen/html/group___stream.html", "hipStreamCreateWithPriority", "hipStreamDestroy"),
+    ("hip-current-memory", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/doxygen/html/group___memory.html", "hipMalloc", "hipFree"),
+    ("hip-current-errors", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/error_codes.html", "hipError", "context"),
+    ("windows-current-tdr", "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/timeout-detection-and-recovery", "Timeout", "process"),
+)
+
+
 def guard():
     if os.name != "posix" or os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("RUNNER_ENVIRONMENT") != "github-hosted":
         raise RuntimeError("Requires a disposable GitHub-hosted Linux VM")
@@ -75,7 +83,7 @@ async def capture(args):
     args.output.mkdir(parents=False, exist_ok=False)
     rows = []
     async with AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False, use_persistent_context=False)) as owner:
-        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-current": ROCM_CURRENT_SOURCES}[args.source_group]
+        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-current": ROCM_CURRENT_SOURCES, "rocm-runtime": ROCM_RUNTIME_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -100,11 +108,23 @@ async def capture(args):
                     print(json.dumps({"native_navigation": name, "official_links": selected_links}), flush=True)
                 offset = markdown.lower().rfind(term.lower())
                 print(json.dumps({"review": name, "excerpt": markdown[max(0, offset-200):offset+1100]}), flush=True)
-                if args.source_group == "rocm-current":
+                if args.source_group == "rocm-runtime":
+                    terms = ("hipStreamCreateWithPriority", "hipStreamQuery", "hipStreamDestroy",
+                             "hipFree", "hipMalloc", "hipErrorContext", "hipErrorLaunch",
+                             "hipErrorOutOfMemory", "priority", "process")
+                    excerpts = []
+                    for term in terms:
+                        positions = [match.start() for match in re.finditer(re.escape(term), markdown, re.I)]
+                        for offset in positions[-2:]:
+                            excerpts.append({"term": term, "offset": offset,
+                                "text": markdown[max(0, offset-160):offset+950]})
+                    print(json.dumps({"runtime_source_review": name,
+                        "excerpts": excerpts[:20]}), flush=True)
+                if args.source_group in ("rocm-current", "rocm-runtime"):
                     print(json.dumps({"current_source_review": name,
                         "opening": markdown[:10000],
                         "headings": [line for line in markdown.splitlines() if line.startswith("#")][:48],
-                        "official_links": sorted(set(re.findall(r'https://(?:stable\.repo\.amd\.com|rocm(?:docs)?\.amd\.com)/[^\s)<>" ]+', markdown)))[:40]
+                        "official_links": sorted(set(re.findall(r'https://(?:stable\.repo\.amd\.com|rocm(?:\.docs|docs)?\.amd\.com)/[^\s)<>" ]+', markdown)))[:40]
                     }), flush=True)
 
     receipt = {
@@ -121,7 +141,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-current") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-current", "rocm-runtime") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -131,7 +151,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current", "rocm-runtime"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)
