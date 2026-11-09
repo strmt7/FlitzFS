@@ -100,3 +100,14 @@ Primary sources:
 
 The `.flfs` v1 wire format is unchanged. Encryption, HIP, a general-purpose mount
 application, writable transactions and sole-copy storage safety are not provided.
+
+
+## Current source-bound driver candidate
+
+SDK extraction and this VM-only installer now share tools/winfsp-sdk-lock.json.
+The development candidate is WinFsp v2.2B5, explicitly prerelease, with current
+upstream security/deadlock fixes; historical v2.1 results do not qualify it.
+Require fresh callback, mounted read/mapping/write-rejection, shutdown and
+crash/remount evidence. Current Windows 11 driver-policy/signing acceptance is a
+separate client-VM gate even if a Windows Server runner passes. Never apply
+policy-removal, Secure Boot/HVCI changes or test-signing workarounds to the owner.

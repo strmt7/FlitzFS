@@ -98,3 +98,17 @@ The selected whole-package lock matches current FlitzZip reference source
 observed official-HTTPS digest, not an independently published AMD checksum.
 Fresh official release/install captures and actual package/compiler checks
 remain required; a repository lock alone does not prove "latest compatible".
+
+
+## Driver stable/prerelease inventory correction, 9 November 2026
+
+A native API review of the complete current WinFsp release list found v2.2B5
+(13 October 2026) beyond releases/latest's v2.1. Its official notes list multiple
+security/deadlock fixes. Select it as an explicit disposable-VM DEVELOPMENT
+candidate, not a stable product release or owner installation. Its verified
+source tag, official asset digest/length and prerelease status are centralized
+in tools/winfsp-sdk-lock.json and consumed by both staging and installation.
+The audit must inspect the full bounded release inventory for this dependency;
+a stable-only green result is insufficient. See WINDOWS_ARCHITECTURE.md.
+The authenticated zero-Dependabot observation covers repository alerts only,
+not a proof that every external SDK/driver has no upstream security fixes.

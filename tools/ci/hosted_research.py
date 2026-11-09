@@ -58,12 +58,12 @@ WINDOWS_TARGET_SOURCES = (
     ("windows11-current-release", "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information", "Windows 11", "Version"),
     ("windows-sdk-current", "https://learn.microsoft.com/en-us/windows/apps/windows-sdk/downloads", "Windows SDK", "10.0."),
     ("windows-current-driver-policy", "https://support.microsoft.com/en-us/windows/hardware/drivers/the-windows-driver-policy", "WHCP", "enforcement"),
-    ("windows-current-fsd-guide", "https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/file-system-driver-design-guide", "file system", "driver"),
+    ("windows-current-fsd-reference", "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/_ifsk/", "file system", "driver"),
 )
 WINDOWS_FRAMEWORK_SOURCES = (
     ("winfsp-current-design", "https://winfsp.dev/doc/WinFsp-Design/", "FSD", "kernel"),
     ("winfsp-current-service", "https://winfsp.dev/doc/WinFsp-Service-Architecture/", "service", "Launcher"),
-    ("winfsp-current-compatibility", "https://winfsp.dev/doc/WinFsp-Compatibility/", "NTFS", "Flush"),
+    ("winfsp-current-compatibility", "https://winfsp.dev/doc/NTFS-Compatibility/", "NTFS", "Flush"),
     ("winfsp-current-testing", "https://winfsp.dev/doc/WinFsp-Testing/", "test", "winfsp-tests"),
 )
 WINDOWS_ALTERNATIVE_SOURCES = (
@@ -150,6 +150,8 @@ async def capture(args):
                 if args.source_group in ("rocm-current", "rocm-runtime", "rocm-stream") or args.source_group.startswith("windows-"):
                     print(json.dumps({"current_source_review": name,
                         "opening": markdown[:10000],
+                        "body": markdown[(re.search(r"(?m)^# ", markdown).start()
+                                          if re.search(r"(?m)^# ", markdown) else 0):][:16000],
                         "headings": [line for line in markdown.splitlines() if line.startswith("#")][:48],
                         "official_links": sorted(set(re.findall(r'https://(?:stable\.repo\.amd\.com|rocm(?:\.docs|docs)?\.amd\.com)/[^\s)<>" ]+', markdown)))[:40]
                     }), flush=True)

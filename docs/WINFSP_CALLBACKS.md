@@ -129,3 +129,14 @@ the corresponding commit's `windows-native` Actions job, **not** by those Linux
 results. A green callback job still does not qualify mounted I/O, memory-mapped
 files, driver reset/shutdown recovery, Windows 11, personal-PC/GPU behavior,
 cryptographic security, or writable durability.
+
+
+## Current candidate migration
+
+The historical v2.1 observations above are not today's dependency selection.
+Current hosted development selects source/asset-bound v2.2B5 through
+tools/winfsp-sdk-lock.json because the newer upstream prerelease lists important
+security/deadlock fixes. Its exact Product.wxs preserves the four public SDK
+component identities used here. Callback signatures and lifecycle must pass
+fresh native tests before this candidate is called qualified. Beta status stays
+explicit; the normal owner-PC/no-driver boundary is unchanged.

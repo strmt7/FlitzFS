@@ -249,6 +249,14 @@ jobs:
       - name: Stage checksum-pinned SDK without installation
         shell: pwsh
         run: ./tools/ci/prepare_winfsp_sdk.ps1
+      - name: Retain exact SDK candidate provenance
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winfsp-sdk-${{ github.job }}-${{ github.sha }}
+          path: ${{ env.FLITZFS_WINFSP_PROVENANCE }}
+          if-no-files-found: warn
+          retention-days: 30
       - name: Check out pinned Zstandard source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -324,6 +332,14 @@ jobs:
       - name: Stage checksum-pinned SDK without installation
         shell: pwsh
         run: ./tools/ci/prepare_winfsp_sdk.ps1
+      - name: Retain exact SDK candidate provenance
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winfsp-sdk-${{ github.job }}-${{ github.sha }}
+          path: ${{ env.FLITZFS_WINFSP_PROVENANCE }}
+          if-no-files-found: warn
+          retention-days: 30
       - name: Check out pinned Zstandard source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
