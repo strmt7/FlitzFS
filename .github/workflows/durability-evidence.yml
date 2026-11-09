@@ -1,0 +1,44 @@
+name: Durability model and native-source evidence
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/test_durability_model.cpp'
+      - 'tools/ci/review_crawl_capture.py'
+      - '.github/workflows/durability-evidence.yml'
+permissions:
+  contents: read
+jobs:
+  model-counterexamples:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Build only the RAM protocol experiment
+        run: |
+          cmake -S . -B model-build -DCMAKE_BUILD_TYPE=Release -DFLITZFS_WITH_ZSTD=OFF -DFLITZFS_WITH_ZLIB=OFF -DFLITZFS_WITH_LZ4=OFF
+          cmake --build model-build --target flitzfs_durability_model_tests --parallel 2
+      - name: Retain the actual fault-execution and negative-control summary
+        run: timeout 25s ./model-build/flitzfs_durability_model_tests
+  native-api-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Download only the immutable admitted source-capture artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          gh api repos/strmt7/FlitzFS/actions/artifacts/13664668700 --jq '.digest' | grep -Fx 'sha256:ef3ba3ec18e8e2971ee48b34367f5c591b0003f93e7fb539e4161be7142cf5a2'
+          timeout 30s gh run download 42599540602 --repo strmt7/FlitzFS --name research-740a12dff0cea9e42b16be973959063ed3b6ead4 --dir "$RUNNER_TEMP/flitzfs-native-review"
+      - name: Verify native digests and inspect real API sections without another page reader
+        run: python3 tools/ci/review_crawl_capture.py "$RUNNER_TEMP/flitzfs-native-review"
