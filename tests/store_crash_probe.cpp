@@ -2,6 +2,7 @@
 #include "flitzfs/object_store.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "store_file.hpp"
+#include "native_fs_fixture.hpp"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -127,6 +128,38 @@ void write_probe(const fs::path& path,bool repair,StoreCompressionOptions option
   }
   std::cout<<"{\"done\":true}\n"<<std::flush;
 }
+void native_file_write(const fs::path& path,StoreCompressionOptions options) {
+  auto backing=detail::new_store_file(path,{4096,true});
+  auto trace=std::make_shared<Traced>(backing);
+  auto files=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(trace,id(),options));
+  require(files.apply(native_fixture::baseline()).storage.generation==2,"native file baseline generation");
+  native_fixture::expected(files.snapshot(),false);trace->event("ack",0,0,2);
+  trace->armed=true;
+  require(files.apply(native_fixture::update()).storage.generation==3,"native file update generation");
+  trace->armed=false;native_fixture::expected(files.snapshot(),true);trace->event("ack",0,0,3);
+  std::cout<<"{\"done\":true}\n"<<std::flush;
+}
+void native_file_recover(const fs::path& path,std::uint64_t floor,StoreCompressionOptions options) {
+  std::uint64_t generation=0,continued=0,sequence=0;bool changed=false;
+  {
+    auto snapshot=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
+    generation=snapshot.storage_info().generation;
+    require(generation>=floor && generation<=3 && snapshot.sequence()==generation,"native file acknowledgement sequence");
+    changed=snapshot.sequence()==3;native_fixture::expected(snapshot,changed);
+  }
+  {
+    auto backing=detail::reopen_store_file_for_hosted_test(path,{4096,true});
+    auto files=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(backing,id(),generation,options));
+    native_fixture::expected(files.snapshot(),changed);
+    const std::array<NativeFileMutation,2> more{{native_fixture::file_create("continued"),native_fixture::file_write("continued",0,native_fixture::data(3073,91))}};
+    const auto committed=files.apply(more);continued=committed.storage.generation;sequence=committed.sequence;
+    native_fixture::expected(files.snapshot(),changed,true);
+  }
+  auto reopened=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
+  require(reopened.storage_info().generation==continued && reopened.sequence()==sequence,"native file continuation did not persist");
+  native_fixture::expected(reopened,changed,true);
+  std::cout<<"{\"recovered\":"<<generation<<",\"continued\":"<<continued<<"}\n"<<std::flush;
+}
 void recover_probe(const fs::path& path,bool repair,std::uint64_t floor,StoreCompressionOptions options) {
   std::uint64_t generation=0,continued=0;bool changed=false;
   {
@@ -154,16 +187,19 @@ int main(int argc,char** argv) {
     require(argc==7,"probe role, parent, token, policy, phase, floor required");
     const std::string role(argv[1]),token(argv[3]),policy(argv[4]),phase(argv[5]),floor_text(argv[6]);
     require((role=="write"||role=="recover") && (policy=="raw"||policy=="auto") &&
-            (phase=="mutation"||phase=="repair"),"invalid probe scope");
+            (phase=="mutation"||phase=="repair"||phase=="files"),"invalid probe scope");
     std::uint64_t floor=0;const auto parsed=std::from_chars(floor_text.data(),floor_text.data()+floor_text.size(),floor);
     require(parsed.ec==std::errc{} && parsed.ptr==floor_text.data()+floor_text.size() &&
-            (role=="write"?floor==0:(floor>=1&&floor<=2)),"invalid acknowledgement floor");
+            (role=="write"?floor==0:(floor>=1&&floor<=(phase=="files"?3U:2U))),"invalid acknowledgement floor");
     // Controller sees resource admission before allowing filesystem/corpus work.
     std::cout<<"{\"ready\":true}\n"<<std::flush;advance();
     const fs::path root(argv[2]);owned_parent(root,token);
     StoreCompressionOptions options;options.mode=policy=="raw"?StoreCompressionMode::raw:StoreCompressionMode::automatic;
     options.require_zstd=policy=="auto";
-    if(role=="write")write_probe(root/"image.fltx",phase=="repair",options);
+    if(phase=="files") {
+      if(role=="write")native_file_write(root/"image.fltx",options);
+      else native_file_recover(root/"image.fltx",floor,options);
+    } else if(role=="write")write_probe(root/"image.fltx",phase=="repair",options);
     else recover_probe(root/"image.fltx",phase=="repair",floor,options);
     return 0;
   }catch(const std::exception& e){std::cerr<<"probe error: "<<e.what()<<'\n';return 1;}

@@ -105,3 +105,13 @@ The separate transaction experiment now admits raw, zero, motif and bounded
 Zstandard object records with decoded-content integrity. These are not .flfs
 v1 codec changes; historical native image bytes and chunk semantics remain
 unchanged. See OBJECT_STORE_FORMAT.md for the separate record contract.
+
+## Native filesystem namespace is a separate client format
+
+NATIVE_FILESYSTEM.md defines FLTXNS01 inode/extent metadata inside the separate
+transactional object store. It does not reinterpret .flfs/.flcatalog as writable
+namespace formats. No automatic migration or archive import exists.
+
+Current .flfs and object-store Zstandard decoders require modern frame magic
+0xFD2FB528 before calling library parsers. Writer-produced bytes remain unchanged;
+legacy/skippable or unknown framing is rejected explicitly.

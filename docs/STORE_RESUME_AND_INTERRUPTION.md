@@ -1,3 +1,28 @@
+# Storage resume and process interruption reference
+
+The qualified backend resume protocol and its original 360 executed Linux/Windows
+interruption cases were established at 601f4a56989638fefc55718bc9b30be1650f1351.
+See OBJECT_STORE_FORMAT.md for storage boundaries and NATIVE_FILESYSTEM.md for
+the newly connected namespace layer.
+
+Public ordinary-file factories remain new-file-only. Resume of an existing
+ordinary image is an internal hosted-owned-fixture exception, with no owner-PC
+permission or production mount/CLI write route. Backend ownership, exact
+identity/generation verification, stable flush fence, aligned orphan preservation
+and surviving-root repair remain required.
+
+The expanded interruption workflow retains raw/automatic object mutations and
+root repair and adds combined native directory/data operations. Its case budget
+is now 320, with the same per-process, I/O, queue, fixture and total time bounds.
+The native-file phase uses acknowledgement generations 2..3; original storage
+phases use 1..2. Each case must independently recover and then continue writing.
+No physical power-cut or writable mounted qualification follows from process
+termination.
+
+The full earlier protocol is retained below for continuity. Its original
+256-case bound describes the previous workflow; the current controller admits
+at most 320 cases.
+
 # Qualified backend resume and hosted process interruption
 
 Experimental storage-core work, not a writable mounted filesystem. No owner-PC

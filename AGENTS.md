@@ -142,3 +142,13 @@ resource bounds and the core identity/generation lease. No production file
 resume factory, CLI/mount write route or owner-PC permission follows from this
 exception. Retain backend lease lifetime through poison, aligned orphan
 preservation, surviving-root repair and independent acknowledged-history tests.
+
+## Native file layer boundary
+
+Read docs/NATIVE_FILESYSTEM.md before changing the namespace/inode/extent layer.
+Preserve atomic namespace+data publication, stable inode IDs, old snapshots,
+zeroed truncate tails, full graph/reference admission and terminal I/O fencing.
+Do not silently increase the 64-inode/15-nonzero-extent staging limits, introduce
+archive routes or expose mounted writes. Keep logical sparse size separate from
+physical allocation and history. The extended hosted process probe covers native
+file transactions but remains distinct from physical power-loss qualification.

@@ -115,3 +115,13 @@ interruption gate must verify acknowledged history and successful continuation
 on Windows and Linux before public existing-file admission or writable namespace
 integration. The file adapter's existing-image mode remains internal, hosted-only
 and confined to uniquely owned fixtures. See STORE_RESUME_AND_INTERRUPTION.md.
+
+## Native file semantics connected to transactions
+
+NATIVE_FILESYSTEM.md specifies the implemented directory/inode/extent layer:
+atomic metadata/data updates, sparse holes, partial writes, truncate/regrow,
+identity-preserving rename/replace, removal and persistent snapshots. It operates
+within the current bounded object store; this does not satisfy production
+capacity, mounted application semantics or full Windows metadata compatibility.
+The hosted interruption gate includes a combined native namespace/data update
+and continuation after recovery, alongside the original storage/repair cases.

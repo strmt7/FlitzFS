@@ -20,6 +20,10 @@ owner's PC.
   publication barriers and independent CPU reopen. It now supports native raw, zero, repeated-pattern and optional Zstandard
   records, with private CPU round-trip verification and decoded-content integrity.
   It has no writable mounted route. See [the format and assumptions](docs/OBJECT_STORE_FORMAT.md).
+- A native transactional file layer with persistent directories and inode IDs,
+  sparse 64 KiB extents, partial writes, truncate/regrow, rename/replace, deletion
+  and immutable snapshots. It currently admits 64 inodes and 15 nonzero extents;
+  see [its semantics, format and limits](docs/NATIVE_FILESYSTEM.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.
 - Optional native WinFsp read-only callbacks, disabled by default. Hosted VM
@@ -77,7 +81,7 @@ remain unchanged. See [the native image format](docs/FORMAT-v1.md) and
 
 The object engine remains limited to 16 objects, 1 MiB per object, 4 MiB new
 payload per transaction and 64 MiB retained physical history. There is no
-public existing-file writable reopen, reclamation, durable filesystem namespace,
+public existing-file writable reopen, reclamation, production namespace scaling,
 authenticated encryption or general-purpose writable mount application.
 
 A successful flush is meaningful only under qualified backend/device
@@ -101,5 +105,4 @@ verification, explicit identity/generation checks and a durable recovery fence.
 It preserves orphan tails and repairs a missing root without overwriting the
 survivor. Public file factories remain new-file-only. Read
 [the protocol and hosted interruption gates](docs/STORE_RESUME_AND_INTERRUPTION.md).
-This is storage-core development; writable mounted filesystem semantics remain
-unimplemented.
+This is storage-core development; the new native file layer remains separate from writable mounted callbacks.

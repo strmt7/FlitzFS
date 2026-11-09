@@ -102,6 +102,10 @@ void malformed_and_budget() {
   rejects([&]{(void)decoder.decode(kStoreRaw,Bytes(31),32);},"raw mismatch admitted");
   rejects([&]{(void)decoder.decode(kStoreRaw,{},kStoreMaxObjectBytes+1);},"oversized decode admitted");
   rejects([&]{(void)decoder.decode(kStoreZstd,Bytes(32),32);},"non-saving compressed bytes admitted");
+  for(auto magic:{0xFD2FB51EU,0xFD2FB527U,0x184D2A50U,0U}) {
+    Bytes legacy(8);for(unsigned i=0;i<4;++i)legacy[i]=static_cast<std::byte>(magic>>(8*i));
+    rejects([&]{(void)decoder.decode(kStoreZstd,legacy,32);},"legacy/unknown frame entered native decoder");
+  }
 #ifdef FLITZFS_TEST_HAS_ZSTD
   // Independent public-library encoding supplies an external frame oracle.
   auto source=noise(65537);

@@ -12,7 +12,7 @@ import threading
 import time
 
 DEADLINE=time.monotonic()+180
-MAX_CASES=256
+MAX_CASES=320
 
 class Child:
     def __init__(self,args):
@@ -103,6 +103,7 @@ def execute(binary,root,token,policy,phase,cut):
     child=Child(args)
     events=[]
     acknowledged=0
+    generations=(2,3) if phase=="files" else (1,2)
     forced=None
     try:
         if child.read()!={"ready":True}:
@@ -122,7 +123,7 @@ def execute(binary,root,token,policy,phase,cut):
             events.append(event)
             if event["op"]=="ack":
                 generation=event.get("generation")
-                if generation not in (1,2) or generation<acknowledged:
+                if generation not in generations or generation<acknowledged:
                     raise RuntimeError("acknowledgement oracle")
                 acknowledged=generation
             if event["event"]==cut:
@@ -131,7 +132,7 @@ def execute(binary,root,token,policy,phase,cut):
             child.advance()
     finally:
         child.close()
-    if acknowledged not in (1,2):
+    if acknowledged not in generations:
         raise RuntimeError("no acknowledged baseline")
     recover=Child([str(binary),"recover",str(root),token,policy,phase,str(acknowledged)])
     try:
@@ -139,7 +140,7 @@ def execute(binary,root,token,policy,phase,cut):
             raise RuntimeError("recovery resource admission handshake")
         recover.advance()
         result=recover.read()
-        if set(result)!={"recovered","continued"} or not acknowledged<=result["recovered"]<=2 or result["continued"]<=result["recovered"]:
+        if set(result)!={"recovered","continued"} or not acknowledged<=result["recovered"]<=generations[-1] or result["continued"]<=result["recovered"]:
             raise RuntimeError("invalid recovery/continuation result")
         recover.finish()
     finally:
@@ -179,7 +180,7 @@ def main():
             ("flitzfs_store_crash_probe.exe" if os.name=="nt" else "flitzfs_store_crash_probe")).resolve()
     rows=[];coverage=[]
     for policy in ("raw","auto"):
-        for phase in ("mutation","repair"):
+        for phase in ("mutation","repair","files"):
             events,result=case(binary,policy,phase,None)
             coverage.append(dict(policy=policy,phase=phase,events=events,completed=result))
             for cut in range(1,len(events)+1):
@@ -193,7 +194,7 @@ def main():
     head=subprocess.run(["git","-C",str(root),"rev-parse","HEAD"],check=True,capture_output=True,text=True,timeout=5).stdout.strip()
     report=dict(schema=1,commit=head,platform=os.name,cases=len(rows),coverage=coverage,results=rows,
         scope="Process termination at I/O boundaries, owned ordinary files; not physical power loss or mounted writes",
-        limits=dict(total_seconds=180,process_seconds=15,cases=256,event_bytes=256,
+        limits=dict(total_seconds=180,process_seconds=15,cases=320,event_bytes=256,
                     queued_events=8,fixture_bytes=2097152,
                     windows_process_bytes=805306368,windows_cpu_percent=20,
                     posix_address_bytes=536870912,posix_cpu_seconds=15))
