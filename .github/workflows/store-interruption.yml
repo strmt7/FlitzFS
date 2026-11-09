@@ -13,6 +13,7 @@ on:
       - 'tests/store_crash_probe.cpp'
       - 'tools/ci/*store*probe*.py'
       - 'tools/ci/probe_store_interruptions.py'
+      - 'tools/ci/test_store_interruption_reports.py'
       - '.github/workflows/store-interruption.yml'
       - 'CMakeLists.txt'
 permissions:
@@ -62,12 +63,26 @@ jobs:
           persist-credentials: false
       - name: Build bounded CPU interruption probe
         run: python tools/ci/build_store_crash_probe.py
-      - name: Force writer termination and independently continue recovered images
+      - name: Validate complete interruption partition/merge oracles
+        run: python tools/ci/test_store_interruption_reports.py
+      - name: Force writer termination and independently continue recovered images (analysis VM)
+        if: runner.os != 'Windows'
         run: python tools/ci/probe_store_interruptions.py --output "${{ runner.temp }}/native-store-interruptions.json"
-      - name: Retain exact-commit recovery evidence
+      - name: Exercise every Windows fault point in two bounded disjoint campaigns
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python tools/ci/probe_store_interruptions.py --partitions 2 --partition 0 --output "$env:RUNNER_TEMP/native-store-interruptions-0.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/ci/probe_store_interruptions.py --partitions 2 --partition 1 --output "$env:RUNNER_TEMP/native-store-interruptions-1.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/ci/probe_store_interruptions.py --merge "$env:RUNNER_TEMP/native-store-interruptions-0.json" "$env:RUNNER_TEMP/native-store-interruptions-1.json" --output "$env:RUNNER_TEMP/native-store-interruptions.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Retain exact-commit recovery evidence and any failure
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: store-interruptions-${{ matrix.os }}-${{ github.sha }}
-          path: ${{ runner.temp }}/native-store-interruptions.json
+          path: ${{ runner.temp }}/native-store-interruptions*.json
           if-no-files-found: error
           retention-days: 30

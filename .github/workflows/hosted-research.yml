@@ -10,7 +10,7 @@ permissions:
 jobs:
   admitted-crawler:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -46,24 +46,29 @@ jobs:
             --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
             "$python_path" "$GITHUB_WORKSPACE/.ci-provider/tools/crawl4ai_tool.py" \
             --home "$RUNNER_TEMP/flitzfs-admitted-crawler" install
-      - name: Read current selected-distribution runtime and Windows recovery sources
+      - name: Research Windows-only product, filesystem architectures and selected HIP streams
         shell: bash
         run: |
           set -euo pipefail
           python_path="$(command -v python)"
-          sudo systemd-run --wait --collect --pipe --service-type=exec \
-            --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
-            --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=240 \
-            --setenv=GITHUB_ACTIONS=true --setenv=RUNNER_ENVIRONMENT=github-hosted \
-            --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
-            "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_research.py" \
-            --provider "$GITHUB_WORKSPACE/.ci-provider" --home "$RUNNER_TEMP/flitzfs-admitted-crawler" \
-            --output "$RUNNER_TEMP/flitzfs-current-rocm-runtime" --source-group rocm-runtime
+          mkdir "$RUNNER_TEMP/flitzfs-windows-research"
+          status=0
+          for group in windows-target windows-framework windows-alternatives rocm-stream; do
+            sudo systemd-run --wait --collect --pipe --service-type=exec \
+              --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
+              --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=240 \
+              --setenv=GITHUB_ACTIONS=true --setenv=RUNNER_ENVIRONMENT=github-hosted \
+              --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
+              "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_research.py" \
+              --provider "$GITHUB_WORKSPACE/.ci-provider" --home "$RUNNER_TEMP/flitzfs-admitted-crawler" \
+              --output "$RUNNER_TEMP/flitzfs-windows-research/$group" --source-group "$group" || status=1
+          done
+          exit "$status"
       - name: Retain native captures and failures
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: research-${{ github.sha }}
-          path: ${{ runner.temp }}/flitzfs-current-rocm-runtime
+          path: ${{ runner.temp }}/flitzfs-windows-research
           if-no-files-found: warn
           retention-days: 30

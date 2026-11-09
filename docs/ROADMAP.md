@@ -1,5 +1,9 @@
 # Development gates and acceptance criteria
 
+**Product scope: Windows only, latest stable Windows 11, AMD64, with a helper
+application and driver-backed filesystem integration.** Older Windows and other
+OS products are outside this phase. See WINDOWS_PRODUCT.md.
+
 This is a staged plan, not a claim that the full product is implemented.
 Development stays on `main`; research, regressions and actual CI results gate
 promotion. No new branches, force pushes or owner-PC operations are needed.
@@ -19,9 +23,9 @@ claim follows from compatibility tests or one synthetic throughput comparison.
 | M1.8 / release 0.2: native callback foundation | Implemented OFF-by-default WinFsp read-only backend, pre-allocation budgets and physical-path guards | Direct real-SDK Windows callback tests plus Linux/raw/sanitizers; this is NOT mounted qualification |
 | M2: native compression mechanisms | Bounded CPU extent mechanisms and independent tests implemented | Native extent framing, adaptive selection, diverse-corpus ratio/throughput and CPU recovery; no archive compatibility goal |
 | M3: Windows read-only mount | Lifecycle, live synthetic reads and process-crash/remount probe implemented; see per-commit CI | No collisions/recursion; explicit driver provisioning; clean unmount/restart; actual ACL/mapped-I/O/cancellation/app tests; CPU export |
-| M4: adaptive CPU/HIP | Bounded six-kind batch/kernel candidate and result gate implemented; offline gfx1201 compilation only | Live supervised runtime, Windows HIP compiler/hardware qualification, real GPU parity, H2D/kernel/D2H timing and measured routing remain unimplemented/unqualified |
+| M4: adaptive CPU/HIP | Bounded six-kind batch, gate, recovery policy and Windows worker controller; complete ROCm 10.1.0 kernel compile/link qualified at named commits | Trusted live runtime, child-specific telemetry, actual Windows 11 AMD hardware parity/faults, H2D/kernel/D2H timing and measured routing remain incomplete |
 | M5: authenticated immutable store | Not implemented: AEAD records, authenticated manifest, key handling | Vetted crypto; nonce/clone/rollback analysis; authentication-negative/fuzz tests; independent recovery |
-| M6: transactional writes | Bounded compressed-object COW engine, two barriers, integrity and CPU reopen implemented; writable mounts/reopen/compaction absent | Fault injection at every commit, out-of-space handling and acknowledged-write recovery |
+| M6: transactional writes | Bounded native file/object COW engine, replicated current checkpoints with three barriers, integrity, exclusive fixture reopen and source-preserving compacted copy implemented | Production scaling/reclamation, public safe writable ownership, physical persistence and Windows mounted mutations remain incomplete |
 | M7: limited writable preview | Not implemented: opt-in disposable mounted folder | M6 plus ACL/locking/mapped I/O/rename/app tests and independent backups; never automatic sole-copy use |
 
 The native callback milestone was advanced ahead of archive compatibility to
@@ -190,3 +194,35 @@ tests exercise the integrated lifecycle and keep the strict handle baseline.
 This advances supervised request orchestration; real HIP dispatch, trusted
 package/discovery evidence, measured routing, automatic installer and actual
 filesystem GPU operation remain separate incomplete gates.
+
+
+## Windows app and driver product gates
+
+The helper application must provide volume and mount lifecycle, readable
+health/recovery/space/compression state and automatic bounded maintenance without
+routine manual tuning. It must report current driver/runtime readiness and preserve
+CPU access when acceleration is unavailable. A CLI or correctness harness is not
+completion of this application requirement.
+
+The filesystem engine must expose Windows read/write/rename/delete, file and
+directory handles, sharing/delete disposition, byte locks, oplocks/caching,
+flush/write-through, file mappings, security descriptors, attributes/timestamps,
+directory enumeration/notifications and error/cancellation semantics through the
+selected driver interface. Unsupported operations must return accurate Windows
+status and never fabricate success. The exact supported capability matrix must
+come from implementation and application tests.
+
+The production driver must satisfy the current Windows 11 signing and security
+policy, clean installation/update/rollback, stop/unmount/restart and bounded
+request cancellation. Do not infer kernel/driver stability from a user-mode Job
+Object or a clean Windows Server runner. Actual latest Windows 11 VMs with normal
+security settings, Driver Verifier/HLK-appropriate checks, Explorer/application
+workloads and recovery/fault campaigns remain separate qualification gates.
+No automatic owner-PC installation, raw-device write or security-policy change
+is permitted.
+
+Comprehensive current primary-source research compares the existing WinFsp
+foundation against Dokan, direct Windows FSDs, ProjFS and Cloud Files before an
+architecture decision is promoted. The low-level driver transport and the
+filesystem's compression/durability design are separate decisions; benchmark
+evidence must justify any later custom-driver replacement.
