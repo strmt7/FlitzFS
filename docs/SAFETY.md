@@ -156,3 +156,12 @@ LZ4 decoding uses the bounded library API with exact output extents. No HIP
 runtime, GPU experiment or owner-PC access is introduced. This extends the
 parser attack surface; deterministic negatives and sanitizers are not a formal
 security proof. The compiled reference decoder exists only in optional tests.
+
+## RAM persistence experiment
+
+The new commit-persistence test has no OS file/device, GPU or driver operations.
+Its modeled images are at most 40,960 bytes with two pending 128-byte writes.
+It enforces 60,000 fault executions and a checked 20-second time budget; CTest
+caps it at 30 seconds. These are model bounds, not whole-process RAM guarantees.
+Builds/logs/tests run only on disposable hosted VMs. Test-only CRC envelopes
+are not authentication, a product format or physical power-loss qualification.

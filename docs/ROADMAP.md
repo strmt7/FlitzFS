@@ -72,3 +72,11 @@ see HIP_BATCH_VALIDATION.md. No runtime loading, kernel launch, speedup or
 filesystem GPU integration is implied. The next gate must provide an explicit
 supervised worker, exact adapter/module admission and end-to-end hardware tests
 before changing normal CPU-only behavior.
+
+## Executable durability gate
+
+PERSISTENCE_MODEL.md defines a test-only commit-persistence experiment. It
+evaluates recovery obligations before selecting a writable format; M6 remains
+unimplemented. Ordinary-file I/O, namespace durability, integrity, independent
+recovery and fault-injected writable qualification remain required. The native
+research provider now runs in a bounded isolated hosted VM, never on the owner PC.

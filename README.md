@@ -222,3 +222,11 @@ The [resilient-store research and architecture](docs/RESILIENT_STORE_DESIGN.md)
 defines durable acknowledgement, CPU-independent recovery, compression-aware
 transactions and conventional filesystem semantics. It is a researched plan,
 not an implemented power-loss-safe writable store.
+
+## Executable persistence research
+
+A bounded RAM commit model compares one/two-barrier candidates against an
+independent acknowledged-history oracle. Torn writes, write subsets and
+write-unit collateral damage are injected; four deliberately broken controls
+must be detected. This is protocol evidence, not a writable filesystem or
+physical power-loss qualification. See [assumptions and tests](docs/PERSISTENCE_MODEL.md).

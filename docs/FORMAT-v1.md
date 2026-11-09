@@ -87,3 +87,10 @@ The read-only FLZIP adapter described in `FLZIP_READONLY.md` does not change
 `.flfs` v1 bytes or codec identifiers. Its SUZP/SUZF framing and file-wide CRCs
 are parsed independently, with verification before exposure. Never interpret
 FLZIP as a `.flfs`, ZIP alias, or authenticated container.
+
+## Test-only durability envelopes are a separate experiment
+
+The RAM protocol model in PERSISTENCE_MODEL.md uses distinct test magic and
+fixed envelopes to investigate publication ordering. It changes no v1 fields,
+codec identifiers or migration rules and is not an accepted writable format.
+Never interpret those model envelopes as .flfs containers.
