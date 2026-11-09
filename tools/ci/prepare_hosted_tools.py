@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Official checksum-pinned CMake/LLVM in fresh hosted-only directories."""
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -148,11 +149,55 @@ def copy_exact(source,target,size,mode):
     if os.name=="posix":
         target.chmod(0o755 if mode&0o111 else 0o644)
 
+MAX_TOOL_WINDOW=2*GIB
+
+def zstd_window(header):
+    if len(header)<6 or header[:4]!=b"\x28\xb5\x2f\xfd" or header[4]&8:
+        raise RuntimeError("unsupported/truncated tool Zstandard header")
+    descriptor=header[4];single=bool(descriptor&32);position=5
+    if single:
+        size=(1,2,4,8)[descriptor>>6]
+        position+=(0,1,2,4)[descriptor&3]
+        if position+size>len(header):
+            raise RuntimeError("truncated single-segment tool header")
+        window=int.from_bytes(header[position:position+size],"little")
+        if size==2:
+            window+=256
+    else:
+        field=header[position];base=1<<(10+(field>>3))
+        window=base+(base//8)*(field&7)
+    if window>MAX_TOOL_WINDOW:
+        raise RuntimeError("tool decoder window exceeds explicit 2 GiB cap")
+    return window
+
+@contextmanager
+def tar_stream(archive,kind):
+    if kind=="llvm":
+        from compression.zstd import ZstdFile,DecompressionParameter
+        with archive.open("rb") as source:
+            window=zstd_window(source.read(18))
+        available=None
+        with Path("/proc/meminfo").open(encoding="ascii") as memory:
+            for line in memory:
+                fields=line.split()
+                if len(fields)==3 and fields[0]=="MemAvailable:" and fields[2]=="kB":
+                    available=int(fields[1])*1024
+                    break
+        if available is None or available<window+2*GIB:
+            raise RuntimeError("insufficient verified tool decoder memory headroom")
+        # Explicit admitted window, not the smaller stdlib tar-stream default.
+        # ZstdFile.close releases its buffered decoder before the next pass.
+        with ZstdFile(archive,"rb",options={DecompressionParameter.window_log_max:31}) as decoded:
+            with tarfile.open(fileobj=decoded,mode="r|",stream=True) as package:
+                yield package
+    else:
+        with tarfile.open(archive,mode="r|gz",stream=True) as package:
+            yield package
+
 def extract_tar(archive,destination,kind):
-    mode="r|zst" if kind=="llvm" else "r|gz"
     entries={};expanded=0;deadline=time.monotonic()+480
     # Metadata/selection pass: no extraction or links yet.
-    with tarfile.open(archive,mode=mode,stream=True) as package:
+    with tar_stream(archive,kind) as package:
         for member in package:
             if time.monotonic()>deadline:
                 raise TimeoutError("tool archive scan deadline")
@@ -173,7 +218,7 @@ def extract_tar(archive,destination,kind):
     if shutil.disk_usage(destination.parent).free<total+4*GIB:
         raise RuntimeError("insufficient admitted extraction reserve")
     destination.mkdir()
-    with tarfile.open(archive,mode=mode,stream=True) as package:
+    with tar_stream(archive,kind) as package:
         for member in package:
             if time.monotonic()>deadline:
                 raise TimeoutError("tool extraction deadline")
@@ -203,8 +248,13 @@ def extract_tar(archive,destination,kind):
             break
         if not progressed:
             raise RuntimeError("cyclic or missing tool link target")
-    return destination/prefix,dict(archive_entries=len(entries),archive_expanded_bytes=expanded,
+    details=dict(archive_entries=len(entries),archive_expanded_bytes=expanded,
         extracted_files=len(selected),extracted_bytes=total,package_prefix=prefix)
+    if kind=="llvm":
+        with archive.open("rb") as source:
+            details["decoder_window_bytes"]=zstd_window(source.read(18))
+        details["decoder_window_cap_bytes"]=MAX_TOOL_WINDOW
+    return destination/prefix,details
 
 def extract_zip(archive,destination):
     with zipfile.ZipFile(archive) as package:

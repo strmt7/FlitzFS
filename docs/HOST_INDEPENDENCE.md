@@ -81,3 +81,10 @@ Audit DLL/ELF dependencies, runtime bundling/static linkage, installed-package
 absence, Unicode/space-containing paths, updates/rollback and unsupported ABI
 behavior. Qualify missing-GPU/private-runtime setup and protected OS integration
 separately. A self-contained build-tools job is not proof of a portable product.
+
+The verified LLVM Zstandard package requires a decoder window above Python's
+default tar-stream allowance. The provisioner reads the frame header, admits at
+most a 2 GiB window with an additional 2 GiB available-memory reserve, and uses
+the public ZstdFile window_log_max option. Each pass closes/releases that decoder
+before starting another. The 4 GiB process address-space ceiling remains.
+Filesystem record-decoder ceilings and foreground behavior are unchanged.

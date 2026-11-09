@@ -31,6 +31,13 @@ class ProvisioningTests(unittest.TestCase):
         self.assertEqual(tools.archive_name("./pkg/bin/tool"),"pkg/bin/tool")
         self.assertEqual(tools.link_target("pkg/bin/clang++","clang"),"pkg/bin/clang")
         with self.assertRaises(RuntimeError):tools.link_target("pkg/bin/x","../../../outside")
+    def test_decoder_window_admission(self):
+        magic=b"\x28\xb5\x2f\xfd"
+        self.assertEqual(tools.zstd_window(magic+b"\x00\xa8"),2*tools.GIB)
+        self.assertEqual(tools.zstd_window(magic+b"\x20\x10"),16)
+        self.assertEqual(tools.zstd_window(magic+b"\x60\x00\x00"),256)
+        for header in (magic+b"\x00\xb0",magic+b"\x08\x00",magic+b"\x60\x00",b"invalid"):
+            with self.assertRaises(RuntimeError):tools.zstd_window(header)
     def test_selection_and_bounds(self):
         entries={
             "pkg/bin/clang++":dict(kind="symlink",size=0,target="clang"),
