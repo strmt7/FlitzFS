@@ -4,6 +4,7 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace {
 using namespace flitzfs;
@@ -284,8 +285,17 @@ void expected(const NativeFilesystemSnapshot& view,Phase phase,bool complete) {
     rejects([&]{(void)view.stat_inode(4);},NativeFsErrorCode::not_found,"session finish retained partial deletion set");
   else require(view.read_inode(4,0,100)==data(17,103),"session finish lost nonselected acknowledged bytes");
 }
-void interruption(StoreCompressionMode mode) {
-  for(auto phase:{Phase::mark,Phase::cancel,Phase::detach,Phase::write,Phase::retire,Phase::finish}) {
+const char* phase_name(Phase phase) {
+  switch(phase) {
+    case Phase::mark:return "mark";case Phase::cancel:return "cancel";
+    case Phase::detach:return "detach";case Phase::write:return "write";
+    case Phase::retire:return "retire";case Phase::finish:return "finish";
+  }
+  throw std::runtime_error("unknown lifetime phase");
+}
+void interruption(StoreCompressionMode mode,std::span<const Phase> phases) {
+  for(const auto phase:phases) {
+    const auto initial_cases=fault_cases;
     auto probe=std::make_shared<Ram>();std::size_t steps=0;
     {
       auto writer=seed(probe,mode,phase);
@@ -337,15 +347,32 @@ void interruption(StoreCompressionMode mode) {
       auto reopened=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(recovered->stable)));
       require(reopened.read("keep",0,1000)==content,"lifetime recovery could not continue independent CPU writes");
     }
+    const auto completed=fault_cases-initial_cases;
+    require(completed==3*steps,"lifetime campaign omitted a planned fault case");
+    std::cout<<"Native lifetime evidence: {\"schema\":1,\"mode\":\""
+        <<(mode==StoreCompressionMode::raw?"raw":"automatic")<<"\",\"phase\":\""<<phase_name(phase)
+        <<"\",\"io_steps\":"<<steps<<",\"fault_cases\":"<<completed<<",\"complete\":true}\n"<<std::flush;
   }
 }
 }
-int main(){try {
-  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
-    lifetime(mode);recovery_admission(mode);detached_capacity(mode);interruption(mode);
+int main(int argc,char** argv){try {
+  if(argc!=2)throw std::runtime_error("explicit bounded lifetime test group required");
+  const std::string_view group(argv[1]);
+  if(group=="--invariants") {
+    for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+      lifetime(mode);recovery_admission(mode);detached_capacity(mode);
+    }
+    malformed_metadata();
+    std::cout<<"Native lifetime invariants: {\"schema\":1,\"checks\":"<<checks<<",\"complete\":true}\n";
+  } else {
+    std::array<Phase,2> phases{};
+    if(group=="--intent-faults")phases={Phase::mark,Phase::cancel};
+    else if(group=="--detach-faults")phases={Phase::detach,Phase::write};
+    else if(group=="--retire-faults")phases={Phase::retire,Phase::finish};
+    else throw std::runtime_error("unknown bounded lifetime test group");
+    for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic})interruption(mode,phases);
   }
-  malformed_metadata();
   std::cout<<"PASS: "<<checks<<" native lifetime assertions; "<<fault_cases
-      <<" injected publication failures; intent cancellation, retained detached data and closed-session recovery.\n";
+      <<" injected publication failures in "<<group<<".\n";
   return 0;
 }catch(const std::exception& error){std::cerr<<"native lifetime failure after "<<checks<<": "<<error.what()<<'\n';return 1;}}

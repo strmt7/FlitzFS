@@ -172,8 +172,14 @@ if(FLITZFS_BUILD_TESTS)
   target_include_directories(flitzfs_native_lifetime_tests PRIVATE src)
   target_link_libraries(flitzfs_native_lifetime_tests PRIVATE flitzfs_core)
   flitzfs_test_codecs(flitzfs_native_lifetime_tests)
-  add_test(NAME bounded_native_lifetime_test COMMAND flitzfs_native_lifetime_tests)
-  set_tests_properties(bounded_native_lifetime_test PROPERTIES TIMEOUT 45)
+  # Fixed sequential groups retain every phase/mode/fault while preserving
+  # the existing 45-second per-process limit under ASan/UBSan.
+  add_test(NAME bounded_native_lifetime_invariants COMMAND flitzfs_native_lifetime_tests --invariants)
+  add_test(NAME bounded_native_lifetime_intent_faults COMMAND flitzfs_native_lifetime_tests --intent-faults)
+  add_test(NAME bounded_native_lifetime_detach_faults COMMAND flitzfs_native_lifetime_tests --detach-faults)
+  add_test(NAME bounded_native_lifetime_retire_faults COMMAND flitzfs_native_lifetime_tests --retire-faults)
+  set_tests_properties(bounded_native_lifetime_invariants bounded_native_lifetime_intent_faults
+    bounded_native_lifetime_detach_faults bounded_native_lifetime_retire_faults PROPERTIES TIMEOUT 45)
   add_executable(flitzfs_object_store_tests tests/test_object_store.cpp)
   target_include_directories(flitzfs_object_store_tests PRIVATE src)
   target_link_libraries(flitzfs_object_store_tests PRIVATE flitzfs_core)
