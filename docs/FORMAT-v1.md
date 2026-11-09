@@ -74,6 +74,13 @@ The 0.2 native callback backend supplies an in-memory namespace and synthetic
 metadata around existing containers. It writes none of that metadata into v1,
 and does not change its bytes, codec identifiers or integrity guarantees.
 
+CPU workspace reuse does not introduce shared history, dictionaries or new
+codec identifiers. Every Zstandard chunk remains a complete independent frame;
+raw fallback still requires a saving of at least 17 bytes. The regression suite
+compares each reused-context frame against the original one-shot encoder at
+levels 1 through 5. Hosted comparison additionally requires identical complete
+containers and extracted content; see `CPU_PIPELINE.md` for executed evidence.
+
 ## External FLZIP input is a separate format
 
 The read-only FLZIP adapter described in `FLZIP_READONLY.md` does not change

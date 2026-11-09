@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <cstring>
 #include <limits>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -206,49 +207,68 @@ void serialize_entry(Bytes& index, const WireEntry& e) {
   append_u64(index, 0);
 }
 
+class ChunkEncoder {
+ public:
+  std::span<const std::uint8_t> encode(const Bytes& decoded, int level, std::uint8_t& codec) {
+    codec = 0;
 #ifdef FLITZFS_HAS_ZSTD
-Bytes maybe_compress(const Bytes& decoded, int level, std::uint8_t& codec) {
-  Bytes result(ZSTD_compressBound(decoded.size()));
-  const auto n = ZSTD_compress(result.data(), result.size(), decoded.data(), decoded.size(), level);
-  if (ZSTD_isError(n)) fail("Zstd compressor failed");
-  // Only store Zstandard if savings exceed a small overhead allowance.
-  if (n + 16 < decoded.size()) {
-    result.resize(n);
-    codec = 1;
-    return result;
-  }
-  codec = 0;
-  return decoded;
-}
+    if (!context_) {
+      context_.reset(ZSTD_createCCtx());
+      if (!context_) fail("cannot allocate Zstd encoder context");
+    }
+    encoded_.resize(ZSTD_compressBound(decoded.size()));
+    // Each call starts an independent frame with the same parameters as
+    // ZSTD_compress. Only the allocation workspace is shared across chunks.
+    const auto n = ZSTD_compressCCtx(context_.get(), encoded_.data(), encoded_.size(),
+                                    decoded.data(), decoded.size(), level);
+    if (ZSTD_isError(n)) fail("Zstd compressor failed");
+    if (n + 16 < decoded.size()) {
+      codec = 1;
+      return {encoded_.data(), n};
+    }
+#else
+    (void)level;
 #endif
-
-Bytes decode_payload(const Bytes& stored, std::size_t expected, std::uint8_t codec) {
-  if (codec == 0) {
-    if (stored.size() != expected) fail("raw block size mismatch");
-    return stored;
+    // The caller writes before reusing decoded; raw fallback needs no copy.
+    return decoded;
   }
-  if (codec != 1) fail("unknown codec");
+ private:
 #ifdef FLITZFS_HAS_ZSTD
-  Bytes decoded(expected);
-  ZSTD_DCtx* raw = ZSTD_createDCtx();
-  if (!raw) fail("cannot allocate Zstd decoder context");
-  std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> ctx(raw, &ZSTD_freeDCtx);
+  std::unique_ptr<ZSTD_CCtx, decltype(&ZSTD_freeCCtx)> context_{nullptr, &ZSTD_freeCCtx};
+  Bytes encoded_;
+#endif
+};
+
+} // namespace
+
+struct Reader::DecodeState {
+  Bytes stored;
+#ifdef FLITZFS_HAS_ZSTD
+  std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> context{nullptr, &ZSTD_freeDCtx};
+#endif
+};
+
+Reader::Reader(ReadOnlyFile file, ContainerInfo info, std::vector<Entry> entries)
+  : file_(std::move(file)), info_(info), entries_(std::move(entries)) {}
+Reader::Reader(Reader&&) noexcept = default;
+Reader& Reader::operator=(Reader&&) noexcept = default;
+Reader::~Reader() = default;
+
+namespace {
+#ifdef FLITZFS_HAS_ZSTD
+void decode_payload(const Bytes& stored, std::span<std::byte> decoded, ZSTD_DCtx* context) {
   // Single-shot decompression has bounded output but windowLogMax only governs
   // streaming. Check the authored single-frame size and reject concatenated frames.
   const auto frame_bytes = ZSTD_findFrameCompressedSize(stored.data(), stored.size());
   if (ZSTD_isError(frame_bytes) || frame_bytes != stored.size())
     fail("Zstd chunk must contain exactly one complete frame");
   const auto frame_decoded = ZSTD_getFrameContentSize(stored.data(), stored.size());
-  if (frame_decoded != static_cast<unsigned long long>(expected))
+  if (frame_decoded != static_cast<unsigned long long>(decoded.size()))
     fail("Zstd frame content size disagrees with chunk index");
-  const auto n = ZSTD_decompressDCtx(ctx.get(), decoded.data(), decoded.size(), stored.data(), stored.size());
-  if (ZSTD_isError(n) || n != expected) fail("Zstd block decompression failed");
-  return decoded;
-#else
-  (void)stored; (void)expected;
-  fail("container needs Zstandard; this build was compiled without it");
-#endif
+  const auto n = ZSTD_decompressDCtx(context, decoded.data(), decoded.size(), stored.data(), stored.size());
+  if (ZSTD_isError(n) || n != decoded.size()) fail("Zstd block decompression failed");
 }
+#endif
 } // namespace
 
 ContainerInfo pack_new(const std::filesystem::path& input, const std::filesystem::path& output,
@@ -274,20 +294,16 @@ ContainerInfo pack_new(const std::filesystem::path& input, const std::filesystem
   std::uint64_t next_offset = kHeaderBytes;
   std::uint64_t zstd_count = 0;
   std::uint64_t remaining = logical;
+  Bytes decoded;
+  ChunkEncoder encoder;
   for (std::uint64_t i = 0; i < count; ++i) {
     const auto n = static_cast<std::uint32_t>((std::min)(remaining, std::uint64_t(options.chunk_bytes)));
-    Bytes decoded;
     read_exact(source, decoded, logical - remaining, n);
     std::uint8_t codec = 0;
-    Bytes encoded;
-#ifdef FLITZFS_HAS_ZSTD
-    encoded = maybe_compress(decoded, options.zstd_level, codec);
-#else
-    encoded = decoded;
-#endif
+    const auto encoded = encoder.encode(decoded, options.zstd_level, codec);
     if (encoded.empty() || encoded.size() > kMaxEncodedBytes) fail("invalid encoded block size");
     WireEntry e{next_offset, static_cast<std::uint32_t>(encoded.size()), n, crc32(decoded.data(), decoded.size()), codec};
-    target.write(encoded);
+    target.write(encoded.data(), encoded.size());
     serialize_entry(index, e);
     next_offset += encoded.size();
     remaining -= n;
@@ -372,16 +388,38 @@ Reader Reader::open(const std::filesystem::path& container, std::uint64_t max_in
   return Reader(std::move(f), info, std::move(entries));
 }
 
-std::vector<std::byte> Reader::read_chunk(std::size_t index) {
+void Reader::read_chunk(std::size_t index) {
+  // A failed read must never retain a cache identity for overwritten bytes.
+  cached_index_ = static_cast<std::size_t>(-1);
   if (index >= entries_.size()) fail("chunk out of range");
   const auto& e = entries_[index];
-  Bytes stored;
-  read_exact(file_, stored, e.offset, e.stored_bytes);
-  auto decoded = decode_payload(stored, e.decoded_bytes, e.codec);
-  if (crc32(decoded.data(), decoded.size()) != e.crc32) fail("chunk CRC mismatch");
-  std::vector<std::byte> result(decoded.size());
-  if (!decoded.empty()) std::memcpy(result.data(), decoded.data(), decoded.size());
-  return result;
+  cached_chunk_.resize(e.decoded_bytes);
+  if (e.codec == 0) {
+    // Descriptor admission already established equal stored/decoded extents.
+    file_.read_exact_at(e.offset, cached_chunk_.data(), cached_chunk_.size());
+  } else {
+#ifdef FLITZFS_HAS_ZSTD
+    if (!decode_state_) decode_state_ = std::make_unique<DecodeState>();
+    auto& state = *decode_state_;
+    read_exact(file_, state.stored, e.offset, e.stored_bytes);
+    if (!state.context) {
+      state.context.reset(ZSTD_createDCtx());
+      if (!state.context) fail("cannot allocate Zstd decoder context");
+    }
+    try {
+      decode_payload(state.stored, cached_chunk_, state.context.get());
+    } catch (...) {
+      // Do not reuse state left by an unsuccessful codec operation.
+      state.context.reset();
+      throw;
+    }
+#else
+    fail("container needs Zstandard; this build was compiled without it");
+#endif
+  }
+  if (crc32(reinterpret_cast<const std::uint8_t*>(cached_chunk_.data()), cached_chunk_.size()) != e.crc32)
+    fail("chunk CRC mismatch");
+  cached_index_ = index;
 }
 
 std::vector<std::byte> Reader::read(std::uint64_t offset, std::uint32_t length) {
@@ -395,9 +433,7 @@ std::vector<std::byte> Reader::read(std::uint64_t offset, std::uint32_t length) 
     const auto block_index = static_cast<std::size_t>(current / info_.chunk_bytes);
     const auto within = static_cast<std::size_t>(current % info_.chunk_bytes);
     if (cached_index_ != block_index) {
-      auto new_chunk = read_chunk(block_index);
-      cached_chunk_ = std::move(new_chunk);
-      cached_index_ = block_index;
+      read_chunk(block_index);
     }
     if (within >= cached_chunk_.size()) fail("read offset outside decoded block");
     const auto amount = (std::min)(result.size() - destination, cached_chunk_.size() - within);
@@ -412,7 +448,9 @@ void Reader::verify_all() {
   // Always touch the backing payloads rather than relying on the small read cache.
   cached_index_ = static_cast<std::size_t>(-1);
   cached_chunk_.clear();
-  for (std::size_t i = 0; i < entries_.size(); ++i) (void)read_chunk(i);
+  for (std::size_t i = 0; i < entries_.size(); ++i) read_chunk(i);
+  cached_index_ = static_cast<std::size_t>(-1);
+  cached_chunk_.clear();
 }
 
 void Reader::extract_new(const std::filesystem::path& output, std::uint64_t max_output_bytes) {
@@ -424,8 +462,8 @@ void Reader::extract_new(const std::filesystem::path& output, std::uint64_t max_
   verify_all();
   NewFileWriter target(output);
   for (std::size_t i = 0; i < entries_.size(); ++i) {
-    const auto decoded = read_chunk(i);
-    target.write(reinterpret_cast<const std::uint8_t*>(decoded.data()), decoded.size());
+    read_chunk(i);
+    target.write(reinterpret_cast<const std::uint8_t*>(cached_chunk_.data()), cached_chunk_.size());
   }
   target.flush();
 }

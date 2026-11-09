@@ -34,6 +34,7 @@ Normal CMake configuration downloads and installs nothing.
 | Stored chunk | At most 2 MiB |
 | Single random read | At most 4 MiB |
 | `.flfs` reader cache | One decoded chunk, at most 1 MiB |
+| `.flfs` compressed scratch | Lazily retained per reader; at most one stored chunk, 2 MiB |
 | FLZIP snapshot / logical bytes / index | 34 MiB / 32 MiB / 1 MiB |
 | FLZIP decoded block / cache | At most 16 MiB each; one cached block |
 | FLZIP composition scratch | At most one extra decoded block, 16 MiB maximum |
@@ -45,7 +46,7 @@ Normal CMake configuration downloads and installs nothing.
 | Native adapter startup verification | Fixed 32 MiB aggregate logical-byte budget |
 | Native adapter | At most 257 nodes, 256 open contexts, two active decodes |
 | Virtual paths | ASCII only, 240 characters total, 100 per component, depth 16 |
-| CPU compression | Levels 1 to 5; one stream |
+| CPU compression | Levels 1 to 5; one stream, one reusable context and output buffer |
 | Output disk-space preflight | Worst-case output plus 1 GiB available reserve |
 | CI | Two requested build jobs; sequential CTest, 45 seconds per test, 10 minutes per workflow job |
 | GPU resources | Not used |
@@ -55,6 +56,15 @@ entry arrays, SDK/runtime memory and allocator overhead are separate. The active
 read limit does not cap all callers of the lower-level catalog. Direct Reader
 calls are single-threaded; catalog reads/verification lock each backing file.
 No object may be moved or destroyed while its callbacks are running.
+
+CPU pipeline reuse adds no worker threads or GPU operations. A reader can retain
+one compressed-input buffer and a decoder context until destruction, in addition
+to its existing decoded cache. Sixteen catalog readers can therefore retain up
+to 32 MiB of compressed-input scratch plus up to 16 MiB of decoded caches; indices,
+codec contexts, caller output and allocator overhead are separate. Codec context
+allocation remains a dependency operation, not a new whole-process RAM guarantee.
+A failed load invalidates the cache identity before touching its buffer, and a
+failed decoder operation discards its context before another attempt.
 
 ## Path and handle boundaries
 

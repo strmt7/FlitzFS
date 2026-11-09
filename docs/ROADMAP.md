@@ -4,6 +4,12 @@ This is a staged plan, not a claim that the full product is implemented.
 Development stays on `main`; research, regressions and actual CI results gate
 promotion. No new branches, force pushes or owner-PC operations are needed.
 
+Optimize sustained read/write throughput and physical compression together;
+minimum latency is secondary. Future codecs are not restricted to FlitzZip's
+algorithms. The broad file-type corpus, compression portfolio and comparative
+acceptance criteria are specified in COMPRESSION_STRATEGY.md. No superiority
+claim follows from compatibility tests or one synthetic throughput comparison.
+
 | Stage | Status / deliverable | Promotion evidence or remaining gate |
 |---|---|---|
 | M1: CPU chunk core | Implemented experimental v1 pack/read/verify/new-only extraction | CPU codecs, corruption/bounds tests, Linux/Windows CI; retain original data |
@@ -50,6 +56,12 @@ GPU busy-vs-idle effects; measured power; write amplification; recovery time.
 Compare raw NTFS, CPU FlitzFS, GPU FlitzFS and built-in Windows compression when
 applicable. Correctness runs are not performance evidence. Heavy benchmarks,
 stress tests and GPU workloads remain disabled by default.
+
+The CPU pipeline now reuses codec contexts and chunk workspaces without changing
+v1 storage bytes. Its bounded hosted comparison alternates the pinned baseline
+and candidate on identical synthetic data and verifies complete container and
+extraction parity. This is an initial throughput regression check, not the
+cross-filesystem/compression frontier study. See CPU_PIPELINE.md.
 
 ## GPU preparation addition (0.3.2)
 

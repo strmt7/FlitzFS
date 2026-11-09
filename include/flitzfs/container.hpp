@@ -51,8 +51,9 @@ class Reader {
                      std::uint64_t max_index_bytes = 32ULL * 1024ULL * 1024ULL);
   Reader(const Reader&) = delete;
   Reader& operator=(const Reader&) = delete;
-  Reader(Reader&&) noexcept = default;
-  Reader& operator=(Reader&&) noexcept = default;
+  Reader(Reader&&) noexcept;
+  Reader& operator=(Reader&&) noexcept;
+  ~Reader();
 
   const ContainerInfo& info() const noexcept { return info_; }
 
@@ -73,13 +74,16 @@ class Reader {
     std::uint8_t codec{};
   };
 
-  Reader(ReadOnlyFile file, ContainerInfo info, std::vector<Entry> entries)
-    : file_(std::move(file)), info_(info), entries_(std::move(entries)) {}
+  Reader(ReadOnlyFile file, ContainerInfo info, std::vector<Entry> entries);
 
-  std::vector<std::byte> read_chunk(std::size_t index);
+  // Invalidate first; publish a cache identity only after full decoding and CRC.
+  void read_chunk(std::size_t index);
+  struct DecodeState;
   ReadOnlyFile file_;
   ContainerInfo info_;
   std::vector<Entry> entries_;
+  // Lazy, reader-owned codec context and bounded compressed-input scratch.
+  std::unique_ptr<DecodeState> decode_state_;
   // Single most-recently used decoded chunk, bounded by kMaxChunkBytes.
   std::size_t cached_index_ = static_cast<std::size_t>(-1);
   std::vector<std::byte> cached_chunk_;

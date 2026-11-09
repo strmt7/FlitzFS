@@ -1,0 +1,41 @@
+name: Bounded CPU pipeline comparison
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/container.cpp'
+      - 'include/flitzfs/container.hpp'
+      - 'tools/ci/compare_cpu_pipeline.py'
+      - '.github/workflows/cpu-pipeline.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: 2cf06327c6d71ebdfe90aadbed9187f8921a7267
+          path: .ci-baseline
+          persist-credentials: false
+      - name: Install one shared CPU codec dependency
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libzstd-dev
+      - name: Build both CPU implementations with identical options
+        run: |
+          cmake -S .ci-baseline -B baseline-build -DCMAKE_BUILD_TYPE=Release -DFLITZFS_BUILD_TESTS=OFF -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_WITH_ZLIB=OFF -DFLITZFS_WITH_LZ4=OFF
+          cmake --build baseline-build --parallel 2
+          cmake -S . -B candidate-build -DCMAKE_BUILD_TYPE=Release -DFLITZFS_BUILD_TESTS=OFF -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_WITH_ZLIB=OFF -DFLITZFS_WITH_LZ4=OFF
+          cmake --build candidate-build --parallel 2
+      - name: Compare alternating synthetic lanes with exact readback
+        run: python3 tools/ci/compare_cpu_pipeline.py --baseline baseline-build/flitzfs --candidate candidate-build/flitzfs --output "${{ runner.temp }}/cpu-pipeline.json"
+      - name: Retain measured samples, context and byte-parity results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cpu-pipeline-${{ github.sha }}
+          path: ${{ runner.temp }}/cpu-pipeline.json
+          if-no-files-found: error
+          retention-days: 14
