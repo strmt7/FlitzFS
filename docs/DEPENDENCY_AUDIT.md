@@ -85,3 +85,16 @@ binary-only package graph was unavailable on 3.15; normal build tooling remains
 3.15. This is a development provider, not a filesystem runtime or learning model.
 The separate Crawl4AI provider's older locked graph remains an explicit review
 item, so this does not claim universal transitive freshness.
+
+
+## ROCm and HIP selection correction
+
+The installable ROCm distribution controls its included HIP/compiler/library
+versions. The legacy HIP repository's latest-release pointer was insufficient
+current evidence and must not determine this toolchain independently.
+The selected whole-package lock matches current FlitzZip reference source
+113ca5f30655f0d373c17d1448e35ce1b69f2819: ROCm 10.1.0, observed HIP
+7.16.26385-7da43026e4, observed AMD Clang 24.0.0git. Its download checksum is an
+observed official-HTTPS digest, not an independently published AMD checksum.
+Fresh official release/install captures and actual package/compiler checks
+remain required; a repository lock alone does not prove "latest compatible".

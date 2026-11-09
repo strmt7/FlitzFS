@@ -39,21 +39,11 @@ AMD_SOURCES = (
     ("amd-windows-components", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/component-support.html", "ROCm", "Runtime"),
 )
 
-HIP_RUNTIME_SOURCES = (
-    ("hip-runtime-deployment", "https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2/conceptual/deployment-guidelines.html", "deployment", "Applications do not"),
-    ("windows-runtime-loader", "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw", "LoadLibraryExW", "LOAD_LIBRARY_SEARCH_SYSTEM32"),
-    ("windows-runtime-trust", "https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust", "WinVerifyTrust", "zero"),
-    ("windows-runtime-trust-data", "https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data", "WTD_CACHE_ONLY_URL_RETRIEVAL", "WTD_CACHE_ONLY_URL_RETRIEVAL"),
-    ("hip-runtime-module", "https://rocm.docs.amd.com/projects/HIP/en/latest/doxygen/html/group___module.html", "hipModuleLaunchKernel", "hipModuleLoadData"),
-    ("hip-runtime-stream", "https://rocm.docs.amd.com/projects/HIP/en/latest/doxygen/html/group___stream.html", "hipStreamCreateWithPriority", "hipStreamCreateWithPriority"),
+ROCM_CURRENT_SOURCES = (
+    ("rocm-current-release", "https://rocm.docs.amd.com/en/latest/about/release-notes.html", "ROCm", "10."),
+    ("rocm-selected-release", "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html", "10.1.0", "Windows"),
+    ("rocm-current-install", "https://rocmdocs.amd.com/en/latest/install/rocm.html", "ROCm", "Windows"),
 )
-RUNTIME_REVIEW_TERMS = {
-    "windows-runtime-loader": ("LOAD_LIBRARY_SEARCH_SYSTEM32", "fully qualified", "dependencies"),
-    "windows-runtime-trust": ("zero", "WTD_UI_NONE", "WinVerifyTrust"),
-    "windows-runtime-trust-data": ("WTD_CACHE_ONLY_URL_RETRIEVAL", "hFile", "WTD_REVOKE_WHOLECHAIN"),
-    "hip-runtime-module": ("hipModuleLoadData", "hipModuleLaunchKernel", "hipModuleUnload"),
-    "hip-runtime-stream": ("hipStreamCreateWithPriority", "hipDeviceGetStreamPriorityRange", "hipStreamDestroy"),
-}
 
 
 def guard():
@@ -85,7 +75,7 @@ async def capture(args):
     args.output.mkdir(parents=False, exist_ok=False)
     rows = []
     async with AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False, use_persistent_context=False)) as owner:
-        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "hip-runtime": HIP_RUNTIME_SOURCES}[args.source_group]
+        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-current": ROCM_CURRENT_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -110,14 +100,13 @@ async def capture(args):
                     print(json.dumps({"native_navigation": name, "official_links": selected_links}), flush=True)
                 offset = markdown.lower().rfind(term.lower())
                 print(json.dumps({"review": name, "excerpt": markdown[max(0, offset-200):offset+1100]}), flush=True)
-                if args.source_group == "hip-runtime":
-                    if len(markdown.encode()) <= 14000:
-                        print(json.dumps({"native_review_full": name, "markdown": markdown}), flush=True)
-                    else:
-                        for key in RUNTIME_REVIEW_TERMS.get(name, (term,)):
-                            position = markdown.lower().rfind(key.lower())
-                            print(json.dumps({"native_review_section": name, "term": key,
-                                "found": position >= 0, "excerpt": markdown[max(0,position-250):position+1800]}), flush=True)
+                if args.source_group == "rocm-current":
+                    print(json.dumps({"current_source_review": name,
+                        "opening": markdown[:10000],
+                        "headings": [line for line in markdown.splitlines() if line.startswith("#")][:48],
+                        "official_links": sorted(set(re.findall(r'https://(?:stable\.repo\.amd\.com|rocm(?:docs)?\.amd\.com)/[^\s)<>" ]+', markdown)))[:40]
+                    }), flush=True)
+
     receipt = {
         "experimental": True, "commit": os.environ.get("GITHUB_SHA"),
         "provider_repository": "strmt7/FlitzZip", "provider_commit": PROVIDER_REF,
@@ -132,7 +121,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "hip-runtime") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-current") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -142,7 +131,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "hip-runtime"), default="durability")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)

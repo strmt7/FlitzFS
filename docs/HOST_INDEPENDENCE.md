@@ -154,3 +154,19 @@ or PATH edit. Future protected integration needs its own qualified mechanism.
 No driver/runtime installation on the owner's PC is authorized by this source.
 
 Source: https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2/conceptual/deployment-guidelines.html
+
+
+## Current ROCm distribution supersedes the legacy HIP selection
+
+For current implementation decisions, the earlier HIP SDK 7.2 deployment capture
+above is historical evidence. It does not establish current ROCm 10.1.0 policy.
+Consult fresh official distribution documentation and the current source-bound
+FlitzZip toolchain before changing setup/loading behavior.
+
+ROCm 10.1.0 is selected as one complete package by tools/rocm-sdk-lock.json,
+matching reference source 113ca5f30655f0d373c17d1448e35ce1b69f2819.
+Its observed HIP/compiler versions remain component observations, not separate
+version selections. The hosted qualification reuses the current complete-package
+bootstrap and scoped compiler helpers; it never generates replacement SDK
+headers, mixes components, installs a driver or changes the owner's PC.
+This development setup remains distinct from the unfinished end-user installer.
