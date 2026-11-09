@@ -305,7 +305,8 @@ std::exception_ptr WorkerExchangeSession::failure() const noexcept {
   return try_result()?impl_->state->error:std::exception_ptr{};
 }
 bool WorkerExchangeSession::retirement_confirmed() const noexcept {
-  return impl_ && impl_->state->retired.load(std::memory_order_acquire);
+  return impl_ && impl_->state->retired.load(std::memory_order_acquire) &&
+      WaitForSingleObject(impl_->supervisor.value,0)==WAIT_OBJECT_0;
 }
 std::uint32_t WorkerExchangeSession::process_id() const noexcept {
   return impl_?impl_->state->observer->process_id():0;
@@ -330,9 +331,17 @@ WorkerExchangeResult WorkerExchangeSession::wait_result() {
   lock.unlock();
   // Preserve strict synchronous handle accounting for an already retired
   // helper. Never join/wait here when retirement remains unconfirmed.
-  if(state.retired.load(std::memory_order_acquire) &&
-      WaitForSingleObject(impl_->supervisor.value,INFINITE)!=WAIT_OBJECT_0)
-    failed("retired worker supervisor wait");
+  if(state.retired.load(std::memory_order_acquire)) {
+    const auto wait=WaitForSingleObject(impl_->supervisor.value,2000);
+    if(wait==WAIT_FAILED)failed("retired worker supervisor wait");
+    if(wait!=WAIT_OBJECT_0) {
+      auto result=state.result;
+      if(state.error)std::rethrow_exception(state.error);
+      result.code=WorkerExchangeCode::supervisor_exit_unconfirmed;
+      result.response.clear();
+      return result; // Retain admission until exact supervisor-thread exit.
+    }
+  }
   if(state.error)std::rethrow_exception(state.error);
   return state.result;
 }

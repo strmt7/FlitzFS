@@ -66,6 +66,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./tools/ci/build_windows_native.ps1 -PortableCpu
+      - name: Independently inspect native error runtime handle initialization
+        if: runner.os == 'Windows'
+        run: ./build-portable/Release/flitzfs_worker_exchange_tests.exe --native-error-resource-probe
       - name: Run bounded core tests with the static runtime
         run: ctest --test-dir build-portable -C Release --output-on-failure --timeout 45 --parallel 1
       - name: Move and check only the Linux executable
