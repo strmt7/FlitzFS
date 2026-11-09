@@ -86,6 +86,33 @@ int main() {
     require(decision.try_gpu() && flapping.finish(decision.ticket,GpuRecoveryOutcome::accepted,true), "second recovery success");
     require(flapping.consecutive_failures() == 0, "stable recovery did not clear transient history");
 
+    // A partial healthy streak must not survive an observed loss of
+    // compatibility, identity, supervision, sequence or monotonic time.
+    for(unsigned interruption = 0; interruption < 5; ++interruption) {
+      GpuRecoveryPolicy interrupted;
+      e = evidence(); decision = choose(interrupted,e);
+      require(decision.try_gpu() && interrupted.finish(decision.ticket,GpuRecoveryOutcome::temporary_pressure,true),
+              "first interruption setup failure");
+      advance(e); decision = choose(interrupted,e);
+      require(decision.try_gpu() && interrupted.finish(decision.ticket,GpuRecoveryOutcome::temporary_pressure,true),
+              "second interruption setup failure");
+      advance(e);
+      require(choose(interrupted,e).reason == GpuRouteReason::recovering, "partial recovery streak setup");
+      bad = e; advance(bad);
+      if(interruption == 0) bad.compatible = false;
+      if(interruption == 1) bad.configuration = {};
+      if(interruption == 2) bad.sequence = 0;
+      if(interruption == 3) bad.supervisor_quiescent = false;
+      const auto denied = interruption == 4 ?
+          interrupted.consider(true,true,bad,batch(),e.memory.captured_ms-1) : choose(interrupted,bad);
+      require(!denied.try_gpu(), "invalid interruption evidence admitted");
+      advance(e);
+      require(choose(interrupted,e).reason == GpuRouteReason::recovering,
+              "interrupted incompatible evidence retained health streak");
+      advance(e);
+      require(choose(interrupted,e).try_gpu(), "fresh recovery streak did not complete");
+    }
+
     // Immediate CPU fallback does not wait for worker cleanup, but that worker
     // blocks any later GPU round until separate supervisor confirmation.
     GpuRecoveryPolicy teardown;

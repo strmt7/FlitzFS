@@ -91,5 +91,18 @@ will be performed under the current restriction. All further disk-based builds,
 research tools and tests run remotely. Host RAM-only operation is not qualified:
 Windows may page anonymous memory, and no RAM-disk/driver workaround is allowed.
 
-This publication is reconstructed through remote repository APIs without
-touching the local checkout. Its exact hosted validation is pending.
+Remote implementation commit f3ab1c5e8b55a5628010db31cd437d2b526d99a1 passed
+all four workflows: [six-job CPU/native/mount matrix](https://github.com/strmt7/FlitzFS/actions/runs/42596551385),
+[upstream compatibility](https://github.com/strmt7/FlitzFS/actions/runs/42596551133),
+[offline HIP compilation](https://github.com/strmt7/FlitzFS/actions/runs/42596551288)
+and [source evidence](https://github.com/strmt7/FlitzFS/actions/runs/42596551093).
+Portable configurations each passed 18 CTest entries. These remain CPU/control
+results, not live HIP/driver recovery or writable power-loss qualification.
+
+Further review found that a partly accumulated healthy streak could survive
+an explicit incompatible, missing-identity/sequence, non-quiescent or rolled-back
+clock observation. The next correction resets the streak for these interruptions.
+A strengthened test covers all five cases; the dedicated hosted regression lane
+must observe the exact old failure at f3ab1c5, then pass the corrected test. Its
+results remain pending at publication of that correction. All work after the
+host boundary used remote repository tools only; the local checkout is untouched.
