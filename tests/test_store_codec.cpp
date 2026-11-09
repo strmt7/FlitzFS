@@ -1,4 +1,5 @@
 #include "store_codec.hpp"
+#include "repeat_bytes.hpp"
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -31,6 +32,22 @@ void roundtrip(StoreCodecEncoder& encoder,StoreCodecDecoder& decoder,const Bytes
   require(decoder.decode(e.codec,e.payload,static_cast<std::uint32_t>(input.size()))==input,"codec byte parity");
   require(e.codec==kStoreRaw?e.decoded_digest==Digest{}:e.decoded_digest==record_digest(input),"decoded digest binding");
   require(encoder.peak_bytes()<=kStoreEncoderMemoryCap && decoder.peak_bytes()<=kStoreDecoderMemoryCap,"codec exceeded memory cap");
+}
+void repeated_copy_guards() {
+  for(auto period:{1U,2U,3U,17U,251U,4093U,4096U,16385U}) {
+    const auto motif=noise(period);
+    for(auto n:{0U,1U,31U,4095U,4096U,4097U,65537U}) {
+      Bytes guarded(n+32,std::byte{0xa7});
+      auto output=std::span<std::byte>(guarded).subspan(16,n);
+      repeat_bytes(motif,output);
+      for(std::size_t i=0;i<n;++i)require(output[i]==motif[i%period],"bulk repeat byte mismatch");
+      require(std::all_of(guarded.begin(),guarded.begin()+16,[](auto b){return b==std::byte{0xa7};}) &&
+              std::all_of(guarded.end()-16,guarded.end(),[](auto b){return b==std::byte{0xa7};}),"bulk repeat escaped output");
+    }
+  }
+  Bytes untouched(17,std::byte{91});
+  rejects([&]{repeat_bytes({},untouched);},"empty repeat motif accepted");
+  require(untouched==Bytes(17,std::byte{91}),"invalid repeat changed output");
 }
 void policies_and_patterns() {
 #ifdef FLITZFS_TEST_HAS_ZSTD
@@ -125,7 +142,7 @@ void malformed_and_budget() {
 }
 }
 int main(){
-  try{policies_and_patterns();malformed_and_budget();
+  try{repeated_copy_guards();policies_and_patterns();malformed_and_budget();
     std::cout<<"PASS: "<<checks<<" native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.\n";return 0;
   }catch(const std::exception& e){std::cerr<<"store codec failure after "<<checks<<": "<<e.what()<<'\n';return 1;}
 }

@@ -1,4 +1,5 @@
 #include "store_codec.hpp"
+#include "repeat_bytes.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -67,7 +68,7 @@ std::size_t pattern_period(std::span<const std::byte> input) {
   }
   const auto period=n-prefix[n-1];
   if(!period || period>kStoreMaxPatternBytes || period>=input.size()) return 0;
-  for(std::size_t i=period;i<input.size();++i) if(input[i]!=input[i%period]) return 0;
+  if(!std::equal(input.begin()+static_cast<std::ptrdiff_t>(period),input.end(),input.begin())) return 0;
   return period;
 }
 }
@@ -149,8 +150,7 @@ std::vector<std::byte> StoreCodecDecoder::decode(std::uint32_t codec,
   Bytes output(logical);
   if(codec==kStoreRaw) std::copy(payload.begin(),payload.end(),output.begin());
   else if(codec==kStoreZero) {} // Value-initialized bytes are zero.
-  else if(codec==kStorePattern)
-    for(std::size_t i=0;i<output.size();++i) output[i]=payload[i%payload.size()];
+  else if(codec==kStorePattern) repeat_bytes(payload,output);
   else {
 #ifdef FLITZFS_STORE_HAS_ZSTD
     // Reject concatenation, skippable/unknown-size frames and dictionaries.

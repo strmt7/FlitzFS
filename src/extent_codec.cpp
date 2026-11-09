@@ -1,4 +1,5 @@
 #include "extent_codec.hpp"
+#include "repeat_bytes.hpp"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -106,7 +107,7 @@ void entropy(unsigned kind, Input input, Output output) {
   });
 }
 void repeated(Input motif,Output output) {
-  for (std::size_t i=0;i<output.size();++i) output[i]=motif[i%motif.size()];
+  repeat_bytes(motif,output);
 }
 void sparse(unsigned kind,Input source,Output output) {
   const auto period=u32(source,0), count=u32(source,4);

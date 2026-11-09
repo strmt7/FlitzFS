@@ -5,6 +5,8 @@ on:
     paths:
       - 'src/object_store.cpp'
       - 'src/store_codec.*'
+      - 'src/repeat_bytes.hpp'
+      - 'src/extent_codec.cpp'
       - 'src/record_digest.*'
       - 'include/flitzfs/object_store.hpp'
       - 'tests/store_comparison.cpp'
@@ -33,21 +35,31 @@ jobs:
           ref: 5c7d7a0a1aea82cbcf3f8d70b1a1d340a00d2f1e
           path: .ci-deps/store-baseline
           persist-credentials: false
+      - name: Check out exact compressed-engine reference for controlled comparison
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: strmt7/FlitzFS
+          ref: 56475daedbfc4b0c96683cf1faeaff5414479876
+          path: .ci-deps/compressed-reference
+          persist-credentials: false
       - name: Install CPU compression development library
         run: sudo apt-get update && sudo apt-get install -y libzstd-dev
       - name: Configure baseline and candidate
         run: |
           cmake -S tests/store_reference -B build-store-baseline -DCMAKE_BUILD_TYPE=Release -DFLITZFS_REFERENCE_SOURCE="$PWD/.ci-deps/store-baseline"
+          cmake -S tests/store_reference -B build-compressed-reference -DCMAKE_BUILD_TYPE=Release -DFLITZFS_REFERENCE_SOURCE="$PWD/.ci-deps/compressed-reference"
           cmake -S . -B build-store-compare -DCMAKE_BUILD_TYPE=Release -DFLITZFS_BUILD_TESTS=OFF -DFLITZFS_WITH_LZ4=OFF -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_BUILD_STORE_COMPARISON=ON
       - name: Build with at most two workers
         run: |
           cmake --build build-store-baseline --target flitzfs_reference_store_comparison --parallel 2
+          cmake --build build-compressed-reference --target flitzfs_reference_store_comparison --parallel 2
           cmake --build build-store-compare --target flitzfs_store_comparison --parallel 2
       - name: Compare bounded native transactions and cross-read raw images
         run: >-
           python tools/ci/compare_native_store.py
           --baseline build-store-baseline/flitzfs_reference_store_comparison
           --candidate build-store-compare/flitzfs_store_comparison
+          --prior build-compressed-reference/flitzfs_reference_store_comparison
           --output "${{ runner.temp }}/flitzfs-native-store-comparison.json"
       - name: Retain source-bound measurements
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
