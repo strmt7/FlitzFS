@@ -158,3 +158,76 @@ and must verify the corrected sources. Product work must then connect the native
 transactional namespace to Windows callbacks, implement the separate helper/
 engine lifecycle and test the new driver candidate. Full Windows 11 client,
 writable application, driver-fault and AMD hardware qualification remain open.
+
+
+## Current-source review update
+
+At 2c44ce969e8557f6eaa81027b96718ddc9a6aa76, job 129405052541
+successfully captured all TWELVE Windows product/framework/alternative pages
+with substantive body review. Both corrected URLs returned HTTP 200. The
+unrelated HIP stream-management request then received an access challenge and
+kept the combined job red; do not describe that workflow as passing. Normal
+Windows architecture research is now scoped to its three complete Windows
+groups. The HIP success/failure history remains in HIP_RUNTIME_WORKER.md and
+does not authorize bypassing the challenged endpoint.
+
+The release-information body lists Windows 11 26H2 as the current annual GA
+release (29 September 2026), with build 26300.9818 dated 28 October in its
+captured latest-update column. It separately describes 26H1 as a new-device
+platform, not a normal in-place feature update. The SDK page lists
+10.0.28000.2957 and the 26100-family update 10.0.26100.9457, both September
+2026, ahead of a separate Preview section. These are observed source values,
+not assertions that our runner uses these SDKs or that a higher SDK/build
+number defines the appropriate Windows client release.
+
+The current-served ProjFS overview reports a 2021 content revision. Cloud Files
+reports a 2025 revision. Their successful fetches prove extraction, not fresh
+release-specific behavior. Treat their table entries as background categories;
+no important implementation or Windows 11 compatibility decision may rely on
+those old revisions. Current SDK/source and actual Windows 11 behavior would
+need independent verification before selecting either mechanism. The present
+WinFsp continuation is bound to current 2026 package/source review and executed
+native tests, with its Windows 11 client gate still open.
+
+The current NTFS-Compatibility document confirms that user-mode engines can
+implement their own compression/encryption, while WinFsp does not expose the
+corresponding NTFS-specific compression/encryption control codes. It also lists
+unsupported interfaces such as Change Journal, quotas and defragmentation
+controls, hard links, paging-file support and open-by-file-ID. The selected
+v2.2B5 header was inspected through the native repository API at its exact
+source commit and exposes no hard-link callback. These are real compatibility
+constraints: the current driver is a bring-up foundation, not a justification
+to redefine required Windows application behavior. If application requirements
+cannot be met, qualify a suitable extension or replacement driver boundary.
+This does NOT prevent FlitzFS-native extent compression or internal
+layout maintenance. It requires honest advertised Windows capabilities and
+tests, rather than claiming complete NTFS equivalence. Source:
+https://winfsp.dev/doc/NTFS-Compatibility/
+
+The VM-only installer now captures the exact MSI-selected AMD64 driver bytes,
+file version, Authenticode status/type and signer identity before installation.
+The official MSI checksum binds that source. The record explicitly keeps
+windows11_policy_qualified=false: signature metadata and Server installation
+cannot establish current Windows 11 enforcement/HVCI compatibility. Only fresh
+owned-fixture JSON provenance is uploaded; no driver binary is redistributed.
+
+
+## Executed candidate checks
+
+At 2c44ce969e8557f6eaa81027b96718ddc9a6aa76, job 129405058165
+staged the actual v2.2B5 SDK and passed 27 native CTest entries, including 529
+CPU-only worker assertions with handles 88 to 88. Job 129406895390 installed
+that same source/asset-bound candidate on a disposable hosted VM and passed real
+Zstd reads, EOF, random/mapped I/O, enumeration, write rejection, shutdown,
+backing parity, forced live-mount termination, automatic removal, independent
+CPU recovery and same-path remount. Observed process peaks were 9,854,976 and
+9,846,784 committed bytes under the existing 128 MiB/20% bounds. The crash probe
+deliberately timed out and confirmed termination; it was not accepted as a normal
+successful process exit.
+
+These are read-only Windows Server integration checks, not writable application,
+Windows 11 client or kernel-fault immunity results. Dedicated Windows native/
+mount and interruption development jobs now move to the current hosted
+Windows-2025-VS2026 toolchain already observed in whole-ROCm qualification.
+This removes reliance on the older Windows Server 2022 development image without
+claiming that a Server image is a Windows 11 client VM.
