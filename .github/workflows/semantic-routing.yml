@@ -6,6 +6,7 @@ on:
       - 'src/**'
       - 'include/**'
       - 'tools/ci/hosted_semantic.py'
+      - 'tools/ci/test_hosted_semantic.py'
       - '.github/workflows/semantic-routing.yml'
 permissions:
   contents: read
@@ -21,6 +22,8 @@ jobs:
         with:
           python-version: '3.14'
           check-latest: true
+      - name: Verify hostile-wheel and authoritative-digest rejection
+        run: python tools/ci/test_hosted_semantic.py
       - name: Resolve verified CPU-only tools and perform actual source-bound searches
         shell: bash
         run: |

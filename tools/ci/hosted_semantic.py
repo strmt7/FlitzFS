@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import hashlib
+from html.parser import HTMLParser
 import json
 import math
 import os
@@ -108,7 +109,7 @@ class Provider:
             "download reserve unavailable")
         parsed=urllib.parse.urlsplit(url)
         require(parsed.scheme=="https" and parsed.hostname in
-            ("github.com","files.pythonhosted.org","download.pytorch.org","download-r2.pytorch.org","huggingface.co"),
+            ("github.com","files.pythonhosted.org","download.pytorch.org","download-r2.pytorch.org","huggingface.co","pypi.org"),
             "unreviewed download origin")
         request=urllib.request.Request(url,headers={"User-Agent":"FlitzFS-isolated-development"})
         count=0;hash256=hashlib.sha256()
@@ -147,6 +148,51 @@ class Provider:
         path=self.root/name
         self.download(url,path,4*MIB)
         return read_json(path,4*MIB)
+    def package_digest(self,name,version,info,index):
+        archive=info.get("archive_info") or {}
+        value=(archive.get("hashes") or {}).get("sha256")
+        if not value:
+            legacy=archive.get("hash","")
+            if legacy.startswith("sha256="):value=legacy[7:]
+        if value:
+            require(re.fullmatch(r"[0-9a-f]{64}",value),"invalid resolver wheel digest")
+            legacy=archive.get("hash")
+            require(not legacy or legacy=="sha256="+value,"conflicting resolver wheel digests")
+            return value
+        # Dry-run metadata is not guaranteed to include a downloaded archive
+        # hash. Obtain the expected identity from the ORIGINAL package authority,
+        # never by treating the candidate's computed hash as its own validation.
+        url=info["url"]
+        if name=="torch":
+            class Links(HTMLParser):
+                def __init__(self):super().__init__();self.values=[]
+                def handle_starttag(self,tag,attrs):
+                    if tag=="a":
+                        for key,value in attrs:
+                            if key=="href" and value:
+                                require(len(self.values)<40000,"CPU package-index link budget")
+                                self.values.append(value)
+            path=self.root/"torch-index.native.log"
+            if not path.exists():
+                self.download("https://download.pytorch.org/whl/cpu/torch/",path,8*MIB)
+            parser=Links();parser.feed(path.read_text(encoding="utf-8"))
+            expected=urllib.parse.urlsplit(url);matches=set()
+            for link in parser.values:
+                item=urllib.parse.urlsplit(urllib.parse.urljoin("https://download.pytorch.org/whl/cpu/torch/",link))
+                if item.scheme=="https" and item.hostname in ("download.pytorch.org","download-r2.pytorch.org") and \
+                    urllib.parse.unquote(item.path)==urllib.parse.unquote(expected.path) and item.query==expected.query:
+                    match=re.fullmatch(r"sha256=([0-9a-f]{64})",item.fragment)
+                    if match:matches.add(match.group(1))
+            require(len(matches)==1,"CPU wheel has no unique official package-index digest")
+            return matches.pop()
+        metadata=self.native_json("https://pypi.org/pypi/"+urllib.parse.quote(name,safe="")+"/"+
+            urllib.parse.quote(version,safe="")+"/json","package-metadata-"+str(index)+".json")
+        matches={row["digests"]["sha256"] for row in metadata["urls"]
+                 if row["url"]==url and row.get("packagetype")=="bdist_wheel"}
+        require(len(matches)==1,"wheel has no unique official PyPI digest")
+        value=matches.pop()
+        require(re.fullmatch(r"[0-9a-f]{64}",value),"invalid official package digest")
+        return value
     def wheel_admit(self,path):
         require(path.suffix==".whl","only wheels are admitted")
         with zipfile.ZipFile(path) as archive:
@@ -183,18 +229,20 @@ class Provider:
         packages=read_json(report)["install"]
         require(0<len(packages)<=220,"provider package-count budget")
         lines=[];identities=[]
-        for package in packages:
+        for package_index,package in enumerate(packages):
             metadata=package["metadata"];name=metadata["name"].lower().replace("_","-")
             require(re.fullmatch(r"[a-z0-9][a-z0-9.-]*",name) and
-                not name.startswith(("nvidia-","cuda-","triton","rocm-")),"GPU runtime package rejected")
-            info=package["download_info"];url=info["url"];sha=info["archive_info"]["hashes"]["sha256"]
-            require(re.fullmatch(r"[0-9a-f]{64}",sha),"unqualified wheel digest")
-            if name=="torch":
-                require(metadata["version"]==torch and "/whl/cpu/" in url,"Torch is not CPU-only")
+                not any(word in name for word in ("nvidia","cuda","triton","rocm")),"GPU runtime package rejected")
+            info=package["download_info"];url=info["url"]
             if name=="cocoindex-code":
-                require(metadata["version"]==VERSION and sha==WHEEL_SHA and url==coco.as_uri(),"CocoIndex pin differs")
+                sha=WHEEL_SHA
+                require(metadata["version"]==VERSION and url==coco.as_uri() and
+                    digest(coco.read_bytes())==WHEEL_SHA,"CocoIndex pin differs")
                 path=coco
             else:
+                sha=self.package_digest(name,metadata["version"],info,package_index)
+                if name=="torch":
+                    require(metadata["version"]==torch and "/whl/cpu/" in url,"Torch is not CPU-only")
                 leaf=urllib.parse.unquote(urllib.parse.urlsplit(url).path).rsplit("/",1)[-1]
                 require(leaf and leaf.endswith(".whl") and "/" not in leaf and "\\" not in leaf and ":" not in leaf,
                     "unsafe wheel name")
