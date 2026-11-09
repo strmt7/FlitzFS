@@ -111,3 +111,29 @@ CPU artifact, rather than treating the CPU vendor's mirror as a second general
 package registry. CPU-index fallback must find one matching digest for the exact
 candidate path, and its origin/ambiguity checks have dedicated regressions.
 Unresolved package authority remains a hard failure before installation.
+
+## Workflow startup investigation
+
+A terminal workflow with no created job is not a failed source test or a passed
+check. On 9 November, runs at 69aca1c9a09c7f684694ee9498b500fb9594a223
+and d9e0b712e9e3af783db9b6e8615e92f2612d4f3b had missing jobs, and the native
+retry API returned HTTP 403 with "This workflow run cannot be retried".
+The successful 976-case Windows process probe is retained separately; the missing
+Linux matrix job is not covered by it. Current-head routing is unqualified until
+an actual provider job succeeds with native source-bound search receipts.
+
+workflow_diagnostics.py is a hosted-Linux-only, read-only native GitHub API
+collector for exact commit IDs. It retains Actions runs/jobs, check outputs,
+annotations, HTTP/access/transport failures, native bytes and SHA-256 receipts
+in a NEW RUNNER_TEMP fixture. It never retries jobs, edits configuration or
+changes account settings. Capture success only means evidence was written;
+incomplete/paginated/denied reads are explicit and do not mean zero findings.
+
+The collector has 40 requests, 1 MiB per response, 70 seconds of request budget,
+an 80-second total alarm, 512 MiB address space, 15 CPU seconds, no core files,
+a 64 MiB individual file ceiling, 16 MiB report cap and 4 GiB free-space reserve.
+Its token is scoped to the repository's read permissions, sent only to the fixed
+official native API origin, never redirected or stored in receipts. The source
+evidence workflow uploads these diagnostics separately before source packaging.
+No owner-PC process, shared provider registration or product dependency changes
+follow from this development investigation.
