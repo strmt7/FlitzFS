@@ -265,3 +265,8 @@ CPU time 15 seconds, wall time 20 seconds; output streams and total run time are
 bounded. All execution stays on disposable hosted VMs. Inspect the exact
 commit's Native compressed-store RAM comparison workflow and retained JSON;
 results are not inferred before execution.
+
+The first comparison's measured CPU costs and the subsequent bounded bulk-pattern
+optimization are recorded in NATIVE_STORE_MEASUREMENTS.md. The follow-up compares
+against both the raw engine and the pinned pre-optimization compressed engine on
+the same VM; physical image end and active payload remain separate metrics.

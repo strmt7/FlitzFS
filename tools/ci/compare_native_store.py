@@ -15,8 +15,9 @@ import tempfile
 import time
 
 BASE="5c7d7a0a1aea82cbcf3f8d70b1a1d340a00d2f1e"
+PRIOR="56475daedbfc4b0c96683cf1faeaff5414479876"
 CORPORA=("zeros","uniform","motifs","numeric","text","noise")
-MODES=("baseline","raw","auto1","auto6","auto9")
+MODES=("baseline","raw","prior6","auto1","auto6","auto9")
 DEADLINE=time.monotonic()+120
 
 def child_limits():
@@ -77,6 +78,7 @@ def main():
     parser.add_argument("--baseline",type=Path,required=True)
     parser.add_argument("--candidate",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
+    parser.add_argument("--prior",type=Path,required=True)
     args=parser.parse_args()
     repo=Path(__file__).resolve().parents[2]
     head=subprocess.run(["git","-C",str(repo),"rev-parse","HEAD"],capture_output=True,text=True,check=True,timeout=5).stdout.strip()
@@ -87,12 +89,13 @@ def main():
             shift=repeat%len(MODES)
             order=MODES[shift:]+MODES[:shift]
             for mode in order:
-                binary=args.baseline if mode=="baseline" else args.candidate
-                row=json.loads(run(binary,mode,kind,"measure"))
+                binary=args.baseline if mode=="baseline" else (args.prior if mode=="prior6" else args.candidate)
+                row=json.loads(run(binary,"auto6" if mode=="prior6" else mode,kind,"measure"))
                 if row["logical_bytes"]!=4*1024*1024 or row["physical_bytes"]>5*1024*1024:
                     raise RuntimeError("comparison corpus/physical budget mismatch")
                 if mode.startswith("auto") and row["active_payload_bytes"]>row["logical_bytes"]:
                     raise RuntimeError("compressed payload expansion")
+                row.setdefault("active_payload_bytes",row["logical_bytes"])
                 data.append(dict(corpus=kind,mode=mode,repeat=repeat,**row))
     # Cross-version golden check on full raw images, not just decoder output.
     interop=[]
@@ -122,8 +125,8 @@ def main():
             rows=[r for r in data if r["corpus"]==kind and r["mode"]==mode]
             summary.append(dict(corpus=kind,mode=mode,
                 **{key:statistics.median(r[key] for r in rows)
-                   for key in ("physical_bytes","write_ms","read_verify_ms","reopen_verify_ms")}))
-    report=dict(schema=1,baseline=BASE,candidate=head,
+                   for key in ("physical_bytes","active_payload_bytes","write_ms","read_verify_ms","reopen_verify_ms")}))
+    report=dict(schema=1,baseline=BASE,prior_compressed=PRIOR,candidate=head,
         scope="native object transactions in RAM; no storage-device or mounted-filesystem measurement",
         controls=dict(corpus_bytes=4194304,samples=3,process_as_bytes=536870912,
                       process_cpu_seconds=15,process_wall_seconds=20,
@@ -133,7 +136,7 @@ def main():
     args.output.parent.mkdir(parents=True,exist_ok=True)
     with args.output.open("x",encoding="utf-8") as output:
         json.dump(report,output,indent=2);output.write("\n")
-    print(json.dumps(dict(candidate=head,baseline=BASE,rows=len(data),raw_image_checks=len(interop),summary=summary)))
+    print(json.dumps(dict(candidate=head,baseline=BASE,prior_compressed=PRIOR,rows=len(data),raw_image_checks=len(interop),summary=summary)))
 
 if __name__=="__main__":
     main()
