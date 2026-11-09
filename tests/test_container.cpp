@@ -11,6 +11,11 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <utility>
+
+#ifdef FLITZFS_TEST_HAS_ZSTD
+#include <zstd.h>
+#endif
 
 #ifndef _WIN32
 #include <sys/stat.h>
@@ -125,9 +130,89 @@ void compare_range(flitzfs::Reader& r, const std::vector<unsigned char>& source,
   for (std::uint32_t i = 0; i < n; ++i)
     require(std::to_integer<unsigned char>(result[i]) == source[static_cast<std::size_t>(offset) + i], "range contents");
 }
+
+void check_reused_workspaces(TempScope& tmp) {
+  // Alternate entropy classes so reused state must handle compressed, raw and
+  // short chunks without a dictionary or history dependency between frames.
+  constexpr std::size_t chunk = 4096;
+  auto bytes = make_noise(chunk * 8u + 137u);
+  for (std::size_t block = 0; block < 8; block += 2)
+    std::fill_n(bytes.begin() + static_cast<std::ptrdiff_t>(block * chunk), chunk,
+                static_cast<unsigned char>('A' + block));
+  const auto input = tmp.name("reuse-input");
+  put(input, bytes);
+  for (int level = 1; level <= 5; ++level) {
+    flitzfs::PackOptions options;
+    options.chunk_bytes = chunk;
+    options.zstd_level = level;
+    const auto archive = tmp.name("reuse-" + std::to_string(level) + ".flfs");
+    const auto info = flitzfs::pack_new(input, archive, options);
+    const auto wire = load(archive);
+    const auto index = static_cast<std::size_t>(test_u64le(wire, wire.size() - 24u));
+    require(info.chunk_count == 9, "mixed workspace chunk count");
+    for (std::size_t block = 0; block < info.chunk_count; ++block) {
+      const auto offset = static_cast<std::size_t>(test_u64le(wire, index + block * 32u));
+      const auto logical = (std::min)(chunk, bytes.size() - block * chunk);
+      const auto codec = wire[index + block * 32u + 20u];
+      // Independent old one-shot encoder is the byte-compatibility oracle.
+#ifdef FLITZFS_TEST_HAS_ZSTD
+      std::vector<unsigned char> legacy(ZSTD_compressBound(logical));
+      const auto size = ZSTD_compress(legacy.data(), legacy.size(), bytes.data() + block * chunk, logical, level);
+      require(!ZSTD_isError(size), "legacy one-shot encoding");
+      const bool compressed = size + 16 < logical;
+      require(codec == (compressed ? 1 : 0), "unchanged raw fallback choice");
+      if (compressed) {
+        require(std::equal(legacy.begin(), legacy.begin() + static_cast<std::ptrdiff_t>(size),
+                           wire.begin() + static_cast<std::ptrdiff_t>(offset)), "byte-identical independent Zstd frame");
+      } else
+#endif
+      {
+        require(codec == 0, "raw build or incompressible chunk");
+        require(std::equal(bytes.begin() + static_cast<std::ptrdiff_t>(block * chunk),
+                           bytes.begin() + static_cast<std::ptrdiff_t>(block * chunk + logical),
+                           wire.begin() + static_cast<std::ptrdiff_t>(offset)), "byte-identical raw payload");
+      }
+    }
+    auto reader = flitzfs::Reader::open(archive);
+    reader.verify_all();
+    for (std::size_t block = 9; block-- > 0;)
+      compare_range(reader, bytes, block * chunk,
+                    static_cast<std::uint32_t>((std::min)(chunk, bytes.size() - block * chunk)));
+    auto moved = std::move(reader);
+    moved.verify_all();
+    compare_range(moved, bytes, chunk - 5, 2u * chunk + 17u);
+    auto assigned = flitzfs::Reader::open(archive);
+    assigned = std::move(moved);
+    compare_range(assigned, bytes, 0, static_cast<std::uint32_t>(bytes.size()));
+
+    // Poison compressed frame B after successfully reading compressed frame A.
+    // Failed B must neither expose A's stale cache identity nor poison the next
+    // independent decode. Corruption exists before opening the backing handle.
+    auto corrupted = wire;
+    const auto bad_offset = static_cast<std::size_t>(test_u64le(wire, index + 2u * 32u));
+    corrupted[bad_offset] ^= 0xffu;
+    const auto damaged = tmp.name("reuse-bad-" + std::to_string(level) + ".flfs");
+    put(damaged, corrupted);
+    auto bad = flitzfs::Reader::open(damaged);
+    compare_range(bad, bytes, 0, chunk);
+    expect_failure([&] { (void)bad.read(2u * chunk, chunk); }, "corrupt reused-context frame");
+    compare_range(bad, bytes, 0, chunk);
+    compare_range(bad, bytes, 4u * chunk, chunk);
+    expect_failure([&] { bad.verify_all(); }, "verification bypasses cache on corruption");
+    compare_range(bad, bytes, 0, chunk);
+    const auto refused = tmp.name("reuse-refused-" + std::to_string(level));
+    expect_failure([&] { bad.extract_new(refused); }, "corruption refuses extraction before creation");
+    require(!fs::exists(refused), "corrupt extraction creates no output");
+    const auto restored = tmp.name("reuse-restored-" + std::to_string(level));
+    assigned.extract_new(restored);
+    require(load(restored) == bytes && load(input) == bytes, "workspace reuse preserves extraction and source");
+  }
+}
+
 int main() {
   try {
     TempScope tmp;
+    check_reused_workspaces(tmp);
     const auto empty = tmp.name("empty-input");
     const auto empty_container = tmp.name("empty.flfs");
     const auto empty_result = tmp.name("empty-extracted");

@@ -12,9 +12,19 @@ acceleration and authenticated encryption. Current code provides independently
 addressable `.flfs` chunks, a synchronized read-only directory catalog, a portable
 Windows-path projection, and an optional native WinFsp callback adapter.
 
+The owner's priority is the combination of high sustained read/write throughput
+and extreme reduction in physical storage across diverse file types. Minimum
+latency is secondary. FlitzZip is a compatibility reference, not a restriction
+on future codecs or algorithms. Surpassing current and experimental filesystems
+is a research objective requiring comparative evidence, not an established result.
+See [the compression objectives and acceptance method](docs/COMPRESSION_STRATEGY.md).
+
 ## Implemented
 
 - C++20 streaming pack/read/extract CLI; CPU Zstandard with raw fallback.
+- Reused per-operation CPU compression state, per-reader decoder state and chunk
+  buffers, with direct raw reads and no intermediate payload copies. This keeps
+  the v1 format and single-threaded CPU behavior; see [scope and validation](docs/CPU_PIPELINE.md).
 - Independently checked chunks, 128 KiB default (4 KiB to 1 MiB, power of two),
   random access with a 4 MiB request limit and a one-chunk cache per reader.
 - Read-only regular-file OS handles, final symlink/reparse-point rejection,
