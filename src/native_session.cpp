@@ -197,6 +197,14 @@ void NativeFileSession::close(const NativeFileHandle& handle) {
   if(last)self.clear_latch(slot.inode);
   slot=Impl::Slot{};
 }
+NativeFsCommit NativeFileSession::flush() {
+  return ready().writer.flush();
+}
+NativeFsCommit NativeFileSession::flush(const NativeFileHandle& handle) {
+  const auto index=slot_for(handle);auto& self=ready();
+  (void)self.state(self.slots[index]);
+  return self.writer.flush();
+}
 NativeFilesystemSnapshot NativeFileSession::snapshot() const {
   return ready().writer.snapshot();
 }

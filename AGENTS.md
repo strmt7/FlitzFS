@@ -379,3 +379,15 @@ external/kernel context retirement or enable mounted writes from CPU tests.
 The actual Windows helper must establish dispatcher/process retirement before
 closed-session recovery; FILE_DELETE_ON_CLOSE, ACL/sharing/locks/flush/app and
 Windows 11 client qualification remain open. No owner-PC execution is added.
+
+
+## Real native Flush
+
+Read docs/NATIVE_FLUSH.md before changing checkpoint/native/session Flush.
+Preserve exact acknowledged metadata/extent checks, one actual backend barrier,
+native pre/post namespace verification and no publication/repair/trim. Failed or
+unverifiable barriers terminally fence; preflight allocation pressure before
+barrier entry may leave a healthy writer usable. Never acknowledge Flush through
+a no-op, retry a poisoned writer, release contexts or treat it as payload scrubbing,
+driver retirement, honest hardware persistence or physical power-cut proof.
+All mutation barriers, encodings, resource caps and owner-host prohibitions stay.

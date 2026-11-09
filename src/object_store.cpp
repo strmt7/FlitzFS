@@ -622,6 +622,32 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
   impl_->state=std::move(next);impl_->append_floor=impl_->state.end;
   return state_info(impl_->state);
 }
+StoreCommitInfo ObjectStoreWriter::flush_checkpoint() {
+  if(!impl_)fail("moved-from writer");
+  if(impl_->poisoned)fail("writer poisoned; destroy it before independent recovery");
+  const auto& old=impl_->state;
+  bool barrier_entered=false;
+  try {
+    const auto extent=old.image->extent();
+    if(extent<old.end || extent>kStoreMaxPhysicalBytes)
+      fail("checkpoint extent changed/out of bounds");
+    auto check=[&] {
+      const auto current=load(old.image);
+      if(!same_state(current,old) || current.degraded || current.degraded_checkpoint ||
+          old.image->extent()!=extent)
+        fail("checkpoint changed/degraded during flush; independent recovery required");
+    };
+    check();
+    const auto result=state_info(old); // Allocation-free result formed before the barrier.
+    barrier_entered=true;
+    old.image->flush();
+    check();
+    return result;
+  }catch(const std::bad_alloc&) {
+    if(barrier_entered)impl_->poisoned=true;
+    throw;
+  }catch(...) {impl_->poisoned=true;throw;}
+}
 ObjectStoreSnapshot ObjectStoreWriter::snapshot_for_staging() const {
   if(!impl_ || impl_->poisoned)fail("staging requires a healthy writer");
   auto p=std::make_unique<ObjectStoreSnapshot::Impl>();p->state=impl_->state;

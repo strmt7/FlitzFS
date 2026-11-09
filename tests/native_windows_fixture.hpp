@@ -50,7 +50,7 @@ struct Expected {
   StoreCommitInfo storage;
 };
 inline Expected make_image(const std::filesystem::path& image,bool require_zstd,
-    std::uint64_t sparse_bytes=kNativeMaxFileBytes) {
+    std::uint64_t sparse_bytes=kNativeMaxFileBytes,bool extra_flush=false) {
   hosted();require(sparse_bytes>=31 && sparse_bytes<=kNativeMaxFileBytes,"native sparse fixture bounds");
   auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create_file(
       image,identity(),{4096,true},{StoreCompressionMode::automatic,6,require_zstd}));
@@ -64,6 +64,13 @@ inline Expected make_image(const std::filesystem::path& image,bool require_zstd,
   NativeFileMutation rename;rename.operation=NativeFileOperation::rename;
   rename.path="scratch.bin";rename.target="Data/sample.bin";
   const std::array<NativeFileMutation,2> final{remove,rename};writer.apply(final);
+  if(extra_flush) {
+    const auto before=writer.snapshot();const auto barrier=writer.flush();
+    require(barrier.sequence==before.sequence() &&
+        barrier.storage.generation==before.storage_info().generation &&
+        barrier.storage.physical_end==before.storage_info().physical_end &&
+        barrier.created_inodes.empty(),"file barrier changed native checkpoint");
+  }
   auto snapshot=writer.snapshot();snapshot.verify_all();
   Expected result{snapshot.stat("Data/sample.bin").inode,snapshot.stat("Data").inode,
       snapshot.stat("sparse.bin").inode,snapshot.sequence(),snapshot.storage_info()};
@@ -98,7 +105,7 @@ struct Fixture {
   std::filesystem::path image() const{return root/L"image.fltx";}
   ~Fixture() {
     std::error_code ignored;
-    for(const auto* leaf:{L"image.fltx",L"damaged.fltx",L"generic.fltx",L"mapped.fltx",L"pending.fltx",L"unlinked.fltx"})
+    for(const auto* leaf:{L"image.fltx",L"damaged.fltx",L"generic.fltx",L"mapped.fltx",L"pending.fltx",L"unlinked.fltx",L"flushed.fltx"})
       std::filesystem::remove(root/leaf,ignored);
     std::filesystem::remove(root,ignored); // Never recursive.
   }

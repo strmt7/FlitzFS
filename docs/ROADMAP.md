@@ -266,3 +266,10 @@ NATIVE_FILE_SESSION.md tracks verified range-query traffic, late-I/O/failure
 cases and remaining external context/Windows ABI/security/cache/app gates.
 This is the engine layer for writable integration, not completion of that
 integration or the full Windows product.
+
+
+The engine now has an explicit real shared-image Flush with metadata/namespace
+pre/post checks and terminal failure fencing (NATIVE_FLUSH.md). This advances
+the writable synchronization boundary. Actual Windows callback FileInfo/cache/
+mapped/write-through/cancellation behavior and physical persistence remain
+separate gates, not conclusions from CPU barrier tests.

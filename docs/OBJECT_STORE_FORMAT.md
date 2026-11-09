@@ -352,3 +352,13 @@ object encoding/publication path. Its private verified namespace view never
 escapes as a public unchecked snapshot. Public snapshots still verify every
 reachable object; requested range records verify fully before byte exposure.
 No object/root/codec bytes, stored bounds or recovery assumptions change.
+
+
+## Explicit checkpoint Flush
+
+NATIVE_FLUSH.md specifies ObjectStoreWriter::flush_checkpoint: exact acknowledged
+metadata validation, one real backend barrier and post-validation without writes,
+publication, repair or trimming. Generations and all stored formats remain
+unchanged. Metadata/I/O failure or unverified completion fences; allocation
+pressure before barrier entry remains a preflight error. This is not a payload
+scrub, new durability contract or physical-device attestation.

@@ -67,6 +67,11 @@ class NativeFileSession final {
   // Requires Cleanup. Retire detached data only after the last owned context.
   // Failed retirement keeps the context and fences further I/O.
   void close(const NativeFileHandle&);
+  // All native mutations already acknowledge after publication barriers.
+  // Both forms execute a real shared-image flush; a file form first validates
+  // its still-owned context and remains valid after Cleanup until Close.
+  NativeFsCommit flush();
+  NativeFsCommit flush(const NativeFileHandle&);
   NativeFilesystemSnapshot snapshot() const;
   NativeSessionStats stats() const noexcept;
   bool poisoned() const noexcept;

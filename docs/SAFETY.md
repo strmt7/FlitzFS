@@ -317,3 +317,11 @@ integrity failure rather than retrying or guessing deletion. Read optimization
 does not bypass namespace/requested-record verification or full public snapshot
 admission. See NATIVE_FILE_SESSION.md. No mounted-write/owner-host permission
 or proof of universal failure immunity is added.
+
+
+Native Flush performs a real backend barrier without changing publication or
+releasing contexts. It validates current metadata and namespace and fences
+failed/unverifiable completion. It does not scrub every payload, repair media,
+infer retired external contexts or qualify physical hardware persistence.
+Existing source preservation, backend assumptions and off-host-only execution
+remain. See NATIVE_FLUSH.md.
