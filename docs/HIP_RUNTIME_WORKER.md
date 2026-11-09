@@ -180,3 +180,12 @@ hardware and Windows scheduling evidence.
 Native source references:
 https://github.com/ROCm/rocm-systems/blob/7da43026e4f2ef7600433c38c820732f7a205d22/projects/hip/include/hip/hip_runtime_api.h
 https://github.com/ROCm/rocm-systems/blob/7da43026e4f2ef7600433c38c820732f7a205d22/projects/clr/hipamd/src/hip_stream.cpp
+
+
+The normal Windows architecture research run at 2c44ce9 succeeded for all
+12 Windows pages but the additional HIP stream-management fetch was challenged
+(HTTP 429 after 307). The earlier successful 8c6dd9 native stream capture remains
+retained alongside this later failure; neither is fabricated or overwritten.
+Windows research is now scoped independently. Do not retry/bypass the challenged
+endpoint or call the combined failed job fully successful. No stream-dependent
+runtime implementation was enabled by these captures.

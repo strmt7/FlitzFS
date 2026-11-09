@@ -239,3 +239,11 @@ Missing, relabelled, incomplete, differently configured or duplicate coverage is
 rejected. Only that merged report can represent the complete Windows campaign.
 Failure reports are retained without being promoted to recovery evidence.
 The new no-I/O report tests cover the union oracle and its negative cases.
+
+
+The split campaign at 8c6dd91604260db7ddeb435a7656f1225739fd33 passed
+on Windows: 488 cases in 54.436 seconds and 488 in 70.321 seconds, with the strict
+merge proving all 976 original fault points. The independent analysis VM passed
+all 976 as well. These are observed runs, not guaranteed timing budgets.
+The next dedicated Windows campaign uses the current hosted VS2026/Server2025
+image; actual latest Windows 11 client and physical power-loss tests remain open.
