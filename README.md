@@ -39,7 +39,10 @@ owner's PC.
 - Experimental compression mechanisms and offline-compiled HIP kernels, with
   CPU references, bounded batches, isolated worker transport and evidence-aware
   GPU recovery policy. These are preparation for filesystem acceleration;
-  ordinary operations do not initialize a GPU.
+  ordinary operations do not initialize a GPU. An explicit
+  [worker request controller](docs/GPU_WORKER_CONTROLLER.md) now connects recovery
+  policy, terminal CPU fallback and exact asynchronous worker retirement; its
+  hosted integration fixtures execute CPU semantics only.
 
 Read [the architecture](docs/ARCHITECTURE.md),
 [compression objectives](docs/COMPRESSION_STRATEGY.md) and

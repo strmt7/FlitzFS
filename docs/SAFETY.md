@@ -273,3 +273,14 @@ cross-inode deduplication or reduced flush mode is introduced. Nonempty writes
 still commit namespace metadata through three barriers. The additional decoded
 comparison scratch is bounded to one 64 KiB extent within the existing staging
 admission envelope; it does not authorize owner-host execution or raise caps.
+
+## Integrated worker request policy
+
+The explicit GpuWorkerController does not launch ordinary filesystem work. Its
+denied routes expose only prepared CPU bytes, and terminal CPU selection cannot
+consume late worker output. It reports a ticket once and holds replacement
+admission through exact child AND supervisor retirement; caller-supplied health
+cannot override transport ownership. Unknown failure does not prove repaired
+driver health. Synthetic CPU-helper fixtures are not HIP qualification. External
+helper/configuration authorization, product dependency installation and actual
+device/runtime evidence remain required. See GPU_WORKER_CONTROLLER.md.
