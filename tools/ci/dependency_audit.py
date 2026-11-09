@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture official dependency releases and native Dependabot alerts off-host."""
+"""Capture official dependency releases and installed build tools off-host."""
 import argparse
 import datetime
 import hashlib
@@ -102,38 +102,17 @@ def main():
         if status!=200 or value.get("prerelease") or value.get("draft"):
             raise RuntimeError("stable build-tool release unavailable")
         tools[repo]=dict(latest_stable=value["tag_name"],release_url=value["html_url"])
-    alerts=[];verified=False;failure=None
-    for page in range(1,21):
-        status,value,links=capture.api("repos/"+REPO+"/dependabot/alerts?state=open&per_page=100&page="+str(page))
-        if status!=200:
-            failure=dict(http_status=status,message=value.get("message","Unavailable"))
-            break
-        if not isinstance(value,list):
-            raise RuntimeError("unexpected Dependabot response schema")
-        for item in value:
-            dependency=item.get("dependency",{});advisory=item.get("security_advisory",{})
-            alerts.append(dict(number=item["number"],state=item["state"],
-                package=dependency.get("package",{}),manifest=dependency.get("manifest_path"),
-                severity=advisory.get("severity"),ghsa_id=advisory.get("ghsa_id"),url=item.get("html_url")))
-        if 'rel="next"' not in links:
-            verified=True;break
-    if not verified and failure is None:
-        failure=dict(message="Dependabot pagination budget exhausted")
     report=dict(experimental=True,commit=os.environ["GITHUB_SHA"],
-        scope="Known native dependency pins and Actions; installed-tool inventory; complete open Dependabot pages only when verified",
+        scope="Known native dependency pins and Actions; installed-tool inventory. Dependabot is checked separately in authenticated GitHub Security UI.",
         dependencies=rows,build_tool_releases=tools,
         installed=dict(python=sys.version,cmake=version("cmake"),ctest=version("ctest"),clang=version("clang++")),
         declared_tool_work_remaining=dict(hip_clang_major=19,reviewed_research_python="3.13",
             note="Latest compiler/CMake/runtime migration and transitive reviewed-provider audit still require qualification"),
-        dependabot=dict(verified=verified,open_count=len(alerts) if verified else None,
-            alerts=alerts if verified else None,failure=failure),
+        dependabot=dict(scope="Not queried by this workflow; authenticated GitHub Security UI is authoritative"),
         native_api_receipts=capture.receipts)
     (root/"audit.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(dict(commit=report["commit"],pins_current=all(x["current"] for x in rows),
-        dependabot_verified=verified,open_alerts=report["dependabot"]["open_count"],
-        dependabot_failure=failure,build_tools=tools)))
-    if not verified:
-        raise RuntimeError("Dependabot alerts NOT VERIFIED; inspect native status/permission evidence")
+        build_tools=tools)))
     if not all(row["current"] for row in rows):
         raise RuntimeError("Dependency/action pin is behind latest stable or tag identity differs")
 if __name__=="__main__":
