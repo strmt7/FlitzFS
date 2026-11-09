@@ -123,3 +123,10 @@ in NATIVE_FILE_LIFETIME.md. A detached inode remains live/addressable until
 explicit retirement and can receive inode writes without a surrogate path.
 An actually retired ID still fails rather than selecting a replacement.
 These primitives do not supply the future Windows handle ownership/count proof.
+
+
+The owning context layer and verified committed-view queries are now described
+in NATIVE_FILE_SESSION.md. Writer metadata/range queries compare the backing
+namespace with the last admitted model and verify touched records without
+exporting an unchecked snapshot. Public snapshot/open/resume verification
+remains complete; no concurrency or background execution is introduced.

@@ -605,11 +605,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   bool committing=false;
   try {
-    auto snapshot=impl_->objects.snapshot_for_staging();
-    // Metadata is read and integrity-checked even for a namespace-only/no-op
-    // request. It must still exactly bind the cached last-ack model.
-    if(object_bytes(snapshot,kNamespaceObject)!=encode(impl_->model))
-      fail(Code::corrupt,"native cached namespace differs from backing record");
+    auto snapshot=checked_namespace();
     Stage stage(impl_->model,snapshot);
     switch(action) {
       case InodeAction::path_mutations:for(const auto& op:operations)stage.apply(op);break;
@@ -686,6 +682,45 @@ NativeFsCommit NativeFilesystemWriter::unlink_inode(std::uint64_t inode) {
 }
 NativeFsCommit NativeFilesystemWriter::retire_inode(std::uint64_t inode) {
   return transact({},InodeAction::retire,inode);
+}
+ObjectStoreSnapshot NativeFilesystemWriter::checked_namespace() const {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  try {
+    auto snapshot=impl_->objects.snapshot_for_staging();
+    if(object_bytes(snapshot,kNamespaceObject)!=encode(impl_->model))
+      fail(Code::corrupt,"native cached namespace differs from backing record");
+    return snapshot;
+  }catch(const std::bad_alloc&){fail(Code::limit,"native namespace query allocation failure");}
+  catch(const NativeFsError& error) {
+    if(error.code()==Code::corrupt || error.code()==Code::storage_failure)impl_->poisoned=true;
+    throw;
+  }catch(const std::exception&){impl_->poisoned=true;fail(Code::storage_failure,"native namespace query failed");}
+}
+NativeInodeState NativeFilesystemWriter::inspect_path(std::string_view path) const {
+  auto objects=checked_namespace();(void)objects;
+  const auto& n=node(impl_->model,resolve(impl_->model,path));
+  return {file_info(impl_->model,n),n.delete_pending,n.unlinked};
+}
+NativeInodeState NativeFilesystemWriter::inspect_inode(std::uint64_t inode) const {
+  auto objects=checked_namespace();(void)objects;
+  const auto& n=selected_inode(impl_->model,inode);
+  return {file_info(impl_->model,n),n.delete_pending,n.unlinked};
+}
+std::vector<NativeFileInfo> NativeFilesystemWriter::inspect_directory(std::uint64_t inode) const {
+  auto objects=checked_namespace();(void)objects;
+  return list_node(impl_->model,selected_inode(impl_->model,inode));
+}
+Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
+  try {
+    auto objects=checked_namespace();
+    return read_node(objects,selected_inode(impl_->model,inode),offset,bytes);
+  }catch(const std::bad_alloc&){fail(Code::limit,"native range read allocation failure");}
+  catch(const NativeFsError& error) {
+    if(error.code()==Code::corrupt || error.code()==Code::storage_failure)impl_->poisoned=true;
+    throw;
+  }catch(const std::exception&){impl_->poisoned=true;fail(Code::storage_failure,"native range read failed");}
 }
 NativeFilesystemSnapshot NativeFilesystemWriter::snapshot() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native writer");

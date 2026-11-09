@@ -359,3 +359,23 @@ is not driver/handle attestation. No mounted write, existing-file writer factory
 open-context proof, owner-PC operation or Windows app completeness follows.
 The future engine must encapsulate raw pathname mutations, own per-open counts/
 dispositions and retain contexts through paging I/O until Close.
+
+
+## Owning native file session
+
+Read docs/NATIVE_FILE_SESSION.md before modifying context ownership, aggregated
+dispositions, latches or verified writer queries. Preserve exclusive writer
+encapsulation, weak owner identity/monotonic token scopes, the 256-entry fixed
+table, single control thread and no live-owner move assignment. Cleanup must
+retain contexts for paging I/O; cancellation cannot erase another request or
+latched intent; only final owned Close can retire detached data. Failed commits
+must not release/advance contexts or retry I/O. Clear records only after all
+fallible work; retain no-throw post-commit updates.
+
+Range/query optimization must compare verified namespace bytes with the last
+admitted model and verify requested records privately. Public snapshot/open/
+resume still fully verify. Do not equate in-memory counts with proof of old
+external/kernel context retirement or enable mounted writes from CPU tests.
+The actual Windows helper must establish dispatcher/process retirement before
+closed-session recovery; FILE_DELETE_ON_CLOSE, ACL/sharing/locks/flush/app and
+Windows 11 client qualification remain open. No owner-PC execution is added.

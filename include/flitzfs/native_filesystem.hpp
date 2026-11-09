@@ -145,10 +145,19 @@ class NativeFilesystemWriter final {
   NativeFsCommit set_delete_pending(std::uint64_t inode,bool pending);
   NativeFsCommit unlink_inode(std::uint64_t inode);
   NativeFsCommit retire_inode(std::uint64_t inode);
+  // Single-control-thread committed view for the owning Windows engine.
+  // Verify namespace against the last acknowledged model; reads privately
+  // verify every touched record. These do not expose an unchecked snapshot.
+  NativeInodeState inspect_path(std::string_view path) const;
+  NativeInodeState inspect_inode(std::uint64_t inode) const;
+  std::vector<NativeFileInfo> inspect_directory(std::uint64_t inode) const;
+  std::vector<std::byte> read_inode(std::uint64_t inode,
+      std::uint64_t offset,std::uint32_t bytes) const;
   NativeFilesystemSnapshot snapshot() const;
   bool poisoned() const noexcept;
  private:
   struct Impl;
+  ObjectStoreSnapshot checked_namespace() const;
   enum class InodeAction {path_mutations,mutate,set_delete,clear_delete,unlink,retire,finish_session};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t);
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);

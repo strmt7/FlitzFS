@@ -258,3 +258,11 @@ the opt-in namespace capability, closed-session recovery contract and fault
 checks. The owning Windows handle table/counts/dispositions and actual context
 retirement proof are still required before writable callbacks. A library
 precondition is not a substitute for that lifecycle evidence.
+
+
+The native context owner now encapsulates its writer, tracks bounded per-open
+tokens/dispositions, retains cleaned contexts and gates final retirement.
+NATIVE_FILE_SESSION.md tracks verified range-query traffic, late-I/O/failure
+cases and remaining external context/Windows ABI/security/cache/app gates.
+This is the engine layer for writable integration, not completion of that
+integration or the full Windows product.

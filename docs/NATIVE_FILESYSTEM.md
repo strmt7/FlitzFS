@@ -316,3 +316,18 @@ closed-session recovery. Ordinary resume, read-only Windows projection and
 compaction refuse unresolved lifetime state. The future owning Windows engine
 still must prove context retirement and aggregate per-open dispositions; no
 mounted-write or helper-application completeness follows.
+
+
+## Owning file contexts and committed range reads
+
+NATIVE_FILE_SESSION.md describes NativeFileSession, which consumes exclusive
+writer ownership, binds per-open tokens to one owner, aggregates delete requests,
+retains cleaned contexts through paging I/O, and retires detached data only on
+the final owned Close. Raw writer access does not escape that layer.
+
+New writer inspect/range APIs verify the namespace against the last admitted
+model and privately verify touched data. They avoid full public snapshot scans
+per callback while retaining all full snapshot/open/resume gates. No stored
+format, old public structure layout, capacity or publication change follows.
+Windows adapter/app/ACL/share/flush and external context-retirement proof remain
+unfinished.
