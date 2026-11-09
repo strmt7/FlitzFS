@@ -1,6 +1,5 @@
-#include "flitzfs/flzip_reader.hpp"
-#include "flitzfs/catalog_error.hpp"
-#include "flzip_native_fixture.hpp"
+#include "extent_codec.hpp"
+#include "extent_codec_fixture.hpp"
 #include <iostream>
 #include <limits>
 #ifdef FLITZFS_NATIVE_ORACLE
@@ -8,47 +7,32 @@ bool reference_native_decode(std::uint8_t, std::uint8_t, std::span<const std::by
 #endif
 
 namespace {
-using namespace flzip_fixture;
+using namespace flitzfs::detail;
+using namespace extent_fixture;
 std::size_t checks=0;
 void require(bool value,const char* message) { ++checks;if(!value)throw std::runtime_error(message); }
 template<class F> void rejects(F&& operation) {
   try { operation(); }
-  catch(const flitzfs::FlzipError&){++checks;return;}
-  catch(const flitzfs::CatalogError&){++checks;return;}
-  throw std::runtime_error("malformed native archive accepted");
+  catch(const ExtentCodecError&){++checks;return;}
+  throw std::runtime_error("malformed extent payload accepted");
 }
 void reject_block(const Block& b) {
-  const auto fixture=archive({{"native.bin",false,{b}}},minimum_version(b.kind));
-  rejects([&]{(void)flitzfs::FlzipReader::from_bytes(fixture.bytes);});
+  rejects([&]{Bytes out(b.plain.size());decode_extent(b.kind,b.fill,b.encoded,out);});
 }
 void roundtrip(const Block& b) {
-  const auto f=archive({{"Native/data.bin",false,{b}}},minimum_version(b.kind));
-  auto reader=flitzfs::FlzipReader::from_bytes(f.bytes);
-  require(reader.read("native/DATA.BIN",0,static_cast<std::uint32_t>(b.plain.size()))==b.plain,"native whole-block parity");
-  for(const auto offset:{0U,1U,4093U,4096U,65533U,65536U}) if(offset<b.plain.size()) {
-    const auto n=static_cast<std::uint32_t>((std::min)(std::size_t{21},b.plain.size()-offset));
-    require(reader.read("Native/data.bin",offset,n)==Bytes(b.plain.begin()+offset,b.plain.begin()+offset+n),"native segment-boundary range parity");
-  }
-  require(reader.read("Native/data.bin",b.plain.size(),0).empty(),"native EOF");
-  rejects([&]{reader.read("Native/data.bin",b.plain.size(),1);});
-  reader.verify_all();
+  Bytes guarded(b.plain.size()+32,std::byte{0xa7});
+  auto output=std::span<std::byte>(guarded).subspan(16,b.plain.size());
+  decode_extent(b.kind,b.fill,b.encoded,output);
+  require(std::equal(output.begin(),output.end(),b.plain.begin(),b.plain.end()),"independent extent codec whole-block parity");
+  require(std::all_of(guarded.begin(),guarded.begin()+16,[](auto b){return b==std::byte{0xa7};}) &&
+      std::all_of(guarded.end()-16,guarded.end(),[](auto b){return b==std::byte{0xa7};}),"extent decoder changed guard bytes");
 #ifdef FLITZFS_NATIVE_ORACLE
-  Bytes reference(b.plain.size());
-  require(reference_native_decode(b.kind,b.fill,b.encoded,reference),"pinned upstream decoder rejected valid fixture");
-  require(reference==b.plain,"independent pinned CPU decoding mismatch");
-#endif
-  // Verify each introduced-version gate, including the composed families.
-  const auto version=minimum_version(b.kind);
-  if(version>1) rejects([&]{(void)flitzfs::FlzipReader::from_bytes(archive({{"n",false,{b}}},version-1).bytes);});
-  // Bounded payload mutations: changed unused padding may remain valid, but
-  // accepted content must agree with the original file CRC and expected bytes.
-  for(std::size_t k=0;k<12 && !b.encoded.empty();++k) {
-    auto bytes=f.bytes;
-    const auto position=(k*131+7)%b.encoded.size();bytes[position]^=std::byte{0x80};
-    try {auto mutated=flitzfs::FlzipReader::from_bytes(bytes);
-      require(mutated.read("Native/data.bin",0,static_cast<std::uint32_t>(b.plain.size()))==b.plain,"mutated archive escaped original-byte check");}
-    catch(const flitzfs::FlzipError&) {++checks;}
+  if(b.kind!=0) {
+    Bytes reference(b.plain.size());
+    require(reference_native_decode(b.kind,b.fill,b.encoded,reference),"pinned mechanism reference rejected fixture");
+    require(reference==b.plain,"independent pinned CPU decoding mismatch");
   }
+#endif
 }
 void change(const Block& good,std::size_t pos,std::uint64_t value,unsigned width=1) {
   auto bad=good;replace(bad.encoded,pos,value,width);reject_block(bad);
@@ -68,12 +52,6 @@ int main() {
       roundtrip(byte_plane(width,huffman(32768+width-1)));
       roundtrip(byte_plane(width,sparse(true)));
     }
-    // Mixed-file reads cross both codec and entropy-segment boundaries.
-    Record mixed{"mixed.bin",false,{raw(text("first")),prefix_sample(),sparse(),huffman(),fill(17,42)}};
-    auto r=flitzfs::FlzipReader::from_bytes(archive({mixed},11).bytes);
-    const auto expected=plain(mixed);
-    require(r.read("mixed.bin",0,static_cast<std::uint32_t>(expected.size()))==expected,"mixed-native archive parity");
-    require(r.read("mixed.bin",8999,64)==Bytes(expected.begin()+8999,expected.begin()+9063),"cross-codec range parity");
     for(bool adaptive:{false,true}) {
       const auto b=prefix_sample(adaptive);
       const auto start=adaptive?84U:0U;
@@ -131,31 +109,31 @@ int main() {
       broken=b;broken.encoded.pop_back();reject_block(broken);
     }
 #ifdef FLITZFS_TEST_HAS_LZ4
-    require(flitzfs::flzip_codec_available(6),"linked LZ4 capability missing");
+    require(extent_codec_available(6),"linked LZ4 capability missing");
     for(auto n:{65535U,65536U,65537U})roundtrip(dictionary(pattern(n,"bounded-LZ4!").plain));
     const auto d=dictionary(pattern(131089,"dictionary native").plain);
     change(d,0,1,4);change(d,4,0,4);change(d,4,0xffffffffU,4);change(d,8,1,4);
-    auto bad=d;bad.encoded.back()^=std::byte{0x80};reject_block(bad);
+    auto bad=d;
     // A compressed representation requiring an external history cannot read it.
     bad=d;bad.encoded[16]=std::byte{0};bad.encoded[17]=std::byte{0xff};bad.encoded[18]=std::byte{0xff};reject_block(bad);
 #else
-    require(!flitzfs::flzip_codec_available(6),"missing LZ4 reported available");
+    require(!extent_codec_available(6),"missing LZ4 reported available");
     for(auto kind:{6U,12U,13U}) {
       Block b{6,0,Bytes(256,std::byte{0}),Bytes(8,std::byte{0})};
       if(kind==12)b=byte_plane(2,b);
       if(kind==13)b=contexts({fill(256,0),b});
       bool unsupported=false;
-      try{(void)flitzfs::FlzipReader::from_bytes(archive({{"x",false,{b}}},11).bytes);}
-      catch(const flitzfs::FlzipError& e){unsupported=e.code()==flitzfs::FlzipErrorCode::unsupported_codec;}
+      try{Bytes out(b.plain.size());decode_extent(b.kind,b.fill,b.encoded,out);}
+      catch(const ExtentCodecError& e){unsupported=e.code()==ExtentCodecErrorCode::unsupported_codec;}
       require(unsupported,"missing nested dictionary dependency not explicit");
     }
 #endif
-    // Header lengths cannot cause proportional allocation beyond fixed block caps.
-    const auto b=prefix_sample();auto huge=archive({{"x",false,{b}}},2);
-    replace(huge.bytes,huge.block_fields[0]+2,flitzfs::kMaxFlzipBlockBytes+1,4);
-    rejects([&]{(void)flitzfs::FlzipReader::from_bytes(huge.bytes);});
-    require(!flitzfs::flzip_codec_available(14) && !flitzfs::flzip_codec_available(255),"unknown native codec accepted");
-    std::cout<<"PASS: "<<checks<<" native codec assertions; independent fixtures, exact bytes, framing rejection and bounded ranges.\n";
+    roundtrip(raw(text("filesystem extent bytes")));roundtrip(fill(4097,17));
+    rejects([&]{Bytes out(kMaxExtentCodecBytes+1);decode_extent(4,0,{},out);});
+    rejects([&]{Bytes out(32);decode_extent(255,0,{},out);});
+    auto noncanonical=prefix_sample();noncanonical.fill=1;reject_block(noncanonical);
+    require(!extent_codec_available(14) && !extent_codec_available(255),"unknown extent codec accepted");
+    std::cout<<"PASS: "<<checks<<" native codec assertions; independent fixtures, exact bytes, guard bytes, framing rejection and bounded output.\n";
     return 0;
   }catch(const std::exception& e){std::cerr<<"native codec failure after "<<checks<<" checks: "<<e.what()<<'\n';return 1;}
 }

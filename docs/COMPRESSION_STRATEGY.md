@@ -2,8 +2,8 @@
 
 Owner direction, 9 November 2026: prioritize the combination of sustained read
 and write speed and extreme physical filesize reduction, across diverse files.
-Absolute lowest latency is secondary. FlitzZip provides useful source and
-compatibility evidence; it does not constrain algorithm or codec selection.
+Absolute lowest latency is secondary. FlitzZip provides engineering inspiration and candidate mechanisms; archive
+compatibility is outside scope and does not constrain codec selection.
 Beating current and experimental filesystems is the target, not a present claim.
 
 ## Product criteria
@@ -65,8 +65,8 @@ automatically on the owner's PC. No GPU benchmark is authorized by a CPU result.
 
 The v1 CPU container supports raw and independent Zstandard chunks at levels
 1 through 5. This checkpoint optimizes workspace reuse and copies while keeping
-the same storage output. Native FLZIP decoding remains a compatibility reader,
-and the HIP candidate is offline-compiled preparation. There is no new codec,
+the same storage output. The internal extent mechanisms are isolated from archive framing, and the HIP
+candidate remains offline-compiled preparation. There is no new codec,
 ratio improvement, deduplication, writable mounted store or measured GPU speedup
 in this checkpoint. Future format work must retain an independent CPU recovery
 path and explicitly define migration and transactional recovery.

@@ -7,7 +7,7 @@ Research date: 7 November 2026. This is an experimental development gate.
 
 1. Keep the CLI, catalog, mounted filesystem and default CTest CPU-only. No HIP
    runtime initialization, GPU execution, owner-PC operations or writable store.
-2. Introduce immutable bounded batches for six simple/entropy FLZIP kinds:
+2. Introduce immutable bounded batches for six simple/entropy extent mechanisms:
    raw, fill, pattern, static prefix, adaptive prefix and Huffman. At most eight
    blocks, 64 KiB per block and 256 KiB total output. Independently CPU-decode
    every input before creating a plan. Reject unsupported kinds explicitly.

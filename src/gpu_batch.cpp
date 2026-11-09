@@ -1,5 +1,5 @@
 #include "flitzfs/gpu_batch.hpp"
-#include "flzip_native.hpp"
+#include "extent_codec.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cstring>
@@ -50,7 +50,7 @@ PreparedGpuBatch PreparedGpuBatch::prepare(std::span<const GpuBlockView> blocks)
     auto decoded=std::span<std::byte>(result.reference_).subspan(target,b.decoded_bytes);
     if(b.kind==0) std::copy(bytes.begin(),bytes.end(),decoded.begin());
     else if(b.kind==1) std::fill(decoded.begin(),decoded.end(),static_cast<std::byte>(b.fill));
-    else detail::decode_flzip_native(b.kind,b.fill,bytes,decoded);
+    else detail::decode_extent(b.kind,b.fill,bytes,decoded);
     for(std::uint32_t start=0;start<b.decoded_bytes;start+=gpu_detail::segment_bytes) {
       result.tasks_.push_back({source,static_cast<std::uint32_t>(b.payload.size()),target,b.decoded_bytes,
           start,(std::min)(gpu_detail::segment_bytes,b.decoded_bytes-start),b.kind,b.fill});

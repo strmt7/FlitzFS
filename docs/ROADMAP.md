@@ -17,7 +17,7 @@ claim follows from compatibility tests or one synthetic throughput comparison.
 | M1.6: concurrency and verification | Implemented per-file locks and bounded whole-catalog verification | Deterministic concurrent byte parity and corruption detection |
 | M1.7: Windows virtual projection | Implemented root-relative ASCII translation and short reads | Portable tests and Windows CPU CI; no mount |
 | M1.8 / release 0.2: native callback foundation | Implemented OFF-by-default WinFsp read-only backend, pre-allocation budgets and physical-path guards | Direct real-SDK Windows callback tests plus Linux/raw/sanitizers; this is NOT mounted qualification |
-| M2: FlitzZip compatibility | Implemented bounded CPU v1–11 block decoding, CLI and projection route | Exact supported subset in FLZIP_READONLY.md; GPU execution/full CLI parity remain unimplemented; native CPU/reference/mounted qualification depends on matching CI |
+| M2: native compression mechanisms | Bounded CPU extent mechanisms and independent tests implemented | Native extent framing, adaptive selection, diverse-corpus ratio/throughput and CPU recovery; no archive compatibility goal |
 | M3: Windows read-only mount | Lifecycle, live synthetic reads and process-crash/remount probe implemented; see per-commit CI | No collisions/recursion; explicit driver provisioning; clean unmount/restart; actual ACL/mapped-I/O/cancellation/app tests; CPU export |
 | M4: adaptive CPU/HIP | Bounded six-kind batch/kernel candidate and result gate implemented; offline gfx1201 compilation only | Live supervised runtime, Windows HIP compiler/hardware qualification, real GPU parity, H2D/kernel/D2H timing and measured routing remain unimplemented/unqualified |
 | M5: authenticated immutable store | Not implemented: AEAD records, authenticated manifest, key handling | Vetted crypto; nonce/clone/rollback analysis; authentication-negative/fuzz tests; independent recovery |
@@ -25,7 +25,7 @@ claim follows from compatibility tests or one synthetic throughput comparison.
 | M7: limited writable preview | Not implemented: opt-in disposable mounted folder | M6 plus ACL/locking/mapped I/O/rename/app tests and independent backups; never automatic sole-copy use |
 
 The native callback milestone was advanced ahead of archive compatibility to
-test Windows ABI semantics independently of FlitzZip integration. It does not
+test Windows ABI semantics independently of compression selection. It does not
 skip or imply either of those later gates. The live namespace is a small
 in-memory catalog that can now be reopened from a bounded plaintext manifest.
 It is not a transactional or authenticated directory store.
@@ -42,8 +42,8 @@ satisfy M5 authenticated metadata or M6 mutable/durable transactions.
 - Define disposable mountpoint reservation, explicit driver presence checks,
   resource supervision, cancellation/shutdown and immutable backing containment.
 - Retain the no-install/no-mount callback lane as a fast regression check.
-- Expand `.flzip` CPU compatibility only from source-pinned contracts and independent
-  fixtures; retain explicit unsupported-codec failures and no HIP initialization.
+- Develop native compressed extent framing, adaptive selection and independent
+  CPU recovery. Keep GPU initialization out of ordinary CPU operations.
 - Keep the implemented plaintext manifest distinct from future authenticated
   records and transactional metadata; do not stretch v1 containers into a journal.
 
@@ -90,3 +90,10 @@ writes, qualify reclaim, writable reopen, actual process/OS interruptions and
 physical durability assumptions. Do not call the raw-object engine a compressed
 filesystem or general power-loss guarantee. GPU work remains optional and must
 never become a dependency of acknowledged-data recovery.
+
+## Filesystem scope correction
+
+Archive reader/CLI/catalog/mount routes and archive serialization tests are
+removed. FlitzZip supplies mechanism inspiration and optional test-only CPU
+comparisons. Its archive format/product parity is not a FlitzFS requirement.
+EXTENT_CODECS.md replaces the former archive compatibility development track.

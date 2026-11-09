@@ -32,7 +32,8 @@ link containment and malicious concurrent mutations remain limitations.
 
 Pack/extract only create NEW files. Existing outputs cannot be replaced; no
 source deletion occurs. Interrupted operations may leave a partial new file.
-There is no transactional writable filesystem, snapshot or recovery journal.
+The separate bounded transactional object engine is described below; it is not
+yet connected to a writable filesystem namespace.
 
 ### Catalog and projection
 
@@ -100,8 +101,8 @@ Only its explicit disposable hosted-Windows lane may provision the driver.
 No automatic driver installation or mount on the owner's PC is authorized.
 
 A general-purpose mount application, in-flight cancellation/open-close races,
-cross-user authorization, Windows 11, broad application compatibility and
-FlitzZip format compatibility remain separate gates. Persistent plaintext
+cross-user authorization, Windows 11 and broad application compatibility remain
+separate gates. Persistent plaintext
 configuration does not satisfy transactional or authenticated metadata needs.
 
 ## Later: adaptive HIP (not implemented)
@@ -124,13 +125,13 @@ availability. Writable support additionally needs an append-only landing log,
 copy-on-write metadata, explicit flush semantics, compaction/free-space reserves
 and fault injection at every commit point before any mounted write preview.
 
-## Verified external FLZIP view
 
-`FlzipReader` privately owns bounded compressed bytes, parsed nodes and at most
-one decoded block. No caller gets a view until every file CRC passes. The
-catalog's explicit `open_flzip` factory serializes mutable cache operations;
-immutable namespace queries are safe while the catalog remains alive. The
-projection and native callback layers consume the same catalog API. This avoids
-forking Windows I/O semantics for another archive format. There is no GPU
-initialization, writable adapter or implicit FLZIP import in `.flcatalog`.
-The test-only upstream index serializer is not linked into the product.
+## Native transactional objects and extent mechanisms
+
+OBJECT_STORE_FORMAT.md defines the bounded raw-object transaction engine with
+sealed segments, alternating roots, integrity and independent CPU reopen. It
+has no writable mounted route yet. EXTENT_CODECS.md defines internal candidate
+compression mechanisms and independent CPU/GPU semantic comparisons. Native
+filesystem extent framing and transactional compression integration remain
+required. No archive reader, archive CLI or archive-backed catalog/mount route
+is part of the product. Existing .flfs/.flcatalog native formats are preserved.

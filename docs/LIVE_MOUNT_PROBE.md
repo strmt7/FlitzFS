@@ -1,3 +1,8 @@
+> Current scope: native filesystem backing images only. The former archive-backed
+> probe has been removed; any archive-specific assertions below describe historical
+> runs. Current tests retain native image reads, write rejection, supervision and
+> independent CPU recovery/remount. No owner-PC testing is authorized.
+
 # Disposable real-mount integration gate
 
 ## Plan and acceptance conditions

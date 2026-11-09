@@ -3,7 +3,7 @@
 This bounded C++ library is a storage foundation, not a writable mounted
 filesystem. It has no CLI route, GPU dependency, authentication or encryption.
 It stores raw objects only; it provides no compression improvement. Existing
-.flfs, .flcatalog and FLZIP paths and bytes are unchanged. Never use it for
+.flfs and .flcatalog native bytes are unchanged. Never use it for
 sole-copy data. Limits are development admission bounds, not the final product
 capacity or a production format commitment.
 

@@ -1,5 +1,5 @@
 #include "flitzfs/gpu_batch.hpp"
-#include "flzip_native_fixture.hpp"
+#include "extent_codec_fixture.hpp"
 #include "gpu/decode_kernel.hpp"
 #include <iostream>
 #include <limits>
@@ -7,7 +7,7 @@
 
 namespace {
 using namespace flitzfs;
-using namespace flzip_fixture;
+using namespace extent_fixture;
 std::size_t checks=0;
 void check(bool ok,const char* why){++checks;if(!ok)throw std::runtime_error(why);}
 template<class F>void rejects(F&& f){try{f();}catch(const std::exception&){++checks;return;}throw std::runtime_error("unsafe batch accepted");}

@@ -1,18 +1,36 @@
 #pragma once
-// Independent test encoders for the pinned FLZIP wire contract, not product code.
-#include "flzip_test_fixture.hpp"
+// Independent test encoders for compression mechanisms. No archive framing.
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <vector>
+#include <utility>
 #include <algorithm>
 #include <array>
 #include <span>
 #ifdef FLITZFS_TEST_HAS_LZ4
 #include <lz4.h>
 #endif
-
-namespace flzip_fixture {
-inline unsigned minimum_version(std::uint8_t kind) {
-  constexpr unsigned versions[]{1,1,1,1,2,3,4,5,6,7,8,9,10,11};
-  if (kind >= std::size(versions)) throw std::runtime_error("unknown fixture kind");
-  return versions[kind];
+namespace extent_fixture {
+using Bytes = std::vector<std::byte>;
+inline void put(Bytes& b, std::uint64_t value, unsigned width) {
+  for (unsigned i = 0; i < width; ++i) b.push_back(static_cast<std::byte>((value >> (8U*i)) & 255U));
+}
+inline void replace(Bytes& b, std::size_t at, std::uint64_t value, unsigned width) {
+  if (at > b.size() || width > b.size() - at) throw std::runtime_error("fixture edit out of bounds");
+  for (unsigned i = 0; i < width; ++i) b[at+i] = static_cast<std::byte>((value >> (8U*i)) & 255U);
+}
+inline Bytes text(const std::string& s) {
+  return {reinterpret_cast<const std::byte*>(s.data()), reinterpret_cast<const std::byte*>(s.data()+s.size())};
+}
+struct Block { std::uint8_t kind = 0, fill = 0; Bytes plain, encoded; };
+inline Block raw(Bytes plain) { auto encoded = plain; return {0, 0, std::move(plain), std::move(encoded)}; }
+inline Block fill(std::size_t n, std::uint8_t byte) { return {1, byte, Bytes(n, static_cast<std::byte>(byte)), {}}; }
+inline Block pattern(std::size_t n, const std::string& motif = "abc") {
+  auto bytes = text(motif); Bytes plain(n);
+  for (std::size_t i=0;i<n;++i) plain[i]=bytes.at(i%bytes.size());
+  return {3, 0, std::move(plain), std::move(bytes)};
 }
 inline Bytes prefix_book() {
   Bytes book(84);
@@ -172,4 +190,4 @@ inline std::vector<Block> native_samples() {
 #endif
   return blocks;
 }
-} // namespace flzip_fixture
+} // namespace extent_fixture

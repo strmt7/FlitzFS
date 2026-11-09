@@ -1,12 +1,12 @@
 #include "flitzfs/worker_wire.hpp"
-#include "flzip_native_fixture.hpp"
+#include "extent_codec_fixture.hpp"
 #include "gpu/decode_kernel.hpp"
 #include <iostream>
 #include <limits>
 
 namespace {
 using namespace flitzfs;
-using namespace flzip_fixture;
+using namespace extent_fixture;
 unsigned checks=0;
 void check(bool ok,const char* why) {++checks;if(!ok)throw std::runtime_error(why);}
 template<class F> void rejects(F&& f) {

@@ -71,13 +71,13 @@ def extract(source: bytes) -> str:
 def main() -> int:
     """Emit a bounded reference unit or fail without producing partial output."""
     if len(sys.argv) != 2:
-        raise ValueError("usage: extract_flzip_native_oracle.py ARCHIVE_BLOCKS_CPP")
+        raise ValueError("usage: extract_extent_codec_oracle.py ARCHIVE_BLOCKS_CPP")
     path = Path(sys.argv[1])
     if path.stat().st_size > 65536:
         raise ValueError("upstream source exceeds the reviewed bound")
     with path.open("rb") as source:
         unit = extract(source.read(65537))
-    tail = Path(__file__).resolve().parents[2] / "tests" / "flzip_native_oracle_tail.inc"
+    tail = Path(__file__).resolve().parents[2] / "tests" / "extent_codec_oracle_tail.inc"
     suffix = tail.read_text(encoding="utf-8")
     if len(suffix) > 16384:
         raise ValueError("reference adapter exceeds its bound")
