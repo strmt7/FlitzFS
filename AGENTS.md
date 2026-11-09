@@ -241,3 +241,12 @@ Replacement needs both process and supervisor-thread retirement. Unknown waits
 disable admission; never reopen a PID, spin, drop limits or infer driver repair
 from time. Normal CLI/callback paths remain CPU-only; this is not a live HIP
 worker or permission for owner-PC execution.
+
+The isolated hosted source-routing lane is described in docs/HOSTED_ROUTING.md.
+It must emit real successful CocoIndex search receipts bound to current FlitzFS
+source/config/model/package identities before NEW broad navigation. A staged
+provider or index marker is insufficient. Verify candidate paths in current
+source. Never alter the shared MCP registration or run the provider on the owner
+PC. Local model/index tooling is a development dependency only, not filesystem
+self-learning or a product runtime. AMD deployment decisions require successful
+native Crawl4AI captures of the current official distribution rules.
