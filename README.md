@@ -22,7 +22,7 @@ owner's PC.
   It has no writable mounted route. See [the format and assumptions](docs/OBJECT_STORE_FORMAT.md).
 - A native transactional file layer with persistent directories and inode IDs,
   sparse 64 KiB extents, partial writes, truncate/regrow, rename/replace, deletion
-  and immutable snapshots. It currently admits 64 inodes and 15 nonzero extents;
+  and immutable snapshots. It currently admits 256 inodes and 255 nonzero extents;
   see [its semantics, format and limits](docs/NATIVE_FILESYSTEM.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.
@@ -77,7 +77,8 @@ paths; original files remain unchanged. See [the native image format](docs/FORMA
 
 ## Qualification still required
 
-The object engine remains limited to 16 objects, 1 MiB per object, 4 MiB new
+The object engine remains limited to 256 objects, 16 MiB total decoded live data,
+1 MiB per object, 4 MiB new
 payload per transaction and 64 MiB retained physical history. There is no
 public existing-file writable reopen, reclamation, production namespace scaling,
 authenticated encryption or general-purpose writable mount application.

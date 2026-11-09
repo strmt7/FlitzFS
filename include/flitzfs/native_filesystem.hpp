@@ -12,8 +12,10 @@ namespace flitzfs {
 inline constexpr std::uint32_t kNativeExtentBytes=65536;
 inline constexpr std::uint64_t kNativeMaxFileBytes=1ULL<<40; // Sparse logical size.
 inline constexpr std::uint32_t kNativeMaxReadBytes=4U*1024*1024;
-inline constexpr std::size_t kNativeMaxNodes=64; // Including persistent root inode 1.
+inline constexpr std::size_t kNativeMaxNodes=256; // Including persistent root inode 1.
 inline constexpr std::size_t kNativeMaxExtents=kStoreMaxObjects-1;
+// Reserve one full metadata object inside the 4 MiB object-transaction budget.
+inline constexpr std::size_t kNativeMaxDirtyExtents=(kStoreMaxTransactionBytes-kNativeExtentBytes)/kNativeExtentBytes;
 enum class NativeFsErrorCode {
   invalid_path,not_found,already_exists,not_directory,is_directory,not_empty,
   invalid_operation,limit,corrupt,storage_failure
@@ -82,6 +84,7 @@ class NativeFilesystemWriter final {
   ~NativeFilesystemWriter();
   // 1..16 ordered operations, <=4 MiB input, <=1 MiB per write.
   // Commit metadata + changed extents atomically. Admission errors precede backing writes.
+  // At most 63 dirty 64 KiB extents; input size/alignment may hit that cap first.
   // All-zero extents are omitted; old snapshots keep their original records.
   NativeFsCommit apply(std::span<const NativeFileMutation> mutations);
   NativeFilesystemSnapshot snapshot() const;

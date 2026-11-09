@@ -27,7 +27,7 @@ namespace flitzfs::detail {
 namespace {
 [[noreturn]] void fail(const char* message) { throw std::runtime_error(std::string("FlitzFS store file: ")+message); }
 constexpr std::uint64_t kReserve=1024ULL*1024*1024;
-constexpr std::uint64_t kMemory=608ULL*1024*1024;
+constexpr std::uint64_t kMemory=640ULL*1024*1024; // 512 MiB reserve + 64 MiB cache + 64 MiB staging allowance.
 void memory_headroom() {
 #ifdef _WIN32
   MEMORYSTATUSEX m{};m.dwLength=sizeof(m);

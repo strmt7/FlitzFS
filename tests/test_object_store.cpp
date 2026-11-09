@@ -141,13 +141,24 @@ void basic_and_admission() {
   std::array<StoreMutation,1> empty{{{(std::numeric_limits<std::uint64_t>::max)(),false,{}}}};
   writer.commit(empty);require(writer.snapshot().read(empty[0].id).empty(),"empty/high-ID object");
   auto another=std::make_shared<Ram>();auto capacity=ObjectStoreWriter::create(another,identity());
-  std::vector<StoreMutation> many;for(unsigned i=1;i<=16;++i) many.push_back({i,false,bytes(4,i)});
-  capacity.commit(many);const auto baseline=another->live;
-  const StoreMutation extra{17,false,{}};
+  std::vector<StoreMutation> many;
+  for(std::size_t i=1;i<=kStoreMaxObjects;++i)many.push_back({i,false,bytes(4,static_cast<unsigned>(i))});
+  capacity.commit(many);const auto baseline=another->live;const auto capacity_calls=another->calls;
+  const StoreMutation extra{kStoreMaxObjects+1,false,{}};
   rejects([&]{(void)capacity.commit({&extra,1});},"namespace cap");
-  require(another->live==baseline && !capacity.poisoned(),"namespace admission wrote bytes");
-  const std::array<StoreMutation,2> replacement{{{17,false,{}},{1,true,{}}}};
-  capacity.commit(replacement);require(capacity.snapshot().list().size()==16,"atomic replace under namespace cap");
+  require(another->live==baseline && another->calls==capacity_calls && !capacity.poisoned(),"namespace admission wrote bytes");
+  const std::array<StoreMutation,2> replacement{{{kStoreMaxObjects+1,false,{}},{1,true,{}}}};
+  capacity.commit(replacement);
+  require(capacity.snapshot().list().size()==kStoreMaxObjects,"atomic replace under namespace cap");
+  require(ObjectStoreSnapshot::open(image(another->stable)).read(kStoreMaxObjects+1).empty(),"full-count reopen failed");
+  std::vector<StoreMutation> too_many(kStoreMaxObjects+1);
+  for(std::size_t i=0;i<too_many.size();++i)too_many[i].id=1000+i;
+  const auto full=another->live;
+  rejects([&]{(void)capacity.commit(too_many);},"oversized mutation count");
+  require(full==another->live && !capacity.poisoned(),"mutation-count rejection wrote bytes");
+  std::vector<StoreMutation> erase_all;
+  for(const auto& object:capacity.snapshot().list())erase_all.push_back({object.id,true,{}});
+  capacity.commit(erase_all);require(capacity.snapshot().list().empty(),"full-count atomic erase failed");
   auto owned=std::make_shared<Ram>();auto w=ObjectStoreWriter::create(owned,identity());
   std::vector<StoreMutation> changes{{7,false,bytes(71,8)}};
   const auto expected=changes[0].bytes;bool once=false;
@@ -209,11 +220,64 @@ void put64(Bytes& b,std::size_t at,std::uint64_t n) {
 }
 void manifest_digest(Bytes& b,std::size_t slot) {
   const auto offset=static_cast<std::size_t>(u64(b,slot+32));
-  const auto count=std::to_integer<unsigned>(b[slot+44]);
+  std::uint32_t count=0;for(unsigned i=0;i<4;++i)count|=std::uint32_t(std::to_integer<unsigned char>(b[slot+44+i]))<<(8*i);
   const auto digest=detail::record_digest(std::span<const std::byte>(b).subspan(offset,64+64*count));
   std::copy(digest.begin(),digest.end(),b.begin()+static_cast<std::ptrdiff_t>(slot+64));
   root_digest(b,slot);
 }
+
+void decoded_live_budget() {
+  // Compressible data must still consume the decoded budget. This invariant
+  // keeps aggregate allocation independent from the live object-count ceiling.
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    auto ram=std::make_shared<Ram>();auto writer=ObjectStoreWriter::create(ram,identity(),{mode,6,false});
+    for(std::uint64_t first=1;first<=16;first+=4) {
+      std::vector<StoreMutation> batch;
+      for(std::uint64_t i=0;i<4;++i)batch.push_back({first+i,false,Bytes(kStoreMaxObjectBytes,std::byte{91})});
+      writer.commit(batch);
+    }
+    require(writer.snapshot().info().logical_bytes==kStoreMaxLogicalBytes,"decoded live budget not reachable");
+    const auto baseline=ram->live;const auto calls=ram->calls;
+    StoreMutation extra{100,false,{std::byte{1}}};
+    rejects([&]{writer.commit({&extra,1});},"decoded budget admitted overfull put");
+    require(ram->live==baseline && ram->calls==calls && !writer.poisoned(),"decoded budget wrote or poisoned");
+    // Final-inventory admission permits a put followed by an erase at capacity.
+    const std::array<StoreMutation,2> replace{{{100,false,Bytes(kStoreMaxObjectBytes,std::byte{7})},{1,true,{}}}};
+    writer.commit(replace);
+    require(writer.snapshot().info().logical_bytes==kStoreMaxLogicalBytes,"decoded-cap replacement failed");
+    auto snapshot=ObjectStoreSnapshot::open(image(ram->stable));
+    require(snapshot.read(100)==Bytes(kStoreMaxObjectBytes,std::byte{7}),"decoded-cap readback");
+    // Create a digest-consistent oversized declared inventory. The parser
+    // must reject before allocating/reading the fabricated object payload.
+    auto bad=ram->stable;const auto slot=static_cast<std::size_t>((snapshot.info().generation%2)*kStoreCommitUnit);
+    const auto index=static_cast<std::size_t>(u64(bad,slot+32));const auto old_count=snapshot.list().size();
+    const auto old_size=64+64*old_count;
+    bad.insert(bad.begin()+static_cast<std::ptrdiff_t>(index+old_size),64,std::byte{0});
+    // Inserting changes neither earlier record offsets nor the manifest start;
+    // its padding and physical size are rebuilt explicitly for this candidate.
+    bad.resize(static_cast<std::size_t>(snapshot.info().physical_end));
+    put32(bad,slot+40,static_cast<std::uint32_t>(old_size+64));
+    put32(bad,slot+44,static_cast<std::uint32_t>(old_count+1));
+    put32(bad,index+12,static_cast<std::uint32_t>(old_count+1));
+    put64(bad,index+24,kStoreMaxLogicalBytes+1);
+    const auto entry=index+old_size;
+    put64(bad,entry,101);put64(bad,entry+8,snapshot.info().generation);
+    // Use a distinct one-byte range in pre-manifest padding. Data identity is
+    // intentionally unavailable: aggregate admission must precede payload I/O.
+    put64(bad,entry+16,2*kStoreCommitUnit);put32(bad,entry+24,1);put32(bad,entry+28,129);
+    manifest_digest(bad,slot);
+    rejects([&]{(void)ObjectStoreSnapshot::open(image(std::move(bad)));},"oversized decoded manifest accepted");
+  }
+}
+void physical_record_order() {
+  auto ram=std::make_shared<Ram>();auto writer=ObjectStoreWriter::create(ram,identity());
+  const std::array<StoreMutation,3> scrambled{{{300,false,bytes(7,1)},{1,false,bytes(11,2)},{200,false,bytes(3,3)}}};
+  writer.commit(scrambled);auto snap=ObjectStoreSnapshot::open(image(ram->stable));
+  require(snap.list()[0].id==1 && snap.read(300)==bytes(7,1),"physical ordering confused logical IDs");
+  const StoreMutation update{1,false,bytes(19,4)};writer.commit({&update,1});
+  require(ObjectStoreSnapshot::open(image(ram->stable)).read(1)==bytes(19,4),"new physical order rejected");
+}
+
 void malformed_images() {
   auto ram=std::make_shared<Ram>();auto w=ObjectStoreWriter::create(ram,identity());w.commit(initial());
   const auto baseline=ram->stable;
@@ -221,7 +285,7 @@ void malformed_images() {
   rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"unsupported intact root silently rolled back");
   bad=baseline;bad[65536+96]=std::byte{1};root_digest(bad,65536);
   rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"intact reserved root field accepted");
-  bad=baseline;bad[65536+44]=std::byte{17};root_digest(bad,65536);
+  bad=baseline;put32(bad,65536+44,static_cast<std::uint32_t>(kStoreMaxObjects+1));root_digest(bad,65536);
   rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"oversized namespace parsed");
   const auto index=static_cast<std::size_t>(u64(baseline,65536+32));
   bad=baseline;bad[index+24]^=std::byte{1};
@@ -486,7 +550,7 @@ void history_cap() {
 }
 int main() {
   try {
-    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();history_cap();
+    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();history_cap();
     std::cout<<"PASS: "<<checks<<" object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\n";
     return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

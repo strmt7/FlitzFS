@@ -71,9 +71,9 @@ void sparse_and_admission() {
 }
 void capacity_and_rollback() {
   auto ram=std::make_shared<Ram>();auto fs=fresh(ram);
-  for(unsigned first=0;first<63;) {
+  for(unsigned first=0;first<kNativeMaxNodes-1;) {
     std::vector<NativeFileMutation> ops;
-    for(unsigned i=0;i<16 && first<63;++i,++first)ops.push_back(file_create("n"+std::to_string(first)));
+    for(unsigned i=0;i<16 && first<kNativeMaxNodes-1;++i,++first)ops.push_back(file_create("n"+std::to_string(first)));
     fs.apply(ops);
   }
   const auto before=ram->live;const auto calls=ram->calls;
@@ -81,19 +81,36 @@ void capacity_and_rollback() {
   require(before==ram->live && calls==ram->calls && !fs.poisoned(),"node cap partially committed");
   const std::array<NativeFileMutation,2> replace{{file_remove("n0"),file_create("replacement")}};fs.apply(replace);
   auto another=std::make_shared<Ram>();auto volume=fresh(another);file_apply(volume,file_create("f"));
-  Bytes full(15*65536);
-  for(std::size_t i=0;i<full.size();++i)full[i]=static_cast<std::byte>(i%251+1);
-  file_apply(volume,file_write("f",0,full));require(volume.snapshot().storage_info().objects==16,"extent capacity not reached");
+  // Reach the combined namespace/extent ceiling with maximum-length names.
+  // Each write remains <=1 MiB; no batch bypasses the staging allowance.
+  for(std::size_t first=2;first<kNativeMaxNodes;) {
+    std::vector<NativeFileMutation> ops;
+    for(unsigned i=0;i<16 && first<kNativeMaxNodes;++i,++first) {
+      auto name="node"+std::to_string(first);name.resize(100,'x');ops.push_back(file_create(name));
+    }
+    volume.apply(ops);
+  }
+  const auto full=data(kNativeMaxExtents*kNativeExtentBytes,33);
+  for(std::size_t at=0;at<full.size();at+=kStoreMaxObjectBytes) {
+    const auto end=(std::min)(at+std::size_t(kStoreMaxObjectBytes),full.size());
+    file_apply(volume,file_write("f",at,Bytes(full.begin()+static_cast<std::ptrdiff_t>(at),full.begin()+static_cast<std::ptrdiff_t>(end))));
+  }
+  auto populated=volume.snapshot();
+  require(populated.storage_info().objects==kStoreMaxObjects && populated.list().size()==kNativeMaxNodes-1,"combined capacity not reached");
+  for(std::size_t at=0;at<full.size();at+=kNativeMaxReadBytes) {
+    const auto end=(std::min)(at+std::size_t(kNativeMaxReadBytes),full.size());
+    require(populated.read("f",at,kNativeMaxReadBytes)==Bytes(full.begin()+static_cast<std::ptrdiff_t>(at),full.begin()+static_cast<std::ptrdiff_t>(end)),"combined-capacity byte readback");
+  }
   const auto baseline=another->live;const auto operations=another->calls;
-  rejects([&]{file_apply(volume,file_write("f",15*65536,data(1,7)));},"extent cap ignored");
+  rejects([&]{file_apply(volume,file_write("f",kNativeMaxExtents*kNativeExtentBytes,data(1,7)));},"extent cap ignored");
   require(baseline==another->live && operations==another->calls && !volume.poisoned(),"extent cap partially committed");
   file_apply(volume,file_truncate("f",0));file_apply(volume,file_write("f",65537,data(13,11)));
   require(volume.snapshot().read("f",65500,100)==[] {
     Bytes out(50);const auto d=data(13,11);std::copy(d.begin(),d.end(),out.begin()+37);return out;}(),"freed object reused incorrectly");
   const auto stable=another->live;
-  const std::array<NativeFileMutation,2> invalid{{file_create("new"),file_create("missing/child")}};
+  const std::array<NativeFileMutation,3> invalid{{file_remove("node2"+std::string(95,'x')),file_create("new"),file_create("missing/child")}};
   rejects([&]{volume.apply(invalid);},"partial failed batch accepted");
-  require(another->live==stable && volume.snapshot().list().size()==1,"failed batch leaked namespace");
+  require(another->live==stable && volume.snapshot().list().size()==kNativeMaxNodes-1,"failed batch leaked namespace");
 }
 void rename_depth_admission() {
   auto ram=std::make_shared<Ram>();auto fs=fresh(ram);
@@ -159,7 +176,7 @@ void malicious_metadata() {
       auto bytes=metadata;edit(bytes);const StoreMutation mutation{1,false,std::move(bytes)};writer.commit({&mutation,1});}
     rejects([&]{(void)NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(backend));},"intact malformed namespace accepted");
   };
-  corrupt([](auto& b){set(b,8,2,4);});corrupt([](auto& b){set(b,12,65,4);});
+  corrupt([](auto& b){set(b,8,2,4);});corrupt([](auto& b){set(b,12,kNativeMaxNodes+1,4);});
   corrupt([](auto& b){set(b,24,1);});corrupt([](auto& b){set(b,16,(std::numeric_limits<std::uint64_t>::max)());});
   corrupt([](auto& b){set(b,32,4096,4);});corrupt([](auto& b){b[56]=std::byte{1};});
   corrupt([](auto& b){set(b,64+8,1);});corrupt([&](auto& b){set(b,positions.at(3).header+8,3);});
@@ -185,6 +202,89 @@ void malicious_metadata() {
     rejects([&]{(void)NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(backend));},"foreign object accepted");
   }
 }
+
+void scalable_staging_and_integrity() {
+  auto ram=std::make_shared<Ram>();auto fs=fresh(ram,StoreCompressionMode::raw);
+  file_apply(fs,file_create("large"));
+  constexpr std::size_t extents=200;
+  const auto original=data(extents*kNativeExtentBytes,117);
+  for(std::size_t at=0;at<original.size();at+=kStoreMaxObjectBytes) {
+    const auto end=(std::min)(at+std::size_t(kStoreMaxObjectBytes),original.size());
+    file_apply(fs,file_write("large",at,Bytes(original.begin()+static_cast<std::ptrdiff_t>(at),original.begin()+static_cast<std::ptrdiff_t>(end))));
+  }
+  const auto replacement=data(128,118);const auto position=77ULL*kNativeExtentBytes+17;
+  ram->read_bytes=ram->read_calls=0;
+  file_apply(fs,file_write("large",position,replacement));
+  const auto small_write_reads=ram->read_bytes;
+  require(small_write_reads<3ULL*kNativeExtentBytes && small_write_reads>=kNativeExtentBytes,"partial write reread unrelated volume data");
+  ram->read_bytes=ram->read_calls=0;
+  file_apply(fs,file_rename("large","renamed"));
+  require(ram->read_bytes<kNativeExtentBytes+128,"namespace-only operation reread data extents");
+  ram->read_bytes=ram->read_calls=0;
+  auto snapshot=fs.snapshot();
+  require(ram->read_bytes>=extents*std::uint64_t(kNativeExtentBytes),"public snapshot skipped full verification");
+  std::cout<<"Native staging evidence: raw_live_bytes="<<original.size()
+           <<" partial_write_bytes=128 backing_read_bytes="<<small_write_reads
+           <<" public_snapshot_backing_read_bytes="<<ram->read_bytes<<'\n';
+  require(snapshot.read("renamed",position,128)==replacement,"incremental write bytes wrong");
+  require(snapshot.read("renamed",0,128)==Bytes(original.begin(),original.begin()+128),"untouched extent changed");
+  // Corrupt an untouched record AFTER admission. Write staging deliberately
+  // avoids background full-volume scrubbing; exposure still performs it.
+  auto corrupt_record=[&](std::uint64_t id) {
+    const auto slot=static_cast<std::size_t>((snapshot.storage_info().generation%2)*kStoreCommitUnit);
+    const auto index=static_cast<std::size_t>(get(ram->live,slot+32));
+    const auto count=get(ram->live,index+12,4);
+    for(std::size_t i=0;i<count;++i)if(get(ram->live,index+64+64*i)==id) {
+      const auto record=static_cast<std::size_t>(get(ram->live,index+64+64*i+16));
+      ram->live[record+128]^=std::byte{1};return;
+    }
+    throw std::runtime_error("missing corruption fixture record");
+  };
+  corrupt_record(3); // Block 1; the next write touches only block 0.
+  file_apply(fs,file_write("renamed",0,data(9,119)));
+  rejects([&]{(void)fs.snapshot();},"public snapshot exposed corrupt untouched data");
+  rejects([&]{(void)snapshot.read("renamed",kNativeExtentBytes,1);},"per-read corrupt extent exposed");
+  const auto calls=ram->calls;
+  rejects([&]{file_apply(fs,file_write("renamed",kNativeExtentBytes,data(9,120)));},"staging used corrupt touched data");
+  require(fs.poisoned() && ram->calls==calls,"corrupt read did not fence before backing writes");
+
+  auto metadata_ram=std::make_shared<Ram>();auto metadata_fs=fresh(metadata_ram,StoreCompressionMode::raw);
+  file_apply(metadata_fs,file_create("f"));
+  const auto metadata_snapshot=metadata_fs.snapshot();
+  const auto slot=static_cast<std::size_t>((metadata_snapshot.storage_info().generation%2)*kStoreCommitUnit);
+  const auto index=static_cast<std::size_t>(get(metadata_ram->live,slot+32));
+  const auto record=static_cast<std::size_t>(get(metadata_ram->live,index+64+16));
+  metadata_ram->live[record+128]^=std::byte{1};
+  const auto metadata_calls=metadata_ram->calls;
+  rejects([&]{file_apply(metadata_fs,file_rename("f","g"));},"namespace staging skipped metadata integrity");
+  require(metadata_fs.poisoned() && metadata_ram->calls==metadata_calls,"metadata corruption changed backing data");
+}
+void dirty_budget() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    auto ram=std::make_shared<Ram>();auto fs=fresh(ram,mode);file_apply(fs,file_create("f"));
+    const auto block=data(kNativeExtentBytes,222);
+    std::vector<NativeFileMutation> maximum;
+    std::size_t done=0;
+    while(done<kNativeMaxDirtyExtents) {
+      const auto count=(std::min)(std::size_t{16},kNativeMaxDirtyExtents-done);
+      Bytes payload(count*kNativeExtentBytes);
+      for(std::size_t i=0;i<count;++i)std::copy(block.begin(),block.end(),payload.begin()+static_cast<std::ptrdiff_t>(i*kNativeExtentBytes));
+      maximum.push_back(file_write("f",done*kNativeExtentBytes,std::move(payload)));done+=count;
+    }
+    fs.apply(maximum);
+    require(fs.snapshot().storage_info().objects==1+kNativeMaxDirtyExtents,"maximum dirty batch rejected");
+    const auto before=ram->live;const auto calls=ram->calls;
+    // Same input allowance, but 64 distinct dirty records leave no full
+    // metadata reserve. Rejection must occur entirely before backing writes.
+    maximum.back().data.insert(maximum.back().data.end(),block.begin(),block.end());
+    rejects([&]{fs.apply(maximum);},"dirty decoded staging cap exceeded");
+    require(!fs.poisoned() && before==ram->live && calls==ram->calls,"dirty-cap rejection partly committed");
+    auto snapshot=fs.snapshot();
+    for(std::size_t i=0;i<kNativeMaxDirtyExtents;++i)
+      require(snapshot.read("f",i*kNativeExtentBytes,kNativeExtentBytes)==block,"maximum dirty batch readback");
+  }
+}
+
 void independent_model() {
   auto ram=std::make_shared<Ram>();auto fs=fresh(ram);std::map<std::string,Bytes> expected_bytes;
   for(const auto* name:{"a","b","c"}){file_apply(fs,file_create(name));expected_bytes[name]={};}
@@ -209,7 +309,7 @@ void independent_model() {
 }
 }
 int main(){
-  try{normal_operations();sparse_and_admission();capacity_and_rollback();rename_depth_admission();transactional_faults();malicious_metadata();independent_model();
+  try{normal_operations();sparse_and_admission();capacity_and_rollback();rename_depth_admission();transactional_faults();malicious_metadata();scalable_staging_and_integrity();dirty_budget();independent_model();
     std::cout<<"PASS: "<<checks<<" native filesystem assertions; directories, stable IDs, sparse ranges, truncation, atomic rename/data and crash recovery.\n";return 0;
   }catch(const std::exception& e){std::cerr<<"native filesystem failure after "<<checks<<": "<<e.what()<<'\n';return 1;}
 }

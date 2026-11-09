@@ -85,9 +85,11 @@ research provider now runs in a bounded isolated hosted VM, never on the owner P
 
 OBJECT_STORE_FORMAT.md records the new bounded native object format, admission,
 recovery and fault-test contract. It provides a base for compressed immutable
-extents and durable namespace transactions. Before increasing limits or exposing
-writes, qualify reclaim, writable reopen, actual process/OS interruptions and
-physical durability assumptions. Do not call the object engine a qualified mounted
+extents and durable namespace transactions. Capacity changes require explicit
+decoded/physical/staging budgets, bounded metadata validation, no-write negative
+admission and recovery tests. Production scaling and exposed application writes
+still require reclaim, writable file reopen, process/OS interruptions and
+physical durability qualification. Do not call the object engine a qualified mounted
 filesystem or general power-loss guarantee. GPU work remains optional and must
 never become a dependency of acknowledged-data recovery.
 
@@ -125,3 +127,16 @@ within the current bounded object store; this does not satisfy production
 capacity, mounted application semantics or full Windows metadata compatibility.
 The hosted interruption gate includes a combined native namespace/data update
 and continuation after recovery, alongside the original storage/repair cases.
+
+## Bounded capacity and incremental staging
+
+The native object envelope now admits 256 live records under an independent
+16 MiB decoded live-data ceiling. The file layer admits 256 inodes and 255
+nonzero 64 KiB extents, with a 63-dirty-extent transaction allowance and a proven
+64 KiB metadata ceiling. Final-budget admission precedes codec work; overlap
+validation sorts bounded ranges. Writer staging checks namespace and touched
+records instead of rereading the full volume on each write. Public snapshot,
+open and resume still fully verify reachable data. NATIVE_FILESYSTEM.md defines
+the immutable-backend assumption and delayed detection of untouched corruption.
+These are developmental scaling steps; multi-gigabyte allocation, reclamation,
+writable mounted semantics and hardware qualification remain outstanding.
