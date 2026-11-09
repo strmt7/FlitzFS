@@ -41,10 +41,20 @@ struct NativeFileMutation {
   std::vector<std::byte> data;
   bool replace=false;
 };
+struct NativeInodeWriteOptions {
+  bool append=false;       // Choose the latest EOF inside the single-control-thread call.
+  bool constrained=false;  // Never extend logical EOF; a range beyond EOF writes zero bytes.
+};
 struct NativeFsCommit {
   StoreCommitInfo storage;
   std::uint64_t sequence=0; // Namespace transaction sequence, distinct from root repair generation.
   std::vector<std::uint64_t> created_inodes;
+};
+
+struct NativeInodeWriteCommit {
+  NativeFsCommit transaction;
+  std::uint64_t inode=0,offset=0; // Actual selected offset, including append EOF.
+  std::uint32_t bytes=0;         // Durable transferred count; no result on failure.
 };
 
 class NativeFilesystemSnapshot final {
@@ -60,10 +70,16 @@ class NativeFilesystemSnapshot final {
   StoreCommitInfo storage_info() const noexcept;
   std::uint64_t sequence() const noexcept;
   NativeFileInfo stat(std::string_view path) const;
+  // IDs belong to this volume/snapshot. Missing/deleted IDs return not_found;
+  // a later file at the old path is never selected instead.
+  NativeFileInfo stat_inode(std::uint64_t inode) const;
   std::vector<NativeFileInfo> list(std::string_view directory="") const;
+  std::vector<NativeFileInfo> list_inode(std::uint64_t directory) const;
   // Root-relative '/' paths, conservative ASCII/case-insensitive components.
   // Short reads at EOF; holes are zeros; full extent integrity precedes exposure.
   std::vector<std::byte> read(std::string_view path,std::uint64_t offset,std::uint32_t bytes) const;
+  std::vector<std::byte> read_inode(std::uint64_t inode,
+      std::uint64_t offset,std::uint32_t bytes) const;
   void verify_all() const;
  private:
   friend class NativeFilesystemWriter;
@@ -96,6 +112,16 @@ class NativeFilesystemWriter final {
   // Nonempty identical writes still publish metadata and the normal barriers.
   // Old snapshots keep their original records.
   NativeFsCommit apply(std::span<const NativeFileMutation> mutations);
+  // Resolve a stable LIVE inode against the last acknowledged namespace, then
+  // use the same atomic staging/replicated publication as apply(). One control
+  // thread; no path lookup by the caller and no intermediate callback.
+  // Full supplied input <=1 MiB even if constrained; accepted bytes may be
+  // shorter. Append selects current EOF, ignoring the supplied offset.
+  // Zero accepted bytes publish nothing. A removed inode is never redirected.
+  // These APIs do not implement Windows open/unlinked-inode lifetime or a mount.
+  NativeInodeWriteCommit write_inode(std::uint64_t inode,std::uint64_t offset,
+      std::span<const std::byte> bytes,NativeInodeWriteOptions options={});
+  NativeFsCommit truncate_inode(std::uint64_t inode,std::uint64_t bytes);
   NativeFilesystemSnapshot snapshot() const;
   bool poisoned() const noexcept;
  private:

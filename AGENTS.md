@@ -328,3 +328,16 @@ confirmed helper kill. The 1 TiB sparse case remains a no-driver projection test
 Keep all existing child/queue/image limits, source bytes and malformed/identity/
 degradation/alias tests. No mounted-write, app/installer, live GPU or owner-PC
 permission is added.
+
+
+## Native inode mutation boundary
+
+Read docs/NATIVE_INODE_IO.md before changing stable-inode read/write/truncate,
+append or constrained semantics. Preserve volume-scoped IDs, no redirection of
+removed/replaced inodes, full supplied-input admission, private verified reads,
+single-control-thread EOF selection and the existing replicated commit path.
+No accepted count may escape before durable success. Empty/clipped writes do
+not publish; nonempty identical writes retain all three barriers and metadata.
+Keep result moves after publication nonthrowing, old snapshots and zeroed tails.
+This is not Windows open/unlinked-inode lifetime, persistent delete intent or
+mounted-write authorization. No owner-PC exception or capacity increase follows.

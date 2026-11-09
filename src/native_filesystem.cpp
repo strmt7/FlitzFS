@@ -42,6 +42,8 @@ struct Model {
   std::map<std::uint64_t,Node> nodes;
 };
 static_assert(std::is_nothrow_move_assignable_v<Model>);
+static_assert(std::is_nothrow_move_assignable_v<NativeFsCommit>);
+static_assert(std::is_nothrow_move_constructible_v<NativeInodeWriteCommit>);
 std::string canonical(std::string_view path,bool root=false) {
   try{return canonical_catalog_path(path,root);}
   catch(const std::bad_alloc&){throw;}
@@ -53,6 +55,11 @@ std::string component(std::string_view name) {
 }
 const Node& node(const Model& model,std::uint64_t id) {
   const auto it=model.nodes.find(id);if(it==model.nodes.end())fail(Code::corrupt,"missing native inode");
+  return it->second;
+}
+const Node& selected_inode(const Model& model,std::uint64_t id) {
+  const auto it=model.nodes.find(id);
+  if(!id || it==model.nodes.end())fail(Code::not_found,"native inode not found");
   return it->second;
 }
 Node& node(Model& model,std::uint64_t id) {
@@ -405,34 +412,53 @@ NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   return file_info(impl_->model,node(impl_->model,resolve(impl_->model,path)));
 }
-std::vector<NativeFileInfo> NativeFilesystemSnapshot::list(std::string_view directory) const {
-  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  const auto id=resolve(impl_->model,directory);
-  if(!node(impl_->model,id).directory)fail(Code::not_directory,"native enumeration of file");
+namespace {
+std::vector<NativeFileInfo> list_node(const Model& model,const Node& directory) {
+  if(!directory.directory)fail(Code::not_directory,"native enumeration of file");
   std::vector<NativeFileInfo> result;
   std::vector<const Node*> children;
-  for(const auto& [inode,n]:impl_->model.nodes)if(inode!=1 && n.parent==id)children.push_back(&n);
+  for(const auto& [inode,n]:model.nodes)if(inode!=1 && n.parent==directory.inode)children.push_back(&n);
   std::sort(children.begin(),children.end(),[](auto a,auto b){return a->key<b->key;});
-  result.reserve(children.size());for(const auto* n:children)result.push_back(file_info(impl_->model,*n));
+  result.reserve(children.size());for(const auto* n:children)result.push_back(file_info(model,*n));
   return result;
 }
-Bytes NativeFilesystemSnapshot::read(std::string_view path,std::uint64_t offset,std::uint32_t bytes) const {
-  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
-  const auto& n=node(impl_->model,resolve(impl_->model,path));
+Bytes read_node(const ObjectStoreSnapshot& objects,const Node& n,std::uint64_t offset,std::uint32_t bytes) {
   if(n.directory)fail(Code::is_directory,"cannot read native directory");
   if(offset>=n.size || !bytes)return {};
   const auto count=(std::min)(std::uint64_t(bytes),n.size-offset),end=offset+count;
   Bytes output(static_cast<std::size_t>(count));
   for(auto it=n.extents.lower_bound(offset/kNativeExtentBytes);it!=n.extents.end();++it) {
     const auto begin=it->first*kNativeExtentBytes;if(begin>=end)break;
-    const auto data=object_bytes(impl_->objects,it->second);
+    const auto data=object_bytes(objects,it->second);
     if(data.size()!=kNativeExtentBytes)fail(Code::corrupt,"native read extent size");
     const auto first=(std::max)(begin,offset),last=(std::min)(begin+kNativeExtentBytes,end);
     std::copy_n(data.begin()+static_cast<std::ptrdiff_t>(first-begin),static_cast<std::size_t>(last-first),
                 output.begin()+static_cast<std::ptrdiff_t>(first-offset));
   }
   return output;
+}
+}
+NativeFileInfo NativeFilesystemSnapshot::stat_inode(std::uint64_t inode) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  return file_info(impl_->model,selected_inode(impl_->model,inode));
+}
+std::vector<NativeFileInfo> NativeFilesystemSnapshot::list(std::string_view directory) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  return list_node(impl_->model,node(impl_->model,resolve(impl_->model,directory)));
+}
+std::vector<NativeFileInfo> NativeFilesystemSnapshot::list_inode(std::uint64_t directory) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  return list_node(impl_->model,selected_inode(impl_->model,directory));
+}
+Bytes NativeFilesystemSnapshot::read(std::string_view path,std::uint64_t offset,std::uint32_t bytes) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
+  return read_node(impl_->objects,node(impl_->model,resolve(impl_->model,path)),offset,bytes);
+}
+Bytes NativeFilesystemSnapshot::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
+  return read_node(impl_->objects,selected_inode(impl_->model,inode),offset,bytes);
 }
 void NativeFilesystemSnapshot::verify_all() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
@@ -514,6 +540,44 @@ NativeFsCommit NativeFilesystemWriter::apply(std::span<const NativeFileMutation>
     if(e.code()==Code::corrupt || (e.code()==Code::storage_failure && (!committing || impl_->objects.poisoned())))impl_->poisoned=true;
     throw;
   }catch(const std::exception&){impl_->poisoned=true;fail(Code::storage_failure,"native backing read failed");}
+}
+NativeInodeWriteCommit NativeFilesystemWriter::write_inode(std::uint64_t inode,
+    std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(bytes.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");
+  try {
+    const auto& n=selected_inode(impl_->model,inode);
+    if(n.directory)fail(Code::is_directory,"cannot write native directory");
+    const auto selected=options.append?n.size:offset;
+    auto count=bytes.size();
+    if(options.constrained)
+      count=selected>=n.size?0:(std::min)(count,static_cast<std::size_t>(
+          (std::min)(n.size-selected,std::uint64_t(kStoreMaxObjectBytes))));
+    if((!options.constrained || count) &&
+        (selected>kNativeMaxFileBytes || count>kNativeMaxFileBytes-selected))
+      fail(Code::limit,"native write bounds");
+    NativeFileMutation op;op.operation=NativeFileOperation::write;
+    op.path=display_path(impl_->model,n);
+    // No-op constrained ranges may carry any UINT64 offset; never forward
+    // that sentinel through ordinary write arithmetic or create a sparse gap.
+    op.offset=count?selected:(std::min)(selected,n.size);
+    if(count)op.data.assign(bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(count));
+    NativeInodeWriteCommit result;result.inode=inode;result.offset=selected;
+    result.bytes=static_cast<std::uint32_t>(count);
+    result.transaction=apply({&op,1});
+    return result;
+  }catch(const std::bad_alloc&){fail(Code::limit,"native inode write allocation failure");}
+}
+NativeFsCommit NativeFilesystemWriter::truncate_inode(std::uint64_t inode,std::uint64_t bytes) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(bytes>kNativeMaxFileBytes)fail(Code::limit,"native truncate bounds");
+  try {
+    const auto& n=selected_inode(impl_->model,inode);
+    if(n.directory)fail(Code::is_directory,"cannot truncate native directory");
+    NativeFileMutation op;op.operation=NativeFileOperation::truncate;
+    op.path=display_path(impl_->model,n);op.size=bytes;
+    return apply({&op,1});
+  }catch(const std::bad_alloc&){fail(Code::limit,"native inode truncate allocation failure");}
 }
 NativeFilesystemSnapshot NativeFilesystemWriter::snapshot() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native writer");

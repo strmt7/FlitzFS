@@ -242,3 +242,11 @@ future helper. Independent native CPU recovery/remount replaces the legacy
 catalog in this probe. App/installer, writable ordinary-image ownership,
 Windows mutation/cache/ACL/time/handle semantics, scale/reclamation, latest
 Windows 11 client and live AMD qualification remain required.
+
+
+Stable-inode engine I/O now supplies snapshot stat/list/read and durable
+write/truncate with current-EOF append and constrained accepted counts.
+NATIVE_INODE_IO.md tracks the exact contract and configured failure tests.
+The next writable integration still needs open/unlinked-inode lifetime,
+persistent delete-intent cancellation, Windows metadata/sharing and flush
+semantics before callbacks can replace their current write-protected behavior.
