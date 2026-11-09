@@ -117,3 +117,29 @@ Existing lifetime/context fault matrices, process interruption, CPU/raw/static
 runtime/reference/sanitizer checks and read-only mount/crash/remount regression
 remain required. Every configured check must be inspected at its exact commit;
 a test definition alone is not a passing result. No owner-host test is authorized.
+
+## Executed checkpoint
+
+At `647349b5be7ecea8f851dfcac130254cf9e7b9eb`, all eight triggered
+hosted workflows succeeded. Windows native job 129503416478 passed all
+41 CTest entries, including the new ordinary-file image comparison. ASan/UBSan
+job 129503416051 passed all 35 analysis entries. Both emitted 271 complete
+Flush checks, the unchanged 2,064 lifetime fault cases and 1,026 owning-context
+fault cases. The owning-context invariants remained 187.
+
+Windows process job 129503414980 completed the disjoint union of all 976
+interruption cases, recovered every acknowledged byte and continued writing.
+Each 488-case partition remained within its 180-second limit (126.622 and
+124.248 seconds). These are process interruptions, not physical power cuts.
+
+Hosted read-only mount job 129505471244 passed normal mounted I/O and
+byte parity, deliberate process termination, independent native CPU recovery
+and same-path remount. Normal/recovery exits were zero; the intentional crash
+timed out with confirmed exit. Observed process peaks were 6,303,744,
+6,131,712 and 5,222,400 bytes, respectively, within the existing 128 MiB bound.
+These ran on Windows Server, not a Windows 11 client. Driver/kernel resources
+are outside the process Job memory bound. No writable callbacks, live GPU
+execution or owner-PC operation was added or qualified.
+
+[Hosted checks](https://github.com/strmt7/FlitzFS/actions/runs/42717709662),
+[interruption campaign](https://github.com/strmt7/FlitzFS/actions/runs/42717709476).

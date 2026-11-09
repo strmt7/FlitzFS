@@ -46,14 +46,14 @@ jobs:
             --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
             "$python_path" "$GITHUB_WORKSPACE/.ci-provider/tools/crawl4ai_tool.py" \
             --home "$RUNNER_TEMP/flitzfs-admitted-crawler" install
-      - name: Research Windows-only product and filesystem architectures
+      - name: Research Windows native metadata and security contracts
         shell: bash
         run: |
           set -euo pipefail
           python_path="$(command -v python)"
-          mkdir "$RUNNER_TEMP/flitzfs-windows-research"
+          mkdir "$RUNNER_TEMP/flitzfs-windows-native-research"
           status=0
-          for group in windows-target windows-framework windows-alternatives; do
+          for group in windows-basic windows-security windows-protocol; do
             sudo systemd-run --wait --collect --pipe --service-type=exec \
               --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
               --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=240 \
@@ -61,7 +61,7 @@ jobs:
               --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
               "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_research.py" \
               --provider "$GITHUB_WORKSPACE/.ci-provider" --home "$RUNNER_TEMP/flitzfs-admitted-crawler" \
-              --output "$RUNNER_TEMP/flitzfs-windows-research/$group" --source-group "$group" || status=1
+              --output "$RUNNER_TEMP/flitzfs-windows-native-research/$group" --source-group "$group" || status=1
           done
           exit "$status"
       - name: Retain native captures and failures
@@ -69,6 +69,6 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: research-${{ github.sha }}
-          path: ${{ runner.temp }}/flitzfs-windows-research
+          path: ${{ runner.temp }}/flitzfs-windows-native-research
           if-no-files-found: warn
           retention-days: 30

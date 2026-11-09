@@ -231,3 +231,13 @@ mount and interruption development jobs now move to the current hosted
 Windows-2025-VS2026 toolchain already observed in whole-ROCm qualification.
 This removes reliance on the older Windows Server 2022 development image without
 claiming that a Server image is a Windows 11 client VM.
+
+## Persistent native metadata continuation
+
+The next writable-adapter prerequisite is source-bound Windows timestamps,
+attributes, allocation and security metadata. See
+[WINDOWS_NATIVE_METADATA.md](WINDOWS_NATIVE_METADATA.md) for the inspected
+selected FSD/user-mode contracts, twelve-page hosted research scope and strict
+remaining implementation gates. The existing transaction sequence fields are
+not wall-clock timestamps. A configured research campaign is not an accepted
+capture or a qualified writable Windows implementation.
