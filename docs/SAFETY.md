@@ -209,3 +209,14 @@ STORE_RESUME_AND_INTERRUPTION.md. Existing ordinary-file reopening is an interna
 hosted-test fixture exception only; public create_file still cannot overwrite or
 adopt a path. Process-kill tests do not establish physical power-loss survival.
 No owner-PC process, general user-file mutation or mounted write is enabled.
+
+## Native file transaction boundary
+
+The native file layer publishes metadata and changed extents in one core commit.
+It admits graph/extent/name bounds and zeroes discarded tails before writes.
+Old snapshots retain old records across object-ID reuse. Ordinary file reopening
+remains an internal hosted-fixture exception; no mount/CLI write route is added.
+See NATIVE_FILESYSTEM.md. Sparse logical size is not physical capacity: only 15
+nonzero 64 KiB extents are currently admitted, with no physical reclamation.
+Do not infer physical power-cut, writable Windows application or GPU safety
+from these bounded CPU/process tests.

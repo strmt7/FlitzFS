@@ -279,3 +279,12 @@ STORE_RESUME_AND_INTERRUPTION.md specifies the new exclusive custom-backend
 resume, aligned orphan preservation, root-pair repair and hosted forced-process
 interruption gates. The ordinary-file resume adapter is internal and hosted-test
 only; default file/CLI/mount behavior remains new-file-only or read-only.
+
+## Native file namespace client
+
+NATIVE_FILESYSTEM.md defines the separate FLTXNS01 metadata stored as object 1
+and fixed 64 KiB data extents in objects 2..16. It uses the existing atomic object
+commit and qualified resume; object record/root bytes are unchanged. It adds no
+ordinary-file reopening factory, mount mutation route, authentication or GPU
+runtime. The Zstandard reader now rejects noncanonical frame magic before
+library parsing; all current writer-produced modern frames remain readable.

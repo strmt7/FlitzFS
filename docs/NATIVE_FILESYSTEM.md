@@ -1,0 +1,166 @@
+# Native directory, inode and extent layer
+
+Experimental CPU filesystem core; no driver, mount application or GPU runtime is
+enabled. This is a native filesystem namespace over the compressed transactional
+object store, not an archive reader or archive-backed mount.
+
+## Implemented operations and lifetime
+
+NativeFilesystemWriter consumes an exclusively owned ObjectStoreWriter.
+Initialize accepts only a NEW empty generation-zero store. Resume accepts a
+writer whose custom backend has already passed identity/generation verification,
+exclusive ownership and the recovery fence. There is no new ordinary-file
+reopening factory or owner-host permission.
+
+A transaction applies 1..16 ordered operations: create file, create directory,
+write a range, truncate, rename/replace, or remove. All metadata and changed
+extents are staged privately and published by ONE object-store commit. Admission
+failures perform no backing writes; read/validation and resource errors can occur
+before publication. Backing I/O failures retain the core's terminal/indeterminate
+semantics. Destroy a poisoned writer before independent recovery.
+
+Snapshots retain their original namespace and immutable data references across
+writes, truncation, replacement, deletion and object-ID reuse. Inode IDs never
+reuse previously committed IDs. Rename preserves the source inode. A new child
+requires an existing directory; automatic parent creation is not implicit.
+Directories can be removed/replaced only when empty. File/directory replacement
+types must match. Moving a directory beneath itself fails. Case-only rename
+preserves identity while changing display spelling.
+
+Paths are root-relative '/' strings. The root is the empty string, inode 1.
+The current conservative ASCII/case-insensitive component rules reuse the pure
+catalog validator: at most 240 path bytes, 100 per component and depth 16, with
+unsafe Windows aliases/separators rejected. This is NOT full Unicode/NTFS or
+POSIX name qualification. All file CONTENT bytes remain arbitrary and lossless.
+
+Created/modified sequence fields are persistent logical transaction counters,
+not wall-clock timestamps. Namespace sequence is distinct from object-store root
+generation: root repair can advance the latter without changing user contents.
+ACLs, real timestamps, open-handle sharing/deletion, links, streams, mapped I/O,
+durable mounted application writes and concurrent dispatcher integration remain
+unimplemented. One control thread is required.
+
+## Sparse and partial data semantics
+
+Files consist of independent 64 KiB logical extents. Missing extents are zeros.
+A partial write loads only affected old extents, preserves other bytes, and
+leaves unwritten gaps zero. A shrink removes later references and zeroes the
+remaining tail beyond EOF. Growth exposes zeros, never discarded bytes. Completely
+zero extents are omitted instead of allocating zero-filled data objects.
+
+Reads are bounded to 4 MiB, short at EOF, and iterate allocated overlapping
+extents rather than scanning a potentially huge sparse hole. Every returned
+allocated extent passes the underlying stored/decoded integrity checks before
+its bytes escape. Unknown codecs or corrupt data fail; GPU availability is not
+needed for read, write or recovery.
+
+## Present admission limits
+
+- At most 64 live inodes including root, and 15 live NONZERO extents across the
+  namespace. These limits follow the current 16-object store (one metadata object).
+- Each extent is 65,536 bytes decoded. Nonzero live data capacity is presently
+  983,040 bytes, despite a 1 TiB per-file sparse LOGICAL size allowance.
+- At most 1 MiB input per write and 4 MiB input per batch; 32 private dirty
+  extent buffers (2 MiB) during staging. Temporary staging/node limits may reject
+  a batch whose operation order exceeds them; delete before allocation at capacity.
+- Namespace bytes are capped at 64 KiB. Current graph bounds imply much smaller
+  ordinary metadata; all counts, references and extents are admitted.
+- The object store retains old physical records and its 64 MiB history cap.
+  Unlink/truncate release logical references, not physical history. No GC,
+  reclamation, quota/statfs model or production capacity claim is implemented.
+
+These are bounded development gates, not the requested final filesystem
+capacity. Scaling needs a qualified metadata/index/allocation design, not simply
+increasing constants and accepting unbounded verification work.
+
+## Native metadata bytes
+
+Object ID 1 stores the namespace; object IDs 2..16 store live extent records.
+There may be no unrelated logical objects or duplicate extent-object ownership.
+Extent object IDs can be reused transactionally; old snapshots retain their
+old generation/offset/digest references in their own object-store snapshot.
+
+All fields are unsigned little-endian, all reserved bytes zero. Namespace magic
+is FLTXNS01. This format is separate from the existing .flfs image and .flcatalog
+diagnostic view. There is no automatic import or migration.
+
+### Namespace header: 64 bytes
+
+| Offset | Bytes | Meaning |
+|---:|---:|---|
+| 0 | 8 | ASCII FLTXNS01 |
+| 8 | 4 | Internal format field 1 |
+| 12 | 4 | Inode count, 1..64 |
+| 16 | 8 | Namespace transaction sequence, positive and <=root generation |
+| 24 | 8 | Next inode ID, greater than every live inode |
+| 32 | 4 | Extent bytes = 65,536 |
+| 36 | 4 | Total live nonzero extents, at most 15 |
+| 40 | 16 | Object-store identity |
+| 56 | 8 | Zero |
+
+### Inode: 64-byte header, name bytes, then extent references
+
+Inodes are serialized in strictly increasing ID order.
+
+| Offset | Bytes | Meaning |
+|---:|---:|---|
+| 0 | 8 | Stable inode ID |
+| 8 | 8 | Parent inode; root uses zero |
+| 16 | 4 | Kind 1 directory, 2 regular file |
+| 20 | 4 | Zero |
+| 24 | 8 | Logical file size; directories zero |
+| 32 | 8 | Created namespace sequence |
+| 40 | 8 | Modified namespace sequence |
+| 48 | 2 | Name byte count, <=100; root empty |
+| 50 | 2 | Extent reference count, <=15 |
+| 52 | 12 | Zero |
+
+Name bytes follow without a terminator. Each extent reference is two u64 fields:
+logical block index, then object ID. Indices strictly increase. The object must
+decode to exactly 64 KiB, contain some nonzero byte and lie before file EOF;
+any bytes after EOF in its final extent must be zero.
+
+The parser rejects missing/file parents, cycles, disconnected nodes, duplicate
+case-folded sibling names, duplicate extent ownership, invalid IDs/sequences,
+trailing metadata, foreign objects and invalid extent padding. Store/namespace
+identity and integrity must validate before snapshot exposure. Integrity remains
+unkeyed; this is not authentication or malicious-rollback protection.
+
+## Validation and interruption coverage
+
+The RAM suite covers cross-extent writes, untouched snapshots, stable IDs,
+sparse reads near 1 TiB, truncate/regrow, rename/replace, directory rules, limits,
+no-write admission rollback and a separate byte-vector oracle. Metadata-negative
+cases use valid object-store commits, recomputing enclosing integrity so graph
+validation is exercised rather than only checksum rejection.
+
+For both raw and automatic compression, every observed combined file-transaction
+write/flush failure is injected with before-write, partial persistence, whole-unit
+damage and post-flush outcomes. Recovery must expose the complete old or new
+namespace/data; a terminal writer may not retry. Root-repair generation changes
+are followed by a new native file commit and independent reopen.
+
+The hosted process-interruption workflow now also exercises a native file
+transaction: directory rename, a cross-extent partial write, truncate, replacing
+an existing file, and directory removal. At each reported I/O boundary a process
+is forcibly stopped. A new CPU process checks the acknowledged namespace/data,
+resumes, creates/writes another file and independently reopens it.
+
+All tests/builds run on disposable hosted VMs. Process-kill and RAM tearing are
+distinct from physical power cuts. The exact commit's checks and retained reports
+must be inspected; no result is inferred merely from this test description.
+
+## Codec admission
+
+Native store and .flfs Zstandard paths now require canonical modern frame magic
+before calling optional library parsers, excluding legacy/skippable framing.
+Writer-generated bytes remain unchanged. The reviewed public Zstandard header
+defines ZSTD_MAGICNUMBER 0xFD2FB528 since v0.8.0. This closes an unnecessary
+legacy parser path; it is not a claim of a completed decoder/security audit.
+
+## Remaining product gates
+
+The native file layer advances persistent filesystem semantics. Writable mounted
+callbacks, user/application compatibility, Unicode/metadata/security semantics,
+scalable allocation/reclamation, physical persistence qualification, broad
+compression/throughput comparisons and actual AMD GPU integration remain unmet.

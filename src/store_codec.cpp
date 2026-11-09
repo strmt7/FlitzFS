@@ -1,4 +1,5 @@
 #include "store_codec.hpp"
+#include "zstd_frame.hpp"
 #include "repeat_bytes.hpp"
 #include <algorithm>
 #include <array>
@@ -146,6 +147,7 @@ std::vector<std::byte> StoreCodecDecoder::decode(std::uint32_t codec,
   if(payload.size()>(std::numeric_limits<std::uint32_t>::max)() ||
       !store_codec_framing(codec,logical,static_cast<std::uint32_t>(payload.size())))
     fail("unknown codec or invalid stored/logical extent");
+  if(codec==kStoreZstd && !native_zstd_frame(payload)) fail("noncanonical Zstandard magic");
   if(codec==kStoreZstd && !store_zstd_available()) fail("Zstandard recovery unavailable");
   Bytes output(logical);
   if(codec==kStoreRaw) std::copy(payload.begin(),payload.end(),output.begin());
