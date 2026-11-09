@@ -108,3 +108,39 @@ Kernel resources are outside user-mode Job Object containment.
 These are configured tests until exact-commit hosted results are inspected.
 Windows Server qualification is distinct from latest Windows 11 client,
 writable application, physical power-cut and AMD hardware qualification.
+
+
+## Executed native-image integration evidence
+
+Commit 3e61929e1be5c71711be8bc2fc73ea0c3f177177 passed all eight
+triggered workflows on 9 November 2026. The native Windows job
+129431185740 passed all 28 CTest entries, including native projection,
+actual-SDK callbacks and injected lifecycle rollback. The raw Windows
+job passed 26 entries; Linux CPU, ASan/UBSan, relocated CPU binaries,
+reference mechanisms, dependency inventory and six source-bound semantic
+queries also passed their separate checks.
+
+The live native-image job 129432925521 in run 42696941121 returned:
+normal mount exit 0, confirmed; forced helper stop ERROR_TIMEOUT (1460),
+confirmed; independent recovery/remount exit 0, confirmed. Peak committed
+process bytes were 6,201,344, 6,119,424 and 5,230,592 respectively.
+These are observed process peaks under the unchanged 128 MiB/20% limits,
+not total kernel/GPU resource measurements or performance benchmarks.
+The selected source-bound WinFsp v2.2B5 driver retained its valid Microsoft
+hardware-compatibility signature and driver SHA-256
+0a91fc3429fd5adf8b9c65976ac0c4ae924702be2cfbed856d90d2a7d99b0390.
+The provenance still explicitly reports windows11_policy_qualified=false.
+
+The independent Windows process-interruption campaign at that same commit
+completed both disjoint 488-case partitions in 64.742 and 78.859 seconds.
+Its merger verified the complete 976-case union and recovered every
+acknowledged byte before continuing. This is modeled/process interruption
+evidence; it does not simulate every storage-device power-loss behavior.
+
+Logs:
+- https://github.com/strmt7/FlitzFS/actions/runs/42696941121
+- https://github.com/strmt7/FlitzFS/actions/runs/42696941201
+
+Qualification applies to that exact implementation and those environments.
+It does not complete mounted writes, the helper application, Windows 11 client,
+live AMD acceleration, production capacity or physical power-cut qualification.

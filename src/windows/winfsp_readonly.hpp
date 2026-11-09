@@ -12,7 +12,8 @@ namespace flitzfs {
 // Owns read-only backing handles. Keep alive until all callbacks have stopped.
 class WinFspReadOnly final {
  public:
-  // Fully verify at most 32 MiB of logical content before exposing callbacks.
+  // Verify before exposing callbacks: catalog logical content <=32 MiB;
+  // native sources verify decoded live objects, never expanded sparse holes.
   explicit WinFspReadOnly(const std::vector<CatalogSource>& sources);
   explicit WinFspReadOnly(ReadOnlyProjection projection);
   ~WinFspReadOnly();
