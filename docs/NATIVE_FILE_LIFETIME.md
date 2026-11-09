@@ -178,3 +178,19 @@ Each completed phase/mode prints its actual I/O-step and fault-case counts,
 requiring exactly three cases per step. The twelve distinct phase/mode receipts
 plus the invariants completion must be inspected in the exact-commit CI logs.
 There is no skip, timeout widening, dropped data case or unsanitized substitute.
+
+
+## Owning context layer addition
+
+NATIVE_FILE_SESSION.md now specifies an exclusive native context owner,
+per-open delete aggregation/latching, retained post-Cleanup I/O and last-owned-
+Close retirement. It does not attest old external/kernel context retirement
+or enable mounted writes. Core closed-session admission still requires the
+future helper's independent dispatcher/process retirement evidence.
+
+The passing two-phase sanitizer group at a30af8a3ad0d36f506ca302f0e2b60817a45f5ff
+reached 43.91 seconds under its 45-second cap. The next configuration gives
+each of the SIX phases its own sequential process, retaining raw/automatic
+modes and all 2,064 cases. With invariants there are seven processes, each
+still limited to 45 seconds; explicit suite ceiling 315 seconds. No production,
+child-process or per-test limit widens and no covered case is omitted.

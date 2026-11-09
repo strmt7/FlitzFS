@@ -169,3 +169,10 @@ have CPU engine primitives: [NATIVE_FILE_LIFETIME.md](docs/NATIVE_FILE_LIFETIME.
 They preserve inode access after unlink and separate final retirement from
 name removal. The Windows handle owner, writable callbacks and app remain
 unfinished; unresolved states cannot enter ordinary resume or read-only mounts.
+
+
+An owning CPU file-context layer now combines per-open deletion requests,
+retains post-Cleanup I/O and controls final inode retirement:
+[NATIVE_FILE_SESSION.md](docs/NATIVE_FILE_SESSION.md). Verified committed-view
+queries avoid full-volume scans per range request. The Windows writable adapter,
+helper app and external context-retirement qualification remain unfinished.

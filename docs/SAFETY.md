@@ -308,3 +308,12 @@ established context retirement by the owning caller; no timer or declared
 boolean proves it. All old snapshots and unrelated committed data must remain
 intact. These CPU primitives do not authorize writable mounts or owner-PC tests.
 See NATIVE_FILE_LIFETIME.md.
+
+
+The native context owner provides only its own descriptor-count evidence.
+It cannot attest that old external/kernel contexts have retired. It retains
+cleaned contexts, keeps records on failed retirement and fences protocol/
+integrity failure rather than retrying or guessing deletion. Read optimization
+does not bypass namespace/requested-record verification or full public snapshot
+admission. See NATIVE_FILE_SESSION.md. No mounted-write/owner-host permission
+or proof of universal failure immunity is added.

@@ -345,3 +345,10 @@ checkpoints. It does not change object/root/record/codec bytes or limits.
 Detached inode payloads remain live objects and count against the existing
 decoded/object budgets until qualified explicit retirement. Legacy namespace
 field 1 remains supported; older namespace-only readers reject the new magic.
+
+
+The owning context/range-query layer in NATIVE_FILE_SESSION.md retains this
+object encoding/publication path. Its private verified namespace view never
+escapes as a public unchecked snapshot. Public snapshots still verify every
+reachable object; requested range records verify fully before byte exposure.
+No object/root/codec bytes, stored bounds or recovery assumptions change.

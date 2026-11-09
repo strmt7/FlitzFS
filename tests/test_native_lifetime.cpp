@@ -365,10 +365,13 @@ int main(int argc,char** argv){try {
     malformed_metadata();
     std::cout<<"Native lifetime invariants: {\"schema\":1,\"checks\":"<<checks<<",\"complete\":true}\n";
   } else {
-    std::array<Phase,2> phases{};
-    if(group=="--intent-faults")phases={Phase::mark,Phase::cancel};
-    else if(group=="--detach-faults")phases={Phase::detach,Phase::write};
-    else if(group=="--retire-faults")phases={Phase::retire,Phase::finish};
+    std::array<Phase,1> phases{};
+    if(group=="--mark-faults")phases={Phase::mark};
+    else if(group=="--cancel-faults")phases={Phase::cancel};
+    else if(group=="--detach-faults")phases={Phase::detach};
+    else if(group=="--write-faults")phases={Phase::write};
+    else if(group=="--retire-faults")phases={Phase::retire};
+    else if(group=="--finish-faults")phases={Phase::finish};
     else throw std::runtime_error("unknown bounded lifetime test group");
     for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic})interruption(mode,phases);
   }

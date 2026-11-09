@@ -50,7 +50,7 @@ set_target_properties(flitzfs_blake3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_definitions(flitzfs_blake3 PRIVATE
   BLAKE3_NO_SSE2=1 BLAKE3_NO_SSE41=1 BLAKE3_NO_AVX2=1 BLAKE3_NO_AVX512=1 BLAKE3_USE_NEON=0)
 
-add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp src/mount_plan.cpp src/process_budget.cpp src/catalog_manifest.cpp src/extent_codec.cpp src/gpu_batch.cpp src/gpu_recovery.cpp src/worker_wire.cpp src/record_digest.cpp src/object_store.cpp src/store_file.cpp src/store_codec.cpp src/native_filesystem.cpp)
+add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp src/mount_plan.cpp src/process_budget.cpp src/catalog_manifest.cpp src/extent_codec.cpp src/gpu_batch.cpp src/gpu_recovery.cpp src/worker_wire.cpp src/record_digest.cpp src/object_store.cpp src/store_file.cpp src/store_codec.cpp src/native_filesystem.cpp src/native_session.cpp)
 target_include_directories(flitzfs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(flitzfs_core PUBLIC cxx_std_20)
 target_include_directories(flitzfs_core PRIVATE third_party/blake3/c)
@@ -172,14 +172,26 @@ if(FLITZFS_BUILD_TESTS)
   target_include_directories(flitzfs_native_lifetime_tests PRIVATE src)
   target_link_libraries(flitzfs_native_lifetime_tests PRIVATE flitzfs_core)
   flitzfs_test_codecs(flitzfs_native_lifetime_tests)
-  # Fixed sequential groups retain every phase/mode/fault while preserving
-  # the existing 45-second per-process limit under ASan/UBSan.
+  # One fixed phase per process retains both modes and all fault points,
+  # leaving useful sanitizer margin inside the unchanged 45-second cap.
   add_test(NAME bounded_native_lifetime_invariants COMMAND flitzfs_native_lifetime_tests --invariants)
-  add_test(NAME bounded_native_lifetime_intent_faults COMMAND flitzfs_native_lifetime_tests --intent-faults)
-  add_test(NAME bounded_native_lifetime_detach_faults COMMAND flitzfs_native_lifetime_tests --detach-faults)
-  add_test(NAME bounded_native_lifetime_retire_faults COMMAND flitzfs_native_lifetime_tests --retire-faults)
-  set_tests_properties(bounded_native_lifetime_invariants bounded_native_lifetime_intent_faults
-    bounded_native_lifetime_detach_faults bounded_native_lifetime_retire_faults PROPERTIES TIMEOUT 45)
+  foreach(lifetime_phase mark cancel detach write retire finish)
+    add_test(NAME bounded_native_lifetime_${lifetime_phase}_faults
+      COMMAND flitzfs_native_lifetime_tests --${lifetime_phase}-faults)
+    set_tests_properties(bounded_native_lifetime_${lifetime_phase}_faults PROPERTIES TIMEOUT 45)
+  endforeach()
+  set_tests_properties(bounded_native_lifetime_invariants PROPERTIES TIMEOUT 45)
+  add_executable(flitzfs_native_session_tests tests/test_native_session.cpp)
+  target_include_directories(flitzfs_native_session_tests PRIVATE src)
+  target_link_libraries(flitzfs_native_session_tests PRIVATE flitzfs_core)
+  flitzfs_test_codecs(flitzfs_native_session_tests)
+  add_test(NAME bounded_native_session_invariants COMMAND flitzfs_native_session_tests --invariants)
+  foreach(session_phase mark cleanup close)
+    add_test(NAME bounded_native_session_${session_phase}_faults
+      COMMAND flitzfs_native_session_tests --${session_phase}-faults)
+    set_tests_properties(bounded_native_session_${session_phase}_faults PROPERTIES TIMEOUT 45)
+  endforeach()
+  set_tests_properties(bounded_native_session_invariants PROPERTIES TIMEOUT 45)
   add_executable(flitzfs_object_store_tests tests/test_object_store.cpp)
   target_include_directories(flitzfs_object_store_tests PRIVATE src)
   target_link_libraries(flitzfs_object_store_tests PRIVATE flitzfs_core)
