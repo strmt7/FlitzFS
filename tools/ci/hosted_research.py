@@ -8,6 +8,7 @@ Never imported by the filesystem.
 import argparse
 import asyncio
 import hashlib
+from html.parser import HTMLParser
 import importlib.metadata
 import json
 import os
@@ -77,6 +78,67 @@ ROCM_STREAM_SOURCES = (
 )
 
 
+# Current-served primary references. A successful fetch does not establish a
+# recent document revision or qualify Windows 11 client behavior.
+WINDOWS_BASIC_SOURCES = (
+    ("windows-basic-info", "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_basic_info", "FILE_BASIC_INFO", "ChangeTime"),
+    ("windows-file-attributes", "https://learn.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants", "FILE_ATTRIBUTE_NORMAL", "READONLY"),
+    ("windows-set-file-time", "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfiletime", "SetFileTime", "0xFFFFFFFF"),
+    ("windows-kernel-basic-info", "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_basic_information", "FILE_BASIC_INFORMATION", "-2"),
+)
+WINDOWS_SECURITY_SOURCES = (
+    ("windows-file-security", "https://learn.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights", "security descriptor", "access"),
+    ("windows-relative-security", "https://learn.microsoft.com/en-us/windows/win32/secauthz/absolute-and-self-relative-security-descriptors", "SE_SELF_RELATIVE", "relative"),
+    ("windows-security-inheritance", "https://learn.microsoft.com/en-us/windows/win32/secauthz/automatic-propagation-of-inheritable-aces", "inherit", "ACE"),
+    ("windows-set-security", "https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-setsecurityinfo", "SetSecurityInfo", "inherit"),
+)
+WINDOWS_PROTOCOL_SOURCES = (
+    ("windows-current-fsa", "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/", "File System Algorithms", "2026"),
+    ("windows-current-fscc", "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/", "File System Control Codes", "2026"),
+    ("windows-protocol-basic-info", "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/16023025-8a78-492f-8b96-c873b042ac50", "FileBasicInformation", "ChangeTime"),
+    ("windows-kernel-standard-info", "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_standard_information", "FILE_STANDARD_INFORMATION", "AllocationSize"),
+)
+
+
+class SourceMetadata(HTMLParser):
+    """Record advisory publisher metadata from the native captured HTML only."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.items = []
+
+    def handle_starttag(self, tag, attrs):
+        if len(self.items) >= 32:
+            return
+        values = dict(attrs)
+        if tag == "meta":
+            key = (values.get("name") or values.get("property") or "").lower()
+            if key in {"ms.date", "ms.topic", "updated_at", "date", "last_modified",
+                       "document_id", "document_version_independent_id", "github_feedback_content_git_url",
+                       "original_content_git_url", "og:url"}:
+                self.items.append({"kind": key, "value": (values.get("content") or "")[:2048]})
+        elif tag == "time" and values.get("datetime"):
+            self.items.append({"kind": "datetime", "value": values["datetime"][:128]})
+        elif tag == "link" and "canonical" in (values.get("rel") or "").lower().split():
+            self.items.append({"kind": "canonical", "value": (values.get("href") or "")[:2048]})
+
+
+def source_metadata(result):
+    parser = SourceMetadata()
+    html = result.get("html") or ""
+    if not isinstance(html, str):
+        return {"items": [], "status": "native HTML unavailable", "revision_verified": False}
+    # The native capture retains the full body; parsing/logging stays bounded.
+    if len(html) > 4 * 1024**2:
+        return {"items": [], "status": "native HTML exceeds review cap", "revision_verified": False}
+    try:
+        parser.feed(html)
+        parser.close()
+    except Exception as error:
+        return {"items": parser.items, "status": type(error).__name__, "revision_verified": False}
+    return {"items": parser.items, "status": "extracted" if parser.items else "publisher metadata absent",
+            "revision_verified": False}
+
 def guard():
     if os.name != "posix" or os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("RUNNER_ENVIRONMENT") != "github-hosted":
         raise RuntimeError("Requires a disposable GitHub-hosted Linux VM")
@@ -108,7 +170,9 @@ async def capture(args):
     async with AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False, use_persistent_context=False)) as owner:
         selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-current": ROCM_CURRENT_SOURCES, "rocm-runtime": ROCM_RUNTIME_SOURCES, "windows-target": WINDOWS_TARGET_SOURCES,
                     "windows-framework": WINDOWS_FRAMEWORK_SOURCES, "windows-alternatives": WINDOWS_ALTERNATIVE_SOURCES,
-                    "rocm-stream": ROCM_STREAM_SOURCES}[args.source_group]
+                    "rocm-stream": ROCM_STREAM_SOURCES,
+                    "windows-basic": WINDOWS_BASIC_SOURCES, "windows-security": WINDOWS_SECURITY_SOURCES,
+                    "windows-protocol": WINDOWS_PROTOCOL_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -119,6 +183,7 @@ async def capture(args):
             print(json.dumps({"native_location": name, "result_url": result.get("url"),
                               "redirected_url": result.get("redirected_url"),
                               "native_error": str(result.get("error_message", ""))[:400]}), flush=True)
+            print(json.dumps({"publisher_metadata": name, **source_metadata(result)}), flush=True)
             if row["success"]:
                 markdown = result.get("markdown") or ""
                 if isinstance(markdown, dict):
@@ -138,7 +203,11 @@ async def capture(args):
                              "hipFree", "hipMalloc", "hipErrorContext", "hipErrorLaunch",
                              "hipErrorOutOfMemory", "priority", "process", "26H2", "26H1", "10.0.",
                              "WHCP", "enforcement", "kernel", "driver", "Flush", "cach", "IRP",
-                             "service", "security", "hydration", "NTFS", "WriteFile")
+                             "service", "security", "hydration", "NTFS", "WriteFile",
+                             "CreationTime", "LastAccessTime", "LastWriteTime", "ChangeTime",
+                             "FileAttributes", "FILE_ATTRIBUTE_NORMAL", "FILE_ATTRIBUTE_READONLY",
+                             "AllocationSize", "EndOfFile", "DeletePending", "SE_SELF_RELATIVE",
+                             "inherit", "DACL", "SACL", "2026", "Last updated", "Content source")
                     excerpts = []
                     for term in terms:
                         positions = [match.start() for match in re.finditer(re.escape(term), markdown, re.I)]
@@ -170,7 +239,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -180,7 +249,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)
