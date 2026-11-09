@@ -73,11 +73,27 @@ class Ram final:public StoreByteIo {
 };
 inline std::shared_ptr<Ram> image(Bytes bytes){auto ram=std::make_shared<Ram>();ram->live=bytes;ram->stable=std::move(bytes);return ram;}
 inline std::vector<NativeFileMutation> baseline() {
-  return {file_create("A",true),file_create("A/file.bin"),file_write("A/file.bin",0,data(17,1)),file_create("target.bin"),file_write("target.bin",0,data(31,2))};
+  return {file_create("A",true),file_create("A/file.bin"),file_write("A/file.bin",0,data(17,1)),
+          file_create("target.bin"),file_write("target.bin",0,data(31,2)),
+          file_create("stable.bin"),file_write("stable.bin",0,data(31,18))};
 }
 inline std::vector<NativeFileMutation> update() {
   return {file_rename("A","B"),file_write("B/file.bin",65532,data(77,3)),file_truncate("B/file.bin",65545),
-          file_rename("B/file.bin","target.bin",true),file_remove("B")};
+          file_rename("B/file.bin","target.bin",true),file_remove("B"),
+          file_write("stable.bin",0,Bytes(31)),file_write("stable.bin",0,data(31,18))};
+}
+// Find this fixture's unique padded payload by verified contents, not a
+// hardcoded object ID or physical offset. Only bounded synthetic objects exist.
+inline StoreObjectInfo stable_record(const ObjectStoreSnapshot& objects) {
+  Bytes expected(kNativeExtentBytes);const auto bytes=data(31,18);
+  std::copy(bytes.begin(),bytes.end(),expected.begin());
+  StoreObjectInfo result;bool found=false;
+  for(const auto& object:objects.list())if(object.id!=1 && object.logical_bytes==kNativeExtentBytes && objects.read(object.id)==expected) {
+    if(found)throw std::runtime_error("ambiguous stable extent fixture");
+    result=object;found=true;
+  }
+  if(!found)throw std::runtime_error("missing stable extent fixture");
+  return result;
 }
 inline Bytes final_bytes() {
   Bytes out(65545);const auto old=data(17,1),addition=data(77,3);
@@ -85,7 +101,7 @@ inline Bytes final_bytes() {
 }
 inline void expected(const NativeFilesystemSnapshot& snapshot,bool updated,bool continued=false) {
   const auto entries=snapshot.list();
-  if(entries.size()!=(updated?1U:2U)+(continued?1U:0U))throw std::runtime_error("partial native namespace");
+  if(entries.size()!=(updated?2U:3U)+(continued?1U:0U))throw std::runtime_error("partial native namespace");
   if(updated) {
     if(snapshot.read("target.bin",0,100000)!=final_bytes())throw std::runtime_error("native replaced content mismatch");
     for(const auto* path:{"A","B"}) {
@@ -94,6 +110,9 @@ inline void expected(const NativeFilesystemSnapshot& snapshot,bool updated,bool 
     }
   } else if(snapshot.read("A/file.bin",0,100000)!=data(17,1) || snapshot.read("target.bin",0,100000)!=data(31,2))
     throw std::runtime_error("native acknowledged bytes changed");
+  if(snapshot.read("stable.bin",0,100)!=data(31,18) || snapshot.stat("stable.bin").logical_bytes!=31 ||
+      snapshot.stat("stable.bin").modified_sequence!=(updated?3U:2U))
+    throw std::runtime_error("native elided extent bytes/metadata changed");
   if(continued && snapshot.read("continued",0,4000)!=data(3073,91))throw std::runtime_error("native continuation bytes");
 }
 }

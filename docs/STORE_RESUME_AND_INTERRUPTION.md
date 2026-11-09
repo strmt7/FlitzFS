@@ -184,3 +184,22 @@ the same complete candidate. Current bounds are 1024 cases, 256 events and
 3 MiB combined images, retaining 256-byte lines/eight queued events,
 15-second-child/180-second-total and existing process caps. Earlier limits and
 executed counts above are historical evidence, not current-count predictions.
+
+## Reverted extent in the process-interruption fixture
+
+The native file phase now includes stable.bin, a separate synthetic file. The
+same atomic update zeroes its contents and restores them, together with the
+existing cross-extent data/truncation/rename/replacement operations. It must
+retain the original immutable payload generation while advancing its modified
+namespace sequence. Fixture identity is found by exact verified padded contents,
+not an assumed object ID, host path or installed tool.
+
+Every existing kill point recovers the complete old or new namespace and checks
+the stable file's exact bytes, size and sequence. Independent recovery and later
+continuation must retain the baseline payload generation. Compacted-copy
+fixtures include this file but correctly create fresh destination records.
+Resource limits remain unchanged: at most 1024 cases, 256 events and 3 MiB
+combined fixture images, with existing per-process/time limits. The controller
+rejects overflow; no cases may be silently omitted or budgets raised to pass.
+Only disposable hosted VMs execute this test; ordinary owner-PC files and mounted
+writes remain outside its authorization and qualification.

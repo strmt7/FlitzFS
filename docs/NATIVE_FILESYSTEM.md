@@ -143,8 +143,12 @@ delete/recreate, sparse zeros, retained snapshots and independent reopen.
 A second-read corruption case must fence before writes. Every observed
 write/flush of an elided rename transaction is faulted under all three RAM
 persistence-failure modes in raw and automatic compression, followed by
-independent recovery and further reuse. These additions do not expand the
-separate hosted process-kill matrix or establish physical power-loss safety.
+independent recovery and further reuse. The hosted native file transaction also zeroes and restores a separate stable
+file while changing other namespace/data. Independent recovery checks that
+file's exact bytes, metadata and original payload generation, then continues
+writing. Compaction includes the stable file too. The existing process-kill
+matrix's 1024-case, 256-event and 3 MiB combined-fixture caps remain enforced;
+this is distinct from physical power-loss qualification.
 The Linux raw CI lane also runs the strengthened test against the exact prior
 implementation and requires its specific identical-write failure before
 accepting the current suite.
