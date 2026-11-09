@@ -127,3 +127,13 @@ combined owned image files stay within 2 MiB. Existing process memory/CPU limits
 remain. These are process-termination and RAM fault experiments, not physical
 power-cut, Windows filename-durability, writable mounted, background-priority or
 AMD hardware qualification. Inspect exact-commit executed results.
+
+## Replicated metadata extension
+
+Positive compacted copies now publish root format field 2 as defined in
+REPLICATED_CHECKPOINTS.md. The two catalogs occupy separate 64 KiB units rather
+than adjacent bytes; a root binds its peer's exact same-state content. The
+original protocol description above explains the earlier adjacent-catalog
+checkpoint. Generation-zero empty copies retain ordinary creation. No source
+write/delete or automatic handoff follows from the extension. All isolated
+metadata units/padding count in destination size and process-fixture bounds.

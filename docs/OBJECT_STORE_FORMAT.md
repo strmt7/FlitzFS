@@ -303,3 +303,14 @@ record/root encoding and explicit 16 MiB decoded limit. Existing images remain
 readable; older bounded readers reject inventories above their own limit.
 The Zstandard reader now rejects noncanonical frame magic before
 library parsing; all current writer-produced modern frames remain readable.
+
+## Replicated current publication extension
+
+REPLICATED_CHECKPOINTS.md defines root format field 2. Data records/manifests and
+legacy root field 1 remain compatible. Generic legacy commit bytes are retained;
+commit_replicated upgrades publication and later commits preserve that mode.
+Native file transactions and positive compacted copies use two current roots,
+two independently sealed manifest units and three barriers. New status fields
+report checkpoint identity/mode/degradation. Verified same-state peer metadata
+may repair a selected catalog loss; no older object set is accepted as repair.
+The legacy single-publication descriptions above remain the legacy protocol.

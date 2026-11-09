@@ -154,3 +154,12 @@ automatic compression/layout/fragmentation improvement, low-priority bounded
 CPU/GPU execution and verified redundant self-repair. Learning state is advisory
 and cannot authorize unsafe publication or replace independent CPU recovery.
 The executor/model/replica-repair mechanisms are not implemented by copying.
+
+## Current acknowledged-metadata replication
+
+The native file layer now uses two current roots and isolated replicated
+manifests, with pre-write health fencing and independent repair. This closes
+the previously identified latest-root-loss metadata gap for upgraded checkpoints;
+REPLICATED_CHECKPOINTS.md specifies the exact fault envelope and costs. It does
+not close file-payload redundancy, physical persistence, automatic handoff/
+reclamation, resource-priority/learning or AMD-runtime/application gates.

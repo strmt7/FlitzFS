@@ -107,3 +107,13 @@ preserves the latest acknowledged transaction. A surviving older root is not
 sufficient evidence of complete recovery. Qualify replicated current-commit/
 acknowledgement metadata for that stronger fault model, alongside data replicas.
 Tests must never bless a lost later acknowledgement as successful self-repair.
+
+## Current metadata-replication step
+
+REPLICATED_CHECKPOINTS.md now addresses the ordinary latest-root-loss gap for
+UPGRADED metadata: two current roots and isolated same-state manifest replicas
+retain latest acknowledged object references after either metadata-unit loss.
+Independent resume restores redundancy; native writable admission promotes
+legacy images. This does not replicate file payloads or cover whole-device/
+common-mode failure. Autonomous verified data repair, failure-domain placement,
+executor priority/load qualification, persistent learning and reclamation remain.

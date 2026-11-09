@@ -404,12 +404,22 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize(ObjectStoreWriter obje
   model.nodes.emplace(1,std::move(root));
   auto p=std::make_unique<Impl>(std::move(objects),model);
   const StoreMutation metadata{kNamespaceObject,false,encode(model)};
-  p->objects.commit({&metadata,1});
+  p->objects.commit_replicated({&metadata,1});
   return NativeFilesystemWriter(std::move(p));
 }
 NativeFilesystemWriter NativeFilesystemWriter::resume(ObjectStoreWriter objects) {
-  auto snapshot=objects.snapshot();auto model=decode(snapshot);
-  return NativeFilesystemWriter(std::make_unique<Impl>(std::move(objects),std::move(model)));
+  if(objects.poisoned())fail(Code::invalid_operation,"native admission requires a healthy recovered writer");
+  try {
+    auto snapshot=objects.snapshot();auto model=decode(snapshot);
+    if(!snapshot.info().replicated_checkpoint) {
+      // Preserve namespace sequence/bytes while promoting legacy publication.
+      const StoreMutation metadata{kNamespaceObject,false,encode(model)};
+      objects.commit_replicated({&metadata,1});
+    }
+    return NativeFilesystemWriter(std::make_unique<Impl>(std::move(objects),std::move(model)));
+  }catch(const std::bad_alloc&){fail(Code::limit,"native admission allocation failure");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"native writable admission failed; recover independently");}
 }
 
 NativeFilesystemWriter NativeFilesystemWriter::compact(const NativeFilesystemSnapshot& source,
@@ -451,7 +461,7 @@ NativeFsCommit NativeFilesystemWriter::apply(std::span<const NativeFileMutation>
     if(!stage.changed){result.storage=snapshot.info();result.sequence=impl_->model.sequence;return result;}
     auto changes=stage.mutations();result.sequence=stage.model.sequence;
     committing=true;
-    try{result.storage=impl_->objects.commit(changes);}
+    try{result.storage=impl_->objects.commit_replicated(changes);}
     catch(const std::exception&){
       if(impl_->objects.poisoned())impl_->poisoned=true;
       fail(Code::storage_failure,"native transaction storage commit failed");

@@ -168,3 +168,19 @@ No partial file is truncated/reused. The case ceiling is now 640; the existing
 process CPU/memory limits remain. The combined image files are capped at 2 MiB.
 Historical 320/256-case limits above describe earlier controllers. None of
 these tests establishes physical power-loss or autonomous maintenance safety.
+
+## Replicated current-checkpoint qualification extension
+
+REPLICATED_CHECKPOINTS.md supersedes single-publication repair for root format 2.
+A degraded current root/catalog is restored by appending two isolated manifests,
+then separately publishing/flushing two roots with the same verified objects.
+Uncertain tails remain reserved. Legacy root-1 resume keeps its old protocol.
+
+The controller additionally force-stops the replicated catalog-repair phase.
+Native file baseline/update publication generations are now 4/6, compaction
+source/destination 6/8, and checkpoint repair 2/4; logical namespace sequences
+remain 2/3 and 3 respectively. Intermediate first-root generations may recover
+the same complete candidate. Current bounds are 1024 cases, 256 events and
+3 MiB combined images, retaining 256-byte lines/eight queued events,
+15-second-child/180-second-total and existing process caps. Earlier limits and
+executed counts above are historical evidence, not current-count predictions.

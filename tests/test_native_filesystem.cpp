@@ -1,4 +1,5 @@
 #include "native_fs_fixture.hpp"
+#include "record_digest.hpp"
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -354,6 +355,51 @@ void native_compacted_copies() {
   }
 }
 
+
+void native_replicated_acknowledgements() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    auto ram=std::make_shared<Ram>();
+    {auto files=fresh(ram,mode);files.apply(baseline());files.apply(update());}
+    const auto acknowledged=ram->stable;
+    const auto original=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(ram));
+    const auto info=original.storage_info();require(info.replicated_checkpoint && !info.degraded_checkpoint,"native writes are not replicated");
+    const auto at=static_cast<std::size_t>((info.generation%2)*kStoreCommitUnit);
+    const std::array<std::uint64_t,4> units{{0,kStoreCommitUnit,get(acknowledged,at+32),get(acknowledged,at+96)}};
+    for(const auto unit:units) {
+      auto disk=image(acknowledged);
+      std::fill_n(disk->live.begin()+static_cast<std::ptrdiff_t>(unit),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+      auto snapshot=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(disk));
+      require(snapshot.sequence()==3 && snapshot.storage_info().degraded_checkpoint,"latest native acknowledgement rolled back");
+      expected(snapshot,true);
+      {
+        auto files=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(disk,identity(),snapshot.storage_info().generation,{mode,6,false}));
+        expected(files.snapshot(),true);require(!files.snapshot().storage_info().degraded_checkpoint,"native replica repair incomplete");
+        const std::array<NativeFileMutation,2> more{{file_create("continued"),file_write("continued",0,data(3073,91))}};
+        files.apply(more);
+      }
+      expected(NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(disk->stable))),true,true);
+    }
+    // A legacy native namespace remains readable. Writable admission upgrades
+    // its publication protocol without changing inode/content/sequence bytes.
+    auto legacy=acknowledged;
+    for(unsigned slot=0;slot<2;++slot) {
+      const auto root=static_cast<std::size_t>(slot*kStoreCommitUnit);
+      set(legacy,root+8,1,4);std::fill_n(legacy.begin()+static_cast<std::ptrdiff_t>(root+96),16,std::byte{0});
+      const auto digest=detail::record_digest(std::span<const std::byte>(legacy).subspan(root,4064));
+      std::copy(digest.begin(),digest.end(),legacy.begin()+static_cast<std::ptrdiff_t>(root+4064));
+    }
+    auto disk=image(legacy);const auto read=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(disk));
+    require(!read.storage_info().replicated_checkpoint,"legacy fixture not legacy");expected(read,true);
+    {
+      auto files=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(disk,identity(),read.storage_info().generation,{mode,6,false}));
+      auto upgraded=files.snapshot();expected(upgraded,true);
+      require(upgraded.sequence()==read.sequence() && upgraded.stat("target.bin").inode==read.stat("target.bin").inode &&
+          upgraded.storage_info().replicated_checkpoint && !upgraded.storage_info().degraded_checkpoint,"legacy native upgrade changed logical state");
+    }
+    expected(NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(disk->stable))),true);
+  }
+}
+
 void independent_model() {
   auto ram=std::make_shared<Ram>();auto fs=fresh(ram);std::map<std::string,Bytes> expected_bytes;
   for(const auto* name:{"a","b","c"}){file_apply(fs,file_create(name));expected_bytes[name]={};}
@@ -378,7 +424,7 @@ void independent_model() {
 }
 }
 int main(){
-  try{normal_operations();sparse_and_admission();capacity_and_rollback();rename_depth_admission();transactional_faults();malicious_metadata();scalable_staging_and_integrity();dirty_budget();native_compacted_copies();independent_model();
+  try{normal_operations();sparse_and_admission();capacity_and_rollback();rename_depth_admission();transactional_faults();malicious_metadata();scalable_staging_and_integrity();dirty_budget();native_compacted_copies();native_replicated_acknowledgements();independent_model();
     std::cout<<"PASS: "<<checks<<" native filesystem assertions; directories, stable IDs, sparse ranges, truncation, atomic rename/data and crash recovery.\n";return 0;
   }catch(const std::exception& e){std::cerr<<"native filesystem failure after "<<checks<<": "<<e.what()<<'\n';return 1;}
 }

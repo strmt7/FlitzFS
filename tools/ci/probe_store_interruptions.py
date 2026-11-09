@@ -12,7 +12,8 @@ import threading
 import time
 
 DEADLINE=time.monotonic()+180
-MAX_CASES=640
+MAX_CASES=1024
+MAX_EVENTS=256
 
 class Child:
     def __init__(self,args):
@@ -103,7 +104,7 @@ def execute(binary,root,token,policy,phase,cut):
     child=Child(args)
     events=[]
     acknowledged=0
-    generations=(3,5) if phase=="compact" else ((2,3) if phase=="files" else (1,2))
+    generations=(6,8) if phase=="compact" else ((4,6) if phase=="files" else ((2,4) if phase=="checkpoint" else (1,2)))
     source_digest=None
     forced=None
     try:
@@ -117,7 +118,7 @@ def execute(binary,root,token,policy,phase,cut):
                     raise RuntimeError("requested fault point not reached")
                 child.finish()
                 break
-            if event.get("event")!=len(events)+1 or len(events)>=128:
+            if event.get("event")!=len(events)+1 or len(events)>=MAX_EVENTS:
                 raise RuntimeError("event order/budget")
             if event.get("op") not in ("ack","write-before","write-after","flush-before","flush-after"):
                 raise RuntimeError("unknown event")
@@ -174,7 +175,7 @@ def case(binary,policy,phase,cut):
         events,result=execute(binary,root,token,policy,phase,cut)
         if sentinel.read_bytes()!=expected or marker.read_bytes()!=token.encode("ascii"):
             raise RuntimeError("unrelated owned fixture changed")
-        if sum(path.stat().st_size for path in images if path.exists())>2*1024*1024:
+        if sum(path.stat().st_size for path in images if path.exists())>3*1024*1024:
             raise RuntimeError("fixture physical budget")
         return events,result
     finally:
@@ -194,7 +195,7 @@ def main():
             ("flitzfs_store_crash_probe.exe" if os.name=="nt" else "flitzfs_store_crash_probe")).resolve()
     rows=[];coverage=[]
     for policy in ("raw","auto"):
-        for phase in ("mutation","repair","files","compact"):
+        for phase in ("mutation","repair","files","compact","checkpoint"):
             events,result=case(binary,policy,phase,None)
             coverage.append(dict(policy=policy,phase=phase,events=events,completed=result))
             for cut in range(1,len(events)+1):
@@ -208,8 +209,8 @@ def main():
     head=subprocess.run(["git","-C",str(root),"rev-parse","HEAD"],check=True,capture_output=True,text=True,timeout=5).stdout.strip()
     report=dict(schema=1,commit=head,platform=os.name,cases=len(rows),coverage=coverage,results=rows,
         scope="Process termination at I/O boundaries, owned ordinary files; not physical power loss or mounted writes",
-        limits=dict(total_seconds=180,process_seconds=15,cases=640,event_bytes=256,
-                    queued_events=8,fixture_bytes=2097152,
+        limits=dict(total_seconds=180,process_seconds=15,cases=1024,events=256,event_bytes=256,
+                    queued_events=8,fixture_bytes=3145728,
                     windows_process_bytes=805306368,windows_cpu_percent=20,
                     posix_address_bytes=536870912,posix_cpu_seconds=15))
     with args.output.open("x",encoding="utf-8") as output:

@@ -88,7 +88,7 @@ class Traced final:public StoreByteIo {
   explicit Traced(std::shared_ptr<StoreByteIo> inner):inner_(std::move(inner)){}
   void event(const char* operation,std::uint64_t at=0,std::size_t bytes=0,std::uint64_t generation=0,
              std::string_view source_digest={}) {
-    require(++sequence_<=128,"event budget");
+    require(++sequence_<=256,"event budget");
     std::cout<<"{\"event\":"<<sequence_<<",\"op\":\""<<operation<<"\",\"offset\":"<<at
              <<",\"bytes\":"<<bytes<<",\"generation\":"<<generation;
     if(!source_digest.empty())std::cout<<",\"source_digest\":\""<<source_digest<<"\"";
@@ -132,15 +132,40 @@ void write_probe(const fs::path& path,bool repair,StoreCompressionOptions option
   }
   std::cout<<"{\"done\":true}\n"<<std::flush;
 }
+
+void replicated_repair_write(const fs::path& path,StoreCompressionOptions options) {
+  auto backing=detail::new_store_file(path,{4096,true});
+  auto trace=std::make_shared<Traced>(backing);
+  {
+    auto writer=ObjectStoreWriter::create(trace,id(),options);
+    require(writer.commit_replicated(first()).generation==2,"replicated baseline generation");
+  }
+  std::array<std::byte,4096> locator{};backing->read_exact(0,locator);
+  std::uint64_t catalog=0;
+  for(unsigned i=0;i<8;++i)catalog|=std::uint64_t(std::to_integer<unsigned char>(locator[32+i]))<<(8*i);
+  require(catalog>=2*kStoreCommitUnit && catalog%kStoreCommitUnit==0,"replica damage fixture bounds");
+  // Lose only the owned image's selected catalog unit, after acknowledgement.
+  // The peer catalog and both root locators remain intact.
+  backing->write_exact(catalog,Bytes(65536));backing->flush();
+  require(ObjectStoreSnapshot::open(trace).info().degraded_checkpoint,"catalog loss not reported");
+  original_bytes(ObjectStoreSnapshot::open(trace),false);
+  trace->event("ack",0,0,2);trace->armed=true;
+  auto writer=ObjectStoreWriter::resume(trace,id(),2,options);
+  trace->armed=false;
+  require(writer.snapshot().info().generation==4 && !writer.snapshot().info().degraded_checkpoint,"replicated repair incomplete");
+  original_bytes(writer.snapshot(),false);trace->event("ack",0,0,4);
+  std::cout<<"{\"done\":true}\n"<<std::flush;
+}
+
 void native_file_write(const fs::path& path,StoreCompressionOptions options) {
   auto backing=detail::new_store_file(path,{4096,true});
   auto trace=std::make_shared<Traced>(backing);
   auto files=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(trace,id(),options));
-  require(files.apply(native_fixture::baseline()).storage.generation==2,"native file baseline generation");
-  native_fixture::expected(files.snapshot(),false);trace->event("ack",0,0,2);
+  require(files.apply(native_fixture::baseline()).storage.generation==4,"native file baseline generation");
+  native_fixture::expected(files.snapshot(),false);trace->event("ack",0,0,4);
   trace->armed=true;
-  require(files.apply(native_fixture::update()).storage.generation==3,"native file update generation");
-  trace->armed=false;native_fixture::expected(files.snapshot(),true);trace->event("ack",0,0,3);
+  require(files.apply(native_fixture::update()).storage.generation==6,"native file update generation");
+  trace->armed=false;native_fixture::expected(files.snapshot(),true);trace->event("ack",0,0,6);
   std::cout<<"{\"done\":true}\n"<<std::flush;
 }
 void native_file_recover(const fs::path& path,std::uint64_t floor,StoreCompressionOptions options) {
@@ -148,7 +173,7 @@ void native_file_recover(const fs::path& path,std::uint64_t floor,StoreCompressi
   {
     auto snapshot=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
     generation=snapshot.storage_info().generation;
-    require(generation>=floor && generation<=3 && snapshot.sequence()==generation,"native file acknowledgement sequence");
+    require(generation>=floor && generation<=6 && snapshot.sequence()==(generation>4?3U:2U),"native file acknowledgement sequence");
     changed=snapshot.sequence()==3;native_fixture::expected(snapshot,changed);
   }
   {
@@ -195,13 +220,13 @@ void native_compact_write(const fs::path& root,StoreCompressionOptions options) 
   auto source=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
   const auto digest=file_digest(path);
   auto trace=std::make_shared<Traced>(detail::new_store_file(root/"copy.fltx",{4096,true}));
-  trace->event("ack",0,0,3,digest);trace->armed=true;
+  trace->event("ack",0,0,6,digest);trace->armed=true;
   auto copy=NativeFilesystemWriter::compact(source,trace,copy_identity(),options);
   trace->armed=false;
-  require(copy.snapshot().storage_info().generation==5 && copy.snapshot().sequence()==3,"compacted publication generation");
+  require(copy.snapshot().storage_info().generation==8 && copy.snapshot().sequence()==3,"compacted publication generation");
   native_fixture::expected(copy.snapshot(),true);
   require(file_digest(path)==digest,"compaction changed source bytes");
-  trace->event("ack",0,0,5,digest);
+  trace->event("ack",0,0,8,digest);
   std::cout<<"{\"done\":true}\n"<<std::flush;
 }
 void native_compact_recover(const fs::path& root,std::uint64_t floor,
@@ -209,18 +234,18 @@ void native_compact_recover(const fs::path& root,std::uint64_t floor,
   const auto path=root/"image.fltx",copied=root/"copy.fltx",retry=root/"retry.fltx";
   require(file_digest(path)==expected_digest,"acknowledged source bytes changed during compaction");
   auto source=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
-  require(source.identity()==id() && source.storage_info().generation==3 && source.sequence()==3,"compaction source baseline");
+  require(source.identity()==id() && source.storage_info().generation==6 && source.sequence()==3,"compaction source baseline");
   native_fixture::expected(source,true);
   const bool published=has_root(copied);
-  require(published || floor==3,"acknowledged compacted destination lost");
-  std::uint64_t recovered=3,continued=0;StoreIdentity target_id=copy_identity(!published);
+  require(published || floor==6,"acknowledged compacted destination lost");
+  std::uint64_t recovered=6,continued=0;StoreIdentity target_id=copy_identity(!published);
   const auto target=published?copied:retry;
   const std::array<NativeFileMutation,2> more{{native_fixture::file_create("continued"),native_fixture::file_write("continued",0,native_fixture::data(3073,91))}};
   if(published) {
     {
       auto snapshot=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(copied));
       recovered=snapshot.storage_info().generation;
-      require(snapshot.identity()==target_id && snapshot.sequence()==3 && recovered>=4 && recovered<=5 && recovered>=floor,
+      require(snapshot.identity()==target_id && snapshot.sequence()==3 && recovered>=7 && recovered<=8 && recovered>=floor,
               "partial compacted destination");
       native_fixture::expected(snapshot,true);
     }
@@ -241,11 +266,11 @@ void native_compact_recover(const fs::path& root,std::uint64_t floor,
   std::cout<<"{\"recovered\":"<<recovered<<",\"continued\":"<<continued<<"}\n"<<std::flush;
 }
 
-void recover_probe(const fs::path& path,bool repair,std::uint64_t floor,StoreCompressionOptions options) {
+void recover_probe(const fs::path& path,bool repair,std::uint64_t floor,StoreCompressionOptions options,bool replicated=false) {
   std::uint64_t generation=0,continued=0;bool changed=false;
   {
     auto snapshot=ObjectStoreSnapshot::open_file(path);generation=snapshot.info().generation;
-    require(generation>=floor && generation<=2,"acknowledged generation lost or future generation fabricated");
+    require(generation>=floor && generation<=(replicated?4U:2U),"acknowledged generation lost or future generation fabricated");
     changed=!repair && generation==2;original_bytes(snapshot,changed);
   }
   {
@@ -268,20 +293,23 @@ int main(int argc,char** argv) {
     require(argc==7 || argc==8,"probe role, parent, token, policy, phase, floor and optional source digest required");
     const std::string role(argv[1]),token(argv[3]),policy(argv[4]),phase(argv[5]),floor_text(argv[6]);
     require((role=="write"||role=="recover") && (policy=="raw"||policy=="auto") &&
-            (phase=="mutation"||phase=="repair"||phase=="files"||phase=="compact"),"invalid probe scope");
+            (phase=="mutation"||phase=="repair"||phase=="files"||phase=="compact"||phase=="checkpoint"),"invalid probe scope");
     require(argc==((phase=="compact" && role=="recover")?8:7),"invalid source digest argument scope");
     const std::string digest=argc==8?argv[7]:"";
     if(argc==8)require(digest.size()==64 && std::all_of(digest.begin(),digest.end(),
         [](char c){return (c>='0'&&c<='9')||(c>='a'&&c<='f');}),"invalid source digest");
     std::uint64_t floor=0;const auto parsed=std::from_chars(floor_text.data(),floor_text.data()+floor_text.size(),floor);
     require(parsed.ec==std::errc{} && parsed.ptr==floor_text.data()+floor_text.size() &&
-            (role=="write"?floor==0:(phase=="compact"?(floor==3||floor==5):(floor>=1&&floor<=(phase=="files"?3U:2U)))),"invalid acknowledgement floor");
+            (role=="write"?floor==0:(phase=="compact"?(floor==6||floor==8):(phase=="files"?(floor==4||floor==6):(phase=="checkpoint"?(floor==2||floor==4):(floor>=1&&floor<=2))))),"invalid acknowledgement floor");
     // Controller sees resource admission before allowing filesystem/corpus work.
     std::cout<<"{\"ready\":true}\n"<<std::flush;advance();
     const fs::path root(argv[2]);owned_parent(root,token);
     StoreCompressionOptions options;options.mode=policy=="raw"?StoreCompressionMode::raw:StoreCompressionMode::automatic;
     options.require_zstd=policy=="auto";
-    if(phase=="compact") {
+    if(phase=="checkpoint") {
+      if(role=="write")replicated_repair_write(root/"image.fltx",options);
+      else recover_probe(root/"image.fltx",true,floor,options,true);
+    } else if(phase=="compact") {
       if(role=="write")native_compact_write(root,options);
       else native_compact_recover(root,floor,digest,options);
     } else if(phase=="files") {
