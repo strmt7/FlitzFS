@@ -31,6 +31,12 @@ PROCESS_SOURCES = (
     ("windows-thread-priority", "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority", "THREAD_PRIORITY_LOWEST", "THREAD_PRIORITY_LOWEST"),
     ("windows-handle-close", "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle", "CloseHandle", "thread"),
 )
+AMD_SOURCES = (
+    ("amd-windows-deployment", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/deployment-guidelines.html", "deployment", "Applications do not"),
+    ("amd-windows-install", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/install/install.html", "HIP SDK", "CLI"),
+    ("amd-windows-requirements", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/reference/system-requirements.html", "System requirements", "gfx1201"),
+    ("amd-windows-components", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/component-support.html", "ROCm", "Runtime"),
+)
 
 
 def guard():
@@ -62,7 +68,7 @@ async def capture(args):
     args.output.mkdir(parents=False, exist_ok=False)
     rows = []
     async with AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False, use_persistent_context=False)) as owner:
-        selected = PROCESS_SOURCES if args.source_group == "process" else SOURCES
+        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -92,8 +98,8 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group == "process" and not all(r["success"] for r in rows):
-        raise RuntimeError("Process-lifetime source group requires every native capture")
+    if args.source_group in ("process", "amd") and not all(r["success"] for r in rows):
+        raise RuntimeError("Requested source group requires every native capture")
 
 
 def main():
@@ -102,7 +108,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process"), default="durability")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd"), default="durability")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)
