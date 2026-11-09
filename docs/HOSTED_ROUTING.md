@@ -72,3 +72,15 @@ no-host-execution boundary remain controlling.
 Exact-commit execution and actual-search receipts are required before declaring
 the routing restoration complete. Compiler/codec qualification and filesystem
 feature completeness are separate.
+
+The first isolated resolver attempt found a current Python 3.15 CPU Torch wheel
+but could not resolve general dependencies using the CPU-only vendor index.
+Candidate discovery therefore uses --no-deps; the separate complete resolution
+uses the approved PyPI/CPU indexes and still verifies every selected wheel before
+installation. No package was installed by that failed attempt.
+
+The first AMD deployment URL under latest redirected into a 429 Cloudflare
+challenge. Its failure capture is retained and is not evidence of deployment
+permission. The published docs-7.2.0 URL is a separate normal public-source
+attempt with the same robots/timeout/no-bypass controls; inspect the resulting
+native capture before using its contents or claiming current-policy agreement.

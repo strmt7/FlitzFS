@@ -169,7 +169,7 @@ class Provider:
         coco=self.root/"packages/cocoindex_code-0.2.43-py3-none-any.whl"
         self.download(WHEEL_URL,coco,MIB,WHEEL_SHA,96682)
         cpu_report=self.root/"cpu-resolver.json"
-        self.pip(["install","--dry-run","--only-binary=:all:","--report",cpu_report,
+        self.pip(["install","--dry-run","--no-deps","--only-binary=:all:","--report",cpu_report,
             "--index-url","https://download.pytorch.org/whl/cpu","torch"])
         items=read_json(cpu_report)["install"]
         torch=next(x["metadata"]["version"] for x in items if x["metadata"]["name"].lower()=="torch")
