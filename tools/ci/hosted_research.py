@@ -33,7 +33,7 @@ PROCESS_SOURCES = (
     ("windows-handle-close", "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle", "CloseHandle", "thread"),
 )
 AMD_SOURCES = (
-    ("amd-windows-deployment", "https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2.0/conceptual/deployment-guidelines.html", "deployment", "Applications do not"),
+    ("amd-windows-deployment", "https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2/conceptual/deployment-guidelines.html", "deployment", "Applications do not"),
     ("amd-windows-install", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/install/install.html", "HIP SDK", "CLI"),
     ("amd-windows-requirements", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/reference/system-requirements.html", "System requirements", "gfx1201"),
     ("amd-windows-components", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/component-support.html", "ROCm", "Runtime"),

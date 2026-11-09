@@ -84,3 +84,15 @@ challenge. Its failure capture is retained and is not evidence of deployment
 permission. The published docs-7.2.0 URL is a separate normal public-source
 attempt with the same robots/timeout/no-bypass controls; inspect the resulting
 native capture before using its contents or claiming current-policy agreement.
+
+The complete binary resolver then found no qualifying PyYAML wheel for Python
+3.15. This is a binary-distribution limitation of this reviewed provider policy,
+not proof that PyYAML source cannot run there. The semantic provider therefore
+qualifies Python 3.14 separately; normal filesystem build tooling remains on
+3.15. No source-build bypass, downgraded package pin or global installation is
+used to conceal the failed compatibility attempt.
+
+The docs-7.2.0 deployment URL returned HTTP 404 and was rejected despite matching
+navigation text. Native AMD repository branch metadata identifies docs/7.2;
+the corresponding public docs-7.2 route is the next source candidate. Earlier
+challenge/404 captures remain evidence of those failures, never policy evidence.
