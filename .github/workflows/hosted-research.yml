@@ -32,6 +32,7 @@ jobs:
       - name: Install browser OS prerequisites on this disposable VM only
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libnspr4 libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64
       - name: Provision hash-locked provider with hard process-tree budgets
+        id: provider
         shell: bash
         run: |
           set -euo pipefail
@@ -84,6 +85,20 @@ jobs:
             "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_research.py" \
             --provider "$GITHUB_WORKSPACE/.ci-provider" --home "$RUNNER_TEMP/flitzfs-admitted-crawler" \
             --output "$RUNNER_TEMP/flitzfs-amd-sources" --source-group amd
+      - name: Read official HIP worker loading, trust, module and stream contracts
+        if: ${{ !cancelled() && steps.provider.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python_path="$(command -v python)"
+          sudo systemd-run --wait --collect --pipe --service-type=exec \
+            --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
+            --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=360 \
+            --setenv=GITHUB_ACTIONS=true --setenv=RUNNER_ENVIRONMENT=github-hosted \
+            --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
+            "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_research.py" \
+            --provider "$GITHUB_WORKSPACE/.ci-provider" --home "$RUNNER_TEMP/flitzfs-admitted-crawler" \
+            --output "$RUNNER_TEMP/flitzfs-hip-runtime-sources" --source-group hip-runtime
       - name: Retain native captures and failures
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -93,5 +108,6 @@ jobs:
             ${{ runner.temp }}/flitzfs-durability-sources
             ${{ runner.temp }}/flitzfs-worker-sources
             ${{ runner.temp }}/flitzfs-amd-sources
+            ${{ runner.temp }}/flitzfs-hip-runtime-sources
           if-no-files-found: warn
           retention-days: 30
