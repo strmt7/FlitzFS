@@ -79,20 +79,31 @@ deadlines, robots checks, no external LLM/persistent profile and explicit
 3-GiB/two-CPU/256-task cgroup limits. Native captures/failures are retained for
 30 days. This restores actual provider use off-host; no owner-PC process ran.
 
-Five native source captures passed scope checks. Relevant Windows/OpenSSL API
-bodies still need deeper review: their initial automatic excerpts were
-navigation/copyright material and are NOT used to select crypto or assert
-Windows namespace durability. Compact receipts are retained in
-evidence/hosted-durability-research-740a12d.json.
+Five native captures passed scope checks. Initial Windows/OpenSSL automatic
+excerpts were navigation/copyright material and were not relied on. The
+[body-review job](https://github.com/strmt7/FlitzFS/actions/runs/42601755090)
+subsequently verified native capture/markdown digests and extracted actual API
+sections: SQLite simulates power loss with reordered/corrupt unsynchronized
+writes; Windows distinguishes unbuffered I/O from metadata flushing; OpenSSL
+documents digest return/status semantics. This does not qualify Windows
+namespace durability or select a cryptographic implementation. Compact receipts
+remain in evidence/hosted-durability-research-740a12d.json; full native captures
+have the hosted artifact's 30-day retention.
 
-Next: select a concrete journal/object format and integrity scheme, implement
-an independent parser and bounded storage interfaces, then acknowledged-history
-fault tests before attaching ordinary-file I/O. File/name durability, full disk,
+The separate OBJECT_STORE_FORMAT.md now specifies a bounded raw-object engine,
+BLAKE3 integrity, CPU parser, storage interfaces and hosted-only file adapter.
+Its tests exercise concrete encoded records; this abstract model retains a
+separate input/acknowledgement oracle. File/name durability, full disk,
 process/power-loss tests and mounted writes remain separate gates. No sole-copy
 storage or writable mount is enabled by this experiment.
 
 ## Validation state
 
-Hosted Windows/Linux/raw/codec/sanitizer results are pending at initial
-publication. Passing this model will not establish actual filesystem durability
-or physical power-loss survival.
+At 99fc65526af0eefb8ba0da7f810f6034b97c86ec, all five hosted workflows passed,
+including the [six-job CPU/native/mount pipeline](https://github.com/strmt7/FlitzFS/actions/runs/42601755332)
+and [model/native-body evidence](https://github.com/strmt7/FlitzFS/actions/runs/42601755090).
+The model executed 42,183 positive fault cases and 7,281 negative-control cases.
+These are execution counts, not unique states. Linux codec/raw/sanitizer lanes
+passed 19 tests each; Windows minimal passed 22 and native passed 24. Those
+counts precede the concrete object engine. Passing this model does not establish
+actual filesystem durability or physical power-loss survival.

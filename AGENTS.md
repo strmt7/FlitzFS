@@ -23,7 +23,7 @@ checks. Preserve existing wire compatibility and historical evidence.
 ## Development workflow
 
 1. Inspect current git history and user changes before editing; preserve existing repo content and licensing. Develop and commit directly to `main` only; do not create development branches or PRs. Never force-push.
-2. Work in small, validated commits on `main`; mark all generated artifacts **experimental**. Use official documentation for WinFsp, Microsoft Windows I/O, AMD HIP/ROCm, Zstd and cryptographic dependencies.
+2. Batch coherent implementation, regression tests and documentation into larger validated checkpoints on `main`; follow the owner's request to push less often and prioritize substantive development/token efficiency; mark all generated artifacts **experimental**. Use official documentation for WinFsp, Microsoft Windows I/O, AMD HIP/ROCm, Zstd and cryptographic dependencies.
 3. Extend deterministic byte-for-byte tests and malicious-input rejection before adding new storage features.
 4. Run CPU-only unit tests, raw-only build, ASan/UBSan where supported, and CI on both Windows and Linux. Do not substitute Linux success for Windows qualification.
 5. Design filesystem changes with explicit rollback/recovery, correct flush durability, no data loss under kill/power failure, and an independent CPU reader.
@@ -113,12 +113,14 @@ A per-request poisoned gate remains terminal; any later candidate uses a new
 gate and qualified evidence with supervisor-confirmed worker quiescence.
 Read docs/RESILIENT_STORE_DESIGN.md before adding writable storage. GPU faults
 must not affect the durable CPU recovery path or acknowledged committed bytes.
-The live runtime/coordinator and transactional writable store remain absent.
+The live GPU runtime/coordinator and writable mounted store remain absent. The bounded raw-object transaction core is described in docs/OBJECT_STORE_FORMAT.md; it is not routed into CLI/mount paths. Preserve its no-reopen-existing-write rule, sealed segments, terminal I/O poisoning, explicit backend assumptions and hosted-only file tests.
 
 The existing shared CocoIndex MCP registration belongs to another repository.
 Do not use it as a FlitzFS receipt or change its registration. Prior searches
 bound FlitzFS through the reviewed adapter and verified source receipts. Restore
 an off-host reviewed provider before NEW broad searches; exact known scopes
 remain appropriate for direct source/API reads. The prior Crawl4AI captures
-remain evidence; new page research needs an admitted off-host provider rather
-than running the host crawler or substituting search snippets.
+remain evidence. The reviewed provider is now admitted in hosted-research.yml
+with native capture/digest review in durability-evidence.yml. Keep new page
+research off-host with the same isolation/robots/timeout/receipt requirements;
+never run the host crawler or substitute search snippets.

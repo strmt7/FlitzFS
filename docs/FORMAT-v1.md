@@ -94,3 +94,9 @@ The RAM protocol model in PERSISTENCE_MODEL.md uses distinct test magic and
 fixed envelopes to investigate publication ordering. It changes no v1 fields,
 codec identifiers or migration rules and is not an accepted writable format.
 Never interpret those model envelopes as .flfs containers.
+
+## Separate transactional object experiment
+
+OBJECT_STORE_FORMAT.md defines distinct FLTXR001/FLTXIDX1/FLTXDAT1 records for
+an experimental raw-object transaction library. It does not modify .flfs v1,
+its codecs, CRCs, CLI or callback route. No automatic format migration exists.

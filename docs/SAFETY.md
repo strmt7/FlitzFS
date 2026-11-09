@@ -165,3 +165,16 @@ It enforces 60,000 fault executions and a checked 20-second time budget; CTest
 caps it at 30 seconds. These are model bounds, not whole-process RAM guarantees.
 Builds/logs/tests run only on disposable hosted VMs. Test-only CRC envelopes
 are not authentication, a product format or physical power-loss qualification.
+
+## Raw-object transaction boundary
+
+See OBJECT_STORE_FORMAT.md for the separate experimental transaction core. Its
+new-file adapter never overwrites existing outputs; a failed creation may leave
+a partial new file. Writes require explicit backend persistence assumptions,
+new resource admission and a bounded private transaction. I/O failure makes the
+writer terminal; outcome may already have committed, so retry is forbidden.
+One surviving root is explicitly degraded. Corrupt latest dependencies fail
+rather than silently selecting older contents. BLAKE3 is unkeyed integrity,
+not authentication or malicious-tamper protection. There is no writable mount,
+existing-store writable reopen or sole-copy safety qualification. File tests
+must run on disposable hosted VMs; owner-PC storage remains untouched.

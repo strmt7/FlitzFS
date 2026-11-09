@@ -22,6 +22,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+      - name: Verify pinned digest source bytes before building
+        run: python tools/ci/verify_blake3_sources.py
       - name: Install CPU Zstandard headers
         if: runner.os == 'Linux' && matrix.zstd == 'ON'
         run: sudo apt-get update && sudo apt-get install -y libzstd-dev zlib1g-dev liblz4-dev
@@ -57,6 +59,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+      - name: Verify pinned digest source bytes before building
+        run: python tools/ci/verify_blake3_sources.py
       - name: Install CPU dependencies
         run: sudo apt-get update && sudo apt-get install -y libzstd-dev zlib1g-dev liblz4-dev clang
       - name: Check out pinned zlib instead of an older distribution version
@@ -70,11 +74,12 @@ jobs:
         run: bash tools/ci/build_pinned_zlib.sh
       - name: Configure ASan/UBSan
         run: >-
-          cmake -S . -B build-asan -DCMAKE_CXX_COMPILER=clang++
+          cmake -S . -B build-asan -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_BUILD_TYPE=Debug -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_ZLIB=ON -DFLITZFS_REQUIRE_LZ4=ON
           -DZLIB_INCLUDE_DIR=${{ github.workspace }}/.ci-deps/zlib-build/flitzfs-headers
           -DZLIB_LIBRARY_RELEASE=${{ github.workspace }}/.ci-deps/zlib-build/libz.a
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -O1 -g"
+          -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -O1 -g"
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
       - name: Build
         run: cmake --build build-asan --parallel 2
@@ -90,6 +95,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+      - name: Verify pinned digest source bytes before building
+        run: python tools/ci/verify_blake3_sources.py
       - name: Stage checksum-pinned SDK without installation
         shell: pwsh
         run: ./tools/ci/prepare_winfsp_sdk.ps1
@@ -130,6 +137,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+      - name: Verify pinned digest source bytes before building
+        run: python tools/ci/verify_blake3_sources.py
       - name: Stage checksum-pinned SDK without installation
         shell: pwsh
         run: ./tools/ci/prepare_winfsp_sdk.ps1

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(FlitzFS LANGUAGES CXX)
+project(FlitzFS LANGUAGES C CXX)
 
 option(FLITZFS_WITH_LZ4 "Enable optional FLZIP native dictionary decoding" ON)
 option(FLITZFS_REQUIRE_LZ4 "Fail if native dictionary dependency is unavailable" OFF)
@@ -16,9 +16,22 @@ if(FLITZFS_REQUIRE_ZSTD AND NOT FLITZFS_WITH_ZSTD)
   message(FATAL_ERROR "REQUIRE_ZSTD conflicts with WITH_ZSTD=OFF")
 endif()
 
-add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp src/mount_plan.cpp src/process_budget.cpp src/catalog_manifest.cpp src/flzip_reader.cpp src/flzip_native.cpp src/gpu_batch.cpp src/gpu_recovery.cpp src/worker_wire.cpp)
+# Unmodified portable C digest. SIMD/NEON/TBB disabled; no GPU/runtime dependency.
+add_library(flitzfs_blake3 STATIC
+  third_party/blake3/c/blake3.c
+  third_party/blake3/c/blake3_dispatch.c
+  third_party/blake3/c/blake3_portable.c)
+target_include_directories(flitzfs_blake3 PRIVATE third_party/blake3/c)
+target_compile_features(flitzfs_blake3 PRIVATE c_std_11)
+set_target_properties(flitzfs_blake3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(flitzfs_blake3 PRIVATE
+  BLAKE3_NO_SSE2=1 BLAKE3_NO_SSE41=1 BLAKE3_NO_AVX2=1 BLAKE3_NO_AVX512=1 BLAKE3_USE_NEON=0)
+
+add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp src/mount_plan.cpp src/process_budget.cpp src/catalog_manifest.cpp src/flzip_reader.cpp src/flzip_native.cpp src/gpu_batch.cpp src/gpu_recovery.cpp src/worker_wire.cpp src/record_digest.cpp src/object_store.cpp src/store_file.cpp)
 target_include_directories(flitzfs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(flitzfs_core PUBLIC cxx_std_20)
+target_include_directories(flitzfs_core PRIVATE third_party/blake3/c)
+target_link_libraries(flitzfs_core PRIVATE flitzfs_blake3)
 
 if(MSVC)
   target_compile_options(flitzfs_core PRIVATE /W4 /permissive-)
@@ -104,6 +117,19 @@ if(FLITZFS_BUILD_TESTS)
   endif()
   add_test(NAME bounded_commit_persistence_model COMMAND flitzfs_durability_model_tests)
   set_tests_properties(bounded_commit_persistence_model PROPERTIES TIMEOUT 30)
+  add_executable(flitzfs_object_store_tests tests/test_object_store.cpp)
+  target_include_directories(flitzfs_object_store_tests PRIVATE src)
+  target_link_libraries(flitzfs_object_store_tests PRIVATE flitzfs_core)
+  add_test(NAME bounded_transactional_object_store COMMAND flitzfs_object_store_tests)
+  set_tests_properties(bounded_transactional_object_store PROPERTIES TIMEOUT 45)
+  add_executable(flitzfs_object_store_file_tests tests/test_object_store_file.cpp)
+  target_link_libraries(flitzfs_object_store_file_tests PRIVATE flitzfs_core)
+  if("$ENV{GITHUB_ACTIONS}" STREQUAL "true" AND "$ENV{RUNNER_ENVIRONMENT}" STREQUAL "github-hosted")
+    add_test(NAME hosted_new_file_object_store COMMAND flitzfs_object_store_file_tests)
+    set_tests_properties(hosted_new_file_object_store PROPERTIES TIMEOUT 30)
+  else()
+    message(STATUS "New-store disk tests require a disposable GitHub-hosted VM; not registered")
+  endif()
   add_executable(flitzfs_gpu_recovery_tests tests/test_gpu_recovery.cpp)
   target_link_libraries(flitzfs_gpu_recovery_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_gpu_recovery_policy COMMAND flitzfs_gpu_recovery_tests)
