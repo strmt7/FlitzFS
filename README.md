@@ -155,3 +155,10 @@ serialized verified reads and bounded sparse files. The hosted mount/recovery
 probe uses that native image; results require the matching commit's checks.
 See [native Windows integration](docs/NATIVE_WINDOWS_PROJECTION.md).
 Writable mounted volumes, the helper app and live GPU execution remain unfinished.
+
+
+The native engine also has stable-inode reads/mutations and atomic append/
+constrained-write entry points; see [NATIVE_INODE_IO.md](docs/NATIVE_INODE_IO.md).
+They prevent old-path reuse from redirecting an inode write and retain the same
+replicated durability path. Full Windows handle/delete lifetime and writable
+mounting remain unfinished; qualification applies only to inspected commits.

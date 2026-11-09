@@ -292,3 +292,14 @@ health/space metadata and driver-backed read/recovery tests. It replaces the
 legacy catalog as the live probe's storage source while retaining legacy callback
 tests. Mounted mutation and persistent Windows ACL/time/handle semantics remain
 separate unfinished work.
+
+
+## Stable live-inode I/O
+
+NATIVE_INODE_IO.md specifies stat/list/read by snapshot inode and writer
+write_inode/truncate_inode entry points. They keep live identity through rename,
+reject removed/replaced IDs without pathname redirection, and supply atomic
+append and constrained accepted-byte semantics through the existing transaction
+engine. Encodings, historical mutation/commit layouts, limits and replicated
+barriers are unchanged. Windows unlinked-inode lifetime, persistent delete
+intent and writable callbacks remain unfinished.

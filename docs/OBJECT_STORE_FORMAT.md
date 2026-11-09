@@ -330,3 +330,10 @@ checks the selected end and physical envelope without mutating or scanning
 those tails. This is not allocated-cluster accounting. The explicit Windows
 read-only native projection consumes this metadata; no codec, record, root or
 publication bytes change.
+
+
+Native inode I/O entry points (NATIVE_INODE_IO.md) reuse the existing object
+transaction/publication path without record, root, manifest, namespace or codec
+changes. The historical NativeFileMutation and NativeFsCommit layouts remain
+unchanged; append/constrained selection and accepted-count results are separate
+in-memory APIs. No new stored format or product version is introduced.

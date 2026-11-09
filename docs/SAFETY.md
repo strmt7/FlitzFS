@@ -291,3 +291,10 @@ until late-result classification, independently of any newer CPU request.
 Outcome reporting happens once after evidence is available; CPU bytes remain
 terminal throughout. The proportional gate/current-batch/late-candidate subtotal
 is statically bounded below 2 MiB; transport and allocator overhead are separate.
+
+
+Native inode I/O delegates to the existing CPU transactional writer and does not
+enable a mount, GPU, service or existing-file write factory. A removed inode
+fails; it never redirects to a reused path. The accepted count is returned only
+after successful publication. The same poison/recovery and hosted-only testing
+rules apply. See NATIVE_INODE_IO.md.
