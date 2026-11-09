@@ -198,3 +198,14 @@ have 16 MiB encoder / 2 MiB decoder ceilings; transaction/output bounds and file
 headroom checks remain mandatory. These limits do not prove total process safety
 or hardware power-loss durability. No GPU, owner-PC process or writable mount
 is enabled by this compression integration.
+
+## Backend resume and ordinary-file test exception
+
+Custom-backend resume now requires exclusive writer ownership, exact recovery
+identity/generation, complete CPU verification and a durable baseline fence.
+It preserves uncertain append tails and repairs the missing root before returning
+a writer. Failure retains indeterminate-outcome semantics. Read
+STORE_RESUME_AND_INTERRUPTION.md. Existing ordinary-file reopening is an internal
+hosted-test fixture exception only; public create_file still cannot overwrite or
+adopt a path. Process-kill tests do not establish physical power-loss survival.
+No owner-PC process, general user-file mutation or mounted write is enabled.

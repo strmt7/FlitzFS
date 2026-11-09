@@ -1,4 +1,5 @@
 #include "flitzfs/object_store.hpp"
+#include "store_file.hpp"
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -33,6 +34,12 @@ struct Fixture {
   }
 };
 Bytes content(std::size_t n) {Bytes b(n);for(std::size_t i=0;i<n;++i)b[i]=static_cast<std::byte>(i%251);return b;}
+Bytes file_bytes(const fs::path& path) {
+  const auto n=fs::file_size(path);require(n<=2*1024*1024,"fixture read budget");
+  Bytes bytes(static_cast<std::size_t>(n));std::ifstream in(path,std::ios::binary);
+  if(!bytes.empty())in.read(reinterpret_cast<char*>(bytes.data()),static_cast<std::streamsize>(bytes.size()));
+  require(bool(in),"fixture read failure");return bytes;
+}
 StoreIdentity id() {StoreIdentity value{};value[0]=std::byte{43};return value;}
 }
 int main() {
@@ -62,9 +69,42 @@ int main() {
     rejects([&]{(void)ObjectStoreWriter::create_file(backing,id(),{4096,true});},"existing backing overwritten");
     require(fs::file_size(backing)==physical,"existing backing extent changed");
     require(ObjectStoreSnapshot::open_file(backing).read(1)==replacement,"existing backing bytes changed");
+    const auto file_bytes_before=file_bytes(backing);
+    {
+      auto backend=detail::reopen_store_file_for_hosted_test(backing,{4096,true});
+      auto wrong=id();wrong[1]=std::byte{1};
+      rejects([&]{(void)ObjectStoreWriter::resume(backend,wrong,2);},"wrong image identity resumed");
+      rejects([&]{(void)ObjectStoreWriter::resume(backend,id(),1);},"stale image generation resumed");
+      Bytes leased_bytes(static_cast<std::size_t>(backend->extent()));backend->read_exact(0,leased_bytes);
+      require(leased_bytes==file_bytes_before,"rejected identity/generation changed bytes");
+      auto writer=ObjectStoreWriter::resume(backend,id(),2);
+      rejects([&]{(void)detail::reopen_store_file_for_hosted_test(backing,{4096,true});},"second OS writer acquired backing");
+      auto retained=writer.snapshot();
+      const StoreMutation added{3,false,Bytes(65537)};
+      require(writer.commit({&added,1}).generation==3,"resumed file commit failed");
+      rejects([&]{(void)retained.read(3);},"old file snapshot acquired new object");
+      require(retained.read(1)==replacement,"old file snapshot bytes changed");
+    }
+    {
+      auto recovered=ObjectStoreSnapshot::open_file(backing);
+      require(recovered.info().generation==3 && recovered.read(1)==replacement &&
+              recovered.read(2).empty() && recovered.read(3)==Bytes(65537),"resumed file independently reopened incorrectly");
+    }
+    const auto alias=fixture.file("alias.fltx");fs::create_hard_link(backing,alias);
+    const auto linked_before=file_bytes(backing);
+    rejects([&]{(void)detail::reopen_store_file_for_hosted_test(alias,{4096,true});},"hard-linked writable image admitted");
+    require(file_bytes(backing)==linked_before,"hard-link rejection changed image");
+    require(fs::remove(alias),"cannot remove owned hard-link fixture");
+    const auto missing=fixture.file("missing.fltx");
+    rejects([&]{(void)detail::reopen_store_file_for_hosted_test(missing,{4096,true});},"reopen created a missing image");
+    require(!fs::exists(missing),"failed reopen created a path");
     const auto sentinel=fixture.file("sentinel");
     {std::ofstream out(sentinel,std::ios::binary);out<<"do not replace";require(bool(out),"sentinel creation");}
     rejects([&]{(void)ObjectStoreWriter::create_file(sentinel,id(),{4096,true});},"sentinel overwritten");
+    {
+      auto unknown=detail::reopen_store_file_for_hosted_test(sentinel,{4096,true});
+      rejects([&]{(void)ObjectStoreWriter::resume(unknown,id(),0);},"non-store file accepted for resume");
+    }
     {std::ifstream in(sentinel,std::ios::binary);std::string text;std::getline(in,text);require(text=="do not replace","sentinel contents changed");}
     const auto invalid=fixture.file("invalid-id.fltx");
     rejects([&]{(void)ObjectStoreWriter::create_file(invalid,{}, {4096,true});},"zero identity accepted");
@@ -79,9 +119,10 @@ int main() {
 #ifndef _WIN32
     const auto link=fixture.file("existing-link.fltx");fs::create_symlink(sentinel,link);
     rejects([&]{(void)ObjectStoreWriter::create_file(link,id(),{4096,true});},"final link followed");
+    rejects([&]{(void)detail::reopen_store_file_for_hosted_test(link,{4096,true});},"reopen followed a final symlink");
     {std::ifstream in(sentinel);std::string text;std::getline(in,text);require(text=="do not replace","link target modified");}
 #endif
-    std::cout<<"PASS: hosted-only new-file object store, independent CPU reopen, snapshots and no-clobber checks; no mount/GPU.\n";
+    std::cout<<"PASS: hosted-only owned store, qualified resume, OS writer exclusion, snapshots and no-clobber checks; no mount/GPU.\n";
     return 0;
   }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

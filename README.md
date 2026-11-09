@@ -77,7 +77,7 @@ remain unchanged. See [the native image format](docs/FORMAT-v1.md) and
 
 The object engine remains limited to 16 objects, 1 MiB per object, 4 MiB new
 payload per transaction and 64 MiB retained physical history. There is no
-existing-store writable reopen, reclamation, durable filesystem namespace,
+public existing-file writable reopen, reclamation, durable filesystem namespace,
 authenticated encryption or general-purpose writable mount application.
 
 A successful flush is meaningful only under qualified backend/device
@@ -93,3 +93,13 @@ stress tests are authorized. See [safety boundaries](docs/SAFETY.md).
 
 Development stays on main. Coherent implementation, tests and documentation are
 batched into larger checkpoints; release decisions belong to the owner.
+
+## Persistence continuation work
+
+The native object core can resume a qualified exclusive backend after full CPU
+verification, explicit identity/generation checks and a durable recovery fence.
+It preserves orphan tails and repairs a missing root without overwriting the
+survivor. Public file factories remain new-file-only. Read
+[the protocol and hosted interruption gates](docs/STORE_RESUME_AND_INTERRUPTION.md).
+This is storage-core development; writable mounted filesystem semantics remain
+unimplemented.

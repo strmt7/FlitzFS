@@ -79,3 +79,27 @@ offline HIP compilation, independent mechanism checks and the RAM comparison.
 Linux raw/codec/sanitizer lanes passed 21 tests each; Windows minimal passed 24,
 native passed 26, and the synthetic mounted read/termination/recovery probe
 passed. These checks do not qualify mounted writes or physical power loss.
+
+## Executed bulk-pattern comparison
+
+At 20956633fb5e3dfc755b6aa6793c3842e2379d30, the expanded
+[hosted comparison](https://github.com/strmt7/FlitzFS/actions/runs/42615046334)
+passed 108 samples and two complete raw-image interoperability cases.
+
+| Synthetic case | Prior write ms | Revised write ms | Prior read ms | Revised read ms |
+|---|---:|---:|---:|---:|
+| Uniform byte | 26.03 | 12.33 | 14.62 | 6.68 |
+| Repeated motif | 28.70 | 14.73 | 14.62 | 6.69 |
+
+These cases retained the same 262,144-byte physical image end. Other write
+changes were mixed: zeros/numeric/text were about 5.6–9.1 percent slower in
+this sample, while noise was nearly unchanged. Three samples per policy with
+rotating order do not establish broad significance or a general speedup.
+Retain these unfavorable/control results. Active-payload and complete summary
+values are in evidence/native-store-comparison-20956633.json; full samples
+remain in the exact-commit hosted artifact for 30 days.
+
+Levels 1/6/9 had identical physical image sizes for these synthetic corpora,
+although text payloads differed slightly. Padding can hide payload differences,
+which is why both measurements are reported. No default-level optimum or
+cross-filesystem superiority follows from this corpus.

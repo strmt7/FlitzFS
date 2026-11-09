@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <cstdlib>
 #include <fstream>
 #include <limits>
 #include <mutex>
@@ -17,6 +18,7 @@
 #else
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <sys/statvfs.h>
 #include <unistd.h>
 #endif
@@ -54,7 +56,7 @@ void memory_headroom() {
 #endif
 }
 void path_policy(const std::filesystem::path& p) {
-  if(p.empty() || p.filename().empty() || p==p.root_path()) fail("specific new ordinary file required");
+  if(p.empty() || p.filename().empty() || p==p.root_path()) fail("specific ordinary file required");
 #ifdef _WIN32
   if(!ordinary_windows_file_path(p.native())) fail("unsafe Windows output path");
 #else
@@ -85,7 +87,7 @@ class Input final:public StoreByteIo {
 class Output final:public StoreByteIo {
   mutable std::mutex mutex_;
   StoreIoContract contract_;
-  std::uint64_t extent_=0;
+  mutable std::uint64_t extent_=0;
   std::filesystem::path parent_path_;
 #ifdef _WIN32
   HANDLE handle_=INVALID_HANDLE_VALUE;
@@ -93,8 +95,21 @@ class Output final:public StoreByteIo {
   int fd_=-1,parent_=-1;
   bool parent_synced_=false;
 #endif
+  void refresh_extent() const {
+#ifdef _WIN32
+    LARGE_INTEGER size{};
+    if(!GetFileSizeEx(handle_,&size) || size.QuadPart<0 ||
+        static_cast<std::uint64_t>(size.QuadPart)>kStoreMaxPhysicalBytes) fail("cannot qualify current file extent");
+    extent_=static_cast<std::uint64_t>(size.QuadPart);
+#else
+    struct stat st{};
+    if(::fstat(fd_,&st)!=0 || !S_ISREG(st.st_mode) || st.st_size<0 ||
+        static_cast<std::uint64_t>(st.st_size)>kStoreMaxPhysicalBytes) fail("cannot qualify current file extent");
+    extent_=static_cast<std::uint64_t>(st.st_size);
+#endif
+  }
  public:
-  Output(const std::filesystem::path& p,StoreIoContract c):contract_(c) {
+  Output(const std::filesystem::path& p,StoreIoContract c,bool reopen=false):contract_(c) {
     path_policy(p);memory_headroom();
     const auto parent=p.parent_path().empty() ? std::filesystem::path(".") : p.parent_path();
     parent_path_=parent;
@@ -102,15 +117,19 @@ class Output final:public StoreByteIo {
     std::error_code ec;const auto space=std::filesystem::space(parent,ec);
     if(ec || space.available==static_cast<std::uintmax_t>(-1) ||
         space.available<kStoreMaxPhysicalBytes+kReserve) fail("insufficient verified disk reserve");
-    handle_=CreateFileW(p.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,CREATE_NEW,
+    handle_=CreateFileW(p.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,reopen?OPEN_EXISTING:CREATE_NEW,
                         FILE_ATTRIBUTE_NORMAL|FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
     if(handle_==INVALID_HANDLE_VALUE) fail("exclusive creation failed");
-    FILE_ATTRIBUTE_TAG_INFO attr{};
+    FILE_ATTRIBUTE_TAG_INFO attr{};FILE_STANDARD_INFO info{};LARGE_INTEGER size{};
     if(GetFileType(handle_)!=FILE_TYPE_DISK ||
         !GetFileInformationByHandleEx(handle_,FileAttributeTagInfo,&attr,sizeof(attr)) ||
-        (attr.FileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT))) {
-      CloseHandle(handle_);handle_=INVALID_HANDLE_VALUE;fail("output is not an ordinary file");
+        (attr.FileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)) ||
+        !GetFileInformationByHandleEx(handle_,FileStandardInfo,&info,sizeof(info)) || info.NumberOfLinks!=1 ||
+        !GetFileSizeEx(handle_,&size) || size.QuadPart<0 ||
+        static_cast<std::uint64_t>(size.QuadPart)>kStoreMaxPhysicalBytes || (!reopen && size.QuadPart!=0)) {
+      CloseHandle(handle_);handle_=INVALID_HANDLE_VALUE;fail("backing is not an admissible single-link ordinary file");
     }
+    extent_=static_cast<std::uint64_t>(size.QuadPart);
 #else
     parent_=::open(parent.c_str(),O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);
     if(parent_<0) fail("cannot pin ordinary parent directory");
@@ -119,12 +138,16 @@ class Output final:public StoreByteIo {
         space.f_bavail<(kStoreMaxPhysicalBytes+kReserve+space.f_frsize-1)/space.f_frsize) {
       ::close(parent_);parent_=-1;fail("insufficient verified disk reserve");
     }
-    fd_=::openat(parent_,p.filename().c_str(),O_RDWR|O_CREAT|O_EXCL|O_CLOEXEC|O_NOFOLLOW,0600);
+    const int flags=O_RDWR|O_NONBLOCK|O_CLOEXEC|O_NOFOLLOW|(reopen?0:(O_CREAT|O_EXCL));
+    fd_=::openat(parent_,p.filename().c_str(),flags,0600);
     if(fd_<0) {::close(parent_);parent_=-1;fail("exclusive creation failed");}
     struct stat st{};
-    if(::fstat(fd_,&st)!=0 || !S_ISREG(st.st_mode) || st.st_size!=0) {
-      ::close(fd_);::close(parent_);fd_=parent_=-1;fail("output is not an empty regular file");
+    if(::fstat(fd_,&st)!=0 || !S_ISREG(st.st_mode) || st.st_nlink!=1 || st.st_size<0 ||
+        static_cast<std::uint64_t>(st.st_size)>kStoreMaxPhysicalBytes || (!reopen && st.st_size!=0) ||
+        ::flock(fd_,LOCK_EX|LOCK_NB)!=0) {
+      ::close(fd_);::close(parent_);fd_=parent_=-1;fail("backing is not an exclusively locked single-link regular file");
     }
+    extent_=static_cast<std::uint64_t>(st.st_size);
 #endif
   }
   ~Output() override {
@@ -136,9 +159,10 @@ class Output final:public StoreByteIo {
 #endif
   }
   StoreIoContract contract() const noexcept override { return contract_; }
-  std::uint64_t extent() const override { std::lock_guard lock(mutex_);return extent_; }
+  std::uint64_t extent() const override { std::lock_guard lock(mutex_);refresh_extent();return extent_; }
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
     std::lock_guard lock(mutex_);
+    refresh_extent();
     if(at>extent_ || out.size()>extent_-at) fail("read outside backing extent");
     std::size_t done=0;
     while(done<out.size()) {
@@ -178,6 +202,7 @@ class Output final:public StoreByteIo {
   }
   void admit_write(std::uint64_t projected) override {
     std::lock_guard lock(mutex_);
+    refresh_extent();
     if(projected<extent_ || projected>kStoreMaxPhysicalBytes) fail("projected extent outside budget");
     memory_headroom();
     const auto needed=projected-extent_+kReserve;
@@ -210,6 +235,12 @@ class Output final:public StoreByteIo {
 }
 std::shared_ptr<StoreByteIo> new_store_file(const std::filesystem::path& path,StoreIoContract c) {
   return std::make_shared<Output>(path,c);
+}
+std::shared_ptr<StoreByteIo> reopen_store_file_for_hosted_test(const std::filesystem::path& path,StoreIoContract c) {
+  const auto* actions=std::getenv("GITHUB_ACTIONS");const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
+  if(!actions || std::string(actions)!="true" || !environment || std::string(environment)!="github-hosted")
+    fail("test-only existing-file adapter requires a disposable hosted VM");
+  return std::make_shared<Output>(path,c,true);
 }
 std::shared_ptr<StoreByteIo> read_store_file(const std::filesystem::path& path) {
   return std::make_shared<Input>(path);

@@ -8,6 +8,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -33,6 +34,7 @@ class Ram final:public StoreByteIo {
   unsigned failure=0;
   bool pressure=false;
   std::function<void(std::uint64_t,std::span<const std::byte>)> before_write;
+  std::function<void()> before_flush;
   std::uint64_t extent() const override {return live.size();}
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
     if(at>live.size() || out.size()>live.size()-at) throw std::runtime_error("RAM read bounds");
@@ -62,6 +64,7 @@ class Ram final:public StoreByteIo {
   }
   void flush() override {
     const bool broken=calls++==fail_call;
+    if(before_flush)before_flush();
     if(broken && failure==0) throw std::runtime_error("injected failed flush");
     stable=live;
     if(broken) throw std::runtime_error("injected failure after flush publication");
@@ -322,6 +325,131 @@ void compressed_transactions() {
     require(empty->writes==0,"invalid codec policy wrote initialization");
   }
 }
+void old_bytes(const ObjectStoreSnapshot& s) {
+  require(s.list().size()==2 && s.read(1)==bytes(97,1) && s.read(2)==bytes(33,2),"recovery changed acknowledged payloads");
+}
+void resume_leases_and_orphans() {
+  auto ram=std::make_shared<Ram>();
+  std::optional<ObjectStoreSnapshot> old;
+  {
+    auto writer=ObjectStoreWriter::create(ram,identity());writer.commit(initial());old.emplace(writer.snapshot());
+    const auto calls=ram->calls;
+    rejects([&]{(void)ObjectStoreWriter::resume(ram,identity(),1);},"two writers acquired one backend");
+    require(ram->calls==calls,"failed writer lease touched I/O");
+    auto moved=std::move(writer);
+    rejects([&]{(void)ObjectStoreWriter::resume(ram,identity(),1);},"move released active writer lease");
+    old_bytes(moved.snapshot());
+  }
+  const auto baseline=ram->live;const auto calls=ram->calls;
+  auto wrong=identity();wrong[1]=std::byte{19};
+  rejects([&]{(void)ObjectStoreWriter::resume(ram,wrong,1);},"wrong store identity resumed");
+  rejects([&]{(void)ObjectStoreWriter::resume(ram,identity(),0);},"stale generation resumed");
+  ram->pressure=true;
+  rejects([&]{(void)ObjectStoreWriter::resume(ram,identity(),1);},"resource-starved resume admitted");
+  ram->pressure=false;
+  require(ram->calls==calls && ram->live==baseline,"rejected resume modified backing");
+  // Preserve an unaligned uncertain tail; never append into its failure unit.
+  ram->copy(ram->live,ram->live.size(),Bytes(1234,std::byte{0xa5}));ram->stable=ram->live;
+  const auto orphaned=ram->live;
+  const auto floor=(orphaned.size()+65535)/65536*65536;
+  {
+    auto writer=ObjectStoreWriter::resume(ram,identity(),1);
+    require(writer.snapshot().info().generation==1,"clean resume advanced generation");
+    ram->before_write=[&](auto offset,auto){if(offset>=2*kStoreCommitUnit)require(offset>=floor,"resumed writer reused orphan failure unit");};
+    require(writer.commit(updated()).generation==2,"resumed commit failed");
+    ram->before_write={};check_state(writer.snapshot());
+    old_bytes(*old);
+  }
+  require(std::equal(orphaned.begin()+2*kStoreCommitUnit,orphaned.end(),ram->live.begin()+2*kStoreCommitUnit),
+          "resumed commit overwrote historical/orphan bytes");
+  check_state(ObjectStoreSnapshot::open(image(ram->stable)));
+  {
+    auto unexpected=image(ram->stable);unexpected->stable=unexpected->live;
+    const auto writes=unexpected->writes;
+    unexpected->before_flush=[&]{unexpected->copy(unexpected->live,unexpected->live.size(),Bytes(1,std::byte{1}));};
+    rejects([&]{(void)ObjectStoreWriter::resume(unexpected,identity(),2);},"extent changed during recovery fence");
+    require(unexpected->writes==writes,"unstable recovery fence performed repair writes");
+    unexpected->before_flush={};
+    auto retry=ObjectStoreWriter::resume(unexpected,identity(),2);
+    check_state(retry.snapshot());
+  }
+  // A poisoned writer remains the owner until its lifetime ends.
+  {
+    auto writer=ObjectStoreWriter::resume(ram,identity(),2);
+    ram->calls=0;ram->fail_call=0;
+    rejects([&]{writer.commit(initial());},"writer fault fixture");
+    const auto n=ram->calls;
+    rejects([&]{(void)ObjectStoreWriter::resume(ram,identity(),2);},"poisoned writer lease bypassed");
+    require(ram->calls==n,"lease bypass attempted backing I/O");
+    ram->fail_call=(std::numeric_limits<std::size_t>::max)();
+  }
+  auto recovered=ObjectStoreSnapshot::open(image(ram->stable));
+  auto writer=ObjectStoreWriter::resume(ram,identity(),recovered.info().generation);
+  require(!writer.poisoned(),"destroyed writer left permanent ownership");
+}
+void resume_complete_unacknowledged_candidate() {
+  auto probe=std::make_shared<Ram>();std::size_t steps=0;
+  {auto writer=ObjectStoreWriter::create(probe,identity());writer.commit(initial());
+    probe->calls=0;writer.commit(updated());steps=probe->calls;}
+  auto ram=std::make_shared<Ram>();
+  {
+    auto writer=ObjectStoreWriter::create(ram,identity());writer.commit(initial());
+    ram->calls=0;ram->fail_call=steps-1;ram->failure=0;
+    rejects([&]{writer.commit(updated());},"final flush fault not observed");
+    require(writer.poisoned(),"final flush failure did not retain terminal writer");
+  }
+  ram->fail_call=(std::numeric_limits<std::size_t>::max)();
+  require(ObjectStoreSnapshot::open(image(ram->stable)).info().generation==1,"failed final flush fixture already durable");
+  require(ObjectStoreSnapshot::open(ram).info().generation==2,"complete candidate not visible before recovery fence");
+  auto writer=ObjectStoreWriter::resume(ram,identity(),2);
+  require(ObjectStoreSnapshot::open(image(ram->stable)).info().generation==2,"resume returned before fencing complete candidate");
+  check_state(writer.snapshot());
+}
+Bytes damaged_root_fixture(unsigned generation,unsigned lost_slot) {
+  auto ram=std::make_shared<Ram>();
+  {auto writer=ObjectStoreWriter::create(ram,identity());if(generation)writer.commit(initial());}
+  auto bytes=ram->stable;
+  std::fill_n(bytes.begin()+static_cast<std::ptrdiff_t>(lost_slot*kStoreCommitUnit),
+              static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+  return bytes;
+}
+void repaired_contents(const ObjectStoreSnapshot& snapshot,unsigned original) {
+  require(!original?(snapshot.info().generation==0):(snapshot.info().generation==1 || snapshot.info().generation==2),
+          "root repair fabricated or rolled back generation");
+  if(original)old_bytes(snapshot);else require(snapshot.list().empty(),"initial root repair fabricated objects");
+}
+void resume_root_repair() {
+  for(const auto fixture:std::array<std::pair<unsigned,unsigned>,3>{{{0,0},{0,1},{1,0}}}) {
+    const auto original=fixture.first,lost=fixture.second;
+    const auto data=damaged_root_fixture(original,lost);
+    auto probe=image(data);std::size_t operations=0;
+    {
+      auto writer=ObjectStoreWriter::resume(probe,identity(),original);
+      require(!writer.snapshot().info().degraded_root,"resume returned degraded writable roots");
+      repaired_contents(writer.snapshot(),original);operations=probe->calls;
+    }
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t step=0;step<operations;++step) {
+      auto ram=image(data);ram->stable=data;ram->failure=mode;ram->fail_call=step;
+      rejects([&]{(void)ObjectStoreWriter::resume(ram,identity(),original);},"injected root-repair operation did not fail");
+      ram->fail_call=(std::numeric_limits<std::size_t>::max)();
+      const auto snapshot=ObjectStoreSnapshot::open(image(ram->stable));
+      repaired_contents(snapshot,original);
+      ram->live=ram->stable; // Model process/power restart before retrying the recovered state.
+      auto retry=ObjectStoreWriter::resume(ram,identity(),snapshot.info().generation);
+      require(!retry.poisoned() && !retry.snapshot().info().degraded_root,"root repair failure leaked writer lease or broke retry");
+    }
+  }
+  auto ram=std::make_shared<Ram>();
+  {auto w=ObjectStoreWriter::create(ram,identity());w.commit(initial());}
+  auto valid=ram->live;
+  const auto index=static_cast<std::size_t>(u64(valid,65536+32));
+  const auto record=static_cast<std::size_t>(u64(valid,index+64+16));
+  ram->live[record+128]^=std::byte{1};const auto before=ram->live;const auto calls=ram->calls;
+  rejects([&]{(void)ObjectStoreWriter::resume(ram,identity(),1);},"corrupt latest dependency resumed");
+  require(before==ram->live && ram->calls==calls,"corrupt resume flushed or changed source");
+  ram->live=valid;ram->stable=valid;
+  auto good=ObjectStoreWriter::resume(ram,identity(),1);old_bytes(good.snapshot());
+}
 // Sparse, immediately persistent RAM backend reaches the physical-history cap
 // without allocating 64 MiB or touching real storage.
 class Sparse final:public StoreByteIo {
@@ -358,7 +486,7 @@ void history_cap() {
 }
 int main() {
   try {
-    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();compressed_transactions();history_cap();
+    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();history_cap();
     std::cout<<"PASS: "<<checks<<" object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\n";
     return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
