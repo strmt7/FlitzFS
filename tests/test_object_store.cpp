@@ -608,6 +608,9 @@ void compacted_copies() {
       require(copied.snapshot().read(99)==more.bytes,"compacted writer continuation failed");
       rejects([&]{(void)ObjectStoreWriter::compact(*source,target,copied_identity(),options);},"existing target overwritten");
     }
+    const auto existing=target->live;const auto target_calls=target->calls;
+    rejects([&]{(void)ObjectStoreWriter::compact(*source,target,copied_identity(),options);},"nonempty unleased target overwritten");
+    require(target->live==existing && target->calls==target_calls,"nonempty target admission changed bytes");
     require(ram->live==original && ram->calls==source_calls,"compaction wrote/flushed source");
     equal_objects(*source,ObjectStoreSnapshot::open(image(original)));
     require(old->read(1)==bytes(97,1),"compaction invalidated an old snapshot");
@@ -685,6 +688,15 @@ void compaction_faults() {
     target->before_write=[&](auto,auto){if(!once){once=true;changed->live[record+128]^=std::byte{1};}};
     rejects([&]{(void)ObjectStoreWriter::compact(snapshot,target,copied_identity(),options);},"changing source copied");
     require(!valid_locator(target->live,0)&&!valid_locator(target->live,1),"unstable source published a target root");
+    auto wrong=std::make_shared<Ram>();bool injected=false;
+    wrong->before_write=[&](auto at,auto input){
+      if(!injected && at>2*kStoreCommitUnit+128 && input.size()==128 && input[0]==std::byte{'F'}) {
+        injected=true;wrong->live[2*kStoreCommitUnit+128]^=std::byte{1};
+      }
+    };
+    rejects([&]{(void)ObjectStoreWriter::compact(source,wrong,copied_identity(),options);},"silently damaged copy published");
+    require(injected && !valid_locator(wrong->live,0) && !valid_locator(wrong->live,1),"target CPU verification missed changed bytes");
+    require(source_backend->live==untouched && source_backend->calls==source_calls,"copy verification failure touched source");
   }
 }
 

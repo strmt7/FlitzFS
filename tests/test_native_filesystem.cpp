@@ -309,7 +309,7 @@ void native_compacted_copies() {
     }
     const auto untouched=ram->live;const auto calls=ram->calls;
     const auto info=source->stat("target.bin");auto id=identity();id[2]=std::byte{11};
-    auto target=std::make_shared<Ram>();
+    auto target=std::make_shared<Ram>();Bytes compacted_baseline;
     rejects([&]{(void)NativeFilesystemWriter::compact(*source,target,identity());},"same native volume identity copied");
     rejects([&]{(void)NativeFilesystemWriter::compact(*source,target,{});},"zero native volume identity copied");
     rejects([&]{(void)NativeFilesystemWriter::compact(*old,target,id);},"stale native snapshot copied");
@@ -322,6 +322,7 @@ void native_compacted_copies() {
           got.inode==info.inode && got.created_sequence==info.created_sequence && got.modified_sequence==info.modified_sequence &&
           snapshot.storage_info().generation==source->storage_info().generation+2,"native compaction identity/sequence metadata");
       require(snapshot.storage_info().physical_end<source->storage_info().physical_end,"native history not compacted");
+      compacted_baseline=target->stable;
       const std::array<NativeFileMutation,2> more{{file_create("continued"),file_write("continued",0,data(3073,91))}};
       copy.apply(more);expected(copy.snapshot(),true,true);
     }
@@ -329,14 +330,27 @@ void native_compacted_copies() {
     require(ram->live==untouched && ram->calls==calls,"native source modified");
     expected(*source,true);expected(*old,false);
     for(unsigned slot=0;slot<2;++slot) {
-      auto damaged=image(target->stable);
+      // Both freshly compacted roots name IDENTICAL acknowledged contents.
+      // Damage either one before adding a later, different transaction.
+      auto damaged=image(compacted_baseline);
       std::fill_n(damaged->live.begin()+static_cast<std::ptrdiff_t>(slot*kStoreCommitUnit),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
-      auto survivor=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(damaged));
-      // The older root is the complete compacted source; newest adds continued.
-      const bool continued=survivor.sequence()>source->sequence();expected(survivor,true,continued);
-      auto repaired=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(damaged,id,survivor.storage_info().generation,{mode,6,false}));
-      expected(repaired.snapshot(),true,continued);repaired.snapshot().verify_all();
+      auto survivor=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(damaged));expected(survivor,true);
+      {
+        auto repaired=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(damaged,id,survivor.storage_info().generation,{mode,6,false}));
+        expected(repaired.snapshot(),true);repaired.snapshot().verify_all();
+        const std::array<NativeFileMutation,2> more{{file_create("continued"),file_write("continued",0,data(3073,91))}};
+        repaired.apply(more);expected(repaired.snapshot(),true,true);
+      }
+      expected(NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(damaged->stable))),true,true);
     }
+    // After a different acknowledged transaction, fault only the obsolete
+    // root's failure unit. Never count rollback of continued as safe repair.
+    auto current=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(target->stable)));
+    auto damaged=image(target->stable);const auto obsolete=(current.storage_info().generation+1)%2;
+    std::fill_n(damaged->live.begin()+static_cast<std::ptrdiff_t>(obsolete*kStoreCommitUnit),static_cast<std::size_t>(kStoreCommitUnit),std::byte{0});
+    auto survivor=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(damaged));expected(survivor,true,true);
+    auto repaired=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(damaged,id,survivor.storage_info().generation,{mode,6,false}));
+    expected(repaired.snapshot(),true,true);repaired.snapshot().verify_all();
   }
 }
 

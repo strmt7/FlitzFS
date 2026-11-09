@@ -101,8 +101,17 @@ source immutability, old snapshots, latest-snapshot admission, leases during
 copy, low headroom/contracts/identity/count/generation limits, empty stores,
 full 256-object manifests, continuation, source-change detection and every
 observed destination write/flush failure under three abstract fault modes.
-Native tests preserve inode/time-sequence/namespace semantics and exercise
-root damage/repair after continued use.
+Native tests preserve inode/time-sequence/namespace semantics, damage either
+identical-content compaction root, and then continue writing. After a later
+different transaction, they damage only the obsolete root and require ALL
+acknowledged bytes to survive. Silent target-data damage must be detected before
+publishing a root.
+
+Arbitrary media loss of the latest root after an ordinary, single-publication
+transaction is outside this protocol's write-failure envelope: an older
+surviving root may describe older contents. That must not be counted as verified
+repair of all acknowledged history. A replicated current-commit/acknowledgement
+design is still required for that stronger media-failure guarantee.
 
 Hosted Linux/Windows file tests cover shared reader/exclusive writer exclusion,
 new-file-only targets, compacted independent reopen and unchanged source bytes.
