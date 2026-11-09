@@ -158,3 +158,23 @@ sanitizer, relocated CPU and mounted read/recovery checks remain required.
 These are configured checks until exact-commit hosted results are inspected.
 They are not physical power-cut, full Windows handle lifetime, writable app,
 latest Windows 11 client or live AMD acceleration qualification.
+
+
+## Bounded campaign correction
+
+At 40ea0774a5484d3b18f4cca947b0093862104cd2, native Windows and CPU lanes
+passed, but ASan/UBSan stopped the combined lifetime test at its 45-second
+process limit. No sanitizer error was reported before the timeout; that is
+not a complete sanitizer qualification. The gated mount job was skipped.
+
+The same cases now run as four explicit, sequential CTest processes:
+invariants/metadata/capacity, mark+cancel faults, detach+write faults, and
+retire+closed-session faults. Every fault group still covers raw and automatic
+mode, every observed I/O boundary and all three failure modes. Each process
+retains the 45-second limit; the explicit suite ceiling is four times 45 seconds,
+inside the existing job budget. No production or child-process limit changes.
+
+Each completed phase/mode prints its actual I/O-step and fault-case counts,
+requiring exactly three cases per step. The twelve distinct phase/mode receipts
+plus the invariants completion must be inspected in the exact-commit CI logs.
+There is no skip, timeout widening, dropped data case or unsanitized substitute.
