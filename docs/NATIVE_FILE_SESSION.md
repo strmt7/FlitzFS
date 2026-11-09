@@ -170,3 +170,15 @@ checks are not passing results until exact-commit CI and complete receipts are
 inspected. Mounted writes, actual Windows handle/ACL/share/cache behavior,
 latest Windows 11 client, physical power cuts and live AMD qualification
 remain unfinished.
+
+
+## Path admission before ownership copies
+
+The context layer reuses canonical_catalog_path, whose current source checks
+the 240-byte cap before allocating. Open/create/rename validate the virtual
+path before backing lookup and before copying caller views into mutation
+strings. Root is allowed only for open. Existing unsafe-name/type rules and
+stored format/bounds remain unchanged. Regression cases include the byte
+boundary, traversal, reserved names and empty mutation paths, requiring no
+backing I/O or healthy-owner fencing. Directory enumeration also has a
+positive owned-context identity check.

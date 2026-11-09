@@ -40,6 +40,8 @@ void normal(StoreCompressionMode mode) {
   const auto directory=session.open("D",all,NativeOpenKind::directory);
   const auto inode=session.info(a).info.inode;
   require(session.stats().contexts==3 && !session.poisoned(),"initial native context ownership");
+  const auto children=session.list(directory);
+  require(children.size()==1 && children[0].inode==inode,"owned directory enumeration lost child identity");
   auto before=session.snapshot();
   session.rename(a,"D/moved");
   require(session.info(b).info.path=="D/moved" && session.read(b,0,100000)==original,
@@ -138,6 +140,16 @@ void identity_permissions_and_capacity(StoreCompressionMode mode) {
   auto moving=session.open("f",all);auto moved=std::move(session);
   require(moved.read(moving,0,100)==data(73,111),"session move invalidated owned token");
   rejects([&]{(void)session.info(moving);},NativeSessionErrorCode::terminal,"moved-from session accepted handle");
+  const auto bad_calls=ram->calls,bad_reads=ram->read_calls;
+  const std::array<std::string,5> invalid{{"", "../escape", "bad/../child",std::string(241,'a'),"NUL"}};
+  for(const auto& path:invalid) {
+    rejects_fs([&]{moved.create_entry(path);},NativeFsErrorCode::invalid_path,"unsafe create path reached mutation");
+    rejects_fs([&]{moved.rename(moving,path);},NativeFsErrorCode::invalid_path,"unsafe rename path reached mutation");
+    if(!path.empty())
+      rejects_fs([&]{(void)moved.open(path);},NativeFsErrorCode::invalid_path,"unsafe open path reached backing");
+  }
+  require(ram->calls==bad_calls && ram->read_calls==bad_reads && !moved.poisoned(),
+      "path admission performed backing I/O or fenced healthy owner");
   finish(moved,moving);
   std::vector<NativeFileHandle> contexts;contexts.reserve(NativeFileSession::max_contexts);
   for(std::size_t i=0;i<NativeFileSession::max_contexts;++i)contexts.push_back(moved.open("f"));

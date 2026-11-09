@@ -1,4 +1,6 @@
 #include "flitzfs/native_session.hpp"
+#include "flitzfs/catalog.hpp"
+#include <new>
 #include <array>
 #include <limits>
 #include <type_traits>
@@ -8,6 +10,13 @@ namespace flitzfs {
 namespace {
 using E=NativeSessionErrorCode;
 [[noreturn]] void fail(E code,const char* message){throw NativeSessionError(code,message);}
+void admit_path(std::string_view path,bool root=false) {
+  // Reuse the pure validator, which checks the byte cap before allocating.
+  // Never copy a caller's arbitrary-length view into an owned mutation first.
+  try{(void)canonical_catalog_path(path,root);}
+  catch(const std::bad_alloc&){throw;}
+  catch(const std::exception&){throw NativeFsError(NativeFsErrorCode::invalid_path,"invalid native session path");}
+}
 }
 struct NativeFileSession::Impl {
   struct Slot {
@@ -87,6 +96,7 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
   for(std::size_t i=0;i<self.slots.size();++i)if(!self.slots[i].token){available=i;break;}
   if(available==self.slots.size() || self.next_token==(std::numeric_limits<std::uint64_t>::max)())
     fail(E::limit,"native file context budget exhausted");
+  admit_path(path,true);
   const auto state=self.writer.inspect_path(path);
   if(state.delete_pending || state.unlinked)fail(E::delete_pending,"native name is delete-pending");
   if(kind==NativeOpenKind::file && state.info.directory)
@@ -123,7 +133,7 @@ NativeFsCommit NativeFileSession::truncate(const NativeFileHandle& handle,std::u
   return self.writer.truncate_inode(slot.inode,bytes);
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory) {
-  auto& self=ready();NativeFileMutation op;
+  auto& self=ready();admit_path(path);NativeFileMutation op;
   op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
   op.path=path;return self.writer.apply({&op,1});
 }
@@ -131,6 +141,7 @@ NativeFsCommit NativeFileSession::rename(const NativeFileHandle& handle,std::str
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.erase)fail(E::access_denied,"native context has no rename access");
   if(slot.cleaned)fail(E::invalid_options,"cannot rename cleaned native context");
+  admit_path(target);
   const auto source=self.state(slot);
   if(source.delete_pending || source.unlinked)fail(E::delete_pending,"cannot rename deleting native inode");
   try {
