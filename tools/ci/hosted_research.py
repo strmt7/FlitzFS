@@ -11,6 +11,7 @@ import hashlib
 import importlib.metadata
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -32,7 +33,7 @@ PROCESS_SOURCES = (
     ("windows-handle-close", "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle", "CloseHandle", "thread"),
 )
 AMD_SOURCES = (
-    ("amd-windows-deployment", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/deployment-guidelines.html", "deployment", "Applications do not"),
+    ("amd-windows-deployment", "https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2.0/conceptual/deployment-guidelines.html", "deployment", "Applications do not"),
     ("amd-windows-install", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/install/install.html", "HIP SDK", "CLI"),
     ("amd-windows-requirements", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/reference/system-requirements.html", "System requirements", "gfx1201"),
     ("amd-windows-components", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/component-support.html", "ROCm", "Runtime"),
@@ -74,14 +75,23 @@ async def capture(args):
             row["name"] = name
             rows.append(row)
             print(json.dumps(row), flush=True)
+            native = json.loads((args.output / row["capture"]).read_text(encoding="utf-8"))
+            result = native.get("native_result") or {}
+            print(json.dumps({"native_location": name, "result_url": result.get("url"),
+                              "redirected_url": result.get("redirected_url"),
+                              "native_error": str(result.get("error_message", ""))[:400]}), flush=True)
             if row["success"]:
-                result = json.loads((args.output / row["capture"]).read_text(encoding="utf-8"))["native_result"]
                 markdown = result.get("markdown") or ""
                 if isinstance(markdown, dict):
                     markdown = markdown.get("raw_markdown", "")
                 markdown = str(markdown)
                 with (args.output / (name + ".md")).open("x", encoding="utf-8") as out:
                     out.write(markdown)
+                if args.source_group == "amd":
+                    links = sorted(set(re.findall(r"\]\((https://rocm\.docs\.amd\.com/[^\s)#]+)", markdown)))
+                    selected_links = [url for url in links if any(word in url for word in
+                                      ("deployment", "license", "release-notes", "system-requirements"))][:24]
+                    print(json.dumps({"native_navigation": name, "official_links": selected_links}), flush=True)
                 offset = markdown.lower().rfind(term.lower())
                 print(json.dumps({"review": name, "excerpt": markdown[max(0, offset-200):offset+1100]}), flush=True)
     receipt = {
