@@ -449,7 +449,15 @@ NativeFsCommit NativeFilesystemWriter::apply(std::span<const NativeFileMutation>
 }
 NativeFilesystemSnapshot NativeFilesystemWriter::snapshot() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native writer");
-  return NativeFilesystemSnapshot::open(impl_->objects.snapshot());
+  try{return NativeFilesystemSnapshot::open(impl_->objects.snapshot());}
+  catch(const std::bad_alloc&){fail(Code::limit,"native snapshot allocation failure");}
+  catch(const NativeFsError& e){
+    if(e.code()==Code::corrupt || e.code()==Code::storage_failure)impl_->poisoned=true;
+    throw;
+  }
+  catch(const std::exception&){
+    impl_->poisoned=true;fail(Code::storage_failure,"native snapshot backing verification failed");
+  }
 }
 bool NativeFilesystemWriter::poisoned() const noexcept{return !impl_ || impl_->poisoned || impl_->objects.poisoned();}
 }
