@@ -99,3 +99,11 @@ self-healing, in-place GC or automatic durable handoff. The next mechanisms need
 
 Full writable application semantics, scalable metadata/allocation, broad native
 compression comparisons and physical power-loss qualification remain required.
+
+The existing alternating-root ordinary commit protocol protects the admitted
+write-failure domain by preserving the current root while writing its peer.
+It does not prove that arbitrary later media destruction of the latest root
+preserves the latest acknowledged transaction. A surviving older root is not
+sufficient evidence of complete recovery. Qualify replicated current-commit/
+acknowledgement metadata for that stronger fault model, alongside data replicas.
+Tests must never bless a lost later acknowledgement as successful self-repair.

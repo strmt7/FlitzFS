@@ -177,3 +177,9 @@ a learning/scheduling decision. Advisory model errors must not bypass integrity,
 durability, ownership or recovery gates. Do not promise immunity to every future
 bug or physical loss of all redundant copies; never silently discard acknowledged
 data or call detection alone self-repair.
+
+Do not count a media-fault test as safe repair if it permits loss of any later
+acknowledged transaction. Fresh compaction roots have identical contents;
+ordinary historical roots can differ. Preserve that distinction in recovery
+oracles and qualify replicated current-commit/acknowledgement state before
+claiming arbitrary-root/media self-healing.
