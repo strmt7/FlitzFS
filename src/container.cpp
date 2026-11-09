@@ -260,7 +260,7 @@ namespace {
 void decode_payload(const Bytes& stored, std::span<std::byte> decoded, ZSTD_DCtx* context) {
   // Single-shot decompression has bounded output but windowLogMax only governs
   // streaming. Check the authored single-frame size and reject concatenated frames.
-  if(!detail::native_zstd_frame(stored)) fail("Zstd chunk has noncanonical frame magic");
+  if(!detail::native_zstd_frame(std::as_bytes(std::span<const std::uint8_t>(stored)))) fail("Zstd chunk has noncanonical frame magic");
   const auto frame_bytes = ZSTD_findFrameCompressedSize(stored.data(), stored.size());
   if (ZSTD_isError(frame_bytes) || frame_bytes != stored.size())
     fail("Zstd chunk must contain exactly one complete frame");
