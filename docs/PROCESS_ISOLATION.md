@@ -68,3 +68,22 @@ The preceding lifecycle CI found a Windows SDK `interface` macro collision in
 a test parameter. That parameter was renamed, not hidden with a compiler flag
 or by disabling the failing test. The production session library compiled in
 that run; the new native tests still needed successful execution afterwards.
+
+## Retained process observation and cancellation
+
+ProcessObserver retains one original process HANDLE and a private unnamed
+manual-reset stop event, created before launch. It is single-launch and may
+outlive the launching call, so an unconfirmed return cannot erase process
+identity. Its PID is diagnostic; no retirement decision reopens a PID.
+
+A stop request only signals the event. The supervisor's multiple-object wait
+handles child exit/cancellation/deadline, performs termination on its own thread
+and keeps the existing two-second confirmation allowance. ProcessResult reports
+cancellation separately from timeout. Observation can continue in bounded
+two-second waits on the SAME handle after an unconfirmed initial result; a failed
+wait is an explicit error, never proof of exit or a busy retry loop.
+
+The asynchronous transport uses this ownership and retains admission through
+both process and supervisor-thread exit. CPU byte selection has no dependency on
+that cleanup. It neither weakens creation-time job limits nor makes a driver
+hang safe; real GPU/driver qualification remains separate and off-host.

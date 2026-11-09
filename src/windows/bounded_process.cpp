@@ -35,10 +35,33 @@ struct Attributes {
   Attributes& operator=(const Attributes&) = delete;
 };
 }
+ProcessObserver::ProcessObserver() {
+  stop_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+  if (!stop_) failed("process cancellation event");
+}
+ProcessObserver::~ProcessObserver() {
+  if (process_) CloseHandle(static_cast<HANDLE>(process_));
+  if (stop_) CloseHandle(static_cast<HANDLE>(stop_));
+}
+bool ProcessObserver::request_stop() const noexcept {
+  return SetEvent(static_cast<HANDLE>(stop_)) != FALSE;
+}
+ProcessObservation ProcessObserver::wait_for_exit(std::uint32_t milliseconds) const noexcept {
+  if (!process_id()) return ProcessObservation::not_started;
+  if (milliseconds > 2000) return ProcessObservation::wait_failed;
+  const auto wait = WaitForSingleObject(static_cast<HANDLE>(process_), milliseconds);
+  if (wait == WAIT_OBJECT_0) return ProcessObservation::exited;
+  if (wait == WAIT_TIMEOUT) return ProcessObservation::running;
+  return ProcessObservation::wait_failed;
+}
 ProcessResult run_bounded_process(const std::filesystem::path& executable,
-    const std::vector<std::wstring>& arguments, ProcessBudget budget) {
+    const std::vector<std::wstring>& arguments, ProcessBudget budget,
+    const std::shared_ptr<ProcessObserver>& supplied_observer) {
   if (!valid_process_budget(budget)) throw std::invalid_argument("unsafe process budget");
   auto command = windows_child_command(executable.native(), arguments);
+  const auto observer = supplied_observer ? supplied_observer : std::make_shared<ProcessObserver>();
+  if (observer->claimed_.exchange(true))
+    throw std::invalid_argument("process observer may be used for only one launch");
   const auto memory_bytes = budget.memory_mib * 1024U * 1024U;
   MEMORYSTATUSEX available{}; available.dwLength = sizeof(available);
   if (!GlobalMemoryStatusEx(&available)) failed("memory headroom query");
@@ -76,24 +99,36 @@ ProcessResult run_bounded_process(const std::filesystem::path& executable,
         EXTENDED_STARTUPINFO_PRESENT | CREATE_SUSPENDED | CREATE_NO_WINDOW |
         CREATE_UNICODE_ENVIRONMENT | BELOW_NORMAL_PRIORITY_CLASS,
         nullptr, nullptr, &startup.StartupInfo, &process)) failed("bounded child creation");
-  Handle child(process.hProcess), thread(process.hThread);
+  // Storage/event ownership was allocated before CreateProcess. Publish the PID
+  // only after retaining its exact process HANDLE; it never authorizes PID reopen.
+  observer->process_ = process.hProcess;
+  observer->process_id_.store(process.dwProcessId, std::memory_order_release);
+  const auto child = static_cast<HANDLE>(observer->process_);
+  Handle thread(process.hThread);
   // Closing the non-inherited job on any exceptional path terminates its child.
   BOOL assigned = FALSE;
-  if (!IsProcessInJob(child.value, job.value, &assigned) || !assigned)
+  if (!IsProcessInJob(child, job.value, &assigned) || !assigned)
     failed("creation-time job verification", ERROR_ACCESS_DENIED);
   if (ResumeThread(thread.value) == static_cast<DWORD>(-1)) failed("bounded child resume");
   ProcessResult result;
   result.process_id = process.dwProcessId;
-  auto wait = WaitForSingleObject(child.value, budget.timeout_ms);
-  if (wait == WAIT_TIMEOUT) {
-    result.timed_out = true;
-    if (!TerminateJobObject(job.value, ERROR_TIMEOUT)) failed("bounded job termination");
-    wait = WaitForSingleObject(child.value, 2000);
+  const HANDLE waits[] = {child, static_cast<HANDLE>(observer->stop_)};
+  auto wait = WaitForMultipleObjects(2, waits, FALSE, budget.timeout_ms);
+  if (wait == WAIT_TIMEOUT || wait == WAIT_OBJECT_0 + 1) {
+    result.timed_out = wait == WAIT_TIMEOUT;
+    result.cancelled = !result.timed_out;
+    if (!TerminateJobObject(job.value, result.cancelled ? ERROR_CANCELLED : ERROR_TIMEOUT))
+      failed("bounded job termination");
+    wait = WaitForSingleObject(child, 2000);
   }
+  // Cancellation racing a clean exit must not authorize a response after the
+  // caller selected CPU fallback. No termination is needed for an exited child.
+  if (WaitForSingleObject(static_cast<HANDLE>(observer->stop_), 0) == WAIT_OBJECT_0)
+    result.cancelled = true;
   if (wait == WAIT_FAILED) failed("bounded child wait");
   result.exit_confirmed = wait == WAIT_OBJECT_0;
   DWORD exit_code = 0;
-  if (result.exit_confirmed && !GetExitCodeProcess(child.value, &exit_code))
+  if (result.exit_confirmed && !GetExitCodeProcess(child, &exit_code))
     failed("bounded child exit status");
   result.exit_code = exit_code;
   JOBOBJECT_EXTENDED_LIMIT_INFORMATION measured{};

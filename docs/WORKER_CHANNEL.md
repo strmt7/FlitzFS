@@ -152,3 +152,62 @@ handle accounting. It creates no application fixture files and loads no GPU.
 
 Related repository contracts: HIP_BATCH_PLAN.md, PROCESS_ISOLATION.md, and the
 existing source-pinned FlitzZip study. No other repository is changed.
+
+## Asynchronous sessions and independent CPU completion
+
+WorkerExchangeSession now provides an explicit supervisor/controller API.
+start clones bounded input and starts one lowest-priority supervisor thread.
+try_result performs an acquire-load and returns either pending or an immutable
+transport result; it does not wait, query an adapter, terminate a job or run
+driver cleanup. The independently prepared GpuResultGate can select CPU bytes
+while that session and its exact helper remain alive. Selecting CPU remains
+terminal for the gate, including a subsequently correct late reply.
+
+request_cancel signals a private unnamed event. The SUPERVISOR waits for child
+exit or that event, performs job termination if needed, and retains the existing
+two-second exit-confirmation allowance. Cancellation racing normal completion
+cannot authorize a transport response if observed before publication.
+Cancellation after publication does not rewrite an immutable result; the
+caller's terminal CPU-selected gate still rejects a late candidate.
+
+ProcessObserver retains the original process HANDLE, allocated with its event
+before launch; it never reopens a PID. Observers are single-launch, and the PID
+is published only after exact-handle ownership is established. An incomplete
+retirement keeps one bounded supervisor waiting on that same object. Failed
+observation disables admission instead of busy-polling an invalid handle or
+creating replacement workers. No timer or changed configuration proves exit.
+
+Destroying or moving a session neither joins the supervisor nor frees its live
+protocol buffers. Shared ownership retains input, mappings and observation
+through the background operation. Admission requires BOTH confirmed exact-child
+retirement and signalled exact-supervisor-thread exit. The coordinator retains
+one thread-observation handle and reaps it with a zero-time query on subsequent
+explicit admission/status checks. Thus repeated completions cannot accumulate
+a tail of retired-but-still-running supervisor threads. There is no queue.
+
+The synchronous run_worker_exchange API is an adapter over this same mechanism.
+It preserves exception reporting and waits for its already-retired supervisor
+before returning ordinary completed results, retaining strict handle accounting.
+An unconfirmed-retirement result can return while separate supervision continues.
+
+All wire, payload, mapping, child memory/CPU, creation-time assignment and
+headroom gates remain. Admission additionally accounts for two private request
+copies, one reply and a 4 MiB supervisor/overhead allowance, beyond mappings and
+the existing 512 MiB reserve. This is conservative snapshot admission, not a
+physical-memory reservation or a hard cap on the containing application.
+Completed session results retained by an external caller remain caller-owned;
+a filesystem coordinator must bound their lifetime/queue as well.
+
+New hosted Windows fixtures cover asynchronous actual byte parity, moved-from
+ownership, cancellation, launch failure, rejection of overlapping starts,
+abandonment with continued supervision and byte-exact CPU selection while the
+exact helper is still live. These tests execute CPU semantics only. Their
+exact-commit outcomes must be inspected before calling this source qualified.
+Unconfirmed kernel/driver retirement and real HIP dispatch remain unqualified.
+
+This is a transport/lifetime primitive. Production integration with
+GpuRecoveryPolicy, runtime/package identities, discovery, AMD telemetry, an
+actual HIP worker and filesystem routing remains unfinished. No normal CLI or
+mounted read launches this session. The process-source Crawl4AI capture group
+records the official multiple-wait, CRT-thread, thread-priority and handle-close
+sources alongside the separately retained durability captures.

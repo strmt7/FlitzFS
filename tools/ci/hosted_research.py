@@ -25,6 +25,12 @@ SOURCES = (
     ("windows-cache", "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching", "write-through", "hardware"),
     ("openssl-digest", "https://docs.openssl.org/3.5/man3/EVP_DigestInit/", "EVP_Digest", "EVP_Digest"),
 )
+PROCESS_SOURCES = (
+    ("windows-multiple-wait", "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects", "WaitForMultipleObjects", "closed"),
+    ("windows-crt-thread", "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/beginthread-beginthreadex?view=msvc-170", "_beginthreadex", "CloseHandle"),
+    ("windows-thread-priority", "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority", "THREAD_PRIORITY_LOWEST", "THREAD_PRIORITY_LOWEST"),
+    ("windows-handle-close", "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle", "CloseHandle", "thread"),
+)
 
 
 def guard():
@@ -56,7 +62,8 @@ async def capture(args):
     args.output.mkdir(parents=False, exist_ok=False)
     rows = []
     async with AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False, use_persistent_context=False)) as owner:
-        for name, url, marker, term in SOURCES:
+        selected = PROCESS_SOURCES if args.source_group == "process" else SOURCES
+        for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
             rows.append(row)
@@ -74,7 +81,7 @@ async def capture(args):
     receipt = {
         "experimental": True, "commit": os.environ.get("GITHUB_SHA"),
         "provider_repository": "strmt7/FlitzZip", "provider_commit": PROVIDER_REF,
-        "provider_version": PROVIDER_VERSION, "python": sys.version,
+        "provider_version": PROVIDER_VERSION, "python": sys.version, "source_group": args.source_group,
         "limits": limits, "page_timeout_seconds": 45, "robots_checked": True,
         "external_llm": False, "persistent_profile": False, "sources": rows,
     }
@@ -85,6 +92,8 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
+    if args.source_group == "process" and not all(r["success"] for r in rows):
+        raise RuntimeError("Process-lifetime source group requires every native capture")
 
 
 def main():
@@ -93,6 +102,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
+    parser.add_argument("--source-group", choices=("durability", "process"), default="durability")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)
@@ -122,6 +132,7 @@ def main():
     code = crawl4ai_tool.run_source_python([
         str(interpreter), str(Path(__file__).resolve()), "--runtime",
         "--provider", str(args.provider), "--home", str(args.home), "--output", str(args.output),
+        "--source-group", args.source_group,
     ], env, timeout=300)
     if code:
         raise SystemExit(code)

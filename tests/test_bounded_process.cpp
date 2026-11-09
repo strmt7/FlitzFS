@@ -68,7 +68,7 @@ int wmain(int argc, wchar_t** argv) {
     const auto executable = self();
     auto run = [&](std::vector<std::wstring> args, DWORD expected, flitzfs::ProcessBudget budget = {}) {
       const auto result = flitzfs::run_bounded_process(executable, args, budget);
-      require(result.process_id != 0 && result.process_id != GetCurrentProcessId() && result.exit_confirmed && !result.timed_out && result.exit_code == expected, "child result mismatch");
+      require(result.process_id != 0 && result.process_id != GetCurrentProcessId() && result.exit_confirmed && !result.timed_out && !result.cancelled && result.exit_code == expected, "child result mismatch");
       require(result.peak_committed_bytes <= budget.memory_mib * 1024ULL * 1024, "job memory accounting exceeded cap");
     };
     run({L"--child-probe"}, 73);
@@ -81,6 +81,22 @@ int wmain(int argc, wchar_t** argv) {
     flitzfs::ProcessBudget quick; quick.timeout_ms = 50;
     const auto timed = flitzfs::run_bounded_process(executable, {L"--child-sleep"}, quick);
     require(timed.process_id != 0 && timed.timed_out && timed.exit_confirmed && timed.exit_code == ERROR_TIMEOUT, "timeout not terminated/confirmed");
+    auto observation = std::make_shared<flitzfs::ProcessObserver>();
+    require(observation->process_id() == 0 &&
+        observation->wait_for_exit() == flitzfs::ProcessObservation::not_started,
+        "unlaunched observer invented a process");
+    require(observation->request_stop(), "prelaunch cancellation signal failed");
+    const auto cancelled = flitzfs::run_bounded_process(executable, {L"--child-sleep"}, {}, observation);
+    require(cancelled.cancelled && !cancelled.timed_out && cancelled.exit_confirmed &&
+        cancelled.exit_code == ERROR_CANCELLED && observation->process_id() == cancelled.process_id &&
+        observation->wait_for_exit() == flitzfs::ProcessObservation::exited,
+        "signalled cancellation did not retain/retire the exact child");
+    bool reused = false;
+    try { (void)flitzfs::run_bounded_process(executable, {L"--child-exit"}, {}, observation); }
+    catch (const std::invalid_argument&) { reused = true; }
+    require(reused && observation->process_id() == cancelled.process_id,
+        "observer reuse replaced a process identity");
+    observation.reset();
     bool rejected = false;
     try { flitzfs::ProcessBudget invalid; invalid.memory_mib = 0;
       (void)flitzfs::run_bounded_process(executable, {}, invalid); }

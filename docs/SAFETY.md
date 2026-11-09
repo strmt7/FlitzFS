@@ -252,3 +252,14 @@ preflight prevents overwriting a sole survivor after unnoticed metadata loss.
 Legacy generic mode has its older fault envelope. Data payload replicas and
 physical/device/GPU/background-maintenance qualification remain unimplemented.
 All extra metadata, padding, barriers and history consume the stated budgets.
+
+## Asynchronous worker ownership
+
+The explicit WorkerExchangeSession retains its bounded supervisor, input and
+exact process observation after the request owner selects CPU or disappears.
+Only supervisor code performs cancellation teardown; ready flags cannot expose
+a live helper's bytes. Replacement admission waits for both child and supervisor
+retirement. Failed observation disables further transport admission instead of
+reopening a PID or repeatedly creating workers. CPU-selected gates remain
+terminal. This does not qualify a HIP runtime/driver, protected installer or
+no-freeze guarantee, and authorizes no owner-PC execution.

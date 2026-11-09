@@ -48,10 +48,13 @@ with bounded processes and coalesced events. It must not repeat for every read.
 This policy grants only permission to try; consent, workload qualification,
 budgets, statuses, deadlines and independent CPU-byte comparison still apply.
 
-The existing synchronous worker transport waits for confirmed exit and is NOT
-yet an asynchronous immediate-fallback coordinator. That future coordinator
-must let CPU completion proceed while separately supervising failed teardown,
-without launching replacements before safe retirement. Per-request gates stay
+WorkerExchangeSession now supplies asynchronous transport with an independently
+owned supervisor. CPU gate selection can proceed while the exact helper is
+still live, and cancellation/retirement remain off that selection path.
+Replacement transport admission requires both exact-child and supervisor-thread
+retirement. See WORKER_CHANNEL.md for the single-slot and failure contract.
+Production integration with this recovery policy, trusted runtime/discovery
+evidence and an actual HIP worker is still unfinished. Per-request gates stay
 terminal; a later qualified request creates a NEW gate, never reuses poison.
 
 Runtime loading, driver recovery evidence, hardware tests, production routing

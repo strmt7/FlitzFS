@@ -41,14 +41,18 @@ Its check covers the explicit pins; it is not a comprehensive vulnerability scan
 
 ## Remaining freshness work
 
-This checkpoint does NOT claim every tool/transitive package is upgraded:
-official latest CMake v4.4.5 and LLVM 23.1.5 are newer than current build tools.
-The reviewed isolated research provider still uses pinned Python 3.13 and locked
-dependencies, requiring source/lock compatibility review before upgrade.
-Linux codec jobs that discover distribution packages need latest-source lanes.
-Compiler/runtime, CMake and provider migrations must run CPU/raw/codec,
-sanitizer, Windows and offline HIP checks before being called compatible.
-Full dependency inventory and transitive tooling qualification remain open.
+The current hosted toolchain now stages verified CMake 4.4.5, Linux LLVM
+23.1.5 and Python 3.15.2. Linux native codec lanes build exact latest reviewed
+Zstandard/LZ4 source pins; sanitizer lanes instrument those libraries too.
+The corrected release audit passed at e356a4a7b5e35fae836d3380e140b00a9d7e80df.
+Portable CPU relocation, raw/codec, sanitizer, Windows callback and offline HIP
+checks passed at that commit; mounted qualification is recorded separately.
+
+The reviewed isolated research provider still uses pinned Python 3.13 and a
+95-package explicit lock; its current wrapper admits Python 3.13..3.14 only.
+Changing that guard requires source/lock compatibility qualification, not a
+suppression. Full transitive tooling and broader Windows compiler inventory
+remain open. No owner-PC tool is installed or changed.
 
 The shared CocoIndex registration belongs to another repository and must not be
 used or altered. This audit reads exact known build/workflow/dependency scopes;
