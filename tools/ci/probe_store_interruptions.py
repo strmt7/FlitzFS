@@ -208,7 +208,7 @@ def main():
     root=Path(__file__).resolve().parents[2]
     head=subprocess.run(["git","-C",str(root),"rev-parse","HEAD"],check=True,capture_output=True,text=True,timeout=5).stdout.strip()
     report=dict(schema=1,commit=head,platform=os.name,cases=len(rows),coverage=coverage,results=rows,
-        scope="Process termination at I/O boundaries, owned ordinary files; not physical power loss or mounted writes",
+        scope="Process termination at I/O boundaries, including reverted native extent reuse, owned ordinary files; not physical power loss or mounted writes",
         limits=dict(total_seconds=180,process_seconds=15,cases=1024,events=256,event_bytes=256,
                     queued_events=8,fixture_bytes=3145728,
                     windows_process_bytes=805306368,windows_cpu_percent=20,

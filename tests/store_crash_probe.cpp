@@ -162,10 +162,16 @@ void native_file_write(const fs::path& path,StoreCompressionOptions options) {
   auto trace=std::make_shared<Traced>(backing);
   auto files=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(trace,id(),options));
   require(files.apply(native_fixture::baseline()).storage.generation==4,"native file baseline generation");
-  native_fixture::expected(files.snapshot(),false);trace->event("ack",0,0,4);
+  native_fixture::expected(files.snapshot(),false);
+  const auto stable=native_fixture::stable_record(ObjectStoreSnapshot::open(trace));
+  require(stable.generation==3,"native reused fixture baseline generation");
+  trace->event("ack",0,0,4);
   trace->armed=true;
   require(files.apply(native_fixture::update()).storage.generation==6,"native file update generation");
-  trace->armed=false;native_fixture::expected(files.snapshot(),true);trace->event("ack",0,0,6);
+  trace->armed=false;native_fixture::expected(files.snapshot(),true);
+  const auto reused=native_fixture::stable_record(ObjectStoreSnapshot::open(trace));
+  require(reused.id==stable.id && reused.generation==stable.generation,"native process fixture rewrote reverted payload");
+  trace->event("ack",0,0,6);
   std::cout<<"{\"done\":true}\n"<<std::flush;
 }
 void native_file_recover(const fs::path& path,std::uint64_t floor,StoreCompressionOptions options) {
@@ -175,6 +181,8 @@ void native_file_recover(const fs::path& path,std::uint64_t floor,StoreCompressi
     generation=snapshot.storage_info().generation;
     require(generation>=floor && generation<=6 && snapshot.sequence()==(generation>4?3U:2U),"native file acknowledgement sequence");
     changed=snapshot.sequence()==3;native_fixture::expected(snapshot,changed);
+    require(native_fixture::stable_record(ObjectStoreSnapshot::open_file(path)).generation==3,
+        "native interrupted transaction replaced stable payload");
   }
   {
     auto backing=detail::reopen_store_file_for_hosted_test(path,{4096,true});
@@ -187,6 +195,8 @@ void native_file_recover(const fs::path& path,std::uint64_t floor,StoreCompressi
   auto reopened=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
   require(reopened.storage_info().generation==continued && reopened.sequence()==sequence,"native file continuation did not persist");
   native_fixture::expected(reopened,changed,true);
+  require(native_fixture::stable_record(ObjectStoreSnapshot::open_file(path)).generation==3,
+      "native recovery continuation replaced stable payload");
   std::cout<<"{\"recovered\":"<<generation<<",\"continued\":"<<continued<<"}\n"<<std::flush;
 }
 
