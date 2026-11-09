@@ -104,3 +104,10 @@ use available report digests or require a matching native PyPI/CPU-index digest.
 A candidate's own computed digest never substitutes for an expected identity.
 Hostile-wheel, conflicting/absent-authority and mutated-download regressions
 are executed before provisioning.
+
+CPU candidate selection now yields a hash-qualified direct Torch requirement.
+The complete resolver uses PyPI for general dependencies and that exact official
+CPU artifact, rather than treating the CPU vendor's mirror as a second general
+package registry. CPU-index fallback must find one matching digest for the exact
+candidate path, and its origin/ambiguity checks have dedicated regressions.
+Unresolved package authority remains a hard failure before installation.

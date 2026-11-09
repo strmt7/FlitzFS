@@ -177,6 +177,9 @@ class Provider:
                 self.download("https://download.pytorch.org/whl/cpu/torch/",path,8*MIB)
             parser=Links();parser.feed(path.read_text(encoding="utf-8"))
             expected=urllib.parse.urlsplit(url);matches=set()
+            require(expected.scheme=="https" and expected.hostname in
+                ("download.pytorch.org","download-r2.pytorch.org") and "/whl/cpu/" in expected.path,
+                "CPU candidate has an unreviewed origin")
             for link in parser.values:
                 item=urllib.parse.urlsplit(urllib.parse.urljoin("https://download.pytorch.org/whl/cpu/torch/",link))
                 if item.scheme=="https" and item.hostname in ("download.pytorch.org","download-r2.pytorch.org") and \
@@ -189,7 +192,7 @@ class Provider:
             urllib.parse.quote(version,safe="")+"/json","package-metadata-"+str(index)+".json")
         matches={row["digests"]["sha256"] for row in metadata["urls"]
                  if row["url"]==url and row.get("packagetype")=="bdist_wheel"}
-        require(len(matches)==1,"wheel has no unique official PyPI digest")
+        require(len(matches)==1,"wheel has no unique official PyPI digest: "+name+" "+version+" "+url)
         value=matches.pop()
         require(re.fullmatch(r"[0-9a-f]{64}",value),"invalid official package digest")
         return value
@@ -218,14 +221,22 @@ class Provider:
         self.pip(["install","--dry-run","--no-deps","--only-binary=:all:","--report",cpu_report,
             "--index-url","https://download.pytorch.org/whl/cpu","torch"])
         items=read_json(cpu_report)["install"]
-        torch=next(x["metadata"]["version"] for x in items if x["metadata"]["name"].lower()=="torch")
+        cpu=next(x for x in items if x["metadata"]["name"].lower()=="torch")
+        torch=cpu["metadata"]["version"]
         require(re.fullmatch(r"[A-Za-z0-9.+!-]+",torch) and "+cpu" in torch,"CPU-only Torch wheel unavailable for this interpreter")
+        cpu_info=cpu["download_info"]
+        cpu_url=urllib.parse.urldefrag(cpu_info["url"]).url
+        parsed=urllib.parse.urlsplit(cpu_url)
+        require(parsed.scheme=="https" and parsed.hostname in ("download.pytorch.org","download-r2.pytorch.org")
+            and "/whl/cpu/" in parsed.path,"CPU candidate origin differs")
+        cpu_sha=self.package_digest("torch",torch,cpu_info,-1)
+        cpu_requirement="torch @ "+cpu_url+"#sha256="+cpu_sha
         constraints=self.root/"cpu-constraints.txt"
         with constraints.open("x",encoding="utf-8") as file:file.write("torch=="+torch+"\n")
         report=self.root/"provider-resolver.json"
         self.pip(["install","--dry-run","--ignore-installed","--only-binary=:all:","--report",report,
-            "--index-url","https://pypi.org/simple","--extra-index-url","https://download.pytorch.org/whl/cpu",
-            "-c",constraints,"cocoindex-code[full] @ "+coco.as_uri(),"pip"],480)
+            "--index-url","https://pypi.org/simple",
+            "-c",constraints,"cocoindex-code[full] @ "+coco.as_uri(),cpu_requirement,"pip"],480)
         packages=read_json(report)["install"]
         require(0<len(packages)<=220,"provider package-count budget")
         lines=[];identities=[]

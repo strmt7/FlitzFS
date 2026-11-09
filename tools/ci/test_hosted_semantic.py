@@ -80,6 +80,19 @@ class Admission(unittest.TestCase):
             with patch.object(self.provider,"native_json",return_value=metadata):
                 with self.assertRaisesRegex(RuntimeError,"unique official"):
                     self.provider.package_digest("example","1",{"url":url},3)
+    def test_cpu_vendor_index_digest_is_exact_and_unambiguous(self):
+        value="3"*64
+        url="https://download.pytorch.org/whl/cpu/torch-1%2Bcpu-cp314.whl"
+        index=self.root/"torch-index.native.log"
+        index.write_text('<a href="'+url+"#sha256="+value+'">wheel</a>',encoding="utf-8")
+        self.assertEqual(self.provider.package_digest("torch","1+cpu",{"url":url},0),value)
+        index.write_text('<a href="'+url+"#sha256="+value+'">one</a>'+
+            '<a href="'+url+"#sha256="+"4"*64+'">two</a>',encoding="utf-8")
+        with self.assertRaisesRegex(RuntimeError,"unique official"):
+            self.provider.package_digest("torch","1+cpu",{"url":url},0)
+        with self.assertRaisesRegex(RuntimeError,"unreviewed origin"):
+            self.provider.package_digest("torch","1+cpu",
+                {"url":url.replace("download.pytorch.org","files.pythonhosted.org")},0)
     def test_actual_mismatched_download_is_retained_and_rejected(self):
         class Response(io.BytesIO):
             status=200
