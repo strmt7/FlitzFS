@@ -216,3 +216,22 @@ actual HIP worker and filesystem routing remains unfinished. No normal CLI or
 mounted read launches this session. The process-source Crawl4AI capture group
 records the official multiple-wait, CRT-thread, thread-priority and handle-close
 sources alongside the separately retained durability captures.
+
+## First-use native error accounting
+
+The first Windows checkpoint passed asynchronous byte/fallback/cancellation/
+abandonment checks but failed its unchanged zero-growth handle assertion after
+the new missing-helper route. A separate process probe that imports no transport
+measured one handle added by the FIRST FormatMessageA call: 69 to 70 in static
+runtime and 70 to 71 in the native lane. Eight further formatting calls,
+exception capture/release, and nine sequential error threads stayed flat.
+Microsoft's STL system_error implementation calls that same Windows formatter.
+
+The warmup therefore now exercises BOTH actual successful and missing-helper
+transactions before the strict handle baseline. Four additional real failed
+launches and the existing repeated successful/fault cases must retain the
+zero-growth assertion. There is no increased tolerance. The synchronous adapter
+also reaps its confirmed coordinator thread-observation handle immediately;
+asynchronous ownership still persists until exact retirement. The diagnostic
+mode is hosted-only and runs in a SEPARATE process from the transport test.
+Exact corrected-commit results remain required before qualification.
