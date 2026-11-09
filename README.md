@@ -5,7 +5,9 @@
 > **Experimental CPU storage, native FLZIP decoding and Windows callbacks.**
 > This is not yet a general-purpose mounted filesystem, encryption product or
 > GPU-accelerated product. Do not store the only copy of valuable data in this format.
-> No tests have been executed on the owner's Windows PC or AMD GPU.
+> A bounded CPU-only synthetic test run preceded the owner's later remote-only restriction.
+> All further disk-based work and tests run on disposable hosted machines/VMs.
+> No owner-PC GPU execution, driver-backed mount or power-loss test was performed.
 
 FlitzFS develops transparent compressed Windows storage with eventual AMD HIP
 acceleration and authenticated encryption. Current code provides independently
@@ -135,7 +137,9 @@ Driver provisioning is isolated to the explicitly opted-in disposable hosted-CI
 mount lane; it is forbidden on the owner machine. Test fixtures are uniquely
 scoped and small; tests never recursively delete directories. Free-space checks and resource limits
 reduce risk but cannot guarantee safety against concurrent disk use, hardware
-failure or software defects. The owner machine is not used for testing.
+failure or software defects. The owner now requires all further disk-based
+development and testing to stay off their PC. RAM-only host tests remain
+unqualified; no RAM disk or driver is installed as a workaround.
 
 GitHub CI separates Linux Zstandard, Linux raw-only, Windows raw-only, Linux
 ASan/UBSan, and Windows native callbacks with commit-pinned Zstandard. SDK
@@ -204,3 +208,17 @@ data files, inherited handles or shell are used. Replies are withheld until a
 confirmed successful helper exit and checked against the independent CPU result.
 The test helper runs CPU semantics only; HIP runtime loading, real GPU execution
 and automatic filesystem routing remain disabled. See [worker design and tests](docs/WORKER_CHANNEL.md).
+
+## Evidence-aware recovery and durable-store development
+
+The CPU-tested recovery policy distinguishes temporary resource pressure,
+unsupported/unavailable configurations, driver/device faults and bad output.
+It uses fresh health evidence, configuration identity, failure history and
+separate recovery qualification. Explicit CPU selection terminally fences late
+GPU replies without a driver call. Normal reads still run only on CPU; the
+actual HIP coordinator remains future work. See [GPU recovery](docs/GPU_RECOVERY.md).
+
+The [resilient-store research and architecture](docs/RESILIENT_STORE_DESIGN.md)
+defines durable acknowledgement, CPU-independent recovery, compression-aware
+transactions and conventional filesystem semantics. It is a researched plan,
+not an implemented power-loss-safe writable store.

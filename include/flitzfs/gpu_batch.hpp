@@ -45,6 +45,10 @@ enum class GpuGateCode {
   invalid_output, task_failed, mismatch, worker_failed
 };
 enum class GpuGateState { idle, waiting, accepted, poisoned };
+// Pure admission calculation; no OS query, allocation or runtime initialization.
+GpuGateCode check_gpu_memory_budget(const GpuMemorySnapshot& snapshot,
+    std::array<std::byte,8> luid, std::uint32_t node_mask,
+    std::uint64_t now_ms, std::uint64_t additional_bytes) noexcept;
 struct GpuAttempt { GpuGateCode code; std::uint64_t generation=0; };
 struct GpuBatchReply {
   std::uint64_t generation=0;
@@ -71,6 +75,10 @@ class GpuResultGate final {
   // cleanup here: it could block. Late results are discarded, not published.
   GpuGateCode expire(std::uint64_t now_ms) noexcept;
   GpuGateCode worker_failed() noexcept;
+  // Immediately select the independently decoded CPU bytes, terminally rejecting
+  // every late candidate. This never waits for or cleans up a GPU/driver.
+  // The caller must still supervise/reap a worker independently.
+  std::span<const std::byte> use_cpu_fallback() noexcept;
   GpuGateState state() const noexcept { return state_; }
   std::span<const std::byte> accepted_bytes() const noexcept;
  private:

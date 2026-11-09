@@ -16,7 +16,10 @@ Default builds and CTest do **not** create a filesystem, start a dispatcher,
 install a driver or mount anything. The separate optional hosted-CI probe below
 performs actual driver-backed synthetic mounts and forced-helper recovery.
 There is no raw-disk access, partitioning, formatting, scheduled task, GPU
-execution or encryption. The owner's Windows PC and AMD GPU have not been used.
+execution or encryption. A bounded CPU-only synthetic run preceded the owner's
+subsequent prohibition on further host disk activity. No GPU, driver-backed
+mount or power-loss experiment ran on that PC. All further disk-based work
+must use disposable hosted machines/VMs; RAM-only host tests are not qualified.
 
 Tests create small, uniquely scoped temporary fixtures and remove only their own
 listed files, not directory trees. The normal hosted Windows callback lane

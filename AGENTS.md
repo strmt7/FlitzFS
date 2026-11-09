@@ -90,3 +90,35 @@ only the same trusted test binary and CPU semantics. Do not call those results
 GPU execution. Keep bounded memory-only frames, one exchange at a time, protected
 local-session objects, successful confirmed child exit before reply copying,
 independent reference comparison, and no automatic runtime retries.
+
+## Owner's current host boundary (9 November 2026)
+
+This later instruction supersedes earlier permission for local CPU testing.
+All further disk-based development, builds, tests, research-tool execution,
+benchmarks and cleanup run ONLY on disposable hosted machines/VMs, never the
+owner's PC. Use remote repository APIs for edits/commits; leave the existing
+local checkout and temporary artifacts untouched. Do not launch local processes
+or install a RAM disk/driver to work around this boundary.
+
+RAM-only host experiments remain unqualified and must not start automatically.
+Even anonymous memory may be paged; do not label a memory-only process as proof
+of zero storage activity. Driver/mount/power-loss/GPU-fault tests stay off-host.
+Use conventional benchmark suites and several relevant comparator filesystems
+near product qualification, with equivalent durability/resource/workload settings.
+Owner-host RAM measurements cannot establish physical-storage durability/speed.
+
+Across requests, the owner requires evidence-aware GPU recovery rather than
+repeated device searches or timeout-only retry. Read docs/GPU_RECOVERY.md.
+A per-request poisoned gate remains terminal; any later candidate uses a new
+gate and qualified evidence with supervisor-confirmed worker quiescence.
+Read docs/RESILIENT_STORE_DESIGN.md before adding writable storage. GPU faults
+must not affect the durable CPU recovery path or acknowledged committed bytes.
+The live runtime/coordinator and transactional writable store remain absent.
+
+The existing shared CocoIndex MCP registration belongs to another repository.
+Do not use it as a FlitzFS receipt or change its registration. Prior searches
+bound FlitzFS through the reviewed adapter and verified source receipts. Restore
+an off-host reviewed provider before NEW broad searches; exact known scopes
+remain appropriate for direct source/API reads. The prior Crawl4AI captures
+remain evidence; new page research needs an admitted off-host provider rather
+than running the host crawler or substituting search snippets.
