@@ -54,6 +54,8 @@ ReadOnlyProjection ReadOnlyProjection::open_native_file(const std::filesystem::p
   auto objects=ObjectStoreSnapshot::open_file(image);const auto bytes=objects.source_bytes();
   auto native=NativeFilesystemSnapshot::open(std::move(objects));
   if(native.identity()!=expected)throw std::invalid_argument("native projection volume identity mismatch");
+  if(native.needs_session_recovery())
+    throw std::invalid_argument("native projection requires closed-session file-lifetime recovery");
   // Snapshot open checked all records/references. Retained sharing denies
   // ordinary writer/delete handles; every read still verifies immutable hashes.
   return ReadOnlyProjection(std::make_unique<Impl>(std::move(native),bytes));

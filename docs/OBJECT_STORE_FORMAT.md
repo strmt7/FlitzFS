@@ -337,3 +337,11 @@ transaction/publication path without record, root, manifest, namespace or codec
 changes. The historical NativeFileMutation and NativeFsCommit layouts remain
 unchanged; append/constrained selection and accepted-count results are separate
 in-memory APIs. No new stored format or product version is introduced.
+
+
+The explicit native file-lifetime capability (NATIVE_FILE_LIFETIME.md) uses
+FLTXNS02/namespace field 2 inside object 1 and requires replicated current
+checkpoints. It does not change object/root/record/codec bytes or limits.
+Detached inode payloads remain live objects and count against the existing
+decoded/object budgets until qualified explicit retirement. Legacy namespace
+field 1 remains supported; older namespace-only readers reject the new magic.

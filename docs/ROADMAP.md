@@ -250,3 +250,11 @@ NATIVE_INODE_IO.md tracks the exact contract and configured failure tests.
 The next writable integration still needs open/unlinked-inode lifetime,
 persistent delete-intent cancellation, Windows metadata/sharing and flush
 semantics before callbacks can replace their current write-protected behavior.
+
+
+Persistent native lifetime primitives now separate delete intent/cancellation,
+retained detachment and explicit retirement. NATIVE_FILE_LIFETIME.md defines
+the opt-in namespace capability, closed-session recovery contract and fault
+checks. The owning Windows handle table/counts/dispositions and actual context
+retirement proof are still required before writable callbacks. A library
+precondition is not a substitute for that lifecycle evidence.

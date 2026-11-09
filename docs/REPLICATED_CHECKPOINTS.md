@@ -130,3 +130,12 @@ whole-device loss, writable mount/application, GPU-runtime or background-load
 qualification. File payload replicas, verified reconstruction, independent
 failure domains, automatic handoff/reclamation and low-priority learning-driven
 maintenance remain unfinished.
+
+
+Native file-lifetime transitions use this SAME publication path. Namespace
+FLTXNS02 requires replicated current checkpoints and rejects a digest-valid
+downgrade to historical single publication. Pending/detached state remains
+fully CPU-readable, but ordinary native resume refuses it until the caller
+selects separately qualified closed-session recovery. That recovery cannot
+infer old context retirement from root generation or elapsed time. See
+NATIVE_FILE_LIFETIME.md.

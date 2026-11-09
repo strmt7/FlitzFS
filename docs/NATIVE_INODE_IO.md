@@ -20,15 +20,15 @@ integrity verification as their path-based counterparts. A missing ID,
 including zero, is not_found. Directory enumeration remains case-key ordered.
 
 An older snapshot can still read an inode deleted from a later namespace.
-The current writer rejects a missing/deleted inode; it does not resurrect it,
+The current writer rejects a missing/retired inode; it does not resurrect it,
 find an older pathname or redirect to a new same-name file. IDs are scoped to
 the containing volume/snapshot. They are not globally authenticated handles.
 
 ## Atomic writes and accepted counts
 
 NativeFilesystemWriter::write_inode accepts a live inode, offset, byte span and
-NativeInodeWriteOptions. Its single-control-thread call resolves the inode's
-current display path internally and delegates to the existing apply staging and
+NativeInodeWriteOptions. Its single-control-thread call selects the inode's
+current state directly in the existing transaction staging and
 replicated publication. No caller callback or external namespace operation
 intervenes between selection and commit. This is reuse of the native engine,
 not a second transaction or codec implementation.
@@ -83,15 +83,16 @@ CanDelete/SetDelete must not directly delete; delete-on-close bypasses those
 callbacks. These are binding integration requirements, not properties proved
 by this new engine API.
 
-This implementation supplies live-inode selection and durable range mutation.
-It does NOT yet retain an unlinked inode until final Close, persist delete
-intent/cancellation or Windows ACLs/times, implement share/byte-range locking,
-advertise allocation reservations, or connect writable callbacks. Mounted writes
-remain absent. Implementing those mechanisms remains necessary for the full
-filesystem; a native inode helper is not a substitute for them.
+The later lifecycle capability supplies persistent intent/cancellation and
+detached data retention as CPU primitives. The owning Windows engine still must
+track actual open contexts, establish final Close, aggregate dispositions and
+persist Windows ACLs/times; share/byte-range locking, truthful allocation and
+writable callbacks remain unfinished. Mounted writes remain absent. See
+NATIVE_FILE_LIFETIME.md for the explicit recovery/retirement preconditions.
 
-No record, namespace encoding, root publication, codec or historical mutation/
-commit structure layout changes. Existing path mutation and snapshot behavior
+The original inode I/O addition changed no encoding or historical mutation/commit
+layout. The later explicit lifecycle capability is specified separately in
+NATIVE_FILE_LIFETIME.md; ordinary format-1 bytes remain supported. Existing path mutation and snapshot behavior
 remains regression coverage. The immutable write-reuse baseline test remains
 unchanged and uses the original source-compatible types.
 
@@ -115,3 +116,10 @@ recovery, CPU/reference/sanitizer, relocated binary and read-only mount lanes
 remain required. New checks are configured until exact-commit CI is inspected.
 RAM/process interruption is distinct from physical power-cut and writable
 Windows application qualification. No owner-host execution is authorized.
+
+
+Persistent intent and detached-inode state now have CPU transaction primitives
+in NATIVE_FILE_LIFETIME.md. A detached inode remains live/addressable until
+explicit retirement and can receive inode writes without a surrogate path.
+An actually retired ID still fails rather than selecting a replacement.
+These primitives do not supply the future Windows handle ownership/count proof.

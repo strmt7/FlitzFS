@@ -298,3 +298,13 @@ enable a mount, GPU, service or existing-file write factory. A removed inode
 fails; it never redirects to a reused path. The accepted count is returned only
 after successful publication. The same poison/recovery and hosted-only testing
 rules apply. See NATIVE_INODE_IO.md.
+
+
+Pending deletion and detached inode retention require explicit namespace
+capability FLTXNS02 with replicated current checkpoints. Ordinary native
+resume, read-only projection and compaction reject unresolved state.
+Closed-session completion and detached retirement require independently
+established context retirement by the owning caller; no timer or declared
+boolean proves it. All old snapshots and unrelated committed data must remain
+intact. These CPU primitives do not authorize writable mounts or owner-PC tests.
+See NATIVE_FILE_LIFETIME.md.

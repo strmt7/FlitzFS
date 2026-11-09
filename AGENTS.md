@@ -341,3 +341,21 @@ not publish; nonempty identical writes retain all three barriers and metadata.
 Keep result moves after publication nonthrowing, old snapshots and zeroed tails.
 This is not Windows open/unlinked-inode lifetime, persistent delete intent or
 mounted-write authorization. No owner-PC exception or capacity increase follows.
+
+
+## Persistent native file lifetime
+
+Read docs/NATIVE_FILE_LIFETIME.md before changing delete intent/cancellation,
+detachment, retirement, closed-session admission or FLTXNS02. Preserve legacy
+FLTXNS01 bytes/support, sticky capability, strict flags/magic/graph checks,
+replicated current checkpoints and the SAME three-barrier commit path.
+Pending/detached inodes and data count against all existing aggregate limits.
+Keep inode data addressable after unlink and never invent a surrogate path.
+
+Ordinary resume, read-only projection and native compaction must reject
+unresolved states. resume_closed_session and retire_inode require the owning
+caller's independent proof that old file contexts have retired; the declaration
+is not driver/handle attestation. No mounted write, existing-file writer factory,
+open-context proof, owner-PC operation or Windows app completeness follows.
+The future engine must encapsulate raw pathname mutations, own per-open counts/
+dispositions and retain contexts through paging I/O until Close.
