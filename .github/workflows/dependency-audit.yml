@@ -1,4 +1,4 @@
-name: Official dependency and Dependabot inventory
+name: Official dependency release inventory
 on:
   push:
     branches: [main]
@@ -9,7 +9,6 @@ on:
       - 'third_party/**'
 permissions:
   contents: read
-  security-events: read
 jobs:
   native-api-audit:
     runs-on: ubuntu-24.04
@@ -18,7 +17,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Capture exact release identities and open-alert pages
+      - name: Capture exact release identities and installed tools
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 tools/ci/dependency_audit.py --output "${{ runner.temp }}/flitzfs-dependency-audit"
