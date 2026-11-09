@@ -53,8 +53,9 @@ owned supervisor. CPU gate selection can proceed while the exact helper is
 still live, and cancellation/retirement remain off that selection path.
 Replacement transport admission requires both exact-child and supervisor-thread
 retirement. See WORKER_CHANNEL.md for the single-slot and failure contract.
-Production integration with this recovery policy, trusted runtime/discovery
-evidence and an actual HIP worker is still unfinished. Per-request gates stay
+The explicit GpuWorkerController now connects this policy to asynchronous
+transport, CPU selection and exact retirement; see GPU_WORKER_CONTROLLER.md.
+Trusted runtime/discovery evidence and an actual HIP worker remain unfinished. Per-request gates stay
 terminal; a later qualified request creates a NEW gate, never reuses poison.
 
 Runtime loading, driver recovery evidence, hardware tests, production routing

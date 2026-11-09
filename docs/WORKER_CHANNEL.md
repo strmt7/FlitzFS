@@ -235,3 +235,14 @@ also reaps its confirmed coordinator thread-observation handle immediately;
 asynchronous ownership still persists until exact retirement. The diagnostic
 mode is hosted-only and runs in a SEPARATE process from the transport test.
 Exact corrected-commit results remain required before qualification.
+
+## Recovery policy connected to explicit requests
+
+GpuWorkerController now composes this transport with GpuRecoveryPolicy and a
+fresh result gate per admitted attempt. CPU selection remains independent of
+cancellation; exact child/thread retirement releases the corresponding policy
+ticket. A new CPU request can proceed while an older helper retires, while
+another worker remains forbidden. GPU_WORKER_CONTROLLER.md specifies terminal
+selection, failure classification, bounded ownership and external trust
+prerequisites. Hosted tests still run CPU helpers only; real HIP dispatch,
+qualified discovery/provisioning and normal filesystem routing remain absent.

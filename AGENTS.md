@@ -257,3 +257,11 @@ original-record reuse before allocating IDs, independently verify possible
 reversions, and keep truncate tails zero. Maintain the 63-buffer cap and bounded
 single-extent comparison scratch. A failed reuse read must fence before writes;
 do not turn payload elision into weaker durability or cross-inode deduplication.
+
+Read docs/GPU_WORKER_CONTROLLER.md before changing integrated worker requests.
+Keep policy history across requests, expected-backend/configuration trust,
+independent CPU comparison, one-time outcomes and exact child/thread retirement.
+A denied/current CPU request must not wait for an older helper; external health
+must never override actual transport ownership. CPU selection itself performs
+no cancellation, OS query or driver call. Do not classify a timeout as repaired
+hardware or count CPU-helper tests as live HIP/installer/filesystem integration.

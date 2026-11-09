@@ -179,3 +179,14 @@ existing limits. NATIVE_FILESYSTEM.md specifies the bounded comparison cost and
 fault/regression checks. This reduces one source of encoding/write amplification;
 it does not establish a throughput advantage over other filesystems or implement
 background learning, writable mounts, production capacity or GPU dispatch.
+
+## Explicit worker requests connected to recovery policy
+
+GpuWorkerController now joins policy admission, asynchronous transport, immutable
+gate validation, terminal CPU fallback and exact retirement. The integration
+bounds one pending helper, permits subsequent CPU work during retirement, and
+retains configuration quarantine/hysteresis across requests. Windows CPU-helper
+tests exercise the integrated lifecycle and keep the strict handle baseline.
+This advances supervised request orchestration; real HIP dispatch, trusted
+package/discovery evidence, measured routing, automatic installer and actual
+filesystem GPU operation remain separate incomplete gates.

@@ -1,4 +1,5 @@
 #include "worker_exchange.hpp"
+#include "gpu_worker_controller.hpp"
 #include "extent_codec_fixture.hpp"
 #include "gpu/decode_kernel.hpp"
 #include <windows.h>
@@ -202,6 +203,141 @@ GpuMemorySnapshot synthetic_memory(std::array<std::byte,8> luid) {
   memory.local_usage=16ULL*1024*1024;memory.valid=memory.amd_hardware=true;
   return memory; // Explicit test evidence. No real adapter telemetry is queried.
 }
+
+GpuHealthEvidence coordinated_health(std::uint64_t sequence,std::uint64_t time,unsigned config=1) {
+  GpuHealthEvidence e;e.configuration[0]=static_cast<std::byte>(config);
+  e.sequence=sequence;e.compatible=e.supervisor_quiescent=true;
+  std::array<std::byte,8> luid{};luid[0]=std::byte{1};
+  e.memory=synthetic_memory(luid);e.memory.captured_ms=time;return e;
+}
+PreparedGpuBatch coordinated_fill(unsigned fill) {
+  const GpuBlockView view{1,static_cast<std::uint8_t>(fill),4097,{}};
+  return PreparedGpuBatch::prepare({&view,1});
+}
+void coordinated_requests(const std::filesystem::path& executable) {
+  const auto missing=executable.parent_path()/L"missing-flitzfs-worker.exe";
+  const auto health=coordinated_health(1,100);
+  const auto after=coordinated_health(2,101).memory;
+  const auto expected_batch=mixed();
+  const Bytes expected(expected_batch.cpu_reference().begin(),expected_batch.cpu_reference().end());
+  auto selected=[&](GpuWorkerController& controller) {
+    check(Bytes(controller.selected_bytes().begin(),controller.selected_bytes().end())==expected,
+        "coordinated selected bytes differ from independent CPU reference");
+  };
+  {
+    GpuWorkerController controller(WorkerExecution::cpu_semantics);
+    auto batch=mixed();
+    const auto disabled=controller.begin(std::move(batch),missing,{L"ok"},false,true,health,100);
+    check(!disabled.submitted && disabled.route.reason==GpuRouteReason::disabled &&
+        controller.state()==GpuWorkerState::cpu_selected && !controller.process_id(),"disabled coordinator launched a helper");
+    selected(controller);
+    auto no_work=mixed();
+    const auto unqualified=controller.begin(std::move(no_work),missing,{L"ok"},true,false,health,100);
+    check(!unqualified.submitted && unqualified.route.reason==GpuRouteReason::unqualified &&
+        controller.consecutive_failures()==0,"unqualified workload altered worker history");
+    selected(controller);
+  }
+  {
+    GpuWorkerController controller(WorkerExecution::cpu_semantics);auto batch=mixed();
+    check(controller.begin(std::move(batch),executable,{L"ok"},true,true,health,100).submitted,
+        "coordinated success was not submitted");
+    auto overlap=coordinated_fill(33);
+    const auto size=overlap.cpu_reference().size();
+    check(!controller.begin(std::move(overlap),executable,{L"ok"},true,true,health,100).submitted &&
+        overlap.cpu_reference().size()==size,"overlap consumed input or started another request");
+    eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,"coordinated success did not complete");
+    check(controller.state()==GpuWorkerState::worker_selected &&
+        controller.last_gate_code()==GpuGateCode::accepted,"coordinator accepted no valid worker bytes");
+    selected(controller);
+    check(controller.use_cpu_fallback().size()==expected.size() && controller.state()==GpuWorkerState::worker_selected,
+        "late CPU selection rewrote a terminal worker outcome");
+    eventually([&]{return controller.try_retire();},2000,"coordinated successful supervisor did not retire");
+  }
+  {
+    GpuWorkerController controller(WorkerExecution::cpu_semantics);auto batch=mixed();
+    check(controller.begin(std::move(batch),missing,{L"ok"},true,true,health,100).submitted,
+        "missing-helper failure fixture did not start supervision");
+    eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,"missing coordinated helper did not fail");
+    check(controller.state()==GpuWorkerState::cpu_selected && controller.consecutive_failures()==1,
+        "missing helper failed to select CPU/report once");
+    selected(controller);
+    eventually([&]{return controller.try_retire();},2000,"missing coordinated helper retained retirement");
+    for(unsigned i=0;i<4;++i) {
+      auto fresh=mixed();const auto e=coordinated_health(i+2,i+102);
+      const auto blocked=controller.begin(std::move(fresh),executable,{L"ok"},true,true,e,i+102);
+      check(!blocked.submitted && blocked.route.reason==GpuRouteReason::configuration_blocked &&
+          !controller.process_id() && controller.consecutive_failures()==1,
+          "unchanged unavailable configuration was retried or recounted");
+      selected(controller);
+    }
+  }
+  {
+    GpuWorkerController controller(WorkerExecution::cpu_semantics);auto batch=mixed();
+    check(controller.begin(std::move(batch),executable,{L"bad-bytes"},true,true,health,100).submitted,
+        "integrity fixture not submitted");
+    eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,"coordinated integrity failure not observed");
+    check(controller.state()==GpuWorkerState::cpu_selected &&
+        controller.last_gate_code()==GpuGateCode::invalid_output,"corrupt worker output escaped coordinator");
+    selected(controller);eventually([&]{return controller.try_retire();},2000,"corrupt worker did not retire");
+    auto changed=mixed();const auto other=coordinated_health(2,102,2);
+    check(controller.begin(std::move(changed),executable,{L"ok"},true,true,other,102).submitted,
+        "independently qualified changed configuration remained blocked");
+    eventually([&]{return controller.poll(coordinated_health(3,103,2).memory,103)!=GpuWorkerState::waiting;},
+        3000,"changed configuration did not complete");
+    check(controller.state()==GpuWorkerState::worker_selected,"changed configuration not independently accepted");
+    eventually([&]{return controller.try_retire();},2000,"changed configuration did not retire");
+    auto original=mixed();const auto old=coordinated_health(4,104);
+    const auto blocked=controller.begin(std::move(original),executable,{L"ok"},true,true,old,104);
+    check(!blocked.submitted && blocked.route.reason==GpuRouteReason::configuration_blocked,
+        "A-to-B-to-A forgot corrupt configuration history");
+    selected(controller);
+  }
+  {
+    GpuWorkerController controller(WorkerExecution::cpu_semantics);auto batch=mixed();
+    check(controller.begin(std::move(batch),executable,{L"publish-hang"},true,true,health,100).submitted,
+        "coordinated fallback fixture not submitted");
+    eventually([&]{return controller.process_id()!=0;},2000,"coordinated live helper did not start");
+    HANDLE child=OpenProcess(SYNCHRONIZE,FALSE,controller.process_id());
+    check(child!=nullptr,"coordinated fixture child observation");
+    struct Close {HANDLE value;~Close(){CloseHandle(value);}} close{child};
+    check(WaitForSingleObject(child,0)==WAIT_TIMEOUT,"coordinated helper exited before CPU selection");
+    (void)controller.use_cpu_fallback();selected(controller);
+    check(WaitForSingleObject(child,0)==WAIT_TIMEOUT && controller.consecutive_failures()==1 &&
+        !controller.try_retire(),"coordinated CPU selection waited for teardown or fabricated retirement");
+    auto next=coordinated_fill(91);const Bytes next_cpu(next.cpu_reference().begin(),next.cpu_reference().end());
+    const auto fresh=coordinated_health(2,102);
+    const auto busy=controller.begin(std::move(next),executable,{L"ok"},true,true,fresh,102);
+    check(!busy.submitted && busy.route.reason==GpuRouteReason::worker_busy &&
+        Bytes(controller.selected_bytes().begin(),controller.selected_bytes().end())==next_cpu,
+        "new CPU request waited for retiring worker or used old request bytes");
+    check(controller.consecutive_failures()==1 && controller.request_cancel(),"fallback outcome recounted/cancellation lost");
+    eventually([&]{return controller.try_retire();},3000,"coordinated cancelled helper did not retire");
+    for(unsigned i=0;i<2;++i) {
+      auto retry=mixed();const auto e=coordinated_health(3+i,103+i);
+      check(controller.begin(std::move(retry),executable,{L"ok"},true,true,e,103+i).submitted,
+          "fresh healthy observation after retirement did not allow retry");
+      eventually([&]{return controller.poll(coordinated_health(4+i,104+i).memory,104+i)!=GpuWorkerState::waiting;},
+          3000,"coordinated recovery did not complete");
+      check(controller.state()==GpuWorkerState::worker_selected &&
+          controller.consecutive_failures()==(i?0U:1U),"one success erased flapping history or two failed to clear it");
+      eventually([&]{return controller.try_retire();},2000,"coordinated recovered helper did not retire");
+    }
+  }
+  {
+    GpuWorkerController controller(WorkerExecution::cpu_semantics);auto batch=mixed();
+    check(controller.begin(std::move(batch),executable,{L"publish-hang"},true,true,health,100).submitted,
+        "coordinated expiry fixture not submitted");
+    check(controller.poll(coordinated_health(3,200).memory,200)==GpuWorkerState::cpu_selected &&
+        controller.last_gate_code()==GpuGateCode::expired && controller.consecutive_failures()==1,
+        "coordinated deadline did not select terminal CPU");
+    selected(controller);
+    for(unsigned i=0;i<4;++i)(void)controller.poll(after,101);
+    check(controller.consecutive_failures()==1,"late polling recounted a failed request");
+    eventually([&]{return controller.try_retire();},3000,"expired coordinated helper did not retire");
+  }
+  check(WorkerExchangeSession::available(),"coordinated requests leaked process/thread admission");
+}
+
 void asynchronous_fallback(const std::filesystem::path& executable) {
   std::array<std::byte,8> luid{};luid[0]=std::byte{1};
   GpuResultGate gate(mixed(),luid,1);
@@ -371,6 +507,7 @@ int wmain(int argc,wchar_t** argv){try{
         "supervisor failure was accepted or leaked admission");
   }
   observe(L"async-launch-failure");
+  coordinated_requests(executable);observe(L"coordinated-recovery");
   // Repeated complete transactions must not accumulate process handles or keep
   // either mapping alive. This is not a stress test: four tiny serial requests.
   for(unsigned i=0;i<4;++i) {
