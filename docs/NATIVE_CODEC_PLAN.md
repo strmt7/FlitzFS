@@ -1,3 +1,10 @@
+# Historical experiment — retired from product scope
+
+The archive reader/compatibility track described below has been removed. It
+was outside the owner's filesystem objective. This document records earlier
+work only; current mechanism research is in EXTENT_CODECS.md. Do not restore
+archive commands, archive-backed mounts or archive compatibility requirements.
+
 # Native FLZIP CPU recovery expansion — 7 November 2026
 
 Baseline: FlitzFS c2f882102e047585b08c49136504ad52966369d7.

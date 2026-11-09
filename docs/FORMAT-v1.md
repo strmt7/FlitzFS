@@ -81,9 +81,9 @@ compares each reused-context frame against the original one-shot encoder at
 levels 1 through 5. Hosted comparison additionally requires identical complete
 containers and extracted content; see `CPU_PIPELINE.md` for executed evidence.
 
-## External FLZIP input is a separate format
+## Historical external-format experiment (removed)
 
-The read-only FLZIP adapter described in `FLZIP_READONLY.md` does not change
+The former read-only FLZIP adapter described in `FLZIP_READONLY.md` was removed from product scope. It never changed
 `.flfs` v1 bytes or codec identifiers. Its SUZP/SUZF framing and file-wide CRCs
 are parsed independently, with verification before exposure. Never interpret
 FLZIP as a `.flfs`, ZIP alias, or authenticated container.

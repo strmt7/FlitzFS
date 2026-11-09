@@ -1,5 +1,4 @@
-#include "flzip_native.hpp"
-#include "flitzfs/flzip_reader.hpp"
+#include "extent_codec.hpp"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -9,13 +8,14 @@
 static_assert(LZ4_VERSION_NUMBER >= 10904, "LZ4 1.9.4 or newer is required");
 #endif
 
-// Independent implementation of the FlitzZip 4e6a1bb wire contract. Source and
-// version provenance, interoperability scope and limits: docs/NATIVE_CODEC_PLAN.md.
+// Compression mechanism provenance: FlitzZip 4e6a1bb, independently implemented.
+// Internal extent experiments only; no archive framing, paths or compatibility.
+// Limits and source/reference evidence: docs/EXTENT_CODECS.md.
 namespace flitzfs::detail {
 namespace {
 using Input = std::span<const std::byte>;
 using Output = std::span<std::byte>;
-[[noreturn]] void invalid(const char* message) { throw FlzipError(FlzipErrorCode::corrupt, message); }
+[[noreturn]] void invalid(const char* message) { throw ExtentCodecError(ExtentCodecErrorCode::corrupt, message); }
 unsigned byte(Input s, std::size_t i) { return std::to_integer<unsigned>(s[i]); }
 std::uint32_t u32(Input s, std::size_t at) {
   if (at>s.size() || s.size()-at<4) invalid("native field is truncated");
@@ -102,7 +102,7 @@ void entropy(unsigned kind, Input input, Output output) {
       }
       value=kind==5?input[rank]:static_cast<std::byte>(rank);
     }
-    // Existing versions permit unused segment padding; CRC validates decoded bytes.
+    // Experimental payloads permit unused segment padding; enclosing records must validate decoded bytes.
   });
 }
 void repeated(Input motif,Output output) {
@@ -129,7 +129,7 @@ void sparse(unsigned kind,Input source,Output output) {
 }
 // Plain stages cannot call the composition dispatcher, so recursion is impossible.
 void plain(unsigned kind,unsigned fill,Input input,Output output) {
-  if (output.empty() || output.size()>kMaxFlzipBlockBytes) invalid("native output exceeds block bounds");
+  if (output.empty() || output.size()>kMaxExtentCodecBytes) invalid("native output exceeds block bounds");
   if (kind==1) {
     if (!input.empty()) invalid("native fill stage has payload");
     std::fill(output.begin(),output.end(),static_cast<std::byte>(fill));return;
@@ -152,7 +152,7 @@ void plain(unsigned kind,unsigned fill,Input input,Output output) {
         if (n!=static_cast<int>(destination.size())) invalid("native dictionary decoding failed");
       });return;
 #else
-      throw FlzipError(FlzipErrorCode::unsupported_codec,"native dictionary requires optional LZ4");
+      throw ExtentCodecError(ExtentCodecErrorCode::unsupported_codec,"native dictionary requires optional LZ4");
 #endif
     default: invalid("unknown native codec");
   }
@@ -166,16 +166,22 @@ void inverse_planes(Input transformed,Output output,unsigned width) {
 }
 } // namespace
 
-bool native_flzip_codec_available(std::uint8_t kind) noexcept {
-  if (kind==3 || kind==4 || kind==5 || kind==7 || (kind>=9 && kind<=13)) return true;
+bool extent_codec_available(std::uint8_t kind) noexcept {
+  if (kind==0 || kind==1 || kind==3 || kind==4 || kind==5 || kind==7 || (kind>=9 && kind<=13)) return true;
 #ifdef FLITZFS_HAS_LZ4
   if (kind==6) return true;
 #endif
   return false;
 }
-void decode_flzip_native(std::uint8_t kind,std::uint8_t fill,Input input,Output output) {
-  if (output.empty() || output.size()>kMaxFlzipBlockBytes || input.size()>=output.size())
-    invalid("native block extent is invalid");
+void decode_extent(std::uint8_t kind,std::uint8_t fill,Input input,Output output) {
+  if (output.empty() || output.size()>kMaxExtentCodecBytes || input.size()>kMaxExtentCodecBytes)
+    invalid("extent codec block exceeds bounds");
+  if (kind==0) {
+    if(fill || input.size()!=output.size()) invalid("raw extent framing");
+    std::copy(input.begin(),input.end(),output.begin());return;
+  }
+  if(kind==1) {plain(kind,fill,input,output);return;}
+  if(fill || input.empty() || input.size()>=output.size()) invalid("compressed extent framing");
   if (plain_kind(kind)) { plain(kind,fill,input,output);return; }
   if (fill || input.size()<4) invalid("native composition header is invalid");
   if (kind==11) {

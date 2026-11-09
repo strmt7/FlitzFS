@@ -1,6 +1,5 @@
 #include "flitzfs/container.hpp"
 #include "flitzfs/catalog_manifest.hpp"
-#include "flitzfs/flzip_reader.hpp"
 
 #include <charconv>
 #include <cstdint>
@@ -15,7 +14,7 @@
 namespace {
 void usage() {
   std::cout <<
-    "FlitzFS CPU core preview v0.3 (NOT a mounted filesystem)\n"
+    "FlitzFS experimental filesystem-image diagnostics (NOT a mounted filesystem)\n"
     "Operations never overwrite, format, partition, delete, or modify input files.\n"
     "This executable has no GPU, encryption, driver-install or mount commands.\n\n"
     "Usage:\n"
@@ -27,11 +26,6 @@ void usage() {
     "  flitzfs catalog-list   <existing.flcatalog> [virtual-directory]\n"
     "  flitzfs catalog-verify <existing.flcatalog>\n"
     "  flitzfs catalog-probe  <existing.flcatalog> <virtual-file> <offset> <length>\n\n"
-    "  flitzfs flzip-list   <existing.flzip> [virtual-directory]\n"
-    "  flitzfs flzip-verify <existing.flzip>\n"
-    "  flitzfs flzip-probe  <existing.flzip> <virtual-file> <offset> <length>\n\n"
-    "FLZIP: CPU subset only; fully CRC-verified snapshot, NOT authenticated.\n"
-    "Limits: 34 MiB archive, 32 MiB decoded collection, 16 files; no GPU execution.\n"
     "Catalog manifests: at most 8 KiB, 16 sibling .flfs files; plaintext, NOT authenticated.\n"
     "Maximum probe length: 4 MiB. Pack chunk size: 4..1024 KiB, power of two.\n"
     "Default pack/extract budget: 256 MiB. Explicit cap: 4096 MiB.\n"
@@ -65,29 +59,6 @@ int main(int argc, char** argv) {
       return 0;
     }
     const auto command = std::string_view(argv[1]);
-    if (command == "flzip-list" && (argc == 3 || argc == 4)) {
-      auto reader = flitzfs::FlzipReader::open(argv[2]);
-      for (const auto& entry : reader.list(argc == 4 ? argv[3] : ""))
-        std::cout << (entry.directory ? "directory" : "file") << '\t'
-                  << entry.logical_bytes << '\t' << entry.path << '\n';
-      std::cout << "Snapshot fully CRC-verified before listing; NOT authenticated.\n";
-      return 0;
-    }
-    if (command == "flzip-verify" && argc == 3) {
-      const auto reader = flitzfs::FlzipReader::open(argv[2]);
-      std::cout << "FLZIP CPU subset verified: " << reader.info().files << " files, "
-                << reader.info().logical_bytes << " logical bytes; NOT authenticated.\n";
-      return 0;
-    }
-    if (command == "flzip-probe" && argc == 6) {
-      const auto offset = parse_u64(argv[4]);
-      const auto size = parse_u64(argv[5]);
-      if (size > flitzfs::kMaxSingleReadBytes) throw std::runtime_error("probe length exceeds 4 MiB");
-      auto reader = flitzfs::FlzipReader::open(argv[2]);
-      const auto bytes = reader.read(argv[3], offset, static_cast<std::uint32_t>(size));
-      std::cout << "Read " << bytes.size() << " bytes from CRC-verified FLZIP snapshot.\n";
-      return 0;
-    }
     if (command == "catalog-list" && (argc == 3 || argc == 4)) {
       auto catalog = flitzfs::load_catalog_manifest(argv[2]);
       for (const auto& entry : catalog.list(argc == 4 ? argv[3] : ""))

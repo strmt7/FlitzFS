@@ -178,3 +178,11 @@ rather than silently selecting older contents. BLAKE3 is unkeyed integrity,
 not authentication or malicious-tamper protection. There is no writable mount,
 existing-store writable reopen or sole-copy safety qualification. File tests
 must run on disposable hosted VMs; owner-PC storage remains untouched.
+
+## Filesystem scope
+
+The former archive reader and archive-backed catalog/projection/mount route
+have been removed. Historical archive qualification is not current product
+coverage or a development requirement. Internal compression mechanisms remain
+bounded CPU components with separately tested GPU preparation; they do not
+imply an archive product or GPU runtime availability.

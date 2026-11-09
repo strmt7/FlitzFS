@@ -34,14 +34,11 @@ constexpr std::uint64_t kMaxCatalogVerificationBytes = 256ULL * 1024ULL * 1024UL
 // Pure namespace validation/case key; never resolves an OS path.
 std::string canonical_catalog_path(std::string_view path, bool allow_root = false);
 
-class FlzipReader;
 class ReadOnlyCatalog final {
  public:
   // Validate namespace/count collisions without opening any backing file.
   static void validate_layout(const std::vector<CatalogSource>& files);
   static ReadOnlyCatalog create(const std::vector<CatalogSource>& files);
-  // Separate, verified immutable FLZIP route; does not change .flcatalog grammar.
-  static ReadOnlyCatalog open_flzip(const std::filesystem::path& archive);
   ReadOnlyCatalog(const ReadOnlyCatalog&) = delete;
   ReadOnlyCatalog& operator=(const ReadOnlyCatalog&) = delete;
   ReadOnlyCatalog(ReadOnlyCatalog&&) noexcept = default;
@@ -56,7 +53,7 @@ class ReadOnlyCatalog final {
 
   // Explicitly verifies every byte of every backing container, with a hard
   // TOTAL logical-byte admission budget checked before any decoding begins.
-  // This API does not modify archives or write data.
+  // This API does not modify backing files or write data.
   void verify_all(std::uint64_t max_total_logical_bytes = kDefaultCatalogVerificationBytes);
 
  private:
@@ -68,8 +65,6 @@ class ReadOnlyCatalog final {
   static ReadOnlyCatalog namespace_for(const std::vector<CatalogSource>& files);
   ReadOnlyCatalog() = default;
   std::map<std::string, Node> nodes_;
-  std::shared_ptr<FlzipReader> flzip_;
-  std::unique_ptr<std::mutex> flzip_guard_;
 };
 
 }  // namespace flitzfs

@@ -1,31 +1,26 @@
-name: Pinned FlitzZip serialization and native decoding
+name: Pinned compression-mechanism reference checks
 on:
   push:
     branches: [main]
 permissions:
   contents: read
 jobs:
-  serializer-oracle:
+  extent-reference:
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - name: Check out reviewed FlitzZip reference without running its build scripts
+      - name: Verify filesystem product scope
+        run: python tools/ci/verify_filesystem_scope.py
+      - name: Check out pinned mechanism source for test comparison only
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: strmt7/FlitzZip
           ref: 4e6a1bb0d144611a09dcbc65276faa676e923882
           path: .ci-deps/flitzzip
           sparse-checkout: src/core
-          persist-credentials: false
-      - name: Check out pinned zlib security-fix release
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          repository: madler/zlib
-          ref: 99623ef7097352da7993ba614161fd6a311e046e # v1.4
-          path: .ci-deps/zlib
           persist-credentials: false
       - name: Check out pinned LZ4 native dictionary decoder
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -36,8 +31,6 @@ jobs:
           persist-credentials: false
       - name: Install CPU Zstandard development library
         run: sudo apt-get update && sudo apt-get install -y libzstd-dev
-      - name: Build pinned zlib without installing it
-        run: bash tools/ci/build_pinned_zlib.sh
       - name: Build pinned LZ4 without installing it
         shell: bash
         run: |
@@ -45,16 +38,14 @@ jobs:
           cmake -S .ci-deps/lz4/build/cmake -B .ci-deps/lz4-build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DLZ4_BUILD_CLI=OFF -DLZ4_BUILD_LEGACY_LZ4C=OFF -DLZ4_BUILD_MULTITHREAD=OFF -DLZ4_STATIC_MULTITHREAD=OFF -DLZ4_BUNDLED_MODE=ON
           cmake --build .ci-deps/lz4-build --target lz4_static --parallel 2
           test -f .ci-deps/lz4-build/liblz4.a
-      - name: Configure test-only upstream serialization and decoder oracles
+      - name: Configure test-only extent decoder reference
         run: >-
           cmake -S . -B build-oracle -DCMAKE_BUILD_TYPE=Release
-          -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_ZLIB=ON -DFLITZFS_REQUIRE_LZ4=ON
+          -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
           -DFLITZFS_LZ4_INCLUDE=${{ github.workspace }}/.ci-deps/lz4/lib
           -DFLITZFS_LZ4_LIBRARY=${{ github.workspace }}/.ci-deps/lz4-build/liblz4.a
-          -DZLIB_INCLUDE_DIR=${{ github.workspace }}/.ci-deps/zlib-build/flitzfs-headers
-          -DZLIB_LIBRARY_RELEASE=${{ github.workspace }}/.ci-deps/zlib-build/libz.a
-          -DFLITZFS_FLITZZIP_SOURCE=${{ github.workspace }}/.ci-deps/flitzzip
+          -DFLITZFS_EXTENT_REFERENCE_SOURCE=${{ github.workspace }}/.ci-deps/flitzzip
       - name: Build with at most two workers
         run: cmake --build build-oracle --parallel 2
-      - name: Verify reference decoding, serialization and all portable tests
+      - name: Verify compression mechanisms and portable filesystem tests
         run: ctest --test-dir build-oracle --output-on-failure --timeout 45 --parallel 1
