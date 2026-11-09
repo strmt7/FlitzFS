@@ -1,0 +1,127 @@
+# Qualified backend resume and hosted process interruption
+
+Experimental storage-core work, not a writable mounted filesystem. No owner-PC
+process, existing user file, raw device, driver or GPU operation is authorized.
+Public ordinary-file factories remain NEW-file-only. The new resume operation
+takes a custom, externally qualified, exclusively owned StoreByteIo backend.
+An internal ordinary-file reopening adapter exists ONLY for hosted owned-fixture
+tests and checks the hosted environment before opening anything.
+
+## Writer ownership and explicit recovery lease
+
+StoreByteIo holds a per-instance atomic writer lease. Creation and resume acquire
+it before backing inspection. A second writer on the same instance fails without
+I/O. Moving a writer transfers ownership. Errors during initialization/resume
+release the lease through destruction; a poisoned returned writer keeps it until
+its lifetime ends. This prevents bypassing terminal failure by constructing a
+second writer while the first still exists.
+
+This is not a global inode lock or a security boundary. Custom backend owners
+must exclude other facades/processes and serialize operations. The file adapter
+uses Windows share-mode-zero handles and POSIX nonblocking exclusive flock.
+POSIX locks are advisory; unrelated noncooperating writers and hostile directory
+mutations remain outside the ownership contract. File adapters reject final
+links/reparse points, multiple hard links, nonregular files and excess extents.
+One control thread remains required; snapshots do not make arbitrary concurrent
+mutation safe.
+
+Resume requires a nonzero expected store identity and an exact recovered
+generation. It validates the backend contract, every root/manifest reference,
+all reachable stored/decoded content and resource headroom before mutation.
+Wrong identity/generation, unknown contract, corrupt latest dependencies and
+unavailable recovery codecs fail. Integrity is unkeyed, not authentication or
+rollback protection against an attacker.
+
+## Preserving uncertain append tails
+
+A failed writer may leave bytes after the last valid root's committed end.
+Resume never truncates those bytes or reuses their failure units. Its append
+floor is the backend's physical extent rounded UP to 64 KiB, and subsequent
+transactions begin there. Uncertain tails and their alignment consume capacity.
+The 64 MiB physical-history cap remains; there is no in-place compaction or
+implicit deletion. Existing snapshots retain immutable historical references.
+
+A complete root may have been visible before its failed final flush. A clean
+resume fences the fully verified selected baseline with a successful flush
+before returning a writer. A flush failure returns no writer. The original
+failed commit's outcome remains indeterminate until independently inspected.
+
+## Missing-root repair
+
+One valid root allows read-only recovery but must be repaired before granting a
+resumed writer. All plan allocations/admission precede repair writes.
+
+- At generation zero, either initial slot may survive. Flush the baseline, copy
+  the canonical initial root into the MISSING slot, then flush. Never overwrite
+  the sole surviving root. Both generation-zero roots may legitimately agree.
+- For a positive generation, preserve the surviving root. Append a new manifest
+  with the SAME logical objects at the aligned append floor, flush dependencies,
+  publish generation plus one in the peer root, then flush. Repair advances
+  metadata generation without changing object contents or object generations.
+- Reparse both roots and verify all reachable content before returning a writer.
+  Reject exhausted generations or insufficient repair reserve. Failure may leave
+  a complete repaired generation; independent recovery must inspect it.
+
+Under the declared flush/failure-unit contract, interruption preserves the
+surviving acknowledged baseline or a complete repair. No latest corrupt
+dependency is silently rolled back. Arbitrary media damage, dishonest device
+flushes, power failures beyond the admitted failure domain and loss of both
+roots cannot be repaired by this protocol alone.
+
+## Test layers
+
+The RAM suite exercises ownership/moves/poison retention, stale lease rejection,
+unaligned orphan preservation, both initial survivor slots, positive-generation
+repair and a retry after EVERY observed repair write/flush failure. Prefix
+persistence, whole-unit damage and post-flush errors are injected. Rejected
+resume attempts must neither flush nor change bytes.
+
+Hosted ordinary-file tests cover valid continuation, independent CPU reopen,
+old snapshots, OS writer exclusion, link/missing/non-store rejection and
+no-clobber creation. The existing-file adapter has no public product factory or
+CLI/mount route. It is available only through the internal hosted test interface.
+
+The separate Native store process-interruption recovery workflow builds a
+source-pinned CPU probe on disposable Linux and Windows VMs. The Python owner
+creates an exclusive temporary parent and nonce marker. The child accepts only
+that parent/token and the fixed image.fltx leaf. An unrelated sentinel must stay
+unchanged. Cleanup removes individually recorded fixture names, nonrecursively,
+only after confirmed child exit.
+
+The child admits process limits BEFORE corpus or file work. Windows uses a
+768 MiB memory/one-process/20-percent-CPU Job Object; this quota leaves room for
+the ordinary-file adapter's conservative physical/commit headroom checks.
+POSIX uses 512 MiB address space, 15 seconds CPU, no core dump and 2 MiB maximum
+file size. Each child is wall-bounded to 15 seconds by the controller, which also
+bounds line bytes, queues, case count (256) and total execution (180 seconds).
+
+For raw and automatic compression, the controller first enumerates a complete
+mutation or root-repair trace. It then repeats each trace, forcibly terminating
+the writer at every numbered boundary, including after acknowledged success.
+A new process verifies an independent input/acknowledgement oracle, performs
+qualified resume, commits a continuation object, and independently reopens it.
+All original objects and the sentinel must retain their expected bytes.
+
+The hook boundaries surround complete StoreByteIo calls. They do not interrupt
+a kernel write halfway through a sector. RAM tearing tests cover separate
+abstract partial-write cases. SIGKILL/TerminateProcess leave the OS and hardware
+running, so these runs do NOT establish physical power-cut durability, Windows
+creation-name durability, writable mount semantics or real GPU failure behavior.
+Inspect the exact commit's workflow/results; do not infer a pass before execution.
+
+## Next filesystem gates
+
+The custom-backend resume is a persistence primitive for a native file/extent
+namespace. Public existing-file write admission, persisted inode/extent semantics,
+capacity/reclamation, writable application/mapped I/O, full physical persistence
+qualification and actual AMD runtime behavior remain required before a product.
+
+The file adapter refreshes size from its opened OS handle, including after
+failed/partial writes. Resume rechecks extent, metadata references and decoded
+content after its baseline flush; a changed fence fails before repair writes.
+This rejects unstable backend state instead of appending from a cached extent.
+
+After interruption, snapshot physical_end names the COMMITTED end. The backing
+may be larger because of orphaned writes; backend extent is authoritative for
+remaining physical capacity. A later commit incorporates that tail into its
+new committed end. Resume does not pretend orphan bytes are free space.

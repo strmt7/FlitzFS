@@ -64,6 +64,8 @@ struct State {
   std::vector<Entry> entries;
   bool degraded=false;
   std::shared_ptr<detail::StoreCodecDecoder> decoder=std::make_shared<detail::StoreCodecDecoder>();
+  std::uint64_t index_offset=0;
+  unsigned selected_slot=0;
 };
 StoreCommitInfo state_info(const State& s) {
   std::uint64_t total=0;for(const auto& e:s.entries) total+=e.bytes;
@@ -125,8 +127,10 @@ State load(std::shared_ptr<StoreByteIo> image) {
     if(high-low>1 || (high==low && high!=0)) fail("inconsistent root generations");
     if(high==0 && (a->index!=b->index || a->end!=b->end || a->digest!=b->digest)) fail("conflicting initial roots");
   }
-  const auto& r=(a && (!b || a->generation>=b->generation)) ? *a : *b;
+  const bool choose_a=a && (!b || a->generation>=b->generation);
+  const auto& r=choose_a ? *a : *b;
   State s{std::move(image),r.id,r.generation,r.end,{},!(a && b)};
+  s.index_offset=r.index;s.selected_slot=choose_a?0U:1U;
   Bytes index(r.index_bytes);s.image->read_exact(r.index,index);
   if(detail::record_digest(index)!=r.digest) fail("latest root has corrupt manifest; refusing silent rollback");
   if(!magic(index,kIndexMagic) || get32(index,8)!=1 || get32(index,12)!=r.count ||
@@ -179,8 +183,19 @@ void write_zeros(StoreByteIo& image,std::uint64_t offset,std::uint64_t end) {
 
 struct ObjectStoreSnapshot::Impl { State state; };
 struct ObjectStoreWriter::Impl {
+  struct Lease {
+    std::shared_ptr<StoreByteIo> image;
+    explicit Lease(std::shared_ptr<StoreByteIo> backing):image(std::move(backing)) {
+      if(!image || !image->acquire_writer()) fail("backend already has a live writer or is missing");
+    }
+    ~Lease(){image->release_writer();}
+    Lease(const Lease&)=delete;
+    Lease& operator=(const Lease&)=delete;
+  };
+  Lease lease;
   State state;bool poisoned=false;detail::StoreCodecEncoder encoder;
-  explicit Impl(StoreCompressionOptions options):encoder(options){}
+  std::uint64_t append_floor=0;
+  Impl(StoreCompressionOptions options,std::shared_ptr<StoreByteIo> image):lease(std::move(image)),encoder(options){}
 };
 ObjectStoreSnapshot::ObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)) {}
 ObjectStoreSnapshot::ObjectStoreSnapshot(ObjectStoreSnapshot&&) noexcept=default;
@@ -216,9 +231,11 @@ void ObjectStoreSnapshot::verify_all() const { if(!impl_) fail("moved-from snaps
 
 ObjectStoreWriter ObjectStoreWriter::create(std::shared_ptr<StoreByteIo> image,StoreIdentity id,StoreCompressionOptions compression) {
   admit_identity(id);detail::validate_store_compression(compression);
-  if(!image || image->extent()!=0) fail("writer requires a new empty exclusive image");
+  auto p=std::make_unique<Impl>(compression,image);
+  if(image->extent()!=0) fail("writer requires a new empty exclusive image");
   admit_contract(image->contract());
-  auto p=std::make_unique<Impl>(compression);p->state={std::move(image),id,0,kDataStart+kStoreCommitUnit,{},false};
+  p->state={std::move(image),id,0,kDataStart+kStoreCommitUnit,{},false};
+  p->state.index_offset=kDataStart;p->append_floor=p->state.end;
   auto& s=p->state;const auto index=manifest(s);
   s.image->admit_write(s.end);
   write_zeros(*s.image,0,kDataStart);
@@ -229,13 +246,77 @@ ObjectStoreWriter ObjectStoreWriter::create(std::shared_ptr<StoreByteIo> image,S
   s.image->flush();
   return ObjectStoreWriter(std::move(p));
 }
+ObjectStoreWriter ObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,StoreIdentity expected_id,
+    std::uint64_t expected_generation,StoreCompressionOptions compression) {
+  admit_identity(expected_id);detail::validate_store_compression(compression);
+  auto p=std::make_unique<Impl>(compression,image);
+  admit_contract(image->contract());
+  auto state=load(image);verify(state);
+  if(state.id!=expected_id || state.generation!=expected_generation) fail("stale recovery identity or generation");
+  const auto observed_extent=image->extent();
+  p->append_floor=aligned(observed_extent);
+  if(p->append_floor>kStoreMaxPhysicalBytes) fail("orphan tail exceeds physical budget");
+  image->admit_write(p->append_floor);
+  auto fence=[&] {
+    image->flush();
+    if(image->extent()!=observed_extent) fail("backend extent changed during recovery fence");
+    auto checked=load(image);verify(checked);
+    bool same=checked.id==state.id && checked.generation==state.generation && checked.end==state.end &&
+        checked.index_offset==state.index_offset && checked.selected_slot==state.selected_slot && checked.degraded==state.degraded &&
+        checked.entries.size()==state.entries.size();
+    if(same)for(std::size_t i=0;i<state.entries.size();++i) {
+      const auto& a=checked.entries[i];const auto& b=state.entries[i];
+      same=same && a.id==b.id && a.generation==b.generation && a.offset==b.offset &&
+          a.bytes==b.bytes && a.stored==b.stored && a.digest==b.digest;
+    }
+    if(!same) fail("backend recovery state changed during fence");
+    state=std::move(checked);
+  };
+  if(!state.degraded) {
+    // A complete latest root may have been visible before its failed final
+    // flush. Adopt it only after fencing all prior backend writes durably.
+    fence();
+    p->state=std::move(state);
+    return ObjectStoreWriter(std::move(p));
+  }
+  if(state.generation==0) {
+    // Either initial slot can be the survivor. Repair the OTHER slot at the
+    // same initial generation; positive-generation parity rules do not apply.
+    const auto missing=1U-state.selected_slot;
+    const auto index=manifest(state);
+    const auto locator=root(state,missing,state.index_offset,index);
+    fence();
+    image->write_exact(missing*kStoreCommitUnit,locator);
+    image->flush();
+  } else {
+    if(state.generation==(std::numeric_limits<std::uint64_t>::max)()) fail("recovery generation exhausted");
+    State next=state;++next.generation;next.degraded=false;
+    next.index_offset=p->append_floor;next.selected_slot=static_cast<unsigned>(next.generation%2);
+    const auto index=manifest(next);
+    next.end=aligned(next.index_offset+index.size());
+    if(next.end>kStoreMaxPhysicalBytes) fail("no reserve to repair recovery root");
+    const auto locator=root(next,next.selected_slot,next.index_offset,index);
+    image->admit_write(next.end);
+    fence(); // Revalidate the surviving baseline before touching its peer.
+    image->write_exact(next.index_offset,index);
+    write_zeros(*image,next.index_offset+index.size(),next.end);
+    image->flush();
+    image->write_exact(next.selected_slot*kStoreCommitUnit,locator);
+    image->flush();
+  }
+  // Re-parse both repaired roots and all references before granting a writer.
+  p->state=load(image);verify(p->state);
+  if(p->state.degraded || p->state.id!=expected_id) fail("recovery repair did not establish a complete root pair");
+  p->append_floor=aligned(image->extent());
+  return ObjectStoreWriter(std::move(p));
+}
 ObjectStoreWriter ObjectStoreWriter::create_file(const std::filesystem::path& path,StoreIdentity id,StoreIoContract c,StoreCompressionOptions compression) {
   admit_identity(id);admit_contract(c);detail::validate_store_compression(compression);
   return create(detail::new_store_file(path,c),id,compression);
 }
 StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes) {
   if(!impl_) fail("moved-from writer");
-  if(impl_->poisoned) fail("writer poisoned; reopen independently read-only");
+  if(impl_->poisoned) fail("writer poisoned; destroy it before independent recovery");
   if(changes.empty() || changes.size()>kStoreMaxObjects) fail("mutation count must be 1..16");
   std::uint64_t input_bytes=0;
   for(std::size_t i=0;i<changes.size();++i) {
@@ -247,11 +328,11 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
   }
   const auto& old=impl_->state;
   if(old.generation==(std::numeric_limits<std::uint64_t>::max)()) fail("generation exhausted");
-  old.image->admit_write(old.end); // Admit headroom before private copies or codec work.
+  old.image->admit_write(impl_->append_floor); // Admit headroom before private copies or codec work.
   State next=old;next.generation++;next.degraded=false;
   struct Prepared {std::uint64_t offset;std::array<std::byte,kDataHeader> header;Bytes data;};
   std::vector<Prepared> prepared;prepared.reserve(changes.size());
-  auto cursor=old.end;
+  auto cursor=impl_->append_floor;
   // Private copies and every admission check precede the first backing write.
   for(const auto& m:changes) {
     auto it=std::lower_bound(next.entries.begin(),next.entries.end(),m.id,[](const Entry& e,auto key){return e.id<key;});
@@ -274,7 +355,8 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
   }
   if(next.entries.size()>kStoreMaxObjects) fail("object-count budget");
   const auto index=manifest(next);
-  const auto index_offset=cursor;
+  const auto index_offset=cursor;next.index_offset=index_offset;
+  next.selected_slot=static_cast<unsigned>(next.generation%2);
   next.end=aligned(cursor+index.size());
   if(next.end>kStoreMaxPhysicalBytes) fail("physical history budget; compaction not implemented");
   const auto locator=root(next,static_cast<unsigned>(next.generation%2),index_offset,index);
@@ -290,7 +372,7 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
     next.image->write_exact((next.generation%2)*kStoreCommitUnit,locator);
     next.image->flush(); // Acknowledge ONLY after publication durability.
   } catch(...) {impl_->poisoned=true;throw;}
-  impl_->state=std::move(next);
+  impl_->state=std::move(next);impl_->append_floor=impl_->state.end;
   return state_info(impl_->state);
 }
 ObjectStoreSnapshot ObjectStoreWriter::snapshot() const {

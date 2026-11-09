@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -37,6 +38,14 @@ class StoreByteIo {
   // Read-only resource preflight; throws before writes on unknown/low headroom.
   virtual void admit_write(std::uint64_t projected_extent)=0;
   virtual StoreIoContract contract() const noexcept=0;
+ private:
+  friend class ObjectStoreWriter;
+  bool acquire_writer() noexcept {
+    bool expected=false;
+    return writer_owned_.compare_exchange_strong(expected,true,std::memory_order_acquire,std::memory_order_relaxed);
+  }
+  void release_writer() noexcept {writer_owned_.store(false,std::memory_order_release);}
+  std::atomic<bool> writer_owned_{false};
 };
 
 enum class StoreCompressionMode { raw,automatic };
@@ -88,9 +97,16 @@ class ObjectStoreSnapshot final {
 
 class ObjectStoreWriter final {
  public:
-  // Only an empty, exclusively owned backend. There is no reopen-existing-write API.
+  // Only an empty, exclusively owned backend. This path never replaces an image.
   static ObjectStoreWriter create(std::shared_ptr<StoreByteIo> empty_image,StoreIdentity id,
       StoreCompressionOptions compression={});
+  // Resume a qualified EXCLUSIVE custom backend after full CPU verification.
+  // Identity and recovered generation are explicit leases, checked before I/O.
+  // Persist recovery baseline, repair a missing root, and append beyond orphans.
+  // Destroy the previous writer first; a poisoned writer retains its lease.
+  // No ordinary-file resume factory or CLI/mount route is enabled.
+  static ObjectStoreWriter resume(std::shared_ptr<StoreByteIo> image,StoreIdentity expected_identity,
+      std::uint64_t expected_generation,StoreCompressionOptions compression={});
   // New ordinary file only; never replaces a path or deletes a partial new file.
   // Contract is explicit: this API does NOT qualify a physical device.
   static ObjectStoreWriter create_file(const std::filesystem::path& path,

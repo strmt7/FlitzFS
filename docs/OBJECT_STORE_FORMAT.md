@@ -14,7 +14,9 @@ capacity or a production format commitment.
 include/flitzfs/object_store.hpp exposes StoreByteIo, ObjectStoreWriter and
 ObjectStoreSnapshot. The writer can initialize only an empty exclusively owned
 backend or create a new ordinary file with OS-enforced exclusive creation.
-There is no API to reopen an existing image writable. Creation never replaces
+Custom qualified backends can now resume with explicit identity/generation
+leases; public ordinary-file factories remain new-file-only. See
+STORE_RESUME_AND_INTERRUPTION.md for the ownership, orphan and repair protocol. Creation never replaces
 an existing path; failure may leave a partial NEW output for inspection.
 
 Use one control thread. Do not race the writer, snapshots, caller mutation
@@ -30,13 +32,13 @@ namespace has at most 16 objects (16 MiB logical maximum). Inputs are privately
 copied and validated before backing writes. Erasing a missing ID is an error.
 A snapshot preserves its generation and old immutable record references;
 updates do not replace bytes referenced by an earlier snapshot. No reclaim,
-compaction, overwrite-existing reopening, filesystem names or ACLs exist yet.
+compaction, public ordinary-file writable reopen, filesystem names or ACLs exist yet.
 
 The physical history is capped at 64 MiB. Full history, invalid arguments and
 resource admission failures reject before writes and leave a writer usable.
 Exceptions from actual writes/flushes permanently poison the writer. The
 outcome of a failed commit is indeterminate: a complete new transaction may
-already have persisted. Never retry that writer. Inspect with an independent
+already have persisted. Never retry that writer or bypass its live lease. Destroy it and inspect with an independent
 read-only open; its generation may be newer than the last acknowledgement.
 A snapshot from a poisoned writer retains the last acknowledged references,
 verifies their bytes and reports degraded_root. It is not a new acknowledgement.
@@ -270,3 +272,10 @@ The first comparison's measured CPU costs and the subsequent bounded bulk-patter
 optimization are recorded in NATIVE_STORE_MEASUREMENTS.md. The follow-up compares
 against both the raw engine and the pinned pre-optimization compressed engine on
 the same VM; physical image end and active payload remain separate metrics.
+
+## Qualified resume development
+
+STORE_RESUME_AND_INTERRUPTION.md specifies the new exclusive custom-backend
+resume, aligned orphan preservation, root-pair repair and hosted forced-process
+interruption gates. The ordinary-file resume adapter is internal and hosted-test
+only; default file/CLI/mount behavior remains new-file-only or read-only.

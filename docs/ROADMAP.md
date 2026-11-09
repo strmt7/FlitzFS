@@ -106,3 +106,12 @@ raw-mode bytes and keeps codec failure outside the I/O-poisoned state. This
 advances M6 storage primitives; native file/extent namespace, writable reopen,
 reclaim and mounted mutation semantics remain required. The hosted comparison
 is RAM-backed native-engine evidence, not cross-filesystem qualification.
+
+## Continued persistent storage
+
+Exclusive custom-backend resume, uncertain-tail preservation and missing-root
+repair advance the transactional persistence foundation. The new hosted process
+interruption gate must verify acknowledged history and successful continuation
+on Windows and Linux before public existing-file admission or writable namespace
+integration. The file adapter's existing-image mode remains internal, hosted-only
+and confined to uniquely owned fixtures. See STORE_RESUME_AND_INTERRUPTION.md.

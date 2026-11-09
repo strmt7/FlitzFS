@@ -109,7 +109,10 @@ A per-request poisoned gate remains terminal; any later candidate uses a new
 gate and qualified evidence with supervisor-confirmed worker quiescence.
 Read docs/RESILIENT_STORE_DESIGN.md before adding writable storage. GPU faults
 must not affect the durable CPU recovery path or acknowledged committed bytes.
-The live GPU runtime/coordinator and writable mounted store remain absent. The bounded compressed-object transaction core is described in docs/OBJECT_STORE_FORMAT.md; it is not routed into CLI/mount paths. Preserve its no-reopen-existing-write rule, sealed segments, terminal I/O poisoning, explicit backend assumptions and hosted-only file tests.
+The live GPU runtime/coordinator and writable mounted store remain absent. The bounded compressed-object transaction core is described in docs/OBJECT_STORE_FORMAT.md; it is not routed into CLI/mount paths. Preserve its new-file-only public ordinary-file factories, sealed segments,
+terminal I/O poisoning, explicit backend assumptions and hosted-only file tests.
+Qualified custom-backend resume and the internal owned-fixture reopening
+exception are specified in docs/STORE_RESUME_AND_INTERRUPTION.md.
 
 The existing shared CocoIndex MCP registration belongs to another repository.
 Do not use it as a FlitzFS receipt or change its registration. Prior searches
@@ -129,3 +132,13 @@ private CPU round-trip verification before writes, and hard library allocation
 ceilings. Never silently bypass unavailable recovery codecs or roll back a
 corrupt latest dependency. Timed RAM comparisons are not disk/mounted-filesystem
 benchmarks; retain unfavorable results and count metadata/padding/history.
+
+## Owned-image resume qualification exception
+
+Only the internal hosted test adapter may reopen existing ordinary images for
+writes, exclusively inside freshly owned VM fixtures. It must validate the
+hosted environment, OS writer exclusion, regular single-link file identity,
+resource bounds and the core identity/generation lease. No production file
+resume factory, CLI/mount write route or owner-PC permission follows from this
+exception. Retain backend lease lifetime through poison, aligned orphan
+preservation, surviving-root repair and independent acknowledged-history tests.
