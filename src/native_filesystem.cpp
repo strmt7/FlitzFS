@@ -208,25 +208,43 @@ Model decode(const ObjectStoreSnapshot& objects) {
   validate_data(model,[&](auto,auto,std::uint64_t object){return object_bytes(objects,object);});
   return model;
 }
-using Dirty=std::map<std::pair<std::uint64_t,std::uint64_t>,Bytes>;
+struct DirtyExtent {
+  Bytes bytes;
+  std::uint64_t original_object=0;
+  bool modified=false,compare_original=false;
+};
+using Dirty=std::map<std::pair<std::uint64_t,std::uint64_t>,DirtyExtent>;
 struct Stage {
-  Model model;const ObjectStoreSnapshot& base;Dirty dirty;
+  Model model;const Model& original;const ObjectStoreSnapshot& base;Dirty dirty;
   bool changed=false;std::vector<std::uint64_t> created;
-  Stage(const Model& previous,const ObjectStoreSnapshot& objects):model(previous),base(objects) {
+  Stage(const Model& previous,const ObjectStoreSnapshot& objects):model(previous),original(previous),base(objects) {
     if(model.sequence==(std::numeric_limits<std::uint64_t>::max)())fail(Code::limit,"native sequence exhausted");
     ++model.sequence;created.reserve(16);
   }
-  Bytes& block(Node& n,std::uint64_t index) {
+  DirtyExtent& block(Node& n,std::uint64_t index) {
     const auto key=std::pair{n.inode,index};
     if(auto found=dirty.find(key);found!=dirty.end())return found->second;
     if(dirty.size()>=kDirtyCap)fail(Code::limit,"native staging extent budget");
     const auto existing=n.extents.find(index);
     auto bytes=existing==n.extents.end()?Bytes(kNativeExtentBytes):object_bytes(base,existing->second);
     if(bytes.size()!=kNativeExtentBytes)fail(Code::corrupt,"native source extent size");
-    return dirty.emplace(key,std::move(bytes)).first->second;
+    std::uint64_t previous_object=0;
+    if(const auto inode=original.nodes.find(n.inode);inode!=original.nodes.end())
+      if(const auto extent=inode->second.extents.find(index);extent!=inode->second.extents.end())previous_object=extent->second;
+    // A prior zeroing/shrink may have removed this reference in the same batch.
+    const bool compare_original=previous_object && (existing==n.extents.end() || existing->second!=previous_object);
+    return dirty.emplace(key,DirtyExtent{std::move(bytes),previous_object,false,compare_original}).first->second;
+  }
+  static void changing(DirtyExtent& extent) {
+    extent.compare_original=extent.compare_original || extent.modified;
+    extent.modified=true;
+  }
+  void unchanged(const Node& n,std::uint64_t index,const DirtyExtent& extent) {
+    // Preserve earlier changes in this batch; discard only a read-only buffer.
+    if(!extent.modified)dirty.erase({n.inode,index});
   }
   void finish_block(Node& n,std::uint64_t index) {
-    const auto key=std::pair{n.inode,index};auto& bytes=dirty.at(key);
+    const auto key=std::pair{n.inode,index};auto& bytes=dirty.at(key).bytes;
     if(zeros(bytes)){n.extents.erase(index);dirty.erase(key);}
     else n.extents.try_emplace(index,0);
   }
@@ -264,8 +282,14 @@ struct Stage {
         const auto position=op.offset+done,index=position/kNativeExtentBytes;
         const auto within=static_cast<std::size_t>(position%kNativeExtentBytes);
         const auto count=(std::min)(op.data.size()-done,std::size_t(kNativeExtentBytes)-within);
-        auto& bytes=block(n,index);std::copy_n(op.data.begin()+static_cast<std::ptrdiff_t>(done),count,bytes.begin()+static_cast<std::ptrdiff_t>(within));
-        finish_block(n,index);done+=count;
+        auto& extent=block(n,index);
+        const auto first=op.data.begin()+static_cast<std::ptrdiff_t>(done);
+        const auto target=extent.bytes.begin()+static_cast<std::ptrdiff_t>(within);
+        if(std::equal(first,first+static_cast<std::ptrdiff_t>(count),target))unchanged(n,index,extent);
+        else {
+          changing(extent);std::copy_n(first,count,target);finish_block(n,index);
+        }
+        done+=count;
       }
       n.size=(std::max)(n.size,op.offset+op.data.size());n.modified=model.sequence;changed=true;return;
     }
@@ -278,9 +302,14 @@ struct Stage {
         dirty.erase({n.inode,it->first});it=n.extents.erase(it);
       }
       if(op.size<n.size && op.size%kNativeExtentBytes && n.extents.contains(op.size/kNativeExtentBytes)) {
-        const auto index=op.size/kNativeExtentBytes;auto& bytes=block(n,index);
-        std::fill(bytes.begin()+static_cast<std::ptrdiff_t>(op.size%kNativeExtentBytes),bytes.end(),std::byte{0});
-        finish_block(n,index);
+        const auto index=op.size/kNativeExtentBytes;auto& extent=block(n,index);
+        const auto tail=std::span<const std::byte>(extent.bytes).subspan(static_cast<std::size_t>(op.size%kNativeExtentBytes));
+        if(zeros(tail))unchanged(n,index,extent);
+        else {
+          changing(extent);
+          std::fill(extent.bytes.begin()+static_cast<std::ptrdiff_t>(op.size%kNativeExtentBytes),extent.bytes.end(),std::byte{0});
+          finish_block(n,index);
+        }
       }
       n.size=op.size;n.modified=model.sequence;changed=true;return;
     }
@@ -304,6 +333,31 @@ struct Stage {
   }
   std::vector<StoreMutation> mutations() {
     if(extent_count(model)>kNativeMaxExtents)fail(Code::limit,"native live extent budget");
+    // Unchanged records were fully admitted on initialize/resume or a prior
+    // acknowledgement. Verify and validate every touched record privately;
+    // public snapshot/open still scrub ALL reachable data before exposure.
+    for(const auto& [key,extent]:dirty) {
+      const auto& bytes=extent.bytes;
+      const auto& n=node(model,key.first);const auto index=key.second;
+      if(!n.extents.contains(index) || bytes.size()!=kNativeExtentBytes || zeros(bytes))
+        fail(Code::corrupt,"native dirty extent invariant");
+      const auto begin=index*kNativeExtentBytes;
+      if(n.size-begin<kNativeExtentBytes &&
+          !zeros(std::span<const std::byte>(bytes).subspan(static_cast<std::size_t>(n.size-begin))))
+        fail(Code::corrupt,"native dirty bytes beyond EOF");
+    }
+    // Reuse only the SAME inode/block's immutable original record, after an
+    // independent verified read and exact byte comparison. Do this BEFORE ID
+    // allocation: a removed original ID must not be reassigned elsewhere first.
+    // Single changed writes need no second read; only possible reversions do.
+    for(auto it=dirty.begin();it!=dirty.end();) {
+      const auto& extent=it->second;
+      if(extent.compare_original && extent.original_object &&
+          extent.bytes==object_bytes(base,extent.original_object)) {
+        node(model,it->first.first).extents.at(it->first.second)=extent.original_object;
+        it=dirty.erase(it);
+      } else ++it;
+    }
     std::set<std::uint64_t> used;
     for(const auto& [id,n]:model.nodes){(void)id;for(const auto& [index,object]:n.extents){(void)index;if(object)used.insert(object);}}
     for(auto& [id,n]:model.nodes)for(auto& [index,object]:n.extents)if(!object) {
@@ -313,22 +367,10 @@ struct Stage {
       object=candidate;used.insert(object);
     }
     validate_structure(model);
-    // Unchanged records were fully admitted on initialize/resume or a prior
-    // acknowledgement. Verify and validate every touched record privately;
-    // public snapshot/open still scrub ALL reachable data before exposure.
-    for(const auto& [key,bytes]:dirty) {
-      const auto& n=node(model,key.first);const auto index=key.second;
-      if(!n.extents.contains(index) || bytes.size()!=kNativeExtentBytes || zeros(bytes))
-        fail(Code::corrupt,"native dirty extent invariant");
-      const auto begin=index*kNativeExtentBytes;
-      if(n.size-begin<kNativeExtentBytes &&
-          !zeros(std::span<const std::byte>(bytes).subspan(static_cast<std::size_t>(n.size-begin))))
-        fail(Code::corrupt,"native dirty bytes beyond EOF");
-    }
     std::vector<StoreMutation> output;output.reserve(kStoreMaxObjects);
     output.push_back({kNamespaceObject,false,encode(model)});
     for(const auto& [id,n]:model.nodes)for(const auto& [index,object]:n.extents) {
-      const auto found=dirty.find({id,index});if(found!=dirty.end())output.push_back({object,false,found->second});
+      const auto found=dirty.find({id,index});if(found!=dirty.end())output.push_back({object,false,found->second.bytes});
     }
     for(const auto& previous:base.list())if(previous.id!=kNamespaceObject && !used.contains(previous.id))output.push_back({previous.id,true,{}});
     if(output.size()>kStoreMaxObjects)fail(Code::limit,"native object mutation budget");

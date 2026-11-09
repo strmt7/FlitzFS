@@ -14,9 +14,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from prepare_hosted_tools import ARTIFACTS
+from hosted_semantic import VERSION as SEMANTIC_VERSION, WHEEL_URL, WHEEL_SHA
 
 REPO="strmt7/FlitzFS"
 PINS=(
+    ("cocoindex-io/cocoindex-code","v"+SEMANTIC_VERSION,"5676897a169fe1d46cf1e4d2eaf323c9d91c8587"),
     ("meta/zstd","v1.5.7","f8745da6ff1ad1e7bab384bd1f9d742439278e99"),
     ("lz4/lz4","v1.11.0","c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc"),
     ("BLAKE3-team/BLAKE3","1.8.7","f3149ec5bb5449af877ba20377a11008ff499fa2"),
@@ -97,6 +99,11 @@ def main():
             declared_commit=pin,latest_commit=resolved,
             current=tag==declared and (pin is None or pin==resolved),
             release_url=value["html_url"],published_at=value["published_at"]))
+        if repo=="cocoindex-io/cocoindex-code":
+            asset=next((a for a in value["assets"] if a["browser_download_url"]==WHEEL_URL),None)
+            if asset is None or asset["size"]!=96682 or asset.get("digest")!="sha256:"+WHEEL_SHA:
+                raise RuntimeError("semantic provider wheel differs from official latest release identity")
+            rows[-1]["official_wheel"]=dict(url=WHEEL_URL,bytes=asset["size"],sha256=WHEEL_SHA)
     tools={}
     for repo in ("Kitware/CMake","llvm/llvm-project"):
         status,value,_=capture.api("repos/"+repo+"/releases/latest")

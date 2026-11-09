@@ -250,3 +250,10 @@ source. Never alter the shared MCP registration or run the provider on the owner
 PC. Local model/index tooling is a development dependency only, not filesystem
 self-learning or a product runtime. AMD deployment decisions require successful
 native Crawl4AI captures of the current official distribution rules.
+
+Exact unchanged-extent reuse must preserve nonempty-write metadata sequences,
+all three publication barriers and unique inode/block ownership. Resolve
+original-record reuse before allocating IDs, independently verify possible
+reversions, and keep truncate tails zero. Maintain the 63-buffer cap and bounded
+single-extent comparison scratch. A failed reuse read must fence before writes;
+do not turn payload elision into weaker durability or cross-inode deduplication.

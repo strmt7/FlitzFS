@@ -27,7 +27,9 @@ owner's PC.
   [copy protocol](docs/COMPACTED_COPY.md).
 - A native transactional file layer with persistent directories and inode IDs,
   sparse 64 KiB extents, partial writes, truncate/regrow, rename/replace, deletion
-  and immutable snapshots. It currently admits 256 inodes and 255 nonzero extents;
+  and immutable snapshots. Exact unchanged extent bytes retain their immutable
+  records while metadata updates keep the full durability protocol, reducing
+  redundant encoding and appended payload history. It currently admits 256 inodes and 255 nonzero extents;
   see [its semantics, format and limits](docs/NATIVE_FILESYSTEM.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.

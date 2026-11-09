@@ -272,6 +272,141 @@ void scalable_staging_and_integrity() {
   rejects([&]{file_apply(snapshot_fs,file_create("must-not-write"));},"snapshot-fenced writer retried");
   require(snapshot_ram->calls==snapshot_calls,"snapshot failure permitted backing writes");
 }
+
+// Inspect the actual immutable record identities/offsets, not just decoded bytes.
+using RecordLocations=std::map<std::uint64_t,std::pair<std::uint64_t,std::uint64_t>>;
+RecordLocations records(const std::shared_ptr<Ram>& ram) {
+  const auto objects=ObjectStoreSnapshot::open(ram);const auto info=objects.info();
+  const auto root=static_cast<std::size_t>((info.generation%2)*kStoreCommitUnit);
+  const auto catalog=static_cast<std::size_t>(get(ram->live,root+32));
+  RecordLocations result;
+  for(std::uint64_t i=0;i<get(ram->live,catalog+12,4);++i) {
+    const auto at=catalog+64+static_cast<std::size_t>(i)*64,id=get(ram->live,at);
+    if(id!=1)result.emplace(id,std::pair{get(ram->live,at+8),get(ram->live,at+16)});
+  }
+  return result;
+}
+void unchanged_extent_reuse() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    auto ram=std::make_shared<Ram>();auto fs=fresh(ram,mode);
+    const auto content=data(2*kNativeExtentBytes,301);
+    const std::array<NativeFileMutation,3> setup{{file_create("early"),file_create("f"),file_write("f",0,content)}};
+    fs.apply(setup);auto retained=fs.snapshot();
+    const auto original=records(ram);const auto inode=retained.stat("f").inode;
+    const auto before=retained.storage_info().physical_end,written=ram->write_bytes,flushes=ram->flushes;
+    const auto identical=file_apply(fs,file_write("f",0,content));
+    const auto identical_appended=identical.storage.physical_end-before;
+    const auto identical_written=ram->write_bytes-written;
+    require(records(ram)==original,"identical full write replaced payload records");
+    require(identical.sequence==retained.sequence()+1 && identical.storage.generation>retained.storage_info().generation &&
+            fs.snapshot().stat("f").modified_sequence==identical.sequence,"identical write skipped namespace publication");
+    require(ram->flushes-flushes==3 && identical.storage.replicated_checkpoint &&
+            !identical.storage.degraded_checkpoint,"identical write skipped durable replicated barriers");
+    const auto partial=Bytes(content.begin()+65520,content.begin()+65570);
+    file_apply(fs,file_write("f",65520,partial));
+    require(records(ram)==original,"identical cross-extent write replaced payload records");
+    const std::array<NativeFileMutation,3> reversible{{file_write("f",13,data(71,302)),
+        file_rename("f","renamed"),file_write("renamed",13,Bytes(content.begin()+13,content.begin()+84))}};
+    fs.apply(reversible);
+    require(records(ram)==original && fs.snapshot().stat("renamed").inode==inode,"reverted renamed extent not reused");
+    // A no-op after a real edit must retain the earlier changed buffer.
+    const auto edit=data(19,303);
+    const std::array<NativeFileMutation,2> repeated{{file_write("renamed",0,edit),file_write("renamed",0,edit)}};
+    fs.apply(repeated);auto expected=content;std::copy(edit.begin(),edit.end(),expected.begin());
+    require(fs.snapshot().read("renamed",0,200000)==expected,"repeated changed write discarded pending bytes");
+    file_apply(fs,file_write("renamed",0,content));
+    const auto restored=records(ram);
+    // Inode 2 needs a new ID BEFORE inode 3 in allocation order. Its new object
+    // must not steal an original ID restored from a temporarily sparse block.
+    const auto early=data(31,304);
+    const std::array<NativeFileMutation,3> zero_restore{{file_write("renamed",0,Bytes(content.size())),
+        file_write("early",0,early),file_write("renamed",0,content)}};
+    fs.apply(zero_restore);const auto with_early=records(ram);
+    for(const auto& [id,record]:restored)require(with_early.at(id)==record,"restored extent ID was reallocated first");
+    require(with_early.size()==restored.size()+1 && fs.snapshot().read("early",0,100)==early,"reused record aliased new inode");
+    require(fs.snapshot().read("renamed",0,200000)==content && retained.read("f",0,200000)==content,"reuse changed committed/retained bytes");
+    const std::array<NativeFileMutation,3> shrink_restore{{file_truncate("renamed",7),
+        file_truncate("renamed",content.size()),file_write("renamed",0,content)}};
+    fs.apply(shrink_restore);
+    require(records(ram)==with_early,"shrink/regrow/restoration rewrote original extents");
+    const std::array<NativeFileMutation,2> shrink_grow{{file_truncate("renamed",7),file_truncate("renamed",content.size())}};
+    fs.apply(shrink_grow);auto truncated=content;std::fill(truncated.begin()+7,truncated.end(),std::byte{0});
+    require(fs.snapshot().read("renamed",0,200000)==truncated,"reuse resurrected discarded truncate bytes");
+    const auto padded=records(ram);
+    const std::array<NativeFileMutation,2> zero_tail{{file_truncate("renamed",9),file_truncate("renamed",content.size())}};
+    fs.apply(zero_tail);
+    require(records(ram)==padded && fs.snapshot().read("renamed",0,200000)==truncated,"already-zero truncate tail rewrote payload");
+    const auto changed_before=fs.snapshot().storage_info().physical_end,changed_written=ram->write_bytes;
+    file_apply(fs,file_write("renamed",0,content));
+    const auto changed_appended=fs.snapshot().storage_info().physical_end-changed_before;
+    require(changed_appended>identical_appended && ram->write_bytes-changed_written>identical_written,
+            "identical write did not reduce actual appended/written bytes");
+    const auto prior=records(ram);const auto old_inode=fs.snapshot().stat("renamed").inode;
+    const std::array<NativeFileMutation,3> recreate{{file_remove("renamed"),file_create("renamed"),file_write("renamed",0,content)}};
+    fs.apply(recreate);
+    require(fs.snapshot().stat("renamed").inode>old_inode && records(ram)!=prior,"deleted inode inherited prior payload identity");
+    file_apply(fs,file_create("sparse"));const auto allocated=records(ram);
+    file_apply(fs,file_write("sparse",65529,Bytes(93)));
+    require(records(ram)==allocated && fs.snapshot().read("sparse",65529,100)==Bytes(93),"identical sparse write allocated data");
+    auto reopened=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(ram->stable)));
+    require(reopened.read("renamed",0,200000)==content && reopened.read("early",0,100)==early,"independent reopen lost reused bytes");
+    std::cout<<"Native reuse evidence: mode="<<(mode==StoreCompressionMode::raw?"raw":"automatic")
+             <<" identical_input_bytes="<<content.size()<<" identical_appended_bytes="<<identical_appended
+             <<" identical_backing_write_bytes="<<identical_written<<" changed_appended_bytes="<<changed_appended
+             <<" retained_payload_records="<<original.size()<<'\n';
+  }
+}
+void reuse_read_failure() {
+  auto ram=std::make_shared<Ram>();auto fs=fresh(ram,StoreCompressionMode::raw);
+  const auto content=data(kNativeExtentBytes,305);
+  const std::array<NativeFileMutation,2> setup{{file_create("f"),file_write("f",0,content)}};
+  fs.apply(setup);const auto payload=records(ram).begin()->second.second;
+  // First decode stages the record; second decode independently checks reuse.
+  ram->corrupt_read_offset=payload+128;ram->corrupt_read_number=2;ram->matching_reads=0;
+  const auto live=ram->live;const auto calls=ram->calls;
+  const std::array<NativeFileMutation,2> reversible{{file_write("f",11,data(7,306)),
+      file_write("f",11,Bytes(content.begin()+11,content.begin()+18))}};
+  rejects([&]{fs.apply(reversible);},"reuse comparison accepted corrupt backing bytes");
+  require(ram->matching_reads==2 && fs.poisoned() && ram->calls==calls && ram->live==live,
+          "reuse verification failed to fence before writes");
+  rejects([&]{file_apply(fs,file_create("never"));},"reuse-fenced writer retried");
+  ram->corrupt_read_number=0;
+  require(NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(ram->stable))).read("f",0,100000)==content,
+          "reuse comparison failure damaged acknowledged bytes");
+}
+void reuse_transaction_faults() {
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    const auto content=data(kNativeExtentBytes,307);
+    const std::array<NativeFileMutation,2> setup{{file_create("f"),file_write("f",0,content)}};
+    const std::array<NativeFileMutation,3> reverted{{file_write("f",0,Bytes(content.size())),
+        file_write("f",0,content),file_rename("f","g")}};
+    auto probe=std::make_shared<Ram>();auto writer=fresh(probe,mode);writer.apply(setup);
+    const auto locations=records(probe);probe->calls=0;writer.apply(reverted);const auto steps=probe->calls;
+    require(records(probe)==locations,"fault probe did not actually elide payload");
+    for(unsigned failure=0;failure<3;++failure)for(std::size_t step=0;step<steps;++step) {
+      auto ram=std::make_shared<Ram>();
+      {
+        auto fs=fresh(ram,mode);fs.apply(setup);auto retained=fs.snapshot();
+        ram->calls=0;ram->fail_at=step;ram->failure=failure;
+        rejects([&]{fs.apply(reverted);},"elided transaction hid injected I/O failure");
+        require(fs.poisoned() && retained.read("f",0,100000)==content,"elided failed transaction changed retained bytes");
+        const auto calls=ram->calls;
+        rejects([&]{file_apply(fs,file_create("never"));},"elided poisoned transaction retried");
+        require(ram->calls==calls,"elided poisoned writer performed I/O");
+      }
+      auto disk=image(ram->stable);auto snapshot=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(disk));
+      const bool newer=snapshot.sequence()==3;
+      require(snapshot.sequence()==2 || newer,"elided transaction lost acknowledged sequence");
+      const auto path=newer?"g":"f";
+      require(snapshot.list().size()==1 && snapshot.read(path,0,100000)==content &&
+              records(disk)==locations,"elided interruption damaged acknowledged payload identity");
+      auto resumed=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(disk,identity(),snapshot.storage_info().generation,{mode,6,false}));
+      file_apply(resumed,file_write(path,0,content));
+      require(resumed.snapshot().read(path,0,100000)==content && records(disk)==locations,"elided recovery continuation rewrote payload");
+    }
+  }
+}
+
 void dirty_budget() {
   for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
     auto ram=std::make_shared<Ram>();auto fs=fresh(ram,mode);file_apply(fs,file_create("f"));
@@ -289,6 +424,9 @@ void dirty_budget() {
     const auto before=ram->live;const auto calls=ram->calls;
     // Same input allowance, but 64 distinct dirty records leave no full
     // metadata reserve. Rejection must occur entirely before backing writes.
+    // Existing identical bytes no longer consume dirty slots. Make every
+    // old block genuinely different before testing the unchanged hard cap.
+    for(auto& op:maximum)for(auto& b:op.data)b^=std::byte{1};
     maximum.back().data.insert(maximum.back().data.end(),block.begin(),block.end());
     rejects([&]{fs.apply(maximum);},"dirty decoded staging cap exceeded");
     require(!fs.poisoned() && before==ram->live && calls==ram->calls,"dirty-cap rejection partly committed");
@@ -424,7 +562,7 @@ void independent_model() {
 }
 }
 int main(){
-  try{normal_operations();sparse_and_admission();capacity_and_rollback();rename_depth_admission();transactional_faults();malicious_metadata();scalable_staging_and_integrity();dirty_budget();native_compacted_copies();native_replicated_acknowledgements();independent_model();
+  try{normal_operations();sparse_and_admission();capacity_and_rollback();rename_depth_admission();transactional_faults();malicious_metadata();scalable_staging_and_integrity();unchanged_extent_reuse();reuse_read_failure();reuse_transaction_faults();dirty_budget();native_compacted_copies();native_replicated_acknowledgements();independent_model();
     std::cout<<"PASS: "<<checks<<" native filesystem assertions; directories, stable IDs, sparse ranges, truncation, atomic rename/data and crash recovery.\n";return 0;
   }catch(const std::exception& e){std::cerr<<"native filesystem failure after "<<checks<<": "<<e.what()<<'\n';return 1;}
 }

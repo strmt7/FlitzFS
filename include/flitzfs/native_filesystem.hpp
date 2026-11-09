@@ -91,7 +91,9 @@ class NativeFilesystemWriter final {
   // 1..16 ordered operations, <=4 MiB input, <=1 MiB per write.
   // Commit metadata + changed extents atomically. Admission errors precede backing writes.
   // At most 63 dirty 64 KiB extents; input size/alignment may hit that cap first.
-  // All-zero extents are omitted; old snapshots keep their original records.
+  // All-zero extents are omitted; exact unchanged bytes reuse immutable records.
+  // Nonempty identical writes still publish metadata and the normal barriers.
+  // Old snapshots keep their original records.
   NativeFsCommit apply(std::span<const NativeFileMutation> mutations);
   NativeFilesystemSnapshot snapshot() const;
   bool poisoned() const noexcept;
