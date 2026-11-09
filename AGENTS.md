@@ -224,3 +224,11 @@ installer. Keep official immutable artifacts, whole-download verification,
 archive/link/output budgets and fresh output ownership. Stage only CPU tools;
 LLVM compilation must never initialize/load a GPU runtime/module. Keep older
 research-provider locks isolated until their source/compatibility review.
+
+Portable CPU diagnostics are explicitly selected with FLITZFS_PORTABLE_CPU=ON.
+Keep sanitizer and immutable historical comparator settings separate. Runtime
+claims require the actual PE/ELF audit and relocated, cleaned-environment byte
+checks from check_portable_cpu.py on each OS. Static codec sources and Windows
+CRT settings must agree. CLI Windows OS paths use UTF-16 argv/explicit UTF-8
+conversion; POSIX native filename bytes must remain unchanged. These checks
+never install a driver, mount a volume or authorize owner-PC execution.
