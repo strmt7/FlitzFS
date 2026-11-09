@@ -284,3 +284,10 @@ cannot override transport ownership. Unknown failure does not prove repaired
 driver health. Synthetic CPU-helper fixtures are not HIP qualification. External
 helper/configuration authorization, product dependency installation and actual
 device/runtime evidence remain required. See GPU_WORKER_CONTROLLER.md.
+
+Manual CPU selection or expiry must not discard later known worker faults.
+The integrated controller retains the old verified reference and generation
+until late-result classification, independently of any newer CPU request.
+Outcome reporting happens once after evidence is available; CPU bytes remain
+terminal throughout. The proportional gate/current-batch/late-candidate subtotal
+is statically bounded below 2 MiB; transport and allocator overhead are separate.

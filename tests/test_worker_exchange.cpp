@@ -100,7 +100,7 @@ int child(std::wstring_view mode,std::wstring_view token) {
         reinterpret_cast<unsigned char*>(reply.bytes.data()),static_cast<unsigned>(reply.bytes.size()));
   if(mode==L"wrong-id")++reply.generation;
   if(mode==L"bad-status")reply.status.back()=gpu_detail::pending;
-  if(mode==L"bad-bytes")reply.bytes.back()^=std::byte{1};
+  if(mode==L"bad-bytes" || mode==L"delay-bad-bytes")reply.bytes.back()^=std::byte{1};
   auto frame=encode_worker_reply(reply,mode==L"wrong-backend"?WorkerExecution::hip:WorkerExecution::cpu_semantics);
   if(mode==L"bad-wire")frame[0]=std::byte{0};
   if(mode==L"trailing")frame.push_back(std::byte{0});
@@ -109,6 +109,7 @@ int child(std::wstring_view mode,std::wstring_view token) {
     rejects([&]{channel.publish(frame);});return 0;
   }
   if(mode==L"security")check_security(token);
+  if(mode==L"delay-bad-bytes")Sleep(150); // Bounded fixture ordering only.
   channel.publish(frame);
   if(mode==L"double") {frame.back()^=std::byte{1};rejects([&]{channel.publish(frame);});}
   if(mode==L"tamper-input") {
@@ -224,6 +225,30 @@ void coordinated_requests(const std::filesystem::path& executable) {
     check(Bytes(controller.selected_bytes().begin(),controller.selected_bytes().end())==expected,
         "coordinated selected bytes differ from independent CPU reference");
   };
+  for(const auto* mode:{L"missing",L"bad-bytes",L"delay-bad-bytes"}) {
+    GpuWorkerController controller(WorkerExecution::cpu_semantics);auto batch=mixed();
+    const auto path=std::wstring_view(mode)==L"missing"?missing:executable;
+    check(controller.begin(std::move(batch),path,{mode},true,true,health,100).submitted,
+        "late-failure fixture not submitted");
+    (void)controller.use_cpu_fallback();selected(controller);
+    if(std::wstring_view(mode)==L"delay-bad-bytes") {
+      auto next=coordinated_fill(83);const Bytes cpu(next.cpu_reference().begin(),next.cpu_reference().end());
+      const auto e=coordinated_health(2,102);
+      const auto decision=controller.begin(std::move(next),executable,{L"ok"},true,true,e,102);
+      check(!decision.submitted && (decision.route.reason==GpuRouteReason::worker_busy ||
+          decision.route.reason==GpuRouteReason::configuration_blocked) &&
+          Bytes(controller.selected_bytes().begin(),controller.selected_bytes().end())==cpu,
+          "different CPU request lost pending late-failure reference or waited");
+    }
+    eventually([&]{return controller.try_retire();},3000,"late failed helper did not retire");
+    check(controller.state()==GpuWorkerState::cpu_selected && controller.consecutive_failures()==1,
+        "late failure changed terminal CPU selection or was counted twice");
+    auto retry=mixed();const auto fresh=coordinated_health(3,103);
+    const auto blocked=controller.begin(std::move(retry),executable,{L"ok"},true,true,fresh,103);
+    check(!blocked.submitted && blocked.route.reason==GpuRouteReason::configuration_blocked,
+        "CPU-selected late unavailable/corrupt worker evidence was forgotten");
+    selected(controller);
+  }
   {
     GpuWorkerController controller(WorkerExecution::cpu_semantics);
     auto batch=mixed();
@@ -302,7 +327,7 @@ void coordinated_requests(const std::filesystem::path& executable) {
     struct Close {HANDLE value;~Close(){CloseHandle(value);}} close{child};
     check(WaitForSingleObject(child,0)==WAIT_TIMEOUT,"coordinated helper exited before CPU selection");
     (void)controller.use_cpu_fallback();selected(controller);
-    check(WaitForSingleObject(child,0)==WAIT_TIMEOUT && controller.consecutive_failures()==1 &&
+    check(WaitForSingleObject(child,0)==WAIT_TIMEOUT && controller.consecutive_failures()==0 &&
         !controller.try_retire(),"coordinated CPU selection waited for teardown or fabricated retirement");
     auto next=coordinated_fill(91);const Bytes next_cpu(next.cpu_reference().begin(),next.cpu_reference().end());
     const auto fresh=coordinated_health(2,102);
@@ -310,8 +335,9 @@ void coordinated_requests(const std::filesystem::path& executable) {
     check(!busy.submitted && busy.route.reason==GpuRouteReason::worker_busy &&
         Bytes(controller.selected_bytes().begin(),controller.selected_bytes().end())==next_cpu,
         "new CPU request waited for retiring worker or used old request bytes");
-    check(controller.consecutive_failures()==1 && controller.request_cancel(),"fallback outcome recounted/cancellation lost");
+    check(controller.consecutive_failures()==0 && controller.request_cancel(),"unobserved fallback outcome was fabricated/cancellation lost");
     eventually([&]{return controller.try_retire();},3000,"coordinated cancelled helper did not retire");
+    check(controller.consecutive_failures()==1,"cancelled fallback outcome not reported exactly once");
     for(unsigned i=0;i<2;++i) {
       auto retry=mixed();const auto e=coordinated_health(3+i,103+i);
       check(controller.begin(std::move(retry),executable,{L"ok"},true,true,e,103+i).submitted,
@@ -328,12 +354,13 @@ void coordinated_requests(const std::filesystem::path& executable) {
     check(controller.begin(std::move(batch),executable,{L"publish-hang"},true,true,health,100).submitted,
         "coordinated expiry fixture not submitted");
     check(controller.poll(coordinated_health(3,200).memory,200)==GpuWorkerState::cpu_selected &&
-        controller.last_gate_code()==GpuGateCode::expired && controller.consecutive_failures()==1,
+        controller.last_gate_code()==GpuGateCode::expired && controller.consecutive_failures()==0,
         "coordinated deadline did not select terminal CPU");
     selected(controller);
     for(unsigned i=0;i<4;++i)(void)controller.poll(after,101);
-    check(controller.consecutive_failures()==1,"late polling recounted a failed request");
+    check(controller.consecutive_failures()==0,"late polling fabricated an unobserved worker outcome");
     eventually([&]{return controller.try_retire();},3000,"expired coordinated helper did not retire");
+    check(controller.consecutive_failures()==1,"expired request outcome not reported once after observation");
   }
   check(WorkerExchangeSession::available(),"coordinated requests leaked process/thread admission");
 }
