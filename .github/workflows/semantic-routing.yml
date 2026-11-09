@@ -3,10 +3,21 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'include/**'
-      - 'tools/ci/hosted_semantic.py'
-      - 'tools/ci/test_hosted_semantic.py'
+      # Match the provider's inventory suffixes, including tools and CMake.
+      - '**/*.c'
+      - '**/*.h'
+      - '**/*.cc'
+      - '**/*.cpp'
+      - '**/*.hpp'
+      - '**/*.cxx'
+      - '**/*.hip'
+      - '**/*.py'
+      - '**/*.ps1'
+      - '**/*.rs'
+      - '**/CMakeLists.txt'
+      - '!tests/**'
+      - '!third_party/**'
+      - '!.github/**'
       - '.github/workflows/semantic-routing.yml'
 permissions:
   contents: read
