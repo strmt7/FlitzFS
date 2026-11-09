@@ -10,6 +10,10 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <cstdlib>
+#include <exception>
+#include <process.h>
+#include <system_error>
 
 namespace {
 using namespace flitzfs;
@@ -126,6 +130,64 @@ PreparedGpuBatch mixed() {
   return PreparedGpuBatch::prepare(views);
 }
 
+
+struct ErrorProbeState {std::exception_ptr error;};
+unsigned __stdcall error_probe_thread(void* opaque) {
+  std::unique_ptr<std::shared_ptr<ErrorProbeState>> owner(
+      static_cast<std::shared_ptr<ErrorProbeState>*>(opaque));
+  const auto state=*owner;owner.reset();
+  try {throw std::system_error(ERROR_FILE_NOT_FOUND,std::system_category(),"independent CRT probe");}
+  catch(...) {state->error=std::current_exception();}
+  return 0;
+}
+int native_error_resources() {
+  const auto* actions=std::getenv("GITHUB_ACTIONS");
+  const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
+  check(actions && std::string_view(actions)=="true" && environment &&
+      std::string_view(environment)=="github-hosted","error resource probe is hosted-only");
+  auto count=[](const char* phase) {
+    DWORD value=0;check(GetProcessHandleCount(GetCurrentProcess(),&value),"native error handle count");
+    std::cout<<"native_error_handles "<<phase<<"="<<value<<'\n';
+    return value;
+  };
+  auto message=[] {
+    char* text=nullptr;
+    const auto size=FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|
+        FORMAT_MESSAGE_IGNORE_INSERTS,nullptr,ERROR_FILE_NOT_FOUND,0x0409,
+        reinterpret_cast<char*>(&text),0,nullptr);
+    if(text)LocalFree(text);
+    check(size>0,"independent Windows error message unavailable");
+  };
+  count("initial");
+  message();const auto first=count("format-first");
+  for(unsigned i=0;i<8;++i)message();
+  check(count("format-repeat")<=first,"native error formatting accumulates handles");
+  {std::system_error error(ERROR_FILE_NOT_FOUND,std::system_category(),"independent constructor");
+    check(error.code().value()==ERROR_FILE_NOT_FOUND,"native error code changed");}
+  count("system-error");
+  {std::exception_ptr error;
+    try {throw std::runtime_error("independent exception capture");}
+    catch(...) {error=std::current_exception();}
+    check(static_cast<bool>(error),"exception capture unavailable");}
+  count("exception-released");
+  DWORD threaded=0;
+  for(unsigned i=0;i<9;++i) {
+    auto state=std::make_shared<ErrorProbeState>();
+    auto* context=new std::shared_ptr<ErrorProbeState>(state);
+    const auto thread=_beginthreadex(nullptr,0,error_probe_thread,context,0,nullptr);
+    if(!thread){delete context;throw std::runtime_error("independent probe thread failed");}
+    HANDLE handle=reinterpret_cast<HANDLE>(thread);
+    const auto wait=WaitForSingleObject(handle,2000);
+    CloseHandle(handle);
+    check(wait==WAIT_OBJECT_0 && state->error,"independent error thread did not finish");
+    state.reset(); // Release the captured exception before measuring.
+    const auto measured=count(i?"thread-repeat":"thread-first");
+    if(!i)threaded=measured;
+    else check(measured<=threaded,"independent error threads accumulate handles");
+  }
+  return 0;
+}
+
 template<class Predicate> void eventually(Predicate&& predicate,DWORD milliseconds,const char* why) {
   const auto start=GetTickCount64();
   while(!predicate()) {
@@ -203,6 +265,7 @@ void abandoned_session(const std::filesystem::path& executable,const std::vector
 
 }
 int wmain(int argc,wchar_t** argv){try{
+  if(argc==2 && std::wstring_view(argv[1])==L"--native-error-resource-probe")return native_error_resources();
   if(argc==4 && std::wstring_view(argv[2])==L"--worker-channel")return child(argv[1],argv[3]);
   check(argc==1,"unexpected worker test arguments");
   const auto executable=self();const auto batch=mixed();const auto request=encode_worker_request(batch,221);

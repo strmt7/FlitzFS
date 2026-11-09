@@ -186,9 +186,14 @@ explicit admission/status checks. Thus repeated completions cannot accumulate
 a tail of retired-but-still-running supervisor threads. There is no queue.
 
 The synchronous run_worker_exchange API is an adapter over this same mechanism.
-It preserves exception reporting and waits for its already-retired supervisor
-before returning ordinary completed results, retaining strict handle accounting.
+It preserves exception reporting and allows at most two additional seconds for
+its already-retired supervisor to exit before returning ordinary completed
+results. Missing supervisor-thread confirmation produces the explicit
+supervisor_exit_unconfirmed code and no response bytes; admission remains held.
 An unconfirmed-retirement result can return while separate supervision continues.
+retirement_confirmed itself checks both process and supervisor-thread retirement
+with a zero-time thread observation, so policy callers cannot mistake child exit
+alone for full supervisor retirement.
 
 All wire, payload, mapping, child memory/CPU, creation-time assignment and
 headroom gates remain. Admission additionally accounts for two private request

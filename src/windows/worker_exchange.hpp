@@ -7,7 +7,7 @@
 #include <string_view>
 
 namespace flitzfs {
-enum class WorkerExchangeCode { completed, worker_failed, timed_out, cancelled, exit_unconfirmed, invalid_response, supervisor_failed };
+enum class WorkerExchangeCode { completed, worker_failed, timed_out, cancelled, exit_unconfirmed, invalid_response, supervisor_failed, supervisor_exit_unconfirmed };
 struct WorkerExchangeResult {
   WorkerExchangeCode code = WorkerExchangeCode::invalid_response;
   ProcessResult process;
@@ -45,6 +45,7 @@ class WorkerExchangeSession final {
   // inside the child mapping never authorizes a live-process result.
   const WorkerExchangeResult* try_result() const noexcept;
   std::exception_ptr failure() const noexcept;
+  // Confirm BOTH exact child and supervisor-thread exit; zero-time observation.
   bool retirement_confirmed() const noexcept;
   std::uint32_t process_id() const noexcept;
   // Signals only. TerminateJobObject and exit waits run on the supervisor.
