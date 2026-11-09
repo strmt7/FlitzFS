@@ -17,25 +17,61 @@ jobs:
           - os: windows-2022
             zstd: 'OFF'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
       - name: Verify filesystem product scope
         run: python tools/ci/verify_filesystem_scope.py
       - name: Verify pinned digest source bytes before building
         run: python tools/ci/verify_blake3_sources.py
-      - name: Install CPU Zstandard headers
+      - name: Check out latest pinned Zstandard source
         if: runner.os == 'Linux' && matrix.zstd == 'ON'
-        run: sudo apt-get update && sudo apt-get install -y libzstd-dev liblz4-dev
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - name: Check out latest pinned LZ4 source
+        if: runner.os == 'Linux' && matrix.zstd == 'ON'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lz4/lz4
+          ref: c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc # v1.11.0
+          path: .ci-deps/lz4
+          persist-credentials: false
+      - name: Build source-pinned bounded native codecs
+        if: runner.os == 'Linux' && matrix.zstd == 'ON'
+        run: python tools/ci/build_linux_codecs.py
       - name: Configure minimal build
         if: matrix.zstd == 'OFF'
         run: cmake -S . -B build -DFLITZFS_WITH_ZSTD=${{ matrix.zstd }} -DFLITZFS_REQUIRE_ZSTD=${{ matrix.zstd }} -DFLITZFS_WITH_LZ4=${{ matrix.zstd }} -DFLITZFS_REQUIRE_LZ4=${{ matrix.zstd }} -DCMAKE_BUILD_TYPE=Release
       - name: Configure codec-enabled build
         if: runner.os == 'Linux' && matrix.zstd == 'ON'
         run: >-
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
       - name: Build
         run: cmake --build build --config Release --parallel 2
@@ -61,18 +97,52 @@ jobs:
 
   sanitizers:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
       - name: Verify pinned digest source bytes before building
         run: python tools/ci/verify_blake3_sources.py
-      - name: Install CPU dependencies
-        run: sudo apt-get update && sudo apt-get install -y libzstd-dev liblz4-dev clang
+      - name: Check out latest pinned Zstandard source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - name: Check out latest pinned LZ4 source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lz4/lz4
+          ref: c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc # v1.11.0
+          path: .ci-deps/lz4
+          persist-credentials: false
+      - name: Build source-pinned bounded native codecs
+        run: python tools/ci/build_linux_codecs.py --sanitize
       - name: Configure ASan/UBSan
         run: >-
-          cmake -S . -B build-asan -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build-asan -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_BUILD_TYPE=Debug -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -O1 -g"
           -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -O1 -g"
@@ -104,11 +174,31 @@ jobs:
 
   windows-native:
     runs-on: windows-2022
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
       - name: Verify pinned digest source bytes before building
         run: python tools/ci/verify_blake3_sources.py
       - name: Stage checksum-pinned SDK without installation
@@ -155,13 +245,33 @@ jobs:
   windows-mount:
     needs: [cpu, sanitizers, windows-native]
     runs-on: windows-2022
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       FLITZFS_ALLOW_DISPOSABLE_MOUNT: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
       - name: Verify pinned digest source bytes before building
         run: python tools/ci/verify_blake3_sources.py
       - name: Stage checksum-pinned SDK without installation

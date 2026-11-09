@@ -126,3 +126,13 @@ executing it. Matching CI IDs, compiler identity, hashes and test scope are
 recorded in [HIP_BATCH_VALIDATION.md](HIP_BATCH_VALIDATION.md). Tool version
 strings are observed provenance, not authenticated compiler-binary identities
 or a reproducible-build/security attestation.
+
+## Current compiler migration
+
+Offline qualification now stages the official LLVM 23.1.5 CPU tool archive,
+verifies its full SHA-256/size, and extracts only bounded compiler support.
+The explicit relocatable/device-only flags remain represented in that release's
+clang/test/Driver/hip-device-compile.hip source. Existing ELF machine/target,
+kernel metadata, size, resource and no-runtime-execution checks remain in force.
+Compiler evidence must match the executed commit; a newer compiler does not
+establish hardware acceleration, runtime compatibility or host-device safety.

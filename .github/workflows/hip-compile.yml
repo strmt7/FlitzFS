@@ -7,15 +7,33 @@ permissions:
 jobs:
   gfx1201-compile:
     runs-on: ubuntu-24.04
-    timeout-minutes: 6
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install distribution LLVM compiler only (no AMD driver/runtime)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang-19 lld-19
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
       - name: Compile real HIP device code without loading a GPU
-        run: python3 tools/ci/compile_hip_candidate.py --clang clang++-19 --lld ld.lld-19 --output "${{ runner.temp }}/flitzfs-hip-offline"
+        run: python3 tools/ci/compile_hip_candidate.py --clang clang++ --lld ld.lld --output "${{ runner.temp }}/flitzfs-hip-offline"
       - name: Retain source-bound compile evidence, not a release binary
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

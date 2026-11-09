@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from prepare_hosted_tools import ARTIFACTS
 
 REPO="strmt7/FlitzFS"
 PINS=(
@@ -102,17 +103,27 @@ def main():
         if status!=200 or value.get("prerelease") or value.get("draft"):
             raise RuntimeError("stable build-tool release unavailable")
         tools[repo]=dict(latest_stable=value["tag_name"],release_url=value["html_url"])
+        tool="cmake" if repo=="Kitware/CMake" else "llvm"
+        for (kind,platform),artifact in ARTIFACTS.items():
+            if kind!=tool:
+                continue
+            version,url,size,digest=artifact
+            asset=next((a for a in value["assets"] if a["browser_download_url"]==url),None)
+            if asset is None or asset["size"]!=size or asset.get("digest")!="sha256:"+digest:
+                raise RuntimeError("official tool artifact pin differs from latest release identity")
+            if value["tag_name"] not in ("v"+version,"llvmorg-"+version):
+                raise RuntimeError("staged build-tool version behind latest stable")
     report=dict(experimental=True,commit=os.environ["GITHUB_SHA"],
         scope="Known native dependency pins and Actions; installed-tool inventory. Dependabot is checked separately in authenticated GitHub Security UI.",
         dependencies=rows,build_tool_releases=tools,
         installed=dict(python=sys.version,cmake=version("cmake"),ctest=version("ctest"),clang=version("clang++")),
-        declared_tool_work_remaining=dict(hip_clang_major=19,reviewed_research_python="3.13",
-            note="Latest compiler/CMake/runtime migration and transitive reviewed-provider audit still require qualification"),
+        declared_tool_work_remaining=dict(reviewed_research_python="3.13",
+            note="Research-provider lock/runtime freshness and broader portability qualification remain open"),
         dependabot=dict(scope="Not queried by this workflow; authenticated GitHub Security UI is authoritative"),
         native_api_receipts=capture.receipts)
     (root/"audit.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(dict(commit=report["commit"],pins_current=all(x["current"] for x in rows),
-        build_tools=tools)))
+        build_tools=tools,installed=report["installed"])))
     if not all(row["current"] for row in rows):
         raise RuntimeError("Dependency/action pin is behind latest stable or tag identity differs")
 if __name__=="__main__":
