@@ -29,11 +29,15 @@ unsigned GpuRecoveryPolicy::required_healthy_observations() const noexcept {
 GpuRouteDecision GpuRecoveryPolicy::consider(bool consent, bool worthwhile,
     const GpuHealthEvidence& e, const PreparedGpuBatch& batch, std::uint64_t now) noexcept {
   if(!consent) return {GpuRouteReason::disabled};
-  if(active_ticket_ || !e.supervisor_quiescent) return {GpuRouteReason::worker_busy};
-  if(clock_seen_ && now < last_now_) return {GpuRouteReason::bad_evidence};
+  if(active_ticket_) return {GpuRouteReason::worker_busy};
+  if(!e.supervisor_quiescent) { healthy_ = 0; return {GpuRouteReason::worker_busy}; }
+  if(clock_seen_ && now < last_now_) { healthy_ = 0; return {GpuRouteReason::bad_evidence}; }
   last_now_ = now; clock_seen_ = true;
-  if(!worthwhile || !e.compatible || !nonzero(e.configuration) || !e.sequence || batch.tasks().empty())
+  if(!worthwhile || batch.tasks().empty()) return {GpuRouteReason::unqualified};
+  if(!e.compatible || !nonzero(e.configuration) || !e.sequence) {
+    healthy_ = 0;
     return {GpuRouteReason::unqualified};
+  }
   if(quarantine_full_) return {GpuRouteReason::exhausted};
   for(const auto& q:quarantines_) {
     if(q.configuration != e.configuration) continue;
