@@ -98,7 +98,7 @@ struct Fixture {
   std::filesystem::path image() const{return root/L"image.fltx";}
   ~Fixture() {
     std::error_code ignored;
-    for(const auto* leaf:{L"image.fltx",L"damaged.fltx",L"generic.fltx",L"mapped.fltx"})
+    for(const auto* leaf:{L"image.fltx",L"damaged.fltx",L"generic.fltx",L"mapped.fltx",L"pending.fltx",L"unlinked.fltx"})
       std::filesystem::remove(root/leaf,ignored);
     std::filesystem::remove(root,ignored); // Never recursive.
   }

@@ -37,7 +37,8 @@ POSIX name qualification. All file CONTENT bytes remain arbitrary and lossless.
 Created/modified sequence fields are persistent logical transaction counters,
 not wall-clock timestamps. Namespace sequence is distinct from object-store root
 generation: root repair can advance the latter without changing user contents.
-ACLs, real timestamps, open-handle sharing/deletion, links, streams, mapped I/O,
+Persistent intent/detached-inode primitives are specified in NATIVE_FILE_LIFETIME.md.
+ACLs, real timestamps, the owning Windows open-handle table/sharing, links, streams, mapped I/O,
 durable mounted application writes and concurrent dispatcher integration remain
 unimplemented. One control thread is required.
 
@@ -161,16 +162,18 @@ There may be no unrelated logical objects or duplicate extent-object ownership.
 Extent object IDs can be reused transactionally; old snapshots retain their
 old generation/offset/digest references in their own object-store snapshot.
 
-All fields are unsigned little-endian, all reserved bytes zero. Namespace magic
-is FLTXNS01. This format is separate from the existing .flfs image and .flcatalog
+All fields are unsigned little-endian, all reserved bytes zero. The ordinary
+namespace uses magic FLTXNS01 and format field 1. The explicit lifecycle capability
+uses FLTXNS02 and format field 2, with inode flags at offset 20; it requires
+replicated current checkpoints and is sticky. See NATIVE_FILE_LIFETIME.md. This format is separate from the existing .flfs image and .flcatalog
 diagnostic view. There is no automatic import or migration.
 
 ### Namespace header: 64 bytes
 
 | Offset | Bytes | Meaning |
 |---:|---:|---|
-| 0 | 8 | ASCII FLTXNS01 |
-| 8 | 4 | Internal format field 1 |
+| 0 | 8 | ASCII FLTXNS01, or FLTXNS02 for lifecycle capability |
+| 8 | 4 | Internal namespace field 1, or 2 matching lifecycle magic |
 | 12 | 4 | Inode count, 1..256 |
 | 16 | 8 | Namespace transaction sequence, positive and <=root generation |
 | 24 | 8 | Next inode ID, greater than every live inode |
@@ -188,7 +191,7 @@ Inodes are serialized in strictly increasing ID order.
 | 0 | 8 | Stable inode ID |
 | 8 | 8 | Parent inode; root uses zero |
 | 16 | 4 | Kind 1 directory, 2 regular file |
-| 20 | 4 | Zero |
+| 20 | 4 | Format 1: zero; format 2: pending=1 or detached=2, mutually exclusive |
 | 24 | 8 | Logical file size; directories zero |
 | 32 | 8 | Created namespace sequence |
 | 40 | 8 | Modified namespace sequence |
@@ -303,3 +306,13 @@ append and constrained accepted-byte semantics through the existing transaction
 engine. Encodings, historical mutation/commit layouts, limits and replicated
 barriers are unchanged. Windows unlinked-inode lifetime, persistent delete
 intent and writable callbacks remain unfinished.
+
+
+## Persistent file lifetime
+
+NATIVE_FILE_LIFETIME.md specifies persistent delete intent/cancellation,
+name detachment with retained inode data, explicit post-context retirement and
+closed-session recovery. Ordinary resume, read-only Windows projection and
+compaction refuse unresolved lifetime state. The future owning Windows engine
+still must prove context retirement and aggregate per-open dispositions; no
+mounted-write or helper-application completeness follows.

@@ -127,6 +127,23 @@ int main(){try {
   }
   rejects([&]{(void)ReadOnlyProjection::open_native_file(generic,identity());},
       "generic object store was treated as a native filesystem");
+  for(const bool detach:{false,true}) {
+    const auto lifetime=fixture.root/(detach?L"unlinked.fltx":L"pending.fltx");
+    {
+      auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create_file(
+          lifetime,identity(),{4096,true}));
+      const auto inode=writer.apply(std::array<NativeFileMutation,1>{create("pending")}).
+          created_inodes[0];
+      writer.set_delete_pending(inode,true);
+      if(detach)writer.unlink_inode(inode);
+    }
+    const auto source=read_image(lifetime);
+    require(NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(lifetime)).
+        needs_session_recovery(),"lifetime admission fixture is not a valid unresolved native image");
+    rejects([&]{(void)ReadOnlyProjection::open_native_file(lifetime,identity());},
+        "unresolved file contexts entered the read-only Windows projection");
+    require(read_image(lifetime)==source,"lifetime admission rejection mutated source");
+  }
   require(read_image(fixture.image())==original,"read-only native view changed source image");
   std::cout<<"PASS: native Windows image projection, persistent inodes, sparse tails, concurrent verified reads, source sharing and no backing changes.\n";
   return 0;

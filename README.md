@@ -162,3 +162,10 @@ constrained-write entry points; see [NATIVE_INODE_IO.md](docs/NATIVE_INODE_IO.md
 They prevent old-path reuse from redirecting an inode write and retain the same
 replicated durability path. Full Windows handle/delete lifetime and writable
 mounting remain unfinished; qualification applies only to inspected commits.
+
+
+Persistent delete intent/cancellation and detached-inode data retention now
+have CPU engine primitives: [NATIVE_FILE_LIFETIME.md](docs/NATIVE_FILE_LIFETIME.md).
+They preserve inode access after unlink and separate final retirement from
+name removal. The Windows handle owner, writable callbacks and app remain
+unfinished; unresolved states cannot enter ordinary resume or read-only mounts.

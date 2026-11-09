@@ -144,3 +144,13 @@ Logs:
 Qualification applies to that exact implementation and those environments.
 It does not complete mounted writes, the helper application, Windows 11 client,
 live AMD acceleration, production capacity or physical power-cut qualification.
+
+
+## Unresolved file-lifetime admission
+
+The later native lifetime capability is specified in NATIVE_FILE_LIFETIME.md.
+The read-only factory rejects pending/deferred inode deletion after full CPU
+admission and UUID checks, before any callback/session exposure. It performs
+no source mutation or inference about old open contexts. Independent native
+CPU inspection remains possible. Separate newly owned Windows fixtures require
+this rejection for valid pending and detached images and compare source bytes.

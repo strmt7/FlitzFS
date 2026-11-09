@@ -41,6 +41,11 @@ struct NativeFileMutation {
   std::vector<std::byte> data;
   bool replace=false;
 };
+struct NativeInodeState {
+  NativeFileInfo info;
+  bool delete_pending=false;
+  bool unlinked=false; // No name/parent; payloads remain live until explicit retirement.
+};
 struct NativeInodeWriteOptions {
   bool append=false;       // Choose the latest EOF inside the single-control-thread call.
   bool constrained=false;  // Never extend logical EOF; a range beyond EOF writes zero bytes.
@@ -73,6 +78,8 @@ class NativeFilesystemSnapshot final {
   // IDs belong to this volume/snapshot. Missing/deleted IDs return not_found;
   // a later file at the old path is never selected instead.
   NativeFileInfo stat_inode(std::uint64_t inode) const;
+  NativeInodeState inode_state(std::uint64_t inode) const;
+  bool needs_session_recovery() const noexcept;
   std::vector<NativeFileInfo> list(std::string_view directory="") const;
   std::vector<NativeFileInfo> list_inode(std::uint64_t directory) const;
   // Root-relative '/' paths, conservative ASCII/case-insensitive components.
@@ -93,7 +100,14 @@ class NativeFilesystemWriter final {
   // A NEW empty generation-zero object store only. Never reinterprets existing objects.
   static NativeFilesystemWriter initialize(ObjectStoreWriter objects);
   // Object writer must already hold its qualified backend lease/recovery fence.
+  // Ordinary admission refuses pending/unlinked state. A live old file context
+  // must never be silently treated as closed.
   static NativeFilesystemWriter resume(ObjectStoreWriter objects);
+  // ONLY after the caller has independently established retirement of ALL old
+  // file contexts and exclusive backend ownership. Finish persisted deletions
+  // and detached inode retirement atomically before returning. This declaration
+  // is not itself driver/context attestation; the future helper must prove it.
+  static NativeFilesystemWriter resume_closed_session(ObjectStoreWriter objects);
   // Copy a quiescent latest snapshot into an empty NEW volume identity.
   // Preserve inode IDs/sequences/contents, rebind namespace identity, and
   // retain the original source. No in-place reclaim, filename swap or deletion.
@@ -118,14 +132,26 @@ class NativeFilesystemWriter final {
   // Full supplied input <=1 MiB even if constrained; accepted bytes may be
   // shorter. Append selects current EOF, ignoring the supplied offset.
   // Zero accepted bytes publish nothing. A removed inode is never redirected.
-  // These APIs do not implement Windows open/unlinked-inode lifetime or a mount.
+  // Detached inodes stay writable until explicitly retired. These APIs do not
+  // track Windows open contexts or enable a mounted writable session.
   NativeInodeWriteCommit write_inode(std::uint64_t inode,std::uint64_t offset,
       std::span<const std::byte> bytes,NativeInodeWriteOptions options={});
   NativeFsCommit truncate_inode(std::uint64_t inode,std::uint64_t bytes);
+  // Persistent deletion primitives for the future owning Windows engine.
+  // Eligibility/cancel changes intent only; it never unlinks. Unlink requires
+  // pending intent, removes the name, and retains every payload. Retirement
+  // requires detached state AND the caller's proof of no remaining file context.
+  // No public ordinary-file reopen, open-context proof, or mount is added.
+  NativeFsCommit set_delete_pending(std::uint64_t inode,bool pending);
+  NativeFsCommit unlink_inode(std::uint64_t inode);
+  NativeFsCommit retire_inode(std::uint64_t inode);
   NativeFilesystemSnapshot snapshot() const;
   bool poisoned() const noexcept;
  private:
   struct Impl;
+  enum class InodeAction {path_mutations,mutate,set_delete,clear_delete,unlink,retire,finish_session};
+  NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t);
+  static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
