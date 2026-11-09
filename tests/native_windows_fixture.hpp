@@ -33,6 +33,14 @@ inline Bytes data() {
   return bytes;
 }
 inline Bytes tail() {return Bytes(17,std::byte{0x5b});}
+inline NativeBasicMetadata sample_basic() {
+  return {133700000000000011ULL,133700000000000022ULL,133700000000000033ULL,
+      133700000000000044ULL,0x2021U};
+}
+inline NativeBasicMetadata root_basic() {
+  return {133600000000000011ULL,133600000000000022ULL,133600000000000033ULL,
+      133600000000000044ULL,0x10U};
+}
 inline NativeFileMutation create(std::string path,bool directory=false) {
   NativeFileMutation m;m.operation=directory?NativeFileOperation::create_directory:
       NativeFileOperation::create_file;m.path=std::move(path);return m;
@@ -50,7 +58,7 @@ struct Expected {
   StoreCommitInfo storage;
 };
 inline Expected make_image(const std::filesystem::path& image,bool require_zstd,
-    std::uint64_t sparse_bytes=kNativeMaxFileBytes,bool extra_flush=false) {
+    std::uint64_t sparse_bytes=kNativeMaxFileBytes,bool extra_flush=false,bool stamp_basic=true) {
   hosted();require(sparse_bytes>=31 && sparse_bytes<=kNativeMaxFileBytes,"native sparse fixture bounds");
   auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create_file(
       image,identity(),{4096,true},{StoreCompressionMode::automatic,6,require_zstd}));
@@ -63,7 +71,12 @@ inline Expected make_image(const std::filesystem::path& image,bool require_zstd,
   NativeFileMutation remove;remove.operation=NativeFileOperation::remove;remove.path="discard";
   NativeFileMutation rename;rename.operation=NativeFileOperation::rename;
   rename.path="scratch.bin";rename.target="Data/sample.bin";
-  const std::array<NativeFileMutation,2> final{remove,rename};writer.apply(final);
+  const std::array<NativeFileMutation,2> final{remove,rename};
+  if(stamp_basic) {
+    const std::array<NativeBasicMutation,3> metadata{{{4,0,sample_basic()},{1,0,root_basic()},
+        {5,0,NativeBasicMetadata{0,0,0,0,0x22U}}}};
+    writer.apply_with_basic(final,metadata);
+  } else writer.apply(final);
   if(extra_flush) {
     const auto before=writer.snapshot();const auto barrier=writer.flush();
     require(barrier.sequence==before.sequence() &&
@@ -105,7 +118,7 @@ struct Fixture {
   std::filesystem::path image() const{return root/L"image.fltx";}
   ~Fixture() {
     std::error_code ignored;
-    for(const auto* leaf:{L"image.fltx",L"damaged.fltx",L"generic.fltx",L"mapped.fltx",L"pending.fltx",L"unlinked.fltx",L"flushed.fltx"})
+    for(const auto* leaf:{L"image.fltx",L"damaged.fltx",L"generic.fltx",L"mapped.fltx",L"pending.fltx",L"unlinked.fltx",L"flushed.fltx",L"legacy-basic.fltx",L"metadata-oracle.bin"})
       std::filesystem::remove(root/leaf,ignored);
     std::filesystem::remove(root,ignored); // Never recursive.
   }

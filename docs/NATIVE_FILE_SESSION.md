@@ -192,3 +192,13 @@ Contexts, requests, latches and detached data remain unchanged. Cleaned contexts
 stay valid until Close; stale contexts reject before I/O. NATIVE_FLUSH.md defines
 fencing and coverage limits. Actual Windows cached/mapped/write-through/cancel
 behavior and the writable callback adapter remain unfinished.
+
+## Explicit Windows basic metadata ownership
+
+NATIVE_BASIC_METADATA.md adds stamped creation and per-context full tuple
+query/update. The new open overload accepts a separate already-authorized
+NativeBasicAccess; the old overload grants no attribute-write permission.
+Data-write and basic-metadata-write grants cannot imply one another.
+Contexts remain owned through Cleanup until Close; update failure retains
+them and fences. These APIs do not implement ACL authorization or automatic
+Windows write/cleanup timestamp policy and do not expose the raw writer.

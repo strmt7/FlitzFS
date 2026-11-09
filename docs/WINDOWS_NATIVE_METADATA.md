@@ -97,3 +97,54 @@ open contexts and refuse retries after uncertain completion. New compatibility
 work needs real Windows API/callback tests, current source review and explicit
 remaining client/ACL/cache/sharing limitations. Nothing here permits owner-PC
 execution or makes an impossibility guarantee about future bugs.
+
+## Inspected capture result
+
+Commit a016e75d383874e09aa16605c0ec2ed4f1681bbd, hosted research
+job 129507986375, successfully extracted all twelve requested pages. All
+final response statuses were HTTP 200; the two protocol landing URLs first
+redirected with HTTP 301. The retained three group receipts accepted 4/4
+each, with SHA-256 values:
+
+- Basic: 848ffaee22b5ac6664bee105e5448a66390744c4e45940bb995afa664b7e3779.
+- Security: 41ec7b602b0e5867d93aff790f1204da5424912a3d939c0218d444cc11645c26.
+- Protocol: 30accebd2ec8d6890f346523c22c6c5e484528e09207de84942526e07338fe73.
+
+The publisher metadata exposed old content, not a set of new 2026 contracts.
+The basic-info page reported ms.date 2024-08-02; attributes 2025-09-23;
+SetFileTime 2022-08-30; kernel basic-info 2021-05-18; file-security 2025-07-09;
+relative-descriptor and inheritance pages 2018-05-31; SetSecurityInfo
+2018-12-05; standard-info 2018-04-30. Publisher updated_at fields were
+2024/2025 and differed from some visible revision dates. No copyright year,
+recent crawl time or successful HTTP status makes those fresh content.
+
+The FSA landing body's published version was 42.0 dated 2025-09-09; FSCC
+was 60.0 dated 2025-11-21. These pages describe SMB/object-store/network
+contracts; they do not establish every local Windows 11 FSD behavior.
+Older references are therefore background/navigation only under the owner's
+recent-primary-source requirement. No important feature change is based
+on those dates. Continue from inspected current selected 2026 SDK/FSD code,
+and qualify real boundary behavior with recent hosted tests; retain the
+Windows 11 client gate separately.
+
+The selected SDK security.c source additionally shows the real allocation
+ownership: FspCreateSecurityDescriptor calls CreatePrivateObjectSecurity with
+the request token/parent and directory bit. FspSetSecurityDescriptor copies
+the prior descriptor into process-heap memory before SetPrivateObjectSecurity.
+FspDeleteSecurityDescriptor pairs these helper results with
+DestroyPrivateObjectSecurity. Future bounded persistence must preserve that
+allocator ownership and validate/copy privately; do not persist pointers or
+confuse this user-mode memory helper with durable metadata publication.
+
+The selected upstream info-test.c contains real SetFileTime/attribute/query
+test patterns and current source readback. It was inspected but not executed
+as a FlitzFS writable result. It can inform a bounded hosted oracle and future
+integration coverage without inventing passing application behavior.
+
+## Persistent basic tuple implementation
+
+NATIVE_BASIC_METADATA.md specifies the new explicit attrs/time tuples,
+FLTXNS03 capability, combined data/metadata transaction and owning-context/
+read-only projection integration. Automatic Windows policy, allocation and
+security persistence remain separate required work. Configured checks need
+inspection at their exact commit before being called passing.

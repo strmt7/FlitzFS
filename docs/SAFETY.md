@@ -325,3 +325,16 @@ failed/unverifiable completion. It does not scrub every payload, repair media,
 infer retired external contexts or qualify physical hardware persistence.
 Existing source preservation, backend assumptions and off-host-only execution
 remain. See NATIVE_FLUSH.md.
+
+### Windows basic metadata
+
+FLTXNS03 tuples are explicit persisted values with strict presence/attribute/
+nonnegative-time validation, not Windows request sentinels or guessed clocks.
+Data and tuple changes share a private stage and the same three publication
+barriers. Attribute-write authority is separate from data-write authority;
+failed updates retain contexts and fence. Existing limits, legacy encoding,
+full public verification and delayed untouched-media detection remain.
+Read-only SDK projection uses present fields exactly while independently denying
+writes. Current synthetic host-oracle/mount checks stay off the owner's PC;
+they do not qualify Windows 11 clients, writable caching, physical power cuts,
+automatic timestamp policy, security/allocation or arbitrary-failure immunity.

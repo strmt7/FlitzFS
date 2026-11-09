@@ -337,3 +337,14 @@ NativeFilesystemWriter::flush now validates its namespace before/after a real
 shared-image checkpoint barrier, preserving namespace sequence, records and
 created-inode state. It is not a zero-mutation apply or a full payload scrub.
 NATIVE_FLUSH.md specifies the unchanged publication and failure assumptions.
+
+## Persistent Windows basic tuple capability
+
+See NATIVE_BASIC_METADATA.md for explicit optional attributes and four UTC
+times, FLTXNS03/88-byte inode headers, bounded apply_with_basic atomic
+publication and current-source/read-only Windows integration. Logical sequence
+fields keep their historical meanings. Ordinary FLTXNS01/02 encoding and all
+resource caps remain unchanged; format 3 is sticky and requires replicated
+current checkpoints. The conservative metadata maximum becomes 52,272 bytes,
+still below 64 KiB. Generic mutations preserve tuples; complete automatic
+Windows metadata/security/allocation policy and writable callbacks remain open.

@@ -273,3 +273,14 @@ pre/post checks and terminal failure fencing (NATIVE_FLUSH.md). This advances
 the writable synchronization boundary. Actual Windows callback FileInfo/cache/
 mapped/write-through/cancellation behavior and physical persistence remain
 separate gates, not conclusions from CPU barrier tests.
+
+### Persisted basic Windows tuples
+
+NATIVE_BASIC_METADATA.md specifies canonical optional attrs/times, sticky
+FLTXNS03, atomic combined namespace/data/basic publication, owning-context
+attribute grants and read-only SDK/mount exposure. Keep transaction counters
+separate from UTC, current hard limits and legacy formats. The new configured
+fault/capacity/malformed/API tests must pass at the exact commit before
+qualification. Next required work remains automatic per-open Windows timestamp
+policy, secure descriptor persistence/ACL behavior, allocation/reclamation,
+Create/Overwrite/write-cache/cancellation integration and the helper app.

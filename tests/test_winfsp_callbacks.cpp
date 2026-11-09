@@ -82,6 +82,21 @@ void native_image_callbacks() {
     FSP_FSCTL_FILE_INFO info{};PVOID file=nullptr,sparse=nullptr,root=nullptr,rejected=nullptr;
     require(callbacks.Open(&context,name(L"\\DATA\\sample.bin"),0,FILE_GENERIC_READ,&file,&info)==STATUS_SUCCESS &&
         info.IndexNumber==expected.sample_inode,"native callback lost persistent inode");
+    const auto basic=nw::sample_basic();
+    require(info.FileAttributes==basic.attributes && info.CreationTime==basic.creation_time &&
+        info.LastAccessTime==basic.last_access_time && info.LastWriteTime==basic.last_write_time &&
+        info.ChangeTime==basic.change_time,"native callback replaced persisted Windows basic tuple");
+    PVOID other_context=nullptr;
+    require(callbacks.Open(&context,name(L"\\Data\\other.txt"),0,FILE_GENERIC_READ,&other_context,&info)==STATUS_SUCCESS &&
+        info.FileAttributes==0x22U && info.CreationTime==0 && info.ChangeTime==0,
+        "native callback invented read-only attribute/timestamps");
+    callbacks.Close(&context,other_context);
+    require(callbacks.Open(&context,name(L"\\Data\\other.txt"),0,FILE_WRITE_DATA,&rejected,&info)==STATUS_MEDIA_WRITE_PROTECTED,
+        "persisted writable attribute bypassed read-only volume boundary");
+    FSP_FSCTL_FILE_INFO reread{};
+    require(callbacks.GetFileInfo(&context,file,&reread)==STATUS_SUCCESS &&
+        reread.CreationTime==basic.creation_time && reread.FileAttributes==basic.attributes,
+        "native GetFileInfo lost persisted basic tuple");
     require(callbacks.Open(&context,name(L"\\"),FILE_DIRECTORY_FILE,FILE_GENERIC_READ,&root,&info)==STATUS_SUCCESS &&
         info.IndexNumber==1,"native root inode");
     require(callbacks.Open(&context,name(L"\\sparse.bin"),0,FILE_GENERIC_READ,&sparse,&info)==STATUS_SUCCESS &&

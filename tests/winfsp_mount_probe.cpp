@@ -198,6 +198,14 @@ void check_inode(const fs::path& path,std::uint64_t expected) {
   checked(file.value!=INVALID_HANDLE_VALUE,"native file identity open");
   BY_HANDLE_FILE_INFORMATION info{};
   checked(GetFileInformationByHandle(file.value,&info),"native file identity query");
+  FILE_BASIC_INFO basic{};checked(GetFileInformationByHandleEx(file.value,FileBasicInfo,&basic,sizeof(basic)),
+      "mounted persisted native basic query");
+  const auto wanted=native_windows_fixture::sample_basic();
+  require(basic.CreationTime.QuadPart==static_cast<LONGLONG>(wanted.creation_time) &&
+      basic.LastAccessTime.QuadPart==static_cast<LONGLONG>(wanted.last_access_time) &&
+      basic.LastWriteTime.QuadPart==static_cast<LONGLONG>(wanted.last_write_time) &&
+      basic.ChangeTime.QuadPart==static_cast<LONGLONG>(wanted.change_time) &&
+      basic.FileAttributes==wanted.attributes,"mounted Windows basic tuple differs from durable native source");
   require(((std::uint64_t(info.nFileIndexHigh)<<32)|info.nFileIndexLow)==expected &&
       info.dwVolumeSerialNumber==0x5700004eU,"mounted identity differs from native UUID/inode");
 }

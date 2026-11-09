@@ -12,8 +12,46 @@ template<class F> void rejects(F&& action,const char* why) {
   try{action();}catch(const std::exception&){return;}throw std::runtime_error(why);
 }
 }
+namespace {
+void os_basic_oracle(Fixture& fixture) {
+  static_assert(FILE_ATTRIBUTE_READONLY==1 && FILE_ATTRIBUTE_HIDDEN==2 &&
+      FILE_ATTRIBUTE_SYSTEM==4 && FILE_ATTRIBUTE_DIRECTORY==16 &&
+      FILE_ATTRIBUTE_ARCHIVE==32 && FILE_ATTRIBUTE_TEMPORARY==256 &&
+      FILE_ATTRIBUTE_NOT_CONTENT_INDEXED==8192);
+  struct Handle {
+    HANDLE value=INVALID_HANDLE_VALUE;
+    ~Handle(){if(value!=INVALID_HANDLE_VALUE)CloseHandle(value);}
+  } handle;
+  handle.value=CreateFileW((fixture.root/L"metadata-oracle.bin").c_str(),
+      GENERIC_READ|GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
+  require(handle.value!=INVALID_HANDLE_VALUE,"new hosted Windows metadata oracle");
+  const auto expected=sample_basic();FILE_BASIC_INFO request{};
+  request.CreationTime.QuadPart=static_cast<LONGLONG>(expected.creation_time);
+  request.LastAccessTime.QuadPart=static_cast<LONGLONG>(expected.last_access_time);
+  request.LastWriteTime.QuadPart=static_cast<LONGLONG>(expected.last_write_time);
+  request.ChangeTime.QuadPart=static_cast<LONGLONG>(expected.change_time);
+  request.FileAttributes=FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_ARCHIVE|FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;
+  require(SetFileInformationByHandle(handle.value,FileBasicInfo,&request,sizeof(request)),
+      "current Windows basic metadata oracle set");
+  const auto check=[&] {
+    FILE_BASIC_INFO readback{};
+    require(GetFileInformationByHandleEx(handle.value,FileBasicInfo,&readback,sizeof(readback)),
+        "current Windows basic metadata oracle query");
+    require(readback.CreationTime.QuadPart==request.CreationTime.QuadPart &&
+        readback.LastAccessTime.QuadPart==request.LastAccessTime.QuadPart &&
+        readback.LastWriteTime.QuadPart==request.LastWriteTime.QuadPart &&
+        readback.ChangeTime.QuadPart==request.ChangeTime.QuadPart &&
+        readback.FileAttributes==request.FileAttributes,"Windows full basic tuple readback differs");
+  };
+  check();FILE_BASIC_INFO preserve{};
+  require(SetFileInformationByHandle(handle.value,FileBasicInfo,&preserve,sizeof(preserve)),
+      "current Windows zero basic request");
+  check();
+  std::cout<<"Windows basic oracle: explicit tuple and zero-preserve passed; hosted Server only\n";
+}
+}
 int main(){try {
-  Fixture fixture;const auto expected=make_image(fixture.image(),false);
+  Fixture fixture;os_basic_oracle(fixture);const auto expected=make_image(fixture.image(),false);
   const auto original=read_image(fixture.image());const auto bytes=data();
   const auto flushed=fixture.root/L"flushed.fltx";
   const auto synced=make_image(flushed,false,kNativeMaxFileBytes,true);
@@ -30,6 +68,9 @@ int main(){try {
     require(view.stat(L"\\").inode==1 && view.stat(L"\\DATA").inode==expected.directory_inode &&
         view.stat(L"\\data\\SAMPLE.BIN").inode==expected.sample_inode,
         "native projection regenerated persistent inode identities");
+    require(view.basic_metadata(L"\\Data\\sample.bin")==sample_basic() &&
+        view.basic_metadata(L"\\")==root_basic() && !view.basic_metadata(L"\\empty.bin"),
+        "native projection fabricated or lost persisted basic tuple");
     require(view.list(L"\\").size()==3 && view.list(L"\\Data").size()==2,
         "native view namespace differs from committed rename/remove");
     rejects([&]{(void)view.stat(L"\\discard");},"removed inode escaped snapshot");
@@ -83,6 +124,13 @@ int main(){try {
     auto reopened=ReadOnlyProjection::open_native_file(fixture.image(),identity());
     require(reopened.stat(L"\\Data\\sample.bin").inode==expected.sample_inode,
         "native inode changed on independent source reopen");
+  }
+  const auto legacy=fixture.root/L"legacy-basic.fltx";
+  make_image(legacy,false,kNativeMaxFileBytes,false,false);
+  {
+    auto view=ReadOnlyProjection::open_native_file(legacy,identity());
+    require(!view.basic_metadata(L"\\Data\\sample.bin") && !view.basic_metadata(L"\\"),
+        "legacy native image fabricated persisted timestamps");
   }
   auto other=identity();other[1]=std::byte{1};
   rejects([&]{(void)ReadOnlyProjection::open_native_file(fixture.image(),other);},"wrong volume identity accepted");

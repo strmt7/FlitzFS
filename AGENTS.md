@@ -391,3 +391,17 @@ barrier entry may leave a healthy writer usable. Never acknowledge Flush through
 a no-op, retry a poisoned writer, release contexts or treat it as payload scrubbing,
 driver retirement, honest hardware persistence or physical power-cut proof.
 All mutation barriers, encodings, resource caps and owner-host prohibitions stay.
+
+## Persistent Windows basic tuples
+
+Read docs/NATIVE_BASIC_METADATA.md before modifying FLTXNS03, tuple presence,
+canonical attributes/times or atomic data+metadata publication. Preserve exact
+legacy FLTXNS01/02 bytes, sticky capability across lifecycle transitions,
+replicated roots, 88-byte format-3 inode headers, strict absent-field zeros,
+the combined sixteen-operation cap and the existing aggregate budgets.
+Do not persist Windows request sentinels, treat logical sequences as UTC,
+invent original timestamps or OR synthetic attributes into present tuples.
+Generic operations preserve tuples; the future Windows adapter must supply
+authorized automatic updates in the SAME transaction. Separate data/attribute
+write grants and context retention through failure. Security/allocation policy,
+writable callbacks, helper app, client qualification and live GPU remain open.

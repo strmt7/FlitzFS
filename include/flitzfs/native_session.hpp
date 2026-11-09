@@ -20,6 +20,9 @@ enum class NativeOpenKind {any,file,directory};
 struct NativeFileAccess {
   bool read=true,write=false,erase=false; // Already authorized by the future OS adapter.
 };
+// Separate already-authorized WRITE_ATTRIBUTES-like grant; data write does
+// not silently grant permission to replace persisted timestamps/attributes.
+struct NativeBasicAccess {bool write=false;};
 // A value alias for ONE open instance, not another open/reference count.
 // Only open() creates a context; one successful Close invalidates all aliases.
 // Weak ownership prevents stale tokens from binding to another session.
@@ -49,13 +52,20 @@ class NativeFileSession final {
 
   NativeFileHandle open(std::string_view path,NativeFileAccess access={},
       NativeOpenKind kind=NativeOpenKind::any);
+  NativeFileHandle open(std::string_view path,NativeFileAccess access,
+      NativeOpenKind kind,NativeBasicAccess basic_access);
   NativeInodeState info(const NativeFileHandle&) const;
+  std::optional<NativeBasicMetadata> basic_metadata(const NativeFileHandle&) const;
+  NativeFsCommit set_basic_metadata(const NativeFileHandle&,const NativeBasicMetadata&);
   std::vector<NativeFileInfo> list(const NativeFileHandle&) const;
   std::vector<std::byte> read(const NativeFileHandle&,std::uint64_t offset,std::uint32_t bytes) const;
   NativeInodeWriteCommit write(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={});
   NativeFsCommit truncate(const NativeFileHandle&,std::uint64_t bytes);
   NativeFsCommit create_entry(std::string_view path,bool directory=false);
+  // Trusted creation path: data/namespace and explicit full basic metadata
+  // publish atomically. Access checking remains the future OS adapter's job.
+  NativeFsCommit create_entry(std::string_view path,bool directory,const NativeBasicMetadata&);
   NativeFsCommit rename(const NativeFileHandle&,std::string_view target,bool replace=false);
 
   // Aggregate per-open disposition; canceling one cannot cancel another's
