@@ -3,13 +3,10 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/object_store.cpp'
-      - 'src/store_codec.*'
-      - 'src/zstd_frame.hpp'
-      - 'src/repeat_bytes.hpp'
-      - 'src/extent_codec.cpp'
-      - 'src/record_digest.*'
-      - 'include/flitzfs/object_store.hpp'
+      - 'src/**'
+      - 'include/**'
+      - 'third_party/**'
+      - 'tools/ci/verify_*.py'
       - 'tests/store_comparison.cpp'
       - 'tests/store_reference/**'
       - 'tools/ci/compare_native_store.py'

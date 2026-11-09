@@ -3,16 +3,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/object_store.cpp'
-      - 'src/native_filesystem.cpp'
-      - 'include/flitzfs/native_filesystem.hpp'
+      - 'src/**'
+      - 'include/**'
+      - 'third_party/**'
+      - 'tools/ci/verify_*.py'
       - 'tests/native_fs_fixture.hpp'
-      - 'src/store_file.*'
-      - 'src/store_codec.*'
-      - 'src/zstd_frame.hpp'
-      - 'src/record_digest.*'
-      - 'src/repeat_bytes.hpp'
-      - 'include/flitzfs/object_store.hpp'
       - 'tests/store_crash_probe.cpp'
       - 'tools/ci/*store*probe*.py'
       - 'tools/ci/probe_store_interruptions.py'
