@@ -22,7 +22,7 @@ PINS=(
     ("meta/zstd","v1.5.7","f8745da6ff1ad1e7bab384bd1f9d742439278e99"),
     ("lz4/lz4","v1.11.0","c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc"),
     ("BLAKE3-team/BLAKE3","1.8.7","f3149ec5bb5449af877ba20377a11008ff499fa2"),
-    ("winfsp/winfsp","v2.1",None),
+    ("winfsp/winfsp",None,None),
     ("actions/checkout","v7.0.1","3d3c42e5aac5ba805825da76410c181273ba90b1"),
     ("actions/setup-python","v7.1.0","6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"),
     ("actions/upload-artifact","v7.0.2","cf430e030ddbb5b0abf93d22962f4752f3646cd9"),
@@ -94,6 +94,33 @@ def main():
         status,value,_=capture.api("repos/"+repo+"/releases/latest")
         if status!=200 or value.get("prerelease") or value.get("draft"):
             raise RuntimeError("official stable release unavailable: "+repo)
+        if repo=="winfsp/winfsp":
+            recipe=json.loads((Path(__file__).resolve().parents[1]/"winfsp-sdk-lock.json").read_text(encoding="utf-8"))
+            declared=recipe["tag"];pin=recipe["source_commit"]
+            stable=value["tag_name"]
+            selected_status,selected,_=capture.api("repos/"+repo+"/releases/tags/"+declared)
+            newest_status,releases,_=capture.api("repos/"+repo+"/releases?per_page=10")
+            if selected_status!=200 or newest_status!=200 or selected.get("draft") or not isinstance(releases,list):
+                raise RuntimeError("source-bound security-fix driver candidate unavailable")
+            eligible=[release for release in releases if not release.get("draft")]
+            if not eligible:
+                raise RuntimeError("driver release inventory is empty")
+            newest=max(eligible,key=lambda release:release["published_at"])
+            resolved=capture.tag(repo,declared)
+            asset=next((a for a in selected["assets"] if a["browser_download_url"]==recipe["url"]),None)
+            if recipe["repository"]!=repo or asset is None or asset["size"]!=recipe["bytes"] or asset.get("digest")!="sha256:"+recipe["sha256"]:
+                raise RuntimeError("driver package differs from official source-bound asset")
+            if selected["prerelease"]!=recipe["prerelease"]:
+                raise RuntimeError("driver release channel differs from declared candidate")
+            rows.append(dict(repository=repo,declared_tag=declared,declared_commit=pin,
+                latest_stable=stable,latest_available=newest["tag_name"],latest_commit=resolved,
+                current=declared==newest["tag_name"] and pin==resolved,
+                selected_prerelease=selected["prerelease"],release_url=selected["html_url"],
+                published_at=selected["published_at"],policy=recipe["policy"],
+                official_asset=dict(url=recipe["url"],bytes=recipe["bytes"],sha256=recipe["sha256"]),
+                release_inventory=[dict(tag=r["tag_name"],prerelease=r["prerelease"],published=r["published_at"])
+                                   for r in eligible]))
+            continue
         tag=value["tag_name"];resolved=capture.tag(repo,tag)
         rows.append(dict(repository=repo,declared_tag=declared,latest_stable=tag,
             declared_commit=pin,latest_commit=resolved,
@@ -132,6 +159,6 @@ def main():
     print(json.dumps(dict(commit=report["commit"],pins_current=all(x["current"] for x in rows),
         build_tools=tools,installed=report["installed"])))
     if not all(row["current"] for row in rows):
-        raise RuntimeError("Dependency/action pin is behind latest stable or tag identity differs")
+        raise RuntimeError("Dependency/action pin is behind its declared current-release policy or tag identity differs")
 if __name__=="__main__":
     main()

@@ -16,7 +16,8 @@ owner's PC.
 
 The Windows app, full writable driver integration and latest Windows 11 client
 qualification remain unfinished. Existing Linux CPU/sanitizer jobs are internal
-algorithm checks, not Linux product support. See [the Windows product contract](docs/WINDOWS_PRODUCT.md).
+algorithm checks, not Linux product support. See [the Windows product contract](docs/WINDOWS_PRODUCT.md) and
+[current Windows architecture research](docs/WINDOWS_ARCHITECTURE.md).
 
 ## Current filesystem components
 

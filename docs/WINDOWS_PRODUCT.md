@@ -61,3 +61,9 @@ An app/driver package, working writable Windows volume, automatic resource-bound
 learning/repair, qualified AMD execution and independently verified recovery are
 all outstanding product deliverables. Keep these requirements intact until
 their actual implementation and end-to-end Windows evidence prove completion.
+
+
+Current maintainer/source comparison and the resulting app/engine/driver
+boundaries are recorded in WINDOWS_ARCHITECTURE.md, including the WinFsp
+prerelease security-fix candidate, current Windows driver-policy gate, explicit
+research failures and outstanding latest Windows 11 qualification.

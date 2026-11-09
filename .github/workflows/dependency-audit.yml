@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/**'
       - 'tools/ci/dependency_audit.py'
+      - 'tools/winfsp-sdk-lock.json'
       - 'tools/ci/hosted_semantic.py'
       - 'tools/ci/test_hosted_semantic.py'
       - 'tools/ci/prepare_hosted_tools.py'

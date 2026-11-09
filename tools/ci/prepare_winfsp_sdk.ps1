@@ -8,6 +8,19 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hoste
     throw 'This dependency extractor is restricted to GitHub-hosted Windows runners.'
 }
 if (-not $env:RUNNER_TEMP -or -not $env:GITHUB_ENV) { throw 'Runner paths are missing.' }
+
+$lockPath = Join-Path $PSScriptRoot '../winfsp-sdk-lock.json'
+if ((Get-Item -LiteralPath $lockPath).Length -gt 16384) { throw 'WinFsp lock budget.' }
+$recipe = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
+if ($recipe.schema -ne 1 -or $recipe.repository -ne 'winfsp/winfsp' -or
+    $recipe.tag -notmatch '^v[0-9]+(?:\.[0-9]+){1,3}(?:B[0-9]+)?$' -or
+    $recipe.msi_name -notmatch '^winfsp-[0-9]+\.[0-9]+\.[0-9]+\.msi$' -or
+    $recipe.sha256 -notmatch '^[0-9a-f]{64}$' -or $recipe.source_commit -notmatch '^[0-9a-f]{40}$' -or
+    $recipe.bytes -le 0 -or $recipe.bytes -gt 4MB -or
+    $recipe.url -cne ("https://github.com/winfsp/winfsp/releases/download/" + $recipe.tag + "/" + $recipe.msi_name)) {
+    throw 'Invalid source-bound WinFsp SDK lock.'
+}
+
 $base = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
 $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($base))
 if ($drive.AvailableFreeSpace -lt 1GB) { throw 'Insufficient temporary storage headroom.' }
@@ -15,8 +28,8 @@ $root = Join-Path $base ('flitzfs-sdk-' + [guid]::NewGuid().ToString('N'))
 if (Test-Path -LiteralPath $root) { throw 'Fresh SDK staging directory already exists.' }
 [IO.Directory]::CreateDirectory($root) | Out-Null
 $msi = Join-Path $root 'winfsp.msi'
-$url = 'https://github.com/winfsp/winfsp/releases/download/v2.1/winfsp-2.1.25156.msi'
-$expected = '073a70e00f77423e34bed98b86e600def93393ba5822204fac57a29324db9f7a'
+$url = $recipe.url
+$expected = $recipe.sha256
 # Limit the entire response to 4 MiB and 60 seconds, including streaming.
 $cancel = [Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(60))
 $client = [Net.Http.HttpClient]::new()
@@ -24,7 +37,7 @@ $response = $null; $inputStream = $null; $outputStream = $null
 try {
     $response = $client.GetAsync($url, [Net.Http.HttpCompletionOption]::ResponseHeadersRead, $cancel.Token).GetAwaiter().GetResult()
     $response.EnsureSuccessStatusCode() | Out-Null
-    if ($response.Content.Headers.ContentLength -gt 4MB) { throw 'SDK download exceeds cap.' }
+    if ($response.Content.Headers.ContentLength -ne $recipe.bytes) { throw 'SDK download length differs from official pinned asset.' }
     $inputStream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
     $outputStream = [IO.File]::Open($msi, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
     $buffer = [byte[]]::new(65536)
@@ -40,7 +53,7 @@ try {
     if ($response) { $response.Dispose() }
     $client.Dispose(); $cancel.Dispose()
 }
-if ((Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
+if ($total -ne $recipe.bytes -or (Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
     throw 'WinFsp SDK hash does not match the pinned official release.'
 }
 $seven = (Get-Command 7z.exe -ErrorAction Stop).Source
@@ -70,7 +83,7 @@ $wanted = @{
     'winfsp-x64.lib' = 'lib/winfsp-x64.lib'
     'winfsp-x64.dll' = 'bin/winfsp-x64.dll'
 }
-# Component identities are taken from the pinned v2.1 Product.wxs. The
+# Component identities are verified in the selected v2.2B5 Product.wxs (source_commit in the lock). The
 # optional fsext library has the same basename but is NOT the public SDK library.
 $components = @{
     'winfsp.h' = 'C.winfsp.h'
@@ -104,4 +117,13 @@ try {
 if ($copied.Count -ne $wanted.Count) { throw 'Required SDK headers or user-mode library are missing.' }
 # No .sys file is selected, installed or loaded; only four build/runtime files.
 Add-Content -LiteralPath $env:GITHUB_ENV -Value "FLITZFS_WINFSP_SDK=$sdk" -Encoding utf8
-Write-Output 'Verified WinFsp 2.1 SDK staged without installing a driver or service.'
+$payloads = @()
+foreach ($relative in $wanted.Values) {
+    $item = Get-Item -LiteralPath (Join-Path $sdk $relative)
+    $payloads += [ordered]@{ path=$relative; bytes=$item.Length; sha256=(Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
+}
+$provenance = [ordered]@{ commit=$env:GITHUB_SHA; dependency=$recipe; msi_bytes=$total; payloads=$payloads; driver_installed=$false; driver_loaded=$false }
+$receipt = Join-Path $root 'sdk-provenance.json'
+[IO.File]::WriteAllText($receipt, ($provenance | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
+Add-Content -LiteralPath $env:GITHUB_ENV -Value "FLITZFS_WINFSP_PROVENANCE=$receipt" -Encoding utf8
+Write-Output ("Verified source-bound WinFsp " + $recipe.tag + " candidate SDK staged; no driver/service installation.")
