@@ -33,12 +33,14 @@ inline NativeFsCommit file_apply(NativeFilesystemWriter& writer,NativeFileMutati
 class Ram final:public StoreByteIo {
  public:
   Bytes live,stable;std::size_t calls=0,writes=0,fail_at=(std::numeric_limits<std::size_t>::max)();
+  mutable std::uint64_t read_bytes=0,read_calls=0;
   unsigned failure=0;
   std::uint64_t extent() const override{return live.size();}
   StoreIoContract contract() const noexcept override{return {65536,true};}
   void admit_write(std::uint64_t projected) override{if(projected>kStoreMaxPhysicalBytes)throw std::runtime_error("RAM admission");}
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override{
     if(at>live.size() || out.size()>live.size()-at)throw std::runtime_error("RAM read");
+    read_bytes+=out.size();++read_calls;
     std::copy_n(live.begin()+static_cast<std::ptrdiff_t>(at),out.size(),out.begin());
   }
   static void copy(Bytes& to,std::uint64_t at,std::span<const std::byte> in) {

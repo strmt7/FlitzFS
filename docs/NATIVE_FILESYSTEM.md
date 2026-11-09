@@ -56,12 +56,15 @@ needed for read, write or recovery.
 
 ## Present admission limits
 
-- At most 64 live inodes including root, and 15 live NONZERO extents across the
-  namespace. These limits follow the current 16-object store (one metadata object).
+- At most 256 live inodes including root, and 255 live NONZERO extents across the
+  namespace. These limits follow the 256-object store (one metadata object).
 - Each extent is 65,536 bytes decoded. Nonzero live data capacity is presently
-  983,040 bytes, despite a 1 TiB per-file sparse LOGICAL size allowance.
-- At most 1 MiB input per write and 4 MiB input per batch; 32 private dirty
-  extent buffers (2 MiB) during staging. Temporary staging/node limits may reject
+  16,711,680 bytes, despite a 1 TiB per-file sparse LOGICAL size allowance.
+- At most 1 MiB input per write and 4 MiB input per batch; 63 private dirty
+  extent buffers (4,128,768 bytes) during staging. A full 64 KiB is reserved for
+  namespace metadata inside the core's 4 MiB put budget. Unaligned writes may
+  exhaust the dirty-buffer allowance before the input allowance.
+  Temporary staging/node limits may reject
   a batch whose operation order exceeds them; delete before allocation at capacity.
 - Namespace bytes are capped at 64 KiB. Current graph bounds imply much smaller
   ordinary metadata; all counts, references and extents are admitted.
@@ -70,12 +73,41 @@ needed for read, write or recovery.
   reclamation, quota/statfs model or production capacity claim is implemented.
 
 These are bounded development gates, not the requested final filesystem
-capacity. Scaling needs a qualified metadata/index/allocation design, not simply
-increasing constants and accepting unbounded verification work.
+capacity. Aggregate decoded live bytes remain capped at 16 MiB in the object
+core; the object-count increase does not multiply that budget. At the combined
+node/name/extent ceiling, namespace encoding is at most 46,128 bytes, below its
+64 KiB cap. Static assertions bind these budgets. Ordinary-file admission now
+requires 640 MiB physical AND commit headroom: 512 MiB reserve plus 64 MiB cache
+and 64 MiB staging allowances. This is admission, not a whole-process reservation.
+
+### Incremental writer staging and full verification
+
+Opening/resuming a volume and exposing a public snapshot still fully verify all
+reachable object bytes and namespace references. The writer privately retains
+the last acknowledged model and immutable record references. Each apply reads
+and integrity-checks the namespace object, compares it exactly with the cached
+model, then reads/verifies only old extents that the operation actually touches.
+All newly staged extents pass nonzero/EOF-tail checks; the full graph and unique
+ownership are admitted before publication. Namespace-only updates read no data
+extents. This private staging view is unavailable to public callers.
+
+This follows the backend's exclusive-writer/immutable-record contract; staging
+is not a background media scrub. Corruption of an untouched extent after its
+original admission may remain undetected until the next full verification or
+read of that extent. Such a read fails before returning bytes; a staging read
+failure terminally fences the writer. Every public snapshot/open still rejects
+a corrupt reachable record. No unchecked data is exposed.
+
+RAM tests separately count actual backing read bytes for a 128-byte overwrite
+among 200 raw extents, require bounded staging reads, and require a later public
+snapshot to perform full verification. Corruption tests distinguish untouched
+data from touched data and metadata; the latter two must fence before writes.
+Production scaling still needs indexed metadata/allocation, reclamation, quotas,
+concurrency and application qualification.
 
 ## Native metadata bytes
 
-Object ID 1 stores the namespace; object IDs 2..16 store live extent records.
+Object ID 1 stores the namespace; object IDs 2..256 store live extent records.
 There may be no unrelated logical objects or duplicate extent-object ownership.
 Extent object IDs can be reused transactionally; old snapshots retain their
 old generation/offset/digest references in their own object-store snapshot.
@@ -90,11 +122,11 @@ diagnostic view. There is no automatic import or migration.
 |---:|---:|---|
 | 0 | 8 | ASCII FLTXNS01 |
 | 8 | 4 | Internal format field 1 |
-| 12 | 4 | Inode count, 1..64 |
+| 12 | 4 | Inode count, 1..256 |
 | 16 | 8 | Namespace transaction sequence, positive and <=root generation |
 | 24 | 8 | Next inode ID, greater than every live inode |
 | 32 | 4 | Extent bytes = 65,536 |
-| 36 | 4 | Total live nonzero extents, at most 15 |
+| 36 | 4 | Total live nonzero extents, at most 255 |
 | 40 | 16 | Object-store identity |
 | 56 | 8 | Zero |
 
@@ -112,7 +144,7 @@ Inodes are serialized in strictly increasing ID order.
 | 32 | 8 | Created namespace sequence |
 | 40 | 8 | Modified namespace sequence |
 | 48 | 2 | Name byte count, <=100; root empty |
-| 50 | 2 | Extent reference count, <=15 |
+| 50 | 2 | Extent reference count, <=255 |
 | 52 | 12 | Zero |
 
 Name bytes follow without a terminator. Each extent reference is two u64 fields:
@@ -130,7 +162,10 @@ unkeyed; this is not authentication or malicious-rollback protection.
 
 The RAM suite covers cross-extent writes, untouched snapshots, stable IDs,
 sparse reads near 1 TiB, truncate/regrow, rename/replace, directory rules, limits,
-no-write admission rollback and a separate byte-vector oracle. Metadata-negative
+no-write admission rollback and a separate byte-vector oracle. Capacity cases
+combine 256 inodes, maximum-length names and all 255 live extents; verify bytes
+in bounded reads; delete all extents atomically; and test 63-buffer admission
+versus 64-buffer rejection in both raw and automatic compression. Metadata-negative
 cases use valid object-store commits, recomputing enclosing integrity so graph
 validation is exercised rather than only checksum rejection.
 

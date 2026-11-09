@@ -14,7 +14,8 @@ using StoreIdentity = std::array<std::byte,16>;
 inline constexpr std::uint64_t kStoreMaxPhysicalBytes=64ULL*1024*1024;
 inline constexpr std::uint32_t kStoreMaxObjectBytes=1024*1024;
 inline constexpr std::uint32_t kStoreMaxTransactionBytes=4*1024*1024;
-inline constexpr std::size_t kStoreMaxObjects=16;
+inline constexpr std::size_t kStoreMaxObjects=256;
+inline constexpr std::uint64_t kStoreMaxLogicalBytes=16ULL*1024*1024;
 inline constexpr std::uint64_t kStoreCommitUnit=65536;
 
 // These are externally qualified BACKEND ASSUMPTIONS, not hardware attestation.
@@ -116,7 +117,8 @@ class ObjectStoreWriter final {
   ObjectStoreWriter(const ObjectStoreWriter&)=delete;
   ObjectStoreWriter& operator=(const ObjectStoreWriter&)=delete;
   ~ObjectStoreWriter();
-  // Atomic mutation batch: unique nonzero IDs, <=16 ops / 4 MiB new bytes.
+  // Atomic mutation batch: unique nonzero IDs, <=256 ops / 4 MiB new bytes.
+  // Final inventory: <=256 objects and <=16 MiB decoded bytes.
   // Argument/budget errors occur before writes. Any I/O failure terminally
   // poisons the writer. A successful result means backend flush completed;
   // physical durability remains conditional on the declared backend contract.
@@ -124,6 +126,10 @@ class ObjectStoreWriter final {
   ObjectStoreSnapshot snapshot() const;
   bool poisoned() const noexcept;
  private:
+  friend class NativeFilesystemWriter;
+  // Internal cached last-ack view only. Reads still verify complete records;
+  // public snapshot/open always verify all reachable records before exposure.
+  ObjectStoreSnapshot snapshot_for_staging() const;
   struct Impl;
   explicit ObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

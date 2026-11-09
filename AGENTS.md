@@ -148,7 +148,12 @@ preservation, surviving-root repair and independent acknowledged-history tests.
 Read docs/NATIVE_FILESYSTEM.md before changing the namespace/inode/extent layer.
 Preserve atomic namespace+data publication, stable inode IDs, old snapshots,
 zeroed truncate tails, full graph/reference admission and terminal I/O fencing.
-Do not silently increase the 64-inode/15-nonzero-extent staging limits, introduce
-archive routes or expose mounted writes. Keep logical sparse size separate from
+Do not silently increase the 256-inode/255-nonzero-extent live limits, the
+63-dirty-extent staging bound, or the independent 16 MiB decoded object budget.
+Any further capacity change needs explicit aggregate-memory/metadata reasoning
+and positive/negative/fault tests. Do not introduce archive routes or expose
+mounted writes. Private incremental staging must still verify metadata and every
+touched record; preserve full before-exposure verification on public snapshots,
+open and resume, and document delayed detection of untouched-media corruption. Keep logical sparse size separate from
 physical allocation and history. The extended hosted process probe covers native
 file transactions but remains distinct from physical power-loss qualification.

@@ -15,7 +15,10 @@ namespace {
 using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
 constexpr std::uint64_t kNamespaceObject=1;
-constexpr std::size_t kMetadataCap=65536,kDirtyCap=32;
+constexpr std::size_t kMetadataCap=kNativeExtentBytes,kDirtyCap=kNativeMaxDirtyExtents;
+static_assert(64+kNativeMaxNodes*(64+100)+16*kNativeMaxExtents<=kMetadataCap);
+static_assert(kDirtyCap*kNativeExtentBytes+kMetadataCap<=kStoreMaxTransactionBytes);
+static_assert(kNativeMaxExtents*kNativeExtentBytes+kMetadataCap<=kStoreMaxLogicalBytes);
 constexpr std::array<std::byte,8> kMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'N'},std::byte{'S'},std::byte{'0'},std::byte{'1'}};
 [[noreturn]] void fail(Code code,const char* reason){throw NativeFsError(code,reason);}
 bool zeros(std::span<const std::byte> bytes){return std::all_of(bytes.begin(),bytes.end(),[](auto b){return b==std::byte{0};});}
@@ -310,15 +313,25 @@ struct Stage {
       object=candidate;used.insert(object);
     }
     validate_structure(model);
-    validate_data(model,[&](auto id,auto index,std::uint64_t object){
-      const auto found=dirty.find({id,index});return found==dirty.end()?object_bytes(base,object):found->second;});
-    std::vector<StoreMutation> output;output.reserve(16);
+    // Unchanged records were fully admitted on initialize/resume or a prior
+    // acknowledgement. Verify and validate every touched record privately;
+    // public snapshot/open still scrub ALL reachable data before exposure.
+    for(const auto& [key,bytes]:dirty) {
+      const auto& n=node(model,key.first);const auto index=key.second;
+      if(!n.extents.contains(index) || bytes.size()!=kNativeExtentBytes || zeros(bytes))
+        fail(Code::corrupt,"native dirty extent invariant");
+      const auto begin=index*kNativeExtentBytes;
+      if(n.size-begin<kNativeExtentBytes &&
+          !zeros(std::span<const std::byte>(bytes).subspan(static_cast<std::size_t>(n.size-begin))))
+        fail(Code::corrupt,"native dirty bytes beyond EOF");
+    }
+    std::vector<StoreMutation> output;output.reserve(kStoreMaxObjects);
     output.push_back({kNamespaceObject,false,encode(model)});
     for(const auto& [id,n]:model.nodes)for(const auto& [index,object]:n.extents) {
       const auto found=dirty.find({id,index});if(found!=dirty.end())output.push_back({object,false,found->second});
     }
     for(const auto& previous:base.list())if(previous.id!=kNamespaceObject && !used.contains(previous.id))output.push_back({previous.id,true,{}});
-    if(output.size()>16)fail(Code::limit,"native object mutation budget");
+    if(output.size()>kStoreMaxObjects)fail(Code::limit,"native object mutation budget");
     return output;
   }
 };
@@ -410,7 +423,12 @@ NativeFsCommit NativeFilesystemWriter::apply(std::span<const NativeFileMutation>
   }
   bool committing=false;
   try {
-    auto snapshot=impl_->objects.snapshot();Stage stage(impl_->model,snapshot);
+    auto snapshot=impl_->objects.snapshot_for_staging();
+    // Metadata is read and integrity-checked even for a namespace-only/no-op
+    // request. It must still exactly bind the cached last-ack model.
+    if(object_bytes(snapshot,kNamespaceObject)!=encode(impl_->model))
+      fail(Code::corrupt,"native cached namespace differs from backing record");
+    Stage stage(impl_->model,snapshot);
     for(const auto& op:operations)stage.apply(op);
     validate_structure(stage.model,true);
     NativeFsCommit result;result.created_inodes=std::move(stage.created);

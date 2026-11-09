@@ -41,6 +41,24 @@ jobs:
         run: cmake --build build --config Release --parallel 2
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure --timeout 45 --parallel 1
+
+      - name: Report native staging read counts
+        if: success()
+        shell: python
+        run: |
+          from pathlib import Path
+          for line in Path("build/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
+              if line.startswith("Native staging evidence:"):
+                  print(line)
+      - name: Retain bounded CPU test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cpu-tests-${{ runner.os }}-${{ matrix.zstd }}-${{ github.sha }}
+          path: build/Testing/Temporary/LastTest.log
+          retention-days: 30
+          if-no-files-found: warn
+
   sanitizers:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -66,6 +84,24 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
           UBSAN_OPTIONS: halt_on_error=1
         run: ctest --test-dir build-asan --output-on-failure --timeout 45 --parallel 1
+
+      - name: Report native staging read counts
+        if: success()
+        shell: python
+        run: |
+          from pathlib import Path
+          for line in Path("build-asan/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
+              if line.startswith("Native staging evidence:"):
+                  print(line)
+      - name: Retain sanitizer test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sanitizer-tests-${{ github.sha }}
+          path: build-asan/Testing/Temporary/LastTest.log
+          retention-days: 30
+          if-no-files-found: warn
+
   windows-native:
     runs-on: windows-2022
     timeout-minutes: 10
@@ -97,6 +133,24 @@ jobs:
         run: ./tools/ci/build_windows_native.ps1
       - name: Exercise actual callbacks without a mounted filesystem
         run: ctest --test-dir build-native -C Release --output-on-failure --timeout 45 --parallel 1
+
+      - name: Report native staging read counts
+        if: success()
+        shell: python
+        run: |
+          from pathlib import Path
+          for line in Path("build-native/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
+              if line.startswith("Native staging evidence:"):
+                  print(line)
+      - name: Retain native Windows test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-windows-tests-${{ github.sha }}
+          path: build-native/Testing/Temporary/LastTest.log
+          retention-days: 30
+          if-no-files-found: warn
+
 
   windows-mount:
     needs: [cpu, sanitizers, windows-native]

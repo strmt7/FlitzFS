@@ -216,7 +216,13 @@ The native file layer publishes metadata and changed extents in one core commit.
 It admits graph/extent/name bounds and zeroes discarded tails before writes.
 Old snapshots retain old records across object-ID reuse. Ordinary file reopening
 remains an internal hosted-fixture exception; no mount/CLI write route is added.
-See NATIVE_FILESYSTEM.md. Sparse logical size is not physical capacity: only 15
+See NATIVE_FILESYSTEM.md. Sparse logical size is not physical capacity: only 255
 nonzero 64 KiB extents are currently admitted, with no physical reclamation.
+Object inventory is capped at 256 and decoded live bytes at 16 MiB. Writer
+staging uses at most 63 dirty extents plus bounded metadata; ordinary-file
+physical/commit admission is 640 MiB. These are not whole-system reservations.
+Staging verifies namespace and touched extents; public open/snapshot still scrub
+all reachable data. Untouched-media corruption is detected at full verification
+or its next read, not automatically on every unrelated write.
 Do not infer physical power-cut, writable Windows application or GPU safety
 from these bounded CPU/process tests.

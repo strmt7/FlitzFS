@@ -26,9 +26,12 @@ enforce exclusive ownership. The file backend keeps its own handle; on POSIX
 its process-level exclusivity does not exclude an unrelated process modifying
 the same inode. This is not hostile-directory or hostile-process isolation.
 
-A transaction supplies 1..16 unique nonzero object IDs, puts and/or erases.
+A transaction supplies 1..256 unique nonzero object IDs, puts and/or erases.
 Each payload is at most 1 MiB; new payload bytes total at most 4 MiB; the final
-namespace has at most 16 objects (16 MiB logical maximum). Inputs are privately
+namespace has at most 256 objects AND at most 16 MiB total decoded live bytes.
+The decoded budget is explicit and independent of compression ratio/object
+count. Final-inventory admission precedes codec work, permits put-before-erase
+replacement at capacity and rejects aggregate overflow before writes. Inputs are privately
 copied and validated before backing writes. Erasing a missing ID is an error.
 A snapshot preserves its generation and old immutable record references;
 updates do not replace bytes referenced by an earlier snapshot. No reclaim,
@@ -92,7 +95,7 @@ rollback protection or encryption. Record magic separates framing domains.
 | 24 | 8 | Committed physical end, 64 KiB aligned |
 | 32 | 8 | Manifest offset |
 | 40 | 4 | Manifest byte count |
-| 44 | 4 | Object count, at most 16 |
+| 44 | 4 | Object count, at most 256 |
 | 48 | 16 | Caller-provided nonzero store identity; not a secret |
 | 64 | 32 | Digest of complete manifest |
 | 96 | 3,968 | Zero |
@@ -118,7 +121,9 @@ Stored record size is 128 plus encoded payload bytes, at most 128 plus logical
 bytes. It may differ from the decoded size.
 IDs must be strictly increasing/nonzero. Object generation is positive and no
 newer than the root. Each record lies before the selected manifest; referenced
-records may not overlap. Count, sizes, offsets and sums are admitted before
+records may not overlap. Validation sorts bounded offset ranges and checks
+adjacent ranges in O(N log N), independently of object-ID ordering. Count,
+sizes, offsets and the explicit 16 MiB decoded sum are admitted before
 payload allocation. Maximum manifest size is 1,088 bytes.
 
 ### Object record: 128-byte header followed by encoded payload
@@ -164,9 +169,9 @@ The POSIX parent directory is pinned and fsynced with initial publication;
 file fsync handles each durability barrier. Windows uses FlushFileBuffers.
 Windows creation-name power-loss durability remains unqualified.
 
-The adapter refuses unknown memory telemetry. It requires at least 608 MiB
-physical AND commit headroom, covering a 512 MiB reserve plus bounded cache
-and transaction allowances. It checks filesystem free space before creation
+The adapter refuses unknown memory telemetry. It requires at least 640 MiB
+physical AND commit headroom, covering a 512 MiB reserve plus 64 MiB cache
+and 64 MiB staging allowances for the bounded native file layer and core codecs. It checks filesystem free space before creation
 and before each transaction, retaining a 1 GiB reserve. These are admission
 checks, not reservations against other processes or guarantees against OOM.
 Only Windows and Linux telemetry are admitted. Resource admission runs before
@@ -283,8 +288,15 @@ only; default file/CLI/mount behavior remains new-file-only or read-only.
 ## Native file namespace client
 
 NATIVE_FILESYSTEM.md defines the separate FLTXNS01 metadata stored as object 1
-and fixed 64 KiB data extents in objects 2..16. It uses the existing atomic object
+and fixed 64 KiB data extents in objects 2..256. It uses the existing atomic object
 commit and qualified resume; object record/root bytes are unchanged. It adds no
 ordinary-file reopening factory, mount mutation route, authentication or GPU
-runtime. The Zstandard reader now rejects noncanonical frame magic before
+runtime. A private writer-only staging snapshot copies last-ack references
+without rereading every payload; every read through it still verifies a complete
+record. The public snapshot/open APIs retain full verification. See the native
+file document for the immutable-backend assumption and delayed detection of
+untouched-media corruption. The 256-object admission envelope keeps the existing
+record/root encoding and explicit 16 MiB decoded limit. Existing images remain
+readable; older bounded readers reject inventories above their own limit.
+The Zstandard reader now rejects noncanonical frame magic before
 library parsing; all current writer-produced modern frames remain readable.

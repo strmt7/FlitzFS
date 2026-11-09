@@ -148,12 +148,14 @@ State load(std::shared_ptr<StoreByteIo> image) {
         e.bytes>kStoreMaxObjectBytes ||
         e.offset<kDataStart || e.offset>r.index || kDataHeader+e.stored>r.index-e.offset)
       fail("manifest entry extent or ordering");
-    for(const auto& old:s.entries)
-      if(e.offset<old.offset+kDataHeader+old.stored && old.offset<e.offset+kDataHeader+e.stored)
-        fail("overlapping object records");
     total+=e.bytes;previous=e.id;s.entries.push_back(e);
   }
-  if(total!=get64(index,24) || total>kStoreMaxObjects*std::uint64_t(kStoreMaxObjectBytes)) fail("manifest logical budget");
+  if(total!=get64(index,24) || total>kStoreMaxLogicalBytes) fail("manifest logical budget");
+  std::vector<std::pair<std::uint64_t,std::uint64_t>> ranges;ranges.reserve(s.entries.size());
+  for(const auto& e:s.entries)ranges.emplace_back(e.offset,e.offset+kDataHeader+e.stored);
+  std::sort(ranges.begin(),ranges.end());
+  for(std::size_t i=1;i<ranges.size();++i)
+    if(ranges[i].first<ranges[i-1].second)fail("overlapping object records");
   return s;
 }
 Bytes read_object(const State& s,const Entry& e) {
@@ -317,7 +319,7 @@ ObjectStoreWriter ObjectStoreWriter::create_file(const std::filesystem::path& pa
 StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes) {
   if(!impl_) fail("moved-from writer");
   if(impl_->poisoned) fail("writer poisoned; destroy it before independent recovery");
-  if(changes.empty() || changes.size()>kStoreMaxObjects) fail("mutation count must be 1..16");
+  if(changes.empty() || changes.size()>kStoreMaxObjects) fail("mutation count must be 1..256");
   std::uint64_t input_bytes=0;
   for(std::size_t i=0;i<changes.size();++i) {
     const auto& m=changes[i];
@@ -328,6 +330,18 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
   }
   const auto& old=impl_->state;
   if(old.generation==(std::numeric_limits<std::uint64_t>::max)()) fail("generation exhausted");
+  // Admit the FINAL inventory before compression/private payload copies. Puts
+  // may precede erases in the supplied batch without transient count failures.
+  auto count=old.entries.size();auto logical=state_info(old).logical_bytes;
+  for(const auto& m:changes) {
+    const auto it=std::lower_bound(old.entries.begin(),old.entries.end(),m.id,[](const Entry& e,auto key){return e.id<key;});
+    const bool exists=it!=old.entries.end() && it->id==m.id;
+    if(m.erase && !exists)fail("cannot erase missing object");
+    if(exists){--count;logical-=it->bytes;}
+    if(!m.erase){++count;logical+=m.bytes.size();}
+  }
+  if(count>kStoreMaxObjects)fail("object-count budget");
+  if(logical>kStoreMaxLogicalBytes)fail("live decoded-byte budget");
   old.image->admit_write(impl_->append_floor); // Admit headroom before private copies or codec work.
   State next=old;next.generation++;next.degraded=false;
   struct Prepared {std::uint64_t offset;std::array<std::byte,kDataHeader> header;Bytes data;};
@@ -374,6 +388,11 @@ StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes
   } catch(...) {impl_->poisoned=true;throw;}
   impl_->state=std::move(next);impl_->append_floor=impl_->state.end;
   return state_info(impl_->state);
+}
+ObjectStoreSnapshot ObjectStoreWriter::snapshot_for_staging() const {
+  if(!impl_ || impl_->poisoned)fail("staging requires a healthy writer");
+  auto p=std::make_unique<ObjectStoreSnapshot::Impl>();p->state=impl_->state;
+  return ObjectStoreSnapshot(std::move(p));
 }
 ObjectStoreSnapshot ObjectStoreWriter::snapshot() const {
   if(!impl_) fail("moved-from writer");
