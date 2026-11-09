@@ -341,6 +341,10 @@ WorkerExchangeResult WorkerExchangeSession::wait_result() {
       result.response.clear();
       return result; // Retain admission until exact supervisor-thread exit.
     }
+    // Release the coordinator's confirmed observation handle now, rather than
+    // making idle ownership depend on a later admission/status call.
+    std::lock_guard control_lock(state.control->mutex);
+    state.control->reap();
   }
   if(state.error)std::rethrow_exception(state.error);
   return state.result;

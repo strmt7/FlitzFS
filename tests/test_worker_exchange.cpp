@@ -276,6 +276,15 @@ int wmain(int argc,wchar_t** argv){try{
     check(warmup.code==WorkerExchangeCode::completed,"worker warmup exchange");
     (void)accept_worker_reply(warmup.response,batch,221,WorkerExecution::cpu_semantics);
     check_closed(warmup);
+    // Native error-message initialization has an independently measured first-
+    // use handle cost. Warm the REAL failure route before the strict baseline;
+    // repeated failures below must still have ZERO growth allowance.
+    auto failed=WorkerExchangeSession::start(executable.parent_path()/L"missing-flitzfs-worker.exe",{L"ok"},request);
+    eventually([&]{return failed.try_result()!=nullptr;},2000,"failure warmup did not finish");
+    eventually([&]{return failed.retirement_confirmed() && WorkerExchangeSession::available();},
+        2000,"failure warmup did not retire");
+    check(failed.try_result()->code==WorkerExchangeCode::supervisor_failed &&
+        failed.failure() && failed.try_result()->response.empty(),"native failure warmup not observed");
   }
   struct HandleObservation { const wchar_t* step=nullptr; DWORD count=0; };
   std::array<HandleObservation,48> observations{};std::size_t observed=0;
@@ -352,7 +361,7 @@ int wmain(int argc,wchar_t** argv){try{
   observe(L"async-fallback");
   abandoned_session(executable,request);
   observe(L"async-abandoned");
-  {
+  for(unsigned i=0;i<4;++i) {
     auto failed=WorkerExchangeSession::start(executable.parent_path()/L"missing-flitzfs-worker.exe",{L"ok"},request);
     eventually([&]{return failed.try_result()!=nullptr;},2000,"missing helper supervisor did not finish");
     eventually([&]{return WorkerExchangeSession::available();},2000,"failed supervisor thread did not retire");
