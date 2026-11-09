@@ -53,3 +53,19 @@ Full dependency inventory and transitive tooling qualification remain open.
 The shared CocoIndex registration belongs to another repository and must not be
 used or altered. This audit reads exact known build/workflow/dependency scopes;
 restore an isolated off-host provider before new broad/fuzzy repository searches.
+
+## Current build-tool/source-codec upgrade
+
+The hosted provisioning implementation and limits are in HOST_INDEPENDENCE.md.
+Build qualification now stages official CMake 4.4.5, Linux LLVM 23.1.5 and stable
+Python 3.15 in private job locations. Default Linux C/C++ tools come from the
+verified LLVM directory; Windows retains its explicitly qualified MSVC target.
+Linux codec-enabled/reference/comparison jobs use the exact latest source pins,
+including sanitizer-instrumented dependencies in the sanitizer lane.
+Official release inventory checks archive version/size/SHA-256 metadata against
+the provisioning pins and prints actual installed tool versions.
+
+Inspect executed exact-commit results before calling the migration compatible.
+Research-provider Python/locked packages and broader end-user runtime portability
+remain open qualification work; old reference commits are intentional immutable
+comparison evidence. This upgrade performs no owner-PC installation.

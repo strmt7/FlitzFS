@@ -207,3 +207,20 @@ oracles. Test upgrades off-host. Unknown access, missing pages or a token-scope
 failure is NOT a zero-alert result. Capture and disclose it; never print tokens,
 change unrelated provider registrations or modify owner-PC tools. Remaining
 compiler/CMake/runtime/transitive-provider work must not be labelled complete.
+
+## Host and installation independence
+
+Read docs/HOST_INDEPENDENCE.md. The owner requires host-/installation-agnostic
+execution for each supported OS/architecture: no developer-machine package/app
+paths, global installation assumptions or dependence on unrelated apps' DLLs.
+Missing user-mode dependencies should be prepared automatically in verified,
+bounded, versioned application-owned directories with rollback and CPU operation
+preserved. Never make optional GPU setup block durable CPU recovery. Protected
+OS/driver integration keeps its separate safety/consent/qualification gates.
+These product requirements do not authorize owner-PC disk/tool/driver execution.
+
+Hosted build provisioning is isolated development infrastructure, not a product
+installer. Keep official immutable artifacts, whole-download verification,
+archive/link/output budgets and fresh output ownership. Stage only CPU tools;
+LLVM compilation must never initialize/load a GPU runtime/module. Keep older
+research-provider locks isolated until their source/compatibility review.

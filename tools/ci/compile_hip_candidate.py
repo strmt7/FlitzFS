@@ -79,7 +79,7 @@ def main() -> None:
     module = output / "decode-gfx1201.hsaco"
     run([*common, "-c", "-o", str(obj)])
     # HIP -c alone produces a linked/bundled code object. Explicit relocatable
-    # emission is covered by LLVM 19's hip-device-compile.hip driver tests.
+    # emission is covered by the pinned LLVM 23.1.5 hip-device-compile.hip tests.
     relocatable = read_bounded(obj)
     if (len(relocatable) < 64 or relocatable[:7] != b"\x7fELF\x02\x01\x01"
             or struct.unpack_from("<HH", relocatable, 16) != (1, 224)):
