@@ -36,7 +36,8 @@ owner's PC.
 - Optional native WinFsp read-only callbacks, disabled by default. Hosted VM
   probes exercise mounted reads, mapping, enumeration, write rejection and
   supervised process termination/recovery.
-- Experimental compression mechanisms and offline-compiled HIP kernels, with
+- Experimental compression mechanisms and a HIP kernel; hosted checks are
+  configured for the complete selected ROCm SDK, with
   CPU references, bounded batches, isolated worker transport and evidence-aware
   GPU recovery policy. These are preparation for filesystem acceleration;
   ordinary operations do not initialize a GPU. An explicit

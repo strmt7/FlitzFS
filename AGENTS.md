@@ -265,3 +265,17 @@ A denied/current CPU request must not wait for an older helper; external health
 must never override actual transport ownership. CPU selection itself performs
 no cancellation, OS query or driver call. Do not classify a timeout as repaired
 hardware or count CPU-helper tests as live HIP/installer/filesystem integration.
+
+## Current-source rule for important changes
+
+The owner explicitly requires recent reputable sources rather than model-training
+memory or assumptions for feature and other important changes. Verify current
+primary documentation, actual source/artifact identity and executed behavior;
+retain dates, native receipts and limitations. Search snippets are discovery only.
+
+ROCm is the installable SDK distribution and determines its bundled HIP/compiler/
+library versions. Do not select HIP independently from a legacy repository's
+latest-release pointer. Consult the CURRENT FlitzZip SDK lock, bootstrap, runtime
+loader and compile/resource mechanisms before reimplementing GPU infrastructure.
+Use source-bound evidence, preserve whole-distribution identity and adapt only
+filesystem requirements; never add archive product formats or commands.

@@ -136,3 +136,15 @@ clang/test/Driver/hip-device-compile.hip source. Existing ELF machine/target,
 kernel metadata, size, resource and no-runtime-execution checks remain in force.
 Compiler evidence must match the executed commit; a newer compiler does not
 establish hardware acceleration, runtime compatibility or host-device safety.
+
+
+## Current toolchain direction
+
+The prior LLVM-only no-header device experiment is historical compile evidence.
+Current qualification uses the complete ROCm distribution selected by
+tools/rocm-sdk-lock.json and the unchanged current FlitzZip bootstrap/compiler
+mechanisms. The kernel now uses that SDK's HIP language definitions and thread
+indices, rather than independently assembled headers or compiler assumptions.
+HIP_RUNTIME_WORKER.md defines source provenance, bounded hosted compilation,
+header observations and deferred module loading. Ordinary CPU builds still
+require no SDK; no owner-PC operation or live GPU result follows from compilation.

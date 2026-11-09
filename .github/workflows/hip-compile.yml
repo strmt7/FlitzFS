@@ -1,43 +1,53 @@
-name: Offline HIP kernel qualification (no GPU)
+name: Pinned ROCm SDK compile qualification (no GPU)
 on:
   push:
     branches: [main]
+    paths:
+      - 'tools/rocm-sdk-lock.json'
+      - 'tools/ci/qualify_rocm_sdk.py'
+      - 'tests/rocm_compile/**'
+      - 'src/gpu/**'
+      - 'include/flitzfs/gpu_protocol.hpp'
+      - '.github/workflows/hip-compile.yml'
 permissions:
   contents: read
 jobs:
-  gfx1201-compile:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+  complete-rocm-compile:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Use current stable Python for build tooling
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      - name: Stage current reviewed FlitzZip toolchain mechanisms unchanged
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: strmt7/FlitzZip
+          ref: 113ca5f30655f0d373c17d1448e35ce1b69f2819
+          path: .ci-rocm-source
+          sparse-checkout: |
+            tools
+            mcp
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15'
           check-latest: true
-      - name: Verify owned-fixture tool provisioning guards
-        run: python tools/ci/test_hosted_tools.py
-      - name: Stage official checksum-pinned CMake
+      - name: Prepare exact job-local CMake
         run: python tools/ci/prepare_hosted_tools.py cmake
-      - name: Stage current official LLVM CPU tools on Linux
-        if: runner.os == 'Linux'
-        run: python tools/ci/prepare_hosted_tools.py llvm
-      - name: Retain exact tool provisioning evidence
+      - name: Qualify complete current ROCm SDK and native filesystem kernel
+        run: >-
+          python -B tools/ci/qualify_rocm_sdk.py
+          --provider ".ci-rocm-source"
+          --output "${{ runner.temp }}/flitzfs-rocm-sdk"
+      - name: Retain identities and failures, never SDK or kernel binaries
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
-          path: ${{ runner.temp }}/flitzfs-*-provision.json
-          retention-days: 14
+          name: rocm-sdk-qualification-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/flitzfs-rocm-sdk/qualification.json
+            ${{ runner.temp }}/flitzfs-rocm-sdk/sdk-cache/verified-distribution.json
+            ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 30
           if-no-files-found: warn
-      - name: Compile real HIP device code without loading a GPU
-        run: python3 tools/ci/compile_hip_candidate.py --clang clang++ --lld ld.lld --output "${{ runner.temp }}/flitzfs-hip-offline"
-      - name: Retain source-bound compile evidence, not a release binary
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: hip-compile-${{ github.sha }}
-          path: ${{ runner.temp }}/flitzfs-hip-offline/qualification.json
-          if-no-files-found: error
-          retention-days: 3
