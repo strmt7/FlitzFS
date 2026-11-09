@@ -127,7 +127,7 @@ jobs:
         run: |
           from pathlib import Path
           for line in Path("build/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain bounded CPU test evidence
         if: always()
@@ -206,7 +206,7 @@ jobs:
         run: |
           from pathlib import Path
           for line in Path("build-asan/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain sanitizer test evidence
         if: always()
@@ -285,7 +285,7 @@ jobs:
         run: |
           from pathlib import Path
           for line in Path("build-native/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
+              if line.startswith(("Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain native Windows test evidence
         if: always()

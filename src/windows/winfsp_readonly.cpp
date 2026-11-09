@@ -152,6 +152,13 @@ struct WinFspReadOnly::Impl {
     node.info.AllocationSize = (entry.logical_bytes + 4095ULL) & ~4095ULL;
     node.info.CreationTime = node.info.LastAccessTime = timestamp;
     node.info.LastWriteTime = node.info.ChangeTime = timestamp;
+    if(const auto basic=projection.basic_metadata(node.path)) {
+      // The volume/callbacks enforce read-only behavior independently. Preserve
+      // the persisted attributes verbatim rather than OR-ing invented flags.
+      node.info.FileAttributes=basic->attributes;
+      node.info.CreationTime=basic->creation_time;node.info.LastAccessTime=basic->last_access_time;
+      node.info.LastWriteTime=basic->last_write_time;node.info.ChangeTime=basic->change_time;
+    }
     node.info.IndexNumber = entry.inode ? entry.inode : nodes.size() + 1;
     total_bytes += node.info.AllocationSize;
     auto [it, inserted] = nodes.emplace(fold(entry.path), std::move(node));

@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -33,6 +34,24 @@ struct NativeFileInfo {
   bool directory=false;
   std::string path;
 };
+
+// Canonical persisted Windows basic metadata. Times are explicit nonnegative
+// 100-ns UTC values, never Win32 request sentinels or transaction counters.
+// Attributes admit READONLY/HIDDEN/SYSTEM/DIRECTORY/ARCHIVE/TEMPORARY/
+// NOT_CONTENT_INDEXED only. NORMAL is normalized to zero at the OS boundary.
+inline constexpr std::uint32_t kNativeBasicAttributeMask=0x2137;
+struct NativeBasicMetadata {
+  std::uint64_t creation_time=0,last_access_time=0,last_write_time=0,change_time=0;
+  std::uint32_t attributes=0;
+  bool operator==(const NativeBasicMetadata&) const = default;
+};
+struct NativeBasicMutation {
+  std::uint64_t inode=0;
+  // Exactly one selector: existing inode, or 1-based creation in THIS batch.
+  std::uint32_t created_ordinal=0;
+  NativeBasicMetadata value;
+};
+
 enum class NativeFileOperation {create_file,create_directory,write,truncate,rename,remove};
 struct NativeFileMutation {
   NativeFileOperation operation=NativeFileOperation::create_file;
@@ -79,6 +98,8 @@ class NativeFilesystemSnapshot final {
   // a later file at the old path is never selected instead.
   NativeFileInfo stat_inode(std::uint64_t inode) const;
   NativeInodeState inode_state(std::uint64_t inode) const;
+  // Absent for legacy/unstamped inodes; never invent original timestamps.
+  std::optional<NativeBasicMetadata> basic_metadata(std::uint64_t inode) const;
   bool needs_session_recovery() const noexcept;
   std::vector<NativeFileInfo> list(std::string_view directory="") const;
   std::vector<NativeFileInfo> list_inode(std::uint64_t directory) const;
@@ -126,6 +147,15 @@ class NativeFilesystemWriter final {
   // Nonempty identical writes still publish metadata and the normal barriers.
   // Old snapshots keep their original records.
   NativeFsCommit apply(std::span<const NativeFileMutation> mutations);
+  // <=16 combined ordered file operations + final full metadata replacements.
+  // File operations run first; metadata selectors address stable IDs or this
+  // batch's creations. One atomic publication, no unbounded clock/query.
+  // Generic file operations preserve basic fields; the Windows adapter must
+  // supply correctly authorized/stamped values in this SAME transaction.
+  NativeFsCommit apply_with_basic(std::span<const NativeFileMutation>,
+      std::span<const NativeBasicMutation>);
+  NativeFsCommit set_basic_metadata(std::uint64_t inode,const NativeBasicMetadata&);
+  std::optional<NativeBasicMetadata> inspect_basic_metadata(std::uint64_t inode) const;
   // Resolve a stable LIVE inode against the last acknowledged namespace, then
   // use the same atomic staging/replicated publication as apply(). One control
   // thread; no path lookup by the caller and no intermediate callback.
@@ -161,7 +191,8 @@ class NativeFilesystemWriter final {
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
   enum class InodeAction {path_mutations,mutate,set_delete,clear_delete,unlink,retire,finish_session};
-  NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t);
+  NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
+      std::span<const NativeBasicMutation> basic={});
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

@@ -182,3 +182,11 @@ Native file/volume Flush now reaches a real backing barrier with checkpoint
 and namespace validation; see [NATIVE_FLUSH.md](docs/NATIVE_FLUSH.md). It preserves
 generations and live contexts and fences failed/unverified completion. Writable
 Windows ABI/cache/application qualification remains unfinished.
+
+The native layer now provides explicit optional Windows attributes and four
+persisted UTC times, atomic file-plus-metadata transactions, separate owning
+context attribute-write grants, and read-only projection through the actual
+SDK fields. See [persistent basic metadata](docs/NATIVE_BASIC_METADATA.md).
+Legacy bytes and absence are preserved. Automatic Windows timestamp policy,
+ACL/security persistence, allocation accounting and writable integration remain
+unfinished; configured tests require exact hosted validation.

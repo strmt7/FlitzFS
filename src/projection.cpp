@@ -116,6 +116,15 @@ void ReadOnlyProjection::verify_all(std::uint64_t maximum) {
   }
   std::get<ReadOnlyCatalog>(impl_->source).verify_all(maximum);
 }
+std::optional<NativeBasicMetadata> ReadOnlyProjection::basic_metadata(std::wstring_view path) const {
+  if(!impl_)throw std::logic_error("moved-from read-only projection");
+  const auto relative=virtual_path(path);
+  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+    std::lock_guard lock(impl_->native_guard);
+    return native->basic_metadata(native->stat(relative).inode);
+  }
+  (void)std::get<ReadOnlyCatalog>(impl_->source).stat(relative);return {};
+}
 std::optional<NativeProjectionInfo> ReadOnlyProjection::native_info() const {
   if(!impl_)throw std::logic_error("moved-from read-only projection");
   if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {

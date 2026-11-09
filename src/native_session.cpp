@@ -22,7 +22,7 @@ struct NativeFileSession::Impl {
   struct Slot {
     std::uint64_t token=0,inode=0;
     NativeFileAccess access;
-    bool cleaned=false,cleanup_delete=false,requested=false;
+    bool cleaned=false,cleanup_delete=false,requested=false,basic_write=false;
   };
   static_assert(std::is_nothrow_copy_assignable_v<Slot>);
   NativeFilesystemWriter writer;
@@ -89,6 +89,10 @@ std::size_t NativeFileSession::slot_for(const NativeFileHandle& handle) const {
   fail(E::invalid_handle,"closed native file context");
 }
 NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,NativeOpenKind kind) {
+  return open(path,access,kind,{});
+}
+NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,
+    NativeOpenKind kind,NativeBasicAccess basic_access) {
   auto& self=ready();
   if(kind!=NativeOpenKind::any && kind!=NativeOpenKind::file && kind!=NativeOpenKind::directory)
     fail(E::invalid_options,"unknown native open kind");
@@ -104,11 +108,21 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
   if(kind==NativeOpenKind::directory && !state.info.directory)
     throw NativeFsError(NativeFsErrorCode::not_directory,"native open requires directory");
   NativeFileHandle result;result.owner_=self.owner;result.token_=self.next_token;
-  self.slots[available]={self.next_token,state.info.inode,access,false,false,false};
+  self.slots[available]={self.next_token,state.info.inode,access,false,false,false,basic_access.write};
   ++self.next_token;return result;
 }
 NativeInodeState NativeFileSession::info(const NativeFileHandle& handle) const {
   const auto index=slot_for(handle);auto& self=ready();return self.state(self.slots[index]);
+}
+std::optional<NativeBasicMetadata> NativeFileSession::basic_metadata(const NativeFileHandle& handle) const {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  (void)self.state(slot);return self.writer.inspect_basic_metadata(slot.inode);
+}
+NativeFsCommit NativeFileSession::set_basic_metadata(const NativeFileHandle& handle,
+    const NativeBasicMetadata& value) {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.basic_write)fail(E::access_denied,"native context has no basic metadata write access");
+  (void)self.state(slot);return self.writer.set_basic_metadata(slot.inode,value);
 }
 std::vector<NativeFileInfo> NativeFileSession::list(const NativeFileHandle& handle) const {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
@@ -136,6 +150,14 @@ NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool direct
   auto& self=ready();admit_path(path);NativeFileMutation op;
   op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
   op.path=path;return self.writer.apply({&op,1});
+}
+NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory,
+    const NativeBasicMetadata& value) {
+  auto& self=ready();admit_path(path);
+  NativeFileMutation op;op.path=std::string(path);
+  op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
+  const NativeBasicMutation basic{0,1,value};
+  return self.writer.apply_with_basic({&op,1},{&basic,1});
 }
 NativeFsCommit NativeFileSession::rename(const NativeFileHandle& handle,std::string_view target,bool replace) {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
