@@ -24,6 +24,7 @@ struct CatalogEntry {
   std::string path;          // original case as presented to Windows clients
   bool directory = false;
   std::uint64_t logical_bytes = 0;
+  std::uint64_t inode = 0;   // Native persistent ID; zero for a catalog-only entry.
 };
 
 constexpr std::size_t kMaxCatalogFiles = 16;

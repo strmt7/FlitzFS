@@ -140,3 +140,15 @@ security/deadlock fixes. Its exact Product.wxs preserves the four public SDK
 component identities used here. Callback signatures and lifecycle must pass
 fresh native tests before this candidate is called qualified. Beta status stays
 explicit; the normal owner-PC/no-driver boundary is unchanged.
+
+
+## Native transactional source
+
+ReadOnlyProjection::open_native_file now supplies the same adapter with a verified
+native inode/extent image, expected UUID and pinned read-only source. Native IDs
+and UUID-derived volume serial remain stable; callback errors retain native
+categories and reads remain privately verified. Legacy catalog behavior/tests
+are preserved. Full backing length, committed end and sparse logical sizes are
+distinct. See NATIVE_WINDOWS_PROJECTION.md for ownership, limits and test scope.
+No mutation callback, persisted Windows timestamp/ACL support or owner operation
+is enabled by this bridge.

@@ -8,7 +8,8 @@
 #include <vector>
 
 namespace flitzfs {
-// Native file/extent layer, experimental and CPU-only. No mount/driver/GPU route.
+// Native file/extent layer, experimental and CPU-only. Explicit Windows
+// read-only projection is available; mounted writes and live GPU remain absent.
 inline constexpr std::uint32_t kNativeExtentBytes=65536;
 inline constexpr std::uint64_t kNativeMaxFileBytes=1ULL<<40; // Sparse logical size.
 inline constexpr std::uint32_t kNativeMaxReadBytes=4U*1024*1024;

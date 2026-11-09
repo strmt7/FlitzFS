@@ -323,6 +323,13 @@ ObjectStoreSnapshot ObjectStoreSnapshot::open_file(const std::filesystem::path& 
 }
 StoreIdentity ObjectStoreSnapshot::identity() const noexcept { return impl_ ? impl_->state.id : StoreIdentity{}; }
 StoreCommitInfo ObjectStoreSnapshot::info() const noexcept { return impl_ ? state_info(impl_->state) : StoreCommitInfo{}; }
+std::uint64_t ObjectStoreSnapshot::source_bytes() const {
+  if(!impl_)fail("moved-from snapshot");
+  const auto bytes=impl_->state.image->extent();
+  if(bytes<impl_->state.end || bytes>kStoreMaxPhysicalBytes)fail("snapshot backing extent changed/out of bounds");
+  return bytes;
+}
+
 std::vector<StoreObjectInfo> ObjectStoreSnapshot::list() const {
   if(!impl_) fail("moved-from snapshot");
   std::vector<StoreObjectInfo> result;result.reserve(impl_->state.entries.size());

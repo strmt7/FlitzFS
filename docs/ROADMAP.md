@@ -226,3 +226,15 @@ foundation against Dokan, direct Windows FSDs, ProjFS and Cloud Files before an
 architecture decision is promoted. The low-level driver transport and the
 filesystem's compression/durability design are separate decisions; benchmark
 evidence must justify any later custom-driver replacement.
+
+
+## Native storage connected to Windows
+
+The explicit native read-only image projection now connects the transactional
+inode/extent engine to the existing Windows callback/session and live hosted
+probe. It binds UUID and persisted IDs, serializes native reads, preserves
+sparse bounds and reports distinct image/checkpoint/live-data metadata for the
+future helper. Independent native CPU recovery/remount replaces the legacy
+catalog in this probe. App/installer, writable ordinary-image ownership,
+Windows mutation/cache/ACL/time/handle semantics, scale/reclamation, latest
+Windows 11 client and live AMD qualification remain required.

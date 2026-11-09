@@ -1,7 +1,8 @@
 # Native directory, inode and extent layer
 
-Experimental CPU filesystem core; no driver, mount application or GPU runtime is
-enabled. This is a native filesystem namespace over the compressed transactional
+Experimental CPU filesystem core. Explicit Windows read-only projection now
+connects verified native images to WinFsp; writable mounts, an end-user helper
+application and live GPU remain unfinished. This is a native filesystem namespace over the compressed transactional
 object store, not an archive reader or archive-backed mount.
 
 ## Implemented operations and lifetime
@@ -281,3 +282,13 @@ manifest unit, then repair and a different continued commit. Write staging also
 rechecks checkpoint health before publication; the added bounded metadata reads
 are included in backing-read counts. Payload replication/reconstruction,
 physical power-loss/device assumptions and automatic maintenance remain separate.
+
+
+## Windows read-only integration
+
+NATIVE_WINDOWS_PROJECTION.md specifies the new explicit native image reader,
+UUID binding, stable inode IDs, serialized callback access, sparse verification,
+health/space metadata and driver-backed read/recovery tests. It replaces the
+legacy catalog as the live probe's storage source while retaining legacy callback
+tests. Mounted mutation and persistent Windows ACL/time/handle semantics remain
+separate unfinished work.

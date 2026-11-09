@@ -32,6 +32,7 @@ QUERIES=(
     "GPU worker supervision CPU fallback recovery configuration and runtime failure",
     "compression codec selection allocation budget stored decoded digest and decompression",
     "compacted copy source preservation destination identity and safe reclamation",
+    "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime",
 )
 SUFFIXES={".c",".h",".cc",".cpp",".hpp",".cxx",".hip",".py",".ps1",".rs"}
 def require(ok,why):

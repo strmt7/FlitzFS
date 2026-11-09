@@ -1,41 +1,52 @@
 #pragma once
-
-#include <utility>
 #include "flitzfs/catalog.hpp"
-
-#include <cstdint>
+#include "flitzfs/object_store.hpp"
+#include <memory>
+#include <optional>
 #include <string_view>
 #include <vector>
 
 namespace flitzfs {
-
-// A pure C++ adapter for prospective WinFsp read-only callbacks.
-// DOES NOT include or load WinFsp, mount any volume, or write to storage.
-// Accepts root-relative Windows-style paths with one leading backslash.
-// ASCII-only by design; unsafe, ambiguous, or unsupported paths fail closed.
+struct NativeProjectionInfo {
+  StoreIdentity identity{};
+  StoreCommitInfo storage;
+  std::uint64_t namespace_sequence=0;
+  std::uint64_t image_bytes=0; // Full backing logical length, not allocated clusters.
+};
+// Windows virtual namespace only. No driver, dispatcher, mount or write.
+// Accepts one leading backslash and existing conservative ASCII path rules.
 class ReadOnlyProjection final {
  public:
   static ReadOnlyProjection create(const std::vector<CatalogSource>& files);
-  ReadOnlyProjection(const ReadOnlyProjection&) = delete;
-  ReadOnlyProjection& operator=(const ReadOnlyProjection&) = delete;
-  ReadOnlyProjection(ReadOnlyProjection&&) noexcept = default;
-  ReadOnlyProjection& operator=(ReadOnlyProjection&&) noexcept = default;
+  // Windows-only native image admission: existing regular file, read-only
+  // pinned handle, exact nonzero identity, full CPU namespace/content checks.
+  // Deny write/delete sharing on ordinary handles for this lifetime. Integrity
+  // checks still guard every read; this is not a freeze of pre-existing mappings.
+  // No caller-owned mutable backend/snapshot can enter the callback route.
+  static ReadOnlyProjection open_native_file(const std::filesystem::path& image,
+      StoreIdentity expected_identity);
+  ~ReadOnlyProjection();
+  ReadOnlyProjection(const ReadOnlyProjection&)=delete;
+  ReadOnlyProjection& operator=(const ReadOnlyProjection&)=delete;
+  ReadOnlyProjection(ReadOnlyProjection&&) noexcept;
+  ReadOnlyProjection& operator=(ReadOnlyProjection&&) noexcept;
 
   CatalogEntry stat(std::wstring_view winfsp_path) const;
   std::vector<CatalogEntry> list(std::wstring_view winfsp_directory) const;
-
-  // Mimics normal short-read behavior: when offset >= EOF return zero bytes;
-  // a request spanning EOF returns only remaining bytes. Requests must be
-  // within the 4 MiB per-call bound even at EOF. The projection must not be
-  // moved/destroyed while its operations are active.
+  // Concurrent calls are supported. Native image operations share one mutex
+  // around the underlying single-control-thread positional reader/decoder.
+  // Full private read/integrity verification precedes caller-byte exposure.
+  // 4 MiB per call, short at EOF, sparse holes stay bounded zero reads.
   std::vector<std::byte> read(std::wstring_view winfsp_path,
-                              std::uint64_t offset, std::uint32_t length);
-
-  void verify_all(std::uint64_t max_total_logical_bytes = kDefaultCatalogVerificationBytes);
-
+      std::uint64_t offset,std::uint32_t length);
+  // Catalog: total logical content. Native: decoded LIVE objects, including
+  // metadata; never scan/materialize logical sparse holes. Hard store caps stay.
+  void verify_all(std::uint64_t max_verification_bytes=kDefaultCatalogVerificationBytes);
+  // Metadata for the helper/adapter; none for a legacy read-only catalog.
+  std::optional<NativeProjectionInfo> native_info() const;
  private:
-  explicit ReadOnlyProjection(ReadOnlyCatalog catalog) : catalog_(std::move(catalog)) {}
-  ReadOnlyCatalog catalog_;
+  struct Impl;
+  explicit ReadOnlyProjection(std::unique_ptr<Impl>) noexcept;
+  std::unique_ptr<Impl> impl_;
 };
-
 } // namespace flitzfs

@@ -147,3 +147,11 @@ the complete 10.1.0 distribution compiled the filesystem kernel and linked its
 separate module; actual headers reported HIP 7.16.26385-7da43026e4. The module
 was never loaded and no GPU work ran. The next typed-entry/recovery changes
 require their own exact-commit checks; see docs/HIP_RUNTIME_WORKER.md.
+
+
+The Windows read-only adapter now has an explicit source for the native
+transactional inode/extent image, with UUID-bound admission, persistent IDs,
+serialized verified reads and bounded sparse files. The hosted mount/recovery
+probe uses that native image; results require the matching commit's checks.
+See [native Windows integration](docs/NATIVE_WINDOWS_PROJECTION.md).
+Writable mounted volumes, the helper app and live GPU execution remain unfinished.
