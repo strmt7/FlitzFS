@@ -74,7 +74,33 @@ The retained native-capture SHA-256 was
 The older facebook.github.io manual URL returned HTTP 404 and was rejected;
 its failure receipt was preserved. No claim relies on its content.
 
-Hosted build, correctness, sanitizer and performance results are pending at
-initial publication. No product build, filesystem test or GPU workload was run
-on the owner's PC. Successful hosted results must be recorded against their
-exact implementation commit before any validation or throughput claim.
+Implementation commit: d6bb574afe21a3b5185c268df2eda9bdbd02f5e1.
+All five workflows passed at that commit: [six-job main CI](https://github.com/strmt7/FlitzFS/actions/runs/42593011227),
+[CPU comparison](https://github.com/strmt7/FlitzFS/actions/runs/42593011387),
+[upstream compatibility](https://github.com/strmt7/FlitzFS/actions/runs/42593011289),
+[offline HIP compilation](https://github.com/strmt7/FlitzFS/actions/runs/42593011221),
+and [source evidence](https://github.com/strmt7/FlitzFS/actions/runs/42593011255).
+
+The comparison used a four-vCPU AMD EPYC 7763 Linux runner, roughly 16 GiB RAM
+and ext4. Complete containers and extracted bytes matched in all 84 warmup/
+measured lane executions. Ratios below are baseline median time divided by
+candidate median time; below 1 is slower. Six measured samples per lane.
+
+| Synthetic fixture | Chunk KiB | Pack | Verify | Probe | Extract |
+|---|---:|---:|---:|---:|---:|
+| Text pattern | 4 | 1.170 | 1.251 | 1.159 | 1.231 |
+| Text pattern | 128 | 0.958 | 1.277 | 1.071 | 1.292 |
+| Text pattern | 1024 | 1.229 | 1.273 | 1.115 | 1.276 |
+| Hash noise | 4 | 1.171 | 1.233 | 1.158 | 1.214 |
+| Hash noise | 128 | 0.912 | 1.539 | 1.173 | 1.531 |
+| Hash noise | 1024 | 1.094 | 1.434 | 1.181 | 1.440 |
+
+Read/extraction medians improved in these cases; writes were mixed, including
+slower default-128-KiB pack medians. This is not an overall write-speedup claim
+or proof of statistical significance. Compression ratio is unchanged. Raw
+samples/context are retained in the comparison run's artifact (14-day retention);
+no unfavorable case is omitted. More write-path investigation is required.
+
+A later owner-authorized local raw-only check preceded the subsequent hard
+remote-only restriction; see GPU_RECOVERY.md. It was a temporary disk fixture,
+not RAM-only. All future disk-based work stays off the owner's PC.

@@ -1,0 +1,122 @@
+{
+  "experimental": true,
+  "provider_version": "0.9.5+flitzzip.portable2",
+  "provider_lock_sha256": "27a0fdd2df3d636cedc4caef2b4dc34016ebb633a221ebe9421ea75ee843136c",
+  "page_timeout_seconds": 45,
+  "robots_checked": true,
+  "persistent_profile": false,
+  "external_llm": false,
+  "scope": "Compact transcription of observed native receipts. Captures retained externally before the owner remote-only restriction. Abstracts are not full-paper reviews. null byte count was not retained in compact output.",
+  "sources": [
+    {
+      "name": "gogetafs",
+      "url": "https://www.usenix.org/conference/fast25/presentation/pan",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 10855,
+      "markdown_sha256": "24485de13ed7709e9c3f20df3c7fabf498d8527c5dd4de9afc9fca9fb7015f7e",
+      "capture_sha256": "3619b4c9b37d8416ba90bd5a47cb261ed8e4563cdc56638deb5cd8e85bd054ee",
+      "failure_category": ""
+    },
+    {
+      "name": "gpufs",
+      "url": "https://cris.technion.ac.il/en/publications/gpufs-integrating-a-file-system-with-gpus-5/",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 13315,
+      "markdown_sha256": "62a50c91858b365c20df745408d955adb36883ee890faad4b270331e47ef79e8",
+      "capture_sha256": "a7627794dc6dd3e7bf35abace2e4e4f52dbae5bd2dc35a5738b1b872b8ea2a27",
+      "failure_category": ""
+    },
+    {
+      "name": "atomic-commit",
+      "url": "https://www.sqlite.org/atomiccommit.html",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": null,
+      "markdown_sha256": "ed8d84ed3a87ac9c4e95c23208d21520741f8ac56221db9fe648486d6a898307",
+      "capture_sha256": "581f3eb5ed0ee38e29c8438fd552afe482308361c5a8b5e67a7d33191776cd57",
+      "failure_category": ""
+    },
+    {
+      "name": "windows-flush",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 36379,
+      "markdown_sha256": "b793b9f1525a2fe72db87fb401792ca4e7c5ffce8b4b5899d46772ed0cda8205",
+      "capture_sha256": "7858b9284cc82f42d504dfd64ef6ada9fc2007b8fc0cc316dd084cb85770fa2f",
+      "failure_category": ""
+    },
+    {
+      "name": "btrfs-design",
+      "url": "https://btrfs.readthedocs.io/en/latest/dev/dev-btrfs-design.html",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 21674,
+      "markdown_sha256": "ac6136d2c1eaa3b6abab94f43a6c08ea7baff2d63e12ef134321bf2e42ac503b",
+      "capture_sha256": "7aafcd66303cbab55ff90b9cd22686381929c33e69c298a881fec3ce2a15cafc",
+      "failure_category": ""
+    },
+    {
+      "name": "zfs-cow",
+      "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Copy-on-write.html",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 10621,
+      "markdown_sha256": "0d61956e9f3f6184d85a19373b9ea4f12a02f321aea4bf58bdf3d987b3f4f0fa",
+      "capture_sha256": "6996e98837deac6dbcc56b0914915fab5fc407e784d02a658c77a0c848a5ba92",
+      "failure_category": ""
+    },
+    {
+      "name": "crashmonkey",
+      "url": "https://www.usenix.org/conference/osdi18/presentation/mohan",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 10341,
+      "markdown_sha256": "46ea246b7c1e1e6967c5f881d697480defc3a23eab031183dc7862b00ae432a2",
+      "capture_sha256": "9dce9a78919ec3f37f48ec1df4d6881aba4c4450a98f15d651cbe1177e081336",
+      "failure_category": ""
+    },
+    {
+      "name": "btrfs-compression",
+      "url": "https://btrfs.readthedocs.io/en/latest/Compression.html",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 14564,
+      "markdown_sha256": "1f48a6e838aff24614db599c8da2d44393476cce0b73af926e4704f2d088eac4",
+      "capture_sha256": "30540beb79447a40fade7bccba3db267f9ad36001e443e8d952bd7b1e5bfccae",
+      "failure_category": ""
+    },
+    {
+      "name": "hip-errors",
+      "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/reference/error_codes.html",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 93155,
+      "markdown_sha256": "0631b0e5bd983e44a18e55801fbed3cf3f88f7b73f3649bbcdbfc6cd3b58b864",
+      "capture_sha256": "2931074783f0427d0dbab09969d95df864340f29687da3fdac73725201ffe3f8",
+      "failure_category": ""
+    },
+    {
+      "name": "hip-error-handling",
+      "url": "https://rocmdocs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/error_handling.html",
+      "http_status": 200,
+      "success": true,
+      "markdown_bytes": 27100,
+      "markdown_sha256": "2b1b4e0ee5e79ad65cd0a0fa71a938f2b3739e58efe85df90e53da68db84fa04",
+      "capture_sha256": "0162a782031fa1b616e010dc869efa7c5b9ed19a32f74215153ca7f7b20ec8e3",
+      "failure_category": ""
+    },
+    {
+      "name": "amd-compression",
+      "url": "https://escholarship.org/uc/item/5hs138d9",
+      "http_status": 202,
+      "success": false,
+      "markdown_bytes": 1,
+      "markdown_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "capture_sha256": "e84e43c0beb08dd75d6d019de2be7ec676689516a3a51f43eea09b5462ae3fb8",
+      "failure_category": "insufficient_content"
+    }
+  ]
+}

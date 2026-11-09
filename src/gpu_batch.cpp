@@ -69,17 +69,22 @@ GpuResultGate::GpuResultGate(PreparedGpuBatch batch,std::array<std::byte,8> luid
   if(!identity(luid) || !node(mask) || !ms || ms>100 || batch_.tasks().empty())
     throw std::invalid_argument("invalid GPU result gate identity/deadline");
 }
-GpuGateCode GpuResultGate::budget(const GpuMemorySnapshot& s,std::uint64_t now,
-    std::uint64_t additional) const noexcept {
+GpuGateCode check_gpu_memory_budget(const GpuMemorySnapshot& s,
+    std::array<std::byte,8> luid, std::uint32_t node_mask,
+    std::uint64_t now, std::uint64_t additional) noexcept {
   if(!s.valid || !s.amd_hardware || !identity(s.luid) || !node(s.node_mask) ||
       !s.dedicated_bytes || !s.local_budget || s.local_budget>s.dedicated_bytes ||
       s.local_usage>s.local_budget) return GpuGateCode::invalid_budget;
-  if(s.luid!=luid_ || s.node_mask!=node_mask_) return GpuGateCode::wrong_adapter;
+  if(s.luid!=luid || s.node_mask!=node_mask) return GpuGateCode::wrong_adapter;
   if(now<s.captured_ms || now-s.captured_ms>kGpuMaxBudgetAgeMs) return GpuGateCode::stale_budget;
   const auto available=s.local_budget-s.local_usage;
   if(available<kGpuBudgetReserveBytes || additional>available-kGpuBudgetReserveBytes)
     return GpuGateCode::insufficient_headroom;
   return GpuGateCode::admitted;
+}
+GpuGateCode GpuResultGate::budget(const GpuMemorySnapshot& s,std::uint64_t now,
+    std::uint64_t additional) const noexcept {
+  return check_gpu_memory_budget(s,luid_,node_mask_,now,additional);
 }
 GpuAttempt GpuResultGate::begin(bool consent,const GpuMemorySnapshot& before,std::uint64_t now) noexcept {
   if(state_!=GpuGateState::idle) return {GpuGateCode::wrong_state};
@@ -118,6 +123,10 @@ GpuGateCode GpuResultGate::expire(std::uint64_t now) noexcept {
 }
 GpuGateCode GpuResultGate::worker_failed() noexcept {
   return state_==GpuGateState::waiting?poison(GpuGateCode::worker_failed):GpuGateCode::wrong_state;
+}
+std::span<const std::byte> GpuResultGate::use_cpu_fallback() noexcept {
+  (void)poison(GpuGateCode::worker_failed);
+  return batch_.cpu_reference();
 }
 std::span<const std::byte> GpuResultGate::accepted_bytes() const noexcept {
   return state_==GpuGateState::accepted?std::span<const std::byte>(accepted_):std::span<const std::byte>{};
