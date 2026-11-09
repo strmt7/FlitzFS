@@ -130,3 +130,27 @@ qualification. They do not establish compatibility with every Linux kernel or
 Windows build, a complete installer, optional GPU provisioning, protected
 integration or full filesystem portability. Existing default build behavior,
 storage formats and historical comparator link settings are preserved.
+
+## Verified Windows AMD distribution boundary
+
+The official published HIP SDK 7.2 deployment page was captured by the reviewed
+hosted Crawl4AI provider at 4951f209ddface6871d4b2f50ae11cf6bfaf5ec4
+(run 42664639886, native HTTP 200). Its Markdown SHA-256 is
+8b0bfff2b11aef34082ea5b4972272a7bffbd4e439dc942098860d9794f166e6.
+The earlier latest challenge and incorrect docs-7.2.0 404 are retained failures.
+
+AMD's guidance supplies the HIP runtime through the AMD GPU driver; applications
+do not redistribute that runtime. SDK libraries used by an application are a
+separate deployment category. FlitzFS must therefore distinguish its private,
+verified worker/code-object/eligible-library setup from protected OS driver
+integration. Do not copy an SDK runtime DLL into a private package merely to
+make discovery appear installation-independent. Runtime/compiler/driver minimum
+contracts and actual compatibility still need qualification.
+
+CPU opening/recovery must work without a HIP SDK, runtime or compatible AMD
+driver. A missing/ineligible driver retains CPU operation and suppresses repeated
+discovery for unchanged evidence; it never causes an automatic global installer
+or PATH edit. Future protected integration needs its own qualified mechanism.
+No driver/runtime installation on the owner's PC is authorized by this source.
+
+Source: https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2/conceptual/deployment-guidelines.html

@@ -96,3 +96,11 @@ The docs-7.2.0 deployment URL returned HTTP 404 and was rejected despite matchin
 navigation text. Native AMD repository branch metadata identifies docs/7.2;
 the corresponding public docs-7.2 route is the next source candidate. Earlier
 challenge/404 captures remain evidence of those failures, never policy evidence.
+
+The binary-compatible resolver completed on Python 3.14.10. Its next admission
+failure exposed a missing digest field in pip dry-run metadata. The verified
+local CocoIndex wheel uses its independent official release pin; remote wheels
+use available report digests or require a matching native PyPI/CPU-index digest.
+A candidate's own computed digest never substitutes for an expected identity.
+Hostile-wheel, conflicting/absent-authority and mutated-download regressions
+are executed before provisioning.
