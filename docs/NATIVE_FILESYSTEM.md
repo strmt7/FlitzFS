@@ -95,8 +95,10 @@ This follows the backend's exclusive-writer/immutable-record contract; staging
 is not a background media scrub. Corruption of an untouched extent after its
 original admission may remain undetected until the next full verification or
 read of that extent. Such a read fails before returning bytes; a staging read
-failure terminally fences the writer. Every public snapshot/open still rejects
-a corrupt reachable record. No unchecked data is exposed.
+failure terminally fences the writer. A full writer-snapshot verification
+failure also fences it and reports a native filesystem error, preserving the
+public API's error domain. Every public snapshot/open still rejects a corrupt
+reachable record. No unchecked data is exposed.
 
 RAM tests separately count actual backing read bytes for a 128-byte overwrite
 among 200 raw extents, require bounded staging reads, and require a later public

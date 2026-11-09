@@ -242,11 +242,11 @@ void scalable_staging_and_integrity() {
   };
   corrupt_record(3); // Block 1; the next write touches only block 0.
   file_apply(fs,file_write("renamed",0,data(9,119)));
-  rejects([&]{(void)fs.snapshot();},"public snapshot exposed corrupt untouched data");
   rejects([&]{(void)snapshot.read("renamed",kNativeExtentBytes,1);},"per-read corrupt extent exposed");
   const auto calls=ram->calls;
   rejects([&]{file_apply(fs,file_write("renamed",kNativeExtentBytes,data(9,120)));},"staging used corrupt touched data");
   require(fs.poisoned() && ram->calls==calls,"corrupt read did not fence before backing writes");
+  rejects([&]{(void)fs.snapshot();},"public snapshot exposed corrupt untouched data");
 
   auto metadata_ram=std::make_shared<Ram>();auto metadata_fs=fresh(metadata_ram,StoreCompressionMode::raw);
   file_apply(metadata_fs,file_create("f"));
@@ -258,6 +258,18 @@ void scalable_staging_and_integrity() {
   const auto metadata_calls=metadata_ram->calls;
   rejects([&]{file_apply(metadata_fs,file_rename("f","g"));},"namespace staging skipped metadata integrity");
   require(metadata_fs.poisoned() && metadata_ram->calls==metadata_calls,"metadata corruption changed backing data");
+  auto snapshot_ram=std::make_shared<Ram>();auto snapshot_fs=fresh(snapshot_ram,StoreCompressionMode::raw);
+  file_apply(snapshot_fs,file_create("f"));file_apply(snapshot_fs,file_write("f",0,data(19,121)));
+  const auto info=snapshot_fs.snapshot().storage_info();
+  const auto root=static_cast<std::size_t>((info.generation%2)*kStoreCommitUnit);
+  const auto catalog=static_cast<std::size_t>(get(snapshot_ram->live,root+32));
+  const auto data_record=static_cast<std::size_t>(get(snapshot_ram->live,catalog+128+16));
+  snapshot_ram->live[data_record+128]^=std::byte{1};const auto snapshot_calls=snapshot_ram->calls;
+  try{(void)snapshot_fs.snapshot();throw std::runtime_error("snapshot corruption accepted");}
+  catch(const NativeFsError& e){require(e.code()==NativeFsErrorCode::storage_failure,"snapshot leaked non-filesystem storage error");}
+  require(snapshot_fs.poisoned(),"failed full snapshot verification did not fence writer");
+  rejects([&]{file_apply(snapshot_fs,file_create("must-not-write"));},"snapshot-fenced writer retried");
+  require(snapshot_ram->calls==snapshot_calls,"snapshot failure permitted backing writes");
 }
 void dirty_budget() {
   for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
