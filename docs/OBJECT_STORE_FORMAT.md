@@ -127,7 +127,7 @@ newer than the root. Each record lies before the selected manifest; referenced
 records may not overlap. Validation sorts bounded offset ranges and checks
 adjacent ranges in O(N log N), independently of object-ID ordering. Count,
 sizes, offsets and the explicit 16 MiB decoded sum are admitted before
-payload allocation. Maximum manifest size is 1,088 bytes.
+payload allocation. Maximum manifest size is 16,448 bytes at the current 256-object cap.
 
 ### Object record: 128-byte header followed by encoded payload
 
@@ -322,3 +322,11 @@ unchanged at the same inode/block. Its metadata transaction still publishes
 through the normal replicated protocol. Existing immutable record identities
 and wire bytes remain valid; this requires no object-format change, shared
 payload ownership or new compression dependency. See NATIVE_FILESYSTEM.md.
+
+
+ObjectStoreSnapshot::source_bytes reports admitted backing logical length
+separately from info().physical_end, including retained uncertain tails. It
+checks the selected end and physical envelope without mutating or scanning
+those tails. This is not allocated-cluster accounting. The explicit Windows
+read-only native projection consumes this metadata; no codec, record, root or
+publication bytes change.

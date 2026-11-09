@@ -111,3 +111,21 @@ Require fresh callback, mounted read/mapping/write-rejection, shutdown and
 crash/remount evidence. Current Windows 11 driver-policy/signing acceptance is a
 separate client-VM gate even if a Windows Server runner passes. Never apply
 policy-removal, Secure Boot/HVCI changes or test-signing workarounds to the owner.
+
+
+## Native transactional image probe
+
+The current probe uses a NEW native transactional image with verified directory/
+data creation and a committed rename/removal. It closes the writer before the
+read-only source opens, requires the exact UUID and actual compressed payloads,
+and exposes persisted inode IDs. It no longer constructs a collection manifest
+as the mounted backing source. Original inputs, the complete image, crash
+baseline and collision sentinel remain owned synthetic VM fixtures.
+
+New checks exercise 64 KiB extent crossings and mounted sparse offsets beyond
+4 GiB. No large file is materialized; the complete on-disk fixture remains below
+4 MiB. The no-driver native projection tests separately check the core's 1 TiB
+logical sparse bound. Forced termination and independent CPU native
+namespace/identity/content verification precede same-path remount and mapped/
+sparse parity. Existing process/job/dispatcher/cancellation budgets are unchanged.
+This still tests mounted READS and write rejection, not mounted durability.

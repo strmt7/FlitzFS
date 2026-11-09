@@ -2,7 +2,8 @@
 #include "winfsp_session.hpp"
 #include "bounded_process.hpp"
 #include "flitzfs/container.hpp"
-#include "flitzfs/catalog_manifest.hpp"
+#include "flitzfs/native_filesystem.hpp"
+#include "native_windows_fixture.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -22,6 +23,8 @@
 namespace {
 namespace fs = std::filesystem;
 unsigned stage = 1;
+// Exercise offsets beyond 32 bits without exposing a terabyte-sized cache map.
+constexpr std::uint64_t mount_sparse_bytes=(1ULL<<32)+65536;
 void require(bool ok, const char* message) {
   if (!ok) throw std::runtime_error(message);
 }
@@ -176,9 +179,27 @@ std::vector<std::byte> synthetic_data() {
   for (std::size_t i = 0; i < data.size(); ++i) data[i] = static_cast<std::byte>((i / 31 + i % 251) % 256);
   return data;
 }
-std::string synthetic_manifest() {
-  return flitzfs::serialize_catalog_manifest({
-      {"Data/sample.bin", "synthetic.flfs"}, {"Data/other.txt", "empty.flfs"}, {"empty.bin", "empty.flfs"}});
+void check_sparse_tail(const fs::path& path) {
+  Handle file(CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,
+      OPEN_EXISTING,FILE_FLAG_RANDOM_ACCESS,nullptr));
+  checked(file.value!=INVALID_HANDLE_VALUE,"native sparse file open");
+  LARGE_INTEGER size{},offset{};checked(GetFileSizeEx(file.value,&size),"native sparse file length");
+  require(size.QuadPart==static_cast<LONGLONG>(mount_sparse_bytes),"native sparse logical length");
+  offset.QuadPart=size.QuadPart-31;
+  checked(SetFilePointerEx(file.value,offset,nullptr,FILE_BEGIN),"native sparse tail seek");
+  std::array<std::byte,64> bytes{};DWORD got=0;
+  checked(ReadFile(file.value,bytes.data(),static_cast<DWORD>(bytes.size()),&got,nullptr),"native sparse tail read");
+  const auto suffix=native_windows_fixture::tail();
+  require(got==31 && std::all_of(bytes.begin(),bytes.begin()+14,[](auto b){return b==std::byte{0};}) &&
+      std::equal(suffix.begin(),suffix.end(),bytes.begin()+14),"native sparse tail byte parity");
+}
+void check_inode(const fs::path& path,std::uint64_t expected) {
+  Handle file(CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr));
+  checked(file.value!=INVALID_HANDLE_VALUE,"native file identity open");
+  BY_HANDLE_FILE_INFORMATION info{};
+  checked(GetFileInformationByHandle(file.value,&info),"native file identity query");
+  require(((std::uint64_t(info.nFileIndexHigh)<<32)|info.nFileIndexLow)==expected &&
+      info.dwVolumeSerialNumber==0x5700004eU,"mounted identity differs from native UUID/inode");
 }
 void probe(bool abandon_mount) {
   require_probe_job();
@@ -186,19 +207,17 @@ void probe(bool abandon_mount) {
   Fixture fixture;
   const auto data = synthetic_data();
   const auto input = fixture.root / L"synthetic.bin";
-  const auto archive = fixture.root / L"synthetic.flfs";
+  const auto image = fixture.root / L"native.fltx";
   const auto empty = fixture.root / L"empty.bin";
-  const auto empty_archive = fixture.root / L"empty.flfs";
-  write_new(input, data);
-  write_new(empty, {});
-  const auto packed = flitzfs::pack_new(input, archive);
-  require(packed.zstd_chunk_count > 0, "mount probe requires actual Zstandard chunks");
-  (void)flitzfs::pack_new(empty, empty_archive);
-  const auto archive_bytes = read_all(archive, static_cast<std::size_t>(packed.container_bytes));
-  const auto manifest = synthetic_manifest();
-  const auto* text_begin = reinterpret_cast<const std::byte*>(manifest.data());
-  write_new(fixture.root / L"collection.flcatalog", {text_begin, text_begin + manifest.size()});
-  const auto sources = flitzfs::read_catalog_manifest_sources(fixture.root / L"collection.flcatalog");
+  write_new(input,data);write_new(empty,{});
+  const auto expected=native_windows_fixture::make_image(image,true,mount_sparse_bytes);
+  require(expected.storage.stored_payload_bytes<expected.storage.logical_bytes,
+      "native mount fixture must contain actual compressed payloads");
+  const auto image_bytes=read_all(image,static_cast<std::size_t>(expected.storage.physical_end));
+  // Source image + immutable crash baseline + original input remain <4 MiB.
+  require(2*image_bytes.size()+data.size()+1024<4*1024*1024,"native mount fixture aggregate byte budget");
+  auto projection=[&] {return flitzfs::ReadOnlyProjection::open_native_file(
+      image,native_windows_fixture::identity());};
   stage = 4;
   const auto occupied = fixture.root / L"occupied";
   checked(CreateDirectoryW(occupied.c_str(), nullptr), "collision fixture creation");
@@ -206,13 +225,13 @@ void probe(bool abandon_mount) {
   const std::vector<std::byte> sentinel_data{std::byte{11}, std::byte{29}};
   write_new(sentinel, sentinel_data);
   {
-    flitzfs::WinFspReadOnlySession refused(sources, live_api());
+    flitzfs::WinFspReadOnlySession refused(projection(), live_api());
     require(!NT_SUCCESS(refused.start({occupied.native(), 15, true})), "existing directory adopted as mount");
   }
   require(read_all(sentinel, sentinel_data.size()) == sentinel_data, "collision fixture changed");
   const auto mount = fixture.root / L"mount";
   stage = 5;
-  flitzfs::WinFspReadOnlySession session(sources, live_api());
+  flitzfs::WinFspReadOnlySession session(projection(), live_api());
   const auto status = session.start({mount.native(), 30, true});
   if (!NT_SUCCESS(status)) throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
       std::system_category(), "live session startup");
@@ -235,8 +254,10 @@ void probe(bool abandon_mount) {
   }
   stage = 8;
   check_mapping(virtual_file, data);
+  check_inode(virtual_file,expected.sample_inode);
+  check_sparse_tail(mount/L"sparse.bin");
   stage = 9;
-  require(enumerate(mount / L"*") == std::set<std::wstring>{L"Data", L"empty.bin"}, "root enumeration");
+  require(enumerate(mount / L"*") == std::set<std::wstring>{L"Data", L"empty.bin", L"sparse.bin"}, "root enumeration");
   require(enumerate(mount / L"Data" / L"*") == std::set<std::wstring>{L"other.txt", L"sample.bin"}, "nested enumeration");
   require(enumerate(mount / L"Data" / L"s*.bin") == std::set<std::wstring>{L"sample.bin"}, "wildcard filtering");
   stage = 10;
@@ -264,8 +285,8 @@ void probe(bool abandon_mount) {
   if (abandon_mount) {
     // Readiness is recorded only after real mounted reads and write denial pass.
     // These are synthetic snapshots, not user backups or durable-write evidence.
-    write_new(fixture.root / L"baseline.flfs", archive_bytes);
-    write_new(fixture.root / L"mounted.ready", {std::byte{0x46}, std::byte{0x53}, std::byte{1}});
+    write_new(fixture.root / L"baseline.fltx", image_bytes);
+    write_new(fixture.root / L"mounted.ready", {std::byte{0x46}, std::byte{0x53}, std::byte{2}});
     Sleep(30000); // Supervisor must kill this child at 15 seconds, without teardown.
     throw std::runtime_error("supervisor did not terminate the mounted helper");
   }
@@ -274,9 +295,9 @@ void probe(bool abandon_mount) {
   require(GetFileAttributesW(mount.c_str()) == INVALID_FILE_ATTRIBUTES, "owned mount directory remained");
   stage = 13;
   require(read_all(input, data.size()) == data, "source file changed");
-  require(read_all(archive, archive_bytes.size()) == archive_bytes, "backing container changed");
+  require(read_all(image, image_bytes.size()) == image_bytes, "native image changed");
   require(read_all(sentinel, sentinel_data.size()) == sentinel_data, "unrelated collision fixture changed");
-  flitzfs::Reader::open(archive).verify_all();
+  flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image)).verify_all();
 }
 
 // The only recovery selector is the PID returned by this executable's supervisor.
@@ -296,7 +317,7 @@ void recover(std::uint32_t previous_process) {
   require_probe_job();
   stage = 14;
   Fixture fixture(previous_process);
-  const std::vector<std::byte> ready{std::byte{0x46}, std::byte{0x53}, std::byte{1}};
+  const std::vector<std::byte> ready{std::byte{0x46}, std::byte{0x53}, std::byte{2}};
   require(read_all(fixture.root / L"mounted.ready", ready.size()) == ready,
       "killed helper did not reach verified mounted state");
   const auto mount = fixture.root / L"mount";
@@ -312,40 +333,40 @@ void recover(std::uint32_t previous_process) {
   require(absent(), "terminated helper left a mount directory behind");
   stage = 15;
   const auto data = synthetic_data();
-  const auto archive = fixture.root / L"synthetic.flfs";
-  require(read_all(fixture.root / L"synthetic.bin", data.size()) == data, "source changed after termination");
-  auto checked_reader = flitzfs::Reader::open(archive);
-  const auto& info = checked_reader.info();
-  require(info.logical_bytes == data.size() && info.container_bytes <= data.size() + 4096 &&
-      info.zstd_chunk_count > 0, "recovered container metadata differs");
-  checked_reader.verify_all();
-  require(checked_reader.read(0, static_cast<std::uint32_t>(data.size())) == data, "independent recovery parity");
-  const auto n = static_cast<std::size_t>(info.container_bytes);
-  require(read_all(archive, n) == read_all(fixture.root / L"baseline.flfs", n),
-      "backing bytes changed after forced termination");
-  const std::vector<std::byte> sentinel{std::byte{11}, std::byte{29}};
-  require(read_all(fixture.root / L"occupied" / L"sentinel.bin", sentinel.size()) == sentinel,
+  const auto image=fixture.root/L"native.fltx";
+  require(read_all(fixture.root/L"synthetic.bin",data.size())==data,"source changed after termination");
+  auto recovered=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));
+  recovered.verify_all();const auto info=recovered.storage_info();
+  require(recovered.identity()==native_windows_fixture::identity() && recovered.sequence()==3 &&
+      recovered.stat("Data/sample.bin").inode==4 && recovered.stat("sparse.bin").logical_bytes==mount_sparse_bytes &&
+      info.replicated_checkpoint &&
+      !info.degraded_checkpoint && info.physical_end<=1536*1024 &&
+      info.stored_payload_bytes<info.logical_bytes,"recovered native metadata differs");
+  require(recovered.read("Data/sample.bin",0,static_cast<std::uint32_t>(data.size()))==data,
+      "independent native CPU recovery parity");
+  const auto n=static_cast<std::size_t>(info.physical_end);
+  require(read_all(image,n)==read_all(fixture.root/L"baseline.fltx",n),
+      "native image changed after forced termination");
+  const std::vector<std::byte> sentinel{std::byte{11},std::byte{29}};
+  require(read_all(fixture.root/L"occupied"/L"sentinel.bin",sentinel.size())==sentinel,
       "collision sentinel changed after forced termination");
-  stage = 16;
-  const auto manifest = synthetic_manifest();
-  const auto persisted = read_all(fixture.root / L"collection.flcatalog", manifest.size());
-  require(std::memcmp(persisted.data(), manifest.data(), manifest.size()) == 0,
-      "catalog manifest changed after termination");
-  const auto sources = flitzfs::read_catalog_manifest_sources(fixture.root / L"collection.flcatalog");
-  flitzfs::WinFspReadOnlySession session(sources, live_api());
-  const auto status = session.start({mount.native(), 30, true});
-  if (!NT_SUCCESS(status)) throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
-      std::system_category(), "remount after terminated helper");
+  stage=16;
+  flitzfs::WinFspReadOnlySession session(flitzfs::ReadOnlyProjection::open_native_file(
+      image,native_windows_fixture::identity()),live_api());
+  const auto status=session.start({mount.native(),30,true});
+  if(!NT_SUCCESS(status))throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
+      std::system_category(),"native remount after terminated helper");
   stage = 17;
   const auto file = mount / L"Data" / L"sample.bin";
   require(read_all(file, data.size()) == data, "remounted read parity");
   check_mapping(file, data);
+  check_inode(file,4);check_sparse_tail(mount/L"sparse.bin");
   require(read_all(mount / L"empty.bin", 0).empty(), "remounted empty file");
   stage = 18;
   session.stop();
   require(session.dispatcher_stopped() && !session.dispatcher_stopped_unexpectedly(), "remount clean shutdown");
   require(absent(), "remount directory remained");
-  require(read_all(archive, n) == read_all(fixture.root / L"baseline.flfs", n), "remount altered backing");
+  require(read_all(image,n)==read_all(fixture.root/L"baseline.fltx",n),"remount altered native backing");
 }
 } // namespace
 int wmain(int argc, wchar_t** argv) {
@@ -370,7 +391,7 @@ int wmain(int argc, wchar_t** argv) {
         << " detail=" << (result.exit_code & 0xffffU) << " timed_out=" << result.timed_out
         << " exit_confirmed=" << result.exit_confirmed << " peak_commit_bytes=" << result.peak_committed_bytes << '\n';
     require(result.exit_confirmed && !result.timed_out && result.exit_code == 0, "supervised mount probe failed");
-    std::cout << "PASS: real mounted Zstd reads, EOF, random/mapped I/O, enumeration, write rejection, shutdown and backing parity.\n";
+    std::cout << "PASS: real mounted native transactional image reads, sparse tails, persistent inode IDs, mapped I/O, enumeration, write rejection and backing parity.\n";
     budget.timeout_ms = 15000;
     const auto killed = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)), {L"--probe-crash-child"}, budget);
     std::cout << "crash_probe exit=" << killed.exit_code << " timed_out=" << killed.timed_out
@@ -385,7 +406,7 @@ int wmain(int argc, wchar_t** argv) {
         << " exit_confirmed=" << recovered.exit_confirmed << " peak_commit_bytes=" << recovered.peak_committed_bytes << '\n';
     require(recovered.exit_confirmed && !recovered.timed_out && recovered.exit_code == 0,
         "post-termination verification/remount failed");
-    std::cout << "PASS: supervisor termination of a verified live mount, automatic mount removal, unchanged backing, independent CPU recovery and same-path remount.\n";
+    std::cout << "PASS: native-image mount termination, automatic removal, unchanged source, independent native CPU recovery and same-path remount.\n";
     return 0;
   } catch (const std::system_error& error) {
     std::cerr << "stage=" << stage << " " << error.what() << '\n';

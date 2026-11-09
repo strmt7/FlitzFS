@@ -1,5 +1,6 @@
 #include "winfsp_session.hpp"
 #include "flitzfs/container.hpp"
+#include "native_windows_fixture.hpp"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -156,6 +157,41 @@ int main() {
       require(session.dispatcher_stopped_unexpectedly(), "external stop not observed");
     }
     require(provider.trace() == "pcsmtrd" && provider.callback_alive_during_stop, "destructor failed to join");
+    {
+      namespace nw=native_windows_fixture;
+      nw::Fixture native_fixture;const auto expected=nw::make_image(native_fixture.image(),false);
+      for(const auto& item:cases) {
+        provider={};provider.failure=item.failure;
+        std::string trace(item.trace);trace.erase(std::remove(trace.begin(),trace.end(),' '),trace.end());
+        {
+          flitzfs::WinFspReadOnlySession session(
+              flitzfs::ReadOnlyProjection::open_native_file(native_fixture.image(),nw::identity()),api());
+          require(session.start(plan())==item.expected && session.state()==flitzfs::SessionState::failed,
+              "native image lifecycle failure status/state");
+          require(provider.trace()==trace && provider.invariant,"native image rollback order");
+          require(!item.stopped || provider.callback_alive_during_stop,"native source died before join");
+        }
+        require(provider.trace()==trace,"native source destructor repeated failed rollback");
+      }
+      provider={};
+      {
+        flitzfs::WinFspReadOnlySession session(
+            flitzfs::ReadOnlyProjection::open_native_file(native_fixture.image(),nw::identity()),api());
+        require(session.start(plan())==STATUS_SUCCESS,"native image session startup");
+        FSP_FSCTL_FILE_INFO info{};PVOID context=nullptr;
+        require(provider.fs.Interface->Open(&provider.fs,const_cast<PWSTR>(L"\\Data\\sample.bin"),0,
+            FILE_GENERIC_READ,&context,&info)==STATUS_SUCCESS && info.IndexNumber==expected.sample_inode,
+            "native session did not expose the committed inode");
+        provider.fs.Interface->Close(&provider.fs,context);session.stop();
+        require(provider.trace()=="pcsmtrd" && provider.callback_alive_during_stop,
+            "native session lost source before dispatcher retirement");
+      }
+      provider={};bool wrong_identity=false;auto other=nw::identity();other[1]=std::byte{1};
+      try {flitzfs::WinFspReadOnlySession session(
+          flitzfs::ReadOnlyProjection::open_native_file(native_fixture.image(),other),api());}
+      catch(const std::exception&){wrong_identity=true;}
+      require(wrong_identity && !provider.count,"wrong native identity reached driver provider");
+    }
     provider = {};
     bool corrupt_rejected = false;
     { std::fstream stream(archive, std::ios::binary | std::ios::in | std::ios::out); stream.put('!'); }

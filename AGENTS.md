@@ -307,3 +307,24 @@ Integrity policies, disable Secure Boot/HVCI or enable test signing on the owner
 All driver/app/mount/fault tests remain off-host. The Windows app/driver product
 requirements do not authorize any host installation, privilege, persistence or
 testing exception.
+
+
+## Native Windows image projection
+
+Read docs/NATIVE_WINDOWS_PROJECTION.md before changing this bridge. An explicit
+Windows-only read-only ordinary-file factory now connects verified native
+transactional images to the existing WinFsp adapter/session. Require a nonzero
+expected UUID, retain the source handle through dispatcher join, serialize native
+reader access and preserve full CPU admission/per-read integrity before byte
+exposure. Never accept a mutable custom backend into this callback route or
+mistake deny-write sharing for freezing pre-existing writable mappings.
+
+Keep persistent inode IDs and bounded sparse reads. Distinguish backing logical
+length, committed end, live decoded bytes, logical file size and allocated
+clusters; do not fabricate physical compression/space or persisted timestamps.
+The real mounted fixture now uses the native image, <4 MiB aggregate fixture,
+a >4 GiB sparse logical file, and independent native recovery/remount after a
+confirmed helper kill. The 1 TiB sparse case remains a no-driver projection test.
+Keep all existing child/queue/image limits, source bytes and malformed/identity/
+degradation/alias tests. No mounted-write, app/installer, live GPU or owner-PC
+permission is added.

@@ -1,5 +1,7 @@
 #include "winfsp_readonly.hpp"
 #include "flitzfs/container.hpp"
+#include "native_windows_fixture.hpp"
+#include <optional>
 
 #include <array>
 #include <atomic>
@@ -60,10 +62,96 @@ std::vector<std::wstring> names(const std::byte* data, ULONG length) {
   }
   return result;
 }
+
+void native_image_callbacks() {
+  using namespace flitzfs;
+  namespace nw=native_windows_fixture;
+  nw::Fixture fixture;
+#ifdef FLITZFS_TEST_REQUIRES_ZSTD
+  const bool require_zstd=true;
+#else
+  const bool require_zstd=false;
+#endif
+  const auto expected=nw::make_image(fixture.image(),require_zstd);
+  const auto original=nw::read_image(fixture.image());const auto data=nw::data();const auto suffix=nw::tail();
+  {
+    WinFspReadOnly adapter(ReadOnlyProjection::open_native_file(fixture.image(),nw::identity()));
+    FSP_FILE_SYSTEM context{};adapter.bind_callbacks(context);
+    const auto& callbacks=adapter.callbacks();
+    require(adapter.parameters().VolumeSerialNumber==0x5700004eU,"native volume serial not bound to UUID");
+    FSP_FSCTL_FILE_INFO info{};PVOID file=nullptr,sparse=nullptr,root=nullptr,rejected=nullptr;
+    require(callbacks.Open(&context,name(L"\\DATA\\sample.bin"),0,FILE_GENERIC_READ,&file,&info)==STATUS_SUCCESS &&
+        info.IndexNumber==expected.sample_inode,"native callback lost persistent inode");
+    require(callbacks.Open(&context,name(L"\\"),FILE_DIRECTORY_FILE,FILE_GENERIC_READ,&root,&info)==STATUS_SUCCESS &&
+        info.IndexNumber==1,"native root inode");
+    require(callbacks.Open(&context,name(L"\\sparse.bin"),0,FILE_GENERIC_READ,&sparse,&info)==STATUS_SUCCESS &&
+        info.IndexNumber==expected.sparse_inode && info.FileSize==kNativeMaxFileBytes,"native sparse metadata");
+    FSP_FSCTL_VOLUME_INFO volume{};
+    require(callbacks.GetVolumeInfo(&context,&volume)==STATUS_SUCCESS && volume.FreeSize==0 &&
+        volume.TotalSize==expected.storage.physical_end && volume.TotalSize<kNativeMaxFileBytes,
+        "native read-only volume space confused sparse size with committed image");
+    std::array<std::byte,64> buffer{};ULONG transferred=99;
+    require(callbacks.Read(&context,file,buffer.data(),65536-13,64,&transferred)==STATUS_SUCCESS &&
+        transferred==64 && std::equal(buffer.begin(),buffer.end(),data.begin()+65536-13),
+        "native callback cross-extent read");
+    require(callbacks.Read(&context,sparse,buffer.data(),kNativeMaxFileBytes-31,64,&transferred)==STATUS_SUCCESS &&
+        transferred==31 && std::all_of(buffer.begin(),buffer.begin()+14,[](auto b){return b==std::byte{0};}) &&
+        std::equal(suffix.begin(),suffix.end(),buffer.begin()+14),
+        "native callback sparse tail");
+    require(callbacks.Read(&context,sparse,buffer.data(),kNativeMaxFileBytes,1,&transferred)==STATUS_END_OF_FILE &&
+        !transferred,"native callback sparse EOF");
+    require(callbacks.Open(&context,name(L"\\missing"),0,FILE_GENERIC_READ,&rejected,&info)==STATUS_OBJECT_NAME_NOT_FOUND,
+        "native error-domain missing-path translation");
+    require(callbacks.Open(&context,name(L"\\Data"),FILE_NON_DIRECTORY_FILE,FILE_GENERIC_READ,&rejected,&info)==STATUS_FILE_IS_A_DIRECTORY,
+        "native error-domain directory translation");
+    alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,1024> entries{};
+    require(callbacks.ReadDirectory(&context,root,nullptr,nullptr,entries.data(),1024,&transferred)==STATUS_SUCCESS &&
+        names(entries.data(),transferred)==std::vector<std::wstring>{L"Data",L"empty.bin",L"sparse.bin"},
+        "native committed namespace enumeration");
+    callbacks.Cleanup(&context,file,nullptr,0);
+    require(callbacks.Read(&context,file,buffer.data(),0,1,&transferred)==STATUS_SUCCESS &&
+        transferred==1 && buffer[0]==data[0],"native cleanup invalidated later paging reads");
+    require(callbacks.Write(&context,file,buffer.data(),0,1,FALSE,FALSE,&transferred,&info)==STATUS_MEDIA_WRITE_PROTECTED &&
+        transferred==0,"native snapshot callback exposed writes");
+    callbacks.Close(&context,file);callbacks.Close(&context,sparse);callbacks.Close(&context,root);
+  }
+  require(nw::read_image(fixture.image())==original,"native callbacks changed image");
+  // Ordinary deny-write sharing is not a claim about pre-existing writable
+  // sections. If the OS admits one, verify read integrity before buffer copying.
+  const auto mapped=fixture.root/L"mapped.fltx";
+  require(fs::copy_file(fixture.image(),mapped),"new mapped mutation fixture");
+  const auto file=CreateFileW(mapped.c_str(),GENERIC_READ|GENERIC_WRITE,
+      FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,0,nullptr);
+  require(file!=INVALID_HANDLE_VALUE,"owned writable section file");
+  const auto mapping=CreateFileMappingW(file,nullptr,PAGE_READWRITE,0,0,nullptr);CloseHandle(file);
+  require(mapping!=nullptr,"owned writable section");
+  struct CloseMap {HANDLE h;~CloseMap(){CloseHandle(h);}} close{mapping};
+  auto* bytes=MapViewOfFile(mapping,FILE_MAP_READ|FILE_MAP_WRITE,0,0,original.size());
+  require(bytes!=nullptr,"owned mutation view");
+  struct Unmap {void* p;~Unmap(){UnmapViewOfFile(p);}} unmap{bytes};
+  std::optional<WinFspReadOnly> guarded;
+  try {guarded.emplace(ReadOnlyProjection::open_native_file(mapped,nw::identity()));}
+  catch(const std::exception&){} // Refusing the pre-existing writable section is safe.
+  if(guarded) {
+    FSP_FILE_SYSTEM context{};guarded->bind_callbacks(context);
+    FSP_FSCTL_FILE_INFO info{};PVOID handle=nullptr;const auto& callbacks=guarded->callbacks();
+    require(callbacks.Open(&context,name(L"\\Data\\sample.bin"),0,FILE_GENERIC_READ,&handle,&info)==STATUS_SUCCESS,
+        "mapped fixture native open");
+    std::memset(bytes,0,original.size());require(FlushViewOfFile(bytes,original.size()),"owned mapped mutation flush");
+    std::array<std::byte,64> output{};output.fill(std::byte{0x7b});ULONG got=99;
+    const auto status=callbacks.Read(&context,handle,output.data(),0,64,&got);
+    require((status==STATUS_FILE_CORRUPT_ERROR || status==STATUS_IO_DEVICE_ERROR || status==STATUS_DATA_ERROR) &&
+        got==0 && std::all_of(output.begin(),output.end(),[](auto b){return b==std::byte{0x7b};}),
+        "corrupt native read exposed partial/unverified bytes");
+    callbacks.Close(&context,handle);
+  }
+  require(nw::read_image(fixture.image())==original,"mapping fault touched original native image");
+}
 } // namespace
 
 int main() {
   try {
+    native_image_callbacks();
     Fixture fixture;
     const auto input = fixture.file("source.bin");
     const auto archive = fixture.file("source.flfs");

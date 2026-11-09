@@ -88,6 +88,9 @@ class ObjectStoreSnapshot final {
   ~ObjectStoreSnapshot();
   StoreIdentity identity() const noexcept;
   StoreCommitInfo info() const noexcept;
+  // Admitted backing logical length, including retained/orphan tails. This is
+  // not an allocated-cluster count or the selected root's committed end.
+  std::uint64_t source_bytes() const;
   std::vector<StoreObjectInfo> list() const;
   // Complete object, at most 1 MiB. Header/identity/content verified every time.
   std::vector<std::byte> read(std::uint64_t id) const;

@@ -1,5 +1,8 @@
 #include "flitzfs/projection.hpp"
 #include "flitzfs/catalog_error.hpp"
+#include "flitzfs/native_filesystem.hpp"
+#include <mutex>
+#include <variant>
 
 #include <algorithm>
 #include <cstdint>
@@ -30,29 +33,93 @@ std::string virtual_path(std::wstring_view name) {
 }
 } // namespace
 
+struct ReadOnlyProjection::Impl {
+  std::variant<ReadOnlyCatalog,NativeFilesystemSnapshot> source;
+  mutable std::mutex native_guard;
+  std::uint64_t image_bytes=0;
+  explicit Impl(ReadOnlyCatalog catalog):source(std::move(catalog)){}
+  Impl(NativeFilesystemSnapshot snapshot,std::uint64_t bytes):source(std::move(snapshot)),image_bytes(bytes){}
+};
+ReadOnlyProjection::ReadOnlyProjection(std::unique_ptr<Impl> impl) noexcept:impl_(std::move(impl)){}
+ReadOnlyProjection::~ReadOnlyProjection()=default;
+ReadOnlyProjection::ReadOnlyProjection(ReadOnlyProjection&&) noexcept=default;
+ReadOnlyProjection& ReadOnlyProjection::operator=(ReadOnlyProjection&&) noexcept=default;
 ReadOnlyProjection ReadOnlyProjection::create(const std::vector<CatalogSource>& files) {
-  return ReadOnlyProjection(ReadOnlyCatalog::create(files));
+  return ReadOnlyProjection(std::make_unique<Impl>(ReadOnlyCatalog::create(files)));
 }
-CatalogEntry ReadOnlyProjection::stat(std::wstring_view winfsp_path) const {
-  return catalog_.stat(virtual_path(winfsp_path));
+ReadOnlyProjection ReadOnlyProjection::open_native_file(const std::filesystem::path& image,
+    StoreIdentity expected) {
+#ifdef _WIN32
+  if(expected==StoreIdentity{})throw std::invalid_argument("native projection needs an explicit nonzero volume identity");
+  auto objects=ObjectStoreSnapshot::open_file(image);const auto bytes=objects.source_bytes();
+  auto native=NativeFilesystemSnapshot::open(std::move(objects));
+  if(native.identity()!=expected)throw std::invalid_argument("native projection volume identity mismatch");
+  // Snapshot open checked all records/references. Retained sharing denies
+  // ordinary writer/delete handles; every read still verifies immutable hashes.
+  return ReadOnlyProjection(std::make_unique<Impl>(std::move(native),bytes));
+#else
+  (void)image;(void)expected;
+  throw std::invalid_argument("native image projection is qualified on Windows only");
+#endif
 }
-std::vector<CatalogEntry> ReadOnlyProjection::list(std::wstring_view winfsp_directory) const {
-  return catalog_.list(virtual_path(winfsp_directory));
+CatalogEntry ReadOnlyProjection::stat(std::wstring_view path) const {
+  if(!impl_)throw std::logic_error("moved-from read-only projection");
+  const auto relative=virtual_path(path);
+  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+    std::lock_guard lock(impl_->native_guard);
+    const auto entry=native->stat(relative);
+    return {entry.path,entry.directory,entry.logical_bytes,entry.inode};
+  }
+  return std::get<ReadOnlyCatalog>(impl_->source).stat(relative);
 }
-std::vector<std::byte> ReadOnlyProjection::read(std::wstring_view winfsp_path,
-                                                 std::uint64_t offset, std::uint32_t length) {
-  if (length > kMaxSingleReadBytes)
-    throw CatalogError(CatalogErrorCode::limit, "FlitzFS: virtual read exceeds 4 MiB budget");
-  auto path = virtual_path(winfsp_path);
-  auto entry = catalog_.stat(path);
-  if (entry.directory)
-    throw CatalogError(CatalogErrorCode::is_directory, "FlitzFS: cannot read a virtual directory");
-  if (offset >= entry.logical_bytes || length == 0) return {};
-  const auto admitted = static_cast<std::uint32_t>(
-      (std::min)(static_cast<std::uint64_t>(length), entry.logical_bytes - offset));
-  return catalog_.read(path, offset, admitted);
+std::vector<CatalogEntry> ReadOnlyProjection::list(std::wstring_view path) const {
+  if(!impl_)throw std::logic_error("moved-from read-only projection");
+  const auto relative=virtual_path(path);
+  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+    std::lock_guard lock(impl_->native_guard);
+    const auto entries=native->list(relative);
+    std::vector<CatalogEntry> result;result.reserve(entries.size());
+    for(const auto& entry:entries)
+      result.push_back({entry.path,entry.directory,entry.logical_bytes,entry.inode});
+    return result;
+  }
+  return std::get<ReadOnlyCatalog>(impl_->source).list(relative);
 }
-void ReadOnlyProjection::verify_all(std::uint64_t max_total_logical_bytes) {
-  catalog_.verify_all(max_total_logical_bytes);
+std::vector<std::byte> ReadOnlyProjection::read(std::wstring_view path,
+    std::uint64_t offset,std::uint32_t length) {
+  if(!impl_)throw std::logic_error("moved-from read-only projection");
+  if(length>kMaxSingleReadBytes)
+    throw CatalogError(CatalogErrorCode::limit,"FlitzFS: virtual read exceeds 4 MiB budget");
+  const auto relative=virtual_path(path);
+  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+    std::lock_guard lock(impl_->native_guard);
+    return native->read(relative,offset,length);
+  }
+  auto& catalog=std::get<ReadOnlyCatalog>(impl_->source);
+  const auto entry=catalog.stat(relative);
+  if(entry.directory)
+    throw CatalogError(CatalogErrorCode::is_directory,"FlitzFS: cannot read a virtual directory");
+  if(offset>=entry.logical_bytes || !length)return {};
+  const auto admitted=static_cast<std::uint32_t>(
+      (std::min)(static_cast<std::uint64_t>(length),entry.logical_bytes-offset));
+  return catalog.read(relative,offset,admitted);
+}
+void ReadOnlyProjection::verify_all(std::uint64_t maximum) {
+  if(!impl_)throw std::logic_error("moved-from read-only projection");
+  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+    std::lock_guard lock(impl_->native_guard);
+    if(maximum>kMaxCatalogVerificationBytes || native->storage_info().logical_bytes>maximum)
+      throw CatalogError(CatalogErrorCode::limit,"native live decoded verification budget");
+    native->verify_all();return;
+  }
+  std::get<ReadOnlyCatalog>(impl_->source).verify_all(maximum);
+}
+std::optional<NativeProjectionInfo> ReadOnlyProjection::native_info() const {
+  if(!impl_)throw std::logic_error("moved-from read-only projection");
+  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+    std::lock_guard lock(impl_->native_guard);
+    return NativeProjectionInfo{native->identity(),native->storage_info(),native->sequence(),impl_->image_bytes};
+  }
+  return {};
 }
 } // namespace flitzfs

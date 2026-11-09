@@ -3,6 +3,7 @@
 #include "flitzfs/catalog_error.hpp"
 #include "flitzfs/directory_order.hpp"
 #include "flitzfs/projection.hpp"
+#include "flitzfs/native_filesystem.hpp"
 
 #include <sddl.h>
 #include <algorithm>
@@ -32,6 +33,19 @@ template<class Function> NTSTATUS boundary(Function&& run) noexcept {
       case CatalogErrorCode::not_directory: return STATUS_NOT_A_DIRECTORY;
       case CatalogErrorCode::is_directory: return STATUS_FILE_IS_A_DIRECTORY;
       case CatalogErrorCode::limit: return STATUS_INSUFFICIENT_RESOURCES;
+    }
+  } catch (const NativeFsError& e) {
+    switch(e.code()) {
+      case NativeFsErrorCode::invalid_path:return STATUS_OBJECT_NAME_INVALID;
+      case NativeFsErrorCode::not_found:return STATUS_OBJECT_NAME_NOT_FOUND;
+      case NativeFsErrorCode::already_exists:return STATUS_OBJECT_NAME_COLLISION;
+      case NativeFsErrorCode::not_directory:return STATUS_NOT_A_DIRECTORY;
+      case NativeFsErrorCode::is_directory:return STATUS_FILE_IS_A_DIRECTORY;
+      case NativeFsErrorCode::not_empty:return STATUS_DIRECTORY_NOT_EMPTY;
+      case NativeFsErrorCode::invalid_operation:return STATUS_INVALID_DEVICE_STATE;
+      case NativeFsErrorCode::limit:return STATUS_INSUFFICIENT_RESOURCES;
+      case NativeFsErrorCode::corrupt:return STATUS_FILE_CORRUPT_ERROR;
+      case NativeFsErrorCode::storage_failure:return STATUS_IO_DEVICE_ERROR;
     }
   } catch (const std::bad_alloc&) { return STATUS_INSUFFICIENT_RESOURCES; }
   catch (...) { return STATUS_DATA_ERROR; }
@@ -103,6 +117,7 @@ struct WinFspReadOnly::Impl {
   std::atomic<unsigned> dispatcher_stop{0};
   UINT64 timestamp = 0;
   UINT64 total_bytes = 0;
+  UINT32 serial = 0x464c4653;
 
   explicit Impl(ReadOnlyProjection source)
       : projection(std::move(source)), security(owner_descriptor()) {
@@ -111,6 +126,17 @@ struct WinFspReadOnly::Impl {
     GetSystemTimeAsFileTime(&now);
     timestamp = (static_cast<UINT64>(now.dwHighDateTime) << 32U) | now.dwLowDateTime;
     add_node(projection.stat(L"\\"), nullptr);
+    // Read-only native volume reports its backing image length, not the
+    // sum of potentially terabyte-sized logical sparse files.
+    if(const auto info=projection.native_info()) {
+      total_bytes=info->image_bytes;
+      // Stable 32-bit Windows serial derived from all UUID bytes. The complete
+      // 128-bit identity remains authoritative; a serial is not authentication.
+      serial=0;
+      for(std::size_t i=0;i<info->identity.size();++i)
+        serial^=static_cast<UINT32>(std::to_integer<unsigned>(info->identity[i]))<<((i%4)*8);
+      if(!serial)serial=1;
+    }
   }
   // Fixed catalog limits bound the recursion, nodes and child vectors.
   void add_node(const CatalogEntry& entry, Node* parent) {
@@ -126,7 +152,7 @@ struct WinFspReadOnly::Impl {
     node.info.AllocationSize = (entry.logical_bytes + 4095ULL) & ~4095ULL;
     node.info.CreationTime = node.info.LastAccessTime = timestamp;
     node.info.LastWriteTime = node.info.ChangeTime = timestamp;
-    node.info.IndexNumber = nodes.size() + 1;
+    node.info.IndexNumber = entry.inode ? entry.inode : nodes.size() + 1;
     total_bytes += node.info.AllocationSize;
     auto [it, inserted] = nodes.emplace(fold(entry.path), std::move(node));
     if (!inserted) throw std::runtime_error("duplicate adapter node");
@@ -304,7 +330,7 @@ FSP_FSCTL_VOLUME_PARAMS WinFspReadOnly::parameters() const noexcept {
   result.SectorsPerAllocationUnit = 8;
   result.MaxComponentLength = 100; // v2.1 sys/volinfo.c exports this as character count
   result.VolumeCreationTime = impl_->timestamp;
-  result.VolumeSerialNumber = 0x464c4653;
+  result.VolumeSerialNumber = impl_->serial;
   result.IrpCapacity = 100; // documented WinFsp minimum
   result.FileInfoTimeout = 1000;
   result.CasePreservedNames = 1;
