@@ -279,6 +279,19 @@ void probe(bool abandon_mount) {
   flitzfs::Reader::open(archive).verify_all();
 }
 
+// The only recovery selector is the PID returned by this executable's supervisor.
+// No path, namespace, volume, or existing user file is accepted as an argument.
+std::uint32_t process_number(std::wstring_view text) {
+  require(!text.empty() && text.size() <= 10, "invalid recovery process identity");
+  std::uint64_t result = 0;
+  for (const auto c : text) {
+    require(c >= L'0' && c <= L'9', "non-numeric recovery process identity");
+    result = result * 10 + static_cast<unsigned>(c - L'0');
+    require(result <= (std::numeric_limits<std::uint32_t>::max)(), "recovery process identity overflow");
+  }
+  require(result != 0, "zero recovery process identity");
+  return static_cast<std::uint32_t>(result);
+}
 void recover(std::uint32_t previous_process) {
   require_probe_job();
   stage = 14;
