@@ -22,17 +22,18 @@ claim follows from compatibility tests or one synthetic throughput comparison.
 | M1.7: Windows virtual projection | Implemented root-relative ASCII translation and short reads | Portable tests and Windows CPU CI; no mount |
 | M1.8 / release 0.2: native callback foundation | Implemented OFF-by-default WinFsp read-only backend, pre-allocation budgets and physical-path guards | Direct real-SDK Windows callback tests plus Linux/raw/sanitizers; this is NOT mounted qualification |
 | M2: native compression mechanisms | Bounded CPU extent mechanisms and independent tests implemented | Native extent framing, adaptive selection, diverse-corpus ratio/throughput and CPU recovery; no archive compatibility goal |
-| M3: Windows read-only mount | Lifecycle, live synthetic reads and process-crash/remount probe implemented; see per-commit CI | No collisions/recursion; explicit driver provisioning; clean unmount/restart; actual ACL/mapped-I/O/cancellation/app tests; CPU export |
+| M3: Windows read-only mount | Native transactional image connected; lifecycle, live native reads and process-crash/remount qualified at named commits | No collisions/recursion; explicit driver provisioning; clean unmount/restart; actual ACL/mapped-I/O/cancellation/app tests; CPU export |
 | M4: adaptive CPU/HIP | Bounded six-kind batch, gate, recovery policy and Windows worker controller; complete ROCm 10.1.0 kernel compile/link qualified at named commits | Trusted live runtime, child-specific telemetry, actual Windows 11 AMD hardware parity/faults, H2D/kernel/D2H timing and measured routing remain incomplete |
 | M5: authenticated immutable store | Not implemented: AEAD records, authenticated manifest, key handling | Vetted crypto; nonce/clone/rollback analysis; authentication-negative/fuzz tests; independent recovery |
 | M6: transactional writes | Bounded native file/object COW engine, replicated current checkpoints with three barriers, integrity, exclusive fixture reopen and source-preserving compacted copy implemented | Production scaling/reclamation, public safe writable ownership, physical persistence and Windows mounted mutations remain incomplete |
 | M7: limited writable preview | Not implemented: opt-in disposable mounted folder | M6 plus ACL/locking/mapped I/O/rename/app tests and independent backups; never automatic sole-copy use |
 
-The native callback milestone was advanced ahead of archive compatibility to
-test Windows ABI semantics independently of compression selection. It does not
-skip or imply either of those later gates. The live namespace is a small
-in-memory catalog that can now be reopened from a bounded plaintext manifest.
-It is not a transactional or authenticated directory store.
+The native callback foundation first used a bounded read-only catalog to test
+Windows ABI semantics. The adapter can now open the native transactional
+inode/extent image directly with an explicit volume identity. Legacy catalog
+fixtures remain regression coverage. This integration still exposes a read-only
+snapshot; Windows mounted mutations, production scaling and authenticated
+metadata remain separate unfinished gates. See NATIVE_WINDOWS_PROJECTION.md.
 
 ## Persistent catalog addition
 
@@ -42,14 +43,17 @@ satisfy M5 authenticated metadata or M6 mutable/durable transactions.
 
 ## Immediate integration checklist
 
-- Keep the now-tested native callback interface separate from mount lifecycle.
-- Define disposable mountpoint reservation, explicit driver presence checks,
-  resource supervision, cancellation/shutdown and immutable backing containment.
+- Qualify the native-image adapter through direct callbacks and disposable
+  mounted reads, forced helper termination and independent CPU reopen/remount.
+- Preserve mountpoint reservation, pinned source ownership, bounded supervision
+  and dispatcher retirement before source destruction.
 - Retain the no-install/no-mount callback lane as a fast regression check.
-- Develop native compressed extent framing, adaptive selection and independent
-  CPU recovery. Keep GPU initialization out of ordinary CPU operations.
-- Keep the implemented plaintext manifest distinct from future authenticated
-  records and transactional metadata; do not stretch v1 containers into a journal.
+- Implement the separate Windows helper application and writable engine/session
+  boundary with cached I/O, flush, handle lifetime and delete-intent semantics.
+- Qualify actual AMD runtime parity and recovery before routing filesystem work
+  through the GPU. Ordinary CPU operations must not initialize it.
+- Keep legacy collection manifests distinct from the native transactional graph
+  and future authenticated metadata.
 
 ## Performance comparison matrix
 
