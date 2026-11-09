@@ -362,6 +362,53 @@ void coordinated_requests(const std::filesystem::path& executable) {
     eventually([&]{return controller.try_retire();},3000,"expired coordinated helper did not retire");
     check(controller.consecutive_failures()==1,"expired request outcome not reported once after observation");
   }
+  // Expected-backend policy tests still execute ONLY this CPU fixture. A HIP
+  // declaration permits controller-path testing; it is NOT hardware evidence.
+  // External cancellation, a supervisor timeout, and a foreground gate expiry
+  // must all retain a driver recovery requirement after exact process exit.
+  for(const auto* trigger:{L"cancel",L"timeout",L"expire"}) {
+    GpuWorkerController controller(WorkerExecution::hip);auto batch=mixed();
+    ProcessBudget budget;budget.timeout_ms=std::wstring_view(trigger)==L"timeout"?250:5000;
+    check(controller.begin(std::move(batch),executable,{L"publish-hang"},true,true,health,100,budget).submitted,
+        "HIP-policy CPU fixture was not submitted");
+    eventually([&]{return controller.process_id()!=0;},2000,"HIP-policy fixture did not start");
+    if(std::wstring_view(trigger)==L"cancel") {
+      check(controller.request_cancel(),"HIP-policy cancellation signal failed");
+      eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,
+          "HIP-policy cancelled fixture did not complete");
+    }else if(std::wstring_view(trigger)==L"timeout") {
+      // Frozen synthetic gate time keeps the supervisor timeout independent.
+      eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,
+          "HIP-policy timed fixture did not complete");
+    }else {
+      check(controller.poll(coordinated_health(2,200).memory,200)==GpuWorkerState::cpu_selected &&
+          controller.last_gate_code()==GpuGateCode::expired,"HIP-policy expiry did not select CPU");
+    }
+    selected(controller);
+    eventually([&]{return controller.try_retire();},3000,"HIP-policy exact worker did not retire");
+    check(controller.consecutive_failures()==1,"HIP-policy failure was forgotten or counted twice");
+    // Time, fresh telemetry and repeated healthy samples do not establish
+    // driver recovery, even when no child/thread remains.
+    for(unsigned i=0;i<3;++i) {
+      auto retry=mixed();const auto fresh=coordinated_health(3+i,300+i);
+      const auto denied=controller.begin(std::move(retry),executable,{L"wrong-backend"},true,true,fresh,300+i);
+      check(!denied.submitted && denied.route.reason==GpuRouteReason::device_quarantined &&
+          controller.consecutive_failures()==1 && !controller.process_id(),
+          "HIP-policy retirement/telemetry incorrectly cleared driver quarantine");
+      selected(controller);
+    }
+    // Separately qualified recovery, rather than elapsed time, admits one new
+    // bounded attempt. The helper explicitly declares HIP but computes on CPU.
+    auto retry=mixed();auto recovered=coordinated_health(6,304);recovered.recovery_generation=1;
+    check(controller.begin(std::move(retry),executable,{L"wrong-backend"},true,true,recovered,304).submitted,
+        "separate recovery evidence failed to admit HIP-policy fixture");
+    eventually([&]{return controller.poll(coordinated_health(7,305).memory,305)!=GpuWorkerState::waiting;},
+        3000,"HIP-policy recovered fixture did not complete");
+    check(controller.state()==GpuWorkerState::worker_selected && controller.consecutive_failures()==1,
+        "one synthetic accepted attempt erased flapping history");
+    selected(controller);eventually([&]{return controller.try_retire();},2000,
+        "HIP-policy recovered fixture did not retire");
+  }
   check(WorkerExchangeSession::available(),"coordinated requests leaked process/thread admission");
 }
 

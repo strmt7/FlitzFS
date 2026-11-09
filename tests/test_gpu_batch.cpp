@@ -1,4 +1,5 @@
 #include "flitzfs/gpu_batch.hpp"
+#include "flitzfs/gpu_kernel_api.hpp"
 #include "extent_codec_fixture.hpp"
 #include "gpu/decode_kernel.hpp"
 #include <iostream>
@@ -16,6 +17,28 @@ PreparedGpuBatch prepare(const std::vector<Block>& blocks) {
   for(const auto& b:blocks)views.push_back({b.kind,b.fill,static_cast<std::uint32_t>(b.plain.size()),b.encoded});
   return PreparedGpuBatch::prepare(views);
 }
+// A synthetic typed kernel entry tests the module's host argument contract;
+// this is CPU execution, not dynamic loading or proof that a GPU was used.
+void semantic_entry(const gpu_detail::u8* input,gpu_detail::u32 input_size,
+    const gpu_detail::Task* tasks,gpu_detail::u32 task_count,gpu_detail::u8* output,
+    gpu_detail::u32 output_size,gpu_detail::u32* status,gpu_detail::u32 version) {
+  if(version!=gpu_detail::abi_version || task_count>gpu_detail::max_tasks)return;
+  for(gpu_detail::u32 i=task_count;i>0;--i)
+    status[i-1]=gpu_detail::decode_task(tasks[i-1],input,input_size,output,output_size);
+}
+void module_contract() {
+  const auto good=gpu_detail::make_kernel_api(semantic_entry);
+  check(gpu_detail::compatible_kernel_api(good),"typed kernel interface rejected");
+  for(auto field:{&gpu_detail::KernelApi::size_bytes,&gpu_detail::KernelApi::api_version,
+      &gpu_detail::KernelApi::task_abi,&gpu_detail::KernelApi::task_bytes,
+      &gpu_detail::KernelApi::task_limit,&gpu_detail::KernelApi::batch_limit,
+      &gpu_detail::KernelApi::threads,&gpu_detail::KernelApi::reserved}) {
+    auto invalid=good;invalid.*field^=1;
+    check(!gpu_detail::compatible_kernel_api(invalid),"incompatible kernel interface admitted");
+  }
+  auto absent=good;absent.decode=nullptr;
+  check(!gpu_detail::compatible_kernel_api(absent),"missing kernel entry admitted");
+}
 GpuBatchReply emulate(const PreparedGpuBatch& b,std::uint64_t generation=1) {
   // Explicit host semantic execution, NOT evidence of GPU execution.
   std::vector<unsigned char> guarded(b.cpu_reference().size()+32,0x5a);
@@ -24,12 +47,12 @@ GpuBatchReply emulate(const PreparedGpuBatch& b,std::uint64_t generation=1) {
   GpuBatchReply reply;reply.generation=generation;
   // Reverse task order tests independence from serial output progression.
   reply.status.resize(b.tasks().size(),gpu_detail::pending);
-  for(std::size_t k=b.tasks().size();k>0;--k) {
-    const auto i=k-1;
-    reply.status[i]=gpu_detail::decode_task(b.tasks()[i],input,static_cast<unsigned>(b.payload().size()),
-        guarded.data()+16,static_cast<unsigned>(b.cpu_reference().size()));
-    check(reply.status[i]==0,"device semantic task failed");
-  }
+  const auto api=gpu_detail::make_kernel_api(semantic_entry);
+  check(gpu_detail::compatible_kernel_api(api),"invalid typed semantic interface");
+  api.decode(input,static_cast<unsigned>(b.payload().size()),b.tasks().data(),
+      static_cast<unsigned>(b.tasks().size()),guarded.data()+16,
+      static_cast<unsigned>(b.cpu_reference().size()),reply.status.data(),gpu_detail::abi_version);
+  for(const auto status:reply.status)check(status==0,"device semantic task failed");
   check(std::all_of(guarded.begin(),guarded.begin()+16,[](auto c){return c==0x5a;}) &&
       std::all_of(guarded.end()-16,guarded.end(),[](auto c){return c==0x5a;}),"output canary changed");
   const auto* first=reinterpret_cast<const std::byte*>(guarded.data()+16);
@@ -54,6 +77,7 @@ void accepted(const PreparedGpuBatch& batch) {
 }
 }
 int main(){try{
+  module_contract();
   static_assert(!std::is_copy_constructible_v<GpuResultGate> && !std::is_move_constructible_v<GpuResultGate>);
   for(unsigned n:{1U,2U,3U,4095U,4096U,4097U,8191U,8192U,8193U,65535U,65536U}){
     accepted(prepare({raw(pattern(n,"raw sample").plain),fill(n,217)}));

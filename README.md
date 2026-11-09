@@ -131,3 +131,11 @@ Cancellation and exact process/thread retirement stay outside CPU selection.
 This remains CPU-tested infrastructure; no normal filesystem read loads HIP or
 automatically starts a worker. See docs/WORKER_CHANNEL.md for its ownership and
 qualification boundaries.
+
+
+Current ROCm qualification at 35dfac90503e46b9f988b8ecfbe40f255ca9b809
+[passed on a disposable hosted Windows VM](https://github.com/strmt7/FlitzFS/actions/runs/42684196735):
+the complete 10.1.0 distribution compiled the filesystem kernel and linked its
+separate module; actual headers reported HIP 7.16.26385-7da43026e4. The module
+was never loaded and no GPU work ran. The next typed-entry/recovery changes
+require their own exact-commit checks; see docs/HIP_RUNTIME_WORKER.md.

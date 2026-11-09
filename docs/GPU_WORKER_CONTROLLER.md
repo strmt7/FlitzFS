@@ -57,10 +57,18 @@ discarded. Persisted cross-restart learning/history remains future work.
 | Observation | Policy outcome | Required before another candidate |
 |---|---|---|
 | Accepted verified reply | accepted | Fresh qualified telemetry and exact retirement |
-| Explicit CPU selection, deadline, cancellation or setup allocation failure | temporary_pressure | Exact retirement and the policy's increasing independent healthy-observation threshold |
+| CPU-helper timeout/cancellation, valid late reply or setup allocation failure | temporary_pressure | Exact retirement and the policy's increasing independent healthy-observation threshold |
+| HIP-worker timeout or cancellation, including cancellation after foreground gate expiry | device_fault | Exact child/thread retirement AND separately advanced recovery qualification; fresh telemetry/time alone cannot admit a retry |
 | Missing helper/path/module or invalid executable image from a native launch error | runtime_unavailable | A separately qualified changed configuration; no repeat launch for unchanged identity |
 | Malformed transport, wrong backend/generation/task status or corrupt bytes | integrity_failure | Changed independently qualified configuration; A-to-B-to-A retains the block |
 | Abnormal child, unknown supervisor failure or uncertain retirement | device_fault | Exact retirement plus separate recovery qualification; elapsed time/VRAM alone is insufficient |
+
+Selecting CPU alone does not decide whether a driver failed: the immutable terminal
+transport result supplies that evidence. A valid late HIP reply is independently
+verified and can remain pressure; a timed-out/cancelled HIP transport cannot. This
+conservative classification also applies to deliberate cancellation because the
+controller cannot establish whether device work was submitted. A zero-time process
+exit observation proves retirement only, never hardware recovery.
 
 Known native out-of-memory/resource errors count as pressure, not driver repair.
 Unknown errors are conservative; runtime-specific HIP error classification is
@@ -100,6 +108,10 @@ suppression, corrupt-result quarantine across A-to-B-to-A, actual CPU bytes whil
 the exact helper remains live, a different CPU request during retirement,
 one-time reporting, late unavailable/corrupt-result classification (including a
 different CPU request), two-success recovery and deadline cancellation/retirement.
+CPU-only expected-HIP policy fixtures additionally cover explicit cancellation,
+supervisor timeout and foreground expiry, unchanged-configuration quarantine
+through repeated fresh telemetry, and admission only after separate recovery
+evidence advances. Their HIP response tag is synthetic, never GPU evidence.
 The existing strict zero-handle-growth assertion includes these tests.
 Read exact-commit CI results before calling the implementation qualified.
 

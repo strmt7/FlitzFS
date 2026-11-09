@@ -81,3 +81,60 @@ Current-source inputs include the reference lock/bootstrap, native process runne
 compiler-environment helpers and source GPU kernel. These mechanisms are build
 dependencies only; no FlitzZip archive code is linked into FlitzFS. Successful
 exact-commit results are required before claiming compile qualification.
+
+## Observed complete SDK, 9 November 2026
+
+At 35dfac90503e46b9f988b8ecfbe40f255ca9b809, hosted run 42684196735
+(job 129386491608) passed all 12 unchanged reference bootstrap regressions,
+complete package provisioning, filesystem device compilation, module linking
+and CPU-only header observation. The actual SDK reported HIP
+7.16.26385-7da43026e4, properties structure 1472 bytes and required runtime
+amdhip64_7.dll. Its actual compiler reported AMD Clang 24.0.0git commit
+d6f6cb691863e9258034ab48c1dfce21689d5606. The native compiler helper selected
+MSVC 14.51; CMake observed MSVC 19.51.36260.0 / Visual Studio 18 2026.
+These are observed test identities, not a universal supported-toolset promise.
+
+The compiler warned that -fms-runtime-lib=static was unused in six compilation
+passes. The unchanged reference helper was retained and the linked module
+passed qualification. This warning is retained rather than hidden; no runtime
+portability or redistribution claim follows from the link result.
+
+The corresponding native Crawl4AI run 42684196818 (job 129386491901) accepted
+all three official current/selected release and installation pages (HTTP 200).
+AMD's current and selected release headings both identified ROCm Core SDK
+10.1.0. Native bodies/digests were retained. An existing navigation regex omitted
+rocm.docs.amd.com links while retaining rocmdocs.amd.com; it is corrected in the
+next checkpoint without changing the captured source bodies.
+
+## Typed filesystem kernel entry
+
+gpu_kernel_api.hpp defines a module-local typed entry table with exact size,
+API/task versions, task size, hard task/output limits, 64-thread geometry and a
+zero reserved field. The address is bound inside the SDK-compiled HIP translation
+unit, following the CURRENT FlitzZip bind_codec_kernels / HipKernelApi design.
+It avoids handwritten HIP registration ABI or guessed symbol lookup. The
+separate module exports flitzfs_rocm_kernel_api_v1 and retains the earlier scalar
+task-ABI export. Its table remains immutable and owned by the loaded module.
+
+This is not an IPC struct, binary authorization or hardware attestation. The
+future worker must authenticate and retain the selected runtime/module before
+calling the entry, validate the table before launching, and retain all existing
+CPU verification, adapter-matched child telemetry and bounded supervision.
+Normal CPU builds can inspect this interface without HIP headers or runtime.
+CPU semantic tests exercise the typed argument contract across existing batches
+and reject every incompatible metadata field or missing entry. Hosted compile
+qualification must link the real SDK-bound binder; it never loads the module.
+A real runtime worker, launch/transfer/cleanup implementation and hardware
+qualification still remain to be implemented.
+
+Current selected-distribution HIP stream, memory and error documentation plus
+Microsoft TDR guidance are requested through the isolated native crawler before
+those runtime mechanisms are implemented. Failed native captures remain failures;
+older component-version documentation is not a substitute.
+
+HIP transport timeout/cancellation is now treated as unknown device health,
+including cancellation triggered by an expired foreground result gate. Exact
+process retirement and fresh telemetry cannot clear this quarantine; a separately
+qualified recovery generation must advance. A CPU fixture uses pressure
+hysteresis. A valid, independently checked late reply can remain pressure; the
+selected CPU bytes never change. See GPU_WORKER_CONTROLLER.md for test scope.

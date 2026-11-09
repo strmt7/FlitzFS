@@ -46,7 +46,7 @@ jobs:
             --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
             "$python_path" "$GITHUB_WORKSPACE/.ci-provider/tools/crawl4ai_tool.py" \
             --home "$RUNNER_TEMP/flitzfs-admitted-crawler" install
-      - name: Read current official ROCm distribution sources
+      - name: Read current selected-distribution runtime and Windows recovery sources
         shell: bash
         run: |
           set -euo pipefail
@@ -58,12 +58,12 @@ jobs:
             --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
             "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_research.py" \
             --provider "$GITHUB_WORKSPACE/.ci-provider" --home "$RUNNER_TEMP/flitzfs-admitted-crawler" \
-            --output "$RUNNER_TEMP/flitzfs-current-rocm-sources" --source-group rocm-current
+            --output "$RUNNER_TEMP/flitzfs-current-rocm-runtime" --source-group rocm-runtime
       - name: Retain native captures and failures
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: research-${{ github.sha }}
-          path: ${{ runner.temp }}/flitzfs-current-rocm-sources
+          path: ${{ runner.temp }}/flitzfs-current-rocm-runtime
           if-no-files-found: warn
           retention-days: 30

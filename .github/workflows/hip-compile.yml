@@ -8,6 +8,7 @@ on:
       - 'tests/rocm_compile/**'
       - 'src/gpu/**'
       - 'include/flitzfs/gpu_protocol.hpp'
+      - 'include/flitzfs/gpu_kernel_api.hpp'
       - '.github/workflows/hip-compile.yml'
 permissions:
   contents: read
