@@ -1,5 +1,6 @@
 #include "flitzfs/object_store.hpp"
 #include "record_digest.hpp"
+#include "store_codec.hpp"
 #include "blake3_vectors.hpp"
 #include <algorithm>
 #include <array>
@@ -237,7 +238,7 @@ void malformed_images() {
   rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"overlapping manifest extents accepted");
   bad=baseline;put32(bad,index+64+24,kStoreMaxObjectBytes+1);manifest_digest(bad,65536);
   rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"oversized intact manifest entry accepted");
-  bad=baseline;put32(bad,data+12,1);
+  bad=baseline;put32(bad,data+12,255);
   const auto record=detail::record_digest(std::span<const std::byte>(bad).subspan(data,96),
       std::span<const std::byte>(bad).subspan(data+128,97));
   std::copy(record.begin(),record.end(),bad.begin()+static_cast<std::ptrdiff_t>(data+96));
@@ -247,6 +248,78 @@ void malformed_images() {
   for(const auto length:{std::size_t{0},std::size_t{4095},baseline.size()-65536}) {
     bad=baseline;bad.resize(length);
     rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"truncated image accepted");
+  }
+}
+Bytes noise(std::size_t n) {
+  Bytes out(n);std::uint64_t x=0x13198a2e03707344ULL;
+  for(auto& b:out){x^=x<<13;x^=x>>7;x^=x<<17;b=static_cast<std::byte>(x>>23);}
+  return out;
+}
+Bytes structured(std::size_t n,unsigned variant) {
+  auto out=noise(n);
+  for(std::size_t i=16384;i<n;++i)out[i]=out[i%16384];
+  if(n)out.back()^=static_cast<std::byte>(variant);return out;
+}
+std::array<StoreMutation,3> compressible(unsigned generation) {
+  return {StoreMutation{1,false,Bytes(65537,static_cast<std::byte>(generation==1?0:51))},
+          StoreMutation{2,false,bytes(131073,generation)},
+          StoreMutation{3,false,structured(131073,generation)}};
+}
+void compressed_state(const ObjectStoreSnapshot& s) {
+  const auto generation=s.info().generation;
+  require(generation==1 || generation==2,"compressed recovery lost acknowledgement or fabricated generation");
+  const auto expected=compressible(static_cast<unsigned>(generation));
+  require(s.list().size()==expected.size(),"compressed partial transaction namespace");
+  for(const auto& m:expected)require(s.read(m.id)==m.bytes,"compressed transaction byte mismatch");
+  require(s.info().stored_payload_bytes<=s.info().logical_bytes,"active payload grew after compression");
+}
+void compressed_transactions() {
+  const std::array<StoreCompressionOptions,2> policies{{
+    {StoreCompressionMode::raw,6,false},{StoreCompressionMode::automatic,6,false}}};
+  for(const auto policy:policies) {
+    auto probe=std::make_shared<Ram>();auto w=ObjectStoreWriter::create(probe,identity(),policy);
+    w.commit(compressible(1));auto first=w.snapshot();probe->calls=0;
+    w.commit(compressible(2));const auto steps=probe->calls;
+    compressed_state(first);require(first.info().generation==1,"compressed old snapshot changed");
+    compressed_state(ObjectStoreSnapshot::open(image(probe->stable)));
+    if(policy.mode==StoreCompressionMode::automatic)
+      require(w.snapshot().info().stored_payload_bytes<w.snapshot().info().logical_bytes,"automatic compression did not reduce payload");
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t step=0;step<steps;++step) {
+      auto ram=std::make_shared<Ram>();auto writer=ObjectStoreWriter::create(ram,identity(),policy);
+      writer.commit(compressible(1));ram->calls=0;ram->fail_call=step;ram->failure=mode;
+      rejects([&]{writer.commit(compressible(2));},"compressed injected I/O did not fail");
+      require(writer.poisoned(),"compressed failure left writer usable");
+      const auto ack=writer.snapshot();require(ack.info().generation==1 && ack.info().degraded_root,"poisoned compressed snapshot not fenced");
+      compressed_state(ack);compressed_state(ObjectStoreSnapshot::open(image(ram->stable)));
+    }
+  }
+  auto ram=std::make_shared<Ram>();auto writer=ObjectStoreWriter::create(ram,identity());
+  const StoreMutation motif{1,false,Bytes(65537,std::byte{91})};
+  writer.commit({&motif,1});const auto baseline=ram->stable;
+  const auto index=static_cast<std::size_t>(u64(baseline,65536+32));
+  const auto record=static_cast<std::size_t>(u64(baseline,index+64+16));
+  require(std::to_integer<unsigned>(baseline[record+12])==detail::kStorePattern,"decoded-integrity fixture not a pattern");
+  auto repair_record=[&](Bytes& bad) {
+    const auto count=static_cast<std::size_t>(u64(bad,index+64+28)&0xffffffffU)-128;
+    const auto digest=detail::record_digest(std::span<const std::byte>(bad).subspan(record,96),
+                                           std::span<const std::byte>(bad).subspan(record+128,count));
+    std::copy(digest.begin(),digest.end(),bad.begin()+static_cast<std::ptrdiff_t>(record+96));
+    std::copy(digest.begin(),digest.end(),bad.begin()+static_cast<std::ptrdiff_t>(index+64+32));
+    manifest_digest(bad,65536);
+  };
+  auto bad=baseline;bad[record+56]^=std::byte{1};repair_record(bad);
+  rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"invalid decoded digest escaped recomputed stored chain");
+  bad=baseline;bad[record+128]^=std::byte{1};repair_record(bad);
+  rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"wrong decoded bytes escaped intact stored chain");
+  bad=baseline;put32(bad,record+12,detail::kStoreZero);repair_record(bad);
+  rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"zero codec with payload admitted");
+  bad=baseline;bad[record+88]=std::byte{1};repair_record(bad);
+  rejects([&]{(void)ObjectStoreSnapshot::open(image(bad));},"compressed reserved fields admitted");
+  auto empty=std::make_shared<Ram>();
+  for(auto options:{StoreCompressionOptions{StoreCompressionMode::automatic,0,false},
+                    StoreCompressionOptions{StoreCompressionMode::raw,6,true}}) {
+    rejects([&]{(void)ObjectStoreWriter::create(empty,identity(),options);},"invalid codec options created store");
+    require(empty->writes==0,"invalid codec policy wrote initialization");
   }
 }
 // Sparse, immediately persistent RAM backend reaches the physical-history cap
@@ -285,7 +358,7 @@ void history_cap() {
 }
 int main() {
   try {
-    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();history_cap();
+    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();compressed_transactions();history_cap();
     std::cout<<"PASS: "<<checks<<" object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\n";
     return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

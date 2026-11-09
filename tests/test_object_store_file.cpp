@@ -69,6 +69,10 @@ int main() {
     const auto invalid=fixture.file("invalid-id.fltx");
     rejects([&]{(void)ObjectStoreWriter::create_file(invalid,{}, {4096,true});},"zero identity accepted");
     require(!fs::exists(invalid),"invalid arguments created a file");
+    const auto bad_policy=fixture.file("invalid-policy.fltx");
+    rejects([&]{(void)ObjectStoreWriter::create_file(bad_policy,id(),{4096,true},
+        {StoreCompressionMode::automatic,0,false});},"invalid compression policy accepted");
+    require(!fs::exists(bad_policy),"invalid compression policy created a file");
     const auto unknown=fixture.file("unknown-contract.fltx");
     rejects([&]{(void)ObjectStoreWriter::create_file(unknown,id(),{});},"unknown durability contract accepted");
     require(!fs::exists(unknown),"unknown contract created a file");

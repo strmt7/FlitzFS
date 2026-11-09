@@ -2,7 +2,9 @@
 
 This bounded C++ library is a storage foundation, not a writable mounted
 filesystem. It has no CLI route, GPU dependency, authentication or encryption.
-It stores raw objects only; it provides no compression improvement. Existing
+It supports native raw, zero, repeated-pattern and optional Zstandard object
+records. Compression happens before transactional publication; it is not an
+archive format or writable mounted volume. Existing
 .flfs and .flcatalog native bytes are unchanged. Never use it for
 sole-copy data. Limits are development admission bounds, not the final product
 capacity or a production format commitment.
@@ -109,31 +111,48 @@ Header: magic FLTXIDX1 at 0; u32 format 1 at 8; u32 count at 12; u64 generation
 at 16; u64 sum of logical bytes at 24; identity at 32; sixteen zero bytes at 48.
 
 Each entry: u64 ID at 0, u64 object generation at 8, u64 record offset at 16,
-u32 logical bytes at 24, u32 complete record bytes at 28, digest at 32.
+u32 logical bytes at 24, u32 complete STORED record bytes at 28, digest at 32.
+Stored record size is 128 plus encoded payload bytes, at most 128 plus logical
+bytes. It may differ from the decoded size.
 IDs must be strictly increasing/nonzero. Object generation is positive and no
 newer than the root. Each record lies before the selected manifest; referenced
 records may not overlap. Count, sizes, offsets and sums are admitted before
 payload allocation. Maximum manifest size is 1,088 bytes.
 
-### Object record: 128-byte header followed by raw payload
+### Object record: 128-byte header followed by encoded payload
 
 | Offset | Bytes | Meaning |
 |---:|---:|---|
 | 0 | 8 | ASCII FLTXDAT1 |
 | 8 | 4 | Format field 1 |
-| 12 | 4 | Codec 0 = raw; all others rejected |
+| 12 | 4 | Codec 0 raw, 1 Zstandard, 2 implicit zero, 3 repeated pattern |
 | 16 | 8 | Object ID |
 | 24 | 8 | Object generation |
 | 32 | 4 | Logical bytes, at most 1 MiB |
-| 36 | 4 | Stored bytes, must equal logical bytes |
+| 36 | 4 | Stored payload bytes, at most logical bytes |
 | 40 | 16 | Store identity |
-| 56 | 40 | Zero |
-| 96 | 32 | Digest of header bytes 0..95 concatenated with payload |
-| 128 | Variable | Payload, empty allowed |
+| 56 | 32 | Decoded-content digest for compressed records; zero for raw |
+| 88 | 8 | Zero |
+| 96 | 32 | Digest of header bytes 0..95 concatenated with STORED payload |
+| 128 | Variable | Encoded payload; raw empty object allowed |
 
-The manifest repeats this record digest. Opening verifies every reachable
-record before exposing a snapshot. Each read verifies the entire object again;
-there is no unchecked read or shared decoded cache.
+The manifest repeats the stored-record digest. Raw records retain all forty
+zero bytes at 56..95, so raw-mode output preserves the previous bytes and is
+readable by the previous reader. New codec IDs and decoded-digest fields are
+explicitly unsupported by the previous reader. There is no silent migration.
+
+Codec 0 requires stored size equal to logical size and preserves arbitrary
+bytes, including empty objects. Codec 2 requires positive logical size and no
+payload, reconstructing zeros. Codec 3 stores a motif of 1..4,096 bytes shorter
+than logical size, repeated with a possible partial final motif. Codec 1 stores
+one complete independent Zstandard frame, with known content size equal to the
+logical size and no external dictionary ID. Concatenated, skippable, unknown-size,
+truncated and trailing frames are rejected. Unknown codecs fail explicitly.
+
+Opening verifies every reachable stored record and its full decoded content
+before exposing a snapshot. Each compressed read verifies both digests again;
+raw reads verify the raw record digest. There is no unchecked read or shared
+decoded cache. Decoders discard private output on any failure.
 
 ## Ordinary-file adapter and resource admission
 
@@ -148,7 +167,8 @@ physical AND commit headroom, covering a 512 MiB reserve plus bounded cache
 and transaction allowances. It checks filesystem free space before creation
 and before each transaction, retaining a 1 GiB reserve. These are admission
 checks, not reservations against other processes or guarantees against OOM.
-Only Windows and Linux telemetry are admitted. File size remains capped at
+Only Windows and Linux telemetry are admitted. Resource admission runs before
+codec staging and again before the projected writes. File size remains capped at
 64 MiB; positional short reads/writes and flush errors throw. No deletion,
 raw-device, volume, partition or driver operation is part of this adapter.
 
@@ -177,9 +197,71 @@ checks actual file I/O, independent reopen and exclusive no-clobber creation.
 The earlier PERSISTENCE_MODEL.md enumerates additional abstract reorderings.
 Neither experiment proves all fault interleavings or physical power survival.
 
-Still required before writable filesystem exposure: compressed extent design,
+Still required before writable filesystem exposure: file-to-extent mapping,
 qualified physical persistence assumptions, process-kill and OS fault tests,
 durable namespace operations, writable reopen/recovery, capacity/reclamation,
 authentication/key design, filesystem semantics and extensive mounted VM tests.
 Actual AMD hardware/runtime fault qualification and comparative compression/
 throughput evidence remain separate unmet gates.
+
+## Native compression policy
+
+StoreCompressionOptions defaults to automatic CPU selection. Raw mode preserves
+the previous raw-only record bytes. Automatic selection examines all input for
+zero runs, uses bounded KMP prefix analysis over at most 8 KiB to propose a
+motif up to 4 KiB, then verifies EVERY byte against that motif. Sampling alone
+never establishes equality. When available, bounded single-threaded Zstandard
+also competes for the smallest payload, except when zero/one-byte motifs are
+already unbeatable. Zstandard must save at least 16 bytes; no representation
+may expand the stored payload. Metadata, padding and retained history still
+count toward physical storage.
+
+Zstandard levels 1..9 are admitted; default is 6. Window log is 20, hash and
+chain logs 18, workers zero; frames carry content size and checksum. Reused
+contexts have custom allocators capped at 16 MiB encoder and 2 MiB decoder,
+including allocation headers. The build verifies that the selected library
+actually links these custom-allocation APIs. If optional support is absent,
+automatic selection still provides raw/zero/pattern storage; require_zstd rejects
+creation before output instead. A reader unable to decode a stored codec fails.
+
+All compressed candidates must round-trip through the CPU recovery decoder and
+match the submitted private bytes before backing writes. Compressed records
+bind a separate BLAKE3 decoded-content digest into the stored-record digest.
+This protects recovery from incorrect decoded output; it remains unkeyed
+integrity, not authentication. Codec/resource failure before writes leaves the
+writer healthy; backing I/O failure remains terminal and indeterminate.
+
+The library allocator caps are not a whole-process memory limit. Private
+transaction vectors remain bounded by the object/transaction limits, and the
+ordinary-file adapter requires physical/commit headroom. Failed allocation or
+unavailable telemetry rejects work; no GPU runtime or worker is initialized.
+
+## Source and measured-comparison contract
+
+The API review used native source bytes from
+[Zstandard 1.5.7 zstd.h](https://github.com/facebook/zstd/blob/f8745da6ff1ad1e7bab384bd1f9d742439278e99/lib/zstd.h),
+Git blob b8c0644a7ec6533916e06aa8392a2727cbe55573. The documented custom-memory
+callbacks govern library allocations; context reset/parameters, single-pass
+output bounds and exact frame/content-size checks guide the implementation.
+Single-pass decompression does not rely on streaming window-limit parameters.
+CI uses its recorded system/pinned library; the reviewed source is not itself
+a claim that every job links that exact version.
+
+The hosted native-store comparison uses the exact previous raw engine at
+5c7d7a0a1aea82cbcf3f8d70b1a1d340a00d2f1e, current raw mode and automatic levels
+1/6/9. Six synthetic corpora each contain four 1 MiB objects. Three rotating
+samples per policy report write time, CPU reopen/full verification, complete
+read/byte verification and physical image end including roots, manifests,
+initialization and sealed padding. Active payload bytes are a separate metric.
+Full raw images are compared byte-for-byte and independently reopened by both
+readers using hosted-only new temporary files.
+
+Timed storage is an immediately persistent RAM model, with no physical device
+or mounted filesystem. It does not measure physical flush latency, actual disk
+allocation, application workloads, sustained multi-transaction steady state or
+comparative filesystem performance. Corpus selection is synthetic and not a
+compression-frontier benchmark. Per-child address space is capped at 512 MiB,
+CPU time 15 seconds, wall time 20 seconds; output streams and total run time are
+bounded. All execution stays on disposable hosted VMs. Inspect the exact
+commit's Native compressed-store RAM comparison workflow and retained JSON;
+results are not inferred before execution.

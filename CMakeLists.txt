@@ -6,6 +6,7 @@ option(FLITZFS_REQUIRE_LZ4 "Fail if native dictionary dependency is unavailable"
 
 option(FLITZFS_WITH_ZSTD "Enable optional CPU Zstandard compression" ON)
 option(FLITZFS_BUILD_TESTS "Build bounded unit tests" ON)
+option(FLITZFS_BUILD_STORE_COMPARISON "Build hosted-only native RAM comparison" OFF)
 option(FLITZFS_REQUIRE_ZSTD "Fail instead of silently using raw-only mode" OFF)
 option(FLITZFS_BUILD_WINFSP "Build experimental Windows callbacks (no mount executable)" OFF)
 option(FLITZFS_BUILD_MOUNT_PROBE "Build hosted-CI-only synthetic mount probe (never default CTest)" OFF)
@@ -25,7 +26,7 @@ set_target_properties(flitzfs_blake3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_definitions(flitzfs_blake3 PRIVATE
   BLAKE3_NO_SSE2=1 BLAKE3_NO_SSE41=1 BLAKE3_NO_AVX2=1 BLAKE3_NO_AVX512=1 BLAKE3_USE_NEON=0)
 
-add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp src/mount_plan.cpp src/process_budget.cpp src/catalog_manifest.cpp src/extent_codec.cpp src/gpu_batch.cpp src/gpu_recovery.cpp src/worker_wire.cpp src/record_digest.cpp src/object_store.cpp src/store_file.cpp)
+add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp src/mount_plan.cpp src/process_budget.cpp src/catalog_manifest.cpp src/extent_codec.cpp src/gpu_batch.cpp src/gpu_recovery.cpp src/worker_wire.cpp src/record_digest.cpp src/object_store.cpp src/store_file.cpp src/store_codec.cpp)
 target_include_directories(flitzfs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(flitzfs_core PUBLIC cxx_std_20)
 target_include_directories(flitzfs_core PRIVATE third_party/blake3/c)
@@ -44,6 +45,32 @@ if(FLITZFS_WITH_ZSTD)
     target_include_directories(flitzfs_core PRIVATE ${FLITZFS_ZSTD_INCLUDE})
     target_link_libraries(flitzfs_core PRIVATE ${FLITZFS_ZSTD_LIBRARY})
     target_compile_definitions(flitzfs_core PRIVATE FLITZFS_HAS_ZSTD=1)
+    # Static-linking-only custom allocators must be present, not merely a header.
+    # They cap every transactional-codec allocation before calling malloc.
+    include(CheckCXXSourceCompiles)
+    function(flitzfs_check_store_zstd)
+      set(CMAKE_REQUIRED_INCLUDES "${FLITZFS_ZSTD_INCLUDE}")
+      set(CMAKE_REQUIRED_LIBRARIES "${FLITZFS_ZSTD_LIBRARY}")
+      check_cxx_source_compiles("
+        #define ZSTD_STATIC_LINKING_ONLY
+        #include <zstd.h>
+        static_assert(ZSTD_VERSION_NUMBER >= 10504, \"Zstd too old\");
+        int main() {
+          ZSTD_customMem memory = { nullptr, nullptr, nullptr };
+          ZSTD_CCtx* c = ZSTD_createCCtx_advanced(memory);
+          ZSTD_DCtx* d = ZSTD_createDCtx_advanced(memory);
+          return int(ZSTD_freeCCtx(c) + ZSTD_freeDCtx(d));
+        }" FLITZFS_STORE_ZSTD_LINKS)
+      set(FLITZFS_STORE_ZSTD_LINKS "${FLITZFS_STORE_ZSTD_LINKS}" PARENT_SCOPE)
+    endfunction()
+    flitzfs_check_store_zstd()
+    if(FLITZFS_STORE_ZSTD_LINKS)
+      target_compile_definitions(flitzfs_core PRIVATE FLITZFS_STORE_HAS_ZSTD=1)
+    elseif(FLITZFS_REQUIRE_ZSTD)
+      message(FATAL_ERROR "Transactional Zstandard requires the reviewed custom-allocation API")
+    else()
+      message(STATUS "Bounded store Zstandard unavailable: raw/zero/pattern storage only")
+    endif()
     message(STATUS "Zstandard enabled")
   elseif(FLITZFS_REQUIRE_ZSTD)
     message(FATAL_ERROR "Zstandard was required but its headers/library were not found")
@@ -97,9 +124,16 @@ if(FLITZFS_BUILD_TESTS)
   endif()
   add_test(NAME bounded_commit_persistence_model COMMAND flitzfs_durability_model_tests)
   set_tests_properties(bounded_commit_persistence_model PROPERTIES TIMEOUT 30)
+  add_executable(flitzfs_store_codec_tests tests/test_store_codec.cpp)
+  target_include_directories(flitzfs_store_codec_tests PRIVATE src)
+  target_link_libraries(flitzfs_store_codec_tests PRIVATE flitzfs_core)
+  flitzfs_test_codecs(flitzfs_store_codec_tests)
+  add_test(NAME bounded_native_store_compression COMMAND flitzfs_store_codec_tests)
+  set_tests_properties(bounded_native_store_compression PROPERTIES TIMEOUT 45)
   add_executable(flitzfs_object_store_tests tests/test_object_store.cpp)
   target_include_directories(flitzfs_object_store_tests PRIVATE src)
   target_link_libraries(flitzfs_object_store_tests PRIVATE flitzfs_core)
+  flitzfs_test_codecs(flitzfs_object_store_tests)
   add_test(NAME bounded_transactional_object_store COMMAND flitzfs_object_store_tests)
   set_tests_properties(bounded_transactional_object_store PROPERTIES TIMEOUT 45)
   add_executable(flitzfs_object_store_file_tests tests/test_object_store_file.cpp)
@@ -301,4 +335,11 @@ if(WIN32)
     add_test(NAME bounded_windows_worker_exchange COMMAND flitzfs_worker_exchange_tests)
     set_tests_properties(bounded_windows_worker_exchange PROPERTIES TIMEOUT 45)
   endif()
+endif()
+
+# Not part of ordinary builds/tests. Runtime enforces the hosted-only boundary.
+if(FLITZFS_BUILD_STORE_COMPARISON)
+  add_executable(flitzfs_store_comparison tests/store_comparison.cpp)
+  target_compile_definitions(flitzfs_store_comparison PRIVATE FLITZFS_CURRENT_STORE=1)
+  target_link_libraries(flitzfs_store_comparison PRIVATE flitzfs_core)
 endif()

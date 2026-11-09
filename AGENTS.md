@@ -109,7 +109,7 @@ A per-request poisoned gate remains terminal; any later candidate uses a new
 gate and qualified evidence with supervisor-confirmed worker quiescence.
 Read docs/RESILIENT_STORE_DESIGN.md before adding writable storage. GPU faults
 must not affect the durable CPU recovery path or acknowledged committed bytes.
-The live GPU runtime/coordinator and writable mounted store remain absent. The bounded raw-object transaction core is described in docs/OBJECT_STORE_FORMAT.md; it is not routed into CLI/mount paths. Preserve its no-reopen-existing-write rule, sealed segments, terminal I/O poisoning, explicit backend assumptions and hosted-only file tests.
+The live GPU runtime/coordinator and writable mounted store remain absent. The bounded compressed-object transaction core is described in docs/OBJECT_STORE_FORMAT.md; it is not routed into CLI/mount paths. Preserve its no-reopen-existing-write rule, sealed segments, terminal I/O poisoning, explicit backend assumptions and hosted-only file tests.
 
 The existing shared CocoIndex MCP registration belongs to another repository.
 Do not use it as a FlitzFS receipt or change its registration. Prior searches
@@ -120,3 +120,12 @@ remain evidence. The reviewed provider is now admitted in hosted-research.yml
 with native capture/digest review in durability-evidence.yml. Keep new page
 research off-host with the same isolation/robots/timeout/receipt requirements;
 never run the host crawler or substitute search snippets.
+
+## Native transactional compression boundary
+
+Read docs/OBJECT_STORE_FORMAT.md before modifying store codecs or records.
+Preserve historical raw-mode bytes, separate stored/decoded integrity, complete
+private CPU round-trip verification before writes, and hard library allocation
+ceilings. Never silently bypass unavailable recovery codecs or roll back a
+corrupt latest dependency. Timed RAM comparisons are not disk/mounted-filesystem
+benchmarks; retain unfavorable results and count metadata/padding/history.

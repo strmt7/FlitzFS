@@ -39,9 +39,18 @@ class StoreByteIo {
   virtual StoreIoContract contract() const noexcept=0;
 };
 
+enum class StoreCompressionMode { raw,automatic };
+struct StoreCompressionOptions {
+  StoreCompressionMode mode=StoreCompressionMode::automatic;
+  int zstd_level=6; // 1..9, bounded single-threaded tables; no GPU dependency.
+  bool require_zstd=false; // Fail before creation if bounded codec support is absent.
+};
+bool store_zstd_available() noexcept;
+std::uint32_t store_zstd_version() noexcept; // Runtime library version, zero if not compiled.
+
 struct StoreObjectInfo {
   std::uint64_t id=0,generation=0;
-  std::uint32_t logical_bytes=0;
+  std::uint32_t logical_bytes=0,stored_payload_bytes=0;
 };
 struct StoreMutation {
   std::uint64_t id=0;
@@ -52,6 +61,7 @@ struct StoreCommitInfo {
   std::uint64_t generation=0,physical_end=0,logical_bytes=0;
   std::size_t objects=0;
   bool degraded_root=false; // Only one valid root: report explicitly; no mounted routing.
+  std::uint64_t stored_payload_bytes=0; // Active payload only; excludes metadata/padding/history.
 };
 
 class ObjectStoreSnapshot final {
@@ -79,11 +89,12 @@ class ObjectStoreSnapshot final {
 class ObjectStoreWriter final {
  public:
   // Only an empty, exclusively owned backend. There is no reopen-existing-write API.
-  static ObjectStoreWriter create(std::shared_ptr<StoreByteIo> empty_image,StoreIdentity id);
+  static ObjectStoreWriter create(std::shared_ptr<StoreByteIo> empty_image,StoreIdentity id,
+      StoreCompressionOptions compression={});
   // New ordinary file only; never replaces a path or deletes a partial new file.
   // Contract is explicit: this API does NOT qualify a physical device.
   static ObjectStoreWriter create_file(const std::filesystem::path& path,
-      StoreIdentity id,StoreIoContract contract);
+      StoreIdentity id,StoreIoContract contract,StoreCompressionOptions compression={});
   ObjectStoreWriter(ObjectStoreWriter&&) noexcept;
   ObjectStoreWriter& operator=(ObjectStoreWriter&&) noexcept;
   ObjectStoreWriter(const ObjectStoreWriter&)=delete;

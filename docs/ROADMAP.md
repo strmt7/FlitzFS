@@ -21,7 +21,7 @@ claim follows from compatibility tests or one synthetic throughput comparison.
 | M3: Windows read-only mount | Lifecycle, live synthetic reads and process-crash/remount probe implemented; see per-commit CI | No collisions/recursion; explicit driver provisioning; clean unmount/restart; actual ACL/mapped-I/O/cancellation/app tests; CPU export |
 | M4: adaptive CPU/HIP | Bounded six-kind batch/kernel candidate and result gate implemented; offline gfx1201 compilation only | Live supervised runtime, Windows HIP compiler/hardware qualification, real GPU parity, H2D/kernel/D2H timing and measured routing remain unimplemented/unqualified |
 | M5: authenticated immutable store | Not implemented: AEAD records, authenticated manifest, key handling | Vetted crypto; nonce/clone/rollback analysis; authentication-negative/fuzz tests; independent recovery |
-| M6: transactional writes | Bounded raw-object COW engine, two barriers, integrity and CPU reopen implemented; writable mounts/reopen/compaction absent | Fault injection at every commit, out-of-space handling and acknowledged-write recovery |
+| M6: transactional writes | Bounded compressed-object COW engine, two barriers, integrity and CPU reopen implemented; writable mounts/reopen/compaction absent | Fault injection at every commit, out-of-space handling and acknowledged-write recovery |
 | M7: limited writable preview | Not implemented: opt-in disposable mounted folder | M6 plus ACL/locking/mapped I/O/rename/app tests and independent backups; never automatic sole-copy use |
 
 The native callback milestone was advanced ahead of archive compatibility to
@@ -76,18 +76,18 @@ before changing normal CPU-only behavior.
 ## Executable durability gate
 
 PERSISTENCE_MODEL.md defines a test-only commit-persistence experiment. It
-evaluates recovery obligations separately from the bounded raw-object engine;
+evaluates recovery obligations separately from the bounded object engine;
 M6 remains incomplete. Ordinary-file I/O, namespace durability, integrity, independent
 recovery and fault-injected writable qualification remain required. The native
 research provider now runs in a bounded isolated hosted VM, never on the owner PC.
 
 ## Concrete transaction engine gate
 
-OBJECT_STORE_FORMAT.md records the new bounded raw-object format, admission,
+OBJECT_STORE_FORMAT.md records the new bounded native object format, admission,
 recovery and fault-test contract. It provides a base for compressed immutable
 extents and durable namespace transactions. Before increasing limits or exposing
 writes, qualify reclaim, writable reopen, actual process/OS interruptions and
-physical durability assumptions. Do not call the raw-object engine a compressed
+physical durability assumptions. Do not call the object engine a qualified mounted
 filesystem or general power-loss guarantee. GPU work remains optional and must
 never become a dependency of acknowledged-data recovery.
 
@@ -97,3 +97,12 @@ Archive reader/CLI/catalog/mount routes and archive serialization tests are
 removed. FlitzZip supplies mechanism inspiration and optional test-only CPU
 comparisons. Its archive format/product parity is not a FlitzFS requirement.
 EXTENT_CODECS.md replaces the former archive compatibility development track.
+
+## Compression connected to transactions
+
+The object engine admits native zero/motif/Zstandard candidates, independent
+CPU round-trip checking and decoded integrity before publication. It preserves
+raw-mode bytes and keeps codec failure outside the I/O-poisoned state. This
+advances M6 storage primitives; native file/extent namespace, writable reopen,
+reclaim and mounted mutation semantics remain required. The hosted comparison
+is RAM-backed native-engine evidence, not cross-filesystem qualification.
