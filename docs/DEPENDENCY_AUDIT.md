@@ -21,7 +21,7 @@ The release-inventory workflow does not claim to query Dependabot. Future alert
 checks can use the authenticated Security UI; preserve any service-access
 failure rather than claiming it means zero alerts.
 
-## Native dependency and Action pins
+## Original 9 November native dependency and Action audit
 
 Official native GitHub release/tag API captures confirmed Zstandard v1.5.7
 (f8745da6ff1ad1e7bab384bd1f9d742439278e99), LZ4 v1.11.0
@@ -112,3 +112,46 @@ The audit must inspect the full bounded release inventory for this dependency;
 a stable-only green result is insufficient. See WINDOWS_ARCHITECTURE.md.
 The authenticated zero-Dependabot observation covers repository alerts only,
 not a proof that every external SDK/driver has no upstream security fixes.
+
+
+## LZ4 1.11.1 follow-through, 10 November 2026
+
+The current native release inventory failed at 6574049cb0e7534eba83b5560cacb7b6741c38e6
+after LZ4 published v1.11.1 at 05:49:08 UTC. The strict current-release gate
+correctly rejected the old pin; it was not a filesystem test failure.
+Job 129661802483 retained native responses and audit rows in artifact
+13739905382, SHA256
+3cb422eecb834ab629728912fff9ed317dc3033e8295b3cfb14eef96a8ac814b.
+The console now identifies each outdated repository/tag/commit directly.
+
+The official release/tag API resolves v1.11.1 to immutable commit
+aa4647fad575d01a874aaaadcdbe8e6a40e072f5. Current Windows/Linux codec
+provisioning, SDK/portable qualification and mechanism-comparison dependency
+checkouts now select that source. The audit declares the same identity.
+No owner-PC tool/package is installed or modified.
+
+- [Official release and fix scope](https://github.com/lz4/lz4/releases/tag/v1.11.1)
+- [Actual source delta](https://github.com/lz4/lz4/compare/c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc...aa4647fad575d01a874aaaadcdbe8e6a40e072f5)
+- [Fixed HC reset implementation](https://github.com/lz4/lz4/blob/aa4647fad575d01a874aaaadcdbe8e6a40e072f5/lib/lz4hc.c)
+
+The primary fix initializes the deprecated LZ4_resetStreamHC state at its
+declared size rather than trusting dirty memory's extension marker; upstream
+reported out-of-bounds writes at HC levels >=10 under that usage. Exact native
+repository code search found no FlitzFS call to this symbol. Do not claim an
+executed FlitzFS exploit, generic security immunity or an AMD64 speed gain from
+upstream's separate ppc64 measurements. Source/build fixes are reviewed; actual
+compatibility still requires exact-commit Windows, portable, sanitizer and
+decoder-reference results.
+
+Historical codec/benchmark results and immutable FlitzFS/FlitzZip comparator
+source commits remain unchanged. Zstandard stays at the same reviewed identity.
+The CPU and native-store timing configurations disable LZ4; their shared
+provisioning changes do not replace those timed codecs. The extent differential
+oracle now uses the same new LZ4 library for both current and pinned reference
+mechanisms, explicitly changing that dependency while retaining reference
+source/cases. No archived result is relabelled as measured with 1.11.1.
+
+This release audit remains distinct from Dependabot: the 9 November authenticated
+zero-alert observation is historical, and a failed API never establishes zero
+current alerts. Research-provider transitive freshness, broader Windows tools,
+end-user installation/rollback and live AMD runtime remain separate gates.

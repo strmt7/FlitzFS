@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 PINS={"zstd":"f8745da6ff1ad1e7bab384bd1f9d742439278e99",
-      "lz4":"c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc"}
+      "lz4":"aa4647fad575d01a874aaaadcdbe8e6a40e072f5"}
 def run(args,seconds=60):
     return subprocess.run(args,check=True,timeout=seconds,capture_output=False)
 
