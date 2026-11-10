@@ -12,9 +12,11 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 
 MIB=1024**2
 _JOB=None
+_JOB_QUERY=None
 
 def require(condition,message):
     if not condition:
@@ -107,7 +109,7 @@ def audit_binary(data):
     return {"format":"PE32+","architecture":"AMD64","os_imports":sorted(set(names)),"delay_imports":False}
 
 def contain():
-    global _JOB
+    global _JOB,_JOB_QUERY
     if sys.platform=="linux":
         import resource
         os.nice(19)
@@ -121,6 +123,10 @@ def contain():
         _fields_=[("process_time",ctypes.c_longlong),("job_time",ctypes.c_longlong),
             ("flags",w.DWORD),("min_ws",ctypes.c_size_t),("max_ws",ctypes.c_size_t),
             ("active",w.DWORD),("affinity",ctypes.c_size_t),("priority",w.DWORD),("scheduling",w.DWORD)]
+    class Accounting(ctypes.Structure):
+        _fields_=[(name,ctypes.c_longlong) for name in
+            ("user","kernel","period_user","period_kernel")]+[(name,w.DWORD) for name in
+            ("page_faults","total","active","terminated")]
     class IO(ctypes.Structure):
         _fields_=[(name,ctypes.c_ulonglong) for name in
             ("read_ops","write_ops","other_ops","read_bytes","write_bytes","other_bytes")]
@@ -133,6 +139,8 @@ def contain():
     api.CreateJobObjectW.argtypes=[ctypes.c_void_p,w.LPCWSTR];api.CreateJobObjectW.restype=w.HANDLE
     api.SetInformationJobObject.argtypes=[w.HANDLE,ctypes.c_int,ctypes.c_void_p,w.DWORD]
     api.SetInformationJobObject.restype=w.BOOL
+    api.QueryInformationJobObject.argtypes=[w.HANDLE,ctypes.c_int,ctypes.c_void_p,w.DWORD,ctypes.POINTER(w.DWORD)]
+    api.QueryInformationJobObject.restype=w.BOOL
     api.GetCurrentProcess.restype=w.HANDLE
     api.AssignProcessToJobObject.argtypes=[w.HANDLE,w.HANDLE];api.AssignProcessToJobObject.restype=w.BOOL
     _JOB=api.CreateJobObjectW(None,None)
@@ -151,8 +159,46 @@ def contain():
             "cannot set qualification CPU cap")
     require(bool(api.AssignProcessToJobObject(_JOB,api.GetCurrentProcess())),
             "cannot contain qualification process before creating files or children")
+    require(ctypes.sizeof(Accounting)==48 and Accounting.active.offset==40 and ctypes.sizeof(Extended)==144,
+            "unexpected AMD64 Windows job accounting ABI")
+    def query():
+        accounting=Accounting();current=Extended()
+        for kind,value in ((1,accounting),(9,current)):
+            returned=w.DWORD()
+            if not api.QueryInformationJobObject(_JOB,kind,ctypes.byref(value),ctypes.sizeof(value),ctypes.byref(returned)):
+                raise ctypes.WinError(ctypes.get_last_error())
+            require(returned.value==ctypes.sizeof(value),"job accounting response length differs")
+        require(current.basic.flags==limits.basic.flags and current.basic.active==2 and
+                current.process_memory==512*MIB and current.job_memory==768*MIB,
+                "qualification job limits changed")
+        return dict(active=int(accounting.active),total=int(accounting.total),
+                    terminated=int(accounting.terminated),peak_process_bytes=int(current.peak_process),
+                    peak_job_bytes=int(current.peak_job),active_limit=2,job_memory_limit_bytes=768*MIB)
+    _JOB_QUERY=query
+    wait_for_job_slot()
     # Keep the handle until interpreter exit. Closing it earlier would terminate
     # this process too; OS teardown then contains every remaining descendant.
+
+
+def wait_for_job_slot(*,on_busy=None):
+    """Admit one launch from actual private-job accounting, never a retry."""
+    if sys.platform!="win32":
+        return None
+    require(_JOB_QUERY is not None,"qualification job accounting unavailable")
+    deadline=time.monotonic()+3
+    observations=0;maximum=0;released=False
+    while True:
+        state=_JOB_QUERY();observations+=1
+        require(type(state.get("active")) is int and 1<=state["active"]<=2,
+                "qualification job membership/active-process contract lost")
+        maximum=max(maximum,state["active"])
+        if state["active"]==1:
+            return dict(**state,observations=observations,maximum_active_observed=maximum)
+        if on_busy is not None and not released:
+            released=True;on_busy()
+        if time.monotonic()>=deadline:
+            raise RuntimeError("previous qualification child has not retired: "+json.dumps(state))
+        time.sleep(0.01)
 
 def child_limits():
     import resource
@@ -204,11 +250,26 @@ def main():
         require(bool(os.environ.get("SystemRoot")),"Windows OS root identity unavailable")
         env["SystemRoot"]=os.environ["SystemRoot"]
         env["WINDIR"]=os.environ["SystemRoot"]
-    checks=[]
+    checks=[];job_observations=[]
     def call(arguments,expected=0):
         options={"preexec_fn":child_limits} if sys.platform=="linux" else {}
-        result=subprocess.run([str(binary),*[str(a) for a in arguments]],cwd=work,env=env,
-            capture_output=True,timeout=10,**options)
+        before=wait_for_job_slot()
+        require(len(job_observations)<64,"job observation report budget")
+        try:
+            result=subprocess.run([str(binary),*[str(a) for a in arguments]],cwd=work,env=env,
+                capture_output=True,timeout=10,**options)
+        except OSError as error:
+            try:
+                state=_JOB_QUERY() if _JOB_QUERY is not None else None
+            except Exception as query_error:
+                state={"query_error":type(query_error).__name__+": "+str(query_error)[:400]}
+            print(json.dumps(dict(portable_launch_failed=True,command=str(arguments[0]),
+                winerror=getattr(error,"winerror",None),before=before,after=state,
+                launch_retried=False)),flush=True)
+            raise
+        after=wait_for_job_slot()
+        if before is not None:
+            job_observations.append(dict(command=str(arguments[0]),before=before,after=after))
         require(len(result.stdout)+len(result.stderr)<=16384,"diagnostic output exceeded budget")
         require(result.returncode==expected,
                 "relocated command failed: "+repr(arguments)+": "+result.stderr.decode("utf-8","replace"))
@@ -261,6 +322,7 @@ def main():
         "loader_audit":audit,"package_files":[name],"development_environment_inherited":False,
         "path_is_empty_directory":True,"relocated":True,"unicode_paths":True,
         "native_non_utf8_paths":sys.platform=="linux","commands":checks,"payload_bytes":len(payload),
+        "windows_job_admission":job_observations,"launch_retries":0,
         "resource_bounds":{"windows_job_memory_mib":768,"windows_cpu_percent":20,
             "linux_address_space_mib":512,"child_timeout_seconds":10,"max_fixture_bytes":8*MIB}}
     total=sum(p.stat().st_size for p in fixture.rglob("*") if p.is_file() and p!=binary)

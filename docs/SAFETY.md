@@ -346,3 +346,12 @@ commits/reopens a combined continuation. Strict schema-3 merges reject omitted,
 mixed, relabelled or duplicate evidence under unchanged resource limits.
 These are hosted ordinary-file process interruptions, not physical power cuts,
 owner-PC permission, mounted writes or arbitrary-failure immunity.
+
+The Windows portability harness now explicitly requires private-job accounting
+to show only its supervisor before a new child launch and after retirement.
+Its existing active-process, memory, CPU, priority and time limits remain.
+A bounded wait observes actual retirement; elapsed time alone never authorizes
+a launch. Query/quota failures remain failures, with no process retry or quota
+increase. A hosted real contention regression and SDK ABI checks must pass
+before claiming the revised harness qualified. This is development tooling,
+not a new filesystem driver/GPU policy or owner-PC execution.

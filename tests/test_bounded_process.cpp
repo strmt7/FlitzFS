@@ -1,8 +1,14 @@
 #include "bounded_process.hpp"
 #include <windows.h>
 #include <iostream>
+#include <cstddef>
 #include <stdexcept>
 #include <string_view>
+
+// Bind Python qualification telemetry to the current compiled AMD64 SDK ABI.
+static_assert(sizeof(JOBOBJECT_BASIC_ACCOUNTING_INFORMATION)==48);
+static_assert(offsetof(JOBOBJECT_BASIC_ACCOUNTING_INFORMATION,ActiveProcesses)==40);
+static_assert(sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)==144);
 
 namespace {
 void require(bool value, const char* message) { if (!value) throw std::runtime_error(message); }

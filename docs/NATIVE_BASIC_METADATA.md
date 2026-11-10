@@ -219,3 +219,19 @@ limits. Windows partitions retain 180 seconds each, 360 seconds maximum per
 complete campaign, on separate disposable hosted VMs from the legacy workflow.
 Peak resources are not multiplied within a test case. Configured tests still
 require exact-commit job inspection before passing evidence is claimed.
+
+## Executed metadata writer process campaign
+
+At 6cc05e654b006bd0a13b2a0bdaefc695bfcbe63d, job 129528969148
+completed all 712 real Windows metadata writer termination cases. The 356-case
+partitions finished in 33.658 and 43.991 seconds, each below 180 seconds.
+The strict schema-3 union accepted every required cut and state digest,
+acknowledged-history recovery and independently reopened combined continuation.
+The legacy Windows campaign also retained all 976 cases at that commit.
+
+This closes the separately configured process-kill test at that exact source;
+it does not prove physical power loss or writable mounted applications.
+The overall CPU workflow at that commit had a separate raw portability
+CreateProcess quota failure, so do not describe all its workflows as green.
+HOST_INDEPENDENCE.md preserves that failure and the accounting-based
+qualification-harness correction. No owner-PC or live GPU execution occurred.

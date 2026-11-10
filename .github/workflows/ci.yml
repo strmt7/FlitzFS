@@ -111,6 +111,10 @@ jobs:
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure --timeout 45 --parallel 1
 
+      - name: Verify exact private-job launch admission and retirement
+        if: runner.os == 'Windows' && matrix.zstd == 'OFF'
+        run: python tools/ci/test_portable_job_lifecycle.py
+
       - name: Verify relocated raw-only CPU executable
         if: matrix.zstd == 'OFF'
         shell: python

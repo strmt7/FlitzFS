@@ -415,3 +415,13 @@ termination, exact cut/acknowledgement identity and independently reopened
 combined continuation. Reject mixed/omitted/relabelled/duplicate evidence.
 Keep existing per-process, event, queue, image, case and partition bounds.
 A verified process kill is not physical power loss or client qualification.
+
+## Private portability qualification process accounting
+
+Preserve the unchanged two-process/512-MiB-per-process/768-MiB-job/20-percent
+Windows qualification limits. Before launching another diagnostic child and
+after completion, require actual private-job accounting to show the supervisor
+alone. Unknown membership, changed limits or unretired children fail closed;
+never raise limits or retry CreateProcess to hide WinError 1816. Retain native
+SDK ABI assertions, real controlled-contention coverage, before/after telemetry
+and historical failed runs. No owner-host permission follows.
