@@ -86,7 +86,7 @@ NTSTATUS WinFspNativeSession::start(const NativeWriteMountPlan& plan) noexcept {
   if(state_!=SessionState::ready||!adapter_)return STATUS_INVALID_DEVICE_STATE;
   if(!valid_native_write_plan(plan))return STATUS_INVALID_PARAMETER;
   auto fail=[&](NTSTATUS status) noexcept {
-    release();state_=SessionState::failed;adapter_.reset();return status;
+    release();state_=SessionState::failed;retire_adapter();return status;
   };
   try {
     auto directory=plan.directory;auto parameters=adapter_->parameters();
@@ -113,17 +113,25 @@ void WinFspNativeSession::release() noexcept {
   api_.delete_filesystem(filesystem_);filesystem_=nullptr;
   dispatcher_attempted_=false;mount_owned_=false;
 }
-void WinFspNativeSession::stop() noexcept {
-  release();
+void WinFspNativeSession::retire_adapter() noexcept {
   if(adapter_) {
     offline_=offline_||adapter_->requires_offline();
+    stopped_=stopped_||adapter_->dispatcher_stopped();
     unexpected_stop_=unexpected_stop_||adapter_->dispatcher_stopped_unexpectedly();
     try{retired_stats_=adapter_->stats();offline_=offline_||retired_stats_.contexts!=0||retired_stats_.fenced;}
     catch(...){offline_=true;}
     adapter_.reset(); // Only AFTER dispatcher join and owned FS deletion.
   }
+}
+void WinFspNativeSession::stop() noexcept {
+  const bool attempted=dispatcher_attempted_;
+  release();retire_adapter();
+  if(attempted&&!stopped_)offline_=true;
   if(offline_||unexpected_stop_)state_=SessionState::failed;
   else if(state_!=SessionState::failed)state_=SessionState::stopped;
+}
+bool WinFspNativeSession::dispatcher_stopped() const noexcept {
+  return stopped_||(adapter_&&adapter_->dispatcher_stopped());
 }
 bool WinFspNativeSession::requires_offline() const noexcept {
   return offline_||(adapter_&&adapter_->requires_offline());

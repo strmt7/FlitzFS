@@ -198,3 +198,12 @@ historical aggregate deletion is runtime policy, not a stored format revision.
 Its explicit live-quota/cache allocation must not be relabelled host clusters,
 compressed physical bytes or host preallocation. No production mounted-write
 route or new public existing-image writer factory is enabled.
+
+
+### Bounded writable VM trial
+
+WRITABLE_MOUNT_TRIAL.md adds no stored format revision. Its per-instance image
+history cap is runtime admission, separate from native live reservations,
+logical EOF and physical allocation. Existing factory defaults/wire bytes and
+three publication barriers remain. An explicit mounted Flush is required before
+the trial asserts data durability; CPU reopen is independent after writer exit.

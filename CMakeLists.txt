@@ -34,6 +34,7 @@ option(FLITZFS_BUILD_STORE_CRASH_PROBE "Build hosted-only native writer interrup
 option(FLITZFS_REQUIRE_ZSTD "Fail instead of silently using raw-only mode" OFF)
 option(FLITZFS_BUILD_WINFSP "Build experimental Windows callbacks (no mount executable)" OFF)
 option(FLITZFS_BUILD_MOUNT_PROBE "Build hosted-CI-only synthetic mount probe (never default CTest)" OFF)
+option(FLITZFS_BUILD_WRITE_PROBE "Build hosted-CI-only writable mount probe (never default CTest)" OFF)
 set(FLITZFS_WINFSP_SDK "" CACHE PATH "Explicit WinFsp SDK root: include, lib and bin")
 if(FLITZFS_REQUIRE_ZSTD AND NOT FLITZFS_WITH_ZSTD)
   message(FATAL_ERROR "REQUIRE_ZSTD conflicts with WITH_ZSTD=OFF")
@@ -645,6 +646,17 @@ if(FLITZFS_BUILD_MOUNT_PROBE)
   flitzfs_test_codecs(flitzfs_mount_probe)
   add_custom_command(TARGET flitzfs_mount_probe POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_mount_probe>")
+endif()
+
+# Separate opt-in; old read-only probe and all its caps/oracles remain intact.
+if(FLITZFS_BUILD_WRITE_PROBE)
+  if(NOT WIN32 OR NOT FLITZFS_BUILD_WINFSP OR NOT FLITZFS_REQUIRE_ZSTD OR NOT FLITZFS_REQUIRE_LZ4)
+    message(FATAL_ERROR "Writable probe requires native Windows callbacks and mandatory recovery codecs")
+  endif()
+  add_executable(flitzfs_write_probe tests/winfsp_write_probe.cpp)
+  target_link_libraries(flitzfs_write_probe PRIVATE flitzfs_winfsp flitzfs_process)
+  add_custom_command(TARGET flitzfs_write_probe POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_write_probe>")
 endif()
 
 set(FLITZFS_EXTENT_REFERENCE_SOURCE "" CACHE PATH "Explicit pinned mechanism source for test-only extent decoder comparison")

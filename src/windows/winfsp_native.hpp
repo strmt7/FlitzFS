@@ -10,6 +10,10 @@ class WinFspNativeWritable final {
  public:
   static std::unique_ptr<WinFspNativeWritable> create_new_hosted(
       const std::filesystem::path&,StoreIdentity,StoreCompressionOptions={});
+  // Explicit per-image history cap; aligned 4..64 MiB. It is checked before
+  // every projected append/write; not physical reservation/preallocation.
+  static std::unique_ptr<WinFspNativeWritable> create_new_hosted(
+      const std::filesystem::path&,StoreIdentity,StoreCompressionOptions,std::uint64_t max_image_bytes);
   ~WinFspNativeWritable();
   WinFspNativeWritable(const WinFspNativeWritable&)=delete;
   WinFspNativeWritable& operator=(const WinFspNativeWritable&)=delete;

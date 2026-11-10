@@ -529,3 +529,15 @@ recovery, actual worker retirement and no driver/security/clock/power changes.
 No local artifacts, system-drive activity or unfinished runtime experiment is
 authorized by that permission. Current work remains on disposable hosted VMs.
 Finite tests cannot establish immunity to every future bug or loss of all copies.
+\n
+### Separate disposable writable VM trial
+
+WRITABLE_MOUNT_TRIAL.md is a narrowly scoped exception for a new gated hosted
+job, after all ordinary and old read-only mounted checks. It uses fresh pinned
+owned paths, no arbitrary inputs, a 4 MiB image plus <=4096 report bytes, and
+sequential 128-MiB/20%-CPU/one-process/below-normal/30-second children with actual
+exit proof. The capped backend retains all ordinary admission/barrier checks.
+Only create/write/explicit-Flush/readback/close is attempted initially; old
+adoption guards remain. Preserve stop reasons and fail on unretired contexts or
+missing notification; never delete stale junctions or raise old limits. This
+adds no owner-PC driver/GPU/real-storage permission or product safety claim.

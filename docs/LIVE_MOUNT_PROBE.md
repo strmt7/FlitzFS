@@ -141,3 +141,11 @@ or raw volume handle is added. All retained source/baseline/input/report file
 lengths now share an explicit <4 MiB aggregate bound. Existing job/time/CPU/
 memory/driver safety boundaries remain. The mount-only build targets its probe;
 ordinary/native prerequisite jobs still build/test all targets.
+
+
+## Separate writable trial
+
+The old read-only normal/kill/recovery probe and its byte/process/oracle limits
+are unchanged. WRITABLE_MOUNT_TRIAL.md specifies a separate OFF-by-default target
+and gated disposable-VM job. Do not relabel read-only kill/recovery as writable
+crash coverage or transfer either driver experiment onto the owner's PC.

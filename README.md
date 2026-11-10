@@ -276,3 +276,12 @@ remaining backing/cache/adoption/ACL/client gates are described in
 cancellation is explicit; the older aggregate policy remains available unchanged.
 Careful GPU use is authorized only under the existing qualified RAM-only,
 no-driver-change PC rules; no live GPU or owner-PC test has started.
+
+
+A separate OFF-by-default disposable-VM writable trial now exercises real Win32
+creation, cached writing plus explicit FlushFileBuffers, readback, orderly
+helper retirement and independent CPU verification. See
+[WRITABLE_MOUNT_TRIAL.md](docs/WRITABLE_MOUNT_TRIAL.md). Its image is capped at
+4 MiB before writes; configured trials require exact hosted execution before
+passing claims. No owner-PC, live AMD or complete writable-product qualification
+follows, and the old read-only probe remains unchanged.

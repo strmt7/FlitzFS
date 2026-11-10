@@ -9,7 +9,7 @@ namespace nw=native_windows_fixture;
 unsigned checks=0;
 void require(bool okay,const char* why){++checks;if(!okay)throw std::runtime_error(why);}
 enum class Failure { none, preflight, create, create_partial, create_null_success, start, mount,
-                     stop_during_start, stop_during_mount };
+                     stop_during_start, stop_during_mount, stop_without_notification };
 struct Provider {
   FSP_FILE_SYSTEM fs{};
   Failure failure = Failure::none;
@@ -59,7 +59,7 @@ VOID stop(FSP_FILE_SYSTEM* file_system) {
   FSP_FSCTL_VOLUME_INFO info{};
   s.callback_alive_during_stop = file_system->Interface->GetVolumeInfo(file_system, &info) == STATUS_SUCCESS;
   // It is safe to deliver a duplicate notification; the first stop reason wins.
-  file_system->Interface->DispatcherStopped(file_system, TRUE);
+  if(s.failure!=Failure::stop_without_notification)file_system->Interface->DispatcherStopped(file_system, TRUE);
 }
 VOID unmount(FSP_FILE_SYSTEM* file_system) {
   auto& s = *active; s.record('r'); s.invariant = s.invariant && file_system == &s.fs;
@@ -96,7 +96,7 @@ int main(){try {
     require(session.start(plan())==STATUS_INVALID_DEVICE_STATE&&provider.trace()=="pcsm","writable double start");
     session.stop();
     require(provider.trace()=="pcsmtrd"&&provider.callback_alive_during_stop&&provider.invariant&&
-        session.state()==SessionState::stopped&&!session.requires_offline()&&!session.dispatcher_stopped_unexpectedly(),
+        session.state()==SessionState::stopped&&session.dispatcher_stopped()&&!session.requires_offline()&&!session.dispatcher_stopped_unexpectedly(),
         "writable stop did not join before releasing callback owner");
     require(!session.stats().contexts&&!session.stats().fenced,"retired writable diagnostics lost");
     auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(f.image()));view.verify_all();
@@ -121,6 +121,9 @@ int main(){try {
       require(session.start(plan())==item.status&&session.state()==SessionState::failed,"writable rollback status/state");
       require(provider.trace()==item.trace&&provider.invariant&&(!item.joined||provider.callback_alive_during_stop),
           "writable rollback resource order");
+      if(item.failure==Failure::stop_during_start||item.failure==Failure::stop_during_mount)
+        require(session.dispatcher_stopped()&&session.dispatcher_stopped_unexpectedly(),
+            "failed startup discarded first unexpected dispatcher stop");
       require(session.start(plan())==STATUS_INVALID_DEVICE_STATE,"failed writable session restarted");
       session.stop();
       auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(f.image()));view.verify_all();++retired;
@@ -163,7 +166,16 @@ int main(){try {
     require(view.stat("retained").logical_bytes==0,"offlining lost acknowledged creation");
     session.stop();require(provider.trace()=="pcsmtrd","offlining repeated provider cleanup");
   }
-  require(retired==11,"writable lifecycle retirement case omitted");
+  provider={};provider.failure=Failure::stop_without_notification;
+  {
+    nw::Fixture f;WinFspNativeSession session(create_adapter(f),api());
+    require(session.start(plan())==STATUS_SUCCESS,"missing-notification startup");
+    session.stop();
+    require(provider.trace()=="pcsmtrd"&&provider.callback_alive_during_stop&&session.state()==SessionState::failed&&
+        session.requires_offline()&&!session.dispatcher_stopped(),"missing dispatcher notification accepted as clean stop");
+    auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(f.image()));view.verify_all();++retired;
+  }
+  require(retired==12,"writable lifecycle retirement case omitted");
   std::cout<<"Windows writable-lifecycle evidence: {\"schema\":1,\"checks\":"<<checks<<",\"retired_writers\":"<<retired
       <<",\"real_provider_calls\":0,\"mounted\":false,\"complete\":true}\n";return 0;
 }catch(const std::exception& e){std::cerr<<"Writable lifecycle failure: "<<e.what()<<"\n";return 1;}}
