@@ -145,6 +145,10 @@ struct WinFspReadOnly::Impl {
     Node node;
     node.path = windows_path(entry.path);
     if(auto descriptor=projection.security_descriptor(node.path)) {
+      // The protocol's 16-KiB RESPONSE includes its fixed header. Admit the
+      // actual SDK buffer, not the larger native on-disk descriptor ceiling.
+      if(descriptor->size()>FSP_FSCTL_TRANSACT_RSP_BUFFER_SIZEMAX)
+        throw NativeFsError(NativeFsErrorCode::limit,"persisted descriptor exceeds WinFsp response capacity");
       if(!native_security_descriptor_framed(*descriptor) ||
           !IsValidSecurityDescriptor(reinterpret_cast<PSECURITY_DESCRIPTOR>(descriptor->data())))
         throw NativeFsError(NativeFsErrorCode::corrupt,"invalid persisted Windows security descriptor");
