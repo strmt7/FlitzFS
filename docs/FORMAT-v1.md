@@ -217,3 +217,13 @@ record digest (integrity, not authentication). Independent recovery must retain
 exact acknowledged namespace/generation, full primary basic tuple/reservation/
 security and bytes; report reconciliation rejects mixed, omitted or changed
 facts. A helper kill is not a physical power cut.
+
+
+### Hosted writable restart
+
+No stored filesystem encoding changes. The hosted resume path keeps the
+original identity, volume creation time, inode IDs and descriptors, exact
+recovered-generation lease and uncertain-tail append floor. It rejects
+unresolved old-session state rather than synthesizing Cleanup. Restart evidence
+appends a receipt to the existing source report within the same 2048-byte cap;
+it does not replace the original acknowledgement or increase image/report caps.

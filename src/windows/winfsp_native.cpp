@@ -382,6 +382,49 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_new_hosted(
   auto session=NativeFileSession::create(std::move(writer),NativeDispositionPolicy::windows_global);
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::make_unique<Impl>(std::move(session),id,stamp)));
 }
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_retired_hosted(
+    const std::filesystem::path& file,StoreIdentity id,std::uint64_t generation,
+    StoreCompressionOptions compression,std::uint64_t cap) {
+  hosted();
+  if(cap<4U*1024*1024||cap>kStoreMaxPhysicalBytes||cap%65536||!generation||
+      std::all_of(id.begin(),id.end(),[](auto b){return b==std::byte{0};}))
+    throw std::invalid_argument("invalid hosted restart lease");
+  detail::validate_store_compression(compression);
+  // OS-exclusive existing-file lease, single-link/regular identity and all
+  // original headroom/barrier checks remain in the owned-fixture backend.
+  auto io=std::make_shared<CappedFile>(detail::reopen_store_file_for_hosted_test(file,{65536,true}),cap);
+  UINT64 created=0;
+  {
+    auto objects=ObjectStoreSnapshot::open(io);
+    if(objects.identity()!=id||objects.info().generation!=generation)
+      throw std::runtime_error("hosted restart identity/generation mismatch");
+    auto view=NativeFilesystemSnapshot::open(std::move(objects));view.verify_all();
+    if(view.needs_session_recovery())
+      throw std::runtime_error("hosted restart requires resolved old-session state");
+    // Admit the complete Windows profile BEFORE resume can repair a root.
+    std::vector<std::uint64_t> pending{1};
+    for(std::size_t at=0;at<pending.size();++at) {
+      if(pending.size()>kNativeMaxNodes)throw std::runtime_error("restart namespace bound");
+      const auto inode=pending[at];const auto state=view.allocation_info(inode);
+      FSP_FSCTL_FILE_INFO info{};
+      if(!encode_native_file_info(state,cache_policy,info))
+        throw std::runtime_error("unqualified restart FileInfo/reservation");
+      const auto security=view.security_descriptor(inode);
+      if(!security)throw std::runtime_error("missing restart descriptor");
+      (void)descriptor(const_cast<std::byte*>(security->data()));
+      if(inode==1) {
+        created=state.info.basic->creation_time;
+        if(!created)throw std::runtime_error("missing original volume creation time");
+      }
+      if(state.info.directory)for(const auto& child:view.list_inode(inode))pending.push_back(child.inode);
+    }
+  }
+  auto objects=ObjectStoreWriter::resume(io,id,generation,compression);
+  auto writer=NativeFilesystemWriter::resume(std::move(objects)); // Never fabricate old Cleanup.
+  auto session=NativeFileSession::create(std::move(writer),NativeDispositionPolicy::windows_global);
+  return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(
+      std::make_unique<Impl>(std::move(session),id,created)));
+}
 void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs) noexcept{fs.UserContext=impl_.get();}
 bool WinFspNativeWritable::requires_offline() const noexcept{return impl_->offline.load(std::memory_order_acquire);}
 bool WinFspNativeWritable::dispatcher_stopped() const noexcept{return impl_->stopped.load(std::memory_order_acquire)!=0;}

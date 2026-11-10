@@ -278,8 +278,14 @@ void emit(std::uint32_t source_process,std::string_view phase) {
   std::cout<<"Windows writable mount evidence: "<<text<<"\n";
 }
 
+bool restart_profile(std::string_view profile){return profile=="restart"||profile=="crash-restart";}
+std::vector<std::byte> continuation_data() {
+  std::vector<std::byte> data(3073);
+  for(std::size_t i=0;i<data.size();++i)data[i]=static_cast<std::byte>((i*17+i/7)%256);
+  return data;
+}
 std::vector<std::byte> profile_data(std::string_view profile) {
-  if(profile=="crash")return expected_data();
+  if(profile=="crash"||restart_profile(profile))return expected_data();
   if(profile=="delete")return std::vector<std::byte>(37,std::byte{0x4b});
   auto bytes=expected_data();bytes.resize(17);bytes.resize(89,std::byte{0});return bytes;
 }
@@ -294,8 +300,8 @@ void missing(const flitzfs::NativeFilesystemSnapshot& view,std::string_view path
     absent=e.code()==flitzfs::NativeFsErrorCode::not_found;}
   require(absent,"removed/renamed native path remained");
 }
-void extended_report(const Fixture& fixture,std::string_view profile,std::string_view phase,
-    std::uint32_t source_process,const flitzfs::NativeFilesystemSnapshot& view,std::uint32_t contexts) {
+std::string extended_text(std::string_view profile,std::string_view phase,std::uint32_t source_process,
+    std::uint32_t observer_process,const flitzfs::NativeFilesystemSnapshot& view,std::uint32_t contexts) {
   const auto expected=profile_data(profile);const auto path=profile=="mutations"?"renamed.bin":
       profile=="delete"?"keep.bin":"sample.bin";
   const auto inode=view.stat(path).inode;const auto info=view.storage_info();
@@ -303,12 +309,15 @@ void extended_report(const Fixture& fixture,std::string_view profile,std::string
   const auto security=view.security_descriptor(inode);const auto bytes=view.read(path,0,10000);
   const std::vector<std::byte> kept(37,std::byte{0x4b});
   require(view.identity()==identity()&&!view.needs_session_recovery()&&bytes==expected&&
-      view.list().size()==(profile=="mutations"?2U:1U)&&inode==(profile=="delete"?3U:2U),
+      view.list().size()==(profile=="mutations"||(restart_profile(profile)&&phase=="verify")?2U:1U)&&inode==(profile=="delete"?3U:2U),
       "extended native namespace/data/identity");
   if(profile=="mutations"){
     require(view.read("keep.bin",0,100)==kept,"EOF/rename lost unrelated acknowledged file");
     missing(view,"sample.bin");
   }else if(profile=="delete"){missing(view,"sample.bin");missing(view,"renamed.bin");}
+  if(restart_profile(profile)&&phase=="verify")
+    require(view.stat("continued.bin").inode==3&&view.read("continued.bin",0,10000)==continuation_data(),
+        "restart lost continued bytes/inode");
   require(basic&&basic->creation_time&&security&&IsValidSecurityDescriptor(
       const_cast<std::byte*>(security->data()))&&allocation&&*allocation>=bytes.size()&&
       info.replicated_checkpoint&&!info.degraded_checkpoint&&info.physical_end<=image_cap,
@@ -316,7 +325,7 @@ void extended_report(const Fixture& fixture,std::string_view profile,std::string
   require((phase=="ack"&&contexts>0&&contexts<=256)||(phase!="ack"&&contexts==0),"extended context phase");
   std::ostringstream out;out.imbue(std::locale::classic());
   out<<"{\"schema\":2,\"profile\":\""<<profile<<"\",\"phase\":\""<<phase<<"\",\"commit\":\""<<commit()
-      <<"\",\"source_process\":"<<source_process<<",\"observer_process\":"<<GetCurrentProcessId()
+      <<"\",\"source_process\":"<<source_process<<",\"observer_process\":"<<observer_process
       <<",\"user_bytes\":"<<bytes.size()<<",\"inode\":"<<inode<<",\"file_count\":"<<view.list().size()
       <<",\"namespace_sequence\":"<<view.sequence()<<",\"generation\":"<<info.generation
       <<",\"image_bytes\":"<<info.physical_end<<",\"image_cap\":"<<image_cap<<",\"contexts\":"<<contexts
@@ -325,10 +334,28 @@ void extended_report(const Fixture& fixture,std::string_view profile,std::string
       <<",\"attributes\":"<<basic->attributes
       <<",\"reservation\":"<<*allocation<<",\"data_digest\":\""<<hex_digest(bytes)
       <<"\",\"security_digest\":\""<<hex_digest(*security)<<"\",\"keep_digest\":\""
-      <<(profile=="mutations"?hex_digest(kept):std::string(64,'0'))
+      <<(profile=="mutations"?hex_digest(kept):restart_profile(profile)&&phase=="verify"?hex_digest(continuation_data()):std::string(64,'0'))
       <<"\",\"explicit_flush_observed\":"<<(phase=="verify"?"false":"true")
       <<",\"cpu_verified\":true,\"dispatcher_stopped\":"<<(phase=="state"?"true":"false")<<",\"gpu\":false}";
-  const auto text=out.str();require(text.size()<=report_cap,"extended report cap");
+  return out.str();
+}
+std::string read_state(const Fixture& fixture);
+void extended_report(const Fixture& fixture,std::string_view profile,std::string_view phase,
+    std::uint32_t source_process,const flitzfs::NativeFilesystemSnapshot& view,std::uint32_t contexts,
+    std::uint32_t resumer_process=0) {
+  auto text=extended_text(profile,phase,source_process,GetCurrentProcessId(),view,contexts);
+  if(restart_profile(profile)&&phase=="verify") {
+    const auto canonical=extended_text(profile,phase,source_process,0,view,contexts);
+    const auto* first=reinterpret_cast<const std::byte*>(canonical.data());
+    const auto state_digest=hex_digest({first,canonical.size()});
+    const auto source=read_state(fixture);const auto end=source.find('\n');
+    require(end!=source.npos&&end>0,"missing continuation acknowledgement boundary");
+    const auto* ack=reinterpret_cast<const std::byte*>(source.data());
+    require(resumer_process!=0,"missing actual resumer identity");
+    text.pop_back();text+=",\"state_digest\":\""+state_digest+"\",\"source_ack_digest\":\""+
+        hex_digest({ack,end})+"\",\"resumer_process\":"+std::to_string(resumer_process)+"}";
+  }
+  require(text.size()<=report_cap,"extended report cap");
   Handle file(CreateFileW((fixture.root/(phase=="verify"?L"state-verify.json":L"state.json")).c_str(),
       GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
   checked(file.value!=INVALID_HANDLE_VALUE,"exclusive extended report");DWORD accepted=0;
@@ -403,6 +430,107 @@ void namespace_probe(bool deleting) {
   auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
   extended_report(fixture,profile,"state",GetCurrentProcessId(),view,0);
 }
+
+void wait_for_supervised_termination(flitzfs::WinFspNativeSession& session) {
+  const auto deadline=GetTickCount64()+30000;
+  while(GetTickCount64()<deadline) {
+    require(!session.requires_offline()&&!session.dispatcher_stopped(),
+        "source dispatcher failed before supervised termination");
+    Sleep(20); // Atomic health only: no storage/GPU/probing work after acknowledgement.
+  }
+  throw std::runtime_error("supervisor did not terminate acknowledged helper");
+}
+std::string read_state(const Fixture& fixture) {
+  Handle file(CreateFileW((fixture.root/L"state.json").c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,
+      OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,nullptr));checked(file.value!=INVALID_HANDLE_VALUE,"open source acknowledgement");
+  FILE_ATTRIBUTE_TAG_INFO attr{};FILE_STANDARD_INFO info{};
+  checked(GetFileInformationByHandleEx(file.value,FileAttributeTagInfo,&attr,sizeof(attr)),"source acknowledgement attributes");
+  checked(GetFileInformationByHandleEx(file.value,FileStandardInfo,&info,sizeof(info)),"source acknowledgement size");
+  require(GetFileType(file.value)==FILE_TYPE_DISK&&info.NumberOfLinks==1&&
+      !(attr.FileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT))&&
+      info.EndOfFile.QuadPart>0&&info.EndOfFile.QuadPart<=report_cap,"source acknowledgement bounds");
+  std::string text(static_cast<std::size_t>(info.EndOfFile.QuadPart),'\0');DWORD got=0;
+  checked(ReadFile(file.value,text.data(),static_cast<DWORD>(text.size()),&got,nullptr),"source acknowledgement read");
+  require(got==text.size()&&text.find('\0')==text.npos,"incomplete source acknowledgement");return text;
+}
+void restart_source(bool killed) {
+  require_probe_job();stage=50;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
+  const std::string_view profile=killed?"crash-restart":"restart";
+  auto adapter=flitzfs::WinFspNativeWritable::create_new_hosted(
+      image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
+  auto* observer=adapter.get();
+  flitzfs::WinFspNativeSession session(std::move(adapter),live_api());
+  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"restart source mount");mounted_identity(mount);
+  Handle file(CreateFileW((mount/L"sample.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
+      FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
+  checked(file.value!=INVALID_HANDLE_VALUE,"restart source create");
+  write_bytes(file.value,expected_data());read_handle(file.value,expected_data());stage=51;
+  if(killed) {
+    require(session.stats().contexts==1&&!session.requires_offline()&&!session.dispatcher_stopped(),
+        "restart source has unknown/live peer contexts");
+    {auto view=observer->snapshot();view.verify_all();
+      extended_report(fixture,profile,"ack",GetCurrentProcessId(),view,session.stats().contexts);}
+    wait_for_supervised_termination(session);
+  }else {
+    file.reset();finish_session(session,mount);
+    auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
+    extended_report(fixture,profile,"state",GetCurrentProcessId(),view,0);
+  }
+}
+void append_continuation(const Fixture& fixture,const std::string& original,std::string_view profile,
+    std::uint32_t source_process,const flitzfs::NativeFilesystemSnapshot& view) {
+  const auto canonical=extended_text(profile,"verify",source_process,0,view,0);
+  const auto* data=reinterpret_cast<const std::byte*>(canonical.data());
+  const auto* ack=reinterpret_cast<const std::byte*>(original.data());
+  std::ostringstream out;out.imbue(std::locale::classic());
+  out<<"\n{\"schema\":1,\"profile\":\""<<profile<<"\",\"phase\":\"continued\",\"commit\":\""<<commit()
+      <<"\",\"source_process\":"<<source_process<<",\"observer_process\":"<<GetCurrentProcessId()
+      <<",\"source_ack_digest\":\""<<hex_digest({ack,original.size()})
+      <<"\",\"continued_state_digest\":\""<<hex_digest({data,canonical.size()})
+      <<"\",\"generation\":"<<view.storage_info().generation<<",\"namespace_sequence\":"<<view.sequence()
+      <<",\"image_bytes\":"<<view.storage_info().physical_end<<"}\n";
+  const auto extra=out.str();require(original.size()+extra.size()<=report_cap,"continuation report budget");
+  Handle file(CreateFileW((fixture.root/L"state.json").c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,
+      OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,nullptr));checked(file.value!=INVALID_HANDLE_VALUE,"exclusive continuation receipt");
+  FILE_ATTRIBUTE_TAG_INFO attr{};FILE_STANDARD_INFO info{};
+  checked(GetFileInformationByHandleEx(file.value,FileAttributeTagInfo,&attr,sizeof(attr)),"continuation receipt attributes");
+  checked(GetFileInformationByHandleEx(file.value,FileStandardInfo,&info,sizeof(info)),"continuation receipt size");
+  require(GetFileType(file.value)==FILE_TYPE_DISK&&info.NumberOfLinks==1&&
+      !(attr.FileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT))&&
+      info.EndOfFile.QuadPart==static_cast<LONGLONG>(original.size()),"continuation receipt identity/size");
+  std::string checked_text(original.size(),'\0');DWORD got=0;
+  checked(ReadFile(file.value,checked_text.data(),static_cast<DWORD>(checked_text.size()),&got,nullptr),"recheck source receipt");
+  require(got==checked_text.size()&&checked_text==original,"source acknowledgement changed");
+  DWORD wrote=0;checked(WriteFile(file.value,extra.data(),static_cast<DWORD>(extra.size()),&wrote,nullptr),"append continuation receipt");
+  require(wrote==extra.size(),"short continuation receipt");checked(FlushFileBuffers(file.value),"continuation receipt flush");
+}
+void restart_resume(std::uint32_t source_process,bool killed) {
+  require_probe_job();stage=52;Fixture fixture(source_process);const auto image=fixture.root/L"native.fltx";
+  require_removed(fixture.root/L"mount");const std::string_view profile=killed?"crash-restart":"restart";
+  const auto original=read_state(fixture);std::uint64_t generation=0;
+  {
+    auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
+    const auto expected=extended_text(profile,killed?"ack":"state",source_process,source_process,view,killed?1U:0U);
+    require(original==expected,"restart source checkpoint differs from exact acknowledgement");
+    generation=view.storage_info().generation;
+  } // Drop the read-only handle BEFORE acquiring the exclusive writer lease.
+  auto adapter=flitzfs::WinFspNativeWritable::resume_retired_hosted(
+      image,identity(),generation,{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
+  stage=53;const auto mount=fixture.root/L"remount";
+  flitzfs::WinFspNativeSession session(std::move(adapter),live_api());
+  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"persisted writable remount");mounted_identity(mount);
+  require(read_all(mount/L"sample.bin",expected_data().size())==expected_data(),"remounted original bytes");
+  {
+    Handle file(CreateFileW((mount/L"continued.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
+    checked(file.value!=INVALID_HANDLE_VALUE,"new continuation file");
+    write_bytes(file.value,continuation_data());read_handle(file.value,continuation_data());
+  }
+  stage=54;finish_session(session,mount);
+  auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
+  require(view.storage_info().generation>generation,"continuation did not publish a new checkpoint");
+  append_continuation(fixture,original,profile,source_process,view);
+}
 void crash_probe() {
   require_probe_job();stage=30;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
   auto adapter=flitzfs::WinFspNativeWritable::create_new_hosted(
@@ -418,15 +546,15 @@ void crash_probe() {
   // This view is destroyed before waiting. No snapshot escapes the owning lifetime.
   {auto view=observer->snapshot();view.verify_all();
     extended_report(fixture,"crash","ack",GetCurrentProcessId(),view,session.stats().contexts);}
-  stage=32;Sleep(30000); // Supervisor MUST terminate this owned child at 15 seconds.
-  throw std::runtime_error("writable supervisor did not terminate the acknowledged helper");
+  stage=32;wait_for_supervised_termination(session);
 }
-void extended_verify(std::uint32_t source_process,std::string_view profile) {
+void extended_verify(std::uint32_t source_process,std::string_view profile,std::uint32_t resumer_process=0) {
   require_probe_job();stage=40;Fixture fixture(source_process);require_removed(fixture.root/L"mount");
+  if(restart_profile(profile))require_removed(fixture.root/L"remount");
   auto view=flitzfs::NativeFilesystemSnapshot::open(
       flitzfs::ObjectStoreSnapshot::open_file(fixture.root/L"native.fltx"));view.verify_all();
   require(fs::file_size(fixture.root/L"native.fltx")<=image_cap,"recovered extended image cap");
-  extended_report(fixture,profile,"verify",source_process,view,0);
+  extended_report(fixture,profile,"verify",source_process,view,0,resumer_process);
 }
 void emit_extended(std::uint32_t source_process,std::string_view profile,std::string_view phase) {
   Fixture fixture(source_process);const auto path=fixture.root/(phase=="verify"?L"state-verify.json":L"state.json");
@@ -448,8 +576,9 @@ void emit_extended(std::uint32_t source_process,std::string_view profile,std::st
   std::cout<<"Windows writable extended evidence: "<<text<<"\n";
 }
 void run_extended(const fs::path& executable,std::string_view profile) {
-  const bool crash=profile=="crash";flitzfs::ProcessBudget budget;budget.timeout_ms=crash?15000:30000;
-  const std::wstring child=crash?L"--crash-child":profile=="delete"?L"--delete-child":L"--mutations-child";
+  const bool crash=profile=="crash"||profile=="crash-restart";flitzfs::ProcessBudget budget;budget.timeout_ms=crash?15000:30000;
+  const std::wstring child=profile=="crash-restart"?L"--crash-restart-source-child":profile=="restart"?L"--restart-source-child":
+      crash?L"--crash-child":profile=="delete"?L"--delete-child":L"--mutations-child";
   const auto written=flitzfs::run_bounded_process(executable,{child},budget);
   std::cout<<"extended_writer profile="<<profile<<" exit="<<written.exit_code<<" stage="<<(written.exit_code>>16U)
       <<" detail="<<(written.exit_code&0xffffU)<<" timed_out="<<written.timed_out<<" cancelled="<<written.cancelled
@@ -457,9 +586,22 @@ void run_extended(const fs::path& executable,std::string_view profile) {
   require(written.process_id&&written.exit_confirmed&&!written.cancelled&&
       (crash?(written.timed_out&&written.exit_code==ERROR_TIMEOUT):(!written.timed_out&&written.exit_code==0)),
       "extended writer/termination proof failed");emit_extended(written.process_id,profile,crash?"ack":"state");
-  budget.timeout_ms=30000;
-  const std::wstring verifier=crash?L"--crash-verify-child":profile=="delete"?L"--delete-verify-child":L"--mutations-verify-child";
-  const auto verified=flitzfs::run_bounded_process(executable,{verifier,std::to_wstring(written.process_id)},budget);
+  budget.timeout_ms=30000;std::uint32_t resumer_process=0;
+  if(restart_profile(profile)) {
+    const auto resumed=flitzfs::run_bounded_process(executable,
+        {crash?L"--crash-resume-child":L"--resume-child",std::to_wstring(written.process_id)},budget);
+    std::cout<<"extended_resumer profile="<<profile<<" exit="<<resumed.exit_code
+        <<" stage="<<(resumed.exit_code>>16U)<<" detail="<<(resumed.exit_code&0xffffU)
+        <<" timed_out="<<resumed.timed_out<<" cancelled="<<resumed.cancelled
+        <<" exit_confirmed="<<resumed.exit_confirmed<<" peak_commit_bytes="<<resumed.peak_committed_bytes<<"\n";
+    require(resumed.process_id&&resumed.exit_confirmed&&!resumed.timed_out&&!resumed.cancelled&&resumed.exit_code==0,
+        "supervised persisted writable continuation failed");
+    resumer_process=resumed.process_id;
+  }
+  const std::wstring verifier=profile=="crash-restart"?L"--crash-restart-verify-child":profile=="restart"?L"--restart-verify-child":crash?L"--crash-verify-child":profile=="delete"?L"--delete-verify-child":L"--mutations-verify-child";
+  std::vector<std::wstring> verify_arguments{verifier,std::to_wstring(written.process_id)};
+  if(restart_profile(profile))verify_arguments.push_back(std::to_wstring(resumer_process));
+  const auto verified=flitzfs::run_bounded_process(executable,verify_arguments,budget);
   std::cout<<"extended_verifier profile="<<profile<<" exit="<<verified.exit_code<<" stage="<<(verified.exit_code>>16U)
       <<" detail="<<(verified.exit_code&0xffffU)<<" timed_out="<<verified.timed_out<<" cancelled="<<verified.cancelled
       <<" exit_confirmed="<<verified.exit_confirmed<<" peak_commit_bytes="<<verified.peak_committed_bytes<<"\n";
@@ -469,10 +611,20 @@ void run_extended(const fs::path& executable,std::string_view profile) {
 
 } // namespace
 int wmain(int argc,wchar_t** argv) {try {
-  require_hosted_opt_in();require(argc==2||argc==3,"explicit writable probe mode required");
+  require_hosted_opt_in();require(argc>=2&&argc<=4,"explicit writable probe mode required");
   const std::wstring_view mode(argv[1]);
   if(mode==L"--write-child"){require(argc==2,"unexpected writer argument");write_probe();return 0;}
   if(mode==L"--verify-child"){require(argc==3,"missing source identity");verify_probe(process_number(argv[2]));return 0;}
+  if(mode==L"--restart-source-child"||mode==L"--crash-restart-source-child") {
+    require(argc==2,"unexpected restart source argument");restart_source(mode==L"--crash-restart-source-child");return 0;
+  }
+  if(mode==L"--resume-child"||mode==L"--crash-resume-child") {
+    require(argc==3,"missing restart source identity");restart_resume(process_number(argv[2]),mode==L"--crash-resume-child");return 0;
+  }
+  if(mode==L"--restart-verify-child"||mode==L"--crash-restart-verify-child") {
+    require(argc==4,"missing restart verifier identities");
+    extended_verify(process_number(argv[2]),mode==L"--restart-verify-child"?"restart":"crash-restart",process_number(argv[3]));return 0;
+  }
   if(mode==L"--mutations-child"||mode==L"--delete-child"||mode==L"--crash-child") {
     require(argc==2,"unexpected extended writer argument");
     if(mode==L"--crash-child")crash_probe();else namespace_probe(mode==L"--delete-child");return 0;
@@ -483,11 +635,12 @@ int wmain(int argc,wchar_t** argv) {try {
         mode==L"--delete-verify-child"?"delete":"mutations");return 0;
   }
   require(argc==2&&(mode==L"--run-disposable-ci"||mode==L"--run-mutations-ci"||
-      mode==L"--run-delete-ci"||mode==L"--run-crash-ci"),"unknown writable probe mode");
+      mode==L"--run-delete-ci"||mode==L"--run-crash-ci"||mode==L"--run-restart-ci"||mode==L"--run-crash-restart-ci"),"unknown writable probe mode");
   wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);require(n&&n<512,"probe executable identity");
   const fs::path executable(std::wstring(path,n));
   if(mode!=L"--run-disposable-ci") {
-    run_extended(executable,mode==L"--run-crash-ci"?"crash":mode==L"--run-delete-ci"?"delete":"mutations");return 0;
+    run_extended(executable,mode==L"--run-restart-ci"?"restart":mode==L"--run-crash-restart-ci"?"crash-restart":
+        mode==L"--run-crash-ci"?"crash":mode==L"--run-delete-ci"?"delete":"mutations");return 0;
   }
   flitzfs::ProcessBudget budget;budget.timeout_ms=30000;
   const auto written=flitzfs::run_bounded_process(executable,{L"--write-child"},budget);

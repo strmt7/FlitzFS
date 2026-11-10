@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include <thread>
 namespace {
 using namespace flitzfs;namespace nw=native_windows_fixture;
@@ -252,6 +253,68 @@ void history_cap() {
     require(rejected&&!std::filesystem::exists(f.image()),"invalid image cap created a backing file");
   }
 }
+std::vector<std::byte> backing_bytes(const std::filesystem::path& path) {
+  const auto size=std::filesystem::file_size(path);require(size>0&&size<=4U*1024*1024,"restart image test bound");
+  std::vector<std::byte> bytes(static_cast<std::size_t>(size));std::ifstream file(path,std::ios::binary);
+  file.read(reinterpret_cast<char*>(bytes.data()),static_cast<std::streamsize>(bytes.size()));
+  require(bool(file),"read bounded restart baseline");return bytes;
+}
+template<class F>void restart_rejects(F&& fn) {
+  bool denied=false;try{fn();}catch(const std::exception&){denied=true;}
+  require(denied,"unsafe existing-image restart accepted");
+}
+void retired_resume() {
+  constexpr auto cap=4U*1024*1024;
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    Harness h(mode,cap);const auto creation=h.adapter->parameters().VolumeCreationTime;
+    auto file=h.make(L"\\saved");h.write(file,nw::tail());h.finish(file);
+    const auto generation=h.adapter->snapshot().storage_info().generation;
+    restart_rejects([&]{auto denied=WinFspNativeWritable::resume_retired_hosted(
+        h.fixture.image(),nw::identity(),generation,{mode,6,false},cap);});
+    require(h.adapter->snapshot().storage_info().generation==generation,"live-writer rejection changed generation");
+    h.close_owner();const auto baseline=backing_bytes(h.fixture.image());auto wrong=nw::identity();wrong[2]=std::byte{1};
+    restart_rejects([&]{auto denied=WinFspNativeWritable::resume_retired_hosted(
+        h.fixture.image(),wrong,generation,{mode,6,false},cap);});
+    restart_rejects([&]{auto denied=WinFspNativeWritable::resume_retired_hosted(
+        h.fixture.image(),nw::identity(),generation+1,{mode,6,false},cap);});
+    require(backing_bytes(h.fixture.image())==baseline,"rejected restart modified image bytes");
+    h.adapter=WinFspNativeWritable::resume_retired_hosted(
+        h.fixture.image(),nw::identity(),generation,{mode,6,false},cap);
+    h.fs={};h.fs.Version=static_cast<UINT16>(sizeof(h.fs));h.fs.UmFileContextIsUserContext2=TRUE;
+    h.fs.Interface=&WinFspNativeWritable::callbacks();h.adapter->bind_callbacks(h.fs);
+    require(h.adapter->parameters().VolumeCreationTime==creation,"restart fabricated volume creation time");
+    file=h.open(L"\\saved");h.read(file,nw::tail());h.finish(file);
+    auto continued=h.make(L"\\continued");h.write(continued,nw::tail());h.finish(continued);h.close_owner();
+    {
+      auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(h.fixture.image()));
+      require(view.read("saved",0,100)==nw::tail()&&view.read("continued",0,100)==nw::tail()&&
+          view.stat("saved").inode==2&&view.stat("continued").inode==3,"restart continuation lost bytes/identity");
+    }
+    std::cout<<"Windows writable-restart evidence: {\"schema\":1,\"mode\":\""
+        <<(mode==StoreCompressionMode::raw?"raw":"automatic")<<"\",\"base_generation\":"<<generation
+        <<",\"image_bytes\":"<<std::filesystem::file_size(h.fixture.image())<<",\"complete\":true}\n";
+  }
+  {
+    nw::Fixture legacy;nw::make_image(legacy.image(),false,31,false,false);
+    const auto before=backing_bytes(legacy.image());
+    const auto generation=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(legacy.image())).storage_info().generation;
+    restart_rejects([&]{auto denied=WinFspNativeWritable::resume_retired_hosted(
+        legacy.image(),nw::identity(),generation,{},cap);});
+    require(backing_bytes(legacy.image())==before,"unqualified profile restart changed bytes");
+  }
+  {
+    Harness pending(StoreCompressionMode::raw,cap);auto file=pending.make(L"\\pending");pending.write(file,nw::tail());
+    require(pending.cb().SetDelete(&pending.fs,file,nullptr,TRUE)==STATUS_SUCCESS,"pending restart setup");
+    const auto generation=pending.adapter->snapshot().storage_info().generation;
+    pending.fs.UserContext=nullptr;pending.adapter.reset(); // No dispatcher ever existed; test-owner lifetime has ended.
+    const auto before=backing_bytes(pending.fixture.image());
+    restart_rejects([&]{auto denied=WinFspNativeWritable::resume_retired_hosted(
+        pending.fixture.image(),nw::identity(),generation,{StoreCompressionMode::raw,6,false},cap);});
+    require(backing_bytes(pending.fixture.image())==before,"unresolved restart silently fabricated Cleanup");
+    auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(pending.fixture.image()));
+    require(view.needs_session_recovery()&&view.read("pending",0,100)==nw::tail(),"unresolved restart lost original bytes/intent");
+  }
+}
 void void_failure() {
   Harness h(StoreCompressionMode::raw);auto context=h.make(L"\\retained");
   h.cb().Cleanup(&h.fs,context,nullptr,0x80000000U);
@@ -273,7 +336,7 @@ int main(){try {
   {std::jthread warm_thread([]{});warm_thread.join();}
   DWORD before=0,after=0;require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"handle baseline");
   for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}){contents(mode);disposition(mode);}
-  capacity_and_threads();void_failure();history_cap();
+  capacity_and_threads();void_failure();history_cap();retired_resume();
   require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE&&before==after,"adapter OS handles leaked");
   std::cout<<"Windows writable-adapter evidence: {\"schema\":1,\"checks\":"<<checks<<",\"dispatches\":"<<dispatches
       <<",\"handle_before\":"<<before<<",\"handle_after\":"<<after

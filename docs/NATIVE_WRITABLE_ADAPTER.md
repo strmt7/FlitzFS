@@ -202,3 +202,28 @@ The full goal remains active; this small trial is not full-product proof.
 The fixed extended lifecycle/termination VM profiles are specified in
 WRITABLE_MOUNT_TRIAL.md. Configured cases require actual inspected results;
 none changes default product routes, stored bytes or the existing guards.
+
+
+## Executed extended writable Windows checkpoint
+
+Main 4fe5c4000766436780e1350cefc8ed01f3297e6d, tree b92288bacd5b9a740e6deecc4732994443b83b21, passed all 11 triggered workflows. Development used native GitHub APIs and disposable hosted VMs only; no owner-PC process/artifact/test, driver change or GPU run occurred. The full filesystem goal remains active and experimental.
+
+Windows native job 129993232157 passed 110 CTest groups and compiled the extended helper; the five writable-report negative test groups passed before live gates. The pre-existing seven provisioning-test groups were a separate scope (an intermediate progress count was corrected). Existing callback/cap/lifecycle/fault oracles remained intact; handles were 151->151, worker handles 94->94, cap raw/automatic cases retained 13/17 acknowledged writes and last-byte preservation. Current source routing job 129993233120 completed six real queries bound to source SHA-256 6cdeca8f64fd00c369dcf42647a224b7c2426d1fc4d18ec446e43df31743dc10.
+
+All four actual writable VM profiles passed, including strict JSON/source/phase/PID/type/budget/full-primary-state reconciliation:
+- basic job 129999263116: original 7001-byte create/write/explicit-flush/read/close; namespace 9, generation 18, image 1,966,080; writer/verifier exits0/0, confirmed; peaks4,759,552/3,092,480.
+- mutations job 129999262395: actual EOF73->17->89, preserved17-byte prefix/zero tail, rename with stable held inode2, unchanged keep file, normal retirement, independent CPU reopen; namespace18/generation36/image3,735,552; exits0/0; peaks4,751,360/3,047,424.
+- delete job 129999262391: DeleteFileW while original handle retained readable73-byte data, final target retirement and unchanged37-byte keep inode3; namespace16/generation32/image3,342,336; exits0/0; peaks4,734,976/3,104,768.
+- crash job 129999262346: 7001-byte actual mounted WriteFile + FlushFileBuffers and flushed acknowledgement, one file context still open, exact owned helper terminated at15s with exit1460/timed_out true/actual exit confirmed; separately supervised CPU verifier exited0. Both report namespace7/generation14/image1,572,864, exact four times/attributes/reservation8192/security/data digests and resolved healthy checkpoint. Peaks4,775,936/3,092,480. This is ONE post-flush idle-helper termination case, not arbitrary mid-transaction cuts, physical power loss or writable remount/continuation.
+
+Each profile used its own fresh VM/fixture and the unchanged <=4 MiB image +4096 report bytes, 128 MiB/20% CPU/one-process/below-normal bounds. Ordinary/verifier deadlines remained30s; explicitly terminated source15s. No next child launched without actual exit proof. The crash observer does not claim executing a flush or dispatcher stop, and the writer was not described as normally stopped.
+
+Old read-only mounted recovery job129997388256, raw/codec/sanitizer/portable/reference/native process-interruption, dependency inventory and comparison workflows passed at this commit with unchanged old scopes. Do not relabel read-only/helper-kill/core fault/comparison results as general writable power loss, Windows11 client, production throughput or live AMD proof. Dependabot alert access remains unknown after earlier rejected endpoints, not a zero-alert result.
+
+Next requirements include fully qualified cancelled/idle/provisional and overwrite/mapped delivery, writable restart/continuation after verified retirement, scale/reclamation and real app/installer, Windows11 client, live AMD with CPU fallback, adaptive low-priority maintenance and payload-replica repair. One candidate improvement is to inspect an explicit Windows-specific close/peer-debt policy that can correctly retire owned cancelled contexts without fake initial Cleanup or weakened historical no-I/O provisional APIs; this needs current source and bounded real-kernel evidence, not assumption. Also monitor the crash source's atomic offline/dispatcher state while it waits, without new storage I/O, in the next substantive extension.
+
+
+The explicit hosted resolved-image resume and fixed restart profiles are
+specified in WRITABLE_MOUNT_TRIAL.md. Source retirement must be independently
+established by the controller; unsupported/unresolved state rejects. Existing
+new-only APIs, metadata/bytes and all old cases/caps remain unchanged.

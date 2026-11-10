@@ -3,7 +3,7 @@
 from copy import deepcopy
 import json
 import unittest
-from verify_windows_write_probe import validate_pair, unique_object
+from verify_windows_write_probe import validate_pair, validate_continuation, unique_object
 
 COMMIT = "a" * 40
 def reports(profile):
@@ -72,6 +72,41 @@ class Evidence(unittest.TestCase):
             with self.assertRaises(ValueError):validate_pair(*pair, profile, COMMIT)
             pair = reports(profile);pair[0]["observer_process"] = 99
             with self.assertRaises(ValueError):validate_pair(*pair, profile, COMMIT)
+
+    def test_restart_continuation(self):
+        for profile in ("restart", "crash-restart"):
+            a, b = reports("crash" if profile == "crash-restart" else "mutations")
+            a.update(profile=profile, phase="ack" if profile == "crash-restart" else "state",
+                     user_bytes=7001, inode=2, file_count=1, keep_digest="0" * 64,
+                     contexts=1 if profile == "crash-restart" else 0,
+                     dispatcher_stopped=profile == "restart")
+            b = deepcopy(a)
+            b.update(phase="verify", observer_process=18, contexts=0, explicit_flush_observed=False,
+                     dispatcher_stopped=False, file_count=2, keep_digest="3" * 64,
+                     namespace_sequence=a["namespace_sequence"]+5, generation=a["generation"]+10,
+                     image_bytes=a["image_bytes"]+65536, last_access_time=a["last_access_time"]+1,
+                     state_digest="4"*64, source_ack_digest="5"*64, resumer_process=19)
+            continued = dict(schema=1, profile=profile, phase="continued", commit=COMMIT,
+                             source_process=17, observer_process=19, source_ack_digest="5"*64,
+                             continued_state_digest="4"*64, generation=b["generation"],
+                             namespace_sequence=b["namespace_sequence"], image_bytes=b["image_bytes"])
+            self.assertTrue(validate_continuation(a, continued, b, profile, COMMIT)["complete"])
+            for key in continued:
+                bad = deepcopy(continued)
+                value = bad[key]
+                bad[key] = ("6"*64 if "digest" in key else "wrong") if isinstance(value, str) else value+1
+                with self.subTest(profile=profile, changed=key):
+                    with self.assertRaises(ValueError):validate_continuation(a, bad, b, profile, COMMIT)
+                missing = deepcopy(continued);del missing[key]
+                with self.assertRaises(ValueError):validate_continuation(a, missing, b, profile, COMMIT)
+            for key in ("user_bytes", "creation_time", "attributes", "reservation", "data_digest",
+                        "security_digest", "last_write_time", "change_time", "state_digest", "source_ack_digest"):
+                bad = deepcopy(b);value = bad[key]
+                bad[key] = "6"*64 if isinstance(value, str) else value+4096 if key=="reservation" else value+1
+                with self.subTest(profile=profile, final=key):
+                    with self.assertRaises(ValueError):validate_continuation(a, continued, bad, profile, COMMIT)
+            bad = deepcopy(b);bad["generation"] = a["generation"]
+            with self.assertRaises(ValueError):validate_continuation(a, continued, bad, profile, COMMIT)
 
     def test_wrong_profile_and_duplicate_json(self):
         for selected in ("basic", "mutations", "delete", "crash"):
