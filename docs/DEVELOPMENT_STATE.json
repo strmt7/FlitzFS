@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "goal_status": "active",
+  "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
+  "qualified_checkpoint": {
+    "commit": "4fe5c4000766436780e1350cefc8ed01f3297e6d",
+    "tree": "b92288bacd5b9a740e6deecc4732994443b83b21",
+    "ci_run": 42862833242,
+    "native_job": 129993232157,
+    "native_groups": 110,
+    "report_negative_groups": 5,
+    "writable_jobs": {
+      "basic": 129999263116,
+      "mutations": 129999262395,
+      "delete": 129999262391,
+      "crash": 129999262346
+    },
+    "proof_scope": "bounded actual EOF/rename/held-handle deletion and one post-flush idle-helper termination with exact CPU reopen; not physical power loss, arbitrary cut recovery, client/GPU/product qualification"
+  },
+  "source_routing": {
+    "commit": "4fe5c4000766436780e1350cefc8ed01f3297e6d",
+    "job": 129993233120,
+    "queries": 6,
+    "source_sha256": "6cdeca8f64fd00c369dcf42647a224b7c2426d1fc4d18ec446e43df31743dc10"
+  },
+  "safety": {
+    "development": "native repository APIs and disposable hosted VMs",
+    "owner_pc": "only later qualified verified RAM-backed synthetic tests; no real-storage artifacts/driver changes; none started",
+    "no_raw_device_or_partition_ops": true,
+    "no_local_processes_started": true,
+    "gpu_execution_qualified": false,
+    "default_cpu": true,
+    "probes": {
+      "image_bytes": 4194304,
+      "report_bytes": 2048,
+      "report_files": 2,
+      "child_mib": 128,
+      "cpu_rate": 2000,
+      "processes_per_child_job": 1,
+      "normal_seconds": 30,
+      "killed_source_seconds": 15,
+      "priority": "below-normal"
+    }
+  },
+  "pending_implementation": {
+    "scope": "hosted resolved-image restart/continuation after actual normal/terminated producer retirement",
+    "check_exact_current_head_ci": true,
+    "do_not_treat_configuration_as_results": true,
+    "primary_files": [
+      "src/windows/winfsp_native.cpp",
+      "src/windows/winfsp_native.hpp",
+      "tests/test_winfsp_native.cpp",
+      "tests/winfsp_write_probe.cpp",
+      "tools/ci/verify_windows_write_probe.py",
+      "tools/ci/test_windows_write_probe.py",
+      ".github/workflows/ci.yml"
+    ],
+    "docs": [
+      "docs/WRITABLE_MOUNT_TRIAL.md",
+      "docs/STORE_RESUME_AND_INTERRUPTION.md",
+      "docs/NATIVE_WRITABLE_ADAPTER.md"
+    ]
+  },
+  "remaining": [
+    "unresolved-session recovery and cancellation/overwrite/mapped delivery",
+    "production persistent helper/app/installer and latest Windows 11 client qualification",
+    "scale/history reclamation and compression portfolio/performance comparisons",
+    "live AMD runtime, event/evidence-driven CPU fallback and installation independence",
+    "low-priority adaptive learning/maintenance and payload-replica repair",
+    "Dependabot alert access/count remains unknown after rejected endpoints"
+  ],
+  "efficiency_rules": [
+    "Read ledger and applicable AGENTS; verify current main/CI before trusting cached state.",
+    "Use exact paths/symbols and bounded excerpts; semantic routing receipts before new broad navigation; source confirmation required.",
+    "Batch independent native reads. Reuse immutable same-commit captures; refresh only changed/uncertain evidence.",
+    "One bounded design decision then implement/test; avoid repeated speculative replanning and unchanged status narration.",
+    "Inspect only failure/evidence log lines first; retain full native logs by job handle.",
+    "No cosmetic-only result push; fold executed-result ledger/doc updates into next substantive validated implementation.",
+    "Never save tokens by reducing tests, source research, safety/quality, or inventing evidence."
+  ],
+  "source_notes": {
+    "skills": "mandatory caveman, cocoindex-code, crawl4ai-research; do not change unrelated shared provider registrations",
+    "page_reading": "reviewed hosted Crawl4AI; exact native API/package/archive captures retain native transports",
+    "no_delegation": true,
+    "no_archive_product_routes": true
+  }
+}

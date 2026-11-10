@@ -150,3 +150,54 @@ precheck, and 10/65 dispatch Rename after its native access check. No callback
 guard/adoption/authorization or stored filesystem encoding is relaxed.
 These fixed cases are NOT arbitrary writable fault-cut, power-loss, mapped I/O,
 cancelled-open/overwrite, latest Windows 11 client, live AMD or product proof.
+
+## Hosted writable restart/continuation (configured)
+
+The matrix adds restart and crash-restart without removing the first four
+profiles. The fixed parent first confirms source exit using its actual managed
+process object: normal0 or deliberately terminated1460. Only then may it launch
+the bounded resumer. That caller-side proof is mandatory; the hosted factory
+name/argument is not independent old-context attestation. No PID is reopened.
+
+The resumer verifies the old mount is absent and compares the entire immutable
+source acknowledgement byte-for-byte with a newly fully verified native view,
+including exact checkpoint, primary metadata, descriptor and data. It drops that
+read-only handle before reopening. resume_retired_hosted is an explicit internal
+HOSTED experiment, not production public ordinary-file resume. The backend
+acquires its existing OS-exclusive writer lease and regular/single-link/file
+checks. Wrong identity/generation, unsupported Windows tuple/security/allocation,
+missing original volume time, excessive history and unresolved session state
+reject BEFORE resume may repair a root. No fake old Cleanup or default descriptor
+is introduced. Valid admitted resume retains old append-floor/root-repair/codec/
+headroom/barrier rules and original volume identity/creation/permissions.
+
+A new private remount reads the saved7001 bytes, creates continued.bin with
+3073 deterministic bytes, explicitly flushes and reads it, closes every app
+handle and normally stops/joins/releases the second writer. A separately
+supervised final CPU observer starts only after actual resumer exit, verifies
+both files/inodes2+3 and the complete final checkpoint, and checks both old and
+new mount directories are absent. No arbitrary existing path/mount is accepted.
+
+The source report's original bytes remain immutable. An exclusively opened,
+regular single-link non-reparse receipt appends ONE bounded JSONL continuation
+record after rechecking that original prefix. Source+append remain <=2048 bytes;
+the final independent report remains <=2048 bytes. There is no third report and
+no image/aggregate/process/CPU cap increase. The receipt binds the exact source
+acknowledgement digest and canonical final state digest to source/resumer IDs,
+commit, namespace/generation and extent. Final CPU observation carries the
+actual resumer PID supplied by the parent, which observed that process exit.
+Typed reconciliation rejects missing/mixed/changed/relabelled records, rollback,
+non-appending continuation or mismatched independently observed state. Original
+data/security/creation/attributes/reservation and write/change times must remain;
+the explicit new read may advance access time. Producer-state byte comparison
+is exact BEFORE that new operation.
+
+Unit coverage must reject active writer exclusion, wrong identity/stale
+generation, unsupported native Windows metadata and unresolved pending intent
+without changing backing bytes; valid raw/automatic restart must append and
+retain source bytes/inode/volume creation. This resolved-only admission does
+not qualify generic pending/deleted-session repair or production cold startup.
+
+Acknowledged-source waits now inspect only atomic offline/dispatcher state,
+with no new storage/GPU work, so unexpected source dispatcher failure before
+the controlled termination is a failing outcome.

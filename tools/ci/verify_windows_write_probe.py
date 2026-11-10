@@ -16,7 +16,9 @@ BASE = {"schema", "phase", "commit", "source_process", "observer_process",
         "dispatcher_stopped", "gpu"}
 EXTRA = {"profile", "file_count", "creation_time", "last_access_time", "last_write_time", "change_time", "attributes", "reservation",
          "data_digest", "security_digest", "keep_digest"}
-PROFILES = {"basic", "mutations", "delete", "crash"}
+PROFILES = {"basic", "mutations", "delete", "crash", "restart", "crash-restart"}
+RESTART = {"restart", "crash-restart"}
+RESTART_EXTRA = {"state_digest", "source_ack_digest", "resumer_process"}
 HEX = re.compile(r"[0-9a-f]{64}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 
@@ -32,11 +34,13 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
     require(profile in PROFILES and SHA.fullmatch(commit) is not None, "invalid selected scope")
     extended = profile != "basic"
     fields = BASE | (EXTRA if extended else set())
-    expected_phase = "ack" if profile == "crash" else "state" if extended else "write"
+    expected_phase = "ack" if profile in {"crash", "crash-restart"} else "state" if extended else "write"
     size, inode, count = {"basic": (7001, 2, 1), "mutations": (89, 2, 2),
-                          "delete": (37, 3, 1), "crash": (7001, 2, 1)}[profile]
+                          "delete": (37, 3, 1), "crash": (7001, 2, 1),
+                          "restart": (7001, 2, 1), "crash-restart": (7001, 2, 1)}[profile]
     for item, phase in ((writer, expected_phase), (verifier, "verify")):
-        require(type(item) is dict and set(item) == fields, "missing/unknown report fields")
+        required = fields | (RESTART_EXTRA if profile in RESTART and phase == "verify" else set())
+        require(type(item) is dict and set(item) == required, "missing/unknown report fields")
         integer(item, "schema", 2 if extended else 1, 2 if extended else 1)
         require(item["phase"] == phase and item["commit"] == commit, "wrong phase/source")
         for key in ("source_process", "observer_process"):
@@ -55,7 +59,8 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
                 and not item["gpu"], "invalid flush/observer/retirement claim")
         if extended:
             require(item["profile"] == profile, "mixed profile")
-            integer(item, "file_count", count, count)
+            integer(item, "file_count", 2 if profile in RESTART and phase == "verify" else count,
+                    2 if profile in RESTART and phase == "verify" else count)
             for key in ("creation_time", "last_access_time", "last_write_time", "change_time"):
                 integer(item, key, 1, 2**63 - 1)
             integer(item, "attributes", 0, 2**32 - 1)
@@ -65,7 +70,7 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
                 require(type(item[key]) is str and HEX.fullmatch(item[key]) is not None, f"invalid {key}")
             require(item["data_digest"] != "0" * 64 and item["security_digest"] != "0" * 64,
                     "missing data/security integrity")
-            require((item["keep_digest"] != "0" * 64) == (profile == "mutations"), "missing/foreign kept data")
+            require((item["keep_digest"] != "0" * 64) == (profile == "mutations" or (profile in RESTART and phase == "verify")), "missing/foreign kept data")
     require(writer["source_process"] == writer["observer_process"]
             == verifier["source_process"], "source process identity changed")
     # The source child has actually exited before the independent verifier is
@@ -73,10 +78,43 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
     stable = {"user_bytes", "inode", "namespace_sequence", "generation", "image_bytes", "image_cap"}
     if extended:
         stable |= EXTRA - {"profile"}
+    if profile in RESTART:
+        stable = {"user_bytes", "inode", "image_cap", "creation_time", "attributes", "reservation",
+                  "data_digest", "security_digest", "last_write_time", "change_time"}
+        require(all(verifier[key] > writer[key] for key in ("namespace_sequence", "generation", "image_bytes")),
+                "continuation did not append/publish")
+        integer(verifier, "resumer_process", 1, 2**32 - 1)
+        for key in ("state_digest", "source_ack_digest"):
+            require(type(verifier[key]) is str and HEX.fullmatch(verifier[key]) is not None
+                    and verifier[key] != "0" * 64, "invalid restart integrity receipt")
     require(all(writer[key] == verifier[key] for key in stable), "acknowledged state changed/rolled back")
     return {"schema": 1, "commit": commit, "profile": profile, "complete": True,
             "image_bytes": writer["image_bytes"], "generation": writer["generation"],
             "namespace_sequence": writer["namespace_sequence"], "user_bytes": size}
+
+def validate_continuation(writer: dict, continued: dict, verifier: dict, profile: str, commit: str) -> dict:
+    require(profile in RESTART, "not a restart profile")
+    result = validate_pair(writer, verifier, profile, commit)
+    fields = {"schema", "profile", "phase", "commit", "source_process", "observer_process",
+              "source_ack_digest", "continued_state_digest", "generation", "namespace_sequence", "image_bytes"}
+    require(type(continued) is dict and set(continued) == fields, "partial/foreign continuation receipt")
+    integer(continued, "schema", 1, 1)
+    require(continued["profile"] == profile and continued["phase"] == "continued"
+            and continued["commit"] == commit, "wrong continuation source/profile")
+    for key in ("source_process", "observer_process"):
+        integer(continued, key, 1, 2**32 - 1)
+    require(continued["source_process"] == writer["source_process"]
+            and continued["observer_process"] == verifier["resumer_process"], "continuation process binding changed")
+    for key in ("generation", "namespace_sequence", "image_bytes"):
+        integer(continued, key, 1, CAP if key == "image_bytes" else 2**63 - 1)
+        require(continued[key] == verifier[key], "continuation checkpoint changed after resumed-owner exit")
+    for key in ("source_ack_digest", "continued_state_digest"):
+        require(type(continued[key]) is str and HEX.fullmatch(continued[key]) is not None
+                and continued[key] != "0" * 64, "invalid continuation digest")
+    require(continued["source_ack_digest"] == verifier["source_ack_digest"]
+            and continued["continued_state_digest"] == verifier["state_digest"],
+            "continuation receipt is not the independently observed state")
+    return result
 
 def regular(path: Path) -> os.stat_result:
     result = path.lstat()
@@ -98,6 +136,15 @@ def read_report(path: Path) -> dict:
     require(len(data) == size and b"\0" not in data, "report changed/NUL")
     return json.loads(data.decode("utf-8"), object_pairs_hook=unique_object)
 
+def read_restart_records(path: Path) -> list[dict]:
+    size = regular(path).st_size
+    require(0 < size <= REPORT_CAP, "restart report byte budget")
+    data = path.read_bytes()
+    require(len(data) == size and b"\0" not in data, "restart report changed/NUL")
+    lines = data.decode("utf-8").splitlines()
+    require(len(lines) == 2 and all(lines), "exactly source and continuation records required")
+    return [json.loads(line, object_pairs_hook=unique_object) for line in lines]
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", choices=sorted(PROFILES), required=True)
@@ -113,8 +160,14 @@ def main() -> None:
     require(stat.S_ISDIR(meta.st_mode) and not (getattr(meta, "st_file_attributes", 0) & 0x400)
             and fixture.resolve(strict=True).parent == root, "unsafe fixture")
     names = ("write.json", "verify.json") if args.profile == "basic" else ("state.json", "state-verify.json")
-    reports = [read_report(fixture / name) for name in names]
-    result = validate_pair(*reports, args.profile, os.environ["GITHUB_SHA"])
+    if args.profile in RESTART:
+        source, continued = read_restart_records(fixture / names[0])
+        final = read_report(fixture / names[1])
+        reports = [source, final]
+        result = validate_continuation(source, continued, final, args.profile, os.environ["GITHUB_SHA"])
+    else:
+        reports = [read_report(fixture / name) for name in names]
+        result = validate_pair(*reports, args.profile, os.environ["GITHUB_SHA"])
     require(fixture.name == f"flitzfs-write-probe-{reports[0]['source_process']}", "fixture process binding")
     image_bytes = regular(fixture / "native.fltx").st_size
     require(image_bytes == result["image_bytes"] and image_bytes

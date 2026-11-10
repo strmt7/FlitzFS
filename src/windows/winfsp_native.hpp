@@ -5,7 +5,8 @@
 namespace flitzfs {
 // Experimental real writable adapter. Factory is restricted to disposable
 // hosted VMs until its kernel/lifecycle/backing qualification is complete.
-// It creates ONLY a NEW ordinary image; never installs or selects a driver.
+// Default factories create NEW images. The explicit hosted resume experiment
+// requires independently confirmed old-owner retirement; never selects a driver.
 class WinFspNativeWritable final {
  public:
   static std::unique_ptr<WinFspNativeWritable> create_new_hosted(
@@ -14,6 +15,12 @@ class WinFspNativeWritable final {
   // every projected append/write; not physical reservation/preallocation.
   static std::unique_ptr<WinFspNativeWritable> create_new_hosted(
       const std::filesystem::path&,StoreIdentity,StoreCompressionOptions,std::uint64_t max_image_bytes);
+  // Internal hosted restart experiment, NOT a production existing-file API.
+  // CALLER must first establish dispatcher/process retirement independently.
+  // This declaration is not proof. Reject unresolved native session state.
+  static std::unique_ptr<WinFspNativeWritable> resume_retired_hosted(
+      const std::filesystem::path&,StoreIdentity,std::uint64_t expected_generation,
+      StoreCompressionOptions,std::uint64_t max_image_bytes);
   ~WinFspNativeWritable();
   WinFspNativeWritable(const WinFspNativeWritable&)=delete;
   WinFspNativeWritable& operator=(const WinFspNativeWritable&)=delete;

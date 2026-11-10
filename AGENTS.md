@@ -850,3 +850,43 @@ guards; diagnose and fix real Windows failures instead of raising caps, skipping
 or relabelling evidence. A helper termination is not physical power loss or full
 writable recovery. Apply current RAM-only/no-driver-change and hosted-first PC
 rules. Continue filesystem-only scope; do not resurrect removed archive routes.
+
+## Token-efficient continuation (latest owner direction)
+
+The owner asks for maximum token efficiency WITHOUT reducing code quality,
+intelligence, safety or required validation. Start with docs/DEVELOPMENT_STATE.json
+and verify its qualified commit against current main/CI; it is a navigation
+ledger, never authority over source, this file or user instructions. Update it
+with executed results in the next substantive implementation commit.
+
+Reuse verified same-commit source/receipts within a task; fetch only changed or
+uncertain exact scopes. Before new broad navigation retain current CocoIndex
+receipts and live-source confirmation. Native API captures and hosted Crawl4AI
+page receipts retain their existing rules. Never alter another task's provider.
+Batch independent reads; request bounded excerpts and extract failures/actual
+evidence from logs instead of dumping whole files. Retain native handles/digests.
+Make one bounded evidence-backed design decision, implement it and test it;
+avoid repeated speculative replanning, repeated unchanged status and duplicate
+work. Keep required progress updates, every safety condition/negation, exact
+symbols/units/uncertainties and all relevant tests. No quality/research/validation
+shortcuts, silent model capability reduction, fake results or new delegation.
+
+## Fixed hosted resolved-image restart exception
+
+The separate restart/crash-restart VM profiles in WRITABLE_MOUNT_TRIAL.md may
+use the explicit resume_retired_hosted adapter ONLY after their fixed trusted
+controller independently confirms actual old source process exit and the
+resumer verifies mount absence and exact source acknowledgement. This narrowly
+extends the hosted owned-fixture reopening exception; it is not production
+existing-file startup, owner-PC access or permission to infer retirement from
+a boolean, declaration, PID or delay.
+
+Keep OS-exclusive regular single-link existing-file admission, exact UUID/
+generation, complete Windows profile/payload checks BEFORE possible root
+repair, and rejection of all unresolved old-session state. Preserve original
+volume creation/identity/permissions; never manufacture old Cleanup or metadata.
+No source view may survive replacement writer admission. Resume/append and
+final CPU observation are separately bounded, sequential children with actual
+exit proof before each next launch. Retain the 4 MiB image/two2048-byte report
+budgets; append a bounded receipt without replacing the source acknowledgement.
+No arbitrary paths, mutable general recovery, raises/skips/false promotion.

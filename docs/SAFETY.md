@@ -557,3 +557,17 @@ and must reject unresolved session state or any changed acknowledged checkpoint.
 No mutable existing-image recovery factory, owner-PC action, mapped/power/device
 fault, live AMD or broad crash-coverage claim follows. Old basic/read-only and
 all fault/oracle/resource cases remain. See WRITABLE_MOUNT_TRIAL.md.
+
+
+### Hosted resolved-image restart/continuation
+
+Only the fixed hosted controller may invoke the explicit resumed adapter after
+actual successful/terminated source process exit, old mount disappearance and
+exact independent acknowledgement comparison. The API declaration is NOT
+retirement proof. Exclusive regular single-link existing-file admission, exact
+identity/generation, full Windows metadata/profile checks and all payload
+verification precede writable admission/root repair. Unresolved session state
+and unsupported metadata reject without writes. No production existing-file
+CLI/factory or owner-PC action follows. Source, resumer and independent final
+CPU verifier run sequentially under unchanged child budgets. All retained
+snapshots must end before acquiring a replacement lease. See WRITABLE_MOUNT_TRIAL.md.

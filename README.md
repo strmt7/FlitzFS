@@ -294,3 +294,12 @@ bind the acknowledged data, metadata, security, reservations and checkpoint to
 the exact source and process. Configured profiles require inspected executed
 results; they add no owner-PC or GPU qualification. See
 [WRITABLE_MOUNT_TRIAL.md](docs/WRITABLE_MOUNT_TRIAL.md).
+
+
+Hosted writable restart experiments now add resolved-image reopening after
+confirmed producer retirement, plus new writes through a fresh mounted helper.
+The original factory stays NEW-only; the explicit hosted resume path enforces
+OS writer exclusion, exact identity/generation and complete Windows-profile
+admission. See [the restart contract](docs/WRITABLE_MOUNT_TRIAL.md).
+[DEVELOPMENT_STATE.json](docs/DEVELOPMENT_STATE.json) is a compact source-bound
+navigation ledger; current source and executed CI remain authoritative.

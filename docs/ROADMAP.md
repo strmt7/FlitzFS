@@ -493,3 +493,15 @@ reconciliation is required; inspect exact jobs before marking these profiles
 passed. Preserve all old guards and limits. Cancellation/overwrite/mapped I/O,
 more fault cuts and re-entry/recovery, Windows 11 client/app, scale/reclamation,
 live GPU, learning and payload self-repair remain unfinished.
+
+
+## Persistent writable restart experiment
+
+The fixed restart and crash-restart profiles now configure actual source exit,
+exclusive resolved-image resume, a fresh writable remount preserving original
+bytes/identity, new flushed continuation data and a separately supervised final
+CPU observer after resumer exit. Exact pre-resume acknowledgement comparison and
+append-only handoff/state-digest reconciliation are required. Inspect executed
+jobs before promoting this checkpoint. General unresolved-state recovery,
+production startup/app/installer, arbitrary failure cuts, cancellation/mapped
+semantics, history reclamation/scale and live AMD/learning/repair remain open.
