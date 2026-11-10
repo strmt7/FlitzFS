@@ -536,3 +536,19 @@ vectors/guards/concurrent use, every old fault point and all resource/time caps.
 Same-source capped hash/RAM measurements are not disk/mounted/GPU benchmarks.
 Keep partial failures and timing uncertainty, immutable historical comparators,
 Windows-only product scope and the owner-host prohibition.
+
+
+## Atomic native create/open boundary
+
+Read docs/NATIVE_CREATE_OPEN.md before changing create_inode_result/create_open.
+Preserve NEW-name-only behavior, explicit canonical tuple/framed descriptor,
+one private Stage and THREE barriers for optional initial delete intent.
+Preflight context/token capacity and delete grant before storage creation;
+install only after success, with statically nonthrowing result/slot operations
+and no post-commit allocation/backing/path query. Retain contexts on failure,
+Cleanup/paging/Close/stale-owner lifetime, 256-entry and all metadata/resource caps.
+The FSD/adapter must supply already-authorized creation/grants/inheritance and
+actual Windows descriptor admission; do not invent ACL/allocation/FileInfo.
+Keep every legacy case and configured raw/automatic fixed/compact creation fault.
+No writable callback, actual Create/NS04 termination, Windows 11 client, live
+AMD or owner-PC qualification follows from this pure CPU ownership component.

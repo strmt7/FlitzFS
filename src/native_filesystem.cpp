@@ -63,6 +63,7 @@ static_assert(std::is_nothrow_move_assignable_v<NativeFsCommit>);
 static_assert(std::is_nothrow_move_constructible_v<NativeInodeWriteCommit>);
 static_assert(std::is_nothrow_move_constructible_v<NativeFsCommit>);
 static_assert(std::is_nothrow_move_constructible_v<NativeInodeMutationCommit>);
+static_assert(std::is_nothrow_move_constructible_v<NativeInodeCreateCommit>);
 static_assert(std::is_nothrow_copy_assignable_v<NativeInodeCommitInfo>);
 static_assert(sizeof(NativeInodeCommitInfo)<=80);
 std::string canonical(std::string_view path,bool root=false) {
@@ -752,9 +753,28 @@ NativeFsCommit NativeFilesystemWriter::set_basic_metadata(std::uint64_t inode,co
   const NativeBasicMutation op{inode,0,value};
   return apply_with_basic({},{&op,1});
 }
+NativeInodeCreateCommit NativeFilesystemWriter::create_inode_result(std::string_view path,
+    bool directory,const NativeBasicMetadata& value,std::span<const std::byte> descriptor,
+    bool delete_pending) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  validate_basic(value,directory);
+  if(!native_security_descriptor_framed(descriptor))
+    fail(Code::invalid_operation,"invalid native creation security descriptor");
+  try {
+    (void)canonical(path); // Bound/validate BEFORE copying caller-controlled bytes.
+    NativeFileMutation op;op.path=std::string(path);
+    op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
+    const NativeBasicMutation basic{0,1,value};
+    const NativeSecurityMutation security{0,1,NativeSecurityDescriptor(descriptor.begin(),descriptor.end())};
+    NativeInodeCreateCommit result;
+    result.transaction=transact({&op,1},InodeAction::create,0,{&basic,1},
+        nullptr,delete_pending,&result.info,{&security,1});
+    return result;
+  }catch(const std::bad_alloc&){fail(Code::limit,"native creation allocation failure");}
+}
 NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutation> operations,
     InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic,
-    const NativeAutomaticMetadata* automatic,bool cleanup_delete,NativeInodeCommitInfo* published,
+    const NativeAutomaticMetadata* automatic,bool delete_requested,NativeInodeCommitInfo* published,
     std::span<const NativeSecurityMutation> security) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(automatic && !native_cleanup_metadata_valid(*automatic))
@@ -765,6 +785,15 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     Stage stage(impl_->model,snapshot);
     switch(action) {
       case InodeAction::path_mutations:for(const auto& op:operations)stage.apply(op);break;
+      case InodeAction::create:
+        if(inode || operations.size()!=1 ||
+            (operations.front().operation!=NativeFileOperation::create_file &&
+             operations.front().operation!=NativeFileOperation::create_directory))
+          fail(Code::invalid_operation,"invalid native creation transaction");
+        stage.apply(operations.front());
+        if(stage.created.size()!=1)fail(Code::corrupt,"native creation selector invariant");
+        if(delete_requested)stage.set_delete(stage.created.front(),true);
+        break;
       case InodeAction::mutate:
         if(!inode || operations.size()!=1)fail(Code::invalid_operation,"invalid inode transaction");
         stage.apply(operations.front(),inode);break;
@@ -776,7 +805,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       case InodeAction::cleanup:
         if(!automatic)
           fail(Code::invalid_operation,"invalid automatic Cleanup metadata");
-        stage.cleanup(inode,cleanup_delete,*automatic);break;
+        stage.cleanup(inode,delete_requested,*automatic);break;
     }
     // Mutating stable-inode data and trusted effects share the same Stage,
     // verification and single replicated publication. Cleanup applies its
@@ -789,7 +818,8 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     // staged model. Never query backing state or build a path after commit.
     NativeInodeCommitInfo info;
     if(published) {
-      const auto& n=selected_inode(stage.model,inode);
+      const auto selected=action==InodeAction::create?stage.created.front():inode;
+      const auto& n=selected_inode(stage.model,selected);
       info={n.inode,n.size,n.modified,n.basic,n.directory,n.delete_pending,n.unlinked};
     }
     NativeFsCommit result;result.created_inodes=std::move(stage.created);

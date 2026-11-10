@@ -154,3 +154,37 @@ e1ed302683e5e822f663fbb0f44cee7e9ddc6af0 (29 October 2026) was captured
 instead, alongside actual current-compiler probes:
 [stream opening modes](https://github.com/microsoft/STL/blob/e1ed302683e5e822f663fbb0f44cee7e9ddc6af0/stl/src/fiopen.cpp).
 Only inspected execution can establish whether the transport correction passes.
+
+
+## Qualified same-source hosted checkpoint
+
+At bff81825a8821b84c034d44f765c9cd85db5c805 all seven triggered workflows passed.
+Windows native job 129648941952 passed 71 CTest entries, raw Windows job
+129648941822 and relocated static Windows job 129648937923 each passed 67,
+and sanitizer job 129648941950 passed 63. The digest group completed 3,081
+checks. Actual Windows hosts selected degree 8 or 16 from detected CPU/OS
+features; the separate explicit scalar build also passed. All old fault points
+and resource/time bounds stayed intact.
+
+Comparison job 129648938459 passed all 12 complete image pairs and 72 transaction
+samples. Current CRT probes confirmed default/text output of nine bytes versus
+seven binary bytes, establishing observed LF translation; unchanged image
+equality and exact physical-length checks passed after selecting binary output.
+Artifact 13738475291, SHA256
+55f5cff70613a83bda1dc22886039f5f33c91db01bb30b57ddfe0eb2f10b599e,
+retains raw samples, both build receipts and test output.
+
+Five-pair microbenchmark medians (8 MiB per sample) observed scalar/production
+elapsed ratios of 5.14 at 4 KiB, 8.03 at 64 KiB and 7.93 at 1 MiB. Across twelve
+synthetic 4 MiB object configurations, three-sample policy medians observed
+scalar/automatic ratios of 1.89-3.04 for write, 3.65-4.32 for read/verify and
+3.88-4.58 for reopen/verify. Stored bytes, physical length and payload totals
+were identical. These capped hosted RAM measurements do not establish
+free-running throughput, compression gain, filesystem/disk superiority or AMD
+GPU benefit.
+
+Read-only mount job 129650834603 passed normal, confirmed helper termination
+and independent recovery/remount, with exits 0 / 1460 / 0 and all three space
+reports reconciled. Peaks were 5,713,920 / 6,144,000 / 5,165,056 bytes under
+unchanged limits. The fixture retained the default layout and absent-security
+scope; it is not NS04 mounted ACL or Windows 11 client qualification.

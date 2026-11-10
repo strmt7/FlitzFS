@@ -381,3 +381,18 @@ sanitizer/static results and same-source capped RAM measurements before claiming
 a benefit. Continue toward writable Windows allocation/security/FileInfo/helper,
 scalable indices/capacity, NS04 process/mounted ACL conformance, live AMD and
 bounded automatic learning/redundant payload repair.
+
+
+### Atomically create the inode and its owned context
+
+NATIVE_CREATE_OPEN.md defines a new NEW-name creation path that admits context
+capacity before publication and captures complete basic/security/lifetime facts
+before the same three-barrier commit. Optional delete-on-close intent is atomic;
+successful result/slot installation needs no post-commit query or allocation.
+Configured denial, lifetime, admission and every-step modeled failure groups
+need exact-commit hosted inspection. Existing create APIs/bytes remain.
+
+Continue to real Windows allocation/full FileInfo, ACL/Create option/overwrite
+mapping, caches/mappings/concurrency and driver/helper/client integration.
+This component does not enable writable callbacks or qualify actual Create/
+NS04 process kills, live AMD, production scale, repair or automatic learning.
