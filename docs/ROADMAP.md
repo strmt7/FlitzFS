@@ -334,3 +334,18 @@ qualified per-open metadata policy, Create/Overwrite/cache/cancellation,
 writable callback/supervisor/helper lifecycle and Windows 11 client admission.
 Live AMD, production scaling/reclaim, redundant payload repair, automatic
 learning and unbiased common-filesystem benchmarks remain open.
+
+### Truthful Windows allocation/compression reporting
+
+The source-bound read-only mount oracle now observes standard allocation/EOF,
+volume identity/geometry/flags, compression query outcomes and separate backing
+image allocation across normal/crash/recovery. WINDOWS_SPACE_REPORTING.md
+defines strict closure and remaining interpretation gates. Configured reporting
+must pass and be inspected at the exact commit before conclusions.
+
+Use actual results to choose persisted allocation/security and complete
+Windows FileInfo/write callbacks; the selected FSD lacks native compression-
+information support. Do not equate rounded logical length, sparse holes,
+stored payload, committed image/history and physical host allocation.
+Windows 11 client, writable helper/driver lifecycle, live AMD, scaling/reclaim,
+redundant payload repair, learning and representative benchmarks remain open.

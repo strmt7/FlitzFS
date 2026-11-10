@@ -109,3 +109,46 @@ behavior stay unchanged. No owner-PC execution, driver installation, live AMD
 runtime or writable mounting follows from this component. Production capacity/
 reclamation, redundant payload repair, automatic low-priority learning and
 measured filesystem/GPU benefits remain required.
+
+## Executed hosted checkpoint
+
+At f8cba2874b7d423ad0c044c55d9382330bf7f910 Windows native job
+129563658582 passed all 55 entries and raw Windows job 129563658777 passed
+all 52. Both emitted all 14 storage-denial cases and 149 result checks.
+Each covered success returned complete facts with zero post-barrier backing
+I/O, independently reopened parity and terminal behavior for a later query
+against the deliberately unavailable backend.
+
+All 1,074 existing raw/automatic append/constrained/truncate fault cases now
+exercise the result API directly, with no cuts/modes removed. Their traces
+remained 61/59/59 I/O steps per phase, with 183/177/177 faults per mode.
+The 264 mutation invariants and older APIs remain regression coverage.
+Actual Windows basic API and all nine SDK Cleanup cases passed, with worker
+handle totals unchanged at 94 to 94.
+
+Metadata writer job 129563658666 completed 712 real termination cases in two
+356-case partitions (39.556/39.463 seconds). Legacy job 129563653928 completed
+976 cases in two 488-case partitions (72.006/70.825 seconds). Those existing
+campaigns are not silently relabelled as real process interruption of every
+new result method. Modeled faults, process kills and physical power cuts
+remain distinct.
+
+Relocated native Windows job 129563654541 passed all 52 CTest entries.
+No owner-PC operation, live AMD runtime or writable mounting occurred.
+
+Sanitizer job 129563658900 passed all 48 entries, including 14 denial cases,
+149 result checks and all 1,074 direct mutation-result fault cases.
+Read-only mount job 129566308788 passed actual reads/mapping/enumeration,
+write rejection, source parity, confirmed helper termination and independent
+CPU recovery/remount. Normal/recovery exits were zero; deliberate kill returned
+1460 with exit confirmed. Peaks were 6,176,768 / 6,176,768 / 5,189,632 bytes.
+All nine triggered workflows succeeded. These hosted Server results do not
+qualify Windows 11 client, writable mounting, live AMD or owner-PC execution.
+
+## Windows space-reporting prerequisite
+
+[WINDOWS_SPACE_REPORTING.md](WINDOWS_SPACE_REPORTING.md) records the selected
+FSD compression-information gap and the source-bound live observation gate.
+The captured mutation facts remain valid; completing Windows FileInfo still
+requires truthful allocation/security policy. Do not derive physical per-file
+compression from rounded logical length or silently fill an unsupported field.

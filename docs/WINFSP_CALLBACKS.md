@@ -152,3 +152,12 @@ are preserved. Full backing length, committed end and sparse logical sizes are
 distinct. See NATIVE_WINDOWS_PROJECTION.md for ownership, limits and test scope.
 No mutation callback, persisted Windows timestamp/ACL support or owner operation
 is enabled by this bridge.
+
+## Allocation/space-reporting boundary
+
+WINDOWS_SPACE_REPORTING.md distinguishes rounded logical per-file allocation,
+native payload/image accounting and the host image's reported allocation.
+The selected FSD's compression-information/feature gap must remain explicit.
+The new live oracle observes standard/compression/volume APIs without mutation;
+passing report closure does not establish native Windows compressed-size
+support or complete writable FileInfo.

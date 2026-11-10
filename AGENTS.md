@@ -465,3 +465,17 @@ Keep active storage denial after the third barrier and every existing direct
 result fault point/mode. Do not fabricate Windows allocation/security/times
 or claim this partial output is complete FileInfo. Writable routing/helper,
 latest Windows 11 client, live AMD and owner-host qualification remain open.
+
+## Windows space/allocation reporting gate
+
+Read docs/WINDOWS_SPACE_REPORTING.md before changing Windows AllocationSize,
+compression/volume claims or the live reporting oracle. Preserve distinctions
+between logical/sparse length, decoded live objects, stored payload, committed/
+full image bytes, host image allocation and per-file reservation. The selected
+FSD rejects FileCompressionInformation; do not infer Win32/Explorer behavior or
+advertise unsupported compression from internal codecs alone.
+Keep all three source-bound normal/crash/recovery reports, strict record/phase/
+type/identity closure, explicit optional errors and aggregate fixture budgets.
+Reports are owned hosted fixtures only, never owner-PC diagnostics. The mount-
+only target must retain full same-commit native/CPU prerequisites and limits.
+Writable allocation/security/FileInfo, Windows 11 client and live AMD remain open.

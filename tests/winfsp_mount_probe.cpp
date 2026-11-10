@@ -11,6 +11,9 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <sstream>
+#include <locale>
+#include <iterator>
 #include <limits>
 #include <set>
 #include <stdexcept>
@@ -25,6 +28,7 @@ namespace fs = std::filesystem;
 unsigned stage = 1;
 // Exercise offsets beyond 32 bits without exposing a terabyte-sized cache map.
 constexpr std::uint64_t mount_sparse_bytes=(1ULL<<32)+65536;
+constexpr std::size_t space_report_max_bytes=8192;
 void require(bool ok, const char* message) {
   if (!ok) throw std::runtime_error(message);
 }
@@ -209,6 +213,140 @@ void check_inode(const fs::path& path,std::uint64_t expected) {
   require(((std::uint64_t(info.nFileIndexHigh)<<32)|info.nFileIndexLow)==expected &&
       info.dwVolumeSerialNumber==0x5700004eU,"mounted identity differs from native UUID/inode");
 }
+// Read-only observations only: no compression toggle, allocation request,
+// raw volume handle or mutation API is used. Secondary compression failures
+// are evidence, not a reason to fabricate a physical size.
+void record_space_reporting(const fs::path& mount,const fs::path& image,
+    std::size_t image_bytes,std::string_view phase,const fs::path& report) {
+  require(phase=="normal" || phase=="crash" || phase=="recovery","invalid reporting phase");
+  const auto native=flitzfs::NativeFilesystemSnapshot::open(
+      flitzfs::ObjectStoreSnapshot::open_file(image));
+  require(native.identity()==native_windows_fixture::identity() && native.sequence()==3,
+      "space oracle native identity/sequence");
+  const auto storage=native.storage_info();
+  Handle backing(CreateFileW(image.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr));
+  checked(backing.value!=INVALID_HANDLE_VALUE,"backing image observation open");
+  FILE_STANDARD_INFO backing_standard{};
+  checked(GetFileInformationByHandleEx(backing.value,FileStandardInfo,&backing_standard,sizeof(backing_standard)),
+      "backing image standard allocation");
+  require(!backing_standard.Directory && !backing_standard.DeletePending &&
+      backing_standard.EndOfFile.QuadPart==static_cast<LONGLONG>(image_bytes) &&
+      backing_standard.AllocationSize.QuadPart>=0,"backing image observation differs from owned source");
+  const auto commit_wide=environment(L"GITHUB_SHA");
+  require(commit_wide.size()==40 && std::all_of(commit_wide.begin(),commit_wide.end(),
+      [](wchar_t c){return (c>=L'0' && c<=L'9') || (c>=L'a' && c<=L'f');}),
+      "invalid source commit in hosted report");
+  const std::string commit(commit_wide.begin(),commit_wide.end());
+  const auto root=mount.native()+L"\\";
+  DWORD serial=0,maximum_name=0,flags=0;
+  wchar_t filesystem[32]{};
+  checked(GetVolumeInformationW(root.c_str(),nullptr,0,&serial,&maximum_name,&flags,
+      filesystem,32),"mounted volume attributes");
+  const auto name_end=std::find(std::begin(filesystem),std::end(filesystem),L'\0');
+  require(name_end!=std::end(filesystem) &&
+      std::wstring_view(filesystem,static_cast<std::size_t>(name_end-std::begin(filesystem)))==L"FlitzFS" &&
+      serial==0x5700004eU,
+      "space report reached wrong filesystem/volume identity");
+  DWORD sectors=0,sector_bytes=0,free_clusters=0,total_clusters=0;
+  checked(GetDiskFreeSpaceW(root.c_str(),&sectors,&sector_bytes,&free_clusters,&total_clusters),
+      "mounted allocation geometry");
+  const auto unit=std::uint64_t(sectors)*sector_bytes;
+  require(unit==4096,"mounted geometry differs from selected adapter");
+  ULARGE_INTEGER available{},total{},free{};
+  checked(GetDiskFreeSpaceExW(root.c_str(),&available,&total,&free),"mounted space totals");
+  std::ostringstream out;out.imbue(std::locale::classic());
+  out<<"{\"schema\":1,\"phase\":\""<<phase<<"\",\"commit\":\""<<commit
+      <<"\",\"filesystem\":\"FlitzFS\",\"source_uuid\":\"4e000000000000000000000000000057\","
+      <<"\"native_namespace_sequence\":"<<native.sequence()
+      <<",\"native_image_bytes\":"<<image_bytes
+      <<",\"backing_standard_allocation_bytes\":"<<backing_standard.AllocationSize.QuadPart
+      <<",\"native_generation\":"<<storage.generation
+      <<",\"native_committed_end\":"<<storage.physical_end
+      <<",\"native_live_decoded_bytes\":"<<storage.logical_bytes
+      <<",\"native_live_stored_payload_bytes\":"<<storage.stored_payload_bytes
+      <<",\"volume_serial\":"<<serial<<",\"volume_flags\":"<<flags
+      <<",\"volume_read_only\":"<<((flags&FILE_READ_ONLY_VOLUME)?"true":"false")
+      <<",\"volume_file_compression\":"<<((flags&FILE_FILE_COMPRESSION)?"true":"false")
+      <<",\"maximum_component_characters\":"<<maximum_name
+      <<",\"allocation_unit_bytes\":"<<unit<<",\"total_clusters\":"<<total_clusters
+      <<",\"free_clusters\":"<<free_clusters<<",\"total_bytes\":"<<total.QuadPart
+      <<",\"free_bytes\":"<<free.QuadPart<<",\"caller_available_bytes\":"<<available.QuadPart
+      <<",\"records\":[";
+  struct Item {PCWSTR windows;const char* native;const char* label;};
+  const std::array<Item,3> items{{{L"Data\\sample.bin","Data/sample.bin","sample"},
+      {L"empty.bin","empty.bin","empty"},{L"sparse.bin","sparse.bin","sparse"}}};
+  unsigned count=0;
+  for(const auto& item:items) {
+    const auto path=mount/item.windows;const auto wanted=native.stat(item.native);
+    Handle file(CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr));
+    checked(file.value!=INVALID_HANDLE_VALUE,"space observation file open");
+    FILE_STANDARD_INFO standard{};
+    checked(GetFileInformationByHandleEx(file.value,FileStandardInfo,&standard,sizeof(standard)),
+        "mounted standard allocation/EOF query");
+    require(!standard.Directory && !standard.DeletePending &&
+        standard.EndOfFile.QuadPart==static_cast<LONGLONG>(wanted.logical_bytes) &&
+        standard.AllocationSize.QuadPart==static_cast<LONGLONG>(
+            (wanted.logical_bytes+unit-1)/unit*unit),
+        "standard allocation differs from current logical-presentation contract");
+    FILE_COMPRESSION_INFO compression{};
+    SetLastError(ERROR_SUCCESS);
+    const auto compression_ok=GetFileInformationByHandleEx(file.value,FileCompressionInfo,
+        &compression,sizeof(compression));
+    const auto compression_error=compression_ok?ERROR_SUCCESS:GetLastError();
+    if(compression_ok)require(compression.CompressedFileSize.QuadPart>=0,"negative compression information");
+    DWORD high=0;SetLastError(ERROR_SUCCESS);
+    const auto low=GetCompressedFileSizeW(path.c_str(),&high);
+    const auto compressed_last_error=GetLastError();
+    if(count++)out<<",";
+    out<<"{\"file\":\""<<item.label<<"\",\"inode\":"<<wanted.inode
+        <<",\"logical_bytes\":"<<wanted.logical_bytes
+        <<",\"standard_allocation_bytes\":"<<standard.AllocationSize.QuadPart
+        <<",\"standard_eof_bytes\":"<<standard.EndOfFile.QuadPart
+        <<",\"standard_links\":"<<standard.NumberOfLinks
+        <<",\"compression_info_ok\":"<<(compression_ok?"true":"false")
+        <<",\"compression_info_error\":"<<compression_error
+        <<",\"compression_info_bytes\":"<<(compression_ok?compression.CompressedFileSize.QuadPart:0)
+        <<",\"compression_format\":"<<(compression_ok?unsigned(compression.CompressionFormat):0)
+        <<",\"compression_unit_shift\":"<<(compression_ok?unsigned(compression.CompressionUnitShift):0)
+        <<",\"compression_chunk_shift\":"<<(compression_ok?unsigned(compression.ChunkShift):0)
+        <<",\"compression_cluster_shift\":"<<(compression_ok?unsigned(compression.ClusterShift):0)
+        <<",\"get_compressed_low\":"<<low<<",\"get_compressed_high\":"<<high
+        <<",\"get_compressed_last_error\":"<<compressed_last_error<<"}";
+  }
+  require(count==3,"space observation omitted a native file");
+  out<<"],\"record_count\":"<<count<<",\"complete\":true}";
+  const auto text=out.str();
+  require(text.size()>0 && text.size()<=space_report_max_bytes,"space report byte budget");
+  const auto* begin=reinterpret_cast<const std::byte*>(text.data());
+  write_new(report,{begin,begin+text.size()});
+}
+// The supervisor reads only the exact child's newly owned fixture after
+// confirmed termination. Child output handles are deliberately not inherited.
+void emit_space_report(std::uint32_t process,std::string_view phase) {
+  require(process && (phase=="normal" || phase=="crash" || phase=="recovery"),"invalid report selector");
+  Fixture fixture(process);
+  const auto leaf=phase=="normal"?L"space-normal.json":phase=="crash"?L"space-crash.json":L"space-recovery.json";
+  const auto path=fixture.root/leaf;
+  Handle file(CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,
+      FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
+  checked(file.value!=INVALID_HANDLE_VALUE,"open owned child space report");
+  FILE_ATTRIBUTE_TAG_INFO tag{};FILE_STANDARD_INFO standard{};
+  checked(GetFileInformationByHandleEx(file.value,FileAttributeTagInfo,&tag,sizeof(tag)),
+      "inspect owned child report type");
+  checked(GetFileInformationByHandleEx(file.value,FileStandardInfo,&standard,sizeof(standard)),
+      "inspect owned child report size");
+  require(GetFileType(file.value)==FILE_TYPE_DISK && !standard.Directory &&
+      !(tag.FileAttributes&FILE_ATTRIBUTE_REPARSE_POINT) && standard.NumberOfLinks==1 &&
+      standard.EndOfFile.QuadPart>0 && static_cast<std::uint64_t>(standard.EndOfFile.QuadPart)<=space_report_max_bytes,
+      "unsafe/oversized child space report");
+  std::string text(static_cast<std::size_t>(standard.EndOfFile.QuadPart),'\0');DWORD got=0;
+  checked(ReadFile(file.value,text.data(),static_cast<DWORD>(text.size()),&got,nullptr),"read owned child report");
+  require(got==text.size() && text.starts_with("{\"schema\":1,\"phase\":\""+std::string(phase)+"\",") &&
+      text.ends_with("\"record_count\":3,\"complete\":true}") &&
+      text.find('\n')==std::string::npos && text.find('\r')==std::string::npos &&
+      text.find('\0')==std::string::npos,"incomplete or wrong-phase child space report");
+  std::cout<<"Windows space evidence: "<<text<<"\n";
+}
 void probe(bool abandon_mount) {
   require_probe_job();
   stage = 3;
@@ -222,8 +360,9 @@ void probe(bool abandon_mount) {
   require(expected.storage.stored_payload_bytes<expected.storage.logical_bytes,
       "native mount fixture must contain actual compressed payloads");
   const auto image_bytes=read_all(image,static_cast<std::size_t>(expected.storage.physical_end));
-  // Source image + immutable crash baseline + original input remain <4 MiB.
-  require(2*image_bytes.size()+data.size()+1024<4*1024*1024,"native mount fixture aggregate byte budget");
+  // All retained normal/crash images, the crash baseline, BOTH inputs and
+  // all three reports remain <4 MiB across the complete supervised campaign.
+  require(3*image_bytes.size()+2*data.size()+3*space_report_max_bytes+1024<4*1024*1024,"native mount fixture aggregate byte budget");
   auto projection=[&] {return flitzfs::ReadOnlyProjection::open_native_file(
       image,native_windows_fixture::identity());};
   stage = 4;
@@ -264,6 +403,8 @@ void probe(bool abandon_mount) {
   check_mapping(virtual_file, data);
   check_inode(virtual_file,expected.sample_inode);
   check_sparse_tail(mount/L"sparse.bin");
+  record_space_reporting(mount,image,image_bytes.size(),abandon_mount?"crash":"normal",
+      fixture.root/(abandon_mount?L"space-crash.json":L"space-normal.json"));
   stage = 9;
   require(enumerate(mount / L"*") == std::set<std::wstring>{L"Data", L"empty.bin", L"sparse.bin"}, "root enumeration");
   require(enumerate(mount / L"Data" / L"*") == std::set<std::wstring>{L"other.txt", L"sample.bin"}, "nested enumeration");
@@ -370,6 +511,7 @@ void recover(std::uint32_t previous_process) {
   check_mapping(file, data);
   check_inode(file,4);check_sparse_tail(mount/L"sparse.bin");
   require(read_all(mount / L"empty.bin", 0).empty(), "remounted empty file");
+  record_space_reporting(mount,image,n,"recovery",fixture.root/L"space-recovery.json");
   stage = 18;
   session.stop();
   require(session.dispatcher_stopped() && !session.dispatcher_stopped_unexpectedly(), "remount clean shutdown");
@@ -399,6 +541,7 @@ int wmain(int argc, wchar_t** argv) {
         << " detail=" << (result.exit_code & 0xffffU) << " timed_out=" << result.timed_out
         << " exit_confirmed=" << result.exit_confirmed << " peak_commit_bytes=" << result.peak_committed_bytes << '\n';
     require(result.exit_confirmed && !result.timed_out && result.exit_code == 0, "supervised mount probe failed");
+    emit_space_report(result.process_id,"normal");
     std::cout << "PASS: real mounted native transactional image reads, sparse tails, persistent inode IDs, mapped I/O, enumeration, write rejection and backing parity.\n";
     budget.timeout_ms = 15000;
     const auto killed = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)), {L"--probe-crash-child"}, budget);
@@ -406,6 +549,7 @@ int wmain(int argc, wchar_t** argv) {
         << " exit_confirmed=" << killed.exit_confirmed << " peak_commit_bytes=" << killed.peak_committed_bytes << '\n';
     require(killed.process_id != 0 && killed.timed_out && killed.exit_confirmed &&
         killed.exit_code == ERROR_TIMEOUT, "mounted helper was not forcibly terminated");
+    emit_space_report(killed.process_id,"crash");
     budget.timeout_ms = 30000;
     const auto recovered = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)),
         {L"--probe-recover-child", std::to_wstring(killed.process_id)}, budget);
@@ -414,6 +558,7 @@ int wmain(int argc, wchar_t** argv) {
         << " exit_confirmed=" << recovered.exit_confirmed << " peak_commit_bytes=" << recovered.peak_committed_bytes << '\n';
     require(recovered.exit_confirmed && !recovered.timed_out && recovered.exit_code == 0,
         "post-termination verification/remount failed");
+    emit_space_report(killed.process_id,"recovery");
     std::cout << "PASS: native-image mount termination, automatic removal, unchanged source, independent native CPU recovery and same-path remount.\n";
     return 0;
   } catch (const std::system_error& error) {

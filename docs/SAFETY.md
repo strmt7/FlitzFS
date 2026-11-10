@@ -386,3 +386,13 @@ The active-denial fixture rejects all backing operations after the last barrier
 and must still receive the complete success result. NATIVE_MUTATION_RESULTS.md
 defines coverage and remaining Windows allocation/security/FileInfo gates.
 No encoding, resource-cap, writable-mount or owner-PC permission changes.
+
+## Windows space observation gate
+
+WINDOWS_SPACE_REPORTING.md adds bounded read-only API queries and create-only
+8 KiB reports on disposable hosted VMs. Required source/phase/file closure
+and presentation facts must reconcile; optional compression API errors are
+preserved rather than converted to supported features or zero physical bytes.
+The explicit aggregate fixture-length bound includes all retained source/
+baseline images, inputs and reports. Actual backing allocation is reported
+separately. Process/CPU/time/free-space/driver/owner-host limits are unchanged.

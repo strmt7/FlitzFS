@@ -49,6 +49,9 @@ algorithm checks, not Linux product support. See [the Windows product contract](
 - Commit-bound inode/basic/lifetime results now let the Windows engine obtain
   durable mutation facts without a second backing query after publication;
   see [the output contract](docs/NATIVE_MUTATION_RESULTS.md).
+- A hosted read-only Windows space oracle now records standard/compression/
+  volume API results separately from native backing usage; see [the reporting
+  gate and driver limitation](docs/WINDOWS_SPACE_REPORTING.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.
 - Optional native WinFsp read-only callbacks, disabled by default. Hosted VM

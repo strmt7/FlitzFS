@@ -42,5 +42,11 @@ $rootOptions = @()
 if (-not $PortableCpu) { $rootOptions += "-DFLITZFS_WINFSP_SDK=$env:FLITZFS_WINFSP_SDK" }
 cmake -S . -B $buildDirectory -A x64 "-DFLITZFS_PORTABLE_CPU=$portable" -DFLITZFS_REQUIRE_LZ4=ON "-DFLITZFS_LZ4_INCLUDE=$lz4Headers" "-DFLITZFS_LZ4_LIBRARY=$($lz4Libraries[0].FullName)" -DFLITZFS_REQUIRE_ZSTD=ON "-DFLITZFS_BUILD_WINFSP=$native" "-DFLITZFS_BUILD_MOUNT_PROBE=$probe" "-DFLITZFS_ZSTD_INCLUDE=$headers" "-DFLITZFS_ZSTD_LIBRARY=$($libraries[0].FullName)" @rootOptions
 if ($LASTEXITCODE) { throw 'Native configure failed' }
-cmake --build $buildDirectory --config Release --parallel 2
+# The gated mount job launches only this executable and its own children.
+# Ordinary/native qualification still builds/tests ALL targets separately.
+if ($BuildMountProbe) {
+    cmake --build $buildDirectory --config Release --target flitzfs_mount_probe --parallel 2
+} else {
+    cmake --build $buildDirectory --config Release --parallel 2
+}
 if ($LASTEXITCODE) { throw 'Native build failed' }

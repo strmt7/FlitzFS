@@ -130,3 +130,7 @@ version or capacity change; legacy readers/bytes and native product scope remain
 Commit-bound result values in NATIVE_MUTATION_RESULTS.md are in-memory API
 output only. They add no wire field, layout, metadata format, codec or capacity
 change. Modified namespace sequence is never a UTC time or allocation count.
+
+Windows space reports in WINDOWS_SPACE_REPORTING.md are bounded hosted-test
+artifacts, not filesystem wire data or a product-version change. They add no
+codec, metadata format, allocation reservation or storage-capacity increase.
