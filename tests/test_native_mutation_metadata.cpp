@@ -180,14 +180,16 @@ Bytes changed(Phase phase) {
   return bytes;
 }
 void action(Seed& s,Phase phase) {
-  if(phase==Phase::truncate)s.session.truncate_with_metadata(s.handle,13,effects());
-  else {
-    const auto result=phase==Phase::append?
-        s.session.write_with_metadata(s.handle,UINT64_MAX,data(29,85),{true,false},effects()):
-        s.session.write_with_metadata(s.handle,65523,data(100,86),{false,true},effects());
-    require(result.bytes==(phase==Phase::append?29U:7U) &&
-        result.offset==(phase==Phase::append?65530U:65523U),"successful metadata write escaped wrong count/EOF");
-  }
+  const auto result=phase==Phase::truncate?s.session.truncate_result(s.handle,13,effects()):
+      phase==Phase::append?s.session.write_result(s.handle,UINT64_MAX,data(29,85),{true,false},effects()):
+      s.session.write_result(s.handle,65523,data(100,86),{false,true},effects());
+  require(result.bytes==(phase==Phase::truncate?0U:phase==Phase::append?29U:7U) &&
+      result.offset==(phase==Phase::truncate?0U:phase==Phase::append?65530U:65523U),
+      "successful mutation result escaped wrong count/EOF");
+  require(result.info.inode==2 && result.info.logical_bytes==changed(phase).size() &&
+      result.info.modified_sequence==result.transaction.sequence && !result.info.directory &&
+      result.info.unlinked && !result.info.delete_pending && result.info.basic==updated(effects()),
+      "successful mutation result did not describe the SAME durable detached inode/tuple");
 }
 void expected(const NativeFilesystemSnapshot& view,Phase phase,bool newer) {
   require(view.inode_state(2).unlinked && !view.inode_state(2).delete_pending &&

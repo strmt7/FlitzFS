@@ -223,3 +223,12 @@ Explicit full-tuple setters still require separate attribute-write permission.
 Rename/path reuse and detached late paging retain stable identity; storage
 failure retains contexts and fences. See NATIVE_MUTATION_METADATA.md for
 accepted-zero, clocks, tuple absence, fault oracles and remaining adapter gates.
+
+## Owned mutation results without post-commit I/O
+
+write_result and truncate_result return staged inode/size/basic/lifetime facts
+together with the acknowledged transaction and accepted counts. They preserve
+the same context grants and late paging/retirement rules; failures retain
+contexts and return no success. NATIVE_MUTATION_RESULTS.md specifies the
+nonthrowing output and active post-barrier storage-denial tests. These facts
+are not a complete Windows allocation/security/FileInfo implementation.

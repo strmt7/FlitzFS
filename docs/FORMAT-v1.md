@@ -126,3 +126,7 @@ read support remain; request sentinels are never persisted as timestamps.
 Atomic stable-inode mutation metadata in NATIVE_MUTATION_METADATA.md reuses the
 existing FLTXNS03 tuple and transaction. It adds no wire field, codec, format
 version or capacity change; legacy readers/bytes and native product scope remain.
+
+Commit-bound result values in NATIVE_MUTATION_RESULTS.md are in-memory API
+output only. They add no wire field, layout, metadata format, codec or capacity
+change. Modified namespace sequence is never a UTC time or allocation count.

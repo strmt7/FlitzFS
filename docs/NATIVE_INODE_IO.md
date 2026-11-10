@@ -140,3 +140,11 @@ accepted-zero writes do not stamp and no original tuple is fabricated.
 Owning-session wrappers require data-write access and preserve late paging,
 detached identity, accepted-count durability, zeroed tails and old snapshots.
 Actual per-open Windows policy and truthful callback FileInfo remain separate.
+
+## Commit-bound result facts
+
+[NATIVE_MUTATION_RESULTS.md](NATIVE_MUTATION_RESULTS.md) adds string-free staged
+inode/size/sequence/basic/lifetime output to the same durable write/truncate
+path. Original APIs/layouts remain unchanged; return values require no extra
+backing/snapshot/path read after success. No-op output retains acknowledged
+sequences/absence, and data/metadata fault cases now validate the new result.

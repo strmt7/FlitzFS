@@ -453,3 +453,15 @@ ownership, not explicit attribute grants; do not turn that into ACL bypass.
 Keep detached late paging and exact context state on failure, no retries,
 no capacity increase and no writable callback/owner-PC permission. Actual
 Windows event/suppression/FileInfo/allocation/security/helper gates remain open.
+
+## Commit-bound native mutation results
+
+Read docs/NATIVE_MUTATION_RESULTS.md before changing captured inode facts,
+result APIs or post-publication output. Preserve original public layouts and
+methods, validated private-stage capture, no-throw bounded scalar copies/moves,
+verified no-op sequences/absence and no post-commit allocation/backing/path
+query. A failed call returns no result and retains contexts/fencing.
+Keep active storage denial after the third barrier and every existing direct
+result fault point/mode. Do not fabricate Windows allocation/security/times
+or claim this partial output is complete FileInfo. Writable routing/helper,
+latest Windows 11 client, live AMD and owner-host qualification remain open.

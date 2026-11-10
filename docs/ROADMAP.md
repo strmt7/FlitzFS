@@ -320,3 +320,17 @@ Next writable integration still needs complete per-open time policy, truthful
 FileInfo/allocation, persistent security/ACLs, Create/Overwrite/cache/cancellation,
 supervisor offlining and the helper app. Capacity/reclaim, verified redundant
 payload repair, autonomous learning and measured live AMD benefit remain open.
+
+### Commit-bound Windows mutation facts
+
+The native/owning-session result path now captures inode, size, sequence,
+optional tuple and lifetime facts before publication, returning them with
+durable accepted counts without further backing I/O. Original APIs/layouts
+remain regression paths. NATIVE_MUTATION_RESULTS.md defines configured sealed-
+backend and direct result fault checks; actual exact-commit CI remains required.
+
+Next: real allocation/security and complete Windows FileInfo translation,
+qualified per-open metadata policy, Create/Overwrite/cache/cancellation,
+writable callback/supervisor/helper lifecycle and Windows 11 client admission.
+Live AMD, production scaling/reclaim, redundant payload repair, automatic
+learning and unbiased common-filesystem benchmarks remain open.
