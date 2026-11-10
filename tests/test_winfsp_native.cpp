@@ -162,6 +162,14 @@ void disposition(StoreCompressionMode mode) {
   Harness h(mode);auto& cb=h.cb();auto* fs=&h.fs;
   auto initial=h.make(L"\\target");h.write(initial,nw::tail());h.finish(initial);
   auto a=h.open(L"\\target"),b=h.open(L"\\target");
+  require(cb.SetDelete(fs,a,nullptr,TRUE)==STATUS_SHARING_VIOLATION&&
+      !h.adapter->snapshot().inode_state(2).delete_pending&&!h.adapter->stats().delete_requests&&
+      h.adapter->stats().contexts==2&&!h.adapter->requires_offline(),
+      "unconfirmed peer deletion must reject without changing durable intent/ownership");
+  // The engine deliberately does not infer the second Open's adoption from
+  // the first handle's SetDelete. Exercise real SDK I/O on BOTH handles, then
+  // retain the complete original Windows-global cancellation oracle below.
+  h.read(a,nw::tail());h.read(b,nw::tail());
   require(cb.SetDelete(fs,a,nullptr,TRUE)==STATUS_SUCCESS&&cb.SetDelete(fs,b,nullptr,TRUE)==STATUS_SUCCESS&&
       cb.SetDelete(fs,a,nullptr,FALSE)==STATUS_SUCCESS&&!h.adapter->snapshot().inode_state(2).delete_pending&&
       !h.adapter->stats().delete_requests,"Windows cancellation must clear global pending state");
