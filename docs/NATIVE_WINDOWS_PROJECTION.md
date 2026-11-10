@@ -154,3 +154,13 @@ admission and UUID checks, before any callback/session exposure. It performs
 no source mutation or inference about old open contexts. Independent native
 CPU inspection remains possible. Separate newly owned Windows fixtures require
 this rejection for valid pending and detached images and compare source bytes.
+
+## Separate allocation and compression observations
+
+The current read-only adapter's AllocationSize is rounded logical length,
+not a compressed physical measurement or persisted allocation reservation.
+WINDOWS_SPACE_REPORTING.md defines source-bound standard/compression/volume
+queries across normal/crash/recovery, including separate host allocation of
+the backing image. The selected FSD rejects FileCompressionInformation;
+Win32 wrapper behavior must be observed, not inferred. This adds no writable
+route, automatic compression toggle or Windows 11 client qualification.

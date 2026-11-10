@@ -129,3 +129,15 @@ logical sparse bound. Forced termination and independent CPU native
 namespace/identity/content verification precede same-path remount and mapped/
 sparse parity. Existing process/job/dispatcher/cancellation budgets are unchanged.
 This still tests mounted READS and write rejection, not mounted durability.
+
+## Source-bound Windows space observations
+
+WINDOWS_SPACE_REPORTING.md adds normal/crash/recovery standard/compression/
+volume API observations, separate backing-image allocation and three complete
+source-bound reports. Optional API errors remain explicit. Required presentation
+facts and phase identity/record closure are strictly reconciled; configured
+checks need exact executed evidence. No compression toggle, allocation mutation
+or raw volume handle is added. All retained source/baseline/input/report file
+lengths now share an explicit <4 MiB aggregate bound. Existing job/time/CPU/
+memory/driver safety boundaries remain. The mount-only build targets its probe;
+ordinary/native prerequisite jobs still build/test all targets.

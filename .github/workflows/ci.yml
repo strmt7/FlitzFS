@@ -275,6 +275,8 @@ jobs:
           ref: c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc # v1.11.0
           path: .ci-deps/lz4
           persist-credentials: false
+      - name: Verify strict Windows space report reconciliation
+        run: python tools/ci/test_windows_space_reports.py
       - name: Build pinned CPU codec and native callbacks
         shell: pwsh
         run: ./tools/ci/build_windows_native.ps1
@@ -377,3 +379,14 @@ jobs:
         run: |
           ./build-native/Release/flitzfs_mount_probe.exe --run-disposable-ci
           if ($LASTEXITCODE) { throw 'Supervised mount probe failed' }
+
+      - name: Reconcile all source-bound Windows space observations
+        run: python tools/ci/verify_windows_space_reports.py --hosted
+      - name: Retain native Windows space observations
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-space-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-probe-*/space-*.json
+          if-no-files-found: warn
+          retention-days: 14
