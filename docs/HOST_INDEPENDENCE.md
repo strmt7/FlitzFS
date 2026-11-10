@@ -170,3 +170,44 @@ version selections. The hosted qualification reuses the current complete-package
 bootstrap and scoped compiler helpers; it never generates replacement SDK
 headers, mixes components, installs a driver or changes the owner's PC.
 This development setup remains distinct from the unfinished end-user installer.
+
+## Windows qualification job admission and failure evidence
+
+At 6cc05e654b006bd0a13b2a0bdaefc695bfcbe63d, CPU Windows raw job
+129528969561 passed all 43 CTest entries, then failed during relocated
+CreateProcess for verify with WinError 1816 (not enough quota). Earlier help,
+pack and info commands had launched. No accounting snapshot was retained, so
+the exact exhausted quota and historical cause are UNPROVEN. Preserve this
+failed run; do not call it a passing portability result or silently retry it.
+
+The qualification harness contains its Python supervisor and one child in a
+private job with active-process limit two, 512 MiB per process, 768 MiB per job,
+20 percent CPU and existing time/priority/kill-on-close limits. Its old launcher
+did not check job accounting between sequential children. The new launcher
+requires actual private-job ActiveProcesses==1 before launching and after
+retiring each child. An unexpected count, query failure or changed configured
+limit fails closed. A bounded three-second accounting wait checks retirement,
+rather than treating elapsed time as proof. CreateProcess is attempted once;
+quota errors retain before/after accounting and are rethrown without retry.
+Receipts record accounting observations and zero launch retries.
+
+The ABI was checked against current Microsoft .NET source
+8b9903ebf160fed45050edda447792363ce96dc0 (repository head observed
+9 November 2026), whose job interop exposes the accounting/extended-limit
+structures and QueryInformationJobObject. Its process-handle code separately
+consults active accounting before retiring jobs. This supplies current primary
+source for the query and lifetime distinction; it does NOT identify the missing
+historical quota telemetry or justify copying unrelated retry behavior.
+Native Windows tests additionally compile sizeof/offsetof assertions against
+the actual selected SDK, binding the Python AMD64 layouts to that SDK.
+
+A separate hosted Windows regression holds one controlled Python child alive
+until the guard observes two active members, releases it from that observation,
+requires retirement to one without any extra launch, then launches exactly one
+continuation child. It creates no files. The production qualification fixtures,
+executable/import checks and all old resource caps remain unchanged.
+Configured guards/tests require exact-commit runtime inspection before
+qualification; no owner-PC action or product-runtime Python dependency follows.
+
+[Microsoft job interop](https://github.com/dotnet/runtime/blob/8b9903ebf160fed45050edda447792363ce96dc0/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.JobObjects.cs),
+[current process-handle lifetime code](https://github.com/dotnet/runtime/blob/8b9903ebf160fed45050edda447792363ce96dc0/src/libraries/System.Diagnostics.Process/src/Microsoft/Win32/SafeHandles/SafeProcessHandle.Windows.cs).

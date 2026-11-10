@@ -8,6 +8,7 @@ on:
       - 'third_party/**'
       - 'CMakeLists.txt'
       - 'tools/ci/check_portable_cpu.py'
+      - 'tools/ci/test_portable_job_lifecycle.py'
       - 'tools/ci/build_linux_codecs.py'
       - 'tools/ci/build_windows_native.ps1'
       - 'tools/ci/prepare_hosted_tools.py'
@@ -74,6 +75,9 @@ jobs:
       - name: Move and check only the Linux executable
         if: runner.os == 'Linux'
         run: python tools/ci/check_portable_cpu.py build-portable/flitzfs --codecs native
+      - name: Verify private-job launch admission and retirement
+        if: runner.os == 'Windows'
+        run: python tools/ci/test_portable_job_lifecycle.py
       - name: Move and check only the Windows executable
         if: runner.os == 'Windows'
         run: python tools/ci/check_portable_cpu.py build-portable/Release/flitzfs.exe --codecs native
