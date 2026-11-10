@@ -134,3 +134,8 @@ change. Modified namespace sequence is never a UTC time or allocation count.
 Windows space reports in WINDOWS_SPACE_REPORTING.md are bounded hosted-test
 artifacts, not filesystem wire data or a product-version change. They add no
 codec, metadata format, allocation reservation or storage-capacity increase.
+
+The transactional core's opt-in root field 3 in COMPACT_CHECKPOINT_METADATA.md
+is a separate internal capability. It changes replicated catalog placement,
+not this legacy container format or product numbering. Existing native
+namespace/data/codec formats and default root bytes remain supported.

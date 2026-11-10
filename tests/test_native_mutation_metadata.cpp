@@ -9,6 +9,11 @@ namespace {
 using namespace flitzfs;
 using namespace native_fixture;
 unsigned checks=0;
+#ifdef FLITZFS_TEST_COMPACT_CHECKPOINTS
+constexpr bool compact_checkpoints=true;
+#else
+constexpr bool compact_checkpoints=false;
+#endif
 constexpr NativeFileAccess all{true,true,true};
 constexpr std::uint64_t stamp=133800000000000099ULL;
 void require(bool ok,const char* why){++checks;if(!ok)throw std::runtime_error(why);}
@@ -30,6 +35,10 @@ NativeBasicMetadata updated(NativeAutomaticMetadata e) {
   return value;
 }
 NativeFilesystemWriter fresh(std::shared_ptr<Ram> ram,StoreCompressionMode mode) {
+  if constexpr(compact_checkpoints) {
+    ram->failure_unit=4096;
+    return NativeFilesystemWriter::initialize(ObjectStoreWriter::create(ram,identity(),{mode,6,false},{true}));
+  }
   return NativeFilesystemWriter::initialize(ObjectStoreWriter::create(ram,identity(),{mode,6,false}));
 }
 void masks(StoreCompressionMode mode) {
@@ -217,7 +226,7 @@ void faults(StoreCompressionMode mode,Phase phase) {
       require(ram->calls==calls,"poisoned automatic data/basic operation reached backing");
     }
     expected(*old,phase,false);
-    auto recovered=image(ram->stable);auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(recovered));
+    auto recovered=image(ram->stable,ram->failure_unit);auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(recovered));
     require(view.sequence()==sequence || view.sequence()==sequence+1,"automatic mutation lost acknowledged sequence");
     expected(view,phase,view.sequence()==sequence+1);
     auto writer=NativeFilesystemWriter::resume_closed_session(ObjectStoreWriter::resume(recovered,identity(),
@@ -231,7 +240,8 @@ void faults(StoreCompressionMode mode,Phase phase) {
         !reopened.needs_session_recovery(),"independent CPU recovery could not continue combined data/basic writes");
   }
   require(cases==steps*3,"automatic data/basic fault point omitted");
-  std::cout<<"Native mutation metadata evidence: {\"schema\":1,\"mode\":\""
+  std::cout<<"Native mutation metadata evidence: {\"schema\":1,\"checkpoint_layout\":\""
+      <<(compact_checkpoints?"compact":"fixed")<<"\",\"mode\":\""
       <<(mode==StoreCompressionMode::raw?"raw":"automatic")<<"\",\"phase\":\""<<name(phase)
       <<"\",\"io_steps\":"<<steps<<",\"fault_cases\":"<<cases<<",\"complete\":true}\n";
 }
@@ -242,7 +252,8 @@ int main(int argc,char** argv){try {
   const std::string_view group=argv[1];
   if(group=="--invariants") {
     for(const auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}){masks(mode);admission(mode);owner_and_identity(mode);}
-    std::cout<<"Native mutation metadata invariants: {\"schema\":1,\"checks\":"<<checks<<",\"complete\":true}\n";
+    std::cout<<"Native mutation metadata invariants: {\"schema\":1,\"checkpoint_layout\":\""
+        <<(compact_checkpoints?"compact":"fixed")<<"\",\"checks\":"<<checks<<",\"complete\":true}\n";
   } else {
     const auto phase=group=="--append-faults"?Phase::append:group=="--constrained-faults"?Phase::constrained:
         group=="--truncate-faults"?Phase::truncate:throw std::runtime_error("unknown mutation metadata group");

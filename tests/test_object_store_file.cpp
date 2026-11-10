@@ -114,6 +114,53 @@ int main() {
       auto writer=ObjectStoreWriter::resume(backend,id(),3);
       require(writer.snapshot().read(1)==replacement,"shared source reader did not release OS exclusion");
     }
+    // Root format 3: NEW owned files only, explicit 4 KiB protocol contract.
+    const auto dense_path=fixture.file("compact-metadata.fltx");
+    auto dense_id=id();dense_id[1]=std::byte{88};
+    {
+      auto w=ObjectStoreWriter::create_file(dense_path,dense_id,{4096,true},
+          {StoreCompressionMode::automatic,6,false},{true});
+      const StoreMutation first{1,false,original};require(w.commit({&first,1}).generation==2,"compact file initial publication");
+      auto old=w.snapshot();const std::array<StoreMutation,2> next{{{1,false,replacement},{2,false,{}}}};
+      require(w.commit(next).generation==4 && old.read(1)==original,"compact file snapshot/publication");
+    }
+    const auto dense_before=file_bytes(dense_path);
+    const auto dense_copy_path=fixture.file("compact-metadata-copy.fltx");
+    auto dense_copy_id=id();dense_copy_id[1]=std::byte{89};
+    {
+      auto source=ObjectStoreSnapshot::open_file(dense_path);source.verify_all();
+      require(source.info().replicated_checkpoint && !source.info().degraded_checkpoint &&
+          source.read(1)==replacement && source.read(2).empty(),"compact file independent admission");
+      {
+        auto copy=ObjectStoreWriter::compact(source,detail::new_store_file(dense_copy_path,{4096,true}),
+            dense_copy_id,{StoreCompressionMode::automatic,6,false},{true});
+        require(copy.snapshot().read(1)==replacement,"compact metadata file copy bytes");
+      }
+      auto copied=ObjectStoreSnapshot::open_file(dense_copy_path);
+      require(copied.info().physical_end<3*kStoreCommitUnit && copied.read(1)==replacement &&
+          copied.identity()==dense_copy_id && copied.info().generation==6,
+          "small compact file cannot be independently read");
+    }
+    {
+      auto incompatible=detail::reopen_store_file_for_hosted_test(dense_path,{65536,true});
+      rejects([&]{(void)ObjectStoreWriter::resume(incompatible,dense_id,4);},
+          "file resume bypassed persisted metadata isolation");
+    }
+    require(file_bytes(dense_path)==dense_before,"rejected compact-file resume changed source");
+    rejects([&]{(void)ObjectStoreWriter::create_file(dense_path,dense_id,{4096,true},
+        {StoreCompressionMode::raw,6,false},{true});},"compact file factory overwrote path");
+    require(file_bytes(dense_path)==dense_before,"compact factory no-clobber changed source");
+    {
+      auto backend=detail::reopen_store_file_for_hosted_test(dense_path,{4096,true});
+      auto w=ObjectStoreWriter::resume(backend,dense_id,4);
+      const StoreMutation more{3,false,content(33)};require(w.commit({&more,1}).generation==6,
+          "compact file resume did not preserve root format");
+    }
+    require(ObjectStoreSnapshot::open_file(dense_path).read(3)==content(33),
+        "compact file continued bytes lost");
+    std::cout<<"Compact checkpoint file evidence: {\"schema\":1,\"root_format\":3,\"unit\":4096,"
+        <<"\"small_copy_bytes\":"<<fs::file_size(dense_copy_path)<<",\"complete\":true}\n";
+
     const auto alias=fixture.file("alias.fltx");fs::create_hard_link(backing,alias);
     const auto linked_before=file_bytes(backing);
     rejects([&]{(void)detail::reopen_store_file_for_hosted_test(alias,{4096,true});},"hard-linked writable image admitted");

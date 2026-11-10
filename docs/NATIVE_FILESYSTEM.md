@@ -348,3 +348,12 @@ resource caps remain unchanged; format 3 is sticky and requires replicated
 current checkpoints. The conservative metadata maximum becomes 52,272 bytes,
 still below 64 KiB. Generic mutations preserve tuples; complete automatic
 Windows metadata/security/allocation policy and writable callbacks remain open.
+
+## Compact checkpoint metadata option
+
+The unchanged native namespace/data layer can be initialized from an explicitly
+opted-in ObjectStoreWriter and compacted into a NEW identity with the checkpoint
+options overload. COMPACT_CHECKPOINT_METADATA.md specifies root format 3.
+This changes catalog placement, not namespace encodings, tuples, inode/extent
+limits or file semantics. Existing paths remain fixed by default; no mounted
+write or automatic source replacement is added.

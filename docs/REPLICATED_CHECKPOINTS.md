@@ -146,3 +146,12 @@ comparison before and after a real backing barrier. It does not repair damaged
 replicas or publish a new pair, and rejects a changed/degraded checkpoint.
 Normal replicated mutations retain their unchanged three barriers. See
 NATIVE_FLUSH.md for failure fencing and assurance limits.
+
+## Compact catalog isolation capability
+
+COMPACT_CHECKPOINT_METADATA.md adds explicit root format 3 for NEW opted-in
+writers/copies. Root zones stay 64 KiB apart; catalogs use complete spans
+rounded to a persisted externally qualified unit, with strict generation/
+pair/unit checks. Maximum-size manifests span multiple units when necessary.
+Resume must honor the persisted bound; three barriers, same-state peer repair,
+source retention and no payload-loss fabrication remain unchanged.

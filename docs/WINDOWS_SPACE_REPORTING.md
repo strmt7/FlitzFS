@@ -129,3 +129,47 @@ writable allocation/security/FileInfo, application compatibility, power cuts,
 live AMD benefit, production scaling/reclaim, payload replication or autonomous
 learning. No owner-PC operation is authorized. Results must drive the next
 allocation/driver decision rather than be replaced by guessed size semantics.
+
+## Executed observations
+
+At ecca60ec2519c65472f3683782d4ead842ea6add, mounted job 129578472921
+completed normal, confirmed-termination and independent recovery/remount
+observations with all nine file records and strict reconciliation. The selected
+Server environment returned FileCompressionInfo error 87 for every sample,
+empty and sparse query. GetCompressedFileSizeW returned each logical length:
+196,625, zero and 4,295,032,832 bytes, with LastError zero. It did NOT expose
+actual compressed storage. Standard allocations were 200,704, zero and
+4,295,032,832 bytes. All three phases agreed.
+
+The image length, committed end and host backing allocation were each 786,432
+bytes. Live decoded objects totaled 328,394 bytes and live stored payload 6,416.
+Volume flags were 524,298: read-only true, file-compression support false.
+Geometry was 4096 bytes; 192 total units and zero free/caller-available bytes.
+These facts separate sparse/codec reduction from complete image/history usage;
+they are not a representative compression or performance benchmark.
+
+The probe preserved source bytes and collision sentinel, returned normal/
+recovery exit zero and confirmed the intended killed exit 1460. Process peaks
+were 6,131,712 / 6,160,384 / 5,120,000 bytes under the unchanged limits.
+All nine triggered workflows succeeded; native Windows passed 55 entries,
+sanitizers 48, and all five synthetic report-validator methods passed.
+
+The existing real metadata/legacy campaigns retained all 712/976 cases, with
+two partitions each taking 48.513/48.914 and 73.907/66.387 seconds. No owner-PC,
+writable-mount, Windows 11 client or live AMD qualification follows.
+
+Additional selected-source review of src/sys/file.c confirms that
+FspFileNodeSetFileInfo clamps allocation to at least EOF and aligns it before
+CcSetFileSizes; FspFileNodeGetFileInfo reports the cached header size. Returning
+compressed payload length in AllocationSize alone cannot fix this path, and
+must not weaken cache-manager sizing. A separate qualified reporting path is
+required. This conclusion uses the full immutable selected-source capture,
+not the exact-symbol search's different-head excerpts.
+
+## Storage overhead follow-through
+
+COMPACT_CHECKPOINT_METADATA.md implements a separate opt-in reduction of
+replicated catalog isolation waste. Payload records were already contiguous.
+Storage-size improvements must count complete image/history bytes and preserve
+declared failure isolation. This does not repair the selected FSD compression-
+information gap or permit unsafe cache-manager size substitutions.

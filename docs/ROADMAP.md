@@ -349,3 +349,14 @@ information support. Do not equate rounded logical length, sparse holes,
 stored payload, committed image/history and physical host allocation.
 Windows 11 client, writable helper/driver lifecycle, live AMD, scaling/reclaim,
 redundant payload repair, learning and representative benchmarks remain open.
+
+### Reduce whole-image checkpoint waste
+
+An opt-in compact replicated catalog capability now uses persisted, explicitly
+qualified failure-unit geometry while keeping 64 KiB-separated roots, complete
+independent manifests and three barriers. COMPACT_CHECKPOINT_METADATA.md
+defines strict compatibility, modeled failures, hosted new-file checks and
+native byte profiles. Inspect executed results before claiming measured gains.
+Default and mounted layouts remain fixed. Root-3 real writer termination is
+the next safety gate before wider adoption; physical power/device/client,
+reclaim/scaling, Windows reporting/writable app and live AMD remain open.

@@ -38,8 +38,9 @@ class Ram final:public StoreByteIo {
   std::uint64_t corrupt_read_offset=(std::numeric_limits<std::uint64_t>::max)(),corrupt_read_number=0;
   mutable std::uint64_t matching_reads=0;
   unsigned failure=0;
+  std::uint32_t failure_unit=65536; // Explicit model, default old behavior.
   std::uint64_t extent() const override{return live.size();}
-  StoreIoContract contract() const noexcept override{return {65536,true};}
+  StoreIoContract contract() const noexcept override{return {failure_unit,true};}
   void admit_write(std::uint64_t projected) override{if(projected>kStoreMaxPhysicalBytes)throw std::runtime_error("RAM admission");}
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override{
     if(at>live.size() || out.size()>live.size()-at)throw std::runtime_error("RAM read");
@@ -58,9 +59,9 @@ class Ram final:public StoreByteIo {
     if(fail) {
       if(failure==1){copy(live,at,in.first(in.size()/2));copy(stable,at,in.first(in.size()/2));}
       if(failure==2) {
-        const auto unit=at/65536*65536;
-        if(stable.size()<unit+65536)stable.resize(static_cast<std::size_t>(unit+65536));
-        std::fill_n(stable.begin()+static_cast<std::ptrdiff_t>(unit),65536,std::byte{0});live=stable;
+        const auto unit=at/failure_unit*failure_unit;
+        if(stable.size()<unit+failure_unit)stable.resize(static_cast<std::size_t>(unit+failure_unit));
+        std::fill_n(stable.begin()+static_cast<std::ptrdiff_t>(unit),failure_unit,std::byte{0});live=stable;
       }
       throw std::runtime_error("injected native write failure");
     }
@@ -71,7 +72,10 @@ class Ram final:public StoreByteIo {
     stable=live;if(fail)throw std::runtime_error("injected native post-flush failure");
   }
 };
-inline std::shared_ptr<Ram> image(Bytes bytes){auto ram=std::make_shared<Ram>();ram->live=bytes;ram->stable=std::move(bytes);return ram;}
+inline std::shared_ptr<Ram> image(Bytes bytes,std::uint32_t failure_unit=65536) {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=failure_unit;
+  ram->live=bytes;ram->stable=std::move(bytes);return ram;
+}
 inline std::vector<NativeFileMutation> baseline() {
   return {file_create("A",true),file_create("A/file.bin"),file_write("A/file.bin",0,data(17,1)),
           file_create("target.bin"),file_write("target.bin",0,data(31,2)),

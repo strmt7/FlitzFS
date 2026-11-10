@@ -137,3 +137,12 @@ original protocol description above explains the earlier adjacent-catalog
 checkpoint. Generation-zero empty copies retain ordinary creation. No source
 write/delete or automatic handoff follows from the extension. All isolated
 metadata units/padding count in destination size and process-fixture bounds.
+
+## Explicit compact metadata output
+
+A new checkpoint-options overload may choose compact catalog geometry for a
+NEW distinct-identity target (COMPACT_CHECKPOINT_METADATA.md). Source records,
+codec/payload bytes, original identity and snapshots remain untouched; native
+namespace identity is still explicitly rebound. Default copy preserves an
+existing compact source's isolation and rejects an incompatible target.
+No source deletion, name replacement or automatic background handoff follows.

@@ -151,3 +151,12 @@ Original result layouts remain intact. The existing fault cases now check the
 new output directly; sealed-backend tests separately exercise result construction
 when all backing I/O becomes unavailable after the final publication barrier.
 No complete Windows allocation/FileInfo/write-callback qualification follows.
+
+## Compact layout fault qualification
+
+The same native mutation invariants and append/constrained/truncate fault
+oracles additionally run against explicitly compact 4 KiB checkpoint metadata.
+Evidence labels fixed versus compact layouts; all fixed cases remain.
+The RAM fault unit is explicit and matches each modeled contract. See
+COMPACT_CHECKPOINT_METADATA.md for persistent admission and remaining
+root-3-specific real process/power-loss coverage.
