@@ -68,15 +68,17 @@ class WinFspNativeSession final {
   void stop() noexcept;
   SessionState state() const noexcept{return state_;}
   bool requires_offline() const noexcept;
+  bool dispatcher_stopped() const noexcept;
   bool dispatcher_stopped_unexpectedly() const noexcept;
   NativeSessionStats stats() const;
  private:
   void release() noexcept;
+  void retire_adapter() noexcept;
   WinFspSessionApi api_;
   std::unique_ptr<WinFspNativeWritable> adapter_;
   FSP_FILE_SYSTEM* filesystem_=nullptr;
   SessionState state_=SessionState::ready;
-  bool dispatcher_attempted_=false,mount_owned_=false,unexpected_stop_=false,offline_=false;
+  bool dispatcher_attempted_=false,mount_owned_=false,unexpected_stop_=false,offline_=false,stopped_=false;
   NativeSessionStats retired_stats_{};
 };
 } // namespace flitzfs

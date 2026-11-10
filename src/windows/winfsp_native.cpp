@@ -1,4 +1,6 @@
 #include "winfsp_native.hpp"
+#include "../store_file.hpp"
+#include "../store_codec.hpp"
 #include "native_cleanup.hpp"
 #include "native_close.hpp"
 #include "native_windows_boundary.hpp"
@@ -26,6 +28,32 @@ void hosted() {
   if(!a||std::string_view(a)!="true"||!e||std::string_view(e)!="github-hosted")
     throw std::runtime_error("writable adapter factory is hosted-only pending qualification");
 }
+// Owns the SAME new-file backend and its lease/barriers. The smaller cap never
+// replaces its free-space/memory/identity admission or physical-failure contract.
+class CappedFile final:public StoreByteIo {
+ public:
+  CappedFile(std::shared_ptr<StoreByteIo> file,std::uint64_t cap):file_(std::move(file)),cap_(cap){}
+  std::uint64_t extent() const override {
+    const auto n=file_->extent();if(n>cap_)throw std::runtime_error("native image exceeded history cap");return n;
+  }
+  StoreIoContract contract() const noexcept override{return file_->contract();}
+  void admit_write(std::uint64_t projected) override {
+    if(projected>cap_)throw std::runtime_error("native image history cap");
+    file_->admit_write(projected);
+  }
+  void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
+    bounds(at,out.size());file_->read_exact(at,out);
+  }
+  void write_exact(std::uint64_t at,std::span<const std::byte> in) override {
+    bounds(at,in.size());file_->write_exact(at,in);
+  }
+  void flush() override{file_->flush();}
+ private:
+  void bounds(std::uint64_t at,std::size_t n) const {
+    if(at>cap_||n>cap_-at)throw std::runtime_error("native image bounded range");
+  }
+  std::shared_ptr<StoreByteIo> file_;std::uint64_t cap_;
+};
 std::vector<std::byte> descriptor(PSECURITY_DESCRIPTOR value) {
   SECURITY_DESCRIPTOR_CONTROL control=0;DWORD revision=0;
   if(!value||!IsValidSecurityDescriptor(value)||!GetSecurityDescriptorControl(value,&control,&revision)||
@@ -335,8 +363,19 @@ WinFspNativeWritable::WinFspNativeWritable(std::unique_ptr<Impl> impl) noexcept:
 WinFspNativeWritable::~WinFspNativeWritable()=default;
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_new_hosted(
     const std::filesystem::path& file,StoreIdentity id,StoreCompressionOptions compression) {
-  hosted();const auto security=owner_security();const auto stamp=native_cleanup_utc();
-  auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create_file(file,id,{65536,true},compression));
+  return create_new_hosted(file,id,compression,kStoreMaxPhysicalBytes);
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_new_hosted(
+    const std::filesystem::path& file,StoreIdentity id,StoreCompressionOptions compression,std::uint64_t cap) {
+  hosted();
+  if(cap<4U*1024*1024||cap>kStoreMaxPhysicalBytes||cap%65536)
+    throw std::invalid_argument("native image cap must be aligned and 4..64 MiB");
+  if(std::all_of(id.begin(),id.end(),[](auto b){return b==std::byte{0};}))
+    throw std::invalid_argument("native image identity must be nonzero");
+  detail::validate_store_compression(compression);
+  const auto security=owner_security();const auto stamp=native_cleanup_utc();
+  auto io=std::make_shared<CappedFile>(detail::new_store_file(file,{65536,true}),cap);
+  auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(std::move(io),id,compression));
   const NativeBasicMutation basic{1,0,{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY}};
   const NativeSecurityMutation descriptor{1,0,security};
   writer.apply_with_metadata({},{&basic,1},{&descriptor,1});

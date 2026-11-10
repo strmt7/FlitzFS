@@ -147,3 +147,27 @@ sharing rejection with unchanged durable/runtime intent, performs real SDK I/O
 on both handles, then retains the entire original global-cancellation oracle.
 The 11-writer lifecycle/offlining fixture passed. This partial run is retained;
 no Windows passing checkpoint is claimed until the complete follow-up run.
+
+
+The separately gated, OFF-by-default real writable VM trial is now specified in
+WRITABLE_MOUNT_TRIAL.md. It adds a per-image cap and preserves stop diagnostics;
+it does not promote the candidate into product/owner-PC use or remove adoption
+guards. Inspect actual same-commit results before claiming mounted coverage.
+
+## Executed hosted writable-candidate checkpoint
+
+Main `f75f25f45ec1de809b7e1239ff0ac9ee752f7662` (tree `4dc1962f05c561705138abc7f4a956aec9fee5ed`) was developed with native GitHub APIs and executed exclusively on disposable hosted VMs. No local process, owner-PC test/artifact, GPU execution or owner driver change was started. Latest narrow RAM-only/no-driver-change and careful-GPU permissions are committed in AGENTS.md at ce09720. The whole filesystem goal remains active and experimental.
+
+All FOUR workflows triggered by the final test/document correction passed. This is not a claim that eleven workflows ran at this final SHA. Native Windows job 129771006580 passed 110 CTest groups. The new unmounted adapter reported 1,236 checks, 867 combined direct-callback/SDK dispatches and OS handles 151 to 151. Lifecycle job output reported 53 checks and 11 independently reopened retired writers, including every partial initialization and controller-led offlining after a fenced VOID callback. Provider calls were injected only: no writable volume/dispatcher/mount was created. Existing SDK bridge checks remained 474/137 dispatches/28 sealed cases/four retired backing owners/138-to-138 handles. Existing worker handles remained 94 to 94. These are scoped resource checks, not universal heap/driver/VRAM leak proof.
+
+The explicit global-disposition engine reported 90 invariant checks and eight raw/automatic fixed/compact arm/cancel traces: 828 injected failures, all three modes at every observed write/flush. Fixed traces had 57 steps and compact 12. Independent recovery and continuation preserved old/new intent, data, security, reservations and unrelated acknowledged bytes. The old 16 actual SDK data/size/Flush traces retained all 1,299 fault cases.
+
+The first ce09720 native build failed in test code (SDK trailing-array value initialization and a wrong metadata accessor). a362338 compiled and passed 109/110 Windows groups; the paired-delete fixture had not adopted its second prepared open. The final fixture keeps the original global-cancel oracle, additionally requires conservative sharing rejection without durable/intent mutation, then performs real SDK I/O on both handles before cancellation. No guard, old case, oracle or limit was removed. Ordinary deletion with an idle unconfirmed peer remains a real-kernel adoption product gate.
+
+At the final SHA, raw Windows and relocated Windows passed 96 CTest groups; codec/raw Linux, relocated Linux and Linux ASan/UBSan/leak detection passed 92. Sanitizer job 129771005863 covers the shared CPU engine, not instrumented Windows SDK callbacks. Portable job 129771013661 retained supervisor-only before/after accounting, two controlled children, no launch retries, files_created false and unchanged caps.
+
+The actual process-interruption campaigns ran at unchanged-source predecessor a362338: native Linux/Windows 976 cases each (Windows disjoint 488+488), basic metadata 712 (356+356), compact root-3 172 (86+86), with complete independent acknowledged-history continuation. Pinned mechanism/reference and RAM/digest comparisons also passed there; their scopes are unchanged. Source routing job 129767122373 bound that implementation to SHA-256 af3211b07b6512686aa4f2ab4a0add4523b404c7041f5e2c6fdc98d7a66fdcb9 with six actual queries. Final test-only correction did not trigger that workflow; do not relabel its receipt as final-SHA evidence. Native dependency inventory job 129764890668 passed at ce09720 with outdated_pins empty, CMake 4.4.5/LLVM 23.1.5/Python 3.15.2; later corrections changed no pins. Dependabot endpoint access remains unverified after the previously retained connector rejection, not a zero-alert finding.
+
+Final read-only mount job 129774755949 passed normal, deliberately terminated-helper and independent recovery/remount phases, exits 0/1460/0 with actual exit confirmed. Three source-bound space reports reconciled and image parity held. Peaks were 6,164,480 / 6,135,808 / 5,156,864 bytes under unchanged limits. The pinned driver's valid Microsoft hardware-publisher signature was inspected on the disposable VM; windows11_policy_qualified remained false. This is read-only regression evidence, not mounted writable, Windows 11 client, live AMD, physical power-cut or complete-product proof.
+
+Next work must qualify a separately supervised writable VM helper and actual adoption/cancellation/cache/backing/security behavior before any PC experiment. Keep native quota distinct from host preallocation/physical compressed size and plain cached WriteFile acknowledgement distinct from FlushFileBuffers durability. SetSecurity, scale/reclaim, app/installer/client, live AMD, automatic learning and payload replica self-repair remain unfinished.

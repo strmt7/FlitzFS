@@ -793,3 +793,33 @@ Do not weaken per-transaction memory/free-space admission or three barriers.
 SetSecurity/volume-label mutation and broader Windows semantics remain explicit
 unfinished gates. Plain cached WriteFile return is not power-durable data;
 real mounted qualification must distinguish it from FlushFileBuffers.
+
+## Explicit disposable writable integration trial
+
+The owner requested full off-host development/testing. The separate
+windows-write-mount job may now perform ONLY the fixed synthetic trial in
+docs/WRITABLE_MOUNT_TRIAL.md after same-commit CPU/raw/sanitizer/native AND
+read-only mounted gates pass. This narrowly supersedes the earlier unmounted
+candidate prohibition only for that VM experiment, not product promotion,
+arbitrary mounts, the old probe, a self-hosted runner or the owner's PC.
+Pinned driver provisioning remains restricted to that fresh disposable VM;
+never transfer it to the owner's machine or change the selected driver policy.
+
+Preserve all old cases/caps/oracles and provisional-peer/adoption guards.
+One bounded writer and then one independently bounded CPU verifier, each
+128 MiB/20% CPU/one process/below-normal/30 seconds; actual exit is required
+before the next child. One new image <=4 MiB plus two <=2048-byte reports,
+pinned fresh ancestors, synthetic 7001-byte data, no arbitrary paths, no GPU,
+no deletion/cancellation/mapped-write/kill experiments in this first trial.
+Enforce the image cap before every append/range WITHOUT bypassing the ordinary
+backend's identity/memory/free-space/barrier contract. Native quota is not
+physical backing. Only actual FlushFileBuffers success is its data durability
+oracle; the kernel's cached WriteFile return alone is insufficient.
+
+Stop/join outside callbacks before owned mount/filesystem/writer destruction.
+Keep first normal/unexpected stop diagnostics through startup rollback, fail
+on missing notification or retained contexts, verify mount disappearance and
+independent CPU bytes/checkpoint after confirmed process exit. Never forcibly
+delete a stale junction, raise limits, skip failing cases or label the trial
+physical-power, Windows 11 client, writable crash recovery or live AMD proof.
+If it fails, retain exact evidence and fix off-host; never move it onto the PC.

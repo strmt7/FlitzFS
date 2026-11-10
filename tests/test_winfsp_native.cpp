@@ -14,8 +14,8 @@ struct Harness {
   std::unique_ptr<WinFspNativeWritable> adapter;
   FSP_FILE_SYSTEM fs{};
   std::vector<std::byte> security;
-  Harness(StoreCompressionMode mode):adapter(WinFspNativeWritable::create_new_hosted(
-      fixture.image(),nw::identity(),{mode,6,false})) {
+  Harness(StoreCompressionMode mode,std::uint64_t cap=kStoreMaxPhysicalBytes):adapter(WinFspNativeWritable::create_new_hosted(
+      fixture.image(),nw::identity(),{mode,6,false},cap)) {
     fs.Version=static_cast<UINT16>(sizeof(fs));fs.UmFileContextIsUserContext2=TRUE;
     fs.Interface=&WinFspNativeWritable::callbacks();adapter->bind_callbacks(fs);
     SIZE_T size=0;UINT32 attributes=0;
@@ -214,6 +214,44 @@ void capacity_and_threads() {
   for(auto handle:handles)h.finish(handle);
   require(!h.adapter->stats().contexts,"bounded callback table not retired");h.close_owner();
 }
+void history_cap() {
+  constexpr std::uint64_t cap=4U*1024*1024;
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}) {
+    Harness h(mode,cap);auto context=h.make(L"\\bounded");
+    std::byte last{};unsigned acknowledged=0;bool fenced=false;
+    for(unsigned i=1;i<=80;++i) {
+      std::byte byte=static_cast<std::byte>(i);ULONG count=99;FSP_FSCTL_FILE_INFO info{};
+      const auto status=h.cb().Write(&h.fs,context,&byte,0,1,FALSE,FALSE,&count,&info);++dispatches;
+      if(!NT_SUCCESS(status)) {
+        require(status==STATUS_IO_DEVICE_ERROR&&!count&&!info.IndexNumber&&h.adapter->requires_offline()&&
+            h.adapter->stats().contexts==1&&h.adapter->stats().fenced,"history-cap failure lost ownership/accepted output");
+        fenced=true;break;
+      }
+      require(count==1&&info.FileSize==1&&h.adapter->snapshot().storage_info().physical_end<=cap,
+          "bounded-image successful write output/extent");
+      last=byte;++acknowledged;
+    }
+    require(fenced&&acknowledged>0,"bounded history did not exhaust in a fixed workload");
+    h.cb().Close(&h.fs,context);
+    require(h.adapter->stats().contexts==1,"history-cap Close released poisoned context");
+    h.fs.UserContext=nullptr;h.adapter.reset();
+    require(std::filesystem::file_size(h.fixture.image())<=cap,"image write exceeded explicit cap");
+    auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(h.fixture.image()));view.verify_all();
+    require(view.read("bounded",0,1)==std::vector<std::byte>{last}&&!view.needs_session_recovery(),
+        "history admission lost last acknowledged byte");
+    std::cout<<"Windows writable-cap evidence: {\"schema\":1,\"mode\":\""
+        <<(mode==StoreCompressionMode::raw?"raw":"automatic")<<"\",\"limit\":"<<cap
+        <<",\"image_bytes\":"<<std::filesystem::file_size(h.fixture.image())
+        <<",\"acknowledged_writes\":"<<acknowledged<<",\"complete\":true}\n";
+  }
+  nw::Fixture f;
+  for(const auto cap_value:{std::uint64_t{0},cap-1,kStoreMaxPhysicalBytes+65536}) {
+    bool rejected=false;
+    try{auto invalid=WinFspNativeWritable::create_new_hosted(f.image(),nw::identity(),{},cap_value);}
+    catch(const std::invalid_argument&){rejected=true;}
+    require(rejected&&!std::filesystem::exists(f.image()),"invalid image cap created a backing file");
+  }
+}
 void void_failure() {
   Harness h(StoreCompressionMode::raw);auto context=h.make(L"\\retained");
   h.cb().Cleanup(&h.fs,context,nullptr,0x80000000U);
@@ -235,7 +273,7 @@ int main(){try {
   {std::jthread warm_thread([]{});warm_thread.join();}
   DWORD before=0,after=0;require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"handle baseline");
   for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}){contents(mode);disposition(mode);}
-  capacity_and_threads();void_failure();
+  capacity_and_threads();void_failure();history_cap();
   require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE&&before==after,"adapter OS handles leaked");
   std::cout<<"Windows writable-adapter evidence: {\"schema\":1,\"checks\":"<<checks<<",\"dispatches\":"<<dispatches
       <<",\"handle_before\":"<<before<<",\"handle_after\":"<<after

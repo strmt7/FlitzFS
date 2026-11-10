@@ -1,13 +1,14 @@
 # Input: staged SDK and pinned .ci-deps/zstd and .ci-deps/lz4 on a disposable Windows runner.
 # Output: native build; no downloads, driver installation or mount operations.
 [CmdletBinding()]
-param([switch]$BuildMountProbe, [switch]$PortableCpu)
+param([switch]$BuildMountProbe, [switch]$BuildWriteProbe, [switch]$PortableCpu)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows') {
     throw 'Native CI builds require a disposable hosted Windows runner.'
 }
-if ($PortableCpu -and $BuildMountProbe) { throw 'Portable CPU qualification never mounts or loads the SDK.' }
+if ($BuildMountProbe -and $BuildWriteProbe) { throw 'Select one isolated mount profile.' }
+if ($PortableCpu -and ($BuildMountProbe -or $BuildWriteProbe)) { throw 'Portable CPU qualification never mounts or loads the SDK.' }
 $zstdRuntime = if ($PortableCpu) { 'ON' } else { 'OFF' }
 $runtimeFlags = if ($PortableCpu) {
     @('-DCMAKE_POLICY_DEFAULT_CMP0091=NEW', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded')
@@ -35,17 +36,20 @@ $lz4Libraries = @(Get-ChildItem .ci-deps/lz4-build -Filter lz4.lib -Recurse -Fil
 if ($lz4Libraries.Count -ne 1) { throw 'Expected one pinned static LZ4 library' }
 $lz4Headers = (Resolve-Path .ci-deps/lz4/lib).Path
 $probe = if ($BuildMountProbe) { 'ON' } else { 'OFF' }
+$writeProbe = if ($BuildWriteProbe) { 'ON' } else { 'OFF' }
 $native = if ($PortableCpu) { 'OFF' } else { 'ON' }
 $portable = if ($PortableCpu) { 'ON' } else { 'OFF' }
 $buildDirectory = if ($PortableCpu) { 'build-portable' } else { 'build-native' }
 $rootOptions = @()
 if (-not $PortableCpu) { $rootOptions += "-DFLITZFS_WINFSP_SDK=$env:FLITZFS_WINFSP_SDK" }
-cmake -S . -B $buildDirectory -A x64 "-DFLITZFS_PORTABLE_CPU=$portable" -DFLITZFS_REQUIRE_LZ4=ON "-DFLITZFS_LZ4_INCLUDE=$lz4Headers" "-DFLITZFS_LZ4_LIBRARY=$($lz4Libraries[0].FullName)" -DFLITZFS_REQUIRE_ZSTD=ON "-DFLITZFS_BUILD_WINFSP=$native" "-DFLITZFS_BUILD_MOUNT_PROBE=$probe" "-DFLITZFS_ZSTD_INCLUDE=$headers" "-DFLITZFS_ZSTD_LIBRARY=$($libraries[0].FullName)" @rootOptions
+cmake -S . -B $buildDirectory -A x64 "-DFLITZFS_PORTABLE_CPU=$portable" -DFLITZFS_REQUIRE_LZ4=ON "-DFLITZFS_LZ4_INCLUDE=$lz4Headers" "-DFLITZFS_LZ4_LIBRARY=$($lz4Libraries[0].FullName)" -DFLITZFS_REQUIRE_ZSTD=ON "-DFLITZFS_BUILD_WINFSP=$native" "-DFLITZFS_BUILD_MOUNT_PROBE=$probe" "-DFLITZFS_BUILD_WRITE_PROBE=$writeProbe" "-DFLITZFS_ZSTD_INCLUDE=$headers" "-DFLITZFS_ZSTD_LIBRARY=$($libraries[0].FullName)" @rootOptions
 if ($LASTEXITCODE) { throw 'Native configure failed' }
 # The gated mount job launches only this executable and its own children.
 # Ordinary/native qualification still builds/tests ALL targets separately.
 if ($BuildMountProbe) {
     cmake --build $buildDirectory --config Release --target flitzfs_mount_probe --parallel 2
+} elseif ($BuildWriteProbe) {
+    cmake --build $buildDirectory --config Release --target flitzfs_write_probe --parallel 2
 } else {
     cmake --build $buildDirectory --config Release --parallel 2
 }

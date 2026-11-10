@@ -468,3 +468,15 @@ adoption/cache/Flush behavior, backing/free-space and ACL/client qualification;
 then RAM-only owner tests only if every prerequisite is verified without driver
 changes. SetSecurity, scale/reclaim, live AMD, adaptive maintenance and payload
 replica repair remain unfinished. No superiority or full-product claim follows.
+
+
+## First supervised writable VM trial
+
+WRITABLE_MOUNT_TRIAL.md configures actual Win32 create/write/explicit Flush/
+readback and orderly mounted-helper retirement, followed by a separately bounded
+CPU verifier after confirmed exit. It uses a <=4 MiB backing cap and preserves
+all old read-only/resource/adoption oracles. Inspect executed jobs before marking
+this trial passed. Next extend real-kernel adoption/cancellation/delete/overwrite,
+cache/mapped I/O, helper-kill/acknowledged-history and recovery coverage, then
+client/app/backing/scale/GPU/learning/repair requirements; none is complete from
+a small successful write or an unmounted test. Owner-PC testing stays deferred.

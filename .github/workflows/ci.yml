@@ -131,7 +131,7 @@ jobs:
         run: |
           from pathlib import Path
           for line in Path("build/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native global disposition invariants:", "Native global disposition evidence:", "Windows writable-adapter evidence:", "Windows writable-lifecycle evidence:", "Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "Native security evidence:", "Native security invariants:", "Native create evidence:", "Native create invariants:", "Native overwrite evidence:", "Native overwrite invariants:", "Native provisional evidence:", "Native provisional invariants:", "Windows provisional evidence:", "Native allocated-event evidence:", "Native allocated-event invariants:", "Windows data-bridge invariants:", "Windows data-bridge faults:", "Windows allocated-event evidence:", "Native allocation evidence:", "Native allocation invariants:", "Native initial-delete evidence:", "Native initial-delete invariants:", "Windows initial-delete evidence:", "Digest dispatch invariants:", "Windows security evidence:", "Windows basic oracle:", "Native Cleanup evidence:", "Native Cleanup invariants:", "WinFsp Cleanup evidence:", "Native mutation metadata evidence:", "Native mutation metadata invariants:", "Native result seal:", "Native result evidence:", "Compact checkpoint faults:", "Compact checkpoint invariants:", "Compact checkpoint profile:", "Compact checkpoint file evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
+              if line.startswith(("Native global disposition invariants:", "Native global disposition evidence:", "Windows writable-cap evidence:", "Windows writable-adapter evidence:", "Windows writable-lifecycle evidence:", "Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "Native security evidence:", "Native security invariants:", "Native create evidence:", "Native create invariants:", "Native overwrite evidence:", "Native overwrite invariants:", "Native provisional evidence:", "Native provisional invariants:", "Windows provisional evidence:", "Native allocated-event evidence:", "Native allocated-event invariants:", "Windows data-bridge invariants:", "Windows data-bridge faults:", "Windows allocated-event evidence:", "Native allocation evidence:", "Native allocation invariants:", "Native initial-delete evidence:", "Native initial-delete invariants:", "Windows initial-delete evidence:", "Digest dispatch invariants:", "Windows security evidence:", "Windows basic oracle:", "Native Cleanup evidence:", "Native Cleanup invariants:", "WinFsp Cleanup evidence:", "Native mutation metadata evidence:", "Native mutation metadata invariants:", "Native result seal:", "Native result evidence:", "Compact checkpoint faults:", "Compact checkpoint invariants:", "Compact checkpoint profile:", "Compact checkpoint file evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain bounded CPU test evidence
         if: always()
@@ -210,7 +210,7 @@ jobs:
         run: |
           from pathlib import Path
           for line in Path("build-asan/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native global disposition invariants:", "Native global disposition evidence:", "Windows writable-adapter evidence:", "Windows writable-lifecycle evidence:", "Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "Native security evidence:", "Native security invariants:", "Native create evidence:", "Native create invariants:", "Native overwrite evidence:", "Native overwrite invariants:", "Native provisional evidence:", "Native provisional invariants:", "Windows provisional evidence:", "Native allocated-event evidence:", "Native allocated-event invariants:", "Windows data-bridge invariants:", "Windows data-bridge faults:", "Windows allocated-event evidence:", "Native allocation evidence:", "Native allocation invariants:", "Native initial-delete evidence:", "Native initial-delete invariants:", "Windows initial-delete evidence:", "Digest dispatch invariants:", "Windows security evidence:", "Windows basic oracle:", "Native Cleanup evidence:", "Native Cleanup invariants:", "WinFsp Cleanup evidence:", "Native mutation metadata evidence:", "Native mutation metadata invariants:", "Native result seal:", "Native result evidence:", "Compact checkpoint faults:", "Compact checkpoint invariants:", "Compact checkpoint profile:", "Compact checkpoint file evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
+              if line.startswith(("Native global disposition invariants:", "Native global disposition evidence:", "Windows writable-cap evidence:", "Windows writable-adapter evidence:", "Windows writable-lifecycle evidence:", "Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "Native security evidence:", "Native security invariants:", "Native create evidence:", "Native create invariants:", "Native overwrite evidence:", "Native overwrite invariants:", "Native provisional evidence:", "Native provisional invariants:", "Windows provisional evidence:", "Native allocated-event evidence:", "Native allocated-event invariants:", "Windows data-bridge invariants:", "Windows data-bridge faults:", "Windows allocated-event evidence:", "Native allocation evidence:", "Native allocation invariants:", "Native initial-delete evidence:", "Native initial-delete invariants:", "Windows initial-delete evidence:", "Digest dispatch invariants:", "Windows security evidence:", "Windows basic oracle:", "Native Cleanup evidence:", "Native Cleanup invariants:", "WinFsp Cleanup evidence:", "Native mutation metadata evidence:", "Native mutation metadata invariants:", "Native result seal:", "Native result evidence:", "Compact checkpoint faults:", "Compact checkpoint invariants:", "Compact checkpoint profile:", "Compact checkpoint file evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain sanitizer test evidence
         if: always()
@@ -285,13 +285,17 @@ jobs:
       - name: Exercise actual callbacks without a mounted filesystem
         run: ctest --test-dir build-native -C Release --output-on-failure --timeout 45 --parallel 1
 
+      - name: Compile writable probe without launching any mount
+        shell: pwsh
+        run: ./tools/ci/build_windows_native.ps1 -BuildWriteProbe
+
       - name: Report native staging and worker lifecycle evidence
         if: success()
         shell: python
         run: |
           from pathlib import Path
           for line in Path("build-native/Testing/Temporary/LastTest.log").read_text(encoding="utf-8").splitlines():
-              if line.startswith(("Native global disposition invariants:", "Native global disposition evidence:", "Windows writable-adapter evidence:", "Windows writable-lifecycle evidence:", "Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "Native security evidence:", "Native security invariants:", "Native create evidence:", "Native create invariants:", "Native overwrite evidence:", "Native overwrite invariants:", "Native provisional evidence:", "Native provisional invariants:", "Windows provisional evidence:", "Native allocated-event evidence:", "Native allocated-event invariants:", "Windows data-bridge invariants:", "Windows data-bridge faults:", "Windows allocated-event evidence:", "Native allocation evidence:", "Native allocation invariants:", "Native initial-delete evidence:", "Native initial-delete invariants:", "Windows initial-delete evidence:", "Digest dispatch invariants:", "Windows security evidence:", "Windows basic oracle:", "Native Cleanup evidence:", "Native Cleanup invariants:", "WinFsp Cleanup evidence:", "Native mutation metadata evidence:", "Native mutation metadata invariants:", "Native result seal:", "Native result evidence:", "Compact checkpoint faults:", "Compact checkpoint invariants:", "Compact checkpoint profile:", "Compact checkpoint file evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
+              if line.startswith(("Native global disposition invariants:", "Native global disposition evidence:", "Windows writable-cap evidence:", "Windows writable-adapter evidence:", "Windows writable-lifecycle evidence:", "Native staging evidence:", "Native reuse evidence:", "Native lifetime evidence:", "Native lifetime invariants:", "Native session evidence:", "Native session invariants:", "Native session read evidence:", "Native flush evidence:", "Native basic evidence:", "Native basic invariants:", "Native security evidence:", "Native security invariants:", "Native create evidence:", "Native create invariants:", "Native overwrite evidence:", "Native overwrite invariants:", "Native provisional evidence:", "Native provisional invariants:", "Windows provisional evidence:", "Native allocated-event evidence:", "Native allocated-event invariants:", "Windows data-bridge invariants:", "Windows data-bridge faults:", "Windows allocated-event evidence:", "Native allocation evidence:", "Native allocation invariants:", "Native initial-delete evidence:", "Native initial-delete invariants:", "Windows initial-delete evidence:", "Digest dispatch invariants:", "Windows security evidence:", "Windows basic oracle:", "Native Cleanup evidence:", "Native Cleanup invariants:", "WinFsp Cleanup evidence:", "Native mutation metadata evidence:", "Native mutation metadata invariants:", "Native result seal:", "Native result evidence:", "Compact checkpoint faults:", "Compact checkpoint invariants:", "Compact checkpoint profile:", "Compact checkpoint file evidence:", "handle_totals ")) or "real Windows worker exchange checks" in line:
                   print(line)
       - name: Retain native Windows test evidence
         if: always()
@@ -388,5 +392,95 @@ jobs:
         with:
           name: windows-space-${{ github.sha }}
           path: ${{ runner.temp }}/flitzfs-probe-*/space-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+
+  windows-write-mount:
+    needs: [cpu, sanitizers, windows-native, windows-mount]
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 20
+    env:
+      FLITZFS_ALLOW_DISPOSABLE_MOUNT: '1'
+      FLITZFS_ALLOW_DISPOSABLE_WRITE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Verify pinned digest source bytes before building
+        run: python tools/ci/verify_blake3_sources.py
+      - name: Stage checksum-pinned SDK without installation
+        shell: pwsh
+        run: ./tools/ci/prepare_winfsp_sdk.ps1
+      - name: Retain exact SDK candidate provenance
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winfsp-sdk-${{ github.job }}-${{ github.sha }}
+          path: ${{ env.FLITZFS_WINFSP_PROVENANCE }}
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Check out pinned Zstandard source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - name: Check out pinned LZ4 native dictionary decoder
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lz4/lz4
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
+          path: .ci-deps/lz4
+          persist-credentials: false
+      - name: Build bounded writable mount probe
+        shell: pwsh
+        run: ./tools/ci/build_windows_native.ps1 -BuildWriteProbe
+      - name: Provision driver on this disposable hosted VM only
+        shell: pwsh
+        run: ./tools/ci/provision_disposable_winfsp.ps1
+      - name: Retain actual driver identity and signature evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winfsp-write-driver-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-sdk-*/driver-provenance.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Exercise writable I/O, explicit Flush and independent CPU reopen under process limits
+        shell: pwsh
+        run: |
+          ./build-native/Release/flitzfs_write_probe.exe --run-disposable-ci
+          if ($LASTEXITCODE) { throw 'Supervised writable mount probe failed' }
+
+      - name: Retain source-bound writable fixture observations
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-write-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/flitzfs-write-probe-*/write.json
+            ${{ runner.temp }}/flitzfs-write-probe-*/verify.json
           if-no-files-found: warn
           retention-days: 14
