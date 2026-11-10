@@ -3,35 +3,104 @@
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "qualified_checkpoint": {
-    "commit": "b135962c16e4e76514c6d05077ea725565c901e0",
-    "tree": "2f4e546b014f35d529c36943f62b0d8963a3b134",
-    "ci_run": 42879107683,
-    "native_job": 130050290781,
+    "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+    "tree": "8f4000f66b728f39fd8f3892ea74f91a2c236c9d",
+    "run": 42882610355,
+    "workflow_count": 10,
+    "native_job": 130062532946,
     "native_groups": 110,
+    "sanitizer_job": 130062533566,
     "sanitizer_groups": 92,
-    "security_invariants": 197,
-    "adapter_checks": 1665,
-    "adapter_dispatches": 1063,
+    "adapter_checks": 1703,
+    "adapter_dispatches": 1079,
     "handles": [
       151,
       151
     ],
-    "writable_jobs": {
-      "basic": 130055526397,
-      "restart": 130055526398,
-      "mutations": 130055526496,
-      "delete": 130055526539,
-      "crash": 130055526563,
-      "crash-restart": 130055526898
+    "security": {
+      "per_mode": {
+        "updates": 2,
+        "denials": 21,
+        "ownership_rejections": 6,
+        "sacl_status": 0
+      },
+      "mounted": false
     },
-    "proof_scope": "Hosted bounded SDK security merge/rights, persistence/history-cap failure, existing six mounted regressions. Ownership changes remain rejected by selected helper. No live mounted ACL/caller-privilege/inheritance/Windows11 client, physical-power or GPU qualification. No owner-PC execution."
+    "profiles": [
+      {
+        "job": 130070954126,
+        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "complete": true,
+        "generation": 30,
+        "image_bytes": 3145728,
+        "namespace_sequence": 15,
+        "profile": "restart",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      {
+        "job": 130070954154,
+        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "complete": true,
+        "generation": 16,
+        "image_bytes": 1769472,
+        "namespace_sequence": 8,
+        "profile": "basic",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      {
+        "job": 130070954236,
+        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "complete": true,
+        "generation": 32,
+        "image_bytes": 3342336,
+        "namespace_sequence": 16,
+        "profile": "delete",
+        "schema": 1,
+        "user_bytes": 37
+      },
+      {
+        "job": 130070954255,
+        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "complete": true,
+        "generation": 28,
+        "image_bytes": 2949120,
+        "namespace_sequence": 14,
+        "profile": "crash-restart",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      {
+        "job": 130070954292,
+        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "complete": true,
+        "generation": 38,
+        "image_bytes": 3932160,
+        "namespace_sequence": 19,
+        "profile": "mutations",
+        "schema": 1,
+        "user_bytes": 89
+      },
+      {
+        "job": 130070954781,
+        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "complete": true,
+        "generation": 14,
+        "image_bytes": 1572864,
+        "namespace_sequence": 7,
+        "profile": "crash",
+        "schema": 1,
+        "user_bytes": 7001
+      }
+    ],
+    "proof_scope": "Hosted SDK ACL operations and explicit unauthenticated ownership rejection; existing mounted regressions. Not functional ownership, mounted ACL/client, physical-power or GPU qualification."
   },
   "source_routing": {
-    "commit": "72147d6f34e18c4f702a8b8da7f0a5bc2e3f23c4",
-    "job": 130039087666,
+    "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+    "job": 130062534697,
     "queries": 6,
-    "source_sha256": "f8fe9cdbc3d3345f56efc6c038e8a894e417ba9a52a77ec001f9dfb6269bb408",
-    "scope": "Production source unchanged at later test/doc corrections; no new broad navigation authorized without current binding verification"
+    "source_sha256": "332ec6ed5c34e2db8bb62f246846bf08634753b8edf21175b68f03e5c0878abd"
   },
   "safety": {
     "development": "native repository APIs and disposable hosted VMs",
@@ -53,15 +122,17 @@
     }
   },
   "pending_implementation": {
-    "scope": "Fail closed for all unauthenticated owner/group mutations; original WRITE_OWNER is not requestor SID authority; retain ACL functionality and exact SDK reporting",
+    "scope": "Fixed-size native volume head for authoritative compacted-image selection; independent CPU binding and every I/O fault; no deletion/provider/mount integration",
     "check_exact_current_head_ci": true,
     "primary_files": [
-      "src/windows/winfsp_native.cpp",
-      "tests/test_winfsp_native.cpp"
+      "include/flitzfs/volume_head.hpp",
+      "src/volume_head.cpp",
+      "src/native_filesystem.cpp",
+      "src/object_store.cpp",
+      "tests/test_volume_head.cpp"
     ],
     "docs": [
-      "docs/NATIVE_SECURITY.md",
-      "docs/WINDOWS_OWNERSHIP_SOURCES.json"
+      "docs/VOLUME_HEAD.md"
     ]
   },
   "remaining": [

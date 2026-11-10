@@ -243,3 +243,12 @@ formats remain unchanged. Full owner/group support remains required through a
 separately qualified authenticated request path; it is not complete. See
 NATIVE_SECURITY.md and WINDOWS_OWNERSHIP_SOURCES.json for current-source
 evidence, regression requirements and driver/host boundaries.
+
+
+The experimental custom-backend native volume head adds a fixed 128-KiB,
+replicated authority for selecting a verified compacted image while retaining
+the source and a stable external volume identity. Its publication/recovery,
+CPU comparison, minimum-checkpoint binding and fault-test contract are in
+VOLUME_HEAD.md. Existing encodings/routes/caps remain unchanged. Tests are
+configured, not yet qualified at this commit. No file-provider, mounted handoff,
+source deletion, automatic reclaim/worker, GPU or owner-PC operation follows.

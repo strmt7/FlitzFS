@@ -785,6 +785,28 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_impl(ObjectStoreWriter obj
   catch(const std::exception&){fail(Code::storage_failure,"native writable admission failed; recover independently");}
 }
 
+const ObjectStoreSnapshot& NativeFilesystemSnapshot::objects_for_volume_head() const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from volume image");return impl_->objects;
+}
+void NativeFilesystemSnapshot::verify_compacted_equivalent_for_volume_head(
+    const NativeFilesystemSnapshot& target) const {
+  if(!impl_||!target.impl_)fail(Code::invalid_operation,"moved-from handoff image");
+  verify_all();target.verify_all();
+  if(needs_session_recovery()||target.needs_session_recovery())
+    fail(Code::invalid_operation,"handoff requires retired resolved file contexts");
+  auto expected=decode(impl_->objects);expected.identity=target.identity();
+  if(encode(expected)!=encode(decode(target.impl_->objects)))
+    fail(Code::invalid_operation,"compacted namespace differs");
+  const auto left=impl_->objects.list(),right=target.impl_->objects.list();
+  if(left.size()!=right.size())fail(Code::invalid_operation,"compacted object inventory differs");
+  for(std::size_t i=0;i<left.size();++i) {
+    if(left[i].id!=right[i].id || left[i].logical_bytes!=right[i].logical_bytes)
+      fail(Code::invalid_operation,"compacted object identity/size differs");
+    if(left[i].id==kNamespaceObject)continue;
+    if(left[i].generation!=right[i].generation || impl_->objects.read(left[i].id)!=target.impl_->objects.read(right[i].id))
+      fail(Code::invalid_operation,"compacted payload differs");
+  }
+}
 NativeFilesystemWriter NativeFilesystemWriter::compact(const NativeFilesystemSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression) {
   return compact(source,std::move(target),id,compression,{});

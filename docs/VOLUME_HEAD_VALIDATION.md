@@ -1,0 +1,5 @@
+# Volume-head validation (experimental)
+
+Verified f37d4d7d19a86005f11841f42d00b1d5e32b59ae: all10 workflows succeeded; native job130062532946 passed110 groups/1703 adapter checks/1079 SDK-or-callback dispatches/handles151->151. Each raw/automatic SDK case recorded2 ACL updates,21 rejections,6 explicit ownership rejections and SACL status0. Sanitizer job130062533566 passed92. All6 mounted regression reports reconciled complete and all sequential child exits were confirmed. Those mounted profiles do not exercise ACL authorization. Four Microsoft source pages accepted by reviewed hosted Crawl4AI run42881521036/job130058729198 with receipt3431b61b1451f91ac2ea191e5f1d7abfa75cde1a715e1fcae8d7b664e19fbb3f; publisher dates are retained and are not a recent-revision claim. No owner PC or GPU execution. Full goal active.
+
+The volume-head implementation requires execution at its own exact commit. No new pass, physical power-loss, mounted handoff, reclamation, foreground-load or GPU result is claimed by configuration. Retain all old tests and caps.
