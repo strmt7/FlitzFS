@@ -169,3 +169,10 @@ Historical APIs and wire bytes are unchanged. See NATIVE_OVERWRITE.md.
 Provisional overwrite phases are bounded session memory only; they introduce
 no wire capability or record/root change. Healthy cancellation clears a context
 without deleting or rolling back its inode. See NATIVE_PROVISIONAL_OPEN.md.
+
+
+Initial delete-on-close introduces no record/header/capability change. Eligible
+Cleanup uses existing pending/unlinked/basic fields atomically. Nonempty
+directory pending authority is session-only, preserving on-disk children and
+safe CPU recovery. Historical durable-intent API bytes remain unchanged.
+NATIVE_INITIAL_DELETE.md distinguishes runtime state from persisted flags.
