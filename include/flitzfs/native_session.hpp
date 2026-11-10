@@ -17,6 +17,13 @@ class NativeSessionError final:public std::runtime_error {
   NativeSessionErrorCode code_;
 };
 enum class NativeOpenKind {any,file,directory};
+// Explicit runtime policy; stored bytes are identical. The default preserves
+// historical per-open aggregation. Windows cancellation clears global intent.
+enum class NativeDispositionPolicy {aggregate,windows_global};
+struct NativePathLookup {
+  NativeInodeAllocationInfo state;
+  std::optional<NativeSecurityDescriptor> security;
+};
 struct NativeFileAccess {
   bool read=true,write=false,erase=false; // Already authorized by the future OS adapter.
 };
@@ -80,6 +87,10 @@ class NativeFileSession final {
   // Consumes exclusive writer ownership and fully verifies admission. No raw
   // writer accessor; unresolved old-session state must be separately recovered.
   static NativeFileSession create(NativeFilesystemWriter writer);
+  static NativeFileSession create(NativeFilesystemWriter writer,NativeDispositionPolicy);
+  // Trusted pre-open adapter lookup for namespace/security admission. No new
+  // context or authority is created; caller must perform OS access checking.
+  NativePathLookup lookup(std::string_view path) const;
   ~NativeFileSession();
   NativeFileSession(NativeFileSession&&) noexcept;
   NativeFileSession& operator=(NativeFileSession&&)=delete; // Cannot replace an owner with live contexts.
@@ -178,8 +189,9 @@ class NativeFileSession final {
       const NativeBasicMetadata&,std::span<const std::byte> security);
   NativeFsCommit rename(const NativeFileHandle&,std::string_view target,bool replace=false);
 
-  // Aggregate per-open disposition; canceling one cannot cancel another's
-  // request or a request already latched at Cleanup.
+  // Default aggregate policy preserves other opens' explicit requests/latches.
+  // Explicit windows_global policy clears the inode-wide pending intent on
+  // cancel; still-unprocessed per-open initial options re-arm at Cleanup.
   void set_delete(const NativeFileHandle&,bool requested);
   // delete_file is the trusted future FSD Cleanup flag, not a user permission.
   // Preserve context for later paging I/O; only Close releases it.

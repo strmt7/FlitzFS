@@ -454,3 +454,17 @@ NATIVE_ALLOCATED_EVENTS.md combines native reservations with Create/Overwrite/Cl
 ### Windows FileInfo and synchronous data boundary
 
 NATIVE_WINDOWS_IO.md adds strict complete FileInfo translation and owned Write/SetFileSize/query/Flush bridges with actual SDK/fault coverage gates. Qualify executed results before passing this component. The explicit native-reserved cache presentation is not physical preallocation or compressed-size reporting. Actual writable callback/helper routing still needs backing/free-space/cache policy, kernel adoption/shared disposition/security, latest Windows 11 client, scaling and AMD qualification.
+
+
+## Hosted unmounted writable integration candidate
+
+NATIVE_WRITABLE_ADAPTER.md combines actual callbacks, explicit Windows-global
+deletion policy and an injected join-before-release controller. Configured
+qualification adds old/new fault closure, bounded callback/concurrency/handle
+checks and all partial startup rollback paths. Inspect exact executed jobs;
+configuration is not passing evidence. The old read-only table/mount probe is
+unchanged. Next gates are a supervised writable VM helper, kernel cancellation/
+adoption/cache/Flush behavior, backing/free-space and ACL/client qualification;
+then RAM-only owner tests only if every prerequisite is verified without driver
+changes. SetSecurity, scale/reclaim, live AMD, adaptive maintenance and payload
+replica repair remain unfinished. No superiority or full-product claim follows.

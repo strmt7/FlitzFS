@@ -266,3 +266,13 @@ The experimental native engine now has explicit persistent live-extent reservati
 Native Create/Overwrite reservations and trusted Cleanup trimming now share their existing atomic publications; write/truncate can return captured reservation facts. The separate SDK trim bridge remains unwired from mounted callbacks. See [NATIVE_ALLOCATED_EVENTS.md](docs/NATIVE_ALLOCATED_EVENTS.md). Development must leave no orphaned processes, unintended services/tasks or retained resources. The latest PC permission is limited to a qualified, verified RAM-backed synthetic test volume, without driver changes or system-drive artifacts; current development remains hosted.
 
 The experimental Windows data bridge now translates complete FileInfo for its admitted metadata/reservation profile and handles actual SDK Write/SetFileSize/query/real Flush dispatch. Its allocation value is an explicit native cache reservation, not compressed physical usage; it remains unwired from mounted writes. See [NATIVE_WINDOWS_IO.md](docs/NATIVE_WINDOWS_IO.md).
+
+
+An experimental hosted-only writable callback candidate now combines native ownership,
+transactions, FileInfo, security reads, quota and controller-led teardown. Default
+product routes and mounted tests remain read-only. Its unmounted tests and
+remaining backing/cache/adoption/ACL/client gates are described in
+[NATIVE_WRITABLE_ADAPTER.md](docs/NATIVE_WRITABLE_ADAPTER.md). Windows-global deletion
+cancellation is explicit; the older aggregate policy remains available unchanged.
+Careful GPU use is authorized only under the existing qualified RAM-only,
+no-driver-change PC rules; no live GPU or owner-PC test has started.

@@ -188,3 +188,13 @@ NATIVE_ALLOCATED_EVENTS.md adds APIs and captured state, not another format. Cre
 ### Windows FileInfo/data bridge
 
 NATIVE_WINDOWS_IO.md introduces no stored format or codec change. It translates existing captured FLTXNS05/basic/inode facts into the current 72-byte SDK FileInfo only for explicitly admitted cache/reservation presentation. Original layouts, all old bytes/readers, mutation barriers and bounds remain; native capacity is still separate from measured physical allocation.
+
+
+### Unmounted native adapter policy
+
+The hosted writable adapter candidate (NATIVE_WRITABLE_ADAPTER.md) uses the
+existing native object/namespace encodings unchanged. Windows-global versus
+historical aggregate deletion is runtime policy, not a stored format revision.
+Its explicit live-quota/cache allocation must not be relabelled host clusters,
+compressed physical bytes or host preallocation. No production mounted-write
+route or new public existing-image writer factory is enabled.

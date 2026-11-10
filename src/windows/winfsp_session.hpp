@@ -1,5 +1,7 @@
 #pragma once
 #include "winfsp_readonly.hpp"
+#include <memory>
+#include "flitzfs/native_session.hpp"
 #include "flitzfs/mount_plan.hpp"
 
 namespace flitzfs {
@@ -44,5 +46,37 @@ class WinFspReadOnlySession final {
   SessionState state_ = SessionState::ready;
   bool dispatcher_attempted_ = false;
   bool mount_owned_ = false;
+};
+
+class WinFspNativeWritable;
+struct NativeWriteMountPlan {
+  std::wstring directory;
+  std::uint32_t lifetime_seconds=15;
+  bool allow_driver_start=false,allow_native_writes=false;
+};
+bool valid_native_write_plan(const NativeWriteMountPlan&) noexcept;
+// Explicit provider + hosted-created adapter only. Single controller; stop
+// joins dispatcher callbacks before deleting the filesystem and releasing
+// writer/backend ownership. No provider is selected or invoked implicitly.
+class WinFspNativeSession final {
+ public:
+  WinFspNativeSession(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi);
+  ~WinFspNativeSession();
+  WinFspNativeSession(const WinFspNativeSession&)=delete;
+  WinFspNativeSession& operator=(const WinFspNativeSession&)=delete;
+  NTSTATUS start(const NativeWriteMountPlan&) noexcept;
+  void stop() noexcept;
+  SessionState state() const noexcept{return state_;}
+  bool requires_offline() const noexcept;
+  bool dispatcher_stopped_unexpectedly() const noexcept;
+  NativeSessionStats stats() const;
+ private:
+  void release() noexcept;
+  WinFspSessionApi api_;
+  std::unique_ptr<WinFspNativeWritable> adapter_;
+  FSP_FILE_SYSTEM* filesystem_=nullptr;
+  SessionState state_=SessionState::ready;
+  bool dispatcher_attempted_=false,mount_owned_=false,unexpected_stop_=false,offline_=false;
+  NativeSessionStats retired_stats_{};
 };
 } // namespace flitzfs

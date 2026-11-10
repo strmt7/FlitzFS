@@ -118,3 +118,25 @@ helper lifecycle, truthful physical space, scalable storage/reclaim/repair,
 live AMD and bounded adaptive maintenance remain required. The latest
 RAM-only/no-driver-change owner permission does not bypass those gates;
 development and tests here remain on disposable hosted VMs.
+
+
+The explicit hosted unmounted candidate table is now documented in
+NATIVE_WRITABLE_ADAPTER.md. It keeps these bridges, output/fencing rules and all
+old tests, without promoting native quota into physical allocation or enabling
+mounted writes. The existing read-only product/mount routes remain unchanged.
+
+## Executed Windows data-bridge checkpoint
+
+Commit `7de69ceec0e5d9a227a9e3776852d01c101940fe` was implemented through native GitHub APIs and run only on disposable hosted VMs. No owner-PC test, GPU execution, driver change, process/service/task or local artifact was started. The owner's later careful-GPU permission was recorded in the active task and queued for the next substantive agent-instruction update; exact runtime qualification remains pending.
+
+Windows native job 129734480712 passed 105 CTest groups. The new actual SDK bridge fixture reported 474 checks, 137 invariant SDK dispatches, 28 storage-denial cases (24 successful captured returns and four correctly failing Flush post-verification cases), four retired positive backing owners, and unchanged OS handle totals 138 to 138. Existing worker handle totals separately stayed 94 to 94. These are covered user-mode lifecycle resources, not universal heap/VRAM/driver leak proof.
+
+All 16 actual SDK write/EOF/reservation/Flush raw/automatic fixed/compact traces completed all three fault modes at every observed write/flush: 1,299 cases total. Write used 59/14 steps; EOF 57/12; reservation raw 59/14 and automatic 58/14; Flush one real barrier per profile. Failure returned no accepted count/partial FileInfo, fenced without retry/release, and independent CPU recovery/continuation preserved complete old/new state and unrelated acknowledged data. The pure-core allocation-event preflight checks expanded from 233 to 235 while retaining all prior cases and bounds.
+
+Fresh six-query CPU-only source routing bound this commit to source SHA-256 `9c23568c77c3538d2c2fe43375c5ad8116a78c75158fa34b6658a363a89b21fa` (job 129734480112). Selected current WinFsp native API/source bytes established all ABI fields/offsets, actual synchronous dispatch and cache/allocation distinctions. No inferred physical compression size or writable mounted qualification follows.
+
+Raw Windows and relocated Windows passed 93 CTest groups; CPU raw/codec and relocated Linux passed 89. Native process-retirement gates retained supervisor-only membership before/after each controlled child, two controlled children, no retries and files_created false. Legacy real termination campaigns retained 976 cases on each hosted OS; Windows basic metadata retained 712 and compact root-3 172. These are their old campaign scopes, not new Windows SDK/NS05 physical-power tests. Decoder-reference checks passed 90; existing CPU RAM/digest comparisons preserved their original scope.
+
+Linux ASan/UBSan/leak job 129734480608 passed 89 groups and the expanded 235 core allocation-event checks. The Windows SDK bridge itself was exercised on Windows release builds, not ASan-instrumented by that Linux job. The dependency release inventory passed with outdated_pins empty. A fresh Dependabot endpoint read through the connector was rejected HTTP 400, INVALID_ARGUMENT: endpoint not allowed; no new alert count was established.
+
+All 11 workflows completed successfully. Existing read-only mount job 129738984778 completed normal, deliberately terminated-helper and recovery phases with confirmed exits 0, 1460 and 0. All three source-bound space reports reconciled and backing-image parity held; process peaks were 6,156,288 / 6,119,424 / 5,140,480 bytes under unchanged caps. This does not exercise a mounted writable data bridge, Windows 11 client policy or live AMD path. Those product gates and physical-space, power-loss, scale/reclaim/repair/learning requirements remain open.

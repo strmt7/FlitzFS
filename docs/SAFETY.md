@@ -509,3 +509,23 @@ The latest owner instruction narrowly permits later PC testing on verified, excl
 ### Windows data bridge output and fencing
 
 NATIVE_WINDOWS_IO.md requires complete output prerequisites before data mutation and returns count/FileInfo only from captured durable facts. Missing original metadata or reservation cannot be silently synthesized. Logical failures return zero output; backing/terminal/unknown failures retain ownership, fence and require offlining outside callbacks, with no I/O retry. Flush retains its actual barrier AND post-barrier verification. No writable callback table, process/service/task, driver/PC experiment or physical compressed-size claim is added. Apply the existing lifecycle/resource and narrow qualified RAM-only/no-driver-change host rules.
+
+
+### Hosted unmounted writable candidate
+
+The separate NATIVE_WRITABLE_ADAPTER.md candidate owns a new exclusive image,
+serializes callbacks, bounds opaque contexts and signals failures for offlining
+outside callbacks. Its session joins before destroying callback/writer resources;
+unretired contexts/fencing make stop unsuccessful. Tests use only direct SDK
+callbacks and injected lifecycle providers, never a real volume/dispatcher/mount.
+The old read-only probe and all process/resource/oracle limits are unchanged.
+First-operation adoption remains a trusted transition needing real-kernel proof.
+Native allocation is thin live quota, not physical preallocation or guaranteed
+future write admission; default product routes stay read-only.
+
+Latest careful GPU permission preserves qualified RAM-backed synthetic PC
+storage, ample verified headroom, strict low-priority caps, CPU verification/
+recovery, actual worker retirement and no driver/security/clock/power changes.
+No local artifacts, system-drive activity or unfinished runtime experiment is
+authorized by that permission. Current work remains on disposable hosted VMs.
+Finite tests cannot establish immunity to every future bug or loss of all copies.

@@ -41,7 +41,8 @@ struct NativeFileSession::Impl {
   std::array<std::uint8_t,kNativeMaxNodes> latch_flags{};
   std::uint64_t next_token=1;
   bool terminal=false;
-  explicit Impl(NativeFilesystemWriter source):writer(std::move(source)) {
+  NativeDispositionPolicy disposition_policy=NativeDispositionPolicy::aggregate;
+  explicit Impl(NativeFilesystemWriter source,NativeDispositionPolicy policy):writer(std::move(source)),disposition_policy(policy) {
     if(writer.poisoned())fail(E::terminal,"cannot own a terminal native writer");
     auto snapshot=writer.snapshot();
     if(snapshot.needs_session_recovery())fail(E::delete_pending,"old file contexts need independent closed-session recovery");
@@ -110,9 +111,14 @@ NativeFileSession::NativeFileSession(std::unique_ptr<Impl> impl) noexcept:impl_(
 NativeFileSession::~NativeFileSession()=default;
 NativeFileSession::NativeFileSession(NativeFileSession&&) noexcept=default;
 NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer) {
+  return create(std::move(writer),NativeDispositionPolicy::aggregate);
+}
+NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer,NativeDispositionPolicy policy) {
+  if(policy!=NativeDispositionPolicy::aggregate && policy!=NativeDispositionPolicy::windows_global)
+    fail(E::invalid_options,"unknown native disposition policy");
   static_assert(sizeof(Impl)<=16*1024);
   static_assert(std::is_nothrow_move_constructible_v<NativeFileHandle>);
-  return NativeFileSession(std::make_unique<Impl>(std::move(writer)));
+  return NativeFileSession(std::make_unique<Impl>(std::move(writer),policy));
 }
 NativeFileSession::Impl& NativeFileSession::ready() const {
   if(!impl_ || impl_->terminal || impl_->writer.poisoned())fail(E::terminal,"native file session is fenced");
@@ -236,6 +242,16 @@ NativeSessionStorageCreateCommit NativeFileSession::create_impl(std::string_view
       options.security_access.read,options.security_access.replace,false,false,
       provisional?Impl::Phase::opened:Impl::Phase::active,initial_delete.on_cleanup};
   ++self.next_token;
+  return result;
+}
+NativePathLookup NativeFileSession::lookup(std::string_view path) const {
+  auto& self=ready();admit_path(path,true);
+  const auto selected=self.writer.inspect_path(path);
+  Impl::Slot selector;selector.inode=selected.info.inode;
+  const auto state=self.state(selector);
+  NativePathLookup result;result.state=self.writer.inspect_allocation(selected.info.inode);
+  result.state.info.delete_pending=state.delete_pending;
+  result.security=self.writer.inspect_security_descriptor(selected.info.inode);
   return result;
 }
 NativeInodeState NativeFileSession::info(const NativeFileHandle& handle) const {
@@ -435,12 +451,21 @@ void NativeFileSession::set_delete(const NativeFileHandle& handle,bool requested
     fail(E::sharing_violation,"native inode has an unresolved provisional open");
   const auto state=self.state(slot);
   if(state.unlinked)fail(E::delete_pending,"detached inode cannot be resurrected");
-  const auto desired=requested || self.explicit_intent(slot.inode,slot.token);
+  const bool global=self.disposition_policy==NativeDispositionPolicy::windows_global;
+  const auto desired=global?requested:(requested || self.explicit_intent(slot.inode,slot.token));
   self.writer.set_delete_pending(slot.inode,desired);
   // FSD SetDisposition(false) clears current initial pending state, but not
   // any descriptor's still-unprocessed initial option. Preserve independent
   // explicit requests/latches. No latch changes precede durable success.
-  if(!requested)self.cancel_initial_latch(slot.inode);
+  if(!requested) {
+    if(global) {
+      // Selected FSD clears the NODE's pending state, not just one open's
+      // request. Preserve still-unprocessed initial per-FD options to re-arm
+      // at their actual Cleanup. All updates follow durable success.
+      for(auto& other:self.slots)if(other.token && other.inode==slot.inode)other.requested=false;
+      self.clear_latch(slot.inode);
+    }else self.cancel_initial_latch(slot.inode);
+  }
   slot.requested=requested; // Only after durable success; assignment cannot throw.
 }
 void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file) {
