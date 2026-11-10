@@ -25,6 +25,7 @@ struct NativeFileSession::Impl {
     bool cleaned=false,cleanup_delete=false,requested=false,basic_write=false;
     NativeCleanupMetadata cleanup_metadata;
     bool security_read=false,security_replace=false;
+    bool overwrite=false,supersede=false;
   };
   static_assert(std::is_nothrow_copy_assignable_v<Slot>);
   NativeFilesystemWriter writer;
@@ -99,6 +100,11 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
 }
 NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,
     NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access) {
+  return open(path,access,kind,basic_access,security_access,{});
+}
+NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,
+    NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
+    NativeOverwriteAccess overwrite_access) {
   auto& self=ready();
   if(kind!=NativeOpenKind::any && kind!=NativeOpenKind::file && kind!=NativeOpenKind::directory)
     fail(E::invalid_options,"unknown native open kind");
@@ -114,7 +120,8 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
   if(kind==NativeOpenKind::directory && !state.info.directory)
     throw NativeFsError(NativeFsErrorCode::not_directory,"native open requires directory");
   NativeFileHandle result;result.owner_=self.owner;result.token_=self.next_token;
-  self.slots[available]={self.next_token,state.info.inode,access,false,false,false,basic_access.write,{},security_access.read,security_access.replace};
+  self.slots[available]={self.next_token,state.info.inode,access,false,false,false,basic_access.write,{},security_access.read,security_access.replace,
+      overwrite_access.overwrite,overwrite_access.supersede};
   ++self.next_token;return result;
 }
 NativeSessionCreateCommit NativeFileSession::create_open(std::string_view path,bool directory,
@@ -218,6 +225,19 @@ NativeFsCommit NativeFileSession::truncate(const NativeFileHandle& handle,std::u
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.write)fail(E::access_denied,"native context has no truncate access");
   return self.writer.truncate_inode(slot.inode,bytes);
+}
+NativeInodeMutationCommit NativeFileSession::overwrite_result(const NativeFileHandle& handle,
+    const NativeOverwriteMetadata& effect) {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(effect.replace_attributes?!slot.supersede:!slot.overwrite)
+    fail(E::access_denied,"native context has no checked overwrite operation grant");
+  if(slot.cleaned)fail(E::invalid_options,"cannot overwrite a cleaned native context");
+  if(!native_overwrite_metadata_valid(effect))
+    fail(E::invalid_options,"invalid canonical native overwrite metadata");
+  const auto state=self.state(slot);
+  if(state.delete_pending || state.unlinked)
+    fail(E::delete_pending,"cannot overwrite deleting native inode");
+  return self.writer.overwrite_inode_result(slot.inode,effect);
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory) {
   auto& self=ready();admit_path(path);NativeFileMutation op;

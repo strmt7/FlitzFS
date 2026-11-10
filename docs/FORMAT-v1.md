@@ -158,3 +158,9 @@ The explicit new path uses the existing FLTXNS04 basic/security fields and
 existing lifecycle flags; optional delete-on-close intent shares its initial
 transaction. Older creation paths preserve their prior capability/bytes.
 NATIVE_CREATE_OPEN.md specifies result ownership and configured fault checks.
+
+
+The explicit native overwrite event changes no encoding/capability. EOF/extent
+references and existing basic attrs/times share one ordinary replicated
+publication; original creation time and optional security bytes remain.
+Historical APIs and wire bytes are unchanged. See NATIVE_OVERWRITE.md.

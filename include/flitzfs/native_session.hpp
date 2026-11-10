@@ -26,6 +26,10 @@ struct NativeBasicAccess {bool write=false;};
 // Already-authorized full descriptor access, not an ACL evaluator or a claim
 // that WRITE_DAC alone authorizes owner/SACL replacement.
 struct NativeSecurityAccess {bool read=false,replace=false;};
+// A separately checked create/overwrite operation grant. WinFsp may remove
+// implicit WRITE_DATA/DELETE from returned GrantedAccess after checking it;
+// data/delete/WRITE_ATTRIBUTES bits alone must not infer this authorization.
+struct NativeOverwriteAccess {bool overwrite=false,supersede=false;};
 // A value alias for ONE open instance, not another open/reference count.
 // Only open() creates a context; one successful Close invalidates all aliases.
 // Weak ownership prevents stale tokens from binding to another session.
@@ -72,6 +76,9 @@ class NativeFileSession final {
       NativeOpenKind kind,NativeBasicAccess basic_access);
   NativeFileHandle open(std::string_view path,NativeFileAccess access,
       NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access);
+  NativeFileHandle open(std::string_view path,NativeFileAccess access,
+      NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
+      NativeOverwriteAccess overwrite_access);
   // Preflight an owned context/token before any durable creation. NEW name,
   // complete metadata and optional delete-on-close intent publish atomically;
   // successful return/slot installation needs no post-commit allocation/query.
@@ -101,6 +108,9 @@ class NativeFileSession final {
       const NativeAutomaticMetadata& effect={});
   NativeInodeMutationCommit truncate_result(const NativeFileHandle&,std::uint64_t bytes,
       const NativeAutomaticMetadata& effect={});
+  // Already-authorized Overwrite/Supersede event before Cleanup.
+  // Preserve its ownership and descriptor; no post-commit result query.
+  NativeInodeMutationCommit overwrite_result(const NativeFileHandle&,const NativeOverwriteMetadata&);
   NativeFsCommit create_entry(std::string_view path,bool directory=false);
   // Trusted creation path: data/namespace and explicit full basic metadata
   // publish atomically. Access checking remains the future OS adapter's job.
