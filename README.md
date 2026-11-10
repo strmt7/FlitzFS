@@ -262,3 +262,5 @@ tests require exact-commit inspection; writable driver/app/client integration,
 allocation/full FileInfo and live AMD remain unfinished.
 
 The experimental native engine now has explicit persistent live-extent reservations, atomic allocation shrink/EOF/tail handling, and shared reservation accounting. These native capacity units are separate from host allocation and compressed physical bytes; they do not yet enable Windows allocation callbacks. See [NATIVE_ALLOCATION.md](docs/NATIVE_ALLOCATION.md).
+
+Native Create/Overwrite reservations and trusted Cleanup trimming now share their existing atomic publications; write/truncate can return captured reservation facts. The separate SDK trim bridge remains unwired from mounted callbacks. See [NATIVE_ALLOCATED_EVENTS.md](docs/NATIVE_ALLOCATED_EVENTS.md). Development must leave no orphaned processes, unintended services/tasks or retained resources. The latest PC permission is limited to a qualified, verified RAM-backed synthetic test volume, without driver changes or system-drive artifacts; current development remains hosted.

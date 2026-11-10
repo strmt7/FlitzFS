@@ -28,7 +28,7 @@ struct NativeFileSession::Impl {
     bool security_read=false,security_replace=false;
     bool overwrite=false,supersede=false;
     Phase phase=Phase::active;
-    bool initial_delete=false;
+    bool initial_delete=false,cleanup_trim=false;
   };
   static_assert(std::is_nothrow_copy_assignable_v<Slot>);
   NativeFilesystemWriter writer;
@@ -192,17 +192,26 @@ NativeFileHandle NativeFileSession::open_impl(std::string_view path,NativeFileAc
 NativeSessionCreateCommit NativeFileSession::create_open(std::string_view path,bool directory,
     const NativeBasicMetadata& basic,std::span<const std::byte> descriptor,
     NativeSessionCreateOptions options) {
-  return create_impl(path,directory,basic,descriptor,options,false,{});
+  auto stored=create_impl(path,directory,basic,descriptor,options,false,{});
+  return {std::move(stored.transaction),stored.state.info,std::move(stored.handle)};
 }
 NativeSessionCreateCommit NativeFileSession::create_prepared(std::string_view path,bool directory,
     const NativeBasicMetadata& basic,std::span<const std::byte> descriptor,NativePreparedCreateOptions options) {
-  return create_impl(path,directory,basic,descriptor,
+  auto stored=create_impl(path,directory,basic,descriptor,
       {options.access,options.basic_access,options.security_access,false},true,options.initial_delete);
+  return {std::move(stored.transaction),stored.state.info,std::move(stored.handle)};
 }
-NativeSessionCreateCommit NativeFileSession::create_impl(std::string_view path,bool directory,
+NativeSessionStorageCreateCommit NativeFileSession::create_prepared_storage(std::string_view path,bool directory,
+    const NativeBasicMetadata& basic,std::span<const std::byte> descriptor,
+    std::optional<std::uint64_t> reservation,NativePreparedCreateOptions options) {
+  return create_impl(path,directory,basic,descriptor,
+      {options.access,options.basic_access,options.security_access,false},true,options.initial_delete,reservation);
+}
+NativeSessionStorageCreateCommit NativeFileSession::create_impl(std::string_view path,bool directory,
     const NativeBasicMetadata& basic,std::span<const std::byte> descriptor,NativeSessionCreateOptions options,
-    bool provisional,NativeInitialDeleteAccess initial_delete) {
+    bool provisional,NativeInitialDeleteAccess initial_delete,std::optional<std::uint64_t> reservation) {
   static_assert(std::is_nothrow_move_constructible_v<NativeSessionCreateCommit>);
+  static_assert(std::is_nothrow_move_constructible_v<NativeSessionStorageCreateCommit>);
   static_assert(std::is_nothrow_move_assignable_v<NativeFsCommit>);
   static_assert(std::is_nothrow_copy_assignable_v<NativeInodeCommitInfo>);
   static_assert(std::is_nothrow_copy_assignable_v<NativeFileHandle>);
@@ -216,13 +225,13 @@ NativeSessionCreateCommit NativeFileSession::create_impl(std::string_view path,b
   admit_path(path);self.admit_destination(path);
   // The session is single-control-thread. The local slot/token reservation
   // cannot race another request; do not expose/install it before publication.
-  NativeSessionCreateCommit result;
+  NativeSessionStorageCreateCommit result;
   result.handle.owner_=self.owner;result.handle.token_=self.next_token;
-  auto created=self.writer.create_inode_result(path,directory,basic,descriptor,options.delete_on_close);
+  auto created=self.writer.create_inode_storage_result(path,directory,basic,descriptor,reservation,options.delete_on_close);
   // ONLY statically nonthrowing scalar/optional/weak-owner/move operations
   // remain after durable success. Never call open(), inspect(), or snapshot().
-  result.transaction=std::move(created.transaction);result.info=created.info;
-  self.slots[available]={self.next_token,result.info.inode,options.access,false,false,
+  result.transaction=std::move(created.transaction);result.state=created.state;
+  self.slots[available]={self.next_token,result.state.info.inode,options.access,false,false,
       options.delete_on_close,options.basic_access.write,{},
       options.security_access.read,options.security_access.replace,false,false,
       provisional?Impl::Phase::opened:Impl::Phase::active,initial_delete.on_cleanup};
@@ -316,11 +325,34 @@ NativeFsCommit NativeFileSession::truncate(const NativeFileHandle& handle,std::u
 }
 NativeInodeMutationCommit NativeFileSession::overwrite_result(const NativeFileHandle& handle,
     const NativeOverwriteMetadata& effect) {
-  return overwrite_impl(handle,effect,false);
+  auto stored=overwrite_impl(handle,effect,false);
+  return {std::move(stored.transaction),stored.state.info,0,0};
 }
 NativeInodeMutationCommit NativeFileSession::overwrite_prepared_result(const NativeFileHandle& handle,
     const NativeOverwriteMetadata& effect) {
-  return overwrite_impl(handle,effect,true);
+  auto stored=overwrite_impl(handle,effect,true);
+  return {std::move(stored.transaction),stored.state.info,0,0};
+}
+NativeInodeAllocationCommit NativeFileSession::overwrite_storage_result(const NativeFileHandle& handle,
+    const NativeOverwriteMetadata& effect,std::optional<std::uint64_t> reservation) {
+  return overwrite_impl(handle,effect,false,reservation);
+}
+NativeInodeAllocationCommit NativeFileSession::overwrite_prepared_storage_result(const NativeFileHandle& handle,
+    const NativeOverwriteMetadata& effect,std::optional<std::uint64_t> reservation) {
+  return overwrite_impl(handle,effect,true,reservation);
+}
+NativeInodeStorageMutationCommit NativeFileSession::write_storage_result(const NativeFileHandle& handle,
+    std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
+    const NativeAutomaticMetadata& effect) {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.write)fail(E::access_denied,"native context has no write access");
+  return self.writer.write_inode_storage_result(slot.inode,offset,bytes,options,effect);
+}
+NativeInodeStorageMutationCommit NativeFileSession::truncate_storage_result(const NativeFileHandle& handle,
+    std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.write)fail(E::access_denied,"native context has no truncate access");
+  return self.writer.truncate_inode_storage_result(slot.inode,bytes,effect);
 }
 void NativeFileSession::adopt_prepared(const NativeFileHandle& handle) {
   const auto index=slot_for(handle,true);auto& slot=ready().slots[index];
@@ -328,8 +360,8 @@ void NativeFileSession::adopt_prepared(const NativeFileHandle& handle) {
     fail(E::invalid_options,"native prepared context is not ready for adoption");
   slot.phase=Impl::Phase::active;
 }
-NativeInodeMutationCommit NativeFileSession::overwrite_impl(const NativeFileHandle& handle,
-    const NativeOverwriteMetadata& effect,bool provisional) {
+NativeInodeAllocationCommit NativeFileSession::overwrite_impl(const NativeFileHandle& handle,
+    const NativeOverwriteMetadata& effect,bool provisional,std::optional<std::uint64_t> reservation) {
   static_assert(std::is_nothrow_move_constructible_v<NativeInodeMutationCommit>);
   const auto index=slot_for(handle,provisional);auto& self=ready();auto& slot=self.slots[index];
   if(provisional && slot.phase!=Impl::Phase::prepared)
@@ -342,7 +374,7 @@ NativeInodeMutationCommit NativeFileSession::overwrite_impl(const NativeFileHand
   const auto state=self.state(slot);
   if(state.delete_pending || state.unlinked)
     fail(E::delete_pending,"cannot overwrite deleting native inode");
-  auto result=self.writer.overwrite_inode_result(slot.inode,effect);
+  auto result=self.writer.overwrite_inode_storage_result(slot.inode,effect,reservation);
   // No I/O/allocation/fallible operation after publication. Waiting for
   // adoption permits a healthy cancellation Close without fabricated Cleanup.
   if(provisional)slot.phase=Impl::Phase::overwritten;
@@ -409,11 +441,17 @@ void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file)
 }
 void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file,
     const NativeCleanupMetadata& effect) {
+  cleanup_event(handle,delete_file,{effect,false});
+}
+void NativeFileSession::cleanup_event(const NativeFileHandle& handle,bool delete_file,
+    const NativeCleanupEvent& event) {
+  const auto& effect=event.metadata;
   const auto index=slot_for(handle);auto& self=ready();auto& slot=self.slots[index];
   if(!native_cleanup_metadata_valid(effect))
     fail(E::invalid_options,"invalid automatic Cleanup metadata clock");
   if(slot.cleaned) {
-    if(slot.cleanup_delete!=delete_file || !slot.cleanup_metadata.same_requests(effect))
+    if(slot.cleanup_delete!=delete_file || slot.cleanup_trim!=event.trim_allocation ||
+        !slot.cleanup_metadata.same_requests(effect))
       fail(E::invalid_options,"conflicting duplicate native Cleanup");
     return;
   }
@@ -435,16 +473,17 @@ void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file,
     // All latch capacity is reserved BEFORE publication. Initial intent is
     // armed at real Cleanup, never by Open/creation/adoption. Capture the
     // effective directory policy before commit; no post-commit query.
-    auto committed=self.writer.cleanup_initial_delete_result(slot.inode,delete_file,effect);
-    if(!delete_file && !committed.info.unlinked) {
+    auto committed=self.writer.cleanup_inode_storage_result(slot.inode,delete_file,true,event);
+    if(!delete_file && !committed.state.info.unlinked) {
       self.latched[latch]=slot.inode;
       self.latch_flags[latch]|=Impl::kInitial;
       if(slot.requested)self.latch_flags[latch]|=Impl::kExplicit;
-      if(!committed.info.delete_pending)self.latch_flags[latch]|=Impl::kVolatile;
+      if(!committed.state.info.delete_pending)self.latch_flags[latch]|=Impl::kVolatile;
       else self.latch_flags[latch]=static_cast<std::uint8_t>(self.latch_flags[latch]&~Impl::kVolatile);
     } else self.clear_latch(slot.inode);
   } else {
-    if(effect.any())self.writer.cleanup_inode(slot.inode,delete_file,effect);
+    if(effect.any() || event.trim_allocation)
+      self.writer.cleanup_inode_storage_result(slot.inode,delete_file,false,event);
     else if(delete_file)self.writer.unlink_inode(slot.inode);
     if(delete_file)self.clear_latch(slot.inode);
     else if(latch!=self.latched.size()) {
@@ -452,7 +491,7 @@ void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file,
       if(slot.requested)self.latch_flags[latch]|=Impl::kExplicit;
     }
   }
-  slot.cleanup_metadata=effect;
+  slot.cleanup_metadata=effect;slot.cleanup_trim=event.trim_allocation;
   slot.cleaned=true;slot.cleanup_delete=delete_file; // Paging stays owned until Close.
 }
 void NativeFileSession::fence() noexcept {

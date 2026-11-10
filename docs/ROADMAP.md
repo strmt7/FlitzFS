@@ -446,3 +446,7 @@ redundant repair, learning and conventional-filesystem comparisons remain open.
 ### Native allocation capacity prerequisite
 
 Implement explicit persisted native live-extent reservations, mixed reserved/legacy accounting, growth, atomic shrink and bounded captured results (NATIVE_ALLOCATION.md). Qualify the new matrix before passing this component. Still required: actual backing preallocation/history headroom, complete Windows FileInfo/free-space policy, atomic Create/Overwrite allocation and trusted Cleanup trim, writable callback/helper integration and Windows 11 client/live AMD qualification.
+
+### Allocation event integration
+
+NATIVE_ALLOCATED_EVENTS.md combines native reservations with Create/Overwrite/Cleanup and captures reservation facts for data results. Qualify the new matrix/SDK lifecycle cases before passing this component. Physical backing admission, complete Windows FileInfo/cache/space policy, actual writable helper/driver routing, Windows 11 client and live AMD qualification remain required. Apply the latest AGENTS.md RAM-only PC permission and resource-hygiene requirements; it does not make unfinished driver/GPU/fault experiments suitable for the PC.

@@ -268,3 +268,7 @@ and the source-qualified adapter/delivery gates still required.
 ### Owned native reservations
 
 allocation_info and allocation_usage expose verified native capacity facts; reserve_result requires data-write ownership and uses the same terminal/context-retention rules. Provisional mutation remains denied, and detached ownership retains reservations until final retirement. NATIVE_ALLOCATION.md distinguishes these units from disk/Windows AllocationSize. Captured reservation results need no post-publication query. No writable callback or host permission is added.
+
+### Storage-aware events
+
+NATIVE_ALLOCATED_EVENTS.md adds prepared storage creation, separately granted storage-aware overwrite, captured write/truncate reservation facts and cleanup_event. Old APIs/layouts remain. Initial delete is still volatile until real Cleanup; healthy provisional cancellation preserves complete created/overwritten state with no I/O. A duplicate successful Cleanup also matches its trim bit. Trim metadata/latches/ownership update only after durable success; failure keeps contexts/fencing. No new worker, thread, service, callback table, mount or automatic PC test is introduced.
