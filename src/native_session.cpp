@@ -24,6 +24,7 @@ struct NativeFileSession::Impl {
     NativeFileAccess access;
     bool cleaned=false,cleanup_delete=false,requested=false,basic_write=false;
     NativeCleanupMetadata cleanup_metadata;
+    bool security_read=false,security_replace=false;
   };
   static_assert(std::is_nothrow_copy_assignable_v<Slot>);
   NativeFilesystemWriter writer;
@@ -94,6 +95,10 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
 }
 NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,
     NativeOpenKind kind,NativeBasicAccess basic_access) {
+  return open(path,access,kind,basic_access,{});
+}
+NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,
+    NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access) {
   auto& self=ready();
   if(kind!=NativeOpenKind::any && kind!=NativeOpenKind::file && kind!=NativeOpenKind::directory)
     fail(E::invalid_options,"unknown native open kind");
@@ -109,7 +114,7 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
   if(kind==NativeOpenKind::directory && !state.info.directory)
     throw NativeFsError(NativeFsErrorCode::not_directory,"native open requires directory");
   NativeFileHandle result;result.owner_=self.owner;result.token_=self.next_token;
-  self.slots[available]={self.next_token,state.info.inode,access,false,false,false,basic_access.write};
+  self.slots[available]={self.next_token,state.info.inode,access,false,false,false,basic_access.write,{},security_access.read,security_access.replace};
   ++self.next_token;return result;
 }
 NativeInodeState NativeFileSession::info(const NativeFileHandle& handle) const {
@@ -124,6 +129,18 @@ NativeFsCommit NativeFileSession::set_basic_metadata(const NativeFileHandle& han
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.basic_write)fail(E::access_denied,"native context has no basic metadata write access");
   (void)self.state(slot);return self.writer.set_basic_metadata(slot.inode,value);
+}
+std::optional<NativeSecurityDescriptor> NativeFileSession::security_descriptor(const NativeFileHandle& handle) const {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.security_read)fail(E::access_denied,"native context has no descriptor read grant");
+  (void)self.state(slot);return self.writer.inspect_security_descriptor(slot.inode);
+}
+NativeFsCommit NativeFileSession::set_security_descriptor(const NativeFileHandle& handle,std::span<const std::byte> value) {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.security_replace)fail(E::access_denied,"native context has no full descriptor replacement grant");
+  if(!native_security_descriptor_framed(value))
+    throw NativeFsError(NativeFsErrorCode::invalid_operation,"invalid native security descriptor framing");
+  (void)self.state(slot);return self.writer.set_security_descriptor(slot.inode,value);
 }
 std::vector<NativeFileInfo> NativeFileSession::list(const NativeFileHandle& handle) const {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
@@ -185,6 +202,17 @@ NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool direct
   op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
   const NativeBasicMutation basic{0,1,value};
   return self.writer.apply_with_basic({&op,1},{&basic,1});
+}
+NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory,
+    const NativeBasicMetadata& basic,std::span<const std::byte> descriptor) {
+  auto& self=ready();admit_path(path);
+  if(!native_security_descriptor_framed(descriptor))
+    throw NativeFsError(NativeFsErrorCode::invalid_operation,"invalid native creation security descriptor");
+  NativeFileMutation op;op.path=std::string(path);
+  op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
+  const NativeBasicMutation metadata{0,1,basic};
+  const NativeSecurityMutation security{0,1,NativeSecurityDescriptor(descriptor.begin(),descriptor.end())};
+  return self.writer.apply_with_metadata({&op,1},{&metadata,1},{&security,1});
 }
 NativeFsCommit NativeFileSession::rename(const NativeFileHandle& handle,std::string_view target,bool replace) {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];

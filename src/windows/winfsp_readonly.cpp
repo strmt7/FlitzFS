@@ -104,6 +104,7 @@ struct WinFspReadOnly::Impl {
     FSP_FSCTL_FILE_INFO info{};
     const Node* parent = nullptr;
     std::vector<const Node*> children;
+    std::vector<std::byte> security; // Present persisted descriptor, empty uses legacy owner policy.
   };
   struct Slot { std::uintptr_t token = 0; const Node* node = nullptr; };
   ReadOnlyProjection projection;
@@ -143,6 +144,12 @@ struct WinFspReadOnly::Impl {
     if (nodes.size() >= 257) throw CatalogError(CatalogErrorCode::limit, "node budget");
     Node node;
     node.path = windows_path(entry.path);
+    if(auto descriptor=projection.security_descriptor(node.path)) {
+      if(!native_security_descriptor_framed(*descriptor) ||
+          !IsValidSecurityDescriptor(reinterpret_cast<PSECURITY_DESCRIPTOR>(descriptor->data())))
+        throw NativeFsError(NativeFsErrorCode::corrupt,"invalid persisted Windows security descriptor");
+      node.security=std::move(*descriptor);
+    }
     const auto slash = entry.path.rfind('/');
     node.name = entry.path.substr(slash == std::string::npos ? 0 : slash + 1);
     node.parent = parent;
@@ -181,12 +188,13 @@ struct WinFspReadOnly::Impl {
     if (token) for (const auto& slot : handles) if (slot.token == token) return slot.node;
     return nullptr;
   }
-  NTSTATUS security_copy(PSECURITY_DESCRIPTOR destination, SIZE_T* size) const {
+  NTSTATUS security_copy(const Node& node,PSECURITY_DESCRIPTOR destination, SIZE_T* size) const {
+    const auto& descriptor=node.security.empty()?security:node.security;
     if (!size) return destination ? STATUS_INVALID_PARAMETER : STATUS_SUCCESS;
     const auto capacity = *size;
-    *size = security.size();
-    if (!destination || capacity < security.size()) return STATUS_BUFFER_OVERFLOW;
-    std::memcpy(destination, security.data(), security.size());
+    *size = descriptor.size();
+    if (!destination || capacity < descriptor.size()) return STATUS_BUFFER_OVERFLOW;
+    std::memcpy(destination, descriptor.data(), descriptor.size());
     return STATUS_SUCCESS;
   }
   static NTSTATUS volume(FSP_FILE_SYSTEM* fs, FSP_FSCTL_VOLUME_INFO* info) noexcept {
@@ -207,7 +215,7 @@ struct WinFspReadOnly::Impl {
       auto& s = self(fs);
       const auto& node = s.lookup(name);
       if (attributes) *attributes = node.info.FileAttributes;
-      return s.security_copy(descriptor, size);
+      return s.security_copy(node, descriptor, size);
     });
   }
   static NTSTATUS open(FSP_FILE_SYSTEM* fs, PWSTR name, UINT32 options, UINT32 access,
@@ -259,8 +267,9 @@ struct WinFspReadOnly::Impl {
     return boundary([&]() -> NTSTATUS {
       if (!size) return STATUS_INVALID_PARAMETER;
       auto& s = self(fs);
-      if (!s.resolve(context)) return STATUS_INVALID_HANDLE;
-      return s.security_copy(descriptor, size);
+      const auto* node=s.resolve(context);
+      if (!node) return STATUS_INVALID_HANDLE;
+      return s.security_copy(*node, descriptor, size);
     });
   }
   static NTSTATUS read(FSP_FILE_SYSTEM* fs, PVOID context, PVOID buffer,

@@ -45,6 +45,16 @@ struct NativeBasicMetadata {
   std::uint32_t attributes=0;
   bool operator==(const NativeBasicMetadata&) const = default;
 };
+// Opaque self-relative Windows descriptor bytes. The CPU core checks bounded
+// framing only; Windows admission/access checks remain the adapter's job.
+inline constexpr std::size_t kNativeMaxSecurityBytes=16384;
+using NativeSecurityDescriptor=std::vector<std::byte>;
+bool native_security_descriptor_framed(std::span<const std::byte>) noexcept;
+struct NativeSecurityMutation {
+  std::uint64_t inode=0;
+  std::uint32_t created_ordinal=0; // Exactly one selector, as for basic metadata.
+  NativeSecurityDescriptor value;
+};
 struct NativeBasicMutation {
   std::uint64_t inode=0;
   // Exactly one selector: existing inode, or 1-based creation in THIS batch.
@@ -135,6 +145,7 @@ class NativeFilesystemSnapshot final {
   NativeInodeState inode_state(std::uint64_t inode) const;
   // Absent for legacy/unstamped inodes; never invent original timestamps.
   std::optional<NativeBasicMetadata> basic_metadata(std::uint64_t inode) const;
+  std::optional<NativeSecurityDescriptor> security_descriptor(std::uint64_t inode) const;
   bool needs_session_recovery() const noexcept;
   std::vector<NativeFileInfo> list(std::string_view directory="") const;
   std::vector<NativeFileInfo> list_inode(std::uint64_t directory) const;
@@ -192,6 +203,12 @@ class NativeFilesystemWriter final {
   // supply correctly authorized/stamped values in this SAME transaction.
   NativeFsCommit apply_with_basic(std::span<const NativeFileMutation>,
       std::span<const NativeBasicMutation>);
+  // <=16 TOTAL file/basic/security operations in one publication. Descriptors
+  // are full replacements, not SECURITY_INFORMATION patches or ACL decisions.
+  NativeFsCommit apply_with_metadata(std::span<const NativeFileMutation>,
+      std::span<const NativeBasicMutation>,std::span<const NativeSecurityMutation>);
+  NativeFsCommit set_security_descriptor(std::uint64_t inode,std::span<const std::byte>);
+  std::optional<NativeSecurityDescriptor> inspect_security_descriptor(std::uint64_t inode) const;
   NativeFsCommit set_basic_metadata(std::uint64_t inode,const NativeBasicMetadata&);
   std::optional<NativeBasicMetadata> inspect_basic_metadata(std::uint64_t inode) const;
   // Resolve a stable LIVE inode against the last acknowledged namespace, then
@@ -253,7 +270,8 @@ class NativeFilesystemWriter final {
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
       const NativeAutomaticMetadata* automatic=nullptr,bool cleanup_delete=false,
-      NativeInodeCommitInfo* published=nullptr);
+      NativeInodeCommitInfo* published=nullptr,
+      std::span<const NativeSecurityMutation> security={});
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

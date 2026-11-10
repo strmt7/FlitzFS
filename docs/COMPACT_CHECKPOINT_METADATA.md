@@ -235,3 +235,40 @@ or weakening the writer lease. Recovery root inspection still uses a separate
 read-only file handle after confirmed writer retirement and again after the
 continued writer closes. The selected-generation/root-digest/format/unit
 checks and all resource/fault oracles remain unchanged.
+
+### Executed dedicated compact campaign
+
+At 1b814730bcdf181909b28fcefcecdb935f5e02ff the corrected Windows
+compact job 129610208587 passed all 172 observed forced-termination cuts
+across six complete raw/automatic phase traces. Its two disjoint 86-case
+partitions completed in 9.681 and 9.805 seconds. Strict merge succeeded;
+every killed writer retired before a fresh CPU process admitted the selected
+root-3/4096 geometry, verified the complete decoded state, continued the
+combined keep-file data/basic transaction and independently reopened it.
+All seven report-validation methods passed. Artifact 13732892516 has SHA256
+d96711197187a1c096fdb91157508b04658bd844134aa740859878647086a826.
+
+The same commit's fixed-layout metadata campaign retained all 712 cases
+(356 per partition, 39.372/38.843 seconds). Windows native job 129610213080
+passed 65 checks, including the existing compact image accounting and
+143,360-byte independent file reopen; worker handles remained 94/94.
+These bounded observations do not establish physical power-loss behavior,
+hardware failure geometry, Windows 11 client or live AMD execution.
+The initial failed run remains documented above and is not a passing result.
+
+The Windows legacy campaign retained all 976 cuts in two 488-case partitions
+(80.064/96.736 seconds); the independent analysis VM retained 976 as well
+(26.455 seconds). Raw Windows job 129610213088 passed 62 checks.
+Sanitizer job 129610212867 passed all 58 entries in 391.15 seconds.
+These are development-run durations, not filesystem performance comparisons.
+
+All six workflows triggered by 1b814730bcdf181909b28fcefcecdb935f5e02ff
+succeeded. Default-layout mounted job 129613364762 passed normal reads and
+backing parity, deliberate helper termination with confirmed exit, automatic
+removal, independent native CPU recovery and same-path remount. Normal and
+recovery exits were zero; deliberate killed exit was 1460. Peak process commit
+was 6,156,288 / 6,086,656 / 5,156,864 bytes. All three strict space reports and
+their reconciliation passed. Image/payload stayed 786,432/6,416 bytes and the
+volume remained read-only without native compression-info advertisement.
+This remains fixed-layout Server-VM integration, not compact mounted writes,
+latest Windows 11 client, production-driver or live AMD qualification.
