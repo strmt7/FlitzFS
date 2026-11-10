@@ -173,3 +173,7 @@ replicated catalog isolation waste. Payload records were already contiguous.
 Storage-size improvements must count complete image/history bytes and preserve
 declared failure isolation. This does not repair the selected FSD compression-
 information gap or permit unsafe cache-manager size substitutions.
+
+## Strict data-bridge presentation
+
+NATIVE_WINDOWS_IO.md explicitly names native_reserved_cache as the experimental FileInfo allocation basis. It supplies the existing aligned native reservation for protocol/cache testing and never labels it host/physical/compressed allocation. The bridge is unwired from mounted writes; the live read-only oracle remains unchanged. Real backing/capacity/free-space/cache and separate compressed-usage reporting still need qualification before a production writable route.

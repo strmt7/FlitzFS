@@ -450,3 +450,7 @@ Implement explicit persisted native live-extent reservations, mixed reserved/leg
 ### Allocation event integration
 
 NATIVE_ALLOCATED_EVENTS.md combines native reservations with Create/Overwrite/Cleanup and captures reservation facts for data results. Qualify the new matrix/SDK lifecycle cases before passing this component. Physical backing admission, complete Windows FileInfo/cache/space policy, actual writable helper/driver routing, Windows 11 client and live AMD qualification remain required. Apply the latest AGENTS.md RAM-only PC permission and resource-hygiene requirements; it does not make unfinished driver/GPU/fault experiments suitable for the PC.
+
+### Windows FileInfo and synchronous data boundary
+
+NATIVE_WINDOWS_IO.md adds strict complete FileInfo translation and owned Write/SetFileSize/query/Flush bridges with actual SDK/fault coverage gates. Qualify executed results before passing this component. The explicit native-reserved cache presentation is not physical preallocation or compressed-size reporting. Actual writable callback/helper routing still needs backing/free-space/cache policy, kernel adoption/shared disposition/security, latest Windows 11 client, scaling and AMD qualification.

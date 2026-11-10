@@ -311,6 +311,13 @@ NativeInodeAllocationInfo NativeFileSession::allocation_info(const NativeFileHan
   const auto state=self.state(slot);auto result=self.writer.inspect_allocation(slot.inode);
   result.info.delete_pending=state.delete_pending;return result;
 }
+NativeInodeAllocationInfo NativeFileSession::mutation_info(const NativeFileHandle& handle) const {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.write)fail(E::access_denied,"native context has no data mutation access");
+  const auto state=self.state(slot);
+  if(state.info.directory)throw NativeFsError(NativeFsErrorCode::is_directory,"native data mutation requires a file");
+  auto result=self.writer.inspect_allocation(slot.inode);result.info.delete_pending=state.delete_pending;return result;
+}
 NativeAllocationUsage NativeFileSession::allocation_usage() const {return ready().writer.inspect_allocation_usage();}
 NativeInodeAllocationCommit NativeFileSession::reserve_result(const NativeFileHandle& handle,
     std::uint64_t bytes,const NativeAutomaticMetadata& effect) {

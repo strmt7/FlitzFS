@@ -103,6 +103,11 @@ void admission() {
   rejects([&]{session.create_prepared_storage("bad",true,tuple(true),sec::descriptor(),0);},NativeFsErrorCode::invalid_operation);
   require(ram->live==bytes && ram->calls==calls && ram->read_calls==reads && !session.stats().contexts &&
       !session.poisoned(),"bad creation reservation touched backing/leaked context");
+  auto readonly=session.open("target",{true,false,false});
+  const auto denied_calls=ram->calls,denied_reads=ram->read_calls;
+  denies([&]{session.mutation_info(readonly);},NativeSessionErrorCode::access_denied);
+  require(ram->calls==denied_calls && ram->read_calls==denied_reads,"denied mutation preflight touched backing");
+  session.cleanup(readonly,false);session.close(readonly);
   auto h=session.open("target",all);
   const auto state=session.stats();
   rejects([&]{session.cleanup_event(h,false,{effects(),true});},NativeFsErrorCode::invalid_operation);
