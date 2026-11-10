@@ -70,7 +70,8 @@ std::map<std::uint64_t,std::size_t> fields(const Bytes& bytes) {
   require(at==bytes.size(),"security namespace fixture cursor");return out;
 }
 void normal(StoreCompressionMode mode,bool compact) {
-  auto ram=std::make_shared<Ram>();auto writer=fresh(ram,mode,compact);
+  auto ram=std::make_shared<Ram>();std::optional<NativeFilesystemWriter> owner(fresh(ram,mode,compact));
+  auto& writer=*owner;
   const std::array<NativeFileMutation,4> initial{{file_create("f"),file_write("f",0,data(73,1)),
       file_create("keep"),file_write("keep",0,data(91,2))}};
   writer.apply(initial);auto old=writer.snapshot();const auto before=ram->flushes;
@@ -101,7 +102,12 @@ void normal(StoreCompressionMode mode,bool compact) {
   require(writer.snapshot().security_descriptor(2)==sec::descriptor(2),"data mutation lost descriptor");
   const auto source=ram->live;auto destination=std::make_shared<Ram>();destination->failure_unit=ram->failure_unit;
   auto id=identity();id[2]=std::byte{97};
-  auto copied=NativeFilesystemWriter::compact(writer.snapshot(),destination,id,{mode,6,false});
+  auto selected=writer.snapshot();
+  rejects([&]{NativeFilesystemWriter::compact(selected,destination,id,{mode,6,false});},
+      NativeFsErrorCode::storage_failure);
+  require(destination->live.empty() && ram->live==source,"live writer compaction did not preserve ownership/source");
+  owner.reset(); // The existing compaction contract requires a quiescent source.
+  auto copied=NativeFilesystemWriter::compact(selected,destination,id,{mode,6,false});
   require(copied.snapshot().security_descriptor(2)==sec::descriptor(2) &&
       copied.snapshot().security_descriptor(1)==sec::empty_dacl() && ram->live==source,
       "new-identity copy lost security or altered source");
