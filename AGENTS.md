@@ -915,3 +915,19 @@ ownership remains required but needs authenticated live requester authority,
 negotiated protocol/capability and proven token cleanup; no opener/service-token/
 PID/boolean substitute. No driver permission on the PC follows. Retain all old
 ACL/cap/fault/retirement cases and native exact outcome reporting.
+
+## Volume-head authority boundary
+
+Read docs/VOLUME_HEAD.md before changing volume selection. Keep its fixed two
+64-KiB slots, independently flushed self-contained selectors and exact volume/
+epoch/image/checkpoint binding. Compare canonical namespace (only image UUID
+rebound) and every live payload; never scan sparse logical size or trust a
+caller attestation. Require resolved, quiescent latest source/target and healthy
+replicated target metadata. Fence/revalidate the target before head publication;
+repair the nonselected peer FIRST. Preserve source and partial candidates.
+Terminal errors retain the head lease and expose no cached authority/retry I/O.
+The provider must prove global ownership/nonaliasing/durable unique ID mapping;
+per-instance leases are not authentication or proof against other facades.
+No path factory, source deletion, name replacement, automatic worker, mounted
+handoff, driver/PC/GPU permission or physical-power claim follows. Those remain
+separate full-product requirements; retain every historical case/cap/oracle.

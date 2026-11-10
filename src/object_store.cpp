@@ -380,6 +380,9 @@ Bytes ObjectStoreSnapshot::read(std::uint64_t id) const {
   return read_object(s,*it);
 }
 void ObjectStoreSnapshot::verify_all() const { if(!impl_) fail("moved-from snapshot");verify(impl_->state); }
+std::shared_ptr<StoreByteIo> ObjectStoreSnapshot::backing_for_volume_head() const {
+  if(!impl_)fail("moved-from volume image");return impl_->state.image;
+}
 
 ObjectStoreWriter ObjectStoreWriter::create(std::shared_ptr<StoreByteIo> image,StoreIdentity id,StoreCompressionOptions compression) {
   return create(std::move(image),id,compression,{});

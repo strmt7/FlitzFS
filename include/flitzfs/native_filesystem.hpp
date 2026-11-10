@@ -201,6 +201,9 @@ class NativeFilesystemSnapshot final {
   void verify_all() const;
  private:
   friend class NativeFilesystemWriter;
+  friend class NativeVolumeHeadWriter;
+  const ObjectStoreSnapshot& objects_for_volume_head() const;
+  void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&) const;
   struct Impl;
   explicit NativeFilesystemSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

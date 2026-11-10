@@ -41,6 +41,7 @@ class StoreByteIo {
   virtual StoreIoContract contract() const noexcept=0;
  private:
   friend class ObjectStoreWriter;
+  friend class NativeVolumeHeadWriter;
   bool acquire_writer() noexcept {
     bool expected=false;
     return writer_owned_.compare_exchange_strong(expected,true,std::memory_order_acquire,std::memory_order_relaxed);
@@ -100,6 +101,8 @@ class ObjectStoreSnapshot final {
   void verify_all() const;
  private:
   friend class ObjectStoreWriter;
+  friend class NativeVolumeHeadWriter;
+  std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   struct Impl;
   explicit ObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
