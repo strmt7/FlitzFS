@@ -25,19 +25,21 @@ using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
 constexpr std::uint64_t kNamespaceObject=1;
 constexpr std::size_t kMetadataCap=kNativeExtentBytes,kDirtyCap=kNativeMaxDirtyExtents;
-constexpr std::size_t kBasicNodeHeader=88,kSecurityNodeHeader=96;
+constexpr std::size_t kBasicNodeHeader=88,kSecurityNodeHeader=96,kAllocationNodeHeader=104;
 static_assert(64+kNativeMaxNodes*(kBasicNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
 static_assert(64+kNativeMaxNodes*(kSecurityNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
+static_assert(64+kNativeMaxNodes*(kAllocationNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
 static_assert(kDirtyCap*kNativeExtentBytes+kMetadataCap<=kStoreMaxTransactionBytes);
 static_assert(kNativeMaxExtents*kNativeExtentBytes+kMetadataCap<=kStoreMaxLogicalBytes);
 constexpr std::array<std::byte,8> kMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'N'},std::byte{'S'},std::byte{'0'},std::byte{'1'}};
 constexpr auto kLifecycleMagic=[] {auto magic=kMagic;magic[7]=std::byte{'2'};return magic;}();
 constexpr auto kBasicMagic=[] {auto magic=kMagic;magic[7]=std::byte{'3'};return magic;}();
 constexpr auto kSecurityMagic=[] {auto magic=kMagic;magic[7]=std::byte{'4'};return magic;}();
+constexpr auto kAllocationMagic=[] {auto magic=kMagic;magic[7]=std::byte{'5'};return magic;}();
 const std::array<std::byte,8>& namespace_magic(std::uint32_t format) {
-  return format==1?kMagic:format==2?kLifecycleMagic:format==3?kBasicMagic:kSecurityMagic;
+  return format==1?kMagic:format==2?kLifecycleMagic:format==3?kBasicMagic:format==4?kSecurityMagic:kAllocationMagic;
 }
-std::size_t node_header(std::uint32_t format) {return format==4?kSecurityNodeHeader:format==3?kBasicNodeHeader:64;}
+std::size_t node_header(std::uint32_t format) {return format>=5?kAllocationNodeHeader:format==4?kSecurityNodeHeader:format==3?kBasicNodeHeader:64;}
 [[noreturn]] void fail(Code code,const char* reason){throw NativeFsError(code,reason);}
 bool zeros(std::span<const std::byte> bytes){return std::all_of(bytes.begin(),bytes.end(),[](auto b){return b==std::byte{0};});}
 std::uint64_t integer(std::span<const std::byte> bytes,std::size_t at,unsigned width) {
@@ -53,6 +55,7 @@ struct Node {
   bool directory=false,delete_pending=false,unlinked=false;
   std::optional<NativeBasicMetadata> basic;
   std::optional<NativeSecurityDescriptor> security;
+  std::optional<std::uint64_t> allocation;
   std::string name,key;
   std::map<std::uint64_t,std::uint64_t> extents; // Logical block -> object ID.
 };
@@ -70,6 +73,23 @@ static_assert(std::is_nothrow_move_constructible_v<NativeInodeMutationCommit>);
 static_assert(std::is_nothrow_move_constructible_v<NativeInodeCreateCommit>);
 static_assert(std::is_nothrow_copy_assignable_v<NativeInodeCommitInfo>);
 static_assert(sizeof(NativeInodeCommitInfo)<=80);
+static_assert(std::is_nothrow_copy_assignable_v<NativeInodeAllocationInfo>);
+static_assert(std::is_nothrow_move_constructible_v<NativeInodeAllocationCommit>);
+NativeInodeCommitInfo commit_info(const Node& n) {
+  return {n.inode,n.size,n.modified,n.basic,n.directory,n.delete_pending,n.unlinked};
+}
+std::uint64_t aligned_allocation(std::uint64_t bytes) {
+  return (bytes+kNativeAllocationUnit-1)/kNativeAllocationUnit*kNativeAllocationUnit;
+}
+NativeAllocationUsage allocation_usage(const Model& model) {
+  NativeAllocationUsage result;
+  for(const auto& [id,n]:model.nodes) {
+    (void)id;result.live_extents+=n.extents.size();
+    result.charged_extents+=n.allocation?
+        static_cast<std::size_t>((*n.allocation+kNativeExtentBytes-1)/kNativeExtentBytes):n.extents.size();
+  }
+  return result;
+}
 std::string canonical(std::string_view path,bool root=false) {
   try{return canonical_catalog_path(path,root);}
   catch(const std::bad_alloc&){throw;}
@@ -143,7 +163,7 @@ void validate_basic(const NativeBasicMetadata& value,bool directory) {
 }
 void validate_structure(const Model& model,bool pending=false) {
   if(model.nodes.empty() || model.nodes.size()>kNativeMaxNodes || model.sequence==0)fail(Code::limit,"native namespace budget");
-  if(model.format<1 || model.format>4)fail(Code::corrupt,"native namespace capability");
+  if(model.format<1 || model.format>5)fail(Code::corrupt,"native namespace capability");
   const auto& root=node(model,1);
   if(root.parent || !root.directory || !root.name.empty() || root.size || !root.extents.empty() ||
       root.born!=1 || root.delete_pending || root.unlinked)
@@ -156,6 +176,9 @@ void validate_structure(const Model& model,bool pending=false) {
         n.size>kNativeMaxFileBytes || (n.directory && (n.size || !n.extents.empty())) ||
         (n.delete_pending && n.unlinked) || (model.format==1 && (n.delete_pending || n.unlinked)))
       fail(Code::corrupt,"native inode invariant");
+    if(n.allocation && (model.format<5 || n.directory ||
+        *n.allocation%kNativeAllocationUnit || *n.allocation<n.size || *n.allocation>kNativeAllocationCapacity))
+      fail(Code::corrupt,"native allocation reservation invariant");
     if(n.basic) {
       if(model.format<3)fail(Code::corrupt,"basic metadata without namespace capability");
       validate_basic(*n.basic,n.directory);
@@ -183,6 +206,8 @@ void validate_structure(const Model& model,bool pending=false) {
   }
   if(model.next_inode<=largest || model.next_inode<2)fail(Code::corrupt,"native inode allocator");
   if(!pending && extent_count(model)>kNativeMaxExtents)fail(Code::limit,"native live extent budget");
+  if(allocation_usage(model).charged_extents>kNativeMaxExtents)
+    fail(Code::limit,"native reserved/live extent budget");
 }
 Bytes object_bytes(const ObjectStoreSnapshot& objects,std::uint64_t id) {
   try{return objects.read(id);}
@@ -212,7 +237,7 @@ Bytes encode(const Model& model) {
   std::size_t cursor=64;
   for(const auto& [id,n]:model.nodes) {
     put(bytes,cursor,id,8);put(bytes,cursor+8,n.parent,8);put(bytes,cursor+16,n.directory?1:2,4);
-    put(bytes,cursor+20,(n.delete_pending?1U:0U)|(n.unlinked?2U:0U)|(n.basic?4U:0U)|(n.security?8U:0U),4);
+    put(bytes,cursor+20,(n.delete_pending?1U:0U)|(n.unlinked?2U:0U)|(n.basic?4U:0U)|(n.security?8U:0U)|(n.allocation?16U:0U),4);
     put(bytes,cursor+24,n.size,8);put(bytes,cursor+32,n.born,8);put(bytes,cursor+40,n.modified,8);
     put(bytes,cursor+48,n.name.size(),2);put(bytes,cursor+50,n.extents.size(),2);
     if(n.basic) {
@@ -221,6 +246,7 @@ Bytes encode(const Model& model) {
       put(bytes,cursor+80,n.basic->change_time,8);
     }
     if(model.format>=4)put(bytes,cursor+88,n.security?n.security->size():0,4);
+    if(model.format>=5)put(bytes,cursor+96,n.allocation.value_or(0),8);
     cursor+=node_header(model.format);
     for(char c:n.name)bytes[cursor++]=static_cast<std::byte>(static_cast<unsigned char>(c));
     if(n.security) {
@@ -238,7 +264,7 @@ Model decode(const ObjectStoreSnapshot& objects) {
       integer(all,32,4)!=kNativeExtentBytes || !zeros(all.subspan(56,8)))
     fail(Code::corrupt,"unsupported native namespace framing");
   const auto format=integer(all,8,4);
-  if(format<1 || format>4 ||
+  if(format<1 || format>5 ||
       !std::equal(namespace_magic(static_cast<std::uint32_t>(format)).begin(),
                   namespace_magic(static_cast<std::uint32_t>(format)).end(),bytes.begin()))
     fail(Code::corrupt,"unsupported native namespace capability/magic");
@@ -261,11 +287,13 @@ Model decode(const ObjectStoreSnapshot& objects) {
     n.size=integer(h,24,8);n.born=integer(h,32,8);n.modified=integer(h,40,8);
     const auto name_bytes=integer(h,48,2),extents=integer(h,50,2);
     if((kind!=1 && kind!=2) || n.inode<=previous || name_bytes>100 || extents>kNativeMaxExtents ||
-        (flags&~std::uint64_t{15}) || (format==1 && flags) || (flags&3)==3 ||
-        (format<3 && (flags&4)) || (format<4 && (flags&8)) ||
+        (flags&~std::uint64_t{31}) || (format==1 && flags) || (flags&3)==3 ||
+        (format<3 && (flags&4)) || (format<4 && (flags&8)) || (format<5 && (flags&16)) ||
+        (format>=5 && !(flags&16) && integer(h,96,8)) ||
         (!(flags&4) && !zeros(h.subspan(52,(std::min)(header,std::size_t{88})-52))) ||
         (format>=4 && (integer(h,92,4) || bool(flags&8)!=(integer(h,88,4)!=0))) ||
         name_bytes>bytes.size()-cursor)fail(Code::corrupt,"invalid native inode fields");
+    if(flags&16)n.allocation=integer(h,96,8);
     if(flags&4) {
       n.basic=NativeBasicMetadata{integer(h,56,8),integer(h,64,8),integer(h,72,8),integer(h,80,8),
           static_cast<std::uint32_t>(integer(h,52,4))};
@@ -404,10 +432,10 @@ struct Stage {
     // Enforce the SAME whole-namespace cap before copying a replacement.
     std::size_t size=64+op.value.size();
     for(const auto& [key,item]:model.nodes)
-      size+=kSecurityNodeHeader+item.name.size()+16*item.extents.size()+
+      size+=node_header((std::max)(model.format,4U))+item.name.size()+16*item.extents.size()+
           (key!=id && item.security?item.security->size():0);
     if(size>kMetadataCap)fail(Code::limit,"native aggregate security metadata budget");
-    n.security=op.value;n.modified=model.sequence;model.format=4;changed=true;
+    n.security=op.value;n.modified=model.sequence;model.format=(std::max)(model.format,4U);changed=true;
   }
   void automatic_metadata(std::uint64_t id,const NativeAutomaticMetadata& effect) {
     auto& n=node(model,selected_inode(model,id).inode);
@@ -438,6 +466,18 @@ struct Stage {
     // An explicit overwrite is a durable event, including an already empty
     // file and identical sampled fields. Keep the same THREE barriers.
     n.modified=model.sequence;changed=true;
+  }
+  void reserve(std::uint64_t id,std::uint64_t bytes) {
+    auto& n=node(model,selected_inode(model,id).inode);
+    if(n.directory)fail(Code::is_directory,"cannot reserve a native directory");
+    if(bytes%kNativeAllocationUnit || bytes>kNativeAllocationCapacity)
+      fail(Code::invalid_operation,"invalid aligned native reservation");
+    if(bytes<n.size) {
+      NativeFileMutation op;op.operation=NativeFileOperation::truncate;op.size=bytes;apply(op,id);
+    }
+    if(n.allocation && *n.allocation==bytes)return;
+    n.allocation=bytes;n.modified=model.sequence;
+    model.format=(std::max)(model.format,5U);changed=true;
   }
   void cleanup_initial(std::uint64_t id,bool deleting,const NativeCleanupMetadata& effect) {
     auto& n=node(model,selected_inode(model,id).inode);
@@ -485,6 +525,8 @@ struct Stage {
       if(n.directory)fail(Code::is_directory,"cannot write native directory");
       if(op.offset>kNativeMaxFileBytes || op.data.size()>kNativeMaxFileBytes-op.offset)fail(Code::limit,"native write bounds");
       if(op.data.empty())return;
+      if(n.allocation && (op.offset>kNativeAllocationCapacity || op.data.size()>kNativeAllocationCapacity-op.offset))
+        fail(Code::limit,"native write exceeds reserved-capacity domain");
       std::size_t done=0;
       while(done<op.data.size()) {
         const auto position=op.offset+done,index=position/kNativeExtentBytes;
@@ -499,11 +541,15 @@ struct Stage {
         }
         done+=count;
       }
-      n.size=(std::max)(n.size,op.offset+op.data.size());n.modified=model.sequence;changed=true;return;
+      n.size=(std::max)(n.size,op.offset+op.data.size());
+      if(n.allocation)*n.allocation=(std::max)(*n.allocation,aligned_allocation(n.size));
+      n.modified=model.sequence;changed=true;return;
     }
     if(trunc) {
       if(n.directory)fail(Code::is_directory,"cannot truncate native directory");
       if(op.size>kNativeMaxFileBytes)fail(Code::limit,"native truncate bounds");
+      if(n.allocation && op.size>kNativeAllocationCapacity)
+        fail(Code::limit,"native EOF exceeds reserved-capacity domain");
       if(op.size==n.size)return;
       const auto blocks=(op.size+kNativeExtentBytes-1)/kNativeExtentBytes;
       for(auto it=n.extents.lower_bound(blocks);it!=n.extents.end();) {
@@ -519,7 +565,9 @@ struct Stage {
           finish_block(n,index);
         }
       }
-      n.size=op.size;n.modified=model.sequence;changed=true;return;
+      n.size=op.size;
+      if(n.allocation)*n.allocation=(std::max)(*n.allocation,aligned_allocation(n.size));
+      n.modified=model.sequence;changed=true;return;
     }
     if(rename) {
       const auto [parent,name]=destination(model,op.target);const auto key=component(name);
@@ -656,6 +704,14 @@ std::optional<NativeBasicMetadata> NativeFilesystemSnapshot::basic_metadata(std:
 std::optional<NativeSecurityDescriptor> NativeFilesystemSnapshot::security_descriptor(std::uint64_t inode) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   return selected_inode(impl_->model,inode).security;
+}
+NativeInodeAllocationInfo NativeFilesystemSnapshot::allocation_info(std::uint64_t inode) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  const auto& n=selected_inode(impl_->model,inode);return {commit_info(n),n.allocation};
+}
+NativeAllocationUsage NativeFilesystemSnapshot::allocation_usage() const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  return flitzfs::allocation_usage(impl_->model);
 }
 bool NativeFilesystemSnapshot::needs_session_recovery() const noexcept {
   if(!impl_)return false;
@@ -809,7 +865,8 @@ NativeInodeCreateCommit NativeFilesystemWriter::create_inode_result(std::string_
 NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutation> operations,
     InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic,
     const NativeAutomaticMetadata* automatic,bool delete_requested,NativeInodeCommitInfo* published,
-    std::span<const NativeSecurityMutation> security,const NativeOverwriteMetadata* overwrite) {
+    std::span<const NativeSecurityMutation> security,const NativeOverwriteMetadata* overwrite,
+    const std::uint64_t* reservation,NativeInodeAllocationInfo* allocation) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(automatic && !native_cleanup_metadata_valid(*automatic))
     fail(Code::invalid_operation,"invalid automatic metadata time/unused clock");
@@ -837,6 +894,10 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       case InodeAction::mutate:
         if(!inode || operations.size()!=1)fail(Code::invalid_operation,"invalid inode transaction");
         stage.apply(operations.front(),inode);break;
+      case InodeAction::reserve:
+        if(!reservation || !operations.empty() || !basic.empty() || !security.empty() || overwrite || delete_requested)
+          fail(Code::invalid_operation,"invalid native reservation transaction");
+        stage.reserve(inode,*reservation);break;
       case InodeAction::set_delete:stage.set_delete(inode,true);break;
       case InodeAction::clear_delete:stage.set_delete(inode,false);break;
       case InodeAction::unlink:stage.unlink(inode);break;
@@ -853,22 +914,25 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     // Mutating stable-inode data and trusted effects share the same Stage,
     // verification and single replicated publication. Cleanup applies its
     // own effects before unlink; never apply either effect twice.
-    if(action==InodeAction::mutate && automatic)stage.automatic_metadata(inode,*automatic);
+    if((action==InodeAction::mutate || action==InodeAction::reserve) && automatic)
+      stage.automatic_metadata(inode,*automatic);
     for(const auto& op:basic)stage.set_basic(op);
     for(const auto& op:security)stage.set_security(op);
     validate_structure(stage.model,true);
     // Capture only bounded scalar/optional facts from the fully validated
     // staged model. Never query backing state or build a path after commit.
-    NativeInodeCommitInfo info;
-    if(published) {
+    NativeInodeCommitInfo info;NativeInodeAllocationInfo allocation_info;
+    if(published || allocation) {
       const auto selected=action==InodeAction::create?stage.created.front():inode;
       const auto& n=selected_inode(stage.model,selected);
-      info={n.inode,n.size,n.modified,n.basic,n.directory,n.delete_pending,n.unlinked};
+      info=commit_info(n);
+      if(allocation)allocation_info={info,n.allocation};
     }
     NativeFsCommit result;result.created_inodes=std::move(stage.created);
     if(!stage.changed) {
       result.storage=snapshot.info();result.sequence=impl_->model.sequence;
       if(published)*published=info;
+      if(allocation)*allocation=allocation_info;
       return result;
     }
     auto changes=stage.mutations();result.sequence=stage.model.sequence;
@@ -880,6 +944,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     }
     impl_->model=std::move(stage.model);
     if(published)*published=info;
+    if(allocation)*allocation=allocation_info;
     return result;
   }catch(const std::bad_alloc&){fail(Code::limit,"native allocation failure");}
   catch(const NativeFsError& e){
@@ -991,6 +1056,23 @@ NativeInodeMutationCommit NativeFilesystemWriter::cleanup_initial_delete_result(
   NativeInodeMutationCommit result;
   result.transaction=transact({},InodeAction::cleanup_initial,inode,{},&effect,delete_file,&result.info);
   return result;
+}
+NativeInodeAllocationCommit NativeFilesystemWriter::reserve_inode_result(std::uint64_t inode,
+    std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(bytes%kNativeAllocationUnit || bytes>kNativeAllocationCapacity || !native_cleanup_metadata_valid(effect))
+    fail(Code::invalid_operation,"invalid native reservation input");
+  NativeInodeAllocationCommit result;
+  result.transaction=transact({},InodeAction::reserve,inode,{},effect.any()?&effect:nullptr,
+      false,nullptr,{},nullptr,&bytes,&result.state);
+  return result;
+}
+NativeInodeAllocationInfo NativeFilesystemWriter::inspect_allocation(std::uint64_t inode) const {
+  auto objects=checked_namespace();(void)objects;
+  const auto& n=selected_inode(impl_->model,inode);return {commit_info(n),n.allocation};
+}
+NativeAllocationUsage NativeFilesystemWriter::inspect_allocation_usage() const {
+  auto objects=checked_namespace();(void)objects;return allocation_usage(impl_->model);
 }
 NativeFsCommit NativeFilesystemWriter::retire_inode(std::uint64_t inode) {
   return transact({},InodeAction::retire,inode);

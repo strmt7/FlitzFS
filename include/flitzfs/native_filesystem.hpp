@@ -140,6 +140,22 @@ struct NativeInodeMutationCommit {
   std::uint32_t bytes=0; // Durable write count; truncate returns zero.
 };
 
+// Native live-object capacity reservation, NOT host clusters or compressed
+// physical bytes. Absence retains the historical sparse/unreserved contract.
+inline constexpr std::uint64_t kNativeAllocationUnit=4096;
+inline constexpr std::uint64_t kNativeAllocationCapacity=kNativeMaxExtents*std::uint64_t(kNativeExtentBytes);
+struct NativeInodeAllocationInfo {
+  NativeInodeCommitInfo info;
+  std::optional<std::uint64_t> reserved_bytes;
+};
+struct NativeInodeAllocationCommit {
+  NativeFsCommit transaction;
+  NativeInodeAllocationInfo state;
+};
+struct NativeAllocationUsage {
+  std::size_t charged_extents=0,live_extents=0;
+};
+
 class NativeFilesystemSnapshot final {
  public:
   // Consumes a fully verified object snapshot; validates native namespace and all references.
@@ -160,6 +176,8 @@ class NativeFilesystemSnapshot final {
   // Absent for legacy/unstamped inodes; never invent original timestamps.
   std::optional<NativeBasicMetadata> basic_metadata(std::uint64_t inode) const;
   std::optional<NativeSecurityDescriptor> security_descriptor(std::uint64_t inode) const;
+  NativeInodeAllocationInfo allocation_info(std::uint64_t inode) const;
+  NativeAllocationUsage allocation_usage() const;
   bool needs_session_recovery() const noexcept;
   std::vector<NativeFileInfo> list(std::string_view directory="") const;
   std::vector<NativeFileInfo> list_inode(std::uint64_t directory) const;
@@ -282,6 +300,15 @@ class NativeFilesystemWriter final {
   // Captured facts let the owner update runtime latches without post-commit I/O.
   NativeInodeMutationCommit cleanup_initial_delete_result(std::uint64_t inode,bool delete_file,
       const NativeCleanupMetadata&);
+  // Explicit aligned native reservation. Shrinking below EOF truncates/zeros
+  // tails in the SAME transaction. Growth preserves EOF/data. Tracked writes
+  // and EOF growth extend reservations; ordinary EOF shrink retains them.
+  // Every live inode (including detached) shares the unchanged extent budget.
+  // This does NOT preallocate host file/disk space or guarantee future history.
+  NativeInodeAllocationCommit reserve_inode_result(std::uint64_t inode,
+      std::uint64_t aligned_bytes,const NativeAutomaticMetadata& effect={});
+  NativeInodeAllocationInfo inspect_allocation(std::uint64_t inode) const;
+  NativeAllocationUsage inspect_allocation_usage() const;
   NativeFsCommit retire_inode(std::uint64_t inode);
   // Single-control-thread committed view for the owning Windows engine.
   // Verify namespace against the last acknowledged model; reads privately
@@ -298,13 +325,14 @@ class NativeFilesystemWriter final {
  private:
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
-  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial};
+  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
       const NativeAutomaticMetadata* automatic=nullptr,bool delete_requested=false,
       NativeInodeCommitInfo* published=nullptr,
       std::span<const NativeSecurityMutation> security={},
-      const NativeOverwriteMetadata* overwrite=nullptr);
+      const NativeOverwriteMetadata* overwrite=nullptr,
+      const std::uint64_t* reservation=nullptr,NativeInodeAllocationInfo* allocation=nullptr);
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

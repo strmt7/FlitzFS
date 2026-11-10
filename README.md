@@ -260,3 +260,5 @@ metadata and unlink, while nonempty directories retain their contents.
 See [initial deletion](docs/NATIVE_INITIAL_DELETE.md). Configured engine/SDK
 tests require exact-commit inspection; writable driver/app/client integration,
 allocation/full FileInfo and live AMD remain unfinished.
+
+The experimental native engine now has explicit persistent live-extent reservations, atomic allocation shrink/EOF/tail handling, and shared reservation accounting. These native capacity units are separate from host allocation and compressed physical bytes; they do not yet enable Windows allocation callbacks. See [NATIVE_ALLOCATION.md](docs/NATIVE_ALLOCATION.md).

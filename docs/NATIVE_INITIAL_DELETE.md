@@ -153,3 +153,17 @@ Windows 11 client/kernel cancellation, shared disposition, policy flags,
 allocation/full FileInfo, driver/helper offlining, live AMD, scale/reclaim,
 payload repair and low-priority learning remain required. No owner-PC
 operation is authorized.
+
+## Executed hosted qualification
+
+Commit `43e48ff48de4b9c78a7bd86cc70c06d5e1e3ef73` ran on disposable GitHub-hosted VMs only. The owner's PC was not accessed.
+
+The native Windows suite passed 89 CTest groups; the raw-only and relocated native-codec Windows suites each passed 83; the Linux codec/raw and ASan/UBSan suites each passed 79. Existing resource limits and prior assertions remained enabled. The new initial-delete groups reported 282 invariant checks, eight sealed-publication cases, and all 16 raw/automatic × fixed/compact × arm/unlink/nonempty-retain/final-directory traces: 1,656 injected write/flush failures total. The full matrix also passed under ASan/UBSan. These are modeled storage faults, not physical power-loss or driver-reset qualification.
+
+Actual selected WinFsp user-mode Cleanup/Close dispatch reported 22 cases and 177 checks. The existing provisional SDK group retained its 32 cases and 97 checks. Windows worker handle totals remained 94 before and after. These SDK cases do not execute kernel Create with FILE_DELETE_ON_CLOSE and do not qualify a writable callback table, Windows 11 client, ACL inheritance, mapped writes or a production helper app.
+
+Legacy native-store process-interruption recovery completed 976 cases on each hosted OS; Windows basic-metadata and compact root-3 campaigns completed 712 and 172 cases respectively. Their existing campaign scopes were preserved; they are not new process-termination campaigns for initial-delete or NS04 descriptors.
+
+The official dependency inventory passed with `outdated_pins: []`; that is not a new Dependabot-alert API result. Current source routing completed six CPU-only CocoIndex queries bound to source SHA-256 `c30be732af467ff4fe40c519424c9d7ff24627576fd53548e04d7f0bf7a050a3` (job 129697184589). Pinned decoder-reference, runtime digest and same-source RAM comparisons also passed; their existing comparison scope does not establish mounted disk performance, live AMD speedup, or superiority over other filesystems.
+
+All 11 workflows completed successfully for this exact commit. Hosted Windows mount job 129699796152 completed normal, deliberately terminated helper and recovery phases (confirmed exits 0, 1460 and 0). All three source-bound space reports reconciled; mapped reads, sparse tails, enumeration, write rejection and backing-image parity passed. This remains a read-only hosted Windows Server mount and does not execute the new initial-option kernel Create lifecycle or qualify Windows 11 client policy, writable operation or AMD acceleration.

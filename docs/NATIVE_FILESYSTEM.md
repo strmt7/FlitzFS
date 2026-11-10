@@ -368,3 +368,7 @@ Generic operations and new-identity compaction preserve exact bytes; the core
 does not invent defaults, inheritance or an authorization decision. The Windows
 read-only adapter validates present descriptors and returns per-inode bytes.
 Complete ACL/privilege/allocation policy and writable/client qualification remain.
+
+### Optional native allocation accounting
+
+NATIVE_ALLOCATION.md adds explicit per-regular-inode reservations through the same Stage and three-barrier publication. Legacy sparse inodes remain untracked. Tracked write/EOF growth raises aligned reservation; ordinary shrink retains it and explicit reservation shrink truncates/zeros atomically. Mixed tracked reservations and untracked extents share the unchanged live-extent ceiling; detached inodes retain their charge. This is native capacity accounting, not a complete physical or Windows allocation implementation. FLTXNS05 is sticky, with all legacy formats and original public result layouts preserved.

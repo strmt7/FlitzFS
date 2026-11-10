@@ -605,3 +605,22 @@ remain. Kernel callback-elision/delivery/shared-disposition/adoption policy
 needs real qualification before writable binding; never infer it from these
 SDK fixtures or a trusted declaration. No owner-PC/app/client/power/live AMD
 permission or completion follows.
+
+
+## Native live-extent reservations
+
+Read docs/NATIVE_ALLOCATION.md before changing FLTXNS05 or reservation APIs.
+Preserve exact old bytes/support, sticky capability, strict absent/present-zero
+fields, regular-only/aligned/EOF admission and the SAME shared 255-extent/
+64-KiB metadata/decoded/dirty/input/history ceilings. Charge tracked reservations
+and untracked extents together, including detached contexts; never double-charge
+or let compression bypass capacity. Shrink must truncate/zero atomically in
+ONE Stage/THREE barriers; generic tracked growth reserves aligned capacity.
+No post-commit backing/path/clock/allocation for captured result return. Failure
+retains owner/context/fencing. Keep all modeled points/modes and old tests.
+These units are native live slots, NOT actual host clusters, physical backing
+preallocation or complete Windows AllocationSize/space guarantees. Actual
+backing/headroom, atomic Create/Overwrite/cleanup trimming, FileInfo/cache,
+writable driver/helper, Windows 11 client and live AMD gates remain open.
+Never route successful Windows allocation callbacks from this component alone.
+No owner-PC exception or capacity increase follows.

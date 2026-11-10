@@ -264,3 +264,7 @@ Cleanup combines effective pending/metadata/unlink; fixed latch provenance
 tracks safe nonempty-directory runtime state and cancellation independently
 of older explicit requests. NATIVE_INITIAL_DELETE.md specifies this behavior
 and the source-qualified adapter/delivery gates still required.
+
+### Owned native reservations
+
+allocation_info and allocation_usage expose verified native capacity facts; reserve_result requires data-write ownership and uses the same terminal/context-retention rules. Provisional mutation remains denied, and detached ownership retains reservations until final retirement. NATIVE_ALLOCATION.md distinguishes these units from disk/Windows AllocationSize. Captured reservation results need no post-publication query. No writable callback or host permission is added.

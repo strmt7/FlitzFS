@@ -176,3 +176,7 @@ Cleanup uses existing pending/unlinked/basic fields atomically. Nonempty
 directory pending authority is session-only, preserving on-disk children and
 safe CPU recovery. Historical durable-intent API bytes remain unchanged.
 NATIVE_INITIAL_DELETE.md distinguishes runtime state from persisted flags.
+
+### Explicit native allocation reservation capability
+
+[NATIVE_ALLOCATION.md](NATIVE_ALLOCATION.md) specifies opt-in FLTXNS05: format-5 inode headers are 104 bytes, preserve format-4 fields, add presence flag 16 and a u64 aligned reservation at offset 96 (zero if absent). Regular files only; present zero differs from absence. The 64-byte namespace header, all old bytes/readers, roots/manifests/codecs and aggregate caps remain. New-capability decoding rejects inconsistent flags/framing/alignment/EOF/capacity; normal metadata/security/lifecycle/copy operations retain format 5. Reservations count worst-case native live slots, not host allocation or compressed payload bytes.
