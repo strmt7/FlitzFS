@@ -494,3 +494,15 @@ Keep full catalogs/malformed roots/unit conflicts, all modeled fault modes,
 native fixed+compact cases and actual hosted new-file checks. Do not relabel
 fixed process campaigns as root-3 coverage. Root-3 termination, physical
 power/device, Windows 11/writable/live AMD and owner-host qualification stay open.
+
+## Compact-layout process evidence
+
+The compact-store-interruption workflow adds separately identified schema-4
+root-3/4096 writer termination. Keep fixed schema-2/976 and schema-3/712
+campaigns intact. Require actual selected-root digest/generation/format/unit
+inspection before acknowledgements and independent recovery/continuation,
+complete decoded closures, every observed cut and three barriers, confirmed
+child/thread retirement and strict disjoint merge. Preserve all existing
+case/event/queue/fixture/process/time caps. Configured gates need exact-commit
+executed evidence; they are not physical power-loss/client/live-AMD proof.
+Default/mounted layouts and the owner-host prohibition remain unchanged.

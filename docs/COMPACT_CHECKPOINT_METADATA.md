@@ -126,7 +126,8 @@ are reported separately. Copy sizes are captured before a separate continuation.
 This is format accounting, not mounted/disk throughput or representative codec
 benchmarking. Configured checks need exact-commit executed receipts.
 
-Root-3-specific real writer termination, physical power cuts and writable/
+A separate compact-store-interruption workflow now configures a root-3-specific
+real writer-termination gate, described below. Physical power cuts and writable/
 Windows 11 client/live AMD qualification remain separate required work.
 The existing 712/976 campaigns retain their default layouts; do not relabel
 their passing results as root-3 process coverage. Normal mounted fixtures still
@@ -146,3 +147,75 @@ ownership proof; this implementation does not overwrite them. Autonomous
 learning/recompression/reclamation and redundant payload repair remain open.
 Windows compression reporting still needs its separate qualified driver path;
 shrinking storage metadata does not change cache-manager allocation semantics.
+
+## Executed component checkpoint
+
+At 76c3b927d06a169f5d2c790f55ff3915150a8cbd Windows native job
+129600916301 passed all 65 entries, raw Windows job 129600915830 passed
+62, and sanitizer job 129600916225 passed 58. Core compact invariants
+completed 548 checks. Every observed new commit/repair fault totaled 855
+cases across the stated units/modes; native compact mutation cases added
+264 failures and 264 invariant checks. All fixed-layout cases remained.
+
+The ordinary-file test independently reopened a root-3 compacted image of
+143,360 bytes, below the old minimum, preserved exact contents and source
+bytes, rejected incompatible writable geometry/no-clobber and continued with
+the matching contract. Worker handles stayed 94 before/after. These are hosted
+VM file checks, not physical-device power-loss or owner-host qualification.
+
+The codec-enabled native profile recorded:
+fixed image 786,432 bytes, compact image 237,568; fixed-layout copied image
+327,680 and compact copied image 147,456. The same full logical fixture,
+file payloads and source retention were verified. The fixed/compact regular
+images had the same 6,413 live stored payload bytes and 328,394 decoded bytes.
+The two NEW copies reported 6,413/6,414 payload bytes separately because each
+rebinds a distinct namespace identity; regular-file payload totals were equal.
+
+Raw profile: 1,114,112 to 561,152 bytes, with copied images 655,360/471,040
+and equal 328,394-byte payload/decoded totals. Codec-unavailable automatic
+builds honestly retained that same raw-sized profile. These are complete
+encoded-image accounting results for a bounded synthetic fixture, not
+general filesystem ratios, GPU speedups or disk throughput.
+
+The unchanged fixed-layout metadata and legacy real-process campaigns passed
+712/976 cases in partitions of 39.402/55.476 and 58.661/59.486 seconds.
+They are not root-3-specific writer-termination evidence. The next gate must
+exercise that new layout explicitly before broader adoption.
+
+All nine triggered workflows succeeded. Default-layout mounted job
+129604220436 passed normal I/O, confirmed helper termination and independent
+CPU recovery/remount, with source parity and all three Windows space reports.
+Normal/recovery exits were zero; deliberate killed exit was 1460, confirmed.
+Peaks were 6,164,480 / 6,123,520 / 5,128,192 bytes. The default image retained
+786,432 bytes and 6,416 payload bytes; this confirms it was NOT silently
+converted to root 3. That probe is default-layout integration evidence only.
+
+## Dedicated root-3 writer-termination gate
+
+The compact-store-interruption workflow uses the existing bounded owned-file
+probe with a separately identified schema-4 dense campaign. It explicitly
+creates root format 3 with the declared 4096-byte hosted fixture contract.
+The six raw/automatic upgrade, tuple replacement and compound data/namespace/
+tuple traces retain every observed write-before/after, flush-before/after and
+acknowledgement cut. Fixed schema-2/976 and schema-3/712 campaigns remain
+separate and unchanged.
+
+Before each baseline/candidate acknowledgement, and after independent CPU
+recovery and continued publication, the producer inspects the selected root
+bytes and verifies the root digest, selected generation, format 3 and stored
+unit 4096. A top-level label alone is insufficient. Every acknowledgement,
+full-trace recovery and interrupted recovery binds that geometry together
+with the existing decoded-state closure digests. The merger rejects missing,
+mixed, relabelled, duplicate or misrouted evidence and omitted cuts/barriers.
+
+Actual TerminateProcess and confirmed process/output-thread retirement precede
+independent recovery. Recovery verifies the complete baseline or candidate,
+then writes keep-file data and its basic tuple together, closes and independently
+reopens/decodes the result. Existing 180-second partition, 15-second child,
+768-MiB Windows child/20-percent CPU, 1024-case, 256-event/256-byte line,
+8-event queue and 3-MiB combined fixture caps are unchanged.
+
+This is a configured gate until exact-commit hosted execution succeeds.
+Neither successful process termination nor a declared 4-KiB fixture unit
+proves physical power-loss behavior, Windows 11 client qualification or actual
+device failure geometry. Default and mounted image selection stays fixed.

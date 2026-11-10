@@ -19,6 +19,16 @@ MAX_EVENTS=256
 BASIC_PHASES=("basic-upgrade","basic-update","basic-compound")
 BASIC_SCOPE="FLTXNS03 ordinary-file writer termination: upgrade, replacement and compound data/namespace/basic metadata; not physical power loss or mounted writes"
 
+DENSE_PHASES=tuple("dense-"+phase for phase in BASIC_PHASES)
+DENSE_SCOPE="Root-3/4096 ordinary-file writer termination: upgrade, replacement and compound data/namespace/basic metadata; not physical power loss or mounted writes"
+
+def validate_layout(value,dense):
+    if dense:
+        if type(value.get("root")) is not int or value["root"]!=3 or type(value.get("unit")) is not int or value["unit"]!=4096:
+            raise RuntimeError("compact campaign actual root/failure-unit evidence missing or changed")
+    elif "root" in value or "unit" in value:
+        raise RuntimeError("fixed campaign cannot claim compact geometry")
+
 def campaign_limits(partitions):
     return dict(partition_seconds=180,campaign_seconds=180*partitions,process_seconds=15,
                 cases=1024,events=256,event_bytes=256,queued_events=8,fixture_bytes=3145728,
@@ -37,7 +47,8 @@ def basic_states(events):
         raise RuntimeError("basic state closure digests missing/unchanged")
     return states
 
-def validate_basic_result(result,acknowledged,states):
+def validate_basic_result(result,acknowledged,states,dense=False):
+    validate_layout(result,dense)
     if any(type(result.get(key)) is not int for key in ("recovered","continued")):
         raise RuntimeError("basic recovery generation type")
     if not isinstance(states,dict) or set(states)!={4,6}:
@@ -51,13 +62,16 @@ def validate_basic_result(result,acknowledged,states):
         raise RuntimeError("basic continuation closure missing/unchanged")
 
 def basic_expected(report):
-    if type(report.get("schema")) is not int or report["schema"]!=3 or report.get("campaign")!="basic" or report.get("scope")!=BASIC_SCOPE or report.get("platform")!="nt":
+    dense=report.get("campaign")=="dense"
+    schema,scope,phases=(4,DENSE_SCOPE,DENSE_PHASES) if dense else (3,BASIC_SCOPE,BASIC_PHASES)
+    validate_layout(report,dense)
+    if type(report.get("schema")) is not int or report["schema"]!=schema or report.get("campaign")!=("dense" if dense else "basic") or report.get("scope")!=scope or report.get("platform")!="nt":
         raise RuntimeError("basic campaign schema/scope identity")
     parts=report.get("partitions")
     if type(parts) is not int or parts not in (1,2) or report.get("limits")!=campaign_limits(parts):
         raise RuntimeError("basic campaign resource contract changed")
     coverage=report.get("coverage")
-    identities=[(policy,phase) for policy in ("raw","auto") for phase in BASIC_PHASES]
+    identities=[(policy,phase) for policy in ("raw","auto") for phase in phases]
     if not isinstance(coverage,list) or any(not isinstance(c,dict) for c in coverage) or [(c.get("policy"),c.get("phase")) for c in coverage]!=identities:
         raise RuntimeError("basic campaign omits/duplicates/relabels a required phase")
     expected=[]
@@ -79,10 +93,11 @@ def basic_expected(report):
                 raise RuntimeError("basic complete event field types")
             if event["offset"]+event["bytes"]>3145728 or event["bytes"]>65536:
                 raise RuntimeError("basic complete event byte budget")
-            fields={"event","op","offset","bytes","generation"}|({"state_digest"} if op=="ack" else set())
+            fields={"event","op","offset","bytes","generation"}|(({"state_digest"}|({"root","unit"} if dense else set())) if op=="ack" else set())
             if set(event)!=fields:
                 raise RuntimeError("basic event scope/fields")
             if op=="ack":
+                validate_layout(event,dense)
                 if pending is not None or event["offset"] or event["bytes"]:
                     raise RuntimeError("basic acknowledgement overlaps I/O")
                 acknowledged=event["generation"]
@@ -104,7 +119,7 @@ def basic_expected(report):
         completed=entry.get("completed") or {}
         if type(completed.get("acknowledged")) is not int or completed["acknowledged"]!=6 or completed.get("forced_exit") is not None:
             raise RuntimeError("basic full-trace completion oracle")
-        validate_basic_result(completed,6,states)
+        validate_basic_result(completed,6,states,dense)
     if not 0<len(expected)<=MAX_CASES or type(report.get("planned_cases")) is not int or report["planned_cases"]!=len(expected):
         raise RuntimeError("basic complete fault inventory changed/exceeded")
     return expected
@@ -130,7 +145,7 @@ def validate_basic_report(report):
             raise RuntimeError("basic cut/acknowledgement differs from complete trace")
         if type(row.get("forced_exit")) is not int or row["forced_exit"]==0:
             raise RuntimeError("basic writer termination not confirmed")
-        validate_basic_result(row,acknowledged,states);ordinals.add(ordinal)
+        validate_basic_result(row,acknowledged,states,report["campaign"]=="dense");ordinals.add(ordinal)
     if ordinals!=set(range(partition,len(expected),parts)):
         raise RuntimeError("basic partition omits required fault points")
 
@@ -227,7 +242,7 @@ def execute(binary,root,token,policy,phase,cut,known_states=None):
     child=Child(args)
     events=[]
     acknowledged=0
-    generations=(6,8) if phase=="compact" else ((4,6) if phase=="files" or phase in BASIC_PHASES else ((2,4) if phase=="checkpoint" else (1,2)))
+    generations=(6,8) if phase=="compact" else ((4,6) if phase=="files" or phase in BASIC_PHASES+DENSE_PHASES else ((2,4) if phase=="checkpoint" else (1,2)))
     source_digest=None
     forced=None
     try:
@@ -277,11 +292,13 @@ def execute(binary,root,token,policy,phase,cut,known_states=None):
             raise RuntimeError("recovery resource admission handshake")
         recover.advance()
         result=recover.read()
-        expected_keys={"recovered","continued","state_digest","continued_digest"} if phase in BASIC_PHASES else {"recovered","continued"}
+        expected_keys={"recovered","continued","state_digest","continued_digest"} if phase in BASIC_PHASES+DENSE_PHASES else {"recovered","continued"}
+        if phase in DENSE_PHASES:
+            expected_keys|={"root","unit"}
         if set(result)!=expected_keys or not acknowledged<=result["recovered"]<=generations[-1] or result["continued"]<=result["recovered"]:
             raise RuntimeError("invalid recovery/continuation result")
-        if phase in BASIC_PHASES:
-            validate_basic_result(result,acknowledged,known_states if cut is not None else basic_states(events))
+        if phase in BASIC_PHASES+DENSE_PHASES:
+            validate_basic_result(result,acknowledged,known_states if cut is not None else basic_states(events),phase in DENSE_PHASES)
         recover.finish()
     finally:
         recover.close()
@@ -320,13 +337,13 @@ def merge_reports(reports):
     first=reports[0]
     if first.get("platform")!="nt" or first.get("partitions")!=2:
         raise RuntimeError("partition merge requires Windows reports")
-    shared=("schema","commit","platform","partitions","planned_cases","coverage","scope","limits","campaign")
-    if first.get("schema") not in (2,3) or not first.get("commit") or not first.get("complete"):
+    shared=("schema","commit","platform","partitions","planned_cases","coverage","scope","limits","campaign","root","unit")
+    if first.get("schema") not in (2,3,4) or not first.get("commit") or not first.get("complete"):
         raise RuntimeError("incomplete or invalid partition report")
     for report in reports:
         if any(report.get(key)!=first.get(key) for key in shared) or not report.get("complete"):
             raise RuntimeError("partition identities/coverage/limits differ or are incomplete")
-    if first["schema"]==3:
+    if first["schema"] in (3,4):
         for report in reports:
             if report.get("complete") is not True:
                 raise RuntimeError("basic complete flag type")
@@ -371,7 +388,7 @@ def main():
     parser.add_argument("--partition",type=int,default=0)
     parser.add_argument("--partitions",type=int,default=1)
     parser.add_argument("--merge",type=Path,nargs=2)
-    parser.add_argument("--campaign",choices=("legacy","basic"),default="legacy")
+    parser.add_argument("--campaign",choices=("legacy","basic","dense"),default="legacy")
     args=parser.parse_args()
     if args.merge:
         reports=[]
@@ -389,7 +406,7 @@ def main():
         print(json.dumps(summary))
         return
     validate_partitions(args.partition,args.partitions)
-    if args.campaign=="basic" and os.name!="nt":
+    if args.campaign in ("basic","dense") and os.name!="nt":
         raise RuntimeError("basic process campaign requires a disposable hosted Windows VM")
     if args.partitions==2 and os.name!="nt":
         raise RuntimeError("split campaign is a Windows hosted fixture only")
@@ -407,15 +424,17 @@ def main():
                     posix_address_bytes=536870912,posix_cpu_seconds=15))
     if args.campaign=="basic":
         report.update(schema=3,campaign="basic",scope=BASIC_SCOPE)
+    if args.campaign=="dense":
+        report.update(schema=4,campaign="dense",scope=DENSE_SCOPE,root=3,unit=4096)
     started=time.monotonic()
     try:
         ordinal=0
         for policy in ("raw","auto"):
-            for phase in (BASIC_PHASES if args.campaign=="basic" else ("mutation","repair","files","compact","checkpoint")):
+            for phase in (DENSE_PHASES if args.campaign=="dense" else BASIC_PHASES if args.campaign=="basic" else ("mutation","repair","files","compact","checkpoint")):
                 report["active_case"]=dict(policy=policy,phase=phase,cut=None)
                 events,result=case(binary,policy,phase,None)
                 coverage.append(dict(policy=policy,phase=phase,events=events,completed=result))
-                states=basic_states(events) if args.campaign=="basic" else None
+                states=basic_states(events) if args.campaign in ("basic","dense") else None
                 for cut in range(1,len(events)+1):
                     if ordinal>=MAX_CASES:
                         raise RuntimeError("aggregate fault case budget")
@@ -432,7 +451,7 @@ def main():
         if len(rows)!=len(range(args.partition,ordinal,args.partitions)):
             raise RuntimeError("fault partition coverage incomplete")
         report["cases"]=len(rows)
-        if args.campaign=="basic":
+        if args.campaign in ("basic","dense"):
             validate_basic_report(report)
         report["complete"]=True
         report.pop("active_case",None)

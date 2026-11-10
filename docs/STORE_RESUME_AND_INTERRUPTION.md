@@ -268,3 +268,10 @@ retains orphan tails with the stored alignment. Repair uses the same complete
 replicated checkpoint path. Root-3 modeled faults and new-file tests are
 distinct from the existing fixed-layout 712/976 real process campaigns;
 a separately source-bound root-3 process campaign remains required.
+
+The separately identified compact-store-interruption schema-4 campaign now
+configures the root-3/4096 process gate. It inspects the actual digest-bound
+selected root before acknowledgements and independent CPU recovery/continuation,
+in addition to full decoded closures and exact interruption cuts. It preserves
+the legacy and basic campaigns, three barriers and every existing bound.
+See COMPACT_CHECKPOINT_METADATA.md for the scope and executed-evidence boundary.
