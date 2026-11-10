@@ -128,6 +128,12 @@ class NativeFileSession final {
   NativeInodeWriteCommit write(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={});
   NativeFsCommit truncate(const NativeFileHandle&,std::uint64_t bytes);
+  NativeInodeAllocationInfo allocation_info(const NativeFileHandle&) const;
+  NativeAllocationUsage allocation_usage() const;
+  // Already-authorized data-write ownership; unchanged context lifetime and
+  // terminal fencing. This reserves native live slots, not host disk space.
+  NativeInodeAllocationCommit reserve_result(const NativeFileHandle&,std::uint64_t aligned_bytes,
+      const NativeAutomaticMetadata& effect={});
   // Trusted automatic FSD effects share the durable data transaction and
   // require data-write access, independently of explicit attribute grants.
   // Context ownership remains valid through late paging until Close.

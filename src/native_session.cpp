@@ -297,6 +297,18 @@ NativeInodeMutationCommit NativeFileSession::truncate_result(const NativeFileHan
   if(!slot.access.write)fail(E::access_denied,"native context has no truncate access");
   return self.writer.truncate_inode_result(slot.inode,bytes,effect);
 }
+NativeInodeAllocationInfo NativeFileSession::allocation_info(const NativeFileHandle& handle) const {
+  const auto index=slot_for(handle,true);auto& self=ready();const auto& slot=self.slots[index];
+  const auto state=self.state(slot);auto result=self.writer.inspect_allocation(slot.inode);
+  result.info.delete_pending=state.delete_pending;return result;
+}
+NativeAllocationUsage NativeFileSession::allocation_usage() const {return ready().writer.inspect_allocation_usage();}
+NativeInodeAllocationCommit NativeFileSession::reserve_result(const NativeFileHandle& handle,
+    std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.write)fail(E::access_denied,"native context has no reservation write access");
+  return self.writer.reserve_inode_result(slot.inode,bytes,effect);
+}
 NativeFsCommit NativeFileSession::truncate(const NativeFileHandle& handle,std::uint64_t bytes) {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.write)fail(E::access_denied,"native context has no truncate access");

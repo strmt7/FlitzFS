@@ -493,3 +493,7 @@ request/latch provenance. Historical create_open's durable-intent option is
 not the direct FILE_DELETE_ON_CLOSE mapping. See NATIVE_INITIAL_DELETE.md for
 configured failure coverage, actual source/delivery flags and remaining real
 kernel/client/writable/AMD qualification. Owner-PC restrictions stay unchanged.
+
+### Native reservations are not physical-space guarantees
+
+NATIVE_ALLOCATION.md adds an opt-in format-5 per-inode live-extent reservation, capped by the unchanged shared 255-extent/16-MiB decoded budget. Pending/detached ownership retains capacity; overcommit rejects before writes. Allocation shrink and EOF/tail changes publish together through the same three barriers. Compression does not bypass reservation charge. These units do not preallocate host clusters or guarantee future append-history/RAM/disk admission. Keep Windows allocation callbacks unwired until actual backing, FileInfo, cache and helper policy are qualified. New modeled faults remain distinct from old process-kill campaigns and physical power loss. Owner-PC execution remains forbidden.

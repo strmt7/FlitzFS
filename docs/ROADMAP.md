@@ -442,3 +442,7 @@ exact-commit execution. The future adapter must qualify callback-elision flags,
 live kernel shared disposition/adoption and full allocation/FileInfo before
 writable binding. Windows 11 client/app, live AMD, scalable indexing/reclaim,
 redundant repair, learning and conventional-filesystem comparisons remain open.
+
+### Native allocation capacity prerequisite
+
+Implement explicit persisted native live-extent reservations, mixed reserved/legacy accounting, growth, atomic shrink and bounded captured results (NATIVE_ALLOCATION.md). Qualify the new matrix before passing this component. Still required: actual backing preallocation/history headroom, complete Windows FileInfo/free-space policy, atomic Create/Overwrite allocation and trusted Cleanup trim, writable callback/helper integration and Windows 11 client/live AMD qualification.
