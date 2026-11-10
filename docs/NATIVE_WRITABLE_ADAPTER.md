@@ -42,7 +42,8 @@ The adapter has 256 bounded monotonic opaque context tokens; no raw pointer
 context can rebind after Close. Capacity is checked before creation. An owned
 metadata/security lookup admits no new context/grant. The root receives actual
 UTC metadata and a protected inheritable descriptor for the process owner in
-one transaction. SDK/FSD access checks and inherited descriptors remain required;
+one transaction. Regular creation sets the source-qualified archive attribute. SDK/FSD access
+checks and inherited descriptors remain required;
 the adapter does not invent access authority.
 
 Create, Open, Overwrite, private verified Read, synchronous Write, size,
@@ -118,7 +119,19 @@ The candidate never initializes a GPU.
   establish universal heap/kernel/VRAM leak freedom.
 - A separate fake-provider lifecycle group covers invalid/missing opt-ins and
   every partial startup failure, callbacks alive during join, rollback order,
-  one-shot state, external stop and independent reopening after stop. No real
+  one-shot state, external stop, controller-led offlining after a VOID failure
+  with retained failed-context diagnostics, and independent reopening after stop. No real
   filesystem/dispatcher/mount/driver function is invoked.
 - All old groups, 45-second per-group limits and mount/process/oracle caps remain.
   Configured tests are not passing evidence until their exact jobs are inspected.
+
+
+### First hosted build result retained
+
+Commit ce09720 compiled the adapter and pure core, but native test qualification
+failed before execution: MSVC rejected value-initialization/assignment of the
+SDK's zero-length trailing-array request/response structs, and the test used a
+nonexistent NativeFileInfo.basic member. The harness now uses the same explicit
+ZeroMemory pattern as the existing SDK tests and the actual snapshot metadata
+accessor. No cap, test or oracle was removed. Inspect the follow-up commit's
+executed results; this first build is not passing Windows evidence.
