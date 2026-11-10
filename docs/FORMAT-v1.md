@@ -122,3 +122,7 @@ The requested Cleanup bridge in NATIVE_CLEANUP_METADATA.md uses the existing
 optional FLTXNS03 tuple and replicated publication. It adds no container codec,
 archive compatibility, namespace layout or capacity change. Legacy bytes and
 read support remain; request sentinels are never persisted as timestamps.
+
+Atomic stable-inode mutation metadata in NATIVE_MUTATION_METADATA.md reuses the
+existing FLTXNS03 tuple and transaction. It adds no wire field, codec, format
+version or capacity change; legacy readers/bytes and native product scope remain.

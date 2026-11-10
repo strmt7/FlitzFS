@@ -68,6 +68,9 @@ struct NativeCleanupMetadata {
   }
 };
 bool native_cleanup_metadata_valid(const NativeCleanupMetadata&) noexcept;
+// The same bounded trusted effects apply to data mutations. Retain the
+// historical Cleanup type/layout/symbols; this alias adds no encoding or ABI.
+using NativeAutomaticMetadata=NativeCleanupMetadata;
 
 enum class NativeFileOperation {create_file,create_directory,write,truncate,rename,remove};
 struct NativeFileMutation {
@@ -184,6 +187,15 @@ class NativeFilesystemWriter final {
   NativeInodeWriteCommit write_inode(std::uint64_t inode,std::uint64_t offset,
       std::span<const std::byte> bytes,NativeInodeWriteOptions options={});
   NativeFsCommit truncate_inode(std::uint64_t inode,std::uint64_t bytes);
+  // Trusted requested effects, not explicit user SetBasicInfo. One data/basic
+  // transaction; preserve original creation/untouched values and require a
+  // present tuple for meaningful effects. Invalid clocks reject before I/O.
+  // Zero accepted write bytes never apply effects. Truncate may explicitly
+  // request effects even at unchanged EOF. No clock or policy is invented.
+  NativeInodeWriteCommit write_inode_with_metadata(std::uint64_t inode,std::uint64_t offset,
+      std::span<const std::byte>,NativeInodeWriteOptions,const NativeAutomaticMetadata&);
+  NativeFsCommit truncate_inode_with_metadata(std::uint64_t inode,std::uint64_t bytes,
+      const NativeAutomaticMetadata&);
   // Persistent deletion primitives for the future owning Windows engine.
   // Eligibility/cancel changes intent only; it never unlinks. Unlink requires
   // pending intent, removes the name, and retains every payload. Retirement
@@ -215,7 +227,7 @@ class NativeFilesystemWriter final {
   enum class InodeAction {path_mutations,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
-      const NativeCleanupMetadata* cleanup=nullptr,bool cleanup_delete=false);
+      const NativeAutomaticMetadata* automatic=nullptr,bool cleanup_delete=false);
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

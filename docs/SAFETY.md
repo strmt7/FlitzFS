@@ -366,3 +366,13 @@ adapter must offline through its supervisor outside the callback. This bridge
 is not wired to the read-only callback table; no writable route, driver load,
 resource-cap increase or owner-PC operation is added.
 See [the contract and remaining gates](NATIVE_CLEANUP_METADATA.md).
+
+## Atomic data and automatic metadata
+
+Stable-inode write/truncate may include trusted requested archive/time effects
+in the SAME normal replicated commit. No accepted count escapes before durable
+success. Admission never invents legacy tuples; invalid clocks reject before
+backing I/O, and zero accepted writes apply no effects. Failure preserves owning
+contexts and the established terminal rules. NATIVE_MUTATION_METADATA.md defines
+the contract and configured fault oracles. No writable callback, owner operation,
+allocation support, GPU activation or resource-limit increase follows.

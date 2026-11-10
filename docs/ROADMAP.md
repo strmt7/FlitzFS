@@ -307,3 +307,16 @@ metadata policy, persistent security and allocation, supervisor offlining,
 writable callbacks/helper and latest Windows 11 client remain required.
 No writable mount, live HIP, scale/reclaim, redundant payload repair or automatic
 learning claim follows. See NATIVE_CLEANUP_METADATA.md.
+
+### Atomic owning-session data/basic effects
+
+The stable-inode write/truncate engine and owning session now accept trusted
+requested archive/time effects in one durable transaction, preserving accepted
+counts, clipped/empty writes, original tuple absence, detached late paging and
+old snapshots. NATIVE_MUTATION_METADATA.md defines the configured fault/grant/
+identity checks; exact executed CI remains required.
+
+Next writable integration still needs complete per-open time policy, truthful
+FileInfo/allocation, persistent security/ACLs, Create/Overwrite/cache/cancellation,
+supervisor offlining and the helper app. Capacity/reclaim, verified redundant
+payload repair, autonomous learning and measured live AMD benefit remain open.

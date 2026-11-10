@@ -109,3 +109,38 @@ results are not latest Windows 11 client qualification. Physical power loss,
 full Windows policy/security/allocation, writable mount/app, live AMD benefit,
 scaling/reclamation, redundant payload repair and automatic learning remain
 separate required work. Nothing runs on the owner's PC.
+
+## Executed hosted checkpoint
+
+The engine checkpoint 63c9caa1cb65616f6ee98ddd8e095a36ca0ceefc passed 209
+Cleanup invariants and 1,026 modeled Cleanup write/barrier failures on Windows
+and under sanitizers. Every raw/automatic retain/latch/unlink trace contained
+57 I/O steps, with 171 failures per trace. Its actual Windows writer campaigns
+retained all 712 metadata and 976 legacy termination cases. This commit's
+overall CPU run failed while compiling the new SDK test: MSVC C2466 rejects
+aggregate initialization of the vendor flexible Buffer[] structs.
+
+Commit 7dfd92ddda38980b2971c96c62c80aea8d97de2e changes only that test's
+fixed-header initialization, with trivial-copyability assertions. Windows
+native job 129548757829 passed all 50 entries, including all nine actual SDK
+Cleanup cases and the existing Windows basic API oracle. Worker handle totals
+were 94 before and after. Sanitizer job 129548758105 passed all 43 entries,
+retaining 209 Cleanup invariants, 1,026 Cleanup faults, 400 basic invariants,
+1,038 basic faults, 2,064 lifetime faults, 1,026 context faults and 271 Flush
+checks. The process campaign sources remain byte-identical to 63c9caa.
+
+Windows metadata job 129546823785 executed two 356-case partitions in
+46.646/47.127 seconds. Legacy job 129546820382 executed two 488-case partitions
+in 68.743/68.805 seconds. Their results remain bound to the executed 63c9caa
+commit; source parity is not a claim that untriggered jobs reran at 7dfd92d.
+No owner-PC operation, writable mount or live GPU was performed.
+
+The corrected checkpoint's read-only mount job 129550973558 passed actual
+native image reads/mapping/enumeration/write rejection, persisted inode/basic
+metadata, source parity, confirmed helper termination and independent CPU
+recovery/remount. Normal/recovery exit codes were zero; intentional kill
+reported 1460 with confirmed exit. Peaks were 6,197,248 / 6,201,344 /
+5,226,496 bytes. All three triggered workflows at 7dfd92d succeeded.
+The selected candidate's driver signature remained valid Microsoft WHCP;
+its provenance explicitly reports windows11_policy_qualified=false. These
+Server results add no client, writable-mount, live GPU or owner-PC permission.

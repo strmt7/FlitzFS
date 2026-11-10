@@ -43,6 +43,9 @@ algorithm checks, not Linux product support. See [the Windows product contract](
   transaction with optional unlink. A user-mode SDK bridge fences failures
   across Cleanup's void ABI; owning contexts remain retained until Close.
   This does not enable writable mounts; see [the contract](docs/NATIVE_CLEANUP_METADATA.md).
+- Owning-session stable-inode writes/truncates can now include requested
+  archive/time effects in the same durable transaction, preserving detached
+  paging identity, accepted counts and old snapshots; see [the contract](docs/NATIVE_MUTATION_METADATA.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.
 - Optional native WinFsp read-only callbacks, disabled by default. Hosted VM

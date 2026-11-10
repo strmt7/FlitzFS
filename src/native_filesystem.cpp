@@ -364,12 +364,12 @@ struct Stage {
     if(n.basic && *n.basic==op.value)return;
     n.basic=op.value;n.modified=model.sequence;model.format=3;changed=true;
   }
-  void cleanup(std::uint64_t id,bool deleting,const NativeCleanupMetadata& effect) {
+  void automatic_metadata(std::uint64_t id,const NativeAutomaticMetadata& effect) {
     auto& n=node(model,selected_inode(model,id).inode);
     const bool times=effect.set_access_time || effect.set_write_time || effect.set_change_time;
     const bool archive=effect.set_archive && !n.directory;
     if(times || archive) {
-      if(!n.basic)fail(Code::invalid_operation,"automatic Cleanup needs existing basic metadata");
+      if(!n.basic)fail(Code::invalid_operation,"automatic metadata needs existing basic metadata");
       auto value=*n.basic;
       if(archive)value.attributes|=0x20U;
       if(effect.set_access_time)value.last_access_time=effect.utc_time;
@@ -377,6 +377,9 @@ struct Stage {
       if(effect.set_change_time)value.change_time=effect.utc_time;
       set_basic(NativeBasicMutation{id,0,value});
     }
+  }
+  void cleanup(std::uint64_t id,bool deleting,const NativeCleanupMetadata& effect) {
+    automatic_metadata(id,effect);
     if(deleting)unlink(id);
   }
   void apply(const NativeFileMutation& op,std::uint64_t inode=0) {
@@ -685,8 +688,10 @@ NativeFsCommit NativeFilesystemWriter::set_basic_metadata(std::uint64_t inode,co
 }
 NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutation> operations,
     InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic,
-    const NativeCleanupMetadata* cleanup,bool cleanup_delete) {
+    const NativeAutomaticMetadata* automatic,bool cleanup_delete) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(automatic && !native_cleanup_metadata_valid(*automatic))
+    fail(Code::invalid_operation,"invalid automatic metadata time/unused clock");
   bool committing=false;
   try {
     auto snapshot=checked_namespace();
@@ -702,10 +707,14 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       case InodeAction::retire:stage.retire(inode);break;
       case InodeAction::finish_session:stage.finish_session();break;
       case InodeAction::cleanup:
-        if(!cleanup || !native_cleanup_metadata_valid(*cleanup))
+        if(!automatic)
           fail(Code::invalid_operation,"invalid automatic Cleanup metadata");
-        stage.cleanup(inode,cleanup_delete,*cleanup);break;
+        stage.cleanup(inode,cleanup_delete,*automatic);break;
     }
+    // Mutating stable-inode data and trusted effects share the same Stage,
+    // verification and single replicated publication. Cleanup applies its
+    // own effects before unlink; never apply either effect twice.
+    if(action==InodeAction::mutate && automatic)stage.automatic_metadata(inode,*automatic);
     for(const auto& op:basic)stage.set_basic(op);
     validate_structure(stage.model,true);
     NativeFsCommit result;result.created_inodes=std::move(stage.created);
@@ -726,7 +735,14 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
 }
 NativeInodeWriteCommit NativeFilesystemWriter::write_inode(std::uint64_t inode,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options) {
+  return write_inode_with_metadata(inode,offset,bytes,options,{});
+}
+NativeInodeWriteCommit NativeFilesystemWriter::write_inode_with_metadata(std::uint64_t inode,
+    std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
+    const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(!native_cleanup_metadata_valid(effect))
+    fail(Code::invalid_operation,"invalid automatic write time/unused clock");
   if(bytes.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");
   try {
     const auto& n=selected_inode(impl_->model,inode);
@@ -748,19 +764,26 @@ NativeInodeWriteCommit NativeFilesystemWriter::write_inode(std::uint64_t inode,
     if(count)op.data.assign(bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(count));
     NativeInodeWriteCommit result;result.inode=inode;result.offset=selected;
     result.bytes=static_cast<std::uint32_t>(count);
-    result.transaction=transact({&op,1},InodeAction::mutate,inode);
+    result.transaction=transact({&op,1},InodeAction::mutate,inode,{},
+        count && effect.any()?&effect:nullptr);
     return result;
   }catch(const std::bad_alloc&){fail(Code::limit,"native inode write allocation failure");}
 }
 NativeFsCommit NativeFilesystemWriter::truncate_inode(std::uint64_t inode,std::uint64_t bytes) {
+  return truncate_inode_with_metadata(inode,bytes,{});
+}
+NativeFsCommit NativeFilesystemWriter::truncate_inode_with_metadata(std::uint64_t inode,
+    std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(!native_cleanup_metadata_valid(effect))
+    fail(Code::invalid_operation,"invalid automatic truncate time/unused clock");
   if(bytes>kNativeMaxFileBytes)fail(Code::limit,"native truncate bounds");
   try {
     const auto& n=selected_inode(impl_->model,inode);
     if(n.directory)fail(Code::is_directory,"cannot truncate native directory");
     NativeFileMutation op;op.operation=NativeFileOperation::truncate;
     op.size=bytes;
-    return transact({&op,1},InodeAction::mutate,inode);
+    return transact({&op,1},InodeAction::mutate,inode,{},effect.any()?&effect:nullptr);
   }catch(const std::bad_alloc&){fail(Code::limit,"native inode truncate allocation failure");}
 }
 NativeFsCommit NativeFilesystemWriter::set_delete_pending(std::uint64_t inode,bool pending) {

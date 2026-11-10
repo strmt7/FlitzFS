@@ -142,6 +142,19 @@ NativeInodeWriteCommit NativeFileSession::write(const NativeFileHandle& handle,
   if(!slot.access.write)fail(E::access_denied,"native context has no write access");
   return self.writer.write_inode(slot.inode,offset,bytes,options);
 }
+NativeInodeWriteCommit NativeFileSession::write_with_metadata(const NativeFileHandle& handle,
+    std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
+    const NativeAutomaticMetadata& effect) {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.write)fail(E::access_denied,"native context has no write access");
+  return self.writer.write_inode_with_metadata(slot.inode,offset,bytes,options,effect);
+}
+NativeFsCommit NativeFileSession::truncate_with_metadata(const NativeFileHandle& handle,
+    std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.write)fail(E::access_denied,"native context has no truncate access");
+  return self.writer.truncate_inode_with_metadata(slot.inode,bytes,effect);
+}
 NativeFsCommit NativeFileSession::truncate(const NativeFileHandle& handle,std::uint64_t bytes) {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.write)fail(E::access_denied,"native context has no truncate access");
