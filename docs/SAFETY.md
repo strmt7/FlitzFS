@@ -571,3 +571,9 @@ and unsupported metadata reject without writes. No production existing-file
 CLI/factory or owner-PC action follows. Source, resumer and independent final
 CPU verifier run sequentially under unchanged child budgets. All retained
 snapshots must end before acquiring a replacement lease. See WRITABLE_MOUNT_TRIAL.md.
+
+
+The opt-in hosted writable adapter now has a bounded SetSecurity candidate using
+WinFsp's merge helper and original per-part granted-access checks. SDK/CPU tests
+are configured; inspect exact-commit CI before claiming a pass. No owner-PC, mounted authorization, GPU or physical-power qualification follows. Keep all existing host/resource/driver gates.
+See [NATIVE_SECURITY.md](NATIVE_SECURITY.md) for its contract and limits.

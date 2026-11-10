@@ -227,3 +227,32 @@ The explicit hosted resolved-image resume and fixed restart profiles are
 specified in WRITABLE_MOUNT_TRIAL.md. Source retirement must be independently
 established by the controller; unsupported/unresolved state rejects. Existing
 new-only APIs, metadata/bytes and all old cases/caps remain unchanged.
+
+## Hosted writable security-update candidate
+
+The opt-in hosted adapter now routes SetSecurity through the selected WinFsp
+FspSetSecurityDescriptor helper, and frees every result through its matching
+FspDeleteSecurityDescriptor. It captures original Create/Open granted access
+and separately requires WRITE_DAC for DACL updates, WRITE_OWNER for owner/group,
+and ACCESS_SYSTEM_SECURITY for SACL updates. Protection flags require the
+matching ACL part; contradictory, empty and unsupported masks reject. No grant
+is inferred from data/basic permissions. Modification and merged descriptors
+retain the existing Windows validity, self-relative and transport/16-KiB caps.
+
+A trusted session merge-input query requires an ACTIVE full replacement grant;
+it does not authorize public descriptor reads. The adapter never exposes that
+grant as an unrestricted callback. Merging/validation precede the existing
+atomic replicated publication; success performs no post-publication I/O or
+allocation. Identical replacements retain verified no-op behavior. Failed
+publication fences and retains the context; no automatic retry is introduced.
+Stored formats, default routes, process/image caps and driver policy are unchanged.
+
+New tests are configured for actual user-mode SDK SetSecurity dispatch in raw
+and automatic modes, per-part denied rights, invalid masks/null input, exact SDK
+merge parity, preserved data/basic/reservation/inode, independent retired-reader
+persistence and bounded-history failure. These require inspected CI results;
+configuration is not a pass. Core fault campaigns remain mandatory. SDK tests
+are trusted-transport tests, NOT live kernel authorization, caller privilege,
+SACL disclosure, inheritance propagation, Windows11 client or power-loss proof.
+No new mounted profile or owner-PC/GPU permission follows. General labels/claims/
+resource-attribute security masks remain explicitly unsupported.

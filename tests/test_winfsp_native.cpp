@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <sddl.h>
 #include <thread>
 namespace {
 using namespace flitzfs;namespace nw=native_windows_fixture;
@@ -125,9 +126,9 @@ void contents(StoreCompressionMode mode) {
       "owned descriptor size");
   std::vector<std::byte> security(security_size);
   require(cb.GetSecurity(fs,file,security.data(),&security_size)==STATUS_SUCCESS&&security==h.security,"owned descriptor bytes");
-  require(cb.SetSecurity(fs,file,DACL_SECURITY_INFORMATION,security.data())==STATUS_INVALID_DEVICE_REQUEST&&
+  require(cb.SetSecurity(fs,file,DACL_SECURITY_INFORMATION,security.data())==STATUS_SUCCESS&&
       cb.SetVolumeLabel(fs,const_cast<PWSTR>(L"other"),&volume)==STATUS_INVALID_DEVICE_REQUEST&&
-      !h.adapter->requires_offline(),"unimplemented operations must not pretend success/fence healthy owner");
+      !h.adapter->requires_offline(),"identical descriptor update/unsupported volume label fenced healthy owner");
   require(cb.Rename(fs,file,const_cast<PWSTR>(L"\\Data\\sample.bin"),const_cast<PWSTR>(L"\\Data\\renamed.bin"),FALSE)==
       STATUS_SUCCESS&&h.info(file).IndexNumber==inode&&h.missing("Data/sample.bin"),"stable-handle rename");
   h.finish(file);
@@ -315,6 +316,120 @@ void retired_resume() {
     require(view.needs_session_recovery()&&view.read("pending",0,100)==nw::tail(),"unresolved restart lost original bytes/intent");
   }
 }
+std::vector<std::byte> security_text(PCWSTR text) {
+  PSECURITY_DESCRIPTOR value=nullptr;ULONG bytes=0;
+  require(ConvertStringSecurityDescriptorToSecurityDescriptorW(text,SDDL_REVISION_1,&value,&bytes)!=FALSE,
+      "security fixture conversion");
+  struct Free {PSECURITY_DESCRIPTOR value;~Free(){LocalFree(value);}} release{value};
+  const auto* first=static_cast<const std::byte*>(value);return {first,first+bytes};
+}
+std::vector<std::byte> merge_security(std::vector<std::byte> original,SECURITY_INFORMATION parts,
+    std::vector<std::byte>& modification) {
+  PSECURITY_DESCRIPTOR value=nullptr;
+  require(FspSetSecurityDescriptor(original.data(),parts,modification.data(),&value)==STATUS_SUCCESS,
+      "independent SDK security oracle");
+  struct Free {PSECURITY_DESCRIPTOR value;
+    ~Free(){if(value)FspDeleteSecurityDescriptor(value,(NTSTATUS (*)())FspSetSecurityDescriptor);}} release{value};
+  const auto* first=static_cast<const std::byte*>(value);
+  return {first,first+GetSecurityDescriptorLength(value)};
+}
+NTSTATUS sdk_set_security(Harness& h,PVOID context,SECURITY_INFORMATION parts,std::vector<std::byte>& data) {
+  require(data.size()+sizeof(FSP_FSCTL_TRANSACT_REQ)<=FSP_FSCTL_TRANSACT_REQ_SIZEMAX,"security test request cap");
+  std::vector<std::byte> buffer(sizeof(FSP_FSCTL_TRANSACT_REQ)+data.size());
+  auto* request=reinterpret_cast<FSP_FSCTL_TRANSACT_REQ*>(buffer.data());FSP_FSCTL_TRANSACT_RSP response{};
+  request->Size=static_cast<UINT16>(buffer.size());request->Kind=FspFsctlTransactSetSecurityKind;
+  request->Req.SetSecurity.UserContext2=static_cast<UINT64>(reinterpret_cast<std::uintptr_t>(context));
+  request->Req.SetSecurity.SecurityInformation=parts;
+  request->Req.SetSecurity.SecurityDescriptor.Size=static_cast<UINT16>(data.size());
+  std::memcpy(request->Buffer,data.data(),data.size());++dispatches;
+  return FspFileSystemOpSetSecurity(&h.fs,request,&response);
+}
+void security_updates(StoreCompressionMode mode) {
+  Harness h(mode);auto file=h.make(L"\\secured");h.write(file,nw::tail());h.finish(file);
+  const auto inode=h.adapter->snapshot().stat("secured").inode;
+  auto expected=h.security;
+  auto dacl=security_text(L"D:P(D;;GW;;;WD)(A;;GR;;;WD)");
+  auto owner=security_text(L"O:SYG:BA");
+  auto sacl=security_text(L"S:(AU;SA;GR;;;WD)");
+  unsigned updates=0,denials=0;
+  const auto get=[&] {auto view=h.adapter->snapshot();return *view.security_descriptor(inode);};
+  const auto deny=[&](PVOID context,SECURITY_INFORMATION parts,std::vector<std::byte>& modification,NTSTATUS status) {
+    const auto before=h.adapter->snapshot().storage_info();
+    require(sdk_set_security(h,context,parts,modification)==status,"security grant/mask rejection");
+    const auto after=h.adapter->snapshot().storage_info();
+    require(before.generation==after.generation&&before.physical_end==after.physical_end&&
+        get()==expected&&!h.adapter->requires_offline(),"denied security request wrote/fenced/changed descriptor");
+    ++denials;
+  };
+  for(const auto access:{UINT32(FILE_READ_DATA),UINT32(READ_CONTROL),UINT32(FILE_WRITE_ATTRIBUTES)}) {
+    auto denied=h.open(L"\\secured",0,access);
+    deny(denied,DACL_SECURITY_INFORMATION,dacl,STATUS_ACCESS_DENIED);
+    deny(denied,OWNER_SECURITY_INFORMATION,owner,STATUS_ACCESS_DENIED);
+    deny(denied,SACL_SECURITY_INFORMATION,sacl,STATUS_ACCESS_DENIED);
+    h.finish(denied);
+  }
+  const auto update=[&](UINT32 access,SECURITY_INFORMATION parts,std::vector<std::byte>& modification) {
+    auto context=h.open(L"\\secured",0,access);const auto info=h.info(context);
+    auto oracle=merge_security(expected,parts,modification);
+    require(sdk_set_security(h,context,parts,modification)==STATUS_SUCCESS,"authorized SDK security update");
+    const auto after=h.info(context);
+    require(get()==oracle&&after.IndexNumber==inode&&after.FileSize==info.FileSize&&
+        after.AllocationSize==info.AllocationSize&&after.CreationTime==info.CreationTime&&
+        after.LastWriteTime==info.LastWriteTime&&after.ChangeTime==info.ChangeTime,
+        "security update changed data/basic/reservation/identity or lost descriptor parts");
+    expected=std::move(oracle);
+    if(!(access&(READ_CONTROL|ACCESS_SYSTEM_SECURITY))) {
+      SIZE_T size=0;
+      require(h.cb().GetSecurity(&h.fs,context,nullptr,&size)==STATUS_ACCESS_DENIED,
+          "security replacement granted public descriptor read");
+    }
+    if(access==WRITE_DAC) {
+      deny(context,OWNER_SECURITY_INFORMATION,owner,STATUS_ACCESS_DENIED);
+      deny(context,SACL_SECURITY_INFORMATION,sacl,STATUS_ACCESS_DENIED);
+      deny(context,0,dacl,STATUS_INVALID_PARAMETER);
+      deny(context,LABEL_SECURITY_INFORMATION,dacl,STATUS_INVALID_PARAMETER);
+      deny(context,PROTECTED_DACL_SECURITY_INFORMATION,dacl,STATUS_INVALID_PARAMETER);
+      deny(context,DACL_SECURITY_INFORMATION|PROTECTED_DACL_SECURITY_INFORMATION|
+          UNPROTECTED_DACL_SECURITY_INFORMATION,dacl,STATUS_INVALID_PARAMETER);
+      require(h.cb().SetSecurity(&h.fs,context,DACL_SECURITY_INFORMATION,nullptr)==STATUS_INVALID_PARAMETER,
+          "null modification descriptor accepted");
+    }
+    h.finish(context);++updates;
+  };
+  update(WRITE_DAC,DACL_SECURITY_INFORMATION|PROTECTED_DACL_SECURITY_INFORMATION,dacl);
+  update(WRITE_OWNER,OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION,owner);
+  update(ACCESS_SYSTEM_SECURITY,SACL_SECURITY_INFORMATION,sacl);
+  // Held inode and independent CPU reader see exactly the merged persisted bytes.
+  auto reader=h.open(L"\\secured");h.read(reader,nw::tail());h.finish(reader);h.close_owner();
+  auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(h.fixture.image()));view.verify_all();
+  require(view.security_descriptor(inode)==expected&&view.read("secured",0,100)==nw::tail(),
+      "retired security update did not persist independently");
+  std::cout<<"Windows writable-security evidence: {\"schema\":1,\"mode\":\""
+      <<(mode==StoreCompressionMode::raw?"raw":"automatic")<<"\",\"updates\":"<<updates
+      <<",\"denials\":"<<denials<<",\"mounted\":false,\"gpu\":false,\"complete\":true}\n";
+}
+void security_history_cap(StoreCompressionMode mode) {
+  Harness h(mode,4U*1024*1024);auto file=h.make(L"\\security-cap");h.write(file,nw::tail());
+  auto first=security_text(L"D:P(A;;GR;;;WD)"),second=security_text(L"D:P(D;;GW;;;WD)(A;;GR;;;WD)");
+  auto expected=h.security;bool failed=false;unsigned accepted=0;
+  for(unsigned i=0;i<32;++i) {
+    auto& modification=(i%2)?first:second;
+    auto oracle=merge_security(expected,DACL_SECURITY_INFORMATION,modification);
+    const auto status=sdk_set_security(h,file,DACL_SECURITY_INFORMATION,modification);
+    if(status==STATUS_SUCCESS){expected=std::move(oracle);++accepted;continue;}
+    require(status==STATUS_IO_DEVICE_ERROR&&h.adapter->requires_offline()&&h.adapter->stats().contexts==1,
+        "security cap failure did not fence/retain context");
+    require(sdk_set_security(h,file,DACL_SECURITY_INFORMATION,modification)==STATUS_IO_DEVICE_ERROR&&
+        h.adapter->stats().contexts==1,"failed security publication retried/released");
+    failed=true;break;
+  }
+  require(failed&&accepted>0,"bounded security history did not enforce cap");
+  h.fs.UserContext=nullptr;h.adapter.reset();
+  auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(h.fixture.image()));view.verify_all();
+  require(view.security_descriptor(2)==expected&&view.read("security-cap",0,100)==nw::tail()&&
+      std::filesystem::file_size(h.fixture.image())<=4U*1024*1024,
+      "security cap lost acknowledged descriptor/data or exceeded bound");
+}
 void void_failure() {
   Harness h(StoreCompressionMode::raw);auto context=h.make(L"\\retained");
   h.cb().Cleanup(&h.fs,context,nullptr,0x80000000U);
@@ -337,6 +452,7 @@ int main(){try {
   DWORD before=0,after=0;require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"handle baseline");
   for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}){contents(mode);disposition(mode);}
   capacity_and_threads();void_failure();history_cap();retired_resume();
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic}){security_updates(mode);security_history_cap(mode);}
   require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE&&before==after,"adapter OS handles leaked");
   std::cout<<"Windows writable-adapter evidence: {\"schema\":1,\"checks\":"<<checks<<",\"dispatches\":"<<dispatches
       <<",\"handle_before\":"<<before<<",\"handle_after\":"<<after

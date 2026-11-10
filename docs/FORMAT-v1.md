@@ -227,3 +227,9 @@ recovered-generation lease and uncertain-tail append floor. It rejects
 unresolved old-session state rather than synthesizing Cleanup. Restart evidence
 appends a receipt to the existing source report within the same 2048-byte cap;
 it does not replace the original acknowledgement or increase image/report caps.
+
+
+The opt-in hosted writable adapter now has a bounded SetSecurity candidate using
+WinFsp's merge helper and original per-part granted-access checks. SDK/CPU tests
+are configured; inspect exact-commit CI before claiming a pass. Stored formats and historical bytes are unchanged; bounded descriptor replacements use the existing FLTXNS04/05 atomic metadata transaction.
+See [NATIVE_SECURITY.md](NATIVE_SECURITY.md) for its contract and limits.

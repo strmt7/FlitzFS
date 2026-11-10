@@ -147,6 +147,9 @@ class NativeFileSession final {
   NativeInodeStorageMutationCommit truncate_storage_result(const NativeFileHandle&,std::uint64_t bytes,
       const NativeAutomaticMetadata& effect={});
   std::optional<NativeSecurityDescriptor> security_descriptor(const NativeFileHandle&) const;
+  // Trusted adapter merge input; active FULL replacement grant is required.
+  // This does not grant the caller permission to expose any descriptor part.
+  std::optional<NativeSecurityDescriptor> security_descriptor_for_update(const NativeFileHandle&) const;
   NativeFsCommit set_security_descriptor(const NativeFileHandle&,std::span<const std::byte>);
   NativeInodeState info(const NativeFileHandle&) const;
   std::optional<NativeBasicMetadata> basic_metadata(const NativeFileHandle&) const;

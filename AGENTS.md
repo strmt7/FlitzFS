@@ -890,3 +890,15 @@ final CPU observation are separately bounded, sequential children with actual
 exit proof before each next launch. Retain the 4 MiB image/two2048-byte report
 budgets; append a bounded receipt without replacing the source acknowledgement.
 No arbitrary paths, mutable general recovery, raises/skips/false promotion.
+
+## Hosted security-update boundary
+
+Read docs/NATIVE_SECURITY.md before changing SetSecurity. Capture original
+Create/Open grants; require WRITE_DAC, WRITE_OWNER and ACCESS_SYSTEM_SECURITY
+for their distinct requested parts. Never map data/basic grants to replacement
+or expose the session's trusted merge-input query as public descriptor read.
+Use the selected WinFsp merge helper and matching deallocator; validate both
+bounded self-relative input/output before replicated publication. No post-commit
+read/allocation, retry, stored-format change, cap increase or automatic mount.
+Keep every old fault/cap/handle/retirement test. SDK dispatch does not prove
+kernel access/privilege enforcement, inheritance propagation or client safety.

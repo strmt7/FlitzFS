@@ -303,3 +303,9 @@ OS writer exclusion, exact identity/generation and complete Windows-profile
 admission. See [the restart contract](docs/WRITABLE_MOUNT_TRIAL.md).
 [DEVELOPMENT_STATE.json](docs/DEVELOPMENT_STATE.json) is a compact source-bound
 navigation ledger; current source and executed CI remain authoritative.
+
+
+The opt-in hosted writable adapter now has a bounded SetSecurity candidate using
+WinFsp's merge helper and original per-part granted-access checks. SDK/CPU tests
+are configured; inspect exact-commit CI before claiming a pass. Live caller-authorization/privilege, inheritance propagation, client/product, scale/reclaim and GPU/learning/repair qualification remain unfinished.
+See [NATIVE_SECURITY.md](docs/NATIVE_SECURITY.md) for its contract and limits.

@@ -505,3 +505,9 @@ append-only handoff/state-digest reconciliation are required. Inspect executed
 jobs before promoting this checkpoint. General unresolved-state recovery,
 production startup/app/installer, arbitrary failure cuts, cancellation/mapped
 semantics, history reclamation/scale and live AMD/learning/repair remain open.
+
+
+The opt-in hosted writable adapter now has a bounded SetSecurity candidate using
+WinFsp's merge helper and original per-part granted-access checks. SDK/CPU tests
+are configured; inspect exact-commit CI before claiming a pass. Live caller-authorization/privilege, inheritance propagation, client/product, scale/reclaim and GPU/learning/repair qualification remain unfinished.
+See [NATIVE_SECURITY.md](NATIVE_SECURITY.md) for its contract and limits.
