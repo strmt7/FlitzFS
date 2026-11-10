@@ -444,10 +444,10 @@ void ram_handoff_probe() {
       raw_payload=pinned.storage_info().stored_payload_bytes;
       stage=72;
       {
-        auto small=std::make_shared<locked_ram_fixture::Store>(flitzfs::kVolumeHeadBytes);
-        auto recovered=session.recompress_managed_hosted(small,rejected_id);
+        auto undersized_candidate=std::make_shared<locked_ram_fixture::Store>(flitzfs::kVolumeHeadBytes);
+        auto recovered=session.recompress_managed_hosted(undersized_candidate,rejected_id);
         require(recovered.recovered&&recovered.head.selection.epoch==1&&
-            recovered.head.selection.image_identity==source_id&&small->extent()==0,
+            recovered.head.selection.image_identity==source_id&&undersized_candidate->extent()==0,
             "RAM capacity failure did not recover original authority");
       }
       read_handle(reader.value,original);
