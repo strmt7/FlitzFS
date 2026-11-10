@@ -212,7 +212,8 @@ publication. The parent retains the CPU result gate and exact process
 retirement checks. Typed worker exits feed the existing recovery policy.
 
 The hosted probe verifies the complete bundle, refusal of a missing bundle,
-and rejection of a malformed frame carried through the real transport. Each
+rejection of a same-size modified kernel copy, and rejection of a malformed
+frame carried through the real transport. Each
 child must exit under the existing 128 MiB, 20 percent CPU and 15-second bounds.
 The VM qualification exercises admission and compilation. Hardware execution,
 measured GPU benefit and production filesystem routing require separate evidence.

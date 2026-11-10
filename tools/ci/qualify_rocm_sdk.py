@@ -143,12 +143,27 @@ def main():
         report["worker"]=dict(bytes=worker.stat().st_size,sha256=digest(worker),imports=sorted(set(imports)),
             bundle=json.loads((build/"Release/hip-bundle.json").read_text(encoding="utf-8")))
         report["worker_probe_imports"]=audit_binary(worker_probe.read_bytes())
-        result=run(bounds,[str(worker_probe),str(worker),str(root/"worker-probe")],
+        # Same-size change in a NEW copy. Every original SDK/bundle file stays untouched.
+        altered=root/"tampered-worker"
+        altered.mkdir()
+        (altered/"hip").mkdir()
+        with worker.open("rb") as incoming, (altered/worker.name).open("xb") as outgoing:
+            shutil.copyfileobj(incoming,outgoing,64*1024)
+        for record in report["worker"]["bundle"]["files"]:
+            filename=record["name"]
+            require(Path(filename).name==filename and filename.endswith(".dll"),"unsafe staged DLL name")
+            with (build/"Release/hip"/filename).open("rb") as incoming, (altered/"hip"/filename).open("xb") as outgoing:
+                if filename==module.name.lower():
+                    byte=incoming.read(1)
+                    require(len(byte)==1,"empty staged kernel")
+                    outgoing.write(bytes([byte[0]^1]))
+                shutil.copyfileobj(incoming,outgoing,64*1024)
+        result=run(bounds,[str(worker_probe),str(worker),str(root/"worker-probe"),str(altered/worker.name)],
             report,"bounded-worker-admission-without-HIP",90)
         prefix="HIP worker admission: "
         receipts=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines() if line.startswith(prefix)]
-        require(receipts==[dict(bundle_verified=True,missing_bundle_refused=True,invalid_wire_refused=True,
-            exits_confirmed=3,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
+        require(receipts==[dict(bundle_verified=True,missing_bundle_refused=True,tampered_bundle_refused=True,invalid_wire_refused=True,
+            exits_confirmed=4,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
         report["worker_admission"]=receipts[0]
         actual_clang=run(bounds,[str(sdk/"lib/llvm/bin/clang.exe"),"--version"],report,"actual-AMD-compiler-version",30)
         require(lock["observed_clang_version"] in actual_clang["stdout"],

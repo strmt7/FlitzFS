@@ -232,6 +232,7 @@ int worker(int argc, wchar_t** argv) {
   require(node_mask && !(node_mask & (node_mask - 1)), Exit::invalid_request, "adapter node mask");
   auto channel = WorkerChannel::open(argv[6]);
   auto request = read_request(channel.request());
+  const auto bundle = verify_bundle();
   const auto observed = query_windows_gpu_budget(luid, node_mask);
   require(observed.status == WindowsGpuBudgetStatus::success,
       Exit::unsupported_configuration, "AMD adapter unavailable");
@@ -239,7 +240,6 @@ int worker(int argc, wchar_t** argv) {
       request.batch.device_buffer_bytes()) == GpuGateCode::admitted,
       Exit::temporary_pressure, "AMD worker memory budget");
 
-  const auto bundle = verify_bundle();
   // Per-process search settings. Imported private DLLs are pinned in hip/.
   require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32) != 0,
       Exit::runtime_unavailable, "restrict worker DLL lookup");

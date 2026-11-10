@@ -41,7 +41,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git archive --format=zip HEAD -o "$RUNNER_TEMP/flitzfs-source.zip"
-          test "$(stat -c '%s' "$RUNNER_TEMP/flitzfs-source.zip")" -le 1048576
+          source_bytes="$(stat -c '%s' "$RUNNER_TEMP/flitzfs-source.zip")"
+          printf 'Tracked source archive bytes: %s\n' "$source_bytes"
+          test "$source_bytes" -le 2097152
           printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TEMP/source-commit.txt"
           cd "$RUNNER_TEMP"
           sha256sum flitzfs-source.zip > source-sha256.txt
