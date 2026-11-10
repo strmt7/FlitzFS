@@ -90,7 +90,10 @@ class Evidence(unittest.TestCase):
                              source_process=17, observer_process=19, source_ack_digest="5"*64,
                              continued_state_digest="4"*64, generation=b["generation"],
                              namespace_sequence=b["namespace_sequence"], image_bytes=b["image_bytes"])
-            self.assertTrue(validate_continuation(a, continued, b, profile, COMMIT)["complete"])
+            result = validate_continuation(a, continued, b, profile, COMMIT)
+            self.assertTrue(result["complete"])
+            for key in ("image_bytes", "generation", "namespace_sequence"):
+                self.assertEqual(result[key], b[key], "hosted budget must use the final continued state")
             for key in continued:
                 bad = deepcopy(continued)
                 value = bad[key]

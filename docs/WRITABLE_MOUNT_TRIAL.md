@@ -201,3 +201,17 @@ not qualify generic pending/deleted-session repair or production cold startup.
 Acknowledged-source waits now inspect only atomic offline/dispatcher state,
 with no new storage/GPU work, so unexpected source dispatcher failure before
 the controlled termination is a failing outcome.
+
+
+### First restart execution retained
+
+At 4552d21 the four old mounted profiles, all110 native CTest groups, six
+report-validation groups and raw/automatic restart unit cases passed. Both
+new source/resumer/final-verifier sequences also returned the required actual
+exits (restart0/0/0, crash-restart1460/0/0) and exact continuation-state digests.
+The final Python extent check failed because reconciliation returned the
+producer's pre-continuation extent/generation rather than the independently
+verified final state. The follow-up fixes that result selection and adds
+explicit regression assertions for all three returned final fields. No byte,
+metadata, process, source or cap check is removed or raised. Inspect the
+follow-up's full executed checks before claiming a passing restart checkpoint.
