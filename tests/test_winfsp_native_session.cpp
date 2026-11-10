@@ -140,6 +140,30 @@ int main(){try {
     }
     require(provider.trace()=="pcsmtrd"&&provider.callback_alive_during_stop,"destructor failed callback retirement");
   }
+  provider={};
+  {
+    nw::Fixture f;WinFspNativeSession session(create_adapter(f),api());
+    require(session.start(plan())==STATUS_SUCCESS,"fenced-session startup");
+    std::array<std::byte,4096> descriptor{};SIZE_T bytes=descriptor.size();UINT32 attributes=0;
+    require(provider.fs.Interface->GetSecurityByName(&provider.fs,const_cast<PWSTR>(L"\\"),&attributes,
+        descriptor.data(),&bytes)==STATUS_SUCCESS,"fenced-session root security");
+    PVOID context=nullptr;FSP_FSCTL_FILE_INFO info{};
+    require(provider.fs.Interface->Create(&provider.fs,const_cast<PWSTR>(L"\\retained"),FILE_NON_DIRECTORY_FILE,
+        FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,descriptor.data(),0,&context,&info)==STATUS_SUCCESS,
+        "fenced-session creation");
+    provider.fs.Interface->Cleanup(&provider.fs,context,nullptr,0x80000000U);
+    require(session.requires_offline()&&session.stats().contexts==1&&session.stats().fenced,
+        "VOID failure not visible to external controller");
+    // This is a controller call after Cleanup returned, never a callback join.
+    session.stop();
+    require(provider.trace()=="pcsmtrd"&&provider.invariant&&session.state()==SessionState::failed&&
+        session.requires_offline()&&session.stats().contexts==1&&session.stats().fenced,
+        "offlining erased failed retained-context outcome or teardown order");
+    auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(f.image()));view.verify_all();++retired;
+    require(view.stat("retained").logical_bytes==0,"offlining lost acknowledged creation");
+    session.stop();require(provider.trace()=="pcsmtrd","offlining repeated provider cleanup");
+  }
+  require(retired==11,"writable lifecycle retirement case omitted");
   std::cout<<"Windows writable-lifecycle evidence: {\"schema\":1,\"checks\":"<<checks<<",\"retired_writers\":"<<retired
       <<",\"real_provider_calls\":0,\"mounted\":false,\"complete\":true}\n";return 0;
 }catch(const std::exception& e){std::cerr<<"Writable lifecycle failure: "<<e.what()<<"\n";return 1;}}

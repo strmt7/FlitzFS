@@ -41,13 +41,14 @@ struct Harness {
         "native callback Open");return context;
   }
   void finish(PVOID context,ULONG flags=0) {
-    FSP_FSCTL_TRANSACT_REQ request{};FSP_FSCTL_TRANSACT_RSP response{};
+    FSP_FSCTL_TRANSACT_REQ request;FSP_FSCTL_TRANSACT_RSP response;
+    ZeroMemory(&request,sizeof(request));ZeroMemory(&response,sizeof(response));
     request.Kind=FspFsctlTransactCleanupKind;
     request.Req.Cleanup.UserContext2=static_cast<UINT64>(reinterpret_cast<std::uintptr_t>(context));
     request.Req.Cleanup.Delete=(flags&FspCleanupDelete)!=0;
     request.Req.Cleanup.SetAllocationSize=(flags&FspCleanupSetAllocationSize)!=0;
     ++dispatches;require(FspFileSystemOpCleanup(&fs,&request,&response)==STATUS_SUCCESS,"actual SDK Cleanup");
-    request={};response={};request.Kind=FspFsctlTransactCloseKind;
+    ZeroMemory(&request,sizeof(request));ZeroMemory(&response,sizeof(response));request.Kind=FspFsctlTransactCloseKind;
     request.Req.Close.UserContext2=static_cast<UINT64>(reinterpret_cast<std::uintptr_t>(context));
     ++dispatches;require(FspFileSystemOpClose(&fs,&request,&response)==STATUS_SUCCESS,"actual SDK Close");
     require(!adapter->requires_offline(),"normal cleanup/close fenced adapter");
@@ -57,7 +58,8 @@ struct Harness {
     require(cb().GetFileInfo(&fs,context,&result)==STATUS_SUCCESS,"native callback GetFileInfo");return result;
   }
   void write(PVOID context,const std::vector<std::byte>& bytes,UINT64 offset=0) {
-    FSP_FSCTL_TRANSACT_REQ request{};FSP_FSCTL_TRANSACT_RSP response{};
+    FSP_FSCTL_TRANSACT_REQ request;FSP_FSCTL_TRANSACT_RSP response;
+    ZeroMemory(&request,sizeof(request));ZeroMemory(&response,sizeof(response));
     request.Kind=FspFsctlTransactWriteKind;
     request.Req.Write.UserContext2=static_cast<UINT64>(reinterpret_cast<std::uintptr_t>(context));
     request.Req.Write.Address=reinterpret_cast<UINT64>(bytes.data());
@@ -68,7 +70,8 @@ struct Harness {
   }
   void read(PVOID context,const std::vector<std::byte>& expected) {
     std::vector<std::byte> buffer(expected.size()+1,std::byte{0x76});
-    FSP_FSCTL_TRANSACT_REQ request{};FSP_FSCTL_TRANSACT_RSP response{};
+    FSP_FSCTL_TRANSACT_REQ request;FSP_FSCTL_TRANSACT_RSP response;
+    ZeroMemory(&request,sizeof(request));ZeroMemory(&response,sizeof(response));
     request.Kind=FspFsctlTransactReadKind;
     request.Req.Read.UserContext2=static_cast<UINT64>(reinterpret_cast<std::uintptr_t>(context));
     request.Req.Read.Address=reinterpret_cast<UINT64>(buffer.data());
@@ -151,8 +154,9 @@ void contents(StoreCompressionMode mode) {
   require(cb.GetVolumeInfo(fs,&volume)==STATUS_SUCCESS&&volume.FreeSize<volume.TotalSize,"native quota not charged");
   h.close_owner();
   auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(h.fixture.image()));
+  const auto recovered_basic=view.basic_metadata(inode);
   require(view.read("Data/renamed.bin",0,5000)==short_data&&view.stat("Data/renamed.bin").inode==inode&&
-      view.stat("Data/renamed.bin").basic->creation_time==stamp,"independent CPU readback after writer retirement");
+      recovered_basic&&recovered_basic->creation_time==stamp,"independent CPU readback after writer retirement");
 }
 void disposition(StoreCompressionMode mode) {
   Harness h(mode);auto& cb=h.cb();auto* fs=&h.fs;

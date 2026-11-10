@@ -166,7 +166,7 @@ struct WinFspNativeWritable::Impl {
       auto& slot=s.available();const bool directory=(options&FILE_DIRECTORY_FILE)!=0;
       if((options&FILE_DIRECTORY_FILE)&&(options&FILE_NON_DIRECTORY_FILE))return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
       const auto stamp=native_cleanup_utc();const auto data=descriptor(security);
-      const NativeBasicMetadata basic{stamp,stamp,stamp,stamp,attributes(attrs,directory)};
+      const NativeBasicMetadata basic{stamp,stamp,stamp,stamp,attributes(attrs,directory)|(directory?0U:FILE_ATTRIBUTE_ARCHIVE)};
       NativePreparedCreateOptions initial;initial.access=grants(access);initial.basic_access=basic_grant(access);
       initial.security_access=security_grant(access);initial.initial_delete={(options&FILE_DELETE_ON_CLOSE)!=0};
       auto made=s.session.create_prepared_storage(path(name),directory,basic,data,
