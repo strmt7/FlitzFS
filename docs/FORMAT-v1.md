@@ -115,3 +115,10 @@ namespace formats. No automatic migration or archive import exists.
 Current .flfs and object-store Zstandard decoders require modern frame magic
 0xFD2FB528 before calling library parsers. Writer-produced bytes remain unchanged;
 legacy/skippable or unknown framing is rejected explicitly.
+
+## Cleanup metadata has no new wire encoding
+
+The requested Cleanup bridge in NATIVE_CLEANUP_METADATA.md uses the existing
+optional FLTXNS03 tuple and replicated publication. It adds no container codec,
+archive compatibility, namespace layout or capacity change. Legacy bytes and
+read support remain; request sentinels are never persisted as timestamps.

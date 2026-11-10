@@ -425,3 +425,17 @@ alone. Unknown membership, changed limits or unretired children fail closed;
 never raise limits or retry CreateProcess to hide WinError 1816. Retain native
 SDK ABI assertions, real controlled-contention coverage, before/after telemetry
 and historical failed runs. No owner-host permission follows.
+
+## Automatic native Cleanup metadata
+
+Read docs/NATIVE_CLEANUP_METADATA.md before changing requested effects or the
+Windows VOID-ABI bridge. Preserve one atomic metadata+optional-unlink commit,
+creation/unrequested fields, absence, strict clocks, first successful duplicate
+stamps, authorized delete intent and no-throw post-commit latches/context state.
+Implicit trusted FSD updates are not explicit WRITE_ATTRIBUTES grants or ACL
+authorization. Keep contexts through paging until Close. Every bridge failure
+must fence without I/O/retry/release; unsupported allocation/unknown flags fail
+closed. A future supervisor must offline outside Cleanup; never join/stop a
+dispatcher within its own callback. Keep the existing read-only table unwired.
+Actual per-open -1/-2 suppression, complete Windows policy, allocation/security,
+writable adapter/app and Windows 11 client/live GPU qualification remain open.

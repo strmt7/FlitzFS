@@ -52,6 +52,23 @@ struct NativeBasicMutation {
   NativeBasicMetadata value;
 };
 
+
+// Trusted dispatcher Cleanup side effects, not an explicit user SetBasicInfo.
+// One UTC value is sampled for requested times; no hidden clock/timer exists
+// in the persistence core. Archive is automatic only for regular files.
+struct NativeCleanupMetadata {
+  std::uint64_t utc_time=0;
+  bool set_archive=false,set_access_time=false,set_write_time=false,set_change_time=false;
+  bool any() const noexcept {
+    return set_archive || set_access_time || set_write_time || set_change_time;
+  }
+  bool same_requests(const NativeCleanupMetadata& other) const noexcept {
+    return set_archive==other.set_archive && set_access_time==other.set_access_time &&
+        set_write_time==other.set_write_time && set_change_time==other.set_change_time;
+  }
+};
+bool native_cleanup_metadata_valid(const NativeCleanupMetadata&) noexcept;
+
 enum class NativeFileOperation {create_file,create_directory,write,truncate,rename,remove};
 struct NativeFileMutation {
   NativeFileOperation operation=NativeFileOperation::create_file;
@@ -174,6 +191,11 @@ class NativeFilesystemWriter final {
   // No public ordinary-file reopen, open-context proof, or mount is added.
   NativeFsCommit set_delete_pending(std::uint64_t inode,bool pending);
   NativeFsCommit unlink_inode(std::uint64_t inode);
+  // Trusted Cleanup event: optional unlink and requested automatic metadata
+  // share ONE replicated transaction. Creation/untouched fields stay exact.
+  // Any effective metadata change requires an already present basic tuple.
+  NativeFsCommit cleanup_inode(std::uint64_t inode,bool delete_file,
+      const NativeCleanupMetadata&);
   NativeFsCommit retire_inode(std::uint64_t inode);
   // Single-control-thread committed view for the owning Windows engine.
   // Verify namespace against the last acknowledged model; reads privately
@@ -190,9 +212,10 @@ class NativeFilesystemWriter final {
  private:
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
-  enum class InodeAction {path_mutations,mutate,set_delete,clear_delete,unlink,retire,finish_session};
+  enum class InodeAction {path_mutations,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
-      std::span<const NativeBasicMutation> basic={});
+      std::span<const NativeBasicMutation> basic={},
+      const NativeCleanupMetadata* cleanup=nullptr,bool cleanup_delete=false);
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

@@ -211,3 +211,33 @@ qualification; no owner-PC action or product-runtime Python dependency follows.
 
 [Microsoft job interop](https://github.com/dotnet/runtime/blob/8b9903ebf160fed45050edda447792363ce96dc0/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.JobObjects.cs),
 [current process-handle lifetime code](https://github.com/dotnet/runtime/blob/8b9903ebf160fed45050edda447792363ce96dc0/src/libraries/System.Diagnostics.Process/src/Microsoft/Win32/SafeHandles/SafeProcessHandle.Windows.cs).
+
+## Executed accounting qualification checkpoint
+
+At b348615dd0fb1d1bb3c5cf01e9017e31cff66589 all six triggered hosted
+workflows succeeded. Windows raw job 129535121240 and native static job
+129535115972 each passed the actual held-child retirement test: private-job
+accounting observed two active members, released the controlled child from that
+observation, returned to one and launched exactly one continuation. Total
+assigned processes were one, two and three; no extra launch or retry occurred.
+
+Both relocated packages then completed all 21 commands with before/after
+supervisor-only accounting and zero retries. Each command increased the actual
+job total by exactly one. Raw/native binary SHA-256 values were
+28ec2fb2319bf391a1651ee7218201ca16ef854015985d86518e406455fad731
+and a42206fbaa24be3d943861155d0dc5817f292b66a63c007cc0f406d3a6a7dca8.
+No resource limit was raised. This validates the new admission mechanism;
+the exact cause of the older 1816 result remains unproven without its missing
+accounting evidence.
+
+Windows native job 129535121493 passed all 45 entries; ASan/UBSan job
+129535120786 passed all 39. Both retained 400 basic invariants, 1,038 basic
+fault cases, 2,064 lifetime faults, 1,026 context faults and 271 Flush checks.
+The Windows basic API oracle was emitted explicitly. Hosted read-only mount
+job 129537473508 passed normal I/O, forced helper exit, CPU recovery/remount
+and source parity, with peaks 6,131,712 / 6,160,384 / 5,234,688 bytes.
+
+The b348 change did not modify the filesystem, metadata producer/controller
+or dedicated metadata workflow. The 712 metadata and 976 legacy writer
+termination results remain bound to their executed 6cc source. No owner-PC
+operation, latest Windows 11 client, live GPU or writable mount was qualified.
