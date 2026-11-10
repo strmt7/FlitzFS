@@ -963,3 +963,15 @@ stage to system TEMP. Keep image/head data in verified locked RAM. Audit native
 artifact/PE/source identity and execute the exact VM-qualified bounded binary
 before claiming a PC pass. Do not load the detected stopped2025 WinFsp driver
 as though it were the qualified2026 path. Read docs/HOST_RAM_TESTING.md.
+
+## Explicit CPU post-compression boundary
+
+Read docs/RECOMPRESSION.md before changing recompress(). Preserve the existing
+compact() payload-copy path/default wire behavior. Re-encode into a NEW distinct
+image only, with latest verified quiescent source and conservative raw-size
+admission. Keep per-object bounded scratch and independently compare decoded
+target/source bytes BEFORE replicated roots; preserve object generations and
+native state except image identity. Revalidate the source and retain it plus
+partial candidates on failure. No automatic retry, deletion, idle scheduler,
+worker/GPU or mounted permission follows. Head publication remains separate.
+Keep every old case/cap and every new destination fault/readback rejection.

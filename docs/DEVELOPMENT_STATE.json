@@ -92,14 +92,16 @@
     "proof_scope": "CPU RAM-model head selection/faults/repeated handoff and later acknowledged-data retention, plus six OLD mounted regressions. No mounted head integration/reclamation/physical-power/GPU proof."
   },
   "source_routing": {
-    "commit": "453f5e4c09f7c14013d2555c6702c1e627c812d5",
-    "job": 130091916491,
+    "commit": "6a3dadcb373200acd8a32b129cee6e23bd01c80e",
+    "job": 130141622531,
     "queries": 6,
-    "source_sha256": "1c7970a928cdc36e15aead27a0d865f3125adb7fc2fa98edbf802159c977eee3"
+    "source_sha256": "57670abed671e2a993b6ba34ec4f18edc6041f7b216ffb9a78f1bd2b34807fc6",
+    "production_source_unchanged_at": "44f1e412d27f78a6b3c6ab2da7504c169d2bdc11",
+    "confirmation": "Exact live source reads; only RAM workflow status handling differs."
   },
   "safety": {
     "development": "native repository APIs and disposable hosted VMs",
-    "owner_pc": "Authorized bounded RAM-only CPU/GPU testing after exact VM qualification; modest real-source/tool/report HDD staging is separate from filesystem backing. No filesystem/GPU/mount probe executed yet.",
+    "owner_pc": "Bounded unmounted locked-RAM CPU probe executed once after exact VM qualification. Six public real files preserved. No driver/GPU/mount execution. Modest verified HDD source/tool/report staging only; never filesystem backing.",
     "no_raw_device_or_partition_ops": true,
     "no_local_processes_started": false,
     "gpu_execution_qualified": false,
@@ -130,16 +132,13 @@
     }
   },
   "pending_implementation": {
-    "scope": "Opt-in portable locked-RAM CPU core probe with real/synthetic raw/automatic input, independent compacted-image byte readback, provenance and hard process limits",
-    "primary_files": [
-      "tests/locked_ram_fixture.hpp",
-      "tests/windows_ram_probe.cpp",
-      ".github/workflows/ram-host.yml"
-    ],
+    "scope": "Explicit CPU native/object post-compression into a new image, independent source/target byte comparison, every destination I/O fault and VM-first real-data RAM qualification",
+    "check_exact_current_head_ci": true,
     "docs": [
-      "docs/HOST_RAM_TESTING.md"
+      "docs/RECOMPRESSION.md"
     ],
-    "check_exact_current_head_ci": true
+    "automatic_scheduler": false,
+    "gpu": false
   },
   "remaining": [
     "authenticated request-bound kernel/helper authority for functional owner/group changes and mounted ACL enforcement",
@@ -184,5 +183,25 @@
     "complete": true,
     "owned_cli_exit_confirmed": true,
     "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
+  },
+  "owner_ram_checkpoint": {
+    "commit": "44f1e412d27f78a6b3c6ab2da7504c169d2bdc11",
+    "vm_run": 42905800463,
+    "vm_job": 130143326689,
+    "result": "complete",
+    "real_files": 6,
+    "source_bytes": 118663,
+    "locked_peak": 33816576,
+    "locked_after": 0,
+    "handles": [
+      45,
+      45
+    ],
+    "child_peak_commit": 38834176,
+    "source_unchanged": true,
+    "own_processes_after": 0,
+    "source_reference": "docs/HOST_RAM_VALIDATION.json",
+    "mounted": false,
+    "gpu": false
   }
 }

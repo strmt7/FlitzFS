@@ -527,8 +527,9 @@ The experimental custom-backend native volume head adds a fixed 128-KiB,
 replicated authority for selecting a verified compacted image while retaining
 the source and a stable external volume identity. Its publication/recovery,
 CPU comparison, minimum-checkpoint binding and fault-test contract are in
-VOLUME_HEAD.md. Existing encodings/routes/caps remain unchanged. Tests are
-configured, not yet qualified at this commit. No file-provider, mounted handoff,
+VOLUME_HEAD.md. Existing encodings/routes/caps remain unchanged. The CPU model tests passed at
+dd388157456d0ae6ed9735c0c16a5e83826b37b7; see VOLUME_HEAD_VALIDATION.md.
+This does not qualify mounted head integration. No file-provider, mounted handoff,
 source deletion, automatic reclaim/worker, GPU or owner-PC operation follows.
 
 
@@ -541,3 +542,12 @@ never supplies filesystem image backing. Configuration is not a host execution
 or mounted/GPU/idle-recompression qualification. Existing formats/routes stay
 unchanged. Dependabot OPEN-alert access was successfully verified (0 on the
 complete10-November snapshot); see DEPENDENCY_AUDIT.md for scope.
+
+The explicit CPU post-compression primitive converts a preserved raw/fast
+source into a separately verified NEW image. It preserves native state and
+object generations, streams bounded objects and compares decoded source/target
+bytes before replicated publication. See RECOMPRESSION.md. Automatic
+idle learning/scheduling and live GPU execution remain unimplemented. The first
+six-file owner-PC unmounted RAM CPU result is in HOST_RAM_VALIDATION.json;
+its complete image remained larger than the tiny corpus despite compressed
+payload reduction. New re-encoding tests require their own exact-commit pass.

@@ -73,6 +73,8 @@ jobs:
           $data = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
           if ($data.commit -ne $env:GITHUB_SHA -or -not $data.complete -or -not $data.resident_verified -or $data.locked_after -ne 0 -or $data.mounted -or $data.gpu) { throw 'RAM evidence mismatch' }
           if ($data.locked_peak -gt 40MB -or $data.handles_before -ne $data.handles_after -or $data.real_files -ne 3) { throw 'RAM resource evidence mismatch' }
+          if ($data.real_post.input -ne $data.real_raw.input -or $data.real_post.payload -ne $data.real_raw.payload -or $data.real_post.target_payload -ne $data.real_auto.target_payload -or $data.real_post.target_payload -ge $data.real_raw.payload) { throw 'Real post-compression equivalence/reduction failed' }
+          if ($data.synthetic_post.target_payload -ne $data.synthetic_auto.target_payload -or $data.synthetic_post.target_payload -ge $data.synthetic_raw.payload) { throw 'Synthetic post-compression equivalence/reduction failed' }
           $package = Join-Path $env:RUNNER_TEMP 'flitzfs-ram-package'
           New-Item -ItemType Directory -Path $package -ErrorAction Stop | Out-Null
           Copy-Item -LiteralPath $probe -Destination (Join-Path $package 'flitzfs_ram_host_probe.exe') -ErrorAction Stop
