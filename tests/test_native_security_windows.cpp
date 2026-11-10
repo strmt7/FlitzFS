@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cstddef>
 #include <iostream>
+#include <type_traits>
 namespace {
 using namespace flitzfs;
 using namespace native_windows_fixture;
@@ -86,7 +87,8 @@ void callbacks() {
     auto projection=ReadOnlyProjection::open_native_file(fixture.image(),identity());
     check(projection.security_descriptor(L"\\")==root && projection.security_descriptor(L"\\f")==file,
         "independent native projection descriptor mismatch");
-    WinFspReadOnly adapter(std::move(projection));FSP_FILE_SYSTEM fs{};adapter.bind_callbacks(fs);
+    WinFspReadOnly adapter(std::move(projection));FSP_FILE_SYSTEM fs{};
+    fs.Version=static_cast<UINT16>(sizeof fs);fs.UmFileContextIsUserContext2=TRUE;adapter.bind_callbacks(fs);
     const auto& cb=WinFspReadOnly::callbacks();fs.Interface=&cb;
     for(const auto* path:{L"\\",L"\\f"}) {
       const auto& expected=std::wstring_view(path)==L"\\"?root:file;
@@ -109,7 +111,10 @@ void callbacks() {
       // Exercise the REAL DLL dispatcher with its bounded response buffer.
       // Calling GetSecurity directly with a larger vector would miss the
       // protocol-header subtraction and its INVALID_SECURITY_DESCR mapping.
-      FSP_FSCTL_TRANSACT_REQ request{};
+      FSP_FSCTL_TRANSACT_REQ request;
+      static_assert(std::is_trivially_copyable_v<FSP_FSCTL_TRANSACT_REQ>);
+      ZeroMemory(&request,sizeof request); // Selected SDK flexible Buffer[] header.
+      request.Size=static_cast<UINT16>(sizeof request);
       request.Kind=FspFsctlTransactQuerySecurityKind;
       request.Req.QuerySecurity.UserContext=reinterpret_cast<UINT_PTR>(context);
       request.Req.QuerySecurity.UserContext2=reinterpret_cast<UINT_PTR>(context);
@@ -147,6 +152,9 @@ void callbacks() {
 int main(){try {
   hosted();os_oracles();callbacks();
   std::cout<<"Windows security evidence: {\"schema\":1,\"checks\":"<<checks
+      <<",\"native_descriptor_cap\":"<<kNativeMaxSecurityBytes
+      <<",\"sdk_request_payload\":"<<FSP_FSCTL_TRANSACT_REQ_BUFFER_SIZEMAX
+      <<",\"sdk_response_payload\":"<<FSP_FSCTL_TRANSACT_RSP_BUFFER_SIZEMAX
       <<",\"complete\":true,\"mount\":false,\"scope\":\"OS/SDK validation and native persisted read-only callbacks; not ACL authorization or mounted writes\"}\n";
   return 0;
 }catch(const std::exception& e){std::cerr<<"Windows security failure: "<<e.what()<<"\n";return 1;}}
