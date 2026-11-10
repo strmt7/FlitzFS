@@ -258,9 +258,7 @@ void basic_expected(const NativeFilesystemSnapshot& view,std::string_view phase,
 // Inspect the exact root selected by an independently admitted snapshot. The
 // library has already verified its full object graph; bind the stored geometry
 // as well, rather than labelling a fixed-layout run "compact".
-void compact_root(const fs::path& path,std::uint64_t generation) {
-  auto file=ReadOnlyFile::open(path);std::array<std::byte,4096> root{};
-  file.read_exact_at((generation%2)*kStoreCommitUnit,root.data(),root.size());
+void compact_root_bytes(std::span<const std::byte,4096> root,std::uint64_t generation) {
   const auto number=[&](std::size_t at,unsigned count) {
     std::uint64_t value=0;
     for(unsigned i=0;i<count;++i)value|=std::uint64_t(std::to_integer<unsigned char>(root[at+i]))<<(8*i);
@@ -270,6 +268,16 @@ void compact_root(const fs::path& path,std::uint64_t generation) {
   require(std::equal(digest.begin(),digest.end(),root.begin()+4064) &&
       number(16,8)==generation && number(8,4)==3 && number(112,4)==4096,
       "compact process campaign did not admit the selected root-3/4096 geometry");
+}
+void compact_root(const StoreByteIo& backing,std::uint64_t generation) {
+  std::array<std::byte,4096> root{};
+  backing.read_exact((generation%2)*kStoreCommitUnit,root);
+  compact_root_bytes(root,generation);
+}
+void compact_root(const fs::path& path,std::uint64_t generation) {
+  auto file=ReadOnlyFile::open(path);std::array<std::byte,4096> root{};
+  file.read_exact_at((generation%2)*kStoreCommitUnit,root.data(),root.size());
+  compact_root_bytes(root,generation);
 }
 void basic_write(const fs::path& path,std::string_view phase,StoreCompressionOptions options,bool compact=false) {
   auto backing=detail::new_store_file(path,{4096,true});auto trace=std::make_shared<Traced>(backing);
@@ -282,7 +290,7 @@ void basic_write(const fs::path& path,std::string_view phase,StoreCompressionOpt
   const auto before=phase=="basic-upgrade"?files.apply(initial):files.apply_with_basic(initial,initial_basic);
   require(before.storage.generation==4,"basic baseline generation");
   basic_expected(files.snapshot(),phase,false);
-  if(compact)compact_root(path,4);
+  if(compact)compact_root(*backing,4);
   trace->event("ack",0,0,4,{},basic_state_digest(ObjectStoreSnapshot::open(trace)),compact);trace->armed=true;
   NativeFsCommit changed;
   if(phase=="basic-compound") {
@@ -294,7 +302,7 @@ void basic_write(const fs::path& path,std::string_view phase,StoreCompressionOpt
   } else changed=files.set_basic_metadata(2,basic_tuple(2));
   trace->armed=false;require(changed.storage.generation==6,"basic candidate generation");
   basic_expected(files.snapshot(),phase,true);
-  if(compact)compact_root(path,6);
+  if(compact)compact_root(*backing,6);
   trace->event("ack",0,0,6,{},basic_state_digest(ObjectStoreSnapshot::open(trace)),compact);
   std::cout<<"{\"done\":true}\n"<<std::flush;
 }
