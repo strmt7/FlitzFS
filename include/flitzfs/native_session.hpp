@@ -23,6 +23,9 @@ struct NativeFileAccess {
 // Separate already-authorized WRITE_ATTRIBUTES-like grant; data write does
 // not silently grant permission to replace persisted timestamps/attributes.
 struct NativeBasicAccess {bool write=false;};
+// Already-authorized full descriptor access, not an ACL evaluator or a claim
+// that WRITE_DAC alone authorizes owner/SACL replacement.
+struct NativeSecurityAccess {bool read=false,replace=false;};
 // A value alias for ONE open instance, not another open/reference count.
 // Only open() creates a context; one successful Close invalidates all aliases.
 // Weak ownership prevents stale tokens from binding to another session.
@@ -54,6 +57,10 @@ class NativeFileSession final {
       NativeOpenKind kind=NativeOpenKind::any);
   NativeFileHandle open(std::string_view path,NativeFileAccess access,
       NativeOpenKind kind,NativeBasicAccess basic_access);
+  NativeFileHandle open(std::string_view path,NativeFileAccess access,
+      NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access);
+  std::optional<NativeSecurityDescriptor> security_descriptor(const NativeFileHandle&) const;
+  NativeFsCommit set_security_descriptor(const NativeFileHandle&,std::span<const std::byte>);
   NativeInodeState info(const NativeFileHandle&) const;
   std::optional<NativeBasicMetadata> basic_metadata(const NativeFileHandle&) const;
   NativeFsCommit set_basic_metadata(const NativeFileHandle&,const NativeBasicMetadata&);
@@ -79,6 +86,8 @@ class NativeFileSession final {
   // Trusted creation path: data/namespace and explicit full basic metadata
   // publish atomically. Access checking remains the future OS adapter's job.
   NativeFsCommit create_entry(std::string_view path,bool directory,const NativeBasicMetadata&);
+  NativeFsCommit create_entry(std::string_view path,bool directory,
+      const NativeBasicMetadata&,std::span<const std::byte> security);
   NativeFsCommit rename(const NativeFileHandle&,std::string_view target,bool replace=false);
 
   // Aggregate per-open disposition; canceling one cannot cancel another's

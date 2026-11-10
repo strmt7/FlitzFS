@@ -492,7 +492,7 @@ contracts fence before writes. New-identity copy may reselect geometry only
 for its distinct NEW target; source bytes and native identity rules remain.
 Keep full catalogs/malformed roots/unit conflicts, all modeled fault modes,
 native fixed+compact cases and actual hosted new-file checks. Do not relabel
-fixed process campaigns as root-3 coverage. Root-3 termination, physical
+fixed process campaigns as root-3 coverage. Root-3 termination passed its separate 172-cut gate at 1b81473. Physical
 power/device, Windows 11/writable/live AMD and owner-host qualification stay open.
 
 ## Compact-layout process evidence
@@ -506,3 +506,19 @@ child/thread retirement and strict disjoint merge. Preserve all existing
 case/event/queue/fixture/process/time caps. Configured gates need exact-commit
 executed evidence; they are not physical power-loss/client/live-AMD proof.
 Default/mounted layouts and the owner-host prohibition remain unchanged.
+
+
+## Persistent security descriptor boundary
+
+Read docs/NATIVE_SECURITY.md before changing FLTXNS04 or security APIs. Preserve
+opaque self-relative bytes and absent/NULL/empty ACL distinctions, bounded
+framing versus actual Windows validation, sticky capability, legacy bytes and
+all sixteen combined operations/64-KiB namespace/other resource ceilings.
+Descriptor read/full replacement grants are already-authorized distinct rights,
+not WRITE_DAC shortcuts or an ACL evaluator. Keep one atomic file/basic/security
+Stage, three barriers, snapshots, lifecycle/CPU recovery and no post-commit
+fallible result construction. Present descriptors must reach read-only security
+callbacks rather than silently using the legacy default. The SDK/file group is
+hosted-gated; no writable callbacks, owner-PC operation, live AMD or full ACL/
+inheritance/privilege/client qualification follows. Keep old process campaigns
+scoped honestly until a separate NS04 termination campaign executes.

@@ -139,3 +139,9 @@ The transactional core's opt-in root field 3 in COMPACT_CHECKPOINT_METADATA.md
 is a separate internal capability. It changes replicated catalog placement,
 not this legacy container format or product numbering. Existing native
 namespace/data/codec formats and default root bytes remain supported.
+
+
+NATIVE_SECURITY.md specifies the separate experimental FLTXNS04 namespace
+capability: bounded opaque self-relative security descriptors, 96-byte inode
+headers, sticky format and legacy-byte preservation. It changes neither this
+container encoding nor object root/record/codec formats.

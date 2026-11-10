@@ -204,7 +204,7 @@ persisted UTC times, atomic file-plus-metadata transactions, separate owning
 context attribute-write grants, and read-only projection through the actual
 SDK fields. See [persistent basic metadata](docs/NATIVE_BASIC_METADATA.md).
 Legacy bytes and absence are preserved. Automatic Windows timestamp policy,
-ACL/security persistence, allocation accounting and writable integration remain
+complete ACL/privilege policy, allocation accounting and writable integration remain
 unfinished; configured tests require exact hosted validation.
 
 A separate hosted Windows metadata writer campaign now configures exact
@@ -213,3 +213,10 @@ compound transactions, without replacing legacy cases. Its decoded-state
 digests and strict reports are described in
 [the basic metadata contract](docs/NATIVE_BASIC_METADATA.md). A configured
 campaign is not passing evidence until its exact hosted jobs are inspected.
+
+
+Opaque Windows security descriptors can now persist atomically with file/basic
+metadata and reach the read-only security callbacks. Separate context grants,
+bounded framing and Windows validation keep persistence distinct from access
+checking. See [native security](docs/NATIVE_SECURITY.md). Complete ACL/inheritance/
+privilege policy and writable/client qualification remain required.

@@ -357,6 +357,17 @@ qualified failure-unit geometry while keeping 64 KiB-separated roots, complete
 independent manifests and three barriers. COMPACT_CHECKPOINT_METADATA.md
 defines strict compatibility, modeled failures, hosted new-file checks and
 native byte profiles. Inspect executed results before claiming measured gains.
-Default and mounted layouts remain fixed. Root-3 real writer termination is
-the next safety gate before wider adoption; physical power/device/client,
+Default and mounted layouts remain fixed. Root-3 real writer termination passed all 172 cuts at 1b81473;
+keep broader adoption explicit; physical power/device/client,
 reclaim/scaling, Windows reporting/writable app and live AMD remain open.
+
+
+### Persistent Windows descriptor foundation
+
+NATIVE_SECURITY.md adds atomic bounded descriptor persistence, owning descriptor
+grants and read-only persisted security callbacks. Configured CPU/Windows SDK
+groups require exact-commit executed evidence. Next complete Windows per-part
+authorization/inheritance/privilege policy, NS04 real termination, actual mounted
+ACL checks and truthful allocation/FileInfo before writable helper integration.
+Keep Windows 11 client/live AMD, scaling/reclaim, redundant payload repair,
+autonomous learning and representative filesystem benchmarks open.

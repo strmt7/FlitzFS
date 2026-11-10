@@ -21,17 +21,19 @@ using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
 constexpr std::uint64_t kNamespaceObject=1;
 constexpr std::size_t kMetadataCap=kNativeExtentBytes,kDirtyCap=kNativeMaxDirtyExtents;
-constexpr std::size_t kBasicNodeHeader=88;
+constexpr std::size_t kBasicNodeHeader=88,kSecurityNodeHeader=96;
 static_assert(64+kNativeMaxNodes*(kBasicNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
+static_assert(64+kNativeMaxNodes*(kSecurityNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
 static_assert(kDirtyCap*kNativeExtentBytes+kMetadataCap<=kStoreMaxTransactionBytes);
 static_assert(kNativeMaxExtents*kNativeExtentBytes+kMetadataCap<=kStoreMaxLogicalBytes);
 constexpr std::array<std::byte,8> kMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'N'},std::byte{'S'},std::byte{'0'},std::byte{'1'}};
 constexpr auto kLifecycleMagic=[] {auto magic=kMagic;magic[7]=std::byte{'2'};return magic;}();
 constexpr auto kBasicMagic=[] {auto magic=kMagic;magic[7]=std::byte{'3'};return magic;}();
+constexpr auto kSecurityMagic=[] {auto magic=kMagic;magic[7]=std::byte{'4'};return magic;}();
 const std::array<std::byte,8>& namespace_magic(std::uint32_t format) {
-  return format==1?kMagic:format==2?kLifecycleMagic:kBasicMagic;
+  return format==1?kMagic:format==2?kLifecycleMagic:format==3?kBasicMagic:kSecurityMagic;
 }
-std::size_t node_header(std::uint32_t format) {return format==3?kBasicNodeHeader:64;}
+std::size_t node_header(std::uint32_t format) {return format==4?kSecurityNodeHeader:format==3?kBasicNodeHeader:64;}
 [[noreturn]] void fail(Code code,const char* reason){throw NativeFsError(code,reason);}
 bool zeros(std::span<const std::byte> bytes){return std::all_of(bytes.begin(),bytes.end(),[](auto b){return b==std::byte{0};});}
 std::uint64_t integer(std::span<const std::byte> bytes,std::size_t at,unsigned width) {
@@ -46,6 +48,7 @@ struct Node {
   std::uint64_t inode=0,parent=0,size=0,born=0,modified=0;
   bool directory=false,delete_pending=false,unlinked=false;
   std::optional<NativeBasicMetadata> basic;
+  std::optional<NativeSecurityDescriptor> security;
   std::string name,key;
   std::map<std::uint64_t,std::uint64_t> extents; // Logical block -> object ID.
 };
@@ -135,7 +138,7 @@ void validate_basic(const NativeBasicMetadata& value,bool directory) {
 }
 void validate_structure(const Model& model,bool pending=false) {
   if(model.nodes.empty() || model.nodes.size()>kNativeMaxNodes || model.sequence==0)fail(Code::limit,"native namespace budget");
-  if(model.format!=1 && model.format!=2 && model.format!=3)fail(Code::corrupt,"native namespace capability");
+  if(model.format<1 || model.format>4)fail(Code::corrupt,"native namespace capability");
   const auto& root=node(model,1);
   if(root.parent || !root.directory || !root.name.empty() || root.size || !root.extents.empty() ||
       root.born!=1 || root.delete_pending || root.unlinked)
@@ -149,9 +152,11 @@ void validate_structure(const Model& model,bool pending=false) {
         (n.delete_pending && n.unlinked) || (model.format==1 && (n.delete_pending || n.unlinked)))
       fail(Code::corrupt,"native inode invariant");
     if(n.basic) {
-      if(model.format!=3)fail(Code::corrupt,"basic metadata without namespace capability");
+      if(model.format<3)fail(Code::corrupt,"basic metadata without namespace capability");
       validate_basic(*n.basic,n.directory);
     }
+    if(n.security && (model.format<4 || !native_security_descriptor_framed(*n.security)))
+      fail(Code::corrupt,"security descriptor framing/capability");
     largest=(std::max)(largest,id);
     if(id!=1) {
       if(n.unlinked) {
@@ -192,7 +197,7 @@ template<class Read> void validate_data(const Model& model,Read read) {
 Bytes encode(const Model& model) {
   validate_structure(model);
   std::size_t size=64;
-  for(const auto& [id,n]:model.nodes){(void)id;size+=node_header(model.format)+n.name.size()+16*n.extents.size();}
+  for(const auto& [id,n]:model.nodes){(void)id;size+=node_header(model.format)+n.name.size()+16*n.extents.size()+(n.security?n.security->size():0);}
   if(size>kMetadataCap)fail(Code::limit,"native metadata budget");
   Bytes bytes(size);const auto& magic=namespace_magic(model.format);
   std::copy(magic.begin(),magic.end(),bytes.begin());
@@ -202,7 +207,7 @@ Bytes encode(const Model& model) {
   std::size_t cursor=64;
   for(const auto& [id,n]:model.nodes) {
     put(bytes,cursor,id,8);put(bytes,cursor+8,n.parent,8);put(bytes,cursor+16,n.directory?1:2,4);
-    put(bytes,cursor+20,(n.delete_pending?1U:0U)|(n.unlinked?2U:0U)|(n.basic?4U:0U),4);
+    put(bytes,cursor+20,(n.delete_pending?1U:0U)|(n.unlinked?2U:0U)|(n.basic?4U:0U)|(n.security?8U:0U),4);
     put(bytes,cursor+24,n.size,8);put(bytes,cursor+32,n.born,8);put(bytes,cursor+40,n.modified,8);
     put(bytes,cursor+48,n.name.size(),2);put(bytes,cursor+50,n.extents.size(),2);
     if(n.basic) {
@@ -210,8 +215,13 @@ Bytes encode(const Model& model) {
       put(bytes,cursor+64,n.basic->last_access_time,8);put(bytes,cursor+72,n.basic->last_write_time,8);
       put(bytes,cursor+80,n.basic->change_time,8);
     }
+    if(model.format>=4)put(bytes,cursor+88,n.security?n.security->size():0,4);
     cursor+=node_header(model.format);
     for(char c:n.name)bytes[cursor++]=static_cast<std::byte>(static_cast<unsigned char>(c));
+    if(n.security) {
+      std::copy(n.security->begin(),n.security->end(),bytes.begin()+static_cast<std::ptrdiff_t>(cursor));
+      cursor+=n.security->size();
+    }
     for(const auto& [block,object]:n.extents){put(bytes,cursor,block,8);put(bytes,cursor+8,object,8);cursor+=16;}
   }
   return bytes;
@@ -223,7 +233,7 @@ Model decode(const ObjectStoreSnapshot& objects) {
       integer(all,32,4)!=kNativeExtentBytes || !zeros(all.subspan(56,8)))
     fail(Code::corrupt,"unsupported native namespace framing");
   const auto format=integer(all,8,4);
-  if(format<1 || format>3 ||
+  if(format<1 || format>4 ||
       !std::equal(namespace_magic(static_cast<std::uint32_t>(format)).begin(),
                   namespace_magic(static_cast<std::uint32_t>(format)).end(),bytes.begin()))
     fail(Code::corrupt,"unsupported native namespace capability/magic");
@@ -246,9 +256,10 @@ Model decode(const ObjectStoreSnapshot& objects) {
     n.size=integer(h,24,8);n.born=integer(h,32,8);n.modified=integer(h,40,8);
     const auto name_bytes=integer(h,48,2),extents=integer(h,50,2);
     if((kind!=1 && kind!=2) || n.inode<=previous || name_bytes>100 || extents>kNativeMaxExtents ||
-        (flags&~std::uint64_t{7}) || (format==1 && flags) || (flags&3)==3 ||
-        (format!=3 && (flags&4)) ||
-        (!(flags&4) && !zeros(h.subspan(52))) ||
+        (flags&~std::uint64_t{15}) || (format==1 && flags) || (flags&3)==3 ||
+        (format<3 && (flags&4)) || (format<4 && (flags&8)) ||
+        (!(flags&4) && !zeros(h.subspan(52,(std::min)(header,std::size_t{88})-52))) ||
+        (format>=4 && (integer(h,92,4) || bool(flags&8)!=(integer(h,88,4)!=0))) ||
         name_bytes>bytes.size()-cursor)fail(Code::corrupt,"invalid native inode fields");
     if(flags&4) {
       n.basic=NativeBasicMetadata{integer(h,56,8),integer(h,64,8),integer(h,72,8),integer(h,80,8),
@@ -256,6 +267,14 @@ Model decode(const ObjectStoreSnapshot& objects) {
     }
     n.name.assign(reinterpret_cast<const char*>(bytes.data()+cursor),static_cast<std::size_t>(name_bytes));
     cursor+=static_cast<std::size_t>(name_bytes);
+    if(flags&8) {
+      const auto length=integer(h,88,4);
+      if(length>kNativeMaxSecurityBytes || length>bytes.size()-cursor ||
+          !native_security_descriptor_framed(all.subspan(cursor,static_cast<std::size_t>(length))))
+        fail(Code::corrupt,"invalid native stored security descriptor");
+      n.security=NativeSecurityDescriptor(bytes.begin()+static_cast<std::ptrdiff_t>(cursor),
+          bytes.begin()+static_cast<std::ptrdiff_t>(cursor+length));cursor+=static_cast<std::size_t>(length);
+    }
     try{n.key=n.inode==1 || n.unlinked?"":component(n.name);}
     catch(const NativeFsError&){fail(Code::corrupt,"invalid native stored component");}
     std::uint64_t prior_block=0;
@@ -366,7 +385,24 @@ struct Stage {
     auto& n=node(model,selected_inode(model,id).inode);
     validate_basic(op.value,n.directory);
     if(n.basic && *n.basic==op.value)return;
-    n.basic=op.value;n.modified=model.sequence;model.format=3;changed=true;
+    n.basic=op.value;n.modified=model.sequence;model.format=(std::max)(model.format,3U);changed=true;
+  }
+  void set_security(const NativeSecurityMutation& op) {
+    std::uint64_t id=op.inode;
+    if(!id) {
+      if(!op.created_ordinal || op.created_ordinal>created.size())
+        fail(Code::invalid_operation,"security creation selector missing");
+      id=created[op.created_ordinal-1];
+    }
+    auto& n=node(model,selected_inode(model,id).inode);
+    if(n.security && *n.security==op.value)return;
+    // Enforce the SAME whole-namespace cap before copying a replacement.
+    std::size_t size=64+op.value.size();
+    for(const auto& [key,item]:model.nodes)
+      size+=kSecurityNodeHeader+item.name.size()+16*item.extents.size()+
+          (key!=id && item.security?item.security->size():0);
+    if(size>kMetadataCap)fail(Code::limit,"native aggregate security metadata budget");
+    n.security=op.value;n.modified=model.sequence;model.format=4;changed=true;
   }
   void automatic_metadata(std::uint64_t id,const NativeAutomaticMetadata& effect) {
     auto& n=node(model,selected_inode(model,id).inode);
@@ -582,6 +618,10 @@ std::optional<NativeBasicMetadata> NativeFilesystemSnapshot::basic_metadata(std:
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   return selected_inode(impl_->model,inode).basic;
 }
+std::optional<NativeSecurityDescriptor> NativeFilesystemSnapshot::security_descriptor(std::uint64_t inode) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  return selected_inode(impl_->model,inode).security;
+}
 bool NativeFilesystemSnapshot::needs_session_recovery() const noexcept {
   if(!impl_)return false;
   for(const auto& [id,n]:impl_->model.nodes){(void)id;if(n.delete_pending || n.unlinked)return true;}
@@ -672,9 +712,19 @@ NativeFsCommit NativeFilesystemWriter::apply(std::span<const NativeFileMutation>
 }
 NativeFsCommit NativeFilesystemWriter::apply_with_basic(std::span<const NativeFileMutation> operations,
     std::span<const NativeBasicMutation> basic) {
+  return apply_with_metadata(operations,basic,{});
+}
+NativeFsCommit NativeFilesystemWriter::apply_with_metadata(std::span<const NativeFileMutation> operations,
+    std::span<const NativeBasicMutation> basic,std::span<const NativeSecurityMutation> security) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
-  if(operations.size()>16 || basic.size()>16 || operations.size()+basic.size()==0 ||
-      operations.size()+basic.size()>16)fail(Code::limit,"native combined operation count");
+  if(operations.size()>16 || basic.size()>16 || security.size()>16 ||
+      operations.size()+basic.size()+security.size()==0 ||
+      operations.size()+basic.size()+security.size()>16)fail(Code::limit,"native combined operation count");
+  for(const auto& op:security) {
+    if((!op.inode)==(!op.created_ordinal) || op.created_ordinal>16 ||
+        !native_security_descriptor_framed(op.value))
+      fail(Code::invalid_operation,"invalid native security descriptor/selector");
+  }
   for(const auto& op:basic) {
     if((!op.inode)==(!op.created_ordinal) || op.created_ordinal>16)
       fail(Code::invalid_operation,"basic metadata requires exactly one valid selector");
@@ -689,7 +739,14 @@ NativeFsCommit NativeFilesystemWriter::apply_with_basic(std::span<const NativeFi
     if(op.data.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");
     input+=op.data.size();if(input>kStoreMaxTransactionBytes)fail(Code::limit,"native input budget");
   }
-  return transact(operations,InodeAction::path_mutations,0,basic);
+  return transact(operations,InodeAction::path_mutations,0,basic,nullptr,false,nullptr,security);
+}
+NativeFsCommit NativeFilesystemWriter::set_security_descriptor(std::uint64_t inode,std::span<const std::byte> value) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(!native_security_descriptor_framed(value))
+    fail(Code::invalid_operation,"invalid native security descriptor framing");
+  const NativeSecurityMutation op{inode,0,NativeSecurityDescriptor(value.begin(),value.end())};
+  return apply_with_metadata({},{},{&op,1});
 }
 NativeFsCommit NativeFilesystemWriter::set_basic_metadata(std::uint64_t inode,const NativeBasicMetadata& value) {
   const NativeBasicMutation op{inode,0,value};
@@ -697,7 +754,8 @@ NativeFsCommit NativeFilesystemWriter::set_basic_metadata(std::uint64_t inode,co
 }
 NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutation> operations,
     InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic,
-    const NativeAutomaticMetadata* automatic,bool cleanup_delete,NativeInodeCommitInfo* published) {
+    const NativeAutomaticMetadata* automatic,bool cleanup_delete,NativeInodeCommitInfo* published,
+    std::span<const NativeSecurityMutation> security) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(automatic && !native_cleanup_metadata_valid(*automatic))
     fail(Code::invalid_operation,"invalid automatic metadata time/unused clock");
@@ -725,6 +783,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     // own effects before unlink; never apply either effect twice.
     if(action==InodeAction::mutate && automatic)stage.automatic_metadata(inode,*automatic);
     for(const auto& op:basic)stage.set_basic(op);
+    for(const auto& op:security)stage.set_security(op);
     validate_structure(stage.model,true);
     // Capture only bounded scalar/optional facts from the fully validated
     // staged model. Never query backing state or build a path after commit.
@@ -857,6 +916,10 @@ ObjectStoreSnapshot NativeFilesystemWriter::checked_namespace() const {
 std::optional<NativeBasicMetadata> NativeFilesystemWriter::inspect_basic_metadata(std::uint64_t inode) const {
   auto objects=checked_namespace();(void)objects;
   return selected_inode(impl_->model,inode).basic;
+}
+std::optional<NativeSecurityDescriptor> NativeFilesystemWriter::inspect_security_descriptor(std::uint64_t inode) const {
+  auto objects=checked_namespace();(void)objects;
+  return selected_inode(impl_->model,inode).security;
 }
 NativeInodeState NativeFilesystemWriter::inspect_path(std::string_view path) const {
   auto objects=checked_namespace();(void)objects;

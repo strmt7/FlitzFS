@@ -164,3 +164,12 @@ queries across normal/crash/recovery, including separate host allocation of
 the backing image. The selected FSD rejects FileCompressionInformation;
 Win32 wrapper behavior must be observed, not inferred. This adds no writable
 route, automatic compression toggle or Windows 11 client qualification.
+
+
+## Persisted descriptor projection
+
+NATIVE_SECURITY.md adds exact per-inode descriptor reads to ReadOnlyProjection.
+The optional WinFsp adapter validates present bytes with Windows during immutable
+node construction and supplies them through both security callbacks. Existing
+legacy owner policy remains only for absent descriptors. Write routes stay
+protected; direct callback tests do not prove mounted ACL authorization.

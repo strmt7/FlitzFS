@@ -406,3 +406,15 @@ removes a durability barrier. New-output opt-in, strict wire admission,
 incompatible-contract fencing and source-preserving copy are mandatory.
 Default/mounted layouts and all resource limits remain unchanged.
 Root-3 real interruption/client/physical-device/owner-host qualification is open.
+
+
+## Persisted security boundary
+
+NATIVE_SECURITY.md adds bounded opaque descriptor persistence in the SAME
+replicated transaction as file/basic updates. CPU framing is not an ACL evaluator;
+Windows validates present descriptors before read-only callback exposure.
+Data/basic grants never imply full descriptor replacement. Keep all aggregate
+metadata/resource caps and legacy absence, preserve NULL versus empty DACLs, and
+require real OS/FSD authorization/inheritance/privilege qualification before
+writable use. Existing mount callbacks stay read-only. New file checks remain
+behind hosted admission; no owner-PC operation or product installation follows.

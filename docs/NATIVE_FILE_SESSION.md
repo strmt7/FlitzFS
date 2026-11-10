@@ -232,3 +232,13 @@ the same context grants and late paging/retirement rules; failures retain
 contexts and return no success. NATIVE_MUTATION_RESULTS.md specifies the
 nonthrowing output and active post-barrier storage-denial tests. These facts
 are not a complete Windows allocation/security/FileInfo implementation.
+
+
+## Owned descriptor access
+
+NATIVE_SECURITY.md adds distinct already-authorized descriptor read and FULL
+replacement grants through a new open overload; original signatures/layouts
+remain. Data/basic grants do not confer those rights. A trusted creation overload
+publishes file/basic/descriptor together. Stable contexts retain descriptors
+through rename/unlink until final Close, with existing fencing and no raw writer
+access. Full replacement is not a substitute for Windows per-part checks.

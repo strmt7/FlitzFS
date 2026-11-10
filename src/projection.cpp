@@ -125,6 +125,15 @@ std::optional<NativeBasicMetadata> ReadOnlyProjection::basic_metadata(std::wstri
   }
   (void)std::get<ReadOnlyCatalog>(impl_->source).stat(relative);return {};
 }
+std::optional<NativeSecurityDescriptor> ReadOnlyProjection::security_descriptor(std::wstring_view path) const {
+  if(!impl_)throw std::logic_error("moved-from read-only projection");
+  const auto relative=virtual_path(path);
+  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+    std::lock_guard lock(impl_->native_guard);
+    return native->security_descriptor(native->stat(relative).inode);
+  }
+  (void)std::get<ReadOnlyCatalog>(impl_->source).stat(relative);return {};
+}
 std::optional<NativeProjectionInfo> ReadOnlyProjection::native_info() const {
   if(!impl_)throw std::logic_error("moved-from read-only projection");
   if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {

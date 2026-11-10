@@ -45,6 +45,7 @@ class ReadOnlyProjection final {
   void verify_all(std::uint64_t max_verification_bytes=kDefaultCatalogVerificationBytes);
   // Metadata for the helper/adapter; none for a legacy read-only catalog.
   std::optional<NativeProjectionInfo> native_info() const;
+  std::optional<NativeSecurityDescriptor> security_descriptor(std::wstring_view path) const;
   // Explicit persisted tuple only. Legacy catalogs and unstamped native nodes
   // have no such tuple; paths are still validated/resolved in either case.
   std::optional<NativeBasicMetadata> basic_metadata(std::wstring_view path) const;

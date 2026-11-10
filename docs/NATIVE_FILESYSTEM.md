@@ -357,3 +357,14 @@ options overload. COMPACT_CHECKPOINT_METADATA.md specifies root format 3.
 This changes catalog placement, not namespace encodings, tuples, inode/extent
 limits or file semantics. Existing paths remain fixed by default; no mounted
 write or automatic source replacement is added.
+
+
+## Persistent Windows security descriptors
+
+NATIVE_SECURITY.md specifies optional opaque descriptors and the sticky FLTXNS04
+capability, atomic combined file/basic/security operations, full descriptor
+replacement, the unchanged aggregate metadata cap and independent CPU recovery.
+Generic operations and new-identity compaction preserve exact bytes; the core
+does not invent defaults, inheritance or an authorization decision. The Windows
+read-only adapter validates present descriptors and returns per-inode bytes.
+Complete ACL/privilege/allocation policy and writable/client qualification remain.
