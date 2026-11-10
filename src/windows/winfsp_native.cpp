@@ -468,6 +468,33 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_retired_hoste
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(
       std::make_unique<Impl>(std::move(session),id,created)));
 }
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_hosted(
+    std::shared_ptr<StoreByteIo> head,StoreIdentity volume,
+    std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,StoreCompressionOptions foreground) {
+  hosted();
+  const auto security=owner_security();const auto stamp=native_cleanup_utc();
+  const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
+  auto session=NativeFileSession::create_volume(std::move(head),volume,std::move(image),image_id,
+      foreground,{},NativeDispositionPolicy::windows_global,root);
+  return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(
+      std::make_unique<Impl>(std::move(session),volume,stamp)));
+}
+HostedVolumeMaintenanceResult WinFspNativeWritable::recompress_managed_hosted(
+    std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) {
+  hosted();
+  std::lock_guard guard(impl_->control);
+  if(requires_offline() || dispatcher_stopped())
+    throw std::runtime_error("mounted session is unavailable for maintenance");
+  try {
+    return {impl_->session.recompress_volume(std::move(target),next,candidate),false};
+  }catch(...) {
+    if(!impl_->session.poisoned())throw;
+    // The callback guard stays held. No callback sees an unverified image or
+    // loses its open context while the one explicit CPU recovery is attempted.
+    try{return {impl_->session.recover_volume(),true};}
+    catch(...){impl_->offline.store(true,std::memory_order_release);throw;}
+  }
+}
 void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs) noexcept{fs.UserContext=impl_.get();}
 bool WinFspNativeWritable::requires_offline() const noexcept{return impl_->offline.load(std::memory_order_acquire);}
 bool WinFspNativeWritable::dispatcher_stopped() const noexcept{return impl_->stopped.load(std::memory_order_acquire)!=0;}

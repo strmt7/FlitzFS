@@ -3,97 +3,46 @@
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "qualified_checkpoint": {
-    "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
-    "tree": "2cc8feda97b3b90882e40793dde31f22ae2c05cf",
-    "run": 42907446612,
+    "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+    "tree": "2f2b203140c6f582e7d3500253a17d4f1ab99fd3",
+    "run": 42912401429,
     "workflow_count": 12,
-    "native_job": 130149037193,
-    "native_groups": 117,
-    "sanitizer_job": 130149037479,
-    "sanitizer_groups": 99,
-    "new_recompression_fault_cases": 435,
-    "new_recompression_checks": 3963,
+    "native_job": 130166140061,
+    "native_groups": 122,
+    "sanitizer_job": 130166139301,
+    "sanitizer_groups": 104,
+    "transition_fault_cases": 549,
+    "transition_checks": 10195,
     "profiles": [
       {
-        "job": 130154057446,
-        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
-        "complete": true,
-        "generation": 28,
-        "image_bytes": 2949120,
-        "namespace_sequence": 14,
-        "profile": "restart",
-        "schema": 1,
-        "user_bytes": 7001,
-        "actual_exits": [
-          "extended_writer profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4751360",
-          "extended_resumer profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4734976",
-          "extended_verifier profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3133440"
-        ]
+        "job": 130171945537,
+        "profile": "read-only",
+        "exits": [
+          0,
+          1460,
+          0
+        ],
+        "complete": true
       },
       {
-        "job": 130154057464,
-        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+        "job": 130173300383,
+        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
         "complete": true,
-        "generation": 14,
-        "image_bytes": 1572864,
-        "namespace_sequence": 7,
-        "profile": "crash",
-        "schema": 1,
-        "user_bytes": 7001,
-        "actual_exits": [
-          "extended_writer profile=crash exit=1460 stage=0 detail=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4751360",
-          "extended_verifier profile=crash exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3153920"
-        ]
-      },
-      {
-        "job": 130154057470,
-        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
-        "complete": true,
-        "generation": 28,
-        "image_bytes": 2949120,
-        "namespace_sequence": 14,
+        "generation": 24,
+        "image_bytes": 2555904,
+        "namespace_sequence": 12,
         "profile": "crash-restart",
         "schema": 1,
         "user_bytes": 7001,
         "actual_exits": [
-          "extended_writer profile=crash-restart exit=1460 stage=0 detail=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4775936",
-          "extended_resumer profile=crash-restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4816896",
-          "extended_verifier profile=crash-restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3158016"
+          1460,
+          0,
+          0
         ]
       },
       {
-        "job": 130154057545,
-        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
-        "complete": true,
-        "generation": 18,
-        "image_bytes": 1966080,
-        "namespace_sequence": 9,
-        "profile": "basic",
-        "schema": 1,
-        "user_bytes": 7001,
-        "actual_exits": [
-          "writable_probe exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4784128",
-          "writable_verify exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3100672"
-        ]
-      },
-      {
-        "job": 130154057616,
-        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
-        "complete": true,
-        "generation": 32,
-        "image_bytes": 3342336,
-        "namespace_sequence": 16,
-        "profile": "delete",
-        "schema": 1,
-        "user_bytes": 37,
-        "actual_exits": [
-          "extended_writer profile=delete exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4726784",
-          "extended_verifier profile=delete exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3072000"
-        ]
-      },
-      {
-        "job": 130154057620,
-        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+        "job": 130173300402,
+        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
         "complete": true,
         "generation": 36,
         "image_bytes": 3735552,
@@ -102,19 +51,80 @@
         "schema": 1,
         "user_bytes": 89,
         "actual_exits": [
-          "extended_writer profile=mutations exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4755456",
-          "extended_verifier profile=mutations exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3067904"
+          0,
+          0
+        ]
+      },
+      {
+        "job": 130173300436,
+        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+        "complete": true,
+        "generation": 14,
+        "image_bytes": 1572864,
+        "namespace_sequence": 7,
+        "profile": "crash",
+        "schema": 1,
+        "user_bytes": 7001,
+        "actual_exits": [
+          1460,
+          0
+        ]
+      },
+      {
+        "job": 130173300452,
+        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+        "complete": true,
+        "generation": 18,
+        "image_bytes": 1966080,
+        "namespace_sequence": 9,
+        "profile": "basic",
+        "schema": 1,
+        "user_bytes": 7001,
+        "actual_exits": [
+          0,
+          0
+        ]
+      },
+      {
+        "job": 130173300484,
+        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+        "complete": true,
+        "generation": 30,
+        "image_bytes": 3145728,
+        "namespace_sequence": 15,
+        "profile": "restart",
+        "schema": 1,
+        "user_bytes": 7001,
+        "actual_exits": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "job": 130173300547,
+        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+        "complete": true,
+        "generation": 32,
+        "image_bytes": 3342336,
+        "namespace_sequence": 16,
+        "profile": "delete",
+        "schema": 1,
+        "user_bytes": 37,
+        "actual_exits": [
+          0,
+          0
         ]
       }
     ],
-    "proof_scope": "CPU post-compression/new image exact comparison/target-I/O faults. Two bounded owner RAM CPU checks; no mounted recompression, automatic idle learning, live GPU or physical-power proof."
+    "proof_scope": "Managed-session CPU handoff/recovery and unmounted locked-RAM owner execution with actual retained contexts. No automatic maintenance, mounted managed handoff, live GPU, production provider or physical-power claim."
   },
   "source_routing": {
-    "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
-    "job": 130149035986,
+    "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+    "job": 130166136848,
     "queries": 6,
-    "source_sha256": "6fe63350388a533058896b566419d06d6624903eb3a197efe638ab1582522d8f",
-    "confirmation": "Exact live NativeFileSession/header and ownership/Flush contracts."
+    "source_sha256": "2eb25b2d2dc6fb2865f08b82391503c0c509bbdc15779c7771d1a15b8feb4ff9",
+    "confirmation": "WinFsp adapter, session and writable probe live source."
   },
   "safety": {
     "development": "native repository APIs and disposable hosted VMs",
@@ -149,16 +159,10 @@
     }
   },
   "pending_implementation": {
-    "scope": "Managed volume/session compaction/post-compression with live context preservation and one independently selected CPU maintenance recovery; no automatic scheduler or file provider",
+    "scope": "Hosted locked RAM WinFsp handoff with retained Windows handles and CPU recovery",
     "check_exact_current_head_ci": true,
-    "primary_files": [
-      "include/flitzfs/native_session.hpp",
-      "src/native_session.cpp",
-      "tests/test_volume_session.cpp",
-      "tests/windows_ram_probe.cpp"
-    ],
     "docs": [
-      "docs/VOLUME_SESSION.md"
+      "docs/WRITABLE_MOUNT_TRIAL.md"
     ]
   },
   "remaining": [
@@ -206,9 +210,9 @@
     "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
   },
   "owner_ram_checkpoint": {
-    "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
-    "vm_run": 42907446341,
-    "vm_job": 130149036072,
+    "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+    "vm_run": 42912401069,
+    "vm_job": 130166137025,
     "result": "complete",
     "real_files": 6,
     "source_bytes": 118663,
@@ -218,7 +222,7 @@
       45,
       45
     ],
-    "child_peak_commit": 38834176,
+    "child_peak_commit": 37949440,
     "sources_unchanged": true,
     "own_processes_after": 0,
     "source_reference": "docs/HOST_RAM_VALIDATION.json",

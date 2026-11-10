@@ -49,6 +49,7 @@ class WinFspReadOnlySession final {
 };
 
 class WinFspNativeWritable;
+struct HostedVolumeMaintenanceResult;
 struct NativeWriteMountPlan {
   std::wstring directory;
   std::uint32_t lifetime_seconds=15;
@@ -65,6 +66,10 @@ class WinFspNativeSession final {
   WinFspNativeSession(const WinFspNativeSession&)=delete;
   WinFspNativeSession& operator=(const WinFspNativeSession&)=delete;
   NTSTATUS start(const NativeWriteMountPlan&) noexcept;
+  // Serialized hosted controller request only; callbacks never initiate it.
+  HostedVolumeMaintenanceResult recompress_managed_hosted(
+      std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
+      StoreCompressionOptions candidate={});
   void stop() noexcept;
   SessionState state() const noexcept{return state_;}
   bool requires_offline() const noexcept;

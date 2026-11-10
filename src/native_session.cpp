@@ -152,15 +152,23 @@ NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer,Native
 }
 NativeFileSession NativeFileSession::create_volume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,
-    StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy) {
+    StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
+    std::optional<NativeVolumeRootMetadata> root) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
     fail(E::invalid_options,"distinct volume/image identities and backends required");
+  if(root && (root->security.empty() || !native_security_descriptor_framed(root->security)))
+    fail(E::invalid_options,"invalid initial volume root descriptor");
   admit_empty(head);admit_empty(image);
   auto owner=std::make_unique<Impl::VolumeOwner>();
   owner->head_io=head;owner->active_io=image;owner->volume_id=volume;
   owner->active_id=image_id;owner->foreground=foreground;
   auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
+  if(root) {
+    const NativeBasicMutation basic{1,0,root->basic};
+    const NativeSecurityMutation security{1,0,NativeSecurityDescriptor(root->security.begin(),root->security.end())};
+    writer.apply_with_metadata({},{&basic,1},{&security,1});
+  }
   auto source=writer.snapshot();retire(writer);
   owner->head.emplace(NativeVolumeHeadWriter::create(head,volume,source));
   owner->epoch=owner->head->info().selection.epoch;

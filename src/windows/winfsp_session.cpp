@@ -106,6 +106,12 @@ NTSTATUS WinFspNativeSession::start(const NativeWriteMountPlan& plan) noexcept {
   }catch(const std::bad_alloc&){return fail(STATUS_INSUFFICIENT_RESOURCES);}
   catch(...){return fail(STATUS_INTERNAL_ERROR);}
 }
+HostedVolumeMaintenanceResult WinFspNativeSession::recompress_managed_hosted(
+    std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) {
+  if(state_!=SessionState::running||!adapter_||requires_offline()||dispatcher_stopped())
+    throw std::runtime_error("hosted writable mount is not running");
+  return adapter_->recompress_managed_hosted(std::move(target),next,candidate);
+}
 void WinFspNativeSession::release() noexcept {
   if(!filesystem_)return;
   if(dispatcher_attempted_)api_.stop_dispatcher(filesystem_);
