@@ -13,7 +13,7 @@ $runtimeFlags = if ($PortableCpu) {
     @('-DCMAKE_POLICY_DEFAULT_CMP0091=NEW', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded')
 } else { @() }
 foreach ($codec in @('zstd', 'lz4')) {
-    $pin = if ($codec -eq 'zstd') { 'f8745da6ff1ad1e7bab384bd1f9d742439278e99' } else { 'c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc' }
+    $pin = if ($codec -eq 'zstd') { 'f8745da6ff1ad1e7bab384bd1f9d742439278e99' } else { 'aa4647fad575d01a874aaaadcdbe8e6a40e072f5' }
     $head = git -C ".ci-deps/$codec" rev-parse HEAD
     if ($LASTEXITCODE -or $head -ne $pin) { throw 'Native codec source identity differs' }
     git -C ".ci-deps/$codec" diff --quiet HEAD --

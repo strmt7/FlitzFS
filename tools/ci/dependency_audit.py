@@ -20,7 +20,7 @@ REPO="strmt7/FlitzFS"
 PINS=(
     ("cocoindex-io/cocoindex-code","v"+SEMANTIC_VERSION,"5676897a169fe1d46cf1e4d2eaf323c9d91c8587"),
     ("meta/zstd","v1.5.7","f8745da6ff1ad1e7bab384bd1f9d742439278e99"),
-    ("lz4/lz4","v1.11.0","c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc"),
+    ("lz4/lz4","v1.11.1","aa4647fad575d01a874aaaadcdbe8e6a40e072f5"),
     ("BLAKE3-team/BLAKE3","1.8.7","f3149ec5bb5449af877ba20377a11008ff499fa2"),
     ("winfsp/winfsp",None,None),
     ("actions/checkout","v7.0.1","3d3c42e5aac5ba805825da76410c181273ba90b1"),
@@ -157,7 +157,11 @@ def main():
         native_api_receipts=capture.receipts)
     (root/"audit.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(dict(commit=report["commit"],pins_current=all(x["current"] for x in rows),
-        build_tools=tools,installed=report["installed"])))
+        build_tools=tools,installed=report["installed"],
+        outdated_pins=[dict(repository=row["repository"],declared_tag=row["declared_tag"],
+            latest_available=row.get("latest_available",row["latest_stable"]),
+            declared_commit=row["declared_commit"],latest_commit=row["latest_commit"])
+            for row in rows if not row["current"]])))
     if not all(row["current"] for row in rows):
         raise RuntimeError("Dependency/action pin is behind its declared current-release policy or tag identity differs")
 if __name__=="__main__":

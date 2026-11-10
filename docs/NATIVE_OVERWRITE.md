@@ -135,3 +135,18 @@ qualification. Owner-PC execution remains forbidden.
 Production capacity/indexing/reclaim, live AMD/CPU recovery integration,
 redundant payload repair, bounded automatic learning and representative
 filesystem benchmarks remain required parts of the active objective.
+
+## Initial exact-commit execution
+
+At 6574049cb0e7534eba83b5560cacb7b6741c38e6, native Windows job
+129661803043 passed 79 CTest entries, raw Windows job 129661803137 passed 75,
+and sanitizer job 129661802988 passed 71. Each inspected overwrite matrix
+completed 412 invariant checks, eight sealed cases and all 828 fault cases
+across eight raw/automatic, fixed/compact and attribute-mode traces.
+Worker handles remained 94 before and after testing.
+
+This initial commit used LZ4 1.11.0. Its separate dependency inventory job
+129661802483 correctly failed after the new 1.11.1 release. That is retained
+as a real current-release-policy failure, not relabelled as a fully green
+checkpoint. DEPENDENCY_AUDIT.md records the reviewed immutable upgrade and
+the requirement to inspect new exact-commit compatibility executions.

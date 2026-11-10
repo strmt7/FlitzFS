@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: lz4/lz4
-          ref: c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc # v1.11.0
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
           path: .ci-deps/lz4
           persist-credentials: false
       - name: Build source-pinned bounded native codecs
@@ -184,7 +184,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: lz4/lz4
-          ref: c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc # v1.11.0
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
           path: .ci-deps/lz4
           persist-credentials: false
       - name: Build source-pinned bounded native codecs
@@ -272,7 +272,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: lz4/lz4
-          ref: c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc # v1.11.0
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
           path: .ci-deps/lz4
           persist-credentials: false
       - name: Verify strict Windows space report reconciliation
@@ -357,7 +357,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: lz4/lz4
-          ref: c72c7c0ec132ad2ce2fe9fad7b0c728d9faee2fc # v1.11.0
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
           path: .ci-deps/lz4
           persist-credentials: false
       - name: Build synthetic mount probe
