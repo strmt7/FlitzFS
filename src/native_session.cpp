@@ -1,5 +1,7 @@
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/catalog.hpp"
+#include "store_codec.hpp"
+#include <optional>
 #include <new>
 #include <array>
 #include <limits>
@@ -10,6 +12,23 @@ namespace flitzfs {
 namespace {
 using E=NativeSessionErrorCode;
 [[noreturn]] void fail(E code,const char* message){throw NativeSessionError(code,message);}
+void admit_policy(NativeDispositionPolicy policy) {
+  if(policy!=NativeDispositionPolicy::aggregate && policy!=NativeDispositionPolicy::windows_global)
+    fail(E::invalid_options,"unknown native disposition policy");
+}
+void admit_empty(const std::shared_ptr<StoreByteIo>& io) {
+  if(!io || io->extent()!=0 || !valid_store_io_contract(io->contract()))
+    fail(E::invalid_options,"new qualified empty volume backend required");
+  io->admit_write(0); // Read-only headroom admission before retiring an active writer.
+}
+void retire(NativeFilesystemWriter& writer) noexcept {
+  auto retired=std::move(writer); // Its destructor really releases the writer lease.
+}
+NativeFilesystemWriter resume_image(const std::shared_ptr<StoreByteIo>& image,
+    const NativeFilesystemSnapshot& view,StoreCompressionOptions compression) {
+  return NativeFilesystemWriter::resume(ObjectStoreWriter::resume(image,view.identity(),
+      view.storage_info().generation,compression));
+}
 void admit_path(std::string_view path,bool root=false) {
   // Reuse the pure validator, which checks the byte cap before allocating.
   // Never copy a caller's arbitrary-length view into an owned mutation first.
@@ -31,6 +50,18 @@ struct NativeFileSession::Impl {
     bool initial_delete=false,cleanup_trim=false;
   };
   static_assert(std::is_nothrow_copy_assignable_v<Slot>);
+  struct VolumeOwner {
+    std::shared_ptr<StoreByteIo> head_io,active_io,candidate_io;
+    std::optional<NativeVolumeHeadWriter> head;
+    std::optional<NativeFilesystemSnapshot> baseline;
+    StoreIdentity volume_id{},active_id{},candidate_id{};
+    StoreCompressionOptions foreground;
+    std::uint64_t epoch=0;
+    bool pending=false,recovery_attempted=false;
+  };
+  static_assert(sizeof(VolumeOwner)<=256);
+  // Destruction order retires the image writer BEFORE releasing the head owner.
+  std::unique_ptr<VolumeOwner> volume;
   NativeFilesystemWriter writer;
   std::shared_ptr<const void> owner=std::make_shared<const int>(0);
   std::array<Slot,max_contexts> slots{};
@@ -114,11 +145,131 @@ NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer) {
   return create(std::move(writer),NativeDispositionPolicy::aggregate);
 }
 NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer,NativeDispositionPolicy policy) {
-  if(policy!=NativeDispositionPolicy::aggregate && policy!=NativeDispositionPolicy::windows_global)
-    fail(E::invalid_options,"unknown native disposition policy");
+  admit_policy(policy);
   static_assert(sizeof(Impl)<=16*1024);
   static_assert(std::is_nothrow_move_constructible_v<NativeFileHandle>);
   return NativeFileSession(std::make_unique<Impl>(std::move(writer),policy));
+}
+NativeFileSession NativeFileSession::create_volume(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,
+    StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy) {
+  admit_policy(policy);detail::validate_store_compression(foreground);
+  if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
+    fail(E::invalid_options,"distinct volume/image identities and backends required");
+  admit_empty(head);admit_empty(image);
+  auto owner=std::make_unique<Impl::VolumeOwner>();
+  owner->head_io=head;owner->active_io=image;owner->volume_id=volume;
+  owner->active_id=image_id;owner->foreground=foreground;
+  auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
+  auto source=writer.snapshot();retire(writer);
+  owner->head.emplace(NativeVolumeHeadWriter::create(head,volume,source));
+  owner->epoch=owner->head->info().selection.epoch;
+  auto session=create(resume_image(image,source,foreground),policy);
+  session.impl_->volume=std::move(owner);return session;
+}
+NativeFileSession NativeFileSession::resume_volume(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
+    StoreCompressionOptions foreground,NativeDispositionPolicy policy) {
+  admit_policy(policy);detail::validate_store_compression(foreground);
+  if(!epoch || volume==StoreIdentity{} || !head || !resolver)
+    fail(E::invalid_options,"explicit volume/epoch/provider required");
+  auto owner=std::make_unique<Impl::VolumeOwner>();
+  owner->head_io=head;owner->volume_id=volume;owner->foreground=foreground;
+  auto selected=NativeVolumeHeadView::open(head,volume,[&](const auto& id) {
+    owner->active_io=resolver(id);return owner->active_io;
+  });
+  if(selected.info().selection.epoch!=epoch)
+    fail(E::invalid_options,"stale volume session epoch");
+  if(selected.filesystem().needs_session_recovery())
+    fail(E::delete_pending,"old file-context state requires qualified recovery");
+  owner->active_id=selected.filesystem().identity();owner->epoch=epoch;
+  // The qualified global provider excludes other controllers during startup.
+  // Repair selected image metadata first, then acquire/repair its head owner.
+  auto repaired=resume_image(owner->active_io,selected.filesystem(),foreground);
+  auto checked=repaired.snapshot();retire(repaired);
+  owner->head.emplace(NativeVolumeHeadWriter::resume(head,volume,epoch,checked));
+  auto session=create(resume_image(owner->active_io,checked,foreground),policy);
+  session.impl_->volume=std::move(owner);return session;
+}
+NativeVolumeHeadInfo NativeFileSession::volume_info() const {
+  auto& self=ready();
+  if(!self.volume || !self.volume->head)fail(E::invalid_options,"session has no volume authority");
+  return self.volume->head->info();
+}
+NativeVolumeHeadInfo NativeFileSession::compact_volume(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity next,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
+  return replace_volume(std::move(target),next,compression,checkpoints,false);
+}
+NativeVolumeHeadInfo NativeFileSession::recompress_volume(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity next,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
+  return replace_volume(std::move(target),next,compression,checkpoints,true);
+}
+NativeVolumeHeadInfo NativeFileSession::replace_volume(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity next,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints,bool reencode) {
+  auto& self=ready();
+  if(!self.volume || !self.volume->head)fail(E::invalid_options,"session has no volume authority");
+  auto& volume=*self.volume;
+  if(volume.pending || next==StoreIdentity{} || next==volume.active_id || next==volume.volume_id ||
+      next==volume.head->info().selection.parent_identity ||
+      !target || target==volume.active_io || target==volume.head_io)
+    fail(E::invalid_options,"new distinct maintenance image required");
+  detail::validate_store_compression(compression);admit_empty(target);
+  for(const auto& slot:self.slots)if(slot.token &&
+      (slot.phase!=Impl::Phase::active || slot.requested || slot.cleanup_delete))
+    fail(E::delete_pending,"maintenance defers unresolved file contexts");
+  for(const auto latch:self.latched)if(latch)
+    fail(E::delete_pending,"maintenance defers latched delete state");
+  auto baseline=self.writer.snapshot();
+  if(baseline.needs_session_recovery())fail(E::delete_pending,"maintenance requires resolved native state");
+  // Everything needed for failure recovery is owned BEFORE actual retirement.
+  // Keep the table/owner/token/grants intact; no admission or I/O can reenter.
+  volume.baseline.emplace(std::move(baseline));volume.candidate_io=target;
+  volume.candidate_id=next;volume.pending=true;volume.recovery_attempted=false;
+  self.terminal=true;retire(self.writer);
+  {
+    auto candidate=reencode?
+        NativeFilesystemWriter::recompress(*volume.baseline,target,next,compression,checkpoints):
+        NativeFilesystemWriter::compact(*volume.baseline,target,next,compression,checkpoints);
+  } // Actual candidate writer retirement before head comparison/publication.
+  auto candidate=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(target));
+  const auto published=volume.head->publish_compacted(*volume.baseline,candidate);
+  self.writer=resume_image(target,candidate,volume.foreground);
+  // Only nonthrowing ownership/scalar updates remain after adoption succeeds.
+  volume.active_io=std::move(volume.candidate_io);volume.active_id=next;
+  volume.epoch=published.selection.epoch;volume.candidate_id={};volume.baseline.reset();
+  volume.pending=false;self.terminal=false;return published;
+}
+NativeVolumeHeadInfo NativeFileSession::recover_volume() {
+  if(!impl_ || !impl_->terminal || !impl_->volume)
+    fail(E::invalid_options,"no failed maintenance transition to recover");
+  auto& self=*impl_;auto& volume=*self.volume;
+  if(!volume.pending || volume.recovery_attempted || !volume.baseline || !volume.candidate_io)
+    fail(E::terminal,"maintenance recovery is unavailable or already attempted");
+  volume.recovery_attempted=true;retire(self.writer);
+  volume.head.reset(); // Confirmed destruction releases the exact previous lease.
+  std::shared_ptr<StoreByteIo> chosen;
+  auto selected=NativeVolumeHeadView::open(volume.head_io,volume.volume_id,[&](const auto& id) {
+    if(id==volume.active_id)chosen=volume.active_io;
+    else if(id==volume.candidate_id)chosen=volume.candidate_io;
+    else fail(E::terminal,"head selected an unowned maintenance image");
+    return chosen;
+  });
+  const auto observed=selected.info().selection;
+  if(!((observed.epoch==volume.epoch && observed.image_identity==volume.active_id) ||
+      (volume.epoch!=(std::numeric_limits<std::uint64_t>::max)() &&
+       observed.epoch==volume.epoch+1 && observed.image_identity==volume.candidate_id &&
+       observed.parent_identity==volume.active_id)))
+    fail(E::terminal,"maintenance head is outside the owned transition");
+  volume.baseline->verify_compacted_equivalent_for_volume_head(selected.filesystem());
+  auto repaired=resume_image(chosen,selected.filesystem(),volume.foreground);
+  auto checked=repaired.snapshot();retire(repaired);
+  volume.baseline->verify_compacted_equivalent_for_volume_head(checked);
+  volume.head.emplace(NativeVolumeHeadWriter::resume(volume.head_io,volume.volume_id,observed.epoch,checked));
+  const auto restored=volume.head->info();
+  self.writer=resume_image(chosen,checked,volume.foreground);
+  volume.active_io=std::move(chosen);volume.active_id=observed.image_identity;volume.epoch=observed.epoch;
+  volume.candidate_io.reset();volume.candidate_id={};volume.baseline.reset();
+  volume.pending=false;self.terminal=false;return restored;
 }
 NativeFileSession::Impl& NativeFileSession::ready() const {
   if(!impl_ || impl_->terminal || impl_->writer.poisoned())fail(E::terminal,"native file session is fenced");

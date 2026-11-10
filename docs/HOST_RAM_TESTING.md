@@ -98,3 +98,13 @@ qualification, not a documentation assertion, must establish actual page locks.
 The first exact VM-qualified owner-PC CPU run is recorded in
 HOST_RAM_VALIDATION.json. Later probe changes need their own VM qualification;
 that earlier result never qualifies a changed binary or a mounted/GPU path.
+
+## Managed-session probe update
+
+The next probe version uses public managed-session creation, per-file writes,
+live-handle reads across both compaction and post-compression, independent head
+selection, real Flush and actual Cleanup/Close. This changes phase scope and
+transaction history from the earlier batched primitive-only probes; do not
+compare their diagnostic timings/image extents as a controlled speedup. The
+resource caps and VM-first qualification requirement are unchanged. See
+VOLUME_SESSION.md; mounted maintenance and automatic scheduling remain absent.

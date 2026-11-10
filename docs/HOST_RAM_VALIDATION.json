@@ -164,5 +164,103 @@
       "Purpose": "Real source corpus; no filesystem disk backing"
     }
   },
-  "scope": "One unmounted locked-RAM CPU model run; no driver load/change, GPU execution, idle recompression, physical-power durability or comparative filesystem benchmark. Full image bytes exceed this tiny corpus despite active payload reduction. Existing source encodings are copied by compact()."
+  "scope": "One unmounted locked-RAM CPU model run; no driver load/change, GPU execution, idle recompression, physical-power durability or comparative filesystem benchmark. Full image bytes exceed this tiny corpus despite active payload reduction. Existing source encodings are copied by compact().",
+  "post_compression_checkpoint": {
+    "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+    "vm": {
+      "run": 42907446341,
+      "job": 130149036072,
+      "complete": true
+    },
+    "artifact": {
+      "id": 13805297877,
+      "archive_sha256": "bba2849625176b2d634ea7ae36ee51b2a6eda68ae701c553bb4af7727d5f76e1",
+      "exe_sha256": "FD0552121E1C836E92E218CE43139892F1F7EB0BDB81B42C456B360081281148"
+    },
+    "owner_cpu": {
+      "result": {
+        "experimental": true,
+        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+        "backing": "locked_RAM_model",
+        "mounted": false,
+        "gpu": false,
+        "real_files": 6,
+        "zstd_version": 10507,
+        "head_bytes": 131072,
+        "locked_peak": 33816576,
+        "locked_after": 0,
+        "handles_before": 45,
+        "handles_after": 45,
+        "synthetic_raw": {
+          "input": 131072,
+          "source": 720896,
+          "payload": 131370,
+          "compacted": 458752,
+          "target_payload": 131370,
+          "write_ns": 505800,
+          "read_ns": 101100,
+          "compact_ns": 706400
+        },
+        "synthetic_auto": {
+          "input": 131072,
+          "source": 655360,
+          "payload": 65636,
+          "compacted": 393216,
+          "target_payload": 65636,
+          "write_ns": 614100,
+          "read_ns": 91900,
+          "compact_ns": 516000
+        },
+        "real_raw": {
+          "input": 118663,
+          "source": 1048576,
+          "payload": 459406,
+          "compacted": 786432,
+          "target_payload": 459406,
+          "write_ns": 828800,
+          "read_ns": 148400,
+          "compact_ns": 1650800
+        },
+        "real_auto": {
+          "input": 118663,
+          "source": 589824,
+          "payload": 37073,
+          "compacted": 327680,
+          "target_payload": 37072,
+          "write_ns": 2579400,
+          "read_ns": 363600,
+          "compact_ns": 2165600
+        },
+        "synthetic_post": {
+          "input": 131072,
+          "source": 720896,
+          "payload": 131370,
+          "compacted": 393216,
+          "target_payload": 65636,
+          "write_ns": 306900,
+          "read_ns": 92400,
+          "compact_ns": 800000
+        },
+        "real_post": {
+          "input": 118663,
+          "source": 1048576,
+          "payload": 459406,
+          "compacted": 327680,
+          "target_payload": 37072,
+          "write_ns": 1008000,
+          "read_ns": 234700,
+          "compact_ns": 3860800
+        },
+        "cpu_verified": true,
+        "resident_verified": true,
+        "complete": true
+      },
+      "parent_exit_confirmed": true,
+      "child_peak_committed": 38834176,
+      "sources_unchanged": true,
+      "owned_probe_processes_after": 0,
+      "staged_bytes_before_report": 3293480
+    },
+    "scope": "Explicit CPU raw-to-automatic recompression in locked RAM, no managed-session handoff, mount, GPU, idle scheduler or physical-power proof."
+  }
 }

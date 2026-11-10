@@ -1,6 +1,6 @@
 #include "locked_ram_fixture.hpp"
 #include "bounded_process.hpp"
-#include "flitzfs/volume_head.hpp"
+#include "flitzfs/native_session.hpp"
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -62,39 +62,42 @@ Sample exercise(const std::vector<Bytes>& inputs,StoreCompressionMode mode,bool 
   auto source=std::make_shared<ram::Store>(8U*1024*1024);
   auto target=std::make_shared<ram::Store>(8U*1024*1024);
   auto head=std::make_shared<ram::Store>(kVolumeHeadBytes);
-  Sample result;std::vector<NativeFileMutation> mutations;mutations.reserve(inputs.size()*2);
-  for(std::size_t i=0;i<inputs.size();++i) {
-    const auto name="file"+std::to_string(i);result.input+=inputs[i].size();
-    NativeFileMutation create;create.path=name;mutations.push_back(std::move(create));
-    NativeFileMutation write;write.operation=NativeFileOperation::write;write.path=name;write.data=inputs[i];
-    mutations.push_back(std::move(write));
-  }
+  Sample result;std::vector<NativeFileHandle> handles;handles.reserve(inputs.size());
+  for(const auto& bytes:inputs)result.input+=bytes.size();
   require(result.input<=1536U*1024,"aggregate source cap");
   auto start=std::chrono::steady_clock::now();
-  {
-    auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(source,id(1),{mode,6,false}));
-    writer.apply(mutations);
+  auto session=NativeFileSession::create_volume(head,id(90),source,id(1),{mode,6,false});
+  for(std::size_t i=0;i<inputs.size();++i) {
+    const auto name="file"+std::to_string(i);session.create_entry(name);
+    handles.push_back(session.open(name,{true,true,false}));
+    session.write(handles.back(),0,inputs[i]);
   }
-  result.write_ns=elapsed(start);auto original=view(source);
+  result.write_ns=elapsed(start);auto original=session.snapshot();
   result.source=original.storage_info().physical_end;result.payload=original.storage_info().stored_payload_bytes;
   start=std::chrono::steady_clock::now();
-  for(std::size_t i=0;i<inputs.size();++i)require(original.read("file"+std::to_string(i),0,256*1024)==inputs[i],
-      "RAM source byte comparison");
+  for(std::size_t i=0;i<inputs.size();++i)require(session.read(handles[i],0,256*1024)==inputs[i],
+      "RAM session source byte comparison");
   result.read_ns=elapsed(start);
-  auto authority=NativeVolumeHeadWriter::create(head,id(90),original);
   start=std::chrono::steady_clock::now();
-  {auto candidate=post?
-      NativeFilesystemWriter::recompress(original,target,id(2),{StoreCompressionMode::automatic,6,false}):
-      NativeFilesystemWriter::compact(original,target,id(2),{mode,6,false});}
-  result.compact_ns=elapsed(start);auto candidate=view(target);result.compacted=candidate.storage_info().physical_end;
+  const auto published=post?
+      session.recompress_volume(target,id(2),{StoreCompressionMode::automatic,6,false}):
+      session.compact_volume(target,id(2),{mode,6,false});
+  result.compact_ns=elapsed(start);
+  auto candidate=session.snapshot();result.compacted=candidate.storage_info().physical_end;
   result.target_payload=candidate.storage_info().stored_payload_bytes;
-  authority.publish_compacted(original,candidate);
   auto selected=NativeVolumeHeadView::open(head,id(90),[&](const auto& selected_id)->std::shared_ptr<StoreByteIo>{
     require(selected_id==id(2),"selected wrong RAM image");return target;
   });
-  for(std::size_t i=0;i<inputs.size();++i)require(
-      selected.filesystem().read("file"+std::to_string(i),0,256*1024)==inputs[i],"RAM selected byte comparison");
-  require(authority.info().selection.epoch==2&&head->extent()==kVolumeHeadBytes,"RAM handoff authority");
+  for(std::size_t i=0;i<inputs.size();++i) {
+    require(session.read(handles[i],0,256*1024)==inputs[i],"RAM retained-context byte comparison");
+    require(original.read("file"+std::to_string(i),0,256*1024)==inputs[i],"RAM pinned source byte comparison");
+    require(selected.filesystem().read("file"+std::to_string(i),0,256*1024)==inputs[i],
+        "RAM independent selected byte comparison");
+    session.flush(handles[i]);session.cleanup(handles[i],false);session.close(handles[i]);
+  }
+  require(session.stats().contexts==0&&!session.poisoned(),"RAM session context retirement");
+  require(published.selection.epoch==2&&session.volume_info().selection.volume_identity==id(90)&&
+      head->extent()==kVolumeHeadBytes,"RAM session handoff authority");
   source->verify();target->verify();head->verify();return result;
 }
 void require_job() {
