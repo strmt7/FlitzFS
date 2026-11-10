@@ -418,3 +418,14 @@ metadata/resource caps and legacy absence, preserve NULL versus empty DACLs, and
 require real OS/FSD authorization/inheritance/privilege qualification before
 writable use. Existing mount callbacks stay read-only. New file checks remain
 behind hosted admission; no owner-PC operation or product installation follows.
+
+
+## Runtime CPU digest acceleration
+
+CPU_DIGEST_ACCELERATION.md keeps the same verified BLAKE3 digest and all
+integrity/durability checks. Official runtime CPU/OS dispatch selects separately
+compiled implementations; portable fallback remains, with no global ISA flag,
+TBB or GPU launch. Test-only feature overrides are separately renamed and cannot
+reach the production cache. Keep source provenance, guarded/known-vector parity,
+old fault budgets and exact-commit hosted evidence. No owner-PC execution or
+physical/client/full-filesystem safety claim follows from this component.

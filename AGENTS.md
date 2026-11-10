@@ -522,3 +522,17 @@ callbacks rather than silently using the legacy default. The SDK/file group is
 hosted-gated; no writable callbacks, owner-PC operation, live AMD or full ACL/
 inheritance/privilege/client qualification follows. Keep old process campaigns
 scoped honestly until a separate NS04 termination campaign executes.
+
+
+## Runtime CPU digest boundary
+
+Read docs/CPU_DIGEST_ACCELERATION.md before changing BLAKE3 dispatch/builds.
+Preserve exact upstream source/blob provenance, all digest/stored bytes, scalar
+fallback, CPU/OS feature gating and separate ISA translation units. No global
+/arch or -march=native, TBB, GPU dependency or forced production feature cache.
+Test-only scalar/masked symbols stay separately prefixed and unlinked from
+product targets; masks may only REMOVE detected host features. Preserve known
+vectors/guards/concurrent use, every old fault point and all resource/time caps.
+Same-source capped hash/RAM measurements are not disk/mounted/GPU benchmarks.
+Keep partial failures and timing uncertainty, immutable historical comparators,
+Windows-only product scope and the owner-host prohibition.

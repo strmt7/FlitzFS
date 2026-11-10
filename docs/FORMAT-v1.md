@@ -145,3 +145,9 @@ NATIVE_SECURITY.md specifies the separate experimental FLTXNS04 namespace
 capability: bounded opaque self-relative security descriptors, 96-byte inode
 headers, sticky format and legacy-byte preservation. It changes neither this
 container encoding nor object root/record/codec formats.
+
+
+CPU_DIGEST_ACCELERATION.md changes only the implementation selected for the
+existing BLAKE3 calculation. All 32-byte digests and stored formats must remain
+byte-identical across scalar and runtime-dispatched CPU builds. It adds no
+new codec, format capability, authentication or encryption.

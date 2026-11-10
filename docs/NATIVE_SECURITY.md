@@ -233,3 +233,31 @@ Buffer[] member, which MSVC rejected with C2466. The corrected fixture explicitl
 header, as the existing Cleanup dispatcher test does, and keeps aligned bounded
 response storage. It does not aggregate-initialize the flexible-buffer struct.
 The real dispatcher, capacity-boundary/oversize cases and resource caps remain.
+
+## Executed transport correction
+
+At 0a9ba35fa6eb8f50095df1539776454efad59fb2 Windows native job
+129632818210 passed all 70 entries. The 73 actual Windows/SDK checks
+reported a 16,384-byte native descriptor cap, 16,232-byte request payload
+and 16,256-byte response payload. The maximum admitted response passed the
+real DLL dispatcher with exact bytes; the larger native descriptor remained
+CPU-readable while adapter construction rejected it without source changes.
+
+The same run retained all 192 native security invariants and all 1,266 modeled
+failure cases. Worker handles stayed 94/94. These are exact-commit executed
+VM/SDK results, not mounted access-policy, writable/client or live-AMD proof.
+
+The same 0a9ba35 commit's sanitizer job 129632818277 passed all 62 entries
+on its first attempt, including the same 192 invariants and 1,266 failures.
+The existing bounded_native_filesystem took 31.30 seconds under its unchanged
+45-second deadline; the full step took 322.30 seconds. Earlier failed and
+retried attempts remain documented separately, without inferring their cause.
+
+All four workflows triggered by 0a9ba35 succeeded. Mounted job 129635298668
+passed the existing default-layout read-only path, deliberate confirmed helper
+kill, unchanged source, independent CPU recovery and same-path remount.
+Normal/recovery exits were zero; deliberate killed exit was 1460.
+Peaks were 6,184,960 / 6,168,576 / 5,160,960 bytes. All three space reports
+and strict reconciliation passed. This fixture still used the default image
+(786,432 bytes / 6,416 live stored payload bytes), without persisted security,
+so it is regression integration evidence and NOT mounted NS04/ACL qualification.

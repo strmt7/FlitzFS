@@ -3,7 +3,7 @@
   "repository": "https://github.com/BLAKE3-team/BLAKE3",
   "tag": "1.8.7",
   "commit": "f3149ec5bb5449af877ba20377a11008ff499fa2",
-  "build": "Unmodified C portable backend; SIMD, NEON and TBB disabled. CPU only.",
+  "build": "Unmodified C plus official Windows x64 assembly/runtime dispatch; portable fallback retained; internal Linux analysis uses instrumentable C intrinsics. NEON/TBB/GPU disabled.",
   "files": [
     {
       "source": "c/blake3.h",
@@ -49,6 +49,46 @@
       "source": "test_vectors/test_vectors.json",
       "path": "third_party/blake3/test_vectors/test_vectors.json",
       "git_blob": "f6da91792c6cdf5c6a0f6dad01803045bb204a68"
+    },
+    {
+      "source": "c/blake3_sse2.c",
+      "path": "third_party/blake3/c/blake3_sse2.c",
+      "git_blob": "691e1c6806cce42be54c0e4c03b79c25797550c5"
+    },
+    {
+      "source": "c/blake3_sse41.c",
+      "path": "third_party/blake3/c/blake3_sse41.c",
+      "git_blob": "4653a856fe6c44de291387cdd24ecd76fec1a0ae"
+    },
+    {
+      "source": "c/blake3_avx2.c",
+      "path": "third_party/blake3/c/blake3_avx2.c",
+      "git_blob": "381e7c422f33c75c3a8aeb06e4e2e7e6be56e396"
+    },
+    {
+      "source": "c/blake3_avx512.c",
+      "path": "third_party/blake3/c/blake3_avx512.c",
+      "git_blob": "f88a32d312b106ee975336751367bbd6cba4ce5c"
+    },
+    {
+      "source": "c/blake3_sse2_x86-64_windows_msvc.asm",
+      "path": "third_party/blake3/c/blake3_sse2_x86-64_windows_msvc.asm",
+      "git_blob": "507502f11a80b3b05eb50a55e1535ecf3c96ed58"
+    },
+    {
+      "source": "c/blake3_sse41_x86-64_windows_msvc.asm",
+      "path": "third_party/blake3/c/blake3_sse41_x86-64_windows_msvc.asm",
+      "git_blob": "8966c7b84406e98792af7e63d53d9bb49a7ad8ef"
+    },
+    {
+      "source": "c/blake3_avx2_x86-64_windows_msvc.asm",
+      "path": "third_party/blake3/c/blake3_avx2_x86-64_windows_msvc.asm",
+      "git_blob": "352298edd2e8af288122b4d396b2a55847f42c96"
+    },
+    {
+      "source": "c/blake3_avx512_x86-64_windows_msvc.asm",
+      "path": "third_party/blake3/c/blake3_avx512_x86-64_windows_msvc.asm",
+      "git_blob": "b19efbaaeb362f6237c8bd220a4068e5ea1005ba"
     }
   ]
 }
