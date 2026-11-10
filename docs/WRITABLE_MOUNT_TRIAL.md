@@ -220,3 +220,20 @@ follow-up's full executed checks before claiming a passing restart checkpoint.
 ## Verified resolved-image restart checkpoint
 
 Executed qualification at 04bdef47de8e3dbdb45728c775b19fd45eb78750: all nine triggered workflows succeeded. All six writable profiles reconciled complete with source-bound reports and confirmed child exits. Normal restart advanced to generation 30, namespace 15, image 3145728 bytes; controlled-termination restart advanced to generation 28, namespace 14, image 2949120 bytes. Both retained 7001 original bytes and verified 3073 continued bytes through an independent CPU reader. Metadata attempt one timed out configuring Zstd before filesystem execution; unchanged-limit failed-job retry succeeded on a new runner. Preserve failed attempt. No owner-host or GPU execution; no physical power-loss evidence. Fold into next substantive batch.
+
+## Locked RAM handoff profile
+
+The hosted `ram-handoff` profile uses the existing writable probe supervisor
+with its 128 MiB job memory limit, 20 percent CPU cap and 30-second deadline.
+The source, candidate and volume head use locked RAM. A temporary undersized
+candidate exercises CPU recovery while two Win32 handles remain open.
+
+The successful handoff checks the mounted volume serial, file ID, retained
+handle reads, a continuation write and Flush. After both handles close and the
+dispatcher stops, an independent CPU reader verifies the selected image and
+the pinned source. The fixture verifier requires mount removal, released
+locks and a single bounded report in the fixture directory.
+
+The adapter uses the same mutex for maintenance and callbacks. The test invokes
+maintenance explicitly while the mount is running. The locked RAM images are
+volatile. The scope is a disposable Windows VM with the pinned WinFsp driver.

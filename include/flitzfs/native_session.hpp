@@ -81,6 +81,11 @@ struct NativeSessionStats {
   std::uint32_t contexts=0,cleaned=0,delete_requests=0,latched_inodes=0;
   bool fenced=true; // Table diagnostics, not an independent storage/driver verdict.
 };
+// Trusted startup metadata for a NEW root, published together before its head.
+struct NativeVolumeRootMetadata {
+  NativeBasicMetadata basic;
+  std::span<const std::byte> security;
+};
 class NativeFileSession final {
  public:
   static constexpr std::size_t max_contexts=256;
@@ -93,7 +98,8 @@ class NativeFileSession final {
   static NativeFileSession create_volume(std::shared_ptr<StoreByteIo> empty_head,
       StoreIdentity volume_identity,std::shared_ptr<StoreByteIo> empty_image,
       StoreIdentity image_identity,StoreCompressionOptions foreground={},
-      StoreCheckpointOptions checkpoints={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate);
+      StoreCheckpointOptions checkpoints={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
+      std::optional<NativeVolumeRootMetadata> root={});
   // Actual old controller/dispatcher/context retirement is an external
   // prerequisite. Never discards unresolved persisted file-context state.
   static NativeFileSession resume_volume(std::shared_ptr<StoreByteIo> head,

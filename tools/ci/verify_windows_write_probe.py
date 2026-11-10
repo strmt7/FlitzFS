@@ -147,7 +147,7 @@ def read_restart_records(path: Path) -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--profile", choices=sorted(PROFILES), required=True)
+    parser.add_argument("--profile", choices=sorted(PROFILES | {"ram-handoff"}), required=True)
     args = parser.parse_args()
     require(os.environ.get("GITHUB_ACTIONS") == "true"
             and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted"
@@ -159,6 +159,30 @@ def main() -> None:
     meta = fixture.lstat()
     require(stat.S_ISDIR(meta.st_mode) and not (getattr(meta, "st_file_attributes", 0) & 0x400)
             and fixture.resolve(strict=True).parent == root, "unsafe fixture")
+    if args.profile == "ram-handoff":
+        require({entry.name for entry in fixture.iterdir()} == {"ram-handoff.json"},
+                "RAM fixture contains an image, mount or unexpected output")
+        report = read_report(fixture / "ram-handoff.json")
+        exact = {
+            "schema": 1, "phase": "ram-handoff", "commit": os.environ["GITHUB_SHA"],
+            "epoch": 2, "user_bytes": 65609, "locked_peak": 16 * 1024**2 + 512 * 1024,
+            "locked_after": 0, "contexts": 0, "cpu_verified": True,
+            "mounted": True, "unmounted": True, "recovered_capacity_failure": True,
+            "gpu": False, "complete": True,
+        }
+        measured = {"source_process", "volume_serial", "raw_payload", "compressed_payload", "generation"}
+        require(type(report) is dict and set(report) == set(exact) | measured,
+                "unexpected RAM handoff report fields")
+        for key, value in exact.items():
+            require(type(report[key]) is type(value) and report[key] == value, f"invalid {key}")
+        for key in ("source_process", "volume_serial"):
+            integer(report, key, 1, 2**32 - 1)
+        integer(report, "raw_payload", 65536, CAP)
+        integer(report, "compressed_payload", 1, report["raw_payload"] - 1)
+        integer(report, "generation", 1, 2**63 - 1)
+        require(fixture.name == f"flitzfs-write-probe-{report['source_process']}", "fixture process binding")
+        print("Windows RAM handoff reconciliation: " + json.dumps(report, sort_keys=True))
+        return
     names = ("write.json", "verify.json") if args.profile == "basic" else ("state.json", "state-verify.json")
     if args.profile in RESTART:
         source, continued = read_restart_records(fixture / names[0])

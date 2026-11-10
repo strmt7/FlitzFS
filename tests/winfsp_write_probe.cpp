@@ -2,6 +2,7 @@
 #include "winfsp_session.hpp"
 #include "winfsp_native.hpp"
 #include "bounded_process.hpp"
+#include "locked_ram_fixture.hpp"
 #include "flitzfs/native_filesystem.hpp"
 #include "../src/record_digest.hpp"
 #include <algorithm>
@@ -260,7 +261,7 @@ void verify_probe(std::uint32_t source_process) {
   report(fixture,"verify",source_process,view,false); // No dispatcher in the independent CPU verifier.
 }
 void emit(std::uint32_t source_process,std::string_view phase) {
-  Fixture fixture(source_process);const auto leaf=phase=="write"?L"write.json":L"verify.json";
+  Fixture fixture(source_process);const auto leaf=phase=="ram-handoff"?L"ram-handoff.json":phase=="write"?L"write.json":L"verify.json";
   Handle file(CreateFileW((fixture.root/leaf).c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,
       FILE_FLAG_OPEN_REPARSE_POINT,nullptr));checked(file.value!=INVALID_HANDLE_VALUE,"open owned writable report");
   FILE_ATTRIBUTE_TAG_INFO attr{};FILE_STANDARD_INFO size{};
@@ -272,6 +273,11 @@ void emit(std::uint32_t source_process,std::string_view phase) {
   checked(ReadFile(file.value,text.data(),static_cast<DWORD>(text.size()),&got,nullptr),"read owned writable report");
   require(got==text.size()&&text.find('\0')==text.npos&&text.find("\"phase\":\""+std::string(phase)+"\"")!=text.npos&&
       text.find("\"commit\":\""+commit()+"\"")!=text.npos,"incomplete/wrong-source report");
+  if(phase=="ram-handoff") {
+    require(mount_absent(fixture.root/L"mount"),"RAM mount remained after child exit");
+    std::cout<<"Windows RAM handoff evidence: "<<text<<"\n";
+    return;
+  }
   require(fs::file_size(fixture.root/L"native.fltx")+fs::file_size(fixture.root/L"write.json")+
       (phase=="verify"?fs::file_size(fixture.root/L"verify.json"):0)<=image_cap+2*report_cap,
       "writable aggregate fixture cap");
@@ -389,6 +395,121 @@ void finish_session(flitzfs::WinFspNativeSession& session,const fs::path& mount)
   require(session.state()==flitzfs::SessionState::stopped&&session.dispatcher_stopped()&&
       !session.requires_offline()&&!session.dispatcher_stopped_unexpectedly(),"extended normal shutdown");
   require_removed(mount);
+}
+void ram_handoff_probe() {
+  require_probe_job();
+  stage=70;
+  Fixture fixture;
+  const auto mount=fixture.root/L"mount";
+  auto volume_id=identity();
+  auto source_id=volume_id;
+  auto target_id=volume_id;
+  auto rejected_id=volume_id;
+  source_id[0]=std::byte{1};
+  target_id[0]=std::byte{2};
+  rejected_id[0]=std::byte{3};
+  std::uint64_t raw_payload=0,compressed_payload=0,final_generation=0;
+  DWORD serial=0;
+  {
+    locked_ram_fixture::WorkingSet working;
+    {
+      auto head=std::make_shared<locked_ram_fixture::Store>(flitzfs::kVolumeHeadBytes);
+      auto source=std::make_shared<locked_ram_fixture::Store>(image_cap);
+      auto target=std::make_shared<locked_ram_fixture::Store>(image_cap);
+      auto adapter=flitzfs::WinFspNativeWritable::create_managed_hosted(
+          head,volume_id,source,source_id,{flitzfs::StoreCompressionMode::raw,6,false});
+      const auto* observer=adapter.get();
+      serial=observer->parameters().VolumeSerialNumber;
+      flitzfs::WinFspNativeSession session(std::move(adapter),live_api());
+      require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"locked-RAM mount startup");
+      mounted_identity(mount);
+      stage=71;
+      constexpr DWORD share=FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE;
+      const auto path=mount/L"sample.bin";
+      Handle writer(CreateFileW(path.c_str(),GENERIC_READ|GENERIC_WRITE,share,nullptr,
+          CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
+      checked(writer.value!=INVALID_HANDLE_VALUE,"RAM mounted create");
+      const std::vector<std::byte> original(65536,std::byte{81});
+      write_bytes(writer.value,original);
+      Handle reader(CreateFileW(path.c_str(),GENERIC_READ,share,nullptr,
+          OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr));
+      checked(reader.value!=INVALID_HANDLE_VALUE,"RAM mounted peer open");
+      read_handle(reader.value,original);
+      BY_HANDLE_FILE_INFORMATION before{},after{};
+      checked(GetFileInformationByHandle(writer.value,&before),"RAM initial handle identity");
+      require(before.dwVolumeSerialNumber==serial&&
+          (before.nFileIndexHigh||before.nFileIndexLow),"RAM initial volume or file ID");
+      require(session.stats().contexts==2,"RAM live context count");
+      auto pinned=observer->snapshot();
+      raw_payload=pinned.storage_info().stored_payload_bytes;
+      stage=72;
+      {
+        auto small=std::make_shared<locked_ram_fixture::Store>(flitzfs::kVolumeHeadBytes);
+        auto recovered=session.recompress_managed_hosted(small,rejected_id);
+        require(recovered.recovered&&recovered.head.selection.epoch==1&&
+            recovered.head.selection.image_identity==source_id&&small->extent()==0,
+            "RAM capacity failure did not recover original authority");
+      }
+      read_handle(reader.value,original);
+      require(session.stats().contexts==2,"RAM recovery lost mounted contexts");
+      stage=73;
+      const auto handoff=session.recompress_managed_hosted(target,target_id,
+          {flitzfs::StoreCompressionMode::automatic,6,true});
+      require(!handoff.recovered&&handoff.head.selection.epoch==2&&
+          handoff.head.selection.volume_identity==volume_id&&handoff.head.selection.image_identity==target_id,
+          "RAM mounted handoff did not select verified candidate");
+      compressed_payload=observer->snapshot().storage_info().stored_payload_bytes;
+      require(compressed_payload<raw_payload,"RAM mounted recompression did not reduce payload");
+      checked(GetFileInformationByHandle(writer.value,&after),"RAM retained handle identity");
+      require(after.dwVolumeSerialNumber==serial&&before.nFileIndexHigh==after.nFileIndexHigh&&
+          before.nFileIndexLow==after.nFileIndexLow&&session.stats().contexts==2,
+          "RAM handoff changed mounted identity or contexts");
+      read_handle(reader.value,original);
+      stage=74;
+      LARGE_INTEGER end{};
+      checked(SetFilePointerEx(writer.value,end,nullptr,FILE_END),"RAM continuation seek");
+      const std::vector<std::byte> tail(73,std::byte{0x3d});
+      write_bytes(writer.value,tail);
+      auto final=original;
+      final.insert(final.end(),tail.begin(),tail.end());
+      read_handle(reader.value,final);
+      writer.reset();
+      reader.reset();
+      finish_session(session,mount);
+      stage=75;
+      auto selected=flitzfs::NativeVolumeHeadView::open(head,volume_id,
+          [&](const auto& id)->std::shared_ptr<flitzfs::StoreByteIo>{
+            require(id==target_id,"RAM CPU reader selected wrong image");
+            return target;
+          });
+      const auto& view=selected.filesystem();
+      require(view.read("sample.bin",0,65609)==final&&
+          pinned.read("sample.bin",0,65536)==original&&view.stat("sample.bin").inode==2,
+          "RAM independent final or pinned bytes");
+      require(view.basic_metadata(1)==pinned.basic_metadata(1)&&
+          view.security_descriptor(1)==pinned.security_descriptor(1),
+          "RAM root metadata changed");
+      final_generation=view.storage_info().generation;
+      source->verify();
+      target->verify();
+      head->verify();
+    }
+    working.restore();
+  }
+  require(locked_ram_fixture::locked_bytes.load()==0&&locked_ram_fixture::cleanup_ok.load(),
+      "RAM mounted storage cleanup");
+  std::ostringstream report;
+  report<<"{\"schema\":1,\"phase\":\"ram-handoff\",\"commit\":\""<<commit()
+      <<"\",\"source_process\":"<<GetCurrentProcessId()<<",\"volume_serial\":"<<serial
+      <<",\"epoch\":2,\"user_bytes\":65609,\"raw_payload\":"<<raw_payload
+      <<",\"compressed_payload\":"<<compressed_payload<<",\"generation\":"<<final_generation
+      <<",\"locked_peak\":"<<locked_ram_fixture::peak_locked_bytes.load()
+      <<",\"locked_after\":0,\"contexts\":0,\"cpu_verified\":true,\"mounted\":true"
+      <<",\"unmounted\":true,\"recovered_capacity_failure\":true,\"gpu\":false,\"complete\":true}";
+  const auto body=report.str();
+  require(body.size()<=report_cap,"RAM handoff report cap");
+  const auto* first=reinterpret_cast<const std::byte*>(body.data());
+  write_new(fixture.root/L"ram-handoff.json",std::vector<std::byte>(first,first+body.size()));
 }
 void namespace_probe(bool deleting) {
   require_probe_job();stage=20;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
@@ -613,6 +734,7 @@ void run_extended(const fs::path& executable,std::string_view profile) {
 int wmain(int argc,wchar_t** argv) {try {
   require_hosted_opt_in();require(argc>=2&&argc<=4,"explicit writable probe mode required");
   const std::wstring_view mode(argv[1]);
+  if(mode==L"--ram-handoff-child"){require(argc==2,"unexpected RAM child argument");ram_handoff_probe();return 0;}
   if(mode==L"--write-child"){require(argc==2,"unexpected writer argument");write_probe();return 0;}
   if(mode==L"--verify-child"){require(argc==3,"missing source identity");verify_probe(process_number(argv[2]));return 0;}
   if(mode==L"--restart-source-child"||mode==L"--crash-restart-source-child") {
@@ -635,9 +757,18 @@ int wmain(int argc,wchar_t** argv) {try {
         mode==L"--delete-verify-child"?"delete":"mutations");return 0;
   }
   require(argc==2&&(mode==L"--run-disposable-ci"||mode==L"--run-mutations-ci"||
-      mode==L"--run-delete-ci"||mode==L"--run-crash-ci"||mode==L"--run-restart-ci"||mode==L"--run-crash-restart-ci"),"unknown writable probe mode");
+      mode==L"--run-delete-ci"||mode==L"--run-crash-ci"||mode==L"--run-restart-ci"||mode==L"--run-crash-restart-ci"||mode==L"--run-ram-handoff-ci"),"unknown writable probe mode");
   wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);require(n&&n<512,"probe executable identity");
   const fs::path executable(std::wstring(path,n));
+  if(mode==L"--run-ram-handoff-ci") {
+    const auto result=flitzfs::run_bounded_process(executable,{L"--ram-handoff-child"},{128,2000,30000});
+    std::cout<<"ram_handoff exit="<<result.exit_code<<" exit_confirmed="<<result.exit_confirmed
+        <<" peak_commit_bytes="<<result.peak_committed_bytes<<"\n";
+    require(result.process_id&&result.exit_confirmed&&!result.timed_out&&!result.cancelled&&
+        result.exit_code==0,"supervised RAM handoff failed");
+    emit(result.process_id,"ram-handoff");
+    return 0;
+  }
   if(mode!=L"--run-disposable-ci") {
     run_extended(executable,mode==L"--run-restart-ci"?"restart":mode==L"--run-crash-restart-ci"?"crash-restart":
         mode==L"--run-crash-ci"?"crash":mode==L"--run-delete-ci"?"delete":"mutations");return 0;

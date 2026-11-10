@@ -403,7 +403,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [basic, mutations, delete, crash, restart, crash-restart]
+        profile: [basic, mutations, delete, crash, restart, crash-restart, ram-handoff]
     runs-on: windows-2025-vs2026
     timeout-minutes: 20
     env:
@@ -484,6 +484,7 @@ jobs:
             'crash' { '--run-crash-ci' }
             'restart' { '--run-restart-ci' }
             'crash-restart' { '--run-crash-restart-ci' }
+            'ram-handoff' { '--run-ram-handoff-ci' }
             default { throw 'Invalid fixed writable profile' }
           }
           ./build-native/Release/flitzfs_write_probe.exe $mode
@@ -502,5 +503,6 @@ jobs:
             ${{ runner.temp }}/flitzfs-write-probe-*/verify.json
             ${{ runner.temp }}/flitzfs-write-probe-*/state.json
             ${{ runner.temp }}/flitzfs-write-probe-*/state-verify.json
+            ${{ runner.temp }}/flitzfs-write-probe-*/ram-handoff.json
           if-no-files-found: warn
           retention-days: 14

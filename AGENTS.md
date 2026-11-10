@@ -993,3 +993,13 @@ preconditions, not flags or per-instance lease attestation. No ordinary-file
 provider, deletion/reclamation, automatic scheduling, mounted maintenance or HIP
 execution is added. New managed-session RAM probes require exact VM-first
 qualification and unchanged owner-PC caps/actual process and lock cleanup.
+
+## Hosted locked RAM handoff
+
+The fixed `ram-handoff` profile of `windows-write-mount` may exercise the
+managed adapter in a disposable GitHub-hosted Windows VM. Use locked RAM for
+all image and head bytes. Keep the existing bounded child and driver pin.
+Use the adapter control mutex for the explicit maintenance request and its
+single CPU recovery attempt. Verify actual retained handles, continued I/O,
+independent selected-image readback, mount removal, released locks and child
+exit. This profile uses synthetic data and has no owner-PC launch route.

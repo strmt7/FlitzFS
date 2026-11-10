@@ -262,5 +262,99 @@
       "staged_bytes_before_report": 3293480
     },
     "scope": "Explicit CPU raw-to-automatic recompression in locked RAM, no managed-session handoff, mount, GPU, idle scheduler or physical-power proof."
+  },
+  "managed_session_checkpoint": {
+    "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+    "vm": {
+      "run": 42912401069,
+      "job": 130166137025
+    },
+    "artifact": {
+      "archive_sha256": "0d305b437818f4592130280a6d0ab3df40ee29c74859e6be82638c2da858a5ef",
+      "exe_sha256": "A2EBB51D14D56D29B6924420FD1BCCCE2F926BDFD266D6A97B5615FE097F8008"
+    },
+    "owner_cpu": {
+      "result": {
+        "experimental": true,
+        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+        "backing": "locked_RAM_model",
+        "mounted": false,
+        "gpu": false,
+        "real_files": 6,
+        "zstd_version": 10507,
+        "head_bytes": 131072,
+        "locked_peak": 33816576,
+        "locked_after": 0,
+        "handles_before": 45,
+        "handles_after": 45,
+        "synthetic_raw": {
+          "input": 131072,
+          "source": 1310720,
+          "payload": 131370,
+          "compacted": 458752,
+          "target_payload": 131370,
+          "write_ns": 882600,
+          "read_ns": 145200,
+          "compact_ns": 3444500
+        },
+        "synthetic_auto": {
+          "input": 131072,
+          "source": 1245184,
+          "payload": 65643,
+          "compacted": 393216,
+          "target_payload": 65644,
+          "write_ns": 1166000,
+          "read_ns": 66800,
+          "compact_ns": 2947700
+        },
+        "real_raw": {
+          "input": 118663,
+          "source": 3211264,
+          "payload": 459406,
+          "compacted": 786432,
+          "target_payload": 459406,
+          "write_ns": 2442100,
+          "read_ns": 269100,
+          "compact_ns": 11317000
+        },
+        "real_auto": {
+          "input": 118663,
+          "source": 2752512,
+          "payload": 37100,
+          "compacted": 327680,
+          "target_payload": 37100,
+          "write_ns": 3921100,
+          "read_ns": 243400,
+          "compact_ns": 18706200
+        },
+        "synthetic_post": {
+          "input": 131072,
+          "source": 1310720,
+          "payload": 131370,
+          "compacted": 393216,
+          "target_payload": 65644,
+          "write_ns": 757200,
+          "read_ns": 83400,
+          "compact_ns": 3366600
+        },
+        "real_post": {
+          "input": 118663,
+          "source": 3211264,
+          "payload": 459406,
+          "compacted": 327680,
+          "target_payload": 37100,
+          "write_ns": 2654900,
+          "read_ns": 165500,
+          "compact_ns": 16241200
+        },
+        "cpu_verified": true,
+        "resident_verified": true,
+        "complete": true
+      },
+      "parent_exit_confirmed": true,
+      "sources_unchanged": true,
+      "owned_probe_processes_after": 0,
+      "child_peak_commit": 37949440
+    }
   }
 }
