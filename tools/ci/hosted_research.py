@@ -40,6 +40,11 @@ AMD_SOURCES = (
     ("amd-windows-components", "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/conceptual/component-support.html", "ROCm", "Runtime"),
 )
 
+ROCM_WINDOWS_HARDWARE_SOURCES = (
+    ("amd-rocm-10-1-driver", "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-ROCM-10-01.html", "ROCm", "9070"),
+    ("amd-rocm-windows-requirements", "https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/shared/hipsdk/reference/system-requirements.html", "System requirements", "9070"),
+)
+
 ROCM_CURRENT_SOURCES = (
     ("rocm-current-release", "https://rocm.docs.amd.com/en/latest/about/release-notes.html", "ROCm", "10."),
     ("rocm-selected-release", "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html", "10.1.0", "Windows"),
@@ -182,7 +187,7 @@ async def capture(args):
     args.output.mkdir(parents=False, exist_ok=False)
     rows = []
     async with AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False, use_persistent_context=False)) as owner:
-        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-current": ROCM_CURRENT_SOURCES, "rocm-runtime": ROCM_RUNTIME_SOURCES, "windows-target": WINDOWS_TARGET_SOURCES,
+        selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-windows-hardware": ROCM_WINDOWS_HARDWARE_SOURCES, "rocm-current": ROCM_CURRENT_SOURCES, "rocm-runtime": ROCM_RUNTIME_SOURCES, "windows-target": WINDOWS_TARGET_SOURCES,
                     "windows-framework": WINDOWS_FRAMEWORK_SOURCES, "windows-alternatives": WINDOWS_ALTERNATIVE_SOURCES,
                     "rocm-stream": ROCM_STREAM_SOURCES,
                     "windows-basic": WINDOWS_BASIC_SOURCES, "windows-security": WINDOWS_SECURITY_SOURCES,
@@ -231,7 +236,7 @@ async def capture(args):
                                 "text": markdown[max(0, offset-160):offset+950]})
                     print(json.dumps({"runtime_source_review": name,
                         "excerpts": excerpts[:40]}), flush=True)
-                if args.source_group in ("rocm-current", "rocm-runtime", "rocm-stream") or args.source_group.startswith("windows-"):
+                if args.source_group in ("rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream") or args.source_group.startswith("windows-"):
                     print(json.dumps({"current_source_review": name,
                         "opening": markdown[:10000],
                         "body": markdown[(re.search(r"(?m)^# ", markdown).start()
@@ -254,7 +259,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -264,7 +269,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)

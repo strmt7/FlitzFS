@@ -46,14 +46,14 @@ jobs:
             --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
             "$python_path" "$GITHUB_WORKSPACE/.ci-provider/tools/crawl4ai_tool.py" \
             --home "$RUNNER_TEMP/flitzfs-admitted-crawler" install
-      - name: Research locked-RAM backing and working-set contracts
+      - name: Research Windows AMD hardware and driver support
         shell: bash
         run: |
           set -euo pipefail
           python_path="$(command -v python)"
           mkdir "$RUNNER_TEMP/flitzfs-windows-native-research"
           status=0
-          for group in windows-locked-ram; do
+          for group in rocm-windows-hardware; do
             sudo systemd-run --wait --collect --pipe --service-type=exec \
               --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
               --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=240 \
