@@ -37,6 +37,19 @@ class NativeFileHandle final {
   std::weak_ptr<const void> owner_;
   std::uint64_t token_=0;
 };
+// Grants have already been authorized by the Windows/FSD caller. Creation
+// authority on the parent and descriptor inheritance are NOT evaluated here.
+struct NativeSessionCreateOptions {
+  NativeFileAccess access;
+  NativeBasicAccess basic_access;
+  NativeSecurityAccess security_access;
+  bool delete_on_close=false;
+};
+struct NativeSessionCreateCommit {
+  NativeFsCommit transaction;
+  NativeInodeCommitInfo info;
+  NativeFileHandle handle;
+};
 struct NativeSessionStats {
   std::uint32_t contexts=0,cleaned=0,delete_requests=0,latched_inodes=0;
   bool fenced=true; // Table diagnostics, not an independent storage/driver verdict.
@@ -59,6 +72,12 @@ class NativeFileSession final {
       NativeOpenKind kind,NativeBasicAccess basic_access);
   NativeFileHandle open(std::string_view path,NativeFileAccess access,
       NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access);
+  // Preflight an owned context/token before any durable creation. NEW name,
+  // complete metadata and optional delete-on-close intent publish atomically;
+  // successful return/slot installation needs no post-commit allocation/query.
+  NativeSessionCreateCommit create_open(std::string_view path,bool directory,
+      const NativeBasicMetadata&,std::span<const std::byte> security,
+      NativeSessionCreateOptions options={});
   std::optional<NativeSecurityDescriptor> security_descriptor(const NativeFileHandle&) const;
   NativeFsCommit set_security_descriptor(const NativeFileHandle&,std::span<const std::byte>);
   NativeInodeState info(const NativeFileHandle&) const;

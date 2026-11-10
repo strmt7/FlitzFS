@@ -117,6 +117,35 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
   self.slots[available]={self.next_token,state.info.inode,access,false,false,false,basic_access.write,{},security_access.read,security_access.replace};
   ++self.next_token;return result;
 }
+NativeSessionCreateCommit NativeFileSession::create_open(std::string_view path,bool directory,
+    const NativeBasicMetadata& basic,std::span<const std::byte> descriptor,
+    NativeSessionCreateOptions options) {
+  static_assert(std::is_nothrow_move_constructible_v<NativeSessionCreateCommit>);
+  static_assert(std::is_nothrow_move_assignable_v<NativeFsCommit>);
+  static_assert(std::is_nothrow_copy_assignable_v<NativeInodeCommitInfo>);
+  static_assert(std::is_nothrow_copy_assignable_v<NativeFileHandle>);
+  auto& self=ready();
+  if(options.delete_on_close && !options.access.erase)
+    fail(E::access_denied,"delete-on-close creation requires authorized delete access");
+  std::size_t available=self.slots.size();
+  for(std::size_t i=0;i<self.slots.size();++i)if(!self.slots[i].token){available=i;break;}
+  if(available==self.slots.size() || self.next_token==(std::numeric_limits<std::uint64_t>::max)())
+    fail(E::limit,"native file context budget exhausted");
+  admit_path(path);
+  // The session is single-control-thread. The local slot/token reservation
+  // cannot race another request; do not expose/install it before publication.
+  NativeSessionCreateCommit result;
+  result.handle.owner_=self.owner;result.handle.token_=self.next_token;
+  auto created=self.writer.create_inode_result(path,directory,basic,descriptor,options.delete_on_close);
+  // ONLY statically nonthrowing scalar/optional/weak-owner/move operations
+  // remain after durable success. Never call open(), inspect(), or snapshot().
+  result.transaction=std::move(created.transaction);result.info=created.info;
+  self.slots[available]={self.next_token,result.info.inode,options.access,false,false,
+      options.delete_on_close,options.basic_access.write,{},
+      options.security_access.read,options.security_access.replace};
+  ++self.next_token;
+  return result;
+}
 NativeInodeState NativeFileSession::info(const NativeFileHandle& handle) const {
   const auto index=slot_for(handle);auto& self=ready();return self.state(self.slots[index]);
 }

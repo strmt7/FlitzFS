@@ -226,3 +226,11 @@ The CPU integrity path now has source-verified runtime SIMD selection with
 retained scalar fallback and unchanged digest bytes. No GPU or worker is needed.
 See [CPU digest acceleration](docs/CPU_DIGEST_ACCELERATION.md) for the independent
 byte/guard checks, same-source hosted measurement plan and qualification limits.
+
+
+The experimental Windows engine can now atomically create a NEW file/directory
+with explicit basic/security metadata, optional delete-on-close intent and its
+owned context. Context capacity is checked before publication; returned facts
+need no post-commit query. See [native create/open](docs/NATIVE_CREATE_OPEN.md).
+Configured hosted tests must be inspected before qualification. Writable
+driver/app integration, Windows 11 client and live AMD remain unfinished.

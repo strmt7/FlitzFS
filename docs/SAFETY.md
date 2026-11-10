@@ -429,3 +429,19 @@ TBB or GPU launch. Test-only feature overrides are separately renamed and cannot
 reach the production cache. Keep source provenance, guarded/known-vector parity,
 old fault budgets and exact-commit hosted evidence. No owner-PC execution or
 physical/client/full-filesystem safety claim follows from this component.
+
+
+## Atomic native creation ownership
+
+NativeFileSession::create_open reserves bounded context/token capacity before
+durable creation and installs it only after one combined name/basic/security/
+optional-delete-intent publication. The prepared result/slot uses statically
+nonthrowing operations after success; there is no post-commit open or backing
+query. Admission errors publish nothing; publication failures expose no handle,
+retain existing contexts and terminal/indeterminate fencing. See
+NATIVE_CREATE_OPEN.md for the configured denial and modeled fault matrix.
+
+Creation consumes explicit already-authorized grants and canonical metadata.
+It does not evaluate parent access, inherit/validate Windows ACL semantics,
+reserve allocation, construct complete FileInfo or enable a writable callback.
+Old wire bytes, limits, fault campaigns and owner-host restrictions remain.

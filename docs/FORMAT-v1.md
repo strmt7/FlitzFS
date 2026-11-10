@@ -151,3 +151,10 @@ CPU_DIGEST_ACCELERATION.md changes only the implementation selected for the
 existing BLAKE3 calculation. All 32-byte digests and stored formats must remain
 byte-identical across scalar and runtime-dispatched CPU builds. It adds no
 new codec, format capability, authentication or encryption.
+
+
+Atomic native create/open ownership introduces no encoding or format change.
+The explicit new path uses the existing FLTXNS04 basic/security fields and
+existing lifecycle flags; optional delete-on-close intent shares its initial
+transaction. Older creation paths preserve their prior capability/bytes.
+NATIVE_CREATE_OPEN.md specifies result ownership and configured fault checks.

@@ -119,6 +119,11 @@ struct NativeInodeCommitInfo {
   std::optional<NativeBasicMetadata> basic;
   bool directory=false,delete_pending=false,unlinked=false;
 };
+// One newly created inode, with all facts captured before durable publication.
+struct NativeInodeCreateCommit {
+  NativeFsCommit transaction;
+  NativeInodeCommitInfo info;
+};
 struct NativeInodeMutationCommit {
   NativeFsCommit transaction;
   NativeInodeCommitInfo info;
@@ -207,6 +212,12 @@ class NativeFilesystemWriter final {
   // are full replacements, not SECURITY_INFORMATION patches or ACL decisions.
   NativeFsCommit apply_with_metadata(std::span<const NativeFileMutation>,
       std::span<const NativeBasicMutation>,std::span<const NativeSecurityMutation>);
+  // Trusted Windows-engine creation: NEW name, canonical basic tuple and full
+  // framed descriptor in ONE publication. Optional delete intent is persisted
+  // in that same Stage, never by a second transaction. No ACL decision is made.
+  NativeInodeCreateCommit create_inode_result(std::string_view path,bool directory,
+      const NativeBasicMetadata&,std::span<const std::byte> security,
+      bool delete_pending=false);
   NativeFsCommit set_security_descriptor(std::uint64_t inode,std::span<const std::byte>);
   std::optional<NativeSecurityDescriptor> inspect_security_descriptor(std::uint64_t inode) const;
   NativeFsCommit set_basic_metadata(std::uint64_t inode,const NativeBasicMetadata&);
@@ -266,10 +277,10 @@ class NativeFilesystemWriter final {
  private:
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
-  enum class InodeAction {path_mutations,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup};
+  enum class InodeAction {path_mutations,create,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
-      const NativeAutomaticMetadata* automatic=nullptr,bool cleanup_delete=false,
+      const NativeAutomaticMetadata* automatic=nullptr,bool delete_requested=false,
       NativeInodeCommitInfo* published=nullptr,
       std::span<const NativeSecurityMutation> security={});
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
