@@ -123,3 +123,17 @@ campaigns, physical power loss and actual Windows 11 client/kernel lifecycle
 qualification remain distinct. Full FileInfo/physical allocation, writable
 helper/driver integration, scalable reclaim/repair, live AMD acceleration and
 bounded adaptive maintenance remain required.
+
+## Executed allocation-event checkpoint
+
+Commit `0bf1993461d1f6aec0a6d22e7aee1b9b00aa4349` was edited through native repository APIs and executed only on disposable GitHub-hosted VMs. The new owner instructions for process/service/resource hygiene and narrow qualified RAM-backed PC tests were included in AGENTS.md. No PC test, local artifact, driver change, service or scheduled task was started.
+
+The Linux raw/codec suites passed 89 groups. The new event matrix emitted 233 invariant checks, 24 sealed-publication cases, and all 16 raw/automatic × fixed/compact × create/merge/supersede/trim traces: 1,656 injected write/flush failures, covering each observed step under three persistence modes. These are modeled failures, not physical power-loss or new NS05 writer-termination evidence.
+
+Fresh six-query CPU-only source routing binds the commit to SHA-256 `c49ba06b4c38d7ecfd70ded836fe8c9e335a2c5fcfc716570df29668f9434808` (job 129718673108). The official dependency inventory passed with outdated_pins empty; this is not a new Dependabot alert result. Current selected WinFsp native source/API captures established actual allocation/cleanup policy and synchronous SDK dispatch.
+
+Windows native job 129718673227 passed all 100 groups and the full 1,656-fault event matrix. The actual SDK allocation-event fixture passed 28 cases/271 checks, confirmed all 28 backing owners expired after fixture destruction, and OS handle totals remained 138 to 138 in that executable. Existing worker handle totals separately remained 94 to 94. The older initial-delete SDK group retained 22 cases/177 checks and provisional retained 32 cases/97 checks. These are synchronous user-mode exports without a driver/volume; ownership release/handle parity are not universal heap/VRAM/driver leak proof.
+
+Raw Windows job 129718673765 and relocated Windows job 129718677792 each passed 93 groups. Their actual private-job admission/retirement checks confirmed supervisor-only membership before/after each controlled child, two controlled children, no launch retries and files_created false under unchanged limits. Legacy real-termination campaigns completed 976 cases on each hosted OS, Windows basic metadata 712 and compact root-3 172; their old scopes were not relabelled as new NS05 event termination coverage. Reference decoder checks passed 90 groups. Existing RAM/digest comparisons passed within their original non-mounted/CPU scope.
+
+Sanitizer job 129718673642 passed all 89 groups with ASan/UBSan/leak gates unchanged, including all 16 event traces/1,656 faults and 233 invariants/24 sealed cases. All 11 workflows succeeded for the exact commit. Read-only mount job 129722804754 completed normal, deliberately terminated-helper and recovery phases with confirmed exits 0, 1460 and 0; all three source-bound space reports reconciled and backing parity held. Process peaks were 6,119,424 / 6,127,616 / 5,210,112 bytes under unchanged caps. This existing read-only hosted Windows Server fixture is not execution of the new writable allocation-event route, Windows 11 client policy, physical power loss or live AMD benefit. No owner-PC test or driver change occurred.

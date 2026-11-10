@@ -146,6 +146,9 @@ class NativeFileSession final {
       std::span<const std::byte>,NativeInodeWriteOptions options={});
   NativeFsCommit truncate(const NativeFileHandle&,std::uint64_t bytes);
   NativeInodeAllocationInfo allocation_info(const NativeFileHandle&) const;
+  // Active owned data-write preflight; denied/provisional calls reject before
+  // backing I/O. Future Windows bridges must preflight output before mutation.
+  NativeInodeAllocationInfo mutation_info(const NativeFileHandle&) const;
   NativeAllocationUsage allocation_usage() const;
   // Already-authorized data-write ownership; unchanged context lifetime and
   // terminal fencing. This reserves native live slots, not host disk space.

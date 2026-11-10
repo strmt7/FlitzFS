@@ -708,3 +708,26 @@ all actual fault steps/modes, SDK repeated backing-release/handle evidence and
 existing lifecycle tests; none proves universal leak freedom, physical power,
 Windows 11 client or live AMD. Apply the latest narrow RAM-only owner permission
 without weakening these implementation qualification gates.
+
+
+## Native Windows FileInfo/data boundary
+
+Read docs/NATIVE_WINDOWS_IO.md before changing strict FileInfo translation or
+synchronous data bridges. Preserve all 72 ABI bytes/offsets, exact present
+basic tuples/inode identity, explicit native-reserved-cache policy and zero
+unsupported reparse/HardLinks/EA fields. Never invent missing original times,
+attributes/reservations or label native cache quota as compressed/host physical
+allocation. Preflight active data-write ownership and output prerequisites
+BEFORE mutation; captured success output/count needs no backing/path/clock/
+heap action afterward. Unexpected captured-fact failure fences, zeroes output
+and acknowledges no bytes. Flush MUST keep its real barrier/post-verification;
+returning prepared file facts is not permission to skip either check.
+Keep no-throw native status boundaries, logical-error health and terminal no-I/O
+retry/context retention; supervisor offlining stays outside callbacks. No
+implicit provisional adoption or grant escalation. The bridge remains unwired
+until backing/cache/free-space, helper/lifetime/adoption/security/shared-
+disposition policy is qualified. Keep actual SDK dispatch, sealed outputs,
+all observed fault steps/modes, independent continuation, repeated ownership/
+handle evidence and every old limit/oracle. These do not prove mounted/client,
+physical-power, live AMD or universal leak safety. Apply latest RAM-only host
+permission without driver changes or premature PC testing.

@@ -272,3 +272,7 @@ allocation_info and allocation_usage expose verified native capacity facts; rese
 ### Storage-aware events
 
 NATIVE_ALLOCATED_EVENTS.md adds prepared storage creation, separately granted storage-aware overwrite, captured write/truncate reservation facts and cleanup_event. Old APIs/layouts remain. Initial delete is still volatile until real Cleanup; healthy provisional cancellation preserves complete created/overwritten state with no I/O. A duplicate successful Cleanup also matches its trim bit. Trim metadata/latches/ownership update only after durable success; failure keeps contexts/fencing. No new worker, thread, service, callback table, mount or automatic PC test is introduced.
+
+### Data-output preflight
+
+mutation_info checks active context/data-write ownership before backing reads and returns verified bounded storage facts for the Windows bridge's output preflight. It does not grant data/basic/security access, adopt provisional contexts or mutate a reservation. NATIVE_WINDOWS_IO.md preserves serialized ownership, late paging, no post-publication query and terminal no-retry/context-retention behavior. Actual writable driver/helper and physical allocation remain separate gates.

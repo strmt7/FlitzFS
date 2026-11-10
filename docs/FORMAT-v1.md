@@ -184,3 +184,7 @@ NATIVE_INITIAL_DELETE.md distinguishes runtime state from persisted flags.
 ### Atomic allocation events
 
 NATIVE_ALLOCATED_EVENTS.md adds APIs and captured state, not another format. Create/Overwrite may include an explicit reservation, and trusted Cleanup may trim an existing tracked reservation, within their SAME private Stage and three-barrier publication. FLTXNS05/104-byte inode headers, old formats, sticky capability, reserved-zero rules and every aggregate limit remain unchanged. These are native live-slot reservations, not measured host or compressed allocation.
+
+### Windows FileInfo/data bridge
+
+NATIVE_WINDOWS_IO.md introduces no stored format or codec change. It translates existing captured FLTXNS05/basic/inode facts into the current 72-byte SDK FileInfo only for explicitly admitted cache/reservation presentation. Original layouts, all old bytes/readers, mutation barriers and bounds remain; native capacity is still separate from measured physical allocation.

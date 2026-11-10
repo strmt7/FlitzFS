@@ -161,3 +161,7 @@ The selected FSD's compression-information/feature gap must remain explicit.
 The new live oracle observes standard/compression/volume APIs without mutation;
 passing report closure does not establish native Windows compressed-size
 support or complete writable FileInfo.
+
+## Separate synchronous native data bridge
+
+NATIVE_WINDOWS_IO.md adds strict complete FileInfo and actual SDK Write/SetFileSize/query/Flush boundary functions. These are not wired into the read-only callback table. Explicit native-reserved cache allocation is not measured compressed physical usage or backing qualification. Complete metadata/output admission precedes mutation; errors expose zero counts and no partial output, preserve contexts and report offlining outside callbacks. Existing read-only behavior and all mounted-space observations remain unchanged.
