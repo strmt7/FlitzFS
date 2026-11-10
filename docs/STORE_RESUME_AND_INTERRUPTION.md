@@ -247,3 +247,14 @@ merge proving all 976 original fault points. The independent analysis VM passed
 all 976 as well. These are observed runs, not guaranteed timing budgets.
 The next dedicated Windows campaign uses the current hosted VS2026/Server2025
 image; actual latest Windows 11 client and physical power-loss tests remain open.
+
+## Separate FLTXNS03 writer interruption campaign
+
+See NATIVE_BASIC_METADATA.md. A separate hosted Windows basic campaign keeps
+every legacy 976-case scenario intact while exercising capability upgrade,
+tuple replacement and compound data/namespace/basic transactions. Schema 3
+binds fresh complete phase traces to decoded live-state closure digests and
+checks every cut, complete old/new recovery, acknowledged tuple/data retention
+and a separately reopened combined continuation. Keep current process/queue/
+fixture/case limits and two 180-second partitions; no physical power-loss,
+Windows 11 client, owner-PC or mounted-write qualification follows.

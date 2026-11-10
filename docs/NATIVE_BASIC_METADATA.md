@@ -149,3 +149,73 @@ Configured tests are not passing evidence. Inspect exact hosted jobs before
 claiming this behavior validated. Hosted Windows Server does not substitute
 for the latest Windows 11 client, and no process test proves physical
 power-cut durability or immunity to every future failure.
+
+## Executed checkpoint
+
+At 324a15c7e1ed09da1e204c75332751ef1c896e8a, all eight triggered
+hosted workflows succeeded. Native Windows job 129519108702 passed 45 CTest
+entries; ASan/UBSan job 129519108869 passed 39. Both emitted 400 basic
+invariants and the complete 1,038 basic fault cases: raw/automatic upgrade and
+update each covered 57 I/O steps times three failure modes; compound
+data/rename/creation/basic transactions each covered 59 steps times three.
+
+The combined-maximum fixture admitted all 256 inodes, 255 nonzero extents,
+100-byte non-root names and stamped tuples, with exactly 52,172 serialized
+namespace bytes under the unchanged limits. Windows passed the actual
+ordinary-file basic API oracle, native projection/image parity and SDK callback
+tests, including preservation of present attributes without fabricated READONLY.
+The unchanged suites retained 2,064 lifetime faults, 1,026 owning-context faults
+and 271 Flush checks. Native worker handle totals remained 94 to 94.
+
+Hosted mount job 129522214230 queried persisted attributes and all four times
+through GetFileInformationByHandleEx both normally and after deliberate helper
+termination/remount. Source bytes remained identical. Normal/recovery exits
+were zero; intentional timeout/kill confirmed exit. Observed process peaks
+were 6,090,752, 6,164,480 and 5,206,016 bytes, within the existing 128 MiB bound.
+These were read-only Windows Server integration results, not writable or
+Windows 11 client qualification or a kernel resource bound.
+
+The existing Windows process campaign completed all 976 legacy-format cases
+in two 488-case partitions (69.46/58.639 seconds). Its scope was not silently
+changed into metadata-specific process-kill coverage. A dedicated format-3
+writer interruption campaign remains required. Modeled basic failures and
+read-only helper termination do not substitute for that campaign or physical
+power-loss qualification. No owner-PC execution or live GPU occurred.
+
+## Dedicated metadata writer process campaign
+
+The separately scoped basic-store-interruption workflow now configures three
+real writer phases: FLTXNS01-to-FLTXNS03 upgrade, existing-tuple replacement,
+and compound file data/rename/creation/basic changes. The legacy 976-case
+campaign remains unchanged. Each raw/automatic phase keeps its own complete
+fresh baseline trace before selecting cuts; every write-before/after,
+flush-before/after and acknowledgement event is included.
+
+Two decoded-state closure digests bind the acknowledged baseline and complete
+candidate. They cover ordered live object IDs, decoded lengths and complete
+independently verified decoded bytes, including the namespace and file data.
+The digest scratch is capped at 512 KiB; no owner-file or installed-app path
+is read. Partial first-root and complete two-root publication of the SAME
+candidate have the same decoded closure. Historical/orphan physical bytes are
+retained and are intentionally not mistaken for current live state.
+
+After confirmed TerminateProcess, a fresh CPU process verifies every expected
+inode, name, data byte, present/absent tuple and namespace sequence. Its closure
+must equal the appropriate full baseline/candidate digest. It then commits a
+combined update to the unrelated keep file and its tuple, closes the writer
+and independently reopens/validates the continuation. No GPU or mounted write
+is involved. This is process interruption, not physical power loss.
+
+Schema-3 reports additionally require the exact basic campaign/scope, all six
+raw/automatic phase traces, ordered paired I/O, three barriers, matching
+acknowledgement floors/digests, unchanged resource limits and a complete
+nonoverlapping cut union. Missing, relabelled, mixed-state, duplicate, false
+termination and incomplete reports fail. Existing schema-2 legacy reports and
+fault cases remain supported.
+
+Each campaign keeps the existing 1024 planned-case, 256-event/256-byte-line,
+eight-event queue, 15-second/768-MiB/20% Windows child and 3-MiB combined-image
+limits. Windows partitions retain 180 seconds each, 360 seconds maximum per
+complete campaign, on separate disposable hosted VMs from the legacy workflow.
+Peak resources are not multiplied within a test case. Configured tests still
+require exact-commit job inspection before passing evidence is claimed.

@@ -284,3 +284,12 @@ fault/capacity/malformed/API tests must pass at the exact commit before
 qualification. Next required work remains automatic per-open Windows timestamp
 policy, secure descriptor persistence/ACL behavior, allocation/reclamation,
 Create/Overwrite/write-cache/cancellation integration and the helper app.
+
+### Metadata-specific real writer interruptions
+
+The new basic-store-interruption Windows workflow configures separately
+bounded upgrade/update/compound writer kill coverage with closure-digest and
+strict union oracles; legacy cases remain intact. Inspect exact native results
+before closing this test gate. Automatic FSD timestamp/attribute events,
+secure descriptor and allocation persistence, writable callbacks/helper,
+Windows 11 client, live AMD, scaling/reclaim/repair and learning remain required.

@@ -87,11 +87,12 @@ class Traced final:public StoreByteIo {
   bool armed=false;
   explicit Traced(std::shared_ptr<StoreByteIo> inner):inner_(std::move(inner)){}
   void event(const char* operation,std::uint64_t at=0,std::size_t bytes=0,std::uint64_t generation=0,
-             std::string_view source_digest={}) {
+             std::string_view source_digest={},std::string_view state_digest={}) {
     require(++sequence_<=256,"event budget");
     std::cout<<"{\"event\":"<<sequence_<<",\"op\":\""<<operation<<"\",\"offset\":"<<at
              <<",\"bytes\":"<<bytes<<",\"generation\":"<<generation;
     if(!source_digest.empty())std::cout<<",\"source_digest\":\""<<source_digest<<"\"";
+    if(!state_digest.empty())std::cout<<",\"state_digest\":\""<<state_digest<<"\"";
     std::cout<<"}\n"<<std::flush;
     require(bool(std::cout),"event output");advance();
   }
@@ -200,6 +201,111 @@ void native_file_recover(const fs::path& path,std::uint64_t floor,StoreCompressi
   std::cout<<"{\"recovered\":"<<generation<<",\"continued\":"<<continued<<"}\n"<<std::flush;
 }
 
+
+bool basic_phase(std::string_view phase) {
+  return phase=="basic-upgrade" || phase=="basic-update" || phase=="basic-compound";
+}
+NativeBasicMetadata basic_tuple(unsigned version,bool directory=false) {
+  const std::uint64_t base=133700000000000000ULL+100*version;
+  return {base+1,base+2,base+3,base+4,directory?0x10U:0x2022U};
+}
+std::string basic_state_digest(ObjectStoreSnapshot objects) {
+  objects.verify_all();
+  Bytes bytes;bytes.reserve(4*kNativeExtentBytes+64);
+  const auto append=[&](std::uint64_t n) {
+    for(unsigned i=0;i<8;++i)bytes.push_back(static_cast<std::byte>(n>>(8*i)));
+  };
+  for(const auto& object:objects.list()) {
+    auto data=objects.read(object.id);
+    require(bytes.size()<=512*1024 && data.size()+16<=512*1024-bytes.size(),
+        "basic state closure digest budget");
+    append(object.id);append(data.size());bytes.insert(bytes.end(),data.begin(),data.end());
+  }
+  const auto digest=detail::record_digest(bytes);constexpr char digits[]="0123456789abcdef";
+  std::string out;out.reserve(64);
+  for(auto byte:digest){const auto n=std::to_integer<unsigned char>(byte);out+=digits[n>>4];out+=digits[n&15];}
+  return out;
+}
+void basic_expected(const NativeFilesystemSnapshot& view,std::string_view phase,bool changed,bool continued=false) {
+  require(!view.needs_session_recovery(),"basic phase unexpectedly persisted lifetime intent");
+  const bool upgrade=phase=="basic-upgrade",compound=phase=="basic-compound";
+  const auto name=changed && compound?"renamed":"f";
+  require(view.stat(name).inode==2 && view.stat("keep").inode==3,"basic inode/namespace identity");
+  auto expected=native_fixture::data(73,31);
+  if(changed && compound) {
+    const auto patch=native_fixture::data(19,33);std::copy(patch.begin(),patch.end(),expected.begin()+7);
+  }
+  auto keep=native_fixture::data(91,32);
+  if(continued){const auto patch=native_fixture::data(7,35);std::copy(patch.begin(),patch.end(),keep.begin()+3);}
+  require(view.read_inode(2,0,100)==expected && view.read("keep",0,100)==keep,
+      "basic acknowledged data changed/mixed");
+  require(changed?view.basic_metadata(2)==basic_tuple(2):
+      (upgrade?!view.basic_metadata(2):view.basic_metadata(2)==basic_tuple(1)),
+      "basic recovered tuple mixed with data/namespace");
+  require(view.basic_metadata(1)==(upgrade?std::optional<NativeBasicMetadata>{}:
+      std::optional<NativeBasicMetadata>{basic_tuple(1,true)}),"basic acknowledged root tuple lost");
+  require(view.basic_metadata(3)==(continued?std::optional<NativeBasicMetadata>{basic_tuple(9)}:
+      (upgrade?std::optional<NativeBasicMetadata>{}:std::optional<NativeBasicMetadata>{basic_tuple(1)})),
+      "basic acknowledged keep tuple lost");
+  require(view.list().size()==(changed && compound?3U:2U),"partial stamped creation exposed");
+  if(changed && compound)
+    require(view.stat("new").inode==4 && view.read("new",0,100)==native_fixture::data(31,34) &&
+        view.basic_metadata(4)==basic_tuple(3),"new file/data/basic tuple not atomic");
+  require(view.sequence()==(changed?3U:2U)+(continued?1U:0U),"basic recovered namespace sequence");
+}
+void basic_write(const fs::path& path,std::string_view phase,StoreCompressionOptions options) {
+  auto backing=detail::new_store_file(path,{4096,true});auto trace=std::make_shared<Traced>(backing);
+  auto files=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(trace,id(),options));
+  const std::array<NativeFileMutation,4> initial{{native_fixture::file_create("f"),
+      native_fixture::file_write("f",0,native_fixture::data(73,31)),native_fixture::file_create("keep"),
+      native_fixture::file_write("keep",0,native_fixture::data(91,32))}};
+  const std::array<NativeBasicMutation,3> initial_basic{{{1,0,basic_tuple(1,true)},
+      {2,0,basic_tuple(1)},{3,0,basic_tuple(1)}}};
+  const auto before=phase=="basic-upgrade"?files.apply(initial):files.apply_with_basic(initial,initial_basic);
+  require(before.storage.generation==4,"basic baseline generation");
+  basic_expected(files.snapshot(),phase,false);
+  trace->event("ack",0,0,4,{},basic_state_digest(ObjectStoreSnapshot::open(trace)));trace->armed=true;
+  NativeFsCommit changed;
+  if(phase=="basic-compound") {
+    const std::array<NativeFileMutation,4> operations{{native_fixture::file_write("f",7,native_fixture::data(19,33)),
+        native_fixture::file_rename("f","renamed"),native_fixture::file_create("new"),
+        native_fixture::file_write("new",0,native_fixture::data(31,34))}};
+    const std::array<NativeBasicMutation,2> metadata{{{2,0,basic_tuple(2)},{0,1,basic_tuple(3)}}};
+    changed=files.apply_with_basic(operations,metadata);
+  } else changed=files.set_basic_metadata(2,basic_tuple(2));
+  trace->armed=false;require(changed.storage.generation==6,"basic candidate generation");
+  basic_expected(files.snapshot(),phase,true);
+  trace->event("ack",0,0,6,{},basic_state_digest(ObjectStoreSnapshot::open(trace)));
+  std::cout<<"{\"done\":true}\n"<<std::flush;
+}
+void basic_recover(const fs::path& path,std::string_view phase,std::uint64_t floor,StoreCompressionOptions options) {
+  std::uint64_t generation=0,continued=0;bool changed=false;
+  {
+    auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
+    generation=view.storage_info().generation;
+    require(generation>=floor && generation<=6 && view.sequence()==(generation>4?3U:2U),
+        "basic acknowledged generation/sequence lost");
+    changed=view.sequence()==3;basic_expected(view,phase,changed);
+  }
+  const auto recovered_digest=basic_state_digest(ObjectStoreSnapshot::open_file(path));
+  {
+    auto backing=detail::reopen_store_file_for_hosted_test(path,{4096,true});
+    auto files=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(backing,id(),generation,options));
+    basic_expected(files.snapshot(),phase,changed);
+    const auto operation=native_fixture::file_write("keep",3,native_fixture::data(7,35));
+    const NativeBasicMutation metadata{3,0,basic_tuple(9)};
+    const auto result=files.apply_with_basic({&operation,1},{&metadata,1});
+    continued=result.storage.generation;
+  }
+  auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(path));
+  require(view.storage_info().generation==continued && continued>generation,"basic continuation publication");
+  basic_expected(view,phase,changed,true);
+  const auto continuation_digest=basic_state_digest(ObjectStoreSnapshot::open_file(path));
+  require(continuation_digest!=recovered_digest,"basic continuation did not change verified closure");
+  std::cout<<"{\"recovered\":"<<generation<<",\"continued\":"<<continued
+      <<",\"state_digest\":\""<<recovered_digest<<"\",\"continued_digest\":\""<<continuation_digest<<"\"}\n"<<std::flush;
+}
+
 StoreIdentity copy_identity(bool retry=false){auto value=id();value[2]=retry?std::byte{22}:std::byte{21};return value;}
 std::string file_digest(const fs::path& path) {
   auto file=ReadOnlyFile::open(path);require(file.size()<=2*1024*1024,"source digest bound");
@@ -303,20 +409,23 @@ int main(int argc,char** argv) {
     require(argc==7 || argc==8,"probe role, parent, token, policy, phase, floor and optional source digest required");
     const std::string role(argv[1]),token(argv[3]),policy(argv[4]),phase(argv[5]),floor_text(argv[6]);
     require((role=="write"||role=="recover") && (policy=="raw"||policy=="auto") &&
-            (phase=="mutation"||phase=="repair"||phase=="files"||phase=="compact"||phase=="checkpoint"),"invalid probe scope");
+            (phase=="mutation"||phase=="repair"||phase=="files"||phase=="compact"||phase=="checkpoint"||basic_phase(phase)),"invalid probe scope");
     require(argc==((phase=="compact" && role=="recover")?8:7),"invalid source digest argument scope");
     const std::string digest=argc==8?argv[7]:"";
     if(argc==8)require(digest.size()==64 && std::all_of(digest.begin(),digest.end(),
         [](char c){return (c>='0'&&c<='9')||(c>='a'&&c<='f');}),"invalid source digest");
     std::uint64_t floor=0;const auto parsed=std::from_chars(floor_text.data(),floor_text.data()+floor_text.size(),floor);
     require(parsed.ec==std::errc{} && parsed.ptr==floor_text.data()+floor_text.size() &&
-            (role=="write"?floor==0:(phase=="compact"?(floor==6||floor==8):(phase=="files"?(floor==4||floor==6):(phase=="checkpoint"?(floor==2||floor==4):(floor>=1&&floor<=2))))),"invalid acknowledgement floor");
+            (role=="write"?floor==0:(phase=="compact"?(floor==6||floor==8):(phase=="files"||basic_phase(phase)?(floor==4||floor==6):(phase=="checkpoint"?(floor==2||floor==4):(floor>=1&&floor<=2))))),"invalid acknowledgement floor");
     // Controller sees resource admission before allowing filesystem/corpus work.
     std::cout<<"{\"ready\":true}\n"<<std::flush;advance();
     const fs::path root(argv[2]);owned_parent(root,token);
     StoreCompressionOptions options;options.mode=policy=="raw"?StoreCompressionMode::raw:StoreCompressionMode::automatic;
     options.require_zstd=policy=="auto";
-    if(phase=="checkpoint") {
+    if(basic_phase(phase)) {
+      if(role=="write")basic_write(root/"image.fltx",phase,options);
+      else basic_recover(root/"image.fltx",phase,floor,options);
+    } else if(phase=="checkpoint") {
       if(role=="write")replicated_repair_write(root/"image.fltx",options);
       else recover_probe(root/"image.fltx",true,floor,options,true);
     } else if(phase=="compact") {
