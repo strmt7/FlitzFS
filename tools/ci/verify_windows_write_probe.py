@@ -89,8 +89,8 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
                     and verifier[key] != "0" * 64, "invalid restart integrity receipt")
     require(all(writer[key] == verifier[key] for key in stable), "acknowledged state changed/rolled back")
     return {"schema": 1, "commit": commit, "profile": profile, "complete": True,
-            "image_bytes": writer["image_bytes"], "generation": writer["generation"],
-            "namespace_sequence": writer["namespace_sequence"], "user_bytes": size}
+            "image_bytes": verifier["image_bytes"], "generation": verifier["generation"],
+            "namespace_sequence": verifier["namespace_sequence"], "user_bytes": size}
 
 def validate_continuation(writer: dict, continued: dict, verifier: dict, profile: str, commit: str) -> dict:
     require(profile in RESTART, "not a restart profile")
