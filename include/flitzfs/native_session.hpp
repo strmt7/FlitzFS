@@ -1,5 +1,5 @@
 #pragma once
-#include "flitzfs/native_filesystem.hpp"
+#include "flitzfs/volume_head.hpp"
 #include <memory>
 
 namespace flitzfs {
@@ -88,6 +88,33 @@ class NativeFileSession final {
   // writer accessor; unresolved old-session state must be separately recovered.
   static NativeFileSession create(NativeFilesystemWriter writer);
   static NativeFileSession create(NativeFilesystemWriter writer,NativeDispositionPolicy);
+  // Qualified custom backends only: NEW head/image, exclusive global provider
+  // ownership and distinct stable volume/image IDs. No file or mount factory.
+  static NativeFileSession create_volume(std::shared_ptr<StoreByteIo> empty_head,
+      StoreIdentity volume_identity,std::shared_ptr<StoreByteIo> empty_image,
+      StoreIdentity image_identity,StoreCompressionOptions foreground={},
+      StoreCheckpointOptions checkpoints={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate);
+  // Actual old controller/dispatcher/context retirement is an external
+  // prerequisite. Never discards unresolved persisted file-context state.
+  static NativeFileSession resume_volume(std::shared_ptr<StoreByteIo> head,
+      StoreIdentity volume_identity,std::uint64_t expected_epoch,
+      const NativeVolumeImageResolver&,StoreCompressionOptions foreground={},
+      NativeDispositionPolicy=NativeDispositionPolicy::aggregate);
+  // Explicit serialized control operation, never called by ordinary I/O.
+  // Adopted resolved contexts/tokens/grants survive; no synthetic Cleanup/Close.
+  // Candidate policy is separate from the retained foreground write policy.
+  NativeVolumeHeadInfo compact_volume(std::shared_ptr<StoreByteIo> empty_target,
+      StoreIdentity new_image_identity,StoreCompressionOptions candidate={},
+      StoreCheckpointOptions checkpoints={});
+  NativeVolumeHeadInfo recompress_volume(std::shared_ptr<StoreByteIo> empty_target,
+      StoreIdentity new_image_identity,StoreCompressionOptions candidate={},
+      StoreCheckpointOptions checkpoints={});
+  // One explicit CPU recovery attempt for a failed maintenance transition only.
+  // Retire the old head owner, independently select/compare, repair selected
+  // metadata and resume the SAME context table. No failed-target retry/fallback.
+  // Failure remains terminal with images/contexts retained and no second attempt.
+  NativeVolumeHeadInfo recover_volume();
+  NativeVolumeHeadInfo volume_info() const;
   // Trusted pre-open adapter lookup for namespace/security admission. No new
   // context or authority is created; caller must perform OS access checking.
   NativePathLookup lookup(std::string_view path) const;
@@ -227,6 +254,8 @@ class NativeFileSession final {
   std::unique_ptr<Impl> impl_;
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
+  NativeVolumeHeadInfo replace_volume(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      StoreCompressionOptions,StoreCheckpointOptions,bool reencode);
   std::size_t slot_for(const NativeFileHandle&,bool allow_provisional=false) const;
   NativeFileHandle open_impl(std::string_view,NativeFileAccess,NativeOpenKind,
       NativeBasicAccess,NativeSecurityAccess,NativeOverwriteAccess,bool provisional,

@@ -975,3 +975,21 @@ native state except image identity. Revalidate the source and retain it plus
 partial candidates on failure. No automatic retry, deletion, idle scheduler,
 worker/GPU or mounted permission follows. Head publication remains separate.
 Keep every old case/cap and every new destination fault/readback rejection.
+
+## Managed volume-session transition boundary
+
+Read docs/VOLUME_SESSION.md before modifying managed factories, live-context
+handoff or recover_volume(). Keep the SAME owner/token/grant/Cleanup table;
+defer provisional, pending/latched or detached state without manufacturing
+Cleanup/Close. Preserve actual writer retirement, exact head/image/epoch binding,
+independent CPU source/selected comparison, retained source/candidate and no
+normal I/O after fencing. Recovery is one explicitly owned transition attempt;
+second attempts and foreground-failure relabelling must perform zero I/O.
+Retain foreground compression policy independently of candidate policy.
+
+Qualified global provider ownership/nonaliasing, never-reused image IDs, durable
+image mappings and actual external-controller/context retirement remain caller
+preconditions, not flags or per-instance lease attestation. No ordinary-file
+provider, deletion/reclamation, automatic scheduling, mounted maintenance or HIP
+execution is added. New managed-session RAM probes require exact VM-first
+qualification and unchanged owner-PC caps/actual process and lock cleanup.

@@ -11,6 +11,11 @@
 #include <utility>
 
 namespace flitzfs {
+bool valid_store_io_contract(StoreIoContract c) noexcept {
+  const auto n=c.write_failure_unit_bytes;
+  return c.successful_flush_persists && n>=512 && n<=kStoreCommitUnit &&
+      !(n&(n-1)) && kStoreCommitUnit%n==0;
+}
 namespace {
 using Bytes=std::vector<std::byte>;
 using detail::Digest;
@@ -25,9 +30,7 @@ template<std::size_t N> bool nonzero(const std::array<std::byte,N>& a) {
 }
 void admit_identity(StoreIdentity id) { if(!nonzero(id)) fail("nonzero store identity required"); }
 void admit_contract(StoreIoContract c) {
-  const auto n=c.write_failure_unit_bytes;
-  if(!c.successful_flush_persists || n<512 || n>kStoreCommitUnit || (n&(n-1)) || kStoreCommitUnit%n)
-    fail("unknown or unsupported durability contract");
+  if(!valid_store_io_contract(c))fail("unknown or unsupported durability contract");
 }
 void put32(std::span<std::byte> b,std::size_t at,std::uint32_t n) {
   for(unsigned i=0;i<4;++i) b[at+i]=static_cast<std::byte>(n>>(8*i));

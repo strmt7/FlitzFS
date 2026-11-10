@@ -273,3 +273,11 @@ idle learning/scheduling and live GPU execution remain unimplemented. The first
 six-file owner-PC unmounted RAM CPU result is in HOST_RAM_VALIDATION.json;
 its complete image remained larger than the tiny corpus despite compressed
 payload reduction. New re-encoding tests require their own exact-commit pass.
+
+Managed native volume sessions now connect fixed-head image handoff to the
+existing context-owning I/O layer. Explicit compaction/recompression preserves
+live resolved handles, access grants, Cleanup state and stable volume identity.
+A failed transition retains both images and the context table for one verified
+CPU recovery attempt. See VOLUME_SESSION.md. This remains custom-backend
+engine work, with new exact-commit tests pending; no automatic maintenance,
+mounted/GPU integration, physical reclamation or power-loss claim follows.

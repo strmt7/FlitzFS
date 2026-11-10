@@ -3,101 +3,118 @@
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "qualified_checkpoint": {
-    "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
-    "tree": "7fa2ba78e36d9491b906871fa365d330d23a7c55",
-    "run": 42892003287,
-    "workflow_count": 4,
-    "implementation_commit": "453f5e4c09f7c14013d2555c6702c1e627c812d5",
-    "implementation_workflows": 11,
-    "native_job": 130095265885,
-    "native_groups": 114,
-    "sanitizer_job": 130095265979,
-    "sanitizer_groups": 96,
-    "volume_head": {
-      "invariant_checks": 348,
-      "io_fault_cases": 264,
-      "head_bytes": 131072,
-      "real_files_created": false,
-      "mounted": false,
-      "gpu": false
-    },
+    "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+    "tree": "2cc8feda97b3b90882e40793dde31f22ae2c05cf",
+    "run": 42907446612,
+    "workflow_count": 12,
+    "native_job": 130149037193,
+    "native_groups": 117,
+    "sanitizer_job": 130149037479,
+    "sanitizer_groups": 99,
+    "new_recompression_fault_cases": 435,
+    "new_recompression_checks": 3963,
     "profiles": [
       {
-        "job": 130103186584,
-        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
-        "complete": true,
-        "generation": 28,
-        "image_bytes": 2949120,
-        "namespace_sequence": 14,
-        "profile": "crash-restart",
-        "schema": 1,
-        "user_bytes": 7001
-      },
-      {
-        "job": 130103186616,
-        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
-        "complete": true,
-        "generation": 38,
-        "image_bytes": 3932160,
-        "namespace_sequence": 19,
-        "profile": "mutations",
-        "schema": 1,
-        "user_bytes": 89
-      },
-      {
-        "job": 130103186641,
-        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
-        "complete": true,
-        "generation": 18,
-        "image_bytes": 1966080,
-        "namespace_sequence": 9,
-        "profile": "basic",
-        "schema": 1,
-        "user_bytes": 7001
-      },
-      {
-        "job": 130103186763,
-        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
-        "complete": true,
-        "generation": 14,
-        "image_bytes": 1572864,
-        "namespace_sequence": 7,
-        "profile": "crash",
-        "schema": 1,
-        "user_bytes": 7001
-      },
-      {
-        "job": 130103186912,
-        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
+        "job": 130154057446,
+        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
         "complete": true,
         "generation": 28,
         "image_bytes": 2949120,
         "namespace_sequence": 14,
         "profile": "restart",
         "schema": 1,
-        "user_bytes": 7001
+        "user_bytes": 7001,
+        "actual_exits": [
+          "extended_writer profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4751360",
+          "extended_resumer profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4734976",
+          "extended_verifier profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3133440"
+        ]
       },
       {
-        "job": 130103186925,
-        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
+        "job": 130154057464,
+        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+        "complete": true,
+        "generation": 14,
+        "image_bytes": 1572864,
+        "namespace_sequence": 7,
+        "profile": "crash",
+        "schema": 1,
+        "user_bytes": 7001,
+        "actual_exits": [
+          "extended_writer profile=crash exit=1460 stage=0 detail=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4751360",
+          "extended_verifier profile=crash exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3153920"
+        ]
+      },
+      {
+        "job": 130154057470,
+        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+        "complete": true,
+        "generation": 28,
+        "image_bytes": 2949120,
+        "namespace_sequence": 14,
+        "profile": "crash-restart",
+        "schema": 1,
+        "user_bytes": 7001,
+        "actual_exits": [
+          "extended_writer profile=crash-restart exit=1460 stage=0 detail=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4775936",
+          "extended_resumer profile=crash-restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4816896",
+          "extended_verifier profile=crash-restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3158016"
+        ]
+      },
+      {
+        "job": 130154057545,
+        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+        "complete": true,
+        "generation": 18,
+        "image_bytes": 1966080,
+        "namespace_sequence": 9,
+        "profile": "basic",
+        "schema": 1,
+        "user_bytes": 7001,
+        "actual_exits": [
+          "writable_probe exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4784128",
+          "writable_verify exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3100672"
+        ]
+      },
+      {
+        "job": 130154057616,
+        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
         "complete": true,
         "generation": 32,
         "image_bytes": 3342336,
         "namespace_sequence": 16,
         "profile": "delete",
         "schema": 1,
-        "user_bytes": 37
+        "user_bytes": 37,
+        "actual_exits": [
+          "extended_writer profile=delete exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4726784",
+          "extended_verifier profile=delete exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3072000"
+        ]
+      },
+      {
+        "job": 130154057620,
+        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+        "complete": true,
+        "generation": 36,
+        "image_bytes": 3735552,
+        "namespace_sequence": 18,
+        "profile": "mutations",
+        "schema": 1,
+        "user_bytes": 89,
+        "actual_exits": [
+          "extended_writer profile=mutations exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4755456",
+          "extended_verifier profile=mutations exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3067904"
+        ]
       }
     ],
-    "proof_scope": "CPU RAM-model head selection/faults/repeated handoff and later acknowledged-data retention, plus six OLD mounted regressions. No mounted head integration/reclamation/physical-power/GPU proof."
+    "proof_scope": "CPU post-compression/new image exact comparison/target-I/O faults. Two bounded owner RAM CPU checks; no mounted recompression, automatic idle learning, live GPU or physical-power proof."
   },
   "source_routing": {
-    "commit": "6a3dadcb373200acd8a32b129cee6e23bd01c80e",
-    "job": 130141622531,
+    "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+    "job": 130149035986,
     "queries": 6,
-    "source_sha256": "57670abed671e2a993b6ba34ec4f18edc6041f7b216ffb9a78f1bd2b34807fc6",
-    "production_source_unchanged_at": "44f1e412d27f78a6b3c6ab2da7504c169d2bdc11",
-    "confirmation": "Exact live source reads; only RAM workflow status handling differs."
+    "source_sha256": "6fe63350388a533058896b566419d06d6624903eb3a197efe638ab1582522d8f",
+    "confirmation": "Exact live NativeFileSession/header and ownership/Flush contracts."
   },
   "safety": {
     "development": "native repository APIs and disposable hosted VMs",
@@ -132,13 +149,17 @@
     }
   },
   "pending_implementation": {
-    "scope": "Explicit CPU native/object post-compression into a new image, independent source/target byte comparison, every destination I/O fault and VM-first real-data RAM qualification",
+    "scope": "Managed volume/session compaction/post-compression with live context preservation and one independently selected CPU maintenance recovery; no automatic scheduler or file provider",
     "check_exact_current_head_ci": true,
-    "docs": [
-      "docs/RECOMPRESSION.md"
+    "primary_files": [
+      "include/flitzfs/native_session.hpp",
+      "src/native_session.cpp",
+      "tests/test_volume_session.cpp",
+      "tests/windows_ram_probe.cpp"
     ],
-    "automatic_scheduler": false,
-    "gpu": false
+    "docs": [
+      "docs/VOLUME_SESSION.md"
+    ]
   },
   "remaining": [
     "authenticated request-bound kernel/helper authority for functional owner/group changes and mounted ACL enforcement",
@@ -185,9 +206,9 @@
     "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
   },
   "owner_ram_checkpoint": {
-    "commit": "44f1e412d27f78a6b3c6ab2da7504c169d2bdc11",
-    "vm_run": 42905800463,
-    "vm_job": 130143326689,
+    "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+    "vm_run": 42907446341,
+    "vm_job": 130149036072,
     "result": "complete",
     "real_files": 6,
     "source_bytes": 118663,
@@ -198,7 +219,7 @@
       45
     ],
     "child_peak_commit": 38834176,
-    "source_unchanged": true,
+    "sources_unchanged": true,
     "own_processes_after": 0,
     "source_reference": "docs/HOST_RAM_VALIDATION.json",
     "mounted": false,

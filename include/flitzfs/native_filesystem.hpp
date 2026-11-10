@@ -202,6 +202,7 @@ class NativeFilesystemSnapshot final {
  private:
   friend class NativeFilesystemWriter;
   friend class NativeVolumeHeadWriter;
+  friend class NativeFileSession;
   const ObjectStoreSnapshot& objects_for_volume_head() const;
   void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&) const;
   struct Impl;

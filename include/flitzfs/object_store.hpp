@@ -27,6 +27,9 @@ struct StoreIoContract {
   bool successful_flush_persists=false;
 };
 
+// Pure shared admission rule; this does not qualify a device or its flushes.
+bool valid_store_io_contract(StoreIoContract) noexcept;
+
 // Positional exact I/O; implementations throw on any short/failed operation.
 // One control thread; do not race calls through writers or snapshots.
 class StoreByteIo {
