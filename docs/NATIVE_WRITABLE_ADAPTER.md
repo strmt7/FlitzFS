@@ -52,8 +52,12 @@ directory enumeration and volume quota are implemented in this candidate.
 Queries support provisional contexts. The first trusted data/metadata/Cleanup
 callback explicitly adopts a prepared context. This transition is NOT kernel
 adoption attestation. A premature active Close without Cleanup fences rather
-than silently discarding ownership. Actual cancellation/cache/early-paging
-delivery still requires bounded real-kernel qualification before promotion.
+than silently discarding ownership. The candidate deliberately rejects deletion while any peer Open remains
+provisional, even if the FSD may already have adopted that peer. Tests must
+check this no-mutation rejection AND the full two-adopted-handle global cancel
+oracle. Ordinary deletion with an idle/unconfirmed peer is a remaining product
+limitation, not a reason to remove the guard or fabricate adoption.
+Actual cancellation/cache/early-paging delivery still requires bounded real-kernel qualification before promotion.
 
 Windows global deletion is an explicit NativeDispositionPolicy; the historical
 aggregate policy remains the default. A successful global cancel clears all
@@ -135,3 +139,11 @@ nonexistent NativeFileInfo.basic member. The harness now uses the same explicit
 ZeroMemory pattern as the existing SDK tests and the actual snapshot metadata
 accessor. No cap, test or oracle was removed. Inspect the follow-up commit's
 executed results; this first build is not passing Windows evidence.
+
+The corrected a362338 build compiled and passed 109 of 110 Windows groups;
+the paired-delete fixture had attempted deletion before its second Open had
+any adoption event. The test now explicitly requires the existing conservative
+sharing rejection with unchanged durable/runtime intent, performs real SDK I/O
+on both handles, then retains the entire original global-cancellation oracle.
+The 11-writer lifecycle/offlining fixture passed. This partial run is retained;
+no Windows passing checkpoint is claimed until the complete follow-up run.
