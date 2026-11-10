@@ -23,7 +23,7 @@ checks. Preserve existing wire compatibility and historical evidence.
 ## Development workflow
 
 1. Inspect current git history and user changes before editing; preserve existing repo content and licensing. Develop and commit directly to `main` only; do not create development branches or PRs. Never force-push.
-2. Batch coherent implementation, regression tests and documentation into larger validated checkpoints on `main`; follow the owner's request to push less often and prioritize substantive development/token efficiency; mark all generated artifacts **experimental**. Use official documentation for WinFsp, Microsoft Windows I/O, AMD HIP/ROCm, Zstd and cryptographic dependencies.
+2. Work in small, validated commits on `main`; keep each implementation, regression tests and documentation coherent and all generated artifacts **experimental**. Use official documentation for WinFsp, Microsoft Windows I/O, AMD HIP/ROCm, Zstd and cryptographic dependencies.
 3. Extend deterministic byte-for-byte tests and malicious-input rejection before adding new storage features.
 4. Run CPU-only unit tests, raw-only build, ASan/UBSan where supported, and CI on both Windows and Linux. Do not substitute Linux success for Windows qualification.
 5. Design filesystem changes with explicit rollback/recovery, correct flush durability, no data loss under kill/power failure, and an independent CPU reader.
@@ -823,3 +823,30 @@ independent CPU bytes/checkpoint after confirmed process exit. Never forcibly
 delete a stale junction, raise limits, skip failing cases or label the trial
 physical-power, Windows 11 client, writable crash recovery or live AMD proof.
 If it fails, retain exact evidence and fix off-host; never move it onto the PC.
+
+## Fixed writable lifecycle/acknowledged-termination extension
+
+The latest owner says continue all tasks. Extend ONLY the disposable writable
+trial with the separate basic/mutations/delete/crash VM profiles documented in
+WRITABLE_MOUNT_TRIAL.md, after all same-commit gates. This narrowly supersedes
+the first trial's no-deletion/no-kill restriction ONLY for those fixed synthetic
+cases on fresh VMs, not arbitrary crash cuts, mounted recovery writes, mapped
+I/O, driver changes on the PC, live GPU or product promotion.
+
+Keep each VM's <=4 MiB image plus two <=2048-byte reports and unchanged
+128 MiB/20%-CPU/one-process/below-normal bounds. Normal/verifier children keep
+30 seconds; explicitly terminated writer gets 15. Retain every old basic/
+read-only/cap/fault/oracle assertion. Require actual successful/terminated
+process-object exit before the next launch; never infer it from a PID or time.
+The source helper must explicitly FlushFileBuffers and publish/flush its exact
+acknowledgement before waiting with its file open; independent CPU recovery must
+preserve exact acknowledged data, primary metadata/security/reservation and
+checkpoint identity and reject unresolved state. No source view may escape its
+owning lifetime or remain across a normal stop.
+
+Run strict source/profile/phase/type/budget/closure reconciliation and negative
+tests. Preserve provisional-peer, cleanup/Close, authorization and no-I/O retry
+guards; diagnose and fix real Windows failures instead of raising caps, skipping
+or relabelling evidence. A helper termination is not physical power loss or full
+writable recovery. Apply current RAM-only/no-driver-change and hosted-first PC
+rules. Continue filesystem-only scope; do not resurrect removed archive routes.

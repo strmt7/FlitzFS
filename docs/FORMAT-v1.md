@@ -207,3 +207,13 @@ history cap is runtime admission, separate from native live reservations,
 logical EOF and physical allocation. Existing factory defaults/wire bytes and
 three publication barriers remain. An explicit mounted Flush is required before
 the trial asserts data durability; CPU reopen is independent after writer exit.
+
+
+### Extended writable evidence
+
+The new writable mutation/termination reports use test-evidence schema 2;
+no filesystem wire format changes. Data and security use the existing unkeyed
+record digest (integrity, not authentication). Independent recovery must retain
+exact acknowledged namespace/generation, full primary basic tuple/reservation/
+security and bytes; report reconciliation rejects mixed, omitted or changed
+facts. A helper kill is not a physical power cut.

@@ -285,3 +285,12 @@ helper retirement and independent CPU verification. See
 4 MiB before writes; configured trials require exact hosted execution before
 passing claims. No owner-PC, live AMD or complete writable-product qualification
 follows, and the old read-only probe remains unchanged.
+
+
+The disposable writable trial now has separate basic, EOF/rename, open-handle
+delete, and acknowledged-helper-termination profiles. Every profile retains its
+4 MiB image cap and an independently supervised CPU verifier. Strict reports
+bind the acknowledged data, metadata, security, reservations and checkpoint to
+the exact source and process. Configured profiles require inspected executed
+results; they add no owner-PC or GPU qualification. See
+[WRITABLE_MOUNT_TRIAL.md](docs/WRITABLE_MOUNT_TRIAL.md).

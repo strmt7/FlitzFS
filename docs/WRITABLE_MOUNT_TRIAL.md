@@ -98,3 +98,55 @@ deletion/adoption/cache/kill recovery, realistic scale/reclamation, physical
 power-loss/media/payload-replica repair, live AMD and adaptive low-priority
 maintenance remain unfinished. This trial cannot prove full-product safety
 or superiority over other filesystems.
+
+## Extended fixed profiles (configured, inspect executed evidence)
+
+The original basic mode and every assertion remain. The matrix now runs four
+separate fresh disposable Windows VMs: basic, mutations, delete, crash.
+Artifact names include the profile to prevent overwrite/collision. Each fixture
+still has one <=4 MiB image and two <=2048-byte reports, never an aggregate-cap
+increase within a VM or a shared writable image across workers.
+
+- mutations creates an acknowledged target and an unrelated keep file, shrinks
+  target EOF to 17, regrows to 89, explicitly flushes and verifies the preserved
+  17-byte prefix/zero tail, renames with the original inode still open and
+  checks stable inode identity/readback. Independent CPU reopen verifies both
+  final files and absence of the old name.
+- delete creates the same two files, calls DeleteFileW while the original target
+  handle stays open, verifies original bytes through that handle, then closes
+  and drains all contexts. Independent CPU reopen requires only the unchanged
+  keep file and no removed target/unlinked session work.
+- crash creates/writes the original 7001-byte sample, actually FlushFileBuffers,
+  checks mounted and native bytes, and flushes an ordinary bounded acknowledgement
+  report. An immutable native view is dropped before waiting; the original
+  application handle remains open. No more application I/O occurs afterward.
+  The private supervisor must terminate that exact process at 15 seconds and
+  confirm exit 1460 before launching the 30-second CPU verifier. No dispatcher,
+  mutable recovery or remount is used by the verifier. Mount disappearance and
+  a healthy, resolved current checkpoint are required.
+
+Extended reports use schema 2: source/observer PID, exact source commit, profile/
+phase, inode/file count/bytes, namespace/generation/image cap, context phase,
+all four persisted times, attributes/reservation and existing BLAKE3 record
+digests of primary data/security and unrelated kept data. Only an actual writer
+reports observing explicit flush; a CPU verifier never claims that operation.
+The crash acknowledgement may retain its one live file context, while every
+normal post-stop and independent observer reports zero owned contexts.
+
+The standard-library Python verifier rejects missing/extra/duplicate keys,
+wrong schema/profile/phase/source/process, bool-as-integer confusion, budget/
+alignment/retirement errors and any changed exact acknowledged data, primary
+metadata/security/reservation, namespace sequence/generation or image extent.
+It checks bounded regular single-link non-reparse report/image files in the
+one process-bound fixture. Its in-memory negative tests run before live gates;
+a valid JSON document alone is not recovery evidence. The C++ parent separately
+requires actual process-object exit before each subsequent child. PID inequality
+is not a replacement for that proof.
+
+Selected current WinFsp source fsop.c at
+14d6e0280ae15e2550c44d6dbc476be51649727f was re-read through native GitHub APIs:
+classes 19/20 dispatch SetFileSize, 13/64 dispatch SetDelete after readonly
+precheck, and 10/65 dispatch Rename after its native access check. No callback
+guard/adoption/authorization or stored filesystem encoding is relaxed.
+These fixed cases are NOT arbitrary writable fault-cut, power-loss, mapped I/O,
+cancelled-open/overwrite, latest Windows 11 client, live AMD or product proof.
