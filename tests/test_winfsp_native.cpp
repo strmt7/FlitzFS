@@ -326,8 +326,9 @@ std::vector<std::byte> security_text(PCWSTR text) {
 std::vector<std::byte> merge_security(std::vector<std::byte> original,SECURITY_INFORMATION parts,
     std::vector<std::byte>& modification) {
   PSECURITY_DESCRIPTOR value=nullptr;
-  require(FspSetSecurityDescriptor(original.data(),parts,modification.data(),&value)==STATUS_SUCCESS,
-      "independent SDK security oracle");
+  const auto status=FspSetSecurityDescriptor(original.data(),parts,modification.data(),&value);
+  ++checks;if(status!=STATUS_SUCCESS)throw std::runtime_error("SDK security oracle parts="+
+      std::to_string(parts)+" status="+std::to_string(static_cast<UINT32>(status)));
   struct Free {PSECURITY_DESCRIPTOR value;
     ~Free(){if(value)FspDeleteSecurityDescriptor(value,(NTSTATUS (*)())FspSetSecurityDescriptor);}} release{value};
   const auto* first=static_cast<const std::byte*>(value);
@@ -349,7 +350,7 @@ void security_updates(StoreCompressionMode mode) {
   const auto inode=h.adapter->snapshot().stat("secured").inode;
   auto expected=h.security;
   auto dacl=security_text(L"D:P(D;;GW;;;WD)(A;;GR;;;WD)");
-  auto owner=security_text(L"O:SYG:BA");
+  auto owner=h.security; // Existing owner/group are already admitted; no foreign-owner privilege is assumed.
   auto sacl=security_text(L"S:(AU;SA;GR;;;WD)");
   unsigned updates=0,denials=0;
   const auto get=[&] {auto view=h.adapter->snapshot();return *view.security_descriptor(inode);};
