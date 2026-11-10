@@ -107,6 +107,13 @@ WINDOWS_OWNERSHIP_SOURCES = (
     ("windows-kernel-security-merge", "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-sesetsecuritydescriptorinfo", "SeSetSecurityDescriptorInfo", "security"),
 )
 
+WINDOWS_LOCKED_RAM_SOURCES = (
+    ("windows-virtual-lock", "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock", "VirtualLock", "pagefile"),
+    ("windows-working-set", "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-setprocessworkingsetsizeex", "SetProcessWorkingSetSizeEx", "working set"),
+    ("windows-working-set-query", "https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-queryworkingsetex", "QueryWorkingSetEx", "pages"),
+    ("windows-working-set-flags", "https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_block", "PSAPI_WORKING_SET_EX_BLOCK", "Locked"),
+)
+
 class SourceMetadata(HTMLParser):
     """Record advisory publisher metadata from the native captured HTML only."""
 
@@ -179,7 +186,7 @@ async def capture(args):
                     "windows-framework": WINDOWS_FRAMEWORK_SOURCES, "windows-alternatives": WINDOWS_ALTERNATIVE_SOURCES,
                     "rocm-stream": ROCM_STREAM_SOURCES,
                     "windows-basic": WINDOWS_BASIC_SOURCES, "windows-security": WINDOWS_SECURITY_SOURCES,
-                    "windows-protocol": WINDOWS_PROTOCOL_SOURCES, "windows-ownership": WINDOWS_OWNERSHIP_SOURCES}[args.source_group]
+                    "windows-protocol": WINDOWS_PROTOCOL_SOURCES, "windows-ownership": WINDOWS_OWNERSHIP_SOURCES, "windows-locked-ram": WINDOWS_LOCKED_RAM_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -247,7 +254,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -257,7 +264,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)
