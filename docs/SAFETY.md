@@ -476,3 +476,20 @@ must signal offlining outside the callback. No dispatcher stop/join, timeout-
 based retirement or writable route is added. Initial delete-on-close overwrite
 and real kernel adoption remain unqualified. NATIVE_PROVISIONAL_OPEN.md separates
 the actual user-mode SDK checks from missing driver/client/power/AMD proof.
+
+
+## Initial delete is not speculative Open deletion
+
+Driver-facing initial delete authority remains volatile until actual Cleanup;
+general prepared Open/Create and overwrite cancellation cannot persist that
+option or remove a named inode. Eligible Cleanup captures effective pending/
+unlink facts before the same publication; all latch/cleaned updates follow
+success without another storage query. Nonempty directories retain children
+and do not acquire an unsafe durable delete intent.
+
+Runtime-only directory pending guards live admission and is distinct from
+independent disk snapshots. Initial cancellation preserves existing explicit
+request/latch provenance. Historical create_open's durable-intent option is
+not the direct FILE_DELETE_ON_CLOSE mapping. See NATIVE_INITIAL_DELETE.md for
+configured failure coverage, actual source/delivery flags and remaining real
+kernel/client/writable/AMD qualification. Owner-PC restrictions stay unchanged.

@@ -30,6 +30,9 @@ struct NativeSecurityAccess {bool read=false,replace=false;};
 // implicit WRITE_DATA/DELETE from returned GrantedAccess after checking it;
 // data/delete/WRITE_ATTRIBUTES bits alone must not infer this authorization.
 struct NativeOverwriteAccess {bool overwrite=false,supersede=false;};
+// The initial FILE_DELETE_ON_CLOSE option was checked by the FSD. It is NOT
+// explicit DELETE access and publishes no pending intent before real Cleanup.
+struct NativeInitialDeleteAccess {bool on_cleanup=false;};
 // A value alias for ONE open instance, not another open/reference count.
 // Only owning open/create/prepare APIs create contexts; Close invalidates aliases.
 // Weak ownership prevents stale tokens from binding to another session.
@@ -47,7 +50,15 @@ struct NativeSessionCreateOptions {
   NativeFileAccess access;
   NativeBasicAccess basic_access;
   NativeSecurityAccess security_access;
-  bool delete_on_close=false;
+  bool delete_on_close=false; // Historical durable intent, NOT the FSD initial option.
+};
+// Driver-facing creation options, distinct from the historical explicit
+// durable initial-intent option in NativeSessionCreateOptions.
+struct NativePreparedCreateOptions {
+  NativeFileAccess access;
+  NativeBasicAccess basic_access;
+  NativeSecurityAccess security_access;
+  NativeInitialDeleteAccess initial_delete;
 };
 struct NativeSessionCreateCommit {
   NativeFsCommit transaction;
@@ -86,6 +97,14 @@ class NativeFileSession final {
   NativeFileHandle prepare_overwrite(std::string_view path,NativeFileAccess access,
       NativeBasicAccess basic_access,NativeSecurityAccess security_access,
       NativeOverwriteAccess overwrite_access);
+  NativeFileHandle prepare_overwrite(std::string_view path,NativeFileAccess access,
+      NativeBasicAccess basic_access,NativeSecurityAccess security_access,
+      NativeOverwriteAccess overwrite_access,NativeInitialDeleteAccess initial_delete);
+  // General FSD Open has no overwrite stage. Cancellation before adoption
+  // preserves the inode; initial delete becomes effective only at Cleanup.
+  NativeFileHandle prepare_open(std::string_view path,NativeFileAccess access,
+      NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
+      NativeInitialDeleteAccess initial_delete={});
   NativeInodeMutationCommit overwrite_prepared_result(const NativeFileHandle&,
       const NativeOverwriteMetadata&);
   // Trusted adapter transition, not kernel adoption attestation. No I/O.
@@ -96,6 +115,9 @@ class NativeFileSession final {
   NativeSessionCreateCommit create_open(std::string_view path,bool directory,
       const NativeBasicMetadata&,std::span<const std::byte> security,
       NativeSessionCreateOptions options={});
+  NativeSessionCreateCommit create_prepared(std::string_view path,bool directory,
+      const NativeBasicMetadata&,std::span<const std::byte> security,
+      NativePreparedCreateOptions options={});
   std::optional<NativeSecurityDescriptor> security_descriptor(const NativeFileHandle&) const;
   NativeFsCommit set_security_descriptor(const NativeFileHandle&,std::span<const std::byte>);
   NativeInodeState info(const NativeFileHandle&) const;
@@ -163,7 +185,10 @@ class NativeFileSession final {
   Impl& ready() const;
   std::size_t slot_for(const NativeFileHandle&,bool allow_provisional=false) const;
   NativeFileHandle open_impl(std::string_view,NativeFileAccess,NativeOpenKind,
-      NativeBasicAccess,NativeSecurityAccess,NativeOverwriteAccess,bool provisional);
+      NativeBasicAccess,NativeSecurityAccess,NativeOverwriteAccess,bool provisional,
+      bool awaiting_overwrite,NativeInitialDeleteAccess);
+  NativeSessionCreateCommit create_impl(std::string_view,bool,const NativeBasicMetadata&,
+      std::span<const std::byte>,NativeSessionCreateOptions,bool,NativeInitialDeleteAccess);
   NativeInodeMutationCommit overwrite_impl(const NativeFileHandle&,
       const NativeOverwriteMetadata&,bool provisional);
 };

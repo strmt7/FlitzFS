@@ -253,3 +253,14 @@ healthy cancellation Close without storage I/O or fabricated Cleanup.
 Successful overwrite waits for an explicit trusted adoption declaration;
 poisoned ownership is retained. NATIVE_PROVISIONAL_OPEN.md specifies the
 phase/peer/capacity rules, actual SDK dispatch tests and remaining adapter gates.
+
+
+## General preparation and initial option
+
+prepare_open and create_prepared now use the same healthy-cancellation protocol
+without requiring overwrite. NativeInitialDeleteAccess is separately checked
+initial authority, not ordinary DELETE access or immediate durable intent.
+Cleanup combines effective pending/metadata/unlink; fixed latch provenance
+tracks safe nonempty-directory runtime state and cancellation independently
+of older explicit requests. NATIVE_INITIAL_DELETE.md specifies this behavior
+and the source-qualified adapter/delivery gates still required.

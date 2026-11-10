@@ -251,3 +251,12 @@ Overwrite/Close/Cleanup dispatcher is covered by a separate hosted-only group.
 See [provisional opens](docs/NATIVE_PROVISIONAL_OPEN.md). Writable driver/app,
 allocation, initial delete-on-close overwrite and client/AMD integration remain
 unfinished.
+
+
+The experimental engine now separates the initial FILE_DELETE_ON_CLOSE option
+from explicit durable delete intent. General Open/Create preparation permits
+healthy cancellation; real Cleanup atomically publishes eligible intent,
+metadata and unlink, while nonempty directories retain their contents.
+See [initial deletion](docs/NATIVE_INITIAL_DELETE.md). Configured engine/SDK
+tests require exact-commit inspection; writable driver/app/client integration,
+allocation/full FileInfo and live AMD remain unfinished.

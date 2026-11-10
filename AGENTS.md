@@ -587,3 +587,21 @@ adoption need separate qualification; a declaration is not kernel attestation.
 Do not silently map initial FILE_DELETE_ON_CLOSE, allocation or general Create
 to this protocol. Actual SDK tests create no volume/dispatcher/mount/driver.
 No owner-PC, writable app/client, physical-power or live AMD proof follows.
+
+
+## Initial delete option and general preparation
+
+Read docs/NATIVE_INITIAL_DELETE.md before changing prepare_open/create_prepared,
+NativeInitialDeleteAccess, cleanup_initial_delete_result or latch provenance.
+Do NOT persist the FSD initial option at Open/Create/overwrite/adoption.
+Real Cleanup arms eligible intent + requested metadata + optional unlink in
+ONE Stage/THREE barriers; captured facts update latches only afterward with no
+post-commit query/allocation. Preserve nonempty directories/children without
+unsafe durable pending; runtime overlays must guard opens/destinations.
+Keep explicit/initial/volatile provenance and source-qualified cancel/re-arm
+semantics; cancel must not erase independent historical explicit requests.
+Old public layouts, durable-intent APIs/bytes, caps/cases and 16-KiB owner limit
+remain. Kernel callback-elision/delivery/shared-disposition/adoption policy
+needs real qualification before writable binding; never infer it from these
+SDK fixtures or a trusted declaration. No owner-PC/app/client/power/live AMD
+permission or completion follows.

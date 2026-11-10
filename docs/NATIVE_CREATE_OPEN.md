@@ -165,3 +165,10 @@ All three space reports reconciled; peaks were 6,201,344 / 6,189,056 / 5,169,152
 bytes. The unchanged default-layout, absent-security fixture preserved source
 bytes; this is a regression check, not new writable Create or NS04 ACL coverage.
 All eleven triggered workflows succeeded at the exact commit.
+
+
+The later driver-facing create_prepared API separates volatile initial
+FILE_DELETE_ON_CLOSE from this historical create_open durable-intent option.
+It prepares general adoption/cancellation without persisting initial deletion
+before actual Cleanup. See NATIVE_INITIAL_DELETE.md; do not map raw driver
+options to the historical durable-intent field.

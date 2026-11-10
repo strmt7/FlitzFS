@@ -19,7 +19,7 @@ void admit_path(std::string_view path,bool root=false) {
 }
 }
 struct NativeFileSession::Impl {
-  enum class Phase:std::uint8_t {active,prepared,overwritten};
+  enum class Phase:std::uint8_t {active,prepared,overwritten,opened};
   struct Slot {
     std::uint64_t token=0,inode=0;
     NativeFileAccess access;
@@ -28,12 +28,17 @@ struct NativeFileSession::Impl {
     bool security_read=false,security_replace=false;
     bool overwrite=false,supersede=false;
     Phase phase=Phase::active;
+    bool initial_delete=false;
   };
   static_assert(std::is_nothrow_copy_assignable_v<Slot>);
   NativeFilesystemWriter writer;
   std::shared_ptr<const void> owner=std::make_shared<const int>(0);
   std::array<Slot,max_contexts> slots{};
   std::array<std::uint64_t,kNativeMaxNodes> latched{};
+  // Nonempty initial-delete directories retain contents on disk. Their
+  // kernel-like pending state/authority is runtime-only until final Cleanup.
+  static constexpr std::uint8_t kExplicit=1,kInitial=2,kVolatile=4;
+  std::array<std::uint8_t,kNativeMaxNodes> latch_flags{};
   std::uint64_t next_token=1;
   bool terminal=false;
   explicit Impl(NativeFilesystemWriter source):writer(std::move(source)) {
@@ -41,15 +46,36 @@ struct NativeFileSession::Impl {
     auto snapshot=writer.snapshot();
     if(snapshot.needs_session_recovery())fail(E::delete_pending,"old file contexts need independent closed-session recovery");
   }
-  bool latched_inode(std::uint64_t inode) const noexcept {
-    for(const auto id:latched)if(id==inode)return true;
+  bool volatile_initial(std::uint64_t inode) const noexcept {
+    for(std::size_t i=0;i<latched.size();++i)if(latched[i]==inode && (latch_flags[i]&kVolatile))return true;
     return false;
   }
+  void admit_destination(std::string_view path) {
+    bool any=false;for(auto value:latch_flags)any=any || (value&kVolatile)!=0;
+    if(!any)return; // Preserve historical traffic when no volatile intent exists.
+    const auto slash=path.rfind('/');
+    const auto parent=writer.inspect_path(slash==std::string_view::npos?std::string_view{}:path.substr(0,slash));
+    if(volatile_initial(parent.info.inode))fail(E::delete_pending,"destination parent has initial delete pending");
+  }
   bool intent(std::uint64_t inode,std::uint64_t excluded=0) const noexcept {
-    if(latched_inode(inode))return true;
+    for(std::size_t i=0;i<latched.size();++i)
+      if(latched[i]==inode && !(latch_flags[i]&kVolatile))return true;
     for(const auto& slot:slots)
       if(slot.token && slot.token!=excluded && slot.inode==inode && slot.requested)return true;
     return false;
+  }
+  bool explicit_intent(std::uint64_t inode,std::uint64_t excluded) const noexcept {
+    for(std::size_t i=0;i<latched.size();++i)
+      if(latched[i]==inode && (latch_flags[i]&kExplicit))return true;
+    for(const auto& slot:slots)
+      if(slot.token && slot.token!=excluded && slot.inode==inode && slot.requested)return true;
+    return false;
+  }
+  void cancel_initial_latch(std::uint64_t inode) noexcept {
+    for(std::size_t i=0;i<latched.size();++i)if(latched[i]==inode) {
+      latch_flags[i]=static_cast<std::uint8_t>(latch_flags[i]&kExplicit);
+      if(!latch_flags[i])latched[i]=0;
+    }
   }
   std::size_t contexts(std::uint64_t inode,std::uint64_t excluded=0) const noexcept {
     std::size_t count=0;
@@ -62,7 +88,7 @@ struct NativeFileSession::Impl {
     return false;
   }
   void clear_latch(std::uint64_t inode) noexcept {
-    for(auto& id:latched)if(id==inode)id=0;
+    for(std::size_t i=0;i<latched.size();++i)if(latched[i]==inode){latched[i]=0;latch_flags[i]=0;}
   }
   NativeInodeState state(const Slot& slot) {
     try {
@@ -70,6 +96,7 @@ struct NativeFileSession::Impl {
       if(!result.unlinked && result.delete_pending!=intent(slot.inode)) {
         terminal=true;fail(E::terminal,"native context/delete-intent ownership diverged");
       }
+      if(!result.unlinked && volatile_initial(slot.inode))result.delete_pending=true;
       return result;
     }catch(const NativeFsError& error) {
       if(error.code()==NativeFsErrorCode::not_found) {
@@ -116,17 +143,28 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
 NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,
     NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
     NativeOverwriteAccess overwrite_access) {
-  return open_impl(path,access,kind,basic_access,security_access,overwrite_access,false);
+  return open_impl(path,access,kind,basic_access,security_access,overwrite_access,false,false,{});
 }
 NativeFileHandle NativeFileSession::prepare_overwrite(std::string_view path,NativeFileAccess access,
     NativeBasicAccess basic_access,NativeSecurityAccess security_access,NativeOverwriteAccess overwrite_access) {
-  return open_impl(path,access,NativeOpenKind::file,basic_access,security_access,overwrite_access,true);
+  return prepare_overwrite(path,access,basic_access,security_access,overwrite_access,{});
+}
+NativeFileHandle NativeFileSession::prepare_overwrite(std::string_view path,NativeFileAccess access,
+    NativeBasicAccess basic_access,NativeSecurityAccess security_access,NativeOverwriteAccess overwrite_access,
+    NativeInitialDeleteAccess initial_delete) {
+  return open_impl(path,access,NativeOpenKind::file,basic_access,security_access,overwrite_access,true,true,initial_delete);
+}
+NativeFileHandle NativeFileSession::prepare_open(std::string_view path,NativeFileAccess access,
+    NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
+    NativeInitialDeleteAccess initial_delete) {
+  return open_impl(path,access,kind,basic_access,security_access,{},true,false,initial_delete);
 }
 NativeFileHandle NativeFileSession::open_impl(std::string_view path,NativeFileAccess access,
     NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
-    NativeOverwriteAccess overwrite_access,bool provisional) {
+    NativeOverwriteAccess overwrite_access,bool provisional,bool awaiting_overwrite,
+    NativeInitialDeleteAccess initial_delete) {
   auto& self=ready();
-  if(provisional && overwrite_access.overwrite==overwrite_access.supersede)
+  if(provisional && awaiting_overwrite && overwrite_access.overwrite==overwrite_access.supersede)
     fail(E::invalid_options,"prepared overwrite requires exactly one checked operation grant");
   if(kind!=NativeOpenKind::any && kind!=NativeOpenKind::file && kind!=NativeOpenKind::directory)
     fail(E::invalid_options,"unknown native open kind");
@@ -136,7 +174,10 @@ NativeFileHandle NativeFileSession::open_impl(std::string_view path,NativeFileAc
     fail(E::limit,"native file context budget exhausted");
   admit_path(path,true);
   const auto state=self.writer.inspect_path(path);
-  if(state.delete_pending || state.unlinked)fail(E::delete_pending,"native name is delete-pending");
+  if(state.delete_pending || state.unlinked || self.volatile_initial(state.info.inode))
+    fail(E::delete_pending,"native name is delete-pending");
+  if(initial_delete.on_cleanup && state.info.inode==1)
+    fail(E::invalid_options,"initial delete-on-close is forbidden on root");
   if(kind==NativeOpenKind::file && state.info.directory)
     throw NativeFsError(NativeFsErrorCode::is_directory,"native open requires regular file");
   if(kind==NativeOpenKind::directory && !state.info.directory)
@@ -144,12 +185,23 @@ NativeFileHandle NativeFileSession::open_impl(std::string_view path,NativeFileAc
   NativeFileHandle result;result.owner_=self.owner;result.token_=self.next_token;
   self.slots[available]={self.next_token,state.info.inode,access,false,false,false,basic_access.write,{},security_access.read,security_access.replace,
       overwrite_access.overwrite,overwrite_access.supersede,
-      provisional?Impl::Phase::prepared:Impl::Phase::active};
+      provisional?(awaiting_overwrite?Impl::Phase::prepared:Impl::Phase::opened):Impl::Phase::active,
+      initial_delete.on_cleanup};
   ++self.next_token;return result;
 }
 NativeSessionCreateCommit NativeFileSession::create_open(std::string_view path,bool directory,
     const NativeBasicMetadata& basic,std::span<const std::byte> descriptor,
     NativeSessionCreateOptions options) {
+  return create_impl(path,directory,basic,descriptor,options,false,{});
+}
+NativeSessionCreateCommit NativeFileSession::create_prepared(std::string_view path,bool directory,
+    const NativeBasicMetadata& basic,std::span<const std::byte> descriptor,NativePreparedCreateOptions options) {
+  return create_impl(path,directory,basic,descriptor,
+      {options.access,options.basic_access,options.security_access,false},true,options.initial_delete);
+}
+NativeSessionCreateCommit NativeFileSession::create_impl(std::string_view path,bool directory,
+    const NativeBasicMetadata& basic,std::span<const std::byte> descriptor,NativeSessionCreateOptions options,
+    bool provisional,NativeInitialDeleteAccess initial_delete) {
   static_assert(std::is_nothrow_move_constructible_v<NativeSessionCreateCommit>);
   static_assert(std::is_nothrow_move_assignable_v<NativeFsCommit>);
   static_assert(std::is_nothrow_copy_assignable_v<NativeInodeCommitInfo>);
@@ -161,7 +213,7 @@ NativeSessionCreateCommit NativeFileSession::create_open(std::string_view path,b
   for(std::size_t i=0;i<self.slots.size();++i)if(!self.slots[i].token){available=i;break;}
   if(available==self.slots.size() || self.next_token==(std::numeric_limits<std::uint64_t>::max)())
     fail(E::limit,"native file context budget exhausted");
-  admit_path(path);
+  admit_path(path);self.admit_destination(path);
   // The session is single-control-thread. The local slot/token reservation
   // cannot race another request; do not expose/install it before publication.
   NativeSessionCreateCommit result;
@@ -172,7 +224,8 @@ NativeSessionCreateCommit NativeFileSession::create_open(std::string_view path,b
   result.transaction=std::move(created.transaction);result.info=created.info;
   self.slots[available]={self.next_token,result.info.inode,options.access,false,false,
       options.delete_on_close,options.basic_access.write,{},
-      options.security_access.read,options.security_access.replace};
+      options.security_access.read,options.security_access.replace,false,false,
+      provisional?Impl::Phase::opened:Impl::Phase::active,initial_delete.on_cleanup};
   ++self.next_token;
   return result;
 }
@@ -259,8 +312,8 @@ NativeInodeMutationCommit NativeFileSession::overwrite_prepared_result(const Nat
 }
 void NativeFileSession::adopt_prepared(const NativeFileHandle& handle) {
   const auto index=slot_for(handle,true);auto& slot=ready().slots[index];
-  if(slot.phase!=Impl::Phase::overwritten)
-    fail(E::invalid_options,"native prepared context has no successful overwrite");
+  if(slot.phase!=Impl::Phase::overwritten && slot.phase!=Impl::Phase::opened)
+    fail(E::invalid_options,"native prepared context is not ready for adoption");
   slot.phase=Impl::Phase::active;
 }
 NativeInodeMutationCommit NativeFileSession::overwrite_impl(const NativeFileHandle& handle,
@@ -284,13 +337,13 @@ NativeInodeMutationCommit NativeFileSession::overwrite_impl(const NativeFileHand
   return result;
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory) {
-  auto& self=ready();admit_path(path);NativeFileMutation op;
+  auto& self=ready();admit_path(path);self.admit_destination(path);NativeFileMutation op;
   op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
   op.path=path;return self.writer.apply({&op,1});
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory,
     const NativeBasicMetadata& value) {
-  auto& self=ready();admit_path(path);
+  auto& self=ready();admit_path(path);self.admit_destination(path);
   NativeFileMutation op;op.path=std::string(path);
   op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
   const NativeBasicMutation basic{0,1,value};
@@ -298,7 +351,7 @@ NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool direct
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory,
     const NativeBasicMetadata& basic,std::span<const std::byte> descriptor) {
-  auto& self=ready();admit_path(path);
+  auto& self=ready();admit_path(path);self.admit_destination(path);
   if(!native_security_descriptor_framed(descriptor))
     throw NativeFsError(NativeFsErrorCode::invalid_operation,"invalid native creation security descriptor");
   NativeFileMutation op;op.path=std::string(path);
@@ -311,12 +364,13 @@ NativeFsCommit NativeFileSession::rename(const NativeFileHandle& handle,std::str
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.erase)fail(E::access_denied,"native context has no rename access");
   if(slot.cleaned)fail(E::invalid_options,"cannot rename cleaned native context");
-  admit_path(target);
+  admit_path(target);self.admit_destination(target);
   const auto source=self.state(slot);
   if(source.delete_pending || source.unlinked)fail(E::delete_pending,"cannot rename deleting native inode");
   try {
     const auto destination=self.writer.inspect_path(target);
-    if(replace && destination.info.inode!=slot.inode && self.contexts(destination.info.inode))
+    if(replace && destination.info.inode!=slot.inode &&
+        (self.contexts(destination.info.inode) || self.volatile_initial(destination.info.inode)))
       fail(E::sharing_violation,"replacement inode still has owned file contexts");
   }catch(const NativeFsError& error){if(error.code()!=NativeFsErrorCode::not_found)throw;}
   NativeFileMutation op;op.operation=NativeFileOperation::rename;op.path=source.info.path;
@@ -330,8 +384,12 @@ void NativeFileSession::set_delete(const NativeFileHandle& handle,bool requested
     fail(E::sharing_violation,"native inode has an unresolved provisional open");
   const auto state=self.state(slot);
   if(state.unlinked)fail(E::delete_pending,"detached inode cannot be resurrected");
-  const auto desired=requested || self.intent(slot.inode,slot.token);
+  const auto desired=requested || self.explicit_intent(slot.inode,slot.token);
   self.writer.set_delete_pending(slot.inode,desired);
+  // FSD SetDisposition(false) clears current initial pending state, but not
+  // any descriptor's still-unprocessed initial option. Preserve independent
+  // explicit requests/latches. No latch changes precede durable success.
+  if(!requested)self.cancel_initial_latch(slot.inode);
   slot.requested=requested; // Only after durable success; assignment cannot throw.
 }
 void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file) {
@@ -340,8 +398,6 @@ void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file)
 void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file,
     const NativeCleanupMetadata& effect) {
   const auto index=slot_for(handle);auto& self=ready();auto& slot=self.slots[index];
-  if(delete_file && self.provisional_inode(slot.inode))
-    fail(E::sharing_violation,"cannot detach an inode with a provisional open");
   if(!native_cleanup_metadata_valid(effect))
     fail(E::invalid_options,"invalid automatic Cleanup metadata clock");
   if(slot.cleaned) {
@@ -349,35 +405,55 @@ void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file,
       fail(E::invalid_options,"conflicting duplicate native Cleanup");
     return;
   }
+  const bool initial=slot.initial_delete || self.volatile_initial(slot.inode);
+  if((delete_file || initial) && self.provisional_inode(slot.inode))
+    fail(E::sharing_violation,"cannot arm deletion with a provisional open");
   const auto state=self.state(slot);
-  std::uint64_t* latch=nullptr;
-  if(delete_file) {
-    if(!state.delete_pending && !state.unlinked) {
-      self.terminal=true;fail(E::terminal,"Cleanup deletion has no persisted authorized intent");
-    }
-  } else if(slot.requested && !state.unlinked && !self.latched_inode(slot.inode)) {
-    for(auto& id:self.latched)if(!id){latch=&id;break;}
-    if(!latch){self.terminal=true;fail(E::terminal,"native delete latch invariant exhausted");}
+  if(delete_file && !initial && !state.delete_pending && !state.unlinked) {
+    self.terminal=true;fail(E::terminal,"Cleanup deletion has no authorized intent");
   }
-  // Reserve any latch before fallible publication; never acknowledge the
-  // context or release latches between timestamp changes and unlink.
-  if(effect.any())self.writer.cleanup_inode(slot.inode,delete_file,effect);
-  else if(delete_file)self.writer.unlink_inode(slot.inode);
-  if(delete_file)self.clear_latch(slot.inode);
-  if(latch)*latch=slot.inode;
+  std::size_t latch=self.latched.size();
+  for(std::size_t i=0;i<self.latched.size();++i)
+    if(self.latched[i]==slot.inode){latch=i;break;}
+  if(!delete_file && !state.unlinked && (slot.requested || initial) && latch==self.latched.size()) {
+    for(std::size_t i=0;i<self.latched.size();++i)if(!self.latched[i]){latch=i;break;}
+    if(latch==self.latched.size()){self.terminal=true;fail(E::terminal,"native delete latch invariant exhausted");}
+  }
+  if(initial) {
+    // All latch capacity is reserved BEFORE publication. Initial intent is
+    // armed at real Cleanup, never by Open/creation/adoption. Capture the
+    // effective directory policy before commit; no post-commit query.
+    auto committed=self.writer.cleanup_initial_delete_result(slot.inode,delete_file,effect);
+    if(!delete_file && !committed.info.unlinked) {
+      self.latched[latch]=slot.inode;
+      self.latch_flags[latch]|=Impl::kInitial;
+      if(slot.requested)self.latch_flags[latch]|=Impl::kExplicit;
+      if(!committed.info.delete_pending)self.latch_flags[latch]|=Impl::kVolatile;
+      else self.latch_flags[latch]=static_cast<std::uint8_t>(self.latch_flags[latch]&~Impl::kVolatile);
+    } else self.clear_latch(slot.inode);
+  } else {
+    if(effect.any())self.writer.cleanup_inode(slot.inode,delete_file,effect);
+    else if(delete_file)self.writer.unlink_inode(slot.inode);
+    if(delete_file)self.clear_latch(slot.inode);
+    else if(latch!=self.latched.size()) {
+      self.latched[latch]=slot.inode;
+      if(slot.requested)self.latch_flags[latch]|=Impl::kExplicit;
+    }
+  }
   slot.cleanup_metadata=effect;
-  slot.cleaned=true;slot.cleanup_delete=delete_file; // Retain paging context until Close.
+  slot.cleaned=true;slot.cleanup_delete=delete_file; // Paging stays owned until Close.
 }
 void NativeFileSession::fence() noexcept {
   if(impl_)impl_->terminal=true;
 }
 void NativeFileSession::close(const NativeFileHandle& handle) {
   const auto index=slot_for(handle,true);auto& self=ready();auto& slot=self.slots[index];
-  if(slot.phase==Impl::Phase::prepared || slot.phase==Impl::Phase::overwritten) {
+  if(slot.phase==Impl::Phase::prepared || slot.phase==Impl::Phase::overwritten || slot.phase==Impl::Phase::opened) {
     // Preparation owns no persisted delete intent, and peer deletion was
     // excluded while provisional. Release ONLY this healthy context; do not
     // query storage, synthesize Cleanup, undo overwrite or remove its inode.
-    if(slot.cleaned || slot.requested || slot.cleanup_delete || self.intent(slot.inode,slot.token)) {
+    if(slot.cleaned || slot.requested || slot.cleanup_delete || self.intent(slot.inode,slot.token) ||
+        self.volatile_initial(slot.inode)) {
       self.terminal=true;fail(E::terminal,"provisional native context lifetime diverged");
     }
     slot=Impl::Slot{};return;

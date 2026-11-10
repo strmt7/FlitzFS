@@ -276,6 +276,12 @@ class NativeFilesystemWriter final {
   // Any effective metadata change requires an already present basic tuple.
   NativeFsCommit cleanup_inode(std::uint64_t inode,bool delete_file,
       const NativeCleanupMetadata&);
+  // Trusted initial FILE_DELETE_ON_CLOSE becomes effective only at Cleanup.
+  // Arm pending + requested metadata + optional unlink in one Stage. Nonempty
+  // directories are retained without creating an unsafe durable delete intent.
+  // Captured facts let the owner update runtime latches without post-commit I/O.
+  NativeInodeMutationCommit cleanup_initial_delete_result(std::uint64_t inode,bool delete_file,
+      const NativeCleanupMetadata&);
   NativeFsCommit retire_inode(std::uint64_t inode);
   // Single-control-thread committed view for the owning Windows engine.
   // Verify namespace against the last acknowledged model; reads privately
@@ -292,7 +298,7 @@ class NativeFilesystemWriter final {
  private:
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
-  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup};
+  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
       const NativeAutomaticMetadata* automatic=nullptr,bool delete_requested=false,

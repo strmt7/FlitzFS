@@ -426,3 +426,19 @@ Next: atomic initial overwrite delete intent and general Create adoption/failure
 allocation/full FileInfo and actual writable kernel/helper lifecycle. Normal
 Cleanup delivery policy and stopped-queue retirement need source-bound tests.
 Windows 11 client, live AMD, scale/reclaim, repair and learning remain required.
+
+
+### Initial delete-on-close and general Open/Create preparation
+
+NATIVE_INITIAL_DELETE.md adds separate prechecked initial-option authority,
+general opened-phase preparation, prepared creation, Cleanup-bound atomic
+intent/metadata/unlink and safe retention of nonempty directories. Fixed latch
+provenance distinguishes explicit, initial and volatile authority, including
+cancellation/re-arm without removing independent explicit requests.
+Existing APIs/layouts/wire bytes and limits remain.
+
+Configured engine, sealed, interruption and actual SDK groups need inspected
+exact-commit execution. The future adapter must qualify callback-elision flags,
+live kernel shared disposition/adoption and full allocation/FileInfo before
+writable binding. Windows 11 client/app, live AMD, scalable indexing/reclaim,
+redundant repair, learning and conventional-filesystem comparisons remain open.

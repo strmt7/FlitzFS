@@ -149,3 +149,32 @@ live AMD acceleration with independent CPU recovery, payload redundancy/repair,
 bounded low-priority adaptive learning, installation/update/rollback, latest
 Windows 11 client and representative filesystem benchmarks. No owner-PC
 operation is authorized.
+
+## Inspected hosted engine and SDK checkpoint
+
+At 51e014fb990af3e020305735b29021f524519770, native Windows job
+129678108850 passed all 83 CTest entries. It emitted 468 new invariant checks,
+eight sealed backend cases and all 828 new modeled failures across eight
+complete mode/layout/attribute traces. The actual user-mode SDK group
+completed all 32 cases and 97 assertions. Worker handles remained 94/94.
+
+Raw Windows job 129678109208 passed 78 entries. These are exact-commit engine
+and user-mode SDK executions. They do not qualify actual kernel cancellation/
+adoption, writable mounting, initial delete-on-close overwrite, allocation/
+full FileInfo, Windows 11 client, physical power loss or live AMD.
+
+Sanitizer job 129678109184 passed all 74 entries at the same source, retaining
+468 checks, eight sealed cases and every one of the 828 new faults.
+Relocated static Windows job 129678113613 passed 78 entries. No old case or
+test/resource ceiling changed. Read-only mounted job 129680967465 also passed normal operation, confirmed
+helper kill and independent recovery/remount. All three exact-commit space
+reports reconciled. All eleven triggered workflows succeeded. The mounted
+fixture remains the unchanged default-layout read-only regression; it is not
+actual provisional kernel cancellation/adoption, writable, NS04 ACL, Windows
+11 client, physical power-loss or AMD evidence. No owner-PC operation occurred.
+
+
+General prepared Open/Create and separately authorized initial delete-on-close
+now extend this existing-overwrite protocol in NATIVE_INITIAL_DELETE.md.
+Its configured tests require new exact-commit inspection; this does not close
+the real writable kernel/adoption/allocation/FileInfo/client gates.

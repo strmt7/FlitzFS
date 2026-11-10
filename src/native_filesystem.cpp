@@ -439,6 +439,20 @@ struct Stage {
     // file and identical sampled fields. Keep the same THREE barriers.
     n.modified=model.sequence;changed=true;
   }
+  void cleanup_initial(std::uint64_t id,bool deleting,const NativeCleanupMetadata& effect) {
+    auto& n=node(model,selected_inode(model,id).inode);
+    if(id==1)fail(Code::invalid_operation,"initial delete-on-close is forbidden on root");
+    bool eligible=true;
+    if(n.directory)for(const auto& [other_id,other]:model.nodes)
+      if(other_id!=id && other.parent==id){eligible=false;break;}
+    if(!eligible && n.delete_pending)
+      fail(Code::corrupt,"nonempty directory has impossible durable delete intent");
+    automatic_metadata(id,effect);
+    if(!n.unlinked && eligible) {
+      set_delete(id,true);
+      if(deleting)unlink(id);
+    }
+  }
   void cleanup(std::uint64_t id,bool deleting,const NativeCleanupMetadata& effect) {
     automatic_metadata(id,effect);
     if(deleting)unlink(id);
@@ -828,6 +842,9 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       case InodeAction::unlink:stage.unlink(inode);break;
       case InodeAction::retire:stage.retire(inode);break;
       case InodeAction::finish_session:stage.finish_session();break;
+      case InodeAction::cleanup_initial:
+        if(!automatic)fail(Code::invalid_operation,"invalid initial-delete Cleanup metadata");
+        stage.cleanup_initial(inode,delete_requested,*automatic);break;
       case InodeAction::cleanup:
         if(!automatic)
           fail(Code::invalid_operation,"invalid automatic Cleanup metadata");
@@ -965,6 +982,15 @@ NativeFsCommit NativeFilesystemWriter::cleanup_inode(std::uint64_t inode,bool de
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic Cleanup time/unused clock");
   return transact({},InodeAction::cleanup,inode,{},&effect,delete_file);
+}
+NativeInodeMutationCommit NativeFilesystemWriter::cleanup_initial_delete_result(std::uint64_t inode,
+    bool delete_file,const NativeCleanupMetadata& effect) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(inode==1 || !native_cleanup_metadata_valid(effect))
+    fail(Code::invalid_operation,"invalid initial-delete Cleanup input");
+  NativeInodeMutationCommit result;
+  result.transaction=transact({},InodeAction::cleanup_initial,inode,{},&effect,delete_file,&result.info);
+  return result;
 }
 NativeFsCommit NativeFilesystemWriter::retire_inode(std::uint64_t inode) {
   return transact({},InodeAction::retire,inode);
