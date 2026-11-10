@@ -156,3 +156,71 @@ the permitted quiescent copy, exact descriptors and independent CPU reopen.
 No production compaction ownership check is weakened. The portable workflow
 also includes tests/** in its trigger because its qualification executes those
 same tests; test-only corrections must produce a fresh qualification result.
+
+## Executed corrected component checkpoint
+
+At eedeb87db9656235389b00cf9b2dbb0dbf1471c4 Windows native job
+129622022864 passed all 70 entries, including 67 actual Windows API/SDK
+security checks, 192 native security invariants and 1,266 new modeled
+publication failures. All twelve phase/encoding/layout traces were retained:
+upgrade and replacement each used 414 failures, compound used 438.
+Each observed write/barrier ran under all three existing persistence modes.
+Worker handles stayed 94 before and after.
+
+Windows raw job 129622023128 passed 66 entries with the same fault inventory.
+Windows static/relocated job 129622022767 passed all 66, and the separate
+analysis static/relocated job 129622023069 passed. Compression reference job
+129622022220 passed. The corrected test explicitly retained live-writer
+compaction rejection before verifying quiescent source-preserving copy and
+independent reopen. The initial failed checkpoint remains documented above.
+
+## Selected WinFsp transport bound
+
+The native on-disk/CPU descriptor ceiling remains 16,384 bytes for compatibility.
+The selected SDK defines a 16-KiB response INCLUDING its fixed header.
+Its actual FSP_FSCTL_TRANSACT_RSP_BUFFER_SIZEMAX is therefore smaller.
+FspFileSystemOpQuerySecurity supplies exactly that payload capacity and maps
+a callback BUFFER_OVERFLOW to INVALID_SECURITY_DESCR. A direct callback test
+using a larger vector would miss this mismatch.
+
+Read-only adapter construction now rejects a present descriptor beyond the
+selected SDK's actual response payload capacity BEFORE exposing callbacks.
+This bound comes from the selected header, not a guessed constant or host
+installation path. Native CPU admission/recovery and stored bytes remain
+unchanged; no descriptor is truncated, defaulted or silently discarded.
+
+The Windows SDK regression uses an OS-valid descriptor with retained opaque
+padding to the largest four-byte-aligned admitted payload, then calls the REAL
+FspFileSystemOpQuerySecurity dispatcher with its exact bounded response buffer.
+It checks status, length and every returned byte. A separate NEW owned image
+holds a descriptor up to the larger native limit: CPU readback must remain exact,
+while adapter admission must fail with limit and preserve all source bytes.
+No driver/mount starts in either case.
+
+Sources: [selected protocol sizes](https://github.com/winfsp/winfsp/blob/14d6e0280ae15e2550c44d6dbc476be51649727f/inc/winfsp/fsctl.h)
+and [actual query dispatcher](https://github.com/winfsp/winfsp/blob/14d6e0280ae15e2550c44d6dbc476be51649727f/src/dll/fsop.c).
+The native storage cap does not establish transport, Windows request/creation
+or full NTFS security-descriptor size compatibility. Future writable admission
+must account for its actual request/name/response capacities too.
+
+## Retained sanitizer timing failure
+
+At eedeb87db9656235389b00cf9b2dbb0dbf1471c4 attempt-1 sanitizer
+job 129622023097 passed 61 of 62 entries, including all four new security groups,
+but the pre-existing bounded_native_filesystem hit its unchanged 45-second
+deadline (45.07 seconds). The identical production revision at 5a8b43a had passed
+that test in 43.98 seconds; the preceding qualified 1b81473 used 43.15 seconds.
+This suggests timing variability but does not prove its cause. No sanitizer
+memory/undefined-behavior diagnostic was reported by the failed attempt.
+
+The failed attempt and its skipped dependent mount remain evidence. One
+targeted retry of that failed sanitizer job was requested at the SAME eedeb87
+commit, preserving all cases and limits. A retry is not proof that the timing
+margin or its cause is resolved; inspect its exact outcome separately.
+
+The unchanged targeted retry at eedeb87 completed successfully in job
+129626620835 (attempt 2): all 62 entries passed, including the same 1,266
+security failures/192 invariants. bounded_native_filesystem took 43.52 seconds;
+the complete sanitizer test step took 440.21 seconds. No timeout was raised,
+no case was removed and no production change was made for that retry.
+The earlier timeout remains relevant evidence of a narrow timing margin.

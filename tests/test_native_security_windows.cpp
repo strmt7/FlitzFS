@@ -66,6 +66,11 @@ void os_oracles() {
 void callbacks() {
   Fixture fixture;auto root=sddl(L"O:SYG:BAD:P(A;;GA;;;SY)");
   auto file=sddl(L"O:SYG:BAD:P(D;;GW;;;WD)(A;;GR;;;WD)");
+  const auto boundary=(std::min)(kNativeMaxSecurityBytes,
+      static_cast<std::size_t>(FSP_FSCTL_TRANSACT_RSP_BUFFER_SIZEMAX))&~std::size_t{3};
+  check(file.size()<=boundary,"selected SDK cannot carry the descriptor fixture");
+  file.resize(boundary); // Legal opaque padding, retained byte-for-byte.
+  check(IsValidSecurityDescriptor(file.data()),"boundary descriptor invalid in Windows");
   {
     auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create_file(
         fixture.image(),identity(),{4096,true},{StoreCompressionMode::automatic,6,false}));
@@ -82,7 +87,7 @@ void callbacks() {
     check(projection.security_descriptor(L"\\")==root && projection.security_descriptor(L"\\f")==file,
         "independent native projection descriptor mismatch");
     WinFspReadOnly adapter(std::move(projection));FSP_FILE_SYSTEM fs{};adapter.bind_callbacks(fs);
-    const auto& cb=WinFspReadOnly::callbacks();
+    const auto& cb=WinFspReadOnly::callbacks();fs.Interface=&cb;
     for(const auto* path:{L"\\",L"\\f"}) {
       const auto& expected=std::wstring_view(path)==L"\\"?root:file;
       SIZE_T length=0;UINT32 attributes=0;
@@ -101,11 +106,42 @@ void callbacks() {
           "persisted descriptor context callback");
       check(cb.SetSecurity(&fs,context,DACL_SECURITY_INFORMATION,output.data())==STATUS_MEDIA_WRITE_PROTECTED,
           "security persistence enabled mounted writes");
+      // Exercise the REAL DLL dispatcher with its bounded response buffer.
+      // Calling GetSecurity directly with a larger vector would miss the
+      // protocol-header subtraction and its INVALID_SECURITY_DESCR mapping.
+      FSP_FSCTL_TRANSACT_REQ request{};
+      request.Kind=FspFsctlTransactQuerySecurityKind;
+      request.Req.QuerySecurity.UserContext=reinterpret_cast<UINT_PTR>(context);
+      request.Req.QuerySecurity.UserContext2=reinterpret_cast<UINT_PTR>(context);
+      alignas(FSP_FSCTL_TRANSACT_RSP) std::array<std::byte,FSP_FSCTL_TRANSACT_RSP_SIZEMAX> storage{};
+      auto* response=reinterpret_cast<FSP_FSCTL_TRANSACT_RSP*>(storage.data());
+      check(FspFileSystemOpQuerySecurity(&fs,&request,response)==STATUS_SUCCESS &&
+          response->Size<=FSP_FSCTL_TRANSACT_RSP_SIZEMAX &&
+          response->Rsp.QuerySecurity.SecurityDescriptor.Size==expected.size() &&
+          std::memcmp(response->Buffer,expected.data(),expected.size())==0,
+          "actual SDK security response capacity/bytes differ");
       cb.Close(&fs,context);
       check(cb.GetSecurity(&fs,context,output.data(),&length)==STATUS_INVALID_HANDLE,"stale security context accepted");
     }
   }
   check(read_image(fixture.image())==before,"read-only security callbacks altered backing image");
+  if(kNativeMaxSecurityBytes>FSP_FSCTL_TRANSACT_RSP_BUFFER_SIZEMAX) {
+    const auto oversized=fixture.root/L"damaged.fltx";
+    auto descriptor=sec::descriptor();descriptor.resize(kNativeMaxSecurityBytes);
+    {
+      auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create_file(
+          oversized,identity(),{4096,true},{StoreCompressionMode::automatic,6,false}));
+      writer.set_security_descriptor(1,descriptor);
+    }
+    const auto retained=read_image(oversized);
+    check(NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(oversized)).security_descriptor(1)==descriptor,
+        "over-transport descriptor lost native CPU recovery");
+    bool rejected=false;
+    try{WinFspReadOnly invalid(ReadOnlyProjection::open_native_file(oversized,identity()));}
+    catch(const NativeFsError& error){rejected=error.code()==NativeFsErrorCode::limit;}
+    check(rejected && read_image(oversized)==retained,
+        "oversized descriptor reached callbacks or changed native source");
+  }
 }
 }
 int main(){try {
