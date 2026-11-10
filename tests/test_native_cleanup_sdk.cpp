@@ -51,7 +51,13 @@ void dispatch(Harness& h,ULONG flags) {
   FSP_FILE_SYSTEM_INTERFACE table{};table.Cleanup=Harness::callback;
   FSP_FILE_SYSTEM fs{};fs.Version=static_cast<UINT16>(sizeof(fs));fs.UserContext=&h;fs.Interface=&table;
   fs.UmFileContextIsUserContext2=TRUE;
-  FSP_FSCTL_TRANSACT_REQ request{};FSP_FSCTL_TRANSACT_RSP response{};
+  // These selected-SDK C structs end in Buffer[]. MSVC rejects C++
+  // aggregate {} initialization of that extension; initialize their fixed
+  // headers explicitly, without changing the SDK layout or disabling checks.
+  FSP_FSCTL_TRANSACT_REQ request;FSP_FSCTL_TRANSACT_RSP response;
+  static_assert(std::is_trivially_copyable_v<FSP_FSCTL_TRANSACT_REQ> &&
+      std::is_trivially_copyable_v<FSP_FSCTL_TRANSACT_RSP>);
+  ZeroMemory(&request,sizeof(request));ZeroMemory(&response,sizeof(response));
   request.Kind=FspFsctlTransactCleanupKind;
   request.Req.Cleanup.UserContext2=reinterpret_cast<std::uintptr_t>(&h.handle);
   request.Req.Cleanup.Delete=(flags&FspCleanupDelete)!=0;
