@@ -479,3 +479,18 @@ type/identity closure, explicit optional errors and aggregate fixture budgets.
 Reports are owned hosted fixtures only, never owner-PC diagnostics. The mount-
 only target must retain full same-commit native/CPU prerequisites and limits.
 Writable allocation/security/FileInfo, Windows 11 client and live AMD remain open.
+
+## Compact checkpoint metadata
+
+Read docs/COMPACT_CHECKPOINT_METADATA.md before changing root format 3,
+manifest spans or checkpoint options. Preserve default legacy bytes and
+public result layouts, the separate 64 KiB root zones, explicit persisted
+failure-unit admission, complete disjoint catalog spans and THREE barriers.
+Never infer power-loss units from sectors/OS/device names or overwrite an
+acknowledged unit. Resume inherits the stored unit; incompatible/unknown
+contracts fence before writes. New-identity copy may reselect geometry only
+for its distinct NEW target; source bytes and native identity rules remain.
+Keep full catalogs/malformed roots/unit conflicts, all modeled fault modes,
+native fixed+compact cases and actual hosted new-file checks. Do not relabel
+fixed process campaigns as root-3 coverage. Root-3 termination, physical
+power/device, Windows 11/writable/live AMD and owner-host qualification stay open.

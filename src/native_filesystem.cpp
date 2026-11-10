@@ -647,6 +647,11 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_impl(ObjectStoreWriter obj
 
 NativeFilesystemWriter NativeFilesystemWriter::compact(const NativeFilesystemSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression) {
+  return compact(source,std::move(target),id,compression,{});
+}
+NativeFilesystemWriter NativeFilesystemWriter::compact(const NativeFilesystemSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,
+    StoreCheckpointOptions checkpoints) {
   if(!source.impl_)fail(Code::invalid_operation,"moved-from native compaction source");
   if(source.needs_session_recovery())
     fail(Code::invalid_operation,"native compaction needs completed file-context recovery");
@@ -656,7 +661,7 @@ NativeFilesystemWriter NativeFilesystemWriter::compact(const NativeFilesystemSna
     auto model=decode(source.impl_->objects);model.identity=id;
     const auto metadata=encode(model);
     return resume(ObjectStoreWriter::compact_replacing(source.impl_->objects,
-        std::move(target),id,kNamespaceObject,metadata,compression));
+        std::move(target),id,kNamespaceObject,metadata,compression,checkpoints));
   }catch(const std::bad_alloc&){fail(Code::limit,"native compaction allocation failure");}
   catch(const NativeFsError&){throw;}
   catch(const std::exception&){fail(Code::storage_failure,"native compaction failed; retain source and partial target");}

@@ -258,3 +258,13 @@ checks every cut, complete old/new recovery, acknowledged tuple/data retention
 and a separately reopened combined continuation. Keep current process/queue/
 fixture/case limits and two 180-second partitions; no physical power-loss,
 Windows 11 client, owner-PC or mounted-write qualification follows.
+
+## Persisted compact metadata isolation
+
+Root format 3 in COMPACT_CHECKPOINT_METADATA.md stores its catalog isolation
+unit. CPU read-only inspection can use an unqualified read backend; writable
+resume rejects a larger/unknown failure contract before flush/writes and
+retains orphan tails with the stored alignment. Repair uses the same complete
+replicated checkpoint path. Root-3 modeled faults and new-file tests are
+distinct from the existing fixed-layout 712/976 real process campaigns;
+a separately source-bound root-3 process campaign remains required.

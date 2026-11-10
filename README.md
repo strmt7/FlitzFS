@@ -52,6 +52,9 @@ algorithm checks, not Linux product support. See [the Windows product contract](
 - A hosted read-only Windows space oracle now records standard/compression/
   volume API results separately from native backing usage; see [the reporting
   gate and driver limitation](docs/WINDOWS_SPACE_REPORTING.md).
+- Opt-in compact checkpoint metadata reduces catalog padding under an explicit
+  qualified backend failure-unit contract, preserving separate roots and three
+  barriers; see [the protocol and qualification limits](docs/COMPACT_CHECKPOINT_METADATA.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.
 - Optional native WinFsp read-only callbacks, disabled by default. Hosted VM

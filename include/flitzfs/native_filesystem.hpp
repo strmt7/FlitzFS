@@ -170,6 +170,9 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter compact(const NativeFilesystemSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       StoreCompressionOptions compression={});
+  static NativeFilesystemWriter compact(const NativeFilesystemSnapshot& source,
+      std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
+      StoreCompressionOptions compression,StoreCheckpointOptions checkpoints);
   NativeFilesystemWriter(NativeFilesystemWriter&&) noexcept;
   NativeFilesystemWriter& operator=(NativeFilesystemWriter&&) noexcept;
   NativeFilesystemWriter(const NativeFilesystemWriter&)=delete;

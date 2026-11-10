@@ -362,3 +362,12 @@ publication, repair or trimming. Generations and all stored formats remain
 unchanged. Metadata/I/O failure or unverified completion fences; allocation
 pressure before barrier entry remains a preflight error. This is not a payload
 scrub, new durability contract or physical-device attestation.
+
+## Opt-in compact replicated metadata
+
+COMPACT_CHECKPOINT_METADATA.md specifies root format field 3, persisted
+backend-qualified isolation, variable complete catalog spans and new-output
+options. Default format-1/2, object/manifest/codec bytes and public result
+layouts remain unchanged. No device geometry is inferred from sector size.
+The same three barriers and current-state recovery rules apply. Root-3 bounds
+are explicit; legacy roots retain their historical minimum/alignment checks.

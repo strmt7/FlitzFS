@@ -51,7 +51,16 @@ template<std::size_t N> void copy_field(std::span<std::byte> b,std::size_t at,co
 bool magic(std::span<const std::byte> b,const std::array<std::byte,8>& expected) {
   return b.size()>=8 && std::equal(expected.begin(),expected.end(),b.begin());
 }
-std::uint64_t aligned(std::uint64_t n) { return (n+kStoreCommitUnit-1)/kStoreCommitUnit*kStoreCommitUnit; }
+std::uint64_t aligned(std::uint64_t n,std::uint64_t unit=kStoreCommitUnit) {
+  return (n+unit-1)/unit*unit;
+}
+bool metadata_unit_valid(std::uint32_t unit) {
+  return unit>=kRootBytes && unit<=kStoreCommitUnit && !(unit&(unit-1)) && kStoreCommitUnit%unit==0;
+}
+std::uint32_t compact_metadata_unit(StoreIoContract contract) {
+  admit_contract(contract);
+  return (std::max)(static_cast<std::uint32_t>(kRootBytes),contract.write_failure_unit_bytes);
+}
 
 struct Entry {
   std::uint64_t id=0,generation=0,offset=0;
@@ -69,7 +78,14 @@ struct State {
   unsigned selected_slot=0;
   bool replicated=false,degraded_checkpoint=false;
   std::uint64_t peer_index_offset=0,checkpoint_generation=0;
+  bool compact_metadata=false;
+  std::uint32_t metadata_unit=kStoreCommitUnit;
 };
+void admit_state_contract(const State& state) {
+  const auto contract=state.image->contract();admit_contract(contract);
+  if(state.compact_metadata && contract.write_failure_unit_bytes>state.metadata_unit)
+    fail("backend failure unit exceeds persisted metadata isolation");
+}
 StoreCommitInfo state_info(const State& s) {
   std::uint64_t total=0;for(const auto& e:s.entries) total+=e.bytes;
   std::uint64_t stored=0;for(const auto& e:s.entries) stored+=e.stored;
@@ -90,11 +106,12 @@ Bytes manifest(const State& s) {
 }
 Bytes root(const State& s,unsigned slot,std::uint64_t index_offset,const Bytes& index) {
   Bytes b(kRootBytes);
-  copy_field(b,0,kRootMagic);put32(b,8,s.replicated?2U:1U);put32(b,12,slot);put64(b,16,s.generation);
+  copy_field(b,0,kRootMagic);put32(b,8,s.replicated?(s.compact_metadata?3U:2U):1U);put32(b,12,slot);put64(b,16,s.generation);
   put64(b,24,s.end);put64(b,32,index_offset);put32(b,40,static_cast<std::uint32_t>(index.size()));
   put32(b,44,static_cast<std::uint32_t>(s.entries.size()));copy_field(b,48,s.id);
   copy_field(b,64,detail::record_digest(index));
   if(s.replicated){put64(b,96,s.peer_index_offset);put64(b,104,s.checkpoint_generation);}
+  if(s.compact_metadata)put32(b,112,s.metadata_unit);
   copy_field(b,kRootBytes-32,detail::record_digest(std::span<const std::byte>(b).first(kRootBytes-32)));
   return b;
 }
@@ -105,6 +122,8 @@ struct Root {
   Digest digest{};
   bool replicated=false;
   std::uint64_t peer_index=0,checkpoint_generation=0;
+  bool compact_metadata=false;
+  std::uint32_t metadata_unit=kStoreCommitUnit;
 };
 std::optional<Root> read_root(StoreByteIo& image,unsigned slot,std::uint64_t extent) {
   Bytes b(kRootBytes);image.read_exact(slot*kStoreCommitUnit,b);
@@ -112,26 +131,32 @@ std::optional<Root> read_root(StoreByteIo& image,unsigned slot,std::uint64_t ext
   // A valid digest with unsupported/invalid semantics is not a torn candidate.
   // Refuse it explicitly rather than silently rolling back to an older root.
   const auto format=get32(b,8);
-  if(!magic(b,kRootMagic) || (format!=1 && format!=2)) fail("unsupported intact root format");
-  const auto reserved=format==2?112U:96U;
+  if(!magic(b,kRootMagic) || (format!=1 && format!=2 && format!=3)) fail("unsupported intact root format");
+  const auto reserved=format==3?116U:format==2?112U:96U;
   if(get32(b,12)!=slot || !zero(std::span<const std::byte>(b).subspan(reserved,kRootBytes-32-reserved)))
     fail("intact root identity/reserved fields invalid");
   Root r{field<16>(b,48),get64(b,16),get64(b,24),get64(b,32),get32(b,40),get32(b,44),field<32>(b,64)};
-  r.replicated=format==2;
+  r.replicated=format>=2;r.compact_metadata=format==3;
   if(r.replicated){r.peer_index=get64(b,96);r.checkpoint_generation=get64(b,104);}
+  if(r.compact_metadata) {
+    r.metadata_unit=get32(b,112);
+    if(!metadata_unit_valid(r.metadata_unit))fail("intact compact metadata unit invalid");
+  }
   if(!nonzero(r.id) || (r.generation && r.generation%2!=slot) ||
-      r.end<kDataStart+kStoreCommitUnit || r.end>extent || r.end>kStoreMaxPhysicalBytes ||
-      r.end%kStoreCommitUnit || r.count>kStoreMaxObjects ||
+      r.end<kDataStart+(r.compact_metadata?2*r.metadata_unit:kStoreCommitUnit) ||
+      r.end>extent || r.end>kStoreMaxPhysicalBytes ||
+      r.end%r.metadata_unit || r.count>kStoreMaxObjects ||
       r.index_bytes!=kManifestHeader+r.count*kEntryBytes || r.index<kDataStart ||
       r.index>r.end || r.index_bytes>r.end-r.index) fail("intact root fields outside resource/format limits");
   if(r.replicated) {
     const auto low=(std::min)(r.index,r.peer_index),high=(std::max)(r.index,r.peer_index);
+    const auto span=r.compact_metadata?aligned(r.index_bytes,r.metadata_unit):kStoreCommitUnit;
     if(!r.checkpoint_generation || r.checkpoint_generation==(std::numeric_limits<std::uint64_t>::max)() ||
         (r.generation!=r.checkpoint_generation && r.generation!=r.checkpoint_generation+1) ||
         low<kDataStart || r.peer_index>r.end || r.index_bytes>r.end-r.peer_index ||
-        low%kStoreCommitUnit || high%kStoreCommitUnit ||
-        high-low!=kStoreCommitUnit || high+kStoreCommitUnit!=r.end ||
-        r.index_bytes>kStoreCommitUnit ||
+        low%r.metadata_unit || high%r.metadata_unit ||
+        high-low!=span || high+span!=r.end ||
+        r.index_bytes>span || span>kStoreCommitUnit ||
         (r.generation==r.checkpoint_generation ? r.index!=low : r.index!=high))
       fail("intact replicated root layout/generation invalid");
   }
@@ -140,7 +165,7 @@ std::optional<Root> read_root(StoreByteIo& image,unsigned slot,std::uint64_t ext
 State load(std::shared_ptr<StoreByteIo> image) {
   if(!image) fail("missing backing image");
   const auto extent=image->extent();
-  if(extent<kDataStart+kStoreCommitUnit || extent>kStoreMaxPhysicalBytes) fail("physical image budget or truncation");
+  if(extent<kDataStart+2*kRootBytes || extent>kStoreMaxPhysicalBytes) fail("physical image budget or truncation");
   const auto a=read_root(*image,0,extent),b=read_root(*image,1,extent);
   if(!a && !b) fail("no valid recovery root");
   if(a && b) {
@@ -154,8 +179,12 @@ State load(std::shared_ptr<StoreByteIo> image) {
   State s{std::move(image),r.id,r.generation,r.end,{},!(a && b)};
   s.index_offset=r.index;s.selected_slot=choose_a?0U:1U;
   s.replicated=r.replicated;s.peer_index_offset=r.peer_index;s.checkpoint_generation=r.checkpoint_generation;
+  s.compact_metadata=r.compact_metadata;s.metadata_unit=r.metadata_unit;
   const auto& other=choose_a?b:a;
   if(!r.replicated && other && other->replicated)fail("intact checkpoint format downgrade");
+  if(other && ((!r.compact_metadata && other->compact_metadata) ||
+      (r.compact_metadata && other->compact_metadata && r.metadata_unit!=other->metadata_unit)))
+    fail("intact compact metadata downgrade/unit conflict");
   auto candidate=[&](std::uint64_t at,std::uint64_t generation)->std::optional<Bytes> {
     Bytes bytes(r.index_bytes);
     try{s.image->read_exact(at,bytes);}
@@ -176,6 +205,7 @@ State load(std::shared_ptr<StoreByteIo> image) {
     if(!own && !peer)fail("both current manifest replicas invalid; refusing older checkpoint");
     index=own?std::move(*own):std::move(*peer);
     const bool paired=other && other->replicated &&
+        other->compact_metadata==r.compact_metadata && other->metadata_unit==r.metadata_unit &&
         other->checkpoint_generation==r.checkpoint_generation &&
         other->index==r.peer_index && other->peer_index==r.index &&
         other->end==r.end && other->count==r.count && other->index_bytes==r.index_bytes;
@@ -239,6 +269,7 @@ bool same_state(const State& a,const State& b) {
       a.index_offset!=b.index_offset || a.selected_slot!=b.selected_slot || a.degraded!=b.degraded ||
       a.replicated!=b.replicated || a.degraded_checkpoint!=b.degraded_checkpoint ||
       a.peer_index_offset!=b.peer_index_offset || a.checkpoint_generation!=b.checkpoint_generation ||
+      a.compact_metadata!=b.compact_metadata || a.metadata_unit!=b.metadata_unit ||
       a.entries.size()!=b.entries.size())return false;
   for(std::size_t i=0;i<a.entries.size();++i) {
     const auto& x=a.entries[i];const auto& y=b.entries[i];
@@ -266,8 +297,11 @@ ReplicatedPlan replicated_plan(State first,std::uint64_t data_end) {
     fail("replicated checkpoint generation exhausted");
   first.replicated=true;first.degraded=false;first.degraded_checkpoint=false;
   first.checkpoint_generation=first.generation;
-  first.index_offset=aligned(data_end);first.peer_index_offset=first.index_offset+kStoreCommitUnit;
-  first.end=first.peer_index_offset+kStoreCommitUnit;
+  if(!metadata_unit_valid(first.metadata_unit))fail("invalid planned metadata unit");
+  const auto index_bytes=kManifestHeader+first.entries.size()*kEntryBytes;
+  const auto span=first.compact_metadata?aligned(index_bytes,first.metadata_unit):kStoreCommitUnit;
+  first.index_offset=aligned(data_end,first.metadata_unit);first.peer_index_offset=first.index_offset+span;
+  first.end=first.peer_index_offset+span;
   if(first.end>kStoreMaxPhysicalBytes)fail("replicated checkpoint physical history budget");
   first.selected_slot=static_cast<unsigned>(first.generation%2);
   State last=first;++last.generation;std::swap(last.index_offset,last.peer_index_offset);
@@ -304,6 +338,8 @@ struct ObjectStoreWriter::Impl {
   Lease lease;
   State state;bool poisoned=false;detail::StoreCodecEncoder encoder;
   std::uint64_t append_floor=0;
+  bool prefer_compact_metadata=false;
+  std::uint32_t preferred_metadata_unit=kStoreCommitUnit;
   Impl(StoreCompressionOptions options,std::shared_ptr<StoreByteIo> image):lease(std::move(image)),encoder(options){}
 };
 ObjectStoreSnapshot::ObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)) {}
@@ -346,10 +382,16 @@ Bytes ObjectStoreSnapshot::read(std::uint64_t id) const {
 void ObjectStoreSnapshot::verify_all() const { if(!impl_) fail("moved-from snapshot");verify(impl_->state); }
 
 ObjectStoreWriter ObjectStoreWriter::create(std::shared_ptr<StoreByteIo> image,StoreIdentity id,StoreCompressionOptions compression) {
+  return create(std::move(image),id,compression,{});
+}
+ObjectStoreWriter ObjectStoreWriter::create(std::shared_ptr<StoreByteIo> image,StoreIdentity id,
+    StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
   admit_identity(id);detail::validate_store_compression(compression);
   auto p=std::make_unique<Impl>(compression,image);
   if(image->extent()!=0) fail("writer requires a new empty exclusive image");
   admit_contract(image->contract());
+  p->prefer_compact_metadata=checkpoints.compact_metadata;
+  if(checkpoints.compact_metadata)p->preferred_metadata_unit=compact_metadata_unit(image->contract());
   p->state={std::move(image),id,0,kDataStart+kStoreCommitUnit,{},false};
   p->state.index_offset=kDataStart;p->append_floor=p->state.end;
   auto& s=p->state;const auto index=manifest(s);
@@ -367,14 +409,17 @@ ObjectStoreWriter ObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,S
   admit_identity(expected_id);detail::validate_store_compression(compression);
   auto p=std::make_unique<Impl>(compression,image);
   admit_contract(image->contract());
-  auto state=load(image);verify(state);
+  auto state=load(image);verify(state);admit_state_contract(state);
+  p->prefer_compact_metadata=state.compact_metadata;p->preferred_metadata_unit=state.metadata_unit;
   if(state.id!=expected_id || state.generation!=expected_generation) fail("stale recovery identity or generation");
   const auto observed_extent=image->extent();
-  p->append_floor=aligned(observed_extent);
+  p->append_floor=aligned(observed_extent,state.metadata_unit);
   if(p->append_floor>kStoreMaxPhysicalBytes) fail("orphan tail exceeds physical budget");
   image->admit_write(p->append_floor);
   auto fence=[&] {
+    admit_state_contract(state);
     image->flush();
+    admit_state_contract(state);
     if(image->extent()!=observed_extent) fail("backend extent changed during recovery fence");
     auto checked=load(image);verify(checked);
     if(!same_state(checked,state))fail("backend recovery state changed during fence");
@@ -389,7 +434,7 @@ ObjectStoreWriter ObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,S
     publish_replicated(plan,*image);
     p->state=load(image);verify(p->state);
     if(!same_state(p->state,plan.last))fail("replicated repair did not restore a complete checkpoint");
-    p->append_floor=aligned(image->extent());
+    p->append_floor=aligned(image->extent(),p->state.metadata_unit);
     return ObjectStoreWriter(std::move(p));
   }
   if(!state.degraded) {
@@ -427,7 +472,7 @@ ObjectStoreWriter ObjectStoreWriter::resume(std::shared_ptr<StoreByteIo> image,S
   // Re-parse both repaired roots and all references before granting a writer.
   p->state=load(image);verify(p->state);
   if(p->state.degraded || p->state.id!=expected_id) fail("recovery repair did not establish a complete root pair");
-  p->append_floor=aligned(image->extent());
+  p->append_floor=aligned(image->extent(),p->state.metadata_unit);
   return ObjectStoreWriter(std::move(p));
 }
 
@@ -435,9 +480,14 @@ ObjectStoreWriter ObjectStoreWriter::compact(const ObjectStoreSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions options) {
   return compact_replacing(source,std::move(target),id,0,{},options);
 }
+ObjectStoreWriter ObjectStoreWriter::compact(const ObjectStoreSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions options,
+    StoreCheckpointOptions checkpoints) {
+  return compact_replacing(source,std::move(target),id,0,{},options,checkpoints);
+}
 ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t replacement_id,
-    std::span<const std::byte> replacement,StoreCompressionOptions options) {
+    std::span<const std::byte> replacement,StoreCompressionOptions options,StoreCheckpointOptions checkpoints) {
   if(!source.impl_)fail("moved-from compaction source");
   admit_identity(id);detail::validate_store_compression(options);
   const auto& cached=source.impl_->state;
@@ -452,7 +502,7 @@ ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot
   const auto source_extent=original.image->extent();
   if(original.generation==0) {
     if(replacement_id)fail("cannot replace an object in an empty initial source");
-    return create(std::move(target),id,options);
+    return create(std::move(target),id,options,checkpoints);
   }
   if(original.generation>(std::numeric_limits<std::uint64_t>::max)()-2)
     fail("compaction generation exhausted");
@@ -460,6 +510,11 @@ ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot
   if(target->extent()!=0)fail("compaction requires a new empty target");
   admit_contract(target->contract());
   State baseline=original;baseline.image=target;baseline.id=id;
+  if(checkpoints.compact_metadata) {
+    baseline.compact_metadata=true;baseline.metadata_unit=compact_metadata_unit(target->contract());
+  }
+  admit_state_contract(baseline);
+  p->prefer_compact_metadata=baseline.compact_metadata;p->preferred_metadata_unit=baseline.metadata_unit;
   baseline.generation=original.generation+1;baseline.degraded=false;
   baseline.decoder=std::make_shared<detail::StoreCodecDecoder>();
   std::optional<detail::EncodedStoreObject> substitute;
@@ -510,7 +565,7 @@ ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot
   plan=replicated_plan(std::move(baseline),cursor);
   target->admit_write(plan.last.end);
   publish_replicated(plan,*target);
-  p->state=load(target);verify(p->state);
+  p->state=load(target);verify(p->state);admit_state_contract(p->state);
   if(!same_state(p->state,plan.last))fail("compaction publication readback differs");
   p->append_floor=p->state.end;
   return ObjectStoreWriter(std::move(p));
@@ -520,8 +575,13 @@ ObjectStoreWriter ObjectStoreWriter::create_file(const std::filesystem::path& pa
   admit_identity(id);admit_contract(c);detail::validate_store_compression(compression);
   return create(detail::new_store_file(path,c),id,compression);
 }
+ObjectStoreWriter ObjectStoreWriter::create_file(const std::filesystem::path& path,StoreIdentity id,
+    StoreIoContract c,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
+  admit_identity(id);admit_contract(c);detail::validate_store_compression(compression);
+  return create(detail::new_store_file(path,c),id,compression,checkpoints);
+}
 StoreCommitInfo ObjectStoreWriter::commit(std::span<const StoreMutation> changes) {
-  return commit_impl(changes,impl_ && impl_->state.replicated);
+  return commit_impl(changes,impl_ && (impl_->state.replicated || impl_->prefer_compact_metadata));
 }
 StoreCommitInfo ObjectStoreWriter::commit_replicated(std::span<const StoreMutation> changes) {
   return commit_impl(changes,true);
@@ -539,6 +599,11 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
     if(input_bytes>kStoreMaxTransactionBytes) fail("transaction memory budget");
   }
   const auto& old=impl_->state;
+  try {
+    admit_state_contract(old);
+    if(impl_->prefer_compact_metadata && old.image->contract().write_failure_unit_bytes>impl_->preferred_metadata_unit)
+      fail("backend failure unit changed before compact metadata publication");
+  }catch(...){impl_->poisoned=true;throw;}
   if(old.generation>(std::numeric_limits<std::uint64_t>::max)()-(replicated?2U:1U)) fail("generation exhausted");
   // Admit the FINAL inventory before compression/private payload copies. Puts
   // may precede erases in the supplied batch without transient count failures.
@@ -564,6 +629,9 @@ StoreCommitInfo ObjectStoreWriter::commit_impl(std::span<const StoreMutation> ch
     catch(const std::exception&){impl_->poisoned=true;throw;}
   }
   State next=old;next.generation++;next.degraded=false;
+  if(impl_->prefer_compact_metadata) {
+    next.compact_metadata=true;next.metadata_unit=impl_->preferred_metadata_unit;
+  }
   struct Prepared {std::uint64_t offset;std::array<std::byte,kDataHeader> header;Bytes data;};
   std::vector<Prepared> prepared;prepared.reserve(changes.size());
   auto cursor=impl_->append_floor;
@@ -632,6 +700,7 @@ StoreCommitInfo ObjectStoreWriter::flush_checkpoint() {
     if(extent<old.end || extent>kStoreMaxPhysicalBytes)
       fail("checkpoint extent changed/out of bounds");
     auto check=[&] {
+      admit_state_contract(old);
       const auto current=load(old.image);
       if(!same_state(current,old) || current.degraded || current.degraded_checkpoint ||
           old.image->extent()!=extent)

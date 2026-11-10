@@ -396,3 +396,13 @@ preserved rather than converted to supported features or zero physical bytes.
 The explicit aggregate fixture-length bound includes all retained source/
 baseline images, inputs and reports. Actual backing allocation is reported
 separately. Process/CPU/time/free-space/driver/owner-host limits are unchanged.
+
+## Opt-in catalog density
+
+COMPACT_CHECKPOINT_METADATA.md adds smaller complete manifest spans only under
+an explicit qualified backend failure contract. It never guesses power-loss
+geometry from sectors, shrinks root separation, reuses acknowledged units or
+removes a durability barrier. New-output opt-in, strict wire admission,
+incompatible-contract fencing and source-preserving copy are mandatory.
+Default/mounted layouts and all resource limits remain unchanged.
+Root-3 real interruption/client/physical-device/owner-host qualification is open.
