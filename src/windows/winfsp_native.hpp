@@ -1,0 +1,31 @@
+#pragma once
+#include "native_file_info.hpp"
+#include <filesystem>
+#include <memory>
+namespace flitzfs {
+// Experimental real writable adapter. Factory is restricted to disposable
+// hosted VMs until its kernel/lifecycle/backing qualification is complete.
+// It creates ONLY a NEW ordinary image; never installs or selects a driver.
+class WinFspNativeWritable final {
+ public:
+  static std::unique_ptr<WinFspNativeWritable> create_new_hosted(
+      const std::filesystem::path&,StoreIdentity,StoreCompressionOptions={});
+  ~WinFspNativeWritable();
+  WinFspNativeWritable(const WinFspNativeWritable&)=delete;
+  WinFspNativeWritable& operator=(const WinFspNativeWritable&)=delete;
+  void bind_callbacks(FSP_FILE_SYSTEM&) noexcept;
+  FSP_FSCTL_VOLUME_PARAMS parameters() const noexcept;
+  static const FSP_FILE_SYSTEM_INTERFACE& callbacks() noexcept;
+  bool requires_offline() const noexcept;
+  bool dispatcher_stopped() const noexcept;
+  bool dispatcher_stopped_unexpectedly() const noexcept;
+  // Controller only, never concurrently with destruction. These acquire the
+  // same control lock as callbacks; no mutable writer escapes.
+  NativeSessionStats stats() const;
+  NativeFilesystemSnapshot snapshot() const;
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+  explicit WinFspNativeWritable(std::unique_ptr<Impl>) noexcept;
+};
+}

@@ -731,3 +731,65 @@ all observed fault steps/modes, independent continuation, repeated ownership/
 handle evidence and every old limit/oracle. These do not prove mounted/client,
 physical-power, live AMD or universal leak safety. Apply latest RAM-only host
 permission without driver changes or premature PC testing.
+
+
+
+## Owner GPU-test permission (latest owner instruction)
+
+The owner explicitly authorizes careful GPU use, subject to the existing
+RAM-only PC test-storage, no-driver-change and resource-hygiene constraints.
+This is not permission to risk system instability/freezes or skip qualification.
+
+- Qualify the exact runtime/worker/device-code path off-host first and preserve
+  independent CPU decoding/verification and durable CPU recovery. Do not run
+  an unfinished GPU integration on the PC merely because permission exists.
+- Begin with tiny bounded synthetic jobs on verified healthy compatible hardware,
+  conservative aggregate CPU/RAM/VRAM/queue/time limits and ample measured
+  headroom. Unknown/unsafe health or headroom means CPU selection, no probing
+  loops or GPU work. No stress/soak run, clock/power/voltage changes, driver
+  install/reinstall/update/reconfiguration, WDDM reset/TDR or fault injection.
+- Keep GPU execution isolated from kernel/storage publication and acknowledged
+  data. On any unverifiable/error outcome, select the independent CPU path,
+  fence the failed worker/gate, require actual quiescence before replacements
+  and use evidence-driven requalification rather than timeout-only retries.
+- Keep launch/output/storage artifacts within the separately authorized RAM
+  fixture; no system-drive download/cache/temp/log/test files or persistence.
+  Release mappings/buffers/handles/VRAM and confirm worker exit; never leave
+  background processes or services. Test cleanup/failure paths off-host.
+- Do not promise that user-mode isolation or RAM eliminates driver/kernel risk.
+  Record actual evidence and limits; CPU selection itself must launch nothing.
+
+
+## Hosted unmounted writable candidate qualification
+
+Read docs/NATIVE_WRITABLE_ADAPTER.md before changing the candidate callback
+table, native writable session or Windows-global disposition policy. This is
+an explicit UNMOUNTED test/integration candidate inside the opt-in SDK target,
+not promotion of the default product, old read-only table or mount probe.
+Its only factory remains hosted-only, NEW ordinary-file-only and exclusive;
+never select a live provider, create a writable volume/mount or run it on the
+owner PC from these component results. Real backing/cache/adoption/ACL/shared-
+disposition/kernel/client gates above still control mounted promotion.
+
+Preserve the historical aggregate deletion policy by default. Explicit Windows
+global cancellation clears current node-wide requests/latches only after
+durable success; unprocessed initial per-FD options remain to re-arm at Cleanup.
+Keep bounded trusted pre-open lookups, no grant escalation and no stored-byte
+change. Serialize all engine calls and exception fencing under the same lock.
+Keep 256 monotonic opaque tokens, preflight capacity, no-throw post-commit
+installation/output and exact context retention on failure.
+
+The candidate's explicit first-operation adoption is a trusted adapter
+transition, not proof of kernel adoption or best-effort Cleanup delivery.
+Unexpected active Close fences. No callback may join/stop the dispatcher;
+the controller must observe monotonic failure and stop outside callbacks.
+Join before mount removal/filesystem deletion/writer destruction, retain failed
+outcomes, confirm actual process retirement in future live tests, and treat
+remaining contexts/fencing as unsuccessful stop. Keep every old case/cap.
+
+Native AllocationSize/volume totals are explicit thin live quota/cache facts,
+not host preallocation, compressed physical bytes or guaranteed future backing.
+Do not weaken per-transaction memory/free-space admission or three barriers.
+SetSecurity/volume-label mutation and broader Windows semantics remain explicit
+unfinished gates. Plain cached WriteFile return is not power-durable data;
+real mounted qualification must distinguish it from FlushFileBuffers.
