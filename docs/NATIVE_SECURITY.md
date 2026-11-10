@@ -224,3 +224,12 @@ security failures/192 invariants. bounded_native_filesystem took 43.52 seconds;
 the complete sanitizer test step took 440.21 seconds. No timeout was raised,
 no case was removed and no production change was made for that retry.
 The earlier timeout remains relevant evidence of a narrow timing margin.
+
+The first transport regression build at
+3e2b21e5c1e4a6332ec6cebc80ee87a0c619e5b4 compiled the production
+adapter but failed to compile its new test in job 129630536134.
+An aggregate-initialized FSP_FSCTL_TRANSACT_REQ contains the SDK's flexible
+Buffer[] member, which MSVC rejected with C2466. The corrected fixture explicitly zeros the trivially copyable fixed request
+header, as the existing Cleanup dispatcher test does, and keeps aligned bounded
+response storage. It does not aggregate-initialize the flexible-buffer struct.
+The real dispatcher, capacity-boundary/oversize cases and resource caps remain.
