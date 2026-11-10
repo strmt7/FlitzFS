@@ -290,3 +290,18 @@ are trusted-transport tests, NOT live kernel authorization, caller privilege,
 SACL disclosure, inheritance propagation, Windows11 client or power-loss proof.
 No new mounted profile or owner-PC/GPU permission follows. General labels/claims/
 resource-attribute security masks remain explicitly unsupported.
+
+
+The first SDK trial exposed an important selected-helper limit: owner/group
+updates returned STATUS_INVALID_OWNER even for the admitted existing owner.
+The adapter preserves that helper rejection and leaves the checkpoint unchanged;
+it does NOT bypass owner checks or claim functional ownership changes. The
+regression requires that exact error and stable state. Correct caller/privilege-
+aware ownership mutation remains an explicit product requirement. A previous
+fixture expectation of unconditional owner-update success was incorrect; the
+failed runs remain evidence. The corrected diagnostic records exact mask/status.
+
+SACL tests record the actual selected-helper status. Success must persist the
+exact independent SDK result; a privilege/access rejection must match the helper
+and leave the checkpoint unchanged. No privilege is enabled by this test and no
+SACL success is claimed before inspecting the recorded status.

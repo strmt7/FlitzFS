@@ -398,8 +398,29 @@ void security_updates(StoreCompressionMode mode) {
     h.finish(context);++updates;
   };
   update(WRITE_DAC,DACL_SECURITY_INFORMATION|PROTECTED_DACL_SECURITY_INFORMATION,dacl);
-  update(WRITE_OWNER,OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION,owner);
-  update(ACCESS_SYSTEM_SECURITY,SACL_SECURITY_INFORMATION,sacl);
+  {
+    auto context=h.open(L"\\secured",0,WRITE_OWNER);
+    PSECURITY_DESCRIPTOR result=nullptr;auto original=expected;
+    const auto status=FspSetSecurityDescriptor(original.data(),
+        OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION,owner.data(),&result);
+    if(result)FspDeleteSecurityDescriptor(result,(NTSTATUS (*)())FspSetSecurityDescriptor);
+    require(status==STATUS_INVALID_OWNER,"selected SDK owner validation changed; review caller authorization before enabling ownership");
+    deny(context,OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION,owner,status);
+    h.finish(context);
+  }
+  NTSTATUS sacl_status=STATUS_SUCCESS;
+  {
+    auto original=expected;PSECURITY_DESCRIPTOR result=nullptr;
+    sacl_status=FspSetSecurityDescriptor(original.data(),SACL_SECURITY_INFORMATION,sacl.data(),&result);
+    if(result)FspDeleteSecurityDescriptor(result,(NTSTATUS (*)())FspSetSecurityDescriptor);
+    if(sacl_status==STATUS_SUCCESS)update(ACCESS_SYSTEM_SECURITY,SACL_SECURITY_INFORMATION,sacl);
+    else {
+      require(sacl_status==STATUS_PRIVILEGE_NOT_HELD||sacl_status==STATUS_ACCESS_DENIED,
+          "unexpected SACL helper failure; investigate selected source/caller privileges");
+      auto context=h.open(L"\\secured",0,ACCESS_SYSTEM_SECURITY);
+      deny(context,SACL_SECURITY_INFORMATION,sacl,sacl_status);h.finish(context);
+    }
+  }
   // Held inode and independent CPU reader see exactly the merged persisted bytes.
   auto reader=h.open(L"\\secured");h.read(reader,nw::tail());h.finish(reader);h.close_owner();
   auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(h.fixture.image()));view.verify_all();
@@ -407,7 +428,8 @@ void security_updates(StoreCompressionMode mode) {
       "retired security update did not persist independently");
   std::cout<<"Windows writable-security evidence: {\"schema\":1,\"mode\":\""
       <<(mode==StoreCompressionMode::raw?"raw":"automatic")<<"\",\"updates\":"<<updates
-      <<",\"denials\":"<<denials<<",\"mounted\":false,\"gpu\":false,\"complete\":true}\n";
+      <<",\"denials\":"<<denials<<",\"sacl_status\":"<<static_cast<UINT32>(sacl_status)
+      <<",\"mounted\":false,\"gpu\":false,\"complete\":true}\n";
 }
 void security_history_cap(StoreCompressionMode mode) {
   Harness h(mode,4U*1024*1024);auto file=h.make(L"\\security-cap");h.write(file,nw::tail());
