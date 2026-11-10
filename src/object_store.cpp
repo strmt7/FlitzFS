@@ -488,9 +488,14 @@ ObjectStoreWriter ObjectStoreWriter::compact(const ObjectStoreSnapshot& source,
     StoreCheckpointOptions checkpoints) {
   return compact_replacing(source,std::move(target),id,0,{},options,checkpoints);
 }
+ObjectStoreWriter ObjectStoreWriter::recompress(const ObjectStoreSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions options,
+    StoreCheckpointOptions checkpoints) {
+  return compact_replacing(source,std::move(target),id,0,{},options,checkpoints,true);
+}
 ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::uint64_t replacement_id,
-    std::span<const std::byte> replacement,StoreCompressionOptions options,StoreCheckpointOptions checkpoints) {
+    std::span<const std::byte> replacement,StoreCompressionOptions options,StoreCheckpointOptions checkpoints,bool reencode) {
   if(!source.impl_)fail("moved-from compaction source");
   admit_identity(id);detail::validate_store_compression(options);
   const auto& cached=source.impl_->state;
@@ -533,6 +538,9 @@ ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot
     it->stored=static_cast<std::uint32_t>(substitute->payload.size());
     it->generation=baseline.generation;
   }
+  // Recompression admits a conservative raw-sized destination before any write.
+  // No complete-volume encoded/decoded staging and no second encoder pass.
+  if(reencode)for(auto& e:baseline.entries)if(e.id!=replacement_id)e.stored=e.bytes;
   std::uint64_t cursor=kDataStart;
   for(auto& e:baseline.entries){e.offset=cursor;cursor+=kDataHeader+e.stored;}
   auto plan=replicated_plan(baseline,cursor);
@@ -541,25 +549,40 @@ ObjectStoreWriter ObjectStoreWriter::compact_replacing(const ObjectStoreSnapshot
   // Failure before publication leaves only a partial NEW destination. Keep a
   // single record payload in scratch, rather than the whole live volume.
   write_zeros(*target,0,kDataStart);
+  cursor=kDataStart;
   for(std::size_t i=0;i<baseline.entries.size();++i) {
     target->admit_write(baseline.end);
-    auto& e=baseline.entries[i];StoredRecord record;
-    if(e.id==replacement_id) {
+    auto& e=baseline.entries[i];e.offset=cursor;StoredRecord record;
+    if(e.id==replacement_id || reencode) {
+      auto encoded=e.id==replacement_id?std::move(*substitute):
+          p->encoder.encode(read_object(original,original.entries[i]));
+      if(encoded.payload.size()>e.bytes)fail("recompression exceeded raw-size admission");
+      e.stored=static_cast<std::uint32_t>(encoded.payload.size());
       auto& h=record.header;copy_field(h,0,kDataMagic);put32(h,8,1);
-      put32(h,12,substitute->codec);put64(h,16,e.id);put64(h,24,e.generation);
+      put32(h,12,encoded.codec);put64(h,16,e.id);put64(h,24,e.generation);
       put32(h,32,e.bytes);put32(h,36,e.stored);
-      if(substitute->codec!=detail::kStoreRaw)copy_field(h,56,substitute->decoded_digest);
-      record.payload=std::move(substitute->payload);
+      if(encoded.codec!=detail::kStoreRaw)copy_field(h,56,encoded.decoded_digest);
+      record.payload=std::move(encoded.payload);
     } else record=read_record(original,original.entries[i]);
     copy_field(record.header,40,id);
     e.digest=detail::record_digest(std::span<const std::byte>(record.header).first(96),record.payload);
     copy_field(record.header,96,e.digest);
     target->write_exact(e.offset,record.header);
     if(!record.payload.empty())target->write_exact(e.offset+kDataHeader,record.payload);
+    cursor+=kDataHeader+e.stored;
   }
+  baseline.end=replicated_plan(baseline,cursor).last.end;
   // Independently decode target bytes before exposing any root. Recheck that
   // the exclusively owned source still matches the selected baseline.
   verify(baseline);
+  if(reencode)for(std::size_t i=0;i<baseline.entries.size();++i) {
+    const auto decoded=read_object(baseline,baseline.entries[i]);
+    if(baseline.entries[i].id==replacement_id) {
+      if(!std::equal(decoded.begin(),decoded.end(),replacement.begin(),replacement.end()))
+        fail("recompression replacement comparison");
+    } else if(decoded!=read_object(original,original.entries[i]))
+      fail("recompression independent CPU comparison");
+  }
   auto checked=load(original.image);verify(checked);
   if(original.image->extent()!=source_extent || !same_state(original,checked))
     fail("compaction source changed during copy");

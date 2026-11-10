@@ -133,6 +133,13 @@ class ObjectStoreWriter final {
   static ObjectStoreWriter compact(const ObjectStoreSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       StoreCompressionOptions compression,StoreCheckpointOptions checkpoints);
+  // Decode/re-encode live objects into a NEW empty image under an explicit CPU
+  // policy. Preserve object IDs/generations and independently compare decoded
+  // source/target bytes before replicated publication. Source is never changed.
+  // Conservative raw-size admission; no worker, scheduler or automatic retry.
+  static ObjectStoreWriter recompress(const ObjectStoreSnapshot& source,
+      std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
+      StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
   // New ordinary file only; never replaces a path or deletes a partial new file.
   // Contract is explicit: this API does NOT qualify a physical device.
   static ObjectStoreWriter create_file(const std::filesystem::path& path,
@@ -169,7 +176,7 @@ class ObjectStoreWriter final {
   static ObjectStoreWriter compact_replacing(const ObjectStoreSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,
-      StoreCompressionOptions compression,StoreCheckpointOptions checkpoints={});
+      StoreCompressionOptions compression,StoreCheckpointOptions checkpoints={},bool reencode=false);
   // Internal cached last-ack view only. Reads still verify complete records;
   // public snapshot/open always verify all reachable records before exposure.
   ObjectStoreSnapshot snapshot_for_staging() const;

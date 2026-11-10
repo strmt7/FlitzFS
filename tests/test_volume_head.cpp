@@ -270,10 +270,84 @@ void repair_faults(StoreCompressionMode mode,bool compact) {
     }
   }
 }
+void recompression_invariants(bool compact) {
+  auto source=seed(StoreCompressionMode::raw,compact);
+  auto original=view(source);const auto old=source->live;
+  auto target=std::make_shared<Ram>();target->failure_unit=compact?4096:65536;
+  {auto w=NativeFilesystemWriter::recompress(original,target,id(2),
+      {StoreCompressionMode::automatic,6,false},{compact});}
+  auto current=view(target);expected(original);expected(current);
+  require(source->live==old,"post-compression changed source");
+  if(store_zstd_available())require(current.storage_info().stored_payload_bytes<
+      original.storage_info().stored_payload_bytes,"post-compression did not reduce raw payload");
+  auto head=std::make_shared<Ram>();head->failure_unit=target->failure_unit;
+  auto authority=NativeVolumeHeadWriter::create(head,id(90),original);
+  authority.publish_compacted(original,current);
+  auto chosen=NativeVolumeHeadView::open(head,id(90),[&](const auto& which)->std::shared_ptr<StoreByteIo>{
+    require(which==id(2),"recompressed image not selected");return target;
+  });expected(chosen.filesystem());
+  // Raw-only builds still prove post-compression through the generic pattern codec.
+  auto objects=std::make_shared<Ram>();objects->failure_unit=target->failure_unit;
+  {auto w=ObjectStoreWriter::create(objects,id(10),{StoreCompressionMode::raw,6,false},{compact});
+   const StoreMutation m{7,false,Bytes(65536,std::byte{81})};w.commit_replicated({&m,1});}
+  auto old_objects=ObjectStoreSnapshot::open(objects);
+  auto encoded=std::make_shared<Ram>();encoded->failure_unit=target->failure_unit;
+  {auto w=ObjectStoreWriter::recompress(old_objects,encoded,id(11),
+      {StoreCompressionMode::automatic,6,false},{compact});}
+  auto new_objects=ObjectStoreSnapshot::open(encoded);
+  require(new_objects.read(7)==old_objects.read(7)&&new_objects.list()[0].generation==old_objects.list()[0].generation,
+      "generic recompression changed payload/generation");
+  require(new_objects.info().stored_payload_bytes<old_objects.info().stored_payload_bytes,
+      "pattern post-compression did not reduce payload");
+  auto raw=std::make_shared<Ram>();raw->failure_unit=target->failure_unit;
+  {auto w=ObjectStoreWriter::recompress(new_objects,raw,id(12),{StoreCompressionMode::raw,6,false},{compact});}
+  auto raw_view=ObjectStoreSnapshot::open(raw);
+  require(raw_view.read(7)==old_objects.read(7)&&raw_view.info().stored_payload_bytes==65536,
+      "explicit raw re-encoding failed");
+  rejects([&]{auto w=NativeFilesystemWriter::recompress(original,source,id(3));});
+  rejects([&]{auto w=NativeFilesystemWriter::recompress(original,target,id(3));});
+  rejects([&]{auto w=NativeFilesystemWriter::recompress(original,std::make_shared<Ram>(),id(1));});
+  auto corrupted=std::make_shared<Ram>();corrupted->failure_unit=target->failure_unit;
+  corrupted->corrupt_read_offset=2*kStoreCommitUnit;corrupted->corrupt_read_number=1;
+  rejects([&]{auto w=NativeFilesystemWriter::recompress(original,corrupted,id(3));});
+  rejects([&]{auto exposed=view(corrupted);});
+  require(source->live==old,"candidate readback failure changed source");
+  auto fresh=std::make_shared<Ram>();fresh->failure_unit=target->failure_unit;
+  {auto writer=ObjectStoreWriter::resume(source,id(1),original.storage_info().generation);
+   rejects([&]{auto w=NativeFilesystemWriter::recompress(original,fresh,id(3));});}
+  require(fresh->live.empty(),"live writer rejection wrote candidate");
+}
+void recompression_faults(bool compact) {
+  const auto mode=StoreCompressionMode::automatic;
+  auto source=seed(StoreCompressionMode::raw,compact);auto original=view(source);
+  const auto bytes=source->stable;auto probe=std::make_shared<Ram>();probe->failure_unit=compact?4096:65536;
+  {auto w=NativeFilesystemWriter::recompress(original,probe,id(2),{mode,6,false},{compact});}
+  const auto steps=probe->calls;require(steps>0,"missing post-compression fault trace");
+  trace("recompress",mode,compact,false,steps);
+  for(unsigned failure=0;failure<3;++failure)for(std::size_t step=0;step<steps;++step) {
+    auto candidate=std::make_shared<Ram>();candidate->failure_unit=probe->failure_unit;
+    candidate->failure=failure;candidate->fail_at=step;
+    rejects([&]{auto w=NativeFilesystemWriter::recompress(original,candidate,id(2),{mode,6,false},{compact});});
+    require(source->live==bytes&&source->stable==bytes,"failed recompression changed source");
+    expected(view(source));
+    // A failed candidate is never made authoritative, even if a final flush
+    // happened to persist a complete image before returning an error.
+    auto control=std::make_shared<Ram>();control->failure_unit=probe->failure_unit;
+    {auto h=NativeVolumeHeadWriter::create(control,id(90),view(source));}
+    auto selected=NativeVolumeHeadView::open(control,id(90),[&](const auto& which)->std::shared_ptr<StoreByteIo>{
+      require(which==id(1),"failed recompression candidate exposed");return source;
+    });expected(selected.filesystem());++cases;
+  }
+}
+
 }
 int main(int argc,char** argv){try {
   if(argc!=2)throw std::runtime_error("head test phase required");const std::string_view phase=argv[1];
-  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic})for(bool compact:{false,true}) {
+  if(phase=="--recompress-invariants") {
+    for(bool compact:{false,true})recompression_invariants(compact);
+  } else if(phase=="--recompress-4096")recompression_faults(true);
+  else if(phase=="--recompress-65536")recompression_faults(false);
+  else for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic})for(bool compact:{false,true}) {
     if(phase=="--invariants")invariants(mode,compact);
     else if(phase=="--create")create_faults(mode,compact);
     else if(phase=="--publish")publish_faults(mode,compact);

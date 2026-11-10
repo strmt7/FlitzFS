@@ -231,6 +231,11 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter compact(const NativeFilesystemSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       StoreCompressionOptions compression,StoreCheckpointOptions checkpoints);
+  // Explicit post-compression primitive: preserve native state while decoding/
+  // re-encoding payloads into a NEW image. No in-place writes or idle scheduler.
+  static NativeFilesystemWriter recompress(const NativeFilesystemSnapshot& source,
+      std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
+      StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
   NativeFilesystemWriter(NativeFilesystemWriter&&) noexcept;
   NativeFilesystemWriter& operator=(NativeFilesystemWriter&&) noexcept;
   NativeFilesystemWriter(const NativeFilesystemWriter&)=delete;
@@ -366,6 +371,9 @@ class NativeFilesystemWriter final {
       const NativeOverwriteMetadata* overwrite=nullptr,
       const std::uint64_t* reservation=nullptr,NativeInodeAllocationInfo* allocation=nullptr,
       bool trim_allocation=false);
+  static NativeFilesystemWriter copy_image(const NativeFilesystemSnapshot&,
+      std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
+      StoreCheckpointOptions,bool reencode);
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

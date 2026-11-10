@@ -64,8 +64,9 @@ payload and original input bytes separately. Retained source plus candidate,
 head, allocator slack and stable RAM copies are additional resource costs.
 
 These single-run phase timings are diagnostics, NOT comparative filesystem
-benchmarks or a GPU speedup. Compaction preserves existing payload encodings;
-it is not implemented idle learning/recompression. Formal comparisons still need
+benchmarks or a GPU speedup. Compaction preserves existing payload encodings. The separate explicit
+post-compression phase uses recompress() and verifies the raw-to-automatic
+candidate; it is not an idle scheduler or learning system. See RECOMPRESSION.md. Formal comparisons still need
 controlled alternating repetitions, live load/cache/durability accounting,
 appropriate established tools and several comparator filesystems.
 
@@ -93,3 +94,7 @@ scope/content checks, with receipt
 external LLM/profile/bypass. Publisher dates/hashes are retained in
 HOST_RAM_SOURCES.json; current serving is not a recent-revision claim. Runtime
 qualification, not a documentation assertion, must establish actual page locks.
+
+The first exact VM-qualified owner-PC CPU run is recorded in
+HOST_RAM_VALIDATION.json. Later probe changes need their own VM qualification;
+that earlier result never qualifies a changed binary or a mounted/GPU path.

@@ -52,12 +52,12 @@ StoreIdentity id(unsigned n){StoreIdentity value{};value[0]=static_cast<std::byt
 NativeFilesystemSnapshot view(std::shared_ptr<ram::Store> io) {
   return NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(std::move(io)));
 }
-struct Sample {std::uint64_t input=0,source=0,payload=0,compacted=0,write_ns=0,read_ns=0,compact_ns=0;};
+struct Sample {std::uint64_t input=0,source=0,payload=0,compacted=0,target_payload=0,write_ns=0,read_ns=0,compact_ns=0;};
 std::uint64_t elapsed(std::chrono::steady_clock::time_point start) {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now()-start).count());
 }
-Sample exercise(const std::vector<Bytes>& inputs,StoreCompressionMode mode) {
+Sample exercise(const std::vector<Bytes>& inputs,StoreCompressionMode mode,bool post=false) {
   ram::headroom();require(!inputs.empty()&&inputs.size()<=6,"input count cap");
   auto source=std::make_shared<ram::Store>(8U*1024*1024);
   auto target=std::make_shared<ram::Store>(8U*1024*1024);
@@ -83,8 +83,11 @@ Sample exercise(const std::vector<Bytes>& inputs,StoreCompressionMode mode) {
   result.read_ns=elapsed(start);
   auto authority=NativeVolumeHeadWriter::create(head,id(90),original);
   start=std::chrono::steady_clock::now();
-  {auto candidate=NativeFilesystemWriter::compact(original,target,id(2),{mode,6,false});}
+  {auto candidate=post?
+      NativeFilesystemWriter::recompress(original,target,id(2),{StoreCompressionMode::automatic,6,false}):
+      NativeFilesystemWriter::compact(original,target,id(2),{mode,6,false});}
   result.compact_ns=elapsed(start);auto candidate=view(target);result.compacted=candidate.storage_info().physical_end;
+  result.target_payload=candidate.storage_info().stored_payload_bytes;
   authority.publish_compacted(original,candidate);
   auto selected=NativeVolumeHeadView::open(head,id(90),[&](const auto& selected_id)->std::shared_ptr<StoreByteIo>{
     require(selected_id==id(2),"selected wrong RAM image");return target;
@@ -109,7 +112,7 @@ void require_job() {
 }
 void sample(std::ostream& out,const char* name,const Sample& s) {
   out<<'"'<<name<<"\":{\"input\":"<<s.input<<",\"source\":"<<s.source<<",\"payload\":"<<s.payload
-      <<",\"compacted\":"<<s.compacted<<",\"write_ns\":"<<s.write_ns<<",\"read_ns\":"<<s.read_ns
+      <<",\"compacted\":"<<s.compacted<<",\"target_payload\":"<<s.target_payload<<",\"write_ns\":"<<s.write_ns<<",\"read_ns\":"<<s.read_ns
       <<",\"compact_ns\":"<<s.compact_ns<<"}";
 }
 void create_report(const std::filesystem::path& path,const std::string& text) {
@@ -131,14 +134,16 @@ int child(int argc,wchar_t** argv) {
   std::vector<Bytes> synthetic(2,Bytes(65536,std::byte{65}));std::uint64_t x=0x872635a8ULL;
   for(auto& b:synthetic[1]){x^=x<<13;x^=x>>7;x^=x<<17;b=static_cast<std::byte>(x>>21);}
   require(store_zstd_available(),"qualified RAM probe requires bounded Zstandard");
-  Sample sr,sa,rr,ra;
+  Sample sr,sa,sp,rr,ra,rp;
   {
     ram::WorkingSet working;
     sr=exercise(synthetic,StoreCompressionMode::raw);require(!ram::locked_bytes.load(),"synthetic raw RAM release");
     sa=exercise(synthetic,StoreCompressionMode::automatic);require(!ram::locked_bytes.load(),"synthetic codec RAM release");
+    sp=exercise(synthetic,StoreCompressionMode::raw,true);require(!ram::locked_bytes.load(),"synthetic post-compression RAM release");
     if(!real.empty()){
       rr=exercise(real,StoreCompressionMode::raw);require(!ram::locked_bytes.load(),"real raw RAM release");
       ra=exercise(real,StoreCompressionMode::automatic);require(!ram::locked_bytes.load(),"real codec RAM release");
+      rp=exercise(real,StoreCompressionMode::raw,true);require(!ram::locked_bytes.load(),"real post-compression RAM release");
     }
     working.restore();
   }
@@ -151,6 +156,7 @@ int child(int argc,wchar_t** argv) {
       <<",\"handles_before\":"<<before<<",\"handles_after\":"<<after<<",";
   sample(out,"synthetic_raw",sr);out<<",";sample(out,"synthetic_auto",sa);
   out<<",";sample(out,"real_raw",rr);out<<",";sample(out,"real_auto",ra);
+  out<<",";sample(out,"synthetic_post",sp);out<<",";sample(out,"real_post",rp);
   out<<",\"cpu_verified\":true,\"resident_verified\":true,\"complete\":true}\n";
   create_report(argv[2],out.str());return 0;
 }
