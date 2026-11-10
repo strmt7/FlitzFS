@@ -275,6 +275,8 @@ jobs:
           ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
           path: .ci-deps/lz4
           persist-credentials: false
+      - name: Reject partial, mixed or rolled-back writable reports before live trials
+        run: python tools/ci/test_windows_write_probe.py
       - name: Verify strict Windows space report reconciliation
         run: python tools/ci/test_windows_space_reports.py
       - name: Build pinned CPU codec and native callbacks
@@ -398,6 +400,10 @@ jobs:
 
   windows-write-mount:
     needs: [cpu, sanitizers, windows-native, windows-mount]
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [basic, mutations, delete, crash]
     runs-on: windows-2025-vs2026
     timeout-minutes: 20
     env:
@@ -436,7 +442,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: winfsp-sdk-${{ github.job }}-${{ github.sha }}
+          name: winfsp-sdk-${{ github.job }}-${{ matrix.profile }}-${{ github.sha }}
           path: ${{ env.FLITZFS_WINFSP_PROVENANCE }}
           if-no-files-found: warn
           retention-days: 30
@@ -464,23 +470,35 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: winfsp-write-driver-${{ github.sha }}
+          name: winfsp-write-driver-${{ matrix.profile }}-${{ github.sha }}
           path: ${{ runner.temp }}/flitzfs-sdk-*/driver-provenance.json
           if-no-files-found: warn
           retention-days: 30
       - name: Exercise writable I/O, explicit Flush and independent CPU reopen under process limits
         shell: pwsh
         run: |
-          ./build-native/Release/flitzfs_write_probe.exe --run-disposable-ci
+          $mode = switch ('${{ matrix.profile }}') {
+            'basic' { '--run-disposable-ci' }
+            'mutations' { '--run-mutations-ci' }
+            'delete' { '--run-delete-ci' }
+            'crash' { '--run-crash-ci' }
+            default { throw 'Invalid fixed writable profile' }
+          }
+          ./build-native/Release/flitzfs_write_probe.exe $mode
           if ($LASTEXITCODE) { throw 'Supervised writable mount probe failed' }
+
+      - name: Reconcile exact acknowledged writable state and source identity
+        run: python tools/ci/verify_windows_write_probe.py --profile ${{ matrix.profile }}
 
       - name: Retain source-bound writable fixture observations
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: windows-write-${{ github.sha }}
+          name: windows-write-${{ matrix.profile }}-${{ github.sha }}
           path: |
             ${{ runner.temp }}/flitzfs-write-probe-*/write.json
             ${{ runner.temp }}/flitzfs-write-probe-*/verify.json
+            ${{ runner.temp }}/flitzfs-write-probe-*/state.json
+            ${{ runner.temp }}/flitzfs-write-probe-*/state-verify.json
           if-no-files-found: warn
           retention-days: 14

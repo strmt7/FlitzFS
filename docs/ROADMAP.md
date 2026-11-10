@@ -480,3 +480,16 @@ this trial passed. Next extend real-kernel adoption/cancellation/delete/overwrit
 cache/mapped I/O, helper-kill/acknowledged-history and recovery coverage, then
 client/app/backing/scale/GPU/learning/repair requirements; none is complete from
 a small successful write or an unmounted test. Owner-PC testing stays deferred.
+
+
+## Extended writable lifecycle and acknowledgement recovery
+
+The fixed writable VM matrix now configures EOF shrink/regrowth with zero-tail
+checking, stable-inode rename, deletion while an owned handle retains readable
+data, and independent preservation of an unrelated file. A separate profile
+kills a live helper after an explicit mounted Flush and records exact CPU
+recovery after actual exit. Strict metadata/data/security/reservation/checkpoint
+reconciliation is required; inspect exact jobs before marking these profiles
+passed. Preserve all old guards and limits. Cancellation/overwrite/mapped I/O,
+more fault cuts and re-entry/recovery, Windows 11 client/app, scale/reclamation,
+live GPU, learning and payload self-repair remain unfinished.

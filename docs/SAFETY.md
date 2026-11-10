@@ -541,3 +541,19 @@ Only create/write/explicit-Flush/readback/close is attempted initially; old
 adoption guards remain. Preserve stop reasons and fail on unretired contexts or
 missing notification; never delete stale junctions or raise old limits. This
 adds no owner-PC driver/GPU/real-storage permission or product safety claim.
+
+
+### Separate bounded writable lifecycle/termination profiles
+
+The writable VM matrix adds fixed EOF/rename, held-open deletion and one
+post-Flush helper kill. Each runs in its own fresh VM/fixture with the SAME
+4 MiB image +4096 report-byte, 128 MiB/20%-CPU/one-process/below-normal bounds.
+The ordinary children keep 30 seconds; the explicitly killed writer has 15.
+No next child starts before actual exit confirmation. The crash child publishes
+and flushes a bounded acknowledgement only after actual mounted FlushFileBuffers
+and native byte verification, then performs no more application I/O while
+holding its file. Its independently supervised verifier starts no dispatcher
+and must reject unresolved session state or any changed acknowledged checkpoint.
+No mutable existing-image recovery factory, owner-PC action, mapped/power/device
+fault, live AMD or broad crash-coverage claim follows. Old basic/read-only and
+all fault/oracle/resource cases remain. See WRITABLE_MOUNT_TRIAL.md.

@@ -171,3 +171,34 @@ The actual process-interruption campaigns ran at unchanged-source predecessor a3
 Final read-only mount job 129774755949 passed normal, deliberately terminated-helper and independent recovery/remount phases, exits 0/1460/0 with actual exit confirmed. Three source-bound space reports reconciled and image parity held. Peaks were 6,164,480 / 6,135,808 / 5,156,864 bytes under unchanged limits. The pinned driver's valid Microsoft hardware-publisher signature was inspected on the disposable VM; windows11_policy_qualified remained false. This is read-only regression evidence, not mounted writable, Windows 11 client, live AMD, physical power-cut or complete-product proof.
 
 Next work must qualify a separately supervised writable VM helper and actual adoption/cancellation/cache/backing/security behavior before any PC experiment. Keep native quota distinct from host preallocation/physical compressed size and plain cached WriteFile acknowledgement distinct from FlushFileBuffers durability. SetSecurity, scale/reclaim, app/installer/client, live AMD, automatic learning and payload replica self-repair remain unfinished.
+
+
+## Executed first writable VM checkpoint
+
+Commit e5292572eeeb58dcf9a5f51913ef6807dec968ee passed all 11 triggered workflows.
+Native Windows job 129786410643 passed 110 CTest groups, reported 1,285 checks/
+901 callback-or-SDK dispatches and handles 151 to 151. Lifecycle checks numbered
+57 with 12 independently reopened retired writers. Bounded history exhaustion
+preserved every acknowledged byte: raw 13 writes/image 4,194,304; automatic
+17 writes/image 4,128,768, both within 4 MiB. Existing cases/caps stayed intact.
+
+Real writable VM job 129792618538 created/wrote/flushed/read/closed the 7001-byte
+sample, retired every context, observed normal dispatcher stop and mount removal,
+then independently verified the native image after confirmed helper exit.
+Writer/verifier exits were 0/0, no timeout/cancellation, peaks 4,767,744 /
+3,059,712 bytes. Both reports matched namespace 9, generation 18, inode 2 and
+image 1,966,080 bytes. Only writer reported observing explicit flush.
+Old read-only job 129791168891 retained exits 0/1460/0 and three reconciled
+space phases; peaks 6,148,096 /6,184,960 /5,160,960. This is not writable
+helper-kill coverage. Linux sanitizers passed 92 groups; Windows raw 96.
+Six source-routing queries bound e529257 to source SHA-256
+807a4a5b091a0c11b5d36299257eba5993e604978f3059be656a43332b5203cd
+(job 129786415468). Dependency inventory and old recovery/reference/comparison
+campaigns passed with their original scopes. Dependabot endpoint access remains
+unknown, not zero. No owner-PC process/artifact, driver change or GPU run occurred.
+The full goal remains active; this small trial is not full-product proof.
+
+
+The fixed extended lifecycle/termination VM profiles are specified in
+WRITABLE_MOUNT_TRIAL.md. Configured cases require actual inspected results;
+none changes default product routes, stored bytes or the existing guards.
