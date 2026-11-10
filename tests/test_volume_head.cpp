@@ -145,6 +145,37 @@ void invariants(StoreCompressionMode mode,bool compact) {
     require(!owner.poisoned()&&advanced.open().filesystem().read("acknowledged",0,100)==data(81,5),
         "stale candidate lost a later acknowledged transaction");
   }
+  {
+    // Handoff is not a one-shot copy: later acknowledged data must survive
+    // either head loss, either image-root loss, and another compacted image.
+    Fixture later(mode,compact);
+    auto owner=NativeVolumeHeadWriter::resume(later.head,id(90),1,view(later.source));
+    owner.publish_compacted(view(later.source),view(later.target));
+    {
+      auto latest=view(later.target);
+      auto active=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(later.target,id(2),
+          latest.storage_info().generation,{mode,6,false}));
+      const std::array<NativeFileMutation,2> ops{{file_create("continued"),file_write("continued",0,data(71,7))}};
+      active.apply(ops);
+    }
+    auto retained=view(later.target);expected(retained,true);
+    for(unsigned head_peer=0;head_peer<2;++head_peer)for(unsigned image_peer=0;image_peer<2;++image_peer) {
+      auto control=image(later.head->stable),data_image=image(later.target->stable,compact?4096:65536);
+      std::fill_n(control->live.begin()+head_peer*kStoreCommitUnit,kStoreCommitUnit,std::byte{});
+      std::fill_n(data_image->live.begin()+image_peer*kStoreCommitUnit,4096,std::byte{});
+      auto recovered=NativeVolumeHeadView::open(control,id(90),[&](const auto&){return data_image;});
+      require(recovered.info().degraded&&recovered.info().selection.epoch==2&&
+          recovered.info().selection.image_identity==id(2),"head loss selected historical image");
+      expected(recovered.filesystem(),true);
+    }
+    auto next=copied(later.target,id(3),mode,compact);
+    owner.publish_compacted(view(later.target),view(next));
+    require(owner.info().selection.epoch==3&&later.head->extent()==kVolumeHeadBytes,
+        "repeated handoff did not keep fixed authority footprint");
+    auto latest=NativeVolumeHeadView::open(later.head,id(90),[&](const auto&){return next;});
+    expected(latest.filesystem(),true);expected(retained,true);
+    require(latest.info().selection.image_identity==id(3),"third image not selected");
+  }
   // A live native writer is not accepted as quiescent source.
   Fixture busy(mode,compact);auto v=view(busy.source);
   auto image_owner=NativeFilesystemWriter::resume(ObjectStoreWriter::resume(
