@@ -3,7 +3,7 @@
 import copy
 import unittest
 from probe_store_interruptions import (merge_reports,validate_partitions,BASIC_PHASES,BASIC_SCOPE,
-    campaign_limits,validate_basic_report)
+    campaign_limits,validate_basic_report,DENSE_PHASES,DENSE_SCOPE)
 
 def reports():
     coverage=[dict(policy="raw",phase="mutation",
@@ -139,6 +139,70 @@ class BasicCampaignReports(unittest.TestCase):
                 for i,event in enumerate(report["coverage"][0]["events"],1):
                     event["event"]=i
         reject(remove_barrier)
+
+
+def dense_reports():
+    data=basic_reports()
+    for report in data:
+        report.update(schema=4,campaign="dense",scope=DENSE_SCOPE,root=3,unit=4096)
+        for entry in report["coverage"]:
+            entry["phase"]="dense-"+entry["phase"]
+            entry["completed"].update(root=3,unit=4096)
+            for event in entry["events"]:
+                if event["op"]=="ack":
+                    event.update(root=3,unit=4096)
+        for row in report["results"]:
+            row.update(phase="dense-"+row["phase"],root=3,unit=4096)
+    return data
+
+class CompactCampaignReports(unittest.TestCase):
+    def test_separate_actual_geometry_and_complete_union(self):
+        data=dense_reports()
+        for report in data:
+            validate_basic_report(report)
+        merged=merge_reports(data)
+        self.assertEqual((merged["schema"],merged["campaign"],merged["root"],merged["unit"]),(4,"dense",3,4096))
+        self.assertEqual(merged["cases"],84)
+        self.assertEqual([entry["phase"] for entry in merged["coverage"]],list(DENSE_PHASES)*2)
+        # Geometry evidence does not enlarge the existing 256-byte IPC cap.
+        import json
+        self.assertLessEqual(len(json.dumps(dict(recovered=6,continued=10,state_digest="a"*64,
+            continued_digest="b"*64,root=3,unit=4096)).encode())+1,256)
+
+    def test_missing_mixed_relabelled_geometry_or_campaign_rejected(self):
+        def reject(mutation):
+            data=dense_reports();mutation(data)
+            with self.assertRaises(RuntimeError):
+                merge_reports(data)
+        reject(lambda r:r.__setitem__(1,basic_reports()[1]))
+        reject(lambda r:[x.pop("unit") for x in r])
+        reject(lambda r:[x.update(root=2) for x in r])
+        reject(lambda r:[x.update(unit=True) for x in r])
+        reject(lambda r:[x.update(schema=3,campaign="basic",scope=BASIC_SCOPE) for x in r])
+        reject(lambda r:[x["coverage"][0]["events"][0].pop("root") for x in r])
+        reject(lambda r:[x["coverage"][0]["events"][-1].update(unit=65536) for x in r])
+        reject(lambda r:[x["coverage"][0]["completed"].update(root=2) for x in r])
+        reject(lambda r:r[0]["results"][0].pop("unit"))
+        reject(lambda r:r[0]["results"][0].update(root=True))
+        reject(lambda r:r[0]["results"][0].update(unit=4096.0))
+        reject(lambda r:[x["coverage"][0].update(phase="basic-upgrade") for x in r])
+        reject(lambda r:[x["coverage"].pop() for x in r])
+        reject(lambda r:r[0]["results"].pop())
+        reject(lambda r:r[1]["results"].append(copy.deepcopy(r[1]["results"][0])))
+        reject(lambda r:r[0]["results"][0].update(forced_exit=0))
+        reject(lambda r:r[0]["results"][0].update(state_digest="b"*64))
+        reject(lambda r:[x["limits"].update(event_bytes=512) for x in r])
+        # A legacy fixed-layout report cannot be promoted by only changing its
+        # top-level campaign label: every actual acknowledgement/result is bound.
+        data=basic_reports()
+        for report in data:
+            report.update(schema=4,campaign="dense",scope=DENSE_SCOPE,root=3,unit=4096)
+            for entry in report["coverage"]:
+                entry["phase"]="dense-"+entry["phase"]
+            for row in report["results"]:
+                row["phase"]="dense-"+row["phase"]
+        with self.assertRaises(RuntimeError):
+            merge_reports(data)
 
 if __name__=="__main__":
     unittest.main()
