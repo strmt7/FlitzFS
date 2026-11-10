@@ -219,3 +219,19 @@ This is a configured gate until exact-commit hosted execution succeeds.
 Neither successful process termination nor a declared 4-KiB fixture unit
 proves physical power-loss behavior, Windows 11 client qualification or actual
 device failure geometry. Default and mounted image selection stays fixed.
+
+### Initial exclusive-sharing failure
+
+At 4440713a136a18d2fa08a5ac60ee2a26d18174bd the new hosted job
+129609277610 compiled successfully and passed all seven report-validation
+tests, but rejected its first full trace before any interruption case.
+The additional root inspection attempted a ReadOnlyFile open while the
+owned image writer retained its exclusive OS sharing lease; Windows denied
+that open. This is a failed campaign, not root-3 recovery evidence.
+
+The corrected producer reads acknowledgement roots through the existing
+owned backend, after independent library graph admission, without reopening
+or weakening the writer lease. Recovery root inspection still uses a separate
+read-only file handle after confirmed writer retirement and again after the
+continued writer closes. The selected-generation/root-digest/format/unit
+checks and all resource/fault oracles remain unchanged.
