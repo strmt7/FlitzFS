@@ -9,11 +9,15 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <cstdio>
 #include <stdexcept>
 #include <string_view>
 #include <thread>
 #include <vector>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#else
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -165,6 +169,19 @@ void invariants() {
   std::cout<<"],\"checks\":"<<checks<<",\"complete\":true}\n";
 }
 // Hosted-only microbenchmark; neither filesystem throughput nor GPU evidence.
+void stdout_probe(std::string_view mode) {
+  hosted_digest_limits();
+#ifdef _WIN32
+  if(mode!="--stdio-default" &&
+      _setmode(_fileno(stdout),mode=="--stdio-binary"?_O_BINARY:_O_TEXT)==-1)
+    throw std::runtime_error("stdio probe mode");
+  constexpr std::array<unsigned char,7> payload{{0,10,13,10,26,128,255}};
+  std::cout.write(reinterpret_cast<const char*>(payload.data()),payload.size());
+  if(!std::cout)throw std::runtime_error("stdio probe output");
+#else
+  (void)mode;throw std::runtime_error("stdio probe is hosted Windows only");
+#endif
+}
 void benchmark() {
   hosted_digest_limits();const auto end=Clock::now()+std::chrono::seconds(15);
   std::cout<<"{\"schema\":1,\"backend\":\""<<FLITZFS_DIGEST_BACKEND<<"\",\"degree\":"
@@ -195,6 +212,7 @@ int main(int argc,char** argv){try {
   if(argc!=2)throw std::runtime_error("digest test mode required");
   const std::string_view mode=argv[1];
   if(mode=="--invariants")invariants();else if(mode=="--benchmark")benchmark();
+  else if(mode=="--stdio-default" || mode=="--stdio-text" || mode=="--stdio-binary")stdout_probe(mode);
   else throw std::runtime_error("unknown digest mode");
   return 0;
 }catch(const std::exception& e){std::cerr<<"Digest dispatch failure: "<<e.what()<<"\n";return 1;}}

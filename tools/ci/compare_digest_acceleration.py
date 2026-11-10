@@ -90,6 +90,15 @@ def micro(value,policy):
         raise RuntimeError("digest microbenchmark incomplete")
     return value
 
+def validate_stdio(default,text,binary):
+    payload=bytes((0,10,13,10,26,128,255))
+    translated=payload.replace(b"\n",b"\r\n")
+    if binary!=payload or text!=translated or default not in (payload,translated):
+        raise RuntimeError("current Windows CRT stdout byte probe differs")
+    return dict(payload_bytes=len(payload),text_bytes=len(text),binary_bytes=len(binary),
+                default_bytes=len(default),default_translates_lf=default==translated,
+                binary_sha256=hashlib.sha256(binary).hexdigest(),complete=True)
+
 def main():
     if os.name!="nt" or os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
         raise RuntimeError("disposable hosted Windows VM required")
@@ -106,6 +115,9 @@ def main():
         host=dict(platform=platform.platform(),processor=platform.processor(),cpus=os.cpu_count()),
         microbenchmarks={},encoded_images=[],samples=[],summary=[],complete=False)
     try:
+        report["active_stage"]="stdio-mode-probe"
+        probe=paths["auto"]/"flitzfs_digest_tests.exe"
+        report["stdio"]=validate_stdio(run(probe,"--stdio-default"),run(probe,"--stdio-text"),run(probe,"--stdio-binary"))
         report["active_stage"]="microbenchmarks"
         measurements={};report["microbenchmarks"]=measurements
         for policy in ("auto","scalar"):
@@ -130,7 +142,7 @@ def main():
                         if not all(positive(row.get(key)) for key in ("write_ms","read_verify_ms","reopen_verify_ms")):
                             raise RuntimeError("RAM-object timing fields")
                         if row["physical_bytes"]!=images[-1]["bytes"]:
-                            raise RuntimeError("timed image geometry differs from byte-verified image")
+                            raise RuntimeError("timed image geometry differs from byte-verified image: "+json.dumps(dict(physical=row["physical_bytes"],stream=images[-1]["bytes"])))
                         samples.append(dict(corpus=kind,mode=mode,policy=policy,repeat=repeat,**row))
         summary=[]
         for kind in CORPORA:
@@ -151,7 +163,7 @@ def main():
                    if r["bytes"]==size and r["mode"]==mode) for mode in ("production","scalar-oracle")}
             micro_summary.append(dict(bytes=size,**times,observed_ratio=times["scalar-oracle"]/times["production"]))
         result_summary=dict(commit=head,complete=True,image_pairs=len(images),transaction_samples=len(samples),
-            micro_summary=micro_summary,summary=summary)
+            micro_summary=micro_summary,stdio=report["stdio"],summary=summary)
 
     except BaseException as error:
         report.update(complete=False,error=type(error).__name__+": "+str(error))

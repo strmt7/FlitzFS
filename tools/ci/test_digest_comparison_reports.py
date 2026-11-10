@@ -2,7 +2,7 @@
 """Pure report-oracle negatives; no subprocesses, fixtures or owner-host use."""
 import copy
 import unittest
-from compare_digest_acceleration import micro
+from compare_digest_acceleration import micro,validate_stdio
 
 def report(policy="auto"):
     return dict(schema=1,complete=True,backend="windows-x64-upstream-asm" if policy=="auto" else "portable",
@@ -12,6 +12,16 @@ def report(policy="auto"):
         for mode in ("scalar-oracle","production")])
 
 class Reports(unittest.TestCase):
+    def test_binary_transport_probe(self):
+        payload=bytes((0,10,13,10,26,128,255));text=payload.replace(b"\n",b"\r\n")
+        for default in (payload,text):
+            value=validate_stdio(default,text,payload)
+            self.assertTrue(value["complete"])
+            self.assertEqual(value["binary_bytes"],7)
+        for args in ((text,text,text),(payload,payload,payload),(b"wrong",text,payload)):
+            with self.assertRaises(RuntimeError):
+                validate_stdio(*args)
+
     def test_complete_auto_and_scalar(self):
         for policy in ("auto","scalar"):
             value=report(policy)

@@ -121,3 +121,36 @@ Windows writable allocation/security/FileInfo/helper/client qualification,
 scalable capacity/indexing/reclaim, NS04 real writer termination/mounted ACLs,
 live AMD benefit, redundant payload repair and low-priority automatic learning
 remain open.
+
+## Initial exact-commit evidence and retained transport failure
+
+At b15ba05340217e3fe5bc374431f22eec54658c04 Windows native job
+129645267598 passed 71 entries. The new digest group completed 3,081 checks
+with actual features 127, production degree 16 and tested feature ceilings
+selecting degrees 1/4/4/8/16. Published answers, independent scalar comparisons,
+guards and concurrent production use passed. Worker handles remained 94/94.
+The dedicated build's explicit OFF/portable executable also passed its entire
+group. These are executed correctness results, not measured speed conclusions.
+
+Comparison job 129645268665 then failed its first raw-image length check
+before any transaction timing sample was accepted. Partial native report and
+both build/test receipts are retained in artifact 13737756703, SHA256
+0f67f6cc0b3706b8c73d27fd15bd357a8d844dad23264ee7e088779b77641e50.
+The two emitted images compared equal, but their stdout length differed from
+the committed physical image length. The Windows comparison path had not
+selected binary mode for stdout; this is a transport hypothesis to verify,
+not permission to normalize or weaken stored-byte comparison.
+
+The corrected dump explicitly selects binary CRT stdout before emitting any
+image bytes. Three tiny hosted probes exercise default/text/binary output with
+NUL, LF, CRLF, Ctrl-Z and high bytes. The controller requires exact binary bytes
+and the observed text translation, records the current host's default, then
+retains the original complete-image equality and exact physical-length checks.
+No stored format, hash, source corpus, timing or resource bound changes.
+
+The old Microsoft setmode page's last native commit was 2024; its content was
+not read or used as a recent source. Current official Microsoft STL source
+e1ed302683e5e822f663fbb0f44cee7e9ddc6af0 (29 October 2026) was captured
+instead, alongside actual current-compiler probes:
+[stream opening modes](https://github.com/microsoft/STL/blob/e1ed302683e5e822f663fbb0f44cee7e9ddc6af0/stl/src/fiopen.cpp).
+Only inspected execution can establish whether the transport correction passes.

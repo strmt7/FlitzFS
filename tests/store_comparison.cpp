@@ -9,9 +9,14 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <cstdio>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
 namespace {
 using namespace flitzfs;
 using Bytes=std::vector<std::byte>;
@@ -107,6 +112,9 @@ int main(int argc,char** argv) {
     verify(reopened,data);
     const auto read=Clock::now();
     if(action=="dump-image") {
+#ifdef _WIN32
+      if(_setmode(_fileno(stdout),_O_BINARY)==-1)throw std::runtime_error("binary image stdout mode");
+#endif
       std::cout.write(reinterpret_cast<const char*>(backing->bytes.data()),static_cast<std::streamsize>(backing->bytes.size()));
       if(!std::cout)throw std::runtime_error("dump output");return 0;
     }
