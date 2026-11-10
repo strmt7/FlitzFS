@@ -336,7 +336,7 @@ std::vector<std::byte> merge_security(std::vector<std::byte> original,SECURITY_I
 NTSTATUS sdk_set_security(Harness& h,PVOID context,SECURITY_INFORMATION parts,std::vector<std::byte>& data) {
   require(data.size()+sizeof(FSP_FSCTL_TRANSACT_REQ)<=FSP_FSCTL_TRANSACT_REQ_SIZEMAX,"security test request cap");
   std::vector<std::byte> buffer(sizeof(FSP_FSCTL_TRANSACT_REQ)+data.size());
-  auto* request=reinterpret_cast<FSP_FSCTL_TRANSACT_REQ*>(buffer.data());FSP_FSCTL_TRANSACT_RSP response{};
+  auto* request=reinterpret_cast<FSP_FSCTL_TRANSACT_REQ*>(buffer.data());FSP_FSCTL_TRANSACT_RSP response;ZeroMemory(&response,sizeof(response));
   request->Size=static_cast<UINT16>(buffer.size());request->Kind=FspFsctlTransactSetSecurityKind;
   request->Req.SetSecurity.UserContext2=static_cast<UINT64>(reinterpret_cast<std::uintptr_t>(context));
   request->Req.SetSecurity.SecurityInformation=parts;
