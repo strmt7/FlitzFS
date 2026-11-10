@@ -405,3 +405,13 @@ Generic operations preserve tuples; the future Windows adapter must supply
 authorized automatic updates in the SAME transaction. Separate data/attribute
 write grants and context retention through failure. Security/allocation policy,
 writable callbacks, helper app, client qualification and live GPU remain open.
+
+## Metadata writer interruption evidence
+
+The basic-store-interruption workflow uses a separately scoped schema-3
+FLTXNS03 campaign; preserve all legacy schema-2/976 cases. Bind all six complete
+raw/automatic phase traces, decoded live-state closure digests, actual
+termination, exact cut/acknowledgement identity and independently reopened
+combined continuation. Reject mixed/omitted/relabelled/duplicate evidence.
+Keep existing per-process, event, queue, image, case and partition bounds.
+A verified process kill is not physical power loss or client qualification.

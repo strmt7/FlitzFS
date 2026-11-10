@@ -338,3 +338,11 @@ Read-only SDK projection uses present fields exactly while independently denying
 writes. Current synthetic host-oracle/mount checks stay off the owner's PC;
 they do not qualify Windows 11 clients, writable caching, physical power cuts,
 automatic timestamp policy, security/allocation or arbitrary-failure immunity.
+
+The separately scoped FLTXNS03 process campaign preserves every existing legacy
+case, binds all six phase traces and decoded state closures, requires confirmed
+writer termination, independently reopens expected old/new tuple/data and
+commits/reopens a combined continuation. Strict schema-3 merges reject omitted,
+mixed, relabelled or duplicate evidence under unchanged resource limits.
+These are hosted ordinary-file process interruptions, not physical power cuts,
+owner-PC permission, mounted writes or arbitrary-failure immunity.
