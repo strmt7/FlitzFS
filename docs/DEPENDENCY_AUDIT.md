@@ -155,3 +155,15 @@ This release audit remains distinct from Dependabot: the 9 November authenticate
 zero-alert observation is historical, and a failed API never establishes zero
 current alerts. Research-provider transitive freshness, broader Windows tools,
 end-user installation/rollback and live AMD runtime remain separate gates.
+
+
+## Current owner-authenticated Dependabot snapshot
+
+On10 November2026 the installed GitHub CLI successfully read the native REST
+endpoint repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100 using its
+existing authentication, with prompts/update notifications disabled. Page1
+contained0 alerts (below the100-item page limit), completing the OPEN-alert
+inventory. The exact owned CLI process exited successfully and was disposed;
+no token, authentication setting or driver was changed. This supersedes earlier
+unknown-access snapshots for this read; retain their failures as history.
+It is not proof of zero vulnerabilities, dismissed/closed alerts or future state.
