@@ -140,3 +140,19 @@ silently relabelled as NS04 process-kill coverage. Dedicated NS04 real writer
 termination and mounted ACL/access behavior remain required. Physical power,
 Windows 11 client, writable allocation/FileInfo/helper, live AMD, capacity/reclaim,
 redundant payload repair and low-priority autonomous learning remain open.
+
+## Initial hosted invariant failure
+
+At 5a8b43a35a149e4079411133cc719941762535c7 raw analysis job
+129619894163 compiled the implementation and passed all three new fault
+groups, but the new invariant fixture attempted compaction while retaining
+its source writer. The existing object-store lease correctly rejected that
+call before creating destination bytes. The initial invariant/portable run
+is failed evidence, not a passing qualification.
+
+The corrected fixture explicitly checks that live-writer rejection preserves
+both source and empty destination, releases the source writer, then verifies
+the permitted quiescent copy, exact descriptors and independent CPU reopen.
+No production compaction ownership check is weakened. The portable workflow
+also includes tests/** in its trigger because its qualification executes those
+same tests; test-only corrections must produce a fresh qualification result.

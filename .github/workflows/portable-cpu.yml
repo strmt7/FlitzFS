@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/**'
       - 'include/**'
+      - 'tests/**'
       - 'third_party/**'
       - 'CMakeLists.txt'
       - 'tools/ci/check_portable_cpu.py'
