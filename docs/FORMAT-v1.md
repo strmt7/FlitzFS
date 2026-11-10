@@ -233,3 +233,13 @@ The opt-in hosted writable adapter now has a bounded SetSecurity candidate using
 WinFsp's merge helper and original per-part granted-access checks. SDK/CPU tests
 are configured; inspect exact-commit CI before claiming a pass. Stored formats and historical bytes are unchanged; bounded descriptor replacements use the existing FLTXNS04/05 atomic metadata transaction.
 See [NATIVE_SECURITY.md](NATIVE_SECURITY.md) for its contract and limits.
+
+
+The hosted writable candidate now rejects all owner/group-bearing security
+updates atomically before merge/adoption/storage access because the selected
+WinFsp request does not carry the current requester's token. Original handle
+rights and equal SIDs do not supply that authority. DACL/SACL behavior and stored
+formats remain unchanged. Full owner/group support remains required through a
+separately qualified authenticated request path; it is not complete. See
+NATIVE_SECURITY.md and WINDOWS_OWNERSHIP_SOURCES.json for current-source
+evidence, regression requirements and driver/host boundaries.

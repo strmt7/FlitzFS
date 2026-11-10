@@ -902,3 +902,16 @@ bounded self-relative input/output before replicated publication. No post-commit
 read/allocation, retry, stored-format change, cap increase or automatic mount.
 Keep every old fault/cap/handle/retirement test. SDK dispatch does not prove
 kernel access/privilege enforcement, inheritance propagation or client safety.
+
+## Request-bound ownership qualification
+
+The selected SetSecurity frame has NO requester token. Read the latest section
+of docs/NATIVE_SECURITY.md and its native/crawl receipts before changing this
+policy. Reject whole OWNER/GROUP-bearing requests before adoption/merge/I/O,
+including identical SIDs and mixed ACL updates. WRITE_OWNER alone grants no
+session replacement access. Do not treat one helper rejection as universal
+protection or enable SEF_AVOID_OWNER_CHECK/SEF_AVOID_PRIVILEGE_CHECK. Production
+ownership remains required but needs authenticated live requester authority,
+negotiated protocol/capability and proven token cleanup; no opener/service-token/
+PID/boolean substitute. No driver permission on the PC follows. Retain all old
+ACL/cap/fault/retirement cases and native exact outcome reporting.
