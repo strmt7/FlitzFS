@@ -931,3 +931,27 @@ per-instance leases are not authentication or proof against other facades.
 No path factory, source deletion, name replacement, automatic worker, mounted
 handoff, driver/PC/GPU permission or physical-power claim follows. Those remain
 separate full-product requirements; retain every historical case/cap/oracle.
+
+## Latest owner host-testing instructions (10 November 2026)
+
+The PC IS in testing scope. Earlier text excluding all owner-PC testing is
+superseded. The filesystem under test MUST be RAM-backed, never an HDD/SSD/NVMe
+image/system volume, until the owner changes this rule. Carefully bounded CPU
+and GPU tests are authorized after exact-path audit/qualification and live
+headroom checks; no driver installation/reinstallation/change, clocks/power/
+boot changes, risky stress/fault injection, popups or unattended persistence.
+Use only a small part of RAM/VRAM, hard child process-tree memory/CPU/time caps,
+low priority, terminal failures and actual exit/cleanup proof. No stale services,
+workers, tasks, mappings/locked pages/handles or needless long runs. Unknown
+backing/headroom/driver qualification means no dependent launch, not disk fallback.
+
+Real-file corpora are authorized as well as synthetic input. The owner permits
+modest TEMPORARY data on the verified HDD, preserving all existing user files.
+Start below256 MiB combined and use per-file/HTTP/time/drive-reserve caps; never
+hundreds of GiB or near exhaustion. Keep new outputs inside unique owned fixtures,
+CREATE_NEW, record URL/commit/size/hash/failures and clean only verified owned
+files. These source downloads are NOT permission for physical-drive filesystem
+backing. Keep benchmark claims separate for CPU RAM core, mounted I/O, GPU and
+idle recompression; configuration/plans are not implementation or speed evidence.
+The owner requests fully autonomous work without questions/popups; continue
+independent work when a prerequisite is missing rather than relaxing safety.
