@@ -272,6 +272,11 @@ std::optional<NativeSecurityDescriptor> NativeFileSession::security_descriptor(c
   if(!slot.security_read)fail(E::access_denied,"native context has no descriptor read grant");
   (void)self.state(slot);return self.writer.inspect_security_descriptor(slot.inode);
 }
+std::optional<NativeSecurityDescriptor> NativeFileSession::security_descriptor_for_update(const NativeFileHandle& handle) const {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.security_replace)fail(E::access_denied,"native context has no full descriptor replacement grant");
+  (void)self.state(slot);return self.writer.inspect_security_descriptor(slot.inode);
+}
 NativeFsCommit NativeFileSession::set_security_descriptor(const NativeFileHandle& handle,std::span<const std::byte> value) {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.security_replace)fail(E::access_denied,"native context has no full descriptor replacement grant");

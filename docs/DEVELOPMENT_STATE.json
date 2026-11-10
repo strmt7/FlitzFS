@@ -3,25 +3,27 @@
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "qualified_checkpoint": {
-    "commit": "4fe5c4000766436780e1350cefc8ed01f3297e6d",
-    "tree": "b92288bacd5b9a740e6deecc4732994443b83b21",
-    "ci_run": 42862833242,
-    "native_job": 129993232157,
+    "commit": "04bdef47de8e3dbdb45728c775b19fd45eb78750",
+    "tree": "27e1c1b6d3dc28cc8dc4457b9aff8635e44598d0",
+    "ci_run": 42872599627,
+    "native_job": 130027456227,
     "native_groups": 110,
-    "report_negative_groups": 5,
+    "report_negative_groups": 6,
     "writable_jobs": {
-      "basic": 129999263116,
-      "mutations": 129999262395,
-      "delete": 129999262391,
-      "crash": 129999262346
+      "basic": 130032957503,
+      "crash-restart": 130032957591,
+      "delete": 130032957630,
+      "crash": 130032957659,
+      "mutations": 130032957661,
+      "restart": 130032957994
     },
-    "proof_scope": "bounded actual EOF/rename/held-handle deletion and one post-flush idle-helper termination with exact CPU reopen; not physical power loss, arbitrary cut recovery, client/GPU/product qualification"
+    "proof_scope": "Disposable hosted VMs only; resolved-image resume only; CPU only; not physical power-loss or production qualification"
   },
   "source_routing": {
-    "commit": "4fe5c4000766436780e1350cefc8ed01f3297e6d",
-    "job": 129993233120,
+    "commit": "04bdef47de8e3dbdb45728c775b19fd45eb78750",
+    "job": 130027456320,
     "queries": 6,
-    "source_sha256": "6cdeca8f64fd00c369dcf42647a224b7c2426d1fc4d18ec446e43df31743dc10"
+    "source_sha256": "23aa7a27fa7c30717e3184809ab310530f7b6109ec96ddd0377bec12bebf58ea"
   },
   "safety": {
     "development": "native repository APIs and disposable hosted VMs",
@@ -43,21 +45,18 @@
     }
   },
   "pending_implementation": {
-    "scope": "hosted resolved-image restart/continuation after actual normal/terminated producer retirement",
+    "scope": "bounded hosted writable security updates through selected WinFsp helper; original per-part rights; existing atomic publication",
     "check_exact_current_head_ci": true,
     "do_not_treat_configuration_as_results": true,
     "primary_files": [
       "src/windows/winfsp_native.cpp",
-      "src/windows/winfsp_native.hpp",
+      "src/native_session.cpp",
+      "include/flitzfs/native_session.hpp",
       "tests/test_winfsp_native.cpp",
-      "tests/winfsp_write_probe.cpp",
-      "tools/ci/verify_windows_write_probe.py",
-      "tools/ci/test_windows_write_probe.py",
-      ".github/workflows/ci.yml"
+      "tests/test_native_security.cpp"
     ],
     "docs": [
-      "docs/WRITABLE_MOUNT_TRIAL.md",
-      "docs/STORE_RESUME_AND_INTERRUPTION.md",
+      "docs/NATIVE_SECURITY.md",
       "docs/NATIVE_WRITABLE_ADAPTER.md"
     ]
   },
@@ -83,5 +82,11 @@
     "page_reading": "reviewed hosted Crawl4AI; exact native API/package/archive captures retain native transports",
     "no_delegation": true,
     "no_archive_product_routes": true
+  },
+  "prior_metadata_attempt": {
+    "run": 42872599532,
+    "first_failure": "Zstd configure exceeded unchanged 60-second build limit before filesystem tests; runner cleaned orphan vctip",
+    "retry_job": 130030452620,
+    "conclusion": "success"
   }
 }

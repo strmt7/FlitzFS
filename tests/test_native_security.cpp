@@ -167,14 +167,20 @@ void owned() {
   const auto denied=session.open("f",{true,true,true},NativeOpenKind::file,{true});
   auto count=ram->calls;const auto reads=ram->read_calls;
   denies([&]{session.security_descriptor(denied);},NativeSessionErrorCode::access_denied);
+  denies([&]{session.security_descriptor_for_update(denied);},NativeSessionErrorCode::access_denied);
   denies([&]{session.set_security_descriptor(denied,sec::descriptor(2));},NativeSessionErrorCode::access_denied);
   require(ram->calls==count && ram->read_calls==reads,"data/basic grants allowed security I/O");
+  auto replacement=session.open("f",{},NativeOpenKind::file,{},{false,true});
+  require(session.security_descriptor_for_update(replacement)==sec::descriptor(),"replacement-only merge input");
+  denies([&]{session.security_descriptor(replacement);},NativeSessionErrorCode::access_denied);
+  session.cleanup(replacement,false);session.close(replacement);
   auto handle=session.open("f",{true,true,true},NativeOpenKind::file,{},{true,true});
   require(session.security_descriptor(handle)==sec::descriptor(),"owned security readback");
   session.set_security_descriptor(handle,sec::descriptor(2));session.rename(handle,"renamed");
   require(session.security_descriptor(handle)==sec::descriptor(2),"stable inode rename lost descriptor");
   auto stale=handle;session.cleanup(handle,false);session.close(handle);
   denies([&]{session.security_descriptor(stale);},NativeSessionErrorCode::invalid_handle);
+  denies([&]{session.security_descriptor_for_update(stale);},NativeSessionErrorCode::invalid_handle);
   auto late=session.open("renamed",{true,true,true},NativeOpenKind::file,{},{true,true});
   session.set_delete(late,true);session.cleanup(late,true);
   require(session.security_descriptor(late)==sec::descriptor(2),"detached owned descriptor disappeared");
@@ -193,6 +199,7 @@ void failed_owned_update() {
       session.stats().cleaned==before.cleaned,"failed owned security update released context");
   const auto calls=ram->calls;
   denies([&]{session.security_descriptor(handle);},NativeSessionErrorCode::terminal);
+  denies([&]{session.security_descriptor_for_update(handle);},NativeSessionErrorCode::terminal);
   require(ram->calls==calls,"fenced descriptor context retried backing");
   auto recovered=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(ram->stable)));
   require(recovered.security_descriptor(2)==sec::descriptor(),"failed first-write update lost acknowledged descriptor");

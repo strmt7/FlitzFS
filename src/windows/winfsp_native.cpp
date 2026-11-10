@@ -103,7 +103,7 @@ UINT32 attributes(UINT32 value,bool directory) {
 NativeWindowsIoOutcome success() noexcept{return {STATUS_SUCCESS,false};}
 }
 struct WinFspNativeWritable::Impl {
-  struct Slot {std::uintptr_t token=0;NativeFileHandle handle;bool provisional=false,awaiting_overwrite=false;};
+  struct Slot {std::uintptr_t token=0;NativeFileHandle handle;bool provisional=false,awaiting_overwrite=false;UINT32 security_access=0;};
   NativeFileSession session;
   std::array<Slot,NativeFileSession::max_contexts> slots{};
   std::uintptr_t next_token=1;
@@ -151,8 +151,8 @@ struct WinFspNativeWritable::Impl {
     }
     return slot;
   }
-  void install(Slot& slot,const NativeFileHandle& handle,bool overwrite) noexcept {
-    slot={next_token,handle,true,overwrite};++next_token;
+  void install(Slot& slot,const NativeFileHandle& handle,bool overwrite,UINT32 access) noexcept {
+    slot={next_token,handle,true,overwrite,access&(READ_CONTROL|WRITE_DAC|WRITE_OWNER|ACCESS_SYSTEM_SECURITY)};++next_token;
   }
   static NTSTATUS security_copy(const std::vector<std::byte>& value,PSECURITY_DESCRIPTOR destination,SIZE_T* size) noexcept {
     if(!size)return destination?STATUS_INVALID_PARAMETER:STATUS_SUCCESS;
@@ -186,7 +186,7 @@ struct WinFspNativeWritable::Impl {
     return {(access&FILE_READ_DATA)!=0,(access&(FILE_WRITE_DATA|FILE_APPEND_DATA))!=0,(access&DELETE)!=0};
   }
   static NativeBasicAccess basic_grant(UINT32 access) noexcept{return {(access&FILE_WRITE_ATTRIBUTES)!=0};}
-  static NativeSecurityAccess security_grant(UINT32 access) noexcept{return {(access&(READ_CONTROL|ACCESS_SYSTEM_SECURITY))!=0,false};}
+  static NativeSecurityAccess security_grant(UINT32 access) noexcept{return {(access&(READ_CONTROL|ACCESS_SYSTEM_SECURITY))!=0,(access&(WRITE_DAC|WRITE_OWNER|ACCESS_SYSTEM_SECURITY))!=0};}
   static NTSTATUS create(FSP_FILE_SYSTEM* fs,PWSTR name,UINT32 options,UINT32 access,UINT32 attrs,
       PSECURITY_DESCRIPTOR security,UINT64 allocation,PVOID* context,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(context)*context=nullptr;if(info)*info={};if(!context||!info)return STATUS_INVALID_PARAMETER;
@@ -199,7 +199,7 @@ struct WinFspNativeWritable::Impl {
       initial.security_access=security_grant(access);initial.initial_delete={(options&FILE_DELETE_ON_CLOSE)!=0};
       auto made=s.session.create_prepared_storage(path(name),directory,basic,data,
           directory?std::optional<std::uint64_t>{}:std::optional<std::uint64_t>{allocation},initial);
-      s.install(slot,made.handle,false);
+      s.install(slot,made.handle,false,access);
       if(!encode_native_file_info(made.state,cache_policy,*info))return win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
       *context=reinterpret_cast<PVOID>(slot.token);return success();
     });
@@ -221,7 +221,7 @@ struct WinFspNativeWritable::Impl {
           {disposition!=0,disposition==0},initial);
       else handle=s.session.prepare_open(relative,grants(access),found.state.info.directory?NativeOpenKind::directory:NativeOpenKind::file,
           basic_grant(access),security_grant(access),initial);
-      s.install(slot,handle,overwrite);*info=prepared;*context=reinterpret_cast<PVOID>(slot.token);return success();
+      s.install(slot,handle,overwrite,access);*info=prepared;*context=reinterpret_cast<PVOID>(slot.token);return success();
     });
   }
   static NTSTATUS overwrite(FSP_FILE_SYSTEM* fs,PVOID context,UINT32 attrs,BOOLEAN replace,UINT64 allocation,FSP_FSCTL_FILE_INFO* info) noexcept {
@@ -319,6 +319,41 @@ struct WinFspNativeWritable::Impl {
       const auto security=s.session.security_descriptor(s.resolve(context).handle);
       if(!security)return win_detail::failure(s.session,STATUS_FILE_CORRUPT_ERROR,true);
       return NativeWindowsIoOutcome{security_copy(*security,value,size),false};
+    });
+  }
+  static NTSTATUS set_security(FSP_FILE_SYSTEM* fs,PVOID context,SECURITY_INFORMATION parts,
+      PSECURITY_DESCRIPTOR modification) noexcept {
+    return run(fs,[&](Impl& s) {
+      // Kernel-originated granted access is captured at Create/Open. A partial
+      // Windows right NEVER becomes an unrestricted public replacement API.
+      constexpr SECURITY_INFORMATION dacl_flags=PROTECTED_DACL_SECURITY_INFORMATION|UNPROTECTED_DACL_SECURITY_INFORMATION;
+      constexpr SECURITY_INFORMATION sacl_flags=PROTECTED_SACL_SECURITY_INFORMATION|UNPROTECTED_SACL_SECURITY_INFORMATION;
+      constexpr SECURITY_INFORMATION supported=OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION|
+          DACL_SECURITY_INFORMATION|SACL_SECURITY_INFORMATION|dacl_flags|sacl_flags;
+      if(!parts||(parts&~supported)||(parts&dacl_flags)==dacl_flags||(parts&sacl_flags)==sacl_flags||
+          ((parts&dacl_flags)&&!(parts&DACL_SECURITY_INFORMATION))||
+          ((parts&sacl_flags)&&!(parts&SACL_SECURITY_INFORMATION)))
+        return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
+      auto& selected=s.resolve(context);const auto access=selected.security_access;
+      if(((parts&(DACL_SECURITY_INFORMATION|dacl_flags))&&!(access&WRITE_DAC))||
+          ((parts&(OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION))&&!(access&WRITE_OWNER))||
+          ((parts&(SACL_SECURITY_INFORMATION|sacl_flags))&&!(access&ACCESS_SYSTEM_SECURITY)))
+        return win_detail::failure(s.session,STATUS_ACCESS_DENIED);
+      // Reject malformed/oversized trusted transport input before any I/O.
+      const auto input=descriptor(modification);
+      auto& slot=s.adopt(context);
+      auto original=s.session.security_descriptor_for_update(slot.handle);
+      if(!original)return win_detail::failure(s.session,STATUS_FILE_CORRUPT_ERROR,true);
+      struct Merged {
+        PSECURITY_DESCRIPTOR value=nullptr;
+        ~Merged(){if(value)FspDeleteSecurityDescriptor(value,(NTSTATUS (*)())FspSetSecurityDescriptor);}
+      } merged;
+      const auto status=FspSetSecurityDescriptor(original->data(),parts,
+          const_cast<std::byte*>(input.data()),&merged.value);
+      if(!NT_SUCCESS(status))return win_detail::failure(s.session,status);
+      const auto replacement=descriptor(merged.value);
+      s.session.set_security_descriptor(slot.handle,replacement);
+      return success(); // No backing read, clock or allocation after publication.
     });
   }
   static NTSTATUS directory(FSP_FILE_SYSTEM* fs,PVOID context,PWSTR,PWSTR marker,PVOID buffer,ULONG length,PULONG count) noexcept {
@@ -451,7 +486,7 @@ const FSP_FILE_SYSTEM_INTERFACE& WinFspNativeWritable::callbacks() noexcept {
           expected,normal?1U:2U,std::memory_order_acq_rel);}
     };
     t.SetVolumeLabel=[](FSP_FILE_SYSTEM*,PWSTR,FSP_FSCTL_VOLUME_INFO*)->NTSTATUS{return STATUS_INVALID_DEVICE_REQUEST;};
-    t.SetSecurity=[](FSP_FILE_SYSTEM*,PVOID,SECURITY_INFORMATION,PSECURITY_DESCRIPTOR)->NTSTATUS{return STATUS_INVALID_DEVICE_REQUEST;};
+    t.SetSecurity=Impl::set_security;
     return t;
   }();return table;
 }

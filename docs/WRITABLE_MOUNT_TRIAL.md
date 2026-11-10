@@ -215,3 +215,8 @@ verified final state. The follow-up fixes that result selection and adds
 explicit regression assertions for all three returned final fields. No byte,
 metadata, process, source or cap check is removed or raised. Inspect the
 follow-up's full executed checks before claiming a passing restart checkpoint.
+
+
+## Verified resolved-image restart checkpoint
+
+Executed qualification at 04bdef47de8e3dbdb45728c775b19fd45eb78750: all nine triggered workflows succeeded. All six writable profiles reconciled complete with source-bound reports and confirmed child exits. Normal restart advanced to generation 30, namespace 15, image 3145728 bytes; controlled-termination restart advanced to generation 28, namespace 14, image 2949120 bytes. Both retained 7001 original bytes and verified 3073 continued bytes through an independent CPU reader. Metadata attempt one timed out configuring Zstd before filesystem execution; unchanged-limit failed-job retry succeeded on a new runner. Preserve failed attempt. No owner-host or GPU execution; no physical power-loss evidence. Fold into next substantive batch.
