@@ -1,7 +1,7 @@
 # Input: staged SDK and pinned .ci-deps/zstd and .ci-deps/lz4 on a disposable Windows runner.
 # Output: native build; no downloads, driver installation or mount operations.
 [CmdletBinding()]
-param([switch]$BuildMountProbe, [switch]$BuildWriteProbe, [switch]$PortableCpu)
+param([switch]$BuildMountProbe, [switch]$BuildWriteProbe, [switch]$PortableCpu, [switch]$RamHostProbe)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows') {
@@ -9,6 +9,7 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hoste
 }
 if ($BuildMountProbe -and $BuildWriteProbe) { throw 'Select one isolated mount profile.' }
 if ($PortableCpu -and ($BuildMountProbe -or $BuildWriteProbe)) { throw 'Portable CPU qualification never mounts or loads the SDK.' }
+if ($RamHostProbe -and -not $PortableCpu) { throw 'RAM host probe requires portable CPU mode.' }
 $zstdRuntime = if ($PortableCpu) { 'ON' } else { 'OFF' }
 $runtimeFlags = if ($PortableCpu) {
     @('-DCMAKE_POLICY_DEFAULT_CMP0091=NEW', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded')
@@ -42,11 +43,17 @@ $portable = if ($PortableCpu) { 'ON' } else { 'OFF' }
 $buildDirectory = if ($PortableCpu) { 'build-portable' } else { 'build-native' }
 $rootOptions = @()
 if (-not $PortableCpu) { $rootOptions += "-DFLITZFS_WINFSP_SDK=$env:FLITZFS_WINFSP_SDK" }
+if ($RamHostProbe) {
+    $rootOptions += '-DFLITZFS_BUILD_RAM_HOST_PROBE=ON'
+    $rootOptions += "-DFLITZFS_RAM_SOURCE_COMMIT=$env:GITHUB_SHA"
+} else { $rootOptions += '-DFLITZFS_BUILD_RAM_HOST_PROBE=OFF' }
 cmake -S . -B $buildDirectory -A x64 "-DFLITZFS_PORTABLE_CPU=$portable" -DFLITZFS_REQUIRE_LZ4=ON "-DFLITZFS_LZ4_INCLUDE=$lz4Headers" "-DFLITZFS_LZ4_LIBRARY=$($lz4Libraries[0].FullName)" -DFLITZFS_REQUIRE_ZSTD=ON "-DFLITZFS_BUILD_WINFSP=$native" "-DFLITZFS_BUILD_MOUNT_PROBE=$probe" "-DFLITZFS_BUILD_WRITE_PROBE=$writeProbe" "-DFLITZFS_ZSTD_INCLUDE=$headers" "-DFLITZFS_ZSTD_LIBRARY=$($libraries[0].FullName)" @rootOptions
 if ($LASTEXITCODE) { throw 'Native configure failed' }
 # The gated mount job launches only this executable and its own children.
 # Ordinary/native qualification still builds/tests ALL targets separately.
-if ($BuildMountProbe) {
+if ($RamHostProbe) {
+    cmake --build $buildDirectory --config Release --target flitzfs_ram_host_probe --parallel 2
+} elseif ($BuildMountProbe) {
     cmake --build $buildDirectory --config Release --target flitzfs_mount_probe --parallel 2
 } elseif ($BuildWriteProbe) {
     cmake --build $buildDirectory --config Release --target flitzfs_write_probe --parallel 2

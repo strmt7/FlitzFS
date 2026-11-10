@@ -19,3 +19,15 @@ then independently loses either head copy and either current image root. It
 requires that later file plus the original state, then publishes a third compacted
 image and checks retained old snapshots and fixed head size. Configuration is
 not execution: inspect the amended exact-commit CI before claiming these passed.
+
+## Executed strengthened checkpoint
+
+At dd388157456d0ae6ed9735c0c16a5e83826b37b7 all four triggered workflows succeeded.
+Native job130095265885 passed114 groups; sanitizer job130095265979 passed96.
+The strengthened invariant group passed348 checks, including acknowledgements
+after handoff, paired head/current-image root loss, epoch1-to2-to3 transitions,
+and retained old snapshots. Creation/publication/repair retained84/60/120 fault
+cases and356/1344/1608 checks. All six existing mounted regression profiles
+completed with reconciled reports and confirmed child exits. Those profiles
+still use the older VM-only image fixtures: they do not qualify mounted head
+integration, reclamation, physical power loss, owner-PC or GPU execution.

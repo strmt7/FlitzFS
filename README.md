@@ -328,3 +328,14 @@ CPU comparison, minimum-checkpoint binding and fault-test contract are in
 docs/VOLUME_HEAD.md. Existing encodings/routes/caps remain unchanged. Tests are
 configured, not yet qualified at this commit. No file-provider, mounted handoff,
 source deletion, automatic reclaim/worker, GPU or owner-PC operation follows.
+
+
+The owner explicitly includes their PC in carefully bounded RAM-only testing.
+The optional locked-RAM CPU probe and immutable real-file corpus policy are in
+docs/HOST_RAM_TESTING.md. It requires VM-qualified exact provenance, page locking,
+hard process budgets and confirmed cleanup, with no WinFsp/driver/GPU invocation.
+Small source/tool/report staging on the verified HDD is separately capped; it
+never supplies filesystem image backing. Configuration is not a host execution
+or mounted/GPU/idle-recompression qualification. Existing formats/routes stay
+unchanged. Dependabot OPEN-alert access was successfully verified (0 on the
+complete10-November snapshot); see DEPENDENCY_AUDIT.md for scope.

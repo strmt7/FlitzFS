@@ -3,66 +3,28 @@
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "qualified_checkpoint": {
-    "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
-    "tree": "8f4000f66b728f39fd8f3892ea74f91a2c236c9d",
-    "run": 42882610355,
-    "workflow_count": 10,
-    "native_job": 130062532946,
-    "native_groups": 110,
-    "sanitizer_job": 130062533566,
-    "sanitizer_groups": 92,
-    "adapter_checks": 1703,
-    "adapter_dispatches": 1079,
-    "handles": [
-      151,
-      151
-    ],
-    "security": {
-      "per_mode": {
-        "updates": 2,
-        "denials": 21,
-        "ownership_rejections": 6,
-        "sacl_status": 0
-      },
-      "mounted": false
+    "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
+    "tree": "7fa2ba78e36d9491b906871fa365d330d23a7c55",
+    "run": 42892003287,
+    "workflow_count": 4,
+    "implementation_commit": "453f5e4c09f7c14013d2555c6702c1e627c812d5",
+    "implementation_workflows": 11,
+    "native_job": 130095265885,
+    "native_groups": 114,
+    "sanitizer_job": 130095265979,
+    "sanitizer_groups": 96,
+    "volume_head": {
+      "invariant_checks": 348,
+      "io_fault_cases": 264,
+      "head_bytes": 131072,
+      "real_files_created": false,
+      "mounted": false,
+      "gpu": false
     },
     "profiles": [
       {
-        "job": 130070954126,
-        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
-        "complete": true,
-        "generation": 30,
-        "image_bytes": 3145728,
-        "namespace_sequence": 15,
-        "profile": "restart",
-        "schema": 1,
-        "user_bytes": 7001
-      },
-      {
-        "job": 130070954154,
-        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
-        "complete": true,
-        "generation": 16,
-        "image_bytes": 1769472,
-        "namespace_sequence": 8,
-        "profile": "basic",
-        "schema": 1,
-        "user_bytes": 7001
-      },
-      {
-        "job": 130070954236,
-        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
-        "complete": true,
-        "generation": 32,
-        "image_bytes": 3342336,
-        "namespace_sequence": 16,
-        "profile": "delete",
-        "schema": 1,
-        "user_bytes": 37
-      },
-      {
-        "job": 130070954255,
-        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "job": 130103186584,
+        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
         "complete": true,
         "generation": 28,
         "image_bytes": 2949120,
@@ -72,8 +34,8 @@
         "user_bytes": 7001
       },
       {
-        "job": 130070954292,
-        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "job": 130103186616,
+        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
         "complete": true,
         "generation": 38,
         "image_bytes": 3932160,
@@ -83,8 +45,19 @@
         "user_bytes": 89
       },
       {
-        "job": 130070954781,
-        "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
+        "job": 130103186641,
+        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
+        "complete": true,
+        "generation": 18,
+        "image_bytes": 1966080,
+        "namespace_sequence": 9,
+        "profile": "basic",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      {
+        "job": 130103186763,
+        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
         "complete": true,
         "generation": 14,
         "image_bytes": 1572864,
@@ -92,21 +65,43 @@
         "profile": "crash",
         "schema": 1,
         "user_bytes": 7001
+      },
+      {
+        "job": 130103186912,
+        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
+        "complete": true,
+        "generation": 28,
+        "image_bytes": 2949120,
+        "namespace_sequence": 14,
+        "profile": "restart",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      {
+        "job": 130103186925,
+        "commit": "dd388157456d0ae6ed9735c0c16a5e83826b37b7",
+        "complete": true,
+        "generation": 32,
+        "image_bytes": 3342336,
+        "namespace_sequence": 16,
+        "profile": "delete",
+        "schema": 1,
+        "user_bytes": 37
       }
     ],
-    "proof_scope": "Hosted SDK ACL operations and explicit unauthenticated ownership rejection; existing mounted regressions. Not functional ownership, mounted ACL/client, physical-power or GPU qualification."
+    "proof_scope": "CPU RAM-model head selection/faults/repeated handoff and later acknowledged-data retention, plus six OLD mounted regressions. No mounted head integration/reclamation/physical-power/GPU proof."
   },
   "source_routing": {
-    "commit": "f37d4d7d19a86005f11841f42d00b1d5e32b59ae",
-    "job": 130062534697,
+    "commit": "453f5e4c09f7c14013d2555c6702c1e627c812d5",
+    "job": 130091916491,
     "queries": 6,
-    "source_sha256": "332ec6ed5c34e2db8bb62f246846bf08634753b8edf21175b68f03e5c0878abd"
+    "source_sha256": "1c7970a928cdc36e15aead27a0d865f3125adb7fc2fa98edbf802159c977eee3"
   },
   "safety": {
     "development": "native repository APIs and disposable hosted VMs",
-    "owner_pc": "only later qualified verified RAM-backed synthetic tests; no real-storage artifacts/driver changes; none started",
+    "owner_pc": "Authorized bounded RAM-only CPU/GPU testing after exact VM qualification; modest real-source/tool/report HDD staging is separate from filesystem backing. No filesystem/GPU/mount probe executed yet.",
     "no_raw_device_or_partition_ops": true,
-    "no_local_processes_started": true,
+    "no_local_processes_started": false,
     "gpu_execution_qualified": false,
     "default_cpu": true,
     "probes": {
@@ -119,21 +114,32 @@
       "normal_seconds": 30,
       "killed_source_seconds": 15,
       "priority": "below-normal"
+    },
+    "local_process_scope": "Read-only host discovery, successful bounded GitHub alerts API read, and 118663 bytes of CREATE_NEW public corpus downloads only; all observed own processes exited.",
+    "ram_host_probe": {
+      "qualification": "pending exact-commit hosted execution",
+      "locked_cap_bytes": 41943040,
+      "expected_locked_peak_bytes": 33816576,
+      "child_mib": 128,
+      "cpu_rate": 2000,
+      "timeout_ms": 15000,
+      "processes": 1,
+      "headroom_reserve_bytes": 2147483648,
+      "mounted": false,
+      "gpu": false
     }
   },
   "pending_implementation": {
-    "scope": "Fixed-size native volume head for authoritative compacted-image selection; independent CPU binding and every I/O fault; no deletion/provider/mount integration",
-    "check_exact_current_head_ci": true,
+    "scope": "Opt-in portable locked-RAM CPU core probe with real/synthetic raw/automatic input, independent compacted-image byte readback, provenance and hard process limits",
     "primary_files": [
-      "include/flitzfs/volume_head.hpp",
-      "src/volume_head.cpp",
-      "src/native_filesystem.cpp",
-      "src/object_store.cpp",
-      "tests/test_volume_head.cpp"
+      "tests/locked_ram_fixture.hpp",
+      "tests/windows_ram_probe.cpp",
+      ".github/workflows/ram-host.yml"
     ],
     "docs": [
-      "docs/VOLUME_HEAD.md"
-    ]
+      "docs/HOST_RAM_TESTING.md"
+    ],
+    "check_exact_current_head_ci": true
   },
   "remaining": [
     "authenticated request-bound kernel/helper authority for functional owner/group changes and mounted ACL enforcement",
@@ -142,7 +148,8 @@
     "scale/history reclamation and compression portfolio/performance comparisons",
     "live AMD runtime, event/evidence-driven CPU fallback and installation independence",
     "low-priority adaptive learning/maintenance and payload-replica repair",
-    "Dependabot alert access/count remains unknown after rejected endpoints"
+    "RAM-backed mounted host path and existing-driver exact-version qualification; CPU core probe is not a mount",
+    "volume-head integration with live session/controller, reader pins and safe source retirement/reclamation"
   ],
   "efficiency_rules": [
     "Read ledger and applicable AGENTS; verify current main/CI before trusting cached state.",
@@ -164,5 +171,18 @@
     "first_failure": "Zstd configure exceeded unchanged 60-second build limit before filesystem tests; runner cleaned orphan vctip",
     "retry_job": 130030452620,
     "conclusion": "success"
+  },
+  "dependabot": {
+    "date": "2026-11-10",
+    "repository": "strmt7/FlitzFS",
+    "transport": "Authenticated installed GitHub CLI native REST API, no prompts",
+    "endpoint": "repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100",
+    "success": true,
+    "open_alerts": 0,
+    "page": 1,
+    "per_page": 100,
+    "complete": true,
+    "owned_cli_exit_confirmed": true,
+    "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
   }
 }

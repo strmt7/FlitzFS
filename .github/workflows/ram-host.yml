@@ -1,0 +1,99 @@
+name: Bounded locked-RAM host-probe qualification
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'tests/**'
+      - 'third_party/**'
+      - 'CMakeLists.txt'
+      - 'tools/ci/build_windows_native.ps1'
+      - 'tools/ci/prepare_hosted_tools.py'
+      - '.github/workflows/ram-host.yml'
+permissions:
+  contents: read
+jobs:
+  locked-ram:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify guarded tool provisioning
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage current checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Verify pinned digest source
+        run: python tools/ci/verify_blake3_sources.py
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: lz4/lz4
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5
+          path: .ci-deps/lz4
+          persist-credentials: false
+      - name: Build self-contained CPU probe without SDK, driver or GPU
+        run: ./tools/ci/build_windows_native.ps1 -PortableCpu -RamHostProbe
+      - name: Audit self-contained PE dependencies
+        shell: python
+        run: |
+          from pathlib import Path
+          import runpy
+          audit_binary = runpy.run_path("tools/ci/check_portable_cpu.py", run_name="ram_probe_audit")["audit_binary"]
+          print(audit_binary(Path("build-portable/Release/flitzfs_ram_host_probe.exe").read_bytes()))
+      - name: Exercise bounded real-source and synthetic RAM core
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $fixture = Join-Path $env:RUNNER_TEMP ("flitzfs-locked-ram-" + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $fixture -ErrorAction Stop | Out-Null
+          $report = Join-Path $fixture 'report.json'
+          $probe = (Resolve-Path 'build-portable/Release/flitzfs_ram_host_probe.exe').Path
+          & $probe --run $report (Resolve-Path 'README.md').Path (Resolve-Path 'CMakeLists.txt').Path (Resolve-Path 'docs/DEVELOPMENT_STATE.json').Path
+          if ($LASTEXITCODE) { throw 'Locked-RAM probe failed; no artifact promotion' }
+          $beforeHash = (Get-FileHash -LiteralPath $report -Algorithm SHA256).Hash
+          & $probe --run $report
+          if ($LASTEXITCODE -eq 0 -or (Get-FileHash -LiteralPath $report -Algorithm SHA256).Hash -ne $beforeHash) { throw 'Existing report was not preserved' }
+          $uncontained = Join-Path $fixture 'uncontained.json'
+          & $probe --child $uncontained
+          if ($LASTEXITCODE -eq 0) { throw 'Uncontained direct child was admitted' }
+          $denial = Get-Content -LiteralPath $uncontained -Raw | ConvertFrom-Json
+          if ($denial.complete -or $denial.locked_after -ne 0 -or -not $denial.cleanup_ok) { throw 'Uncontained child touched locked storage' }
+          $data = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+          if ($data.commit -ne $env:GITHUB_SHA -or -not $data.complete -or -not $data.resident_verified -or $data.locked_after -ne 0 -or $data.mounted -or $data.gpu) { throw 'RAM evidence mismatch' }
+          if ($data.locked_peak -gt 40MB -or $data.handles_before -ne $data.handles_after -or $data.real_files -ne 3) { throw 'RAM resource evidence mismatch' }
+          $package = Join-Path $env:RUNNER_TEMP 'flitzfs-ram-package'
+          New-Item -ItemType Directory -Path $package -ErrorAction Stop | Out-Null
+          Copy-Item -LiteralPath $probe -Destination (Join-Path $package 'flitzfs_ram_host_probe.exe') -ErrorAction Stop
+          Copy-Item -LiteralPath $report -Destination (Join-Path $package 'qualification.json') -ErrorAction Stop
+          $licenses = Join-Path $package 'licenses'
+          New-Item -ItemType Directory -Path $licenses -ErrorAction Stop | Out-Null
+          foreach ($scope in @(@{Name='project';Path=$env:GITHUB_WORKSPACE},@{Name='zstd';Path='.ci-deps/zstd'},@{Name='lz4';Path='.ci-deps/lz4'},@{Name='blake3';Path='third_party/blake3'})) {
+            $files = @(Get-ChildItem -LiteralPath $scope.Path -File | Where-Object { $_.Name -match '^(LICENSE|COPYING|NOTICE)' })
+            if ($scope.Name -ne 'project' -and $files.Count -eq 0) { throw "Missing dependency license $($scope.Name)" }
+            foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $licenses ($scope.Name+'-'+$file.Name)) -ErrorAction Stop }
+          }
+          $packageFiles = @(Get-ChildItem -LiteralPath $package -File -Recurse)
+          if ($packageFiles.Count -gt 32 -or ($packageFiles | Measure-Object Length -Sum).Sum -gt 16MB) { throw 'RAM package size/file cap' }
+          $hash = (Get-FileHash -LiteralPath $probe -Algorithm SHA256).Hash
+          @{experimental=$true;commit=$env:GITHUB_SHA;exe_sha256=$hash;static_runtime=$true;driver_load_performed=$false;gpu_invocation_performed=$false;filesystem_backing='locked_RAM_model';child_mib=128;cpu_rate=2000;timeout_ms=15000;head_bytes=131072} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'provenance.json') -Encoding utf8
+          "FLITZFS_RAM_PACKAGE=$package" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Retain qualified experimental probe and provenance
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: locked-ram-probe-${{ github.sha }}
+          path: ${{ env.FLITZFS_RAM_PACKAGE }}
+          if-no-files-found: error
+          retention-days: 7

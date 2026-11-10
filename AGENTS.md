@@ -955,3 +955,11 @@ backing. Keep benchmark claims separate for CPU RAM core, mounted I/O, GPU and
 idle recompression; configuration/plans are not implementation or speed evidence.
 The owner requests fully autonomous work without questions/popups; continue
 independent work when a prerequisite is missing rather than relaxing safety.
+
+Small qualification executables and bounded numeric reports may accompany the
+permitted temporary HDD source corpus within the SAME256-MiB staging cap; they
+are not filesystem backing. Use the explicit owned HDD fixture, never silently
+stage to system TEMP. Keep image/head data in verified locked RAM. Audit native
+artifact/PE/source identity and execute the exact VM-qualified bounded binary
+before claiming a PC pass. Do not load the detected stopped2025 WinFsp driver
+as though it were the qualified2026 path. Read docs/HOST_RAM_TESTING.md.
