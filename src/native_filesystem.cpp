@@ -75,6 +75,9 @@ static_assert(std::is_nothrow_copy_assignable_v<NativeInodeCommitInfo>);
 static_assert(sizeof(NativeInodeCommitInfo)<=80);
 static_assert(std::is_nothrow_copy_assignable_v<NativeInodeAllocationInfo>);
 static_assert(std::is_nothrow_move_constructible_v<NativeInodeAllocationCommit>);
+static_assert(std::is_nothrow_move_constructible_v<NativeInodeStorageMutationCommit>);
+static_assert(sizeof(NativeInodeAllocationInfo)<=96);
+static_assert(sizeof(std::optional<std::uint64_t>)<=16);
 NativeInodeCommitInfo commit_info(const Node& n) {
   return {n.inode,n.size,n.modified,n.basic,n.directory,n.delete_pending,n.unlinked};
 }
@@ -479,6 +482,12 @@ struct Stage {
     n.allocation=bytes;n.modified=model.sequence;
     model.format=(std::max)(model.format,5U);changed=true;
   }
+  void trim_reservation(std::uint64_t id) {
+    const auto& n=selected_inode(model,id);
+    if(n.directory)return; // Directories have no allocation field or payload.
+    if(!n.allocation)fail(Code::invalid_operation,"Cleanup trim requires a tracked reservation");
+    reserve(id,aligned_allocation(n.size));
+  }
   void cleanup_initial(std::uint64_t id,bool deleting,const NativeCleanupMetadata& effect) {
     auto& n=node(model,selected_inode(model,id).inode);
     if(id==1)fail(Code::invalid_operation,"initial delete-on-close is forbidden on root");
@@ -846,7 +855,16 @@ NativeFsCommit NativeFilesystemWriter::set_basic_metadata(std::uint64_t inode,co
 NativeInodeCreateCommit NativeFilesystemWriter::create_inode_result(std::string_view path,
     bool directory,const NativeBasicMetadata& value,std::span<const std::byte> descriptor,
     bool delete_pending) {
+  auto stored=create_inode_storage_result(path,directory,value,descriptor,{},delete_pending);
+  NativeInodeCreateCommit result;result.info=stored.state.info;
+  result.transaction=std::move(stored.transaction);return result;
+}
+NativeInodeAllocationCommit NativeFilesystemWriter::create_inode_storage_result(std::string_view path,
+    bool directory,const NativeBasicMetadata& value,std::span<const std::byte> descriptor,
+    std::optional<std::uint64_t> reservation,bool delete_pending) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(reservation && (directory || *reservation%kNativeAllocationUnit || *reservation>kNativeAllocationCapacity))
+    fail(Code::invalid_operation,"invalid native creation reservation");
   validate_basic(value,directory);
   if(!native_security_descriptor_framed(descriptor))
     fail(Code::invalid_operation,"invalid native creation security descriptor");
@@ -856,9 +874,10 @@ NativeInodeCreateCommit NativeFilesystemWriter::create_inode_result(std::string_
     op.operation=directory?NativeFileOperation::create_directory:NativeFileOperation::create_file;
     const NativeBasicMutation basic{0,1,value};
     const NativeSecurityMutation security{0,1,NativeSecurityDescriptor(descriptor.begin(),descriptor.end())};
-    NativeInodeCreateCommit result;
+    NativeInodeAllocationCommit result;
     result.transaction=transact({&op,1},InodeAction::create,0,{&basic,1},
-        nullptr,delete_pending,&result.info,{&security,1});
+        nullptr,delete_pending,nullptr,{&security,1},nullptr,
+        reservation?&*reservation:nullptr,&result.state);
     return result;
   }catch(const std::bad_alloc&){fail(Code::limit,"native creation allocation failure");}
 }
@@ -866,7 +885,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic,
     const NativeAutomaticMetadata* automatic,bool delete_requested,NativeInodeCommitInfo* published,
     std::span<const NativeSecurityMutation> security,const NativeOverwriteMetadata* overwrite,
-    const std::uint64_t* reservation,NativeInodeAllocationInfo* allocation) {
+    const std::uint64_t* reservation,NativeInodeAllocationInfo* allocation,bool trim_allocation) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(automatic && !native_cleanup_metadata_valid(*automatic))
     fail(Code::invalid_operation,"invalid automatic metadata time/unused clock");
@@ -883,6 +902,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
           fail(Code::invalid_operation,"invalid native creation transaction");
         stage.apply(operations.front());
         if(stage.created.size()!=1)fail(Code::corrupt,"native creation selector invariant");
+        if(reservation)stage.reserve(stage.created.front(),*reservation);
         if(delete_requested)stage.set_delete(stage.created.front(),true);
         break;
       case InodeAction::overwrite:
@@ -890,7 +910,9 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
             !security.empty() || automatic || delete_requested ||
             !native_overwrite_metadata_valid(*overwrite))
           fail(Code::invalid_operation,"invalid native overwrite transaction");
-        stage.overwrite_inode(inode,*overwrite);break;
+        stage.overwrite_inode(inode,*overwrite);
+        if(reservation)stage.reserve(inode,*reservation);
+        break;
       case InodeAction::mutate:
         if(!inode || operations.size()!=1)fail(Code::invalid_operation,"invalid inode transaction");
         stage.apply(operations.front(),inode);break;
@@ -910,6 +932,11 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
         if(!automatic)
           fail(Code::invalid_operation,"invalid automatic Cleanup metadata");
         stage.cleanup(inode,delete_requested,*automatic);break;
+    }
+    if(trim_allocation) {
+      if(action!=InodeAction::cleanup && action!=InodeAction::cleanup_initial)
+        fail(Code::invalid_operation,"trim outside native Cleanup");
+      stage.trim_reservation(inode);
     }
     // Mutating stable-inode data and trusted effects share the same Stage,
     // verification and single replicated publication. Cleanup applies its
@@ -968,6 +995,13 @@ NativeInodeWriteCommit NativeFilesystemWriter::write_inode_with_metadata(std::ui
 NativeInodeMutationCommit NativeFilesystemWriter::write_inode_result(std::uint64_t inode,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
     const NativeAutomaticMetadata& effect) {
+  auto stored=write_inode_storage_result(inode,offset,bytes,options,effect);
+  NativeInodeMutationCommit result;result.info=stored.state.info;result.offset=stored.offset;result.bytes=stored.bytes;
+  result.transaction=std::move(stored.transaction);return result;
+}
+NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_result(std::uint64_t inode,
+    std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
+    const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic write time/unused clock");
@@ -990,10 +1024,10 @@ NativeInodeMutationCommit NativeFilesystemWriter::write_inode_result(std::uint64
     // that sentinel through ordinary write arithmetic or create a sparse gap.
     op.offset=count?selected:(std::min)(selected,n.size);
     if(count)op.data.assign(bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(count));
-    NativeInodeMutationCommit result;result.offset=selected;
+    NativeInodeStorageMutationCommit result;result.offset=selected;
     result.bytes=static_cast<std::uint32_t>(count);
     result.transaction=transact({&op,1},InodeAction::mutate,inode,{},
-        count && effect.any()?&effect:nullptr,false,&result.info);
+        count && effect.any()?&effect:nullptr,false,nullptr,{},nullptr,nullptr,&result.state);
     return result;
   }catch(const std::bad_alloc&){fail(Code::limit,"native inode write allocation failure");}
 }
@@ -1007,6 +1041,12 @@ NativeFsCommit NativeFilesystemWriter::truncate_inode_with_metadata(std::uint64_
 }
 NativeInodeMutationCommit NativeFilesystemWriter::truncate_inode_result(std::uint64_t inode,
     std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
+  auto stored=truncate_inode_storage_result(inode,bytes,effect);
+  NativeInodeMutationCommit result;result.info=stored.state.info;
+  result.transaction=std::move(stored.transaction);return result;
+}
+NativeInodeStorageMutationCommit NativeFilesystemWriter::truncate_inode_storage_result(std::uint64_t inode,
+    std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic truncate time/unused clock");
@@ -1016,23 +1056,31 @@ NativeInodeMutationCommit NativeFilesystemWriter::truncate_inode_result(std::uin
     if(n.directory)fail(Code::is_directory,"cannot truncate native directory");
     NativeFileMutation op;op.operation=NativeFileOperation::truncate;
     op.size=bytes;
-    NativeInodeMutationCommit result;
+    NativeInodeStorageMutationCommit result;
     result.transaction=transact({&op,1},InodeAction::mutate,inode,{},
-        effect.any()?&effect:nullptr,false,&result.info);
+        effect.any()?&effect:nullptr,false,nullptr,{},nullptr,nullptr,&result.state);
     return result;
   }catch(const std::bad_alloc&){fail(Code::limit,"native inode truncate allocation failure");}
 }
 NativeInodeMutationCommit NativeFilesystemWriter::overwrite_inode_result(std::uint64_t inode,
     const NativeOverwriteMetadata& effect) {
+  auto stored=overwrite_inode_storage_result(inode,effect);
+  NativeInodeMutationCommit result;result.info=stored.state.info;
+  result.transaction=std::move(stored.transaction);return result;
+}
+NativeInodeAllocationCommit NativeFilesystemWriter::overwrite_inode_storage_result(std::uint64_t inode,
+    const NativeOverwriteMetadata& effect,std::optional<std::uint64_t> reservation) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
-  if(!native_overwrite_metadata_valid(effect))
-    fail(Code::invalid_operation,"invalid canonical native overwrite metadata");
+  if(!native_overwrite_metadata_valid(effect) ||
+      (reservation && (*reservation%kNativeAllocationUnit || *reservation>kNativeAllocationCapacity)))
+    fail(Code::invalid_operation,"invalid canonical native overwrite metadata/reservation");
   const auto& n=selected_inode(impl_->model,inode);
   if(n.directory)fail(Code::is_directory,"cannot overwrite native directory");
   if(n.delete_pending || n.unlinked || !n.basic)
     fail(Code::invalid_operation,"overwrite needs a live regular inode with basic metadata");
-  NativeInodeMutationCommit result;
-  result.transaction=transact({},InodeAction::overwrite,inode,{},nullptr,false,&result.info,{},&effect);
+  NativeInodeAllocationCommit result;
+  result.transaction=transact({},InodeAction::overwrite,inode,{},nullptr,false,nullptr,{},&effect,
+      reservation?&*reservation:nullptr,&result.state);
   return result;
 }
 NativeFsCommit NativeFilesystemWriter::set_delete_pending(std::uint64_t inode,bool pending) {
@@ -1055,6 +1103,16 @@ NativeInodeMutationCommit NativeFilesystemWriter::cleanup_initial_delete_result(
     fail(Code::invalid_operation,"invalid initial-delete Cleanup input");
   NativeInodeMutationCommit result;
   result.transaction=transact({},InodeAction::cleanup_initial,inode,{},&effect,delete_file,&result.info);
+  return result;
+}
+NativeInodeAllocationCommit NativeFilesystemWriter::cleanup_inode_storage_result(std::uint64_t inode,
+    bool delete_file,bool initial_delete,const NativeCleanupEvent& event) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if((initial_delete && inode==1) || !native_cleanup_metadata_valid(event.metadata))
+    fail(Code::invalid_operation,"invalid native Cleanup event");
+  NativeInodeAllocationCommit result;
+  result.transaction=transact({},initial_delete?InodeAction::cleanup_initial:InodeAction::cleanup,
+      inode,{},&event.metadata,delete_file,nullptr,{},nullptr,nullptr,&result.state,event.trim_allocation);
   return result;
 }
 NativeInodeAllocationCommit NativeFilesystemWriter::reserve_inode_result(std::uint64_t inode,

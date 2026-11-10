@@ -13,4 +13,9 @@ std::uint64_t native_cleanup_utc() noexcept;
 // joins a dispatcher from inside its callback.
 NativeCleanupOutcome dispatch_native_cleanup(NativeFileSession&,const NativeFileHandle&,
     ULONG flags,NativeCleanupClock clock=native_cleanup_utc) noexcept;
+// Explicit unwired bridge for an engine with tracked native reservations.
+// Regular trim requires prior tracking. No physical-space/callback-table
+// qualification follows; the original entry point keeps rejecting allocation.
+NativeCleanupOutcome dispatch_native_allocated_cleanup(NativeFileSession&,const NativeFileHandle&,
+    ULONG flags,NativeCleanupClock clock=native_cleanup_utc) noexcept;
 }

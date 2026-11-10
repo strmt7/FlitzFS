@@ -624,3 +624,87 @@ backing/headroom, atomic Create/Overwrite/cleanup trimming, FileInfo/cache,
 writable driver/helper, Windows 11 client and live AMD gates remain open.
 Never route successful Windows allocation callbacks from this component alone.
 No owner-PC exception or capacity increase follows.
+
+## Process, service and resource hygiene (owner clarification)
+
+Throughout ALL development, every agent must prevent stale/orphaned processes,
+unintended background or scheduled services/tasks, leaked RAM/VRAM/handles/
+threads/mappings, and avoidable resource use. This applies to normal completion,
+errors, cancellation, timeouts and failed initialization; a timed-out observation
+is NOT proof that a process stopped.
+
+- Keep every launched process/worker/dispatcher owned by an explicit bounded
+  supervisor/job and lifecycle. Confirm actual exit/join and close owned handles,
+  pipes, mappings and buffers before releasing its ownership or starting a
+  replacement. Unknown membership/retirement fails closed; never hide it with
+  retries, higher limits, detached launches or unconditional new workers.
+- Do not create automatic background services, scheduled tasks or other
+  persistence as development conveniences. A product helper must have an
+  intentional, documented lifetime and reliable stop/crash/uninstall behavior;
+  it must not survive as an unintended development artifact.
+- Use strict aggregate CPU/RAM/VRAM/I/O/process/queue budgets and low background
+  priority. Quiescence must release resources and stop needless work. Leak and
+  lifecycle checks must cover repeated use, failures and cancellation, not just
+  a successful single run. Retain before/after accounting and confirmed child/
+  thread retirement evidence; do not claim leak freedom from code intent.
+- Dispose of test-owned services/drivers/fixtures only within their expressly
+  authorized disposable VM scope, with explicit ownership and bounded teardown.
+  VM destruction is containment, not evidence that product cleanup works.
+- Never inspect, kill or reconfigure unrelated owner/host processes or services.
+  Owner-PC access remains subject to the later RAM-only clarification below.
+  Development and lifecycle validation stay off-host until their prerequisites
+  pass; authorization for a RAM fixture never permits unrelated host cleanup.
+
+## Owner-PC RAM-only clarification (latest owner instruction)
+
+The owner now authorizes limited PC testing ONLY with part of RAM serving as
+the filesystem's virtual test disk, never a system drive or real-storage test
+volume. This supersedes the earlier blanket no-PC rule ONLY for that narrow,
+qualified RAM-backed test. It does not authorize driver installation,
+reinstallation, replacement, update, configuration/security changes, or system
+instability. All other off-host development restrictions remain.
+
+- Continue building, researching, fault-testing and qualifying new driver/helper
+  behavior on disposable VMs first. Do not transfer an unfinished or unqualified
+  writable/GPU/failure experiment onto the PC just because RAM is authorized.
+- Before a later PC test, establish that the exact test backing is genuinely
+  RAM-backed, exclusively test-owned, bounded and not a system/real-storage
+  volume. Do not infer this from a drive letter, path, anonymous allocation or
+  a name. Anonymous memory can page; RAM-only process data is not proof of zero
+  physical-storage activity. If backing or required headroom cannot be verified,
+  do not start the dependent test.
+- Use only an already available compatible driver/runtime without changing it.
+  Never install a RAM-disk/filesystem/GPU driver, reconfigure a driver, alter
+  Secure Boot/HVCI/test-signing/boot policy, or use system-drive files as a
+  workaround. Absence of a qualified safe route means keep that test off-host.
+- Use synthetic data only, small bounded RAM capacity, substantial verified
+  headroom, below-normal priority, strict aggregate process/CPU/memory/queue
+  limits and a tested stop/cleanup path. No raw devices, stress tests, deliberate
+  kernel/GPU faults, forced power loss, background persistence or scheduled
+  services/tasks. Confirm retirement and release all test-owned resources.
+- Do not write build/download/cache/temp/log/image/benchmark artifacts to a
+  system drive under this permission. Keep development on hosted machines.
+  Do not inspect/stop unrelated applications or change any owner data.
+- Never promise that RAM alone guarantees no OS/driver instability. Preserve
+  explicit qualification evidence and stop on failed safety prerequisites.
+
+
+## Atomic native allocation events
+
+Read docs/NATIVE_ALLOCATED_EVENTS.md before changing storage-aware Create,
+Overwrite, data-result capture or cleanup_event. Preserve original APIs/result
+layouts, FLTXNS05/old bytes, SAME Stage/THREE barriers and every capacity/time
+limit. Preflight context capacity and grants; install/adopt/latch/clean only
+through nonthrowing post-success updates. Keep initial delete volatile until
+actual Cleanup and healthy canceled Close free of I/O/rollback/deletion.
+Explicit native reservations are NOT physical preallocation or complete Windows
+FileInfo. Trim requires tracked regular files, directories remain untracked,
+and duplicate Cleanup must match trim as well as old requests/first stamp.
+The original bridge still rejects allocation. The explicit allocated bridge
+remains unwired; impossible Delete+SetAllocationSize rejects before clock/I/O,
+and every engine failure fences without retry/release. Qualify real supervisor,
+backing/cache/FileInfo/writable routing before mounted use. Keep sealed results,
+all actual fault steps/modes, SDK repeated backing-release/handle evidence and
+existing lifecycle tests; none proves universal leak freedom, physical power,
+Windows 11 client or live AMD. Apply the latest narrow RAM-only owner permission
+without weakening these implementation qualification gates.

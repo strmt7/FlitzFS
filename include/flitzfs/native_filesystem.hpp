@@ -81,6 +81,12 @@ bool native_cleanup_metadata_valid(const NativeCleanupMetadata&) noexcept;
 // The same bounded trusted effects apply to data mutations. Retain the
 // historical Cleanup type/layout/symbols; this alias adds no encoding or ABI.
 using NativeAutomaticMetadata=NativeCleanupMetadata;
+// Separate trusted event so the historical metadata layout and overloads stay
+// intact. Trim releases a tracked native reservation to aligned EOF only.
+struct NativeCleanupEvent {
+  NativeCleanupMetadata metadata;
+  bool trim_allocation=false;
+};
 
 // Trusted overwrite event policy: explicit canonical request attributes and
 // one sampled nonnegative UTC value. Allocation/EA/stream policy is separate.
@@ -151,6 +157,12 @@ struct NativeInodeAllocationInfo {
 struct NativeInodeAllocationCommit {
   NativeFsCommit transaction;
   NativeInodeAllocationInfo state;
+};
+struct NativeInodeStorageMutationCommit {
+  NativeFsCommit transaction;
+  NativeInodeAllocationInfo state;
+  std::uint64_t offset=0;
+  std::uint32_t bytes=0;
 };
 struct NativeAllocationUsage {
   std::size_t charged_extents=0,live_extents=0;
@@ -245,6 +257,11 @@ class NativeFilesystemWriter final {
   NativeInodeCreateCommit create_inode_result(std::string_view path,bool directory,
       const NativeBasicMetadata&,std::span<const std::byte> security,
       bool delete_pending=false);
+  // Optional aligned regular-file reservation in the SAME creation commit.
+  // Directories require absence. No host preallocation is implied.
+  NativeInodeAllocationCommit create_inode_storage_result(std::string_view path,bool directory,
+      const NativeBasicMetadata&,std::span<const std::byte> security,
+      std::optional<std::uint64_t> reservation={},bool delete_pending=false);
   NativeFsCommit set_security_descriptor(std::uint64_t inode,std::span<const std::byte>);
   std::optional<NativeSecurityDescriptor> inspect_security_descriptor(std::uint64_t inode) const;
   NativeFsCommit set_basic_metadata(std::uint64_t inode,const NativeBasicMetadata&);
@@ -276,6 +293,13 @@ class NativeFilesystemWriter final {
       const NativeAutomaticMetadata& effect={});
   NativeInodeMutationCommit truncate_inode_result(std::uint64_t inode,std::uint64_t bytes,
       const NativeAutomaticMetadata& effect={});
+  NativeInodeStorageMutationCommit write_inode_storage_result(std::uint64_t inode,std::uint64_t offset,
+      std::span<const std::byte>,NativeInodeWriteOptions options={},
+      const NativeAutomaticMetadata& effect={});
+  NativeInodeStorageMutationCommit truncate_inode_storage_result(std::uint64_t inode,std::uint64_t bytes,
+      const NativeAutomaticMetadata& effect={});
+  NativeInodeAllocationCommit overwrite_inode_storage_result(std::uint64_t inode,
+      const NativeOverwriteMetadata&,std::optional<std::uint64_t> reservation={});
   // Existing regular inode: truncate to zero + merge/replace request attrs,
   // archive and access/write/change time in ONE publication. Preserve original
   // creation time, descriptor, inode and name. Requires a present basic tuple;
@@ -300,6 +324,11 @@ class NativeFilesystemWriter final {
   // Captured facts let the owner update runtime latches without post-commit I/O.
   NativeInodeMutationCommit cleanup_initial_delete_result(std::uint64_t inode,bool delete_file,
       const NativeCleanupMetadata&);
+  // Trusted metadata + optional tracked-reservation trim + optional unlink in
+  // ONE Stage. initial_delete selects the existing directory-preserving policy.
+  // Trim rejects untracked regular files; directories need no reservation.
+  NativeInodeAllocationCommit cleanup_inode_storage_result(std::uint64_t inode,bool delete_file,
+      bool initial_delete,const NativeCleanupEvent&);
   // Explicit aligned native reservation. Shrinking below EOF truncates/zeros
   // tails in the SAME transaction. Growth preserves EOF/data. Tracked writes
   // and EOF growth extend reservations; ordinary EOF shrink retains them.
@@ -332,7 +361,8 @@ class NativeFilesystemWriter final {
       NativeInodeCommitInfo* published=nullptr,
       std::span<const NativeSecurityMutation> security={},
       const NativeOverwriteMetadata* overwrite=nullptr,
-      const std::uint64_t* reservation=nullptr,NativeInodeAllocationInfo* allocation=nullptr);
+      const std::uint64_t* reservation=nullptr,NativeInodeAllocationInfo* allocation=nullptr,
+      bool trim_allocation=false);
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

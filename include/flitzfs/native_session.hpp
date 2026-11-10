@@ -65,6 +65,11 @@ struct NativeSessionCreateCommit {
   NativeInodeCommitInfo info;
   NativeFileHandle handle;
 };
+struct NativeSessionStorageCreateCommit {
+  NativeFsCommit transaction;
+  NativeInodeAllocationInfo state;
+  NativeFileHandle handle;
+};
 struct NativeSessionStats {
   std::uint32_t contexts=0,cleaned=0,delete_requests=0,latched_inodes=0;
   bool fenced=true; // Table diagnostics, not an independent storage/driver verdict.
@@ -118,6 +123,18 @@ class NativeFileSession final {
   NativeSessionCreateCommit create_prepared(std::string_view path,bool directory,
       const NativeBasicMetadata&,std::span<const std::byte> security,
       NativePreparedCreateOptions options={});
+  NativeSessionStorageCreateCommit create_prepared_storage(std::string_view path,bool directory,
+      const NativeBasicMetadata&,std::span<const std::byte> security,
+      std::optional<std::uint64_t> reservation,NativePreparedCreateOptions options={});
+  NativeInodeAllocationCommit overwrite_storage_result(const NativeFileHandle&,
+      const NativeOverwriteMetadata&,std::optional<std::uint64_t> reservation={});
+  NativeInodeAllocationCommit overwrite_prepared_storage_result(const NativeFileHandle&,
+      const NativeOverwriteMetadata&,std::optional<std::uint64_t> reservation={});
+  NativeInodeStorageMutationCommit write_storage_result(const NativeFileHandle&,std::uint64_t offset,
+      std::span<const std::byte>,NativeInodeWriteOptions options={},
+      const NativeAutomaticMetadata& effect={});
+  NativeInodeStorageMutationCommit truncate_storage_result(const NativeFileHandle&,std::uint64_t bytes,
+      const NativeAutomaticMetadata& effect={});
   std::optional<NativeSecurityDescriptor> security_descriptor(const NativeFileHandle&) const;
   NativeFsCommit set_security_descriptor(const NativeFileHandle&,std::span<const std::byte>);
   NativeInodeState info(const NativeFileHandle&) const;
@@ -168,6 +185,9 @@ class NativeFileSession final {
   // write access. First success keeps its timestamp; repeated identical action
   // requests are no-ops even if the caller sampled a later valid clock.
   void cleanup(const NativeFileHandle&,bool delete_file,const NativeCleanupMetadata&);
+  // Separate name avoids ambiguity for historical cleanup(...,{}). Optional
+  // tracked reservation trim shares the SAME metadata/unlink publication.
+  void cleanup_event(const NativeFileHandle&,bool delete_file,const NativeCleanupEvent&);
   // No I/O or context release. Required when a void OS callback cannot report
   // an internal failure; the adapter must separately signal its supervisor.
   void fence() noexcept;
@@ -193,9 +213,10 @@ class NativeFileSession final {
   NativeFileHandle open_impl(std::string_view,NativeFileAccess,NativeOpenKind,
       NativeBasicAccess,NativeSecurityAccess,NativeOverwriteAccess,bool provisional,
       bool awaiting_overwrite,NativeInitialDeleteAccess);
-  NativeSessionCreateCommit create_impl(std::string_view,bool,const NativeBasicMetadata&,
-      std::span<const std::byte>,NativeSessionCreateOptions,bool,NativeInitialDeleteAccess);
-  NativeInodeMutationCommit overwrite_impl(const NativeFileHandle&,
-      const NativeOverwriteMetadata&,bool provisional);
+  NativeSessionStorageCreateCommit create_impl(std::string_view,bool,const NativeBasicMetadata&,
+      std::span<const std::byte>,NativeSessionCreateOptions,bool,NativeInitialDeleteAccess,
+      std::optional<std::uint64_t> reservation={});
+  NativeInodeAllocationCommit overwrite_impl(const NativeFileHandle&,
+      const NativeOverwriteMetadata&,bool provisional,std::optional<std::uint64_t> reservation={});
 };
 }

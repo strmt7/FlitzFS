@@ -241,3 +241,9 @@ The b348 change did not modify the filesystem, metadata producer/controller
 or dedicated metadata workflow. The 712 metadata and 976 legacy writer
 termination results remain bound to their executed 6cc source. No owner-PC
 operation, latest Windows 11 client, live GPU or writable mount was qualified.
+
+### Latest RAM-only host permission and development hygiene
+
+The owner's later instruction permits qualified PC tests ONLY on verified, bounded RAM acting as the synthetic filesystem's virtual disk, never a system/real-storage test drive. It does not permit driver install/reinstall/change, security/boot changes or instability. No build, download, cache, temporary file, log or image may use system storage under that permission. If no safe existing compatible route or verified RAM backing/headroom is available, keep the dependent test off-host. Current unfinished writable paths remain hosted-only.
+
+All development must own and retire workers and release RAM/VRAM/handles/threads/mappings on normal, failed, canceled and timed-out paths; no unintended services, scheduled tasks, persistence or wasteful background work. Verify actual retirement before replacements and retain bounded before/after resource evidence. A timed-out observation is not a stopped process. Never kill/reconfigure unrelated applications. See the latest owner clarifications in AGENTS.md; hosted infrastructure provisioning remains distinct from the product installer and qualified PC tests.

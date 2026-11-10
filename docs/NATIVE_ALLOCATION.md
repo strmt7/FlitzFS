@@ -124,7 +124,22 @@ per-group limits are retained. Configured tests need exact-commit executed
 results; these are not physical power-loss or new process-kill campaigns.
 
 No owner-PC operations, writable mount, Windows 11 client policy or live AMD
-qualification follows. Complete FileInfo, Create/Overwrite allocation in the
-same transaction, trusted Cleanup trimming, physical backing reservations,
+qualification follows. NATIVE_ALLOCATED_EVENTS.md now integrates native
+Create/Overwrite reservations and trusted Cleanup trim into their SAME
+transactions. Complete Windows FileInfo/physical backing reservations,
 scalable allocation/reclaim, payload repair and actual driver/helper wiring
 remain required.
+
+## Executed hosted allocation checkpoint
+
+Commit `de31aa86cf3d2782aa5ef9daa3fec87bd83290df` was implemented through native GitHub APIs and executed only on disposable GitHub-hosted VMs. The owner's PC was not accessed.
+
+Windows native job 129705164863 passed all 94 CTest groups; raw Windows job 129705164706 and relocated native-codec Windows job 129705167291 each passed 88. Linux raw/codec and relocated jobs passed 84. The new allocation group emitted 180 invariant checks and eight sealed-publication cases. The full codec-enabled raw/automatic × fixed/compact × reserve/shrink/write-grow/EOF-grow matrix contained 16 complete traces and 1,698 faults. Raw-only contained 1,704: automatic fixed-layout shrink used 59 I/O steps there versus 57 with codecs. Every observed write/flush retained all three failure modes; these are not omitted fault points or physical-power tests.
+
+The existing actual selected SDK groups retained initial-delete 22 cases/177 checks and provisional 32 cases/97 checks. Windows worker handle totals remained 94 before and after. No new Windows allocation callback, physical backing preallocation, writable mount or client qualification is implied by the native reservation component.
+
+Legacy process-interruption campaigns completed 976 cases on each hosted OS, Windows basic metadata completed 712 and compact root-3 completed 172. Those old scopes remain unchanged; they are not new NS04/NS05 process-termination evidence. The official dependency audit passed with outdated_pins empty; this is not a new Dependabot alert result. Native RAM/digest comparisons and pinned reference tests passed without changing their benchmark scope.
+
+Six fresh CPU-only CocoIndex routing queries bound this commit to source SHA-256 `2949cd87730735d784e1b7f759df4bad41f7229aafc929152363618cdc55872e` (job 129705165870). Current WinFsp release API and selected immutable allocation contract source were reviewed; no web-page reader or owner-host crawler was used.
+
+Sanitizer job 129705164348 passed all 84 tests, including all 16 allocation traces/1,698 faults and 180 invariants/eight sealed cases, with ASan/UBSan/leak gates unchanged. All 11 workflows succeeded. Hosted read-only mount job 129708901933 completed normal, deliberately terminated-helper and recovery phases with confirmed exits 0, 1460 and 0. All three source-bound space reports reconciled; mapped reads, sparse tails, enumeration, write rejection and backing parity passed. Process peaks were 6,119,424 / 6,131,712 / 5,111,808 bytes under existing limits. This old read-only fixture does not execute NS05 allocation or qualify writable mounting, latest Windows 11 client behavior, physical power loss or AMD runtime benefit.

@@ -144,3 +144,7 @@ reported 1460 with confirmed exit. Peaks were 6,197,248 / 6,201,344 /
 The selected candidate's driver signature remained valid Microsoft WHCP;
 its provenance explicitly reports windows11_policy_qualified=false. These
 Server results add no client, writable-mount, live GPU or owner-PC permission.
+
+## Separate tracked-allocation event bridge
+
+NATIVE_ALLOCATED_EVENTS.md adds cleanup_event and a separately selected, unwired SDK bridge for tracked native reservation trimming in the same metadata/unlink transaction. The historical metadata layout, cleanup overloads, strict original dispatch_native_cleanup allocation rejection and all old cases remain. Native reservations do not prove physical backing or complete Windows AllocationSize, so the read-only table stays unwired. New SDK lifecycle checks cover repeated owner release/handle counts, not all future leaks or Windows 11/kernel behavior.
