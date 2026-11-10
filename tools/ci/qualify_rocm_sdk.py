@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import sys
 
-SOURCE_REF="113ca5f30655f0d373c17d1448e35ce1b69f2819"
+SOURCE_REF="b46acb6dd7e48e1fb2dc182210495abb6a3c013f"
 REPO=Path(__file__).resolve().parents[2]
 GIB=1024**3
 
@@ -69,7 +69,7 @@ def main():
     root.mkdir()
     report=dict(commit=os.environ["GITHUB_SHA"],provider_repository="strmt7/FlitzZip",
         provider_ref=SOURCE_REF,lock_sha256=digest(own_lock),commands=[],complete=False,
-        scope="Complete ROCm provisioning, header/compile/link checks only; no HIP runtime or GPU execution")
+        scope="Complete SDK build, kernel link, worker bundle authentication and CPU-only refusal tests")
     sys.dont_write_bytecode=True
     os.environ["PYTHONDONTWRITEBYTECODE"]="1"
     sys.path.insert(0,str(provider))
@@ -124,7 +124,7 @@ def main():
             report,"current-sdk-host-api-and-kernel-module-link")
         from_path=REPO/"tools/ci"
         sys.path.insert(0,str(from_path))
-        from check_portable_cpu import audit_binary
+        from check_portable_cpu import audit_binary, pe_import_names
         probe=build/"Release/flitzfs_rocm_header_probe.exe"
         report["probe_imports"]=audit_binary(probe.read_bytes())
         observed=run(bounds,[str(probe)],report,"header-probe-without-loading-HIP",30)
@@ -134,6 +134,22 @@ def main():
         module=build/"Release/flitzfs_rocm_kernels.dll"
         require(module.is_file() and module.stat().st_size<=32*1024*1024,"kernel module output budget")
         report["kernel_module"]=dict(bytes=module.stat().st_size,sha256=digest(module))
+        worker=build/"Release/flitzfs_hip_worker.exe"
+        worker_probe=build/"Release/flitzfs_hip_worker_probe.exe"
+        require(worker.is_file() and 0 < worker.stat().st_size <= 32*1024*1024, "worker executable budget")
+        imports, delay=pe_import_names(worker.read_bytes())
+        allowed={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll","dxgi.dll"}
+        require(bool(imports) and set(imports) <= allowed and not delay, "worker has eager SDK dependencies")
+        report["worker"]=dict(bytes=worker.stat().st_size,sha256=digest(worker),imports=sorted(set(imports)),
+            bundle=json.loads((build/"Release/hip-bundle.json").read_text(encoding="utf-8")))
+        report["worker_probe_imports"]=audit_binary(worker_probe.read_bytes())
+        result=run(bounds,[str(worker_probe),str(worker),str(root/"worker-probe")],
+            report,"bounded-worker-admission-without-HIP",90)
+        prefix="HIP worker admission: "
+        receipts=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines() if line.startswith(prefix)]
+        require(receipts==[dict(bundle_verified=True,missing_bundle_refused=True,invalid_wire_refused=True,
+            exits_confirmed=3,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
+        report["worker_admission"]=receipts[0]
         actual_clang=run(bounds,[str(sdk/"lib/llvm/bin/clang.exe"),"--version"],report,"actual-AMD-compiler-version",30)
         require(lock["observed_clang_version"] in actual_clang["stdout"],
             "observed complete-SDK compiler identity differs from its lock record")

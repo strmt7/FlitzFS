@@ -1003,3 +1003,13 @@ Use the adapter control mutex for the explicit maintenance request and its
 single CPU recovery attempt. Verify actual retained handles, continued I/O,
 independent selected-image readback, mount removal, released locks and child
 exit. This profile uses synthetic data and has no owner-PC launch route.
+
+## Supervised HIP worker qualification
+
+Read docs/HIP_RUNTIME_WORKER.md before changing the SDK worker, bundle or
+runtime calls. Keep the complete selected SDK and existing transport, job,
+block and result bounds. Authenticate the private import closure and match
+HIP and DXGI adapter identity before compute. Keep CPU comparison, confirmed
+cleanup and process retirement before exposing a candidate. This build and
+its CPU admission probe run only in the disposable hosted SDK workflow.
+Hardware execution and owner-PC activation retain their separate gates.

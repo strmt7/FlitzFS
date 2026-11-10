@@ -44,3 +44,41 @@ target_compile_features(flitzfs_rocm_kernels PRIVATE cxx_std_20)
 target_include_directories(flitzfs_rocm_kernels PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../include")
 target_link_libraries(flitzfs_rocm_kernels PRIVATE "${FLITZFS_ROCM_SDK}/lib/amdhip64.lib")
 target_compile_options(flitzfs_rocm_kernels PRIVATE /W4 /permissive-)
+
+# The SDK worker and its import closure stay in the disposable build fixture.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+get_filename_component(flitzfs_root "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+set(FLITZFS_PORTABLE_CPU ON CACHE BOOL "" FORCE)
+set(FLITZFS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(FLITZFS_WITH_LZ4 OFF CACHE BOOL "" FORCE)
+set(FLITZFS_WITH_ZSTD OFF CACHE BOOL "" FORCE)
+add_subdirectory("${flitzfs_root}" "${CMAKE_CURRENT_BINARY_DIR}/core" EXCLUDE_FROM_ALL)
+
+set(worker_output "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>")
+set(bundle_header "${worker_output}/hip_worker_bundle.hpp")
+set(bundle_receipt "${worker_output}/hip-bundle.json")
+add_custom_command(OUTPUT "${bundle_header}" "${bundle_receipt}"
+  COMMAND "${Python3_EXECUTABLE}" -B "${flitzfs_root}/tools/ci/stage_hip_worker_bundle.py"
+    --runtime "${runtime_file}" --kernel "$<TARGET_FILE:flitzfs_rocm_kernels>"
+    --output "${worker_output}/hip" --header "${bundle_header}" --receipt "${bundle_receipt}"
+  DEPENDS flitzfs_rocm_kernels "${runtime_file}"
+    "${flitzfs_root}/tools/ci/stage_hip_worker_bundle.py"
+    "${flitzfs_root}/tools/ci/check_portable_cpu.py"
+  VERBATIM)
+
+add_executable(flitzfs_hip_worker
+  "${flitzfs_root}/src/windows/hip_worker_main.cpp"
+  "${flitzfs_root}/src/windows/hip_decode_worker.cpp"
+  "${bundle_header}")
+target_compile_features(flitzfs_hip_worker PRIVATE cxx_std_20)
+target_include_directories(flitzfs_hip_worker PRIVATE "${worker_output}")
+target_include_directories(flitzfs_hip_worker SYSTEM PRIVATE "${FLITZFS_ROCM_SDK}/include")
+target_compile_definitions(flitzfs_hip_worker PRIVATE __HIP_PLATFORM_AMD__=1
+  __HIP_DISABLE_CPP_FUNCTIONS__=1 USE_PROF_API=0 NOMINMAX UNICODE _UNICODE)
+target_compile_options(flitzfs_hip_worker PRIVATE /W4 /permissive-)
+target_link_libraries(flitzfs_hip_worker PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget bcrypt)
+
+add_executable(flitzfs_hip_worker_probe worker_probe.cpp)
+target_compile_features(flitzfs_hip_worker_probe PRIVATE cxx_std_20)
+target_link_libraries(flitzfs_hip_worker_probe PRIVATE flitzfs_worker_exchange)
+target_compile_options(flitzfs_hip_worker_probe PRIVATE /W4 /permissive-)

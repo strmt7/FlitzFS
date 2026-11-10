@@ -3,121 +3,38 @@
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "qualified_checkpoint": {
-    "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
-    "tree": "2f2b203140c6f582e7d3500253a17d4f1ab99fd3",
-    "run": 42912401429,
-    "workflow_count": 12,
-    "native_job": 130166140061,
+    "commit": "89751f2ea5a7d2ed39dc7e58438c14bf90186c14",
+    "tree": "e85097528794b64f29c9a9c1d982cfa01e939ea9",
+    "run": 42916429492,
+    "workflow_count": 5,
+    "native_job": 130179952278,
     "native_groups": 122,
-    "sanitizer_job": 130166139301,
+    "sanitizer_job": 130179952884,
     "sanitizer_groups": 104,
-    "transition_fault_cases": 549,
-    "transition_checks": 10195,
-    "profiles": [
-      {
-        "job": 130171945537,
-        "profile": "read-only",
-        "exits": [
-          0,
-          1460,
-          0
-        ],
-        "complete": true
-      },
-      {
-        "job": 130173300383,
-        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
-        "complete": true,
-        "generation": 24,
-        "image_bytes": 2555904,
-        "namespace_sequence": 12,
-        "profile": "crash-restart",
-        "schema": 1,
-        "user_bytes": 7001,
-        "actual_exits": [
-          1460,
-          0,
-          0
-        ]
-      },
-      {
-        "job": 130173300402,
-        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
-        "complete": true,
-        "generation": 36,
-        "image_bytes": 3735552,
-        "namespace_sequence": 18,
-        "profile": "mutations",
-        "schema": 1,
-        "user_bytes": 89,
-        "actual_exits": [
-          0,
-          0
-        ]
-      },
-      {
-        "job": 130173300436,
-        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
-        "complete": true,
-        "generation": 14,
-        "image_bytes": 1572864,
-        "namespace_sequence": 7,
-        "profile": "crash",
-        "schema": 1,
-        "user_bytes": 7001,
-        "actual_exits": [
-          1460,
-          0
-        ]
-      },
-      {
-        "job": 130173300452,
-        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
-        "complete": true,
-        "generation": 18,
-        "image_bytes": 1966080,
-        "namespace_sequence": 9,
-        "profile": "basic",
-        "schema": 1,
-        "user_bytes": 7001,
-        "actual_exits": [
-          0,
-          0
-        ]
-      },
-      {
-        "job": 130173300484,
-        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
-        "complete": true,
-        "generation": 30,
-        "image_bytes": 3145728,
-        "namespace_sequence": 15,
-        "profile": "restart",
-        "schema": 1,
-        "user_bytes": 7001,
-        "actual_exits": [
-          0,
-          0,
-          0
-        ]
-      },
-      {
-        "job": 130173300547,
-        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
-        "complete": true,
-        "generation": 32,
-        "image_bytes": 3342336,
-        "namespace_sequence": 16,
-        "profile": "delete",
-        "schema": 1,
-        "user_bytes": 37,
-        "actual_exits": [
-          0,
-          0
-        ]
-      }
-    ],
-    "proof_scope": "Managed-session CPU handoff/recovery and unmounted locked-RAM owner execution with actual retained contexts. No automatic maintenance, mounted managed handoff, live GPU, production provider or physical-power claim."
+    "mounted_ram_job": 130185061074,
+    "mounted_ram": {
+      "commit": "89751f2ea5a7d2ed39dc7e58438c14bf90186c14",
+      "complete": true,
+      "compressed_payload": 216,
+      "contexts": 0,
+      "cpu_verified": true,
+      "epoch": 2,
+      "generation": 18,
+      "gpu": false,
+      "locked_after": 0,
+      "locked_peak": 17301504,
+      "mounted": true,
+      "phase": "ram-handoff",
+      "raw_payload": 66062,
+      "recovered_capacity_failure": true,
+      "schema": 1,
+      "source_process": 840,
+      "unmounted": true,
+      "user_bytes": 65609,
+      "volume_serial": 1476416087
+    },
+    "peak_process_commit": 20967424,
+    "scope": "Actual WinFsp locked RAM mounted handoff, retained Win32 handles, CPU recovery after candidate capacity rejection, selected-image continuation Flush and independent verification. Explicit hosted controller request and synthetic fixture."
   },
   "source_routing": {
     "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
@@ -159,11 +76,17 @@
     }
   },
   "pending_implementation": {
-    "scope": "Hosted locked RAM WinFsp handoff with retained Windows handles and CPU recovery",
-    "check_exact_current_head_ci": true,
+    "scope": "Supervised HIP decode endpoint and complete SDK bundle admission",
+    "primary_files": [
+      "src/windows/hip_worker_main.cpp",
+      "src/windows/hip_decode_worker.cpp",
+      "tests/rocm_compile/worker_probe.cpp"
+    ],
     "docs": [
-      "docs/WRITABLE_MOUNT_TRIAL.md"
-    ]
+      "docs/HIP_RUNTIME_WORKER.md"
+    ],
+    "check_exact_current_head_ci": true,
+    "gpu_execution_qualified": false
   },
   "remaining": [
     "authenticated request-bound kernel/helper authority for functional owner/group changes and mounted ACL enforcement",
