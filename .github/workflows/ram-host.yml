@@ -64,10 +64,10 @@ jobs:
           if ($LASTEXITCODE) { throw 'Locked-RAM probe failed; no artifact promotion' }
           $beforeHash = (Get-FileHash -LiteralPath $report -Algorithm SHA256).Hash
           & $probe --run $report
-          if ($LASTEXITCODE -eq 0 -or (Get-FileHash -LiteralPath $report -Algorithm SHA256).Hash -ne $beforeHash) { throw 'Existing report was not preserved' }
+          if ($LASTEXITCODE -ne 1 -or (Get-FileHash -LiteralPath $report -Algorithm SHA256).Hash -ne $beforeHash) { throw 'Existing report was not preserved' }
           $uncontained = Join-Path $fixture 'uncontained.json'
           & $probe --child $uncontained
-          if ($LASTEXITCODE -eq 0) { throw 'Uncontained direct child was admitted' }
+          if ($LASTEXITCODE -ne 1) { throw 'Uncontained direct child did not reject with the expected status' }
           $denial = Get-Content -LiteralPath $uncontained -Raw | ConvertFrom-Json
           if ($denial.complete -or $denial.locked_after -ne 0 -or -not $denial.cleanup_ok) { throw 'Uncontained child touched locked storage' }
           $data = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
@@ -89,6 +89,8 @@ jobs:
           $hash = (Get-FileHash -LiteralPath $probe -Algorithm SHA256).Hash
           @{experimental=$true;commit=$env:GITHUB_SHA;exe_sha256=$hash;static_runtime=$true;driver_load_performed=$false;gpu_invocation_performed=$false;filesystem_backing='locked_RAM_model';child_mib=128;cpu_rate=2000;timeout_ms=15000;head_bytes=131072} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'provenance.json') -Encoding utf8
           "FLITZFS_RAM_PACKAGE=$package" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          # Both expected failure statuses were checked above. Return this qualification result.
+          exit 0
       - name: Retain qualified experimental probe and provenance
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
