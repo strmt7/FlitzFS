@@ -164,3 +164,8 @@ The explicit native overwrite event changes no encoding/capability. EOF/extent
 references and existing basic attrs/times share one ordinary replicated
 publication; original creation time and optional security bytes remain.
 Historical APIs and wire bytes are unchanged. See NATIVE_OVERWRITE.md.
+
+
+Provisional overwrite phases are bounded session memory only; they introduce
+no wire capability or record/root change. Healthy cancellation clears a context
+without deleting or rolling back its inode. See NATIVE_PROVISIONAL_OPEN.md.

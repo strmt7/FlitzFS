@@ -569,3 +569,21 @@ Close a failed overwrite open WITHOUT Cleanup; qualify provisional retirement
 and offlining before writable wiring, never fake Cleanup/drop poisoned contexts.
 No allocation/full FileInfo, writable callback/app/client/live AMD or owner-PC
 permission follows. Keep new modeled faults distinct from old process probes.
+
+
+## Provisional overwrite and VOID Close
+
+Read docs/NATIVE_PROVISIONAL_OPEN.md before changing prepare_overwrite,
+overwrite_prepared_result, adopt_prepared, phase admission or native_close.
+Preserve exactly one checked grant, existing regular/live-only preparation,
+no persistent initial intent and all phase/peer-deletion guards. Healthy
+provisional Close may clear ONLY its context with no backing call, fabricated
+Cleanup, rollback or deletion; active Close keeps Cleanup requirements.
+Poisoned/fenced ownership is retained without retry. Result/phase return after
+publication is statically nonthrowing; fixed table/16-KiB implementation and
+all old caps/cases stay. The VOID bridge must report offlining outside callbacks,
+never join/stop there. Kernel best-effort/normal Cleanup delivery and real
+adoption need separate qualification; a declaration is not kernel attestation.
+Do not silently map initial FILE_DELETE_ON_CLOSE, allocation or general Create
+to this protocol. Actual SDK tests create no volume/dispatcher/mount/driver.
+No owner-PC, writable app/client, physical-power or live AMD proof follows.

@@ -242,3 +242,12 @@ creation/security/identity and handles. Its operation authorization follows the
 selected FSD's actual implicit-access contract. See [overwrite](docs/NATIVE_OVERWRITE.md).
 Allocation, full FileInfo, failed-open lifecycle, writable callbacks/helper,
 Windows 11 client and live AMD qualification remain unfinished.
+
+
+The experimental Windows engine now has a provisional Open/Overwrite lifecycle:
+healthy canceled opens close without fabricated Cleanup or storage mutation,
+while failed publication retains fenced ownership. The real user-mode SDK
+Overwrite/Close/Cleanup dispatcher is covered by a separate hosted-only group.
+See [provisional opens](docs/NATIVE_PROVISIONAL_OPEN.md). Writable driver/app,
+allocation, initial delete-on-close overwrite and client/AMD integration remain
+unfinished.

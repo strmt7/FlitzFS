@@ -461,3 +461,18 @@ evaluator. The selected DLL can call Close without Cleanup after failure:
 writable integration needs qualified provisional-context retirement/offlining,
 not invented Cleanup or dropping poisoned ownership. No writable routing or
 allocation reservation is introduced. Owner-PC restrictions remain unchanged.
+
+
+## Provisional overwrite Close
+
+Only the explicit provisional protocol can retire a healthy context without
+Cleanup or storage I/O. Preparation owns no persistent intent and excludes peer
+deletion; cancellation never undoes successful overwrite or later acknowledged
+writes. Old active contexts keep real Cleanup requirements. Poisoned/fenced
+Close retains ownership and never retries storage.
+
+The new VOID Close bridge fences and reports its outcome; the actual adapter
+must signal offlining outside the callback. No dispatcher stop/join, timeout-
+based retirement or writable route is added. Initial delete-on-close overwrite
+and real kernel adoption remain unqualified. NATIVE_PROVISIONAL_OPEN.md separates
+the actual user-mode SDK checks from missing driver/client/power/AMD proof.

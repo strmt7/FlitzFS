@@ -19,6 +19,7 @@ void admit_path(std::string_view path,bool root=false) {
 }
 }
 struct NativeFileSession::Impl {
+  enum class Phase:std::uint8_t {active,prepared,overwritten};
   struct Slot {
     std::uint64_t token=0,inode=0;
     NativeFileAccess access;
@@ -26,6 +27,7 @@ struct NativeFileSession::Impl {
     NativeCleanupMetadata cleanup_metadata;
     bool security_read=false,security_replace=false;
     bool overwrite=false,supersede=false;
+    Phase phase=Phase::active;
   };
   static_assert(std::is_nothrow_copy_assignable_v<Slot>);
   NativeFilesystemWriter writer;
@@ -53,6 +55,11 @@ struct NativeFileSession::Impl {
     std::size_t count=0;
     for(const auto& slot:slots)if(slot.token && slot.token!=excluded && slot.inode==inode)++count;
     return count;
+  }
+  bool provisional_inode(std::uint64_t inode) const noexcept {
+    for(const auto& slot:slots)
+      if(slot.token && slot.inode==inode && slot.phase!=Phase::active)return true;
+    return false;
   }
   void clear_latch(std::uint64_t inode) noexcept {
     for(auto& id:latched)if(id==inode)id=0;
@@ -84,11 +91,15 @@ NativeFileSession::Impl& NativeFileSession::ready() const {
   if(!impl_ || impl_->terminal || impl_->writer.poisoned())fail(E::terminal,"native file session is fenced");
   return *impl_;
 }
-std::size_t NativeFileSession::slot_for(const NativeFileHandle& handle) const {
+std::size_t NativeFileSession::slot_for(const NativeFileHandle& handle,bool allow_provisional) const {
   auto& self=ready();const auto owner=handle.owner_.lock();
   if(!handle.token_ || !owner || owner!=self.owner)fail(E::invalid_handle,"foreign/expired native file context");
   for(std::size_t i=0;i<self.slots.size();++i)
-    if(self.slots[i].token==handle.token_)return i;
+    if(self.slots[i].token==handle.token_) {
+      if(!allow_provisional && self.slots[i].phase!=Impl::Phase::active)
+        fail(E::invalid_options,"native context is not adopted");
+      return i;
+    }
   fail(E::invalid_handle,"closed native file context");
 }
 NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,NativeOpenKind kind) {
@@ -105,7 +116,18 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
 NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess access,
     NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
     NativeOverwriteAccess overwrite_access) {
+  return open_impl(path,access,kind,basic_access,security_access,overwrite_access,false);
+}
+NativeFileHandle NativeFileSession::prepare_overwrite(std::string_view path,NativeFileAccess access,
+    NativeBasicAccess basic_access,NativeSecurityAccess security_access,NativeOverwriteAccess overwrite_access) {
+  return open_impl(path,access,NativeOpenKind::file,basic_access,security_access,overwrite_access,true);
+}
+NativeFileHandle NativeFileSession::open_impl(std::string_view path,NativeFileAccess access,
+    NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
+    NativeOverwriteAccess overwrite_access,bool provisional) {
   auto& self=ready();
+  if(provisional && overwrite_access.overwrite==overwrite_access.supersede)
+    fail(E::invalid_options,"prepared overwrite requires exactly one checked operation grant");
   if(kind!=NativeOpenKind::any && kind!=NativeOpenKind::file && kind!=NativeOpenKind::directory)
     fail(E::invalid_options,"unknown native open kind");
   std::size_t available=self.slots.size();
@@ -121,7 +143,8 @@ NativeFileHandle NativeFileSession::open(std::string_view path,NativeFileAccess 
     throw NativeFsError(NativeFsErrorCode::not_directory,"native open requires directory");
   NativeFileHandle result;result.owner_=self.owner;result.token_=self.next_token;
   self.slots[available]={self.next_token,state.info.inode,access,false,false,false,basic_access.write,{},security_access.read,security_access.replace,
-      overwrite_access.overwrite,overwrite_access.supersede};
+      overwrite_access.overwrite,overwrite_access.supersede,
+      provisional?Impl::Phase::prepared:Impl::Phase::active};
   ++self.next_token;return result;
 }
 NativeSessionCreateCommit NativeFileSession::create_open(std::string_view path,bool directory,
@@ -154,10 +177,10 @@ NativeSessionCreateCommit NativeFileSession::create_open(std::string_view path,b
   return result;
 }
 NativeInodeState NativeFileSession::info(const NativeFileHandle& handle) const {
-  const auto index=slot_for(handle);auto& self=ready();return self.state(self.slots[index]);
+  const auto index=slot_for(handle,true);auto& self=ready();return self.state(self.slots[index]);
 }
 std::optional<NativeBasicMetadata> NativeFileSession::basic_metadata(const NativeFileHandle& handle) const {
-  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  const auto index=slot_for(handle,true);auto& self=ready();const auto& slot=self.slots[index];
   (void)self.state(slot);return self.writer.inspect_basic_metadata(slot.inode);
 }
 NativeFsCommit NativeFileSession::set_basic_metadata(const NativeFileHandle& handle,
@@ -167,7 +190,7 @@ NativeFsCommit NativeFileSession::set_basic_metadata(const NativeFileHandle& han
   (void)self.state(slot);return self.writer.set_basic_metadata(slot.inode,value);
 }
 std::optional<NativeSecurityDescriptor> NativeFileSession::security_descriptor(const NativeFileHandle& handle) const {
-  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  const auto index=slot_for(handle,true);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.security_read)fail(E::access_denied,"native context has no descriptor read grant");
   (void)self.state(slot);return self.writer.inspect_security_descriptor(slot.inode);
 }
@@ -228,7 +251,24 @@ NativeFsCommit NativeFileSession::truncate(const NativeFileHandle& handle,std::u
 }
 NativeInodeMutationCommit NativeFileSession::overwrite_result(const NativeFileHandle& handle,
     const NativeOverwriteMetadata& effect) {
-  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  return overwrite_impl(handle,effect,false);
+}
+NativeInodeMutationCommit NativeFileSession::overwrite_prepared_result(const NativeFileHandle& handle,
+    const NativeOverwriteMetadata& effect) {
+  return overwrite_impl(handle,effect,true);
+}
+void NativeFileSession::adopt_prepared(const NativeFileHandle& handle) {
+  const auto index=slot_for(handle,true);auto& slot=ready().slots[index];
+  if(slot.phase!=Impl::Phase::overwritten)
+    fail(E::invalid_options,"native prepared context has no successful overwrite");
+  slot.phase=Impl::Phase::active;
+}
+NativeInodeMutationCommit NativeFileSession::overwrite_impl(const NativeFileHandle& handle,
+    const NativeOverwriteMetadata& effect,bool provisional) {
+  static_assert(std::is_nothrow_move_constructible_v<NativeInodeMutationCommit>);
+  const auto index=slot_for(handle,provisional);auto& self=ready();auto& slot=self.slots[index];
+  if(provisional && slot.phase!=Impl::Phase::prepared)
+    fail(E::invalid_options,"native context is not awaiting overwrite");
   if(effect.replace_attributes?!slot.supersede:!slot.overwrite)
     fail(E::access_denied,"native context has no checked overwrite operation grant");
   if(slot.cleaned)fail(E::invalid_options,"cannot overwrite a cleaned native context");
@@ -237,7 +277,11 @@ NativeInodeMutationCommit NativeFileSession::overwrite_result(const NativeFileHa
   const auto state=self.state(slot);
   if(state.delete_pending || state.unlinked)
     fail(E::delete_pending,"cannot overwrite deleting native inode");
-  return self.writer.overwrite_inode_result(slot.inode,effect);
+  auto result=self.writer.overwrite_inode_result(slot.inode,effect);
+  // No I/O/allocation/fallible operation after publication. Waiting for
+  // adoption permits a healthy cancellation Close without fabricated Cleanup.
+  if(provisional)slot.phase=Impl::Phase::overwritten;
+  return result;
 }
 NativeFsCommit NativeFileSession::create_entry(std::string_view path,bool directory) {
   auto& self=ready();admit_path(path);NativeFileMutation op;
@@ -282,6 +326,8 @@ void NativeFileSession::set_delete(const NativeFileHandle& handle,bool requested
   const auto index=slot_for(handle);auto& self=ready();auto& slot=self.slots[index];
   if(!slot.access.erase)fail(E::access_denied,"native context has no delete access");
   if(slot.cleaned)fail(E::invalid_options,"cannot change disposition after Cleanup");
+  if(requested && self.provisional_inode(slot.inode))
+    fail(E::sharing_violation,"native inode has an unresolved provisional open");
   const auto state=self.state(slot);
   if(state.unlinked)fail(E::delete_pending,"detached inode cannot be resurrected");
   const auto desired=requested || self.intent(slot.inode,slot.token);
@@ -294,6 +340,8 @@ void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file)
 void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file,
     const NativeCleanupMetadata& effect) {
   const auto index=slot_for(handle);auto& self=ready();auto& slot=self.slots[index];
+  if(delete_file && self.provisional_inode(slot.inode))
+    fail(E::sharing_violation,"cannot detach an inode with a provisional open");
   if(!native_cleanup_metadata_valid(effect))
     fail(E::invalid_options,"invalid automatic Cleanup metadata clock");
   if(slot.cleaned) {
@@ -324,7 +372,19 @@ void NativeFileSession::fence() noexcept {
   if(impl_)impl_->terminal=true;
 }
 void NativeFileSession::close(const NativeFileHandle& handle) {
-  const auto index=slot_for(handle);auto& self=ready();auto& slot=self.slots[index];
+  const auto index=slot_for(handle,true);auto& self=ready();auto& slot=self.slots[index];
+  if(slot.phase==Impl::Phase::prepared || slot.phase==Impl::Phase::overwritten) {
+    // Preparation owns no persisted delete intent, and peer deletion was
+    // excluded while provisional. Release ONLY this healthy context; do not
+    // query storage, synthesize Cleanup, undo overwrite or remove its inode.
+    if(slot.cleaned || slot.requested || slot.cleanup_delete || self.intent(slot.inode,slot.token)) {
+      self.terminal=true;fail(E::terminal,"provisional native context lifetime diverged");
+    }
+    slot=Impl::Slot{};return;
+  }
+  if(slot.phase!=Impl::Phase::active) {
+    self.terminal=true;fail(E::terminal,"invalid native open phase");
+  }
   if(!slot.cleaned)fail(E::invalid_options,"native Close requires prior Cleanup");
   const auto state=self.state(slot);
   const auto last=self.contexts(slot.inode,slot.token)==0;

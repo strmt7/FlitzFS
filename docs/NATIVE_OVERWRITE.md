@@ -150,3 +150,39 @@ This initial commit used LZ4 1.11.0. Its separate dependency inventory job
 as a real current-release-policy failure, not relabelled as a fully green
 checkpoint. DEPENDENCY_AUDIT.md records the reviewed immutable upgrade and
 the requirement to inspect new exact-commit compatibility executions.
+
+## Updated-library hosted qualification
+
+At f7d3556b1e487e5cf108a34aa783dafccd0cf6f3, native Windows job
+129665260212 passed all 79 entries using source-verified LZ4 1.11.1.
+Raw Windows job 129665260141 and relocated static Windows job 129665260585
+each passed 75, and sanitizer job 129665259902 passed 71. The overwrite
+matrix retained all 412 checks, eight sealed cases and 828 modeled faults;
+the earlier creation matrix retained 325 checks, 16 sealed cases and 1,656
+faults. Worker handles stayed 94/94.
+
+The relocated Windows executable's PE32+ AMD64 audit found kernel32.dll only,
+no delayed imports, with inherited development environment removed and an
+empty-directory PATH. This qualifies its covered CPU diagnostic package,
+not a driver/app installer, complete Windows compatibility or live AMD.
+
+Dependency inventory job 129665260651 passed pins_current=true with an empty
+outdated_pins list for its explicit dependency/action/tool scope. Extent
+reference, native-store/CPU-pipeline and same-source digest workflows also
+passed; historical comparator source pins and old result artifacts remain
+unchanged. This is not a fresh Dependabot alert check or universal transitive/
+runtime/Windows tool freshness.
+
+Isolated read-only mount job 129667636894 also passed normal operation,
+confirmed helper kill and independent recovery/remount. All three space reports
+reconciled at the exact commit. All nine triggered workflows succeeded.
+This remains default-layout read-only regression coverage, not writable
+Overwrite/Create, NS04 mounted ACL, Windows 11 client, physical power-cut or
+live AMD qualification. No owner-PC operation occurred.
+
+
+The engine follow-through for healthy provisional cancellation and poisoned
+Close outcomes is now specified in NATIVE_PROVISIONAL_OPEN.md. Its configured
+actual SDK dispatch tests require exact-commit inspection. Initial delete
+intent, complete allocation/FileInfo and actual kernel/helper adoption remain
+separate unqualified writable integration requirements.
