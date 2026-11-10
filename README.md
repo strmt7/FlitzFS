@@ -39,6 +39,10 @@ algorithm checks, not Linux product support. See [the Windows product contract](
   records while metadata updates keep the full durability protocol, reducing
   redundant encoding and appended payload history. It currently admits 256 inodes and 255 nonzero extents;
   see [its semantics, format and limits](docs/NATIVE_FILESYSTEM.md).
+- Requested Windows Cleanup archive/time effects now share one atomic native
+  transaction with optional unlink. A user-mode SDK bridge fences failures
+  across Cleanup's void ABI; owning contexts remain retained until Close.
+  This does not enable writable mounts; see [the contract](docs/NATIVE_CLEANUP_METADATA.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.
 - Optional native WinFsp read-only callbacks, disabled by default. Hosted VM

@@ -23,6 +23,7 @@ struct NativeFileSession::Impl {
     std::uint64_t token=0,inode=0;
     NativeFileAccess access;
     bool cleaned=false,cleanup_delete=false,requested=false,basic_write=false;
+    NativeCleanupMetadata cleanup_metadata;
   };
   static_assert(std::is_nothrow_copy_assignable_v<Slot>);
   NativeFilesystemWriter writer;
@@ -185,9 +186,16 @@ void NativeFileSession::set_delete(const NativeFileHandle& handle,bool requested
   slot.requested=requested; // Only after durable success; assignment cannot throw.
 }
 void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file) {
+  cleanup(handle,delete_file,{});
+}
+void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file,
+    const NativeCleanupMetadata& effect) {
   const auto index=slot_for(handle);auto& self=ready();auto& slot=self.slots[index];
+  if(!native_cleanup_metadata_valid(effect))
+    fail(E::invalid_options,"invalid automatic Cleanup metadata clock");
   if(slot.cleaned) {
-    if(slot.cleanup_delete!=delete_file)fail(E::invalid_options,"conflicting duplicate native Cleanup");
+    if(slot.cleanup_delete!=delete_file || !slot.cleanup_metadata.same_requests(effect))
+      fail(E::invalid_options,"conflicting duplicate native Cleanup");
     return;
   }
   const auto state=self.state(slot);
@@ -196,14 +204,21 @@ void NativeFileSession::cleanup(const NativeFileHandle& handle,bool delete_file)
     if(!state.delete_pending && !state.unlinked) {
       self.terminal=true;fail(E::terminal,"Cleanup deletion has no persisted authorized intent");
     }
-    self.writer.unlink_inode(slot.inode);
-    self.clear_latch(slot.inode);
   } else if(slot.requested && !state.unlinked && !self.latched_inode(slot.inode)) {
     for(auto& id:self.latched)if(!id){latch=&id;break;}
     if(!latch){self.terminal=true;fail(E::terminal,"native delete latch invariant exhausted");}
   }
+  // Reserve any latch before fallible publication; never acknowledge the
+  // context or release latches between timestamp changes and unlink.
+  if(effect.any())self.writer.cleanup_inode(slot.inode,delete_file,effect);
+  else if(delete_file)self.writer.unlink_inode(slot.inode);
+  if(delete_file)self.clear_latch(slot.inode);
   if(latch)*latch=slot.inode;
-  slot.cleaned=true;slot.cleanup_delete=delete_file; // Context stays alive for paging I/O.
+  slot.cleanup_metadata=effect;
+  slot.cleaned=true;slot.cleanup_delete=delete_file; // Retain paging context until Close.
+}
+void NativeFileSession::fence() noexcept {
+  if(impl_)impl_->terminal=true;
 }
 void NativeFileSession::close(const NativeFileHandle& handle) {
   const auto index=slot_for(handle);auto& self=ready();auto& slot=self.slots[index];

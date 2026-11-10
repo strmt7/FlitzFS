@@ -235,3 +235,13 @@ The overall CPU workflow at that commit had a separate raw portability
 CreateProcess quota failure, so do not describe all its workflows as green.
 HOST_INDEPENDENCE.md preserves that failure and the accounting-based
 qualification-harness correction. No owner-PC or live GPU execution occurred.
+
+## Automatic Cleanup effects
+
+[NATIVE_CLEANUP_METADATA.md](NATIVE_CLEANUP_METADATA.md) adds requested automatic
+archive/access/write/change effects and optional unlink in the same durable
+transaction. It preserves creation/unrequested values and tuple absence.
+Generic data operations still preserve tuples; they do not invent Windows
+events. The Windows bridge consumes trusted selected-SDK Cleanup flags,
+samples one clock and fences on every failure. Complete per-open suppression,
+allocation/security, writable callbacks and supervisor offlining remain open.

@@ -11,6 +11,11 @@
 #include <utility>
 
 namespace flitzfs {
+bool native_cleanup_metadata_valid(const NativeCleanupMetadata& value) noexcept {
+  const bool time=value.set_access_time || value.set_write_time || value.set_change_time;
+  return value.utc_time<=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)()) &&
+      (time || value.utc_time==0);
+}
 namespace {
 using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
@@ -359,6 +364,21 @@ struct Stage {
     if(n.basic && *n.basic==op.value)return;
     n.basic=op.value;n.modified=model.sequence;model.format=3;changed=true;
   }
+  void cleanup(std::uint64_t id,bool deleting,const NativeCleanupMetadata& effect) {
+    auto& n=node(model,selected_inode(model,id).inode);
+    const bool times=effect.set_access_time || effect.set_write_time || effect.set_change_time;
+    const bool archive=effect.set_archive && !n.directory;
+    if(times || archive) {
+      if(!n.basic)fail(Code::invalid_operation,"automatic Cleanup needs existing basic metadata");
+      auto value=*n.basic;
+      if(archive)value.attributes|=0x20U;
+      if(effect.set_access_time)value.last_access_time=effect.utc_time;
+      if(effect.set_write_time)value.last_write_time=effect.utc_time;
+      if(effect.set_change_time)value.change_time=effect.utc_time;
+      set_basic(NativeBasicMutation{id,0,value});
+    }
+    if(deleting)unlink(id);
+  }
   void apply(const NativeFileMutation& op,std::uint64_t inode=0) {
     const bool write=op.operation==NativeFileOperation::write;
     const bool trunc=op.operation==NativeFileOperation::truncate;
@@ -664,7 +684,8 @@ NativeFsCommit NativeFilesystemWriter::set_basic_metadata(std::uint64_t inode,co
   return apply_with_basic({},{&op,1});
 }
 NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutation> operations,
-    InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic) {
+    InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic,
+    const NativeCleanupMetadata* cleanup,bool cleanup_delete) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   bool committing=false;
   try {
@@ -680,6 +701,10 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       case InodeAction::unlink:stage.unlink(inode);break;
       case InodeAction::retire:stage.retire(inode);break;
       case InodeAction::finish_session:stage.finish_session();break;
+      case InodeAction::cleanup:
+        if(!cleanup || !native_cleanup_metadata_valid(*cleanup))
+          fail(Code::invalid_operation,"invalid automatic Cleanup metadata");
+        stage.cleanup(inode,cleanup_delete,*cleanup);break;
     }
     for(const auto& op:basic)stage.set_basic(op);
     validate_structure(stage.model,true);
@@ -743,6 +768,13 @@ NativeFsCommit NativeFilesystemWriter::set_delete_pending(std::uint64_t inode,bo
 }
 NativeFsCommit NativeFilesystemWriter::unlink_inode(std::uint64_t inode) {
   return transact({},InodeAction::unlink,inode);
+}
+NativeFsCommit NativeFilesystemWriter::cleanup_inode(std::uint64_t inode,bool delete_file,
+    const NativeCleanupMetadata& effect) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(!native_cleanup_metadata_valid(effect))
+    fail(Code::invalid_operation,"invalid automatic Cleanup time/unused clock");
+  return transact({},InodeAction::cleanup,inode,{},&effect,delete_file);
 }
 NativeFsCommit NativeFilesystemWriter::retire_inode(std::uint64_t inode) {
   return transact({},InodeAction::retire,inode);

@@ -355,3 +355,14 @@ a launch. Query/quota failures remain failures, with no process retry or quota
 increase. A hosted real contention regression and SDK ABI checks must pass
 before claiming the revised harness qualified. This is development tooling,
 not a new filesystem driver/GPU policy or owner-PC execution.
+
+## Automatic Cleanup bridge
+
+Requested metadata and unlink publish together; failed operations retain
+contexts and acknowledged state. The Windows noexcept bridge fences on
+unsupported allocation/flags, clock failure or any engine exception.
+The vendor VOID Cleanup dispatcher still returns success, so a future writable
+adapter must offline through its supervisor outside the callback. This bridge
+is not wired to the read-only callback table; no writable route, driver load,
+resource-cap increase or owner-PC operation is added.
+See [the contract and remaining gates](NATIVE_CLEANUP_METADATA.md).

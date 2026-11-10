@@ -202,3 +202,15 @@ Data-write and basic-metadata-write grants cannot imply one another.
 Contexts remain owned through Cleanup until Close; update failure retains
 them and fences. These APIs do not implement ACL authorization or automatic
 Windows write/cleanup timestamp policy and do not expose the raw writer.
+
+## Requested automatic Cleanup metadata
+
+Cleanup can now combine requested archive/time effects with unlink atomically.
+Duplicate request booleans retain the first successful stamp; conflicting
+actions reject. Latches/cleaned state advance only after durable success,
+without post-commit allocation. Implicit FSD effects are separate from explicit
+attribute grants. Contexts and late paging remain valid until Close.
+[NATIVE_CLEANUP_METADATA.md](NATIVE_CLEANUP_METADATA.md) defines clocks,
+absence, failure tests and the noexcept Windows VOID-ABI bridge. Its explicit
+fence performs no I/O/context release; actual adapter supervisor/offlining,
+allocation and complete Windows event policy remain unfinished.

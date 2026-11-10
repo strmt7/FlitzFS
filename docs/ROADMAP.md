@@ -293,3 +293,17 @@ strict union oracles; legacy cases remain intact. Inspect exact native results
 before closing this test gate. Automatic FSD timestamp/attribute events,
 secure descriptor and allocation persistence, writable callbacks/helper,
 Windows 11 client, live AMD, scaling/reclaim/repair and learning remain required.
+
+### Automatic Cleanup engine and VOID-ABI bridge
+
+Requested regular-file archive/access/write/change effects can now combine
+with unlink in one durable commit. Owning contexts retain first successful
+duplicate stamps, latched intent and late paging lifetime. The selected SDK
+user-mode bridge samples one clock and fences failure across its VOID callback;
+configured native/SDK tests require executed receipts before qualification.
+
+Complete per-open timestamp suppression/restoration, Create/Overwrite/write
+metadata policy, persistent security and allocation, supervisor offlining,
+writable callbacks/helper and latest Windows 11 client remain required.
+No writable mount, live HIP, scale/reclaim, redundant payload repair or automatic
+learning claim follows. See NATIVE_CLEANUP_METADATA.md.

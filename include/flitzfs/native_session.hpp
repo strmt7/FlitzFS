@@ -74,6 +74,13 @@ class NativeFileSession final {
   // delete_file is the trusted future FSD Cleanup flag, not a user permission.
   // Preserve context for later paging I/O; only Close releases it.
   void cleanup(const NativeFileHandle&,bool delete_file);
+  // Already-authorized FSD Cleanup effects do not require explicit attribute-
+  // write access. First success keeps its timestamp; repeated identical action
+  // requests are no-ops even if the caller sampled a later valid clock.
+  void cleanup(const NativeFileHandle&,bool delete_file,const NativeCleanupMetadata&);
+  // No I/O or context release. Required when a void OS callback cannot report
+  // an internal failure; the adapter must separately signal its supervisor.
+  void fence() noexcept;
   // Requires Cleanup. Retire detached data only after the last owned context.
   // Failed retirement keeps the context and fences further I/O.
   void close(const NativeFileHandle&);
