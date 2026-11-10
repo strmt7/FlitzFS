@@ -242,3 +242,14 @@ remain. Data/basic grants do not confer those rights. A trusted creation overloa
 publishes file/basic/descriptor together. Stable contexts retain descriptors
 through rename/unlink until final Close, with existing fencing and no raw writer
 access. Full replacement is not a substitute for Windows per-part checks.
+
+
+## Explicit provisional overwrite protocol
+
+The historical open/create methods above still create active contexts with
+real Cleanup requirements. The separate prepare_overwrite path now admits
+unresolved Open/Overwrite ownership, blocks ordinary I/O/deletion, and permits
+healthy cancellation Close without storage I/O or fabricated Cleanup.
+Successful overwrite waits for an explicit trusted adoption declaration;
+poisoned ownership is retained. NATIVE_PROVISIONAL_OPEN.md specifies the
+phase/peer/capacity rules, actual SDK dispatch tests and remaining adapter gates.

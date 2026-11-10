@@ -31,7 +31,7 @@ struct NativeSecurityAccess {bool read=false,replace=false;};
 // data/delete/WRITE_ATTRIBUTES bits alone must not infer this authorization.
 struct NativeOverwriteAccess {bool overwrite=false,supersede=false;};
 // A value alias for ONE open instance, not another open/reference count.
-// Only open() creates a context; one successful Close invalidates all aliases.
+// Only owning open/create/prepare APIs create contexts; Close invalidates aliases.
 // Weak ownership prevents stale tokens from binding to another session.
 class NativeFileHandle final {
  public:
@@ -79,6 +79,17 @@ class NativeFileSession final {
   NativeFileHandle open(std::string_view path,NativeFileAccess access,
       NativeOpenKind kind,NativeBasicAccess basic_access,NativeSecurityAccess security_access,
       NativeOverwriteAccess overwrite_access);
+  // Existing regular inode for the two-stage FSD Open -> Overwrite protocol.
+  // Exactly one prechecked operation grant is required. No data/delete intent
+  // is published by preparation. Queries may build Open metadata; ordinary I/O
+  // remains blocked until successful overwrite AND explicit trusted adoption.
+  NativeFileHandle prepare_overwrite(std::string_view path,NativeFileAccess access,
+      NativeBasicAccess basic_access,NativeSecurityAccess security_access,
+      NativeOverwriteAccess overwrite_access);
+  NativeInodeMutationCommit overwrite_prepared_result(const NativeFileHandle&,
+      const NativeOverwriteMetadata&);
+  // Trusted adapter transition, not kernel adoption attestation. No I/O.
+  void adopt_prepared(const NativeFileHandle&);
   // Preflight an owned context/token before any durable creation. NEW name,
   // complete metadata and optional delete-on-close intent publish atomically;
   // successful return/slot installation needs no post-commit allocation/query.
@@ -132,7 +143,9 @@ class NativeFileSession final {
   // No I/O or context release. Required when a void OS callback cannot report
   // an internal failure; the adapter must separately signal its supervisor.
   void fence() noexcept;
-  // Requires Cleanup. Retire detached data only after the last owned context.
+  // Active contexts require Cleanup. Healthy provisional contexts retire
+  // without Cleanup/storage mutation; poisoned contexts remain retained.
+  // Retire detached data only after the last owned context.
   // Failed retirement keeps the context and fences further I/O.
   void close(const NativeFileHandle&);
   // All native mutations already acknowledge after publication barriers.
@@ -148,6 +161,10 @@ class NativeFileSession final {
   std::unique_ptr<Impl> impl_;
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
-  std::size_t slot_for(const NativeFileHandle&) const;
+  std::size_t slot_for(const NativeFileHandle&,bool allow_provisional=false) const;
+  NativeFileHandle open_impl(std::string_view,NativeFileAccess,NativeOpenKind,
+      NativeBasicAccess,NativeSecurityAccess,NativeOverwriteAccess,bool provisional);
+  NativeInodeMutationCommit overwrite_impl(const NativeFileHandle&,
+      const NativeOverwriteMetadata&,bool provisional);
 };
 }

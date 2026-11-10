@@ -411,3 +411,18 @@ The selected DLL closes a failed overwrite open directly without Cleanup;
 provisional-open retirement/supervisor handling must be qualified together
 with allocation/full FileInfo before writable callback integration.
 Windows 11 client/app, live AMD, scale/reclaim, repair and learning remain open.
+
+
+### Provisional overwrite ownership and actual SDK Close
+
+NATIVE_PROVISIONAL_OPEN.md introduces prepared, overwritten and explicitly
+adopted contexts, I/O-free healthy cancellation and retained poisoned ownership.
+Peer deletion is excluded while preparation is unresolved. A VOID Close bridge
+reports a supervisor-visible fenced outcome; configured SDK cases invoke the
+actual selected Overwrite/Close/Cleanup dispatcher without a filesystem object.
+
+Inspect exact-commit native/sanitizer/SDK/fault results before qualification.
+Next: atomic initial overwrite delete intent and general Create adoption/failure,
+allocation/full FileInfo and actual writable kernel/helper lifecycle. Normal
+Cleanup delivery policy and stopped-queue retirement need source-bound tests.
+Windows 11 client, live AMD, scale/reclaim, repair and learning remain required.
