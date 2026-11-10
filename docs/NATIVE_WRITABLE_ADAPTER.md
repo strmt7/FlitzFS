@@ -271,3 +271,67 @@ SACL tests record the actual selected-helper status. Success must persist the
 exact independent SDK result; a privilege/access rejection must match the helper
 and leave the checkpoint unchanged. No privilege is enabled by this test and no
 SACL success is claimed before inspecting the recorded status.
+
+
+## Requestor identity required for owner/group mutation
+
+Research checkpoint: 10 November 2026. The selected 13 October WinFsp B5
+implementation is commit 14d6e0280ae15e2550c44d6dbc476be51649727f. Its
+inc/winfsp/fsctl.h SetSecurity frame carries contexts, part flags and descriptor
+bytes, with NO requester access token. src/sys/security.c sends that frame;
+src/dll/fsop.c directly invokes the callback. src/dll/security.c supplies a NULL
+token to SetPrivateObjectSecurity. Create's token handoff in src/sys/create.c
+is a DIFFERENT request path and cannot authenticate a later caller. No opener
+identity, PID, SID equality, service token or granted WRITE_OWNER bit proves
+that the current requester may assign a particular owner/group.
+
+The 2026 upstream [issue 671](https://github.com/winfsp/winfsp/issues/671)
+remains open as inspected. Its maintainer's 15 July reply identifies the
+owner-change behavior as a security concern and discusses a possible protocol
+change. The reporter's claims are NOT a substitute for source/runtime proof;
+we independently inspected the selected frame/helper/dispatch and retained the
+observed parts=3 / STATUS_INVALID_OWNER result. That one error did NOT prove
+all owner-only/group-only/mixed requests would always reject. Earlier text
+that relied on helper rejection alone was too broad and is superseded here.
+
+The admitted off-host Crawl4AI run42881521036/job130058729198 accepted all four
+official Microsoft pages with native HTTP200, substantive extraction, robots
+checks, 45-second limits, no external LLM/profile, exact native/markdown hashes
+and receipt SHA256 3431b61b1451f91ac2ea191e5f1d7abfa75cde1a715e1fcae8d7b664e19fbb3f.
+See WINDOWS_OWNERSHIP_SOURCES.json. Current-served documentation does NOT prove a
+recent revision: publisher date fields are retained explicitly, and the 2026
+implementation/runtime evidence governs this safety change. Microsoft describes
+client-token owner validation and flags that skip validation; these flags are
+NOT an authorization mechanism and are not enabled here.
+
+The hosted candidate now rejects the WHOLE request containing OWNER with
+STATUS_INVALID_OWNER, or GROUP without OWNER with STATUS_INVALID_PRIMARY_GROUP,
+after checking original required rights and BEFORE adoption, descriptor merge,
+backing reads/writes or publication. Identical SIDs also reject. A mixed
+owner/group+DACL request cannot partially change the DACL. WRITE_OWNER alone
+no longer grants the session's internal full replacement capability. DACL/SACL
+routing and every old bound, format, fault case and default route remain intact.
+
+Ownership changes remain REQUIRED for the full product, not declared complete.
+The integration must acquire the exact live requester's query-only token through
+a qualified kernel/request protocol (or an equivalently proved authority path),
+bind it to that request/volume/session, enforce SID/privilege rules without
+service-token substitution, and close all handles on normal/error/cancel paths.
+Inspect/reuse WinFsp's existing Create capture/prepare/finalize design, rather
+than reopening a process by PID. Require negotiated capability and fail-closed
+behavior with older peers; an unauthenticated flag/handle/boolean is insufficient.
+This is a pending design gate, not permission to patch/install/load a driver on
+the PC or claim a new protocol exists. All driver experiments stay on disposable
+VMs after their separate audit/resource/lifecycle gates.
+
+New SDK regressions require same-owner, same-group, owner-only/group-only and
+mixed atomic rejection with original rights, unchanged checkpoint extent/
+generation/descriptor and healthy retained context. Execute exact-commit CI
+before claiming they passed. Existing cap/fault/persistence/handle and mounted
+regressions remain mandatory; mounted ACL authorization and client qualification
+remain separate unfinished requirements.
+
+
+## Retained pre-guard executed checkpoint
+
+Verified b135962c16e4e76514c6d05077ea725565c901e0: all FOUR triggered workflows passed. Windows native job130050290781 passed110 groups, SDK adapter1665 checks/1063 dispatches and handles151->151; shared197 security invariants and sanitizer job130050290292 passed92 groups. All six mounted regression profiles passed with complete source-bound reconciliation and confirmed child exits; those profiles do not test mounted ACL authorization. Preserve failed implementation/test attempts in security_failure_history; ownership helper returned STATUS_INVALID_OWNER and was not bypassed. SACL branch status exists in retained LastTest artifact but is absent from current console whitelist; do not claim its success. Add security evidence prefix in next substantive batch and qualify real ownership/caller/inheritance behavior. No owner PC/GPU tests, format changes, cap increases or releases.

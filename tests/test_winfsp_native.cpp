@@ -398,14 +398,21 @@ void security_updates(StoreCompressionMode mode) {
     h.finish(context);++updates;
   };
   update(WRITE_DAC,DACL_SECURITY_INFORMATION|PROTECTED_DACL_SECURITY_INFORMATION,dacl);
-  {
-    auto context=h.open(L"\\secured",0,WRITE_OWNER);
-    PSECURITY_DESCRIPTOR result=nullptr;auto original=expected;
-    const auto status=FspSetSecurityDescriptor(original.data(),
-        OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION,owner.data(),&result);
-    if(result)FspDeleteSecurityDescriptor(result,(NTSTATUS (*)())FspSetSecurityDescriptor);
-    require(status==STATUS_INVALID_OWNER,"selected SDK owner validation changed; review caller authorization before enabling ownership");
-    deny(context,OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION,owner,status);
+  unsigned ownership_rejections=0;
+  for(const auto access:{UINT32(WRITE_OWNER),UINT32(FILE_ALL_ACCESS)}) {
+    auto context=h.open(L"\\secured",0,access);
+    // Same owner and group also reject: SID equality is not caller authority.
+    deny(context,OWNER_SECURITY_INFORMATION,owner,STATUS_INVALID_OWNER);
+    deny(context,GROUP_SECURITY_INFORMATION,owner,STATUS_INVALID_PRIMARY_GROUP);
+    ownership_rejections+=2;
+    if(access==FILE_ALL_ACCESS) {
+      auto mixed=security_text(L"O:SYG:BAD:P(A;;GA;;;WD)");
+      deny(context,OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION|
+          DACL_SECURITY_INFORMATION,mixed,STATUS_INVALID_OWNER);
+      deny(context,GROUP_SECURITY_INFORMATION|DACL_SECURITY_INFORMATION,
+          mixed,STATUS_INVALID_PRIMARY_GROUP);
+      ownership_rejections+=2;
+    }
     h.finish(context);
   }
   NTSTATUS sacl_status=STATUS_SUCCESS;
@@ -428,7 +435,8 @@ void security_updates(StoreCompressionMode mode) {
       "retired security update did not persist independently");
   std::cout<<"Windows writable-security evidence: {\"schema\":1,\"mode\":\""
       <<(mode==StoreCompressionMode::raw?"raw":"automatic")<<"\",\"updates\":"<<updates
-      <<",\"denials\":"<<denials<<",\"sacl_status\":"<<static_cast<UINT32>(sacl_status)
+      <<",\"denials\":"<<denials<<",\"ownership_rejections\":"<<ownership_rejections
+      <<",\"sacl_status\":"<<static_cast<UINT32>(sacl_status)
       <<",\"mounted\":false,\"gpu\":false,\"complete\":true}\n";
 }
 void security_history_cap(StoreCompressionMode mode) {

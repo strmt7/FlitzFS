@@ -186,7 +186,7 @@ struct WinFspNativeWritable::Impl {
     return {(access&FILE_READ_DATA)!=0,(access&(FILE_WRITE_DATA|FILE_APPEND_DATA))!=0,(access&DELETE)!=0};
   }
   static NativeBasicAccess basic_grant(UINT32 access) noexcept{return {(access&FILE_WRITE_ATTRIBUTES)!=0};}
-  static NativeSecurityAccess security_grant(UINT32 access) noexcept{return {(access&(READ_CONTROL|ACCESS_SYSTEM_SECURITY))!=0,(access&(WRITE_DAC|WRITE_OWNER|ACCESS_SYSTEM_SECURITY))!=0};}
+  static NativeSecurityAccess security_grant(UINT32 access) noexcept{return {(access&(READ_CONTROL|ACCESS_SYSTEM_SECURITY))!=0,(access&(WRITE_DAC|ACCESS_SYSTEM_SECURITY))!=0};}
   static NTSTATUS create(FSP_FILE_SYSTEM* fs,PWSTR name,UINT32 options,UINT32 access,UINT32 attrs,
       PSECURITY_DESCRIPTOR security,UINT64 allocation,PVOID* context,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(context)*context=nullptr;if(info)*info={};if(!context||!info)return STATUS_INVALID_PARAMETER;
@@ -339,6 +339,14 @@ struct WinFspNativeWritable::Impl {
           ((parts&(OWNER_SECURITY_INFORMATION|GROUP_SECURITY_INFORMATION))&&!(access&WRITE_OWNER))||
           ((parts&(SACL_SECURITY_INFORMATION|sacl_flags))&&!(access&ACCESS_SYSTEM_SECURITY)))
         return win_detail::failure(s.session,STATUS_ACCESS_DENIED);
+      // The selected WinFsp SetSecurity frame has no requesting client token.
+      // WRITE_OWNER is not proof that a supplied owner SID is assignable.
+      // Never rely on the token-less merge helper to enforce that policy.
+      // Reject the WHOLE mixed request before adoption, descriptor merge or I/O.
+      if(parts&OWNER_SECURITY_INFORMATION)
+        return win_detail::failure(s.session,STATUS_INVALID_OWNER);
+      if(parts&GROUP_SECURITY_INFORMATION)
+        return win_detail::failure(s.session,STATUS_INVALID_PRIMARY_GROUP);
       // Reject malformed/oversized trusted transport input before any I/O.
       const auto input=descriptor(modification);
       auto& slot=s.adopt(context);

@@ -3,27 +3,35 @@
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "qualified_checkpoint": {
-    "commit": "04bdef47de8e3dbdb45728c775b19fd45eb78750",
-    "tree": "27e1c1b6d3dc28cc8dc4457b9aff8635e44598d0",
-    "ci_run": 42872599627,
-    "native_job": 130027456227,
+    "commit": "b135962c16e4e76514c6d05077ea725565c901e0",
+    "tree": "2f4e546b014f35d529c36943f62b0d8963a3b134",
+    "ci_run": 42879107683,
+    "native_job": 130050290781,
     "native_groups": 110,
-    "report_negative_groups": 6,
+    "sanitizer_groups": 92,
+    "security_invariants": 197,
+    "adapter_checks": 1665,
+    "adapter_dispatches": 1063,
+    "handles": [
+      151,
+      151
+    ],
     "writable_jobs": {
-      "basic": 130032957503,
-      "crash-restart": 130032957591,
-      "delete": 130032957630,
-      "crash": 130032957659,
-      "mutations": 130032957661,
-      "restart": 130032957994
+      "basic": 130055526397,
+      "restart": 130055526398,
+      "mutations": 130055526496,
+      "delete": 130055526539,
+      "crash": 130055526563,
+      "crash-restart": 130055526898
     },
-    "proof_scope": "Disposable hosted VMs only; resolved-image resume only; CPU only; not physical power-loss or production qualification"
+    "proof_scope": "Hosted bounded SDK security merge/rights, persistence/history-cap failure, existing six mounted regressions. Ownership changes remain rejected by selected helper. No live mounted ACL/caller-privilege/inheritance/Windows11 client, physical-power or GPU qualification. No owner-PC execution."
   },
   "source_routing": {
-    "commit": "04bdef47de8e3dbdb45728c775b19fd45eb78750",
-    "job": 130027456320,
+    "commit": "72147d6f34e18c4f702a8b8da7f0a5bc2e3f23c4",
+    "job": 130039087666,
     "queries": 6,
-    "source_sha256": "23aa7a27fa7c30717e3184809ab310530f7b6109ec96ddd0377bec12bebf58ea"
+    "source_sha256": "f8fe9cdbc3d3345f56efc6c038e8a894e417ba9a52a77ec001f9dfb6269bb408",
+    "scope": "Production source unchanged at later test/doc corrections; no new broad navigation authorized without current binding verification"
   },
   "safety": {
     "development": "native repository APIs and disposable hosted VMs",
@@ -45,22 +53,19 @@
     }
   },
   "pending_implementation": {
-    "scope": "bounded hosted writable security updates through selected WinFsp helper; original per-part rights; existing atomic publication",
+    "scope": "Fail closed for all unauthenticated owner/group mutations; original WRITE_OWNER is not requestor SID authority; retain ACL functionality and exact SDK reporting",
     "check_exact_current_head_ci": true,
-    "do_not_treat_configuration_as_results": true,
     "primary_files": [
       "src/windows/winfsp_native.cpp",
-      "src/native_session.cpp",
-      "include/flitzfs/native_session.hpp",
-      "tests/test_winfsp_native.cpp",
-      "tests/test_native_security.cpp"
+      "tests/test_winfsp_native.cpp"
     ],
     "docs": [
       "docs/NATIVE_SECURITY.md",
-      "docs/NATIVE_WRITABLE_ADAPTER.md"
+      "docs/WINDOWS_OWNERSHIP_SOURCES.json"
     ]
   },
   "remaining": [
+    "authenticated request-bound kernel/helper authority for functional owner/group changes and mounted ACL enforcement",
     "unresolved-session recovery and cancellation/overwrite/mapped delivery",
     "production persistent helper/app/installer and latest Windows 11 client qualification",
     "scale/history reclamation and compression portfolio/performance comparisons",
