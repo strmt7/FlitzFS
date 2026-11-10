@@ -214,3 +214,12 @@ attribute grants. Contexts and late paging remain valid until Close.
 absence, failure tests and the noexcept Windows VOID-ABI bridge. Its explicit
 fence performs no I/O/context release; actual adapter supervisor/offlining,
 allocation and complete Windows event policy remain unfinished.
+
+## Owning data and requested metadata together
+
+write_with_metadata and truncate_with_metadata require the owned context's
+data-write grant and route trusted effects through one native transaction.
+Explicit full-tuple setters still require separate attribute-write permission.
+Rename/path reuse and detached late paging retain stable identity; storage
+failure retains contexts and fences. See NATIVE_MUTATION_METADATA.md for
+accepted-zero, clocks, tuple absence, fault oracles and remaining adapter gates.

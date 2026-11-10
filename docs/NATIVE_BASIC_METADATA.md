@@ -245,3 +245,11 @@ Generic data operations still preserve tuples; they do not invent Windows
 events. The Windows bridge consumes trusted selected-SDK Cleanup flags,
 samples one clock and fences on every failure. Complete per-open suppression,
 allocation/security, writable callbacks and supervisor offlining remain open.
+
+## Atomic stable-inode data effects
+
+[NATIVE_MUTATION_METADATA.md](NATIVE_MUTATION_METADATA.md) now supplies trusted
+requested effects together with stable-inode write/truncate. It preserves
+creation/unrequested fields and uses one normal replicated transaction.
+It adds no explicit attribute grant, invented legacy tuple or Windows event
+policy. Zero accepted writes never apply effects. No writable mount is enabled.

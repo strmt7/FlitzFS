@@ -439,3 +439,17 @@ closed. A future supervisor must offline outside Cleanup; never join/stop a
 dispatcher within its own callback. Keep the existing read-only table unwired.
 Actual per-open -1/-2 suppression, complete Windows policy, allocation/security,
 writable adapter/app and Windows 11 client/live GPU qualification remain open.
+
+## Atomic data and requested automatic metadata
+
+Read docs/NATIVE_MUTATION_METADATA.md before changing the metadata-aware inode/
+session write or truncate APIs. Reuse the same Stage and replicated commit,
+preserve result layouts/nonthrowing success, current-EOF append, full supplied
+input admission, constrained counts, zeroed tails and snapshots. Zero accepted
+writes never apply effects. Meaningful effects require original present tuples;
+invalid clocks fail before I/O. The historical Cleanup type remains intact via
+the NativeAutomaticMetadata alias. Implicit trusted effects require data-write
+ownership, not explicit attribute grants; do not turn that into ACL bypass.
+Keep detached late paging and exact context state on failure, no retries,
+no capacity increase and no writable callback/owner-PC permission. Actual
+Windows event/suppression/FileInfo/allocation/security/helper gates remain open.

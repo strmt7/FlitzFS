@@ -130,3 +130,13 @@ in NATIVE_FILE_SESSION.md. Writer metadata/range queries compare the backing
 namespace with the last admitted model and verify touched records without
 exporting an unchecked snapshot. Public snapshot/open/resume verification
 remains complete; no concurrency or background execution is introduced.
+
+## Requested automatic data metadata
+
+[NATIVE_MUTATION_METADATA.md](NATIVE_MUTATION_METADATA.md) adds stable-inode
+write/truncate effects in the SAME staging and replicated commit. Old APIs
+preserve tuples. The alias reuses Cleanup's bounded requested fields/clock;
+accepted-zero writes do not stamp and no original tuple is fabricated.
+Owning-session wrappers require data-write access and preserve late paging,
+detached identity, accepted-count durability, zeroed tails and old snapshots.
+Actual per-open Windows policy and truthful callback FileInfo remain separate.

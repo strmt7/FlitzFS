@@ -62,6 +62,13 @@ class NativeFileSession final {
   NativeInodeWriteCommit write(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={});
   NativeFsCommit truncate(const NativeFileHandle&,std::uint64_t bytes);
+  // Trusted automatic FSD effects share the durable data transaction and
+  // require data-write access, independently of explicit attribute grants.
+  // Context ownership remains valid through late paging until Close.
+  NativeInodeWriteCommit write_with_metadata(const NativeFileHandle&,std::uint64_t offset,
+      std::span<const std::byte>,NativeInodeWriteOptions,const NativeAutomaticMetadata&);
+  NativeFsCommit truncate_with_metadata(const NativeFileHandle&,std::uint64_t bytes,
+      const NativeAutomaticMetadata&);
   NativeFsCommit create_entry(std::string_view path,bool directory=false);
   // Trusted creation path: data/namespace and explicit full basic metadata
   // publish atomically. Access checking remains the future OS adapter's job.
