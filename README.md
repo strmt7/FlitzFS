@@ -234,3 +234,11 @@ owned context. Context capacity is checked before publication; returned facts
 need no post-commit query. See [native create/open](docs/NATIVE_CREATE_OPEN.md).
 Configured hosted tests must be inspected before qualification. Writable
 driver/app integration, Windows 11 client and live AMD remain unfinished.
+
+
+The experimental Windows engine also provides atomic existing-inode overwrite:
+EOF reset and attribute/time policy share one durable event, preserving
+creation/security/identity and handles. Its operation authorization follows the
+selected FSD's actual implicit-access contract. See [overwrite](docs/NATIVE_OVERWRITE.md).
+Allocation, full FileInfo, failed-open lifecycle, writable callbacks/helper,
+Windows 11 client and live AMD qualification remain unfinished.

@@ -396,3 +396,18 @@ Continue to real Windows allocation/full FileInfo, ACL/Create option/overwrite
 mapping, caches/mappings/concurrency and driver/helper/client integration.
 This component does not enable writable callbacks or qualify actual Create/
 NS04 process kills, live AMD, production scale, repair or automatic learning.
+
+
+### Atomic existing-inode overwrite and checked operation grants
+
+NATIVE_OVERWRITE.md adds EOF reset, attribute merge/replacement, archive and
+one supplied access/write/change timestamp in the same replicated event.
+Original creation/security/identity and owned peer contexts remain. Separate
+already-checked overwrite/supersede grants account for the actual FSD's
+implicit-access removal; ordinary final GrantedAccess bits cannot substitute.
+
+Configured exact-commit invariant/sealed/fault groups need hosted inspection.
+The selected DLL closes a failed overwrite open directly without Cleanup;
+provisional-open retirement/supervisor handling must be qualified together
+with allocation/full FileInfo before writable callback integration.
+Windows 11 client/app, live AMD, scale/reclaim, repair and learning remain open.

@@ -552,3 +552,20 @@ actual Windows descriptor admission; do not invent ACL/allocation/FileInfo.
 Keep every legacy case and configured raw/automatic fixed/compact creation fault.
 No writable callback, actual Create/NS04 termination, Windows 11 client, live
 AMD or owner-PC qualification follows from this pure CPU ownership component.
+
+
+## Atomic native overwrite boundary
+
+Read docs/NATIVE_OVERWRITE.md before changing overwrite_inode_result or its
+session grant path. Preserve live regular/present-basic admission, exact
+creation/security/inode/name, zeroed regrowth and ONE Stage/THREE barriers even
+for repeated empty same-clock events. Capture results before publication; no
+post-commit allocating/backing/path query or context changes on failure.
+Separate already-checked overwrite/supersede grants are required: actual
+WinFsp may REMOVE implicit WRITE_DATA/DELETE from final GrantedAccess, and
+ordinary data/delete/basic/security rights must not imply this operation.
+Keep all old API/layout/format/resource/case boundaries. The actual DLL can
+Close a failed overwrite open WITHOUT Cleanup; qualify provisional retirement
+and offlining before writable wiring, never fake Cleanup/drop poisoned contexts.
+No allocation/full FileInfo, writable callback/app/client/live AMD or owner-PC
+permission follows. Keep new modeled faults distinct from old process probes.

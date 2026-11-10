@@ -132,3 +132,36 @@ recovery, redundant payload repair, bounded low-priority adaptive learning,
 installation/update/rollback and representative filesystem comparisons remain
 required. The product target remains latest stable Windows 11 AMD64 only.
 Non-Windows analysis is not a supported product.
+
+## Executed hosted checkpoint
+
+At 9a251dd2e9b27b12ebae9bca25d8bb82c2a60eee, Windows native job
+129654857662 passed all 76 CTest entries, raw Windows job 129654857647 and
+relocated static Windows job 129654854097 each passed 72, and sanitizer job
+129654857378 passed 68. Each inspected creation matrix emitted 325 invariant
+checks, 16 sealed cases and all 1,656 fault cases across sixteen complete
+raw/automatic, fixed/compact, file/directory and delete-intent traces.
+
+The sealed cases returned an owned context and committed facts with zero
+post-barrier backend accesses, then confirmed active storage denial through
+that handle without releasing its context. Modeled faults preserved unrelated
+acknowledged bytes and independently resumed creation/data access. New
+sanitizer fault groups took 6.94-7.21 seconds under the unchanged 45-second
+ceiling. Windows worker handles remained 94 before and after testing.
+
+Existing Windows legacy/basic/root-3 jobs 129654856542 / 129654856246 /
+129654854099 completed their original 976 / 712 / 172 termination cases and
+strict disjoint unions. These campaigns do not become actual Create or NS04
+writer-kill evidence. Their two partition times were 64.425/54.811,
+48.941/34.082 and 6.600/6.485 seconds respectively.
+
+The checks above do not enable writable callbacks or qualify Windows 11
+client, real Create/NS04 termination, physical power cuts, live AMD, production
+capacity, payload repair or autonomous learning. No owner-PC operation occurred.
+
+Read-only mounted job 129657411513 also passed normal operation, confirmed
+helper termination and independent recovery/remount with exits 0 / 1460 / 0.
+All three space reports reconciled; peaks were 6,201,344 / 6,189,056 / 5,169,152
+bytes. The unchanged default-layout, absent-security fixture preserved source
+bytes; this is a regression check, not new writable Create or NS04 ACL coverage.
+All eleven triggered workflows succeeded at the exact commit.

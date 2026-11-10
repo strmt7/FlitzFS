@@ -445,3 +445,19 @@ Creation consumes explicit already-authorized grants and canonical metadata.
 It does not evaluate parent access, inherit/validate Windows ACL semantics,
 reserve allocation, construct complete FileInfo or enable a writable callback.
 Old wire bytes, limits, fault campaigns and owner-host restrictions remain.
+
+
+## Atomic overwrite and implicit driver access checks
+
+The explicit native overwrite event preserves existing creation/security/
+identity while resetting EOF and requested attrs/times under the same THREE
+barriers. It captures result facts before publication and retains contexts on
+failure; history and old snapshots remain. See NATIVE_OVERWRITE.md.
+
+Separate trusted overwrite/supersede authorization is required because the
+selected FSD may remove implicit rights from final GrantedAccess after checking
+them. Do not infer it from data/delete/basic/security grants or call it an ACL
+evaluator. The selected DLL can call Close without Cleanup after failure:
+writable integration needs qualified provisional-context retirement/offlining,
+not invented Cleanup or dropping poisoned ownership. No writable routing or
+allocation reservation is introduced. Owner-PC restrictions remain unchanged.

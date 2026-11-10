@@ -82,6 +82,15 @@ bool native_cleanup_metadata_valid(const NativeCleanupMetadata&) noexcept;
 // historical Cleanup type/layout/symbols; this alias adds no encoding or ABI.
 using NativeAutomaticMetadata=NativeCleanupMetadata;
 
+// Trusted overwrite event policy: explicit canonical request attributes and
+// one sampled nonnegative UTC value. Allocation/EA/stream policy is separate.
+struct NativeOverwriteMetadata {
+  std::uint64_t utc_time=0;
+  std::uint32_t attributes=0;
+  bool replace_attributes=false;
+};
+bool native_overwrite_metadata_valid(const NativeOverwriteMetadata&) noexcept;
+
 enum class NativeFileOperation {create_file,create_directory,write,truncate,rename,remove};
 struct NativeFileMutation {
   NativeFileOperation operation=NativeFileOperation::create_file;
@@ -249,6 +258,12 @@ class NativeFilesystemWriter final {
       const NativeAutomaticMetadata& effect={});
   NativeInodeMutationCommit truncate_inode_result(std::uint64_t inode,std::uint64_t bytes,
       const NativeAutomaticMetadata& effect={});
+  // Existing regular inode: truncate to zero + merge/replace request attrs,
+  // archive and access/write/change time in ONE publication. Preserve original
+  // creation time, descriptor, inode and name. Requires a present basic tuple;
+  // no allocation reservation or complete Windows FileInfo is implied.
+  NativeInodeMutationCommit overwrite_inode_result(std::uint64_t inode,
+      const NativeOverwriteMetadata&);
   // Persistent deletion primitives for the future owning Windows engine.
   // Eligibility/cancel changes intent only; it never unlinks. Unlink requires
   // pending intent, removes the name, and retains every payload. Retirement
@@ -277,12 +292,13 @@ class NativeFilesystemWriter final {
  private:
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
-  enum class InodeAction {path_mutations,create,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup};
+  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
       const NativeAutomaticMetadata* automatic=nullptr,bool delete_requested=false,
       NativeInodeCommitInfo* published=nullptr,
-      std::span<const NativeSecurityMutation> security={});
+      std::span<const NativeSecurityMutation> security={},
+      const NativeOverwriteMetadata* overwrite=nullptr);
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

@@ -16,6 +16,10 @@ bool native_cleanup_metadata_valid(const NativeCleanupMetadata& value) noexcept 
   return value.utc_time<=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)()) &&
       (time || value.utc_time==0);
 }
+bool native_overwrite_metadata_valid(const NativeOverwriteMetadata& value) noexcept {
+  return value.utc_time<=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)()) &&
+      !(value.attributes&~(kNativeBasicAttributeMask&~0x10U));
+}
 namespace {
 using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
@@ -419,6 +423,22 @@ struct Stage {
       set_basic(NativeBasicMutation{id,0,value});
     }
   }
+  void overwrite_inode(std::uint64_t id,const NativeOverwriteMetadata& effect) {
+    auto& n=node(model,selected_inode(model,id).inode);
+    if(n.directory)fail(Code::is_directory,"cannot overwrite native directory");
+    if(n.delete_pending || n.unlinked)
+      fail(Code::invalid_operation,"cannot overwrite pending/detached native inode");
+    if(!n.basic)fail(Code::invalid_operation,"overwrite needs existing basic metadata");
+    auto value=*n.basic;
+    value.attributes=(effect.replace_attributes?effect.attributes:(value.attributes|effect.attributes))|0x20U;
+    value.last_access_time=value.last_write_time=value.change_time=effect.utc_time;
+    NativeFileMutation op;op.operation=NativeFileOperation::truncate;op.size=0;
+    apply(op,id);
+    set_basic(NativeBasicMutation{id,0,value});
+    // An explicit overwrite is a durable event, including an already empty
+    // file and identical sampled fields. Keep the same THREE barriers.
+    n.modified=model.sequence;changed=true;
+  }
   void cleanup(std::uint64_t id,bool deleting,const NativeCleanupMetadata& effect) {
     automatic_metadata(id,effect);
     if(deleting)unlink(id);
@@ -775,7 +795,7 @@ NativeInodeCreateCommit NativeFilesystemWriter::create_inode_result(std::string_
 NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutation> operations,
     InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic,
     const NativeAutomaticMetadata* automatic,bool delete_requested,NativeInodeCommitInfo* published,
-    std::span<const NativeSecurityMutation> security) {
+    std::span<const NativeSecurityMutation> security,const NativeOverwriteMetadata* overwrite) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(automatic && !native_cleanup_metadata_valid(*automatic))
     fail(Code::invalid_operation,"invalid automatic metadata time/unused clock");
@@ -794,6 +814,12 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
         if(stage.created.size()!=1)fail(Code::corrupt,"native creation selector invariant");
         if(delete_requested)stage.set_delete(stage.created.front(),true);
         break;
+      case InodeAction::overwrite:
+        if(!inode || !overwrite || !operations.empty() || !basic.empty() ||
+            !security.empty() || automatic || delete_requested ||
+            !native_overwrite_metadata_valid(*overwrite))
+          fail(Code::invalid_operation,"invalid native overwrite transaction");
+        stage.overwrite_inode(inode,*overwrite);break;
       case InodeAction::mutate:
         if(!inode || operations.size()!=1)fail(Code::invalid_operation,"invalid inode transaction");
         stage.apply(operations.front(),inode);break;
@@ -913,6 +939,19 @@ NativeInodeMutationCommit NativeFilesystemWriter::truncate_inode_result(std::uin
         effect.any()?&effect:nullptr,false,&result.info);
     return result;
   }catch(const std::bad_alloc&){fail(Code::limit,"native inode truncate allocation failure");}
+}
+NativeInodeMutationCommit NativeFilesystemWriter::overwrite_inode_result(std::uint64_t inode,
+    const NativeOverwriteMetadata& effect) {
+  if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(!native_overwrite_metadata_valid(effect))
+    fail(Code::invalid_operation,"invalid canonical native overwrite metadata");
+  const auto& n=selected_inode(impl_->model,inode);
+  if(n.directory)fail(Code::is_directory,"cannot overwrite native directory");
+  if(n.delete_pending || n.unlinked || !n.basic)
+    fail(Code::invalid_operation,"overwrite needs a live regular inode with basic metadata");
+  NativeInodeMutationCommit result;
+  result.transaction=transact({},InodeAction::overwrite,inode,{},nullptr,false,&result.info,{},&effect);
+  return result;
 }
 NativeFsCommit NativeFilesystemWriter::set_delete_pending(std::uint64_t inode,bool pending) {
   return transact({},pending?InodeAction::set_delete:InodeAction::clear_delete,inode);
