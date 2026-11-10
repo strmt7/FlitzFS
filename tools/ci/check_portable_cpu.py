@@ -50,6 +50,14 @@ def audit_binary(data):
         require(1 in kinds and not ({2,3}&set(kinds)),"ELF has a dynamic loader or dynamic dependencies")
         return {"format":"ELF64","architecture":"x86_64","dynamic_loader":False,"program_headers":count}
     require(sys.platform=="win32","unsupported portability platform")
+    names, delayed = pe_import_names(data)
+    allowed={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll"}
+    require(bool(names) and set(names)<=allowed and not delayed,
+            "portable PE imports a non-admitted dependency: "+repr(names))
+    return {"format":"PE32+","architecture":"AMD64","os_imports":sorted(set(names)),"delay_imports":False}
+
+def pe_import_names(data, allow_delay=False):
+    """Read bounded AMD64 import and optional RVA-based delay-import tables."""
     require(span(data,0,2)==b"MZ","expected DOS/PE header")
     pe=number(data,0x3c,"<I")
     require(span(data,pe,4)==b"PE\0\0","expected PE signature")
@@ -75,38 +83,39 @@ def audit_binary(data):
         require(len(candidates)==1,"PE RVA has no unique file-backed section")
         span(data,candidates[0],size)
         return candidates[0]
-    table=optional+112
-    imports_rva=number(data,table+8,"<I")
-    imports_size=number(data,table+12,"<I")
-    require(imports_rva!=0 and 20<=imports_size<=65536,"PE imports absent or exceed budget")
-    # Delay-load imports would bypass the ordinary dependency proof.
-    require(number(data,table+13*8,"<I")==0 and number(data,table+13*8+4,"<I")==0,
-            "PE delay-load dependencies are not admitted")
-    imports=rva(imports_rva,imports_size)
-    names=[]
-    for index in range(min(imports_size//20,256)):
-        descriptor=span(data,imports+20*index,20)
-        if descriptor==bytes(20):
-            break
-        name_rva=number(descriptor,12,"<I")
-        rva(name_rva,1)
-        name=bytearray()
-        for j in range(256):
-            byte=span(data,rva(name_rva+j,1),1)[0]
-            if byte==0:
-                break
-            name.append(byte)
-        else:
-            raise RuntimeError("PE import name exceeds budget")
-        require(bool(name),"empty PE import name")
-        names.append(bytes(name).decode("ascii").lower())
-    else:
+    table = optional + 112
+
+    def dll_name(name_rva):
+        value = bytearray()
+        for index in range(256):
+            byte = span(data, rva(name_rva + index, 1), 1)[0]
+            if byte == 0:
+                require(bool(value), "empty PE import name")
+                return bytes(value).decode("ascii").lower()
+            value.append(byte)
+        raise RuntimeError("PE import name exceeds budget")
+
+    def imports(index, width, name_offset):
+        table_rva = number(data, table + index * 8, "<I")
+        table_size = number(data, table + index * 8 + 4, "<I")
+        if not table_rva and not table_size:
+            return []
+        require(table_rva != 0 and width <= table_size <= 65536, "PE imports exceed budget")
+        start = rva(table_rva, table_size)
+        names = []
+        for entry in range(min(table_size // width, 256)):
+            descriptor = span(data, start + entry * width, width)
+            if descriptor == bytes(width):
+                return names
+            if index == 13:
+                require(number(descriptor, 0, "<I") == 1, "delay import must use RVAs")
+            names.append(dll_name(number(descriptor, name_offset, "<I")))
         raise RuntimeError("PE import directory lacks bounded terminator")
-    # These names are OS components. In particular, UCRT/VC runtime, codec,
-    # SDK and GPU DLLs are NOT admitted by a broad api-ms/ext-ms prefix.
-    allowed={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll"}
-    require(bool(names) and set(names)<=allowed,"portable PE imports a non-admitted dependency: "+repr(names))
-    return {"format":"PE32+","architecture":"AMD64","os_imports":sorted(set(names)),"delay_imports":False}
+
+    if not allow_delay:
+        require(number(data,table+13*8,"<I")==0 and number(data,table+13*8+4,"<I")==0,
+                "PE delay-load dependencies are not admitted")
+    return imports(1, 20, 12), imports(13, 32, 4)
 
 def contain():
     global _JOB,_JOB_QUERY

@@ -189,3 +189,30 @@ retained alongside this later failure; neither is fabricated or overwritten.
 Windows research is now scoped independently. Do not retry/bypass the challenged
 endpoint or call the combined failed job fully successful. No stream-dependent
 runtime implementation was enabled by these captures.
+
+## Supervised decode worker
+
+The complete-SDK qualification builds a separate `flitzfs_hip_worker` and
+stages the kernel module and ROCm runtime with their normal and delay-import
+closure. The build uses the unchanged reference bootstrap at
+b46acb6dd7e48e1fb2dc182210495abb6a3c013f. The whole-distribution lock remains 10.1.0.
+
+The worker checks the exact child job, parses one WorkerChannel request and
+matches the requested AMD adapter by HIP and DXGI LUID and node mask.
+It pins its private bundle files and verifies the build-generated sizes and
+SHA-256 hashes. The loader uses the verified bundle and System32 for imports.
+The bundle is part of a qualified private installation, with the same
+same-user trust boundary as WorkerChannel.
+
+Each request admits the existing 8-block and 256 KiB limits. It uses a single
+low-priority HIP stream and checks child-local memory budgets before allocation
+and after execution. The child compares the decoded bytes with its independent
+CPU result and retires its allocations, stream and module handles before reply
+publication. The parent retains the CPU result gate and exact process
+retirement checks. Typed worker exits feed the existing recovery policy.
+
+The hosted probe verifies the complete bundle, refusal of a missing bundle,
+and rejection of a malformed frame carried through the real transport. Each
+child must exit under the existing 128 MiB, 20 percent CPU and 15-second bounds.
+The VM qualification exercises admission and compilation. Hardware execution,
+measured GPU benefit and production filesystem routing require separate evidence.

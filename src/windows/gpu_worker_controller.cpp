@@ -1,4 +1,5 @@
 #include "gpu_worker_controller.hpp"
+#include "hip_worker_exit.hpp"
 #include <windows.h>
 #include <new>
 #include <system_error>
@@ -30,8 +31,19 @@ GpuRecoveryOutcome supervisor_failure(const WorkerExchangeSession& session) noex
   return GpuRecoveryOutcome::device_fault; // Unknown failure never proves repair.
 }
 GpuRecoveryOutcome transport_failure(const WorkerExchangeSession& session,
-    WorkerExchangeCode code,WorkerExecution expected) noexcept {
-  switch(code) {
+    const WorkerExchangeResult& result,WorkerExecution expected) noexcept {
+  if (expected == WorkerExecution::hip && result.code == WorkerExchangeCode::worker_failed &&
+      result.process.exit_confirmed) {
+    switch (static_cast<HipWorkerExit>(result.process.exit_code)) {
+      case HipWorkerExit::runtime_unavailable: return GpuRecoveryOutcome::runtime_unavailable;
+      case HipWorkerExit::unsupported_configuration: return GpuRecoveryOutcome::unsupported_configuration;
+      case HipWorkerExit::temporary_pressure: return GpuRecoveryOutcome::temporary_pressure;
+      case HipWorkerExit::invalid_request:
+      case HipWorkerExit::integrity_failure: return GpuRecoveryOutcome::integrity_failure;
+      case HipWorkerExit::device_fault: return GpuRecoveryOutcome::device_fault;
+    }
+  }
+  switch(result.code) {
     case WorkerExchangeCode::timed_out:
     case WorkerExchangeCode::cancelled:
       // Exact process retirement says nothing about a HIP context/driver.
@@ -74,7 +86,7 @@ bool GpuWorkerController::try_retire() noexcept {
     if(state_==GpuWorkerState::waiting || !session_)return false;
     const auto* late=session_->try_result();
     if(!late)return false;
-    auto outcome=transport_failure(*session_,late->code,expected_);
+    auto outcome=transport_failure(*session_,*late,expected_);
     if(late->code==WorkerExchangeCode::completed) {
       // Terminal CPU bytes stay untouched. Late integrity/availability evidence
       // still belongs to THIS pending configuration before its ticket retires.
@@ -147,7 +159,7 @@ GpuWorkerState GpuWorkerController::poll(const GpuMemorySnapshot& after,std::uin
   const auto* result=session_->try_result();
   if(!result)return state_;
   if(result->code!=WorkerExchangeCode::completed) {
-    select_cpu(transport_failure(*session_,result->code,expected_),GpuGateCode::worker_failed);
+    select_cpu(transport_failure(*session_,*result,expected_),GpuGateCode::worker_failed);
     return state_;
   }
   try {

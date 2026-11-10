@@ -6,6 +6,9 @@ on:
       - 'tools/rocm-sdk-lock.json'
       - 'tools/ci/qualify_rocm_sdk.py'
       - 'tests/rocm_compile/**'
+      - 'src/windows/hip_*'
+      - 'tools/ci/stage_hip_worker_bundle.py'
+      - 'tools/ci/check_portable_cpu.py'
       - 'src/gpu/**'
       - 'include/flitzfs/gpu_protocol.hpp'
       - 'include/flitzfs/gpu_kernel_api.hpp'
@@ -24,7 +27,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: strmt7/FlitzZip
-          ref: 113ca5f30655f0d373c17d1448e35ce1b69f2819
+          ref: b46acb6dd7e48e1fb2dc182210495abb6a3c013f
           path: .ci-rocm-source
           sparse-checkout: |
             tools
@@ -36,7 +39,7 @@ jobs:
           check-latest: true
       - name: Prepare exact job-local CMake
         run: python tools/ci/prepare_hosted_tools.py cmake
-      - name: Qualify complete current ROCm SDK and native filesystem kernel
+      - name: Qualify current ROCm SDK, filesystem kernel and worker admission
         run: >-
           python -B tools/ci/qualify_rocm_sdk.py
           --provider ".ci-rocm-source"
