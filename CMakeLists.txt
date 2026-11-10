@@ -39,16 +39,49 @@ if(FLITZFS_REQUIRE_ZSTD AND NOT FLITZFS_WITH_ZSTD)
   message(FATAL_ERROR "REQUIRE_ZSTD conflicts with WITH_ZSTD=OFF")
 endif()
 
-# Unmodified portable C digest. SIMD/NEON/TBB disabled; no GPU/runtime dependency.
+# Exact upstream BLAKE3 1.8.7: baseline dispatcher + portable fallback. ISA
+# implementations are separate translation units, never global /arch or -march.
+option(FLITZFS_CPU_SIMD "Use source-verified runtime-dispatched CPU digest acceleration" ON)
+option(FLITZFS_BOUNDED_DIGEST_COMPARISON "Build hosted Windows digest/RAM comparison containment" OFF)
+set(flitzfs_blake3_disabled BLAKE3_USE_NEON=0)
+set(flitzfs_blake3_backend "portable")
+set(flitzfs_blake3_simd_sources)
+if(FLITZFS_CPU_SIMD AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  if(WIN32 AND MSVC AND CMAKE_C_COMPILER_ARCHITECTURE_ID MATCHES "^[Xx]64$")
+    include(CheckLanguage)
+    check_language(ASM_MASM)
+    if(CMAKE_ASM_MASM_COMPILER)
+      enable_language(ASM_MASM)
+      set(flitzfs_blake3_backend "windows-x64-upstream-asm")
+      foreach(isa sse2 sse41 avx2 avx512)
+        list(APPEND flitzfs_blake3_simd_sources "third_party/blake3/c/blake3_${isa}_x86-64_windows_msvc.asm")
+      endforeach()
+    endif()
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$"
+      AND CMAKE_C_COMPILER_ID MATCHES "^(Clang|GNU)$")
+    # Internal sanitizer/algorithm analysis, not a Linux product target.
+    set(flitzfs_blake3_backend "analysis-x64-upstream-intrinsics")
+    foreach(isa sse2 sse41 avx2 avx512)
+      list(APPEND flitzfs_blake3_simd_sources "third_party/blake3/c/blake3_${isa}.c")
+    endforeach()
+    set_source_files_properties(third_party/blake3/c/blake3_sse2.c PROPERTIES COMPILE_OPTIONS "-msse2")
+    set_source_files_properties(third_party/blake3/c/blake3_sse41.c PROPERTIES COMPILE_OPTIONS "-msse4.1")
+    set_source_files_properties(third_party/blake3/c/blake3_avx2.c PROPERTIES COMPILE_OPTIONS "-mavx2")
+    set_source_files_properties(third_party/blake3/c/blake3_avx512.c PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
+  endif()
+endif()
+if(flitzfs_blake3_backend STREQUAL "portable")
+  list(APPEND flitzfs_blake3_disabled BLAKE3_NO_SSE2=1 BLAKE3_NO_SSE41=1 BLAKE3_NO_AVX2=1 BLAKE3_NO_AVX512=1)
+endif()
+message(STATUS "FlitzFS CPU digest backend: ${flitzfs_blake3_backend}; runtime feature dispatch; no TBB/GPU")
 add_library(flitzfs_blake3 STATIC
-  third_party/blake3/c/blake3.c
-  third_party/blake3/c/blake3_dispatch.c
-  third_party/blake3/c/blake3_portable.c)
+  third_party/blake3/c/blake3.c third_party/blake3/c/blake3_dispatch.c
+  third_party/blake3/c/blake3_portable.c ${flitzfs_blake3_simd_sources})
 target_include_directories(flitzfs_blake3 PRIVATE third_party/blake3/c)
 target_compile_features(flitzfs_blake3 PRIVATE c_std_11)
 set_target_properties(flitzfs_blake3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_compile_definitions(flitzfs_blake3 PRIVATE
-  BLAKE3_NO_SSE2=1 BLAKE3_NO_SSE41=1 BLAKE3_NO_AVX2=1 BLAKE3_NO_AVX512=1 BLAKE3_USE_NEON=0)
+# Definitions are C-only: MASM uses its own parser and fixed ISA instructions.
+target_compile_definitions(flitzfs_blake3 PRIVATE "$<$<COMPILE_LANGUAGE:C>:${flitzfs_blake3_disabled}>")
 
 add_library(flitzfs_core src/container.cpp src/read_only_file.cpp src/catalog.cpp src/projection.cpp src/windows_path.cpp src/mount_plan.cpp src/process_budget.cpp src/catalog_manifest.cpp src/extent_codec.cpp src/gpu_batch.cpp src/gpu_recovery.cpp src/worker_wire.cpp src/record_digest.cpp src/object_store.cpp src/store_file.cpp src/store_codec.cpp src/native_filesystem.cpp src/native_session.cpp src/native_security.cpp)
 target_include_directories(flitzfs_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -151,6 +184,44 @@ if(FLITZFS_BUILD_TESTS)
   endif()
   add_test(NAME bounded_commit_persistence_model COMMAND flitzfs_durability_model_tests)
   set_tests_properties(bounded_commit_persistence_model PROPERTIES TIMEOUT 30)
+  # Independent scalar oracle and test-only masked dispatcher. Prefix ALL C
+  # exports so no test capability override can touch the production dispatcher.
+  set(flitzfs_blake3_symbols version hasher_init hasher_init_keyed
+      hasher_init_derive_key hasher_init_derive_key_raw hasher_update hasher_update_tbb
+      hasher_finalize hasher_finalize_seek hasher_reset compress_subtree_wide
+      compress_in_place compress_xof xof_many hash_many simd_degree
+      compress_in_place_portable compress_xof_portable hash_many_portable)
+  foreach(kind oracle masked)
+    if(kind STREQUAL "oracle")
+      set(dispatch_source third_party/blake3/c/blake3_dispatch.c)
+    else()
+      set(dispatch_source tests/blake3_masked_dispatch.c)
+    endif()
+    add_library(flitzfs_blake3_${kind} STATIC third_party/blake3/c/blake3.c
+        ${dispatch_source} third_party/blake3/c/blake3_portable.c)
+    target_include_directories(flitzfs_blake3_${kind} PRIVATE third_party/blake3/c)
+    target_compile_features(flitzfs_blake3_${kind} PRIVATE c_std_11)
+    foreach(symbol IN LISTS flitzfs_blake3_symbols)
+      target_compile_definitions(flitzfs_blake3_${kind} PRIVATE
+          "blake3_${symbol}=flitzfs_${kind}_blake3_${symbol}")
+    endforeach()
+    if(kind STREQUAL "oracle")
+      target_compile_definitions(flitzfs_blake3_${kind} PRIVATE BLAKE3_USE_NEON=0
+          BLAKE3_NO_SSE2=1 BLAKE3_NO_SSE41=1 BLAKE3_NO_AVX2=1 BLAKE3_NO_AVX512=1)
+    else()
+      target_compile_definitions(flitzfs_blake3_${kind} PRIVATE ${flitzfs_blake3_disabled}
+          BLAKE3_TESTING=1 g_cpu_features=flitzfs_masked_cpu_features
+          get_cpu_features=flitzfs_masked_get_cpu_features)
+      target_link_libraries(flitzfs_blake3_${kind} PRIVATE flitzfs_blake3)
+    endif()
+  endforeach()
+  add_executable(flitzfs_digest_tests tests/test_digest_dispatch.cpp)
+  target_include_directories(flitzfs_digest_tests PRIVATE src third_party/blake3/c)
+  target_link_libraries(flitzfs_digest_tests PRIVATE flitzfs_core flitzfs_blake3_oracle
+      flitzfs_blake3_masked Threads::Threads)
+  target_compile_definitions(flitzfs_digest_tests PRIVATE FLITZFS_DIGEST_BACKEND="${flitzfs_blake3_backend}")
+  add_test(NAME bounded_runtime_digest_parity COMMAND flitzfs_digest_tests --invariants)
+  set_tests_properties(bounded_runtime_digest_parity PROPERTIES TIMEOUT 45)
   add_executable(flitzfs_store_codec_tests tests/test_store_codec.cpp)
   target_include_directories(flitzfs_store_codec_tests PRIVATE src)
   target_link_libraries(flitzfs_store_codec_tests PRIVATE flitzfs_core)
@@ -514,6 +585,12 @@ if(FLITZFS_BUILD_STORE_COMPARISON)
   add_executable(flitzfs_store_comparison tests/store_comparison.cpp)
   target_compile_definitions(flitzfs_store_comparison PRIVATE FLITZFS_CURRENT_STORE=1)
   target_link_libraries(flitzfs_store_comparison PRIVATE flitzfs_core)
+  if(FLITZFS_BOUNDED_DIGEST_COMPARISON)
+    if(NOT WIN32 OR NOT "$ENV{GITHUB_ACTIONS}" STREQUAL "true" OR NOT "$ENV{RUNNER_ENVIRONMENT}" STREQUAL "github-hosted")
+      message(FATAL_ERROR "Digest comparison containment is disposable hosted Windows only")
+    endif()
+    target_compile_definitions(flitzfs_store_comparison PRIVATE FLITZFS_BOUNDED_DIGEST_COMPARISON=1)
+  endif()
 endif()
 
 # Owned ordinary-file fixture only; never a normal CTest or mount operation.

@@ -220,3 +220,9 @@ metadata and reach the read-only security callbacks. Separate context grants,
 bounded framing and Windows validation keep persistence distinct from access
 checking. See [native security](docs/NATIVE_SECURITY.md). Complete ACL/inheritance/
 privilege policy and writable/client qualification remain required.
+
+
+The CPU integrity path now has source-verified runtime SIMD selection with
+retained scalar fallback and unchanged digest bytes. No GPU or worker is needed.
+See [CPU digest acceleration](docs/CPU_DIGEST_ACCELERATION.md) for the independent
+byte/guard checks, same-source hosted measurement plan and qualification limits.

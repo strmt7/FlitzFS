@@ -1,5 +1,8 @@
 // Hosted-only native object-store comparison. Timed backing bytes stay in RAM.
 #include "flitzfs/object_store.hpp"
+#ifdef FLITZFS_BOUNDED_DIGEST_COMPARISON
+#include "hosted_digest_limits.hpp"
+#endif
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -69,6 +72,9 @@ void verify(const ObjectStoreSnapshot& s,const std::vector<StoreMutation>& data)
 int main(int argc,char** argv) {
   try {
     hosted_only();
+#ifdef FLITZFS_BOUNDED_DIGEST_COMPARISON
+    hosted_digest_limits();
+#endif
     if(argc!=4 && argc!=5)throw std::runtime_error("mode corpus action [image-path] required");
     const std::string mode(argv[1]),kind(argv[2]),action(argv[3]);
     auto data=corpus(kind);

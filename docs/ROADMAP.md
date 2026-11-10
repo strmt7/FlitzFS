@@ -371,3 +371,13 @@ authorization/inheritance/privilege policy, NS04 real termination, actual mounte
 ACL checks and truthful allocation/FileInfo before writable helper integration.
 Keep Windows 11 client/live AMD, scaling/reclaim, redundant payload repair,
 autonomous learning and representative filesystem benchmarks open.
+
+
+### Accelerate the independent CPU integrity path
+
+CPU_DIGEST_ACCELERATION.md adds verified upstream runtime CPU dispatch with
+portable fallback and unchanged stored digests. Inspect actual Windows/parity/
+sanitizer/static results and same-source capped RAM measurements before claiming
+a benefit. Continue toward writable Windows allocation/security/FileInfo/helper,
+scalable indices/capacity, NS04 process/mounted ACL conformance, live AMD and
+bounded automatic learning/redundant payload repair.
