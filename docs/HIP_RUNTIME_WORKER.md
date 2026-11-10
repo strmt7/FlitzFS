@@ -217,3 +217,23 @@ frame carried through the real transport. Each
 child must exit under the existing 128 MiB, 20 percent CPU and 15-second bounds.
 The VM qualification exercises admission and compilation. Hardware execution,
 measured GPU benefit and production filesystem routing require separate evidence.
+
+## One-shot hardware diagnostic
+
+The SDK test build also produces an experimental diagnostic for a single
+explicitly identified AMD adapter. It accepts one absolute qualified worker
+path and one ordinal and LUID pair. The diagnostic has no device enumeration,
+driver installation, filesystem mount or automatic retry. Its synthetic
+fixture decodes 12 KiB and compares every byte independently on the CPU.
+The worker retains its 128 MiB commit and 20 percent CPU limits. The diagnostic
+gives the worker five seconds, then relies on the existing bounded termination
+and exact process observation. The reported explicit device bytes exclude
+driver and runtime overhead. Elapsed time includes worker startup and teardown.
+
+The hosted SDK job audits the diagnostic's imports and runs it with the
+worker's private runtime absent. A passing result requires the typed missing
+runtime exit, exact retirement, zero reply publication and verified CPU bytes.
+This test needs neither an AMD device nor a runtime load. Driver compatibility
+is researched separately through the isolated native crawler. The workflow
+retains JSON evidence only. A physical AMD run still needs a compatible driver
+and a qualified, bounded private bundle and supervisor.

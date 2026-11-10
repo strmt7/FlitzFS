@@ -15,6 +15,7 @@ import sys
 SOURCE_REF="b46acb6dd7e48e1fb2dc182210495abb6a3c013f"
 REPO=Path(__file__).resolve().parents[2]
 GIB=1024**3
+HIP_RUNTIME_UNAVAILABLE=0x46530002
 
 def require(ok,why):
     if not ok:
@@ -37,12 +38,12 @@ def load_source(name,path):
     spec.loader.exec_module(module)
     return module
 
-def run(bounds,command,report,name,seconds=900):
+def run(bounds,command,report,name,seconds=900,exit_code=0):
     result=bounds.run_bounded_command(command,timeout_seconds=seconds,
         memory_limit_bytes=2*GIB,response_tail_bytes=12000,response_max_characters=16000)
     report["commands"].append(dict(name=name,argv=command,**result))
     print("ROCm command: "+json.dumps(dict(name=name,**result)),flush=True)
-    require(result["exit_code"]==0 and not result["timed_out"] and not result["output_limit_exceeded"],
+    require(result["exit_code"]==exit_code and not result["timed_out"] and not result["output_limit_exceeded"],
         "native ROCm qualification command failed: "+name)
     return result
 
@@ -165,6 +166,20 @@ def main():
         require(receipts==[dict(bundle_verified=True,missing_bundle_refused=True,tampered_bundle_refused=True,invalid_wire_refused=True,
             exits_confirmed=4,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
         report["worker_admission"]=receipts[0]
+        hardware_probe=build/"Release/flitzfs_hip_hardware_probe.exe"
+        report["hardware_probe"]=dict(bytes=hardware_probe.stat().st_size,sha256=digest(hardware_probe),
+            imports=audit_binary(hardware_probe.read_bytes()))
+        result=run(bounds,[str(hardware_probe),"--run-amd-once",str(root/"worker-probe"/worker.name),
+            "0","0100000000000000"],report,"one-shot-probe-missing-runtime",15,exit_code=2)
+        prefix="HIP hardware probe: "
+        rows=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines() if line.startswith(prefix)]
+        require(len(rows)==1 and rows[0]["gpu_result_verified"] is False and
+            rows[0]["cpu_bytes_verified"]==12288 and rows[0]["worker_exit"]==HIP_RUNTIME_UNAVAILABLE and
+            rows[0]["exit_confirmed"] is True and rows[0]["timed_out"] is False and
+            rows[0]["publication_observed"] is False and
+            0<rows[0]["peak_commit_bytes"]<=128*1024*1024,
+            "one-shot probe missing-runtime evidence mismatch")
+        report["hardware_probe"]["missing_runtime"]=rows[0]
         actual_clang=run(bounds,[str(sdk/"lib/llvm/bin/clang.exe"),"--version"],report,"actual-AMD-compiler-version",30)
         require(lock["observed_clang_version"] in actual_clang["stdout"],
             "observed complete-SDK compiler identity differs from its lock record")
