@@ -46,6 +46,9 @@ algorithm checks, not Linux product support. See [the Windows product contract](
 - Owning-session stable-inode writes/truncates can now include requested
   archive/time effects in the same durable transaction, preserving detached
   paging identity, accepted counts and old snapshots; see [the contract](docs/NATIVE_MUTATION_METADATA.md).
+- Commit-bound inode/basic/lifetime results now let the Windows engine obtain
+  durable mutation facts without a second backing query after publication;
+  see [the output contract](docs/NATIVE_MUTATION_RESULTS.md).
 - A read-only directory catalog and Windows path projection with bounded
   verification, per-file synchronization and conservative namespace validation.
 - Optional native WinFsp read-only callbacks, disabled by default. Hosted VM

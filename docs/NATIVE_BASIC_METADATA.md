@@ -253,3 +253,11 @@ requested effects together with stable-inode write/truncate. It preserves
 creation/unrequested fields and uses one normal replicated transaction.
 It adds no explicit attribute grant, invented legacy tuple or Windows event
 policy. Zero accepted writes never apply effects. No writable mount is enabled.
+
+## Captured mutation tuple
+
+The result APIs in NATIVE_MUTATION_RESULTS.md copy the optional staged tuple
+before publication and return it only after success. They preserve absence,
+creation/unrequested values and explicit/implicit grant separation. A future
+Windows callback must not invent absent fields or perform a fallible backing
+query to construct already captured success metadata.

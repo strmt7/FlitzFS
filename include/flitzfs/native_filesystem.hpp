@@ -101,6 +101,21 @@ struct NativeInodeWriteCommit {
   std::uint32_t bytes=0;         // Durable transferred count; no result on failure.
 };
 
+// String-free facts copied from the validated private staged inode before
+// publication, exposed only after durable success or a verified no-op.
+// These are not allocation reservations or physical compressed-byte counts.
+struct NativeInodeCommitInfo {
+  std::uint64_t inode=0,logical_bytes=0,modified_sequence=0;
+  std::optional<NativeBasicMetadata> basic;
+  bool directory=false,delete_pending=false,unlinked=false;
+};
+struct NativeInodeMutationCommit {
+  NativeFsCommit transaction;
+  NativeInodeCommitInfo info;
+  std::uint64_t offset=0;
+  std::uint32_t bytes=0; // Durable write count; truncate returns zero.
+};
+
 class NativeFilesystemSnapshot final {
  public:
   // Consumes a fully verified object snapshot; validates native namespace and all references.
@@ -196,6 +211,13 @@ class NativeFilesystemWriter final {
       std::span<const std::byte>,NativeInodeWriteOptions,const NativeAutomaticMetadata&);
   NativeFsCommit truncate_inode_with_metadata(std::uint64_t inode,std::uint64_t bytes,
       const NativeAutomaticMetadata&);
+  // Commit-bound output for the future Windows callback. No post-publication
+  // allocation, snapshot, pathname lookup or backing query forms these facts.
+  NativeInodeMutationCommit write_inode_result(std::uint64_t inode,std::uint64_t offset,
+      std::span<const std::byte>,NativeInodeWriteOptions options={},
+      const NativeAutomaticMetadata& effect={});
+  NativeInodeMutationCommit truncate_inode_result(std::uint64_t inode,std::uint64_t bytes,
+      const NativeAutomaticMetadata& effect={});
   // Persistent deletion primitives for the future owning Windows engine.
   // Eligibility/cancel changes intent only; it never unlinks. Unlink requires
   // pending intent, removes the name, and retains every payload. Retirement
@@ -227,7 +249,8 @@ class NativeFilesystemWriter final {
   enum class InodeAction {path_mutations,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
-      const NativeAutomaticMetadata* automatic=nullptr,bool cleanup_delete=false);
+      const NativeAutomaticMetadata* automatic=nullptr,bool cleanup_delete=false,
+      NativeInodeCommitInfo* published=nullptr);
   static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

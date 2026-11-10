@@ -69,6 +69,12 @@ class NativeFileSession final {
       std::span<const std::byte>,NativeInodeWriteOptions,const NativeAutomaticMetadata&);
   NativeFsCommit truncate_with_metadata(const NativeFileHandle&,std::uint64_t bytes,
       const NativeAutomaticMetadata&);
+  // Owned commit-bound facts, with no post-commit query/tuple lookup.
+  NativeInodeMutationCommit write_result(const NativeFileHandle&,std::uint64_t offset,
+      std::span<const std::byte>,NativeInodeWriteOptions options={},
+      const NativeAutomaticMetadata& effect={});
+  NativeInodeMutationCommit truncate_result(const NativeFileHandle&,std::uint64_t bytes,
+      const NativeAutomaticMetadata& effect={});
   NativeFsCommit create_entry(std::string_view path,bool directory=false);
   // Trusted creation path: data/namespace and explicit full basic metadata
   // publish atomically. Access checking remains the future OS adapter's job.

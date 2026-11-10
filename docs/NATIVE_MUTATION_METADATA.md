@@ -107,3 +107,47 @@ Create/Overwrite/cache/cancellation behavior, writable adapter/supervisor/helper
 latest Windows 11 client, actual AMD runtime benefit, production capacity and
 reclamation, redundant payload repair, autonomous low-priority learning and
 representative filesystem benchmarks remain open.
+
+## Executed hosted checkpoint
+
+At c70a2ed0fc9fe8eb804042abfd064e381dc69631 Windows native job
+129555011584 passed all 54 entries; sanitizer job 129555012119 passed all 47.
+Both completed 264 mutation-metadata invariants and all 1,074 modeled failures:
+each raw/automatic append trace had 61 I/O steps and 183 faults, while each
+constrained/truncate trace had 59 steps and 177 faults. The new sanitizer
+fault groups took 19.11, 17.42 and 17.33 seconds, below the unchanged
+45-second per-process bound. These are bounded test durations, not filesystem
+performance measurements.
+
+The same Windows run retained the actual basic API oracle, all nine vendor
+Cleanup dispatcher cases, 209 Cleanup invariants and 1,026 Cleanup failures.
+Earlier lifetime/context/basic/Flush cases remained in the complete suite.
+Worker handle totals were 94 before and after.
+
+Windows metadata writer job 129555011844 completed all 712 termination cases
+in two 356-case partitions (38.0/37.934 seconds). Legacy job 129555013409
+completed all 976 cases in two 488-case partitions (64.801/64.46 seconds).
+These are exact-commit process-kill results, not physical power cuts.
+
+Relocated native Windows job 129555012367 passed 51 CTest entries, its real
+private-job retirement test and all 21 package commands, with zero retries
+and supervisor-only before/after accounting. Each command incremented total
+assigned processes exactly once. No limit was raised or owner-PC action taken.
+
+Read-only mount job 129558751121 passed actual native reads/mapping/enumeration,
+write rejection, source parity, confirmed helper termination and independent
+CPU recovery/remount. Normal/recovery exits were zero; the deliberate kill
+returned 1460 with exit confirmed. Peak commit bytes were 6,172,672 /
+6,168,576 / 5,214,208, inside the existing process bound. All nine triggered
+workflows succeeded. The selected driver candidate still explicitly reports
+windows11_policy_qualified=false. No writable mount, client, live GPU or
+owner-PC qualification follows.
+
+## Commit-bound output
+
+[NATIVE_MUTATION_RESULTS.md](NATIVE_MUTATION_RESULTS.md) adds captured scalar
+inode/basic/lifetime facts returned after success, without a post-commit query.
+Original result layouts remain intact. The existing fault cases now check the
+new output directly; sealed-backend tests separately exercise result construction
+when all backing I/O becomes unavailable after the final publication barrier.
+No complete Windows allocation/FileInfo/write-callback qualification follows.

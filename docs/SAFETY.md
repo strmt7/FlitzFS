@@ -376,3 +376,13 @@ backing I/O, and zero accepted writes apply no effects. Failure preserves owning
 contexts and the established terminal rules. NATIVE_MUTATION_METADATA.md defines
 the contract and configured fault oracles. No writable callback, owner operation,
 allocation support, GPU activation or resource-limit increase follows.
+
+## Commit-bound mutation output
+
+Native write/truncate results now carry bounded facts captured before durable
+publication. Forming their success result performs no post-commit backing
+query or pathname allocation; scalar assignment/return moves cannot throw.
+The active-denial fixture rejects all backing operations after the last barrier
+and must still receive the complete success result. NATIVE_MUTATION_RESULTS.md
+defines coverage and remaining Windows allocation/security/FileInfo gates.
+No encoding, resource-cap, writable-mount or owner-PC permission changes.
