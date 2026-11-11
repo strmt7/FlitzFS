@@ -2,6 +2,20 @@
 
 ## Current execution ledger
 
+Read docs/MOUNT_PROCESS_ISOLATION.md before changing the source supervisor,
+protected source phases, crash/crash-restart mounted fixture or evidence.
+The new shared header is test-only CPU infrastructure; normal CTest must never
+create a filesystem/dispatcher. Mounted execution stays on disposable hosted
+Windows after all existing gates. Keep source15-second/other30-second deadlines,
+two-second child exit observation,128-MiB one-process child jobs and4-MiB/two2048-byte
+fixture caps. The controller adds bounded shared128/256-MiB/two-process/20%-CPU
+containment and100-second total wall observation; never extend an inner limit.
+The source host must refuse its own namespace opens before acknowledging;
+the external client handle stays open through exact host/supervisor retirement.
+Unknown ownership is terminal. No owner mount/driver/GPU experiment follows.
+Historical D01 cause remains unproven; keep failed evidence and all old checks.
+
+
 The explicit native GPU/RAM probe now also requires a same-source, hashed,
 portable CPU-helper executable for one successful CPU-only transport warmup.
 Read docs/NATIVE_GPU_RAM_PROBE.md before invoking or changing it. All new

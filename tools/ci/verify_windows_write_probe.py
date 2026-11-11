@@ -18,6 +18,7 @@ EXTRA = {"profile", "file_count", "creation_time", "last_access_time", "last_wri
          "data_digest", "security_digest", "keep_digest"}
 PROFILES = {"basic", "mutations", "delete", "crash", "restart", "crash-restart"}
 RESTART = {"restart", "crash-restart"}
+EXTERNAL = {"source_protocol", "client_process", "host_self_io_rejected", "client_flush_callback_observed"}
 RESTART_EXTRA = {"state_digest", "source_ack_digest", "resumer_process"}
 HEX = re.compile(r"[0-9a-f]{64}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
@@ -30,10 +31,13 @@ def integer(item: dict, key: str, minimum: int, maximum: int) -> None:
     value = item[key]
     require(type(value) is int and minimum <= value <= maximum, f"invalid {key}")
 
-def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> dict:
+def validate_pair(writer: dict, verifier: dict, profile: str, commit: str, *, require_external: bool = False) -> dict:
     require(profile in PROFILES and SHA.fullmatch(commit) is not None, "invalid selected scope")
     extended = profile != "basic"
-    fields = BASE | (EXTRA if extended else set())
+    external = type(writer) is dict and bool(set(writer) & EXTERNAL)
+    require(not external or profile in {"crash", "crash-restart"}, "external protocol on wrong profile")
+    require(not require_external or external, "live crash campaign requires an external client")
+    fields = BASE | (EXTRA if extended else set()) | (EXTERNAL if external else set())
     expected_phase = "ack" if profile in {"crash", "crash-restart"} else "state" if extended else "write"
     size, inode, count = {"basic": (7001, 2, 1), "mutations": (89, 2, 2),
                           "delete": (37, 3, 1), "crash": (7001, 2, 1),
@@ -57,6 +61,14 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
         require(item["explicit_flush_observed"] == (phase != "verify") and item["cpu_verified"]
                 and item["dispatcher_stopped"] == (phase not in {"ack", "verify"})
                 and not item["gpu"], "invalid flush/observer/retirement claim")
+        if external:
+            require(item["source_protocol"] == "external-client", "unknown source actor protocol")
+            integer(item, "client_process", 1, 2**32 - 1)
+            require(item["client_process"] != item["source_process"]
+                    and item["client_process"] != item["observer_process"], "filesystem host/verifier was its own client")
+            for key in ("host_self_io_rejected", "client_flush_callback_observed"):
+                require(type(item[key]) is bool and item[key] == (phase == "ack"),
+                        "unobserved external client/flush claim")
         if extended:
             require(item["profile"] == profile, "mixed profile")
             integer(item, "file_count", 2 if profile in RESTART and phase == "verify" else count,
@@ -75,6 +87,8 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
             == verifier["source_process"], "source process identity changed")
     # The source child has actually exited before the independent verifier is
     # launched by the C++ supervisor. PID inequality alone is not retirement.
+    if external:
+        require(writer["client_process"] == verifier["client_process"], "source client identity changed")
     stable = {"user_bytes", "inode", "namespace_sequence", "generation", "image_bytes", "image_cap"}
     if extended:
         stable |= EXTRA - {"profile"}
@@ -84,6 +98,8 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
         require(all(verifier[key] > writer[key] for key in ("namespace_sequence", "generation", "image_bytes")),
                 "continuation did not append/publish")
         integer(verifier, "resumer_process", 1, 2**32 - 1)
+        if external:
+            require(verifier["resumer_process"] != writer["client_process"], "resumer aliased source client")
         for key in ("state_digest", "source_ack_digest"):
             require(type(verifier[key]) is str and HEX.fullmatch(verifier[key]) is not None
                     and verifier[key] != "0" * 64, "invalid restart integrity receipt")
@@ -92,9 +108,9 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str) -> di
             "image_bytes": verifier["image_bytes"], "generation": verifier["generation"],
             "namespace_sequence": verifier["namespace_sequence"], "user_bytes": size}
 
-def validate_continuation(writer: dict, continued: dict, verifier: dict, profile: str, commit: str) -> dict:
+def validate_continuation(writer: dict, continued: dict, verifier: dict, profile: str, commit: str, *, require_external: bool = False) -> dict:
     require(profile in RESTART, "not a restart profile")
-    result = validate_pair(writer, verifier, profile, commit)
+    result = validate_pair(writer, verifier, profile, commit, require_external=require_external)
     fields = {"schema", "profile", "phase", "commit", "source_process", "observer_process",
               "source_ack_digest", "continued_state_digest", "generation", "namespace_sequence", "image_bytes"}
     require(type(continued) is dict and set(continued) == fields, "partial/foreign continuation receipt")
@@ -190,10 +206,12 @@ def main() -> None:
         source, continued = read_restart_records(fixture / names[0])
         final = read_report(fixture / names[1])
         reports = [source, final]
-        result = validate_continuation(source, continued, final, args.profile, os.environ["GITHUB_SHA"])
+        result = validate_continuation(source, continued, final, args.profile, os.environ["GITHUB_SHA"],
+                                       require_external=args.profile == "crash-restart")
     else:
         reports = [read_report(fixture / name) for name in names]
-        result = validate_pair(*reports, args.profile, os.environ["GITHUB_SHA"])
+        result = validate_pair(*reports, args.profile, os.environ["GITHUB_SHA"],
+                               require_external=args.profile == "crash")
     require(fixture.name == f"flitzfs-write-probe-{reports[0]['source_process']}", "fixture process binding")
     image_bytes = regular(fixture / "native.fltx").st_size
     require(image_bytes == result["image_bytes"] and image_bytes

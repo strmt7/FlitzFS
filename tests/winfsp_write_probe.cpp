@@ -2,6 +2,7 @@
 #include "winfsp_session.hpp"
 #include "winfsp_native.hpp"
 #include "bounded_process.hpp"
+#include "supervised_source_fixture.hpp"
 #include "locked_ram_fixture.hpp"
 #include "flitzfs/native_filesystem.hpp"
 #include "../src/record_digest.hpp"
@@ -20,6 +21,7 @@
 namespace {
 namespace fs = std::filesystem;
 unsigned stage = 1;
+std::uint32_t source_client_process=0;
 // Independent writable fixture: image <=4 MiB, two reports <=2048 bytes each.
 constexpr std::uint64_t image_cap=4U*1024*1024;
 constexpr std::size_t report_cap=2048;
@@ -128,6 +130,51 @@ flitzfs::WinFspSessionApi live_api() {
   return {FspFileSystemPreflight, FspFileSystemCreate, FspFileSystemStartDispatcher,
       FspFileSystemSetMountPoint, FspFileSystemStopDispatcher,
       FspFileSystemRemoveMountPoint, FspFileSystemDelete};
+}
+// This guard is specific to the forced-termination source, not a replacement
+// for the native callback authorization/adoption/rollback checks.
+struct SourceGuard {
+  const FSP_FILE_SYSTEM_INTERFACE* original=nullptr;
+  FSP_FILE_SYSTEM_INTERFACE callbacks{};
+  std::atomic<DWORD> expected{0},observed{0},self_denied{0},flush_succeeded{0};
+  std::atomic<bool> armed{false};
+} source_guard;
+bool source_origin_allowed() noexcept {
+  if(!source_guard.armed.load(std::memory_order_acquire))return true;
+  // The pinned SDK permits this query ONLY in Create/Open (or eligible Rename).
+  const auto origin=FspFileSystemOperationProcessId();
+  if(origin==GetCurrentProcessId()){source_guard.self_denied.fetch_add(1);return false;}
+  const auto expected=source_guard.expected.load(std::memory_order_acquire);
+  if(origin==expected&&origin){source_guard.observed.store(origin,std::memory_order_release);return true;}
+  return origin==0; // Kernel-origin operations do not fabricate a user actor.
+}
+NTSTATUS source_create(FSP_FILE_SYSTEM* fs,PWSTR name,UINT32 options,UINT32 granted,UINT32 attributes,
+    PSECURITY_DESCRIPTOR security,UINT64 allocation,PVOID* context,FSP_FSCTL_FILE_INFO* info) noexcept {
+  if(!source_origin_allowed())return STATUS_ACCESS_DENIED;
+  return source_guard.original->Create(fs,name,options,granted,attributes,security,allocation,context,info);
+}
+NTSTATUS source_open(FSP_FILE_SYSTEM* fs,PWSTR name,UINT32 options,UINT32 granted,
+    PVOID* context,FSP_FSCTL_FILE_INFO* info) noexcept {
+  if(!source_origin_allowed())return STATUS_ACCESS_DENIED;
+  return source_guard.original->Open(fs,name,options,granted,context,info);
+}
+NTSTATUS source_flush(FSP_FILE_SYSTEM* fs,PVOID context,FSP_FSCTL_FILE_INFO* info) noexcept {
+  const auto status=source_guard.original->Flush(fs,context,info);
+  if(status==STATUS_SUCCESS&&source_guard.armed.load(std::memory_order_acquire))
+    source_guard.flush_succeeded.fetch_add(1,std::memory_order_release);
+  return status;
+}
+NTSTATUS create_source_filesystem(PWSTR device,const FSP_FSCTL_VOLUME_PARAMS* params,
+    const FSP_FILE_SYSTEM_INTERFACE* callbacks,FSP_FILE_SYSTEM** output) noexcept {
+  if(source_guard.original||!callbacks||!callbacks->Create||!callbacks->Open||
+      !callbacks->Flush||callbacks->CreateEx||!source_guard.expected.load())return STATUS_INVALID_PARAMETER;
+  source_guard.original=callbacks;source_guard.callbacks=*callbacks;
+  source_guard.callbacks.Create=source_create;source_guard.callbacks.Open=source_open;
+  source_guard.callbacks.Flush=source_flush;
+  return FspFileSystemCreate(device,params,&source_guard.callbacks,output);
+}
+flitzfs::WinFspSessionApi source_api() {
+  auto api=live_api();api.create=create_source_filesystem;return api;
 }
 void require_probe_job() {
   stage = 2;
@@ -342,7 +389,15 @@ std::string extended_text(std::string_view profile,std::string_view phase,std::u
       <<"\",\"security_digest\":\""<<hex_digest(*security)<<"\",\"keep_digest\":\""
       <<(profile=="mutations"?hex_digest(kept):restart_profile(profile)&&phase=="verify"?hex_digest(continuation_data()):std::string(64,'0'))
       <<"\",\"explicit_flush_observed\":"<<(phase=="verify"?"false":"true")
-      <<",\"cpu_verified\":true,\"dispatcher_stopped\":"<<(phase=="state"?"true":"false")<<",\"gpu\":false}";
+      <<",\"cpu_verified\":true,\"dispatcher_stopped\":"<<(phase=="state"?"true":"false")<<",\"gpu\":false";
+  if(source_client_process) {
+    require((profile=="crash"||profile=="crash-restart")&&(phase=="ack"||phase=="verify"),
+        "external client on wrong evidence phase");
+    out<<",\"source_protocol\":\"external-client\",\"client_process\":"<<source_client_process
+        <<",\"host_self_io_rejected\":"<<(phase=="ack"?"true":"false")
+        <<",\"client_flush_callback_observed\":"<<(phase=="ack"?"true":"false");
+  }
+  out<<'}';
   return out.str();
 }
 std::string read_state(const Fixture& fixture);
@@ -603,29 +658,21 @@ std::string read_state(const Fixture& fixture) {
   checked(ReadFile(file.value,text.data(),static_cast<DWORD>(text.size()),&got,nullptr),"source acknowledgement read");
   require(got==text.size()&&text.find('\0')==text.npos,"incomplete source acknowledgement");return text;
 }
-void restart_source(bool killed) {
+void restart_source() {
   require_probe_job();stage=50;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
-  const std::string_view profile=killed?"crash-restart":"restart";
   auto adapter=flitzfs::WinFspNativeWritable::create_new_hosted(
       image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
-  auto* observer=adapter.get();
   flitzfs::WinFspNativeSession session(std::move(adapter),live_api());
   require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"restart source mount");mounted_identity(mount);
-  Handle file(CreateFileW((mount/L"sample.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
-      FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
-  checked(file.value!=INVALID_HANDLE_VALUE,"restart source create");
-  write_bytes(file.value,expected_data());read_handle(file.value,expected_data());stage=51;
-  if(killed) {
-    require(session.stats().contexts==1&&!session.requires_offline()&&!session.dispatcher_stopped(),
-        "restart source has unknown/live peer contexts");
-    {auto view=observer->snapshot();view.verify_all();
-      extended_report(fixture,profile,"ack",GetCurrentProcessId(),view,session.stats().contexts);}
-    wait_for_supervised_termination(session);
-  }else {
-    file.reset();finish_session(session,mount);
-    auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
-    extended_report(fixture,profile,"state",GetCurrentProcessId(),view,0);
+  {
+    Handle file(CreateFileW((mount/L"sample.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
+    checked(file.value!=INVALID_HANDLE_VALUE,"restart source create");
+    write_bytes(file.value,expected_data());read_handle(file.value,expected_data());stage=51;
   }
+  finish_session(session,mount);
+  auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
+  extended_report(fixture,"restart","state",GetCurrentProcessId(),view,0);
 }
 void append_continuation(const Fixture& fixture,const std::string& original,std::string_view profile,
     std::uint32_t source_process,const flitzfs::NativeFilesystemSnapshot& view) {
@@ -681,22 +728,48 @@ void restart_resume(std::uint32_t source_process,bool killed) {
   require(view.storage_info().generation>generation,"continuation did not publish a new checkpoint");
   append_continuation(fixture,original,profile,source_process,view);
 }
-void crash_probe() {
-  require_probe_job();stage=30;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
+void crash_source(std::wstring_view token,std::uint32_t client_process,std::string_view profile) {
+  require_probe_job();stage=30;
+  require(client_process&&client_process!=GetCurrentProcessId()&&
+      (profile=="crash"||profile=="crash-restart"),"external source identity/profile");
+  source_client_process=client_process;source_guard.expected.store(client_process,std::memory_order_release);
+  source_fixture::Events protocol(false,std::wstring(token));
+  Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
   auto adapter=flitzfs::WinFspNativeWritable::create_new_hosted(
       image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
-  auto* observer=adapter.get(); // Read-only controller borrow; same thread owns the session lifetime.
-  flitzfs::WinFspNativeSession session(std::move(adapter),live_api());
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"writable kill fixture mount");mounted_identity(mount);
-  stage=31;
-  Handle file(CreateFileW((mount/L"sample.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
-      FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
-  checked(file.value!=INVALID_HANDLE_VALUE,"acknowledged kill target create");
-  write_bytes(file.value,expected_data());read_handle(file.value,expected_data());
-  // This view is destroyed before waiting. No snapshot escapes the owning lifetime.
-  {auto view=observer->snapshot();view.verify_all();
-    extended_report(fixture,"crash","ack",GetCurrentProcessId(),view,session.stats().contexts);}
-  stage=32;wait_for_supervised_termination(session);
+  auto* observer=adapter.get();
+  flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
+  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"external source mount");
+  require(session.stats().contexts==0,"source setup retained namespace handles");
+  source_guard.armed.store(true,std::memory_order_release);
+  // Prove the guard using the actual SDK/driver. This attempt MUST NOT acquire
+  // a namespace handle or mutate the newly created native filesystem.
+  {
+    const auto before=observer->snapshot();
+    const auto denied_path=mount/L"host-self-io-probe.bin";
+    const auto attempted=CreateFileW(denied_path.c_str(),GENERIC_READ|GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
+    const auto error=GetLastError();Handle denied(attempted);
+    require(denied.value==INVALID_HANDLE_VALUE&&error==ERROR_ACCESS_DENIED&&
+        source_guard.self_denied.load()>0,"filesystem host self-I/O was not refused");
+    const auto after=observer->snapshot();
+    require(before.storage_info().generation==after.storage_info().generation&&
+        before.storage_info().physical_end==after.storage_info().physical_end&&
+        after.list().empty()&&session.stats().contexts==0,"self-I/O guard changed native state");
+  }
+  stage=31;protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
+  require(source_guard.observed.load(std::memory_order_acquire)==client_process&&
+      source_guard.flush_succeeded.load(std::memory_order_acquire)>0&&
+      session.stats().contexts==1&&!session.requires_offline()&&!session.dispatcher_stopped(),
+      "external client/flush/context proof missing");
+  {
+    auto view=observer->snapshot();view.verify_all();
+    extended_report(fixture,profile,"ack",GetCurrentProcessId(),view,session.stats().contexts);
+  }
+  stage=32;protocol.signal(source_fixture::Phase::ack);
+  // No source process ever holds the mounted client file. The controller keeps
+  // that file open until this exact host AND its supervisor have retired.
+  wait_for_supervised_termination(session);
 }
 void extended_verify(std::uint32_t source_process,std::string_view profile,std::uint32_t resumer_process=0) {
   require_probe_job();stage=40;Fixture fixture(source_process);require_removed(fixture.root/L"mount");
@@ -725,11 +798,42 @@ void emit_extended(std::uint32_t source_process,std::string_view profile,std::st
       "extended aggregate fixture cap");
   std::cout<<"Windows writable extended evidence: "<<text<<"\n";
 }
+struct ExternalSource {
+  source_fixture::Events protocol{true};
+  std::unique_ptr<source_fixture::Child> child;
+  flitzfs::ProcessResult written;
+  ExternalSource(const fs::path& executable,std::string_view profile) {
+    stage=60;const auto client=GetCurrentProcessId();
+    const auto mode=profile=="crash-restart"?L"--crash-restart-source-child":L"--crash-child";
+    child=std::make_unique<source_fixture::Child>(executable,
+        std::vector<std::wstring>{mode,protocol.token(),std::to_wstring(client)},
+        flitzfs::ProcessBudget{128,2000,15000});
+    child->await(protocol,source_fixture::Phase::ready);
+    require(child->process_id()&&child->process_id()!=client,"source/client process alias");
+    Fixture fixture(child->process_id());const auto mount=fixture.root/L"mount";mounted_identity(mount);
+    const auto client_path=mount/L"sample.bin";
+    source_fixture::Handle file(CreateFileW(client_path.c_str(),GENERIC_READ|GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
+    checked(file.value&&file.value!=INVALID_HANDLE_VALUE,"external client create");
+    write_bytes(file.value,expected_data());read_handle(file.value,expected_data());
+    protocol.signal(source_fixture::Phase::written);
+    child->await(protocol,source_fixture::Phase::ack);
+    written=child->result();
+    require(written.process_id==child->process_id()&&written.exit_confirmed&&
+        written.timed_out&&!written.cancelled&&written.exit_code==ERROR_TIMEOUT&&
+        child->retirement_confirmed(),"external source exact retirement failed");
+    require(file.close(),"external client handle retirement failed");
+    require(source_fixture::cleanup_ok.load(),"source protocol cleanup failed");
+  }
+};
 void run_extended(const fs::path& executable,std::string_view profile) {
   const bool crash=profile=="crash"||profile=="crash-restart";flitzfs::ProcessBudget budget;budget.timeout_ms=crash?15000:30000;
   const std::wstring child=profile=="crash-restart"?L"--crash-restart-source-child":profile=="restart"?L"--restart-source-child":
       crash?L"--crash-child":profile=="delete"?L"--delete-child":L"--mutations-child";
-  const auto written=flitzfs::run_bounded_process(executable,{child},budget);
+  std::unique_ptr<ExternalSource> external;
+  flitzfs::ProcessResult written;
+  if(crash){external=std::make_unique<ExternalSource>(executable,profile);written=external->written;}
+  else written=flitzfs::run_bounded_process(executable,{child},budget);
   std::cout<<"extended_writer profile="<<profile<<" exit="<<written.exit_code<<" stage="<<(written.exit_code>>16U)
       <<" detail="<<(written.exit_code&0xffffU)<<" timed_out="<<written.timed_out<<" cancelled="<<written.cancelled
       <<" exit_confirmed="<<written.exit_confirmed<<" peak_commit_bytes="<<written.peak_committed_bytes<<"\n";
@@ -738,8 +842,10 @@ void run_extended(const fs::path& executable,std::string_view profile) {
       "extended writer/termination proof failed");emit_extended(written.process_id,profile,crash?"ack":"state");
   budget.timeout_ms=30000;std::uint32_t resumer_process=0;
   if(restart_profile(profile)) {
-    const auto resumed=flitzfs::run_bounded_process(executable,
-        {crash?L"--crash-resume-child":L"--resume-child",std::to_wstring(written.process_id)},budget);
+    std::vector<std::wstring> resume_arguments{
+        crash?L"--crash-resume-child":L"--resume-child",std::to_wstring(written.process_id)};
+    if(crash)resume_arguments.push_back(std::to_wstring(GetCurrentProcessId()));
+    const auto resumed=flitzfs::run_bounded_process(executable,resume_arguments,budget);
     std::cout<<"extended_resumer profile="<<profile<<" exit="<<resumed.exit_code
         <<" stage="<<(resumed.exit_code>>16U)<<" detail="<<(resumed.exit_code&0xffffU)
         <<" timed_out="<<resumed.timed_out<<" cancelled="<<resumed.cancelled
@@ -751,6 +857,7 @@ void run_extended(const fs::path& executable,std::string_view profile) {
   const std::wstring verifier=profile=="crash-restart"?L"--crash-restart-verify-child":profile=="restart"?L"--restart-verify-child":crash?L"--crash-verify-child":profile=="delete"?L"--delete-verify-child":L"--mutations-verify-child";
   std::vector<std::wstring> verify_arguments{verifier,std::to_wstring(written.process_id)};
   if(restart_profile(profile))verify_arguments.push_back(std::to_wstring(resumer_process));
+  if(crash)verify_arguments.push_back(std::to_wstring(GetCurrentProcessId()));
   const auto verified=flitzfs::run_bounded_process(executable,verify_arguments,budget);
   std::cout<<"extended_verifier profile="<<profile<<" exit="<<verified.exit_code<<" stage="<<(verified.exit_code>>16U)
       <<" detail="<<(verified.exit_code&0xffffU)<<" timed_out="<<verified.timed_out<<" cancelled="<<verified.cancelled
@@ -761,32 +868,43 @@ void run_extended(const fs::path& executable,std::string_view profile) {
 
 } // namespace
 int wmain(int argc,wchar_t** argv) {try {
-  require_hosted_opt_in();require(argc>=2&&argc<=4,"explicit writable probe mode required");
+  require_hosted_opt_in();require(argc>=2&&argc<=5,"explicit writable probe mode required");
   const std::wstring_view mode(argv[1]);
   if(mode==L"--ram-handoff-child"){require(argc==2,"unexpected RAM child argument");ram_handoff_probe();return 0;}
   if(mode==L"--write-child"){require(argc==2,"unexpected writer argument");write_probe();return 0;}
   if(mode==L"--verify-child"){require(argc==3,"missing source identity");verify_probe(process_number(argv[2]));return 0;}
-  if(mode==L"--restart-source-child"||mode==L"--crash-restart-source-child") {
-    require(argc==2,"unexpected restart source argument");restart_source(mode==L"--crash-restart-source-child");return 0;
+  if(mode==L"--restart-source-child") {
+    require(argc==2,"unexpected restart source argument");restart_source();return 0;
+  }
+  if(mode==L"--crash-restart-source-child"||mode==L"--crash-child") {
+    require(argc==4,"missing external source handshake/identity");
+    crash_source(argv[2],process_number(argv[3]),mode==L"--crash-child"?"crash":"crash-restart");return 0;
   }
   if(mode==L"--resume-child"||mode==L"--crash-resume-child") {
-    require(argc==3,"missing restart source identity");restart_resume(process_number(argv[2]),mode==L"--crash-resume-child");return 0;
+    const bool killed=mode==L"--crash-resume-child";
+    require(argc==(killed?4:3),"missing restart source/client identity");
+    if(killed)source_client_process=process_number(argv[3]);
+    restart_resume(process_number(argv[2]),killed);return 0;
   }
   if(mode==L"--restart-verify-child"||mode==L"--crash-restart-verify-child") {
-    require(argc==4,"missing restart verifier identities");
-    extended_verify(process_number(argv[2]),mode==L"--restart-verify-child"?"restart":"crash-restart",process_number(argv[3]));return 0;
+    const bool killed=mode==L"--crash-restart-verify-child";
+    require(argc==(killed?5:4),"missing restart verifier/client identities");
+    if(killed)source_client_process=process_number(argv[4]);
+    extended_verify(process_number(argv[2]),killed?"crash-restart":"restart",process_number(argv[3]));return 0;
   }
-  if(mode==L"--mutations-child"||mode==L"--delete-child"||mode==L"--crash-child") {
-    require(argc==2,"unexpected extended writer argument");
-    if(mode==L"--crash-child")crash_probe();else namespace_probe(mode==L"--delete-child");return 0;
+  if(mode==L"--mutations-child"||mode==L"--delete-child") {
+    require(argc==2,"unexpected extended writer argument");namespace_probe(mode==L"--delete-child");return 0;
   }
   if(mode==L"--mutations-verify-child"||mode==L"--delete-verify-child"||mode==L"--crash-verify-child") {
-    require(argc==3,"missing extended source identity");
+    const bool killed=mode==L"--crash-verify-child";
+    require(argc==(killed?4:3),"missing extended source/client identity");
+    if(killed)source_client_process=process_number(argv[3]);
     extended_verify(process_number(argv[2]),mode==L"--crash-verify-child"?"crash":
         mode==L"--delete-verify-child"?"delete":"mutations");return 0;
   }
   require(argc==2&&(mode==L"--run-disposable-ci"||mode==L"--run-mutations-ci"||
       mode==L"--run-delete-ci"||mode==L"--run-crash-ci"||mode==L"--run-restart-ci"||mode==L"--run-crash-restart-ci"||mode==L"--run-ram-handoff-ci"),"unknown writable probe mode");
+  const source_fixture::ControllerBudget controller_budget;
   wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);require(n&&n<512,"probe executable identity");
   const fs::path executable(std::wstring(path,n));
   if(mode==L"--run-ram-handoff-ci") {
@@ -800,7 +918,8 @@ int wmain(int argc,wchar_t** argv) {try {
   }
   if(mode!=L"--run-disposable-ci") {
     run_extended(executable,mode==L"--run-restart-ci"?"restart":mode==L"--run-crash-restart-ci"?"crash-restart":
-        mode==L"--run-crash-ci"?"crash":mode==L"--run-delete-ci"?"delete":"mutations");return 0;
+        mode==L"--run-crash-ci"?"crash":mode==L"--run-delete-ci"?"delete":"mutations");
+    require(source_fixture::cleanup_ok.load()&&!source_fixture::source_busy.load(),"source final cleanup");return 0;
   }
   flitzfs::ProcessBudget budget;budget.timeout_ms=30000;
   const auto written=flitzfs::run_bounded_process(executable,{L"--write-child"},budget);

@@ -89,7 +89,18 @@
         "Regression must fail for the observed cause and pass after the fix; repeat the affected isolated scenarios with bounded resource accounting.",
         "Verify cancellation at every owned lifecycle phase and absence of stale workers/handles/locked pages. A green rerun or longer timeout alone is insufficient."
       ],
-      "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup."
+      "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup.",
+      "checkpoint": {
+        "source_parent": "343acaa6442a2ca28efb75401826ca4ed654c59a",
+        "candidate": "External controller owns client file; separate crash host refuses self namespace opens and observes client PID/flush before acknowledgement.",
+        "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
+        "research": "docs/evidence/mount-source-isolation-research-343acaa.json",
+        "source_child_deadline_seconds": 15,
+        "source_exit_observation_seconds": 2,
+        "new_source_qualification": "pending",
+        "historical_root_cause": "unproven",
+        "owner_execution": false
+      }
     },
     {
       "id": "G02",

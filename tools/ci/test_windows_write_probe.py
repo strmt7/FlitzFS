@@ -30,6 +30,44 @@ class Evidence(unittest.TestCase):
             with self.subTest(profile=profile):
                 self.assertTrue(validate_pair(*reports(profile), profile, COMMIT)["complete"])
 
+    def test_external_crash_actor_binding(self):
+        # Historical schema-2 observations remain readable, but cannot be used
+        # as evidence for the new live external-client campaign.
+        legacy = reports("crash")
+        self.assertTrue(validate_pair(*legacy, "crash", COMMIT)["complete"])
+        with self.assertRaises(ValueError):
+            validate_pair(*legacy, "crash", COMMIT, require_external=True)
+        pair = reports("crash")
+        for position, item in enumerate(pair):
+            item.update(source_protocol="external-client", client_process=23,
+                        host_self_io_rejected=position == 0,
+                        client_flush_callback_observed=position == 0)
+        self.assertTrue(validate_pair(*pair, "crash", COMMIT, require_external=True)["complete"])
+        for position in (0, 1):
+            for key in ("source_protocol", "client_process", "host_self_io_rejected",
+                        "client_flush_callback_observed"):
+                invalid = deepcopy(pair)
+                del invalid[position][key]
+                with self.subTest(position=position, missing=key), self.assertRaises(ValueError):
+                    validate_pair(*invalid, "crash", COMMIT, require_external=True)
+            for key, value in (("client_process", True), ("client_process", 0),
+                               ("client_process", 17), ("client_process", 18),
+                               ("client_process", 29), ("source_protocol", "self-client"),
+                               ("host_self_io_rejected", position != 0),
+                               ("host_self_io_rejected", int(position == 0)),
+                               ("client_flush_callback_observed", position != 0)):
+                invalid = deepcopy(pair)
+                invalid[position][key] = value
+                with self.subTest(position=position, key=key, value=value), self.assertRaises(ValueError):
+                    validate_pair(*invalid, "crash", COMMIT, require_external=True)
+        wrong = reports("mutations")
+        for position, item in enumerate(wrong):
+            item.update(source_protocol="external-client", client_process=23,
+                        host_self_io_rejected=position == 0,
+                        client_flush_callback_observed=position == 0)
+        with self.assertRaises(ValueError):
+            validate_pair(*wrong, "mutations", COMMIT)
+
     def test_missing_extra_and_mismatched_fields(self):
         for profile in ("basic", "mutations", "delete", "crash"):
             original = reports(profile)
@@ -92,6 +130,23 @@ class Evidence(unittest.TestCase):
                              namespace_sequence=b["namespace_sequence"], image_bytes=b["image_bytes"])
             result = validate_continuation(a, continued, b, profile, COMMIT)
             self.assertTrue(result["complete"])
+            if profile == "crash-restart":
+                external_source, external_final = deepcopy(a), deepcopy(b)
+                for position, item in enumerate((external_source, external_final)):
+                    item.update(source_protocol="external-client", client_process=23,
+                                host_self_io_rejected=position == 0,
+                                client_flush_callback_observed=position == 0)
+                self.assertTrue(validate_continuation(external_source, continued, external_final,
+                    profile, COMMIT, require_external=True)["complete"])
+                with self.assertRaises(ValueError):
+                    validate_continuation(a, continued, b, profile, COMMIT, require_external=True)
+                for alias in (17, 18, 19):
+                    bad_source, bad_final = deepcopy(external_source), deepcopy(external_final)
+                    bad_source["client_process"] = bad_final["client_process"] = alias
+                    with self.subTest(client_alias=alias), self.assertRaises(ValueError):
+                        validate_continuation(bad_source, continued, bad_final,
+                                              profile, COMMIT, require_external=True)
+
             for key in ("image_bytes", "generation", "namespace_sequence"):
                 self.assertEqual(result[key], b[key], "hosted budget must use the final continued state")
             for key in continued:

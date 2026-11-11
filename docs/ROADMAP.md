@@ -661,3 +661,17 @@ not a confirmed diagnosis. Investigate separate filesystem-host/client
 ownership while preserving open-handle kill coverage. G03 needs that lifecycle
 repair and the already demonstrated G02 integration checkpoint; it must not
 require a speed benefit before it can investigate the missing benefit.
+
+## D01 candidate: separate the crash host and its client
+
+The current source has an external-client handshake, exact asynchronous source
+supervision and an actual host-self-I/O rejection check. CPU fixtures cover
+event rights/collision, actor identity, cancellation, timeout, abandonment,
+failed launch and repeated handle retirement before any hosted mount gate.
+See [the ownership contract](MOUNT_PROCESS_ISOLATION.md) and
+[research/source binding](evidence/mount-source-isolation-research-343acaa.json).
+
+D01 remains in progress. New compilation/CPU/native/mounted results are pending,
+and historical root cause is not declared proven. Preserve the original child
+deadlines, open-handle kill case, full acknowledged-state comparison and all
+owner-PC prohibitions.

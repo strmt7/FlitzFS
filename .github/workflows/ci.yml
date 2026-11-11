@@ -487,8 +487,46 @@ jobs:
             'ram-handoff' { '--run-ram-handoff-ci' }
             default { throw 'Invalid fixed writable profile' }
           }
-          ./build-native/Release/flitzfs_write_probe.exe $mode
-          if ($LASTEXITCODE) { throw 'Supervised writable mount probe failed' }
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = (Resolve-Path './build-native/Release/flitzfs_write_probe.exe').Path
+          $start.ArgumentList.Add($mode)
+          $start.UseShellExecute = $false
+          $start.CreateNoWindow = $true
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $process = [Diagnostics.Process]::new()
+          $process.StartInfo = $start
+          $started = $false
+          $confirmed = $false
+          $timedOut = $false
+          try {
+            $started = $process.Start()
+            if (-not $started) { throw 'Writable controller did not start' }
+            $stdout = $process.StandardOutput.ReadToEndAsync()
+            $stderr = $process.StandardError.ReadToEndAsync()
+            # Enclose all existing 15/30-second child phases and their existing
+            # two-second exit observations; never widen those inner deadlines.
+            $confirmed = $process.WaitForExit(100000)
+            if (-not $confirmed) {
+              $timedOut = $true
+              if (-not $process.HasExited) { $process.Kill() }
+              $confirmed = $process.WaitForExit(2000)
+            }
+            if (-not $confirmed) { throw 'Writable controller exit unconfirmed; no next trial' }
+            if (-not $stdout.Wait(2000) -or -not $stderr.Wait(2000)) { throw 'Writable output retirement failed' }
+            if ($stdout.Result.Length -gt 16384 -or $stderr.Result.Length -gt 4096) { throw 'Writable controller output cap' }
+            Write-Output $stdout.Result
+            Write-Output $stderr.Result
+            if ($timedOut -or $process.ExitCode -ne 0) { throw 'Supervised writable mount probe failed' }
+          } finally {
+            try {
+              if ($started -and -not $confirmed) {
+                if (-not $process.HasExited) { $process.Kill() }
+                $confirmed = $process.WaitForExit(2000)
+                if (-not $confirmed) { throw 'Writable cleanup could not confirm controller exit' }
+              }
+            } finally { $process.Dispose() }
+          }
 
       - name: Reconcile exact acknowledged writable state and source identity
         run: python tools/ci/verify_windows_write_probe.py --profile ${{ matrix.profile }}
