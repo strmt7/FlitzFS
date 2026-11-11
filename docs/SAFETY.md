@@ -672,3 +672,14 @@ identity/range/bytes must match before advice is returned; failed probes stay
 terminal and retain CPU input. Callers still need qualified resource/quietness
 and the existing complete-candidate verification/publication gates. See
 COMPRESSION_PROBES.md. No owner-host execution is authorized by compilation.
+
+## Explicit Windows physical-node metadata
+
+The SDK-only topology collector in GPU_NODE_PROOF.md may create a D3D12 device
+for the exact matched adapter under the existing process budgets and external
+watchdog. It requests no queues, GPU resources or commands. Device creation can
+enter driver code; no universal no-freeze guarantee is possible. Only a healthy
+same-LUID AMD device with exactly one physical node may resolve an omitted zero
+HIP node mask for requested node zero. It cannot repair a driver, authorize
+retries or bypass CPU verification, residency, retirement or RAM-only rules.
+The normal filesystem path never invokes this collector.

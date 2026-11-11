@@ -1,5 +1,6 @@
 #include "hip_decode_worker.hpp"
 #include "gpu_budget.hpp"
+#include "gpu_topology.hpp"
 #include "hip_worker_exit.hpp"
 #include "hip_api.hpp"
 #include <hip/hip_runtime_api.h>
@@ -87,7 +88,9 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
       == GpuGateCode::admitted, "HIP pre-initialization budget");
 
   const auto api = bind_api(runtime);
-  const auto least=initialize_device(api,ordinal,luid,node_mask);
+  const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
+    return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
+  });
 
   DeviceResources resources(api);
   const auto before = query_windows_gpu_budget(luid, node_mask).snapshot;
@@ -155,7 +158,9 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   require(check_gpu_memory_budget(before_init,luid,node_mask,GetTickCount64(),allocation)==GpuGateCode::admitted,
       "HIP match pre-initialization budget");
   const auto api=bind_api(runtime);
-  const auto least=initialize_device(api,ordinal,luid,node_mask);
+  const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
+    return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
+  });
   DeviceResources resources(api);
   const auto before=query_windows_gpu_budget(luid,node_mask).snapshot;
   require(check_gpu_memory_budget(before,luid,node_mask,GetTickCount64(),allocation)==GpuGateCode::admitted &&

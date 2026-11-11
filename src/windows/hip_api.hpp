@@ -2,6 +2,7 @@
 #include "hip_worker_exit.hpp"
 #include <hip/hip_runtime_api.h>
 #include <windows.h>
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstddef>
@@ -80,14 +81,23 @@ inline HipDeviceIdentity query_device_identity(const HipApi& api,int ordinal) {
   return {std::bit_cast<std::array<std::byte,8>>(std::to_array(properties.luid)),
       properties.luidDeviceNodeMask};
 }
-inline int initialize_device(const HipApi& api, int ordinal, std::array<std::byte,8> luid,
-    std::uint32_t node_mask) {
+template<class SingleNodeProof>
+int initialize_device(const HipApi& api, int ordinal, std::array<std::byte,8> luid,
+    std::uint32_t node_mask, SingleNodeProof&& single_node_proof) {
+  if (ordinal<0 || ordinal>=64 || node_mask==0 || !std::has_single_bit(node_mask) ||
+      std::all_of(luid.begin(),luid.end(),[](auto value){return value==std::byte{0};}))
+    throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "invalid adapter selector",
+        HipWorkerStage::adapter_node);
   const auto identity=query_device_identity(api,ordinal);
   const auto actual_luid=identity.luid;
   if (actual_luid != luid)
     throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "HIP/DXGI adapter LUID mismatch",
         HipWorkerStage::adapter_luid);
-  if (identity.node_mask != node_mask)
+  // Some installed Windows HIP runtimes expose a valid LUID with no node mask.
+  // Resolve ONLY that omission against the same OS adapter's single physical
+  // node. The trusted caller supplies fresh native proof; no ordinal inference.
+  if (identity.node_mask != node_mask &&
+      !(identity.node_mask==0 && node_mask==1 && single_node_proof(luid)))
     throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "HIP/DXGI adapter node mismatch",
         HipWorkerStage::adapter_node);
   check_hip(api.set_device(ordinal), "select device", HipWorkerStage::device_select);
@@ -97,5 +107,9 @@ inline int initialize_device(const HipApi& api, int ordinal, std::array<std::byt
   if (least < greatest) throw HipWorkerFailure(HipWorkerExit::device_fault,
       "HIP stream priority range unavailable", HipWorkerStage::stream_priorities);
   return least;
+}
+inline int initialize_device(const HipApi& api,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask) {
+  return initialize_device(api,ordinal,luid,node_mask,[](auto){return false;});
 }
 }

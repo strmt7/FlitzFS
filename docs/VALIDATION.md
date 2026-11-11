@@ -289,3 +289,14 @@ FlitzFS kernel load/launch. Portable wire, real Windows CPU transport and fake
 HIP identity-only tests must pass on its exact commit. The SDK refusal matrix
 retains all 17 original admission children plus the existing diagnostic cases.
 Matching execution results are pending; no compute gate is relaxed.
+
+## Single physical-node proof preparation, 11 November 2026
+
+77931001b8a1238fd29f9e41081d2025ab657f23 passed complete-SDK run 42979952055
+and core run 42979952021, including all isolated hosted mount scenarios. The
+owner properties-only result confirmed raw HIP node mask zero with exact LUID;
+no compute was requested. GPU_NODE_PROOF.md records the measurements, bounded
+new native collector and current primary-source receipts. New proof-policy,
+fake-API and hosted software-device checks must pass on the exact subsequent
+commit before owner topology or compute execution. At this source checkpoint
+actual FlitzFS GPU execution and speed are still unproven.

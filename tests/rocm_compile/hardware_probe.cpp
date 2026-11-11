@@ -2,6 +2,8 @@
 #include "flitzfs/match_worker_wire.hpp"
 #include "worker_exchange.hpp"
 #include "gpu_budget.hpp"
+#include "gpu_topology.hpp"
+#include <cstdlib>
 #include "hip_worker_exit.hpp"
 #include "hip_identity_wire.hpp"
 #include <windows.h>
@@ -167,6 +169,37 @@ std::array<std::byte,8> probe_luid(std::wstring_view text) {
   for(std::size_t i=0;i<8;++i)value[i]=static_cast<std::byte>(16*digit(text[2*i])+digit(text[2*i+1]));
   return value;
 }
+void inspect_topology(std::array<std::byte,8> luid,const ProbeBudget& budget,bool software) {
+  const auto result=software?flitzfs::query_windows_software_topology_fixture(luid):
+      flitzfs::query_windows_gpu_topology(luid);
+  std::cout<<std::boolalpha<<"GPU topology metadata: {\"gpu_executed\":false,\"hip_initialized\":false,"
+      "\"queues_requested\":false,\"batch_allocations_requested\":false,\"kernel_launch_requested\":false,"
+      "\"status\":"<<static_cast<unsigned>(result.status)
+      <<",\"phase\":"<<static_cast<unsigned>(result.phase)
+      <<",\"native_status\":"<<result.native_status
+      <<",\"node_count\":"<<result.node_count<<",\"amd_hardware\":"<<result.amd_hardware
+      <<",\"luid_matches\":"<<(result.luid==luid)
+      <<",\"single_node_verified\":"<<flitzfs::verified_single_gpu_node(result,luid)
+      <<",\"software_fixture\":"<<software
+      <<",\"controller_job_peak_commit_bytes\":"<<budget.peak_commit()<<"}\n";
+}
+void inspect_warp_topology(const ProbeBudget& budget) {
+  const auto* actions=std::getenv("GITHUB_ACTIONS");
+  const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
+  require(actions && std::string_view(actions)=="true" && environment &&
+      std::string_view(environment)=="github-hosted","WARP metadata is disposable-hosted only");
+  Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
+  require(SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))) && factory,
+      "WARP metadata factory unavailable");
+  Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+  require(SUCCEEDED(factory->EnumWarpAdapter(IID_PPV_ARGS(adapter.GetAddressOf()))) && adapter,
+      "explicit WARP adapter unavailable");
+  DXGI_ADAPTER_DESC1 description{};
+  require(SUCCEEDED(adapter->GetDesc1(&description)) &&
+      (description.Flags&DXGI_ADAPTER_FLAG_SOFTWARE),"WARP description unavailable");
+  const auto luid=std::bit_cast<std::array<std::byte,8>>(description.AdapterLuid);
+  adapter.Reset();factory.Reset();inspect_topology(luid,budget,true);
+}
 int inspect_driver_identity(const std::filesystem::path& worker,const wchar_t* ordinal,
     const wchar_t* luid,const wchar_t* digest,const ProbeBudget& budget) {
   const flitzfs::HipIdentityRequest expected{1,static_cast<std::uint32_t>(std::stoul(ordinal)),1,probe_luid(luid)};
@@ -210,14 +243,18 @@ int wmain(int argc, wchar_t** argv) {
     const std::wstring_view mode = argc > 1 ? argv[1] : L"";
     const bool discovery = mode == L"--describe-amd-adapters";
     const bool budget_metadata = mode == L"--inspect-adapter-budget";
+    const bool topology = mode == L"--inspect-adapter-topology";
+    const bool warp_topology = mode == L"--inspect-warp-topology";
     const bool metadata = mode == L"--verify-driver-runtime";
     const bool identity = mode == L"--inspect-driver-adapter";
     const bool matching = mode == L"--run-amd-driver-match-once";
     const bool driver = mode == L"--run-amd-driver-once" || matching;
-    require((budget_metadata && argc == 3) || (discovery && argc == 2) || (metadata && argc == 4) || ((driver || identity) && argc == 6) ||
+    require((topology && argc==3) || (warp_topology && argc==2) || (budget_metadata && argc == 3) || (discovery && argc == 2) || (metadata && argc == 4) || ((driver || identity) && argc == 6) ||
         (mode == L"--run-amd-once" && argc == 5), "explicit qualified worker and probe mode required");
     if (discovery) { const ProbeBudget budget; describe_adapters(budget); return 0; }
     if (budget_metadata) { const ProbeBudget budget; inspect_budget(argv[2],budget); return 0; }
+    if (topology) { const auto luid=probe_luid(argv[2]);const ProbeBudget budget;inspect_topology(luid,budget,false);return 0; }
+    if (warp_topology) { const ProbeBudget budget;inspect_warp_topology(budget);return 0; }
     const std::filesystem::path worker(argv[2]);
     require(worker.is_absolute() && worker.filename() == L"flitzfs_hip_worker.exe",
         "expected absolute qualified worker path");
