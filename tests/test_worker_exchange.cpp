@@ -864,7 +864,19 @@ int wmain(int argc,wchar_t** argv){try{
       auto unconfirmed=*result;unconfirmed.process.exit_confirmed=false;
       check(worker_transport_failure(session,unconfirmed,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
           "unconfirmed exit supplied recovery evidence");
-      auto unknown=*result;unknown.process.exit_code=0x46531002U;
+      for(unsigned stage=16;stage<=31;++stage) {
+        auto named=*result;
+        named.process.exit_code=hip_worker_diagnostic_exit(
+            static_cast<HipWorkerExit>(0x46530000U+category),static_cast<HipWorkerStage>(stage));
+        check(worker_transport_failure(session,named,WorkerExecution::hip)==expected[category-1],
+            "new named stage changed recovery category");
+        check(worker_transport_failure(session,named,WorkerExecution::cpu_semantics)==GpuRecoveryOutcome::device_fault,
+            "CPU fixture gained new-stage HIP trust");
+        named.process.exit_confirmed=false;
+        check(worker_transport_failure(session,named,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
+            "unconfirmed named exit supplied recovery evidence");
+      }
+      auto unknown=*result;unknown.process.exit_code=0x46532002U;
       check(worker_transport_failure(session,unknown,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
           "unknown stage downgraded recovery requirements");
       eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},

@@ -130,3 +130,39 @@ change. Portable boundary tests exercise the shared production checks, and a
 fixed isolated Crawl4AI group captures current Microsoft memory-accounting
 documentation before any policy revision. No unchanged host retry is authorized
 by adding diagnostics.
+
+## Memory-source review and classification regression
+
+Current official Microsoft memory-accounting pages were captured and read using
+the isolated reviewed Crawl4AI provider at 9028be3, run 42987173114 / job
+130411008047. Three pages returned native HTTP 200 with substantive content.
+[evidence/gpu-memory-research-9028be3.json](evidence/gpu-memory-research-9028be3.json)
+binds URLs, native and Markdown digests, provider identity and failure history.
+
+[QueryVideoMemoryInfo](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
+returns process usage and assigned budget for a physical node/segment group.
+[Budget and CurrentUsage](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info)
+describe aggregate application values.
+[The segment groups](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ne-dxgi1_4-dxgi_memory_segment_group)
+distinguish the preferred local working set from potentially slower non-local
+memory. An inference from those aggregate semantics is that a counter alone
+cannot identify a particular HIP allocation or establish its eviction.
+All three rendered revision dates are 22 February 2024; these are current-served
+official API contracts, not newly published November 2026 research. No memory
+policy is changed from this inference or used to claim a known host failure.
+
+9028be3 Linux raw/codec tests passed the new predicates, but the Windows transport
+test failed after 413 checks because its old unknown-stage fixture still used
+0x46531002: stage 16 is now explicitly assigned. The fixture is corrected to
+unassigned stage 32 (0x46532002), with classification checks for all new named
+stages across all six legacy categories. CPU semantic executions and unconfirmed
+exits still cannot supply trusted HIP recovery evidence. Exact subsequent CI is
+required; the original failed run is retained, not converted into passing evidence.
+
+Separately, the 96cb919 whole core workflow failed its hosted crash-restart
+writer termination observation. Its 15-second timeout plus two-second retirement
+observation did not confirm exit, despite the retained acknowledged 7,001-byte
+CPU-verified/explicitly-flushed fixture. This reproduces the older unresolved
+hosted failure; do not increase limits, hide it behind later green runs or
+transfer mounted testing to the owner PC. CPU/native/sanitizer/SDK passes remain
+separate from that failing system-level result.
