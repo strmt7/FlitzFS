@@ -1,0 +1,71 @@
+# Explicit installed-driver HIP worker
+
+This experimental route is explicit. Normal filesystem operations remain CPU-only.
+The same supervised worker can use either its authenticated private SDK bundle or
+a kernel-only bundle plus the installed driver runtime. There is no driver
+installation, service, device enumeration, automatic retry or mounted default.
+
+## Identity and ownership
+
+The driver route requires an explicit ordinal, eight-byte LUID, single-node mask
+and expected runtime SHA-256. Both --driver-adapter and --driver-match-adapter add
+the digest before the existing worker-channel marker. Malformed arguments and wire
+input fail before system-runtime or adapter access.
+
+Kernel-only verification admits exactly the compiled filesystem GPU kernel DLL
+with its expected size and hash. The complete private SDK bundle is refused in
+this mode. Directory/file pins remain held. The selected Windows system-directory
+runtime is verified through VerifiedSystemModule: exact expected bytes, a 32 MiB
+file ceiling and cached-only, no-UI trust.
+
+The runtime pin remains alive while its absolute path is loaded with restricted
+search flags and through kernel execution and cleanup. The loader checks the
+actual module paths after loading both modules. Kernel imports must be limited to
+the SDK runtime basename and kernel32.dll. The qualifying artifact therefore
+contains no AMD runtime or rocm_kpack.dll. These are user-mode GPU modules; this
+route does not install or load a filesystem kernel driver.
+
+The existing child resource owner, matched DXGI/HIP identity, lowest stream
+priority, explicit allocation bounds, independent CPU checks and typed failures
+remain in force. Both modules close before response publication. The parent
+still requires exact child exit before copying or accepting a reply.
+
+## Bounded diagnostics
+
+The diagnostic supports three separate internal installed-driver modes:
+
+- --verify-driver-runtime performs only metadata verification in its child.
+- --run-amd-driver-once uses the existing 12 KiB synthetic decode fixture.
+- --run-amd-driver-match-once uses a 4 KiB repeated synthetic source and validates
+  the source-bound match reply independently.
+
+All require the exact qualified worker path and explicit expected runtime hash.
+Compute modes additionally require an explicit ordinal and LUID. No mode searches
+for another device or retries. Successful metadata is not hardware qualification.
+
+The diagnostic bounds its own process and descendants: 128 MiB per process,
+256 MiB aggregate, two processes, 20 percent CPU, below-normal priority and a
+ten-second per-process CPU-time ceiling. It requires 768 MiB physical and commit
+headroom before admission. Its child retains the exact 128 MiB/20 percent/five-
+second job, kill-on-close lifecycle and existing termination observation.
+Closing the parent's budget handle does not terminate the reporting parent;
+the child has its own kill-on-close job. OS calls and kernel faults remain
+outside a no-freeze guarantee.
+
+## Qualification and artifact
+
+The hosted SDK job preserves all nine prior metadata/private-worker cases.
+It additionally checks correct kernel-only admission, unexpected private files,
+a same-size modified kernel, malformed decode/match input, unavailable or
+mismatched system runtime and malformed driver digest. Seventeen child exits
+must be confirmed. Separate metadata/decode/match diagnostics must refuse the
+unqualified runtime with no candidate publication under their self-imposed caps.
+
+The experimental artifact contains only the worker, filesystem GPU kernel,
+diagnostic, source-bound manifest and license files. Expanded and compressed
+sizes are capped at 8 MiB. It is not a release or permission to execute on the
+owner's PC. Exact matching VM receipts, source/import review, current headroom
+and the owner-device gate remain necessary before staging and execution.
+
+These VM tests never execute an AMD GPU. Actual hardware results, real-data
+compression and speed require separate recorded experiments.

@@ -1,5 +1,9 @@
 #include "flitzfs/worker_wire.hpp"
+#include "flitzfs/match_worker_wire.hpp"
 #include "worker_exchange.hpp"
+#include <windows.h>
+#include <cstdint>
+#include <string>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -7,10 +11,60 @@
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
+#include <vector>
 
 namespace {
 void require(bool condition, const char* message) {
   if (!condition) throw std::runtime_error(message);
+}
+
+class ProbeBudget {
+ public:
+  ProbeBudget() {
+    constexpr std::uint64_t mib = 1024ULL*1024;
+    MEMORYSTATUSEX memory{}; memory.dwLength = sizeof(memory);
+    require(GlobalMemoryStatusEx(&memory) && memory.ullAvailPhys >= 768*mib &&
+        memory.ullAvailPageFile >= 768*mib, "probe physical/commit headroom unavailable");
+    job_ = CreateJobObjectW(nullptr, nullptr);
+    require(job_ != nullptr, "probe job unavailable");
+    try {
+      JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+      // The child has its own creation-time kill-on-close job. This parent
+      // budget stays enforced until its member processes exit, including CRT rundown.
+      limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_PROCESS_MEMORY |
+          JOB_OBJECT_LIMIT_JOB_MEMORY | JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
+          JOB_OBJECT_LIMIT_PRIORITY_CLASS | JOB_OBJECT_LIMIT_PROCESS_TIME;
+      limits.BasicLimitInformation.ActiveProcessLimit = 2;
+      limits.BasicLimitInformation.PriorityClass = BELOW_NORMAL_PRIORITY_CLASS;
+      limits.BasicLimitInformation.PerProcessUserTimeLimit.QuadPart = 10LL*10000000;
+      limits.ProcessMemoryLimit = 128*mib;
+      limits.JobMemoryLimit = 256*mib;
+      require(SetInformationJobObject(job_, JobObjectExtendedLimitInformation, &limits, sizeof(limits)),
+          "probe memory/process budget unavailable");
+      JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu{};
+      cpu.ControlFlags = JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP;
+      cpu.CpuRate = 2000;
+      require(SetInformationJobObject(job_, JobObjectCpuRateControlInformation, &cpu, sizeof(cpu)) &&
+          AssignProcessToJobObject(job_, GetCurrentProcess()), "probe CPU/job admission failed");
+    } catch (...) { CloseHandle(job_); job_ = nullptr; throw; }
+  }
+  ~ProbeBudget() { if (job_) CloseHandle(job_); }
+  ProbeBudget(const ProbeBudget&) = delete;
+  ProbeBudget& operator=(const ProbeBudget&) = delete;
+  std::uint64_t peak_commit() const {
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION measured{};
+    require(QueryInformationJobObject(job_, JobObjectExtendedLimitInformation,
+        &measured, sizeof(measured), nullptr), "probe job accounting unavailable");
+    return measured.PeakJobMemoryUsed;
+  }
+ private:
+  HANDLE job_ = nullptr;
+};
+
+bool valid_digest(std::wstring_view value) {
+  return value.size() == 64 && std::ranges::all_of(value, [](wchar_t c) {
+    return (c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f');
+  });
 }
 
 bool valid_ordinal(std::wstring_view value) {
@@ -29,13 +83,61 @@ bool valid_luid(std::wstring_view value) {
 
 int wmain(int argc, wchar_t** argv) {
   try {
-    require(argc == 5 && std::wstring_view(argv[1]) == L"--run-amd-once",
-        "explicit worker path, HIP ordinal and AMD adapter LUID required");
+    const std::wstring_view mode = argc > 1 ? argv[1] : L"";
+    const bool metadata = mode == L"--verify-driver-runtime";
+    const bool matching = mode == L"--run-amd-driver-match-once";
+    const bool driver = mode == L"--run-amd-driver-once" || matching;
+    require((metadata && argc == 4) || (driver && argc == 6) ||
+        (mode == L"--run-amd-once" && argc == 5), "explicit qualified worker and probe mode required");
     const std::filesystem::path worker(argv[2]);
     require(worker.is_absolute() && worker.filename() == L"flitzfs_hip_worker.exe",
         "expected absolute qualified worker path");
-    require(valid_ordinal(argv[3]) && valid_luid(argv[4]), "invalid explicit adapter selector");
+    if (metadata || driver) require(valid_digest(argv[metadata ? 3 : 5]), "invalid runtime digest");
+    if (!metadata) require(valid_ordinal(argv[3]) && valid_luid(argv[4]), "invalid explicit adapter selector");
+    const ProbeBudget budget;
+    if (metadata) {
+      const auto result = flitzfs::run_bounded_process(worker,
+          {L"--verify-system-runtime", argv[3]}, {128,2000,5000});
+      require(result.process_id && result.exit_confirmed, "metadata child exit unconfirmed");
+      const bool verified = !result.timed_out && !result.cancelled && result.exit_code == 0;
+      std::cout << std::boolalpha << "HIP runtime metadata probe: {\"verified\":" << verified
+          << ",\"worker_exit\":" << result.exit_code << ",\"timed_out\":" << result.timed_out
+          << ",\"exit_confirmed\":true,\"peak_commit_bytes\":" << result.peak_committed_bytes
+          << ",\"controller_job_peak_commit_bytes\":" << budget.peak_commit()
+          << ",\"gpu_executed\":false}\n";
+      return verified ? 0 : 2;
+    }
 
+    if (matching) {
+      std::array<std::byte,4096> source{};
+      for (std::size_t i = 0; i < source.size(); ++i)
+        source[i] = static_cast<std::byte>((i % 257U) & 255U);
+      const auto search = flitzfs::PreparedGpuMatchSearch::prepare(source);
+      constexpr std::uint64_t request_id = 1;
+      const auto request = flitzfs::encode_match_worker_request(search, request_id);
+      const auto result = flitzfs::run_worker_exchange(worker,
+          {L"--driver-match-adapter", argv[3], argv[4], L"1", argv[5]}, request, {128,2000,5000});
+      require(result.process.process_id && result.process.exit_confirmed, "match child exit unconfirmed");
+      const bool completed = result.code == flitzfs::WorkerExchangeCode::completed &&
+          !result.process.timed_out && !result.process.cancelled && result.process.exit_code == 0;
+      require(std::ranges::equal(search.input(), source), "owned match source changed");
+      std::size_t proposal_count = 0;
+      if (completed) {
+        const auto proposals = flitzfs::accept_match_worker_reply(result.response, search,
+            request_id, flitzfs::WorkerExecution::hip);
+        require(!proposals.empty(), "qualified repeated source produced no match");
+        proposal_count = proposals.size();
+      } else require(result.response.empty(), "failed match returned candidate bytes");
+      std::cout << std::boolalpha << "HIP match hardware probe: {\"gpu_result_verified\":" << completed
+          << ",\"source_bytes_verified\":" << source.size() << ",\"proposals\":" << proposal_count
+          << ",\"explicit_device_bytes\":" << search.device_buffer_bytes()
+          << ",\"worker_exit\":" << result.process.exit_code << ",\"timed_out\":" << result.process.timed_out
+          << ",\"publication_observed\":" << result.publication_observed
+          << ",\"peak_commit_bytes\":" << result.process.peak_committed_bytes
+          << ",\"controller_job_peak_commit_bytes\":" << budget.peak_commit()
+          << ",\"exit_confirmed\":true}\n";
+      return completed ? 0 : 2;
+    }
     std::array<std::byte,4096> raw{};
     for (std::size_t i = 0; i < raw.size(); ++i)
       raw[i] = static_cast<std::byte>((i * 53U + i / 17U) & 255U);
@@ -49,8 +151,10 @@ int wmain(int argc, wchar_t** argv) {
     const auto start = std::chrono::steady_clock::now();
     // Adapter budget, exact HIP identity and cleanup are checked inside the
     // supervised process. The probe never loads the runtime or enumerates devices.
-    const auto result = flitzfs::run_worker_exchange(worker,
-        {L"--adapter",argv[3],argv[4],L"1"}, request,{128,2000,5000});
+    std::vector<std::wstring> arguments{
+        driver ? L"--driver-adapter" : L"--adapter", argv[3], argv[4], L"1"};
+    if (driver) arguments.emplace_back(argv[5]);
+    const auto result = flitzfs::run_worker_exchange(worker, arguments, request, {128,2000,5000});
     require(result.process.process_id && result.process.exit_confirmed,
         "worker exit could not be confirmed");
 
@@ -80,6 +184,8 @@ int wmain(int argc, wchar_t** argv) {
         << ",\"timed_out\":" << result.process.timed_out
         << ",\"publication_observed\":" << result.publication_observed
         << ",\"peak_commit_bytes\":" << result.process.peak_committed_bytes
+        << ",\"controller_job_peak_commit_bytes\":" << budget.peak_commit()
+        << ",\"installed_driver_route\":" << driver
         << ",\"exit_confirmed\":true}\n";
     return completed ? 0 : 2;
   } catch (const std::exception& error) {

@@ -1,9 +1,10 @@
 # Trusted installed-driver runtime preparation
 
-This is an implementation plan. The existing worker still uses its authenticated
-private SDK bundle; no installed-driver selection or hardware execution is
-implemented by this document. The metadata-only preparation is implemented
-separately in SYSTEM_RUNTIME_METADATA.md and retains its own qualification gate.
+The explicit installed-driver worker route is implemented in GPU_DRIVER_WORKER.md.
+The authenticated private SDK route remains available. No normal filesystem route
+or owner-device activation follows from this preparation. Hardware execution is
+still a separate qualification gate. SYSTEM_RUNTIME_METADATA.md describes the
+metadata prerequisite.
 
 ## Problem and evidence
 
