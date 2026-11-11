@@ -1,6 +1,7 @@
 #include "worker_exchange.hpp"
 #include "gpu_worker_common.hpp"
 #include "hip_worker_exit.hpp"
+#include "hip_identity_wire.hpp"
 #include "gpu_worker_controller.hpp"
 #include "gpu_match_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
@@ -102,6 +103,11 @@ int child(std::wstring_view mode,std::wstring_view token) {
         static_cast<HipWorkerExit>(0x46530000U+static_cast<unsigned>(mode.back()-L'0')),
         HipWorkerStage::device_properties));
   auto channel=WorkerChannel::open(token);
+  if(mode==L"identity-metadata") {
+    const auto request=decode_hip_identity_request(channel.request());
+    channel.publish(encode_hip_identity_reply({request.request_id,request.ordinal,0,request.luid}));
+    return 0; // CPU-only transport fixture, never a HIP runtime query.
+  }
   if(mode==L"match" || mode==L"match-invalid" || mode==L"match-hold" ||
       mode==L"match-delay-invalid" || mode==L"match-hip-declaration") {
     const auto input=decode_match_worker_request(channel.request());
@@ -867,6 +873,25 @@ int wmain(int argc,wchar_t** argv){try{
     }
   }
   observe(L"staged-failures");
+  {
+    const HipIdentityRequest expected{71,3,1,{std::byte{5}}};
+    const auto request_frame=encode_hip_identity_request(expected);
+    const auto result=run_worker_exchange(executable,{L"identity-metadata"},request_frame);
+    check(result.code==WorkerExchangeCode::completed && result.process.exit_confirmed &&
+        !result.process.timed_out,"identity metadata child did not complete");
+    const auto observed=decode_hip_identity_reply(result.response,expected);
+    check(observed.node_mask==0 && observed.luid==expected.luid,
+        "identity metadata transport lost an unreported node mask");
+    rejects([&]{(void)accept_worker_reply(result.response,batch,221,WorkerExecution::hip);});
+    check_closed(result);
+    auto malformed=request_frame;malformed[12]=std::byte{1};
+    const auto refused=run_worker_exchange(executable,{L"identity-metadata"},malformed);
+    check(refused.code==WorkerExchangeCode::worker_failed && refused.process.exit_confirmed &&
+        refused.response.empty(),"failed identity metadata child exposed bytes");
+    check_closed(refused);
+  }
+  observe(L"identity-metadata");
+
   coordinated_requests(executable);observe(L"coordinated-recovery");
   match_transactions(executable);observe(L"match-transactions");
   coordinated_match_requests(executable);observe(L"match-recovery");

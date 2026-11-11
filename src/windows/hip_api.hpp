@@ -68,17 +68,26 @@ inline void check_hip(hipError_t status, const char* operation,
   throw HipWorkerFailure(code, operation, stage);
 }
 
-inline int initialize_device(const HipApi& api, int ordinal, std::array<std::byte,8> luid,
-    std::uint32_t node_mask) {
+struct HipDeviceIdentity {
+  std::array<std::byte,8> luid{};
+  std::uint32_t node_mask=0;
+};
+inline HipDeviceIdentity query_device_identity(const HipApi& api,int ordinal) {
   check_hip(api.init(0), "initialize", HipWorkerStage::runtime_initialize);
   hipDeviceProp_t properties{};
   check_hip(api.properties(&properties, ordinal), "query device properties", HipWorkerStage::device_properties);
-  static_assert(sizeof(properties.luid) == sizeof(luid));
-  const auto actual_luid = std::bit_cast<std::array<std::byte,8>>(std::to_array(properties.luid));
+  static_assert(sizeof(properties.luid) == 8);
+  return {std::bit_cast<std::array<std::byte,8>>(std::to_array(properties.luid)),
+      properties.luidDeviceNodeMask};
+}
+inline int initialize_device(const HipApi& api, int ordinal, std::array<std::byte,8> luid,
+    std::uint32_t node_mask) {
+  const auto identity=query_device_identity(api,ordinal);
+  const auto actual_luid=identity.luid;
   if (actual_luid != luid)
     throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "HIP/DXGI adapter LUID mismatch",
         HipWorkerStage::adapter_luid);
-  if (properties.luidDeviceNodeMask != node_mask)
+  if (identity.node_mask != node_mask)
     throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "HIP/DXGI adapter node mismatch",
         HipWorkerStage::adapter_node);
   check_hip(api.set_device(ordinal), "select device", HipWorkerStage::device_select);

@@ -70,6 +70,13 @@ int main() {
     require(hip_detail::initialize_device(api, 7, expected, 2) == 2, "wrong low-priority result");
     require(state.initialized == 1 && state.queried == 1 && state.selected == 1 &&
         state.priorities == 1 && state.ordinal == 7, "qualified device sequence differs");
+    for(const unsigned mask:{0U,2U,0x80000000U,0xffffffffU}) {
+      state={};state.mask=mask;
+      const auto identity=hip_detail::query_device_identity(api,7);
+      require(identity.luid==expected && identity.node_mask==mask,"metadata query changed raw identity");
+      require(state.initialized==1 && state.queried==1 && state.selected==0 && state.priorities==0,
+          "metadata query performed device selection or stream-priority work");
+    }
     state = {}; state.luid[1] = std::byte{1};
     failure([&] { (void)hip_detail::initialize_device(api, 7, expected, 2); },
         HipWorkerExit::unsupported_configuration, HipWorkerStage::adapter_luid);

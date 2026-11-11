@@ -257,3 +257,12 @@ exact child and supervisor. This bounds one old gate plus one current CPU batch.
 ## Match frames
 
 The generic channel can carry the separate match frame without enlarging its memory mappings. Match requests contain an exact source digest and at most 64 KiB of owned bytes. Replies contain at most 4096 explicitly serialized 8-byte lane records. Parent byte validation and actual child/supervisor retirement remain required. The Windows CPU fixture connects these frames to real native-session publication and tests fallback while a held helper remains live. No ordinary operation starts a worker automatically.
+
+## Identity metadata frames
+
+The explicit installed-runtime identity diagnostic uses a separate 40-byte
+request/reply kind described in HIP_IDENTITY_METADATA.md. Existing mapping caps,
+protected local-session objects, failure-empty output and confirmed successful
+child exit remain required. Metadata is not a decoder candidate and cannot pass
+the normal byte-reply acceptor. CPU transport fixtures do not establish HIP
+execution; normal file operations still never launch a worker.

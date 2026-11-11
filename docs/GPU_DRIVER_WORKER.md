@@ -119,3 +119,9 @@ physical-node identity proof must be based on the exact matched adapter, reject
 ambiguous linked configurations, retain process/memory/priority limits and pass
 separate source and execution qualification; no such alternative is implemented
 or authorized by an HTTP-success receipt.
+
+The explicit properties-only diagnostic reports the complete installed-runtime
+LUID/node mask through a separate bounded metadata frame. It makes no explicit
+device-selection, stream, allocation, copy or kernel-launch call. The compute
+identity checks remain unchanged. See HIP_IDENTITY_METADATA.md for confirmed-exit,
+module retirement and qualification requirements.
