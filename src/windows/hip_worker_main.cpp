@@ -2,6 +2,7 @@
 #include "gpu_budget.hpp"
 #include "hip_worker_exit.hpp"
 #include "hip_worker_bundle.hpp"
+#include "hip_module_verification.hpp"
 #include "worker_exchange.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include <bcrypt.h>
@@ -29,70 +30,8 @@ void require(bool condition, Exit reason, const char* message) {
   if (!condition) throw HipWorkerFailure(reason, message);
 }
 
-struct DirectoryPin {
-  explicit DirectoryPin(const fs::path& path)
-      : handle(CreateFileW(path.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                           nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS |
-                           FILE_FLAG_OPEN_REPARSE_POINT, nullptr)) {
-    FILE_ATTRIBUTE_TAG_INFO info{};
-    if (handle == INVALID_HANDLE_VALUE ||
-        !GetFileInformationByHandleEx(handle, FileAttributeTagInfo, &info, sizeof(info)) ||
-        !(info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ||
-        (info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
-      if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle);
-      throw HipWorkerFailure(Exit::runtime_unavailable, "unsafe HIP bundle directory");
-    }
-  }
-  ~DirectoryPin() { if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle); }
-  DirectoryPin(DirectoryPin&& other) noexcept
-      : handle(std::exchange(other.handle, INVALID_HANDLE_VALUE)) {}
-  DirectoryPin(const DirectoryPin&) = delete;
-  DirectoryPin& operator=(const DirectoryPin&) = delete;
-  HANDLE handle;
-};
-
-struct Algorithm {
-  BCRYPT_ALG_HANDLE handle = nullptr;
-  ~Algorithm() { if (handle) BCryptCloseAlgorithmProvider(handle, 0); }
-};
-struct Hash {
-  BCRYPT_HASH_HANDLE handle = nullptr;
-  ~Hash() { if (handle) BCryptDestroyHash(handle); }
-};
-
-bool matches_sha256(const ReadOnlyFile& file, std::string_view expected) {
-  Algorithm algorithm;
-  require(BCryptOpenAlgorithmProvider(&algorithm.handle, BCRYPT_SHA256_ALGORITHM, nullptr, 0) >= 0,
-      Exit::runtime_unavailable, "SHA256 provider unavailable");
-  ULONG length = 0, returned = 0;
-  require(BCryptGetProperty(algorithm.handle, BCRYPT_OBJECT_LENGTH,
-              reinterpret_cast<PUCHAR>(&length), sizeof(length), &returned, 0) >= 0 &&
-          returned == sizeof(length) && length && length <= 65536,
-      Exit::runtime_unavailable, "SHA256 object size");
-  std::vector<UCHAR> object(length);
-  Hash hash;
-  require(BCryptCreateHash(algorithm.handle, &hash.handle, object.data(), length, nullptr, 0, 0) >= 0,
-      Exit::runtime_unavailable, "SHA256 context");
-  std::array<UCHAR,65536> bytes{};
-  for (std::uint64_t offset = 0; offset < file.size();) {
-    const auto count = static_cast<ULONG>((std::min)(file.size() - offset,
-        static_cast<std::uint64_t>(bytes.size())));
-    file.read_exact_at(offset, bytes.data(), count);
-    require(BCryptHashData(hash.handle, bytes.data(), count, 0) >= 0,
-        Exit::runtime_unavailable, "SHA256 input");
-    offset += count;
-  }
-  std::array<UCHAR,32> digest{};
-  require(BCryptFinishHash(hash.handle, digest.data(), static_cast<ULONG>(digest.size()), 0) >= 0,
-      Exit::runtime_unavailable, "SHA256 final");
-  constexpr std::string_view hex = "0123456789abcdef";
-  if (expected.size() != 2 * digest.size()) return false;
-  for (std::size_t i = 0; i < digest.size(); ++i) {
-    if (expected[2*i] != hex[digest[i] >> 4] || expected[2*i+1] != hex[digest[i] & 15])
-      return false;
-  }
-  return true;
-}
+using hip_detail::DirectoryPin;
+using hip_detail::matches_sha256;
 
 fs::path module_path(HMODULE handle) {
   std::array<wchar_t,32768> buffer{};
@@ -235,6 +174,19 @@ int worker(int argc, wchar_t** argv) {
   require(GetEnvironmentVariableW(L"LLVM_PATH", nullptr, 0) == 0 &&
       (GetLastError() == ERROR_ENVVAR_NOT_FOUND || GetLastError() == ERROR_SUCCESS),
       Exit::runtime_unavailable, "HIP compiler environment remains visible");
+  if (argc == 3 && std::wstring_view(argv[1]) == L"--verify-system-runtime") {
+    const std::wstring_view wide(argv[2]);
+    require(wide.size() == 64, Exit::invalid_request, "system runtime hash length");
+    std::string expected;
+    expected.reserve(64);
+    for (const auto character : wide) {
+      require((character >= L'0' && character <= L'9') ||
+          (character >= L'a' && character <= L'f'), Exit::invalid_request, "system runtime hash digit");
+      expected.push_back(static_cast<char>(character));
+    }
+    const hip_detail::VerifiedSystemModule verified(hip_bundle::runtime, expected);
+    return 0;
+  }
   if (argc == 2 && std::wstring_view(argv[1]) == L"--verify-bundle") {
     const auto verified = verify_bundle();
     return 0;
