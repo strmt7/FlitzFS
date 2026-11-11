@@ -36,6 +36,7 @@ option(FLITZFS_BUILD_WINFSP "Build experimental Windows callbacks (no mount exec
 option(FLITZFS_BUILD_MOUNT_PROBE "Build hosted-CI-only synthetic mount probe (never default CTest)" OFF)
 option(FLITZFS_BUILD_WRITE_PROBE "Build hosted-CI-only writable mount probe (never default CTest)" OFF)
 option(FLITZFS_BUILD_RAM_HOST_PROBE "Build explicit bounded locked-RAM CPU qualification probe" OFF)
+option(FLITZFS_BUILD_GPU_RAM_PROBE "Build explicit native locked-RAM match-worker integration probe" OFF)
 set(FLITZFS_RAM_SOURCE_COMMIT "" CACHE STRING "Exact experimental RAM probe source commit")
 set(FLITZFS_WINFSP_SDK "" CACHE PATH "Explicit WinFsp SDK root: include, lib and bin")
 if(FLITZFS_REQUIRE_ZSTD AND NOT FLITZFS_WITH_ZSTD)
@@ -854,5 +855,22 @@ if(FLITZFS_BUILD_RAM_HOST_PROBE)
   target_compile_definitions(flitzfs_ram_host_probe PRIVATE PSAPI_VERSION=2 FLITZFS_RAM_SOURCE_COMMIT="${FLITZFS_RAM_SOURCE_COMMIT}")
   if(MSVC)
     target_compile_options(flitzfs_ram_host_probe PRIVATE /W4 /permissive-)
+  endif()
+endif()
+
+# Explicit experimental composition only. No CTest entry, driver or mount.
+if(FLITZFS_BUILD_GPU_RAM_PROBE)
+  string(LENGTH "${FLITZFS_RAM_SOURCE_COMMIT}" gpu_ram_commit_length)
+  if(NOT WIN32 OR NOT FLITZFS_PORTABLE_CPU OR NOT FLITZFS_REQUIRE_ZSTD OR
+      NOT FLITZFS_BUILD_TESTS OR NOT gpu_ram_commit_length EQUAL 40 OR
+      NOT FLITZFS_RAM_SOURCE_COMMIT MATCHES "^[0-9a-f]+$")
+    message(FATAL_ERROR "Native GPU/RAM probe requires portable Windows, tests, mandatory Zstandard and exact source commit")
+  endif()
+  add_executable(flitzfs_gpu_ram_probe tests/windows_gpu_ram_probe.cpp)
+  target_link_libraries(flitzfs_gpu_ram_probe PRIVATE flitzfs_worker_exchange psapi)
+  target_compile_definitions(flitzfs_gpu_ram_probe PRIVATE PSAPI_VERSION=2
+    FLITZFS_GPU_RAM_SOURCE_COMMIT="${FLITZFS_RAM_SOURCE_COMMIT}")
+  if(MSVC)
+    target_compile_options(flitzfs_gpu_ram_probe PRIVATE /W4 /permissive-)
   endif()
 endif()

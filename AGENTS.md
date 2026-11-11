@@ -2,6 +2,14 @@
 
 ## Current execution ledger
 
+Read `docs/NATIVE_GPU_RAM_PROBE.md` before changing the optional native worker/
+RAM composition probe, shared diagnostic budget or its qualification. It is OFF
+by default, never invoked by ordinary I/O/CTest, and its new code requires exact
+hosted qualification before any owner execution. Preserve the old CPU RAM
+probe's strict one-process contract; do not loosen it to launch a GPU worker.
+Keep CPU-fixture execution separate from actual GPU/native benefit claims.
+
+
 Read `docs/DEVELOPMENT_PLAN.json`, `docs/DEVELOPMENT_STATE.json` and the selected
 package in `docs/DEVELOPMENT_PLAN.md` before continuing the existing full-product
 goal. Verify actual main and source-bound CI; never trust a stale ledger alone.

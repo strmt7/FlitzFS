@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "source_commit": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+  "run": 43013278271,
+  "job": 130502518872,
+  "profile": "crash-restart",
+  "status": "open, root cause unknown",
+  "signature": {
+    "timed_out": true,
+    "cancelled": false,
+    "exit_confirmed": false,
+    "reported_exit": 0,
+    "peak_commit_bytes": 4734976,
+    "operation_ms": 15000,
+    "retirement_observation_ms": 2000
+  },
+  "artifact": {
+    "id": 13852296722,
+    "sha256": "45c4a748d03f6a8abf847bc1f7b7ad1cc3ad0f4a85f0a1dc247ca453aa527867",
+    "bytes": 604
+  },
+  "acknowledgement": {
+    "schema": 2,
+    "profile": "crash-restart",
+    "phase": "ack",
+    "commit": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+    "source_process": 9876,
+    "observer_process": 9876,
+    "user_bytes": 7001,
+    "inode": 2,
+    "file_count": 1,
+    "namespace_sequence": 7,
+    "generation": 14,
+    "image_bytes": 1572864,
+    "image_cap": 4194304,
+    "contexts": 1,
+    "creation_time": 134388713284516350,
+    "last_access_time": 134388713284516350,
+    "last_write_time": 134388713284516350,
+    "change_time": 134388713284516350,
+    "attributes": 32,
+    "reservation": 8192,
+    "data_digest": "57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a",
+    "security_digest": "9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03",
+    "keep_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+    "explicit_flush_observed": true,
+    "cpu_verified": true,
+    "dispatcher_stopped": false,
+    "gpu": false
+  },
+  "interpretation": "A verified/flushed acknowledgement is not confirmed process or dispatcher retirement. Exit code zero is only a default field when exit was unconfirmed, not successful termination. No timeout was widened and no rerun is represented as a fix.",
+  "scope": "Disposable hosted WinFsp mounted fixture only; no owner mount or GPU operation.",
+  "related_failures": [
+    42983895583,
+    42992856099
+  ]
+}

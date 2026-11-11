@@ -52,6 +52,7 @@ jobs:
           import runpy
           audit_binary = runpy.run_path("tools/ci/check_portable_cpu.py", run_name="ram_probe_audit")["audit_binary"]
           print(audit_binary(Path("build-portable/Release/flitzfs_ram_host_probe.exe").read_bytes()))
+          print(audit_binary(Path("build-portable/Release/flitzfs_gpu_ram_probe.exe").read_bytes()))
       - name: Exercise bounded real-source and synthetic RAM core
         shell: pwsh
         run: |
@@ -93,6 +94,96 @@ jobs:
           "FLITZFS_RAM_PACKAGE=$package" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           # Both expected failure statuses were checked above. Return this qualification result.
           exit 0
+      - name: Qualify native locked-RAM worker composition with CPU fixtures only
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $gpuRamFixture = Join-Path $env:RUNNER_TEMP ('flitzfs-gpu-native-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $gpuRamFixture -ErrorAction Stop | Out-Null
+          "FLITZFS_GPU_RAM_REPORTS=$gpuRamFixture" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $gpuRamProbe = (Resolve-Path 'build-portable/Release/flitzfs_gpu_ram_probe.exe').Path
+          $cpuWorker = (Resolve-Path 'build-portable/Release/flitzfs_worker_exchange_tests.exe').Path
+          function Invoke-NativeRamFixture([string[]]$ProbeArguments) {
+            $start = [Diagnostics.ProcessStartInfo]::new()
+            $start.FileName = $gpuRamProbe
+            $start.UseShellExecute = $false
+            $start.CreateNoWindow = $true
+            $start.RedirectStandardOutput = $true
+            $start.RedirectStandardError = $true
+            foreach ($argument in $ProbeArguments) { $start.ArgumentList.Add($argument) }
+            $process = [Diagnostics.Process]::new()
+            $process.StartInfo = $start
+            $started = $false
+            $confirmed = $false
+            try {
+              $started = $process.Start()
+              if (-not $started) { throw 'Native RAM fixture did not start' }
+              $stdout = $process.StandardOutput.ReadToEndAsync()
+              $stderr = $process.StandardError.ReadToEndAsync()
+              $confirmed = $process.WaitForExit(15000)
+              if (-not $confirmed) {
+                $process.Kill()
+                $confirmed = $process.WaitForExit(2000)
+                throw 'Native RAM fixture exceeded its qualification wall budget'
+              }
+              if (-not $stdout.Wait(2000) -or -not $stderr.Wait(2000)) { throw 'Native RAM output retirement failed' }
+              if ($stdout.Result.Length -gt 8192 -or $stderr.Result.Length -gt 2048) { throw 'Native RAM output cap' }
+              return @{ Exit = $process.ExitCode; Output = $stdout.Result; Error = $stderr.Result }
+            } finally {
+              try {
+                if ($started -and -not $confirmed) {
+                  if (-not $process.HasExited) { $process.Kill(); $confirmed = $process.WaitForExit(2000) }
+                  if (-not $confirmed) { throw 'Native RAM fixture retirement unconfirmed; no next test' }
+                }
+              } finally { $process.Dispose() }
+            }
+          }
+          foreach ($fixtureMode in @('match','match-invalid','match-hip-declaration','match-hold')) {
+            $newReport = Join-Path $gpuRamFixture ('native-' + $fixtureMode + '.json')
+            $result = Invoke-NativeRamFixture @('--cpu-fixture',$newReport,$cpuWorker,$fixtureMode)
+            Write-Output $result.Output
+            Write-Output $result.Error
+            if ($result.Exit -ne 0) { throw "Native RAM composition failed: $fixtureMode" }
+            $data = Get-Content -LiteralPath $newReport -Raw | ConvertFrom-Json
+            if ($data.commit -ne $env:GITHUB_SHA -or -not $data.complete -or -not $data.cpu_fixture -or $data.gpu_requested -or $data.gpu_result_accepted -or $data.mounted) { throw 'Native RAM fixture source/backend mismatch' }
+            if (-not $data.cpu_verified -or -not $data.source_preserved -or -not $data.retained_context_verified -or -not $data.resident_verified -or $data.power_loss_qualified) { throw 'Native RAM fixture evidence mismatch' }
+            if ($data.locked_after -ne 0 -or $data.locked_peak -gt 40MB -or $data.handles_before -ne $data.handles_after -or $data.controller_peak_commit_bytes -gt 256MB) { throw 'Native RAM fixture resource/retirement mismatch' }
+            if (-not $data.proposed.worker_attempted -or -not $data.proposed.worker_exit_confirmed -or $data.proposed.device_bytes -gt 256KB -or $data.proposed.records -gt 8) { throw 'Native RAM worker bounds mismatch' }
+            if ($data.proposed.target_payload -gt $data.proposed.cpu_baseline_payload) { throw 'Proposed encoding exceeded ordinary CPU baseline' }
+            if ($fixtureMode -eq 'match') {
+              if (-not $data.proposed.worker_accepted -or $data.proposed.forwarded_matches -le 0) { throw 'Valid CPU fixture did not reach native hint encoding' }
+            } else {
+              if ($data.proposed.worker_accepted -or $data.proposed.forwarded_matches -ne 0 -or $data.proposed.selected_records -ne 0 -or $data.proposed.target_payload -ne $data.cpu_baseline.target_payload) { throw 'Failed worker did not preserve ordinary CPU recompression' }
+            }
+          }
+          $existingReport = Join-Path $gpuRamFixture 'native-match.json'
+          $existingHash = (Get-FileHash -LiteralPath $existingReport -Algorithm SHA256).Hash
+          $refusal = Invoke-NativeRamFixture @('--cpu-fixture',$existingReport,$cpuWorker,'match')
+          if ($refusal.Exit -ne 1 -or (Get-FileHash -LiteralPath $existingReport -Algorithm SHA256).Hash -ne $existingHash) { throw 'Existing native RAM report was modified' }
+          $unrecognized = Join-Path $gpuRamFixture 'native-unknown.json'
+          $refusal = Invoke-NativeRamFixture @('--unknown',$unrecognized,$cpuWorker,'match')
+          if ($refusal.Exit -ne 1 -or (Test-Path -LiteralPath $unrecognized)) { throw 'Unknown native RAM mode touched a report' }
+          $invalidLeaf = Join-Path $gpuRamFixture 'ordinary.json'
+          $refusal = Invoke-NativeRamFixture @('--cpu-fixture',$invalidLeaf,$cpuWorker,'match')
+          if ($refusal.Exit -ne 1 -or (Test-Path -LiteralPath $invalidLeaf)) { throw 'Unqualified report filename was opened' }
+          $package = $env:FLITZFS_RAM_PACKAGE
+          Copy-Item -LiteralPath $gpuRamProbe -Destination (Join-Path $package 'flitzfs_gpu_ram_probe.exe') -ErrorAction Stop
+          foreach ($fixtureReport in Get-ChildItem -LiteralPath $gpuRamFixture -Filter '*.json' -File) {
+            Copy-Item -LiteralPath $fixtureReport.FullName -Destination (Join-Path $package $fixtureReport.Name) -ErrorAction Stop
+          }
+          $gpuRamHash = (Get-FileHash -LiteralPath $gpuRamProbe -Algorithm SHA256).Hash.ToLowerInvariant()
+          @{experimental=$true;commit=$env:GITHUB_SHA;exe_sha256=$gpuRamHash;cpu_fixture_only=$true;gpu_executed=$false;mounted=$false;filesystem_backing='locked_RAM_model';controller_job_mib=256;process_mib=128;worker_mib=128;cpu_rate=2000;worker_timeout_ms=5000;one_compute_request=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'native-gpu-ram-provenance.json') -Encoding utf8
+          $allFiles = @(Get-ChildItem -LiteralPath $package -Recurse -File)
+          if ($allFiles.Count -gt 32 -or ($allFiles | Measure-Object Length -Sum).Sum -gt 16MB) { throw 'Combined RAM package cap' }
+          exit 0
+      - name: Retain native RAM CPU-fixture failures separately
+        if: always() && env.FLITZFS_GPU_RAM_REPORTS != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: native-gpu-ram-cpu-fixtures-${{ github.sha }}
+          path: ${{ env.FLITZFS_GPU_RAM_REPORTS }}/*.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Retain qualified experimental probe and provenance
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
