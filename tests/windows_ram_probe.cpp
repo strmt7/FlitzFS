@@ -1,6 +1,7 @@
 #include "locked_ram_fixture.hpp"
 #include "bounded_process.hpp"
 #include "flitzfs/native_session.hpp"
+#include "flitzfs/gpu_match.hpp"
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -52,7 +53,7 @@ StoreIdentity id(unsigned n){StoreIdentity value{};value[0]=static_cast<std::byt
 NativeFilesystemSnapshot view(std::shared_ptr<ram::Store> io) {
   return NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(std::move(io)));
 }
-struct Sample {std::uint64_t input=0,source=0,payload=0,compacted=0,target_payload=0,write_ns=0,read_ns=0,compact_ns=0;};
+struct Sample {std::uint64_t input=0,source=0,payload=0,compacted=0,target_payload=0,write_ns=0,read_ns=0,compact_ns=0,cpu_match_inputs=0,match_proposals=0;};
 std::uint64_t elapsed(std::chrono::steady_clock::time_point start) {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now()-start).count());
@@ -86,7 +87,20 @@ Sample exercise(const std::vector<Bytes>& inputs,StoreCompressionMode mode,bool 
     for(std::size_t step=1;step<=objects;++step) {
       using Progress=NativeFileSession::RecompressionProgress;
       const auto expected=step==objects?Progress::ready:Progress::copying;
-      require(session.advance_recompression()==expected,"RAM staged recompression progress");
+      auto progress=Progress::copying;
+      if(auto input=session.next_recompression_input()) {
+        const auto search=PreparedGpuMatchSearch::prepare(input->bytes);
+        std::vector<match_detail::Match> matches(search.lanes());
+        for(std::uint32_t lane=0;lane<search.lanes();++lane)
+          matches[lane]=match_detail::search(
+              reinterpret_cast<const unsigned char*>(search.input().data()),
+              static_cast<unsigned>(search.input().size()),search.predecessors().data(),
+              static_cast<unsigned>(search.predecessors().size()),lane);
+        const auto proposals=search.verified_proposals(matches);
+        ++result.cpu_match_inputs;result.match_proposals+=proposals.size();
+        progress=session.advance_recompression(input->object_id,proposals);
+      } else progress=session.advance_recompression();
+      require(progress==expected,"RAM staged recompression progress");
     }
     return session.publish_recompression();
   }();
@@ -124,7 +138,8 @@ void require_job() {
 void sample(std::ostream& out,const char* name,const Sample& s) {
   out<<'"'<<name<<"\":{\"input\":"<<s.input<<",\"source\":"<<s.source<<",\"payload\":"<<s.payload
       <<",\"compacted\":"<<s.compacted<<",\"target_payload\":"<<s.target_payload<<",\"write_ns\":"<<s.write_ns<<",\"read_ns\":"<<s.read_ns
-      <<",\"compact_ns\":"<<s.compact_ns<<"}";
+      <<",\"compact_ns\":"<<s.compact_ns<<",\"cpu_match_inputs\":"<<s.cpu_match_inputs
+      <<",\"match_proposals\":"<<s.match_proposals<<"}";
 }
 void create_report(const std::filesystem::path& path,const std::string& text) {
   local_path(path);require(text.size()<=2048,"RAM report cap");
