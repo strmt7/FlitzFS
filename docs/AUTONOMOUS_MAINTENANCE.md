@@ -4,6 +4,21 @@ Owner requirements added during native-file scaling work. This is the required
 product architecture and qualification ledger, not an implemented self-learning
 service, autonomous maintenance executor or universal data-safety claim.
 
+## Automatic resource and compression stages
+
+Owner clarification, 11 November 2026: discover the actual host and measure
+current resource availability and workload performance. CPU/GPU capability,
+contention, physical/commit/VRAM headroom and storage cost must jointly govern
+work admission and compression strength. One owner's device model, RAM size,
+drive layout or measured context overhead is not a universal product policy.
+
+Foreground writes should retain useful compression and high throughput, including
+stronger GPU-assisted compression where qualified resources and measured payoff
+support it. Subsequent low-priority background learning should analyze related
+files collectively and pursue deeper lossless storage reduction. Adapt sampling,
+batching, dictionary/model memory and work opportunities automatically; preserve
+strict safety ceilings, source identity, CPU fallback and durable publication.
+
 ## Learning must follow evidence
 
 The filesystem should learn from observed data characteristics, file/folder
@@ -29,6 +44,42 @@ confidence-aware exploration and held-out workloads. Count sampling/training,
 dictionary/index memory, recompression debt and write amplification. Preserve
 unfavorable results. Do not call a fixed heuristic or scheduled task a complete
 self-learning filesystem.
+
+## Persistent learning area and interrupted-update recovery
+
+Owner clarification, 11 November 2026: reserve a small, bounded internal area for
+parameters, workload summaries, admitted idle microbenchmark outcomes, confidence,
+model versions and optimization progress. Account its physical storage and
+recovery copies in volume capacity and compression measurements. Size/admit it
+from actual volume and resource limits, without assuming a fixed host capacity.
+
+A controlled helper/driver interface must validate update sizes, identities,
+generations and authority before entering a checked transaction. No component
+may update reserved bytes by unvalidated raw offsets. Learning may resume across
+restarts, but ordinary reads and independent CPU recovery must tolerate missing
+or invalid advisory state by rebuilding or reverting to safe bounded policy.
+
+Apply crash-safe encoding, integrity, private candidate construction, complete
+verification, durable publication and recovery-copy lifecycle to this area.
+Interrupted training, short writes, cancellation, process death and power-loss
+models must leave a coherent older or newly published state with explicit
+acknowledgement semantics. Repair must preserve surviving verified information
+and acknowledged file data; inconsistent/ambiguous state must never authorize
+speculative mutation. Define actual backend flush/failure assumptions and test
+each claimed failure domain.
+
+A dictionary or model needed to decode existing extents is data-critical.
+Retain its verified immutable version, references, recovery copies and CPU reader
+until every referencing extent/snapshot has safely retired. Rebuilding optional
+learning summaries cannot replace a lost decoding dependency or justify
+re-encoding/deleting sole surviving source bytes.
+
+Small idle benchmarks should test relevant candidates using bounded synthetic
+or verified copied samples. Charge their CPU/GPU/memory/I/O cost, yield promptly,
+retain unfavorable outcomes and trigger only when new evidence justifies work.
+An idle timer by itself does not establish useful work or safe available
+resources. Automatic repair and this internal learning store remain
+implementation/qualification requirements, not completed features.
 
 ## Background work must remain subordinate
 
@@ -83,7 +134,7 @@ copies now provide a new-volume copy primitive with source preservation; see
 COMPACTED_COPY.md for exact protocol and limits.
 
 These do not yet implement persisted workload learning, automatic strategy
-selection, live GPU execution, low-priority background scheduling, data-replica
+selection, automatic filesystem GPU routing, low-priority background scheduling, data-replica
 self-healing, in-place GC or automatic durable handoff. The next mechanisms need:
 
 1. Durable destination handoff, reader retirement and safe reclamation;
