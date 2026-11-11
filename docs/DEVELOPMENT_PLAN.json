@@ -91,14 +91,14 @@
       ],
       "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup.",
       "checkpoint": {
-        "source_parent": "343acaa6442a2ca28efb75401826ca4ed654c59a",
-        "candidate": "External controller owns client file; separate crash host refuses self namespace opens and observes client PID/flush before acknowledgement.",
+        "source": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
+        "qualification": "Full 13-job initial matrix passed; isolated repetition records in source-bound evidence.",
+        "evidence": "docs/evidence/mount-source-isolation-8122bf5.json",
         "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
-        "research": "docs/evidence/mount-source-isolation-research-343acaa.json",
+        "historical_root_cause": "unproven",
+        "next": "Publishing-commit qualification of post-ack cancellation/abandonment and early-exit tests; preserve unconfirmed historical failures.",
         "source_child_deadline_seconds": 15,
         "source_exit_observation_seconds": 2,
-        "new_source_qualification": "pending",
-        "historical_root_cause": "unproven",
         "owner_execution": false
       }
     },

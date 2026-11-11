@@ -761,3 +761,11 @@ origin-PID query, then delegates admitted requests to the unchanged native
 authorization/adoption logic. It is not a production security policy or proof
 that all driver failures can be contained. Owner mounts/driver changes remain
 prohibited and no new owner test is authorized.
+
+
+The 8122bf5 initial matrix confirmed both external-client crash profiles under
+the unchanged source/exit caps; the source-bound evidence is
+evidence/mount-source-isolation-8122bf5.json. These results do not establish the
+historical failure cause. New CPU post-ack cancellation/abandonment and early-exit
+tests preserve exact retirement and handle accounting; they need their own
+source-bound qualification before any result claim.

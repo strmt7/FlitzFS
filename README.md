@@ -50,8 +50,10 @@ unfinished until a useful end-to-end benefit is demonstrated.
 
 Earlier intermittent mounted-child retirement failures remain unresolved
 despite this green matrix. A [candidate external-client crash protocol](docs/MOUNT_PROCESS_ISOLATION.md)
-now separates the filesystem host from its application handle and requires new
-source-bound qualification. See [the execution ledger](docs/DEVELOPMENT_STATE.json).
+separates the filesystem host from its application handle. Its full 8122bf5 hosted
+matrix passed, including actual client/flush/self-open checks and independent
+recovery. Additional CPU lifecycle-edge tests await new-source qualification.
+[Source-bound evidence](docs/evidence/mount-source-isolation-8122bf5.json). See [the execution ledger](docs/DEVELOPMENT_STATE.json).
 
 ## Implemented experimental components
 

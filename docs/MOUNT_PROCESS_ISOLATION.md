@@ -12,7 +12,7 @@ The 343acaa matrix later passed; that does not explain the previous failures.
 
 The old crash/crash-restart source also held the Win32 client file handle
 inside its filesystem-host process until forced termination.
-[Upstream issue702](https://github.com/winfsp/winfsp/issues/702), created
+[Upstream issue 702](https://github.com/winfsp/winfsp/issues/702), created
 29 October2026, describes a self-namespace-I/O termination hazard. It is a user
 report without maintainer confirmation, not proof of our failure's cause.
 
@@ -121,3 +121,27 @@ Review CPU/raw/native/sanitizer checks, exact SDK build and both affected
 mounted profiles, including real source guard rejection and independent
 recovery. Preserve failures and test before/after causal evidence rather than
 declaring D01 fixed from a green run. No owner experiment is authorized.
+
+## Executed checkpoint at 8122bf5
+
+The initial full 13-job matrix passed at
+8122bf51f6ac3cf43512f8a2dc37368afa0772c5. Windows native CTest passed 131 checks,
+Windows raw passed 117, and both Linux configurations and ASan/UBSan passed.
+Both affected mounted profiles observed the real external client, rejected
+the host's self-open and confirmed source termination with exit 1460 under the
+unchanged bounds. Independent CPU recovery retained the acknowledged state.
+The crash-restart profile also resumed writes under a separate process.
+
+[Exact reports and run/actor/retirement evidence](evidence/mount-source-isolation-8122bf5.json)
+retain raw integer text and distinguish the initial matrix from repetitions.
+These observations do not reconstruct the older kernel state or establish
+that issue 702 caused those failures. D01 remains open.
+
+The next CPU-only fixture revision additionally covers cancellation and
+destructor abandonment after acknowledgement, plus an early real child exit
+before ready. It requires the exact nonzero exit 37 and confirmed retirement;
+neither ready nor acknowledgement may be invented. Warm each real path, then
+repeat protocol, failed launch, post-ack cancellation, post-ack abandonment and
+early exit eight times with exact handle equality. No tolerance, mount, driver,
+GPU operation, larger deadline or new product route is added. These new checks
+require their own publishing-commit qualification.
