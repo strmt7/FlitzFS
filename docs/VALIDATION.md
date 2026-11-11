@@ -238,3 +238,29 @@ are not a GPU speed result, mounted-owner test or general safety qualification.
 The following batch adds hosted private-runtime import/license inventory and
 fixed-choice current AMD research. Its own matching execution receipts are
 required before interpreting the inventory; it ships no AMD binaries.
+
+### Private runtime inspection and research-scope correction
+
+Commit c8e69f9288533ce85b49243ee6db25e34d177a48 completed the hosted SDK
+inventory without loading a runtime or exporting AMD binaries. Its three staged
+DLLs total 16,777,120 bytes. Normal imports of rocm_kpack.dll include
+msvcp140.dll, vcruntime140.dll and vcruntime140_1.dll, which are outside that
+staged closure. Their deployment and provenance must be qualified before
+calling a private package host-independent. The inventory observed 17,864
+entries and 27 license-named files totaling 75,742 bytes; this does not qualify
+redistribution of the runtime or its dependencies.
+
+All six requested AMD pages returned native HTTP 200 with substantive text.
+Review nevertheless rejected the old Radeon/Ryzen requirements page: its banner
+explicitly limits coverage to releases through 7.2.1 and redirects readers to the
+unified documentation. Its native successful capture remains preserved, but it
+must not establish ROCm 10.1 compatibility. The current release notes identify
+10.1.0 dated 5 October 2026. The observed-driver release notes map driver-store
+32.0.32015.12012 to Adrenalin 26.10.2; the ROCm-specific page identifies a different
+26.10.41.05 package. Those facts alone do not prove compatibility of the private
+SDK with the owner's unchanged driver.
+
+The next research batch uses the unified matrix and current license page, rejects
+explicit retired-documentation banners while retaining native receipts, and
+adds a fixed Microsoft adapter-topology source group. Its regression and native
+capture results remain required; no new host experiment follows from this change.

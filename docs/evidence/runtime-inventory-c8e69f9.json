@@ -1,0 +1,68 @@
+{
+  "experimental": true,
+  "observed_date": "2026-11-11",
+  "source_commit": "c8e69f9288533ce85b49243ee6db25e34d177a48",
+  "sdk_run": 42969376305,
+  "sdk_job": 130354026001,
+  "sdk_inventory": {
+    "artifact": 13832702554,
+    "artifact_sha256": "cbc5dffdba5e5cc832f29a264df0cd110ab850501301399f4094c274587c7a0a",
+    "complete": true,
+    "loaded": false,
+    "gpu_executed": false,
+    "amd_binaries_exported": false,
+    "redistribution_qualified": false,
+    "closure_bytes": 16777120,
+    "entries_observed": 17864,
+    "license_named_files": 27,
+    "license_bytes": 75742,
+    "imports_outside_staged_closure_requiring_deployment_review": [
+      "msvcp140.dll",
+      "vcruntime140.dll",
+      "vcruntime140_1.dll"
+    ]
+  },
+  "research": {
+    "run": 42969376194,
+    "job": 130354025949,
+    "artifact": 13832966430,
+    "artifact_sha256": "8cc6481c4635f40fe4dfdd81f1b794c22ff74384770ee35f239e8532d7d165d9",
+    "provider": "0.9.5+flitzzip.portable2",
+    "robots_checked": true,
+    "page_timeout_seconds": 45,
+    "external_llm": false,
+    "persistent_profile": false,
+    "native_http_200_pages": 6,
+    "rejected_after_review": {
+      "url": "https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/shared/hipsdk/reference/system-requirements.html",
+      "reason": "Banner explicitly says documentation covers releases through 7.2.1; cannot establish current 10.1 compatibility.",
+      "native_capture_sha256": "9052da23c1e654a081a4947dce809142295b6e64913dcb5e82099fccfd4a6541",
+      "markdown_sha256": "f3d4865528ae0cceb1914ed224f5f25acac0d406bac9b8b539881b0b6d95f797"
+    },
+    "reviewed_primary_sources": [
+      {
+        "url": "https://rocm.docs.amd.com/en/latest/about/release-notes.html",
+        "markdown_sha256": "56cb6215129b9a9df1fd209f8dfa3e7c872256f72ca861b27b327a8dcb76c24b",
+        "fact": "Current served release identifies ROCm Core SDK 10.1.0, dated 2026-10-05."
+      },
+      {
+        "url": "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-26-10-2.html",
+        "markdown_sha256": "8c82ef5040f283049922c280df50121f253981c2f8e8b6f10b0150e3a9b30b76",
+        "publisher_updated": "2026-10-30",
+        "fact": "Packaged driver-store version 32.0.32015.12012 is listed for Adrenalin 26.10.2."
+      },
+      {
+        "url": "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-ROCM-10-01.html",
+        "markdown_sha256": "e41b3088a516a81ce6a5a34aa9f848f5eb5248b44f2c215d38a4ccf1a2f34998",
+        "publisher_date": "2026-10-05",
+        "fact": "ROCm 10.1-specific package lists driver 26.10.41.05 and driver-store version 32.0.31041.5005."
+      }
+    ]
+  },
+  "limits": [
+    "No new host binary execution or driver change.",
+    "Different driver-package numbers alone do not establish private runtime compatibility.",
+    "License metadata is not redistribution qualification.",
+    "No alternative physical-node identity mechanism is implemented by this evidence."
+  ]
+}

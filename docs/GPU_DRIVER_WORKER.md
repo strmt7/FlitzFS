@@ -111,3 +111,11 @@ exports no AMD binaries. This inventory does not establish driver compatibility,
 license compliance for redistribution, runtime initialization or device safety.
 The current AMD source groups are available through a fixed-choice isolated
 research workflow; arbitrary URLs and shell fragments are not accepted.
+
+The first private inventory also found C++ runtime imports outside the staged
+closure. Do not infer package portability from their presence on a hosted runner.
+The existing installed-driver refusal remains quarantined. Any alternative
+physical-node identity proof must be based on the exact matched adapter, reject
+ambiguous linked configurations, retain process/memory/priority limits and pass
+separate source and execution qualification; no such alternative is implemented
+or authorized by an HTTP-success receipt.

@@ -43,7 +43,15 @@ AMD_SOURCES = (
 ROCM_WINDOWS_HARDWARE_SOURCES = (
     ("amd-observed-windows-driver", "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-26-10-2.html", "32.0.32015.12012", "ROCm"),
     ("amd-rocm-10-1-driver", "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-ROCM-10-01.html", "ROCm", "9070"),
-    ("amd-rocm-windows-requirements", "https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/shared/hipsdk/reference/system-requirements.html", "System requirements", "9070"),
+    ("amd-rocm-windows-compatibility", "https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html", "10.1.0", "9070"),
+    ("amd-rocm-current-license", "https://rocm.docs.amd.com/en/latest/about/license.html", "License", "HIP"),
+)
+
+
+WINDOWS_ADAPTER_TOPOLOGY_SOURCES = (
+    ("windows-d3d12-node-count", "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-getnodecount", "GetNodeCount", "physical"),
+    ("windows-d3d12-create-device", "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-d3d12createdevice", "D3D12CreateDevice", "LUID"),
+    ("windows-d3d12-multi-adapter", "https://learn.microsoft.com/en-us/windows/win32/direct3d12/multi-engine", "GetNodeCount", "node mask"),
 )
 
 ROCM_CURRENT_SOURCES = (
@@ -196,6 +204,18 @@ def guard():
     return {"memory_max": int(memory), "tasks_max": int(pids), "cpu_max": [int(quota), int(period)]}
 
 
+
+def qualify_source_scope(source_group, row, markdown):
+    """Preserve native receipts while rejecting explicitly retired AMD documentation."""
+    if source_group.startswith("rocm") or source_group == "amd":
+        retired=re.search(r"documentation\s+covers\s+releases\s+through\s+([0-9.]+)",
+            markdown,re.IGNORECASE)
+        if retired and row["success"]:
+            return dict(row,success=False,expected_content=False,
+                failure_category="retired_documentation_scope",
+                error="Retired AMD documentation covers releases through "+retired.group(1)[:32])
+    return row
+
 async def capture(args):
     limits = guard()
     sys.path.insert(0, str(args.provider))
@@ -212,14 +232,19 @@ async def capture(args):
                     "windows-basic": WINDOWS_BASIC_SOURCES, "windows-security": WINDOWS_SECURITY_SOURCES,
                     "windows-protocol": WINDOWS_PROTOCOL_SOURCES, "windows-ownership": WINDOWS_OWNERSHIP_SOURCES, "windows-locked-ram": WINDOWS_LOCKED_RAM_SOURCES, "windows-runtime-trust": WINDOWS_RUNTIME_TRUST_SOURCES,
                     "windows-process-retirement": WINDOWS_PROCESS_RETIREMENT_SOURCES,
-                    "windows-adapter-identity": WINDOWS_ADAPTER_IDENTITY_SOURCES}[args.source_group]
+                    "windows-adapter-identity": WINDOWS_ADAPTER_IDENTITY_SOURCES,
+                    "windows-adapter-topology": WINDOWS_ADAPTER_TOPOLOGY_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
-            rows.append(row)
-            print(json.dumps(row), flush=True)
             native = json.loads((args.output / row["capture"]).read_text(encoding="utf-8"))
             result = native.get("native_result") or {}
+            scope_text = result.get("markdown") or ""
+            if isinstance(scope_text, dict):
+                scope_text = scope_text.get("raw_markdown", "")
+            row = qualify_source_scope(args.source_group,row,str(scope_text))
+            rows.append(row)
+            print(json.dumps(row), flush=True)
             print(json.dumps({"native_location": name, "result_url": result.get("url"),
                               "redirected_url": result.get("redirected_url"),
                               "native_error": str(result.get("error_message", ""))[:400]}), flush=True)
@@ -239,7 +264,7 @@ async def capture(args):
                 offset = markdown.lower().rfind(term.lower())
                 print(json.dumps({"review": name, "excerpt": markdown[max(0, offset-200):offset+1100]}), flush=True)
                 if args.source_group in ("rocm-runtime", "rocm-stream") or args.source_group.startswith("windows-"):
-                    terms = ("EnumAdapters1", "DXGI_ERROR_NOT_FOUND", "AdapterLuid", "DedicatedVideoMemory",
+                    terms = ("GetNodeCount", "D3D12CreateDevice", "physical adapter", "node mask", "EnumAdapters1", "DXGI_ERROR_NOT_FOUND", "AdapterLuid", "DedicatedVideoMemory",
                              "VendorId", "DXGI_ADAPTER_FLAG_SOFTWARE", "WinVerifyTrust", "WTD_CACHE_ONLY_URL_RETRIEVAL", "WTD_UI_NONE",
                              "LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR", "LOAD_LIBRARY_SEARCH_SYSTEM32",
                              "GetSystemDirectoryW", "TerminateProcess", "TerminateJobObject", "asynchronous", "pending",
@@ -294,7 +319,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)

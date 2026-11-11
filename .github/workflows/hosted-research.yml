@@ -12,6 +12,7 @@ on:
           - rocm-windows-hardware
           - rocm-current
           - windows-adapter-identity
+          - windows-adapter-topology
   push:
     branches: [main]
     paths:
@@ -41,6 +42,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
+      - name: Check retired-source receipt rejection without a browser
+        run: python -B tools/ci/test_hosted_research_scope.py
       - name: Install browser OS prerequisites on this disposable VM only
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libnspr4 libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64
       - name: Provision hash-locked provider with hard process-tree budgets
@@ -69,7 +72,7 @@ jobs:
           status=0
           case "$RESEARCH_SOURCE_GROUP" in
             rocm-compatibility) groups=(rocm-windows-hardware rocm-current) ;;
-            rocm-windows-hardware|rocm-current|windows-adapter-identity) groups=("$RESEARCH_SOURCE_GROUP") ;;
+            rocm-windows-hardware|rocm-current|windows-adapter-identity|windows-adapter-topology) groups=("$RESEARCH_SOURCE_GROUP") ;;
             *) echo "Unreviewed source group" >&2; exit 1 ;;
           esac
           for group in "${groups[@]}"; do
