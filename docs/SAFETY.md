@@ -642,3 +642,5 @@ admission can wait for the current operation. Full final verification remains
 synchronous. No scheduled task or production background service is enabled.
 
 External compression hints are limited to 64 KiB input and 4096 matches, with exact byte and range checks. Optional sequence compression retains the ordinary CPU result on a candidate error. No hint becomes persistent authority. See MATCH_PROPOSALS.md.
+
+The new match producer admits one owned input up to 64 KiB. Its input, 16-bit predecessor table and output occupy at most 229,376 explicit device bytes. Each lane has at most eight candidates and 1024 comparisons. Index traversal must remain strictly backward. CPU result admission checks every returned lane and exact source bytes, including lanes skipped by the later greedy parser. The kernel is compiled offline and has no default runtime launch route.

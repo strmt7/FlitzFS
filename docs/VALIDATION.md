@@ -174,3 +174,5 @@ Pending checks must not be reported as passed. No owner-PC/GPU access or remote-
 part of this change. See FLZIP_READONLY.md for scope and primary research.
 
 The match-proposal tests require exact CPU fallback for malformed geometry and unavailable sequence support, independent byte decoding of accepted candidates and managed-session publication. Actual CPU/raw/sanitizer/Windows execution must be inspected on the matching commit. This is not GPU execution or a speed comparison.
+
+The GPU-match CPU suite checks its exact prefix index against independent history scans, compares small searches with an exhaustive oracle and rejects malformed geometry, cyclic/forward links and corrupted results. A managed-session fixture feeds the validated proposals into real staged encoding and independent CPU reopen. These are CPU semantic tests. The matching HIP kernel and separate table require complete-SDK compile/link evidence on the same commit before claiming offline compilation.

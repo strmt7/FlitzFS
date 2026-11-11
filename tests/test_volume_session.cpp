@@ -2,6 +2,7 @@
 #include "native_fs_fixture.hpp"
 #include "native_security_fixture.hpp"
 #include "store_codec.hpp"
+#include "flitzfs/gpu_match.hpp"
 #include <iostream>
 #include <optional>
 #include <string_view>
@@ -187,8 +188,16 @@ void staged_matches(bool compact) {
     auto work=f.session.next_recompression_input();
     auto progress=Progress::copying;
     if(work && work->bytes==extent) {
-      const StoreMatchProposal match{8193,8193,8193};
-      progress=f.session.advance_recompression(work->object_id,{&match,1});
+      const auto search=PreparedGpuMatchSearch::prepare(work->bytes);
+      std::vector<match_detail::Match> matches(search.lanes());
+      for(std::uint32_t lane=0;lane<search.lanes();++lane)
+        matches[lane]=match_detail::search(
+            reinterpret_cast<const unsigned char*>(search.input().data()),
+            static_cast<unsigned>(search.input().size()),search.predecessors().data(),
+            static_cast<unsigned>(search.predecessors().size()),lane);
+      const auto proposals=search.verified_proposals(matches);
+      require(!proposals.empty(),"bounded producer found no repeated input");
+      progress=f.session.advance_recompression(work->object_id,proposals);
       offered=true;
     } else progress=f.session.advance_recompression();
     require(progress==(i==count?Progress::ready:Progress::copying),"staged match copy progress");

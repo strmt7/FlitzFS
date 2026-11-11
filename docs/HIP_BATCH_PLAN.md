@@ -156,3 +156,7 @@ is bound by the HIP translation unit and its task ABI, sizes, limits and launch
 geometry are checked explicitly. The actual module is linked only on disposable
 hosted VMs; no caller loads it yet. CPU semantic table tests and SDK compilation
 remain separate from live execution and performance qualification.
+
+## Bounded match producer
+
+The separate match entry uses one 64 KiB input, 16-byte anchors and an eight-byte result per anchor. Explicit device buffers total at most 229,376 bytes within the existing 256 KiB ceiling. A CPU-built sorted exact four-byte prefix index uses 16-bit strictly backward links. Each lane searches eight candidates with 1024 byte comparisons and an 8192-byte match-length ceiling. No new runtime or worker path is enabled. See MATCH_PROPOSALS.md for CPU admission and staged compression.

@@ -572,3 +572,5 @@ bounded final verification latency and workload-based codec selection with
 qualified AMD acceleration and immediate CPU fallback.
 
 The staged store encoder can consume bounded external match proposals and retain the smaller independently verified frame. Next, connect a source-bound AMD producer through the existing supervised worker and measure end-to-end costs and ratio on real workloads.
+
+A bounded AMD match producer is compiled with the complete pinned SDK. It searches eight predecessors with at most 1024 byte comparisons per lane. Next, qualify transport and supervisor integration, then compare measured device and end-to-end costs on public data.
