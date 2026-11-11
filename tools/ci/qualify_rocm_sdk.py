@@ -174,7 +174,7 @@ def main():
         worker_probe=build/"Release/flitzfs_hip_worker_probe.exe"
         require(worker.is_file() and 0 < worker.stat().st_size <= 32*1024*1024, "worker executable budget")
         imports, delay=pe_import_names(worker.read_bytes())
-        allowed={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll","dxgi.dll"}
+        allowed={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll","dxgi.dll","wintrust.dll"}
         require(bool(imports) and set(imports) <= allowed and not delay, "worker has eager SDK dependencies")
         report["worker"]=dict(bytes=worker.stat().st_size,sha256=digest(worker),imports=sorted(set(imports)),
             bundle=json.loads((build/"Release/hip-bundle.json").read_text(encoding="utf-8")))
@@ -194,13 +194,28 @@ def main():
                     require(len(byte)==1,"empty staged kernel")
                     outgoing.write(bytes([byte[0]^1]))
                 shutil.copyfileobj(incoming,outgoing,64*1024)
-        result=run(bounds,[str(worker_probe),str(worker),str(root/"worker-probe"),str(altered/worker.name)],
+        from stage_hip_worker_bundle import system_directory
+        kernel32=system_directory()/"kernel32.dll"
+        require(kernel32.is_file() and 0<kernel32.stat().st_size<=32*1024*1024,
+            "signed Windows metadata fixture size")
+        metadata_probe=build/"Release/flitzfs_system_module_probe.exe"
+        require(metadata_probe.is_file() and 0<metadata_probe.stat().st_size<=32*1024*1024,
+            "metadata probe executable budget")
+        metadata_imports,metadata_delayed=pe_import_names(metadata_probe.read_bytes())
+        require(bool(metadata_imports) and set(metadata_imports)<=allowed-{"dxgi.dll"} and
+            not metadata_delayed,"metadata probe dependency admission")
+        report["metadata_probe"]=dict(bytes=metadata_probe.stat().st_size,sha256=digest(metadata_probe),
+            imports=sorted(set(metadata_imports)),subject="OS kernel32.dll",subject_sha256=digest(kernel32),
+            runtime_loaded=False,gpu_executed=False)
+        result=run(bounds,[str(worker_probe),str(worker),str(root/"worker-probe"),str(altered/worker.name),
+            str(metadata_probe),report["metadata_probe"]["subject_sha256"]],
             report,"bounded-worker-admission-without-HIP",90)
         prefix="HIP worker admission: "
         receipts=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines() if line.startswith(prefix)]
         require(receipts==[dict(bundle_verified=True,missing_bundle_refused=True,tampered_bundle_refused=True,invalid_wire_refused=True,
             invalid_match_refused=True,missing_match_runtime_refused=True,
-            compiler_environment_isolated=True,exits_confirmed=6,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
+            compiler_environment_isolated=True,system_module_metadata_passed=True,system_runtime_bad_hash_refused=True,
+            system_runtime_argument_refused=True,exits_confirmed=9,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
         report["worker_admission"]=receipts[0]
         hardware_probe=build/"Release/flitzfs_hip_hardware_probe.exe"
         report["hardware_probe"]=dict(bytes=hardware_probe.stat().st_size,sha256=digest(hardware_probe),

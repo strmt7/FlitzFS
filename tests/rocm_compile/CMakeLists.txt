@@ -78,6 +78,7 @@ add_custom_command(OUTPUT "${bundle_header}" "${bundle_receipt}"
 add_executable(flitzfs_hip_worker
   "${flitzfs_root}/src/windows/hip_worker_main.cpp"
   "${flitzfs_root}/src/windows/hip_decode_worker.cpp"
+  "${flitzfs_root}/src/windows/hip_module_verification.cpp"
   "${bundle_header}")
 target_compile_features(flitzfs_hip_worker PRIVATE cxx_std_20)
 target_include_directories(flitzfs_hip_worker PRIVATE "${worker_output}")
@@ -85,7 +86,7 @@ target_include_directories(flitzfs_hip_worker SYSTEM PRIVATE "${FLITZFS_ROCM_SDK
 target_compile_definitions(flitzfs_hip_worker PRIVATE __HIP_PLATFORM_AMD__=1
   __HIP_DISABLE_CPP_FUNCTIONS__=1 USE_PROF_API=0 NOMINMAX UNICODE _UNICODE)
 target_compile_options(flitzfs_hip_worker PRIVATE /W4 /permissive-)
-target_link_libraries(flitzfs_hip_worker PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget bcrypt)
+target_link_libraries(flitzfs_hip_worker PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget bcrypt wintrust)
 
 add_executable(flitzfs_hip_worker_probe worker_probe.cpp)
 target_compile_features(flitzfs_hip_worker_probe PRIVATE cxx_std_20)
@@ -96,3 +97,13 @@ add_executable(flitzfs_hip_hardware_probe hardware_probe.cpp)
 target_compile_features(flitzfs_hip_hardware_probe PRIVATE cxx_std_20)
 target_link_libraries(flitzfs_hip_hardware_probe PRIVATE flitzfs_worker_exchange)
 target_compile_options(flitzfs_hip_hardware_probe PRIVATE /W4 /permissive-)
+
+# CPU metadata qualification uses OS-owned kernel32; it never loads AMD code.
+add_executable(flitzfs_system_module_probe system_module_probe.cpp
+  "${flitzfs_root}/src/windows/hip_module_verification.cpp")
+target_compile_features(flitzfs_system_module_probe PRIVATE cxx_std_20)
+target_include_directories(flitzfs_system_module_probe PRIVATE "${flitzfs_root}/src/windows")
+target_compile_definitions(flitzfs_system_module_probe PRIVATE NOMINMAX UNICODE _UNICODE
+  FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME="${runtime_name}")
+target_compile_options(flitzfs_system_module_probe PRIVATE /W4 /permissive-)
+target_link_libraries(flitzfs_system_module_probe PRIVATE flitzfs_core bcrypt wintrust)

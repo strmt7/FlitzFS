@@ -580,3 +580,5 @@ The explicit HIP worker can dispatch the compiled match entry through bounded so
 The match controller now preserves recovery history across requests. It supports immediate CPU selection, late-result classification and configuration quarantine without a retry loop. Next, qualify the workload controller and actual AMD execution, including measured compression gains and CPU/GPU costs on public data.
 
 The supervised HIP path must pass SDK-derived export inventory, typed properties/LUID tests and child compiler-environment isolation before a separate tiny hardware experiment. These CPU/PE checks do not establish GPU execution or speed; the authenticated private-runtime selection is unchanged.
+
+Installed-driver preparation now has a shared metadata verifier and explicit no-load worker mode. Complete its matching SDK qualification before adding the separate kernel-only bundle and actual installed-runtime compute route. Preserve the current source-bound recovery and process-retirement gates.

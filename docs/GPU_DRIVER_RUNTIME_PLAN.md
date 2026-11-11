@@ -2,7 +2,8 @@
 
 This is an implementation plan. The existing worker still uses its authenticated
 private SDK bundle; no installed-driver selection or hardware execution is
-implemented by this document.
+implemented by this document. The metadata-only preparation is implemented
+separately in SYSTEM_RUNTIME_METADATA.md and retains its own qualification gate.
 
 ## Problem and evidence
 
@@ -55,3 +56,8 @@ Investigate the exact failed hosted job and Microsoft's termination semantics;
 retain the original failure and any repeat result. Do not increase caps,
 manufacture retirement, suppress the case or activate a driver on the owner's
 PC. A timeout is not proof of process exit or kernel quiescence.
+
+The original f86 crash job passed its exact second attempt (run 42950900802,
+job 130303167376) under unchanged caps: timeout 1460 with actual exit confirmed,
+followed by independent reconciliation. Its earlier unconfirmed-exit cause
+remains unknown. No retirement or owner-driver permission was weakened.

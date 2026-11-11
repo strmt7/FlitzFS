@@ -379,3 +379,5 @@ The experimental match producer now has a [supervised worker frame](docs/MATCH_P
 The explicit match path now has a [persistent recovery controller](docs/GPU_MATCH_CONTROLLER.md). It shares configuration quarantine and health evidence with decode requests, selects ordinary CPU work immediately, and retains the old input until its exact worker retires. Automatic mounted routing and live device execution still require qualification.
 
 The experimental HIP worker derives its dynamic API names from the selected SDK and uses its versioned device-properties ABI for exact Windows adapter identity. Hosted qualification statically checks the runtime export table and runs CPU-only fake-API/environment tests before hardware admission. See [HIP_API_BINDING.md](docs/HIP_API_BINDING.md).
+
+The SDK worker also has a bounded metadata-only installed-runtime verifier. It holds read-only file/directory pins, checks the supervisor's expected hash and cached Authenticode, and never loads the subject. See [SYSTEM_RUNTIME_METADATA.md](docs/SYSTEM_RUNTIME_METADATA.md); installed-driver compute remains a separate gate.
