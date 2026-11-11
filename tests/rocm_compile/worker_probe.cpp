@@ -4,6 +4,9 @@
 #include "flitzfs/match_worker_wire.hpp"
 #include <windows.h>
 #include <array>
+#include <cstdlib>
+#include <string>
+#include <string_view>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -12,6 +15,32 @@ namespace {
 void require(bool condition, const char* message) {
   if (!condition) throw std::runtime_error(message);
 }
+class CompilerEnvironmentFixture {
+ public:
+  CompilerEnvironmentFixture() {
+    std::size_t count = 0;
+    require(_wgetenv_s(&count, nullptr, 0, L"LLVM_PATH") == 0 && count <= 32768,
+        "cannot inspect compiler environment");
+    std::wstring value(count, L'\0');
+    if (count) {
+      require(_wgetenv_s(&count, value.data(), value.size(), L"LLVM_PATH") == 0,
+          "cannot retain compiler environment");
+      previous_ = value.c_str();
+    }
+    require(_wputenv_s(L"LLVM_PATH", L"flitzfs-cpu-qualification-poison") == 0,
+        "cannot prepare compiler environment fixture");
+  }
+  ~CompilerEnvironmentFixture() { (void)_wputenv_s(L"LLVM_PATH", previous_.c_str()); }
+  void verify_parent_unchanged() const {
+    std::array<wchar_t,64> value{};
+    require(GetEnvironmentVariableW(L"LLVM_PATH", value.data(), static_cast<DWORD>(value.size())) ==
+        std::wstring_view(L"flitzfs-cpu-qualification-poison").size() &&
+        std::wstring_view(value.data()) == L"flitzfs-cpu-qualification-poison",
+        "worker changed the parent's compiler environment");
+  }
+ private:
+  std::wstring previous_;
+};
 void retired(const flitzfs::ProcessResult& process, std::uint32_t expected) {
   require(process.process_id && process.exit_confirmed && !process.timed_out &&
       !process.cancelled && process.exit_code == expected, "unexpected worker retirement or exit status");
@@ -27,8 +56,10 @@ int wmain(int argc, wchar_t** argv) {
     const auto copied = fixture / worker.filename();
     require(CopyFileW(worker.c_str(), copied.c_str(), TRUE) != 0, "worker relocation copy");
     const flitzfs::ProcessBudget budget{128,2000,15000};
+    const CompilerEnvironmentFixture compiler_environment;
     const auto verified = flitzfs::run_bounded_process(worker, {L"--verify-bundle"}, budget);
     retired(verified, 0);
+    compiler_environment.verify_parent_unchanged();
     const auto absent = flitzfs::run_bounded_process(copied, {L"--verify-bundle"}, budget);
     retired(absent, static_cast<std::uint32_t>(flitzfs::HipWorkerExit::runtime_unavailable));
     const auto altered = flitzfs::run_bounded_process(tampered, {L"--verify-bundle"}, budget);
@@ -55,7 +86,7 @@ int wmain(int argc, wchar_t** argv) {
     require(absent_match.response.empty()&&!absent_match.publication_observed,
         "missing match runtime published a response");
     std::cout<<"HIP worker admission: {\"bundle_verified\":true,\"missing_bundle_refused\":true,"
-        "\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"exits_confirmed\":6,\"gpu_executed\":false,\"complete\":true}\n";
+        "\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"compiler_environment_isolated\":true,\"exits_confirmed\":6,\"gpu_executed\":false,\"complete\":true}\n";
     return 0;
   } catch (const std::exception& error) {
     std::cerr<<"HIP worker admission failed: "<<error.what()<<'\n';

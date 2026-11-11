@@ -1,6 +1,7 @@
 #include "hip_decode_worker.hpp"
 #include "gpu_budget.hpp"
 #include "hip_worker_exit.hpp"
+#include "hip_api.hpp"
 #include <hip/hip_runtime_api.h>
 #include <algorithm>
 #include <bit>
@@ -13,73 +14,10 @@ void require(bool condition, const char* message) {
   if (!condition) throw std::runtime_error(message);
 }
 
-void check_hip(hipError_t status, const char* operation) {
-  if (status == hipSuccess) return;
-  auto code = HipWorkerExit::device_fault;
-  if (status == hipErrorOutOfMemory) code = HipWorkerExit::temporary_pressure;
-  if (status == hipErrorInsufficientDriver) code = HipWorkerExit::runtime_unavailable;
-  if (status == hipErrorNoDevice || status == hipErrorInvalidDevice || status == hipErrorNotSupported)
-    code = HipWorkerExit::unsupported_configuration;
-  throw HipWorkerFailure(code, operation);
-}
-
-template<class Function>
-Function required_export(HMODULE module, const char* name) {
-  const auto address = GetProcAddress(module, name);
-  if (!address)
-    throw HipWorkerFailure(HipWorkerExit::runtime_unavailable, name);
-  return std::bit_cast<Function>(address);
-}
-
-struct HipApi {
-  decltype(&hipInit) init;
-  decltype(&hipDeviceGet) get_device;
-  decltype(&hipDeviceGetLuid) get_luid;
-  decltype(&hipSetDevice) set_device;
-  decltype(&hipDeviceGetStreamPriorityRange) priority_range;
-  decltype(&hipStreamCreateWithPriority) create_stream;
-  decltype(&hipStreamDestroy) destroy_stream;
-  decltype(&hipStreamSynchronize) synchronize;
-  decltype(&hipMalloc) allocate;
-  decltype(&hipFree) release;
-  decltype(&hipMemcpy) copy;
-  decltype(&hipLaunchKernel) launch;
-};
-
-HipApi bind_api(HMODULE runtime) {
-  return {
-    required_export<decltype(&hipInit)>(runtime, "hipInit"),
-    required_export<decltype(&hipDeviceGet)>(runtime, "hipDeviceGet"),
-    required_export<decltype(&hipDeviceGetLuid)>(runtime, "hipDeviceGetLuid"),
-    required_export<decltype(&hipSetDevice)>(runtime, "hipSetDevice"),
-    required_export<decltype(&hipDeviceGetStreamPriorityRange)>(runtime, "hipDeviceGetStreamPriorityRange"),
-    required_export<decltype(&hipStreamCreateWithPriority)>(runtime, "hipStreamCreateWithPriority"),
-    required_export<decltype(&hipStreamDestroy)>(runtime, "hipStreamDestroy"),
-    required_export<decltype(&hipStreamSynchronize)>(runtime, "hipStreamSynchronize"),
-    required_export<decltype(&hipMalloc)>(runtime, "hipMalloc"),
-    required_export<decltype(&hipFree)>(runtime, "hipFree"),
-    required_export<decltype(&hipMemcpy)>(runtime, "hipMemcpy"),
-    required_export<decltype(&hipLaunchKernel)>(runtime, "hipLaunchKernel"),
-  };
-}
-
-int initialize_device(const HipApi& api,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask) {
-  check_hip(api.init(0), "initialize");
-  hipDevice_t device{};
-  check_hip(api.get_device(&device, ordinal), "lookup device");
-  std::array<std::byte,8> actual_luid{};
-  unsigned actual_mask = 0;
-  check_hip(api.get_luid(reinterpret_cast<char*>(actual_luid.data()), &actual_mask, device), "query device LUID");
-  if (actual_luid != luid || actual_mask != node_mask)
-    throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "HIP/DXGI adapter identity mismatch");
-  check_hip(api.set_device(ordinal), "select device");
-  int least = (std::numeric_limits<int>::min)();
-  int greatest = (std::numeric_limits<int>::max)();
-  check_hip(api.priority_range(&least, &greatest), "query stream priorities");
-  require(least >= greatest, "HIP stream priority range unavailable");
-
-  return least;
-}
+using hip_detail::HipApi;
+using hip_detail::check_hip;
+using hip_detail::bind_api;
+using hip_detail::initialize_device;
 
 }
 

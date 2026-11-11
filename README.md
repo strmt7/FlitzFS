@@ -377,3 +377,5 @@ The AMD compilation target now includes a bounded match-search kernel and a sepa
 The experimental match producer now has a [supervised worker frame](docs/MATCH_PROPOSALS.md#supervised-match-transport). Frames bind results to the exact owned input. CPU channel tests drive accepted proposals through native publication and exercise CPU completion while a helper is still running. Automatic match routing and actual device execution remain unqualified.
 
 The explicit match path now has a [persistent recovery controller](docs/GPU_MATCH_CONTROLLER.md). It shares configuration quarantine and health evidence with decode requests, selects ordinary CPU work immediately, and retains the old input until its exact worker retires. Automatic mounted routing and live device execution still require qualification.
+
+The experimental HIP worker derives its dynamic API names from the selected SDK and uses its versioned device-properties ABI for exact Windows adapter identity. Hosted qualification statically checks the runtime export table and runs CPU-only fake-API/environment tests before hardware admission. See [HIP_API_BINDING.md](docs/HIP_API_BINDING.md).

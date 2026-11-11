@@ -77,6 +77,8 @@ def main():
     try:
         bootstrap=load_source("flitzfs_reference_rocm",provider/"tools/bootstrap_rocm_sdk.py")
         bounds=load_source("flitzfs_reference_bounds",provider/"mcp/flitzzip_mcp.py")
+        run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_hip_runtime_exports.py")],
+            report,"static-runtime-export-parser-regressions",30)
         lock=bootstrap.read_lock(own_lock)
         report["distribution"]=lock
         needed=lock["archive_bytes"]+lock["unpacked_bytes"]+4*GIB
@@ -134,6 +136,37 @@ def main():
         actual_hip=re.search(r" HIP=([^\s]+)",observed["stdout"])
         require(actual_hip is not None and actual_hip.group(1)==lock["observed_hip_version"],
             "observed complete-SDK HIP identity differs from its lock record")
+        from hip_runtime_exports import pe_function_exports
+        binding_prefix="HIP runtime bindings: "
+        binding_rows=[json.loads(line[len(binding_prefix):]) for line in observed["stdout"].splitlines()
+            if line.startswith(binding_prefix)]
+        require(len(binding_rows)==1 and isinstance(binding_rows[0],list) and len(binding_rows[0])==11 and
+            all(isinstance(name,str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}",name)
+                for name in binding_rows[0]) and len(set(binding_rows[0]))==11,
+            "SDK-derived runtime binding inventory is missing or malformed")
+        runtime_name=re.search(r" required_runtime=([^\s]+)",observed["stdout"])
+        require(runtime_name is not None and re.fullmatch(r"amdhip64[a-z0-9_]*\.dll",runtime_name.group(1)),
+            "SDK-derived runtime basename is missing or malformed")
+        runtime=sdk/"bin"/runtime_name.group(1)
+        require(runtime.is_file() and 0<runtime.stat().st_size<=128*1024*1024,"runtime export inspection budget")
+        exports=pe_function_exports(runtime.read_bytes())
+        missing=sorted(set(binding_rows[0])-exports)
+        report["runtime_exports"]=dict(runtime=runtime.name,bytes=runtime.stat().st_size,sha256=digest(runtime),
+            required=binding_rows[0],direct_function_count=len(exports),missing=missing,loaded=False)
+        require(not missing,"SDK runtime lacks required direct function exports: "+repr(missing))
+        api_probe=build/"Release/flitzfs_rocm_api_probe.exe"
+        report["api_probe"]=dict(bytes=api_probe.stat().st_size,sha256=digest(api_probe),
+            imports=audit_binary(api_probe.read_bytes()))
+        api_result=run(bounds,[str(api_probe)],report,"typed-device-identity-fake-runtime",30)
+        api_prefix="HIP API CPU qualification: "
+        api_rows=[json.loads(line[len(api_prefix):]) for line in api_result["stdout"].splitlines()
+            if line.startswith(api_prefix)]
+        require(len(api_rows)==1 and api_rows[0]["checks"]>=40 and
+            api_rows[0]["identity_before_selection"] is True and
+            api_rows[0]["missing_exports_refused"]==11 and api_rows[0]["hip_runtime_loaded"] is False and
+            api_rows[0]["gpu_executed"] is False and api_rows[0]["complete"] is True,
+            "typed identity API evidence mismatch")
+        report["api_probe"]["qualification"]=api_rows[0]
         module=build/"Release/flitzfs_rocm_kernels.dll"
         require(module.is_file() and module.stat().st_size<=32*1024*1024,"kernel module output budget")
         report["kernel_module"]=dict(bytes=module.stat().st_size,sha256=digest(module))
@@ -167,7 +200,7 @@ def main():
         receipts=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines() if line.startswith(prefix)]
         require(receipts==[dict(bundle_verified=True,missing_bundle_refused=True,tampered_bundle_refused=True,invalid_wire_refused=True,
             invalid_match_refused=True,missing_match_runtime_refused=True,
-            exits_confirmed=6,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
+            compiler_environment_isolated=True,exits_confirmed=6,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
         report["worker_admission"]=receipts[0]
         hardware_probe=build/"Release/flitzfs_hip_hardware_probe.exe"
         report["hardware_probe"]=dict(bytes=hardware_probe.stat().st_size,sha256=digest(hardware_probe),

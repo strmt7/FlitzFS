@@ -38,6 +38,15 @@ target_compile_definitions(flitzfs_rocm_header_probe PRIVATE __HIP_PLATFORM_AMD_
     FLITZFS_SELECTED_ROCM="${rocm_version}"
     FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME="${runtime_name}")
 target_compile_options(flitzfs_rocm_header_probe PRIVATE /W4 /permissive-)
+target_include_directories(flitzfs_rocm_header_probe PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../src/windows")
+add_executable(flitzfs_rocm_api_probe api_probe.cpp)
+target_compile_features(flitzfs_rocm_api_probe PRIVATE cxx_std_20)
+target_include_directories(flitzfs_rocm_api_probe PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../src/windows")
+target_include_directories(flitzfs_rocm_api_probe SYSTEM PRIVATE "${FLITZFS_ROCM_SDK}/include")
+target_compile_definitions(flitzfs_rocm_api_probe PRIVATE __HIP_PLATFORM_AMD__=1
+    __HIP_DISABLE_CPP_FUNCTIONS__=1 USE_PROF_API=0 NOMINMAX UNICODE _UNICODE
+    FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME="${runtime_name}")
+target_compile_options(flitzfs_rocm_api_probe PRIVATE /W4 /permissive-)
 set_source_files_properties("${FLITZFS_ROCM_KERNEL_OBJECT}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
 add_library(flitzfs_rocm_kernels SHARED "${FLITZFS_ROCM_KERNEL_OBJECT}" kernel_module.cpp)
 target_compile_features(flitzfs_rocm_kernels PRIVATE cxx_std_20)
