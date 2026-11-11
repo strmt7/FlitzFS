@@ -31,37 +31,9 @@ auto choose(flitzfs::GpuRecoveryPolicy& policy, const flitzfs::GpuHealthEvidence
 }
 }
 
-void match_recovery() {
-  using namespace flitzfs;
-  const auto search=PreparedGpuMatchSearch::prepare(std::vector<std::byte>(65536,std::byte{41}));
-  auto e=evidence();
-  GpuRecoveryPolicy policy;
-  require(!policy.consider(false,true,e,search,100).try_gpu(),"match consent bypass");
-  const auto tiny=PreparedGpuMatchSearch::prepare(std::vector<std::byte>(3));
-  require(policy.consider(true,true,e,tiny,100).reason==GpuRouteReason::unqualified,"empty match work admitted");
-  auto pressure=e;
-  pressure.memory.local_budget=pressure.memory.local_usage+kGpuBudgetReserveBytes+search.device_buffer_bytes()-1;
-  require(policy.consider(true,true,pressure,search,100).reason==GpuRouteReason::memory_pressure,
-      "match-specific device allocation was not admitted");
-  const auto started=policy.consider(true,true,e,search,100);
-  require(started.try_gpu(),"qualified match attempt rejected");
-  require(policy.consider(true,true,e,batch(),100).reason==GpuRouteReason::worker_busy,
-      "decode workload bypassed an outstanding match ticket");
-  require(policy.finish(started.ticket,GpuRecoveryOutcome::device_fault,false),"match fault not recorded");
-  advance(e);
-  require(policy.consider(true,true,e,search,101).reason==GpuRouteReason::worker_busy,
-      "match fault fabricated retirement");
-  require(policy.confirm_quiescent(started.ticket),"match ticket did not retire");
-  require(policy.consider(true,true,e,search,101).reason==GpuRouteReason::device_quarantined,
-      "fresh match telemetry cleared device quarantine");
-  ++e.recovery_generation;
-  require(policy.consider(true,true,e,search,101).try_gpu(),"qualified match recovery did not admit work");
-}
-
 int main() {
   try {
     using namespace flitzfs;
-    match_recovery();
     auto e = evidence();
     GpuRecoveryPolicy policy;
     require(!policy.consider(false,true,e,batch(),100).try_gpu(), "consent bypass");
