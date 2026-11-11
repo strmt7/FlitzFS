@@ -607,3 +607,9 @@ and real hosted WARP metadata checks, then one bounded owner OS metadata query
 before one tiny GPU decode. After byte-exact GPU correctness, qualify native
 match production and controlled end-to-end compression benefit; avoid unchanged
 refusal loops and never infer speed or production readiness from a tiny fixture.
+
+The exact OS node proof now passes on the owner adapter. Diagnose the retained
+later device_fault / none decode failure using specific shared memory-predicate
+stages and current Microsoft memory-accounting sources. Do not weaken freshness,
+reserve or residency rules based on a guessed cause; no accepted GPU result or
+speed improvement is established yet.

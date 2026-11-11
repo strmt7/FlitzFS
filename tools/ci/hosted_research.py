@@ -48,6 +48,12 @@ ROCM_WINDOWS_HARDWARE_SOURCES = (
 )
 
 
+WINDOWS_GPU_MEMORY_SOURCES = (
+    ("windows-gpu-memory-query", "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo", "QueryVideoMemoryInfo", "NodeIndex"),
+    ("windows-gpu-memory-info", "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info", "CurrentUsage", "process"),
+    ("windows-gpu-memory-segments", "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ne-dxgi1_4-dxgi_memory_segment_group", "NON_LOCAL", "system"),
+)
+
 WINDOWS_ADAPTER_TOPOLOGY_SOURCES = (
     ("windows-d3d12-node-count", "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-getnodecount", "GetNodeCount", "physical"),
     ("windows-d3d12-create-device", "https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-d3d12createdevice", "D3D12CreateDevice", "LUID"),
@@ -233,7 +239,8 @@ async def capture(args):
                     "windows-protocol": WINDOWS_PROTOCOL_SOURCES, "windows-ownership": WINDOWS_OWNERSHIP_SOURCES, "windows-locked-ram": WINDOWS_LOCKED_RAM_SOURCES, "windows-runtime-trust": WINDOWS_RUNTIME_TRUST_SOURCES,
                     "windows-process-retirement": WINDOWS_PROCESS_RETIREMENT_SOURCES,
                     "windows-adapter-identity": WINDOWS_ADAPTER_IDENTITY_SOURCES,
-                    "windows-adapter-topology": WINDOWS_ADAPTER_TOPOLOGY_SOURCES}[args.source_group]
+                    "windows-adapter-topology": WINDOWS_ADAPTER_TOPOLOGY_SOURCES,
+                    "windows-gpu-memory": WINDOWS_GPU_MEMORY_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -319,7 +326,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)

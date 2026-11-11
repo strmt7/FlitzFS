@@ -414,3 +414,8 @@ An explicit, supervised Windows single-physical-node proof now resolves only
 that omitted field; all memory, CPU verification and worker-retirement gates
 remain. [GPU_NODE_PROOF.md](docs/GPU_NODE_PROOF.md) separates observed evidence,
 configured checks and the still-required actual hardware qualification.
+
+The owner OS-only node proof passed on the exact AMD adapter. A subsequent tiny
+decode attempt refused at a later untagged check, preserving CPU bytes and clean
+worker exit. The shared memory predicates now retain specific diagnostic stages
+without relaxing their rules. See [executed evidence](docs/evidence/gpu-node-proof-96cb919.json).

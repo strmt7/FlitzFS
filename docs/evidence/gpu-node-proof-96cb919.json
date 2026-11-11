@@ -1,0 +1,110 @@
+{
+  "experimental": true,
+  "observed_date": "2026-11-11",
+  "source_commit": "96cb919478028b29199fb57bd9bd1cd1fcdea9af",
+  "sdk": {
+    "run": 42983895333,
+    "job": 130400423485,
+    "passed": true,
+    "api_checks": 178,
+    "admission_exits": 17,
+    "report_artifact": 13839500242,
+    "report_sha256": "644452b798b712092290d40926fd204d8844dad6127af04576f62fd205b4ee7c",
+    "driver_artifact": 13839475339,
+    "outer_sha256": "1ac122789a3162d1ce7601b79d41f148ff47d72bda7e9c52606f10c95dbb6191",
+    "inner_sha256": "d1f5b47486d492207d60303d5d1b20b711f153efa10f22bf38f1131e7f583998",
+    "worker_sha256": "56edd09ccd326e1d37cadd137f2e7f863dcae105f6098ac317d181d4856aa56a",
+    "probe_sha256": "a6d9f3c58264c0f5bd02d2f74b1e5145d400a25a63ef5183c7e17c476e9c90d5",
+    "kernel_sha256": "3a01605fb9b37080492c7fcec45c0576617158c17eafd251feec9231a9b2fdd6",
+    "warp_peak_commit": 3252224,
+    "warp_nodes": 1,
+    "warp_gpu_consent": false
+  },
+  "cpu": {
+    "windows_groups": 129,
+    "linux_codec_groups": 111,
+    "raw_builds_passed": true,
+    "sanitizers_passed": true,
+    "windows_worker_exchange_checks": 865
+  },
+  "owner": {
+    "adapter": {
+      "luid": "c573010000000000",
+      "vendor": 4098,
+      "device": 30032
+    },
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "topology": {
+      "experimental": true,
+      "commit": "96cb919478028b29199fb57bd9bd1cd1fcdea9af",
+      "mode": "OS-only-single-node-topology",
+      "expectedLuid": "c573010000000000",
+      "elapsedMs": 283,
+      "watchdogExitConfirmed": true,
+      "result": {
+        "gpu_executed": false,
+        "hip_initialized": false,
+        "queues_requested": false,
+        "batch_allocations_requested": false,
+        "kernel_launch_requested": false,
+        "status": 0,
+        "phase": 10,
+        "native_status": 0,
+        "node_count": 1,
+        "amd_hardware": true,
+        "luid_matches": true,
+        "single_node_verified": true,
+        "software_fixture": false,
+        "controller_job_peak_commit_bytes": 52609024
+      },
+      "displayState": [
+        {
+          "PNPDeviceID": "PCI\\VEN_1002&DEV_7550&SUBSYS_24241458&REV_C0\\6&17CA0BD2&0&00000009",
+          "DriverVersion": "32.0.32015.12012",
+          "Status": "OK"
+        }
+      ],
+      "driverChanged": false,
+      "filesystemMounted": false
+    },
+    "decode": {
+      "experimental": true,
+      "commit": "96cb919478028b29199fb57bd9bd1cd1fcdea9af",
+      "mode": "--run-amd-driver-once",
+      "exitCode": 2,
+      "wallElapsedMs": 1079,
+      "hipOrdinalTrial": 0,
+      "luid": "c573010000000000",
+      "runtimeSHA256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+      "result": {
+        "gpu_result_verified": false,
+        "cpu_bytes_verified": 12288,
+        "explicit_device_bytes": 16492,
+        "elapsed_ms": 1018,
+        "exchange_code": 1,
+        "worker_exit": 1179844613,
+        "worker_category": 1179844613,
+        "worker_stage": "none",
+        "timed_out": false,
+        "publication_observed": false,
+        "peak_commit_bytes": 83083264,
+        "controller_job_peak_commit_bytes": 84488192,
+        "installed_driver_route": true,
+        "exit_confirmed": true
+      },
+      "driverChanged": false,
+      "filesystemMounted": false
+    }
+  },
+  "interpretation": {
+    "node_omission_resolved": true,
+    "accepted_gpu_result": false,
+    "kernel_execution_established": false,
+    "limitation": "The failed worker may have executed a kernel before a final refusal. Its generic stage-none device-fault exit does not establish where it failed.",
+    "cpu_reference_bytes": 12288,
+    "driver_change_performed": false,
+    "filesystem_mounted": false,
+    "automatic_retry_performed": false
+  },
+  "next": "Preserve exact memory predicate failures without changing admission; capture current official memory-accounting sources before any policy change."
+}

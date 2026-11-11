@@ -1,6 +1,7 @@
 #include "hip_decode_worker.hpp"
 #include "gpu_budget.hpp"
 #include "gpu_topology.hpp"
+#include "hip_worker_budget.hpp"
 #include "hip_worker_exit.hpp"
 #include "hip_api.hpp"
 #include <hip/hip_runtime_api.h>
@@ -11,8 +12,8 @@
 
 namespace flitzfs {
 namespace {
-void require(bool condition, const char* message) {
-  if (!condition) throw std::runtime_error(message);
+void require(bool condition,const char* message,HipWorkerStage stage=HipWorkerStage::worker_request) {
+  if(!condition)throw HipWorkerFailure(HipWorkerExit::device_fault,message,stage);
 }
 
 using hip_detail::HipApi;
@@ -30,7 +31,7 @@ void require_hip_worker_job() {
   require(QueryInformationJobObject(nullptr, JobObjectExtendedLimitInformation,
               &limits, sizeof(limits), nullptr) &&
           QueryInformationJobObject(nullptr, JobObjectCpuRateControlInformation,
-              &cpu, sizeof(cpu), nullptr), "missing HIP worker job");
+              &cpu, sizeof(cpu), nullptr), "missing HIP worker job",HipWorkerStage::worker_job);
   constexpr DWORD required=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE|JOB_OBJECT_LIMIT_ACTIVE_PROCESS|
       JOB_OBJECT_LIMIT_PROCESS_MEMORY|JOB_OBJECT_LIMIT_JOB_MEMORY|JOB_OBJECT_LIMIT_PRIORITY_CLASS;
   require((limits.BasicLimitInformation.LimitFlags&required)==required &&
@@ -39,7 +40,7 @@ void require_hip_worker_job() {
       limits.BasicLimitInformation.PriorityClass==BELOW_NORMAL_PRIORITY_CLASS &&
       limits.ProcessMemoryLimit==128ULL*1024*1024 && limits.JobMemoryLimit==limits.ProcessMemoryLimit &&
       cpu.ControlFlags==(JOB_OBJECT_CPU_RATE_CONTROL_ENABLE|JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP) &&
-      cpu.CpuRate==2000, "unexpected HIP worker job limits");
+      cpu.CpuRate==2000, "unexpected HIP worker job limits",HipWorkerStage::worker_job);
 }
 
 namespace {
@@ -84,8 +85,7 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
       payload.size() <= gpu_detail::max_batch_bytes, "HIP batch bounds");
   const auto before_init = query_windows_gpu_budget(luid, node_mask).snapshot;
   const auto allocation = request.batch.device_buffer_bytes();
-  require(check_gpu_memory_budget(before_init, luid, node_mask, GetTickCount64(), allocation)
-      == GpuGateCode::admitted, "HIP pre-initialization budget");
+  require_hip_memory(before_init,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::pre_initialize);
 
   const auto api = bind_api(runtime);
   const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
@@ -94,9 +94,8 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
 
   DeviceResources resources(api);
   const auto before = query_windows_gpu_budget(luid, node_mask).snapshot;
-  require(check_gpu_memory_budget(before, luid, node_mask, GetTickCount64(), allocation)
-      == GpuGateCode::admitted && before.nonlocal_usage <= before_init.nonlocal_usage,
-      "HIP device budget changed");
+  require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,
+      HipMemoryPoint::initialized,before_init.nonlocal_usage);
   hip_detail::check_hip(api.create_stream(&resources.stream, hipStreamNonBlocking, least),
       "create stream", HipWorkerStage::stream_create);
 
@@ -137,9 +136,8 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
     throw HipWorkerFailure(HipWorkerExit::integrity_failure, "HIP output differs from CPU");
 
   const auto after = query_windows_gpu_budget(luid, node_mask).snapshot;
-  require(check_gpu_memory_budget(after, luid, node_mask, GetTickCount64(), 0)
-      == GpuGateCode::admitted && after.nonlocal_usage <= before.nonlocal_usage,
-      "HIP decode residency changed");
+  require_hip_memory(after,luid,node_mask,GetTickCount64(),0,
+      HipMemoryPoint::completed,before.nonlocal_usage);
   check_hip(resources.release_all(), "release HIP batch");
   return reply;
 }
@@ -155,16 +153,15 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   require(input.size()>=4 && input.size()<=match_detail::input_limit &&
       allocation<=gpu_detail::max_batch_bytes,"HIP match batch bounds");
   const auto before_init=query_windows_gpu_budget(luid,node_mask).snapshot;
-  require(check_gpu_memory_budget(before_init,luid,node_mask,GetTickCount64(),allocation)==GpuGateCode::admitted,
-      "HIP match pre-initialization budget");
+  require_hip_memory(before_init,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::pre_initialize);
   const auto api=bind_api(runtime);
   const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
     return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
   });
   DeviceResources resources(api);
   const auto before=query_windows_gpu_budget(luid,node_mask).snapshot;
-  require(check_gpu_memory_budget(before,luid,node_mask,GetTickCount64(),allocation)==GpuGateCode::admitted &&
-      before.nonlocal_usage<=before_init.nonlocal_usage,"HIP match device budget changed");
+  require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,
+      HipMemoryPoint::initialized,before_init.nonlocal_usage);
   hip_detail::check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),
       "create match stream",HipWorkerStage::stream_create);
   // Every unwritten lane is invalid at CPU admission.
@@ -201,8 +198,8 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
     throw HipWorkerFailure(HipWorkerExit::integrity_failure,"HIP match output failed CPU verification");
   }
   const auto after=query_windows_gpu_budget(luid,node_mask).snapshot;
-  require(check_gpu_memory_budget(after,luid,node_mask,GetTickCount64(),0)==GpuGateCode::admitted &&
-      after.nonlocal_usage<=before.nonlocal_usage,"HIP match residency changed");
+  require_hip_memory(after,luid,node_mask,GetTickCount64(),0,
+      HipMemoryPoint::completed,before.nonlocal_usage);
   check_hip(resources.release_all(),"release HIP matches");
   return matches;
 }

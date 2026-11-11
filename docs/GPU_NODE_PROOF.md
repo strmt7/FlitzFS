@@ -94,3 +94,39 @@ was captured through the native repository API: blob
 466c2a0fef5692a6a62bd92cc96f0202f1eba67ffcafb6461f53f26ce3094153.
 It retains the typed methods used here. No performance or universal stability
 claim follows from documentation or fake API tests.
+
+## Executed node-proof checkpoint
+
+At 96cb919478028b29199fb57bd9bd1cd1fcdea9af complete-SDK run 42983895333
+passed 178 fake-API checks, all 17 existing admission exits and both new native
+topology checks. The software adapter reported one node, matched its LUID and
+retired successfully with 3,252,224 bytes peak process commit; it never granted
+AMD consent. Core checks passed 129 Windows groups, 111 Linux codec groups,
+raw builds and sanitizers; 865 CPU Windows exchange checks passed.
+
+The exact own-binary artifact was hash-verified and staged without an AMD runtime.
+The owner OS-only query then passed on the exact AMD LUID, one physical node and
+healthy device status in 283 ms, with 52,609,024 bytes peak commit and confirmed
+exit. No HIP, queues, batch allocation or kernel launch was requested by that
+metadata query.
+
+The subsequent single tiny decode attempt no longer reported adapter_node.
+It exited with legacy device_fault and stage none in 1,079 ms; child peak commit
+was 83,083,264 bytes, aggregate 84,488,192. The 12,288 CPU bytes were verified,
+no candidate reply was published, exit was confirmed and the display driver
+remained unchanged/OK. Kernel execution is unproven: a final refusal can occur
+after execution. This is not a GPU correctness or performance pass.
+[evidence/gpu-node-proof-96cb919.json](evidence/gpu-node-proof-96cb919.json)
+retains the exact identities and results.
+
+The next diagnostic correction tags all six memory checks with their point and
+actual failed predicate: invalid/stale budget, wrong adapter, insufficient
+headroom or nonlocal growth. Job/request checks also retain typed stages.
+The original six recovery categories and stages 1..15 retain their numbers;
+new private stages 16..31 are explicitly named and qualified. Unknown codes
+remain unnormalized. The predicates, 50-ms telemetry-age ceiling, 256-MiB
+reserve, nonlocal-growth rejection, process budgets and CPU fallback do not
+change. Portable boundary tests exercise the shared production checks, and a
+fixed isolated Crawl4AI group captures current Microsoft memory-accounting
+documentation before any policy revision. No unchanged host retry is authorized
+by adding diagnostics.
