@@ -138,6 +138,14 @@ jobs:
               } finally { $process.Dispose() }
             }
           }
+          $waitReport = Join-Path $gpuRamFixture 'native-wait.json'
+          $waitResult = Invoke-NativeRamFixture @('--wait-accounting-ci',$waitReport)
+          Write-Output $waitResult.Output
+          Write-Output $waitResult.Error
+          if ($waitResult.Exit -ne 0) { throw 'Isolated native wait accounting failed' }
+          $waitData = Get-Content -LiteralPath $waitReport -Raw | ConvertFrom-Json
+          if ($waitData.commit -ne $env:GITHUB_SHA -or -not $waitData.complete -or $waitData.gpu -or $waitData.kind -ne 'native_wait_accounting' -or $waitData.counts.Count -ne 10) { throw 'Native wait source/result mismatch' }
+          foreach ($count in $waitData.counts[2..9]) { if ($count -ne $waitData.counts[1]) { throw 'Native wait accounting grew after initialization' } }
           foreach ($fixtureMode in @('match','match-invalid','match-hip-declaration','match-hold')) {
             $newReport = Join-Path $gpuRamFixture ('native-' + $fixtureMode + '.json')
             $result = Invoke-NativeRamFixture @('--cpu-fixture',$newReport,$cpuWorker,$fixtureMode)

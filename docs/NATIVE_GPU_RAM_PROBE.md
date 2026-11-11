@@ -118,58 +118,55 @@ a longer timeout or this composition probe.
 Related: RECOMPRESSION_FEEDBACK.md, GPU_RESOURCE_ENVELOPE.md, WORKER_CHANNEL.md,
 HOST_RAM_VALIDATION.json, DEVELOPMENT_PLAN.json.
 
-## First hosted composition result
+## Hosted failure investigation
 
-Implementation 480573e compiled and passed self-contained dependency audit and
-the original locked-RAM CPU probe. Its new valid CPU-worker composition reached
-the final handle-accounting gate and failed with native GPU/RAM handle growth
-(run 43019981741, job 130520457733). The retained failure report confirms
-locked_after=0 and cleanup_ok=true. The exact handle delta/cause was not yet
-captured. No native GPU/RAM binary was promoted or run on the owner PC.
+The strict before/after handle assertion remains unchanged. No new native
+GPU/RAM binary has been promoted or executed on the owner PC.
 
-The next diagnostic retains the zero-growth assertion. It records handle counts
-after transport warmup, working-set admission, CPU profile, proposed profile,
-working-set restoration and final retirement. If that initial gate fails in
-the hosted CPU-fixture mode only, two additional CPU/native-plus-CPU-worker
-profile pairs record whether growth is one-time or repeated. The original
-failure remains a failure regardless of those observations. This bounded
-diagnostic never repeats a GPU request or runs on the driver mode.
+| Commit | Hosted run / job | Executed result |
+| --- | --- | --- |
+| 480573e | 43019981741 / 130520457733 | Build, PE audit and original CPU RAM probe passed; new composition failed at final handle equality. Locked bytes returned to zero and cleanup succeeded. |
+| c2ba1e2 | 43022295520 / 130528208214 | Handle trace [98,98,98,99,99,99,99,99,99,99]. First valid worker/native profile added one; two further CPU/worker pairs added none. |
+| 61f16ad | 43023245074 / 130531412710 | Match trace [98,98,99,99,99,99,99,99]: retention occurs inside synchronous exchange, before reply validation and hinted encoding. |
+| 801188e | 43024232697 / 130534742501 | Snapshot diagnostic refused a type-name code unit before native profiles. Snapshot/walk cleanup succeeded; locked bytes remained zero. No ownership conclusion. |
 
-Trace positions: 0 baseline, 1 working-set admitted, 2 CPU profile complete,
-3 proposed profile complete, 4 working-set restored, 5 final retirement,
-6/7 first extra CPU/CPU-worker pair, 8/9 second extra pair. Zero entries can
-mean an unreached phase. This is investigation, not a relaxed tolerance,
-a presumed OS cache explanation or a repaired leak.
+Retained diagnostic artifacts: 13855378157 SHA256
+dbdbdba95c8ea11b15ac1629f3680e40c8fde7aae9265f8e771d2cdb06ca30c2;
+13856376160 SHA256
+bd3d8ef8f049bbaa03b671d25c0dafcaa8a928952db2f540c093163478d464cd;
+13856182541 SHA256
+0b4f3efb79582df9f85ca250536e542f467eb523b7ba541bb395cc7722835d3f.
+These are failing results, not leak-free qualification or proof of OS caching.
 
-The first diagnostic (c2ba1e2, run 43022295520, job 130528208214)
-retained the failure and observed [98,98,98,99,99,99,99,99,99,99].
-The first valid worker/native profile added one handle; the following two
-CPU/native-plus-CPU-worker pairs added none. This bounds the observed growth
-but does not prove ownership, intentional initialization or leak freedom.
-The next finer first-occurrence trace separates match preparation, exchange,
-reply validation, hinted encoding, publication, context retirement and final
-verification. Its eight positions are: 0 before preparation, 1 request ready,
-2 synchronous exchange returned, 3 reply validated, 4 hinted record encoded,
-5 head published, 6 contexts closed, 7 independent verification complete.
-The zero-growth gate and no-owner-execution boundary remain unchanged.
+Main trace positions: baseline, working-set admission, CPU profile, proposed
+profile, working-set restoration, final retirement, then two additional
+CPU/CPU-worker pairs. Match trace positions: before preparation, request ready,
+exchange returned, reply validated, hinted record encoded, head published,
+contexts closed, independent verification complete. Zero may mean unreached.
+Additional profiles are diagnostic CPU fixtures only; never extra GPU requests.
 
-The finer trace (61f16ad, run 43023245074, artifact 13856376160,
-SHA256 bd3d8ef8f049bbaa03b671d25c0dafcaa8a928952db2f540c093163478d464cd)
-recorded match phases [98,98,99,99,99,99,99,99]. The retained handle therefore
-appears during synchronous exchange, before reply validation and hinted
-encoding. Its ownership/type remains unknown.
+The next hosted-only diagnostic snapshots only its own handle table, without
+VA cloning, thread/context capture or object-name output. It admits at most
+256 handles and emits at most 32 type counts. Owned capture/walk objects are
+released with their matching APIs. Type names respect the documented byte
+length, permit an optional NUL and encode other code units numerically.
+CPU-fixture success is explicitly refused while this inventory is enabled,
+even if snapshot initialization changes the observed delta.
 
-The next hosted-only diagnostic captures only its own handle table before and
-after, using PssCaptureSnapshot without VA cloning, thread capture or context
-capture. It admits at most 256 handles and emits at most 32 type counts;
-object names are not emitted. Capture/walk ownership is released with the
-documented APIs. CPU-fixture success is deliberately refused during this
-diagnostic even if snapshot initialization changes the observed delta.
-No diagnostic binary is promoted to the owner. API declarations were inspected
-in Microsoft's current win32metadata ProcessSnapshot.h, exact blob
-2afedd9b780837c3717770481fbd2e4a6471d08b, through the native GitHub API.
+A separate new-process fixture measures nine 1-ms
+SleepConditionVariableSRW calls. It accepts spurious wakeups and rejects
+unexpected API errors or growth after first use. It does not warm the
+composition process, load a GPU or create a native volume. An initialization
+explanation remains unproven until these independent results are inspected.
 
-A separate source-evidence check at 61f16ad exceeded the existing 2-MiB archive
-cap by 1,391 bytes (2,098,543 total). The source workflow now requests Git ZIP
-compression level 9; it retains the exact archive bound and source-byte hashes.
-Whether that is sufficient still requires its executed workflow result.
+API sources were inspected through native GitHub source captures:
+[Microsoft ProcessSnapshot.h](https://github.com/microsoft/win32metadata/blob/main/generation/WinSDK/RecompiledIdlHeaders/um/ProcessSnapshot.h),
+blob 2afedd9b780837c3717770481fbd2e4a6471d08b;
+[PSS_HANDLE_ENTRY contract](https://github.com/MicrosoftDocs/sdk-api/blob/docs/sdk-api-src/content/processsnapshot/ns-processsnapshot-pss_handle_entry.md),
+blob ea73a3e9f08d37c186fb63387ed4e57937051784;
+[Microsoft STL wait primitive](https://github.com/microsoft/STL/blob/main/stl/src/primitives.hpp),
+blob 3cba95a9a74b843e5a4a86b128107db9a255cfed.
+
+The source-evidence archive at 61f16ad exceeded its 2-MiB cap by 1,391 bytes.
+Git ZIP compression level 9 passed at 801188e: 2,096,461 source-archive bytes.
+The existing cap and source-byte hashing remain unchanged.
