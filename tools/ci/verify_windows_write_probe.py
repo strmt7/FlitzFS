@@ -169,14 +169,16 @@ def main() -> None:
             "locked_after": 0, "contexts": 0, "cpu_verified": True,
             "mounted": True, "unmounted": True, "recovered_capacity_failure": True,
             "gpu": False, "complete": True,
+            "stale_candidate_rejected": True, "repeat_suppressed": True,
         }
-        measured = {"source_process", "volume_serial", "raw_payload", "compressed_payload", "generation"}
+        measured = {"source_process", "volume_serial", "raw_payload", "compressed_payload", "generation", "idle_copy_steps"}
         require(type(report) is dict and set(report) == set(exact) | measured,
                 "unexpected RAM handoff report fields")
         for key, value in exact.items():
             require(type(report[key]) is type(value) and report[key] == value, f"invalid {key}")
         for key in ("source_process", "volume_serial"):
             integer(report, key, 1, 2**32 - 1)
+        integer(report, "idle_copy_steps", 2, 256)
         integer(report, "raw_payload", 65536, CAP)
         integer(report, "compressed_payload", 1, report["raw_payload"] - 1)
         integer(report, "generation", 1, 2**63 - 1)

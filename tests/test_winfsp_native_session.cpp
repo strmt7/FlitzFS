@@ -1,6 +1,11 @@
 #include "winfsp_session.hpp"
 #include "winfsp_native.hpp"
 #include "native_windows_fixture.hpp"
+#include "native_fs_fixture.hpp"
+#include <atomic>
+#include <chrono>
+#include <future>
+#include <thread>
 #include <array>
 #include <algorithm>
 #include <iostream>
@@ -68,6 +73,36 @@ VOID destroy(FSP_FILE_SYSTEM* file_system) {
   auto& s = *active; s.record('d'); s.invariant = s.invariant && file_system == &s.fs;
   s.fs.UserContext = nullptr;
 }
+// Only the mock callback test can pause this synthetic RAM read. The
+// timeout bounds the callback even if the controller cannot release it.
+class PausedReadStore final:public flitzfs::StoreByteIo {
+ public:
+  PausedReadStore():release_(resume_.get_future()) {}
+  std::future<void> pause_next_read() {
+    armed_=true;
+    return entered_.get_future();
+  }
+  void release_read(){resume_.set_value();}
+  std::uint64_t extent() const override{return storage_.extent();}
+  flitzfs::StoreIoContract contract() const noexcept override{return storage_.contract();}
+  void admit_write(std::uint64_t size) override{storage_.admit_write(size);}
+  void write_exact(std::uint64_t at,std::span<const std::byte> bytes) override{storage_.write_exact(at,bytes);}
+  void flush() override{storage_.flush();}
+  void read_exact(std::uint64_t at,std::span<std::byte> bytes) const override {
+    if(armed_.exchange(false)) {
+      entered_.set_value();
+      if(release_.wait_for(std::chrono::seconds(4))!=std::future_status::ready)
+        throw std::runtime_error("mock foreground callback did not resume");
+    }
+    storage_.read_exact(at,bytes);
+  }
+ private:
+  native_fixture::Ram storage_;
+  mutable std::atomic<bool> armed_{false};
+  mutable std::promise<void> entered_;
+  std::promise<void> resume_;
+  mutable std::future<void> release_;
+};
 flitzfs::WinFspSessionApi api() { return {preflight, create, start, mount, stop, unmount, destroy}; }
 flitzfs::NativeWriteMountPlan plan() { return {L"C:\\FlitzFS-fixture\\mount", 15, true, true}; }
 }
@@ -174,6 +209,34 @@ int main(){try {
     require(provider.trace()=="pcsmtrd"&&provider.callback_alive_during_stop&&session.state()==SessionState::failed&&
         session.requires_offline()&&!session.dispatcher_stopped(),"missing dispatcher notification accepted as clean stop");
     auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open_file(f.image()));view.verify_all();++retired;
+  }
+  provider={};
+  {
+    auto head=std::make_shared<native_fixture::Ram>();
+    auto source=std::make_shared<PausedReadStore>();
+    auto target=std::make_shared<native_fixture::Ram>();
+    auto volume=nw::identity(),image=volume,next=volume;
+    image[0]=std::byte{31};next[0]=std::byte{32};
+    WinFspNativeSession session(WinFspNativeWritable::create_managed_hosted(head,volume,source,image),api());
+    require(session.start(plan())==STATUS_SUCCESS,"idle contention mock startup");
+    auto entered=source->pause_next_read();
+    NTSTATUS callback_status=STATUS_UNSUCCESSFUL;
+    std::jthread foreground([&]{
+      FSP_FSCTL_VOLUME_INFO info{};
+      callback_status=provider.fs.Interface->GetVolumeInfo(&provider.fs,&info);
+    });
+    const bool waiting=entered.wait_for(std::chrono::seconds(2))==std::future_status::ready;
+    HostedIdleMaintenanceResult idle{HostedIdleMaintenanceState::stale};
+    if(waiting)idle=session.begin_idle_recompression_hosted(target,next);
+    source->release_read();
+    foreground.join();
+    require(waiting&&idle.state==HostedIdleMaintenanceState::busy&&
+        callback_status==STATUS_SUCCESS&&target->live.empty(),
+        "idle admission did work while a foreground callback held control");
+    require(session.begin_idle_recompression_hosted(target,next).state==HostedIdleMaintenanceState::begun,
+        "foreground contention consumed the later idle opportunity");
+    session.stop();
+    require(!session.requires_offline()&&!session.stats().contexts,"stopping with idle candidate leaked authority");
   }
   require(retired==12,"writable lifecycle retirement case omitted");
   std::cout<<"Windows writable-lifecycle evidence: {\"schema\":1,\"checks\":"<<checks<<",\"retired_writers\":"<<retired

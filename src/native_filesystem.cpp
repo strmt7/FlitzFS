@@ -862,6 +862,10 @@ bool NativeFilesystemWriter::matches_recompression(const Recompression& candidat
   return !poisoned() && candidate.matches(impl_->objects);
 }
 
+std::uint64_t NativeFilesystemWriter::recompression_generation() const noexcept {
+  return poisoned()?0:impl_->objects.generation_for_staging();
+}
+
 bool NativeFilesystemWriter::advance_recompression(Recompression& candidate) {
   try{return candidate.advance();}
   catch(const std::bad_alloc&){fail(Code::limit,"staged recompression allocation failure");}

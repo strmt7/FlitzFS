@@ -110,3 +110,8 @@ For staged recompression, see [Incremental candidate copy](RECOMPRESSION.md#incr
 The source remains under the original control thread during staged copying.
 Only successful candidate sealing proceeds to the same fenced handoff and
 recovery state. No caller may overlap stage calls with foreground operations.
+
+A hosted idle opportunity uses the same staged copy and handoff. It defers to
+callbacks, remembers the evaluated source generation, and declines to publish
+a candidate whose projected image and live-payload savings fail admission.
+The normal mounted test lifecycle owns any unfinished candidate through stop.

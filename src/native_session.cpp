@@ -64,8 +64,11 @@ struct NativeFileSession::Impl {
     std::shared_ptr<StoreByteIo> target;
     StoreIdentity id;
     NativeFilesystemWriter::Recompression rewrite;
+    bool idle;
   };
   std::unique_ptr<StagedRecompression> recompression;
+  StoreIdentity evaluated_image{};
+  std::uint64_t evaluated_generation=0;
   // Destruction order retires the image writer BEFORE releasing the head owner.
   std::unique_ptr<VolumeOwner> volume;
   NativeFilesystemWriter writer;
@@ -275,12 +278,32 @@ NativeVolumeHeadInfo NativeFileSession::replace_volume(std::shared_ptr<StoreByte
 
 void NativeFileSession::begin_recompression(std::shared_ptr<StoreByteIo> target,StoreIdentity next,
     StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
+  (void)stage_recompression(std::move(target),next,compression,checkpoints,false);
+}
+
+bool NativeFileSession::begin_idle_recompression(std::shared_ptr<StoreByteIo> target,StoreIdentity next,
+    StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
+  return stage_recompression(std::move(target),next,compression,checkpoints,true);
+}
+
+bool NativeFileSession::stage_recompression(std::shared_ptr<StoreByteIo> target,StoreIdentity next,
+    StoreCompressionOptions compression,StoreCheckpointOptions checkpoints,bool idle) {
   auto& self=ready();
+  const auto generation=self.writer.recompression_generation();
+  if(idle && self.volume && self.evaluated_image==self.volume->active_id &&
+      self.evaluated_generation==generation && !self.recompression)
+    return false;
   admit_replacement(self,target,next);
-  detail::validate_store_compression(compression);admit_empty(target);
+  detail::validate_store_compression(compression);
   admit_handoff_contexts(self);
+  if(idle) {
+    self.evaluated_image=self.volume->active_id;
+    self.evaluated_generation=generation;
+  }
+  admit_empty(target);
   self.recompression=std::make_unique<Impl::StagedRecompression>(Impl::StagedRecompression{
-      target,next,self.writer.prepare_recompression(target,next,compression,checkpoints)});
+      target,next,self.writer.prepare_recompression(target,next,compression,checkpoints),idle});
+  return true;
 }
 
 NativeFileSession::RecompressionProgress NativeFileSession::advance_recompression() {
@@ -297,8 +320,17 @@ NativeFileSession::RecompressionProgress NativeFileSession::advance_recompressio
 }
 
 NativeVolumeHeadInfo NativeFileSession::publish_recompression() {
+  return *publish_staged_recompression(false);
+}
+
+std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_idle_recompression() {
+  return publish_staged_recompression(true);
+}
+
+std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompression(bool idle) {
   auto& self=ready();
-  if(!self.recompression)fail(E::invalid_options,"no staged recompression");
+  if(!self.recompression || self.recompression->idle!=idle)
+    fail(E::invalid_options,"no matching staged recompression");
   if(!self.writer.matches_recompression(self.recompression->rewrite)) {
     self.recompression.reset();
     fail(E::invalid_options,"staged recompression is stale");
@@ -306,11 +338,17 @@ NativeVolumeHeadInfo NativeFileSession::publish_recompression() {
   if(!self.recompression->rewrite.ready())fail(E::invalid_options,"staged recompression is incomplete");
   admit_handoff_contexts(self);
   auto staged=std::move(self.recompression);
+  if(idle && !staged->rewrite.saves_space())return std::nullopt;
   auto baseline=self.writer.snapshot();
   // Seal and verify the candidate before fencing the foreground writer.
   NativeFilesystemWriter::finish_recompression(staged->rewrite);
   begin_handoff(self,std::move(baseline),std::move(staged->target),staged->id);
-  return finish_handoff(self);
+  const auto published=finish_handoff(self);
+  if(idle) {
+    self.evaluated_image=self.volume->active_id;
+    self.evaluated_generation=self.writer.recompression_generation();
+  }
+  return published;
 }
 
 void NativeFileSession::cancel_recompression() noexcept {

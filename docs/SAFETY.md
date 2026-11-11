@@ -633,3 +633,10 @@ invalidates the candidate before another step or publication. Cancellation
 releases its lease without deleting or changing storage. A candidate error
 before handoff leaves the source selected. The existing fenced recovery path
 still governs failure after actual writer retirement.
+
+A hosted controller can offer an idle copy or a separate final publication
+opportunity. The existing callback mutex is acquired without waiting and
+active or waiting foreground callbacks defer the offer. The caller still owns
+priority, lifecycle and fresh backing admission. A foreground arrival after
+admission can wait for the current operation. Full final verification remains
+synchronous. No scheduled task or production background service is enabled.

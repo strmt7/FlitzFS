@@ -11,6 +11,12 @@ struct HostedVolumeMaintenanceResult {
   NativeVolumeHeadInfo head;
   bool recovered=false; // A failed transition was independently resolved.
 };
+enum class HostedIdleMaintenanceAction {copy,publish};
+enum class HostedIdleMaintenanceState {busy,suppressed,begun,copying,ready,stale,unchanged,published,recovered};
+struct HostedIdleMaintenanceResult {
+  HostedIdleMaintenanceState state;
+  NativeVolumeHeadInfo head{};
+};
 class WinFspNativeWritable final {
  public:
   static std::unique_ptr<WinFspNativeWritable> create_new_hosted(
@@ -23,6 +29,10 @@ class WinFspNativeWritable final {
   HostedVolumeMaintenanceResult recompress_managed_hosted(
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
       StoreCompressionOptions candidate={});
+  HostedIdleMaintenanceResult begin_idle_recompression_hosted(
+      std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
+      StoreCompressionOptions candidate={});
+  HostedIdleMaintenanceResult idle_recompression_hosted(HostedIdleMaintenanceAction);
   // Explicit per-image history cap; aligned 4..64 MiB. It is checked before
   // every projected append/write; not physical reservation/preallocation.
   static std::unique_ptr<WinFspNativeWritable> create_new_hosted(

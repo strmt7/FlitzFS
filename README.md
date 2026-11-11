@@ -363,3 +363,9 @@ Foreground operations can run between record-copy steps. A newly committed
 source generation invalidates the candidate. Handoff follows independent CPU
 verification of the new image. Automatic scheduling and GPU execution remain
 separate work.
+
+The hosted Windows trial now checks measured candidate savings before idle
+handoff. It exercises retained handles and source-generation invalidation
+under the existing locked-RAM fixture. This controller receives explicit
+opportunities. Unattended scheduling and GPU execution still require
+qualification.

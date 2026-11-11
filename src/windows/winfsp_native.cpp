@@ -108,6 +108,7 @@ struct WinFspNativeWritable::Impl {
   std::array<Slot,NativeFileSession::max_contexts> slots{};
   std::uintptr_t next_token=1;
   mutable std::mutex control;
+  std::atomic<unsigned> foreground{0};
   std::atomic<bool> offline{false};
   std::atomic<unsigned> stopped{0};
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
@@ -116,7 +117,28 @@ struct WinFspNativeWritable::Impl {
     for(std::size_t i=0;i<id.size();++i)serial^=UINT32(std::to_integer<unsigned>(id[i]))<<((i%4)*8);
     if(!serial)serial=1;
   }
+  struct ForegroundCall {
+    std::atomic<unsigned>& count;
+    explicit ForegroundCall(std::atomic<unsigned>& active) noexcept:count(active) {
+      count.fetch_add(1,std::memory_order_acq_rel);
+    }
+    ~ForegroundCall(){count.fetch_sub(1,std::memory_order_acq_rel);}
+  };
+  template<class F>HostedIdleMaintenanceResult idle(F&& fn) {
+    std::unique_lock guard(control,std::try_to_lock);
+    if(!guard || foreground.load(std::memory_order_acquire)!=0)
+      return {HostedIdleMaintenanceState::busy};
+    if(offline.load(std::memory_order_acquire) || stopped.load(std::memory_order_acquire)!=0)
+      throw std::runtime_error("mounted session is unavailable for idle maintenance");
+    try{return fn();}
+    catch(...) {
+      if(!session.poisoned())throw;
+      try{return {HostedIdleMaintenanceState::recovered,session.recover_volume()};}
+      catch(...){offline.store(true,std::memory_order_release);throw;}
+    }
+  }
   template<class F>NTSTATUS invoke(F&& fn,bool void_call=false) noexcept {
+    const ForegroundCall active(foreground);
     NativeWindowsIoOutcome result{STATUS_IO_DEVICE_ERROR,true};
     try {
       std::lock_guard guard(control);
@@ -494,6 +516,34 @@ HostedVolumeMaintenanceResult WinFspNativeWritable::recompress_managed_hosted(
     try{return {impl_->session.recover_volume(),true};}
     catch(...){impl_->offline.store(true,std::memory_order_release);throw;}
   }
+}
+HostedIdleMaintenanceResult WinFspNativeWritable::begin_idle_recompression_hosted(
+    std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) {
+  hosted();
+  return impl_->idle([&]{
+    return HostedIdleMaintenanceResult{impl_->session.begin_idle_recompression(std::move(target),next,candidate)?
+        HostedIdleMaintenanceState::begun:HostedIdleMaintenanceState::suppressed};
+  });
+}
+HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(HostedIdleMaintenanceAction action) {
+  hosted();
+  return impl_->idle([&]() -> HostedIdleMaintenanceResult {
+    using State=HostedIdleMaintenanceState;
+    using Progress=NativeFileSession::RecompressionProgress;
+    switch(action) {
+      case HostedIdleMaintenanceAction::copy:
+        switch(impl_->session.advance_recompression()) {
+          case Progress::copying:return {State::copying};
+          case Progress::ready:return {State::ready};
+          case Progress::stale:return {State::stale};
+        }
+        break;
+      case HostedIdleMaintenanceAction::publish:
+        if(auto next=impl_->session.publish_idle_recompression())return {State::published,*next};
+        return {State::unchanged};
+    }
+    throw std::invalid_argument("unknown idle maintenance action");
+  });
 }
 void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs) noexcept{fs.UserContext=impl_.get();}
 bool WinFspNativeWritable::requires_offline() const noexcept{return impl_->offline.load(std::memory_order_acquire);}

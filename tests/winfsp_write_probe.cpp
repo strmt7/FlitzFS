@@ -405,11 +405,14 @@ void ram_handoff_probe() {
   auto source_id=volume_id;
   auto target_id=volume_id;
   auto rejected_id=volume_id;
+  auto stale_id=volume_id;
   source_id[0]=std::byte{1};
   target_id[0]=std::byte{2};
   rejected_id[0]=std::byte{3};
+  stale_id[0]=std::byte{4};
   std::uint64_t raw_payload=0,compressed_payload=0,final_generation=0;
   DWORD serial=0;
+  std::size_t copy_steps=0;
   {
     locked_ram_fixture::WorkingSet working;
     {
@@ -453,11 +456,36 @@ void ram_handoff_probe() {
       read_handle(reader.value,original);
       require(session.stats().contexts==2,"RAM recovery lost mounted contexts");
       stage=73;
-      const auto handoff=session.recompress_managed_hosted(target,target_id,
-          {flitzfs::StoreCompressionMode::automatic,6,true});
-      require(!handoff.recovered&&handoff.head.selection.epoch==2&&
+      using Action=flitzfs::HostedIdleMaintenanceAction;
+      using State=flitzfs::HostedIdleMaintenanceState;
+      const flitzfs::StoreCompressionOptions compression{flitzfs::StoreCompressionMode::automatic,6,true};
+      require(session.begin_idle_recompression_hosted(target,stale_id,compression).state==State::begun&&
+          session.idle_recompression_hosted(Action::copy).state==State::copying,
+          "RAM idle candidate did not begin");
+      // An actual acknowledged write advances the source while an unpublished
+      // candidate exists. Reuse the bytes to keep the independent oracle fixed.
+      LARGE_INTEGER start{};
+      checked(SetFilePointerEx(writer.value,start,nullptr,FILE_BEGIN),"RAM intervening write seek");
+      write_bytes(writer.value,original);
+      require(session.idle_recompression_hosted(Action::copy).state==State::stale,
+          "RAM idle candidate ignored a foreground write");
+      target.reset();
+      target=std::make_shared<locked_ram_fixture::Store>(image_cap);
+      require(session.begin_idle_recompression_hosted(target,target_id,compression).state==State::begun,
+          "RAM later idle opportunity did not begin");
+      const auto objects=observer->snapshot().storage_info().objects;
+      for(std::size_t step=1;step<=objects;++step) {
+        require(session.idle_recompression_hosted(Action::copy).state==
+            (step==objects?State::ready:State::copying),"RAM idle copy progress");
+        ++copy_steps;
+        read_handle(reader.value,original);
+      }
+      const auto handoff=session.idle_recompression_hosted(Action::publish);
+      require(handoff.state==State::published&&handoff.head.selection.epoch==2&&
           handoff.head.selection.volume_identity==volume_id&&handoff.head.selection.image_identity==target_id,
           "RAM mounted handoff did not select verified candidate");
+      require(session.begin_idle_recompression_hosted({},stale_id,compression).state==State::suppressed,
+          "RAM idle policy reconsidered the image it just published");
       compressed_payload=observer->snapshot().storage_info().stored_payload_bytes;
       require(compressed_payload<raw_payload,"RAM mounted recompression did not reduce payload");
       checked(GetFileInformationByHandle(writer.value,&after),"RAM retained handle identity");
@@ -501,6 +529,7 @@ void ram_handoff_probe() {
   std::ostringstream report;
   report<<"{\"schema\":1,\"phase\":\"ram-handoff\",\"commit\":\""<<commit()
       <<"\",\"source_process\":"<<GetCurrentProcessId()<<",\"volume_serial\":"<<serial
+      <<",\"idle_copy_steps\":"<<copy_steps<<",\"stale_candidate_rejected\":true,\"repeat_suppressed\":true"
       <<",\"epoch\":2,\"user_bytes\":65609,\"raw_payload\":"<<raw_payload
       <<",\"compressed_payload\":"<<compressed_payload<<",\"generation\":"<<final_generation
       <<",\"locked_peak\":"<<locked_ram_fixture::peak_locked_bytes.load()

@@ -1025,3 +1025,13 @@ retirement or expand the existing fenced recovery scope. A staged call does
 not authorize a scheduler, concurrent backend calls or an owner mount.
 The RAM probe now exercises staged post-compression under its original caps.
 Qualify its exact binary on the disposable VM before any owner-PC use.
+
+## Hosted idle opportunity policy
+
+Keep the callback mutex acquisition nonblocking, defer on active or waiting
+foreground callbacks, and perform at most one copy record per opportunity.
+Require a distinct final publication opportunity, projected full-image savings
+and no live-payload increase. Suppress repeat attempts on an evaluated source
+generation. Keep the existing resource caps, staged candidate checks and
+independent publication recovery. The hosted test policy authorizes no
+background daemon, driver changes or owner mount.

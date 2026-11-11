@@ -107,3 +107,39 @@ mounted crash profiles initially failed to confirm worker exit in the
 post-termination observation window. Both passed a same-source retry with
 unchanged limits and independent CPU verification. The initial failures remain
 unexplained and do not qualify crash retirement on an owner host.
+
+## Idle admission and publication policy
+
+A controller can offer a qualified new target when it observes a quiet
+opportunity. The session attempts a given image and acknowledged generation
+once. Cancellation, failed admission after recording an attempt, and an
+insufficient result do not cause repeated work on the same source. An
+acknowledged foreground commit permits a new assessment. A selected
+recompressed image is recorded as evaluated immediately after publication.
+
+The policy uses actual encoded record lengths and the existing replicated
+checkpoint layout to estimate the candidate's complete image length. It
+requires at least one 64 KiB checkpoint unit and one eighth of the old
+backing in savings. It also rejects an increase in live record payload.
+These are conservative qualification thresholds. Their throughput and space
+trade-offs remain to be measured on larger mounted workloads.
+
+The hosted WinFsp controller tries to acquire the existing callback mutex and
+defers if any callback is active or waiting. Each copy opportunity handles
+one record. A separate explicit publication opportunity is required after
+copying completes. A foreground callback arriving after admission may wait
+for the current step. Final verification and handoff still scan the complete
+bounded image. There is no new thread, timer, or automatic production launch.
+
+The callback fixture holds a synthetic read in progress while the controller
+offers maintenance. It checks that the offer returns busy with an empty target
+and that a later quiet opportunity can start. The hosted locked-RAM mount
+profile uses real Windows handles to interleave reads, reject a candidate
+after a committed write, and independently reopen the selected bytes. Resource
+and driver limits remain the same. These profiles do not qualify unattended
+host scheduling.
+
+The reviewed [C++ draft mutex contract](https://github.com/cplusplus/draft/blob/ab4b978e6fe44d3591758db789de9f3c59770f26/source/threads.tex)
+permits a nonblocking lock attempt to fail even when the mutex is available.
+The controller treats that outcome as a deferral. Existing Windows job
+admission supplies the process priority and resource caps for the hosted test.

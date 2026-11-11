@@ -124,6 +124,13 @@ class NativeFileSession final {
   RecompressionProgress advance_recompression();
   NativeVolumeHeadInfo publish_recompression();
   void cancel_recompression() noexcept;
+  // A controller supplies one observed quiet opportunity and a qualified
+  // fresh target. Suppress repeated attempts on the same acknowledged image.
+  bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image,
+      StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
+  // Requires a ready idle candidate and a separate quiet publication window.
+  // An empty result indicates measured savings did not justify a handoff.
+  std::optional<NativeVolumeHeadInfo> publish_idle_recompression();
   // One explicit CPU recovery attempt for a failed maintenance transition only.
   // Retire the old head owner, independently select/compare, repair selected
   // metadata and resume the SAME context table. No failed-target retry/fallback.
@@ -273,6 +280,9 @@ class NativeFileSession final {
   static void admit_handoff_contexts(const Impl&);
   static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);
   static NativeVolumeHeadInfo finish_handoff(Impl&);
+  bool stage_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
+      StoreCheckpointOptions,bool idle);
+  std::optional<NativeVolumeHeadInfo> publish_staged_recompression(bool idle);
   NativeVolumeHeadInfo replace_volume(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,StoreCheckpointOptions,bool reencode);
   std::size_t slot_for(const NativeFileHandle&,bool allow_provisional=false) const;

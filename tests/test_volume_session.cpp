@@ -20,9 +20,9 @@ void reset(const std::shared_ptr<Ram>& r){r->calls=0;r->writes=0;r->flushes=0;r-
 struct Fixture {
   bool compact;std::shared_ptr<Ram> head,source,target;
   NativeFileSession session;NativeFileHandle rw,ro,late;
-  explicit Fixture(bool c):compact(c),head(ram(c)),source(ram(c)),target(ram(c)),
+  explicit Fixture(bool c,StoreCompressionMode mode=StoreCompressionMode::raw):compact(c),head(ram(c)),source(ram(c)),target(ram(c)),
       session(NativeFileSession::create_volume(head,id(90),source,id(1),
-          {StoreCompressionMode::raw,6,false},{c},NativeDispositionPolicy::windows_global)) {
+          {mode,6,false},{c},NativeDispositionPolicy::windows_global)) {
     session.create_entry("d",true,{1,2,3,4,0x10},native_security_fixture::descriptor());
     session.create_entry("d/file",false,{11,12,13,14,0x20},native_security_fixture::descriptor(2));
     rw=session.open("d/file",{true,true,true},NativeOpenKind::file,{true},{true,true});
@@ -141,6 +141,33 @@ void staged_recompression(bool compact) {
     rejects_code([&]{f.session.advance_recompression();},NativeSessionErrorCode::invalid_options);
     rejects([&]{(void)view(f.target);});
   }
+}
+
+void idle_recompression(bool compact) {
+  using Progress=NativeFileSession::RecompressionProgress;
+  Fixture f(compact,StoreCompressionMode::automatic);
+  const auto source=f.source->live,head=f.head->live;
+  const auto initial=f.session.snapshot().storage_info();
+  require(initial.stored_payload_bytes<65536,"idle fixture did not compress its payload");
+  require(f.session.begin_idle_recompression(f.target,id(2),{StoreCompressionMode::raw,6,false},{compact}),
+      "first idle opportunity was suppressed");
+  for(std::size_t step=1;step<=initial.objects;++step) {
+    const auto progress=f.session.advance_recompression();
+    require(progress==(step==initial.objects?Progress::ready:Progress::copying),"idle copy progress");
+  }
+  rejects_code([&]{(void)f.session.publish_recompression();},NativeSessionErrorCode::invalid_options);
+  require(!f.session.publish_idle_recompression()&&f.source->live==source&&f.head->live==head,
+      "idle policy published a larger payload");
+  rejects([&]{(void)view(f.target);});
+  auto next=ram(compact);
+  require(!f.session.begin_idle_recompression(next,id(3),{}, {compact})&&next->live.empty(),
+      "same acknowledged source was recompressed twice");
+  f.session.write(f.rw,0,data(19,12));
+  require(f.session.begin_idle_recompression(next,id(3),{}, {compact}),
+      "new foreground generation did not permit another attempt");
+  f.session.cancel_recompression();
+  require(!f.session.begin_idle_recompression(ram(compact),id(4),{}, {compact})&&
+      f.session.read(f.ro,0,19)==data(19,12),"cancellation retried or lost foreground bytes");
 }
 
 void invariants(bool compact){
@@ -304,7 +331,7 @@ void recovery_faults(bool compact) {
 int main(int argc,char** argv){try{
   if(argc!=2)throw std::runtime_error("volume-session phase required");const std::string_view phase=argv[1];
   if(phase=="--invariants")for(bool compact:{false,true}) {
-    invariants(compact);staged_recompression(compact);
+    invariants(compact);staged_recompression(compact);idle_recompression(compact);
   }
   else if(phase=="--maintenance-4096")maintenance_faults(true);
   else if(phase=="--maintenance-65536")maintenance_faults(false);
