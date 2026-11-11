@@ -273,12 +273,29 @@ def main():
                 item["luid"]!="0"*16 and item["luid"] not in luids,"invalid adapter identity")
             luids.add(item["luid"])
         report["hardware_probe"]["adapter_metadata"]=adapter_row
+        budget_result=run(bounds,[str(hardware_probe),"--inspect-adapter-budget","0100000000000000"],
+            report,"bounded-budget-metadata-without-HIP",15)
+        budget_prefix="HIP budget metadata: "
+        budget_rows=[json.loads(line[len(budget_prefix):]) for line in budget_result["stdout"].splitlines()
+            if line.startswith(budget_prefix)]
+        require(len(budget_rows)==1,"missing adapter budget metadata")
+        budget_row=budget_rows[0]
+        require(budget_row["gpu_executed"] is False and budget_row["hip_initialized"] is False and
+            budget_row["snapshot_valid"] is False and budget_row["status"] in (2,3,4) and
+            budget_row["gate_code"]==3 and
+            type(budget_row["phase"]) is int and 1<=budget_row["phase"]<=5 and
+            type(budget_row["native_status"]) is int and -2**31<=budget_row["native_status"]<2**31 and
+            all(budget_row[key]==0 for key in ("dedicated_bytes","local_budget","local_usage","nonlocal_usage")) and
+            0<budget_row["controller_job_peak_commit_bytes"]<=256*1024*1024,
+            "fake-LUID budget query did not fail closed without HIP")
+        report["hardware_probe"]["budget_metadata"]=budget_row
         result=run(bounds,[str(hardware_probe),"--run-amd-once",str(root/"worker-probe"/worker.name),
             "0","0100000000000000"],report,"one-shot-probe-missing-runtime",15,exit_code=2)
         prefix="HIP hardware probe: "
         rows=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines() if line.startswith(prefix)]
         require(len(rows)==1 and rows[0]["gpu_result_verified"] is False and
             rows[0]["cpu_bytes_verified"]==12288 and rows[0]["worker_exit"]==HIP_RUNTIME_UNAVAILABLE and
+            rows[0]["worker_category"]==HIP_RUNTIME_UNAVAILABLE and rows[0]["worker_stage"]=="none" and
             rows[0]["exit_confirmed"] is True and rows[0]["timed_out"] is False and
             rows[0]["publication_observed"] is False and
             0<rows[0]["peak_commit_bytes"]<=128*1024*1024 and
@@ -308,6 +325,8 @@ def main():
                 require(value["verified"] is False and value["gpu_executed"] is False,
                     "metadata probe falsely accepted the runtime")
             else:
+                require(value["worker_category"]==value["worker_exit"] and value["worker_stage"]=="none",
+                    "pre-runtime refusal invented a diagnostic stage")
                 require(value["gpu_result_verified"] is False and value["publication_observed"] is False,
                     "driver diagnostic falsely published output")
                 if name=="driver_decode":

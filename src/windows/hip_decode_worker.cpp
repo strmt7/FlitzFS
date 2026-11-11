@@ -15,7 +15,9 @@ void require(bool condition, const char* message) {
 }
 
 using hip_detail::HipApi;
-using hip_detail::check_hip;
+void check_hip(hipError_t status, const char* operation) {
+  hip_detail::check_hip(status, operation, HipWorkerStage::execution);
+}
 using hip_detail::bind_api;
 using hip_detail::initialize_device;
 
@@ -92,7 +94,8 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
   require(check_gpu_memory_budget(before, luid, node_mask, GetTickCount64(), allocation)
       == GpuGateCode::admitted && before.nonlocal_usage <= before_init.nonlocal_usage,
       "HIP device budget changed");
-  check_hip(api.create_stream(&resources.stream, hipStreamNonBlocking, least), "create stream");
+  hip_detail::check_hip(api.create_stream(&resources.stream, hipStreamNonBlocking, least),
+      "create stream", HipWorkerStage::stream_create);
 
   GpuBatchReply reply;
   reply.generation = request.request_id;
@@ -157,7 +160,8 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   const auto before=query_windows_gpu_budget(luid,node_mask).snapshot;
   require(check_gpu_memory_budget(before,luid,node_mask,GetTickCount64(),allocation)==GpuGateCode::admitted &&
       before.nonlocal_usage<=before_init.nonlocal_usage,"HIP match device budget changed");
-  check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),"create match stream");
+  hip_detail::check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),
+      "create match stream",HipWorkerStage::stream_create);
   // Every unwritten lane is invalid at CPU admission.
   const match_detail::Match pending{65535,65535,65535,65535};
   std::vector<match_detail::Match> matches(request.search.lanes(),pending);

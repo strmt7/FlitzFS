@@ -74,3 +74,22 @@ compression and speed require separate recorded experiments.
 
 Adapter identity discovery and its DXGI/HIP ordering distinction are described
 in ADAPTER_IDENTITY.md. Dedicated capacity alone never admits a compute request.
+
+## Failure-stage diagnostics
+
+The six legacy exit values remain unchanged. A failed worker may additionally
+encode one of fifteen bounded stages in bits 8 through 15 of its exit code.
+The parent normalizes only a recognized category/stage combination after a
+confirmed failed exit from the trusted HIP route. Unknown details retain the
+conservative device-fault classification. The reported category preserves the
+existing evidence-aware recovery policy; a stage never authorizes retry.
+No shared frame, candidate bytes or on-disk layout changes.
+
+The explicit --inspect-adapter-budget LUID diagnostic does not initialize HIP.
+It records the existing DXGI collector's status, last API phase, signed HRESULT,
+completed snapshot fields and ordinary budget-gate result under the same process
+caps. Phases are none=0, factory=1, adapter=2, description=3, local=4,
+nonlocal=5 and complete=6. Snapshot fields are valid only on collector success.
+The diagnostic uses the same node-mask selector 1 and planned 16,492-byte decode
+budget as the tiny fixture; this is metadata inspection, not a GPU speed test.
+Compute receipts additionally retain raw exit, normalized category and stage.

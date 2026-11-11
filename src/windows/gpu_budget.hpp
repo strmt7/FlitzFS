@@ -2,9 +2,12 @@
 #include "flitzfs/gpu_batch.hpp"
 namespace flitzfs {
 enum class WindowsGpuBudgetStatus { success, invalid_identity, unavailable, wrong_adapter, query_failed };
+enum class WindowsGpuBudgetPhase { none, factory, adapter, description, local, nonlocal, complete };
 struct WindowsGpuBudgetResult {
   WindowsGpuBudgetStatus status=WindowsGpuBudgetStatus::unavailable;
   GpuMemorySnapshot snapshot;
+  WindowsGpuBudgetPhase phase=WindowsGpuBudgetPhase::none;
+  std::int32_t native_status=0;
 };
 // Read-only DXGI telemetry for a caller-supplied verified HIP LUID/node mask.
 // No adapter-order heuristic, memory reservation, compute workload or HIP call.

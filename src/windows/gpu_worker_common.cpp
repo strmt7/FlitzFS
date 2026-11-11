@@ -28,7 +28,7 @@ GpuRecoveryOutcome worker_transport_failure(const WorkerExchangeSession& session
     const WorkerExchangeResult& result,WorkerExecution expected) noexcept {
   if (expected == WorkerExecution::hip && result.code == WorkerExchangeCode::worker_failed &&
       result.process.exit_confirmed) {
-    switch (static_cast<HipWorkerExit>(result.process.exit_code)) {
+    switch (static_cast<HipWorkerExit>(hip_worker_exit_category(result.process.exit_code))) {
       case HipWorkerExit::runtime_unavailable: return GpuRecoveryOutcome::runtime_unavailable;
       case HipWorkerExit::unsupported_configuration: return GpuRecoveryOutcome::unsupported_configuration;
       case HipWorkerExit::temporary_pressure: return GpuRecoveryOutcome::temporary_pressure;

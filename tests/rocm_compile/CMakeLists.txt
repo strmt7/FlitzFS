@@ -95,7 +95,7 @@ target_compile_options(flitzfs_hip_worker_probe PRIVATE /W4 /permissive-)
 
 add_executable(flitzfs_hip_hardware_probe hardware_probe.cpp)
 target_compile_features(flitzfs_hip_hardware_probe PRIVATE cxx_std_20)
-target_link_libraries(flitzfs_hip_hardware_probe PRIVATE flitzfs_worker_exchange dxgi)
+target_link_libraries(flitzfs_hip_hardware_probe PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget dxgi)
 target_compile_options(flitzfs_hip_hardware_probe PRIVATE /W4 /permissive-)
 
 # CPU metadata qualification uses OS-owned kernel32; it never loads AMD code.

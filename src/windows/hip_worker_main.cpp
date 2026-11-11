@@ -26,8 +26,9 @@ namespace {
 namespace fs = std::filesystem;
 using Exit = HipWorkerExit;
 
-void require(bool condition, Exit reason, const char* message) {
-  if (!condition) throw HipWorkerFailure(reason, message);
+void require(bool condition, Exit reason, const char* message,
+    HipWorkerStage stage = HipWorkerStage::none) {
+  if (!condition) throw HipWorkerFailure(reason, message, stage);
 }
 
 using hip_detail::DirectoryPin;
@@ -108,12 +109,12 @@ Bundle verify_bundle(bool kernel_only = false) {
 
 class Module {
  public:
-  explicit Module(const fs::path& path) {
+  explicit Module(const fs::path& path, HipWorkerStage stage) {
     handle_ = LoadLibraryExW(path.c_str(), nullptr,
         LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
-    require(handle_ != nullptr, Exit::runtime_unavailable, "HIP module load failed");
+    require(handle_ != nullptr, Exit::runtime_unavailable, "HIP module load failed", stage);
     try {
-      require(same_path(path, module_path(handle_)), Exit::integrity_failure, "wrong loaded HIP module");
+      require(same_path(path, module_path(handle_)), Exit::integrity_failure, "wrong loaded HIP module", stage);
     } catch (...) {
       FreeLibrary(handle_);
       throw;
@@ -125,7 +126,7 @@ class Module {
   HMODULE get() const noexcept { return handle_; }
   void close() {
     if (auto handle = std::exchange(handle_, nullptr))
-      require(FreeLibrary(handle) != 0, Exit::device_fault, "HIP module release failed");
+      require(FreeLibrary(handle) != 0, Exit::device_fault, "HIP module release failed", HipWorkerStage::module_retire);
   }
  private:
   HMODULE handle_ = nullptr;
@@ -226,18 +227,18 @@ int worker(int argc, wchar_t** argv) {
   if (driver) installed.emplace(hip_bundle::runtime, expected_runtime);
   const auto observed = query_windows_gpu_budget(luid, node_mask);
   require(observed.status == WindowsGpuBudgetStatus::success,
-      Exit::unsupported_configuration, "AMD adapter unavailable");
+      Exit::unsupported_configuration, "AMD adapter unavailable", HipWorkerStage::adapter_budget);
   require(check_gpu_memory_budget(observed.snapshot, luid, node_mask, GetTickCount64(),
       allocation) == GpuGateCode::admitted,
-      Exit::temporary_pressure, "AMD worker memory budget");
+      Exit::temporary_pressure, "AMD worker memory budget", HipWorkerStage::adapter_budget);
 
   // Per-process search settings. Imported private DLLs are pinned in hip/.
   require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32) != 0,
       Exit::runtime_unavailable, "restrict worker DLL lookup");
   bundle.check_loaded_paths();
   const auto runtime_path = driver ? installed->path() : bundle.path(hip_bundle::runtime);
-  Module runtime(runtime_path);
-  Module kernels(bundle.path(hip_bundle::kernel));
+  Module runtime(runtime_path, HipWorkerStage::runtime_load);
+  Module kernels(bundle.path(hip_bundle::kernel), HipWorkerStage::kernel_load);
   bundle.check_loaded_paths();
   const auto loaded_runtime = GetModuleHandleW(hip_bundle::runtime);
   require(loaded_runtime && same_path(runtime_path, module_path(loaded_runtime)),
@@ -245,20 +246,20 @@ int worker(int argc, wchar_t** argv) {
   std::vector<std::byte> frame;
   if(matching) {
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_match_api_v1");
-    require(address!=nullptr,Exit::unsupported_configuration,"HIP match entry unavailable");
+    require(address!=nullptr,Exit::unsupported_configuration,"HIP match entry unavailable",HipWorkerStage::kernel_entry);
     const auto entry=std::bit_cast<match_detail::KernelApiEntry>(address);
     const auto* api=entry();
     require(api && match_detail::compatible_kernel_api(*api),
-        Exit::unsupported_configuration,"incompatible HIP match table");
+        Exit::unsupported_configuration,"incompatible HIP match table",HipWorkerStage::kernel_table);
     const auto reply=run_hip_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*match);
     frame=encode_match_worker_reply(match->search,match->request_id,reply,WorkerExecution::hip);
   } else {
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_kernel_api_v1");
-    require(address!=nullptr,Exit::unsupported_configuration,"HIP kernel entry unavailable");
+    require(address!=nullptr,Exit::unsupported_configuration,"HIP kernel entry unavailable",HipWorkerStage::kernel_entry);
     const auto entry=std::bit_cast<gpu_detail::KernelApiEntry>(address);
     const auto* api=entry();
     require(api && gpu_detail::compatible_kernel_api(*api),
-        Exit::unsupported_configuration,"incompatible HIP kernel table");
+        Exit::unsupported_configuration,"incompatible HIP kernel table",HipWorkerStage::kernel_table);
     const auto reply=run_hip_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*decode);
     frame=encode_worker_reply(reply,WorkerExecution::hip);
   }
@@ -274,7 +275,7 @@ int wmain(int argc, wchar_t** argv) {
   try { return flitzfs::worker(argc, argv); }
   catch (const flitzfs::HipWorkerFailure& error) {
     std::cerr << error.what() << '\n';
-    return static_cast<int>(error.code);
+    return static_cast<int>(flitzfs::hip_worker_diagnostic_exit(error.code, error.stage));
   } catch (const std::bad_alloc&) {
     return static_cast<int>(flitzfs::HipWorkerExit::temporary_pressure);
   } catch (const std::exception& error) {
