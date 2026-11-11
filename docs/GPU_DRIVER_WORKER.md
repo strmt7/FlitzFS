@@ -32,7 +32,9 @@ still requires exact child exit before copying or accepting a reply.
 
 ## Bounded diagnostics
 
-The diagnostic supports three separate internal installed-driver modes:
+The diagnostic supports internal metadata and installed-driver modes:
+
+- --describe-amd-adapters collects bounded DXGI identities without HIP calls.
 
 - --verify-driver-runtime performs only metadata verification in its child.
 - --run-amd-driver-once uses the existing 12 KiB synthetic decode fixture.
@@ -69,3 +71,6 @@ and the owner-device gate remain necessary before staging and execution.
 
 These VM tests never execute an AMD GPU. Actual hardware results, real-data
 compression and speed require separate recorded experiments.
+
+Adapter identity discovery and its DXGI/HIP ordering distinction are described
+in ADAPTER_IDENTITY.md. Dedicated capacity alone never admits a compute request.
