@@ -237,3 +237,5 @@ This test needs neither an AMD device nor a runtime load. Driver compatibility
 is researched separately through the isolated native crawler. The workflow
 retains JSON evidence only. A physical AMD run still needs a compatible driver
 and a qualified, bounded private bundle and supervisor.
+
+The authenticated worker also accepts an explicit match request through --match-adapter. It resolves the separate typed match entry and shares the existing device initialization, stream priorities and resource owner. Match wire input is parsed before bundle or adapter access. Complete-package admission now requires six confirmed child exits, including malformed-match and missing-match-runtime refusal. See MATCH_PROPOSALS.md.

@@ -574,3 +574,5 @@ qualified AMD acceleration and immediate CPU fallback.
 The staged store encoder can consume bounded external match proposals and retain the smaller independently verified frame. Next, connect a source-bound AMD producer through the existing supervised worker and measure end-to-end costs and ratio on real workloads.
 
 A bounded AMD match producer is compiled with the complete pinned SDK. It searches eight predecessors with at most 1024 byte comparisons per lane. Next, qualify transport and supervisor integration, then compare measured device and end-to-end costs on public data.
+
+The explicit HIP worker can dispatch the compiled match entry through bounded source-bound frames. CPU fixtures now check channel-to-store publication and fallback before helper retirement. Next, connect the long-lived evidence-aware routing policy and measure qualified device behavior on real files.

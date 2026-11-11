@@ -17,6 +17,8 @@
 #include <utility>
 #include <vector>
 
+#include <optional>
+
 namespace flitzfs {
 namespace {
 namespace fs = std::filesystem;
@@ -217,13 +219,19 @@ WorkerBatchRequest read_request(std::span<const std::byte> bytes) {
   }
 }
 
+MatchWorkerRequest read_match_request(std::span<const std::byte> bytes) {
+  try{return decode_match_worker_request(bytes);}
+  catch(const std::bad_alloc&){throw;}
+  catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"invalid HIP match request");}
+}
 int worker(int argc, wchar_t** argv) {
   require_hip_worker_job();
   if (argc == 2 && std::wstring_view(argv[1]) == L"--verify-bundle") {
     const auto verified = verify_bundle();
     return 0;
   }
-  require(argc == 7 && std::wstring_view(argv[1]) == L"--adapter" &&
+  const bool matching=argc==7 && std::wstring_view(argv[1])==L"--match-adapter";
+  require(argc == 7 && (matching || std::wstring_view(argv[1]) == L"--adapter") &&
       std::wstring_view(argv[5]) == L"--worker-channel",
       Exit::invalid_request, "explicit HIP adapter and channel required");
   const auto ordinal = decimal(argv[2], 63);
@@ -231,13 +239,17 @@ int worker(int argc, wchar_t** argv) {
   const auto node_mask = decimal(argv[4], (std::numeric_limits<unsigned>::max)());
   require(node_mask && !(node_mask & (node_mask - 1)), Exit::invalid_request, "adapter node mask");
   auto channel = WorkerChannel::open(argv[6]);
-  auto request = read_request(channel.request());
+  std::optional<WorkerBatchRequest> decode;
+  std::optional<MatchWorkerRequest> match;
+  if(matching)match.emplace(read_match_request(channel.request()));
+  else decode.emplace(read_request(channel.request()));
+  const auto allocation=matching?match->search.device_buffer_bytes():decode->batch.device_buffer_bytes();
   const auto bundle = verify_bundle();
   const auto observed = query_windows_gpu_budget(luid, node_mask);
   require(observed.status == WindowsGpuBudgetStatus::success,
       Exit::unsupported_configuration, "AMD adapter unavailable");
   require(check_gpu_memory_budget(observed.snapshot, luid, node_mask, GetTickCount64(),
-      request.batch.device_buffer_bytes()) == GpuGateCode::admitted,
+      allocation) == GpuGateCode::admitted,
       Exit::temporary_pressure, "AMD worker memory budget");
 
   // Per-process search settings. Imported private DLLs are pinned in hip/.
@@ -247,16 +259,28 @@ int worker(int argc, wchar_t** argv) {
   Module runtime(bundle.path(hip_bundle::runtime));
   Module kernels(bundle.path(hip_bundle::kernel));
   bundle.check_loaded_paths();
-  const auto export_address = GetProcAddress(kernels.get(), "flitzfs_rocm_kernel_api_v1");
-  require(export_address != nullptr, Exit::unsupported_configuration, "HIP kernel entry unavailable");
-  const auto entry = std::bit_cast<gpu_detail::KernelApiEntry>(export_address);
-  const auto* api = entry();
-  require(api && gpu_detail::compatible_kernel_api(*api),
-      Exit::unsupported_configuration, "incompatible HIP kernel table");
-  auto reply = run_hip_decode_in_worker(runtime.get(), *api, static_cast<int>(ordinal), luid, node_mask, request);
+  std::vector<std::byte> frame;
+  if(matching) {
+    const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_match_api_v1");
+    require(address!=nullptr,Exit::unsupported_configuration,"HIP match entry unavailable");
+    const auto entry=std::bit_cast<match_detail::KernelApiEntry>(address);
+    const auto* api=entry();
+    require(api && match_detail::compatible_kernel_api(*api),
+        Exit::unsupported_configuration,"incompatible HIP match table");
+    const auto reply=run_hip_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*match);
+    frame=encode_match_worker_reply(match->search,match->request_id,reply,WorkerExecution::hip);
+  } else {
+    const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_kernel_api_v1");
+    require(address!=nullptr,Exit::unsupported_configuration,"HIP kernel entry unavailable");
+    const auto entry=std::bit_cast<gpu_detail::KernelApiEntry>(address);
+    const auto* api=entry();
+    require(api && gpu_detail::compatible_kernel_api(*api),
+        Exit::unsupported_configuration,"incompatible HIP kernel table");
+    const auto reply=run_hip_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*decode);
+    frame=encode_worker_reply(reply,WorkerExecution::hip);
+  }
   kernels.close();
   runtime.close();
-  const auto frame = encode_worker_reply(reply, WorkerExecution::hip);
   channel.publish(frame);
   return 0;
 }

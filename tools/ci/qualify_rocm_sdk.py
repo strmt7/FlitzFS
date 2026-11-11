@@ -166,7 +166,8 @@ def main():
         prefix="HIP worker admission: "
         receipts=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines() if line.startswith(prefix)]
         require(receipts==[dict(bundle_verified=True,missing_bundle_refused=True,tampered_bundle_refused=True,invalid_wire_refused=True,
-            exits_confirmed=4,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
+            invalid_match_refused=True,missing_match_runtime_refused=True,
+            exits_confirmed=6,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
         report["worker_admission"]=receipts[0]
         hardware_probe=build/"Release/flitzfs_hip_hardware_probe.exe"
         report["hardware_probe"]=dict(bytes=hardware_probe.stat().st_size,sha256=digest(hardware_probe),

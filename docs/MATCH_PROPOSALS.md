@@ -78,3 +78,37 @@ bounded match search. On 11 November the current reference at
 50bae7610275a8f68d1fb89f11f7e0e238187aba. The filesystem producer adds its own
 buffer, anchor, comparison and CPU admission bounds. The repositories share
 the GNU AGPL license. No archive-format dependency is introduced.
+
+## Supervised match transport
+
+An explicit --match-adapter worker command accepts the qualified ordinal,
+adapter LUID, node mask and protected WorkerChannel token. Normal operations
+select their existing CPU routes. Match routing uses its own magic and a
+64-byte header with request ID, source size, lane count, execution declaration,
+zero reserved field and a digest of the complete owned input.
+
+The request contains only source bytes. The trusted child rebuilds the sorted
+predecessor index independently. It authenticates the private runtime/module
+bundle and uses the same real Job Object, matched DXGI telemetry, low-priority
+HIP stream and checked allocation/copy/launch APIs as the decoder worker.
+Explicit device buffers retain the 229,376-byte maximum.
+
+The child initializes every result lane to an invalid sentinel. It validates
+the returned bytes and compares all match fields against CPU semantics for
+this initial runtime qualification. It checks residency and retires buffers,
+stream and module handles before publication. The existing process supervisor
+must confirm actual child exit before copying a reply.
+
+The parent checks ID, source digest, shape, backend and every suggested match
+against its own immutable bytes. Only then can proposals enter the existing
+staged encoder, whose source-generation and independent-decoding checks still
+apply. A late or unusable result can retain ordinary CPU recompression.
+There is no automatic retry or device search in this route. The long-lived
+match routing/recovery controller still needs integration with GPU_RECOVERY.md.
+
+The CPU wire tests use both execution declarations solely to exercise framing.
+The Windows child fixture explicitly declares CPU semantics. It demonstrates
+native publication before a held child's actual exit, followed by cancellation,
+confirmed retirement and closed channel objects. Full SDK tests compile the
+real HIP dispatch and exercise refusal before runtime loading. Actual AMD
+execution and measured benefit remain unverified.

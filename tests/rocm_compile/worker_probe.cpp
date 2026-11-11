@@ -1,6 +1,7 @@
 #include "bounded_process.hpp"
 #include "hip_worker_exit.hpp"
 #include "worker_exchange.hpp"
+#include "flitzfs/match_worker_wire.hpp"
 #include <windows.h>
 #include <array>
 #include <filesystem>
@@ -40,8 +41,21 @@ int wmain(int argc, wchar_t** argv) {
     retired(invalid.process, static_cast<std::uint32_t>(flitzfs::HipWorkerExit::invalid_request));
     require(invalid.code == flitzfs::WorkerExchangeCode::worker_failed &&
         invalid.response.empty() && !invalid.publication_observed, "invalid worker published a response");
+    const auto invalid_match=flitzfs::run_worker_exchange(worker,
+        {L"--match-adapter",L"0",L"0100000000000000",L"1"},malformed,budget);
+    retired(invalid_match.process,static_cast<std::uint32_t>(flitzfs::HipWorkerExit::invalid_request));
+    require(invalid_match.response.empty()&&!invalid_match.publication_observed,
+        "invalid match worker published a response");
+    const std::array<std::byte,64> match_input{};
+    const auto search=flitzfs::PreparedGpuMatchSearch::prepare(match_input);
+    const auto match_request=flitzfs::encode_match_worker_request(search,1);
+    const auto absent_match=flitzfs::run_worker_exchange(copied,
+        {L"--match-adapter",L"0",L"0100000000000000",L"1"},match_request,budget);
+    retired(absent_match.process,static_cast<std::uint32_t>(flitzfs::HipWorkerExit::runtime_unavailable));
+    require(absent_match.response.empty()&&!absent_match.publication_observed,
+        "missing match runtime published a response");
     std::cout<<"HIP worker admission: {\"bundle_verified\":true,\"missing_bundle_refused\":true,"
-        "\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"exits_confirmed\":4,\"gpu_executed\":false,\"complete\":true}\n";
+        "\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"exits_confirmed\":6,\"gpu_executed\":false,\"complete\":true}\n";
     return 0;
   } catch (const std::exception& error) {
     std::cerr<<"HIP worker admission failed: "<<error.what()<<'\n';

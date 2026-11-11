@@ -1052,3 +1052,7 @@ Before a Git API ref update, require a concrete 40-character base tree SHA.
 Inspect the complete prospective inventory and baseline diff for unintended
 deletions, preserving the licence and every workflow. An omitted base tree
 creates a new tree and must never silently remove unchanged repository files.
+
+## Match worker transport
+
+Read docs/MATCH_PROPOSALS.md before changing match frames or HIP dispatch. Keep the separate magic, exact source binding, 64 KiB source, 4096 lane and existing generic channel limits. Retain sentinel initialization, independent parent byte checks, CPU comparison in the qualification child, matched device telemetry, exact resource/module cleanup and confirmed child exit. Tests declare CPU semantics truthfully. Automatic routing must reuse the evidence-aware recovery policy and exact retirement discipline. No matching device launch on the owner PC is authorized by a compile or CPU-channel result.
