@@ -52,6 +52,8 @@ WINDOWS_GPU_MEMORY_SOURCES = (
     ("windows-gpu-memory-query", "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo", "QueryVideoMemoryInfo", "NodeIndex"),
     ("windows-gpu-memory-info", "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info", "CurrentUsage", "process"),
     ("windows-gpu-memory-segments", "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ne-dxgi1_4-dxgi_memory_segment_group", "NON_LOCAL", "system"),
+    ("windows-host-memory-status", "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex", "GlobalMemoryStatusEx", "volatile"),
+    ("windows-host-memory-fields", "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex", "ullAvailPageFile", "commit"),
 )
 
 WINDOWS_ADAPTER_TOPOLOGY_SOURCES = (
@@ -316,7 +318,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
