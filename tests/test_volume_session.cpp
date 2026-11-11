@@ -177,6 +177,7 @@ void staged_matches(bool compact) {
   const auto prefix=data(8193,43);
   auto input=prefix;
   input.insert(input.end(),prefix.begin(),prefix.end());
+  auto extent=input;extent.resize(kNativeExtentBytes);
   f.session.truncate(f.rw,input.size());
   f.session.write(f.rw,0,input);
   f.session.begin_recompression(f.target,id(2),{}, {compact});
@@ -185,7 +186,7 @@ void staged_matches(bool compact) {
   for(std::size_t i=1;i<=count;++i) {
     auto work=f.session.next_recompression_input();
     auto progress=Progress::copying;
-    if(work && work->bytes==input) {
+    if(work && work->bytes==extent) {
       const StoreMatchProposal match{8193,8193,8193};
       progress=f.session.advance_recompression(work->object_id,{&match,1});
       offered=true;

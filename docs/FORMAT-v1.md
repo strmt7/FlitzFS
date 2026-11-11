@@ -282,4 +282,4 @@ CPU recovery attempt. See VOLUME_SESSION.md. This remains custom-backend
 engine work, with new exact-commit tests pending; no automatic maintenance,
 mounted/GPU integration, physical reclamation or power-loss claim follows.
 
-Compression match proposals are private encoder inputs. They introduce no codec ID, frame variant, persistent hint, root or container-format change. Accepted results use the existing bounded Zstandard store record and CPU reader.
+Native transactional-store compression match proposals are private encoder inputs. They introduce no codec ID, frame variant, persistent hint, root or container-format change. Accepted results use the existing bounded Zstandard store record and CPU reader.
