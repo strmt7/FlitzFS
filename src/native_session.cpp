@@ -306,7 +306,19 @@ bool NativeFileSession::stage_recompression(std::shared_ptr<StoreByteIo> target,
   return true;
 }
 
+std::optional<StoreRecompressionInput> NativeFileSession::next_recompression_input() const {
+  auto& self=ready();
+  if(!self.recompression || !self.writer.matches_recompression(self.recompression->rewrite))
+    return std::nullopt;
+  return NativeFilesystemWriter::next_recompression_input(self.recompression->rewrite);
+}
+
 NativeFileSession::RecompressionProgress NativeFileSession::advance_recompression() {
+  return advance_recompression(0,{});
+}
+
+NativeFileSession::RecompressionProgress NativeFileSession::advance_recompression(
+    std::uint64_t object_id,std::span<const StoreMatchProposal> matches) {
   auto& self=ready();
   if(!self.recompression)fail(E::invalid_options,"no staged recompression");
   if(!self.writer.matches_recompression(self.recompression->rewrite)) {
@@ -314,7 +326,7 @@ NativeFileSession::RecompressionProgress NativeFileSession::advance_recompressio
     return RecompressionProgress::stale;
   }
   try {
-    return NativeFilesystemWriter::advance_recompression(self.recompression->rewrite)?
+    return NativeFilesystemWriter::advance_recompression(self.recompression->rewrite,object_id,matches)?
         RecompressionProgress::ready:RecompressionProgress::copying;
   }catch(...){self.recompression.reset();throw;}
 }

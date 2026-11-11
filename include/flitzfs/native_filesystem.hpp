@@ -367,7 +367,8 @@ class NativeFilesystemWriter final {
       StoreCompressionOptions,StoreCheckpointOptions) const;
   bool matches_recompression(const Recompression&) const noexcept;
   std::uint64_t recompression_generation() const noexcept;
-  static bool advance_recompression(Recompression&);
+  static std::optional<StoreRecompressionInput> next_recompression_input(const Recompression&);
+  static bool advance_recompression(Recompression&,std::uint64_t,std::span<const StoreMatchProposal>);
   static void finish_recompression(Recompression&);
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;

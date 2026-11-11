@@ -7,6 +7,9 @@
 namespace flitzfs::detail {
 inline constexpr std::uint32_t kStoreRaw=0,kStoreZstd=1,kStoreZero=2,kStorePattern=3;
 inline constexpr std::size_t kStoreMaxPatternBytes=4096;
+inline constexpr std::size_t kStoreMaxMatchInputBytes=64U*1024U;
+inline constexpr std::size_t kStoreMaxMatchProposals=4096;
+bool store_match_sequences_available() noexcept;
 inline constexpr std::size_t kStoreEncoderMemoryCap=16U*1024U*1024U;
 inline constexpr std::size_t kStoreDecoderMemoryCap=2U*1024U*1024U;
 void validate_store_compression(StoreCompressionOptions options);
@@ -15,6 +18,7 @@ struct EncodedStoreObject {
   std::uint32_t codec=kStoreRaw;
   std::vector<std::byte> payload;
   Digest decoded_digest{};
+  bool used_match_proposals=false;
 };
 class StoreCodecDecoder final {
  public:
@@ -37,6 +41,7 @@ class StoreCodecEncoder final {
   StoreCodecEncoder& operator=(const StoreCodecEncoder&)=delete;
   // Takes ownership. Compression/round-trip validation finish before I/O.
   EncodedStoreObject encode(std::vector<std::byte> input);
+  EncodedStoreObject encode_with_matches(std::vector<std::byte> input,std::span<const StoreMatchProposal> matches);
   std::size_t peak_bytes() const noexcept;
  private:
   struct Impl;

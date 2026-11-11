@@ -833,6 +833,54 @@ void replicated_faults_and_fencing() {
   }
 }
 
+void proposed_matches() {
+  using namespace flitzfs::detail;
+  StoreCodecEncoder encoder({StoreCompressionMode::automatic,1,false});
+  StoreCodecDecoder reader;
+  bool accepted=false;
+  for(const std::uint32_t prefix_size:{513U,4097U,8193U,16385U}) {
+    Bytes prefix(prefix_size);
+    std::uint64_t random=0x4329b8752a41c96dULL;
+    for(auto& byte:prefix) {
+      random^=random<<13;random^=random>>7;random^=random<<17;
+      byte=static_cast<std::byte>(random&255U);
+    }
+    auto input=prefix;
+    input.insert(input.end(),prefix.begin(),prefix.end());
+    input.push_back(std::byte{0x7a});
+    const StoreMatchProposal match{prefix_size,prefix_size,prefix_size};
+    const auto cpu=encoder.encode(input);
+    const auto proposed=encoder.encode_with_matches(input,{&match,1});
+    require(proposed.payload.size()<=cpu.payload.size() &&
+        reader.decode(proposed.codec,proposed.payload,static_cast<std::uint32_t>(input.size()))==input,
+        "match proposal expanded or changed the record");
+    accepted=accepted || proposed.used_match_proposals;
+    const auto maximum=(std::numeric_limits<std::uint32_t>::max)();
+    const std::array bad{
+        StoreMatchProposal{prefix_size,0,prefix_size},
+        StoreMatchProposal{prefix_size,prefix_size+1,prefix_size},
+        StoreMatchProposal{maximum,1,4},
+        StoreMatchProposal{prefix_size,prefix_size,maximum},
+        StoreMatchProposal{prefix_size,prefix_size,3},
+        StoreMatchProposal{prefix_size,prefix_size-1,prefix_size},
+    };
+    const auto require_cpu=[&](std::span<const StoreMatchProposal> suggestions){
+      const auto rejected=encoder.encode_with_matches(input,suggestions);
+      require(!rejected.used_match_proposals&&rejected.codec==cpu.codec&&
+          rejected.payload==cpu.payload&&rejected.decoded_digest==cpu.decoded_digest,
+          "rejected proposals changed the CPU result");
+    };
+    for(const auto& invalid:bad)require_cpu({&invalid,1});
+    const std::array duplicate{match,match};
+    require_cpu(duplicate);
+    const std::vector oversized(kStoreMaxMatchProposals+1,match);
+    require_cpu(oversized);
+  }
+  require(accepted==store_match_sequences_available(),"reviewed sequence path was not exercised");
+  std::cout<<"Store match proposal evidence: sequence_api="<<store_match_sequences_available()
+      <<" accepted="<<accepted<<" gpu=0\n";
+}
+
 void history_cap() {
   auto ram=std::make_shared<Sparse>();auto writer=ObjectStoreWriter::create(ram,identity());
   const StoreMutation empty{1,false,{}};
@@ -845,7 +893,7 @@ void history_cap() {
 }
 int main() {
   try {
-    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();compacted_copies();compaction_faults();replicated_media_recovery();replicated_faults_and_fencing();history_cap();
+    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();compacted_copies();compaction_faults();replicated_media_recovery();replicated_faults_and_fencing();proposed_matches();history_cap();
     std::cout<<"PASS: "<<checks<<" object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\n";
     return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

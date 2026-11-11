@@ -369,3 +369,5 @@ handoff. It exercises retained handles and source-generation invalidation
 under the existing locked-RAM fixture. This controller receives explicit
 opportunities. Unattended scheduling and GPU execution still require
 qualification.
+
+Staged writes now have a [bounded match-proposal input](docs/MATCH_PROPOSALS.md) for an external accelerator. Candidates are CPU-verified and compared with the ordinary compression result before selection. Hardware production and speed qualification remain pending.

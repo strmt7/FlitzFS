@@ -570,3 +570,5 @@ rejects inadequate measured savings and avoids duplicate work on an
 acknowledged generation. Remaining work includes trusted event delivery,
 bounded final verification latency and workload-based codec selection with
 qualified AMD acceleration and immediate CPU fallback.
+
+The staged store encoder can consume bounded external match proposals and retain the smaller independently verified frame. Next, connect a source-bound AMD producer through the existing supervised worker and measure end-to-end costs and ratio on real workloads.

@@ -1,6 +1,7 @@
 #include "flitzfs/native_session.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_security_fixture.hpp"
+#include "store_codec.hpp"
 #include <iostream>
 #include <optional>
 #include <string_view>
@@ -170,6 +171,35 @@ void idle_recompression(bool compact) {
       f.session.read(f.ro,0,19)==data(19,12),"cancellation retried or lost foreground bytes");
 }
 
+void staged_matches(bool compact) {
+  using Progress=NativeFileSession::RecompressionProgress;
+  Fixture f(compact);
+  const auto prefix=data(8193,43);
+  auto input=prefix;
+  input.insert(input.end(),prefix.begin(),prefix.end());
+  f.session.truncate(f.rw,input.size());
+  f.session.write(f.rw,0,input);
+  f.session.begin_recompression(f.target,id(2),{}, {compact});
+  const auto count=f.session.snapshot().storage_info().objects;
+  bool offered=false;
+  for(std::size_t i=1;i<=count;++i) {
+    auto work=f.session.next_recompression_input();
+    auto progress=Progress::copying;
+    if(work && work->bytes==input) {
+      const StoreMatchProposal match{8193,8193,8193};
+      progress=f.session.advance_recompression(work->object_id,{&match,1});
+      offered=true;
+    } else progress=f.session.advance_recompression();
+    require(progress==(i==count?Progress::ready:Progress::copying),"staged match copy progress");
+  }
+  require(offered==flitzfs::detail::store_match_sequences_available()&&
+      !f.session.next_recompression_input(),"staged match input capability mismatch");
+  require(f.session.publish_recompression().selection.epoch==2&&
+      f.session.read(f.ro,0,65536)==input&&f.selected().filesystem().read("d/file",0,65536)==input,
+      "staged match publication changed retained bytes");
+  f.retire_contexts();
+}
+
 void invariants(bool compact){
   Fixture f(compact);f.expected_session();auto pinned=f.session.snapshot();const auto original=f.source->live;
   const auto before=f.session.stats();const auto alias=f.rw;
@@ -331,7 +361,7 @@ void recovery_faults(bool compact) {
 int main(int argc,char** argv){try{
   if(argc!=2)throw std::runtime_error("volume-session phase required");const std::string_view phase=argv[1];
   if(phase=="--invariants")for(bool compact:{false,true}) {
-    invariants(compact);staged_recompression(compact);idle_recompression(compact);
+    invariants(compact);staged_recompression(compact);idle_recompression(compact);staged_matches(compact);
   }
   else if(phase=="--maintenance-4096")maintenance_faults(true);
   else if(phase=="--maintenance-65536")maintenance_faults(false);

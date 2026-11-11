@@ -73,6 +73,13 @@ std::size_t pattern_period(std::span<const std::byte> input) {
   return period;
 }
 }
+bool store_match_sequences_available() noexcept {
+#ifdef FLITZFS_STORE_HAS_SEQUENCE_API
+  return ZSTD_versionNumber()==ZSTD_VERSION_NUMBER;
+#else
+  return false;
+#endif
+}
 void validate_store_compression(StoreCompressionOptions options) {
   if((options.mode!=StoreCompressionMode::raw && options.mode!=StoreCompressionMode::automatic) ||
       options.zstd_level<1 || options.zstd_level>9 ||
@@ -116,6 +123,24 @@ struct StoreCodecEncoder::Impl {
     (void)cap;
 #endif
   }
+#ifdef FLITZFS_STORE_HAS_ZSTD
+  ZSTD_CCtx* prepare_context() {
+    if(!context) {
+      context.reset(ZSTD_createCCtx_advanced(budget.callbacks()));
+      if(!context) fail("compressor memory admission");
+    }
+    auto* cctx=context.get();
+    checked(ZSTD_CCtx_reset(cctx,ZSTD_reset_session_and_parameters),"compressor reset");
+    checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_compressionLevel,options.zstd_level),"compression level");
+    checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_windowLog,20),"compression window");
+    checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_hashLog,18),"compression hash table");
+    checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_chainLog,18),"compression chain table");
+    checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_nbWorkers,0),"single-threaded compression");
+    checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_contentSizeFlag,1),"compression size field");
+    checked(ZSTD_CCtx_setParameter(cctx,ZSTD_c_checksumFlag,1),"compression checksum");
+    return cctx;
+  }
+#endif
 };
 StoreCodecDecoder::StoreCodecDecoder(std::size_t cap) {
   if(cap>kStoreDecoderMemoryCap) fail("decoder allocation cap exceeds hard ceiling");
@@ -189,19 +214,7 @@ EncodedStoreObject StoreCodecEncoder::encode(Bytes input) {
 #ifdef FLITZFS_STORE_HAS_ZSTD
   // Zero and a one-byte motif cannot be improved by a complete Zstandard frame.
   if(store_zstd_available() && result.codec!=kStoreZero && !(result.codec==kStorePattern && result.payload.size()==1)) {
-    if(!impl_->context) {
-      impl_->context.reset(ZSTD_createCCtx_advanced(impl_->budget.callbacks()));
-      if(!impl_->context) fail("compressor memory admission");
-    }
-    auto* context=impl_->context.get();
-    checked(ZSTD_CCtx_reset(context,ZSTD_reset_session_and_parameters),"compressor reset");
-    checked(ZSTD_CCtx_setParameter(context,ZSTD_c_compressionLevel,impl_->options.zstd_level),"compression level");
-    checked(ZSTD_CCtx_setParameter(context,ZSTD_c_windowLog,20),"compression window");
-    checked(ZSTD_CCtx_setParameter(context,ZSTD_c_hashLog,18),"compression hash table");
-    checked(ZSTD_CCtx_setParameter(context,ZSTD_c_chainLog,18),"compression chain table");
-    checked(ZSTD_CCtx_setParameter(context,ZSTD_c_nbWorkers,0),"single-threaded compression");
-    checked(ZSTD_CCtx_setParameter(context,ZSTD_c_contentSizeFlag,1),"compression size field");
-    checked(ZSTD_CCtx_setParameter(context,ZSTD_c_checksumFlag,1),"compression checksum");
+    auto* context=impl_->prepare_context();
     Bytes candidate(ZSTD_compressBound(input.size()));
     const auto n=ZSTD_compress2(context,candidate.data(),candidate.size(),input.data(),input.size());
     if(ZSTD_isError(n)) fail("bounded Zstandard compression failed");
@@ -218,6 +231,48 @@ EncodedStoreObject StoreCodecEncoder::encode(Bytes input) {
   if(decoded!=input) fail("compression round-trip mismatch");
   result.decoded_digest=record_digest(input);
   return result;
+}
+EncodedStoreObject StoreCodecEncoder::encode_with_matches(Bytes input,std::span<const StoreMatchProposal> matches) {
+#ifdef FLITZFS_STORE_HAS_SEQUENCE_API
+  if(store_match_sequences_available() && impl_->options.mode==StoreCompressionMode::automatic &&
+      input.size()<=kStoreMaxMatchInputBytes && !matches.empty() && matches.size()<=kStoreMaxMatchProposals) {
+    auto baseline=encode(Bytes(input));
+    // Zero and a one-byte motif cannot be beaten by a Zstandard frame.
+    if(baseline.payload.size()<16)return baseline;
+    try {
+      std::vector<ZSTD_Sequence> sequences;
+      sequences.reserve(matches.size());
+      std::uint32_t cursor=0;
+      for(const auto& match:matches) {
+        const auto [position,distance,length]=match;
+        if(position<cursor || position>input.size() || !distance || distance>position ||
+            length<4 || length>input.size()-position ||
+            !std::equal(input.begin()+position,input.begin()+position+length,input.begin()+position-distance))
+          return baseline;
+        sequences.push_back({distance,position-cursor,length,0});
+        cursor=position+length;
+      }
+      auto* context=impl_->prepare_context();
+      checked(ZSTD_CCtx_setParameter(context,ZSTD_c_validateSequences,1),"sequence validation");
+      checked(ZSTD_CCtx_setParameter(context,ZSTD_c_minMatch,4),"sequence minimum match");
+      Bytes candidate(ZSTD_compressBound(input.size()));
+      const auto n=ZSTD_compressSequences(context,candidate.data(),candidate.size(),
+          sequences.data(),sequences.size(),input.data(),input.size());
+      if(ZSTD_isError(n) || n>baseline.payload.size() || n+16>input.size())return baseline;
+      candidate.resize(n);
+      if(impl_->verifier.decode(kStoreZstd,candidate,static_cast<std::uint32_t>(input.size()))!=input)
+        return baseline;
+      return {kStoreZstd,std::move(candidate),record_digest(input),true};
+    }catch(const std::exception&) {
+      // An optional suggestion cannot prevent the ordinary CPU result.
+      impl_->context.reset();
+    }
+    return baseline;
+  }
+#else
+  (void)matches;
+#endif
+  return encode(std::move(input));
 }
 } // namespace detail
 } // namespace flitzfs
