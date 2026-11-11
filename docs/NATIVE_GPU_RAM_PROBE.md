@@ -152,3 +152,24 @@ verification. Its eight positions are: 0 before preparation, 1 request ready,
 2 synchronous exchange returned, 3 reply validated, 4 hinted record encoded,
 5 head published, 6 contexts closed, 7 independent verification complete.
 The zero-growth gate and no-owner-execution boundary remain unchanged.
+
+The finer trace (61f16ad, run 43023245074, artifact 13856376160,
+SHA256 bd3d8ef8f049bbaa03b671d25c0dafcaa8a928952db2f540c093163478d464cd)
+recorded match phases [98,98,99,99,99,99,99,99]. The retained handle therefore
+appears during synchronous exchange, before reply validation and hinted
+encoding. Its ownership/type remains unknown.
+
+The next hosted-only diagnostic captures only its own handle table before and
+after, using PssCaptureSnapshot without VA cloning, thread capture or context
+capture. It admits at most 256 handles and emits at most 32 type counts;
+object names are not emitted. Capture/walk ownership is released with the
+documented APIs. CPU-fixture success is deliberately refused during this
+diagnostic even if snapshot initialization changes the observed delta.
+No diagnostic binary is promoted to the owner. API declarations were inspected
+in Microsoft's current win32metadata ProcessSnapshot.h, exact blob
+2afedd9b780837c3717770481fbd2e4a6471d08b, through the native GitHub API.
+
+A separate source-evidence check at 61f16ad exceeded the existing 2-MiB archive
+cap by 1,391 bytes (2,098,543 total). The source workflow now requests Git ZIP
+compression level 9; it retains the exact archive bound and source-byte hashes.
+Whether that is sufficient still requires its executed workflow result.

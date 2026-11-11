@@ -5,6 +5,8 @@
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/match_worker_wire.hpp"
 #include <array>
+#include <ProcessSnapshot.h>
+#include <map>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -73,6 +75,53 @@ class Report final {
  private:
   HANDLE handle_=INVALID_HANDLE_VALUE;bool written_=false;
 };
+using HandleTypes=std::map<std::string,unsigned>;
+HandleTypes handles_before_types,handles_after_types;
+HandleTypes handle_types() {
+  DWORD count=0;
+  require(GetProcessHandleCount(GetCurrentProcess(),&count)&&count<=256,"handle snapshot admission cap");
+  struct Capture {
+    HPSS value=nullptr;
+    ~Capture(){if(value&&PssFreeSnapshot(GetCurrentProcess(),value)!=ERROR_SUCCESS)ram::cleanup_ok=false;}
+  } snapshot;
+  require(PssCaptureSnapshot(GetCurrentProcess(),PSS_CAPTURE_HANDLES|PSS_CAPTURE_HANDLE_NAME_INFORMATION|
+      PSS_CAPTURE_HANDLE_BASIC_INFORMATION,0,&snapshot.value)==ERROR_SUCCESS,"handle snapshot capture");
+  PSS_HANDLE_INFORMATION info{};
+  require(PssQuerySnapshot(snapshot.value,PSS_QUERY_HANDLE_INFORMATION,&info,sizeof(info))==ERROR_SUCCESS &&
+      info.HandlesCaptured<=256,"captured handle cap");
+  struct Marker {
+    HPSSWALK value=nullptr;
+    ~Marker(){if(value&&PssWalkMarkerFree(value)!=ERROR_SUCCESS)ram::cleanup_ok=false;}
+  } marker;
+  require(PssWalkMarkerCreate(nullptr,&marker.value)==ERROR_SUCCESS,"handle snapshot marker");
+  HandleTypes types;unsigned walked=0;
+  for(;;) {
+    PSS_HANDLE_ENTRY entry{};
+    const auto status=PssWalkSnapshot(snapshot.value,PSS_WALK_HANDLES,marker.value,&entry,sizeof(entry));
+    if(status==ERROR_NO_MORE_ITEMS)break;
+    require(status==ERROR_SUCCESS&&++walked<=256,"handle snapshot walk bound");
+    std::string name="unknown";
+    if((entry.Flags&PSS_HANDLE_HAVE_TYPE)!=0&&entry.TypeName) {
+      require(entry.TypeNameLength%sizeof(wchar_t)==0 && entry.TypeNameLength<=96,"handle type-name cap");
+      name.clear();
+      for(std::size_t i=0;i<entry.TypeNameLength/sizeof(wchar_t);++i) {
+        const auto ch=entry.TypeName[i];
+        require((ch>=L'a'&&ch<=L'z')||(ch>=L'A'&&ch<=L'Z')||(ch>=L'0'&&ch<=L'9')||
+            ch==L' '||ch==L'_',"handle type-name alphabet");
+        name+=static_cast<char>(ch);
+      }
+    }
+    ++types[name];
+    require(types.size()<=32,"handle type inventory cap");
+  }
+  require(walked==info.HandlesCaptured,"incomplete handle snapshot walk");
+  return types;
+}
+void print_handle_types(std::ostream& out,const HandleTypes& types) {
+  out<<'{';bool first=true;
+  for(const auto& [name,count]:types){if(!first)out<<',';first=false;out<<'"'<<name<<"\":"<<count;}
+  out<<'}';
+}
 StoreIdentity identity(unsigned n){StoreIdentity id{};id[0]=static_cast<std::byte>(n);id[1]=std::byte{73};return id;}
 std::uint64_t elapsed(std::chrono::steady_clock::time_point start) {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -289,6 +338,7 @@ int wmain(int argc,wchar_t** argv) {
     warm_transport(worker);
     const auto warmup_ns=elapsed(warming);
     DWORD before=0,after=0;
+    if(!worker.driver)handles_before_types=handle_types();
     require(GetProcessHandleCount(GetCurrentProcess(),&before),"handle baseline");handle_trace[0]=before;
     require(store_zstd_available(),"native GPU/RAM probe requires qualified Zstandard");
     Sample cpu,proposed;
@@ -309,6 +359,7 @@ int wmain(int argc,wchar_t** argv) {
         "resident/worker cleanup unconfirmed");
     require(GetProcessHandleCount(GetCurrentProcess(),&after),"final handle observation");
     handle_trace[5]=after;
+    if(!worker.driver)handles_after_types=handle_types();
     if(before!=after && !worker.driver) {
       // Diagnostics ONLY after the strict gate has already failed, hosted CPU
       // fixtures only. Preserve the original assertion; never promote this run.
@@ -322,6 +373,7 @@ int wmain(int argc,wchar_t** argv) {
       resident.restore();
     }
     require(before==after,"native GPU/RAM handle growth");
+    require(worker.driver,"handle inventory diagnostic is not qualification");
     std::ostringstream out;out.imbue(std::locale::classic());
     out<<"{\"schema\":1,\"experimental\":true,\"commit\":\""<<FLITZFS_GPU_RAM_SOURCE_COMMIT
         <<"\",\"backing\":\"locked_RAM_model\",\"mounted\":false,\"gpu_requested\":"<<(worker.driver?"true":"false")
@@ -351,7 +403,8 @@ int wmain(int argc,wchar_t** argv) {
       for(std::size_t i=0;i<handle_trace.size();++i){if(i)out<<',';out<<handle_trace[i];}
       out<<"],\"match_handle_trace\":[";
       for(std::size_t i=0;i<match_handle_trace.size();++i){if(i)out<<',';out<<match_handle_trace[i];}
-      out<<"]}\n";
+      out<<"],\"handle_types_before\":";print_handle_types(out,handles_before_types);
+      out<<",\"handle_types_after\":";print_handle_types(out,handles_after_types);out<<"}\n";
       report->write(out.str());
     }catch(...){}
     std::cerr<<"Native GPU/RAM probe failed: "<<text<<'\n';return 1;
