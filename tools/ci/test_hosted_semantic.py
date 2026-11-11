@@ -15,6 +15,20 @@ import warnings
 import zipfile
 import hosted_semantic as subject
 
+class QueryGroups(unittest.TestCase):
+    def test_closed_groups_preserve_default_and_bound_maintenance_queries(self):
+        self.assertEqual(set(subject.QUERY_GROUPS),{"filesystem","maintenance"})
+        self.assertIs(subject.QUERY_GROUPS["filesystem"],subject.QUERIES)
+        self.assertEqual(len(subject.QUERIES),8)
+        self.assertEqual(len(subject.QUERY_GROUPS["maintenance"]),2)
+        for queries in subject.QUERY_GROUPS.values():
+            self.assertEqual(len(queries),len(set(queries)))
+            self.assertTrue(all(isinstance(query,str) and 0<len(query)<=512 for query in queries))
+    def test_unreviewed_group_fails_before_source_access_or_commands(self):
+        provider=object.__new__(subject.Provider)
+        with self.assertRaisesRegex(RuntimeError,"unreviewed semantic query group"):
+            provider.route("unused","arbitrary")
+
 class Admission(unittest.TestCase):
     def setUp(self):
         self.fixture=tempfile.TemporaryDirectory(prefix="flitzfs-semantic-admission-",dir=os.environ["RUNNER_TEMP"])
