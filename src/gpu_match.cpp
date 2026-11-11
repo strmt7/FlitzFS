@@ -10,15 +10,16 @@ PreparedGpuMatchSearch PreparedGpuMatchSearch::prepare(std::span<const std::byte
   PreparedGpuMatchSearch plan;
   plan.input_.assign(input.begin(),input.end());
   plan.previous_.assign(input.size(),match_detail::no_previous);
+  const std::span<const std::byte> owned(plan.input_);
   // Exact 4-byte prefix and position keys reproduce the reference's ordered
   // predecessor index. Temporary keys occupy at most 512 KiB on the CPU.
   std::vector<std::uint64_t> keys;
-  if(input.size()<4)return plan;
-  keys.reserve(input.size()-3);
-  for(std::uint32_t position=0;position+4<=input.size();++position) {
+  if(owned.size()<4)return plan;
+  keys.reserve(owned.size()-3);
+  for(std::uint32_t position=0;position+4<=owned.size();++position) {
     std::uint32_t word=0;
     for(unsigned byte=0;byte<4;++byte)
-      word|=std::uint32_t(std::to_integer<unsigned char>(input[position+byte]))<<(byte*8);
+      word|=std::uint32_t(std::to_integer<unsigned char>(owned[position+byte]))<<(byte*8);
     keys.push_back((std::uint64_t(word)<<16)|position);
   }
   std::sort(keys.begin(),keys.end());
