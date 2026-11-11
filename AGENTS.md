@@ -1,5 +1,45 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Owner product contract: automatic resources and two-stage compression
+
+Owner clarification, 11 November 2026. These are required product behaviors;
+they do not relax the current experimental, RAM-only, no-driver-change or
+resource-safety gates.
+
+- Discover supported CPU/GPU capabilities, RAM, storage and dependencies at
+  runtime. Adjust to live physical/commit/VRAM headroom, CPU/GPU load and measured
+  workload costs. Never use the owner's model names, memory sizes, drive letters
+  or one benchmark result as universal product defaults.
+- Foreground writes must retain useful lossless compression and high throughput.
+  Stronger foreground compression is desirable when a qualified GPU and current
+  resources provide a measured overall benefit. GPU presence alone, nominal
+  core counts or a fixed maximum level cannot determine the policy.
+- Later background work must analyze related files collectively and learn better
+  compression/layout strategies. Use bounded local workload learning, measured
+  outcomes and meaningful quiet opportunities; maintain very low priority and
+  yield promptly to foreground demand or resource pressure.
+- Select work units, queues, memory allowances, batch sizes and compression
+  strength automatically within independently enforced safety ceilings. Known
+  small experimental ceilings remain ceilings, not target allocations or
+  assumptions about the final host's capacity.
+- Keep learning over time from observed workloads and small, strictly bounded
+  idle microbenchmarks. Reserve a small internal optimization area, sized within
+  actual volume/resource limits, for persistent parameters, observations and
+  progress. Only the appropriate controlled helper/driver transaction path may
+  update it; no raw-offset writes or arbitrary user edits.
+- Give the reserved optimization area explicit crash-safe publication, integrity
+  and verified recovery/repair rules, including incomplete writes. Advisory state
+  may be rebuilt; dictionaries/models needed to decode committed data must remain
+  protected, immutable/versioned dependencies with safe lifetime management.
+- Learning advises a checked storage mechanism. Candidate bytes, source identity,
+  recovery and transactional publication must remain independently verified.
+  Preserve CPU fallback and acknowledged data through GPU/model failures.
+- Distinguish implemented primitives from the final autonomous AI-driven system.
+  No speed/compression-superiority or universal-safety claim follows from a tiny
+  GPU result, a fixed heuristic or an advisory prototype.
+
+See docs/COMPRESSION_STRATEGY.md and docs/AUTONOMOUS_MAINTENANCE.md.
+
 ## Non-negotiable safety constraints
 
 The owner's highest-priority requirements are: **do not format or repartition drives; do not damage existing data; do not freeze the system; do not exhaust RAM, VRAM, CPU, or disk space.** Treat any unverified claim of safety as a blocker, not an invitation to take a risk. An isolated test is preferred to any risky test on the owner's Windows PC.
