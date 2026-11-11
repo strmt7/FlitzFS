@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "classification": "experimental resource-policy source research, not performance qualification",
+  "date": "2026-11-11",
+  "run": 43005349149,
+  "job": 130471337943,
+  "artifact": 13846989890,
+  "artifact_sha256": "c3f575d42d2f9019294473a8c5067bb72f16aed84840f74fd8fc3d7bbdba872d",
+  "receipt_sha256": "35dcc13bc83c8b0830184e47159347e2d34f7dd7c9886954d4172adf7c62c4f9",
+  "receipt": {
+    "experimental": true,
+    "commit": "a8fa5798c52848ad706fa0883a0844e0fbb2e127",
+    "provider_repository": "strmt7/FlitzZip",
+    "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "python": "3.13.18 (main, Oct 26 2026, 14:20:56) [GCC 13.3.0]",
+    "source_group": "windows-gpu-memory",
+    "limits": {
+      "memory_max": 3221225472,
+      "tasks_max": 256,
+      "cpu_max": [
+        200000,
+        100000
+      ]
+    },
+    "page_timeout_seconds": 45,
+    "robots_checked": true,
+    "external_llm": false,
+    "persistent_profile": false,
+    "sources": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 22738,
+        "markdown_sha256": "23d17abb272c6cf2c7d979fd12b4a9e81ef7a7437e02dfb4eaa7af5f2280a4f5",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.987,
+        "capture": "windows-gpu-memory-query.native.json",
+        "capture_sha256": "8e412e844df0a1eafa5ebae32773dd821dae5ab6562690512d2b7c1b0f76a6ab",
+        "name": "windows-gpu-memory-query"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 20261,
+        "markdown_sha256": "f03e09aaeff388d79d4938d3f5553c983d55c220351f10daa778e1847c23a769",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.614,
+        "capture": "windows-gpu-memory-info.native.json",
+        "capture_sha256": "bcd33871cff4142498cbedfbb6816f7a1c5eb0167579d1aa9b6acb34b232c70d",
+        "name": "windows-gpu-memory-info"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ne-dxgi1_4-dxgi_memory_segment_group",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 19754,
+        "markdown_sha256": "730ab00d899990f7b46f608241d64638ef56967cf8a38f5afea6e251515eecd6",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.816,
+        "capture": "windows-gpu-memory-segments.native.json",
+        "capture_sha256": "bd904c531ae0e25b0c2789ef9af54c07ae9eae1a5d92864f792028063b5d1b4c",
+        "name": "windows-gpu-memory-segments"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 23622,
+        "markdown_sha256": "4a58d85f38a57de20736457ddf0d08c18ecd6e2b04bbf9efbf5798d60a04b28c",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.717,
+        "capture": "windows-host-memory-status.native.json",
+        "capture_sha256": "99751727531475081875e360ab5b7988b0e5c2c2d18cea6538fa0a1698b1cd54",
+        "name": "windows-host-memory-status"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 22797,
+        "markdown_sha256": "f69854aa50b2aee80efe504ed0d9b5962e9a13f1c3d71b64312c7347ab2074ac",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.644,
+        "capture": "windows-host-memory-fields.native.json",
+        "capture_sha256": "627c9a04c1c46d50a8613f13c3c53337163c9cdd76767b1fafa3d08f7ab5d1a3",
+        "name": "windows-host-memory-fields"
+      }
+    ]
+  },
+  "reviews": [
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex",
+      "capture_sha256": "99751727531475081875e360ab5b7988b0e5c2c2d18cea6538fa0a1698b1cd54",
+      "provider": "0.9.5+flitzzip.portable2",
+      "http_status": 200,
+      "substantive_article_read": true,
+      "rendered_revision": "2024-02-22",
+      "publisher_updated_at": "2025-07-01T18:41:00Z",
+      "summary": "GlobalMemoryStatusEx is a read-only observation of current physical/virtual memory. Its values can change between calls; a snapshot does not reserve capacity."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-memorystatusex",
+      "capture_sha256": "627c9a04c1c46d50a8613f13c3c53337163c9cdd76767b1fafa3d08f7ab5d1a3",
+      "provider": "0.9.5+flitzzip.portable2",
+      "http_status": 200,
+      "substantive_article_read": true,
+      "rendered_revision": "2024-02-22",
+      "publisher_updated_at": "2024-02-22T19:54:00Z",
+      "summary": "Physical availability includes reusable memory across NUMA nodes. TotalPageFile is the smaller system/process commit limit; AvailPageFile is the amount this process can commit, not a system-wide free-memory counter."
+    }
+  ],
+  "limitations": [
+    "Current captures of official API contracts; older publication/revision dates are retained, not represented as new November 2026 publications.",
+    "Process budget growth does not prove per-allocation eviction.",
+    "Reserve fractions are an engineering candidate requiring qualification, not Microsoft recommendations or learned optimal parameters."
+  ]
+}

@@ -63,7 +63,9 @@ GpuBatchReply emulate(const PreparedGpuBatch& b,std::uint64_t generation=1) {
 GpuMemorySnapshot snapshot(std::uint64_t ms=1000) {
   GpuMemorySnapshot s;s.valid=true;s.amd_hardware=true;s.luid[0]=std::byte{7};s.node_mask=1;
   s.captured_ms=ms;s.dedicated_bytes=16ULL<<30;s.local_budget=8ULL<<30;
-  s.local_usage=1ULL<<30;s.nonlocal_usage=1024;return s;
+  s.local_usage=1ULL<<30;s.nonlocal_usage=1024;
+  s.nonlocal_budget=8ULL<<30;s.physical_total=16ULL<<30;s.physical_available=8ULL<<30;
+  s.commit_limit=32ULL<<30;s.commit_available=16ULL<<30;return s;
 }
 void accepted(const PreparedGpuBatch& batch) {
   auto s=snapshot();GpuResultGate gate(batch,s.luid,s.node_mask);
@@ -75,8 +77,76 @@ void accepted(const PreparedGpuBatch& batch) {
   check(std::equal(gate.accepted_bytes().begin(),gate.accepted_bytes().end(),batch.cpu_reference().begin()),"accepted output parity");
   check(gate.complete(emulate(batch,attempt.generation),snapshot(1002),1002)==GpuGateCode::wrong_state,"duplicate completion accepted");
 }
+void memory_envelopes() {
+  auto before=snapshot();before.nonlocal_usage=0;
+  const auto envelope=gpu_memory_envelope(before);
+  check(envelope.code==GpuGateCode::admitted && envelope.local_reserve==(512ULL<<20) &&
+      envelope.physical_reserve==(1ULL<<30) && envelope.commit_reserve==(2ULL<<30) &&
+      envelope.nonlocal_growth==(28ULL<<20),"independent resource envelope oracle");
+  // Growing hardware capacity/headroom changes the bound; no owner specs are used.
+  auto large=before;large.physical_total*=2;large.physical_available*=2;
+  large.commit_limit*=2;large.commit_available*=2;
+  check(gpu_memory_envelope(large).nonlocal_growth==(56ULL<<20),"capacity adaptation");
+  auto after=before;after.captured_ms++;
+  after.nonlocal_usage=28ULL<<20;
+  check(check_gpu_memory_transition(before,after,before.luid,1,1001,0)==GpuGateCode::admitted,
+      "exact bounded shared growth rejected");
+  ++after.nonlocal_usage;
+  check(check_gpu_memory_transition(before,after,before.luid,1,1001,0)==GpuGateCode::nonlocal_growth,
+      "one-byte over envelope accepted");
+  after=before;after.captured_ms++;after.nonlocal_usage=1ULL<<20;
+  after.physical_available=(1ULL<<30)+(128ULL<<20);
+  check(check_gpu_memory_transition(before,after,before.luid,1,1001,0)==GpuGateCode::nonlocal_growth,
+      "falling physical headroom retained old growth allowance");
+  after=before;after.captured_ms++;after.nonlocal_usage=1ULL<<20;
+  after.commit_available=(2ULL<<30)+(128ULL<<20);
+  check(check_gpu_memory_transition(before,after,before.luid,1,1001,0)==GpuGateCode::nonlocal_growth,
+      "falling process commit retained old growth allowance");
+  for(unsigned field=0;field<9;++field) {
+    auto bad=before;
+    switch(field) {
+      case 0:bad.nonlocal_budget=0;break;
+      case 1:bad.nonlocal_usage=bad.nonlocal_budget+1;break;
+      case 2:bad.physical_total=0;break;
+      case 3:bad.physical_available=bad.physical_total+1;break;
+      case 4:bad.commit_limit=0;break;
+      case 5:bad.commit_available=bad.commit_limit+1;break;
+      case 6:bad.physical_available=0;break;
+      case 7:bad.commit_available=0;break;
+      case 8:bad.nonlocal_usage=bad.nonlocal_budget;break;
+    }
+    const auto expected=field<6 && field!=1?GpuGateCode::invalid_budget:GpuGateCode::insufficient_headroom;
+    check(check_gpu_memory_budget(bad,before.luid,1,1000,0)==expected,"malformed/pressured resource observation");
+  }
+  check(gpu_memory_envelope(before,(std::numeric_limits<std::uint64_t>::max)()).code==
+      GpuGateCode::insufficient_headroom,"allocation arithmetic overflow");
+  after=before;after.captured_ms=999;
+  check(check_gpu_memory_transition(before,after,before.luid,1,1000,0)==GpuGateCode::stale_budget,
+      "pre-submission transition accepted");
+  after=before;after.captured_ms=1001;after.dedicated_bytes++;
+  check(check_gpu_memory_transition(before,after,before.luid,1,1001,0)==GpuGateCode::wrong_adapter,
+      "changed device capacity accepted");
+  // Original baseline remains in force across intermediate observations.
+  auto middle=before;middle.captured_ms=1001;middle.nonlocal_usage=16ULL<<20;
+  after=before;after.captured_ms=1002;after.nonlocal_usage=32ULL<<20;
+  check(check_gpu_memory_transition(before,middle,before.luid,1,1001,0)==GpuGateCode::admitted &&
+      check_gpu_memory_transition(before,after,before.luid,1,1002,0)==GpuGateCode::nonlocal_growth,
+      "moving intermediate baseline hid cumulative growth");
+  // Safe synthetic result is still byte-verified and terminal on CPU fallback.
+  const auto plan=prepare({fill(8192,51)});
+  GpuResultGate gate(plan,before.luid,1);
+  const auto attempt=gate.begin(true,before,1000);
+  after=before;after.captured_ms++;after.nonlocal_usage=16ULL<<20;
+  check(attempt.code==GpuGateCode::admitted &&
+      gate.complete(emulate(plan,attempt.generation),after,1001)==GpuGateCode::accepted,
+      "bounded growth did not reach independent result verification");
+  const auto cpu=gate.use_cpu_fallback();
+  check(cpu.size()==plan.cpu_reference().size() && gate.accepted_bytes().empty(),
+      "CPU fallback retained an accepted candidate");
+}
 }
 int main(){try{
+  memory_envelopes();
   module_contract();
   static_assert(!std::is_copy_constructible_v<GpuResultGate> && !std::is_move_constructible_v<GpuResultGate>);
   for(unsigned n:{1U,2U,3U,4095U,4096U,4097U,8191U,8192U,8193U,65535U,65536U}){
@@ -121,15 +191,15 @@ int main(){try{
   {auto s=good;s.amd_hardware=false;denied(s,GpuGateCode::invalid_budget);}
   {auto s=good;s.node_mask=3;denied(s,GpuGateCode::invalid_budget);}
   {auto s=good;s.local_budget=s.dedicated_bytes+1;denied(s,GpuGateCode::invalid_budget);}
-  {auto s=good;s.local_usage=s.local_budget+1;denied(s,GpuGateCode::invalid_budget);}
+  {auto s=good;s.local_usage=s.local_budget+1;denied(s,GpuGateCode::insufficient_headroom);}
   {auto s=good;s.local_budget=0;denied(s,GpuGateCode::invalid_budget);}
   {auto s=good;s.luid[1]=std::byte{1};denied(s,GpuGateCode::wrong_adapter);}
   {auto s=good;s.node_mask=2;denied(s,GpuGateCode::wrong_adapter);}
   {auto s=good;s.captured_ms=949;denied(s,GpuGateCode::stale_budget);}
   {auto s=good;s.captured_ms=1001;denied(s,GpuGateCode::stale_budget);}
-  {auto s=good;s.local_usage=s.local_budget-kGpuBudgetReserveBytes;denied(s,GpuGateCode::insufficient_headroom);}
-  {auto s=good;s.local_usage=s.local_budget-kGpuBudgetReserveBytes-batch.device_buffer_bytes()+1;denied(s,GpuGateCode::insufficient_headroom);}
-  {auto s=good;s.local_usage=s.local_budget-kGpuBudgetReserveBytes-batch.device_buffer_bytes();
+  {auto s=good;s.local_usage=s.local_budget-(512ULL<<20);denied(s,GpuGateCode::insufficient_headroom);}
+  {auto s=good;s.local_usage=s.local_budget-(512ULL<<20)-batch.device_buffer_bytes()+1;denied(s,GpuGateCode::insufficient_headroom);}
+  {auto s=good;s.local_usage=s.local_budget-(512ULL<<20)-batch.device_buffer_bytes();
     GpuResultGate gate(batch,s.luid,1);check(gate.begin(true,s,1000).code==GpuGateCode::admitted,"exact memory headroom rejected");}
   rejects([&]{GpuResultGate gate(batch,{},1);});rejects([&]{GpuResultGate gate(batch,good.luid,0);});
   for(unsigned ms:{0U,101U,0xffffffffU})rejects([&]{GpuResultGate gate(batch,good.luid,1,ms);});
@@ -148,7 +218,7 @@ int main(){try{
   failed([](auto& r,auto&,auto&){r.status.pop_back();},GpuGateCode::invalid_output);
   failed([](auto& r,auto&,auto&){r.status[0]=gpu_detail::pending;},GpuGateCode::task_failed);
   failed([](auto& r,auto&,auto&){r.bytes.back()^=std::byte{1};},GpuGateCode::mismatch);
-  failed([](auto&,auto& a,auto&){++a.nonlocal_usage;},GpuGateCode::nonlocal_growth);
+  failed([](auto&,auto& a,auto&){a.nonlocal_usage+=29ULL<<20;},GpuGateCode::nonlocal_growth);
   failed([](auto&,auto& a,auto&){a.local_budget=a.local_usage;},GpuGateCode::insufficient_headroom);
   failed([](auto&,auto&,auto& now){now=1100;},GpuGateCode::expired);
   failed([](auto&,auto&,auto& now){now=999;},GpuGateCode::expired);

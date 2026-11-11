@@ -695,3 +695,16 @@ report a typed compute refusal as metadata after successful module retirement
 and confirmed process exit. A zero diagnostic exit is transport completion, not
 compute admission. It never returns candidate data, retries automatically or
 weakens any memory/residency rule. Default operations remain CPU-only.
+
+## Live resource-envelope qualification boundary
+
+GPU_RESOURCE_ENVELOPE.md replaces the experimental zero-growth predicates with
+one original-baseline, headroom-derived policy. Incomplete allocating-process
+physical/commit or segment telemetry fails closed. Valid budgets shrinking
+below usage are pressure, not proof of a broken device. The shared-growth bound
+is re-evaluated against current headroom; CPU comparison, small batches, terminal
+fallback and confirmed retirement remain mandatory. The implementation needs
+exact-source hosted CPU/Windows/SDK qualification before any new owner GPU
+trial. It changes no owner mounting, driver, resource-cap or RAM-only boundary.
+The fixed historical diagnostic wire omits host fields and cannot authorize
+admission. This is not an AI governor or protection against all driver faults.

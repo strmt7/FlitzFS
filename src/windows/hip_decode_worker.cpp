@@ -105,7 +105,7 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
   const auto before = query_windows_gpu_budget(luid, node_mask).snapshot;
   if(observation){observation->snapshots[1]=before;observation->captured|=2;}
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,
-      HipMemoryPoint::initialized,before_init.nonlocal_usage);
+      HipMemoryPoint::initialized,&before_init);
   hip_detail::check_hip(api.create_stream(&resources.stream, hipStreamNonBlocking, least),
       "create stream", HipWorkerStage::stream_create);
 
@@ -151,8 +151,8 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
   if(observation)observation->cpu_verified_bytes=reference.size();
   const auto after = query_windows_gpu_budget(luid, node_mask).snapshot;
   if(observation){observation->snapshots[2]=after;observation->captured|=4;}
-  require_hip_memory(after,luid,node_mask,GetTickCount64(),0,
-      HipMemoryPoint::completed,before.nonlocal_usage);
+  require_hip_memory(after,luid,node_mask,GetTickCount64(),allocation,
+      HipMemoryPoint::completed,&before_init);
   check_hip(resources.release_all(), "release HIP batch");
   if(observation)observation->flags|=hip_memory_admitted;
   return reply;
@@ -177,7 +177,7 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   DeviceResources resources(api);
   const auto before=query_windows_gpu_budget(luid,node_mask).snapshot;
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,
-      HipMemoryPoint::initialized,before_init.nonlocal_usage);
+      HipMemoryPoint::initialized,&before_init);
   hip_detail::check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),
       "create match stream",HipWorkerStage::stream_create);
   // Every unwritten lane is invalid at CPU admission.
@@ -214,8 +214,8 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
     throw HipWorkerFailure(HipWorkerExit::integrity_failure,"HIP match output failed CPU verification");
   }
   const auto after=query_windows_gpu_budget(luid,node_mask).snapshot;
-  require_hip_memory(after,luid,node_mask,GetTickCount64(),0,
-      HipMemoryPoint::completed,before.nonlocal_usage);
+  require_hip_memory(after,luid,node_mask,GetTickCount64(),allocation,
+      HipMemoryPoint::completed,&before_init);
   check_hip(resources.release_all(),"release HIP matches");
   return matches;
 }

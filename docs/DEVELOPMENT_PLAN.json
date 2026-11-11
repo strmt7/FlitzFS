@@ -48,7 +48,7 @@
       "depends": [
         "P00"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "deliverables": [
         "Define one shared memory/admission contract for worker, core result gate and match controller. Collect current physical and commit headroom, both DXGI segment budgets/usages, workload footprint, identity and freshness.",
         "Derive bounded envelopes from those observations and independently enforced safety limits. Distinguish supported temporary resource pressure from unknown device faults; preserve immediate CPU-byte selection, event/evidence-driven retry, quiescence and terminal per-request behavior.",
@@ -59,7 +59,13 @@
         "Exercise all three admission sites with identical cases; raw-only, codec, sanitizers, Windows native/worker fixtures and SDK compilation.",
         "After exact-source disposable-VM qualification and harness audit, at most a tiny synthetic owner test with confirmed cleanup. No unchanged retries."
       ],
-      "exit": "A bounded successful candidate is admitted when justified by fresh evidence; every unknown or unsafe case returns independently verified CPU bytes without repeated device searches. This is not proof of native compression speed."
+      "exit": "A bounded successful candidate is admitted when justified by fresh evidence; every unknown or unsafe case returns independently verified CPU bytes without repeated device searches. This is not proof of native compression speed.",
+      "checkpoint": {
+        "behavior": "Shared resource envelope, allocating-process physical/commit telemetry and original-baseline growth policy implemented in the publishing commit.",
+        "qualification": "Pending exact-source CPU/raw/sanitizer/Windows/SDK results; no owner GPU run of the new policy.",
+        "remaining": "Qualify implementation, audit harness, then a tiny actual accepted result; full CPU/GPU/load governor remains A01.",
+        "contract": "docs/GPU_RESOURCE_ENVELOPE.md"
+      }
     },
     {
       "id": "D01",

@@ -72,17 +72,60 @@ GpuResultGate::GpuResultGate(PreparedGpuBatch batch,std::array<std::byte,8> luid
   if(!identity(luid) || !node(mask) || !ms || ms>100 || batch_.tasks().empty())
     throw std::invalid_argument("invalid GPU result gate identity/deadline");
 }
+GpuMemoryEnvelope gpu_memory_envelope(const GpuMemorySnapshot& s,
+    std::uint64_t additional) noexcept {
+  GpuMemoryEnvelope e;
+  if(!s.valid || !s.amd_hardware || !identity(s.luid) || !node(s.node_mask) ||
+      !s.dedicated_bytes || !s.local_budget || s.local_budget>s.dedicated_bytes ||
+      !s.nonlocal_budget ||
+      !s.physical_total || s.physical_available>s.physical_total ||
+      !s.commit_limit || s.commit_available>s.commit_limit) return e;
+  e.local_reserve=(std::max)(kGpuBudgetReserveBytes,s.local_budget/16);
+  e.physical_reserve=(std::max)(kGpuBudgetReserveBytes,s.physical_total/16);
+  e.commit_reserve=(std::max)(kGpuBudgetReserveBytes,s.commit_limit/16);
+  e.code=GpuGateCode::insufficient_headroom;
+  // Budgets may shrink below current usage: that is pressure, not corrupt
+  // telemetry or proof of a failed device. Check before unsigned subtraction.
+  if(s.local_usage>s.local_budget || s.nonlocal_usage>s.nonlocal_budget)return e;
+  const auto local=s.local_budget-s.local_usage;
+  const auto shared=s.nonlocal_budget-s.nonlocal_usage;
+  const auto shared_reserve=s.nonlocal_budget/16;
+  if(local<e.local_reserve || additional>local-e.local_reserve ||
+      s.physical_available<e.physical_reserve || additional>s.physical_available-e.physical_reserve ||
+      s.commit_available<e.commit_reserve || additional>s.commit_available-e.commit_reserve ||
+      shared<shared_reserve || additional>shared-shared_reserve) return e;
+  // At most 1/256 of remaining physical/commit capacity and 1/64 of remaining
+  // nonlocal process budget, after reserves and explicit device allocations.
+  // Subtract only after bounds checks; no multiplication/addition can overflow.
+  e.nonlocal_growth=(std::min)({(shared-shared_reserve-additional)/64,
+      (s.physical_available-e.physical_reserve-additional)/256,
+      (s.commit_available-e.commit_reserve-additional)/256});
+  e.code=GpuGateCode::admitted;return e;
+}
 GpuGateCode check_gpu_memory_budget(const GpuMemorySnapshot& s,
     std::array<std::byte,8> luid, std::uint32_t node_mask,
     std::uint64_t now, std::uint64_t additional) noexcept {
-  if(!s.valid || !s.amd_hardware || !identity(s.luid) || !node(s.node_mask) ||
-      !s.dedicated_bytes || !s.local_budget || s.local_budget>s.dedicated_bytes ||
-      s.local_usage>s.local_budget) return GpuGateCode::invalid_budget;
+  const auto envelope=gpu_memory_envelope(s,additional);
+  if(envelope.code==GpuGateCode::invalid_budget)return envelope.code;
   if(s.luid!=luid || s.node_mask!=node_mask) return GpuGateCode::wrong_adapter;
   if(now<s.captured_ms || now-s.captured_ms>kGpuMaxBudgetAgeMs) return GpuGateCode::stale_budget;
-  const auto available=s.local_budget-s.local_usage;
-  if(available<kGpuBudgetReserveBytes || additional>available-kGpuBudgetReserveBytes)
-    return GpuGateCode::insufficient_headroom;
+  return envelope.code;
+}
+GpuGateCode check_gpu_memory_transition(const GpuMemorySnapshot& before,
+    const GpuMemorySnapshot& after,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,std::uint64_t now,std::uint64_t device_bytes) noexcept {
+  // The caller retained before from its admitted attempt. Its age at completion
+  // is expected to exceed a collector snapshot age; do not renew its timestamp.
+  auto code=check_gpu_memory_budget(before,luid,node_mask,before.captured_ms,device_bytes);
+  if(code!=GpuGateCode::admitted)return code;
+  code=check_gpu_memory_budget(after,luid,node_mask,now,0);
+  if(code!=GpuGateCode::admitted)return code;
+  if(after.captured_ms<before.captured_ms)return GpuGateCode::stale_budget;
+  if(after.dedicated_bytes!=before.dedicated_bytes)return GpuGateCode::wrong_adapter;
+  const auto allowance=(std::min)(gpu_memory_envelope(before,device_bytes).nonlocal_growth,
+      gpu_memory_envelope(after).nonlocal_growth);
+  if(after.nonlocal_usage>before.nonlocal_usage &&
+      after.nonlocal_usage-before.nonlocal_usage>allowance)return GpuGateCode::nonlocal_growth;
   return GpuGateCode::admitted;
 }
 GpuGateCode GpuResultGate::budget(const GpuMemorySnapshot& s,std::uint64_t now,
@@ -97,7 +140,7 @@ GpuAttempt GpuResultGate::begin(bool consent,const GpuMemorySnapshot& before,std
   if(now>(std::numeric_limits<std::uint64_t>::max)()-deadline_ms_) return {GpuGateCode::invalid_budget};
   generation_=detail::next_gpu_request_id();
   if(!generation_) return {GpuGateCode::invalid_budget};
-  started_=now;deadline_=now+deadline_ms_;baseline_nonlocal_=before.nonlocal_usage;
+  started_=now;deadline_=now+deadline_ms_;baseline_=before;
   state_=GpuGateState::waiting;return {GpuGateCode::admitted,generation_};
 }
 GpuGateCode GpuResultGate::poison(GpuGateCode why) noexcept {
@@ -109,9 +152,9 @@ GpuGateCode GpuResultGate::complete(GpuBatchReply reply,const GpuMemorySnapshot&
   if(now<started_ || now>=deadline_) return poison(GpuGateCode::expired);
   if(reply.generation!=generation_) return poison(GpuGateCode::stale_result);
   if(after.captured_ms<started_) return poison(GpuGateCode::stale_budget);
-  const auto decision=budget(after,now,0); // buffers are included in post-submit CurrentUsage
+  const auto decision=check_gpu_memory_transition(baseline_,after,luid_,node_mask_,now,
+      batch_.device_buffer_bytes());
   if(decision!=GpuGateCode::admitted) return poison(decision);
-  if(after.nonlocal_usage>baseline_nonlocal_) return poison(GpuGateCode::nonlocal_growth);
   if(reply.bytes.size()!=batch_.cpu_reference().size() || reply.status.size()!=batch_.tasks().size())
     return poison(GpuGateCode::invalid_output);
   if(std::any_of(reply.status.begin(),reply.status.end(),[](auto s){return s!=gpu_detail::success;}))

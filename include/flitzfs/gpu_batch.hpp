@@ -38,8 +38,12 @@ struct GpuMemorySnapshot {
   std::uint64_t captured_ms=0, dedicated_bytes=0;
   std::uint64_t local_budget=0, local_usage=0, nonlocal_usage=0;
   bool valid=false, amd_hardware=false;
-  // Observation only until a separately qualified nonlocal-budget policy exists.
   std::uint64_t nonlocal_budget=0;
+  // GlobalMemoryStatusEx observations from the allocating process. Commit is
+  // process-constrained capacity, NOT system-wide free memory or a reservation.
+  // Zero/default fields are incomplete telemetry and must fail admission.
+  std::uint64_t physical_total=0, physical_available=0;
+  std::uint64_t commit_limit=0, commit_available=0;
 };
 enum class GpuGateCode {
   admitted, accepted, no_consent, invalid_budget, stale_budget, wrong_adapter,
@@ -51,6 +55,20 @@ enum class GpuGateState { idle, waiting, accepted, poisoned };
 GpuGateCode check_gpu_memory_budget(const GpuMemorySnapshot& snapshot,
     std::array<std::byte,8> luid, std::uint32_t node_mask,
     std::uint64_t now_ms, std::uint64_t additional_bytes) noexcept;
+// Pure, allocation-free resource envelope. Divisors are conservative experimental
+// interference controls, not learned optimal settings or hardware assumptions.
+struct GpuMemoryEnvelope {
+  GpuGateCode code=GpuGateCode::invalid_budget;
+  std::uint64_t local_reserve=0, physical_reserve=0, commit_reserve=0;
+  std::uint64_t nonlocal_growth=0;
+};
+GpuMemoryEnvelope gpu_memory_envelope(const GpuMemorySnapshot&,
+    std::uint64_t additional_bytes=0) noexcept;
+// Compare against the ORIGINAL admitted snapshot, never a moving baseline.
+// Re-evaluate both envelopes so falling headroom cannot retain an old allowance.
+GpuGateCode check_gpu_memory_transition(const GpuMemorySnapshot& before,
+    const GpuMemorySnapshot& after,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,std::uint64_t now_ms,std::uint64_t device_bytes) noexcept;
 struct GpuAttempt { GpuGateCode code; std::uint64_t generation=0; };
 struct GpuBatchReply {
   std::uint64_t generation=0;
@@ -89,7 +107,8 @@ class GpuResultGate final {
   PreparedGpuBatch batch_;
   std::array<std::byte,8> luid_;
   std::uint32_t node_mask_, deadline_ms_;
-  std::uint64_t generation_=0, started_=0, deadline_=0, baseline_nonlocal_=0;
+  std::uint64_t generation_=0, started_=0, deadline_=0;
+  GpuMemorySnapshot baseline_;
   GpuGateState state_=GpuGateState::idle;
   std::vector<std::byte> accepted_;
 };

@@ -55,6 +55,8 @@ GpuRecoveryOutcome worker_gate_failure(GpuGateCode code) noexcept {
     case GpuGateCode::task_failed:
     case GpuGateCode::mismatch:
     case GpuGateCode::stale_result:return GpuRecoveryOutcome::integrity_failure;
+    case GpuGateCode::invalid_budget:
+    case GpuGateCode::wrong_adapter:return GpuRecoveryOutcome::device_fault;
     default:return GpuRecoveryOutcome::temporary_pressure;
   }
 }

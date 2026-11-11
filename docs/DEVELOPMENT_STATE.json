@@ -31,7 +31,8 @@
       "Source/evidence binding applies to each stated run; SDK baseline product code unchanged at reviewed main.",
       "Green current CI does not resolve earlier intermittent child retirement failures.",
       "Hosted mounts do not qualify owner mounts or latest Windows 11 client product behavior."
-    ]
+    ],
+    "commit": "8a5633b588869eb3808d089fca76937c6781991c"
   },
   "owner_gpu_observation": {
     "source_commit": "bc6d18d6ca34a99a218ccd4c6aab9b4f6e0569b1",
@@ -50,7 +51,7 @@
     {
       "id": "gpu-zero-growth-admission",
       "next_package": "G01",
-      "status": "open"
+      "status": "candidate fix implemented; exact-source qualification and actual acceptance pending"
     },
     {
       "id": "hosted-child-retirement",
@@ -60,7 +61,8 @@
         42983895583,
         42992856099
       ],
-      "failure": "15-second operation and 2-second exit observation did not confirm exit; root cause unresolved."
+      "failure": "15-second operation and 2-second exit observation did not confirm exit; root cause unresolved.",
+      "artifact_review": "08e75f5 crash artifact verified at SHA256 b4b69e89439bc1a73c30a1450d98c4cc03abf4a77fb928882f0ff77d6ef34dcc: acknowledgement is CPU-verified and explicitly flushed; dispatcher_stopped=false. Root cause still unknown."
     }
   ],
   "next_implementation": [
@@ -272,5 +274,14 @@
     "page_reading": "reviewed hosted Crawl4AI; exact native API/package/archive captures retain native transports",
     "no_delegation": true,
     "no_archive_product_routes": true
+  },
+  "pending_qualification": {
+    "source_parent": "a8fa5798c52848ad706fa0883a0844e0fbb2e127",
+    "package": "G01",
+    "contract": "docs/GPU_RESOURCE_ENVELOPE.md",
+    "behavior": "Shared live local/nonlocal/physical/process-commit envelope replaces strict zero-growth predicates in worker/result/match paths.",
+    "status": "unqualified publishing implementation; inspect exact-source runs before any owner trial",
+    "owner_gpu_test_run": false,
+    "default_filesystem_cpu": true
   }
 }

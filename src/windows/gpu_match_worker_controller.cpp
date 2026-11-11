@@ -74,7 +74,7 @@ GpuWorkerStart GpuMatchWorkerController::begin(PreparedGpuMatchSearch&& input,
       return {route,last_gate_,false};
     }
     luid_=checked.memory.luid;node_mask_=checked.memory.node_mask;
-    started_=now;deadline_=now+deadline;nonlocal_=checked.memory.nonlocal_usage;
+    started_=now;deadline_=now+deadline;baseline_=checked.memory;
     const auto request=encode_match_worker_request(*pending_,generation_);
     session_.emplace(WorkerExchangeSession::start(helper,arguments,request,budget));
     last_gate_=GpuGateCode::admitted;state_=GpuWorkerState::waiting;
@@ -100,8 +100,7 @@ GpuWorkerState GpuMatchWorkerController::poll(const GpuMemorySnapshot& after,std
   try {
     auto proposals=accept_match_worker_reply(result->response,*pending_,generation_,expected_);
     auto code=after.captured_ms<started_?GpuGateCode::stale_budget:
-        check_gpu_memory_budget(after,luid_,node_mask_,now,0);
-    if(code==GpuGateCode::admitted&&after.nonlocal_usage>nonlocal_)code=GpuGateCode::nonlocal_growth;
+        check_gpu_memory_transition(baseline_,after,luid_,node_mask_,now,pending_->device_buffer_bytes());
     if(code!=GpuGateCode::admitted) {
       select_cpu(worker_gate_failure(code),code);
     } else {

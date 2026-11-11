@@ -42,7 +42,8 @@ class GpuMatchWorkerController final {
   std::vector<StoreMatchProposal> selected_;
   std::array<std::byte,8> luid_{};
   std::uint32_t node_mask_=0;
-  std::uint64_t ticket_=0,generation_=0,started_=0,deadline_=0,nonlocal_=0;
+  std::uint64_t ticket_=0,generation_=0,started_=0,deadline_=0;
+  GpuMemorySnapshot baseline_;
   bool reported_=false,disabled_=false;
 };
 }

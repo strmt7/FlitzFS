@@ -437,3 +437,11 @@ A separate [bounded memory observation](docs/GPU_MEMORY_OBSERVATION.md) now
 records worker-local budgets and completed verification steps without producing
 a GPU data reply. It retains the strict current admission rules while collecting
 evidence for their replacement; normal operations remain CPU-only.
+
+## Resource-policy implementation checkpoint
+
+The experimental worker/result/match paths now share a
+[live resource envelope](docs/GPU_RESOURCE_ENVELOPE.md) rather than requiring
+zero nonlocal counter growth. This source update still requires its matching
+CPU/Windows/SDK qualification and a separate tiny actual-runtime acceptance
+trial. Normal filesystem I/O remains CPU-only; no GPU speed result is implied.

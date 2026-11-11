@@ -1,5 +1,15 @@
 # Bounded HIP kernel candidate and qualification boundary
 
+## Current resource-envelope candidate
+
+The source now shares a live-resource admission policy across worker, result
+and match paths. [GPU_RESOURCE_ENVELOPE.md](GPU_RESOURCE_ENVELOPE.md) records the
+contract, current official source captures and pending exact-source validation.
+Earlier zero-growth observations below retain their historical meaning. The
+new host fields are deliberately absent from the fixed diagnostic wire, so a
+decoded historical observation cannot supply complete admission evidence.
+
+
 Baseline: b48156fa3c6885639c7179150d838e3fe2f3275f.
 Research date: 7 November 2026. This is an experimental development gate.
 
