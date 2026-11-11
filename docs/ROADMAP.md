@@ -671,7 +671,9 @@ failed launch and repeated handle retirement before any hosted mount gate.
 See [the ownership contract](MOUNT_PROCESS_ISOLATION.md) and
 [research/source binding](evidence/mount-source-isolation-research-343acaa.json).
 
-D01 remains in progress. New compilation/CPU/native/mounted results are pending,
-and historical root cause is not declared proven. Preserve the original child
+D01 remains in progress. The full 8122bf5 matrix passed, including actual external
+client/flush/self-open rejection and both affected mounted profiles. Historical
+root cause is not declared proven. Additional CPU tests cover post-acknowledgement
+cancellation/abandonment and early source exit; their new-source results are pending. Preserve the original child
 deadlines, open-handle kill case, full acknowledged-state comparison and all
 owner-PC prohibitions.

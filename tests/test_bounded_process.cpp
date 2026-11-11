@@ -22,12 +22,13 @@ std::filesystem::path self() {
 }
 int child(int argc, wchar_t** argv) {
   const std::wstring_view mode(argv[1]);
-  if (mode == L"--child-source-protocol") {
+  if (mode == L"--child-source-protocol" || mode == L"--child-source-hold-ack") {
     if(argc!=3)return 1;
     source_fixture::Events protocol(false,argv[2]);
     protocol.signal(source_fixture::Phase::ready);
     protocol.wait_written();
     protocol.signal(source_fixture::Phase::ack);
+    if(mode == L"--child-source-hold-ack") Sleep(10000);
     return 73;
   }
   if (mode == L"--child-exit") return 37;
@@ -193,12 +194,52 @@ int wmain(int argc, wchar_t** argv) {
       require(result.cancelled&&!result.timed_out&&result.exit_confirmed&&result.exit_code==ERROR_CANCELLED&&
           cancelled_source.retirement_confirmed(),"async source cancellation/retirement");
     }
+    auto acknowledged_cancel=[&](bool abandon) {
+      {
+        source::Events events(true);
+        source::Child child(executable,{L"--child-source-hold-ack",events.token()},{128,2000,5000});
+        child.await(events,source::Phase::ready);
+        events.signal(source::Phase::written);
+        child.await(events,source::Phase::ack);
+        require(child.process_id()!=0&&!child.retirement_confirmed(),
+            "acknowledged child lost live ownership");
+        if(!abandon) {
+          require(child.request_cancel(),"acknowledged source cancellation signal");
+          const auto result=child.result();
+          require(result.cancelled&&!result.timed_out&&result.exit_confirmed&&
+              result.exit_code==ERROR_CANCELLED&&child.retirement_confirmed(),
+              "acknowledged source cancellation/retirement");
+        }
+      }
+      require(!source::source_busy.load(),"acknowledged source admission retained after retirement");
+    };
+    auto early_exit=[&] {
+      source::Events events(true);
+      source::Child child(executable,{L"--child-exit"},{128,2000,5000});
+      bool refused=false;
+      try { child.await(events,source::Phase::ready); }
+      catch(const std::runtime_error& error) {
+        const std::string_view message(error.what());
+        refused=message.find("exit=37 confirmed=1")!=std::string_view::npos;
+      }
+      const auto result=child.result();
+      require(refused&&result.exit_code==37&&result.exit_confirmed&&
+          !result.cancelled&&!result.timed_out&&child.retirement_confirmed(),
+          "source early exit was not reconciled before phase failure");
+      require(WaitForSingleObject(events.get(source::Phase::ready),0)==WAIT_TIMEOUT&&
+          WaitForSingleObject(events.get(source::Phase::ack),0)==WAIT_TIMEOUT,
+          "early source exit invented a protocol phase");
+    };
+    // Prime actual cancellation and early-exit paths before strict accounting.
+    acknowledged_cancel(false);acknowledged_cancel(true);early_exit();
     DWORD before=0,after=0;
     require(GetProcessHandleCount(GetCurrentProcess(),&before),"source handle baseline");
-    for(unsigned repeat=0;repeat<8;++repeat){protocol_round();failed_source();}
+    for(unsigned repeat=0;repeat<8;++repeat){
+      protocol_round();failed_source();acknowledged_cancel(false);acknowledged_cancel(true);early_exit();
+    }
     require(GetProcessHandleCount(GetCurrentProcess(),&after)&&before==after&&source::cleanup_ok.load()&&
         !source::source_busy.load(),"source fixture handles/cleanup grew");
-    std::cout<<"Protected source phases, actor identity, cancellation, timeout, abandonment, failed launch and repeated exact retirement passed; CPU only.\n";
+    std::cout<<"Protected source phases, actor identity, cancellation, timeout, abandonment, failed launch, post-ack cancellation/abandonment, early exit and repeated exact retirement passed; CPU only.\n";
     std::cout << "Windows Job Object admission, quoting, limits and timeout tests passed; CPU only.\n";
     return 0;
   } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

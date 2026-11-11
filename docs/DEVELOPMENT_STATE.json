@@ -11,45 +11,36 @@
     "note": "New feedback implementation needs its publishing-commit qualification. Prior accepted GPU experiments are explicitly bound to 04d884b."
   },
   "current_qualification": {
-    "commit": "343acaa6442a2ca28efb75401826ca4ed654c59a",
-    "core_run": 43031317907,
+    "commit": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
+    "core_run": 43041765774,
+    "attempt": 1,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
     "windows_native": {
-      "job": 130558791970,
-      "passed": true
+      "job": 130595116215,
+      "passed": true,
+      "ctest_checks": 131
     },
     "asan_ubsan": {
-      "job": 130558791507,
+      "job": 130595116465,
       "passed": true
     },
     "windows_raw": {
-      "job": 130558791977,
-      "passed": true
+      "job": 130595116410,
+      "passed": true,
+      "ctest_checks": 117
     },
     "linux_raw": {
-      "job": 130558792332,
+      "job": 130595116511,
       "passed": true
     },
     "linux_codec": {
-      "job": 130558791898,
+      "job": 130595117488,
       "passed": true
     },
-    "ram_host": {
-      "run": 43031317840,
-      "job": 130558791040,
-      "passed": true,
-      "four_native_cpu_modes": true,
-      "strict_handles": true
-    },
-    "sdk": {
-      "commit": "480573e71d2df72492d22b12422e9e1600013272",
-      "run": 43019981918,
-      "passed": true,
-      "source_equivalent_gpu_graph": true
-    },
-    "scope": "Full prior-source matrix passed. New D01 actor-isolation candidate still requires its publishing-commit qualification; actual GPU evidence remains bound to645a1d1."
+    "scope": "Separate crash host/external client qualified in the initial full matrix. Additional CPU lifecycle-edge tests need their publishing-commit qualification. Historical D01 root cause remains unproven.",
+    "evidence": "docs/evidence/mount-source-isolation-8122bf5.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -88,7 +79,9 @@
       "failure": "15-second operation and 2-second exit observation did not confirm exit; root cause unresolved.",
       "artifact_review": "08e75f5 crash artifact verified at SHA256 b4b69e89439bc1a73c30a1450d98c4cc03abf4a77fb928882f0ff77d6ef34dcc: acknowledgement is CPU-verified and explicitly flushed; dispatcher_stopped=false. Root cause still unknown.",
       "latest_job": 130502518872,
-      "latest_evidence": "docs/evidence/retirement-failure-d1e66f6.json"
+      "latest_evidence": "docs/evidence/retirement-failure-d1e66f6.json",
+      "candidate_evidence": "docs/evidence/mount-source-isolation-8122bf5.json",
+      "candidate_scope": "Actual external-client ownership, host-self-open rejection, native flush observation, confirmed source retirement and independent recovery; prior failure cause still unproven."
     }
   ],
   "next_implementation": [
@@ -129,19 +122,20 @@
     "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
   },
   "source_routing": {
-    "artifact": 13854397633,
-    "artifact_sha256": "b761b0810844084f4036d7d27b2d487ea9f93764640a643316e6ed5287d2461a",
-    "index_commit": "480573e71d2df72492d22b12422e9e1600013272",
-    "current_commit": "343acaa6442a2ca28efb75401826ca4ed654c59a",
-    "indexed_inputs_unchanged": true,
-    "method": "Provider inventory excludes tests/third_party/.github and non-source suffixes. Full commit comparison changes only excluded test/workflow/docs/json files; current relevant candidate byte hashes match actual receipt.",
-    "actual_query": "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
-    "response_sha256": "dd4fe164008f43e21f4214342f8244a7a02fdace93cb0571a92aa84ca9015a96",
+    "commit": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
+    "artifact": 13864803939,
+    "artifact_sha256": "dbee1e92884d722bf70ddc8a9f7ec0181b08439359e83aa8285e63d92def598e",
     "provider": "0.2.43",
-    "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
-    "source_sha256": "a9e693c3554c032b9d6ae62b32750b43146beb80a5e6486b82c661274f3af29a",
+    "source_files": 130,
+    "source_sha256": "a6ca26d2d5c1c7b889815dcb5768ff14dc53eefe32a0a2330b38bee125f6efd4",
+    "actual_queries": 8,
+    "query7": "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
+    "response_sha256": "2a6106df467403cc295b5f3756f29d3d1424c242566d4417bbc1db123ba639e6",
+    "live_relevant_candidate_hashes_verified": true,
     "infrastructure_self_hits_not_coverage": true,
-    "excluded_test_file": "tests/winfsp_write_probe.cpp inspected separately by exact name"
+    "tests_excluded_from_index_and_inspected_separately": true,
+    "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+    "excluded_tests": "Exact tests/test_bounded_process.cpp and tests/supervised_source_fixture.hpp inspected separately; provider excludes tests."
   },
   "historical": {
     "qualified_checkpoint": {
@@ -237,6 +231,47 @@
       "child_peak_commit_bytes": 80035840,
       "evidence": "docs/evidence/gpu-memory-observation-bc6d18d.json",
       "qualification": "Tiny diagnostic only; no native compression throughput or accepted filesystem candidate."
+    },
+    "previous_qualification": {
+      "commit": "343acaa6442a2ca28efb75401826ca4ed654c59a",
+      "core_run": 43031317907,
+      "conclusion": "success",
+      "jobs_passed": 13,
+      "jobs_total": 13,
+      "windows_native": {
+        "job": 130558791970,
+        "passed": true
+      },
+      "asan_ubsan": {
+        "job": 130558791507,
+        "passed": true
+      },
+      "windows_raw": {
+        "job": 130558791977,
+        "passed": true
+      },
+      "linux_raw": {
+        "job": 130558792332,
+        "passed": true
+      },
+      "linux_codec": {
+        "job": 130558791898,
+        "passed": true
+      },
+      "ram_host": {
+        "run": 43031317840,
+        "job": 130558791040,
+        "passed": true,
+        "four_native_cpu_modes": true,
+        "strict_handles": true
+      },
+      "sdk": {
+        "commit": "480573e71d2df72492d22b12422e9e1600013272",
+        "run": 43019981918,
+        "passed": true,
+        "source_equivalent_gpu_graph": true
+      },
+      "scope": "Full prior-source matrix passed. New D01 actor-isolation candidate still requires its publishing-commit qualification; actual GPU evidence remains bound to645a1d1."
     }
   },
   "remaining": [
@@ -318,15 +353,15 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "343acaa6442a2ca28efb75401826ca4ed654c59a",
+    "source_parent": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
     "package": "D01",
+    "status": "Additional CPU protocol tests require publishing-commit raw/native results; no new production or mounted-source behavior.",
+    "behavior": "Cancellation/abandonment after acknowledgement, early child exit before ready, exact repeated handle accounting across all paths.",
     "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
-    "behavior": "Separate mounted-crash host/client, protected source phases, exact child/supervisor retirement, CPU-only fixture prerequisites and bounded controller.",
-    "status": "Unqualified until matching raw/codec/sanitizer/Windows native CPU/process tests and both affected mounted profiles run successfully.",
     "historical_root_cause": "unproven",
     "owner_execution": false,
     "default_filesystem_cpu": true,
-    "next": "Inspect exact matching compile/event/protocol/cancellation/handle/mounted recovery results. Retain failures; never infer D01 closure from one pass."
+    "next": "Verify matching Windows raw/native lifecycle tests and retain current hosted repetitions. Do not close D01 from passing repetitions."
   },
   "resolved": [
     {
