@@ -23,6 +23,9 @@ flitzfs::GpuHealthEvidence evidence() {
   e.memory.dedicated_bytes = e.memory.local_budget = 1024ULL*1024*1024;
   e.memory.local_usage = 8ULL*1024*1024;
   e.memory.valid = e.memory.amd_hardware = true;
+  e.memory.nonlocal_budget=8ULL<<30;
+  e.memory.physical_total=16ULL<<30;e.memory.physical_available=8ULL<<30;
+  e.memory.commit_limit=32ULL<<30;e.memory.commit_available=16ULL<<30;
   return e;
 }
 void advance(flitzfs::GpuHealthEvidence& e) { ++e.sequence; ++e.memory.captured_ms; }

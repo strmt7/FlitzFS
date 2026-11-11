@@ -140,6 +140,9 @@ void inspect_budget(std::wstring_view text, const ProbeBudget& budget) {
       << ",\"native_status\":" << result.native_status << ",\"snapshot_valid\":" << memory.valid
       << ",\"dedicated_bytes\":" << memory.dedicated_bytes << ",\"local_budget\":" << memory.local_budget
       << ",\"local_usage\":" << memory.local_usage << ",\"nonlocal_budget\":" << memory.nonlocal_budget << ",\"nonlocal_usage\":" << memory.nonlocal_usage
+      << ",\"physical_total\":" << memory.physical_total << ",\"physical_available\":" << memory.physical_available
+      << ",\"commit_limit\":" << memory.commit_limit << ",\"commit_available\":" << memory.commit_available
+      << ",\"nonlocal_growth_envelope\":" << flitzfs::gpu_memory_envelope(memory,16492).nonlocal_growth
       << ",\"gate_code\":" << static_cast<unsigned>(gate)
       << ",\"controller_job_peak_commit_bytes\":" << budget.peak_commit() << "}\n";
 }

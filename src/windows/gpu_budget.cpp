@@ -38,9 +38,17 @@ WindowsGpuBudgetResult query_windows_gpu_budget(std::array<std::byte,8> luid,
       !observed(WindowsGpuBudgetPhase::nonlocal,adapter->QueryVideoMemoryInfo(index,DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL,&nonlocal))) {
     result.status=WindowsGpuBudgetStatus::query_failed;return result;
   }
+  MEMORYSTATUSEX host{};host.dwLength=sizeof(host);
+  if(!GlobalMemoryStatusEx(&host)) {
+    result.status=WindowsGpuBudgetStatus::query_failed;
+    result.phase=WindowsGpuBudgetPhase::host_memory;
+    result.native_status=static_cast<std::int32_t>(GetLastError());return result;
+  }
   auto& s=result.snapshot;
   s.luid=luid;s.node_mask=node_mask;s.captured_ms=captured;s.dedicated_bytes=desc.DedicatedVideoMemory;
   s.local_budget=local.Budget;s.local_usage=local.CurrentUsage;s.nonlocal_usage=nonlocal.CurrentUsage;s.nonlocal_budget=nonlocal.Budget;
+  s.physical_total=host.ullTotalPhys;s.physical_available=host.ullAvailPhys;
+  s.commit_limit=host.ullTotalPageFile;s.commit_available=host.ullAvailPageFile;
   s.amd_hardware=true;s.valid=true;result.status=WindowsGpuBudgetStatus::success;
   result.phase=WindowsGpuBudgetPhase::complete;return result;
 }

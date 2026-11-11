@@ -1,5 +1,15 @@
 # Bounded worker memory observation
 
+## Current resource-envelope candidate
+
+The source now shares a live-resource admission policy across worker, result
+and match paths. [GPU_RESOURCE_ENVELOPE.md](GPU_RESOURCE_ENVELOPE.md) records the
+contract, current official source captures and pending exact-source validation.
+Earlier zero-growth observations below retain their historical meaning. The
+new host fields are deliberately absent from the fixed diagnostic wire, so a
+decoded historical observation cannot supply complete admission evidence.
+
+
 Experimental, 11 November 2026. Default filesystem/CLI operations remain CPU-only.
 This is an explicit SDK-worker diagnostic, not a filesystem data reply or a
 performance/admission policy.

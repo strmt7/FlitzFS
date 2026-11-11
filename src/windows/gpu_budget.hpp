@@ -2,7 +2,7 @@
 #include "flitzfs/gpu_batch.hpp"
 namespace flitzfs {
 enum class WindowsGpuBudgetStatus { success, invalid_identity, unavailable, wrong_adapter, query_failed };
-enum class WindowsGpuBudgetPhase { none, factory, adapter, description, local, nonlocal, complete };
+enum class WindowsGpuBudgetPhase { none, factory, adapter, description, local, nonlocal, complete, host_memory };
 struct WindowsGpuBudgetResult {
   WindowsGpuBudgetStatus status=WindowsGpuBudgetStatus::unavailable;
   GpuMemorySnapshot snapshot;

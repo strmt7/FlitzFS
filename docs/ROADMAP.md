@@ -625,3 +625,10 @@ rejected at completed_nonlocal_growth. Qualify the new fixed-size worker memory
 observation, collect one bounded real trace and design source-backed resource
 admission before accepting GPU data or measuring native match/compression gains.
 Do not equate aggregate nonlocal growth with a particular allocation eviction.
+
+## Active G01 candidate
+
+The shared memory envelope and physical/process-commit collector are implemented
+but unqualified at publication. Next: exact-source raw/codec/sanitizer/Windows/
+SDK checks, then one separately audited tiny actual-runtime acceptance trial.
+See GPU_RESOURCE_ENVELOPE.md. D01 retirement triage remains independently open.

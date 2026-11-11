@@ -41,6 +41,9 @@ int main(){
     const auto decoded=decode_hip_memory_observation(golden,binding);
     require(decoded.failure_stage==31 && decoded.failure_category==0x46530005 && decoded.cpu_verified_bytes==12288 &&
         decoded.snapshots[2].nonlocal_usage==8192 && decoded.snapshots[2].nonlocal_budget==(8ULL<<30),"memory observation changed values");
+    require(decoded.snapshots[2].physical_total==0 && decoded.snapshots[2].commit_limit==0 &&
+        check_gpu_memory_budget(decoded.snapshots[2],binding.luid,1,1002,0)==GpuGateCode::invalid_budget,
+        "observation-only historical wire became complete admission evidence");
     for(std::size_t n=0;n<golden.size();++n)rejected([&]{(void)decode_hip_memory_observation(std::span(golden).first(n),binding);});
     auto trailing=std::vector<std::byte>(golden.begin(),golden.end());trailing.push_back(std::byte{0});
     rejected([&]{(void)decode_hip_memory_observation(trailing,binding);});

@@ -258,6 +258,9 @@ GpuMemorySnapshot synthetic_memory(std::array<std::byte,8> luid) {
   memory.luid=luid;memory.node_mask=1;memory.captured_ms=100;
   memory.dedicated_bytes=memory.local_budget=1024ULL*1024*1024;
   memory.local_usage=16ULL*1024*1024;memory.valid=memory.amd_hardware=true;
+  memory.nonlocal_budget=8ULL<<30;
+  memory.physical_total=16ULL<<30;memory.physical_available=8ULL<<30;
+  memory.commit_limit=32ULL<<30;memory.commit_available=16ULL<<30;
   return memory; // Explicit test evidence. No real adapter telemetry is queried.
 }
 
@@ -619,7 +622,7 @@ void coordinated_match_requests(const std::filesystem::path& executable) {
     auto bad=after;
     if(fault==0)bad.captured_ms=99;
     if(fault==1)bad.luid[0]=std::byte{2};
-    if(fault==2)++bad.nonlocal_usage;
+    if(fault==2)bad.nonlocal_usage+=29ULL<<20;
     if(fault==3)bad.local_budget=bad.local_usage;
     eventually([&]{return controller.poll(bad,101)!=GpuWorkerState::waiting;},3000,"invalid match telemetry not observed");
     check(controller.state()==GpuWorkerState::cpu_selected&&controller.selected_proposals().empty(),
