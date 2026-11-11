@@ -1,4 +1,6 @@
 #include "worker_exchange.hpp"
+#include "gpu_worker_common.hpp"
+#include "hip_worker_exit.hpp"
 #include "gpu_worker_controller.hpp"
 #include "gpu_match_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
@@ -94,6 +96,11 @@ int child(std::wstring_view mode,std::wstring_view token) {
   check_job();
   if(mode==L"exit-empty")return 0;
   if(mode==L"exit-bad")return 17;
+  // These declared HIP failures execute no HIP; only exit transport is tested.
+  if(mode.size()==13 && mode.starts_with(L"staged-exit-") && mode.back()>=L'1' && mode.back()<=L'6')
+    return static_cast<int>(hip_worker_diagnostic_exit(
+        static_cast<HipWorkerExit>(0x46530000U+static_cast<unsigned>(mode.back()-L'0')),
+        HipWorkerStage::device_properties));
   auto channel=WorkerChannel::open(token);
   if(mode==L"match" || mode==L"match-invalid" || mode==L"match-hold" ||
       mode==L"match-delay-invalid" || mode==L"match-hip-declaration") {
@@ -829,6 +836,37 @@ int wmain(int argc,wchar_t** argv){try{
         "supervisor failure was accepted or leaked admission");
   }
   observe(L"async-launch-failure");
+  {
+    const std::array expected{GpuRecoveryOutcome::integrity_failure,
+        GpuRecoveryOutcome::runtime_unavailable,GpuRecoveryOutcome::unsupported_configuration,
+        GpuRecoveryOutcome::temporary_pressure,GpuRecoveryOutcome::device_fault,
+        GpuRecoveryOutcome::integrity_failure};
+    for(unsigned category=1;category<=expected.size();++category) {
+      const auto mode=L"staged-exit-"+std::to_wstring(category);
+      auto session=WorkerExchangeSession::start(executable,{mode},request);
+      eventually([&]{return session.try_result()!=nullptr;},3000,"staged failure did not complete");
+      const auto* result=session.try_result();
+      check(result && result->code==WorkerExchangeCode::worker_failed &&
+          result->process.exit_confirmed && result->response.empty() && !result->publication_observed &&
+          result->process.exit_code==hip_worker_diagnostic_exit(
+              static_cast<HipWorkerExit>(0x46530000U+category),HipWorkerStage::device_properties),
+          "staged exit lost transport identity or exposed candidate bytes");
+      check(worker_transport_failure(session,*result,WorkerExecution::hip)==expected[category-1],
+          "staged exit changed trusted HIP recovery classification");
+      check(worker_transport_failure(session,*result,WorkerExecution::cpu_semantics)==GpuRecoveryOutcome::device_fault,
+          "CPU fixture gained trusted HIP exit interpretation");
+      auto unconfirmed=*result;unconfirmed.process.exit_confirmed=false;
+      check(worker_transport_failure(session,unconfirmed,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
+          "unconfirmed exit supplied recovery evidence");
+      auto unknown=*result;unknown.process.exit_code=0x46531002U;
+      check(worker_transport_failure(session,unknown,WorkerExecution::hip)==GpuRecoveryOutcome::device_fault,
+          "unknown stage downgraded recovery requirements");
+      eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},
+          2000,"staged failure supervisor did not retire");
+      check_closed(*result);
+    }
+  }
+  observe(L"staged-failures");
   coordinated_requests(executable);observe(L"coordinated-recovery");
   match_transactions(executable);observe(L"match-transactions");
   coordinated_match_requests(executable);observe(L"match-recovery");

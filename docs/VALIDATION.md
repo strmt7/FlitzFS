@@ -188,3 +188,27 @@ The metadata qualification requires real signed OS-file byte identity, fake trus
 Installed-driver qualification requires all nine old metadata/private cases plus eight kernel-only/driver cases, with 17 confirmed child exits. Separate self-bounded metadata/decode/match diagnostics must refuse an unavailable/mismatched runtime without publication. Inspect actual module imports and numeric receipts on the matching commit. These checks contain no AMD GPU execution and cannot support a speed claim.
 
 Adapter-identity qualification requires an actual bounded DXGI enumeration, real field/uniqueness checks, no HIP initialization and a correctly represented empty AMD list when applicable. The diagnostic's additional DXGI import is audited locally to its SDK target; the general portable CPU import policy remains unchanged. Metadata cannot establish GPU execution or speed.
+
+## First installed-driver host refusal and diagnostic qualification
+
+On 11 November 2026, commit 37aaed8f075383b8ae47cd9e10fe1dd668315a52
+made one explicit 12,288-byte synthetic decode attempt on an RX 9070 XT using the
+installed, unchanged 32.0.32015.12012 driver. The worker exited with
+0x46530003 (unsupported_configuration), with exit confirmed, no timeout and no
+candidate publication or accepted GPU result. Wall time was 142 ms; reported
+worker time was 119 ms. Child/aggregate peak commitment was
+9,662,464/11,071,488 bytes. The planned 16,492 device bytes do not prove allocation.
+The exact failure stage and whether HIP initialized are unknown. No match attempt
+followed. These are refusal/resource observations, not speed measurements.
+
+That commit's ordinary CPU, raw-only, Windows-native and sanitizer jobs passed.
+Its hosted crash-restart mount job 130339172334 failed: the extended writer timed
+out and its exit could not be confirmed within the existing termination window.
+The gate correctly refused recovery. This resembles an earlier intermittent
+hosted failure; its cause remains unresolved. Other mounted lanes passed. Do not
+convert this failure to a pass or transfer those mounted tests to the owner PC.
+
+The new diagnostics require portable category/stage invariants, fake-API stage
+checks, actual Windows child-exit/classifier checks and no-HIP DXGI budget
+inspection. They preserve all existing seventeen admission children and refusal
+probes. Qualification is pending until exact matching hosted receipts pass.

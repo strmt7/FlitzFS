@@ -586,3 +586,10 @@ Installed-driver preparation now has a shared metadata verifier and explicit no-
 The installed-driver route now binds the expected System32 runtime hash to a kernel-only GPU module. Qualify its complete refusal matrix and self-bounded diagnostics before the first metadata-only owner check and separately qualified tiny compute experiment. Repeated real-data CPU/GPU measurements follow hardware correctness, not compile success.
 
 Qualify and run bounded adapter metadata before the first explicit hardware probe. The metadata helper does not initialize HIP, choose a HIP ordinal, reserve VRAM or enable default GPU routing. Hardware correctness and controlled real-data measurements remain subsequent gates.
+
+The first tiny installed-driver owner experiment on 37aaed8 refused with
+unsupported_configuration and confirmed child exit. Do not repeat that unchanged
+configuration or proceed to match experiments. First qualify stage-preserving
+failure diagnostics and inspect the matched DXGI budget without HIP. Resolve the
+observed refusal before the next separately qualified compute attempt. No GPU
+speed, real-data GPU result or production safety conclusion follows from refusal.

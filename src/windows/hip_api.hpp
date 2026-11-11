@@ -44,7 +44,7 @@ HipApi bind_api(Lookup&& lookup) {
   HipApi api{};
 #define FLITZFS_HIP_BIND(field, symbol) \
   { const auto address = lookup(FLITZFS_HIP_STRING(symbol)); \
-    if (!address) throw HipWorkerFailure(HipWorkerExit::runtime_unavailable, FLITZFS_HIP_STRING(symbol)); \
+    if (!address) throw HipWorkerFailure(HipWorkerExit::runtime_unavailable, FLITZFS_HIP_STRING(symbol), HipWorkerStage::runtime_api); \
     api.field = std::bit_cast<decltype(&symbol)>(address); }
   FLITZFS_HIP_FUNCTIONS(FLITZFS_HIP_BIND)
 #undef FLITZFS_HIP_BIND
@@ -57,30 +57,36 @@ inline HipApi bind_api(HMODULE module) {
 #undef FLITZFS_HIP_STRING
 #undef FLITZFS_HIP_STRING_INNER
 
-inline void check_hip(hipError_t status, const char* operation) {
+inline void check_hip(hipError_t status, const char* operation,
+    HipWorkerStage stage = HipWorkerStage::none) {
   if (status == hipSuccess) return;
   auto code = HipWorkerExit::device_fault;
   if (status == hipErrorOutOfMemory) code = HipWorkerExit::temporary_pressure;
   if (status == hipErrorInsufficientDriver) code = HipWorkerExit::runtime_unavailable;
   if (status == hipErrorNoDevice || status == hipErrorInvalidDevice || status == hipErrorNotSupported)
     code = HipWorkerExit::unsupported_configuration;
-  throw HipWorkerFailure(code, operation);
+  throw HipWorkerFailure(code, operation, stage);
 }
 
 inline int initialize_device(const HipApi& api, int ordinal, std::array<std::byte,8> luid,
     std::uint32_t node_mask) {
-  check_hip(api.init(0), "initialize");
+  check_hip(api.init(0), "initialize", HipWorkerStage::runtime_initialize);
   hipDeviceProp_t properties{};
-  check_hip(api.properties(&properties, ordinal), "query device properties");
+  check_hip(api.properties(&properties, ordinal), "query device properties", HipWorkerStage::device_properties);
   static_assert(sizeof(properties.luid) == sizeof(luid));
   const auto actual_luid = std::bit_cast<std::array<std::byte,8>>(std::to_array(properties.luid));
-  if (actual_luid != luid || properties.luidDeviceNodeMask != node_mask)
-    throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "HIP/DXGI adapter identity mismatch");
-  check_hip(api.set_device(ordinal), "select device");
+  if (actual_luid != luid)
+    throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "HIP/DXGI adapter LUID mismatch",
+        HipWorkerStage::adapter_luid);
+  if (properties.luidDeviceNodeMask != node_mask)
+    throw HipWorkerFailure(HipWorkerExit::unsupported_configuration, "HIP/DXGI adapter node mismatch",
+        HipWorkerStage::adapter_node);
+  check_hip(api.set_device(ordinal), "select device", HipWorkerStage::device_select);
   int least = (std::numeric_limits<int>::min)();
   int greatest = (std::numeric_limits<int>::max)();
-  check_hip(api.priority_range(&least, &greatest), "query stream priorities");
-  if (least < greatest) throw std::runtime_error("HIP stream priority range unavailable");
+  check_hip(api.priority_range(&least, &greatest), "query stream priorities", HipWorkerStage::stream_priorities);
+  if (least < greatest) throw HipWorkerFailure(HipWorkerExit::device_fault,
+      "HIP stream priority range unavailable", HipWorkerStage::stream_priorities);
   return least;
 }
 }

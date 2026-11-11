@@ -656,3 +656,11 @@ Installed-runtime metadata must use the discovered system directory, strict base
 The explicit installed-driver route must retain exact runtime hash/trust pins, strict own-kernel inventory, restricted loading and confirmed cleanup/exit. Its diagnostic enforces 128 MiB per process, 256 MiB aggregate, two processes and 20 percent CPU; the worker retains its five-second bound. No driver change, device search or retry is added. Its artifact contains no AMD runtime and cannot authorize a host launch by itself. See GPU_DRIVER_WORKER.md.
 
 Adapter discovery is metadata-only, explicit and capped at64 DXGI entries under the existing diagnostic process budget. Reject incomplete enumeration and invalid/duplicate selected LUIDs. Do not reinterpret DXGI ordinal as HIP ordinal or dedicated capacity as current memory headroom; worker identity and fresh-budget checks remain mandatory. See ADAPTER_IDENTITY.md.
+
+Worker diagnostics may encode a known failure stage in the process exit code.
+Only the six original categories and fifteen defined stages are recognized;
+unknown codes remain device faults. Staging cannot authorize candidate bytes,
+retry, repair or a weaker recovery category. Confirmed exit and a trusted HIP
+worker remain prerequisites for category interpretation. Failure responses stay
+empty. The explicit adapter-budget diagnostic performs DXGI metadata queries
+under the existing process caps; it never loads HIP or reserves GPU memory.

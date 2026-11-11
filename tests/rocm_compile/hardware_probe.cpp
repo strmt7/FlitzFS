@@ -1,6 +1,8 @@
 #include "flitzfs/worker_wire.hpp"
 #include "flitzfs/match_worker_wire.hpp"
 #include "worker_exchange.hpp"
+#include "gpu_budget.hpp"
+#include "hip_worker_exit.hpp"
 #include <windows.h>
 #include <dxgi1_4.h>
 #include <wrl/client.h>
@@ -116,6 +118,27 @@ void describe_adapters(const ProbeBudget& budget) {
   std::cout << "],\"controller_job_peak_commit_bytes\":" << budget.peak_commit() << "}\n";
 }
 
+void inspect_budget(std::wstring_view text, const ProbeBudget& budget) {
+  require(text.size()==16 && text!=L"0000000000000000", "invalid budget LUID");
+  std::array<std::byte,8> luid{};
+  const auto digit = [](wchar_t value) -> unsigned {
+    require((value>=L'0'&&value<=L'9')||(value>=L'a'&&value<=L'f'),"invalid budget LUID digit");
+    return value<=L'9'?static_cast<unsigned>(value-L'0'):static_cast<unsigned>(value-L'a'+10);
+  };
+  for(std::size_t i=0;i<8;++i)luid[i]=static_cast<std::byte>(16*digit(text[2*i])+digit(text[2*i+1]));
+  const auto result=flitzfs::query_windows_gpu_budget(luid,1);
+  const auto& memory=result.snapshot;
+  const auto gate=flitzfs::check_gpu_memory_budget(memory,luid,1,GetTickCount64(),16492);
+  std::cout << std::boolalpha << "HIP budget metadata: {\"gpu_executed\":false,\"hip_initialized\":false,"
+      "\"status\":" << static_cast<unsigned>(result.status)
+      << ",\"phase\":" << static_cast<unsigned>(result.phase)
+      << ",\"native_status\":" << result.native_status << ",\"snapshot_valid\":" << memory.valid
+      << ",\"dedicated_bytes\":" << memory.dedicated_bytes << ",\"local_budget\":" << memory.local_budget
+      << ",\"local_usage\":" << memory.local_usage << ",\"nonlocal_usage\":" << memory.nonlocal_usage
+      << ",\"gate_code\":" << static_cast<unsigned>(gate)
+      << ",\"controller_job_peak_commit_bytes\":" << budget.peak_commit() << "}\n";
+}
+
 bool valid_digest(std::wstring_view value) {
   return value.size() == 64 && std::ranges::all_of(value, [](wchar_t c) {
     return (c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f');
@@ -140,12 +163,14 @@ int wmain(int argc, wchar_t** argv) {
   try {
     const std::wstring_view mode = argc > 1 ? argv[1] : L"";
     const bool discovery = mode == L"--describe-amd-adapters";
+    const bool budget_metadata = mode == L"--inspect-adapter-budget";
     const bool metadata = mode == L"--verify-driver-runtime";
     const bool matching = mode == L"--run-amd-driver-match-once";
     const bool driver = mode == L"--run-amd-driver-once" || matching;
-    require((discovery && argc == 2) || (metadata && argc == 4) || (driver && argc == 6) ||
+    require((budget_metadata && argc == 3) || (discovery && argc == 2) || (metadata && argc == 4) || (driver && argc == 6) ||
         (mode == L"--run-amd-once" && argc == 5), "explicit qualified worker and probe mode required");
     if (discovery) { const ProbeBudget budget; describe_adapters(budget); return 0; }
+    if (budget_metadata) { const ProbeBudget budget; inspect_budget(argv[2],budget); return 0; }
     const std::filesystem::path worker(argv[2]);
     require(worker.is_absolute() && worker.filename() == L"flitzfs_hip_worker.exe",
         "expected absolute qualified worker path");
@@ -188,7 +213,9 @@ int wmain(int argc, wchar_t** argv) {
       std::cout << std::boolalpha << "HIP match hardware probe: {\"gpu_result_verified\":" << completed
           << ",\"source_bytes_verified\":" << source.size() << ",\"proposals\":" << proposal_count
           << ",\"explicit_device_bytes\":" << search.device_buffer_bytes()
-          << ",\"worker_exit\":" << result.process.exit_code << ",\"timed_out\":" << result.process.timed_out
+          << ",\"worker_exit\":" << result.process.exit_code
+          << ",\"worker_category\":" << flitzfs::hip_worker_exit_category(result.process.exit_code)
+          << ",\"worker_stage\":\"" << flitzfs::hip_worker_stage_name(flitzfs::hip_worker_exit_stage(result.process.exit_code)) << "\"" << ",\"timed_out\":" << result.process.timed_out
           << ",\"publication_observed\":" << result.publication_observed
           << ",\"peak_commit_bytes\":" << result.process.peak_committed_bytes
           << ",\"controller_job_peak_commit_bytes\":" << budget.peak_commit()
@@ -238,6 +265,8 @@ int wmain(int argc, wchar_t** argv) {
         << ",\"elapsed_ms\":" << elapsed
         << ",\"exchange_code\":" << static_cast<unsigned>(result.code)
         << ",\"worker_exit\":" << result.process.exit_code
+        << ",\"worker_category\":" << flitzfs::hip_worker_exit_category(result.process.exit_code)
+        << ",\"worker_stage\":\"" << flitzfs::hip_worker_stage_name(flitzfs::hip_worker_exit_stage(result.process.exit_code)) << "\""
         << ",\"timed_out\":" << result.process.timed_out
         << ",\"publication_observed\":" << result.publication_observed
         << ",\"peak_commit_bytes\":" << result.process.peak_committed_bytes

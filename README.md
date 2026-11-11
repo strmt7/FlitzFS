@@ -385,3 +385,10 @@ The SDK worker also has a bounded metadata-only installed-runtime verifier. It h
 An explicit installed-driver worker route and bounded metadata/decode/match diagnostics are experimental. Its kernel-only artifact excludes AMD runtime files. Default filesystem operations remain CPU-only; actual hardware execution and performance require their separate gate. See [GPU_DRIVER_WORKER.md](docs/GPU_DRIVER_WORKER.md).
 
 The bounded diagnostic can discover dedicated AMD adapter identities through DXGI without HIP initialization. DXGI order is kept distinct from HIP order; the worker still validates exact identity and budgets. See [ADAPTER_IDENTITY.md](docs/ADAPTER_IDENTITY.md).
+
+The first bounded installed-driver decode experiment on the owner's RX 9070 XT
+at commit 37aaed8f075383b8ae47cd9e10fe1dd668315a52 refused with
+unsupported_configuration. Its child exit was confirmed and the independent CPU
+reference remained available; no GPU result was accepted. The old exit category
+does not identify the failure stage or establish whether HIP initialized.
+GPU correctness, acceleration and compression gains remain unqualified.
