@@ -122,6 +122,11 @@ class NativeFileSession final {
   void begin_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image,
       StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
   RecompressionProgress advance_recompression();
+  // Optional bounded input for an external match finder. The caller may
+  // compute outside the session control lock and submit only on a later call.
+  std::optional<StoreRecompressionInput> next_recompression_input() const;
+  RecompressionProgress advance_recompression(std::uint64_t object_id,
+      std::span<const StoreMatchProposal> matches);
   NativeVolumeHeadInfo publish_recompression();
   void cancel_recompression() noexcept;
   // A controller supplies one observed quiet opportunity and a qualified

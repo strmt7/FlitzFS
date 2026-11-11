@@ -121,11 +121,26 @@ if(FLITZFS_WITH_ZSTD)
           ZSTD_DCtx* d = ZSTD_createDCtx_advanced(memory);
           return int(ZSTD_freeCCtx(c) + ZSTD_freeDCtx(d));
         }" FLITZFS_STORE_ZSTD_LINKS)
+      if(FLITZFS_STORE_ZSTD_LINKS)
+        check_cxx_source_compiles("
+          #define ZSTD_STATIC_LINKING_ONLY
+          #include <zstd.h>
+          static_assert(ZSTD_VERSION_NUMBER >= 10507, \"Zstd sequence API is too old\");
+          int main() {
+            ZSTD_CCtx* c = ZSTD_createCCtx();
+            const auto n = ZSTD_compressSequences(c, nullptr, 0, nullptr, 0, nullptr, 0);
+            return int(n + ZSTD_freeCCtx(c));
+          }" FLITZFS_STORE_SEQUENCE_API_LINKS)
+      endif()
+      set(FLITZFS_STORE_SEQUENCE_API_LINKS "${FLITZFS_STORE_SEQUENCE_API_LINKS}" PARENT_SCOPE)
       set(FLITZFS_STORE_ZSTD_LINKS "${FLITZFS_STORE_ZSTD_LINKS}" PARENT_SCOPE)
     endfunction()
     flitzfs_check_store_zstd()
     if(FLITZFS_STORE_ZSTD_LINKS)
       target_compile_definitions(flitzfs_core PRIVATE FLITZFS_STORE_HAS_ZSTD=1)
+      if(FLITZFS_STORE_SEQUENCE_API_LINKS)
+        target_compile_definitions(flitzfs_core PRIVATE FLITZFS_STORE_HAS_SEQUENCE_API=1)
+      endif()
     elseif(FLITZFS_REQUIRE_ZSTD)
       message(FATAL_ERROR "Transactional Zstandard requires the reviewed custom-allocation API")
     else()

@@ -640,3 +640,5 @@ active or waiting foreground callbacks defer the offer. The caller still owns
 priority, lifecycle and fresh backing admission. A foreground arrival after
 admission can wait for the current operation. Full final verification remains
 synchronous. No scheduled task or production background service is enabled.
+
+External compression hints are limited to 64 KiB input and 4096 matches, with exact byte and range checks. Optional sequence compression retains the ordinary CPU result on a candidate error. No hint becomes persistent authority. See MATCH_PROPOSALS.md.

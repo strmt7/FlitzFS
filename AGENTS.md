@@ -1035,3 +1035,7 @@ and no live-payload increase. Suppress repeat attempts on an evaluated source
 generation. Keep the existing resource caps, staged candidate checks and
 independent publication recovery. The hosted test policy authorizes no
 background daemon, driver changes or owner mount.
+
+## Compression match proposal boundary
+
+Read docs/MATCH_PROPOSALS.md before changing proposals or sequence encoding. Keep 64 KiB input, 4096 matches, nonoverlapping ranges, exact CPU byte checks, the actual linked-API probe and independent result decoding. Retain the ordinary CPU result on malformed or inferior optional output. Match data is private and cannot authorize a worker or change disk codecs. The proposal-input API remains serialized with normal session operations, and a changed source invalidates its candidate before publication.

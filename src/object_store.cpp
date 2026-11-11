@@ -503,13 +503,15 @@ struct ObjectStoreWriter::Rewrite::Impl {
   std::optional<detail::EncodedStoreObject> substitute;
   std::uint64_t replacement_id,source_extent,reserved_end=0,cursor=kDataStart;
   std::size_t next=0;
-  bool reencode;
+  bool reencode,accept_matches;
 
   Impl(State source,std::shared_ptr<StoreByteIo> target,StoreIdentity id,
       std::uint64_t replace_id,std::span<const std::byte> bytes,
       StoreCompressionOptions options,StoreCheckpointOptions checkpoints,bool encode_all)
       :original(std::move(source)),baseline(original),replacement(bytes.begin(),bytes.end()),
-       replacement_id(replace_id),source_extent(original.image->extent()),reencode(encode_all) {
+       replacement_id(replace_id),source_extent(original.image->extent()),reencode(encode_all),
+       accept_matches(encode_all && options.mode==StoreCompressionMode::automatic &&
+           detail::store_match_sequences_available()) {
     if(original.generation==0 || original.generation>(std::numeric_limits<std::uint64_t>::max)()-2)
       fail("compaction generation unavailable");
     if(source_extent<original.end || source_extent>kStoreMaxPhysicalBytes)
@@ -550,14 +552,15 @@ struct ObjectStoreWriter::Rewrite::Impl {
     write_zeros(*target,0,kDataStart);
   }
 
-  void copy_object() {
+  void copy_object(std::uint64_t expected_id,std::span<const StoreMatchProposal> matches) {
     auto& target=*baseline.image;
     target.admit_write(reserved_end);
     auto& e=baseline.entries[next];e.offset=cursor;
     StoredRecord record;
     if(e.id==replacement_id || reencode) {
+      if(!accept_matches || expected_id!=e.id)matches={};
       auto encoded=e.id==replacement_id?std::move(*substitute):
-          target_writer->encoder.encode(read_object(original,original.entries[next]));
+          target_writer->encoder.encode_with_matches(read_object(original,original.entries[next]),matches);
       if(encoded.payload.size()>e.bytes)fail("recompression exceeded raw-size admission");
       e.stored=static_cast<std::uint32_t>(encoded.payload.size());
       auto& h=record.header;copy_field(h,0,kDataMagic);put32(h,8,1);
@@ -620,10 +623,17 @@ bool ObjectStoreWriter::Rewrite::saves_space() const {
   return after<before && before-after>=minimum &&
       state_info(impl_->baseline).stored_payload_bytes<=state_info(impl_->original).stored_payload_bytes;
 }
-bool ObjectStoreWriter::Rewrite::advance() {
+std::optional<StoreRecompressionInput> ObjectStoreWriter::Rewrite::next_input() const {
+  if(!impl_ || !impl_->accept_matches || ready())return std::nullopt;
+  const auto& entry=impl_->original.entries[impl_->next];
+  if(entry.id==impl_->replacement_id || entry.bytes<4 || entry.bytes>detail::kStoreMaxMatchInputBytes)
+    return std::nullopt;
+  return StoreRecompressionInput{entry.id,read_object(impl_->original,entry)};
+}
+bool ObjectStoreWriter::Rewrite::advance(std::uint64_t object_id,std::span<const StoreMatchProposal> matches) {
   if(!impl_)fail("no usable rewrite");
   if(ready())return true;
-  try{impl_->copy_object();}
+  try{impl_->copy_object(object_id,matches);}
   catch(...){impl_.reset();throw;}
   return ready();
 }

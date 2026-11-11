@@ -172,3 +172,5 @@ Windows/native constructor ABI, the upstream serializer oracle, zlib 1.4 static
 staging and actual mounted FLZIP behavior still require the new commit's CI.
 Pending checks must not be reported as passed. No owner-PC/GPU access or remote-control credential is
 part of this change. See FLZIP_READONLY.md for scope and primary research.
+
+The match-proposal tests require exact CPU fallback for malformed geometry and unavailable sequence support, independent byte decoding of accepted candidates and managed-session publication. Actual CPU/raw/sanitizer/Windows execution must be inspected on the matching commit. This is not GPU execution or a speed comparison.

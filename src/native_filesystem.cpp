@@ -866,8 +866,16 @@ std::uint64_t NativeFilesystemWriter::recompression_generation() const noexcept 
   return poisoned()?0:impl_->objects.generation_for_staging();
 }
 
-bool NativeFilesystemWriter::advance_recompression(Recompression& candidate) {
-  try{return candidate.advance();}
+std::optional<StoreRecompressionInput> NativeFilesystemWriter::next_recompression_input(
+    const Recompression& candidate) {
+  try{return candidate.next_input();}
+  catch(const std::bad_alloc&){fail(Code::limit,"recompression input allocation failure");}
+  catch(const std::exception&){fail(Code::storage_failure,"recompression input verification failed");}
+}
+
+bool NativeFilesystemWriter::advance_recompression(Recompression& candidate,
+    std::uint64_t object_id,std::span<const StoreMatchProposal> matches) {
+  try{return candidate.advance(object_id,matches);}
   catch(const std::bad_alloc&){fail(Code::limit,"staged recompression allocation failure");}
   catch(const std::exception&){fail(Code::storage_failure,"staged recompression copy failed");}
 }

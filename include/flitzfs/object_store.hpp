@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -68,6 +69,14 @@ std::uint32_t store_zstd_version() noexcept; // Runtime library version, zero if
 struct StoreObjectInfo {
   std::uint64_t id=0,generation=0;
   std::uint32_t logical_bytes=0,stored_payload_bytes=0;
+};
+// Optional compression hints. These are never written to the store format.
+struct StoreMatchProposal {
+  std::uint32_t position=0,distance=0,length=0;
+};
+struct StoreRecompressionInput {
+  std::uint64_t object_id=0;
+  std::vector<std::byte> bytes;
 };
 struct StoreMutation {
   std::uint64_t id=0;
@@ -202,7 +211,8 @@ class ObjectStoreWriter::Rewrite final {
   bool matches(const ObjectStoreWriter& writer) const noexcept;
   bool ready() const noexcept;
   bool saves_space() const;
-  bool advance(); // At most one live object.
+  std::optional<StoreRecompressionInput> next_input() const;
+  bool advance(std::uint64_t object_id=0,std::span<const StoreMatchProposal> matches={}); // At most one object.
   ObjectStoreWriter finish();
  private:
   friend class ObjectStoreWriter;
