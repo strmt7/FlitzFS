@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-11",
+  "commit": "fbd9dd882f401865185477153168c741d6eb4327",
+  "run": 43025095991,
+  "job": 130537730650,
+  "artifact": 13857101726,
+  "artifact_sha256": "e627a6416dcec8ccc10a85f5352156f1575fc6ba80b0352f76598eeaab2abf7d",
+  "transport_scope": "CPU semantics on disposable hosted Windows; no GPU, driver or mounted filesystem",
+  "owner_executed": false,
+  "observations": [
+    {
+      "schema": 1,
+      "experimental": true,
+      "commit": "fbd9dd882f401865185477153168c741d6eb4327",
+      "complete": false,
+      "error": "native GPU/RAM handle growth",
+      "locked_after": 0,
+      "cleanup_ok": true,
+      "handle_trace": [
+        95,
+        95,
+        95,
+        96,
+        96,
+        96,
+        96,
+        96,
+        96,
+        96
+      ],
+      "match_handle_trace": [
+        95,
+        95,
+        96,
+        96,
+        96,
+        96,
+        96,
+        96
+      ],
+      "handle_types_before": {
+        "ALPC Port": 2,
+        "Directory": 2,
+        "Event": 11,
+        "File": 19,
+        "IRTimer": 6,
+        "IoCompletion": 3,
+        "Job": 1,
+        "Key": 5,
+        "Mutant": 1,
+        "SchedulerSharedData": 1,
+        "Semaphore": 4,
+        "TpWorkerFactory": 3,
+        "WaitCompletionPacket": 8,
+        "unknown": 29
+      },
+      "handle_types_after": {
+        "ALPC Port": 2,
+        "Directory": 2,
+        "Event": 11,
+        "File": 19,
+        "IRTimer": 6,
+        "IoCompletion": 3,
+        "Job": 1,
+        "Key": 5,
+        "Mutant": 1,
+        "SchedulerSharedData": 1,
+        "Semaphore": 4,
+        "TpWorkerFactory": 3,
+        "WaitCompletionPacket": 9,
+        "unknown": 29
+      }
+    },
+    {
+      "schema": 1,
+      "experimental": true,
+      "commit": "fbd9dd882f401865185477153168c741d6eb4327",
+      "kind": "native_wait_accounting",
+      "gpu": false,
+      "counts": [
+        81,
+        81,
+        81,
+        81,
+        81,
+        81,
+        81,
+        81,
+        81,
+        81
+      ],
+      "complete": true
+    }
+  ],
+  "interpretation": {
+    "first_exchange_retains_one_wait_completion_packet": true,
+    "repeated_native_pairs_flat": true,
+    "native_wait_primitive_added_handles": false,
+    "exact_internal_creating_call": "not identified",
+    "leak_free_qualification": false,
+    "proposed_next": "Explicit failure-and-success CPU transport warmup; independently repeated success-only accounting; retain strict native pair equality."
+  },
+  "sources": {
+    "pss_header_blob": "2afedd9b780837c3717770481fbd2e4a6471d08b",
+    "pss_entry_docs_blob": "ea73a3e9f08d37c186fb63387ed4e57937051784",
+    "msvc_wait_primitive_blob": "3cba95a9a74b843e5a4a86b128107db9a255cfed",
+    "transport_product_source_changed": false
+  }
+}

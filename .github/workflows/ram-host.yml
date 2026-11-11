@@ -53,6 +53,7 @@ jobs:
           audit_binary = runpy.run_path("tools/ci/check_portable_cpu.py", run_name="ram_probe_audit")["audit_binary"]
           print(audit_binary(Path("build-portable/Release/flitzfs_ram_host_probe.exe").read_bytes()))
           print(audit_binary(Path("build-portable/Release/flitzfs_gpu_ram_probe.exe").read_bytes()))
+          print(audit_binary(Path("build-portable/Release/flitzfs_worker_exchange_tests.exe").read_bytes()))
       - name: Exercise bounded real-source and synthetic RAM core
         shell: pwsh
         run: |
@@ -138,14 +139,14 @@ jobs:
               } finally { $process.Dispose() }
             }
           }
-          $waitReport = Join-Path $gpuRamFixture 'native-wait.json'
-          $waitResult = Invoke-NativeRamFixture @('--wait-accounting-ci',$waitReport)
-          Write-Output $waitResult.Output
-          Write-Output $waitResult.Error
-          if ($waitResult.Exit -ne 0) { throw 'Isolated native wait accounting failed' }
-          $waitData = Get-Content -LiteralPath $waitReport -Raw | ConvertFrom-Json
-          if ($waitData.commit -ne $env:GITHUB_SHA -or -not $waitData.complete -or $waitData.gpu -or $waitData.kind -ne 'native_wait_accounting' -or $waitData.counts.Count -ne 10) { throw 'Native wait source/result mismatch' }
-          foreach ($count in $waitData.counts[2..9]) { if ($count -ne $waitData.counts[1]) { throw 'Native wait accounting grew after initialization' } }
+          $accountingReport = Join-Path $gpuRamFixture 'native-transport.json'
+          $accounting = Invoke-NativeRamFixture @('--transport-accounting-ci',$accountingReport,$cpuWorker)
+          Write-Output $accounting.Output
+          Write-Output $accounting.Error
+          if ($accounting.Exit -ne 0) { throw 'Isolated successful transport accounting failed' }
+          $accountingData = Get-Content -LiteralPath $accountingReport -Raw | ConvertFrom-Json
+          if ($accountingData.commit -ne $env:GITHUB_SHA -or -not $accountingData.complete -or $accountingData.gpu -or $accountingData.kind -ne 'successful_transport_accounting' -or $accountingData.counts.Count -ne 5) { throw 'Transport accounting source/result mismatch' }
+          foreach ($count in $accountingData.counts[2..4]) { if ($count -ne $accountingData.counts[1]) { throw 'Successful transport grew after first use' } }
           foreach ($fixtureMode in @('match','match-invalid','match-hip-declaration','match-hold')) {
             $newReport = Join-Path $gpuRamFixture ('native-' + $fixtureMode + '.json')
             $result = Invoke-NativeRamFixture @('--cpu-fixture',$newReport,$cpuWorker,$fixtureMode)
@@ -155,7 +156,7 @@ jobs:
             $data = Get-Content -LiteralPath $newReport -Raw | ConvertFrom-Json
             if ($data.commit -ne $env:GITHUB_SHA -or -not $data.complete -or -not $data.cpu_fixture -or $data.gpu_requested -or $data.gpu_result_accepted -or $data.mounted) { throw 'Native RAM fixture source/backend mismatch' }
             if (-not $data.cpu_verified -or -not $data.source_preserved -or -not $data.retained_context_verified -or -not $data.resident_verified -or $data.power_loss_qualified) { throw 'Native RAM fixture evidence mismatch' }
-            if ($data.locked_after -ne 0 -or $data.locked_peak -gt 40MB -or $data.handles_before -ne $data.handles_after -or $data.controller_peak_commit_bytes -gt 256MB) { throw 'Native RAM fixture resource/retirement mismatch' }
+            if ($data.locked_after -ne 0 -or $data.locked_peak -gt 40MB -or $data.handles_before -ne $data.handles_after -or $data.controller_peak_commit_bytes -gt 256MB -or $data.cpu_success_warmups -ne 1) { throw 'Native RAM fixture resource/retirement mismatch' }
             if (-not $data.proposed.worker_attempted -or -not $data.proposed.worker_exit_confirmed -or $data.proposed.device_bytes -gt 256KB -or $data.proposed.records -gt 8) { throw 'Native RAM worker bounds mismatch' }
             if ($data.proposed.target_payload -gt $data.proposed.cpu_baseline_payload) { throw 'Proposed encoding exceeded ordinary CPU baseline' }
             if ($fixtureMode -eq 'match') {
@@ -176,11 +177,13 @@ jobs:
           if ($refusal.Exit -ne 1 -or (Test-Path -LiteralPath $invalidLeaf)) { throw 'Unqualified report filename was opened' }
           $package = $env:FLITZFS_RAM_PACKAGE
           Copy-Item -LiteralPath $gpuRamProbe -Destination (Join-Path $package 'flitzfs_gpu_ram_probe.exe') -ErrorAction Stop
+          Copy-Item -LiteralPath $cpuWorker -Destination (Join-Path $package 'flitzfs_worker_exchange_tests.exe') -ErrorAction Stop
           foreach ($fixtureReport in Get-ChildItem -LiteralPath $gpuRamFixture -Filter '*.json' -File) {
             Copy-Item -LiteralPath $fixtureReport.FullName -Destination (Join-Path $package $fixtureReport.Name) -ErrorAction Stop
           }
+          $cpuWorkerHash = (Get-FileHash -LiteralPath $cpuWorker -Algorithm SHA256).Hash.ToLowerInvariant()
           $gpuRamHash = (Get-FileHash -LiteralPath $gpuRamProbe -Algorithm SHA256).Hash.ToLowerInvariant()
-          @{experimental=$true;commit=$env:GITHUB_SHA;exe_sha256=$gpuRamHash;cpu_fixture_only=$true;gpu_executed=$false;mounted=$false;filesystem_backing='locked_RAM_model';controller_job_mib=256;process_mib=128;worker_mib=128;cpu_rate=2000;worker_timeout_ms=5000;one_compute_request=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'native-gpu-ram-provenance.json') -Encoding utf8
+          @{experimental=$true;commit=$env:GITHUB_SHA;exe_sha256=$gpuRamHash;cpu_helper_sha256=$cpuWorkerHash;cpu_success_warmups=1;cpu_fixture_only=$true;gpu_executed=$false;mounted=$false;filesystem_backing='locked_RAM_model';controller_job_mib=256;process_mib=128;worker_mib=128;cpu_rate=2000;worker_timeout_ms=5000;one_compute_request=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'native-gpu-ram-provenance.json') -Encoding utf8
           $allFiles = @(Get-ChildItem -LiteralPath $package -Recurse -File)
           if ($allFiles.Count -gt 32 -or ($allFiles | Measure-Object Length -Sum).Sum -gt 16MB) { throw 'Combined RAM package cap' }
           exit 0

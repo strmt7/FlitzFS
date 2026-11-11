@@ -5,8 +5,6 @@
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/match_worker_wire.hpp"
 #include <array>
-#include <ProcessSnapshot.h>
-#include <map>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -26,6 +24,7 @@ namespace {
 using namespace flitzfs;
 using Bytes=std::vector<std::byte>;
 std::array<DWORD,8> match_handle_trace{};
+std::array<DWORD,3> transport_warmup_trace{};
 void match_handles(std::size_t phase) {
   if(phase>=match_handle_trace.size())throw std::runtime_error("match handle phase bound");
   if(!match_handle_trace[phase] && !GetProcessHandleCount(GetCurrentProcess(),&match_handle_trace[phase]))
@@ -34,6 +33,13 @@ void match_handles(std::size_t phase) {
 namespace ram=locked_ram_fixture;
 namespace fs=std::filesystem;
 void require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
+
+void hosted_only() {
+  const auto* actions=std::getenv("GITHUB_ACTIONS");
+  const auto* runner=std::getenv("RUNNER_ENVIRONMENT");
+  require(actions&&std::string_view(actions)=="true"&&runner&&
+      std::string_view(runner)=="github-hosted","disposable hosted runner required");
+}
 void local_path(const fs::path& path) {
   const auto text=path.native();
   require(text.size()>=4 && text.size()<=1024 &&
@@ -75,77 +81,6 @@ class Report final {
  private:
   HANDLE handle_=INVALID_HANDLE_VALUE;bool written_=false;
 };
-using HandleTypes=std::map<std::string,unsigned>;
-HandleTypes handles_before_types,handles_after_types;
-HandleTypes handle_types() {
-  DWORD count=0;
-  require(GetProcessHandleCount(GetCurrentProcess(),&count)&&count<=256,"handle snapshot admission cap");
-  struct Capture {
-    HPSS value=nullptr;
-    ~Capture(){if(value&&PssFreeSnapshot(GetCurrentProcess(),value)!=ERROR_SUCCESS)ram::cleanup_ok=false;}
-  } snapshot;
-  require(PssCaptureSnapshot(GetCurrentProcess(),PSS_CAPTURE_HANDLES|PSS_CAPTURE_HANDLE_NAME_INFORMATION|
-      PSS_CAPTURE_HANDLE_BASIC_INFORMATION,0,&snapshot.value)==ERROR_SUCCESS,"handle snapshot capture");
-  PSS_HANDLE_INFORMATION info{};
-  require(PssQuerySnapshot(snapshot.value,PSS_QUERY_HANDLE_INFORMATION,&info,sizeof(info))==ERROR_SUCCESS &&
-      info.HandlesCaptured<=256,"captured handle cap");
-  struct Marker {
-    HPSSWALK value=nullptr;
-    ~Marker(){if(value&&PssWalkMarkerFree(value)!=ERROR_SUCCESS)ram::cleanup_ok=false;}
-  } marker;
-  require(PssWalkMarkerCreate(nullptr,&marker.value)==ERROR_SUCCESS,"handle snapshot marker");
-  HandleTypes types;unsigned walked=0;
-  for(;;) {
-    PSS_HANDLE_ENTRY entry{};
-    const auto status=PssWalkSnapshot(snapshot.value,PSS_WALK_HANDLES,marker.value,&entry,sizeof(entry));
-    if(status==ERROR_NO_MORE_ITEMS)break;
-    require(status==ERROR_SUCCESS&&++walked<=256,"handle snapshot walk bound");
-    std::string name="unknown";
-    if((entry.Flags&PSS_HANDLE_HAVE_TYPE)!=0&&entry.TypeName) {
-      require(entry.TypeNameLength%sizeof(wchar_t)==0 && entry.TypeNameLength<=96,"handle type-name cap");
-      name.clear();
-      for(std::size_t i=0;i<entry.TypeNameLength/sizeof(wchar_t);++i) {
-        const auto ch=entry.TypeName[i];
-        if(!ch)break; // A terminator is permitted, but is not required.
-        if((ch>=L'a'&&ch<=L'z')||(ch>=L'A'&&ch<=L'Z')||(ch>=L'0'&&ch<=L'9')||
-            ch==L' '||ch==L'_')name+=static_cast<char>(ch);
-        else name+="_u"+std::to_string(static_cast<unsigned>(ch));
-      }
-    }
-    ++types[name];
-    require(types.size()<=32,"handle type inventory cap");
-  }
-  require(walked==info.HandlesCaptured,"incomplete handle snapshot walk");
-  return types;
-}
-void print_handle_types(std::ostream& out,const HandleTypes& types) {
-  out<<'{';bool first=true;
-  for(const auto& [name,count]:types){if(!first)out<<',';first=false;out<<'"'<<name<<"\":"<<count;}
-  out<<'}';
-}
-void hosted_only() {
-  const auto* actions=std::getenv("GITHUB_ACTIONS");
-  const auto* runner=std::getenv("RUNNER_ENVIRONMENT");
-  require(actions&&std::string_view(actions)=="true"&&runner&&
-      std::string_view(runner)=="github-hosted","disposable hosted runner required");
-}
-std::array<DWORD,10> wait_accounting() {
-  std::array<DWORD,10> counts{};
-  require(GetProcessHandleCount(GetCurrentProcess(),&counts[0]),"wait handle baseline");
-  CONDITION_VARIABLE ready=CONDITION_VARIABLE_INIT;
-  SRWLOCK mutex=SRWLOCK_INIT;
-  for(std::size_t i=1;i<counts.size();++i) {
-    AcquireSRWLockExclusive(&mutex);
-    const auto woke=SleepConditionVariableSRW(&ready,&mutex,1,0);
-    const auto error=GetLastError();
-    ReleaseSRWLockExclusive(&mutex);
-    require(woke||error==ERROR_TIMEOUT,"native wait accounting failed");
-    require(GetProcessHandleCount(GetCurrentProcess(),&counts[i]),"wait handle observation");
-    if(i>1)require(counts[i]==counts[1],"repeated native wait handle growth");
-  }
-  require(counts[1]>=counts[0]&&counts[1]-counts[0]<=1,"unexpected native wait initialization");
-  return counts;
-}
 StoreIdentity identity(unsigned n){StoreIdentity id{};id[0]=static_cast<std::byte>(n);id[1]=std::byte{73};return id;}
 std::uint64_t elapsed(std::chrono::steady_clock::time_point start) {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -157,7 +92,7 @@ bool lower_hex(std::wstring_view text,std::size_t length) {
   return true;
 }
 struct Worker {
-  fs::path executable;
+  fs::path executable,cpu_warm_helper;
   std::vector<std::wstring> arguments,warmup;
   WorkerExecution expected=WorkerExecution::cpu_semantics;
   bool driver=false;std::uint32_t timeout=5000;
@@ -177,8 +112,8 @@ Worker options(int argc,wchar_t** argv) {
     w.arguments={std::wstring(fixture)};w.warmup={L"match"};
     if(fixture==L"match-hold")w.timeout=100;
   } else {
-    require(mode==L"--driver-once" && argc==7,
-        "explicit --driver-once NEW_REPORT TRUSTED_WORKER ORDINAL LUID RUNTIME_SHA256 required");
+    require(mode==L"--driver-once" && argc==8,
+        "explicit --driver-once NEW_REPORT TRUSTED_WORKER ORDINAL LUID RUNTIME_SHA256 TRUSTED_CPU_HELPER required");
     const std::wstring_view ordinal(argv[4]),luid(argv[5]),digest(argv[6]);
     require((ordinal.size()==1&&ordinal[0]>=L'0'&&ordinal[0]<=L'9') ||
         (ordinal.size()==2&&ordinal>=L"10"&&ordinal<=L"63"&&ordinal[1]>=L'0'&&ordinal[1]<=L'9'),
@@ -188,11 +123,13 @@ Worker options(int argc,wchar_t** argv) {
     w.arguments={L"--driver-match-adapter",argv[4],argv[5],L"1",argv[6]};w.warmup=w.arguments;
   }
   w.executable=argv[3];local_path(w.executable);
+  w.cpu_warm_helper=w.driver?fs::path(argv[7]):w.executable;local_path(w.cpu_warm_helper);
+  require(w.cpu_warm_helper.filename()==L"flitzfs_worker_exchange_tests.exe","unexpected CPU warmup helper filename");
   require(w.executable.filename()==(w.driver?L"flitzfs_hip_worker.exe":L"flitzfs_worker_exchange_tests.exe"),
       "unexpected trusted helper filename");
   return w;
 }
-void warm_transport(const Worker& worker) {
+void warm_invalid_transport(const Worker& worker) {
   // Invalid match framing is rejected before runtime/module initialization.
   // Warm only CPU transport/lifetime bookkeeping, never a compute request.
   const std::array<std::byte,32> invalid{};
@@ -201,6 +138,26 @@ void warm_transport(const Worker& worker) {
       !result.process.timed_out && !result.process.cancelled && result.process.exit_code!=0 &&
       result.response.empty() && !result.publication_observed && WorkerExchangeSession::available(),
       "CPU-only transport warmup/retirement failed");
+}
+Bytes synthetic_input();
+void successful_cpu_exchange(const fs::path& helper) {
+  const auto search=PreparedGpuMatchSearch::prepare(synthetic_input());
+  const auto request=encode_match_worker_request(search,1);
+  const auto result=run_worker_exchange(helper,{L"match"},request,{128,2000,5000});
+  require(result.code==WorkerExchangeCode::completed && result.process.exit_confirmed &&
+      !result.process.timed_out&&!result.process.cancelled&&result.process.exit_code==0&&
+      result.publication_observed&&WorkerExchangeSession::available(),"CPU success warmup/retirement failed");
+  require(!accept_match_worker_reply(result.response,search,1,WorkerExecution::cpu_semantics).empty(),
+      "CPU success warmup did not verify proposals");
+}
+void warm_transport(const Worker& worker) {
+  require(GetProcessHandleCount(GetCurrentProcess(),&transport_warmup_trace[0]),"pre-warm handle observation");
+  warm_invalid_transport(worker);
+  require(GetProcessHandleCount(GetCurrentProcess(),&transport_warmup_trace[1]),"invalid-warm handle observation");
+  // The measured exchange must start after BOTH real failure and successful
+  // transport paths. This CPU fixture performs no HIP or native storage work.
+  successful_cpu_exchange(worker.cpu_warm_helper);
+  require(GetProcessHandleCount(GetCurrentProcess(),&transport_warmup_trace[2]),"success-warm handle observation");
 }
 struct MatchOutcome {
   std::vector<StoreMatchProposal> proposals;
@@ -355,13 +312,24 @@ int wmain(int argc,wchar_t** argv) {
         "handle phase observation failed");
   };
   try {
-    if(argc>1&&std::wstring_view(argv[1])==L"--wait-accounting-ci") {
-      require(argc==3,"wait accounting requires NEW_REPORT");hosted_only();
+    if(argc>1&&std::wstring_view(argv[1])==L"--transport-accounting-ci") {
+      require(argc==4,"transport accounting requires NEW_REPORT TRUSTED_CPU_HELPER");hosted_only();
+      Worker fixture;fixture.executable=argv[3];fixture.warmup={L"match"};
+      local_path(fixture.executable);
+      require(fixture.executable.filename()==L"flitzfs_worker_exchange_tests.exe","unexpected accounting helper");
       report=std::make_unique<Report>(argv[2]);
       const gpu_probe_fixture::Budget budget;
-      const auto counts=wait_accounting();
+      warm_invalid_transport(fixture);
+      std::array<DWORD,5> counts{};
+      require(GetProcessHandleCount(GetCurrentProcess(),&counts[0]),"transport accounting baseline");
+      for(std::size_t i=1;i<counts.size();++i) {
+        successful_cpu_exchange(fixture.executable);
+        require(GetProcessHandleCount(GetCurrentProcess(),&counts[i]),"transport accounting observation");
+        if(i>1)require(counts[i]==counts[1],"repeated successful transport handle growth");
+      }
+      require(counts[1]>=counts[0]&&counts[1]-counts[0]<=1,"unexpected first successful transport growth");
       std::ostringstream out;out<<"{\"schema\":1,\"experimental\":true,\"commit\":\""
-          <<FLITZFS_GPU_RAM_SOURCE_COMMIT<<"\",\"kind\":\"native_wait_accounting\",\"gpu\":false,\"counts\":[";
+          <<FLITZFS_GPU_RAM_SOURCE_COMMIT<<"\",\"kind\":\"successful_transport_accounting\",\"gpu\":false,\"counts\":[";
       for(std::size_t i=0;i<counts.size();++i){if(i)out<<',';out<<counts[i];}
       out<<"],\"complete\":true}\n";report->write(out.str());std::cout<<out.str();return 0;
     }
@@ -372,7 +340,6 @@ int wmain(int argc,wchar_t** argv) {
     warm_transport(worker);
     const auto warmup_ns=elapsed(warming);
     DWORD before=0,after=0;
-    if(!worker.driver)handles_before_types=handle_types();
     require(GetProcessHandleCount(GetCurrentProcess(),&before),"handle baseline");handle_trace[0]=before;
     require(store_zstd_available(),"native GPU/RAM probe requires qualified Zstandard");
     Sample cpu,proposed;
@@ -393,7 +360,6 @@ int wmain(int argc,wchar_t** argv) {
         "resident/worker cleanup unconfirmed");
     require(GetProcessHandleCount(GetCurrentProcess(),&after),"final handle observation");
     handle_trace[5]=after;
-    if(!worker.driver)handles_after_types=handle_types();
     if(before!=after && !worker.driver) {
       // Diagnostics ONLY after the strict gate has already failed, hosted CPU
       // fixtures only. Preserve the original assertion; never promote this run.
@@ -407,7 +373,6 @@ int wmain(int argc,wchar_t** argv) {
       resident.restore();
     }
     require(before==after,"native GPU/RAM handle growth");
-    require(worker.driver,"handle inventory diagnostic is not qualification");
     std::ostringstream out;out.imbue(std::locale::classic());
     out<<"{\"schema\":1,\"experimental\":true,\"commit\":\""<<FLITZFS_GPU_RAM_SOURCE_COMMIT
         <<"\",\"backing\":\"locked_RAM_model\",\"mounted\":false,\"gpu_requested\":"<<(worker.driver?"true":"false")
@@ -416,7 +381,9 @@ int wmain(int argc,wchar_t** argv) {
         <<",\"locked_peak\":"<<ram::peak_locked_bytes.load()<<",\"locked_after\":"<<ram::locked_bytes.load()
         <<",\"handles_before\":"<<before<<",\"handles_after\":"<<after
         <<",\"controller_peak_commit_bytes\":"<<budget.peak_commit()
-        <<",\"transport_warmup_ns\":"<<warmup_ns<<",\"pair_total_ns\":"<<elapsed(pairing)<<",";
+        <<",\"transport_warmup_ns\":"<<warmup_ns<<",\"transport_warmup_handles\":["
+        <<transport_warmup_trace[0]<<','<<transport_warmup_trace[1]<<','<<transport_warmup_trace[2]
+        <<"],\"cpu_success_warmups\":1,\"pair_total_ns\":"<<elapsed(pairing)<<",";
     sample(out,"cpu_baseline",cpu);out<<',';sample(out,"proposed",proposed);
     out<<",\"cpu_verified\":true,\"source_preserved\":true,\"retained_context_verified\":true,"
         "\"resident_verified\":true,\"power_loss_qualified\":false,\"complete\":true}\n";
@@ -437,8 +404,7 @@ int wmain(int argc,wchar_t** argv) {
       for(std::size_t i=0;i<handle_trace.size();++i){if(i)out<<',';out<<handle_trace[i];}
       out<<"],\"match_handle_trace\":[";
       for(std::size_t i=0;i<match_handle_trace.size();++i){if(i)out<<',';out<<match_handle_trace[i];}
-      out<<"],\"handle_types_before\":";print_handle_types(out,handles_before_types);
-      out<<",\"handle_types_after\":";print_handle_types(out,handles_after_types);out<<"}\n";
+      out<<"]}\n";
       report->write(out.str());
     }catch(...){}
     std::cerr<<"Native GPU/RAM probe failed: "<<text<<'\n';return 1;
