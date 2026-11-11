@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-11",
+  "repository": "strmt7/FlitzFS",
+  "baseline": "343acaa6442a2ca28efb75401826ca4ed654c59a",
+  "selected_sdk": {
+    "repository": "winfsp/winfsp",
+    "tag": "v2.2B5",
+    "source_commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
+    "header": "inc/winfsp/winfsp.h",
+    "header_blob": "0bfa8a25d8d33e893c52df49bdfc9bafafcbbb5b",
+    "api": "FspFileSystemOperationProcessId",
+    "valid_scope": "Create/Open, or Rename when its target exists",
+    "transport": "native GitHub API; exact pinned header",
+    "use": "Extra denial of host-self requests only; never replace native authorization or use process ID as an access token"
+  },
+  "upstream_lead": {
+    "url": "https://github.com/winfsp/winfsp/issues/702",
+    "created_at": "2026-10-29T17:26:05Z",
+    "updated_at": "2026-10-30T14:10:01Z",
+    "maintainer_confirmation": false,
+    "summary": "User reports a termination cycle when a filesystem host holds its own namespace file handle; unconfirmed as the cause of FlitzFS's historical failures."
+  },
+  "live_source": {
+    "path": "tests/winfsp_write_probe.cpp",
+    "blob": "581b13c1df9569564d87a8d9c319364df6784e78",
+    "observation": "Old crash/crash-restart host creates, writes, flushes and retains its own mounted Win32 file handle until forced termination."
+  },
+  "semantic_binding": {
+    "artifact": 13854397633,
+    "artifact_sha256": "b761b0810844084f4036d7d27b2d487ea9f93764640a643316e6ed5287d2461a",
+    "index_commit": "480573e71d2df72492d22b12422e9e1600013272",
+    "current_commit": "343acaa6442a2ca28efb75401826ca4ed654c59a",
+    "indexed_inputs_unchanged": true,
+    "method": "Provider inventory excludes tests/third_party/.github and non-source suffixes. Full commit comparison changes only excluded test/workflow/docs/json files; current relevant candidate byte hashes match actual receipt.",
+    "actual_query": "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
+    "response_sha256": "dd4fe164008f43e21f4214342f8244a7a02fdace93cb0571a92aa84ca9015a96",
+    "provider": "0.2.43",
+    "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+    "source_sha256": "a9e693c3554c032b9d6ae62b32750b43146beb80a5e6486b82c661274f3af29a",
+    "infrastructure_self_hits_not_coverage": true,
+    "excluded_test_file": "tests/winfsp_write_probe.cpp inspected separately by exact name"
+  },
+  "candidate": {
+    "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
+    "owner_execution": false,
+    "source_child_limits_unchanged": true,
+    "child_deadline_seconds": 15,
+    "child_exit_observation_seconds": 2,
+    "actor_count": 2,
+    "controller_shared_cpu_budget": {
+      "process_mib": 128,
+      "aggregate_mib": 256,
+      "processes": 2,
+      "cpu_rate": 2000
+    },
+    "hypothesis_proven": false,
+    "qualification_required": true
+  }
+}

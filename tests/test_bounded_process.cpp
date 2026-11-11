@@ -1,4 +1,5 @@
 #include "bounded_process.hpp"
+#include "supervised_source_fixture.hpp"
 #include <windows.h>
 #include <iostream>
 #include <cstddef>
@@ -11,6 +12,7 @@ static_assert(offsetof(JOBOBJECT_BASIC_ACCOUNTING_INFORMATION,ActiveProcesses)==
 static_assert(sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)==144);
 
 namespace {
+namespace source=source_fixture;
 void require(bool value, const char* message) { if (!value) throw std::runtime_error(message); }
 std::filesystem::path self() {
   wchar_t path[512]{};
@@ -20,6 +22,14 @@ std::filesystem::path self() {
 }
 int child(int argc, wchar_t** argv) {
   const std::wstring_view mode(argv[1]);
+  if (mode == L"--child-source-protocol") {
+    if(argc!=3)return 1;
+    source_fixture::Events protocol(false,argv[2]);
+    protocol.signal(source_fixture::Phase::ready);
+    protocol.wait_written();
+    protocol.signal(source_fixture::Phase::ack);
+    return 73;
+  }
   if (mode == L"--child-exit") return 37;
   if (mode == L"--child-sleep") { Sleep(10000); return 1; }
   if (mode == L"--child-args") {
@@ -71,6 +81,7 @@ int child(int argc, wchar_t** argv) {
 int wmain(int argc, wchar_t** argv) {
   try {
     if (argc > 1) return child(argc, argv);
+    const source::ControllerBudget controller_budget;
     const auto executable = self();
     auto run = [&](std::vector<std::wstring> args, DWORD expected, flitzfs::ProcessBudget budget = {}) {
       const auto result = flitzfs::run_bounded_process(executable, args, budget);
@@ -108,6 +119,86 @@ int wmain(int argc, wchar_t** argv) {
       (void)flitzfs::run_bounded_process(executable, {}, invalid); }
     catch (const std::invalid_argument&) { rejected = true; }
     require(rejected, "invalid budget accepted");
+    auto protocol_round=[&] {
+      source::Events events(true);
+      const auto token=events.token();
+      source::Child child(executable,{L"--child-source-protocol",token},{128,2000,5000});
+      child.await(events,source::Phase::ready);
+      require(child.process_id()!=0&&child.process_id()!=GetCurrentProcessId()&&!child.retirement_confirmed(),
+          "source actor identity/lifetime");
+      bool second_refused=false;
+      try{source::Child second(executable,{L"--child-exit"},{128,2000,5000});}
+      catch(const std::runtime_error&){second_refused=true;}
+      require(second_refused,"parallel source admission accepted");
+      events.signal(source::Phase::written);child.await(events,source::Phase::ack);
+      const auto result=child.result();
+      require(result.process_id==child.process_id()&&result.exit_confirmed&&!result.timed_out&&
+          !result.cancelled&&result.exit_code==73&&child.retirement_confirmed(),"source result/retirement");
+      require(child.result().exit_code==73,"retired source result changed");
+    };
+    // Prime the real successful protocol and real failed-launch exception path
+    // before strict repeated accounting; no tolerance or fixed handle subtraction.
+    protocol_round();
+    const auto missing=executable.parent_path()/(L"missing-source-"+source::random_token()+L".exe");
+    require(GetFileAttributesW(missing.c_str())==INVALID_FILE_ATTRIBUTES&&GetLastError()==ERROR_FILE_NOT_FOUND,
+        "new missing-helper fixture already exists");
+    auto failed_source=[&] {
+      bool failed=false;source::Child child(missing,{}, {128,2000,5000});
+      try{(void)child.result();}catch(const std::system_error&){failed=true;}
+      require(failed&&child.retirement_confirmed()&&!source::source_busy.load(),"source launch error lost retirement");
+    };
+    failed_source();
+    {
+      source::Events events(true);
+      bool collision=false;
+      try{source::Events duplicate(true,events.token());}catch(const std::runtime_error&){collision=true;}
+      require(collision&&WaitForSingleObject(events.get(source::Phase::ready),0)==WAIT_TIMEOUT,
+          "source event collision reset/signal");
+      source::Events recipient(false,events.token());
+      bool role_refused=false;
+      try{recipient.signal(source::Phase::written);}catch(const std::system_error&){role_refused=true;}
+      require(role_refused&&WaitForSingleObject(events.get(source::Phase::written),0)==WAIT_TIMEOUT,
+          "source child acquired parent signal rights");
+    }
+    for(const auto& token:std::vector<std::wstring>{L"",std::wstring(31,L'a'),
+        std::wstring(32,L'A'),L"..\\foreign-source",std::wstring(32,L'g')}) {
+      bool invalid=false;try{source::Events opened(false,token);}catch(const std::runtime_error&){invalid=true;}
+      require(invalid,"unbounded/foreign source event token accepted");
+    }
+    std::wstring retired_token;
+    {
+      source::Events events(true);retired_token=events.token();
+      source::Child abandoned(executable,{L"--child-source-protocol",events.token()},{128,2000,5000});
+      abandoned.await(events,source::Phase::ready);
+    }
+    require(!source::source_busy.load(),"abandoned CPU source did not retire");
+    for(auto phase:{source::Phase::ready,source::Phase::written,source::Phase::ack}) {
+      const auto name=source::Events::event_name(retired_token,phase);
+      const auto opened=OpenEventW(SYNCHRONIZE,FALSE,name.c_str());const auto error=GetLastError();
+      source::Handle gone(opened);
+      require(!gone.value&&error==ERROR_FILE_NOT_FOUND,"source event retained after actor retirement");
+    }
+    {
+      source::Child timed_source(executable,{L"--child-sleep"},{128,2000,50});
+      const auto result=timed_source.result();
+      require(result.timed_out&&!result.cancelled&&result.exit_confirmed&&result.exit_code==ERROR_TIMEOUT&&
+          timed_source.retirement_confirmed(),"async source deadline/retirement");
+    }
+    {
+      source::Events events(true);
+      source::Child cancelled_source(executable,{L"--child-source-protocol",events.token()},{128,2000,5000});
+      cancelled_source.await(events,source::Phase::ready);
+      require(cancelled_source.request_cancel(),"async source cancellation signal");
+      const auto result=cancelled_source.result();
+      require(result.cancelled&&!result.timed_out&&result.exit_confirmed&&result.exit_code==ERROR_CANCELLED&&
+          cancelled_source.retirement_confirmed(),"async source cancellation/retirement");
+    }
+    DWORD before=0,after=0;
+    require(GetProcessHandleCount(GetCurrentProcess(),&before),"source handle baseline");
+    for(unsigned repeat=0;repeat<8;++repeat){protocol_round();failed_source();}
+    require(GetProcessHandleCount(GetCurrentProcess(),&after)&&before==after&&source::cleanup_ok.load()&&
+        !source::source_busy.load(),"source fixture handles/cleanup grew");
+    std::cout<<"Protected source phases, actor identity, cancellation, timeout, abandonment, failed launch and repeated exact retirement passed; CPU only.\n";
     std::cout << "Windows Job Object admission, quoting, limits and timeout tests passed; CPU only.\n";
     return 0;
   } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

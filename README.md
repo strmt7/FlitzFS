@@ -49,7 +49,9 @@ Payload reduction alone is not filesystem compression performance. G02 remains
 unfinished until a useful end-to-end benefit is demonstrated.
 
 Earlier intermittent mounted-child retirement failures remain unresolved
-despite this green matrix. See [the execution ledger](docs/DEVELOPMENT_STATE.json).
+despite this green matrix. A [candidate external-client crash protocol](docs/MOUNT_PROCESS_ISOLATION.md)
+now separates the filesystem host from its application handle and requires new
+source-bound qualification. See [the execution ledger](docs/DEVELOPMENT_STATE.json).
 
 ## Implemented experimental components
 

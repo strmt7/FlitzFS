@@ -237,3 +237,31 @@ locks and a single bounded report in the fixture directory.
 The adapter uses the same mutex for maintenance and callbacks. The test invokes
 maintenance explicitly while the mount is running. The locked RAM images are
 volatile. The scope is a disposable Windows VM with the pinned WinFsp driver.
+
+## Candidate external-client crash sources
+
+Read [MOUNT_PROCESS_ISOLATION.md](MOUNT_PROCESS_ISOLATION.md) before changing
+the crash/crash-restart ownership protocol. The controller now retains the
+mounted application handle while a separate, job-bounded filesystem host is
+terminated. An actual SDK self-open rejection and observed external client PID/
+successful Flush callback are prerequisites for acknowledgement. The client
+handle remains open through confirmed host AND supervisor retirement.
+
+This preserves open-handle crash coverage. It does not close the handle early
+or widen the existing15/30-second child and2-second exit bounds.
+The controller uses the shared128-MiB-process/256-MiB-aggregate/two-process/
+20%-CPU budget; each child retains its unchanged128-MiB one-process job.
+A100-second total controller watchdog prevents an unbounded caller wait.
+The4-MiB image and two2048-byte reports remain unchanged.
+
+Historical schema2 remains readable; new live crash observations require the
+strict external-client actor fields and preserve every old data/metadata/
+checkpoint comparison. A source acknowledgement now observes the real successful
+Flush callback AND the trusted external caller's completion handshake; the
+filesystem-host process does not claim to have called the application's
+FlushFileBuffers. Independent observers cannot invent those live observations.
+
+CPU-only event/supervisor tests run without WinFsp creation/mounting. New mounted
+qualification is still required on disposable hosted Windows; no owner-PC
+execution, driver operation or conclusion about the historical root cause
+follows from source changes or a green unrelated run.

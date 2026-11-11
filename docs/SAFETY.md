@@ -745,3 +745,19 @@ The prior D01 mounted retirement failures remain open despite the current
 13-job pass. Owner mounts remain prohibited. Future batching/resident-worker
 changes require a replacement security/lifecycle/resource contract and isolated
 fault qualification before any owner-device test.
+
+## Candidate crash-source actor isolation
+
+The source/client test controller in MOUNT_PROCESS_ISOLATION.md is CPU-only
+infrastructure plus a separate OFF-by-default hosted mount path. Normal CTest
+never creates a filesystem. Unknown source or supervisor retirement is terminal
+and cannot authorize the next helper. The client file remains open until actual
+host/supervisor exit; source byte and metadata proofs are retained.
+
+The additional caller job and wall watchdog bound previously unbounded parent
+work; they do not raise the original child caps or image/report budgets.
+A test-only source guard uses the exact pinned SDK's permitted Create/Open
+origin-PID query, then delegates admitted requests to the unchanged native
+authorization/adoption logic. It is not a production security policy or proof
+that all driver failures can be contained. Owner mounts/driver changes remain
+prohibited and no new owner test is authorized.
