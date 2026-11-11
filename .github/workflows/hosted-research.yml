@@ -1,6 +1,17 @@
 name: Isolated source research (no owner-PC execution)
 on:
   workflow_dispatch:
+    inputs:
+      source_group:
+        description: Reviewed primary-source group (isolated Crawl4AI only)
+        required: true
+        type: choice
+        default: rocm-compatibility
+        options:
+          - rocm-compatibility
+          - rocm-windows-hardware
+          - rocm-current
+          - windows-adapter-identity
   push:
     branches: [main]
     paths:
@@ -47,14 +58,21 @@ jobs:
             --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
             "$python_path" "$GITHUB_WORKSPACE/.ci-provider/tools/crawl4ai_tool.py" \
             --home "$RUNNER_TEMP/flitzfs-admitted-crawler" install
-      - name: Research bounded Windows adapter identity
+      - name: Research selected current AMD or Windows sources
         shell: bash
+        env:
+          RESEARCH_SOURCE_GROUP: ${{ inputs.source_group || 'rocm-compatibility' }}
         run: |
           set -euo pipefail
           python_path="$(command -v python)"
           mkdir "$RUNNER_TEMP/flitzfs-windows-native-research"
           status=0
-          for group in windows-adapter-identity; do
+          case "$RESEARCH_SOURCE_GROUP" in
+            rocm-compatibility) groups=(rocm-windows-hardware rocm-current) ;;
+            rocm-windows-hardware|rocm-current|windows-adapter-identity) groups=("$RESEARCH_SOURCE_GROUP") ;;
+            *) echo "Unreviewed source group" >&2; exit 1 ;;
+          esac
+          for group in "${groups[@]}"; do
             sudo systemd-run --wait --collect --pipe --service-type=exec \
               --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
               --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=240 \

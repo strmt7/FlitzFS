@@ -212,3 +212,29 @@ The new diagnostics require portable category/stage invariants, fake-API stage
 checks, actual Windows child-exit/classifier checks and no-HIP DXGI budget
 inspection. They preserve all existing seventeen admission children and refusal
 probes. Qualification is pending until exact matching hosted receipts pass.
+
+### Diagnostic qualification completed; node refusal observed
+
+Commit 9c1637a3144b743271de9c521070d2c2765ae78d passed all 13 triggered
+workflows. Windows-native CTest passed 126 groups; the real Windows transport
+fixture passed 867 checks, including staged failure-category handling. The SDK
+fake API probe passed 108 checks and retained all 17 confirmed admission exits.
+Linux CPU/raw-only, Windows raw-only and sanitizer checks passed. Its hosted
+crash-restart job 130350565766 confirmed writer termination, resumed the store
+and independently verified the preserved 7,001 bytes and continued state. This
+successful run does not explain the earlier intermittent unconfirmed exit.
+
+On the owner PC, fresh no-HIP DXGI budget inspection passed in 33 ms (peak process
+job commitment 1,871,872 bytes). Installed-runtime metadata passed in 167 ms.
+One separately bounded diagnostic decode then returned raw 0x46530703, category
+0x46530003 and stage adapter_node: 161 ms wall time, 110 ms internal elapsed,
+12,288 CPU bytes verified, no candidate publication, no timeout and confirmed
+child exit. Child/aggregate peak commitment was 9,662,464/11,067,392 bytes.
+The actual HIP node mask remains unknown. No stream or kernel call was reached
+by the worker after the failed identity check. Driver version/status remained
+32.0.32015.12012/OK; no owned diagnostic process remained. These observations
+are not a GPU speed result, mounted-owner test or general safety qualification.
+
+The following batch adds hosted private-runtime import/license inventory and
+fixed-choice current AMD research. Its own matching execution receipts are
+required before interpreting the inventory; it ships no AMD binaries.

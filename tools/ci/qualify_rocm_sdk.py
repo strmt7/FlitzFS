@@ -10,6 +10,8 @@ import re
 from pathlib import Path
 import shutil
 import subprocess
+import stat
+import time
 import sys
 import zipfile
 
@@ -48,6 +50,59 @@ def run(bounds,command,report,name,seconds=900,exit_code=0):
     require(result["exit_code"]==exit_code and not result["timed_out"] and not result["output_limit_exceeded"],
         "native ROCm qualification command failed: "+name)
     return result
+
+
+def inspect_private_runtime(sdk,build,bundle):
+    """Read PE bytes and license metadata only; never load the AMD runtime."""
+    records=bundle["files"]
+    require(isinstance(records,list) and 1<=len(records)<=32,"private runtime inventory bound")
+    files=[];total=0
+    for record in records:
+        name=record["name"]
+        require(isinstance(name,str) and re.fullmatch(r"[a-z0-9_-][a-z0-9_.-]{0,122}\.dll",name),
+            "private runtime inventory name")
+        path=build/"Release/hip"/name
+        info=path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink==1 and
+            not (getattr(info,"st_file_attributes",0)&0x400) and
+            info.st_size==record["bytes"] and 0<info.st_size<=32*1024*1024,
+            "private runtime inventory file type/size")
+        total+=info.st_size
+        require(total<=64*1024*1024,"private runtime inventory total bytes")
+        data=path.read_bytes()
+        require(len(data)==info.st_size and hashlib.sha256(data).hexdigest()==record["sha256"],
+            "private runtime inventory identity")
+        from check_portable_cpu import pe_import_names
+        imports,delayed=pe_import_names(data,allow_delay=True)
+        files.append(dict(**record,imports=sorted(set(imports)),delay_imports=sorted(set(delayed))))
+    license_name=re.compile(r"(?:licen[cs]e|notice|copying|copyright|eula|redistribut)[a-z0-9_.-]*",re.I)
+    started=time.monotonic();seen=0;licenses=[];license_bytes=0
+    for directory,children,names in os.walk(sdk,followlinks=False):
+        seen+=1+len(children)+len(names)
+        require(seen<=50000 and time.monotonic()-started<=20,"SDK license metadata traversal budget")
+        for child in children:
+            path=Path(directory)/child
+            require(not path.is_symlink() and not path.is_junction(),"SDK license traversal reparse directory")
+        for name in names:
+            if not license_name.fullmatch(name):
+                continue
+            path=Path(directory)/name
+            info=path.lstat()
+            require(stat.S_ISREG(info.st_mode) and info.st_nlink==1 and
+                not (getattr(info,"st_file_attributes",0)&0x400) and 0<info.st_size<=1024*1024,
+                "SDK license metadata file budget/type")
+            license_bytes+=info.st_size
+            require(len(licenses)<256 and license_bytes<=8*1024*1024,"SDK license metadata aggregate budget")
+            data=path.read_bytes()
+            require(len(data)==info.st_size,"SDK license metadata changed")
+            # Identity and a bounded preview aid review; no redistribution conclusion is inferred.
+            licenses.append(dict(path=path.relative_to(sdk).as_posix(),bytes=info.st_size,
+                sha256=hashlib.sha256(data).hexdigest(),
+                preview=data[:2048].decode("utf-8",errors="replace")))
+    require(bool(licenses),"complete SDK has no discovered license metadata")
+    return dict(files=files,bytes=total,licenses=sorted(licenses,key=lambda item:item["path"]),
+        license_bytes=license_bytes,entries_observed=seen,loaded=False,gpu_executed=False,
+        amd_binaries_exported=False,redistribution_qualified=False)
 
 def main():
     require(os.name=="nt" and os.environ.get("GITHUB_ACTIONS")=="true" and
@@ -185,6 +240,7 @@ def main():
         require(bool(imports) and set(imports) <= allowed and not delay, "worker has eager SDK dependencies")
         report["worker"]=dict(bytes=worker.stat().st_size,sha256=digest(worker),imports=sorted(set(imports)),
             bundle=json.loads((build/"Release/hip-bundle.json").read_text(encoding="utf-8")))
+        report["private_runtime_inventory"]=inspect_private_runtime(sdk,build,report["worker"]["bundle"])
         report["worker_probe_imports"]=audit_binary(worker_probe.read_bytes())
         # Same-size change in a NEW copy. Every original SDK/bundle file stays untouched.
         altered=root/"tampered-worker"
