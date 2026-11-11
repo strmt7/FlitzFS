@@ -727,10 +727,21 @@ independent CPU verification and handoff barriers remain the authority.
 ## Native locked-RAM worker composition gate
 
 The optional probe in NATIVE_GPU_RAM_PROBE.md uses only the shared locked-RAM
-backend for source, target and head; its sole ordinary output is a new bounded
-report. The existing one-process CPU RAM probe remains unchanged. The shared
-two-process diagnostic budget retains its prior caps and now needs matching SDK
-requalification after factoring. Hosted CPU fixtures run no GPU or driver.
-Actual owner execution is not qualified by source alone. The d1e66f6 full matrix
-still failed mounted crash-restart retirement (D01); no timeout was widened,
-failure suppressed or owner mount authorized.
+backend for source, target and head; ordinary outputs are new bounded numeric
+reports. The old one-process CPU RAM probe remains unchanged. Shared two-process
+limits and SDK factoring passed at 480573e; GPU source inputs remained unchanged
+through the native probe at 645a1d1. CPU-helper/probe binaries are separately
+hashed and qualified at 645a1d1.
+
+The explicit synthetic owner trial accepted GPU proposals and verified native
+readback/source preservation, locked-page retirement, equal handles and actual
+child/supervisor exit. Postflight found no owned workers and unchanged healthy
+driver/runtime observations. See evidence/native-gpu-ram-645a1d1.json.
+No normal filesystem GPU route, mount, driver installation, stress test,
+persistent worker or physical-power-loss qualification follows. No unchanged
+GPU retry is needed; the trial found no size/speed benefit.
+
+The prior D01 mounted retirement failures remain open despite the current
+13-job pass. Owner mounts remain prohibited. Future batching/resident-worker
+changes require a replacement security/lifecycle/resource contract and isolated
+fault qualification before any owner-device test.

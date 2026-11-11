@@ -183,7 +183,7 @@ jobs:
           }
           $cpuWorkerHash = (Get-FileHash -LiteralPath $cpuWorker -Algorithm SHA256).Hash.ToLowerInvariant()
           $gpuRamHash = (Get-FileHash -LiteralPath $gpuRamProbe -Algorithm SHA256).Hash.ToLowerInvariant()
-          @{experimental=$true;commit=$env:GITHUB_SHA;exe_sha256=$gpuRamHash;cpu_helper_sha256=$cpuWorkerHash;cpu_success_warmups=1;cpu_fixture_only=$true;gpu_executed=$false;mounted=$false;filesystem_backing='locked_RAM_model';controller_job_mib=256;process_mib=128;worker_mib=128;cpu_rate=2000;worker_timeout_ms=5000;one_compute_request=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'native-gpu-ram-provenance.json') -Encoding utf8
+          @{experimental=$true;commit=$env:GITHUB_SHA;exe_sha256=$gpuRamHash;cpu_helper_sha256=$cpuWorkerHash;cpu_success_warmups=1;cpu_fixture_only=$true;gpu_executed=$false;mounted=$false;filesystem_backing='locked_RAM_model';controller_job_mib=256;process_mib=128;worker_mib=128;cpu_rate=2000;worker_timeout_ms=5000;one_proposed_match_request=$true;gpu_compute_requests_max=1;invalid_transport_warmups=1} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'native-gpu-ram-provenance.json') -Encoding utf8
           $allFiles = @(Get-ChildItem -LiteralPath $package -Recurse -File)
           if ($allFiles.Count -gt 32 -or ($allFiles | Measure-Object Length -Sum).Sum -gt 16MB) { throw 'Combined RAM package cap' }
           exit 0

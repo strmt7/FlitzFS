@@ -642,12 +642,22 @@ whole-operation benefit measurement. RECOMPRESSION_FEEDBACK.md describes new
 advisory selected-encoding/baseline accounting; its implementation CI is pending.
 D01 termination-root-cause investigation remains open despite green reruns.
 
-## Native integration probe qualification
+## Native integration measured at 645a1d1
 
-G02 now has an explicit locked-RAM composition probe and four hosted CPU-worker
-scenarios. Its publishing-commit compilation, process/byte/feedback/fallback
-checks and SDK shared-budget qualification are required before a tiny actual
-native GPU trial. D1e66f6 passed core CPU/Windows/SDK checks but failed one of 13
-matrix jobs with the recurring D01 unconfirmed crash-restart child exit. Retain
-that open defect independently; no native GPU benefit or mounted product safety
-is established by the new probe.
+All 13 core hosted jobs and all four strict locked-RAM CPU-worker cases passed.
+The explicit owner 64-KiB synthetic native trial accepted 56 GPU match proposals,
+preserved source/readback/context state and retired with zero locked RAM,
+unchanged handles and no owned workers. No mount or driver change occurred.
+
+No proposal encoding was selected, payload stayed 8,316 bytes and the cold
+exchange took 706.5 ms. This is correctness/integration evidence, not a
+compression or speed advantage. G02 remains in progress. See
+[evidence](evidence/native-gpu-ram-645a1d1.json) and the
+[current plan](DEVELOPMENT_PLAN.json) for inclusive bytes and timing limits.
+
+D01 remains open: current green crash/restart jobs do not explain prior
+unconfirmed retirement. A recent upstream self-namespace-I/O report is a lead,
+not a confirmed diagnosis. Investigate separate filesystem-host/client
+ownership while preserving open-handle kill coverage. G03 needs that lifecycle
+repair and the already demonstrated G02 integration checkpoint; it must not
+require a speed benefit before it can investigate the missing benefit.

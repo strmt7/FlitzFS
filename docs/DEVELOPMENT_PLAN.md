@@ -32,9 +32,12 @@ performance and power-loss durability are separate evidence categories.
 
 ## Execution order and harness integration
 
-First publish an accurate state/plan (P00), then implement G01. Investigate D01
-independently as available; no delegation is implied. G02 proves actual native
-compression use before G03 optimizes its lifecycle. S01 and L01 supply the
+P00 and the bounded G01 admission package are complete. G02 now has an actual
+native GPU proposal/compression composition checkpoint at 645a1d1, but no measured
+benefit. Prioritize D01 causal retirement repair, then G03 pipeline/lifecycle
+work and useful G02 compression candidates. G03's entry gate is the demonstrated
+G02 integration checkpoint, not completion of G02's still-unmet benefit exit.
+No delegation is implied. S01 and L01 supply the
 storage foundations. A01–A04 implement the resource governor, adaptive foreground
 policy, persistent learner and collective optimizer in that order. R01 and W01
 complete recovery and Windows integration; Q01 gates comparative/security claims.
@@ -66,7 +69,7 @@ Exit criterion: The assessment, plan and current state are published coherently 
 
 ### G01 — Admit useful GPU work with live resource envelopes
 
-Status at publication: pending. Dependencies: P00.
+Status: complete for the bounded 04d884b admission checkpoint. Dependencies: P00.
 
 Deliverables:
 
@@ -84,7 +87,7 @@ Exit criterion: A bounded successful candidate is admitted when justified by fre
 
 ### D01 — Resolve intermittent hosted writer/child retirement failures
 
-Status at publication: pending. Dependencies: P00.
+Status: in progress; cause remains unproven. Dependencies: P00.
 
 Deliverables:
 
@@ -101,7 +104,7 @@ Exit criterion: The earlier failures are explained by captured evidence and a ta
 
 ### G02 — Connect qualified GPU work to native filesystem compression
 
-Status at publication: pending. Dependencies: G01.
+Status: in progress; actual integration works at 645a1d1, benefit not demonstrated. Dependencies: G01.
 
 Deliverables:
 
@@ -118,7 +121,7 @@ Exit criterion: A native filesystem operation demonstrably uses GPU work with ex
 
 ### G03 — Reduce GPU pipeline overhead while preserving containment
 
-Status at publication: pending. Dependencies: G02, D01.
+Status: pending. Dependencies: G01, D01; entry gate: demonstrated G02 native integration (645a1d1).
 
 Deliverables:
 
@@ -304,3 +307,25 @@ honest net-byte accounting are necessary. Repair requires surviving verified
 information. Future unknown bugs and total loss of all copies cannot be covered
 by an absolute guarantee. These limits do not reduce the required engineering
 work or authorize risking owner data.
+
+## Executed integration update, 11 November 2026
+
+[Source-bound evidence](evidence/native-gpu-ram-645a1d1.json) records all 13 core
+jobs, four CPU-worker composition cases and one owner synthetic RAM/GPU trial.
+Accepted/forwarded proposals: 56; selected encodings: zero; CPU/proposed payload:
+8,316/8,316 bytes. CPU/proposed profile: 5.4/714.2 ms, with 706.5 ms combined
+worker exchange. These are single cold observations, not comparative throughput.
+
+G02 remains incomplete. Startup amortization alone cannot create a size gain
+when the suggested encoding is never selected. Instrument CPU preparation,
+startup, GPU execution, full CPU oracle, candidate/baseline encoding and
+verification separately before choosing an optimization.
+
+D01's next investigation is process ownership. The current crash fixtures hold
+a client file handle in the same process that hosts its mounted filesystem.
+[Upstream issue 702](https://github.com/winfsp/winfsp/issues/702), created
+29 October 2026, reports a termination hazard for that pattern; it has no
+maintainer confirmation. Preserve the observed failures and open-handle crash
+coverage. Design separately supervised external clients and verify the actual
+SDK request identity contract before adding a host-self-I/O guard. Never close
+the handle early, widen a deadline or claim the current green run fixes D01.

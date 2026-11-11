@@ -11,66 +11,69 @@
     "note": "New feedback implementation needs its publishing-commit qualification. Prior accepted GPU experiments are explicitly bound to 04d884b."
   },
   "current_qualification": {
-    "commit": "d1e66f6132d0a5672378bebbe9880e19af105f75",
-    "core_run": 43013278271,
-    "conclusion": "failure",
-    "jobs_passed": 12,
+    "commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
+    "core_run": 43027044466,
+    "conclusion": "success",
+    "jobs_passed": 13,
     "jobs_total": 13,
     "windows_native": {
-      "job": 130497940102,
-      "groups": 131,
-      "real_cpu_worker_assertions": 1172,
+      "job": 130544265510,
       "passed": true
     },
     "asan_ubsan": {
-      "job": 130497940590,
-      "groups": 113,
-      "passed": true
-    },
-    "linux_raw": {
-      "job": 130497940731,
-      "passed": true
-    },
-    "linux_codec": {
-      "job": 130497940485,
+      "job": 130544264636,
       "passed": true
     },
     "windows_raw": {
-      "job": 130497940423,
+      "job": 130544265194,
       "passed": true
     },
-    "sdk": {
-      "run": 43013278228,
-      "job": 130497939945,
+    "linux_raw": {
+      "job": 130544265189,
+      "passed": true
+    },
+    "linux_codec": {
+      "job": 130544265261,
       "passed": true
     },
     "ram_host": {
-      "run": 43013278354,
-      "passed": true
+      "run": 43027044400,
+      "job": 130544264616,
+      "passed": true,
+      "four_native_cpu_modes": true,
+      "strict_handles": true
     },
-    "failed_mounted_crash_restart": {
-      "job": 130502518872,
-      "evidence": "docs/evidence/retirement-failure-d1e66f6.json",
-      "root_cause": "unknown",
-      "operation_timeout": true,
-      "exit_confirmed": false
+    "sdk": {
+      "commit": "480573e71d2df72492d22b12422e9e1600013272",
+      "run": 43019981918,
+      "passed": true,
+      "source_equivalent_gpu_graph": true
     },
-    "scope": "Feedback API passed CPU/native/SDK checks. Full matrix did not pass. No current owner mount or native GPU filesystem pipeline is qualified."
+    "scope": "Actual explicit native RAM/GPU match composition passed. No speed/size gain, mounted production or power-loss qualification; D01 historical failures remain open."
   },
   "owner_gpu_observation": {
-    "source_commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+    "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
+    "worker_commit": "480573e71d2df72492d22b12422e9e1600013272",
     "actual_gpu_execution": true,
     "synthetic": true,
-    "decode_bytes": 12288,
-    "match_input_bytes": 4096,
-    "match_proposals": 4,
+    "match_input_bytes": 65536,
+    "match_proposals": 56,
+    "native_forwarded_proposals": 56,
+    "native_selected_records": 0,
+    "cpu_payload_bytes": 8316,
+    "proposed_payload_bytes": 8316,
+    "cpu_profile_ns": 5410700,
+    "proposed_profile_ns": 714189100,
+    "exchange_ns": 706522500,
+    "device_bytes": 229376,
+    "locked_peak_bytes": 8650752,
     "result_admitted": true,
     "confirmed_process_exit": true,
     "no_timeouts": true,
     "no_owned_workers_after": true,
     "driver_runtime_unchanged": true,
-    "evidence": "docs/evidence/gpu-admission-04d884b.json",
-    "qualification": "Tiny decoder/match producer correctness and resource admission only; no native filesystem GPU compression path or speed claim."
+    "evidence": "docs/evidence/native-gpu-ram-645a1d1.json",
+    "qualification": "Explicit unmounted synthetic native composition only. Cold GPU path slower and no proposal encoding selected; normal I/O remains CPU-only."
   },
   "unresolved": [
     {
@@ -89,8 +92,9 @@
     }
   ],
   "next_implementation": [
-    "G02",
-    "D01"
+    "D01",
+    "G03",
+    "G02"
   ],
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
@@ -245,7 +249,8 @@
     {
       "id": "G03",
       "title": "Reduce GPU pipeline overhead while preserving containment",
-      "exit": "Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes."
+      "exit": "Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes.",
+      "entry_gate": "Actual G02 native proposal/compression composition is demonstrated at645a1d1. G02's benefit exit remains unmet; lifecycle work must not depend on already having that benefit."
     },
     {
       "id": "S01",
@@ -309,28 +314,12 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "fbd9dd882f401865185477153168c741d6eb4327",
+    "source_parent": "645a1d15d4f0138c45df67c570f0acd52815345a",
     "package": "G02",
     "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
-    "behavior": "Explicit locked-RAM native recompression using trusted match worker and selected-encoding feedback, plus shared unchanged diagnostic budget.",
-    "status": "Candidate correction requires isolated repeated successful CPU transport accounting, all four native CPU-fixture modes, strict equality, source/portable/core qualification; no owner execution.",
+    "status": "Bounded native composition qualified at source645a1d1; G02 remains incomplete because no end-to-end benefit is demonstrated. Publishing documentation/metadata requires its own relevant CI.",
     "default_filesystem_cpu": true,
-    "owner_new_probe_run": false,
-    "integration_attempt": {
-      "commit": "480573e71d2df72492d22b12422e9e1600013272",
-      "run": 43019981741,
-      "job": 130520457733,
-      "compiled": true,
-      "pe_dependency_audit_passed": true,
-      "old_cpu_ram_probe_passed": true,
-      "new_fixture": "failure at strict handle accounting",
-      "locked_after": 0,
-      "cleanup_ok": true,
-      "binary_promoted": false,
-      "owner_executed": false
-    },
-    "next": "Inspect exact-source accounting and native four-mode results; any repeated growth or retirement failure remains failure. Audit new CPU helper package before owner GPU/native experiment.",
-    "handle_evidence": "docs/evidence/handle-accounting-fbd9dd8.json"
+    "next": "D01 causal retirement repair, then G03 phase instrumentation/amortization and G02 useful compression candidates. Do not repeat this unchanged owner GPU fixture."
   },
   "resolved": [
     {
