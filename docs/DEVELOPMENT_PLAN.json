@@ -8,8 +8,9 @@
   "goal_status": "active",
   "scope": "Complete Windows 11 AMD64 filesystem/helper/driver; effective AMD GPU acceleration, independent CPU recovery, high sustained throughput, exceptional lossless reduction, autonomous low-impact persistent learning and verified resilience.",
   "next": [
-    "G02",
-    "D01"
+    "D01",
+    "G03",
+    "G02"
   ],
   "owner_safety": {
     "filesystem_backing": "locked RAM only",
@@ -21,7 +22,7 @@
   },
   "continuation": [
     "Read AGENTS and this ledger; verify actual main and source-bound CI before selecting work.",
-    "Take first dependency-ready unfinished package; G01 is next implementation, D01 may progress independently without delegation.",
+    "Take dependency-ready unfinished work. G01 is complete; G02 explicit integration works but has no demonstrated gain. Prioritize D01 causal retirement repair, then G03 costs/amortization and useful G02 compression candidates; preserve every full-product exit criterion.",
     "Read applicable boundary docs and current primary sources before important changes; use mandatory semantic and Crawl4AI providers.",
     "Implement a bounded substantive change, qualify in isolated environments, retain failures and update evidence in a coherent main commit.",
     "Complete packages only when their exit criteria are met. Keep the existing full goal active; no new goal, thread, scheduled task or inferred delegation."
@@ -78,7 +79,7 @@
       "depends": [
         "P00"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "deliverables": [
         "Add bounded phase, wait, cancellation and process/job ownership evidence to isolated crash and crash-restart fixtures.",
         "Reproduce the observed 15-second operation plus 2-second unconfirmed-exit behavior. Inspect acknowledgement, dispatcher-stop, pipe/object ownership and cancellation order without assuming a deadlock.",
@@ -116,8 +117,23 @@
           "core_run": 43013278271,
           "mounted_crash_restart_failed": true
         },
-        "integration": "Candidate correction primes both failed and successful CPU transport; exact matching repeated-accounting/four-mode native qualification pending.",
-        "next": "Inspect matching accounting, strict handle/resource/readback/fallback checks, and portable/core results before any owner experiment. Native GPU benefit remains unproved.",
+        "integration": {
+          "commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
+          "worker_commit": "480573e71d2df72492d22b12422e9e1600013272",
+          "core_all_13_passed": true,
+          "ram_four_modes_passed": true,
+          "actual_native_gpu_match_accepted": true,
+          "proposals": 56,
+          "selected_records": 0,
+          "cpu_payload": 8316,
+          "proposed_payload": 8316,
+          "exchange_ns": 706522500,
+          "cpu_profile_ns": 5410700,
+          "proposed_profile_ns": 714189100,
+          "benefit_demonstrated": false,
+          "evidence": "docs/evidence/native-gpu-ram-645a1d1.json"
+        },
+        "next": "G02 remains in progress: no speed or size gain. Fix D01 to enable G03 lifecycle work; instrument complete costs and investigate candidates with genuine net compression benefit instead of forcing redundant hints.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md"
       }
     },
@@ -125,7 +141,7 @@
       "id": "G03",
       "title": "Reduce GPU pipeline overhead while preserving containment",
       "depends": [
-        "G02",
+        "G01",
         "D01"
       ],
       "status": "pending",
@@ -137,7 +153,8 @@
         "Matched alternating cold/warm CPU/GPU trials with confidence/noise reporting, responsiveness and live resource evidence.",
         "Test shutdown/cancel/driver disappearance in isolated VMs or mocks only; never stress owner WDDM or leave idle workers without a justified bounded lifecycle."
       ],
-      "exit": "Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes."
+      "exit": "Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes.",
+      "entry_gate": "Actual G02 native proposal/compression composition is demonstrated at645a1d1. G02's benefit exit remains unmet; lifecycle work must not depend on already having that benefit."
     },
     {
       "id": "S01",

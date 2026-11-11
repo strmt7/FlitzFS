@@ -173,3 +173,31 @@ or submodules. These measured source-staging bounds fit within the existing
 the 10-GiB reserve, exact hashes and CREATE_NEW ownership before any staging.
 This does not change RAM filesystem backing, image sizes or execution budgets,
 and authorizes no automatic owner download or physical-drive filesystem image.
+
+## Executed qualification at 645a1d1
+
+All 13 core jobs and all four native CPU-worker modes passed. Independent
+success-only accounting was [98,99,99,99,99]; each composition retained strict
+handle equality and zero locked bytes after retirement. The portable package
+contains the separately hashed CPU helper and probe, with no SDK/runtime.
+
+One owner synthetic 64-KiB native trial then used the SDK-qualified worker from
+480573e. Exact tree comparison proves its GPU source inputs unchanged through
+645a1d1. The full source/artifact/byte/timing record is
+[evidence/native-gpu-ram-645a1d1.json](evidence/native-gpu-ram-645a1d1.json).
+
+The GPU returned 56 CPU-verified proposals. All reached native candidate
+encoding, none was selected, and payload stayed at the CPU baseline of 8,316
+bytes. The cold exchange was 706.5 ms; complete CPU/proposed profiles were
+5.4/714.2 ms. The experiment completed in 906 ms including warmup and outer
+overhead. This is one observation, not kernel timing or a comparative benchmark.
+
+Locked peak was 8,650,752 bytes, explicit device buffers 229,376 bytes,
+aggregate job peak 91,250,688 bytes and worker peak 79,966,208 bytes.
+Handles remained116→116; locked bytes returned to zero. Postflight found no
+owned worker, changed staged input or driver/runtime change. No mount,
+driver operation, persistent worker or physical filesystem image occurred.
+No physical-power-loss or universal safety qualification follows.
+
+The integration checkpoint is established; G02's useful-benefit exit remains
+unmet. Keep ordinary I/O CPU-only. Do not repeat this unchanged GPU fixture.
