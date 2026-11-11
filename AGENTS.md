@@ -1154,3 +1154,16 @@ A later CPU request may progress during retirement, but no new worker may
 bypass the process/supervisor ownership or evidence gates. Retain every old
 decoder test after changes to shared classification. CPU fixture declarations
 and synthetic telemetry are not actual GPU evidence.
+
+
+## Persistent advisory optimization state
+
+Read docs/OPTIMIZATION_STATE.md before changing the state codec/writer.
+Keep the separately reserved 128-KiB area, exact volume/sequence binding,
+32-profile/16-benchmark caps, two disjoint flushed slots, per-lease publication
+allowance, poison-held writer ownership and peer-first degraded repair.
+Intact unsupported/foreign/malformed state must not expose an older policy.
+Advisory state MUST NOT become a user-data decoding or namespace dependency.
+Both-lost state requires a new qualified area, never automatic reset/overwrite.
+Provider reservation/nonaliasing, helper integration, persistent write credit
+and learning remain unimplemented; no scheduler, GPU or owner test follows.

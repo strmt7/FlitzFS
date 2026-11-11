@@ -769,3 +769,16 @@ evidence/mount-source-isolation-8122bf5.json. These results do not establish the
 historical failure cause. New CPU post-ack cancellation/abandonment and early-exit
 tests preserve exact retirement and handle accounting; they need their own
 source-bound qualification before any result claim.
+
+
+## Advisory optimization area
+
+OPTIMIZATION_STATE.md defines a CPU-only custom-backend 128-KiB reservation.
+Its state is rebuildable advice, never namespace or decode authority. Missing,
+unsupported, foreign or damaged state returns no policy; it does not change
+user-image readback. Creation uses only a new empty backend, updates retain
+a disjoint acknowledged copy, and repair writes the missing peer first.
+Invalid or both-lost areas are never reset automatically. Per-instance leases,
+explicit publication allowances and terminal fencing do not qualify global
+provider nonaliasing or lifetime wear. No ordinary-file factory, automatic
+helper, scheduler, mount, GPU launch or owner-device test is added.

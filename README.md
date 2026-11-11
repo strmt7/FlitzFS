@@ -57,6 +57,9 @@ recovery. Additional CPU lifecycle-edge tests await new-source qualification.
 
 ## Implemented experimental components
 
+- A separate bounded advisory optimization-state component with two flushed
+  copies and a CPU reader. Native-provider/learner integration remains unfinished;
+  see [the experimental contract](docs/OPTIMIZATION_STATE.md).
 - A bounded transactional object engine with integrity checks, immutable
   snapshots, replicated checkpoints, independent CPU reopen and explicit flush.
 - A native inode/directory/extent layer with sparse 64 KiB extents, reads,
