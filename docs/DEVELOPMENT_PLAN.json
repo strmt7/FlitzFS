@@ -1,0 +1,293 @@
+{
+  "schema": 1,
+  "updated": "2026-11-11",
+  "baseline": {
+    "commit": "8a5633b588869eb3808d089fca76937c6781991c",
+    "tree": "01cf46b6fd34107ff53bb0f2604a2b8c1f10b8c7"
+  },
+  "goal_status": "active",
+  "scope": "Complete Windows 11 AMD64 filesystem/helper/driver; effective AMD GPU acceleration, independent CPU recovery, high sustained throughput, exceptional lossless reduction, autonomous low-impact persistent learning and verified resilience.",
+  "next": [
+    "G01",
+    "D01"
+  ],
+  "owner_safety": {
+    "filesystem_backing": "locked RAM only",
+    "owner_mounts": false,
+    "driver_changes": false,
+    "privileged_or_persistent_changes": false,
+    "gpu": "tiny synthetic only after exact-source isolated qualification and audited hard limits",
+    "staging": "small source/tool/report staging only on verified authorized HDD, never filesystem backing"
+  },
+  "continuation": [
+    "Read AGENTS and this ledger; verify actual main and source-bound CI before selecting work.",
+    "Take first dependency-ready unfinished package; G01 is next implementation, D01 may progress independently without delegation.",
+    "Read applicable boundary docs and current primary sources before important changes; use mandatory semantic and Crawl4AI providers.",
+    "Implement a bounded substantive change, qualify in isolated environments, retain failures and update evidence in a coherent main commit.",
+    "Complete packages only when their exit criteria are met. Keep the existing full goal active; no new goal, thread, scheduled task or inferred delegation."
+  ],
+  "packages": [
+    {
+      "id": "P00",
+      "title": "Keep authoritative evidence and an executable continuation plan",
+      "depends": [],
+      "status": "complete",
+      "deliverables": [
+        "Refresh the stale state ledger, preserve historical qualification and publish this source-bound assessment and plan.",
+        "Record compact phase evidence, exact source hashes and changed-scope reads as the continuation method. Record secure immutable candidate qualification as a future CI efficiency investigation; no CI gate is changed by this publication."
+      ],
+      "validation": [
+        "Validate JSON, dependency DAG, referenced source identities and tree changes; preserve LICENSE, workflows and owner edits.",
+        "Record the plan publication separately from runtime implementation. Do not mark future packages complete."
+      ],
+      "exit": "The assessment, plan and current state are published coherently on main and the next implementation package is explicit."
+    },
+    {
+      "id": "G01",
+      "title": "Admit useful GPU work with live resource envelopes",
+      "depends": [
+        "P00"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Define one shared memory/admission contract for worker, core result gate and match controller. Collect current physical and commit headroom, both DXGI segment budgets/usages, workload footprint, identity and freshness.",
+        "Derive bounded envelopes from those observations and independently enforced safety limits. Distinguish supported temporary resource pressure from unknown device faults; preserve immediate CPU-byte selection, event/evidence-driven retry, quiescence and terminal per-request behavior.",
+        "Keep the current batch bounds and independent CPU comparison. Do not hardcode this owner's GPU, RAM, drive, observed 176.6/12.2 MiB usage or capacities."
+      ],
+      "validation": [
+        "Table-driven fake-API cases: missing/stale/overflow telemetry, shrinking budgets, concurrent pressure, unified/shared memory, identity changes, faulty device, cancellation and incomplete retirement.",
+        "Exercise all three admission sites with identical cases; raw-only, codec, sanitizers, Windows native/worker fixtures and SDK compilation.",
+        "After exact-source disposable-VM qualification and harness audit, at most a tiny synthetic owner test with confirmed cleanup. No unchanged retries."
+      ],
+      "exit": "A bounded successful candidate is admitted when justified by fresh evidence; every unknown or unsafe case returns independently verified CPU bytes without repeated device searches. This is not proof of native compression speed."
+    },
+    {
+      "id": "D01",
+      "title": "Resolve intermittent hosted writer/child retirement failures",
+      "depends": [
+        "P00"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Add bounded phase, wait, cancellation and process/job ownership evidence to isolated crash and crash-restart fixtures.",
+        "Reproduce the observed 15-second operation plus 2-second unconfirmed-exit behavior. Inspect acknowledgement, dispatcher-stop, pipe/object ownership and cancellation order without assuming a deadlock.",
+        "Fix the cause and guarantee cleanup/retirement ordering or explicit terminal failure; retain bounded logs."
+      ],
+      "validation": [
+        "Regression must fail for the observed cause and pass after the fix; repeat the affected isolated scenarios with bounded resource accounting.",
+        "Verify cancellation at every owned lifecycle phase and absence of stale workers/handles/locked pages. A green rerun or longer timeout alone is insufficient."
+      ],
+      "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup."
+    },
+    {
+      "id": "G02",
+      "title": "Connect qualified GPU work to native filesystem compression",
+      "depends": [
+        "G01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Qualify the actual match-proposal to native lossless encode route and map which native formats have genuine GPU execution.",
+        "Retain immutable input, CPU-readable encoded output and byte-exact independent verification. Unsupported codecs and runtime faults select CPU immediately."
+      ],
+      "validation": [
+        "Mixed synthetic and bounded public real data: offsets, truncations, overlaps, malformed proposals, incompressible bytes and corruption.",
+        "Separate CPU emulation, SDK compilation, actual kernel execution, result admission and filesystem use in reports.",
+        "Measure complete cold and warm write/read paths, output image bytes, metadata, validation, transfers and fallback costs."
+      ],
+      "exit": "A native filesystem operation demonstrably uses GPU work with exact recovery and measured end-to-end benefit in stated conditions; otherwise retain CPU routing and record why."
+    },
+    {
+      "id": "G03",
+      "title": "Reduce GPU pipeline overhead while preserving containment",
+      "depends": [
+        "G02",
+        "D01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Instrument process/runtime/context/module startup, transfer, kernel, comparison, native encode and retirement separately.",
+        "Research and compare safe amortization, bounded batching and verification strategies. A resident worker or relaxed batch cap requires a reviewed replacement lifecycle/security contract and equivalent fault containment before implementation."
+      ],
+      "validation": [
+        "Matched alternating cold/warm CPU/GPU trials with confidence/noise reporting, responsiveness and live resource evidence.",
+        "Test shutdown/cancel/driver disappearance in isolated VMs or mocks only; never stress owner WDDM or leave idle workers without a justified bounded lifecycle."
+      ],
+      "exit": "Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes."
+    },
+    {
+      "id": "S01",
+      "title": "Scale the store and namespace with bounded incremental work",
+      "depends": [
+        "P00",
+        "D01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Design scalable object/extent indexes, allocator, incremental checksums, history reclamation and reader pins. Preserve old wire compatibility or provide an explicit verified migration path.",
+        "Replace whole-state work where measurements justify it; distinguish sparse logical sizes from allocated bytes and enforce quotas/reserves."
+      ],
+      "validation": [
+        "Small-RAM sparse/mock backends exercise large logical address spaces, adversarial indexes, interrupted allocation/reclamation and reader pin races.",
+        "Legacy CPU reader, create-new output, capacity exhaustion, rollback and independent recovery tests; no giant owner images."
+      ],
+      "exit": "Explicit scaling targets and measured resource bounds pass without merely increasing constants or abandoning recovery."
+    },
+    {
+      "id": "L01",
+      "title": "Persist bounded crash-safe optimization state",
+      "depends": [
+        "P00"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Define a small accounted internal area for workload summaries, policy versions, confidence and bounded benchmark history, writable only through controlled helper/driver transactions.",
+        "Treat advisory learning state as rebuildable. Dictionaries/models required to decode data are immutable referenced format objects with their own integrity, retention and durability rules.",
+        "Specify size caps, wear/write budget, transactional publication, rollback and eviction before adding any learner."
+      ],
+      "validation": [
+        "Torn writes at every commit boundary, stale/unsupported policy, corrupt records, full reserved area and interrupted compaction.",
+        "Recovery preserves acknowledged user data; damaged advisory state safely rebuilds, while missing decode-critical objects are detected and recovered only from verified redundancy."
+      ],
+      "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model."
+    },
+    {
+      "id": "A01",
+      "title": "Discover capabilities and govern foreground/background resources",
+      "depends": [
+        "G01",
+        "L01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Discover supported CPU features, processor availability, live CPU/GPU pressure, physical/commit/VRAM headroom and storage characteristics without installation-path or owner-hardware assumptions.",
+        "Use a bounded event/evidence-driven governor with low-priority CPU/I/O/GPU work, small admitted units, cooperative yield, fairness and bounded debt. Timers may bound operations but cannot substitute for a retry or idle decision policy.",
+        "Resolve missing optional dependencies safely in verified private locations where permitted; no global driver/package changes, elevation, services or silent unsupported runtime substitution."
+      ],
+      "validation": [
+        "Mock heterogeneous CPUs/GPUs, no GPU, unknown metrics, foreground load, budget changes, suspend/resume and multiple volumes.",
+        "Measure actual foreground interference and immediate yield; enforce hard process-tree memory/CPU/time limits and confirmed cleanup."
+      ],
+      "exit": "The same OS/architecture runs without host-specific paths/specs; unknown headroom fails closed and background work obeys a documented bounded interference budget."
+    },
+    {
+      "id": "A02",
+      "title": "Select foreground compression from measured benefit",
+      "depends": [
+        "G02",
+        "A01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Choose useful fast lossless compression on writes; use stronger GPU-assisted work only when measured throughput, resources and reduction justify it.",
+        "Maintain a bounded codec/transform portfolio with raw fallback for incompressible data. Optimize physical bytes, sustained reads/writes, read/write amplification and resource cost together.",
+        "Research current official APIs and recent relevant primary papers before each important algorithm/format change; evaluate competing candidates rather than copying archive software."
+      ],
+      "validation": [
+        "Held-out mixed workload evaluation with cold/warm reads, partial writes and pressure; include codec metadata/dictionaries/history in ratio.",
+        "All encoded forms have bounded decoders, malicious-input rejection and independent CPU recovery."
+      ],
+      "exit": "Foreground policy improves the published throughput/reduction tradeoff over the fixed baseline on held-out workloads, with safe degradation under load."
+    },
+    {
+      "id": "A03",
+      "title": "Learn workload policies and run bounded idle microbenchmarks",
+      "depends": [
+        "L01",
+        "A01",
+        "A02"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Implement a local bounded learner over content/workload features, measured encode/decode costs and confidence; include concept drift, version/source identity and reproducible policy decisions.",
+        "Trigger small experiments when fresh resource/work evidence supports them, prioritizing useful uncertainty reduction rather than a fixed maintenance timer.",
+        "Track evaluated image/generation/profile identities and future measurable benefit. Preserve duplicate-work suppression and avoid endless rewrites."
+      ],
+      "validation": [
+        "Deterministic policy tests, cold-start/fallback, corrupt learning state, workload shifts, adversarial observations and repeated no-benefit samples.",
+        "Compare against fixed/simple adaptive baselines; bound memory, exploration work, writes and actual foreground interference."
+      ],
+      "exit": "Learning persists safely and shows held-out benefit over simpler policies without changing correctness or consuming uncontrolled resources."
+    },
+    {
+      "id": "A04",
+      "title": "Collectively optimize cold data and layout",
+      "depends": [
+        "A03",
+        "S01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Investigate shared dictionaries, duplicate/near-duplicate representations, content transforms and layout/defragmentation against current primary research and relevant baselines.",
+        "Run bounded incremental candidates, verify complete CPU readback, publish transactionally and retain source until reader pins and durability permit reclamation.",
+        "Account for metadata, recovery replicas, dictionaries, temporary candidates and read amplification; stop negative-benefit work and yield promptly."
+      ],
+      "validation": [
+        "Concurrent readers/writers, cancellation, resource pressure, interrupted handoff/reclamation, capacity failure and recovery.",
+        "Real heterogeneous held-out corpora plus incompressible/adversarial data; report total image size and steady-state performance, not payload-only ratios."
+      ],
+      "exit": "Unattended collective optimization produces verified net gains without manual intervention, runaway rewrites or material foreground disruption."
+    },
+    {
+      "id": "R01",
+      "title": "Qualify payload repair and acknowledged-write durability",
+      "depends": [
+        "D01",
+        "S01",
+        "L01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Define failure domains, acknowledgement/barrier ordering, payload redundancy, checksums, journal/root selection and independent CPU recovery.",
+        "Implement corruption localization and verified source-preserving repair. Report irrecoverable loss instead of synthesizing bytes; distinguish metadata repair from payload recovery."
+      ],
+      "validation": [
+        "Deterministic fault injection at every persist boundary, short/torn/reordered writes, corrupted replicas, OOM, kill and candidate publication.",
+        "Use disposable VM/backend models for crash tests. Physical power-loss claims need matching storage/barrier qualification elsewhere; owner RAM tests cannot provide it."
+      ],
+      "exit": "The explicit fault model and acknowledgement contract pass independent recovery with no unexplained lost acknowledged bytes. Universal survival of arbitrary bugs or loss of all copies is not a claim."
+    },
+    {
+      "id": "W01",
+      "title": "Complete Windows semantics and helper/application lifecycle",
+      "depends": [
+        "D01",
+        "S01",
+        "R01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Complete request-bound authority, owner/group, ACL/inheritance, sharing/locking, notifications, cancellation, mapped I/O and unresolved-session recovery matrices.",
+        "Build the helper/app and installation/update/uninstall lifecycle with independent CPU recovery and host-agnostic dependency discovery.",
+        "Qualify latest supported Windows 11 AMD64 client VMs and the selected driver integration; preserve separate mounting gates."
+      ],
+      "validation": [
+        "Read-only disposable fixture first, then isolated writable tests with strict existing caps; no owner driver installation or mounted host probe.",
+        "Verify crash/restart, upgrades/rollback, no stale services/workers/tasks/handles and safe uninstallation without touching unrelated files."
+      ],
+      "exit": "Published Windows capability matrix and reproducible client qualification cover the promised app/driver behaviors; hosted callback success alone is insufficient."
+    },
+    {
+      "id": "Q01",
+      "title": "Security and independent comparative qualification",
+      "depends": [
+        "G03",
+        "A04",
+        "R01",
+        "W01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Review threat model, parser/decoder limits, package/runtime provenance, update trust and current Dependabot alerts. Define encryption/authentication/key recovery explicitly before advertising security features.",
+        "Use appropriate recognized benchmarks and reproducible mixed real corpora against several current filesystem/compression baselines with equivalent durability/resource settings.",
+        "Publish failures, noise, unsupported data/operations, total physical costs and exact source/tool/host identities. The owner alone decides release."
+      ],
+      "validation": [
+        "Malicious/corrupt input, fuzzing, OOM, partial writes, downgrade/compatibility and independent CPU recovery.",
+        "Repeated alternating trials and held-out corpora; separate RAM-backed logical performance from physical-media and power-loss results. No owner raw-device or physical backing tests."
+      ],
+      "exit": "Claims match reproducible evidence and unresolved blockers are disclosed. No selected result establishes universal superiority over every filesystem."
+    }
+  ],
+  "publication_note": "P00 is completed by the commit publishing this ledger; runtime packages remain pending. The reviewed baseline identifies evidence before this documentation/assets commit."
+}

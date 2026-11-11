@@ -1,5 +1,17 @@
 # FlitzFS
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="resources/brand/flitzfs-logo-dark.png">
+  <img src="resources/brand/flitzfs-logo-typed.png" alt="FlitzFS — red layered F symbol and Segoe UI Bold wordmark" width="640">
+</picture>
+
+See the [current repository assessment](docs/REPOSITORY_ASSESSMENT.md) and
+[detailed development plan](docs/DEVELOPMENT_PLAN.md), with
+[a compact continuation ledger](docs/DEVELOPMENT_PLAN.json).
+The full-product goal remains active; implemented behavior and remaining gates
+are kept separate. [Brand assets and provenance](resources/brand/README.md).
+
+
 FlitzFS is an experimental **Windows-only compressed filesystem** under development,
 targeting the latest stable Windows 11 on AMD64 with a Windows helper application
 and qualified filesystem-driver integration. Older Windows and other operating
