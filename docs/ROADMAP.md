@@ -632,3 +632,12 @@ The shared memory envelope and physical/process-commit collector are implemented
 but unqualified at publication. Next: exact-source raw/codec/sanitizer/Windows/
 SDK checks, then one separately audited tiny actual-runtime acceptance trial.
 See GPU_RESOURCE_ENVELOPE.md. D01 retirement triage remains independently open.
+
+## G01 qualified; G02 native integration in progress
+
+The shared resource envelope now has actual accepted tiny decoder/match
+diagnostics at 04d884b and full matching CPU/Windows/SDK qualification.
+The next required step is native locked-RAM recompression integration and honest
+whole-operation benefit measurement. RECOMPRESSION_FEEDBACK.md describes new
+advisory selected-encoding/baseline accounting; its implementation CI is pending.
+D01 termination-root-cause investigation remains open despite green reruns.

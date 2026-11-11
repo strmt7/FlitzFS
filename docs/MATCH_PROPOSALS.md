@@ -114,3 +114,17 @@ real HIP dispatch and exercise refusal before runtime loading. Actual AMD
 execution and measured benefit remain unverified.
 
 The explicit match route now uses the long-lived [match recovery controller](GPU_MATCH_CONTROLLER.md). It preserves the shared evidence/quarantine policy across requests and retains pending source data until exact retirement. Caller-selected CPU work stays terminal while late result evidence is classified. Normal filesystem operations still require explicit controller integration and workload/hardware qualification.
+
+## Actual producer and native selection feedback
+
+The tiny source-bound 04d884b GPU producer trial accepted four proposals for a
+4-KiB synthetic source and matched CPU semantics. See
+[evidence/gpu-admission-04d884b.json](evidence/gpu-admission-04d884b.json).
+No native image operation ran in that trial.
+
+The new [recompression feedback API](RECOMPRESSION_FEEDBACK.md) records whether
+the native encoder actually selects a suggestion encoding, together with its
+ordinary CPU baseline payload size and exact source image/generation/object.
+Supplying, forwarding and selecting hints are distinct observations. Equal-size
+selection is possible; payload-only counts do not establish whole-image savings
+or speed. This new API still needs matching implementation qualification.

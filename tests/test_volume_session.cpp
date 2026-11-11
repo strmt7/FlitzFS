@@ -4,6 +4,7 @@
 #include "store_codec.hpp"
 #include "flitzfs/gpu_match.hpp"
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <string_view>
 namespace {
@@ -184,6 +185,10 @@ void staged_matches(bool compact) {
   f.session.begin_recompression(f.target,id(2),{}, {compact});
   const auto count=f.session.snapshot().storage_info().objects;
   bool offered=false;
+  std::uint64_t stored_sum=0,source_stored_sum=0;
+  const auto source_generation=f.session.snapshot().storage_info().generation;
+  const auto source_payload=f.session.snapshot().storage_info().stored_payload_bytes;
+  require(!f.session.recompression_feedback(),"fresh candidate fabricated feedback");
   for(std::size_t i=1;i<=count;++i) {
     auto work=f.session.next_recompression_input();
     auto progress=Progress::copying;
@@ -198,16 +203,99 @@ void staged_matches(bool compact) {
       const auto proposals=search.verified_proposals(matches);
       require(!proposals.empty(),"bounded producer found no repeated input");
       progress=f.session.advance_recompression(work->object_id,proposals);
+      const auto feedback=f.session.recompression_feedback();
+      require(feedback && feedback->object_id==work->object_id &&
+          feedback->supplied_matches==proposals.size() && feedback->forwarded_matches==proposals.size(),
+          "native record lost exact proposal attribution");
+      detail::StoreCodecEncoder cpu_baseline({StoreCompressionMode::automatic,6,false});
+      const auto baseline=cpu_baseline.encode(work->bytes);
+      require(feedback->cpu_baseline_bytes==baseline.payload.size() &&
+          feedback->stored_bytes<=feedback->cpu_baseline_bytes,
+          "native candidate misreported independent CPU baseline cost");
+      require(!feedback->match_encoding_selected ||
+          (feedback->codec==detail::kStoreZstd && feedback->forwarded_matches>0),
+          "native candidate fabricated selected match encoding");
       offered=true;
     } else progress=f.session.advance_recompression();
     require(progress==(i==count?Progress::ready:Progress::copying),"staged match copy progress");
+    const auto reads=f.head->read_calls+f.source->read_calls+f.target->read_calls;
+    const auto feedback=f.session.recompression_feedback();
+    require(feedback && feedback->source_image==id(1) && feedback->source_generation==source_generation &&
+        feedback->reencoded && feedback->logical_bytes<=kStoreMaxObjectBytes &&
+        feedback->stored_bytes<=feedback->logical_bytes &&
+        feedback->supplied_matches>=feedback->forwarded_matches,
+        "native candidate feedback identity/bounds");
+    require(f.session.recompression_feedback()==feedback &&
+        f.head->read_calls+f.source->read_calls+f.target->read_calls==reads,
+        "feedback query performed backing I/O or changed its step");
+    stored_sum+=feedback->stored_bytes;source_stored_sum+=feedback->original_stored_bytes;
   }
   require(offered==flitzfs::detail::store_match_sequences_available()&&
       !f.session.next_recompression_input(),"staged match input capability mismatch");
   require(f.session.publish_recompression().selection.epoch==2&&
       f.session.read(f.ro,0,65536)==input&&f.selected().filesystem().read("d/file",0,65536)==input,
       "staged match publication changed retained bytes");
+  require(!f.session.recompression_feedback() &&
+      stored_sum==f.session.snapshot().storage_info().stored_payload_bytes &&
+      source_stored_sum==source_payload,"published manifest payload differs from step accounting");
   f.retire_contexts();
+}
+
+void feedback_lifetime(bool compact) {
+  using Progress=NativeFileSession::RecompressionProgress;
+  {
+    Fixture f(compact);f.session.begin_recompression(f.target,id(2));
+    (void)f.session.advance_recompression();
+    const StoreMatchProposal invalid{0,0,65535};
+    auto progress=f.session.advance_recompression((std::numeric_limits<std::uint64_t>::max)(),{&invalid,1});
+    const auto feedback=f.session.recompression_feedback();
+    require(feedback && feedback->supplied_matches==1 && feedback->forwarded_matches==0 &&
+        !feedback->match_encoding_selected && feedback->cpu_baseline_bytes==feedback->stored_bytes,
+        "foreign object hints received false compression credit");
+    while(progress==Progress::copying)progress=f.session.advance_recompression();
+    require(progress==Progress::ready && f.session.publish_recompression().selection.epoch==2,
+        "ordinary CPU fallback could not publish");
+    f.expected_session();expected(f.selected().filesystem());f.retire_contexts();
+  }
+  {
+    Fixture f(compact);
+    require(!f.session.recompression_feedback(),"inactive session exposed feedback");
+    f.session.begin_recompression(f.target,id(2));
+    require(!f.session.recompression_feedback(),"uncopied candidate exposed feedback");
+    (void)f.session.advance_recompression();
+    require(f.session.recompression_feedback().has_value(),"successful step has no feedback");
+    f.session.write(f.rw,0,data(3,84));
+    require(!f.session.recompression_feedback(),"source mutation exposed stale feedback");
+    require(f.session.advance_recompression()==Progress::stale &&
+        !f.session.recompression_feedback(),"discarded stale candidate retained feedback");
+    f.retire_contexts();
+  }
+  {
+    Fixture f(compact);f.session.begin_recompression(f.target,id(2));
+    (void)f.session.advance_recompression();
+    require(f.session.recompression_feedback().has_value(),"cancellation fixture has no completed step");
+    f.session.cancel_recompression();
+    require(!f.session.recompression_feedback(),"cancelled candidate retained feedback");
+    f.retire_contexts();
+  }
+  {
+    Fixture f(compact);f.session.begin_recompression(f.target,id(2));
+    (void)f.session.advance_recompression();
+    f.target->fail_at=f.target->calls;
+    rejects([&]{(void)f.session.advance_recompression();});
+    require(!f.session.recompression_feedback() && !f.session.poisoned(),
+        "failed copy retained feedback or poisoned its preserved source");
+    f.retire_contexts();
+  }
+  {
+    Fixture f(compact);f.session.begin_recompression(f.target,id(2));
+    const auto count=f.session.snapshot().storage_info().objects;
+    for(std::size_t i=0;i<count;++i)(void)f.session.advance_recompression();
+    require(f.session.recompression_feedback().has_value(),"final copied record has no feedback");
+    require(f.session.advance_recompression()==Progress::ready && !f.session.recompression_feedback(),
+        "ready no-op fabricated another completed step");
+    f.session.cancel_recompression();f.retire_contexts();
+  }
 }
 
 void invariants(bool compact){
@@ -371,7 +459,7 @@ void recovery_faults(bool compact) {
 int main(int argc,char** argv){try{
   if(argc!=2)throw std::runtime_error("volume-session phase required");const std::string_view phase=argv[1];
   if(phase=="--invariants")for(bool compact:{false,true}) {
-    invariants(compact);staged_recompression(compact);idle_recompression(compact);staged_matches(compact);
+    invariants(compact);staged_recompression(compact);idle_recompression(compact);staged_matches(compact);feedback_lifetime(compact);
   }
   else if(phase=="--maintenance-4096")maintenance_faults(true);
   else if(phase=="--maintenance-65536")maintenance_faults(false);

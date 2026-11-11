@@ -7,7 +7,9 @@ package in `docs/DEVELOPMENT_PLAN.md` before continuing the existing full-produc
 goal. Verify actual main and source-bound CI; never trust a stale ledger alone.
 The 11 November assessment is `docs/REPOSITORY_ASSESSMENT.md`. Implement the next
 dependency-ready package, retain failures and mark completion only against its
-exit criterion. The immediate implementation is G01 adaptive GPU admission;
+exit criterion. G01 adaptive GPU admission is qualified at source 04d884b for tiny explicit
+decoder/match diagnostics (docs/evidence/gpu-admission-04d884b.json). Next is G02
+native locked-RAM recompression integration and complete-operation measurements;
 D01 hosted child-retirement triage remains independently open. A later green CI
 run does not resolve earlier unexplained retirement failures. This ledger does
 not authorize delegation, a new goal, owner mounts, driver changes or persistent
@@ -129,7 +131,9 @@ The default CLI and filesystem paths remain CPU-only. CPU semantic tests of the
 shared device body must not be described as GPU execution. Keep 8-block/64-KiB/
 256-KiB batch bounds, independent CPU comparison, fail-closed memory telemetry,
 immutable owned input, one outstanding request and terminal failure semantics.
-No actual-runtime integration or owner-device experiment is qualified yet.
+Tiny explicit decoder/match owner diagnostics are source-bound and qualified
+as recorded in docs/evidence/gpu-admission-04d884b.json. Normal filesystem GPU
+routing and native compression performance remain unqualified.
 
 ## Worker transport boundary
 

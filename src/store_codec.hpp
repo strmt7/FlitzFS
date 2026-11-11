@@ -19,6 +19,7 @@ struct EncodedStoreObject {
   std::vector<std::byte> payload;
   Digest decoded_digest{};
   bool used_match_proposals=false;
+  std::uint32_t match_baseline_bytes=0; // CPU baseline only when hints were selected.
 };
 class StoreCodecDecoder final {
  public:

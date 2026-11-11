@@ -126,3 +126,23 @@ The corrected/current build uses today's full recovery suite, which retains
 the same streak-interruption regression and the new resource contract.
 No product check or expected historical failure is weakened. Matching corrected
 workflow evidence is still required.
+
+## Accepted actual-runtime trials
+
+Source 04d884be80dbd96024bbdb6cf0d79b5056cb0da4 passed all 13 core jobs,
+113 sanitizer groups, 131 native Windows groups and current ROCm SDK
+qualification (178 fake-API checks, 17 admission exits). Follow-up 955cd8e
+changed only the historical fixture workflow/docs and passed its full matrix.
+
+One tiny raw/fill trial accepted 12,288 GPU-decoded bytes after independent CPU
+comparison, clean resource/module retirement and successful confirmed child exit.
+A separate 4-KiB match trial accepted four CPU-verified proposals. Neither timed
+out. Post-trial process queries found no own worker/probe; the observed driver
+and runtime identities remained unchanged. No mount, filesystem image, driver
+operation or stress workload was used.
+
+[Exact evidence](evidence/gpu-admission-04d884b.json) retains source/bundle
+identities, resource counters, actual timings, qualification and limitations.
+These are accepted diagnostics, not native filesystem GPU routing or a
+compression-throughput improvement. G01 is complete at this bounded scope;
+G02's native pipeline and whole-operation benefit remain required.

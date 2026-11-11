@@ -331,6 +331,12 @@ NativeFileSession::RecompressionProgress NativeFileSession::advance_recompressio
   }catch(...){self.recompression.reset();throw;}
 }
 
+std::optional<StoreRecompressionFeedback> NativeFileSession::recompression_feedback() const noexcept {
+  if(poisoned() || !impl_->recompression ||
+      !impl_->writer.matches_recompression(impl_->recompression->rewrite))return std::nullopt;
+  return NativeFilesystemWriter::recompression_feedback(impl_->recompression->rewrite);
+}
+
 NativeVolumeHeadInfo NativeFileSession::publish_recompression() {
   return *publish_staged_recompression(false);
 }

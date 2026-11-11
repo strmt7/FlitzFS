@@ -708,3 +708,18 @@ exact-source hosted CPU/Windows/SDK qualification before any new owner GPU
 trial. It changes no owner mounting, driver, resource-cap or RAM-only boundary.
 The fixed historical diagnostic wire omits host fields and cannot authorize
 admission. This is not an AI governor or protection against all driver faults.
+
+## Accepted tiny GPU diagnostics and provisional feedback
+
+The 04d884b raw/fill and 4-KiB match experiments returned accepted CPU-verified
+results with confirmed exit. Postflight found no own probe/worker and unchanged
+healthy driver/runtime observations. These are explicitly bounded synthetic
+experiments, not owner mounts, native GPU compression speed, a physical
+power-loss test or protection against every future driver fault. Their evidence
+is docs/evidence/gpu-admission-04d884b.json.
+
+The new recompression-feedback getter is fixed-size advisory state only.
+Candidate copies are not durable publications; missing/stale/failed/cancelled
+feedback must not authorize learning credit, reclamation or data exposure.
+Queries perform no backing I/O or GPU operation. Existing retained-source,
+independent CPU verification and handoff barriers remain the authority.
