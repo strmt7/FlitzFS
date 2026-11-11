@@ -315,7 +315,21 @@
     "behavior": "Explicit locked-RAM native recompression using trusted match worker and selected-encoding feedback, plus shared unchanged diagnostic budget.",
     "status": "Publishing implementation requires matching hosted four-mode CPU fixtures, raw/codec/sanitizer/native checks and SDK refactor qualification; no owner execution.",
     "default_filesystem_cpu": true,
-    "owner_new_probe_run": false
+    "owner_new_probe_run": false,
+    "integration_attempt": {
+      "commit": "480573e71d2df72492d22b12422e9e1600013272",
+      "run": 43019981741,
+      "job": 130520457733,
+      "compiled": true,
+      "pe_dependency_audit_passed": true,
+      "old_cpu_ram_probe_passed": true,
+      "new_fixture": "failure at strict handle accounting",
+      "locked_after": 0,
+      "cleanup_ok": true,
+      "binary_promoted": false,
+      "owner_executed": false
+    },
+    "next": "Bounded phase/repetition handle diagnostics, retaining strict equality; identify and fix root cause before promotion or owner execution."
   },
   "resolved": [
     {
