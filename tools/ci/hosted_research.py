@@ -41,6 +41,7 @@ AMD_SOURCES = (
 )
 
 ROCM_WINDOWS_HARDWARE_SOURCES = (
+    ("amd-observed-windows-driver", "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-26-10-2.html", "32.0.32015.12012", "ROCm"),
     ("amd-rocm-10-1-driver", "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-ROCM-10-01.html", "ROCm", "9070"),
     ("amd-rocm-windows-requirements", "https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/shared/hipsdk/reference/system-requirements.html", "System requirements", "9070"),
 )

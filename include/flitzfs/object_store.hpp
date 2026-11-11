@@ -175,6 +175,9 @@ class ObjectStoreWriter final {
   bool poisoned() const noexcept;
  private:
   friend class NativeFilesystemWriter;
+  class Rewrite;
+  Rewrite prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      std::uint64_t,std::span<const std::byte>,StoreCompressionOptions,StoreCheckpointOptions) const;
   StoreCommitInfo commit_impl(std::span<const StoreMutation> mutations,bool replicated);
   static ObjectStoreWriter compact_replacing(const ObjectStoreSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
@@ -185,6 +188,24 @@ class ObjectStoreWriter final {
   ObjectStoreSnapshot snapshot_for_staging() const;
   struct Impl;
   explicit ObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
+  std::unique_ptr<Impl> impl_;
+};
+// Internal shared rewrite engine. The synchronous route holds the source lease.
+// A staged native rewrite shares the source control thread and validates the
+// active writer state at every boundary. It never writes through the source.
+class ObjectStoreWriter::Rewrite final {
+ public:
+  Rewrite(Rewrite&&) noexcept;
+  Rewrite& operator=(Rewrite&&) noexcept;
+  ~Rewrite();
+  bool matches(const ObjectStoreWriter& writer) const noexcept;
+  bool ready() const noexcept;
+  bool advance(); // At most one live object.
+  ObjectStoreWriter finish();
+ private:
+  friend class ObjectStoreWriter;
+  struct Impl;
+  explicit Rewrite(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
 } // namespace flitzfs

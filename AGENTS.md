@@ -1013,3 +1013,15 @@ HIP and DXGI adapter identity before compute. Keep CPU comparison, confirmed
 cleanup and process retirement before exposing a candidate. This build and
 its CPU admission probe run only in the disposable hosted SDK workflow.
 Hardware execution and owner-PC activation retain their separate gates.
+
+## Staged recompression
+
+Keep all candidate and foreground calls serialized through the existing volume
+control. Keep one qualified new target, the raw-size reservation, at most one
+record per copy step and no candidate roots until verification. Preserve the
+cached-source identity/generation guard and pre-handoff failure isolation.
+Never publish a stale candidate, overwrite a source, invent file-context
+retirement or expand the existing fenced recovery scope. A staged call does
+not authorize a scheduler, concurrent backend calls or an owner mount.
+The RAM probe now exercises staged post-compression under its original caps.
+Qualify its exact binary on the disposable VM before any owner-PC use.

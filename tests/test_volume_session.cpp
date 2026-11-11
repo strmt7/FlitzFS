@@ -66,6 +66,83 @@ void expected(const NativeFilesystemSnapshot& snapshot){
   require(snapshot.basic_metadata(3)==NativeBasicMetadata{11,12,13,14,0x20}&&
       snapshot.security_descriptor(3)==native_security_fixture::descriptor(2),"independent metadata changed");
 }
+void staged_recompression(bool compact) {
+  using Progress=NativeFileSession::RecompressionProgress;
+  const StoreCheckpointOptions checkpoints{compact};
+  {
+    Fixture f(compact);
+    const auto source=f.source->live,head=f.head->live;
+    const auto before=f.session.snapshot().storage_info();
+    f.session.begin_recompression(f.target,id(2),{},checkpoints);
+    rejects([&]{(void)view(f.target);});
+    rejects_code([&]{f.session.publish_recompression();},NativeSessionErrorCode::invalid_options);
+    rejects_code([&]{f.session.begin_recompression(ram(compact),id(3),{},checkpoints);},
+        NativeSessionErrorCode::invalid_options);
+    for(std::size_t step=1;step<=before.objects;++step) {
+      const auto writes=f.target->writes;
+      const auto progress=f.session.advance_recompression();
+      require(progress==(step==before.objects?Progress::ready:Progress::copying),"wrong staged copy progress");
+      require(f.target->writes>writes&&f.target->writes-writes<=2&&f.target->flushes==0,
+          "copy step exceeded one record or published");
+      require(f.session.read(f.ro,0,65536)==Bytes(65536,std::byte{81}),"foreground read unavailable during staging");
+    }
+    const auto prepared=f.target->calls;
+    require(f.session.advance_recompression()==Progress::ready&&f.target->calls==prepared&&
+        f.source->live==source&&f.head->live==head,"ready stage performed I/O or changed authority");
+    auto provisional=f.session.prepare_open("d/file",{true,false,false},NativeOpenKind::file,{},{});
+    rejects_code([&]{f.session.publish_recompression();},NativeSessionErrorCode::delete_pending);
+    require(f.target->calls==prepared&&f.head->live==head,"deferred publication touched target or head");
+    f.session.close(provisional);
+    const auto after=f.session.publish_recompression();
+    require(after.selection.epoch==2&&after.selection.image_identity==id(2)&&f.source->live==source,
+        "staged handoff lost identity or changed source");
+    f.expected_session();
+    const auto selected=f.selected();
+    expected(selected.filesystem());
+    require(selected.filesystem().storage_info().stored_payload_bytes<before.stored_payload_bytes,
+        "staged maintenance did not reduce live payload");
+    f.session.write(f.late,3,data(7,19));
+    require(f.session.read(f.ro,3,7)==data(7,19),"live handle could not write after handoff");
+    f.retire_contexts();
+  }
+  for(bool publish:{false,true}) {
+    Fixture f(compact);
+    f.session.begin_recompression(f.target,id(2),{},checkpoints);
+    require(f.session.advance_recompression()==Progress::copying,"fixture needs another live record");
+    f.session.write(f.rw,5,data(19,12));
+    const auto target=f.target->live,head=f.head->live;
+    const auto calls=f.target->calls,reads=f.source->read_calls;
+    if(publish)rejects_code([&]{f.session.publish_recompression();},NativeSessionErrorCode::invalid_options);
+    else require(f.session.advance_recompression()==Progress::stale,"committed foreground write did not stale candidate");
+    require(f.target->calls==calls&&f.source->read_calls==reads&&f.target->live==target&&f.head->live==head,
+        "stale candidate accessed backing");
+    require(!f.session.poisoned()&&f.session.read(f.ro,5,19)==data(19,12),"stale candidate lost foreground write");
+    rejects([&]{(void)view(f.target);});
+  }
+  for(unsigned phase=0;phase<4;++phase) {
+    Fixture f(compact);
+    const auto source=f.source->live,head=f.head->live;
+    if(phase==0)f.target->fail_at=0;
+    if(phase==0)rejects([&]{f.session.begin_recompression(f.target,id(2),{},checkpoints);});
+    else {
+      f.session.begin_recompression(f.target,id(2),{},checkpoints);
+      if(phase==1) {
+        f.target->fail_at=f.target->calls;
+        rejects([&]{f.session.advance_recompression();});
+      } else if(phase==2) {
+        while(f.session.advance_recompression()==Progress::copying) {}
+        f.target->fail_at=f.target->calls;
+        rejects([&]{f.session.publish_recompression();});
+      } else f.session.cancel_recompression();
+    }
+    require(f.source->live==source&&f.head->live==head&&!f.session.poisoned(),
+        "unpublished failure or cancellation disturbed the source");
+    f.expected_session();
+    rejects_code([&]{f.session.advance_recompression();},NativeSessionErrorCode::invalid_options);
+    rejects([&]{(void)view(f.target);});
+  }
+}
+
 void invariants(bool compact){
   Fixture f(compact);f.expected_session();auto pinned=f.session.snapshot();const auto original=f.source->live;
   const auto before=f.session.stats();const auto alias=f.rw;
@@ -226,7 +303,9 @@ void recovery_faults(bool compact) {
 }
 int main(int argc,char** argv){try{
   if(argc!=2)throw std::runtime_error("volume-session phase required");const std::string_view phase=argv[1];
-  if(phase=="--invariants")for(bool compact:{false,true})invariants(compact);
+  if(phase=="--invariants")for(bool compact:{false,true}) {
+    invariants(compact);staged_recompression(compact);
+  }
   else if(phase=="--maintenance-4096")maintenance_faults(true);
   else if(phase=="--maintenance-65536")maintenance_faults(false);
   else if(phase=="--recovery-4096")recovery_faults(true);

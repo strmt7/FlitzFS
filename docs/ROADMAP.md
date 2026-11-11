@@ -559,3 +559,8 @@ A failed transition retains both images and the context table for one verified
 CPU recovery attempt. See VOLUME_SESSION.md. This remains custom-backend
 engine work, with new exact-commit tests pending; no automatic maintenance,
 mounted/GPU integration, physical reclamation or power-loss claim follows.
+
+Incremental recompression now gives a managed session one-record work units and
+generation-checked candidate cancellation. Next, qualify event-driven admission
+under foreground contention and bound final verification/publication latency.
+The measured host corpus result used explicit CPU recompression in locked RAM.

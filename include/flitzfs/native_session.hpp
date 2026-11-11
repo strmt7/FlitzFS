@@ -115,6 +115,15 @@ class NativeFileSession final {
   NativeVolumeHeadInfo recompress_volume(std::shared_ptr<StoreByteIo> empty_target,
       StoreIdentity new_image_identity,StoreCompressionOptions candidate={},
       StoreCheckpointOptions checkpoints={});
+  // Prepare a fresh image under the same serial control as foreground calls.
+  // Each advance copies at most one live object. A committed source change
+  // invalidates the candidate before another copy or any head publication.
+  enum class RecompressionProgress { copying,ready,stale };
+  void begin_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image,
+      StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
+  RecompressionProgress advance_recompression();
+  NativeVolumeHeadInfo publish_recompression();
+  void cancel_recompression() noexcept;
   // One explicit CPU recovery attempt for a failed maintenance transition only.
   // Retire the old head owner, independently select/compare, repair selected
   // metadata and resume the SAME context table. No failed-target retry/fallback.
@@ -260,6 +269,10 @@ class NativeFileSession final {
   std::unique_ptr<Impl> impl_;
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
+  static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity);
+  static void admit_handoff_contexts(const Impl&);
+  static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);
+  static NativeVolumeHeadInfo finish_handoff(Impl&);
   NativeVolumeHeadInfo replace_volume(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,StoreCheckpointOptions,bool reencode);
   std::size_t slot_for(const NativeFileHandle&,bool allow_provisional=false) const;
