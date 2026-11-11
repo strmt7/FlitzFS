@@ -262,7 +262,8 @@ EncodedStoreObject StoreCodecEncoder::encode_with_matches(Bytes input,std::span<
       candidate.resize(n);
       if(impl_->verifier.decode(kStoreZstd,candidate,static_cast<std::uint32_t>(input.size()))!=input)
         return baseline;
-      return {kStoreZstd,std::move(candidate),record_digest(input),true};
+      return {kStoreZstd,std::move(candidate),record_digest(input),true,
+          static_cast<std::uint32_t>(baseline.payload.size())};
     }catch(const std::exception&) {
       // An optional suggestion cannot prevent the ordinary CPU result.
       impl_->context.reset();

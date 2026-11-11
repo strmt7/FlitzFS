@@ -127,6 +127,10 @@ class NativeFileSession final {
   std::optional<StoreRecompressionInput> next_recompression_input() const;
   RecompressionProgress advance_recompression(std::uint64_t object_id,
       std::span<const StoreMatchProposal> matches);
+  // No I/O, allocation, discovery, GPU work or publication. Returns nothing
+  // after cancellation, failure, source mutation, terminal state or handoff.
+  // Repeated reads do not mean another completed step; bind image/generation/object.
+  std::optional<StoreRecompressionFeedback> recompression_feedback() const noexcept;
   NativeVolumeHeadInfo publish_recompression();
   void cancel_recompression() noexcept;
   // A controller supplies one observed quiet opportunity and a qualified

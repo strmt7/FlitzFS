@@ -8,7 +8,7 @@
   "goal_status": "active",
   "scope": "Complete Windows 11 AMD64 filesystem/helper/driver; effective AMD GPU acceleration, independent CPU recovery, high sustained throughput, exceptional lossless reduction, autonomous low-impact persistent learning and verified resilience.",
   "next": [
-    "G01",
+    "G02",
     "D01"
   ],
   "owner_safety": {
@@ -48,7 +48,7 @@
       "depends": [
         "P00"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "deliverables": [
         "Define one shared memory/admission contract for worker, core result gate and match controller. Collect current physical and commit headroom, both DXGI segment budgets/usages, workload footprint, identity and freshness.",
         "Derive bounded envelopes from those observations and independently enforced safety limits. Distinguish supported temporary resource pressure from unknown device faults; preserve immediate CPU-byte selection, event/evidence-driven retry, quiescence and terminal per-request behavior.",
@@ -61,10 +61,15 @@
       ],
       "exit": "A bounded successful candidate is admitted when justified by fresh evidence; every unknown or unsafe case returns independently verified CPU bytes without repeated device searches. This is not proof of native compression speed.",
       "checkpoint": {
-        "behavior": "Shared resource envelope, allocating-process physical/commit telemetry and original-baseline growth policy implemented in the publishing commit.",
-        "qualification": "Pending exact-source CPU/raw/sanitizer/Windows/SDK results; no owner GPU run of the new policy.",
-        "remaining": "Qualify implementation, audit harness, then a tiny actual accepted result; full CPU/GPU/load governor remains A01.",
-        "contract": "docs/GPU_RESOURCE_ENVELOPE.md"
+        "implementation": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+        "core_run": 43006974090,
+        "all_13_jobs_passed": true,
+        "sdk_run": 43006974055,
+        "accepted_gpu_decode_bytes": 12288,
+        "accepted_gpu_match_source_bytes": 4096,
+        "proposals": 4,
+        "evidence": "docs/evidence/gpu-admission-04d884b.json",
+        "scope": "Tiny explicit synthetic diagnostics only. Native filesystem acceleration, performance and general resource/AI controller are not qualified."
       }
     },
     {
@@ -91,7 +96,7 @@
       "depends": [
         "G01"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "deliverables": [
         "Qualify the actual match-proposal to native lossless encode route and map which native formats have genuine GPU execution.",
         "Retain immutable input, CPU-readable encoded output and byte-exact independent verification. Unsupported codecs and runtime faults select CPU immediately."
@@ -101,7 +106,14 @@
         "Separate CPU emulation, SDK compilation, actual kernel execution, result admission and filesystem use in reports.",
         "Measure complete cold and warm write/read paths, output image bytes, metadata, validation, transfers and fallback costs."
       ],
-      "exit": "A native filesystem operation demonstrably uses GPU work with exact recovery and measured end-to-end benefit in stated conditions; otherwise retain CPU routing and record why."
+      "exit": "A native filesystem operation demonstrably uses GPU work with exact recovery and measured end-to-end benefit in stated conditions; otherwise retain CPU routing and record why.",
+      "checkpoint": {
+        "actual_gpu_match": true,
+        "source_commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+        "native_feedback": "Implemented in publishing commit; exact-source CPU/Windows/SDK qualification pending.",
+        "next": "Compose explicit GPU match worker with existing locked-RAM backend and native-session recompression; report actual encoding selection and full-image/cold-warm cost. No native GPU compression benefit yet.",
+        "contract": "docs/RECOMPRESSION_FEEDBACK.md"
+      }
     },
     {
       "id": "G03",

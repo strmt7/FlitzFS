@@ -873,6 +873,11 @@ std::optional<StoreRecompressionInput> NativeFilesystemWriter::next_recompressio
   catch(const std::exception&){fail(Code::storage_failure,"recompression input verification failed");}
 }
 
+std::optional<StoreRecompressionFeedback> NativeFilesystemWriter::recompression_feedback(
+    const Recompression& candidate) noexcept {
+  return candidate.feedback();
+}
+
 bool NativeFilesystemWriter::advance_recompression(Recompression& candidate,
     std::uint64_t object_id,std::span<const StoreMatchProposal> matches) {
   try{return candidate.advance(object_id,matches);}

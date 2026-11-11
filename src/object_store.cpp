@@ -504,6 +504,7 @@ struct ObjectStoreWriter::Rewrite::Impl {
   std::uint64_t replacement_id,source_extent,reserved_end=0,cursor=kDataStart;
   std::size_t next=0;
   bool reencode,accept_matches;
+  std::optional<StoreRecompressionFeedback> last_feedback;
 
   Impl(State source,std::shared_ptr<StoreByteIo> target,StoreIdentity id,
       std::uint64_t replace_id,std::span<const std::byte> bytes,
@@ -556,11 +557,22 @@ struct ObjectStoreWriter::Rewrite::Impl {
     auto& target=*baseline.image;
     target.admit_write(reserved_end);
     auto& e=baseline.entries[next];e.offset=cursor;
+    StoreRecompressionFeedback feedback;
+    feedback.source_image=original.id;feedback.object_id=e.id;feedback.source_generation=original.generation;
+    feedback.supplied_matches=matches.size();feedback.logical_bytes=e.bytes;
+    feedback.original_stored_bytes=original.entries[next].stored;
     StoredRecord record;
     if(e.id==replacement_id || reencode) {
       if(!accept_matches || expected_id!=e.id)matches={};
       auto encoded=e.id==replacement_id?std::move(*substitute):
           target_writer->encoder.encode_with_matches(read_object(original,original.entries[next]),matches);
+      feedback.reencoded=true;
+      // Replacement metadata uses its independently encoded substitute; hints
+      // are never forwarded to that encoding, even if a caller supplied its ID.
+      feedback.forwarded_matches=e.id==replacement_id?0:matches.size();
+      feedback.match_encoding_selected=encoded.used_match_proposals;
+      feedback.cpu_baseline_bytes=encoded.used_match_proposals?encoded.match_baseline_bytes:
+          static_cast<std::uint32_t>(encoded.payload.size());
       if(encoded.payload.size()>e.bytes)fail("recompression exceeded raw-size admission");
       e.stored=static_cast<std::uint32_t>(encoded.payload.size());
       auto& h=record.header;copy_field(h,0,kDataMagic);put32(h,8,1);
@@ -574,8 +586,9 @@ struct ObjectStoreWriter::Rewrite::Impl {
     copy_field(record.header,96,e.digest);
     target.write_exact(e.offset,record.header);
     if(!record.payload.empty())target.write_exact(e.offset+kDataHeader,record.payload);
+    feedback.stored_bytes=e.stored;feedback.codec=get32(record.header,12);
     cursor+=kDataHeader+e.stored;
-    ++next;
+    ++next;last_feedback=feedback;
   }
 
   ObjectStoreWriter publish() {
@@ -630,8 +643,12 @@ std::optional<StoreRecompressionInput> ObjectStoreWriter::Rewrite::next_input() 
     return std::nullopt;
   return StoreRecompressionInput{entry.id,read_object(impl_->original,entry)};
 }
+std::optional<StoreRecompressionFeedback> ObjectStoreWriter::Rewrite::feedback() const noexcept {
+  return impl_?impl_->last_feedback:std::nullopt;
+}
 bool ObjectStoreWriter::Rewrite::advance(std::uint64_t object_id,std::span<const StoreMatchProposal> matches) {
   if(!impl_)fail("no usable rewrite");
+  impl_->last_feedback.reset();
   if(ready())return true;
   try{impl_->copy_object(object_id,matches);}
   catch(...){impl_.reset();throw;}

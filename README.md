@@ -21,12 +21,12 @@ storage reduction across arbitrary file types, using modern AMD GPUs where
 they provide a measured benefit and retaining independent CPU recovery.
 
 This is an early filesystem implementation, not a production-ready volume.
-Writable mounted storage and actual GPU execution remain unqualified. Keep
+Production writable mounted storage and normal filesystem GPU routing remain unqualified. Keep
 independent copies of valuable data. Most qualification runs on disposable hosted machines. Explicit bounded owner-PC
 CPU tests use locked RAM, while metadata diagnostics have also inspected the
-installed GPU runtime. Owner driver-backed mounts remain prohibited; a tiny
-FlitzFS GPU decode now matches CPU internally, while result admission and speed
-remain unqualified. See [current node-proof work](docs/GPU_NODE_PROOF.md).
+installed GPU runtime. Owner driver-backed mounts remain prohibited; tiny source-bound GPU decoder and match diagnostics now return accepted,
+CPU-verified results. Native filesystem acceleration and GPU speed remain
+unqualified. See [current resource-envelope evidence](docs/GPU_RESOURCE_ENVELOPE.md).
 
 The Windows app, full writable driver integration and latest Windows 11 client
 qualification remain unfinished. Existing Linux CPU/sanitizer jobs are internal
@@ -445,3 +445,10 @@ The experimental worker/result/match paths now share a
 zero nonlocal counter growth. This source update still requires its matching
 CPU/Windows/SDK qualification and a separate tiny actual-runtime acceptance
 trial. Normal filesystem I/O remains CPU-only; no GPU speed result is implied.
+
+## Native recompression measurement
+
+The new [candidate feedback API](docs/RECOMPRESSION_FEEDBACK.md) distinguishes
+supplied match proposals from an actually selected encoding and records its CPU
+baseline payload size. It is provisional, in-memory telemetry; publication and
+CPU readback remain separate. Matching implementation CI is still required.

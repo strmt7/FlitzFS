@@ -74,6 +74,17 @@ struct StoreObjectInfo {
 struct StoreMatchProposal {
   std::uint32_t position=0,distance=0,length=0;
 };
+// Provisional telemetry for ONE successfully copied candidate record. Not a
+// durable commit, GPU attestation, codec ratio for the whole image, or authority
+// to publish/reclaim. Fixed-size, advisory and never serialized to storage.
+struct StoreRecompressionFeedback {
+  StoreIdentity source_image{};
+  std::uint64_t object_id=0,source_generation=0,supplied_matches=0,forwarded_matches=0;
+  std::uint32_t logical_bytes=0,original_stored_bytes=0,stored_bytes=0,codec=0;
+  std::uint32_t cpu_baseline_bytes=0; // Meaningful only when reencoded=true.
+  bool reencoded=false,match_encoding_selected=false;
+  bool operator==(const StoreRecompressionFeedback&) const = default;
+};
 struct StoreRecompressionInput {
   std::uint64_t object_id=0;
   std::vector<std::byte> bytes;
@@ -212,6 +223,7 @@ class ObjectStoreWriter::Rewrite final {
   bool ready() const noexcept;
   bool saves_space() const;
   std::optional<StoreRecompressionInput> next_input() const;
+  std::optional<StoreRecompressionFeedback> feedback() const noexcept;
   bool advance(std::uint64_t object_id=0,std::span<const StoreMatchProposal> matches={}); // At most one object.
   ObjectStoreWriter finish();
  private:

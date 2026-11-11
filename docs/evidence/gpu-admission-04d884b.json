@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "classification": "Experimental tiny synthetic actual GPU correctness/admission; no native compression or speed claim",
+  "source": {
+    "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+    "tree": "42c8edcec930a9865f3a3cbcfc994a6c295bedfa",
+    "followup_commit": "955cd8ef000d9e7b7ae193df0506b17b6c3ac2fd",
+    "product_source_equivalent": true,
+    "followup_changed_only": [
+      ".github/workflows/recovery-regression.yml",
+      "docs/DEVELOPMENT_STATE.json",
+      "docs/GPU_RESOURCE_ENVELOPE.md"
+    ]
+  },
+  "qualification": {
+    "core_run": 43006974090,
+    "all_13_jobs_passed": true,
+    "linux_raw": {
+      "job": 130476762346,
+      "groups": 113
+    },
+    "linux_codec": {
+      "job": 130476762479,
+      "groups": 113
+    },
+    "windows_raw": {
+      "job": 130476762574,
+      "groups": 117
+    },
+    "windows_native": {
+      "job": 130476762510,
+      "groups": 131,
+      "real_cpu_semantic_worker_checks": 1180
+    },
+    "asan_ubsan": {
+      "job": 130476762132,
+      "groups": 113
+    },
+    "sdk": {
+      "run": 43006974055,
+      "job": 130476760903,
+      "api_checks": 178,
+      "admission_exits": 17,
+      "report_artifact": 13849675169,
+      "report_sha256": "ad65a75b7f88cd27ddd83281e8baa267823378ce274fbdc20b87738931ad29de"
+    },
+    "historical_regression": {
+      "failed_run": 43006973709,
+      "cause": "Current fixture compiled against historical ABI lacking new fields; not an accepted old-behavior failure.",
+      "fixed_run": 43007699354,
+      "job": 130479197182,
+      "exact_old_failure_observed": true,
+      "current_suite_passed": true
+    }
+  },
+  "bundle": {
+    "artifact": 13849615301,
+    "outer_sha256": "5d2bb74a61e2bf76978c39237230102e31fd535cbe9ae4558a4facdc15cc3cdb",
+    "inner_sha256": "9c8480c117d247d1be7cc2832a223bfedb5c616033d93af45b9e146a6828148c",
+    "bytes": 1123057,
+    "files": 9,
+    "amd_runtime_shipped": false
+  },
+  "observed_runtime": {
+    "basename": "amdhip64_7.dll",
+    "bytes": 17677840,
+    "file_version": "10.0.3683.0",
+    "sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "driver_version": "32.0.32015.12012",
+    "luid": "c573010000000000",
+    "hip_ordinal": 0,
+    "hip_raw_node_mask": 0,
+    "independent_os_single_node_proof": true
+  },
+  "preflight": {
+    "physical_total": 68305387520,
+    "physical_available": 30731939840,
+    "commit_limit": 137024864256,
+    "commit_available": 72752390144,
+    "local_budget": 16168480768,
+    "nonlocal_budget": 50320211968,
+    "nonlocal_growth_envelope": 103370455,
+    "note": "One process snapshot before compute; not worker post-initialization usage, a reservation or product default.",
+    "wrapper_failure": "Initial OS-only topology output wrapper expected the wrong label. Watchdog returned, raw native output was not retained, and no status is claimed for that first query. Corrected topology query fully captured and passed before compute."
+  },
+  "decode": {
+    "gpu_result_verified": true,
+    "cpu_bytes_verified": 12288,
+    "explicit_device_bytes": 16492,
+    "elapsed_ms": 688,
+    "exchange_code": 0,
+    "worker_exit": 0,
+    "worker_category": 0,
+    "worker_stage": "none",
+    "timed_out": false,
+    "publication_observed": true,
+    "peak_commit_bytes": 80244736,
+    "controller_job_peak_commit_bytes": 81633280,
+    "installed_driver_route": true,
+    "exit_confirmed": true,
+    "outer_elapsed_ms": 724,
+    "watchdog_exit_confirmed": true
+  },
+  "match": {
+    "gpu_result_verified": true,
+    "source_bytes_verified": 4096,
+    "proposals": 4,
+    "explicit_device_bytes": 14336,
+    "worker_exit": 0,
+    "worker_category": 0,
+    "worker_stage": "none",
+    "timed_out": false,
+    "publication_observed": true,
+    "peak_commit_bytes": 80330752,
+    "controller_job_peak_commit_bytes": 81788928,
+    "exit_confirmed": true,
+    "outer_elapsed_ms": 637,
+    "watchdog_exit_confirmed": true
+  },
+  "postflight": {
+    "owned_workers_after_match": 0,
+    "driver_status": "OK",
+    "driver_version_unchanged": true,
+    "runtime_hash_unchanged": true,
+    "no_driver_operations": true,
+    "no_mounts": true,
+    "no_filesystem_images": true,
+    "stage_tool_files_unchanged": true,
+    "note": "Process queries after both trials found no own probe/worker. Global leak absence and future no-freeze behavior are not established.",
+    "free_ram_bytes": 29935919104,
+    "after_both_trials_confirmed": true
+  },
+  "limits": {
+    "parent_process_mib": 128,
+    "parent_job_mib": 256,
+    "worker_job_mib": 128,
+    "cpu_rate": 2000,
+    "worker_wall_ms": 5000,
+    "outer_watchdog_ms": 10000,
+    "termination_observation_ms": 2000,
+    "decoder_device_bytes": 16492,
+    "match_device_bytes": 14336,
+    "no_gpu_clocks_driver_or_privilege_changes": true
+  },
+  "next": "G02 native locked-RAM recompression integration and end-to-end measurements. Current filesystem I/O stays CPU-only; the native encoder remains CPU Zstd and optional verified suggestions."
+}

@@ -6,53 +6,61 @@
   "assessment": "docs/REPOSITORY_ASSESSMENT.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "reviewed_baseline": {
-    "commit": "8a5633b588869eb3808d089fca76937c6781991c",
-    "tree": "01cf46b6fd34107ff53bb0f2604a2b8c1f10b8c7",
-    "note": "Documentation/asset publication does not imply runtime changes."
+    "commit": "955cd8ef000d9e7b7ae193df0506b17b6c3ac2fd",
+    "tree": "0ec257b5016b472aed2d20ec00cd12156803430a",
+    "note": "New feedback implementation needs its publishing-commit qualification. Prior accepted GPU experiments are explicitly bound to 04d884b."
   },
   "current_qualification": {
-    "core_run": 42997683191,
+    "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+    "core_run": 43006974090,
     "all_jobs": 13,
     "conclusion": "success",
-    "native_job": 130445747132,
+    "native_job": 130476762510,
     "native_groups": 131,
-    "windows_worker_exchange_checks": 1163,
+    "windows_worker_exchange_checks": 1180,
     "worker_scope": "Real Windows process exchange; CPU semantics only.",
-    "asan_job": 130445747325,
+    "windows_raw_job": 130476762574,
+    "windows_raw_groups": 117,
+    "linux_raw_job": 130476762346,
+    "linux_codec_job": 130476762479,
+    "linux_groups_each": 113,
+    "asan_job": 130476762132,
     "asan_groups": 113,
     "sdk": {
-      "commit": "bc6d18d6ca34a99a218ccd4c6aab9b4f6e0569b1",
-      "run": 42991511965,
-      "job": 130425291373,
+      "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+      "run": 43006974055,
+      "job": 130476760903,
       "fake_api_checks": 178,
       "admission_exit_cases": 17
     },
+    "followup": {
+      "commit": "955cd8ef000d9e7b7ae193df0506b17b6c3ac2fd",
+      "core_run": 43007699223,
+      "all_13_jobs_passed": true,
+      "exact_historical_regression_run": 43007699354,
+      "product_source_equivalent": true
+    },
     "limitations": [
-      "Source/evidence binding applies to each stated run; SDK baseline product code unchanged at reviewed main.",
-      "Green current CI does not resolve earlier intermittent child retirement failures.",
-      "Hosted mounts do not qualify owner mounts or latest Windows 11 client product behavior."
-    ],
-    "commit": "8a5633b588869eb3808d089fca76937c6781991c"
+      "Hosted mount results do not qualify owner mounts or latest Windows 11 client product behavior.",
+      "Later green runs do not explain earlier D01 child-retirement failures."
+    ]
   },
   "owner_gpu_observation": {
-    "source_commit": "bc6d18d6ca34a99a218ccd4c6aab9b4f6e0569b1",
+    "source_commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
     "actual_gpu_execution": true,
     "synthetic": true,
-    "cpu_verified_bytes": 12288,
-    "result_admitted": false,
-    "internal_failure": "completed_nonlocal_growth",
-    "launch_complete_statuses_verified_resources_released_modules_retired_exit_confirmed": true,
-    "elapsed_ms": 768,
-    "child_peak_commit_bytes": 80035840,
-    "evidence": "docs/evidence/gpu-memory-observation-bc6d18d.json",
-    "qualification": "Tiny diagnostic only; no native compression throughput or accepted filesystem candidate."
+    "decode_bytes": 12288,
+    "match_input_bytes": 4096,
+    "match_proposals": 4,
+    "result_admitted": true,
+    "confirmed_process_exit": true,
+    "no_timeouts": true,
+    "no_owned_workers_after": true,
+    "driver_runtime_unchanged": true,
+    "evidence": "docs/evidence/gpu-admission-04d884b.json",
+    "qualification": "Tiny decoder/match producer correctness and resource admission only; no native filesystem GPU compression path or speed claim."
   },
   "unresolved": [
-    {
-      "id": "gpu-zero-growth-admission",
-      "next_package": "G01",
-      "status": "candidate fix implemented; exact-source qualification and actual acceptance pending"
-    },
     {
       "id": "hosted-child-retirement",
       "next_package": "D01",
@@ -66,7 +74,7 @@
     }
   ],
   "next_implementation": [
-    "G01",
+    "G02",
     "D01"
   ],
   "implementation_boundary": {
@@ -102,13 +110,14 @@
     "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
   },
   "source_routing": {
-    "commit": "bc6d18d6ca34a99a218ccd4c6aab9b4f6e0569b1",
-    "artifact": 13841717902,
-    "artifact_sha256": "4b60b6b654206bbda3098c0655867c8ee88ad773b32169f121c56d4a9f882a20",
+    "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+    "artifact": 13848941999,
+    "artifact_sha256": "b15cb2a9cdc9132c48d358b790144f93327ed39e451f5649371fc66705c493f2",
     "queries": 8,
     "source_files": 130,
     "provider": "0.2.43",
-    "binding": "Relevant runtime files verified unchanged at reviewed main; exact live confirmation retained."
+    "source_sha256": "2ec551dc6ae0c704a8d3af90e2770c11da3177e5744f786f991ec22995d61d05",
+    "binding": "Codec query retained; store codec/header/native filesystem/HIP worker live source hashes verified at 955cd8e before this change."
   },
   "historical": {
     "qualified_checkpoint": {
@@ -191,14 +200,22 @@
       "check_exact_current_head_ci": true,
       "gpu_execution_qualified": false
     },
-    "note": "Retained historical evidence; superseded pending endpoint status is not a current limitation."
+    "note": "Retained historical evidence; superseded pending endpoint status is not a current limitation.",
+    "previous_owner_gpu_observation": {
+      "source_commit": "bc6d18d6ca34a99a218ccd4c6aab9b4f6e0569b1",
+      "actual_gpu_execution": true,
+      "synthetic": true,
+      "cpu_verified_bytes": 12288,
+      "result_admitted": false,
+      "internal_failure": "completed_nonlocal_growth",
+      "launch_complete_statuses_verified_resources_released_modules_retired_exit_confirmed": true,
+      "elapsed_ms": 768,
+      "child_peak_commit_bytes": 80035840,
+      "evidence": "docs/evidence/gpu-memory-observation-bc6d18d.json",
+      "qualification": "Tiny diagnostic only; no native compression throughput or accepted filesystem candidate."
+    }
   },
   "remaining": [
-    {
-      "id": "G01",
-      "title": "Admit useful GPU work with live resource envelopes",
-      "exit": "A bounded successful candidate is admitted when justified by fresh evidence; every unknown or unsafe case returns independently verified CPU bytes without repeated device searches. This is not proof of native compression speed."
-    },
     {
       "id": "D01",
       "title": "Resolve intermittent hosted writer/child retirement failures",
@@ -276,27 +293,20 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "a8fa5798c52848ad706fa0883a0844e0fbb2e127",
-    "package": "G01",
-    "contract": "docs/GPU_RESOURCE_ENVELOPE.md",
-    "behavior": "Shared live local/nonlocal/physical/process-commit envelope replaces strict zero-growth predicates in worker/result/match paths.",
-    "status": "unqualified publishing implementation; inspect exact-source runs before any owner trial",
-    "owner_gpu_test_run": false,
-    "default_filesystem_cpu": true,
-    "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
-    "cpu_linux": {
-      "run": 43006974090,
-      "raw_job": 130476762346,
-      "codec_job": 130476762479,
-      "groups_each": 113,
-      "success": true
-    },
-    "historical_regression": {
-      "failed_run": 43006973709,
-      "failed_job": 130476760304,
-      "cause": "Current fixture fields do not exist in the pinned f3ab1c5 snapshot type.",
-      "fix": "Pin historical ABI fixture to a8fa5798; current full test remains current; preserve exact old failure message and exit.",
-      "corrected_workflow_result": "pending"
+    "source_parent": "955cd8ef000d9e7b7ae193df0506b17b6c3ac2fd",
+    "package": "G02",
+    "contract": "docs/RECOMPRESSION_FEEDBACK.md",
+    "behavior": "Native copied-record feedback identifies actual selected match encoding and ordinary CPU baseline bytes; advisory/no I/O/no on-disk changes.",
+    "status": "Publishing implementation unqualified until matching raw/codec/sanitizer/Windows/SDK results.",
+    "owner_execution_of_new_feedback": false,
+    "default_filesystem_cpu": true
+  },
+  "resolved": [
+    {
+      "id": "gpu-zero-growth-admission",
+      "implementation": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+      "evidence": "docs/evidence/gpu-admission-04d884b.json",
+      "scope": "Qualified shared resource envelope and actual tiny accepted results; not full product readiness."
     }
-  }
+  ]
 }
