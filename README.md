@@ -400,3 +400,10 @@ device-selection, stream, batch-allocation and kernel-launch calls. No GPU outpu
 was accepted. Keep the node check intact; a compatible private runtime remains
 an investigation, not a qualified workaround. All 13 workflows on that commit
 passed, including Windows and sanitizers. See docs/evidence/hip-node-refusal-2026-11-11.json.
+
+The native store now has an incremental compression-profile probe for future
+data-driven maintenance. It measures existing profiles on a private sample no
+larger than 64 KiB, preserves CPU verification and returns advice only for the
+same source generation and bytes. It performs no I/O or background scheduling.
+Automatic learning across workloads remains unfinished. See
+[COMPRESSION_PROBES.md](docs/COMPRESSION_PROBES.md) for bounds and qualification.

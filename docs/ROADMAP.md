@@ -593,3 +593,10 @@ configuration or proceed to match experiments. First qualify stage-preserving
 failure diagnostics and inspect the matched DXGI budget without HIP. Resolve the
 observed refusal before the next separately qualified compute attempt. No GPU
 speed, real-data GPU result or production safety conclusion follows from refusal.
+
+An incremental native profile probe now provides bounded, source-bound
+measurements before a maintenance policy is chosen. Qualify its CPU/Zstandard,
+raw-only, Windows and sanitizer tests, then use these observations in a bounded
+learner and event-driven resource controller. Do not infer whole-volume gains
+from samples or weaken the existing unchanged-image suppression and handoff
+gates. Automatic workload learning and GPU execution remain separate work.
