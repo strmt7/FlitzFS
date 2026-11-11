@@ -2,6 +2,16 @@
 
 ## Current execution ledger
 
+The explicit native GPU/RAM probe now also requires a same-source, hashed,
+portable CPU-helper executable for one successful CPU-only transport warmup.
+Read docs/NATIVE_GPU_RAM_PROBE.md before invoking or changing it. All new
+accounting/native fixture checks require matching executed qualification;
+normal filesystem I/O remains CPU-only. This is no owner-driver/mount permission.
+Source-only hosted artifacts have bounded 4-MiB compressed/8-MiB expanded,
+512-file/768-entry/2-MiB-per-file limits. The owner HDD staging total remains
+256 MiB with a 10-GiB reserve; RAM backing and execution caps are unchanged.
+
+
 Read `docs/NATIVE_GPU_RAM_PROBE.md` before changing the optional native worker/
 RAM composition probe, shared diagnostic budget or its qualification. It is OFF
 by default, never invoked by ordinary I/O/CTest, and its new code requires exact

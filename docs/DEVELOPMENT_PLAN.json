@@ -116,8 +116,8 @@
           "core_run": 43013278271,
           "mounted_crash_restart_failed": true
         },
-        "integration": "480573e native probe compiled but first CPU composition failed strict handle accounting. Locked memory cleanup succeeded; root cause unknown. New bounded CPU-only phase diagnostics pending; no owner execution.",
-        "next": "Inspect matching CPU/Windows/native RAM-fixture/SDK results, repair failures, then audit source/harness before any tiny actual native GPU probe. Record actual selected encoding, whole-image bytes and complete costs; no speed benefit proved.",
+        "integration": "Candidate correction primes both failed and successful CPU transport; exact matching repeated-accounting/four-mode native qualification pending.",
+        "next": "Inspect matching accounting, strict handle/resource/readback/fallback checks, and portable/core results before any owner experiment. Native GPU benefit remains unproved.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md"
       }
     },

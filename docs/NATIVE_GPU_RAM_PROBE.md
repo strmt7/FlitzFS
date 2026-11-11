@@ -24,8 +24,9 @@ identify an ordinary single-link disk file. Existing output is never overwritten
 
 A synthetic 64 KiB file contains repeated seeded data plus zeros. A CPU-only
 profile runs first, then a separate profile optionally obtains proposals for
-the exact matching decoded native extent. Only one valid match request is
-allowed. Namespace metadata receives no worker request. The retained source,
+the exact matching decoded native extent. Only one proposed-profile match request is
+allowed. An additional explicitly reported CPU-only successful exchange primes
+transport bookkeeping before measurement; it never launches HIP. Namespace metadata receives no worker request. The retained source,
 live file handle, independent selected-image CPU reader and published manifest
 must agree byte for byte. The original source image must remain unchanged.
 
@@ -46,8 +47,11 @@ strict one-process job; its contract is not loosened.
 The worker retains its own creation-time 128 MiB/20%/one-process kill-on-close
 job and five-second operation limit. Explicit device allocation remains within
 256 KiB, with the existing 64 KiB input, bounded lanes and bounded search effort.
-A malformed-framing warmup initializes CPU transport bookkeeping only, before
-any RAM image or compute request. The child must reject it before runtime load.
+Before any RAM image or GPU request, a malformed-framing warmup must be rejected
+before runtime load, and one successful trusted CPU-helper exchange must pass
+independent CPU proposal validation and confirmed child/supervisor retirement.
+Both costs and all three warmup handle observations are reported. Neither
+warmup launches HIP; strict handle equality covers the subsequent native pair.
 
 Unknown child or supervisor retirement terminates the experiment and forbids a
 replacement request. Failed, timed-out or malformed replies with confirmed
@@ -68,11 +72,15 @@ No services, tasks, reboot persistence, elevation or driver changes are used.
   It exercises real CPU worker processes using match, match-invalid,
   match-hip-declaration and match-hold. Even a fake HIP declaration cannot
   turn those tests into GPU execution.
-- --driver-once NEW_REPORT TRUSTED_WORKER ORDINAL LUID RUNTIME_SHA256 is an
+- --driver-once NEW_REPORT TRUSTED_WORKER ORDINAL LUID RUNTIME_SHA256 TRUSTED_CPU_HELPER is an
   explicitly requested diagnostic, not an automatic filesystem route. The
   caller must verify source/bundle hashes, trusted containing directories,
   current identity/headroom and prior matching VM qualification. It uses the
   existing pinned installed-runtime worker, never installs a runtime/driver.
+  TRUSTED_CPU_HELPER must be the separately hashed portable
+  flitzfs_worker_exchange_tests.exe from the same qualified RAM package.
+  Its exact match/channel mode is CPU-only; it is diagnostic infrastructure,
+  not a product runtime dependency.
 
 Named-object/current-user protection is not a hostile same-user sandbox.
 The helper executable and its directories must be trusted, as in WORKER_CHANNEL.md.
@@ -118,55 +126,50 @@ a longer timeout or this composition probe.
 Related: RECOMPRESSION_FEEDBACK.md, GPU_RESOURCE_ENVELOPE.md, WORKER_CHANNEL.md,
 HOST_RAM_VALIDATION.json, DEVELOPMENT_PLAN.json.
 
-## Hosted failure investigation
+## Handle-accounting investigation and candidate correction
 
-The strict before/after handle assertion remains unchanged. No new native
-GPU/RAM binary has been promoted or executed on the owner PC.
+The first valid composition failed at strict handle equality at 480573e.
+Diagnostic c2ba1e2 observed [98,98,98,99,99,99,99,99,99,99]: first valid worker
+profile added one; two additional CPU/worker pairs stayed flat. Finer 61f16ad
+trace [98,98,99,99,99,99,99,99] localized retention to synchronous exchange,
+before reply validation and native hinted encoding. An initial snapshot
+diagnostic refused an optional NUL code unit; its cleanup succeeded.
 
-| Commit | Hosted run / job | Executed result |
-| --- | --- | --- |
-| 480573e | 43019981741 / 130520457733 | Build, PE audit and original CPU RAM probe passed; new composition failed at final handle equality. Locked bytes returned to zero and cleanup succeeded. |
-| c2ba1e2 | 43022295520 / 130528208214 | Handle trace [98,98,98,99,99,99,99,99,99,99]. First valid worker/native profile added one; two further CPU/worker pairs added none. |
-| 61f16ad | 43023245074 / 130531412710 | Match trace [98,98,99,99,99,99,99,99]: retention occurs inside synchronous exchange, before reply validation and hinted encoding. |
-| 801188e | 43024232697 / 130534742501 | Snapshot diagnostic refused a type-name code unit before native profiles. Snapshot/walk cleanup succeeded; locked bytes remained zero. No ownership conclusion. |
+At fbd9dd8, bounded current-process snapshots identified exactly one added
+WaitCompletionPacket (8 to 9); every other observed type count stayed equal.
+Nine isolated SleepConditionVariableSRW calls remained [81,81,81,81,81,81,81,81,81,81].
+The native-condition-variable initialization hypothesis was therefore rejected.
+The exact internal Windows call creating the packet is not identified.
+Project transport directly owns events, mappings, jobs, tokens, process and
+thread handles; none of its source directly creates a WaitCompletionPacket.
 
-Retained diagnostic artifacts: 13855378157 SHA256
-dbdbdba95c8ea11b15ac1629f3680e40c8fde7aae9265f8e771d2cdb06ca30c2;
-13856376160 SHA256
-bd3d8ef8f049bbaa03b671d25c0dafcaa8a928952db2f540c093163478d464cd;
-13856182541 SHA256
-0b4f3efb79582df9f85ca250536e542f467eb523b7ba541bb395cc7722835d3f.
-These are failing results, not leak-free qualification or proof of OS caching.
+[The complete retained result](evidence/handle-accounting-fbd9dd8.json) binds
+these observations to run 43025095991 and artifact 13857101726, verified SHA256
+e627a6416dcec8ccc10a85f5352156f1575fc6ba80b0352f76598eeaab2abf7d.
+These are failing diagnostic results, not prior qualification or leak freedom.
 
-Main trace positions: baseline, working-set admission, CPU profile, proposed
-profile, working-set restoration, final retirement, then two additional
-CPU/CPU-worker pairs. Match trace positions: before preparation, request ready,
-exchange returned, reply validated, hinted record encoded, head published,
-contexts closed, independent verification complete. Zero may mean unreached.
-Additional profiles are diagnostic CPU fixtures only; never extra GPU requests.
+The candidate explicitly exercises both actual failure and successful CPU
+transport before native measurement, instead of relying on a malformed request
+to prime the successful path. A separate new-process hosted accounting mode
+runs four independently validated successful exchanges and requires unchanged
+counts after the first. All four native positive/negative modes still require
+strict before/after equality. This candidate needs its executed matching result;
+an unexplained growing count remains failure, never added tolerance.
 
-The next hosted-only diagnostic snapshots only its own handle table, without
-VA cloning, thread/context capture or object-name output. It admits at most
-256 handles and emits at most 32 type counts. Owned capture/walk objects are
-released with their matching APIs. Type names respect the documented byte
-length, permit an optional NUL and encode other code units numerically.
-CPU-fixture success is explicitly refused while this inventory is enabled,
-even if snapshot initialization changes the observed delta.
+Temporary snapshot inventory and the isolated native-wait probe were removed
+after retaining their evidence. They are not owner-device prerequisites or
+ordinary filesystem behavior. Existing source/target preservation and all RAM,
+process, device, queue, CPU and time limits remain unchanged.
 
-A separate new-process fixture measures nine 1-ms
-SleepConditionVariableSRW calls. It accepts spurious wakeups and rejects
-unexpected API errors or growth after first use. It does not warm the
-composition process, load a GPU or create a native volume. An initialization
-explanation remains unproven until these independent results are inspected.
+## Source-evidence artifact budget
 
-API sources were inspected through native GitHub source captures:
-[Microsoft ProcessSnapshot.h](https://github.com/microsoft/win32metadata/blob/main/generation/WinSDK/RecompiledIdlHeaders/um/ProcessSnapshot.h),
-blob 2afedd9b780837c3717770481fbd2e4a6471d08b;
-[PSS_HANDLE_ENTRY contract](https://github.com/MicrosoftDocs/sdk-api/blob/docs/sdk-api-src/content/processsnapshot/ns-processsnapshot-pss_handle_entry.md),
-blob ea73a3e9f08d37c186fb63387ed4e57937051784;
-[Microsoft STL wait primitive](https://github.com/microsoft/STL/blob/main/stl/src/primitives.hpp),
-blob 3cba95a9a74b843e5a4a86b128107db9a255cfed.
-
-The source-evidence archive at 61f16ad exceeded its 2-MiB cap by 1,391 bytes.
-Git ZIP compression level 9 passed at 801188e: 2,096,461 source-archive bytes.
-The existing cap and source-byte hashing remain unchanged.
+The measured fbd9dd8 tree contains 366 tracked files totaling 4,907,006 bytes;
+its largest file is 223,618 bytes. Maximum ZIP compression briefly fit the old
+2-MiB archive bound, but continued diagnostic source growth exceeded it again.
+The source-only hosted artifact is now bounded at 4 MiB compressed, 8 MiB
+expanded, 512 tracked files, 768 ZIP entries and 2 MiB per file, with no links
+or submodules. These measured source-staging bounds fit within the existing
+256-MiB combined HDD fixture cap; callers still verify actual current usage,
+the 10-GiB reserve, exact hashes and CREATE_NEW ownership before any staging.
+This does not change RAM filesystem backing, image sizes or execution budgets,
+and authorizes no automatic owner download or physical-drive filesystem image.

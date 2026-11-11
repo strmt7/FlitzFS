@@ -309,11 +309,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+    "source_parent": "fbd9dd882f401865185477153168c741d6eb4327",
     "package": "G02",
     "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
     "behavior": "Explicit locked-RAM native recompression using trusted match worker and selected-encoding feedback, plus shared unchanged diagnostic budget.",
-    "status": "Publishing implementation requires matching hosted four-mode CPU fixtures, raw/codec/sanitizer/native checks and SDK refactor qualification; no owner execution.",
+    "status": "Candidate correction requires isolated repeated successful CPU transport accounting, all four native CPU-fixture modes, strict equality, source/portable/core qualification; no owner execution.",
     "default_filesystem_cpu": true,
     "owner_new_probe_run": false,
     "integration_attempt": {
@@ -329,7 +329,8 @@
       "binary_promoted": false,
       "owner_executed": false
     },
-    "next": "Bounded phase/repetition handle diagnostics, retaining strict equality; identify and fix root cause before promotion or owner execution."
+    "next": "Inspect exact-source accounting and native four-mode results; any repeated growth or retirement failure remains failure. Audit new CPU helper package before owner GPU/native experiment.",
+    "handle_evidence": "docs/evidence/handle-accounting-fbd9dd8.json"
   },
   "resolved": [
     {
