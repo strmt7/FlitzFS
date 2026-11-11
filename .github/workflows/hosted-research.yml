@@ -1,5 +1,6 @@
 name: Isolated source research (no owner-PC execution)
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -46,14 +47,14 @@ jobs:
             --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
             "$python_path" "$GITHUB_WORKSPACE/.ci-provider/tools/crawl4ai_tool.py" \
             --home "$RUNNER_TEMP/flitzfs-admitted-crawler" install
-      - name: Research Windows AMD hardware and driver support
+      - name: Research trusted runtime loading and confirmed process retirement
         shell: bash
         run: |
           set -euo pipefail
           python_path="$(command -v python)"
           mkdir "$RUNNER_TEMP/flitzfs-windows-native-research"
           status=0
-          for group in rocm-windows-hardware; do
+          for group in windows-runtime-trust windows-process-retirement; do
             sudo systemd-run --wait --collect --pipe --service-type=exec \
               --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
               --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=240 \

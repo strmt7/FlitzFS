@@ -62,3 +62,22 @@ parent value remains unchanged. Its scoped fixture restores its original
 value. The existing six bounded refusal/admission cases remain mandatory.
 This change retains the private authenticated bundle; it does not add a
 System32 runtime selection route, automatic loading, retries or a host launch.
+
+## Executed SDK checkpoint
+
+At bed5f061dd13990aa442a9ab1ed781bdf49baa4c, complete-SDK run 42951471885
+(job 130296529841) passed. The selected runtime contained 596 direct callable
+exports and all 11 required bindings. Six malformed-PE test methods, 78 typed
+fake-API checks and all six bounded worker admission/refusal exits passed.
+The parent compiler-path poison remained unchanged. No AMD runtime was loaded
+and no GPU executed in these checks.
+
+The numeric receipt ZIP was captured and SHA-256 verified in RAM:
+911b1ff3fca6b08d6e5efe0c79febcca7c9d21d3a0348a481538c415184fb0c2
+(7394 bytes; artifact 13825655652). The matching core run 42951471788 passed
+125 Windows groups, 107 sanitizer groups and all hosted mounted scenarios.
+Windows worker handle accounting was 94 before and after. These checks do not
+qualify actual GPU execution, performance or owner-mounted operation.
+
+See GPU_DRIVER_RUNTIME_PLAN.md for the next installed-driver route and the
+separate earlier process-retirement failure under investigation.

@@ -61,6 +61,18 @@ ROCM_RUNTIME_SOURCES = (
 )
 
 
+
+WINDOWS_RUNTIME_TRUST_SOURCES = (
+    ("windows-runtime-trust", "https://learn.microsoft.com/en-us/windows/win32/api/wintrust/nf-wintrust-winverifytrust", "WinVerifyTrust", "ERROR_SUCCESS"),
+    ("windows-runtime-trust-policy", "https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data", "WTD_CACHE_ONLY_URL_RETRIEVAL", "WTD_UI_NONE"),
+    ("windows-runtime-search", "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw", "LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR", "LOAD_LIBRARY_SEARCH_SYSTEM32"),
+    ("windows-runtime-system-directory", "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemdirectoryw", "GetSystemDirectoryW", "return"),
+)
+WINDOWS_PROCESS_RETIREMENT_SOURCES = (
+    ("windows-process-termination", "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess", "TerminateProcess", "asynchronous"),
+    ("windows-job-termination", "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-terminatejobobject", "TerminateJobObject", "pending"),
+)
+
 WINDOWS_TARGET_SOURCES = (
     ("windows11-current-release", "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information", "Windows 11", "Version"),
     ("windows-sdk-current", "https://learn.microsoft.com/en-us/windows/apps/windows-sdk/downloads", "Windows SDK", "10.0."),
@@ -192,7 +204,8 @@ async def capture(args):
                     "windows-framework": WINDOWS_FRAMEWORK_SOURCES, "windows-alternatives": WINDOWS_ALTERNATIVE_SOURCES,
                     "rocm-stream": ROCM_STREAM_SOURCES,
                     "windows-basic": WINDOWS_BASIC_SOURCES, "windows-security": WINDOWS_SECURITY_SOURCES,
-                    "windows-protocol": WINDOWS_PROTOCOL_SOURCES, "windows-ownership": WINDOWS_OWNERSHIP_SOURCES, "windows-locked-ram": WINDOWS_LOCKED_RAM_SOURCES}[args.source_group]
+                    "windows-protocol": WINDOWS_PROTOCOL_SOURCES, "windows-ownership": WINDOWS_OWNERSHIP_SOURCES, "windows-locked-ram": WINDOWS_LOCKED_RAM_SOURCES, "windows-runtime-trust": WINDOWS_RUNTIME_TRUST_SOURCES,
+                    "windows-process-retirement": WINDOWS_PROCESS_RETIREMENT_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -219,7 +232,10 @@ async def capture(args):
                 offset = markdown.lower().rfind(term.lower())
                 print(json.dumps({"review": name, "excerpt": markdown[max(0, offset-200):offset+1100]}), flush=True)
                 if args.source_group in ("rocm-runtime", "rocm-stream") or args.source_group.startswith("windows-"):
-                    terms = ("hipStreamCreateWithPriority", "hipStreamQuery", "hipStreamDestroy",
+                    terms = ("WinVerifyTrust", "WTD_CACHE_ONLY_URL_RETRIEVAL", "WTD_UI_NONE",
+                             "LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR", "LOAD_LIBRARY_SEARCH_SYSTEM32",
+                             "GetSystemDirectoryW", "TerminateProcess", "TerminateJobObject", "asynchronous", "pending",
+                             "hipStreamCreateWithPriority", "hipStreamQuery", "hipStreamDestroy",
                              "hipFree", "hipMalloc", "hipErrorContext", "hipErrorLaunch",
                              "hipErrorOutOfMemory", "priority", "process", "26H2", "26H1", "10.0.",
                              "WHCP", "enforcement", "kernel", "driver", "Flush", "cach", "IRP",
@@ -260,7 +276,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -270,7 +286,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)

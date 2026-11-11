@@ -33,6 +33,8 @@ QUERIES=(
     "compression codec selection allocation budget stored decoded digest and decompression",
     "compacted copy source preservation destination identity and safe reclamation",
     "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime",
+    "trusted HIP worker bundle file digest DLL module loading signature and system directory",
+    "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
 )
 SUFFIXES={".c",".h",".cc",".cpp",".hpp",".cxx",".hip",".py",".ps1",".rs"}
 def require(ok,why):
@@ -352,11 +354,11 @@ class Provider:
         by_path={entry["path"]:entry for entry in entries};receipts=[]
         try:
             for index,query in enumerate(QUERIES):
-                raw=self.run([self.ccc,"search","--limit","20","--json",query],120,self.root/"mirror",json_output=True)
+                raw=self.run([self.ccc,"search","--limit","5","--json",query],120,self.root/"mirror",json_output=True)
                 require(len(raw)<=2*MIB,"semantic response budget")
                 response=json.loads(raw)
                 require(response.get("success") is True and isinstance(response.get("results"),list) and
-                    0<len(response["results"])<=20,"semantic query failed or returned no results")
+                    0<len(response["results"])<=5,"semantic query failed or returned no results")
                 hits=[]
                 for hit in response["results"]:
                     name=hit["file_path"];start=hit["start_line"];end=hit["end_line"]
@@ -379,7 +381,7 @@ class Provider:
                 distinct=[]
                 for hit in hits:
                     if hit["path"] not in {x["path"] for x in distinct}:distinct.append(hit)
-                    if len(distinct)==6:break
+                    if len(distinct)==5:break
                 print(json.dumps(dict(semantic_query=query,source_sha256=binding,hits=distinct)),flush=True)
         finally:
             self.run([self.ccc,"daemon","stop"],30,self.root/"mirror")
