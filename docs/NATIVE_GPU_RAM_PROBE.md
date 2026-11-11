@@ -140,3 +140,15 @@ Trace positions: 0 baseline, 1 working-set admitted, 2 CPU profile complete,
 6/7 first extra CPU/CPU-worker pair, 8/9 second extra pair. Zero entries can
 mean an unreached phase. This is investigation, not a relaxed tolerance,
 a presumed OS cache explanation or a repaired leak.
+
+The first diagnostic (c2ba1e2, run 43022295520, job 130528208214)
+retained the failure and observed [98,98,98,99,99,99,99,99,99,99].
+The first valid worker/native profile added one handle; the following two
+CPU/native-plus-CPU-worker pairs added none. This bounds the observed growth
+but does not prove ownership, intentional initialization or leak freedom.
+The next finer first-occurrence trace separates match preparation, exchange,
+reply validation, hinted encoding, publication, context retirement and final
+verification. Its eight positions are: 0 before preparation, 1 request ready,
+2 synchronous exchange returned, 3 reply validated, 4 hinted record encoded,
+5 head published, 6 contexts closed, 7 independent verification complete.
+The zero-growth gate and no-owner-execution boundary remain unchanged.
