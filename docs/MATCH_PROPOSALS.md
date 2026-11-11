@@ -112,3 +112,5 @@ native publication before a held child's actual exit, followed by cancellation,
 confirmed retirement and closed channel objects. Full SDK tests compile the
 real HIP dispatch and exercise refusal before runtime loading. Actual AMD
 execution and measured benefit remain unverified.
+
+The explicit match route now uses the long-lived [match recovery controller](GPU_MATCH_CONTROLLER.md). It preserves the shared evidence/quarantine policy across requests and retains pending source data until exact retirement. Caller-selected CPU work stays terminal while late result evidence is classified. Normal filesystem operations still require explicit controller integration and workload/hardware qualification.

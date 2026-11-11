@@ -1,5 +1,6 @@
 #include "flitzfs/gpu_batch.hpp"
 #include "extent_codec.hpp"
+#include "gpu_request_id.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cstring>
@@ -14,8 +15,10 @@ bool node(unsigned mask) noexcept { return mask && !(mask&(mask-1)); }
 bool identity(const std::array<std::byte,8>& id) noexcept {
   return std::any_of(id.begin(),id.end(),[](auto b){return b!=std::byte{0};});
 }
+}
+namespace detail {
 // Globally unique per process; saturation refuses reuse rather than wrapping.
-std::uint64_t generation() noexcept {
+std::uint64_t next_gpu_request_id() noexcept {
   static std::atomic<std::uint64_t> next{1};
   auto current=next.load(std::memory_order_relaxed);
   while(current!=(std::numeric_limits<std::uint64_t>::max)()) {
@@ -92,7 +95,7 @@ GpuAttempt GpuResultGate::begin(bool consent,const GpuMemorySnapshot& before,std
   const auto decision=budget(before,now,batch_.device_buffer_bytes());
   if(decision!=GpuGateCode::admitted) return {decision};
   if(now>(std::numeric_limits<std::uint64_t>::max)()-deadline_ms_) return {GpuGateCode::invalid_budget};
-  generation_=generation();
+  generation_=detail::next_gpu_request_id();
   if(!generation_) return {GpuGateCode::invalid_budget};
   started_=now;deadline_=now+deadline_ms_;baseline_nonlocal_=before.nonlocal_usage;
   state_=GpuGateState::waiting;return {GpuGateCode::admitted,generation_};

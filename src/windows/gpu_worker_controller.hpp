@@ -1,15 +1,8 @@
 #pragma once
-#include "worker_exchange.hpp"
-#include "flitzfs/gpu_recovery.hpp"
+#include "gpu_worker_common.hpp"
 #include <optional>
 
 namespace flitzfs {
-enum class GpuWorkerState { idle,waiting,cpu_selected,worker_selected };
-struct GpuWorkerStart {
-  GpuRouteDecision route;
-  GpuGateCode gate=GpuGateCode::wrong_state;
-  bool submitted=false;
-};
 // Explicit single-control-thread integration of policy, gate and exact worker
 // ownership. Never a discovery loop or automatic filesystem/runtime route.
 // Keep this controller across requests: replacing it loses advisory history.

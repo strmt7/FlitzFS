@@ -26,14 +26,22 @@ unsigned GpuRecoveryPolicy::required_healthy_observations() const noexcept {
   return failures_ ? (1u << (std::min)(failures_-1,5u)) : 1u;
 }
 
-GpuRouteDecision GpuRecoveryPolicy::consider(bool consent, bool worthwhile,
-    const GpuHealthEvidence& e, const PreparedGpuBatch& batch, std::uint64_t now) noexcept {
+GpuRouteDecision GpuRecoveryPolicy::consider(bool consent,bool worthwhile,
+    const GpuHealthEvidence& e,const PreparedGpuBatch& batch,std::uint64_t now) noexcept {
+  return consider_work(consent,worthwhile,e,!batch.tasks().empty(),batch.device_buffer_bytes(),now);
+}
+GpuRouteDecision GpuRecoveryPolicy::consider(bool consent,bool worthwhile,
+    const GpuHealthEvidence& e,const PreparedGpuMatchSearch& search,std::uint64_t now) noexcept {
+  return consider_work(consent,worthwhile,e,search.input().size()>=4,search.device_buffer_bytes(),now);
+}
+GpuRouteDecision GpuRecoveryPolicy::consider_work(bool consent,bool worthwhile,
+    const GpuHealthEvidence& e,bool has_work,std::uint64_t device_bytes,std::uint64_t now) noexcept {
   if(!consent) return {GpuRouteReason::disabled};
   if(active_ticket_) return {GpuRouteReason::worker_busy};
   if(!e.supervisor_quiescent) { healthy_ = 0; return {GpuRouteReason::worker_busy}; }
   if(clock_seen_ && now < last_now_) { healthy_ = 0; return {GpuRouteReason::bad_evidence}; }
   last_now_ = now; clock_seen_ = true;
-  if(!worthwhile || batch.tasks().empty()) return {GpuRouteReason::unqualified};
+  if(!worthwhile || !has_work) return {GpuRouteReason::unqualified};
   if(!e.compatible || !nonzero(e.configuration) || !e.sequence) {
     healthy_ = 0;
     return {GpuRouteReason::unqualified};
@@ -49,7 +57,7 @@ GpuRouteDecision GpuRecoveryPolicy::consider(bool consent, bool worthwhile,
   if(!changed && (e.memory.luid != luid_ || e.memory.node_mask != node_mask_))
     { healthy_ = 0; return {GpuRouteReason::bad_evidence}; }
   const auto admission = check_gpu_memory_budget(e.memory,e.memory.luid,e.memory.node_mask,
-                                                now,batch.device_buffer_bytes());
+                                                now,device_bytes);
   if(admission != GpuGateCode::admitted) {
     // Consecutive health means consecutive GOOD telemetry, not merely time.
     healthy_ = 0;

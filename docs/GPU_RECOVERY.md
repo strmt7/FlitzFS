@@ -110,3 +110,5 @@ A strengthened test covers all five cases; the dedicated hosted regression lane
 must observe the exact old failure at f3ab1c5, then pass the corrected test. Its
 results remain pending at publication of that correction. All work after the
 host boundary used remote repository tools only; the local checkout is untouched.
+
+The same pure policy now admits typed match searches as well as decoder batches. Each overload supplies its actual immutable device allocation to the existing telemetry and quarantine logic. A match requires at least four input bytes. Workload type does not bypass an outstanding ticket, and fresh match telemetry cannot clear a device fault. See GPU_MATCH_CONTROLLER.md.

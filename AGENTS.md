@@ -1056,3 +1056,12 @@ creates a new tree and must never silently remove unchanged repository files.
 ## Match worker transport
 
 Read docs/MATCH_PROPOSALS.md before changing match frames or HIP dispatch. Keep the separate magic, exact source binding, 64 KiB source, 4096 lane and existing generic channel limits. Retain sentinel initialization, independent parent byte checks, CPU comparison in the qualification child, matched device telemetry, exact resource/module cleanup and confirmed child exit. Tests declare CPU semantics truthfully. Automatic routing must reuse the evidence-aware recovery policy and exact retirement discipline. No matching device launch on the owner PC is authorized by a compile or CPU-channel result.
+
+## Match recovery controller
+
+Read docs/GPU_MATCH_CONTROLLER.md before changing match routing. Keep the shared
+recovery policy, exact pending source, terminal selection and request-ID domain.
+A later CPU request may progress during retirement, but no new worker may
+bypass the process/supervisor ownership or evidence gates. Retain every old
+decoder test after changes to shared classification. CPU fixture declarations
+and synthetic telemetry are not actual GPU evidence.

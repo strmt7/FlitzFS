@@ -576,3 +576,5 @@ The staged store encoder can consume bounded external match proposals and retain
 A bounded AMD match producer is compiled with the complete pinned SDK. It searches eight predecessors with at most 1024 byte comparisons per lane. Next, qualify transport and supervisor integration, then compare measured device and end-to-end costs on public data.
 
 The explicit HIP worker can dispatch the compiled match entry through bounded source-bound frames. CPU fixtures now check channel-to-store publication and fallback before helper retirement. Next, connect the long-lived evidence-aware routing policy and measure qualified device behavior on real files.
+
+The match controller now preserves recovery history across requests. It supports immediate CPU selection, late-result classification and configuration quarantine without a retry loop. Next, qualify the workload controller and actual AMD execution, including measured compression gains and CPU/GPU costs on public data.
