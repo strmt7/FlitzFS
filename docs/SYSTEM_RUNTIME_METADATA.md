@@ -57,7 +57,7 @@ confirms that pending I/O and exact process exit remain distinct from requesting
 termination. Keep the supervisor's existing confirmation gate and the unresolved
 earlier hosted timeout record.
 
-The installed-driver compute route still needs its own exact-hash argument,
-kernel-only bundle, restricted module loading and complete retirement tests.
-Metadata verification supplies a prerequisite; it does not enable that route
-or authorize an owner-PC experiment. See GPU_DRIVER_RUNTIME_PLAN.md.
+The separate explicit installed-driver route uses this prerequisite plus its
+kernel-only bundle, restricted loading and retirement rules. Metadata success
+alone does not enable compute or authorize an owner-PC experiment. See
+GPU_DRIVER_WORKER.md and GPU_DRIVER_RUNTIME_PLAN.md.

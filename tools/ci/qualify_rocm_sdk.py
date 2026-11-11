@@ -11,11 +11,13 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import zipfile
 
 SOURCE_REF="b46acb6dd7e48e1fb2dc182210495abb6a3c013f"
 REPO=Path(__file__).resolve().parents[2]
 GIB=1024**3
 HIP_RUNTIME_UNAVAILABLE=0x46530002
+HIP_INTEGRITY_FAILURE=0x46530006
 
 def require(ok,why):
     if not ok:
@@ -169,7 +171,12 @@ def main():
         report["api_probe"]["qualification"]=api_rows[0]
         module=build/"Release/flitzfs_rocm_kernels.dll"
         require(module.is_file() and module.stat().st_size<=32*1024*1024,"kernel module output budget")
-        report["kernel_module"]=dict(bytes=module.stat().st_size,sha256=digest(module))
+        kernel_imports,kernel_delayed=pe_import_names(module.read_bytes())
+        require(bool(kernel_imports) and not kernel_delayed and
+            set(kernel_imports)<={runtime_name.group(1),"kernel32.dll"},
+            "kernel-only route requires only the selected runtime and Windows system imports")
+        report["kernel_module"]=dict(bytes=module.stat().st_size,sha256=digest(module),
+            imports=sorted(set(kernel_imports)))
         worker=build/"Release/flitzfs_hip_worker.exe"
         worker_probe=build/"Release/flitzfs_hip_worker_probe.exe"
         require(worker.is_file() and 0 < worker.stat().st_size <= 32*1024*1024, "worker executable budget")
@@ -194,6 +201,22 @@ def main():
                     require(len(byte)==1,"empty staged kernel")
                     outgoing.write(bytes([byte[0]^1]))
                 shutil.copyfileobj(incoming,outgoing,64*1024)
+        # Own binaries only: no AMD runtime or SDK helper is copied into this fixture.
+        driver_fixture=root/"driver-worker"
+        bad_driver_fixture=root/"tampered-driver-worker"
+        for destination,tampered_kernel in ((driver_fixture,False),(bad_driver_fixture,True)):
+            destination.mkdir()
+            (destination/"hip").mkdir()
+            for source,target in ((worker,destination/worker.name),
+                    (module,destination/"hip"/module.name.lower())):
+                with source.open("rb") as incoming,target.open("xb") as outgoing:
+                    if tampered_kernel and source==module:
+                        byte=incoming.read(1)
+                        require(len(byte)==1,"empty own kernel")
+                        outgoing.write(bytes([byte[0]^1]))
+                    shutil.copyfileobj(incoming,outgoing,64*1024)
+        report["driver_fixture"]=dict(runtime_copied=False,files=[worker.name,"hip/"+module.name.lower()],
+            scope="Explicit expected installed-runtime hash; no automatic route")
         from stage_hip_worker_bundle import system_directory
         kernel32=system_directory()/"kernel32.dll"
         require(kernel32.is_file() and 0<kernel32.stat().st_size<=32*1024*1024,
@@ -208,14 +231,16 @@ def main():
             imports=sorted(set(metadata_imports)),subject="OS kernel32.dll",subject_sha256=digest(kernel32),
             runtime_loaded=False,gpu_executed=False)
         result=run(bounds,[str(worker_probe),str(worker),str(root/"worker-probe"),str(altered/worker.name),
-            str(metadata_probe),report["metadata_probe"]["subject_sha256"]],
+            str(metadata_probe),report["metadata_probe"]["subject_sha256"],
+            str(driver_fixture/worker.name),str(bad_driver_fixture/worker.name)],
             report,"bounded-worker-admission-without-HIP",90)
         prefix="HIP worker admission: "
         receipts=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines() if line.startswith(prefix)]
         require(receipts==[dict(bundle_verified=True,missing_bundle_refused=True,tampered_bundle_refused=True,invalid_wire_refused=True,
             invalid_match_refused=True,missing_match_runtime_refused=True,
             compiler_environment_isolated=True,system_module_metadata_passed=True,system_runtime_bad_hash_refused=True,
-            system_runtime_argument_refused=True,exits_confirmed=9,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
+            system_runtime_argument_refused=True,kernel_only_verified=True,kernel_only_full_bundle_refused=True,
+            kernel_only_tamper_refused=True,driver_wire_refusals=5,exits_confirmed=17,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
         report["worker_admission"]=receipts[0]
         hardware_probe=build/"Release/flitzfs_hip_hardware_probe.exe"
         report["hardware_probe"]=dict(bytes=hardware_probe.stat().st_size,sha256=digest(hardware_probe),
@@ -228,9 +253,42 @@ def main():
             rows[0]["cpu_bytes_verified"]==12288 and rows[0]["worker_exit"]==HIP_RUNTIME_UNAVAILABLE and
             rows[0]["exit_confirmed"] is True and rows[0]["timed_out"] is False and
             rows[0]["publication_observed"] is False and
-            0<rows[0]["peak_commit_bytes"]<=128*1024*1024,
+            0<rows[0]["peak_commit_bytes"]<=128*1024*1024 and
+            0<rows[0]["controller_job_peak_commit_bytes"]<=256*1024*1024,
             "one-shot probe missing-runtime evidence mismatch")
         report["hardware_probe"]["missing_runtime"]=rows[0]
+        refused_exits=(HIP_RUNTIME_UNAVAILABLE,HIP_INTEGRITY_FAILURE)
+        diagnostic_cases=(
+            ("metadata",["--verify-driver-runtime",str(driver_fixture/worker.name),"0"*64],
+                "HIP runtime metadata probe: "),
+            ("driver_decode",["--run-amd-driver-once",str(driver_fixture/worker.name),
+                "0","0100000000000000","0"*64],"HIP hardware probe: "),
+            ("driver_match",["--run-amd-driver-match-once",str(driver_fixture/worker.name),
+                "0","0100000000000000","0"*64],"HIP match hardware probe: "),
+        )
+        for name,arguments,prefix in diagnostic_cases:
+            result=run(bounds,[str(hardware_probe),*arguments],report,"bounded-"+name+"-refusal",15,exit_code=2)
+            values=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines()
+                if line.startswith(prefix)]
+            require(len(values)==1,"missing diagnostic refusal receipt")
+            value=values[0]
+            require(value["worker_exit"] in refused_exits and value["exit_confirmed"] is True and
+                value["timed_out"] is False and 0<value["peak_commit_bytes"]<=128*1024*1024 and
+                0<value["controller_job_peak_commit_bytes"]<=256*1024*1024,
+                "diagnostic process/resource refusal evidence mismatch")
+            if name=="metadata":
+                require(value["verified"] is False and value["gpu_executed"] is False,
+                    "metadata probe falsely accepted the runtime")
+            else:
+                require(value["gpu_result_verified"] is False and value["publication_observed"] is False,
+                    "driver diagnostic falsely published output")
+                if name=="driver_decode":
+                    require(value["cpu_bytes_verified"]==12288 and value["installed_driver_route"] is True,
+                        "driver decode CPU fallback mismatch")
+                else:
+                    require(value["source_bytes_verified"]==4096 and value["proposals"]==0,
+                        "driver match CPU fallback mismatch")
+            report["hardware_probe"][name+"_refusal"]=value
         actual_clang=run(bounds,[str(sdk/"lib/llvm/bin/clang.exe"),"--version"],report,"actual-AMD-compiler-version",30)
         require(lock["observed_clang_version"] in actual_clang["stdout"],
             "observed complete-SDK compiler identity differs from its lock record")
@@ -238,6 +296,48 @@ def main():
             "reference source changed during qualification")
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,
             "SDK critical inputs changed during compilation")
+        package=root/"driver-probe-package"
+        package.mkdir()
+        copies=(
+            (worker,worker.name),
+            (module,"hip/"+module.name.lower()),
+            (hardware_probe,hardware_probe.name),
+            (REPO/"LICENSE","LICENSE"),
+            *((REPO/"third_party/blake3"/name,"licenses/blake3/"+name)
+                for name in ("LICENSE_A2","LICENSE_A2LLVM","LICENSE_CC0")),
+        )
+        records=[]
+        for source,relative in copies:
+            size=source.stat().st_size
+            require(source.is_file() and 0<size<=32*1024*1024,"own probe artifact input budget")
+            target=package/relative
+            target.parent.mkdir(parents=True,exist_ok=True)
+            with source.open("rb") as incoming,target.open("xb") as outgoing:
+                shutil.copyfileobj(incoming,outgoing,64*1024)
+            require(target.stat().st_size==size and digest(target)==digest(source),"own artifact copy identity")
+            records.append(dict(path=relative,bytes=size,sha256=digest(target)))
+        manifest=dict(experimental=True,commit=os.environ["GITHUB_SHA"],rocm=lock["version"],
+            runtime_basename=runtime_name.group(1),runtime_shipped=False,kpack_shipped=False,
+            kernel_imports=sorted(set(kernel_imports)),files=records,
+            controller_job_mib=256,worker_job_mib=128,cpu_rate=2000,worker_timeout_ms=5000,
+            hardware_executed=False)
+        with (package/"qualification-manifest.json").open("x",encoding="utf-8") as out:
+            json.dump(manifest,out,indent=2);out.write("\n")
+        with (package/"EXPERIMENTAL.txt").open("x",encoding="utf-8") as out:
+            out.write("Experimental FlitzFS diagnostic binaries. No AMD runtime is included.\n"
+                "The default filesystem never invokes these workers. Metadata verification is separate from compute.\n"
+                "Use only through the qualified bounded diagnostic and the explicit owner-device safety gate.\n"
+                "GPU execution and speed are not qualified by the hosted CPU/refusal tests.\n")
+        files=sorted(path for path in package.rglob("*") if path.is_file())
+        require(len(files)<=16 and sum(path.stat().st_size for path in files)<=8*1024*1024,
+            "own artifact expanded budget")
+        archive=root/"driver-probe.zip"
+        with zipfile.ZipFile(archive,"x",compression=zipfile.ZIP_DEFLATED,compresslevel=6) as out:
+            for path in files:
+                out.write(path,path.relative_to(package).as_posix())
+        require(0<archive.stat().st_size<=8*1024*1024,"own artifact compressed budget")
+        report["driver_probe_artifact"]=dict(bytes=archive.stat().st_size,sha256=digest(archive),
+            files=records,runtime_shipped=False,kpack_shipped=False,hardware_executed=False)
         report["complete"]=True
     except Exception as error:
         report["error"]=type(error).__name__+": "+str(error)

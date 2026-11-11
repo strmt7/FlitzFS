@@ -7,6 +7,9 @@
 #include <cstdlib>
 #include <string>
 #include <string_view>
+#include <span>
+#include <utility>
+#include <vector>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -49,7 +52,7 @@ void retired(const flitzfs::ProcessResult& process, std::uint32_t expected) {
 
 int wmain(int argc, wchar_t** argv) {
   try {
-    require(argc == 6, "explicit worker, fixture, tampered copy, metadata probe and digest required");
+    require(argc == 8, "explicit worker, fixture, tampered copies, metadata probe/digest and driver workers required");
     const std::filesystem::path worker(argv[1]), fixture(argv[2]), tampered(argv[3]);
     require(worker.is_absolute() && fixture.is_absolute() && tampered.is_absolute(), "absolute qualification paths required");
     require(std::filesystem::create_directory(fixture), "new worker probe fixture required");
@@ -100,8 +103,43 @@ int wmain(int argc, wchar_t** argv) {
           static_cast<std::uint32_t>(flitzfs::HipWorkerExit::runtime_unavailable) ||
         wrong_identity.exit_code == static_cast<std::uint32_t>(flitzfs::HipWorkerExit::integrity_failure)),
         "unqualified system runtime identity was accepted");
+    const std::filesystem::path driver_worker(argv[6]), bad_driver_worker(argv[7]);
+    retired(flitzfs::run_bounded_process(driver_worker, {L"--verify-kernel-bundle"}, budget), 0);
+    retired(flitzfs::run_bounded_process(worker, {L"--verify-kernel-bundle"}, budget),
+        static_cast<std::uint32_t>(flitzfs::HipWorkerExit::integrity_failure));
+    retired(flitzfs::run_bounded_process(bad_driver_worker, {L"--verify-kernel-bundle"}, budget),
+        static_cast<std::uint32_t>(flitzfs::HipWorkerExit::integrity_failure));
+    const auto driver_arguments = [](bool matching, std::wstring digest) {
+      return std::vector<std::wstring>{matching ? L"--driver-match-adapter" : L"--driver-adapter",
+          L"0", L"0100000000000000", L"1", std::move(digest)};
+    };
+    for (const bool matching : {false, true}) {
+      const auto rejected = flitzfs::run_worker_exchange(driver_worker,
+          driver_arguments(matching, std::wstring(64,L'0')), malformed, budget);
+      retired(rejected.process, static_cast<std::uint32_t>(flitzfs::HipWorkerExit::invalid_request));
+      require(rejected.response.empty() && !rejected.publication_observed,
+          "malformed installed-driver frame published output");
+    }
+    const flitzfs::GpuBlockView fill{1,0x6b,64,{}};
+    const auto decode_batch = flitzfs::PreparedGpuBatch::prepare({&fill,1});
+    const auto decode_request = flitzfs::encode_worker_request(decode_batch,2);
+    for (const bool matching : {false, true}) {
+      const auto rejected = flitzfs::run_worker_exchange(driver_worker,
+          driver_arguments(matching, std::wstring(64,L'0')),
+          matching ? std::span<const std::byte>(match_request) : std::span<const std::byte>(decode_request), budget);
+      require(rejected.process.process_id && rejected.process.exit_confirmed &&
+          !rejected.process.timed_out && !rejected.process.cancelled &&
+          (rejected.process.exit_code == static_cast<std::uint32_t>(flitzfs::HipWorkerExit::runtime_unavailable) ||
+           rejected.process.exit_code == static_cast<std::uint32_t>(flitzfs::HipWorkerExit::integrity_failure)) &&
+          rejected.response.empty() && !rejected.publication_observed,
+          "unqualified installed-driver request was accepted");
+    }
+    const auto bad_digest = flitzfs::run_worker_exchange(driver_worker,
+        driver_arguments(false,L"bad"), decode_request, budget);
+    retired(bad_digest.process, static_cast<std::uint32_t>(flitzfs::HipWorkerExit::invalid_request));
+    require(bad_digest.response.empty() && !bad_digest.publication_observed, "bad driver identity published output");
     std::cout<<"HIP worker admission: {\"bundle_verified\":true,\"missing_bundle_refused\":true,"
-        "\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"compiler_environment_isolated\":true,\"system_module_metadata_passed\":true,\"system_runtime_bad_hash_refused\":true,\"system_runtime_argument_refused\":true,\"exits_confirmed\":9,\"gpu_executed\":false,\"complete\":true}\n";
+        "\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"compiler_environment_isolated\":true,\"system_module_metadata_passed\":true,\"system_runtime_bad_hash_refused\":true,\"system_runtime_argument_refused\":true,\"kernel_only_verified\":true,\"kernel_only_full_bundle_refused\":true,\"kernel_only_tamper_refused\":true,\"driver_wire_refusals\":5,\"exits_confirmed\":17,\"gpu_executed\":false,\"complete\":true}\n";
     return 0;
   } catch (const std::exception& error) {
     std::cerr<<"HIP worker admission failed: "<<error.what()<<'\n';

@@ -45,7 +45,8 @@ bool same_path(const fs::path& left, const fs::path& right) {
 
 class Bundle {
  public:
-  Bundle() : root_(module_path(nullptr).parent_path() / L"hip") {
+  explicit Bundle(bool kernel_only = false) : root_(module_path(nullptr).parent_path() / L"hip"),
+      kernel_only_(kernel_only) {
     const auto drive = root_.root_name().native();
     require(root_.is_absolute() && drive.size() == 2 && drive[1] == L':',
         Exit::runtime_unavailable, "HIP bundle must be on a local drive path");
@@ -57,17 +58,19 @@ class Bundle {
       parent /= component;
       directories_.emplace_back(parent);
     }
+    const auto expected_count = kernel_only_ ? std::size_t{1} : std::size(hip_bundle::files);
     std::size_t count = 0;
     for (const auto& entry : fs::directory_iterator(root_)) {
       ++count;
       const auto known = std::any_of(std::begin(hip_bundle::files), std::end(hip_bundle::files),
-          [&](const auto& file) { return same_path(entry.path().filename(), file.name); });
-      require(count <= std::size(hip_bundle::files) && known,
+          [&](const auto& file) { return included(file.name) && same_path(entry.path().filename(), file.name); });
+      require(count <= expected_count && known,
           Exit::integrity_failure, "unexpected HIP bundle entry");
     }
-    require(count == std::size(hip_bundle::files), Exit::runtime_unavailable, "HIP bundle incomplete");
+    require(count == expected_count, Exit::runtime_unavailable, "HIP bundle incomplete");
     files_.reserve(count);
     for (const auto& entry : hip_bundle::files) {
+      if (!included(entry.name)) continue;
       auto file = ReadOnlyFile::open(root_ / entry.name);
       require(file.size() == entry.size && matches_sha256(file, entry.sha256),
           Exit::integrity_failure, "HIP bundle file identity");
@@ -77,6 +80,7 @@ class Bundle {
   fs::path path(const wchar_t* name) const { return root_ / name; }
   void check_loaded_paths() const {
     for (const auto& entry : hip_bundle::files) {
+      if (!included(entry.name)) continue;
       if (const auto loaded = GetModuleHandleW(entry.name)) {
         require(same_path(path(entry.name), module_path(loaded)),
             Exit::integrity_failure, "different HIP dependency already loaded");
@@ -84,13 +88,17 @@ class Bundle {
     }
   }
  private:
+  bool included(const wchar_t* name) const {
+    return !kernel_only_ || same_path(name, hip_bundle::kernel);
+  }
   fs::path root_;
+  bool kernel_only_ = false;
   std::vector<DirectoryPin> directories_;
   std::vector<ReadOnlyFile> files_;
 };
 
-Bundle verify_bundle() {
-  try { return Bundle(); }
+Bundle verify_bundle(bool kernel_only = false) {
+  try { return Bundle(kernel_only); }
   catch (const HipWorkerFailure&) { throw; }
   catch (const std::bad_alloc&) { throw; }
   catch (const std::exception&) {
@@ -164,6 +172,18 @@ MatchWorkerRequest read_match_request(std::span<const std::byte> bytes) {
   catch(const std::bad_alloc&){throw;}
   catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"invalid HIP match request");}
 }
+std::string runtime_digest(std::wstring_view wide) {
+  require(wide.size() == 64, Exit::invalid_request, "system runtime hash length");
+  std::string expected;
+  expected.reserve(64);
+  for (const auto character : wide) {
+    require((character >= L'0' && character <= L'9') ||
+        (character >= L'a' && character <= L'f'), Exit::invalid_request, "system runtime hash digit");
+    expected.push_back(static_cast<char>(character));
+  }
+  return expected;
+}
+
 int worker(int argc, wchar_t** argv) {
   require_hip_worker_job();
   // Compiler discovery must not leak into an application runtime. This changes
@@ -175,37 +195,35 @@ int worker(int argc, wchar_t** argv) {
       (GetLastError() == ERROR_ENVVAR_NOT_FOUND || GetLastError() == ERROR_SUCCESS),
       Exit::runtime_unavailable, "HIP compiler environment remains visible");
   if (argc == 3 && std::wstring_view(argv[1]) == L"--verify-system-runtime") {
-    const std::wstring_view wide(argv[2]);
-    require(wide.size() == 64, Exit::invalid_request, "system runtime hash length");
-    std::string expected;
-    expected.reserve(64);
-    for (const auto character : wide) {
-      require((character >= L'0' && character <= L'9') ||
-          (character >= L'a' && character <= L'f'), Exit::invalid_request, "system runtime hash digit");
-      expected.push_back(static_cast<char>(character));
-    }
-    const hip_detail::VerifiedSystemModule verified(hip_bundle::runtime, expected);
+    const hip_detail::VerifiedSystemModule verified(hip_bundle::runtime, runtime_digest(argv[2]));
     return 0;
   }
-  if (argc == 2 && std::wstring_view(argv[1]) == L"--verify-bundle") {
-    const auto verified = verify_bundle();
+  if (argc == 2 && (std::wstring_view(argv[1]) == L"--verify-bundle" ||
+      std::wstring_view(argv[1]) == L"--verify-kernel-bundle")) {
+    const auto verified = verify_bundle(std::wstring_view(argv[1]) == L"--verify-kernel-bundle");
     return 0;
   }
-  const bool matching=argc==7 && std::wstring_view(argv[1])==L"--match-adapter";
-  require(argc == 7 && (matching || std::wstring_view(argv[1]) == L"--adapter") &&
-      std::wstring_view(argv[5]) == L"--worker-channel",
+  const std::wstring_view mode = argc > 1 ? argv[1] : L"";
+  const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter";
+  const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter";
+  require((driver ? argc == 8 : argc == 7) &&
+      (driver || mode == L"--adapter" || mode == L"--match-adapter") &&
+      std::wstring_view(argv[driver ? 6 : 5]) == L"--worker-channel",
       Exit::invalid_request, "explicit HIP adapter and channel required");
+  const auto expected_runtime = driver ? runtime_digest(argv[5]) : std::string{};
   const auto ordinal = decimal(argv[2], 63);
   const auto luid = parse_luid(argv[3]);
   const auto node_mask = decimal(argv[4], (std::numeric_limits<unsigned>::max)());
   require(node_mask && !(node_mask & (node_mask - 1)), Exit::invalid_request, "adapter node mask");
-  auto channel = WorkerChannel::open(argv[6]);
+  auto channel = WorkerChannel::open(argv[driver ? 7 : 6]);
   std::optional<WorkerBatchRequest> decode;
   std::optional<MatchWorkerRequest> match;
   if(matching)match.emplace(read_match_request(channel.request()));
   else decode.emplace(read_request(channel.request()));
   const auto allocation=matching?match->search.device_buffer_bytes():decode->batch.device_buffer_bytes();
-  const auto bundle = verify_bundle();
+  const auto bundle = verify_bundle(driver);
+  std::optional<hip_detail::VerifiedSystemModule> installed;
+  if (driver) installed.emplace(hip_bundle::runtime, expected_runtime);
   const auto observed = query_windows_gpu_budget(luid, node_mask);
   require(observed.status == WindowsGpuBudgetStatus::success,
       Exit::unsupported_configuration, "AMD adapter unavailable");
@@ -217,9 +235,13 @@ int worker(int argc, wchar_t** argv) {
   require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32) != 0,
       Exit::runtime_unavailable, "restrict worker DLL lookup");
   bundle.check_loaded_paths();
-  Module runtime(bundle.path(hip_bundle::runtime));
+  const auto runtime_path = driver ? installed->path() : bundle.path(hip_bundle::runtime);
+  Module runtime(runtime_path);
   Module kernels(bundle.path(hip_bundle::kernel));
   bundle.check_loaded_paths();
+  const auto loaded_runtime = GetModuleHandleW(hip_bundle::runtime);
+  require(loaded_runtime && same_path(runtime_path, module_path(loaded_runtime)),
+      Exit::integrity_failure, "different installed HIP runtime loaded");
   std::vector<std::byte> frame;
   if(matching) {
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_match_api_v1");

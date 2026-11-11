@@ -582,3 +582,5 @@ The match controller now preserves recovery history across requests. It supports
 The supervised HIP path must pass SDK-derived export inventory, typed properties/LUID tests and child compiler-environment isolation before a separate tiny hardware experiment. These CPU/PE checks do not establish GPU execution or speed; the authenticated private-runtime selection is unchanged.
 
 Installed-driver preparation now has a shared metadata verifier and explicit no-load worker mode. Complete its matching SDK qualification before adding the separate kernel-only bundle and actual installed-runtime compute route. Preserve the current source-bound recovery and process-retirement gates.
+
+The installed-driver route now binds the expected System32 runtime hash to a kernel-only GPU module. Qualify its complete refusal matrix and self-bounded diagnostics before the first metadata-only owner check and separately qualified tiny compute experiment. Repeated real-data CPU/GPU measurements follow hardware correctness, not compile success.
