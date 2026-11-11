@@ -117,3 +117,26 @@ a longer timeout or this composition probe.
 
 Related: RECOMPRESSION_FEEDBACK.md, GPU_RESOURCE_ENVELOPE.md, WORKER_CHANNEL.md,
 HOST_RAM_VALIDATION.json, DEVELOPMENT_PLAN.json.
+
+## First hosted composition result
+
+Implementation 480573e compiled and passed self-contained dependency audit and
+the original locked-RAM CPU probe. Its new valid CPU-worker composition reached
+the final handle-accounting gate and failed with native GPU/RAM handle growth
+(run 43019981741, job 130520457733). The retained failure report confirms
+locked_after=0 and cleanup_ok=true. The exact handle delta/cause was not yet
+captured. No native GPU/RAM binary was promoted or run on the owner PC.
+
+The next diagnostic retains the zero-growth assertion. It records handle counts
+after transport warmup, working-set admission, CPU profile, proposed profile,
+working-set restoration and final retirement. If that initial gate fails in
+the hosted CPU-fixture mode only, two additional CPU/native-plus-CPU-worker
+profile pairs record whether growth is one-time or repeated. The original
+failure remains a failure regardless of those observations. This bounded
+diagnostic never repeats a GPU request or runs on the driver mode.
+
+Trace positions: 0 baseline, 1 working-set admitted, 2 CPU profile complete,
+3 proposed profile complete, 4 working-set restored, 5 final retirement,
+6/7 first extra CPU/CPU-worker pair, 8/9 second extra pair. Zero entries can
+mean an unreached phase. This is investigation, not a relaxed tolerance,
+a presumed OS cache explanation or a repaired leak.

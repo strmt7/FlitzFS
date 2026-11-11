@@ -266,6 +266,11 @@ void sample(std::ostream& out,const char* name,const Sample& s) {
 }
 int wmain(int argc,wchar_t** argv) {
   std::unique_ptr<Report> report;
+  std::array<DWORD,10> handle_trace{};
+  const auto count_handles=[&](std::size_t phase){
+    require(phase<handle_trace.size() && GetProcessHandleCount(GetCurrentProcess(),&handle_trace[phase]),
+        "handle phase observation failed");
+  };
   try {
     const auto worker=options(argc,argv);
     report=std::make_unique<Report>(argv[2]); // Atomic CREATE_NEW before any work.
@@ -274,24 +279,39 @@ int wmain(int argc,wchar_t** argv) {
     warm_transport(worker);
     const auto warmup_ns=elapsed(warming);
     DWORD before=0,after=0;
-    require(GetProcessHandleCount(GetCurrentProcess(),&before),"handle baseline");
+    require(GetProcessHandleCount(GetCurrentProcess(),&before),"handle baseline");handle_trace[0]=before;
     require(store_zstd_available(),"native GPU/RAM probe requires qualified Zstandard");
     Sample cpu,proposed;
     const auto pairing=std::chrono::steady_clock::now();
     {
-      ram::WorkingSet resident;
+      ram::WorkingSet resident;count_handles(1);
       const auto input=synthetic_input();
       auto timing=std::chrono::steady_clock::now();
-      cpu=exercise(input,nullptr);cpu.total_ns=elapsed(timing);
+      cpu=exercise(input,nullptr);cpu.total_ns=elapsed(timing);count_handles(2);
       require(!ram::locked_bytes.load(),"CPU baseline locked-memory retirement");
       timing=std::chrono::steady_clock::now();
-      proposed=exercise(input,&worker);proposed.total_ns=elapsed(timing);
+      proposed=exercise(input,&worker);proposed.total_ns=elapsed(timing);count_handles(3);
       require(!ram::locked_bytes.load(),"proposed locked-memory retirement");
       resident.restore();
     }
+    count_handles(4);
     require(ram::cleanup_ok.load()&&!ram::locked_bytes.load()&&WorkerExchangeSession::available(),
         "resident/worker cleanup unconfirmed");
-    require(GetProcessHandleCount(GetCurrentProcess(),&after)&&before==after,"native GPU/RAM handle growth");
+    require(GetProcessHandleCount(GetCurrentProcess(),&after),"final handle observation");
+    handle_trace[5]=after;
+    if(before!=after && !worker.driver) {
+      // Diagnostics ONLY after the strict gate has already failed, hosted CPU
+      // fixtures only. Preserve the original assertion; never promote this run.
+      Worker diagnostic=worker;diagnostic.arguments={L"match"};diagnostic.timeout=5000;
+      ram::WorkingSet resident;
+      const auto input=synthetic_input();
+      for(std::size_t attempt=0;attempt<2;++attempt) {
+        (void)exercise(input,nullptr);count_handles(6+2*attempt);
+        (void)exercise(input,&diagnostic);count_handles(7+2*attempt);
+      }
+      resident.restore();
+    }
+    require(before==after,"native GPU/RAM handle growth");
     std::ostringstream out;out.imbue(std::locale::classic());
     out<<"{\"schema\":1,\"experimental\":true,\"commit\":\""<<FLITZFS_GPU_RAM_SOURCE_COMMIT
         <<"\",\"backing\":\"locked_RAM_model\",\"mounted\":false,\"gpu_requested\":"<<(worker.driver?"true":"false")
@@ -317,7 +337,9 @@ int wmain(int argc,wchar_t** argv) {
       std::ostringstream out;out.imbue(std::locale::classic());out<<"{\"schema\":1,\"experimental\":true,\"commit\":\""
           <<FLITZFS_GPU_RAM_SOURCE_COMMIT<<"\",\"complete\":false,\"error\":\""<<text
           <<"\",\"locked_after\":"<<ram::locked_bytes.load()<<",\"cleanup_ok\":"
-          <<(ram::cleanup_ok.load()?"true":"false")<<"}\n";
+          <<(ram::cleanup_ok.load()?"true":"false")<<",\"handle_trace\":[";
+      for(std::size_t i=0;i<handle_trace.size();++i){if(i)out<<',';out<<handle_trace[i];}
+      out<<"]}\n";
       report->write(out.str());
     }catch(...){}
     std::cerr<<"Native GPU/RAM probe failed: "<<text<<'\n';return 1;
