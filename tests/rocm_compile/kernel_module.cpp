@@ -18,3 +18,17 @@ const flitzfs::gpu_detail::KernelApi* flitzfs_rocm_kernel_api_v1() noexcept {
   }();
   return &api;
 }
+
+#include "flitzfs/gpu_match_kernel_api.hpp"
+namespace flitzfs::match_detail {
+void bind_match_kernel(KernelApi&) noexcept;
+}
+extern "C" __declspec(dllexport)
+const flitzfs::match_detail::KernelApi* flitzfs_rocm_match_api_v1() noexcept {
+  static const auto api=[]() noexcept {
+    auto value=flitzfs::match_detail::make_kernel_api(nullptr);
+    flitzfs::match_detail::bind_match_kernel(value);
+    return value;
+  }();
+  return &api;
+}

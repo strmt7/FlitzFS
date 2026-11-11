@@ -1039,3 +1039,16 @@ background daemon, driver changes or owner mount.
 ## Compression match proposal boundary
 
 Read docs/MATCH_PROPOSALS.md before changing proposals or sequence encoding. Keep 64 KiB input, 4096 matches, nonoverlapping ranges, exact CPU byte checks, the actual linked-API probe and independent result decoding. Retain the ordinary CPU result on malformed or inferior optional output. Match data is private and cannot authorize a worker or change disk codecs. The proposal-input API remains serialized with normal session operations, and a changed source invalidates its candidate before publication.
+
+## GPU match producer
+
+Keep the 64 KiB input, 256 KiB combined explicit device-buffer ceiling,
+16-bit backward-link checks and per-lane effort caps. CPU tests of the shared
+search body are semantic checks. Hardware execution requires the existing
+separate runtime, telemetry, supervisor and retirement gates. Match outputs
+must pass independent byte validation before staged sequence compression.
+
+Before a Git API ref update, require a concrete 40-character base tree SHA.
+Inspect the complete prospective inventory and baseline diff for unintended
+deletions, preserving the licence and every workflow. An omitted base tree
+creates a new tree and must never silently remove unchanged repository files.

@@ -44,3 +44,37 @@ distance/length proposals with explicit effort accounting. That informs the
 future device producer. No archive codec, archive framing or ZIP operation is
 linked into this filesystem path.
 [Reference match interface](https://github.com/strmt7/FlitzZip/blob/50bae7610275a8f68d1fb89f11f7e0e238187aba/src/gpu/dictionary_matcher.hpp)
+
+## Bounded AMD producer
+
+PreparedGpuMatchSearch owns at most 64 KiB of input and builds exact four-byte
+prefix/position keys. Sorting those keys identifies each prefix's nearest
+earlier occurrence. Sixteen-bit links suffice because the final bytes cannot
+start a complete prefix. The temporary CPU key array stays below 512 KiB.
+The owned input and links remain valid when the caller changes its buffer.
+
+The device kernel searches one anchor every 16 bytes. Each lane examines at
+most eight predecessors and compares at most 1024 bytes. Strictly decreasing
+links bound even malformed chains. Match length is additionally capped at
+8192 bytes. Input, links and output total at most 229,376 explicit device
+bytes. Runtime, driver and module overhead require the existing separate
+budget admission when transport is implemented.
+
+Every output lane is checked on the CPU before greedy parsing selects
+nonoverlapping ranges. Invalid effort, geometry or byte matches reject the
+whole result. The staged encoder retains its independent sequence checks,
+ordinary CPU size comparison and decoded-byte verification. Empty or weak
+matches can therefore retain the ordinary compression result.
+
+The complete SDK builds flitzfs_match_v1 and exports its separate typed
+flitzfs_rocm_match_api_v1 table. The earlier decoder table keeps its own
+contract. This compilation does not load the runtime. Worker transport,
+hardware qualification and performance measurement remain required.
+
+The algorithm adapts the owner's exact-prefix predecessor indexing and
+bounded match search. On 11 November the current reference at
+2c3c399df2a7b22c0240b5d9e1ac1f4437451045 retained the same matcher blob
+4e202fe37476445f315d27301d674fc3fcc96c48 as the reviewed source at
+50bae7610275a8f68d1fb89f11f7e0e238187aba. The filesystem producer adds its own
+buffer, anchor, comparison and CPU admission bounds. The repositories share
+the GNU AGPL license. No archive-format dependency is introduced.

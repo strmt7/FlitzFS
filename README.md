@@ -371,3 +371,5 @@ opportunities. Unattended scheduling and GPU execution still require
 qualification.
 
 Staged recompression now has a [bounded match-proposal input](docs/MATCH_PROPOSALS.md) for an external accelerator. Candidates are CPU-verified and compared with the ordinary compression result before selection. Hardware production and speed qualification remain pending.
+
+The AMD compilation target now includes a bounded match-search kernel and a separate typed entry. CPU preparation builds exact prefix links, and CPU validation converts accepted results into the existing staged compression input. Hardware execution, transport integration and measured benefit remain pending.
