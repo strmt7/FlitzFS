@@ -48,8 +48,11 @@ struct DeviceResources {
   const HipApi& api;
   hipStream_t stream = nullptr;
   std::array<void*,4> buffers{};
+  HipMemoryObservation* observation=nullptr;
+  bool retirement_failed=false;
 
-  explicit DeviceResources(const HipApi& functions) : api(functions) {}
+  explicit DeviceResources(const HipApi& functions,HipMemoryObservation* trace=nullptr)
+      : api(functions),observation(trace) {}
   DeviceResources(const DeviceResources&) = delete;
   DeviceResources& operator=(const DeviceResources&) = delete;
 
@@ -65,6 +68,11 @@ struct DeviceResources {
       if (first == hipSuccess) first = status;
       buffer = nullptr;
     }
+    retirement_failed=retirement_failed || first!=hipSuccess;
+    if(observation){
+      observation->flags&=~static_cast<std::uint32_t>(hip_memory_resources_released);
+      if(!retirement_failed)observation->flags|=hip_memory_resources_released;
+    }
     return first;
   }
   ~DeviceResources() { (void)release_all(); }
@@ -73,7 +81,7 @@ struct DeviceResources {
 
 GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
     const gpu_detail::KernelApi& kernel, int ordinal, std::array<std::byte,8> luid,
-    std::uint32_t node_mask, const WorkerBatchRequest& request) {
+    std::uint32_t node_mask, const WorkerBatchRequest& request,HipMemoryObservation* observation) {
   require_hip_worker_job();
   require(runtime && gpu_detail::compatible_kernel_api(kernel) && ordinal >= 0 &&
       ordinal < 64 && request.request_id, "invalid HIP worker configuration");
@@ -85,6 +93,7 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
       payload.size() <= gpu_detail::max_batch_bytes, "HIP batch bounds");
   const auto before_init = query_windows_gpu_budget(luid, node_mask).snapshot;
   const auto allocation = request.batch.device_buffer_bytes();
+  if(observation){observation->snapshots[0]=before_init;observation->captured|=1;}
   require_hip_memory(before_init,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::pre_initialize);
 
   const auto api = bind_api(runtime);
@@ -92,8 +101,9 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
     return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
   });
 
-  DeviceResources resources(api);
+  DeviceResources resources(api,observation);
   const auto before = query_windows_gpu_budget(luid, node_mask).snapshot;
+  if(observation){observation->snapshots[1]=before;observation->captured|=2;}
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,
       HipMemoryPoint::initialized,before_init.nonlocal_usage);
   hip_detail::check_hip(api.create_stream(&resources.stream, hipStreamNonBlocking, least),
@@ -127,18 +137,24 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
   check_hip(api.launch(reinterpret_cast<const void*>(kernel.decode),
       dim3((task_count + threads - 1) / threads), dim3(threads), args, 0, resources.stream),
       "launch decode");
+  if(observation)observation->flags|=hip_memory_launch_submitted;
   check_hip(api.synchronize(resources.stream), "complete decode");
+  if(observation)observation->flags|=hip_memory_stream_completed;
   check_hip(api.copy(reply.status.data(), resources.buffers[3], sizes[3], hipMemcpyDeviceToHost), "read statuses");
   if (!std::all_of(reply.status.begin(), reply.status.end(), [](auto status) { return status == 0; }))
     throw HipWorkerFailure(HipWorkerExit::integrity_failure, "HIP decode task failed");
+  if(observation)observation->flags|=hip_memory_statuses_verified;
   check_hip(api.copy(reply.bytes.data(), resources.buffers[2], sizes[2], hipMemcpyDeviceToHost), "read decoded bytes");
   if (!std::equal(reply.bytes.begin(), reply.bytes.end(), reference.begin()))
     throw HipWorkerFailure(HipWorkerExit::integrity_failure, "HIP output differs from CPU");
 
+  if(observation)observation->cpu_verified_bytes=reference.size();
   const auto after = query_windows_gpu_budget(luid, node_mask).snapshot;
+  if(observation){observation->snapshots[2]=after;observation->captured|=4;}
   require_hip_memory(after,luid,node_mask,GetTickCount64(),0,
       HipMemoryPoint::completed,before.nonlocal_usage);
   check_hip(resources.release_all(), "release HIP batch");
+  if(observation)observation->flags|=hip_memory_admitted;
   return reply;
 }
 std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,

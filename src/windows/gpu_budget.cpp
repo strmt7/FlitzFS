@@ -40,7 +40,7 @@ WindowsGpuBudgetResult query_windows_gpu_budget(std::array<std::byte,8> luid,
   }
   auto& s=result.snapshot;
   s.luid=luid;s.node_mask=node_mask;s.captured_ms=captured;s.dedicated_bytes=desc.DedicatedVideoMemory;
-  s.local_budget=local.Budget;s.local_usage=local.CurrentUsage;s.nonlocal_usage=nonlocal.CurrentUsage;
+  s.local_budget=local.Budget;s.local_usage=local.CurrentUsage;s.nonlocal_usage=nonlocal.CurrentUsage;s.nonlocal_budget=nonlocal.Budget;
   s.amd_hardware=true;s.valid=true;result.status=WindowsGpuBudgetStatus::success;
   result.phase=WindowsGpuBudgetPhase::complete;return result;
 }

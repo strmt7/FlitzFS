@@ -613,3 +613,9 @@ later device_fault / none decode failure using specific shared memory-predicate
 stages and current Microsoft memory-accounting sources. Do not weaken freshness,
 reserve or residency rules based on a guessed cause; no accepted GPU result or
 speed improvement is established yet.
+
+The pinned 9028be3 tiny kernel passed internal CPU byte comparison but was
+rejected at completed_nonlocal_growth. Qualify the new fixed-size worker memory
+observation, collect one bounded real trace and design source-backed resource
+admission before accepting GPU data or measuring native match/compression gains.
+Do not equate aggregate nonlocal growth with a particular allocation eviction.

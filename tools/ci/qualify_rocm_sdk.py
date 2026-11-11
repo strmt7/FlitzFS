@@ -384,6 +384,8 @@ def main():
         report["hardware_probe"]["missing_runtime"]=rows[0]
         refused_exits=(HIP_RUNTIME_UNAVAILABLE,HIP_INTEGRITY_FAILURE)
         diagnostic_cases=(
+            ("driver_memory",["--run-amd-driver-memory-once",str(driver_fixture/worker.name),
+                "0","0100000000000000","0"*64],"HIP memory observation: "),
             ("driver_identity",["--inspect-driver-adapter",str(driver_fixture/worker.name),
                 "0","0100000000000000","0"*64],"HIP identity metadata: "),
             ("metadata",["--verify-driver-runtime",str(driver_fixture/worker.name),"0"*64],
@@ -403,7 +405,11 @@ def main():
                 value["timed_out"] is False and 0<value["peak_commit_bytes"]<=128*1024*1024 and
                 0<value["controller_job_peak_commit_bytes"]<=256*1024*1024,
                 "diagnostic process/resource refusal evidence mismatch")
-            if name=="driver_identity":
+            if name=="driver_memory":
+                require(value["metadata_verified"] is False and value["observation"] is None and
+                    value["gpu_candidate_accepted"] is False and value["cpu_reference_bytes"]==12288,
+                    "failed memory diagnostic fabricated execution metadata")
+            elif name=="driver_identity":
                 require(value["properties_verified"] is False and value["hip_initialization_confirmed"] is False and
                     value["flitzfs_kernel_load_requested"] is False and value["batch_allocations_requested"] is False and
                     value["kernel_launch_requested"] is False and value["luid"] is None and value["node_mask"] is None and
