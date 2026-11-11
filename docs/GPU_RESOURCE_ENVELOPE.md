@@ -108,3 +108,21 @@ rendered revisions; they are not described as newly published research.
 
 Related contracts: HIP_BATCH_PLAN.md, GPU_RECOVERY.md, WORKER_CHANNEL.md,
 GPU_MEMORY_OBSERVATION.md and GPU_MATCH_CONTROLLER.md.
+
+## First exact-source qualification checkpoint
+
+Implementation 04d884be80dbd96024bbdb6cf0d79b5056cb0da4 passed 113 CTest groups
+in each Linux raw-only and codec lane (jobs 130476762346 and 130476762479, run
+43006974090). Windows, sanitizers and SDK qualification remain pending at this
+checkpoint; no owner GPU execution follows from these CPU results.
+
+Historical regression run 43006973709 failed during compilation, because it
+compiled the updated current fixture against the f3ab1c5 snapshot type, which
+does not contain the newer nonlocal-budget/host fields. This was a fixture ABI
+mismatch, not the required old behavior failure. The harness now pins the prior
+test fixture to a8fa5798c52848ad706fa0883a0844e0fbb2e127 for the historical
+library. It still requires exactly the original failure message and exit 1.
+The corrected/current build uses today's full recovery suite, which retains
+the same streak-interruption regression and the new resource contract.
+No product check or expected historical failure is weakened. Matching corrected
+workflow evidence is still required.

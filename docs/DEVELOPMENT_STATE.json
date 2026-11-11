@@ -282,6 +282,21 @@
     "behavior": "Shared live local/nonlocal/physical/process-commit envelope replaces strict zero-growth predicates in worker/result/match paths.",
     "status": "unqualified publishing implementation; inspect exact-source runs before any owner trial",
     "owner_gpu_test_run": false,
-    "default_filesystem_cpu": true
+    "default_filesystem_cpu": true,
+    "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
+    "cpu_linux": {
+      "run": 43006974090,
+      "raw_job": 130476762346,
+      "codec_job": 130476762479,
+      "groups_each": 113,
+      "success": true
+    },
+    "historical_regression": {
+      "failed_run": 43006973709,
+      "failed_job": 130476760304,
+      "cause": "Current fixture fields do not exist in the pinned f3ab1c5 snapshot type.",
+      "fix": "Pin historical ABI fixture to a8fa5798; current full test remains current; preserve exact old failure message and exit.",
+      "corrected_workflow_result": "pending"
+    }
   }
 }
