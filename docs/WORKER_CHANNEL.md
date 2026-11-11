@@ -253,3 +253,7 @@ be classified, even if a later CPU request replaces foreground bytes. Late
 unavailability/corruption strengthens configuration suppression without changing
 terminal CPU data or double-counting failures; retirement still requires both
 exact child and supervisor. This bounds one old gate plus one current CPU batch.
+
+## Match frames
+
+The generic channel can carry the separate match frame without enlarging its memory mappings. Match requests contain an exact source digest and at most 64 KiB of owned bytes. Replies contain at most 4096 explicitly serialized 8-byte lane records. Parent byte validation and actual child/supervisor retirement remain required. The Windows CPU fixture connects these frames to real native-session publication and tests fallback while a held helper remains live. No ordinary operation starts a worker automatically.

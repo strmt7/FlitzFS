@@ -1,5 +1,9 @@
 #include "worker_exchange.hpp"
 #include "gpu_worker_controller.hpp"
+#include "flitzfs/match_worker_wire.hpp"
+#include "flitzfs/native_session.hpp"
+#include "native_fs_fixture.hpp"
+#include "store_codec.hpp"
 #include "extent_codec_fixture.hpp"
 #include "gpu/decode_kernel.hpp"
 #include <windows.h>
@@ -89,7 +93,22 @@ int child(std::wstring_view mode,std::wstring_view token) {
   check_job();
   if(mode==L"exit-empty")return 0;
   if(mode==L"exit-bad")return 17;
-  auto channel=WorkerChannel::open(token);const auto input=decode_worker_request(channel.request());
+  auto channel=WorkerChannel::open(token);
+  if(mode==L"match" || mode==L"match-invalid" || mode==L"match-hold") {
+    const auto input=decode_match_worker_request(channel.request());
+    if(mode==L"match-hold"){Sleep(5000);return 0;}
+    const auto& search=input.search;
+    std::vector<match_detail::Match> matches(search.lanes());
+    for(unsigned lane=0;lane<search.lanes();++lane)
+      matches[lane]=match_detail::search(reinterpret_cast<const unsigned char*>(search.input().data()),
+          static_cast<unsigned>(search.input().size()),search.predecessors().data(),
+          static_cast<unsigned>(search.predecessors().size()),lane);
+    auto frame=encode_match_worker_reply(search,input.request_id,matches,WorkerExecution::cpu_semantics);
+    if(mode==L"match-invalid")frame[kMatchWorkerHeaderBytes]=std::byte{1};
+    channel.publish(frame);
+    return 0;
+  }
+  const auto input=decode_worker_request(channel.request());
   const auto& batch=input.batch;
   GpuBatchReply reply{input.request_id,Bytes(batch.cpu_reference().size()),{}};
   reply.status.resize(batch.tasks().size(),gpu_detail::pending);
@@ -412,6 +431,71 @@ void coordinated_requests(const std::filesystem::path& executable) {
   check(WorkerExchangeSession::available(),"coordinated requests leaked process/thread admission");
 }
 
+void match_transactions(const std::filesystem::path& executable) {
+  using Progress=NativeFileSession::RecompressionProgress;
+  for(const auto* mode:{L"match",L"match-invalid",L"match-hold"}) {
+    auto head=std::make_shared<native_fixture::Ram>();
+    auto source=std::make_shared<native_fixture::Ram>();
+    auto target=std::make_shared<native_fixture::Ram>();
+    auto volume=native_fixture::identity(),original=volume,next=volume;
+    original[0]=std::byte{31};next[0]=std::byte{32};
+    auto native=NativeFileSession::create_volume(head,volume,source,original,{StoreCompressionMode::raw,6,false});
+    native.create_entry("data");
+    auto handle=native.open("data",{true,true,false});
+    auto bytes=native_fixture::data(8193,43);
+    const auto prefix=bytes;bytes.insert(bytes.end(),prefix.begin(),prefix.end());
+    native.write(handle,0,bytes);
+    native.begin_recompression(target,next);
+    check(native.snapshot().storage_info().objects==2&&native.advance_recompression()==Progress::copying,
+        "match channel fixture object layout");
+    auto work=native.next_recompression_input();
+    auto extent=bytes;extent.resize(kNativeExtentBytes);
+    const auto prepared=PreparedGpuMatchSearch::prepare(extent);
+    check(bool(work)==flitzfs::detail::store_match_sequences_available()&&(!work||work->bytes==extent),
+        "match channel staged source differs");
+    const auto request=encode_match_worker_request(prepared,813);
+    if(std::wstring_view(mode)==L"match-hold") {
+      auto pending=WorkerExchangeSession::start(executable,{mode},request);
+      eventually([&]{return pending.process_id()!=0||pending.try_result();},2000,"match worker did not start");
+      HANDLE child=OpenProcess(SYNCHRONIZE,FALSE,pending.process_id());
+      check(child!=nullptr,"match fixture live worker handle");
+      struct Close {HANDLE value;~Close(){CloseHandle(value);}} close{child};
+      check(WaitForSingleObject(child,0)==WAIT_TIMEOUT&&!pending.try_result(),"match worker exited before CPU selection");
+      check(native.advance_recompression()==Progress::ready,"CPU fallback did not finish its object");
+      native.publish_recompression();
+      check(native.read(handle,0,65536)==bytes&&WaitForSingleObject(child,0)==WAIT_TIMEOUT,
+          "CPU fallback waited on match worker retirement");
+      check(pending.request_cancel(),"match worker cancellation signal");
+      eventually([&]{return pending.try_result()!=nullptr;},2500,"match worker cancellation did not complete");
+      eventually([&]{return pending.retirement_confirmed()&&WorkerExchangeSession::available();},
+          2500,"match worker supervision did not retire");
+      check(pending.try_result()->process.exit_confirmed&&pending.try_result()->response.empty(),
+          "cancelled match worker exposed a response");
+      check_closed(*pending.try_result());
+    } else {
+      const auto exchanged=run_worker_exchange(executable,{mode},request);
+      check(exchanged.code==WorkerExchangeCode::completed,"match CPU channel exchange failed");
+      check_closed(exchanged);
+      if(std::wstring_view(mode)==L"match-invalid") {
+        rejects([&]{(void)accept_match_worker_reply(exchanged.response,prepared,813,WorkerExecution::cpu_semantics);});
+        check(native.advance_recompression()==Progress::ready,"invalid match result blocked CPU fallback");
+      } else {
+        const auto proposals=accept_match_worker_reply(exchanged.response,prepared,813,WorkerExecution::cpu_semantics);
+        check(!proposals.empty(),"worker match proposals empty");
+        const auto progress=work?native.advance_recompression(work->object_id,proposals):native.advance_recompression();
+        check(progress==Progress::ready,"verified worker result did not reach staged encoding");
+      }
+      native.publish_recompression();
+      check(native.read(handle,0,65536)==bytes,"match channel changed selected native bytes");
+    }
+    native.cleanup(handle,false);native.close(handle);
+    auto selected=NativeVolumeHeadView::open(head,volume,[&](const StoreIdentity& id)->std::shared_ptr<StoreByteIo>{
+      check(id==next,"match channel selected wrong image");return target;
+    });
+    check(selected.filesystem().read("data",0,65536)==bytes&&native.stats().contexts==0,
+        "match channel CPU reopen or context retirement failed");
+  }
+}
 void asynchronous_fallback(const std::filesystem::path& executable) {
   std::array<std::byte,8> luid{};luid[0]=std::byte{1};
   GpuResultGate gate(mixed(),luid,1);
@@ -582,6 +666,7 @@ int wmain(int argc,wchar_t** argv){try{
   }
   observe(L"async-launch-failure");
   coordinated_requests(executable);observe(L"coordinated-recovery");
+  match_transactions(executable);observe(L"match-transactions");
   // Repeated complete transactions must not accumulate process handles or keep
   // either mapping alive. This is not a stress test: four tiny serial requests.
   for(unsigned i=0;i<4;++i) {

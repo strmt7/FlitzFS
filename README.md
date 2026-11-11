@@ -373,3 +373,5 @@ qualification.
 Staged recompression now has a [bounded match-proposal input](docs/MATCH_PROPOSALS.md) for an external accelerator. Candidates are CPU-verified and compared with the ordinary compression result before selection. Hardware production and speed qualification remain pending.
 
 The AMD compilation target now includes a bounded match-search kernel and a separate typed entry. CPU preparation builds exact prefix links, and CPU validation converts accepted results into the existing staged compression input. Hardware execution, transport integration and measured benefit remain pending.
+
+The experimental match producer now has a [supervised worker frame](docs/MATCH_PROPOSALS.md#supervised-match-transport). Frames bind results to the exact owned input. CPU channel tests drive accepted proposals through native publication and exercise CPU completion while a helper is still running. Automatic match routing and actual device execution remain unqualified.
