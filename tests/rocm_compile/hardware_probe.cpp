@@ -3,6 +3,7 @@
 #include "worker_exchange.hpp"
 #include "gpu_budget.hpp"
 #include "hip_worker_exit.hpp"
+#include "hip_identity_wire.hpp"
 #include <windows.h>
 #include <dxgi1_4.h>
 #include <wrl/client.h>
@@ -14,6 +15,7 @@
 #include <chrono>
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
@@ -157,6 +159,50 @@ bool valid_luid(std::wstring_view value) {
         return (c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f');
       });
 }
+
+std::array<std::byte,8> probe_luid(std::wstring_view text) {
+  require(valid_luid(text),"invalid identity metadata LUID");
+  const auto digit=[](wchar_t c){return static_cast<unsigned>(c<=L'9'?c-L'0':c-L'a'+10);};
+  std::array<std::byte,8> value{};
+  for(std::size_t i=0;i<8;++i)value[i]=static_cast<std::byte>(16*digit(text[2*i])+digit(text[2*i+1]));
+  return value;
+}
+int inspect_driver_identity(const std::filesystem::path& worker,const wchar_t* ordinal,
+    const wchar_t* luid,const wchar_t* digest,const ProbeBudget& budget) {
+  const flitzfs::HipIdentityRequest expected{1,static_cast<std::uint32_t>(std::stoul(ordinal)),1,probe_luid(luid)};
+  const auto request=flitzfs::encode_hip_identity_request(expected);
+  const auto result=flitzfs::run_worker_exchange(worker,
+      {L"--inspect-system-adapter",ordinal,luid,digest},request,{128,2000,5000});
+  require(result.process.process_id && result.process.exit_confirmed,"identity metadata child exit unconfirmed");
+  const bool completed=result.code==flitzfs::WorkerExchangeCode::completed &&
+      !result.process.timed_out && !result.process.cancelled && result.process.exit_code==0;
+  std::optional<flitzfs::HipIdentityObservation> observed;
+  if(completed)observed=flitzfs::decode_hip_identity_reply(result.response,expected);
+  else require(result.response.empty(),"failed identity metadata returned bytes");
+  std::cout << std::boolalpha << "HIP identity metadata: {\"properties_verified\":" << completed
+      << ",\"hip_initialization_confirmed\":" << completed
+      << ",\"flitzfs_kernel_load_requested\":false,\"batch_allocations_requested\":false,\"kernel_launch_requested\":false"
+      << ",\"ordinal\":" << expected.ordinal << ",\"node_mask\":";
+  if(observed)std::cout << observed->node_mask;else std::cout << "null";
+  std::cout << ",\"luid\":";
+  if(observed) {
+    constexpr char hex[]="0123456789abcdef";std::string actual(16,'0');
+    for(std::size_t i=0;i<8;++i){const auto b=std::to_integer<unsigned>(observed->luid[i]);actual[2*i]=hex[b>>4];actual[2*i+1]=hex[b&15];}
+    std::cout << '"' << actual << '"';
+  }else std::cout << "null";
+  std::cout << ",\"luid_matches\":";
+  if(observed)std::cout << (observed->luid==expected.luid);else std::cout << "null";
+  std::cout << ",\"node_mask_matches\":";
+  if(observed)std::cout << (observed->node_mask==expected.node_mask);else std::cout << "null";
+  std::cout << ",\"worker_exit\":" << result.process.exit_code
+      << ",\"worker_category\":" << flitzfs::hip_worker_exit_category(result.process.exit_code)
+      << ",\"worker_stage\":\"" << flitzfs::hip_worker_stage_name(flitzfs::hip_worker_exit_stage(result.process.exit_code)) << '"'
+      << ",\"timed_out\":" << result.process.timed_out << ",\"exit_confirmed\":true"
+      << ",\"peak_commit_bytes\":" << result.process.peak_committed_bytes
+      << ",\"controller_job_peak_commit_bytes\":" << budget.peak_commit() << "}\n";
+  return completed?0:2;
+}
+
 }
 
 int wmain(int argc, wchar_t** argv) {
@@ -165,16 +211,17 @@ int wmain(int argc, wchar_t** argv) {
     const bool discovery = mode == L"--describe-amd-adapters";
     const bool budget_metadata = mode == L"--inspect-adapter-budget";
     const bool metadata = mode == L"--verify-driver-runtime";
+    const bool identity = mode == L"--inspect-driver-adapter";
     const bool matching = mode == L"--run-amd-driver-match-once";
     const bool driver = mode == L"--run-amd-driver-once" || matching;
-    require((budget_metadata && argc == 3) || (discovery && argc == 2) || (metadata && argc == 4) || (driver && argc == 6) ||
+    require((budget_metadata && argc == 3) || (discovery && argc == 2) || (metadata && argc == 4) || ((driver || identity) && argc == 6) ||
         (mode == L"--run-amd-once" && argc == 5), "explicit qualified worker and probe mode required");
     if (discovery) { const ProbeBudget budget; describe_adapters(budget); return 0; }
     if (budget_metadata) { const ProbeBudget budget; inspect_budget(argv[2],budget); return 0; }
     const std::filesystem::path worker(argv[2]);
     require(worker.is_absolute() && worker.filename() == L"flitzfs_hip_worker.exe",
         "expected absolute qualified worker path");
-    if (metadata || driver) require(valid_digest(argv[metadata ? 3 : 5]), "invalid runtime digest");
+    if (metadata || driver || identity) require(valid_digest(argv[metadata ? 3 : 5]), "invalid runtime digest");
     if (!metadata) require(valid_ordinal(argv[3]) && valid_luid(argv[4]), "invalid explicit adapter selector");
     const ProbeBudget budget;
     if (metadata) {
@@ -189,6 +236,8 @@ int wmain(int argc, wchar_t** argv) {
           << ",\"gpu_executed\":false}\n";
       return verified ? 0 : 2;
     }
+
+    if (identity) return inspect_driver_identity(worker,argv[3],argv[4],argv[5],budget);
 
     if (matching) {
       std::array<std::byte,4096> source{};

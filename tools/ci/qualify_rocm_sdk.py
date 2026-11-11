@@ -360,6 +360,8 @@ def main():
         report["hardware_probe"]["missing_runtime"]=rows[0]
         refused_exits=(HIP_RUNTIME_UNAVAILABLE,HIP_INTEGRITY_FAILURE)
         diagnostic_cases=(
+            ("driver_identity",["--inspect-driver-adapter",str(driver_fixture/worker.name),
+                "0","0100000000000000","0"*64],"HIP identity metadata: "),
             ("metadata",["--verify-driver-runtime",str(driver_fixture/worker.name),"0"*64],
                 "HIP runtime metadata probe: "),
             ("driver_decode",["--run-amd-driver-once",str(driver_fixture/worker.name),
@@ -377,7 +379,14 @@ def main():
                 value["timed_out"] is False and 0<value["peak_commit_bytes"]<=128*1024*1024 and
                 0<value["controller_job_peak_commit_bytes"]<=256*1024*1024,
                 "diagnostic process/resource refusal evidence mismatch")
-            if name=="metadata":
+            if name=="driver_identity":
+                require(value["properties_verified"] is False and value["hip_initialization_confirmed"] is False and
+                    value["flitzfs_kernel_load_requested"] is False and value["batch_allocations_requested"] is False and
+                    value["kernel_launch_requested"] is False and value["luid"] is None and value["node_mask"] is None and
+                    value["luid_matches"] is None and value["node_mask_matches"] is None and
+                    value["worker_category"]==value["worker_exit"] and value["worker_stage"]=="none",
+                    "identity diagnostic fabricated properties or requested compute")
+            elif name=="metadata":
                 require(value["verified"] is False and value["gpu_executed"] is False,
                     "metadata probe falsely accepted the runtime")
             else:

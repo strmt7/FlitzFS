@@ -81,3 +81,10 @@ qualify actual GPU execution, performance or owner-mounted operation.
 
 See GPU_DRIVER_RUNTIME_PLAN.md for the next installed-driver route and the
 separate earlier process-retirement failure under investigation.
+
+The shared query_device_identity helper performs only initialization and the typed
+properties query, returning the raw LUID and mask. initialize_device reuses it
+and retains the existing exact identity checks before device selection. A
+separate diagnostic may report zero or inconsistent metadata without treating
+it as compute consent. Fake API tests retain the original checks and verify that
+the query-only helper never reaches selection or stream-priority functions.

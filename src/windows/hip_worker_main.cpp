@@ -1,6 +1,8 @@
 #include "hip_decode_worker.hpp"
 #include "gpu_budget.hpp"
 #include "hip_worker_exit.hpp"
+#include "hip_api.hpp"
+#include "hip_identity_wire.hpp"
 #include "hip_worker_bundle.hpp"
 #include "hip_module_verification.hpp"
 #include "worker_exchange.hpp"
@@ -197,6 +199,39 @@ int worker(int argc, wchar_t** argv) {
       Exit::runtime_unavailable, "HIP compiler environment remains visible");
   if (argc == 3 && std::wstring_view(argv[1]) == L"--verify-system-runtime") {
     const hip_detail::VerifiedSystemModule verified(hip_bundle::runtime, runtime_digest(argv[2]));
+    return 0;
+  }
+  if (argc == 7 && std::wstring_view(argv[1]) == L"--inspect-system-adapter") {
+    require(std::wstring_view(argv[5]) == L"--worker-channel",
+        Exit::invalid_request,"identity metadata channel required");
+    const auto ordinal=decimal(argv[2],63);
+    const auto luid=parse_luid(argv[3]);
+    const auto expected_runtime=runtime_digest(argv[4]);
+    auto channel=WorkerChannel::open(argv[6]);
+    HipIdentityRequest request;
+    try{request=decode_hip_identity_request(channel.request());}
+    catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"invalid identity metadata request");}
+    require(request.ordinal==ordinal && request.luid==luid,
+        Exit::invalid_request,"identity metadata argument/frame mismatch");
+    const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
+    const auto budget=query_windows_gpu_budget(luid,request.node_mask);
+    require(budget.status==WindowsGpuBudgetStatus::success,
+        Exit::unsupported_configuration,"identity metadata adapter budget unavailable",HipWorkerStage::adapter_budget);
+    require(check_gpu_memory_budget(budget.snapshot,luid,request.node_mask,GetTickCount64(),0)==GpuGateCode::admitted,
+        Exit::temporary_pressure,"identity metadata memory budget",HipWorkerStage::adapter_budget);
+    require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
+        Exit::runtime_unavailable,"restrict metadata DLL lookup");
+    require(GetModuleHandleW(hip_bundle::kernel)==nullptr,
+        Exit::integrity_failure,"identity metadata unexpectedly contains a kernel module");
+    Module runtime(installed.path(),HipWorkerStage::runtime_load);
+    const auto observed=hip_detail::query_device_identity(hip_detail::bind_api(runtime.get()),
+        static_cast<int>(ordinal));
+    require(GetModuleHandleW(hip_bundle::kernel)==nullptr,
+        Exit::integrity_failure,"identity metadata loaded a kernel module");
+    const auto frame=encode_hip_identity_reply(
+        {request.request_id,request.ordinal,observed.node_mask,observed.luid});
+    runtime.close(); // Metadata cannot be published before confirmed module retirement.
+    channel.publish(frame);
     return 0;
   }
   if (argc == 2 && (std::wstring_view(argv[1]) == L"--verify-bundle" ||

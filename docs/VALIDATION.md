@@ -275,3 +275,17 @@ source bytes/write/flush counters and independent target readback. All matching
 CPU, raw-only, Windows-native and sanitizer results are pending until the new
 commit executes. These are correctness checks, not speed/ratio superiority or a
 completed automatic learning/scheduling system.
+
+## Installed-runtime properties-only diagnostic
+
+The owner explicitly requested another GPU check. Fresh DXGI budget and runtime
+metadata passed; one bounded 12,288-byte decode trial again refused at adapter_node
+with no candidate publication, timeout or unconfirmed exit. Wall time was 171 ms;
+child/aggregate peak commitment was 9,682,944/11,083,776 bytes. The CPU reference
+passed, driver 32.0.32015.12012 remained OK and no owned process remained.
+
+The new diagnostic captures the raw fields without device selection or a
+FlitzFS kernel load/launch. Portable wire, real Windows CPU transport and fake
+HIP identity-only tests must pass on its exact commit. The SDK refusal matrix
+retains all 17 original admission children plus the existing diagnostic cases.
+Matching execution results are pending; no compute gate is relaxed.
