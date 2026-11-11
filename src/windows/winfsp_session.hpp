@@ -50,6 +50,8 @@ class WinFspReadOnlySession final {
 
 class WinFspNativeWritable;
 struct HostedVolumeMaintenanceResult;
+enum class HostedIdleMaintenanceAction;
+struct HostedIdleMaintenanceResult;
 struct NativeWriteMountPlan {
   std::wstring directory;
   std::uint32_t lifetime_seconds=15;
