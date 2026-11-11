@@ -19,18 +19,34 @@ def pe_function_exports(data: bytes) -> set[str]:
     section_start = optional + optional_size
     span(data, section_start, sections * 40)
 
+    records = []
+    for index in range(sections):
+        base = section_start + index * 40
+        virtual = number(data, base + 12, "<I")
+        virtual_size = number(data, base + 8, "<I")
+        raw_size = number(data, base + 16, "<I")
+        raw_offset = number(data, base + 20, "<I")
+        flags = number(data, base + 36, "<I")
+        require(virtual + max(virtual_size, raw_size) <= 2**32, "PE section virtual range overflow")
+        if raw_size:
+            span(data, raw_offset, raw_size)
+        records.append((virtual, virtual_size, raw_size, raw_offset, flags))
+
     def locate(value: int, size: int) -> tuple[int, int]:
-        candidates = []
-        for index in range(sections):
-            base = section_start + index * 40
-            virtual = number(data, base + 12, "<I")
-            raw_size = number(data, base + 16, "<I")
-            raw_offset = number(data, base + 20, "<I")
-            if virtual <= value and value - virtual <= raw_size and size <= raw_size - (value - virtual):
-                candidates.append((raw_offset + value - virtual, number(data, base + 36, "<I")))
+        candidates = [(raw_offset + value - virtual, flags)
+            for virtual, _, raw_size, raw_offset, flags in records
+            if virtual <= value and value - virtual <= raw_size and size <= raw_size - (value - virtual)]
         require(len(candidates) == 1, "PE RVA has no unique file-backed section")
         span(data, candidates[0][0], size)
         return candidates[0]
+
+    def is_executable(value: int) -> bool:
+        # Exported variables can live in a section's zero-filled virtual tail.
+        # Classify that valid address without treating it as callable file bytes.
+        matches = [flags for virtual, virtual_size, raw_size, _, flags in records
+            if virtual <= value < virtual + max(virtual_size, raw_size)]
+        require(len(matches) == 1, "PE export address has no unique virtual section")
+        return bool(matches[0] & 0x20000000)
 
     export_rva = number(data, optional + 112, "<I")
     export_size = number(data, optional + 116, "<I")
@@ -70,7 +86,7 @@ def pe_function_exports(data: bytes) -> set[str]:
         # callable bindings. The worker requires direct executable entries.
         if not function_rva or export_rva <= function_rva < export_rva + export_size:
             continue
-        _, flags = locate(function_rva, 1)
-        if flags & 0x20000000:
+        if is_executable(function_rva):
+            locate(function_rva, 1)
             executable.add(name)
     return executable

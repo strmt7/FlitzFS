@@ -52,6 +52,16 @@ class ExportAdmission(unittest.TestCase):
                 put(data, 0x504, "<I", address)
                 self.assertEqual(pe_function_exports(data), {"hipInit"})
 
+    def test_zero_initialized_exported_variable_is_not_a_function(self):
+        data = fixture()
+        put(data, SECTIONS+8, "<I", 0x1000)
+        put(data, 0x504, "<I", 0x1f00)
+        self.assertEqual(pe_function_exports(data), {"hipInit"})
+        # An executable address must still have actual file-backed bytes.
+        put(data, SECTIONS+36, "<I", 0x60000020)
+        with self.assertRaises(RuntimeError):
+            pe_function_exports(data)
+
     def test_no_directory(self):
         data = fixture()
         put(data, OPTIONAL+112, "<Q", 0)

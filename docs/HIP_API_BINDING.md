@@ -18,6 +18,12 @@ a newer SDK header therefore cannot establish that an installed runtime
 exports the same function. This observation is not a universal driver rule
 or permission to replace the owner's driver.
 
+The follow-up static classification found 530 direct executable exports and
+all 11 functions in the new SDK-derived table, including the versioned properties
+entry. Exported configuration variables in zero-filled virtual section tails
+are valid data and must be skipped, rather than rejected or counted as callable.
+These observations still do not prove runtime or hardware compatibility.
+
 The selected distribution's HIP GITHASH is
 7da43026e4f2ef7600433c38c820732f7a205d22. Its
 [official header](https://github.com/ROCm/rocm-systems/blob/7da43026e4f2ef7600433c38c820732f7a205d22/projects/hip/include/hip/hip_runtime_api.h)
