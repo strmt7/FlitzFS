@@ -10,7 +10,8 @@
   "next": [
     "D01",
     "G03",
-    "G02"
+    "G02",
+    "L01"
   ],
   "owner_safety": {
     "filesystem_backing": "locked RAM only",
@@ -191,7 +192,7 @@
       "depends": [
         "P00"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "deliverables": [
         "Define a small accounted internal area for workload summaries, policy versions, confidence and bounded benchmark history, writable only through controlled helper/driver transactions.",
         "Treat advisory learning state as rebuildable. Dictionaries/models required to decode data are immutable referenced format objects with their own integrity, retention and durability rules.",
@@ -201,7 +202,19 @@
         "Torn writes at every commit boundary, stale/unsupported policy, corrupt records, full reserved area and interrupted compaction.",
         "Recovery preserves acknowledged user data; damaged advisory state safely rebuilds, while missing decode-critical objects are detected and recovered only from verified redundancy."
       ],
-      "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model."
+      "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model.",
+      "checkpoint": {
+        "source_parent": "b3e90480cdfdd1151f08ab8c0969b6b9cb38122e",
+        "contract": "docs/OPTIMIZATION_STATE.md",
+        "implemented": "Separate custom-backend advisory journal and bounded typed tables; no normal I/O or learner route.",
+        "qualification": "Pending exact publishing source",
+        "remaining": [
+          "Provider reserved-area/nonaliasing binding",
+          "Controlled helper/session transactions",
+          "Persistent workload-derived write allowance and safe new-area rebuild mapping",
+          "Interrupted native compaction and held-out consumers"
+        ]
+      }
     },
     {
       "id": "A01",

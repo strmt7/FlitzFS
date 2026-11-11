@@ -291,3 +291,10 @@ guarantees. Existing stored bytes and worker request/reply frames are unchanged.
 Native compression-profile measurements and their source tuples are in-memory
 advice only. They add no stored codec, container field, dictionary dependency or
 worker frame. Existing CPU decoding and historical stored bytes are unchanged.
+
+
+The separate experimental advisory optimization area uses FLTOP001 in two
+fixed 64-KiB slots, bound to the external volume identity. Its complete encoding
+is in OPTIMIZATION_STATE.md. It changes no existing container/object/root/codec/
+worker frame, and no user-data reader depends on it. It is not integrated into
+the native provider or an automatic learner. New-source qualification is required.

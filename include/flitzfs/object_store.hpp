@@ -46,6 +46,7 @@ class StoreByteIo {
  private:
   friend class ObjectStoreWriter;
   friend class NativeVolumeHeadWriter;
+  friend class OptimizationStateWriter;
   bool acquire_writer() noexcept {
     bool expected=false;
     return writer_owned_.compare_exchange_strong(expected,true,std::memory_order_acquire,std::memory_order_relaxed);

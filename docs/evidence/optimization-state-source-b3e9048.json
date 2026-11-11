@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "source_commit": "b3e90480cdfdd1151f08ab8c0969b6b9cb38122e",
+  "repository": "strmt7/FlitzFS",
+  "current_root": "Authoritative main via native GitHub APIs; stale owner checkout preserved without builds/writes.",
+  "index_commit": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
+  "indexed_inputs_unchanged": "Full b3e9048 versus8122bf5 tree/commit comparison changes only excluded tests and documentation. Source files remain byte-identical; current live relevant hashes independently checked.",
+  "artifact": 13864803939,
+  "artifact_sha256": "dbee1e92884d722bf70ddc8a9f7ec0181b08439359e83aa8285e63d92def598e",
+  "actual_search": {
+    "commit": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
+    "completed_utc": "2026-11-11T14:50:01.543626+00:00",
+    "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+    "hits": [
+      {
+        "end_line": 187,
+        "excerpt": "ObjectStoreWriter& operator=(ObjectStoreWriter&&) noexcept; ObjectStoreWriter(const ObjectStoreWriter&)=delete; ObjectStoreWriter& operator=(const ObjectStoreWriter&)=delete; ~ObjectStoreWriter(); // Atomic mutation batch: unique nonzero ID",
+        "file_sha256": "d056f2e9a12860fbbdeb0b14f1782bcf0dde47d19507a6346333a38c595ad4dc",
+        "path": "include/flitzfs/object_store.hpp",
+        "score": 0.8210222043183464,
+        "start_line": 174
+      },
+      {
+        "end_line": 202,
+        "excerpt": "// the shared logical checkpoint even if either root is lost later. StoreCommitInfo commit_replicated(std::span<const StoreMutation> mutations); // Real backend barrier with exact current metadata/extent checks before and // after. No write",
+        "file_sha256": "d056f2e9a12860fbbdeb0b14f1782bcf0dde47d19507a6346333a38c595ad4dc",
+        "path": "include/flitzfs/object_store.hpp",
+        "score": 0.7989814856646102,
+        "start_line": 187
+      },
+      {
+        "end_line": 213,
+        "excerpt": "StoreCommitInfo commit_impl(std::span<const StoreMutation> mutations,bool replicated); static ObjectStoreWriter compact_replacing(const ObjectStoreSnapshot& source, std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity, std::",
+        "file_sha256": "d056f2e9a12860fbbdeb0b14f1782bcf0dde47d19507a6346333a38c595ad4dc",
+        "path": "include/flitzfs/object_store.hpp",
+        "score": 0.7955258834416554,
+        "start_line": 202
+      },
+      {
+        "end_line": 162,
+        "excerpt": "// Failure retains source and partial target; never retries/overwrites either. static ObjectStoreWriter compact(const ObjectStoreSnapshot& source, std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity, StoreCompressionOptions",
+        "file_sha256": "d056f2e9a12860fbbdeb0b14f1782bcf0dde47d19507a6346333a38c595ad4dc",
+        "path": "include/flitzfs/object_store.hpp",
+        "score": 0.7946957012883828,
+        "start_line": 152
+      },
+      {
+        "end_line": 201,
+        "excerpt": "s.replicated=r.replicated;s.peer_index_offset=r.peer_index;s.checkpoint_generation=r.checkpoint_generation; s.compact_metadata=r.compact_metadata;s.metadata_unit=r.metadata_unit; const auto& other=choose_a?b:a; if(!r.replicated && other && ",
+        "file_sha256": "a2aac10f385cb42f7464b1d27a5923b3ac4f697346711f846ecc7fe2736dddf8",
+        "path": "src/object_store.cpp",
+        "score": 0.7896502170304345,
+        "start_line": 184
+      }
+    ],
+    "model": "Snowflake/snowflake-arctic-embed-xs",
+    "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+    "native_response_sha256": "52c6875211bbc2ffe183cdfa149aa4e4f7fab6477941fce50ea9787f734bf622",
+    "provider": "0.2.43",
+    "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+    "query": "transactional object store record integrity replicated checkpoints and durable publication",
+    "query_sha256": "3c084d9ab926a4ef9db0689bdb5d07e33e9ad96df79a6ba65ac380a6c2148b2a",
+    "repository": "strmt7/FlitzFS",
+    "source_sha256": "a6ca26d2d5c1c7b889815dcb5768ff14dc53eefe32a0a2330b38bee125f6efd4"
+  },
+  "live_confirmed": [
+    {
+      "path": "include/flitzfs/object_store.hpp",
+      "sha256": "d056f2e9a12860fbbdeb0b14f1782bcf0dde47d19507a6346333a38c595ad4dc"
+    },
+    {
+      "path": "src/object_store.cpp",
+      "sha256": "a2aac10f385cb42f7464b1d27a5923b3ac4f697346711f846ecc7fe2736dddf8"
+    }
+  ],
+  "additional_exact_sources": [
+    "include/flitzfs/volume_head.hpp",
+    "src/volume_head.cpp",
+    "docs/VOLUME_HEAD.md",
+    "src/record_digest.hpp",
+    "tests/test_object_store.cpp"
+  ],
+  "scope": "Design/source binding, not execution of new optimization area. No webpage reader, external LLM, new model/index registration or owner compute was used."
+}

@@ -677,3 +677,16 @@ root cause is not declared proven. Additional CPU tests cover post-acknowledgeme
 cancellation/abandonment and early source exit; their new-source results are pending. Preserve the original child
 deadlines, open-handle kill case, full acknowledged-state comparison and all
 owner-PC prohibitions.
+
+
+## L01 advisory-state foundation
+
+The new bounded custom-backend state area has two flushed copies, exact
+volume/sequence binding, workload-profile and benchmark caps, peer-first repair
+and an explicit per-lease write allowance. Deterministic RAM tests cover all
+creation/update/repair boundaries and independent user-data readback after both
+advisory copies are damaged. New-source checks are pending.
+See OPTIMIZATION_STATE.md. L01 remains in progress: reserved-area provider binding,
+helper transactions, persistent workload-derived write credit, safe rebuild
+mapping and native-compaction integration are still required. No learner or
+automatic background route is enabled.

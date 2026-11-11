@@ -87,7 +87,7 @@
     }
   ],
   "limitations": [
-    "Historical kernel state was not captured; upstream issue 702 remains an unconfirmed causal lead.",
+    "Historical kernel state was not captured; upstream issue702 remains an unconfirmed causal lead.",
     "No success changes the original operation/exit deadlines or permits an owner mount/driver installation.",
     "Hosted Windows server experiments do not qualify the latest Windows 11 client product.",
     "No physical power-loss survival, arbitrary future-bug immunity or GPU benefit is established.",
@@ -120,6 +120,34 @@
         {
           "entry": "flitzfs-write-probe-8164/state.json",
           "utf8": "{\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"ack\",\"commit\":\"8122bf51f6ac3cf43512f8a2dc37368afa0772c5\",\"source_process\":8164,\"observer_process\":8164,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134388833422559782,\"last_access_time\":134388833422559782,\"last_write_time\":134388833422559782,\"change_time\":134388833422559782,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":8448,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}\n{\"schema\":1,\"profile\":\"crash-restart\",\"phase\":\"continued\",\"commit\":\"8122bf51f6ac3cf43512f8a2dc37368afa0772c5\",\"source_process\":8164,\"observer_process\":9744,\"source_ack_digest\":\"f7708f69dc044362296a26c198c1b4ce80bc9a89e1b43ed4726400bdb1ce3f4c\",\"continued_state_digest\":\"7a65782a10d00d438cea938616d0a5e8c716856b60327fbfefaff82e37722ade\",\"generation\":28,\"namespace_sequence\":14,\"image_bytes\":2949120}\n"
+        }
+      ]
+    },
+    {
+      "profile": "crash",
+      "run": 43041765774,
+      "attempt": 3,
+      "job": 130608532378,
+      "conclusion": "success",
+      "artifact": 13867506024,
+      "artifact_sha256": "54f16b283812c7f0af51fe544b5fbbd25fb951d1f7b9dc360a64e5ef306db6ff",
+      "artifact_bytes": 1308,
+      "source_exit": {
+        "timed_out": true,
+        "cancelled": false,
+        "exit_confirmed": true,
+        "exit_code": 1460,
+        "peak_commit_bytes": 4780032
+      },
+      "verifier_exit_confirmed": true,
+      "raw_reports": [
+        {
+          "entry": "flitzfs-write-probe-7504/state-verify.json",
+          "utf8": "{\"schema\":2,\"profile\":\"crash\",\"phase\":\"verify\",\"commit\":\"8122bf51f6ac3cf43512f8a2dc37368afa0772c5\",\"source_process\":7504,\"observer_process\":5008,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134388835347876224,\"last_access_time\":134388835347876224,\"last_write_time\":134388835347876224,\"change_time\":134388835347876224,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":10088,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false}"
+        },
+        {
+          "entry": "flitzfs-write-probe-7504/state.json",
+          "utf8": "{\"schema\":2,\"profile\":\"crash\",\"phase\":\"ack\",\"commit\":\"8122bf51f6ac3cf43512f8a2dc37368afa0772c5\",\"source_process\":7504,\"observer_process\":7504,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134388835347876224,\"last_access_time\":134388835347876224,\"last_write_time\":134388835347876224,\"change_time\":134388835347876224,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":10088,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
         }
       ]
     }
