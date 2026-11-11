@@ -625,3 +625,11 @@ A failed transition retains both images and the context table for one verified
 CPU recovery attempt. See VOLUME_SESSION.md. This remains custom-backend
 engine work, with new exact-commit tests pending; no automatic maintenance,
 mounted/GPU integration, physical reclamation or power-loss claim follows.
+
+Incremental recompression accepts one qualified new target per managed session.
+The caller serializes every step with foreground I/O. During copying, the source
+writer remains active and the candidate has no roots. A newer committed source
+invalidates the candidate before another step or publication. Cancellation
+releases its lease without deleting or changing storage. A candidate error
+before handoff leaves the source selected. The existing fenced recovery path
+still governs failure after actual writer retirement.

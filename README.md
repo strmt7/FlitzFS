@@ -357,3 +357,9 @@ A failed transition retains both images and the context table for one verified
 CPU recovery attempt. See docs/VOLUME_SESSION.md. This remains custom-backend
 engine work, with new exact-commit tests pending; no automatic maintenance,
 mounted/GPU integration, physical reclamation or power-loss claim follows.
+
+Managed sessions also support [incremental recompression](docs/RECOMPRESSION.md#incremental-candidate-copy).
+Foreground operations can run between record-copy steps. A newly committed
+source generation invalidates the candidate. Handoff follows independent CPU
+verification of the new image. Automatic scheduling and GPU execution remain
+separate work.

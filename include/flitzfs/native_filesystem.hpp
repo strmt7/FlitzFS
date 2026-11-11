@@ -361,6 +361,13 @@ class NativeFilesystemWriter final {
   NativeFilesystemSnapshot snapshot() const;
   bool poisoned() const noexcept;
  private:
+  friend class NativeFileSession;
+  using Recompression=ObjectStoreWriter::Rewrite;
+  Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      StoreCompressionOptions,StoreCheckpointOptions) const;
+  bool matches_recompression(const Recompression&) const noexcept;
+  static bool advance_recompression(Recompression&);
+  static void finish_recompression(Recompression&);
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
   enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve};

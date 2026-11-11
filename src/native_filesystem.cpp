@@ -839,6 +839,42 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
   catch(const std::exception&){fail(Code::storage_failure,"native compaction failed; retain source and partial target");}
 }
 
+NativeFilesystemWriter::Recompression NativeFilesystemWriter::prepare_recompression(
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,
+    StoreCheckpointOptions checkpoints) const {
+  (void)checked_namespace();
+  for(const auto& [inode,entry]:impl_->model.nodes) {
+    (void)inode;
+    if(entry.delete_pending || entry.unlinked)
+      fail(Code::invalid_operation,"staged recompression needs resolved file contexts");
+  }
+  try {
+    auto model=impl_->model;model.identity=id;
+    const auto metadata=encode(model);
+    return impl_->objects.prepare_recompression(std::move(target),id,kNamespaceObject,
+        metadata,compression,checkpoints);
+  }catch(const std::bad_alloc&){fail(Code::limit,"staged recompression allocation failure");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"staged recompression preparation failed");}
+}
+
+bool NativeFilesystemWriter::matches_recompression(const Recompression& candidate) const noexcept {
+  return !poisoned() && candidate.matches(impl_->objects);
+}
+
+bool NativeFilesystemWriter::advance_recompression(Recompression& candidate) {
+  try{return candidate.advance();}
+  catch(const std::bad_alloc&){fail(Code::limit,"staged recompression allocation failure");}
+  catch(const std::exception&){fail(Code::storage_failure,"staged recompression copy failed");}
+}
+
+void NativeFilesystemWriter::finish_recompression(Recompression& candidate) {
+  try{(void)resume(candidate.finish());}
+  catch(const std::bad_alloc&){fail(Code::limit,"staged recompression allocation failure");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"staged recompression verification failed");}
+}
+
 NativeFsCommit NativeFilesystemWriter::apply(std::span<const NativeFileMutation> operations) {
   return apply_with_basic(operations,{});
 }

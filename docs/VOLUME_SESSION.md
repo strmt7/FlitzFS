@@ -105,3 +105,8 @@ and actual Cleanup/Close. It keeps the SAME 40-MiB locked/128-MiB child/20%-CPU/
 qualification. Model flushes remain volatile RAM checkpoints, not physical
 power-loss evidence. Ordinary CLI/callback defaults still select no managed
 maintenance or GPU path.
+
+For staged recompression, see [Incremental candidate copy](RECOMPRESSION.md#incremental-candidate-copy).
+The source remains under the original control thread during staged copying.
+Only successful candidate sealing proceeds to the same fenced handoff and
+recovery state. No caller may overlap stage calls with foreground operations.

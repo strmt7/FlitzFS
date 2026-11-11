@@ -79,9 +79,17 @@ Sample exercise(const std::vector<Bytes>& inputs,StoreCompressionMode mode,bool 
       "RAM session source byte comparison");
   result.read_ns=elapsed(start);
   start=std::chrono::steady_clock::now();
-  const auto published=post?
-      session.recompress_volume(target,id(2),{StoreCompressionMode::automatic,6,false}):
-      session.compact_volume(target,id(2),{mode,6,false});
+  const auto published=[&]{
+    if(!post)return session.compact_volume(target,id(2),{mode,6,false});
+    session.begin_recompression(target,id(2),{StoreCompressionMode::automatic,6,false});
+    const auto objects=original.storage_info().objects;
+    for(std::size_t step=1;step<=objects;++step) {
+      using Progress=NativeFileSession::RecompressionProgress;
+      const auto expected=step==objects?Progress::ready:Progress::copying;
+      require(session.advance_recompression()==expected,"RAM staged recompression progress");
+    }
+    return session.publish_recompression();
+  }();
   result.compact_ns=elapsed(start);
   auto candidate=session.snapshot();result.compacted=candidate.storage_info().physical_end;
   result.target_payload=candidate.storage_info().stored_payload_bytes;

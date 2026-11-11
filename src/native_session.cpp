@@ -60,6 +60,12 @@ struct NativeFileSession::Impl {
     bool pending=false,recovery_attempted=false;
   };
   static_assert(sizeof(VolumeOwner)<=256);
+  struct StagedRecompression {
+    std::shared_ptr<StoreByteIo> target;
+    StoreIdentity id;
+    NativeFilesystemWriter::Recompression rewrite;
+  };
+  std::unique_ptr<StagedRecompression> recompression;
   // Destruction order retires the image writer BEFORE releasing the head owner.
   std::unique_ptr<VolumeOwner> volume;
   NativeFilesystemWriter writer;
@@ -212,41 +218,105 @@ NativeVolumeHeadInfo NativeFileSession::recompress_volume(std::shared_ptr<StoreB
     StoreIdentity next,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
   return replace_volume(std::move(target),next,compression,checkpoints,true);
 }
-NativeVolumeHeadInfo NativeFileSession::replace_volume(std::shared_ptr<StoreByteIo> target,
-    StoreIdentity next,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints,bool reencode) {
-  auto& self=ready();
+void NativeFileSession::admit_replacement(const Impl& self,
+    const std::shared_ptr<StoreByteIo>& target,StoreIdentity next) {
   if(!self.volume || !self.volume->head)fail(E::invalid_options,"session has no volume authority");
-  auto& volume=*self.volume;
-  if(volume.pending || next==StoreIdentity{} || next==volume.active_id || next==volume.volume_id ||
-      next==volume.head->info().selection.parent_identity ||
+  const auto& volume=*self.volume;
+  if(self.recompression || volume.pending || next==StoreIdentity{} || next==volume.active_id ||
+      next==volume.volume_id || next==volume.head->info().selection.parent_identity ||
       !target || target==volume.active_io || target==volume.head_io)
     fail(E::invalid_options,"new distinct maintenance image required");
-  detail::validate_store_compression(compression);admit_empty(target);
+}
+
+void NativeFileSession::admit_handoff_contexts(const Impl& self) {
   for(const auto& slot:self.slots)if(slot.token &&
       (slot.phase!=Impl::Phase::active || slot.requested || slot.cleanup_delete))
     fail(E::delete_pending,"maintenance defers unresolved file contexts");
   for(const auto latch:self.latched)if(latch)
     fail(E::delete_pending,"maintenance defers latched delete state");
-  auto baseline=self.writer.snapshot();
+}
+
+void NativeFileSession::begin_handoff(Impl& self,NativeFilesystemSnapshot baseline,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity next) {
+  auto& volume=*self.volume;
   if(baseline.needs_session_recovery())fail(E::delete_pending,"maintenance requires resolved native state");
-  // Everything needed for failure recovery is owned BEFORE actual retirement.
-  // Keep the table/owner/token/grants intact; no admission or I/O can reenter.
-  volume.baseline.emplace(std::move(baseline));volume.candidate_io=target;
+  // Recovery owns both backings and the exact snapshot before retirement.
+  volume.baseline.emplace(std::move(baseline));volume.candidate_io=std::move(target);
   volume.candidate_id=next;volume.pending=true;volume.recovery_attempted=false;
   self.terminal=true;retire(self.writer);
-  {
-    auto candidate=reencode?
-        NativeFilesystemWriter::recompress(*volume.baseline,target,next,compression,checkpoints):
-        NativeFilesystemWriter::compact(*volume.baseline,target,next,compression,checkpoints);
-  } // Actual candidate writer retirement before head comparison/publication.
-  auto candidate=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(target));
+}
+
+NativeVolumeHeadInfo NativeFileSession::finish_handoff(Impl& self) {
+  auto& volume=*self.volume;
+  const auto next=volume.candidate_id;
+  auto candidate=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(volume.candidate_io));
   const auto published=volume.head->publish_compacted(*volume.baseline,candidate);
-  self.writer=resume_image(target,candidate,volume.foreground);
+  self.writer=resume_image(volume.candidate_io,candidate,volume.foreground);
   // Only nonthrowing ownership/scalar updates remain after adoption succeeds.
   volume.active_io=std::move(volume.candidate_io);volume.active_id=next;
   volume.epoch=published.selection.epoch;volume.candidate_id={};volume.baseline.reset();
   volume.pending=false;self.terminal=false;return published;
 }
+
+NativeVolumeHeadInfo NativeFileSession::replace_volume(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity next,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints,bool reencode) {
+  auto& self=ready();
+  admit_replacement(self,target,next);
+  detail::validate_store_compression(compression);admit_empty(target);
+  admit_handoff_contexts(self);
+  begin_handoff(self,self.writer.snapshot(),target,next);
+  {
+    auto candidate=reencode?
+        NativeFilesystemWriter::recompress(*self.volume->baseline,target,next,compression,checkpoints):
+        NativeFilesystemWriter::compact(*self.volume->baseline,target,next,compression,checkpoints);
+  }
+  return finish_handoff(self);
+}
+
+void NativeFileSession::begin_recompression(std::shared_ptr<StoreByteIo> target,StoreIdentity next,
+    StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
+  auto& self=ready();
+  admit_replacement(self,target,next);
+  detail::validate_store_compression(compression);admit_empty(target);
+  admit_handoff_contexts(self);
+  self.recompression=std::make_unique<Impl::StagedRecompression>(Impl::StagedRecompression{
+      target,next,self.writer.prepare_recompression(target,next,compression,checkpoints)});
+}
+
+NativeFileSession::RecompressionProgress NativeFileSession::advance_recompression() {
+  auto& self=ready();
+  if(!self.recompression)fail(E::invalid_options,"no staged recompression");
+  if(!self.writer.matches_recompression(self.recompression->rewrite)) {
+    self.recompression.reset();
+    return RecompressionProgress::stale;
+  }
+  try {
+    return NativeFilesystemWriter::advance_recompression(self.recompression->rewrite)?
+        RecompressionProgress::ready:RecompressionProgress::copying;
+  }catch(...){self.recompression.reset();throw;}
+}
+
+NativeVolumeHeadInfo NativeFileSession::publish_recompression() {
+  auto& self=ready();
+  if(!self.recompression)fail(E::invalid_options,"no staged recompression");
+  if(!self.writer.matches_recompression(self.recompression->rewrite)) {
+    self.recompression.reset();
+    fail(E::invalid_options,"staged recompression is stale");
+  }
+  if(!self.recompression->rewrite.ready())fail(E::invalid_options,"staged recompression is incomplete");
+  admit_handoff_contexts(self);
+  auto staged=std::move(self.recompression);
+  auto baseline=self.writer.snapshot();
+  // Seal and verify the candidate before fencing the foreground writer.
+  NativeFilesystemWriter::finish_recompression(staged->rewrite);
+  begin_handoff(self,std::move(baseline),std::move(staged->target),staged->id);
+  return finish_handoff(self);
+}
+
+void NativeFileSession::cancel_recompression() noexcept {
+  if(impl_)impl_->recompression.reset();
+}
+
 NativeVolumeHeadInfo NativeFileSession::recover_volume() {
   if(!impl_ || !impl_->terminal || !impl_->volume)
     fail(E::invalid_options,"no failed maintenance transition to recover");
@@ -691,7 +761,10 @@ void NativeFileSession::cleanup_event(const NativeFileHandle& handle,bool delete
   slot.cleaned=true;slot.cleanup_delete=delete_file; // Paging stays owned until Close.
 }
 void NativeFileSession::fence() noexcept {
-  if(impl_)impl_->terminal=true;
+  if(impl_) {
+    impl_->terminal=true;
+    impl_->recompression.reset();
+  }
 }
 void NativeFileSession::close(const NativeFileHandle& handle) {
   const auto index=slot_for(handle,true);auto& self=ready();auto& slot=self.slots[index];
