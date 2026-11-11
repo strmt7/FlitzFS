@@ -1,0 +1,84 @@
+{
+  "experimental": true,
+  "observed_date": "2026-11-11",
+  "source_commit": "9028be3fc9480c367bba6bd8261fc169af67fda7",
+  "workflow_run": 42987173114,
+  "job": 130411008047,
+  "artifact": 13839819106,
+  "artifact_sha256": "ac852a95d8e95c80c6114a095e266cf27f59580097001398c9fcc4dde2f769a5",
+  "provider_repository": "strmt7/FlitzZip",
+  "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+  "provider_version": "0.9.5+flitzzip.portable2",
+  "source_group": "windows-gpu-memory",
+  "robots_checked": true,
+  "page_timeout_seconds": 45,
+  "sources": [
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo",
+      "success": true,
+      "native_success": true,
+      "http_status": 200,
+      "final_http_status": 200,
+      "markdown_bytes": 19070,
+      "markdown_sha256": "1f87398eec6cffc1e08035f38363a0e76ad62839eb152c0852bcf3cb860e412f",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 0.841,
+      "capture": "windows-gpu-memory-query.native.json",
+      "capture_sha256": "17ca9c50dac58fd77204074c8069edeb4444315aca2a70cb854dab2e03002df9",
+      "name": "windows-gpu-memory-query"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ns-dxgi1_4-dxgi_query_video_memory_info",
+      "success": true,
+      "native_success": true,
+      "http_status": 200,
+      "final_http_status": 200,
+      "markdown_bytes": 20261,
+      "markdown_sha256": "f03e09aaeff388d79d4938d3f5553c983d55c220351f10daa778e1847c23a769",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 0.652,
+      "capture": "windows-gpu-memory-info.native.json",
+      "capture_sha256": "ad03bd436970e5b2a86c5c667318bc950e9a61ff07031a2d45aa082b884c66e6",
+      "name": "windows-gpu-memory-info"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/ne-dxgi1_4-dxgi_memory_segment_group",
+      "success": true,
+      "native_success": true,
+      "http_status": 200,
+      "final_http_status": 200,
+      "markdown_bytes": 19754,
+      "markdown_sha256": "730ab00d899990f7b46f608241d64638ef56967cf8a38f5afea6e251515eecd6",
+      "expected_content": true,
+      "failure_category": "",
+      "error": "",
+      "seconds": 0.67,
+      "capture": "windows-gpu-memory-segments.native.json",
+      "capture_sha256": "c1667a1515da8bb3972541d75296065dc4321101c325ca013f51ad641c773c29",
+      "name": "windows-gpu-memory-segments"
+    }
+  ],
+  "review": {
+    "articles_read": true,
+    "current_served": true,
+    "rendered_revision_date": "2024-02-22",
+    "not_new_2026_publications": true,
+    "facts": [
+      "QueryVideoMemoryInfo returns process usage and OS-assigned process budget for an explicit physical node and segment group.",
+      "Budget and CurrentUsage are aggregate application values; the local group is the recommended working-set target.",
+      "The non-local group may have lower performance."
+    ],
+    "inference": "These aggregate fields do not identify which particular allocation moved or prove that a specific HIP buffer was evicted.",
+    "admission_changed": false
+  },
+  "preserved_failed_dispatch": {
+    "run": 42986876679,
+    "actual_head": "96cb919478028b29199fb57bd9bd1cd1fcdea9af",
+    "page_attempts": 0,
+    "reason": "Immediate dispatch after main update resolved the previous workflow, whose fixed case rejected the new group. Re-dispatched once after native head verification; no reader bypass."
+  }
+}
