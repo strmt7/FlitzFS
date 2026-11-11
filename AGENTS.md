@@ -1,5 +1,18 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Current execution ledger
+
+Read `docs/DEVELOPMENT_PLAN.json`, `docs/DEVELOPMENT_STATE.json` and the selected
+package in `docs/DEVELOPMENT_PLAN.md` before continuing the existing full-product
+goal. Verify actual main and source-bound CI; never trust a stale ledger alone.
+The 11 November assessment is `docs/REPOSITORY_ASSESSMENT.md`. Implement the next
+dependency-ready package, retain failures and mark completion only against its
+exit criterion. The immediate implementation is G01 adaptive GPU admission;
+D01 hosted child-retirement triage remains independently open. A later green CI
+run does not resolve earlier unexplained retirement failures. This ledger does
+not authorize delegation, a new goal, owner mounts, driver changes or persistent
+background tasks. Keep the complete filesystem goal active.
+
 ## Owner product contract: automatic resources and two-stage compression
 
 Owner clarification, 11 November 2026. These are required product behaviors;

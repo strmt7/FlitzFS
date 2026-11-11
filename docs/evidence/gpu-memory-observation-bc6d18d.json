@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "classification": "experimental tiny synthetic owner-host diagnostic",
+  "source_commit": "bc6d18d6ca34a99a218ccd4c6aab9b4f6e0569b1",
+  "artifact": {
+    "id": 13842311786,
+    "archive_sha256": "dacb44520481dda16b7ccab6202cc5b3e9a8d601eca82111a4bc1badc635a269",
+    "inner_archive_sha256": "c7d373fb12f16a418419f86d64c966e5cd656c83c7561c99b59a00fa2552c7ba"
+  },
+  "runtime": {
+    "file": "amdhip64_7.dll",
+    "file_version": "10.0.3683.0",
+    "bytes": 17677840,
+    "sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "driver_version": "32.0.32015.12012",
+    "note": "Observed instance only; never a product installation path, version or hardware default."
+  },
+  "result": {
+    "diagnostic_exit": 0,
+    "metadata_verified": true,
+    "candidate_admitted": false,
+    "failure_category": 1179844613,
+    "stage": "completed_nonlocal_growth",
+    "captured_samples": 7,
+    "flags": 59,
+    "cpu_verified_gpu_bytes": 12288,
+    "device_buffer_bytes": 16492,
+    "launch_submitted": true,
+    "stream_complete": true,
+    "statuses_verified": true,
+    "resources_released": true,
+    "modules_retired": true,
+    "child_exit_confirmed": true,
+    "elapsed_ms": 768,
+    "child_peak_commit_bytes": 80035840,
+    "aggregate_peak_commit_bytes": 81440768
+  },
+  "memory": {
+    "preinitialization": {
+      "local_usage_bytes": 0,
+      "nonlocal_usage_bytes": 0,
+      "captured_ms": 49538968
+    },
+    "postinitialization": {
+      "local_usage_bytes": 0,
+      "nonlocal_usage_bytes": 0,
+      "captured_ms": 49539125
+    },
+    "postwork": {
+      "local_usage_bytes": 185139200,
+      "nonlocal_usage_bytes": 12804096,
+      "local_budget_bytes": 16168480768,
+      "nonlocal_budget_bytes": 50320211968,
+      "captured_ms": 49539546
+    },
+    "limitations": "Process-wide DXGI usage and OS budgets, not per-allocation eviction proof, free-memory figures or universal envelopes."
+  },
+  "safety": {
+    "synthetic_only": true,
+    "mounted": false,
+    "filesystem_backing": "none",
+    "driver_changed": false,
+    "workers_after": 0,
+    "no_native_compression_speed_claim": true
+  },
+  "next": "No unchanged retry. Implement and qualify adaptive admission first."
+}

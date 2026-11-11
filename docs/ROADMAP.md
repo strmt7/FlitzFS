@@ -1,5 +1,11 @@
 # Development gates and acceptance criteria
 
+The current source-bound [assessment](REPOSITORY_ASSESSMENT.md) and detailed
+[execution plan](DEVELOPMENT_PLAN.md) organize the remaining full-product work.
+Use [the JSON ledger](DEVELOPMENT_PLAN.json) for dependencies and exit criteria;
+older checkpoints below retain their historical scope. Current priority is
+adaptive GPU admission and unresolved hosted child-retirement triage.
+
 **Product scope: Windows only, latest stable Windows 11, AMD64, with a helper
 application and driver-backed filesystem integration.** Older Windows and other
 OS products are outside this phase. See WINDOWS_PRODUCT.md.

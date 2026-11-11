@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "date": "2026-11-11",
+  "reference": {
+    "repository": "strmt7/FlitzZip",
+    "commit": "dec2dcadc52367536c1836f37228c0fb3cf11f2e",
+    "path": "resources/brand/flitzzip-logo.svg",
+    "blob": "b4540bc6782bc09983bcbe6f665053fb79adc31d",
+    "observed": {
+      "font_family": "Segoe UI, Inter, Arial, sans-serif",
+      "font_weight": 700,
+      "red": "#ff303a",
+      "charcoal": "#15171c",
+      "symbol": "three outlined isometric diamond layers"
+    }
+  },
+  "symbol": {
+    "method": "Built-in image generation followed by extraction of the symbol only; generated lettering was rejected.",
+    "source_image_sha256": "b560cd4caa11123700f51db6e1396ebf11ee903d054d4768214882566bf7b4bf",
+    "source_dimensions": [
+      2172,
+      724
+    ],
+    "crop_rectangle": [
+      90,
+      70,
+      620,
+      600
+    ],
+    "prompt": "Use case: logo-brand.\nCreate a polished, distinctive primary logo for \"FlitzFS\", a modern Windows compressed filesystem. This is a NEW logo, not an archive/ZIP product.\nBrand-family reference, observed in the owner's current FlitzZip SVG: vivid red #ff303a, charcoal #15171c, bold clean sans-serif wordmark, and three outlined isometric diamond layers. Carry over the confident red/charcoal contrast and the idea of compact geometric layers, but invent a clearly DIFFERENT mark.\nDesign a memorable compact F monogram formed by tightly integrated storage planes / compressed data layers. Use deliberate negative space, balanced angular geometry and subtly forward-moving energy. It should feel like a coherent filesystem volume: ordered, fast, efficient and dependable. A restrained dimensional hint is welcome, but keep the mark flat/vector-friendly, crisp and legible at small sizes. Avoid simply repeating the three separate diamond outlines.\nComposition: one horizontal brand lockup, distinctive red symbol on the left and the exact wordmark \"FlitzFS\" on the right in a strong custom-feeling charcoal sans-serif. Text spelling must be exactly F-l-i-t-z-F-S. Balanced spacing, excellent optical alignment, substantial clear space. No tagline.\nActual transparent background. No checkerboard baked in. No mockup, glossy 3D surface, drop shadow, generic GPU chip, padlock, hard-drive clipart, zipper, archive box, extra icons, labels, or watermark. Deliver one finished, elegant, professional logo."
+  },
+  "wordmark": {
+    "text": "FlitzFS",
+    "actual_font_family": "Segoe UI",
+    "actual_font_style": "Bold",
+    "method": "Native GraphicsPath.AddString glyph outlines, uniformly scaled and placed. No font binaries included.",
+    "canvas": [
+      2000,
+      640
+    ],
+    "outline_points": 210,
+    "outline_height": 300,
+    "x": 720,
+    "top": 170
+  },
+  "assets": [
+    {
+      "name": "flitzfs-symbol.png",
+      "bytes": 164687,
+      "sha256": "3105f0b6d26f456c9caff12b6384270dee6a5714349941c66d3e6e88a397d5f6"
+    },
+    {
+      "name": "flitzfs-logo.svg",
+      "bytes": 223570,
+      "sha256": "a3d14ed8b8ae02afedf4072fb5d41c24553973945ce8311fb306e3090c166785"
+    },
+    {
+      "name": "flitzfs-logo-dark.svg",
+      "bytes": 223618,
+      "sha256": "8806f92524f1998f0c6c5a087296eccac149f1190e71eedbc74d017b66bcaaf1"
+    },
+    {
+      "name": "flitzfs-logo-typed.png",
+      "bytes": 184685,
+      "sha256": "101eb4bf84add17e9a0f97b8983144b382394d2c0de698b2515e39b6a6cbc118"
+    },
+    {
+      "name": "flitzfs-logo-dark.png",
+      "bytes": 173300,
+      "sha256": "7ed938cf7f215c58015e6f4173b70eb8082d676463337bcf86e21db5593d4f33"
+    }
+  ],
+  "limitations": [
+    "Symbol is raster; SVG lettering is outlined actual font.",
+    "No inference of filesystem performance or readiness."
+  ]
+}
