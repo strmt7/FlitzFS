@@ -375,3 +375,5 @@ Staged recompression now has a [bounded match-proposal input](docs/MATCH_PROPOSA
 The AMD compilation target now includes a bounded match-search kernel and a separate typed entry. CPU preparation builds exact prefix links, and CPU validation converts accepted results into the existing staged compression input. Hardware execution, transport integration and measured benefit remain pending.
 
 The experimental match producer now has a [supervised worker frame](docs/MATCH_PROPOSALS.md#supervised-match-transport). Frames bind results to the exact owned input. CPU channel tests drive accepted proposals through native publication and exercise CPU completion while a helper is still running. Automatic match routing and actual device execution remain unqualified.
+
+The explicit match path now has a [persistent recovery controller](docs/GPU_MATCH_CONTROLLER.md). It shares configuration quarantine and health evidence with decode requests, selects ordinary CPU work immediately, and retains the old input until its exact worker retires. Automatic mounted routing and live device execution still require qualification.

@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/gpu_batch.hpp"
+#include "flitzfs/gpu_match.hpp"
 
 namespace flitzfs {
 
@@ -34,7 +35,7 @@ struct GpuRouteDecision {
 
 // Single control thread. Constant memory/work, no OS/runtime calls, waits,
 // discovery or allocation. Consumes externally supplied qualified evidence.
-// An admitted candidate still needs its own GpuResultGate and worker limits.
+// An admitted candidate still needs a terminal result gate and worker limits.
 // CPU work never depends on this policy granting another attempt.
 class GpuRecoveryPolicy final {
  public:
@@ -46,6 +47,9 @@ class GpuRecoveryPolicy final {
   GpuRouteDecision consider(bool explicit_consent, bool workload_qualified,
       const GpuHealthEvidence& evidence, const PreparedGpuBatch& batch,
       std::uint64_t now_ms) noexcept;
+  GpuRouteDecision consider(bool explicit_consent,bool workload_qualified,
+      const GpuHealthEvidence& evidence,const PreparedGpuMatchSearch& search,
+      std::uint64_t now_ms) noexcept;
   // Report once. A failure can be recorded before teardown; an unconfirmed
   // worker continues to block EVERY new GPU attempt, including changed configs.
   bool finish(std::uint64_t ticket, GpuRecoveryOutcome outcome,
@@ -56,6 +60,8 @@ class GpuRecoveryPolicy final {
   unsigned required_healthy_observations() const noexcept;
 
  private:
+  GpuRouteDecision consider_work(bool,bool,const GpuHealthEvidence&,
+      bool has_work,std::uint64_t device_bytes,std::uint64_t now_ms) noexcept;
   GpuConfigurationId configuration_{};
   std::array<std::byte,8> luid_{};
   std::uint32_t node_mask_ = 0;

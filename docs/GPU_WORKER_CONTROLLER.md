@@ -117,3 +117,5 @@ Read exact-commit CI results before calling the implementation qualified.
 
 No owner-PC execution, GPU initialization, mounted writes, driver installation,
 new storage format, application installer or measured HIP benefit is enabled.
+
+Decode and match controllers now share terminal state declarations, worker-exit classification and the saturating process-wide request-ID allocator. The decoder's route, gate, late-classification and retirement behavior is preserved and its original tests remain active. Match selection is documented in GPU_MATCH_CONTROLLER.md.

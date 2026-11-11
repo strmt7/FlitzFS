@@ -1,5 +1,6 @@
 #include "worker_exchange.hpp"
 #include "gpu_worker_controller.hpp"
+#include "gpu_match_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
 #include "flitzfs/native_session.hpp"
 #include "native_fs_fixture.hpp"
@@ -94,7 +95,8 @@ int child(std::wstring_view mode,std::wstring_view token) {
   if(mode==L"exit-empty")return 0;
   if(mode==L"exit-bad")return 17;
   auto channel=WorkerChannel::open(token);
-  if(mode==L"match" || mode==L"match-invalid" || mode==L"match-hold") {
+  if(mode==L"match" || mode==L"match-invalid" || mode==L"match-hold" ||
+      mode==L"match-delay-invalid" || mode==L"match-hip-declaration") {
     const auto input=decode_match_worker_request(channel.request());
     if(mode==L"match-hold"){Sleep(5000);return 0;}
     const auto& search=input.search;
@@ -103,8 +105,11 @@ int child(std::wstring_view mode,std::wstring_view token) {
       matches[lane]=match_detail::search(reinterpret_cast<const unsigned char*>(search.input().data()),
           static_cast<unsigned>(search.input().size()),search.predecessors().data(),
           static_cast<unsigned>(search.predecessors().size()),lane);
-    auto frame=encode_match_worker_reply(search,input.request_id,matches,WorkerExecution::cpu_semantics);
-    if(mode==L"match-invalid")frame[kMatchWorkerHeaderBytes]=std::byte{1};
+    // The HIP declaration below exercises policy only. This child always runs CPU code.
+    auto frame=encode_match_worker_reply(search,input.request_id,matches,
+        mode==L"match-hip-declaration"?WorkerExecution::hip:WorkerExecution::cpu_semantics);
+    if(mode==L"match-invalid" || mode==L"match-delay-invalid")frame[kMatchWorkerHeaderBytes]=std::byte{1};
+    if(mode==L"match-delay-invalid")Sleep(150);
     channel.publish(frame);
     return 0;
   }
@@ -431,6 +436,165 @@ void coordinated_requests(const std::filesystem::path& executable) {
   check(WorkerExchangeSession::available(),"coordinated requests leaked process/thread admission");
 }
 
+PreparedGpuMatchSearch coordinated_matches(unsigned seed=0,bool full=false) {
+  Bytes bytes(full?65536:128);
+  for(unsigned i=0;i<bytes.size();++i)bytes[i]=static_cast<std::byte>((i%31)+seed);
+  return PreparedGpuMatchSearch::prepare(bytes);
+}
+void coordinated_match_requests(const std::filesystem::path& executable) {
+  const auto health=coordinated_health(1,100);
+  const auto after=coordinated_health(2,101).memory;
+  const auto missing=executable.parent_path()/L"missing-flitzfs-worker.exe";
+  const auto same_source=[&](GpuMatchWorkerController& controller,const Bytes& source) {
+    check(std::ranges::equal(controller.source(),source),"match controller lost current CPU source");
+    if(controller.state()==GpuWorkerState::cpu_selected)
+      check(controller.selected_proposals().empty(),"CPU match selection retained worker proposals");
+  };
+  {
+    GpuMatchWorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_matches();
+    const Bytes original(input.input().begin(),input.input().end());
+    const auto disabled=controller.begin(std::move(input),missing,{L"match"},false,true,health,100);
+    check(!disabled.submitted&&disabled.route.reason==GpuRouteReason::disabled&&!controller.process_id(),
+        "disabled match request launched a process");
+    same_source(controller,original);
+    auto next=coordinated_matches(1);
+    const auto denied=controller.begin(std::move(next),missing,{L"match"},true,false,health,100);
+    check(!denied.submitted&&denied.route.reason==GpuRouteReason::unqualified&&controller.consecutive_failures()==0,
+        "unqualified match work changed recovery history");
+  }
+  {
+    GpuMatchWorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_matches(0,true);
+    const Bytes original(input.input().begin(),input.input().end());
+    check(controller.begin(std::move(input),executable,{L"match"},true,true,health,100).submitted,
+        "qualified match request did not start");
+    auto overlapping=coordinated_matches(1);
+    const auto size=overlapping.input().size();
+    check(!controller.begin(std::move(overlapping),executable,{L"match"},true,true,health,100).submitted&&
+        overlapping.input().size()==size,"overlapping match attempt consumed caller input");
+    eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,"match controller success did not finish");
+    check(controller.state()==GpuWorkerState::worker_selected&&controller.last_gate_code()==GpuGateCode::accepted&&
+        !controller.selected_proposals().empty(),"match controller accepted no proposals");
+    const auto selected=controller.selected_proposals().size();
+    (void)controller.use_cpu_fallback();
+    check(controller.state()==GpuWorkerState::worker_selected&&controller.selected_proposals().size()==selected,
+        "CPU selection overwrote a terminal match result");
+    same_source(controller,original);
+    eventually([&]{return controller.try_retire();},2000,"successful match controller did not retire");
+    // Feed the controller-selected hints through the real native writer.
+    auto head=std::make_shared<native_fixture::Ram>(),source=std::make_shared<native_fixture::Ram>();
+    auto target=std::make_shared<native_fixture::Ram>();
+    auto volume=native_fixture::identity(),image=volume,next=volume;image[0]=std::byte{61};next[0]=std::byte{62};
+    auto native=NativeFileSession::create_volume(head,volume,source,image,{StoreCompressionMode::raw,6,false});
+    native.create_entry("data");auto handle=native.open("data",{true,true,false});native.write(handle,0,original);
+    native.begin_recompression(target,next);
+    check(native.advance_recompression()==NativeFileSession::RecompressionProgress::copying,"controller source layout");
+    auto work=native.next_recompression_input();
+    const auto progress=work?native.advance_recompression(work->object_id,controller.selected_proposals()):
+        native.advance_recompression();
+    check(progress==NativeFileSession::RecompressionProgress::ready,"controller proposal failed staged encoding");
+    native.publish_recompression();
+    check(native.read(handle,0,65536)==original,"controller-selected native bytes changed");
+    native.cleanup(handle,false);native.close(handle);
+  }
+  for(const auto* mode:{L"missing",L"match-invalid",L"match-delay-invalid"}) {
+    GpuMatchWorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_matches();
+    const auto helper=std::wstring_view(mode)==L"missing"?missing:executable;
+    check(controller.begin(std::move(input),helper,{mode},true,true,health,100).submitted,"match fault request not submitted");
+    (void)controller.use_cpu_fallback();
+    auto later=coordinated_matches(1);
+    const Bytes later_source(later.input().begin(),later.input().end());
+    const auto fresh=coordinated_health(2,102);
+    const auto busy=controller.begin(std::move(later),executable,{L"match"},true,true,fresh,102);
+    check(!busy.submitted&&(busy.route.reason==GpuRouteReason::worker_busy||
+        busy.route.reason==GpuRouteReason::configuration_blocked),"match retry bypassed pending fault/retirement");
+    same_source(controller,later_source);
+    eventually([&]{return controller.try_retire();},3000,"late match fault did not retire");
+    check(controller.consecutive_failures()==1&&controller.state()==GpuWorkerState::cpu_selected,
+        "late match fault was forgotten or counted twice");
+    auto retry=coordinated_matches(2);
+    const auto denied=controller.begin(std::move(retry),executable,{L"match"},true,true,coordinated_health(3,103),103);
+    check(!denied.submitted&&denied.route.reason==GpuRouteReason::configuration_blocked,
+        "unchanged corrupt/unavailable match configuration retried");
+  }
+  {
+    GpuMatchWorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_matches();
+    check(controller.begin(std::move(input),executable,{L"match-hold"},true,true,health,100).submitted,"held match start");
+    eventually([&]{return controller.process_id()!=0;},2000,"held match child did not start");
+    HANDLE child=OpenProcess(SYNCHRONIZE,FALSE,controller.process_id());
+    check(child!=nullptr,"held match exact child observation");
+    struct Close {HANDLE value;~Close(){CloseHandle(value);}} close{child};
+    const auto cpu=controller.use_cpu_fallback();
+    check(!cpu.empty()&&WaitForSingleObject(child,0)==WAIT_TIMEOUT&&controller.consecutive_failures()==0,
+        "match CPU selection waited for retirement or invented a failure");
+    auto other=coordinated_matches(3);const Bytes expected(other.input().begin(),other.input().end());
+    const auto busy=controller.begin(std::move(other),executable,{L"match"},true,true,coordinated_health(2,102),102);
+    check(!busy.submitted&&busy.route.reason==GpuRouteReason::worker_busy,"new match CPU request launched during retirement");
+    same_source(controller,expected);
+    check(controller.request_cancel(),"held match cancellation failed");
+    eventually([&]{return controller.try_retire();},3000,"held match controller did not retire");
+    check(controller.consecutive_failures()==1,"match cancellation outcome missing");
+    for(unsigned i=0;i<2;++i) {
+      auto recovered=coordinated_matches();
+      const auto e=coordinated_health(3+i,103+i);
+      check(controller.begin(std::move(recovered),executable,{L"match"},true,true,e,103+i).submitted,
+          "fresh healthy evidence after match pressure did not allow one attempt");
+      eventually([&]{return controller.poll(coordinated_health(4+i,104+i).memory,104+i)!=GpuWorkerState::waiting;},
+          3000,"recovered match did not finish");
+      check(controller.state()==GpuWorkerState::worker_selected&&
+          controller.consecutive_failures()==(i?0U:1U),"match flapping history cleared prematurely");
+      eventually([&]{return controller.try_retire();},2000,"recovered match controller did not retire");
+    }
+  }
+  // These use a CPU helper and synthetic telemetry while exercising HIP policy.
+  for(const auto* trigger:{L"cancel",L"timeout",L"expire"}) {
+    GpuMatchWorkerController controller(WorkerExecution::hip);
+    auto input=coordinated_matches();
+    ProcessBudget budget;budget.timeout_ms=std::wstring_view(trigger)==L"timeout"?250:5000;
+    check(controller.begin(std::move(input),executable,{L"match-hold"},true,true,health,100,budget).submitted,
+        "HIP-policy match fixture not submitted");
+    eventually([&]{return controller.process_id()!=0;},2000,"HIP-policy match child did not start");
+    if(std::wstring_view(trigger)==L"cancel")check(controller.request_cancel(),"HIP-policy match cancel");
+    if(std::wstring_view(trigger)==L"expire")
+      check(controller.poll(coordinated_health(2,200).memory,200)==GpuWorkerState::cpu_selected&&
+          controller.last_gate_code()==GpuGateCode::expired,"match gate expiry did not select CPU");
+    else eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,"HIP-policy match result not observed");
+    eventually([&]{return controller.try_retire();},3000,"HIP-policy match retirement missing");
+    check(controller.consecutive_failures()==1&&controller.selected_proposals().empty(),"HIP match failure outcome");
+    for(unsigned i=0;i<3;++i) {
+      auto retry=coordinated_matches();
+      const auto denied=controller.begin(std::move(retry),executable,{L"match-hip-declaration"},true,true,
+          coordinated_health(3+i,300+i),300+i);
+      check(!denied.submitted&&denied.route.reason==GpuRouteReason::device_quarantined,
+          "match telemetry/retirement cleared a device fault");
+    }
+    auto recovered=coordinated_matches();
+    auto qualified=coordinated_health(6,400);qualified.recovery_generation=1;
+    check(controller.begin(std::move(recovered),executable,{L"match-hip-declaration"},true,true,qualified,400).submitted,
+        "separately qualified match recovery did not admit work");
+    auto valid_after=coordinated_health(7,401).memory;
+    eventually([&]{return controller.poll(valid_after,401)!=GpuWorkerState::waiting;},3000,"qualified match recovery did not finish");
+    check(controller.state()==GpuWorkerState::worker_selected,"qualified match recovery failed verification");
+    eventually([&]{return controller.try_retire();},2000,"qualified recovered match did not retire");
+  }
+  for(unsigned fault=0;fault<4;++fault) {
+    GpuMatchWorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_matches();
+    check(controller.begin(std::move(input),executable,{L"match"},true,true,health,100).submitted,"match telemetry fixture");
+    auto bad=after;
+    if(fault==0)bad.captured_ms=99;
+    if(fault==1)bad.luid[0]=std::byte{2};
+    if(fault==2)++bad.nonlocal_usage;
+    if(fault==3)bad.local_budget=bad.local_usage;
+    eventually([&]{return controller.poll(bad,101)!=GpuWorkerState::waiting;},3000,"invalid match telemetry not observed");
+    check(controller.state()==GpuWorkerState::cpu_selected&&controller.selected_proposals().empty(),
+        "match telemetry failure exposed proposals");
+    eventually([&]{return controller.try_retire();},2000,"invalid-telemetry match did not retire");
+  }
+}
 void match_transactions(const std::filesystem::path& executable) {
   using Progress=NativeFileSession::RecompressionProgress;
   for(const auto* mode:{L"match",L"match-invalid",L"match-hold"}) {
@@ -667,6 +831,7 @@ int wmain(int argc,wchar_t** argv){try{
   observe(L"async-launch-failure");
   coordinated_requests(executable);observe(L"coordinated-recovery");
   match_transactions(executable);observe(L"match-transactions");
+  coordinated_match_requests(executable);observe(L"match-recovery");
   // Repeated complete transactions must not accumulate process handles or keep
   // either mapping alive. This is not a stress test: four tiny serial requests.
   for(unsigned i=0;i<4;++i) {

@@ -760,7 +760,9 @@ endif()
 
 # Process-isolated IPC groundwork. No live HIP runtime or filesystem routing.
 if(WIN32)
-  add_library(flitzfs_worker_exchange src/windows/worker_exchange.cpp src/windows/gpu_worker_controller.cpp)
+  add_library(flitzfs_worker_exchange src/windows/worker_exchange.cpp
+    src/windows/gpu_worker_common.cpp src/windows/gpu_worker_controller.cpp
+    src/windows/gpu_match_worker_controller.cpp)
   target_include_directories(flitzfs_worker_exchange PUBLIC src/windows)
   target_link_libraries(flitzfs_worker_exchange PUBLIC flitzfs_process PRIVATE bcrypt advapi32)
   if(MSVC)
