@@ -311,3 +311,19 @@ are in evidence/gpu-node-proof-96cb919.json. Subsequent changes only preserve
 which existing memory predicate failed; they need their own exact CI. Current
 Microsoft memory documentation will be captured with isolated Crawl4AI before
 changing residency/admission rules. GPU execution and speed remain unqualified.
+
+## Worker memory observation preparation
+
+The b7de640 fixture correction passed core run 42988002142, including its
+hosted mount matrix; the earlier 96cb919 crash-restart retirement timeout remains
+unresolved and retained. The pinned 9028be3 worker then reached the final
+completed_nonlocal_growth check after successful GPU launch/completion/statuses
+and exact 12,288-byte CPU comparison. Evidence is in
+evidence/gpu-internal-decode-9028be3.json. No candidate was accepted.
+
+GPU_MEMORY_OBSERVATION.md defines a new explicit metadata-only diagnostic with
+three process-local budget samples and execution/retirement flags. Source now
+adds portable golden/malformed/cross-protocol checks, Windows CPU-channel cases
+and a separate SDK bad-runtime refusal. These new configured checks require
+exact executed CI before another owner diagnostic. All existing admission and
+fallback behavior remains unchanged; this is not a performance pass.

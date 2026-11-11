@@ -2,6 +2,7 @@
 #include "gpu_worker_common.hpp"
 #include "hip_worker_exit.hpp"
 #include "hip_identity_wire.hpp"
+#include "hip_memory_wire.hpp"
 #include "gpu_worker_controller.hpp"
 #include "gpu_match_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
@@ -103,6 +104,24 @@ int child(std::wstring_view mode,std::wstring_view token) {
         static_cast<HipWorkerExit>(0x46530000U+static_cast<unsigned>(mode.back()-L'0')),
         HipWorkerStage::device_properties));
   auto channel=WorkerChannel::open(token);
+  if(mode==L"memory-metadata" || mode==L"memory-corrupt" || mode==L"memory-fail-after"){
+    const auto input=decode_worker_request(channel.request());
+    HipMemoryObservation value;
+    value.binding={input.request_id,3,1,{std::byte{5}},input.batch.device_buffer_bytes(),input.batch.cpu_reference().size()};
+    value.cpu_verified_bytes=value.binding.decoded_bytes;
+    value.failure_category=0x46530005;value.failure_stage=31;value.captured=7;value.flags=59;
+    for(unsigned i=0;i<3;++i){
+      auto& snapshot=value.snapshots[i];snapshot.luid=value.binding.luid;snapshot.node_mask=1;
+      snapshot.captured_ms=1000+i;snapshot.dedicated_bytes=1ULL<<30;snapshot.local_budget=1ULL<<29;
+      snapshot.nonlocal_budget=1ULL<<28;snapshot.nonlocal_usage=i==2?4096:0;snapshot.valid=true;snapshot.amd_hardware=true;
+    }
+    auto frame=encode_hip_memory_observation(value);
+    if(mode==L"memory-corrupt")frame[60]|=std::byte{128};
+    channel.publish(frame);
+    // Declared values test framing only; this fixture never loads HIP or
+    // executes a GPU, regardless of the execution-step metadata it serializes.
+    return mode==L"memory-fail-after"?17:0;
+  }
   if(mode==L"identity-metadata") {
     const auto request=decode_hip_identity_request(channel.request());
     channel.publish(encode_hip_identity_reply({request.request_id,request.ordinal,0,request.luid}));
@@ -903,6 +922,33 @@ int wmain(int argc,wchar_t** argv){try{
     check_closed(refused);
   }
   observe(L"identity-metadata");
+
+  {
+    const HipMemoryBinding expected{221,3,1,{std::byte{5}},batch.device_buffer_bytes(),batch.cpu_reference().size()};
+    const auto result=run_worker_exchange(executable,{L"memory-metadata"},request);
+    check(result.code==WorkerExchangeCode::completed && result.process.exit_confirmed &&
+        !result.process.timed_out,"memory metadata fixture did not complete");
+    const auto value=decode_hip_memory_observation(result.response,expected);
+    check(value.failure_stage==31 && value.snapshots[2].nonlocal_usage==4096 &&
+        value.snapshots[2].nonlocal_budget==(1ULL<<28),"memory metadata fixture lost counters");
+    rejects([&]{(void)accept_worker_reply(result.response,batch,221,WorkerExecution::hip);});
+    check_closed(result);
+    const auto corrupt=run_worker_exchange(executable,{L"memory-corrupt"},request);
+    check(corrupt.code==WorkerExchangeCode::completed && corrupt.process.exit_confirmed,
+        "malformed memory fixture transport did not complete");
+    rejects([&]{(void)decode_hip_memory_observation(corrupt.response,expected);});
+    check_closed(corrupt);
+    const auto failed=run_worker_exchange(executable,{L"memory-fail-after"},request);
+    check(failed.code==WorkerExchangeCode::worker_failed && failed.process.exit_confirmed &&
+        failed.response.empty(),"failed memory fixture exposed a published observation");
+    check_closed(failed);
+    const auto malformed=std::span(request).first(12);
+    const auto refused=run_worker_exchange(executable,{L"memory-metadata"},malformed);
+    check(refused.code==WorkerExchangeCode::worker_failed && refused.process.exit_confirmed &&
+        refused.response.empty(),"malformed memory fixture request exposed metadata");
+    check_closed(refused);
+  }
+  observe(L"memory-metadata");
 
   coordinated_requests(executable);observe(L"coordinated-recovery");
   match_transactions(executable);observe(L"match-transactions");

@@ -38,6 +38,8 @@ struct GpuMemorySnapshot {
   std::uint64_t captured_ms=0, dedicated_bytes=0;
   std::uint64_t local_budget=0, local_usage=0, nonlocal_usage=0;
   bool valid=false, amd_hardware=false;
+  // Observation only until a separately qualified nonlocal-budget policy exists.
+  std::uint64_t nonlocal_budget=0;
 };
 enum class GpuGateCode {
   admitted, accepted, no_consent, invalid_budget, stale_budget, wrong_adapter,

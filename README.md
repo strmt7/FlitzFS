@@ -12,8 +12,9 @@ This is an early filesystem implementation, not a production-ready volume.
 Writable mounted storage and actual GPU execution remain unqualified. Keep
 independent copies of valuable data. Most qualification runs on disposable hosted machines. Explicit bounded owner-PC
 CPU tests use locked RAM, while metadata diagnostics have also inspected the
-installed GPU runtime. Owner driver-backed mounts remain prohibited; actual
-FlitzFS GPU computation has not yet passed. See [current node-proof work](docs/GPU_NODE_PROOF.md).
+installed GPU runtime. Owner driver-backed mounts remain prohibited; a tiny
+FlitzFS GPU decode now matches CPU internally, while result admission and speed
+remain unqualified. See [current node-proof work](docs/GPU_NODE_PROOF.md).
 
 The Windows app, full writable driver integration and latest Windows 11 client
 qualification remain unfinished. Existing Linux CPU/sanitizer jobs are internal
@@ -419,3 +420,8 @@ The owner OS-only node proof passed on the exact AMD adapter. A subsequent tiny
 decode attempt refused at a later untagged check, preserving CPU bytes and clean
 worker exit. The shared memory predicates now retain specific diagnostic stages
 without relaxing their rules. See [executed evidence](docs/evidence/gpu-node-proof-96cb919.json).
+
+A separate [bounded memory observation](docs/GPU_MEMORY_OBSERVATION.md) now
+records worker-local budgets and completed verification steps without producing
+a GPU data reply. It retains the strict current admission rules while collecting
+evidence for their replacement; normal operations remain CPU-only.

@@ -689,3 +689,9 @@ CPU reference preserved and confirmed worker exit. No GPU correctness/speed
 qualification follows. Later memory-predicate tagging preserves every admission
 rule and legacy recovery category. Current memory-accounting research and new
 exact-commit checks precede any policy revision or further owner attempt.
+
+The explicit SDK memory-observation mode in GPU_MEMORY_OBSERVATION.md can
+report a typed compute refusal as metadata after successful module retirement
+and confirmed process exit. A zero diagnostic exit is transport completion, not
+compute admission. It never returns candidate data, retries automatically or
+weakens any memory/residency rule. Default operations remain CPU-only.

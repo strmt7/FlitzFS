@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include "hip_worker_exit.hpp"
 #include "hip_identity_wire.hpp"
+#include "hip_memory_wire.hpp"
 #include <windows.h>
 #include <dxgi1_4.h>
 #include <wrl/client.h>
@@ -138,7 +139,7 @@ void inspect_budget(std::wstring_view text, const ProbeBudget& budget) {
       << ",\"phase\":" << static_cast<unsigned>(result.phase)
       << ",\"native_status\":" << result.native_status << ",\"snapshot_valid\":" << memory.valid
       << ",\"dedicated_bytes\":" << memory.dedicated_bytes << ",\"local_budget\":" << memory.local_budget
-      << ",\"local_usage\":" << memory.local_usage << ",\"nonlocal_usage\":" << memory.nonlocal_usage
+      << ",\"local_usage\":" << memory.local_usage << ",\"nonlocal_budget\":" << memory.nonlocal_budget << ",\"nonlocal_usage\":" << memory.nonlocal_usage
       << ",\"gate_code\":" << static_cast<unsigned>(gate)
       << ",\"controller_job_peak_commit_bytes\":" << budget.peak_commit() << "}\n";
 }
@@ -247,8 +248,9 @@ int wmain(int argc, wchar_t** argv) {
     const bool warp_topology = mode == L"--inspect-warp-topology";
     const bool metadata = mode == L"--verify-driver-runtime";
     const bool identity = mode == L"--inspect-driver-adapter";
+    const bool memory_observation = mode == L"--run-amd-driver-memory-once";
     const bool matching = mode == L"--run-amd-driver-match-once";
-    const bool driver = mode == L"--run-amd-driver-once" || matching;
+    const bool driver = mode == L"--run-amd-driver-once" || matching || memory_observation;
     require((topology && argc==3) || (warp_topology && argc==2) || (budget_metadata && argc == 3) || (discovery && argc == 2) || (metadata && argc == 4) || ((driver || identity) && argc == 6) ||
         (mode == L"--run-amd-once" && argc == 5), "explicit qualified worker and probe mode required");
     if (discovery) { const ProbeBudget budget; describe_adapters(budget); return 0; }
@@ -322,7 +324,7 @@ int wmain(int argc, wchar_t** argv) {
     // Adapter budget, exact HIP identity and cleanup are checked inside the
     // supervised process. The probe never loads the runtime or enumerates devices.
     std::vector<std::wstring> arguments{
-        driver ? L"--driver-adapter" : L"--adapter", argv[3], argv[4], L"1"};
+        memory_observation ? L"--driver-memory-adapter" : driver ? L"--driver-adapter" : L"--adapter", argv[3], argv[4], L"1"};
     if (driver) arguments.emplace_back(argv[5]);
     const auto result = flitzfs::run_worker_exchange(worker, arguments, request, {128,2000,5000});
     require(result.process.process_id && result.process.exit_confirmed,
@@ -335,6 +337,45 @@ int wmain(int argc, wchar_t** argv) {
         std::ranges::equal(cpu.first(raw.size()), raw) &&
         std::ranges::all_of(cpu.subspan(raw.size()), [](std::byte b) { return b == std::byte{0x53}; }),
         "CPU fixture byte mismatch");
+    if(memory_observation){
+      std::optional<flitzfs::HipMemoryObservation> observed;
+      if(completed)observed=flitzfs::decode_hip_memory_observation(result.response,
+          {generation,static_cast<std::uint32_t>(std::stoul(argv[3])),1,probe_luid(argv[4]),
+              batch.device_buffer_bytes(),cpu.size()});
+      else require(result.response.empty(),"failed memory diagnostic returned metadata");
+      std::cout<<std::boolalpha<<"HIP memory observation: {\"metadata_verified\":"<<completed
+          <<",\"gpu_candidate_accepted\":false,\"cpu_reference_bytes\":"<<cpu.size()
+          <<",\"worker_exit\":"<<result.process.exit_code
+          <<",\"timed_out\":"<<result.process.timed_out<<",\"exit_confirmed\":true"
+          <<",\"peak_commit_bytes\":"<<result.process.peak_committed_bytes
+          <<",\"controller_job_peak_commit_bytes\":"<<budget.peak_commit()<<",\"observation\":";
+      if(observed){
+        const auto& value=*observed;
+        std::cout<<"{\"failure_category\":"<<value.failure_category
+            <<",\"failure_stage\":\""<<flitzfs::hip_worker_stage_name(static_cast<flitzfs::HipWorkerStage>(value.failure_stage))
+            <<"\",\"captured_mask\":"<<value.captured<<",\"flags\":"<<value.flags
+            <<",\"cpu_verified_gpu_bytes\":"<<value.cpu_verified_bytes
+            <<",\"explicit_device_bytes\":"<<value.binding.device_bytes
+            <<",\"admitted\":"<<((value.flags&flitzfs::hip_memory_admitted)!=0)
+            <<",\"resources_released\":"<<((value.flags&flitzfs::hip_memory_resources_released)!=0)
+            <<",\"modules_retired\":"<<((value.flags&flitzfs::hip_memory_modules_retired)!=0)
+            <<",\"launch_submitted\":"<<((value.flags&flitzfs::hip_memory_launch_submitted)!=0)
+            <<",\"stream_completed\":"<<((value.flags&flitzfs::hip_memory_stream_completed)!=0)
+            <<",\"statuses_verified\":"<<((value.flags&flitzfs::hip_memory_statuses_verified)!=0)
+            <<",\"snapshots\":[";
+        for(unsigned i=0;i<3;++i){
+          if(i)std::cout<<',';const auto& s=value.snapshots[i];
+          std::cout<<"{\"point\":"<<i<<",\"captured\":"<<((value.captured&(1U<<i))!=0)
+              <<",\"valid\":"<<s.valid<<",\"amd_hardware\":"<<s.amd_hardware
+              <<",\"luid_matches\":"<<(s.luid==value.binding.luid)<<",\"node_mask\":"<<s.node_mask
+              <<",\"captured_ms\":"<<s.captured_ms<<",\"dedicated_bytes\":"<<s.dedicated_bytes
+              <<",\"local_budget\":"<<s.local_budget<<",\"local_usage\":"<<s.local_usage
+              <<",\"nonlocal_budget\":"<<s.nonlocal_budget<<",\"nonlocal_usage\":"<<s.nonlocal_usage<<"}";
+        }
+        std::cout<<"]}";
+      }else std::cout<<"null";
+      std::cout<<"}\n";return completed?0:2;
+    }
     if (completed) {
       const auto reply = flitzfs::accept_worker_reply(result.response,batch,generation,
           flitzfs::WorkerExecution::hip);

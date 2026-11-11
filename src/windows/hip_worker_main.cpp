@@ -240,7 +240,8 @@ int worker(int argc, wchar_t** argv) {
     return 0;
   }
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
-  const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter";
+  const bool memory_observation=mode==L"--driver-memory-adapter";
+  const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" || memory_observation;
   const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter";
   require((driver ? argc == 8 : argc == 7) &&
       (driver || mode == L"--adapter" || mode == L"--match-adapter") &&
@@ -257,6 +258,15 @@ int worker(int argc, wchar_t** argv) {
   if(matching)match.emplace(read_match_request(channel.request()));
   else decode.emplace(read_request(channel.request()));
   const auto allocation=matching?match->search.device_buffer_bytes():decode->batch.device_buffer_bytes();
+  std::optional<HipMemoryBinding> diagnostic_binding;
+  if(memory_observation){
+    diagnostic_binding=HipMemoryBinding{decode->request_id,ordinal,node_mask,luid,
+        allocation,decode->batch.cpu_reference().size()};
+    try{hip_memory_detail::binding_valid(*diagnostic_binding);}
+    catch(const std::invalid_argument&){
+      throw HipWorkerFailure(Exit::invalid_request,"memory diagnostic binding",HipWorkerStage::worker_request);
+    } // Before loading a runtime/kernel.
+  }
   const auto bundle = verify_bundle(driver);
   std::optional<hip_detail::VerifiedSystemModule> installed;
   if (driver) installed.emplace(hip_bundle::runtime, expected_runtime);
@@ -295,6 +305,20 @@ int worker(int argc, wchar_t** argv) {
     const auto* api=entry();
     require(api && gpu_detail::compatible_kernel_api(*api),
         Exit::unsupported_configuration,"incompatible HIP kernel table",HipWorkerStage::kernel_table);
+    if(memory_observation){
+      HipMemoryObservation observation;
+      observation.binding=*diagnostic_binding;
+      try{(void)run_hip_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*decode,&observation);}
+      catch(const HipWorkerFailure& failure){
+        observation.failure_category=static_cast<std::uint32_t>(failure.code);
+        observation.failure_stage=static_cast<std::uint32_t>(failure.stage);
+      }
+      // A diagnostic may describe a rejected computation, but never publish
+      // its data bytes. Unconfirmed module retirement still publishes nothing.
+      kernels.close();runtime.close();observation.flags|=hip_memory_modules_retired;
+      const auto metadata=encode_hip_memory_observation(observation);
+      channel.publish(metadata);return 0;
+    }
     const auto reply=run_hip_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*decode);
     frame=encode_worker_reply(reply,WorkerExecution::hip);
   }

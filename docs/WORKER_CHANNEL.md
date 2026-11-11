@@ -266,3 +266,15 @@ protected local-session objects, failure-empty output and confirmed successful
 child exit remain required. Metadata is not a decoder candidate and cannot pass
 the normal byte-reply acceptor. CPU transport fixtures do not establish HIP
 execution; normal file operations still never launch a worker.
+
+## Explicit memory-observation metadata
+
+GPU_MEMORY_OBSERVATION.md defines a private fixed 256-byte reply for one explicit
+SDK diagnostic using the existing bounded decode request. Its distinct magic,
+request/adapter/allocation binding, completed-step flags and three serialized
+snapshots cannot pass a normal data-reply acceptor. The trusted child may report
+a typed computation refusal through a successful metadata exit only after module
+retirement; the parent still requires actual successful process/supervisor exit.
+No candidate bytes are returned, admission rules changed, runtime retried or
+normal filesystem routing enabled. A CPU fixture declaring flags is transport
+evidence only, not GPU execution or driver-cleanup evidence.
