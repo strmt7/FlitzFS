@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "goal_status": "active",
+  "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
+  "qualified_checkpoint": {
+    "commit": "89751f2ea5a7d2ed39dc7e58438c14bf90186c14",
+    "tree": "e85097528794b64f29c9a9c1d982cfa01e939ea9",
+    "run": 42916429492,
+    "workflow_count": 5,
+    "native_job": 130179952278,
+    "native_groups": 122,
+    "sanitizer_job": 130179952884,
+    "sanitizer_groups": 104,
+    "mounted_ram_job": 130185061074,
+    "mounted_ram": {
+      "commit": "89751f2ea5a7d2ed39dc7e58438c14bf90186c14",
+      "complete": true,
+      "compressed_payload": 216,
+      "contexts": 0,
+      "cpu_verified": true,
+      "epoch": 2,
+      "generation": 18,
+      "gpu": false,
+      "locked_after": 0,
+      "locked_peak": 17301504,
+      "mounted": true,
+      "phase": "ram-handoff",
+      "raw_payload": 66062,
+      "recovered_capacity_failure": true,
+      "schema": 1,
+      "source_process": 840,
+      "unmounted": true,
+      "user_bytes": 65609,
+      "volume_serial": 1476416087
+    },
+    "peak_process_commit": 20967424,
+    "scope": "Actual WinFsp locked RAM mounted handoff, retained Win32 handles, CPU recovery after candidate capacity rejection, selected-image continuation Flush and independent verification. Explicit hosted controller request and synthetic fixture."
+  },
+  "source_routing": {
+    "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+    "job": 130166136848,
+    "queries": 6,
+    "source_sha256": "2eb25b2d2dc6fb2865f08b82391503c0c509bbdc15779c7771d1a15b8feb4ff9",
+    "confirmation": "WinFsp adapter, session and writable probe live source."
+  },
+  "safety": {
+    "development": "native repository APIs and disposable hosted VMs",
+    "owner_pc": "Bounded unmounted locked-RAM CPU probe executed once after exact VM qualification. Six public real files preserved. No driver/GPU/mount execution. Modest verified HDD source/tool/report staging only; never filesystem backing.",
+    "no_raw_device_or_partition_ops": true,
+    "no_local_processes_started": false,
+    "gpu_execution_qualified": false,
+    "default_cpu": true,
+    "probes": {
+      "image_bytes": 4194304,
+      "report_bytes": 2048,
+      "report_files": 2,
+      "child_mib": 128,
+      "cpu_rate": 2000,
+      "processes_per_child_job": 1,
+      "normal_seconds": 30,
+      "killed_source_seconds": 15,
+      "priority": "below-normal"
+    },
+    "local_process_scope": "Read-only host discovery, successful bounded GitHub alerts API read, and 118663 bytes of CREATE_NEW public corpus downloads only; all observed own processes exited.",
+    "ram_host_probe": {
+      "qualification": "pending exact-commit hosted execution",
+      "locked_cap_bytes": 41943040,
+      "expected_locked_peak_bytes": 33816576,
+      "child_mib": 128,
+      "cpu_rate": 2000,
+      "timeout_ms": 15000,
+      "processes": 1,
+      "headroom_reserve_bytes": 2147483648,
+      "mounted": false,
+      "gpu": false
+    }
+  },
+  "pending_implementation": {
+    "scope": "Supervised HIP decode endpoint and complete SDK bundle admission",
+    "primary_files": [
+      "src/windows/hip_worker_main.cpp",
+      "src/windows/hip_decode_worker.cpp",
+      "tests/rocm_compile/worker_probe.cpp"
+    ],
+    "docs": [
+      "docs/HIP_RUNTIME_WORKER.md"
+    ],
+    "check_exact_current_head_ci": true,
+    "gpu_execution_qualified": false
+  },
+  "remaining": [
+    "authenticated request-bound kernel/helper authority for functional owner/group changes and mounted ACL enforcement",
+    "unresolved-session recovery and cancellation/overwrite/mapped delivery",
+    "production persistent helper/app/installer and latest Windows 11 client qualification",
+    "scale/history reclamation and compression portfolio/performance comparisons",
+    "live AMD runtime, event/evidence-driven CPU fallback and installation independence",
+    "low-priority adaptive learning/maintenance and payload-replica repair",
+    "RAM-backed mounted host path and existing-driver exact-version qualification; CPU core probe is not a mount",
+    "volume-head integration with live session/controller, reader pins and safe source retirement/reclamation"
+  ],
+  "efficiency_rules": [
+    "Read ledger and applicable AGENTS; verify current main/CI before trusting cached state.",
+    "Use exact paths/symbols and bounded excerpts; semantic routing receipts before new broad navigation; source confirmation required.",
+    "Batch independent native reads. Reuse immutable same-commit captures; refresh only changed/uncertain evidence.",
+    "One bounded design decision then implement/test; avoid repeated speculative replanning and unchanged status narration.",
+    "Inspect only failure/evidence log lines first; retain full native logs by job handle.",
+    "No cosmetic-only result push; fold executed-result ledger/doc updates into next substantive validated implementation.",
+    "Never save tokens by reducing tests, source research, safety/quality, or inventing evidence."
+  ],
+  "source_notes": {
+    "skills": "mandatory caveman, cocoindex-code, crawl4ai-research; do not change unrelated shared provider registrations",
+    "page_reading": "reviewed hosted Crawl4AI; exact native API/package/archive captures retain native transports",
+    "no_delegation": true,
+    "no_archive_product_routes": true
+  },
+  "prior_metadata_attempt": {
+    "run": 42872599532,
+    "first_failure": "Zstd configure exceeded unchanged 60-second build limit before filesystem tests; runner cleaned orphan vctip",
+    "retry_job": 130030452620,
+    "conclusion": "success"
+  },
+  "dependabot": {
+    "date": "2026-11-10",
+    "repository": "strmt7/FlitzFS",
+    "transport": "Authenticated installed GitHub CLI native REST API, no prompts",
+    "endpoint": "repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100",
+    "success": true,
+    "open_alerts": 0,
+    "page": 1,
+    "per_page": 100,
+    "complete": true,
+    "owned_cli_exit_confirmed": true,
+    "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
+  },
+  "owner_ram_checkpoint": {
+    "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+    "vm_run": 42912401069,
+    "vm_job": 130166137025,
+    "result": "complete",
+    "real_files": 6,
+    "source_bytes": 118663,
+    "locked_peak": 33816576,
+    "locked_after": 0,
+    "handles": [
+      45,
+      45
+    ],
+    "child_peak_commit": 37949440,
+    "sources_unchanged": true,
+    "own_processes_after": 0,
+    "source_reference": "docs/HOST_RAM_VALIDATION.json",
+    "mounted": false,
+    "gpu": false
+  }
+}

@@ -1,0 +1,69 @@
+name: Pinned compression-mechanism reference checks
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  extent-reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Verify filesystem product scope
+        run: python tools/ci/verify_filesystem_scope.py
+      - name: Check out pinned mechanism source for test comparison only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: strmt7/FlitzZip
+          ref: 4e6a1bb0d144611a09dcbc65276faa676e923882
+          path: .ci-deps/flitzzip
+          sparse-checkout: src/core
+          persist-credentials: false
+      - name: Check out latest pinned Zstandard source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - name: Check out latest pinned LZ4 source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lz4/lz4
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
+          path: .ci-deps/lz4
+          persist-credentials: false
+      - name: Build source-pinned bounded native codecs
+        run: python tools/ci/build_linux_codecs.py
+      - name: Configure test-only extent decoder reference
+        run: >-
+          cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build-oracle -DCMAKE_BUILD_TYPE=Release
+          -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
+          -DFLITZFS_EXTENT_REFERENCE_SOURCE=${{ github.workspace }}/.ci-deps/flitzzip
+      - name: Build with at most two workers
+        run: cmake --build build-oracle --parallel 2
+      - name: Verify compression mechanisms and portable filesystem tests
+        run: ctest --test-dir build-oracle --output-on-failure --timeout 45 --parallel 1

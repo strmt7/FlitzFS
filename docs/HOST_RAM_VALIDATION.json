@@ -1,0 +1,360 @@
+{
+  "experimental": true,
+  "date": "2026-11-10",
+  "commit": "44f1e412d27f78a6b3c6ab2da7504c169d2bdc11",
+  "vm": {
+    "run": 42905800463,
+    "job": 130143326689,
+    "complete": true,
+    "pe_imports": [
+      "kernel32.dll"
+    ],
+    "delay_imports": false,
+    "real_files": 3,
+    "locked_peak": 33816576,
+    "locked_after": 0,
+    "handles": [
+      44,
+      44
+    ],
+    "peak_committed": 38612992,
+    "negative_cases": [
+      "existing report retained, exact exit 1",
+      "direct unbounded child rejected before locked storage, exact exit 1"
+    ]
+  },
+  "artifact": {
+    "id": 13805970230,
+    "archive_sha256": "1b151b41700fbdfa18badfbe7af1038c6b1410045cfee09c67a517dc3a602142",
+    "exe_sha256": "1E3E18C8E8F2D8EF893EE57BE219A77F3188CD3F78F7082C8F3C3046D9678A0F"
+  },
+  "owner_cpu": {
+    "result": {
+      "experimental": true,
+      "commit": "44f1e412d27f78a6b3c6ab2da7504c169d2bdc11",
+      "backing": "locked_RAM_model",
+      "mounted": false,
+      "gpu": false,
+      "real_files": 6,
+      "zstd_version": 10507,
+      "head_bytes": 131072,
+      "locked_peak": 33816576,
+      "locked_after": 0,
+      "handles_before": 45,
+      "handles_after": 45,
+      "synthetic_raw": {
+        "input": 131072,
+        "source": 720896,
+        "payload": 131370,
+        "compacted": 458752,
+        "write_ns": 429200,
+        "read_ns": 94600,
+        "compact_ns": 567900
+      },
+      "synthetic_auto": {
+        "input": 131072,
+        "source": 655360,
+        "payload": 65636,
+        "compacted": 393216,
+        "write_ns": 671000,
+        "read_ns": 100500,
+        "compact_ns": 511100
+      },
+      "real_raw": {
+        "input": 118663,
+        "source": 1048576,
+        "payload": 459406,
+        "compacted": 786432,
+        "write_ns": 827700,
+        "read_ns": 148300,
+        "compact_ns": 1680400
+      },
+      "real_auto": {
+        "input": 118663,
+        "source": 589824,
+        "payload": 37073,
+        "compacted": 327680,
+        "write_ns": 2331100,
+        "read_ns": 289100,
+        "compact_ns": 2153300
+      },
+      "cpu_verified": true,
+      "resident_verified": true,
+      "complete": true
+    },
+    "parent_exit_confirmed": true,
+    "child_peak_committed": 38834176,
+    "sources_unchanged": true,
+    "owned_probe_processes_after": 0,
+    "staged_bytes_after": 1704949
+  },
+  "corpus": {
+    "SourceCommit": "342a2fad3c5cc7ba36ca3c1542cf8a8c18fff345",
+    "CorpusBytes": 118663,
+    "Files": [
+      {
+        "Name": "vscode-README.md",
+        "Uri": "https://raw.githubusercontent.com/microsoft/vscode/342a2fad3c5cc7ba36ca3c1542cf8a8c18fff345/README.md",
+        "Kind": "text",
+        "HttpStatus": 200,
+        "Bytes": 6728,
+        "SHA256": "45A411A3B8D49556FBAA73601BEFC458AB10AD873FCA9088136888C89ABB8935",
+        "Success": true,
+        "Error": null
+      },
+      {
+        "Name": "vscode-package.json",
+        "Uri": "https://raw.githubusercontent.com/microsoft/vscode/342a2fad3c5cc7ba36ca3c1542cf8a8c18fff345/package.json",
+        "Kind": "json",
+        "HttpStatus": 200,
+        "Bytes": 14206,
+        "SHA256": "A5129E8F1E88FB26FC66EC5596F2AE203CC2997FABE5771BED7BAC313D7BA33B",
+        "Success": true,
+        "Error": null
+      },
+      {
+        "Name": "vscode-strings.ts",
+        "Uri": "https://raw.githubusercontent.com/microsoft/vscode/342a2fad3c5cc7ba36ca3c1542cf8a8c18fff345/src/vs/base/common/strings.ts",
+        "Kind": "source",
+        "HttpStatus": 200,
+        "Bytes": 92977,
+        "SHA256": "F34E9C1E27BAB35F29547E1E9CACFD5EB9C32DD5ACFD40148DBF5397E3804A56",
+        "Success": true,
+        "Error": null
+      },
+      {
+        "Name": "vscode-code.png",
+        "Uri": "https://raw.githubusercontent.com/microsoft/vscode/342a2fad3c5cc7ba36ca3c1542cf8a8c18fff345/resources/linux/code.png",
+        "Kind": "png",
+        "HttpStatus": 200,
+        "Bytes": 2721,
+        "SHA256": "A51653AF6534E0637D91B55EBD5F63F989302071D67A0724E48ADFC16624B0A7",
+        "Success": true,
+        "Error": null
+      },
+      {
+        "Name": "vscode-LICENSE.txt",
+        "Uri": "https://raw.githubusercontent.com/microsoft/vscode/342a2fad3c5cc7ba36ca3c1542cf8a8c18fff345/LICENSE.txt",
+        "Kind": "license",
+        "HttpStatus": 200,
+        "Bytes": 1088,
+        "SHA256": "9480271317925265E806A9A196AAA33410A962FA9D4D1E248A4A5187BC8C9DF9",
+        "Success": true,
+        "Error": null
+      },
+      {
+        "Name": "noaa-2026-01001099999.csv",
+        "Uri": "https://www.ncei.noaa.gov/data/global-summary-of-the-day/access/2026/01001099999.csv",
+        "Kind": "csv",
+        "HttpStatus": 404,
+        "Bytes": 0,
+        "SHA256": null,
+        "Success": false,
+        "Error": "HTTP 404"
+      }
+    ],
+    "Extra": {
+      "Uri": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.csv",
+      "CreatedUtc": "2026-11-10T21:05:02.7152112Z",
+      "HttpStatus": 200,
+      "Bytes": 943,
+      "SHA256": "1A544759044A3D712BDC505A0107A7F94BB83E1FCACA9563BD98609283915339",
+      "Success": true,
+      "Error": null,
+      "Purpose": "Real source corpus; no filesystem disk backing"
+    }
+  },
+  "scope": "One unmounted locked-RAM CPU model run; no driver load/change, GPU execution, idle recompression, physical-power durability or comparative filesystem benchmark. Full image bytes exceed this tiny corpus despite active payload reduction. Existing source encodings are copied by compact().",
+  "post_compression_checkpoint": {
+    "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+    "vm": {
+      "run": 42907446341,
+      "job": 130149036072,
+      "complete": true
+    },
+    "artifact": {
+      "id": 13805297877,
+      "archive_sha256": "bba2849625176b2d634ea7ae36ee51b2a6eda68ae701c553bb4af7727d5f76e1",
+      "exe_sha256": "FD0552121E1C836E92E218CE43139892F1F7EB0BDB81B42C456B360081281148"
+    },
+    "owner_cpu": {
+      "result": {
+        "experimental": true,
+        "commit": "a69df2d36d5e9db760e92ed76228b785d4d2491b",
+        "backing": "locked_RAM_model",
+        "mounted": false,
+        "gpu": false,
+        "real_files": 6,
+        "zstd_version": 10507,
+        "head_bytes": 131072,
+        "locked_peak": 33816576,
+        "locked_after": 0,
+        "handles_before": 45,
+        "handles_after": 45,
+        "synthetic_raw": {
+          "input": 131072,
+          "source": 720896,
+          "payload": 131370,
+          "compacted": 458752,
+          "target_payload": 131370,
+          "write_ns": 505800,
+          "read_ns": 101100,
+          "compact_ns": 706400
+        },
+        "synthetic_auto": {
+          "input": 131072,
+          "source": 655360,
+          "payload": 65636,
+          "compacted": 393216,
+          "target_payload": 65636,
+          "write_ns": 614100,
+          "read_ns": 91900,
+          "compact_ns": 516000
+        },
+        "real_raw": {
+          "input": 118663,
+          "source": 1048576,
+          "payload": 459406,
+          "compacted": 786432,
+          "target_payload": 459406,
+          "write_ns": 828800,
+          "read_ns": 148400,
+          "compact_ns": 1650800
+        },
+        "real_auto": {
+          "input": 118663,
+          "source": 589824,
+          "payload": 37073,
+          "compacted": 327680,
+          "target_payload": 37072,
+          "write_ns": 2579400,
+          "read_ns": 363600,
+          "compact_ns": 2165600
+        },
+        "synthetic_post": {
+          "input": 131072,
+          "source": 720896,
+          "payload": 131370,
+          "compacted": 393216,
+          "target_payload": 65636,
+          "write_ns": 306900,
+          "read_ns": 92400,
+          "compact_ns": 800000
+        },
+        "real_post": {
+          "input": 118663,
+          "source": 1048576,
+          "payload": 459406,
+          "compacted": 327680,
+          "target_payload": 37072,
+          "write_ns": 1008000,
+          "read_ns": 234700,
+          "compact_ns": 3860800
+        },
+        "cpu_verified": true,
+        "resident_verified": true,
+        "complete": true
+      },
+      "parent_exit_confirmed": true,
+      "child_peak_committed": 38834176,
+      "sources_unchanged": true,
+      "owned_probe_processes_after": 0,
+      "staged_bytes_before_report": 3293480
+    },
+    "scope": "Explicit CPU raw-to-automatic recompression in locked RAM, no managed-session handoff, mount, GPU, idle scheduler or physical-power proof."
+  },
+  "managed_session_checkpoint": {
+    "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+    "vm": {
+      "run": 42912401069,
+      "job": 130166137025
+    },
+    "artifact": {
+      "archive_sha256": "0d305b437818f4592130280a6d0ab3df40ee29c74859e6be82638c2da858a5ef",
+      "exe_sha256": "A2EBB51D14D56D29B6924420FD1BCCCE2F926BDFD266D6A97B5615FE097F8008"
+    },
+    "owner_cpu": {
+      "result": {
+        "experimental": true,
+        "commit": "60ea52182b2496956b8fdfb71dfad86e8c192799",
+        "backing": "locked_RAM_model",
+        "mounted": false,
+        "gpu": false,
+        "real_files": 6,
+        "zstd_version": 10507,
+        "head_bytes": 131072,
+        "locked_peak": 33816576,
+        "locked_after": 0,
+        "handles_before": 45,
+        "handles_after": 45,
+        "synthetic_raw": {
+          "input": 131072,
+          "source": 1310720,
+          "payload": 131370,
+          "compacted": 458752,
+          "target_payload": 131370,
+          "write_ns": 882600,
+          "read_ns": 145200,
+          "compact_ns": 3444500
+        },
+        "synthetic_auto": {
+          "input": 131072,
+          "source": 1245184,
+          "payload": 65643,
+          "compacted": 393216,
+          "target_payload": 65644,
+          "write_ns": 1166000,
+          "read_ns": 66800,
+          "compact_ns": 2947700
+        },
+        "real_raw": {
+          "input": 118663,
+          "source": 3211264,
+          "payload": 459406,
+          "compacted": 786432,
+          "target_payload": 459406,
+          "write_ns": 2442100,
+          "read_ns": 269100,
+          "compact_ns": 11317000
+        },
+        "real_auto": {
+          "input": 118663,
+          "source": 2752512,
+          "payload": 37100,
+          "compacted": 327680,
+          "target_payload": 37100,
+          "write_ns": 3921100,
+          "read_ns": 243400,
+          "compact_ns": 18706200
+        },
+        "synthetic_post": {
+          "input": 131072,
+          "source": 1310720,
+          "payload": 131370,
+          "compacted": 393216,
+          "target_payload": 65644,
+          "write_ns": 757200,
+          "read_ns": 83400,
+          "compact_ns": 3366600
+        },
+        "real_post": {
+          "input": 118663,
+          "source": 3211264,
+          "payload": 459406,
+          "compacted": 327680,
+          "target_payload": 37100,
+          "write_ns": 2654900,
+          "read_ns": 165500,
+          "compact_ns": 16241200
+        },
+        "cpu_verified": true,
+        "resident_verified": true,
+        "complete": true
+      },
+      "parent_exit_confirmed": true,
+      "sources_unchanged": true,
+      "owned_probe_processes_after": 0,
+      "child_peak_commit": 37949440
+    }
+  }
+}

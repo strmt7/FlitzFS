@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "repository": "winfsp/winfsp",
+  "tag": "v2.2B5",
+  "prerelease": true,
+  "source_commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
+  "msi_name": "winfsp-2.2.26286.msi",
+  "url": "https://github.com/winfsp/winfsp/releases/download/v2.2B5/winfsp-2.2.26286.msi",
+  "bytes": 2207744,
+  "sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+  "release_url": "https://github.com/winfsp/winfsp/releases/tag/v2.2B5",
+  "policy": "Hosted development candidate: upstream security/deadlock fixes beyond latest-stable v2.1. Not owner-PC installation or production qualification."
+}

@@ -1,0 +1,63 @@
+name: Isolated semantic source routing
+on:
+  push:
+    branches: [main]
+    paths:
+      # Match the provider's inventory suffixes, including tools and CMake.
+      - '**/*.c'
+      - '**/*.h'
+      - '**/*.cc'
+      - '**/*.cpp'
+      - '**/*.hpp'
+      - '**/*.cxx'
+      - '**/*.hip'
+      - '**/*.py'
+      - '**/*.ps1'
+      - '**/*.rs'
+      - '**/CMakeLists.txt'
+      - '!tests/**'
+      - '!third_party/**'
+      - '!.github/**'
+      - '.github/workflows/semantic-routing.yml'
+permissions:
+  contents: read
+jobs:
+  source-bound-cpu-index:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+          check-latest: true
+      - name: Verify hostile-wheel and authoritative-digest rejection
+        run: python tools/ci/test_hosted_semantic.py
+      - name: Resolve verified CPU-only tools and perform actual source-bound searches
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          python_path="$(command -v python)"
+          sudo systemd-run --wait --collect --pipe --service-type=exec \
+            --uid="$(id -u)" --property=MemoryMax=3G --property=MemorySwapMax=0 \
+            --property=CPUQuota=200% --property=TasksMax=256 --property=RuntimeMaxSec=1200 \
+            --property=Nice=19 --property=LimitCORE=0 --property=LimitFSIZE=1G \
+            --setenv=GITHUB_ACTIONS=true --setenv=RUNNER_ENVIRONMENT=github-hosted \
+            --setenv="GITHUB_SHA=$GITHUB_SHA" --setenv="RUNNER_TEMP=$RUNNER_TEMP" \
+            --setenv="LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" \
+            "$python_path" "$GITHUB_WORKSPACE/tools/ci/hosted_semantic.py" \
+            --output "$RUNNER_TEMP/flitzfs-semantic"
+      - name: Retain native resolver, model, source and actual-search receipts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: semantic-routing-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/flitzfs-semantic/*.json
+            ${{ runner.temp }}/flitzfs-semantic/*.lock
+            ${{ runner.temp }}/flitzfs-semantic/*.log
+          retention-days: 30
+          if-no-files-found: warn

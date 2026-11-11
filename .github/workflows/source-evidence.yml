@@ -1,0 +1,60 @@
+name: Commit-bound source evidence
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+  checks: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Use qualified Python for bounded native diagnostics
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Capture native startup failures without rerunning or changing jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python tools/ci/workflow_diagnostics.py
+          --head-sha 69aca1c9a09c7f684694ee9498b500fb9594a223
+          --head-sha d9e0b712e9e3af783db9b6e8615e92f2612d4f3b
+          --output "${{ runner.temp }}/workflow-startup-diagnostics"
+      - name: Retain native statuses, annotations and access failures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: workflow-startup-diagnostics-${{ github.sha }}
+          path: ${{ runner.temp }}/workflow-startup-diagnostics
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Package tracked source only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git archive --format=zip HEAD -o "$RUNNER_TEMP/flitzfs-source.zip"
+          source_bytes="$(stat -c '%s' "$RUNNER_TEMP/flitzfs-source.zip")"
+          printf 'Tracked source archive bytes: %s\n' "$source_bytes"
+          test "$source_bytes" -le 2097152
+          printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TEMP/source-commit.txt"
+          cd "$RUNNER_TEMP"
+          sha256sum flitzfs-source.zip > source-sha256.txt
+      - name: Retain exact source without binaries or SDKs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/flitzfs-source.zip
+            ${{ runner.temp }}/source-commit.txt
+            ${{ runner.temp }}/source-sha256.txt
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0

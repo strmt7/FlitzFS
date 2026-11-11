@@ -1,0 +1,42 @@
+name: Recovery streak regression proof
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/gpu_recovery.cpp'
+      - 'tests/test_gpu_recovery.cpp'
+      - '.github/workflows/recovery-regression.yml'
+permissions:
+  contents: read
+jobs:
+  before-after:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: f3ab1c5e8b55a5628010db31cd437d2b526d99a1
+          path: .ci-prior
+          persist-credentials: false
+      - name: Build prior raw CPU implementation and the strengthened regression
+        run: |
+          cmake -S .ci-prior -B prior-build -DCMAKE_BUILD_TYPE=Release -DFLITZFS_BUILD_TESTS=OFF -DFLITZFS_WITH_ZSTD=OFF -DFLITZFS_WITH_ZLIB=OFF -DFLITZFS_WITH_LZ4=OFF
+          cmake --build prior-build --parallel 2
+          c++ -std=c++20 -O2 -I .ci-prior/include tests/test_gpu_recovery.cpp prior-build/libflitzfs_core.a -o prior-regression
+      - name: Require the exact prior failure rather than accepting any error
+        run: |
+          set +e
+          timeout 10s ./prior-regression > prior-result.txt 2>&1
+          status=$?
+          set -e
+          cat prior-result.txt
+          test "$status" -eq 1
+          grep -Fx 'interrupted incompatible evidence retained health streak' prior-result.txt
+      - name: Build corrected implementation and require all recovery checks to pass
+        run: |
+          cmake -S . -B fixed-build -DCMAKE_BUILD_TYPE=Release -DFLITZFS_WITH_ZSTD=OFF -DFLITZFS_WITH_ZLIB=OFF -DFLITZFS_WITH_LZ4=OFF
+          cmake --build fixed-build --target flitzfs_gpu_recovery_tests --parallel 2
+          ctest --test-dir fixed-build -R '^bounded_gpu_recovery_policy$' --output-on-failure --timeout 10 --parallel 1
