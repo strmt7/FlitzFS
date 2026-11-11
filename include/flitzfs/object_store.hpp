@@ -176,6 +176,7 @@ class ObjectStoreWriter final {
  private:
   friend class NativeFilesystemWriter;
   class Rewrite;
+  std::uint64_t generation_for_staging() const noexcept;
   Rewrite prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t,std::span<const std::byte>,StoreCompressionOptions,StoreCheckpointOptions) const;
   StoreCommitInfo commit_impl(std::span<const StoreMutation> mutations,bool replicated);
@@ -200,6 +201,7 @@ class ObjectStoreWriter::Rewrite final {
   ~Rewrite();
   bool matches(const ObjectStoreWriter& writer) const noexcept;
   bool ready() const noexcept;
+  bool saves_space() const;
   bool advance(); // At most one live object.
   ObjectStoreWriter finish();
  private:

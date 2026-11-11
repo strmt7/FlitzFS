@@ -70,6 +70,10 @@ class WinFspNativeSession final {
   HostedVolumeMaintenanceResult recompress_managed_hosted(
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
       StoreCompressionOptions candidate={});
+  HostedIdleMaintenanceResult begin_idle_recompression_hosted(
+      std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
+      StoreCompressionOptions candidate={});
+  HostedIdleMaintenanceResult idle_recompression_hosted(HostedIdleMaintenanceAction);
   void stop() noexcept;
   SessionState state() const noexcept{return state_;}
   bool requires_offline() const noexcept;

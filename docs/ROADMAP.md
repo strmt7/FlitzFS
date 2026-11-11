@@ -564,3 +564,9 @@ Incremental recompression now gives a managed session one-record work units and
 generation-checked candidate cancellation. Next, qualify event-driven admission
 under foreground contention and bound final verification/publication latency.
 The measured host corpus result used explicit CPU recompression in locked RAM.
+
+The hosted WinFsp maintenance trial now consumes explicit quiet opportunities,
+rejects inadequate measured savings and avoids duplicate work on an
+acknowledged generation. Remaining work includes trusted event delivery,
+bounded final verification latency and workload-based codec selection with
+qualified AMD acceleration and immediate CPU fallback.

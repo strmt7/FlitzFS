@@ -112,6 +112,18 @@ HostedVolumeMaintenanceResult WinFspNativeSession::recompress_managed_hosted(
     throw std::runtime_error("hosted writable mount is not running");
   return adapter_->recompress_managed_hosted(std::move(target),next,candidate);
 }
+
+HostedIdleMaintenanceResult WinFspNativeSession::begin_idle_recompression_hosted(
+    std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) {
+  if(state_!=SessionState::running||!adapter_||requires_offline()||dispatcher_stopped())
+    throw std::runtime_error("mounted session is unavailable for idle maintenance");
+  return adapter_->begin_idle_recompression_hosted(std::move(target),next,candidate);
+}
+HostedIdleMaintenanceResult WinFspNativeSession::idle_recompression_hosted(HostedIdleMaintenanceAction action) {
+  if(state_!=SessionState::running||!adapter_||requires_offline()||dispatcher_stopped())
+    throw std::runtime_error("mounted session is unavailable for idle maintenance");
+  return adapter_->idle_recompression_hosted(action);
+}
 void WinFspNativeSession::release() noexcept {
   if(!filesystem_)return;
   if(dispatcher_attempted_)api_.stop_dispatcher(filesystem_);

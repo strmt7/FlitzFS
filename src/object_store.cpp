@@ -512,6 +512,8 @@ struct ObjectStoreWriter::Rewrite::Impl {
        replacement_id(replace_id),source_extent(original.image->extent()),reencode(encode_all) {
     if(original.generation==0 || original.generation>(std::numeric_limits<std::uint64_t>::max)()-2)
       fail("compaction generation unavailable");
+    if(source_extent<original.end || source_extent>kStoreMaxPhysicalBytes)
+      fail("compaction source extent is outside the admitted snapshot");
     target_writer=std::make_unique<ObjectStoreWriter::Impl>(options,target);
     if(target->extent()!=0)fail("compaction requires a new empty target");
     admit_contract(target->contract());
@@ -608,6 +610,16 @@ bool ObjectStoreWriter::Rewrite::matches(const ObjectStoreWriter& writer) const 
 bool ObjectStoreWriter::Rewrite::ready() const noexcept {
   return impl_ && impl_->next==impl_->baseline.entries.size();
 }
+bool ObjectStoreWriter::Rewrite::saves_space() const {
+  if(!ready())fail("rewrite copy is incomplete");
+  const auto before=impl_->source_extent;
+  const auto after=replicated_plan(impl_->baseline,impl_->cursor).last.end;
+  // Require a full checkpoint unit and at least one eighth of the previous
+  // backing. This threshold applies to idle work, never to explicit rewrites.
+  const auto minimum=(std::max)(kStoreCommitUnit,(before+7)/8);
+  return after<before && before-after>=minimum &&
+      state_info(impl_->baseline).stored_payload_bytes<=state_info(impl_->original).stored_payload_bytes;
+}
 bool ObjectStoreWriter::Rewrite::advance() {
   if(!impl_)fail("no usable rewrite");
   if(ready())return true;
@@ -619,6 +631,10 @@ ObjectStoreWriter ObjectStoreWriter::Rewrite::finish() {
   if(!ready())fail("rewrite copy is incomplete");
   auto candidate=std::move(impl_);
   return candidate->publish();
+}
+
+std::uint64_t ObjectStoreWriter::generation_for_staging() const noexcept {
+  return impl_?impl_->state.generation:0;
 }
 
 ObjectStoreWriter::Rewrite ObjectStoreWriter::prepare_recompression(

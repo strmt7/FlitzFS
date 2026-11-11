@@ -366,6 +366,7 @@ class NativeFilesystemWriter final {
   Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,StoreCheckpointOptions) const;
   bool matches_recompression(const Recompression&) const noexcept;
+  std::uint64_t recompression_generation() const noexcept;
   static bool advance_recompression(Recompression&);
   static void finish_recompression(Recompression&);
   struct Impl;
