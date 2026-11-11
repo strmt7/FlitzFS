@@ -148,7 +148,7 @@ void idle_recompression(bool compact) {
   Fixture f(compact,StoreCompressionMode::automatic);
   const auto source=f.source->live,head=f.head->live;
   const auto initial=f.session.snapshot().storage_info();
-  require(initial.stored_payload_bytes<65536,"idle fixture did not compress its payload");
+  require(initial.stored_payload_bytes<initial.logical_bytes,"idle fixture did not compress its payload");
   require(f.session.begin_idle_recompression(f.target,id(2),{StoreCompressionMode::raw,6,false},{compact}),
       "first idle opportunity was suppressed");
   for(std::size_t step=1;step<=initial.objects;++step) {
