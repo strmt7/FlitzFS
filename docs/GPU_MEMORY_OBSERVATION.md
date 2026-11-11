@@ -106,3 +106,14 @@ The next hardware observation is one bounded explicit request, not a retry loop.
 Use its measured counters with current official semantics to design and test
 bounded local/nonlocal/RAM admission. Do not infer zero paging, global free VRAM,
 speed, production readiness or universal driver safety from these samples.
+
+## Initial qualification correction
+
+bc6d18d6ca34a99a218ccd4c6aab9b4f6e0569b1 passed Linux raw/codec tests
+(113 codec groups) and complete-SDK qualification. The Windows transport
+fixture stopped because its 12-byte malformed request was correctly refused by
+the supervisor's minimum-frame guard, before a child could be launched.
+The test now separately requires that supervisor rejection/released admission,
+then uses a full-size request with corrupt magic for child rejection and
+failure-empty output. No transport or product admission rule is relaxed.
+The corrected test requires its own executed Windows result before owner use.

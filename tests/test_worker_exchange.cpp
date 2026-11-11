@@ -942,7 +942,9 @@ int wmain(int argc,wchar_t** argv){try{
     check(failed.code==WorkerExchangeCode::worker_failed && failed.process.exit_confirmed &&
         failed.response.empty(),"failed memory fixture exposed a published observation");
     check_closed(failed);
-    const auto malformed=std::span(request).first(12);
+    rejects([&]{(void)run_worker_exchange(executable,{L"memory-metadata"},std::span(request).first(12));});
+    check(WorkerExchangeSession::available(),"invalid memory fixture held supervisor admission");
+    auto malformed=request;malformed[0]^=std::byte{1}; // Full-size transport, invalid child protocol.
     const auto refused=run_worker_exchange(executable,{L"memory-metadata"},malformed);
     check(refused.code==WorkerExchangeCode::worker_failed && refused.process.exit_confirmed &&
         refused.response.empty(),"malformed memory fixture request exposed metadata");
