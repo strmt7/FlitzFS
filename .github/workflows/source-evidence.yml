@@ -40,7 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          git archive --format=zip HEAD -o "$RUNNER_TEMP/flitzfs-source.zip"
+          git archive -9 --format=zip HEAD -o "$RUNNER_TEMP/flitzfs-source.zip"
           source_bytes="$(stat -c '%s' "$RUNNER_TEMP/flitzfs-source.zip")"
           printf 'Tracked source archive bytes: %s\n' "$source_bytes"
           test "$source_bytes" -le 2097152
