@@ -106,9 +106,10 @@ HandleTypes handle_types() {
       name.clear();
       for(std::size_t i=0;i<entry.TypeNameLength/sizeof(wchar_t);++i) {
         const auto ch=entry.TypeName[i];
-        require((ch>=L'a'&&ch<=L'z')||(ch>=L'A'&&ch<=L'Z')||(ch>=L'0'&&ch<=L'9')||
-            ch==L' '||ch==L'_',"handle type-name alphabet");
-        name+=static_cast<char>(ch);
+        if(!ch)break; // A terminator is permitted, but is not required.
+        if((ch>=L'a'&&ch<=L'z')||(ch>=L'A'&&ch<=L'Z')||(ch>=L'0'&&ch<=L'9')||
+            ch==L' '||ch==L'_')name+=static_cast<char>(ch);
+        else name+="_u"+std::to_string(static_cast<unsigned>(ch));
       }
     }
     ++types[name];
@@ -121,6 +122,29 @@ void print_handle_types(std::ostream& out,const HandleTypes& types) {
   out<<'{';bool first=true;
   for(const auto& [name,count]:types){if(!first)out<<',';first=false;out<<'"'<<name<<"\":"<<count;}
   out<<'}';
+}
+void hosted_only() {
+  const auto* actions=std::getenv("GITHUB_ACTIONS");
+  const auto* runner=std::getenv("RUNNER_ENVIRONMENT");
+  require(actions&&std::string_view(actions)=="true"&&runner&&
+      std::string_view(runner)=="github-hosted","disposable hosted runner required");
+}
+std::array<DWORD,10> wait_accounting() {
+  std::array<DWORD,10> counts{};
+  require(GetProcessHandleCount(GetCurrentProcess(),&counts[0]),"wait handle baseline");
+  CONDITION_VARIABLE ready=CONDITION_VARIABLE_INIT;
+  SRWLOCK mutex=SRWLOCK_INIT;
+  for(std::size_t i=1;i<counts.size();++i) {
+    AcquireSRWLockExclusive(&mutex);
+    const auto woke=SleepConditionVariableSRW(&ready,&mutex,1,0);
+    const auto error=GetLastError();
+    ReleaseSRWLockExclusive(&mutex);
+    require(woke||error==ERROR_TIMEOUT,"native wait accounting failed");
+    require(GetProcessHandleCount(GetCurrentProcess(),&counts[i]),"wait handle observation");
+    if(i>1)require(counts[i]==counts[1],"repeated native wait handle growth");
+  }
+  require(counts[1]>=counts[0]&&counts[1]-counts[0]<=1,"unexpected native wait initialization");
+  return counts;
 }
 StoreIdentity identity(unsigned n){StoreIdentity id{};id[0]=static_cast<std::byte>(n);id[1]=std::byte{73};return id;}
 std::uint64_t elapsed(std::chrono::steady_clock::time_point start) {
@@ -331,6 +355,16 @@ int wmain(int argc,wchar_t** argv) {
         "handle phase observation failed");
   };
   try {
+    if(argc>1&&std::wstring_view(argv[1])==L"--wait-accounting-ci") {
+      require(argc==3,"wait accounting requires NEW_REPORT");hosted_only();
+      report=std::make_unique<Report>(argv[2]);
+      const gpu_probe_fixture::Budget budget;
+      const auto counts=wait_accounting();
+      std::ostringstream out;out<<"{\"schema\":1,\"experimental\":true,\"commit\":\""
+          <<FLITZFS_GPU_RAM_SOURCE_COMMIT<<"\",\"kind\":\"native_wait_accounting\",\"gpu\":false,\"counts\":[";
+      for(std::size_t i=0;i<counts.size();++i){if(i)out<<',';out<<counts[i];}
+      out<<"],\"complete\":true}\n";report->write(out.str());std::cout<<out.str();return 0;
+    }
     const auto worker=options(argc,argv);
     report=std::make_unique<Report>(argv[2]); // Atomic CREATE_NEW before any work.
     const gpu_probe_fixture::Budget budget;
