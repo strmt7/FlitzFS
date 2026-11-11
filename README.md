@@ -383,3 +383,5 @@ The experimental HIP worker derives its dynamic API names from the selected SDK 
 The SDK worker also has a bounded metadata-only installed-runtime verifier. It holds read-only file/directory pins, checks the supervisor's expected hash and cached Authenticode, and never loads the subject. See [SYSTEM_RUNTIME_METADATA.md](docs/SYSTEM_RUNTIME_METADATA.md); installed-driver compute remains a separate gate.
 
 An explicit installed-driver worker route and bounded metadata/decode/match diagnostics are experimental. Its kernel-only artifact excludes AMD runtime files. Default filesystem operations remain CPU-only; actual hardware execution and performance require their separate gate. See [GPU_DRIVER_WORKER.md](docs/GPU_DRIVER_WORKER.md).
+
+The bounded diagnostic can discover dedicated AMD adapter identities through DXGI without HIP initialization. DXGI order is kept distinct from HIP order; the worker still validates exact identity and budgets. See [ADAPTER_IDENTITY.md](docs/ADAPTER_IDENTITY.md).

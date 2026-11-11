@@ -2,6 +2,9 @@
 #include "flitzfs/match_worker_wire.hpp"
 #include "worker_exchange.hpp"
 #include <windows.h>
+#include <dxgi1_4.h>
+#include <wrl/client.h>
+#include <bit>
 #include <cstdint>
 #include <string>
 #include <algorithm>
@@ -61,6 +64,58 @@ class ProbeBudget {
   HANDLE job_ = nullptr;
 };
 
+struct AdapterIdentity {
+  UINT dxgi_ordinal = 0;
+  std::array<std::byte,8> luid{};
+  UINT vendor = 0, device = 0;
+  std::uint64_t dedicated = 0;
+};
+void describe_adapters(const ProbeBudget& budget) {
+  std::vector<AdapterIdentity> selected;
+  selected.reserve(4);
+  Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
+  require(SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))) && factory.Get(),
+      "DXGI metadata factory unavailable");
+  bool exhausted = false;
+  UINT seen = 0;
+  for (UINT index = 0; index < 64; ++index) {
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+    const auto status = factory->EnumAdapters1(index, adapter.GetAddressOf());
+    if (status == DXGI_ERROR_NOT_FOUND) { exhausted = true; break; }
+    require(SUCCEEDED(status) && adapter.Get(), "DXGI metadata enumeration failed");
+    ++seen;
+    DXGI_ADAPTER_DESC1 description{};
+    require(SUCCEEDED(adapter->GetDesc1(&description)), "DXGI adapter description unavailable");
+    if (description.VendorId != 0x1002 || !description.DedicatedVideoMemory ||
+        (description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) continue;
+    static_assert(sizeof(LUID) == 8);
+    const auto luid = std::bit_cast<std::array<std::byte,8>>(description.AdapterLuid);
+    require(std::ranges::any_of(luid, [](std::byte value) { return value != std::byte{}; }),
+        "zero hardware adapter identity");
+    require(std::ranges::none_of(selected, [&](const auto& old) { return old.luid == luid; }),
+        "duplicate hardware adapter identity");
+    selected.push_back({index,luid,description.VendorId,description.DeviceId,description.DedicatedVideoMemory});
+  }
+  require(exhausted, "DXGI metadata adapter count cap");
+  factory.Reset();
+  std::cout << "HIP adapter metadata: {\"complete\":true,\"gpu_executed\":false,"
+      "\"hip_initialized\":false,\"adapters_seen\":" << seen << ",\"adapters\":[";
+  bool separator = false;
+  constexpr char hex[] = "0123456789abcdef";
+  for (const auto& adapter : selected) {
+    if (separator) std::cout << ',';
+    separator = true;
+    std::cout << "{\"dxgi_ordinal\":" << adapter.dxgi_ordinal << ",\"luid\":\"";
+    for (const auto byte : adapter.luid) {
+      const auto value = std::to_integer<unsigned>(byte);
+      std::cout << hex[value >> 4] << hex[value & 15];
+    }
+    std::cout << "\",\"vendor\":" << adapter.vendor << ",\"device\":" << adapter.device
+        << ",\"dedicated_bytes\":" << adapter.dedicated << ",\"probe_node_mask\":1}";
+  }
+  std::cout << "],\"controller_job_peak_commit_bytes\":" << budget.peak_commit() << "}\n";
+}
+
 bool valid_digest(std::wstring_view value) {
   return value.size() == 64 && std::ranges::all_of(value, [](wchar_t c) {
     return (c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f');
@@ -84,11 +139,13 @@ bool valid_luid(std::wstring_view value) {
 int wmain(int argc, wchar_t** argv) {
   try {
     const std::wstring_view mode = argc > 1 ? argv[1] : L"";
+    const bool discovery = mode == L"--describe-amd-adapters";
     const bool metadata = mode == L"--verify-driver-runtime";
     const bool matching = mode == L"--run-amd-driver-match-once";
     const bool driver = mode == L"--run-amd-driver-once" || matching;
-    require((metadata && argc == 4) || (driver && argc == 6) ||
+    require((discovery && argc == 2) || (metadata && argc == 4) || (driver && argc == 6) ||
         (mode == L"--run-amd-once" && argc == 5), "explicit qualified worker and probe mode required");
+    if (discovery) { const ProbeBudget budget; describe_adapters(budget); return 0; }
     const std::filesystem::path worker(argv[2]);
     require(worker.is_absolute() && worker.filename() == L"flitzfs_hip_worker.exe",
         "expected absolute qualified worker path");

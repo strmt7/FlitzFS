@@ -243,8 +243,36 @@ def main():
             kernel_only_tamper_refused=True,driver_wire_refusals=5,exits_confirmed=17,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
         report["worker_admission"]=receipts[0]
         hardware_probe=build/"Release/flitzfs_hip_hardware_probe.exe"
+        hardware_imports,hardware_delayed=pe_import_names(hardware_probe.read_bytes())
+        require(bool(hardware_imports) and not hardware_delayed and
+            set(hardware_imports)<={"kernel32.dll","advapi32.dll","bcrypt.dll","ntdll.dll","dxgi.dll"},
+            "diagnostic OS import policy")
         report["hardware_probe"]=dict(bytes=hardware_probe.stat().st_size,sha256=digest(hardware_probe),
-            imports=audit_binary(hardware_probe.read_bytes()))
+            imports=dict(format="PE32+",architecture="AMD64",os_imports=sorted(set(hardware_imports)),
+                delay_imports=False))
+        observed_adapters=run(bounds,[str(hardware_probe),"--describe-amd-adapters"],report,
+            "bounded-adapter-identity-without-HIP",15)
+        adapter_prefix="HIP adapter metadata: "
+        adapter_rows=[json.loads(line[len(adapter_prefix):]) for line in observed_adapters["stdout"].splitlines()
+            if line.startswith(adapter_prefix)]
+        require(len(adapter_rows)==1,"missing bounded adapter metadata")
+        adapter_row=adapter_rows[0]
+        require(adapter_row["complete"] is True and adapter_row["gpu_executed"] is False and
+            adapter_row["hip_initialized"] is False and type(adapter_row["adapters_seen"]) is int and
+            0<=adapter_row["adapters_seen"]<64 and isinstance(adapter_row["adapters"],list) and
+            len(adapter_row["adapters"])<=adapter_row["adapters_seen"] and
+            0<adapter_row["controller_job_peak_commit_bytes"]<=256*1024*1024,
+            "adapter metadata resource/scope mismatch")
+        luids=set()
+        for item in adapter_row["adapters"]:
+            require(item["vendor"]==0x1002 and type(item["device"]) is int and
+                0<=item["device"]<2**32 and type(item["dedicated_bytes"]) is int and
+                0<item["dedicated_bytes"]<2**64 and type(item["dxgi_ordinal"]) is int and
+                0<=item["dxgi_ordinal"]<adapter_row["adapters_seen"] and item["probe_node_mask"]==1 and
+                isinstance(item["luid"],str) and re.fullmatch(r"[a-f0-9]{16}",item["luid"]) and
+                item["luid"]!="0"*16 and item["luid"] not in luids,"invalid adapter identity")
+            luids.add(item["luid"])
+        report["hardware_probe"]["adapter_metadata"]=adapter_row
         result=run(bounds,[str(hardware_probe),"--run-amd-once",str(root/"worker-probe"/worker.name),
             "0","0100000000000000"],report,"one-shot-probe-missing-runtime",15,exit_code=2)
         prefix="HIP hardware probe: "
