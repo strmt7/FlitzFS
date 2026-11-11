@@ -79,3 +79,10 @@ CPU reader. It must report whether hints were selected, whole-image bytes and
 complete cold/warm CPU/GPU costs. No owner-mounted or physical-backed image is
 authorized. The eventual automatic low-priority resource governor and persistent
 learner remain A01–A04, not properties of this telemetry getter.
+
+## Feedback qualification and composition
+
+At d1e66f6, the updated feedback tests passed raw/codec, Windows native, sanitizer
+and SDK checks. The complete matrix still had the recurring mounted D01
+termination failure (12/13 jobs passed). NATIVE_GPU_RAM_PROBE.md describes the
+next explicit integration and its still-pending publishing-commit qualification.

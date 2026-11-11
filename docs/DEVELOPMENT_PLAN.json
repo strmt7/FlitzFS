@@ -110,9 +110,15 @@
       "checkpoint": {
         "actual_gpu_match": true,
         "source_commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
-        "native_feedback": "Implemented in publishing commit; exact-source CPU/Windows/SDK qualification pending.",
-        "next": "Compose explicit GPU match worker with existing locked-RAM backend and native-session recompression; report actual encoding selection and full-image/cold-warm cost. No native GPU compression benefit yet.",
-        "contract": "docs/RECOMPRESSION_FEEDBACK.md"
+        "native_feedback": {
+          "commit": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+          "cpu_windows_sdk_passed": true,
+          "core_run": 43013278271,
+          "mounted_crash_restart_failed": true
+        },
+        "integration": "OFF-by-default locked-RAM native match-worker composition probe implemented in publishing commit; qualification pending.",
+        "next": "Inspect matching CPU/Windows/native RAM-fixture/SDK results, repair failures, then audit source/harness before any tiny actual native GPU probe. Record actual selected encoding, whole-image bytes and complete costs; no speed benefit proved.",
+        "contract": "docs/NATIVE_GPU_RAM_PROBE.md"
       }
     },
     {

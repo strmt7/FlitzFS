@@ -11,39 +11,51 @@
     "note": "New feedback implementation needs its publishing-commit qualification. Prior accepted GPU experiments are explicitly bound to 04d884b."
   },
   "current_qualification": {
-    "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
-    "core_run": 43006974090,
-    "all_jobs": 13,
-    "conclusion": "success",
-    "native_job": 130476762510,
-    "native_groups": 131,
-    "windows_worker_exchange_checks": 1180,
-    "worker_scope": "Real Windows process exchange; CPU semantics only.",
-    "windows_raw_job": 130476762574,
-    "windows_raw_groups": 117,
-    "linux_raw_job": 130476762346,
-    "linux_codec_job": 130476762479,
-    "linux_groups_each": 113,
-    "asan_job": 130476762132,
-    "asan_groups": 113,
+    "commit": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+    "core_run": 43013278271,
+    "conclusion": "failure",
+    "jobs_passed": 12,
+    "jobs_total": 13,
+    "windows_native": {
+      "job": 130497940102,
+      "groups": 131,
+      "real_cpu_worker_assertions": 1172,
+      "passed": true
+    },
+    "asan_ubsan": {
+      "job": 130497940590,
+      "groups": 113,
+      "passed": true
+    },
+    "linux_raw": {
+      "job": 130497940731,
+      "passed": true
+    },
+    "linux_codec": {
+      "job": 130497940485,
+      "passed": true
+    },
+    "windows_raw": {
+      "job": 130497940423,
+      "passed": true
+    },
     "sdk": {
-      "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
-      "run": 43006974055,
-      "job": 130476760903,
-      "fake_api_checks": 178,
-      "admission_exit_cases": 17
+      "run": 43013278228,
+      "job": 130497939945,
+      "passed": true
     },
-    "followup": {
-      "commit": "955cd8ef000d9e7b7ae193df0506b17b6c3ac2fd",
-      "core_run": 43007699223,
-      "all_13_jobs_passed": true,
-      "exact_historical_regression_run": 43007699354,
-      "product_source_equivalent": true
+    "ram_host": {
+      "run": 43013278354,
+      "passed": true
     },
-    "limitations": [
-      "Hosted mount results do not qualify owner mounts or latest Windows 11 client product behavior.",
-      "Later green runs do not explain earlier D01 child-retirement failures."
-    ]
+    "failed_mounted_crash_restart": {
+      "job": 130502518872,
+      "evidence": "docs/evidence/retirement-failure-d1e66f6.json",
+      "root_cause": "unknown",
+      "operation_timeout": true,
+      "exit_confirmed": false
+    },
+    "scope": "Feedback API passed CPU/native/SDK checks. Full matrix did not pass. No current owner mount or native GPU filesystem pipeline is qualified."
   },
   "owner_gpu_observation": {
     "source_commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
@@ -67,10 +79,13 @@
       "status": "open",
       "runs": [
         42983895583,
-        42992856099
+        42992856099,
+        43013278271
       ],
       "failure": "15-second operation and 2-second exit observation did not confirm exit; root cause unresolved.",
-      "artifact_review": "08e75f5 crash artifact verified at SHA256 b4b69e89439bc1a73c30a1450d98c4cc03abf4a77fb928882f0ff77d6ef34dcc: acknowledgement is CPU-verified and explicitly flushed; dispatcher_stopped=false. Root cause still unknown."
+      "artifact_review": "08e75f5 crash artifact verified at SHA256 b4b69e89439bc1a73c30a1450d98c4cc03abf4a77fb928882f0ff77d6ef34dcc: acknowledgement is CPU-verified and explicitly flushed; dispatcher_stopped=false. Root cause still unknown.",
+      "latest_job": 130502518872,
+      "latest_evidence": "docs/evidence/retirement-failure-d1e66f6.json"
     }
   ],
   "next_implementation": [
@@ -110,14 +125,15 @@
     "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
   },
   "source_routing": {
-    "commit": "04d884be80dbd96024bbdb6cf0d79b5056cb0da4",
-    "artifact": 13848941999,
-    "artifact_sha256": "b15cb2a9cdc9132c48d358b790144f93327ed39e451f5649371fc66705c493f2",
-    "queries": 8,
-    "source_files": 130,
+    "commit": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+    "artifact": 13851263954,
+    "artifact_sha256": "f21071048ebd14f0f2c0f226f42ba0e8d1d61f5861a984e00e6337f50f1eac81",
     "provider": "0.2.43",
-    "source_sha256": "2ec551dc6ae0c704a8d3af90e2770c11da3177e5744f786f991ec22995d61d05",
-    "binding": "Codec query retained; store codec/header/native filesystem/HIP worker live source hashes verified at 955cd8e before this change."
+    "source_files": 130,
+    "queries": 8,
+    "source_sha256": "04abe08de7488e26cc5358c725db2353677806858c3c9751f15d68181a0b9e2a",
+    "query4": "compacted copy source preservation destination identity and safe reclamation",
+    "binding": "Native filesystem/object-store/session live source hashes verified against actual current search receipt; unrelated infrastructure self-hit not treated as code coverage."
   },
   "historical": {
     "qualified_checkpoint": {
@@ -293,13 +309,13 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "955cd8ef000d9e7b7ae193df0506b17b6c3ac2fd",
+    "source_parent": "d1e66f6132d0a5672378bebbe9880e19af105f75",
     "package": "G02",
-    "contract": "docs/RECOMPRESSION_FEEDBACK.md",
-    "behavior": "Native copied-record feedback identifies actual selected match encoding and ordinary CPU baseline bytes; advisory/no I/O/no on-disk changes.",
-    "status": "Publishing implementation unqualified until matching raw/codec/sanitizer/Windows/SDK results.",
-    "owner_execution_of_new_feedback": false,
-    "default_filesystem_cpu": true
+    "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
+    "behavior": "Explicit locked-RAM native recompression using trusted match worker and selected-encoding feedback, plus shared unchanged diagnostic budget.",
+    "status": "Publishing implementation requires matching hosted four-mode CPU fixtures, raw/codec/sanitizer/native checks and SDK refactor qualification; no owner execution.",
+    "default_filesystem_cpu": true,
+    "owner_new_probe_run": false
   },
   "resolved": [
     {

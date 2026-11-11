@@ -452,3 +452,11 @@ The new [candidate feedback API](docs/RECOMPRESSION_FEEDBACK.md) distinguishes
 supplied match proposals from an actually selected encoding and records its CPU
 baseline payload size. It is provisional, in-memory telemetry; publication and
 CPU readback remain separate. Matching implementation CI is still required.
+
+## Experimental native worker/RAM composition
+
+An OFF-by-default [native integration probe](docs/NATIVE_GPU_RAM_PROBE.md)
+composes verified match-worker proposals with native recompression, retained
+contexts, volume-head publication and independent CPU readback using locked RAM.
+Its new hosted CPU-fixture and SDK qualification are pending; it is not called
+by ordinary filesystem I/O. No native GPU speed or reduction benefit is claimed.

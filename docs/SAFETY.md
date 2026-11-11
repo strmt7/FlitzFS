@@ -723,3 +723,14 @@ Candidate copies are not durable publications; missing/stale/failed/cancelled
 feedback must not authorize learning credit, reclamation or data exposure.
 Queries perform no backing I/O or GPU operation. Existing retained-source,
 independent CPU verification and handoff barriers remain the authority.
+
+## Native locked-RAM worker composition gate
+
+The optional probe in NATIVE_GPU_RAM_PROBE.md uses only the shared locked-RAM
+backend for source, target and head; its sole ordinary output is a new bounded
+report. The existing one-process CPU RAM probe remains unchanged. The shared
+two-process diagnostic budget retains its prior caps and now needs matching SDK
+requalification after factoring. Hosted CPU fixtures run no GPU or driver.
+Actual owner execution is not qualified by source alone. The d1e66f6 full matrix
+still failed mounted crash-restart retirement (D01); no timeout was widened,
+failure suppressed or owner mount authorized.

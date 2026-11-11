@@ -641,3 +641,13 @@ The next required step is native locked-RAM recompression integration and honest
 whole-operation benefit measurement. RECOMPRESSION_FEEDBACK.md describes new
 advisory selected-encoding/baseline accounting; its implementation CI is pending.
 D01 termination-root-cause investigation remains open despite green reruns.
+
+## Native integration probe qualification
+
+G02 now has an explicit locked-RAM composition probe and four hosted CPU-worker
+scenarios. Its publishing-commit compilation, process/byte/feedback/fallback
+checks and SDK shared-budget qualification are required before a tiny actual
+native GPU trial. D1e66f6 passed core CPU/Windows/SDK checks but failed one of 13
+matrix jobs with the recurring D01 unconfirmed crash-restart child exit. Retain
+that open defect independently; no native GPU benefit or mounted product safety
+is established by the new probe.

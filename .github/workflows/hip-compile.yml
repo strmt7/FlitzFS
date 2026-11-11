@@ -8,6 +8,7 @@ on:
       - 'tools/ci/hip_runtime_exports.py'
       - 'tools/ci/test_hip_runtime_exports.py'
       - 'tests/rocm_compile/**'
+      - 'tests/gpu_probe_budget.hpp'
       - 'src/windows/hip_*'
       - 'tools/ci/stage_hip_worker_bundle.py'
       - 'tools/ci/check_portable_cpu.py'
