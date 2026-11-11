@@ -23,6 +23,12 @@
 namespace {
 using namespace flitzfs;
 using Bytes=std::vector<std::byte>;
+std::array<DWORD,8> match_handle_trace{};
+void match_handles(std::size_t phase) {
+  if(phase>=match_handle_trace.size())throw std::runtime_error("match handle phase bound");
+  if(!match_handle_trace[phase] && !GetProcessHandleCount(GetCurrentProcess(),&match_handle_trace[phase]))
+    throw std::runtime_error("match handle phase observation");
+}
 namespace ram=locked_ram_fixture;
 namespace fs=std::filesystem;
 void require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
@@ -130,14 +136,14 @@ struct MatchOutcome {
   const char* reason="not_requested";
 };
 MatchOutcome find_matches(const Worker& worker,std::span<const std::byte> bytes) {
-  MatchOutcome out;out.attempted=true;
+  MatchOutcome out;out.attempted=true;match_handles(0);
   const auto start=std::chrono::steady_clock::now();
   const auto search=PreparedGpuMatchSearch::prepare(bytes);
   const auto request=encode_match_worker_request(search,1);
-  out.prepare_ns=elapsed(start);out.device_bytes=search.device_buffer_bytes();
+  out.prepare_ns=elapsed(start);out.device_bytes=search.device_buffer_bytes();match_handles(1);
   const auto transfer=std::chrono::steady_clock::now();
   const auto result=run_worker_exchange(worker.executable,worker.arguments,request,{128,2000,worker.timeout});
-  out.exchange_ns=elapsed(transfer);out.worker_exit=result.process.exit_code;
+  out.exchange_ns=elapsed(transfer);out.worker_exit=result.process.exit_code;match_handles(2);
   out.peak_commit_bytes=result.process.peak_committed_bytes;
   out.exit_confirmed=result.process.exit_confirmed;out.timed_out=result.process.timed_out;
   // An unknown live helper is terminal for the experiment. Never start another.
@@ -153,7 +159,7 @@ MatchOutcome find_matches(const Worker& worker,std::span<const std::byte> bytes)
     out.accepted=true;out.reason="verified";
   }catch(const std::bad_alloc&){out.reason="allocation_pressure";}
   catch(const std::invalid_argument&){out.reason="invalid_reply";}
-  out.validation_ns=elapsed(validation);return out;
+  out.validation_ns=elapsed(validation);match_handles(3);return out;
 }
 struct Sample {
   std::uint64_t input_bytes=0,source_bytes=0,target_bytes=0,head_bytes=0;
@@ -214,10 +220,12 @@ Sample exercise(const Bytes& input,const Worker* worker) {
     out.selected_records+=feedback->match_encoding_selected?1:0;
     out.cpu_baseline_payload+=feedback->cpu_baseline_bytes;
     out.target_payload+=feedback->stored_bytes;
+    if(worker && !hints.empty())match_handles(4);
   }
   require(!worker || found,"native match input capability missing");
   point=std::chrono::steady_clock::now();
   const auto published=session.publish_recompression();out.publish_ns=elapsed(point);
+  if(worker)match_handles(5);
   require(published.selection.epoch==2 && published.selection.image_identity==identity(2) &&
       !session.recompression_feedback(),"native handoff/feedback retirement");
   const auto candidate=session.snapshot();out.target_bytes=candidate.storage_info().physical_end;
@@ -227,6 +235,7 @@ Sample exercise(const Bytes& input,const Worker* worker) {
       original.read("sample",0,kNativeExtentBytes)==input,"retained-context/pinned-source comparison");
   session.flush(handle);session.cleanup(handle,false);session.close(handle);
   require(session.stats().contexts==0&&!session.poisoned(),"native context retirement");
+  if(worker)match_handles(6);
   target->crash_to_checkpoint();head->crash_to_checkpoint();
   const auto selected=NativeVolumeHeadView::open(head,identity(90),
       [&](const auto& id)->std::shared_ptr<StoreByteIo>{
@@ -237,7 +246,8 @@ Sample exercise(const Bytes& input,const Worker* worker) {
   Bytes after(preserved.size());source->read_exact(0,after);
   require(after==preserved,"native source image changed");
   source->verify();target->verify();head->verify();
-  out.verify_ns=elapsed(point);out.total_ns=elapsed(whole);return out;
+  out.verify_ns=elapsed(point);out.total_ns=elapsed(whole);
+  if(worker)match_handles(7);return out;
 }
 void sample(std::ostream& out,const char* name,const Sample& s) {
   out<<'"'<<name<<"\":{\"input_bytes\":"<<s.input_bytes<<",\"source_bytes\":"<<s.source_bytes
@@ -339,6 +349,8 @@ int wmain(int argc,wchar_t** argv) {
           <<"\",\"locked_after\":"<<ram::locked_bytes.load()<<",\"cleanup_ok\":"
           <<(ram::cleanup_ok.load()?"true":"false")<<",\"handle_trace\":[";
       for(std::size_t i=0;i<handle_trace.size();++i){if(i)out<<',';out<<handle_trace[i];}
+      out<<"],\"match_handle_trace\":[";
+      for(std::size_t i=0;i<match_handle_trace.size();++i){if(i)out<<',';out<<match_handle_trace[i];}
       out<<"]}\n";
       report->write(out.str());
     }catch(...){}
