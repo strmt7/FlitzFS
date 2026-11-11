@@ -18,6 +18,7 @@
 #include <vector>
 
 #include <optional>
+#include <cstdlib>
 
 namespace flitzfs {
 namespace {
@@ -226,6 +227,14 @@ MatchWorkerRequest read_match_request(std::span<const std::byte> bytes) {
 }
 int worker(int argc, wchar_t** argv) {
   require_hip_worker_job();
+  // Compiler discovery must not leak into an application runtime. This changes
+  // only this disposable child; the launching process remains untouched.
+  require(_wputenv_s(L"LLVM_PATH", L"") == 0,
+      Exit::runtime_unavailable, "cannot isolate HIP compiler environment");
+  SetLastError(ERROR_SUCCESS);
+  require(GetEnvironmentVariableW(L"LLVM_PATH", nullptr, 0) == 0 &&
+      (GetLastError() == ERROR_ENVVAR_NOT_FOUND || GetLastError() == ERROR_SUCCESS),
+      Exit::runtime_unavailable, "HIP compiler environment remains visible");
   if (argc == 2 && std::wstring_view(argv[1]) == L"--verify-bundle") {
     const auto verified = verify_bundle();
     return 0;

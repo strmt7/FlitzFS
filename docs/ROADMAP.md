@@ -578,3 +578,5 @@ A bounded AMD match producer is compiled with the complete pinned SDK. It search
 The explicit HIP worker can dispatch the compiled match entry through bounded source-bound frames. CPU fixtures now check channel-to-store publication and fallback before helper retirement. Next, connect the long-lived evidence-aware routing policy and measure qualified device behavior on real files.
 
 The match controller now preserves recovery history across requests. It supports immediate CPU selection, late-result classification and configuration quarantine without a retry loop. Next, qualify the workload controller and actual AMD execution, including measured compression gains and CPU/GPU costs on public data.
+
+The supervised HIP path must pass SDK-derived export inventory, typed properties/LUID tests and child compiler-environment isolation before a separate tiny hardware experiment. These CPU/PE checks do not establish GPU execution or speed; the authenticated private-runtime selection is unchanged.

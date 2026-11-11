@@ -1,4 +1,4 @@
-#include <hip/hip_runtime_api.h>
+#include "hip_api.hpp"
 #include <windows.h>
 #include <cstddef>
 #include <iostream>
@@ -18,5 +18,12 @@ int main() {
       <<'-'<<HIP_VERSION_GITHASH<<" properties_bytes="<<sizeof(hipDeviceProp_t)
       <<" required_runtime="<<FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME
       <<" hip_runtime_loaded=false; CPU header inspection only\n";
+  std::cout << "HIP runtime bindings: [";
+  bool separator = false;
+  for (const auto name : flitzfs::hip_detail::runtime_symbols) {
+    if (separator) std::cout << ',';
+    std::cout << '"' << name << '"'; separator = true;
+  }
+  std::cout << "]\n";
   return 0;
 }
