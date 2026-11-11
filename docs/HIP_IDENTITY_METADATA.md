@@ -76,3 +76,8 @@ only the existing own binaries and licenses, with no AMD runtime. Use the
 qualified outer watchdog, current headroom and exact artifact/runtime hashes.
 No driver install/update, filesystem mount, automatic retry, GPU speed or data
 safety qualification follows from this diagnostic.
+
+The qualified 7793100 properties-only owner run observed an exact LUID and raw
+mask zero. See [GPU_NODE_PROOF.md](GPU_NODE_PROOF.md) for the subsequent explicit
+OS proof and omission-only admission policy. This diagnostic continues to
+report the raw mask without normalization.

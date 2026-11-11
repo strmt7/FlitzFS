@@ -600,3 +600,10 @@ raw-only, Windows and sanitizer tests, then use these observations in a bounded
 learner and event-driven resource controller. Do not infer whole-volume gains
 from samples or weaken the existing unchanged-image suppression and handoff
 gates. Automatic workload learning and GPU execution remain separate work.
+
+Resolve the observed installed-HIP zero node mask with the independent Windows
+physical-node proof in GPU_NODE_PROOF.md. Require exact-commit portable/fake-API
+and real hosted WARP metadata checks, then one bounded owner OS metadata query
+before one tiny GPU decode. After byte-exact GPU correctness, qualify native
+match production and controlled end-to-end compression benefit; avoid unchanged
+refusal loops and never infer speed or production readiness from a tiny fixture.

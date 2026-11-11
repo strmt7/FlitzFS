@@ -84,7 +84,11 @@ separate earlier process-retirement failure under investigation.
 
 The shared query_device_identity helper performs only initialization and the typed
 properties query, returning the raw LUID and mask. initialize_device reuses it
-and retains the existing exact identity checks before device selection. A
+and retains exact LUID checking before device selection. A
 separate diagnostic may report zero or inconsistent metadata without treating
 it as compute consent. Fake API tests retain the original checks and verify that
 the query-only helper never reaches selection or stream-priority functions.
+
+An omitted zero HIP node mask may now be resolved only by the fresh independent
+same-LUID, healthy, single-physical-node Windows proof documented in
+[GPU_NODE_PROOF.md](GPU_NODE_PROOF.md). Nonzero mismatches remain terminal.

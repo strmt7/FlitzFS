@@ -86,7 +86,7 @@ target_include_directories(flitzfs_hip_worker SYSTEM PRIVATE "${FLITZFS_ROCM_SDK
 target_compile_definitions(flitzfs_hip_worker PRIVATE __HIP_PLATFORM_AMD__=1
   __HIP_DISABLE_CPP_FUNCTIONS__=1 USE_PROF_API=0 NOMINMAX UNICODE _UNICODE)
 target_compile_options(flitzfs_hip_worker PRIVATE /W4 /permissive-)
-target_link_libraries(flitzfs_hip_worker PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget bcrypt wintrust)
+target_link_libraries(flitzfs_hip_worker PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget flitzfs_gpu_topology bcrypt wintrust)
 
 add_executable(flitzfs_hip_worker_probe worker_probe.cpp)
 target_compile_features(flitzfs_hip_worker_probe PRIVATE cxx_std_20)
@@ -95,7 +95,7 @@ target_compile_options(flitzfs_hip_worker_probe PRIVATE /W4 /permissive-)
 
 add_executable(flitzfs_hip_hardware_probe hardware_probe.cpp)
 target_compile_features(flitzfs_hip_hardware_probe PRIVATE cxx_std_20)
-target_link_libraries(flitzfs_hip_hardware_probe PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget dxgi)
+target_link_libraries(flitzfs_hip_hardware_probe PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget flitzfs_gpu_topology dxgi)
 target_compile_options(flitzfs_hip_hardware_probe PRIVATE /W4 /permissive-)
 
 # CPU metadata qualification uses OS-owned kernel32; it never loads AMD code.

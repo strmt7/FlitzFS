@@ -10,9 +10,10 @@ they provide a measured benefit and retaining independent CPU recovery.
 
 This is an early filesystem implementation, not a production-ready volume.
 Writable mounted storage and actual GPU execution remain unqualified. Keep
-independent copies of valuable data. All current development and tests run
-on disposable hosted machines; no storage, drivers or GPU tests run on the
-owner's PC.
+independent copies of valuable data. Most qualification runs on disposable hosted machines. Explicit bounded owner-PC
+CPU tests use locked RAM, while metadata diagnostics have also inspected the
+installed GPU runtime. Owner driver-backed mounts remain prohibited; actual
+FlitzFS GPU computation has not yet passed. See [current node-proof work](docs/GPU_NODE_PROOF.md).
 
 The Windows app, full writable driver integration and latest Windows 11 client
 qualification remain unfinished. Existing Linux CPU/sanitizer jobs are internal
@@ -407,3 +408,9 @@ larger than 64 KiB, preserves CPU verification and returns advice only for the
 same source generation and bytes. It performs no I/O or background scheduling.
 Automatic learning across workloads remains unfinished. See
 [COMPRESSION_PROBES.md](docs/COMPRESSION_PROBES.md) for bounds and qualification.
+
+The installed runtime reports the correct GPU LUID with raw node mask zero.
+An explicit, supervised Windows single-physical-node proof now resolves only
+that omitted field; all memory, CPU verification and worker-retirement gates
+remain. [GPU_NODE_PROOF.md](docs/GPU_NODE_PROOF.md) separates observed evidence,
+configured checks and the still-required actual hardware qualification.

@@ -345,6 +345,30 @@ def main():
             0<budget_row["controller_job_peak_commit_bytes"]<=256*1024*1024,
             "fake-LUID budget query did not fail closed without HIP")
         report["hardware_probe"]["budget_metadata"]=budget_row
+        for name,args,software in (
+            ("unknown_adapter",["--inspect-adapter-topology","0100000000000000"],False),
+            ("warp",["--inspect-warp-topology"],True),
+        ):
+            topology_result=run(bounds,[str(hardware_probe),*args],report,
+                "bounded-topology-metadata-"+name,15)
+            prefix="GPU topology metadata: "
+            rows=[json.loads(line[len(prefix):]) for line in topology_result["stdout"].splitlines()
+                if line.startswith(prefix)]
+            require(len(rows)==1,"missing topology metadata")
+            row=rows[0]
+            require(all(row[key] is False for key in ("gpu_executed","hip_initialized",
+                    "queues_requested","batch_allocations_requested","kernel_launch_requested","single_node_verified")) and
+                row["software_fixture"] is software and
+                0<row["controller_job_peak_commit_bytes"]<=256*1024*1024,
+                "topology metadata scope/resource mismatch")
+            if software:
+                require(row["status"]==0 and row["phase"]==10 and row["native_status"]==0 and
+                    row["luid_matches"] is True and row["amd_hardware"] is False and
+                    1<=row["node_count"]<=32,"native WARP device topology proof failed")
+            else:
+                require(row["status"]!=0 and row["node_count"]==0 and row["luid_matches"] is False and
+                    row["amd_hardware"] is False,"unknown native adapter did not fail closed")
+            report["hardware_probe"]["topology_"+name]=row
         result=run(bounds,[str(hardware_probe),"--run-amd-once",str(root/"worker-probe"/worker.name),
             "0","0100000000000000"],report,"one-shot-probe-missing-runtime",15,exit_code=2)
         prefix="HIP hardware probe: "

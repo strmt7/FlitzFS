@@ -77,6 +77,50 @@ int main() {
       require(state.initialized==1 && state.queried==1 && state.selected==0 && state.priorities==0,
           "metadata query performed device selection or stream-priority work");
     }
+    // Only an omitted raw mask may use independent same-adapter OS proof.
+    unsigned proofs=0;
+    auto proven=[&](auto identity){++proofs;require(identity==expected,"proof queried wrong LUID");return true;};
+    auto refused=[&](auto){++proofs;return false;};
+    state={};state.mask=0;
+    require(hip_detail::initialize_device(api,7,expected,1,proven)==2,"proven single-node omission refused");
+    require(proofs==1 && state.selected==1 && state.priorities==1,"single-node proof sequence");
+    state={};state.mask=0;proofs=0;
+    failure([&]{(void)hip_detail::initialize_device(api,7,expected,1,refused);},
+        HipWorkerExit::unsupported_configuration,HipWorkerStage::adapter_node);
+    require(proofs==1 && state.selected==0 && state.priorities==0,"failed proof reached selection");
+    state={};state.mask=0;
+    failure([&]{(void)hip_detail::initialize_device(api,7,expected,1);},
+        HipWorkerExit::unsupported_configuration,HipWorkerStage::adapter_node);
+    require(state.selected==0 && state.priorities==0,"missing proof reached selection");
+    for(unsigned raw:{0U,2U,3U,0x80000000U,0xffffffffU}){
+      state={};state.mask=raw;proofs=0;const unsigned requested=raw==0?2:1;
+      failure([&]{(void)hip_detail::initialize_device(api,7,expected,requested,proven);},
+          HipWorkerExit::unsupported_configuration,HipWorkerStage::adapter_node);
+      require(proofs==0 && state.selected==0 && state.priorities==0,"ambiguous mask queried proof");
+    }
+    state={};proofs=0;
+    require(hip_detail::initialize_device(api,7,expected,2,refused)==2 && proofs==0,
+        "matching nonzero mask queried topology");
+    state={};state.mask=0;state.luid[1]=std::byte{1};proofs=0;
+    failure([&]{(void)hip_detail::initialize_device(api,7,expected,1,proven);},
+        HipWorkerExit::unsupported_configuration,HipWorkerStage::adapter_luid);
+    require(proofs==0 && state.selected==0,"wrong adapter queried topology");
+    for(unsigned requested:{0U,3U,0xffffffffU}){
+      state={};proofs=0;
+      failure([&]{(void)hip_detail::initialize_device(api,7,expected,requested,proven);},
+          HipWorkerExit::unsupported_configuration,HipWorkerStage::adapter_node);
+      require(state.initialized==0 && state.queried==0 && proofs==0,"invalid selector initialized HIP");
+    }
+    for(int ordinal:{-1,64}){
+      state={};proofs=0;
+      failure([&]{(void)hip_detail::initialize_device(api,ordinal,expected,1,proven);},
+          HipWorkerExit::unsupported_configuration,HipWorkerStage::adapter_node);
+      require(state.initialized==0 && proofs==0,"invalid ordinal initialized HIP");
+    }
+    state={};proofs=0;
+    failure([&]{(void)hip_detail::initialize_device(api,7,{},1,proven);},
+        HipWorkerExit::unsupported_configuration,HipWorkerStage::adapter_node);
+    require(state.initialized==0 && proofs==0,"zero LUID initialized HIP");
     state = {}; state.luid[1] = std::byte{1};
     failure([&] { (void)hip_detail::initialize_device(api, 7, expected, 2); },
         HipWorkerExit::unsupported_configuration, HipWorkerStage::adapter_luid);
