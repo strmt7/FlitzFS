@@ -36,6 +36,11 @@ QUERIES=(
     "trusted HIP worker bundle file digest DLL module loading signature and system directory",
     "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
 )
+MAINTENANCE_QUERIES=(
+    "adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities",
+    "background maintenance resource headroom low priority incremental recompression sampling budget and duplicate attempt suppression",
+)
+QUERY_GROUPS={"filesystem":QUERIES,"maintenance":MAINTENANCE_QUERIES}
 SUFFIXES={".c",".h",".cc",".cpp",".hpp",".cxx",".hip",".py",".ps1",".rs"}
 def require(ok,why):
     if not ok: raise RuntimeError(why)
@@ -332,7 +337,9 @@ class Provider:
         entries.sort(key=lambda x:x["path"])
         require(0<len(entries)<=512 and sum(x["bytes"] for x in entries)<=16*MIB,"source inventory budget")
         return entries
-    def route(self,revision):
+    def route(self,revision,query_group="filesystem"):
+        require(query_group in QUERY_GROUPS,"unreviewed semantic query group")
+        queries=QUERY_GROUPS[query_group]
         entries=self.inventory();binding=digest(encoded(entries))
         save(self.root/"source-inventory.json",entries)
         for entry in entries:
@@ -353,7 +360,7 @@ class Provider:
         print(indexed[-2200:],flush=True)
         by_path={entry["path"]:entry for entry in entries};receipts=[]
         try:
-            for index,query in enumerate(QUERIES):
+            for index,query in enumerate(queries):
                 raw=self.run([self.ccc,"search","--limit","5","--json",query],120,self.root/"mirror",json_output=True)
                 require(len(raw)<=2*MIB,"semantic response budget")
                 response=json.loads(raw)
@@ -387,11 +394,13 @@ class Provider:
             self.run([self.ccc,"daemon","stop"],30,self.root/"mirror")
         save(self.root/"routing-receipt.json",dict(experimental=True,commit=os.environ["GITHUB_SHA"],
             repository="strmt7/FlitzFS",source_sha256=binding,source_files=len(entries),config_sha256=config_digest,
-            provider_version=VERSION,model_revision=revision,actual_searches=len(receipts),cpu_only=True,
+            provider_version=VERSION,model_revision=revision,query_group=query_group,actual_searches=len(receipts),cpu_only=True,
             shared_mcp_modified=False,commands=self.commands))
 def main():
     limits=cgroup()
-    parser=argparse.ArgumentParser();parser.add_argument("--output",required=True,type=Path);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument("--output",required=True,type=Path)
+    parser.add_argument("--query-group",choices=tuple(QUERY_GROUPS),default="filesystem")
+    args=parser.parse_args()
     repo=Path(__file__).resolve().parents[2]
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     root=args.output.resolve()
@@ -405,6 +414,6 @@ def main():
     provider.run(["git","-C",repo,"diff","--exit-code","HEAD","--"],30)
     provider.provision()
     revision=provider.model()
-    provider.route(revision)
+    provider.route(revision,args.query_group)
 if __name__=="__main__":
     main()
