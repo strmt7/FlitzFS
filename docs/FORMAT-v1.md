@@ -287,3 +287,7 @@ Native transactional-store compression match proposals are private encoder input
 Worker failure-stage diagnostics change only the supervised process exit code.
 They add no container fields, codec identifiers, authentication or durable-write
 guarantees. Existing stored bytes and worker request/reply frames are unchanged.
+
+Native compression-profile measurements and their source tuples are in-memory
+advice only. They add no stored codec, container field, dictionary dependency or
+worker frame. Existing CPU decoding and historical stored bytes are unchanged.

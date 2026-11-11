@@ -664,3 +664,11 @@ retry, repair or a weaker recovery category. Confirmed exit and a trusted HIP
 worker remain prerequisites for category interpretation. Failure responses stay
 empty. The explicit adapter-budget diagnostic performs DXGI metadata queries
 under the existing process caps; it never loads HIP or reserves GPU memory.
+
+Compression profile probes are advisory and own at most 64 KiB of sample bytes.
+They use the existing 16 MiB encoder and 2 MiB verifier allocator ceilings, not
+a new process-memory guarantee. No probe starts a worker or performs I/O. Source
+identity/range/bytes must match before advice is returned; failed probes stay
+terminal and retain CPU input. Callers still need qualified resource/quietness
+and the existing complete-candidate verification/publication gates. See
+COMPRESSION_PROBES.md. No owner-host execution is authorized by compilation.

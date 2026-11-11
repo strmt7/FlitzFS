@@ -264,3 +264,14 @@ The next research batch uses the unified matrix and current license page, reject
 explicit retired-documentation banners while retaining native receipts, and
 adds a fixed Microsoft adapter-topology source group. Its regression and native
 capture results remain required; no new host experiment follows from this change.
+
+## Native compression profile probe
+
+The new advisory probe measures at most one existing profile per advance on a
+sample of at most 65,536 bytes. It preserves the existing CPU verifier, optional
+hint fallback and allocator caps. Its regression tests include a committed RAM
+object flowing through measurement and the existing recompressor, with unchanged
+source bytes/write/flush counters and independent target readback. All matching
+CPU, raw-only, Windows-native and sanitizer results are pending until the new
+commit executes. These are correctness checks, not speed/ratio superiority or a
+completed automatic learning/scheduling system.
