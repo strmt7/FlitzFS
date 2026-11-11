@@ -683,3 +683,9 @@ same-LUID AMD device with exactly one physical node may resolve an omitted zero
 HIP node mask for requested node zero. It cannot repair a driver, authorize
 retries or bypass CPU verification, residency, retirement or RAM-only rules.
 The normal filesystem path never invokes this collector.
+
+The 96cb919 owner node query passed; the subsequent tiny decode refused with
+CPU reference preserved and confirmed worker exit. No GPU correctness/speed
+qualification follows. Later memory-predicate tagging preserves every admission
+rule and legacy recovery category. Current memory-accounting research and new
+exact-commit checks precede any policy revision or further owner attempt.

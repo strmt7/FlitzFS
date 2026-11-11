@@ -300,3 +300,14 @@ new native collector and current primary-source receipts. New proof-policy,
 fake-API and hosted software-device checks must pass on the exact subsequent
 commit before owner topology or compute execution. At this source checkpoint
 actual FlitzFS GPU execution and speed are still unproven.
+
+## Executed native node proof and retained decode refusal
+
+At 96cb919, SDK run 42983895333 and CPU/native/sanitizer prerequisites passed.
+The owner OS-only collector verified the exact AMD LUID, healthy single physical
+node and confirmed retirement. One tiny decode then failed with device_fault /
+none, retaining verified CPU data and no published GPU reply. Exact measurements
+are in evidence/gpu-node-proof-96cb919.json. Subsequent changes only preserve
+which existing memory predicate failed; they need their own exact CI. Current
+Microsoft memory documentation will be captured with isolated Crawl4AI before
+changing residency/admission rules. GPU execution and speed remain unqualified.
