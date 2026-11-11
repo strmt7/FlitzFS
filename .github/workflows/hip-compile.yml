@@ -5,6 +5,8 @@ on:
     paths:
       - 'tools/rocm-sdk-lock.json'
       - 'tools/ci/qualify_rocm_sdk.py'
+      - 'tools/ci/hip_runtime_exports.py'
+      - 'tools/ci/test_hip_runtime_exports.py'
       - 'tests/rocm_compile/**'
       - 'src/windows/hip_*'
       - 'tools/ci/stage_hip_worker_bundle.py'
