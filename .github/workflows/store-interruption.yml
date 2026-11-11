@@ -1,0 +1,88 @@
+name: Native store process-interruption recovery
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/ci/prepare_hosted_tools.py'
+      - 'tools/ci/test_hosted_tools.py'
+      - 'src/**'
+      - 'include/**'
+      - 'third_party/**'
+      - 'tools/ci/verify_*.py'
+      - 'tests/native_fs_fixture.hpp'
+      - 'tests/store_crash_probe.cpp'
+      - 'tools/ci/*store*probe*.py'
+      - 'tools/ci/probe_store_interruptions.py'
+      - 'tools/ci/test_store_interruption_reports.py'
+      - '.github/workflows/store-interruption.yml'
+      - 'CMakeLists.txt'
+permissions:
+  contents: read
+jobs:
+  process-recovery:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025-vs2026]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ strategy.job-index || 0 }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Verify pinned digest source
+        run: python tools/ci/verify_blake3_sources.py
+      - name: Verify filesystem product boundary
+        run: python tools/ci/verify_filesystem_scope.py
+      - name: Check out pinned CPU compression source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - name: Build bounded CPU interruption probe
+        run: python tools/ci/build_store_crash_probe.py
+      - name: Validate complete interruption partition/merge oracles
+        run: python tools/ci/test_store_interruption_reports.py
+      - name: Force writer termination and independently continue recovered images (analysis VM)
+        if: runner.os != 'Windows'
+        run: python tools/ci/probe_store_interruptions.py --output "${{ runner.temp }}/native-store-interruptions.json"
+      - name: Exercise every Windows fault point in two bounded disjoint campaigns
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python tools/ci/probe_store_interruptions.py --partitions 2 --partition 0 --output "$env:RUNNER_TEMP/native-store-interruptions-0.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/ci/probe_store_interruptions.py --partitions 2 --partition 1 --output "$env:RUNNER_TEMP/native-store-interruptions-1.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/ci/probe_store_interruptions.py --merge "$env:RUNNER_TEMP/native-store-interruptions-0.json" "$env:RUNNER_TEMP/native-store-interruptions-1.json" --output "$env:RUNNER_TEMP/native-store-interruptions.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Retain exact-commit recovery evidence and any failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: store-interruptions-${{ matrix.os }}-${{ github.sha }}
+          path: ${{ runner.temp }}/native-store-interruptions*.json
+          if-no-files-found: error
+          retention-days: 30

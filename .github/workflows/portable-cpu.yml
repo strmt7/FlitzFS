@@ -1,0 +1,95 @@
+name: Relocated self-contained CPU qualification
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'tests/**'
+      - 'third_party/**'
+      - 'CMakeLists.txt'
+      - 'tools/ci/check_portable_cpu.py'
+      - 'tools/ci/test_portable_job_lifecycle.py'
+      - 'tools/ci/build_linux_codecs.py'
+      - 'tools/ci/build_windows_native.ps1'
+      - 'tools/ci/prepare_hosted_tools.py'
+      - 'tools/ci/test_hosted_tools.py'
+      - '.github/workflows/portable-cpu.yml'
+permissions:
+  contents: read
+jobs:
+  portable-cpu:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025-vs2026]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Verify pinned digest source bytes
+        run: python tools/ci/verify_blake3_sources.py
+      - name: Check out current pinned Zstandard
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - name: Check out current pinned LZ4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lz4/lz4
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
+          path: .ci-deps/lz4
+          persist-credentials: false
+      - name: Build bounded static Linux codecs
+        if: runner.os == 'Linux'
+        run: python tools/ci/build_linux_codecs.py
+      - name: Build self-contained Linux CPU diagnostics
+        if: runner.os == 'Linux'
+        run: |
+          cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build-portable -DCMAKE_BUILD_TYPE=Release -DFLITZFS_PORTABLE_CPU=ON -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
+          cmake --build build-portable --config Release --parallel 2
+      - name: Build self-contained Windows CPU diagnostics without SDK or driver
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/ci/build_windows_native.ps1 -PortableCpu
+      - name: Independently inspect native error runtime handle initialization
+        if: runner.os == 'Windows'
+        run: ./build-portable/Release/flitzfs_worker_exchange_tests.exe --native-error-resource-probe
+      - name: Run bounded core tests with the static runtime
+        run: ctest --test-dir build-portable -C Release --output-on-failure --timeout 45 --parallel 1
+      - name: Move and check only the Linux executable
+        if: runner.os == 'Linux'
+        run: python tools/ci/check_portable_cpu.py build-portable/flitzfs --codecs native
+      - name: Verify private-job launch admission and retirement
+        if: runner.os == 'Windows'
+        run: python tools/ci/test_portable_job_lifecycle.py
+      - name: Move and check only the Windows executable
+        if: runner.os == 'Windows'
+        run: python tools/ci/check_portable_cpu.py build-portable/Release/flitzfs.exe --codecs native
+      - name: Retain exact hosted qualification receipts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: portable-cpu-${{ runner.os }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/flitzfs-portable-*/portability.json
+            ${{ runner.temp }}/flitzfs-*-provision.json
+            build-portable/Testing/Temporary/LastTest.log
+          retention-days: 30
+          if-no-files-found: warn
