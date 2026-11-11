@@ -1,0 +1,64 @@
+{
+  "experimental": true,
+  "observed_date": "2026-11-11",
+  "source_commit": "9c1637a3144b743271de9c521070d2c2765ae78d",
+  "ci": {
+    "all_triggered_workflows_passed": 13,
+    "windows_native_groups": 126,
+    "windows_exchange_checks": 867,
+    "sdk_fake_api_checks": 108,
+    "admission_exits_confirmed": 17,
+    "core_run": 42967228767,
+    "sdk_run": 42967228757,
+    "previous_unconfirmed_termination_unresolved": true
+  },
+  "owner": {
+    "driver_version": "32.0.32015.12012",
+    "driver_changed": false,
+    "filesystem_mounted": false,
+    "owned_processes_remaining": 0,
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "budget": {
+      "hip_initialized": false,
+      "gpu_executed": false,
+      "status": 0,
+      "phase": 6,
+      "native_status": 0,
+      "elapsed_ms": 33,
+      "peak_committed_bytes": 1871872
+    },
+    "decode": {
+      "trials": 1,
+      "source_bytes": 12288,
+      "wall_ms": 161,
+      "worker_elapsed_ms": 110,
+      "raw_exit": "0x46530703",
+      "category": "unsupported_configuration",
+      "stage": "adapter_node",
+      "actual_node_mask_captured": false,
+      "cpu_bytes_verified": 12288,
+      "exit_confirmed": true,
+      "timed_out": false,
+      "candidate_published": false,
+      "gpu_result_verified": false,
+      "child_peak_committed_bytes": 9662464,
+      "total_peak_committed_bytes": 11067392
+    }
+  },
+  "source_evidence": {
+    "transport": "GitHub native API",
+    "selected_sdk_source": "7da43026e4f2ef7600433c38c820732f7a205d22",
+    "pal_blob": "ce65660fef73005f8eaae5ee70771627b83a2e7a",
+    "device_blob": "6bceb17afb45ef1fe5978df48bf76ebc3f59d73f",
+    "relevant_patch": "https://github.com/ROCm/rocm-systems/commit/0e71e728f949a45ad7ffad6c2940df3965cb3746",
+    "patch_date": "2026-08-17",
+    "fact": "The patch changes MGPU-only node-mask assignment to an adapter-local index; standalone adapters receive mask 1.",
+    "inference": "An older runtime node-reporting behavior could explain this refusal; the host's actual returned value and exact implementation remain unproven."
+  },
+  "limits": [
+    "No GPU speed or compression benefit measured.",
+    "No device-selection, stream, explicit batch-allocation or kernel-launch call after the failed worker node check.",
+    "No driver changes, owner filesystem mount or automatic retry.",
+    "A private runtime requires separate compatibility, license, import and execution qualification."
+  ]
+}

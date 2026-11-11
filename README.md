@@ -392,3 +392,11 @@ unsupported_configuration. Its child exit was confirmed and the independent CPU
 reference remained available; no GPU result was accepted. The old exit category
 does not identify the failure stage or establish whether HIP initialized.
 GPU correctness, acceleration and compression gains remain unqualified.
+
+A second diagnostic decode on 11 November 2026 at 9c1637a identified the refusal
+as adapter_node: initialization, properties and LUID comparison passed, but the
+HIP node mask did not match the requested mask. The worker refused before its
+device-selection, stream, batch-allocation and kernel-launch calls. No GPU output
+was accepted. Keep the node check intact; a compatible private runtime remains
+an investigation, not a qualified workaround. All 13 workflows on that commit
+passed, including Windows and sanitizers. See docs/evidence/hip-node-refusal-2026-11-11.json.

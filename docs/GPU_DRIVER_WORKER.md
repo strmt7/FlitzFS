@@ -93,3 +93,21 @@ nonlocal=5 and complete=6. Snapshot fields are valid only on collector success.
 The diagnostic uses the same node-mask selector 1 and planned 16,492-byte decode
 budget as the tiny fixture; this is metadata inspection, not a GPU speed test.
 Compute receipts additionally retain raw exit, normalized category and stage.
+
+## Observed installed-runtime node refusal
+
+The 9c1637a owner experiment admitted the matched DXGI budget and independently
+verified the installed runtime's metadata. Its single 12 KiB diagnostic decode
+returned adapter_node under the original unsupported_configuration category.
+HIP initialization, the properties query and exact LUID comparison had succeeded;
+the node check refused before worker device selection, stream creation, explicit
+batch allocations or launch. The actual returned node value was not captured.
+No candidate output was published. Do not repeat this unchanged configuration,
+substitute a guessed mask or classify the refusal as GPU acceleration.
+
+The SDK job now inventories the already staged private runtime closure's normal
+and delayed PE imports and bounded license metadata. It reads bytes only and
+exports no AMD binaries. This inventory does not establish driver compatibility,
+license compliance for redistribution, runtime initialization or device safety.
+The current AMD source groups are available through a fixed-choice isolated
+research workflow; arbitrary URLs and shell fragments are not accepted.
