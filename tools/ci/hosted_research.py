@@ -154,6 +154,18 @@ WINDOWS_LOCKED_RAM_SOURCES = (
     ("windows-working-set-flags", "https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_block", "PSAPI_WORKING_SET_EX_BLOCK", "Locked"),
 )
 
+WINDOWS_APP_SOURCES = (
+    ("windows-create-window", "https://learn.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window", "CreateWindowEx", "RegisterClass"),
+    ("windows-window-procedure", "https://learn.microsoft.com/en-us/windows/win32/learnwin32/writing-the-window-procedure", "WindowProc", "DispatchMessage"),
+    ("windows-notification-area", "https://learn.microsoft.com/en-us/windows/win32/shell/notification-area", "Shell_NotifyIcon", "notification"),
+    ("windows-notify-icon", "https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shell_notifyiconw", "Shell_NotifyIconW", "NIM_DELETE"),
+)
+WINDOWS_APP_TEST_SOURCES = (
+    ("windows-ui-automation", "https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-clientsoverview", "UI Automation", "client"),
+    ("windows-ui-controls", "https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-uiautomationoverview", "UI Automation", "control"),
+    ("windows-app-dpi", "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setprocessdpiawarenesscontext", "SetProcessDpiAwarenessContext", "DPI_AWARENESS_CONTEXT"),
+)
+
 class SourceMetadata(HTMLParser):
     """Record advisory publisher metadata from the native captured HTML only."""
 
@@ -242,7 +254,8 @@ async def capture(args):
                     "windows-process-retirement": WINDOWS_PROCESS_RETIREMENT_SOURCES,
                     "windows-adapter-identity": WINDOWS_ADAPTER_IDENTITY_SOURCES,
                     "windows-adapter-topology": WINDOWS_ADAPTER_TOPOLOGY_SOURCES,
-                    "windows-gpu-memory": WINDOWS_GPU_MEMORY_SOURCES}[args.source_group]
+                    "windows-gpu-memory": WINDOWS_GPU_MEMORY_SOURCES,
+                    "windows-app": WINDOWS_APP_SOURCES, "windows-app-test": WINDOWS_APP_TEST_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -318,7 +331,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory") and not all(r["success"] for r in rows):
+    if args.source_group in ("process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -328,7 +341,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)

@@ -14,6 +14,9 @@ on:
           - windows-adapter-identity
           - windows-adapter-topology
           - windows-gpu-memory
+          - windows-app-suite
+          - windows-app
+          - windows-app-test
   push:
     branches: [main]
     paths:
@@ -65,7 +68,7 @@ jobs:
       - name: Research selected current AMD or Windows sources
         shell: bash
         env:
-          RESEARCH_SOURCE_GROUP: ${{ inputs.source_group || 'rocm-compatibility' }}
+          RESEARCH_SOURCE_GROUP: ${{ inputs.source_group || 'windows-app-suite' }}
         run: |
           set -euo pipefail
           python_path="$(command -v python)"
@@ -73,7 +76,8 @@ jobs:
           status=0
           case "$RESEARCH_SOURCE_GROUP" in
             rocm-compatibility) groups=(rocm-windows-hardware rocm-current) ;;
-            rocm-windows-hardware|rocm-current|windows-adapter-identity|windows-adapter-topology|windows-gpu-memory) groups=("$RESEARCH_SOURCE_GROUP") ;;
+            windows-app-suite) groups=(windows-app windows-app-test) ;;
+            rocm-windows-hardware|rocm-current|windows-adapter-identity|windows-adapter-topology|windows-gpu-memory|windows-app|windows-app-test) groups=("$RESEARCH_SOURCE_GROUP") ;;
             *) echo "Unreviewed source group" >&2; exit 1 ;;
           esac
           for group in "${groups[@]}"; do
