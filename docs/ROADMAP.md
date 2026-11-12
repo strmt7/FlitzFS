@@ -690,3 +690,17 @@ See OPTIMIZATION_STATE.md. L01 remains in progress: reserved-area provider bindi
 helper transactions, persistent workload-derived write credit, safe rebuild
 mapping and native-compaction integration are still required. No learner or
 automatic background route is enabled.
+
+
+## Managed advisory control and Windows backend contract
+
+The next L01 implementation binds optimization transactions to the live volume
+controller, preserves the area through image handoff, excludes target aliases
+and isolates failed advisory state from user-data I/O. New integration tests
+require exact-source qualification. Persistent write credit, provider mapping,
+rebuild and the learner remain pending.
+
+The Windows application/helper/taskbar tray must create and manage physical-disk
+filesystems and memory-backed virtual volumes using the shared engine; see
+WINDOWS_VOLUME_BACKENDS.md. This is a product requirement, not a statement that
+the tray or physical provider is implemented.

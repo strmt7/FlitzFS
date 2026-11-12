@@ -211,6 +211,9 @@ void OptimizationStateWriter::publish(const OptimizationState& state) {
 OptimizationSnapshot OptimizationStateWriter::snapshot() const {
   require(impl_&&!impl_->poisoned,"optimization writer is terminal");return impl_->selected;
 }
+std::uint64_t OptimizationStateWriter::sequence() const noexcept {
+  return impl_&&!impl_->poisoned?impl_->selected.sequence:0;
+}
 unsigned OptimizationStateWriter::remaining_publications() const noexcept{return impl_?impl_->remaining:0;}
 bool OptimizationStateWriter::poisoned() const noexcept{return !impl_||impl_->poisoned;}
 } // namespace flitzfs

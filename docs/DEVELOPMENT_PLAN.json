@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-11-11",
+  "updated": "2026-11-13",
   "baseline": {
     "commit": "8a5633b588869eb3808d089fca76937c6781991c",
     "tree": "01cf46b6fd34107ff53bb0f2604a2b8c1f10b8c7"
@@ -204,15 +204,17 @@
       ],
       "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model.",
       "checkpoint": {
-        "source_parent": "b3e90480cdfdd1151f08ab8c0969b6b9cb38122e",
+        "source_parent": "c30d01c4e72778fc5a34b907c17c4bbfb2e808c5",
         "contract": "docs/OPTIMIZATION_STATE.md",
-        "implemented": "Separate custom-backend advisory journal and bounded typed tables; no normal I/O or learner route.",
-        "qualification": "Pending exact publishing source",
+        "implemented": "Volume/session-owned journal binding and explicit helper control; no normal file I/O dependency.",
+        "qualified_baseline": "c30d01c standalone journal: all13 core jobs and278 model assertions passed",
+        "new_source_qualification": "pending",
         "remaining": [
-          "Provider reserved-area/nonaliasing binding",
-          "Controlled helper/session transactions",
-          "Persistent workload-derived write allowance and safe new-area rebuild mapping",
-          "Interrupted native compaction and held-out consumers"
+          "Global provider reservation/mapping/nonaliasing qualification",
+          "Qualified in-session advisory-area rebuild/replacement preserving live file handles",
+          "Persistent workload-derived write credit",
+          "Helper authorization and held-out learning consumers",
+          "Interrupted native maintenance and recovery qualification"
         ]
       }
     },
@@ -324,11 +326,13 @@
       "deliverables": [
         "Complete request-bound authority, owner/group, ACL/inheritance, sharing/locking, notifications, cancellation, mapped I/O and unresolved-session recovery matrices.",
         "Build the helper/app and installation/update/uninstall lifecycle with independent CPU recovery and host-agnostic dependency discovery.",
-        "Qualify latest supported Windows 11 AMD64 client VMs and the selected driver integration; preserve separate mounting gates."
+        "Qualify latest supported Windows 11 AMD64 client VMs and the selected driver integration; preserve separate mounting gates.",
+        "Windows taskbar tray/helper/driver must create/manage physical-disk filesystems and memory-backed virtual disks through the same full filesystem engine; qualify backend-specific provisioning/lifetime behavior."
       ],
       "validation": [
         "Read-only disposable fixture first, then isolated writable tests with strict existing caps; no owner driver installation or mounted host probe.",
-        "Verify crash/restart, upgrades/rollback, no stale services/workers/tasks/handles and safe uninstallation without touching unrelated files."
+        "Verify crash/restart, upgrades/rollback, no stale services/workers/tasks/handles and safe uninstallation without touching unrelated files.",
+        "Use the shared file-operation/application suite across both product backends; physical-provider validation belongs to final pre-release qualification, with explicit target selection and preserved source data."
       ],
       "exit": "Published Windows capability matrix and reproducible client qualification cover the promised app/driver behaviors; hosted callback success alone is insufficient."
     },
@@ -354,5 +358,18 @@
       "exit": "Claims match reproducible evidence and unresolved blockers are disclosed. No selected result establishes universal superiority over every filesystem."
     }
   ],
-  "publication_note": "P00 is completed by the commit publishing this ledger; runtime packages remain pending. The reviewed baseline identifies evidence before this documentation/assets commit."
+  "publication_note": "P00 is completed by the commit publishing this ledger; runtime packages remain pending. The reviewed baseline identifies evidence before this documentation/assets commit.",
+  "product_backends": {
+    "contract": "docs/WINDOWS_VOLUME_BACKENDS.md",
+    "shared_engine": true,
+    "required": [
+      "physical-disk filesystem",
+      "memory-backed virtual volume"
+    ],
+    "application": "Windows helper/driver integration/taskbar tray creates and manages both",
+    "development_volume": "memory-backed",
+    "repeat_backend_restriction_in_updates": false,
+    "physical_provisioning_implemented": false,
+    "tray_implemented": false
+  }
 }

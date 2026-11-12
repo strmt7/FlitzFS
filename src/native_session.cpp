@@ -60,6 +60,13 @@ struct NativeFileSession::Impl {
     bool pending=false,recovery_attempted=false;
   };
   static_assert(sizeof(VolumeOwner)<=256);
+  struct OptimizationOwner {
+    std::shared_ptr<StoreByteIo> backing;
+    std::optional<OptimizationStateWriter> writer;
+    NativeOptimizationPhase phase=NativeOptimizationPhase::unavailable;
+    OptimizationReadCode read_code=OptimizationReadCode::io_failure;
+  };
+  static_assert(sizeof(OptimizationOwner)<=64);
   struct StagedRecompression {
     std::shared_ptr<StoreByteIo> target;
     StoreIdentity id;
@@ -71,6 +78,8 @@ struct NativeFileSession::Impl {
   std::uint64_t evaluated_generation=0;
   // Destruction order retires the image writer BEFORE releasing the head owner.
   std::unique_ptr<VolumeOwner> volume;
+  // Retire data/advisory writers before the head owner.
+  std::unique_ptr<OptimizationOwner> optimization;
   NativeFilesystemWriter writer;
   std::shared_ptr<const void> owner=std::make_shared<const int>(0);
   std::array<Slot,max_contexts> slots{};
@@ -213,6 +222,79 @@ NativeVolumeHeadInfo NativeFileSession::volume_info() const {
   if(!self.volume || !self.volume->head)fail(E::invalid_options,"session has no volume authority");
   return self.volume->head->info();
 }
+NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
+  NativeOptimizationInfo out;
+  if(!impl_||!impl_->volume)return out;
+  const auto& self=*impl_;out.session_ready=!self.terminal&&!self.writer.poisoned();
+  if(!self.optimization)return out;
+  const auto& area=*self.optimization;
+  out.phase=area.phase;out.read_code=area.read_code;out.reserved_bytes=kOptimizationAreaBytes;
+  if(area.writer) {
+    if(area.writer->poisoned()) {
+      out.phase=NativeOptimizationPhase::terminal;out.read_code=OptimizationReadCode::io_failure;
+    }else if(area.phase==NativeOptimizationPhase::ready) {
+      out.sequence=area.writer->sequence();out.remaining_publications=area.writer->remaining_publications();
+    }
+  }
+  return out;
+}
+NativeOptimizationInfo NativeFileSession::create_optimization_area(std::shared_ptr<StoreByteIo> area,unsigned limit) {
+  return bind_optimization_area(std::move(area),0,limit,true);
+}
+NativeOptimizationInfo NativeFileSession::resume_optimization_area(std::shared_ptr<StoreByteIo> area,
+    std::uint64_t sequence,unsigned limit) {
+  return bind_optimization_area(std::move(area),sequence,limit,false);
+}
+NativeOptimizationInfo NativeFileSession::bind_optimization_area(std::shared_ptr<StoreByteIo> area,
+    std::uint64_t sequence,unsigned limit,bool create) {
+  auto& self=ready();
+  if(!self.volume||!self.volume->head||self.optimization||self.recompression||
+      !area||!limit||limit>4||(!create&&!sequence)||
+      area==self.volume->head_io||area==self.volume->active_io||area==self.volume->candidate_io)
+    fail(E::invalid_options,"new distinct provider-reserved advisory binding required");
+  // Own the attempted area before any backend operation. Never rebind/reset a
+  // partial area, even after failure; never reuse it as a maintenance target.
+  auto owner=std::make_unique<Impl::OptimizationOwner>();owner->backing=std::move(area);
+  self.optimization=std::move(owner);auto& bound=*self.optimization;
+  try {
+    if(create)bound.writer.emplace(OptimizationStateWriter::create(bound.backing,self.volume->volume_id,limit));
+    else {
+      const auto observed=read_optimization_state(*bound.backing,self.volume->volume_id);
+      bound.read_code=observed.code;
+      if(observed.code!=OptimizationReadCode::available)return optimization_info();
+      if(observed.sequence!=sequence){bound.read_code=OptimizationReadCode::invalid;return optimization_info();}
+      bound.writer.emplace(OptimizationStateWriter::resume(bound.backing,self.volume->volume_id,sequence,limit));
+    }
+    bound.phase=NativeOptimizationPhase::ready;bound.read_code=OptimizationReadCode::available;
+  }catch(const std::bad_alloc&){bound.read_code=OptimizationReadCode::io_failure;throw;}
+  catch(const std::exception&){bound.read_code=OptimizationReadCode::io_failure;}
+  return optimization_info();
+}
+OptimizationSnapshot NativeFileSession::optimization_snapshot() const {
+  const auto& self=ready();if(!self.optimization)return {};
+  const auto& area=*self.optimization;
+  if(area.phase==NativeOptimizationPhase::ready&&area.writer&&!area.writer->poisoned())
+    return area.writer->snapshot();
+  OptimizationSnapshot out;out.code=area.read_code==OptimizationReadCode::available?
+      OptimizationReadCode::io_failure:area.read_code;
+  if(area.writer&&area.writer->poisoned())out.code=OptimizationReadCode::io_failure;
+  return out;
+}
+NativeOptimizationInfo NativeFileSession::publish_optimization_state(const OptimizationState& state) {
+  auto& self=ready();
+  if(!self.volume||!self.optimization||self.recompression||
+      self.optimization->phase!=NativeOptimizationPhase::ready||!self.optimization->writer)
+    fail(E::invalid_options,"no ready advisory owner or candidate work is active");
+  auto& area=*self.optimization;
+  try{area.writer->publish(state);}
+  catch(...) {
+    if(area.writer->poisoned()){
+      area.phase=NativeOptimizationPhase::terminal;area.read_code=OptimizationReadCode::io_failure;
+    }
+    throw; // Never fence data or retire file contexts for advisory failure.
+  }
+  return optimization_info(); // No allocation after successful publication.
+}
 NativeVolumeHeadInfo NativeFileSession::compact_volume(std::shared_ptr<StoreByteIo> target,
     StoreIdentity next,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {
   return replace_volume(std::move(target),next,compression,checkpoints,false);
@@ -227,7 +309,8 @@ void NativeFileSession::admit_replacement(const Impl& self,
   const auto& volume=*self.volume;
   if(self.recompression || volume.pending || next==StoreIdentity{} || next==volume.active_id ||
       next==volume.volume_id || next==volume.head->info().selection.parent_identity ||
-      !target || target==volume.active_io || target==volume.head_io)
+      !target || target==volume.active_io || target==volume.head_io ||
+      (self.optimization&&target==self.optimization->backing))
     fail(E::invalid_options,"new distinct maintenance image required");
 }
 

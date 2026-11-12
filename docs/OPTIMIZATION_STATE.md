@@ -151,3 +151,58 @@ binding/nonaliasing qualification, controlled helper/session transactions,
 persistent workload-derived write credit, safe new-area rebuild/mapping,
 interrupted native compaction and held-out learning consumers. No production
 filesystem capability or full L01 exit is claimed by this foundation.
+
+## Native volume/session control integration
+
+The new NativeFileSession control methods bind a provider-reserved area to the
+same serialized volume owner. create_optimization_area requires a new area;
+resume_optimization_area requires its exact independently observed sequence.
+The provider must already reserve/account the 128-KiB region, qualify nonaliasing
+and authorize the helper. No normal file callback discovers or opens it.
+
+Known head, active-image and candidate aliases reject before area I/O. Binding
+defers while staged recompression is active. There is one admitted binding
+attempt per session, including failures. The attempted backing remains retained
+and is excluded from later compaction/recompression targets. This does not
+attest to global provider mappings or different facades for the same storage.
+
+publish_optimization_state uses the existing validated transaction writer.
+Identical advice still performs no writes. Invalid arguments and exhausted
+allowances preserve a healthy advisory owner. Storage/readback failure fences
+ONLY that owner. The file writer, grants, live handles and volume head are not
+fenced or changed by advisory failure. Unavailable advice exposes no cached
+policy, including after an allocation failure during resume.
+
+The scalar optimization_info getter performs no allocation or backing I/O.
+Its reserved_bytes accounts the provider-declared reservation; it is not proof
+of physical allocation. session_ready distinguishes a fenced data owner from
+advisory diagnostics. optimization_snapshot returns an owned cached copy.
+Neither getter authorizes scheduling, uses a GPU or changes user-file reads.
+
+Image handoff preserves the advisory owner and stable volume identity.
+Session destruction retires both data/advisory writers before the head owner.
+A new controller explicitly resumes the area only after actual prior-controller
+and context retirement. Persisted workload-derived write credit, rebuild mapping,
+global provider qualification, helper IPC authorization and learning remain
+required; per-lease publication limits alone are not a lifetime rewrite budget.
+
+The expanded deterministic tests retain every old crash case and add managed
+binding/resume, retained handle/move/handoff, source preservation, target aliases,
+staging deferral and backend read/write counters. Pressure, torn creation, both
+lost records, foreign/unsupported state, stale sequence, failed read, injected
+allocation refusal, failed publication and failed final readback must leave
+user-data I/O healthy. A failed empty area is made otherwise eligible as a target
+so the exclusion regression cannot pass merely due to a nonempty backend.
+
+These new integration cases require their own publishing-commit qualification.
+The prior journal at c30d01c passed all 13 core hosted jobs, including 278 model
+assertions and raw/codec/Windows/native/sanitizer coverage. Source-bound evidence
+is recorded separately. These results do not establish full L01 completion.
+
+
+The single direct binding attempt is the current experimental interface, not a
+requirement to restart a mounted volume when advice is lost. Automatic in-session
+replacement needs a separately qualified new-area mapping/publication transition
+that retires only the old advisory owner and preserves live data handles. That
+transition remains L01 work; resetting failed bytes or restarting user data is
+not its substitute.
