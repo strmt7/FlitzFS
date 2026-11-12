@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "experimental": true,
+  "reason": "Official dependency audit detected a newer stable CMake release; retain the strict latest-release and artifact-identity checks.",
+  "failed_audit": {
+    "source": "f2a2e9106c0cc9faed5e9550ce312247d9ca0fb9",
+    "run": 43329652873,
+    "job": 131570864764,
+    "artifact": 13994427149,
+    "sha256": "5cc18a89f9401577eac113e3c516c615900656525e56a24e53d7124f6b76d666",
+    "error": "official tool artifact pin differs from latest release identity"
+  },
+  "release": {
+    "repository": "Kitware/CMake",
+    "tag": "v4.5.0",
+    "published_at": "2026-11-12T18:53:08Z",
+    "api": "https://api.github.com/repos/Kitware/CMake/releases/latest"
+  },
+  "checksum_file": {
+    "url": "https://github.com/Kitware/CMake/releases/download/v4.5.0/cmake-4.5.0-SHA-256.txt",
+    "bytes": 2015,
+    "sha256": "32f7aaffd4f866c926835dbb95a8b08fd4c2f5a0b5899e97b2f29f6be3c0b020",
+    "actual_download_verified": true
+  },
+  "artifacts": [
+    {
+      "platform": "linux",
+      "url": "https://github.com/Kitware/CMake/releases/download/v4.5.0/cmake-4.5.0-linux-x86_64.tar.gz",
+      "bytes": 67002501,
+      "sha256": "81f0d5b0960fb6adc8197030ffc827fba937640d51e73e39e0e9e40d88c66f6f"
+    },
+    {
+      "platform": "win32",
+      "url": "https://github.com/Kitware/CMake/releases/download/v4.5.0/cmake-4.5.0-windows-x86_64.zip",
+      "bytes": 56341654,
+      "sha256": "301b1728317ccd84e984b02e366a8293735bc5ac618757d3d8f58b578f062411"
+    }
+  ],
+  "verification": "Selected hashes match both native official GitHub asset metadata and the downloaded Kitware checksum list.",
+  "llvm": {
+    "latest": "llvmorg-23.1.5",
+    "pin_unchanged": true
+  },
+  "qualification": "New archives must still pass the existing complete admission, guard tests and source-bound Windows/Linux builds. No installed tool is upgraded on the owner PC.",
+  "limits_changed": false,
+  "dependency_policy_weakened": false
+}
