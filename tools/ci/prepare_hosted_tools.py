@@ -20,10 +20,10 @@ import zipfile
 MIB=1024**2
 GIB=1024**3
 ARTIFACTS={
-    ("cmake","linux"):("4.4.5","https://github.com/Kitware/CMake/releases/download/v4.4.5/cmake-4.4.5-linux-x86_64.tar.gz",
-        64865573,"ed85135c5a5135b45e50423cb406dea04ca3338da0b8ef3c9ede963559680be0"),
-    ("cmake","win32"):("4.4.5","https://github.com/Kitware/CMake/releases/download/v4.4.5/cmake-4.4.5-windows-x86_64.zip",
-        54412232,"326c826486d46a23cf9d5a1c9ee3a567d427bdd02c4a34071937a2a675cff004"),
+    ("cmake","linux"):("4.5.0","https://github.com/Kitware/CMake/releases/download/v4.5.0/cmake-4.5.0-linux-x86_64.tar.gz",
+        67002501,"81f0d5b0960fb6adc8197030ffc827fba937640d51e73e39e0e9e40d88c66f6f"),
+    ("cmake","win32"):("4.5.0","https://github.com/Kitware/CMake/releases/download/v4.5.0/cmake-4.5.0-windows-x86_64.zip",
+        56341654,"301b1728317ccd84e984b02e366a8293735bc5ac618757d3d8f58b578f062411"),
     ("llvm","linux"):("23.1.5","https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.5/LLVM-23.1.5-Linux-X64.tar.zst",
         1198896522,"c3107384835f788768f614db610e87fba7077f125ca950eb02a78bab0a308065"),
 }
