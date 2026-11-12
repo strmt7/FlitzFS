@@ -50,6 +50,7 @@ class OptimizationStateWriter final {
   // a lifetime wear governor. Automatic scheduling/resource policy is absent.
   void publish(const OptimizationState&);
   OptimizationSnapshot snapshot() const;
+  std::uint64_t sequence() const noexcept; // Zero after failure/move; no I/O/allocation.
   unsigned remaining_publications() const noexcept;
   bool poisoned() const noexcept;
  private:

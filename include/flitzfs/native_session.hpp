@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/volume_head.hpp"
+#include "flitzfs/optimization_state.hpp"
 #include <memory>
 
 namespace flitzfs {
@@ -86,6 +87,15 @@ struct NativeVolumeRootMetadata {
   NativeBasicMetadata basic;
   std::span<const std::byte> security;
 };
+// Cached diagnostics, not provider authentication or OS authorization.
+enum class NativeOptimizationPhase {unbound,ready,unavailable,terminal};
+struct NativeOptimizationInfo {
+  NativeOptimizationPhase phase=NativeOptimizationPhase::unbound;
+  OptimizationReadCode read_code=OptimizationReadCode::absent;
+  std::uint64_t sequence=0,reserved_bytes=0;
+  unsigned remaining_publications=0;
+  bool session_ready=false;
+};
 class NativeFileSession final {
  public:
   static constexpr std::size_t max_contexts=256;
@@ -146,6 +156,18 @@ class NativeFileSession final {
   // Failure remains terminal with images/contexts retained and no second attempt.
   NativeVolumeHeadInfo recover_volume();
   NativeVolumeHeadInfo volume_info() const;
+  // Explicit trusted control, serialized with session calls. The provider has
+  // already reserved/nonaliased this area and authorized the helper. One binding
+  // attempt per session; failures retain the area and do not fence user data.
+  NativeOptimizationInfo create_optimization_area(std::shared_ptr<StoreByteIo>,
+      unsigned publication_limit=1);
+  NativeOptimizationInfo resume_optimization_area(std::shared_ptr<StoreByteIo>,
+      std::uint64_t expected_sequence,unsigned publication_limit=1);
+  NativeOptimizationInfo publish_optimization_state(const OptimizationState&);
+  // Owned cached copy; unavailable advice returns no policy. Normal I/O never
+  // calls these methods. Diagnostics do not authorize a background operation.
+  OptimizationSnapshot optimization_snapshot() const;
+  NativeOptimizationInfo optimization_info() const noexcept;
   // Trusted pre-open adapter lookup for namespace/security admission. No new
   // context or authority is created; caller must perform OS access checking.
   NativePathLookup lookup(std::string_view path) const;
@@ -285,6 +307,8 @@ class NativeFileSession final {
   std::unique_ptr<Impl> impl_;
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
+  NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
+      std::uint64_t,unsigned,bool create);
   static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity);
   static void admit_handoff_contexts(const Impl&);
   static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);

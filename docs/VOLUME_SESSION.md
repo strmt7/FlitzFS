@@ -115,3 +115,17 @@ A hosted idle opportunity uses the same staged copy and handoff. It defers to
 callbacks, remembers the evaluated source generation, and declines to publish
 a candidate whose projected image and live-payload savings fail admission.
 The normal mounted test lifecycle owns any unfinished candidate through stop.
+
+
+## Controlled advisory state
+
+The optional optimization_state control binding now belongs to this same volume
+owner. See OPTIMIZATION_STATE.md for the checked API, failure isolation and
+provider preconditions. Normal file operations never consult it. Failed or
+unavailable advisory state must not fence user data, close handles or make
+startup depend on a learned model. A bound or partially attempted advisory
+area cannot become a maintenance target. Image handoff preserves the area.
+
+This is a shared-engine capability for the product backends specified in
+WINDOWS_VOLUME_BACKENDS.md. Native provider reservation, helper IPC, tray
+provisioning and persistent write-credit policy remain unfinished.

@@ -15,6 +15,10 @@ production writable integration, scaling, automatic learning/maintenance and
 general repair remain unfinished. Ordinary filesystem operations remain CPU-only.
 Use disposable fixtures and retain independent copies of valuable data.
 
+The planned Windows helper/taskbar tray will create and manage both physical-disk
+filesystems and memory-backed virtual volumes through the shared engine.
+[Backend and application contract](docs/WINDOWS_VOLUME_BACKENDS.md).
+
 [Current assessment](docs/REPOSITORY_ASSESSMENT.md) ·
 [Detailed plan](docs/DEVELOPMENT_PLAN.md) ·
 [Continuation ledger](docs/DEVELOPMENT_PLAN.json) ·
@@ -58,7 +62,8 @@ recovery. Additional CPU lifecycle-edge tests await new-source qualification.
 ## Implemented experimental components
 
 - A separate bounded advisory optimization-state component with two flushed
-  copies and a CPU reader. Native-provider/learner integration remains unfinished;
+  copies and a CPU reader. Volume-owned control integration is under qualification; native provider,
+  persistent write credit and learner integration remain unfinished;
   see [the experimental contract](docs/OPTIMIZATION_STATE.md).
 - A bounded transactional object engine with integrity checks, immutable
   snapshots, replicated checkpoints, independent CPU reopen and explicit flush.

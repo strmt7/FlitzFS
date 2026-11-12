@@ -298,3 +298,8 @@ fixed 64-KiB slots, bound to the external volume identity. Its complete encoding
 is in OPTIMIZATION_STATE.md. It changes no existing container/object/root/codec/
 worker frame, and no user-data reader depends on it. It is not integrated into
 the native provider or an automatic learner. New-source qualification is required.
+
+
+Volume-owned advisory control changes no stored encoding. The same FLTOP001
+records and existing user-image/namespace/head/codec bytes remain readable.
+The new session methods add ownership and failure isolation in memory only.

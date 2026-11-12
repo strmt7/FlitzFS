@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "source_commit": "c30d01c4e72778fc5a34b907c17c4bbfb2e808c5",
+  "source_tree": "b8e66d75c1ead2597aff63f237a8da1c14ff794d",
+  "executed": "2026-11-11",
+  "reviewed": "2026-11-13",
+  "experimental": true,
+  "core": {
+    "run": 43049779192,
+    "conclusion": "success",
+    "jobs_passed": 13,
+    "jobs_total": 13
+  },
+  "cpu": [
+    {
+      "job": 130623395135,
+      "configuration": "Linux raw",
+      "ctest_passed": 114,
+      "optimization_model_seconds": 0.03
+    },
+    {
+      "job": 130623395273,
+      "configuration": "Linux codec",
+      "ctest_passed": 114,
+      "optimization_model_seconds": 0.03
+    },
+    {
+      "job": 130623396231,
+      "configuration": "Windows raw",
+      "ctest_passed": 118,
+      "optimization_model_seconds": 0.06
+    },
+    {
+      "job": 130623395214,
+      "configuration": "Windows native",
+      "ctest_passed": 132,
+      "optimization_model_seconds": 0.07
+    },
+    {
+      "job": 130623394539,
+      "configuration": "ASan/UBSan",
+      "ctest_passed": 114,
+      "optimization_model_seconds": 0.14
+    }
+  ],
+  "journal_model": {
+    "assertions": 278,
+    "artifact": 13869550868,
+    "artifact_sha256": "b12a1f3bb158b6129fe42c901688f54c9ab9e0845c0229bbb1de7bb215439d94",
+    "stored_extent": 131072,
+    "scope": "Standalone advisory journal model; new session integration is not covered by this old-source result."
+  },
+  "sdk": {
+    "run": 43049778321,
+    "conclusion": "success",
+    "gpu_executed": false
+  },
+  "source_routing": {
+    "artifact": 13867499629,
+    "artifact_sha256": "e3cef74934ced873c90a960b2a3c944b9284872bba511cae42a5a6a1c914d136",
+    "actual_search": {
+      "commit": "c30d01c4e72778fc5a34b907c17c4bbfb2e808c5",
+      "completed_utc": "2026-11-11T15:38:38.448309+00:00",
+      "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+      "hits": [
+        {
+          "end_line": 115,
+          "excerpt": "WINDOWS_FRAMEWORK_SOURCES = ( (\"winfsp-current-design\", \"https://winfsp.dev/doc/WinFsp-Design/\", \"FSD\", \"kernel\"), (\"winfsp-current-service\", \"https://winfsp.dev/doc/WinFsp-Service-Architecture/\", \"service\", \"Launcher\"), (\"winfsp-current-co",
+          "file_sha256": "eac9543d6a19e6b59e93b1af760829073ac7e565fa353311c7cb9d148f5122d8",
+          "path": "tools/ci/hosted_research.py",
+          "score": 0.804082753264181,
+          "start_line": 104
+        },
+        {
+          "end_line": 299,
+          "excerpt": "// request effects even at unchanged EOF. No clock or policy is invented. NativeInodeWriteCommit write_inode_with_metadata(std::uint64_t inode,std::uint64_t offset, std::span<const std::byte>,NativeInodeWriteOptions,const NativeAutomaticMet",
+          "file_sha256": "30ac8c139b3c3b23929d2ec641c653af6824a23917c89334f71c2c2afb90f067",
+          "path": "include/flitzfs/native_filesystem.hpp",
+          "score": 0.7995123175300876,
+          "start_line": 293
+        },
+        {
+          "end_line": 364,
+          "excerpt": "NativeInodeAllocationInfo inspect_allocation(std::uint64_t inode) const; NativeAllocationUsage inspect_allocation_usage() const; NativeFsCommit retire_inode(std::uint64_t inode); // Single-control-thread committed view for the owning Window",
+          "file_sha256": "30ac8c139b3c3b23929d2ec641c653af6824a23917c89334f71c2c2afb90f067",
+          "path": "include/flitzfs/native_filesystem.hpp",
+          "score": 0.7971168893284855,
+          "start_line": 348
+        },
+        {
+          "end_line": 503,
+          "excerpt": "std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_hosted( std::shared_ptr<StoreByteIo> head,StoreIdentity volume, std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,StoreCompressionOptions foreground) { hoste",
+          "file_sha256": "8aa9429d26337dcd3d20b8e5ad365bc3a731bb0375f8131ec25ed12e575354b9",
+          "path": "src/windows/winfsp_native.cpp",
+          "score": 0.7970417816177076,
+          "start_line": 493
+        },
+        {
+          "end_line": 38,
+          "excerpt": "WHEEL_SHA=\"76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d\" MODEL=\"Snowflake/snowflake-arctic-embed-xs\" QUERIES=( \"native filesystem inode namespace sparse extent mutation commit and metadata encoding\", \"transactional objec",
+          "file_sha256": "5a82090f553af11e1ed35818ca16eb51e411385dfc4bd5040724c014c00136a7",
+          "path": "tools/ci/hosted_semantic.py",
+          "score": 0.7868863357493581,
+          "start_line": 27
+        }
+      ],
+      "model": "Snowflake/snowflake-arctic-embed-xs",
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "native_response_sha256": "c3b0b81afad00f8d9745f1e5876b1d69191deb09a6535205f9628c061f681683",
+      "provider": "0.2.43",
+      "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+      "query": "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime",
+      "query_sha256": "f2b4f1dcd92196fd494d1ddd6740d2e0865d662f08270b3c21768aecd1f95193",
+      "repository": "strmt7/FlitzFS",
+      "source_sha256": "e8e3291537ad165a4472c5bc23ec67e3c42245507633ebb138187aceb8a33e6b"
+    },
+    "confirmed_candidates": [
+      {
+        "path": "include/flitzfs/native_filesystem.hpp",
+        "sha256": "30ac8c139b3c3b23929d2ec641c653af6824a23917c89334f71c2c2afb90f067"
+      },
+      {
+        "path": "src/windows/winfsp_native.cpp",
+        "sha256": "8aa9429d26337dcd3d20b8e5ad365bc3a731bb0375f8131ec25ed12e575354b9"
+      }
+    ],
+    "additional_exact_sources": [
+      "include/flitzfs/native_session.hpp",
+      "src/native_session.cpp",
+      "include/flitzfs/optimization_state.hpp",
+      "src/optimization_state.cpp",
+      "docs/VOLUME_SESSION.md",
+      "docs/OPTIMIZATION_STATE.md"
+    ],
+    "infrastructure_self_hits_not_coverage": true,
+    "tests_excluded_and_inspected_separately": true
+  },
+  "limitations": [
+    "New session-control implementation requires matching publishing-commit qualification.",
+    "Historical D01 mounted-child failure cause remains unproven.",
+    "No production learner, global physical provider, tray application, native automatic GPU route or universal durability claim is established."
+  ]
+}

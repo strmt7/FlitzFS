@@ -782,3 +782,14 @@ Invalid or both-lost areas are never reset automatically. Per-instance leases,
 explicit publication allowances and terminal fencing do not qualify global
 provider nonaliasing or lifetime wear. No ordinary-file factory, automatic
 helper, scheduler, mount, GPU launch or owner-device test is added.
+
+
+## Volume-owned advisory updates
+
+The optional session binding shares the existing serialized control owner and
+retains the attempted backend after failure. Known active/head/candidate aliases
+reject, and both bound and failed areas are excluded from maintenance targets.
+Advisory corruption, allocation refusal or write/readback failure supplies no
+usable policy and must not fence user-data I/O or change file-context ownership.
+An external qualified provider still owns global reservation/mapping, capacity
+accounting and authorization. The scalar getter is diagnostic only.

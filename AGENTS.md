@@ -1167,3 +1167,24 @@ Advisory state MUST NOT become a user-data decoding or namespace dependency.
 Both-lost state requires a new qualified area, never automatic reset/overwrite.
 Provider reservation/nonaliasing, helper integration, persistent write credit
 and learning remain unimplemented; no scheduler, GPU or owner test follows.
+
+
+## Shared Windows volume backends and communication
+
+The owner requires the Windows helper/driver/taskbar tray to create/manage both
+physical-disk filesystems and memory-backed virtual volumes through the SAME
+filesystem engine. Read docs/WINDOWS_VOLUME_BACKENDS.md. The development backend
+must not narrow the product feature set. Do not repetitively restate its storage
+restriction in public updates. Existing actual host/provisioning/driver/resource
+constraints still apply; the owner controls release.
+
+## Controlled optimization binding
+
+Read docs/OPTIMIZATION_STATE.md and docs/VOLUME_SESSION.md before modifying the
+session binding. Preserve one admitted binding attempt, retained failed backings,
+known head/image/candidate/target exclusions, source/context ownership and advisory
+failure isolation. No normal I/O may discover/read/update the advisory area.
+No allocation or I/O may follow successful publication merely to form diagnostics.
+Per-instance pointer/lease checks do not attest to global provider nonaliasing.
+Persistent workload-derived write credit, real reservation/mapping and helper/tray
+integration remain required; do not call this a complete learner.

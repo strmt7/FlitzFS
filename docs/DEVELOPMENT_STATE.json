@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "updated": "2026-11-11",
+  "updated": "2026-11-13",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_ASSESSMENT.md",
@@ -11,36 +11,13 @@
     "note": "New feedback implementation needs its publishing-commit qualification. Prior accepted GPU experiments are explicitly bound to 04d884b."
   },
   "current_qualification": {
-    "commit": "b3e90480cdfdd1151f08ab8c0969b6b9cb38122e",
-    "core_run": 43045953244,
-    "attempt": 1,
+    "commit": "c30d01c4e72778fc5a34b907c17c4bbfb2e808c5",
+    "core_run": 43049779192,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "windows_native": {
-      "job": 130609806791,
-      "passed": true,
-      "ctest_checks": 131
-    },
-    "asan_ubsan": {
-      "job": 130609807468,
-      "passed": true
-    },
-    "windows_raw": {
-      "job": 130609807392,
-      "passed": true,
-      "ctest_checks": 117
-    },
-    "linux_raw": {
-      "job": 130609807485,
-      "passed": true
-    },
-    "linux_codec": {
-      "job": 130609807332,
-      "passed": true
-    },
-    "scope": "All13 core jobs passed, including expanded CPU source lifecycle tests and every hosted mount profile. L01 state-area implementation requires its publishing-commit qualification; D01 historical root cause remains unproven.",
-    "evidence": "docs/evidence/mount-source-isolation-8122bf5.json"
+    "evidence": "docs/evidence/optimization-state-c30d01c.json",
+    "scope": "Standalone advisory journal and all existing core routes passed. New session binding still requires its publishing-commit qualification."
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -96,7 +73,7 @@
     "autonomous_background_executor": false,
     "general_payload_repair": false,
     "production_windows_app_installer": false,
-    "persistent_optimization_state": "Experimental bounded custom-backend advisory journal; new-source qualification pending. Native provider/helper integration and learner absent."
+    "persistent_optimization_state": "Experimental journal plus volume-owned control binding; new integration qualification pending. Provider mapping, persistent write credit, automatic rebuild and learner remain unfinished."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -110,17 +87,15 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "date": "2026-11-11",
+    "date": "2026-11-13",
     "repository": "strmt7/FlitzFS",
-    "transport": "Authenticated installed GitHub CLI native REST API, no prompts",
+    "transport": "Authenticated native GitHub CLI REST API",
     "endpoint": "repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100",
     "success": true,
     "open_alerts": 0,
     "page": 1,
-    "per_page": 100,
     "complete": true,
-    "owned_cli_exit_confirmed": true,
-    "limitations": "Snapshot of OPEN alerts only, not proof of absence of vulnerabilities or future alerts."
+    "limitations": "Open-alert snapshot, not an exhaustive security audit."
   },
   "source_routing": {
     "commit": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
@@ -354,14 +329,13 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
+    "source_parent": "c30d01c4e72778fc5a34b907c17c4bbfb2e808c5",
     "package": "L01",
-    "source_parent": "b3e90480cdfdd1151f08ab8c0969b6b9cb38122e",
     "contract": "docs/OPTIMIZATION_STATE.md",
-    "status": "Pending publishing-commit raw/codec/Windows/native/sanitizer tests.",
-    "behavior": "Fixed two-copy advisory area, CPU reader, exact sequence/volume, bounded tables and per-lease publications, explicit resume/peer-first repair.",
-    "owner_execution": false,
-    "normal_filesystem_route": false,
-    "next": "Inspect exact new optimization_state_crash_model results, all fault paths and whole existing matrix. Fix actual failures before integration; L01 exit still requires provider/helper/write-credit/compaction work."
+    "behavior": "Volume-owned advisory binding/publication, independent failure domain, retained-handle handoff/resume and target alias exclusion.",
+    "status": "Pending exact publishing-commit model/raw/codec/Windows/native/sanitizer and existing integration results.",
+    "default_route": "No automatic advisory or GPU route",
+    "next": "Inspect new session/failure tests before any live-host use. Then implement qualified in-session area replacement, persistent write credit and helper/tray integration."
   },
   "resolved": [
     {
@@ -370,5 +344,18 @@
       "evidence": "docs/evidence/gpu-admission-04d884b.json",
       "scope": "Qualified shared resource envelope and actual tiny accepted results; not full product readiness."
     }
-  ]
+  ],
+  "product_backends": {
+    "contract": "docs/WINDOWS_VOLUME_BACKENDS.md",
+    "shared_engine": true,
+    "required": [
+      "physical-disk filesystem",
+      "memory-backed virtual volume"
+    ],
+    "application": "Windows helper/driver integration/taskbar tray creates and manages both",
+    "development_volume": "memory-backed",
+    "repeat_backend_restriction_in_updates": false,
+    "physical_provisioning_implemented": false,
+    "tray_implemented": false
+  }
 }
