@@ -1,5 +1,10 @@
 # FlitzFS development execution plan
 
+## Next implemented compute boundary
+
+The SDK-only [LZ4 compute candidate](HIP_LZ4_COMPUTE.md) connects typed HIP calls to the already qualified owned slab and CPU verifier. Current-source compile and CPU fault tests remain pending. After those pass, authenticate the candidate module and object coverage before a separately gated isolated runtime trial; then measure byte-exact benefit before filesystem routing. G02/G03 and the full-product goal remain open, including native storage integration, autonomous optimization, durability and repair.
+
+
 Baseline: 11 November 2026, main 8a5633b588869eb3808d089fca76937c6781991c.
 Read the [repository assessment](REPOSITORY_ASSESSMENT.md) first.
 This is the execution plan for the existing active full-product goal, not a

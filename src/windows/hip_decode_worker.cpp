@@ -5,6 +5,7 @@
 #include "hip_worker_budget.hpp"
 #include "hip_worker_exit.hpp"
 #include "hip_api.hpp"
+#include "hip_device_resources.hpp"
 #include <hip/hip_runtime_api.h>
 #include <algorithm>
 #include <bit>
@@ -44,41 +45,7 @@ void require_hip_worker_job() {
       cpu.CpuRate==2000, "unexpected HIP worker job limits",HipWorkerStage::worker_job);
 }
 
-namespace {
-struct DeviceResources {
-  const HipApi& api;
-  hipStream_t stream = nullptr;
-  std::array<void*,4> buffers{};
-  HipMemoryObservation* observation=nullptr;
-  bool retirement_failed=false;
-
-  explicit DeviceResources(const HipApi& functions,HipMemoryObservation* trace=nullptr)
-      : api(functions),observation(trace) {}
-  DeviceResources(const DeviceResources&) = delete;
-  DeviceResources& operator=(const DeviceResources&) = delete;
-
-  hipError_t release_all() noexcept {
-    hipError_t first = hipSuccess;
-    if (stream) {
-      first = api.destroy_stream(stream);
-      stream = nullptr;
-    }
-    for (auto& buffer : buffers) {
-      if (!buffer) continue;
-      const auto status = api.release(buffer);
-      if (first == hipSuccess) first = status;
-      buffer = nullptr;
-    }
-    retirement_failed=retirement_failed || first!=hipSuccess;
-    if(observation){
-      observation->flags&=~static_cast<std::uint32_t>(hip_memory_resources_released);
-      if(!retirement_failed)observation->flags|=hip_memory_resources_released;
-    }
-    return first;
-  }
-  ~DeviceResources() { (void)release_all(); }
-};
-}
+using hip_detail::DeviceResources;
 
 GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
     const gpu_detail::KernelApi& kernel, int ordinal, std::array<std::byte,8> luid,

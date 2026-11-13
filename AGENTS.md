@@ -1,5 +1,10 @@
 # Agent instructions for autonomous FlitzFS development
 
+## SDK-only compression compute boundary
+
+Read docs/HIP_LZ4_COMPUTE.md before changing src/windows/hip_lz4_compute.*, shared hip_device_resources.hpp or the SDK CPU probe. The optional private SDK fixture may compile the new static compute library/probe with SDK-typed fake functions; the normal worker and filesystem must never link/call it yet. Do not load the private candidate DLL or transfer CPU mock results into GPU evidence. Preserve CPU decoder preflight, authenticated architecture/wave coverage, two bounded function-attribute queries, one complete 256-KiB slab, fresh memory policies and successful explicit retirement before any owned result escapes. Caller supervision/module authentication remain separate gates. Existing gfx1100 wave64 placeholder is not hardware support. Current-source qualification is pending.
+
+
 ## Current execution ledger
 
 Read docs/MOUNT_PROCESS_ISOLATION.md before changing the source supervisor,

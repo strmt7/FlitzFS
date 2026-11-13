@@ -1,0 +1,174 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "qualified_source": "2a757592ab4060406afc05efd5735b5d9412944b",
+  "captured_utc": "2026-11-13 20:43:06 UTC",
+  "scope": "Bounded complete canonical source snapshot and integration regression; no new filesystem runtime or GPU caller.",
+  "core_run": {
+    "conclusion": "success",
+    "head_sha": "2a757592ab4060406afc05efd5735b5d9412944b",
+    "id": 43501458840,
+    "status": "completed"
+  },
+  "core_jobs": {
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 132148016499,
+        "name": "sanitizers",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132148016789,
+        "name": "windows-native",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132148016936,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132148016983,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132148017407,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132152900400,
+        "name": "windows-mount",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132154281947,
+        "name": "windows-write-mount (crash-restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132154281989,
+        "name": "windows-write-mount (basic)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132154281997,
+        "name": "windows-write-mount (ram-handoff)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132154282051,
+        "name": "windows-write-mount (mutations)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132154282056,
+        "name": "windows-write-mount (restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132154282071,
+        "name": "windows-write-mount (delete)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132154282087,
+        "name": "windows-write-mount (crash)",
+        "status": "completed"
+      }
+    ],
+    "total_count": 13
+  },
+  "all_source_runs": [
+    {
+      "conclusion": "success",
+      "id": 43501458806,
+      "name": "Official dependency release inventory",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 43501459164,
+      "name": "Commit-bound source evidence",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 43501459082,
+      "name": "Isolated semantic source routing",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 43501459443,
+      "name": "Pinned compression-mechanism reference checks",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 43501458840,
+      "name": "Safe CPU and native callback checks",
+      "status": "completed"
+    }
+  ],
+  "source_snapshot": {
+    "run": 43501459164,
+    "job": 132148016474,
+    "artifact": 14072364706,
+    "outer_sha256": "38533eae2854d777799205e993115c222f16760461079d5d9327ee1b827bb20e",
+    "source_sha256": "c48230c15dc06842e216900ac432f0ef54c677f523738b5fb169d4878300120d",
+    "source_commit": "2a757592ab4060406afc05efd5735b5d9412944b",
+    "tree": "a63c650c8d03b63b751defee119605407cf097ee",
+    "canonical_files_verified": 519,
+    "zip_entries": 541,
+    "expanded_bytes": 6931310,
+    "compressed_bytes": 2668719,
+    "extracted_to_disk": false
+  },
+  "source_tests": {
+    "cases": 10,
+    "seconds": 0.045,
+    "passed": true,
+    "no_OS_file_writes_in_unit_fixtures": true
+  },
+  "semantic_source": {
+    "run": 43501459082,
+    "artifact": 14075300578,
+    "archive_sha256": "4bc5f14e2337bdb1731190adb9674388c030584e1bed44eea4ecda7201840651",
+    "receipt_sha256": "eac71dee622f95f7ef1d62cbb1a1a05002938cac8fa839e74614ed87e7073da3",
+    "commit": "2a757592ab4060406afc05efd5735b5d9412944b",
+    "source_files": 164,
+    "source_sha256": "509437e71dd998e9d3f1b08f470f7479b07b222f43bf165618fb14b078c4f17f",
+    "actual_searches": 8,
+    "provider_version": "0.2.43",
+    "native_search_response_sha256": "a21b204a8c70330d820223f768df36c4f4553ab45538d2c6bfb745e4370ebc3b",
+    "query": "trusted HIP worker bundle file digest DLL module loading signature and system directory",
+    "live_confirmed": "src/windows/hip_decode_worker.cpp:1-12",
+    "provider_retired": true,
+    "shared_MCP_modified": false
+  },
+  "static_CPU_worker_preceding_qualification": "docs/evidence/cpu-lz4-worker-94ec882.json",
+  "dependabot": {
+    "open_alerts": 0,
+    "transport": "Authenticated paginated GitHub API",
+    "observed_utc": "2026-11-13 20:43:06 UTC"
+  },
+  "GPU_executed": false,
+  "owner_tests_performed": false,
+  "owner_checkout_preserved": true,
+  "remaining": "Actual HIP compression execution, useful measured benefit and the full filesystem remain unfinished."
+}

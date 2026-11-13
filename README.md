@@ -1,5 +1,8 @@
 # FlitzFS
 
+The experimental [HIP LZ4 compute implementation](docs/HIP_LZ4_COMPUTE.md) now has an SDK-only allocation, submission, readback and retirement path. New-source CPU fault qualification is pending; it remains disconnected from ordinary file operations and no GPU performance result is claimed.
+
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="resources/brand/flitzfs-logo-dark.png">
   <img src="resources/brand/flitzfs-logo-typed.png" alt="FlitzFS — red layered F symbol and Segoe UI Bold wordmark" width="640">

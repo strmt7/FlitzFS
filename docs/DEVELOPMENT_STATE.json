@@ -360,11 +360,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "2fdd01cd8540d47259a96e030b19e216bc900ac9",
-    "contract": "docs/HIPCOMP_NATIVE_SYNC.md",
-    "behavior": "Separate explicit offline native-wave header composition with exact-source CPU transform tests and extracted CPU index oracle.",
-    "status": "Seven new CPU cases, actual integer/index oracle, original+variant compilation and all original SDK/worker/core gates require publishing-source execution.",
-    "next": "Verify the actual closed transform and index results; inspect native object metadata. Keep all objects unexported/unloaded, original paths unchanged and runtime/owner gates closed."
+    "source_parent": "2a757592ab4060406afc05efd5735b5d9412944b",
+    "contract": "docs/HIP_LZ4_COMPUTE.md",
+    "behavior": "SDK-only typed bounded HIP compression compute, protected full-slab readback, independent CPU verification and explicit API resource retirement.",
+    "status": "Pending current-source selected-SDK compilation, CPU fake success/failure matrix, raw missing-decoder control and all original CI gates.",
+    "next": "Qualify without loading HIP/private candidate modules; authenticate modules and actual object coverage before isolated runtime integration. No normal caller or owner GPU run."
   },
   "resolved": [
     {
@@ -647,6 +647,14 @@
       "sdk_run": 43497321613,
       "core_run": 43497321733,
       "evidence": "docs/evidence/cpu-lz4-worker-94ec882.json"
+    },
+    "typed_compression_compute": {
+      "contract": "docs/HIP_LZ4_COMPUTE.md",
+      "status": "Pending current-source selected-SDK compilation, CPU fake success/failure matrix, raw missing-decoder control and all original CI gates.",
+      "complete_device_bytes_cap": 262144,
+      "normal_io_caller": false,
+      "candidate_module_loaded": false,
+      "gpu_executed": false
     }
   },
   "integration_checkpoints": [
@@ -673,10 +681,11 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "c86559b7bfb71059eff35b855c4bf6b9c2e83112",
-    "run": 43477477862,
+    "source": "2a757592ab4060406afc05efd5735b5d9412944b",
+    "run": 43501458840,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "All core/integration jobs and all five separately captured 144524-check logs; 122 sanitizer tests. No GPU output or physical-media proof."
+    "evidence": "docs/evidence/source-snapshot-2a75759.json",
+    "scope": "All 13 ordinary jobs passed; all 519 source archive files independently match canonical Git blobs. SDK CPU decoder qualification remains source-bound to 94ec882."
   }
 }

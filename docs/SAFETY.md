@@ -1,5 +1,10 @@
 # FlitzFS safety gates and threat model
 
+## Unqualified SDK-only LZ4 compute implementation
+
+[HIP_LZ4_COMPUTE.md](HIP_LZ4_COMPUTE.md) defines the new typed compute contract. It is compiled only in the optional private SDK fixture and has no normal caller. CPU fake tests do not authorize owner-device execution, module loading or mounting. Retain exact process/supervisor retirement and independent CPU verification; a failed resource release overrides acceptance. Original memory caps and historical unresolved retirement failures remain controlling. No stored bytes or format change.
+
+
 The owner's primary constraints are **no formatting, no lost data, no system
 freezes and no resource exhaustion**. These remain release blockers, not claims
 that finite tests can prove immunity to software, hardware or power failures.
