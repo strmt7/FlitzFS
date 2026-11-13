@@ -132,8 +132,21 @@ class DecoderStaging(unittest.TestCase):
             self.assertIn(b"\r\n", raw)
             self.assertNotIn(b"\n", raw.replace(b"\r\n", b""))
             before[spec["path"]] = raw
-        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=no"), "",
-                         self.git("ls-files", "--eol"))
+        diagnostics = [self.git("--version"), self.git("config", "--list", "--show-origin"),
+                       self.git("ls-files", "--eol")]
+        for spec in decoder.ASSETS:
+            actual = self.git("hash-object", "--path=" + spec["path"], spec["path"])
+            diagnostics.append(spec["path"] + " filtered=" + actual + " expected=" + spec["blob"])
+        # Refresh from the actual checkout representation. This is permitted
+        # only when its canonical index still equals the original commit.
+        self.git("add", "--renormalize", "--all")
+        diagnostics.extend((self.git("diff", "--cached", "--raw"),
+                            self.git("diff", "--no-ext-diff", "--no-textconv")))
+        detail = "\n".join(diagnostics)
+        self.assertEqual(self.git("diff", "--cached", "--name-only"), "", detail)
+        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=no"), "", detail)
+        for spec in decoder.ASSETS:
+            self.assertEqual(self.git("rev-parse", "HEAD:" + spec["path"]), spec["blob"], detail)
         records = decoder.stage(self.source, self.control, self.output)
         self.assertTrue(all(r["physical"]["representation"] == "crlf-checkout" for r in records))
         for spec in decoder.ASSETS:
