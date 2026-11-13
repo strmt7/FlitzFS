@@ -1,8 +1,9 @@
 # hipCOMP LZ4 offline object gate (experimental)
 
 This source prepares optional compilation after the source-bound review in
-[GPU_CODEC_CANDIDATES.md](GPU_CODEC_CANDIDATES.md). Its own admission tests and
-Windows compiler execution remain pending. No filesystem or worker invokes the
+[GPU_CODEC_CANDIDATES.md](GPU_CODEC_CANDIDATES.md). All 20 CPU source/staging admission cases passed on disposable Windows at
+`df51d8c5ba80430453c805619438f431d5677f3b`; native candidate compilation also passed with the verified ROCm 10.1.0 SDK.
+The new native object-inspection gate remains pending. No filesystem or worker invokes the
 candidate, and no data encoding changes.
 
 ## Exact source and private compiler input
@@ -66,3 +67,28 @@ scratch/output admission, independent CPU decoding and byte comparison, immutabl
 owned input and the replacement lifecycle/failure contract. Any actual device
 experiment requires its own exact-source disposable-VM gates, source audit and
 tiny synthetic host budget. No unchanged owner GUI/GPU repetition is needed.
+
+## Bounded allocation preparation
+
+[GPU_LZ4_LAYOUT.md](GPU_LZ4_LAYOUT.md) describes the new host-only allocation
+planner and its pending exact-source CPU tests. It preserves the complete
+256-KiB explicit device-buffer ceiling, including scratch, tables and guards.
+No worker uses it yet.
+
+## Executed compilation checkpoint
+
+At df51d8c, the default SDK run 43418598396 and explicit candidate run
+43419213104 completed successfully. The candidate object is 217,673 bytes with
+SHA-256 44505b2dde92e35efac37f5fedb69a5c299384ab606283b6eb048bfe9ec33925;
+165 private input records account for 1,577,371 bytes before the HIP alias and
+complete notices. All 20 source/staging cases passed in both runs, and each run
+preserved 20 confirmed worker exits and the original kernel/CPU refusal checks.
+The compiler reported its existing unused static-runtime argument warning; no
+warning was suppressed. Source-bound details and scope are in
+[offline evidence](evidence/gpu-lz4-offline-df51d8c.json).
+
+The next gate adds same-SDK LLVM header and embedded-target inspection. It checks
+AMD64 host-object identity and the requested gfx1100 target as data, with new
+30-second bounded commands. The object and dependency files remain unexported.
+These new inspection results and allocation-planner tests are pending; successful
+compilation is not represented as device execution or codec interoperability.

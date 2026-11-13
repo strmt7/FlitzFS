@@ -444,7 +444,8 @@ the hosted GUI and one healthy owner GUI passed with exact retirement. See
 Independent G02 candidate evaluation now prepares a closed upstream semantic
 scope for current AMD hipCOMP source, with exact source/control identity and
 notice retention. This prerequisite enables kernel analysis without changing
-runtime behavior. Its own admission and actual query execution are pending.
+runtime behavior. Its admission and actual query execution passed at `905a4d3`,
+as recorded below.
 Subsequent audited Windows compilation, CPU-readable format recovery, equivalent
 worker containment and whole-operation gain measurements remain mandatory.
 The G03 lifecycle prerequisite and historical D01 uncertainty remain explicit;
@@ -462,6 +463,13 @@ The next G02 step is the [optional offline object gate](HIPCOMP_OFFLINE.md).
 It retains current SDK staging and all existing worker gates, verifies source
 before downloading the SDK, and compiles one private byte-identical translation
 unit for a synthetic target. The 20 new admission/staging cases and actual native
-compiler outcome are pending. Compilation cannot close CPU-format, runtime,
-performance or full-product requirements. No unchanged owner GPU/GUI repetition
-is part of this source-only change.
+compiler outcome passed at `df51d8c`. The object is 217,673 bytes; its digest,
+source identities and original SDK/worker results are retained in
+[offline evidence](evidence/gpu-lz4-offline-df51d8c.json). Compilation cannot close
+CPU-format, runtime, performance or full-product requirements.
+
+The next [allocation planner](GPU_LZ4_LAYOUT.md) accounts for all candidate tables,
+inputs, worst-case outputs, guards and scratch within the unchanged 256-KiB total
+explicit device-buffer cap. Its new CPU tests and expanded native LLVM object
+inspection require exact-source execution. No unchanged owner GPU/GUI repetition
+is part of these changes.

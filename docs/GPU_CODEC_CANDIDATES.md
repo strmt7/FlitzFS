@@ -60,8 +60,11 @@ completed eight queries over 143 FlitzFS files; upstream routing completed two
 queries over 142 pinned candidate files, with zero reported indexing errors.
 Repository/source/control identities, inventories, notices and relevant live LZ4
 source hashes were admitted. See [executed navigation evidence](evidence/gpu-codec-navigation-905a4d3.json).
-The next [offline Windows object gate](HIPCOMP_OFFLINE.md) requires its own test
-and compiler execution before any build qualification.
+The [offline Windows object gate](HIPCOMP_OFFLINE.md) at df51d8c passed all
+20 new source/staging tests and native compilation, with the existing SDK/worker
+gates preserved. No runtime or CPU-format compatibility is established. The new
+[bounded allocation plan](GPU_LZ4_LAYOUT.md) and native object inspection require
+exact-source execution.
 
 ## Evaluation gates
 

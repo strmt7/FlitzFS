@@ -249,8 +249,11 @@ replacement before allocation until genuinely new input funds the attempt.
 
 The [GPU codec source evaluation](docs/GPU_CODEC_CANDIDATES.md) passed 22
 admission tests and actual source-bound searches for FlitzFS and pinned AMD
-hipCOMP code. The next [offline object gate](docs/HIPCOMP_OFFLINE.md) prepares
-explicit isolated Windows compilation; its new-source tests and compiler
-execution are pending. No candidate object is loaded or used by file operations.
+hipCOMP code. The [offline object gate](docs/HIPCOMP_OFFLINE.md) at `df51d8c`
+passed all 20 source/staging cases and native Windows compilation using the
+verified ROCm 10.1.0 SDK, retaining existing worker gates
+([evidence](docs/evidence/gpu-lz4-offline-df51d8c.json)). The next
+[bounded allocation planner](docs/GPU_LZ4_LAYOUT.md) and native object inspection
+require exact-source tests. No candidate object is loaded or used by file operations.
 Automatic learning, durable provider mapping, useful GPU gains and the full
 Windows product remain unfinished.

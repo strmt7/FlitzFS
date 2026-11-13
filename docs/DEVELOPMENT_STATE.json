@@ -82,10 +82,10 @@
     "general_payload_repair": false,
     "production_windows_app_installer": false,
     "persistent_optimization_state": "Funded journal and explicit helper creation/replacement/pre-allocation admission qualified at 99d5365. Durable mapping, authorization, long-lived continuation and autonomous learning remain incomplete.",
-    "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; source9977674 passed VM model/GUI and one healthy owner GUI, with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
+    "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; 99d5365 passed VM model/GUI and one healthy owner GUI with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
-    "gpu_codec_candidate": "Source navigation qualified at 905a4d3 with 22 admission tests, eight default and two upstream queries. New optional Windows object gate awaits its own tests/compilation; no runtime or storage dependency selected."
+    "gpu_codec_candidate": "Pinned source/staging admission (20 CPU cases), native Windows LZ4 object compilation and original SDK/worker gates passed at df51d8c. New host-only complete allocation planner and native LLVM object-inspection gate await execution. No runtime or stored-format dependency selected."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -99,23 +99,23 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13 11:31:26 UTC",
+    "checked_at_utc": "2026-11-13 11:47:04 UTC",
     "native_transport": "Authenticated GitHub open-alerts API",
     "open_alerts": 0,
     "scope": "Open alerts only, not absence of all vulnerabilities.",
-    "evidence": "docs/evidence/gpu-codec-navigation-905a4d3.json"
+    "evidence": "docs/evidence/gpu-lz4-offline-df51d8c.json"
   },
   "source_routing": {
-    "indexed_commit": "22ba3b3238e2a4185705721deeb645b186f0d002",
-    "equivalent_current_commit": "5b58568b019772542c9a300e1283a107d5c5028b",
-    "run": 43392561193,
-    "artifact": 14022025859,
-    "artifact_sha256": "0c3d83fff5e55d0e08f5e44686011730724a1bea1343cd23b4dd49bf2456431c",
-    "source_sha256": "a86b95e6bb0546a350726a793125ef305e7ce9075c24ddcec0465739134ddf23",
+    "indexed_commit": "df51d8c5ba80430453c805619438f431d5677f3b",
+    "equivalent_current_commit": "df51d8c5ba80430453c805619438f431d5677f3b",
+    "run": 43418598342,
+    "artifact": 14032499233,
+    "artifact_sha256": "99a540407e38e4cada6b5fcf38620af0789888702c00e789411ea7761ee09115",
+    "source_sha256": "067658b6e085c1387505cafe47666de7d1b8127999001bb0ca8653218bea07ef",
     "actual_queries": 8,
     "provider": "0.2.43",
-    "source_equivalence": "5b58568 changed only excluded test/docs; native compare and live production hashes retained. New advisory work uses exact known codec/controller symbols.",
-    "evidence": "docs/evidence/workload-helper-5b58568.json",
+    "source_equivalence": "Exact source-bound default receipt; live protocol, allocation-layout and build integration files confirmed before this change.",
+    "evidence": "docs/evidence/gpu-lz4-offline-df51d8c.json",
     "infrastructure_hits_not_coverage": true,
     "provider_paths_read_as_exact_known_scope": true
   },
@@ -342,11 +342,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
-    "contract": "docs/HIPCOMP_OFFLINE.md",
-    "behavior": "Optional byte-checked private-source native Windows compilation of the pinned LZ4 translation unit; no candidate CMake execution, object loading/export or product linking.",
-    "status": "Publishing-source 20-case source/staging admission suite and explicit candidate compiler invocation required, retaining every original SDK/kernel/worker gate.",
-    "next": "Inspect actual test/compiler failures without blind reruns. After successful offline qualification, independently qualify resource/output bounds, CPU format recovery and contained runtime integration before any device experiment."
+    "source_parent": "df51d8c5ba80430453c805619438f431d5677f3b",
+    "contract": "docs/GPU_LZ4_LAYOUT.md",
+    "behavior": "Host-only bounded LZ4 candidate allocation plan plus same-SDK native object header/embedded-target inspection; no codec, protocol or runtime integration.",
+    "status": "New allocation tests, expanded optional object gate and all original integration checks require exact-source execution.",
+    "next": "Inspect and fix actual failures, then independently qualify bounded CPU format recovery and worker lifecycle before device experiments."
   },
   "resolved": [
     {
@@ -441,5 +441,22 @@
     "upstream_files": 142,
     "upstream_source": "03df9f7369211ee15d370817165224c73fdc9a46",
     "evidence": "docs/evidence/gpu-codec-navigation-905a4d3.json"
+  },
+  "gpu_codec_qualification": {
+    "control_source": "df51d8c5ba80430453c805619438f431d5677f3b",
+    "upstream_repository": "ROCm/hipCOMP-core",
+    "upstream_source": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "default_sdk_run": 43418598396,
+    "candidate_sdk_run": 43419213104,
+    "source_staging_tests": 20,
+    "compiled_object": {
+      "bytes": 217673,
+      "sha256": "44505b2dde92e35efac37f5fedb69a5c299384ab606283b6eb048bfe9ec33925"
+    },
+    "compiler_requested_target": "gfx1100",
+    "object_inspection_qualified": false,
+    "gpu_executed": false,
+    "module_loaded": false,
+    "evidence": "docs/evidence/gpu-lz4-offline-df51d8c.json"
   }
 }

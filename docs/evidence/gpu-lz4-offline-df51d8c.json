@@ -1,0 +1,1653 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "recorded_utc": "2026-11-13 11:53:48 UTC",
+  "control_source": "df51d8c5ba80430453c805619438f431d5677f3b",
+  "scope": "Executed source admission and native offline object compilation only; new allocation and object-inspection changes remain pending.",
+  "source": {
+    "repository": "ROCm/hipCOMP-core",
+    "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "inventory_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d",
+    "source_records": 165,
+    "source_record_bytes": 1577371,
+    "notices": [
+      {
+        "path": "LICENSE",
+        "bytes": 1085,
+        "sha256": "74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef"
+      },
+      {
+        "path": "CMakeLists.txt",
+        "bytes": 14505,
+        "sha256": "19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7"
+      }
+    ]
+  },
+  "default_sdk": {
+    "run": 43418598396,
+    "job": 131862628543,
+    "artifact": 14032579164,
+    "artifact_bytes": 16487,
+    "artifact_sha256": "918840072f45b79e3e88453bb578bbe9b90bc1c7cb44a04461854885f230ce47",
+    "complete": true,
+    "commands": [
+      {
+        "name": "static-runtime-export-parser-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "codec-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "current-reference-bootstrap-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "complete-sdk-bootstrap",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "current-sdk-device-compilation",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "current-sdk-host-api-and-link-configure",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "current-sdk-host-api-and-kernel-module-link",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "header-probe-without-loading-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "typed-device-identity-fake-runtime",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-worker-admission-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-adapter-identity-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-budget-metadata-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-topology-metadata-unknown_adapter",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-topology-metadata-warp",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "one-shot-probe-missing-runtime",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_memory-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_identity-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-metadata-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_decode-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_profile-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_match-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "actual-AMD-compiler-version",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "source_staging_test": {
+      "name": "codec-source-admission-regressions",
+      "argv": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+        "-B",
+        "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_hipcomp_candidate.py"
+      ],
+      "root_pid": 1796,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "....................\r\n----------------------------------------------------------------------\r\nRan 20 tests in 1.741s\r\n\r\nOK\r\n",
+      "output_truncated": false,
+      "output_limit_exceeded": false,
+      "timed_out": false,
+      "job_memory_limit_bytes": 2147483648
+    },
+    "worker_admission": {
+      "bundle_verified": true,
+      "missing_bundle_refused": true,
+      "tampered_bundle_refused": true,
+      "invalid_wire_refused": true,
+      "invalid_match_refused": true,
+      "missing_match_runtime_refused": true,
+      "compiler_environment_isolated": true,
+      "system_module_metadata_passed": true,
+      "system_runtime_bad_hash_refused": true,
+      "system_runtime_argument_refused": true,
+      "kernel_only_verified": true,
+      "kernel_only_full_bundle_refused": true,
+      "kernel_only_tamper_refused": true,
+      "driver_wire_refusals": 5,
+      "profile_wire_refused": true,
+      "profile_argument_refused": true,
+      "profile_runtime_refused": true,
+      "exits_confirmed": 20,
+      "gpu_executed": false,
+      "complete": true
+    }
+  },
+  "candidate_sdk": {
+    "run": 43419213104,
+    "job": 131864693440,
+    "artifact": 14032854469,
+    "artifact_bytes": 40167,
+    "artifact_sha256": "4506342362df74b05ab372a91daff6c05a7426c965576f509f88bee001c6dabc",
+    "complete": true,
+    "commands": [
+      {
+        "name": "static-runtime-export-parser-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "codec-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "current-reference-bootstrap-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "complete-sdk-bootstrap",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "reviewed-hipcomp-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "current-sdk-device-compilation",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "current-sdk-host-api-and-link-configure",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "current-sdk-host-api-and-kernel-module-link",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "header-probe-without-loading-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "typed-device-identity-fake-runtime",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-worker-admission-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-adapter-identity-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-budget-metadata-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-topology-metadata-unknown_adapter",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-topology-metadata-warp",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "one-shot-probe-missing-runtime",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_memory-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_identity-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-metadata-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_decode-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_profile-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "bounded-driver_match-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "actual-AMD-compiler-version",
+        "exit_code": 0,
+        "timed_out": false,
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "source_staging_test": {
+      "name": "codec-source-admission-regressions",
+      "argv": [
+        "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+        "-B",
+        "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_hipcomp_candidate.py"
+      ],
+      "root_pid": 4496,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "....................\r\n----------------------------------------------------------------------\r\nRan 20 tests in 1.524s\r\n\r\nOK\r\n",
+      "output_truncated": false,
+      "output_limit_exceeded": false,
+      "timed_out": false,
+      "job_memory_limit_bytes": 2147483648
+    },
+    "worker_admission": {
+      "bundle_verified": true,
+      "missing_bundle_refused": true,
+      "tampered_bundle_refused": true,
+      "invalid_wire_refused": true,
+      "invalid_match_refused": true,
+      "missing_match_runtime_refused": true,
+      "compiler_environment_isolated": true,
+      "system_module_metadata_passed": true,
+      "system_runtime_bad_hash_refused": true,
+      "system_runtime_argument_refused": true,
+      "kernel_only_verified": true,
+      "kernel_only_full_bundle_refused": true,
+      "kernel_only_tamper_refused": true,
+      "driver_wire_refusals": 5,
+      "profile_wire_refused": true,
+      "profile_argument_refused": true,
+      "profile_runtime_refused": true,
+      "exits_confirmed": 20,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "candidate": {
+      "experimental": true,
+      "control_commit": "df51d8c5ba80430453c805619438f431d5677f3b",
+      "source_repository": "ROCm/hipCOMP-core",
+      "source_commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+      "source_inventory_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d",
+      "distribution": "10.1.0",
+      "synthetic_compile_target": "gfx1100",
+      "commands": [
+        {
+          "name": "hipcomp-LZ4-offline-translation-unit",
+          "argv": [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "D:\\a\\FlitzFS\\FlitzFS\\.ci-rocm-source\\tools\\compile_hip_object.ps1",
+            "-Source",
+            "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\compile-input\\src\\lowlevel\\LZ4CompressionKernels.hip",
+            "-Output",
+            "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj",
+            "-DependencyFile",
+            "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj.d",
+            "-RepoRoot",
+            "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\compile-input",
+            "-HipPath",
+            "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk",
+            "-Arch",
+            "gfx1100"
+          ],
+          "root_pid": 8880,
+          "exit_code": 0,
+          "stdout": "Compiling HIP object with MSVC toolset 14.51.\r\n",
+          "stderr": "clang: warning: argument unused during compilation: '-fms-runtime-lib=static' [-Wunused-command-line-argument]\r\n",
+          "output_truncated": false,
+          "output_limit_exceeded": false,
+          "timed_out": false,
+          "job_memory_limit_bytes": 2147483648
+        }
+      ],
+      "complete": true,
+      "gpu_executed": false,
+      "module_loaded": false,
+      "linked_into_product": false,
+      "upstream_build_scripts_executed": false,
+      "source_inputs": [
+        {
+          "source": "src/BitPackGPU.cu",
+          "target": "src/BitPackGPU.cu",
+          "bytes": 21938,
+          "sha256": "e393452307e5cb462dec02e39cf1c545f9fe1623e0920ca0b956ab2bdd8a09a2"
+        },
+        {
+          "source": "src/BitPackGPU.h",
+          "target": "src/BitPackGPU.h",
+          "bytes": 4747,
+          "sha256": "ae462da6706c08918a95e4718848b6b59792a1a1fd38886ec460aa69591aaf91"
+        },
+        {
+          "source": "src/CascadedKernels.cuh",
+          "target": "src/CascadedKernels.cuh",
+          "bytes": 56433,
+          "sha256": "235fa430e11f9906742c3441da6ba227a0829d8e450688b88a2eda7c1b725a1b"
+        },
+        {
+          "source": "src/Check.cpp",
+          "target": "src/Check.cpp",
+          "bytes": 4863,
+          "sha256": "82d1f17f82fdfcbbf35f4f2670d374c65d8e63e0e8c620168f45f4f030b72213"
+        },
+        {
+          "source": "src/Check.h",
+          "target": "src/Check.h",
+          "bytes": 5620,
+          "sha256": "1c95c6694dd33fce4b1f7434e9dd78f7a40a432eaf494b95c96ab27242239507"
+        },
+        {
+          "source": "src/CMakeLists.txt",
+          "target": "src/CMakeLists.txt",
+          "bytes": 5294,
+          "sha256": "e65edd50673e7ed5258e069368a5a83de7748460d3615d2d5b10684cd279242f"
+        },
+        {
+          "source": "src/common.h",
+          "target": "src/common.h",
+          "bytes": 5913,
+          "sha256": "277fa1d0e7c1c9a8f425768a56b66e02e2fff0617feb24e72767b4d4efd51642"
+        },
+        {
+          "source": "src/deflate/decompression.cuh",
+          "target": "src/deflate/decompression.cuh",
+          "bytes": 16606,
+          "sha256": "f5e90f87ea1623fc93f1baa34d95cb72d62e18e6d6068338a61e29aed2ff78c4"
+        },
+        {
+          "source": "src/deflate/decompression_decode.cuh",
+          "target": "src/deflate/decompression_decode.cuh",
+          "bytes": 13036,
+          "sha256": "02051f02b9c774bfadbc565989565666d5ce84506e526dfac5db38a184d9d901"
+        },
+        {
+          "source": "src/deflate/decompression_prefetch.cuh",
+          "target": "src/deflate/decompression_prefetch.cuh",
+          "bytes": 4240,
+          "sha256": "118afdc5a1a3b125a93e1835abccfcb27e5385f395209085de093701b8225d81"
+        },
+        {
+          "source": "src/deflate/decompression_process.cuh",
+          "target": "src/deflate/decompression_process.cuh",
+          "bytes": 5705,
+          "sha256": "be7a014af398d5f4075d1d7c27e42fefa1599e26aed98a4f2b89b62db134d1b1"
+        },
+        {
+          "source": "src/deflate/decompression_state.cuh",
+          "target": "src/deflate/decompression_state.cuh",
+          "bytes": 24977,
+          "sha256": "5e177a20a3dfa90b11c4d1808003007df78ed0fbe9b6e1dcb02a49c054e0bcdb"
+        },
+        {
+          "source": "src/deflate/helpers.cuh",
+          "target": "src/deflate/helpers.cuh",
+          "bytes": 5093,
+          "sha256": "16b43d1cccdf0aab8fbcf66826bb12e72ecb4f1e5ea7dd34c6f3fcd5368e6c13"
+        },
+        {
+          "source": "src/DeltaGPU.cu",
+          "target": "src/DeltaGPU.cu",
+          "bytes": 6133,
+          "sha256": "e4aa376683423b212e89dfca4fdfb06239e2cc596af9e20f93e85105fc258a85"
+        },
+        {
+          "source": "src/DeltaGPU.h",
+          "target": "src/DeltaGPU.h",
+          "bytes": 4099,
+          "sha256": "f9d0200fd5a2602606e57dcd474ff0302e8c9f657488b83617cb4b6be240ff9b"
+        },
+        {
+          "source": "src/device_functions.cuh",
+          "target": "src/device_functions.cuh",
+          "bytes": 16601,
+          "sha256": "642df9d30f8acbf2e934898041ea2ee355e11e7eaac474b8fadc2ee9b7f1df81"
+        },
+        {
+          "source": "src/helpers.cu",
+          "target": "src/helpers.cu",
+          "bytes": 13191,
+          "sha256": "699a53e5bc554bf77803e03af300a2ddd2d04ed5230c96b19f2c02bd332373e8"
+        },
+        {
+          "source": "src/highlevel/ANSManager.cpp",
+          "target": "src/highlevel/ANSManager.cpp",
+          "bytes": 1597,
+          "sha256": "f670d1eeedd24a21605bb7086fdcd929d9d1e8771d932bba2320f06f1f5f8e81"
+        },
+        {
+          "source": "src/highlevel/ANSManager.hpp",
+          "target": "src/highlevel/ANSManager.hpp",
+          "bytes": 5967,
+          "sha256": "9e33f530a2a480697d702b1b6e5315234088b05f2a927393e4fa6620a83e3919"
+        },
+        {
+          "source": "src/highlevel/BatchManager.hpp",
+          "target": "src/highlevel/BatchManager.hpp",
+          "bytes": 10728,
+          "sha256": "090339de7ebd0f1e3ad1ade3e7aec322552b4b2b041c7d591c97e5e34ad83a1b"
+        },
+        {
+          "source": "src/highlevel/BitcompManager.cu",
+          "target": "src/highlevel/BitcompManager.cu",
+          "bytes": 8537,
+          "sha256": "a64bcb9df6babcc07c0e8864a695a245ff16229a700413cb282f4c0213dff679"
+        },
+        {
+          "source": "src/highlevel/BitcompManager.hpp",
+          "target": "src/highlevel/BitcompManager.hpp",
+          "bytes": 6970,
+          "sha256": "ebbabd28fb465719a073e37a383e5b52ef2d6d2e5409077c5ddd857e963bf27d"
+        },
+        {
+          "source": "src/highlevel/CascadedHlifKernels.cu",
+          "target": "src/highlevel/CascadedHlifKernels.cu",
+          "bytes": 17626,
+          "sha256": "e02978e2e9c1fddda149f8bfd9c166af5d13d3aeb3b370b559c95048ced36b97"
+        },
+        {
+          "source": "src/highlevel/CascadedHlifKernels.h",
+          "target": "src/highlevel/CascadedHlifKernels.h",
+          "bytes": 3779,
+          "sha256": "a898050e8f3b4b60f7c04b4dde3b9cc7e87f71d9f03cc0b57620b119ef1787bb"
+        },
+        {
+          "source": "src/highlevel/CascadedManager.cpp",
+          "target": "src/highlevel/CascadedManager.cpp",
+          "bytes": 1597,
+          "sha256": "d65a3450ca3440c0fdfa2c288547a62cf001103c0884a4f7f4438c4288dd1b19"
+        },
+        {
+          "source": "src/highlevel/CascadedManager.hpp",
+          "target": "src/highlevel/CascadedManager.hpp",
+          "bytes": 5838,
+          "sha256": "cb8c5a5d09139e4ccb1911cde7c27bec834c39cbfdf201eab385e13074625fae"
+        },
+        {
+          "source": "src/highlevel/CompressionConfigs.cpp",
+          "target": "src/highlevel/CompressionConfigs.cpp",
+          "bytes": 6288,
+          "sha256": "1f61b0f0a817649fd0a1c56157612eb20d279878b73df4706fe83c7c4f6220ff"
+        },
+        {
+          "source": "src/highlevel/CompressionConfigs.hpp",
+          "target": "src/highlevel/CompressionConfigs.hpp",
+          "bytes": 4603,
+          "sha256": "6e650b1a034c0718da00f8ec177f8280e59bd32bcc67083020f892f8f1295ccc"
+        },
+        {
+          "source": "src/highlevel/DeflateHlifKernels.cu",
+          "target": "src/highlevel/DeflateHlifKernels.cu",
+          "bytes": 8250,
+          "sha256": "fd7b3d877890fc7f7f407ae1a93a642848523febd1a6811b185c35e0e6ee57d0"
+        },
+        {
+          "source": "src/highlevel/DeflateHlifKernels.h",
+          "target": "src/highlevel/DeflateHlifKernels.h",
+          "bytes": 3723,
+          "sha256": "3fe3176ec6de9b404a0f58549895912afd0bb089e65137235743336a2e78e5de"
+        },
+        {
+          "source": "src/highlevel/DeflateManager.cpp",
+          "target": "src/highlevel/DeflateManager.cpp",
+          "bytes": 1596,
+          "sha256": "02094452d2694a4d72d56f19ef153aad1da7f968f14b2b26a38734db65864c19"
+        },
+        {
+          "source": "src/highlevel/DeflateManager.hpp",
+          "target": "src/highlevel/DeflateManager.hpp",
+          "bytes": 5521,
+          "sha256": "72b1b86f344c1d1f2ffb195f8c807fc1e06483b84b657d402351f26161879d10"
+        },
+        {
+          "source": "src/highlevel/GdeflateBatchManager.hpp",
+          "target": "src/highlevel/GdeflateBatchManager.hpp",
+          "bytes": 7761,
+          "sha256": "d52d0b5c497988c7776f281519819069e5fa4dacc65a81ca7cd4ed58af2c128b"
+        },
+        {
+          "source": "src/highlevel/GdeflateManager.cpp",
+          "target": "src/highlevel/GdeflateManager.cpp",
+          "bytes": 3240,
+          "sha256": "cf75c808ca1d8e9044ecea6eb50d14d2dc72bb31d54996998d500d0000c8ce20"
+        },
+        {
+          "source": "src/highlevel/GzipHlifKernels.cu",
+          "target": "src/highlevel/GzipHlifKernels.cu",
+          "bytes": 8154,
+          "sha256": "1875a6ab38600595fa531db8ebce82394fec646805c0b01d6fdd263fe89a19d7"
+        },
+        {
+          "source": "src/highlevel/GzipHlifKernels.h",
+          "target": "src/highlevel/GzipHlifKernels.h",
+          "bytes": 3661,
+          "sha256": "9739b722cd9249fbd14f4905c91b1ba1a9ab26958816af33d400662b82ecce81"
+        },
+        {
+          "source": "src/highlevel/GzipManager.cpp",
+          "target": "src/highlevel/GzipManager.cpp",
+          "bytes": 1593,
+          "sha256": "40ad24fb4a054a8ff42047a6bd9c33374e14110011c19bce70842bdd64599a3f"
+        },
+        {
+          "source": "src/highlevel/GzipManager.hpp",
+          "target": "src/highlevel/GzipManager.hpp",
+          "bytes": 5536,
+          "sha256": "332465bd3f8aa846350f39c9ca8482ffb2219eb3bafd57f3fd4f60d7688b48d2"
+        },
+        {
+          "source": "src/highlevel/hipcompManagerFactory.cpp",
+          "target": "src/highlevel/hipcompManagerFactory.cpp",
+          "bytes": 8237,
+          "sha256": "e2f6c1f00b5ffede1bf030aac78aa2943066bc133d01437c7429690a22d7a726"
+        },
+        {
+          "source": "src/highlevel/LZ4HlifKernels.cu",
+          "target": "src/highlevel/LZ4HlifKernels.cu",
+          "bytes": 11836,
+          "sha256": "d47019b36ab3791bafd95b57a03cc92e29cc1e927085ddbaddb19d5c70cb9498"
+        },
+        {
+          "source": "src/highlevel/LZ4HlifKernels.h",
+          "target": "src/highlevel/LZ4HlifKernels.h",
+          "bytes": 3858,
+          "sha256": "5562fb5900c9942736ce54de9b59a54661454ff64eabd3ff859cdaafecddf370"
+        },
+        {
+          "source": "src/highlevel/LZ4Manager.cpp",
+          "target": "src/highlevel/LZ4Manager.cpp",
+          "bytes": 1592,
+          "sha256": "e425e911de442d915d989a3f23c77b3b04fc0528b613b35a639327cb96a60d95"
+        },
+        {
+          "source": "src/highlevel/LZ4Manager.hpp",
+          "target": "src/highlevel/LZ4Manager.hpp",
+          "bytes": 6162,
+          "sha256": "7f62a75693ada3783c657abb0c365ef90a2f4144f09220284ac2154f35158f3e"
+        },
+        {
+          "source": "src/highlevel/ManagerBase.hpp",
+          "target": "src/highlevel/ManagerBase.hpp",
+          "bytes": 11798,
+          "sha256": "ab1f6e39754a446db9eb0c3fa90120e1d0e5a8a14edd302933fb6e4a045a28a6"
+        },
+        {
+          "source": "src/highlevel/PinnedPtrs.hpp",
+          "target": "src/highlevel/PinnedPtrs.hpp",
+          "bytes": 6938,
+          "sha256": "6eaf7c71fcaab1eec13e34993e813e178cc0cf31dd67f5301af8f8849ca7aa7c"
+        },
+        {
+          "source": "src/highlevel/SnappyHlifKernels.cu",
+          "target": "src/highlevel/SnappyHlifKernels.cu",
+          "bytes": 7735,
+          "sha256": "4855b005df5c4917ea979ab1ae5a09444539c37faae4cd5970e44b7fe83b95ce"
+        },
+        {
+          "source": "src/highlevel/SnappyHlifKernels.h",
+          "target": "src/highlevel/SnappyHlifKernels.h",
+          "bytes": 3670,
+          "sha256": "0d63bf90547e9108f79e37368fc6f64b1123fac6e583d37159524736fbec0fd9"
+        },
+        {
+          "source": "src/highlevel/SnappyManager.cpp",
+          "target": "src/highlevel/SnappyManager.cpp",
+          "bytes": 1595,
+          "sha256": "917d00b010918b70a37e05a7525227beae87ce8e27b144366028c7a299c03c04"
+        },
+        {
+          "source": "src/highlevel/SnappyManager.hpp",
+          "target": "src/highlevel/SnappyManager.hpp",
+          "bytes": 5475,
+          "sha256": "f09b21306c3f97aa7bd810e3ba6ce6ec2ee892f5e4096fda033e648fe1552174"
+        },
+        {
+          "source": "src/highlevel/ZstdHlifKernels.cu",
+          "target": "src/highlevel/ZstdHlifKernels.cu",
+          "bytes": 7574,
+          "sha256": "90c6f2cf748f3e837f4830c23c69baa9afda5586a40c9fa51d7fc84507608c01"
+        },
+        {
+          "source": "src/highlevel/ZstdHlifKernels.h",
+          "target": "src/highlevel/ZstdHlifKernels.h",
+          "bytes": 3661,
+          "sha256": "68236745aace52f472af49be4de0a3476ff7ae7b586ee4db5965d7eca9586307"
+        },
+        {
+          "source": "src/highlevel/ZstdManager.cpp",
+          "target": "src/highlevel/ZstdManager.cpp",
+          "bytes": 1593,
+          "sha256": "46af46453fbe6e4cc5dc8af1fa2c1c2b7c7eb75eac438cf3e8a59fe81da8c691"
+        },
+        {
+          "source": "src/highlevel/ZstdManager.hpp",
+          "target": "src/highlevel/ZstdManager.hpp",
+          "bytes": 5493,
+          "sha256": "9a8423016324c330018b5a7a3f6367f0f31b3367247894dc32b52e79234efdd9"
+        },
+        {
+          "source": "include/hipcomp.h",
+          "target": "src/hipcomp.h",
+          "bytes": 7380,
+          "sha256": "82dd929927e8ddbe9ded5418318de7887f6fdaa2e3b65ba89a32cecf0129c3b4"
+        },
+        {
+          "source": "include/hipcomp.h",
+          "target": "include/hipcomp.h",
+          "bytes": 7380,
+          "sha256": "82dd929927e8ddbe9ded5418318de7887f6fdaa2e3b65ba89a32cecf0129c3b4"
+        },
+        {
+          "source": "include/hipcomp.hpp",
+          "target": "src/hipcomp.hpp",
+          "bytes": 6900,
+          "sha256": "2249cbd261ef7b5ab88d8a9c075b0079de5bf30d730140fa86a1ad2a6fd5aaaf"
+        },
+        {
+          "source": "include/hipcomp.hpp",
+          "target": "include/hipcomp.hpp",
+          "bytes": 6900,
+          "sha256": "2249cbd261ef7b5ab88d8a9c075b0079de5bf30d730140fa86a1ad2a6fd5aaaf"
+        },
+        {
+          "source": "include/hipcomp/ans.h",
+          "target": "src/hipcomp/ans.h",
+          "bytes": 8607,
+          "sha256": "8bda8d68a004583ede4fb8bed3bc8bd38ad664cc61ca8f6264c1bcbab87420e2"
+        },
+        {
+          "source": "include/hipcomp/ans.h",
+          "target": "include/hipcomp/ans.h",
+          "bytes": 8607,
+          "sha256": "8bda8d68a004583ede4fb8bed3bc8bd38ad664cc61ca8f6264c1bcbab87420e2"
+        },
+        {
+          "source": "include/hipcomp/ans.hpp",
+          "target": "src/hipcomp/ans.hpp",
+          "bytes": 3092,
+          "sha256": "ef1b3046fc089db63f2c2f36d6364f29e50c7adfd090a11e15e057e822c95f46"
+        },
+        {
+          "source": "include/hipcomp/ans.hpp",
+          "target": "include/hipcomp/ans.hpp",
+          "bytes": 3092,
+          "sha256": "ef1b3046fc089db63f2c2f36d6364f29e50c7adfd090a11e15e057e822c95f46"
+        },
+        {
+          "source": "include/hipcomp/bitcomp.h",
+          "target": "src/hipcomp/bitcomp.h",
+          "bytes": 16032,
+          "sha256": "382e82f2de4a284876e9b4bc436a5dbcea273a55d3d5d2bd11dabbaa55cefe33"
+        },
+        {
+          "source": "include/hipcomp/bitcomp.h",
+          "target": "include/hipcomp/bitcomp.h",
+          "bytes": 16032,
+          "sha256": "382e82f2de4a284876e9b4bc436a5dbcea273a55d3d5d2bd11dabbaa55cefe33"
+        },
+        {
+          "source": "include/hipcomp/bitcomp.hpp",
+          "target": "src/hipcomp/bitcomp.hpp",
+          "bytes": 3111,
+          "sha256": "80b7bb28af7c0e1b8f8a8c34081ac38b44d2c4a1e9455ef44bb39c9b57c50a00"
+        },
+        {
+          "source": "include/hipcomp/bitcomp.hpp",
+          "target": "include/hipcomp/bitcomp.hpp",
+          "bytes": 3111,
+          "sha256": "80b7bb28af7c0e1b8f8a8c34081ac38b44d2c4a1e9455ef44bb39c9b57c50a00"
+        },
+        {
+          "source": "include/hipcomp/cascaded.h",
+          "target": "src/hipcomp/cascaded.h",
+          "bytes": 12521,
+          "sha256": "a3414462230f7a8af2a0558e8161b8fa8d75ea5b8682ebec61bb9fe1584cff41"
+        },
+        {
+          "source": "include/hipcomp/cascaded.h",
+          "target": "include/hipcomp/cascaded.h",
+          "bytes": 12521,
+          "sha256": "a3414462230f7a8af2a0558e8161b8fa8d75ea5b8682ebec61bb9fe1584cff41"
+        },
+        {
+          "source": "include/hipcomp/cascaded.hpp",
+          "target": "src/hipcomp/cascaded.hpp",
+          "bytes": 3196,
+          "sha256": "88c0ab8be5242fa31c4bb0506a1b8433d596a7092bfd9a4596808f8291a224f7"
+        },
+        {
+          "source": "include/hipcomp/cascaded.hpp",
+          "target": "include/hipcomp/cascaded.hpp",
+          "bytes": 3196,
+          "sha256": "88c0ab8be5242fa31c4bb0506a1b8433d596a7092bfd9a4596808f8291a224f7"
+        },
+        {
+          "source": "include/hipcomp/deflate.h",
+          "target": "src/hipcomp/deflate.h",
+          "bytes": 6924,
+          "sha256": "edc7883942dd2fb4fc577c8463c7ba9086f9a6f638aafe3ea6ec380323705672"
+        },
+        {
+          "source": "include/hipcomp/deflate.h",
+          "target": "include/hipcomp/deflate.h",
+          "bytes": 6924,
+          "sha256": "edc7883942dd2fb4fc577c8463c7ba9086f9a6f638aafe3ea6ec380323705672"
+        },
+        {
+          "source": "include/hipcomp/deflate.hpp",
+          "target": "src/hipcomp/deflate.hpp",
+          "bytes": 3101,
+          "sha256": "5061898aee10a45223654ab5ee8e889c1c2cc68520581a2411b896879ed0b093"
+        },
+        {
+          "source": "include/hipcomp/deflate.hpp",
+          "target": "include/hipcomp/deflate.hpp",
+          "bytes": 3101,
+          "sha256": "5061898aee10a45223654ab5ee8e889c1c2cc68520581a2411b896879ed0b093"
+        },
+        {
+          "source": "include/hipcomp/gdeflate.h",
+          "target": "src/hipcomp/gdeflate.h",
+          "bytes": 10146,
+          "sha256": "94082d95a88e724d711ead8244b4a4acfa68c4cc84f772808da1c3fb474d89a2"
+        },
+        {
+          "source": "include/hipcomp/gdeflate.h",
+          "target": "include/hipcomp/gdeflate.h",
+          "bytes": 10146,
+          "sha256": "94082d95a88e724d711ead8244b4a4acfa68c4cc84f772808da1c3fb474d89a2"
+        },
+        {
+          "source": "include/hipcomp/gdeflate.hpp",
+          "target": "src/hipcomp/gdeflate.hpp",
+          "bytes": 3078,
+          "sha256": "ce4ecb71a75d39fad2c5397d1c17edf505c83dbfeac13048e0b54bbce93c6253"
+        },
+        {
+          "source": "include/hipcomp/gdeflate.hpp",
+          "target": "include/hipcomp/gdeflate.hpp",
+          "bytes": 3078,
+          "sha256": "ce4ecb71a75d39fad2c5397d1c17edf505c83dbfeac13048e0b54bbce93c6253"
+        },
+        {
+          "source": "include/hipcomp/gzip.h",
+          "target": "src/hipcomp/gzip.h",
+          "bytes": 9203,
+          "sha256": "2170f661541e42c89d96665cf959f4e52ac10870ce21127724234110acc32ce0"
+        },
+        {
+          "source": "include/hipcomp/gzip.h",
+          "target": "include/hipcomp/gzip.h",
+          "bytes": 9203,
+          "sha256": "2170f661541e42c89d96665cf959f4e52ac10870ce21127724234110acc32ce0"
+        },
+        {
+          "source": "include/hipcomp/gzip.hpp",
+          "target": "src/hipcomp/gzip.hpp",
+          "bytes": 3083,
+          "sha256": "b7a827fedf2786bfc4f5f7c114a2a79d7c923ac4b9c6f63f5b28b5b3f8d5076c"
+        },
+        {
+          "source": "include/hipcomp/gzip.hpp",
+          "target": "include/hipcomp/gzip.hpp",
+          "bytes": 3083,
+          "sha256": "b7a827fedf2786bfc4f5f7c114a2a79d7c923ac4b9c6f63f5b28b5b3f8d5076c"
+        },
+        {
+          "source": "include/hipcomp/helpers.h",
+          "target": "src/hipcomp/helpers.h",
+          "bytes": 8871,
+          "sha256": "859d27650ebf6b6f3afc8cf2ab952ec4f306e571f048599eaed7c567f59ed32e"
+        },
+        {
+          "source": "include/hipcomp/helpers.h",
+          "target": "include/hipcomp/helpers.h",
+          "bytes": 8871,
+          "sha256": "859d27650ebf6b6f3afc8cf2ab952ec4f306e571f048599eaed7c567f59ed32e"
+        },
+        {
+          "source": "include/hipcomp/hip/hip_cooperative_groups.h",
+          "target": "src/hipcomp/hip/hip_cooperative_groups.h",
+          "bytes": 1320,
+          "sha256": "c6091e840e2ce58cf977b7b15917389a82474f4e289f04995d929a0d93938981"
+        },
+        {
+          "source": "include/hipcomp/hip/hip_cooperative_groups.h",
+          "target": "include/hipcomp/hip/hip_cooperative_groups.h",
+          "bytes": 1320,
+          "sha256": "c6091e840e2ce58cf977b7b15917389a82474f4e289f04995d929a0d93938981"
+        },
+        {
+          "source": "include/hipcomp/hip/hip_runtime.h",
+          "target": "src/hipcomp/hip/hip_runtime.h",
+          "bytes": 3121,
+          "sha256": "7d51701f3a9344acd1cb5cccac0ff171676f873a268ac9c2ca68e8bd46956b87"
+        },
+        {
+          "source": "include/hipcomp/hip/hip_runtime.h",
+          "target": "include/hipcomp/hip/hip_runtime.h",
+          "bytes": 3121,
+          "sha256": "7d51701f3a9344acd1cb5cccac0ff171676f873a268ac9c2ca68e8bd46956b87"
+        },
+        {
+          "source": "include/hipcomp/hipcompManager.hpp",
+          "target": "src/hipcomp/hipcompManager.hpp",
+          "bytes": 10647,
+          "sha256": "82e763b9ca4a1ed13ba2f2a5873d3ffcb6668816dbb531a362c5eeb5bc23a2a7"
+        },
+        {
+          "source": "include/hipcomp/hipcompManager.hpp",
+          "target": "include/hipcomp/hipcompManager.hpp",
+          "bytes": 10647,
+          "sha256": "82e763b9ca4a1ed13ba2f2a5873d3ffcb6668816dbb531a362c5eeb5bc23a2a7"
+        },
+        {
+          "source": "include/hipcomp/hipcompManagerFactory.hpp",
+          "target": "src/hipcomp/hipcompManagerFactory.hpp",
+          "bytes": 3319,
+          "sha256": "52bfac09627107865a28d28f82b9cda097498cefc745c069892ce4820038a732"
+        },
+        {
+          "source": "include/hipcomp/hipcompManagerFactory.hpp",
+          "target": "include/hipcomp/hipcompManagerFactory.hpp",
+          "bytes": 3319,
+          "sha256": "52bfac09627107865a28d28f82b9cda097498cefc745c069892ce4820038a732"
+        },
+        {
+          "source": "include/hipcomp/lz4.h",
+          "target": "src/hipcomp/lz4.h",
+          "bytes": 10506,
+          "sha256": "4320275859006050fe15daf046dd012bbb94b354acd223db2616665c057d5bf7"
+        },
+        {
+          "source": "include/hipcomp/lz4.h",
+          "target": "include/hipcomp/lz4.h",
+          "bytes": 10506,
+          "sha256": "4320275859006050fe15daf046dd012bbb94b354acd223db2616665c057d5bf7"
+        },
+        {
+          "source": "include/hipcomp/lz4.hpp",
+          "target": "src/hipcomp/lz4.hpp",
+          "bytes": 3130,
+          "sha256": "71e0196be07cdea0527472fb7f7f3b003b18f740929489a06f328b901bce7dca"
+        },
+        {
+          "source": "include/hipcomp/lz4.hpp",
+          "target": "include/hipcomp/lz4.hpp",
+          "bytes": 3130,
+          "sha256": "71e0196be07cdea0527472fb7f7f3b003b18f740929489a06f328b901bce7dca"
+        },
+        {
+          "source": "include/hipcomp/shared_types.h",
+          "target": "src/hipcomp/shared_types.h",
+          "bytes": 3588,
+          "sha256": "52126de3183ed242929342acf41dddc170b03146dd2790f670ca9e82d6710676"
+        },
+        {
+          "source": "include/hipcomp/shared_types.h",
+          "target": "include/hipcomp/shared_types.h",
+          "bytes": 3588,
+          "sha256": "52126de3183ed242929342acf41dddc170b03146dd2790f670ca9e82d6710676"
+        },
+        {
+          "source": "include/hipcomp/snappy.h",
+          "target": "src/hipcomp/snappy.h",
+          "bytes": 8724,
+          "sha256": "ea93744875722d8d215200f28e97e131a4be886e383ba26f8e338cbf31faeacd"
+        },
+        {
+          "source": "include/hipcomp/snappy.h",
+          "target": "include/hipcomp/snappy.h",
+          "bytes": 8724,
+          "sha256": "ea93744875722d8d215200f28e97e131a4be886e383ba26f8e338cbf31faeacd"
+        },
+        {
+          "source": "include/hipcomp/snappy.hpp",
+          "target": "src/hipcomp/snappy.hpp",
+          "bytes": 3087,
+          "sha256": "635663e3d972aa6a988ca26355938b8b761538860087a54736b7a312657805e7"
+        },
+        {
+          "source": "include/hipcomp/snappy.hpp",
+          "target": "include/hipcomp/snappy.hpp",
+          "bytes": 3087,
+          "sha256": "635663e3d972aa6a988ca26355938b8b761538860087a54736b7a312657805e7"
+        },
+        {
+          "source": "include/hipcomp/zstd.h",
+          "target": "src/hipcomp/zstd.h",
+          "bytes": 6906,
+          "sha256": "1b382bd0758d672803b1664fac50131a9bfd530fb229cbed7b9d45d55961472f"
+        },
+        {
+          "source": "include/hipcomp/zstd.h",
+          "target": "include/hipcomp/zstd.h",
+          "bytes": 6906,
+          "sha256": "1b382bd0758d672803b1664fac50131a9bfd530fb229cbed7b9d45d55961472f"
+        },
+        {
+          "source": "include/hipcomp/zstd.hpp",
+          "target": "src/hipcomp/zstd.hpp",
+          "bytes": 3083,
+          "sha256": "5e0c5b6d3ac3847ec920a96014d48143f67a990b2ecc4b4daca845628a971ac1"
+        },
+        {
+          "source": "include/hipcomp/zstd.hpp",
+          "target": "include/hipcomp/zstd.hpp",
+          "bytes": 3083,
+          "sha256": "5e0c5b6d3ac3847ec920a96014d48143f67a990b2ecc4b4daca845628a971ac1"
+        },
+        {
+          "source": "src/hipcomp_api.cpp",
+          "target": "src/hipcomp_api.cpp",
+          "bytes": 3024,
+          "sha256": "91eaadd6c88acf045f5ffdfbc0fe12ec39e1f565cc3771031e1f1a436309d430"
+        },
+        {
+          "source": "src/hipcomp_common_deps/hlif_shared.cuh",
+          "target": "src/hipcomp_common_deps/hlif_shared.cuh",
+          "bytes": 17319,
+          "sha256": "30d8a7441a4cf6c4bf6007f575ec424fb82055afe2b78cc40749f2e2c73eaeb9"
+        },
+        {
+          "source": "src/hipcomp_common_deps/hlif_shared_types.hpp",
+          "target": "src/hipcomp_common_deps/hlif_shared_types.hpp",
+          "bytes": 3874,
+          "sha256": "0ede7baee3267d3b94ebd63c0ba1ac1722b0e9427f281a76c41fd4e8b59b0f46"
+        },
+        {
+          "source": "src/hipcomp_hipcub.cuh",
+          "target": "src/hipcomp_hipcub.cuh",
+          "bytes": 3120,
+          "sha256": "1232302ee7b32ac5d86e2dfbb5f4902fe1edc7fc7fb442639e8b6ed043ded09b"
+        },
+        {
+          "source": "include/hipext/hip_cooperative_groups.h",
+          "target": "src/hipext/hip_cooperative_groups.h",
+          "bytes": 1309,
+          "sha256": "dd635ec39a5488107cbf63df585037196a8bd55956d5ebf8f932c160cc526033"
+        },
+        {
+          "source": "include/hipext/hip_cooperative_groups.h",
+          "target": "include/hipext/hip_cooperative_groups.h",
+          "bytes": 1309,
+          "sha256": "dd635ec39a5488107cbf63df585037196a8bd55956d5ebf8f932c160cc526033"
+        },
+        {
+          "source": "include/hipext/hip_cooperative_groups_ext/amd_cooperative_groups_ext.cuh",
+          "target": "src/hipext/hip_cooperative_groups_ext/amd_cooperative_groups_ext.cuh",
+          "bytes": 8669,
+          "sha256": "d025b59e8e4e506cf195971dcfc83e63744adc29f318a9791af9048f9089dc34"
+        },
+        {
+          "source": "include/hipext/hip_cooperative_groups_ext/amd_cooperative_groups_ext.cuh",
+          "target": "include/hipext/hip_cooperative_groups_ext/amd_cooperative_groups_ext.cuh",
+          "bytes": 8669,
+          "sha256": "d025b59e8e4e506cf195971dcfc83e63744adc29f318a9791af9048f9089dc34"
+        },
+        {
+          "source": "include/hipext/hip_warp_primitives/amd_warp_primitives.cuh",
+          "target": "src/hipext/hip_warp_primitives/amd_warp_primitives.cuh",
+          "bytes": 7742,
+          "sha256": "86fba22915f08038df3b54b2839b31d2f91565d31d64046ce041e580cd27e9d0"
+        },
+        {
+          "source": "include/hipext/hip_warp_primitives/amd_warp_primitives.cuh",
+          "target": "include/hipext/hip_warp_primitives/amd_warp_primitives.cuh",
+          "bytes": 7742,
+          "sha256": "86fba22915f08038df3b54b2839b31d2f91565d31d64046ce041e580cd27e9d0"
+        },
+        {
+          "source": "src/HipUtils.cu",
+          "target": "src/HipUtils.cu",
+          "bytes": 6159,
+          "sha256": "2a2ddd4df9032b649d0739b517fef39b5edd91c3533f83a8353650e0ebc0bd6e"
+        },
+        {
+          "source": "src/HipUtils.h",
+          "target": "src/HipUtils.h",
+          "bytes": 8491,
+          "sha256": "272b89945f3ad6519ab6f92509c04ed1e860bf210d7d640edfcdc7ab31946769"
+        },
+        {
+          "source": "src/lowlevel/ansBatch.cpp",
+          "target": "src/lowlevel/ansBatch.cpp",
+          "bytes": 9006,
+          "sha256": "bc1dc35682425e6d8ee7156a5d4ad7e3db4479c7788d959da5f990d6863ca453"
+        },
+        {
+          "source": "src/lowlevel/BitcompBatch.cu",
+          "target": "src/lowlevel/BitcompBatch.cu",
+          "bytes": 10822,
+          "sha256": "9cf7732d96267c77922966741bea124786fb498b2fe46dd537d5d3545e880e6c"
+        },
+        {
+          "source": "src/lowlevel/CascadedBatch.cu",
+          "target": "src/lowlevel/CascadedBatch.cu",
+          "bytes": 16004,
+          "sha256": "452aaea2124b906255ceccb982af94162b0b45d3f9203a3f9b7cbeecdb5c4f1b"
+        },
+        {
+          "source": "src/lowlevel/DeflateBatch.cpp",
+          "target": "src/lowlevel/DeflateBatch.cpp",
+          "bytes": 5679,
+          "sha256": "8ac3fe36f3a7f70f8e015dfed4f392ed9ff3a0f23bc8c34adfbc3dca58ec3d4a"
+        },
+        {
+          "source": "src/lowlevel/DeflateBatchKernels.cu",
+          "target": "src/lowlevel/DeflateBatchKernels.cu",
+          "bytes": 6811,
+          "sha256": "528f57ddbbcb5186b592552c2489e8ab80ea9ee11c860ed349d439a13c427ed7"
+        },
+        {
+          "source": "src/lowlevel/DeflateBatchKernels.h",
+          "target": "src/lowlevel/DeflateBatchKernels.h",
+          "bytes": 7086,
+          "sha256": "7641d4cf8cb16bf9c54cc77f93a246a41cebc3120ebc078f616f1b814d79d003"
+        },
+        {
+          "source": "src/lowlevel/gdeflateBatch.cpp",
+          "target": "src/lowlevel/gdeflateBatch.cpp",
+          "bytes": 10727,
+          "sha256": "9e6cdfd690a2986059f490c55e55828f6fe3de0b52e77d0dadf9f3346c0ad49f"
+        },
+        {
+          "source": "src/lowlevel/gdeflateKernels.cu",
+          "target": "src/lowlevel/gdeflateKernels.cu",
+          "bytes": 4167,
+          "sha256": "8cc6edecd1d335ce619ff7e12fdc71df236d2cf2eb65fdb05c29503f240fa84e"
+        },
+        {
+          "source": "src/lowlevel/gdeflateKernels.h",
+          "target": "src/lowlevel/gdeflateKernels.h",
+          "bytes": 3067,
+          "sha256": "bb422f5dd8544d6072e74041e2a2a82afdd8f924f3a749deb9ab28bf52fcc991"
+        },
+        {
+          "source": "src/lowlevel/GzipBatch.cpp",
+          "target": "src/lowlevel/GzipBatch.cpp",
+          "bytes": 5682,
+          "sha256": "877d20ff06fcafd9c89f6996414a1361e838074d21f0cca8e18754ff0b183508"
+        },
+        {
+          "source": "src/lowlevel/LZ4Batch.cpp",
+          "target": "src/lowlevel/LZ4Batch.cpp",
+          "bytes": 8177,
+          "sha256": "53ab17e0353657308a59b9a6139c82bcd3c363e8df632d2694e88083c9cfecad"
+        },
+        {
+          "source": "src/lowlevel/LZ4CompressionKernels.cu",
+          "target": "src/lowlevel/LZ4CompressionKernels.cu",
+          "bytes": 12763,
+          "sha256": "85cbb1d61e29aafda8523073e5d03abd9c96a3d7f159520f8c79d14127d76944"
+        },
+        {
+          "source": "src/lowlevel/LZ4CompressionKernels.h",
+          "target": "src/lowlevel/LZ4CompressionKernels.h",
+          "bytes": 5889,
+          "sha256": "6403cf961776e05c86b5e9b592f4055539cda51a0262cfd9085301fe2d11c25b"
+        },
+        {
+          "source": "src/lowlevel/SnappyBatch.cpp",
+          "target": "src/lowlevel/SnappyBatch.cpp",
+          "bytes": 7912,
+          "sha256": "23d7c4ccf163c21dd0de603b981da0ac5ce7d29b6d8828ee65ab578a2a79e132"
+        },
+        {
+          "source": "src/lowlevel/SnappyBatchKernels.cu",
+          "target": "src/lowlevel/SnappyBatchKernels.cu",
+          "bytes": 9952,
+          "sha256": "5100f3942c7481c6765f3bdeb0b158257fe67923d35dfd1239eb36c749b56cc1"
+        },
+        {
+          "source": "src/lowlevel/SnappyBatchKernels.h",
+          "target": "src/lowlevel/SnappyBatchKernels.h",
+          "bytes": 6773,
+          "sha256": "a5ac59dafbc69fafcd9e2edb57ef4c01777b90d53d62674168edaf9acb3f18b1"
+        },
+        {
+          "source": "src/lowlevel/ZstdBatch.cpp",
+          "target": "src/lowlevel/ZstdBatch.cpp",
+          "bytes": 5619,
+          "sha256": "f3343366f73e96a0d6f3b4f5d69e576a83b340de01cdd2d69cfe8fa49b50c5cc"
+        },
+        {
+          "source": "src/lowlevel/ZstdBatchKernels.cu",
+          "target": "src/lowlevel/ZstdBatchKernels.cu",
+          "bytes": 8519,
+          "sha256": "fab169a357c2b1df1dbfc95bc24643da7420f5c7ee54363ddf0448e442c748af"
+        },
+        {
+          "source": "src/lowlevel/ZstdBatchKernels.h",
+          "target": "src/lowlevel/ZstdBatchKernels.h",
+          "bytes": 6935,
+          "sha256": "67d1c5813cf4a967f323607f0c1f507e611ef83a44cae98ec51886b0fd7e1018"
+        },
+        {
+          "source": "src/LZ4Kernels.cuh",
+          "target": "src/LZ4Kernels.cuh",
+          "bytes": 34435,
+          "sha256": "11db6cb48273de0d105c3131795ab958f0c99760a47e6d26093b9d897490a112"
+        },
+        {
+          "source": "src/LZ4Types.h",
+          "target": "src/LZ4Types.h",
+          "bytes": 3155,
+          "sha256": "82c63b2b60748c2c0135af330b7b5e08055e789ec63810ec4ea0f98966fc0afd"
+        },
+        {
+          "source": "src/RunLengthEncodeGPU.cu",
+          "target": "src/RunLengthEncodeGPU.cu",
+          "bytes": 21236,
+          "sha256": "2e82555462b0fa730f7abe9694d08a553325e68797fbe52d64137c2e20a25bc6"
+        },
+        {
+          "source": "src/RunLengthEncodeGPU.h",
+          "target": "src/RunLengthEncodeGPU.h",
+          "bytes": 5463,
+          "sha256": "65e7fdd9a097a321adf664a65f476f1c3df356bef4a9cd9b5acd4756d9701366"
+        },
+        {
+          "source": "src/snappy/compression.cuh",
+          "target": "src/snappy/compression.cuh",
+          "bytes": 15180,
+          "sha256": "2a69847397b2da0317fdc2f1115266b04b45016fc29a376f9ae2e82e1e4ebf5a"
+        },
+        {
+          "source": "src/snappy/compression_state.cuh",
+          "target": "src/snappy/compression_state.cuh",
+          "bytes": 2605,
+          "sha256": "395bed8f7f885af47adbefa351b7ed206a27670f17b18bc307f64ab1f247f330"
+        },
+        {
+          "source": "src/snappy/decompression.cuh",
+          "target": "src/snappy/decompression.cuh",
+          "bytes": 10172,
+          "sha256": "a873a869c50213187c769d550b0b0c4ef86c6c99efeb281cc2e8f249c119f6a1"
+        },
+        {
+          "source": "src/snappy/decompression_decode.cuh",
+          "target": "src/snappy/decompression_decode.cuh",
+          "bytes": 12935,
+          "sha256": "bfd108950ba56ecf0d3c303908e130a34fff8ce831994884e29b16635b00eff2"
+        },
+        {
+          "source": "src/snappy/decompression_decode_strategies.cuh",
+          "target": "src/snappy/decompression_decode_strategies.cuh",
+          "bytes": 16092,
+          "sha256": "c55da93b5f67ff178d51cff4dd4319c440f6b08b3e27b32fab77f364389eb998"
+        },
+        {
+          "source": "src/snappy/decompression_decode_warp_scans.cuh",
+          "target": "src/snappy/decompression_decode_warp_scans.cuh",
+          "bytes": 20580,
+          "sha256": "8a6a5d57a9b6930278c0c190f9217a37e0d0e43302435f678bad36d554b842ca"
+        },
+        {
+          "source": "src/snappy/decompression_prefetch.cuh",
+          "target": "src/snappy/decompression_prefetch.cuh",
+          "bytes": 4173,
+          "sha256": "b3e17b61cf87210095831a664bfceeb8b411506059836c2d252776571976e75f"
+        },
+        {
+          "source": "src/snappy/decompression_process.cuh",
+          "target": "src/snappy/decompression_process.cuh",
+          "bytes": 9086,
+          "sha256": "19b94e774622049f5701db0596663db1054c4c721cd06082514c4d94659e8c83"
+        },
+        {
+          "source": "src/snappy/decompression_state.cuh",
+          "target": "src/snappy/decompression_state.cuh",
+          "bytes": 5909,
+          "sha256": "64f9b4aa9622ef1c2292ae7610415b50607c8ddab28484f800dd6a6833d3edbb"
+        },
+        {
+          "source": "src/snappy/symbol.cuh",
+          "target": "src/snappy/symbol.cuh",
+          "bytes": 11261,
+          "sha256": "9b414d9a6c8a0089a37accf8ade31f0e9d746e058bdafb9b3348db033c597a7c"
+        },
+        {
+          "source": "src/snappy/types.h",
+          "target": "src/snappy/types.h",
+          "bytes": 3018,
+          "sha256": "7ad0e4b979061db16930f29df866087e31cf753f6af56103f58016529f65596f"
+        },
+        {
+          "source": "src/TempSpaceBroker.cpp",
+          "target": "src/TempSpaceBroker.cpp",
+          "bytes": 4700,
+          "sha256": "163e6d6e1ae681c9986451013eef7113f4e5ee31b823bb53e46a4d03e67e2a91"
+        },
+        {
+          "source": "src/TempSpaceBroker.h",
+          "target": "src/TempSpaceBroker.h",
+          "bytes": 4233,
+          "sha256": "723b46f136c7f8c4657026b50ffa155f86d6e678f2be88f5f3a2af34ae152391"
+        },
+        {
+          "source": "src/type_macros.h",
+          "target": "src/type_macros.h",
+          "bytes": 19514,
+          "sha256": "d37a631800d56bd08e3a950c1e9a81f741a8094b7491690b39960ab2b4eaac83"
+        },
+        {
+          "source": "src/unpack.h",
+          "target": "src/unpack.h",
+          "bytes": 4709,
+          "sha256": "9286b5c9128e93473fa0752caa6a5d560530f4735b5beb54bfb63eff443e5e96"
+        },
+        {
+          "source": "src/zstd/hipv00/bitstream.cuh",
+          "target": "src/zstd/hipv00/bitstream.cuh",
+          "bytes": 11915,
+          "sha256": "08611526bce335519eb3a615439480d5daa3e1273ab25ce27cac8e038fcbf023"
+        },
+        {
+          "source": "src/zstd/hipv00/common.cuh",
+          "target": "src/zstd/hipv00/common.cuh",
+          "bytes": 31337,
+          "sha256": "23c54cf5066d4b9834103ef49e64c17cd00b774e0c1bc019f866ed28f7b69a2f"
+        },
+        {
+          "source": "src/zstd/hipv00/decompression.cuh",
+          "target": "src/zstd/hipv00/decompression.cuh",
+          "bytes": 11220,
+          "sha256": "545127da8358f23d1ce8f7aef68c4d59fa8458463865ac7c08ecc1d1ece1a155"
+        },
+        {
+          "source": "src/zstd/hipv00/decompression_decode.cuh",
+          "target": "src/zstd/hipv00/decompression_decode.cuh",
+          "bytes": 72997,
+          "sha256": "c942787d98ecf423ee226dcd8cd10cfa6be8274df66c3c0f30c6f36a1609c9d3"
+        },
+        {
+          "source": "src/zstd/hipv00/decompression_decode_block.cuh",
+          "target": "src/zstd/hipv00/decompression_decode_block.cuh",
+          "bytes": 97970,
+          "sha256": "575aa41f02a5b2709f8406552c94c2c31fee3bc1cf30e64f245cad3bfa01ef10"
+        },
+        {
+          "source": "src/zstd/hipv00/decompression_decode_ddict.cuh",
+          "target": "src/zstd/hipv00/decompression_decode_ddict.cuh",
+          "bytes": 15636,
+          "sha256": "699a6622131c7129e56dbf6fc2cb4ac8820f6e3533467bfd45ec7af7fcd37f12"
+        },
+        {
+          "source": "src/zstd/hipv00/decompression_decode_fse.cuh",
+          "target": "src/zstd/hipv00/decompression_decode_fse.cuh",
+          "bytes": 25314,
+          "sha256": "48c548c1d367256c7bf022424185f591b232ed499f68384aad551b10bf22ab24"
+        },
+        {
+          "source": "src/zstd/hipv00/decompression_decode_huf.cuh",
+          "target": "src/zstd/hipv00/decompression_decode_huf.cuh",
+          "bytes": 82744,
+          "sha256": "c2e02585ce4d183f085c363b9367c779824ba44fc41fdd9a9825ae836a7539b9"
+        },
+        {
+          "source": "src/zstd/hipv00/decompression_state.cuh",
+          "target": "src/zstd/hipv00/decompression_state.cuh",
+          "bytes": 17662,
+          "sha256": "4134befd6be483e5e6e3d0e6d68a4af4ca19e318becd8136c1d55109e4e2b6ee"
+        },
+        {
+          "source": "src/zstd/hipv00/xxhash.cuh",
+          "target": "src/zstd/hipv00/xxhash.cuh",
+          "bytes": 23480,
+          "sha256": "7aea1eb40b2071ef6e9379477f8867090460f652d46d2ac3fa3040f565b206f1"
+        }
+      ],
+      "object": {
+        "bytes": 217673,
+        "sha256": "44505b2dde92e35efac37f5fedb69a5c299384ab606283b6eb048bfe9ec33925"
+      },
+      "dependencies": {
+        "bytes": 150899,
+        "sha256": "7d9490ced69382466bc62477b648fc9e107fa775c3840db15e9f01f2f6144e58"
+      }
+    }
+  },
+  "sdk": {
+    "distribution": {
+      "version": "10.1.0",
+      "archive_name": "therock-dist-windows-multiarch-10.1.0.tar.gz",
+      "url": "https://stable.repo.amd.com/rocm/core/tarball/therock-dist-windows-multiarch-10.1.0.tar.gz",
+      "sha256": "2e375df9fb42823b815bda61c71763eb25d6884083f9caa619479122a4303e33",
+      "archive_bytes": 4873909736,
+      "unpacked_bytes": 14839050947,
+      "members": 16964,
+      "digest_origin": "Locally observed from the official AMD HTTPS distribution on 2026-10-25; not an independently published AMD checksum",
+      "release_notes": "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html",
+      "installation_guide": "https://rocmdocs.amd.com/en/latest/install/rocm.html",
+      "observed_package_version": "10.1.0rc3",
+      "observed_hip_version": "7.16.26385-7da43026e4",
+      "observed_clang_version": "24.0.0git"
+    },
+    "critical_inputs": {
+      "share/therock/therock_manifest.json": {
+        "bytes": 3638,
+        "sha256": "3a4cc5383cc056e971d32f83f800ce64709d10ca135ec3bb46197c6d94631427"
+      },
+      "bin/hipcc.exe": {
+        "bytes": 244688,
+        "sha256": "720198613649751d57efcdef9685843e3c5e45e2040d18719c5cdfa7161d3444"
+      },
+      "lib/amdhip64.lib": {
+        "bytes": 167780,
+        "sha256": "fb9f5dc20025a20f99d498dd3a91a49992ddd82dab2fd0606b8f05ce50fdb217"
+      },
+      "include/hip/hip_version.h": {
+        "bytes": 426,
+        "sha256": "9b5f2630372e59eb14d3b3ac98c3b48f452f82c04ea4d9c76c327128f9aafebc"
+      },
+      "lib/llvm/bin/clang.exe": {
+        "bytes": 111272912,
+        "sha256": "dab22be445fb7ae4f305ecad552b633f2ebae98d6cd98861a040207121310866"
+      },
+      "lib/llvm/amdgcn/bitcode/ocml.bc": {
+        "bytes": 232924,
+        "sha256": "c3f3cec6c59ae57557251a88c267639e4945c4095ea30175ae07a3a8589f9b39"
+      }
+    },
+    "compiler_version": "AMD clang version 24.0.0git (https://github.com/ROCm/llvm-project.git d6f6cb691863e9258034ab48c1dfce21689d5606)\nTarget: x86_64-pc-windows-msvc\nThread model: posix\nInstalledDir: D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\n",
+    "header_observation": "ROCm header observation: distribution=10.1.0 HIP=7.16.26385-7da43026e4 properties_bytes=1472 required_runtime=amdhip64_7.dll hip_runtime_loaded=false; CPU header inspection only\r\nHIP runtime bindings: [\"hipInit\",\"hipGetDevicePropertiesR0600\",\"hipSetDevice\",\"hipDeviceGetStreamPriorityRange\",\"hipStreamCreateWithPriority\",\"hipStreamDestroy\",\"hipStreamSynchronize\",\"hipMalloc\",\"hipFree\",\"hipMemcpy\",\"hipLaunchKernel\"]\r\n"
+  },
+  "navigation": {
+    "run": 43418598342,
+    "artifact": 14032499233,
+    "artifact_bytes": 663492,
+    "artifact_sha256": "99a540407e38e4cada6b5fcf38620af0789888702c00e789411ea7761ee09115",
+    "routing": {
+      "actual_searches": 8,
+      "commit": "df51d8c5ba80430453c805619438f431d5677f3b",
+      "workflow_commit": "df51d8c5ba80430453c805619438f431d5677f3b",
+      "repository": "strmt7/FlitzFS",
+      "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+      "cpu_only": true,
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "provider_version": "0.2.43",
+      "query_group": "filesystem",
+      "shared_mcp_modified": false,
+      "source_files": 145,
+      "source_sha256": "067658b6e085c1387505cafe47666de7d1b8127999001bb0ca8653218bea07ef"
+    },
+    "query_receipts": [
+      {
+        "query": "native filesystem inode namespace sparse extent mutation commit and metadata encoding",
+        "native_response_sha256": "209ed5d16d15a7fa493849e46beaee3d8a6569a1ea82a4c6ed05480619c33073"
+      },
+      {
+        "query": "transactional object store record integrity replicated checkpoints and durable publication",
+        "native_response_sha256": "99efc56a14155a0f0b5e87e39527c5a0869169f3bd28fc86edbf4dc6bac73a29"
+      },
+      {
+        "query": "GPU worker supervision CPU fallback recovery configuration and runtime failure",
+        "native_response_sha256": "249492e13b7bef1045b9c19a3bd504da2b80255fc2c121f8a91132618246b595"
+      },
+      {
+        "query": "compression codec selection allocation budget stored decoded digest and decompression",
+        "native_response_sha256": "4ef4d1e1d35e885c1041fc33534cf073f2832db67ffc58a167dd9f1122190a58"
+      },
+      {
+        "query": "compacted copy source preservation destination identity and safe reclamation",
+        "native_response_sha256": "e1c99c922087bb846764dfeede0c925a76d43142e2ed9c133687deb0d41b70b7"
+      },
+      {
+        "query": "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime",
+        "native_response_sha256": "a68046128da9ede76fbe29909c51f1963e95ca901e2f47c37c1645ea16fd9ff6"
+      },
+      {
+        "query": "trusted HIP worker bundle file digest DLL module loading signature and system directory",
+        "native_response_sha256": "9404acb87b677dfac9769638acf4fc4dedcebf5a8194c4c9ee1be282d32effd5"
+      },
+      {
+        "query": "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
+        "native_response_sha256": "093c4596f9cb2df0ae79d7881be66af105680a7ca1db1f1255df3038e99805df"
+      }
+    ]
+  },
+  "native_reader_source": {
+    "repository": "ROCm/llvm-project",
+    "commit": "d6f6cb691863e9258034ab48c1dfce21689d5606",
+    "readobj_opts_blob": "1cda07703605c578df6b3388232f7cb0c8c2f289",
+    "objdump_opts_blob": "d33fe38f6812820b774f88a1d1f676285d4a7bb2",
+    "transport": "Native GitHub source API; exact compiler-source revision and relevant option definitions inspected."
+  },
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 11:47:04 UTC",
+    "open_alerts": 0,
+    "scope": "Authenticated native open-alert inventory; not absence of every vulnerability."
+  },
+  "limits": {
+    "new_layout": "Fixed host-only metadata; 8 chunks, 64 KiB each, 256 KiB aggregate input and complete explicit device allocation. No runtime caller.",
+    "new_layout_tests": "Pending publishing-source execution; exhaustive 65536 single sizes, batch boundaries/permutations, malicious sizes and reservation failures.",
+    "new_object_inspection": "Pending publishing-source execution; same-SDK native readers, 30 seconds/2 GiB per command, no module loading.",
+    "gpu_executed": false,
+    "module_loaded": false,
+    "linked_into_product": false,
+    "new_stored_codec": false,
+    "compression_interoperability_proven": false,
+    "performance_gain_proven": false,
+    "new_owner_gui_gpu_mount_driver_operation": false,
+    "full_goal_status": "active"
+  }
+}
