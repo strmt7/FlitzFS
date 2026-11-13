@@ -987,3 +987,10 @@ exact7001-byte CPU recovery. Their one-shot outcome remains inconclusive for D01
 The separate [native synchronization API probe](HIP_WARP_SYNC_PROBE.md) now needs
 its nine-case CPU and exact SDK compiler qualification. Vendor kernels, runtime
 routes and stored encodings remain unchanged; useful GPU gain is unproven.
+
+
+The native synchronization API probe passed its9 CPU cases, actual selected header,
+compiler/dependency/object checks and original SDK/20-worker gates ataf2f714
+([evidence](evidence/hip-warp-offline-af2f714.json)). Exact physical-input stability
+and complete automatic trigger coverage are the next narrow qualification;
+no vendor kernel, runtime or GPU-output behavior changes.

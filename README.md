@@ -310,3 +310,9 @@ The historical comparison at ab37c4a passed both variants and exact CPU readback
 it did not reproduce or explain D01. The next [native HIP synchronization probe](docs/HIP_WARP_SYNC_PROBE.md)
 is compile-only and requires SDK execution. No new kernel/runtime route or useful
 GPU compression gain is claimed.
+
+
+The separate HIP synchronization API probe passed ataf2f714, including9 CPU cases,
+exact header/dependency/object identities and all original SDK/worker gates.
+[Evidence](docs/evidence/hip-warp-offline-af2f714.json). This is offline API/type
+qualification; actual compression output, runtime safety and useful gain remain unproven.
