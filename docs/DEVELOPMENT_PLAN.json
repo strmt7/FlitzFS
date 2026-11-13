@@ -93,16 +93,16 @@
       "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup.",
       "checkpoint": {
         "source": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
-        "qualification": "All thirteen core jobs passed; basic/mutation/delete actor/flush/retirement reports verified.",
-        "evidence": "docs/evidence/ordered-actors-6dac1f1.json",
+        "qualification": "All13 core jobs passed with external restart/resumer and readonly clients. Eleven current native Microsoft captures admitted.",
+        "evidence": "docs/evidence/extended-actors-9dd6a98.json",
         "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
         "historical_root_cause": "unproven",
-        "next": "Qualify restart/resumer and readonly external actors/bounded controller; admit process-suite research before multi-round RAM client protocol, then mandatory adapter-wide protection.",
+        "next": "Qualify the exact publishing-source RAM protocol, then implement/test mandatory adapter-wide origin protection without a live synthetic-origin bypass.",
         "source_child_deadline_seconds": 15,
         "source_exit_observation_seconds": 2,
         "owner_execution": false,
-        "qualified_source": "6dac1f109f7e97965f26fc1cca5a72fab6375cac",
-        "pending_implementation": "Restart/resumer and readonly original mounted workloads now execute in external controller. No new transport or expanded child caps. New-source qualification pending."
+        "qualified_source": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
+        "pending_implementation": "Finite external RAM-handoff conversation, pure state rules and real CPU-peer fault/handle checks; no caps/oracles removed."
       }
     },
     {

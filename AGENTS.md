@@ -1260,3 +1260,17 @@ Require publishing-source qualification. RAM handoff and adapter-wide self-origi
 protection remain unfinished; no synthetic-origin bypass, owner mount/driver
 operation or unchanged GPU rerun is authorized. Admit the isolated process-suite
 Crawl4AI receipts before implementing the new multi-round RAM protocol.
+
+## Finite RAM-handoff actor conversation
+
+Read docs/MOUNT_PROCESS_ISOLATION.md before changing tests/ram_client_protocol.hpp,
+tests/ram_client_channel.hpp or the mounted RAM client. Keep six fixed synthetic
+actions, seven protected auto-reset events, one request at a time, exact pending
+acknowledgements, terminal failures, <=256 copy rounds and no paths/HANDLEs/data
+in the protocol. Keep the five-second phases and original process/CPU/memory/
+lifetime limits. Own every waited handle through confirmed source/supervisor
+retirement. Preserve all old handoff/pinned-byte/metadata/resource oracles and
+require the live external-client report variant. CPU sequence/helper passes are
+not mounted or GPU evidence. After publishing-source RAM qualification, implement
+mandatory adapter-wide self-origin protection; the fixture guard is still not
+product protection. No owner mount/driver or unchanged GPU experiment.

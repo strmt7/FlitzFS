@@ -863,3 +863,17 @@ Its publishing-source qualification is pending. Kernel faults still cannot be
 converted into no-freeze guarantees by user-mode bounds. RAM-handoff actor
 conversion, adapter-wide self-origin protection, Windows 11 client and owner
 mount qualification remain separate gates; no owner operation is enabled.
+
+The next RAM-handoff fixture keeps actual mounted file handles in its external
+controller. Only a finite, one-command-at-a-time, protected seven-event conversation
+coordinates host-side memory copy/publication with those client operations.
+Foreign/order/overlap/role/cap/wait failures are terminal; signals are not counted
+as queued work. Exact process/supervisor and waited-handle ownership remain required.
+No process, byte-report, lock, memory, CPU or source lifetime limit is enlarged.
+
+The original capacity/stale/publication/identity/pinned CPU/metadata/flush/working-set
+and zero-lock cleanup oracles remain. New pure and real CPU-helper protocol tests
+do not establish mounted correctness. Publishing-source RAM qualification and
+adapter-wide self-origin protection remain separate gates. Current research
+receipts document auto-reset and asynchronous termination semantics, not general
+kernel-fault recovery or no-freeze guarantees. No owner operation is enabled.

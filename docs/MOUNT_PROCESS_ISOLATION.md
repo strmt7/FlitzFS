@@ -235,3 +235,64 @@ provider, robots checks, native receipts and VM limits. The source-group default
 tracks this lifecycle work; every prior explicit AMD/app group remains available.
 Read and admit substantive exact-source captures before designing the new RAM
 multi-round protocol; a successful installation or queued crawl is not evidence.
+
+## Finite external RAM-handoff client
+
+Source9dd6a98384f3c315522d1ae840afd43ac862bb0b passed all thirteen core jobs.
+Its restart/crash-restart source and writable resumer both retired before
+independent CPU verification. The read-only normal/kill/remount campaign observed
+distinct controller/host PIDs and confirmed source/supervisor retirement. See
+evidence/extended-actors-9dd6a98.json for raw reports and exact job/artifact identities.
+
+The next RAM-handoff implementation moves its actual Win32 file handles into
+the existing external controller too. The filesystem child owns only the bounded
+locked-memory backends, adapter and dispatcher. A separate test-only finite
+conversation uses six action events and one acknowledgement event, all initially
+nonsignaled auto-reset objects. It transports no paths, HANDLEs or payload bytes.
+Each action has exactly one outstanding request and one acknowledgement; repeated
+signals are never treated as a counter. No PulseEvent, discovery/retry loop,
+persistent worker or new process is introduced.
+
+The ordered actions are initial write/two-handle read, post-capacity-recovery read,
+foreground rewrite invalidating a stale candidate, one read per bounded copy step,
+post-publication identity/read, and final append/read/handle close. The independent
+state machines admit1..256 copy rounds, advance only after the exact pending
+acknowledgement and become terminal on foreign/order/overlap/cap/role/wait failure.
+All six non-payload commands must occur in order; at most261 requests are possible.
+A completed conversation cannot be reused. Child exit is prioritized over a
+simultaneously pending request; all waited handles retain exact owner lifetimes.
+
+The protocol reuses protected current-user Local-session names, BCrypt nonces,
+no inheritance and role-required SYNCHRONIZE/EVENT_MODIFY_STATE handles. Existing
+names are rejected without changing their state. These constraints contain a
+trusted test binary, not an adversarial same-user process. Per-phase waits remain
+five seconds; the source retains its original30-second/128-MiB/20%-CPU job and
+the controller its128-MiB process/256-MiB/two-process aggregate budget.
+
+Every old mounted handoff oracle remains: capacity failure recovery, stale
+candidate rejection, low-level copy progress, retained file identity and two
+contexts, reduced payload, repeat suppression, tail append, independent selected
+and pinned CPU bytes, root metadata, source/target/head integrity, dispatcher
+retirement, working-set restoration and zero remaining locked bytes. Normal
+client handles close before final acknowledgement. The same fixed synthetic
+UUID's volume serial is checked; no host specification is assumed.
+
+RAM schema1 observations retain a historical-reader path. The current live gate
+requires distinct host/client actors, actual self-open rejection and original
+Flush observation, in addition to every old resource/byte/progress field. Partial,
+aliased, uncompleted, foreign and invented observations reject. The report cap
+remains2048 bytes. CPU-only tests cover pure sequence transitions plus actual
+trusted helper commands, wrong-phase peers, early exit, cancellation, collisions,
+roles and repeated exact handle equality. They perform no mount, driver or GPU work.
+
+The eleven Microsoft captures admitted at9dd6a98 are retained by exact artifact,
+provider, URL/status and native/markdown digest in evidence/process-events-9dd6a98.json.
+Current event semantics require one outstanding action and lifetime-safe waits;
+termination requests remain separate from exit confirmation. Those captures were
+fetched now, not presented as newly published2026 API features.
+
+The publishing source still requires its own CPU/raw/sanitizer/Windows and actual
+RAM-handoff qualification. Adapter-wide self-origin protection is the next product
+boundary, not already implemented by this fixture. The historical D01 kernel cause,
+Windows11 client qualification and full-product goals remain open. No owner mount/
+driver operation or unchanged GPU rerun is authorized.

@@ -162,6 +162,38 @@ def read_restart_records(path: Path) -> list[dict]:
     require(len(lines) == 2 and all(lines), "exactly source and continuation records required")
     return [json.loads(line, object_pairs_hook=unique_object) for line in lines]
 
+def validate_ram_report(report: dict, commit: str, *, require_external: bool = False) -> dict:
+    require(type(commit) is str and SHA.fullmatch(commit) is not None, "invalid RAM source commit")
+    exact = {
+        "schema": 1, "phase": "ram-handoff", "commit": commit,
+        "epoch": 2, "user_bytes": 65609, "locked_peak": 16 * 1024**2 + 512 * 1024,
+        "locked_after": 0, "contexts": 0, "cpu_verified": True,
+        "mounted": True, "unmounted": True, "recovered_capacity_failure": True,
+        "gpu": False, "complete": True,
+        "stale_candidate_rejected": True, "repeat_suppressed": True,
+    }
+    measured = {"source_process", "volume_serial", "raw_payload", "compressed_payload", "generation", "idle_copy_steps"}
+    require(type(report) is dict, "RAM handoff report must be an object")
+    external = bool(set(report) & EXTERNAL)
+    require(not require_external or external, "live RAM campaign requires an external client")
+    require(set(report) == set(exact) | measured | (EXTERNAL if external else set()),
+            "unexpected RAM handoff report fields")
+    if external:
+        require(report["source_protocol"] == "external-client", "unknown RAM client protocol")
+        integer(report, "client_process", 1, 2**32 - 1)
+        require(report["client_process"] != report["source_process"], "RAM source was its own client")
+        for key in ("host_self_io_rejected", "client_flush_callback_observed"):
+            require(type(report[key]) is bool and report[key], "unobserved RAM client/flush claim")
+    for key, value in exact.items():
+        require(type(report[key]) is type(value) and report[key] == value, f"invalid {key}")
+    for key in ("source_process", "volume_serial"):
+        integer(report, key, 1, 2**32 - 1)
+    integer(report, "idle_copy_steps", 2, 256)
+    integer(report, "raw_payload", 65536, CAP)
+    integer(report, "compressed_payload", 1, report["raw_payload"] - 1)
+    integer(report, "generation", 1, 2**63 - 1)
+    return report
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", choices=sorted(PROFILES | {"ram-handoff"}), required=True)
@@ -180,25 +212,7 @@ def main() -> None:
         require({entry.name for entry in fixture.iterdir()} == {"ram-handoff.json"},
                 "RAM fixture contains an image, mount or unexpected output")
         report = read_report(fixture / "ram-handoff.json")
-        exact = {
-            "schema": 1, "phase": "ram-handoff", "commit": os.environ["GITHUB_SHA"],
-            "epoch": 2, "user_bytes": 65609, "locked_peak": 16 * 1024**2 + 512 * 1024,
-            "locked_after": 0, "contexts": 0, "cpu_verified": True,
-            "mounted": True, "unmounted": True, "recovered_capacity_failure": True,
-            "gpu": False, "complete": True,
-            "stale_candidate_rejected": True, "repeat_suppressed": True,
-        }
-        measured = {"source_process", "volume_serial", "raw_payload", "compressed_payload", "generation", "idle_copy_steps"}
-        require(type(report) is dict and set(report) == set(exact) | measured,
-                "unexpected RAM handoff report fields")
-        for key, value in exact.items():
-            require(type(report[key]) is type(value) and report[key] == value, f"invalid {key}")
-        for key in ("source_process", "volume_serial"):
-            integer(report, key, 1, 2**32 - 1)
-        integer(report, "idle_copy_steps", 2, 256)
-        integer(report, "raw_payload", 65536, CAP)
-        integer(report, "compressed_payload", 1, report["raw_payload"] - 1)
-        integer(report, "generation", 1, 2**63 - 1)
+        report = validate_ram_report(report, os.environ["GITHUB_SHA"], require_external=True)
         require(fixture.name == f"flitzfs-write-probe-{report['source_process']}", "fixture process binding")
         print("Windows RAM handoff reconciliation: " + json.dumps(report, sort_keys=True))
         return

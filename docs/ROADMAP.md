@@ -777,3 +777,17 @@ access-rights, wait and termination contracts. Its admitted captures are needed
 before the remaining RAM-handoff multi-round protocol. Adapter-wide self-origin
 protection follows complete actor conversion. The historical D01 cause and
 production Windows/learning/GPU-benefit gates remain open.
+
+## Final mounted fixture actor conversion
+
+Source9dd6a98 qualified external restart/resumer and read-only normal/kill/remount
+clients across all thirteen core jobs. Its current process suite admitted eleven
+native Microsoft captures. The next implementation gives RAM handoff a finite
+external client too, preserving every original compression/recovery/pinned-byte/
+identity/resource check and adding terminal sequence and actual CPU-peer fault/
+handle tests. Its publishing-source qualification is pending.
+
+Mandatory product adapter self-origin protection follows complete mounted actor
+conversion; there will be no fake-origin escape for a live self-client fixture.
+The historical termination cause remains unproven. Useful GPU benefit, Windows11
+product lifecycle, persistent learning and all full-product exit criteria remain.

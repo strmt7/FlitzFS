@@ -185,3 +185,13 @@ The next change extends that separation to ordered restart sources, writable
 resumers and the complete read-only normal/kill/remount campaign, retaining all
 original data/metadata and recovery checks. Its qualification is pending.
 RAM handoff, adapter-wide protection and the historical shutdown cause remain open.
+
+Source9dd6a98 passed all thirteen core jobs, including external restart/resumer
+and read-only normal/kill/remount clients. Eleven current Microsoft event/process
+captures were admitted through the isolated crawler.
+
+The next change moves the mounted memory-handoff file handles into its external
+controller using a finite seven-event conversation. It retains all original
+compression, identity, pinned-image, recovery and cleanup checks, with new CPU
+order/fault/handle tests. Its publishing-source qualification is pending;
+adapter-wide protection and the historical shutdown cause remain open.

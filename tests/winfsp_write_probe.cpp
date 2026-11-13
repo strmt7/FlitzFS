@@ -3,6 +3,7 @@
 #include "winfsp_native.hpp"
 #include "bounded_process.hpp"
 #include "supervised_source_fixture.hpp"
+#include "ram_client_channel.hpp"
 #include "locked_ram_fixture.hpp"
 #include "flitzfs/native_filesystem.hpp"
 #include "../src/record_digest.hpp"
@@ -496,8 +497,64 @@ void finish_session(flitzfs::WinFspNativeSession& session,const fs::path& mount)
       !session.requires_offline()&&!session.dispatcher_stopped_unexpectedly(),"extended normal shutdown");
   require_removed(mount);
 }
-void ram_handoff_probe() {
-  require_probe_job();
+struct RamClient {
+  const fs::path mount;
+  Handle writer,reader;
+  const std::vector<std::byte> original=std::vector<std::byte>(65536,std::byte{81});
+  BY_HANDLE_FILE_INFORMATION before{};
+  bool finished=false;
+  explicit RamClient(fs::path path):mount(std::move(path)){}
+  void perform(ram_client_fixture::Step step) {
+    using Step=ram_client_fixture::Step;
+    switch(step) {
+      case Step::initial: {
+        mounted_identity(mount);
+        constexpr DWORD share=FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE;
+        const auto path=mount/L"sample.bin";
+        writer.value=CreateFileW(path.c_str(),GENERIC_READ|GENERIC_WRITE,share,nullptr,
+            CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
+        checked(writer.value!=INVALID_HANDLE_VALUE,"external RAM create");
+        write_bytes(writer.value,original);
+        reader.value=CreateFileW(path.c_str(),GENERIC_READ,share,nullptr,
+            OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+        checked(reader.value!=INVALID_HANDLE_VALUE,"external RAM peer open");
+        read_handle(reader.value,original);
+        checked(GetFileInformationByHandle(writer.value,&before),"external RAM initial identity");
+        // Exact serial of this fixture's fixed UUID, not host hardware/configuration.
+        require(before.dwVolumeSerialNumber==0x58005257U&&
+            (before.nFileIndexHigh||before.nFileIndexLow),"external RAM volume/file ID");
+        break;
+      }
+      case Step::recovered:case Step::copy_read:
+        read_handle(reader.value,original);break;
+      case Step::rewrite: {
+        LARGE_INTEGER start{};
+        checked(SetFilePointerEx(writer.value,start,nullptr,FILE_BEGIN),"external RAM intervening seek");
+        write_bytes(writer.value,original);break;
+      }
+      case Step::published: {
+        BY_HANDLE_FILE_INFORMATION after{};
+        checked(GetFileInformationByHandle(writer.value,&after),"external RAM retained identity");
+        require(after.dwVolumeSerialNumber==before.dwVolumeSerialNumber&&
+            after.nFileIndexHigh==before.nFileIndexHigh&&after.nFileIndexLow==before.nFileIndexLow,
+            "external RAM published identity changed");
+        read_handle(reader.value,original);break;
+      }
+      case Step::finish: {
+        LARGE_INTEGER end{};
+        checked(SetFilePointerEx(writer.value,end,nullptr,FILE_END),"external RAM continuation seek");
+        const std::vector<std::byte> tail(73,std::byte{0x3d});write_bytes(writer.value,tail);
+        auto final=original;final.insert(final.end(),tail.begin(),tail.end());
+        read_handle(reader.value,final);writer.reset();reader.reset();finished=true;break;
+      }
+      default:throw std::runtime_error("foreign RAM client step");
+    }
+  }
+};
+void ram_handoff_probe(std::wstring_view token,std::uint32_t client) {
+  require_probe_job();prepare_external_actor(client);
+  ram_client_fixture::Channel channel(false,std::wstring(token));
+  using Step=ram_client_fixture::Step;
   stage=70;
   Fixture fixture;
   const auto mount=fixture.root/L"mount";
@@ -523,25 +580,11 @@ void ram_handoff_probe() {
           head,volume_id,source,source_id,{flitzfs::StoreCompressionMode::raw,6,false});
       const auto* observer=adapter.get();
       serial=observer->parameters().VolumeSerialNumber;
-      flitzfs::WinFspNativeSession session(std::move(adapter),live_api());
+      flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
       require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"locked-RAM mount startup");
-      mounted_identity(mount);
-      stage=71;
-      constexpr DWORD share=FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE;
-      const auto path=mount/L"sample.bin";
-      Handle writer(CreateFileW(path.c_str(),GENERIC_READ|GENERIC_WRITE,share,nullptr,
-          CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
-      checked(writer.value!=INVALID_HANDLE_VALUE,"RAM mounted create");
+      self_open_probe(session,observer,mount);
+      stage=71;channel.request(Step::initial);external_origin_proof(session);
       const std::vector<std::byte> original(65536,std::byte{81});
-      write_bytes(writer.value,original);
-      Handle reader(CreateFileW(path.c_str(),GENERIC_READ,share,nullptr,
-          OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr));
-      checked(reader.value!=INVALID_HANDLE_VALUE,"RAM mounted peer open");
-      read_handle(reader.value,original);
-      BY_HANDLE_FILE_INFORMATION before{},after{};
-      checked(GetFileInformationByHandle(writer.value,&before),"RAM initial handle identity");
-      require(before.dwVolumeSerialNumber==serial&&
-          (before.nFileIndexHigh||before.nFileIndexLow),"RAM initial volume or file ID");
       require(session.stats().contexts==2,"RAM live context count");
       auto pinned=observer->snapshot();
       raw_payload=pinned.storage_info().stored_payload_bytes;
@@ -553,7 +596,7 @@ void ram_handoff_probe() {
             recovered.head.selection.image_identity==source_id&&undersized_candidate->extent()==0,
             "RAM capacity failure did not recover original authority");
       }
-      read_handle(reader.value,original);
+      channel.request(Step::recovered);
       require(session.stats().contexts==2,"RAM recovery lost mounted contexts");
       stage=73;
       using Action=flitzfs::HostedIdleMaintenanceAction;
@@ -564,9 +607,7 @@ void ram_handoff_probe() {
           "RAM idle candidate did not begin");
       // An actual acknowledged write advances the source while an unpublished
       // candidate exists. Reuse the bytes to keep the independent oracle fixed.
-      LARGE_INTEGER start{};
-      checked(SetFilePointerEx(writer.value,start,nullptr,FILE_BEGIN),"RAM intervening write seek");
-      write_bytes(writer.value,original);
+      channel.request(Step::rewrite);
       require(session.idle_recompression_hosted(Action::copy).state==State::stale,
           "RAM idle candidate ignored a foreground write");
       target.reset();
@@ -574,11 +615,12 @@ void ram_handoff_probe() {
       require(session.begin_idle_recompression_hosted(target,target_id,compression).state==State::begun,
           "RAM later idle opportunity did not begin");
       const auto objects=observer->snapshot().storage_info().objects;
+      require(objects>0&&objects<=ram_client_fixture::Sequence::max_copy_rounds,"RAM copy round bound");
       for(std::size_t step=1;step<=objects;++step) {
         require(session.idle_recompression_hosted(Action::copy).state==
             (step==objects?State::ready:State::copying),"RAM idle copy progress");
         ++copy_steps;
-        read_handle(reader.value,original);
+        channel.request(Step::copy_read);
       }
       const auto handoff=session.idle_recompression_hosted(Action::publish);
       require(handoff.state==State::published&&handoff.head.selection.epoch==2&&
@@ -588,21 +630,13 @@ void ram_handoff_probe() {
           "RAM idle policy reconsidered the image it just published");
       compressed_payload=observer->snapshot().storage_info().stored_payload_bytes;
       require(compressed_payload<raw_payload,"RAM mounted recompression did not reduce payload");
-      checked(GetFileInformationByHandle(writer.value,&after),"RAM retained handle identity");
-      require(after.dwVolumeSerialNumber==serial&&before.nFileIndexHigh==after.nFileIndexHigh&&
-          before.nFileIndexLow==after.nFileIndexLow&&session.stats().contexts==2,
-          "RAM handoff changed mounted identity or contexts");
-      read_handle(reader.value,original);
+      channel.request(Step::published);
+      require(session.stats().contexts==2,"RAM handoff lost contexts");
       stage=74;
-      LARGE_INTEGER end{};
-      checked(SetFilePointerEx(writer.value,end,nullptr,FILE_END),"RAM continuation seek");
-      const std::vector<std::byte> tail(73,std::byte{0x3d});
-      write_bytes(writer.value,tail);
-      auto final=original;
+      channel.request(Step::finish);
+      require(channel.complete()&&channel.copy_rounds()==copy_steps,"RAM source protocol completion");
+      auto final=original;const std::vector<std::byte> tail(73,std::byte{0x3d});
       final.insert(final.end(),tail.begin(),tail.end());
-      read_handle(reader.value,final);
-      writer.reset();
-      reader.reset();
       finish_session(session,mount);
       stage=75;
       auto selected=flitzfs::NativeVolumeHeadView::open(head,volume_id,
@@ -634,7 +668,9 @@ void ram_handoff_probe() {
       <<",\"compressed_payload\":"<<compressed_payload<<",\"generation\":"<<final_generation
       <<",\"locked_peak\":"<<locked_ram_fixture::peak_locked_bytes.load()
       <<",\"locked_after\":0,\"contexts\":0,\"cpu_verified\":true,\"mounted\":true"
-      <<",\"unmounted\":true,\"recovered_capacity_failure\":true,\"gpu\":false,\"complete\":true}";
+      <<",\"unmounted\":true,\"recovered_capacity_failure\":true,\"gpu\":false,\"complete\":true"
+      <<",\"source_protocol\":\"external-client\",\"client_process\":"<<source_client_process
+      <<",\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}";
   const auto body=report.str();
   require(body.size()<=report_cap,"RAM handoff report cap");
   const auto* first=reinterpret_cast<const std::byte*>(body.data());
@@ -854,6 +890,34 @@ void emit_extended(std::uint32_t source_process,std::string_view profile,std::st
       "extended aggregate fixture cap");
   std::cout<<"Windows writable extended evidence: "<<text<<"\n";
 }
+struct ExternalRam {
+  ram_client_fixture::Channel channel{true};
+  std::unique_ptr<source_fixture::Child> child;
+  flitzfs::ProcessResult result;
+  explicit ExternalRam(const fs::path& executable) {
+    child=std::make_unique<source_fixture::Child>(executable,
+        std::vector<std::wstring>{L"--ram-handoff-child",channel.token(),std::to_wstring(GetCurrentProcessId())},
+        flitzfs::ProcessBudget{128,2000,30000});
+    // The first actual request also proves host readiness; no synthetic data
+    // operation starts until the exact child has created its fresh mount.
+    const auto first=channel.next(child->result_event());
+    require(first==ram_client_fixture::Step::initial&&child->process_id()&&
+        child->process_id()!=GetCurrentProcessId(),"RAM source/client readiness or alias");
+    Fixture fixture(child->process_id());RamClient client(fixture.root/L"mount");
+    client.perform(first);channel.acknowledge(first);
+    while(!channel.complete()) {
+      const auto step=channel.next(child->result_event());
+      client.perform(step);channel.acknowledge(step);
+    }
+    require(client.finished&&channel.copy_rounds()>0,"RAM client did not close before completion");
+    result=child->result();
+    require(result.process_id==child->process_id()&&result.exit_confirmed&&!result.timed_out&&
+        !result.cancelled&&result.exit_code==0&&child->retirement_confirmed(),"RAM exact source/supervisor retirement");
+    require(source_fixture::cleanup_ok.load(),"RAM client protocol cleanup");
+    std::cout<<"ram_client source="<<child->process_id()<<" client="<<GetCurrentProcessId()
+        <<" copy_reads="<<channel.copy_rounds()<<" exit_confirmed="<<result.exit_confirmed<<"\n";
+  }
+};
 struct ExternalOrderedSource {
   source_fixture::Events protocol{true};
   std::unique_ptr<source_fixture::Child> child;
@@ -976,7 +1040,7 @@ void run_extended(const fs::path& executable,std::string_view profile) {
 int wmain(int argc,wchar_t** argv) {try {
   require_hosted_opt_in();require(argc>=2&&argc<=5,"explicit writable probe mode required");
   const std::wstring_view mode(argv[1]);
-  if(mode==L"--ram-handoff-child"){require(argc==2,"unexpected RAM child argument");ram_handoff_probe();return 0;}
+  if(mode==L"--ram-handoff-child"){require(argc==4,"missing RAM protocol/client identity");ram_handoff_probe(argv[2],process_number(argv[3]));return 0;}
   if(mode==L"--write-child"){require(argc==4,"missing external writer identity");write_probe(argv[2],process_number(argv[3]));return 0;}
   if(mode==L"--verify-child"){require(argc==4,"missing source/client identities");source_client_process=process_number(argv[3]);verify_probe(process_number(argv[2]));return 0;}
   if(mode==L"--restart-source-child") {
@@ -1012,7 +1076,7 @@ int wmain(int argc,wchar_t** argv) {try {
   wchar_t path[512]{};const auto n=GetModuleFileNameW(nullptr,path,512);require(n&&n<512,"probe executable identity");
   const fs::path executable(std::wstring(path,n));
   if(mode==L"--run-ram-handoff-ci") {
-    const auto result=flitzfs::run_bounded_process(executable,{L"--ram-handoff-child"},{128,2000,30000});
+    const ExternalRam ram(executable);const auto result=ram.result;
     std::cout<<"ram_handoff exit="<<result.exit_code<<" exit_confirmed="<<result.exit_confirmed
         <<" peak_commit_bytes="<<result.peak_committed_bytes<<"\n";
     require(result.process_id&&result.exit_confirmed&&!result.timed_out&&!result.cancelled&&

@@ -1,5 +1,6 @@
 #include "bounded_process.hpp"
 #include "supervised_source_fixture.hpp"
+#include "ram_client_channel.hpp"
 #include <windows.h>
 #include <iostream>
 #include <cstddef>
@@ -30,6 +31,23 @@ int child(int argc, wchar_t** argv) {
     protocol.signal(source_fixture::Phase::ack);
     if(mode == L"--child-source-hold-ack") Sleep(10000);
     return 73;
+  }
+  if(mode==L"--child-ram-script"||mode==L"--child-ram-hold"||mode==L"--child-ram-wrong") {
+    if(argc!=3)return 1;
+    namespace ram=ram_client_fixture;
+    ram::Channel channel(false,argv[2]);
+    if(mode==L"--child-ram-wrong") {
+      source::Handle event(OpenEventW(EVENT_MODIFY_STATE,FALSE,
+          ram::Channel::event_name(argv[2],static_cast<std::size_t>(ram::Step::published)).c_str()));
+      source::checked(event.value!=nullptr,"malformed RAM event open");
+      source::checked(SetEvent(event.value),"malformed RAM event signal");
+      Sleep(10000);return 1;
+    }
+    channel.request(ram::Step::initial);
+    if(mode==L"--child-ram-hold"){Sleep(10000);return 1;}
+    for(auto step:{ram::Step::recovered,ram::Step::rewrite,ram::Step::copy_read,
+        ram::Step::copy_read,ram::Step::published,ram::Step::finish})channel.request(step);
+    return channel.complete()&&channel.copy_rounds()==2?73:1;
   }
   if (mode == L"--child-exit") return 37;
   if (mode == L"--child-sleep") { Sleep(10000); return 1; }
@@ -239,6 +257,90 @@ int wmain(int argc, wchar_t** argv) {
     }
     require(GetProcessHandleCount(GetCurrentProcess(),&after)&&before==after&&source::cleanup_ok.load()&&
         !source::source_busy.load(),"source fixture handles/cleanup grew");
+    namespace ram=ram_client_fixture;
+    auto ram_round=[&] {
+      ram::Channel channel(true);
+      source::Child child(executable,{L"--child-ram-script",channel.token()},{128,2000,5000});
+      for(auto expected:{ram::Step::initial,ram::Step::recovered,ram::Step::rewrite,
+          ram::Step::copy_read,ram::Step::copy_read,ram::Step::published,ram::Step::finish}) {
+        const auto actual=channel.next(child.result_event());
+        require(actual==expected,"RAM helper command changed");
+        channel.acknowledge(actual);
+      }
+      const auto result=child.result();
+      require(channel.complete()&&channel.copy_rounds()==2&&result.exit_confirmed&&
+          result.exit_code==73&&!result.timed_out&&!result.cancelled&&child.retirement_confirmed(),
+          "RAM helper completion or exact retirement");
+    };
+    auto ram_cancel=[&] {
+      ram::Channel channel(true);
+      source::Child child(executable,{L"--child-ram-hold",channel.token()},{128,2000,5000});
+      const auto first=channel.next(child.result_event());
+      require(first==ram::Step::initial,"RAM hold initial command");
+      channel.acknowledge(first);
+      require(child.request_cancel(),"RAM helper cancellation signal");
+      const auto result=child.result();
+      bool refused=false;
+      try{(void)channel.next(child.result_event());}catch(const std::runtime_error&){refused=true;}
+      require(refused&&channel.failed()&&!channel.complete()&&result.exit_confirmed&&
+          result.cancelled&&!result.timed_out&&result.exit_code==ERROR_CANCELLED&&child.retirement_confirmed(),
+          "RAM cancellation/terminal receive/retirement");
+    };
+    auto ram_wrong=[&] {
+      ram::Channel channel(true);
+      source::Child child(executable,{L"--child-ram-wrong",channel.token()},{128,2000,5000});
+      bool refused=false;
+      try{(void)channel.next(child.result_event());}catch(const std::runtime_error&){refused=true;}
+      require(refused&&channel.failed()&&!channel.complete(),"out-of-order RAM event accepted");
+      require(child.request_cancel(),"bad RAM peer cancellation");
+      const auto result=child.result();
+      require(result.exit_confirmed&&result.cancelled&&!result.timed_out&&
+          result.exit_code==ERROR_CANCELLED&&child.retirement_confirmed(),"bad RAM peer retirement");
+    };
+    auto ram_early=[&] {
+      ram::Channel channel(true);
+      source::Child child(executable,{L"--child-exit"},{128,2000,5000});
+      bool refused=false;
+      try{(void)channel.next(child.result_event());}catch(const std::runtime_error&){refused=true;}
+      const auto result=child.result();
+      require(refused&&channel.failed()&&!channel.complete()&&result.exit_confirmed&&
+          !result.cancelled&&!result.timed_out&&result.exit_code==37&&child.retirement_confirmed(),
+          "RAM early peer exit invented completion");
+    };
+    {
+      ram::Channel client(true);
+      source::Handle initial(OpenEventW(SYNCHRONIZE|EVENT_MODIFY_STATE,FALSE,
+          ram::Channel::event_name(client.token(),0).c_str()));
+      source::checked(initial.value!=nullptr,"RAM collision event query");
+      source::checked(SetEvent(initial.value),"RAM collision initial signal");
+      bool collision=false;
+      try{ram::Channel duplicate(true,client.token());}catch(const std::runtime_error&){collision=true;}
+      require(collision&&WaitForSingleObject(initial.value,0)==WAIT_OBJECT_0&&
+          WaitForSingleObject(initial.value,0)==WAIT_TIMEOUT,"RAM collision changed auto-reset event state");
+      ram::Channel host(false,client.token());bool role=false;
+      try{host.acknowledge(ram::Step::initial);}catch(const std::runtime_error&){role=true;}
+      require(role&&host.failed(),"RAM host acquired client acknowledgement role");
+      source::Handle ack(OpenEventW(SYNCHRONIZE,FALSE,
+          ram::Channel::event_name(client.token(),ram::Channel::ack_index).c_str()));
+      source::checked(ack.value!=nullptr,"RAM acknowledgement state query");
+      require(WaitForSingleObject(ack.value,0)==WAIT_TIMEOUT,"invalid RAM role signaled acknowledgement");
+      bool sender=false;
+      try{client.request(ram::Step::initial);}catch(const std::runtime_error&){sender=true;}
+      require(sender&&client.failed()&&WaitForSingleObject(initial.value,0)==WAIT_TIMEOUT,
+          "RAM client acquired host request role");
+    }
+    for(const auto& token:std::vector<std::wstring>{L"",std::wstring(31,L'a'),
+        std::wstring(32,L'A'),L"..\\foreign-ram",std::wstring(32,L'g')}) {
+      bool refused=false;try{ram::Channel opened(false,token);}catch(const std::runtime_error&){refused=true;}
+      require(refused,"malformed RAM token accepted");
+    }
+    ram_round();ram_cancel();ram_wrong();ram_early();
+    DWORD ram_before=0,ram_after=0;
+    require(GetProcessHandleCount(GetCurrentProcess(),&ram_before),"RAM protocol handle baseline");
+    for(unsigned repeat=0;repeat<8;++repeat){ram_round();ram_cancel();ram_wrong();ram_early();}
+    require(GetProcessHandleCount(GetCurrentProcess(),&ram_after)&&ram_before==ram_after&&
+        source::cleanup_ok.load()&&!source::source_busy.load(),"RAM protocol handles/retirement grew");
+    std::cout<<"RAM finite client commands, collision/roles, malformed/early exits, cancellation and exact handles passed; CPU only.\n";
     std::cout<<"Protected source phases, actor identity, cancellation, timeout, abandonment, failed launch, post-ack cancellation/abandonment, early exit and repeated exact retirement passed; CPU only.\n";
     std::cout << "Windows Job Object admission, quoting, limits and timeout tests passed; CPU only.\n";
     return 0;

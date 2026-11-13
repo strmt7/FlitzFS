@@ -333,3 +333,10 @@ diagnostic variant as the other converted writable profiles. The canonical
 source/continuation/final bindings remain exact; historical records still parse.
 Read-only space-report schemas and their byte caps remain unchanged. No native
 storage, checkpoint, codec or worker-wire encoding changes.
+
+The finite RAM-handoff conversation is test-only synchronization, not a stored
+encoding or production worker frame. It carries six fixed action identities via
+events, with no data/path/handle payload. The live schema1 RAM diagnostic adds the
+existing external-client identity/observation variant; a bounded historical-reader
+path remains. Native checkpoint, codec, dictionary and file-byte formats do not
+change. All original RAM report fields and the2048-byte cap remain required.
