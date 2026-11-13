@@ -139,3 +139,12 @@ requests. Parent proposal validation uses the independently retained input bytes
 Explicit hardware and native-composition callers use the input-only path; CPU
 semantic callers retain prepare(). See GPU_PHASE_PROFILE.md for qualification
 and separate wall-time diagnostics. No codec, kernel, stored or match-frame change.
+
+Match scratch now uses the checked gpu_match_device_layout offsets: input at
+zero, 2-byte-aligned predecessor links and 8-byte-aligned results in one owned
+device allocation. One initialized host upload includes explicit little-endian
+links, zero padding and invalid output sentinels. Padding counts toward the
+same 229,376-byte maximum; CPU scratch adds at most that amount. Only the base
+pointer is released, and the kernel receives the original three pointers.
+The complete original child index/search/byte verification remains required.
+This is pending changed-source qualification and does not establish GPU benefit.

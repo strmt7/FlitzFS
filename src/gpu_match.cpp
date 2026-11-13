@@ -1,4 +1,5 @@
 #include "flitzfs/gpu_match.hpp"
+#include "flitzfs/gpu_match_layout.hpp"
 #include <algorithm>
 #include <stdexcept>
 namespace flitzfs {
@@ -42,7 +43,7 @@ std::uint32_t PreparedGpuMatchSearch::lanes() const noexcept {
   return match_detail::lanes(static_cast<std::uint32_t>(input_.size()));
 }
 std::uint64_t PreparedGpuMatchSearch::device_buffer_bytes() const noexcept {
-  return input_.size()*(1+sizeof(match_detail::u16))+lanes()*sizeof(match_detail::Match);
+  return gpu_match_device_layout(static_cast<std::uint32_t>(input_.size())).total_bytes;
 }
 std::vector<StoreMatchProposal> PreparedGpuMatchSearch::verified_proposals(
     std::span<const match_detail::Match> matches) const {

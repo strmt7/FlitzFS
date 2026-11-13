@@ -169,9 +169,13 @@
       "entry_gate": "Actual G02 native proposal/compression composition is demonstrated at645a1d1. G02's benefit exit remains unmet; lifecycle work must not depend on already having that benefit.",
       "preparatory_implementation": {
         "contract": "docs/GPU_PHASE_PROFILE.md",
-        "behavior": "Input-only parent preparation avoids an unused CPU index/sort; separate complete-request wall profiling with all original verification and bounds.",
-        "qualification": "Pending publishing-commit CPU/Windows/SDK results; no new GPU measurements.",
-        "lifecycle_gate": "D01 remains open; no resident worker, widened caps or relaxed independent CPU checks."
+        "qualified_source": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
+        "core_jobs": 13,
+        "sdk_confirmed_exits": 20,
+        "phase_unit_checks": 431,
+        "owner_gpu_profile": "One verified4-KiB profile; initialization/allocation/verification dominated, fullCPUcomparison retained.",
+        "evidence": "docs/evidence/gpu-profile-99be6a2.json",
+        "next": "Coalesced allocation/upload implementation requires new-source qualification. No expanded footprint, removed CPU checks or resident worker."
       }
     },
     {

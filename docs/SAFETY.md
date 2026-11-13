@@ -827,3 +827,13 @@ The opt-in phase diagnostic preserves existing process/device/time bounds and
 publishes only a complete, bound profile after cleanup; malformed/unavailable
 profiles cannot be used as data or hardware-recovery evidence. No new owner
 execution is qualified by this source change. See GPU_PHASE_PROFILE.md.
+
+The coalesced match upload owns only one base device pointer; kernel subregion
+pointers never acquire independent ownership. Layout and returned-address checks
+bound aligned input/index/output regions before upload/launch. The maximum
+explicit allocation remains 229,376 bytes, with one equally bounded temporary
+CPU upload vector. No CPU verification, telemetry or release-before-publication
+check is removed. Source99's single actual GPU profile is evidence only for its
+older three-allocation path. The new path must pass exact-source isolated gates
+before any owner run; neither observation establishes no-freeze guarantees,
+useful compression benefit, power-loss safety or full-product qualification.

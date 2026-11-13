@@ -1220,3 +1220,15 @@ recovery authority. Keep every failed/incomplete timing unavailable, reject
 binding/mask/seal/reserved/overflow errors and require all resource/module cleanup
 before publishing. Independent G03 preparation does not close D01 or enable
 resident workers, expanded work or an unqualified owner experiment.
+
+## Coalesced GPU match allocation
+
+The bounded match path uses the checked host-only layout in
+include/flitzfs/gpu_match_layout.hpp. Preserve the one-base-pointer ownership,
+2-byte predecessor/8-byte output alignment, checked address arithmetic, initialized
+padding/sentinels, explicit little-endian index packing and full independent CPU
+verification. Count alignment padding in device admission; never increase the
+229,376-byte maximum or the existing process/child/lifetime limits. An input-only
+parent plan must reject upload construction. The changed allocation path needs
+exact-source isolated qualification before owner execution; the single source99
+profile is a baseline observation, not proof of packed-path speed or safety.
