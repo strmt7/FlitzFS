@@ -316,3 +316,10 @@ The separate HIP synchronization API probe passed ataf2f714, including9 CPU case
 exact header/dependency/object identities and all original SDK/worker gates.
 [Evidence](docs/evidence/hip-warp-offline-af2f714.json). This is offline API/type
 qualification; actual compression output, runtime safety and useful gain remain unproven.
+
+The native API probe's physical-input checks passed at 2fdd01c
+([evidence](docs/evidence/hip-warp-stable-2fdd01c.json)).
+The next [explicit native-wave candidate](docs/HIPCOMP_NATIVE_SYNC.md) combines
+the pinned source with native AMD wave calls and pre-read index guards in a
+private compiler fixture. Its CPU oracle and offline compilation are pending;
+normal filesystem I/O remains unchanged.

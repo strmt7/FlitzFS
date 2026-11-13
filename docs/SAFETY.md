@@ -1102,3 +1102,12 @@ compiler/dependency/object checks and original SDK/20-worker gates ataf2f714
 ([evidence](evidence/hip-warp-offline-af2f714.json)). Exact physical-input stability
 and complete automatic trigger coverage are the next narrow qualification;
 no vendor kernel, runtime or GPU-output behavior changes.
+
+
+At 2fdd01c, all 13 ordinary jobs and the SDK/worker gates passed, including
+physical-input stability of the native synchronization probe
+([evidence](evidence/hip-warp-stable-2fdd01c.json)).
+The separate [native-wave candidate](HIPCOMP_NATIVE_SYNC.md) is experimental,
+OFF by default and awaiting its own hosted qualification: seven composition
+cases, a compiled CPU index oracle and strict offline object inspection.
+No GPU object is loaded, stored codec added or runtime path enabled. D01 remains open.

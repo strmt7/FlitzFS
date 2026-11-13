@@ -113,7 +113,10 @@ def main():
     parser.add_argument("--provider",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--hipcomp-source",type=Path,help="Optional reviewed codec checkout; offline object only")
+    parser.add_argument("--hipcomp-native-sync",action="store_true")
     args=parser.parse_args()
+    require(not args.hipcomp_native_sync or args.hipcomp_source is not None,
+        "native-sync candidate requires the original pinned candidate too")
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve()
     root=args.output.resolve();provider=args.provider.resolve(strict=True)
     require(root!=temporary and root.is_relative_to(temporary) and not root.exists(),
@@ -192,6 +195,20 @@ def main():
             not report["warp_sync_probe"]["object_loaded"] and
             not report["warp_sync_probe"]["object_linked"] and
             not report["warp_sync_probe"]["gpu_executed"],"offline warp probe scope")
+
+        if args.hipcomp_native_sync:
+            run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_hipcomp_native_sync.py"),
+                "--source",str(hipcomp_source)],report,"native-sync-source-composition-regressions",60)
+            candidate=root/"hipcomp-native-sync"
+            run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/qualify_hipcomp_candidate.py"),
+                "--source",str(hipcomp_source),"--provider",str(provider),"--sdk",str(sdk),
+                "--output",str(candidate),"--native-sync"],report,"native-sync-offline-qualification",1200)
+            report["hipcomp_native_sync"]=json.loads((candidate/"qualification.json").read_text(encoding="utf-8"))
+            require(report["hipcomp_native_sync"]["complete"] and
+                report["hipcomp_native_sync"]["object_inspected"] and
+                report["hipcomp_native_sync"].get("variant")=="native-wave-sync" and
+                not report["hipcomp_native_sync"]["gpu_executed"] and
+                not report["hipcomp_native_sync"]["module_loaded"],"native-sync offline scope")
 
         # Reuse the unchanged compiler helper. Its explicit include root is a
         # fresh byte-identical source fixture, never a patched upstream checkout.
