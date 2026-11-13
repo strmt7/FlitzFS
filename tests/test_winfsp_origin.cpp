@@ -122,9 +122,17 @@ void native() {
   std::array<std::byte,17> bytes{};ULONG read=0;
   require(fs.Interface->Read(&fs,context,bytes.data(),0,static_cast<ULONG>(bytes.size()),&read)==STATUS_SUCCESS&&
       read==bytes.size()&&bytes==payload,"kernel native byte parity");
-  fs.Interface->Close(&fs,context);
-  require(queries==read_calls&&!adapter->stats().contexts&&!adapter->requires_offline(),
-      "kernel non-open callback queried origin or leaked context");
+  require(queries==read_calls,"kernel Read queried origin");
+  // Read adopts the prepared handle. An adopted handle must receive Cleanup
+  // before Close, matching the SDK lifecycle and the existing native fixtures.
+  fs.Interface->Cleanup(&fs,context,path,0);
+  require(queries==read_calls,"kernel Cleanup queried origin");
+  require(adapter->stats().contexts==1&&adapter->stats().cleaned==1&&!adapter->requires_offline(),
+      "kernel Cleanup did not clean its adopted handle");
+  fs.Interface->Close(&fs,context);context=nullptr;
+  require(queries==read_calls,"kernel Close queried origin");
+  require(!adapter->stats().contexts,"kernel Close leaked its cleaned context");
+  require(!adapter->requires_offline(),"kernel lifecycle fenced the adapter");
 }
 }
 int main(){try {
