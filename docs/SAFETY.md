@@ -852,3 +852,14 @@ is retained in evidence/gpu-slab-b6a9b4e.json. It records zero remaining FlitzFS
 processes and an unchanged installed runtime/driver after that experiment. These
 observations do not establish general no-freeze/data-loss guarantees or a GPU
 performance improvement.
+
+The next actor conversion removes ordered restart/resumer and read-only mounted
+client calls from their filesystem-host processes. Exact source/resumer leases
+remain held through CPU verification. Normal external client handles close before
+ordered stop; the original open-handle crash coverage remains. The read-only root
+controller gains the already established process-tree CPU/memory/headroom budget
+and an outer100-second hosted deadline, without extending child lifetimes.
+Its publishing-source qualification is pending. Kernel faults still cannot be
+converted into no-freeze guarantees by user-mode bounds. RAM-handoff actor
+conversion, adapter-wide self-origin protection, Windows 11 client and owner
+mount qualification remain separate gates; no owner operation is enabled.

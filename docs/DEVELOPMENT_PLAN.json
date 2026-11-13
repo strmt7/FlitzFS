@@ -93,16 +93,16 @@
       "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup.",
       "checkpoint": {
         "source": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
-        "qualification": "All thirteen core jobs passed; historical cause still unproven.",
-        "evidence": "docs/evidence/mount-source-isolation-8122bf5.json",
+        "qualification": "All thirteen core jobs passed; basic/mutation/delete actor/flush/retirement reports verified.",
+        "evidence": "docs/evidence/ordered-actors-6dac1f1.json",
         "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
         "historical_root_cause": "unproven",
-        "next": "Qualify basic/mutations/delete external actors and strict report closure; then convert restart/resumer, RAM handoff and read-only clients before adapter-wide protection.",
+        "next": "Qualify restart/resumer and readonly external actors/bounded controller; admit process-suite research before multi-round RAM client protocol, then mandatory adapter-wide protection.",
         "source_child_deadline_seconds": 15,
         "source_exit_observation_seconds": 2,
         "owner_execution": false,
-        "qualified_source": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
-        "pending_implementation": "Original client workloads moved to the existing supervising controller; no new transport/worker/limits."
+        "qualified_source": "6dac1f109f7e97965f26fc1cca5a72fab6375cac",
+        "pending_implementation": "Restart/resumer and readonly original mounted workloads now execute in external controller. No new transport or expanded child caps. New-source qualification pending."
       }
     },
     {

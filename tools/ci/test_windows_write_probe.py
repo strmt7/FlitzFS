@@ -62,13 +62,13 @@ class Evidence(unittest.TestCase):
                     validate_pair(*invalid, "crash", COMMIT, require_external=True)
         wrong = reports("mutations")
         for item in wrong:
-            item["profile"] = "restart"
+            item["profile"] = "foreign"
         for position, item in enumerate(wrong):
             item.update(source_protocol="external-client", client_process=23,
                         host_self_io_rejected=position == 0,
                         client_flush_callback_observed=position == 0)
         with self.assertRaises(ValueError):
-            validate_pair(*wrong, "restart", COMMIT)
+            validate_pair(*wrong, "mutations", COMMIT)
 
     def test_ordered_external_clients(self):
         for profile in ("basic", "mutations", "delete"):
@@ -163,7 +163,7 @@ class Evidence(unittest.TestCase):
                              namespace_sequence=b["namespace_sequence"], image_bytes=b["image_bytes"])
             result = validate_continuation(a, continued, b, profile, COMMIT)
             self.assertTrue(result["complete"])
-            if profile == "crash-restart":
+            if profile in ("restart", "crash-restart"):
                 external_source, external_final = deepcopy(a), deepcopy(b)
                 for position, item in enumerate((external_source, external_final)):
                     item.update(source_protocol="external-client", client_process=23,

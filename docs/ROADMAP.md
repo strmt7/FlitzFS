@@ -762,3 +762,18 @@ rename/delete, readback and recovery checks remain. New-source qualification is
 pending. Remaining restart/resumer, RAM-handoff and read-only conversion must
 precede adapter-wide self-origin protection. The upstream issue still has no
 maintainer confirmation; the old kernel state is unknown, so D01 stays open.
+
+## Extended actor separation
+
+Source6dac1f1 passed all thirteen core jobs and supplied distinct actual
+host/client/verifier records for basic, mutations and deletion, with confirmed
+source/supervisor exit before CPU verification. The next implementation moves
+ordered restart sources, both writable resumers and read-only normal/kill/remount
+client workloads to that same external controller. It keeps all old I/O/recovery
+oracles and adds bounded read-only root supervision. New-source results are pending.
+
+The isolated process-suite research is expanded to current Microsoft event,
+access-rights, wait and termination contracts. Its admitted captures are needed
+before the remaining RAM-handoff multi-round protocol. Adapter-wide self-origin
+protection follows complete actor conversion. The historical D01 cause and
+production Windows/learning/GPU-benefit gates remain open.

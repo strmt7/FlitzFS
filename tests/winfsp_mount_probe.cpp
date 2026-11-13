@@ -1,6 +1,7 @@
 // Disposable hosted-CI integration probe, NOT a general-purpose mount command.
 #include "winfsp_session.hpp"
 #include "bounded_process.hpp"
+#include "supervised_source_fixture.hpp"
 #include "flitzfs/container.hpp"
 #include "flitzfs/native_filesystem.hpp"
 #include "native_windows_fixture.hpp"
@@ -347,8 +348,65 @@ void emit_space_report(std::uint32_t process,std::string_view phase) {
       text.find('\0')==std::string::npos,"incomplete or wrong-phase child space report");
   std::cout<<"Windows space evidence: "<<text<<"\n";
 }
-void probe(bool abandon_mount) {
-  require_probe_job();
+void mounted_client(const Fixture& fixture,bool abandon_mount) {
+  const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
+  const auto data=synthetic_data();
+  auto native=flitzfs::NativeFilesystemSnapshot::open(
+      flitzfs::ObjectStoreSnapshot::open_file(image));
+  const auto image_bytes=static_cast<std::size_t>(native.storage_info().physical_end);
+  require(image_bytes<=1536*1024,"external readonly image budget");
+  const auto expected_inode=native.stat("Data/sample.bin").inode;
+  stage = 6;
+  const auto virtual_file = mount / L"data" / L"SAMPLE.BIN";
+  require(read_all(virtual_file, data.size()) == data, "sequential mounted byte parity");
+  require(read_all(mount / L"empty.bin", 0).empty(), "empty mounted file");
+  stage = 7;
+  {
+    Handle file(CreateFileW(virtual_file.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr));
+    checked(file.value != INVALID_HANDLE_VALUE, "random file open");
+    LARGE_INTEGER offset{}; offset.QuadPart = 128 * 1024 - 13;
+    checked(SetFilePointerEx(file.value, offset, nullptr, FILE_BEGIN), "random file seek");
+    std::array<std::byte, 64> bytes{};
+    DWORD got = 0;
+    checked(ReadFile(file.value, bytes.data(), static_cast<DWORD>(bytes.size()), &got, nullptr), "cross-chunk read");
+    require(got == bytes.size() && std::equal(bytes.begin(), bytes.end(), data.begin() + offset.QuadPart),
+        "cross-chunk byte parity");
+  }
+  stage = 8;
+  check_mapping(virtual_file, data);
+  check_inode(virtual_file,expected_inode);
+  check_sparse_tail(mount/L"sparse.bin");
+  record_space_reporting(mount,image,image_bytes,abandon_mount?"crash":"normal",
+      fixture.root/(abandon_mount?L"space-crash.json":L"space-normal.json"));
+  stage = 9;
+  require(enumerate(mount / L"*") == std::set<std::wstring>{L"Data", L"empty.bin", L"sparse.bin"}, "root enumeration");
+  require(enumerate(mount / L"Data" / L"*") == std::set<std::wstring>{L"other.txt", L"sample.bin"}, "nested enumeration");
+  require(enumerate(mount / L"Data" / L"s*.bin") == std::set<std::wstring>{L"sample.bin"}, "wildcard filtering");
+  stage = 10;
+  {
+    Handle denied(CreateFileW(virtual_file.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    require(denied.value == INVALID_HANDLE_VALUE, "write access granted");
+    Handle created(CreateFileW((mount / L"new.bin").c_str(), GENERIC_WRITE, 0, nullptr,
+        CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
+    require(created.value == INVALID_HANDLE_VALUE, "create allowed");
+    require(!DeleteFileW(virtual_file.c_str()), "delete allowed");
+    require(!MoveFileW(virtual_file.c_str(), (mount / L"moved.bin").c_str()), "rename allowed");
+    require(!CreateDirectoryW((mount / L"new-dir").c_str(), nullptr), "directory creation allowed");
+  }
+  stage = 11;
+  std::atomic<bool> parallel_ok{true};
+  auto reader = [&]() {
+    try { for (unsigned i = 0; i != 4; ++i)
+      if (read_all(virtual_file, data.size()) != data) parallel_ok.store(false);
+    } catch (...) { parallel_ok.store(false); }
+  };
+  { std::jthread first(reader); std::jthread second(reader); }
+  require(parallel_ok.load(), "concurrent mounted reads");
+}
+void probe(bool abandon_mount,std::wstring_view token) {
+  require_probe_job();source_fixture::Events protocol(false,std::wstring(token));
   stage = 3;
   Fixture fixture;
   const auto data = synthetic_data();
@@ -382,60 +440,14 @@ void probe(bool abandon_mount) {
   const auto status = session.start({mount.native(), 30, true});
   if (!NT_SUCCESS(status)) throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
       std::system_category(), "live session startup");
-  stage = 6;
-  const auto virtual_file = mount / L"data" / L"SAMPLE.BIN";
-  require(read_all(virtual_file, data.size()) == data, "sequential mounted byte parity");
-  require(read_all(mount / L"empty.bin", 0).empty(), "empty mounted file");
-  stage = 7;
-  {
-    Handle file(CreateFileW(virtual_file.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-        OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr));
-    checked(file.value != INVALID_HANDLE_VALUE, "random file open");
-    LARGE_INTEGER offset{}; offset.QuadPart = 128 * 1024 - 13;
-    checked(SetFilePointerEx(file.value, offset, nullptr, FILE_BEGIN), "random file seek");
-    std::array<std::byte, 64> bytes{};
-    DWORD got = 0;
-    checked(ReadFile(file.value, bytes.data(), static_cast<DWORD>(bytes.size()), &got, nullptr), "cross-chunk read");
-    require(got == bytes.size() && std::equal(bytes.begin(), bytes.end(), data.begin() + offset.QuadPart),
-        "cross-chunk byte parity");
-  }
-  stage = 8;
-  check_mapping(virtual_file, data);
-  check_inode(virtual_file,expected.sample_inode);
-  check_sparse_tail(mount/L"sparse.bin");
-  record_space_reporting(mount,image,image_bytes.size(),abandon_mount?"crash":"normal",
-      fixture.root/(abandon_mount?L"space-crash.json":L"space-normal.json"));
-  stage = 9;
-  require(enumerate(mount / L"*") == std::set<std::wstring>{L"Data", L"empty.bin", L"sparse.bin"}, "root enumeration");
-  require(enumerate(mount / L"Data" / L"*") == std::set<std::wstring>{L"other.txt", L"sample.bin"}, "nested enumeration");
-  require(enumerate(mount / L"Data" / L"s*.bin") == std::set<std::wstring>{L"sample.bin"}, "wildcard filtering");
-  stage = 10;
-  {
-    Handle denied(CreateFileW(virtual_file.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
-    require(denied.value == INVALID_HANDLE_VALUE, "write access granted");
-    Handle created(CreateFileW((mount / L"new.bin").c_str(), GENERIC_WRITE, 0, nullptr,
-        CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
-    require(created.value == INVALID_HANDLE_VALUE, "create allowed");
-    require(!DeleteFileW(virtual_file.c_str()), "delete allowed");
-    require(!MoveFileW(virtual_file.c_str(), (mount / L"moved.bin").c_str()), "rename allowed");
-    require(!CreateDirectoryW((mount / L"new-dir").c_str(), nullptr), "directory creation allowed");
-  }
-  stage = 11;
-  std::atomic<bool> parallel_ok{true};
-  auto reader = [&]() {
-    try { for (unsigned i = 0; i != 4; ++i)
-      if (read_all(virtual_file, data.size()) != data) parallel_ok.store(false);
-    } catch (...) { parallel_ok.store(false); }
-  };
-  { std::jthread first(reader); std::jthread second(reader); }
-  require(parallel_ok.load(), "concurrent mounted reads");
+  protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
   stage = 12;
   if (abandon_mount) {
     // Readiness is recorded only after real mounted reads and write denial pass.
     // These are synthetic snapshots, not user backups or durable-write evidence.
     write_new(fixture.root / L"baseline.fltx", image_bytes);
     write_new(fixture.root / L"mounted.ready", {std::byte{0x46}, std::byte{0x53}, std::byte{2}});
+    protocol.signal(source_fixture::Phase::ack);
     Sleep(30000); // Supervisor must kill this child at 15 seconds, without teardown.
     throw std::runtime_error("supervisor did not terminate the mounted helper");
   }
@@ -447,6 +459,7 @@ void probe(bool abandon_mount) {
   require(read_all(image, image_bytes.size()) == image_bytes, "native image changed");
   require(read_all(sentinel, sentinel_data.size()) == sentinel_data, "unrelated collision fixture changed");
   flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image)).verify_all();
+  protocol.signal(source_fixture::Phase::ack);
 }
 
 // The only recovery selector is the PID returned by this executable's supervisor.
@@ -462,8 +475,22 @@ std::uint32_t process_number(std::wstring_view text) {
   require(result != 0, "zero recovery process identity");
   return static_cast<std::uint32_t>(result);
 }
-void recover(std::uint32_t previous_process) {
-  require_probe_job();
+void recovered_client(const Fixture& fixture) {
+  const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
+  const auto data=synthetic_data();
+  const auto native=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));
+  const auto n=static_cast<std::size_t>(native.storage_info().physical_end);
+  require(n<=1536*1024,"external recovered image budget");
+  stage = 17;
+  const auto file = mount / L"Data" / L"sample.bin";
+  require(read_all(file, data.size()) == data, "remounted read parity");
+  check_mapping(file, data);
+  check_inode(file,4);check_sparse_tail(mount/L"sparse.bin");
+  require(read_all(mount / L"empty.bin", 0).empty(), "remounted empty file");
+  record_space_reporting(mount,image,n,"recovery",fixture.root/L"space-recovery.json");
+}
+void recover(std::uint32_t previous_process,std::wstring_view token) {
+  require_probe_job();source_fixture::Events protocol(false,std::wstring(token));
   stage = 14;
   Fixture fixture(previous_process);
   const std::vector<std::byte> ready{std::byte{0x46}, std::byte{0x53}, std::byte{2}};
@@ -505,54 +532,76 @@ void recover(std::uint32_t previous_process) {
   const auto status=session.start({mount.native(),30,true});
   if(!NT_SUCCESS(status))throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
       std::system_category(),"native remount after terminated helper");
-  stage = 17;
-  const auto file = mount / L"Data" / L"sample.bin";
-  require(read_all(file, data.size()) == data, "remounted read parity");
-  check_mapping(file, data);
-  check_inode(file,4);check_sparse_tail(mount/L"sparse.bin");
-  require(read_all(mount / L"empty.bin", 0).empty(), "remounted empty file");
-  record_space_reporting(mount,image,n,"recovery",fixture.root/L"space-recovery.json");
+  protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
   stage = 18;
   session.stop();
   require(session.dispatcher_stopped() && !session.dispatcher_stopped_unexpectedly(), "remount clean shutdown");
   require(absent(), "remount directory remained");
   require(read_all(image,n)==read_all(fixture.root/L"baseline.fltx",n),"remount altered native backing");
+  protocol.signal(source_fixture::Phase::ack);
 }
+struct ExternalReadonly {
+  source_fixture::Events protocol{true};
+  std::unique_ptr<source_fixture::Child> child;
+  flitzfs::ProcessResult result;
+  ExternalReadonly(const fs::path& executable,bool crash,std::uint32_t recover_source=0) {
+    require(!crash||recover_source==0,"readonly recovery/crash selector");
+    std::vector<std::wstring> arguments{recover_source?L"--probe-recover-child":
+        crash?L"--probe-crash-child":L"--probe-child"};
+    if(recover_source)arguments.push_back(std::to_wstring(recover_source));
+    arguments.push_back(protocol.token());
+    child=std::make_unique<source_fixture::Child>(executable,arguments,
+        flitzfs::ProcessBudget{128,2000,crash?15000U:30000U});
+    child->await(protocol,source_fixture::Phase::ready);
+    require(child->process_id()&&child->process_id()!=GetCurrentProcessId()&&
+        (!recover_source||child->process_id()!=recover_source),"readonly actor alias");
+    Fixture fixture(recover_source?recover_source:child->process_id());
+    if(recover_source)recovered_client(fixture);else mounted_client(fixture,crash);
+    protocol.signal(source_fixture::Phase::written);child->await(protocol,source_fixture::Phase::ack);
+    result=child->result();
+    require(result.process_id==child->process_id()&&result.exit_confirmed&&!result.cancelled&&
+        (crash?(result.timed_out&&result.exit_code==ERROR_TIMEOUT):(!result.timed_out&&result.exit_code==0))&&
+        child->retirement_confirmed(),"readonly exact child/supervisor retirement");
+    require(source_fixture::cleanup_ok.load(),"readonly protocol cleanup");
+    std::cout<<"readonly_actors source="<<child->process_id()<<" client="<<GetCurrentProcessId()
+        <<" recovery_source="<<recover_source<<" exit_confirmed="<<result.exit_confirmed
+        <<" supervisor_retired="<<child->retirement_confirmed()<<"\n";
+  }
+};
 } // namespace
 int wmain(int argc, wchar_t** argv) {
   try {
     require_hosted_opt_in();
-    require(argc == 2 || argc == 3, "explicit probe mode required");
+    require(argc >= 2 && argc <= 4, "explicit probe mode required");
     const std::wstring_view mode(argv[1]);
     if (mode == L"--probe-recover-child") {
-      require(argc == 3, "recovery identity missing");
-      recover(process_number(argv[2])); return 0;
+      require(argc == 4, "recovery identity/protocol missing");
+      recover(process_number(argv[2]),argv[3]); return 0;
     }
-    require(argc == 2, "unexpected probe argument");
-    if (mode == L"--probe-child") { probe(false); return 0; }
-    if (mode == L"--probe-crash-child") { probe(true); return 0; }
+    if(mode==L"--probe-child"||mode==L"--probe-crash-child") {
+      require(argc==3,"missing readonly client protocol");probe(mode==L"--probe-crash-child",argv[2]);return 0;
+    }
+    require(argc==2,"unexpected controller argument");
     require(mode == L"--run-disposable-ci", "unknown probe mode");
+    const source_fixture::ControllerBudget controller_budget;
     wchar_t path[512]{};
     const auto n = GetModuleFileNameW(nullptr, path, 512);
     require(n && n < 512, "probe executable path unavailable");
-    flitzfs::ProcessBudget budget; budget.timeout_ms = 30000;
-    const auto result = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)), {L"--probe-child"}, budget);
+    const fs::path executable(std::wstring(path,n));
+    const ExternalReadonly normal(executable,false);const auto result=normal.result;
     std::cout << "mount_probe exit=" << result.exit_code << " stage=" << (result.exit_code >> 16U)
         << " detail=" << (result.exit_code & 0xffffU) << " timed_out=" << result.timed_out
         << " exit_confirmed=" << result.exit_confirmed << " peak_commit_bytes=" << result.peak_committed_bytes << '\n';
     require(result.exit_confirmed && !result.timed_out && result.exit_code == 0, "supervised mount probe failed");
     emit_space_report(result.process_id,"normal");
     std::cout << "PASS: real mounted native transactional image reads, sparse tails, persistent inode IDs, mapped I/O, enumeration, write rejection and backing parity.\n";
-    budget.timeout_ms = 15000;
-    const auto killed = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)), {L"--probe-crash-child"}, budget);
+    const ExternalReadonly crash(executable,true);const auto killed=crash.result;
     std::cout << "crash_probe exit=" << killed.exit_code << " timed_out=" << killed.timed_out
         << " exit_confirmed=" << killed.exit_confirmed << " peak_commit_bytes=" << killed.peak_committed_bytes << '\n';
     require(killed.process_id != 0 && killed.timed_out && killed.exit_confirmed &&
         killed.exit_code == ERROR_TIMEOUT, "mounted helper was not forcibly terminated");
     emit_space_report(killed.process_id,"crash");
-    budget.timeout_ms = 30000;
-    const auto recovered = flitzfs::run_bounded_process(fs::path(std::wstring(path, n)),
-        {L"--probe-recover-child", std::to_wstring(killed.process_id)}, budget);
+    const ExternalReadonly resumed(executable,false,killed.process_id);const auto recovered=resumed.result;
     std::cout << "recovery_probe exit=" << recovered.exit_code << " stage=" << (recovered.exit_code >> 16U)
         << " detail=" << (recovered.exit_code & 0xffffU) << " timed_out=" << recovered.timed_out
         << " exit_confirmed=" << recovered.exit_confirmed << " peak_commit_bytes=" << recovered.peak_committed_bytes << '\n';

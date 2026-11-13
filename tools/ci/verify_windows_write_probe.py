@@ -17,7 +17,7 @@ BASE = {"schema", "phase", "commit", "source_process", "observer_process",
 EXTRA = {"profile", "file_count", "creation_time", "last_access_time", "last_write_time", "change_time", "attributes", "reservation",
          "data_digest", "security_digest", "keep_digest"}
 PROFILES = {"basic", "mutations", "delete", "crash", "restart", "crash-restart"}
-EXTERNAL_PROFILES = {"basic", "mutations", "delete", "crash", "crash-restart"}
+EXTERNAL_PROFILES = {"basic", "mutations", "delete", "crash", "restart", "crash-restart"}
 RESTART = {"restart", "crash-restart"}
 EXTERNAL = {"source_protocol", "client_process", "host_self_io_rejected", "client_flush_callback_observed"}
 RESTART_EXTRA = {"state_digest", "source_ack_digest", "resumer_process"}
@@ -208,7 +208,7 @@ def main() -> None:
         final = read_report(fixture / names[1])
         reports = [source, final]
         result = validate_continuation(source, continued, final, args.profile, os.environ["GITHUB_SHA"],
-                                       require_external=args.profile == "crash-restart")
+                                       require_external=args.profile in EXTERNAL_PROFILES)
     else:
         reports = [read_report(fixture / name) for name in names]
         result = validate_pair(*reports, args.profile, os.environ["GITHUB_SHA"],
