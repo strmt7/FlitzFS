@@ -82,7 +82,7 @@ void VolumeController::run() noexcept {
     view_.message=MemoryVolumeDomain::cleanup_healthy()?"Controller retired.":"Controller retired; memory cleanup failed.";
     notified_=false;notify();
   } catch(...) {
-    std::lock_guard lock(mutex_);view_.stopped=true;view_.busy=false;
+    std::lock_guard lock(mutex_);view_.volume={};view_.stopped=true;view_.busy=false;
     view_.message="Controller terminated after an internal failure.";notified_=false;notify();
   }
 }

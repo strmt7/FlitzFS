@@ -2,6 +2,7 @@
 #include <shellapi.h>
 #include <algorithm>
 #include <array>
+#include <cwchar>
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -60,9 +61,11 @@ struct App {
       tray.uVersion=NOTIFYICON_VERSION_4;
       if(!Shell_NotifyIconW(NIM_SETVERSION,&tray)) {
         if(Shell_NotifyIconW(NIM_DELETE,&tray))tray_added=false;
+        ShowWindow(window,SW_SHOW);
         throw std::runtime_error("Tray callback version could not be established");
       }
     }
+    if(!tray_added)ShowWindow(window,SW_SHOW);
     // Without a tray, Close keeps a live volume visible rather than stranding it.
   }
   void remove_tray() noexcept {
@@ -114,7 +117,7 @@ struct App {
     EnableWindow(buttons[0],idle&&!v.volume.ready);
     for(std::size_t i=1;i<4;++i)EnableWindow(buttons[i],idle&&v.volume.ready&&!v.volume.fenced);
     EnableWindow(buttons[4],idle&&v.volume.ready);
-    EnableWindow(buttons[5],idle&&!v.volume.ready);
+    EnableWindow(buttons[5],(idle&&!v.volume.ready)||v.stopped);
     if(v.generation!=rendered) {
       rendered=v.generation;paths.clear();SendMessageW(files,LB_RESETCONTENT,0,0);
       for(const auto& f:v.volume.files) {
@@ -136,6 +139,7 @@ struct App {
     if(!controller)return;
     if(id==show_id){ShowWindow(window,SW_RESTORE);SetForegroundWindow(window);return;}
     if(id==exit_id) {
+      if(controller->view().stopped){quitting=true;remove_tray();DestroyWindow(window);return;}
       if(controller->stop(false)){quitting=true;refresh();}
       return;
     }
