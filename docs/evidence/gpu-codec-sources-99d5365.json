@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-13",
+  "source_parent": "99d53658b16e414729654f67a5238e155a3f350e",
+  "contract": "docs/GPU_CODEC_CANDIDATES.md",
+  "research": {
+    "run": 43407867647,
+    "job": 131826564235,
+    "artifact": 14027708654,
+    "archive_sha256": "5598b380ae245550f0d921b11fa1de8d55b20e9ec0f643d5502798080b35c52a",
+    "provider_repository": "strmt7/FlitzZip",
+    "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "limits": {
+      "memory_max": 3221225472,
+      "tasks_max": 256,
+      "cpu_max": [
+        200000,
+        100000
+      ]
+    },
+    "page_timeout_seconds": 45,
+    "robots_checked": true,
+    "external_llm": false,
+    "persistent_profile": false,
+    "sources": [
+      {
+        "url": "https://rocm.docs.amd.com/en/latest/about/release-notes.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 237445,
+        "markdown_sha256": "56cb6215129b9a9df1fd209f8dfa3e7c872256f72ca861b27b327a8dcb76c24b",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.019,
+        "capture": "rocm-current-release.native.json",
+        "capture_sha256": "b4fec4237420723b2a954f9263c9371f6324f2a29c50bc5ee9ea2edc68fa2533",
+        "name": "rocm-current-release",
+        "result_url": "https://rocm.docs.amd.com/en/latest/about/release-notes.html",
+        "redirected_url": "https://rocm.docs.amd.com/en/latest/about/release-notes.html",
+        "publisher_revision_verified": false
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 241145,
+        "markdown_sha256": "af015257b48fa38ad9bd3cfe60fcb4f301c05054e65bd661ad872012f4479528",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.576,
+        "capture": "rocm-selected-release.native.json",
+        "capture_sha256": "170ff35013cce57af127b140a70aa92fb8f1d4949b083830a20f026c5259a43f",
+        "name": "rocm-selected-release",
+        "result_url": "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html",
+        "redirected_url": "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html",
+        "publisher_revision_verified": false
+      },
+      {
+        "url": "https://rocmdocs.amd.com/en/latest/install/rocm.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 220516,
+        "markdown_sha256": "0419ac3a4043266d788f16ce04bc77f88796c2cdf63f7f78585f02c5c483a2b9",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 3.106,
+        "capture": "rocm-current-install.native.json",
+        "capture_sha256": "1bd468306856a2d5934610aa45ec3925c04a3598cc6368e714f57abd9ae61bd1",
+        "name": "rocm-current-install",
+        "result_url": "https://rocmdocs.amd.com/en/latest/install/rocm.html",
+        "redirected_url": "https://rocmdocs.amd.com/en/latest/install/rocm.html?fam=all&w=compute&os=ubuntu&ubuntu-ver=26.04.1&i=pkgman",
+        "publisher_revision_verified": false
+      }
+    ]
+  },
+  "reader_admission": {
+    "native_json_entry_cap_rejected": true,
+    "restored_using_digest_checked_markdown": true,
+    "unchanged_entry_archive_caps": true,
+    "format_parser_failure_retained": true,
+    "truncated_capture_retained": true,
+    "expired_signed_link_renewed_same_artifact": true,
+    "crawler_rerun": false,
+    "source_failures_concealed": false
+  },
+  "candidate": {
+    "repository": "ROCm/hipCOMP-core",
+    "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "commit_date": "2026-10-29",
+    "transport": "Native GitHub API source captures; immutable commit and byte digests",
+    "source_files": [
+      {
+        "path": "README.md",
+        "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+        "blob": "18d4ab7014c8b055671178d2aa7fd835e2b15692",
+        "sha256": "fb1890f47d199c574fe5abdaf5a8dbef6991bb174a9b81435d0bdc6f54b13af2"
+      },
+      {
+        "path": "CMakeLists.txt",
+        "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+        "blob": "dc1f67846296daf522aa97c41cdeb95e03aa0018",
+        "sha256": "19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7"
+      },
+      {
+        "path": "src/CMakeLists.txt",
+        "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+        "blob": "8566eda6ca1b810593a23d432f524b37c5aeb358",
+        "sha256": "e65edd50673e7ed5258e069368a5a83de7748460d3615d2d5b10684cd279242f"
+      },
+      {
+        "path": "LICENSE",
+        "blob": "141a772e025067c410727cbcadfd1514da9a025b",
+        "sha256": "74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef"
+      }
+    ],
+    "releases_api_entries": 0,
+    "built": false,
+    "executed": false,
+    "windows_qualified": false,
+    "performance_qualified": false,
+    "releases_api_capture": {
+      "endpoint": "repos/ROCm/hipCOMP-core/releases?per_page=5",
+      "response": [],
+      "captured_date": "2026-11-13"
+    }
+  },
+  "navigation": {
+    "current_flitzfs_semantic_run": 43406031250,
+    "current_source": "99d53658b16e414729654f67a5238e155a3f350e",
+    "current_receipt": "docs/evidence/funded-helper-99d5365.json",
+    "upstream_actual_queries": "Pending new closed source-bound workflow execution; no broad upstream kernel navigation or execution performed."
+  },
+  "owner": {
+    "new_dependency_installation": false,
+    "new_gpu_execution": false,
+    "driver_changes": false
+  },
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 10:35 UTC",
+    "transport": "Authenticated GitHub open-alerts API",
+    "open_alerts": 0,
+    "scope": "Open alerts only, not absence of all vulnerabilities."
+  }
+}

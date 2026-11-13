@@ -1372,3 +1372,20 @@ binding so preflight allocations cannot masquerade as journal faults; no product
 fault switch is allowed. Require publishing-source model/GUI/resource retirement
 and all integration gates. This explicit consumer is not an autonomous learner,
 durable physical mapping, image-work budget or useful GPU qualification.
+
+
+## Closed GPU codec candidate navigation
+
+Read docs/GPU_CODEC_CANDIDATES.md before candidate work. The isolated semantic
+workflow's hipcomp group may index only ROCm/hipCOMP-core at
+03df9f7369211ee15d370817165224c73fdc9a46. Verify both control/source Git roots,
+exact revisions, tracked cleanliness, source/query identity and retained complete
+hash-pinned notices. Candidate CUDA text is data only; never execute its CMake,
+code or tests during indexing. Keep the existing private CPU provider, model and
+resource bounds; never alter another MCP registration or use an owner index.
+Require actual source-bound search receipts and live source confirmation before
+broad upstream kernel analysis. A source index is not Windows, codec, runtime or
+performance qualification. Select future HIP/compiler/runtime from the reviewed
+ROCm distribution and inspected package, not an older candidate test matrix.
+No owner installation/GPU/driver/mount experiment or relaxed lifecycle/batch cap
+follows. Runtime sources are unchanged by this navigation infrastructure.

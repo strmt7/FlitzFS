@@ -963,3 +963,17 @@ allocator cuts select the expected real admitted binding and measured heap reque
 so a preflight failure cannot be misreported as a journal fault. All owner fault,
 driver, mount and GPU gates remain unchanged. This is explicit metadata maintenance,
 not an automatic image-work budget or physical durability qualification.
+
+
+## GPU candidate source-index boundary
+
+The funded helper at `99d5365` passed its full 13-job matrix and a healthy owner
+GUI check with confirmed process exit and unchanged driver inventory. The next
+candidate navigation change modifies no runtime path. It stages only a fixed
+public source revision in a disposable hosted VM, verifies independent control
+and source bindings, retains hash-pinned notices and indexes a private text mirror.
+Upstream build scripts and code are never executed during indexing. Existing CPU,
+memory, process, duration, package/model and private-cache controls remain.
+Actual source-specific receipts and live confirmation are prerequisites for later
+kernel analysis; compilation, CPU format recovery and GPU execution have separate
+gates. No owner installation or repeated unchanged host/GPU test follows.

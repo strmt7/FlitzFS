@@ -1,0 +1,1567 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "99d53658b16e414729654f67a5238e155a3f350e",
+  "parent": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
+  "tree": "a5a2845880d9c14e10441118419d673f5920d3a7",
+  "qualification": "success: all13 exact-source core/integration jobs and application workflow",
+  "core_run": 43406031065,
+  "core_jobs": [
+    {
+      "id": 131820479624,
+      "name": "sanitizers",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131820480009,
+      "name": "cpu (ubuntu-24.04, ON)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131820480056,
+      "name": "cpu (windows-2025-vs2026, OFF)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131820480077,
+      "name": "cpu (ubuntu-24.04, OFF)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131820480124,
+      "name": "windows-native",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131825445541,
+      "name": "windows-mount",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131826805223,
+      "name": "windows-write-mount (restart)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131826805231,
+      "name": "windows-write-mount (crash-restart)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131826805267,
+      "name": "windows-write-mount (crash)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131826805274,
+      "name": "windows-write-mount (basic)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131826805323,
+      "name": "windows-write-mount (ram-handoff)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131826805353,
+      "name": "windows-write-mount (delete)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 131826805354,
+      "name": "windows-write-mount (mutations)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "core_logs": [
+    {
+      "artifact": {
+        "digest": "sha256:3ea43d4a8903893655d55c926054c4174c08603f7a074fcec3d27973e9e1f6f5",
+        "id": 14028050581,
+        "name": "cpu-tests-Linux-OFF-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 10568
+      },
+      "rows": [
+        {
+          "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+          "body_sha256": "ad100ad8ddbedc42869fc84066c0718f71654a956a9855e46acf35010a6194e1",
+          "lines": [
+            "Observed workload publication calls: 57; bound=59",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1",
+            "Observed workload publication calls: 59; bound=59",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0",
+            "Observed workload publication calls: 57; bound=59",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1",
+            "Observed workload publication calls: 59; bound=59",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0",
+            "PASS: 4645 persistent workload assertions; CPU RAM persistence model only.",
+            "Optimization budget assertions: 398; actual journal faults=42; CPU RAM model only, no files/mount/GPU.",
+            "Optimization advisory-state checks: 687; fixed RAM area, all creation/update/repair boundaries, no files/GPU/mount.",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--invariants\",\"checks\":404,\"fault_cases\":0,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-4096\",\"checks\":3081,\"fault_cases\":162,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-65536\",\"checks\":5646,\"fault_cases\":297,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-4096\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-65536\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}"
+          ]
+        },
+        {
+          "sha256": "3ea43d4a8903893655d55c926054c4174c08603f7a074fcec3d27973e9e1f6f5",
+          "bytes": 10568,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:153e90f63ee48196f91dd5b9f360d42ff16e6e0a1b2749d1232023a4dd2b1e29",
+        "id": 14028035540,
+        "name": "cpu-tests-Linux-ON-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 9793
+      },
+      "rows": [
+        {
+          "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+          "body_sha256": "5d9ab7cfd7df80dd4d58b756671875907dd0692788432604a01fe72b07bafc07",
+          "lines": [
+            "Observed workload publication calls: 57; bound=59",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1",
+            "Observed workload publication calls: 59; bound=59",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0",
+            "Observed workload publication calls: 57; bound=59",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1",
+            "Observed workload publication calls: 59; bound=59",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0",
+            "PASS: 4645 persistent workload assertions; CPU RAM persistence model only.",
+            "Optimization budget assertions: 398; actual journal faults=42; CPU RAM model only, no files/mount/GPU.",
+            "Optimization advisory-state checks: 687; fixed RAM area, all creation/update/repair boundaries, no files/GPU/mount.",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--invariants\",\"checks\":412,\"fault_cases\":0,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-4096\",\"checks\":3081,\"fault_cases\":162,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-65536\",\"checks\":5646,\"fault_cases\":297,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-4096\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-65536\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}"
+          ]
+        },
+        {
+          "sha256": "153e90f63ee48196f91dd5b9f360d42ff16e6e0a1b2749d1232023a4dd2b1e29",
+          "bytes": 9793,
+          "entries": 1
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:b48dddab7cfc814f0f1a0054f28fd58a5ab7d984c6220c6470651250b3160541",
+        "id": 14027916142,
+        "name": "cpu-tests-Windows-OFF-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 12126
+      },
+      "rows": [
+        {
+          "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+          "body_sha256": "f13395c69c5201e7077de0ff12b5f34f726ceed17e828fccaca62b66a90c4a16",
+          "lines": [
+            "Observed workload publication calls: 57; bound=59\r",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1\r",
+            "Observed workload publication calls: 59; bound=59\r",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0\r",
+            "Observed workload publication calls: 57; bound=59\r",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1\r",
+            "Observed workload publication calls: 59; bound=59\r",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0\r",
+            "PASS: 4645 persistent workload assertions; CPU RAM persistence model only.\r",
+            "Optimization budget assertions: 398; actual journal faults=42; CPU RAM model only, no files/mount/GPU.\r",
+            "Optimization advisory-state checks: 687; fixed RAM area, all creation/update/repair boundaries, no files/GPU/mount.\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--invariants\",\"checks\":404,\"fault_cases\":0,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-4096\",\"checks\":3081,\"fault_cases\":162,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-65536\",\"checks\":5646,\"fault_cases\":297,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-4096\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-65536\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r"
+          ]
+        },
+        {
+          "sha256": "b48dddab7cfc814f0f1a0054f28fd58a5ab7d984c6220c6470651250b3160541",
+          "bytes": 12126,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:7f7aceb3dc819697799234c28d5842ed69d5af77d1ef669b4ceac21eaa380527",
+        "id": 14027687836,
+        "name": "sanitizer-tests-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 9949
+      },
+      "rows": [
+        {
+          "entry": "LastTest.log",
+          "body_sha256": "63ba71940b53c50346db5d6b4afb294a63d0c8ac1111d09cf39f4d57174b0011",
+          "lines": [
+            "Observed workload publication calls: 57; bound=59",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1",
+            "Observed workload publication calls: 59; bound=59",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0",
+            "Observed workload publication calls: 57; bound=59",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1",
+            "Observed workload publication calls: 59; bound=59",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0",
+            "PASS: 4645 persistent workload assertions; CPU RAM persistence model only.",
+            "Optimization budget assertions: 398; actual journal faults=42; CPU RAM model only, no files/mount/GPU.",
+            "Optimization advisory-state checks: 687; fixed RAM area, all creation/update/repair boundaries, no files/GPU/mount.",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--invariants\",\"checks\":412,\"fault_cases\":0,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-4096\",\"checks\":3081,\"fault_cases\":162,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-65536\",\"checks\":5646,\"fault_cases\":297,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-4096\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-65536\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}"
+          ]
+        },
+        {
+          "sha256": "7f7aceb3dc819697799234c28d5842ed69d5af77d1ef669b4ceac21eaa380527",
+          "bytes": 9949,
+          "entries": 1
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:4970afbe0dd0eedb0c9c0b79ac5b6b51d7ffaf0e1edeab1e535ffe80d03b5b0d",
+        "id": 14027158391,
+        "name": "native-windows-tests-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 12307
+      },
+      "rows": [
+        {
+          "entry": "LastTest.log",
+          "body_sha256": "417dcfe891ba00f77b49a14db884b6818ebe77d38c124608e75970b6d00d8653",
+          "lines": [
+            "Observed workload publication calls: 57; bound=59\r",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1\r",
+            "Observed workload publication calls: 59; bound=59\r",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0\r",
+            "Observed workload publication calls: 57; bound=59\r",
+            "Workload fault cuts: 57 boundaries x3 modes; activation=1\r",
+            "Observed workload publication calls: 59; bound=59\r",
+            "Workload fault cuts: 59 boundaries x3 modes; activation=0\r",
+            "PASS: 4645 persistent workload assertions; CPU RAM persistence model only.\r",
+            "Optimization budget assertions: 398; actual journal faults=42; CPU RAM model only, no files/mount/GPU.\r",
+            "Optimization advisory-state checks: 687; fixed RAM area, all creation/update/repair boundaries, no files/GPU/mount.\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--invariants\",\"checks\":412,\"fault_cases\":0,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-4096\",\"checks\":3081,\"fault_cases\":162,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--maintenance-65536\",\"checks\":5646,\"fault_cases\":297,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-4096\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Native volume-session evidence: {\"schema\":1,\"phase\":\"--recovery-65536\",\"checks\":688,\"fault_cases\":45,\"files_created\":false,\"mounted\":false,\"gpu\":false,\"complete\":true}\r",
+            "Windows data-bridge invariants: {\"schema\":1,\"checks\":474,\"sealed_cases\":28,\"sdk_calls\":137,\"backend_retired\":4,\"handles_initial\":123,\"handles_final\":123,\"complete\":true,\"mount\":false}\r",
+            "Windows allocated-event evidence: {\"schema\":1,\"cases\":28,\"checks\":271,\"backend_retired\":28,\"handles_initial\":123,\"handles_final\":123,\"complete\":true,\"mount\":false,\"scope\":\"actual user-mode SDK Cleanup/Close; no writable/client/physical allocation qualification\"}\r"
+          ]
+        },
+        {
+          "sha256": "4970afbe0dd0eedb0c9c0b79ac5b6b51d7ffaf0e1edeab1e535ffe80d03b5b0d",
+          "bytes": 12307,
+          "entries": 1
+        }
+      ]
+    }
+  ],
+  "app": {
+    "run": 43406030948,
+    "job": 131820479110,
+    "model_assertions": 728,
+    "model_cycles": 3,
+    "warm_handles": [
+      113,
+      113
+    ],
+    "allocator_cuts_per_cycle": 4,
+    "gui_observation_counter": 35,
+    "gui_counter_is_distinct_cases": false,
+    "gui_peak_commit_bytes": 13643776,
+    "commands": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106
+    ],
+    "package_artifact": 14026938630,
+    "package": {
+      "experimental": true,
+      "source_commit": "99d53658b16e414729654f67a5238e155a3f350e",
+      "scope": "Native CPU application imports; not a mount/GPU/release qualification",
+      "binaries": [
+        {
+          "role": "application",
+          "format": "PE32+",
+          "architecture": "AMD64",
+          "bytes": 965632,
+          "sha256": "ffae156748dcd0aa800e091b8a9db28bced45cf16dcf750ce67bc8a1147643a3",
+          "os_imports": [
+            "bcrypt.dll",
+            "gdi32.dll",
+            "kernel32.dll",
+            "shell32.dll",
+            "user32.dll"
+          ],
+          "delay_imports": false,
+          "aslr": true,
+          "high_entropy_va": true,
+          "nx": true
+        },
+        {
+          "role": "harness",
+          "format": "PE32+",
+          "architecture": "AMD64",
+          "bytes": 1147392,
+          "sha256": "13eea517f30b43f80ed6c0eed2b930b924739a0c0c4a67c6893e4b755038acbd",
+          "os_imports": [
+            "bcrypt.dll",
+            "kernel32.dll",
+            "user32.dll"
+          ],
+          "delay_imports": false,
+          "aslr": true,
+          "high_entropy_va": true,
+          "nx": true
+        }
+      ],
+      "notices": [
+        {
+          "file": "FlitzFS-LICENSE.txt",
+          "bytes": 35184,
+          "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75",
+          "source_repository": "strmt7/FlitzFS",
+          "source_revision": "99d53658b16e414729654f67a5238e155a3f350e"
+        },
+        {
+          "file": "BLAKE3-LICENSE-Apache2.txt",
+          "bytes": 11563,
+          "sha256": "3da8137480af96e14b27ac9474c6a76a0102596493e5ab075ba98c7ffc64d552",
+          "source_repository": "BLAKE3-team/BLAKE3",
+          "source_revision": "1.8.7"
+        },
+        {
+          "file": "BLAKE3-LICENSE-LLVM.txt",
+          "bytes": 12486,
+          "sha256": "b944109ea368e9bf114cb87a21a7ccf11edb6621fe0bd8357ae51dced0afbbb3",
+          "source_repository": "BLAKE3-team/BLAKE3",
+          "source_revision": "1.8.7"
+        },
+        {
+          "file": "BLAKE3-LICENSE-CC0.txt",
+          "bytes": 7169,
+          "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328",
+          "source_repository": "BLAKE3-team/BLAKE3",
+          "source_revision": "1.8.7"
+        },
+        {
+          "file": "Zstandard-LICENSE.txt",
+          "bytes": 1549,
+          "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+          "source_repository": "meta/zstd",
+          "source_revision": "f8745da6ff1ad1e7bab384bd1f9d742439278e99"
+        },
+        {
+          "file": "LZ4-LICENSE.txt",
+          "bytes": 646,
+          "sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5",
+          "source_repository": "lz4/lz4",
+          "source_revision": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5"
+        },
+        {
+          "file": "SOURCE.txt",
+          "bytes": 514,
+          "sha256": "85ed95c6ac2db63bcecda62d8f40a85d4f1baf561f23d5640f7837d980b49607",
+          "source_repository": "strmt7/FlitzFS",
+          "source_revision": "99d53658b16e414729654f67a5238e155a3f350e"
+        }
+      ]
+    },
+    "cache": "d11AppLogText"
+  },
+  "semantic": {
+    "run": 43406031250,
+    "artifact": 14027960656,
+    "archive_digest": "d292e797260a94cf1618faa4033a44190f2db9897dce95f11b95529af5a4eeac",
+    "rows": [
+      {
+        "entry": "routing-receipt.json",
+        "sha256": "5d54a21cc9e8bae1e137b4e1af5c7860b837a370257e57599545354901076ad9",
+        "receipt": {
+          "actual_searches": 8,
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "cpu_only": true,
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "provider_version": "0.2.43",
+          "query_group": "filesystem",
+          "repository": "strmt7/FlitzFS",
+          "shared_mcp_modified": false,
+          "source_files": 143,
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215"
+        }
+      },
+      {
+        "entry": "search-0.json",
+        "sha256": "384534f7be691f92de375e774f0dfc16653e3336d405809a69613d09fe9f475b",
+        "receipt": {
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "completed_utc": "2026-11-13T11:05:23.175563+01:00",
+          "query": "native filesystem inode namespace sparse extent mutation commit and metadata encoding",
+          "query_sha256": "1ea7389dbf65a05cde8681b2e1a0623eb0a645037a941d5f41921b36aa8d1d3c",
+          "native_response_sha256": "6bfebd96dd64fe965a8a226b2d6f7c7c93ab74031a3395dc6c1ee1f11f21cbcc",
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+          "provider": "0.2.43",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f"
+        },
+        "hits": [
+          {
+            "path": "src/native_filesystem.cpp",
+            "start_line": 1094,
+            "end_line": 1109,
+            "file_sha256": "c566e56ca93153d583ff1bf868db8c2325b068ed62f3cb53b2378b849ba37a5d"
+          },
+          {
+            "path": "src/native_filesystem.cpp",
+            "start_line": 717,
+            "end_line": 733,
+            "file_sha256": "c566e56ca93153d583ff1bf868db8c2325b068ed62f3cb53b2378b849ba37a5d"
+          },
+          {
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "start_line": 119,
+            "end_line": 139,
+            "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6"
+          },
+          {
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "start_line": 285,
+            "end_line": 296,
+            "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6"
+          },
+          {
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "start_line": 327,
+            "end_line": 338,
+            "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6"
+          }
+        ]
+      },
+      {
+        "entry": "search-1.json",
+        "sha256": "72123414a4a755697c825bfdb29ef961ef60c3cb1989801b3395cefbed246094",
+        "receipt": {
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "completed_utc": "2026-11-13T11:05:23.401301+01:00",
+          "query": "transactional object store record integrity replicated checkpoints and durable publication",
+          "query_sha256": "3c084d9ab926a4ef9db0689bdb5d07e33e9ad96df79a6ba65ac380a6c2148b2a",
+          "native_response_sha256": "80f52bb8a96049a2ca5a52f3fd1d5bdc1c7ec824c930e190c2e07880ed61e6e4",
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+          "provider": "0.2.43",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f"
+        },
+        "hits": [
+          {
+            "path": "include/flitzfs/object_store.hpp",
+            "start_line": 175,
+            "end_line": 188,
+            "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30"
+          },
+          {
+            "path": "include/flitzfs/object_store.hpp",
+            "start_line": 188,
+            "end_line": 203,
+            "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30"
+          },
+          {
+            "path": "include/flitzfs/object_store.hpp",
+            "start_line": 203,
+            "end_line": 214,
+            "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30"
+          },
+          {
+            "path": "include/flitzfs/object_store.hpp",
+            "start_line": 153,
+            "end_line": 163,
+            "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30"
+          },
+          {
+            "path": "src/object_store.cpp",
+            "start_line": 184,
+            "end_line": 201,
+            "file_sha256": "a2aac10f385cb42f7464b1d27a5923b3ac4f697346711f846ecc7fe2736dddf8"
+          }
+        ]
+      },
+      {
+        "entry": "search-2.json",
+        "sha256": "9471306b016e23021a78d9e13f208bd994fa9cb1a8596e9b8c6b562e7f81f942",
+        "receipt": {
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "completed_utc": "2026-11-13T11:05:23.627037+01:00",
+          "query": "GPU worker supervision CPU fallback recovery configuration and runtime failure",
+          "query_sha256": "0fd61a95491f2ad687be6cc9875288b89b1a78c887b222c5313661a62d4b4182",
+          "native_response_sha256": "2d26461bb0dbc1cc5b2b3bac54d92a9cd8ba5050f58220bf3941f2bb9c63161a",
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+          "provider": "0.2.43",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f"
+        },
+        "hits": [
+          {
+            "path": "tools/ci/hosted_research.py",
+            "start_line": 56,
+            "end_line": 62,
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff"
+          },
+          {
+            "path": "src/windows/gpu_match_worker_controller.hpp",
+            "start_line": 1,
+            "end_line": 12,
+            "file_sha256": "d71c6a0897a7da5895fcef468a300b064b0a2c157f35b02388bbfd886ac00774"
+          },
+          {
+            "path": "tools/ci/hosted_research.py",
+            "start_line": 258,
+            "end_line": 263,
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff"
+          },
+          {
+            "path": "src/windows/gpu_match_worker_controller.cpp",
+            "start_line": 22,
+            "end_line": 41,
+            "file_sha256": "e959d84680b32365162a7024ba032fd29a42a7a04fc78be366d933e026da46cc"
+          },
+          {
+            "path": "src/windows/winfsp_native.cpp",
+            "start_line": 511,
+            "end_line": 526,
+            "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780"
+          }
+        ]
+      },
+      {
+        "entry": "search-3.json",
+        "sha256": "c881895157ee13a0ee655647c7c3e66019380e4490f5ed4efae775a560de5d62",
+        "receipt": {
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "completed_utc": "2026-11-13T11:05:23.850657+01:00",
+          "query": "compression codec selection allocation budget stored decoded digest and decompression",
+          "query_sha256": "2ee1298379cf6d6342f0221538fa260248d13dc79c27fc42a6594a16468533d2",
+          "native_response_sha256": "93bed9f680787740fa5ac962b33d83a78fa8915446b8f28b63f96de8df8b585a",
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+          "provider": "0.2.43",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f"
+        },
+        "hits": [
+          {
+            "path": "src/store_codec.hpp",
+            "start_line": 16,
+            "end_line": 36,
+            "file_sha256": "f5d9083d545d8e86a928651d4f04366c2ad5d71c0ce95abf96b56d56e564c75e"
+          },
+          {
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "start_line": 139,
+            "end_line": 149,
+            "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6"
+          },
+          {
+            "path": "src/store_codec.cpp",
+            "start_line": 112,
+            "end_line": 125,
+            "file_sha256": "a9babf296337afb54d5be744972aba45ef362c1d6f9e40b5da68ce3ed87d0b79"
+          },
+          {
+            "path": "src/windows/native_file_info.cpp",
+            "start_line": 38,
+            "end_line": 53,
+            "file_sha256": "8eeb60b6da16c486dfe7ff65470eb47d19ecc577d3601a313569fc846e9ce6d1"
+          },
+          {
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "start_line": 146,
+            "end_line": 168,
+            "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6"
+          }
+        ]
+      },
+      {
+        "entry": "search-4.json",
+        "sha256": "5718f005baced724e66497351361cc37efce6850d2e72d24c677d2ac6fa44502",
+        "receipt": {
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "completed_utc": "2026-11-13T11:05:24.076462+01:00",
+          "query": "compacted copy source preservation destination identity and safe reclamation",
+          "query_sha256": "d4b6a385883912ebdf94f74fe2ba6c377e4e3122b1f0bb59ffdc42e53c07fe41",
+          "native_response_sha256": "eeba2827d07cd0437115832ed71ba35e0ea2a387651230fc032af7bb81b61b09",
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+          "provider": "0.2.43",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f"
+        },
+        "hits": [
+          {
+            "path": "include/flitzfs/object_store.hpp",
+            "start_line": 153,
+            "end_line": 163,
+            "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30"
+          },
+          {
+            "path": "tools/ci/hosted_research.py",
+            "start_line": 258,
+            "end_line": 263,
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff"
+          },
+          {
+            "path": "include/flitzfs/native_session.hpp",
+            "start_line": 134,
+            "end_line": 144,
+            "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3"
+          },
+          {
+            "path": "include/flitzfs/object_store.hpp",
+            "start_line": 188,
+            "end_line": 203,
+            "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30"
+          },
+          {
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "start_line": 243,
+            "end_line": 255,
+            "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6"
+          }
+        ]
+      },
+      {
+        "entry": "search-5.json",
+        "sha256": "618c732fbb19092f905c7925e82bde5ef007615a98a9ec3ca044a890a3f393f4",
+        "receipt": {
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "completed_utc": "2026-11-13T11:05:24.302427+01:00",
+          "query": "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime",
+          "query_sha256": "f2b4f1dcd92196fd494d1ddd6740d2e0865d662f08270b3c21768aecd1f95193",
+          "native_response_sha256": "5d5909ad100d51a62c8de0c5eae61d39b0dd74bfa90dfca99b010a180823108a",
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+          "provider": "0.2.43",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f"
+        },
+        "hits": [
+          {
+            "path": "tools/ci/hosted_research.py",
+            "start_line": 109,
+            "end_line": 120,
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff"
+          },
+          {
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "start_line": 308,
+            "end_line": 314,
+            "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6"
+          },
+          {
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "start_line": 363,
+            "end_line": 378,
+            "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6"
+          },
+          {
+            "path": "src/windows/winfsp_native.cpp",
+            "start_line": 500,
+            "end_line": 510,
+            "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780"
+          },
+          {
+            "path": "src/windows/winfsp_native.cpp",
+            "start_line": 555,
+            "end_line": 563,
+            "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780"
+          }
+        ]
+      },
+      {
+        "entry": "search-6.json",
+        "sha256": "fe62c4e56e8bdbe60a58292da1c282ecb763d19bd54875b89ca4f06b9fabd903",
+        "receipt": {
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "completed_utc": "2026-11-13T11:05:24.52823+01:00",
+          "query": "trusted HIP worker bundle file digest DLL module loading signature and system directory",
+          "query_sha256": "7563d3b97faaf6deddb69582bf050896ecc39ce17654b383dd4d55293f69c9a0",
+          "native_response_sha256": "313d61006321901f537c59cbcf4429f51f82b84652ac8e9b9115a859ab9d5d26",
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+          "provider": "0.2.43",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f"
+        },
+        "hits": [
+          {
+            "path": "src/windows/hip_worker_main.cpp",
+            "start_line": 1,
+            "end_line": 24,
+            "file_sha256": "00018cb472eb0e7d4064d16f425a8f40676e7132f38ec360c9dd6c01d1e8eea2"
+          },
+          {
+            "path": "src/windows/hip_module_verification.cpp",
+            "start_line": 119,
+            "end_line": 126,
+            "file_sha256": "f2291b4a5c8ab032a737eb7df0bb1efbe07ef5e43fb235dcb53956beb4c45945"
+          },
+          {
+            "path": "src/windows/hip_decode_worker.cpp",
+            "start_line": 1,
+            "end_line": 12,
+            "file_sha256": "311e1e31927cd765e07bdc839b7b79281e9f17a27daf054468d4c2942f633841"
+          },
+          {
+            "path": "src/windows/hip_worker_exit.hpp",
+            "start_line": 59,
+            "end_line": 71,
+            "file_sha256": "79681016658ca28d0173784b15d8247f3309ba448c71078a620da0885f17e506"
+          },
+          {
+            "path": "tools/ci/hosted_research.py",
+            "start_line": 298,
+            "end_line": 307,
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff"
+          }
+        ]
+      },
+      {
+        "entry": "search-7.json",
+        "sha256": "9e27f2c82ae0848ab591d63a3a7090ea5a47cbabcd3536fcda1ff6e4ee395106",
+        "receipt": {
+          "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+          "completed_utc": "2026-11-13T11:05:24.752042+01:00",
+          "query": "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
+          "query_sha256": "5adf6d7a18ac2e5c93ff4fe9f7805e3ac14e1a2a8bbffc9c08469fd671236a61",
+          "native_response_sha256": "48a6045bc5ad7b38815aff6491e9482c6efcaf8047ad30165550c6b85dc447fc",
+          "source_sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+          "provider": "0.2.43",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f"
+        },
+        "hits": [
+          {
+            "path": "tools/ci/hosted_semantic.py",
+            "start_line": 27,
+            "end_line": 38,
+            "file_sha256": "5a82090f553af11e1ed35818ca16eb51e411385dfc4bd5040724c014c00136a7"
+          },
+          {
+            "path": "tools/ci/hosted_research.py",
+            "start_line": 298,
+            "end_line": 307,
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff"
+          },
+          {
+            "path": "tools/ci/test_windows_write_probe.py",
+            "start_line": 1,
+            "end_line": 8,
+            "file_sha256": "f02d3945d68534af26257f5b1bd29d1a3e89c02434e7d954d2461742f6cecf0e"
+          },
+          {
+            "path": "src/windows/worker_exchange.cpp",
+            "start_line": 133,
+            "end_line": 146,
+            "file_sha256": "bacc49a15b0985debd8c6b49c6e6713a73f31392f5990811a3a53f56c2aad2bc"
+          },
+          {
+            "path": "src/windows/winfsp_session.cpp",
+            "start_line": 57,
+            "end_line": 76,
+            "file_sha256": "e8fd9541d569512ef4f65b75bc9163e6ca731673ec8d8b77262a0d9048dad048"
+          }
+        ]
+      },
+      {
+        "entry": "source-inventory.json",
+        "sha256": "b69a0db53ac5aa639e56c53013ed29b27fad18fc7257dbc3b098d511fcd93215",
+        "count": 143,
+        "files": [
+          {
+            "bytes": 23203,
+            "path": "include/flitzfs/native_session.hpp",
+            "sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3"
+          },
+          {
+            "bytes": 65071,
+            "path": "src/native_session.cpp",
+            "sha256": "21c7f23ecd537adbcf0b77c7a18e854f4c2987807fe8c0cd85cfc91c5790024e"
+          },
+          {
+            "bytes": 8353,
+            "path": "src/windows/volume_model.cpp",
+            "sha256": "e3a7f79684ee3e573e0f57eb57b09ad1c2ec92ded189d965662aba0b045dad70"
+          }
+        ]
+      },
+      {
+        "sha256": "d292e797260a94cf1618faa4033a44190f2db9897dce95f11b95529af5a4eeac",
+        "bytes": 661508,
+        "entries": 216
+      }
+    ],
+    "live_confirmation": {
+      "chunk_id": "2fbc04",
+      "wall_time_seconds": 2.5001613000000003,
+      "exit_code": 0,
+      "original_token_count": 292,
+      "output": "{\"path\":\"include/flitzfs/native_session.hpp\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"blob\":\"edcd014ed693f4830b85e6c02146c04f0fc23164\",\"bytes\":23203,\"sha256\":\"f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3\"}\r\n{\"path\":\"src/native_session.cpp\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"blob\":\"320d0b1ffa79bb1099509a4393b77057f27d27b6\",\"bytes\":65071,\"sha256\":\"21c7f23ecd537adbcf0b77c7a18e854f4c2987807fe8c0cd85cfc91c5790024e\"}\r\n{\"path\":\"src/windows/volume_model.cpp\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"blob\":\"4b2469fd179c1f6041cbdceaf0028f27fbf5124b\",\"bytes\":8353,\"sha256\":\"e3a7f79684ee3e573e0f57eb57b09ad1c2ec92ded189d965662aba0b045dad70\"}\r\n{\"path\":\"src/windows/gpu_match_worker_controller.hpp\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"blob\":\"ccce9c58a720ca748fd50892dea0c758d7be9254\",\"bytes\":2569,\"sha256\":\"d71c6a0897a7da5895fcef468a300b064b0a2c157f35b02388bbfd886ac00774\"}\r\n{\"path\":\"src/store_codec.hpp\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"blob\":\"2c927b5d56f2a6fb878680581384971dd07547ab\",\"bytes\":2184,\"sha256\":\"f5d9083d545d8e86a928651d4f04366c2ad5d71c0ce95abf96b56d56e564c75e\"}\r\n"
+    }
+  },
+  "owner_executed": true,
+  "mounted_artifacts": [
+    {
+      "artifact": {
+        "digest": "sha256:40fb5cf5ce68ae6fa1b913f7c1853e04b6022a8f59fa7d01a2c0104dbb1f373c",
+        "id": 14028750428,
+        "name": "windows-write-crash-restart-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1595
+      },
+      "native_rows": [
+        {
+          "entry": "flitzfs-write-probe-8836/state-verify.json",
+          "body": "{\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"verify\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":8836,\"observer_process\":9204,\"user_bytes\":7001,\"inode\":2,\"file_count\":2,\"namespace_sequence\":14,\"generation\":28,\"image_bytes\":2949120,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390387617287013,\"last_access_time\":134390387766161214,\"last_write_time\":134390387617287013,\"change_time\":134390387617287013,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"b4848e2c47d093ae639a08162944adbd10d9c77fbc80e3f7fdce032b1009e3c0\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":3884,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false,\"state_digest\":\"14739a7d4b96812a0b6fac009a1237cc208ea1fa88753cf414e20ce956f423ce\",\"source_ack_digest\":\"85c6938f50b7f98483218be905d68bf6f191005bb83f94dc84ed1e165e57fa1d\",\"resumer_process\":4668}"
+        },
+        {
+          "entry": "flitzfs-write-probe-8836/state.json",
+          "body": "{\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"ack\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":8836,\"observer_process\":8836,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134390387617287013,\"last_access_time\":134390387617287013,\"last_write_time\":134390387617287013,\"change_time\":134390387617287013,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":3884,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}\n{\"schema\":1,\"profile\":\"crash-restart\",\"phase\":\"continued\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":8836,\"observer_process\":4668,\"source_ack_digest\":\"85c6938f50b7f98483218be905d68bf6f191005bb83f94dc84ed1e165e57fa1d\",\"continued_state_digest\":\"14739a7d4b96812a0b6fac009a1237cc208ea1fa88753cf414e20ce956f423ce\",\"generation\":28,\"namespace_sequence\":14,\"image_bytes\":2949120}\n"
+        },
+        {
+          "sha256": "40fb5cf5ce68ae6fa1b913f7c1853e04b6022a8f59fa7d01a2c0104dbb1f373c",
+          "bytes": 1595,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:67485e1c6fcb6a9a279e9e942bdda97af742474a18de1ac1585ad0274b061c9d",
+        "id": 14028666023,
+        "name": "windows-write-mutations-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1385
+      },
+      "native_rows": [
+        {
+          "entry": "flitzfs-write-probe-3136/state-verify.json",
+          "body": "{\"schema\":2,\"profile\":\"mutations\",\"phase\":\"verify\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":3136,\"observer_process\":10036,\"user_bytes\":89,\"inode\":2,\"file_count\":2,\"namespace_sequence\":17,\"generation\":34,\"image_bytes\":3538944,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390387178057150,\"last_access_time\":134390387178195362,\"last_write_time\":134390387178195362,\"change_time\":134390387178195362,\"attributes\":32,\"reservation\":4096,\"data_digest\":\"d787e70e8ed2466d2f2f1d321dd14562459bad050832c82d6965a883d70a3fd2\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"6728882bc03612d0e04ec3717ec480ba8b3111905021ff53e0f0d1fe24a7cf00\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":8928,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false}"
+        },
+        {
+          "entry": "flitzfs-write-probe-3136/state.json",
+          "body": "{\"schema\":2,\"profile\":\"mutations\",\"phase\":\"state\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":3136,\"observer_process\":3136,\"user_bytes\":89,\"inode\":2,\"file_count\":2,\"namespace_sequence\":17,\"generation\":34,\"image_bytes\":3538944,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390387178057150,\"last_access_time\":134390387178195362,\"last_write_time\":134390387178195362,\"change_time\":134390387178195362,\"attributes\":32,\"reservation\":4096,\"data_digest\":\"d787e70e8ed2466d2f2f1d321dd14562459bad050832c82d6965a883d70a3fd2\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"6728882bc03612d0e04ec3717ec480ba8b3111905021ff53e0f0d1fe24a7cf00\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":true,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":8928,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
+        },
+        {
+          "sha256": "67485e1c6fcb6a9a279e9e942bdda97af742474a18de1ac1585ad0274b061c9d",
+          "bytes": 1385,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:b9de1b05c4bd88f9f8eb0b57d3d3f9864b75df7589e317df59559e258ed78751",
+        "id": 14028646186,
+        "name": "windows-write-crash-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1308
+      },
+      "native_rows": [
+        {
+          "entry": "flitzfs-write-probe-3660/state-verify.json",
+          "body": "{\"schema\":2,\"profile\":\"crash\",\"phase\":\"verify\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":3660,\"observer_process\":9044,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390387770560778,\"last_access_time\":134390387770560778,\"last_write_time\":134390387770560778,\"change_time\":134390387770560778,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":3564,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false}"
+        },
+        {
+          "entry": "flitzfs-write-probe-3660/state.json",
+          "body": "{\"schema\":2,\"profile\":\"crash\",\"phase\":\"ack\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":3660,\"observer_process\":3660,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134390387770560778,\"last_access_time\":134390387770560778,\"last_write_time\":134390387770560778,\"change_time\":134390387770560778,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":3564,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
+        },
+        {
+          "sha256": "b9de1b05c4bd88f9f8eb0b57d3d3f9864b75df7589e317df59559e258ed78751",
+          "bytes": 1308,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:d68b858e66955ad8cb97278b21fb6aeac607f4f3cc608040c21f69cc9315647b",
+        "id": 14028326870,
+        "name": "windows-write-basic-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 914
+      },
+      "native_rows": [
+        {
+          "entry": "flitzfs-write-probe-10220/verify.json",
+          "body": "{\"schema\":1,\"phase\":\"verify\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":10220,\"observer_process\":1928,\"user_bytes\":7001,\"inode\":2,\"namespace_sequence\":9,\"generation\":18,\"image_bytes\":1966080,\"image_cap\":4194304,\"contexts\":0,\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":8432,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false}"
+        },
+        {
+          "entry": "flitzfs-write-probe-10220/write.json",
+          "body": "{\"schema\":1,\"phase\":\"write\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":10220,\"observer_process\":10220,\"user_bytes\":7001,\"inode\":2,\"namespace_sequence\":9,\"generation\":18,\"image_bytes\":1966080,\"image_cap\":4194304,\"contexts\":0,\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":true,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":8432,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
+        },
+        {
+          "sha256": "d68b858e66955ad8cb97278b21fb6aeac607f4f3cc608040c21f69cc9315647b",
+          "bytes": 914,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:8fb5d60473f055fe21d39ca6b8dd96a3b3c05374e1e7a5a460366b53c5296fcd",
+        "id": 14027878421,
+        "name": "windows-write-ram-handoff-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 542
+      },
+      "native_rows": [
+        {
+          "entry": "flitzfs-write-probe-5424/ram-handoff.json",
+          "body": "{\"schema\":1,\"phase\":\"ram-handoff\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":5424,\"volume_serial\":1476416087,\"idle_copy_steps\":2,\"stale_candidate_rejected\":true,\"repeat_suppressed\":true,\"epoch\":2,\"user_bytes\":65609,\"raw_payload\":66062,\"compressed_payload\":217,\"generation\":20,\"locked_peak\":17301504,\"locked_after\":0,\"contexts\":0,\"cpu_verified\":true,\"mounted\":true,\"unmounted\":true,\"recovered_capacity_failure\":true,\"gpu\":false,\"complete\":true,\"source_protocol\":\"external-client\",\"client_process\":3168,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
+        },
+        {
+          "sha256": "8fb5d60473f055fe21d39ca6b8dd96a3b3c05374e1e7a5a460366b53c5296fcd",
+          "bytes": 542,
+          "entries": 1
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:606e5231c211bc6775f45a68a608d346fc8d1b1692f68a89d5422f663ea0f248",
+        "id": 14027803087,
+        "name": "windows-space-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 2191
+      },
+      "native_rows": [
+        {
+          "entry": "flitzfs-probe-2624/space-crash.json",
+          "body": "{\"schema\":1,\"phase\":\"crash\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"filesystem\":\"FlitzFS\",\"source_uuid\":\"4e000000000000000000000000000057\",\"native_namespace_sequence\":3,\"native_image_bytes\":786432,\"backing_standard_allocation_bytes\":786432,\"native_generation\":6,\"native_committed_end\":786432,\"native_live_decoded_bytes\":328394,\"native_live_stored_payload_bytes\":6416,\"volume_serial\":1459617870,\"volume_flags\":524298,\"volume_read_only\":true,\"volume_file_compression\":false,\"maximum_component_characters\":100,\"allocation_unit_bytes\":4096,\"total_clusters\":192,\"free_clusters\":0,\"total_bytes\":786432,\"free_bytes\":0,\"caller_available_bytes\":0,\"records\":[{\"file\":\"sample\",\"inode\":4,\"logical_bytes\":196625,\"standard_allocation_bytes\":200704,\"standard_eof_bytes\":196625,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":196625,\"get_compressed_high\":0,\"get_compressed_last_error\":0},{\"file\":\"empty\",\"inode\":6,\"logical_bytes\":0,\"standard_allocation_bytes\":0,\"standard_eof_bytes\":0,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":0,\"get_compressed_high\":0,\"get_compressed_last_error\":0},{\"file\":\"sparse\",\"inode\":7,\"logical_bytes\":4295032832,\"standard_allocation_bytes\":4295032832,\"standard_eof_bytes\":4295032832,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":65536,\"get_compressed_high\":1,\"get_compressed_last_error\":0}],\"record_count\":3,\"complete\":true}"
+        },
+        {
+          "entry": "flitzfs-probe-2624/space-recovery.json",
+          "body": "{\"schema\":1,\"phase\":\"recovery\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"filesystem\":\"FlitzFS\",\"source_uuid\":\"4e000000000000000000000000000057\",\"native_namespace_sequence\":3,\"native_image_bytes\":786432,\"backing_standard_allocation_bytes\":786432,\"native_generation\":6,\"native_committed_end\":786432,\"native_live_decoded_bytes\":328394,\"native_live_stored_payload_bytes\":6416,\"volume_serial\":1459617870,\"volume_flags\":524298,\"volume_read_only\":true,\"volume_file_compression\":false,\"maximum_component_characters\":100,\"allocation_unit_bytes\":4096,\"total_clusters\":192,\"free_clusters\":0,\"total_bytes\":786432,\"free_bytes\":0,\"caller_available_bytes\":0,\"records\":[{\"file\":\"sample\",\"inode\":4,\"logical_bytes\":196625,\"standard_allocation_bytes\":200704,\"standard_eof_bytes\":196625,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":196625,\"get_compressed_high\":0,\"get_compressed_last_error\":0},{\"file\":\"empty\",\"inode\":6,\"logical_bytes\":0,\"standard_allocation_bytes\":0,\"standard_eof_bytes\":0,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":0,\"get_compressed_high\":0,\"get_compressed_last_error\":0},{\"file\":\"sparse\",\"inode\":7,\"logical_bytes\":4295032832,\"standard_allocation_bytes\":4295032832,\"standard_eof_bytes\":4295032832,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":65536,\"get_compressed_high\":1,\"get_compressed_last_error\":0}],\"record_count\":3,\"complete\":true}"
+        },
+        {
+          "entry": "flitzfs-probe-8032/space-normal.json",
+          "body": "{\"schema\":1,\"phase\":\"normal\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"filesystem\":\"FlitzFS\",\"source_uuid\":\"4e000000000000000000000000000057\",\"native_namespace_sequence\":3,\"native_image_bytes\":786432,\"backing_standard_allocation_bytes\":786432,\"native_generation\":6,\"native_committed_end\":786432,\"native_live_decoded_bytes\":328394,\"native_live_stored_payload_bytes\":6416,\"volume_serial\":1459617870,\"volume_flags\":524298,\"volume_read_only\":true,\"volume_file_compression\":false,\"maximum_component_characters\":100,\"allocation_unit_bytes\":4096,\"total_clusters\":192,\"free_clusters\":0,\"total_bytes\":786432,\"free_bytes\":0,\"caller_available_bytes\":0,\"records\":[{\"file\":\"sample\",\"inode\":4,\"logical_bytes\":196625,\"standard_allocation_bytes\":200704,\"standard_eof_bytes\":196625,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":196625,\"get_compressed_high\":0,\"get_compressed_last_error\":0},{\"file\":\"empty\",\"inode\":6,\"logical_bytes\":0,\"standard_allocation_bytes\":0,\"standard_eof_bytes\":0,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":0,\"get_compressed_high\":0,\"get_compressed_last_error\":0},{\"file\":\"sparse\",\"inode\":7,\"logical_bytes\":4295032832,\"standard_allocation_bytes\":4295032832,\"standard_eof_bytes\":4295032832,\"standard_links\":1,\"compression_info_ok\":false,\"compression_info_error\":87,\"compression_info_bytes\":0,\"compression_format\":0,\"compression_unit_shift\":0,\"compression_chunk_shift\":0,\"compression_cluster_shift\":0,\"get_compressed_low\":65536,\"get_compressed_high\":1,\"get_compressed_last_error\":0}],\"record_count\":3,\"complete\":true}"
+        },
+        {
+          "sha256": "606e5231c211bc6775f45a68a608d346fc8d1b1692f68a89d5422f663ea0f248",
+          "bytes": 2191,
+          "entries": 3
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:a7c0086d41783fc79c9737f8bc4a78c01d76295ac6203262bf61eed2b7b6b666",
+        "id": 14027484301,
+        "name": "windows-write-restart-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1590
+      },
+      "native_rows": [
+        {
+          "entry": "flitzfs-write-probe-8340/state-verify.json",
+          "body": "{\"schema\":2,\"profile\":\"restart\",\"phase\":\"verify\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":8340,\"observer_process\":9280,\"user_bytes\":7001,\"inode\":2,\"file_count\":2,\"namespace_sequence\":14,\"generation\":28,\"image_bytes\":2949120,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390387362004553,\"last_access_time\":134390387362639639,\"last_write_time\":134390387362022180,\"change_time\":134390387362022180,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"b4848e2c47d093ae639a08162944adbd10d9c77fbc80e3f7fdce032b1009e3c0\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":612,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false,\"state_digest\":\"3604f854639c4c93e968b03319715ba2dce95dcac0dd807ed4a4a6a02473976c\",\"source_ack_digest\":\"95ff1d94554eaf94c24e2b4d87a70a45e787d66c99d018102cf7ce5a0254a2cd\",\"resumer_process\":2792}"
+        },
+        {
+          "entry": "flitzfs-write-probe-8340/state.json",
+          "body": "{\"schema\":2,\"profile\":\"restart\",\"phase\":\"state\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":8340,\"observer_process\":8340,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390387362004553,\"last_access_time\":134390387362022180,\"last_write_time\":134390387362022180,\"change_time\":134390387362022180,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":true,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":612,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}\n{\"schema\":1,\"profile\":\"restart\",\"phase\":\"continued\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":8340,\"observer_process\":2792,\"source_ack_digest\":\"95ff1d94554eaf94c24e2b4d87a70a45e787d66c99d018102cf7ce5a0254a2cd\",\"continued_state_digest\":\"3604f854639c4c93e968b03319715ba2dce95dcac0dd807ed4a4a6a02473976c\",\"generation\":28,\"namespace_sequence\":14,\"image_bytes\":2949120}\n"
+        },
+        {
+          "sha256": "a7c0086d41783fc79c9737f8bc4a78c01d76295ac6203262bf61eed2b7b6b666",
+          "bytes": 1590,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "artifact": {
+        "digest": "sha256:fe43b92a9189c98e021ea046e92de1c7aebba684117e62442d0f6e9faec6f7a6",
+        "id": 14027403993,
+        "name": "windows-write-delete-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1320
+      },
+      "native_rows": [
+        {
+          "entry": "flitzfs-write-probe-10100/state-verify.json",
+          "body": "{\"schema\":2,\"profile\":\"delete\",\"phase\":\"verify\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":10100,\"observer_process\":6412,\"user_bytes\":37,\"inode\":3,\"file_count\":1,\"namespace_sequence\":15,\"generation\":30,\"image_bytes\":3145728,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390387573210249,\"last_access_time\":134390387573230381,\"last_write_time\":134390387573230381,\"change_time\":134390387573230381,\"attributes\":32,\"reservation\":4096,\"data_digest\":\"6728882bc03612d0e04ec3717ec480ba8b3111905021ff53e0f0d1fe24a7cf00\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":5156,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false}"
+        },
+        {
+          "entry": "flitzfs-write-probe-10100/state.json",
+          "body": "{\"schema\":2,\"profile\":\"delete\",\"phase\":\"state\",\"commit\":\"99d53658b16e414729654f67a5238e155a3f350e\",\"source_process\":10100,\"observer_process\":10100,\"user_bytes\":37,\"inode\":3,\"file_count\":1,\"namespace_sequence\":15,\"generation\":30,\"image_bytes\":3145728,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390387573210249,\"last_access_time\":134390387573230381,\"last_write_time\":134390387573230381,\"change_time\":134390387573230381,\"attributes\":32,\"reservation\":4096,\"data_digest\":\"6728882bc03612d0e04ec3717ec480ba8b3111905021ff53e0f0d1fe24a7cf00\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":true,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":5156,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
+        },
+        {
+          "sha256": "fe43b92a9189c98e021ea046e92de1c7aebba684117e62442d0f6e9faec6f7a6",
+          "bytes": 1320,
+          "entries": 2
+        }
+      ]
+    }
+  ],
+  "mounted_facts": [
+    {
+      "artifact": 14028750428,
+      "profile": "crash-restart",
+      "external_client": true,
+      "product_self_rejection": true,
+      "original_flush": true,
+      "cpu_verified": true,
+      "raw_filetime_preserved": true,
+      "records": 3,
+      "continuation_linked": true,
+      "source_contexts": 1,
+      "recovered_contexts": 0
+    },
+    {
+      "artifact": 14028666023,
+      "profile": "mutations",
+      "external_client": true,
+      "product_self_rejection": true,
+      "original_flush": true,
+      "cpu_verified": true,
+      "raw_filetime_preserved": true,
+      "records": 2,
+      "continuation_linked": false,
+      "source_contexts": 0,
+      "recovered_contexts": 0
+    },
+    {
+      "artifact": 14028646186,
+      "profile": "crash",
+      "external_client": true,
+      "product_self_rejection": true,
+      "original_flush": true,
+      "cpu_verified": true,
+      "raw_filetime_preserved": true,
+      "records": 2,
+      "continuation_linked": false,
+      "source_contexts": 1,
+      "recovered_contexts": 0
+    },
+    {
+      "artifact": 14028326870,
+      "profile": "write",
+      "external_client": true,
+      "product_self_rejection": true,
+      "original_flush": true,
+      "cpu_verified": true,
+      "raw_filetime_preserved": true,
+      "records": 2,
+      "continuation_linked": false,
+      "source_contexts": 0,
+      "recovered_contexts": 0
+    },
+    {
+      "artifact": 14027878421,
+      "profile": "ram-handoff",
+      "cpu_verified": true,
+      "external_client": true,
+      "product_self_rejection": true,
+      "original_flush": true,
+      "records": 1
+    },
+    {
+      "artifact": 14027803087,
+      "profile": "readonly",
+      "complete": true,
+      "records": 3
+    },
+    {
+      "artifact": 14027484301,
+      "profile": "restart",
+      "external_client": true,
+      "product_self_rejection": true,
+      "original_flush": true,
+      "cpu_verified": true,
+      "raw_filetime_preserved": true,
+      "records": 3,
+      "continuation_linked": true,
+      "source_contexts": 0,
+      "recovered_contexts": 0
+    },
+    {
+      "artifact": 14027403993,
+      "profile": "delete",
+      "external_client": true,
+      "product_self_rejection": true,
+      "original_flush": true,
+      "cpu_verified": true,
+      "raw_filetime_preserved": true,
+      "records": 2,
+      "continuation_linked": false,
+      "source_contexts": 0,
+      "recovered_contexts": 0
+    }
+  ],
+  "retirement_logs": [
+    {
+      "job_id": 131825445541,
+      "lines": [
+        "2026-11-13T10:16:25.0749048Z readonly_actors source=8032 client=6696 recovery_source=0 exit_confirmed=1 supervisor_retired=1",
+        "2026-11-13T10:16:25.0749727Z mount_probe exit=0 stage=0 detail=0 timed_out=0 exit_confirmed=1 peak_commit_bytes=5754880",
+        "2026-11-13T10:16:25.0761440Z readonly_actors source=2624 client=6696 recovery_source=0 exit_confirmed=1 supervisor_retired=1",
+        "2026-11-13T10:16:25.0761896Z crash_probe exit=1460 timed_out=1 exit_confirmed=1 peak_commit_bytes=5758976",
+        "2026-11-13T10:16:25.0772701Z readonly_actors source=9000 client=6696 recovery_source=2624 exit_confirmed=1 supervisor_retired=1",
+        "2026-11-13T10:16:25.0773205Z recovery_probe exit=0 stage=0 detail=0 timed_out=0 exit_confirmed=1 peak_commit_bytes=5238784"
+      ]
+    },
+    {
+      "job_id": 131826805223,
+      "lines": [
+        "2026-11-13T10:18:56.3245012Z extended_writer profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4833280",
+        "2026-11-13T10:18:56.3254939Z extended_resumer profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4853760",
+        "2026-11-13T10:18:56.3255922Z extended_verifier profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3231744"
+      ]
+    },
+    {
+      "job_id": 131826805231,
+      "lines": [
+        "2026-11-13T10:19:36.6891010Z extended_writer profile=crash-restart exit=1460 stage=0 detail=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4775936",
+        "2026-11-13T10:19:36.6899331Z extended_resumer profile=crash-restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4792320",
+        "2026-11-13T10:19:36.6900141Z extended_verifier profile=crash-restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3129344"
+      ]
+    },
+    {
+      "job_id": 131826805267,
+      "lines": [
+        "2026-11-13T10:19:51.9483298Z extended_writer profile=crash exit=1460 stage=0 detail=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4796416",
+        "2026-11-13T10:19:51.9495372Z extended_verifier profile=crash exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3186688"
+      ]
+    },
+    {
+      "job_id": 131826805274,
+      "lines": [
+        "2026-11-13T10:19:33.7223186Z writable_probe exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4808704",
+        "2026-11-13T10:19:33.7227947Z writable_verify exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3141632"
+      ]
+    },
+    {
+      "job_id": 131826805323,
+      "lines": [
+        "2026-11-13T10:18:48.0501688Z ram_client source=5424 client=3168 copy_reads=2 exit_confirmed=1",
+        "2026-11-13T10:18:48.0502112Z ram_handoff exit=0 exit_confirmed=1 peak_commit_bytes=20881408"
+      ]
+    },
+    {
+      "job_id": 131826805353,
+      "lines": [
+        "2026-11-13T10:19:17.3971987Z extended_writer profile=delete exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4763648",
+        "2026-11-13T10:19:17.3980847Z extended_verifier profile=delete exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3117056"
+      ]
+    },
+    {
+      "job_id": 131826805354,
+      "lines": [
+        "2026-11-13T10:18:37.8640822Z extended_writer profile=mutations exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4804608",
+        "2026-11-13T10:18:37.8645193Z extended_verifier profile=mutations exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3158016"
+      ]
+    }
+  ],
+  "artifact_inventory": {
+    "artifacts": [
+      {
+        "digest": "sha256:5564d786f772060b95dfb6dce116188987f8abceccfc4b385df695cf081317e7",
+        "id": 14028830264,
+        "name": "winfsp-write-driver-mutations-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1010
+      },
+      {
+        "digest": "sha256:40fb5cf5ce68ae6fa1b913f7c1853e04b6022a8f59fa7d01a2c0104dbb1f373c",
+        "id": 14028750428,
+        "name": "windows-write-crash-restart-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1595
+      },
+      {
+        "digest": "sha256:b7a240fb5cb29de863537197baf60476cca5f2ee54fe2b9ae1487037f3b4faef",
+        "id": 14028700446,
+        "name": "tools-windows-write-mount-Windows-3-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:67485e1c6fcb6a9a279e9e942bdda97af742474a18de1ac1585ad0274b061c9d",
+        "id": 14028666023,
+        "name": "windows-write-mutations-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1385
+      },
+      {
+        "digest": "sha256:b7a240fb5cb29de863537197baf60476cca5f2ee54fe2b9ae1487037f3b4faef",
+        "id": 14028655573,
+        "name": "tools-windows-write-mount-Windows-0-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:b9de1b05c4bd88f9f8eb0b57d3d3f9864b75df7589e317df59559e258ed78751",
+        "id": 14028646186,
+        "name": "windows-write-crash-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1308
+      },
+      {
+        "digest": "sha256:0d45256ccde5f4d9a85930a0b462ac7f3b6aa26ef085bb3e115a209880e0e019",
+        "id": 14028576022,
+        "name": "winfsp-write-driver-delete-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1010
+      },
+      {
+        "digest": "sha256:f4565a38c7204a04d816b387c836fad3ffc659ab11a187ff03438c20a27dfda1",
+        "id": 14028560926,
+        "name": "winfsp-write-driver-restart-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1010
+      },
+      {
+        "digest": "sha256:d4d88c851d883a68a08ac9fc92d7f613d3b66385b504aad1d5ecfb8feb663a4e",
+        "id": 14028521086,
+        "name": "winfsp-write-driver-crash-restart-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1010
+      },
+      {
+        "digest": "sha256:d68b858e66955ad8cb97278b21fb6aeac607f4f3cc608040c21f69cc9315647b",
+        "id": 14028326870,
+        "name": "windows-write-basic-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 914
+      },
+      {
+        "digest": "sha256:4e9bbaf053c80a7e20ef3bad244d4b50111af202ce943a01d6dd0c1d862ea92f",
+        "id": 14028316140,
+        "name": "tools-windows-mount-Windows-0-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:601958c5a3d6ea80de5ae065d68ddae1491d215d32801072c338c9fc09de0378",
+        "id": 14028256368,
+        "name": "winfsp-sdk-windows-mount-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 863
+      },
+      {
+        "digest": "sha256:d6f4a049e8f6a44d9681dbf66c04f55eb2f698ffdfe5c680d113e7fd9ef4c97c",
+        "id": 14028191570,
+        "name": "winfsp-sdk-windows-write-mount-crash-restart-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 861
+      },
+      {
+        "digest": "sha256:3ea43d4a8903893655d55c926054c4174c08603f7a074fcec3d27973e9e1f6f5",
+        "id": 14028050581,
+        "name": "cpu-tests-Linux-OFF-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 10568
+      },
+      {
+        "digest": "sha256:7d7d2f0fe563fe3d318c1bba35d207a1f8e03c0a4040580f22714b469a64e6c4",
+        "id": 14028042532,
+        "name": "winfsp-driver-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1010
+      },
+      {
+        "digest": "sha256:153e90f63ee48196f91dd5b9f360d42ff16e6e0a1b2749d1232023a4dd2b1e29",
+        "id": 14028035540,
+        "name": "cpu-tests-Linux-ON-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 9793
+      },
+      {
+        "digest": "sha256:dd1c0418e0b08dae946d7e34abb3cec006edd5528b4dd69820b1747cf3d632c3",
+        "id": 14028000282,
+        "name": "tools-cpu-Linux-1-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1362
+      },
+      {
+        "digest": "sha256:511455c83b855a82bcde95ffa0c9973f687620b280bb96e7fb723ee42611cc40",
+        "id": 14027997931,
+        "name": "winfsp-sdk-windows-write-mount-restart-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 859
+      },
+      {
+        "digest": "sha256:f2efb05afe6f4fa0b764c731239c9e534714e70592c7a200b5eadb3ef6f30ebc",
+        "id": 14027948351,
+        "name": "winfsp-write-driver-ram-handoff-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1010
+      },
+      {
+        "digest": "sha256:b48dddab7cfc814f0f1a0054f28fd58a5ab7d984c6220c6470651250b3160541",
+        "id": 14027916142,
+        "name": "cpu-tests-Windows-OFF-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 12126
+      },
+      {
+        "digest": "sha256:8fb5d60473f055fe21d39ca6b8dd96a3b3c05374e1e7a5a460366b53c5296fcd",
+        "id": 14027878421,
+        "name": "windows-write-ram-handoff-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 542
+      },
+      {
+        "digest": "sha256:66929bc916398fa64b794edb5d79908c6da61ec0f5b9a777c9b7e512c622c8b6",
+        "id": 14027838739,
+        "name": "winfsp-write-driver-basic-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1010
+      },
+      {
+        "digest": "sha256:8bdbed83da88835acc3d71bb300b0d5711af6b1e2211d844e969abe0b11c9f0e",
+        "id": 14027813290,
+        "name": "tools-windows-write-mount-Windows-4-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:a186909ac09b965be117d9072b13216b887ae4c768bb1c8e4d0495266d13c9bc",
+        "id": 14027805821,
+        "name": "tools-cpu-Windows-2-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:007c05557b6881b10131194a50a84b5ee909461f19db2948cbe1f7efb4c6aa45",
+        "id": 14027803206,
+        "name": "winfsp-sdk-windows-write-mount-basic-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 860
+      },
+      {
+        "digest": "sha256:606e5231c211bc6775f45a68a608d346fc8d1b1692f68a89d5422f663ea0f248",
+        "id": 14027803087,
+        "name": "windows-space-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 2191
+      },
+      {
+        "digest": "sha256:982ea8692d2170c3ad225a091a1e91a14941fc89b5173752b76e9699ccd56fc3",
+        "id": 14027748329,
+        "name": "tools-windows-write-mount-Windows-6-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:c612beb6a4662ca55faa0bdfd40b55b5956c8f7e0d44c7aca2af64f2e4666219",
+        "id": 14027691149,
+        "name": "tools-windows-native-Windows-0-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:7f7aceb3dc819697799234c28d5842ed69d5af77d1ef669b4ceac21eaa380527",
+        "id": 14027687836,
+        "name": "sanitizer-tests-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 9949
+      },
+      {
+        "digest": "sha256:511455c83b855a82bcde95ffa0c9973f687620b280bb96e7fb723ee42611cc40",
+        "id": 14027668661,
+        "name": "winfsp-sdk-windows-write-mount-ram-handoff-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 859
+      },
+      {
+        "digest": "sha256:daa58eb3929c916344fc84d6ffa4acbff4cf94e42d7bb6945da21c2cc3de5ef5",
+        "id": 14027648975,
+        "name": "winfsp-sdk-windows-write-mount-crash-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 863
+      },
+      {
+        "digest": "sha256:af4ac63e915e7c9dec2ebaf4f6ff37ed26b85d27d34d7b4b9356b6305c158298",
+        "id": 14027614190,
+        "name": "winfsp-write-driver-crash-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1010
+      },
+      {
+        "digest": "sha256:982ea8692d2170c3ad225a091a1e91a14941fc89b5173752b76e9699ccd56fc3",
+        "id": 14027598192,
+        "name": "tools-windows-write-mount-Windows-1-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:f034172c0fc55282a54f7b5a6a92c3e818551c1c11ebfdabb08462385ac71af4",
+        "id": 14027571381,
+        "name": "tools-sanitizers-Linux-0-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1362
+      },
+      {
+        "digest": "sha256:a7c0086d41783fc79c9737f8bc4a78c01d76295ac6203262bf61eed2b7b6b666",
+        "id": 14027484301,
+        "name": "windows-write-restart-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1590
+      },
+      {
+        "digest": "sha256:313ee4beb5b5c243ac059b8dbbbb146495733db292cb3fe2ab599387e667039d",
+        "id": 14027461654,
+        "name": "winfsp-sdk-windows-native-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 860
+      },
+      {
+        "digest": "sha256:c91bda8d66377c0d18ec18d1b42fc858f129394b413719c4eb8e14b7d0949899",
+        "id": 14027423688,
+        "name": "winfsp-sdk-windows-write-mount-delete-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 860
+      },
+      {
+        "digest": "sha256:fe43b92a9189c98e021ea046e92de1c7aebba684117e62442d0f6e9faec6f7a6",
+        "id": 14027403993,
+        "name": "windows-write-delete-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1320
+      },
+      {
+        "digest": "sha256:ea422b77e6e692bae96e6c275e706a2b2fd46c874df820d77a50aa6e6661241b",
+        "id": 14027214527,
+        "name": "tools-windows-write-mount-Windows-5-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:f5308a5ef6f9db64df91d05c17b1ae8347ba233bc22e75605e7608e35df6c9b8",
+        "id": 14027192194,
+        "name": "tools-cpu-Linux-0-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 1362
+      },
+      {
+        "digest": "sha256:8bdbed83da88835acc3d71bb300b0d5711af6b1e2211d844e969abe0b11c9f0e",
+        "id": 14027184584,
+        "name": "tools-windows-write-mount-Windows-2-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 649
+      },
+      {
+        "digest": "sha256:e337fb3b4db7bce350da1151403fbf99555662b41f1d21fa3b773d1bdb3d29d9",
+        "id": 14027174380,
+        "name": "winfsp-sdk-windows-write-mount-mutations-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 863
+      },
+      {
+        "digest": "sha256:4970afbe0dd0eedb0c9c0b79ac5b6b51d7ffaf0e1edeab1e535ffe80d03b5b0d",
+        "id": 14027158391,
+        "name": "native-windows-tests-99d53658b16e414729654f67a5238e155a3f350e",
+        "size_in_bytes": 12307
+      }
+    ],
+    "total_count": 43
+  },
+  "owner_healthy_gui": {
+    "report": {
+      "schema": 1,
+      "experimental": true,
+      "source": "99d53658b16e414729654f67a5238e155a3f350e",
+      "scope": "One healthy unmounted GUI workflow; no owner fault/model run",
+      "started_utc": "2026-11-13T10:23:39.4102263Z",
+      "finished_utc": "2026-11-13T10:23:40.1596441Z",
+      "elapsed_ms": 379,
+      "physical_available_before": 33959874560,
+      "commit_available_before": 80466096128,
+      "os_build": "26300",
+      "harness_pid": 32984,
+      "harness_exit": 0,
+      "harness_exit_confirmed": true,
+      "forced_stop": false,
+      "gui_checks": 32,
+      "gui_checks_are_distinct_cases": false,
+      "commands": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106
+      ],
+      "gui_child_peak_commit_bytes": 14229504,
+      "owned_processes_after": 0,
+      "driver_state_before": "Stopped",
+      "driver_state_after": "Stopped",
+      "driver_start_mode": "Manual",
+      "driver_inventory_before": [
+        {
+          "Name": "WinFsp+20260516T182719Z",
+          "State": "Stopped",
+          "StartMode": "Manual",
+          "PathName": "\\??\\C:\\Program Files (x86)\\WinFsp\\SxS\\sxs.20260516T182719Z\\bin\\winfsp-x64.sys"
+        }
+      ],
+      "driver_inventory_after": [
+        {
+          "Name": "WinFsp+20260516T182719Z",
+          "State": "Stopped",
+          "StartMode": "Manual",
+          "PathName": "\\??\\C:\\Program Files (x86)\\WinFsp\\SxS\\sxs.20260516T182719Z\\bin\\winfsp-x64.sys"
+        }
+      ],
+      "driver_actions": false,
+      "mounted": false,
+      "hip_compute": false,
+      "stdout": "GUI command: 101\r\nGUI command: 102\r\nGUI command: 103\r\nGUI command: 104\r\nGUI command: 105\r\nGUI command: 106 (asynchronous exit)\r\nGUI child peak commit: 14229504 bytes\r\nWindows volume application checks: 32; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\r\n",
+      "stderr": ""
+    },
+    "report_path": "E:\\FlitzFS-corpus-4416382fcb4d47648c249498fec66cc4\\volume-app-99d5365-29b15f327c2f4742b7da76a677d703a1\\healthy-gui-evidence.json",
+    "report_sha256": "57b9327b24e587fe8c38b54b6299d0f4a2a996889de73d78cf9f78f298544f9d"
+  },
+  "owner_staging": {
+    "stage": "E:\\FlitzFS-corpus-4416382fcb4d47648c249498fec66cc4\\volume-app-99d5365-29b15f327c2f4742b7da76a677d703a1",
+    "source": "99d53658b16e414729654f67a5238e155a3f350e",
+    "archive_sha256": "f5263266a8268326c478f56ab63ddbe02e981c698aca9327deff64980c975de5",
+    "staged_bytes": 2184966,
+    "previous_combined_bytes": 32262641,
+    "new_combined_bytes": 34447607,
+    "files": [
+      {
+        "name": "flitzfs_volume_app.exe",
+        "bytes": 965632,
+        "sha256": "ffae156748dcd0aa800e091b8a9db28bced45cf16dcf750ce67bc8a1147643a3"
+      },
+      {
+        "name": "flitzfs_volume_app_tests.exe",
+        "bytes": 1147392,
+        "sha256": "13eea517f30b43f80ed6c0eed2b930b924739a0c0c4a67c6893e4b755038acbd"
+      },
+      {
+        "name": "flitzfs-volume-app-6e5a6ed26dce44089779512fe53aae1a.json",
+        "bytes": 2831,
+        "sha256": "52e94b897c2eb703feea3292f8491cfb20f2c3d322efa496fe578a9bb15ec049"
+      },
+      {
+        "name": "BLAKE3-LICENSE-Apache2.txt",
+        "bytes": 11563,
+        "sha256": "3da8137480af96e14b27ac9474c6a76a0102596493e5ab075ba98c7ffc64d552"
+      },
+      {
+        "name": "BLAKE3-LICENSE-CC0.txt",
+        "bytes": 7169,
+        "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328"
+      },
+      {
+        "name": "BLAKE3-LICENSE-LLVM.txt",
+        "bytes": 12486,
+        "sha256": "b944109ea368e9bf114cb87a21a7ccf11edb6621fe0bd8357ae51dced0afbbb3"
+      },
+      {
+        "name": "FlitzFS-LICENSE.txt",
+        "bytes": 35184,
+        "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+      },
+      {
+        "name": "LZ4-LICENSE.txt",
+        "bytes": 646,
+        "sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5"
+      },
+      {
+        "name": "SOURCE.txt",
+        "bytes": 514,
+        "sha256": "85ed95c6ac2db63bcecda62d8f40a85d4f1baf561f23d5640f7837d980b49607"
+      },
+      {
+        "name": "Zstandard-LICENSE.txt",
+        "bytes": 1549,
+        "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8"
+      }
+    ],
+    "medium": "Verified non-boot/non-system SATA HDD",
+    "filesystem_data": "Not staged; application creates only private locked memory stores"
+  },
+  "owner_limits": {
+    "harness_per_process_mib": 128,
+    "harness_aggregate_mib": 256,
+    "active_processes": 2,
+    "cpu_percent": 20,
+    "user_cpu_seconds": 10,
+    "gui_child_mib": 128,
+    "gui_child_wall_ms": 25000,
+    "outer_wall_ms": 30000,
+    "staging_combined_mib": 256,
+    "hdd_reserve_gib": 10
+  },
+  "owner_scope": "One healthy source99d GUI create/save/read/optimize/discard/exit after all13 VM gates. No owner model/fault/GPU/mount/driver operation. Peak/elapsed values are diagnostics, not performance benchmarks.",
+  "groups": {
+    "windows_native": 138,
+    "windows_raw": 123,
+    "linux_raw": 119,
+    "linux_codec": 119,
+    "sanitizer": 119
+  }
+}

@@ -873,3 +873,15 @@ Actual-source helper funding, allocation-fault, capacity, context, no-growth,
 GUI/lifecycle and complete integration qualification remain required.
 Durable mapping/authorization, long-lived funding, resource governance, automatic
 learning and useful GPU compression remain full-product work.
+
+
+## GPU codec candidate evaluation
+
+At `99d5365`, all 13 integration jobs, 398 budget assertions with 42 faults per
+core configuration, 728 app assertions and a healthy owner GUI passed. Independent
+[G02 candidate evaluation](GPU_CODEC_CANDIDATES.md) now prepares closed upstream
+source navigation using current AMD references. Source-index admission and actual
+query receipts require execution before kernel analysis. Windows compilation,
+independent CPU format recovery, contained worker integration and measured useful
+end-to-end gains remain required. This does not close D01 or its historical unknown
+cause, G02's benefit exit, G03's lifecycle gates or the remaining full-product work.

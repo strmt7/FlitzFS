@@ -10,6 +10,7 @@ on:
         options:
           - filesystem
           - maintenance
+          - hipcomp
   push:
     branches: [main]
     paths:
@@ -38,6 +39,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      - name: Stage reviewed GPU codec source for read-only indexing
+        if: inputs.query_group == 'hipcomp'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ROCm/hipCOMP-core
+          ref: 03df9f7369211ee15d370817165224c73fdc9a46
+          path: .ci-hipcomp
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -71,5 +80,6 @@ jobs:
             ${{ runner.temp }}/flitzfs-semantic/*.json
             ${{ runner.temp }}/flitzfs-semantic/*.lock
             ${{ runner.temp }}/flitzfs-semantic/*.log
+            ${{ runner.temp }}/flitzfs-semantic/upstream-hipcomp-*.txt
           retention-days: 30
           if-no-files-found: warn

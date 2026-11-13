@@ -433,3 +433,20 @@ independently verifies its authority. Real helper-engine funding, preserved
 post-admission allocator cuts and complete new-source qualification are required.
 The full goal remains active; durable mapping/authorization, long-lived funding,
 the automatic governor/learner and useful GPU gains remain unfinished.
+
+
+The funded helper at `99d5365` passed all 13 integration jobs and all five core
+configurations, each with 398 budget assertions and 42 injected failures. Its
+application model passed 728 assertions across three balanced lifecycle cycles;
+the hosted GUI and one healthy owner GUI passed with exact retirement. See
+[source-bound evidence](evidence/funded-helper-99d5365.json).
+
+Independent G02 candidate evaluation now prepares a closed upstream semantic
+scope for current AMD hipCOMP source, with exact source/control identity and
+notice retention. This prerequisite enables kernel analysis without changing
+runtime behavior. Its own admission and actual query execution are pending.
+Subsequent audited Windows compilation, CPU-readable format recovery, equivalent
+worker containment and whole-operation gain measurements remain mandatory.
+The G03 lifecycle prerequisite and historical D01 uncertainty remain explicit;
+L01 continuation, durable mapping/authorization, automatic learning and every
+full-product exit criterion remain unchanged.
