@@ -40,46 +40,13 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          python - <<'PY'
-          import json, pathlib, subprocess
-          result = subprocess.run(["git", "ls-tree", "-r", "-l", "-z", "HEAD"],
-                                  capture_output=True, check=True, timeout=10)
-          if len(result.stdout) > 256 * 1024:
-              raise SystemExit("Source inventory byte cap")
-          count = total = 0
-          for entry in result.stdout.split(b"\0"):
-              if not entry:
-                  continue
-              header, raw_path = entry.split(b"\t", 1)
-              mode, kind, oid, raw_size = header.split()
-              path = raw_path.decode("utf-8", "strict")
-              parts = pathlib.PurePosixPath(path)
-              if mode not in (b"100644", b"100755") or kind != b"blob":
-                  raise SystemExit("Source links/submodules are not admitted")
-              if parts.is_absolute() or "\\" in path or ":" in path or any(p in ("", ".", "..") for p in path.split("/")):
-                  raise SystemExit("Unsafe source path")
-              size = int(raw_size)
-              count += 1
-              total += size
-              if size > 2 * 1024 * 1024 or count > 512 or total > 8 * 1024 * 1024:
-                  raise SystemExit("Source file/count/expanded cap")
-          print(json.dumps({"tracked_files": count, "expanded_bytes": total,
-                            "compressed_cap": 4 * 1024 * 1024}))
-          PY
+          python -B tools/ci/test_source_inventory.py
+          python -B tools/ci/source_inventory.py
           git archive -9 --format=zip HEAD -o "$RUNNER_TEMP/flitzfs-source.zip"
           source_bytes="$(stat -c '%s' "$RUNNER_TEMP/flitzfs-source.zip")"
           printf 'Tracked source archive bytes: %s\n' "$source_bytes"
           test "$source_bytes" -le 4194304
-          python - "$RUNNER_TEMP/flitzfs-source.zip" <<'PY'
-          import json, sys, zipfile
-          with zipfile.ZipFile(sys.argv[1]) as archive:
-              entries = archive.infolist()
-              if len(entries) > 768 or sum(e.file_size for e in entries) > 8 * 1024 * 1024:
-                  raise SystemExit("Source ZIP entry/expanded cap")
-              if any(e.file_size > 2 * 1024 * 1024 for e in entries):
-                  raise SystemExit("Source ZIP per-entry cap")
-              print(json.dumps({"zip_entries": len(entries), "expanded_bytes": sum(e.file_size for e in entries)}))
-          PY
+          python -B tools/ci/source_inventory.py --archive "$RUNNER_TEMP/flitzfs-source.zip"
           printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TEMP/source-commit.txt"
           cd "$RUNNER_TEMP"
           sha256sum flitzfs-source.zip > source-sha256.txt

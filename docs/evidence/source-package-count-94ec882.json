@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "failed_source": "94ec88241f40de9f4f05228be1aa092468dd699f",
+  "run": 43497321693,
+  "job": 132133727677,
+  "step": "Package tracked source only",
+  "native_failure": "Source file/count/expanded cap",
+  "observed_tree": "f25b0c65f4d1498f53251954fcd131da41148b29",
+  "observed_tracked_files": 514,
+  "observed_expanded_bytes": 6891233,
+  "observed_largest_file_bytes": 223618,
+  "tree_truncated": false,
+  "cause": "The old preflight refused more than 512 tracked files, independently of the existing 768-entry archive bound.",
+  "new_accounting": "Count files plus unique parent-directory entries before creating the ZIP; require their sum <=768. Keep the 256-KiB inventory, 2-MiB per-file, 8-MiB expanded, 4-MiB compressed and 768 actual ZIP-entry caps.",
+  "scope": "Hosted source snapshot only. No filesystem/GPU/runtime/owner resource cap changes.",
+  "qualification_pending": true
+}

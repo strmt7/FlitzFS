@@ -62,7 +62,7 @@ New source-staging tests cover actual fresh Git identity, exclusive collision,
 wrong root/revision/blob/digest/size, tracked changes, canonical CRLF capture and
 staged tampering/inventory changes. Their fixture source and pins are synthetic;
 the manual SDK fixture must independently admit the actual upstream source.
-Publishing-source execution remains pending.
+These staging cases passed at 94ec882; the executed evidence is below.
 
 ## Current evidence and remaining work
 
@@ -73,8 +73,8 @@ zero remaining owned processes and complete fixture cleanup.
 See evidence/gpu-lz4-slab-38229d1.json and evidence/owner-gui-38229d1.json.
 Those results are CPU checks, not actual HIP compression or power-loss proof.
 
-The current step still requires its own CPU/raw/sanitizer/Windows and complete
-manual SDK qualification. Actual compression execution additionally needs
+This static-decoder step qualified CPU/raw/sanitizer/Windows and complete
+manual SDK checks at 94ec882. Actual compression execution additionally needs
 qualified target/wave selection, authenticated candidate-module/worker binding,
 fresh resource admission, independent candidate verification, exact retirement
 and measured whole-operation benefit. Historical D01 and full-product gates
@@ -99,8 +99,8 @@ The corrected fixture therefore unlinks ONLY its four tracked synthetic files
 after proving no staged canonical change. Git then materializes their preserved
 index blobs. Actual whole-file CRLF, clean Git state, canonical staging and
 unchanged physical bytes during production staging are all still mandatory.
-No production guard or pin is relaxed, no case is removed, and new execution
-remains required. No owner operation or SDK download occurred in either failure.
+No production guard or pin was relaxed and no case was removed. The later
+executed 94ec882 results are recorded below. No owner operation or SDK download occurred in either failure.
 
 At 4797903, actual CRLF bytes and index-LF/worktree-CRLF observations passed,
 but Git still reported modified paths. Linux reproduced the same case; no
@@ -109,4 +109,22 @@ Windows-specific cause is inferred.
 The fixture now records filtered hashes, actual diffs, version and configuration,
 refreshes its index from those physical bytes, and requires byte-identical
 canonical index/HEAD plus clean Git state. All production guards and ten cases
-remain. This diagnostic/refinement still requires execution.
+remain. This diagnostic/refinement passed the ten staging cases on Windows and Linux
+at 94ec882.
+
+## Executed static decoder qualification at 94ec882
+
+All five core configurations and all 13 ordinary integration jobs passed.
+Each configuration passed all ten source-staging cases; Linux/ASan logs contain
+125 tests, raw Windows 129 and native Windows 144. The manual SDK superset
+confirmed the same static decoder's 806 verifier, 621 framing and 968 slab checks.
+Enabled and raw-control workers retired with the expected success/unavailable
+status, and all original 20 admission exits passed. Source and staged bytes
+remained unchanged. Both library notices were independently verified in the
+own-binary diagnostic; its private compression DLL and AMD runtime were absent.
+
+[Source-bound evidence](evidence/cpu-lz4-worker-94ec882.json).
+The separate source-snapshot job failed its old file-count preflight and is
+recorded separately; it does not invalidate these executed CPU/SDK checks or
+become a passing snapshot claim. Actual GPU compression and product completion
+remain unfinished.
