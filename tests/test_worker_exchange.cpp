@@ -7,6 +7,8 @@
 #include "gpu_worker_controller.hpp"
 #include "gpu_match_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
+#include "flitzfs/lz4_worker_wire.hpp"
+#include "flitzfs/gpu_lz4_verify.hpp"
 #include "flitzfs/native_session.hpp"
 #include "native_fs_fixture.hpp"
 #include "store_codec.hpp"
@@ -95,6 +97,15 @@ void check_job() {
       cpu.ControlFlags==(JOB_OBJECT_CPU_RATE_CONTROL_ENABLE|JOB_OBJECT_CPU_RATE_CONTROL_HARD_CAP) && cpu.CpuRate==2000,
       "worker process limits absent");
 }
+Bytes lz4_literal_fixture(Lz4WorkerBytes input) {
+  Bytes result{static_cast<std::byte>(std::min<std::size_t>(input.size(),15U)<<4)};
+  if(input.size()>=15) {
+    auto left=input.size()-15;
+    while(left>=255){result.push_back(std::byte{255});left-=255;}
+    result.push_back(static_cast<std::byte>(left));
+  }
+  result.insert(result.end(),input.begin(),input.end());return result;
+}
 int child(std::wstring_view mode,std::wstring_view token) {
   check_job();
   if(mode==L"exit-empty")return 0;
@@ -105,6 +116,17 @@ int child(std::wstring_view mode,std::wstring_view token) {
         static_cast<HipWorkerExit>(0x46530000U+static_cast<unsigned>(mode.back()-L'0')),
         HipWorkerStage::device_properties));
   auto channel=WorkerChannel::open(token);
+  if(mode==L"lz4-ok" || mode==L"lz4-corrupt" || mode==L"lz4-fail-after") {
+    const auto input=decode_lz4_worker_request(channel.request());
+    if(!gpu_lz4_cpu_verification_available())return 17;
+    std::vector<Bytes> payloads;
+    for(std::size_t i=0;i<input.batch.count();++i)payloads.push_back(lz4_literal_fixture(input.batch.input(i)));
+    std::vector<Lz4WorkerBytes> views;for(const auto& payload:payloads)views.emplace_back(payload);
+    auto frame=encode_lz4_worker_reply(input.batch,input.request_id,views,WorkerExecution::cpu_semantics);
+    if(mode==L"lz4-corrupt")frame.back()^=std::byte{1};
+    channel.publish(frame);
+    return mode==L"lz4-fail-after"?17:0;
+  }
   if(mode==L"memory-metadata" || mode==L"memory-corrupt" || mode==L"memory-fail-after"){
     const auto input=decode_worker_request(channel.request());
     HipMemoryObservation value;
@@ -196,6 +218,46 @@ int child(std::wstring_view mode,std::wstring_view token) {
   if(mode==L"publish-fail")return 17;
   if(mode==L"publish-hang") {Sleep(10000);return 42;}
   return 0;
+}
+void lz4_worker_transactions(const std::filesystem::path& executable) {
+  const std::vector<Bytes> source{Bytes(17,std::byte{11}),Bytes(33,std::byte{22}),Bytes(1024,std::byte{33})};
+  std::vector<Lz4WorkerBytes> inputs;for(const auto& bytes:source)inputs.emplace_back(bytes);
+  const auto batch=PreparedLz4WorkerBatch::prepare(inputs);
+  const auto request=encode_lz4_worker_request(batch,991);
+  const auto result=run_worker_exchange(executable,{L"lz4-ok"},request);
+  check(result.process.exit_confirmed && !result.process.timed_out &&
+      result.process.peak_committed_bytes<=128ULL*1024*1024,"LZ4 CPU helper retirement/budget");
+  if(gpu_lz4_cpu_verification_available()) {
+    check(result.code==WorkerExchangeCode::completed,"LZ4 CPU helper did not complete");
+    const auto accepted=accept_lz4_worker_reply(result.response,batch,991,WorkerExecution::cpu_semantics);
+    check(accepted.size()==source.size(),"LZ4 cross-process candidate count");
+    for(std::size_t i=0;i<source.size();++i)
+      check(accepted[i]==lz4_literal_fixture(source[i]) && std::ranges::equal(batch.input(i),source[i]),
+          "LZ4 cross-process candidate/source bytes");
+  }else {
+    check(result.code==WorkerExchangeCode::worker_failed && result.process.exit_code==17 &&
+        !result.publication_observed && result.response.empty(),"Unavailable CPU LZ4 exposed a candidate");
+  }
+  check_closed(result);
+  auto malformed=request;malformed[0]^=std::byte{1};
+  const auto refused=run_worker_exchange(executable,{L"lz4-ok"},malformed);
+  check(refused.code==WorkerExchangeCode::worker_failed && refused.process.exit_confirmed &&
+      refused.response.empty() && !refused.publication_observed,"Malformed LZ4 source exposed output");
+  check_closed(refused);
+  if(gpu_lz4_cpu_verification_available()) {
+    const auto corrupt=run_worker_exchange(executable,{L"lz4-corrupt"},request);
+    check(corrupt.code==WorkerExchangeCode::completed && corrupt.process.exit_confirmed,
+        "Corrupt LZ4 fixture transport failed before validation");
+    rejects([&]{(void)accept_lz4_worker_reply(corrupt.response,batch,991,WorkerExecution::cpu_semantics);});
+    check_closed(corrupt);
+    const auto failed=run_worker_exchange(executable,{L"lz4-fail-after"},request);
+    check(failed.code==WorkerExchangeCode::worker_failed && failed.process.exit_confirmed &&
+        failed.process.exit_code==17 && failed.publication_observed && failed.response.empty(),
+        "Failed LZ4 helper exposed a published candidate");
+    check_closed(failed);
+  }
+  std::cout<<"LZ4 worker process framing: decoder_available="<<gpu_lz4_cpu_verification_available()
+      <<" chunks=3 source_bytes=1074 gpu_executed=false\n";
 }
 PreparedGpuBatch mixed() {
   const std::vector<Block> blocks{raw(text("channel sample")),fill(4097,19),pattern(8193),prefix_sample(),prefix_sample(true),huffman()};
@@ -996,6 +1058,7 @@ int wmain(int argc,wchar_t** argv){try{
       check_closed(result);
     }
   }
+  lz4_worker_transactions(executable);
   observe(L"match-profile-metadata");
   coordinated_requests(executable);observe(L"coordinated-recovery");
   match_transactions(executable);observe(L"match-transactions");

@@ -278,3 +278,19 @@ retirement; the parent still requires actual successful process/supervisor exit.
 No candidate bytes are returned, admission rules changed, runtime retried or
 normal filesystem routing enabled. A CPU fixture declaring flags is transport
 evidence only, not GPU execution or driver-cleanup evidence.
+
+## Bounded LZ4 candidate messages
+
+[LZ4_WORKER_FRAMES.md](LZ4_WORKER_FRAMES.md) defines the new distinct message kind.
+Preparation owns up to eight admitted chunks and the complete existing device
+layout. Source identity covers count, sizes and plaintext. Producer and parent
+both CPU-decode every candidate against their own source before copying it.
+Missing optional decoding refuses explicitly. The 262244/262272-byte frame caps
+fit existing mappings; no transport limit, process/thread path or retry changes.
+
+The new Windows fixture uses only its own trusted CPU test binary and the same
+channel/job constraints. It covers success, absent decoding, malformed input,
+corrupt candidate and failure after publication, with unchanged exact retirement,
+closed mappings and zero-growth handle checks. New-source execution is pending.
+Neither those CPU semantics nor backend declarations establish actual GPU work.
+Normal operations still never launch a worker or load the private candidate DLL.

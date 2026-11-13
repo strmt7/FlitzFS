@@ -204,7 +204,12 @@
           },
           "private_typed_module": {
             "contract": "docs/HIPCOMP_MODULE_LINK.md",
-            "status": "Pending CPU typed forwarding and explicit separate link-only qualification; never loaded or in a worker bundle."
+            "status": "Qualified CPU/link-only at c86559b; all original SDK/20-worker and ordinary 13-job gates passed. No module loading.",
+            "evidence": "docs/evidence/hipcomp-module-link-c86559b.json"
+          },
+          "worker_frames": {
+            "contract": "docs/LZ4_WORKER_FRAMES.md",
+            "status": "Pending CPU framing and real trusted Windows CPU helper exchange; no actual HIP worker or ordinary-I/O route."
           }
         }
       }

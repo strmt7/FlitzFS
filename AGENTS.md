@@ -1540,3 +1540,19 @@ module loading, execution, artifact export, product linkage, worker bundling or
 owner operations. Keep all original gates, exact direct getter export/import
 closure, immutable typed table, source/object stability and CPU-stub semantics.
 CPU forwarding is not actual module/GPU execution. D01 remains open.
+
+## Compression-candidate frame boundary
+
+Read docs/LZ4_WORKER_FRAMES.md before changing these frames or prepared ownership.
+Preserve all eight-chunk/64-KiB/full-device-256-KiB limits before copying, canonical
+count/size/source digest binding, explicit little endian, zero reserved fields,
+dense exact extents and deterministic empty moved-from state. Both producer and
+parent must use the existing optional independent CPU decoder for ALL chunks
+before copying candidate data. Missing decoding refuses; preflight it before
+any future launch. Parsing is neither launch nor publication authority.
+
+Only the trusted CPU test binary uses the new kind in this phase. Reuse the
+existing protected mappings/supervisor; do not add a launcher, retry, process,
+thread, size allowance or handle-growth tolerance. Preserve actual child AND
+supervisor retirement before inspection. No HIP module load, actual GPU execution,
+stored codec or normal-I/O caller is added; all later runtime gates remain.

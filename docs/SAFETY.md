@@ -1130,3 +1130,12 @@ complete SDK/20-worker checks passed
 The next [private typed-module fixture](HIPCOMP_MODULE_LINK.md) adds CPU argument
 forwarding and separately opted-in linking. It remains unqualified until its own
 execution; no module loading, binary artifact, worker integration or GPU gain follows.
+
+
+The private typed-module link qualified at c86559b, including all 13 ordinary
+jobs, 122 sanitizer tests, five 144524-check validator configurations and 20
+confirmed worker exits ([evidence](evidence/hipcomp-module-link-c86559b.json)).
+The next [LZ4 candidate frames](LZ4_WORKER_FRAMES.md) own source bytes, bind chunk
+boundaries and independently verify every candidate before copying. New portable
+and real Windows CPU-helper tests are pending. They add no HIP caller, launcher,
+mapping-cap increase, stored codec or normal filesystem route. D01 remains open.
