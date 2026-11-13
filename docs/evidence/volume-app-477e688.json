@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "source_commit": "477e68898ccf7984ba0d2188256785d1ae769ded",
+  "run": 43336450162,
+  "job": 131593726140,
+  "conclusion": "failure",
+  "build": "success",
+  "execution": "Not started; loader audit rejected the GUI imports before model/GUI execution.",
+  "failure": "The unchanged console audit does not admit Shell32/User32/Gdi32. It correctly rejected using its profile for the new GUI binary.",
+  "actual_application_imports": [
+    "shell32.dll",
+    "user32.dll",
+    "gdi32.dll",
+    "bcrypt.dll",
+    "kernel32.dll"
+  ],
+  "resolution": "Use a separate explicit native Windows GUI profile with the shared bounded PE parser, role-specific OS import sets, no delay imports, correct subsystem and ASLR/high-entropy/NX. Preserve the ordinary CPU audit unchanged.",
+  "dependabot": {
+    "repository": "strmt7/FlitzFS",
+    "endpoint": "GET /repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100",
+    "native_transport": "authenticated gh api",
+    "exit_code": 0,
+    "open_alert_count": 0,
+    "response": {
+      "alerts": [],
+      "count": 0
+    },
+    "scope": "Open alerts only. Does not establish absence of undisclosed vulnerabilities.",
+    "checked_at_utc": "2026-11-13T00:23:52Z"
+  },
+  "research": {
+    "provider": "Crawl4AI 0.9.5+flitzzip.portable2",
+    "provider_source": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+    "run": 43329652899,
+    "artifact_id": 13994207488,
+    "artifact_sha256": "06a8614ff75caf865aa77d01b21256960e774294bdc7aa910b5274cad9095a61",
+    "scope": "Seven current official Microsoft Win32 window/procedure/tray/DPI/UI Automation pages; all HTTP 200 and substantive. Publisher dates include older pages; current documentation is not described as new November 2026 research.",
+    "sources": [
+      "https://learn.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window",
+      "https://learn.microsoft.com/en-us/windows/win32/learnwin32/writing-the-window-procedure",
+      "https://learn.microsoft.com/en-us/windows/win32/shell/notification-area",
+      "https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shell_notifyiconw",
+      "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setprocessdpiawarenesscontext"
+    ]
+  },
+  "qualification": "The corrected source still requires new exact-source provider/controller and GUI execution. No owner application launch performed."
+}

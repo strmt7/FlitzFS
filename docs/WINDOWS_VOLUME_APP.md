@@ -83,3 +83,11 @@ helper authorization, automatic low-priority learning and qualified useful AMD
 routing remain required product work. The final application must manage both
 memory and physical backends through the same engine; see
 [the backend contract](WINDOWS_VOLUME_BACKENDS.md).
+
+The initial 477e688 build compiled successfully, then its dependency audit stopped
+before execution because the console-only profile rejects native GUI libraries.
+[The retained failure and current source research](evidence/volume-app-477e688.json)
+document the correction: a separate role-specific GUI audit, unchanged console
+policy, ASLR/high-entropy/NX checks and no delay-loaded or non-OS imports. The
+application now also restores its window when tray registration is unavailable.
+Corrected-source execution remains pending.

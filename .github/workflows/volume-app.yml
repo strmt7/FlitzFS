@@ -10,6 +10,8 @@ on:
       - 'CMakeLists.txt'
       - 'tools/ci/build_windows_native.ps1'
       - 'tools/ci/prepare_hosted_tools.py'
+      - 'tools/ci/check_volume_app.py'
+      - 'tools/ci/check_portable_cpu.py'
       - '.github/workflows/volume-app.yml'
 permissions:
   contents: read
@@ -45,14 +47,13 @@ jobs:
           persist-credentials: false
       - name: Build isolated portable application without WinFsp SDK or driver
         run: ./tools/ci/build_windows_native.ps1 -PortableCpu -VolumeApp
-      - name: Audit self-contained executable dependencies
-        shell: python
+      - name: Audit explicit native GUI executable dependencies
+        shell: pwsh
         run: |
-          from pathlib import Path
-          import runpy
-          audit = runpy.run_path("tools/ci/check_portable_cpu.py", run_name="volume_app_audit")["audit_binary"]
-          for name in ("flitzfs_volume_app.exe", "flitzfs_volume_app_tests.exe"):
-              print(name, audit(Path("build-portable/Release", name).read_bytes()))
+          $receipt = Join-Path $env:RUNNER_TEMP ("flitzfs-volume-app-" + [guid]::NewGuid().ToString('N') + ".json")
+          python tools/ci/check_volume_app.py --app build-portable/Release/flitzfs_volume_app.exe --harness build-portable/Release/flitzfs_volume_app_tests.exe --receipt $receipt
+          if ($LASTEXITCODE) { throw 'Application dependency audit failed' }
+          "FLITZFS_APP_RECEIPT=$receipt" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: Exercise provider, real volume and controller ownership
         run: ./build-portable/Release/flitzfs_volume_app_tests.exe --model
       - name: Exercise native GUI file workflow and verified process retirement
@@ -69,5 +70,6 @@ jobs:
           path: |
             build-portable/Release/flitzfs_volume_app.exe
             build-portable/Release/flitzfs_volume_app_tests.exe
+            ${{ env.FLITZFS_APP_RECEIPT }}
           if-no-files-found: error
           retention-days: 14
