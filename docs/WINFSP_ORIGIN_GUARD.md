@@ -96,3 +96,11 @@ and adds unchanged-generation/exact-size checks. Product code, resource limits
 and existing tests are unchanged. The failed native job is retained in
 `evidence/origin-fixture-ad9be7a.json`; corrected-source qualification remains
 required. This failure did not run or qualify the mounted guard jobs.
+
+At `52e6752`, the corrected existing-file open and exact byte comparison passed.
+The same new fixture then exposed its second request-lifecycle error: it called
+Close without the Cleanup required after Read adopted the handle. The native
+engine correctly fenced that invalid lifecycle. The next correction supplies
+Cleanup and checks query count, cleaned context, retirement and offlining
+separately. Existing product Cleanup/Close behavior is preserved; all corrected-
+source gates remain required. Both failures are retained in the same evidence.

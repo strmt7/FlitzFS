@@ -16,5 +16,22 @@
     "product_change": false
   },
   "scope": "CPU synthetic origin callback test only; no actual GPU or mounted guard qualification on this failed source. Mounted jobs remain gated. Retain full native logs by job identity.",
-  "qualification": "Publishing-source full gates required; no timeout, resource limit or integrity check weakened."
+  "qualification": "Publishing-source full gates required; no timeout, resource limit or integrity check weakened.",
+  "followup": {
+    "source_commit": "52e6752b733624fa8173aeab0744dd6916eb47aa",
+    "core_run": 43368688482,
+    "windows_job": 131699086804,
+    "native_groups": 136,
+    "failed_groups": 1,
+    "observed_error": "kernel non-open callback queried origin or leaked context",
+    "confirmed": "Existing-file Open and exact kernel byte parity passed after disposition correction.",
+    "cause": {
+      "type": "new_test_callback_lifecycle",
+      "source": "src/native_session.cpp:908-934 and src/windows/native_close.cpp",
+      "evidence": "Read adopts a prepared handle. Active Close explicitly requires prior Cleanup; dispatch_native_close fences on lifecycle failure. The new kernel-origin test omitted Cleanup, unlike the existing native fixtures.",
+      "correction": "Run Cleanup before Close and assert unchanged query count, cleaned context, exact retirement and no offlining separately.",
+      "product_change": false
+    },
+    "qualification": "Corrected publishing source requires all gates; no production lifecycle guard or cap relaxed."
+  }
 }

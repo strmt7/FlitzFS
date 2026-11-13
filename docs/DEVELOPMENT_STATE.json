@@ -328,10 +328,10 @@
     "source_parent": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
     "contract": "docs/WINFSP_ORIGIN_GUARD.md",
     "behavior": "Mandatory product Create/Open self-origin admission, required explicit provider, CPU integration/lifecycle tests and real SDK product-denial probes.",
-    "status": "Initial source compiled, but the new direct CPU fixture used supersede instead of existing-file disposition. Test corrected; all publishing-source gates remain required.",
+    "status": "Initial new fixture needed FILE_OPEN then prior Cleanup for its adopted read handle. Both failures retained; corrected fixture now asserts query count, cleanup, retirement and offline state separately. All publishing-source gates required.",
     "next": "Review actual product-denial/retirement and byte/resource evidence. Historical D01 cause and broader product/lifecycle/GPU/learning/resilience exits remain open. No owner operation.",
-    "failed_source": "ad9be7a5083f6c053516fafaefed8b180d35fadb",
-    "failed_run": 43367793007,
+    "failed_source": "52e6752b733624fa8173aeab0744dd6916eb47aa",
+    "failed_run": 43368688482,
     "failed_evidence": "docs/evidence/origin-fixture-ad9be7a.json"
   },
   "resolved": [
