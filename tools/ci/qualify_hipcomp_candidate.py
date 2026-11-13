@@ -143,6 +143,7 @@ def main():
         os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","disposable hosted Windows VM required; never the owner PC")
     parser=argparse.ArgumentParser()
     for name in ("source","provider","sdk","output"):parser.add_argument("--"+name,type=Path,required=True)
+    parser.add_argument("--native-sync",action="store_true",help="Explicit offline transformed AMD candidate; never a runtime route")
     args=parser.parse_args()
     source=verify_checkout(args.source,SOURCE_COMMIT);provider=verify_checkout(args.provider,MECHANISM_COMMIT)
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
@@ -170,7 +171,36 @@ def main():
     try:
         source_copy=output/"compile-input"
         entry,records=stage(source,source_copy,value)
+        if args.native_sync:
+            import shutil
+            require(shutil.disk_usage(output).free>=4*1024**3+64*MIB,"native-sync free-space reserve")
+            from hipcomp_native_sync import stage_header,qualify_index_oracle
+            from qualify_warp_sync import regular,regular_info,canonical_text,dependency_header,HEADER,HEADER_SHA256
+            header_raw=regular(sdk/HEADER,sdk,128*1024)
+            canonical_text(header_raw,HEADER_SHA256,128*1024)
+            mapping,notices=validate_manifest(value)
+            extra=next(record["bytes"] for original,_,record in mapping if original==ENTRY)
+            extra+=sum(record["bytes"] for record in notices)+68*1024
+            canonical_header=(source_copy/"src/LZ4Kernels.cuh").read_bytes()
+            records,report["native_sync_transform"]=stage_header(source_copy,records,extra)
+            report["source_inputs"]=records
+            report["cpu_index_oracle"]=qualify_index_oracle(canonical_header,output,bounds,report)
+            report["variant"]="native-wave-sync"
+        else:
+            report["variant"]="original"
         report["source_inputs"]=records
+        if args.native_sync:
+            fixture_records=[(row["target"],row["bytes"],row["sha256"]) for row in records]
+            fixture_records.append((entry.relative_to(source_copy).as_posix(),
+                len(entry.read_bytes()),digest(entry)))
+            fixture_records.extend(("notices/"+row["path"],row["bytes"],row["sha256"]) for row in notices)
+            require(len({name for name,_,_ in fixture_records})==len(fixture_records),
+                "native-sync fixture aliases")
+            for name,size,expected in fixture_records:
+                path=source_copy/name
+                regular_info(path,source_copy,MIB)
+                require(path.stat().st_size==size and digest(path)==expected,
+                    "native-sync staged input differs")
         object_path=output/"hipcomp_lz4.obj";dependency=output/"hipcomp_lz4.obj.d"
         run(bounds,["powershell.exe","-NoProfile","-ExecutionPolicy","Bypass","-File",
             str(provider/"tools/compile_hip_object.ps1"),"-Source",str(entry),"-Output",str(object_path),
@@ -201,9 +231,22 @@ def main():
         report["offload_target_ids"]=inspect_offload_targets(fatbin["stdout"],str(object_path),object_path.stat().st_size)
         report["object_inspected"]=True
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,"candidate SDK inputs changed")
+        if args.native_sync:
+            require(regular(sdk/HEADER,sdk,128*1024)==header_raw,"native-sync SDK header changed")
+            report["selected_header_dependency"]=dependency_header(
+                regular(dependency,output,MIB),sdk/HEADER)
+            require(report["selected_header_dependency"],"native-sync selected SDK header dependency")
+            for name,size,expected in fixture_records:
+                path=source_copy/name
+                regular_info(path,source_copy,MIB)
+                require(path.stat().st_size==size and digest(path)==expected,
+                    "native-sync physical fixture input changed")
+            report["physical_inputs_unchanged"]=True
         verify_checkout(source,SOURCE_COMMIT);verify_checkout(provider,MECHANISM_COMMIT)
         require(digest(object_path)==report["object"]["sha256"] and
             digest(dependency)==report["dependencies"]["sha256"],"candidate inspection changed compiler outputs")
+        if args.native_sync:
+            require(shutil.disk_usage(output).free>=4*1024**3,"native-sync reserve consumed")
         report["complete"]=True
     except Exception as error:
         report["error"]=type(error).__name__+": "+str(error);raise

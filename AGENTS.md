@@ -1499,3 +1499,18 @@ linked or exported. Keep explicit64-bit masked calls and every original gate.
 API/type compilation does not prove fences, kernel correctness, output safety or
 GPU benefit. Vendor code and runtime remain unchanged; the historical comparison
 at ab37c4a is inconclusive and does not close D01 or open G03/owner execution.
+
+## Explicit native-wave candidate boundary
+
+Read docs/HIPCOMP_NATIVE_SYNC.md before changing the optional transform or oracle.
+Keep exact canonical upstream identity, exactly three unique replacements, complete
+license retention, a NEW canonical backup, private-only replacement and complete
+source/alias/notices budget accounting. Native mode requires both explicit workflow
+flags, the unchanged original candidate, exact selected SDK header/dependency,
+physical-input stability, seven CPU composition cases and the actual extracted
+CPU index oracle before separate offline object inspection. Do not turn the
+invalid-table arithmetic counterexample into a claim of a reachable GPU race.
+Never load/export the object or oracle binary, add block barriers inside partial
+wave branches, weaken kernel assertions or infer runtime qualification/benefit.
+The CPU oracle executes only on disposable hosted Windows VMs; owner execution,
+normal operations, stored codecs and D01/G03 gates remain unchanged.

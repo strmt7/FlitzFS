@@ -1,0 +1,245 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "2fdd01cd8540d47259a96e030b19e216bc900ac9",
+  "run": 43458697278,
+  "job": 131999551805,
+  "artifact": {
+    "id": 14056076328,
+    "bytes": 18107,
+    "sha256": "4e39190abc16a839ec6447d241d1bd5c9ea8712b7c6f3ffb1a93927008bc4639"
+  },
+  "qualification_file_sha256": "385b3fc7ffcf23428d70a05b358d6eb3727086a53d02dded29b2a8da674bb981",
+  "warp_sync_probe": {
+    "experimental": true,
+    "complete": true,
+    "synthetic_target": "gfx1100",
+    "commands": [
+      {
+        "name": "warp-sync-API-device-compilation",
+        "argv": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\a\\FlitzFS\\FlitzFS\\.ci-rocm-source\\tools\\compile_hip_object.ps1",
+          "-Source",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\compile-input\\src\\gpu\\warp_sync_probe.hip",
+          "-Output",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj",
+          "-DependencyFile",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj.d",
+          "-RepoRoot",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\compile-input",
+          "-HipPath",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk",
+          "-Arch",
+          "gfx1100"
+        ],
+        "root_pid": 1796,
+        "exit_code": 0,
+        "stdout": "Compiling HIP object with MSVC toolset 14.51.\r\n",
+        "stderr": "clang: warning: argument unused during compilation: '-fms-runtime-lib=static' [-Wunused-command-line-argument]\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "warp-sync-reader-version",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--version"
+        ],
+        "root_pid": 1296,
+        "exit_code": 0,
+        "stdout": "AMD LLVM version 24.0.0git\n  Optimized build.\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "warp-sync-host-header",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--file-header",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj"
+        ],
+        "root_pid": 3544,
+        "exit_code": 0,
+        "stdout": "\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\nImageFileHeader {\n  Machine: IMAGE_FILE_MACHINE_AMD64 (0x8664)\n  SectionCount: 13\n  TimeDateStamp: 2026-11-13 16:07:15 (0x6AF735B3)\n  PointerToSymbolTable: 0x2CD1\n  SymbolCount: 44\n  StringTableSize: 355\n  OptionalHeaderSize: 0\n  Characteristics [ (0x0)\n  ]\n}\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "warp-sync-target-metadata",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--offloading",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj"
+        ],
+        "root_pid": 1308,
+        "exit_code": 0,
+        "stdout": "host-x86_64-pc-windows-msvc-\tfile://D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj#offset=5141&size=0\nhip-amdgcn-amd-amdhsa--gfx1100\tfile://D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj#offset=5141&size=5568\n\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "runtime_source": "7da43026e4f2ef7600433c38c820732f7a205d22",
+    "header_source_blob": "51d07f6e35298abba5fb9817d61cf6eb18fe5f66",
+    "object_loaded": false,
+    "object_linked": false,
+    "gpu_executed": false,
+    "scope": "API/type availability and offline object metadata only; not memory-order or runtime proof",
+    "source": {
+      "path": "tests/rocm_compile/warp_sync_probe.hip",
+      "canonical_bytes": 1670,
+      "canonical_sha256": "59474113a2a0d5d2dde1a2a7de8b10d6a9b4de41fdd97664ce62b3cabe453201",
+      "physical_sha256": "43bc338ddbda9873d5e275d4a12c8258327c5e4441eb5b49f888b067a6f0e7a0",
+      "physical_bytes": 1717,
+      "representation": "crlf-checkout"
+    },
+    "header": {
+      "path": "include/hip/amd_detail/amd_warp_sync_functions.h",
+      "canonical_bytes": 37736,
+      "canonical_sha256": "e6f8f61066b034141ad288a01b82006a0e6f0e8e9e7750ac36153b1602eedfe2",
+      "physical_sha256": "e6f8f61066b034141ad288a01b82006a0e6f0e8e9e7750ac36153b1602eedfe2",
+      "physical_bytes": 37736,
+      "representation": "exact"
+    },
+    "object": {
+      "bytes": 12620,
+      "sha256": "b98e4f4d41ff08a1006da5e46e61c8c9e7921dc3455963f2e75b6c19848f1e52"
+    },
+    "dependencies": {
+      "bytes": 59551,
+      "sha256": "aa9d9a5fbf908f1942b58702b9255992490bcc66e0d0dabcea5f3b241fc20f5a"
+    },
+    "selected_header_dependency": true,
+    "reader": {
+      "bytes": 8075216,
+      "sha256": "3a64162737d8aebb7c5528d2345f86b4174fa900a6ac0c8230be648178181afd"
+    },
+    "targets": [
+      "hip-amdgcn-amd-amdhsa--gfx1100"
+    ],
+    "physical_inputs_unchanged": true
+  },
+  "api_probe": {
+    "checks": 235,
+    "priority_cases": 12,
+    "priority_query_limit": 2,
+    "identity_before_selection": true,
+    "missing_exports_refused": 11,
+    "hip_runtime_loaded": false,
+    "gpu_executed": false,
+    "complete": true
+  },
+  "worker_admission": {
+    "bundle_verified": true,
+    "missing_bundle_refused": true,
+    "tampered_bundle_refused": true,
+    "invalid_wire_refused": true,
+    "invalid_match_refused": true,
+    "missing_match_runtime_refused": true,
+    "compiler_environment_isolated": true,
+    "system_module_metadata_passed": true,
+    "system_runtime_bad_hash_refused": true,
+    "system_runtime_argument_refused": true,
+    "kernel_only_verified": true,
+    "kernel_only_full_bundle_refused": true,
+    "kernel_only_tamper_refused": true,
+    "driver_wire_refusals": 5,
+    "profile_wire_refused": true,
+    "profile_argument_refused": true,
+    "profile_runtime_refused": true,
+    "exits_confirmed": 20,
+    "gpu_executed": false,
+    "complete": true
+  },
+  "core": {
+    "run": 43458697232,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "jobs": [
+      {
+        "id": 131999551921,
+        "name": "sanitizers",
+        "conclusion": "success"
+      },
+      {
+        "id": 131999552309,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131999552420,
+        "name": "windows-native",
+        "conclusion": "success"
+      },
+      {
+        "id": 131999552424,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131999552575,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132006351295,
+        "name": "windows-mount",
+        "conclusion": "success"
+      },
+      {
+        "id": 132008065467,
+        "name": "windows-write-mount (crash-restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132008065472,
+        "name": "windows-write-mount (basic)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132008065505,
+        "name": "windows-write-mount (delete)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132008065517,
+        "name": "windows-write-mount (crash)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132008066051,
+        "name": "windows-write-mount (ram-handoff)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132008066388,
+        "name": "windows-write-mount (restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132008066959,
+        "name": "windows-write-mount (mutations)",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "source_admission_cases": 9,
+  "owner_execution": false,
+  "gpu_executed": false,
+  "scope": "Exact physical inputs and generated-entry stability plus API/object metadata and original SDK/worker gates. No actual device execution, memory-order proof or useful performance."
+}

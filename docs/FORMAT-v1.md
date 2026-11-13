@@ -445,3 +445,7 @@ encoding changes. It does not introduce a product historical-format writer.
 The native synchronization API probe is an unlinked compiler fixture and adds
 only qualification metadata. No stored encoding, codec ID, worker wire or native
 capability changes.
+
+The explicit native-wave candidate adds only private compiler inputs and CPU
+oracle qualification records. It introduces no stored codec, capability, worker
+wire change or product numbering; normal filesystem decoding remains independent.

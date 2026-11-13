@@ -7,6 +7,11 @@ on:
         type: boolean
         required: false
         default: false
+      native_sync_candidate:
+        description: Also compile the explicit native-wave variant and CPU index oracle; requires codec_candidate
+        type: boolean
+        required: false
+        default: false
   push:
     branches: [main]
     paths:
@@ -15,6 +20,8 @@ on:
       - 'tools/ci/qualify_warp_sync.py'
       - 'tools/ci/test_warp_sync_probe.py'
       - 'tools/ci/qualify_hipcomp_candidate.py'
+      - 'tools/ci/hipcomp_native_sync.py'
+      - 'tools/ci/test_hipcomp_native_sync.py'
       - 'tools/ci/test_hipcomp_candidate.py'
       - 'tools/ci/hip_runtime_exports.py'
       - 'tools/ci/test_hip_runtime_exports.py'
@@ -70,12 +77,17 @@ jobs:
       - name: Qualify current ROCm SDK, filesystem kernel and worker admission
         env:
           FLITZFS_CODEC_CANDIDATE: ${{ inputs.codec_candidate && 'hipcomp' || 'none' }}
+          FLITZFS_NATIVE_SYNC_CANDIDATE: ${{ inputs.native_sync_candidate && 'enabled' || 'none' }}
         run: |
           $taskSdkArguments=@('-B','tools/ci/qualify_rocm_sdk.py',
             '--provider','.ci-rocm-source','--output',"${{ runner.temp }}/flitzfs-rocm-sdk")
           if($env:FLITZFS_CODEC_CANDIDATE -eq 'hipcomp'){
             $taskSdkArguments+=@('--hipcomp-source','.ci-hipcomp-source')
           }elseif($env:FLITZFS_CODEC_CANDIDATE -ne 'none'){throw 'Unreviewed codec candidate'}
+          if($env:FLITZFS_NATIVE_SYNC_CANDIDATE -eq 'enabled'){
+            if($env:FLITZFS_CODEC_CANDIDATE -ne 'hipcomp'){throw 'Native-sync requires the original candidate'}
+            $taskSdkArguments+='--hipcomp-native-sync'
+          }elseif($env:FLITZFS_NATIVE_SYNC_CANDIDATE -ne 'none'){throw 'Unreviewed native-sync mode'}
           & python @taskSdkArguments
           if($LASTEXITCODE){throw 'ROCm qualification failed'}
       - name: Retain identities and failures, never SDK or kernel binaries
@@ -86,6 +98,8 @@ jobs:
           path: |
             ${{ runner.temp }}/flitzfs-rocm-sdk/qualification.json
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/qualification.json
+            ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-native-sync/qualification.json
+            ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-native-sync/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/sdk-cache/verified-distribution.json
             ${{ runner.temp }}/flitzfs-*-provision.json

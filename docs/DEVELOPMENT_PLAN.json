@@ -177,14 +177,20 @@
           "priority_evidence": "docs/evidence/priority-capability-b2cf989.json",
           "native_sync_probe": {
             "contract": "docs/HIP_WARP_SYNC_PROBE.md",
-            "qualified_source": "af2f7143a4129771865539e4e9c3356479c267ce",
-            "run": 43455207387,
+            "qualified_source": "2fdd01cd8540d47259a96e030b19e216bc900ac9",
+            "run": 43458697278,
             "cpu_cases": 9,
             "object_inspection": true,
             "selected_header_dependency": true,
             "worker_exits_confirmed": 20,
-            "evidence": "docs/evidence/hip-warp-offline-af2f714.json",
+            "evidence": "docs/evidence/hip-warp-stable-2fdd01c.json",
             "remaining": "Physical-input stability strengthening, emitted synchronization/full composition, actual GPU outputs, lifecycle and useful end-to-end benefit; no vendor/runtime change."
+          },
+          "native_sync_variant": {
+            "contract": "docs/HIPCOMP_NATIVE_SYNC.md",
+            "status": "Explicit offline-only composition implemented; CPU/oracle/compiler qualification pending.",
+            "runtime_route": false,
+            "upstream_checkout_changed": false
           }
         }
       }

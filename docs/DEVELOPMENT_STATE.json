@@ -360,11 +360,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "af2f7143a4129771865539e4e9c3356479c267ce",
-    "contract": "docs/HIP_WARP_SYNC_PROBE.md",
-    "behavior": "Exact physical compiler-input stability before/after offline inspection; automatic qualification triggers for both new helper files.",
-    "status": "Previous probe and original SDK/worker gates passed. This stricter byte-stability and workflow correction requires publishing-source execution.",
-    "next": "Retain successful actual header/object evidence; audit emitted synchronization and candidate composition before any kernel/runtime change. D01 remains unresolved."
+    "source_parent": "2fdd01cd8540d47259a96e030b19e216bc900ac9",
+    "contract": "docs/HIPCOMP_NATIVE_SYNC.md",
+    "behavior": "Separate explicit offline native-wave header composition with exact-source CPU transform tests and extracted CPU index oracle.",
+    "status": "Seven new CPU cases, actual integer/index oracle, original+variant compilation and all original SDK/worker/core gates require publishing-source execution.",
+    "next": "Verify the actual closed transform and index results; inspect native object metadata. Keep all objects unexported/unloaded, original paths unchanged and runtime/owner gates closed."
   },
   "resolved": [
     {
@@ -555,12 +555,23 @@
       "contract": "docs/HIP_WARP_SYNC_PROBE.md",
       "runtime_source": "7da43026e4f2ef7600433c38c820732f7a205d22",
       "header_blob": "51d07f6e35298abba5fb9817d61cf6eb18fe5f66",
-      "status": "Nine CPU source/path/dependency cases, exact SDK header, native calls, object metadata and all original SDK/20-worker gates passed ataf2f714.",
+      "status": "Qualified at 2fdd01c: nine CPU source/path/dependency cases, exact SDK header, native API calls, physical-input stability, strict object metadata and all original SDK/20-worker gates.",
       "vendor_kernel_changed": false,
       "gpu_executed": false,
-      "qualified_source": "af2f7143a4129771865539e4e9c3356479c267ce",
-      "sdk_run": 43455207387,
-      "evidence": "docs/evidence/hip-warp-offline-af2f714.json"
+      "qualified_source": "2fdd01cd8540d47259a96e030b19e216bc900ac9",
+      "sdk_run": 43458697278,
+      "evidence": "docs/evidence/hip-warp-stable-2fdd01c.json",
+      "physical_inputs_unchanged": true
+    },
+    "native_sync_candidate": {
+      "contract": "docs/HIPCOMP_NATIVE_SYNC.md",
+      "status": "Pending this publishing source's seven CPU composition cases, compiled index oracle and separate offline object inspection.",
+      "upstream_source": "03df9f7369211ee15d370817165224c73fdc9a46",
+      "original_candidate_preserved": true,
+      "gpu_executed": false,
+      "module_loaded": false,
+      "runtime_enabled": false,
+      "normal_io_unchanged": true
     }
   },
   "integration_checkpoints": [
@@ -587,10 +598,10 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "af2f7143a4129771865539e4e9c3356479c267ce",
-    "run": 43455207346,
+    "source": "2fdd01cd8540d47259a96e030b19e216bc900ac9",
+    "run": 43458697232,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "Current ordinary integration conclusions; detailed prior source and historical-reference evidence remain separately bound."
+    "scope": "Ordinary job conclusions; detailed native synchronization and worker evidence separately recorded."
   }
 }
