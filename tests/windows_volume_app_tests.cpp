@@ -205,7 +205,7 @@ void gui_tests(const std::filesystem::path& app) {
     HWND window=nullptr;
     until([&]{window=find_window(observer->process_id());return window!=nullptr;},deadline);
     auto button=[&](int id){std::cout<<"GUI command: "<<id<<"\n";auto h=GetDlgItem(window,id);require(h!=nullptr,"Missing native button");send(h,BM_CLICK);};
-    auto status=GetDlgItem(window,113);
+    HWND status=nullptr;
     auto wait_status=[&](std::wstring_view expected){
       until([&]{return text(status).find(expected)!=std::wstring::npos;},deadline);
     };
@@ -217,6 +217,7 @@ void gui_tests(const std::filesystem::path& app) {
           GetDlgItem(window,112) && GetDlgItem(window,113) &&
           IsWindowEnabled(GetDlgItem(window,101))!=FALSE;
     },deadline);
+    status=GetDlgItem(window,113);require(status!=nullptr,"Ready status control missing");
     button(101);wait_status(L"Memory volume created");
     send(GetDlgItem(window,111),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L"qualification.txt"));
     const std::wstring payload=L"FlitzFS native GUI byte verification. 1234567890 \u03B1\u03B2 \U0001F680";
