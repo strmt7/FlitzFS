@@ -175,7 +175,15 @@ HWND find_window(DWORD pid) {
 }
 LRESULT send(HWND window,UINT message,WPARAM w=0,LPARAM l=0) {
   DWORD_PTR result=0;
-  require(SendMessageTimeoutW(window,message,w,l,SMTO_ABORTIFHUNG|SMTO_BLOCK,1000,&result)!=0,"GUI control timeout");
+  const auto control=GetDlgCtrlID(window);
+  SetLastError(ERROR_SUCCESS);const auto started=GetTickCount64();
+  const auto dispatched=SendMessageTimeoutW(window,message,w,l,SMTO_ABORTIFHUNG|SMTO_BLOCK,1000,&result);
+  if(!dispatched) {
+    const auto error=GetLastError();
+    throw std::runtime_error("GUI message failed: control="+std::to_string(control)+
+        " message="+std::to_string(message)+" Win32="+std::to_string(error)+
+        " elapsed_ms="+std::to_string(GetTickCount64()-started));
+  }
   return static_cast<LRESULT>(result);
 }
 std::wstring text(HWND window) {
@@ -196,7 +204,7 @@ void gui_tests(const std::filesystem::path& app) {
     const auto deadline=GetTickCount64()+20000;
     HWND window=nullptr;
     until([&]{window=find_window(observer->process_id());return window!=nullptr;},deadline);
-    auto button=[&](int id){auto h=GetDlgItem(window,id);require(h!=nullptr,"Missing native button");send(h,BM_CLICK);};
+    auto button=[&](int id){std::cout<<"GUI command: "<<id<<"\n";auto h=GetDlgItem(window,id);require(h!=nullptr,"Missing native button");send(h,BM_CLICK);};
     auto status=GetDlgItem(window,113);
     auto wait_status=[&](std::wstring_view expected){
       until([&]{return text(status).find(expected)!=std::wstring::npos;},deadline);
@@ -229,7 +237,12 @@ void gui_tests(const std::filesystem::path& app) {
     until([&]{return IsWindowEnabled(GetDlgItem(window,105))!=FALSE;},deadline);
     require(text(status).find(L"Operation failed:")==std::wstring::npos,"GUI optimization failure");
     button(105);wait_status(L"Temporary volume explicitly discarded.");
-    button(106);
+    // Exit may destroy the button/window before a synchronous BM_CLICK reply.
+    // Admit the click to its actual queue, then require exact process retirement.
+    std::cout<<"GUI command: 106 (asynchronous exit)\n";
+    const auto exit_button=GetDlgItem(window,106);
+    require(exit_button && IsWindowEnabled(exit_button) &&
+        PostMessageW(exit_button,BM_CLICK,0,0)!=FALSE,"GUI exit command admission");
     until([&]{return observer->wait_for_exit()==ProcessObservation::exited;},deadline);
   } catch(...) {test_failure=std::current_exception();observer->request_stop();}
   supervisor.join();

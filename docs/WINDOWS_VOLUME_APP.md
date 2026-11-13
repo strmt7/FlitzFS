@@ -132,3 +132,11 @@ visibility, required controls and enabled Create, with immediate failure on
 child exit/wait failure and the same overall deadline. It adds no fixed sleep.
 See [the exact model result and retained GUI failure](evidence/volume-app-8540b35.json).
 No host GUI or application run has occurred yet.
+
+At e743108 the model passed again; the GUI fixture failed with an underspecified
+"GUI control timeout" in about 0.4 seconds. Its exact operation was not logged,
+so no root-cause claim follows. The harness now records command IDs and the
+failing message/control/Win32 error/elapsed time. It queues final Exit rather
+than requiring a synchronous reply from a control that may be destroyed during
+exit, while retaining exact process observation, clean status and all deadlines.
+See [the retained result](evidence/volume-app-e743108.json).
