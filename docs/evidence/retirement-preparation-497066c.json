@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "497066c8d4ab3f06937f61846e08829db47bee39",
+  "ordinary_core": {
+    "run": 43440422552,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "jobs": [
+      {
+        "id": 131936298028,
+        "name": "sanitizers",
+        "conclusion": "success"
+      },
+      {
+        "id": 131936298388,
+        "name": "windows-native",
+        "conclusion": "success"
+      },
+      {
+        "id": 131936298468,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131936298514,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131936298557,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131940294495,
+        "name": "windows-mount",
+        "conclusion": "success"
+      },
+      {
+        "id": 131942018347,
+        "name": "windows-write-mount (mutations)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131942018379,
+        "name": "windows-write-mount (restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131942018414,
+        "name": "windows-write-mount (ram-handoff)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131942018429,
+        "name": "windows-write-mount (crash-restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131942018450,
+        "name": "windows-write-mount (crash)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131942018731,
+        "name": "windows-write-mount (delete)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131942020137,
+        "name": "windows-write-mount (basic)",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "source_gate": {
+    "run": 43440422866,
+    "job": 131936299070,
+    "cases": 8,
+    "conclusion": "success",
+    "operating_system": "ubuntu-24.04"
+  },
+  "manual_comparison": {
+    "run": 43442794675,
+    "conclusion": "failure before source generation",
+    "variants": [
+      {
+        "variant": "held",
+        "job": 131944537482,
+        "artifact": 14046481469,
+        "bytes": 601,
+        "sha256": "480b777cce518f842c9d7d87b202ea16ed2e1ec5754990180e9e442728fedccd"
+      },
+      {
+        "variant": "closed",
+        "job": 131944537538,
+        "artifact": 14045734926,
+        "bytes": 601,
+        "sha256": "f12ba229faee6cc3076f1f17092d445c3e10db9010c8a85fcacda7d9f52ab741"
+      }
+    ],
+    "failure": "The canonical checkout HEAD was correct, but literal Git/native root strings differed in Windows separators.",
+    "failed_step": "Validate exact reference and generate private controlled variant",
+    "old_target_compiled": false,
+    "driver_provisioned": false,
+    "readonly_probe_executed": false,
+    "retirement_trial_executed": false,
+    "source_acknowledgement_created": false,
+    "artifacts_verified_in_memory": true,
+    "retained_gate": {
+      "run": 43440422552,
+      "source": "497066c8d4ab3f06937f61846e08829db47bee39",
+      "successful_jobs": 13,
+      "archive_entries_each": 1
+    }
+  },
+  "read_only_root_observation": {
+    "legacy_identity": false,
+    "normalized_identity": true,
+    "git_forward_separators": true,
+    "native_back_separators": true,
+    "owner_files_written": false
+  },
+  "repair": {
+    "path": "tools/ci/retirement_reference.py",
+    "mechanism": "Bounded absolute same-anchor root followed by Path.samefile identity with nonzero file/device IDs, ordinary private directory and fail-closed errors; control and reference roots checked.",
+    "python_repository": "python/cpython",
+    "python_ref": "v3.15.2",
+    "python_path": "Lib/pathlib/__init__.py",
+    "python_blob": "8dd16c6225b927b44a2056e2431a9cf49ae71653",
+    "reviewed_symbol": "Path.samefile",
+    "source_behavior": "Stats both paths and compares st_ino/st_dev.",
+    "new_source_tests": "Windows and Linux execution required; not yet qualified."
+  },
+  "historical_retirement_cause": "unproven",
+  "owner_driver_actions": false,
+  "owner_gpu_actions": false,
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 14:39:39 UTC",
+    "transport": "Authenticated GitHub API",
+    "query": "state=open&per_page=100",
+    "first_page_count": 0,
+    "scope": "Open alert inventory at capture, not absence of all vulnerabilities."
+  }
+}

@@ -145,6 +145,22 @@ def new_file(path: Path, data: bytes) -> None:
     with path.open("xb") as stream:
         stream.write(data)
 
+def same_git_root(reported: str, expected: Path) -> bool:
+    """Bind the actual directory despite Git/native separator spelling."""
+    if not isinstance(reported, str) or not reported or len(reported) > 1024:
+        return False
+    candidate = Path(reported)
+    if not candidate.is_absolute() or candidate.anchor.casefold() != expected.anchor.casefold():
+        return False
+    try:
+        target = expected.resolve()
+        identity = target.stat()
+        if not identity.st_ino or not identity.st_dev:
+            return False
+        return candidate.resolve().samefile(target)
+    except (OSError, ValueError, RuntimeError):
+        return False
+
 def prepare(control: Path, variant: str, verify: bool = False) -> None:
     required = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted",
                 "RUNNER_OS": "Windows", "FLITZFS_ALLOW_RETIREMENT_REFERENCE": "1"}
@@ -154,12 +170,16 @@ def prepare(control: Path, variant: str, verify: bool = False) -> None:
     if not re.fullmatch("[0-9a-f]{40}", head):
         raise ValueError("exact control SHA required")
     if (Path(os.environ["GITHUB_WORKSPACE"]).resolve() != control.resolve() or
+            not same_git_root(git(control, "rev-parse", "--show-toplevel").decode().strip(), control) or
             git(control, "rev-parse", "HEAD").decode().strip() != head):
         raise ValueError("control source identity differs")
     reference = control / ".ci-retirement"
+    root_info = reference.lstat()
+    if (not stat.S_ISDIR(root_info.st_mode) or
+            getattr(root_info, "st_file_attributes", 0) & 0x400):
+        raise ValueError("ordinary private reference root required")
     if (git(reference, "rev-parse", "HEAD").decode().strip() != REFERENCE or
-            git(reference, "rev-parse", "--show-toplevel").decode().strip().casefold()
-            != str(reference.resolve()).casefold()):
+            not same_git_root(git(reference, "rev-parse", "--show-toplevel").decode().strip(), reference)):
         raise ValueError("exact private reference checkout required")
     git(reference, "diff", "--quiet", "HEAD", "--")
     sources = {}
@@ -214,12 +234,136 @@ def prepare(control: Path, variant: str, verify: bool = False) -> None:
                        "sha256": hashlib.sha256(data).hexdigest()} for path, data in outputs.items()],
         "gpu_executed": False, "owner_execution": False}, indent=2) + "\n").encode())
 
+
+def strict_json(text: str) -> dict:
+    if not isinstance(text, str) or len(text) > 16384:
+        raise ValueError("bounded reference JSON text required")
+    def object_pairs(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate reference JSON field")
+            result[key] = value
+        return result
+    def reject_constant(value):
+        raise ValueError("nonfinite reference JSON constant")
+    try:
+        value = json.loads(text, object_pairs_hook=object_pairs, parse_constant=reject_constant)
+    except (ValueError, RecursionError) as error:
+        raise ValueError("invalid bounded reference JSON") from error
+    if not isinstance(value, dict):
+        raise ValueError("reference JSON object required")
+    return value
+
+
+def reference_result(stdout: str, variant: str):
+    if variant not in ("held", "closed") or not isinstance(stdout, str) or len(stdout) > 16384:
+        raise ValueError("reference control identity/output bounds")
+    if not stdout.isascii() or "\0" in stdout:
+        raise ValueError("reference control encoding")
+    normalized = stdout.replace("\r\n", "\n")
+    if "\r" in normalized:
+        raise ValueError("invalid reference newline")
+    lines = normalized.splitlines()
+    if len(lines) != 4:
+        raise ValueError("complete one-phase reference output required")
+    result = re.fullmatch(
+        r"retirement_result variant=(held|closed) source_process=([1-9][0-9]{0,9}) "
+        r"exit=1460 timed_out=1 cancelled=0 exit_confirmed=1 "
+        r"peak_commit_bytes=([1-9][0-9]{0,11}) controller_peak_commit_bytes=([1-9][0-9]{0,11})",
+        lines[0])
+    if result is None or result[1] != variant:
+        raise ValueError("confirmed exact timeout result required")
+    process, peak, controller_peak = map(int, result.group(2, 3, 4))
+    if process > 0xffffffff or peak > 128 * 1024 * 1024 or controller_peak > 256 * 1024 * 1024:
+        raise ValueError("reference process/resource range")
+    return lines, process, peak, controller_peak
+
+
+def reconcile(stdout: str, phase: str, acknowledgement: str, commit: str, variant: str) -> dict:
+    """Reconcile retained observations, never infer kernel cause or payload validity."""
+    if (any(not isinstance(text, str) for text in (stdout, phase, acknowledgement, commit)) or
+            variant not in ("held", "closed") or not re.fullmatch("[0-9a-f]{40}", commit) or
+            len(stdout) > 16384 or len(phase) > 256 or
+            len(acknowledgement) > 2048):
+        raise ValueError("reference identity/output bounds")
+    if any(not text.isascii() or "\0" in text for text in (stdout, phase, acknowledgement)):
+        raise ValueError("reference output encoding")
+    lines, process, peak, controller_peak = reference_result(stdout, variant)
+    contexts = 1 if variant == "held" else 0
+    expected_phase = f"retirement_phase variant={variant} source_process={process} contexts={contexts}\n"
+    if phase != expected_phase or lines[1] + "\n" != phase:
+        raise ValueError("retained source phase differs")
+    prefix = "Windows writable extended evidence: "
+    if lines[2] != prefix + acknowledgement:
+        raise ValueError("raw acknowledgement differs")
+    ack = strict_json(acknowledgement)
+    expected = {"schema": 2, "profile": "crash-restart", "phase": "ack", "commit": commit,
+                "source_process": process, "observer_process": process, "user_bytes": 7001,
+                "inode": 2, "file_count": 1, "image_cap": 4 * 1024 * 1024, "contexts": 1,
+                "explicit_flush_observed": True, "cpu_verified": True,
+                "dispatcher_stopped": False, "gpu": False}
+    for key, value in expected.items():
+        if key not in ack or type(ack[key]) is not type(value) or ack[key] != value:
+            raise ValueError("reference acknowledgement identity/state differs")
+    integer_keys = ("namespace_sequence", "generation", "image_bytes", "creation_time",
+                    "last_access_time", "last_write_time", "change_time", "attributes", "reservation")
+    digest_keys = ("data_digest", "security_digest", "keep_digest")
+    if set(ack) != set(expected) | set(integer_keys) | set(digest_keys):
+        raise ValueError("closed reference acknowledgement schema required")
+    for key in ("namespace_sequence", "generation", "image_bytes", "creation_time",
+                "last_access_time", "last_write_time", "change_time", "attributes", "reservation"):
+        if type(ack.get(key)) is not int or ack[key] < 0 or ack[key] > 0xffffffffffffffff:
+            raise ValueError("reference acknowledgement integer range")
+    if (not ack["creation_time"] or ack["keep_digest"] != "0" * 64 or
+            not ack["generation"] or not ack["namespace_sequence"] or
+            not 0 < ack["image_bytes"] <= ack["image_cap"] or ack["reservation"] < 7001):
+        raise ValueError("reference acknowledgement capacity")
+    for key in ("data_digest", "security_digest", "keep_digest"):
+        if not isinstance(ack.get(key), str) or not re.fullmatch("[0-9a-f]{64}", ack[key]):
+            raise ValueError("reference acknowledgement digest")
+    if lines[3] != f"retirement_cpu_verified variant={variant} source_process={process} bytes=7001":
+        raise ValueError("reference CPU readback observation differs")
+    return {"experimental": True, "commit": commit, "reference": REFERENCE, "variant": variant,
+            "source_process": process, "phase_contexts": contexts, "acknowledged_contexts": 1,
+            "retirement_confirmed": True, "cpu_bytes_observed": 7001,
+            "source_peak_commit_bytes": peak, "controller_peak_commit_bytes": controller_peak,
+            "acknowledgement_sha256": hashlib.sha256(acknowledgement.encode()).hexdigest(),
+            "phase_sha256": hashlib.sha256(phase.encode()).hexdigest(),
+            "historical_cause": "unproven", "gpu_executed": False}
+
+def reconcile_files(control: Path, variant: str) -> None:
+    # Reverify the trusted generator/old source before reading retained records.
+    prepare(control, variant, verify=True)
+    root = Path(os.environ["FLITZFS_RETIREMENT_REPORT_ROOT"])
+    source = strict_json(read_regular(root / "source.json").decode("utf-8"))
+    commit = os.environ["GITHUB_SHA"]
+    if (source.get("commit") != commit or source.get("reference") != REFERENCE or
+            source.get("variant") != variant or source.get("canonical_blobs") != PINS or
+            source.get("controller_budget_blob") != BUDGET_BLOB or
+            source.get("gpu_executed") is not False or source.get("owner_execution") is not False):
+        raise ValueError("reference source receipt differs")
+    stdout = read_regular(root / "stdout.txt").decode("utf-8")
+    # Unknown retirement fails before even opening a fixture receipt.
+    _, process, _, _ = reference_result(stdout, variant)
+    fixture = Path(os.environ["RUNNER_TEMP"]) / f"flitzfs-write-probe-{process}"
+    phase = read_regular(fixture / "reference-phase.txt").decode("utf-8")
+    acknowledgement = read_regular(fixture / "state.json").decode("utf-8")
+    result = reconcile(stdout, phase, acknowledgement, commit, variant)
+    new_file(root / "qualification.json", (json.dumps(result, indent=2) + "\n").encode())
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--variant", choices=("held", "closed"), required=True)
-    parser.add_argument("--verify", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--verify", action="store_true")
+    mode.add_argument("--reconcile", action="store_true")
     args = parser.parse_args()
-    prepare(Path(__file__).resolve().parents[2], args.variant, args.verify)
+    control = Path(__file__).resolve().parents[2]
+    if args.reconcile:
+        reconcile_files(control, args.variant)
+    else:
+        prepare(control, args.variant, args.verify)
 
 if __name__ == "__main__":
     main()

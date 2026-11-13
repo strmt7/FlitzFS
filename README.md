@@ -294,5 +294,7 @@ or performance gain is claimed.
 
 
 The explicit [historical retirement comparison](docs/RETIREMENT_REFERENCE.md)
-uses independent disposable VMs and original deadlines. Execution is pending;
-current product origin guards and ordinary regression gates remain unchanged.
+uses independent disposable VMs and original deadlines. All13 ordinary jobs
+passed at497066c, but both comparison variants stopped before driver/trial on a
+Windows root-spelling mismatch. Directory identity and strict record reconciliation
+are the next qualification; the historical retirement cause remains open.

@@ -533,3 +533,9 @@ The priority change passed its exact historical/current CPU oracle,235 assertion
 12 scenarios, full SDK/worker gates and all13 core jobs atb2cf989. G02/G03 remain
 unfinished. D01 now has a separate [historical comparison](RETIREMENT_REFERENCE.md),
 requiring publishing-source execution and retaining the original uncertainty.
+
+At497066c all13 ordinary jobs and8 Linux source tests passed. Both historical
+comparison variants failed preparation before driver installation or trial.
+The correction binds actual directory identities and independently reconciles raw
+phase/acknowledgement/result/CPU records. Windows/Linux source tests and actual
+controlled trials require new-source qualification; D01 remains unresolved.

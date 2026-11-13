@@ -73,7 +73,10 @@
           "held",
           "closed"
         ],
-        "status": "implemented; execution pending",
+        "initial_source": "497066c8d4ab3f06937f61846e08829db47bee39",
+        "run": 43442794675,
+        "status": "Preparation failed before driver/trial; identity correction and independent reconciliation pending.",
+        "evidence": "docs/evidence/retirement-preparation-497066c.json",
         "owner_execution": false
       }
     }
@@ -109,11 +112,12 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13 11:47:04 UTC",
+    "checked_at_utc": "2026-11-13 14:39:39 UTC",
     "native_transport": "Authenticated GitHub open-alerts API",
     "open_alerts": 0,
     "scope": "Open alerts only, not absence of all vulnerabilities.",
-    "evidence": "docs/evidence/gpu-lz4-offline-df51d8c.json"
+    "evidence": "docs/evidence/retirement-preparation-497066c.json",
+    "native_api": "Authenticated GitHub Dependabot alerts API, state=open, per_page=100; empty first page."
   },
   "source_routing": {
     "indexed_commit": "df51d8c5ba80430453c805619438f431d5677f3b",
@@ -352,11 +356,12 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "b2cf9899417d52c2266d86fa1246b874001376a3",
+    "source_parent": "497066c8d4ab3f06937f61846e08829db47bee39",
     "contract": "docs/RETIREMENT_REFERENCE.md",
-    "behavior": "Manual disposable-VM historical held/closed-client comparison with exact source, original deadlines and terminal unknown retirement.",
-    "status": "New CPU transformation, current-source core gates and one controlled trial per VM require publishing-source execution.",
-    "next": "Retain raw acknowledgements and phase receipts, compare actual retirement outcomes without inferring the historical cause from a green run. G03 lifecycle and the full product remain unfinished."
+    "behavior": "Directory-identity correction and strict independent retained-record reconciliation for the manual historical source comparison.",
+    "status": "Initial comparison stopped both variants in preparation before compiler/driver/trial. New16-case Windows/Linux source gates, exact-source integration and first actual controlled trials require publishing-source execution.",
+    "failure_evidence": "docs/evidence/retirement-preparation-497066c.json",
+    "next": "Verify native root identities and compilation before any disposable driver stage. Qualify source/phase/ACK/result/CPU reconciliation; preserve D01 uncertainty and all full-product requirements."
   },
   "resolved": [
     {
@@ -568,10 +573,10 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "b2cf9899417d52c2266d86fa1246b874001376a3",
-    "run": 43432703721,
+    "source": "497066c8d4ab3f06937f61846e08829db47bee39",
+    "run": 43440422552,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "Job conclusions plus exact priority CPU/SDK results. Detailed CPU verifier and owner GUI evidence remain separately source-bound; no new physical durability or GPU-output claim."
+    "scope": "All ordinary current job conclusions and8 CPU reference-transformation cases on Linux. Historical VM comparison stopped before source generation; not a retirement result or owner qualification."
   }
 }

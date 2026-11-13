@@ -109,7 +109,11 @@
             "held",
             "closed"
           ],
-          "implemented": true,
+          "initial_control": "497066c8d4ab3f06937f61846e08829db47bee39",
+          "run": 43442794675,
+          "status": "Preparation failed; no old-driver trial or D01 observation.",
+          "repair": "Directory identity instead of raw path text;16-case Windows/Linux and strict independent reconciliation require execution.",
+          "evidence": "docs/evidence/retirement-preparation-497066c.json",
           "execution_pending": true
         }
       }

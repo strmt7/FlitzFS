@@ -38,7 +38,8 @@
       "publisher_ms_date": "2025-12-30",
       "publisher_updated_at": "2026-01-07",
       "revision_verified": false,
-      "reviewed": "Remarks: request cancellation, pending-I/O completion and exact process-handle exit observation are distinct from initiating termination."
+      "reviewed": "Remarks: request cancellation, pending-I/O completion and exact process-handle exit observation are distinct from initiating termination.",
+      "semantic_admission": true
     },
     {
       "url": "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-terminatejobobject",
@@ -50,7 +51,9 @@
       "publisher_ms_date": "2018-12-05",
       "publisher_updated_at": "2024-02-22",
       "revision_verified": false,
-      "reviewed": "Remarks: job termination applies process termination semantics to members and nested jobs. Current capture does not make this a recently published page."
+      "reviewed": "Historical publisher metadata retained; excluded from normative research evidence.",
+      "semantic_admission": false,
+      "rejection": "Publisher update2024-02-22 does not satisfy the owner's recent-source requirement. Retained capture only; no design or contract conclusion relies on it."
     }
   ],
   "exact_source": {
