@@ -977,3 +977,16 @@ memory, process, duration, package/model and private-cache controls remain.
 Actual source-specific receipts and live confirmation are prerequisites for later
 kernel analysis; compilation, CPU format recovery and GPU execution have separate
 gates. No owner installation or repeated unchanged host/GPU test follows.
+
+
+## Optional codec object compilation
+
+The new [offline gate](HIPCOMP_OFFLINE.md) accepts only the admitted pinned vendor
+source and verified complete SDK on disposable hosted Windows VMs. Source size,
+digest, path/case aliases, notices and NEW output checks precede compilation;
+Git replacements are disabled and canonical source blobs are copied into a private
+fixture. Candidate CMake is never executed. The generated object remains unloaded,
+unlinked and unexported. Existing 2-GiB command and SDK/resource gates remain, with
+explicit wrapper/compiler deadlines and output acceptance caps. No owner driver,
+GPU, mount or repeated unchanged GUI action is enabled. Actual tests/compiler
+results and separate runtime/CPU recovery/performance gates remain required.

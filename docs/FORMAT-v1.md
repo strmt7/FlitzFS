@@ -399,3 +399,9 @@ CPU reader retain their existing capability rules. See
 The isolated GPU candidate source-index extension changes no stored format,
 codec, worker protocol or product numbering. Candidate evaluation alone cannot
 add a decoding dependency; see [GPU_CODEC_CANDIDATES.md](GPU_CODEC_CANDIDATES.md).
+
+
+The optional hipCOMP object compile gate changes no storage encoding, codec ID,
+worker protocol or product numbering. The generated object is isolated compiler
+output, not a decoding dependency or filesystem data. Its source asset is a
+qualification manifest; see [HIPCOMP_OFFLINE.md](HIPCOMP_OFFLINE.md).

@@ -885,3 +885,15 @@ query receipts require execution before kernel analysis. Windows compilation,
 independent CPU format recovery, contained worker integration and measured useful
 end-to-end gains remain required. This does not close D01 or its historical unknown
 cause, G02's benefit exit, G03's lifecycle gates or the remaining full-product work.
+
+
+## Optional LZ4 object qualification
+
+The candidate source index at `905a4d3` passed 22 admission cases, eight default
+FlitzFS queries and two upstream queries with separate source/control identity.
+The next [offline gate](HIPCOMP_OFFLINE.md) prepares a byte-checked private source
+copy and explicit native Windows compilation of one LZ4 entry. Its 20 new CPU
+admission/staging cases and compiler invocation require actual source-bound
+execution. No product codec, GPU runtime path or performance benefit is selected.
+Independent CPU decoding, checked resource admission and equivalent worker
+containment remain prerequisites for runtime use; all full-product exits remain.

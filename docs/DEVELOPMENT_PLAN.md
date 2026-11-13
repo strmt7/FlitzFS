@@ -450,3 +450,18 @@ worker containment and whole-operation gain measurements remain mandatory.
 The G03 lifecycle prerequisite and historical D01 uncertainty remain explicit;
 L01 continuation, durable mapping/authorization, automatic learning and every
 full-product exit criterion remain unchanged.
+
+
+The closed candidate navigation at `905a4d3` passed its 22 admission cases and
+actual queries in both scopes: 143 FlitzFS files/eight queries and 142 pinned
+hipCOMP files/two queries, with zero reported index errors. Relevant LZ4 source
+and complete notices were independently byte-checked. Known dependency pins were
+current in the native inventory; research-runtime freshness remains open.
+
+The next G02 step is the [optional offline object gate](HIPCOMP_OFFLINE.md).
+It retains current SDK staging and all existing worker gates, verifies source
+before downloading the SDK, and compiles one private byte-identical translation
+unit for a synthetic target. The 20 new admission/staging cases and actual native
+compiler outcome are pending. Compilation cannot close CPU-format, runtime,
+performance or full-product requirements. No unchanged owner GPU/GUI repetition
+is part of this source-only change.
