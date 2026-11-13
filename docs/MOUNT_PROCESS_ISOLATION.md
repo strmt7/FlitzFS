@@ -185,3 +185,53 @@ guard remains fixture-specific; no production guard or owner mount is claimed.
 Do not bypass a future guard using a synthetic origin provider to keep a live
 self-client fixture passing. No unchanged GPU experiment is needed for these
 test-only lifecycle changes.
+
+## Restart, resumer and read-only actor conversion
+
+Source 6dac1f109f7e97965f26fc1cca5a72fab6375cac passed all thirteen core jobs.
+Its basic, mutation and deletion records bind distinct host/client/verifier PIDs,
+actual source self-open rejection, original Flush observation, zero contexts
+and successful exact source/verifier retirement. Raw report text is retained in
+evidence/ordered-actors-6dac1f1.json, preserving full-width integer text.
+
+The next change moves the ordered restart source AND both normal/crash writable
+resumers to the same external-controller protocol. The controller performs every
+original read/write/Flush operation, then closes its handles before signaling
+written. A resumer first compares the complete original acknowledgement, acquires
+the original exclusive backend lease and mounts; its self-open probe must preserve
+the nonempty old namespace as well as generation/extent/context state. The actual
+controller PID and successful original Flush are required before ordered stop.
+The retained source and resumer process leases survive through independent CPU
+verification. Restart now requires the external-client report variant in the
+live campaign; historical self-client records remain readable.
+
+The read-only normal, kill and recovery/remount workloads also execute in their
+external controller. They retain sequential/random/mapped/concurrent reads,
+32-bit-crossing sparse tails, inode/basic identity, enumeration/write rejection,
+all three exact space reports, unchanged backing checks and independent recovery.
+The host performs only backend/adapter/dispatcher work and scoped non-mounted
+fixture validation. The controller holds the exact retired process leases through
+the campaign, never reopens a PID and records distinct actor/retirement observations.
+These read-only records do not yet attest to an SDK request-origin guard.
+
+The read-only controller gains the same explicit 128-MiB process/256-MiB aggregate,
+two-process,20%-CPU,below-normal,ten-user-CPU-second and fail-closed headroom budget.
+Its existing 30/15/30-second child deadlines and two-second exit observations remain.
+The hosted wrapper adds a100-second total outer deadline plus2-second termination
+confirmation. Bounded stdout is32 KiB to preserve three existing <=8192-byte space
+reports plus fixed diagnostics; stderr stays4 KiB. This bounds a previously
+unbounded controller output stream; no report or child limit is enlarged.
+
+All new actor paths require their own publishing-source qualification. No current
+green source explains the historical kernel state, establishes full Windows 11
+client behavior or enables an owner mount. RAM handoff still needs its bounded
+multi-round external-client protocol before adapter-wide self-origin protection.
+No live self-client may be hidden behind a synthetic origin query.
+
+The reviewed isolated Crawl4AI research lane now offers a process suite: existing
+wait/thread/close references, current Microsoft Create/Set/Reset/OpenEvent and
+event-rights pages, then process/job termination references. It retains its locked
+provider, robots checks, native receipts and VM limits. The source-group default
+tracks this lifecycle work; every prior explicit AMD/app group remains available.
+Read and admit substantive exact-source captures before designing the new RAM
+multi-round protocol; a successful installation or queued crawl is not evidence.

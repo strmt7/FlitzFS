@@ -177,3 +177,11 @@ their filesystem hosts on disposable Windows runners. It preserves the original
 workloads and adds strict actor evidence; its publishing-source checks are pending.
 Restart/resumer, memory-handoff and read-only actor conversion, adapter-wide
 protection and the historical termination cause remain open.
+
+The three external-client profiles at 6dac1f1 passed all thirteen core jobs;
+their source-bound records are in
+[ordered actor evidence](docs/evidence/ordered-actors-6dac1f1.json).
+The next change extends that separation to ordered restart sources, writable
+resumers and the complete read-only normal/kill/remount campaign, retaining all
+original data/metadata and recovery checks. Its qualification is pending.
+RAM handoff, adapter-wide protection and the historical shutdown cause remain open.

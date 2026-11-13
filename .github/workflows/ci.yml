@@ -383,8 +383,47 @@ jobs:
       - name: Exercise actual mounted I/O under process limits
         shell: pwsh
         run: |
-          ./build-native/Release/flitzfs_mount_probe.exe --run-disposable-ci
-          if ($LASTEXITCODE) { throw 'Supervised mount probe failed' }
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = (Resolve-Path './build-native/Release/flitzfs_mount_probe.exe').Path
+          $start.ArgumentList.Add('--run-disposable-ci')
+          $start.UseShellExecute = $false
+          $start.CreateNoWindow = $true
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $process = [Diagnostics.Process]::new()
+          $process.StartInfo = $start
+          $started = $false
+          $confirmed = $false
+          $timedOut = $false
+          try {
+            $started = $process.Start()
+            if (-not $started) { throw 'Readonly controller did not start' }
+            $stdout = $process.StandardOutput.ReadToEndAsync()
+            $stderr = $process.StandardError.ReadToEndAsync()
+            # Enclose all existing 15/30-second child phases and their existing
+            # two-second exit observations; never widen those inner deadlines.
+            $confirmed = $process.WaitForExit(100000)
+            if (-not $confirmed) {
+              $timedOut = $true
+              if (-not $process.HasExited) { $process.Kill() }
+              $confirmed = $process.WaitForExit(2000)
+            }
+            if (-not $confirmed) { throw 'Readonly controller exit unconfirmed; no next trial' }
+            if (-not $stdout.Wait(2000) -or -not $stderr.Wait(2000)) { throw 'Readonly output retirement failed' }
+            if ($stdout.Result.Length -gt 32768 -or $stderr.Result.Length -gt 4096) { throw 'Readonly controller output cap' }
+            Write-Output $stdout.Result
+            Write-Output $stderr.Result
+            if ($timedOut -or $process.ExitCode -ne 0) { throw 'Supervised readonly mount probe failed' }
+          } finally {
+            try {
+              if ($started -and -not $confirmed) {
+                if (-not $process.HasExited) { $process.Kill() }
+                $confirmed = $process.WaitForExit(2000)
+                if (-not $confirmed) { throw 'Readonly cleanup could not confirm controller exit' }
+              }
+            } finally { $process.Dispose() }
+          }
+
 
       - name: Reconcile all source-bound Windows space observations
         run: python tools/ci/verify_windows_space_reports.py --hosted

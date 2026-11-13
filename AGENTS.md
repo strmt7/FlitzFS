@@ -1247,3 +1247,16 @@ RAM-handoff and read-only workloads remain separate conversion work; the guard
 is still test-only. Never hide a live self-client behind a fake origin query or
 declare D01 fixed from a green qualification. These changes permit no owner mount,
 driver operation or GPU rerun.
+
+## Restart/resumer and read-only external clients
+
+The next actor conversion preserves the source/resumer leases, full acknowledgement
+comparison and original CPU reopen while moving restart/resumer mounted calls
+into the existing external controller. The read-only normal/kill/remount workload
+does likewise and adds the established controller resource budget plus100-second
+outer hosted wall bound. Read docs/MOUNT_PROCESS_ISOLATION.md for roles, unchanged
+child limits and bounded32-KiB stdout preserving three <=8192-byte reports.
+Require publishing-source qualification. RAM handoff and adapter-wide self-origin
+protection remain unfinished; no synthetic-origin bypass, owner mount/driver
+operation or unchanged GPU rerun is authorized. Admit the isolated process-suite
+Crawl4AI receipts before implementing the new multi-round RAM protocol.

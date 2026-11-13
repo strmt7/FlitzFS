@@ -32,6 +32,11 @@ PROCESS_SOURCES = (
     ("windows-crt-thread", "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/beginthread-beginthreadex?view=msvc-170", "_beginthreadex", "CloseHandle"),
     ("windows-thread-priority", "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority", "THREAD_PRIORITY_LOWEST", "THREAD_PRIORITY_LOWEST"),
     ("windows-handle-close", "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle", "CloseHandle", "thread"),
+    ("windows-create-event", "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventw", "bManualReset", "auto-reset"),
+    ("windows-set-event", "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent", "SetEvent", "auto-reset"),
+    ("windows-reset-event", "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent", "ResetEvent", "nonsignaled"),
+    ("windows-open-event", "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-openeventw", "dwDesiredAccess", "access"),
+    ("windows-event-rights", "https://learn.microsoft.com/en-us/windows/win32/sync/synchronization-object-security-and-access-rights", "EVENT_MODIFY_STATE", "SYNCHRONIZE"),
 )
 AMD_SOURCES = (
     ("amd-windows-deployment", "https://rocm.docs.amd.com/projects/install-on-windows/en/docs-7.2/conceptual/deployment-guidelines.html", "deployment", "Applications do not"),

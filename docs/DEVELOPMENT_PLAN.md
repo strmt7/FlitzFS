@@ -329,3 +329,19 @@ remain prerequisites to adapter-wide self-origin protection. The upstream report
 still has no maintainer confirmation; the historical kernel state is unknown.
 Do not widen deadlines, bypass a guard with a fake origin, repeat an unchanged
 GPU experiment or treat a green run as a causal D01 fix.
+
+## Current actor qualification and next implementation
+
+[Source6dac1f1](evidence/ordered-actors-6dac1f1.json) passed all thirteen core jobs.
+The basic/mutation/delete host, client and independent verifier were distinct;
+source and supervisor retirement preceded verification. Original bytes, metadata,
+namespace and limits remained checked. This does not establish the historical
+shutdown cause or qualify a production mounted filesystem.
+
+The next source extends external clients to ordered restart, both writable
+resumers and the read-only normal/kill/remount campaign, adds bounded read-only
+controller supervision and requests current primary event/process research.
+Its publishing-source qualification is pending. Finish the RAM-handoff multi-round
+protocol from admitted research, then enable/test adapter-wide self-origin
+protection without a synthetic-origin escape. Preserve every full-product
+package and exit criterion; no owner mount/driver or unchanged GPU experiment.

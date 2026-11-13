@@ -253,7 +253,7 @@ void prepare_external_actor(std::uint32_t client) {
   source_client_process=client;source_guard.expected.store(client,std::memory_order_release);
 }
 void self_open_probe(flitzfs::WinFspNativeSession& session,
-    const flitzfs::WinFspNativeWritable* observer,const fs::path& mount) {
+    const flitzfs::WinFspNativeWritable* observer,const fs::path& mount,bool empty=true) {
   require(session.stats().contexts==0,"source setup retained namespace handles");
   source_guard.armed.store(true,std::memory_order_release);
   // Prove the guard using the actual SDK/driver. This attempt MUST NOT acquire
@@ -269,7 +269,8 @@ void self_open_probe(flitzfs::WinFspNativeSession& session,
     const auto after=observer->snapshot();
     require(before.storage_info().generation==after.storage_info().generation&&
         before.storage_info().physical_end==after.storage_info().physical_end&&
-        after.list().empty()&&session.stats().contexts==0,"self-I/O guard changed native state");
+        (empty?after.list().empty():after.list().size()==before.list().size())&&
+        session.stats().contexts==0,"self-I/O guard changed native state");
   }
 }
 void external_origin_proof(const flitzfs::WinFspNativeSession& session) {
@@ -435,7 +436,7 @@ std::string extended_text(std::string_view profile,std::string_view phase,std::u
       <<",\"cpu_verified\":true,\"dispatcher_stopped\":"<<(phase=="state"?"true":"false")<<",\"gpu\":false";
   if(source_client_process) {
     require(((profile=="crash"||profile=="crash-restart")&&(phase=="ack"||phase=="verify"))||
-        ((profile=="mutations"||profile=="delete")&&(phase=="state"||phase=="verify")),
+        ((profile=="mutations"||profile=="delete"||profile=="restart")&&(phase=="state"||phase=="verify")),
         "external client on wrong evidence phase");
     out<<",\"source_protocol\":\"external-client\",\"client_process\":"<<source_client_process
         <<",\"host_self_io_rejected\":"<<(phase!="verify"?"true":"false")
@@ -713,18 +714,26 @@ std::string read_state(const Fixture& fixture) {
   checked(ReadFile(file.value,text.data(),static_cast<DWORD>(text.size()),&got,nullptr),"source acknowledgement read");
   require(got==text.size()&&text.find('\0')==text.npos,"incomplete source acknowledgement");return text;
 }
-void restart_source() {
-  require_probe_job();stage=50;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
-  auto adapter=flitzfs::WinFspNativeWritable::create_new_hosted(
-      image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
-  flitzfs::WinFspNativeSession session(std::move(adapter),live_api());
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"restart source mount");mounted_identity(mount);
+void restart_client(const fs::path& mount) {
+  mounted_identity(mount);
   {
     Handle file(CreateFileW((mount/L"sample.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
         FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
     checked(file.value!=INVALID_HANDLE_VALUE,"restart source create");
     write_bytes(file.value,expected_data());read_handle(file.value,expected_data());stage=51;
   }
+}
+void restart_source(std::wstring_view token,std::uint32_t client) {
+  require_probe_job();stage=50;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
+  prepare_external_actor(client);
+  source_fixture::Events protocol(false,std::wstring(token));
+  auto adapter=flitzfs::WinFspNativeWritable::create_new_hosted(
+      image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
+  const auto* observer=adapter.get();
+  flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
+  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"restart source mount");
+  self_open_probe(session,observer,mount);
+  protocol.signal(source_fixture::Phase::ready);protocol.wait_written();external_origin_proof(session);
   finish_session(session,mount);
   auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
   extended_report(fixture,"restart","state",GetCurrentProcessId(),view,0);
@@ -756,8 +765,20 @@ void append_continuation(const Fixture& fixture,const std::string& original,std:
   DWORD wrote=0;checked(WriteFile(file.value,extra.data(),static_cast<DWORD>(extra.size()),&wrote,nullptr),"append continuation receipt");
   require(wrote==extra.size(),"short continuation receipt");checked(FlushFileBuffers(file.value),"continuation receipt flush");
 }
-void restart_resume(std::uint32_t source_process,bool killed) {
-  require_probe_job();stage=52;Fixture fixture(source_process);const auto image=fixture.root/L"native.fltx";
+void continuation_client(const fs::path& mount) {
+  mounted_identity(mount);
+  require(read_all(mount/L"sample.bin",expected_data().size())==expected_data(),"remounted original bytes");
+  {
+    Handle file(CreateFileW((mount/L"continued.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
+    checked(file.value!=INVALID_HANDLE_VALUE,"new continuation file");
+    write_bytes(file.value,continuation_data());read_handle(file.value,continuation_data());
+  }
+}
+void restart_resume(std::uint32_t source_process,bool killed,std::wstring_view token,std::uint32_t client) {
+  require_probe_job();prepare_external_actor(client);
+  source_fixture::Events protocol(false,std::wstring(token));
+  stage=52;Fixture fixture(source_process);const auto image=fixture.root/L"native.fltx";
   require_removed(fixture.root/L"mount");const std::string_view profile=killed?"crash-restart":"restart";
   const auto original=read_state(fixture);std::uint64_t generation=0;
   {
@@ -769,15 +790,11 @@ void restart_resume(std::uint32_t source_process,bool killed) {
   auto adapter=flitzfs::WinFspNativeWritable::resume_retired_hosted(
       image,identity(),generation,{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
   stage=53;const auto mount=fixture.root/L"remount";
-  flitzfs::WinFspNativeSession session(std::move(adapter),live_api());
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"persisted writable remount");mounted_identity(mount);
-  require(read_all(mount/L"sample.bin",expected_data().size())==expected_data(),"remounted original bytes");
-  {
-    Handle file(CreateFileW((mount/L"continued.bin").c_str(),GENERIC_READ|GENERIC_WRITE,
-        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr));
-    checked(file.value!=INVALID_HANDLE_VALUE,"new continuation file");
-    write_bytes(file.value,continuation_data());read_handle(file.value,continuation_data());
-  }
+  const auto* observer=adapter.get();
+  flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
+  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"persisted writable remount");
+  self_open_probe(session,observer,mount,false);
+  protocol.signal(source_fixture::Phase::ready);protocol.wait_written();external_origin_proof(session);
   stage=54;finish_session(session,mount);
   auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
   require(view.storage_info().generation>generation,"continuation did not publish a new checkpoint");
@@ -842,9 +859,10 @@ struct ExternalOrderedSource {
   std::unique_ptr<source_fixture::Child> child;
   flitzfs::ProcessResult written;
   ExternalOrderedSource(const fs::path& executable,std::string_view profile) {
-    require(profile=="basic"||profile=="mutations"||profile=="delete","ordered external profile");
+    require(profile=="basic"||profile=="mutations"||profile=="delete"||profile=="restart","ordered external profile");
     const auto client=GetCurrentProcessId();
-    const auto mode=profile=="basic"?L"--write-child":profile=="delete"?L"--delete-child":L"--mutations-child";
+    const auto mode=profile=="basic"?L"--write-child":profile=="delete"?L"--delete-child":
+        profile=="restart"?L"--restart-source-child":L"--mutations-child";
     child=std::make_unique<source_fixture::Child>(executable,
         std::vector<std::wstring>{mode,protocol.token(),std::to_wstring(client)},
         flitzfs::ProcessBudget{128,2000,30000});
@@ -852,6 +870,7 @@ struct ExternalOrderedSource {
     require(child->process_id()&&child->process_id()!=client,"ordered source/client alias");
     Fixture fixture(child->process_id());const auto mount=fixture.root/L"mount";
     if(profile=="basic")basic_client(mount);
+    else if(profile=="restart")restart_client(mount);
     else namespace_client(mount,profile=="delete");
     // All actual client handles are closed before authorizing ordered stop.
     protocol.signal(source_fixture::Phase::written);
@@ -860,6 +879,27 @@ struct ExternalOrderedSource {
         !written.timed_out&&!written.cancelled&&written.exit_code==0&&child->retirement_confirmed(),
         "ordered external source exact retirement failed");
     require(source_fixture::cleanup_ok.load(),"ordered external protocol cleanup");
+  }
+};
+struct ExternalResumer {
+  source_fixture::Events protocol{true};
+  std::unique_ptr<source_fixture::Child> child;
+  flitzfs::ProcessResult resumed;
+  ExternalResumer(const fs::path& executable,std::uint32_t source,bool killed) {
+    child=std::make_unique<source_fixture::Child>(executable,
+        std::vector<std::wstring>{killed?L"--crash-resume-child":L"--resume-child",
+            std::to_wstring(source),protocol.token(),std::to_wstring(GetCurrentProcessId())},
+        flitzfs::ProcessBudget{128,2000,30000});
+    child->await(protocol,source_fixture::Phase::ready);
+    require(child->process_id()&&child->process_id()!=source&&
+        child->process_id()!=GetCurrentProcessId(),"resumer actor alias");
+    Fixture fixture(source);continuation_client(fixture.root/L"remount");
+    protocol.signal(source_fixture::Phase::written);
+    resumed=child->result();
+    require(resumed.process_id==child->process_id()&&resumed.exit_confirmed&&
+        !resumed.timed_out&&!resumed.cancelled&&resumed.exit_code==0&&child->retirement_confirmed(),
+        "external resumer exact retirement failed");
+    require(source_fixture::cleanup_ok.load(),"external resumer protocol cleanup");
   }
 };
 struct ExternalSource {
@@ -898,7 +938,7 @@ void run_extended(const fs::path& executable,std::string_view profile) {
   std::unique_ptr<ExternalOrderedSource> ordered;
   flitzfs::ProcessResult written;
   if(crash){external=std::make_unique<ExternalSource>(executable,profile);written=external->written;}
-  else if(profile=="mutations"||profile=="delete") {
+  else if(profile=="mutations"||profile=="delete"||profile=="restart") {
     ordered=std::make_unique<ExternalOrderedSource>(executable,profile);written=ordered->written;
   } else written=flitzfs::run_bounded_process(executable,{child},budget);
   std::cout<<"extended_writer profile="<<profile<<" exit="<<written.exit_code<<" stage="<<(written.exit_code>>16U)
@@ -908,11 +948,10 @@ void run_extended(const fs::path& executable,std::string_view profile) {
       (crash?(written.timed_out&&written.exit_code==ERROR_TIMEOUT):(!written.timed_out&&written.exit_code==0)),
       "extended writer/termination proof failed");emit_extended(written.process_id,profile,crash?"ack":"state");
   budget.timeout_ms=30000;std::uint32_t resumer_process=0;
+  std::unique_ptr<ExternalResumer> resumer;
   if(restart_profile(profile)) {
-    std::vector<std::wstring> resume_arguments{
-        crash?L"--crash-resume-child":L"--resume-child",std::to_wstring(written.process_id)};
-    if(crash)resume_arguments.push_back(std::to_wstring(GetCurrentProcessId()));
-    const auto resumed=flitzfs::run_bounded_process(executable,resume_arguments,budget);
+    resumer=std::make_unique<ExternalResumer>(executable,written.process_id,crash);
+    const auto resumed=resumer->resumed;
     std::cout<<"extended_resumer profile="<<profile<<" exit="<<resumed.exit_code
         <<" stage="<<(resumed.exit_code>>16U)<<" detail="<<(resumed.exit_code&0xffffU)
         <<" timed_out="<<resumed.timed_out<<" cancelled="<<resumed.cancelled
@@ -941,7 +980,7 @@ int wmain(int argc,wchar_t** argv) {try {
   if(mode==L"--write-child"){require(argc==4,"missing external writer identity");write_probe(argv[2],process_number(argv[3]));return 0;}
   if(mode==L"--verify-child"){require(argc==4,"missing source/client identities");source_client_process=process_number(argv[3]);verify_probe(process_number(argv[2]));return 0;}
   if(mode==L"--restart-source-child") {
-    require(argc==2,"unexpected restart source argument");restart_source();return 0;
+    require(argc==4,"missing restart source client identity");restart_source(argv[2],process_number(argv[3]));return 0;
   }
   if(mode==L"--crash-restart-source-child"||mode==L"--crash-child") {
     require(argc==4,"missing external source handshake/identity");
@@ -949,14 +988,13 @@ int wmain(int argc,wchar_t** argv) {try {
   }
   if(mode==L"--resume-child"||mode==L"--crash-resume-child") {
     const bool killed=mode==L"--crash-resume-child";
-    require(argc==(killed?4:3),"missing restart source/client identity");
-    if(killed)source_client_process=process_number(argv[3]);
-    restart_resume(process_number(argv[2]),killed);return 0;
+    require(argc==5,"missing restart source/token/client identities");
+    restart_resume(process_number(argv[2]),killed,argv[3],process_number(argv[4]));return 0;
   }
   if(mode==L"--restart-verify-child"||mode==L"--crash-restart-verify-child") {
     const bool killed=mode==L"--crash-restart-verify-child";
-    require(argc==(killed?5:4),"missing restart verifier/client identities");
-    if(killed)source_client_process=process_number(argv[4]);
+    require(argc==5,"missing restart verifier/client identities");
+    source_client_process=process_number(argv[4]);
     extended_verify(process_number(argv[2]),killed?"crash-restart":"restart",process_number(argv[3]));return 0;
   }
   if(mode==L"--mutations-child"||mode==L"--delete-child") {

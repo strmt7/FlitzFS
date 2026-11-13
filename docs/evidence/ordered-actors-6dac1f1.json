@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "6dac1f109f7e97965f26fc1cca5a72fab6375cac",
+  "tree": "8a71a1228d78ad1039fa2e3db705e76f80d862a1",
+  "date": "2026-11-13",
+  "core_run": 43358621907,
+  "jobs": [
+    {
+      "id": 131666544390,
+      "name": "windows-native",
+      "conclusion": "success"
+    },
+    {
+      "id": 131666544574,
+      "name": "cpu (ubuntu-24.04, OFF)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131666544628,
+      "name": "sanitizers",
+      "conclusion": "success"
+    },
+    {
+      "id": 131666544654,
+      "name": "cpu (ubuntu-24.04, ON)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131666544763,
+      "name": "cpu (windows-2025-vs2026, OFF)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131669865190,
+      "name": "windows-mount",
+      "conclusion": "success"
+    },
+    {
+      "id": 131671034305,
+      "name": "windows-write-mount (restart)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131671034308,
+      "name": "windows-write-mount (mutations)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131671034346,
+      "name": "windows-write-mount (ram-handoff)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131671034357,
+      "name": "windows-write-mount (basic)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131671034386,
+      "name": "windows-write-mount (delete)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131671034392,
+      "name": "windows-write-mount (crash-restart)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131671034420,
+      "name": "windows-write-mount (crash)",
+      "conclusion": "success"
+    }
+  ],
+  "profiles": [
+    {
+      "profile": "basic",
+      "evidence": {
+        "artifact": 14008051760,
+        "sha256": "db8d7b51fdff367a5ea30fad7ce26e65abbc45926157c661d72ad03152ec8f0a",
+        "size": 905,
+        "rows": [
+          {
+            "entry": "flitzfs-write-probe-9388/verify.json",
+            "body": "{\"schema\":1,\"phase\":\"verify\",\"commit\":\"6dac1f109f7e97965f26fc1cca5a72fab6375cac\",\"source_process\":9388,\"observer_process\":2592,\"user_bytes\":7001,\"inode\":2,\"namespace_sequence\":8,\"generation\":16,\"image_bytes\":1769472,\"image_cap\":4194304,\"contexts\":0,\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":9144,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false}"
+          },
+          {
+            "entry": "flitzfs-write-probe-9388/write.json",
+            "body": "{\"schema\":1,\"phase\":\"write\",\"commit\":\"6dac1f109f7e97965f26fc1cca5a72fab6375cac\",\"source_process\":9388,\"observer_process\":9388,\"user_bytes\":7001,\"inode\":2,\"namespace_sequence\":8,\"generation\":16,\"image_bytes\":1769472,\"image_cap\":4194304,\"contexts\":0,\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":true,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":9144,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
+          },
+          {
+            "sha256": "db8d7b51fdff367a5ea30fad7ce26e65abbc45926157c661d72ad03152ec8f0a",
+            "bytes": 905,
+            "entries": 2
+          }
+        ],
+        "projected": [
+          {
+            "entry": "flitzfs-write-probe-9388/verify.json",
+            "phase": "verify",
+            "source": 9388,
+            "observer": 2592,
+            "client": 9144,
+            "self_refused": false,
+            "flush_observed": false,
+            "user_bytes": 7001,
+            "contexts": 0,
+            "cpu_verified": true
+          },
+          {
+            "entry": "flitzfs-write-probe-9388/write.json",
+            "phase": "write",
+            "source": 9388,
+            "observer": 9388,
+            "client": 9144,
+            "self_refused": true,
+            "flush_observed": true,
+            "user_bytes": 7001,
+            "contexts": 0,
+            "cpu_verified": true
+          }
+        ]
+      },
+      "supervisor": {
+        "job": 131671034357,
+        "lines": [
+          "2026-11-13T03:38:12.5558066Z writable_probe exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4763648",
+          "2026-11-13T03:38:12.5563125Z writable_verify exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3129344",
+          "2026-11-13T03:38:12.9751780Z Windows writable reconciliation: {\"commit\": \"6dac1f109f7e97965f26fc1cca5a72fab6375cac\", \"complete\": true, \"generation\": 16, \"image_bytes\": 1769472, \"namespace_sequence\": 8, \"profile\": \"basic\", \"schema\": 1, \"user_bytes\": 7001}"
+        ]
+      }
+    },
+    {
+      "profile": "mutations",
+      "evidence": {
+        "artifact": 14008335685,
+        "sha256": "45c5f4edf3751a673b5582b8aa7e1f6b9b3b4d3500c0e297b1e4d3a5eca86278",
+        "size": 1386,
+        "rows": [
+          {
+            "entry": "flitzfs-write-probe-1668/state-verify.json",
+            "body": "{\"schema\":2,\"profile\":\"mutations\",\"phase\":\"verify\",\"commit\":\"6dac1f109f7e97965f26fc1cca5a72fab6375cac\",\"source_process\":1668,\"observer_process\":10124,\"user_bytes\":89,\"inode\":2,\"file_count\":2,\"namespace_sequence\":19,\"generation\":38,\"image_bytes\":3932160,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390147083421750,\"last_access_time\":134390147083669009,\"last_write_time\":134390147083669009,\"change_time\":134390147083669009,\"attributes\":32,\"reservation\":4096,\"data_digest\":\"d787e70e8ed2466d2f2f1d321dd14562459bad050832c82d6965a883d70a3fd2\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"6728882bc03612d0e04ec3717ec480ba8b3111905021ff53e0f0d1fe24a7cf00\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":7888,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false}"
+          },
+          {
+            "entry": "flitzfs-write-probe-1668/state.json",
+            "body": "{\"schema\":2,\"profile\":\"mutations\",\"phase\":\"state\",\"commit\":\"6dac1f109f7e97965f26fc1cca5a72fab6375cac\",\"source_process\":1668,\"observer_process\":1668,\"user_bytes\":89,\"inode\":2,\"file_count\":2,\"namespace_sequence\":19,\"generation\":38,\"image_bytes\":3932160,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390147083421750,\"last_access_time\":134390147083669009,\"last_write_time\":134390147083669009,\"change_time\":134390147083669009,\"attributes\":32,\"reservation\":4096,\"data_digest\":\"d787e70e8ed2466d2f2f1d321dd14562459bad050832c82d6965a883d70a3fd2\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"6728882bc03612d0e04ec3717ec480ba8b3111905021ff53e0f0d1fe24a7cf00\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":true,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":7888,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
+          },
+          {
+            "sha256": "45c5f4edf3751a673b5582b8aa7e1f6b9b3b4d3500c0e297b1e4d3a5eca86278",
+            "bytes": 1386,
+            "entries": 2
+          }
+        ],
+        "projected": [
+          {
+            "entry": "flitzfs-write-probe-1668/state-verify.json",
+            "phase": "verify",
+            "source": 1668,
+            "observer": 10124,
+            "client": 7888,
+            "self_refused": false,
+            "flush_observed": false,
+            "user_bytes": 89,
+            "contexts": 0,
+            "cpu_verified": true
+          },
+          {
+            "entry": "flitzfs-write-probe-1668/state.json",
+            "phase": "state",
+            "source": 1668,
+            "observer": 1668,
+            "client": 7888,
+            "self_refused": true,
+            "flush_observed": true,
+            "user_bytes": 89,
+            "contexts": 0,
+            "cpu_verified": true
+          }
+        ]
+      },
+      "supervisor": {
+        "job": 131671034308,
+        "lines": [
+          "2026-11-13T03:38:28.4301946Z extended_writer profile=mutations exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4751360",
+          "2026-11-13T03:38:28.4310535Z extended_verifier profile=mutations exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3084288",
+          "2026-11-13T03:38:28.8867192Z Windows writable reconciliation: {\"commit\": \"6dac1f109f7e97965f26fc1cca5a72fab6375cac\", \"complete\": true, \"generation\": 38, \"image_bytes\": 3932160, \"namespace_sequence\": 19, \"profile\": \"mutations\", \"schema\": 1, \"user_bytes\": 89}"
+        ]
+      }
+    },
+    {
+      "profile": "delete",
+      "evidence": {
+        "artifact": 14007777521,
+        "sha256": "1c480f2f5e826ad4663fa2761a9f2b6e2b94eeb7be90dd4eb30b9f003b9a977b",
+        "size": 1312,
+        "rows": [
+          {
+            "entry": "flitzfs-write-probe-2256/state-verify.json",
+            "body": "{\"schema\":2,\"profile\":\"delete\",\"phase\":\"verify\",\"commit\":\"6dac1f109f7e97965f26fc1cca5a72fab6375cac\",\"source_process\":2256,\"observer_process\":9352,\"user_bytes\":37,\"inode\":3,\"file_count\":1,\"namespace_sequence\":15,\"generation\":30,\"image_bytes\":3145728,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390147004606050,\"last_access_time\":134390147004646258,\"last_write_time\":134390147004646258,\"change_time\":134390147004646258,\"attributes\":32,\"reservation\":4096,\"data_digest\":\"6728882bc03612d0e04ec3717ec480ba8b3111905021ff53e0f0d1fe24a7cf00\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":5508,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false}"
+          },
+          {
+            "entry": "flitzfs-write-probe-2256/state.json",
+            "body": "{\"schema\":2,\"profile\":\"delete\",\"phase\":\"state\",\"commit\":\"6dac1f109f7e97965f26fc1cca5a72fab6375cac\",\"source_process\":2256,\"observer_process\":2256,\"user_bytes\":37,\"inode\":3,\"file_count\":1,\"namespace_sequence\":15,\"generation\":30,\"image_bytes\":3145728,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390147004606050,\"last_access_time\":134390147004646258,\"last_write_time\":134390147004646258,\"change_time\":134390147004646258,\"attributes\":32,\"reservation\":4096,\"data_digest\":\"6728882bc03612d0e04ec3717ec480ba8b3111905021ff53e0f0d1fe24a7cf00\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":true,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":5508,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}"
+          },
+          {
+            "sha256": "1c480f2f5e826ad4663fa2761a9f2b6e2b94eeb7be90dd4eb30b9f003b9a977b",
+            "bytes": 1312,
+            "entries": 2
+          }
+        ],
+        "projected": [
+          {
+            "entry": "flitzfs-write-probe-2256/state-verify.json",
+            "phase": "verify",
+            "source": 2256,
+            "observer": 9352,
+            "client": 5508,
+            "self_refused": false,
+            "flush_observed": false,
+            "user_bytes": 37,
+            "contexts": 0,
+            "cpu_verified": true
+          },
+          {
+            "entry": "flitzfs-write-probe-2256/state.json",
+            "phase": "state",
+            "source": 2256,
+            "observer": 2256,
+            "client": 5508,
+            "self_refused": true,
+            "flush_observed": true,
+            "user_bytes": 37,
+            "contexts": 0,
+            "cpu_verified": true
+          }
+        ]
+      },
+      "supervisor": {
+        "job": 131671034386,
+        "lines": [
+          "2026-11-13T03:38:20.5159943Z extended_writer profile=delete exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4833280",
+          "2026-11-13T03:38:20.5166832Z extended_verifier profile=delete exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3133440",
+          "2026-11-13T03:38:20.8614715Z Windows writable reconciliation: {\"commit\": \"6dac1f109f7e97965f26fc1cca5a72fab6375cac\", \"complete\": true, \"generation\": 30, \"image_bytes\": 3145728, \"namespace_sequence\": 15, \"profile\": \"delete\", \"schema\": 1, \"user_bytes\": 37}"
+        ]
+      }
+    }
+  ],
+  "scope": "Original actual mounted workloads moved to the external supervising controller, retaining all native data/metadata/namespace/readback checks and independent CPU reopen. Publishing-source hosted qualification, not owner mounting or historical root-cause proof.",
+  "limits": {
+    "source_operation_ms": 30000,
+    "crash_operation_ms": 15000,
+    "phase_ms": 5000,
+    "exit_observation_ms": 2000,
+    "process_mib": 128,
+    "aggregate_mib": 256,
+    "cpu_rate": 2000,
+    "report_bytes": 2048
+  },
+  "remaining": [
+    "Ordered restart source/resumer conversion",
+    "Readonly source/recovery client conversion",
+    "RAM handoff multi-round external client protocol",
+    "Adapter-wide self-origin protection after actor conversion",
+    "Historical failure cause remains unproven; no production, owner-driver, power-loss or arbitrary-future-bug safety declaration"
+  ]
+}

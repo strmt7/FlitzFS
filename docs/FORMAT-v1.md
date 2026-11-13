@@ -327,3 +327,9 @@ schema2 storage-observation fields remain readable, while the current live gate
 requires distinct source/client/verifier actors and phase-correct observations.
 This changes no native container, checkpoint, codec, dictionary or worker-frame
 encoding. It grants no new write/recovery or physical durability guarantee.
+
+The current live restart campaign now requires the same external-client
+diagnostic variant as the other converted writable profiles. The canonical
+source/continuation/final bindings remain exact; historical records still parse.
+Read-only space-report schemas and their byte caps remain unchanged. No native
+storage, checkpoint, codec or worker-wire encoding changes.
