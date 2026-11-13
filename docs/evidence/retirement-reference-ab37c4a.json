@@ -1,0 +1,380 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+  "core": {
+    "run": 43447719131,
+    "jobs": [
+      {
+        "id": 131961449132,
+        "name": "windows-native",
+        "conclusion": "success"
+      },
+      {
+        "id": 131961449405,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131961449423,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131961449744,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131961449791,
+        "name": "sanitizers",
+        "conclusion": "success"
+      },
+      {
+        "id": 131966938162,
+        "name": "windows-mount",
+        "conclusion": "success"
+      },
+      {
+        "id": 131968378113,
+        "name": "windows-write-mount (delete)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131968378129,
+        "name": "windows-write-mount (crash)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131968378157,
+        "name": "windows-write-mount (restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131968378195,
+        "name": "windows-write-mount (crash-restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131968378237,
+        "name": "windows-write-mount (basic)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131968378245,
+        "name": "windows-write-mount (ram-handoff)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131968378354,
+        "name": "windows-write-mount (mutations)",
+        "conclusion": "success"
+      }
+    ],
+    "passed": 13,
+    "total": 13
+  },
+  "source_gate": {
+    "run": 43447719348,
+    "linux": {
+      "job": 131961449631,
+      "cases": 18,
+      "seconds": 0.01,
+      "representation": "exact",
+      "physical_bytes": 54208,
+      "sha256": "268fbb3f8bc1954570525d0e0bea712d5b3ff4d6af427957a7ac2734c0c4755d"
+    },
+    "windows": {
+      "job": 131961450067,
+      "cases": 18,
+      "seconds": 0.125,
+      "representation": "crlf-checkout",
+      "physical_bytes": 55032,
+      "physical_sha256": "baeb1a5dd457a4cb7af7023be739579b1e13cbe59f4423a4a7d8f596f97abd70",
+      "canonical_bytes": 54208,
+      "canonical_sha256": "268fbb3f8bc1954570525d0e0bea712d5b3ff4d6af427957a7ac2734c0c4755d"
+    },
+    "root_identity_test_passed_both": true
+  },
+  "comparison": {
+    "run": 43450358079,
+    "reference": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+    "source_deadline_ms": 15000,
+    "retirement_observation_ms": 2000,
+    "source_process_limit_bytes": 134217728,
+    "controller_job_limit_bytes": 268435456,
+    "cpu_rate": 2000,
+    "ordered_readonly_prerequisite": true,
+    "variants": [
+      {
+        "variant": "held",
+        "job": 131970899040,
+        "artifact": {
+          "id": 14050107059,
+          "bytes": 4693,
+          "sha256": "e014bc96e0b95d76d9d202454411839ccb8fa5055396628d419c72cd9132d529"
+        },
+        "qualification": {
+          "experimental": true,
+          "commit": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+          "reference": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+          "variant": "held",
+          "source_process": 9868,
+          "phase_contexts": 1,
+          "acknowledged_contexts": 1,
+          "retirement_confirmed": true,
+          "cpu_bytes_observed": 7001,
+          "source_peak_commit_bytes": 4755456,
+          "controller_peak_commit_bytes": 6443008,
+          "acknowledgement_sha256": "803170a4585be42baef9c659d5bef4ea0bc1181507bc6efa0c5af84b292733bf",
+          "phase_sha256": "bb5114b3f19888cc3370eed92f9f139c3656d7eb5dd1ce79b786d47835936531",
+          "historical_cause": "unproven",
+          "gpu_executed": false
+        },
+        "source_receipt": {
+          "experimental": true,
+          "commit": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+          "reference": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+          "variant": "held",
+          "canonical_blobs": {
+            "tests/winfsp_write_probe.cpp": "581b13c1df9569564d87a8d9c319364df6784e78",
+            "CMakeLists.txt": "042668b83046453dbcca37a46e43dea812307404",
+            "tools/ci/build_windows_native.ps1": "1ba865d5a7fb0830621b2ae01ddf37869a556985",
+            "src/windows/bounded_process.cpp": "879124c5487e3c805c96a896978e3bcebe279a7c"
+          },
+          "controller_budget_blob": "7e933291b0917ac3a1d765779341cb4cff8494e1",
+          "source_representations": [
+            {
+              "path": "tests/winfsp_write_probe.cpp",
+              "canonical_git_blob": "581b13c1df9569564d87a8d9c319364df6784e78",
+              "canonical_bytes": 54208,
+              "canonical_sha256": "268fbb3f8bc1954570525d0e0bea712d5b3ff4d6af427957a7ac2734c0c4755d",
+              "physical_bytes": 55032,
+              "physical_sha256": "baeb1a5dd457a4cb7af7023be739579b1e13cbe59f4423a4a7d8f596f97abd70",
+              "representation": "crlf-checkout",
+              "role": "historical"
+            },
+            {
+              "path": "CMakeLists.txt",
+              "canonical_git_blob": "042668b83046453dbcca37a46e43dea812307404",
+              "canonical_bytes": 56109,
+              "canonical_sha256": "29507d4619aac5fe32e9ff8a15dd62209b105f3a7adfd882e8b403ed78e01d69",
+              "physical_bytes": 56967,
+              "physical_sha256": "42ffbf973dadac7419268c10f565d5a1f43d8533679c9f1baf649422004a47ab",
+              "representation": "crlf-checkout",
+              "role": "historical"
+            },
+            {
+              "path": "tools/ci/build_windows_native.ps1",
+              "canonical_git_blob": "1ba865d5a7fb0830621b2ae01ddf37869a556985",
+              "canonical_bytes": 4624,
+              "canonical_sha256": "81c8cd3a45f175e04a255817e91d8a3a1e08add58d02e391ff9b552d27055333",
+              "physical_bytes": 4687,
+              "physical_sha256": "582c27bfe6e83444ee9c48ed08ce00cfe1e77c7ed790bb7be96f3b827f440baf",
+              "representation": "crlf-checkout",
+              "role": "historical"
+            },
+            {
+              "path": "src/windows/bounded_process.cpp",
+              "canonical_git_blob": "879124c5487e3c805c96a896978e3bcebe279a7c",
+              "canonical_bytes": 7383,
+              "canonical_sha256": "a201de4134ea503b274d3397a52cc3c1e24071b329ec0a8d64a4ce7dcabb1bc5",
+              "physical_bytes": 7523,
+              "physical_sha256": "b5273c6e3bb3fe894d935ecdcb25f6755761080546fe80007326f3d553a28e75",
+              "representation": "crlf-checkout",
+              "role": "historical"
+            },
+            {
+              "path": "tests/gpu_probe_budget.hpp",
+              "canonical_git_blob": "7e933291b0917ac3a1d765779341cb4cff8494e1",
+              "canonical_bytes": 2550,
+              "canonical_sha256": "112566bdac580c476c692cc27cbb504d08c10e818c8bdf68644fbccfe77d5b33",
+              "physical_bytes": 2602,
+              "physical_sha256": "6a4abfb8eeac7e873237f59d1d1ff49afc03f84b63d1072119fc6e78a5ede536",
+              "representation": "crlf-checkout",
+              "role": "control-budget"
+            },
+            {
+              "path": "tools/winfsp-sdk-lock.json",
+              "canonical_git_blob": "0025dc6f9faedc910680b268ddf8b2fe36c09fc8",
+              "canonical_bytes": 617,
+              "canonical_sha256": "0ce9229e05cc2685cda86342c92c52f8d862547d712901b215433e6ab58d9262",
+              "physical_bytes": 630,
+              "physical_sha256": "35cd0b6f71e34a17c140985df3b4d2889c7ab551b71d332b1ae95a966a85e897",
+              "representation": "crlf-checkout",
+              "role": "historical-sdk"
+            },
+            {
+              "path": "tools/winfsp-sdk-lock.json",
+              "canonical_git_blob": "0025dc6f9faedc910680b268ddf8b2fe36c09fc8",
+              "canonical_bytes": 617,
+              "canonical_sha256": "0ce9229e05cc2685cda86342c92c52f8d862547d712901b215433e6ab58d9262",
+              "physical_bytes": 630,
+              "physical_sha256": "35cd0b6f71e34a17c140985df3b4d2889c7ab551b71d332b1ae95a966a85e897",
+              "representation": "crlf-checkout",
+              "role": "control-sdk"
+            }
+          ],
+          "generated": [
+            {
+              "name": "tests\\flitzfs_retirement_reference.cpp",
+              "bytes": 58050,
+              "sha256": "ddfc5cdf130b900fbe25ed81ab7a15f616021459ce6bda35f79dee77b233538b"
+            },
+            {
+              "name": ".retirement-variant\\CMakeLists.txt",
+              "bytes": 526,
+              "sha256": "d709efdc27bb156a1c5bc4cc7db08233f92848f163f802493dd5da85c9649bea"
+            },
+            {
+              "name": ".retirement-variant\\build.ps1",
+              "bytes": 4638,
+              "sha256": "07efc115afec2f4c39ebb19a2e3a7139ebf2a92adc38a5722bdcf279d5ca65ad"
+            }
+          ],
+          "gpu_executed": false,
+          "owner_execution": false
+        },
+        "raw_acknowledgement": "{\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"ack\",\"commit\":\"ab37c4a41a8076cb77143d3b954c456842507e7d\",\"source_process\":9868,\"observer_process\":9868,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":6,\"generation\":12,\"image_bytes\":1376256,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134390566840744775,\"last_access_time\":134390566840744775,\"last_write_time\":134390566840744775,\"change_time\":134390566840744775,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false}",
+        "raw_phase": "retirement_phase variant=held source_process=9868 contexts=1\n",
+        "raw_stdout": "retirement_result variant=held source_process=9868 exit=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4755456 controller_peak_commit_bytes=6443008\r\nretirement_phase variant=held source_process=9868 contexts=1\r\nWindows writable extended evidence: {\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"ack\",\"commit\":\"ab37c4a41a8076cb77143d3b954c456842507e7d\",\"source_process\":9868,\"observer_process\":9868,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":6,\"generation\":12,\"image_bytes\":1376256,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134390566840744775,\"last_access_time\":134390566840744775,\"last_write_time\":134390566840744775,\"change_time\":134390566840744775,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false}\r\nretirement_cpu_verified variant=held source_process=9868 bytes=7001\r\n"
+      },
+      {
+        "variant": "closed",
+        "job": 131970899107,
+        "artifact": {
+          "id": 14048774243,
+          "bytes": 4695,
+          "sha256": "e96fa7abaa1ca9a8db7f55c9468afcadc1d3e1656cd6c281ca2fed64f729d882"
+        },
+        "qualification": {
+          "experimental": true,
+          "commit": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+          "reference": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+          "variant": "closed",
+          "source_process": 6200,
+          "phase_contexts": 0,
+          "acknowledged_contexts": 1,
+          "retirement_confirmed": true,
+          "cpu_bytes_observed": 7001,
+          "source_peak_commit_bytes": 4780032,
+          "controller_peak_commit_bytes": 6455296,
+          "acknowledgement_sha256": "ee4799b493a7c5f4410921c1c66b9517ae856150e5be9bd30d6435a3eff22226",
+          "phase_sha256": "163c8777dd91e9dccf0969e12cf727a2c16e02ef536e07995f094d55cdf81719",
+          "historical_cause": "unproven",
+          "gpu_executed": false
+        },
+        "source_receipt": {
+          "experimental": true,
+          "commit": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+          "reference": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+          "variant": "closed",
+          "canonical_blobs": {
+            "tests/winfsp_write_probe.cpp": "581b13c1df9569564d87a8d9c319364df6784e78",
+            "CMakeLists.txt": "042668b83046453dbcca37a46e43dea812307404",
+            "tools/ci/build_windows_native.ps1": "1ba865d5a7fb0830621b2ae01ddf37869a556985",
+            "src/windows/bounded_process.cpp": "879124c5487e3c805c96a896978e3bcebe279a7c"
+          },
+          "controller_budget_blob": "7e933291b0917ac3a1d765779341cb4cff8494e1",
+          "source_representations": [
+            {
+              "path": "tests/winfsp_write_probe.cpp",
+              "canonical_git_blob": "581b13c1df9569564d87a8d9c319364df6784e78",
+              "canonical_bytes": 54208,
+              "canonical_sha256": "268fbb3f8bc1954570525d0e0bea712d5b3ff4d6af427957a7ac2734c0c4755d",
+              "physical_bytes": 55032,
+              "physical_sha256": "baeb1a5dd457a4cb7af7023be739579b1e13cbe59f4423a4a7d8f596f97abd70",
+              "representation": "crlf-checkout",
+              "role": "historical"
+            },
+            {
+              "path": "CMakeLists.txt",
+              "canonical_git_blob": "042668b83046453dbcca37a46e43dea812307404",
+              "canonical_bytes": 56109,
+              "canonical_sha256": "29507d4619aac5fe32e9ff8a15dd62209b105f3a7adfd882e8b403ed78e01d69",
+              "physical_bytes": 56967,
+              "physical_sha256": "42ffbf973dadac7419268c10f565d5a1f43d8533679c9f1baf649422004a47ab",
+              "representation": "crlf-checkout",
+              "role": "historical"
+            },
+            {
+              "path": "tools/ci/build_windows_native.ps1",
+              "canonical_git_blob": "1ba865d5a7fb0830621b2ae01ddf37869a556985",
+              "canonical_bytes": 4624,
+              "canonical_sha256": "81c8cd3a45f175e04a255817e91d8a3a1e08add58d02e391ff9b552d27055333",
+              "physical_bytes": 4687,
+              "physical_sha256": "582c27bfe6e83444ee9c48ed08ce00cfe1e77c7ed790bb7be96f3b827f440baf",
+              "representation": "crlf-checkout",
+              "role": "historical"
+            },
+            {
+              "path": "src/windows/bounded_process.cpp",
+              "canonical_git_blob": "879124c5487e3c805c96a896978e3bcebe279a7c",
+              "canonical_bytes": 7383,
+              "canonical_sha256": "a201de4134ea503b274d3397a52cc3c1e24071b329ec0a8d64a4ce7dcabb1bc5",
+              "physical_bytes": 7523,
+              "physical_sha256": "b5273c6e3bb3fe894d935ecdcb25f6755761080546fe80007326f3d553a28e75",
+              "representation": "crlf-checkout",
+              "role": "historical"
+            },
+            {
+              "path": "tests/gpu_probe_budget.hpp",
+              "canonical_git_blob": "7e933291b0917ac3a1d765779341cb4cff8494e1",
+              "canonical_bytes": 2550,
+              "canonical_sha256": "112566bdac580c476c692cc27cbb504d08c10e818c8bdf68644fbccfe77d5b33",
+              "physical_bytes": 2602,
+              "physical_sha256": "6a4abfb8eeac7e873237f59d1d1ff49afc03f84b63d1072119fc6e78a5ede536",
+              "representation": "crlf-checkout",
+              "role": "control-budget"
+            },
+            {
+              "path": "tools/winfsp-sdk-lock.json",
+              "canonical_git_blob": "0025dc6f9faedc910680b268ddf8b2fe36c09fc8",
+              "canonical_bytes": 617,
+              "canonical_sha256": "0ce9229e05cc2685cda86342c92c52f8d862547d712901b215433e6ab58d9262",
+              "physical_bytes": 630,
+              "physical_sha256": "35cd0b6f71e34a17c140985df3b4d2889c7ab551b71d332b1ae95a966a85e897",
+              "representation": "crlf-checkout",
+              "role": "historical-sdk"
+            },
+            {
+              "path": "tools/winfsp-sdk-lock.json",
+              "canonical_git_blob": "0025dc6f9faedc910680b268ddf8b2fe36c09fc8",
+              "canonical_bytes": 617,
+              "canonical_sha256": "0ce9229e05cc2685cda86342c92c52f8d862547d712901b215433e6ab58d9262",
+              "physical_bytes": 630,
+              "physical_sha256": "35cd0b6f71e34a17c140985df3b4d2889c7ab551b71d332b1ae95a966a85e897",
+              "representation": "crlf-checkout",
+              "role": "control-sdk"
+            }
+          ],
+          "generated": [
+            {
+              "name": "tests\\flitzfs_retirement_reference.cpp",
+              "bytes": 58535,
+              "sha256": "4cac2b2867f2a21cfb848fcb5d1d9c67f05a5c33fa7d5711aa50ee5baf737ee6"
+            },
+            {
+              "name": ".retirement-variant\\CMakeLists.txt",
+              "bytes": 526,
+              "sha256": "d709efdc27bb156a1c5bc4cc7db08233f92848f163f802493dd5da85c9649bea"
+            },
+            {
+              "name": ".retirement-variant\\build.ps1",
+              "bytes": 4638,
+              "sha256": "07efc115afec2f4c39ebb19a2e3a7139ebf2a92adc38a5722bdcf279d5ca65ad"
+            }
+          ],
+          "gpu_executed": false,
+          "owner_execution": false
+        },
+        "raw_acknowledgement": "{\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"ack\",\"commit\":\"ab37c4a41a8076cb77143d3b954c456842507e7d\",\"source_process\":6200,\"observer_process\":6200,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134390566817068108,\"last_access_time\":134390566817068108,\"last_write_time\":134390566817068108,\"change_time\":134390566817068108,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false}",
+        "raw_phase": "retirement_phase variant=closed source_process=6200 contexts=0\n",
+        "raw_stdout": "retirement_result variant=closed source_process=6200 exit=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4780032 controller_peak_commit_bytes=6455296\r\nretirement_phase variant=closed source_process=6200 contexts=0\r\nWindows writable extended evidence: {\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"ack\",\"commit\":\"ab37c4a41a8076cb77143d3b954c456842507e7d\",\"source_process\":6200,\"observer_process\":6200,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134390566817068108,\"last_access_time\":134390566817068108,\"last_write_time\":134390566817068108,\"change_time\":134390566817068108,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false}\r\nretirement_cpu_verified variant=closed source_process=6200 bytes=7001\r\n"
+      }
+    ]
+  },
+  "interpretation": "One trial per independent disposable VM. Both variants retired and recovered exact7001 bytes; holding a client handle alone did not reproduce the failure under these conditions. Historical cause remains unproven; D01 not closed.",
+  "owner_execution": false,
+  "gpu_executed": false
+}

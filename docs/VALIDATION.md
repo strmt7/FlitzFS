@@ -379,3 +379,12 @@ At400f74c Linux passed16 source cases and Windows passed7 record cases before
 rejecting fixture bytes; no manual driver/trial was run. Canonical Git capture
 with separately verified exact/CRLF checkout identity is the next18-case gate.
 The source fixture failure is not a historical retirement result or GPU evidence.
+
+
+At ab37c4a, all18 source cases passed on both OSes, all13 core jobs passed, and
+both historical held/closed-handle trials retired under original limits with
+exact7001-byte CPU recovery. Their one-shot outcome remains inconclusive for D01.
+[Raw source-bound evidence](evidence/retirement-reference-ab37c4a.json).
+The separate [native synchronization API probe](HIP_WARP_SYNC_PROBE.md) now needs
+its nine-case CPU and exact SDK compiler qualification. Vendor kernels, runtime
+routes and stored encodings remain unchanged; useful GPU gain is unproven.

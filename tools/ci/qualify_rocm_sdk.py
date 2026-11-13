@@ -133,6 +133,11 @@ def main():
     require(native_git(REPO,"rev-parse","HEAD:"+previous_api)=="e8f78c76a1b6b44759a1ea5ed6d236bdafd3384e" and
         not native_git(REPO,"status","--porcelain","--untracked-files=no","--",previous_api),
         "previous priority API oracle differs from pinned source")
+    from qualify_warp_sync import probe_source, PROBE, PROBE_BLOB
+    require(native_git(REPO,"rev-parse","HEAD:"+PROBE)==PROBE_BLOB and
+        not native_git(REPO,"status","--porcelain","--untracked-files=no","--",PROBE),
+        "warp synchronization probe source differs")
+    probe_source(REPO)
     hipcomp_source=None
     if args.hipcomp_source is not None:
         from qualify_hipcomp_candidate import verify_checkout,SOURCE_COMMIT as CODEC_SOURCE_COMMIT
@@ -154,6 +159,8 @@ def main():
             report,"static-runtime-export-parser-regressions",30)
         run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_hipcomp_candidate.py")],
             report,"codec-source-admission-regressions",60)
+        run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_warp_sync_probe.py")],
+            report,"warp-sync-source-admission-regressions",60)
         lock=bootstrap.read_lock(own_lock)
         report["distribution"]=lock
         needed=lock["archive_bytes"]+lock["unpacked_bytes"]+4*GIB
@@ -178,6 +185,13 @@ def main():
             require(report["hipcomp_offline"]["complete"] and report["hipcomp_offline"].get("object_inspected") is True and
                 not report["hipcomp_offline"]["gpu_executed"] and
                 not report["hipcomp_offline"]["module_loaded"],"candidate offline scope")
+
+        from qualify_warp_sync import qualify as qualify_warp_sync
+        qualify_warp_sync(bounds,provider,sdk,root,REPO,report)
+        require(report["warp_sync_probe"]["complete"] and
+            not report["warp_sync_probe"]["object_loaded"] and
+            not report["warp_sync_probe"]["object_linked"] and
+            not report["warp_sync_probe"]["gpu_executed"],"offline warp probe scope")
 
         # Reuse the unchanged compiler helper. Its explicit include root is a
         # fresh byte-identical source fixture, never a patched upstream checkout.

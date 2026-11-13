@@ -135,3 +135,21 @@ prove the old physical-byte check differs when the checkout is CRLF. No checkout
 cause, Windows root test, compiler or retirement trial is called qualified before
 that execution. This remains an instrumented reconstruction, not a byte-identical
 historical binary or an owner-device route.
+
+
+## Executed controlled comparison at ab37c4a
+
+All 18 source cases passed on Windows and Linux, including actual directory
+identity and exact/CRLF fixture capture. All 13 ordinary jobs passed. The manual
+comparison run43450358079 then passed both independent disposable VM trials.
+Held source9868 acknowledged one context and retained one at termination; closed
+source6200 acknowledged one, then proved zero before termination. Both confirmed
+exit1460 under the unchanged15-second/two-second limits and independently verified
+all7001 bytes. Controller peaks were6443008 and6455296 bytes. Both separate record
+reconciliations passed and the exact artifact/raw-record digests were checked.
+
+[Source, phase, acknowledgement and retirement evidence](evidence/retirement-reference-ab37c4a.json)
+preserves full-width timestamp text. One trial per variant is inconclusive for
+an intermittent cause. Holding a client handle alone did not reproduce the old
+failure under these conditions; D01 remains open. Original failures, all current
+product origin guards and the G03 lifecycle prerequisite remain unchanged.
