@@ -35,5 +35,25 @@
     "checked_at_utc": "2026-11-13 07:26 UTC",
     "open_alerts": 0,
     "transport": "Authenticated GitHub Dependabot alerts API; not an all-vulnerability claim."
+  },
+  "allocator_alignment_source": {
+    "repository": "microsoft/STL",
+    "commit": "6f68330d72e5719365d83cb035298b62ad121027",
+    "path": "stl/inc/xmemory",
+    "blob": "41ca255e8664f7d217dbb9eab38ba9c91469ec88",
+    "bytes": 114804,
+    "sha256": "d12c5086f3df6104850ac218edcc36ddb23611a0afef43020db3d65d30aa7b5b",
+    "url": "https://github.com/microsoft/STL/blob/6f68330d72e5719365d83cb035298b62ad121027/stl/inc/xmemory",
+    "transport": "Exact native GitHub contents API bytes; no web-page reader.",
+    "reviewed": "The current primary allocator source adds bookkeeping to large vector payload allocations. The qualification now measures its actual toolchain request rather than hardcoding this implementation's value."
+  },
+  "retained_failed_qualification": {
+    "source": "f4729f17f454a0cf38a35f208b1bf6cea58c09ed",
+    "run": 43386158203,
+    "job": 131755040531,
+    "stage": "Actual application model",
+    "error": "post-admission allocator cut was not reached/propagated",
+    "cause_scope": "The first fixture equated vector payload size with the heap request. Current Microsoft allocator source shows that assumption is invalid; publishing-source measured calibration is still required.",
+    "owner_executed": false
   }
 }

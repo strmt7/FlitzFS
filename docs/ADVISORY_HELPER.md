@@ -97,3 +97,11 @@ are retained in [advisory-helper-9977674.json](evidence/advisory-helper-9977674.
 The owner GUI result does not cover these new allocator faults. The current
 primary native-source review is in
 [helper-allocation-sources-9977674.json](evidence/helper-allocation-sources-9977674.json).
+
+The first allocator fixture at f4729f1 failed in the disposable Windows VM:
+its 64-KiB payload-size match missed the STL heap request. This failed run is
+retained in the source manifest. The correction first measures the actual
+request for the exact vector type in a bounded probe, then selects that measured
+size with a one-shot thread-local fault. It does not hardcode MSVC bookkeeping
+or weaken the requirement that every cut actually throw. New-source validation
+is required; no owner fault run occurred.
