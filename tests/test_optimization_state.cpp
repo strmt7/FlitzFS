@@ -559,12 +559,19 @@ void rebuild_limits_and_failures() {
           NativeFileSession::max_optimization_bindings*kOptimizationAreaBytes,
         "binding cap probed a backend or fenced data");
     for(const auto& prior:attempted) {
-      prior->pressure=false; // Each empty area would otherwise be a valid target.
+      prior->pressure=false;prior->cap=4*1024*1024;
+      // Match the real image capacity so resource rejection cannot mask a
+      // missing retained-area exclusion. These failed backends are still empty.
       rejects([&]{m.session->compact_volume(prior,volume(120),{StoreCompressionMode::raw});},
           "empty failed advisory history reused as image");
+      rejects([&]{m.session->begin_recompression(prior,volume(122),{StoreCompressionMode::raw});},
+          "empty failed advisory history staged as image");
       rejects([&]{m.session->rebuild_optimization_area(prior);},"old failed area retried");
       require(prior->calls==0&&prior->reads==0,"retained-history refusal touched old area");
     }
+    auto control=std::make_shared<Ram>(4*1024*1024);
+    require(m.session->compact_volume(control,volume(121),{StoreCompressionMode::raw}).selection.epoch==2&&
+        !m.session->poisoned(),"equally funded fresh image was not a viable control");
   }
   // Compound failures: an unavailable old area plus each new creation write/
   // flush cut, partial persistence, failed final readback, allocation and input
@@ -595,6 +602,10 @@ void rebuild_limits_and_failures() {
     const auto calls=next->calls,reads=next->reads;
     rejects([&]{session.rebuild_optimization_area(next,4);},"failed replacement retried");
     require(next->calls==calls&&next->reads==reads,"failed replacement retry did I/O");
+    m.area->pressure=false; // This retired empty area could now accept a journal.
+    rejects([&]{session.rebuild_optimization_area(m.area,4);},"retired empty area reused before binding cap");
+    require(m.area->calls==0&&m.area->reads==0&&session.optimization_info().binding_attempts==2,
+        "retired-area refusal probed/reset ownership");
     if(scenario<20) {
       const auto observed=read(next->stable);
       require(observed.code!=OptimizationReadCode::available||
