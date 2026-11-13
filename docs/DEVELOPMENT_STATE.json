@@ -11,8 +11,8 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
-    "core_run": 43403094847,
+    "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+    "core_run": 43406031065,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
@@ -20,11 +20,11 @@
     "sanitizer_groups": 119,
     "advisory_assertions": 687,
     "workload_assertions_per_examined_log": 4645,
-    "budget_assertions_per_examined_log": 375,
+    "budget_assertions_per_examined_log": 398,
     "budget_faults_per_examined_log": 42,
     "managed_invariants_native": 412,
     "managed_invariants_raw": 404,
-    "evidence": "docs/evidence/optimization-budget-5db3ae7.json"
+    "evidence": "docs/evidence/funded-helper-99d5365.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -69,10 +69,10 @@
     }
   ],
   "next_implementation": [
-    "L01",
-    "D01",
+    "G02",
     "G03",
-    "G02"
+    "L01",
+    "D01"
   ],
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
@@ -81,10 +81,11 @@
     "autonomous_background_executor": false,
     "general_payload_repair": false,
     "production_windows_app_installer": false,
-    "persistent_optimization_state": "Controlled funded advisory journal qualified at 5db3ae7. The new explicit Windows helper consumer adds funded creation/replacement and admission before provider allocation; its own source qualification is pending. Durable mapping, authorization, long-lived continuation and autonomous learning remain incomplete.",
+    "persistent_optimization_state": "Funded journal and explicit helper creation/replacement/pre-allocation admission qualified at 99d5365. Durable mapping, authorization, long-lived continuation and autonomous learning remain incomplete.",
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; source9977674 passed VM model/GUI and one healthy owner GUI, with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
-    "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes."
+    "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
+    "gpu_codec_candidate": "Pinned hipCOMP source is unbuilt and unqualified. New isolated source-index mode requires its own execution; it selects no runtime or stored-format dependency."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -98,11 +99,11 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13 10:01:26 UTC",
+    "checked_at_utc": "2026-11-13 10:35 UTC",
     "native_transport": "Authenticated GitHub open-alerts API",
     "open_alerts": 0,
     "scope": "Open alerts only, not absence of all vulnerabilities.",
-    "evidence": "docs/evidence/funded-helper-sources-5db3ae7.json"
+    "evidence": "docs/evidence/gpu-codec-sources-99d5365.json"
   },
   "source_routing": {
     "indexed_commit": "22ba3b3238e2a4185705721deeb645b186f0d002",
@@ -341,11 +342,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
-    "contract": "docs/ADVISORY_HELPER.md",
-    "behavior": "Windows helper consumes funded creation/replacement; failed-funded-owner preflight prevents unearned provider allocations and repeated source snapshot work.",
-    "status": "Publishing-source core/raw/codec/Windows/native/sanitizer, funded preflight, actual helper funding/allocator/capacity/context, model/GUI/resource retirement and full integration gates required.",
-    "next": "Qualify the actual source without replacing failed post-admission cuts with preflight failures. Then implement durable mapping/authorization, qualified funded continuation and the automatic low-priority governor/learner. No unchanged owner/GPU experiment."
+    "source_parent": "99d53658b16e414729654f67a5238e155a3f350e",
+    "contract": "docs/GPU_CODEC_CANDIDATES.md",
+    "behavior": "Closed pinned upstream GPU-codec source navigation with independent source/control identity, CUDA text scope, exact notices and no upstream execution.",
+    "status": "Publishing-source admission suite, default routing compatibility and actual upstream query/source receipts required.",
+    "next": "Admit actual upstream searches before kernel analysis, then audited offline Windows compilation, CPU format recovery and contained runtime/performance evaluation. No new owner/GPU test for unchanged runtime sources."
   },
   "resolved": [
     {
@@ -390,30 +391,30 @@
     "evidence": "docs/evidence/volume-app-f4928c2.json",
     "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification.",
     "latest_vm": {
-      "commit": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
-      "run": 43403094884,
-      "job": 131810604345,
-      "model_checks": 590,
+      "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+      "run": 43406030948,
+      "job": 131820479110,
+      "model_checks": 728,
       "model_cycles": 3,
       "handles_each": [
         113,
         113
       ],
       "allocator_cuts_each_cycle": 4,
-      "gui_peak_commit_bytes": 13611008,
+      "gui_peak_commit_bytes": 13643776,
       "gui_observation_counter": 35,
       "gui_counter_is_distinct_case_count": false,
-      "evidence": "docs/evidence/optimization-budget-5db3ae7.json"
+      "evidence": "docs/evidence/funded-helper-99d5365.json"
     },
     "latest_owner_healthy_gui": {
-      "commit": "5b58568b019772542c9a300e1283a107d5c5028b",
+      "commit": "99d53658b16e414729654f67a5238e155a3f350e",
       "harness_exit": 0,
       "forced_stop": false,
       "remaining_owned_processes": 0,
-      "gui_peak_commit_bytes": 14401536,
+      "gui_peak_commit_bytes": 14229504,
       "driver_changes": false,
       "hip_compute": false,
-      "evidence": "docs/evidence/workload-helper-5b58568.json"
+      "evidence": "docs/evidence/funded-helper-99d5365.json"
     }
   },
   "gpu_cost_observation": {

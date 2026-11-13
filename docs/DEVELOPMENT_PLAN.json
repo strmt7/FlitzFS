@@ -8,10 +8,10 @@
   "goal_status": "active",
   "scope": "Complete Windows 11 AMD64 filesystem/helper/driver; effective AMD GPU acceleration, independent CPU recovery, high sustained throughput, exceptional lossless reduction, autonomous low-impact persistent learning and verified resilience.",
   "next": [
-    "L01",
-    "D01",
+    "G02",
     "G03",
-    "G02"
+    "L01",
+    "D01"
   ],
   "owner_safety": {
     "filesystem_backing": "locked RAM only",
@@ -23,7 +23,7 @@
   },
   "continuation": [
     "Read AGENTS and this ledger; verify actual main and source-bound CI before selecting work.",
-    "Take dependency-ready unfinished work. G01 is complete; G02 explicit integration works but has no demonstrated gain. Prioritize D01 causal retirement repair, then G03 costs/amortization and useful G02 compression candidates; preserve every full-product exit criterion.",
+    "Take dependency-ready unfinished work. G01 is complete. G02 candidate source/API/offline-format evaluation proceeds independently; no useful gain is demonstrated. G03 worker changes still require a reviewed equivalent lifecycle contract and its explicit gates. Preserve historical D01 uncertainty and all full-product exits; L01 mapping/authorization, funded continuation and automatic governance/learning remain required.",
     "Read applicable boundary docs and current primary sources before important changes; use mandatory semantic and Crawl4AI providers.",
     "Implement a bounded substantive change, qualify in isolated environments, retain failures and update evidence in a coherent main commit.",
     "Complete packages only when their exit criteria are met. Keep the existing full goal active; no new goal, thread, scheduled task or inferred delegation."
@@ -147,7 +147,15 @@
           "evidence": "docs/evidence/native-gpu-ram-645a1d1.json"
         },
         "next": "G02 remains in progress: no speed or size gain. Fix D01 to enable G03 lifecycle work; instrument complete costs and investigate candidates with genuine net compression benefit instead of forcing redundant hints.",
-        "contract": "docs/NATIVE_GPU_RAM_PROBE.md"
+        "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
+        "candidate_evaluation": {
+          "contract": "docs/GPU_CODEC_CANDIDATES.md",
+          "source_repository": "ROCm/hipCOMP-core",
+          "source_commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+          "status": "Closed upstream source-navigation preparation; actual query execution pending. No build, runtime dependency or Windows/GPU gain qualification.",
+          "research": "docs/evidence/gpu-codec-sources-99d5365.json",
+          "next": "Admit actual source-specific searches, inspect kernel/API/CPU format and dependencies, then audited offline Windows compile and independent CPU recovery before runtime integration."
+        }
       }
     },
     {
@@ -217,19 +225,17 @@
       ],
       "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model.",
       "checkpoint": {
-        "source_parent": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
+        "qualified_source": "99d53658b16e414729654f67a5238e155a3f350e",
         "contract": "docs/ADVISORY_HELPER.md",
-        "implemented": "Qualified funded journal plus new Windows helper creation/replacement consumer and checked loss-baseline preflight before provider allocation.",
-        "qualified_baseline": "5db3ae7 passed all 13 integration jobs; five core lanes each passed 375 budget assertions/42 actual faults, 4,645 workload assertions and 687 legacy advisory assertions. Application model 590 and actual GUI passed.",
-        "new_source_qualification": "Pending actual funded helper income, post-admission allocation faults, capacity/context/old-byte/no-growth tests, core preflight and complete regression matrix.",
+        "implemented": "Funded journal and actual Windows helper creation/replacement with checked loss-baseline preflight before provider allocation.",
+        "qualification": "All 13 integration jobs; all five core configurations passed 398 budget assertions/42 faults, 4,645 workload and 687 advisory assertions. Application 728, hosted GUI and healthy owner GUI passed with exact retirement.",
         "remaining": [
-          "Publishing-source funded helper/pre-allocation integration qualification",
           "Durable provider mapping/reclamation and ownership/authorization",
           "Qualified long-lived funded continuation beyond current per-lease caps",
           "Automatic low-priority governor/learner and held-out compression benefit",
           "Physical failure/media qualification and full remaining filesystem packages"
         ],
-        "evidence": "docs/evidence/optimization-budget-5db3ae7.json"
+        "evidence": "docs/evidence/funded-helper-99d5365.json"
       }
     },
     {

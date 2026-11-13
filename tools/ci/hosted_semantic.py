@@ -40,7 +40,17 @@ MAINTENANCE_QUERIES=(
     "adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities",
     "background maintenance resource headroom low priority incremental recompression sampling budget and duplicate attempt suppression",
 )
-QUERY_GROUPS={"filesystem":QUERIES,"maintenance":MAINTENANCE_QUERIES}
+HIPCOMP_REPOSITORY="ROCm/hipCOMP-core"
+HIPCOMP_COMMIT="03df9f7369211ee15d370817165224c73fdc9a46"
+HIPCOMP_QUERIES=(
+    "batched LZ4 compression scratch size output capacity asynchronous stream completion and status",
+    "portable GPU warp cooperative compression and CPU decoding chunk framing",
+)
+QUERY_GROUPS={"filesystem":QUERIES,"maintenance":MAINTENANCE_QUERIES,"hipcomp":HIPCOMP_QUERIES}
+HIPCOMP_NOTICES=(
+    ("LICENSE","upstream-hipcomp-LICENSE.txt","74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef"),
+    ("CMakeLists.txt","upstream-hipcomp-CMakeLists.txt","19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7"),
+)
 SUFFIXES={".c",".h",".cc",".cpp",".hpp",".cxx",".hip",".py",".ps1",".rs"}
 def require(ok,why):
     if not ok: raise RuntimeError(why)
@@ -53,6 +63,22 @@ def digest(data):
 def read_json(path,limit=16*MIB):
     require(path.stat().st_size<=limit,"JSON receipt exceeds budget")
     return json.loads(path.read_bytes())
+def source_selection(workspace,query_group,workflow_commit):
+    require(query_group in QUERY_GROUPS,"unreviewed semantic query group")
+    require(re.fullmatch(r"[0-9a-f]{40}",workflow_commit) is not None,"invalid workflow identity")
+    workspace=workspace.resolve(strict=True)
+    if query_group!="hipcomp":return workspace,"strmt7/FlitzFS",workflow_commit
+    candidate=workspace/".ci-hipcomp"
+    require(not candidate.is_symlink() and candidate.is_dir() and
+        candidate.resolve(strict=True).is_relative_to(workspace),"candidate checkout boundary")
+    return candidate.resolve(strict=True),HIPCOMP_REPOSITORY,HIPCOMP_COMMIT
+def verify_checkout(run,repo,commit):
+    require(re.fullmatch(r"[0-9a-f]{40}",commit) is not None,"invalid source identity")
+    actual=run(["git","-C",repo,"rev-parse","--show-toplevel"],30).decode().strip()
+    require(Path(actual).resolve(strict=True)==repo.resolve(strict=True),"source Git root differs")
+    require(run(["git","-C",repo,"rev-parse","HEAD"],30).decode().strip()==commit,
+        "source commit differs from selected identity")
+    run(["git","-C",repo,"diff","--exit-code","HEAD","--"],30)
 def cgroup():
     require(sys.platform=="linux" and platform.machine().lower() in ("x86_64","amd64") and
         os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted",
@@ -68,7 +94,14 @@ def cgroup():
         quota!="max" and 0<int(quota)<=2*int(period) and swap=="0","process-tree resource limits absent")
     return dict(memory_bytes=int(memory),tasks=int(tasks),cpu_quota=[int(quota),int(period)],swap_bytes=0)
 class Provider:
-    def __init__(self,root,repo):
+    def __init__(self,root,repo,repository="strmt7/FlitzFS",commit=None):
+        self.repository=repository;self.commit=os.environ["GITHUB_SHA"] if commit is None else commit
+        self.workflow_commit=os.environ["GITHUB_SHA"]
+        require(re.fullmatch(r"[0-9a-f]{40}",self.workflow_commit) is not None,"invalid workflow identity")
+        require(repository in ("strmt7/FlitzFS",HIPCOMP_REPOSITORY) and
+            re.fullmatch(r"[0-9a-f]{40}",self.commit) is not None,"unreviewed semantic source identity")
+        require(repository!=HIPCOMP_REPOSITORY or self.commit==HIPCOMP_COMMIT,
+            "unreviewed candidate revision")
         self.root=root;self.repo=repo;self.downloads=[];self.commands=[];self.package_bytes=0
         self.expanded_bytes=0;self.wheel_entries=0;self.log_number=0
         self.end=time.monotonic()+1150
@@ -318,6 +351,19 @@ class Provider:
             "unreviewed model module")
         save(self.root/"model-receipt.json",dict(repository=MODEL,revision=revision,files=rows,bytes=total))
         return revision
+    def candidate_notices(self):
+        if self.repository!=HIPCOMP_REPOSITORY:return
+        notices=[]
+        for name,output,expected in HIPCOMP_NOTICES:
+            source=self.repo/name
+            require(not source.is_symlink() and source.is_file() and
+                source.resolve().is_relative_to(self.repo) and source.stat().st_size<=MIB,
+                "candidate notice boundary")
+            data=source.read_bytes()
+            require(digest(data)==expected,"candidate notice digest differs")
+            with (self.root/output).open("xb") as file:file.write(data)
+            notices.append(dict(path=name,file=output,bytes=len(data),sha256=expected))
+        save(self.root/"source-notices.json",dict(repository=self.repository,commit=self.commit,notices=notices))
     def inventory(self):
         raw=self.run(["git","-C",self.repo,"ls-files","-z"],30)
         entries=[]
@@ -325,7 +371,10 @@ class Provider:
             if not raw_name:continue
             name=raw_name.decode("utf-8");pure=PurePosixPath(name)
             if pure.parts[0] in ("tests","third_party",".github"):continue
-            if pure.suffix not in SUFFIXES and pure.name!="CMakeLists.txt":continue
+            candidate=self.repository==HIPCOMP_REPOSITORY
+            if candidate and any(part in ("test","tests") for part in pure.parts):continue
+            suffixes=SUFFIXES|{".cu",".cuh"} if candidate else SUFFIXES
+            if pure.suffix not in suffixes and pure.name!="CMakeLists.txt":continue
             require(not pure.is_absolute() and "\\" not in name and
                 all(x not in ("",".","..") for x in pure.parts),"unsafe source path")
             source=self.repo/pure
@@ -339,6 +388,9 @@ class Provider:
         return entries
     def route(self,revision,query_group="filesystem"):
         require(query_group in QUERY_GROUPS,"unreviewed semantic query group")
+        require(self.repository in ("strmt7/FlitzFS",HIPCOMP_REPOSITORY) and
+            (query_group=="hipcomp")==(self.repository==HIPCOMP_REPOSITORY),
+            "semantic source/query binding differs")
         queries=QUERY_GROUPS[query_group]
         entries=self.inventory();binding=digest(encoded(entries))
         save(self.root/"source-inventory.json",entries)
@@ -348,8 +400,11 @@ class Provider:
             with target.open("xb") as file:file.write(data)
         global_settings=dict(embedding=dict(provider="sentence-transformers",model=str(self.root/"model"),device="cpu"),
             daemon=dict(idle_timeout_minutes=1,keep_alive_with_mcp=False))
+        overrides=[dict(ext="hip",lang="cpp")]
+        if self.repository==HIPCOMP_REPOSITORY:
+            overrides.extend(dict(ext=ext,lang="cpp") for ext in ("cu","cuh"))
         project=dict(include_patterns=["**/*"],exclude_patterns=[".cocoindex_code/**"],
-            language_overrides=[dict(ext="hip",lang="cpp")],max_file_size=MIB)
+            language_overrides=overrides,max_file_size=MIB)
         save(self.root/"config/global_settings.yml",global_settings)
         (self.root/"mirror/.cocoindex_code").mkdir()
         save(self.root/"mirror/.cocoindex_code/settings.yml",project)
@@ -379,7 +434,7 @@ class Provider:
                     hits.append(dict(path=name,start_line=start,end_line=end,score=hit["score"],
                         file_sha256=by_path[name]["sha256"],excerpt=" ".join(hit["content"].split())[:240]))
                 require(digest(encoded(self.inventory()))==binding,"live source changed during semantic search")
-                row=dict(commit=os.environ["GITHUB_SHA"],repository="strmt7/FlitzFS",source_sha256=binding,
+                row=dict(commit=self.commit,repository=self.repository,workflow_commit=self.workflow_commit,source_sha256=binding,
                     config_sha256=config_digest,provider=VERSION,provider_wheel_sha256=WHEEL_SHA,
                     model=MODEL,model_revision=revision,query=query,query_sha256=digest(query.encode()),
                     native_response_sha256=digest(raw),hits=hits,
@@ -392,8 +447,8 @@ class Provider:
                 print(json.dumps(dict(semantic_query=query,source_sha256=binding,hits=distinct)),flush=True)
         finally:
             self.run([self.ccc,"daemon","stop"],30,self.root/"mirror")
-        save(self.root/"routing-receipt.json",dict(experimental=True,commit=os.environ["GITHUB_SHA"],
-            repository="strmt7/FlitzFS",source_sha256=binding,source_files=len(entries),config_sha256=config_digest,
+        save(self.root/"routing-receipt.json",dict(experimental=True,commit=self.commit,
+            repository=self.repository,workflow_commit=self.workflow_commit,source_sha256=binding,source_files=len(entries),config_sha256=config_digest,
             provider_version=VERSION,model_revision=revision,query_group=query_group,actual_searches=len(receipts),cpu_only=True,
             shared_mcp_modified=False,commands=self.commands))
 def main():
@@ -401,17 +456,18 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument("--output",required=True,type=Path)
     parser.add_argument("--query-group",choices=tuple(QUERY_GROUPS),default="filesystem")
     args=parser.parse_args()
-    repo=Path(__file__).resolve().parents[2]
+    workspace=Path(__file__).resolve().parents[2]
+    repo,repository,commit=source_selection(workspace,args.query_group,os.environ["GITHUB_SHA"])
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     root=args.output.resolve()
     require(root!=temporary and root.is_relative_to(temporary) and
         shutil.disk_usage(temporary).free>=12*GIB,"fresh hosted output and 12 GiB free headroom required")
     root.mkdir(exist_ok=False)
     save(root/"resource-limits.json",dict(limits=limits,python=sys.version,commit=os.environ["GITHUB_SHA"]))
-    provider=Provider(root,repo)
-    require(provider.run(["git","-C",repo,"rev-parse","HEAD"],30).decode().strip()==os.environ["GITHUB_SHA"],
-        "source commit differs from workflow")
-    provider.run(["git","-C",repo,"diff","--exit-code","HEAD","--"],30)
+    provider=Provider(root,repo,repository,commit)
+    verify_checkout(provider.run,workspace,os.environ["GITHUB_SHA"])
+    if repo!=workspace:verify_checkout(provider.run,repo,commit)
+    provider.candidate_notices()
     provider.provision()
     revision=provider.model()
     provider.route(revision,args.query_group)

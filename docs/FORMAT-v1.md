@@ -394,3 +394,8 @@ NEW managed-volume creation and funded replacement. It introduces no new wire
 field, codec, magic or product numbering. The shared data engine and independent
 CPU reader retain their existing capability rules. See
 [ADVISORY_HELPER.md](ADVISORY_HELPER.md) for the pending consumer qualification.
+
+
+The isolated GPU candidate source-index extension changes no stored format,
+codec, worker protocol or product numbering. Candidate evaluation alone cannot
+add a decoding dependency; see [GPU_CODEC_CANDIDATES.md](GPU_CODEC_CANDIDATES.md).

@@ -1,11 +1,13 @@
 # Windows helper advisory maintenance (experimental)
 
-The helper now uses the controlled funded journal for NEW memory-volume creation
-and failed-area replacement. This source requires its own Windows application,
-GUI, resource-retirement and full integration qualification. The underlying
-journal at `5db3ae7` passed all 13 core/integration jobs, including 375 funded
-assertions and 42 injected journal failures in each of five core configurations.
-Those results do not qualify this new helper consumer.
+The funded helper at `99d5365` passed all 13 core/integration jobs, 398 budget
+assertions with 42 injected journal failures in each of five core configurations,
+728 application-model assertions over three balanced lifecycle cycles, the hosted
+GUI and one healthy owner GUI check with exact process retirement. Its
+[source-bound evidence](evidence/funded-helper-99d5365.json) retains the actual
+funding, pre-allocation, allocator, context, capacity and resource results.
+The earlier journal results remain in
+[optimization-budget-5db3ae7.json](evidence/optimization-budget-5db3ae7.json).
 
 ## Admission and file access
 

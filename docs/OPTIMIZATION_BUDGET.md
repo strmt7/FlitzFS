@@ -1,7 +1,9 @@
 # Input-funded advisory publication (experimental)
 
-The controlled journal at `5db3ae7` passed its full source-bound qualification.
-The next helper/pre-allocation integration requires its own qualification. It does not
+The controlled journal at `5db3ae7` and helper/pre-allocation consumer at
+`99d5365` passed their full source-bound qualification. The latter includes all
+13 integration jobs, the application model and a healthy owner GUI workflow;
+see [funded-helper-99d5365.json](evidence/funded-helper-99d5365.json). It does not
 launch background work, qualify a durable physical provider, authorize data-image
 rewriting, or complete an autonomous learner.
 

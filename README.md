@@ -240,10 +240,14 @@ baselines. Publishing-source qualification is required; no automatic learner or
 useful GPU gain is claimed.
 
 
-The funded journal at `5db3ae7` passed all 13 integration jobs and 375 funded
-assertions, including 42 injected failures, in each core configuration
-([evidence](docs/evidence/optimization-budget-5db3ae7.json)). The next
-[helper consumer](docs/ADVISORY_HELPER.md) uses funded creation/replacement and
-checks new-input eligibility before allocating a replacement area. Its new-source
-qualification is pending. Automatic learning, durable provider mapping and useful
-GPU compression remain unfinished.
+The [funded helper consumer](docs/ADVISORY_HELPER.md) at `99d5365` passed all
+13 integration jobs, 398 budget assertions with 42 injected failures in each
+core configuration, 728 application-model assertions and a healthy owner GUI
+workflow with confirmed retirement
+([evidence](docs/evidence/funded-helper-99d5365.json)). It defers failed-advice
+replacement before allocation until genuinely new input funds the attempt.
+
+The next [GPU codec evaluation](docs/GPU_CODEC_CANDIDATES.md) adds a separate
+commit-bound upstream source index. Its admission and actual query execution
+remain pending. Automatic learning, durable provider mapping, useful GPU gains
+and the full Windows product remain unfinished.
