@@ -1121,3 +1121,12 @@ The next [bounded byte entry](HIPCOMP_BOUNDED_ENTRY.md) retains the complete
 256-KiB allocation cap and checks actual wave geometry before slab access.
 Its new CPU/source/image/compiler gates are pending. No runtime or stored codec
 is enabled; actual GPU output, useful gain and D01 remain unqualified.
+
+
+The bounded entry qualified at 857d5c9: all five validator configurations,
+all 13 ordinary jobs, 12 source/image cases, exact native AMDGPU symbols and the
+complete SDK/20-worker checks passed
+([evidence](evidence/hipcomp-bounded-entry-857d5c9.json)).
+The next [private typed-module fixture](HIPCOMP_MODULE_LINK.md) adds CPU argument
+forwarding and separately opted-in linking. It remains unqualified until its own
+execution; no module loading, binary artifact, worker integration or GPU gain follows.

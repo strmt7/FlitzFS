@@ -453,3 +453,7 @@ wire change or product numbering; normal filesystem decoding remains independent
 The bounded entry's 168-byte contract is private compiler metadata, never a stored
 record, IPC frame, runtime export or public ABI. No codec ID, container capability,
 wire value or product numbering changes.
+
+The private 48-byte typed-module table contains process-local function addresses.
+It is never stored, serialized, exchanged as a worker frame or treated as
+authorization. No filesystem encoding, codec ID, capability or product numbering changes.

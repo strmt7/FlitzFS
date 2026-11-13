@@ -583,14 +583,24 @@
     },
     "bounded_entry": {
       "contract": "docs/HIPCOMP_BOUNDED_ENTRY.md",
-      "status": "Pending this publishing source's CPU layout/geometry admission, 12 source/image cases and exact offline AMDGPU symbols.",
+      "status": "Qualified CPU/offline at 857d5c9; no runtime/module loading or actual GPU output.",
       "total_device_bytes_cap": 262144,
       "chunks_cap": 8,
       "chunk_bytes_cap": 65536,
       "byte_oriented_only": true,
       "normal_io_unchanged": true,
       "gpu_executed": false,
-      "module_loaded": false
+      "module_loaded": false,
+      "qualified_source": "857d5c9bfc5595edded8b36fb0d3c20c4f8a8dff",
+      "sdk_run": 43469479896,
+      "evidence": "docs/evidence/hipcomp-bounded-entry-857d5c9.json"
+    },
+    "private_typed_module": {
+      "contract": "docs/HIPCOMP_MODULE_LINK.md",
+      "status": "Pending this publishing source's CPU forwarding, four-asset admission and explicit link-only qualification.",
+      "loaded": false,
+      "normal_io_unchanged": true,
+      "in_worker_bundle": false
     }
   },
   "integration_checkpoints": [
@@ -617,10 +627,10 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
-    "run": 43463416947,
+    "source": "857d5c9bfc5595edded8b36fb0d3c20c4f8a8dff",
+    "run": 43469478989,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "All ordinary job conclusions; all 121 sanitizer cases reconciled separately. No physical-media/power-loss/owner claim."
+    "scope": "All core/integration job conclusions, with five separately captured validator logs and 122 sanitizer cases."
   }
 }

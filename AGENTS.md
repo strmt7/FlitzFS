@@ -1528,3 +1528,15 @@ and strict native AMDGPU ELF identity plus both entry symbols. Stubbed object
 reader tests are not actual object or GPU evidence. Never export/load/link these
 objects, add a worker/runtime caller, alter a stored codec or infer a host/device
 execution gate from compilation. D01 and all owner-device gates remain unchanged.
+
+## Separate manual typed-module link fixture
+
+Read docs/HIPCOMP_MODULE_LINK.md before changing its API, binder or link mode.
+The prior compile-only gates remain unlinked. Only the distinct explicit manual
+codec_candidate + native_sync_candidate + link_candidate mode may link the
+qualified object and pinned staged source into a separate private DLL on a
+disposable hosted Windows VM. This narrow link-only exception does not authorize
+module loading, execution, artifact export, product linkage, worker bundling or
+owner operations. Keep all original gates, exact direct getter export/import
+closure, immutable typed table, source/object stability and CPU-stub semantics.
+CPU forwarding is not actual module/GPU execution. D01 remains open.

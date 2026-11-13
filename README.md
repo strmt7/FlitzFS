@@ -329,3 +329,8 @@ The native-wave candidate qualified offline at 09c4fca
 The next [bounded byte-compression entry](docs/HIPCOMP_BOUNDED_ENTRY.md) checks
 the full allocation and actual wave geometry before device-memory access.
 Its new CPU/compiler gates are pending; no filesystem or worker invokes it.
+
+The bounded entry passed CPU/offline qualification at 857d5c9
+([evidence](docs/evidence/hipcomp-bounded-entry-857d5c9.json)).
+The next [typed-module link fixture](docs/HIPCOMP_MODULE_LINK.md) is separately
+opted in and never loaded. CPU forwarding and real SDK linking remain pending.

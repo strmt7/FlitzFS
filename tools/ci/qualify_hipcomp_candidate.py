@@ -254,7 +254,7 @@ def main():
             if args.bounded_entry:
                 from hipcomp_lz4_entry import unchanged
                 unchanged(REPO,report["bounded_entry_assets"])
-                required=[source_copy/"src/flitzfs_lz4_contract.hpp",
+                required=[source_copy/"src/hipcomp_lz4_contract.hpp",source_copy/"src/hipcomp_lz4_api.hpp",
                     source_copy/"src/LZ4Kernels.cuh",entry]
                 report["bounded_entry_dependencies"]=[
                     dict(path=path.relative_to(source_copy).as_posix(),

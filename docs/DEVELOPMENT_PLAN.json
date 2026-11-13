@@ -196,10 +196,15 @@
           },
           "bounded_entry": {
             "contract": "docs/HIPCOMP_BOUNDED_ENTRY.md",
-            "status": "Pending shared CPU allocation/geometry tests, 12 source/image cases and separate offline AMDGPU entry symbols.",
+            "status": "Qualified CPU/offline at 857d5c9; all 13 ordinary jobs and full SDK/20-worker gates passed. No GPU execution.",
             "runtime_route": false,
             "stored_codec": false,
-            "device_bytes_cap": 262144
+            "device_bytes_cap": 262144,
+            "evidence": "docs/evidence/hipcomp-bounded-entry-857d5c9.json"
+          },
+          "private_typed_module": {
+            "contract": "docs/HIPCOMP_MODULE_LINK.md",
+            "status": "Pending CPU typed forwarding and explicit separate link-only qualification; never loaded or in a worker bundle."
           }
         }
       }

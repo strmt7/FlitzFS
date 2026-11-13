@@ -1,7 +1,7 @@
 // Experimental offline-only byte compressor. No caller, loader or product link.
 #include <hip/hip_runtime.h>
 #include "LZ4Kernels.cuh"
-#include "flitzfs_lz4_contract.hpp"
+#include "hipcomp_lz4_api.hpp"
 #include <cstddef>
 #include <cstdint>
 static_assert(sizeof(std::size_t)==8 && sizeof(void*)==8);
@@ -34,3 +34,12 @@ void flitzfs_candidate_lz4_wave32(unsigned char* slab,unsigned int allocated,
 extern "C" __global__
 void flitzfs_candidate_lz4_wave64(unsigned char* slab,unsigned int allocated,
     flitzfs::candidate_lz4::Layout layout) {compress_checked<64>(slab,allocated,layout);}
+
+namespace flitzfs::candidate_lz4 {
+// Bind in the real HIP translation unit so the addresses remain SDK-registered
+// host stubs. No manual registration ABI or raw device-symbol lookup.
+void bind_compression_kernels(KernelApi& api) noexcept {
+  api.wave32=flitzfs_candidate_lz4_wave32;
+  api.wave64=flitzfs_candidate_lz4_wave64;
+}
+}

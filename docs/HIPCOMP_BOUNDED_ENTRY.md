@@ -94,3 +94,9 @@ This publishing source still requires its own CPU/compiler/integration execution
 Actual GPU output, CPU decoder interoperability, complete kernel audit, worker
 lifecycle, fresh resource admission, foreground interference and useful total
 operation benefit remain unqualified. D01 stays open; no owner execution follows.
+
+The entry's CPU/offline gate qualified at 857d5c9; see
+[evidence](evidence/hipcomp-bounded-entry-857d5c9.json).
+A separate [typed-module link fixture](HIPCOMP_MODULE_LINK.md) is the next
+explicit opt-in. The original/native/bounded compile-only gates remain unlinked;
+link-only qualification never loads or exports the private module.
