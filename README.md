@@ -136,3 +136,12 @@ Useful contracts:
 
 Development stays on main. The owner controls release; development commits are
 not releases. Preserve the [license](LICENSE) and source/dependency notices.
+
+## Experimental Windows application
+
+An OFF-by-default native volume application now connects a serialized controller
+to the real CPU engine and a bounded locked-memory provider. It can create a
+volume, save and byte-verify NEW text files, list/read files, perform explicit
+recompression and retire the volume. It does not mount a drive or initialize HIP.
+Its publishing-commit GUI/provider qualification is pending; see
+[scope, ownership and checks](docs/WINDOWS_VOLUME_APP.md).

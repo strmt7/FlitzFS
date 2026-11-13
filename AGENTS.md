@@ -1188,3 +1188,20 @@ No allocation or I/O may follow successful publication merely to form diagnostic
 Per-instance pointer/lease checks do not attest to global provider nonaliasing.
 Persistent workload-derived write credit, real reservation/mapping and helper/tray
 integration remain required; do not call this a complete learner.
+
+## Experimental native Windows volume application
+
+Read docs/WINDOWS_VOLUME_APP.md before changing the app, controller or memory
+provider. FLITZFS_BUILD_VOLUME_APP defaults OFF and grants no mount/driver/HIP
+permission. Preserve one process-wide domain lease through all backing owners,
+verified initial locking, proportional headroom admission, the 40-MiB provider
+ceiling, 12-MiB app aggregate and checked working-set restoration. Failed frees
+must retain accounted capacity and terminally refuse another domain.
+Memory flushes preserve process-lifetime bytes only; never infer physical
+persistence or add the fixture's full-image stable-copy cost to each transaction.
+Keep one serialized worker/command, checked UTF-8 and input caps, NEW-only saves,
+explicit temporary-volume discard and confirmed worker retirement. Close must
+not silently discard an active volume or strand it without a usable tray.
+The separate GUI lane uses actual native controls and creation-time child jobs;
+never start an unqualified owner GUI binary or call control tests complete
+accessibility, mount, Windows 11, power-loss or useful GPU qualification.

@@ -2,8 +2,8 @@
   "schema": 1,
   "updated": "2026-11-13",
   "baseline": {
-    "commit": "8a5633b588869eb3808d089fca76937c6781991c",
-    "tree": "01cf46b6fd34107ff53bb0f2604a2b8c1f10b8c7"
+    "commit": "635abdb7c031446cba0c2896b71d6599cb83b3e2",
+    "tree": "76ff4ab042fe7622c535401d051f5d7765c6eba0"
   },
   "goal_status": "active",
   "scope": "Complete Windows 11 AMD64 filesystem/helper/driver; effective AMD GPU acceleration, independent CPU recovery, high sustained throughput, exceptional lossless reduction, autonomous low-impact persistent learning and verified resilience.",
@@ -334,7 +334,12 @@
         "Verify crash/restart, upgrades/rollback, no stale services/workers/tasks/handles and safe uninstallation without touching unrelated files.",
         "Use the shared file-operation/application suite across both product backends; physical-provider validation belongs to final pre-release qualification, with explicit target selection and preserved source data."
       ],
-      "exit": "Published Windows capability matrix and reproducible client qualification cover the promised app/driver behaviors; hosted callback success alone is insufficient."
+      "exit": "Published Windows capability matrix and reproducible client qualification cover the promised app/driver behaviors; hosted callback success alone is insufficient.",
+      "preparatory_implementation": {
+        "contract": "docs/WINDOWS_VOLUME_APP.md",
+        "scope": "Independent unmounted native app/controller and bounded process-lifetime memory provider; no dependency gate closed.",
+        "qualification": "Publishing-commit isolated model and actual GUI-control checks pending."
+      }
     },
     {
       "id": "Q01",
