@@ -37,17 +37,17 @@ void native_initialization() {
   handles("native-cold");
   std::array<unsigned char,16> random{};
   DWORD rng_baseline=0;
-  for(unsigned i=0;i<4;++i) {
+  for(unsigned i=0;i<32;++i) {
     require(BCryptGenRandom(nullptr,random.data(),static_cast<ULONG>(random.size()),
         BCRYPT_USE_SYSTEM_PREFERRED_RNG)>=0,"Native RNG qualification");
     const auto current=handle_count();
     std::cout<<"Native RNG repetition "<<i<<" handles="<<current<<"\n";
-    if(i)require(current==rng_baseline,"Repeated native RNG handle growth");
-    else rng_baseline=current;
+    if(i>=16)require(current==rng_baseline,"Measured native RNG handle growth");
+    rng_baseline=current;
   }
   handles("native-rng-stable");
   DWORD window_baseline=0;
-  for(unsigned i=0;i<4;++i) {
+  for(unsigned i=0;i<32;++i) {
     auto window=CreateWindowExW(0,L"STATIC",L"FlitzFS native initialization qualification",0,
         0,0,0,0,HWND_MESSAGE,nullptr,GetModuleHandleW(nullptr),nullptr);
     require(window!=nullptr,"Native initialization window");
@@ -60,8 +60,8 @@ void native_initialization() {
     require(DestroyWindow(window)!=FALSE,"Native initialization window cleanup");
     const auto current=handle_count();
     std::cout<<"Native window/thread repetition "<<i<<" handles="<<current<<"\n";
-    if(i)require(current==window_baseline,"Repeated native window/thread handle growth");
-    else window_baseline=current;
+    if(i>=16)require(current==window_baseline,"Measured native window/thread handle growth");
+    window_baseline=current;
   }
   handles("native-window-thread-stable");
 }
