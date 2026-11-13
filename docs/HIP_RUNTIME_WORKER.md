@@ -239,3 +239,21 @@ retains JSON evidence only. A physical AMD run still needs a compatible driver
 and a qualified, bounded private bundle and supervisor.
 
 The authenticated worker also accepts an explicit match request through --match-adapter. It resolves the separate typed match entry and shares the existing device initialization, stream priorities and resource owner. Match wire input is parsed before bundle or adapter access. Complete-package admission now requires six confirmed child exits, including malformed-match and missing-match-runtime refusal. See MATCH_PROPOSALS.md.
+
+
+## Corroborated optional priority metadata
+
+Current selected-distribution native captures at 5eaa07a passed all nine scope
+cases and the language/model/stream pages. The package-bound rocm-systems
+implementation was reread at 7da43026e4f2ef7600433c38c820732f7a205d22 and assigns
+both non-null priority outputs. Preserve that implementation/documentation
+warning distinction; no occurrence on the owner GPU is inferred.
+
+[HIP_PRIORITY_CAPABILITY.md](HIP_PRIORITY_CAPABILITY.md) specifies the next
+bounded two-query guard and twelve CPU scenarios. Omitted/partial/inconsistent
+reports refuse as unsupported configuration; stable invalid order remains a
+fault. A byte-pinned prior header must reproduce the old misclassification and
+the current header must pass the same focused fake case. These new runs are
+pending. Runtime exports, typed ABI, worker bounds, kernels and normal filesystem
+routing remain unchanged. Priority metadata alone supplies no preemption or
+bounded background-interference guarantee.

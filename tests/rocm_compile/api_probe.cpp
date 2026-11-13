@@ -1,4 +1,8 @@
+#ifdef FLITZFS_PREVIOUS_HIP_API
+#include "previous_hip_api.hpp"
+#else
 #include "hip_api.hpp"
+#endif
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -13,6 +17,9 @@ struct State {
   int ordinal = -1;
   hipError_t init_status = hipSuccess, properties_status = hipSuccess;
   hipError_t select_status = hipSuccess, priority_status = hipSuccess;
+  hipError_t second_priority_status = hipSuccess;
+  unsigned priority_outputs=3;
+  bool changing_priorities=false;
   std::array<std::byte,8> luid{std::byte{7}};
   unsigned mask = 2;
   int least = 2, greatest = -1;
@@ -34,7 +41,10 @@ hipError_t fake_select(int ordinal) {
   ++state.selected; return state.select_status;
 }
 hipError_t fake_priorities(int* least, int* greatest) {
-  ++state.priorities; *least = state.least; *greatest = state.greatest; return state.priority_status;
+  ++state.priorities;
+  if(state.priority_outputs&1U)*least=state.least+(state.changing_priorities && state.priorities>1 ? 1 : 0);
+  if(state.priority_outputs&2U)*greatest=state.greatest;
+  return state.priorities==1 ? state.priority_status : state.second_priority_status;
 }
 void never_called() { throw std::runtime_error("unexpected fake runtime function call"); }
 FARPROC lookup(std::string_view name) {
@@ -52,11 +62,29 @@ void failure(Function&& call, HipWorkerExit expected, HipWorkerStage stage) {
   catch (const HipWorkerFailure& error) { require(error.code == expected, "wrong typed failure");
     require(error.stage == stage, "wrong diagnostic stage"); }
 }
+int priority_regression(const hip_detail::HipApi& api) {
+  state={};state.priority_outputs=0;
+  try {(void)hip_detail::initialize_device(api,7,std::array<std::byte,8>{std::byte{7}},2);}
+  catch(const HipWorkerFailure& error) {
+    require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME),"regression loaded HIP");
+    const bool complete=error.code==HipWorkerExit::unsupported_configuration &&
+        error.stage==HipWorkerStage::stream_priorities && state.priorities==2;
+    std::cout<<"HIP priority regression: {\"category\":"<<static_cast<std::uint32_t>(error.code)
+        <<",\"stage\":\""<<hip_worker_stage_name(error.stage)<<"\",\"priority_queries\":"<<state.priorities
+        <<",\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":"<<(complete?"true":"false")<<"}\n";
+    return complete?0:1;
+  }
+  throw std::runtime_error("unreported priority range admitted");
 }
-int main() {
+}
+int main(int argc,char** argv) {
   try {
     require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME), "HIP runtime already loaded");
+    if(argc==2 && std::string_view(argv[1])=="--priority-capability-regression")
+      return priority_regression(hip_detail::bind_api([](const char* name){return lookup(name);}));
+    require(argc==1,"unexpected CPU API probe arguments");
     const std::array<std::byte,8> expected{std::byte{7}};
+    unsigned priority_cases=0;
     require(hip_detail::runtime_symbols.size() == 11, "binding inventory changed without qualification");
     require(hip_detail::runtime_symbols[1] == "hipGetDevicePropertiesR0600",
         "selected SDK properties ABI changed without qualification");
@@ -69,7 +97,7 @@ int main() {
     const auto api = hip_detail::bind_api([](const char* name) { return lookup(name); });
     require(hip_detail::initialize_device(api, 7, expected, 2) == 2, "wrong low-priority result");
     require(state.initialized == 1 && state.queried == 1 && state.selected == 1 &&
-        state.priorities == 1 && state.ordinal == 7, "qualified device sequence differs");
+        state.priorities == 2 && state.ordinal == 7, "qualified device sequence differs");
     for(const unsigned mask:{0U,2U,0x80000000U,0xffffffffU}) {
       state={};state.mask=mask;
       const auto identity=hip_detail::query_device_identity(api,7);
@@ -83,7 +111,7 @@ int main() {
     auto refused=[&](auto){++proofs;return false;};
     state={};state.mask=0;
     require(hip_detail::initialize_device(api,7,expected,1,proven)==2,"proven single-node omission refused");
-    require(proofs==1 && state.selected==1 && state.priorities==1,"single-node proof sequence");
+    require(proofs==1 && state.selected==1 && state.priorities==2,"single-node proof sequence");
     state={};state.mask=0;proofs=0;
     failure([&]{(void)hip_detail::initialize_device(api,7,expected,1,refused);},
         HipWorkerExit::unsupported_configuration,HipWorkerStage::adapter_node);
@@ -152,8 +180,41 @@ int main() {
     state = {}; state.least = -2; state.greatest = 1;
     failure([&] { (void)hip_detail::initialize_device(api, 7, expected, 2); },
         HipWorkerExit::device_fault, HipWorkerStage::stream_priorities);
+    for(const unsigned outputs:{0U,1U,2U}) {
+      state={};state.priority_outputs=outputs;
+      failure([&]{(void)hip_detail::initialize_device(api,7,expected,2);},
+          HipWorkerExit::unsupported_configuration,HipWorkerStage::stream_priorities);
+      require(state.initialized==1 && state.queried==1 && state.selected==1 &&
+          state.priorities==2,"capability corroboration repeated discovery or omitted its bounded query");
+      ++priority_cases;
+    }
+    for(const auto range:std::array<std::array<int,2>,5>{{
+        {0,0},{-1,-2},{(std::numeric_limits<int>::max)(),(std::numeric_limits<int>::min)()},
+        {(std::numeric_limits<int>::max)(),(std::numeric_limits<int>::max)()},
+        {(std::numeric_limits<int>::min)(),(std::numeric_limits<int>::min)()}}}) {
+      state={};state.least=range[0];state.greatest=range[1];
+      require(hip_detail::initialize_device(api,7,expected,2)==range[0],"valid priority range refused");
+      require(state.priorities==2,"valid range was not corroborated");
+      ++priority_cases;
+    }
+    state={};state.changing_priorities=true;
+    failure([&]{(void)hip_detail::initialize_device(api,7,expected,2);},
+        HipWorkerExit::unsupported_configuration,HipWorkerStage::stream_priorities);
+    require(state.priorities==2,"changing range caused repeated probes");
+    ++priority_cases;
+    for(const auto status:{hipErrorNotSupported,hipErrorOutOfMemory,hipErrorUnknown}) {
+      state={};state.second_priority_status=status;
+      const auto expected_exit=status==hipErrorNotSupported?HipWorkerExit::unsupported_configuration:
+          status==hipErrorOutOfMemory?HipWorkerExit::temporary_pressure:HipWorkerExit::device_fault;
+      failure([&]{(void)hip_detail::initialize_device(api,7,expected,2);},
+          expected_exit,HipWorkerStage::stream_priorities);
+      require(state.priorities==2,"second-query error retried");
+      ++priority_cases;
+    }
+    require(priority_cases==12,"priority capability cases incomplete");
     require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME), "fake test loaded HIP");
     std::cout << "HIP API CPU qualification: {\"checks\":" << checks <<
+        ",\"priority_cases\":"<<priority_cases<<",\"priority_query_limit\":2"<<
         ",\"identity_before_selection\":true,\"missing_exports_refused\":11,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\n";
     return 0;
   } catch (const std::exception& error) {

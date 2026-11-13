@@ -1460,3 +1460,18 @@ is absent from the actual documentation. Retain original expected-content/native
 failures; a corrected scope needs a new qualified capture. Native success or a
 search snippet cannot substitute for substantive review. Keep decoder/runtime
 and current-AMD semantic qualification separate from the completed offline gate.
+
+
+## HIP priority capability corroboration
+
+Read docs/HIP_PRIORITY_CAPABILITY.md before changing device initialization or the
+CPU priority oracle. Preserve the current package's real implementation versus
+documentation-warning distinction. Keep exactly two bounded capability queries
+for the already selected device, opposite initial values, no guessed defaults,
+unsupported classification for unreported/partial/inconsistent outputs and fault
+classification for a stable invalid order. API errors retain typed behavior.
+The historical header is test-only and must retain its exact canonical Git blob;
+prove the actual old category/query count and corrected result in the same CPU
+fixture before qualification. No extra runtime export, kernel/protocol change,
+retry loop, rescan or owner execution follows. A reported range proves no GPU
+preemption or background interference guarantee.

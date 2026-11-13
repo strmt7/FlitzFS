@@ -513,3 +513,17 @@ over 148 files, with live confirmation of the explicit native-session API.
 Infrastructure hits limit this search; it does not establish an implemented
 automatic governor or durable provider mapping. Those full-plan requirements
 remain active alongside G02/G03 and every other unfinished package.
+
+
+The current-AMD native group at 5eaa07a passed nine scope cases and all three
+selected HIP 7.16.0 pages. The exact package's priority-range implementation was
+independently read; it assigns both outputs. Documentation warnings do not prove
+that implementation fails, and neither source proves scheduling isolation.
+
+The next [capability corroboration](HIP_PRIORITY_CAPABILITY.md) hardens incomplete
+or inconsistent reports with exactly two queries, no rescan/retry/default guess,
+and configuration suppression while retaining fault classification for explicit
+stable invalid ranges. Twelve CPU scenarios and an exact historical/current
+header comparison require new-source SDK execution; no hardware result is
+claimed. This bounded correction does not alter G03 lifecycle gates or the
+historical D01 uncertainty, and the full development goal remains active.

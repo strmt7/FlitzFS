@@ -71,3 +71,22 @@ native group require execution before semantic research resumes. The initial
 full-native observation exceeded output presentation limits; its preserved
 artifact was then inspected with bounded digest-verified scope excerpts.
 See [source-bound evidence](evidence/gpu-lz4-object-1d20f40.json).
+
+## Executed current-AMD content review
+
+The corrected group at 5eaa07a passed nine scope tests and all three native
+HTTP-200 captures, with exact URI/version/digest checks. The language reference
+describes AMD warp lockstep and cross-lane masks while separately requiring
+appropriate synchronization for memory visibility. These statements do not
+settle this kernel's cooperating hash-table accesses or justify adding a block
+barrier to divergent lane code.
+
+The stream reference describes priority ordering and an incomplete-API warning;
+the package-bound implementation independently assigns Low/High outputs. Stream
+destruction may wait or leave work in flight. None of these facts establishes
+preemption or bounded teardown. The next priority metadata guard is separately
+specified in [HIP_PRIORITY_CAPABILITY.md](HIP_PRIORITY_CAPABILITY.md). Actual
+kernel/ABI/lifecycle review and GPU output remain required; no vendor kernel
+is changed. Publisher revision metadata was absent, so only current-served
+selected-distribution scope is verified. Native receipts and source identities
+are in [evidence](evidence/gpu-priority-sources-5eaa07a.json).

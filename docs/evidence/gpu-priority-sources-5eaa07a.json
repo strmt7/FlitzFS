@@ -1,0 +1,208 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "recorded_utc": "2026-11-13 13:07:53 UTC",
+  "source": "5eaa07ae56bd360cecf5b31bcf3806f117540ab7",
+  "current_amd_sources": {
+    "run": 43427561642,
+    "job": 131892649507,
+    "artifact": 14038013136,
+    "artifact_bytes": 252682,
+    "artifact_sha256": "5d871ee46cc7b47479435a668b4b6fd52ad080e5669130287408db3cac97b040",
+    "scope_cases": 9,
+    "all_native_sources_admitted": true,
+    "receipt": {
+      "experimental": true,
+      "commit": "5eaa07ae56bd360cecf5b31bcf3806f117540ab7",
+      "provider_repository": "strmt7/FlitzZip",
+      "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "python": "3.13.18 (main, Oct 26 2026, 14:20:56) [GCC 13.3.0]",
+      "source_group": "rocm-warp",
+      "limits": {
+        "memory_max": 3221225472,
+        "tasks_max": 256,
+        "cpu_max": [
+          200000,
+          100000
+        ]
+      },
+      "page_timeout_seconds": 45,
+      "robots_checked": true,
+      "external_llm": false,
+      "persistent_profile": false,
+      "sources": [
+        {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 79480,
+          "markdown_sha256": "f7226716d4ddd84b1dd155599e07dbdc05b10f4c1f989c8fb7a8b7f44758d97e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.104,
+          "capture": "hip-current-warp-language.native.json",
+          "capture_sha256": "7c62d99949bc6dd7718e4389b0c0039a77360d29c0293a018ac8f1626441c5cf",
+          "name": "hip-current-warp-language"
+        },
+        {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/understand/programming_model.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 88259,
+          "markdown_sha256": "21bd22aa0ea39583e18c654c9cab3409c882a77db28929d0ed001572475ed18a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.057,
+          "capture": "hip-current-warp-model.native.json",
+          "capture_sha256": "82be6950e987c560982b61e9b840b2f55c87dc09ae00c59a067295b5f7a27260",
+          "name": "hip-current-warp-model"
+        },
+        {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 50839,
+          "markdown_sha256": "f1f4024e230a4f4aabb8fd1d2705eb64f08b3de2dc98305fdf8f47674bf99c4e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.778,
+          "capture": "hip-current-warp-stream.native.json",
+          "capture_sha256": "cc952ca698403e5268f10ff7df384b2d84428a1e77b73f6bdf7e7c29bda8b8cf",
+          "name": "hip-current-warp-stream"
+        }
+      ]
+    },
+    "publisher_revision_verified": false,
+    "native_entries": [
+      {
+        "entry": "rocm-warp/hip-current-warp-language.native.json",
+        "sha256": "7c62d99949bc6dd7718e4389b0c0039a77360d29c0293a018ac8f1626441c5cf",
+        "requested_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "diagnosis": {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 79480,
+          "markdown_sha256": "f7226716d4ddd84b1dd155599e07dbdc05b10f4c1f989c8fb7a8b7f44758d97e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.104
+        },
+        "native_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+        "redirected_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html"
+      },
+      {
+        "entry": "rocm-warp/hip-current-warp-model.native.json",
+        "sha256": "82be6950e987c560982b61e9b840b2f55c87dc09ae00c59a067295b5f7a27260",
+        "requested_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/understand/programming_model.html",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "diagnosis": {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/understand/programming_model.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 88259,
+          "markdown_sha256": "21bd22aa0ea39583e18c654c9cab3409c882a77db28929d0ed001572475ed18a",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.057
+        },
+        "native_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/understand/programming_model.html",
+        "redirected_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/understand/programming_model.html"
+      },
+      {
+        "entry": "rocm-warp/hip-current-warp-stream.native.json",
+        "sha256": "cc952ca698403e5268f10ff7df384b2d84428a1e77b73f6bdf7e7c29bda8b8cf",
+        "requested_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "diagnosis": {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 50839,
+          "markdown_sha256": "f1f4024e230a4f4aabb8fd1d2705eb64f08b3de2dc98305fdf8f47674bf99c4e",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.778
+        },
+        "native_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html",
+        "redirected_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html"
+      }
+    ],
+    "review": {
+      "language": "AMD warp lockstep and cross-lane intrinsics do not by themselves establish cooperating-memory visibility. The documented fence/synchronization scopes must be respected. No race or safety certification is inferred for the vendor kernel.",
+      "model": "Warp width is device-dependent; current source handling and launch geometry still need exact qualified binding.",
+      "stream": "Priority range queries are documented with an incomplete-implementation warning. Stream teardown may wait or leave in-flight work; it cannot supply a bounded supervisor stop guarantee.",
+      "scope": "Current-served selected-distribution documents; publisher revision metadata was absent. No low-impact/preemption or actual GPU-output claim follows."
+    },
+    "observation_failures_preserved": [
+      "Initial full-native presentation truncation is retained in the prior evidence.",
+      "A bounded term formatter used PowerShell's automatic Matches variable by mistake; the failed formatting capture is retained. It was replaced with a task-specific variable and the same digest-verified artifact was reread. No crawler rerun or source data change was used."
+    ],
+    "selected_runtime_implementation": {
+      "repository": "ROCm/rocm-systems",
+      "commit": "7da43026e4f2ef7600433c38c820732f7a205d22",
+      "path": "projects/clr/hipamd/src/hip_stream.cpp",
+      "git_blob": "137ab2d3a13097181f6baacd6dc8d9a1326b318d",
+      "function": "hipDeviceGetStreamPriorityRange",
+      "transport": "Native GitHub exact source API",
+      "finding": "Selected implementation assigns each non-null output to the corresponding Low/High enum. Defensive unreported/inconsistent-output cases are not claimed as observed failures of this implementation."
+    }
+  },
+  "priority_change": {
+    "contract": "docs/HIP_PRIORITY_CAPABILITY.md",
+    "previous_source": "5eaa07ae56bd360cecf5b31bcf3806f117540ab7",
+    "previous_path": "src/windows/hip_api.hpp",
+    "previous_blob": "e8f78c76a1b6b44759a1ea5ed6d236bdafd3384e",
+    "source_analysis": "Success with untouched sentinel outputs is classified as device_fault by the old range-order check.",
+    "new_rule": "Two bounded consistent-output observations; unreported/partial/inconsistent capability becomes unsupported_configuration, stable explicit invalid order remains device_fault.",
+    "new_capability_cases": 12,
+    "old_current_regression_executed": false,
+    "new_source_qualified": false,
+    "owner_case_observed": false,
+    "transport_mapping": {
+      "path": "src/windows/gpu_worker_common.cpp",
+      "git_blob": "36276729e80b17c120f6b48fca8e8c1f619355f7",
+      "requires_confirmed_exit": true,
+      "unsupported_maps_to": "GpuRecoveryOutcome::unsupported_configuration",
+      "device_fault_maps_to": "GpuRecoveryOutcome::device_fault",
+      "unchanged": true
+    }
+  },
+  "scope": {
+    "runtime_api_bindings": 11,
+    "worker_exit_categories_unchanged": true,
+    "worker_protocol_unchanged": true,
+    "stored_formats_unchanged": true,
+    "kernel_changed": false,
+    "gpu_executed": false,
+    "module_loaded": false,
+    "new_owner_gui_gpu_mount_driver_operation": false,
+    "full_goal_status": "active"
+  },
+  "integration": {
+    "run": 43427561796,
+    "source": "5eaa07ae56bd360cecf5b31bcf3806f117540ab7",
+    "all_13_jobs_succeeded": true,
+    "scope": "Native API inventory conclusions, not new physical power-loss or owner qualification."
+  }
+}

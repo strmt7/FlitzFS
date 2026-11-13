@@ -941,3 +941,15 @@ capture failed on an absent literal marker; its actual HIP 7.16 language page
 was verified for scope diagnosis, without admitting kernel-semantic conclusions.
 The corrected nine-case scope and three native captures remain pending.
 Actual GPU output, worker lifecycle and useful end-to-end gain remain unfinished.
+
+
+## Current-AMD review and capability refusal classification
+
+At 5eaa07a, nine crawler-scope cases and all three current selected-distribution
+AMD captures passed. The exact package runtime implementation was also read:
+it normally writes both priority outputs. The next defensive guard uses two
+bounded observations to separate incomplete/inconsistent capability from a
+stable invalid range. A pinned historical-header CPU regression, all twelve
+new capability cases and complete SDK/new-source checks remain pending.
+It changes no kernel, codec or normal filesystem route. Useful GPU compression,
+background governance, durable mapping and every full-product exit stay open.

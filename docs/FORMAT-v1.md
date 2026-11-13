@@ -429,3 +429,9 @@ not stored file representations or GPU runtime support.
 Completed offline object metadata inspection at 1d20f40 and the subsequent
 research-page scope correction add no stored codec, capability or worker frame.
 The candidate remains isolated compile output, not a filesystem dependency.
+
+
+The priority capability guard and its historical CPU oracle add no runtime export,
+worker category/stage value, stored encoding, codec ID or product numbering.
+Existing failure categories now distinguish unreported capability from a stable
+invalid range; their numerical values and protocol framing are unchanged.
