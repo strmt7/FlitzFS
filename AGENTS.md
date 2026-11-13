@@ -1487,3 +1487,15 @@ pins, all process/CPU/memory/deadline/report limits, NEW phase receipts and term
 unknown retirement. Never link the historical source into product targets, invoke
 its old multi-profile entrypoint, weaken current product origin guards, export it
 for owner execution or infer an old kernel cause from one green comparison.
+
+
+## Offline native synchronization API gate
+
+Read docs/HIP_WARP_SYNC_PROBE.md before changing its source, helper or SDK calls.
+Bind the exact source asset and actual selected header, reject open text rewrites,
+reparse/foreign inputs and unrelated dependency paths, and retain original child/
+object/reader/SDK/worker limits. The synthetic gfx1100 object is never loaded,
+linked or exported. Keep explicit64-bit masked calls and every original gate.
+API/type compilation does not prove fences, kernel correctness, output safety or
+GPU benefit. Vendor code and runtime remain unchanged; the historical comparison
+at ab37c4a is inconclusive and does not close D01 or open G03/owner execution.

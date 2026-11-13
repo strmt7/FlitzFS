@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "reviewed_utc": "2026-11-13",
+  "candidate": {
+    "repository": "ROCm/hipCOMP-core",
+    "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "path": "src/LZ4Kernels.cuh",
+    "blob": "e4ab8a16dc1e134b971784dc8121db81b5e16e2f",
+    "observations": [
+      "AMD SYNCWARP1/SYNCWARP macros are empty.",
+      "warpMatchAny uses shared values in partial-lane participation; a block barrier substitution is unsafe."
+    ]
+  },
+  "implementation": {
+    "repository": "ROCm/rocm-systems",
+    "commit": "7da43026e4f2ef7600433c38c820732f7a205d22",
+    "path": "projects/clr/hipamd/include/hip/amd_detail/amd_warp_sync_functions.h",
+    "blob": "51d07f6e35298abba5fb9817d61cf6eb18fe5f66",
+    "bytes": 37736,
+    "sha256": "e6f8f61066b034141ad288a01b82006a0e6f0e8e9e7750ac36153b1602eedfe2",
+    "observations": [
+      "Synchronization builtins are enabled unless HIP_DISABLE_WARP_SYNC_BUILTINS is defined.",
+      "Masked synchronization requires64-bit integral masks; implicit32-bit masks are intentionally rejected.",
+      "Unmasked synchronization uses wavefront release/acquire fences and a wave barrier when those builtins are invocable.",
+      "Mask checks bind the participating active lanes."
+    ]
+  },
+  "discovery_only": {
+    "default_branch_commit": "8cf57c4544db2455299c4686e9b974fe4a38008d",
+    "symbol": "__match_any_sync",
+    "semantic_evidence_from_default_head": false
+  },
+  "compiler_mechanism": {
+    "repository": "strmt7/FlitzZip",
+    "commit": "b46acb6dd7e48e1fb2dc182210495abb6a3c013f",
+    "path": "tools/compile_hip_object.ps1",
+    "blob": "6d9a8e649c512f249df1d80dd2776ce36733296a",
+    "reviewed": "Explicit architecture and compile-only output, -MD host dependencies plus bounded device-preprocessor dependency rules; Make escaping includes dollars, hashes and spaces."
+  },
+  "probe": {
+    "source": "tests/rocm_compile/warp_sync_probe.hip",
+    "bytes": 1670,
+    "git_blob": "0705e743dcf9bec07f1e250b042edc84162d9d8c",
+    "sha256": "59474113a2a0d5d2dde1a2a7de8b10d6a9b4de41fdd97664ce62b3cabe453201",
+    "target": "gfx1100",
+    "new_cpu_cases": 9,
+    "status": "implemented; actual source admission and SDK compilation pending",
+    "runtime_loaded": false,
+    "gpu_executed": false,
+    "object_linked": false
+  },
+  "limitations": [
+    "The earlier selected documentation page lacked a standalone __syncwarp literal; that absence does not negate exact packaged-source evidence.",
+    "Header source and successful compilation cannot prove emitted memory ordering, driver safety, CPU/GPU output interoperability or useful performance.",
+    "Vendor kernel and all runtime/transport formats remain unchanged."
+  ]
+}

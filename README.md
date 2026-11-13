@@ -304,3 +304,9 @@ At400f74c Linux passed16 source cases and Windows passed7 record cases before
 rejecting fixture bytes; no manual driver/trial was run. Canonical Git capture
 with separately verified exact/CRLF checkout identity is the next18-case gate.
 The source fixture failure is not a historical retirement result or GPU evidence.
+
+
+The historical comparison at ab37c4a passed both variants and exact CPU readback;
+it did not reproduce or explain D01. The next [native HIP synchronization probe](docs/HIP_WARP_SYNC_PROBE.md)
+is compile-only and requires SDK execution. No new kernel/runtime route or useful
+GPU compression gain is claimed.

@@ -90,3 +90,19 @@ kernel/ABI/lifecycle review and GPU output remain required; no vendor kernel
 is changed. Publisher revision metadata was absent, so only current-served
 selected-distribution scope is verified. Native receipts and source identities
 are in [evidence](evidence/gpu-priority-sources-5eaa07a.json).
+
+
+## Exact packaged native synchronization source
+
+The selected runtime source at7da43026e4f2ef7600433c38c820732f7a205d22 provides
+native __syncwarp with wavefront release/acquire fences and a wave barrier when
+invocable. Its masked overload requires explicit64-bit masks and checks active
+participation. The candidate's warpMatchAny uses shared values inside partial-lane
+branches; replacing empty macros with block barriers could deadlock. The source
+header is stronger availability evidence than a literal missing from one page.
+
+The next [offline API probe](HIP_WARP_SYNC_PROBE.md) binds the actual SDK header,
+uses typed native calls, and checks synthetic object/dependency metadata. Its CPU
+and compiler gates require execution. Availability/compilation is not complete
+memory-order, vendor-kernel, GPU-output or scheduling qualification. No vendor
+source or runtime path changes in this step.

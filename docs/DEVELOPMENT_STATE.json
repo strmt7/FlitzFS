@@ -75,10 +75,13 @@
         ],
         "initial_source": "497066c8d4ab3f06937f61846e08829db47bee39",
         "run": 43442794675,
-        "status": "400f74c Windows source fixture setup failed; no manual trial. Canonical capture and18-case Windows/Linux qualification pending.",
-        "evidence": "docs/evidence/retirement-preparation-497066c.json",
+        "status": "Both one-shot variants retired and independently read7001 bytes; historical cause remains unproven.",
+        "evidence": "docs/evidence/retirement-reference-ab37c4a.json",
         "owner_execution": false,
-        "latest_failure_evidence": "docs/evidence/retirement-source-fixture-400f74c.json"
+        "latest_failure_evidence": "docs/evidence/retirement-source-fixture-400f74c.json",
+        "qualified_source": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+        "qualified_run": 43450358079,
+        "root_and_source_admission_resolved": true
       }
     }
   ],
@@ -357,12 +360,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "400f74c27044ec3bea41137bb304b4514c0aacf8",
-    "contract": "docs/RETIREMENT_REFERENCE.md",
-    "behavior": "Canonical Git source capture independent of exact/CRLF checkout representation, preserving physical bytes and strict pins.",
-    "status": "At400f74c Linux16 cases and Windows7 reconciliation cases passed; Windows fixture setup failed before root/reference tests. New18-case source, ordinary gates, compiler and first controlled trials require execution.",
-    "failure_evidence": "docs/evidence/retirement-source-fixture-400f74c.json",
-    "next": "Capture physical/canonical byte identities on both OSes, then qualify the controlled compiler/driver path. Preserve original D01 uncertainty and full-product requirements."
+    "source_parent": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+    "contract": "docs/HIP_WARP_SYNC_PROBE.md",
+    "behavior": "Separate offline native synchronization API/type probe with exact source and selected SDK header/dependency/object identities.",
+    "status": "Nine CPU source/path/dependency cases and complete SDK/original worker/regression gates require publishing-source execution.",
+    "next": "Verify the selected header and explicit64-bit mask calls with the actual compiler. Keep vendor kernel and runtime unchanged; preserve unresolved D01 and all full-product exits."
   },
   "resolved": [
     {
@@ -548,6 +550,14 @@
       "worker_exits_confirmed": 20,
       "gpu_executed": false,
       "evidence": "docs/evidence/priority-capability-b2cf989.json"
+    },
+    "native_wave_sync": {
+      "contract": "docs/HIP_WARP_SYNC_PROBE.md",
+      "runtime_source": "7da43026e4f2ef7600433c38c820732f7a205d22",
+      "header_blob": "51d07f6e35298abba5fb9817d61cf6eb18fe5f66",
+      "status": "Exact source reviewed; offline compiler and nine CPU cases pending.",
+      "vendor_kernel_changed": false,
+      "gpu_executed": false
     }
   },
   "integration_checkpoints": [
@@ -574,10 +584,10 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "497066c8d4ab3f06937f61846e08829db47bee39",
-    "run": 43440422552,
+    "source": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+    "run": 43447719131,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "All ordinary current job conclusions and8 CPU reference-transformation cases on Linux. Historical VM comparison stopped before source generation; not a retirement result or owner qualification."
+    "scope": "All ordinary job conclusions,18 source cases on each OS and the two separately bounded historical comparison trials. No cause, physical durability or GPU-output claim."
   }
 }

@@ -440,3 +440,8 @@ invalid range; their numerical values and protocol framing are unchanged.
 The experimental historical retirement-reference harness adds only private test
 receipts; no container, native namespace, worker wire, codec ID or capability
 encoding changes. It does not introduce a product historical-format writer.
+
+
+The native synchronization API probe is an unlinked compiler fixture and adds
+only qualification metadata. No stored encoding, codec ID, worker wire or native
+capability changes.
