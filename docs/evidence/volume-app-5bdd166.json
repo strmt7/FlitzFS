@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "source_commit": "5bdd166443ed4ddf25f2bb99a2222e5f18cba161",
+  "run": 43337832712,
+  "job": 131598418058,
+  "conclusion": "failure",
+  "build": "success",
+  "dependency_audit": "success",
+  "handle_phases": [
+    {
+      "phase": "baseline",
+      "handles": 84
+    },
+    {
+      "phase": "provider_retired",
+      "handles": 84
+    },
+    {
+      "phase": "volume_retired",
+      "handles": 88
+    },
+    {
+      "phase": "controller_retired",
+      "handles": 113
+    }
+  ],
+  "assertion": "Controller handle leak",
+  "interpretation": "Provider allocation/retirement alone balanced. The first volume added four process handles and the first window/controller path added 25. This observation alone does not prove a leak or cold platform initialization.",
+  "next_experiment": "Reproduce native RNG and message-window/thread notification primitives without FlitzFS provider/model/controller, require repeated primitive counts to stabilize, then require exact before/after balance for three complete application model cycles. Keep all existing assertions and cold-count evidence.",
+  "gui_executed": false,
+  "owner_executed": false
+}

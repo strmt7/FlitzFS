@@ -2,6 +2,7 @@
 #include "bounded_process.hpp"
 #include "gpu_probe_budget.hpp"
 #include <windows.h>
+#include <bcrypt.h>
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -25,6 +26,44 @@ template<class F>void until(F&& predicate,std::uint64_t deadline) {
 void handles(const char* phase) {
   DWORD count=0;require(GetProcessHandleCount(GetCurrentProcess(),&count)!=FALSE,"Handle observation");
   std::cout<<"Application handle phase: "<<phase<<" handles="<<count<<"\n";
+}
+DWORD handle_count() {
+  DWORD value=0;require(GetProcessHandleCount(GetCurrentProcess(),&value)!=FALSE,"Native handle observation");
+  return value;
+}
+void native_initialization() {
+  // Reproduce cold platform initialization without our provider/model/controller.
+  // Every repeated primitive and every later full model cycle must balance.
+  handles("native-cold");
+  std::array<unsigned char,16> random{};
+  DWORD rng_baseline=0;
+  for(unsigned i=0;i<4;++i) {
+    require(BCryptGenRandom(nullptr,random.data(),static_cast<ULONG>(random.size()),
+        BCRYPT_USE_SYSTEM_PREFERRED_RNG)>=0,"Native RNG qualification");
+    const auto current=handle_count();
+    std::cout<<"Native RNG repetition "<<i<<" handles="<<current<<"\n";
+    if(i)require(current==rng_baseline,"Repeated native RNG handle growth");
+    else rng_baseline=current;
+  }
+  handles("native-rng-stable");
+  DWORD window_baseline=0;
+  for(unsigned i=0;i<4;++i) {
+    auto window=CreateWindowExW(0,L"STATIC",L"FlitzFS native initialization qualification",0,
+        0,0,0,0,HWND_MESSAGE,nullptr,GetModuleHandleW(nullptr),nullptr);
+    require(window!=nullptr,"Native initialization window");
+    bool posted=false;
+    std::thread sender([&]{posted=PostMessageW(window,WM_APP+40,0,0)!=FALSE;});
+    sender.join();require(posted,"Native initialization notification");
+    MSG message{};while(PeekMessageW(&message,window,0,0,PM_REMOVE)) {
+      TranslateMessage(&message);DispatchMessageW(&message);
+    }
+    require(DestroyWindow(window)!=FALSE,"Native initialization window cleanup");
+    const auto current=handle_count();
+    std::cout<<"Native window/thread repetition "<<i<<" handles="<<current<<"\n";
+    if(i)require(current==window_baseline,"Repeated native window/thread handle growth");
+    else window_baseline=current;
+  }
+  handles("native-window-thread-stable");
 }
 void model_tests() {
   DWORD before=0,after=0;
@@ -84,6 +123,9 @@ void model_tests() {
     const auto allocated=model.view().allocated;
     require(!model.optimize() && model.view().allocated==allocated,"Unchanged optimization repeated or leaked");
     model.create_text("empty.txt","");require(model.read_text("empty.txt").empty(),"Empty file readback");
+    const std::string unicode="UTF-8: \xCE\xB1\xCE\xB2 \xF0\x9F\x9A\x80";
+    model.create_text("utf8.txt",unicode);
+    require(model.read_text("utf8.txt")==unicode,"UTF-8 byte preservation");
     model.discard();require(!model.ready(),"Discard retained engine");
   }
   handles("volume-retired");
@@ -162,7 +204,7 @@ void gui_tests(const std::filesystem::path& app) {
     require(IsWindowVisible(window)!=FALSE,"GUI did not appear");
     button(101);wait_status(L"Memory volume created");
     send(GetDlgItem(window,111),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L"qualification.txt"));
-    const std::wstring payload=L"FlitzFS native GUI byte verification. 1234567890";
+    const std::wstring payload=L"FlitzFS native GUI byte verification. 1234567890 \u03B1\u03B2 \U0001F680";
     send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(payload.c_str()));
     button(102);wait_status(L"New file saved and byte-verified.");
     require(send(GetDlgItem(window,110),LB_GETCOUNT)==1,"GUI file list");
@@ -194,7 +236,10 @@ void gui_tests(const std::filesystem::path& app) {
 int wmain(int argc,wchar_t** argv) {
   try {
     gpu_probe_fixture::Budget budget;
-    if(argc==2 && std::wstring_view(argv[1])==L"--model")model_tests();
+    if(argc==2 && std::wstring_view(argv[1])==L"--model") {
+      native_initialization();
+      for(unsigned cycle=0;cycle<3;++cycle)model_tests();
+    }
     else if(argc==3 && std::wstring_view(argv[1])==L"--gui")gui_tests(std::filesystem::path(argv[2]));
     else throw std::runtime_error("Explicit --model or --gui absolute-app-path required");
     std::cout<<"Windows volume application checks: "<<checks
