@@ -88,3 +88,11 @@ loss/rebuild baselines, mapping/reclamation and helper authorization. A reopen,
 new helper lease, image identity, counter saturation or advice rebuild must never
 mint old workload again. Resource admission, low-priority execution and measured
 useful compression remain independent required gates.
+
+The first fixture at 6587ea0 failed its guessed 32-call guard before iterating
+faults. Its two-record transaction can perform four record writes, three padding
+ranges of at most sixteen 4-KiB writes, two indexes, two roots and three flushes:
+a derived maximum of 59 calls. The correction asserts that source-derived bound
+and still faults every observed call. This changes no product or process/time
+limit. Failed jobs remain recorded in the source manifest; successful publishing-
+source fault execution is still required.
