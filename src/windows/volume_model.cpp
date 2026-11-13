@@ -32,7 +32,7 @@ void VolumeModel::create() {
       head,fresh_identity(),image,fresh_identity(),{StoreCompressionMode::automatic,3,false}));
   const auto workload=session->enable_workload_accounting();
   require(workload.enabled&&!workload.committed_input_bytes,"New workload accounting failed");
-  const auto advisory=session->create_optimization_area(advice,1);
+  const auto advisory=session->create_budgeted_optimization_area(advice,1);
   require(advisory.phase==NativeOptimizationPhase::ready,"Optimization area creation failed");
   domain->verify_resident();
   domain_=std::move(domain);head_=std::move(head);image_=std::move(image);
@@ -105,9 +105,12 @@ VolumeModel::AdviceMaintenance VolumeModel::maintain_optimization_state() {
       info.phase!=NativeOptimizationPhase::unavailable)return AdviceMaintenance::unavailable;
   const auto slot=info.binding_attempts;
   if(slot>=advice_.size())return AdviceMaintenance::unavailable;
+  // Establish the checked loss baseline before allocating a candidate. An
+  // unchanged opportunity consumes no new provider slot or source snapshot.
+  if(!session_->prepare_budgeted_optimization_rebuild())return AdviceMaintenance::unavailable;
   auto next=domain_->create_store(area_capacity);
   NativeOptimizationInfo created;
-  try{created=session_->rebuild_optimization_area(next,1);}
+  try{created=session_->rebuild_budgeted_optimization_area(next,1);}
   catch(...){adopt_attempt(slot,next);throw;}
   adopt_attempt(slot,next);
   return created.phase==NativeOptimizationPhase::ready?

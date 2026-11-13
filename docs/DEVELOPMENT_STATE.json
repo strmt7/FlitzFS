@@ -11,18 +11,20 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "5b58568b019772542c9a300e1283a107d5c5028b",
-    "core_run": 43393246586,
+    "commit": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
+    "core_run": 43403094847,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "native_groups": 137,
-    "sanitizer_groups": 118,
+    "native_groups": 138,
+    "sanitizer_groups": 119,
     "advisory_assertions": 687,
     "workload_assertions_per_examined_log": 4645,
+    "budget_assertions_per_examined_log": 375,
+    "budget_faults_per_examined_log": 42,
     "managed_invariants_native": 412,
     "managed_invariants_raw": 404,
-    "evidence": "docs/evidence/workload-helper-5b58568.json"
+    "evidence": "docs/evidence/optimization-budget-5db3ae7.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -79,10 +81,10 @@
     "autonomous_background_executor": false,
     "general_payload_repair": false,
     "production_windows_app_installer": false,
-    "persistent_optimization_state": "Controlled journal/rebuild and managed/helper workload provenance qualified at5b58568. New funded advisory settlement protocol awaits qualification; durable mapping, authorization and autonomous execution remain incomplete.",
+    "persistent_optimization_state": "Controlled funded advisory journal qualified at 5db3ae7. The new explicit Windows helper consumer adds funded creation/replacement and admission before provider allocation; its own source qualification is pending. Durable mapping, authorization, long-lived continuation and autonomous learning remain incomplete.",
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; source9977674 passed VM model/GUI and one healthy owner GUI, with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
-    "funded_advisory_control": "Experimental opt-in capability2 and controlled funding/loss/repair APIs, not an automatic consumer or global physical-wear qualification."
+    "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -96,11 +98,11 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13 09:34 UTC",
+    "checked_at_utc": "2026-11-13 10:01:26 UTC",
     "native_transport": "Authenticated GitHub open-alerts API",
     "open_alerts": 0,
     "scope": "Open alerts only, not absence of all vulnerabilities.",
-    "evidence": "docs/evidence/optimization-budget-sources-5b58568.json"
+    "evidence": "docs/evidence/funded-helper-sources-5db3ae7.json"
   },
   "source_routing": {
     "indexed_commit": "22ba3b3238e2a4185705721deeb645b186f0d002",
@@ -339,11 +341,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "5b58568b019772542c9a300e1283a107d5c5028b",
-    "contract": "docs/OPTIMIZATION_BUDGET.md",
-    "behavior": "Controlled capability2 advisory settlement with verified native-input funding, charged creation/publication/repair and loss-safe fresh-input baselines; legacy/default bytes unchanged.",
-    "status": "New-source fault/parser/overflow/lease/legacy/budget and all existing raw/codec/Windows/native/sanitizer/helper/mounted gates required.",
-    "next": "Inspect actual journal fault execution and independent CPU data/credit recovery. Durable mapping/authorization, lifetime continuation and automatic resource/learning consumers remain required. No owner experiment."
+    "source_parent": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
+    "contract": "docs/ADVISORY_HELPER.md",
+    "behavior": "Windows helper consumes funded creation/replacement; failed-funded-owner preflight prevents unearned provider allocations and repeated source snapshot work.",
+    "status": "Publishing-source core/raw/codec/Windows/native/sanitizer, funded preflight, actual helper funding/allocator/capacity/context, model/GUI/resource retirement and full integration gates required.",
+    "next": "Qualify the actual source without replacing failed post-admission cuts with preflight failures. Then implement durable mapping/authorization, qualified funded continuation and the automatic low-priority governor/learner. No unchanged owner/GPU experiment."
   },
   "resolved": [
     {
@@ -388,9 +390,9 @@
     "evidence": "docs/evidence/volume-app-f4928c2.json",
     "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification.",
     "latest_vm": {
-      "commit": "5b58568b019772542c9a300e1283a107d5c5028b",
-      "run": 43393246625,
-      "job": 131777951677,
+      "commit": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
+      "run": 43403094884,
+      "job": 131810604345,
       "model_checks": 590,
       "model_cycles": 3,
       "handles_each": [
@@ -398,10 +400,10 @@
         113
       ],
       "allocator_cuts_each_cycle": 4,
-      "gui_peak_commit_bytes": 13623296,
-      "gui_observation_counter": 38,
+      "gui_peak_commit_bytes": 13611008,
+      "gui_observation_counter": 35,
       "gui_counter_is_distinct_case_count": false,
-      "evidence": "docs/evidence/workload-helper-5b58568.json"
+      "evidence": "docs/evidence/optimization-budget-5db3ae7.json"
     },
     "latest_owner_healthy_gui": {
       "commit": "5b58568b019772542c9a300e1283a107d5c5028b",

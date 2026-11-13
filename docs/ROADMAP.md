@@ -861,3 +861,15 @@ charged repair and loss-safe fresh-input replacement. Its new-source fault/parse
 lease/raw/codec/Windows/native/sanitizer/full regression gates remain required.
 Durable mapping/authorization, lifetime continuation and automatic execution/
 learning/resource governance remain unfinished; L01 and the full goal stay active.
+
+
+## Funded helper consumer preparation
+
+The journal at `5db3ae7` passed all 13 core/integration jobs, 375 budget assertions
+and 42 injected journal failures in each of five core configurations, plus the
+application model and GUI. The next [helper consumer](ADVISORY_HELPER.md) selects
+funded creation/replacement and checks eligibility before candidate allocation.
+Actual-source helper funding, allocation-fault, capacity, context, no-growth,
+GUI/lifecycle and complete integration qualification remain required.
+Durable mapping/authorization, long-lived funding, resource governance, automatic
+learning and useful GPU compression remain full-product work.

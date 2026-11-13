@@ -1,107 +1,93 @@
-# Windows helper advisory recovery (experimental)
+# Windows helper advisory maintenance (experimental)
 
-13 November 2026. Source 9977674 passed all 13 core/mounted jobs, 461 app-model
-assertions and a healthy native GUI check on the owner PC. This connects
-the qualified shared-engine rebuild to the existing unmounted Windows helper.
-It is not an automatic learner or durable physical mapping.
+The helper now uses the controlled funded journal for NEW memory-volume creation
+and failed-area replacement. This source requires its own Windows application,
+GUI, resource-retirement and full integration qualification. The underlying
+journal at `5db3ae7` passed all 13 core/integration jobs, including 375 funded
+assertions and 42 injected journal failures in each of five core configurations.
+Those results do not qualify this new helper consumer.
 
-## Maintenance, not ordinary file I/O
+## Admission and file access
 
-VolumeModel.maintain_optimization_state runs only as an explicit serialized
-maintenance opportunity. Optimize calls it before allocating an image candidate.
-Ordinary saves and reads never inspect or update advice.
+`VolumeModel.maintain_optimization_state` remains an explicit serialized
+maintenance opportunity. Optimize invokes it before creating an image candidate.
+Ordinary saves and reads never audit, allocate or publish advisory state.
 
-A healthy owner republishes its identical cached state through the existing
-journal check: both actual records are verified, without writes, sequence
-advance or allowance consumption. Allocation/preflight failure that leaves
-advice healthy propagates without relabelling it as damage.
+NEW helper volume creation explicitly enables native workload accounting, then
+creates capability-2 advice using the managed volume's one initial provision.
+The existing single-publication allowance is unchanged; creation consumes it.
+Healthy identical-state audits verify both actual records without advancing a
+sequence, writing records or renewing that allowance.
 
-Unavailable/poisoned advice permits at most one fresh-area attempt. The actual
-memory provider allocates it with the unchanged capacity, residency and
-physical/commit-headroom checks. There is no timer, hardware search or retry
-loop. Newly available capacity can admit a later distinct explicit opportunity.
+Damaged advice becomes terminal independently of the file writer. Before
+allocating a replacement, the helper calls
+`prepare_budgeted_optimization_rebuild`. The first opportunity establishes a
+verified current-input loss baseline and forfeits historical entitlement. Later
+opportunities with insufficient new input return unavailable before allocating a
+provider store. Repeated unchanged opportunities use cached facts only to decline
+work and perform no further native snapshot reads.
 
-Four total bindings remain the limit. Exhaustion returns unavailable and defers
-image optimization before candidate allocation. It neither fences the data
-writer nor disables ordinary file access. This does not reset an exhausted
-healthy publication allowance or implement persistent workload-derived credit.
+At least 256 KiB of genuinely new committed input is required for replacement.
+A positive preflight is not publication authority: the managed rebuild verifies
+current native input and every existing binding, alias, ownership and resource
+condition again. It then creates at most one NEW empty area and settles the
+charge. A storage or allocation failure does not restore the spent attempt,
+bootstrap, old allowance or lost entitlement.
 
-## Actual provider ownership and accounting
+Four total bindings remain the limit. Exhaustion defers optional optimization
+without a new area, while healthy file access and existing cleaned handles
+remain available. There is no timer, retry loop, hardware search, autonomous
+scheduler or automatic image-rewrite authorization.
 
-The model retains a fixed array of all admitted advice backends, matching the
-core's binding count. Stores come exclusively from its private MemoryVolumeDomain;
-no arbitrary backing factory, file/device path or runtime fault option is added.
-The provider already owns one process-wide domain lease, a bounded store registry
-and fresh allocations. Do not infer global physical or cross-process authority.
+## Ownership, resources and failure
 
-The core may retain a partial candidate when creation throws. The model records
-that admitted mapping on the exception path too. A fixed preflighted array slot,
-the core's no-I/O/no-allocation scalar getter and a statically checked nonthrowing
-shared-pointer move complete adoption. Earlier stores remain retained by both
-the core and the helper, including poisoned leases.
+The helper retains every core-admitted area in its fixed array, including a
+partial area whose creation throws. Adoption uses only the core's nonallocating,
+no-I/O scalar getter and a statically checked nonthrowing shared-pointer move.
+Earlier bytes, reservations and poison-held ownership remain retained.
 
-The existing 12-MiB app domain and all process/CPU/time limits are unchanged.
-At most four 128-KiB advice reservations are retained, inside that aggregate.
-The summary counts all written advice extents and separately reports provider
-allocation. It shows cached optimization-state readiness, not continuous integrity
-attestation. Advisory failure does not mark a healthy data view as fenced.
+The private domain, fixed registry, fresh headroom/residency checks, 12-MiB
+capacity and existing process/CPU/time limits remain unchanged. At most four
+128-KiB advice reservations are included in the aggregate. The view counts every
+written advice extent separately from provider allocation. Advisory readiness
+is cached diagnostics, not continuous integrity attestation.
 
-Explicit discard retires the session and every advice reference before releasing
-the domain. Provider cleanup failure still fails closed. Process termination
-loses this temporary provider's contents; no power-loss durability follows.
+Provider capacity refusal after funding preserves the same loss baseline and
+current mapping. Released capacity may permit a later distinct opportunity,
+which independently rechecks admission. After a core-admitted creation failure,
+another replacement requires new input relative to that failed attempt.
 
-## Configured qualification
+Explicit discard retires the session, every advice reference and then the
+provider domain. Cleanup failure remains terminal. These process-lifetime
+mappings do not survive process termination and provide no physical power-loss
+or globally authenticated anti-rollback guarantee.
 
-Every old model/controller/GUI check remains. New tests damage only freshly
-allocated private test-memory advice: one/both copies, repeated replacement,
-four-area exhaustion, unchanged old bytes, real file continuation and a retained
-cleaned handle. Filling the provider's own small fixed reservation tests capacity
-refusal, unchanged mapping and a later admitted rebuild after release. This is
-not global memory exhaustion or kernel/GPU fault injection.
+## Qualification
 
-The qualification binary's friend fixture alone can reach its own private
-backings. It adds no product command, flag or provider override. The GUI lane
-checks the readiness summary through the real native control and retains exact
-child exit, handle balance and working-set restoration checks.
+The actual Windows model suite retains its prior file, retained-context,
+source-byte, alias, accounting, capacity, allocator, GUI and lifecycle checks.
+It adds repeated unfunded deferral, no provider-growth evidence and real
+accepted-input funding before every replacement. The test-only friend writes
+bounded synthetic files through the existing shared engine and checks their
+bytes and committed input; it never forges counters or changes the product's
+editor limit or provider.
 
-The new helper paths require their own executed publishing-source results.
-Parent 745d023 passed all 13 core/mounted regression jobs, 687 advisory-model
-assertions, 136 Windows native groups, 117 sanitizer groups and the existing app
-workflow. These parent results do not qualify this new helper implementation:
-[evidence](evidence/advisory-rebuild-745d023.json).
+The four post-admission allocator cuts still select the measured heap request
+for the exact 64-KiB vector type. Their test-only thread-local predicate additionally
+requires the expected actual core binding count, using the public nonallocating
+diagnostic getter. This prevents newly added preflight verification allocations
+from accidentally consuming a journal-publication fault. Each cut must actually
+throw after admission, retain the mapping and old bytes, preserve live file
+access, defer reuse of the same input and recover only after new accepted input.
+The fixture disarms before unwinding and exists only in the qualification binary.
 
-The memory backend has process-lifetime mappings only. Physical reservation,
-durable selected-area mapping/reclamation, persistent write credit, helper IPC
-authorization, an autonomous low-priority executor and held-out learning/GPU
-benefit remain full-product work. The existing explicit worker is not that executor.
+Historical evidence remains in [the original helper results](evidence/advisory-helper-9977674.json),
+[managed workload integration](evidence/workload-helper-5b58568.json) and
+[the funded journal qualification](evidence/optimization-budget-5db3ae7.json).
+The first historical allocation-size fixture at `f4729f1` failed because a
+payload-size match missed the STL heap request; its failed run and measured
+correction remain recorded. No owner allocation-fault run is authorized.
 
-## Post-admission allocator qualification
-
-The next test-only fixture refuses one selected 64-KiB allocation on the calling
-model-test thread and disarms before unwinding. Four cuts cover the initial empty
-record, either prepared record and readback scratch after both records are
-written. The last case deliberately leaves valid-looking records without
-granting the failed owner authority.
-
-Each cut checks the actual helper mapping, reserved bytes versus written extent,
-unchanged old bytes, a retained cleaned handle, subsequent real file writes,
-a distinct later rebuild and full discard/working-set/handle retirement. The
-fixture first makes the old advice terminal, so its allocation fault cannot be
-consumed by the healthy audit. It never exhausts the process heap, changes a
-provider, activates in a GUI child or adds a product fault command. Ordinary
-aligned allocations retain their original CRT pair.
-
-These new cases require publishing-source Windows application qualification.
-The complete source-9977674 results, including the separate healthy owner GUI,
-are retained in [advisory-helper-9977674.json](evidence/advisory-helper-9977674.json).
-The owner GUI result does not cover these new allocator faults. The current
-primary native-source review is in
-[helper-allocation-sources-9977674.json](evidence/helper-allocation-sources-9977674.json).
-
-The first allocator fixture at f4729f1 failed in the disposable Windows VM:
-its 64-KiB payload-size match missed the STL heap request. This failed run is
-retained in the source manifest. The correction first measures the actual
-request for the exact vector type in a bounded probe, then selects that measured
-size with a one-shot thread-local fault. It does not hardcode MSVC bookkeeping
-or weaken the requirement that every cut actually throw. New-source validation
-is required; no owner fault run occurred.
+Durable provider mapping/reclamation, helper authorization, long-lived funded
+continuation, a resource-governed automatic learner, protected decode-critical
+objects and useful end-to-end GPU compression remain unfinished.

@@ -390,6 +390,25 @@ NativeOptimizationInfo NativeFileSession::resume_budgeted_optimization_area(
     std::shared_ptr<StoreByteIo> area,std::uint64_t sequence,unsigned limit) {
   return bind_optimization_area(std::move(area),sequence,limit,false,false,true);
 }
+bool NativeFileSession::prepare_budgeted_optimization_rebuild() {
+  auto& self=ready();
+  if(!self.volume||self.volume->pending||self.recompression||!self.budget_mode||!self.optimization||
+      (self.optimization->writer&&self.optimization->writer->budget_repair_pending())||
+      (self.optimization->phase!=NativeOptimizationPhase::terminal&&
+       self.optimization->phase!=NativeOptimizationPhase::unavailable))
+    fail(E::invalid_options,"no failed funded advisory owner");
+  if(self.optimization_bindings>=max_optimization_bindings)return false;
+  const auto cached=self.writer.workload_info();
+  if(!cached.enabled)fail(E::invalid_options,"native input provenance unavailable");
+  if(self.budget_loss_input&&(cached.committed_input_bytes<*self.budget_loss_input||
+      cached.committed_input_bytes-*self.budget_loss_input<2*kOptimizationAreaBytes))return false;
+  const auto actual=self.writer.snapshot().workload_info();
+  if(!actual.enabled)fail(E::invalid_options,"checked native input provenance unavailable");
+  if(!self.budget_loss_input)self.budget_loss_input=actual.committed_input_bytes;
+  const auto baseline=*self.budget_loss_input;
+  return actual.committed_input_bytes>=baseline&&
+      actual.committed_input_bytes-baseline>=2*kOptimizationAreaBytes;
+}
 NativeOptimizationInfo NativeFileSession::rebuild_budgeted_optimization_area(
     std::shared_ptr<StoreByteIo> area,unsigned limit) {
   return bind_optimization_area(std::move(area),0,limit,true,true,true);

@@ -194,6 +194,10 @@ class NativeFileSession final {
       unsigned publication_limit=1);
   NativeOptimizationInfo resume_budgeted_optimization_area(std::shared_ptr<StoreByteIo>,
       std::uint64_t expected_sequence,unsigned publication_limit=1);
+  // Explicit failed-funded-advice preflight. May establish a verified loss
+  // baseline; cached facts only decline. No candidate allocation or authority:
+  // rebuild still independently verifies input and admission before writes.
+  bool prepare_budgeted_optimization_rebuild();
   NativeOptimizationInfo rebuild_budgeted_optimization_area(std::shared_ptr<StoreByteIo>,
       unsigned publication_limit=1);
   NativeOptimizationBudgetPublication repair_budgeted_optimization_area();

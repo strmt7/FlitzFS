@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-13",
+  "source_parent": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
+  "contract": "docs/ADVISORY_HELPER.md",
+  "scope": "Explicit funded helper creation/replacement and failed-owner preflight before provider allocation. No new platform API, dependency, storage encoding or automatic executor.",
+  "semantic": {
+    "run": 43403094737,
+    "artifact": 14026665489,
+    "digest": "329f790fba8070a5dfc04a72a13057fb796b04f23f5cc6aef10ce7ab83ec0e30",
+    "source_digest": "63f3a2d538d8f26453323afbf536a17d88b6fab7d3c3bddeb5c8d06de8e7cd77",
+    "queries": 8,
+    "provider": "0.2.43",
+    "cache": "d10SemanticRows",
+    "live_confirmation": "d10CurrentSourceConfirmation"
+  },
+  "native_sources": [
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "blob": "0275b7f52befe2baba249c13903482b8efaf8942",
+      "transport": "Immutable GitHub source API plus admitted semantic receipt where relevant"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "blob": "ec6cd099bfb354ba5cb3b182b68b7a0a1f72e8e3",
+      "transport": "Immutable GitHub source API plus admitted semantic receipt where relevant"
+    },
+    {
+      "path": "src/windows/volume_model.cpp",
+      "blob": "e797be146e3cd14db67230ceb774ea8319cf139a",
+      "transport": "Immutable GitHub source API plus admitted semantic receipt where relevant"
+    },
+    {
+      "path": "tests/windows_volume_app_tests.cpp",
+      "blob": "6934354d864c164dbc5283d21714d77a5a6c796f",
+      "transport": "Immutable GitHub source API plus admitted semantic receipt where relevant"
+    }
+  ],
+  "primary_research": {
+    "admitted_manifest": "docs/evidence/workload-accounting-sources-a892bfa.json",
+    "captured": "2026-11-09",
+    "artifact": 13664668700,
+    "digest": "sha256:ef3ba3ec18e8e2971ee48b34367f5c591b0003f93e7fb539e4161be7142cf5a2",
+    "reuse": "Reviewed isolated native Crawl4AI SQLite crash/reader-lifetime and Microsoft caching captures; no new fetch or API/dependency selection.",
+    "inferences": [
+      "Pair settlement with advisory publication and require explicit successful admission.",
+      "Keep advice failure separate from native data mutation; forfeit old credit after loss rather than adding a native debt transaction.",
+      "Counter/source identity and input checks precede funded writes; data/readback recovery is independent.",
+      "RAM and flush-fault models do not establish physical power-loss survival or flash-wear measurements."
+    ]
+  },
+  "inferences": [
+    "Cached input only declines work; current source is independently verified before binding/publication.",
+    "Failed-advice baseline capture precedes provider allocation, without losing ownership or renewing entitlement.",
+    "Allocator qualification selects the actual post-admission binding to avoid accidentally testing an earlier verification allocation."
+  ],
+  "new_source_validation": "Pending actual input funding, no-growth/no-I/O, binding limits, all retained post-admission allocation cuts, core/app/GUI and all integration gates.",
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 10:01:26 UTC",
+    "native_transport": "Authenticated GitHub open-alerts API",
+    "open_alerts": 0,
+    "scope": "Open alerts only, not absence of all vulnerabilities.",
+    "evidence": "docs/evidence/funded-helper-sources-5db3ae7.json"
+  }
+}

@@ -17,16 +17,20 @@
 namespace advice_allocation_fixture {
 thread_local bool armed=false,hit=false,capturing=false;
 thread_local std::size_t allocation_bytes=0,observed_bytes=0;
-thread_local unsigned remaining=0;
+thread_local unsigned remaining=0,admitted_binding=0;
+thread_local const flitzfs::VolumeModel* admitted_model=nullptr;
 bool refuse(std::size_t size) noexcept {
   if(capturing)observed_bytes=(std::max)(observed_bytes,size);
-  if(!armed||size!=allocation_bytes)return false;
+  if(!armed||size!=allocation_bytes||!admitted_model||
+      admitted_model->optimization_info().binding_attempts!=admitted_binding)return false;
   if(remaining){--remaining;return false;}
   armed=false;hit=true;return true;
 }
 struct Failure {
-  explicit Failure(unsigned skip) noexcept {remaining=skip;hit=false;armed=true;}
-  ~Failure(){armed=false;}
+  Failure(unsigned skip,const flitzfs::VolumeModel& model,unsigned binding) noexcept {
+    remaining=skip;hit=false;admitted_model=&model;admitted_binding=binding;armed=true;
+  }
+  ~Failure(){armed=false;admitted_model=nullptr;}
   Failure(const Failure&)=delete;
   Failure& operator=(const Failure&)=delete;
   bool reached() const noexcept{return hit;}
@@ -84,6 +88,27 @@ struct VolumeModelQualification {
   static void close(VolumeModel& m,const NativeFileHandle& f){m.session_->close(f);}
   static NativeSessionStats stats(const VolumeModel& m){return m.session_->stats();}
   static NativeWorkloadInfo workload(const VolumeModel& m){return m.session_->workload_info();}
+  // Actual accepted engine writes, never a forged counter or product bypass.
+  // The helper editor remains bounded; qualification also exercises the shared
+  // engine's larger synthetic files through its existing private test friend.
+  static void earn(VolumeModel& m,std::size_t n) {
+    const auto before=workload(m);
+    if(!before.enabled||!n||n>2*kOptimizationAreaBytes||n>UINT64_MAX-before.committed_input_bytes)throw std::runtime_error("Funding input limit");
+    const auto name="qualification-funding-"+std::to_string(before.committed_input_bytes)+".bin";
+    std::vector<std::byte> payload(n,std::byte{0x41});
+    m.session_->create_entry(name);
+    const auto file=m.session_->open(name,{true,true,false},NativeOpenKind::file);
+    try {
+      m.session_->write(file,0,payload);m.session_->flush(file);
+      if(m.session_->read(file,0,static_cast<std::uint32_t>(n))!=payload||
+          workload(m)!=NativeWorkloadInfo{true,before.committed_input_bytes+n})
+        throw std::runtime_error("Actual funding bytes/provenance mismatch");
+      m.session_->cleanup(file,false);m.session_->close(file);
+    }catch(...) {
+      if(!m.session_->poisoned())try{m.session_->cleanup(file,false);m.session_->close(file);}catch(...){m.session_->fence();}
+      throw;
+    }
+  }
 };
 }
 using namespace flitzfs;
@@ -161,19 +186,28 @@ void advice_application_tests() {
       require(model.maintain_optimization_state()==Result::ready&&
           model.maintain_optimization_state()==Result::ready&&Q::bytes(area)==bytes&&
           model.optimization_info().binding_attempts==1&&
-          !model.optimization_info().remaining_publications&&model.view().allocated==baseline.allocated,
+          !model.optimization_info().remaining_publications&&model.optimization_info().budgeted&&
+          model.optimization_info().settled_input_bytes==0&&model.view().allocated==baseline.allocated,
           "healthy audit rewrote/rebound exhausted advice");
     }
     for(unsigned rebuilt=1;rebuilt<NativeFileSession::max_optimization_bindings;++rebuilt) {
       const auto old=Q::current(model);Q::damage(model);
       const auto damaged=Q::bytes(old);
+      const auto unfunded=model.view();
+      for(unsigned repeat=0;repeat<8;++repeat)
+        require(model.maintain_optimization_state()==Result::unavailable&&
+            model.view().allocated==unfunded.allocated&&model.view().physical_bytes==unfunded.physical_bytes&&
+            model.optimization_info().binding_attempts==rebuilt&&Q::current(model)==old,
+            "unfunded helper allocated/admitted advice or retried historical input");
+      Q::earn(model,2*kOptimizationAreaBytes);const auto funded=model.view();
       require(model.maintain_optimization_state()==Result::rebuilt,"helper did not rebuild failed advice");
       const auto view=model.view();const auto info=view.optimization;
       require(info.phase==NativeOptimizationPhase::ready&&info.sequence==1&&
           info.binding_attempts==rebuilt+1&&info.owned_area_bytes==(rebuilt+1)*kOptimizationAreaBytes&&
-          !info.remaining_publications&&!view.fenced&&
+          !info.remaining_publications&&info.budgeted&&
+          info.settled_input_bytes==Q::workload(model).committed_input_bytes&&!view.fenced&&
           view.allocated==baseline.allocated+rebuilt*kOptimizationAreaBytes&&
-          view.physical_bytes==baseline.physical_bytes+rebuilt*kOptimizationAreaBytes,
+          view.physical_bytes==funded.physical_bytes+kOptimizationAreaBytes,
           "helper replacement mapping/accounting");
       require(Q::current(model)!=old&&Q::bytes(old)==damaged&&model.read_text("keep.txt")==text&&
           Q::read(model,handle)==expected&&Q::stats(model).contexts==1&&Q::stats(model).cleaned==1,
@@ -185,11 +219,12 @@ void advice_application_tests() {
       require(model.maintain_optimization_state()==Result::unavailable&&
           model.view().allocated==allocated&&model.optimization_info().binding_attempts==
             NativeFileSession::max_optimization_bindings,"exhausted helper retried/leaked a new area");
-    require(Q::workload(model)==NativeWorkloadInfo{true,text.size()},"advice loss or maintenance minted input");
+    const auto funded_input=text.size()+(NativeFileSession::max_optimization_bindings-1)*2*kOptimizationAreaBytes;
+    require(Q::workload(model)==NativeWorkloadInfo{true,funded_input},"advice loss or maintenance minted input");
     require(!model.optimize()&&model.view().allocated==allocated&&!model.view().fenced,
         "unavailable advice started image work or fenced data");
     model.create_text("after.txt","still writable");
-    require(Q::workload(model)==NativeWorkloadInfo{true,text.size()+std::string_view("still writable").size()},
+    require(Q::workload(model)==NativeWorkloadInfo{true,funded_input+std::string_view("still writable").size()},
         "helper advice exhaustion lost actual input");
     require(model.read_text("after.txt")=="still writable"&&model.read_text("keep.txt")==text&&
         Q::read(model,handle)==expected,"advice exhaustion stopped real file access");
@@ -198,6 +233,8 @@ void advice_application_tests() {
   {
     VolumeModel model;model.create();model.create_text("keep.txt",text);
     const auto handle=Q::open_cleaned(model);Q::damage(model);
+    require(model.maintain_optimization_state()==Result::unavailable,"pressure seed reused historical input");
+    Q::earn(model,2*kOptimizationAreaBytes);
     const auto before=model.optimization_info().binding_attempts;
     {
       auto filler=Q::fill_remaining(model);
@@ -238,6 +275,8 @@ void advice_application_tests() {
     VolumeModel model;model.create();model.create_text("keep.txt",text);
     const auto handle=Q::open_cleaned(model);const auto old=Q::current(model);
     Q::damage(model);const auto damaged=Q::bytes(old);
+    require(model.maintain_optimization_state()==Result::unavailable,"allocator seed reused historical input");
+    Q::earn(model,2*kOptimizationAreaBytes);
     {
       auto filler=Q::fill_remaining(model);
       rejects([&]{model.maintain_optimization_state();},"failure preparation did not refuse capacity");
@@ -247,7 +286,7 @@ void advice_application_tests() {
     const auto baseline=model.view();
     bool failed=false,reached=false;
     {
-      advice_allocation_fixture::Failure fault(cut);
+      advice_allocation_fixture::Failure fault(cut,model,2);
       try{(void)model.maintain_optimization_state();}
       catch(const std::bad_alloc&){failed=true;}
       reached=fault.reached();
@@ -270,12 +309,20 @@ void advice_application_tests() {
     model.create_text("after.txt","write after failed advice");
     require(model.read_text("after.txt")=="write after failed advice"&&
         Q::read(model,handle)==expected,"allocator failure stopped acknowledged file access");
+    const auto insufficient=model.view();
+    for(unsigned repeat=0;repeat<4;++repeat)
+      require(model.maintain_optimization_state()==Result::unavailable&&
+          model.view().allocated==insufficient.allocated&&model.optimization_info().binding_attempts==2,
+          "failed creation reused already admitted input or leaked a replacement");
+    Q::earn(model,2*kOptimizationAreaBytes);
+    const auto recovery=model.view();
     require(model.maintain_optimization_state()==Result::rebuilt&&
         model.optimization_info().binding_attempts==3&&
         model.optimization_info().owned_area_bytes==3*kOptimizationAreaBytes&&
         Q::current(model)!=area&&area->extent()==written&&Q::bytes(old)==damaged&&
         (!cut||Q::bytes(area)==partial)&&
-        model.view().allocated==baseline.allocated+2*kOptimizationAreaBytes,
+        model.view().allocated==baseline.allocated+2*kOptimizationAreaBytes&&
+        model.view().physical_bytes==recovery.physical_bytes+kOptimizationAreaBytes,
         "later repair reused/mutated a failed area or lost retained reservations");
     Q::close(model,handle);model.discard();
     require(!model.ready()&&MemoryVolumeDomain::cleanup_healthy(),"allocator-fault cleanup");
@@ -284,6 +331,9 @@ void advice_application_tests() {
   {
     VolumeModel model;model.create();model.create_text("keep.txt",text);
     Q::damage(model,1);
+    require(model.maintain_optimization_state()==Result::unavailable&&
+        model.read_text("keep.txt")==text&&!model.view().fenced,"degraded unfunded advice blocked data");
+    Q::earn(model,2*kOptimizationAreaBytes);
     require(model.maintain_optimization_state()==Result::rebuilt&&
         model.read_text("keep.txt")==text&&!model.view().fenced,
         "degraded advice did not remain isolated from data");

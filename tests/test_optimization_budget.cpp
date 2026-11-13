@@ -91,9 +91,48 @@ void admission_and_binding_limit(){
   rejects([&]{f.session->publish_optimization_state(state);},"fourth-loss audit accepted");
   auto target=std::make_shared<Ram>();reset(f.image);
   rejects([&]{f.session->rebuild_budgeted_optimization_area(target,4);},"funding escaped binding ceiling");
-  require(target->calls==0&&target->read_calls==0&&f.image->read_calls==0,
+  require(!f.session->prepare_budgeted_optimization_rebuild()&&
+      target->calls==0&&target->read_calls==0&&f.image->read_calls==0,
       "exhausted binding ceiling retried I/O");
   f.data_ok();
+}
+void rebuild_preflight(){
+  Fixture f;f.create();reset(f.image);reset(f.area);
+  rejects([&]{f.session->prepare_budgeted_optimization_rebuild();},"healthy preflight reset allowance");
+  require(f.image->read_calls==0&&f.area->calls==0,"healthy preflight performed I/O");
+  const auto state=f.session->optimization_snapshot().state;f.damage(2);
+  rejects([&]{f.session->publish_optimization_state(state);},"preflight loss audit accepted");
+  reset(f.image);reset(f.area);
+  require(!f.session->prepare_budgeted_optimization_rebuild()&&
+      f.session->optimization_info().loss_input_baseline==f.session->workload_info().committed_input_bytes&&
+      f.image->read_calls>0&&f.area->read_calls==0&&f.area->calls==0,"preflight failed to establish checked baseline");
+  reset(f.image);
+  for(unsigned i=0;i<8;++i)
+    require(!f.session->prepare_budgeted_optimization_rebuild()&&f.image->read_calls==0&&
+        f.area->read_calls==0&&f.area->calls==0&&f.session->optimization_info().binding_attempts==1,
+        "unchanged preflight repeated I/O/admission");
+  auto staged=std::make_shared<Ram>();
+  f.session->begin_recompression(staged,id(73),{StoreCompressionMode::raw});
+  reset(f.image);reset(f.area);
+  rejects([&]{f.session->prepare_budgeted_optimization_rebuild();},"staged maintenance admitted rebuild preflight");
+  require(f.image->read_calls==0&&f.area->read_calls==0&&f.area->calls==0,"staged preflight performed I/O");
+  f.session->cancel_recompression();
+  f.earn(2*kOptimizationAreaBytes);reset(f.image);
+  require(f.session->prepare_budgeted_optimization_rebuild()&&f.image->read_calls>0&&
+      f.session->optimization_info().binding_attempts==1,"fresh input did not admit read-only preflight");
+  const auto old=f.area->stable;auto target=std::make_shared<Ram>();reset(f.image);
+  const auto rebuilt=f.session->rebuild_budgeted_optimization_area(target,4);
+  require(rebuilt.phase==Phase::ready&&f.image->read_calls>0&&f.area->stable==old,
+      "rebuild trusted preflight without its own current-source verification");
+  f.data_ok();
+  Fixture legacy;legacy.session->create_optimization_area(legacy.area,4);
+  const auto prior=legacy.session->optimization_snapshot().state;legacy.damage(2);
+  rejects([&]{legacy.session->publish_optimization_state(prior);},"legacy damage audit accepted");
+  reset(legacy.image);reset(legacy.area);
+  rejects([&]{legacy.session->prepare_budgeted_optimization_rebuild();},"legacy owner received funded preflight");
+  require(legacy.image->read_calls==0&&legacy.area->read_calls==0&&legacy.area->calls==0,
+      "legacy preflight rejection performed I/O");
+  legacy.data_ok();
 }
 void normal(){
   Fixture f;const auto source=f.image->stable,head=f.head->stable;
@@ -330,7 +369,7 @@ void competing_and_legacy(){
 }
 }
 int main(){
-  try{admission_and_binding_limit();normal();controller_resume();resumed_provision();lost_state();repair();creation_faults();
+  try{admission_and_binding_limit();rebuild_preflight();normal();controller_resume();resumed_provision();lost_state();repair();creation_faults();
     publication_faults(false);publication_faults(true);malicious();readback_failures();saturated_input();competing_and_legacy();
     std::cout<<"Optimization budget assertions: "<<checks<<"; actual journal faults="<<cuts
         <<"; CPU RAM model only, no files/mount/GPU.\n";return 0;

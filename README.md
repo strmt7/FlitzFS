@@ -238,3 +238,12 @@ clean retirement. The next [input-funded advisory controls](docs/OPTIMIZATION_BU
 add persistent settlement and charged repair/replacement with fresh-input loss
 baselines. Publishing-source qualification is required; no automatic learner or
 useful GPU gain is claimed.
+
+
+The funded journal at `5db3ae7` passed all 13 integration jobs and 375 funded
+assertions, including 42 injected failures, in each core configuration
+([evidence](docs/evidence/optimization-budget-5db3ae7.json)). The next
+[helper consumer](docs/ADVISORY_HELPER.md) uses funded creation/replacement and
+checks new-input eligibility before allocating a replacement area. Its new-source
+qualification is pending. Automatic learning, durable provider mapping and useful
+GPU compression remain unfinished.

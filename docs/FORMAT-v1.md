@@ -387,3 +387,10 @@ inside the existing128-KiB advice area. Marker1 occupies bytes52..55 and the
 settled-input u64 occupies56..63. Legacy/default FLTOP001 bytes remain unchanged.
 Mixed, backward, uncharged, unsupported and foreign peer records expose no policy.
 This changes no native data/codec/worker encoding or product numbering.
+
+
+The new Windows helper consumer selects existing advisory capability 2 during
+NEW managed-volume creation and funded replacement. It introduces no new wire
+field, codec, magic or product numbering. The shared data engine and independent
+CPU reader retain their existing capability rules. See
+[ADVISORY_HELPER.md](ADVISORY_HELPER.md) for the pending consumer qualification.

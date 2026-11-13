@@ -163,3 +163,11 @@ verified before funded writes; cached facts only decline work. Results distingui
 publication, no-op audit and deferral. Data/context ownership remains independent.
 The separately qualified automatic consumer, durable provider mapping and helper
 authorization still do not exist.
+
+
+The new helper consumer also uses the explicit failed-funded-owner preflight
+before allocating a replacement. It establishes a verified loss baseline or
+cheaply declines unchanged insufficient input; a positive answer never authorizes
+writes. Rebuild still verifies current input and all admission conditions. Healthy,
+legacy-unfunded, pending and staged owners cannot reset allowances through this
+method. See [ADVISORY_HELPER.md](ADVISORY_HELPER.md) for pending-source qualification.
