@@ -457,3 +457,8 @@ wire value or product numbering changes.
 The private 48-byte typed-module table contains process-local function addresses.
 It is never stored, serialized, exchanged as a worker frame or treated as
 authorization. No filesystem encoding, codec ID, capability or product numbering changes.
+
+The private FLFSLRQ/FLFSLRP compression-candidate messages are process-local
+worker frames, not stored filesystem records. Their 64-byte little-endian header
+and explicit chunk directory serialize no pointer, native Layout or grant.
+No stored codec, capability, existing frame encoding or product numbering changes.

@@ -1,0 +1,336 @@
+{
+  "experimental": true,
+  "source": "c86559b7bfb71059eff35b855c4bf6b9c2e83112",
+  "core": {
+    "run": 43477477862,
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 132064977368,
+        "name": "windows-native",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132064977856,
+        "name": "sanitizers",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132064977955,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132064977970,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132064978064,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132071291374,
+        "name": "windows-mount",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132072735641,
+        "name": "windows-write-mount (crash-restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132072735704,
+        "name": "windows-write-mount (restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132072735709,
+        "name": "windows-write-mount (ram-handoff)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132072735737,
+        "name": "windows-write-mount (crash)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132072735745,
+        "name": "windows-write-mount (basic)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132072735750,
+        "name": "windows-write-mount (mutations)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132072735856,
+        "name": "windows-write-mount (delete)",
+        "status": "completed"
+      }
+    ],
+    "all_13_succeeded": true
+  },
+  "sdk": {
+    "run": 43477478117,
+    "job": 132065018815,
+    "artifact": {
+      "id": 14063567578,
+      "bytes": 102225,
+      "sha256": "8abd67a9b398ae9e8334f517bb33bd9f22c1f1386b24f284c0016528de757c8b"
+    },
+    "qualification": {
+      "sha256": "90637d0a3c581fb33f03ec08d7cf7dd80421e070cb0238a84665363127caeaec",
+      "commit": "c86559b7bfb71059eff35b855c4bf6b9c2e83112",
+      "complete": true,
+      "link": {
+        "complete": true,
+        "bytes": 135680,
+        "sha256": "34f5776e1e630d9040be04ce5d9b86b5fb0190634f65f2878053ab32fe1a8cdd",
+        "imports": [
+          "amdhip64_7.dll",
+          "kernel32.dll"
+        ],
+        "delay_imports": false,
+        "exports": [
+          "flitzfs_candidate_lz4_api"
+        ],
+        "loaded": false,
+        "gpu_executed": false,
+        "linked_into_product": false,
+        "in_worker_bundle": false,
+        "exported_as_artifact": false
+      },
+      "api": {
+        "bytes": 286208,
+        "sha256": "79a5eb0be90d96169929feefe845ec01bfcbad1a4a2316f594901295d76fed79",
+        "imports": {
+          "format": "PE32+",
+          "architecture": "AMD64",
+          "os_imports": [
+            "kernel32.dll"
+          ],
+          "delay_imports": false
+        },
+        "qualification": {
+          "checks": 235,
+          "priority_cases": 12,
+          "priority_query_limit": 2,
+          "identity_before_selection": true,
+          "missing_exports_refused": 11,
+          "hip_runtime_loaded": false,
+          "gpu_executed": false,
+          "complete": true
+        }
+      },
+      "workers": {
+        "bundle_verified": true,
+        "missing_bundle_refused": true,
+        "tampered_bundle_refused": true,
+        "invalid_wire_refused": true,
+        "invalid_match_refused": true,
+        "missing_match_runtime_refused": true,
+        "compiler_environment_isolated": true,
+        "system_module_metadata_passed": true,
+        "system_runtime_bad_hash_refused": true,
+        "system_runtime_argument_refused": true,
+        "kernel_only_verified": true,
+        "kernel_only_full_bundle_refused": true,
+        "kernel_only_tamper_refused": true,
+        "driver_wire_refusals": 5,
+        "profile_wire_refused": true,
+        "profile_argument_refused": true,
+        "profile_runtime_refused": true,
+        "exits_confirmed": 20,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "bounded": {
+        "complete": true,
+        "control_commit": "c86559b7bfb71059eff35b855c4bf6b9c2e83112",
+        "object": {
+          "bytes": 32444,
+          "sha256": "7bb4bab45303ffa0ab291abbf9e8ef23a689ad9d29772cb038dccbf5cc11c7aa"
+        },
+        "entry_object": {
+          "bytes": 23792,
+          "sha256": "829a9af86b03c869805c489065f6dc63a64752b13eb4cdf2a99f9f48a4bd3406",
+          "offset": 5789,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "bounded_entry_assets": [
+          {
+            "path": "tests/rocm_compile/hipcomp_lz4_contract.hpp",
+            "target": "src/hipcomp_lz4_contract.hpp",
+            "bytes": 3165,
+            "sha256": "a99bccffc054b86184b260d7be5e0ad3d7f052afaefb3f069da7a73fa5184f50",
+            "blob": "08907da5c497e2f5cd5e5e4d41e85409f460f884",
+            "physical": {
+              "physical_sha256": "c7a371efd618481e05d4188141c05af830c76303320446107caa16bfe9705aba",
+              "physical_bytes": 3234,
+              "representation": "crlf-checkout"
+            }
+          },
+          {
+            "path": "tests/rocm_compile/hipcomp_lz4_api.hpp",
+            "target": "src/hipcomp_lz4_api.hpp",
+            "bytes": 1682,
+            "sha256": "d6ba6d52fbabaddf736b7ba5de70c7f9d9b055c1c0ca68ce2074f360b1f65bbf",
+            "blob": "86d7509852454d2e4fec2001c8d9d0ddbfe2734f",
+            "physical": {
+              "physical_sha256": "a8fbaa3d4bf9675c54cabd07420147834556426541d7f23d7ece83aed5a583d0",
+              "physical_bytes": 1716,
+              "representation": "crlf-checkout"
+            }
+          },
+          {
+            "path": "tests/rocm_compile/hipcomp_lz4_module.cpp",
+            "target": "src/flitzfs_lz4_module.cpp",
+            "bytes": 526,
+            "sha256": "c1d17f951356d637260588bd2046e25cdde38373544010aa143beac8662b06b7",
+            "blob": "2bf2cc5344f188b4865e362ee4b5a0d885ea4540",
+            "physical": {
+              "physical_sha256": "2ff6b3bde13bc13ee4fc530e179e0ad68d1be6849f8611f8574fe966f81cb2b5",
+              "physical_bytes": 540,
+              "representation": "crlf-checkout"
+            }
+          },
+          {
+            "path": "tests/rocm_compile/hipcomp_lz4_entry.hip",
+            "target": "src/lowlevel/FlitzFsLz4Candidate.hip",
+            "bytes": 2189,
+            "sha256": "8c8daf970461a0bad63664af2568d7931c948e043a67a8f891d636afa5b3653c",
+            "blob": "76612695a2f5c339825124d82ce92231ed77dc79",
+            "physical": {
+              "physical_sha256": "d324e2d7494c0e595c2ff6cfc139983061d047909b333e591c7c1b497e7ceb9e",
+              "physical_bytes": 2234,
+              "representation": "crlf-checkout"
+            }
+          }
+        ],
+        "physical_inputs_unchanged": true,
+        "selected_header_dependency": true
+      },
+      "diagnostic": {
+        "bytes": 488590,
+        "sha256": "9ecbda39887d852bc50e9e2f517f78a50b6283e612be5c966b1162e98d0c46e5",
+        "files": [
+          {
+            "path": "flitzfs_hip_worker.exe",
+            "bytes": 409600,
+            "sha256": "580b8eb2447b256d2c5640029eeb01c88e81b112b87fb2f55dd79f9c74e74097"
+          },
+          {
+            "path": "hip/flitzfs_rocm_kernels.dll",
+            "bytes": 194048,
+            "sha256": "b9f9eb1f3826af477e0ceb7b792aea5bf8df2987c2dae3d69464b287084cb7de"
+          },
+          {
+            "path": "flitzfs_hip_hardware_probe.exe",
+            "bytes": 460800,
+            "sha256": "9f48893bc6882b972df0acce8b431d46d3fc0e86db3db477bc1dcf8b899b27fa"
+          },
+          {
+            "path": "LICENSE",
+            "bytes": 35184,
+            "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+          },
+          {
+            "path": "licenses/blake3/LICENSE_A2",
+            "bytes": 11563,
+            "sha256": "3da8137480af96e14b27ac9474c6a76a0102596493e5ab075ba98c7ffc64d552"
+          },
+          {
+            "path": "licenses/blake3/LICENSE_A2LLVM",
+            "bytes": 12486,
+            "sha256": "b944109ea368e9bf114cb87a21a7ccf11edb6621fe0bd8357ae51dced0afbbb3"
+          },
+          {
+            "path": "licenses/blake3/LICENSE_CC0",
+            "bytes": 7169,
+            "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328"
+          }
+        ],
+        "runtime_shipped": false,
+        "kpack_shipped": false,
+        "hardware_executed": false
+      },
+      "tests": [
+        {
+          "name": "native-sync-source-composition-regressions",
+          "exit_code": 0,
+          "stderr": ".......\r\n----------------------------------------------------------------------\r\nRan 7 tests in 0.010s\r\n\r\nOK\r\n"
+        },
+        {
+          "name": "bounded-entry-source-admission-regressions",
+          "exit_code": 0,
+          "stderr": "............\r\n----------------------------------------------------------------------\r\nRan 12 tests in 1.826s\r\n\r\nOK\r\n"
+        }
+      ]
+    }
+  },
+  "cpu": {
+    "checks_each": 144524,
+    "planner_shapes_each": 65547,
+    "field_refusals_each": 12474,
+    "geometry_groups_each": 176,
+    "configurations": [
+      {
+        "name": "Linux codecs",
+        "artifact": 14064077060,
+        "sha256": "0293226d9b2eb2df0a5c5abacca7612fd1cfdc9558a399f4bc708de0ef3768e5",
+        "cases": 122,
+        "log_sha256": "b7b58cd8bbb9f19f8f4cae618171e949a062bc3be894a8faf94fea31493bf65a"
+      },
+      {
+        "name": "Windows native",
+        "artifact": 14063094719,
+        "sha256": "bacafb328ab5b0f002c95227f7e854240ebdfb5b4ed01926762008ad1f7d456b",
+        "cases": 141,
+        "log_sha256": "36bf7b2815b80a887c554c9ca4ae2b901912fa740ba7c3d2872f05fe3122223d"
+      },
+      {
+        "name": "Linux raw",
+        "artifact": 14062469773,
+        "sha256": "37ae364380b7d263eccfcbf8bd0749793ec76b6361f8033cbdf06a1243a9c09a",
+        "cases": 122,
+        "log_sha256": "8d3515000ed859a0d1e7a36dc7c5cd2ac6bb0ae12eb70836119d136aba4f68e7"
+      },
+      {
+        "name": "Windows raw",
+        "artifact": 14064332065,
+        "sha256": "ead48947161534b7a2ced0fe0a0bc3696c26a3192ed27a384bf6974ce7da2dae",
+        "cases": 126,
+        "log_sha256": "cf7c60ca72d5826bb7ecaf23d7d32fa87ed3ff51b9442de206f241c61f30e18e"
+      },
+      {
+        "name": "ASan UBSan",
+        "artifact": 14063873779,
+        "sha256": "8f5a43e1c368757b11dab1d2692563239718a7e1c67d98f4ad53178827238682",
+        "cases": 122,
+        "log_sha256": "ebe9079e04e045c9aed8f2a16c1b4c12cd612100bd329c78b3a5f04fe9713cd8"
+      }
+    ]
+  },
+  "scope": "Actual link/CPU metadata and hosted integration only. The private DLL was never loaded, exported as a binary artifact, in a worker bundle or linked into a product. No actual GPU compression, independent GPU-output interoperability, measured benefit, owner-device or physical power-loss qualification; D01 remains open."
+}

@@ -597,10 +597,24 @@
     },
     "private_typed_module": {
       "contract": "docs/HIPCOMP_MODULE_LINK.md",
-      "status": "Pending this publishing source's CPU forwarding, four-asset admission and explicit link-only qualification.",
+      "status": "Qualified CPU/link-only at c86559b; DLL never loaded or in a worker bundle.",
       "loaded": false,
       "normal_io_unchanged": true,
-      "in_worker_bundle": false
+      "in_worker_bundle": false,
+      "qualified_source": "c86559b7bfb71059eff35b855c4bf6b9c2e83112",
+      "sdk_run": 43477478117,
+      "evidence": "docs/evidence/hipcomp-module-link-c86559b.json"
+    },
+    "lz4_worker_frames": {
+      "contract": "docs/LZ4_WORKER_FRAMES.md",
+      "status": "Pending portable framing, optional-codec and real Windows trusted CPU child qualification.",
+      "chunks_cap": 8,
+      "chunk_bytes_cap": 65536,
+      "complete_device_bytes_cap": 262144,
+      "request_frame_cap": 262244,
+      "reply_frame_cap": 262272,
+      "normal_io_unchanged": true,
+      "gpu_caller": false
     }
   },
   "integration_checkpoints": [
@@ -627,10 +641,10 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "857d5c9bfc5595edded8b36fb0d3c20c4f8a8dff",
-    "run": 43469478989,
+    "source": "c86559b7bfb71059eff35b855c4bf6b9c2e83112",
+    "run": 43477477862,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "All core/integration job conclusions, with five separately captured validator logs and 122 sanitizer cases."
+    "scope": "All core/integration jobs and all five separately captured 144524-check logs; 122 sanitizer tests. No GPU output or physical-media proof."
   }
 }

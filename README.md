@@ -334,3 +334,9 @@ The bounded entry passed CPU/offline qualification at 857d5c9
 ([evidence](docs/evidence/hipcomp-bounded-entry-857d5c9.json)).
 The next [typed-module link fixture](docs/HIPCOMP_MODULE_LINK.md) is separately
 opted in and never loaded. CPU forwarding and real SDK linking remain pending.
+
+The private typed module qualified for linking at c86559b
+([evidence](docs/evidence/hipcomp-module-link-c86559b.json)).
+The next [bounded candidate frames](docs/LZ4_WORKER_FRAMES.md) connect immutable
+input and independent CPU verification to the existing channel. Their portable
+and Windows CPU-helper qualification is pending; no GPU caller is enabled.
