@@ -1,4 +1,5 @@
 #include "hip_decode_worker.hpp"
+#include "flitzfs/gpu_lz4_verify.hpp"
 #include "gpu_budget.hpp"
 #include "hip_worker_exit.hpp"
 #include "hip_api.hpp"
@@ -197,6 +198,16 @@ int worker(int argc, wchar_t** argv) {
   require(GetEnvironmentVariableW(L"LLVM_PATH", nullptr, 0) == 0 &&
       (GetLastError() == ERROR_ENVVAR_NOT_FOUND || GetLastError() == ERROR_SUCCESS),
       Exit::runtime_unavailable, "HIP compiler environment remains visible");
+  if (argc == 2 && std::wstring_view(argv[1]) == L"--verify-cpu-lz4") {
+    // Explicit CPU-only diagnostic. No bundle lookup, device query, runtime
+    // initialization, kernel/module loading or publication is permitted here.
+    require(GetModuleHandleW(hip_bundle::runtime)==nullptr &&
+        GetModuleHandleW(hip_bundle::kernel)==nullptr,Exit::integrity_failure,
+        "CPU decoder diagnostic unexpectedly contains AMD modules");
+    require(gpu_lz4_cpu_verification_available(),Exit::unsupported_configuration,
+        "independent CPU LZ4 verification unavailable");
+    return 0;
+  }
   if (argc == 3 && std::wstring_view(argv[1]) == L"--verify-system-runtime") {
     const hip_detail::VerifiedSystemModule verified(hip_bundle::runtime, runtime_digest(argv[2]));
     return 0;

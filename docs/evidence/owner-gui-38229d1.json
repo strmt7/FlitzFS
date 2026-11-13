@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "38229d15a63c99bb839f9b808544182138625dd6",
+  "observed_utc": "2026-11-13 19:22:43 UTC",
+  "scope": "Bounded live Windows host CPU model and native GUI test. No filesystem mount, driver or GPU operation.",
+  "artifact": {
+    "run": 43489777979,
+    "job": 132107551401,
+    "id": 14068478745,
+    "zip_sha256": "4db7c1bc55e4436fb254ec8bb1fb716898622b0ad0f7b97f1bed72bf9c294a15",
+    "app_sha256": "3e80f223c330b277a8485afd59ef18e8ca908c7a042afcf133884b529272a1cc",
+    "harness_sha256": "c4cb169c2441cf6fac94fe5ada14654f6d3815cdcc585c47708aa9c51cdc3a96",
+    "vm_model_checks": 728,
+    "vm_gui_checks": 37,
+    "vm_child_peak_commit": 13639680
+  },
+  "host_results": [
+    {
+      "mode": "--model",
+      "process_id": 58608,
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "milliseconds": 617,
+      "peak_working_set": null,
+      "stdout": "Application handle phase: native-cold handles=98\r\nNative RNG repetition 0 handles=102\r\nNative RNG repetition 1 handles=103\r\nNative RNG repetition 2 handles=103\r\nNative RNG repetition 3 handles=103\r\nNative RNG repetition 4 handles=103\r\nNative RNG repetition 5 handles=103\r\nNative RNG repetition 6 handles=103\r\nNative RNG repetition 7 handles=103\r\nNative RNG repetition 8 handles=103\r\nNative RNG repetition 9 handles=103\r\nNative RNG repetition 10 handles=103\r\nNative RNG repetition 11 handles=103\r\nNative RNG repetition 12 handles=103\r\nNative RNG repetition 13 handles=103\r\nNative RNG repetition 14 handles=103\r\nNative RNG repetition 15 handles=103\r\nNative RNG repetition 16 handles=103\r\nNative RNG repetition 17 handles=103\r\nNative RNG repetition 18 handles=103\r\nNative RNG repetition 19 handles=103\r\nNative RNG repetition 20 handles=103\r\nNative RNG repetition 21 handles=103\r\nNative RNG repetition 22 handles=103\r\nNative RNG repetition 23 handles=103\r\nNative RNG repetition 24 handles=103\r\nNative RNG repetition 25 handles=103\r\nNative RNG repetition 26 handles=103\r\nNative RNG repetition 27 handles=103\r\nNative RNG repetition 28 handles=103\r\nNative RNG repetition 29 handles=103\r\nNative RNG repetition 30 handles=103\r\nNative RNG repetition 31 handles=103\r\nApplication handle phase: native-rng-stable handles=103\r\nNative window/thread repetition 0 handles=174\r\nNative window/thread repetition 1 handles=174\r\nNative window/thread repetition 2 handles=174\r\nNative window/thread repetition 3 handles=174\r\nNative window/thread repetition 4 handles=174\r\nNative window/thread repetition 5 handles=174\r\nNative window/thread repetition 6 handles=174\r\nNative window/thread repetition 7 handles=174\r\nNative window/thread repetition 8 handles=174\r\nNative window/thread repetition 9 handles=174\r\nNative window/thread repetition 10 handles=174\r\nNative window/thread repetition 11 handles=174\r\nNative window/thread repetition 12 handles=174\r\nNative window/thread repetition 13 handles=174\r\nNative window/thread repetition 14 handles=174\r\nNative window/thread repetition 15 handles=174\r\nNative window/thread repetition 16 handles=174\r\nNative window/thread repetition 17 handles=174\r\nNative window/thread repetition 18 handles=174\r\nNative window/thread repetition 19 handles=174\r\nNative window/thread repetition 20 handles=174\r\nNative window/thread repetition 21 handles=174\r\nNative window/thread repetition 22 handles=174\r\nNative window/thread repetition 23 handles=174\r\nNative window/thread repetition 24 handles=174\r\nNative window/thread repetition 25 handles=174\r\nNative window/thread repetition 26 handles=174\r\nNative window/thread repetition 27 handles=174\r\nNative window/thread repetition 28 handles=174\r\nNative window/thread repetition 29 handles=174\r\nNative window/thread repetition 30 handles=174\r\nNative window/thread repetition 31 handles=174\r\nApplication handle phase: native-window-thread-stable handles=174\r\nApplication handle phase: baseline handles=174\r\nApplication handle phase: provider-retired handles=174\r\nHelper record heap request: 65575 bytes\r\nHelper post-admission allocator cut: 0 retained and retired\r\nHelper post-admission allocator cut: 1 retained and retired\r\nHelper post-admission allocator cut: 2 retained and retired\r\nHelper post-admission allocator cut: 3 retained and retired\r\nApplication handle phase: volume-retired handles=174\r\nApplication handle phase: controller-retired handles=174\r\nApplication handle balance: 174 -> 174\r\nApplication handle phase: baseline handles=174\r\nApplication handle phase: provider-retired handles=174\r\nHelper record heap request: 65575 bytes\r\nHelper post-admission allocator cut: 0 retained and retired\r\nHelper post-admission allocator cut: 1 retained and retired\r\nHelper post-admission allocator cut: 2 retained and retired\r\nHelper post-admission allocator cut: 3 retained and retired\r\nApplication handle phase: volume-retired handles=174\r\nApplication handle phase: controller-retired handles=174\r\nApplication handle balance: 174 -> 174\r\nApplication handle phase: baseline handles=174\r\nApplication handle phase: provider-retired handles=174\r\nHelper record heap request: 65575 bytes\r\nHelper post-admission allocator cut: 0 retained and retired\r\nHelper post-admission allocator cut: 1 retained and retired\r\nHelper post-admission allocator cut: 2 retained and retired\r\nHelper post-admission allocator cut: 3 retained and retired\r\nApplication handle phase: volume-retired handles=174\r\nApplication handle phase: controller-retired handles=174\r\nApplication handle balance: 174 -> 174\r\nWindows volume application checks: 728; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\r\n",
+      "stderr": ""
+    },
+    {
+      "mode": "--gui",
+      "process_id": 54788,
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "milliseconds": 501,
+      "peak_working_set": null,
+      "stdout": "GUI command: 101\r\nGUI command: 102\r\nGUI command: 103\r\nGUI command: 104\r\nGUI command: 105\r\nGUI command: 106 (asynchronous exit)\r\nGUI child peak commit: 14454784 bytes\r\nWindows volume application checks: 34; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\r\n",
+      "stderr": ""
+    },
+    {
+      "source": "38229d15a63c99bb839f9b808544182138625dd6",
+      "experimental": true,
+      "os_version": "10.0.26300",
+      "os_build": "26300",
+      "owned_processes_remaining": 0,
+      "filesystem_backing": "private locked memory",
+      "driver": false,
+      "gpu": false,
+      "mounted": false
+    }
+  ],
+  "model_checks": 728,
+  "host_gui_checks": 34,
+  "host_gui_child_peak_commit_bytes": 14454784,
+  "note": "GUI assertion count includes timing-dependent wait predicates; VM and owner counts differ. Parent peak working-set observation was unavailable (null), not zero.",
+  "limits": {
+    "parent_per_process_bytes": 134217728,
+    "parent_aggregate_bytes": 268435456,
+    "parent_processes": 2,
+    "cpu_rate": 2000,
+    "user_cpu_seconds": 10,
+    "gui_child_bytes": 134217728,
+    "gui_child_wall_ms": 25000,
+    "outer_model_wall_ms": 15000,
+    "outer_gui_wall_ms": 30000,
+    "exit_confirmation_ms": 2000
+  },
+  "staging": {
+    "ordinary_files_only": true,
+    "healthy_nonboot_hdd_verified": true,
+    "free_space_reserve_bytes": 10737418240,
+    "files": 9,
+    "bytes": 2182135,
+    "exclusive_new_file_creation": true,
+    "full_archive_and_member_hashes_verified": true,
+    "filesystem_data_in_private_locked_memory": true,
+    "files_removed": 9,
+    "fixture_absent": true,
+    "recursive_delete": false
+  },
+  "retirement": {
+    "both_harness_processes_confirmed": true,
+    "gui_child_confirmed": true,
+    "owned_processes_remaining": 0,
+    "model_handles_baseline": 174,
+    "model_handles_final": [
+      174,
+      174,
+      174
+    ]
+  },
+  "remaining": "This is no mounted-filesystem, HIP compression, power-loss, production-safety or full-product qualification."
+}

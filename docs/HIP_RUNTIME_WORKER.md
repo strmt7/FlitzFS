@@ -257,3 +257,15 @@ the current header must pass the same focused fake case. These new runs are
 pending. Runtime exports, typed ABI, worker bounds, kernels and normal filesystem
 routing remain unchanged. Priority metadata alone supplies no preemption or
 bounded background-interference guarantee.
+
+## Optional independent CPU LZ4 support
+
+The explicit hosted cpu_lz4 fixture stages four exact upstream source/license
+assets and statically enables the existing independent CPU verifier in the same
+worker/core. It also builds a separate raw worker using the same verified SDK
+and object, proving explicit unavailable refusal. Read CPU_LZ4_WORKER.md.
+The worker's --verify-cpu-lz4 command is CPU-only, requires its original job and
+does no bundle/device/runtime/channel access. No ordinary-I/O caller is added.
+Both default and opted-in paths retain the original 20 worker admission cases
+and all prior SDK gates. New execution is pending; no module load or actual GPU
+compression is inferred. The private compression DLL remains outside all bundles.

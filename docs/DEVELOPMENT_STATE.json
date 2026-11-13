@@ -621,14 +621,28 @@
     },
     "checked_slab": {
       "contract": "docs/GPU_LZ4_SLAB.md",
-      "status": "Pending publishing-source CPU/optional-codec/sanitizer qualification.",
+      "status": "Qualified CPU-only at 38229d1: five core configurations, all 13 integration jobs, 968 codec/939 raw slab checks; live owner model/GUI retired and cleaned.",
       "complete_device_bytes_cap": 262144,
       "chunks_cap": 8,
       "chunk_bytes_cap": 65536,
       "guard_bytes": 32,
       "gpu_executed": false,
       "runtime_caller": false,
-      "normal_io_changed": false
+      "normal_io_changed": false,
+      "qualified_source": "38229d15a63c99bb839f9b808544182138625dd6",
+      "core_run": 43489778254,
+      "evidence": "docs/evidence/gpu-lz4-slab-38229d1.json",
+      "owner_gui_evidence": "docs/evidence/owner-gui-38229d1.json"
+    },
+    "static_sdk_cpu_decoder": {
+      "contract": "docs/CPU_LZ4_WORKER.md",
+      "status": "Pending publishing-source CPU staging, optional static decoder and unavailable raw-control SDK qualification.",
+      "upstream_source": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
+      "source_bytes_cap": 524288,
+      "default_enabled": false,
+      "gpu_executed": false,
+      "candidate_module_loaded": false,
+      "ordinary_io_caller": false
     }
   },
   "integration_checkpoints": [

@@ -115,7 +115,11 @@ def main():
     parser.add_argument("--hipcomp-source",type=Path,help="Optional reviewed codec checkout; offline object only")
     parser.add_argument("--hipcomp-native-sync",action="store_true")
     parser.add_argument("--hipcomp-link-candidate",action="store_true")
+    parser.add_argument("--cpu-lz4-source",type=Path,
+        help="Optional exact independent decoder checkout; requires the private link fixture")
     args=parser.parse_args()
+    require(args.cpu_lz4_source is None or args.hipcomp_link_candidate,
+        "CPU decoder requires the separate private typed-module fixture")
     require(not args.hipcomp_link_candidate or args.hipcomp_native_sync,
         "private link candidate requires native-sync and original candidate gates")
     require(not args.hipcomp_native_sync or args.hipcomp_source is not None,
@@ -151,6 +155,11 @@ def main():
     if args.hipcomp_source is not None:
         from qualify_hipcomp_candidate import verify_checkout,SOURCE_COMMIT as CODEC_SOURCE_COMMIT
         hipcomp_source=verify_checkout(args.hipcomp_source,CODEC_SOURCE_COMMIT)
+    cpu_lz4_source=None
+    if args.cpu_lz4_source is not None:
+        from stage_lz4_worker_decoder import source_assets
+        cpu_lz4_source=args.cpu_lz4_source.absolute()
+        source_assets(cpu_lz4_source,REPO) # Real Git/blob/physical refusal before SDK provisioning.
     own_lock=REPO/"tools/rocm-sdk-lock.json"
     require(own_lock.read_bytes()==(provider/"tools/rocm-sdk-lock.json").read_bytes(),
         "ROCm lock must match the reviewed complete-distribution source")
@@ -170,6 +179,14 @@ def main():
             report,"codec-source-admission-regressions",60)
         run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_warp_sync_probe.py")],
             report,"warp-sync-source-admission-regressions",60)
+        run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_lz4_worker_decoder.py")],
+            report,"CPU-decoder-source-staging-regressions",60)
+        if cpu_lz4_source is not None:
+            from stage_lz4_worker_decoder import stage
+            report["cpu_lz4_source"]=dict(repository="lz4/lz4",
+                commit="aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
+                assets=stage(cpu_lz4_source,REPO,root/"cpu-lz4-source"),
+                module_loaded=False,gpu_executed=False)
         lock=bootstrap.read_lock(own_lock)
         report["distribution"]=lock
         needed=lock["archive_bytes"]+lock["unpacked_bytes"]+4*GIB
@@ -264,6 +281,8 @@ def main():
         if args.hipcomp_link_candidate:
             configure.extend(["-DFLITZFS_ROCM_LZ4_OBJECT="+str(root/"hipcomp-bounded-entry/hipcomp_lz4.obj"),
                 "-DFLITZFS_ROCM_LZ4_SOURCE="+str(root/"hipcomp-bounded-entry/compile-input/src/flitzfs_lz4_module.cpp")])
+        if cpu_lz4_source is not None:
+            configure.append("-DFLITZFS_ROCM_LZ4_CPU_SOURCE="+str(root/"cpu-lz4-source"))
         run(bounds,configure,report,"current-sdk-host-api-and-link-configure")
         run(bounds,[cmake,"--build",str(build),"--config","Release","--parallel","2"],
             report,"current-sdk-host-api-and-kernel-module-link")
@@ -374,6 +393,57 @@ def main():
             bundle=json.loads((build/"Release/hip-bundle.json").read_text(encoding="utf-8")))
         report["private_runtime_inventory"]=inspect_private_runtime(sdk,build,report["worker"]["bundle"])
         report["worker_probe_imports"]=audit_binary(worker_probe.read_bytes())
+        cpu_probe=build/"Release/flitzfs_rocm_cpu_lz4_probe.exe"
+        report["cpu_lz4_worker_probe"]=dict(bytes=cpu_probe.stat().st_size,
+            sha256=digest(cpu_probe),imports=audit_binary(cpu_probe.read_bytes()))
+        cpu_result=run(bounds,[str(cpu_probe),str(worker),
+            "--available" if cpu_lz4_source is not None else "--unavailable"],
+            report,"supervised-worker-CPU-decoder-capability",30)
+        cpu_prefix="HIP worker CPU decoder: "
+        cpu_rows=[json.loads(line[len(cpu_prefix):]) for line in cpu_result["stdout"].splitlines()
+            if line.startswith(cpu_prefix)]
+        require(len(cpu_rows)==1 and cpu_rows[0]["available"] is (cpu_lz4_source is not None) and
+            cpu_rows[0]["exit_confirmed"] is True and cpu_rows[0]["gpu_executed"] is False and
+            cpu_rows[0]["complete"] is True,"CPU decoder worker capability mismatch")
+        report["cpu_lz4_worker_probe"]["qualification"]=cpu_rows[0]
+        if cpu_lz4_source is not None:
+            decoder_tests=[]
+            for name,prefix,available in (
+                    ("gpu_lz4_verify","GPU LZ4 CPU verification checks: ","lz4_available=1"),
+                    ("lz4_worker_wire","LZ4 worker framing: ","decoder_available=1"),
+                    ("gpu_lz4_slab","LZ4 slab admission: ","decoder_available=1")):
+                executable=build/("Release/flitzfs_sdk_"+name+"_tests.exe")
+                result=run(bounds,[str(executable)],report,"SDK-static-CPU-"+name,30)
+                require(any(line.startswith(prefix) and available in line and
+                    "gpu_executed=false" in line for line in result["stdout"].splitlines()),
+                    "SDK static CPU decoder test did not attest expected capability")
+                decoder_tests.append(dict(name=name,bytes=executable.stat().st_size,
+                    sha256=digest(executable),imports=audit_binary(executable.read_bytes())))
+            report["cpu_lz4_source"]["CPU_tests"]=decoder_tests
+            # Same SDK/object, separate default-raw build: prove the optional
+            # decoder did not turn unavailable support into implicit discovery.
+            raw_build=root/"raw-cpu-control"
+            run(bounds,[cmake,"-S",str(REPO/"tests/rocm_compile"),"-B",str(raw_build),"-A","x64",
+                "-DFLITZFS_ROCM_SDK="+str(sdk),"-DFLITZFS_ROCM_KERNEL_OBJECT="+str(obj)],
+                report,"raw-worker-control-configure")
+            run(bounds,[cmake,"--build",str(raw_build),"--config","Release","--target",
+                "flitzfs_rocm_cpu_lz4_probe","flitzfs_hip_worker","--parallel","2"],
+                report,"raw-worker-control-build")
+            raw_probe=raw_build/"Release/flitzfs_rocm_cpu_lz4_probe.exe"
+            raw_worker=raw_build/"Release/flitzfs_hip_worker.exe"
+            raw_result=run(bounds,[str(raw_probe),str(raw_worker),"--unavailable"],
+                report,"raw-worker-control-unavailable",30)
+            raw_rows=[json.loads(line[len(cpu_prefix):]) for line in raw_result["stdout"].splitlines()
+                if line.startswith(cpu_prefix)]
+            require(len(raw_rows)==1 and raw_rows[0]["available"] is False and
+                raw_rows[0]["exit_confirmed"] is True and raw_rows[0]["gpu_executed"] is False and
+                raw_rows[0]["complete"] is True,"raw control unexpectedly supplied CPU LZ4")
+            raw_imports,raw_delay=pe_import_names(raw_worker.read_bytes())
+            require(bool(raw_imports) and set(raw_imports)<=allowed and not raw_delay,
+                "raw control eager runtime dependency")
+            report["cpu_lz4_source"]["raw_control"]=dict(qualification=raw_rows[0],
+                worker_sha256=digest(raw_worker),imports=sorted(set(raw_imports)),
+                probe_sha256=digest(raw_probe),probe_imports=audit_binary(raw_probe.read_bytes()))
         # Same-size change in a NEW copy. Every original SDK/bundle file stays untouched.
         altered=root/"tampered-worker"
         altered.mkdir()
@@ -578,6 +648,11 @@ def main():
             "reference source changed during qualification")
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,
             "SDK critical inputs changed during compilation")
+        if cpu_lz4_source is not None:
+            from stage_lz4_worker_decoder import unchanged
+            unchanged(cpu_lz4_source,REPO,root/"cpu-lz4-source",
+                report["cpu_lz4_source"]["assets"])
+            report["cpu_lz4_source"]["physical_inputs_unchanged"]=True
         package=root/"driver-probe-package"
         package.mkdir()
         copies=(
@@ -588,6 +663,9 @@ def main():
             *((REPO/"third_party/blake3"/name,"licenses/blake3/"+name)
                 for name in ("LICENSE_A2","LICENSE_A2LLVM","LICENSE_CC0")),
         )
+        if cpu_lz4_source is not None:
+            copies+=tuple((root/"cpu-lz4-source"/name,"licenses/lz4/"+name)
+                for name in ("LICENSE","LICENSE-repository"))
         records=[]
         for source,relative in copies:
             size=source.stat().st_size

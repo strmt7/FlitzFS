@@ -340,6 +340,10 @@ The private typed module qualified for linking at c86559b
 The [bounded candidate frames](docs/LZ4_WORKER_FRAMES.md) passed portable,
 sanitizer and Windows CPU-helper checks at 959606a
 ([evidence](docs/evidence/lz4-worker-frames-959606a.json)).
-The next [checked upload/readback layer](docs/GPU_LZ4_SLAB.md) protects inputs,
-tables and guards and independently verifies every returned block. Its new CPU
-checks are pending; actual GPU compression remains unimplemented.
+The [checked upload/readback layer](docs/GPU_LZ4_SLAB.md) passed all five core
+configurations and all 13 integration jobs at 38229d1
+([evidence](docs/evidence/gpu-lz4-slab-38229d1.json)). The live host model/GUI also
+passed with full cleanup ([evidence](docs/evidence/owner-gui-38229d1.json)).
+The next [independent decoder in the SDK worker](docs/CPU_LZ4_WORKER.md) is an
+explicit hosted-VM prerequisite; its new qualification is pending.
+Actual GPU compression remains unimplemented.

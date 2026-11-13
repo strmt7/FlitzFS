@@ -1571,3 +1571,17 @@ Keep caller spans immutable, bounded temporary buffers and all current
 resource/identity/exact child-and-supervisor retirement gates. CPU slab fixtures
 are not kernel emulation or actual GPU output. No runtime loading, launch, owner
 operation, stored codec or ordinary-I/O caller follows from these checks.
+
+## Static CPU decoder in the isolated SDK worker
+
+Read docs/CPU_LZ4_WORKER.md before changing this optional fixture or capability
+probe. cpu_lz4 requires all existing candidate/link inputs. Keep exact source
+root/revision/blob/physical admission before SDK provisioning, the 512-KiB cap,
+canonical/new exclusive staging, complete library AND repository notices, and
+independent CMake pins. Build one static decoder from those bytes; do not execute
+upstream CMake or discover an installed codec. Default SDK builds keep LZ4 off.
+The explicit CPU diagnostic must require its existing job and reject unexpected
+AMD modules; it performs no bundle/device/runtime/channel operation. Require exact
+supervised retirement in both enabled and separate raw controls using the same
+SDK/object. Retain all original 20 worker cases and SDK/source/resource gates.
+Do not export/load/bundle the private compression module or infer GPU execution.

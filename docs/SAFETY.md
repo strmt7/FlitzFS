@@ -1139,7 +1139,12 @@ The [LZ4 candidate frames](LZ4_WORKER_FRAMES.md) qualified at 959606a in all fiv
 core configurations and all 13 ordinary integration jobs
 ([evidence](evidence/lz4-worker-frames-959606a.json)). Enabled builds reported
 621 framing checks; disabled builds reported 593. Windows CPU exchanges retained
-79 initial/final handles. The next [checked slab layer](GPU_LZ4_SLAB.md) adds
-bounded upload construction and all-or-nothing independent readback verification.
-Its new CPU tests are pending; no actual GPU caller or normal-I/O route is enabled.
+79 initial/final handles. The [checked slab layer](GPU_LZ4_SLAB.md) then passed
+all five core configurations and all 13 jobs at 38229d1: 968 checks with the
+decoder and 939 without it ([evidence](evidence/gpu-lz4-slab-38229d1.json)).
+The live owner-host model and GUI passed, with exact retirement and complete
+staging cleanup ([evidence](evidence/owner-gui-38229d1.json)).
+The next [static SDK-worker CPU decoder](CPU_LZ4_WORKER.md) is explicitly opt-in.
+New staging, decoder/protocol and both worker-capability configurations require
+publishing-source execution. No actual GPU compressor or normal-I/O route follows.
 D01 remains open.
