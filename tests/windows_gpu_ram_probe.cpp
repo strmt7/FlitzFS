@@ -141,7 +141,7 @@ void warm_invalid_transport(const Worker& worker) {
 }
 Bytes synthetic_input();
 void successful_cpu_exchange(const fs::path& helper) {
-  const auto search=PreparedGpuMatchSearch::prepare(synthetic_input());
+  const auto search=PreparedGpuMatchSearch::prepare_request(synthetic_input());
   const auto request=encode_match_worker_request(search,1);
   const auto result=run_worker_exchange(helper,{L"match"},request,{128,2000,5000});
   require(result.code==WorkerExchangeCode::completed && result.process.exit_confirmed &&
@@ -168,7 +168,7 @@ struct MatchOutcome {
 MatchOutcome find_matches(const Worker& worker,std::span<const std::byte> bytes) {
   MatchOutcome out;out.attempted=true;match_handles(0);
   const auto start=std::chrono::steady_clock::now();
-  const auto search=PreparedGpuMatchSearch::prepare(bytes);
+  const auto search=PreparedGpuMatchSearch::prepare_request(bytes);
   const auto request=encode_match_worker_request(search,1);
   out.prepare_ns=elapsed(start);out.device_bytes=search.device_buffer_bytes();match_handles(1);
   const auto transfer=std::chrono::steady_clock::now();

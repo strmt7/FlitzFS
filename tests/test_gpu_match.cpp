@@ -1,7 +1,9 @@
 #include "flitzfs/gpu_match.hpp"
 #include "flitzfs/gpu_match_kernel_api.hpp"
+#include "flitzfs/match_worker_wire.hpp"
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -42,6 +44,30 @@ void small_oracle(const PreparedGpuMatchSearch& plan,const std::vector<Match>& f
     require(found[lane].length==longest,"bounded small search differs from exhaustive match oracle");
   }
 }
+void preparation_measurement() {
+  // Eight alternating CPU-only pairs. Diagnostic wall time has no pass/fail
+  // threshold and is not a GPU/filesystem throughput comparison.
+  Bytes input(input_limit);
+  std::uint32_t state=0x12345678U;
+  for(auto& b:input){state^=state<<13;state^=state>>17;state^=state<<5;b=static_cast<std::byte>(state);}
+  std::array<std::int64_t,8> indexed{},request_only{};
+  (void)PreparedGpuMatchSearch::prepare(input);
+  (void)PreparedGpuMatchSearch::prepare_request(input);
+  auto run=[&](bool request,std::int64_t& elapsed) {
+    const auto start=std::chrono::steady_clock::now();
+    const auto plan=request?PreparedGpuMatchSearch::prepare_request(input):PreparedGpuMatchSearch::prepare(input);
+    elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start).count();
+    require(plan.input().size()==input.size() && plan.has_cpu_index()!=request &&
+        plan.device_buffer_bytes()==229376,"Preparation comparison changed input/device shape");
+  };
+  for(unsigned i=0;i<8;++i) {
+    if(i%2){run(true,request_only[i]);run(false,indexed[i]);}
+    else {run(false,indexed[i]);run(true,request_only[i]);}
+  }
+  std::sort(indexed.begin(),indexed.end());std::sort(request_only.begin(),request_only.end());
+  std::cout<<"GPU match preparation CPU median wall ns: indexed="<<indexed[4]
+      <<" request_only="<<request_only[4]<<" alternating_pairs=8 gpu_executed=false\n";
+}
 void fake(const u8*,u32,const u16*,u32,Match*,u32,u32) {}
 }
 int main(){try {
@@ -53,6 +79,31 @@ int main(){try {
     std::fill(input.begin(),input.end(),std::byte{0xff});
     require(std::ranges::equal(plan.input(),original),"prepared match input is borrowed");
     require(plan.device_buffer_bytes()<=gpu_detail::max_batch_bytes,"match device buffers exceed the existing cap");
+    auto request_plan=PreparedGpuMatchSearch::prepare_request(original);
+    require(!request_plan.has_cpu_index() && plan.has_cpu_index(),"Explicit index ownership");
+    require(std::ranges::equal(request_plan.input(),plan.input()) &&
+        request_plan.device_buffer_bytes()==plan.device_buffer_bytes(),"Request-only source/budget differs");
+    rejects([&]{(void)request_plan.predecessors();});
+    if(size>=4) {
+      const auto old_frame=encode_match_worker_request(plan,71);
+      const auto fast_frame=encode_match_worker_request(request_plan,71);
+      require(old_frame==fast_frame,"Request-only preparation changed wire bytes");
+      const auto child=decode_match_worker_request(fast_frame);
+      require(child.search.has_cpu_index() && std::ranges::equal(child.search.predecessors(),plan.predecessors()),
+          "Worker did not independently rebuild the original CPU index");
+      const auto old_matches=cpu(plan);
+      const auto frame=encode_match_worker_reply(plan,71,old_matches,WorkerExecution::cpu_semantics);
+      const auto fast_proposals=accept_match_worker_reply(frame,request_plan,71,WorkerExecution::cpu_semantics);
+      const auto old_proposals=accept_match_worker_reply(frame,plan,71,WorkerExecution::cpu_semantics);
+      auto corrupt=frame;corrupt[kMatchWorkerHeaderBytes]=std::byte{1};
+      rejects([&]{accept_match_worker_reply(corrupt,request_plan,71,WorkerExecution::cpu_semantics);});
+      rejects([&]{accept_match_worker_reply(frame,request_plan,72,WorkerExecution::cpu_semantics);});
+      require(fast_proposals.size()==old_proposals.size(),"Request-only validation changed selected matches");
+      for(std::size_t n=0;n<old_proposals.size();++n)
+        require(fast_proposals[n].position==old_proposals[n].position &&
+            fast_proposals[n].distance==old_proposals[n].distance &&
+            fast_proposals[n].length==old_proposals[n].length,"Request-only proposal differs");
+    }
     const auto result=cpu(plan);
     const auto proposals=plan.verified_proposals(result);
     std::uint32_t end=0;
@@ -74,6 +125,7 @@ int main(){try {
     }
   }
   rejects([&]{PreparedGpuMatchSearch::prepare(Bytes(input_limit+1));});
+  rejects([&]{PreparedGpuMatchSearch::prepare_request(Bytes(input_limit+1));});
   // Malformed index metadata remains bounded even when it has cycles or
   // plausible positions whose first bytes do not actually match.
   const std::array<u8,64> raw{1,2,3,4};
@@ -97,6 +149,7 @@ int main(){try {
   require(compatible_kernel_api(api),"typed match entry rejected");
   api.version++;require(!compatible_kernel_api(api),"foreign match entry accepted");
   api=make_kernel_api(nullptr);require(!compatible_kernel_api(api),"missing match entry accepted");
+  preparation_measurement();
   std::cout<<"GPU match CPU semantics: checks="<<checks<<" device_bytes=229376 gpu_executed=false\n";
   return 0;
 }catch(const std::exception& error){std::cerr<<"GPU match semantics failed: "<<error.what()<<'\n';return 1;}}

@@ -8,8 +8,12 @@ namespace flitzfs {
 class PreparedGpuMatchSearch final {
  public:
   static PreparedGpuMatchSearch prepare(std::span<const std::byte> input);
+  // Transport/parent validation needs owned source bytes, not a CPU search index.
+  // The trusted child independently materializes its full index during decode.
+  static PreparedGpuMatchSearch prepare_request(std::span<const std::byte> input);
+  bool has_cpu_index() const noexcept {return indexed_;}
   std::span<const std::byte> input() const noexcept {return input_;}
-  std::span<const match_detail::u16> predecessors() const noexcept {return previous_;}
+  std::span<const match_detail::u16> predecessors() const;
   std::uint32_t lanes() const noexcept;
   std::uint64_t device_buffer_bytes() const noexcept;
   // Validate ALL output lanes before retaining nonoverlapping proposals.
@@ -18,5 +22,6 @@ class PreparedGpuMatchSearch final {
  private:
   std::vector<std::byte> input_;
   std::vector<match_detail::u16> previous_;
+  bool indexed_=false;
 };
 }

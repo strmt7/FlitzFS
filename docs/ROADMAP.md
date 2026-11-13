@@ -722,3 +722,14 @@ semantics and authorization, installer/update/rollback, visual/accessibility/
 client matrices, automatic low-priority learning and useful GPU routing remain.
 The unchanged zero-benefit GPU experiment was not repeated. No product completion
 percentage, performance superiority or universal safety follows.
+
+## GPU cost profiling and redundant preparation
+
+Independent G03 preparation now omits the parent's unused predecessor index/sort
+while keeping byte-identical requests, planned device footprint and the child's
+full independent CPU work. A separate diagnostic exposes fifteen completed host
+wall phases after module/resource retirement, alongside parent exchange time.
+New-source functional/equivalence, alternating CPU-construction diagnostics,
+Windows transport and complete-SDK refusal checks require actual qualification.
+D01 and G02's useful-benefit exit remain open. No resident worker, relaxed
+verification or expanded device/process/lifetime limit is introduced.

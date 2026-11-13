@@ -138,8 +138,29 @@ int wmain(int argc, wchar_t** argv) {
         driver_arguments(false,L"bad"), decode_request, budget);
     retired(bad_digest.process, static_cast<std::uint32_t>(flitzfs::HipWorkerExit::invalid_request));
     require(bad_digest.response.empty() && !bad_digest.publication_observed, "bad driver identity published output");
+    const auto profile_arguments = [](std::wstring digest) {
+      return std::vector<std::wstring>{L"--driver-match-profile",L"0",L"0100000000000000",L"1",std::move(digest)};
+    };
+    const auto invalid_profile=flitzfs::run_worker_exchange(driver_worker,
+        profile_arguments(std::wstring(64,L'0')),malformed,budget);
+    retired(invalid_profile.process,static_cast<std::uint32_t>(flitzfs::HipWorkerExit::invalid_request));
+    require(invalid_profile.response.empty()&&!invalid_profile.publication_observed,
+        "Invalid profiling input published metadata");
+    const auto bad_profile_digest=flitzfs::run_worker_exchange(driver_worker,
+        profile_arguments(L"bad"),match_request,budget);
+    retired(bad_profile_digest.process,static_cast<std::uint32_t>(flitzfs::HipWorkerExit::invalid_request));
+    require(bad_profile_digest.response.empty()&&!bad_profile_digest.publication_observed,
+        "Bad profiling runtime identity published metadata");
+    const auto absent_profile=flitzfs::run_worker_exchange(driver_worker,
+        profile_arguments(std::wstring(64,L'0')),match_request,budget);
+    require(absent_profile.process.process_id&&absent_profile.process.exit_confirmed&&
+        !absent_profile.process.timed_out&&!absent_profile.process.cancelled&&
+        (absent_profile.process.exit_code==static_cast<std::uint32_t>(flitzfs::HipWorkerExit::runtime_unavailable)||
+         absent_profile.process.exit_code==static_cast<std::uint32_t>(flitzfs::HipWorkerExit::integrity_failure))&&
+        absent_profile.response.empty()&&!absent_profile.publication_observed,
+        "Unqualified profile runtime was accepted");
     std::cout<<"HIP worker admission: {\"bundle_verified\":true,\"missing_bundle_refused\":true,"
-        "\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"compiler_environment_isolated\":true,\"system_module_metadata_passed\":true,\"system_runtime_bad_hash_refused\":true,\"system_runtime_argument_refused\":true,\"kernel_only_verified\":true,\"kernel_only_full_bundle_refused\":true,\"kernel_only_tamper_refused\":true,\"driver_wire_refusals\":5,\"exits_confirmed\":17,\"gpu_executed\":false,\"complete\":true}\n";
+        "\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"compiler_environment_isolated\":true,\"system_module_metadata_passed\":true,\"system_runtime_bad_hash_refused\":true,\"system_runtime_argument_refused\":true,\"kernel_only_verified\":true,\"kernel_only_full_bundle_refused\":true,\"kernel_only_tamper_refused\":true,\"driver_wire_refusals\":5,\"profile_wire_refused\":true,\"profile_argument_refused\":true,\"profile_runtime_refused\":true,\"exits_confirmed\":20,\"gpu_executed\":false,\"complete\":true}\n";
     return 0;
   } catch (const std::exception& error) {
     std::cerr<<"HIP worker admission failed: "<<error.what()<<'\n';

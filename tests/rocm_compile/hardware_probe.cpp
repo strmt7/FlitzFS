@@ -8,6 +8,7 @@
 #include "hip_worker_exit.hpp"
 #include "hip_identity_wire.hpp"
 #include "hip_memory_wire.hpp"
+#include "hip_phase_profile.hpp"
 #include <windows.h>
 #include <dxgi1_4.h>
 #include <wrl/client.h>
@@ -212,7 +213,8 @@ int wmain(int argc, wchar_t** argv) {
     const bool metadata = mode == L"--verify-driver-runtime";
     const bool identity = mode == L"--inspect-driver-adapter";
     const bool memory_observation = mode == L"--run-amd-driver-memory-once";
-    const bool matching = mode == L"--run-amd-driver-match-once";
+    const bool phase_observation=mode==L"--profile-amd-driver-match-once";
+    const bool matching = mode == L"--run-amd-driver-match-once" || phase_observation;
     const bool driver = mode == L"--run-amd-driver-once" || matching || memory_observation;
     require((topology && argc==3) || (warp_topology && argc==2) || (budget_metadata && argc == 3) || (discovery && argc == 2) || (metadata && argc == 4) || ((driver || identity) && argc == 6) ||
         (mode == L"--run-amd-once" && argc == 5), "explicit qualified worker and probe mode required");
@@ -245,15 +247,44 @@ int wmain(int argc, wchar_t** argv) {
       std::array<std::byte,4096> source{};
       for (std::size_t i = 0; i < source.size(); ++i)
         source[i] = static_cast<std::byte>((i % 257U) & 255U);
-      const auto search = flitzfs::PreparedGpuMatchSearch::prepare(source);
+      const auto search = flitzfs::PreparedGpuMatchSearch::prepare_request(source);
       constexpr std::uint64_t request_id = 1;
       const auto request = flitzfs::encode_match_worker_request(search, request_id);
+      const auto started=std::chrono::steady_clock::now();
       const auto result = flitzfs::run_worker_exchange(worker,
-          {L"--driver-match-adapter", argv[3], argv[4], L"1", argv[5]}, request, {128,2000,5000});
+          {phase_observation?L"--driver-match-profile":L"--driver-match-adapter", argv[3], argv[4], L"1", argv[5]}, request, {128,2000,5000});
       require(result.process.process_id && result.process.exit_confirmed, "match child exit unconfirmed");
       const bool completed = result.code == flitzfs::WorkerExchangeCode::completed &&
           !result.process.timed_out && !result.process.cancelled && result.process.exit_code == 0;
       require(std::ranges::equal(search.input(), source), "owned match source changed");
+      if(phase_observation) {
+        std::optional<flitzfs::HipPhaseProfile> profile;
+        if(completed) {
+          flitzfs::HipProfileBinding expected{request_id,static_cast<std::uint32_t>(std::stoul(argv[3])),
+              1,static_cast<std::uint32_t>(search.input().size()),search.lanes(),probe_luid(argv[4]),{}};
+          std::copy_n(request.begin()+32,32,expected.source_digest.begin());
+          profile=flitzfs::decode_hip_phase_profile(result.response,expected,flitzfs::WorkerExecution::hip);
+        } else require(result.response.empty(),"Failed profile returned metadata");
+        const auto exchange_ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now()-started).count();
+        require(exchange_ns>=0 && (!profile || profile->trace.total_wall_ns<=static_cast<std::uint64_t>(exchange_ns)),
+            "Profile wall time exceeds its enclosing exchange");
+        std::cout<<std::boolalpha<<"HIP match phase profile: {\"profile_verified\":"<<completed
+            <<",\"gpu_candidate_accepted\":false,\"input_bytes\":"<<source.size()
+            <<",\"explicit_device_bytes\":"<<search.device_buffer_bytes()
+            <<",\"exchange_wall_ns\":"<<exchange_ns<<",\"worker_exit\":"<<result.process.exit_code
+            <<",\"exit_confirmed\":true,\"publication_observed\":"<<result.publication_observed
+            <<",\"timed_out\":"<<result.process.timed_out
+            <<",\"peak_commit_bytes\":"<<result.process.peak_committed_bytes
+            <<",\"controller_job_peak_commit_bytes\":"<<budget.peak_commit()<<",\"phases\":";
+        if(profile) {
+          std::cout<<"{\"total_worker_wall_ns\":"<<profile->trace.total_wall_ns;
+          for(unsigned i=0;i<flitzfs::hip_phase_count;++i)
+            std::cout<<",\""<<flitzfs::hip_phase_names[i]<<"_wall_ns\":"<<profile->trace.wall_ns[i];
+          std::cout<<"}";
+        } else std::cout<<"null";
+        std::cout<<"}\n";return completed?0:2;
+      }
       std::size_t proposal_count = 0;
       if (completed) {
         const auto proposals = flitzfs::accept_match_worker_reply(result.response, search,

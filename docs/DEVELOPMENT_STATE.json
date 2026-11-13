@@ -6,17 +6,17 @@
   "assessment": "docs/REPOSITORY_ASSESSMENT.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "reviewed_baseline": {
-    "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
-    "tree": "0ab1b0f5955aaf3090f8fd5d741a6ac13dab62b4",
-    "note": "Actual unmounted native Windows app/control implementation and exact VM/owner binary qualification. Full product and useful GPU routing remain open."
+    "commit": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
+    "tree": "6f3b85242d616d2b0f4331f3c83856b963a6775f",
+    "note": "Current qualified baseline. Independent cost profiling and parent preparation changes require new-source qualification; no new owner execution performed."
   },
   "current_qualification": {
-    "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
-    "core_run": 43341114080,
+    "commit": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
+    "core_run": 43344250340,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "Exact host-tested source passed all existing CPU/raw/codec/Windows native/sanitizer and isolated mount gates, plus the separate app and owner checks."
+    "scope": "Existing CPU/native/isolated-mount matrix; separate application/notice workflow43344250348 passed. Owner runtime source remains f4928c2."
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -325,9 +325,12 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "f4928c2d2510cacb55da664a0338c8592194d9a0",
-    "status": "The notice/corresponding-source packaging change requires its publishing-commit hosted artifact result. Runtime source is unchanged from the fully qualified owner-tested application.",
-    "next": "Do not repeat unchanged owner/GPU tests. Inspect packaging result, then continue D01/G03/G02 and full-product packages using current source-bound receipts."
+    "source_parent": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
+    "package": "Independent G03 preparation",
+    "contract": "docs/GPU_PHASE_PROFILE.md",
+    "behavior": "Elide unused parent CPU index preparation with byte-identical requests and unchanged independent child verification; add explicit complete phase profiling with no clocks in normal requests.",
+    "status": "New publishing-commit CPU/raw/codec/sanitizer/Windows transport/complete-SDK and integration qualification required.",
+    "next": "Inspect exact profiling/request-equivalence and SDK refusal results before any hardware use. D01/lifecycle, useful G02 benefit and full-product gates remain open."
   },
   "resolved": [
     {

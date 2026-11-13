@@ -149,3 +149,12 @@ Useful contracts:
 
 Development stays on main. The owner controls release; development commits are
 not releases. Preserve the [license](LICENSE) and source/dependency notices.
+
+## GPU pipeline cost preparation
+
+New source adds input-only parent match preparation, avoiding a CPU index/sort
+that the worker independently rebuilds, with unchanged request bytes and CPU
+verification. A separate opt-in diagnostic records complete worker phase wall
+costs; normal requests make no timing queries. Publishing-commit qualification
+is pending. This is not a GPU speed/compression gain or an automatic route.
+[Contract and bounds](docs/GPU_PHASE_PROFILE.md).

@@ -166,7 +166,13 @@
         "Test shutdown/cancel/driver disappearance in isolated VMs or mocks only; never stress owner WDDM or leave idle workers without a justified bounded lifecycle."
       ],
       "exit": "Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes.",
-      "entry_gate": "Actual G02 native proposal/compression composition is demonstrated at645a1d1. G02's benefit exit remains unmet; lifecycle work must not depend on already having that benefit."
+      "entry_gate": "Actual G02 native proposal/compression composition is demonstrated at645a1d1. G02's benefit exit remains unmet; lifecycle work must not depend on already having that benefit.",
+      "preparatory_implementation": {
+        "contract": "docs/GPU_PHASE_PROFILE.md",
+        "behavior": "Input-only parent preparation avoids an unused CPU index/sort; separate complete-request wall profiling with all original verification and bounds.",
+        "qualification": "Pending publishing-commit CPU/Windows/SDK results; no new GPU measurements.",
+        "lifecycle_gate": "D01 remains open; no resident worker, widened caps or relaxed independent CPU checks."
+      }
     },
     {
       "id": "S01",
