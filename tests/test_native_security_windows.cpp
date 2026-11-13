@@ -1,3 +1,4 @@
+// Direct CPU-only callback fixture: zero is an explicitly synthetic kernel origin; no live dispatcher.
 #include "winfsp_readonly.hpp"
 #include "native_windows_fixture.hpp"
 #include "native_security_fixture.hpp"
@@ -88,7 +89,7 @@ void callbacks() {
     check(projection.security_descriptor(L"\\")==root && projection.security_descriptor(L"\\f")==file,
         "independent native projection descriptor mismatch");
     WinFspReadOnly adapter(std::move(projection));FSP_FILE_SYSTEM fs{};
-    fs.Version=static_cast<UINT16>(sizeof fs);fs.UmFileContextIsUserContext2=TRUE;adapter.bind_callbacks(fs);
+    fs.Version=static_cast<UINT16>(sizeof fs);fs.UmFileContextIsUserContext2=TRUE;adapter.bind_callbacks(fs,[]()->UINT32{return 0;});
     const auto& cb=WinFspReadOnly::callbacks();fs.Interface=&cb;
     for(const auto* path:{L"\\",L"\\f"}) {
       const auto& expected=std::wstring_view(path)==L"\\"?root:file;

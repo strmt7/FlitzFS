@@ -791,3 +791,17 @@ Mandatory product adapter self-origin protection follows complete mounted actor
 conversion; there will be no fake-origin escape for a live self-client fixture.
 The historical termination cause remains unproven. Useful GPU benefit, Windows11
 product lifecycle, persistent learning and all full-product exit criteria remain.
+
+## Product own-open admission
+
+Sourcefa9fe90 passed all thirteen core jobs after converting the final mounted
+RAM-handoff client. The next implementation enables mandatory per-adapter host
+Create/Open admission, requires an explicit origin query in callback/session
+binding and adds CPU semantic/lifecycle plus actual mounted product-denial probes.
+The source test wrapper delegates own opens so it cannot hide a missing product
+guard. Pinned SDK header/directory-setup/TLS sources bind the implementation.
+
+New-source qualification remains required. The historical termination cause stays
+unproven, and inherited/duplicated handles, indirect backing topology and full
+Windows11/kernel qualification remain separate work. The complete product,
+useful GPU gains, low-impact learning and storage-resilience exits remain open.

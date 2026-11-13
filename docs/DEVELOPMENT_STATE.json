@@ -11,14 +11,12 @@
     "note": "Current qualified baseline. Independent cost profiling and parent preparation changes require new-source qualification; no new owner execution performed."
   },
   "current_qualification": {
-    "commit": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
-    "core_run": 43361281034,
+    "commit": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
+    "core_run": 43363992790,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "research_run": 43361281221,
-    "research_native_pages": 11,
-    "evidence": "docs/evidence/extended-actors-9dd6a98.json"
+    "evidence": "docs/evidence/ram-actors-fa9fe90.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -327,11 +325,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
-    "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
-    "behavior": "Finite external RAM handoff client; seven events, one request, terminal policy and preserved original byte/resource oracles.",
-    "status": "Publishing-source CPU sequence/actual helper fault+handle and full core/mounted RAM tests required.",
-    "next": "After complete actor conversion qualifies, implement mandatory adapter-wide origin protection. No owner tests/driver changes/unchanged GPU reruns."
+    "source_parent": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
+    "contract": "docs/WINFSP_ORIGIN_GUARD.md",
+    "behavior": "Mandatory product Create/Open self-origin admission, required explicit provider, CPU integration/lifecycle tests and real SDK product-denial probes.",
+    "status": "Publishing-source full CPU/raw/codec/sanitizer/Windows and all mounted guard tests required.",
+    "next": "Review actual product-denial/retirement and byte/resource evidence. Historical D01 cause and broader product/lifecycle/GPU/learning/resilience exits remain open. No owner operation."
   },
   "resolved": [
     {

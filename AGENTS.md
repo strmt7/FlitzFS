@@ -1274,3 +1274,17 @@ require the live external-client report variant. CPU sequence/helper passes are
 not mounted or GPU evidence. After publishing-source RAM qualification, implement
 mandatory adapter-wide self-origin protection; the fixture guard is still not
 product protection. No owner mount/driver or unchanged GPU experiment.
+
+## Required product Create/Open origin guard
+
+Read docs/WINFSP_ORIGIN_GUARD.md before changing adapter binding, lifecycle provider
+tables or origin queries. bind_callbacks requires an explicit origin query;
+WinFspSessionApi requires its eighth originating_process_id entry. Live tables
+must use the real SDK query. Synthetic origins belong ONLY to non-mounted CPU
+fixtures. Query only during Create/Open, never other callbacks or arbitrary TLS.
+Reject host/missing/throwing origins before contexts/native mutation; preserve
+foreign/kernel routing and all original authorization/output behavior. Configure
+before dispatch, never rebind live. The diagnostic survives native adapter stop
+but cannot authorize bytes/recovery/retry. Mounted self-open probes must observe
+PRODUCT rejection, not mask it in a test guard. Qualification of this publishing
+source is required; owner/driver/GPU gates and the historical unknown cause remain.

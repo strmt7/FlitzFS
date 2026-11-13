@@ -17,6 +17,7 @@ struct WinFspSessionApi {
   decltype(&FspFileSystemStopDispatcher) stop_dispatcher = nullptr;
   decltype(&FspFileSystemRemoveMountPoint) remove_mount_point = nullptr;
   decltype(&FspFileSystemDelete) delete_filesystem = nullptr;
+  WinFspOriginQuery originating_process_id = nullptr;
 };
 enum class SessionState { ready, starting, running, stopped, failed };
 
@@ -37,6 +38,7 @@ class WinFspReadOnlySession final {
   void stop() noexcept;
   SessionState state() const noexcept { return state_; }
   bool dispatcher_stopped() const noexcept;
+  bool self_origin_rejected() const noexcept;
   bool dispatcher_stopped_unexpectedly() const noexcept;
  private:
   void release() noexcept;
@@ -80,6 +82,7 @@ class WinFspNativeSession final {
   SessionState state() const noexcept{return state_;}
   bool requires_offline() const noexcept;
   bool dispatcher_stopped() const noexcept;
+  bool self_origin_rejected() const noexcept;
   bool dispatcher_stopped_unexpectedly() const noexcept;
   NativeSessionStats stats() const;
  private:
@@ -90,6 +93,7 @@ class WinFspNativeSession final {
   FSP_FILE_SYSTEM* filesystem_=nullptr;
   SessionState state_=SessionState::ready;
   bool dispatcher_attempted_=false,mount_owned_=false,unexpected_stop_=false,offline_=false,stopped_=false;
+  bool self_rejected_=false;
   NativeSessionStats retired_stats_{};
 };
 } // namespace flitzfs

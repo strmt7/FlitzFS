@@ -877,3 +877,14 @@ do not establish mounted correctness. Publishing-source RAM qualification and
 adapter-wide self-origin protection remain separate gates. Current research
 receipts document auto-reset and asynchronous termination semantics, not general
 kernel-fault recovery or no-freeze guarantees. No owner operation is enabled.
+
+The next product origin guard rejects the host's new Create/Open context before
+native preparation or slot allocation and rejects a missing/throwing provider.
+Live tables supply the real SDK query, while non-mounted CPU fixtures inject
+explicit synthetic origins. Original rights/storage/byte checks remain on all
+admitted foreign/kernel requests. Source wrappers now audit product rejection
+instead of intercepting their own actor first. Read docs/WINFSP_ORIGIN_GUARD.md
+for supported callback scope, immutable binding, retained diagnostic and limits.
+Publishing-source qualification is pending; duplicated/inherited handles, indirect
+backing cycles and arbitrary driver/kernel bugs are not solved by this one rule.
+No owner or GPU operation is enabled.

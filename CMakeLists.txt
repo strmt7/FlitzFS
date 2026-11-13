@@ -632,7 +632,7 @@ if(FLITZFS_BUILD_WINFSP)
   if(FLITZFS_BUILD_TESTS)
     # Hosted, user-mode callbacks and injected lifecycle only. No real provider
     # is selected; these tests never create a volume/dispatcher/mount/driver.
-    foreach(native_target native native_session)
+    foreach(native_target native native_session origin)
       add_executable(flitzfs_winfsp_${native_target}_tests tests/test_winfsp_${native_target}.cpp)
       target_link_libraries(flitzfs_winfsp_${native_target}_tests PRIVATE flitzfs_winfsp Threads::Threads)
       add_custom_command(TARGET flitzfs_winfsp_${native_target}_tests POST_BUILD

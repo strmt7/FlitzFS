@@ -22,12 +22,15 @@ struct Provider {
   std::size_t count = 0;
   bool invariant = true;
   bool callback_alive_during_stop = false;
+  UINT32 origin=0;
   void record(char c) noexcept {
     if (count < calls.size()) calls[count++] = c; else invariant = false;
   }
   std::string trace() const { return {calls.data(), count}; }
 };
 Provider* active = nullptr;
+// Explicit synthetic origin for the injected CPU-only lifecycle provider.
+UINT32 cpu_origin(){return active->origin;}
 NTSTATUS preflight(PWSTR device, PWSTR path) {
   auto& s = *active; s.record('p');
   s.invariant = s.invariant && std::wstring_view(device) == L"WinFsp.Disk" &&
@@ -103,7 +106,7 @@ class PausedReadStore final:public flitzfs::StoreByteIo {
   std::promise<void> resume_;
   mutable std::future<void> release_;
 };
-flitzfs::WinFspSessionApi api() { return {preflight, create, start, mount, stop, unmount, destroy}; }
+flitzfs::WinFspSessionApi api() { return {preflight, create, start, mount, stop, unmount, destroy,cpu_origin}; }
 flitzfs::NativeWriteMountPlan plan() { return {L"C:\\FlitzFS-fixture\\mount", 15, true, true}; }
 }
 int main(){try {
@@ -111,6 +114,27 @@ int main(){try {
   const auto create_adapter=[](nw::Fixture& fixture) {
     return WinFspNativeWritable::create_new_hosted(fixture.image(),nw::identity());
   };
+
+  {
+    nw::Fixture f;auto incomplete=api();incomplete.originating_process_id=nullptr;
+    bool refused=false;
+    try{WinFspNativeSession session(create_adapter(f),incomplete);}
+    catch(const std::invalid_argument&){refused=true;}
+    require(refused&&!provider.count,"missing native origin provider reached lifecycle operations");
+  }
+  {
+    nw::Fixture f;WinFspNativeSession session(create_adapter(f),api());
+    require(session.start(plan())==STATUS_SUCCESS,"native origin fixture startup");
+    provider.origin=GetCurrentProcessId();
+    PVOID context=reinterpret_cast<PVOID>(1);FSP_FSCTL_FILE_INFO info{};
+    require(provider.fs.Interface->Open(&provider.fs,const_cast<PWSTR>(L"\\"),FILE_DIRECTORY_FILE,
+        FILE_GENERIC_READ,&context,&info)==STATUS_ACCESS_DENIED&&!context&&session.self_origin_rejected(),
+        "native session lost self-origin admission");
+    provider.origin=0;session.stop();
+    require(session.self_origin_rejected()&&session.state()==SessionState::stopped&&
+        !session.requires_offline()&&!session.stats().contexts,"retired native session lost guard evidence");
+  }
+  provider={};
   {
     nw::Fixture f;bool rejected=false;
     try{WinFspNativeSession session(create_adapter(f),{});}catch(const std::invalid_argument&){rejected=true;}

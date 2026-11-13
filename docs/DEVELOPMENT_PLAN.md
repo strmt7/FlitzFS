@@ -360,3 +360,14 @@ checks; new-source mounted qualification remains required. Then implement and
 qualify mandatory adapter-wide self-origin protection, preserving direct CPU-only
 test injection without a synthetic-origin escape in live mounts. D01's historical
 cause and every full-product package remain open.
+
+## Product origin admission after actor qualification
+
+Sourcefa9fe90 passed all thirteen core jobs, including the finite external RAM
+client and CPU peer-fault/strict-handle checks. All existing mounted fixtures
+have external data clients. The next source requires explicit session/callback
+origin binding, denies host Create/Open before context/native mutation and
+tests actual product rejection through the SDK-driver callback path.
+CPU-only fake origins are not mounted-fixture evidence. Publishing-source
+qualification is pending. Preserve the historical unknown D01 cause and all
+full-product exit criteria; this does not enable owner mount/driver/GPU actions.

@@ -340,3 +340,9 @@ events, with no data/path/handle payload. The live schema1 RAM diagnostic adds t
 existing external-client identity/observation variant; a bounded historical-reader
 path remains. Native checkpoint, codec, dictionary and file-byte formats do not
 change. All original RAM report fields and the2048-byte cap remain required.
+
+Create/Open origin admission and its atomic diagnostic are transient Windows
+adapter state. The required eighth C++ lifecycle-provider entry and explicit
+callback binding change no stored checkpoint, codec, file byte or worker-wire
+encoding. Historical independent CPU readers and all report byte caps remain.
+No process diagnostic becomes a persistent decoding or recovery dependency.

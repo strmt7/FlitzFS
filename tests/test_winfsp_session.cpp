@@ -35,12 +35,15 @@ struct Provider {
   std::size_t count = 0;
   bool invariant = true;
   bool callback_alive_during_stop = false;
+  UINT32 origin=0;
   void record(char c) noexcept {
     if (count < calls.size()) calls[count++] = c; else invariant = false;
   }
   std::string trace() const { return {calls.data(), count}; }
 };
 Provider* active = nullptr;
+// Explicit synthetic origin for the injected CPU-only lifecycle provider.
+UINT32 cpu_origin(){return active->origin;}
 NTSTATUS preflight(PWSTR device, PWSTR path) {
   auto& s = *active; s.record('p');
   s.invariant = s.invariant && std::wstring_view(device) == L"WinFsp.Disk" &&
@@ -86,7 +89,7 @@ VOID destroy(FSP_FILE_SYSTEM* file_system) {
   auto& s = *active; s.record('d'); s.invariant = s.invariant && file_system == &s.fs;
   s.fs.UserContext = nullptr;
 }
-flitzfs::WinFspSessionApi api() { return {preflight, create, start, mount, stop, unmount, destroy}; }
+flitzfs::WinFspSessionApi api() { return {preflight, create, start, mount, stop, unmount, destroy,cpu_origin}; }
 flitzfs::ReadOnlyMountPlan plan() { return {L"C:\\FlitzFS-fixture\\mount", 15, true}; }
 }
 int main() {
@@ -104,6 +107,13 @@ int main() {
     catch (const std::invalid_argument&) { missing_api = true; }
     require(missing_api && provider.count == 0, "incomplete provider accepted");
     {
+      auto incomplete=api();incomplete.originating_process_id=nullptr;
+      bool refused=false;
+      try{flitzfs::WinFspReadOnlySession session(sources,incomplete);}
+      catch(const std::invalid_argument&){refused=true;}
+      require(refused&&provider.count==0,"missing origin provider reached lifecycle operations");
+    }
+    {
       flitzfs::WinFspReadOnlySession session(sources, api());
       auto invalid = plan(); invalid.allow_driver_start = false;
       require(session.start(invalid) == STATUS_INVALID_PARAMETER && provider.count == 0,
@@ -113,6 +123,12 @@ int main() {
           "drive-letter mount accepted");
       require(session.start(plan()) == STATUS_SUCCESS && provider.trace() == "pcsm", "startup order");
       require(session.state() == flitzfs::SessionState::running && !session.dispatcher_stopped(), "running state");
+      provider.origin=GetCurrentProcessId();
+      FSP_FSCTL_FILE_INFO denied_info{};PVOID denied_context=reinterpret_cast<PVOID>(1);
+      require(provider.fs.Interface->Open(&provider.fs,const_cast<PWSTR>(L"\\sample.bin"),0,
+          FILE_GENERIC_READ,&denied_context,&denied_info)==STATUS_ACCESS_DENIED&&!denied_context&&
+          session.self_origin_rejected(),"session lost self-origin admission");
+      provider.origin=0;
       require(session.start(plan()) == STATUS_INVALID_DEVICE_STATE && provider.trace() == "pcsm", "double start");
       session.stop();
       require(provider.trace() == "pcsmtrd" && provider.callback_alive_during_stop && provider.invariant,

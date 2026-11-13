@@ -1,3 +1,4 @@
+// Direct CPU-only callback fixture: zero is an explicitly synthetic kernel origin; no live dispatcher.
 #include "winfsp_readonly.hpp"
 #include "flitzfs/container.hpp"
 #include "native_windows_fixture.hpp"
@@ -76,7 +77,7 @@ void native_image_callbacks() {
   const auto original=nw::read_image(fixture.image());const auto data=nw::data();const auto suffix=nw::tail();
   {
     WinFspReadOnly adapter(ReadOnlyProjection::open_native_file(fixture.image(),nw::identity()));
-    FSP_FILE_SYSTEM context{};adapter.bind_callbacks(context);
+    FSP_FILE_SYSTEM context{};adapter.bind_callbacks(context,[]()->UINT32{return 0;});
     const auto& callbacks=adapter.callbacks();
     require(adapter.parameters().VolumeSerialNumber==0x5700004eU,"native volume serial not bound to UUID");
     FSP_FSCTL_FILE_INFO info{};PVOID file=nullptr,sparse=nullptr,root=nullptr,rejected=nullptr;
@@ -148,7 +149,7 @@ void native_image_callbacks() {
   try {guarded.emplace(ReadOnlyProjection::open_native_file(mapped,nw::identity()));}
   catch(const std::exception&){} // Refusing the pre-existing writable section is safe.
   if(guarded) {
-    FSP_FILE_SYSTEM context{};guarded->bind_callbacks(context);
+    FSP_FILE_SYSTEM context{};guarded->bind_callbacks(context,[]()->UINT32{return 0;});
     FSP_FSCTL_FILE_INFO info{};PVOID handle=nullptr;const auto& callbacks=guarded->callbacks();
     require(callbacks.Open(&context,name(L"\\Data\\sample.bin"),0,FILE_GENERIC_READ,&handle,&info)==STATUS_SUCCESS,
         "mapped fixture native open");
@@ -186,7 +187,7 @@ int main() {
       flitzfs::WinFspReadOnly adapter({{"Docs/Alpha.bin", archive}, {"Docs/Beta.bin", empty_archive},
           {"Docs/ a.bin", empty_archive}, {"Docs/(a).bin", empty_archive}});
       FSP_FILE_SYSTEM fs_context{}; // No filesystem creation, driver, dispatcher or mount.
-      adapter.bind_callbacks(fs_context);
+      adapter.bind_callbacks(fs_context,[]()->UINT32{return 0;});
       const auto& cb = adapter.callbacks();
       const auto params = adapter.parameters();
       require(params.ReadOnlyVolume && params.UmFileContextIsUserContext2 && params.PersistentAcls, "read-only volume contract");
