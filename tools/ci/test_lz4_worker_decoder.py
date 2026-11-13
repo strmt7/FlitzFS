@@ -118,7 +118,14 @@ class DecoderStaging(unittest.TestCase):
         self.assertEqual(self.git("config", "--get", "core.autocrlf"), "true")
         self.git("add", "--renormalize", "--all")
         self.assertEqual(self.git("diff", "--cached", "--name-only"), "")
-        self.git("checkout-index", "--force", "--all")
+        # checkout_entry returns early for stat-unchanged files even with
+        # --force. Remove ONLY the four tracked synthetic fixture files, then
+        # let Git materialize their preserved index blobs under the new policy.
+        for spec in decoder.ASSETS:
+            path = self.source / spec["path"]
+            self.assertTrue(path.is_relative_to(self.source))
+            path.unlink()
+        self.git("checkout-index", "--all")
         before = {}
         for spec in decoder.ASSETS:
             raw = (self.source / spec["path"]).read_bytes()
