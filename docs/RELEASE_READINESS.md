@@ -14,8 +14,8 @@ GPU acceleration is a mandatory product capability with independent CPU fallback
 It is not optional scope and cannot be replaced by SDK compilation or CPU mocks.
 The earlier owner GPU match experiment ran real kernels but selected zero records
 and demonstrated no throughput or compression gain. The new LZ4 compute path
-compiled at 4dda4fe, but its CPU fault qualification failed; the retained failure
-and corrected fixture require fresh execution. No real GPU compression result or
+compiled at 4dda4fe, whose first CPU fault fixture failed; the corrected
+positive/negative matrix passed at df8b08e. The original failure remains retained. No real GPU compression result or
 normal filesystem integration is claimed.
 
 Major unfinished release gates are:
