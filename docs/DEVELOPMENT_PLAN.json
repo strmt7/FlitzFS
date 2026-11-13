@@ -112,9 +112,11 @@
           "initial_control": "497066c8d4ab3f06937f61846e08829db47bee39",
           "run": 43442794675,
           "status": "Preparation failed; no old-driver trial or D01 observation.",
-          "repair": "Directory identity instead of raw path text;16-case Windows/Linux and strict independent reconciliation require execution.",
+          "repair": "Physical/canonical source identities with closed exact/CRLF admission. Directory-identity,18-case Windows/Linux, compiler and strict independent reconciliation require execution.",
           "evidence": "docs/evidence/retirement-preparation-497066c.json",
-          "execution_pending": true
+          "execution_pending": true,
+          "latest_source": "400f74c27044ec3bea41137bb304b4514c0aacf8",
+          "latest_failure": "docs/evidence/retirement-source-fixture-400f74c.json"
         }
       }
     },

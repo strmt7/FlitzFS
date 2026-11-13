@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "400f74c27044ec3bea41137bb304b4514c0aacf8",
+  "workflow": 43445584419,
+  "linux": {
+    "job": 131954033276,
+    "cases": 16,
+    "conclusion": "success"
+  },
+  "windows": {
+    "job": 131954032894,
+    "cases_completed": 7,
+    "completed_scope": "Pure record reconciliation",
+    "setup_error": "Reference fixture physical bytes did not match the pinned canonical Git blob.",
+    "reference_tests_executed": false,
+    "root_identity_test_executed": false,
+    "git_version": "2.56.0.windows.4",
+    "conclusion": "failure"
+  },
+  "driver_job": {
+    "id": 131954280714,
+    "conclusion": "skipped",
+    "event": "push",
+    "manual_trial_started": false
+  },
+  "ordinary_core": {
+    "run": 43445584463,
+    "cancellation_requested": true,
+    "reason": "Superseded after the Windows source gate failed; avoid spending VM resources on obsolete qualification. No13-job success claimed for this source."
+  },
+  "repair": {
+    "canonical_source": "Verify HEAD:path blob pin and size before Git cat-file capture; verify exact bytes and Git blob hash. Preserve physical checkout bytes; admit exact or whole LF-to-CRLF form only. Reject every other modification.",
+    "new_source_cases": 18,
+    "working_tree_bytes_changed": false,
+    "representation_cause": "Not yet qualified by Windows execution; retain the next physical/canonical hashes and representation."
+  },
+  "prior_qualified_pattern": {
+    "repository": "strmt7/FlitzFS",
+    "source": "400f74c27044ec3bea41137bb304b4514c0aacf8",
+    "path": "tools/ci/qualify_hipcomp_candidate.py",
+    "blob": "1333d10fc004954e195d4463b4cb16721284fe8c",
+    "reviewed": "read_blob: Git cat-file size admission before canonical byte capture, followed by exact length and digest verification."
+  },
+  "owner_execution": false,
+  "gpu_executed": false,
+  "historical_retirement_cause": "unproven"
+}

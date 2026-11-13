@@ -298,3 +298,9 @@ uses independent disposable VMs and original deadlines. All13 ordinary jobs
 passed at497066c, but both comparison variants stopped before driver/trial on a
 Windows root-spelling mismatch. Directory identity and strict record reconciliation
 are the next qualification; the historical retirement cause remains open.
+
+
+At400f74c Linux passed16 source cases and Windows passed7 record cases before
+rejecting fixture bytes; no manual driver/trial was run. Canonical Git capture
+with separately verified exact/CRLF checkout identity is the next18-case gate.
+The source fixture failure is not a historical retirement result or GPU evidence.

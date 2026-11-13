@@ -108,3 +108,30 @@ to the trusted fixture's observed CPU readback; it neither authenticates arbitra
 JSON nor proves a historical kernel cause, physical power-loss behavior or GPU work.
 New-source source tests, ordinary gates, compiler and actual trials still require
 execution. No unchanged old-driver trial is rerun merely to validate this parser.
+
+
+## Canonical source versus checkout bytes
+
+At400f74c the Linux source job passed16 cases. Windows passed the seven pure
+reconciliation cases, then rejected the fixture's physical bytes before its
+reference/root tests could run. No manual trial or driver operation occurred.
+The obsolete ordinary core run was cancelled; it is not a13-job qualification.
+[The failed source gate](evidence/retirement-source-fixture-400f74c.json) remains
+separate from both the first root-spelling failure and historical D01.
+
+The next loader checks the exact HEAD:path object pin and admits its Git-reported
+size before reading canonical blob bytes. It independently verifies byte length
+and Git blob identity, then compares the retained physical file. Only exact bytes
+or one whole-file LF-to-CRLF spelling is admitted; mixed endings, BOMs, removed
+newlines, content changes and over-budget input reject. It never rewrites checkout
+files or relaxes a canonical pin. The private compiler copy uses canonical bytes.
+Each source, budget header and SDK lock retains physical/canonical SHA256, byte
+counts and the observed representation. This follows the already qualified
+canonical Git-capture pattern in the separate hipCOMP helper; that helper and its
+byte-identical object gate are unchanged.
+
+The next18-case Windows/Linux gate must capture the actual representation and
+prove the old physical-byte check differs when the checkout is CRLF. No checkout
+cause, Windows root test, compiler or retirement trial is called qualified before
+that execution. This remains an instrumented reconstruction, not a byte-identical
+historical binary or an owner-device route.

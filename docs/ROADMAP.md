@@ -972,3 +972,9 @@ comparison variants failed preparation before driver installation or trial.
 The correction binds actual directory identities and independently reconciles raw
 phase/acknowledgement/result/CPU records. Windows/Linux source tests and actual
 controlled trials require new-source qualification; D01 remains unresolved.
+
+
+At400f74c Linux passed16 source cases and Windows passed7 record cases before
+rejecting fixture bytes; no manual driver/trial was run. Canonical Git capture
+with separately verified exact/CRLF checkout identity is the next18-case gate.
+The source fixture failure is not a historical retirement result or GPU evidence.
