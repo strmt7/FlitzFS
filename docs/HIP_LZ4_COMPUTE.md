@@ -72,3 +72,9 @@ HIP runtime or candidate module is loaded and no GPU executes.
 The original API oracle, 20 worker admission exits, decoder/framing/slab tests,
 bundle integrity, original kernel compilation and all ordinary CI gates remain
 required. The diagnostic package excludes the new compute probe and private DLL.
+
+At 4dda4fe, selected-SDK compilation and private linking passed, but the CPU
+fault matrix failed. The terminal-literal mutation was not necessarily invalid:
+LZ4 explicitly ignores that token's low four bits. The next fixture corrupts an
+actual literal and separately requires the alternate valid representation to
+pass. All production checks remain intact. [Retained failure](evidence/hip-lz4-compute-first-failure-4dda4fe.json).

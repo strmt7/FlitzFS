@@ -425,7 +425,7 @@ def main():
                 row["scenarios"]==row["successes"]+row["refusals"] and
                 re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,127}",row["attribute_symbol"]) and
                 row["attribute_symbol"] in exports,"compute CPU qualification contract")
-            require((available and row["successes"]==5 and row["refusals"]>=45) or
+            require((available and row["successes"]==6 and row["refusals"]>=45) or
                 (not available and row["successes"]==0 and row["refusals"]==1),
                 "compute CPU positive/failure coverage mismatch")
             return dict(bytes=executable.stat().st_size,sha256=digest(executable),

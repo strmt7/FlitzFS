@@ -1,5 +1,7 @@
 # FlitzFS development execution plan
 
+[Release-readiness checkpoint](RELEASE_READINESS.md): the project is an experimental prototype. Actual useful GPU compression with CPU fallback is mandatory. Prioritize the complete Windows/GPU/native-storage/readback/failure path; isolated checks alone do not satisfy the product goal.
+
 ## Next implemented compute boundary
 
 The SDK-only [LZ4 compute candidate](HIP_LZ4_COMPUTE.md) connects typed HIP calls to the already qualified owned slab and CPU verifier. Current-source compile and CPU fault tests remain pending. After those pass, authenticate the candidate module and object coverage before a separately gated isolated runtime trial; then measure byte-exact benefit before filesystem routing. G02/G03 and the full-product goal remain open, including native storage integration, autonomous optimization, durability and repair.

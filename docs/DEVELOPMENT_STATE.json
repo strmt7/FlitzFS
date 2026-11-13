@@ -363,8 +363,9 @@
     "source_parent": "2a757592ab4060406afc05efd5735b5d9412944b",
     "contract": "docs/HIP_LZ4_COMPUTE.md",
     "behavior": "SDK-only typed bounded HIP compression compute, protected full-slab readback, independent CPU verification and explicit API resource retirement.",
-    "status": "Pending current-source selected-SDK compilation, CPU fake success/failure matrix, raw missing-decoder control and all original CI gates.",
-    "next": "Qualify without loading HIP/private candidate modules; authenticate modules and actual object coverage before isolated runtime integration. No normal caller or owner GPU run."
+    "status": "4dda4fe compiled with the selected complete SDK and passed existing typed API/CPU capability checks, but the new compute CPU matrix failed. Correct the terminal-literal corruption fixture and qualify all gates again.",
+    "next": "Qualify without loading HIP/private candidate modules; authenticate modules and actual object coverage before isolated runtime integration. No normal caller or owner GPU run.",
+    "failure_evidence": "docs/evidence/hip-lz4-compute-first-failure-4dda4fe.json"
   },
   "resolved": [
     {
@@ -650,7 +651,7 @@
     },
     "typed_compression_compute": {
       "contract": "docs/HIP_LZ4_COMPUTE.md",
-      "status": "Pending current-source selected-SDK compilation, CPU fake success/failure matrix, raw missing-decoder control and all original CI gates.",
+      "status": "4dda4fe compiled with the selected complete SDK and passed existing typed API/CPU capability checks, but the new compute CPU matrix failed. Correct the terminal-literal corruption fixture and qualify all gates again.",
       "complete_device_bytes_cap": 262144,
       "normal_io_caller": false,
       "candidate_module_loaded": false,
@@ -687,5 +688,6 @@
     "jobs_total": 13,
     "evidence": "docs/evidence/source-snapshot-2a75759.json",
     "scope": "All 13 ordinary jobs passed; all 519 source archive files independently match canonical Git blobs. SDK CPU decoder qualification remains source-bound to 94ec882."
-  }
+  },
+  "release_checkpoint": "docs/RELEASE_READINESS.md"
 }

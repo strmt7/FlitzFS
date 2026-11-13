@@ -1,0 +1,37 @@
+{
+  "experimental": true,
+  "date": "2026-11-13",
+  "source": "4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+  "run": 43507519029,
+  "job": 132168938477,
+  "artifact": {
+    "id": 14076359185,
+    "bytes": 101416,
+    "sha256": "3871d70087670dee5b6d3d7f99db0e1b19aafa42ac374778d885a0fa955c9175",
+    "root_receipt_sha256": "81d09f5e1c4ecd9fa061939fb9ccc09893f42c77e8a317498417dea6f1265a1d",
+    "root_bytes": 253969
+  },
+  "observed": {
+    "sdk_compilation_passed": true,
+    "private_module_link_passed": true,
+    "api_checks": 235,
+    "api_scenarios": 12,
+    "worker_CPU_decoder_exit_confirmed": true,
+    "compute_probe_exit": 1,
+    "stderr": "Missing compute refusal",
+    "gpu_executed": false,
+    "runtime_loaded": false,
+    "raw_control_reached": false,
+    "original_twenty_worker_cases_reached": false
+  },
+  "diagnosis": {
+    "kind": "Incorrect corruption fixture",
+    "basis": "The payload mutation flipped the low bit of the terminal literal token. Current pinned LZ4 block specification explicitly makes its low four bits unused and ignored by decoders; decoded source remains identical. Independent byte-equality verification correctly accepts that alternate valid representation.",
+    "source_repository": "lz4/lz4",
+    "source_commit": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
+    "source_path": "doc/lz4_Block_format.md",
+    "native_transport": "GitHub contents API",
+    "correction": "Corrupt an actual final literal byte; add a positive alternate-terminal-token case and contextual failure diagnostics. Preserve all production verification and original negative cases.",
+    "status": "Correction requires new-source selected-SDK execution; initial probe did not identify the specific scenario, so source-based diagnosis must be corroborated by the corrected positive and negative cases."
+  }
+}
