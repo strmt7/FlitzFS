@@ -1,0 +1,407 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "recorded_utc": "2026-11-13 12:38:46 UTC",
+  "source": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
+  "offline_object": {
+    "run": 43425233273,
+    "job": 131884920102,
+    "artifact": 14036697195,
+    "artifact_bytes": 41702,
+    "artifact_sha256": "61fd8b46f5e10c86b2c9adfac78cbd4f7925c4aa3a06ea174b6a4f892d1baa4e",
+    "complete": true,
+    "admission_cases": 28,
+    "candidate_source": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "source_inventory_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d",
+    "source_record_count": 165,
+    "source_record_bytes": 1577371,
+    "object": {
+      "bytes": 217673,
+      "sha256": "80e9664ff57c3c1815d4cfa53528e5a3a68ecb5d845d43fcee543caddd22d20c"
+    },
+    "dependencies": {
+      "bytes": 150899,
+      "sha256": "7d9490ced69382466bc62477b648fc9e107fa775c3840db15e9f01f2f6144e58"
+    },
+    "object_readers": {
+      "llvm-readobj.exe": {
+        "bytes": 8075216,
+        "sha256": "3a64162737d8aebb7c5528d2345f86b4174fa900a6ac0c8230be648178181afd"
+      }
+    },
+    "offload_target_ids": [
+      "hip-amdgcn-amd-amdhsa--gfx1100"
+    ],
+    "commands": [
+      {
+        "name": "hipcomp-LZ4-offline-translation-unit",
+        "argv": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\a\\FlitzFS\\FlitzFS\\.ci-rocm-source\\tools\\compile_hip_object.ps1",
+          "-Source",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\compile-input\\src\\lowlevel\\LZ4CompressionKernels.hip",
+          "-Output",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj",
+          "-DependencyFile",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj.d",
+          "-RepoRoot",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\compile-input",
+          "-HipPath",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk",
+          "-Arch",
+          "gfx1100"
+        ],
+        "root_pid": 8704,
+        "exit_code": 0,
+        "stdout": "Compiling HIP object with MSVC toolset 14.51.\r\n",
+        "stderr": "clang: warning: argument unused during compilation: '-fms-runtime-lib=static' [-Wunused-command-line-argument]\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-reader-version-llvm-readobj.exe",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--version"
+        ],
+        "root_pid": 7056,
+        "exit_code": 0,
+        "stdout": "AMD LLVM version 24.0.0git\n  Optimized build.\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-object-headers",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--file-header",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj"
+        ],
+        "root_pid": 6896,
+        "exit_code": 0,
+        "stdout": "\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\nImageFileHeader {\n  Machine: IMAGE_FILE_MACHINE_AMD64 (0x8664)\n  SectionCount: 370\n  TimeDateStamp: 2026-11-13 12:29:58 (0x6AF702C6)\n  PointerToSymbolTable: 0x29A59\n  SymbolCount: 1251\n  StringTableSize: 24570\n  OptionalHeaderSize: 0\n  Characteristics [ (0x0)\n  ]\n}\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-offload-bundle-metadata",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--offloading",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj"
+        ],
+        "root_pid": 8152,
+        "exit_code": 0,
+        "stdout": "host-x86_64-pc-windows-msvc-\tfile://D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj#offset=58443&size=0\nhip-amdgcn-amd-amdhsa--gfx1100\tfile://D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj#offset=58443&size=105552\n\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "worker_admission": {
+      "bundle_verified": true,
+      "missing_bundle_refused": true,
+      "tampered_bundle_refused": true,
+      "invalid_wire_refused": true,
+      "invalid_match_refused": true,
+      "missing_match_runtime_refused": true,
+      "compiler_environment_isolated": true,
+      "system_module_metadata_passed": true,
+      "system_runtime_bad_hash_refused": true,
+      "system_runtime_argument_refused": true,
+      "kernel_only_verified": true,
+      "kernel_only_full_bundle_refused": true,
+      "kernel_only_tamper_refused": true,
+      "driver_wire_refusals": 5,
+      "profile_wire_refused": true,
+      "profile_argument_refused": true,
+      "profile_runtime_refused": true,
+      "exits_confirmed": 20,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "critical_sdk_inputs": {
+      "share/therock/therock_manifest.json": {
+        "bytes": 3638,
+        "sha256": "3a4cc5383cc056e971d32f83f800ce64709d10ca135ec3bb46197c6d94631427"
+      },
+      "bin/hipcc.exe": {
+        "bytes": 244688,
+        "sha256": "720198613649751d57efcdef9685843e3c5e45e2040d18719c5cdfa7161d3444"
+      },
+      "lib/amdhip64.lib": {
+        "bytes": 167780,
+        "sha256": "fb9f5dc20025a20f99d498dd3a91a49992ddd82dab2fd0606b8f05ce50fdb217"
+      },
+      "include/hip/hip_version.h": {
+        "bytes": 426,
+        "sha256": "9b5f2630372e59eb14d3b3ac98c3b48f452f82c04ea4d9c76c327128f9aafebc"
+      },
+      "lib/llvm/bin/clang.exe": {
+        "bytes": 111272912,
+        "sha256": "dab22be445fb7ae4f305ecad552b633f2ebae98d6cd98861a040207121310866"
+      },
+      "lib/llvm/amdgcn/bitcode/ocml.bc": {
+        "bytes": 232924,
+        "sha256": "c3f3cec6c59ae57557251a88c267639e4945c4095ea30175ae07a3a8589f9b39"
+      }
+    }
+  },
+  "failed_warp_capture": {
+    "run": 43425213072,
+    "job": 131884848253,
+    "artifact": 14035344096,
+    "artifact_bytes": 234823,
+    "artifact_sha256": "09f00f130abe5b74cf1a034ffa6bf99a51ea661e29fec8b784a91c91a037560b",
+    "native_rows": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+        "success": false,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 79549,
+        "markdown_sha256": "a88d38ea57c3f297f12c0429d37eaa16916da7d37a2ba3ce69976797a77f0495",
+        "expected_content": false,
+        "failure_category": "unexpected_content",
+        "error": "",
+        "seconds": 2.587,
+        "capture": "hip-current-warp-language.native.json",
+        "capture_sha256": "517486823e99ca9452df8d116247b86023e9cfc9b490967a0c5d913fcdbf2ac8",
+        "name": "hip-current-warp-language"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/understand/programming_model.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 88259,
+        "markdown_sha256": "21bd22aa0ea39583e18c654c9cab3409c882a77db28929d0ed001572475ed18a",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.422,
+        "capture": "hip-current-warp-model.native.json",
+        "capture_sha256": "36ff13dcceed62dc04066caf3f5f2e1e591fff9a1e882db97f8e96699ece3931",
+        "name": "hip-current-warp-model"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 50839,
+        "markdown_sha256": "f1f4024e230a4f4aabb8fd1d2705eb64f08b3de2dc98305fdf8f47674bf99c4e",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.444,
+        "capture": "hip-current-warp-stream.native.json",
+        "capture_sha256": "598bb456dd017a1670e4f5a39f601530154836ef3f73aedb5a9c46ed557d9185",
+        "name": "hip-current-warp-stream"
+      }
+    ],
+    "diagnosis": {
+      "entry": "rocm-warp/hip-current-warp-language.native.json",
+      "capture_sha256": "517486823e99ca9452df8d116247b86023e9cfc9b490967a0c5d913fcdbf2ac8",
+      "requested_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "native_diagnosis": {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+        "success": false,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 79549,
+        "markdown_sha256": "a88d38ea57c3f297f12c0429d37eaa16916da7d37a2ba3ce69976797a77f0495",
+        "expected_content": false,
+        "failure_category": "unexpected_content",
+        "error": "",
+        "seconds": 2.587
+      },
+      "native_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+      "redirected_url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+      "markdown_sha256": "a88d38ea57c3f297f12c0429d37eaa16916da7d37a2ba3ce69976797a77f0495",
+      "markdown_bytes": 79549,
+      "observed_title": "HIP C++ language extensions",
+      "observed_documentation_label": "HIP 7.16.0 Documentation",
+      "standalone_syncwarp_found": false,
+      "syncthreads_and_warp_content_observed": true,
+      "semantic_claims_admitted": false
+    },
+    "initial_observation_failure": "Full native JSON presentation exceeded the command output token budget. Capture remains preserved; a bounded in-memory formatter then verified native and markdown digests and emitted only scope diagnostics.",
+    "scope_result": "All three native requests returned HTTP 200; language-page literal __syncwarp marker was absent, so group failed closed. Correct 7.16.0 title/version and synchronization content were independently observed for scope diagnosis only.",
+    "semantic_use": false,
+    "publisher_revision_verified": false,
+    "restoration": "Replace absent literal with observed page identity, require exact closed URI, HIP 7.16.0 label and substantive language markers; preserve all native failures. New nine-case scope suite and capture remain pending."
+  },
+  "maintenance_navigation": {
+    "run": 43425367569,
+    "job": 131885372306,
+    "artifact": 14037805670,
+    "artifact_bytes": 613490,
+    "artifact_sha256": "9b7e3ba357c46ca5764d69e54d18c6a51dcb1b80c46b44f7c9e0f0f985dce66c",
+    "routing": {
+      "actual_searches": 2,
+      "commit": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
+      "workflow_commit": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
+      "repository": "strmt7/FlitzFS",
+      "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+      "cpu_only": true,
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "provider_version": "0.2.43",
+      "query_group": "maintenance",
+      "shared_mcp_modified": false,
+      "source_files": 148,
+      "source_sha256": "d1d0d122dbfa128c46039cc2e6c5937e77f21890d62a5aea1402a07f06f7266c"
+    },
+    "queries": [
+      {
+        "commit": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
+        "completed_utc": "2026-11-13T13:31:46.046656+01:00",
+        "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+        "hits": [
+          {
+            "end_line": 49,
+            "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+            "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+            "path": "tools/ci/hosted_semantic.py",
+            "score": 0.8298837568111637,
+            "start_line": 39
+          },
+          {
+            "end_line": 127,
+            "excerpt": "HostedIdleMaintenanceResult WinFspNativeSession::begin_idle_recompression_hosted( std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) { if(state_!=SessionState::running||!adapter_||requires_offline()||d",
+            "file_sha256": "e8fd9541d569512ef4f65b75bc9163e6ca731673ec8d8b77262a0d9048dad048",
+            "path": "src/windows/winfsp_session.cpp",
+            "score": 0.7832128062694164,
+            "start_line": 117
+          },
+          {
+            "end_line": 169,
+            "excerpt": "// fresh target. Suppress repeated attempts on the same acknowledged image. bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image, StoreCompressionOptions compression={},StoreCheckpointOptions check",
+            "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3",
+            "path": "include/flitzfs/native_session.hpp",
+            "score": 0.782736119203939,
+            "start_line": 160
+          },
+          {
+            "end_line": 160,
+            "excerpt": "RecompressionProgress advance_recompression(); // Optional bounded input for an external match finder. The caller may // compute outside the session control lock and submit only on a later call. std::optional<StoreRecompressionInput> next_r",
+            "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3",
+            "path": "include/flitzfs/native_session.hpp",
+            "score": 0.777047803875341,
+            "start_line": 147
+          },
+          {
+            "end_line": 554,
+            "excerpt": "HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(HostedIdleMaintenanceAction action) { hosted(); return impl_->idle([&]() -> HostedIdleMaintenanceResult { using State=HostedIdleMaintenanceState; using Progress=Nat",
+            "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780",
+            "path": "src/windows/winfsp_native.cpp",
+            "score": 0.7738455694297315,
+            "start_line": 535
+          }
+        ],
+        "model": "Snowflake/snowflake-arctic-embed-xs",
+        "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+        "native_response_sha256": "c429d6c42ff366d57a211678f139f1c3ea46a4289b0cdd57cdb7f6624d6093c2",
+        "provider": "0.2.43",
+        "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+        "query": "adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities",
+        "query_sha256": "b78b1d274b65b13752a18ced233a3c62f22127ba9ab8813f3b8f1a819c439104",
+        "repository": "strmt7/FlitzFS",
+        "source_sha256": "d1d0d122dbfa128c46039cc2e6c5937e77f21890d62a5aea1402a07f06f7266c",
+        "workflow_commit": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab"
+      },
+      {
+        "commit": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
+        "completed_utc": "2026-11-13T13:31:46.382123+01:00",
+        "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+        "hits": [
+          {
+            "end_line": 49,
+            "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+            "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+            "path": "tools/ci/hosted_semantic.py",
+            "score": 0.8298304199578297,
+            "start_line": 39
+          },
+          {
+            "end_line": 169,
+            "excerpt": "// fresh target. Suppress repeated attempts on the same acknowledged image. bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image, StoreCompressionOptions compression={},StoreCheckpointOptions check",
+            "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3",
+            "path": "include/flitzfs/native_session.hpp",
+            "score": 0.7974270454312702,
+            "start_line": 160
+          },
+          {
+            "end_line": 313,
+            "excerpt": "\"hipStreamCreateWithPriority\", \"hipStreamQuery\", \"hipStreamDestroy\", \"hipFree\", \"hipMalloc\", \"hipErrorContext\", \"hipErrorLaunch\", \"hipErrorOutOfMemory\", \"priority\", \"process\", \"26H2\", \"26H1\", \"10.0.\", \"WHCP\", \"enforcement\", \"kernel\", \"drive",
+            "file_sha256": "26cfd5fd3419e706f7448c883208123f539a5f62029cd56897fde421b7e83c3b",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.7919343779269568,
+            "start_line": 304
+          },
+          {
+            "end_line": 62,
+            "excerpt": "WINDOWS_GPU_MEMORY_SOURCES = ( (\"windows-gpu-memory-query\", \"https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo\", \"QueryVideoMemoryInfo\", \"NodeIndex\"), (\"windows-gpu-memory-info\", \"http",
+            "file_sha256": "26cfd5fd3419e706f7448c883208123f539a5f62029cd56897fde421b7e83c3b",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.7811842466521721,
+            "start_line": 56
+          },
+          {
+            "end_line": 71,
+            "excerpt": "case HipWorkerStage::runtime_load: return \"runtime_load\"; case HipWorkerStage::kernel_load: return \"kernel_load\"; case HipWorkerStage::module_retire: return \"module_retire\"; case HipWorkerStage::worker_job: return \"worker_job\"; case HipWork",
+            "file_sha256": "79681016658ca28d0173784b15d8247f3309ba448c71078a620da0885f17e506",
+            "path": "src/windows/hip_worker_exit.hpp",
+            "score": 0.7747648179859663,
+            "start_line": 59
+          }
+        ],
+        "model": "Snowflake/snowflake-arctic-embed-xs",
+        "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+        "native_response_sha256": "6752584677038ef87b71129908012fdc21effe716fb19ad07e79fc1374eea1cd",
+        "provider": "0.2.43",
+        "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+        "query": "background maintenance resource headroom low priority incremental recompression sampling budget and duplicate attempt suppression",
+        "query_sha256": "1eb64f0856c12989e7d00d8c8980a3d163aa546ede7e4a8657f38b4722f75f5e",
+        "repository": "strmt7/FlitzFS",
+        "source_sha256": "d1d0d122dbfa128c46039cc2e6c5937e77f21890d62a5aea1402a07f06f7266c",
+        "workflow_commit": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab"
+      }
+    ],
+    "live_confirmed": {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "edcd014ed693f4830b85e6c02146c04f0fc23164",
+      "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3"
+    },
+    "limitation": "Infrastructure/queries were prominent hits. Confirmed production API exposes explicit bounded opportunities and external provider mapping; this search does not prove an automatic governor or durable mapping exists."
+  },
+  "scope": {
+    "gpu_executed": false,
+    "module_loaded": false,
+    "object_linked_into_product": false,
+    "upstream_gpu_output_cpu_verified": false,
+    "new_stored_codec": false,
+    "kernel_changed": false,
+    "new_owner_gui_gpu_mount_driver_operation": false,
+    "full_goal_status": "active"
+  }
+}

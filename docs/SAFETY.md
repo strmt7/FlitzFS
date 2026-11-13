@@ -1036,3 +1036,13 @@ sync macros as either safe or a proven race. Three current selected-distribution
 AMD pages must first be captured through the existing isolated provider and
 reviewed substantively. All process/resource/robots/profile restrictions remain;
 no kernel edit, actual device execution or owner test follows from adding URLs.
+
+
+The strict offline object gate passed at 1d20f40 with all 28 admission cases,
+exact file-bound host/device metadata and unchanged output hashes. The native
+research group separately failed an absent literal marker despite valid HTTP-200
+content. Its next scope check requires the observed closed URI, selected version
+and substantive markers while preserving native failures. It must pass before
+current-AMD semantic conclusions; no source/kernel/owner operation follows from
+an admission correction. Bounded formatting retains the initial observation
+truncation and emits digests/scope diagnostics instead of full native HTML.

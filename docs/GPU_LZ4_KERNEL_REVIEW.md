@@ -55,3 +55,19 @@ inputs, independent CPU validation of actual GPU outputs, exact worker retiremen
 fresh resource admission and measured complete-operation benefit. Output guards
 cannot prevent an invalid kernel write, and user-mode process isolation cannot
 guarantee freedom from kernel/driver faults.
+
+## Preserved capture-admission failure
+
+The first group run at 1d20f40 returned three HTTP-200 native captures, but the
+language page did not contain the requested standalone __syncwarp literal.
+The group therefore failed closed. Its retained native digest and bounded scope
+diagnosis confirmed the correct HIP 7.16.0 language page and substantive
+synchronization content. This does not answer the kernel memory-order question.
+
+The next scope check requires the observed page identity, exact closed URI,
+selected version label and substantive markers. It preserves old/native failures
+and rejects title-only or wrong-version pages. Nine scope tests and a new complete
+native group require execution before semantic research resumes. The initial
+full-native observation exceeded output presentation limits; its preserved
+artifact was then inspected with bounded digest-verified scope excerpts.
+See [source-bound evidence](evidence/gpu-lz4-object-1d20f40.json).

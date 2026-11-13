@@ -57,5 +57,30 @@ class WarpSourceAdmission(unittest.TestCase):
         self.assertIs(qualify_source_scope("rocm-warp",row,
             "documentation covers releases through 7.2.1"),row)
 
+class WarpContentScope(unittest.TestCase):
+    def setUp(self):
+        self.row=dict(success=True,native_success=True,http_status=200,final_http_status=200,
+            expected_content=True,error="",failure_category="",url=ROCM_WARP_SOURCES[0][1],
+            capture="retained.native.json",capture_sha256="c"*64)
+        # Short markers observed in the retained native 10.1.0 language capture.
+        self.content="HIP 7.16.0 Documentation\n# HIP C++ language extensions\n__syncthreads\nwarp"
+    def test_observed_language_page_does_not_require_absent_syncwarp(self):
+        self.assertNotIn("__syncwarp",self.content)
+        self.assertIs(qualify_source_scope("rocm-warp",self.row,self.content),self.row)
+    def test_wrong_version_and_uri_preserve_native_capture_identity(self):
+        for row,text in ((self.row,self.content.replace("7.16.0","7.15.0")),
+                         (dict(self.row,url="https://example.invalid/page"),self.content)):
+            with self.subTest(row=row,text=text):
+                result=qualify_source_scope("rocm-warp",row,text)
+                self.assertFalse(result["success"])
+                self.assertEqual(result["failure_category"],"unexpected_documentation_scope")
+                for key in ("native_success","http_status","final_http_status","capture","capture_sha256"):
+                    self.assertEqual(result[key],row[key])
+                self.assertTrue(row["success"])
+    def test_title_only_page_does_not_qualify(self):
+        result=qualify_source_scope("rocm-warp",self.row,self.content.replace("__syncthreads",""))
+        self.assertFalse(result["success"])
+        self.assertEqual(result["failure_category"],"unexpected_documentation_scope")
+
 if __name__=="__main__":
     unittest.main()

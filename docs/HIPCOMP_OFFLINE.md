@@ -128,3 +128,14 @@ Reader warnings or truncated metadata fail admission. No candidate is loaded.
 [GPU_LZ4_KERNEL_REVIEW.md](GPU_LZ4_KERNEL_REVIEW.md) records the bounded writer
 review and the pending current-AMD synchronization/scheduling captures. Kernel
 source and existing runtime paths remain unchanged.
+
+## Completed exact object inspection
+
+At 1d20f40, the optional run 43425233273 passed all 28 source/metadata cases,
+compiled the pinned entry, validated AMD64 headers and exactly the empty host
+placeholder plus positive gfx1100 image, and verified unchanged output digests.
+The candidate object is 217,673 bytes with SHA-256
+80e9664ff57c3c1815d4cfa53528e5a3a68ecb5d845d43fcee543caddd22d20c.
+All original SDK/worker gates remained, including 20 confirmed worker exits.
+See [executed evidence](evidence/gpu-lz4-object-1d20f40.json). No object was loaded,
+exported or linked into the product, and no actual GPU output was tested.

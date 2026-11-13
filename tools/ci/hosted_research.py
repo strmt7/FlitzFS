@@ -119,7 +119,7 @@ WINDOWS_ALTERNATIVE_SOURCES = (
     ("windows-current-cloud-files", "https://learn.microsoft.com/en-us/windows/win32/cfapi/build-a-cloud-file-sync-engine", "Cloud", "hydration"),
 )
 ROCM_WARP_SOURCES = (
-    ("hip-current-warp-language", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html", "__syncwarp", "__syncwarp"),
+    ("hip-current-warp-language", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html", "HIP C++ language extensions", "warp"),
     ("hip-current-warp-model", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/understand/programming_model.html", "wavefront", "synchronization"),
     ("hip-current-warp-stream", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html", "hipStreamCreateWithPriority", "priority"),
 )
@@ -245,6 +245,15 @@ def qualify_source_scope(source_group, row, markdown):
             return dict(row,success=False,expected_content=False,
                 failure_category="retired_documentation_scope",
                 error="Retired AMD documentation covers releases through "+retired.group(1)[:32])
+    if source_group=="rocm-warp" and row["success"]:
+        admitted={url:marker for _,url,marker,_ in ROCM_WARP_SOURCES}
+        url=row.get("url")
+        markers=(admitted.get(url,""),"HIP 7.16.0 Documentation")
+        if url==ROCM_WARP_SOURCES[0][1]:markers+=("__syncthreads","warp")
+        if url not in admitted or not all(marker in markdown for marker in markers):
+            return dict(row,success=False,expected_content=False,
+                failure_category="unexpected_documentation_scope",
+                error="Expected the closed HIP 7.16.0 page and substantive source markers")
     return row
 
 async def capture(args):
