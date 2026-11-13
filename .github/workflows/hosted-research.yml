@@ -6,11 +6,12 @@ on:
         description: Reviewed primary-source group (isolated Crawl4AI only)
         required: true
         type: choice
-        default: windows-process-suite
+        default: rocm-warp
         options:
           - rocm-compatibility
           - rocm-windows-hardware
           - rocm-current
+          - rocm-warp
           - windows-adapter-identity
           - windows-adapter-topology
           - windows-gpu-memory
@@ -71,7 +72,7 @@ jobs:
       - name: Research selected current AMD or Windows sources
         shell: bash
         env:
-          RESEARCH_SOURCE_GROUP: ${{ inputs.source_group || 'windows-process-suite' }}
+          RESEARCH_SOURCE_GROUP: ${{ inputs.source_group || 'rocm-warp' }}
         run: |
           set -euo pipefail
           python_path="$(command -v python)"
@@ -81,7 +82,7 @@ jobs:
             rocm-compatibility) groups=(rocm-windows-hardware rocm-current) ;;
             windows-app-suite) groups=(windows-app windows-app-test) ;;
             windows-process-suite) groups=(process windows-process-retirement) ;;
-            rocm-windows-hardware|rocm-current|windows-adapter-identity|windows-adapter-topology|windows-gpu-memory|windows-app|windows-app-test|process|windows-process-retirement) groups=("$RESEARCH_SOURCE_GROUP") ;;
+            rocm-windows-hardware|rocm-current|rocm-warp|windows-adapter-identity|windows-adapter-topology|windows-gpu-memory|windows-app|windows-app-test|process|windows-process-retirement) groups=("$RESEARCH_SOURCE_GROUP") ;;
             *) echo "Unreviewed source group" >&2; exit 1 ;;
           esac
           for group in "${groups[@]}"; do

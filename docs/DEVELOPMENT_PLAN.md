@@ -486,3 +486,16 @@ existing optional LZ4 dependency, checks immutable-source equality in disjoint
 bounded scratch, and preserves unavailable/raw-only behavior. New-source
 verification remains pending. This is a prerequisite, not GPU interoperability,
 stored-format support, automatic filesystem routing or performance qualification.
+
+
+The independent CPU verifier at 86bc830 passed all five core configurations:
+806 assertions with the codec and 389 in codec-disabled builds. The native
+read-only object command also worked, but the parser rejected a captured empty
+AMD64 host placeholder. The next schema requires exactly that zero-byte host
+entry plus one positive gfx1100 image, binds URIs/extents to the object and checks
+unchanged compiler outputs. Its 28 admission/metadata cases remain pending.
+
+The next [kernel review](GPU_LZ4_KERNEL_REVIEW.md) also opens a closed three-page
+current-AMD warp/model/stream capture scope. Native extraction and actual content
+review are required before synchronization or scheduling changes. No device code
+or ordinary filesystem path is changed, and all full-product packages stay active.

@@ -149,13 +149,13 @@
         "next": "G02 remains in progress: no speed or size gain. Fix D01 to enable G03 lifecycle work; instrument complete costs and investigate candidates with genuine net compression benefit instead of forcing redundant hints.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
         "candidate_evaluation": {
-          "contract": "docs/GPU_LZ4_CPU_VERIFY.md",
+          "contract": "docs/GPU_LZ4_KERNEL_REVIEW.md",
           "source_repository": "ROCm/hipCOMP-core",
           "source_commit": "03df9f7369211ee15d370817165224c73fdc9a46",
           "navigation_qualified": "905a4d3: 22 admission cases, 142 upstream files, two actual queries and relevant live-source hashes/notices verified.",
-          "status": "At 0879cce, complete allocation passed all five core configurations. Native object inspection reached AMD64 headers but failed on an advertised unselected LLVM flag; exact-source cause preserved. Corrected read-only metadata command, five regression cases and independent CPU candidate verifier await new-source execution.",
-          "research": "docs/evidence/gpu-lz4-layout-0879cce.json",
-          "next": "Qualify corrected metadata inspection and CPU candidate decoding; then complete kernel/lifecycle audit and useful end-to-end GPU integration."
+          "status": "At 86bc830, independent CPU candidate verification passed all five core configurations (806 enabled/389 disabled assertions). Read-only metadata found gfx1100 but a zero-byte host placeholder was missing from the admission schema. Captured-schema/extents correction and current-AMD warp/model/stream captures await new-source execution.",
+          "research": "docs/evidence/gpu-lz4-cpu-86bc830.json",
+          "next": "Qualify exact object metadata and current AMD captures, complete kernel/ABI/lifecycle review, then actual GPU output and useful complete-operation integration."
         }
       }
     },

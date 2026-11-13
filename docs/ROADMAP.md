@@ -916,3 +916,18 @@ raw LZ4 candidates. New metadata, CPU codec/raw, malicious-input, sanitizer and
 Windows tests remain required. There is no new stored codec or runtime caller;
 kernel/lifecycle review, actual GPU output and useful whole-operation gains
 remain open, as do all other full-product packages.
+
+
+## Executed independent CPU recovery prerequisite
+
+At 86bc830, all five core configurations passed the independent verifier:
+806 assertions with LZ4 on Linux/Windows native/sanitizers and 389 without it
+on Linux/Windows. The prior df51d8c and 0879cce checkpoints each completed all
+13 integration jobs. These do not establish new physical power-loss, GPU-output
+interoperability or owner-device results.
+
+The native reader command succeeded and reported gfx1100; admission rejected an
+unmodeled empty host placeholder. Captured-schema/extents/digest tests now need
+execution, along with the new closed current-AMD synchronization/scheduling
+captures. All G02 benefit, G03 lifecycle, automatic learning and full Windows
+product exits remain open.

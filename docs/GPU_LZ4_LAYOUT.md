@@ -50,4 +50,5 @@ object compilation alone cannot close those gates.
 
 The next [independent CPU verifier](GPU_LZ4_CPU_VERIFY.md) shares this bounded
 output-capacity calculation and checks raw candidates without adding a stored
-codec or runtime caller. Its own new-source tests remain pending.
+codec or runtime caller. At 86bc830 its tests passed all five core configurations, including Windows
+native and sanitizers; actual GPU-output verification remains pending.

@@ -418,3 +418,9 @@ format capability or worker frame. Its verification enum is in-process control
 metadata and must not be serialized as a protocol. LZ4 blocks remain temporary
 candidate data; [GPU_LZ4_CPU_VERIFY.md](GPU_LZ4_CPU_VERIFY.md) supplies no stored
 representation or compatibility claim.
+
+
+The closed native object-bundle metadata schema (one empty AMD64 host placeholder
+and one bounded gfx1100 image) and current-AMD research scope change no filesystem
+encoding, codec ID, worker ABI or product numbering. They are qualification data,
+not stored file representations or GPU runtime support.

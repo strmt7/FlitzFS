@@ -180,29 +180,55 @@ class NativeGitBinding(unittest.TestCase):
             subject.read_blob(self.repo,"source.h",{"bytes":len(self.data),"sha256":"0"*64})
 
 class OffloadMetadata(unittest.TestCase):
-    good="hipv4-amdgcn-amd-amdhsa--gfx1100\tfile://D:/new/private.obj#offset=128&size=4096\n"
-    def test_reviewed_native_uri_form_and_target_features(self):
-        self.assertEqual(subject.inspect_offload_targets("Format: COFF-x86-64\n"+self.good),
-            ["hipv4-amdgcn-amd-amdhsa--gfx1100"])
-        featured=self.good.replace("gfx1100","gfx1100:xnack-:sramecc+")
-        self.assertEqual(subject.inspect_offload_targets(featured),
-            ["hipv4-amdgcn-amd-amdhsa--gfx1100:xnack-:sramecc+"])
+    # Captured 86bc830 entry schema; this fixture supplies its own path and length.
+    path="D:/new/private.obj"
+    object_bytes=217673
+    host="host-x86_64-pc-windows-msvc-\tfile://D:/new/private.obj#offset=58443&size=0\n"
+    device="hip-amdgcn-amd-amdhsa--gfx1100\tfile://D:/new/private.obj#offset=58443&size=105552\n"
+    good=host+device
+    def inspect(self,text):
+        return subject.inspect_offload_targets(text,self.path,self.object_bytes)
+    def test_captured_native_schema_and_target_features(self):
+        self.assertEqual(self.inspect("Format: COFF-x86-64\n"+self.good),
+            ["hip-amdgcn-amd-amdhsa--gfx1100"])
+        native_path=r"D:\a\_temp\flitzfs-rocm-sdk\hipcomp-offline\hipcomp_lz4.obj"
+        self.assertEqual(subject.inspect_offload_targets(self.good.replace(self.path,native_path),
+            native_path,self.object_bytes),["hip-amdgcn-amd-amdhsa--gfx1100"])
+        self.assertEqual(self.inspect(self.good.replace("gfx1100","gfx1100:xnack-:sramecc+")),
+            ["hip-amdgcn-amd-amdhsa--gfx1100:xnack-:sramecc+"])
     def test_usage_output_cannot_pass_target_inspection(self):
         with self.assertRaisesRegex(RuntimeError,"target count"):
-            subject.inspect_offload_targets("USAGE: llvm-objdump.exe --offload-fatbin gfx1100")
+            self.inspect("USAGE: llvm-objdump.exe --offload-fatbin gfx1100")
     def test_foreign_multiple_and_missing_targets_reject(self):
-        for text in (self.good.replace("gfx1100","gfx1101"),self.good+self.good,
-                     self.good.replace("hipv4-","cuda-"),"Format: COFF-x86-64"):
+        for text in (self.good.replace("gfx1100","gfx1101"),self.good+self.device,
+                     self.good.replace("hip-","cuda-"),self.host,"Format: COFF-x86-64"):
             with self.subTest(text=text),self.assertRaisesRegex(RuntimeError,"target"):
-                subject.inspect_offload_targets(text)
+                self.inspect(text)
     def test_malformed_uri_cannot_supply_target_identity(self):
-        for text in (self.good.replace("#offset=128",""),self.good.replace("&size=4096","&size=x"),
-                     self.good.replace("#offset=128","#offset=1234567890")):
+        for text in (self.good.replace("#offset=58443",""),self.good.replace("&size=105552","&size=x"),
+                     self.good.replace("#offset=58443","#offset=1234567890")):
             with self.subTest(text=text),self.assertRaisesRegex(RuntimeError,"target metadata"):
-                subject.inspect_offload_targets(text)
+                self.inspect(text)
     def test_metadata_size_limit(self):
         for text in ("","x"*16385):
-            with self.assertRaisesRegex(RuntimeError,"metadata size"):subject.inspect_offload_targets(text)
+            with self.assertRaisesRegex(RuntimeError,"metadata size"):self.inspect(text)
+    def test_exact_empty_host_placeholder_required(self):
+        for text in (self.device,self.host+self.good,self.good.replace("&size=0","&size=1"),
+                     self.good.replace("host-x86_64-pc-windows-msvc-","host-x86_64-unknown-linux-gnu-")):
+            with self.subTest(text=text),self.assertRaisesRegex(RuntimeError,"target|placeholder"):
+                self.inspect(text)
+    def test_object_uri_and_extents_are_bound(self):
+        for text in (self.good.replace("private.obj","other.obj"),
+                     self.good.replace("&size=105552","&size=0"),
+                     self.good.replace("#offset=58443","#offset=217674"),
+                     self.good.replace("&size=105552","&size=217673")):
+            with self.subTest(text=text),self.assertRaisesRegex(RuntimeError,"target"):
+                self.inspect(text)
+    def test_object_identity_is_bounded(self):
+        for path,size in ((self.path,True),(self.path,0),(self.path,16*subject.MIB+1),
+                          ("bad\npath",self.object_bytes),("",self.object_bytes)):
+            with self.subTest(path=path,size=size),self.assertRaisesRegex(RuntimeError,"object identity"):
+                subject.inspect_offload_targets(self.good,path,size)
 
 if __name__=="__main__":
     if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":

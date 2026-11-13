@@ -97,3 +97,10 @@ also reached AMD64 host headers but exposed an advertised unselected LLVM flag.
 Its source-proven correction and the new CPU verifier await actual tests. No
 upstream GPU output has yet passed this CPU decoder, and no stored format or
 measured GPU gain is selected.
+
+At 86bc830, independent CPU verification passed all five core configurations.
+The native metadata command reported the device bundle but its empty AMD64 host
+placeholder was absent from the admission schema. The next closed schema and
+current-AMD warp/model/stream captures require execution; see
+[GPU_LZ4_KERNEL_REVIEW.md](GPU_LZ4_KERNEL_REVIEW.md). No actual GPU-produced block
+has passed this verifier, and no runtime/stored-codec dependency is selected.

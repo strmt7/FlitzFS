@@ -1020,3 +1020,19 @@ same-SDK llvm-readobj --offloading implementation was reviewed through its nativ
 source path: it reports bundle metadata without extracting files. Its corrected
 command and closed-output regressions require new-source VM execution. No
 unchanged owner GPU/GUI test or driver operation follows.
+
+
+## Exact object metadata and unresolved warp semantics
+
+The read-only metadata command at 86bc830 returned an empty AMD64 host placeholder
+and a positive gfx1100 image; the prior schema rejected the placeholder and
+accepted no candidate. The next parser binds both URIs/extents to the actual
+object, requires exactly one of each, rejects nonempty/foreign/duplicate hosts,
+reader warnings and truncated output, and checks unchanged output digests.
+New-source execution remains required.
+
+The [kernel review](GPU_LZ4_KERNEL_REVIEW.md) does not classify the AMD no-op warp
+sync macros as either safe or a proven race. Three current selected-distribution
+AMD pages must first be captured through the existing isolated provider and
+reviewed substantively. All process/resource/robots/profile restrictions remain;
+no kernel edit, actual device execution or owner test follows from adding URLs.

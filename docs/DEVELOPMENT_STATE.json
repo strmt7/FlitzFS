@@ -85,7 +85,7 @@
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; 99d5365 passed VM model/GUI and one healthy owner GUI with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
-    "gpu_codec_candidate": "20 source/staging cases and native offline compilation passed at df51d8c. Complete host-only allocation passed all five core configurations at 0879cce (1,908,560 assertions each). Same-source object reader failed on an advertised but unselected LLVM flag; corrected read-only metadata command, five regressions and independent CPU LZ4 verification now require execution. No runtime/stored codec selected."
+    "gpu_codec_candidate": "Complete allocation and independent CPU verification passed all five core configurations at 86bc830 (806 codec-enabled and 389 codec-disabled verifier assertions). Read-only LLVM metadata identified gfx1100 but the parser rejected an unmodeled empty AMD64 host placeholder; strict captured-schema correction awaits 28-case/compiler qualification. Current AMD warp/scheduling content captures remain pending. No runtime/stored codec selected."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -342,14 +342,14 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+    "source_parent": "86bc830e9db64de807340367ba6eed0230f86024",
     "contracts": [
       "docs/HIPCOMP_OFFLINE.md",
-      "docs/GPU_LZ4_CPU_VERIFY.md"
+      "docs/GPU_LZ4_KERNEL_REVIEW.md"
     ],
-    "behavior": "Correct same-SDK read-only bundle metadata inspection with five new regressions; add bounded independent CPU candidate verification without a caller or stored codec.",
-    "status": "25 source/metadata cases, expanded optional compiler gate, new CPU verifier and all original integration checks require publishing-source execution.",
-    "next": "Verify actual output identities and CPU/malicious-input/raw/sanitizer/Windows results; complete kernel/lifecycle review before runtime use."
+    "behavior": "Bind captured host/device bundle schema to exact object path/length and preserve output hashes; add closed versioned AMD warp/model/stream research scope.",
+    "status": "28 source/metadata cases, corrected optional compiler gate, six research-scope cases and all three native page captures require execution. New source changes no kernel or normal file-operation/runtime path.",
+    "next": "Review actual LLVM target metadata and substantive AMD captures, finish kernel/synchronization/ABI/lifecycle review before runtime use."
   },
   "resolved": [
     {
@@ -478,6 +478,38 @@
       "amd64_header_verified": true,
       "offload_metadata_accepted": false,
       "reason": "Advertised --offload-fatbin is not selected as an action by the exact LLVM driver; usage output and exit 2 preserved."
+    },
+    "cpu_verifier": {
+      "source": "86bc830e9db64de807340367ba6eed0230f86024",
+      "core_run": 43422804747,
+      "core_configurations_passed": 5,
+      "codec_assertions_each": 806,
+      "raw_assertions_each": 389,
+      "sanitizers_passed": true,
+      "gpu_output_tested": false,
+      "evidence": "docs/evidence/gpu-lz4-cpu-86bc830.json"
+    },
+    "object_reader_second_failure": {
+      "source": "86bc830e9db64de807340367ba6eed0230f86024",
+      "run": 43422813149,
+      "metadata_command_succeeded": true,
+      "gfx1100_observed": true,
+      "metadata_accepted": false,
+      "reason": "Strict parser omitted the native zero-byte AMD64 host placeholder; captured-schema correction and extents are pending execution."
     }
-  }
+  },
+  "integration_checkpoints": [
+    {
+      "source": "df51d8c5ba80430453c805619438f431d5677f3b",
+      "run": 43418598302,
+      "all_13_jobs_succeeded": true,
+      "scope": "Job conclusions, not new physical power-loss or owner-device qualification."
+    },
+    {
+      "source": "0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+      "run": 43420771867,
+      "all_13_jobs_succeeded": true,
+      "scope": "Job conclusions plus all five allocation logs; detailed earlier functional/owner evidence remains independently identified."
+    }
+  ]
 }

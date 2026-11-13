@@ -1,0 +1,430 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "recorded_utc": "2026-11-13 12:25:46 UTC",
+  "source": "86bc830e9db64de807340367ba6eed0230f86024",
+  "scope": "Executed bounded CPU candidate verification and preserved native bundle-schema refusal. New strict metadata schema and AMD page captures remain pending.",
+  "cpu_verifier": {
+    "core_run": 43422804747,
+    "jobs": [
+      {
+        "id": 131876699496,
+        "name": "Windows codec disabled",
+        "groups": 125,
+        "verifier_assertions": 389
+      },
+      {
+        "id": 131876699562,
+        "name": "Linux codec enabled",
+        "groups": 121,
+        "verifier_assertions": 806
+      },
+      {
+        "id": 131876699593,
+        "name": "ASan UBSan",
+        "groups": 121,
+        "verifier_assertions": 806
+      },
+      {
+        "id": 131876699595,
+        "name": "Linux codec disabled",
+        "groups": 121,
+        "verifier_assertions": 389
+      },
+      {
+        "id": 131876699644,
+        "name": "Windows native codec enabled",
+        "groups": 140,
+        "verifier_assertions": 806
+      }
+    ],
+    "all_five_passed": true,
+    "fixtures": "Bounded synthetic terminal-literal blocks and pinned CPU encoder output; not GPU-produced data.",
+    "artifacts": [
+      {
+        "digest": "sha256:4184f7bf503596b619c3b92754a434c94de11f8457fb267672fc790142d2d735",
+        "id": 14035610083,
+        "name": "cpu-tests-Linux-OFF-86bc830e9db64de807340367ba6eed0230f86024",
+        "size_in_bytes": 10748,
+        "logs": [
+          {
+            "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+            "sha256": "8c0cdb31bc0528ca119a5a13041b01a34f03471d86fac2f4398f268bb9f80495",
+            "verification_lines": [
+              "GPU LZ4 CPU verification checks: 389 lz4_available=0 gpu_executed=false stored_codec_added=false",
+              "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false"
+            ]
+          }
+        ],
+        "verified_archive": {
+          "sha256": "4184f7bf503596b619c3b92754a434c94de11f8457fb267672fc790142d2d735",
+          "bytes": 10748,
+          "entries": 2
+        }
+      },
+      {
+        "digest": "sha256:4d4e3e899234e859b43360ba655ed2c2ef486eac9885c251b0128249fda46534",
+        "id": 14035455622,
+        "name": "cpu-tests-Linux-ON-86bc830e9db64de807340367ba6eed0230f86024",
+        "size_in_bytes": 9981,
+        "logs": [
+          {
+            "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+            "sha256": "8984f9b1d388b7a7e162b76ba685687dc90380772bb588a250dbaa01bdfd101f",
+            "verification_lines": [
+              "GPU LZ4 CPU verification checks: 806 lz4_available=1 gpu_executed=false stored_codec_added=false",
+              "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false"
+            ]
+          }
+        ],
+        "verified_archive": {
+          "sha256": "4d4e3e899234e859b43360ba655ed2c2ef486eac9885c251b0128249fda46534",
+          "bytes": 9981,
+          "entries": 1
+        }
+      },
+      {
+        "digest": "sha256:6f905bfe79900a70349608dcb1c2b5d9ac21515a74a00652652843c568d0fa0d",
+        "id": 14035291945,
+        "name": "native-windows-tests-86bc830e9db64de807340367ba6eed0230f86024",
+        "size_in_bytes": 12457,
+        "logs": [
+          {
+            "entry": "LastTest.log",
+            "sha256": "e884062b350e34254f04c3aa21b257653198f7f5f4e4bf407ffedbc16807e003",
+            "verification_lines": [
+              "GPU LZ4 CPU verification checks: 806 lz4_available=1 gpu_executed=false stored_codec_added=false\r",
+              "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false\r"
+            ]
+          }
+        ],
+        "verified_archive": {
+          "sha256": "6f905bfe79900a70349608dcb1c2b5d9ac21515a74a00652652843c568d0fa0d",
+          "bytes": 12457,
+          "entries": 1
+        }
+      },
+      {
+        "digest": "sha256:50b0c118e741d58d6f985e1822d9fb7163f6cf1ca5008e49a63b7eb459e773cd",
+        "id": 14034194938,
+        "name": "cpu-tests-Windows-OFF-86bc830e9db64de807340367ba6eed0230f86024",
+        "size_in_bytes": 12290,
+        "logs": [
+          {
+            "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+            "sha256": "9c951db1628919a124ccda5dfdb50f6754f13136fbcb6e51032b42691b67eb38",
+            "verification_lines": [
+              "GPU LZ4 CPU verification checks: 389 lz4_available=0 gpu_executed=false stored_codec_added=false\r",
+              "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false\r"
+            ]
+          }
+        ],
+        "verified_archive": {
+          "sha256": "50b0c118e741d58d6f985e1822d9fb7163f6cf1ca5008e49a63b7eb459e773cd",
+          "bytes": 12290,
+          "entries": 2
+        }
+      },
+      {
+        "digest": "sha256:8637a3c97cb7132167d581b4b56ade547e705add33e7f8ecfb78625d4ea76ee1",
+        "id": 14035681541,
+        "name": "sanitizer-tests-86bc830e9db64de807340367ba6eed0230f86024",
+        "size_in_bytes": 10137,
+        "logs": [
+          {
+            "entry": "LastTest.log",
+            "sha256": "424b4d84d8e986f884342df9825927e4a7325b5fde6536e64af73733758c1d60",
+            "verification_lines": [
+              "GPU LZ4 CPU verification checks: 806 lz4_available=1 gpu_executed=false stored_codec_added=false",
+              "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false"
+            ]
+          }
+        ],
+        "verified_archive": {
+          "sha256": "8637a3c97cb7132167d581b4b56ade547e705add33e7f8ecfb78625d4ea76ee1",
+          "bytes": 10137,
+          "entries": 1
+        }
+      }
+    ]
+  },
+  "native_object_metadata": {
+    "run": 43422813149,
+    "job": 131876732904,
+    "artifact": 14034023728,
+    "artifact_bytes": 19625,
+    "artifact_sha256": "83d895d1a1f1601c723707bfec042d042b6d3276dada2acc033de2bed08a2d4a",
+    "complete": false,
+    "object_inspected": false,
+    "error": "RuntimeError: candidate offload target metadata",
+    "control_source": "86bc830e9db64de807340367ba6eed0230f86024",
+    "candidate_source": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "source_inventory_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d",
+    "commands": [
+      {
+        "name": "hipcomp-LZ4-offline-translation-unit",
+        "argv": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\a\\FlitzFS\\FlitzFS\\.ci-rocm-source\\tools\\compile_hip_object.ps1",
+          "-Source",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\compile-input\\src\\lowlevel\\LZ4CompressionKernels.hip",
+          "-Output",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj",
+          "-DependencyFile",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj.d",
+          "-RepoRoot",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\compile-input",
+          "-HipPath",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk",
+          "-Arch",
+          "gfx1100"
+        ],
+        "root_pid": 7652,
+        "exit_code": 0,
+        "stdout": "Compiling HIP object with MSVC toolset 14.51.\r\n",
+        "stderr": "clang: warning: argument unused during compilation: '-fms-runtime-lib=static' [-Wunused-command-line-argument]\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-reader-version-llvm-readobj.exe",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--version"
+        ],
+        "root_pid": 6700,
+        "exit_code": 0,
+        "stdout": "AMD LLVM version 24.0.0git\n  Optimized build.\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-object-headers",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--file-header",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj"
+        ],
+        "root_pid": 2896,
+        "exit_code": 0,
+        "stdout": "\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\nImageFileHeader {\n  Machine: IMAGE_FILE_MACHINE_AMD64 (0x8664)\n  SectionCount: 370\n  TimeDateStamp: 2026-11-13 12:13:27 (0x6AF6FEE7)\n  PointerToSymbolTable: 0x29A59\n  SymbolCount: 1251\n  StringTableSize: 24570\n  OptionalHeaderSize: 0\n  Characteristics [ (0x0)\n  ]\n}\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-offload-bundle-metadata",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--offloading",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj"
+        ],
+        "root_pid": 8704,
+        "exit_code": 0,
+        "stdout": "host-x86_64-pc-windows-msvc-\tfile://D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj#offset=58443&size=0\nhip-amdgcn-amd-amdhsa--gfx1100\tfile://D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj#offset=58443&size=105552\n\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "reason": "Native command exited 0 and emitted one empty AMD64 host placeholder plus one positive gfx1100 image; old parser rejected the host placeholder. No target metadata was accepted."
+  },
+  "previous_integration_statuses": [
+    {
+      "jobs": [
+        {
+          "conclusion": "success",
+          "id": 131862628521,
+          "name": "sanitizers",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131862628758,
+          "name": "cpu (ubuntu-24.04, ON)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131862628828,
+          "name": "windows-native",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131862628842,
+          "name": "cpu (windows-2025-vs2026, OFF)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131862628846,
+          "name": "cpu (ubuntu-24.04, OFF)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131868075363,
+          "name": "windows-mount",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869265167,
+          "name": "windows-write-mount (restart)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869265186,
+          "name": "windows-write-mount (delete)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869265188,
+          "name": "windows-write-mount (ram-handoff)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869265262,
+          "name": "windows-write-mount (crash-restart)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869265287,
+          "name": "windows-write-mount (mutations)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869265333,
+          "name": "windows-write-mount (crash)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869265597,
+          "name": "windows-write-mount (basic)",
+          "status": "completed"
+        }
+      ],
+      "total_count": 13
+    },
+    {
+      "jobs": [
+        {
+          "conclusion": "success",
+          "id": 131869894473,
+          "name": "sanitizers",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869894653,
+          "name": "cpu (ubuntu-24.04, ON)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869894655,
+          "name": "cpu (windows-2025-vs2026, OFF)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869894738,
+          "name": "windows-native",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131869895054,
+          "name": "cpu (ubuntu-24.04, OFF)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131873894439,
+          "name": "windows-mount",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131875139205,
+          "name": "windows-write-mount (mutations)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131875139244,
+          "name": "windows-write-mount (crash-restart)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131875139265,
+          "name": "windows-write-mount (basic)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131875139266,
+          "name": "windows-write-mount (restart)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131875139272,
+          "name": "windows-write-mount (ram-handoff)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131875139291,
+          "name": "windows-write-mount (delete)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 131875139459,
+          "name": "windows-write-mount (crash)",
+          "status": "completed"
+        }
+      ],
+      "total_count": 13
+    }
+  ],
+  "new_qualification": {
+    "metadata_source_cases": 28,
+    "closed_host_schema": "Exactly one zero-byte host-x86_64-pc-windows-msvc- entry and one positive hip gfx1100 image; exact object URI, bounded extents and unchanged output digests required.",
+    "metadata_schema_executed": false,
+    "research_group": "rocm-warp",
+    "research_scope_cases": 6,
+    "pages": 3,
+    "native_captures_executed": false,
+    "provider_unchanged": true,
+    "resource_limits_unchanged": true,
+    "kernel_changed": false,
+    "gpu_executed": false,
+    "module_loaded": false,
+    "new_stored_codec": false,
+    "new_owner_gui_gpu_mount_driver_operation": false,
+    "full_goal_status": "active"
+  }
+}

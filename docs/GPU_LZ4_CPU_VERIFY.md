@@ -32,7 +32,10 @@ from the pinned CPU LZ4 encoder, across small/token/hash boundaries, 64-KiB
 limits and varied synthetic content. They also exercise malformed/truncated
 blocks, valid but wrong plaintext, wrong decoded length, oversized/empty inputs,
 private scratch canaries, full/partial buffer overlap and codec-disabled
-behavior. These new tests require execution on the publishing source.
+behavior. At 86bc830, all five core configurations passed: codec-enabled Linux, Windows
+native and ASan/UBSan each reported 806 verifier assertions; Linux/Windows
+codec-disabled builds each reported 389 assertions. Source-bound artifacts are
+recorded in [CPU evidence](evidence/gpu-lz4-cpu-86bc830.json).
 CPU-generated fixtures are not GPU output.
 
 A future runtime still needs owned immutable request data, exact generation and
