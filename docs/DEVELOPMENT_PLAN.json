@@ -184,13 +184,22 @@
             "selected_header_dependency": true,
             "worker_exits_confirmed": 20,
             "evidence": "docs/evidence/hip-warp-stable-2fdd01c.json",
-            "remaining": "Physical-input stability strengthening, emitted synchronization/full composition, actual GPU outputs, lifecycle and useful end-to-end benefit; no vendor/runtime change."
+            "remaining": "Actual composition/output, lifecycle and useful end-to-end benefit; native API and physical stability qualified at 2fdd01c."
           },
           "native_sync_variant": {
             "contract": "docs/HIPCOMP_NATIVE_SYNC.md",
-            "status": "Explicit offline-only composition implemented; CPU/oracle/compiler qualification pending.",
+            "status": "Qualified at 09c4fca: seven composition cases, extracted CPU index oracle, actual native/offline objects and all SDK/20-worker gates; no GPU execution.",
             "runtime_route": false,
-            "upstream_checkout_changed": false
+            "upstream_checkout_changed": false,
+            "qualified_source": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+            "evidence": "docs/evidence/hipcomp-native-sync-09c4fca.json"
+          },
+          "bounded_entry": {
+            "contract": "docs/HIPCOMP_BOUNDED_ENTRY.md",
+            "status": "Pending shared CPU allocation/geometry tests, 12 source/image cases and separate offline AMDGPU entry symbols.",
+            "runtime_route": false,
+            "stored_codec": false,
+            "device_bytes_cap": 262144
           }
         }
       }

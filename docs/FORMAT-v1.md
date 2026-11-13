@@ -449,3 +449,7 @@ capability changes.
 The explicit native-wave candidate adds only private compiler inputs and CPU
 oracle qualification records. It introduces no stored codec, capability, worker
 wire change or product numbering; normal filesystem decoding remains independent.
+
+The bounded entry's 168-byte contract is private compiler metadata, never a stored
+record, IPC frame, runtime export or public ABI. No codec ID, container capability,
+wire value or product numbering changes.

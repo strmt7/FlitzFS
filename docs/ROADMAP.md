@@ -1003,3 +1003,13 @@ The separate [native-wave candidate](HIPCOMP_NATIVE_SYNC.md) is experimental,
 OFF by default and awaiting its own hosted qualification: seven composition
 cases, a compiled CPU index oracle and strict offline object inspection.
 No GPU object is loaded, stored codec added or runtime path enabled. D01 remains open.
+
+
+The native-wave composition passed at 09c4fca: seven source cases, the actual
+compiled index oracle, both offline objects and all SDK/20-worker checks.
+All 13 ordinary jobs passed; all 121 sanitizer results were reconciled.
+[Evidence](evidence/hipcomp-native-sync-09c4fca.json).
+The next [bounded byte entry](HIPCOMP_BOUNDED_ENTRY.md) retains the complete
+256-KiB allocation cap and checks actual wave geometry before slab access.
+Its new CPU/source/image/compiler gates are pending. No runtime or stored codec
+is enabled; actual GPU output, useful gain and D01 remain unqualified.

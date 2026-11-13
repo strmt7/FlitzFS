@@ -323,3 +323,9 @@ The next [explicit native-wave candidate](docs/HIPCOMP_NATIVE_SYNC.md) combines
 the pinned source with native AMD wave calls and pre-read index guards in a
 private compiler fixture. Its CPU oracle and offline compilation are pending;
 normal filesystem I/O remains unchanged.
+
+The native-wave candidate qualified offline at 09c4fca
+([evidence](docs/evidence/hipcomp-native-sync-09c4fca.json)).
+The next [bounded byte-compression entry](docs/HIPCOMP_BOUNDED_ENTRY.md) checks
+the full allocation and actual wave geometry before device-memory access.
+Its new CPU/compiler gates are pending; no filesystem or worker invokes it.

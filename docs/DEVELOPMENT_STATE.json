@@ -565,13 +565,32 @@
     },
     "native_sync_candidate": {
       "contract": "docs/HIPCOMP_NATIVE_SYNC.md",
-      "status": "Pending this publishing source's seven CPU composition cases, compiled index oracle and separate offline object inspection.",
-      "upstream_source": "03df9f7369211ee15d370817165224c73fdc9a46",
+      "status": "Qualified offline and CPU-only at 09c4fca; no runtime route or GPU output.",
+      "qualified_source": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+      "sdk_run": 43463417491,
+      "evidence": "docs/evidence/hipcomp-native-sync-09c4fca.json",
+      "composition_cases": 7,
+      "index_oracle": {
+        "valid_reads": 131046,
+        "invalid_rejections": 196569,
+        "old_future_admissions": 65523
+      },
       "original_candidate_preserved": true,
       "gpu_executed": false,
       "module_loaded": false,
       "runtime_enabled": false,
       "normal_io_unchanged": true
+    },
+    "bounded_entry": {
+      "contract": "docs/HIPCOMP_BOUNDED_ENTRY.md",
+      "status": "Pending this publishing source's CPU layout/geometry admission, 12 source/image cases and exact offline AMDGPU symbols.",
+      "total_device_bytes_cap": 262144,
+      "chunks_cap": 8,
+      "chunk_bytes_cap": 65536,
+      "byte_oriented_only": true,
+      "normal_io_unchanged": true,
+      "gpu_executed": false,
+      "module_loaded": false
     }
   },
   "integration_checkpoints": [
@@ -598,10 +617,10 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "2fdd01cd8540d47259a96e030b19e216bc900ac9",
-    "run": 43458697232,
+    "source": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+    "run": 43463416947,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "Ordinary job conclusions; detailed native synchronization and worker evidence separately recorded."
+    "scope": "All ordinary job conclusions; all 121 sanitizer cases reconciled separately. No physical-media/power-loss/owner claim."
   }
 }
