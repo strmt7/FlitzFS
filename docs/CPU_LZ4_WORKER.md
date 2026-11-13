@@ -101,3 +101,12 @@ index blobs. Actual whole-file CRLF, clean Git state, canonical staging and
 unchanged physical bytes during production staging are all still mandatory.
 No production guard or pin is relaxed, no case is removed, and new execution
 remains required. No owner operation or SDK download occurred in either failure.
+
+At 4797903, actual CRLF bytes and index-LF/worktree-CRLF observations passed,
+but Git still reported modified paths. Linux reproduced the same case; no
+Windows-specific cause is inferred.
+[Third failure](evidence/cpu-lz4-index-fixture-4797903.json).
+The fixture now records filtered hashes, actual diffs, version and configuration,
+refreshes its index from those physical bytes, and requires byte-identical
+canonical index/HEAD plus clean Git state. All production guards and ten cases
+remain. This diagnostic/refinement still requires execution.

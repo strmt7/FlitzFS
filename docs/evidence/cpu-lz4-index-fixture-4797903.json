@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "failed_source": "4797903a9e777b0587ac3ebfb53ad245356cf361",
+  "run": 43496663499,
+  "job": 132131433033,
+  "artifact": {
+    "id": 14071678798,
+    "archive_sha256": "9b82ab394b3945a721e81b4a37594a8228694c920b353e03d1ddc1227e4f68fe",
+    "report_sha256": "fecd2d863cde45ef46f0e09709ef3378ce335c449ca893bc402a78ec82ddfa20",
+    "report_path": "flitzfs-rocm-sdk/qualification.json"
+  },
+  "sdk_bootstrap_attempted": false,
+  "owner_operations": false,
+  "native_report": {
+    "commit": "4797903a9e777b0587ac3ebfb53ad245356cf361",
+    "provider_repository": "strmt7/FlitzZip",
+    "provider_ref": "b46acb6dd7e48e1fb2dc182210495abb6a3c013f",
+    "lock_sha256": "9c17484f85824f2fa5365a172fa30d0aef21317417a664400786a0981b3551c0",
+    "commands": [
+      {
+        "name": "static-runtime-export-parser-regressions",
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+          "-B",
+          "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_hip_runtime_exports.py"
+        ],
+        "root_pid": 9804,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "......\r\n----------------------------------------------------------------------\r\nRan 6 tests in 0.002s\r\n\r\nOK\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "codec-source-admission-regressions",
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+          "-B",
+          "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_hipcomp_candidate.py"
+        ],
+        "root_pid": 5948,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "............................\r\n----------------------------------------------------------------------\r\nRan 28 tests in 2.084s\r\n\r\nOK\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "warp-sync-source-admission-regressions",
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+          "-B",
+          "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_warp_sync_probe.py"
+        ],
+        "root_pid": 7272,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ".........\r\n----------------------------------------------------------------------\r\nRan 9 tests in 0.033s\r\n\r\nOK\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "CPU-decoder-source-staging-regressions",
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+          "-B",
+          "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_lz4_worker_decoder.py"
+        ],
+        "root_pid": 9588,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "F.........\r\n======================================================================\r\nFAIL: test_crlf_checkout_admitted_without_rewrite (__main__.DecoderStaging.test_crlf_checkout_admitted_without_rewrite)\r\n----------------------------------------------------------------------\r\nTraceback (most recent call last):\r\n  File \"D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_lz4_worker_decoder.py\", line 135, in test_crlf_checkout_admitted_without_rewrite\r\n    self.assertEqual(self.git(\"status\", \"--porcelain\", \"--untracked-files=no\"), \"\",\r\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n                     self.git(\"ls-files\", \"--eol\"))\r\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: 'M LICENSE\\n M lib/LICENSE\\n M lib/lz4.c\\n M lib/lz4.h' != ''\r\n- M LICENSE\r\n-  M lib/LICENSE\r\n-  M lib/lz4.c\r\n-  M lib/lz4.h\r\n : i/lf    w/crlf  attr/                 \tLICENSE\r\ni/lf    w/crlf  attr/                 \tlib/LICENSE\r\ni/lf    w/crlf  attr/                 \tlib/lz4.c\r\ni/lf    w/crlf  attr/                 \tlib/lz4.h\r\n\r\n----------------------------------------------------------------------\r\nRan 10 tests in 8.589s\r\n\r\nFAILED (failures=1)\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "complete": false,
+    "scope": "Complete SDK build, kernel link, worker bundle authentication and CPU-only refusal tests",
+    "error": "RuntimeError: native ROCm qualification command failed: CPU-decoder-source-staging-regressions"
+  },
+  "observed": "The fixture obtained actual whole-file CRLF. Git reported index LF / worktree CRLF for all four paths, but still marked them modified. Linux reproduced the same case; it is not established as Windows-specific.",
+  "linux_reproduction": {
+    "core_run": 43496662990,
+    "job": 132131423749,
+    "total_tests": 125,
+    "failed_tests": 1,
+    "failure": "bounded_lz4_worker_decoder_staging"
+  },
+  "next": "Capture version, configuration, filtered worktree hashes and actual diff. Normalize from the physical checkout, then require an unchanged canonical index/HEAD, clean Git state and unmodified physical bytes during production staging. No production pin or guard changes."
+}
