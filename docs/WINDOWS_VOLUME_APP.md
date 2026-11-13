@@ -113,3 +113,12 @@ exact balance for three complete model/controller cycles. No assertion is
 removed or allowed to grow per cycle. Cold counts remain visible. The GUI test
 also verifies non-ASCII UTF-8/surrogate-pair readback; application exit reports
 memory cleanup failure with a nonzero status.
+
+The independent 7996266 discriminator stopped before FlitzFS model execution:
+standalone BCryptGenRandom changed the cold handle count 84 to 87 on its first
+call and 88 on its second. A single call was therefore an invalid initialization
+baseline. The corrected experiment retains all samples in two fixed 16-call
+cohorts for each native primitive group. Every measured-cohort count must equal
+the preceding sample, followed by three unchanged strict full-model balance
+checks. No production retry, allowance or resource cap changes. This bounded
+experiment does not claim that arbitrary Windows behavior is leak-free.

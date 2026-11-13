@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "source_commit": "7996266f6807ffaeb5591640cb1d4876671109b2",
+  "run": 43338584309,
+  "job": 131600939102,
+  "conclusion": "failure",
+  "build": "success",
+  "dependency_audit": "success",
+  "model_started": false,
+  "independent_native_observation": [
+    {
+      "phase": "cold",
+      "handles": 84
+    },
+    {
+      "phase": "first_BCryptGenRandom",
+      "handles": 87
+    },
+    {
+      "phase": "second_BCryptGenRandom",
+      "handles": 88
+    }
+  ],
+  "failure": "Repeated native RNG handle growth",
+  "cause_scope": "The assertion assumed the first RNG call completed all platform initialization. A second standalone call added one handle before any FlitzFS provider/model/controller ran. Further stabilization is not proven by this failed run.",
+  "correction": "Record 16 cold and 16 measured samples for each native primitive group under the unchanged job limits. Require every measured sample to have exactly the previous count, then retain strict before/after balance for three full application cycles. Do not infer unlimited leak freedom from bounded observations.",
+  "owner_execution": false
+}
