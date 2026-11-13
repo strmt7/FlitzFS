@@ -418,3 +418,18 @@ funded advisory settlement and charged loss/repair transitions, preserving legac
 defaults. Its complete source-bound qualification remains required. Durable mapping,
 funded lifetime continuation, authorization and automatic governor/learning remain
 unfinished; the full goal is active.
+
+
+At `5db3ae7`, the funded journal passed all 13 integration jobs. Each of the five
+core configurations passed 375 budget assertions with 42 actual write/flush
+faults, alongside the existing workload and advisory suites. The application
+model passed 590 assertions over three balanced lifecycle cycles and its GUI
+workflow exited cleanly. See [source-bound results](evidence/optimization-budget-5db3ae7.json).
+
+The next L01 implementation connects the explicit helper to funded creation and
+replacement. A checked loss-baseline preflight suppresses candidate allocation
+and repeated source verification when input is unchanged; actual rebuild still
+independently verifies its authority. Real helper-engine funding, preserved
+post-admission allocator cuts and complete new-source qualification are required.
+The full goal remains active; durable mapping/authorization, long-lived funding,
+the automatic governor/learner and useful GPU gains remain unfinished.

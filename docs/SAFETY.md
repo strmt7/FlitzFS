@@ -945,3 +945,21 @@ ordinary resume cannot reset it. Keep failure isolated from data, all retained
 owners/aliases and existing publication/binding/resource limits. The new controls
 need their own full VM qualification and launch no worker or automatic optimizer.
 No global physical-wear, anti-rollback or arbitrary-failure claim follows.
+
+
+## Funded helper pre-allocation control
+
+The funded journal at `5db3ae7` passed all 13 hosted core/integration jobs,
+including 42 injected journal failures per core configuration. The next helper
+consumer requires its own qualification. Failed advice establishes a verified
+loss baseline before replacement allocation; unchanged insufficient input defers
+without another candidate or native snapshot. Positive preflight grants no write
+authority, and actual rebuild independently verifies input and admission again.
+
+The helper retains its single-publication allowance, four-area and 12-MiB limits,
+no ordinary-save/read advice work, source/context preservation and exception-safe
+mapping adoption. Test funding uses actual accepted synthetic writes. The four
+allocator cuts select the expected real admitted binding and measured heap request
+so a preflight failure cannot be misreported as a journal fault. All owner fault,
+driver, mount and GPU gates remain unchanged. This is explicit metadata maintenance,
+not an automatic image-work budget or physical durability qualification.

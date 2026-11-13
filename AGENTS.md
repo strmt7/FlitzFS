@@ -1354,3 +1354,21 @@ context/alias retention and no allocation after final publication readback.
 This is not global physical-wear/authentication/automatic-learner qualification.
 New-source fault/parser/lease/raw/codec/Windows/native/sanitizer/helper and all
 mounted regressions remain required; no owner/GPU/driver/mount action follows.
+
+
+## Funded Windows helper admission
+
+Before changing the funded helper consumer, read docs/ADVISORY_HELPER.md and
+docs/OPTIMIZATION_BUDGET.md. NEW helper advice uses capability 2 and the single
+initial provision. Failed-advice maintenance establishes a verified loss baseline
+before candidate allocation; insufficient unchanged input must not allocate a
+provider store or repeat native snapshot I/O. Positive preflight is never write
+authority: actual rebuild independently rechecks current input and every prior
+binding/alias/resource rule. Keep ordinary saves/reads free of advice work, the
+single-publication helper allowance, four-area/12-MiB caps, actual mapping adoption
+and retained cleaned contexts. Test funding must use real accepted synthetic
+writes, never fabricated counters. Allocation cuts must select the actual admitted
+binding so preflight allocations cannot masquerade as journal faults; no product
+fault switch is allowed. Require publishing-source model/GUI/resource retirement
+and all integration gates. This explicit consumer is not an autonomous learner,
+durable physical mapping, image-work budget or useful GPU qualification.

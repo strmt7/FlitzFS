@@ -1,6 +1,7 @@
 # Input-funded advisory publication (experimental)
 
-The new controlled protocol requires publishing-source qualification. It does not
+The controlled journal at `5db3ae7` passed its full source-bound qualification.
+The next helper/pre-allocation integration requires its own qualification. It does not
 launch background work, qualify a durable physical provider, authorize data-image
 rewriting, or complete an autonomous learner.
 
@@ -94,3 +95,17 @@ The final publication readback now moves its validated owned state through a
 statically checked nonthrowing move. The previous const temporary selected copy
 assignment and could allocate after the paired writes; stored bytes and I/O
 ordering remain unchanged.
+
+## Helper pre-allocation admission
+
+The explicit failed-funded-owner preflight can establish a checked loss baseline
+without admitting an area. An unchanged opportunity declines through cached input
+without another snapshot, candidate allocation or candidate I/O. A positive result
+never grants write authority: the actual rebuild independently verifies current
+input and all existing admission checks again. Healthy, staged, pending, unmanaged
+and unfunded owners cannot use this path to reset or bypass journal limits.
+
+The helper's new creation/replacement consumer is specified in
+[ADVISORY_HELPER.md](ADVISORY_HELPER.md). It does not authorize image rewriting
+or schedule background learning. Qualification must include the existing real
+post-admission allocation failures after the newly added source checks.

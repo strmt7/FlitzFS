@@ -217,19 +217,19 @@
       ],
       "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model.",
       "checkpoint": {
-        "source_parent": "5b58568b019772542c9a300e1283a107d5c5028b",
-        "contract": "docs/OPTIMIZATION_BUDGET.md",
-        "implemented": "Qualified managed/helper native input provenance plus new controlled persistent advisory settlement, charged repair/creation and fresh-input loss baselines.",
-        "qualified_baseline": "5b58568 all13 jobs,4645 workload assertions,590 VM app assertions and healthy owner GUI; source-bound evidence retained.",
-        "new_source_qualification": "Pending capability2 fault/parser/overflow/lease/legacy and full existing regression matrix.",
+        "source_parent": "5db3ae7c8c8e0fb5abc31127d2923098f778533f",
+        "contract": "docs/ADVISORY_HELPER.md",
+        "implemented": "Qualified funded journal plus new Windows helper creation/replacement consumer and checked loss-baseline preflight before provider allocation.",
+        "qualified_baseline": "5db3ae7 passed all 13 integration jobs; five core lanes each passed 375 budget assertions/42 actual faults, 4,645 workload assertions and 687 legacy advisory assertions. Application model 590 and actual GUI passed.",
+        "new_source_qualification": "Pending actual funded helper income, post-admission allocation faults, capacity/context/old-byte/no-growth tests, core preflight and complete regression matrix.",
         "remaining": [
-          "Publishing-source funded advisory protocol qualification",
-          "Durable provider mapping/reclamation and global ownership/authorization",
-          "Qualified long-lived funded continuation beyond the existing per-lease caps",
+          "Publishing-source funded helper/pre-allocation integration qualification",
+          "Durable provider mapping/reclamation and ownership/authorization",
+          "Qualified long-lived funded continuation beyond current per-lease caps",
           "Automatic low-priority governor/learner and held-out compression benefit",
           "Physical failure/media qualification and full remaining filesystem packages"
         ],
-        "evidence": "docs/evidence/workload-helper-5b58568.json"
+        "evidence": "docs/evidence/optimization-budget-5db3ae7.json"
       }
     },
     {
