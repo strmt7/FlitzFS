@@ -842,3 +842,12 @@ The publishing source must pass its new interruption, continuation, saturation,
 malformed-input and existing full regression gates. Persisted spending/debt,
 advice-loss baselines, durable mapping, helper authorization, the governor and
 automatic learning remain unfinished. No full-product package is complete.
+
+## Managed/helper workload consumer preparation
+
+L01's write-input foundation at 14cfb12 passed all 13 core/mounted jobs, 3,945
+workload assertions per examined log, 137 Windows native groups and 118 sanitizer
+groups. The next [consumer](WORKLOAD_HELPER.md) adds explicit managed activation,
+scalar diagnostics and NEW helper creation wiring. Its source needs its own
+integration qualification. Persistent spending/debt, advice-loss baselines,
+mapping/authorization and an automatic low-priority learner remain required.

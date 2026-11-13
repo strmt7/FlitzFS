@@ -144,3 +144,13 @@ The Windows helper's [advice consumer](ADVISORY_HELPER.md) now prepares the
 corresponding process-lifetime selected-area ownership. It changes no managed
 data/context transition and grants no physical/durable mapping authority.
 Publishing-source VM evidence is required before claiming that integration works.
+
+## Explicit workload accounting control
+
+[WORKLOAD_HELPER.md](WORKLOAD_HELPER.md) defines managed activation through the
+existing native transaction. Reject unmanaged owners and pending/staged
+maintenance before backing I/O. Retain live/cleaned contexts and the counter
+through handoff, move and new-controller resume. Cached diagnostics perform no
+allocation/I/O and return disabled for moved/fenced owners; they never authorize
+credit or replace current-state verification. NEW helper creation consumes this
+API before exposure. Publishing-source qualification remains required.

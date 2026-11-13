@@ -217,19 +217,19 @@
       ],
       "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model.",
       "checkpoint": {
-        "source_parent": "a892bfab2aa66b36283570c5017bf94409da645d",
-        "contract": "docs/WORKLOAD_ACCOUNTING.md",
-        "implemented": "Bounded advice/helper recovery plus new explicit native committed-input provenance; the counter shares the existing namespace/data transaction and preserves legacy defaults.",
-        "qualified_baseline": "9977674: all13 core/mounted jobs,687 core advisory assertions,461 VM app assertions and healthy owner GUI passed; no driver action or stale owned process.",
-        "new_source_qualification": "pending native workload activation/data fault cuts, raw/codec/Windows/native/sanitizer and full existing regression gates",
+        "source_parent": "14cfb12c437ae11a2a42f5f8664d1f6a28005881",
+        "contract": "docs/WORKLOAD_HELPER.md",
+        "implemented": "Native transactional input provenance qualified at14cfb12; explicit managed control and NEW helper volume creation now consume it.",
+        "qualified_baseline": "14cfb12 all13 core/mounted jobs;3945workload assertions/696faults per examined Windows/Linux/sanitizer log;563 VM app assertions.",
+        "new_source_qualification": "Pending managed activation/getter/context/handoff/reopen/advice-failure and actual helper/GUI plus full regression gates.",
         "remaining": [
-          "Publishing-source persistent write-workload provenance qualification",
+          "Publishing-source managed/helper workload consumer qualification",
           "Persisted spent-work/debt and safe advice-loss/rebuild baselines",
           "Physical provider reservation/durable selected-area mapping/nonaliasing and qualified reclamation",
           "Helper IPC authorization, automatic low-priority executor and held-out learning consumers",
           "Interrupted native maintenance and physical-provider recovery qualification"
         ],
-        "evidence": "docs/evidence/advisory-helper-9977674.json"
+        "evidence": "docs/evidence/workload-accounting-14cfb12.json"
       }
     },
     {

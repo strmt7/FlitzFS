@@ -405,3 +405,9 @@ consumer. Four helper allocator cuts now passed at a892bfa (563 VM app checks),
 while its full regression matrix continues. The new workload implementation
 requires its own complete source-bound qualification. Spending/debt, loss-safe
 baselines, durable mapping and the automatic governor/learner remain required.
+
+At14cfb12 the persistent native workload foundation passed all13 jobs,
+3,945 workload assertions/696 modeled cuts per examined log and563 VM app
+assertions. The next managed/helper consumer keeps activation explicit and
+before NEW helper-volume exposure. It needs its own full integration qualification.
+Persisted spending/debt and loss-safe baselines remain next; the full goal is active.

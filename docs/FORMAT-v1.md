@@ -374,3 +374,8 @@ are unchanged; default initialization does not upgrade. Older native readers
 reject the new capability. Object-store, codec and advisory bytes are unchanged.
 Counter updates share the selected namespace/data transaction, never a separate
 advisory log. Saturation preserves file writes and stops further accrual.
+
+Managed activation and NEW helper creation now consume existing capability 6
+through the same replicated transaction. This integration adds no new stored
+bytes, magic, capability, advisory schema or product numbering. Cached scalar
+diagnostics do not authorize credit; see [WORKLOAD_HELPER.md](WORKLOAD_HELPER.md).

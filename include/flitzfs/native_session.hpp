@@ -161,6 +161,11 @@ class NativeFileSession final {
   // Failure remains terminal with images/contexts retained and no second attempt.
   NativeVolumeHeadInfo recover_volume();
   NativeVolumeHeadInfo volume_info() const;
+  // Explicit managed-volume control; reject pending/staged maintenance.
+  // Preserve live contexts and return cached scalars without post-commit I/O.
+  NativeWorkloadInfo enable_workload_accounting();
+  // Diagnostic, not current-integrity or credit authority. No I/O/allocation.
+  NativeWorkloadInfo workload_info() const noexcept;
   // Explicit trusted control, serialized with session calls. The provider has
   // already reserved/nonaliased this area and authorized the helper. One binding
   // attempt per session; failures retain the area and do not fence user data.

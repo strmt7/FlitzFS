@@ -67,6 +67,8 @@ struct Model {
   std::map<std::uint64_t,Node> nodes;
 };
 static_assert(std::is_nothrow_move_assignable_v<Model>);
+static_assert(std::is_trivially_copyable_v<NativeWorkloadInfo>);
+static_assert(sizeof(NativeWorkloadInfo)<=16);
 static_assert(std::is_nothrow_move_assignable_v<NativeFsCommit>);
 static_assert(std::is_nothrow_move_constructible_v<NativeInodeWriteCommit>);
 static_assert(std::is_nothrow_move_constructible_v<NativeFsCommit>);
@@ -1325,6 +1327,10 @@ NativeFilesystemSnapshot NativeFilesystemWriter::snapshot() const {
   catch(const std::exception&){
     impl_->poisoned=true;fail(Code::storage_failure,"native snapshot backing verification failed");
   }
+}
+NativeWorkloadInfo NativeFilesystemWriter::workload_info() const noexcept {
+  if(poisoned()||impl_->model.format<6)return {};
+  return {true,impl_->model.committed_input_bytes};
 }
 bool NativeFilesystemWriter::poisoned() const noexcept{return !impl_ || impl_->poisoned || impl_->objects.poisoned();}
 }

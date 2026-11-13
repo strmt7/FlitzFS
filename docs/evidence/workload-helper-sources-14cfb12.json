@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-13",
+  "source_parent": "14cfb12c437ae11a2a42f5f8664d1f6a28005881",
+  "scope": "Consume the already qualified native accounting API in managed control and NEW helper creation. No new platform API, codec/runtime/dependency selection or stored encoding.",
+  "exact_current_sources": [
+    {
+      "path": "src/native_filesystem.cpp",
+      "blob": "2d769c3f4251b582e4494bb787156ab05e96a865"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "blob": "e9f708a8ea51f24b0ac702c316b90e2b43e98c27"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "blob": "3431ad5b6a1dd21990ab21ada280b4c03fc07d21"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "blob": "1aae69d2ef629631c5801fdad0c7a9f74cbf9b08"
+    },
+    {
+      "path": "src/windows/volume_model.cpp",
+      "blob": "bda36eee17dbab4f7121dfb327f6365a2c38ecae"
+    },
+    {
+      "path": "tests/test_volume_session.cpp",
+      "blob": "29763b144acaee9de8dfac54c6cdfa2abc843ada"
+    },
+    {
+      "path": "tests/windows_volume_app_tests.cpp",
+      "blob": "07ed60e3a52be34bed6ac5e51cc35e26b8495142"
+    }
+  ],
+  "semantic": {
+    "run": 43387568890,
+    "artifact": 14019616113,
+    "artifact_sha256": "52ae7cf8c44fa510ebe91863ad5511d6eaf65476a59e8170d39cb7330ebf2467",
+    "indexed_commit": "6587ea0503a119156fb470a5002310c398800599",
+    "current_commit": "14cfb12c437ae11a2a42f5f8664d1f6a28005881",
+    "source_equivalence": "Only excluded test/documentation changed between indexed and current source; relevant production hashes verified live in parent evidence.",
+    "actual_receipt": "docs/evidence/workload-accounting-14cfb12.json",
+    "provider": "0.2.43",
+    "query": "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime",
+    "response_sha256": "0b33fb81c86e490c1a45ca1c3ef3836157d618a89efee13b534b8efcb619caf8",
+    "navigation": "Exact current managed-volume ready/create/maintenance/snapshot and native activation/getter symbols; no broad substitute search or foreign MCP mutation."
+  },
+  "primary_research": {
+    "admitted_manifest": "docs/evidence/workload-accounting-sources-a892bfa.json",
+    "capture_date": "2026-11-09",
+    "reuse": "Admitted native Crawl4AI SQLite crash/reader-lifetime and Microsoft caching captures, not a new fetch.",
+    "inferences": [
+      "Keep activation in the existing replicated data transaction and return only preexisting cached scalars afterward.",
+      "Preserve source/context ownership and reject overlapping maintenance before backing I/O.",
+      "The temporary helper provider offers process-lifetime bytes; do not infer physical persistence or automatic credit authority."
+    ]
+  },
+  "qualification": "pending publishing-source full integration and regression gates",
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 08:17 UTC",
+    "open_alerts": 0,
+    "native_transport": "Authenticated GitHub open-alerts API; not an absence-of-all-vulnerabilities claim."
+  }
+}

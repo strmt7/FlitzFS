@@ -1331,6 +1331,10 @@ existing 104-byte inode framing. Old native readers reject this opt-in capabilit
 never silently upgrade or downgrade images. Counter and file bytes must recover
 as the same selected transaction after every modeled cut. This is not a spent-
 credit ledger, learning authority, authenticated anti-rollback state or physical
-power-loss proof. Do not enable it from the helper until its own integration is
-qualified. Full raw/codec/Windows/native/sanitizer and existing regression gates
+power-loss proof. Read docs/WORKLOAD_HELPER.md for the explicit managed API
+and NEW helper creation consumer. This new integration must pass its own full
+source-bound VM qualification before owner execution. Reject pending/staged
+maintenance before backing I/O; retain contexts, legacy admission and every
+existing resource limit. Cached writer/session diagnostics must allocate/read
+nothing and return disabled after move/fencing. They never authorize credit. Full raw/codec/Windows/native/sanitizer and existing regression gates
 remain required; no owner mount/driver/GPU action follows.

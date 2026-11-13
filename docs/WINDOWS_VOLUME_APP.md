@@ -141,3 +141,13 @@ remaining owned process or driver change. See
 post-admission allocator cases need their own VM run; the healthy owner GUI is
 not fault evidence. This adds no autonomous executor, learner, persistent wear
 budget or physical mapping.
+
+## NEW-volume workload accounting
+
+The next [managed workload integration](WORKLOAD_HELPER.md) activates accounting
+before exposing a newly created helper volume. It uses the same private provider
+and serialized controller, adds no worker/UI policy and never upgrades a legacy
+image during ordinary open. Saves count actual UTF-8 bytes; empty/rejected saves,
+reads, advice repair and explicit optimization mint nothing. Existing budgets
+and retirement checks remain. New-source model/GUI and full regression gates are
+required; this is provenance, not automatic learning or persistent spending.

@@ -40,6 +40,9 @@ void accounting(StoreCompressionMode mode) {
   auto old=fs.snapshot();fs.enable_workload_accounting();
   require(count(fs.snapshot())==0&&fs.snapshot().read("keep",0,100)==data(7,1)&&
       ram->stable!=legacy&&!old.workload_info().enabled,"activation credited history or changed data");
+  const auto reads=ram->read_calls;
+  require(fs.workload_info()==NativeWorkloadInfo{true,0}&&ram->read_calls==reads,
+      "writer workload diagnostic queried backing");
   const auto before=ram->live;const auto calls=ram->calls;
   const auto seq=fs.snapshot().sequence();fs.enable_workload_accounting();
   require(ram->live==before&&ram->calls==calls&&fs.snapshot().sequence()==seq,
@@ -68,7 +71,9 @@ void accounting(StoreCompressionMode mode) {
   require(ram->stable==stable&&ram->calls==io&&count(fs.snapshot())==30&&!fs.poisoned(),
       "rejected batch changed persisted input");
   const auto snapshot=fs.snapshot();const auto bytes=snapshot.read("keep",0,200);
-  {auto retired=std::move(fs);} // Quiescent source: retire its writer before copying.
+  {auto retired=std::move(fs);
+    require(!fs.workload_info().enabled&&retired.workload_info()==NativeWorkloadInfo{true,30},
+        "moved writer exposed/lost workload");} // Retire its writer before copying.
   auto moved=std::move(old);require(!old.workload_info().enabled&&!moved.workload_info().enabled,
       "moved legacy snapshot exposed accounting");
   for(unsigned rewrite=0;rewrite<2;++rewrite) {
@@ -117,6 +122,9 @@ void interrupted(StoreCompressionMode mode,bool enabling) {
           view.storage_info().generation,{mode,3,false}));
       ram->fail_at=cut;ram->failure=failure;
       rejects([&]{exercise(*ram,fs);},"publication fault not reached");
+      const auto reads=ram->read_calls,calls=ram->calls;
+      require(!fs.workload_info().enabled&&ram->read_calls==reads&&ram->calls==calls,
+          "poisoned writer diagnostic exposed authority or did I/O");
     }
     const auto recovered=reopen(ram->stable);
     if(enabling) {
