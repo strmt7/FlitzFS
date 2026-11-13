@@ -91,3 +91,15 @@ document the correction: a separate role-specific GUI audit, unchanged console
 policy, ASLR/high-entropy/NX checks and no delay-loaded or non-OS imports. The
 application now also restores its window when tray registration is unavailable.
 Corrected-source execution remains pending.
+
+The corrected 58fa7c3 build and both role-specific PE audits passed. Its model
+reached the final handle-balance assertion and failed there; GUI execution was
+skipped and no owner binary was launched. The magnitude and cause were not
+recorded by that test version. The next tests retain the assertion and add
+provider/engine/controller phase counts. See
+[the retained failure](evidence/volume-app-58fa7c3.json).
+
+The provider now keeps at most 64 store registrations and explicitly verifies
+all current pages and the working-set reservation at application status/discard
+boundaries. This complements initial allocation verification without copying
+image contents or changing transaction flush behavior.

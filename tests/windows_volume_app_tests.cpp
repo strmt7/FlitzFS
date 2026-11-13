@@ -22,9 +22,14 @@ template<class F>void until(F&& predicate,std::uint64_t deadline) {
     Sleep(5);
   }
 }
+void handles(const char* phase) {
+  DWORD count=0;require(GetProcessHandleCount(GetCurrentProcess(),&count)!=FALSE,"Handle observation");
+  std::cout<<"Application handle phase: "<<phase<<" handles="<<count<<"\n";
+}
 void model_tests() {
   DWORD before=0,after=0;
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"Handle baseline");
+  handles("baseline");
   SIZE_T ws_min=0,ws_max=0;DWORD ws_flags=0;
   require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&ws_min,&ws_max,&ws_flags)!=FALSE,"Working-set baseline");
   {
@@ -35,17 +40,26 @@ void model_tests() {
     auto store=domain.create_store(65536);
     require(store->extent()==0 && domain.usage().allocated==65536,"New store/accounting");
     std::array<std::byte,3> bytes{std::byte{1},std::byte{2},std::byte{3}},out{};
-    store->write_exact(7,bytes);store->flush();store->read_exact(7,out);
+    store->write_exact(7,bytes);store->flush();store->read_exact(7,out);domain.verify_resident();
     require(out==bytes && store->extent()==10,"Exact memory I/O");
     store->write_exact(65536,{});require(store->extent()==10,"Empty write extended image");
     rejects([&]{store->write_exact(UINT64_MAX,bytes);},"Overflow write accepted");
     rejects([&]{store->read_exact(UINT64_MAX,out);},"Overflow read accepted");
     rejects([&]{store->admit_write(65537);},"Capacity preflight accepted");
+    {
+      std::array<std::shared_ptr<StoreByteIo>,63> peers;
+      for(auto& peer:peers)peer=domain.create_store(4096);
+      require(domain.usage().stores==64,"Bounded store registry accounting");
+      rejects([&]{(void)domain.create_store(4096);},"Store registry cap accepted");
+      domain.verify_resident();
+    }
+    require(domain.usage().stores==1,"Peer allocation retirement");
     // Domain wrapper retirement must not restore its lease while a store lives.
     auto survivor=store;
     store.reset();require(domain.usage().allocated==65536,"Shared store accounting");
-    survivor.reset();require(domain.usage().allocated==0 && domain.usage().stores==0,"Store cleanup");
+    survivor.reset();domain.verify_resident();require(domain.usage().allocated==0 && domain.usage().stores==0,"Store cleanup");
   }
+  handles("provider-retired");
   {
     std::shared_ptr<StoreByteIo> survivor;
     {auto domain=MemoryVolumeDomain::create(1024*1024);survivor=domain.create_store(65536);}
@@ -72,6 +86,7 @@ void model_tests() {
     model.create_text("empty.txt","");require(model.read_text("empty.txt").empty(),"Empty file readback");
     model.discard();require(!model.ready(),"Discard retained engine");
   }
+  handles("volume-retired");
   {
     auto window=CreateWindowExW(0,L"STATIC",L"FlitzFS controller qualification",0,
         0,0,0,0,HWND_MESSAGE,nullptr,GetModuleHandleW(nullptr),nullptr);
@@ -96,11 +111,14 @@ void model_tests() {
     }
     require(DestroyWindow(window)!=FALSE,"Controller window cleanup");
   }
+  handles("controller-retired");
   SIZE_T final_min=0,final_max=0;DWORD final_flags=0;
   require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&final_min,&final_max,&final_flags)!=FALSE &&
       final_min==ws_min && final_max==ws_max && final_flags==ws_flags,"Working-set lease not restored");
   require(MemoryVolumeDomain::cleanup_healthy(),"Memory cleanup health");
-  require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE && after==before,"Controller handle leak");
+  require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE,"Final handle observation");
+  std::cout<<"Application handle balance: "<<before<<" -> "<<after<<"\n";
+  require(after==before,"Controller handle leak");
 }
 HWND find_window(DWORD pid) {
   struct Context{DWORD pid;HWND window=nullptr;}context{pid};

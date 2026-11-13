@@ -30,7 +30,7 @@ void VolumeModel::create() {
       head,fresh_identity(),image,fresh_identity(),{StoreCompressionMode::automatic,3,false}));
   const auto advisory=session->create_optimization_area(advice,1);
   require(advisory.phase==NativeOptimizationPhase::ready,"Optimization area creation failed");
-  domain->verify_admission();
+  domain->verify_resident();
   domain_=std::move(domain);head_=std::move(head);image_=std::move(image);
   advice_=std::move(advice);session_=std::move(session);
 }
@@ -92,6 +92,7 @@ bool VolumeModel::optimize() {
 VolumeView VolumeModel::view() const {
   VolumeView out;
   if(!session_)return out;
+  domain_->verify_resident();
   out.ready=true;out.fenced=session_->poisoned();
   const auto use=domain_->usage();out.allocated=use.allocated;out.capacity=use.capacity;
   if(out.fenced)return out; // Preserve ownership without trying a poisoned reader.
@@ -104,6 +105,7 @@ VolumeView VolumeModel::view() const {
   return out;
 }
 void VolumeModel::discard() {
+  if(domain_)domain_->verify_resident();
   session_.reset();advice_.reset();image_.reset();head_.reset();domain_.reset();
   require(MemoryVolumeDomain::cleanup_healthy(),"Memory cleanup failed; restart the application");
 }
