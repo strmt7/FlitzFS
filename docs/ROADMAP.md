@@ -1027,7 +1027,11 @@ execution; no module loading, binary artifact, worker integration or GPU gain fo
 The private typed-module link qualified at c86559b, including all 13 ordinary
 jobs, 122 sanitizer tests, five 144524-check validator configurations and 20
 confirmed worker exits ([evidence](evidence/hipcomp-module-link-c86559b.json)).
-The next [LZ4 candidate frames](LZ4_WORKER_FRAMES.md) own source bytes, bind chunk
-boundaries and independently verify every candidate before copying. New portable
-and real Windows CPU-helper tests are pending. They add no HIP caller, launcher,
-mapping-cap increase, stored codec or normal filesystem route. D01 remains open.
+The [LZ4 candidate frames](LZ4_WORKER_FRAMES.md) qualified at 959606a in all five
+core configurations and all 13 ordinary integration jobs
+([evidence](evidence/lz4-worker-frames-959606a.json)). Enabled builds reported
+621 framing checks; disabled builds reported 593. Windows CPU exchanges retained
+79 initial/final handles. The next [checked slab layer](GPU_LZ4_SLAB.md) adds
+bounded upload construction and all-or-nothing independent readback verification.
+Its new CPU tests are pending; no actual GPU caller or normal-I/O route is enabled.
+D01 remains open.

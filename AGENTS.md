@@ -1556,3 +1556,18 @@ existing protected mappings/supervisor; do not add a launcher, retry, process,
 thread, size allowance or handle-growth tolerance. Preserve actual child AND
 supervisor retirement before inspection. No HIP module load, actual GPU execution,
 stored codec or normal-I/O caller is added; all later runtime gates remain.
+
+## Checked compression slab boundary
+
+Read docs/GPU_LZ4_SLAB.md before changing upload/readback construction or tests.
+Device addresses are integer data only; reject zero, misalignment and whole-slab
+overflow before allocation. Retain the existing owned input and complete 256-KiB
+device cap. Initialize ALL upload bytes, zero output sizes and 32-byte 0xa5 guards.
+Readback must have exact full size; only output sizes, output capacities and
+scratch may change. Check every protected byte and bounded nonzero 64-bit size,
+then independently CPU-decode ALL chunks before copying ANY returned candidate.
+Missing decoding refuses explicitly; preflight it before future launches.
+Keep caller spans immutable, bounded temporary buffers and all current
+resource/identity/exact child-and-supervisor retirement gates. CPU slab fixtures
+are not kernel emulation or actual GPU output. No runtime loading, launch, owner
+operation, stored codec or ordinary-I/O caller follows from these checks.

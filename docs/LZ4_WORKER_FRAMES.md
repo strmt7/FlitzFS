@@ -100,3 +100,17 @@ This publishing source needs its own CPU, sanitizer, Windows transport and
 integration execution. No actual compression worker/runtime or GPU output is
 qualified. D01, useful performance, filesystem routing and full product exits
 remain open.
+
+## Executed source-bound qualification
+
+At 959606a all five core configurations and all 13 ordinary integration jobs
+passed. Codec-enabled Linux, Windows native and ASan/UBSan logs each report
+621 framing checks; both raw-only configurations report 593. The trusted Windows
+CPU child exchanged three chunks totaling 1074 source bytes. The complete
+existing-plus-new exchange suite reports 1209 checks enabled and 1197 disabled,
+with 79 initial and final handles. All five admitted LastTest.log reports contain
+zero failures. [Evidence](evidence/lz4-worker-frames-959606a.json).
+
+The next [checked slab layer](GPU_LZ4_SLAB.md) constructs bounded upload bytes
+and independently verifies complete synthetic readback. These are CPU checks,
+not module loading, an actual HIP compression worker, GPU output or useful gain.

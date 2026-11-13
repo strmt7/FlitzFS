@@ -462,3 +462,8 @@ The private FLFSLRQ/FLFSLRP compression-candidate messages are process-local
 worker frames, not stored filesystem records. Their 64-byte little-endian header
 and explicit chunk directory serialize no pointer, native Layout or grant.
 No stored codec, capability, existing frame encoding or product numbering changes.
+
+The candidate upload/readback slab is private ephemeral AMD64 device memory.
+Its little-endian device-address tables never enter a stored filesystem record
+or worker frame. Source data remains independently CPU-readable. No stored codec,
+capability, existing frame encoding or product numbering changes.
