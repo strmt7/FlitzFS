@@ -6,9 +6,47 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <cstdlib>
+#include <new>
 #include <exception>
 #include <iostream>
 #include <thread>
+// Test executable only: fail one selected 64-KiB allocation on the calling
+// thread, then disarm before exception unwinding. No global memory pressure,
+// product fault switch, changed provider or failure in the GUI child is used.
+namespace advice_allocation_fixture {
+thread_local bool armed=false,hit=false;
+thread_local unsigned remaining=0;
+bool refuse(std::size_t size) noexcept {
+  if(!armed||size!=flitzfs::kStoreCommitUnit)return false;
+  if(remaining){--remaining;return false;}
+  armed=false;hit=true;return true;
+}
+struct Failure {
+  explicit Failure(unsigned skip) noexcept {remaining=skip;hit=false;armed=true;}
+  ~Failure(){armed=false;}
+  Failure(const Failure&)=delete;
+  Failure& operator=(const Failure&)=delete;
+  bool reached() const noexcept{return hit;}
+};
+}
+void* operator new(std::size_t size) {
+  if(advice_allocation_fixture::refuse(size))throw std::bad_alloc();
+  // Preserve ordinary zero-size and new-handler behavior outside the one-shot
+  // test fault. Aligned allocations retain their CRT allocation/deletion pair.
+  for(;;) {
+    if(void* p=std::malloc(size?size:1))return p;
+    const auto handler=std::get_new_handler();
+    if(!handler)throw std::bad_alloc();
+    handler();
+  }
+}
+void* operator new[](std::size_t size){return ::operator new(size);}
+void operator delete(void* p) noexcept {std::free(p);}
+void operator delete[](void* p) noexcept {::operator delete(p);}
+void operator delete(void* p,std::size_t) noexcept {::operator delete(p);}
+void operator delete[](void* p,std::size_t) noexcept {::operator delete(p);}
+
 namespace flitzfs {
 // Qualification binary only. Faults touch its freshly allocated private RAM;
 // no production command, flag, provider override or arbitrary path exists.
@@ -168,6 +206,55 @@ void advice_application_tests() {
         model.optimization_info().binding_attempts==before+1&&Q::read(model,handle)==expected,
         "released provider capacity did not admit checked rebuilding");
     Q::close(model,handle);model.discard();
+  }
+  // Four real allocator cuts after core binding admission: the initial empty
+  // record, either prepared record, and final readback scratch. The last cut
+  // leaves valid-looking bytes; the failed owner must still expose no policy.
+  for(unsigned cut=0;cut<4;++cut) {
+    VolumeModel model;model.create();model.create_text("keep.txt",text);
+    const auto handle=Q::open_cleaned(model);const auto old=Q::current(model);
+    Q::damage(model);const auto damaged=Q::bytes(old);
+    {
+      auto filler=Q::fill_remaining(model);
+      rejects([&]{model.maintain_optimization_state();},"failure preparation did not refuse capacity");
+      require(model.optimization_info().phase==NativeOptimizationPhase::terminal&&
+          model.optimization_info().binding_attempts==1,"fault preparation changed binding");
+    }
+    const auto baseline=model.view();
+    bool failed=false,reached=false;
+    {
+      advice_allocation_fixture::Failure fault(cut);
+      try{(void)model.maintain_optimization_state();}
+      catch(const std::bad_alloc&){failed=true;}
+      reached=fault.reached();
+    }
+    require(failed&&reached,"post-admission allocator cut was not reached/propagated");
+    const auto area=Q::current(model);const auto info=model.optimization_info();
+    const auto written=cut? kOptimizationAreaBytes:0;
+    const auto failed_view=model.view();
+    require(area!=old&&area->extent()==written&&info.binding_attempts==2&&
+        info.owned_area_bytes==2*kOptimizationAreaBytes&&info.sequence==0&&
+        info.phase==NativeOptimizationPhase::unavailable&&info.session_ready&&
+        !failed_view.fenced&&failed_view.allocated==baseline.allocated+kOptimizationAreaBytes&&
+        failed_view.physical_bytes==baseline.physical_bytes+written,
+        "throwing admitted area lost helper ownership/accounting or exposed authority");
+    const auto partial=cut?Q::bytes(area):std::vector<std::byte>{};
+    require(Q::bytes(old)==damaged&&model.read_text("keep.txt")==text&&
+        Q::read(model,handle)==expected&&Q::stats(model).contexts==1&&Q::stats(model).cleaned==1,
+        "allocator failure changed old bytes or a cleaned live context");
+    model.create_text("after.txt","write after failed advice");
+    require(model.read_text("after.txt")=="write after failed advice"&&
+        Q::read(model,handle)==expected,"allocator failure stopped acknowledged file access");
+    require(model.maintain_optimization_state()==Result::rebuilt&&
+        model.optimization_info().binding_attempts==3&&
+        model.optimization_info().owned_area_bytes==3*kOptimizationAreaBytes&&
+        Q::current(model)!=area&&area->extent()==written&&Q::bytes(old)==damaged&&
+        (!cut||Q::bytes(area)==partial)&&
+        model.view().allocated==baseline.allocated+2*kOptimizationAreaBytes,
+        "later repair reused/mutated a failed area or lost retained reservations");
+    Q::close(model,handle);model.discard();
+    require(!model.ready()&&MemoryVolumeDomain::cleanup_healthy(),"allocator-fault cleanup");
+    std::cout<<"Helper post-admission allocator cut: "<<cut<<" retained and retired\n";
   }
   {
     VolumeModel model;model.create();model.create_text("keep.txt",text);

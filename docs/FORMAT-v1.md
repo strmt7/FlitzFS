@@ -359,3 +359,7 @@ for the ownership/resource contract and pending publishing-source qualification.
 The [Windows helper integration](ADVISORY_HELPER.md) changes no serialized bytes
 or user-data publication. Its fixed process-lifetime mapping retains every
 admitted advice area. It is not a durable physical-volume selector.
+
+The subsequent allocator-fault qualification changes only the application test
+executable and documentation. It adds no wire capability, stored counter,
+publication rule or product allocator change.

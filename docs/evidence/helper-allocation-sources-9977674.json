@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-13",
+  "source_parent": "9977674479d227bd195fe4c3b597e7f1084693cc",
+  "scope": "Qualification-only allocator failures; no product allocator or stored format changes.",
+  "primary_source": {
+    "repository": "microsoft/STL",
+    "commit": "6f68330d72e5719365d83cb035298b62ad121027",
+    "path": "tests/std/tests/P0674R1_make_shared_for_arrays/test.cpp",
+    "blob": "274f4db81f7ea4794adf35821f549fc46ef10c8f",
+    "bytes": 23194,
+    "sha256": "a665afcd7868161eb503870af2ae384b861ff683aa041ceee699d458e12ee60d",
+    "url": "https://github.com/microsoft/STL/blob/6f68330d72e5719365d83cb035298b62ad121027/tests/std/tests/P0674R1_make_shared_for_arrays/test.cpp",
+    "transport": "Authenticated native GitHub contents API; exact base64 source bytes decoded and hashed, not a web-page reader.",
+    "reviewed": "Current MSVC STL qualification uses executable-local replacement allocation backed by malloc. Our independently written fixture explicitly pairs all ordinary scalar/array and sized deletion forms, preserves ordinary new-handler behavior and leaves aligned CRT pairs unchanged.",
+    "copied_source": false
+  },
+  "local_scope": [
+    "tests/windows_volume_app_tests.cpp",
+    "src/windows/volume_model.cpp",
+    "src/native_session.cpp",
+    "src/optimization_state.cpp",
+    "src/windows/memory_volume.cpp"
+  ],
+  "semantic_scope": "Exact known symbols and current-source files; no broad navigation or index registration changes.",
+  "faults": [
+    "64-KiB empty record before initial writes",
+    "First encoded record after zero initialization",
+    "Second encoded record after zero initialization",
+    "Readback scratch after both records are written"
+  ],
+  "limits": "Only one allocation refusal on the calling test thread; no real OOM, changed process limits, product switch, owner fault run or GPU operation.",
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 07:26 UTC",
+    "open_alerts": 0,
+    "transport": "Authenticated GitHub Dependabot alerts API; not an all-vulnerability claim."
+  }
+}

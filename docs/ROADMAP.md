@@ -824,3 +824,10 @@ process-lifetime area ownership/accounting, one checked maintenance rebuild and
 continued data access after exhaustion. Publishing-source qualification is pending.
 L01 is not complete: durable provider mapping/reclamation, persistent rewrite
 credit, authorization and automatic learning remain required.
+
+At 9977674, the helper consumer passed all 13 core/mounted jobs, 461 app-model
+assertions and a healthy owner GUI workflow; see
+[evidence](evidence/advisory-helper-9977674.json). The next qualification closes
+the separately identified post-admission allocator-failure coverage gap, including
+valid-looking unpublished advice. Persistent workload-derived credit and the
+remaining full-product packages still require implementation.
