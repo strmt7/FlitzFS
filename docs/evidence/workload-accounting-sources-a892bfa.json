@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-13",
+  "source_parent": "a892bfab2aa66b36283570c5017bf94409da645d",
+  "scope": "Explicit optional persistent committed-input counter. No learner, credit spending, driver/mount/owner/GPU operation.",
+  "semantic": {
+    "indexed_commit": "9977674479d227bd195fe4c3b597e7f1084693cc",
+    "run": 43380495469,
+    "artifact": 14016711037,
+    "artifact_sha256": "8cc155a3195b755cd4b5d84cde3ae6707179d50d9c71e36efaf673b8eb0e1861",
+    "source_sha256": "fcae1f4238a30da3407a244422d74734b2fd605c4544f32ac2192e37b413f8b7",
+    "query": "transactional object store record integrity replicated checkpoints and durable publication",
+    "response_sha256": "ec27443f465f94d1647b5d1fe325c6877d03ac834c3ad3ee2e1eab273367d8b1",
+    "relevant_candidates_confirmed_live": true,
+    "scope_extension": "Follow exact namespace Stage/encode/decode and native mutation/copy symbols from the confirmed current public native API. Tests and explicit CMake target inspected separately.",
+    "source_equivalence": "9977674 through a892bfa changes only excluded test/documentation paths. Product graph remains identical; no new index build or foreign MCP registration."
+  },
+  "primary_research": {
+    "admitted_manifest": "docs/evidence/advisory-rebuild-sources-053ade8.json",
+    "artifact": 13664668700,
+    "artifact_sha256": "ef3ba3ec18e8e2971ee48b34367f5c591b0003f93e7fb539e4161be7142cf5a2",
+    "run": 42599540602,
+    "captured_utc": "2026-11-09T10:15:22Z",
+    "transport": "Reviewed isolated robots-respecting Crawl4AI native capture; reusing admitted current captures, not claiming a new fetch.",
+    "sources": [
+      "https://www.sqlite.org/testing.html",
+      "https://www.sqlite.org/wal.html",
+      "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching"
+    ],
+    "reviewed_inferences": [
+      "Keep counter and selected data in the same existing replicated transaction; no independently incremented log.",
+      "Recover a complete prior/new transaction after an unacknowledged interrupted operation; matching counter and bytes, no mixed selection.",
+      "Reader lifetime and image compaction preserve source state; avoid crediting maintenance as user input.",
+      "RAM barrier model qualification does not establish physical-media power-loss behavior."
+    ]
+  },
+  "design": "docs/WORKLOAD_ACCOUNTING.md",
+  "qualification": "pending publishing-source raw/codec/Windows/native/sanitizer/fault and full regression gates",
+  "live_source_confirmation": [
+    {
+      "path": "src/native_filesystem.cpp",
+      "blob": "fce6aa1a8d021de7f714f866dd943bef5ea26e48",
+      "bytes": 75714,
+      "sha256": "c0766e3e4e765730531be56f7197ede951ecfe54ac98ceb33840c54e5fc6afdf"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "blob": "1a207a17c24e30e240fb1e8e745bbdc2a9aacdc7",
+      "bytes": 22220,
+      "sha256": "30ac8c139b3c3b23929d2ec641c653af6824a23917c89334f71c2c2afb90f067"
+    },
+    {
+      "path": "include/flitzfs/object_store.hpp",
+      "blob": "b2af96e78cfcb2870ab410e9e63a8eb219dea7b5",
+      "bytes": 12312,
+      "sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30"
+    },
+    {
+      "path": "tests/native_fs_fixture.hpp",
+      "blob": "78713bb046b018cd4dcc1958942fa3d44e281509",
+      "bytes": 7207,
+      "sha256": "25fd0693fa39c28c0df0405fa157ce73c31d6c408b6df06f6cfad6dba98019b5"
+    }
+  ]
+}

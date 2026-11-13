@@ -114,6 +114,14 @@ struct NativeInodeWriteOptions {
   bool append=false;       // Choose the latest EOF inside the single-control-thread call.
   bool constrained=false;  // Never extend logical EOF; a range beyond EOF writes zero bytes.
 };
+// Trusted monotonic workload provenance, not mutable learned policy or credit.
+// Disabled legacy images have no historical count. Saturation stops further
+// accrual; metadata work, truncate, recovery and image rewrites grant no input.
+struct NativeWorkloadInfo {
+  bool enabled=false;
+  std::uint64_t committed_input_bytes=0;
+  bool operator==(const NativeWorkloadInfo&) const = default;
+};
 struct NativeFsCommit {
   StoreCommitInfo storage;
   std::uint64_t sequence=0; // Namespace transaction sequence, distinct from root repair generation.
@@ -180,6 +188,7 @@ class NativeFilesystemSnapshot final {
   StoreIdentity identity() const noexcept;
   StoreCommitInfo storage_info() const noexcept;
   std::uint64_t sequence() const noexcept;
+  NativeWorkloadInfo workload_info() const noexcept; // Validated cached scalar; moved-from is disabled.
   NativeFileInfo stat(std::string_view path) const;
   // IDs belong to this volume/snapshot. Missing/deleted IDs return not_found;
   // a later file at the old path is never selected instead.
@@ -214,6 +223,10 @@ class NativeFilesystemWriter final {
  public:
   // A NEW empty generation-zero object store only. Never reinterprets existing objects.
   static NativeFilesystemWriter initialize(ObjectStoreWriter objects);
+  // Explicit sticky namespace capability; legacy initialization is unchanged.
+  // Start at zero without crediting old files. Commit through the same
+  // replicated metadata transaction. Repeated enable never resets the count.
+  NativeFsCommit enable_workload_accounting();
   // Object writer must already hold its qualified backend lease/recovery fence.
   // Ordinary admission refuses pending/unlinked state. A live old file context
   // must never be silently treated as closed.
@@ -373,7 +386,7 @@ class NativeFilesystemWriter final {
   static void finish_recompression(Recompression&);
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
-  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve};
+  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
       const NativeAutomaticMetadata* automatic=nullptr,bool delete_requested=false,

@@ -914,3 +914,14 @@ Source 9977674 passed its full VM matrix and a healthy owner GUI workflow;
 refuses one specific allocation in the VM test executable only, after the core
 admitted a new area. It creates no global memory pressure and is not an owner
 fault experiment. Its publishing-source qualification remains required.
+
+## Persistent write provenance
+
+The optional [workload counter](WORKLOAD_ACCOUNTING.md) grants no optimization
+authority. Only actual accepted write input changes it in the same replicated
+namespace transaction; rejected batches and maintenance cannot mint workload.
+Enabling starts at zero, repeated enable cannot reset it, and saturation cannot
+wrap or block ordinary writes. Independently recovered data and count must
+belong to the same selected transaction. Preserve explicit capability admission,
+source-copy invariance and all existing bounds. Tests model persistence failures
+in disposable VM memory, not owner faults or physical power-loss survival.

@@ -398,3 +398,10 @@ The next test-only step qualifies four allocator cuts after replacement admissio
 including final readback. It does not implement persistent rewrite credit or
 advance any full-product package to complete. Source-bound results and current
 pending gates are recorded in DEVELOPMENT_STATE.json.
+
+L01's next implementation is explicit persistent native write-input provenance,
+with transactional counter/data selection, legacy defaults and no automatic
+consumer. Four helper allocator cuts now passed at a892bfa (563 VM app checks),
+while its full regression matrix continues. The new workload implementation
+requires its own complete source-bound qualification. Spending/debt, loss-safe
+baselines, durable mapping and the automatic governor/learner remain required.

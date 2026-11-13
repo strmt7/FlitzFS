@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-13",
+  "source": "a892bfab2aa66b36283570c5017bf94409da645d",
+  "application": {
+    "run": 43386946495,
+    "job": 131757528502,
+    "conclusion": "success",
+    "model_assertions": 563,
+    "cycles": 3,
+    "handles_each": [
+      113,
+      113
+    ],
+    "measured_record_heap_request_bytes": 65575,
+    "actual_allocator_cut_ids_each_cycle": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "gui_peak_commit_bytes": 13606912,
+    "gui_observation_counter": 34,
+    "gui_counter_is_distinct_case_count": false,
+    "actual_log_lines": [
+      "2026-11-13T07:39:05.6399302Z Helper record heap request: 65575 bytes\r",
+      "2026-11-13T07:39:05.6399848Z Helper post-admission allocator cut: 0 retained and retired\r",
+      "2026-11-13T07:39:05.6400512Z Helper post-admission allocator cut: 1 retained and retired\r",
+      "2026-11-13T07:39:05.6401172Z Helper post-admission allocator cut: 2 retained and retired\r",
+      "2026-11-13T07:39:05.6401809Z Helper post-admission allocator cut: 3 retained and retired\r",
+      "2026-11-13T07:39:05.6403572Z Application handle balance: 113 -> 113\r",
+      "2026-11-13T07:39:05.6405400Z Helper record heap request: 65575 bytes\r",
+      "2026-11-13T07:39:05.6405948Z Helper post-admission allocator cut: 0 retained and retired\r",
+      "2026-11-13T07:39:05.6406627Z Helper post-admission allocator cut: 1 retained and retired\r",
+      "2026-11-13T07:39:05.6407355Z Helper post-admission allocator cut: 2 retained and retired\r",
+      "2026-11-13T07:39:05.6407985Z Helper post-admission allocator cut: 3 retained and retired\r",
+      "2026-11-13T07:39:05.6409746Z Application handle balance: 113 -> 113\r",
+      "2026-11-13T07:39:05.6411363Z Helper record heap request: 65575 bytes\r",
+      "2026-11-13T07:39:05.6411912Z Helper post-admission allocator cut: 0 retained and retired\r",
+      "2026-11-13T07:39:05.7054429Z Helper post-admission allocator cut: 1 retained and retired\r",
+      "2026-11-13T07:39:05.7056234Z Helper post-admission allocator cut: 2 retained and retired\r",
+      "2026-11-13T07:39:05.7056954Z Helper post-admission allocator cut: 3 retained and retired\r",
+      "2026-11-13T07:39:05.7058783Z Application handle balance: 113 -> 113\r",
+      "2026-11-13T07:39:05.7059624Z Windows volume application checks: 563; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\r",
+      "2026-11-13T07:39:06.7404645Z GUI command: 101\r",
+      "2026-11-13T07:39:06.7405539Z GUI command: 102\r",
+      "2026-11-13T07:39:06.7406809Z GUI command: 103\r",
+      "2026-11-13T07:39:06.7407656Z GUI command: 104\r",
+      "2026-11-13T07:39:06.7408094Z GUI command: 105\r",
+      "2026-11-13T07:39:06.7408574Z GUI command: 106 (asynchronous exit)\r",
+      "2026-11-13T07:39:06.7409130Z GUI child peak commit: 13606912 bytes\r",
+      "2026-11-13T07:39:06.7410121Z Windows volume application checks: 34; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\r"
+    ]
+  },
+  "prior_failed_fixture": {
+    "source": "f4729f17f454a0cf38a35f208b1bf6cea58c09ed",
+    "run": 43386158203,
+    "job": 131755040531,
+    "error": "post-admission allocator cut was not reached/propagated",
+    "owner_executed": false
+  },
+  "core_full_matrix": "Still running at evidence creation; no completion claim.",
+  "owner_executed": false,
+  "gpu_executed": false,
+  "product_runtime_changed": false,
+  "remaining": "Persistent provenance, spending/debt, mapping/authorization and automatic learner; full product remains unfinished."
+}

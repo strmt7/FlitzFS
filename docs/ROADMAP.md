@@ -831,3 +831,14 @@ assertions and a healthy owner GUI workflow; see
 the separately identified post-admission allocator-failure coverage gap, including
 valid-looking unpublished advice. Persistent workload-derived credit and the
 remaining full-product packages still require implementation.
+
+## Trusted workload accounting preparation
+
+L01 now adds an explicit persistent native counter of accepted logical write
+input, atomically selected with file state. This separates write provenance
+from namespace generations and rebuildable learned statistics. Default legacy
+formats stay unchanged; see [WORKLOAD_ACCOUNTING.md](WORKLOAD_ACCOUNTING.md).
+The publishing source must pass its new interruption, continuation, saturation,
+malformed-input and existing full regression gates. Persisted spending/debt,
+advice-loss baselines, durable mapping, helper authorization, the governor and
+automatic learning remain unfinished. No full-product package is complete.
