@@ -1,6 +1,8 @@
 # Persistent write-workload accounting (experimental)
 
-13 November 2026. Implementation and tests require publishing-source qualification.
+13 November 2026. The counter at 14cfb12 passed all 13 core/mounted jobs and
+3,945 assertions in each examined Windows/Linux/sanitizer workload log.
+[Source-bound results](evidence/workload-accounting-14cfb12.json).
 This is a trusted accounting foundation for future rewrite credit, not a complete
 credit governor, learned policy or autonomous executor.
 
@@ -96,3 +98,11 @@ a derived maximum of 59 calls. The correction asserts that source-derived bound
 and still faults every observed call. This changes no product or process/time
 limit. Failed jobs remain recorded in the source manifest; successful publishing-
 source fault execution is still required.
+
+## Managed/helper consumer
+
+[WORKLOAD_HELPER.md](WORKLOAD_HELPER.md) adds explicit managed activation and
+no-I/O scalar diagnostics. NEW helper volumes activate before exposure; legacy
+opens and default native initialization stay unchanged. This integration needs
+its own publishing-source VM qualification. It is not a spent-credit ledger or
+automatic optimizer.

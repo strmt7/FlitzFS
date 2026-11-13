@@ -83,6 +83,7 @@ struct VolumeModelQualification {
   }
   static void close(VolumeModel& m,const NativeFileHandle& f){m.session_->close(f);}
   static NativeSessionStats stats(const VolumeModel& m){return m.session_->stats();}
+  static NativeWorkloadInfo workload(const VolumeModel& m){return m.session_->workload_info();}
 };
 }
 using namespace flitzfs;
@@ -150,7 +151,10 @@ void advice_application_tests() {
       reinterpret_cast<const std::byte*>(text.data()+text.size()));
   {
     VolumeModel model;rejects([&]{model.maintain_optimization_state();},"uncreated advice maintenance accepted");
-    model.create();model.create_text("keep.txt",text);
+    model.create();
+    require(Q::workload(model)==NativeWorkloadInfo{true,0},"helper did not activate before exposure");
+    model.create_text("keep.txt",text);
+    require(Q::workload(model)==NativeWorkloadInfo{true,text.size()},"helper did not count actual saved bytes");
     const auto baseline=model.view();const auto handle=Q::open_cleaned(model);
     {
       const auto area=Q::current(model);const auto bytes=Q::bytes(area);
@@ -181,9 +185,12 @@ void advice_application_tests() {
       require(model.maintain_optimization_state()==Result::unavailable&&
           model.view().allocated==allocated&&model.optimization_info().binding_attempts==
             NativeFileSession::max_optimization_bindings,"exhausted helper retried/leaked a new area");
+    require(Q::workload(model)==NativeWorkloadInfo{true,text.size()},"advice loss or maintenance minted input");
     require(!model.optimize()&&model.view().allocated==allocated&&!model.view().fenced,
         "unavailable advice started image work or fenced data");
     model.create_text("after.txt","still writable");
+    require(Q::workload(model)==NativeWorkloadInfo{true,text.size()+std::string_view("still writable").size()},
+        "helper advice exhaustion lost actual input");
     require(model.read_text("after.txt")=="still writable"&&model.read_text("keep.txt")==text&&
         Q::read(model,handle)==expected,"advice exhaustion stopped real file access");
     Q::close(model,handle);model.discard();
@@ -333,18 +340,25 @@ void model_tests() {
     std::string data(8192,'A');for(std::size_t i=0;i<data.size();i+=37)data[i]='B';
     model.create_text("first.txt",data);
     require(model.read_text("first.txt")==data,"Real volume text readback");
+    const auto written=VolumeModelQualification::workload(model);
+    require(written==NativeWorkloadInfo{true,data.size()},"helper foreground input provenance");
     rejects([&]{model.create_text("first.txt","replacement");},"Existing file overwritten");
     require(model.read_text("first.txt")==data,"Duplicate create changed bytes");
+    require(VolumeModelQualification::workload(model)==written,"rejected helper save minted input");
     rejects([&]{model.create_text("../outside","x");},"Traversal accepted");
     rejects([&]{model.create_text("large",std::string(VolumeModel::text_limit+1,'x'));},"Editor cap accepted");
     (void)model.optimize();
     require(model.read_text("first.txt")==data && !model.view().fenced,"Optimization changed file");
     const auto allocated=model.view().allocated;
     require(!model.optimize() && model.view().allocated==allocated,"Unchanged optimization repeated or leaked");
+    require(VolumeModelQualification::workload(model)==written,"helper optimization minted/reset input");
     model.create_text("empty.txt","");require(model.read_text("empty.txt").empty(),"Empty file readback");
+    require(VolumeModelQualification::workload(model)==written,"helper empty file minted input");
     const std::string unicode="UTF-8: \xCE\xB1\xCE\xB2 \xF0\x9F\x9A\x80";
     model.create_text("utf8.txt",unicode);
     require(model.read_text("utf8.txt")==unicode,"UTF-8 byte preservation");
+    require(VolumeModelQualification::workload(model)==NativeWorkloadInfo{true,data.size()+unicode.size()},
+        "helper UTF-8 byte count mismatch");
     model.discard();require(!model.ready(),"Discard retained engine");
   }
   advice_application_tests();

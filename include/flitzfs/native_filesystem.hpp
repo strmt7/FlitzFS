@@ -227,6 +227,8 @@ class NativeFilesystemWriter final {
   // Start at zero without crediting old files. Commit through the same
   // replicated metadata transaction. Repeated enable never resets the count.
   NativeFsCommit enable_workload_accounting();
+  // Cached diagnostic only; disabled after move/fencing. No I/O/allocation.
+  NativeWorkloadInfo workload_info() const noexcept;
   // Object writer must already hold its qualified backend lease/recovery fence.
   // Ordinary admission refuses pending/unlinked state. A live old file context
   // must never be silently treated as closed.

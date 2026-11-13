@@ -230,6 +230,16 @@ NativeVolumeHeadInfo NativeFileSession::volume_info() const {
   if(!self.volume || !self.volume->head)fail(E::invalid_options,"session has no volume authority");
   return self.volume->head->info();
 }
+NativeWorkloadInfo NativeFileSession::enable_workload_accounting() {
+  auto& self=ready();
+  if(!self.volume||!self.volume->head||self.volume->pending||self.recompression)
+    fail(E::invalid_options,"workload activation requires a managed quiescent control opportunity");
+  self.writer.enable_workload_accounting();
+  return self.writer.workload_info(); // No post-publication allocation or I/O.
+}
+NativeWorkloadInfo NativeFileSession::workload_info() const noexcept {
+  return poisoned()?NativeWorkloadInfo{}:impl_->writer.workload_info();
+}
 NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
   NativeOptimizationInfo out;
   if(!impl_||!impl_->volume)return out;

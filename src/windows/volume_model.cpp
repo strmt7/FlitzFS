@@ -30,6 +30,8 @@ void VolumeModel::create() {
   auto advice=domain->create_store(area_capacity);
   auto session=std::make_unique<NativeFileSession>(NativeFileSession::create_volume(
       head,fresh_identity(),image,fresh_identity(),{StoreCompressionMode::automatic,3,false}));
+  const auto workload=session->enable_workload_accounting();
+  require(workload.enabled&&!workload.committed_input_bytes,"New workload accounting failed");
   const auto advisory=session->create_optimization_area(advice,1);
   require(advisory.phase==NativeOptimizationPhase::ready,"Optimization area creation failed");
   domain->verify_resident();

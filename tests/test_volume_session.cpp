@@ -298,6 +298,87 @@ void feedback_lifetime(bool compact) {
   }
 }
 
+void workload_control(bool compact) {
+  {
+    auto backing=ram(compact);
+    auto owner=NativeFileSession::create(NativeFilesystemWriter::initialize(
+        ObjectStoreWriter::create(backing,id(30))));
+    reset(backing);
+    rejects_code([&]{owner.enable_workload_accounting();},NativeSessionErrorCode::invalid_options);
+    require(backing->calls==0&&backing->read_calls==0&&!owner.workload_info().enabled&&
+        !owner.poisoned(),"unmanaged activation touched backing");
+  }
+  {
+    Fixture failed(compact);
+    const auto acknowledged=failed.source->stable;
+    reset(failed.source);failed.source->fail_at=0;
+    rejects([&]{failed.session.enable_workload_accounting();});
+    require(failed.session.poisoned()&&!failed.session.workload_info().enabled&&
+        failed.source->stable==acknowledged,"failed activation exposed workload or changed acknowledged source");
+    expected(view(image(failed.source->stable,compact?4096:65536)));
+  }
+  Fixture f(compact);
+  reset(f.source);reset(f.head);
+  require(!f.session.workload_info().enabled&&f.source->read_calls==0&&f.source->calls==0&&
+      f.head->read_calls==0&&f.head->calls==0,"legacy workload diagnostic did I/O");
+  const auto contexts=f.session.stats();
+  const auto enabled=f.session.enable_workload_accounting();
+  require(enabled==NativeWorkloadInfo{true,0}&&f.session.stats().contexts==contexts.contexts&&
+      f.session.stats().cleaned==contexts.cleaned,"activation credited history or changed contexts");
+  auto pinned=f.session.snapshot();
+  const auto activated=f.source->stable;
+  reset(f.source);reset(f.head);
+  require(f.session.workload_info()==enabled&&f.source->read_calls==0&&f.source->calls==0&&
+      f.head->read_calls==0&&f.head->calls==0,"enabled diagnostic queried backing");
+  require(f.session.enable_workload_accounting()==enabled&&f.source->calls==0&&
+      f.source->stable==activated,"repeated managed activation wrote/reset state");
+  const auto first=data(8,73);
+  f.session.write(f.rw,0,first);f.session.flush(f.rw);
+  require(f.session.workload_info()==NativeWorkloadInfo{true,8}&&
+      f.session.read(f.late,0,8)==first&&pinned.workload_info()==enabled,
+      "live input or pinned workload changed incorrectly");
+  auto staged=ram(compact);
+  f.session.begin_recompression(staged,id(4),{},StoreCheckpointOptions{compact});
+  const auto calls=f.source->calls,reads=f.source->read_calls,head_calls=f.head->calls;
+  rejects_code([&]{f.session.enable_workload_accounting();},NativeSessionErrorCode::invalid_options);
+  require(f.source->calls==calls&&f.source->read_calls==reads&&f.head->calls==head_calls&&
+      staged->calls==0&&!f.session.poisoned(),"staged activation touched backing or fenced data");
+  f.session.cancel_recompression();
+  const auto original=f.source->stable;
+  f.maintain();
+  require(f.session.workload_info()==NativeWorkloadInfo{true,8}&&
+      f.selected().filesystem().workload_info()==NativeWorkloadInfo{true,8}&&
+      f.source->stable==original,"handoff lost/minted input or changed source");
+  f.session.write(f.late,0,data(2,74));
+  require(f.session.workload_info()==NativeWorkloadInfo{true,10}&&
+      f.session.read(f.ro,0,2)==data(2,74),"cleaned-handle write lost input after handoff");
+  {
+    auto moved=std::move(f.session);
+    require(!f.session.workload_info().enabled&&moved.workload_info()==NativeWorkloadInfo{true,10},
+        "moved session exposed or lost workload");
+    moved.cleanup(f.rw,false);moved.close(f.rw);
+    moved.cleanup(f.ro,false);moved.close(f.ro);moved.close(f.late);
+    require(moved.stats().contexts==0&&moved.workload_info()==NativeWorkloadInfo{true,10},
+        "context retirement minted input");
+  }
+  auto resumed=NativeFileSession::resume_volume(f.head,id(90),2,f.resolver());
+  require(resumed.workload_info()==NativeWorkloadInfo{true,10}&&
+      resumed.enable_workload_accounting()==NativeWorkloadInfo{true,10},"managed reopen reset input");
+  auto failed_advice=ram(compact);failed_advice->fail_at=0;
+  require(resumed.create_optimization_area(failed_advice).phase==NativeOptimizationPhase::unavailable,
+      "advice fault not reached");
+  const auto advice_calls=failed_advice->calls,advice_reads=failed_advice->read_calls;
+  const auto handle=resumed.open("d/file",{true,true,false},NativeOpenKind::file);
+  resumed.write(handle,0,data(3,75));resumed.flush(handle);
+  require(resumed.workload_info()==NativeWorkloadInfo{true,13}&&
+      failed_advice->calls==advice_calls&&failed_advice->read_calls==advice_reads&&
+      resumed.read(handle,0,3)==data(3,75),"advice failure blocked input or normal I/O queried advice");
+  resumed.cleanup(handle,false);resumed.close(handle);
+  resumed.fence();
+  require(!resumed.workload_info().enabled,"fenced session exposed workload authority");
+  require(f.selected().filesystem().workload_info()==NativeWorkloadInfo{true,13},
+      "independent CPU selection lost committed input");
+}
 void invariants(bool compact){
   Fixture f(compact);f.expected_session();auto pinned=f.session.snapshot();const auto original=f.source->live;
   const auto before=f.session.stats();const auto alias=f.rw;
@@ -459,7 +540,7 @@ void recovery_faults(bool compact) {
 int main(int argc,char** argv){try{
   if(argc!=2)throw std::runtime_error("volume-session phase required");const std::string_view phase=argv[1];
   if(phase=="--invariants")for(bool compact:{false,true}) {
-    invariants(compact);staged_recompression(compact);idle_recompression(compact);staged_matches(compact);feedback_lifetime(compact);
+    workload_control(compact);invariants(compact);staged_recompression(compact);idle_recompression(compact);staged_matches(compact);feedback_lifetime(compact);
   }
   else if(phase=="--maintenance-4096")maintenance_faults(true);
   else if(phase=="--maintenance-65536")maintenance_faults(false);

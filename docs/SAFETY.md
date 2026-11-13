@@ -925,3 +925,13 @@ wrap or block ordinary writes. Independently recovered data and count must
 belong to the same selected transaction. Preserve explicit capability admission,
 source-copy invariance and all existing bounds. Tests model persistence failures
 in disposable VM memory, not owner faults or physical power-loss survival.
+
+## Managed/helper workload consumer
+
+[WORKLOAD_HELPER.md](WORKLOAD_HELPER.md) confines activation to explicit healthy
+managed control without pending/staged maintenance and NEW helper creation
+before exposure. No diagnostic allocation/I/O follows successful publication.
+Moved/fenced owners expose no usable counter. Preserve live contexts, legacy
+admission and all existing provider/process limits. Qualification of the new
+integration is required before owner execution; no automatic credit, mount,
+driver action or GPU operation is enabled.

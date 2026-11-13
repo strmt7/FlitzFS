@@ -224,3 +224,10 @@ now prepares persistent provenance for future background rewrite credit. It
 counts accepted input in the existing data transaction and survives CPU reopen
 and image copying; default legacy behavior is unchanged. Publishing-source
 qualification is pending. It does not yet authorize or schedule an optimizer.
+
+The underlying write-workload counter at 14cfb12 passed its full 13-job matrix
+and 3,945 workload assertions per examined platform log. The next
+[managed/helper consumer](docs/WORKLOAD_HELPER.md) activates it during NEW helper
+volume creation and preserves it across live handles, handoff and reopen.
+That integration requires new-source qualification; automatic spending/learning
+and useful GPU gains remain unfinished.
