@@ -1,5 +1,5 @@
 #include "flitzfs/gpu_lz4_layout.hpp"
-#include "rocm_compile/hipcomp_lz4_contract.hpp"
+#include "rocm_compile/hipcomp_lz4_api.hpp"
 #include <array>
 #include <bit>
 #include <cstring>
@@ -48,6 +48,43 @@ void corrupt(const Layout& p) {
   }
   require(std::bit_cast<Words>(p)==original,"Pure admission changed source metadata");
 }
+unsigned calls32=0,calls64=0;
+void stub32(unsigned char* output,u32 allocated,Layout p) {
+  require(allocated==p.total_bytes && valid_layout(p,allocated),"Typed wave32 arguments");
+  output[0]=32;++calls32;
+}
+void stub64(unsigned char* output,u32 allocated,Layout p) {
+  require(allocated==p.total_bytes && valid_layout(p,allocated),"Typed wave64 arguments");
+  output[0]=64;++calls64;
+}
+void kernel_api(const Layout& p) {
+  const auto api=make_kernel_api(stub32,stub64);
+  require(compatible_kernel_api(api),"Compatible private kernel API");
+  require(select_kernel(api,32)==stub32 && select_kernel(api,64)==stub64,"Typed entry selection");
+  unsigned char output=0;
+  select_kernel(api,32)(&output,p.total_bytes,p);
+  require(output==32 && calls32==1 && calls64==0,"CPU wave32 argument forwarding");
+  select_kernel(api,64)(&output,p.total_bytes,p);
+  require(output==64 && calls32==1 && calls64==1,"CPU wave64 argument forwarding");
+  for(const u32 width:{0U,1U,31U,33U,63U,65U,0xffffffffU})
+    require(!select_kernel(api,width),"Unknown wave selected");
+  const std::array<u32 KernelApi::*,8> fields{
+    &KernelApi::size_bytes,&KernelApi::layout_bytes,&KernelApi::allocation_bytes,
+    &KernelApi::chunk_bytes,&KernelApi::chunks,&KernelApi::table_entry_bytes,
+    &KernelApi::output_guard_bytes,&KernelApi::reserved};
+  for(const auto field:fields)for(unsigned bit=0;bit<32;++bit) {
+    auto changed=api;changed.*field^=u32{1}<<bit;
+    require(!compatible_kernel_api(changed) && !select_kernel(changed,32) &&
+        !select_kernel(changed,64),"Incompatible private API admitted");
+  }
+  for(unsigned missing=0;missing<3;++missing) {
+    auto changed=api;
+    if(missing!=1)changed.wave32=nullptr;
+    if(missing!=0)changed.wave64=nullptr;
+    require(!compatible_kernel_api(changed) && !select_kernel(changed,32) &&
+        !select_kernel(changed,64),"Missing private kernel entry admitted");
+  }
+}
 void geometry() {
   for(const u32 wave:{32U,64U})for(u32 count=1;count<=8;++count) {
     require(valid_geometry(wave,wave,wave,1,1,count,1,1,count),"Valid one-wave geometry refused");
@@ -88,6 +125,8 @@ int main() {
     auto extreme=admit(maximum);extreme.total_bytes=allocation_limit+1;
     require(!valid_layout(extreme,extreme.total_bytes),"Oversized slab");
     geometry();
+    const auto api_layout=admit(maximum);
+    kernel_api(api_layout);
     std::cout<<"LZ4 entry admission: "<<checks<<" checks, "<<shapes<<" planner shapes, "
         <<mutations<<" field refusals, "<<geometries<<" geometry groups; CPU only\n";
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

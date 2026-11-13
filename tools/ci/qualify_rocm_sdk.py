@@ -114,7 +114,10 @@ def main():
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--hipcomp-source",type=Path,help="Optional reviewed codec checkout; offline object only")
     parser.add_argument("--hipcomp-native-sync",action="store_true")
+    parser.add_argument("--hipcomp-link-candidate",action="store_true")
     args=parser.parse_args()
+    require(not args.hipcomp_link_candidate or args.hipcomp_native_sync,
+        "private link candidate requires native-sync and original candidate gates")
     require(not args.hipcomp_native_sync or args.hipcomp_source is not None,
         "native-sync candidate requires the original pinned candidate too")
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve()
@@ -256,9 +259,12 @@ def main():
         build=root/"build"
         cmake=shutil.which("cmake")
         require(bool(cmake),"verified job-local CMake must be prepared first")
-        run(bounds,[cmake,"-S",str(REPO/"tests/rocm_compile"),"-B",str(build),"-A","x64",
-            "-DFLITZFS_ROCM_SDK="+str(sdk),"-DFLITZFS_ROCM_KERNEL_OBJECT="+str(obj)],
-            report,"current-sdk-host-api-and-link-configure")
+        configure=[cmake,"-S",str(REPO/"tests/rocm_compile"),"-B",str(build),"-A","x64",
+            "-DFLITZFS_ROCM_SDK="+str(sdk),"-DFLITZFS_ROCM_KERNEL_OBJECT="+str(obj)]
+        if args.hipcomp_link_candidate:
+            configure.extend(["-DFLITZFS_ROCM_LZ4_OBJECT="+str(root/"hipcomp-bounded-entry/hipcomp_lz4.obj"),
+                "-DFLITZFS_ROCM_LZ4_SOURCE="+str(root/"hipcomp-bounded-entry/compile-input/src/flitzfs_lz4_module.cpp")])
+        run(bounds,configure,report,"current-sdk-host-api-and-link-configure")
         run(bounds,[cmake,"--build",str(build),"--config","Release","--parallel","2"],
             report,"current-sdk-host-api-and-kernel-module-link")
         from_path=REPO/"tools/ci"
@@ -288,6 +294,32 @@ def main():
         report["runtime_exports"]=dict(runtime=runtime.name,bytes=runtime.stat().st_size,sha256=digest(runtime),
             required=binding_rows[0],direct_function_count=len(exports),missing=missing,loaded=False)
         require(not missing,"SDK runtime lacks required direct function exports: "+repr(missing))
+        if args.hipcomp_link_candidate:
+            from hipcomp_lz4_entry import unchanged
+            from qualify_warp_sync import regular_info
+            private_module=build/"Release/flitzfs_rocm_lz4_candidate.dll"
+            regular_info(private_module,root,32*1024*1024)
+            imports,delayed=pe_import_names(private_module.read_bytes())
+            expected_runtime=runtime_name.group(1)
+            require(bool(imports) and not delayed and set(imports)<={expected_runtime,"kernel32.dll"},
+                "private candidate module import closure")
+            from hip_runtime_exports import pe_function_exports
+            actual_exports=pe_function_exports(private_module.read_bytes())
+            require(actual_exports=={"flitzfs_candidate_lz4_api"},"private candidate exact direct API export")
+            assets=report["hipcomp_bounded_entry"]["bounded_entry_assets"]
+            unchanged(REPO,assets)
+            for asset in assets:
+                path=root/"hipcomp-bounded-entry/compile-input"/asset["target"]
+                regular_info(path,root,1024*1024)
+                require(path.stat().st_size==asset["bytes"] and digest(path)==asset["sha256"],
+                    "private link changed canonical source")
+            candidate_object=root/"hipcomp-bounded-entry/hipcomp_lz4.obj"
+            require(digest(candidate_object)==report["hipcomp_bounded_entry"]["object"]["sha256"],
+                "private link changed qualified candidate object")
+            report["hipcomp_link_candidate"]=dict(complete=True,bytes=private_module.stat().st_size,
+                sha256=digest(private_module),imports=sorted(set(imports)),delay_imports=False,
+                exports=sorted(actual_exports),loaded=False,gpu_executed=False,
+                linked_into_product=False,in_worker_bundle=False,exported_as_artifact=False)
         api_probe=build/"Release/flitzfs_rocm_api_probe.exe"
         report["api_probe"]=dict(bytes=api_probe.stat().st_size,sha256=digest(api_probe),
             imports=audit_binary(api_probe.read_bytes()))

@@ -63,6 +63,22 @@ target_include_directories(flitzfs_rocm_kernels PRIVATE "${CMAKE_CURRENT_SOURCE_
 target_link_libraries(flitzfs_rocm_kernels PRIVATE "${FLITZFS_ROCM_SDK}/lib/amdhip64.lib")
 target_compile_options(flitzfs_rocm_kernels PRIVATE /W4 /permissive-)
 
+# Separate manual link-only fixture. It is never loaded or added to the worker bundle.
+set(FLITZFS_ROCM_LZ4_OBJECT "" CACHE FILEPATH "Qualified private byte-entry object")
+set(FLITZFS_ROCM_LZ4_SOURCE "" CACHE FILEPATH "Qualified staged private module source")
+if(FLITZFS_ROCM_LZ4_OBJECT OR FLITZFS_ROCM_LZ4_SOURCE)
+  if(NOT EXISTS "${FLITZFS_ROCM_LZ4_OBJECT}" OR NOT EXISTS "${FLITZFS_ROCM_LZ4_SOURCE}")
+    message(FATAL_ERROR "Both qualified byte-entry object and private module source are required")
+  endif()
+  get_filename_component(lz4_source_dir "${FLITZFS_ROCM_LZ4_SOURCE}" DIRECTORY)
+  set_source_files_properties("${FLITZFS_ROCM_LZ4_OBJECT}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+  add_library(flitzfs_rocm_lz4_candidate SHARED "${FLITZFS_ROCM_LZ4_OBJECT}" "${FLITZFS_ROCM_LZ4_SOURCE}")
+  target_compile_features(flitzfs_rocm_lz4_candidate PRIVATE cxx_std_20)
+  target_include_directories(flitzfs_rocm_lz4_candidate PRIVATE "${lz4_source_dir}")
+  target_link_libraries(flitzfs_rocm_lz4_candidate PRIVATE "${FLITZFS_ROCM_SDK}/lib/amdhip64.lib")
+  target_compile_options(flitzfs_rocm_lz4_candidate PRIVATE /W4 /permissive-)
+endif()
+
 # The SDK worker and its import closure stay in the disposable build fixture.
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 get_filename_component(flitzfs_root "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)

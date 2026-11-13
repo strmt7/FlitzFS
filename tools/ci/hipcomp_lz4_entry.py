@@ -5,13 +5,21 @@ from pathlib import Path
 
 ASSETS = (
     dict(path="tests/rocm_compile/hipcomp_lz4_contract.hpp",
-         target="src/flitzfs_lz4_contract.hpp", bytes=3165,
+         target="src/hipcomp_lz4_contract.hpp", bytes=3165,
          sha256="a99bccffc054b86184b260d7be5e0ad3d7f052afaefb3f069da7a73fa5184f50",
          blob="08907da5c497e2f5cd5e5e4d41e85409f460f884"),
+    dict(path="tests/rocm_compile/hipcomp_lz4_api.hpp",
+         target="src/hipcomp_lz4_api.hpp", bytes=1682,
+         sha256="d6ba6d52fbabaddf736b7ba5de70c7f9d9b055c1c0ca68ce2074f360b1f65bbf",
+         blob="86d7509852454d2e4fec2001c8d9d0ddbfe2734f"),
+    dict(path="tests/rocm_compile/hipcomp_lz4_module.cpp",
+         target="src/flitzfs_lz4_module.cpp", bytes=526,
+         sha256="c1d17f951356d637260588bd2046e25cdde38373544010aa143beac8662b06b7",
+         blob="2bf2cc5344f188b4865e362ee4b5a0d885ea4540"),
     dict(path="tests/rocm_compile/hipcomp_lz4_entry.hip",
-         target="src/lowlevel/FlitzFsLz4Candidate.hip", bytes=1860,
-         sha256="b6c5155c9d19ae8826e40bfaba8275202f6e4e4e7d4f714f854b758a22a1cc88",
-         blob="af9384f9a1f099d3791943d1f4c72b343efbf545"),
+         target="src/lowlevel/FlitzFsLz4Candidate.hip", bytes=2189,
+         sha256="8c8daf970461a0bad63664af2568d7931c948e043a67a8f891d636afa5b3653c",
+         blob="76612695a2f5c339825124d82ce92231ed77dc79"),
 )
 
 def source_assets(repo: Path):

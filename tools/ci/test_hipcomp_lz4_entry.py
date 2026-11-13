@@ -16,16 +16,16 @@ class EntryAssets(unittest.TestCase):
 
     def test_actual_canonical_assets(self):
         values=source_assets(REPO)
-        self.assertEqual(len(values),2)
+        self.assertEqual(len(values),4)
         self.assertEqual([row["path"] for row in values],[row["path"] for row in ASSETS])
-        self.assertEqual(sum(len(row["body"]) for row in values),5025)
+        self.assertEqual(sum(len(row["body"]) for row in values),7562)
 
     def test_new_staging_and_exact_records(self):
         with tempfile.TemporaryDirectory(prefix="flitzfs-lz4-entry-") as name:
             root=self.fixture(name)
             entry,records,proof=stage_entry(REPO,root,[],68*1024)
-            self.assertEqual(entry,root/ASSETS[1]["target"])
-            self.assertEqual(len(records),2)
+            self.assertEqual(entry,root/ASSETS[-1]["target"])
+            self.assertEqual(len(records),4)
             for spec in source_assets(REPO):
                 self.assertEqual((root/spec["target"]).read_bytes(),spec["body"])
             unchanged(REPO,proof)

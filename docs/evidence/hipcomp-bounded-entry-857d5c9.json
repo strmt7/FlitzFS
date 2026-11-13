@@ -1,0 +1,234 @@
+{
+  "experimental": true,
+  "source": "857d5c9bfc5595edded8b36fb0d3c20c4f8a8dff",
+  "core": {
+    "run": 43469478989,
+    "jobs_passed": 13,
+    "jobs_total": 13
+  },
+  "sdk": {
+    "run": 43469479896,
+    "job": 132037288610,
+    "artifact": {
+      "id": 14059854097,
+      "bytes": 101450,
+      "sha256": "550ed3d1f17e1c3445d784ade1ccd430111360190e3a80ea1667b48b2a75a4fa"
+    },
+    "qualification": {
+      "entry": "flitzfs-rocm-sdk/qualification.json",
+      "sha256": "fdaba248380bf688737b38e354cf7b6793a4b07ece495b6bcea8ed8d21e66d59",
+      "commit": "857d5c9bfc5595edded8b36fb0d3c20c4f8a8dff",
+      "complete": true,
+      "bounded": {
+        "complete": true,
+        "control_commit": "857d5c9bfc5595edded8b36fb0d3c20c4f8a8dff",
+        "variant": "bounded-native-wave-entry",
+        "object": {
+          "bytes": 32302,
+          "sha256": "f942f9c20e7ea027d43df2570f532c2e511684e88b5ef2d430fe8fd5a9cd8572"
+        },
+        "dependencies": {
+          "bytes": 150822,
+          "sha256": "298924aa087308998cbde1673c001ce8802ca1f8701a571c793bf59e7f08e5d9"
+        },
+        "entry_object": {
+          "bytes": 23792,
+          "sha256": "829a9af86b03c869805c489065f6dc63a64752b13eb4cdf2a99f9f48a4bd3406",
+          "offset": 5737,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "bounded_entry_assets": [
+          {
+            "path": "tests/rocm_compile/hipcomp_lz4_contract.hpp",
+            "target": "src/flitzfs_lz4_contract.hpp",
+            "bytes": 3165,
+            "sha256": "a99bccffc054b86184b260d7be5e0ad3d7f052afaefb3f069da7a73fa5184f50",
+            "blob": "08907da5c497e2f5cd5e5e4d41e85409f460f884",
+            "physical": {
+              "physical_sha256": "c7a371efd618481e05d4188141c05af830c76303320446107caa16bfe9705aba",
+              "physical_bytes": 3234,
+              "representation": "crlf-checkout"
+            }
+          },
+          {
+            "path": "tests/rocm_compile/hipcomp_lz4_entry.hip",
+            "target": "src/lowlevel/FlitzFsLz4Candidate.hip",
+            "bytes": 1860,
+            "sha256": "b6c5155c9d19ae8826e40bfaba8275202f6e4e4e7d4f714f854b758a22a1cc88",
+            "blob": "af9384f9a1f099d3791943d1f4c72b343efbf545",
+            "physical": {
+              "physical_sha256": "4c52637e3fbd52c8619b70e499efea8994031c550937e65a99cd931550517274",
+              "physical_bytes": 1896,
+              "representation": "crlf-checkout"
+            }
+          }
+        ],
+        "bounded_entry_dependencies": [
+          {
+            "path": "src/flitzfs_lz4_contract.hpp",
+            "observed": true
+          },
+          {
+            "path": "src/LZ4Kernels.cuh",
+            "observed": true
+          },
+          {
+            "path": "src/lowlevel/FlitzFsLz4Candidate.hip",
+            "observed": true
+          }
+        ],
+        "selected_header_dependency": true,
+        "physical_inputs_unchanged": true,
+        "cpu_index_oracle": {
+          "source_bytes": 5813,
+          "source_sha256": "52a35639711622d21477c476796e83c6738d6334c847203f455bc2a3a1ae09fa",
+          "executable_sha256": "29dee0b32b47ca97baa88ec79acbdcd064fcc25d3950798ea22e92bd2271d46b",
+          "imports": {
+            "format": "PE32+",
+            "architecture": "AMD64",
+            "os_imports": [
+              "kernel32.dll"
+            ],
+            "delay_imports": false
+          },
+          "observed": {
+            "old_future_admissions": 65523,
+            "valid_reads": 131046,
+            "invalid_rejections": 196569,
+            "gpu_executed": false
+          },
+          "scope": "Actual extracted integer/index functions; not GPU synchronization or codec execution"
+        },
+        "gpu_executed": false,
+        "module_loaded": false,
+        "linked_into_product": false
+      },
+      "api": {
+        "bytes": 286208,
+        "sha256": "d8fd308d27a070c87a1f585fab20052f2ca8f8dc7e0a24f378cceaaf221f0594",
+        "imports": {
+          "format": "PE32+",
+          "architecture": "AMD64",
+          "os_imports": [
+            "kernel32.dll"
+          ],
+          "delay_imports": false
+        },
+        "qualification": {
+          "checks": 235,
+          "priority_cases": 12,
+          "priority_query_limit": 2,
+          "identity_before_selection": true,
+          "missing_exports_refused": 11,
+          "hip_runtime_loaded": false,
+          "gpu_executed": false,
+          "complete": true
+        }
+      },
+      "priority": {
+        "old": {
+          "category": 1179844613,
+          "stage": "stream_priorities",
+          "priority_queries": 1,
+          "hip_runtime_loaded": false,
+          "gpu_executed": false,
+          "complete": false
+        },
+        "current": {
+          "category": 1179844611,
+          "stage": "stream_priorities",
+          "priority_queries": 2,
+          "hip_runtime_loaded": false,
+          "gpu_executed": false,
+          "complete": true
+        },
+        "complete": true
+      },
+      "workers": {
+        "bundle_verified": true,
+        "missing_bundle_refused": true,
+        "tampered_bundle_refused": true,
+        "invalid_wire_refused": true,
+        "invalid_match_refused": true,
+        "missing_match_runtime_refused": true,
+        "compiler_environment_isolated": true,
+        "system_module_metadata_passed": true,
+        "system_runtime_bad_hash_refused": true,
+        "system_runtime_argument_refused": true,
+        "kernel_only_verified": true,
+        "kernel_only_full_bundle_refused": true,
+        "kernel_only_tamper_refused": true,
+        "driver_wire_refusals": 5,
+        "profile_wire_refused": true,
+        "profile_argument_refused": true,
+        "profile_runtime_refused": true,
+        "exits_confirmed": 20,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "tests": [
+        {
+          "name": "native-sync-source-composition-regressions",
+          "exit_code": 0,
+          "stderr": ".......\r\n----------------------------------------------------------------------\r\nRan 7 tests in 0.012s\r\n\r\nOK\r\n"
+        },
+        {
+          "name": "bounded-entry-source-admission-regressions",
+          "exit_code": 0,
+          "stderr": "............\r\n----------------------------------------------------------------------\r\nRan 12 tests in 0.910s\r\n\r\nOK\r\n"
+        }
+      ]
+    }
+  },
+  "cpu": {
+    "checks_each": 144250,
+    "planner_shapes_each": 65546,
+    "field_refusals_each": 12474,
+    "geometry_groups_each": 176,
+    "configurations": [
+      {
+        "name": "Windows native",
+        "artifact": 14060811354,
+        "sha256": "3cf0b2cd7325a1883b23f326c8400f361c443393a95e1a02376cd2c054fdf85b",
+        "cases": 141
+      },
+      {
+        "name": "Linux codecs",
+        "artifact": 14060411432,
+        "sha256": "bf201d12bdb92cdb19afc1e361dd4a4ebaa611056fef15f047be714007215f92",
+        "cases": 122
+      },
+      {
+        "name": "Windows raw",
+        "artifact": 14061245309,
+        "sha256": "fdee0ab14ef99b42075b260ba89e92ff3b088b8f8fa16cdb860339914001cd1d",
+        "cases": 126
+      },
+      {
+        "name": "Linux raw",
+        "artifact": 14061300491,
+        "sha256": "bcad1b796ff8d007ed1d84d52f67ad4f1549eca0f68f0854254cc1a7a8d256e8",
+        "cases": 122
+      },
+      {
+        "name": "ASan UBSan",
+        "artifact": 14060681796,
+        "sha256": "5cfd9557d83e2c3d4023fe132b7721294f23c45f9985dbcc90af1f2eee81708b",
+        "cases": 122
+      }
+    ]
+  },
+  "compiled_wave_scope": {
+    "target": "gfx1100",
+    "wave32_function_bytes": 17532,
+    "wave64_function_bytes": 4,
+    "scope": "Observed native symbols; wave64 folds to refusal on this compile target. No hardware execution."
+  },
+  "interpretation": "CPU admission and actual offline object evidence only. No module loading, actual GPU compression output, independent GPU-output interoperability, normal-I/O route, useful gain or D01 closure."
+}
