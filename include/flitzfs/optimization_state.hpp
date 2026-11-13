@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
+#include <optional>
 namespace flitzfs {
 // Experimental advisory state only. Never a decoding dependency or data authority.
 inline constexpr std::uint64_t kOptimizationAreaBytes=2*kStoreCommitUnit;
@@ -17,6 +18,8 @@ struct OptimizationBenchmark {
 struct OptimizationState {
   std::vector<OptimizationProfile> profiles; // Strict (workload_key,strategy) order.
   std::vector<OptimizationBenchmark> benchmarks; // Bounded chronological history.
+  // Capability2 only; controlled settled logical-input position, never a model statistic.
+  std::optional<std::uint64_t> settled_input_bytes;
   bool operator==(const OptimizationState&) const = default;
 };
 enum class OptimizationReadCode { available,absent,invalid,unsupported,foreign_volume,io_failure };
@@ -54,6 +57,19 @@ class OptimizationStateWriter final {
   unsigned remaining_publications() const noexcept;
   bool poisoned() const noexcept;
  private:
+  friend class NativeFileSession;
+  enum class BudgetResult { unchanged,published,deferred };
+  static OptimizationStateWriter create_state(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      OptimizationState,unsigned limit);
+  static OptimizationStateWriter create_budgeted(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      std::uint64_t settled_input,unsigned limit);
+  static OptimizationStateWriter resume_budgeted(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      std::uint64_t sequence,std::uint64_t current_input,unsigned limit);
+  BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input);
+  BudgetResult repair_budgeted(std::uint64_t current_input);
+  bool budget_repair_pending() const noexcept;
+  std::optional<std::uint64_t> budget_settlement() const noexcept;
+  std::optional<std::uint64_t> budget_repair_floor() const noexcept;
   struct Impl;
   explicit OptimizationStateWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

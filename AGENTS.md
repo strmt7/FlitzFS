@@ -1338,3 +1338,19 @@ maintenance before backing I/O; retain contexts, legacy admission and every
 existing resource limit. Cached writer/session diagnostics must allocate/read
 nothing and return disabled after move/fencing. They never authorize credit. Full raw/codec/Windows/native/sanitizer and existing regression gates
 remain required; no owner mount/driver/GPU action follows.
+
+## Funded advisory publication boundary
+
+Read docs/OPTIMIZATION_BUDGET.md before changing funded records/control. Keep
+legacy/default bytes and APIs, explicit capability2 admission, checked native
+input, monotonic settlement and caller-inaccessible debt mutation. Creation
+costs256KiB; changed publication/repair costs128KiB under the experimental input
+policy. A single initial provision belongs only to actual NEW head/image
+creation. Resumes never bootstrap again; degraded/lost state forfeits old
+entitlement and needs fresh committed input before repair/replacement. Cached
+facts only decline work; they never authorize writes. Preserve explicit published/
+unchanged/deferred results, four publications per lease/four bindings, source/
+context/alias retention and no allocation after final publication readback.
+This is not global physical-wear/authentication/automatic-learner qualification.
+New-source fault/parser/lease/raw/codec/Windows/native/sanitizer/helper and all
+mounted regressions remain required; no owner/GPU/driver/mount action follows.

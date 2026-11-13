@@ -105,3 +105,12 @@ retained-area controls; native Windows passed 136 groups and sanitizers 117.
 See [exact evidence](evidence/advisory-rebuild-745d023.json). Mounted jobs are
 existing-path regressions, not mounted use of this new rebuild API. The next
 [helper consumer](ADVISORY_HELPER.md) requires its own publishing-source checks.
+
+## Separate funded replacement
+
+[OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) leaves legacy explicit rebuilding
+unchanged. The separate funded path requires a verified loss baseline and new
+committed input before fresh-area creation. Pending funded repair retains its
+lease and cannot be replaced to evade its charge. Existing four-area/512-KiB
+ceilings, prior-owner retention and alias exclusions remain. Funded publication
+is not permission to rewrite user-data images or launch background/GPU work.

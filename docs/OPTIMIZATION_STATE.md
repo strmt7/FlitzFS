@@ -234,3 +234,13 @@ not supply or reset this value, and normal legacy file paths do not enable it.
 Its new publishing-source qualification is required. This establishes only
 provenance: persisted spent-work/debt, safe lost-advice baselines and a bounded
 authorized consumer must be implemented before it can govern publications.
+
+## Controlled funded records
+
+[OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) defines optional capability2 and
+private journal operations reached only through managed funded control. Ordinary
+legacy bytes/default APIs remain. Healthy resume retains settlement; degraded
+resume withholds policy and requires new input before charged peer-first repair.
+Unavailable state forfeits historical entitlement before new-area admission.
+The new-source suite must qualify this protocol; it does not provide a physical
+mapping, authenticated authority or autonomous learner.

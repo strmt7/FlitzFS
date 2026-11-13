@@ -379,3 +379,11 @@ Managed activation and NEW helper creation now consume existing capability 6
 through the same replicated transaction. This integration adds no new stored
 bytes, magic, capability, advisory schema or product numbering. Cached scalar
 diagnostics do not authorize credit; see [WORKLOAD_HELPER.md](WORKLOAD_HELPER.md).
+
+## Funded advisory capability
+
+[OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) adds explicit FLTOP002/capability2
+inside the existing128-KiB advice area. Marker1 occupies bytes52..55 and the
+settled-input u64 occupies56..63. Legacy/default FLTOP001 bytes remain unchanged.
+Mixed, backward, uncharged, unsupported and foreign peer records expose no policy.
+This changes no native data/codec/worker encoding or product numbering.
