@@ -340,9 +340,12 @@ void workload_control(bool compact) {
   auto staged=ram(compact);
   f.session.begin_recompression(staged,id(4),{},StoreCheckpointOptions{compact});
   const auto calls=f.source->calls,reads=f.source->read_calls,head_calls=f.head->calls;
+  const auto target_calls=staged->calls,target_reads=staged->read_calls,head_reads=f.head->read_calls;
+  const auto staged_bytes=staged->live;
   rejects_code([&]{f.session.enable_workload_accounting();},NativeSessionErrorCode::invalid_options);
   require(f.source->calls==calls&&f.source->read_calls==reads&&f.head->calls==head_calls&&
-      staged->calls==0&&!f.session.poisoned(),"staged activation touched backing or fenced data");
+      staged->calls==target_calls&&staged->read_calls==target_reads&&f.head->read_calls==head_reads&&
+      staged->live==staged_bytes&&!f.session.poisoned(),"staged activation touched backing or fenced data");
   f.session.cancel_recompression();
   const auto original=f.source->stable;
   f.maintain();

@@ -74,3 +74,11 @@ current-input baselines after lost advice, durable provider mapping/reclamation,
 helper authorization, resource admission and a low-priority learner/executor
 remain unfinished. Neither the counter nor a new helper lease permits automatic
 rewrites. Useful GPU and full Windows/repair/scaling qualification remain separate.
+
+The first integration fixture at22ba3b3 failed its staged-target assertion in the
+Linux raw lane. It incorrectly expected zero target writes after the established
+staging API had already initialized its private header. The correction records
+that post-staging state, then requires every target/source/head I/O counter and
+the exact target bytes to remain unchanged by rejected activation. Production
+code and all budgets are unchanged. The failed job is retained in the source
+manifest; the correction requires its own full publishing-source gates.
