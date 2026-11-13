@@ -8,10 +8,10 @@
   "goal_status": "active",
   "scope": "Complete Windows 11 AMD64 filesystem/helper/driver; effective AMD GPU acceleration, independent CPU recovery, high sustained throughput, exceptional lossless reduction, autonomous low-impact persistent learning and verified resilience.",
   "next": [
+    "L01",
     "D01",
     "G03",
-    "G02",
-    "L01"
+    "G02"
   ],
   "owner_safety": {
     "filesystem_backing": "locked RAM only",
@@ -93,16 +93,15 @@
       "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup.",
       "checkpoint": {
         "source": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
-        "qualification": "All thirteen core jobs passed; every current mounted workload has an external client, including finite RAM handoff.",
-        "evidence": "docs/evidence/ram-actors-fa9fe90.json",
+        "qualification": "Mandatory product Create/Open origin admission and every current external-client mounted workload passed all 13 core jobs at053ade8. Historical cause remains unproven.",
+        "evidence": "docs/evidence/origin-guard-053ade8.json",
         "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
         "historical_root_cause": "unproven",
-        "next": "Qualify product guard through direct CPU semantic/lifecycle and all real mounted SDK callbacks without a synthetic-origin bypass. Preserve the unresolved historical root and full-product scope.",
+        "next": "Preserve historical unknown cause; capture decisive future failure evidence. Do not block independent L01 work or bypass the G03 lifecycle prerequisite.",
         "source_child_deadline_seconds": 15,
         "source_exit_observation_seconds": 2,
         "owner_execution": false,
-        "qualified_source": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
-        "pending_implementation": "Mandatory adapter Create/Open self-origin guard, explicit origin provider and product-denial auditing; new-source qualification pending."
+        "qualified_source": "053ade8310bc0af9dbe1a150aa912a72f1549de7"
       }
     },
     {
@@ -218,18 +217,19 @@
       ],
       "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model.",
       "checkpoint": {
-        "source_parent": "c30d01c4e72778fc5a34b907c17c4bbfb2e808c5",
-        "contract": "docs/OPTIMIZATION_STATE.md",
-        "implemented": "Volume/session-owned journal binding and explicit helper control; no normal file I/O dependency.",
-        "qualified_baseline": "c30d01c standalone journal: all13 core jobs and278 model assertions passed",
+        "source_parent": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+        "contract": "docs/ADVISORY_REBUILD.md",
+        "implemented": "Initial journal/binding plus separate failed-area rebuild with live-handle preservation, retained poison-held ownership and aggregate accounting.",
+        "qualified_baseline": "Parent053ade8: existing advisory model and all 13 core/mounted jobs passed; see source-bound evidence.",
         "new_source_qualification": "pending",
         "remaining": [
-          "Global provider reservation/mapping/nonaliasing qualification",
-          "Qualified in-session advisory-area rebuild/replacement preserving live file handles",
-          "Persistent workload-derived write credit",
-          "Helper authorization and held-out learning consumers",
-          "Interrupted native maintenance and recovery qualification"
-        ]
+          "Publishing-source rebuild fault and ownership qualification",
+          "Global provider reservation/selected-area mapping/nonaliasing and controlled helper integration",
+          "Qualified reclamation and lifetime workload-derived write credit",
+          "Helper authorization and held-out automatic learning consumers",
+          "Interrupted native maintenance and physical-provider recovery qualification"
+        ],
+        "evidence": "docs/evidence/origin-guard-053ade8.json"
       }
     },
     {
@@ -397,6 +397,7 @@
     "development_volume": "memory-backed",
     "repeat_backend_restriction_in_updates": false,
     "physical_provisioning_implemented": false,
-    "tray_implemented": false
+    "tray_implemented": true,
+    "tray_scope": "Experimental unmounted native control/editor/tray; full mounted/physical/installer lifecycle remains incomplete."
   }
 }

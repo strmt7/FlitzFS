@@ -206,3 +206,14 @@ replacement needs a separately qualified new-area mapping/publication transition
 that retires only the old advisory owner and preserves live data handles. That
 transition remains L01 work; resetting failed bytes or restarting user data is
 not its substitute.
+
+## Separate in-session failed-area rebuild
+
+[ADVISORY_REBUILD.md](ADVISORY_REBUILD.md) defines the new controlled exception to
+restarting after unavailable advice. Original create/resume calls retain their
+one-binding-attempt behavior. Only the separate rebuild API may install NEW empty
+advice after an unavailable/poisoned owner, retaining old bytes/leases and all
+live data handles. Healthy/exhausted advice cannot be rebuilt to reset allowances.
+Four admitted areas cap total declared reservations at 512 KiB per session. This is
+not persistent write credit, area recycling, a durable provider mapping or an
+automatic learner. Publishing-source execution remains pending.

@@ -129,3 +129,13 @@ area cannot become a maintenance target. Image handoff preserves the area.
 This is a shared-engine capability for the product backends specified in
 WINDOWS_VOLUME_BACKENDS.md. Native provider reservation, helper IPC, tray
 provisioning and persistent write-credit policy remain unfinished.
+
+## Failed advisory-owner rebuilding
+
+The separate [rebuild control](ADVISORY_REBUILD.md) can replace unavailable or
+poisoned advice while preserving the same file handles and data owner. It starts
+empty state in a new provider-reserved area and retains all prior areas/leases
+within a four-area aggregate ceiling. Both immediate and staged image maintenance
+reject current and prior advisory backings. Original create/resume binding rules
+and all user-data publication/recovery rules remain unchanged. This does not
+publish a durable provider mapping or implement automatic learning.

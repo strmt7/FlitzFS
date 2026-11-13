@@ -805,3 +805,13 @@ New-source qualification remains required. The historical termination cause stay
 unproven, and inherited/duplicated handles, indirect backing topology and full
 Windows11/kernel qualification remain separate work. The complete product,
 useful GPU gains, low-impact learning and storage-resilience exits remain open.
+
+## Controlled advisory rebuild checkpoint
+
+L01 now prepares in-session failed-advice rebuilding with live-handle preservation,
+retained failed ownership and explicit aggregate accounting. Qualification of the
+publishing source remains pending; [contract](ADVISORY_REBUILD.md). The parent
+origin guard passed all 13 hosted core/mounted jobs at 053ade8. D01's historical
+cause remains unproven. Provider mapping/reclamation, persistent workload-derived
+write credit, helper authorization and automatic learning remain required; no
+package is declared complete by this checkpoint.
