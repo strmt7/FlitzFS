@@ -57,3 +57,20 @@ safe runtime execution, preemption, background interference or useful compressio
 Kernel changes need a separately audited composition, independent actual-output
 CPU verification, lifecycle/fallback/resource gates and measured complete-operation
 benefit. Current GPU/owner gates and the unresolved historical D01 cause remain.
+
+
+## Executed offline API checkpoint
+
+At af2f714, SDK run43455207387/job131987394647 passed all9 new CPU cases, the
+actual selected header digest and dependency binding, native typed calls, AMD64
+headers and the exact gfx1100 bundle. The object is12620 bytes, SHA256
+8cb102921c88b454f159274fe60c7d7fb763edc20c20a984459b92cbb9bf9719.
+All original235 API assertions,12 priority scenarios, exact old/current oracle
+and20 confirmed worker exits passed. [Exact evidence](evidence/hip-warp-offline-af2f714.json)
+retains the existing unused-static-runtime warning without suppression.
+
+The next narrow correction checks exact physical source/header and staged entry
+bytes after compilation/inspection, beyond equivalent canonical input. Both helper
+paths also trigger the SDK workflow automatically. These stricter gates require
+new-source execution. No instruction-order, device execution or performance claim
+follows; vendor/runtime/codec/transport paths remain unchanged.

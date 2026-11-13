@@ -146,8 +146,11 @@ def qualify(bounds, provider: Path, sdk: Path, root: Path, repo: Path, report: d
     result["targets"] = inspect_offload_targets(metadata["stdout"], str(obj), obj.stat().st_size)
     require(digest(obj) == result["object"]["sha256"] and
             digest(deps) == result["dependencies"]["sha256"], "offline reader changed probe output")
-    require(probe_source(repo)[0] == source and
-            canonical_text(regular(sdk / HEADER, sdk, 128 * 1024),
-                           HEADER_SHA256, 128 * 1024)[0] == header, "offline inputs changed")
+    final_source, final_source_observation = probe_source(repo)
+    final_header_raw = regular(sdk / HEADER, sdk, 128 * 1024)
+    require(final_source == source and final_source_observation == source_observation and
+            final_header_raw == header_raw and
+            regular(entry, inputs, 4096) == source, "offline compiler input bytes changed")
+    result["physical_inputs_unchanged"] = True
     require(shutil.disk_usage(root).free >= 4 * 1024**3, "offline probe disk reserve consumed")
     result["complete"] = True

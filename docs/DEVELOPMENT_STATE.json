@@ -360,11 +360,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "ab37c4a41a8076cb77143d3b954c456842507e7d",
+    "source_parent": "af2f7143a4129771865539e4e9c3356479c267ce",
     "contract": "docs/HIP_WARP_SYNC_PROBE.md",
-    "behavior": "Separate offline native synchronization API/type probe with exact source and selected SDK header/dependency/object identities.",
-    "status": "Nine CPU source/path/dependency cases and complete SDK/original worker/regression gates require publishing-source execution.",
-    "next": "Verify the selected header and explicit64-bit mask calls with the actual compiler. Keep vendor kernel and runtime unchanged; preserve unresolved D01 and all full-product exits."
+    "behavior": "Exact physical compiler-input stability before/after offline inspection; automatic qualification triggers for both new helper files.",
+    "status": "Previous probe and original SDK/worker gates passed. This stricter byte-stability and workflow correction requires publishing-source execution.",
+    "next": "Retain successful actual header/object evidence; audit emitted synchronization and candidate composition before any kernel/runtime change. D01 remains unresolved."
   },
   "resolved": [
     {
@@ -555,9 +555,12 @@
       "contract": "docs/HIP_WARP_SYNC_PROBE.md",
       "runtime_source": "7da43026e4f2ef7600433c38c820732f7a205d22",
       "header_blob": "51d07f6e35298abba5fb9817d61cf6eb18fe5f66",
-      "status": "Exact source reviewed; offline compiler and nine CPU cases pending.",
+      "status": "Nine CPU source/path/dependency cases, exact SDK header, native calls, object metadata and all original SDK/20-worker gates passed ataf2f714.",
       "vendor_kernel_changed": false,
-      "gpu_executed": false
+      "gpu_executed": false,
+      "qualified_source": "af2f7143a4129771865539e4e9c3356479c267ce",
+      "sdk_run": 43455207387,
+      "evidence": "docs/evidence/hip-warp-offline-af2f714.json"
     }
   },
   "integration_checkpoints": [
@@ -584,10 +587,10 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "ab37c4a41a8076cb77143d3b954c456842507e7d",
-    "run": 43447719131,
+    "source": "af2f7143a4129771865539e4e9c3356479c267ce",
+    "run": 43455207346,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "All ordinary job conclusions,18 source cases on each OS and the two separately bounded historical comparison trials. No cause, physical durability or GPU-output claim."
+    "scope": "Current ordinary integration conclusions; detailed prior source and historical-reference evidence remain separately bound."
   }
 }
