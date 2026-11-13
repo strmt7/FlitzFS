@@ -76,8 +76,9 @@
     "autonomous_background_executor": false,
     "general_payload_repair": false,
     "production_windows_app_installer": false,
-    "persistent_optimization_state": "Journal, bounded rebuild and helper process-lifetime mapping qualified at9977674. Post-admission helper allocator coverage now awaits its own VM run; durable mapping/reclamation, lifetime credit and automatic learner remain incomplete.",
-    "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; source9977674 passed VM model/GUI and one healthy owner GUI, with exact retirement. Mounted/physical/installer/authorization remain unfinished."
+    "persistent_optimization_state": "Journal, bounded rebuild and helper process-lifetime mapping qualified at9977674; four post-admission helper allocation cuts passed VM at a892bfa. New optional native workload provenance awaits qualification; spent credit, durable mapping/reclamation and automatic learning remain incomplete.",
+    "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; source9977674 passed VM model/GUI and one healthy owner GUI, with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
+    "native_workload_provenance": "Explicit opt-in FLTXNS06 committed logical input counter; new-source qualification pending. No helper activation, credit spending or autonomous executor."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -332,11 +333,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "9977674479d227bd195fe4c3b597e7f1084693cc",
-    "contract": "docs/ADVISORY_HELPER.md",
-    "behavior": "Four one-shot test-executable allocation cuts after helper/core replacement admission, including final readback; actual mapping, file continuation and cleanup oracles.",
-    "status": "Publishing-source application model/GUI and existing full regression gates required; product runtime and stored bytes unchanged.",
-    "next": "Inspect the four actual allocator cuts in each of three balanced model cycles. Then persist trusted workload accounting and rewrite credit; no unchanged owner experiment."
+    "source_parent": "a892bfab2aa66b36283570c5017bf94409da645d",
+    "contract": "docs/WORKLOAD_ACCOUNTING.md",
+    "behavior": "Explicit sticky native committed-input counter in the existing replicated namespace transaction; no default upgrade or optimizer consumer.",
+    "status": "Publishing-source raw/codec/Windows/native/sanitizer and all existing regressions plus new activation/data interruption and malicious/saturation tests required.",
+    "next": "Inspect actual selected counter/data and continuation at every observed fault cut; then implement persisted spent-work accounting and safe advice-loss baselines. Full goal remains active."
   },
   "resolved": [
     {
@@ -381,17 +382,27 @@
     "evidence": "docs/evidence/volume-app-f4928c2.json",
     "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification.",
     "latest_vm": {
-      "commit": "9977674479d227bd195fe4c3b597e7f1084693cc",
-      "run": 43380495530,
-      "job": 131736885429,
-      "model_checks": 461,
+      "commit": "a892bfab2aa66b36283570c5017bf94409da645d",
+      "run": 43386946495,
+      "job": 131757528502,
+      "model_checks": 563,
       "model_cycles": 3,
       "handles_each": [
         113,
         113
       ],
-      "gui_peak_commit_bytes": 13631488,
-      "evidence": "docs/evidence/advisory-helper-9977674.json"
+      "allocator_cut_ids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "allocator_cuts_each_cycle": 4,
+      "measured_heap_request_bytes": 65575,
+      "gui_peak_commit_bytes": 13606912,
+      "gui_observation_counter": 34,
+      "gui_counter_is_distinct_case_count": false,
+      "evidence": "docs/evidence/helper-allocator-a892bfa.json"
     },
     "latest_owner_healthy_gui": {
       "commit": "9977674479d227bd195fe4c3b597e7f1084693cc",

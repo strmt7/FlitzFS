@@ -218,3 +218,9 @@ areas and keeps file access independent. At 9977674, all 13 core/mounted jobs,
 test-only follow-up covers allocator failure after binding admission; those
 new cases still need VM qualification. Physical mapping, persistent rewrite
 credit and autonomous learning remain open.
+
+An explicit experimental [write-workload counter](docs/WORKLOAD_ACCOUNTING.md)
+now prepares persistent provenance for future background rewrite credit. It
+counts accepted input in the existing data transaction and survives CPU reopen
+and image copying; default legacy behavior is unchanged. Publishing-source
+qualification is pending. It does not yet authorize or schedule an optimizer.

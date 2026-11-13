@@ -36,8 +36,9 @@ constexpr auto kLifecycleMagic=[] {auto magic=kMagic;magic[7]=std::byte{'2'};ret
 constexpr auto kBasicMagic=[] {auto magic=kMagic;magic[7]=std::byte{'3'};return magic;}();
 constexpr auto kSecurityMagic=[] {auto magic=kMagic;magic[7]=std::byte{'4'};return magic;}();
 constexpr auto kAllocationMagic=[] {auto magic=kMagic;magic[7]=std::byte{'5'};return magic;}();
+constexpr auto kWorkloadMagic=[] {auto magic=kMagic;magic[7]=std::byte{'6'};return magic;}();
 const std::array<std::byte,8>& namespace_magic(std::uint32_t format) {
-  return format==1?kMagic:format==2?kLifecycleMagic:format==3?kBasicMagic:format==4?kSecurityMagic:kAllocationMagic;
+  return format==1?kMagic:format==2?kLifecycleMagic:format==3?kBasicMagic:format==4?kSecurityMagic:format==5?kAllocationMagic:kWorkloadMagic;
 }
 std::size_t node_header(std::uint32_t format) {return format>=5?kAllocationNodeHeader:format==4?kSecurityNodeHeader:format==3?kBasicNodeHeader:64;}
 [[noreturn]] void fail(Code code,const char* reason){throw NativeFsError(code,reason);}
@@ -61,7 +62,7 @@ struct Node {
 };
 struct Model {
   StoreIdentity identity{};
-  std::uint64_t sequence=1,next_inode=2;
+  std::uint64_t sequence=1,next_inode=2,committed_input_bytes=0;
   std::uint32_t format=1;
   std::map<std::uint64_t,Node> nodes;
 };
@@ -166,7 +167,8 @@ void validate_basic(const NativeBasicMetadata& value,bool directory) {
 }
 void validate_structure(const Model& model,bool pending=false) {
   if(model.nodes.empty() || model.nodes.size()>kNativeMaxNodes || model.sequence==0)fail(Code::limit,"native namespace budget");
-  if(model.format<1 || model.format>5)fail(Code::corrupt,"native namespace capability");
+  if(model.format<1 || model.format>6 || (model.format<6 && model.committed_input_bytes))
+    fail(Code::corrupt,"native namespace capability/accounting");
   const auto& root=node(model,1);
   if(root.parent || !root.directory || !root.name.empty() || root.size || !root.extents.empty() ||
       root.born!=1 || root.delete_pending || root.unlinked)
@@ -237,6 +239,7 @@ Bytes encode(const Model& model) {
   put(bytes,8,model.format,4);put(bytes,12,model.nodes.size(),4);put(bytes,16,model.sequence,8);
   put(bytes,24,model.next_inode,8);put(bytes,32,kNativeExtentBytes,4);put(bytes,36,extent_count(model),4);
   std::copy(model.identity.begin(),model.identity.end(),bytes.begin()+40);
+  if(model.format>=6)put(bytes,56,model.committed_input_bytes,8);
   std::size_t cursor=64;
   for(const auto& [id,n]:model.nodes) {
     put(bytes,cursor,id,8);put(bytes,cursor+8,n.parent,8);put(bytes,cursor+16,n.directory?1:2,4);
@@ -264,10 +267,10 @@ Model decode(const ObjectStoreSnapshot& objects) {
   const auto bytes=object_bytes(objects,kNamespaceObject);
   const auto all=std::span<const std::byte>(bytes);
   if(bytes.size()<64 || bytes.size()>kMetadataCap ||
-      integer(all,32,4)!=kNativeExtentBytes || !zeros(all.subspan(56,8)))
+      integer(all,32,4)!=kNativeExtentBytes)
     fail(Code::corrupt,"unsupported native namespace framing");
   const auto format=integer(all,8,4);
-  if(format<1 || format>5 ||
+  if(format<1 || format>6 || (format<6 && !zeros(all.subspan(56,8))) ||
       !std::equal(namespace_magic(static_cast<std::uint32_t>(format)).begin(),
                   namespace_magic(static_cast<std::uint32_t>(format)).end(),bytes.begin()))
     fail(Code::corrupt,"unsupported native namespace capability/magic");
@@ -276,6 +279,7 @@ Model decode(const ObjectStoreSnapshot& objects) {
   if(format>=2 && !objects.info().replicated_checkpoint)
     fail(Code::corrupt,"native lifetime capability requires replicated current checkpoints");
   Model model;model.format=static_cast<std::uint32_t>(format);
+  if(format>=6)model.committed_input_bytes=integer(all,56,8);
   model.sequence=integer(all,16,8);model.next_inode=integer(all,24,8);
   std::copy_n(bytes.begin()+40,16,model.identity.begin());
   if(model.identity!=objects.identity() || model.sequence>objects.info().generation)fail(Code::corrupt,"native identity/sequence binding");
@@ -552,6 +556,13 @@ struct Stage {
       }
       n.size=(std::max)(n.size,op.offset+op.data.size());
       if(n.allocation)*n.allocation=(std::max)(*n.allocation,aligned_allocation(n.size));
+      // Count accepted logical input in this private transaction, including
+      // identical/zero data. Rejected or unselected stages grant no workload.
+      // Saturation stops further accounting instead of failing user writes.
+      if(model.format>=6) {
+        const auto room=(std::numeric_limits<std::uint64_t>::max)()-model.committed_input_bytes;
+        model.committed_input_bytes+=(std::min)(room,static_cast<std::uint64_t>(op.data.size()));
+      }
       n.modified=model.sequence;changed=true;return;
     }
     if(trunc) {
@@ -667,6 +678,10 @@ NativeFilesystemSnapshot NativeFilesystemSnapshot::open(ObjectStoreSnapshot obje
 StoreIdentity NativeFilesystemSnapshot::identity() const noexcept{return impl_?impl_->model.identity:StoreIdentity{};}
 StoreCommitInfo NativeFilesystemSnapshot::storage_info() const noexcept{return impl_?impl_->objects.info():StoreCommitInfo{};}
 std::uint64_t NativeFilesystemSnapshot::sequence() const noexcept{return impl_?impl_->model.sequence:0;}
+NativeWorkloadInfo NativeFilesystemSnapshot::workload_info() const noexcept {
+  if(!impl_||impl_->model.format<6)return {};
+  return {true,impl_->model.committed_input_bytes};
+}
 NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   return file_info(impl_->model,node(impl_->model,resolve(impl_->model,path)));
@@ -759,6 +774,9 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize(ObjectStoreWriter obje
   const StoreMutation metadata{kNamespaceObject,false,encode(model)};
   p->objects.commit_replicated({&metadata,1});
   return NativeFilesystemWriter(std::move(p));
+}
+NativeFsCommit NativeFilesystemWriter::enable_workload_accounting() {
+  return transact({},InodeAction::enable_workload,0);
 }
 NativeFilesystemWriter NativeFilesystemWriter::resume(ObjectStoreWriter objects) {
   return resume_impl(std::move(objects),false);
@@ -1010,6 +1028,9 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       case InodeAction::unlink:stage.unlink(inode);break;
       case InodeAction::retire:stage.retire(inode);break;
       case InodeAction::finish_session:stage.finish_session();break;
+      case InodeAction::enable_workload:
+        if(stage.model.format<6){stage.model.format=6;stage.changed=true;}
+        break;
       case InodeAction::cleanup_initial:
         if(!automatic)fail(Code::invalid_operation,"invalid initial-delete Cleanup metadata");
         stage.cleanup_initial(inode,delete_requested,*automatic);break;

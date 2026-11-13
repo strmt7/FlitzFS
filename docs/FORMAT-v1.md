@@ -363,3 +363,14 @@ admitted advice area. It is not a durable physical-volume selector.
 The subsequent allocator-fault qualification changes only the application test
 executable and documentation. It adds no wire capability, stored counter,
 publication rule or product allocator change.
+
+## Explicit native workload capability
+
+[WORKLOAD_ACCOUNTING.md](WORKLOAD_ACCOUNTING.md) defines opt-in FLTXNS06 with
+little-endian capability 6 and an unsigned committed-input counter at common
+header bytes 56..63. The header remains 64 bytes and capability 6 uses existing
+104-byte inode framing. Legacy capabilities 1..5 and their reserved-zero rule
+are unchanged; default initialization does not upgrade. Older native readers
+reject the new capability. Object-store, codec and advisory bytes are unchanged.
+Counter updates share the selected namespace/data transaction, never a separate
+advisory log. Saturation preserves file writes and stops further accrual.

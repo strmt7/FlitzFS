@@ -225,3 +225,12 @@ check and failed-state rebuild through its real private memory provider. It
 retains every admitted mapping and keeps saves/reads independent. Its new
 qualification remains pending. This advances the process-lifetime backend;
 physical mappings, lifetime write credit and autonomous learning stay unfinished.
+
+## Input provenance for future rewrite credit
+
+The optional [native workload capability](WORKLOAD_ACCOUNTING.md) records
+accepted write input inside its actual namespace/data transaction. Advice does
+not supply or reset this value, and normal legacy file paths do not enable it.
+Its new publishing-source qualification is required. This establishes only
+provenance: persisted spent-work/debt, safe lost-advice baselines and a bounded
+authorized consumer must be implemented before it can govern publications.

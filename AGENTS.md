@@ -1315,3 +1315,22 @@ Qualification faults belong only to the test binary's freshly owned memory;
 never add a product fault flag/backing override, infer durable physical mapping
 or claim an autonomous learner/persistent rewrite budget. Require new-source
 model/controller/GUI/resource retirement and all existing regression gates.
+
+## Persistent native workload provenance
+
+Read docs/WORKLOAD_ACCOUNTING.md before changing capability 6 or write accounting.
+Activation is explicit and sticky, starts at zero and never invents historical
+workload. Default initialization/legacy encodings remain unchanged. Only actual
+accepted nonempty write input enters the same private namespace Stage; metadata,
+truncate, recovery and image rewriting grant nothing. Preserve constrained and
+append counts, saturation without refusal/wrap, no-op re-enable and exact
+counter preservation across snapshots/resume/copy/recompression/handoff.
+Keep the 64-byte common header, capability-1..5 reserved-zero rule and all old
+limits. Capability-6 bytes 56..63 are the little-endian input counter and use the
+existing 104-byte inode framing. Old native readers reject this opt-in capability;
+never silently upgrade or downgrade images. Counter and file bytes must recover
+as the same selected transaction after every modeled cut. This is not a spent-
+credit ledger, learning authority, authenticated anti-rollback state or physical
+power-loss proof. Do not enable it from the helper until its own integration is
+qualified. Full raw/codec/Windows/native/sanitizer and existing regression gates
+remain required; no owner mount/driver/GPU action follows.
