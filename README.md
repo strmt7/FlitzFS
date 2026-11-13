@@ -252,8 +252,9 @@ admission tests and actual source-bound searches for FlitzFS and pinned AMD
 hipCOMP code. The [offline object gate](docs/HIPCOMP_OFFLINE.md) at `df51d8c`
 passed all 20 source/staging cases and native Windows compilation using the
 verified ROCm 10.1.0 SDK, retaining existing worker gates
-([evidence](docs/evidence/gpu-lz4-offline-df51d8c.json)). The next
-[bounded allocation planner](docs/GPU_LZ4_LAYOUT.md) and native object inspection
-require exact-source tests. No candidate object is loaded or used by file operations.
+([evidence](docs/evidence/gpu-lz4-offline-df51d8c.json)). The [bounded allocation planner](docs/GPU_LZ4_LAYOUT.md) at 0879cce passed all
+five core configurations, including sanitizers and Windows native. Its expanded
+object-reader failure has an exact-source correction; that correction and the
+new [independent CPU verifier](docs/GPU_LZ4_CPU_VERIFY.md) require new-source tests. No candidate object is loaded or used by file operations.
 Automatic learning, durable provider mapping, useful GPU gains and the full
 Windows product remain unfinished.

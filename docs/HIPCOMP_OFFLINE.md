@@ -92,3 +92,19 @@ AMD64 host-object identity and the requested gfx1100 target as data, with new
 30-second bounded commands. The object and dependency files remain unexported.
 These new inspection results and allocation-planner tests are pending; successful
 compilation is not represented as device execution or codec interoperability.
+
+## Preserved object-reader failure and correction
+
+At 0879cce, the optional run 43420782513 compiled the candidate and verified its
+COFF-x86-64/IMAGE_FILE_MACHINE_AMD64 header, then failed because the SDK's
+advertised llvm-objdump --offload-fatbin option printed usage and exited 2.
+The full child report is retained; no metadata target was accepted.
+
+Inspection of the exact compiler source d6f6cb691863e9258034ab48c1dfce21689d5606
+confirmed that the option table advertises this flag while the driver never
+selects it as an action. The corrected command uses llvm-readobj --offloading.
+Its reviewed ObjDumper path prints bundle ID/URI metadata and does not extract
+code-object files. New closed-output tests reject usage, absent/foreign/duplicate
+targets, malformed URIs and oversized output. The corrected gate requires new
+execution; this is not a rerun of unchanged source. See
+[allocation and failure evidence](evidence/gpu-lz4-layout-0879cce.json).

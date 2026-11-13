@@ -149,13 +149,13 @@
         "next": "G02 remains in progress: no speed or size gain. Fix D01 to enable G03 lifecycle work; instrument complete costs and investigate candidates with genuine net compression benefit instead of forcing redundant hints.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
         "candidate_evaluation": {
-          "contract": "docs/GPU_LZ4_LAYOUT.md",
+          "contract": "docs/GPU_LZ4_CPU_VERIFY.md",
           "source_repository": "ROCm/hipCOMP-core",
           "source_commit": "03df9f7369211ee15d370817165224c73fdc9a46",
           "navigation_qualified": "905a4d3: 22 admission cases, 142 upstream files, two actual queries and relevant live-source hashes/notices verified.",
-          "status": "At df51d8c, all 20 source/staging cases, native Windows object compilation and original SDK/worker gates passed. New allocation tests and native object-inspection gate await execution. No GPU runtime or stored-format dependency selected.",
-          "research": "docs/evidence/gpu-lz4-offline-df51d8c.json",
-          "next": "Qualify the complete bounded allocation and object-inspection changes, then independent CPU decoding, lifecycle integration and useful complete-operation benefit."
+          "status": "At 0879cce, complete allocation passed all five core configurations. Native object inspection reached AMD64 headers but failed on an advertised unselected LLVM flag; exact-source cause preserved. Corrected read-only metadata command, five regression cases and independent CPU candidate verifier await new-source execution.",
+          "research": "docs/evidence/gpu-lz4-layout-0879cce.json",
+          "next": "Qualify corrected metadata inspection and CPU candidate decoding; then complete kernel/lifecycle audit and useful end-to-end GPU integration."
         }
       }
     },

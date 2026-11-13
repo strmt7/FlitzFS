@@ -900,3 +900,19 @@ CPU/sanitizer/Windows and compiler execution. No product codec, GPU runtime path
 or performance benefit is selected.
 Independent CPU decoding, checked resource admission and equivalent worker
 containment remain prerequisites for runtime use; all full-product exits remain.
+
+
+## CPU candidate verification and object-reader correction
+
+At 0879cce, the allocation planner passed all five core configurations, including
+Windows native and sanitizers, with 1,908,560 assertions each. Offline compilation
+and AMD64 headers passed, but the SDK's advertised objdump fatbin flag printed
+usage/exit 2. Exact LLVM source explains the missing action selection; that failure
+is retained in [evidence](evidence/gpu-lz4-layout-0879cce.json).
+
+The next change uses reviewed read-only bundle metadata and five closed-output
+regressions, plus an [independent CPU verifier](GPU_LZ4_CPU_VERIFY.md) for bounded
+raw LZ4 candidates. New metadata, CPU codec/raw, malicious-input, sanitizer and
+Windows tests remain required. There is no new stored codec or runtime caller;
+kernel/lifecycle review, actual GPU output and useful whole-operation gains
+remain open, as do all other full-product packages.

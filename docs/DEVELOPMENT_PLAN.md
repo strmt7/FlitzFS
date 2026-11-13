@@ -473,3 +473,16 @@ inputs, worst-case outputs, guards and scratch within the unchanged 256-KiB tota
 explicit device-buffer cap. Its new CPU tests and expanded native LLVM object
 inspection require exact-source execution. No unchanged owner GPU/GUI repetition
 is part of these changes.
+
+
+At 0879cce, all five core configurations passed the complete allocation planner
+(1,908,560 assertions each). Its optional object reader compiled and validated
+AMD64 headers, then failed on an advertised unselected LLVM action. The exact
+source root cause and failed artifact are preserved; the correction selects the
+reviewed read-only metadata path and adds five rejection cases.
+
+The next [independent CPU candidate verifier](GPU_LZ4_CPU_VERIFY.md) reuses the
+existing optional LZ4 dependency, checks immutable-source equality in disjoint
+bounded scratch, and preserves unavailable/raw-only behavior. New-source
+verification remains pending. This is a prerequisite, not GPU interoperability,
+stored-format support, automatic filesystem routing or performance qualification.

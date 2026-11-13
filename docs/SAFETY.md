@@ -1002,3 +1002,21 @@ The same verified SDK's LLVM object readers run only on disposable VMs with
 30-second/2-GiB command limits, and retain identities and untruncated format/target
 evidence. They never load or execute the candidate. These new gates require their
 own actual qualification; no owner installation, runtime or GPU action follows.
+
+
+## Private independent candidate decoding
+
+The new [CPU verifier](GPU_LZ4_CPU_VERIFY.md) checks bounded candidate data against
+immutable source bytes using the existing optional LZ4 dependency. It rejects
+wrong extents and full/partial scratch aliasing before writes. Failed decoding
+may leave private scratch partial; source and compressed input are never output
+buffers. No worker, GPU, filesystem write or publication is invoked. Valid span
+ownership/immutability remains a caller contract and is not supplied by a byte
+comparison. Raw-only builds report unavailable. Exact-source malicious-input,
+canary, codec/raw and sanitizer qualification remains required.
+
+The optional offline inspection failure at 0879cce is preserved. The replacement
+same-SDK llvm-readobj --offloading implementation was reviewed through its native
+source path: it reports bundle metadata without extracting files. Its corrected
+command and closed-output regressions require new-source VM execution. No
+unchanged owner GPU/GUI test or driver operation follows.

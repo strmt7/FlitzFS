@@ -411,3 +411,10 @@ The host-only LZ4 allocation metadata and offline object inspection introduce no
 stored codec, capability, worker ABI or product numbering. Their eight-byte
 pointer/size slots describe only a future AMD64 private allocation contract;
 no host pointers are serialized. See [GPU_LZ4_LAYOUT.md](GPU_LZ4_LAYOUT.md).
+
+
+The independent private LZ4 CPU verifier introduces no filesystem codec ID,
+format capability or worker frame. Its verification enum is in-process control
+metadata and must not be serialized as a protocol. LZ4 blocks remain temporary
+candidate data; [GPU_LZ4_CPU_VERIFY.md](GPU_LZ4_CPU_VERIFY.md) supplies no stored
+representation or compatibility claim.

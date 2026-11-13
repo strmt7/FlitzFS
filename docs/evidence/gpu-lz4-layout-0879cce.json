@@ -1,0 +1,303 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "recorded_utc": "2026-11-13 12:08:33 UTC",
+  "source": "0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+  "scope": "Executed complete allocation checks in five core configurations, plus preserved native object-reader failure. New metadata correction and CPU candidate verification are pending.",
+  "allocation": {
+    "core_run": 43420771867,
+    "jobs": [
+      {
+        "id": 131869894473,
+        "name": "sanitizers",
+        "groups": 120
+      },
+      {
+        "id": 131869894653,
+        "name": "Linux codec ON",
+        "groups": 120
+      },
+      {
+        "id": 131869894655,
+        "name": "Windows raw OFF",
+        "groups": 124
+      },
+      {
+        "id": 131869894738,
+        "name": "Windows native",
+        "groups": 139
+      },
+      {
+        "id": 131869895054,
+        "name": "Linux raw OFF",
+        "groups": 120
+      }
+    ],
+    "assertions_each": 1908560,
+    "single_chunk_sizes_each": 65536,
+    "batches_admitted_each": 143,
+    "batch_capacity_refusals_each": 25,
+    "complete_explicit_device_ceiling_bytes": 262144,
+    "artifacts": [
+      {
+        "digest": "sha256:1433fdbdc717842b25c6ad485cf04fb26653baf095f6d7cfab867b2592076fe3",
+        "id": 14034736523,
+        "name": "sanitizer-tests-0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+        "size_in_bytes": 10020,
+        "last_test": [
+          {
+            "entry": "LastTest.log",
+            "sha256": "8baae8d415db5414f47d5508c68377989a334b219be095406285dd2faaf736d6",
+            "layout_assertion": "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false"
+          }
+        ],
+        "verified_archive": {
+          "sha256": "1433fdbdc717842b25c6ad485cf04fb26653baf095f6d7cfab867b2592076fe3",
+          "bytes": 10020,
+          "entries": 1
+        }
+      },
+      {
+        "digest": "sha256:053c62ad841828f9aa6eefc051e2819d53c3941bbdbbc675e6f6556ac326849b",
+        "id": 14034610989,
+        "name": "cpu-tests-Windows-OFF-0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+        "size_in_bytes": 12196,
+        "last_test": [
+          {
+            "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+            "sha256": "4a870387018e5c59eb387ba6b729fd0297ae1b959e565e00204feca37980ab6e",
+            "layout_assertion": "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false\r"
+          }
+        ],
+        "verified_archive": {
+          "sha256": "053c62ad841828f9aa6eefc051e2819d53c3941bbdbbc675e6f6556ac326849b",
+          "bytes": 12196,
+          "entries": 2
+        }
+      },
+      {
+        "digest": "sha256:f2c8dbfa0832ccd817ebeaf1f27daaab4bc3aebb2424fc3deb00eb08ac1d4646",
+        "id": 14034556323,
+        "name": "cpu-tests-Linux-OFF-0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+        "size_in_bytes": 10709,
+        "last_test": [
+          {
+            "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+            "sha256": "6763bc37401f23a08224cce77ace2bb6b95e24750c36f320f05c930d453058b3",
+            "layout_assertion": "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false"
+          }
+        ],
+        "verified_archive": {
+          "sha256": "f2c8dbfa0832ccd817ebeaf1f27daaab4bc3aebb2424fc3deb00eb08ac1d4646",
+          "bytes": 10709,
+          "entries": 2
+        }
+      },
+      {
+        "digest": "sha256:b7c0e6026c8e69f11500fd9520843a29fb7df1e4364e782b382216a0e7888576",
+        "id": 14034106977,
+        "name": "native-windows-tests-0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+        "size_in_bytes": 12451,
+        "last_test": [
+          {
+            "entry": "LastTest.log",
+            "sha256": "4562e647a22e45bf6d441898998767acf388742869506dfad133b378f17d9beb",
+            "layout_assertion": "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false\r"
+          }
+        ],
+        "verified_archive": {
+          "sha256": "b7c0e6026c8e69f11500fd9520843a29fb7df1e4364e782b382216a0e7888576",
+          "bytes": 12451,
+          "entries": 1
+        }
+      },
+      {
+        "digest": "sha256:3bfb7d4e53b9ca2efa67135c6858088ca859465f82bfa4cd4a92df4943940e63",
+        "id": 14034007410,
+        "name": "cpu-tests-Linux-ON-0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+        "size_in_bytes": 9973,
+        "last_test": [
+          {
+            "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+            "sha256": "cbd587b9d2d02916799b7ccdccf95081364c4310bd75048e7971a1cf0b943990",
+            "layout_assertion": "GPU LZ4 layout checks: 1908560 single_sizes_checked=65536 batches_admitted=143 capacity_refusals=25 device_ceiling=262144 gpu_executed=false"
+          }
+        ],
+        "verified_archive": {
+          "sha256": "3bfb7d4e53b9ca2efa67135c6858088ca859465f82bfa4cd4a92df4943940e63",
+          "bytes": 9973,
+          "entries": 1
+        }
+      }
+    ]
+  },
+  "object_failure": {
+    "run": 43420782513,
+    "job": 131869936305,
+    "artifact": 14034141909,
+    "artifact_bytes": 25827,
+    "artifact_sha256": "464d283ba1ecabe11f0111f2ac239e81977eb93f11a288151615ed301459acdd",
+    "complete": false,
+    "object_inspected": false,
+    "error": "RuntimeError: native ROCm qualification command failed: candidate-offload-fatbin",
+    "control_source": "0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+    "candidate_source": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "source_inventory_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d",
+    "commands": [
+      {
+        "name": "hipcomp-LZ4-offline-translation-unit",
+        "argv": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\a\\FlitzFS\\FlitzFS\\.ci-rocm-source\\tools\\compile_hip_object.ps1",
+          "-Source",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\compile-input\\src\\lowlevel\\LZ4CompressionKernels.hip",
+          "-Output",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj",
+          "-DependencyFile",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj.d",
+          "-RepoRoot",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\compile-input",
+          "-HipPath",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk",
+          "-Arch",
+          "gfx1100"
+        ],
+        "root_pid": 9044,
+        "exit_code": 0,
+        "stdout": "Compiling HIP object with MSVC toolset 14.51.\r\n",
+        "stderr": "clang: warning: argument unused during compilation: '-fms-runtime-lib=static' [-Wunused-command-line-argument]\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-reader-version-llvm-readobj.exe",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--version"
+        ],
+        "root_pid": 2004,
+        "exit_code": 0,
+        "stdout": "AMD LLVM version 24.0.0git\n  Optimized build.\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-reader-version-llvm-objdump.exe",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-objdump.exe",
+          "--version"
+        ],
+        "root_pid": 2968,
+        "exit_code": 0,
+        "stdout": "AMD LLVM version 24.0.0git\n  Optimized build.\n\n\n  Registered Targets:\n    amdgcn  - legacy name for amdgpu\n    amdgpu  - AMDGPU gfx6+\n    r600    - AMD GPUs HD2XXX-HD6XXX\n    spirv   - SPIR-V Logical\n    spirv32 - SPIR-V 32-bit\n    spirv64 - SPIR-V 64-bit\n    x86     - 32-bit X86: Pentium-Pro and above\n    x86-64  - 64-bit X86: EM64T and AMD64\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-object-headers",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--file-header",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj"
+        ],
+        "root_pid": 7524,
+        "exit_code": 0,
+        "stdout": "\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\nImageFileHeader {\n  Machine: IMAGE_FILE_MACHINE_AMD64 (0x8664)\n  SectionCount: 370\n  TimeDateStamp: 2026-11-13 11:57:38 (0x6AF6FB32)\n  PointerToSymbolTable: 0x29A59\n  SymbolCount: 1251\n  StringTableSize: 24570\n  OptionalHeaderSize: 0\n  Characteristics [ (0x0)\n  ]\n}\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "candidate-offload-fatbin",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-objdump.exe",
+          "--offload-fatbin",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\hipcomp-offline\\hipcomp_lz4.obj"
+        ],
+        "root_pid": 4524,
+        "exit_code": 2,
+        "stdout": "OVERVIEW: llvm object file dumper\n\nUSAGE: llvm-objdump.exe [options] <input object files>\n\nOPTIONS:\n  --adjust-vma=offset     Increase the displayed address by the specified offset\n  --all-headers           Display all available header information, relocation entries and the symbol table\n  --arch-name=<value>     Target arch to disassemble for, see --version for available targets\n  --archive-headers       Display archive header information\n  -a                      Alias for --archive-headers\n  --build-id=<hex>        Build ID to look up. Once found, added as an input file\n  -C                      Alias for --demangle\n  --debug-file-directory=<dir>\n                          Path to directory where to look for debug files\n  --debug-indent=<value>  Distance to indent the source-level variable and inlined function display, relative to the start of the disassembly\n  --debug-inlined-funcs=<value>\n                          Print the locations of inlined functions alongside disassembly. Supported formats: ascii, limits-only, and unicode (default)\n  --debug-vars=<value>    Print the locations (in registers or memory) of source-level variables alongside disassembly. Supported formats: ascii, unicode (default)\n  --debuginfod            Use debuginfod to find debug files\n  --demangle              Demangle symbol names\n  --disassemble-all       Disassemble all sections found in the input files\n  --disassemble-symbols=<value>\n                          List of symbols to disassemble. Accept demangled names when --demangle is specified, otherwise accept mangled names\n  --disassemble-zeroes    Do not skip blocks of zeroes when disassembling\n  --disassemble=<value>   Specify a symbol name to diasassemble. Accept demangled names when --demangle is specified, otherwise accept mangled names\n  --disassembler-color=mode\n                          Enable or disable disassembler color output. Valid options are \"on\", \"off\" and \"terminal\" (default)\n  --disassembler-options=options\n                          Pass target specific disassembler options\n  --disassemble           Disassemble all executable sections found in the input files\n  --dwarf=<value>         Dump the specified DWARF debug sections. The only supported value is 'frames'\n  --dynamic-reloc         Display the dynamic relocation entries in the file\n  --dynamic-syms          Display the contents of the dynamic symbol table\n  -D                      Alias for --disassemble-all\n  -d                      Alias for --disassemble\n  --fault-map-section     Display the content of the fault map section\n  --file-headers          Display the contents of the overall file header\n  --full-contents         Display the content of each section\n  -f                      Alias for --file-headers\n  --headers               Alias for --section-headers\n  --help                  Display available options (--help-hidden for more)\n  -h                      Alias for --section-headers\n  -j <value>              Alias for --section\n  --line-numbers          When disassembling, display source line numbers. Implies --disassemble\n  -l                      Alias for --line-numbers\n  --macho                 Use MachO specific object file parser\n  --mattr=a1,+a2,-a3,...  Target specific attributes (--mattr=help for details)\n  --mcpu=cpu-name         Target a specific cpu type (--mcpu=help for details)\n  -mllvm <arg>            Specify an argument to forward to LLVM's CommandLine library\n  -M <value>              Alias for --disassembler-options=\n  -m                      Alias for --macho\n  --no-addresses          Alias for --no-leading-addr\n  --no-debuginfod         Don't use debuginfod to find debug files\n  --no-leading-addr       When disassembling, do not print leading addresses for instructions or inline relocations\n  --no-print-imm-hex      Do not use hex format for immediate values\n  --no-show-raw-insn      When disassembling instructions, do not print the instruction bytes.\n  --no-symbolize-operands Do not symbolize instruction operands when disassembling\n  --offload-fatbin        Display the content of the offload FatBin section\n  --offloading            Display the content of the offloading section\n  --prefix-strip=prefix   Strip out initial directories from absolute paths. No effect without --prefix\n  --prefix=prefix         Add prefix to absolute paths\n  --pretty-pgo-analysis-map\n                          Display PGO analysis values with formatting rather than raw numbers\n  --print-imm-hex         Use hex format for immediate values (default)\n  --private-headers       Display format specific file headers\n  -p                      Alias for --private-headers\n  --raw-clang-ast         Dump the raw binary contents of the clang AST section\n  --reloc                 Display the relocation entries in the file\n  -R                      Alias for --dynamic-reloc\n  -r                      Alias for --reloc\n  --section-headers       Display summaries of the headers for each section.\n  --section=<value>       Operate on the specified sections only. With --macho dump segment,section\n  --show-all-symbols      Show all symbols during disassembly, even if multiple symbols are defined at the same location\n  --show-lma              Display LMA column when dumping ELF section headers\n  --source-dir <dir>      Add a directory to the front of the source search path when looking up source files. May be specified multiple times\n  --source                When disassembling, display source interleaved with the disassembly. Implies --disassemble\n  --start-address=address Set the start address for disassembling, printing relocations and printing symbols\n  --stop-address=address  Set the stop address for disassembling, printing relocations and printing symbols\n  --substitute-path <from> <to>\n                          Replace <from> with <to> at the start of the directory part of source file paths when looking up sources. The rule is applied only if <from> ends at a directory separator in the path. May be specified multiple times\n  --symbol-description    Add symbol description for disassembly. This option is for XCOFF files only\n  --symbolize-operands    Symbolize instruction operands when disassembling (default for BPF)\n  --syms                  Display the symbol table\n  -S                      Alias for --source\n  -s                      Alias for --full-contents\n  --traceback-table       Decode traceback table in disassembly. Implies --disassemble. This option is for XCOFF files only\n  --triple=<value>        Target triple to disassemble for, see --version for available targets\n  -T                      Alias for --dynamic-syms\n  -t                      Alias for --syms\n  --unwind-info           Display unwind information\n  --unwind-show-wod-pool  Also display the raw Windows x64 unwind V3 WOD pool with byte offsets (requires --unwind-info)\n  -u                      Alias for --unwind-info\n  --version               Display the version of this program\n  -v                      Alias for --version\n  --wide                  Ignored for compatibility with GNU objdump\n  --x86-asm-syntax=att    Emit AT&T-style disassembly\n  --x86-asm-syntax=intel  Emit Intel-style disassembly\n  -x                      Alias for --all-headers\n  -z                      Alias for --disassemble-zeroes\n\nllvm-objdump MachO Specific Options:\n  --arch=<value>         architecture(s) from a Mach-O file to dump\n  --archive-member-offsets\n                         Print the offset to each archive member for Mach-O archives (requires --macho and --archive-headers)\n  --bind                 Display mach-o binding info\n  --chained-fixups       Print chained fixup information (requires --macho)\n  --data-in-code         Print the data in code table for Mach-O objects (requires --macho)\n  --dis-symname <value>  disassemble just this symbol's instructions (requires --macho)\n  --dsym=<value>         Use .dSYM file for debug info\n  --dyld-info            Print bind and rebase information used by dyld to resolve external references in a final linked binary (requires --macho)\n  --dylib-id             Print the shared library's id for the dylib Mach-O file (requires --macho)\n  --dylibs-used          Print the shared libraries used for linked Mach-O files (requires --macho)\n  --exports-trie         Display mach-o exported symbols\n  --full-leading-addr    Print full leading address\n  --function-starts=<value>\n                         Print the function starts table for Mach-O objects. Options: addrs (default), names, both (requires --macho)\n  -g                     Print line information from debug info if available\n  --indirect-symbols     Print indirect symbol table for Mach-O objects (requires --macho)\n  --info-plist           Print the info plist section as strings for Mach-O objects (requires --macho)\n  --lazy-bind            Display mach-o lazy binding info\n  --link-opt-hints       Print the linker optimization hints for Mach-O objects (requires --macho)\n  --no-leading-headers   Print no leading headers\n  --no-symbolic-operands do not symbolic operands when disassembling (requires --macho)\n  --non-verbose          Print the info for Mach-O objects in non-verbose or numeric form (requires --macho)\n  --objc-meta-data       Print the Objective-C runtime meta data for Mach-O files (requires --macho)\n  --private-header       Display only the first format specific file header\n  --rebase               Display mach-o rebasing info\n  --rpaths               Print the runtime search paths for the Mach-O file (requires --macho)\n  --universal-headers    Print Mach-O universal headers (requires --macho)\n  --weak-bind            Display mach-o weak binding info\n\nPass @FILE as argument to read options from FILE.\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "root_cause": {
+      "revision": "d6f6cb691863e9258034ab48c1dfce21689d5606",
+      "optsAdvertiseOffloadFatbin": true,
+      "driverReferencesToOption": 0,
+      "driverSelectsOffloading": true,
+      "replacementImplementation": "ObjDumper::printOffloading -> Bundle.printEntriesAsURI -> Entry.dumpURI",
+      "targetOutputIsMetadataOnly": true
+    }
+  },
+  "reviewed_llvm_sources": {
+    "repository": "ROCm/llvm-project",
+    "commit": "d6f6cb691863e9258034ab48c1dfce21689d5606",
+    "files": [
+      {
+        "path": "llvm/tools/llvm-objdump/ObjdumpOpts.td",
+        "git_blob": "d33fe38f6812820b774f88a1d1f676285d4a7bb2"
+      },
+      {
+        "path": "llvm/tools/llvm-objdump/llvm-objdump.cpp",
+        "git_blob": "92c1c2da3d02594dcdde2d89d84bed844ca69b07"
+      },
+      {
+        "path": "llvm/tools/llvm-objdump/OffloadDump.cpp",
+        "git_blob": "c0ba4d86d9209973645c01d69daa79cc2ef276b3"
+      },
+      {
+        "path": "llvm/tools/llvm-readobj/ObjDumper.cpp",
+        "git_blob": "1d193573b4776db14f78a11e483bf85f21b045a2"
+      },
+      {
+        "path": "llvm/include/llvm/Object/OffloadBundle.h",
+        "git_blob": "0996d74d71ce4329d9e34e563ae6811194fdf049"
+      },
+      {
+        "path": "llvm/lib/Object/OffloadBundle.cpp",
+        "git_blob": "8f04a98cc3e8ca82ef0c82b961dd5f44d43c738e"
+      }
+    ],
+    "transport": "Native GitHub source API; exact SDK compiler source revision, not search snippets or inferred option behavior."
+  },
+  "reviewed_cpu_api": {
+    "repository": "lz4/lz4",
+    "commit": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
+    "release": "v1.11.1",
+    "path": "lib/lz4.h",
+    "git_blob": "e69ae5627dcee63f71c0a4e42c4c8c58f337426c",
+    "transport": "Native GitHub source API",
+    "api": "LZ4_decompress_safe exact complete compressed length and bounded destination; require exact decoded length and source-byte comparison."
+  },
+  "new_qualification": {
+    "source_and_metadata_tests": 25,
+    "metadata_command": "llvm-readobj --offloading",
+    "metadata_regressions": 5,
+    "metadata_command_executed": false,
+    "cpu_candidate_verifier_executed": false,
+    "stored_codec_added": false,
+    "new_filesystem_or_worker_caller": false,
+    "gpu_executed": false,
+    "module_loaded": false,
+    "new_owner_gui_gpu_mount_driver_operation": false,
+    "full_goal_status": "active"
+  }
+}

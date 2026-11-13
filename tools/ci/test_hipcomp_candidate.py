@@ -179,6 +179,31 @@ class NativeGitBinding(unittest.TestCase):
         with patch.object(subject,"SOURCE_COMMIT",self.commit),self.assertRaisesRegex(RuntimeError,"blob identity"):
             subject.read_blob(self.repo,"source.h",{"bytes":len(self.data),"sha256":"0"*64})
 
+class OffloadMetadata(unittest.TestCase):
+    good="hipv4-amdgcn-amd-amdhsa--gfx1100\tfile://D:/new/private.obj#offset=128&size=4096\n"
+    def test_reviewed_native_uri_form_and_target_features(self):
+        self.assertEqual(subject.inspect_offload_targets("Format: COFF-x86-64\n"+self.good),
+            ["hipv4-amdgcn-amd-amdhsa--gfx1100"])
+        featured=self.good.replace("gfx1100","gfx1100:xnack-:sramecc+")
+        self.assertEqual(subject.inspect_offload_targets(featured),
+            ["hipv4-amdgcn-amd-amdhsa--gfx1100:xnack-:sramecc+"])
+    def test_usage_output_cannot_pass_target_inspection(self):
+        with self.assertRaisesRegex(RuntimeError,"target count"):
+            subject.inspect_offload_targets("USAGE: llvm-objdump.exe --offload-fatbin gfx1100")
+    def test_foreign_multiple_and_missing_targets_reject(self):
+        for text in (self.good.replace("gfx1100","gfx1101"),self.good+self.good,
+                     self.good.replace("hipv4-","cuda-"),"Format: COFF-x86-64"):
+            with self.subTest(text=text),self.assertRaisesRegex(RuntimeError,"target"):
+                subject.inspect_offload_targets(text)
+    def test_malformed_uri_cannot_supply_target_identity(self):
+        for text in (self.good.replace("#offset=128",""),self.good.replace("&size=4096","&size=x"),
+                     self.good.replace("#offset=128","#offset=1234567890")):
+            with self.subTest(text=text),self.assertRaisesRegex(RuntimeError,"target metadata"):
+                subject.inspect_offload_targets(text)
+    def test_metadata_size_limit(self):
+        for text in ("","x"*16385):
+            with self.assertRaisesRegex(RuntimeError,"metadata size"):subject.inspect_offload_targets(text)
+
 if __name__=="__main__":
     if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
         raise RuntimeError("disposable hosted fixture required; never the owner PC")

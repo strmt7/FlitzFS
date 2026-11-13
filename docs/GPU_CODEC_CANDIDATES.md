@@ -90,3 +90,10 @@ exact-source execution.
 Durable mapping/authorization, long-lived funded continuation, automatic learning,
 collective optimization, useful end-to-end GPU gains, Windows semantics,
 installation and physical-backend qualification remain part of the full goal.
+
+The complete allocation gate passed at 0879cce; the next independent CPU verifier
+is described in [GPU_LZ4_CPU_VERIFY.md](GPU_LZ4_CPU_VERIFY.md). Object inspection
+also reached AMD64 host headers but exposed an advertised unselected LLVM flag.
+Its source-proven correction and the new CPU verifier await actual tests. No
+upstream GPU output has yet passed this CPU decoder, and no stored format or
+measured GPU gain is selected.
