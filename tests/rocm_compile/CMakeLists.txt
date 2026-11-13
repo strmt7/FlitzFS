@@ -140,9 +140,18 @@ add_custom_command(OUTPUT "${bundle_header}" "${bundle_receipt}"
     "${flitzfs_root}/tools/ci/check_portable_cpu.py"
   VERBATIM)
 
+add_library(flitzfs_hip_compute_common STATIC "${flitzfs_root}/src/windows/hip_decode_worker.cpp")
+target_compile_features(flitzfs_hip_compute_common PUBLIC cxx_std_20)
+target_include_directories(flitzfs_hip_compute_common PUBLIC "${flitzfs_root}/src/windows")
+target_include_directories(flitzfs_hip_compute_common SYSTEM PUBLIC "${FLITZFS_ROCM_SDK}/include")
+target_compile_definitions(flitzfs_hip_compute_common PUBLIC __HIP_PLATFORM_AMD__=1
+  __HIP_DISABLE_CPP_FUNCTIONS__=1 USE_PROF_API=0 NOMINMAX UNICODE _UNICODE
+  FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME="${runtime_name}")
+target_compile_options(flitzfs_hip_compute_common PRIVATE /W4 /permissive-)
+target_link_libraries(flitzfs_hip_compute_common PUBLIC flitzfs_worker_exchange flitzfs_gpu_budget flitzfs_gpu_topology)
+
 add_executable(flitzfs_hip_worker
   "${flitzfs_root}/src/windows/hip_worker_main.cpp"
-  "${flitzfs_root}/src/windows/hip_decode_worker.cpp"
   "${flitzfs_root}/src/windows/hip_module_verification.cpp"
   "${bundle_header}")
 target_compile_features(flitzfs_hip_worker PRIVATE cxx_std_20)
@@ -151,7 +160,7 @@ target_include_directories(flitzfs_hip_worker SYSTEM PRIVATE "${FLITZFS_ROCM_SDK
 target_compile_definitions(flitzfs_hip_worker PRIVATE __HIP_PLATFORM_AMD__=1
   __HIP_DISABLE_CPP_FUNCTIONS__=1 USE_PROF_API=0 NOMINMAX UNICODE _UNICODE)
 target_compile_options(flitzfs_hip_worker PRIVATE /W4 /permissive-)
-target_link_libraries(flitzfs_hip_worker PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget flitzfs_gpu_topology bcrypt wintrust)
+target_link_libraries(flitzfs_hip_worker PRIVATE flitzfs_hip_compute_common bcrypt wintrust)
 
 add_executable(flitzfs_hip_worker_probe worker_probe.cpp)
 target_compile_features(flitzfs_hip_worker_probe PRIVATE cxx_std_20)
@@ -187,3 +196,15 @@ add_executable(flitzfs_rocm_cpu_lz4_probe cpu_lz4_probe.cpp)
 target_compile_features(flitzfs_rocm_cpu_lz4_probe PRIVATE cxx_std_20)
 target_link_libraries(flitzfs_rocm_cpu_lz4_probe PRIVATE flitzfs_worker_exchange)
 target_compile_options(flitzfs_rocm_cpu_lz4_probe PRIVATE /W4 /permissive-)
+
+# SDK-only CPU qualification; neither implementation nor candidate module is
+# linked into the normal worker, helper, filesystem, or distributable bundle.
+if(FLITZFS_ROCM_LZ4_OBJECT AND FLITZFS_ROCM_LZ4_SOURCE)
+  add_library(flitzfs_rocm_lz4_compute STATIC "${flitzfs_root}/src/windows/hip_lz4_compute.cpp")
+  target_include_directories(flitzfs_rocm_lz4_compute PUBLIC "${lz4_source_dir}")
+  target_link_libraries(flitzfs_rocm_lz4_compute PUBLIC flitzfs_hip_compute_common)
+  target_compile_options(flitzfs_rocm_lz4_compute PRIVATE /W4 /permissive-)
+  add_executable(flitzfs_rocm_lz4_compute_probe lz4_compute_probe.cpp)
+  target_link_libraries(flitzfs_rocm_lz4_compute_probe PRIVATE flitzfs_rocm_lz4_compute)
+  target_compile_options(flitzfs_rocm_lz4_compute_probe PRIVATE /W4 /permissive-)
+endif()

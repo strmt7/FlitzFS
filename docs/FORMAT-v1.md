@@ -1,5 +1,8 @@
 # `.flfs` v1 experimental chunk container
 
+The SDK-only HIP LZ4 compute candidate does not add or change any stored encoding.
+Its private layout and typed function table are not this on-storage format.
+
 **Status: unstable development format; do not use as a sole archival or recovery copy.**
 All integer fields are unsigned, little-endian. No implicit packing or machine-dependent structures are used. Metadata is checked before allocating block buffers. Data CRC32 is not cryptographic authentication.
 

@@ -1,5 +1,10 @@
 # Bounded HIP kernel candidate and qualification boundary
 
+## SDK-only compression compute candidate
+
+Read [HIP_LZ4_COMPUTE.md](HIP_LZ4_COMPUTE.md) before changing the new typed compute implementation or CPU probe. It remains outside normal operations and the distributable worker; source-bound SDK qualification is pending. Keep authenticated coverage, CPU-first refusal, the complete slab cap and exact retirement requirements.
+
+
 ## Current resource-envelope candidate
 
 The source now shares a live-resource admission policy across worker, result

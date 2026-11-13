@@ -240,6 +240,14 @@
             "sdk_run": 43497321613,
             "core_run": 43497321733,
             "evidence": "docs/evidence/cpu-lz4-worker-94ec882.json"
+          },
+          "typed_compression_compute": {
+            "contract": "docs/HIP_LZ4_COMPUTE.md",
+            "status": "Pending current-source selected-SDK compilation, CPU fake success/failure matrix, raw missing-decoder control and all original CI gates.",
+            "complete_device_bytes_cap": 262144,
+            "normal_io_caller": false,
+            "candidate_module_loaded": false,
+            "gpu_executed": false
           }
         }
       }

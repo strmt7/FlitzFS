@@ -1,5 +1,10 @@
 # Development gates and acceptance criteria
 
+## SDK-only compression compute candidate
+
+A typed compute implementation now spans admission, one complete slab, kernel submission, full CPU-verified readback and confirmed API resource retirement. [Its contract](HIP_LZ4_COMPUTE.md) requires current-source SDK/CPU qualification, authenticated module/coverage integration and isolated runtime/benefit evidence before ordinary file routing. No GPU execution or product completion is claimed.
+
+
 The current source-bound [assessment](REPOSITORY_ASSESSMENT.md) and detailed
 [execution plan](DEVELOPMENT_PLAN.md) organize the remaining full-product work.
 Use [the JSON ledger](DEVELOPMENT_PLAN.json) for dependencies and exit criteria;

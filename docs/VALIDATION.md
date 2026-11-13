@@ -1,5 +1,10 @@
 # Validation ledger — experimental release 0.2
 
+## Pending typed compression compute qualification
+
+The SDK-only [HIP LZ4 compute candidate](HIP_LZ4_COMPUTE.md) adds new typed calls and CPU fault probes. Its source-bound compilation, positive/raw refusal matrix and full existing CI gates must execute before recording success. No owner GPU, mounted test, throughput result or storage durability result follows from these probes. Prior decoder qualification remains tied to 94ec882.
+
+
 Date: **7 November 2026**. This page distinguishes implemented functionality,
 executed tests and unpassed integration gates. It supersedes earlier statements
 that Windows CPU/native callback validation was still pending. Historical
