@@ -201,7 +201,14 @@ void gui_tests(const std::filesystem::path& app) {
     auto wait_status=[&](std::wstring_view expected){
       until([&]{return text(status).find(expected)!=std::wstring::npos;},deadline);
     };
-    require(IsWindowVisible(window)!=FALSE,"GUI did not appear");
+    until([&]{
+      const auto observation=observer->wait_for_exit();
+      require(observation!=ProcessObservation::exited && observation!=ProcessObservation::wait_failed,
+          "GUI exited or became unobservable before readiness");
+      return IsWindowVisible(window)!=FALSE && GetDlgItem(window,111) &&
+          GetDlgItem(window,112) && GetDlgItem(window,113) &&
+          IsWindowEnabled(GetDlgItem(window,101))!=FALSE;
+    },deadline);
     button(101);wait_status(L"Memory volume created");
     send(GetDlgItem(window,111),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L"qualification.txt"));
     const std::wstring payload=L"FlitzFS native GUI byte verification. 1234567890 \u03B1\u03B2 \U0001F680";

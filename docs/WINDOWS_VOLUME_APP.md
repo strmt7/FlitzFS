@@ -122,3 +122,13 @@ cohorts for each native primitive group. Every measured-cohort count must equal
 the preceding sample, followed by three unchanged strict full-model balance
 checks. No production retry, allowance or resource cap changes. This bounded
 experiment does not claim that arbitrary Windows behavior is leak-free.
+
+At 8540b35 all 377 model checks passed: native RNG stabilized at 88 handles,
+native window/thread initialization at 113, and three complete application
+cycles each balanced 113 to 113 with working-set restoration and healthy cleanup.
+The GUI test then failed by inspecting visibility immediately after window
+discovery, before startup ShowWindow completed. The harness now requires actual
+visibility, required controls and enabled Create, with immediate failure on
+child exit/wait failure and the same overall deadline. It adds no fixed sleep.
+See [the exact model result and retained GUI failure](evidence/volume-app-8540b35.json).
+No host GUI or application run has occurred yet.
