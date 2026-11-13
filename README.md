@@ -280,3 +280,12 @@ AMD64 host headers, the exact gfx1100 bundle metadata, unchanged output digests
 and the original SDK/worker gates with 20 confirmed worker exits
 ([evidence](docs/evidence/gpu-lz4-object-1d20f40.json)). Current-AMD page admission
 still needs its observed-marker correction; no kernel or runtime is enabled.
+
+
+The current selected-distribution AMD warp/model/stream captures at 5eaa07a passed
+all nine scope cases and all three native pages. Source review keeps warp
+lockstep distinct from memory visibility and priority hints distinct from OS
+scheduling guarantees. The next [priority capability change](docs/HIP_PRIORITY_CAPABILITY.md)
+corroborates reported outputs and classifies incomplete capability separately
+from a stable invalid range. Its exact old/new CPU regression and SDK execution
+remain pending; no actual device case or performance gain is claimed.

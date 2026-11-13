@@ -104,8 +104,18 @@ int initialize_device(const HipApi& api, int ordinal, std::array<std::byte,8> lu
   int least = (std::numeric_limits<int>::min)();
   int greatest = (std::numeric_limits<int>::max)();
   check_hip(api.priority_range(&least, &greatest), "query stream priorities", HipWorkerStage::stream_priorities);
+  // Some supported runtime versions return success without supplying this
+  // optional capability. Corroborate both outputs with opposite initial values;
+  // one bounded second query detects omitted/partial/inconsistent reports.
+  int corroborated_least = (std::numeric_limits<int>::max)();
+  int corroborated_greatest = (std::numeric_limits<int>::min)();
+  check_hip(api.priority_range(&corroborated_least, &corroborated_greatest),
+      "corroborate stream priorities", HipWorkerStage::stream_priorities);
+  if (least != corroborated_least || greatest != corroborated_greatest)
+    throw HipWorkerFailure(HipWorkerExit::unsupported_configuration,
+        "HIP stream priority range unreported or inconsistent", HipWorkerStage::stream_priorities);
   if (least < greatest) throw HipWorkerFailure(HipWorkerExit::device_fault,
-      "HIP stream priority range unavailable", HipWorkerStage::stream_priorities);
+      "HIP stream priority range invalid", HipWorkerStage::stream_priorities);
   return least;
 }
 inline int initialize_device(const HipApi& api,int ordinal,std::array<std::byte,8> luid,

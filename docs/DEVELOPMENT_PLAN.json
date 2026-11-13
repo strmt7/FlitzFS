@@ -153,9 +153,9 @@
           "source_repository": "ROCm/hipCOMP-core",
           "source_commit": "03df9f7369211ee15d370817165224c73fdc9a46",
           "navigation_qualified": "905a4d3: 22 admission cases, 142 upstream files, two actual queries and relevant live-source hashes/notices verified.",
-          "status": "Independent CPU verification passed at 86bc830. Native Windows offline object compile, exact metadata/extent/digest inspection and all original SDK/worker gates passed at 1d20f40 (28 cases, 20 confirmed worker exits). Current AMD capture scope failed on an absent literal; observed-page/version/substantive-content correction awaits nine-case/native qualification.",
-          "research": "docs/evidence/gpu-lz4-object-1d20f40.json",
-          "next": "Restore and review current AMD captures, then finish kernel/ABI/lifecycle work before actual GPU output and useful complete-operation integration."
+          "status": "CPU verifier and offline object gates are qualified at their exact sources. Current-AMD content is admitted at 5eaa07a; package implementation was independently reviewed. New priority capability corroboration and exact prior/current CPU oracle await SDK execution.",
+          "research": "docs/evidence/gpu-priority-sources-5eaa07a.json",
+          "next": "Qualify bounded capability classification and retain source/worker gates; continue kernel/ABI/lifecycle review and actual useful GPU integration."
         }
       }
     },

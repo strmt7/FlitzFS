@@ -30,7 +30,8 @@ def digest(path):
         return hashlib.file_digest(file,"sha256").hexdigest()
 
 def native_git(provider,*args):
-    result=subprocess.run(["git","-C",str(provider),*args],check=True,capture_output=True,text=True,timeout=15)
+    env=os.environ.copy();env["GIT_NO_REPLACE_OBJECTS"]="1"
+    result=subprocess.run(["git","-C",str(provider),*args],check=True,capture_output=True,text=True,timeout=15,env=env)
     require(len(result.stdout)<=1024*1024,"source identity output budget")
     return result.stdout.strip()
 
@@ -122,6 +123,16 @@ def main():
     require(native_git(provider,"rev-parse","HEAD")==SOURCE_REF,"FlitzZip mechanism source identity changed")
     require(not native_git(provider,"status","--porcelain","--untracked-files=all"),
         "reference checkout must be unmodified before import")
+    require(Path(native_git(REPO,"rev-parse","--show-toplevel")).resolve()==REPO and
+        native_git(REPO,"rev-parse","HEAD")==os.environ["GITHUB_SHA"],"control checkout identity")
+    previous_api="tests/rocm_compile/previous_hip_api.hpp"
+    previous_info=(REPO/previous_api).lstat()
+    require(stat.S_ISREG(previous_info.st_mode) and previous_info.st_nlink==1 and
+        not (getattr(previous_info,"st_file_attributes",0)&0x400) and
+        0<previous_info.st_size<=16*1024,"previous priority API oracle file")
+    require(native_git(REPO,"rev-parse","HEAD:"+previous_api)=="e8f78c76a1b6b44759a1ea5ed6d236bdafd3384e" and
+        not native_git(REPO,"status","--porcelain","--untracked-files=no","--",previous_api),
+        "previous priority API oracle differs from pinned source")
     hipcomp_source=None
     if args.hipcomp_source is not None:
         from qualify_hipcomp_candidate import verify_checkout,SOURCE_COMMIT as CODEC_SOURCE_COMMIT
@@ -235,11 +246,34 @@ def main():
         api_rows=[json.loads(line[len(api_prefix):]) for line in api_result["stdout"].splitlines()
             if line.startswith(api_prefix)]
         require(len(api_rows)==1 and api_rows[0]["checks"]>=40 and
+            api_rows[0]["priority_cases"]==12 and api_rows[0]["priority_query_limit"]==2 and
             api_rows[0]["identity_before_selection"] is True and
             api_rows[0]["missing_exports_refused"]==11 and api_rows[0]["hip_runtime_loaded"] is False and
             api_rows[0]["gpu_executed"] is False and api_rows[0]["complete"] is True,
             "typed identity API evidence mismatch")
         report["api_probe"]["qualification"]=api_rows[0]
+        previous_probe=build/"Release/flitzfs_rocm_previous_priority_probe.exe"
+        report["previous_priority_probe"]=dict(source_repository="strmt7/FlitzFS",
+            source_commit="5eaa07ae56bd360cecf5b31bcf3806f117540ab7",
+            source_path="src/windows/hip_api.hpp",source_blob="e8f78c76a1b6b44759a1ea5ed6d236bdafd3384e",
+            bytes=previous_probe.stat().st_size,sha256=digest(previous_probe),
+            imports=audit_binary(previous_probe.read_bytes()))
+        old_priority=run(bounds,[str(previous_probe),"--priority-capability-regression"],
+            report,"previous-priority-capability-regression",30,exit_code=1)
+        new_priority=run(bounds,[str(api_probe),"--priority-capability-regression"],
+            report,"current-priority-capability-regression",30)
+        priority_prefix="HIP priority regression: "
+        observed=[]
+        for result,category,queries,complete in (
+            (old_priority,0x46530005,1,False),(new_priority,0x46530003,2,True)):
+            records=[json.loads(line[len(priority_prefix):]) for line in result["stdout"].splitlines()
+                if line.startswith(priority_prefix)]
+            require(len(records)==1 and records[0]["category"]==category and
+                records[0]["stage"]=="stream_priorities" and records[0]["priority_queries"]==queries and
+                records[0]["hip_runtime_loaded"] is False and records[0]["gpu_executed"] is False and
+                records[0]["complete"] is complete,"priority capability regression evidence")
+            observed.append(records[0])
+        report["priority_capability_regression"]=dict(old=observed[0],current=observed[1],complete=True)
         module=build/"Release/flitzfs_rocm_kernels.dll"
         require(module.is_file() and module.stat().st_size<=32*1024*1024,"kernel module output budget")
         kernel_imports,kernel_delayed=pe_import_names(module.read_bytes())
@@ -504,6 +538,9 @@ def main():
         require(0<archive.stat().st_size<=8*1024*1024,"own artifact compressed budget")
         report["driver_probe_artifact"]=dict(bytes=archive.stat().st_size,sha256=digest(archive),
             files=records,runtime_shipped=False,kpack_shipped=False,hardware_executed=False)
+        require(native_git(REPO,"rev-parse","HEAD")==os.environ["GITHUB_SHA"] and
+            not native_git(REPO,"status","--porcelain","--untracked-files=no","--",previous_api),
+            "priority oracle/control source changed during qualification")
         report["complete"]=True
     except Exception as error:
         report["error"]=type(error).__name__+": "+str(error)

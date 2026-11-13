@@ -1046,3 +1046,21 @@ and substantive markers while preserving native failures. It must pass before
 current-AMD semantic conclusions; no source/kernel/owner operation follows from
 an admission correction. Bounded formatting retains the initial observation
 truncation and emits digests/scope diagnostics instead of full native HTML.
+
+
+## Bounded optional-capability evidence
+
+The [priority guard](HIP_PRIORITY_CAPABILITY.md) adds one bounded corroborating
+query for the same selected device. It performs no rescan, timer retry, stream
+creation, batch allocation or kernel launch. Unreported/partial/inconsistent
+capability refuses as unsupported configuration; explicit stable invalid ranges
+and actual API errors retain fault/pressure/unsupported classifications. CPU
+selection, configuration suppression, process limits and exact retirement remain.
+
+A test-only byte-pinned historical header and the current header run the same
+focused fake API case. The SDK gate requires the actual old failure category and
+one query, then the corrected unsupported category and two queries; neither
+probe may load HIP. Native import auditing, all original SDK/worker checks and
+no owner execution remain. The new source is unqualified until these runs pass.
+Current source review confirms the selected runtime normally writes both outputs;
+no owner-device occurrence of incomplete output is asserted.
