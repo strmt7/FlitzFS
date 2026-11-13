@@ -1407,3 +1407,17 @@ stored codec merely because compilation succeeded. Require actual admission and
 compiler evidence before claiming the gate works; CPU format interoperability,
 runtime containment, resource admission and useful end-to-end benefit remain
 separate requirements. No unchanged owner GUI/GPU repetition follows.
+
+
+## Experimental LZ4 candidate allocation and inspection
+
+Read docs/GPU_LZ4_LAYOUT.md before changing its host-only planner or tests. Keep
+one to eight nonempty chunks, 64-KiB chunk and 256-KiB aggregate input limits;
+the complete explicit device allocation (tables, padding, inputs, output guards,
+worst-case outputs and scratch) must also fit 256 KiB. Reject before proportional
+allocation. A guard is diagnostic and cannot prevent an invalid kernel write.
+No runtime or stored codec follows. Preserve the independent CPU recovery and
+worker lifecycle gates. Use only the same verified SDK's native LLVM readers
+for data-only object inspection on disposable hosted VMs, retain their identities
+and complete bounded results, and distinguish successful compiler invocation
+from verified object metadata and actual GPU execution.

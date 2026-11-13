@@ -405,3 +405,9 @@ The optional hipCOMP object compile gate changes no storage encoding, codec ID,
 worker protocol or product numbering. The generated object is isolated compiler
 output, not a decoding dependency or filesystem data. Its source asset is a
 qualification manifest; see [HIPCOMP_OFFLINE.md](HIPCOMP_OFFLINE.md).
+
+
+The host-only LZ4 allocation metadata and offline object inspection introduce no
+stored codec, capability, worker ABI or product numbering. Their eight-byte
+pointer/size slots describe only a future AMD64 private allocation contract;
+no host pointers are serialized. See [GPU_LZ4_LAYOUT.md](GPU_LZ4_LAYOUT.md).

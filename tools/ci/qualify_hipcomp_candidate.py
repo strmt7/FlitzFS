@@ -140,7 +140,7 @@ def main():
     report=dict(experimental=True,control_commit=os.environ["GITHUB_SHA"],source_repository=SOURCE_REPOSITORY,
         source_commit=SOURCE_COMMIT,source_inventory_sha256=SOURCE_DIGEST,distribution=lock["version"],
         synthetic_compile_target="gfx1100",commands=[],complete=False,gpu_executed=False,
-        module_loaded=False,linked_into_product=False,upstream_build_scripts_executed=False)
+        module_loaded=False,linked_into_product=False,upstream_build_scripts_executed=False,object_inspected=False)
     output.mkdir()
     try:
         source_copy=output/"compile-input"
@@ -153,6 +153,24 @@ def main():
             report,"hipcomp-LZ4-offline-translation-unit",900)
         require(object_path.is_file() and 0<object_path.stat().st_size<=16*MIB and
             dependency.is_file() and 0<dependency.stat().st_size<=MIB,"candidate compiler outputs")
+        # Read compiler output as data with the same verified distribution's
+        # native LLVM tools. Neither command links or loads the candidate.
+        tools={}
+        for name in ("llvm-readobj.exe","llvm-objdump.exe"):
+            tool=sdk/"lib/llvm/bin"/name
+            require(tool.is_file() and 0<tool.stat().st_size<=256*MIB,"candidate object reader unavailable")
+            tools[name]=tool
+            report.setdefault("object_readers",{})[name]=dict(bytes=tool.stat().st_size,sha256=digest(tool))
+            run(bounds,[str(tool),"--version"],report,"candidate-reader-version-"+name,30)
+        headers=run(bounds,[str(tools["llvm-readobj.exe"]),"--file-header",str(object_path)],
+            report,"candidate-object-headers",30)
+        require(not headers["output_truncated"] and "COFF-x86-64" in headers["stdout"] and
+            "IMAGE_FILE_MACHINE_AMD64" in headers["stdout"],"candidate host object identity")
+        fatbin=run(bounds,[str(tools["llvm-objdump.exe"]),"--offload-fatbin",str(object_path)],
+            report,"candidate-offload-fatbin",30)
+        require(not fatbin["output_truncated"] and
+            re.search(r"\bgfx1100\b",fatbin["stdout"]) is not None,"candidate device target identity")
+        report["object_inspected"]=True
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,"candidate SDK inputs changed")
         verify_checkout(source,SOURCE_COMMIT);verify_checkout(provider,MECHANISM_COMMIT)
         report["object"]=dict(bytes=object_path.stat().st_size,sha256=digest(object_path))

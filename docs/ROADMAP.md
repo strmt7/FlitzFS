@@ -893,7 +893,10 @@ The candidate source index at `905a4d3` passed 22 admission cases, eight default
 FlitzFS queries and two upstream queries with separate source/control identity.
 The next [offline gate](HIPCOMP_OFFLINE.md) prepares a byte-checked private source
 copy and explicit native Windows compilation of one LZ4 entry. Its 20 new CPU
-admission/staging cases and compiler invocation require actual source-bound
-execution. No product codec, GPU runtime path or performance benefit is selected.
+admission/staging cases and compiler invocation passed at `df51d8c`; see
+[offline evidence](evidence/gpu-lz4-offline-df51d8c.json). The next
+[allocation and binary-inspection gates](GPU_LZ4_LAYOUT.md) require new-source
+CPU/sanitizer/Windows and compiler execution. No product codec, GPU runtime path
+or performance benefit is selected.
 Independent CPU decoding, checked resource admission and equivalent worker
 containment remain prerequisites for runtime use; all full-product exits remain.

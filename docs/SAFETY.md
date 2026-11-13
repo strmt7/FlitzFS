@@ -990,3 +990,15 @@ unlinked and unexported. Existing 2-GiB command and SDK/resource gates remain, w
 explicit wrapper/compiler deadlines and output acceptance caps. No owner driver,
 GPU, mount or repeated unchanged GUI action is enabled. Actual tests/compiler
 results and separate runtime/CPU recovery/performance gates remain required.
+
+
+## Complete candidate allocation accounting
+
+The new [LZ4 layout](GPU_LZ4_LAYOUT.md) has fixed stack metadata and admits all
+explicit buffers within the existing 256-KiB ceiling before source copying or
+runtime use. It includes worst-case output, scratch, four tables, alignment and
+32-byte output guards. Guards diagnose corruption; they do not prevent it.
+The same verified SDK's LLVM object readers run only on disposable VMs with
+30-second/2-GiB command limits, and retain identities and untruncated format/target
+evidence. They never load or execute the candidate. These new gates require their
+own actual qualification; no owner installation, runtime or GPU action follows.

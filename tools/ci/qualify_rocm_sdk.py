@@ -164,7 +164,8 @@ def main():
                 "--source",str(hipcomp_source),"--provider",str(provider),"--sdk",str(sdk),
                 "--output",str(candidate)],report,"reviewed-hipcomp-offline-qualification",1200)
             report["hipcomp_offline"]=json.loads((candidate/"qualification.json").read_text(encoding="utf-8"))
-            require(report["hipcomp_offline"]["complete"] and not report["hipcomp_offline"]["gpu_executed"] and
+            require(report["hipcomp_offline"]["complete"] and report["hipcomp_offline"].get("object_inspected") is True and
+                not report["hipcomp_offline"]["gpu_executed"] and
                 not report["hipcomp_offline"]["module_loaded"],"candidate offline scope")
 
         # Reuse the unchanged compiler helper. Its explicit include root is a
