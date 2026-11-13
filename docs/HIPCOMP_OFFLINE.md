@@ -108,3 +108,23 @@ code-object files. New closed-output tests reject usage, absent/foreign/duplicat
 targets, malformed URIs and oversized output. The corrected gate requires new
 execution; this is not a rerun of unchanged source. See
 [allocation and failure evidence](evidence/gpu-lz4-layout-0879cce.json).
+
+## Captured empty-host placeholder schema
+
+At 86bc830, all 25 source/metadata unit cases passed and the native read-only
+command successfully reported the gfx1100 bundle. Admission then correctly
+failed closed because its schema omitted the SDK's zero-byte AMD64 host
+placeholder. Both the native metadata and rejection are retained in
+[CPU and reader evidence](evidence/gpu-lz4-cpu-86bc830.json).
+
+The next parser requires exactly one empty host-x86_64-pc-windows-msvc- entry and
+one positive hip AMD gfx1100 image. Every URI must name the exact compiler object;
+offset/size must stay within its actual byte length. Nonempty/foreign/duplicate
+host entries and invalid device extents remain rejected. The suite now contains
+28 source/metadata cases; these changes require new execution. Object/dependency
+digests are retained before inspection and must remain unchanged afterward.
+Reader warnings or truncated metadata fail admission. No candidate is loaded.
+
+[GPU_LZ4_KERNEL_REVIEW.md](GPU_LZ4_KERNEL_REVIEW.md) records the bounded writer
+review and the pending current-AMD synchronization/scheduling captures. Kernel
+source and existing runtime paths remain unchanged.

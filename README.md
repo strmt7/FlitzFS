@@ -254,7 +254,9 @@ passed all 20 source/staging cases and native Windows compilation using the
 verified ROCm 10.1.0 SDK, retaining existing worker gates
 ([evidence](docs/evidence/gpu-lz4-offline-df51d8c.json)). The [bounded allocation planner](docs/GPU_LZ4_LAYOUT.md) at 0879cce passed all
 five core configurations, including sanitizers and Windows native. Its expanded
-object-reader failure has an exact-source correction; that correction and the
-new [independent CPU verifier](docs/GPU_LZ4_CPU_VERIFY.md) require new-source tests. No candidate object is loaded or used by file operations.
+object-reader command was corrected and the [independent CPU verifier](docs/GPU_LZ4_CPU_VERIFY.md)
+at 86bc830 passed all five core configurations. The captured empty-host bundle
+schema needs its next strict parser qualification. Current AMD synchronization
+and scheduling captures also remain pending; see the [kernel review](docs/GPU_LZ4_KERNEL_REVIEW.md). No candidate object is loaded or used by file operations.
 Automatic learning, durable provider mapping, useful GPU gains and the full
 Windows product remain unfinished.

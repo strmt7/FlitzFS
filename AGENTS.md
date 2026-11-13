@@ -1437,3 +1437,18 @@ unavailable behavior and malicious-input/canary tests. For object metadata use
 only the reviewed same-SDK llvm-readobj --offloading path, not an advertised
 unselected flag or an extraction command; reject missing, foreign, duplicate,
 malformed or truncated target metadata.
+
+
+## Closed current-AMD warp and scheduling research
+
+Read docs/GPU_LZ4_KERNEL_REVIEW.md before changing the candidate's synchronization
+or scheduling. The reviewed rocm-warp group admits only its three versioned
+ROCm 10.1.0 HIP pages through the isolated Crawl4AI provider. Require all native
+captures, substantive content, source/version identity, robots and existing
+resource limits. Preserve failures and retired-scope rejection. Search snippets
+are discovery only; no kernel change or runtime qualification follows before
+actual content review. No shared provider, owner installation or device action
+is authorized by this group. The object gate must admit exactly the captured
+empty AMD64 host placeholder plus one positive gfx1100 image, bind URIs/extents
+to the actual object, reject reader warnings/truncation, and verify unchanged
+object/dependency digests. This remains synthetic offline qualification.

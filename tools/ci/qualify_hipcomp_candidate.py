@@ -113,17 +113,30 @@ def stage(source,output,value):
     require(sum(row["bytes"] for row in records)+entry["bytes"]+sum(x["bytes"] for x in notices)<=MAX_BYTES,
         "candidate compiler fixture aggregate")
     return compiled,records
-def inspect_offload_targets(text):
+def inspect_offload_targets(text,object_path,object_bytes):
     require(isinstance(text,str) and 0<len(text)<=16384,"candidate offload metadata size")
-    targets=[]
+    require(isinstance(object_path,str) and 0<len(object_path)<=1024 and
+        not any(c in object_path for c in "\r\n\t") and type(object_bytes) is int and
+        0<object_bytes<=16*MIB,"candidate offload object identity")
+    targets=[];hosts=0
+    location=re.compile(re.escape("file://"+object_path)+r"#offset=([0-9]{1,9})&size=([0-9]{1,9})")
     for line in text.splitlines():
         if "\tfile://" not in line:continue
-        target,uri=line.split("\t",1)
-        require(re.fullmatch(r"hip(?:v[0-9]+)?-amdgcn-amd-amdhsa--gfx1100(?::[A-Za-z0-9_+:-]+)?",target)
-            is not None and re.search(r"#offset=[0-9]{1,9}&size=[0-9]{1,9}$",uri) is not None,
-            "candidate offload target metadata")
-        targets.append(target)
-    require(len(targets)==1,"candidate offload target count")
+        fields=line.split("\t")
+        require(len(fields)==2,"candidate offload target metadata")
+        target,uri=fields;match=location.fullmatch(uri)
+        require(match is not None,"candidate offload target metadata")
+        offset,size=map(int,match.groups())
+        require(offset<=object_bytes and size<=object_bytes-offset,"candidate offload target extent")
+        if target=="host-x86_64-pc-windows-msvc-":
+            require(size==0,"candidate offload host placeholder")
+            hosts+=1
+        else:
+            require(size>0 and re.fullmatch(
+                r"hip(?:v[0-9]+)?-amdgcn-amd-amdhsa--gfx1100(?::[A-Za-z0-9_+:-]+)?",target)
+                is not None,"candidate offload target metadata")
+            targets.append(target)
+    require(hosts==1 and len(targets)==1,"candidate offload target count")
     return targets
 def main():
     require(os.name=="nt" and os.environ.get("GITHUB_ACTIONS")=="true" and
@@ -165,6 +178,8 @@ def main():
             report,"hipcomp-LZ4-offline-translation-unit",900)
         require(object_path.is_file() and 0<object_path.stat().st_size<=16*MIB and
             dependency.is_file() and 0<dependency.stat().st_size<=MIB,"candidate compiler outputs")
+        report["object"]=dict(bytes=object_path.stat().st_size,sha256=digest(object_path))
+        report["dependencies"]=dict(bytes=dependency.stat().st_size,sha256=digest(dependency))
         # Read compiler output as data with the same verified distribution's
         # native LLVM tools. Neither command links or loads the candidate.
         tools={}
@@ -176,17 +191,19 @@ def main():
             run(bounds,[str(tool),"--version"],report,"candidate-reader-version-"+name,30)
         headers=run(bounds,[str(tools["llvm-readobj.exe"]),"--file-header",str(object_path)],
             report,"candidate-object-headers",30)
-        require(not headers["output_truncated"] and "COFF-x86-64" in headers["stdout"] and
+        require(not headers["output_truncated"] and not headers["stderr"].strip() and
+            "COFF-x86-64" in headers["stdout"] and
             "IMAGE_FILE_MACHINE_AMD64" in headers["stdout"],"candidate host object identity")
         fatbin=run(bounds,[str(tools["llvm-readobj.exe"]),"--offloading",str(object_path)],
             report,"candidate-offload-bundle-metadata",30)
-        require(not fatbin["output_truncated"],"candidate offload metadata truncated")
-        report["offload_target_ids"]=inspect_offload_targets(fatbin["stdout"])
+        require(not fatbin["output_truncated"] and not fatbin["stderr"].strip(),
+            "candidate offload metadata truncated or warned")
+        report["offload_target_ids"]=inspect_offload_targets(fatbin["stdout"],str(object_path),object_path.stat().st_size)
         report["object_inspected"]=True
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,"candidate SDK inputs changed")
         verify_checkout(source,SOURCE_COMMIT);verify_checkout(provider,MECHANISM_COMMIT)
-        report["object"]=dict(bytes=object_path.stat().st_size,sha256=digest(object_path))
-        report["dependencies"]=dict(bytes=dependency.stat().st_size,sha256=digest(dependency))
+        require(digest(object_path)==report["object"]["sha256"] and
+            digest(dependency)==report["dependencies"]["sha256"],"candidate inspection changed compiler outputs")
         report["complete"]=True
     except Exception as error:
         report["error"]=type(error).__name__+": "+str(error);raise

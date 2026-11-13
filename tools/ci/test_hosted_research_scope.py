@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regression: an HTTP-200 retired AMD page must not qualify as current research."""
 import unittest
-from hosted_research import qualify_source_scope
+from hosted_research import qualify_source_scope, ROCM_WARP_SOURCES
 
 class SourceScopeTests(unittest.TestCase):
     def setUp(self):
@@ -22,7 +22,7 @@ class SourceScopeTests(unittest.TestCase):
         self.assertTrue(self.row["success"])
 
     def test_case_and_layout_do_not_hide_the_banner(self):
-        for group in ("amd","rocm-current","rocm-windows-hardware"):
+        for group in ("amd","rocm-current","rocm-windows-hardware","rocm-warp"):
             with self.subTest(group=group):
                 result=qualify_source_scope(group,self.row,
                     "DOCUMENTATION\n COVERS\t RELEASES through 7.2.1.")
@@ -40,6 +40,22 @@ class SourceScopeTests(unittest.TestCase):
         self.assertIs(qualify_source_scope("rocm-current",row,
             "documentation covers releases through 7.2.1"),row)
         self.assertEqual(row["error"],"robots denied")
+
+class WarpSourceAdmission(unittest.TestCase):
+    def test_three_closed_versioned_amd_pages(self):
+        self.assertEqual(len(ROCM_WARP_SOURCES),3)
+        names=set();urls=set()
+        for name,url,marker,term in ROCM_WARP_SOURCES:
+            self.assertNotIn(name,names);self.assertNotIn(url,urls)
+            names.add(name);urls.add(url)
+            self.assertTrue(url.startswith("https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/"))
+            self.assertNotIn("/latest/",url);self.assertNotIn("/develop/",url)
+            self.assertTrue(marker);self.assertTrue(term)
+    def test_warp_scope_preserves_original_native_failure(self):
+        row=dict(success=False,native_success=False,http_status=403,error="robots denied",
+                 failure_category="robots_denied",capture="denied.native.json",capture_sha256="b"*64)
+        self.assertIs(qualify_source_scope("rocm-warp",row,
+            "documentation covers releases through 7.2.1"),row)
 
 if __name__=="__main__":
     unittest.main()
