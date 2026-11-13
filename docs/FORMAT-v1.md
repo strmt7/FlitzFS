@@ -424,3 +424,8 @@ The closed native object-bundle metadata schema (one empty AMD64 host placeholde
 and one bounded gfx1100 image) and current-AMD research scope change no filesystem
 encoding, codec ID, worker ABI or product numbering. They are qualification data,
 not stored file representations or GPU runtime support.
+
+
+Completed offline object metadata inspection at 1d20f40 and the subsequent
+research-page scope correction add no stored codec, capability or worker frame.
+The candidate remains isolated compile output, not a filesystem dependency.

@@ -85,7 +85,7 @@
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; 99d5365 passed VM model/GUI and one healthy owner GUI with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
-    "gpu_codec_candidate": "Complete allocation and independent CPU verification passed all five core configurations at 86bc830 (806 codec-enabled and 389 codec-disabled verifier assertions). Read-only LLVM metadata identified gfx1100 but the parser rejected an unmodeled empty AMD64 host placeholder; strict captured-schema correction awaits 28-case/compiler qualification. Current AMD warp/scheduling content captures remain pending. No runtime/stored codec selected."
+    "gpu_codec_candidate": "Complete allocation and independent CPU verification passed all five core configurations at 86bc830. Native Windows offline compile and exact host/device metadata inspection passed at 1d20f40, with 28 admission cases and 20 original worker exits. Current-AMD content capture failed on an absent literal marker; source-based scope restoration is pending. No runtime/stored codec selected."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -342,14 +342,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "86bc830e9db64de807340367ba6eed0230f86024",
-    "contracts": [
-      "docs/HIPCOMP_OFFLINE.md",
-      "docs/GPU_LZ4_KERNEL_REVIEW.md"
-    ],
-    "behavior": "Bind captured host/device bundle schema to exact object path/length and preserve output hashes; add closed versioned AMD warp/model/stream research scope.",
-    "status": "28 source/metadata cases, corrected optional compiler gate, six research-scope cases and all three native page captures require execution. New source changes no kernel or normal file-operation/runtime path.",
-    "next": "Review actual LLVM target metadata and substantive AMD captures, finish kernel/synchronization/ABI/lifecycle review before runtime use."
+    "source_parent": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
+    "contract": "docs/GPU_LZ4_KERNEL_REVIEW.md",
+    "behavior": "Correct crawler scope admission for the actually observed HIP 7.16 language page, without assuming a standalone __syncwarp literal.",
+    "status": "Nine research-scope tests and all three corrected native captures require execution; old failures and output-observation truncation are preserved.",
+    "next": "Admit and substantively review current-AMD captures before synchronization changes; continue independent provider-mapping work from source-bound maintenance receipts. All full-product exits remain active."
   },
   "resolved": [
     {
@@ -457,7 +454,7 @@
       "sha256": "44505b2dde92e35efac37f5fedb69a5c299384ab606283b6eb048bfe9ec33925"
     },
     "compiler_requested_target": "gfx1100",
-    "object_inspection_qualified": false,
+    "object_inspection_qualified": true,
     "gpu_executed": false,
     "module_loaded": false,
     "evidence": "docs/evidence/gpu-lz4-offline-df51d8c.json",
@@ -496,6 +493,22 @@
       "gfx1100_observed": true,
       "metadata_accepted": false,
       "reason": "Strict parser omitted the native zero-byte AMD64 host placeholder; captured-schema correction and extents are pending execution."
+    },
+    "qualified_object_source": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
+    "object_inspection": {
+      "run": 43425233273,
+      "admission_cases": 28,
+      "object": {
+        "bytes": 217673,
+        "sha256": "80e9664ff57c3c1815d4cfa53528e5a3a68ecb5d845d43fcee543caddd22d20c"
+      },
+      "offload_target_ids": [
+        "hip-amdgcn-amd-amdhsa--gfx1100"
+      ],
+      "worker_exits_confirmed": 20,
+      "gpu_executed": false,
+      "module_loaded": false,
+      "evidence": "docs/evidence/gpu-lz4-object-1d20f40.json"
     }
   },
   "integration_checkpoints": [
@@ -511,5 +524,14 @@
       "all_13_jobs_succeeded": true,
       "scope": "Job conclusions plus all five allocation logs; detailed earlier functional/owner evidence remains independently identified."
     }
-  ]
+  ],
+  "maintenance_navigation": {
+    "source": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
+    "run": 43425367569,
+    "queries": 2,
+    "files": 148,
+    "source_sha256": "d1d0d122dbfa128c46039cc2e6c5937e77f21890d62a5aea1402a07f06f7266c",
+    "evidence": "docs/evidence/gpu-lz4-object-1d20f40.json",
+    "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
+  }
 }

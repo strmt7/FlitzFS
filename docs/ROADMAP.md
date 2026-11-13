@@ -931,3 +931,13 @@ unmodeled empty host placeholder. Captured-schema/extents/digest tests now need
 execution, along with the new closed current-AMD synchronization/scheduling
 captures. All G02 benefit, G03 lifecycle, automatic learning and full Windows
 product exits remain open.
+
+
+## Offline candidate gate completed
+
+At 1d20f40, Windows offline compilation and exact object metadata inspection
+passed with all 28 cases and original worker gates. The current-AMD research
+capture failed on an absent literal marker; its actual HIP 7.16 language page
+was verified for scope diagnosis, without admitting kernel-semantic conclusions.
+The corrected nine-case scope and three native captures remain pending.
+Actual GPU output, worker lifecycle and useful end-to-end gain remain unfinished.

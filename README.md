@@ -26,16 +26,29 @@ filesystems and memory-backed virtual volumes through the shared engine.
 
 ## Current verified checkpoint
 
-The experimental Windows volume application at **f4928c2d2510cacb55da664a0338c8592194d9a0**
-passed isolated Windows qualification and exact-binary host checks: 377 model
-checks, three balanced ownership cycles, native UTF-8 save/readback, explicit
-optimization, discard and confirmed process exit. It uses the real CPU engine
-and remains unmounted; physical provisioning, automatic learning and useful GPU
-routing are unfinished. [Application scope](docs/WINDOWS_VOLUME_APP.md) ·
-[Exact VM/host evidence](docs/evidence/volume-app-f4928c2.json).
+The funded Windows helper at **99d5365** passed all 13 integration jobs,
+728 application-model assertions and a healthy owner GUI workflow with confirmed
+retirement. It uses the real CPU filesystem engine; durable provider mapping,
+authorization, long-lived learning and the complete Windows product remain
+unfinished. [Executed helper/GUI evidence](docs/evidence/funded-helper-99d5365.json).
 
-All **13 existing core jobs** passed at that same source, including Windows
-native/raw, Linux raw/codec, sanitizers and isolated mounted profiles.
+The independent CPU LZ4 candidate verifier at **86bc830** passed all five core
+configurations: 806 assertions with LZ4 on Linux, Windows native and ASan/UBSan;
+389 in codec-disabled Linux/Windows builds. It verifies private candidate bytes
+and is not invoked by filesystem or GPU-worker operations.
+[CPU evidence](docs/evidence/gpu-lz4-cpu-86bc830.json).
+
+At **1d20f40**, native Windows offline compilation and exact object inspection
+passed 28 admission cases, AMD64 headers, file-bound gfx1100 metadata, unchanged
+output hashes and the original SDK/worker gates with 20 confirmed worker exits.
+This uses the verified ROCm 10.1.0 distribution; its inspected HIP component is
+7.16.26385. The candidate is neither loaded nor linked into the product.
+[Offline object evidence](docs/evidence/gpu-lz4-object-1d20f40.json).
+
+Current-AMD warp/model/stream capture admission needs a source-based marker
+correction. Actual GPU output, safe runtime integration and useful complete-operation
+compression/speed gains remain unproven.
+[Kernel review and pending research](docs/GPU_LZ4_KERNEL_REVIEW.md).
 
 ### Earlier GPU observation, unchanged
 
@@ -65,19 +78,19 @@ selected image plus head, or 1,310,720 bytes including retained source history.
 Payload reduction alone is not filesystem compression performance. G02 remains
 unfinished until a useful end-to-end benefit is demonstrated.
 
-Earlier intermittent mounted-child retirement failures remain unresolved
-despite this green matrix. A [candidate external-client crash protocol](docs/MOUNT_PROCESS_ISOLATION.md)
-separates the filesystem host from its application handle. Its full 8122bf5 hosted
-matrix passed, including actual client/flush/self-open checks and independent
-recovery. Additional CPU lifecycle-edge tests await new-source qualification.
-[Source-bound evidence](docs/evidence/mount-source-isolation-8122bf5.json). See [the execution ledger](docs/DEVELOPMENT_STATE.json).
+The historical mounted-child retirement failure cause remains unproven. The
+external-client protocol and mandatory product-origin admission have separate
+qualified evidence; a green matrix does not establish that historical cause.
+[Isolation contract](docs/MOUNT_PROCESS_ISOLATION.md) ·
+[Origin-guard evidence](docs/evidence/origin-guard-053ade8.json) ·
+[Execution ledger](docs/DEVELOPMENT_STATE.json).
 
 ## Implemented experimental components
 
-- A separate bounded advisory optimization-state component with two flushed
-  copies and a CPU reader. Volume-owned control integration is under qualification; native provider,
-  persistent write credit and learner integration remain unfinished;
-  see [the experimental contract](docs/OPTIMIZATION_STATE.md).
+- A bounded advisory journal with two flushed copies and independent CPU
+  recovery. Funded helper creation/replacement is qualified at 99d5365;
+  durable provider mapping/authorization, long-lived continuation and automatic
+  learning remain unfinished. See [the helper contract](docs/ADVISORY_HELPER.md).
 - A bounded transactional object engine with integrity checks, immutable
   snapshots, replicated checkpoints, independent CPU reopen and explicit flush.
 - A native inode/directory/extent layer with sparse 64 KiB extents, reads,
@@ -260,3 +273,10 @@ schema needs its next strict parser qualification. Current AMD synchronization
 and scheduling captures also remain pending; see the [kernel review](docs/GPU_LZ4_KERNEL_REVIEW.md). No candidate object is loaded or used by file operations.
 Automatic learning, durable provider mapping, useful GPU gains and the full
 Windows product remain unfinished.
+
+
+At 1d20f40, the optional Windows object gate passed all 28 admission cases,
+AMD64 host headers, the exact gfx1100 bundle metadata, unchanged output digests
+and the original SDK/worker gates with 20 confirmed worker exits
+([evidence](docs/evidence/gpu-lz4-object-1d20f40.json)). Current-AMD page admission
+still needs its observed-marker correction; no kernel or runtime is enabled.

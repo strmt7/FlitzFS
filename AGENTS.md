@@ -1452,3 +1452,11 @@ is authorized by this group. The object gate must admit exactly the captured
 empty AMD64 host placeholder plus one positive gfx1100 image, bind URIs/extents
 to the actual object, reject reader warnings/truncation, and verify unchanged
 object/dependency digests. This remains synthetic offline qualification.
+
+
+For current-AMD page admission, bind the closed URI and selected HIP 7.16.0
+version label to substantive page markers. Do not require a function name that
+is absent from the actual documentation. Retain original expected-content/native
+failures; a corrected scope needs a new qualified capture. Native success or a
+search snippet cannot substitute for substantive review. Keep decoder/runtime
+and current-AMD semantic qualification separate from the completed offline gate.

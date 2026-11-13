@@ -499,3 +499,17 @@ The next [kernel review](GPU_LZ4_KERNEL_REVIEW.md) also opens a closed three-pag
 current-AMD warp/model/stream capture scope. Native extraction and actual content
 review are required before synchronization or scheduling changes. No device code
 or ordinary filesystem path is changed, and all full-product packages stay active.
+
+
+At 1d20f40, the bounded offline candidate gate passed all 28 admission cases,
+AMD64 headers, exact file-bound gfx1100 metadata, unchanged compiler outputs and
+all original SDK/worker checks (20 confirmed exits). No module was loaded.
+The current-AMD capture needs an observed-page/version/substantive-marker
+correction after an absent-literal failure; nine scope cases and corrected
+native captures remain pending. Search snippets supply no semantic evidence.
+
+Independent maintenance routing at the same source completed two actual queries
+over 148 files, with live confirmation of the explicit native-session API.
+Infrastructure hits limit this search; it does not establish an implemented
+automatic governor or durable provider mapping. Those full-plan requirements
+remain active alongside G02/G03 and every other unfinished package.
