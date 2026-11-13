@@ -1064,3 +1064,13 @@ probe may load HIP. Native import auditing, all original SDK/worker checks and
 no owner execution remain. The new source is unqualified until these runs pass.
 Current source review confirms the selected runtime normally writes both outputs;
 no owner-device occurrence of incomplete output is asserted.
+
+
+## Historical retirement reconstruction
+
+The manual retirement-reference workflow is isolated from product targets and
+normal tests. Read [RETIREMENT_REFERENCE.md](RETIREMENT_REFERENCE.md) for exact
+old-source pins, one trial per disposable VM, phase receipts and original limits.
+No owner driver/mount/GPU operation or stored-format change follows. Unknown
+retirement remains terminal; a green reconstruction cannot explain the old kernel
+state by itself. Publishing-source execution is still required.

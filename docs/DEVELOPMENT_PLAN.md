@@ -527,3 +527,9 @@ stable invalid ranges. Twelve CPU scenarios and an exact historical/current
 header comparison require new-source SDK execution; no hardware result is
 claimed. This bounded correction does not alter G03 lifecycle gates or the
 historical D01 uncertainty, and the full development goal remains active.
+
+
+The priority change passed its exact historical/current CPU oracle,235 assertions/
+12 scenarios, full SDK/worker gates and all13 core jobs atb2cf989. G02/G03 remain
+unfinished. D01 now has a separate [historical comparison](RETIREMENT_REFERENCE.md),
+requiring publishing-source execution and retaining the original uncertainty.

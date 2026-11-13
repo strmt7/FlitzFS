@@ -1,0 +1,294 @@
+name: Experimental historical retirement comparison
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/retirement-reference.yml'
+      - 'tools/ci/retirement_reference.py'
+      - 'tools/ci/test_retirement_reference.py'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Check out exact read-only regression fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: d1e66f6132d0a5672378bebbe9880e19af105f75
+          path: .ci-retirement
+          persist-credentials: false
+      - name: Verify deterministic source transformation and terminal ownership
+        run: python tools/ci/test_retirement_reference.py
+  windows-mount:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: source
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [held, closed]
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 25
+    env:
+      FLITZFS_ALLOW_DISPOSABLE_MOUNT: '1'
+      FLITZFS_ALLOW_DISPOSABLE_WRITE: '1'
+      FLITZFS_ALLOW_RETIREMENT_REFERENCE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require all thirteen same-source ordinary gates
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runs = gh api "repos/strmt7/FlitzFS/actions/workflows/ci.yml/runs?head_sha=$env:GITHUB_SHA&event=push&per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -or $runs.total_count -gt 100) { throw 'CI run inventory failed' }
+          $passed = @($runs.workflow_runs | Where-Object {
+            $_.head_sha -ceq $env:GITHUB_SHA -and $_.event -ceq 'push' -and
+            $_.status -ceq 'completed' -and $_.conclusion -ceq 'success'
+          } | Sort-Object id -Descending)
+          if ($passed.Count -eq 0) { throw 'Ordinary CI must pass for this exact source first' }
+          $run = $passed[0]
+          $jobs = gh api "repos/strmt7/FlitzFS/actions/runs/$($run.id)/jobs?filter=latest&per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -or $jobs.total_count -ne 13 -or @($jobs.jobs).Count -ne 13) { throw 'CI job inventory failed' }
+          $expected = @('sanitizers', 'windows-native', 'windows-mount',
+            'cpu (ubuntu-24.04, ON)', 'cpu (ubuntu-24.04, OFF)', 'cpu (windows-2025-vs2026, OFF)')
+          foreach ($profile in @('basic','mutations','delete','crash','restart','crash-restart','ram-handoff')) {
+            $expected += "windows-write-mount ($profile)"
+          }
+          if (@(Compare-Object ($expected | Sort-Object) (@($jobs.jobs.name) | Sort-Object)).Count) { throw 'CI job scope differs' }
+          foreach ($job in $jobs.jobs) {
+            if ($job.status -cne 'completed' -or $job.conclusion -cne 'success' -or $job.run_id -ne $run.id) {
+              throw 'Ordinary CI has an unqualified job'
+            }
+          }
+          $root = Join-Path $env:RUNNER_TEMP ('flitzfs-retirement-reference-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $root -ErrorAction Stop | Out-Null
+          $gate = @{ experimental=$true; commit=$env:GITHUB_SHA; run=$run.id; jobs=$jobs.jobs | Select-Object id,name,conclusion }
+          $file = [IO.File]::Open((Join-Path $root 'ci-gate.json'), [IO.FileMode]::CreateNew)
+          try {
+            $bytes = [Text.Encoding]::UTF8.GetBytes(($gate | ConvertTo-Json -Depth 6))
+            $file.Write($bytes,0,$bytes.Length)
+          } finally { $file.Dispose() }
+          "FLITZFS_RETIREMENT_REPORT_ROOT=$root" | Out-File -LiteralPath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Use current stable Python for build tooling
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify owned-fixture tool provisioning guards
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage official checksum-pinned CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage current official LLVM CPU tools on Linux
+        if: runner.os == 'Linux'
+        run: python tools/ci/prepare_hosted_tools.py llvm
+      - name: Retain exact tool provisioning evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tools-${{ github.job }}-${{ runner.os }}-${{ matrix.variant }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-*-provision.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Verify pinned digest source bytes before building
+        run: python tools/ci/verify_blake3_sources.py
+      - name: Stage checksum-pinned SDK without installation
+        shell: pwsh
+        run: ./tools/ci/prepare_winfsp_sdk.ps1
+      - name: Retain exact SDK candidate provenance
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winfsp-sdk-${{ github.job }}-${{ matrix.variant }}-${{ github.sha }}
+          path: ${{ env.FLITZFS_WINFSP_PROVENANCE }}
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Check out pinned Zstandard source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - name: Check out pinned LZ4 native dictionary decoder
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lz4/lz4
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5 # v1.11.1
+          path: .ci-deps/lz4
+          persist-credentials: false
+      - name: Build synthetic mount probe
+        shell: pwsh
+        run: ./tools/ci/build_windows_native.ps1 -BuildMountProbe
+      - name: Check out immutable historical source without running it
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: d1e66f6132d0a5672378bebbe9880e19af105f75
+          path: .ci-retirement
+          persist-credentials: false
+      - name: Check out reference Zstandard source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99
+          path: .ci-retirement/.ci-deps/zstd
+          persist-credentials: false
+      - name: Check out reference LZ4 source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lz4/lz4
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5
+          path: .ci-retirement/.ci-deps/lz4
+          persist-credentials: false
+      - name: Validate exact reference and generate private controlled variant
+        run: python tools/ci/retirement_reference.py --variant ${{ matrix.variant }}
+      - name: Compile controlled source with pinned CPU codecs
+        working-directory: .ci-retirement
+        shell: pwsh
+        run: ./.retirement-variant/build.ps1 -BuildWriteProbe
+      - name: Reverify original and generated source after building
+        run: python tools/ci/retirement_reference.py --variant ${{ matrix.variant }} --verify
+      - name: Provision driver on this disposable hosted VM only
+        shell: pwsh
+        run: ./tools/ci/provision_disposable_winfsp.ps1
+      - name: Retain actual driver identity and signature evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: winfsp-driver-${{ matrix.variant }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-sdk-*/driver-provenance.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Exercise actual mounted I/O under process limits
+        shell: pwsh
+        run: |
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = (Resolve-Path './build-native/Release/flitzfs_mount_probe.exe').Path
+          $start.ArgumentList.Add('--run-disposable-ci')
+          $start.UseShellExecute = $false
+          $start.CreateNoWindow = $true
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $process = [Diagnostics.Process]::new()
+          $process.StartInfo = $start
+          $started = $false
+          $confirmed = $false
+          $timedOut = $false
+          try {
+            $started = $process.Start()
+            if (-not $started) { throw 'Readonly controller did not start' }
+            $stdout = $process.StandardOutput.ReadToEndAsync()
+            $stderr = $process.StandardError.ReadToEndAsync()
+            # Enclose all existing 15/30-second child phases and their existing
+            # two-second exit observations; never widen those inner deadlines.
+            $confirmed = $process.WaitForExit(100000)
+            if (-not $confirmed) {
+              $timedOut = $true
+              if (-not $process.HasExited) { $process.Kill() }
+              $confirmed = $process.WaitForExit(2000)
+            }
+            if (-not $confirmed) { throw 'Readonly controller exit unconfirmed; no next trial' }
+            if (-not $stdout.Wait(2000) -or -not $stderr.Wait(2000)) { throw 'Readonly output retirement failed' }
+            if ($stdout.Result.Length -gt 32768 -or $stderr.Result.Length -gt 4096) { throw 'Readonly controller output cap' }
+            Write-Output $stdout.Result
+            Write-Output $stderr.Result
+            if ($timedOut -or $process.ExitCode -ne 0) { throw 'Supervised readonly mount probe failed' }
+          } finally {
+            try {
+              if ($started -and -not $confirmed) {
+                if (-not $process.HasExited) { $process.Kill() }
+                $confirmed = $process.WaitForExit(2000)
+                if (-not $confirmed) { throw 'Readonly cleanup could not confirm controller exit' }
+              }
+            } finally { $process.Dispose() }
+          }
+
+
+      - name: Reconcile all source-bound Windows space observations
+        run: python tools/ci/verify_windows_space_reports.py --hosted
+      - name: Retain native Windows space observations
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-space-${{ matrix.variant }}-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-probe-*/space-*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Run exactly one historical retirement trial after read-only qualification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = (Resolve-Path './.ci-retirement/build-native/historical/Release/flitzfs_write_probe.exe').Path
+          $start.ArgumentList.Add('--run-reference')
+          $start.UseShellExecute = $false
+          $start.CreateNoWindow = $true
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $process = [Diagnostics.Process]::new()
+          $process.StartInfo = $start
+          $started = $false
+          $confirmed = $false
+          $timedOut = $false
+          try {
+            $started = $process.Start()
+            if (-not $started) { throw 'Reference controller did not start' }
+            $stdout = $process.StandardOutput.ReadToEndAsync()
+            $stderr = $process.StandardError.ReadToEndAsync()
+            # One 15-second child operation plus its original two-second exit
+            # observation. Thirty seconds encloses only this one phase.
+            $confirmed = $process.WaitForExit(30000)
+            if (-not $confirmed) {
+              $timedOut = $true
+              if (-not $process.HasExited) { $process.Kill() }
+              $confirmed = $process.WaitForExit(2000)
+            }
+            if (-not $confirmed) { throw 'Reference controller exit unconfirmed; VM must be discarded' }
+            if (-not $stdout.Wait(2000) -or -not $stderr.Wait(2000)) { throw 'Reference output retirement failed' }
+            if ($stdout.Result.Length -gt 16384 -or $stderr.Result.Length -gt 4096) { throw 'Reference output cap' }
+            foreach ($record in @(@('stdout.txt',$stdout.Result),@('stderr.txt',$stderr.Result))) {
+              $file = [IO.File]::Open((Join-Path $env:FLITZFS_RETIREMENT_REPORT_ROOT $record[0]),[IO.FileMode]::CreateNew)
+              try {
+                $bytes = [Text.Encoding]::UTF8.GetBytes($record[1])
+                $file.Write($bytes,0,$bytes.Length)
+              } finally { $file.Dispose() }
+            }
+            Write-Output $stdout.Result
+            Write-Output $stderr.Result
+            if ($timedOut -or $process.ExitCode -ne 0) { throw 'Reference did not qualify; no next trial' }
+          } finally {
+            try {
+              if ($started -and -not $confirmed) {
+                if (-not $process.HasExited) { $process.Kill() }
+                $confirmed = $process.WaitForExit(2000)
+                if (-not $confirmed) { throw 'Reference cleanup could not confirm controller exit' }
+              }
+            } finally { $process.Dispose() }
+          }
+      - name: Retain reference identity, raw acknowledgement and retirement observations
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: retirement-reference-${{ matrix.variant }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/flitzfs-retirement-reference-*/*.json
+            ${{ runner.temp }}/flitzfs-retirement-reference-*/*.txt
+            ${{ runner.temp }}/flitzfs-write-probe-*/state.json
+            ${{ runner.temp }}/flitzfs-write-probe-*/reference-phase.txt
+          if-no-files-found: warn
+          retention-days: 30

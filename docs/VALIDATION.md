@@ -346,3 +346,22 @@ the complete required command and byte-comparison sequence passed in each.
 The app is unmounted and initializes no FlitzFS HIP compute. Preserve prior
 zero-benefit GPU evidence and all full-product gates.
 [Exact artifact/source/resource/failure record](evidence/volume-app-f4928c2.json).
+
+## Executed priority capability checkpoint
+
+At b2cf9899417d52c2266d86fa1246b874001376a3, SDK run43432703582 passed235 CPU
+assertions across12 priority scenarios. The exact historical probe reported
+category1179844613 with one query; the corrected probe reported1179844611 with
+two. Neither loaded HIP or executed GPU work. Every original SDK/worker gate,
+including20 confirmed exits, passed; core run43432703721 passed all13 jobs.
+[Source-bound evidence](evidence/priority-capability-b2cf989.json).
+
+
+## Historical retirement reconstruction
+
+The manual retirement-reference workflow is isolated from product targets and
+normal tests. Read [RETIREMENT_REFERENCE.md](RETIREMENT_REFERENCE.md) for exact
+old-source pins, one trial per disposable VM, phase receipts and original limits.
+No owner driver/mount/GPU operation or stored-format change follows. Unknown
+retirement remains terminal; a green reconstruction cannot explain the old kernel
+state by itself. Publishing-source execution is still required.

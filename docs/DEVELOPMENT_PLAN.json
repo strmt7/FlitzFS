@@ -97,11 +97,21 @@
         "evidence": "docs/evidence/origin-guard-053ade8.json",
         "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
         "historical_root_cause": "unproven",
-        "next": "Preserve historical unknown cause; capture decisive future failure evidence. Do not block independent L01 work or bypass the G03 lifecycle prerequisite.",
+        "next": "Qualify the explicit historical held/closed-handle reconstruction in independent disposable VMs, retaining phase/ACK and exact retirement observations. A single green comparison cannot prove the old cause or open G03.",
         "source_child_deadline_seconds": 15,
         "source_exit_observation_seconds": 2,
         "owner_execution": false,
-        "qualified_source": "053ade8310bc0af9dbe1a150aa912a72f1549de7"
+        "qualified_source": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+        "controlled_reference": {
+          "contract": "docs/RETIREMENT_REFERENCE.md",
+          "source": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+          "variants": [
+            "held",
+            "closed"
+          ],
+          "implemented": true,
+          "execution_pending": true
+        }
       }
     },
     {
@@ -153,9 +163,10 @@
           "source_repository": "ROCm/hipCOMP-core",
           "source_commit": "03df9f7369211ee15d370817165224c73fdc9a46",
           "navigation_qualified": "905a4d3: 22 admission cases, 142 upstream files, two actual queries and relevant live-source hashes/notices verified.",
-          "status": "CPU verifier and offline object gates are qualified at their exact sources. Current-AMD content is admitted at 5eaa07a; package implementation was independently reviewed. New priority capability corroboration and exact prior/current CPU oracle await SDK execution.",
+          "status": "CPU verifier, offline object and current-AMD content gates are qualified at exact sources. Priority metadata corroboration passed235 CPU checks/12 scenarios, exact historical/current oracle, complete SDK/worker and all13 core jobs atb2cf989.",
           "research": "docs/evidence/gpu-priority-sources-5eaa07a.json",
-          "next": "Qualify bounded capability classification and retain source/worker gates; continue kernel/ABI/lifecycle review and actual useful GPU integration."
+          "next": "Continue kernel/ABI/lifecycle and actual useful GPU integration; inspect the bounded historical retirement comparison without assuming a cause.",
+          "priority_evidence": "docs/evidence/priority-capability-b2cf989.json"
         }
       }
     },

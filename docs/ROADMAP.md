@@ -953,3 +953,16 @@ stable invalid range. A pinned historical-header CPU regression, all twelve
 new capability cases and complete SDK/new-source checks remain pending.
 It changes no kernel, codec or normal filesystem route. Useful GPU compression,
 background governance, durable mapping and every full-product exit stay open.
+
+
+## Historical retirement reconstruction
+
+The manual retirement-reference workflow is isolated from product targets and
+normal tests. Read [RETIREMENT_REFERENCE.md](RETIREMENT_REFERENCE.md) for exact
+old-source pins, one trial per disposable VM, phase receipts and original limits.
+No owner driver/mount/GPU operation or stored-format change follows. Unknown
+retirement remains terminal; a green reconstruction cannot explain the old kernel
+state by itself. Publishing-source execution is still required.
+
+Priority capability corroboration qualified atb2cf989; see
+[evidence](evidence/priority-capability-b2cf989.json). Full product packages remain active.

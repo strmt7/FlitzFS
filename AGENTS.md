@@ -1475,3 +1475,15 @@ prove the actual old category/query count and corrected result in the same CPU
 fixture before qualification. No extra runtime export, kernel/protocol change,
 retry loop, rescan or owner execution follows. A reported range proves no GPU
 preemption or background interference guarantee.
+
+
+## Explicit historical retirement reconstruction
+
+Read docs/RETIREMENT_REFERENCE.md before changing its manual hosted workflow or
+source transformer. The two closed old-source variants are diagnostic-only, one
+per disposable windows-mount VM after exact-source ordinary gates and the current
+read-only probe. Preserve original tracked bytes, shared source/supervisor/SDK
+pins, all process/CPU/memory/deadline/report limits, NEW phase receipts and terminal
+unknown retirement. Never link the historical source into product targets, invoke
+its old multi-profile entrypoint, weaken current product origin guards, export it
+for owner execution or infer an old kernel cause from one green comparison.
