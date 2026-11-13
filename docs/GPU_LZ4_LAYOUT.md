@@ -38,11 +38,16 @@ The normal CPU test enumerates every single-chunk length from 1 through 65,536
 and checks nonoverlap, alignment, literal-sequence capacity, hash-table shape,
 unused slots and the complete allocation bound. It also covers multi-chunk
 boundary shapes and permutations, empty/oversized/zero inputs, arithmetic
-extremes and unchanged cursors after failed reservations. These new tests await
-execution on the exact published source. They are neither a codec emulation nor
+extremes and unchanged cursors after failed reservations. At 0879cce, these tests passed all five core configurations, including Windows
+native and ASan/UBSan: 1,908,560 assertions per configuration, 65,536 single sizes,
+143 admitted batch shapes and 25 capacity refusals. They are neither a codec emulation nor
 CPU/GPU interoperability or performance evidence.
 
 Before use, the project still needs a fully audited kernel path, independent
 bounded CPU decoding, explicit worker identity/lifecycle/fallback integration,
 fresh resource telemetry and measured complete-operation benefit. Candidate
 object compilation alone cannot close those gates.
+
+The next [independent CPU verifier](GPU_LZ4_CPU_VERIFY.md) shares this bounded
+output-capacity calculation and checks raw candidates without adding a stored
+codec or runtime caller. Its own new-source tests remain pending.

@@ -113,6 +113,18 @@ def stage(source,output,value):
     require(sum(row["bytes"] for row in records)+entry["bytes"]+sum(x["bytes"] for x in notices)<=MAX_BYTES,
         "candidate compiler fixture aggregate")
     return compiled,records
+def inspect_offload_targets(text):
+    require(isinstance(text,str) and 0<len(text)<=16384,"candidate offload metadata size")
+    targets=[]
+    for line in text.splitlines():
+        if "\tfile://" not in line:continue
+        target,uri=line.split("\t",1)
+        require(re.fullmatch(r"hip(?:v[0-9]+)?-amdgcn-amd-amdhsa--gfx1100(?::[A-Za-z0-9_+:-]+)?",target)
+            is not None and re.search(r"#offset=[0-9]{1,9}&size=[0-9]{1,9}$",uri) is not None,
+            "candidate offload target metadata")
+        targets.append(target)
+    require(len(targets)==1,"candidate offload target count")
+    return targets
 def main():
     require(os.name=="nt" and os.environ.get("GITHUB_ACTIONS")=="true" and
         os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","disposable hosted Windows VM required; never the owner PC")
@@ -156,7 +168,7 @@ def main():
         # Read compiler output as data with the same verified distribution's
         # native LLVM tools. Neither command links or loads the candidate.
         tools={}
-        for name in ("llvm-readobj.exe","llvm-objdump.exe"):
+        for name in ("llvm-readobj.exe",):
             tool=sdk/"lib/llvm/bin"/name
             require(tool.is_file() and 0<tool.stat().st_size<=256*MIB,"candidate object reader unavailable")
             tools[name]=tool
@@ -166,10 +178,10 @@ def main():
             report,"candidate-object-headers",30)
         require(not headers["output_truncated"] and "COFF-x86-64" in headers["stdout"] and
             "IMAGE_FILE_MACHINE_AMD64" in headers["stdout"],"candidate host object identity")
-        fatbin=run(bounds,[str(tools["llvm-objdump.exe"]),"--offload-fatbin",str(object_path)],
-            report,"candidate-offload-fatbin",30)
-        require(not fatbin["output_truncated"] and
-            re.search(r"\bgfx1100\b",fatbin["stdout"]) is not None,"candidate device target identity")
+        fatbin=run(bounds,[str(tools["llvm-readobj.exe"]),"--offloading",str(object_path)],
+            report,"candidate-offload-bundle-metadata",30)
+        require(not fatbin["output_truncated"],"candidate offload metadata truncated")
+        report["offload_target_ids"]=inspect_offload_targets(fatbin["stdout"])
         report["object_inspected"]=True
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,"candidate SDK inputs changed")
         verify_checkout(source,SOURCE_COMMIT);verify_checkout(provider,MECHANISM_COMMIT)

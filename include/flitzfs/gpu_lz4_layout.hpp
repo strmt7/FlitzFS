@@ -23,6 +23,11 @@ namespace gpu_lz4_detail {
 inline constexpr std::uint32_t table_entry_bytes=8;
 inline constexpr std::uint32_t hash_entry_limit=16384;
 inline constexpr std::uint32_t output_guard_bytes=32;
+inline constexpr std::uint32_t output_capacity(std::uint32_t size) noexcept {
+  if(!size || size>gpu_detail::max_block_bytes)return 0;
+  const auto maximum=size+1U+(size+254U)/255U;
+  return (maximum+7U)&~7U;
+}
 inline std::uint32_t append(std::uint32_t& cursor,std::uint32_t bytes) {
   if(cursor>gpu_detail::max_batch_bytes)
     throw std::invalid_argument("GPU LZ4 invalid allocation cursor");
@@ -65,8 +70,7 @@ inline GpuLz4DeviceLayout gpu_lz4_device_layout(std::span<const std::uint32_t> s
     chunk.input_bytes=sizes[i];
     chunk.input_offset=gpu_lz4_detail::append(cursor,chunk.input_bytes);
     // Pinned maxSizeOfStream: roundUp(size+1+ceil(size/255),sizeof(size_t)).
-    const auto maximum=chunk.input_bytes+1U+(chunk.input_bytes+254U)/255U;
-    chunk.output_capacity=(maximum+7U)&~7U;
+    chunk.output_capacity=gpu_lz4_detail::output_capacity(chunk.input_bytes);
     chunk.output_offset=gpu_lz4_detail::append(cursor,
         chunk.output_capacity+gpu_lz4_detail::output_guard_bytes);
   }

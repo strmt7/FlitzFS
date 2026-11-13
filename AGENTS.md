@@ -1421,3 +1421,19 @@ worker lifecycle gates. Use only the same verified SDK's native LLVM readers
 for data-only object inspection on disposable hosted VMs, retain their identities
 and complete bounded results, and distinguish successful compiler invocation
 from verified object metadata and actual GPU execution.
+
+
+## Independent private LZ4 CPU verifier
+
+Read docs/GPU_LZ4_CPU_VERIFY.md before changing the verifier or its tests. It is
+CPU-only and has no file-operation/worker caller or stored codec. Reuse the
+existing optional pinned CPU LZ4 dependency; never replace missing support with
+GPU decoding or unsafe decoding APIs. Keep exact source/payload/scratch limits,
+full/partial output-alias rejection, private scratch, exact decoded size and
+byte comparison. Valid borrowed spans must remain immutable on one control
+thread. Failure never authorizes publication; no transport identity, ownership,
+retirement, fallback or format gate is supplied by this function. Preserve raw-only
+unavailable behavior and malicious-input/canary tests. For object metadata use
+only the reviewed same-SDK llvm-readobj --offloading path, not an advertised
+unselected flag or an extraction command; reject missing, foreign, duplicate,
+malformed or truncated target metadata.

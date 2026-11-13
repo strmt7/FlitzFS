@@ -85,7 +85,7 @@
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; 99d5365 passed VM model/GUI and one healthy owner GUI with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
-    "gpu_codec_candidate": "Pinned source/staging admission (20 CPU cases), native Windows LZ4 object compilation and original SDK/worker gates passed at df51d8c. New host-only complete allocation planner and native LLVM object-inspection gate await execution. No runtime or stored-format dependency selected."
+    "gpu_codec_candidate": "20 source/staging cases and native offline compilation passed at df51d8c. Complete host-only allocation passed all five core configurations at 0879cce (1,908,560 assertions each). Same-source object reader failed on an advertised but unselected LLVM flag; corrected read-only metadata command, five regressions and independent CPU LZ4 verification now require execution. No runtime/stored codec selected."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -342,11 +342,14 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "df51d8c5ba80430453c805619438f431d5677f3b",
-    "contract": "docs/GPU_LZ4_LAYOUT.md",
-    "behavior": "Host-only bounded LZ4 candidate allocation plan plus same-SDK native object header/embedded-target inspection; no codec, protocol or runtime integration.",
-    "status": "New allocation tests, expanded optional object gate and all original integration checks require exact-source execution.",
-    "next": "Inspect and fix actual failures, then independently qualify bounded CPU format recovery and worker lifecycle before device experiments."
+    "source_parent": "0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+    "contracts": [
+      "docs/HIPCOMP_OFFLINE.md",
+      "docs/GPU_LZ4_CPU_VERIFY.md"
+    ],
+    "behavior": "Correct same-SDK read-only bundle metadata inspection with five new regressions; add bounded independent CPU candidate verification without a caller or stored codec.",
+    "status": "25 source/metadata cases, expanded optional compiler gate, new CPU verifier and all original integration checks require publishing-source execution.",
+    "next": "Verify actual output identities and CPU/malicious-input/raw/sanitizer/Windows results; complete kernel/lifecycle review before runtime use."
   },
   "resolved": [
     {
@@ -457,6 +460,24 @@
     "object_inspection_qualified": false,
     "gpu_executed": false,
     "module_loaded": false,
-    "evidence": "docs/evidence/gpu-lz4-offline-df51d8c.json"
+    "evidence": "docs/evidence/gpu-lz4-offline-df51d8c.json",
+    "allocation": {
+      "source": "0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+      "core_run": 43420771867,
+      "core_configurations_passed": 5,
+      "assertions_each": 1908560,
+      "single_sizes_each": 65536,
+      "batch_admissions_each": 143,
+      "batch_capacity_refusals_each": 25,
+      "evidence": "docs/evidence/gpu-lz4-layout-0879cce.json"
+    },
+    "object_reader_failure": {
+      "source": "0879cce77c5bfb1d2af0f4af876e8cd223ecb481",
+      "run": 43420782513,
+      "compile_succeeded": true,
+      "amd64_header_verified": true,
+      "offload_metadata_accepted": false,
+      "reason": "Advertised --offload-fatbin is not selected as an action by the exact LLVM driver; usage output and exit 2 preserved."
+    }
   }
 }
