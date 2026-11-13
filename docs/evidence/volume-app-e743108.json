@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "source_commit": "e74310889aad920b5c74007c75c588922cd9c270",
+  "run": 43339830440,
+  "job": 131605068883,
+  "conclusion": "failure",
+  "build": "success",
+  "dependency_audit": "success",
+  "model": {
+    "checks": 377,
+    "conclusion": "success",
+    "cycles": 3,
+    "handle_balance_each": [
+      113,
+      113
+    ],
+    "working_set_restored": true,
+    "cleanup_healthy": true
+  },
+  "gui": {
+    "conclusion": "failure",
+    "message": "GUI control timeout",
+    "elapsed_observed": "Approximately 0.4 seconds for the whole GUI fixture, so this message does not establish an actual one-second send timeout.",
+    "cause": "Unknown exact message/control: the original helper did not record them. Synchronous exit can destroy its target before a reply; that is a concrete harness lifecycle flaw, not yet a proved explanation for this run.",
+    "correction": "Log command IDs and capture failing control/message/Win32 error/elapsed time. Queue the final Exit click asynchronously, then keep strict exact-process observation and clean exit checks. Preserve normal synchronous control checks and all deadlines."
+  },
+  "owner_execution": false
+}
