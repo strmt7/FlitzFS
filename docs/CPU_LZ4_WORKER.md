@@ -80,16 +80,24 @@ fresh resource admission, independent candidate verification, exact retirement
 and measured whole-operation benefit. Historical D01 and full-product gates
 remain open. No owner device experiment follows from successful compilation.
 
-## Retained initial fixture failure
+## Retained source-fixture failures
 
 The initial manual run at fea9fc6 passed the preceding 6/28/9 source cases, then
 failed one of the ten new staging cases: Git considered all four manually
 rewritten CRLF fixture files modified. SDK provisioning, compilation and worker
 execution never started. This is a test-fixture failure, not decoder or GPU
-execution evidence. [Failure record](evidence/cpu-lz4-source-fixture-fea9fc6.json).
+execution evidence. [First failure](evidence/cpu-lz4-source-fixture-fea9fc6.json).
 
-The corrected fresh-Git fixture follows the current upstream normalization and
-checkout-index mechanisms. It requires no staged canonical change, actual
-whole-file CRLF bytes and clean Git state before exercising the production
-stager; those bytes must remain untouched afterward. No production guard or pin
-is relaxed and no case is removed. New execution remains mandatory.
+At 09b7a56, index renormalization preserved canonical blobs, but checkout-index
+left the stat-unchanged LF files in place despite --force. The actual CRLF-byte
+assertion refused that incomplete fixture.
+[Second failure](evidence/cpu-lz4-checkout-fixture-09b7a56.json).
+
+The current upstream entry.c returns early for stat-unchanged paths before its
+force check. Its CRLF tests remove their own fixture files before checkout-index.
+The corrected fixture therefore unlinks ONLY its four tracked synthetic files
+after proving no staged canonical change. Git then materializes their preserved
+index blobs. Actual whole-file CRLF, clean Git state, canonical staging and
+unchanged physical bytes during production staging are all still mandatory.
+No production guard or pin is relaxed, no case is removed, and new execution
+remains required. No owner operation or SDK download occurred in either failure.
