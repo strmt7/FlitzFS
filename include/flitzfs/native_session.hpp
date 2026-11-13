@@ -98,6 +98,14 @@ struct NativeOptimizationInfo {
   // All admitted areas, including unavailable/poisoned history; no I/O.
   std::uint64_t owned_area_bytes=0;
   unsigned binding_attempts=0;
+  // Cached budget diagnostics, never current-input or publication authority.
+  bool budgeted=false,repair_pending=false;
+  std::optional<std::uint64_t> settled_input_bytes,loss_input_baseline;
+};
+enum class NativeOptimizationBudgetProgress { unchanged,published,deferred };
+struct NativeOptimizationBudgetPublication {
+  NativeOptimizationBudgetProgress progress=NativeOptimizationBudgetProgress::deferred;
+  NativeOptimizationInfo state;
 };
 class NativeFileSession final {
  public:
@@ -181,6 +189,15 @@ class NativeFileSession final {
   NativeOptimizationInfo rebuild_optimization_area(std::shared_ptr<StoreByteIo>,
       unsigned publication_limit=1);
   NativeOptimizationInfo publish_optimization_state(const OptimizationState&);
+  // Separately controlled input-funded advisory protocol. No normal-I/O caller.
+  NativeOptimizationInfo create_budgeted_optimization_area(std::shared_ptr<StoreByteIo>,
+      unsigned publication_limit=1);
+  NativeOptimizationInfo resume_budgeted_optimization_area(std::shared_ptr<StoreByteIo>,
+      std::uint64_t expected_sequence,unsigned publication_limit=1);
+  NativeOptimizationInfo rebuild_budgeted_optimization_area(std::shared_ptr<StoreByteIo>,
+      unsigned publication_limit=1);
+  NativeOptimizationBudgetPublication repair_budgeted_optimization_area();
+  NativeOptimizationBudgetPublication publish_budgeted_optimization_state(const OptimizationState&);
   // Owned cached copy; unavailable advice returns no policy. Normal I/O never
   // calls these methods. Diagnostics do not authorize a background operation.
   OptimizationSnapshot optimization_snapshot() const;
@@ -325,7 +342,7 @@ class NativeFileSession final {
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
-      std::uint64_t,unsigned,bool create,bool rebuild);
+      std::uint64_t,unsigned,bool create,bool rebuild,bool budgeted=false);
   static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity);
   static void admit_handoff_contexts(const Impl&);
   static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);

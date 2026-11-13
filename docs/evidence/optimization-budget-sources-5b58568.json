@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-13",
+  "source_parent": "5b58568b019772542c9a300e1283a107d5c5028b",
+  "contract": "docs/OPTIMIZATION_BUDGET.md",
+  "scope": "Controlled persistent advisory settlement, charged repair/creation and loss-safe fresh-input baselines. No automatic executor, native-data encoding change or physical provider.",
+  "semantic": {
+    "run": 43392561193,
+    "artifact": 14022025859,
+    "archive_sha256": "0c3d83fff5e55d0e08f5e44686011730724a1bea1343cd23b4dd49bf2456431c",
+    "indexed_commit": "22ba3b3238e2a4185705721deeb645b186f0d002",
+    "equivalent_current": "5b58568b019772542c9a300e1283a107d5c5028b",
+    "source_sha256": "a86b95e6bb0546a350726a793125ef305e7ce9075c24ddcec0465739134ddf23",
+    "actual_receipt": "docs/evidence/workload-helper-5b58568.json",
+    "navigation": "Current native/controller route and exact known optimization_state header/codec/writer symbols; relevant candidates confirmed in live source. No foreign provider registration or substitute fuzzy search."
+  },
+  "native_sources": [
+    {
+      "path": "include/flitzfs/optimization_state.hpp",
+      "blob": "1a8809473746cf0579b5429078ca16b2fd7f8795"
+    },
+    {
+      "path": "src/optimization_state.cpp",
+      "blob": "d9ddfe4852ab94d2402e84c1bcfa65b4348363fd"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "blob": "fcc95dd834a293d29f55ffeaa35ca0352b6e919f"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "blob": "def9e0acd78e9a5dfba0085d60ec48a35f9d1305"
+    }
+  ],
+  "primary_research": {
+    "admitted_manifest": "docs/evidence/workload-accounting-sources-a892bfa.json",
+    "captured": "2026-11-09",
+    "artifact": 13664668700,
+    "digest": "sha256:ef3ba3ec18e8e2971ee48b34367f5c591b0003f93e7fb539e4161be7142cf5a2",
+    "reuse": "Reviewed isolated native Crawl4AI SQLite crash/reader-lifetime and Microsoft caching captures; no new fetch or API/dependency selection.",
+    "inferences": [
+      "Pair settlement with advisory publication and require explicit successful admission.",
+      "Keep advice failure separate from native data mutation; forfeit old credit after loss rather than adding a native debt transaction.",
+      "Counter/source identity and input checks precede funded writes; data/readback recovery is independent.",
+      "RAM and flush-fault models do not establish physical power-loss survival or flash-wear measurements."
+    ]
+  },
+  "publication_scope": "Pending new-source deterministic/malformed/allocator/lease/raw/codec/Windows/native/sanitizer/helper/full mounted regression gates.",
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 09:34 UTC",
+    "native_transport": "Authenticated GitHub open-alerts API",
+    "open_alerts": 0,
+    "scope": "Open alerts only, not absence of all vulnerabilities.",
+    "evidence": "docs/evidence/optimization-budget-sources-5b58568.json"
+  }
+}

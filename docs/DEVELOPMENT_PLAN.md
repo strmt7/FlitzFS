@@ -411,3 +411,10 @@ At14cfb12 the persistent native workload foundation passed all13 jobs,
 assertions. The next managed/helper consumer keeps activation explicit and
 before NEW helper-volume exposure. It needs its own full integration qualification.
 Persisted spending/debt and loss-safe baselines remain next; the full goal is active.
+
+At5b58568 the managed/helper consumer passed all13 jobs,4,645 workload assertions,
+590 VM app assertions and a healthy owner GUI. The next L01 source adds persistent
+funded advisory settlement and charged loss/repair transitions, preserving legacy
+defaults. Its complete source-bound qualification remains required. Durable mapping,
+funded lifetime continuation, authorization and automatic governor/learning remain
+unfinished; the full goal is active.

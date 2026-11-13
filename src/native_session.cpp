@@ -57,7 +57,7 @@ struct NativeFileSession::Impl {
     StoreIdentity volume_id{},active_id{},candidate_id{};
     StoreCompressionOptions foreground;
     std::uint64_t epoch=0;
-    bool pending=false,recovery_attempted=false;
+    bool pending=false,recovery_attempted=false,budget_new=false,budget_bootstrap_claimed=false;
   };
   static_assert(sizeof(VolumeOwner)<=256);
   struct OptimizationOwner {
@@ -65,6 +65,7 @@ struct NativeFileSession::Impl {
     std::optional<OptimizationStateWriter> writer;
     NativeOptimizationPhase phase=NativeOptimizationPhase::unavailable;
     OptimizationReadCode read_code=OptimizationReadCode::io_failure;
+    bool budgeted=false;
   };
   static_assert(sizeof(OptimizationOwner)<=64);
   struct StagedRecompression {
@@ -82,6 +83,8 @@ struct NativeFileSession::Impl {
   std::unique_ptr<OptimizationOwner> optimization;
   std::array<std::unique_ptr<OptimizationOwner>,max_optimization_bindings-1> prior_optimization;
   unsigned optimization_bindings=0;
+  bool budget_mode=false;
+  std::optional<std::uint64_t> budget_loss_input;
   // Current and prior areas remain unavailable as image/compaction targets.
   bool owns_optimization_backend(const std::shared_ptr<StoreByteIo>& io) const noexcept {
     if(optimization&&optimization->backing==io)return true;
@@ -199,6 +202,7 @@ NativeFileSession NativeFileSession::create_volume(std::shared_ptr<StoreByteIo> 
   owner->head.emplace(NativeVolumeHeadWriter::create(head,volume,source));
   owner->epoch=owner->head->info().selection.epoch;
   auto session=create(resume_image(image,source,foreground),policy);
+  owner->budget_new=true;
   session.impl_->volume=std::move(owner);return session;
 }
 NativeFileSession NativeFileSession::resume_volume(std::shared_ptr<StoreByteIo> head,
@@ -246,10 +250,14 @@ NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
   const auto& self=*impl_;out.session_ready=!self.terminal&&!self.writer.poisoned();
   out.binding_attempts=self.optimization_bindings;
   out.owned_area_bytes=std::uint64_t(self.optimization_bindings)*kOptimizationAreaBytes;
+  out.budgeted=self.budget_mode;out.loss_input_baseline=self.budget_loss_input;
   if(!self.optimization)return out;
   const auto& area=*self.optimization;
   out.phase=area.phase;out.read_code=area.read_code;out.reserved_bytes=kOptimizationAreaBytes;
   if(area.writer) {
+    out.repair_pending=area.writer->budget_repair_pending();
+    if(out.repair_pending)out.loss_input_baseline=area.writer->budget_repair_floor();
+    out.settled_input_bytes=area.writer->budget_settlement();
     if(area.writer->poisoned()) {
       out.phase=NativeOptimizationPhase::terminal;out.read_code=OptimizationReadCode::io_failure;
     }else if(area.phase==NativeOptimizationPhase::ready) {
@@ -269,32 +277,78 @@ NativeOptimizationInfo NativeFileSession::rebuild_optimization_area(std::shared_
   return bind_optimization_area(std::move(area),0,limit,true,true);
 }
 NativeOptimizationInfo NativeFileSession::bind_optimization_area(std::shared_ptr<StoreByteIo> area,
-    std::uint64_t sequence,unsigned limit,bool create,bool rebuild) {
+    std::uint64_t sequence,unsigned limit,bool create,bool rebuild,bool budgeted) {
   auto& self=ready();
   const bool failed=self.optimization&&
       (self.optimization->phase==NativeOptimizationPhase::unavailable||
        self.optimization->phase==NativeOptimizationPhase::terminal||
        (self.optimization->writer&&self.optimization->writer->poisoned()));
   if(!self.volume||!self.volume->head||self.recompression||
+      (budgeted&&self.volume->pending)||
+      (!budgeted&&self.budget_mode)||
+      (budgeted&&rebuild&&self.optimization&&self.optimization->writer&&
+          self.optimization->writer->budget_repair_pending())||
       !area||!limit||limit>4||(!create&&!sequence)||
       (rebuild?(!create||!failed||!self.optimization_bindings||
           self.optimization_bindings>=max_optimization_bindings):bool(self.optimization))||
       self.owns_optimization_backend(area)||
       area==self.volume->head_io||area==self.volume->active_io||area==self.volume->candidate_io)
     fail(E::invalid_options,"new distinct provider-reserved advisory binding required");
+  std::optional<std::uint64_t> input,settled;
+  if(budgeted) {
+    const auto cached=self.writer.workload_info();
+    if(!cached.enabled)fail(E::invalid_options,"budgeted advice needs native workload provenance");
+    // Cached input can decline work, never fund it. Fresh checked input below
+    // remains mandatory before any new record write.
+    if(create&&self.budget_loss_input&&
+        !(self.volume->budget_new&&!self.volume->budget_bootstrap_claimed)&&
+        (cached.committed_input_bytes<*self.budget_loss_input||
+         cached.committed_input_bytes-*self.budget_loss_input<2*kOptimizationAreaBytes))
+      return optimization_info();
+    const auto actual=self.writer.snapshot().workload_info();
+    if(!actual.enabled)fail(E::invalid_options,"checked workload provenance unavailable");
+    input=actual.committed_input_bytes;
+    self.budget_mode=true;
+    if(create) {
+      const bool bootstrap=self.volume->budget_new&&!self.volume->budget_bootstrap_claimed;
+      if(!self.budget_loss_input)self.budget_loss_input=*input;
+      const auto baseline=*self.budget_loss_input;
+      if(!bootstrap&&(*input<baseline||*input-baseline<2*kOptimizationAreaBytes))
+        return optimization_info(); // No candidate admission or candidate backing I/O.
+      settled=bootstrap?*input:baseline+2*kOptimizationAreaBytes;
+    }
+  }
   // Allocate before changing ownership. After admission retain the candidate,
   // every old backend and each poison-held lease, including failed creations.
   auto owner=std::make_unique<Impl::OptimizationOwner>();owner->backing=std::move(area);
+  owner->budgeted=budgeted;
   if(rebuild)self.prior_optimization[self.optimization_bindings-1]=std::move(self.optimization);
   self.optimization=std::move(owner);++self.optimization_bindings;
   auto& bound=*self.optimization;
+  if(budgeted){self.volume->budget_bootstrap_claimed=true;self.budget_loss_input=*input;}
   try {
+    if(budgeted) {
+      if(create)bound.writer.emplace(OptimizationStateWriter::create_budgeted(
+          bound.backing,self.volume->volume_id,*settled,limit));
+      else bound.writer.emplace(OptimizationStateWriter::resume_budgeted(
+          bound.backing,self.volume->volume_id,sequence,*input,limit));
+      bound.read_code=OptimizationReadCode::available;
+      bound.phase=bound.writer->budget_repair_pending()?
+          NativeOptimizationPhase::unavailable:NativeOptimizationPhase::ready;
+      self.budget_loss_input.reset();
+      return optimization_info();
+    }
     if(create)bound.writer.emplace(OptimizationStateWriter::create(bound.backing,self.volume->volume_id,limit));
     else {
       const auto observed=read_optimization_state(*bound.backing,self.volume->volume_id);
       bound.read_code=observed.code;
       if(observed.code!=OptimizationReadCode::available)return optimization_info();
       if(observed.sequence!=sequence){bound.read_code=OptimizationReadCode::invalid;return optimization_info();}
+      if(observed.state.settled_input_bytes) {
+        self.budget_mode=true;self.volume->budget_bootstrap_claimed=true;
+        bound.read_code=OptimizationReadCode::unsupported;
+        return optimization_info(); // No legacy repair or downgrade of funded state.
+      }
       bound.writer.emplace(OptimizationStateWriter::resume(bound.backing,self.volume->volume_id,sequence,limit));
     }
     bound.phase=NativeOptimizationPhase::ready;bound.read_code=OptimizationReadCode::available;
@@ -322,10 +376,79 @@ NativeOptimizationInfo NativeFileSession::publish_optimization_state(const Optim
   catch(...) {
     if(area.writer->poisoned()){
       area.phase=NativeOptimizationPhase::terminal;area.read_code=OptimizationReadCode::io_failure;
+      if(area.budgeted)self.budget_loss_input.reset(); // Establish fresh checked input on the next opportunity.
     }
     throw; // Never fence data or retire file contexts for advisory failure.
   }
   return optimization_info(); // No allocation after successful publication.
+}
+NativeOptimizationInfo NativeFileSession::create_budgeted_optimization_area(
+    std::shared_ptr<StoreByteIo> area,unsigned limit) {
+  return bind_optimization_area(std::move(area),0,limit,true,false,true);
+}
+NativeOptimizationInfo NativeFileSession::resume_budgeted_optimization_area(
+    std::shared_ptr<StoreByteIo> area,std::uint64_t sequence,unsigned limit) {
+  return bind_optimization_area(std::move(area),sequence,limit,false,false,true);
+}
+NativeOptimizationInfo NativeFileSession::rebuild_budgeted_optimization_area(
+    std::shared_ptr<StoreByteIo> area,unsigned limit) {
+  return bind_optimization_area(std::move(area),0,limit,true,true,true);
+}
+NativeOptimizationBudgetPublication NativeFileSession::publish_budgeted_optimization_state(const OptimizationState& state) {
+  auto& self=ready();
+  if(!self.volume||self.volume->pending||self.recompression||!self.optimization||!self.optimization->budgeted||
+      self.optimization->phase!=NativeOptimizationPhase::ready||!self.optimization->writer)
+    fail(E::invalid_options,"no ready budgeted advisory owner");
+  auto& area=*self.optimization;
+  if(!area.writer->remaining_publications())
+    return {NativeOptimizationBudgetProgress::deferred,optimization_info()};
+  const auto actual=self.writer.snapshot().workload_info();
+  if(!actual.enabled)fail(E::invalid_options,"native input provenance unavailable");
+  OptimizationStateWriter::BudgetResult result;
+  try{result=area.writer->publish_budgeted(state,actual.committed_input_bytes);}
+  catch(...) {
+    if(area.writer->poisoned()) {
+      area.phase=NativeOptimizationPhase::terminal;area.read_code=OptimizationReadCode::io_failure;
+      self.budget_loss_input=actual.committed_input_bytes;
+    }
+    throw;
+  }
+  const auto progress=result==OptimizationStateWriter::BudgetResult::published?
+      NativeOptimizationBudgetProgress::published:result==OptimizationStateWriter::BudgetResult::unchanged?
+      NativeOptimizationBudgetProgress::unchanged:NativeOptimizationBudgetProgress::deferred;
+  return {progress,optimization_info()};
+}
+NativeOptimizationBudgetPublication NativeFileSession::repair_budgeted_optimization_area() {
+  auto& self=ready();
+  if(!self.volume||self.volume->pending||self.recompression||!self.optimization||!self.optimization->budgeted||
+      !self.optimization->writer||!self.optimization->writer->budget_repair_pending())
+    fail(E::invalid_options,"no pending funded advisory repair");
+  auto& area=*self.optimization;
+  const auto cached=self.writer.workload_info();
+  const auto settlement=area.writer->budget_repair_floor();
+  if(!area.writer->remaining_publications()||!cached.enabled||!settlement||
+      cached.committed_input_bytes<*settlement||
+      cached.committed_input_bytes-*settlement<kOptimizationAreaBytes)
+    return {NativeOptimizationBudgetProgress::deferred,optimization_info()};
+  const auto actual=self.writer.snapshot().workload_info();
+  if(!actual.enabled)fail(E::invalid_options,"native input provenance unavailable");
+  OptimizationStateWriter::BudgetResult result;
+  try {
+    result=area.writer->repair_budgeted(actual.committed_input_bytes);
+    if(!area.writer->budget_repair_pending()) {
+      area.phase=NativeOptimizationPhase::ready;area.read_code=OptimizationReadCode::available;
+    }
+  }catch(...) {
+    if(area.writer->poisoned()) {
+      area.phase=NativeOptimizationPhase::terminal;area.read_code=OptimizationReadCode::io_failure;
+      self.budget_loss_input=actual.committed_input_bytes;
+    }
+    throw;
+  }
+  const auto progress=result==OptimizationStateWriter::BudgetResult::published?
+      NativeOptimizationBudgetProgress::published:result==OptimizationStateWriter::BudgetResult::unchanged?
+      NativeOptimizationBudgetProgress::unchanged:NativeOptimizationBudgetProgress::deferred;
+  return {progress,optimization_info()};
 }
 NativeVolumeHeadInfo NativeFileSession::compact_volume(std::shared_ptr<StoreByteIo> target,
     StoreIdentity next,StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) {

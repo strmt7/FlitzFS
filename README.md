@@ -231,3 +231,10 @@ and 3,945 workload assertions per examined platform log. The next
 volume creation and preserves it across live handles, handoff and reopen.
 That integration requires new-source qualification; automatic spending/learning
 and useful GPU gains remain unfinished.
+
+The managed/helper consumer at5b58568 passed all13 jobs,4,645 workload
+assertions and590 VM app assertions, plus one healthy owner GUI workflow with
+clean retirement. The next [input-funded advisory controls](docs/OPTIMIZATION_BUDGET.md)
+add persistent settlement and charged repair/replacement with fresh-input loss
+baselines. Publishing-source qualification is required; no automatic learner or
+useful GPU gain is claimed.

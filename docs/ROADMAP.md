@@ -851,3 +851,13 @@ groups. The next [consumer](WORKLOAD_HELPER.md) adds explicit managed activation
 scalar diagnostics and NEW helper creation wiring. Its source needs its own
 integration qualification. Persistent spending/debt, advice-loss baselines,
 mapping/authorization and an automatic low-priority learner remain required.
+
+## Input-funded advisory control preparation
+
+At5b58568, managed/helper workload integration passed all13 core/mounted jobs,
+4,645 workload assertions,590 app assertions and a healthy owner GUI check.
+The next [funded journal protocol](OPTIMIZATION_BUDGET.md) adds persistent settlement,
+charged repair and loss-safe fresh-input replacement. Its new-source fault/parser/
+lease/raw/codec/Windows/native/sanitizer/full regression gates remain required.
+Durable mapping/authorization, lifetime continuation and automatic execution/
+learning/resource governance remain unfinished; L01 and the full goal stay active.

@@ -935,3 +935,13 @@ Moved/fenced owners expose no usable counter. Preserve live contexts, legacy
 admission and all existing provider/process limits. Qualification of the new
 integration is required before owner execution; no automatic credit, mount,
 driver action or GPU operation is enabled.
+
+## Input-funded advisory control
+
+[OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) requires verified native input,
+monotonic persisted settlement, charged creation/repair and fresh-input forfeiture
+after loss. Only actual NEW head/image creation can fund one initial provision;
+ordinary resume cannot reset it. Keep failure isolated from data, all retained
+owners/aliases and existing publication/binding/resource limits. The new controls
+need their own full VM qualification and launch no worker or automatic optimizer.
+No global physical-wear, anti-rollback or arbitrary-failure claim follows.

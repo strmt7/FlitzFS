@@ -154,3 +154,12 @@ through handoff, move and new-controller resume. Cached diagnostics perform no
 allocation/I/O and return disabled for moved/fenced owners; they never authorize
 credit or replace current-state verification. NEW helper creation consumes this
 API before exposure. Publishing-source qualification remains required.
+
+## Funded advisory control
+
+[OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) adds separate managed creation,
+resume, repair, replacement and publication methods. Actual native input is
+verified before funded writes; cached facts only decline work. Results distinguish
+publication, no-op audit and deferral. Data/context ownership remains independent.
+The separately qualified automatic consumer, durable provider mapping and helper
+authorization still do not exist.
