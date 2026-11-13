@@ -308,3 +308,9 @@ The optional native application and process-lifetime memory provider introduce
 no stored encoding, codec, head, advisory-state or worker-frame change. Existing
 CPU readers remain independent. The volatile provider's successful-flush scope
 is its owning process lifetime; no physical-persistence claim follows.
+
+Input-only parent match preparation changes no request/reply or stored bytes.
+The opt-in FLHPH001 256-byte diagnostic metadata is a separate message type,
+never a compressed-data reply or file-format field. Its complete layout and
+binding/seal/reserved rules are in GPU_PHASE_PROFILE.md. Historical readers and
+the independent CPU recovery path remain unchanged.

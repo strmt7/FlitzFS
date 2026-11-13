@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "baseline": {
+    "commit": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
+    "tree": "6f3b85242d616d2b0f4331f3c83856b963a6775f",
+    "core_run": 43344250340,
+    "core_conclusion": "success"
+  },
+  "semantic": {
+    "run": 43344250304,
+    "artifact_id": 14001176609,
+    "artifact_sha256": "81221c7204967ea9c27eeb476b98748610c6a0ac1d5d3162f4a5767c89b2aa05",
+    "source_sha256": "8e72c2e1603005c154fc837d464ac34903bc05e2c0bf23ecf3b12d8c0a5d0131",
+    "provider": "0.2.43",
+    "model": "Snowflake/snowflake-arctic-embed-xs",
+    "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+    "queries": [
+      {
+        "index": 2,
+        "text": "GPU worker supervision CPU fallback recovery configuration and runtime failure",
+        "response_sha256": "82900bf96b017fe6874e575861ee905f2d032937d95a87df04355c4942d3ae5f"
+      },
+      {
+        "index": 3,
+        "text": "compression codec selection allocation budget stored decoded digest and decompression",
+        "response_sha256": "053c585140797af250ee4580ecc8019fd481cfe196ab72fad8244f8ce62595e3"
+      }
+    ],
+    "live_confirmed": [
+      {
+        "path": "src/windows/hip_decode_worker.cpp",
+        "sha256": "5bfc9c2150d1ebb5ffc2f882aae0ba0f0531ae2b03386b17ae50874c7be630ad"
+      },
+      {
+        "path": "src/store_codec.cpp",
+        "sha256": "a9babf296337afb54d5be744972aba45ef362c1d6f9e40b5da68ce3ed87d0b79"
+      }
+    ]
+  },
+  "reference": {
+    "repository": "strmt7/FlitzZip",
+    "commit": "2ee2e910d5cf6924e0f09f6f865b8a4c459fba8f",
+    "native_api_captures": [
+      {
+        "path": "src/gpu/dictionary_matcher.hpp",
+        "git_blob": "6cfdd5c2af7f732df7db413f918e445b16c365f4"
+      },
+      {
+        "path": "src/gpu/hip_dictionary_matcher.hip.cpp",
+        "git_blob": "4e202fe37476445f315d27301d674fc3fcc96c48"
+      },
+      {
+        "path": "src/gpu/hip_dictionary_matcher.cpp",
+        "git_blob": "ffa0fb4dd7b3df62b08dd2979a1e07c50a80010b"
+      },
+      {
+        "path": "src/gpu/observation_mode.hpp",
+        "git_blob": "9cf70d71748efdc632ce37437618a502c0c18dc3"
+      },
+      {
+        "path": "src/gpu/neutron_stage_clock.hpp"
+      }
+    ],
+    "decision": "Keep current device/resource/lifecycle bounds; eliminate unused parent CPU index construction and add separate completed wall-time diagnostics. No archive integration or relaxed CPU verification."
+  },
+  "implementation_status": "Pending publishing-commit CPU, Windows transport, sanitizer, complete SDK and existing integration qualification.",
+  "actual_new_gpu_execution": false,
+  "owner_tests_this_change": false,
+  "benefit_claim": "CPU work/allocation elision is implemented; timing measurements and any end-to-end GPU benefit remain unproven."
+}

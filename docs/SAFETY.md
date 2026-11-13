@@ -817,3 +817,13 @@ new empty name. These development checks do not qualify full Windows semantics,
 visual/accessibility behavior, an owner mount, physical media, power loss or
 FlitzFS HIP execution. No driver installation, settings change, service or
 scheduled task was performed. Preserve the existing separate gates.
+
+## Independent GPU cost preparation
+
+Input-only request preparation removes only unused parent CPU indexing. Device
+admission still reserves the complete old footprint and the child independently
+builds its index and verifies every match field. CPU recovery is unchanged.
+The opt-in phase diagnostic preserves existing process/device/time bounds and
+publishes only a complete, bound profile after cleanup; malformed/unavailable
+profiles cannot be used as data or hardware-recovery evidence. No new owner
+execution is qualified by this source change. See GPU_PHASE_PROFILE.md.

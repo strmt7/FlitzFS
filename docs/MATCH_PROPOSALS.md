@@ -128,3 +128,14 @@ ordinary CPU baseline payload size and exact source image/generation/object.
 Supplying, forwarding and selecting hints are distinct observations. Equal-size
 selection is possible; payload-only counts do not establish whole-image savings
 or speed. This new API still needs matching implementation qualification.
+
+## Input-only parent preparation
+
+prepare_request() owns source bytes without building an unused parent CPU index.
+Existing prepare() and trusted child decode still build the exact old index.
+The former has no CPU predecessor accessor: requesting it throws explicitly.
+Both forms declare the same planned device footprint and encode byte-identical
+requests. Parent proposal validation uses the independently retained input bytes.
+Explicit hardware and native-composition callers use the input-only path; CPU
+semantic callers retain prepare(). See GPU_PHASE_PROFILE.md for qualification
+and separate wall-time diagnostics. No codec, kernel, stored or match-frame change.

@@ -1205,3 +1205,18 @@ not silently discard an active volume or strand it without a usable tray.
 The separate GUI lane uses actual native controls and creation-time child jobs;
 never start an unqualified owner GUI binary or call control tests complete
 accessibility, mount, Windows 11, power-loss or useful GPU qualification.
+
+## Explicit GPU phase profiling and input-only requests
+
+Read docs/GPU_PHASE_PROFILE.md before changing the profiler, its metadata or
+request-only preparation. Normal operations remain CPU-only and unprofiled calls
+must perform zero clock queries. Preserve the existing 64-KiB/256-KiB/one-child/
+five-second bounds, full independent child index/search comparison, parent byte
+validation and exact retirement. prepare_request() omits ONLY the parent's unused
+CPU index; predecessors() must reject it, planned device bytes must not shrink,
+and child decoding must still materialize the complete old index. Require
+byte-identical old/new requests. Profile metadata is not a data reply or retry/
+recovery authority. Keep every failed/incomplete timing unavailable, reject
+binding/mask/seal/reserved/overflow errors and require all resource/module cleanup
+before publishing. Independent G03 preparation does not close D01 or enable
+resident workers, expanded work or an unqualified owner experiment.

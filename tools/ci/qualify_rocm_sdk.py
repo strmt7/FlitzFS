@@ -296,7 +296,8 @@ def main():
             invalid_match_refused=True,missing_match_runtime_refused=True,
             compiler_environment_isolated=True,system_module_metadata_passed=True,system_runtime_bad_hash_refused=True,
             system_runtime_argument_refused=True,kernel_only_verified=True,kernel_only_full_bundle_refused=True,
-            kernel_only_tamper_refused=True,driver_wire_refusals=5,exits_confirmed=17,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
+            kernel_only_tamper_refused=True,driver_wire_refusals=5,profile_wire_refused=True,
+            profile_argument_refused=True,profile_runtime_refused=True,exits_confirmed=20,gpu_executed=False,complete=True)],"worker admission evidence mismatch")
         report["worker_admission"]=receipts[0]
         hardware_probe=build/"Release/flitzfs_hip_hardware_probe.exe"
         hardware_imports,hardware_delayed=pe_import_names(hardware_probe.read_bytes())
@@ -392,6 +393,8 @@ def main():
                 "HIP runtime metadata probe: "),
             ("driver_decode",["--run-amd-driver-once",str(driver_fixture/worker.name),
                 "0","0100000000000000","0"*64],"HIP hardware probe: "),
+            ("driver_profile",["--profile-amd-driver-match-once",str(driver_fixture/worker.name),
+                "0","0100000000000000","0"*64],"HIP match phase profile: "),
             ("driver_match",["--run-amd-driver-match-once",str(driver_fixture/worker.name),
                 "0","0100000000000000","0"*64],"HIP match hardware probe: "),
         )
@@ -409,6 +412,11 @@ def main():
                 require(value["metadata_verified"] is False and value["observation"] is None and
                     value["gpu_candidate_accepted"] is False and value["cpu_reference_bytes"]==12288,
                     "failed memory diagnostic fabricated execution metadata")
+            elif name=="driver_profile":
+                require(value["profile_verified"] is False and value["gpu_candidate_accepted"] is False and
+                    value["phases"] is None and value["publication_observed"] is False and
+                    value["input_bytes"]==4096 and value["exchange_wall_ns"]>=0,
+                    "failed profile fabricated measurements or accepted data")
             elif name=="driver_identity":
                 require(value["properties_verified"] is False and value["hip_initialization_confirmed"] is False and
                     value["flitzfs_kernel_load_requested"] is False and value["batch_allocations_requested"] is False and

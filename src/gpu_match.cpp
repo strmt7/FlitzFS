@@ -5,11 +5,16 @@ namespace flitzfs {
 namespace {
 [[noreturn]] void fail(const char* text){throw std::invalid_argument(text);}
 }
-PreparedGpuMatchSearch PreparedGpuMatchSearch::prepare(std::span<const std::byte> input) {
+PreparedGpuMatchSearch PreparedGpuMatchSearch::prepare_request(std::span<const std::byte> input) {
   if(input.size()>match_detail::input_limit)fail("GPU match input exceeds 64 KiB");
   PreparedGpuMatchSearch plan;
   plan.input_.assign(input.begin(),input.end());
+  return plan;
+}
+PreparedGpuMatchSearch PreparedGpuMatchSearch::prepare(std::span<const std::byte> input) {
+  auto plan=prepare_request(input);
   plan.previous_.assign(input.size(),match_detail::no_previous);
+  plan.indexed_=true;
   const std::span<const std::byte> owned(plan.input_);
   // Exact 4-byte prefix and position keys reproduce the reference's ordered
   // predecessor index. Temporary keys occupy at most 512 KiB on the CPU.
@@ -29,11 +34,15 @@ PreparedGpuMatchSearch PreparedGpuMatchSearch::prepare(std::span<const std::byte
   }
   return plan;
 }
+std::span<const match_detail::u16> PreparedGpuMatchSearch::predecessors() const {
+  if(!indexed_)throw std::logic_error("CPU predecessor index was not requested");
+  return previous_;
+}
 std::uint32_t PreparedGpuMatchSearch::lanes() const noexcept {
   return match_detail::lanes(static_cast<std::uint32_t>(input_.size()));
 }
 std::uint64_t PreparedGpuMatchSearch::device_buffer_bytes() const noexcept {
-  return input_.size()+previous_.size()*sizeof(match_detail::u16)+lanes()*sizeof(match_detail::Match);
+  return input_.size()*(1+sizeof(match_detail::u16))+lanes()*sizeof(match_detail::Match);
 }
 std::vector<StoreMatchProposal> PreparedGpuMatchSearch::verified_proposals(
     std::span<const match_detail::Match> matches) const {

@@ -3,6 +3,7 @@
 #include "hip_worker_exit.hpp"
 #include "hip_identity_wire.hpp"
 #include "hip_memory_wire.hpp"
+#include "hip_phase_profile.hpp"
 #include "gpu_worker_controller.hpp"
 #include "gpu_match_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
@@ -128,7 +129,8 @@ int child(std::wstring_view mode,std::wstring_view token) {
     return 0; // CPU-only transport fixture, never a HIP runtime query.
   }
   if(mode==L"match" || mode==L"match-invalid" || mode==L"match-hold" ||
-      mode==L"match-delay-invalid" || mode==L"match-hip-declaration") {
+      mode==L"match-delay-invalid" || mode==L"match-hip-declaration" ||
+      mode==L"match-profile" || mode==L"match-profile-corrupt" || mode==L"match-profile-fail") {
     const auto input=decode_match_worker_request(channel.request());
     if(mode==L"match-hold"){Sleep(5000);return 0;}
     const auto& search=input.search;
@@ -137,6 +139,20 @@ int child(std::wstring_view mode,std::wstring_view token) {
       matches[lane]=match_detail::search(reinterpret_cast<const unsigned char*>(search.input().data()),
           static_cast<unsigned>(search.input().size()),search.predecessors().data(),
           static_cast<unsigned>(search.predecessors().size()),lane);
+    if(mode==L"match-profile" || mode==L"match-profile-corrupt" || mode==L"match-profile-fail") {
+      // CPU fixture measurements test ownership/framing; no HIP call is made.
+      HipPhaseProfile value;
+      value.binding={input.request_id,3,1,static_cast<std::uint32_t>(search.input().size()),
+          search.lanes(),{std::byte{5}},{}};
+      std::copy_n(channel.request().begin()+32,32,value.binding.source_digest.begin());
+      HipPhaseRecorder recorder(&value.trace);
+      for(unsigned n=0;n<hip_phase_count;++n){recorder.begin(static_cast<HipPhase>(n));recorder.end(static_cast<HipPhase>(n));}
+      recorder.finish();
+      auto metadata=encode_hip_phase_profile(value);
+      if(mode==L"match-profile-corrupt")metadata.back()=std::byte{1};
+      channel.publish(metadata);
+      return mode==L"match-profile-fail"?7:0;
+    }
     // The HIP declaration below exercises policy only. This child always runs CPU code.
     auto frame=encode_match_worker_reply(search,input.request_id,matches,
         mode==L"match-hip-declaration"?WorkerExecution::hip:WorkerExecution::cpu_semantics);
@@ -955,6 +971,32 @@ int wmain(int argc,wchar_t** argv){try{
   }
   observe(L"memory-metadata");
 
+  {
+    const auto search=PreparedGpuMatchSearch::prepare(Bytes(4096,std::byte{23}));
+    const auto frame=encode_match_worker_request(search,73);
+    HipProfileBinding expected{73,3,1,4096,search.lanes(),{std::byte{5}},{}};
+    std::copy_n(frame.begin()+32,32,expected.source_digest.begin());
+    for(const auto* mode:{L"match-profile",L"match-profile-corrupt",L"match-profile-fail"}) {
+      const auto result=run_worker_exchange(executable,{mode},frame);
+      check(result.process.exit_confirmed&&!result.process.timed_out,"Profile fixture retirement");
+      if(std::wstring_view(mode)==L"match-profile-fail") {
+        check(result.code==WorkerExchangeCode::worker_failed && result.response.empty(),
+            "Failed profile child exposed metadata");
+      } else {
+        check(result.code==WorkerExchangeCode::completed,"Profile fixture transport failed");
+        if(std::wstring_view(mode)==L"match-profile-corrupt")
+          rejects([&]{(void)decode_hip_phase_profile(result.response,expected,WorkerExecution::cpu_semantics);});
+        else {
+          const auto observed=decode_hip_phase_profile(result.response,expected,WorkerExecution::cpu_semantics);
+          check(observed.trace.finished && observed.trace.completed==hip_phase_complete,"Incomplete CPU phase trace");
+          rejects([&]{(void)decode_hip_phase_profile(result.response,expected,WorkerExecution::hip);});
+          rejects([&]{(void)accept_match_worker_reply(result.response,search,73,WorkerExecution::cpu_semantics);});
+        }
+      }
+      check_closed(result);
+    }
+  }
+  observe(L"match-profile-metadata");
   coordinated_requests(executable);observe(L"coordinated-recovery");
   match_transactions(executable);observe(L"match-transactions");
   coordinated_match_requests(executable);observe(L"match-recovery");

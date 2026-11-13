@@ -159,21 +159,24 @@ GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,
 }
 std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
     const match_detail::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const MatchWorkerRequest& request) {
+    std::uint32_t node_mask,const MatchWorkerRequest& request,HipPhaseRecorder* profile) {
   require_hip_worker_job();
   require(runtime && match_detail::compatible_kernel_api(kernel) && ordinal>=0 &&
       ordinal<64 && request.request_id,"invalid HIP match configuration");
   const auto input=request.search.input();
   const auto previous=request.search.predecessors();
   const auto allocation=request.search.device_buffer_bytes();
-  require(input.size()>=4 && input.size()<=match_detail::input_limit &&
+  require(input.size()>=4 && input.size()<=match_detail::input_limit && previous.size()==input.size() &&
       allocation<=gpu_detail::max_batch_bytes,"HIP match batch bounds");
+  if(profile)profile->begin(HipPhase::device_initialize);
   const auto before_init=query_windows_gpu_budget(luid,node_mask).snapshot;
   require_hip_memory(before_init,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::pre_initialize);
   const auto api=bind_api(runtime);
   const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
     return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
   });
+  if(profile)profile->end(HipPhase::device_initialize);
+  if(profile)profile->begin(HipPhase::stream_allocate);
   DeviceResources resources(api);
   const auto before=query_windows_gpu_budget(luid,node_mask).snapshot;
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,
@@ -186,9 +189,12 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   const std::array<std::size_t,3> sizes{input.size(),previous.size_bytes(),matches.size()*sizeof(matches[0])};
   for(std::size_t i=0;i<sizes.size();++i)
     check_hip(api.allocate(&resources.buffers[i],sizes[i]),"allocate match buffer");
+  if(profile)profile->end(HipPhase::stream_allocate);
+  if(profile)profile->begin(HipPhase::host_to_device);
   check_hip(api.copy(resources.buffers[0],input.data(),sizes[0],hipMemcpyHostToDevice),"copy match input");
   check_hip(api.copy(resources.buffers[1],previous.data(),sizes[1],hipMemcpyHostToDevice),"copy match index");
   check_hip(api.copy(resources.buffers[2],matches.data(),sizes[2],hipMemcpyHostToDevice),"initialize matches");
+  if(profile)profile->end(HipPhase::host_to_device);
   auto size=static_cast<unsigned>(input.size());
   auto previous_count=static_cast<unsigned>(previous.size());
   auto count=static_cast<unsigned>(matches.size());
@@ -196,10 +202,15 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   void* arguments[]{&resources.buffers[0],&size,&resources.buffers[1],&previous_count,
       &resources.buffers[2],&count,&version};
   const auto threads=match_detail::threads;
+  if(profile)profile->begin(HipPhase::kernel_wait);
   check_hip(api.launch(reinterpret_cast<const void*>(kernel.search),
       dim3((count+threads-1)/threads),dim3(threads),arguments,0,resources.stream),"launch matches");
   check_hip(api.synchronize(resources.stream),"complete matches");
+  if(profile)profile->end(HipPhase::kernel_wait);
+  if(profile)profile->begin(HipPhase::device_to_host);
   check_hip(api.copy(matches.data(),resources.buffers[2],sizes[2],hipMemcpyDeviceToHost),"read matches");
+  if(profile)profile->end(HipPhase::device_to_host);
+  if(profile)profile->begin(HipPhase::cpu_verification);
   try {
     (void)request.search.verified_proposals(matches);
     // Qualification compares every field with CPU semantics, in addition to
@@ -213,10 +224,15 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   catch(const std::exception&) {
     throw HipWorkerFailure(HipWorkerExit::integrity_failure,"HIP match output failed CPU verification");
   }
+  if(profile)profile->end(HipPhase::cpu_verification);
+  if(profile)profile->begin(HipPhase::post_admission);
   const auto after=query_windows_gpu_budget(luid,node_mask).snapshot;
   require_hip_memory(after,luid,node_mask,GetTickCount64(),allocation,
       HipMemoryPoint::completed,&before_init);
+  if(profile)profile->end(HipPhase::post_admission);
+  if(profile)profile->begin(HipPhase::resources_release);
   check_hip(resources.release_all(),"release HIP matches");
+  if(profile)profile->end(HipPhase::resources_release);
   return matches;
 }
 

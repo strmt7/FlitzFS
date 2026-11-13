@@ -241,8 +241,9 @@ int worker(int argc, wchar_t** argv) {
   }
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
   const bool memory_observation=mode==L"--driver-memory-adapter";
-  const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" || memory_observation;
-  const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter";
+  const bool phase_observation=mode==L"--driver-match-profile";
+  const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" || memory_observation || phase_observation;
+  const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter" || phase_observation;
   require((driver ? argc == 8 : argc == 7) &&
       (driver || mode == L"--adapter" || mode == L"--match-adapter") &&
       std::wstring_view(argv[driver ? 6 : 5]) == L"--worker-channel",
@@ -252,11 +253,22 @@ int worker(int argc, wchar_t** argv) {
   const auto luid = parse_luid(argv[3]);
   const auto node_mask = decimal(argv[4], (std::numeric_limits<unsigned>::max)());
   require(node_mask && !(node_mask & (node_mask - 1)), Exit::invalid_request, "adapter node mask");
+  HipPhaseProfile phase_value;
+  HipPhaseRecorder phase_clock(phase_observation?&phase_value.trace:nullptr);
+  phase_clock.begin(HipPhase::request_decode);
   auto channel = WorkerChannel::open(argv[driver ? 7 : 6]);
   std::optional<WorkerBatchRequest> decode;
   std::optional<MatchWorkerRequest> match;
   if(matching)match.emplace(read_match_request(channel.request()));
   else decode.emplace(read_request(channel.request()));
+  phase_clock.end(HipPhase::request_decode);
+  if(phase_observation) {
+    phase_value.execution=WorkerExecution::hip;
+    phase_value.binding={match->request_id,ordinal,node_mask,
+        static_cast<std::uint32_t>(match->search.input().size()),match->search.lanes(),luid,{}};
+    // The canonical request digest was verified during decode above.
+    std::copy_n(channel.request().begin()+32,32,phase_value.binding.source_digest.begin());
+  }
   const auto allocation=matching?match->search.device_buffer_bytes():decode->batch.device_buffer_bytes();
   std::optional<HipMemoryBinding> diagnostic_binding;
   if(memory_observation){
@@ -267,9 +279,12 @@ int worker(int argc, wchar_t** argv) {
       throw HipWorkerFailure(Exit::invalid_request,"memory diagnostic binding",HipWorkerStage::worker_request);
     } // Before loading a runtime/kernel.
   }
+  phase_clock.begin(HipPhase::bundle_verify);
   const auto bundle = verify_bundle(driver);
   std::optional<hip_detail::VerifiedSystemModule> installed;
   if (driver) installed.emplace(hip_bundle::runtime, expected_runtime);
+  phase_clock.end(HipPhase::bundle_verify);
+  phase_clock.begin(HipPhase::adapter_admit);
   const auto observed = query_windows_gpu_budget(luid, node_mask);
   require(observed.status == WindowsGpuBudgetStatus::success,
       Exit::unsupported_configuration, "AMD adapter unavailable", HipWorkerStage::adapter_budget);
@@ -277,6 +292,8 @@ int worker(int argc, wchar_t** argv) {
       allocation) == GpuGateCode::admitted,
       Exit::temporary_pressure, "AMD worker memory budget", HipWorkerStage::adapter_budget);
 
+  phase_clock.end(HipPhase::adapter_admit);
+  phase_clock.begin(HipPhase::modules_load);
   // Per-process search settings. Imported private DLLs are pinned in hip/.
   require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32) != 0,
       Exit::runtime_unavailable, "restrict worker DLL lookup");
@@ -288,16 +305,22 @@ int worker(int argc, wchar_t** argv) {
   const auto loaded_runtime = GetModuleHandleW(hip_bundle::runtime);
   require(loaded_runtime && same_path(runtime_path, module_path(loaded_runtime)),
       Exit::integrity_failure, "different installed HIP runtime loaded");
+  phase_clock.end(HipPhase::modules_load);
   std::vector<std::byte> frame;
   if(matching) {
+    phase_clock.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_match_api_v1");
     require(address!=nullptr,Exit::unsupported_configuration,"HIP match entry unavailable",HipWorkerStage::kernel_entry);
     const auto entry=std::bit_cast<match_detail::KernelApiEntry>(address);
     const auto* api=entry();
     require(api && match_detail::compatible_kernel_api(*api),
         Exit::unsupported_configuration,"incompatible HIP match table",HipWorkerStage::kernel_table);
-    const auto reply=run_hip_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*match);
+    phase_clock.end(HipPhase::entry_bind);
+    const auto reply=run_hip_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*match,
+        phase_observation?&phase_clock:nullptr);
+    phase_clock.begin(HipPhase::reply_encode);
     frame=encode_match_worker_reply(match->search,match->request_id,reply,WorkerExecution::hip);
+    phase_clock.end(HipPhase::reply_encode);
   } else {
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_kernel_api_v1");
     require(address!=nullptr,Exit::unsupported_configuration,"HIP kernel entry unavailable",HipWorkerStage::kernel_entry);
@@ -322,8 +345,15 @@ int worker(int argc, wchar_t** argv) {
     const auto reply=run_hip_decode_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*decode);
     frame=encode_worker_reply(reply,WorkerExecution::hip);
   }
+  phase_clock.begin(HipPhase::modules_release);
   kernels.close();
   runtime.close();
+  phase_clock.end(HipPhase::modules_release);
+  if(phase_observation) {
+    phase_clock.finish();
+    const auto metadata=encode_hip_phase_profile(phase_value);
+    channel.publish(metadata);return 0;
+  }
   channel.publish(frame);
   return 0;
 }
