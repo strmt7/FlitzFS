@@ -16,8 +16,9 @@
 ## Architecture and resource contract
 
 `WinFspReadOnly` owns an immutable `ReadOnlyProjection`, stable file metadata and
-an owner-only security descriptor. `bind_callbacks` only sets `UserContext` in
-an existing user-mode `FSP_FILE_SYSTEM` struct. Neither construction nor tests
+an owner-only security descriptor. `bind_callbacks` requires an explicit origin
+query, configures Create/Open admission and sets `UserContext` in an existing
+user-mode `FSP_FILE_SYSTEM` struct before callbacks start. Neither construction nor tests
 call `FspFileSystemCreate`, mount-point assignment or dispatcher startup.
 
 Backing data is verified before exposure, with an aggregate **32 MiB logical**
@@ -165,3 +166,11 @@ support or complete writable FileInfo.
 ## Separate synchronous native data bridge
 
 NATIVE_WINDOWS_IO.md adds strict complete FileInfo and actual SDK Write/SetFileSize/query/Flush boundary functions. These are not wired into the read-only callback table. Explicit native-reserved cache allocation is not measured compressed physical usage or backing qualification. Complete metadata/output admission precedes mutation; errors expose zero counts and no partial output, preserve contexts and report offlining outside callbacks. Existing read-only behavior and all mounted-space observations remain unchanged.
+
+
+## Required origin binding
+
+WINFSP_ORIGIN_GUARD.md documents the mandatory explicit origin provider, supported
+Create/Open-only query scope, host admission and direct CPU-only test injection.
+A live dispatcher uses the real SDK query; a synthetic provider is not a mounted
+compatibility mechanism. Stored projection bytes and all old limits remain.

@@ -1,3 +1,4 @@
+// Direct CPU-only callback fixture: zero is an explicitly synthetic kernel origin; no live dispatcher.
 #include "winfsp_native.hpp"
 #include "native_windows_fixture.hpp"
 #include <algorithm>
@@ -19,7 +20,7 @@ struct Harness {
   Harness(StoreCompressionMode mode,std::uint64_t cap=kStoreMaxPhysicalBytes):adapter(WinFspNativeWritable::create_new_hosted(
       fixture.image(),nw::identity(),{mode,6,false},cap)) {
     fs.Version=static_cast<UINT16>(sizeof(fs));fs.UmFileContextIsUserContext2=TRUE;
-    fs.Interface=&WinFspNativeWritable::callbacks();adapter->bind_callbacks(fs);
+    fs.Interface=&WinFspNativeWritable::callbacks();adapter->bind_callbacks(fs,[]()->UINT32{return 0;});
     SIZE_T size=0;UINT32 attributes=0;
     require(fs.Interface->GetSecurityByName(&fs,const_cast<PWSTR>(L"\\"),&attributes,nullptr,&size)==
         STATUS_BUFFER_OVERFLOW&&size>0&&size<=kNativeMaxSecurityBytes,"root security size negotiation");
@@ -282,7 +283,7 @@ void retired_resume() {
     h.adapter=WinFspNativeWritable::resume_retired_hosted(
         h.fixture.image(),nw::identity(),generation,{mode,6,false},cap);
     h.fs={};h.fs.Version=static_cast<UINT16>(sizeof(h.fs));h.fs.UmFileContextIsUserContext2=TRUE;
-    h.fs.Interface=&WinFspNativeWritable::callbacks();h.adapter->bind_callbacks(h.fs);
+    h.fs.Interface=&WinFspNativeWritable::callbacks();h.adapter->bind_callbacks(h.fs,[]()->UINT32{return 0;});
     require(h.adapter->parameters().VolumeCreationTime==creation,"restart fabricated volume creation time");
     file=h.open(L"\\saved");h.read(file,nw::tail());h.finish(file);
     auto continued=h.make(L"\\continued");h.write(continued,nw::tail());h.finish(continued);h.close_owner();

@@ -107,6 +107,7 @@ struct WinFspReadOnly::Impl {
     std::vector<std::byte> security; // Present persisted descriptor, empty uses legacy owner policy.
   };
   struct Slot { std::uintptr_t token = 0; const Node* node = nullptr; };
+  WinFspOriginGuard origin;
   ReadOnlyProjection projection;
   std::vector<std::byte> security;
   std::map<std::string, Node> nodes;
@@ -233,6 +234,7 @@ struct WinFspReadOnly::Impl {
           GENERIC_WRITE | GENERIC_ALL;
       if ((access & writes) || (options & FILE_DELETE_ON_CLOSE)) return STATUS_MEDIA_WRITE_PROTECTED;
       auto& s = self(fs);
+      if(!s.origin.allows_open())return STATUS_ACCESS_DENIED;
       const auto& node = s.lookup(name);
       const bool directory = (node.info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
       if ((options & FILE_DIRECTORY_FILE) && !directory) return STATUS_NOT_A_DIRECTORY;
@@ -342,7 +344,10 @@ bool WinFspReadOnly::dispatcher_stopped() const noexcept {
 bool WinFspReadOnly::dispatcher_stopped_unexpectedly() const noexcept {
   return impl_->dispatcher_stop.load(std::memory_order_acquire) == 2;
 }
-void WinFspReadOnly::bind_callbacks(FSP_FILE_SYSTEM& fs) noexcept { fs.UserContext = impl_.get(); }
+void WinFspReadOnly::bind_callbacks(FSP_FILE_SYSTEM& fs,WinFspOriginQuery query) noexcept {
+  impl_->origin.bind(query);fs.UserContext=impl_.get();
+}
+bool WinFspReadOnly::self_origin_rejected() const noexcept{return impl_->origin.self_rejected();}
 FSP_FSCTL_VOLUME_PARAMS WinFspReadOnly::parameters() const noexcept {
   FSP_FSCTL_VOLUME_PARAMS result{};
   result.Version = sizeof(result);

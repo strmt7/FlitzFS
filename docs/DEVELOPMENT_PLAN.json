@@ -93,16 +93,16 @@
       "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup.",
       "checkpoint": {
         "source": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
-        "qualification": "All13 core jobs passed with external restart/resumer and readonly clients. Eleven current native Microsoft captures admitted.",
-        "evidence": "docs/evidence/extended-actors-9dd6a98.json",
+        "qualification": "All thirteen core jobs passed; every current mounted workload has an external client, including finite RAM handoff.",
+        "evidence": "docs/evidence/ram-actors-fa9fe90.json",
         "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
         "historical_root_cause": "unproven",
-        "next": "Qualify the exact publishing-source RAM protocol, then implement/test mandatory adapter-wide origin protection without a live synthetic-origin bypass.",
+        "next": "Qualify product guard through direct CPU semantic/lifecycle and all real mounted SDK callbacks without a synthetic-origin bypass. Preserve the unresolved historical root and full-product scope.",
         "source_child_deadline_seconds": 15,
         "source_exit_observation_seconds": 2,
         "owner_execution": false,
-        "qualified_source": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
-        "pending_implementation": "Finite external RAM-handoff conversation, pure state rules and real CPU-peer fault/handle checks; no caps/oracles removed."
+        "qualified_source": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
+        "pending_implementation": "Mandatory adapter Create/Open self-origin guard, explicit origin provider and product-denial auditing; new-source qualification pending."
       }
     },
     {

@@ -1,5 +1,6 @@
 #pragma once
 #include "native_file_info.hpp"
+#include "winfsp_origin.hpp"
 #include <filesystem>
 #include <memory>
 namespace flitzfs {
@@ -46,7 +47,8 @@ class WinFspNativeWritable final {
   ~WinFspNativeWritable();
   WinFspNativeWritable(const WinFspNativeWritable&)=delete;
   WinFspNativeWritable& operator=(const WinFspNativeWritable&)=delete;
-  void bind_callbacks(FSP_FILE_SYSTEM&) noexcept;
+  void bind_callbacks(FSP_FILE_SYSTEM&,WinFspOriginQuery) noexcept;
+  bool self_origin_rejected() const noexcept;
   FSP_FSCTL_VOLUME_PARAMS parameters() const noexcept;
   static const FSP_FILE_SYSTEM_INTERFACE& callbacks() noexcept;
   bool requires_offline() const noexcept;

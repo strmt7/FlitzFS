@@ -130,7 +130,7 @@ std::vector<std::byte> read_all(const fs::path& path, std::size_t expected) {
 flitzfs::WinFspSessionApi live_api() {
   return {FspFileSystemPreflight, FspFileSystemCreate, FspFileSystemStartDispatcher,
       FspFileSystemSetMountPoint, FspFileSystemStopDispatcher,
-      FspFileSystemRemoveMountPoint, FspFileSystemDelete};
+      FspFileSystemRemoveMountPoint, FspFileSystemDelete,FspFileSystemOperationProcessId};
 }
 // This guard is specific to the forced-termination source, not a replacement
 // for the native callback authorization/adoption/rollback checks.
@@ -144,7 +144,7 @@ bool source_origin_allowed() noexcept {
   if(!source_guard.armed.load(std::memory_order_acquire))return true;
   // The pinned SDK permits this query ONLY in Create/Open (or eligible Rename).
   const auto origin=FspFileSystemOperationProcessId();
-  if(origin==GetCurrentProcessId()){source_guard.self_denied.fetch_add(1);return false;}
+  if(origin==GetCurrentProcessId())return true; // Product adapter must refuse this request.
   const auto expected=source_guard.expected.load(std::memory_order_acquire);
   if(origin==expected&&origin){source_guard.observed.store(origin,std::memory_order_release);return true;}
   return origin==0; // Kernel-origin operations do not fabricate a user actor.
@@ -152,12 +152,18 @@ bool source_origin_allowed() noexcept {
 NTSTATUS source_create(FSP_FILE_SYSTEM* fs,PWSTR name,UINT32 options,UINT32 granted,UINT32 attributes,
     PSECURITY_DESCRIPTOR security,UINT64 allocation,PVOID* context,FSP_FSCTL_FILE_INFO* info) noexcept {
   if(!source_origin_allowed())return STATUS_ACCESS_DENIED;
-  return source_guard.original->Create(fs,name,options,granted,attributes,security,allocation,context,info);
+  const auto status=source_guard.original->Create(fs,name,options,granted,attributes,security,allocation,context,info);
+  if(status==STATUS_ACCESS_DENIED&&source_guard.armed.load(std::memory_order_acquire)&&
+      FspFileSystemOperationProcessId()==GetCurrentProcessId())source_guard.self_denied.fetch_add(1);
+  return status;
 }
 NTSTATUS source_open(FSP_FILE_SYSTEM* fs,PWSTR name,UINT32 options,UINT32 granted,
     PVOID* context,FSP_FSCTL_FILE_INFO* info) noexcept {
   if(!source_origin_allowed())return STATUS_ACCESS_DENIED;
-  return source_guard.original->Open(fs,name,options,granted,context,info);
+  const auto status=source_guard.original->Open(fs,name,options,granted,context,info);
+  if(status==STATUS_ACCESS_DENIED&&source_guard.armed.load(std::memory_order_acquire)&&
+      FspFileSystemOperationProcessId()==GetCurrentProcessId())source_guard.self_denied.fetch_add(1);
+  return status;
 }
 NTSTATUS source_flush(FSP_FILE_SYSTEM* fs,PVOID context,FSP_FSCTL_FILE_INFO* info) noexcept {
   const auto status=source_guard.original->Flush(fs,context,info);
@@ -266,7 +272,8 @@ void self_open_probe(flitzfs::WinFspNativeSession& session,
         FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
     const auto error=GetLastError();Handle denied(attempted);
     require(denied.value==INVALID_HANDLE_VALUE&&error==ERROR_ACCESS_DENIED&&
-        source_guard.self_denied.load()>0,"filesystem host self-I/O was not refused");
+        source_guard.self_denied.load()>0&&session.self_origin_rejected(),
+        "filesystem host self-I/O was not refused by product adapter");
     const auto after=observer->snapshot();
     require(before.storage_info().generation==after.storage_info().generation&&
         before.storage_info().physical_end==after.storage_info().physical_end&&

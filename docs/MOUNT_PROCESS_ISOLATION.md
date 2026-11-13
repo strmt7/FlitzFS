@@ -296,3 +296,15 @@ RAM-handoff qualification. Adapter-wide self-origin protection is the next produ
 boundary, not already implemented by this fixture. The historical D01 kernel cause,
 Windows11 client qualification and full-product goals remain open. No owner mount/
 driver operation or unchanged GPU rerun is authorized.
+
+## Product guard replaces fixture authority
+
+Sourcefa9fe90 qualified the final external RAM client across all thirteen jobs.
+The next source moves own-Create/Open admission into both product adapters.
+Writable source wrappers now delegate their own origin and audit the product's
+denial/diagnostic; they cannot intercept the request first. Read-only normal/
+kill/remount sources also require real own-open denial. Every mounted actor table
+supplies the actual SDK query, with no live fake-origin escape. Direct CPU-only
+fixtures and missing/throwing provider tests remain separate synthetic evidence.
+Read WINFSP_ORIGIN_GUARD.md. Qualification is pending; the historical cause and
+the broader kernel/backing/lifecycle failure model remain open.

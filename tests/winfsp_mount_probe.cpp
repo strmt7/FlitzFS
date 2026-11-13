@@ -160,7 +160,7 @@ void check_mapping(const fs::path& path, const std::vector<std::byte>& expected)
 flitzfs::WinFspSessionApi live_api() {
   return {FspFileSystemPreflight, FspFileSystemCreate, FspFileSystemStartDispatcher,
       FspFileSystemSetMountPoint, FspFileSystemStopDispatcher,
-      FspFileSystemRemoveMountPoint, FspFileSystemDelete};
+      FspFileSystemRemoveMountPoint, FspFileSystemDelete,FspFileSystemOperationProcessId};
 }
 void require_probe_job() {
   stage = 2;
@@ -348,6 +348,13 @@ void emit_space_report(std::uint32_t process,std::string_view phase) {
       text.find('\0')==std::string::npos,"incomplete or wrong-phase child space report");
   std::cout<<"Windows space evidence: "<<text<<"\n";
 }
+void reject_host_self_open(flitzfs::WinFspReadOnlySession& session,const fs::path& mount) {
+  const auto path=mount/L"Data"/L"sample.bin";
+  Handle file(CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr));
+  const auto error=GetLastError();
+  require(file.value==INVALID_HANDLE_VALUE&&error==ERROR_ACCESS_DENIED&&session.self_origin_rejected(),
+      "readonly host self-open was not refused by product adapter");
+}
 void mounted_client(const Fixture& fixture,bool abandon_mount) {
   const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
   const auto data=synthetic_data();
@@ -440,6 +447,7 @@ void probe(bool abandon_mount,std::wstring_view token) {
   const auto status = session.start({mount.native(), 30, true});
   if (!NT_SUCCESS(status)) throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
       std::system_category(), "live session startup");
+  reject_host_self_open(session,mount);
   protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
   stage = 12;
   if (abandon_mount) {
@@ -532,6 +540,7 @@ void recover(std::uint32_t previous_process,std::wstring_view token) {
   const auto status=session.start({mount.native(),30,true});
   if(!NT_SUCCESS(status))throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
       std::system_category(),"native remount after terminated helper");
+  reject_host_self_open(session,mount);
   protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
   stage = 18;
   session.stop();

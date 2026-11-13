@@ -104,6 +104,7 @@ NativeWindowsIoOutcome success() noexcept{return {STATUS_SUCCESS,false};}
 }
 struct WinFspNativeWritable::Impl {
   struct Slot {std::uintptr_t token=0;NativeFileHandle handle;bool provisional=false,awaiting_overwrite=false;UINT32 security_access=0;};
+  WinFspOriginGuard origin;
   NativeFileSession session;
   std::array<Slot,NativeFileSession::max_contexts> slots{};
   std::uintptr_t next_token=1;
@@ -209,9 +210,14 @@ struct WinFspNativeWritable::Impl {
   }
   static NativeBasicAccess basic_grant(UINT32 access) noexcept{return {(access&FILE_WRITE_ATTRIBUTES)!=0};}
   static NativeSecurityAccess security_grant(UINT32 access) noexcept{return {(access&(READ_CONTROL|ACCESS_SYSTEM_SECURITY))!=0,(access&(WRITE_DAC|ACCESS_SYSTEM_SECURITY))!=0};}
+  static NTSTATUS admit_open(FSP_FILE_SYSTEM* fs) noexcept {
+    if(!fs||!fs->UserContext)return STATUS_INVALID_PARAMETER;
+    return static_cast<Impl*>(fs->UserContext)->origin.allows_open()?STATUS_SUCCESS:STATUS_ACCESS_DENIED;
+  }
   static NTSTATUS create(FSP_FILE_SYSTEM* fs,PWSTR name,UINT32 options,UINT32 access,UINT32 attrs,
       PSECURITY_DESCRIPTOR security,UINT64 allocation,PVOID* context,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(context)*context=nullptr;if(info)*info={};if(!context||!info)return STATUS_INVALID_PARAMETER;
+    const auto origin=admit_open(fs);if(!NT_SUCCESS(origin))return origin;
     return run(fs,[&](Impl& s) {
       auto& slot=s.available();const bool directory=(options&FILE_DIRECTORY_FILE)!=0;
       if((options&FILE_DIRECTORY_FILE)&&(options&FILE_NON_DIRECTORY_FILE))return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
@@ -228,6 +234,7 @@ struct WinFspNativeWritable::Impl {
   }
   static NTSTATUS open(FSP_FILE_SYSTEM* fs,PWSTR name,UINT32 options,UINT32 access,PVOID* context,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(context)*context=nullptr;if(info)*info={};if(!context||!info)return STATUS_INVALID_PARAMETER;
+    const auto origin=admit_open(fs);if(!NT_SUCCESS(origin))return origin;
     return run(fs,[&](Impl& s) {
       auto& slot=s.available();const auto relative=path(name);const auto found=s.session.lookup(relative);
       if((options&FILE_DIRECTORY_FILE)&&!found.state.info.directory)return win_detail::failure(s.session,STATUS_NOT_A_DIRECTORY);
@@ -545,7 +552,10 @@ HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(Host
     throw std::invalid_argument("unknown idle maintenance action");
   });
 }
-void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs) noexcept{fs.UserContext=impl_.get();}
+void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs,WinFspOriginQuery query) noexcept{
+  impl_->origin.bind(query);fs.UserContext=impl_.get();
+}
+bool WinFspNativeWritable::self_origin_rejected() const noexcept{return impl_->origin.self_rejected();}
 bool WinFspNativeWritable::requires_offline() const noexcept{return impl_->offline.load(std::memory_order_acquire);}
 bool WinFspNativeWritable::dispatcher_stopped() const noexcept{return impl_->stopped.load(std::memory_order_acquire)!=0;}
 bool WinFspNativeWritable::dispatcher_stopped_unexpectedly() const noexcept{return impl_->stopped.load(std::memory_order_acquire)==2;}

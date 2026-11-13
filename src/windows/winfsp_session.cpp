@@ -8,7 +8,7 @@ namespace flitzfs {
 namespace {
 WinFspSessionApi checked(WinFspSessionApi api) {
   if (!api.preflight || !api.create || !api.start_dispatcher || !api.set_mount_point ||
-      !api.stop_dispatcher || !api.remove_mount_point || !api.delete_filesystem)
+      !api.stop_dispatcher || !api.remove_mount_point || !api.delete_filesystem || !api.originating_process_id)
     throw std::invalid_argument("incomplete filesystem lifecycle provider");
   return api;
 }
@@ -38,7 +38,7 @@ NTSTATUS WinFspReadOnlySession::start(const ReadOnlyMountPlan& plan) noexcept {
     status = api_.create(device, &parameters, &adapter_.callbacks(), &filesystem_);
     if (!NT_SUCCESS(status)) return fail(status);
     if (!filesystem_) return fail(STATUS_INTERNAL_ERROR);
-    adapter_.bind_callbacks(*filesystem_);
+    adapter_.bind_callbacks(*filesystem_,api_.originating_process_id);
     // Start servicing before exposing a namespace; never expose a mount with
     // no dispatcher. A failed start still receives an idempotent stop call.
     dispatcher_attempted_ = true;
@@ -67,6 +67,7 @@ void WinFspReadOnlySession::stop() noexcept {
   release();
   if (state_ != SessionState::failed) state_ = SessionState::stopped;
 }
+bool WinFspReadOnlySession::self_origin_rejected() const noexcept{return adapter_.self_origin_rejected();}
 bool WinFspReadOnlySession::dispatcher_stopped() const noexcept {
   return adapter_.dispatcher_stopped();
 }
@@ -95,7 +96,7 @@ NTSTATUS WinFspNativeSession::start(const NativeWriteMountPlan& plan) noexcept {
     auto status=api_.preflight(device,directory.data());if(!NT_SUCCESS(status))return fail(status);
     status=api_.create(device,&parameters,&adapter_->callbacks(),&filesystem_);
     if(!NT_SUCCESS(status))return fail(status);if(!filesystem_)return fail(STATUS_INTERNAL_ERROR);
-    adapter_->bind_callbacks(*filesystem_);
+    adapter_->bind_callbacks(*filesystem_,api_.originating_process_id);
     dispatcher_attempted_=true;status=api_.start_dispatcher(filesystem_,kMountDispatcherThreads);
     if(!NT_SUCCESS(status))return fail(status);
     if(adapter_->dispatcher_stopped())return fail(STATUS_DEVICE_NOT_READY);
@@ -133,6 +134,7 @@ void WinFspNativeSession::release() noexcept {
 }
 void WinFspNativeSession::retire_adapter() noexcept {
   if(adapter_) {
+    self_rejected_=self_rejected_||adapter_->self_origin_rejected();
     offline_=offline_||adapter_->requires_offline();
     stopped_=stopped_||adapter_->dispatcher_stopped();
     unexpected_stop_=unexpected_stop_||adapter_->dispatcher_stopped_unexpectedly();
@@ -148,6 +150,7 @@ void WinFspNativeSession::stop() noexcept {
   if(offline_||unexpected_stop_)state_=SessionState::failed;
   else if(state_!=SessionState::failed)state_=SessionState::stopped;
 }
+bool WinFspNativeSession::self_origin_rejected() const noexcept{return self_rejected_||(adapter_&&adapter_->self_origin_rejected());}
 bool WinFspNativeSession::dispatcher_stopped() const noexcept {
   return stopped_||(adapter_&&adapter_->dispatcher_stopped());
 }

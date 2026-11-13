@@ -1,6 +1,7 @@
 #pragma once
 
 #include <winfsp/winfsp.h>
+#include "winfsp_origin.hpp"
 #include "flitzfs/catalog.hpp"
 #include "flitzfs/projection.hpp"
 #include <memory>
@@ -20,7 +21,8 @@ class WinFspReadOnly final {
   WinFspReadOnly(const WinFspReadOnly&) = delete;
   WinFspReadOnly& operator=(const WinFspReadOnly&) = delete;
   // Bind an existing user-mode struct; this performs no WinFsp operation.
-  void bind_callbacks(FSP_FILE_SYSTEM& filesystem) noexcept;
+  void bind_callbacks(FSP_FILE_SYSTEM& filesystem,WinFspOriginQuery origin) noexcept;
+  bool self_origin_rejected() const noexcept;
   static const FSP_FILE_SYSTEM_INTERFACE& callbacks() noexcept;
   FSP_FSCTL_VOLUME_PARAMS parameters() const noexcept;
   // Written by the last dispatcher callback; observing does not tear down resources.

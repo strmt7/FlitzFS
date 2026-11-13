@@ -195,3 +195,10 @@ controller using a finite seven-event conversation. It retains all original
 compression, identity, pinned-image, recovery and cleanup checks, with new CPU
 order/fault/handle tests. Its publishing-source qualification is pending;
 adapter-wide protection and the historical shutdown cause remain open.
+
+All thirteen jobs passed atfa9fe90, completing external clients for the current
+mounted fixtures. The next implementation adds mandatory Create/Open host-origin
+admission to both adapters and requires an explicit origin provider in session
+binding. Mounted probes now test product rejection; direct CPU fixtures remain
+explicitly synthetic. See [origin boundary](docs/WINFSP_ORIGIN_GUARD.md).
+New-source qualification is pending; full filesystem readiness is unproven.
