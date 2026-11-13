@@ -314,3 +314,9 @@ The opt-in FLHPH001 256-byte diagnostic metadata is a separate message type,
 never a compressed-data reply or file-format field. Its complete layout and
 binding/seal/reserved rules are in GPU_PHASE_PROFILE.md. Historical readers and
 the independent CPU recovery path remain unchanged.
+
+The coalesced GPU match upload is transient host/device scratch, not a stored
+format or IPC change. Its initialized alignment padding is included in admission;
+input, little-endian predecessor links and sentinel output share one allocation.
+No file bytes, codec identifiers, dictionary dependencies or recovery encoding
+change. See GPU_PHASE_PROFILE.md for the checked ownership/qualification boundary.

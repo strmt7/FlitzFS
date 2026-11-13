@@ -1,4 +1,5 @@
 #include "hip_decode_worker.hpp"
+#include "flitzfs/gpu_match_layout.hpp"
 #include "gpu_budget.hpp"
 #include "gpu_topology.hpp"
 #include "hip_worker_budget.hpp"
@@ -186,21 +187,27 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   // Every unwritten lane is invalid at CPU admission.
   const match_detail::Match pending{65535,65535,65535,65535};
   std::vector<match_detail::Match> matches(request.search.lanes(),pending);
-  const std::array<std::size_t,3> sizes{input.size(),previous.size_bytes(),matches.size()*sizeof(matches[0])};
-  for(std::size_t i=0;i<sizes.size();++i)
-    check_hip(api.allocate(&resources.buffers[i],sizes[i]),"allocate match buffer");
+  const auto layout=gpu_match_device_layout(static_cast<std::uint32_t>(input.size()));
+  const auto upload=gpu_match_device_upload(request.search);
+  require(upload.size()==allocation && layout.total_bytes==allocation,"match slab admission differs");
+  check_hip(api.allocate(&resources.buffers[0],upload.size()),"allocate match slab");
+  const auto address=reinterpret_cast<std::uintptr_t>(resources.buffers[0]);
+  require(address && address%8==0 &&
+      address<=(std::numeric_limits<std::uintptr_t>::max)()-layout.total_bytes,
+      "invalid match slab address",HipWorkerStage::execution);
+  void* device_input=resources.buffers[0];
+  void* device_previous=reinterpret_cast<void*>(address+layout.previous_offset);
+  void* device_output=reinterpret_cast<void*>(address+layout.output_offset);
   if(profile)profile->end(HipPhase::stream_allocate);
   if(profile)profile->begin(HipPhase::host_to_device);
-  check_hip(api.copy(resources.buffers[0],input.data(),sizes[0],hipMemcpyHostToDevice),"copy match input");
-  check_hip(api.copy(resources.buffers[1],previous.data(),sizes[1],hipMemcpyHostToDevice),"copy match index");
-  check_hip(api.copy(resources.buffers[2],matches.data(),sizes[2],hipMemcpyHostToDevice),"initialize matches");
+  check_hip(api.copy(device_input,upload.data(),upload.size(),hipMemcpyHostToDevice),"copy match slab");
   if(profile)profile->end(HipPhase::host_to_device);
   auto size=static_cast<unsigned>(input.size());
   auto previous_count=static_cast<unsigned>(previous.size());
   auto count=static_cast<unsigned>(matches.size());
   auto version=match_detail::abi_version;
-  void* arguments[]{&resources.buffers[0],&size,&resources.buffers[1],&previous_count,
-      &resources.buffers[2],&count,&version};
+  void* arguments[]{&device_input,&size,&device_previous,&previous_count,
+      &device_output,&count,&version};
   const auto threads=match_detail::threads;
   if(profile)profile->begin(HipPhase::kernel_wait);
   check_hip(api.launch(reinterpret_cast<const void*>(kernel.search),
@@ -208,7 +215,7 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   check_hip(api.synchronize(resources.stream),"complete matches");
   if(profile)profile->end(HipPhase::kernel_wait);
   if(profile)profile->begin(HipPhase::device_to_host);
-  check_hip(api.copy(matches.data(),resources.buffers[2],sizes[2],hipMemcpyDeviceToHost),"read matches");
+  check_hip(api.copy(matches.data(),device_output,matches.size()*sizeof(matches[0]),hipMemcpyDeviceToHost),"read matches");
   if(profile)profile->end(HipPhase::device_to_host);
   if(profile)profile->begin(HipPhase::cpu_verification);
   try {

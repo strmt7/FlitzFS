@@ -11,12 +11,14 @@
     "note": "Current qualified baseline. Independent cost profiling and parent preparation changes require new-source qualification; no new owner execution performed."
   },
   "current_qualification": {
-    "commit": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
-    "core_run": 43344250340,
+    "commit": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
+    "core_run": 43348957587,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "Existing CPU/native/isolated-mount matrix; separate application/notice workflow43344250348 passed. Owner runtime source remains f4928c2."
+    "sdk_run": 43348957813,
+    "sdk_conclusion": "success",
+    "evidence": "docs/evidence/gpu-profile-99be6a2.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -325,12 +327,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
-    "package": "Independent G03 preparation",
+    "source_parent": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
     "contract": "docs/GPU_PHASE_PROFILE.md",
-    "behavior": "Elide unused parent CPU index preparation with byte-identical requests and unchanged independent child verification; add explicit complete phase profiling with no clocks in normal requests.",
-    "status": "New publishing-commit CPU/raw/codec/sanitizer/Windows transport/complete-SDK and integration qualification required.",
-    "next": "Inspect exact profiling/request-equivalence and SDK refusal results before any hardware use. D01/lifecycle, useful G02 benefit and full-product gates remain open."
+    "behavior": "Coalesced bounded aligned match slab: one allocation/upload/free, unchanged kernel and CPU verification.",
+    "status": "New-source exhaustive layout/CPU semantics, raw/codec/sanitizer/Windows/SDK and integration results required.",
+    "next": "Inspect layout and SDK evidence before any changed hardware invocation. Do not rerun unchanged profile. D01 and resident-worker/lifecycle gates remain open."
   },
   "resolved": [
     {
@@ -373,5 +374,19 @@
     "remaining_owned_processes": 0,
     "evidence": "docs/evidence/volume-app-f4928c2.json",
     "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification."
+  },
+  "gpu_cost_observation": {
+    "commit": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
+    "actual_gpu_execution": true,
+    "input_bytes": 4096,
+    "explicit_device_bytes": 14336,
+    "exchange_wall_ns": 390882700,
+    "worker_wall_ns": 351742700,
+    "kernel_launch_wait_wall_ns": 1044800,
+    "cpu_semantic_comparison_wall_ns": 84400,
+    "driver_changes": false,
+    "remaining_owned_processes": 0,
+    "evidence": "docs/evidence/gpu-profile-99be6a2.json",
+    "scope": "Single diagnostic, no candidate/benefit or cold-system benchmark claim."
   }
 }

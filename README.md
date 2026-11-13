@@ -158,3 +158,11 @@ verification. A separate opt-in diagnostic records complete worker phase wall
 costs; normal requests make no timing queries. Publishing-commit qualification
 is pending. This is not a GPU speed/compression gain or an automatic route.
 [Contract and bounds](docs/GPU_PHASE_PROFILE.md).
+
+The qualified source99 GPU diagnostic identified initialization/allocation and
+bundle checking as larger costs than its retained independent CPU oracle. The
+next match implementation coalesces three device buffers/uploads into one
+bounded, checked allocation, preserving the kernel ABI and verification.
+See [GPU phase evidence and allocation boundary](docs/GPU_PHASE_PROFILE.md).
+The new path requires separate source-bound qualification; useful GPU throughput
+or compression benefit and the D01 retirement repair remain unproved.

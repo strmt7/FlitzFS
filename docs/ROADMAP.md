@@ -733,3 +733,17 @@ New-source functional/equivalence, alternating CPU-construction diagnostics,
 Windows transport and complete-SDK refusal checks require actual qualification.
 D01 and G02's useful-benefit exit remain open. No resident worker, relaxed
 verification or expanded device/process/lifetime limit is introduced.
+
+## Measured GPU allocation preparation
+
+Source99 passed all thirteen core jobs, CPU composition and the twenty-case SDK
+admission lane. A single authorized 4-KiB actual GPU profile recorded 390.8827 ms
+exchange, including 142.4385 ms device initialization and 119.9077 ms stream/
+allocation in the worker; full CPU semantic comparison took 0.0844 ms.
+It did not accept a compression candidate or establish a speedup.
+
+The next substantive G03 step coalesces the match device regions and uploads,
+with exhaustive bounded CPU layout checks and unchanged kernel/verification/
+process gates. Qualification of this changed source is pending. D01 causal
+retirement, useful G02 benefit and the full persistent filesystem exit criteria
+remain open. See GPU_PHASE_PROFILE.md and evidence/gpu-profile-99be6a2.json.

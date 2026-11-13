@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "experimental": true,
+  "source_commit": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
+  "source_tree": "a93eca25c5958d906089136610ad66109b6aa4f0",
+  "qualification": {
+    "core_run": 43348957587,
+    "core_jobs_passed": 13,
+    "core_jobs_total": 13,
+    "sdk_run": 43348957813,
+    "sdk_job": 131635074633,
+    "sdk_conclusion": "success",
+    "sdk_confirmed_exits": 20,
+    "phase_clock_wire_checks": 431,
+    "match_checks": 939,
+    "windows_raw_worker_checks": 1191,
+    "windows_raw_handles": [
+      79,
+      79
+    ],
+    "ram_run": 43348957751,
+    "ram_handles": [
+      93,
+      93
+    ],
+    "locked_after": 0
+  },
+  "cpu_preparation": {
+    "scope": "Construction only, 64 KiB deterministic source, eight alternating pairs per build; not GPU/filesystem throughput.",
+    "linux_raw": {
+      "artifact": 14003106429,
+      "sha256": "afdd52392c6b83cbbd6b160f708a2d70882e2efebfa79b0bb797b5ab21323235",
+      "indexed_median_ns": 3683771,
+      "input_only_median_ns": 21490
+    },
+    "linux_codecs": {
+      "artifact": 14003780134,
+      "sha256": "033b11b44dc9891b1e7adb55d0f998bd35b3e0dff3351f0bdeff69596cd8edd0",
+      "indexed_median_ns": 3093019,
+      "input_only_median_ns": 3756
+    },
+    "windows_raw": {
+      "artifact": 14001949859,
+      "sha256": "5c12f4e58398aa5b77d2ad6bd80deaf16ef119185aba1ca6f90af638c6c80322",
+      "indexed_median_ns": 3799500,
+      "input_only_median_ns": 30200
+    }
+  },
+  "artifact": {
+    "outer_id": 14002513696,
+    "outer_sha256": "d7c9dcdbba4f9bc0494d7e59be3aa49a1501a032c316441ca8250aafc9adc0ff",
+    "outer_bytes": 487057,
+    "inner_sha256": "6fca327eed025a7d10e12d9524fc0743493e039e9b680c758337abe099b2cac9",
+    "files": [
+      {
+        "path": "flitzfs_hip_worker.exe",
+        "bytes": 408576,
+        "sha256": "e134e439d576d4736da91a6ee86b7d62a510c6c70d916d2bf8b2a30742b65161"
+      },
+      {
+        "path": "hip/flitzfs_rocm_kernels.dll",
+        "bytes": 194048,
+        "sha256": "d97af7d0fb90232f7a5dd9f43a0d3e062bfb8a1fac0b51dc0a807a2cfe2eeb02"
+      },
+      {
+        "path": "flitzfs_hip_hardware_probe.exe",
+        "bytes": 460288,
+        "sha256": "6520856aedf1ceaee70eb60d4ffafa6a0281fbaf95322bc5f04a37039e401a7b"
+      },
+      {
+        "path": "LICENSE",
+        "bytes": 35184,
+        "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+      },
+      {
+        "path": "licenses/blake3/LICENSE_A2",
+        "bytes": 11563,
+        "sha256": "3da8137480af96e14b27ac9474c6a76a0102596493e5ab075ba98c7ffc64d552"
+      },
+      {
+        "path": "licenses/blake3/LICENSE_A2LLVM",
+        "bytes": 12486,
+        "sha256": "b944109ea368e9bf114cb87a21a7ccf11edb6621fe0bd8357ae51dced0afbbb3"
+      },
+      {
+        "path": "licenses/blake3/LICENSE_CC0",
+        "bytes": 7169,
+        "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328"
+      }
+    ]
+  },
+  "owner_preflight": {
+    "gpu": "AMD Radeon RX 9070 XT",
+    "driver": "32.0.32015.12012",
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "prior_actual_hardware_tuple": "Same model/driver/runtime hash as native-gpu-ram-645a1d1.json; fresh checks still required.",
+    "discovery": {
+      "complete": true,
+      "gpu_executed": false,
+      "hip_initialized": false,
+      "adapters_seen": 2,
+      "adapters": [
+        {
+          "dxgi_ordinal": 0,
+          "luid": "9a73010000000000",
+          "vendor": 4098,
+          "device": 30032,
+          "dedicated_bytes": 16977985536,
+          "probe_node_mask": 1
+        }
+      ],
+      "controller_job_peak_commit_bytes": 1851392
+    },
+    "budget": {
+      "gpu_executed": false,
+      "hip_initialized": false,
+      "status": 0,
+      "phase": 6,
+      "native_status": 0,
+      "snapshot_valid": true,
+      "dedicated_bytes": 16977985536,
+      "local_budget": 16168480768,
+      "local_usage": 0,
+      "nonlocal_budget": 50320211968,
+      "nonlocal_usage": 0,
+      "physical_total": 68305387520,
+      "physical_available": 31343308800,
+      "commit_limit": 137024864256,
+      "commit_available": 84572078080,
+      "nonlocal_growth_envelope": 105758615,
+      "gate_code": 0,
+      "controller_job_peak_commit_bytes": 1814528
+    },
+    "identity": {
+      "properties_verified": true,
+      "hip_initialization_confirmed": true,
+      "flitzfs_kernel_load_requested": false,
+      "batch_allocations_requested": false,
+      "kernel_launch_requested": false,
+      "ordinal": 0,
+      "node_mask": 0,
+      "luid": "9a73010000000000",
+      "luid_matches": true,
+      "node_mask_matches": false,
+      "worker_exit": 0,
+      "worker_category": 0,
+      "worker_stage": "none",
+      "timed_out": false,
+      "exit_confirmed": true,
+      "peak_commit_bytes": 9547776,
+      "controller_job_peak_commit_bytes": 10891264
+    },
+    "topology": {
+      "gpu_executed": false,
+      "hip_initialized": false,
+      "queues_requested": false,
+      "batch_allocations_requested": false,
+      "kernel_launch_requested": false,
+      "status": 0,
+      "phase": 10,
+      "native_status": 0,
+      "node_count": 1,
+      "amd_hardware": true,
+      "luid_matches": true,
+      "single_node_verified": true,
+      "software_fixture": false,
+      "controller_job_peak_commit_bytes": 46608384
+    },
+    "node_rule": "HIP reported node_mask0; independently verified one-node D3D12 topology was required before compute. No silent node inference."
+  },
+  "owner_profile": {
+    "source": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
+    "mode": "--profile-amd-driver-match-once",
+    "started_utc": "2026-11-13T02:21:14.1407163Z",
+    "finished_utc": "2026-11-13T02:21:14.5718721Z",
+    "pid": 16076,
+    "exit_confirmed": true,
+    "exit_code": 0,
+    "forced_stop": false,
+    "stdout": "HIP match phase profile: {\"profile_verified\":true,\"gpu_candidate_accepted\":false,\"input_bytes\":4096,\"explicit_device_bytes\":14336,\"exchange_wall_ns\":390882700,\"worker_exit\":0,\"exit_confirmed\":true,\"publication_observed\":true,\"timed_out\":false,\"peak_commit_bytes\":79962112,\"controller_job_peak_commit_bytes\":81358848,\"phases\":{\"total_worker_wall_ns\":351742700,\"request_decode_wall_ns\":162900,\"bundle_verify_wall_ns\":61084900,\"adapter_admit_wall_ns\":10265100,\"modules_load_wall_ns\":1964700,\"entry_bind_wall_ns\":600,\"device_initialize_wall_ns\":142438500,\"stream_allocate_wall_ns\":119907700,\"host_to_device_wall_ns\":8563100,\"kernel_wait_wall_ns\":1044800,\"device_to_host_wall_ns\":831300,\"cpu_verification_wall_ns\":84400,\"post_admission_wall_ns\":319100,\"resources_release_wall_ns\":2554100,\"reply_encode_wall_ns\":12400,\"modules_release_wall_ns\":2488800}}\r\n",
+    "stderr": "",
+    "metadata": {
+      "profile_verified": true,
+      "gpu_candidate_accepted": false,
+      "input_bytes": 4096,
+      "explicit_device_bytes": 14336,
+      "exchange_wall_ns": 390882700,
+      "worker_exit": 0,
+      "exit_confirmed": true,
+      "publication_observed": true,
+      "timed_out": false,
+      "peak_commit_bytes": 79962112,
+      "controller_job_peak_commit_bytes": 81358848,
+      "phases": {
+        "total_worker_wall_ns": 351742700,
+        "request_decode_wall_ns": 162900,
+        "bundle_verify_wall_ns": 61084900,
+        "adapter_admit_wall_ns": 10265100,
+        "modules_load_wall_ns": 1964700,
+        "entry_bind_wall_ns": 600,
+        "device_initialize_wall_ns": 142438500,
+        "stream_allocate_wall_ns": 119907700,
+        "host_to_device_wall_ns": 8563100,
+        "kernel_wait_wall_ns": 1044800,
+        "device_to_host_wall_ns": 831300,
+        "cpu_verification_wall_ns": 84400,
+        "post_admission_wall_ns": 319100,
+        "resources_release_wall_ns": 2554100,
+        "reply_encode_wall_ns": 12400,
+        "modules_release_wall_ns": 2488800
+      }
+    },
+    "phase_sum_ns": 351722400,
+    "worker_unattributed_ns": 20300,
+    "exchange_residual_ns": 39140000
+  },
+  "postflight": {
+    "checked_utc": "2026-11-13T02:27:09.8640782Z",
+    "owned_processes": [],
+    "gpu": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32015.12012",
+        "Status": "OK"
+      }
+    ],
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "driver_changes_performed": false,
+    "services_or_tasks_created": false,
+    "mounted": false,
+    "physical_filesystem_backing": false
+  },
+  "interpretation": [
+    "One explicitly requested 4-KiB GPU diagnostic, not a filesystem speed/compression benchmark. No GPU compression candidate accepted.",
+    "Fifteen host-wall phases include blocking/API/observation overhead; kernel_wait is not pure device-event kernel time.",
+    "Fresh worker initialization, stream/allocation and bundle/runtime verification dominate this observation. Full CPU semantic comparison is retained and took84400ns.",
+    "The prior identity check initialized HIP properties and may warm system/driver caches. This is not a cold-system measurement or an alternating GPU comparison.",
+    "Do not compare this4-KiB390.9ms exchange with the older64-KiB706.5ms trial as a speedup.",
+    "Next change: coalesce three device allocations/uploads into one bounded aligned slab, preserving independent verification, old maximum footprint and original kernel arguments. It requires new-source qualification.",
+    "Expired signed download URL returned403 before fixture creation. The same immutable artifact was renewed and verified; no test job was restarted."
+  ]
+}

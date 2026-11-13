@@ -107,3 +107,44 @@ declaring CPU semantics. SDK admission adds malformed-profile, bad-runtime-diges
 and unavailable-runtime refusals, plus a hardware-probe refusal with null timings.
 These are not GPU execution. The new source must pass its actual publishing-commit
 results before hardware invocation; no owner experiment is automatically enabled.
+
+## Qualified baseline and coalesced match upload
+
+Source 99be6a266d0fe4cb934c462ad14960e3d26df1a6 passed all thirteen core jobs,
+the four-mode CPU composition fixture and the complete SDK lane (twenty confirmed
+worker exits). The source-bound CPU construction medians and the single actual
+owner GPU profile are retained in evidence/gpu-profile-99be6a2.json.
+
+The 4-KiB synthetic profile used 14,336 explicit device bytes. Parent exchange
+was 390,882,700 ns and worker wall time 351,742,700 ns. Device initialization
+accounted for 142,438,500 ns, stream/allocation 119,907,700 ns, bundle verification
+61,084,900 ns and the complete CPU semantic check 84,400 ns. These are one
+observation of host calls, with prior identity initialization, not a cold-system
+or repeated performance benchmark. The launch/wait phase is not GPU-only time.
+No compression candidate was accepted or speed benefit established.
+
+The next implementation combines the match input, predecessor links and output
+into ONE device allocation, ONE host-to-device upload and ONE owned device free.
+The kernel still receives the original three bounded pointers and unchanged ABI.
+Input starts at offset zero; predecessor links are 2-byte aligned and output is
+8-byte aligned. All padding is initialized to zero, predecessor links are explicit
+little-endian uint16 values and every unwritten output field remains 65535.
+Returned allocation addresses must be nonzero, 8-byte aligned and allow every
+checked offset without integer wrap. Only the base pointer is owned/freed.
+Device-to-host copying still reads only the output region.
+
+At most eight padding bytes per shape are included in admission. The existing
+maximum remains 229,376 device bytes at 64 KiB, below the unchanged 256-KiB gate;
+the 4-KiB case remains 14,336 bytes. One temporary CPU upload vector holds at most
+229,376 bytes, inside the existing process limit. An input-only parent plan cannot
+produce an upload. The child's full index, byte/semantic oracle, telemetry,
+stream wait, release-before-publication and terminal-failure rules remain intact.
+Stored bytes, IPC requests, kernel geometry and effort caps are unchanged.
+
+The layout test exhaustively checks all 65,537 admitted sizes for alignment,
+nonoverlap and the device ceiling; representative shapes independently unpack
+the upload, compare original/shared CPU semantics and exercise output-only writes.
+Those are CPU layout/semantic checks, not GPU execution. The coalesced implementation
+requires its own publishing-source CPU, sanitizer, Windows transport and full-SDK
+qualification before any changed-source owner GPU run. Its benefit is unproven;
+the measured baseline does not qualify the new allocation path or close D01/G02.
