@@ -103,3 +103,13 @@ The provider now keeps at most 64 store registrations and explicitly verifies
 all current pages and the working-set reservation at application status/discard
 boundaries. This complements initial allocation verification without copying
 image contents or changing transaction flush behavior.
+
+The 5bdd166 diagnostic isolated the cold handle-count changes: 84 before and
+after the provider, 88 after the first volume and 113 after the first window/
+controller. This is not yet a root-cause verdict. The next qualification first
+runs native RNG and message-window/thread primitives without FlitzFS owners,
+requires repeated primitive calls to stop adding handles, and then requires
+exact balance for three complete model/controller cycles. No assertion is
+removed or allowed to grow per cycle. Cold counts remain visible. The GUI test
+also verifies non-ASCII UTF-8/surrogate-pair readback; application exit reports
+memory cleanup failure with a nonzero status.

@@ -237,5 +237,5 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE,PWSTR command_line,int) {
   }
   // Controller destructor joins its already-retired worker; all tray/UI objects
   // are process-local and no service, scheduled task or registry state is used.
-  return result<0?5:(app.tray_added?6:0);
+  return result<0?5:(app.tray_added?6:(MemoryVolumeDomain::cleanup_healthy()?0:7));
 }
