@@ -360,12 +360,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "2a757592ab4060406afc05efd5735b5d9412944b",
+    "source_parent": "df8b08e9e9bac78876f055a8c14c4e5bd2475522",
+    "behavior": "Authenticated private compression module/coverage and worker-channel runtime integration.",
+    "status": "Unimplemented; next GPU file-operation milestone remains open.",
     "contract": "docs/HIP_LZ4_COMPUTE.md",
-    "behavior": "SDK-only typed bounded HIP compression compute, protected full-slab readback, independent CPU verification and explicit API resource retirement.",
-    "status": "4dda4fe compiled with the selected complete SDK and passed existing typed API/CPU capability checks, but the new compute CPU matrix failed. Correct the terminal-literal corruption fixture and qualify all gates again.",
-    "next": "Qualify without loading HIP/private candidate modules; authenticate modules and actual object coverage before isolated runtime integration. No normal caller or owner GPU run.",
-    "failure_evidence": "docs/evidence/hip-lz4-compute-first-failure-4dda4fe.json"
+    "next": "Integrate existing typed compute with module authentication, exact target coverage, supervised channel and native stored output; isolate runtime qualification before any owner-device experiment. Keep full GPU product and cold compression requirements active."
   },
   "resolved": [
     {
@@ -651,7 +650,10 @@
     },
     "typed_compression_compute": {
       "contract": "docs/HIP_LZ4_COMPUTE.md",
-      "status": "4dda4fe compiled with the selected complete SDK and passed existing typed API/CPU capability checks, but the new compute CPU matrix failed. Correct the terminal-literal corruption fixture and qualify all gates again.",
+      "status": "Qualified selected-SDK/CPU-only at df8b08e: 823 checks across58 scenarios (6 positive/52 refusal), eight raw missing-decoder checks, guarded exact child exits and all original20 worker cases. No HIP/private candidate module loaded and no GPU execution.",
+      "qualified_source": "df8b08e9e9bac78876f055a8c14c4e5bd2475522",
+      "sdk_run": 43509323703,
+      "evidence": "docs/evidence/hip-lz4-compute-df8b08e.json",
       "complete_device_bytes_cap": 262144,
       "normal_io_caller": false,
       "candidate_module_loaded": false,
@@ -689,5 +691,12 @@
     "evidence": "docs/evidence/source-snapshot-2a75759.json",
     "scope": "All 13 ordinary jobs passed; all 519 source archive files independently match canonical Git blobs. SDK CPU decoder qualification remains source-bound to 94ec882."
   },
-  "release_checkpoint": "docs/RELEASE_READINESS.md"
+  "release_checkpoint": "docs/RELEASE_READINESS.md",
+  "cold_compression_research": "docs/COLD_COMPRESSION_RESEARCH.md",
+  "compression_objective": {
+    "primary": "Minimum total stored bytes, including models/indexes/checkpoints/redundancy/dependencies.",
+    "constraints": "Latency must remain practical and sustained access must not become dramatically slow. Moderate penalties are acceptable; do not impose minimum latency, tiny groups or universal faster-than-baseline requirements on cold recompression.",
+    "safety": "Exact byte reconstruction, independent CPU fallback, protected decoder state and bounded resource/transactional safety remain mandatory.",
+    "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
+  }
 }

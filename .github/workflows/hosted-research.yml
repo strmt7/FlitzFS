@@ -8,6 +8,9 @@ on:
         type: choice
         default: rocm-warp
         options:
+          - compression-suite
+          - compression-learned
+          - compression-systems
           - rocm-compatibility
           - rocm-windows-hardware
           - rocm-current
@@ -79,6 +82,8 @@ jobs:
           mkdir "$RUNNER_TEMP/flitzfs-windows-native-research"
           status=0
           case "$RESEARCH_SOURCE_GROUP" in
+            compression-suite) groups=(compression-learned compression-systems) ;;
+            compression-learned|compression-systems) groups=("$RESEARCH_SOURCE_GROUP") ;;
             rocm-compatibility) groups=(rocm-windows-hardware rocm-current) ;;
             windows-app-suite) groups=(windows-app windows-app-test) ;;
             windows-process-suite) groups=(process windows-process-retirement) ;;

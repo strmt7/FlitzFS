@@ -236,6 +236,26 @@ def guard():
 
 
 
+
+# Closed primary-source scope for the owner's background recompression question.
+# These are research candidates, not adopted codecs or performance evidence.
+COMPRESSION_LEARNED_SOURCES = (
+    ("llm-invocation-2026", "https://arxiv.org/html/2611.05871v1",
+     "The Invocation Bottleneck", "decompression"),
+    ("diffusion-lossless-2026", "https://arxiv.org/html/2608.11249v1",
+     "Diffuse to Compress", "lossless"),
+    ("causal-gpu-2026", "https://arxiv.org/html/2610.02236v4",
+     "Fixed-Capacity Causal Models", "CPU"),
+)
+COMPRESSION_SYSTEMS_SOURCES = (
+    ("l3-publisher-2026", "https://dl.acm.org/doi/10.1145/3802078",
+     "A GPU-Native Co-Designed Data Format", "random access"),
+    ("cross-backup-2026", "https://www.mdpi.com/2079-9292/15/20/4712",
+     "Cross-Backup First", "delta compression"),
+    ("ibp-gpu-2026", "https://arxiv.org/html/2605.30728v1",
+     "Reducing the GPU Memory Bottleneck", "lossless"),
+)
+
 def qualify_source_scope(source_group, row, markdown):
     """Preserve native receipts while rejecting explicitly retired AMD documentation."""
     if source_group.startswith("rocm") or source_group == "amd":
@@ -254,6 +274,15 @@ def qualify_source_scope(source_group, row, markdown):
             return dict(row,success=False,expected_content=False,
                 failure_category="unexpected_documentation_scope",
                 error="Expected the closed HIP 7.16.0 page and substantive source markers")
+    if source_group in ("compression-learned","compression-systems") and row["success"]:
+        selected=COMPRESSION_LEARNED_SOURCES if source_group=="compression-learned" else COMPRESSION_SYSTEMS_SOURCES
+        admitted={url:(marker,term) for _,url,marker,term in selected}
+        markers=admitted.get(row.get("url"))
+        if (markers is None or len(markdown)<2000 or
+                not all(marker.casefold() in markdown.casefold() for marker in markers)):
+            return dict(row,success=False,expected_content=False,
+                failure_category="unexpected_compression_source_scope",
+                error="Expected the closed recent primary-source page and substantive content markers")
     return row
 
 async def capture(args):
@@ -275,7 +304,9 @@ async def capture(args):
                     "windows-adapter-identity": WINDOWS_ADAPTER_IDENTITY_SOURCES,
                     "windows-adapter-topology": WINDOWS_ADAPTER_TOPOLOGY_SOURCES,
                     "windows-gpu-memory": WINDOWS_GPU_MEMORY_SOURCES,
-                    "windows-app": WINDOWS_APP_SOURCES, "windows-app-test": WINDOWS_APP_TEST_SOURCES}[args.source_group]
+                    "windows-app": WINDOWS_APP_SOURCES, "windows-app-test": WINDOWS_APP_TEST_SOURCES,
+                    "compression-learned": COMPRESSION_LEARNED_SOURCES,
+                    "compression-systems": COMPRESSION_SYSTEMS_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
             row = await fetch(owner, url, marker, args.output / (name + ".native.json"))
             row["name"] = name
@@ -351,7 +382,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test") and not all(r["success"] for r in rows):
+    if args.source_group in ("compression-learned","compression-systems","process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -361,7 +392,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("compression-learned","compression-systems","durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)

@@ -1,0 +1,294 @@
+{
+  "experimental": true,
+  "date": "2026-11-13",
+  "source": "df8b08e9e9bac78876f055a8c14c4e5bd2475522",
+  "run": 43510011204,
+  "job": 132177509253,
+  "artifact": 14077289804,
+  "archive_sha256": "29f82cf20f9b61c4c3549f499aff77a887bd65b415e398662976fb2f93474b9d",
+  "archive_bytes": 930013,
+  "receipts": [
+    {
+      "content": {
+        "experimental": true,
+        "commit": "df8b08e9e9bac78876f055a8c14c4e5bd2475522",
+        "provider_repository": "strmt7/FlitzZip",
+        "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "python": "3.13.18 (main, Oct 26 2026, 14:20:56) [GCC 13.3.0]",
+        "source_group": "rocm-current",
+        "limits": {
+          "memory_max": 3221225472,
+          "tasks_max": 256,
+          "cpu_max": [
+            200000,
+            100000
+          ]
+        },
+        "page_timeout_seconds": 45,
+        "robots_checked": true,
+        "external_llm": false,
+        "persistent_profile": false,
+        "sources": [
+          {
+            "url": "https://rocm.docs.amd.com/en/latest/about/release-notes.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 237445,
+            "markdown_sha256": "56cb6215129b9a9df1fd209f8dfa3e7c872256f72ca861b27b327a8dcb76c24b",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 1.538,
+            "capture": "rocm-current-release.native.json",
+            "capture_sha256": "c5c80e0dd5859a66f70fbfa3b7e172daf18ef4b1c9ae08859abc953718d68148",
+            "name": "rocm-current-release"
+          },
+          {
+            "url": "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 246380,
+            "markdown_sha256": "7670c066b94ecf697563e3cf2c5ddd0184eff841d23654fb5c1b494cf9b6c16b",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 2.332,
+            "capture": "rocm-selected-release.native.json",
+            "capture_sha256": "11e1519498ddbcaa43feeb85d40403478947d30fcfd1193960c2073750073863",
+            "name": "rocm-selected-release"
+          },
+          {
+            "url": "https://rocmdocs.amd.com/en/latest/install/rocm.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 218905,
+            "markdown_sha256": "02041ab0693340b3f74bbf984bb1ff5db64f4edd80934ab1c375fc11849c2af1",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 2.859,
+            "capture": "rocm-current-install.native.json",
+            "capture_sha256": "13fea0ae62550aeb3b1120536a7b68a3f0e3304ba7f96fb7f4a77b5350763849",
+            "name": "rocm-current-install"
+          }
+        ]
+      },
+      "path": "rocm-current/receipt.json",
+      "sha256": "6109fd74745edf9eba63f050cb2eb6247e9344f4023eae94ff8199ad91bb116a"
+    },
+    {
+      "content": {
+        "experimental": true,
+        "commit": "df8b08e9e9bac78876f055a8c14c4e5bd2475522",
+        "provider_repository": "strmt7/FlitzZip",
+        "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "python": "3.13.18 (main, Oct 26 2026, 14:20:56) [GCC 13.3.0]",
+        "source_group": "rocm-windows-hardware",
+        "limits": {
+          "memory_max": 3221225472,
+          "tasks_max": 256,
+          "cpu_max": [
+            200000,
+            100000
+          ]
+        },
+        "page_timeout_seconds": 45,
+        "robots_checked": true,
+        "external_llm": false,
+        "persistent_profile": false,
+        "sources": [
+          {
+            "url": "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-26-10-2.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 44654,
+            "markdown_sha256": "3a0ce0db91f5f2a4776d8060fc8ac62e8c0ebe06de2acb2921940bb0e25c6af5",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 4.03,
+            "capture": "amd-observed-windows-driver.native.json",
+            "capture_sha256": "80147f3b1e9e3b6bbecbaa3223f96e9d8aaef5b632657f3633e61bc8facf33a7",
+            "name": "amd-observed-windows-driver"
+          },
+          {
+            "url": "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-ROCM-10-01.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 38578,
+            "markdown_sha256": "328d9d9869244b5e327311de9d6ff15ec6e7358ee5af98c749c2f091baea21de",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 4.06,
+            "capture": "amd-rocm-10-1-driver.native.json",
+            "capture_sha256": "bbbdbf57f7975e3ab956a1a2aaa9eb9795ea803147b7ec4fd1db5283c9d22b75",
+            "name": "amd-rocm-10-1-driver"
+          },
+          {
+            "url": "https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 51854,
+            "markdown_sha256": "026baa22f0151804f92a2847771edb09fbfa3721ede11fe471c7aeaa7661b43a",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 1.738,
+            "capture": "amd-rocm-windows-compatibility.native.json",
+            "capture_sha256": "4e22bac8868daa41c454e09c91918e828865cd6433130dd45328411c04359744",
+            "name": "amd-rocm-windows-compatibility"
+          },
+          {
+            "url": "https://rocm.docs.amd.com/en/latest/about/license.html",
+            "success": true,
+            "native_success": true,
+            "http_status": 200,
+            "final_http_status": 200,
+            "markdown_bytes": 32493,
+            "markdown_sha256": "154780a6b43994344a4c40f4d6f207f407ad95ed20a532d8655b149aa1d1a144",
+            "expected_content": true,
+            "failure_category": "",
+            "error": "",
+            "seconds": 1.097,
+            "capture": "amd-rocm-current-license.native.json",
+            "capture_sha256": "adad1f3714d060c0dad32dea3c9696073df9013fc8199837189a30a76b7a16ab",
+            "name": "amd-rocm-current-license"
+          }
+        ]
+      },
+      "path": "rocm-windows-hardware/receipt.json",
+      "sha256": "641ea78a63828eee18220acea96c447f63e67ac8652706f1847788674b9d8d72"
+    }
+  ],
+  "content_review": {
+    "archive_sha256": "29f82cf20f9b61c4c3549f499aff77a887bd65b415e398662976fb2f93474b9d",
+    "sources": [
+      {
+        "url": "https://rocm.docs.amd.com/en/latest/about/release-notes.html",
+        "native_sha256": "c5c80e0dd5859a66f70fbfa3b7e172daf18ef4b1c9ae08859abc953718d68148",
+        "markdown_sha256": "56cb6215129b9a9df1fd209f8dfa3e7c872256f72ca861b27b327a8dcb76c24b",
+        "excerpts": [],
+        "name": "rocm-current-release"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html",
+        "native_sha256": "11e1519498ddbcaa43feeb85d40403478947d30fcfd1193960c2073750073863",
+        "markdown_sha256": "7670c066b94ecf697563e3cf2c5ddd0184eff841d23654fb5c1b494cf9b6c16b",
+        "excerpts": [],
+        "name": "rocm-selected-release"
+      },
+      {
+        "url": "https://rocmdocs.amd.com/en/latest/install/rocm.html",
+        "native_sha256": "13fea0ae62550aeb3b1120536a7b68a3f0e3304ba7f96fb7f4a77b5350763849",
+        "markdown_sha256": "02041ab0693340b3f74bbf984bb1ff5db64f4edd80934ab1c375fc11849c2af1",
+        "excerpts": [
+          {
+            "term": "gfx1201",
+            "text": "fx908) AMD Instinct MI355X (gfx950)\nAMD Instinct MI355X (gfx950)\nRadeon GPU\nAMD Radeon RX 9070 GRE (gfx1201) AMD Radeon RX 9070 (gfx1201) AMD Radeon RX 9060 XT LP (gfx1200) AMD Radeon RX 9060 XT (gfx1200) AMD Radeon RX 9060 (gfx1200) AMD Radeon RX 9050 (gfx1200) AMD Radeon RX 9050 (4GB) (gfx1200) AMD Radeon RX 7900 XTX (gfx1100) AMD Radeon RX 7900 XT (gfx1100) AMD Radeon RX 7900 GRE (gfx1100) AMD Radeon RX 7800 XT (gfx1101) AMD Radeon RX 7700 XT (gfx1101) AMD Radeon RX 7700 (gfx1101) AMD Radeon RX 7600 (gfx1102) AMD Radeon PRO W7900 Dual Slot (gfx1100) AMD Radeon PRO W7900 (gfx1100) AMD Radeon PRO W7800 48GB (gfx1100) AMD Radeon PRO W7800 (gfx1100) AMD Radeon PRO W7700 (gfx1101) AMD Radeon P"
+          },
+          {
+            "term": "gfx1100",
+            "text": "0 (gfx1200) AMD Radeon RX 9050 (gfx1200) AMD Radeon RX 9050 (4GB) (gfx1200) AMD Radeon RX 7900 XTX (gfx1100) AMD Radeon RX 7900 XT (gfx1100) AMD Radeon RX 7900 GRE (gfx1100) AMD Radeon RX 7800 XT (gfx1101) AMD Radeon RX 7700 XT (gfx1101) AMD Radeon RX 7700 (gfx1101) AMD Radeon RX 7600 (gfx1102) AMD Radeon PRO W7900 Dual Slot (gfx1100) AMD Radeon PRO W7900 (gfx1100) AMD Radeon PRO W7800 48GB (gfx1100) AMD Radeon PRO W7800 (gfx1100) AMD Radeon PRO W7700 (gfx1101) AMD Radeon PRO W6800 (gfx1030) AMD Radeon PRO V710 (gfx1101) AMD Radeon PRO V620 (gfx1030) AMD Radeon AI PRO R9700S (gfx1201) AMD Radeon AI PRO R9700 (gfx1201) AMD Radeon AI PRO R9600D (gfx1201) AMD Radeon AI PRO R9600 (gfx1201) AMD R"
+          },
+          {
+            "term": "gfx1030",
+            "text": " 48GB (gfx1100) AMD Radeon PRO W7800 (gfx1100) AMD Radeon PRO W7700 (gfx1101) AMD Radeon PRO W6800 (gfx1030) AMD Radeon PRO V710 (gfx1101) AMD Radeon PRO V620 (gfx1030) AMD Radeon AI PRO R9700S (gfx1201) AMD Radeon AI PRO R9700 (gfx1201) AMD Radeon AI PRO R9600D (gfx1201) AMD Radeon AI PRO R9600 (gfx1201) AMD Radeon RX 9070 XT (gfx1201)\nRyzen APU\nAMD Ryzen AI Max+ PRO 395 (Radeon 8060S) (gfx1151) AMD Ryzen AI Max+ 395 (Radeon 8060S) (gfx1151) AMD Ryzen AI Max+ 392 (Radeon 8060S) (gfx1151) AMD Ryzen AI Max+ 388 (Radeon 8060S) (gfx1151) AMD Ryzen AI Max PRO 490 (Radeon 8050S) (gfx1151) AMD Ryzen AI Max PRO 485 (Radeon 8050S) (gfx1151) AMD Ryzen AI Max PRO 390 (Radeon 8050S) (gfx1151) AMD Ryzen"
+          },
+          {
+            "term": "multiarch",
+            "text": " untar the ROCm tarball.\n\n```\nwget https://stable.repo.amd.com/rocm/core/tarball/therock-dist-linux-multiarch-10.1.0.tar.gz\nmkdir install\ntar -xf *.tar.gz -C install\n\n```\nCopy to clipboard\nUse the following commands to download and untar the ROCm tarball for your `gfx950` GPU.\n\n```\nwget https://stable.repo.amd.com/rocm/core/tarball/therock-dist-linux-gfx950-dcgpu-10.1.0.tar.gz\nmkdir install\ntar -xf *.tar.gz -C install\n\n```\nCopy to clipboard\nUse the following commands to download and untar the ROCm tarball for your `gfx942` GPU.\n\n```\nwget https://stable.repo.amd.com/rocm/core/tarball/therock-dist-linux-gfx94X-dcgpu-10.1.0.tar.gz\nmkdir install\ntar -xf *.tar.gz -C install\n\n```\nCopy to clipboard"
+          },
+          {
+            "term": "10.1.0",
+            "text": "mdocs.amd.com/en/latest/_static/images/amd-header-logo.svg) ](https://www.amd.com/) [ROCm™ Core SDK 10.1.0](https://rocm.docs.amd.com/en/latest)\n[Version List](https://rocm.docs.amd.com/en/latest/release/versions.html)\n  * [Core SDK](https://rocm.docs.amd.com)\n  * [AI Ecosystem](https://rocm.docs.amd.com/projects/ai-ecosystem)\n  * [GPU Systems and Infrastructure](https://instinct.docs.amd.com)\n  * [Toolkits](https://rocmdocs.amd.com/en/latest/install/rocm.html?fam=all&w=compute&os=ubuntu&ubuntu-ver=26.04.1&i=pkgman)\n    * [AMD Data Science](https://rocm.docs.amd.com/projects/datascience/en/latest/index.html)\n    * [AMD Finance](https://rocm.docs.amd.com/projects/finance/en/latest/index.html)"
+          },
+          {
+            "term": "Runtime",
+            "text": "ing-libs.html)\n      * [hipThreads](https://rocm.docs.amd.com/projects/hipThreads/en/latest)\n    * [Runtime and compilers](https://rocmdocs.amd.com/en/latest/components/runtimes-and-compilers.html)\n      * [HIP](https://rocm.docs.amd.com/projects/HIP/en/latest)\n      * [HIPIFY](https://rocm.docs.amd.com/projects/HIPIFY/en/latest)\n      * [LLVM](https://rocm.docs.amd.com/projects/llvm-project/en/latest)\n    * [Profiling and debugging tools](https://rocmdocs.amd.com/en/latest/components/profilers-and-debuggers.html)\n      * [ROCm Compute Profiler (rocprofiler-compute)](https://rocm.docs.amd.com/projects/rocprofiler-compute/en/latest)\n      * [ROCm Systems Profiler (rocprofiler-systems)](https:"
+          }
+        ],
+        "name": "rocm-current-install"
+      },
+      {
+        "url": "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-WIN-26-10-2.html",
+        "native_sha256": "80147f3b1e9e3b6bbecbaa3223f96e9d8aaef5b632657f3633e61bc8facf33a7",
+        "markdown_sha256": "3a0ce0db91f5f2a4776d8060fc8ac62e8c0ebe06de2acb2921940bb0e25c6af5",
+        "excerpts": [],
+        "name": "amd-observed-windows-driver"
+      },
+      {
+        "url": "https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-ROCM-10-01.html",
+        "native_sha256": "bbbdbf57f7975e3ab956a1a2aaa9eb9795ea803147b7ec4fd1db5283c9d22b75",
+        "markdown_sha256": "328d9d9869244b5e327311de9d6ff15ec6e7358ee5af98c749c2f091baea21de",
+        "excerpts": [],
+        "name": "amd-rocm-10-1-driver"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html",
+        "native_sha256": "4e22bac8868daa41c454e09c91918e828865cd6433130dd45328411c04359744",
+        "markdown_sha256": "026baa22f0151804f92a2847771edb09fbfa3721ede11fe471c7aeaa7661b43a",
+        "excerpts": [
+          {
+            "term": "gfx1201",
+            "text": "fx908) AMD Instinct MI355X (gfx950)\nAMD Instinct MI355X (gfx950)\nRadeon GPU\nAMD Radeon RX 9070 GRE (gfx1201) AMD Radeon RX 9070 (gfx1201) AMD Radeon RX 9060 XT LP (gfx1200) AMD Radeon RX 9060 XT (gfx1200) AMD Radeon RX 9060 (gfx1200) AMD Radeon RX 9050 (gfx1200) AMD Radeon RX 9050 (4GB) (gfx1200) AMD Radeon RX 7900 XTX (gfx1100) AMD Radeon RX 7900 XT (gfx1100) AMD Radeon RX 7900 GRE (gfx1100) AMD Radeon RX 7800 XT (gfx1101) AMD Radeon RX 7700 XT (gfx1101) AMD Radeon RX 7700 (gfx1101) AMD Radeon RX 7600 (gfx1102) AMD Radeon PRO W7900 Dual Slot (gfx1100) AMD Radeon PRO W7900 (gfx1100) AMD Radeon PRO W7800 48GB (gfx1100) AMD Radeon PRO W7800 (gfx1100) AMD Radeon PRO W7700 (gfx1101) AMD Radeon P"
+          },
+          {
+            "term": "gfx1100",
+            "text": "0 (gfx1200) AMD Radeon RX 9050 (gfx1200) AMD Radeon RX 9050 (4GB) (gfx1200) AMD Radeon RX 7900 XTX (gfx1100) AMD Radeon RX 7900 XT (gfx1100) AMD Radeon RX 7900 GRE (gfx1100) AMD Radeon RX 7800 XT (gfx1101) AMD Radeon RX 7700 XT (gfx1101) AMD Radeon RX 7700 (gfx1101) AMD Radeon RX 7600 (gfx1102) AMD Radeon PRO W7900 Dual Slot (gfx1100) AMD Radeon PRO W7900 (gfx1100) AMD Radeon PRO W7800 48GB (gfx1100) AMD Radeon PRO W7800 (gfx1100) AMD Radeon PRO W7700 (gfx1101) AMD Radeon PRO W6800 (gfx1030) AMD Radeon PRO V710 (gfx1101) AMD Radeon PRO V620 (gfx1030) AMD Radeon AI PRO R9700S (gfx1201) AMD Radeon AI PRO R9700 (gfx1201) AMD Radeon AI PRO R9600D (gfx1201) AMD Radeon AI PRO R9600 (gfx1201) AMD R"
+          },
+          {
+            "term": "gfx1030",
+            "text": " 48GB (gfx1100) AMD Radeon PRO W7800 (gfx1100) AMD Radeon PRO W7700 (gfx1101) AMD Radeon PRO W6800 (gfx1030) AMD Radeon PRO V710 (gfx1101) AMD Radeon PRO V620 (gfx1030) AMD Radeon AI PRO R9700S (gfx1201) AMD Radeon AI PRO R9700 (gfx1201) AMD Radeon AI PRO R9600D (gfx1201) AMD Radeon AI PRO R9600 (gfx1201) AMD Radeon RX 9070 XT (gfx1201)\nRyzen APU\nAMD Ryzen AI Max+ PRO 395 (Radeon 8060S) (gfx1151) AMD Ryzen AI Max+ 395 (Radeon 8060S) (gfx1151) AMD Ryzen AI Max+ 392 (Radeon 8060S) (gfx1151) AMD Ryzen AI Max+ 388 (Radeon 8060S) (gfx1151) AMD Ryzen AI Max PRO 490 (Radeon 8050S) (gfx1151) AMD Ryzen AI Max PRO 485 (Radeon 8050S) (gfx1151) AMD Ryzen AI Max PRO 390 (Radeon 8050S) (gfx1151) AMD Ryzen"
+          },
+          {
+            "term": "Windows 11",
+            "text": "|  RHEL 10.2 (kernel: 6.12.0-211) RHEL 9.8 (kernel: 5.14.0-687)  |  \n| Supported Windows version  | Windows 11 25H2  |  \n| Supported AMD GPU Driver (amdgpu) versions  |  [31.60.0](https://instinct.docs.amd.com/projects/amdgpu-docs/en/docs-31.60.0/documentation/release-notes.html) [31.50.0](https://instinct.docs.amd.com/projects/amdgpu-docs/en/docs-31.50.0/documentation/release-notes.html)  |  \n| Supported Adrenalin Driver version  |  [26.10.41.05](https://www.amd.com/en/resources/support-articles/release-notes/RN-RAD-ROCM-10-01.html)  |  \n| Supported Windows CDE CPR driver version  |  26.10.48  |  \n| AMD APU series  |  [AMD Ryzen AI Max PRO 400 Series](https://www.amd.com/en/products/process"
+          },
+          {
+            "term": "10.1.0",
+            "text": ".docs.amd.com/en/latest/_static/images/amd-header-logo.svg) ](https://www.amd.com/) [ROCm™ Core SDK 10.1.0](https://rocm.docs.amd.com/en/latest)\n[Version List](https://rocm.docs.amd.com/en/latest/release/versions.html)\n  * [Core SDK](https://rocm.docs.amd.com)\n  * [AI Ecosystem](https://rocm.docs.amd.com/projects/ai-ecosystem)\n  * [GPU Systems and Infrastructure](https://instinct.docs.amd.com)\n  * [Toolkits](https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html?fam=instinct&gpu=amd-instinct-mi355x&os=ubuntu&gfx=gfx950)\n    * [AMD Data Science](https://rocm.docs.amd.com/projects/datascience/en/latest/index.html)\n    * [AMD Finance](https://rocm.docs.amd.com/projects/fina"
+          },
+          {
+            "term": "Runtime",
+            "text": "ing-libs.html)\n      * [hipThreads](https://rocm.docs.amd.com/projects/hipThreads/en/latest)\n    * [Runtime and compilers](https://rocm.docs.amd.com/en/latest/components/runtimes-and-compilers.html)\n      * [HIP](https://rocm.docs.amd.com/projects/HIP/en/latest)\n      * [HIPIFY](https://rocm.docs.amd.com/projects/HIPIFY/en/latest)\n      * [LLVM](https://rocm.docs.amd.com/projects/llvm-project/en/latest)\n    * [Profiling and debugging tools](https://rocm.docs.amd.com/en/latest/components/profilers-and-debuggers.html)\n      * [ROCm Compute Profiler (rocprofiler-compute)](https://rocm.docs.amd.com/projects/rocprofiler-compute/en/latest)\n      * [ROCm Systems Profiler (rocprofiler-systems)](http"
+          }
+        ],
+        "name": "amd-rocm-windows-compatibility"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/en/latest/about/license.html",
+        "native_sha256": "adad1f3714d060c0dad32dea3c9696073df9013fc8199837189a30a76b7a16ab",
+        "markdown_sha256": "154780a6b43994344a4c40f4d6f207f407ad95ed20a532d8655b149aa1d1a144",
+        "excerpts": [
+          {
+            "term": "10.1.0",
+            "text": ".docs.amd.com/en/latest/_static/images/amd-header-logo.svg) ](https://www.amd.com/) [ROCm™ Core SDK 10.1.0](https://rocm.docs.amd.com/en/latest)\n[Version List](https://rocm.docs.amd.com/en/latest/release/versions.html)\n  * [Core SDK](https://rocm.docs.amd.com)\n  * [AI Ecosystem](https://rocm.docs.amd.com/projects/ai-ecosystem)\n  * [GPU Systems and Infrastructure](https://instinct.docs.amd.com)\n  * [Toolkits](https://rocm.docs.amd.com/en/latest/about/license.html)\n    * [AMD Data Science](https://rocm.docs.amd.com/projects/datascience/en/latest/index.html)\n    * [AMD Finance](https://rocm.docs.amd.com/projects/finance/en/latest/index.html)\n    * [AMD Life Science](https://rocm.docs.amd.com/pr"
+          },
+          {
+            "term": "Runtime",
+            "text": "ing-libs.html)\n      * [hipThreads](https://rocm.docs.amd.com/projects/hipThreads/en/latest)\n    * [Runtime and compilers](https://rocm.docs.amd.com/en/latest/components/runtimes-and-compilers.html)\n      * [HIP](https://rocm.docs.amd.com/projects/HIP/en/latest)\n      * [HIPIFY](https://rocm.docs.amd.com/projects/HIPIFY/en/latest)\n      * [LLVM](https://rocm.docs.amd.com/projects/llvm-project/en/latest)\n    * [Profiling and debugging tools](https://rocm.docs.amd.com/en/latest/components/profilers-and-debuggers.html)\n      * [ROCm Compute Profiler (rocprofiler-compute)](https://rocm.docs.amd.com/projects/rocprofiler-compute/en/latest)\n      * [ROCm Systems Profiler (rocprofiler-systems)](http"
+          }
+        ],
+        "name": "amd-rocm-current-license"
+      }
+    ],
+    "all_native_and_markdown_digests_verified": true
+  },
+  "interpretation": "Official current matrix includes multiple gfx target families and coordinated Windows driver/runtime requirements. One gfx1100 object does not establish broad product compatibility. Select authenticated matching target coverage from discovered properties; unknown combinations remain CPU-readable. No driver/SDK/host changes or hardware execution were performed.",
+  "limitations": "Retrieval time is verified; no immutable publisher revision is asserted. Some first-occurrence excerpts are navigation, not substantive licensing permission. No redistribution decision is derived from those excerpts."
+}

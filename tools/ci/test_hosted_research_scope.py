@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regression: an HTTP-200 retired AMD page must not qualify as current research."""
 import unittest
-from hosted_research import qualify_source_scope, ROCM_WARP_SOURCES
+from hosted_research import qualify_source_scope, ROCM_WARP_SOURCES, COMPRESSION_LEARNED_SOURCES, COMPRESSION_SYSTEMS_SOURCES
 
 class SourceScopeTests(unittest.TestCase):
     def setUp(self):
@@ -81,6 +81,40 @@ class WarpContentScope(unittest.TestCase):
         result=qualify_source_scope("rocm-warp",self.row,self.content.replace("__syncthreads",""))
         self.assertFalse(result["success"])
         self.assertEqual(result["failure_category"],"unexpected_documentation_scope")
+
+
+class CompressionSourceScope(unittest.TestCase):
+    def test_closed_recent_primary_urls_and_unique_names(self):
+        rows=COMPRESSION_LEARNED_SOURCES+COMPRESSION_SYSTEMS_SOURCES
+        self.assertEqual(len(rows),6)
+        self.assertEqual(len({row[0] for row in rows}),6)
+        self.assertEqual(len({row[1] for row in rows}),6)
+        for _,url,marker,term in rows:
+            self.assertTrue(url.startswith(("https://arxiv.org/html/26",
+                "https://dl.acm.org/doi/10.1145/3802078",
+                "https://www.mdpi.com/2079-9292/15/20/4712")))
+            self.assertTrue(marker and term)
+    def test_all_six_full_scope_admissions_and_rejections(self):
+        for group,rows in (("compression-learned",COMPRESSION_LEARNED_SOURCES),
+                           ("compression-systems",COMPRESSION_SYSTEMS_SOURCES)):
+            for _,url,marker,term in rows:
+                row=dict(success=True,url=url,native_success=True,http_status=200,
+                    capture="retained.native.json",capture_sha256="d"*64)
+                content=marker+"\n"+term+"\n"+("primary body "*200)
+                with self.subTest(url=url):
+                    self.assertIs(qualify_source_scope(group,row,content),row)
+                    for changed,text in ((row,marker+" "+term),
+                                         (row,content.replace(marker,"wrong title")),
+                                         (dict(row,url="https://example.invalid/page"),content)):
+                        result=qualify_source_scope(group,changed,text)
+                        self.assertFalse(result["success"])
+                        self.assertEqual(result["failure_category"],"unexpected_compression_source_scope")
+                        self.assertEqual(result["capture_sha256"],row["capture_sha256"])
+                        self.assertTrue(changed["success"])
+    def test_native_denials_remain_failures(self):
+        row=dict(success=False,url=COMPRESSION_LEARNED_SOURCES[0][1],
+            native_success=False,error="robots denied",failure_category="robots_denied")
+        self.assertIs(qualify_source_scope("compression-learned",row,"x"*3000),row)
 
 if __name__=="__main__":
     unittest.main()

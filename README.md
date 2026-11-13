@@ -1,6 +1,8 @@
 # FlitzFS
 
-The experimental [HIP LZ4 compute implementation](docs/HIP_LZ4_COMPUTE.md) now has an SDK-only allocation, submission, readback and retirement path. New-source CPU fault qualification is pending; it remains disconnected from ordinary file operations and no GPU performance result is claimed.
+The [deep background compression plan](docs/COLD_COMPRESSION_RESEARCH.md) requires transparent cross-file grouping and GPU-supported learned or experimentally justified novel compression, separate from fast ingestion. It remains unimplemented and must preserve ordinary Explorer file/folder behavior, bounded access and exact CPU recovery.
+
+The experimental [HIP LZ4 compute implementation](docs/HIP_LZ4_COMPUTE.md) now has an SDK-only allocation, submission, readback and retirement path. Selected-SDK CPU qualification passed at df8b08e ([evidence](docs/evidence/hip-lz4-compute-df8b08e.json)); it remains disconnected from ordinary file operations and no GPU performance result is claimed.
 
 
 <picture>

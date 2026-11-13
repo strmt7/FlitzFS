@@ -243,7 +243,10 @@
           },
           "typed_compression_compute": {
             "contract": "docs/HIP_LZ4_COMPUTE.md",
-            "status": "Pending current-source selected-SDK compilation, CPU fake success/failure matrix, raw missing-decoder control and all original CI gates.",
+            "status": "Qualified selected-SDK/CPU-only at df8b08e: 823 checks across58 scenarios (6 positive/52 refusal), eight raw missing-decoder checks, guarded exact child exits and all original20 worker cases. No HIP/private candidate module loaded and no GPU execution.",
+            "qualified_source": "df8b08e9e9bac78876f055a8c14c4e5bd2475522",
+            "sdk_run": 43509323703,
+            "evidence": "docs/evidence/hip-lz4-compute-df8b08e.json",
             "complete_device_bytes_cap": 262144,
             "normal_io_caller": false,
             "candidate_module_loaded": false,
@@ -401,13 +404,16 @@
       "deliverables": [
         "Investigate shared dictionaries, duplicate/near-duplicate representations, content transforms and layout/defragmentation against current primary research and relevant baselines.",
         "Run bounded incremental candidates, verify complete CPU readback, publish transactionally and retain source until reader pins and durability permit reclamation.",
-        "Account for metadata, recovery replicas, dictionaries, temporary candidates and read amplification; stop negative-benefit work and yield promptly."
+        "Account for metadata, recovery replicas, dictionaries, temporary candidates and read amplification; stop negative-benefit work and yield promptly.",
+        "Investigate and implement GPU-supported deep background compression, including a novel algorithm if justified, with shared-content modeling, bounded random access, protected decoder dependencies, independent CPU recovery and total-storage accounting. The fast write codec does not constrain cold encodings.",
+        "Prioritize minimum total stored size over lowest latency; evaluate larger cross-file groups and deeper GPU-supported models rather than locking in small independent compression units."
       ],
       "validation": [
         "Concurrent readers/writers, cancellation, resource pressure, interrupted handoff/reclamation, capacity failure and recovery.",
-        "Real heterogeneous held-out corpora plus incompressible/adversarial data; report total image size and steady-state performance, not payload-only ratios."
+        "Real heterogeneous held-out corpora plus incompressible/adversarial data; report total image size and steady-state performance, not payload-only ratios.",
+        "Use current primary-source evidence and held-out mixed real corpora; charge models/indexes/dependencies and measure cold/random retrieval, GPU/CPU parity and foreground interference. No lossy semantic reconstruction or claims from specialized datasets alone."
       ],
-      "exit": "Unattended collective optimization produces verified net gains without manual intervention, runaway rewrites or material foreground disruption."
+      "exit": "Unattended collective optimization minimizes total stored bytes on held-out workloads within measured practical latency/speed and resource constraints, preserving exact recovery, normal Windows behavior and promptly yielding background work. Moderate retrieval cost is acceptable; no required superiority in every metric."
     },
     {
       "id": "R01",
@@ -507,5 +513,12 @@
     "Prioritize a complete bounded Windows write, actual GPU compression, native encoding, independent CPU read and fault/fallback/retirement slice over further disconnected prerequisites.",
     "Measure whole-operation throughput and stored size on varied data, then advance automatic optimization, scaling, durability and Windows product gates.",
     "Use extensive recent primary-source research for concrete unresolved design questions; do not substitute research or assertion counts for product integration."
-  ]
+  ],
+  "cold_compression_research": "docs/COLD_COMPRESSION_RESEARCH.md",
+  "compression_objective": {
+    "primary": "Minimum total stored bytes, including models/indexes/checkpoints/redundancy/dependencies.",
+    "constraints": "Latency must remain practical and sustained access must not become dramatically slow. Moderate penalties are acceptable; do not impose minimum latency, tiny groups or universal faster-than-baseline requirements on cold recompression.",
+    "safety": "Exact byte reconstruction, independent CPU fallback, protected decoder state and bounded resource/transactional safety remain mandatory.",
+    "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
+  }
 }

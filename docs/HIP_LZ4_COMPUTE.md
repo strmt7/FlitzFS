@@ -2,7 +2,7 @@
 
 This SDK-only implementation is not connected to the worker command line,
 filesystem, application, normal build, stored codec, or distributable bundle.
-New-source compile and CPU fault qualification are pending. CPU fake execution
+Selected-SDK compilation and CPU fault qualification passed at df8b08e. CPU fake execution
 does not establish GPU execution, interoperability, benefit, target support,
 kernel safety, scheduling isolation, or resistance to a driver/kernel hang.
 
@@ -78,3 +78,10 @@ fault matrix failed. The terminal-literal mutation was not necessarily invalid:
 LZ4 explicitly ignores that token's low four bits. The next fixture corrupts an
 actual literal and separately requires the alternate valid representation to
 pass. All production checks remain intact. [Retained failure](evidence/hip-lz4-compute-first-failure-4dda4fe.json).
+
+At df8b08e, SDK run43509323703 passed823 CPU checks/58 scenarios: six successes
+(including the alternate valid terminal token) and52 refusals (including actual
+literal corruption). The raw control passed eight checks/one early refusal.
+All original20 worker cases,235 API checks/12 priority scenarios and806/621/968
+CPU decoder/frame/slab checks passed. No HIP runtime/private DLL loaded or GPU
+executed. [Source-bound evidence](evidence/hip-lz4-compute-df8b08e.json).

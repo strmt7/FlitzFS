@@ -1,0 +1,1198 @@
+{
+  "experimental": true,
+  "date": "2026-11-13",
+  "source": "df8b08e9e9bac78876f055a8c14c4e5bd2475522",
+  "sdk_run": 43509323703,
+  "sdk_job": 132175143997,
+  "artifact": {
+    "id": 14077953449,
+    "bytes": 106777,
+    "sha256": "951ff694fe212461088abd6a35557ea1bd60b2b4e02c2e30707038de1d44f9c4",
+    "root_receipt_sha256": "ca8c33cbf7e5cacce555fa0259d57dd01a268766fb1db0c6356ab1dff33b2867",
+    "root_bytes": 292964
+  },
+  "CPU_compute": {
+    "bytes": 436736,
+    "sha256": "08fedf1b4b1f0de0bca7bd88d2ca85ae57fb081ea769b0559d561ad57c51ffd7",
+    "imports": [
+      "dxgi.dll",
+      "kernel32.dll"
+    ],
+    "qualification": {
+      "checks": 823,
+      "scenarios": 58,
+      "successes": 6,
+      "refusals": 52,
+      "decoder_available": true,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "private_module_loaded": false,
+    "linked_into_product": false,
+    "in_worker_bundle": false,
+    "exported_as_artifact": false
+  },
+  "raw_missing_decoder_control": {
+    "bytes": 433152,
+    "sha256": "3b9dfe47ab6aed419dbd7bd1ceb42501d24a64efa1e3ebbc6d1a9c2fcbf02e33",
+    "imports": [
+      "dxgi.dll",
+      "kernel32.dll"
+    ],
+    "qualification": {
+      "checks": 8,
+      "scenarios": 1,
+      "successes": 0,
+      "refusals": 1,
+      "decoder_available": false,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "private_module_loaded": false,
+    "linked_into_product": false,
+    "in_worker_bundle": false,
+    "exported_as_artifact": false
+  },
+  "static_CPU_decoder": {
+    "bytes": 279040,
+    "sha256": "aabd8e4ec50e4ed795420eb125ca96b59fdc644ad03f1cc8340d5aac6a16e362",
+    "imports": {
+      "format": "PE32+",
+      "architecture": "AMD64",
+      "os_imports": [
+        "kernel32.dll"
+      ],
+      "delay_imports": false
+    },
+    "qualification": {
+      "available": true,
+      "exit_confirmed": true,
+      "exit_code": 0,
+      "peak_commit_bytes": 2686976,
+      "gpu_executed": false,
+      "complete": true
+    }
+  },
+  "decoder_source": {
+    "repository": "lz4/lz4",
+    "commit": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
+    "assets": [
+      {
+        "path": "lib/lz4.c",
+        "target": "lz4.c",
+        "bytes": 126490,
+        "blob": "2ab4a114f14143f901899c4bcd8aa18ee9ee866a",
+        "sha256": "2e58f124f1032f15aecc99772b7de624c4289245729fa5403506f00b06a54937",
+        "physical": {
+          "physical_sha256": "2e58f124f1032f15aecc99772b7de624c4289245729fa5403506f00b06a54937",
+          "physical_bytes": 126490,
+          "representation": "exact"
+        }
+      },
+      {
+        "path": "lib/lz4.h",
+        "target": "lz4.h",
+        "bytes": 44407,
+        "blob": "e69ae5627dcee63f71c0a4e42c4c8c58f337426c",
+        "sha256": "c204caad0638a12c9ce80831094ec8fffb34aa57e74307067b08fc9452fc2611",
+        "physical": {
+          "physical_sha256": "c204caad0638a12c9ce80831094ec8fffb34aa57e74307067b08fc9452fc2611",
+          "physical_bytes": 44407,
+          "representation": "exact"
+        }
+      },
+      {
+        "path": "lib/LICENSE",
+        "target": "LICENSE",
+        "bytes": 1311,
+        "blob": "488491695a6b6984aa3a49a8392b192ed2bcac1d",
+        "sha256": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c",
+        "physical": {
+          "physical_sha256": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c",
+          "physical_bytes": 1311,
+          "representation": "exact"
+        }
+      },
+      {
+        "path": "LICENSE",
+        "target": "LICENSE-repository",
+        "bytes": 646,
+        "blob": "ba8a2900f8b180fefc0c16f8a35076ef290c9492",
+        "sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5",
+        "physical": {
+          "physical_sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5",
+          "physical_bytes": 646,
+          "representation": "exact"
+        }
+      }
+    ],
+    "module_loaded": false,
+    "gpu_executed": false,
+    "CPU_tests": [
+      {
+        "name": "gpu_lz4_verify",
+        "bytes": 289280,
+        "sha256": "0c762ce0963d4327f2890a57d3cdb14e9343380542ed237f3cfe787f64035562",
+        "imports": {
+          "format": "PE32+",
+          "architecture": "AMD64",
+          "os_imports": [
+            "kernel32.dll"
+          ],
+          "delay_imports": false
+        }
+      },
+      {
+        "name": "lz4_worker_wire",
+        "bytes": 419328,
+        "sha256": "477431756acf80a30b6529de9a906cf1007a38aaa0b48b5e1036b608dc4c3b25",
+        "imports": {
+          "format": "PE32+",
+          "architecture": "AMD64",
+          "os_imports": [
+            "kernel32.dll"
+          ],
+          "delay_imports": false
+        }
+      },
+      {
+        "name": "gpu_lz4_slab",
+        "bytes": 390656,
+        "sha256": "68436da8ef6a6734478d81687c18f8c63f3f4f952ec76b2234da48c10f2403bb",
+        "imports": {
+          "format": "PE32+",
+          "architecture": "AMD64",
+          "os_imports": [
+            "kernel32.dll"
+          ],
+          "delay_imports": false
+        }
+      }
+    ],
+    "raw_control": {
+      "qualification": {
+        "available": false,
+        "exit_confirmed": true,
+        "exit_code": 1179844611,
+        "peak_commit_bytes": 2768896,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "worker_sha256": "8a0e5f4349e0762d63ee0ba83ed1faa5ce3aa0ded46c6016f8c208d315c9c9d8",
+      "imports": [
+        "bcrypt.dll",
+        "dxgi.dll",
+        "kernel32.dll",
+        "wintrust.dll"
+      ],
+      "probe_sha256": "e809d7b432d9fbfe2c925e51d6086a12ba152c8f648ca1b7306f240ba478289a",
+      "probe_imports": {
+        "format": "PE32+",
+        "architecture": "AMD64",
+        "os_imports": [
+          "kernel32.dll"
+        ],
+        "delay_imports": false
+      }
+    },
+    "physical_inputs_unchanged": true
+  },
+  "private_module": {
+    "complete": true,
+    "bytes": 135680,
+    "sha256": "2aed8740fd27a57091e97ce2c516afbb783de6b0a2cdea69a4b84360e7d70183",
+    "imports": [
+      "amdhip64_7.dll",
+      "kernel32.dll"
+    ],
+    "delay_imports": false,
+    "exports": [
+      "flitzfs_candidate_lz4_api"
+    ],
+    "loaded": false,
+    "gpu_executed": false,
+    "linked_into_product": false,
+    "in_worker_bundle": false,
+    "exported_as_artifact": false
+  },
+  "SDK_runtime_exports": {
+    "runtime": "amdhip64_7.dll",
+    "bytes": 16391120,
+    "sha256": "47a3cafbcfd62a7e7fc4af3dbd633ef8ded742178bd51211aaa28c0a2b844c01",
+    "required": [
+      "hipInit",
+      "hipGetDevicePropertiesR0600",
+      "hipSetDevice",
+      "hipDeviceGetStreamPriorityRange",
+      "hipStreamCreateWithPriority",
+      "hipStreamDestroy",
+      "hipStreamSynchronize",
+      "hipMalloc",
+      "hipFree",
+      "hipMemcpy",
+      "hipLaunchKernel"
+    ],
+    "direct_function_count": 596,
+    "missing": [],
+    "loaded": false
+  },
+  "selected_SDK_function_attribute_export_verified": "hipFuncGetAttributes",
+  "commands": [
+    {
+      "name": "static-runtime-export-parser-regressions",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "codec-source-admission-regressions",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "warp-sync-source-admission-regressions",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "CPU-decoder-source-staging-regressions",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "current-reference-bootstrap-regressions",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "complete-sdk-bootstrap",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "reviewed-hipcomp-offline-qualification",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "native-sync-source-composition-regressions",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "native-sync-offline-qualification",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-entry-source-admission-regressions",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-entry-offline-qualification",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "current-sdk-device-compilation",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "current-sdk-host-api-and-link-configure",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "current-sdk-host-api-and-kernel-module-link",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "header-probe-without-loading-HIP",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "typed-device-identity-fake-runtime",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "HIP API CPU qualification: {\"checks\":235,\"priority_cases\":12,\"priority_query_limit\":2,\"identity_before_selection\":true,\"missing_exports_refused\":11,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\r"
+      ]
+    },
+    {
+      "name": "previous-priority-capability-regression",
+      "exit_code": 1,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "current-priority-capability-regression",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "supervised-worker-CPU-decoder-capability",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "HIP worker CPU decoder: {\"available\":true,\"exit_confirmed\":true,\"exit_code\":0,\"peak_commit_bytes\":2686976,\"gpu_executed\":false,\"complete\":true}\r"
+      ]
+    },
+    {
+      "name": "typed-LZ4-compute-CPU-fault-matrix",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "HIP LZ4 compute CPU qualification: {\"checks\":823,\"scenarios\":58,\"successes\":6,\"refusals\":52,\"decoder_available\":true,\"attribute_symbol\":\"hipFuncGetAttributes\",\"guarded_exit_confirmed\":true,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\r"
+      ]
+    },
+    {
+      "name": "SDK-static-CPU-gpu_lz4_verify",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "GPU LZ4 CPU verification checks: 806 lz4_available=1 gpu_executed=false stored_codec_added=false\r"
+      ]
+    },
+    {
+      "name": "SDK-static-CPU-lz4_worker_wire",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "LZ4 worker framing: 621 checks; decoder_available=1 gpu_executed=false\r"
+      ]
+    },
+    {
+      "name": "SDK-static-CPU-gpu_lz4_slab",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "LZ4 slab admission: 968 checks; decoder_available=1 gpu_executed=false\r"
+      ]
+    },
+    {
+      "name": "raw-worker-control-configure",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "raw-worker-control-build",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "typed-LZ4-compute-raw-refusal",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "HIP LZ4 compute CPU qualification: {\"checks\":8,\"scenarios\":1,\"successes\":0,\"refusals\":1,\"decoder_available\":false,\"attribute_symbol\":\"hipFuncGetAttributes\",\"guarded_exit_confirmed\":true,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\r"
+      ]
+    },
+    {
+      "name": "raw-worker-control-unavailable",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "HIP worker CPU decoder: {\"available\":false,\"exit_confirmed\":true,\"exit_code\":1179844611,\"peak_commit_bytes\":2768896,\"gpu_executed\":false,\"complete\":true}\r"
+      ]
+    },
+    {
+      "name": "bounded-worker-admission-without-HIP",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": [
+        "HIP worker admission: {\"bundle_verified\":true,\"missing_bundle_refused\":true,\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"compiler_environment_isolated\":true,\"system_module_metadata_passed\":true,\"system_runtime_bad_hash_refused\":true,\"system_runtime_argument_refused\":true,\"kernel_only_verified\":true,\"kernel_only_full_bundle_refused\":true,\"kernel_only_tamper_refused\":true,\"driver_wire_refusals\":5,\"profile_wire_refused\":true,\"profile_argument_refused\":true,\"profile_runtime_refused\":true,\"exits_confirmed\":20,\"gpu_executed\":false,\"complete\":true}\r"
+      ]
+    },
+    {
+      "name": "bounded-adapter-identity-without-HIP",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-budget-metadata-without-HIP",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-topology-metadata-unknown_adapter",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-topology-metadata-warp",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "one-shot-probe-missing-runtime",
+      "exit_code": 2,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-driver_memory-refusal",
+      "exit_code": 2,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-driver_identity-refusal",
+      "exit_code": 2,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-metadata-refusal",
+      "exit_code": 2,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-driver_decode-refusal",
+      "exit_code": 2,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-driver_profile-refusal",
+      "exit_code": 2,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "bounded-driver_match-refusal",
+      "exit_code": 2,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    },
+    {
+      "name": "actual-AMD-compiler-version",
+      "exit_code": 0,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "evidence": []
+    }
+  ],
+  "CPU_core_baseline": {
+    "source": "4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+    "run": 43507519259,
+    "all_thirteen_jobs_passed": true,
+    "source_notes": "df8b08e changes the SDK corruption fixture and planning only, not the compute implementation.",
+    "logs": [
+      {
+        "name": "native-windows-tests-4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+        "artifact": 14078155503,
+        "archive_sha256": "4da1fee1c2639941e76679a142923653c6a4977241c47ef1583aee29eb80f1ae",
+        "entry": "LastTest.log",
+        "sha256": "92f483ac4e27ceac23e00e36500491e0b86900a416f7e6673e96dfd44b7d38e9",
+        "bytes": 152739,
+        "evidence": [
+          "LZ4 worker framing: 621 checks; decoder_available=1 gpu_executed=false\r",
+          "LZ4 slab admission: 968 checks; decoder_available=1 gpu_executed=false\r",
+          "Ran 10 tests in 5.522s\r",
+          "LZ4 worker process framing: decoder_available=1 chunks=3 source_bytes=1074 gpu_executed=false\r",
+          "handle_totals initial=79 final=79\r",
+          "PASS: 1212 real Windows worker exchange checks; CPU semantics only, no GPU or data files.\r"
+        ],
+        "cases": 144,
+        "passes": 142,
+        "expression_passes": 2,
+        "failures": 0
+      },
+      {
+        "name": "cpu-tests-Windows-OFF-4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+        "artifact": 14077620897,
+        "archive_sha256": "b5a348ef74bd9181a2d6b2a641b8e884250ef43a81898a32a6bc0149689e2ba3",
+        "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+        "sha256": "cb68265d07c1f47cf1b1d19cd74421b09fa881868ca349bd8426f48ca60eb285",
+        "bytes": 134868,
+        "evidence": [
+          "LZ4 worker framing: 593 checks; decoder_available=0 gpu_executed=false\r",
+          "LZ4 slab admission: 939 checks; decoder_available=0 gpu_executed=false\r",
+          "Ran 10 tests in 5.888s\r",
+          "LZ4 worker process framing: decoder_available=0 chunks=3 source_bytes=1074 gpu_executed=false\r",
+          "handle_totals initial=79 final=79\r",
+          "PASS: 1209 real Windows worker exchange checks; CPU semantics only, no GPU or data files.\r"
+        ],
+        "cases": 129,
+        "passes": 127,
+        "expression_passes": 2,
+        "failures": 0
+      },
+      {
+        "name": "cpu-tests-Linux-ON-4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+        "artifact": 14077441818,
+        "archive_sha256": "999d78beaee40a8e24d16a6058b51ffd0ba1e5b8be4e861e1a2c2c66911a750c",
+        "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+        "sha256": "e7d377c7319db1a1a56cd16e70775b5c0081b3a70c54edd2939debf9ddd16e7e",
+        "bytes": 123547,
+        "evidence": [
+          "LZ4 worker framing: 621 checks; decoder_available=1 gpu_executed=false",
+          "LZ4 slab admission: 968 checks; decoder_available=1 gpu_executed=false",
+          "Ran 10 tests in 0.698s"
+        ],
+        "cases": 125,
+        "passes": 123,
+        "expression_passes": 2,
+        "failures": 0
+      },
+      {
+        "name": "sanitizer-tests-4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+        "artifact": 14076963023,
+        "archive_sha256": "f95a8531bc04cf3ae485b2ff621ae3936eb8232cda35c867f679285e21abd0c8",
+        "entry": "LastTest.log",
+        "sha256": "f475605aa5a8afda11cff0362b8b82a63f14cc6f1d1725f5d1c6468fb921a590",
+        "bytes": 124789,
+        "evidence": [
+          "LZ4 worker framing: 621 checks; decoder_available=1 gpu_executed=false",
+          "LZ4 slab admission: 968 checks; decoder_available=1 gpu_executed=false",
+          "Ran 10 tests in 0.458s"
+        ],
+        "cases": 125,
+        "passes": 123,
+        "expression_passes": 2,
+        "failures": 0
+      },
+      {
+        "name": "cpu-tests-Linux-OFF-4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+        "artifact": 14076178885,
+        "archive_sha256": "f27fc615acd40ddd46d92197b18f27c3b2a4a2847be42da26b198d7f55bdeac8",
+        "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+        "sha256": "81de88e0302a2f3ee09b0de00cfd441cec5da7e63b8b53b806e6aa4ee4952dba",
+        "bytes": 123551,
+        "evidence": [
+          "LZ4 worker framing: 593 checks; decoder_available=0 gpu_executed=false",
+          "LZ4 slab admission: 939 checks; decoder_available=0 gpu_executed=false",
+          "Ran 10 tests in 0.439s"
+        ],
+        "cases": 125,
+        "passes": 123,
+        "expression_passes": 2,
+        "failures": 0
+      }
+    ]
+  },
+  "semantic_routing": {
+    "source": "4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+    "run": 43507519057,
+    "artifact": 14077446918,
+    "archive_sha256": "34928597385044f036dcdcafc3796597e600bd5516e6d396e072d95208c5fb5f",
+    "receipt_sha256": "9f002427c7e1dea02b08b159656f7f0031c7941931d1d77e1c7da57edec034ef",
+    "search_sha256": "bc44ce117a08477fad47f33a12f83ac6028b14c45c19c1723be371939355527e",
+    "receipt": {
+      "actual_searches": 8,
+      "commands": [
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "rev-parse",
+            "--show-toplevel"
+          ],
+          "log": "command-1.log",
+          "returncode": 0,
+          "seconds": 0.002,
+          "sha256": "1a556fc57c6bc30955f1e466202ba90823cb4f75a058d73ffb5c873c0affdb7f",
+          "stderr_log": "command-1.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "rev-parse",
+            "HEAD"
+          ],
+          "log": "command-2.log",
+          "returncode": 0,
+          "seconds": 0.001,
+          "sha256": "2325cabb360396ebaf49b95b4b0660ee27d0922c5deb26b95101d7b7233a6d3d",
+          "stderr_log": "command-2.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "diff",
+            "--exit-code",
+            "HEAD",
+            "--"
+          ],
+          "log": "command-3.log",
+          "returncode": 0,
+          "seconds": 0.032,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_log": "command-3.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/python",
+            "-m",
+            "pip",
+            "--isolated",
+            "--disable-pip-version-check",
+            "--no-cache-dir",
+            "install",
+            "--dry-run",
+            "--no-deps",
+            "--only-binary=:all:",
+            "--report",
+            "/home/runner/work/_temp/flitzfs-semantic/cpu-resolver.json",
+            "--index-url",
+            "https://download.pytorch.org/whl/cpu",
+            "torch"
+          ],
+          "log": "command-4.log",
+          "returncode": 0,
+          "seconds": 0.665,
+          "sha256": "821bd4a62b0aad352379d1ed4ab2d6aa4d743a120a3978e51814b78d74d5f961",
+          "stderr_log": "command-4.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/python",
+            "-m",
+            "pip",
+            "--isolated",
+            "--disable-pip-version-check",
+            "--no-cache-dir",
+            "install",
+            "--dry-run",
+            "--ignore-installed",
+            "--only-binary=:all:",
+            "--report",
+            "/home/runner/work/_temp/flitzfs-semantic/provider-resolver.json",
+            "--index-url",
+            "https://pypi.org/simple",
+            "-c",
+            "/home/runner/work/_temp/flitzfs-semantic/cpu-constraints.txt",
+            "cocoindex-code[full] @ file:///home/runner/work/_temp/flitzfs-semantic/packages/cocoindex_code-0.2.43-py3-none-any.whl",
+            "torch @ https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl#sha256=f089c94912c955269a20e5fee6b6a371209b610849c9ece26e908a748d87a723",
+            "pip"
+          ],
+          "log": "command-5.log",
+          "returncode": 0,
+          "seconds": 8.332,
+          "sha256": "b040681fd1ec2a738f92c60ff34080b8a33e2ba2110b577e148c7a75d287bc38",
+          "stderr_log": "command-5.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/python",
+            "-m",
+            "pip",
+            "--isolated",
+            "--disable-pip-version-check",
+            "--no-cache-dir",
+            "install",
+            "--no-index",
+            "--no-deps",
+            "--require-hashes",
+            "-r",
+            "/home/runner/work/_temp/flitzfs-semantic/provider.lock"
+          ],
+          "log": "command-6.log",
+          "returncode": 0,
+          "seconds": 64.589,
+          "sha256": "2ad95366e235aea88f1238ebea4f4478e864a6b07faf9eb833b61d0472653f9d",
+          "stderr_log": "command-6.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/python",
+            "-m",
+            "pip",
+            "--isolated",
+            "--disable-pip-version-check",
+            "--no-cache-dir",
+            "check"
+          ],
+          "log": "command-7.log",
+          "returncode": 0,
+          "seconds": 0.314,
+          "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09",
+          "stderr_log": "command-7.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/python",
+            "-c",
+            "import importlib.metadata as m,json,torch; assert torch.version.cuda is None and torch.version.hip is None; print(json.dumps({'torch':m.version('torch'),'cocoindex-code':m.version('cocoindex-code'),'pip':m.version('pip'),'cpu_only':True}))"
+          ],
+          "log": "command-8.log",
+          "returncode": 0,
+          "seconds": 1.517,
+          "sha256": "e9db9c72e8fe78e62d1dba1807e16e0d180e1866818ea3a2e2999f4c6127e893",
+          "stderr_log": "command-8.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "version"
+          ],
+          "log": "command-9.log",
+          "returncode": 0,
+          "seconds": 0.264,
+          "sha256": "f918f822180c399c25db94c46159b73c5b434ec7a86982e51c6a624d49496bc5",
+          "stderr_log": "command-9.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-10.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-10.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "index"
+          ],
+          "log": "command-11.log",
+          "returncode": 0,
+          "seconds": 128.046,
+          "sha256": "fd07a6919b69e66133e29f03c2ebb16b102c57e4aa33b4ca25b0e78b092e72c9",
+          "stderr_log": "command-11.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "native filesystem inode namespace sparse extent mutation commit and metadata encoding"
+          ],
+          "log": "command-12.log",
+          "returncode": 0,
+          "seconds": 0.264,
+          "sha256": "a8be57b806711e75725562a147bb4222ad519b5c9974d1e72037764b59d53a8d",
+          "stderr_log": "command-12.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-13.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-13.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "transactional object store record integrity replicated checkpoints and durable publication"
+          ],
+          "log": "command-14.log",
+          "returncode": 0,
+          "seconds": 0.264,
+          "sha256": "9d1c2f68cf819132c40a455db49008107fedb6fce8274b39c905583a34a301b1",
+          "stderr_log": "command-14.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-15.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-15.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "GPU worker supervision CPU fallback recovery configuration and runtime failure"
+          ],
+          "log": "command-16.log",
+          "returncode": 0,
+          "seconds": 0.264,
+          "sha256": "56104c02524a02b94e53cd46be28ab930611dee8674adc11a88ee5dfabe8a501",
+          "stderr_log": "command-16.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-17.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-17.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "compression codec selection allocation budget stored decoded digest and decompression"
+          ],
+          "log": "command-18.log",
+          "returncode": 0,
+          "seconds": 0.264,
+          "sha256": "bbeb3175885e318d3f83dcef797e90ce2d5ef8937535bcb7eb4a76cce182c1ce",
+          "stderr_log": "command-18.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-19.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-19.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "compacted copy source preservation destination identity and safe reclamation"
+          ],
+          "log": "command-20.log",
+          "returncode": 0,
+          "seconds": 0.264,
+          "sha256": "2f6ebca47c75bc56dbb92d68f8bd72046415d8e988e8cb3fe8ad0b2d0767f40c",
+          "stderr_log": "command-20.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-21.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-21.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime"
+          ],
+          "log": "command-22.log",
+          "returncode": 0,
+          "seconds": 0.265,
+          "sha256": "74dabf8d876e6932cbd3a294a7c507616f7c0371f1a3a4ae4b833f380d7485ee",
+          "stderr_log": "command-22.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-23.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-23.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "trusted HIP worker bundle file digest DLL module loading signature and system directory"
+          ],
+          "log": "command-24.log",
+          "returncode": 0,
+          "seconds": 0.265,
+          "sha256": "b5fb3df5d7c5a4fcba04a4bcb324ac84aaec08b8f3c4cc4ffc28ced477ca76f2",
+          "stderr_log": "command-24.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-25.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-25.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "supervised writable mount crash child timeout cancellation and confirmed exact process exit"
+          ],
+          "log": "command-26.log",
+          "returncode": 0,
+          "seconds": 0.264,
+          "sha256": "7d48b90ecce386fe00798cc723bb6eb2479759b3d9776717bae10e0336634a9e",
+          "stderr_log": "command-26.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/home/runner/work/FlitzFS/FlitzFS",
+            "ls-files",
+            "-z"
+          ],
+          "log": "command-27.log",
+          "returncode": 0,
+          "seconds": 0.004,
+          "sha256": "25e7ed19ce69af91bfc110da6a42deb80f7a23ea4a9df48c207cbc46e6508196",
+          "stderr_log": "command-27.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "/home/runner/work/_temp/flitzfs-semantic/venv/bin/ccc",
+            "daemon",
+            "stop"
+          ],
+          "log": "command-28.log",
+          "returncode": 0,
+          "seconds": 0.515,
+          "sha256": "a663d00ca45f9e1faffffc854550bfc91f43f1ba7ac9a9509795391866690b11",
+          "stderr_log": "command-28.stderr.log",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "commit": "4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+      "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+      "cpu_only": true,
+      "experimental": true,
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "provider_version": "0.2.43",
+      "query_group": "filesystem",
+      "repository": "strmt7/FlitzFS",
+      "shared_mcp_modified": false,
+      "source_files": 167,
+      "source_sha256": "5a6f6611f72c805d39b5ea5be2fa287226f3612c73807eeda52e1d0f9e2cf533",
+      "workflow_commit": "4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e"
+    },
+    "search": {
+      "commit": "4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e",
+      "completed_utc": "2026-11-13T22:09:19.007756+01:00",
+      "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+      "hits": [
+        {
+          "end_line": 126,
+          "excerpt": "require(verify_cached_signature(path_, &WinVerifyTrust), Exit::runtime_unavailable, \"system module trust unavailable\"); } catch (const HipWorkerFailure&) { throw; } catch (const std::bad_alloc&) { throw; } catch (const std::exception&) { th",
+          "file_sha256": "f2291b4a5c8ab032a737eb7df0bb1efbe07ef5e43fb235dcb53956beb4c45945",
+          "path": "src/windows/hip_module_verification.cpp",
+          "score": 0.7881496927222926,
+          "start_line": 119
+        },
+        {
+          "end_line": 13,
+          "excerpt": "#include \"hip_decode_worker.hpp\" #include \"flitzfs/gpu_match_layout.hpp\" #include \"gpu_budget.hpp\" #include \"gpu_topology.hpp\" #include \"hip_worker_budget.hpp\" #include \"hip_worker_exit.hpp\" #include \"hip_api.hpp\" #include \"hip_device_resou",
+          "file_sha256": "3c7098a927405a73efc352442737b9969fc96b8b6ff0fd423ec171830cb610e9",
+          "path": "src/windows/hip_decode_worker.cpp",
+          "score": 0.7845450892879864,
+          "start_line": 1
+        },
+        {
+          "end_line": 71,
+          "excerpt": "case HipWorkerStage::runtime_load: return \"runtime_load\"; case HipWorkerStage::kernel_load: return \"kernel_load\"; case HipWorkerStage::module_retire: return \"module_retire\"; case HipWorkerStage::worker_job: return \"worker_job\"; case HipWork",
+          "file_sha256": "79681016658ca28d0173784b15d8247f3309ba448c71078a620da0885f17e506",
+          "path": "src/windows/hip_worker_exit.hpp",
+          "score": 0.7837175880641709,
+          "start_line": 59
+        },
+        {
+          "end_line": 25,
+          "excerpt": "#include \"hip_decode_worker.hpp\" #include \"flitzfs/gpu_lz4_verify.hpp\" #include \"gpu_budget.hpp\" #include \"hip_worker_exit.hpp\" #include \"hip_api.hpp\" #include \"hip_identity_wire.hpp\" #include \"hip_worker_bundle.hpp\" #include \"hip_module_ve",
+          "file_sha256": "3e5a04bf59fc2841e200eab0a15d7fdd73a9379c79f4b8ecfa50cedcc67256a7",
+          "path": "src/windows/hip_worker_main.cpp",
+          "score": 0.7797593935741745,
+          "start_line": 1
+        },
+        {
+          "end_line": 322,
+          "excerpt": "\"hipStreamCreateWithPriority\", \"hipStreamQuery\", \"hipStreamDestroy\", \"hipFree\", \"hipMalloc\", \"hipErrorContext\", \"hipErrorLaunch\", \"hipErrorOutOfMemory\", \"priority\", \"process\", \"26H2\", \"26H1\", \"10.0.\", \"WHCP\", \"enforcement\", \"kernel\", \"drive",
+          "file_sha256": "0b45f8696435a3abd8b790cf2db5f3c86ea57c9869729b67d4118b59c8bbdb4f",
+          "path": "tools/ci/hosted_research.py",
+          "score": 0.7781921810646661,
+          "start_line": 313
+        }
+      ],
+      "model": "Snowflake/snowflake-arctic-embed-xs",
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "native_response_sha256": "b5fb3df5d7c5a4fcba04a4bcb324ac84aaec08b8f3c4cc4ffc28ced477ca76f2",
+      "provider": "0.2.43",
+      "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+      "query": "trusted HIP worker bundle file digest DLL module loading signature and system directory",
+      "query_sha256": "7563d3b97faaf6deddb69582bf050896ecc39ce17654b383dd4d55293f69c9a0",
+      "repository": "strmt7/FlitzFS",
+      "source_sha256": "5a6f6611f72c805d39b5ea5be2fa287226f3612c73807eeda52e1d0f9e2cf533",
+      "workflow_commit": "4dda4fe45d91b5e1c4e8628cf65bd5ec38b57f5e"
+    },
+    "live_confirmation": "src/windows/hip_module_verification.cpp lines119-126 read at exact source; scope/hash match."
+  },
+  "first_failed_attempt": "docs/evidence/hip-lz4-compute-first-failure-4dda4fe.json",
+  "limits": {
+    "device_bytes": 262144,
+    "chunks": 8,
+    "chunk_bytes": 65536,
+    "guard_bytes": 32
+  },
+  "scope": {
+    "actual_gpu_execution": false,
+    "private_module_loaded": false,
+    "product_caller": false,
+    "normal_filesystem_changed": false,
+    "owner_execution": false,
+    "physical_power_loss_tested": false,
+    "useful_GPU_gain_demonstrated": false
+  },
+  "remaining": "Authenticated runtime/module/coverage integration, isolated actual GPU compression output, native stored codec and Windows operation composition, then measured whole-operation benefit. Deep collective background compression is separate and mandatory; see COLD_COMPRESSION_RESEARCH.md."
+}
