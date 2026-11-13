@@ -345,3 +345,18 @@ Its publishing-source qualification is pending. Finish the RAM-handoff multi-rou
 protocol from admitted research, then enable/test adapter-wide self-origin
 protection without a synthetic-origin escape. Preserve every full-product
 package and exit criterion; no owner mount/driver or unchanged GPU experiment.
+
+## Finite memory-handoff client preparation
+
+Source9dd6a98 passed all thirteen core jobs and admitted eleven current native
+Microsoft event/process captures. Restart sources, both writable resumers and
+read-only normal/kill/remount workloads used external clients with exact host/
+supervisor retirement before independent verification.
+
+The next publishing source moves the RAM-handoff mounted client into its external
+controller through a finite seven-event conversation and preserves every original
+handoff oracle. It adds independent CPU sequence and real helper fault/handle
+checks; new-source mounted qualification remains required. Then implement and
+qualify mandatory adapter-wide self-origin protection, preserving direct CPU-only
+test injection without a synthetic-origin escape in live mounts. D01's historical
+cause and every full-product package remain open.

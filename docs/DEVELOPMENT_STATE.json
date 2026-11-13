@@ -11,14 +11,14 @@
     "note": "Current qualified baseline. Independent cost profiling and parent preparation changes require new-source qualification; no new owner execution performed."
   },
   "current_qualification": {
-    "commit": "6dac1f109f7e97965f26fc1cca5a72fab6375cac",
-    "core_run": 43358621907,
+    "commit": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
+    "core_run": 43361281034,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "sdk_last_qualified_source": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
-    "sdk_last_run": 43353623706,
-    "evidence": "docs/evidence/ordered-actors-6dac1f1.json"
+    "research_run": 43361281221,
+    "research_native_pages": 11,
+    "evidence": "docs/evidence/extended-actors-9dd6a98.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -327,11 +327,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "6dac1f109f7e97965f26fc1cca5a72fab6375cac",
+    "source_parent": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
     "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
-    "behavior": "Ordered restart/resumer and read-only normal/kill/remount mounted client calls move to external controller; read-only root gains strict existing resource budget and100-second outer hosted deadline.",
-    "status": "Publishing-source full core, affected mounted/continuation/space-report and current process-suite research evidence required.",
-    "next": "Admit process-suite captures, then implement RAM-handoff multi-round external client and adapter-wide self-origin protection. Historical cause remains unproven; no owner execution."
+    "behavior": "Finite external RAM handoff client; seven events, one request, terminal policy and preserved original byte/resource oracles.",
+    "status": "Publishing-source CPU sequence/actual helper fault+handle and full core/mounted RAM tests required.",
+    "next": "After complete actor conversion qualifies, implement mandatory adapter-wide origin protection. No owner tests/driver changes/unchanged GPU reruns."
   },
   "resolved": [
     {

@@ -3,7 +3,7 @@
 from copy import deepcopy
 import json
 import unittest
-from verify_windows_write_probe import validate_pair, validate_continuation, unique_object
+from verify_windows_write_probe import validate_pair, validate_continuation, validate_ram_report, unique_object
 
 COMMIT = "a" * 40
 def reports(profile):
@@ -100,6 +100,36 @@ class Evidence(unittest.TestCase):
                     invalid[position][key] = value
                     with self.subTest(profile=profile, position=position, key=key, value=value), self.assertRaises(ValueError):
                         validate_pair(*invalid, profile, COMMIT, require_external=True)
+
+    def test_ram_external_actor_and_completion(self):
+        legacy = dict(schema=1, phase="ram-handoff", commit=COMMIT, epoch=2,
+                      user_bytes=65609, locked_peak=16 * 1024**2 + 512 * 1024,
+                      locked_after=0, contexts=0, cpu_verified=True, mounted=True,
+                      unmounted=True, recovered_capacity_failure=True, gpu=False,
+                      complete=True, stale_candidate_rejected=True, repeat_suppressed=True,
+                      source_process=17, volume_serial=0x58005257, raw_payload=65536,
+                      compressed_payload=1000, generation=21, idle_copy_steps=4)
+        self.assertEqual(validate_ram_report(legacy, COMMIT), legacy)
+        with self.assertRaises(ValueError):
+            validate_ram_report(legacy, COMMIT, require_external=True)
+        current = dict(legacy, source_protocol="external-client", client_process=23,
+                       host_self_io_rejected=True, client_flush_callback_observed=True)
+        self.assertEqual(validate_ram_report(current, COMMIT, require_external=True), current)
+        for key in tuple(current):
+            bad = deepcopy(current)
+            del bad[key]
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                validate_ram_report(bad, COMMIT, require_external=True)
+        for key, value in (("client_process", 17), ("client_process", 0), ("client_process", True),
+                           ("source_protocol", "self-client"), ("host_self_io_rejected", False),
+                           ("client_flush_callback_observed", False), ("complete", False),
+                           ("locked_after", 1), ("contexts", 1), ("idle_copy_steps", 0),
+                           ("idle_copy_steps", 257), ("compressed_payload", 65536),
+                           ("gpu", True), ("unknown", 1)):
+            bad = dict(current)
+            bad[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                validate_ram_report(bad, COMMIT, require_external=True)
 
     def test_missing_extra_and_mismatched_fields(self):
         for profile in ("basic", "mutations", "delete", "crash"):

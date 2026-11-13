@@ -1,0 +1,637 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
+  "tree": "6fa354b72f35dd8c736be2c1fe5d8b524a6e19e4",
+  "date": "2026-11-13",
+  "core_run": 43361281034,
+  "jobs": [
+    {
+      "id": 131675122935,
+      "name": "sanitizers",
+      "conclusion": "success"
+    },
+    {
+      "id": 131675123150,
+      "name": "cpu (ubuntu-24.04, OFF)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131675123165,
+      "name": "windows-native",
+      "conclusion": "success"
+    },
+    {
+      "id": 131675123301,
+      "name": "cpu (ubuntu-24.04, ON)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131675123389,
+      "name": "cpu (windows-2025-vs2026, OFF)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131678971667,
+      "name": "windows-mount",
+      "conclusion": "success"
+    },
+    {
+      "id": 131680134406,
+      "name": "windows-write-mount (basic)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131680134427,
+      "name": "windows-write-mount (restart)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131680134429,
+      "name": "windows-write-mount (crash-restart)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131680134442,
+      "name": "windows-write-mount (ram-handoff)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131680134445,
+      "name": "windows-write-mount (delete)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131680134456,
+      "name": "windows-write-mount (crash)",
+      "conclusion": "success"
+    },
+    {
+      "id": 131680134539,
+      "name": "windows-write-mount (mutations)",
+      "conclusion": "success"
+    }
+  ],
+  "readonly": {
+    "job": 131678971667,
+    "actors_and_retirement": [
+      "2026-11-13T04:01:56.3165964Z readonly_actors source=1372 client=9112 recovery_source=0 exit_confirmed=1 supervisor_retired=1",
+      "2026-11-13T04:01:56.3167150Z mount_probe exit=0 stage=0 detail=0 timed_out=0 exit_confirmed=1 peak_commit_bytes=5828608",
+      "2026-11-13T04:01:56.3183036Z PASS: real mounted native transactional image reads, sparse tails, persistent inode IDs, mapped I/O, enumeration, write rejection and backing parity.",
+      "2026-11-13T04:01:56.3183907Z readonly_actors source=5816 client=9112 recovery_source=0 exit_confirmed=1 supervisor_retired=1",
+      "2026-11-13T04:01:56.3184512Z crash_probe exit=1460 timed_out=1 exit_confirmed=1 peak_commit_bytes=5767168",
+      "2026-11-13T04:01:56.3201453Z readonly_actors source=8320 client=9112 recovery_source=5816 exit_confirmed=1 supervisor_retired=1",
+      "2026-11-13T04:01:56.3202156Z recovery_probe exit=0 stage=0 detail=0 timed_out=0 exit_confirmed=1 peak_commit_bytes=5267456",
+      "2026-11-13T04:01:56.3218420Z PASS: native-image mount termination, automatic removal, unchanged source, independent native CPU recovery and same-path remount."
+    ],
+    "space_artifact": {
+      "id": 14008188813,
+      "sha256": "bdd31f4a82569c067e656895b50378f3824151125f4b7cb1d94ed7fbbcd34fcc"
+    }
+  },
+  "continuations": [
+    {
+      "profile": "restart",
+      "reports": {
+        "artifact": 14009610576,
+        "sha256": "8acb5a9599154dc07a625e8e4db006415c13fc3cbca3246cc59adc6ff283e210",
+        "size": 1595,
+        "rows": [
+          {
+            "entry": "flitzfs-write-probe-2868/state-verify.json",
+            "body": "{\"schema\":2,\"profile\":\"restart\",\"phase\":\"verify\",\"commit\":\"9dd6a98384f3c315522d1ae840afd43ac862bb0b\",\"source_process\":2868,\"observer_process\":1908,\"user_bytes\":7001,\"inode\":2,\"file_count\":2,\"namespace_sequence\":15,\"generation\":30,\"image_bytes\":3145728,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390163131740698,\"last_access_time\":134390163132436567,\"last_write_time\":134390163131780934,\"change_time\":134390163131780934,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"b4848e2c47d093ae639a08162944adbd10d9c77fbc80e3f7fdce032b1009e3c0\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":7556,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false,\"state_digest\":\"c2c36d0211c3f4266b9fd07c6c5f477cd82068179ee9a5237722e94e5d72be54\",\"source_ack_digest\":\"6f780b262997793f8cf71993a98486021833840b9d57b812b4ac1716dd518b89\",\"resumer_process\":5436}"
+          },
+          {
+            "entry": "flitzfs-write-probe-2868/state.json",
+            "body": "{\"schema\":2,\"profile\":\"restart\",\"phase\":\"state\",\"commit\":\"9dd6a98384f3c315522d1ae840afd43ac862bb0b\",\"source_process\":2868,\"observer_process\":2868,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":8,\"generation\":16,\"image_bytes\":1769472,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390163131740698,\"last_access_time\":134390163131780934,\"last_write_time\":134390163131780934,\"change_time\":134390163131780934,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":true,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":7556,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}\n{\"schema\":1,\"profile\":\"restart\",\"phase\":\"continued\",\"commit\":\"9dd6a98384f3c315522d1ae840afd43ac862bb0b\",\"source_process\":2868,\"observer_process\":5436,\"source_ack_digest\":\"6f780b262997793f8cf71993a98486021833840b9d57b812b4ac1716dd518b89\",\"continued_state_digest\":\"c2c36d0211c3f4266b9fd07c6c5f477cd82068179ee9a5237722e94e5d72be54\",\"generation\":30,\"namespace_sequence\":15,\"image_bytes\":3145728}\n"
+          },
+          {
+            "sha256": "8acb5a9599154dc07a625e8e4db006415c13fc3cbca3246cc59adc6ff283e210",
+            "bytes": 1595,
+            "entries": 2
+          }
+        ],
+        "projections": [
+          {
+            "entry": "flitzfs-write-probe-2868/state-verify.json",
+            "records": [
+              {
+                "phase": "verify",
+                "profile": "restart",
+                "source": 2868,
+                "observer": 1908,
+                "client": 7556,
+                "resumer": 5436,
+                "contexts": 0,
+                "cpu_verified": true,
+                "self_refused": false,
+                "flush_observed": false
+              }
+            ]
+          },
+          {
+            "entry": "flitzfs-write-probe-2868/state.json",
+            "records": [
+              {
+                "phase": "state",
+                "profile": "restart",
+                "source": 2868,
+                "observer": 2868,
+                "client": 7556,
+                "contexts": 0,
+                "cpu_verified": true,
+                "self_refused": true,
+                "flush_observed": true
+              },
+              {
+                "phase": "continued",
+                "profile": "restart",
+                "source": 2868,
+                "observer": 5436
+              }
+            ]
+          }
+        ]
+      },
+      "supervision": {
+        "job": 131680134427,
+        "lines": [
+          "2026-11-13T04:05:13.3186373Z extended_writer profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4747264",
+          "2026-11-13T04:05:13.3201332Z extended_resumer profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4833280",
+          "2026-11-13T04:05:13.3203001Z extended_verifier profile=restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3162112",
+          "2026-11-13T04:05:13.8105851Z Windows writable reconciliation: {\"commit\": \"9dd6a98384f3c315522d1ae840afd43ac862bb0b\", \"complete\": true, \"generation\": 30, \"image_bytes\": 3145728, \"namespace_sequence\": 15, \"profile\": \"restart\", \"schema\": 1, \"user_bytes\": 7001}"
+        ]
+      }
+    },
+    {
+      "profile": "crash-restart",
+      "reports": {
+        "artifact": 14009251658,
+        "sha256": "3a78b0dc67bf200fb8ba19d9b86c80a8062188bbbde508b214aee0f4ccfa5896",
+        "size": 1597,
+        "rows": [
+          {
+            "entry": "flitzfs-write-probe-3648/state-verify.json",
+            "body": "{\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"verify\",\"commit\":\"9dd6a98384f3c315522d1ae840afd43ac862bb0b\",\"source_process\":3648,\"observer_process\":5136,\"user_bytes\":7001,\"inode\":2,\"file_count\":2,\"namespace_sequence\":14,\"generation\":28,\"image_bytes\":2949120,\"image_cap\":4194304,\"contexts\":0,\"creation_time\":134390162735710859,\"last_access_time\":134390162884776384,\"last_write_time\":134390162735710859,\"change_time\":134390162735710859,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"b4848e2c47d093ae639a08162944adbd10d9c77fbc80e3f7fdce032b1009e3c0\",\"explicit_flush_observed\":false,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":6888,\"host_self_io_rejected\":false,\"client_flush_callback_observed\":false,\"state_digest\":\"3e38af4f94b807d31ad6d111d8b39cbc68d4696e73f30f4cce45ddf54117809f\",\"source_ack_digest\":\"49233737059968e90fb9e03b663f67db9122b15fc63bf0e9df8b72ec500bc521\",\"resumer_process\":4880}"
+          },
+          {
+            "entry": "flitzfs-write-probe-3648/state.json",
+            "body": "{\"schema\":2,\"profile\":\"crash-restart\",\"phase\":\"ack\",\"commit\":\"9dd6a98384f3c315522d1ae840afd43ac862bb0b\",\"source_process\":3648,\"observer_process\":3648,\"user_bytes\":7001,\"inode\":2,\"file_count\":1,\"namespace_sequence\":7,\"generation\":14,\"image_bytes\":1572864,\"image_cap\":4194304,\"contexts\":1,\"creation_time\":134390162735710859,\"last_access_time\":134390162735710859,\"last_write_time\":134390162735710859,\"change_time\":134390162735710859,\"attributes\":32,\"reservation\":8192,\"data_digest\":\"57c5b7162c5f06b7cbadb9764b72c26513c440b03dff1584b96d95dc1d01435a\",\"security_digest\":\"9fca3ae3c7a346aa52110891cb3cdca34dd2152145b685d94a1f400c0ca33f03\",\"keep_digest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"explicit_flush_observed\":true,\"cpu_verified\":true,\"dispatcher_stopped\":false,\"gpu\":false,\"source_protocol\":\"external-client\",\"client_process\":6888,\"host_self_io_rejected\":true,\"client_flush_callback_observed\":true}\n{\"schema\":1,\"profile\":\"crash-restart\",\"phase\":\"continued\",\"commit\":\"9dd6a98384f3c315522d1ae840afd43ac862bb0b\",\"source_process\":3648,\"observer_process\":4880,\"source_ack_digest\":\"49233737059968e90fb9e03b663f67db9122b15fc63bf0e9df8b72ec500bc521\",\"continued_state_digest\":\"3e38af4f94b807d31ad6d111d8b39cbc68d4696e73f30f4cce45ddf54117809f\",\"generation\":28,\"namespace_sequence\":14,\"image_bytes\":2949120}\n"
+          },
+          {
+            "sha256": "3a78b0dc67bf200fb8ba19d9b86c80a8062188bbbde508b214aee0f4ccfa5896",
+            "bytes": 1597,
+            "entries": 2
+          }
+        ],
+        "projections": [
+          {
+            "entry": "flitzfs-write-probe-3648/state-verify.json",
+            "records": [
+              {
+                "phase": "verify",
+                "profile": "crash-restart",
+                "source": 3648,
+                "observer": 5136,
+                "client": 6888,
+                "resumer": 4880,
+                "contexts": 0,
+                "cpu_verified": true,
+                "self_refused": false,
+                "flush_observed": false
+              }
+            ]
+          },
+          {
+            "entry": "flitzfs-write-probe-3648/state.json",
+            "records": [
+              {
+                "phase": "ack",
+                "profile": "crash-restart",
+                "source": 3648,
+                "observer": 3648,
+                "client": 6888,
+                "contexts": 1,
+                "cpu_verified": true,
+                "self_refused": true,
+                "flush_observed": true
+              },
+              {
+                "phase": "continued",
+                "profile": "crash-restart",
+                "source": 3648,
+                "observer": 4880
+              }
+            ]
+          }
+        ]
+      },
+      "supervision": {
+        "job": 131680134429,
+        "lines": [
+          "2026-11-13T04:04:48.5352985Z extended_writer profile=crash-restart exit=1460 stage=0 detail=1460 timed_out=1 cancelled=0 exit_confirmed=1 peak_commit_bytes=4767744",
+          "2026-11-13T04:04:48.5359302Z extended_resumer profile=crash-restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=4804608",
+          "2026-11-13T04:04:48.5359941Z extended_verifier profile=crash-restart exit=0 stage=0 detail=0 timed_out=0 cancelled=0 exit_confirmed=1 peak_commit_bytes=3207168",
+          "2026-11-13T04:04:48.8553532Z Windows writable reconciliation: {\"commit\": \"9dd6a98384f3c315522d1ae840afd43ac862bb0b\", \"complete\": true, \"generation\": 28, \"image_bytes\": 2949120, \"namespace_sequence\": 14, \"profile\": \"crash-restart\", \"schema\": 1, \"user_bytes\": 7001}"
+        ]
+      }
+    }
+  ],
+  "research": {
+    "source": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
+    "run": 43361281221,
+    "job": 131675123447,
+    "artifact": 14008427252,
+    "artifact_sha256": "680d3d6c23a64f96848129accdc10f01d0a1828828ffde7026fc5c754ac481d4",
+    "receipts": [
+      {
+        "entry": "process/receipt.json",
+        "receipt": {
+          "experimental": true,
+          "commit": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
+          "provider_repository": "strmt7/FlitzZip",
+          "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+          "provider_version": "0.9.5+flitzzip.portable2",
+          "python": "3.13.18 (main, Oct 26 2026, 14:20:56) [GCC 13.3.0]",
+          "source_group": "process",
+          "limits": {
+            "memory_max": 3221225472,
+            "tasks_max": 256,
+            "cpu_max": [
+              200000,
+              100000
+            ]
+          },
+          "page_timeout_seconds": 45,
+          "robots_checked": true,
+          "external_llm": false,
+          "persistent_profile": false,
+          "sources": [
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 11203,
+              "markdown_sha256": "840477df423f81e0c1adf5f2f2d1077eabad1e569c468f8d52b6e51168618476",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.701,
+              "capture": "windows-multiple-wait.native.json",
+              "capture_sha256": "b82d7a4337f1968a7df2da3a2189611a46e68e12148fb2382c5ec9f99694fec2",
+              "name": "windows-multiple-wait"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/beginthread-beginthreadex?view=msvc-170",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 32744,
+              "markdown_sha256": "91182340bd55c19ad845d5a16d4c122e4277cdc1419443fb498e5b31eeb3e48e",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 1.29,
+              "capture": "windows-crt-thread.native.json",
+              "capture_sha256": "dcebb086c143a890561a8c3e2e92aa603bafe95aa2888878eb41f7193b04bf4b",
+              "name": "windows-crt-thread"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 45270,
+              "markdown_sha256": "26705a32933e5f2d4a3f5d8261aad4c6e0faf1674f165c46d17456ae37039909",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.78,
+              "capture": "windows-thread-priority.native.json",
+              "capture_sha256": "77454001d1482ef566e7a9c854c6636d6306969285de27f95aac3f97a4c60297",
+              "name": "windows-thread-priority"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 24682,
+              "markdown_sha256": "e8ead551c72b779f0bbced1793e66e5be34aafd54f42d244816e53f97987731c",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.652,
+              "capture": "windows-handle-close.native.json",
+              "capture_sha256": "a61a1007d19aee9571f5d4995a976cbd06c06960b8689b9bb6cc6fe074cd4dd6",
+              "name": "windows-handle-close"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventw",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 36740,
+              "markdown_sha256": "6a28caf87a612aa0fc095ee18160e18ccea72c82a539f2f74a8990e2fd0c317f",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.757,
+              "capture": "windows-create-event.native.json",
+              "capture_sha256": "5a324f2bd1c8023b97b1bedcedb439a4ff8921019bc13e03fe5f90321ab1e4d8",
+              "name": "windows-create-event"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 30043,
+              "markdown_sha256": "7a21d84d6b2cdd5aebf8aee550d2a0c063b40631b566094b6132d8c793e68a87",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.856,
+              "capture": "windows-set-event.native.json",
+              "capture_sha256": "67d190d7ce73cec1360a9be06ec48e3a043204273af288bc7fa5390155ea5c83",
+              "name": "windows-set-event"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 29638,
+              "markdown_sha256": "d1e32741f6540c5daee506c1595f33cc80544ebd9e71b3189be6a0af6909d714",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.717,
+              "capture": "windows-reset-event.native.json",
+              "capture_sha256": "1cdb13f472b8efccdc07b605893acc546138d06c863da69936ee9f9dee0c50dd",
+              "name": "windows-reset-event"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-openeventw",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 31687,
+              "markdown_sha256": "16782508b21dae18f20c5526bf469c696d3deb0b2e5199e2c274a50848da3fb2",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.781,
+              "capture": "windows-open-event.native.json",
+              "capture_sha256": "0d808452c4b03fa89c5275312133ea771e5ca829b6e8c0bfacc482ff99322f11",
+              "name": "windows-open-event"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/sync/synchronization-object-security-and-access-rights",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 22188,
+              "markdown_sha256": "d48b1e90d7b3b753de8d7fa8c5948059c359c60374a0291584db08320486326f",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.73,
+              "capture": "windows-event-rights.native.json",
+              "capture_sha256": "bd08479dd06df14e61d0cc3c54eb3d2d67c75b751d55b73084a4def4ac9c10d1",
+              "name": "windows-event-rights"
+            }
+          ]
+        }
+      },
+      {
+        "entry": "windows-process-retirement/receipt.json",
+        "receipt": {
+          "experimental": true,
+          "commit": "9dd6a98384f3c315522d1ae840afd43ac862bb0b",
+          "provider_repository": "strmt7/FlitzZip",
+          "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+          "provider_version": "0.9.5+flitzzip.portable2",
+          "python": "3.13.18 (main, Oct 26 2026, 14:20:56) [GCC 13.3.0]",
+          "source_group": "windows-process-retirement",
+          "limits": {
+            "memory_max": 3221225472,
+            "tasks_max": 256,
+            "cpu_max": [
+              200000,
+              100000
+            ]
+          },
+          "page_timeout_seconds": 45,
+          "robots_checked": true,
+          "external_llm": false,
+          "persistent_profile": false,
+          "sources": [
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 9257,
+              "markdown_sha256": "160a499e0b3c3678406282acfccc681d029942d10531af36fc4ce32715027ff7",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 1.294,
+              "capture": "windows-process-termination.native.json",
+              "capture_sha256": "fc8ecb37c44062ae82653c12e0f864f69c1ddbc1d353ab5c544f15b7260b7cc5",
+              "name": "windows-process-termination"
+            },
+            {
+              "url": "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-terminatejobobject",
+              "success": true,
+              "native_success": true,
+              "http_status": 200,
+              "final_http_status": 200,
+              "markdown_bytes": 22260,
+              "markdown_sha256": "5d2ae4b886793874d93f4d4ee543ff5992bf0cc0e1efcfde97def6aa006e4fcb",
+              "expected_content": true,
+              "failure_category": "",
+              "error": "",
+              "seconds": 0.926,
+              "capture": "windows-job-termination.native.json",
+              "capture_sha256": "7c00537b8a52c3da4aa3acc7d128fdeca706876e881821a61166930323af1be9",
+              "name": "windows-job-termination"
+            }
+          ]
+        }
+      }
+    ],
+    "verified_native_rows": [
+      {
+        "entry": "process/windows-create-event.native.json",
+        "sha256": "5a324f2bd1c8023b97b1bedcedb439a4ff8921019bc13e03fe5f90321ab1e4d8",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventw",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventw",
+        "error": ""
+      },
+      {
+        "entry": "process/windows-crt-thread.native.json",
+        "sha256": "dcebb086c143a890561a8c3e2e92aa603bafe95aa2888878eb41f7193b04bf4b",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/beginthread-beginthreadex?view=msvc-170",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/beginthread-beginthreadex?view=msvc-170",
+        "error": ""
+      },
+      {
+        "entry": "process/windows-event-rights.native.json",
+        "sha256": "bd08479dd06df14e61d0cc3c54eb3d2d67c75b751d55b73084a4def4ac9c10d1",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/sync/synchronization-object-security-and-access-rights",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/sync/synchronization-object-security-and-access-rights",
+        "error": ""
+      },
+      {
+        "entry": "process/windows-handle-close.native.json",
+        "sha256": "a61a1007d19aee9571f5d4995a976cbd06c06960b8689b9bb6cc6fe074cd4dd6",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle",
+        "error": ""
+      },
+      {
+        "entry": "process/windows-multiple-wait.native.json",
+        "sha256": "b82d7a4337f1968a7df2da3a2189611a46e68e12148fb2382c5ec9f99694fec2",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects",
+        "error": ""
+      },
+      {
+        "entry": "process/windows-open-event.native.json",
+        "sha256": "0d808452c4b03fa89c5275312133ea771e5ca829b6e8c0bfacc482ff99322f11",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-openeventw",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-openeventw",
+        "error": ""
+      },
+      {
+        "entry": "process/windows-reset-event.native.json",
+        "sha256": "1cdb13f472b8efccdc07b605893acc546138d06c863da69936ee9f9dee0c50dd",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent",
+        "error": ""
+      },
+      {
+        "entry": "process/windows-set-event.native.json",
+        "sha256": "67d190d7ce73cec1360a9be06ec48e3a043204273af288bc7fa5390155ea5c83",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent",
+        "error": ""
+      },
+      {
+        "entry": "process/windows-thread-priority.native.json",
+        "sha256": "77454001d1482ef566e7a9c854c6636d6306969285de27f95aac3f97a4c60297",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "error": ""
+      },
+      {
+        "entry": "windows-process-retirement/windows-job-termination.native.json",
+        "sha256": "7c00537b8a52c3da4aa3acc7d128fdeca706876e881821a61166930323af1be9",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-terminatejobobject",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-terminatejobobject",
+        "error": ""
+      },
+      {
+        "entry": "windows-process-retirement/windows-process-termination.native.json",
+        "sha256": "fc8ecb37c44062ae82653c12e0f864f69c1ddbc1d353ab5c544f15b7260b7cc5",
+        "provider": "0.9.5+flitzzip.portable2",
+        "requested_url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess",
+        "success": true,
+        "status": 200,
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess",
+        "error": ""
+      }
+    ],
+    "reviewed_sections": [
+      {
+        "entry": "process/windows-create-event.md",
+        "sha256": "6a28caf87a612aa0fc095ee18160e18ccea72c82a539f2f74a8990e2fd0c317f"
+      },
+      {
+        "entry": "process/windows-event-rights.md",
+        "sha256": "d48b1e90d7b3b753de8d7fa8c5948059c359c60374a0291584db08320486326f"
+      },
+      {
+        "entry": "process/windows-multiple-wait.md",
+        "sha256": "840477df423f81e0c1adf5f2f2d1077eabad1e569c468f8d52b6e51168618476"
+      },
+      {
+        "entry": "process/windows-open-event.md",
+        "sha256": "16782508b21dae18f20c5526bf469c696d3deb0b2e5199e2c274a50848da3fb2"
+      },
+      {
+        "entry": "process/windows-reset-event.md",
+        "sha256": "d1e32741f6540c5daee506c1595f33cc80544ebd9e71b3189be6a0af6909d714"
+      },
+      {
+        "entry": "process/windows-set-event.md",
+        "sha256": "7a21d84d6b2cdd5aebf8aee550d2a0c063b40631b566094b6132d8c793e68a87"
+      },
+      {
+        "entry": "windows-process-retirement/windows-job-termination.md",
+        "sha256": "5d2ae4b886793874d93f4d4ee543ff5992bf0cc0e1efcfde97def6aa006e4fcb"
+      },
+      {
+        "entry": "windows-process-retirement/windows-process-termination.md",
+        "sha256": "160a499e0b3c3678406282acfccc681d029942d10531af36fc4ce32715027ff7"
+      }
+    ],
+    "review_conclusions": [
+      "CreateEventW FALSE selects auto-reset; existing-name state/type/ACL are not replaced, so a newly owned protocol rejects every collision.",
+      "Auto-reset signals persist without a waiter and release one waiter. Repeated SetEvent does not count pulses; exactly one outstanding action is required.",
+      "Use only role-required EVENT_MODIFY_STATE/SYNCHRONIZE handle rights, protected current-user local-session names and disabled inheritance. This is trusted-worker containment, not hostile same-user isolation.",
+      "Never close a waited handle while waiting; current source/peer lifetime leases remain owned until confirmed retirement.",
+      "TerminateProcess requests I/O cancellation asynchronously; terminated kernel objects remain referenced by open handles. Actual process and supervisor exit remain separate gates."
+    ],
+    "projection_note": "An initial overlarge textual projection was truncated; the same immutable artifact/member digests were reverified and recaptured narrowly. No crawl or job was retried."
+  },
+  "scope": "Actual external restart/resumer and readonly normal/kill/recovery client workloads; no owner execution, no GPU repetition, no production guard or historical root-cause conclusion.",
+  "remaining": [
+    "RAM handoff multi-round client channel qualification",
+    "Mandatory adapter-wide origin protection and real guard evidence",
+    "Historical termination cause unproven; full product goals remain active"
+  ]
+}
