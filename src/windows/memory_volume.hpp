@@ -14,7 +14,7 @@ class MemoryVolumeDomain final {
   static MemoryVolumeDomain create(std::uint64_t capacity);
   std::shared_ptr<StoreByteIo> create_store(std::uint64_t capacity);
   MemoryVolumeUsage usage() const noexcept;
-  void verify_admission() const; // Working-set lease; store residency is checked at allocation.
+  void verify_resident() const; // Verify the lease and every currently owned store.
   static bool cleanup_healthy() noexcept;
   ~MemoryVolumeDomain();
   MemoryVolumeDomain(MemoryVolumeDomain&&) noexcept;

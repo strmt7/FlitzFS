@@ -27,6 +27,7 @@ void headroom(std::uint64_t requested) {
 }
 struct MemoryVolumeDomain::State {
   std::uint64_t capacity=0,allocated=0,peak=0,stores=0;
+  std::array<Store*,64> registry{};
   SIZE_T old_min=0,old_max=0;DWORD old_flags=0;std::size_t page=0;
   bool working_set_changed=false;
   explicit State(std::uint64_t cap):capacity(cap) {
@@ -52,6 +53,7 @@ struct MemoryVolumeDomain::State {
 class MemoryVolumeDomain::Store final:public StoreByteIo {
  public:
   Store(std::shared_ptr<State> state,std::uint64_t capacity):state_(std::move(state)),capacity_(capacity) {
+    require(state_->stores<state_->registry.size(),"Memory store count cap");
     require(capacity && capacity%state_->page==0 && capacity<=state_->capacity &&
         state_->allocated<=state_->capacity-capacity,"Memory allocation capacity exceeded");
     headroom(capacity);
@@ -60,6 +62,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     require(data_!=nullptr,"Memory reservation failed");
     state_->allocated+=capacity;state_->peak=(std::max)(state_->peak,state_->allocated);
     ++state_->stores;
+    for(auto& entry:state_->registry)if(!entry){entry=this;break;}
     if(!VirtualLock(data_,static_cast<SIZE_T>(capacity))) {
       release();throw std::runtime_error("Memory locking failed; no pageable fallback");
     }
@@ -106,6 +109,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     if(locked_ && !VirtualUnlock(data_,static_cast<SIZE_T>(capacity_)))cleanup_ok=false;
     if(VirtualFree(data_,0,MEM_RELEASE))state_->allocated-=capacity_;
     else cleanup_ok=false; // Retain accounting; never recycle unconfirmed bytes.
+    for(auto& entry:state_->registry)if(entry==this){entry=nullptr;break;}
     --state_->stores;data_=nullptr;locked_=false;
   }
   std::shared_ptr<State> state_;std::byte* data_=nullptr;
@@ -130,13 +134,16 @@ MemoryVolumeUsage MemoryVolumeDomain::usage() const noexcept {
   if(!state_)return {};
   return {state_->capacity,state_->allocated,state_->peak,state_->stores};
 }
-void MemoryVolumeDomain::verify_admission() const {
+void MemoryVolumeDomain::verify_resident() const {
   require(state_ && cleanup_ok.load(),"Memory domain unavailable");
-  // Individual providers are verified before exposure. Global working-set
-  // admission must remain at least the reserved domain plus bookkeeping.
+  // Retain a bounded registry, not a second image or a dangling owner. Queries
+  // are explicit controller checks, never a full-image copy on every flush.
   SIZE_T minimum=0,maximum=0;DWORD flags=0;
   require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&minimum,&maximum,&flags)!=FALSE &&
       minimum>=state_->capacity+8*mib,"Working-set reservation changed");
+  std::uint64_t observed=0;
+  for(const auto* store:state_->registry)if(store){store->verify();++observed;}
+  require(observed==state_->stores,"Memory store ownership accounting differs");
 }
 bool MemoryVolumeDomain::cleanup_healthy() noexcept {return cleanup_ok.load();}
 } // namespace flitzfs

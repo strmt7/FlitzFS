@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "source_commit": "58fa7c3d465db449e6585dcd01ef9ea2ae2fd0a3",
+  "run": 43337097848,
+  "job": 131595911199,
+  "conclusion": "failure",
+  "build": "success",
+  "dependency_audit": "success",
+  "audited_binaries": [
+    {
+      "role": "application",
+      "bytes": 950272,
+      "sha256": "7f3fe086c86d15831354c652926515e7f43a9acef82c879ecc821f8570745e94",
+      "os_imports": [
+        "bcrypt.dll",
+        "gdi32.dll",
+        "kernel32.dll",
+        "shell32.dll",
+        "user32.dll"
+      ]
+    },
+    {
+      "role": "harness",
+      "bytes": 1098752,
+      "sha256": "db490272f973af06ca526b7cebd56df959ccfb249cb73b92c93b7fc8e3923e8c",
+      "os_imports": [
+        "bcrypt.dll",
+        "kernel32.dll",
+        "user32.dll"
+      ]
+    }
+  ],
+  "aslr_high_entropy_nx": true,
+  "delay_imports": false,
+  "model": "Reached final handle-balance assertion after provider, real engine and controller checks; failed with Controller handle leak. Earlier version did not print counts, so magnitude and cause remain unknown.",
+  "gui": "Not executed after model failure",
+  "owner_execution": false,
+  "resolution": "Retain the strict final assertion and add per-phase counts. Add a bounded provider registry with explicit post-use residency verification before further qualification. Do not infer cold Windows initialization or suppress an unexplained leak."
+}
