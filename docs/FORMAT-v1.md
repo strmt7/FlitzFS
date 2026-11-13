@@ -435,3 +435,8 @@ The priority capability guard and its historical CPU oracle add no runtime expor
 worker category/stage value, stored encoding, codec ID or product numbering.
 Existing failure categories now distinguish unreported capability from a stable
 invalid range; their numerical values and protocol framing are unchanged.
+
+
+The experimental historical retirement-reference harness adds only private test
+receipts; no container, native namespace, worker wire, codec ID or capability
+encoding changes. It does not introduce a product historical-format writer.

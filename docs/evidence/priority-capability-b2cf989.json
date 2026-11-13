@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "b2cf9899417d52c2266d86fa1246b874001376a3",
+  "sdk": {
+    "run": 43432703582,
+    "job": 131909930610,
+    "artifact": {
+      "id": 14040661533,
+      "bytes": 16895,
+      "sha256": "a0d595aadc2254203b0db53f73cebcfbd99d93b1e48eb1ae2fecd313f814b7b7"
+    },
+    "api_probe": {
+      "bytes": 286208,
+      "sha256": "d2ec9204738a175c91623676a5219b154faebda673c2451f6544d3c5ab9be5d0",
+      "imports": {
+        "format": "PE32+",
+        "architecture": "AMD64",
+        "os_imports": [
+          "kernel32.dll"
+        ],
+        "delay_imports": false
+      },
+      "qualification": {
+        "checks": 235,
+        "priority_cases": 12,
+        "priority_query_limit": 2,
+        "identity_before_selection": true,
+        "missing_exports_refused": 11,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      }
+    },
+    "priority_capability_regression": {
+      "old": {
+        "category": 1179844613,
+        "stage": "stream_priorities",
+        "priority_queries": 1,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": false
+      },
+      "current": {
+        "category": 1179844611,
+        "stage": "stream_priorities",
+        "priority_queries": 2,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "complete": true
+    },
+    "worker_exits_confirmed": 20,
+    "worker_admission_complete": true,
+    "hip_runtime_loaded": false,
+    "gpu_executed": false
+  },
+  "integration": {
+    "run": 43432703721,
+    "jobs": [
+      {
+        "id": 131909931456,
+        "name": "sanitizers",
+        "conclusion": "success"
+      },
+      {
+        "id": 131909931457,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131909931506,
+        "name": "windows-native",
+        "conclusion": "success"
+      },
+      {
+        "id": 131909931536,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131909931567,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131913433451,
+        "name": "windows-mount",
+        "conclusion": "success"
+      },
+      {
+        "id": 131915063447,
+        "name": "windows-write-mount (delete)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131915063482,
+        "name": "windows-write-mount (basic)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131915063534,
+        "name": "windows-write-mount (restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131915063550,
+        "name": "windows-write-mount (mutations)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131915063561,
+        "name": "windows-write-mount (crash-restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131915063573,
+        "name": "windows-write-mount (crash)",
+        "conclusion": "success"
+      },
+      {
+        "id": 131915063598,
+        "name": "windows-write-mount (ram-handoff)",
+        "conclusion": "success"
+      }
+    ],
+    "jobs_passed": 13,
+    "jobs_total": 13
+  },
+  "scope": "Exact old/current CPU classification and current SDK/worker gates. No owner-device omitted-metadata observation, runtime priority effect or GPU performance evidence.",
+  "owner_execution": false
+}

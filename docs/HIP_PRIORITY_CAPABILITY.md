@@ -42,6 +42,15 @@ category and exactly two queries. Neither executable loads HIP or executes GPU
 code, and neither historical header/probe is linked into product targets.
 
 The expanded SDK qualification retains every previous compiler/module/worker
-gate and its existing process budgets. New-source old/current regression,
-complete API probe, SDK build and full integration execution remain pending.
+gate and its existing process budgets. The initial design required new-source old/current regression,
+complete API probe, SDK build and full integration execution; executed results follow below.
 Normal file operations and kernels are unchanged.
+
+## Executed priority capability checkpoint
+
+At b2cf9899417d52c2266d86fa1246b874001376a3, SDK run43432703582 passed235 CPU
+assertions across12 priority scenarios. The exact historical probe reported
+category1179844613 with one query; the corrected probe reported1179844611 with
+two. Neither loaded HIP or executed GPU work. Every original SDK/worker gate,
+including20 confirmed exits, passed; core run43432703721 passed all13 jobs.
+[Source-bound evidence](evidence/priority-capability-b2cf989.json).

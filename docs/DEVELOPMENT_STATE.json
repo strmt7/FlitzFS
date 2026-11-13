@@ -65,7 +65,17 @@
       "latest_job": 130502518872,
       "latest_evidence": "docs/evidence/retirement-failure-d1e66f6.json",
       "candidate_evidence": "docs/evidence/mount-source-isolation-8122bf5.json",
-      "candidate_scope": "Actual external-client ownership, host-self-open rejection, native flush observation, confirmed source retirement and independent recovery; prior failure cause still unproven."
+      "candidate_scope": "Actual external-client ownership, host-self-open rejection, native flush observation, confirmed source retirement and independent recovery; prior failure cause still unproven.",
+      "controlled_reference": {
+        "contract": "docs/RETIREMENT_REFERENCE.md",
+        "reference": "d1e66f6132d0a5672378bebbe9880e19af105f75",
+        "variants": [
+          "held",
+          "closed"
+        ],
+        "status": "implemented; execution pending",
+        "owner_execution": false
+      }
     }
   ],
   "next_implementation": [
@@ -85,7 +95,7 @@
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; 99d5365 passed VM model/GUI and one healthy owner GUI with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
-    "gpu_codec_candidate": "Complete allocation and independent CPU verification passed all five core configurations at 86bc830. Native Windows offline compile and exact host/device metadata inspection passed at 1d20f40, with 28 admission cases and 20 original worker exits. Current-AMD content capture failed on an absent literal marker; source-based scope restoration is pending. No runtime/stored codec selected."
+    "gpu_codec_candidate": "Complete allocation and independent CPU verification passed all five core configurations at86bc830. Offline object inspection passed at1d20f40 and current-AMD content at5eaa07a. Priority capability corroboration, exact old/current CPU oracle and SDK/worker gates passed atb2cf989. No runtime/stored codec or useful GPU gain selected."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -342,11 +352,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "5eaa07ae56bd360cecf5b31bcf3806f117540ab7",
-    "contract": "docs/HIP_PRIORITY_CAPABILITY.md",
-    "behavior": "Two bounded priority-output observations; unsupported configuration for unreported/partial/inconsistent capability, existing fault semantics for stable invalid order and typed API errors.",
-    "status": "Twelve capability scenarios, byte-pinned prior/current CPU regression, complete SDK/worker and integration checks require publishing-source execution.",
-    "next": "Inspect real old/current categories/query counts, retain every original gate, then finish kernel/ABI/lifecycle work. Current research admission is restored; the full product and useful GPU gain remain unfinished."
+    "source_parent": "b2cf9899417d52c2266d86fa1246b874001376a3",
+    "contract": "docs/RETIREMENT_REFERENCE.md",
+    "behavior": "Manual disposable-VM historical held/closed-client comparison with exact source, original deadlines and terminal unknown retirement.",
+    "status": "New CPU transformation, current-source core gates and one controlled trial per VM require publishing-source execution.",
+    "next": "Retain raw acknowledgements and phase receipts, compare actual retirement outcomes without inferring the historical cause from a green run. G03 lifecycle and the full product remain unfinished."
   },
   "resolved": [
     {
@@ -492,7 +502,7 @@
       "metadata_command_succeeded": true,
       "gfx1100_observed": true,
       "metadata_accepted": false,
-      "reason": "Strict parser omitted the native zero-byte AMD64 host placeholder; captured-schema correction and extents are pending execution."
+      "reason": "Strict parser omitted the native zero-byte AMD64 host placeholder. Failure retained; corrected schema and extents later qualified at1d20f40."
     },
     "qualified_object_source": "1d20f4059093ef74aca5e4ce4835b6cdc4e6e5ab",
     "object_inspection": {
@@ -518,6 +528,20 @@
       "all_passed": true,
       "publisher_revision_verified": false,
       "evidence": "docs/evidence/gpu-priority-sources-5eaa07a.json"
+    },
+    "priority_capability": {
+      "source": "b2cf9899417d52c2266d86fa1246b874001376a3",
+      "run": 43432703582,
+      "checks": 235,
+      "scenarios": 12,
+      "query_limit": 2,
+      "old_category": 1179844613,
+      "current_category": 1179844611,
+      "old_queries": 1,
+      "current_queries": 2,
+      "worker_exits_confirmed": 20,
+      "gpu_executed": false,
+      "evidence": "docs/evidence/priority-capability-b2cf989.json"
     }
   },
   "integration_checkpoints": [
@@ -544,10 +568,10 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "5eaa07ae56bd360cecf5b31bcf3806f117540ab7",
-    "run": 43427561796,
+    "source": "b2cf9899417d52c2266d86fa1246b874001376a3",
+    "run": 43432703721,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "scope": "Job conclusions; detailed CPU verifier and owner GUI evidence remain separately source-bound. No new physical durability or GPU-output claim."
+    "scope": "Job conclusions plus exact priority CPU/SDK results. Detailed CPU verifier and owner GUI evidence remain separately source-bound; no new physical durability or GPU-output claim."
   }
 }

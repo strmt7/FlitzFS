@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "observed_utc": "2026-11-13",
+  "control_commit": "b2cf9899417d52c2266d86fa1246b874001376a3",
+  "run": 43434934939,
+  "job": 131917468976,
+  "artifact": {
+    "id": 14042901489,
+    "bytes": 75935,
+    "sha256": "63b20f4fe908916d48900c4ae125c4d003e0807e5708e4a1c77fa67389e95b33"
+  },
+  "provider": {
+    "repository": "strmt7/FlitzZip",
+    "commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+    "version": "0.9.5+flitzzip.portable2",
+    "python": "3.13.18",
+    "robots_checked": true,
+    "external_llm": false,
+    "persistent_profile": false,
+    "page_timeout_seconds": 45,
+    "memory_bytes": 3221225472,
+    "tasks": 256,
+    "cpu_quota": [
+      200000,
+      100000
+    ]
+  },
+  "receipt_sha256": "797c4f58927786ee18f4aa3257f8c76e6fb1f18f722e212180e1d7023599cd85",
+  "sources": [
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess",
+      "http_status": 200,
+      "native_success": true,
+      "markdown_bytes": 38996,
+      "markdown_sha256": "4bdfb290cc97e38bc9de9af706cb0abbaebdde0983410b2bd5984c9cd9efb3be",
+      "native_sha256": "671889134f3ed478ae92aba57c7711a97d320cdd01860b109ff3ed3b58531977",
+      "publisher_ms_date": "2025-12-30",
+      "publisher_updated_at": "2026-01-07",
+      "revision_verified": false,
+      "reviewed": "Remarks: request cancellation, pending-I/O completion and exact process-handle exit observation are distinct from initiating termination."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-terminatejobobject",
+      "http_status": 200,
+      "native_success": true,
+      "markdown_bytes": 22260,
+      "markdown_sha256": "5d2ae4b886793874d93f4d4ee543ff5992bf0cc0e1efcfde97def6aa006e4fcb",
+      "native_sha256": "72eab295c2c0b5f43ad472fdc8740de8b482bbb3baa81df89e13466dff3bb7a8",
+      "publisher_ms_date": "2018-12-05",
+      "publisher_updated_at": "2024-02-22",
+      "revision_verified": false,
+      "reviewed": "Remarks: job termination applies process termination semantics to members and nested jobs. Current capture does not make this a recently published page."
+    }
+  ],
+  "exact_source": {
+    "repository": "winfsp/winfsp",
+    "commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
+    "path": "src/dll/fs.c",
+    "blob": "8dfd46f82b57978689cd6f50ddbbe151bcc838d8",
+    "symbol": "FspFileSystemStopDispatcher",
+    "observation": "Ordered shutdown waits for the dispatcher thread. This is not proof of a forced-termination failure cause."
+  },
+  "failures_retained": [
+    "The first artifact observation URL expired with HTTP403; renewed download of the same artifact admitted the unchanged digest.",
+    "No old publisher date was recast as a new API feature."
+  ],
+  "historical_cause": "unproven",
+  "gpu_executed": false,
+  "owner_execution": false
+}

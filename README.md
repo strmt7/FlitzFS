@@ -287,5 +287,12 @@ all nine scope cases and all three native pages. Source review keeps warp
 lockstep distinct from memory visibility and priority hints distinct from OS
 scheduling guarantees. The next [priority capability change](docs/HIP_PRIORITY_CAPABILITY.md)
 corroborates reported outputs and classifies incomplete capability separately
-from a stable invalid range. Its exact old/new CPU regression and SDK execution
-remain pending; no actual device case or performance gain is claimed.
+from a stable invalid range. Its exact old/new CPU regression,235 assertions/12 scenarios, SDK/worker gates
+and all13 core jobs passed atb2cf989
+([evidence](docs/evidence/priority-capability-b2cf989.json)). No actual device case
+or performance gain is claimed.
+
+
+The explicit [historical retirement comparison](docs/RETIREMENT_REFERENCE.md)
+uses independent disposable VMs and original deadlines. Execution is pending;
+current product origin guards and ordinary regression gates remain unchanged.
