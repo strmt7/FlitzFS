@@ -62,5 +62,28 @@
       "bytes": 7207,
       "sha256": "25fd0693fa39c28c0df0405fa157ce73c31d6c408b6df06f6cfad6dba98019b5"
     }
-  ]
+  ],
+  "retained_failed_qualification": {
+    "source": "6587ea0503a119156fb470a5002310c398800599",
+    "run": 43387569004,
+    "jobs": [
+      131759546801,
+      131759547253,
+      131759547204
+    ],
+    "error": "publication cut count outside bounded model",
+    "scope": "The new fixture stopped before fault iteration because its guessed 32-call cap omitted 4-KiB zero-padding writes. No counter/data mismatch was observed; interruption coverage remains unqualified.",
+    "derived_bound": {
+      "record_header_payload_writes": 4,
+      "padding_ranges": 3,
+      "max_chunks_per_padding_range": 16,
+      "index_writes": 2,
+      "root_writes": 2,
+      "flushes": 3,
+      "total": 59
+    },
+    "reviewed_exact_current_source": "src/object_store.cpp: write_zeros, replicated_plan, publish_replicated, commit_impl",
+    "correction": "Assert the derived 59-call bound and execute every actual observed cut; preserve all product, test process and time limits.",
+    "owner_executed": false
+  }
 }

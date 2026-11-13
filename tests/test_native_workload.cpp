@@ -103,7 +103,12 @@ void interrupted(StoreCompressionMode mode,bool enabling) {
         view.storage_info().generation,{mode,3,false}));
     exercise(*probe,fs);steps=probe->calls;
   }
-  require(steps>0&&steps<=32,"publication cut count outside bounded model");
+  // This fixture changes at most two records (header + payload each).
+  // Replicated publication has three <=64-KiB zero-padding ranges written
+  // in 4-KiB chunks, two indexes, two roots and three flushes.
+  constexpr auto max_calls=2*2+3*(kStoreCommitUnit/4096)+2+2+3;
+  std::cout<<"Observed workload publication calls: "<<steps<<"; bound="<<max_calls<<"\n";
+  require(steps>0&&steps<=max_calls,"publication cut count outside derived fixture bound");
   for(unsigned failure=0;failure<3;++failure)for(std::size_t cut=0;cut<steps;++cut) {
     auto ram=image(original);
     {
