@@ -111,8 +111,13 @@ void native() {
   require(adapter->snapshot().read("created.bin",0,17)==std::vector<std::byte>(payload.begin(),payload.end()),
       "guard changed committed CPU bytes");
   selected=Origin::kernel;
-  require(fs.Interface->Open(&fs,path,0,FILE_GENERIC_READ,&context,&info)==STATUS_SUCCESS&&context,
-      "kernel native Open changed");
+  // WinFsp encodes FILE_OPEN in the high byte. Zero means FILE_SUPERSEDE
+  // and prepares an overwrite; it is not an existing-file read request.
+  constexpr UINT32 open_existing=1U<<24;
+  const auto committed=adapter->snapshot().storage_info().generation;
+  require(fs.Interface->Open(&fs,path,open_existing,FILE_GENERIC_READ,&context,&info)==STATUS_SUCCESS&&context&&
+      info.FileSize==payload.size()&&adapter->snapshot().storage_info().generation==committed,
+      "kernel existing-file Open changed storage or metadata");
   const auto read_calls=queries;selected=Origin::throws;
   std::array<std::byte,17> bytes{};ULONG read=0;
   require(fs.Interface->Read(&fs,context,bytes.data(),0,static_cast<ULONG>(bytes.size()),&read)==STATUS_SUCCESS&&

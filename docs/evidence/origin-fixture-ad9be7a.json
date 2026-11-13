@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source_commit": "ad9be7a5083f6c053516fafaefed8b180d35fadb",
+  "core_run": 43367793007,
+  "windows_job": 131696198667,
+  "test": "hosted_winfsp_origin_candidate",
+  "native_groups": 136,
+  "failed_groups": 1,
+  "observed_error": "kernel native byte parity",
+  "cause": {
+    "type": "new_test_request_options",
+    "source": "src/windows/winfsp_native.cpp:245-252",
+    "evidence": "options >> 24 decodes the create disposition. Zero prepares overwrite (FILE_SUPERSEDE), not an existing-file read. Existing native callback fixtures encode FILE_OPEN as 1U<<24.",
+    "correction": "Use explicit FILE_OPEN high byte for the kernel existing-file request; assert unchanged storage generation and exact FileSize before byte comparison.",
+    "product_change": false
+  },
+  "scope": "CPU synthetic origin callback test only; no actual GPU or mounted guard qualification on this failed source. Mounted jobs remain gated. Retain full native logs by job identity.",
+  "qualification": "Publishing-source full gates required; no timeout, resource limit or integrity check weakened."
+}
