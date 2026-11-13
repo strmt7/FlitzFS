@@ -67,9 +67,10 @@ a narrower supported conclusion. No timer increase can count as a repair.
 
 Current Microsoft API captures on13 November2026 retain the distinction between
 a termination request and observed process exit: pending I/O can delay exit, and
-job termination applies process termination to each member. The process page
-reports a2026 update; the job page retains older publisher metadata. These are
-currently served API contracts, not newly published2026 features.
+only a confirmed exact process-object wait authorizes further work. The process
+page reports a2026 update. The job-page capture has older publisher metadata and
+is retained as rejected research evidence; it does not satisfy the owner's
+recent-source requirement and supplies no design authority.
 See evidence/retirement-research-b2cf989.json for native provider receipts and
 digests. The exact pinned WinFsp StopDispatcher implementation has an infinite
 thread join during ordered shutdown; forced process termination bypasses normal
@@ -77,3 +78,33 @@ C++ destruction. Its source does not establish the cause of this old failure.
 
 No owner experiment, driver change, persistent task, automatic GPU operation,
 resident worker or useful compression/performance qualification follows.
+
+
+## Preparation failure and independent reconciliation
+
+The initial manual run43442794675 at497066c stopped both variants before private
+source generation. The checked-out historical HEAD was correct; literal root
+comparison mixed Git forward slashes and native Windows backslashes. Old target
+compilation, driver provisioning, read-only execution and retirement trials were
+all skipped. This is a harness preparation failure, not a D01 reproduction.
+The original failed run and artifact identities remain in
+evidence/retirement-preparation-497066c.json.
+
+The corrected guard checks an absolute, same-anchor path and actual directory
+identity, with nonzero file/device IDs and fail-closed errors. It rejects a private
+reparse root and checks both control and reference Git roots. The selected
+CPython3.15.2 Path.samefile implementation was read by exact canonical blob;
+Windows and Linux source tests now exercise native/Git spellings and wrong roots.
+A textual case-folded equality is no longer directory identity evidence.
+
+A separate CPU reconciler binds four exact controller records, the raw flushed
+phase file, the original acknowledgement, source commit/variant/PID and resource
+ranges. It requires confirmed timeout exit before opening even fixture receipts,
+rejects missing/extra/duplicated/mixed records and distinguishes bool from integer
+claims. Full-width FILETIME integers remain exact; raw acknowledgement and phase
+digests bind retained bytes. A successful program exit alone is insufficient.
+Only reconciliation success creates a NEW qualification.json. This report attests
+to the trusted fixture's observed CPU readback; it neither authenticates arbitrary
+JSON nor proves a historical kernel cause, physical power-loss behavior or GPU work.
+New-source source tests, ordinary gates, compiler and actual trials still require
+execution. No unchanged old-driver trial is rerun merely to validate this parser.

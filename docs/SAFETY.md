@@ -1074,3 +1074,9 @@ old-source pins, one trial per disposable VM, phase receipts and original limits
 No owner driver/mount/GPU operation or stored-format change follows. Unknown
 retirement remains terminal; a green reconstruction cannot explain the old kernel
 state by itself. Publishing-source execution is still required.
+
+At497066c all13 ordinary jobs and8 Linux source tests passed. Both historical
+comparison variants failed preparation before driver installation or trial.
+The correction binds actual directory identities and independently reconciles raw
+phase/acknowledgement/result/CPU records. Windows/Linux source tests and actual
+controlled trials require new-source qualification; D01 remains unresolved.

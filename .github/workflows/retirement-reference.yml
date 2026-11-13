@@ -13,7 +13,11 @@ permissions:
 jobs:
   source:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025-vs2026]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -280,6 +284,8 @@ jobs:
               }
             } finally { $process.Dispose() }
           }
+      - name: Independently reconcile exact retained reference records
+        run: python tools/ci/retirement_reference.py --variant ${{ matrix.variant }} --reconcile
       - name: Retain reference identity, raw acknowledgement and retirement observations
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
