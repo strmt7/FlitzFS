@@ -898,3 +898,13 @@ targets and account at most four 128-KiB reservations. Never reset healthy advic
 reuse partial bytes, infer durable mapping, loop automatically or fence user data
 because advice failed. New tests require their own publishing-source gates;
 parent 053ade8 passed all 13 jobs. No owner execution or lifetime wear claim follows.
+
+## Helper advisory recovery
+
+[ADVISORY_HELPER.md](ADVISORY_HELPER.md) keeps advice audits/rebuilds in the
+serialized maintenance path. No normal save/read consults advice. Retain all
+admitted backends, including failed creation, within the existing 12-MiB app
+domain/four-area ceiling. Exhaustion defers optional work without fencing data.
+Fault tests touch only new private VM memory; no production injection command,
+backing override, host operation, timer or persistence is introduced. New-source
+qualification is required; physical mapping and persistent credit remain open.

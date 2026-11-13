@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source_parent": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+  "current_index": {
+    "indexed_commit": "b580299785261ad4b8248bce02dc48a9fe45b495",
+    "current_commit": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+    "compare": "d05OracleCompare",
+    "changed_only_excluded_test_and_doc": true,
+    "artifact": {
+      "digest": "sha256:74b4bae997ccb96afb1d2e99985d25616ccaaa5e3adbba4cf5b17e785508156b",
+      "id": 14013724241,
+      "name": "semantic-routing-b580299785261ad4b8248bce02dc48a9fe45b495",
+      "size_in_bytes": 660347
+    },
+    "rows_key": "d05UpdatedSemanticRows",
+    "source_sha256": "60d6127854111d5255df19f8e79a7d11339a1441e766ce68733e6d2308e885c2"
+  },
+  "live_index_confirmation": "{\"path\":\"src/windows/winfsp_native.cpp\",\"blob\":\"c79752b85d31d23dca5254df296255ac6bb95f3a\",\"bytes\":35733,\"sha256\":\"30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780\"}\r\n{\"path\":\"include/flitzfs/native_filesystem.hpp\",\"blob\":\"1a207a17c24e30e240fb1e8e745bbdc2a9aacdc7\",\"bytes\":22220,\"sha256\":\"30ac8c139b3c3b23929d2ec641c653af6824a23917c89334f71c2c2afb90f067\"}\r\n{\"path\":\"include/flitzfs/native_session.hpp\",\"blob\":\"1aae69d2ef629631c5801fdad0c7a9f74cbf9b08\",\"bytes\":21459,\"sha256\":\"8c4c3400206fbdfc2d4f5e888cfb391eaf4e2132956c9c2e46cb5faa4df6696b\"}\r\n",
+  "exact_provider_confirmation": "{\"path\":\"src/windows/memory_volume.cpp\",\"blob\":\"feefad7fef38e738d028915b98f3f8fb6824643d\",\"bytes\":7584,\"sha256\":\"f497695019847c345ea7cb5ca4f485875554ba82412e21a7341bf20ad48a3bbc\"}\r\n{\"path\":\"src/windows/volume_model.cpp\",\"blob\":\"eb9336cacfbce836d5969ed16ecf2e68700be2db\",\"bytes\":5463,\"sha256\":\"b9b04cacf4ddc3ded53844431116fbce86f44b27a402dbf74f746df6e10b7926\"}\r\n{\"path\":\"src/windows/volume_controller.cpp\",\"blob\":\"5fcabd136f2a39a398ba97ff3cc2eb09dabf89de\",\"bytes\":4238,\"sha256\":\"4ead37c85079265fd344051a72ecf17d3b60f17fa030a107ef7ee170d5374b5c\"}\r\n",
+  "primary_source_basis": {
+    "manifest": "docs/evidence/advisory-rebuild-sources-053ade8.json",
+    "capture_date": "2026-11-09",
+    "scope": "Reuse the admitted native SQLite crash/reader-lifetime and Microsoft caching captures; no new page fetch or persistence API/version selected."
+  },
+  "reviewed_component_contracts": [
+    "docs/WINDOWS_VOLUME_APP.md",
+    "docs/ADVISORY_REBUILD.md",
+    "docs/OPTIMIZATION_STATE.md",
+    "docs/VOLUME_SESSION.md"
+  ],
+  "inferences": [
+    "Use the existing real journal check for identical advice, preserving zero-write healthy audits.",
+    "Retain every admitted provider backing through the core owner and fixed helper mapping, including exceptions after binding admission.",
+    "Keep file operations independent of advisory checks; reject unavailable optional work before image allocation.",
+    "The actual private memory provider and serialized controller are the qualified current scope; no physical/durable mapping claim follows."
+  ],
+  "new_source_qualification": "pending",
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 06:40:04 UTC",
+    "native_api_result": "{\"numbers\":[],\"open_alerts\":0}\n"
+  }
+}

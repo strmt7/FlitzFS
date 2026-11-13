@@ -382,3 +382,12 @@ live-handle preservation; its publishing-source gates remain pending. Provider
 mapping/reclamation, persistent workload-derived write credit and automatic
 learning are still required. The full product/GPU/Windows/recovery exits above
 remain intact.
+
+## Windows helper advice integration
+
+The controlled rebuild at 745d023 passed all 13 core/mounted regressions and 687
+advisory assertions. Its [helper consumer](ADVISORY_HELPER.md) now prepares actual
+process-lifetime area ownership, accounting and one checked maintenance rebuild.
+New-source qualification remains required. Physical mapping/reclamation,
+persistent write credit, authorization and automatic learning remain open; the
+full Windows/GPU/resilience objective is unchanged.

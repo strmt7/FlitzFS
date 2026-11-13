@@ -139,3 +139,8 @@ within a four-area aggregate ceiling. Both immediate and staged image maintenanc
 reject current and prior advisory backings. Original create/resume binding rules
 and all user-data publication/recovery rules remain unchanged. This does not
 publish a durable provider mapping or implement automatic learning.
+
+The Windows helper's [advice consumer](ADVISORY_HELPER.md) now prepares the
+corresponding process-lifetime selected-area ownership. It changes no managed
+data/context transition and grants no physical/durable mapping authority.
+Publishing-source VM evidence is required before claiming that integration works.

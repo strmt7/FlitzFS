@@ -60,7 +60,10 @@ void VolumeController::run() noexcept {
               message="New file saved and byte-verified.";break;
             case VolumeCommandKind::read_text:text=model.read_text(command->name);message="File read and integrity-checked.";break;
             case VolumeCommandKind::optimize:
-              message=model.optimize()?"Verified smaller image published.":"No beneficial handoff; current image retained.";break;
+              message=model.optimize()?"Verified smaller image published.":"No beneficial handoff; current image retained.";
+              if(model.optimization_info().phase!=NativeOptimizationPhase::ready)
+                message="Optimization deferred; optional state unavailable. File access remains available.";
+              break;
             case VolumeCommandKind::discard:model.discard();message="Temporary volume explicitly discarded.";break;
             case VolumeCommandKind::stop:throw std::runtime_error("Invalid queued stop");
           }

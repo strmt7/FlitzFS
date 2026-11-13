@@ -127,6 +127,8 @@ struct App {
       if(v.text)SetWindowTextW(text,wide(*v.text).c_str());
     }
     std::wstring state=L"Experimental | CPU engine | Not mounted";
+    if(v.volume.ready)state+=v.volume.optimization.phase==NativeOptimizationPhase::ready?
+        L" | Optimization state: ready":L" | Optimization state: unavailable";
     if(v.volume.ready)state+=L"\r\nFile bytes: "+std::to_wstring(v.volume.logical_bytes)+
         L" | Image/head/advice bytes: "+std::to_wstring(v.volume.physical_bytes)+
         L" | Locked allocation: "+std::to_wstring(v.volume.allocated)+L"/"+std::to_wstring(v.volume.capacity);

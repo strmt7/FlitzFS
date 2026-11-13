@@ -9,6 +9,42 @@
 #include <exception>
 #include <iostream>
 #include <thread>
+namespace flitzfs {
+// Qualification binary only. Faults touch its freshly allocated private RAM;
+// no production command, flag, provider override or arbitrary path exists.
+struct VolumeModelQualification {
+  static std::shared_ptr<StoreByteIo> current(VolumeModel& m) {
+    const auto n=m.session_->optimization_info().binding_attempts;
+    if(!n||n>m.advice_.size()||!m.advice_[n-1])throw std::runtime_error("Qualification mapping");
+    return m.advice_[n-1];
+  }
+  static std::vector<std::byte> bytes(const std::shared_ptr<StoreByteIo>& io) {
+    if(io->extent()!=kOptimizationAreaBytes)throw std::runtime_error("Qualification area extent");
+    std::vector<std::byte> out(kOptimizationAreaBytes);io->read_exact(0,out);return out;
+  }
+  static void damage(VolumeModel& m,unsigned copies=2) {
+    auto area=current(m);
+    for(unsigned slot=0;slot<copies;++slot) {
+      std::array<std::byte,1> byte{};
+      const auto at=slot*kStoreCommitUnit+96;
+      area->read_exact(at,byte);byte[0]^=std::byte{1};area->write_exact(at,byte);
+    }
+    area->flush();
+  }
+  static std::shared_ptr<StoreByteIo> fill_remaining(VolumeModel& m) {
+    const auto use=m.domain_->usage();return m.domain_->create_store(use.capacity-use.allocated);
+  }
+  static NativeFileHandle open_cleaned(VolumeModel& m) {
+    auto file=m.session_->open("keep.txt",{true,false,false},NativeOpenKind::file);
+    m.session_->cleanup(file,false);return file;
+  }
+  static std::vector<std::byte> read(VolumeModel& m,const NativeFileHandle& f) {
+    return m.session_->read(f,0,32);
+  }
+  static void close(VolumeModel& m,const NativeFileHandle& f){m.session_->close(f);}
+  static NativeSessionStats stats(const VolumeModel& m){return m.session_->stats();}
+};
+}
 using namespace flitzfs;
 namespace {
 unsigned checks=0;
@@ -65,6 +101,84 @@ void native_initialization() {
   }
   handles("native-window-thread-stable");
 }
+
+void advice_application_tests() {
+  using Q=VolumeModelQualification;
+  using Result=VolumeModel::AdviceMaintenance;
+  const std::string text="retained bytes";
+  const auto expected=std::vector<std::byte>(reinterpret_cast<const std::byte*>(text.data()),
+      reinterpret_cast<const std::byte*>(text.data()+text.size()));
+  {
+    VolumeModel model;rejects([&]{model.maintain_optimization_state();},"uncreated advice maintenance accepted");
+    model.create();model.create_text("keep.txt",text);
+    const auto baseline=model.view();const auto handle=Q::open_cleaned(model);
+    {
+      const auto area=Q::current(model);const auto bytes=Q::bytes(area);
+      require(model.maintain_optimization_state()==Result::ready&&
+          model.maintain_optimization_state()==Result::ready&&Q::bytes(area)==bytes&&
+          model.optimization_info().binding_attempts==1&&
+          !model.optimization_info().remaining_publications&&model.view().allocated==baseline.allocated,
+          "healthy audit rewrote/rebound exhausted advice");
+    }
+    for(unsigned rebuilt=1;rebuilt<NativeFileSession::max_optimization_bindings;++rebuilt) {
+      const auto old=Q::current(model);Q::damage(model);
+      const auto damaged=Q::bytes(old);
+      require(model.maintain_optimization_state()==Result::rebuilt,"helper did not rebuild failed advice");
+      const auto view=model.view();const auto info=view.optimization;
+      require(info.phase==NativeOptimizationPhase::ready&&info.sequence==1&&
+          info.binding_attempts==rebuilt+1&&info.owned_area_bytes==(rebuilt+1)*kOptimizationAreaBytes&&
+          !info.remaining_publications&&!view.fenced&&
+          view.allocated==baseline.allocated+rebuilt*kOptimizationAreaBytes&&
+          view.physical_bytes==baseline.physical_bytes+rebuilt*kOptimizationAreaBytes,
+          "helper replacement mapping/accounting");
+      require(Q::current(model)!=old&&Q::bytes(old)==damaged&&model.read_text("keep.txt")==text&&
+          Q::read(model,handle)==expected&&Q::stats(model).contexts==1&&Q::stats(model).cleaned==1,
+          "helper replaced source bytes, lost a live cleaned handle or reused an area");
+    }
+    Q::damage(model);
+    const auto allocated=model.view().allocated;
+    for(unsigned repeat=0;repeat<8;++repeat)
+      require(model.maintain_optimization_state()==Result::unavailable&&
+          model.view().allocated==allocated&&model.optimization_info().binding_attempts==
+            NativeFileSession::max_optimization_bindings,"exhausted helper retried/leaked a new area");
+    require(!model.optimize()&&model.view().allocated==allocated&&!model.view().fenced,
+        "unavailable advice started image work or fenced data");
+    model.create_text("after.txt","still writable");
+    require(model.read_text("after.txt")=="still writable"&&model.read_text("keep.txt")==text&&
+        Q::read(model,handle)==expected,"advice exhaustion stopped real file access");
+    Q::close(model,handle);model.discard();
+  }
+  {
+    VolumeModel model;model.create();model.create_text("keep.txt",text);
+    const auto handle=Q::open_cleaned(model);Q::damage(model);
+    const auto before=model.optimization_info().binding_attempts;
+    {
+      auto filler=Q::fill_remaining(model);
+      const auto use=model.view();
+      require(use.allocated==use.capacity,"bounded pressure fixture did not fill its own domain");
+      for(unsigned repeat=0;repeat<3;++repeat)
+        rejects([&]{model.maintain_optimization_state();},"provider capacity refusal hidden");
+      require(model.optimization_info().binding_attempts==before&&!model.view().fenced&&
+          model.view().allocated==use.allocated&&model.read_text("keep.txt")==text&&
+          Q::read(model,handle)==expected,"pressure changed mapping, leaked or blocked file access");
+    }
+    // New independently available capacity permits a distinct attempt, without
+    // waiting, polling hardware, a timeout retry or resetting failed bytes.
+    require(model.maintain_optimization_state()==Result::rebuilt&&
+        model.optimization_info().binding_attempts==before+1&&Q::read(model,handle)==expected,
+        "released provider capacity did not admit checked rebuilding");
+    Q::close(model,handle);model.discard();
+  }
+  {
+    VolumeModel model;model.create();model.create_text("keep.txt",text);
+    Q::damage(model,1);
+    require(model.maintain_optimization_state()==Result::rebuilt&&
+        model.read_text("keep.txt")==text&&!model.view().fenced,
+        "degraded advice did not remain isolated from data");
+    model.discard();
+  }
+}
+
 void model_tests() {
   DWORD before=0,after=0;
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"Handle baseline");
@@ -128,6 +242,7 @@ void model_tests() {
     require(model.read_text("utf8.txt")==unicode,"UTF-8 byte preservation");
     model.discard();require(!model.ready(),"Discard retained engine");
   }
+  advice_application_tests();
   handles("volume-retired");
   {
     auto window=CreateWindowExW(0,L"STATIC",L"FlitzFS controller qualification",0,
@@ -219,6 +334,9 @@ void gui_tests(const std::filesystem::path& app) {
     },deadline);
     status=GetDlgItem(window,113);require(status!=nullptr,"Ready status control missing");
     button(101);wait_status(L"Memory volume created");
+    const auto summary=GetDlgItem(window,121);
+    require(summary&&text(summary).find(L"Optimization state: ready")!=std::wstring::npos,
+        "GUI optimization-state diagnostic missing");
     send(GetDlgItem(window,111),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L"qualification.txt"));
     const std::wstring payload=L"FlitzFS native GUI byte verification. 1234567890 \u03B1\u03B2 \U0001F680";
     send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(payload.c_str()));

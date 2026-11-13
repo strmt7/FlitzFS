@@ -353,3 +353,9 @@ The experimental in-session rebuild API changes no serialized bytes, journal
 capability, volume head or user namespace. It creates empty FLTOP001 advice in a
 NEW qualified area and retains prior owners. See [ADVISORY_REBUILD.md](ADVISORY_REBUILD.md)
 for the ownership/resource contract and pending publishing-source qualification.
+
+## Helper advice ownership
+
+The [Windows helper integration](ADVISORY_HELPER.md) changes no serialized bytes
+or user-data publication. Its fixed process-lifetime mapping retains every
+admitted advice area. It is not a durable physical-volume selector.

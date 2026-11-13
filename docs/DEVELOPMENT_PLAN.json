@@ -217,19 +217,19 @@
       ],
       "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model.",
       "checkpoint": {
-        "source_parent": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
-        "contract": "docs/ADVISORY_REBUILD.md",
-        "implemented": "Initial journal/binding plus separate failed-area rebuild with live-handle preservation, retained poison-held ownership and aggregate accounting.",
-        "qualified_baseline": "Parent053ade8: existing advisory model and all 13 core/mounted jobs passed; see source-bound evidence.",
-        "new_source_qualification": "pending",
+        "source_parent": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+        "contract": "docs/ADVISORY_HELPER.md",
+        "implemented": "Qualified shared-engine rebuild; new Windows helper consumer adds actual process-lifetime provider mapping/accounting and maintenance-only repair without normal-file dependency.",
+        "qualified_baseline": "745d023 controlled rebuild: all13 core/mounted regressions,687 advisory assertions; see exact evidence.",
+        "new_source_qualification": "pending helper/model/controller/GUI and full regression gates",
         "remaining": [
-          "Publishing-source rebuild fault and ownership qualification",
-          "Global provider reservation/selected-area mapping/nonaliasing and controlled helper integration",
-          "Qualified reclamation and lifetime workload-derived write credit",
-          "Helper authorization and held-out automatic learning consumers",
+          "Publishing-source helper recovery/resource/GUI qualification",
+          "Physical provider reservation/durable selected-area mapping/nonaliasing and qualified reclamation",
+          "Lifetime workload-derived rewrite credit and helper IPC authorization",
+          "Automatic low-priority executor and held-out learning consumers",
           "Interrupted native maintenance and physical-provider recovery qualification"
         ],
-        "evidence": "docs/evidence/origin-guard-053ade8.json"
+        "evidence": "docs/evidence/advisory-rebuild-745d023.json"
       }
     },
     {

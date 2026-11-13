@@ -11,14 +11,15 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
-    "core_run": 43369595873,
+    "commit": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+    "core_run": 43375137215,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "evidence": "docs/evidence/origin-guard-053ade8.json",
     "native_groups": 136,
-    "sanitizer_groups": 117
+    "sanitizer_groups": 117,
+    "advisory_assertions": 687,
+    "evidence": "docs/evidence/advisory-rebuild-745d023.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -75,8 +76,8 @@
     "autonomous_background_executor": false,
     "general_payload_repair": false,
     "production_windows_app_installer": false,
-    "persistent_optimization_state": "Existing journal and controlled initial binding qualified. Separate in-session failed-advice rebuilding implemented for new-source qualification; provider mapping/reclamation, persistent write credit and automatic learner remain unfinished.",
-    "native_windows_application": "Implemented opt-in unmounted native controller/window/tray and bounded private memory provider; exact VM/owner qualification at f4928c2. Full app/installer/driver/physical lifecycle remains incomplete."
+    "persistent_optimization_state": "Journal and controlled rebuild qualified at745d023. New Windows helper process-lifetime mapping/rebuild consumer awaits its own qualification; physical mapping/reclamation, persistent rewrite credit and automatic learner remain incomplete.",
+    "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; latest executed VM at745d023 and original owner run atf4928c2. New advice consumer pending; mounted/physical/installer/authorization remain unfinished."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -90,27 +91,25 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13 05:45:19 UTC",
+    "checked_at_utc": "2026-11-13 06:40:04 UTC",
     "native_transport": "Authenticated GitHub Dependabot alerts API",
     "open_alerts": 0,
-    "scope": "Open alerts only; no claim that all vulnerabilities are absent.",
-    "evidence": "docs/evidence/advisory-rebuild-sources-053ade8.json"
+    "scope": "Open alerts only, not absence of all vulnerabilities.",
+    "evidence": "docs/evidence/advisory-helper-sources-745d023.json"
   },
   "source_routing": {
-    "commit": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
-    "run": 43372164699,
-    "artifact": 14012529360,
-    "artifact_sha256": "63ad5c0f49b1827862fc8b93b9eda5be45ab1b7005318730acb01c93ac920c95",
-    "query_group": "maintenance",
-    "actual_queries": 2,
-    "source_files": 143,
-    "source_sha256": "e42756355af2342b685d9c2a98fbab6a1991fed5f370df415b215466a30c533b",
+    "indexed_commit": "b580299785261ad4b8248bce02dc48a9fe45b495",
+    "equivalent_current_commit": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+    "run": 43374617212,
+    "artifact": 14013724241,
+    "artifact_sha256": "74b4bae997ccb96afb1d2e99985d25616ccaaa5e3adbba4cf5b17e785508156b",
+    "source_sha256": "60d6127854111d5255df19f8e79a7d11339a1441e766ce68733e6d2308e885c2",
+    "actual_queries": 8,
     "provider": "0.2.43",
-    "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
-    "live_relevant_candidate_hashes_verified": true,
-    "infrastructure_self_hits_not_coverage": true,
-    "tests_excluded_from_index_and_inspected_separately": true,
-    "evidence": "docs/evidence/advisory-rebuild-sources-053ade8.json"
+    "source_equivalence": "745d023 changed only excluded tests/documentation; relevant live candidate hashes verified.",
+    "evidence": "docs/evidence/advisory-helper-sources-745d023.json",
+    "infrastructure_hits_not_coverage": true,
+    "provider_paths_read_as_exact_known_scope": true
   },
   "historical": {
     "qualified_checkpoint": {
@@ -273,7 +272,16 @@
       "tests_excluded_from_index_and_inspected_separately": true,
       "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
       "excluded_tests": "Exact tests/test_bounded_process.cpp and tests/supervised_source_fixture.hpp inspected separately; provider excludes tests."
-    }
+    },
+    "pending_qualification_history": [
+      {
+        "source_parent": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+        "contract": "docs/ADVISORY_REBUILD.md",
+        "behavior": "Separate unavailable/poisoned advisory-area rebuild; retained bounded history and lease ownership; unchanged serialized bytes, data writer and live handles.",
+        "status": "New publishing-source CPU/raw/codec/sanitizer/Windows and complete mounted regression gates required.",
+        "next": "Inspect new rebuild fault/ownership results. Provider-selected-area mapping, persistent workload-derived rewrite credit and automatic learner remain unfinished. No owner experiment."
+      }
+    ]
   },
   "remaining": [
     {
@@ -354,11 +362,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
-    "contract": "docs/ADVISORY_REBUILD.md",
-    "behavior": "Separate unavailable/poisoned advisory-area rebuild; retained bounded history and lease ownership; unchanged serialized bytes, data writer and live handles.",
-    "status": "New publishing-source CPU/raw/codec/sanitizer/Windows and complete mounted regression gates required.",
-    "next": "Inspect new rebuild fault/ownership results. Provider-selected-area mapping, persistent workload-derived rewrite credit and automatic learner remain unfinished. No owner experiment."
+    "source_parent": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+    "contract": "docs/ADVISORY_HELPER.md",
+    "behavior": "Windows helper maintenance-only advice audit/rebuild; retained fixed provider mappings/accounting, optional-work deferral and native readiness display.",
+    "status": "Publishing-source model/controller/GUI/resource and full CPU/raw/codec/sanitizer/Windows/mounted regression gates required.",
+    "next": "Inspect actual helper damage/capacity/exhaustion, source/handle/cleanup and GUI results. No owner experiment or L01 completion."
   },
   "resolved": [
     {
@@ -403,19 +411,19 @@
     "evidence": "docs/evidence/volume-app-f4928c2.json",
     "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification.",
     "latest_vm": {
-      "commit": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
-      "run": 43369595976,
-      "job": 131702005705,
+      "commit": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+      "run": 43375137241,
+      "job": 131719744753,
       "model_checks": 377,
-      "gui_observation_counter": 33,
+      "gui_observation_counter": 32,
       "gui_counter_is_distinct_case_count": false,
       "handles_each": [
         113,
         113
       ],
-      "gui_peak_commit_bytes": 13627392,
-      "evidence": "docs/evidence/origin-guard-053ade8.json",
-      "scope": "Existing unmounted app slice, not complete W01."
+      "gui_peak_commit_bytes": 13602816,
+      "evidence": "docs/evidence/advisory-rebuild-745d023.json",
+      "scope": "Existing unmounted app before new helper advice recovery; not complete W01."
     }
   },
   "gpu_cost_observation": {
