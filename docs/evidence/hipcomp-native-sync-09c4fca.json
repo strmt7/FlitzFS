@@ -1,0 +1,588 @@
+{
+  "experimental": true,
+  "source": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+  "captured_utc": "2026-11-13T16:37:47Z",
+  "sdk_run": 43463417491,
+  "sdk_job": 132016086619,
+  "archive": {
+    "id": 14058255147,
+    "bytes": 70832,
+    "sha256": "638e19e45da012fe8d013945e4ee1b90b7b40d49cc1e6d7c887e4a7b7331c8f7"
+  },
+  "root_qualification_sha256": "8a3fcff4293e6f2431dc467f8758ccfb425fd7e6dedad1b9532c2a8fad4e795f",
+  "native_qualification_sha256": "22aee4ef94f685654d72993eb502805bc82c9988691276f4fe2774cc9cd25026",
+  "original_qualification_sha256": "66536f1cbb8c37c39bc45ee47ecc7133d35ccc65c35e09c465061a0b26144cf3",
+  "source_composition_cases": 7,
+  "original_admission_cases": 28,
+  "warp_source_cases": 9,
+  "native": {
+    "control_commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+    "complete": true,
+    "variant": "native-wave-sync",
+    "object_inspected": true,
+    "gpu_executed": false,
+    "module_loaded": false,
+    "linked_into_product": false,
+    "object": {
+      "bytes": 237219,
+      "sha256": "0c5969936fed7233a49943e67e1afdce75b64585db04072e7e7c299f2b3a32a5"
+    },
+    "dependencies": {
+      "bytes": 151011,
+      "sha256": "ec4a75a92d370c06f755ab49981c02650ccdbca1970ebbc13ec01ad3a4f675a2"
+    },
+    "native_sync_transform": {
+      "transform": "native-wave-sync",
+      "canonical_bytes": 34435,
+      "canonical_sha256": "11db6cb48273de0d105c3131795ab958f0c99760a47e6d26093b9d897490a112",
+      "bytes": 34748,
+      "sha256": "b4c8c8ce4e1d45d47e83fa3853cb3a3572a2962c49ece190152881ca07567c7a",
+      "upstream_checkout_changed": false,
+      "gpu_executed": false
+    },
+    "cpu_index_oracle": {
+      "source_bytes": 5813,
+      "source_sha256": "52a35639711622d21477c476796e83c6738d6334c847203f455bc2a3a1ae09fa",
+      "executable_sha256": "7c7c3d9ab6da39804fca1cfe05d4b7268d987166449f6791f0b6c005370d62b2",
+      "imports": {
+        "format": "PE32+",
+        "architecture": "AMD64",
+        "os_imports": [
+          "kernel32.dll"
+        ],
+        "delay_imports": false
+      },
+      "observed": {
+        "old_future_admissions": 65523,
+        "valid_reads": 131046,
+        "invalid_rejections": 196569,
+        "gpu_executed": false
+      },
+      "scope": "Actual extracted integer/index functions; not GPU synchronization or codec execution"
+    },
+    "selected_header_dependency": true,
+    "physical_inputs_unchanged": true,
+    "offload_target_ids": [
+      "hip-amdgcn-amd-amdhsa--gfx1100"
+    ],
+    "error": null
+  },
+  "original": {
+    "control_commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+    "complete": true,
+    "variant": "original",
+    "object_inspected": true,
+    "gpu_executed": false,
+    "module_loaded": false,
+    "linked_into_product": false,
+    "object": {
+      "bytes": 217673,
+      "sha256": "3ab84696389b271cec1afa9fc4eda29923b959768019de1e6d8777028f712444"
+    },
+    "dependencies": {
+      "bytes": 150899,
+      "sha256": "7d9490ced69382466bc62477b648fc9e107fa775c3840db15e9f01f2f6144e58"
+    },
+    "native_sync_transform": null,
+    "cpu_index_oracle": null,
+    "selected_header_dependency": null,
+    "physical_inputs_unchanged": null,
+    "offload_target_ids": [
+      "hip-amdgcn-amd-amdhsa--gfx1100"
+    ],
+    "error": null
+  },
+  "api": {
+    "bytes": 286208,
+    "sha256": "5979ddc9c27e22c8590297dda551b0cc8105f662e6c7c58c222056935a553a5d",
+    "imports": {
+      "format": "PE32+",
+      "architecture": "AMD64",
+      "os_imports": [
+        "kernel32.dll"
+      ],
+      "delay_imports": false
+    },
+    "qualification": {
+      "checks": 235,
+      "priority_cases": 12,
+      "priority_query_limit": 2,
+      "identity_before_selection": true,
+      "missing_exports_refused": 11,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    }
+  },
+  "priority": {
+    "old": {
+      "category": 1179844613,
+      "stage": "stream_priorities",
+      "priority_queries": 1,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": false
+    },
+    "current": {
+      "category": 1179844611,
+      "stage": "stream_priorities",
+      "priority_queries": 2,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "complete": true
+  },
+  "workers": {
+    "bundle_verified": true,
+    "missing_bundle_refused": true,
+    "tampered_bundle_refused": true,
+    "invalid_wire_refused": true,
+    "invalid_match_refused": true,
+    "missing_match_runtime_refused": true,
+    "compiler_environment_isolated": true,
+    "system_module_metadata_passed": true,
+    "system_runtime_bad_hash_refused": true,
+    "system_runtime_argument_refused": true,
+    "kernel_only_verified": true,
+    "kernel_only_full_bundle_refused": true,
+    "kernel_only_tamper_refused": true,
+    "driver_wire_refusals": 5,
+    "profile_wire_refused": true,
+    "profile_argument_refused": true,
+    "profile_runtime_refused": true,
+    "exits_confirmed": 20,
+    "gpu_executed": false,
+    "complete": true
+  },
+  "cancelled_duplicate": {
+    "run": 43463416874,
+    "conclusion": "cancelled",
+    "manual_superset_run": 43463417491
+  },
+  "dependabot": {
+    "open": 0,
+    "transport": "Authenticated GitHub repository alerts API",
+    "query_utc_window": [
+      "2026-11-13T16:30:54Z",
+      "2026-11-13T16:31:32Z"
+    ]
+  },
+  "interpretation": "Exact pinned CPU index functions and offline objects only. No HIP runtime/module loading, actual GPU compression output, interoperability, mounted use or useful gain qualified. D01 remains open.",
+  "native_api_probe": {
+    "experimental": true,
+    "complete": true,
+    "synthetic_target": "gfx1100",
+    "commands": [
+      {
+        "name": "warp-sync-API-device-compilation",
+        "argv": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "D:\\a\\FlitzFS\\FlitzFS\\.ci-rocm-source\\tools\\compile_hip_object.ps1",
+          "-Source",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\compile-input\\src\\gpu\\warp_sync_probe.hip",
+          "-Output",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj",
+          "-DependencyFile",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj.d",
+          "-RepoRoot",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\compile-input",
+          "-HipPath",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk",
+          "-Arch",
+          "gfx1100"
+        ],
+        "root_pid": 3160,
+        "exit_code": 0,
+        "stdout": "Compiling HIP object with MSVC toolset 14.51.\r\n",
+        "stderr": "clang: warning: argument unused during compilation: '-fms-runtime-lib=static' [-Wunused-command-line-argument]\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "warp-sync-reader-version",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--version"
+        ],
+        "root_pid": 8388,
+        "exit_code": 0,
+        "stdout": "AMD LLVM version 24.0.0git\n  Optimized build.\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "warp-sync-host-header",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--file-header",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj"
+        ],
+        "root_pid": 4732,
+        "exit_code": 0,
+        "stdout": "\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\nImageFileHeader {\n  Machine: IMAGE_FILE_MACHINE_AMD64 (0x8664)\n  SectionCount: 13\n  TimeDateStamp: 2026-11-13 16:33:27 (0x6AF73BD7)\n  PointerToSymbolTable: 0x2CD1\n  SymbolCount: 44\n  StringTableSize: 355\n  OptionalHeaderSize: 0\n  Characteristics [ (0x0)\n  ]\n}\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "warp-sync-target-metadata",
+        "argv": [
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\sdk-cache\\sdk\\lib\\llvm\\bin\\llvm-readobj.exe",
+          "--offloading",
+          "D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj"
+        ],
+        "root_pid": 7608,
+        "exit_code": 0,
+        "stdout": "host-x86_64-pc-windows-msvc-\tfile://D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj#offset=5141&size=0\nhip-amdgcn-amd-amdhsa--gfx1100\tfile://D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj#offset=5141&size=5568\n\nFile: D:\\a\\_temp\\flitzfs-rocm-sdk\\warp-sync\\warp_sync.obj\nFormat: COFF-x86-64\nArch: x86_64\nAddressSize: 64bit\n",
+        "stderr": "",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "runtime_source": "7da43026e4f2ef7600433c38c820732f7a205d22",
+    "header_source_blob": "51d07f6e35298abba5fb9817d61cf6eb18fe5f66",
+    "object_loaded": false,
+    "object_linked": false,
+    "gpu_executed": false,
+    "scope": "API/type availability and offline object metadata only; not memory-order or runtime proof",
+    "source": {
+      "path": "tests/rocm_compile/warp_sync_probe.hip",
+      "canonical_bytes": 1670,
+      "canonical_sha256": "59474113a2a0d5d2dde1a2a7de8b10d6a9b4de41fdd97664ce62b3cabe453201",
+      "physical_sha256": "43bc338ddbda9873d5e275d4a12c8258327c5e4441eb5b49f888b067a6f0e7a0",
+      "physical_bytes": 1717,
+      "representation": "crlf-checkout"
+    },
+    "header": {
+      "path": "include/hip/amd_detail/amd_warp_sync_functions.h",
+      "canonical_bytes": 37736,
+      "canonical_sha256": "e6f8f61066b034141ad288a01b82006a0e6f0e8e9e7750ac36153b1602eedfe2",
+      "physical_sha256": "e6f8f61066b034141ad288a01b82006a0e6f0e8e9e7750ac36153b1602eedfe2",
+      "physical_bytes": 37736,
+      "representation": "exact"
+    },
+    "object": {
+      "bytes": 12620,
+      "sha256": "0517a8ee6ee07ba06e0afcbd89b3bcbc11817afb648e385ad12072b623fe90ee"
+    },
+    "dependencies": {
+      "bytes": 59551,
+      "sha256": "aa9d9a5fbf908f1942b58702b9255992490bcc66e0d0dabcea5f3b241fc20f5a"
+    },
+    "selected_header_dependency": true,
+    "reader": {
+      "bytes": 8075216,
+      "sha256": "3a64162737d8aebb7c5528d2345f86b4174fa900a6ac0c8230be648178181afd"
+    },
+    "targets": [
+      "hip-amdgcn-amd-amdhsa--gfx1100"
+    ],
+    "physical_inputs_unchanged": true
+  },
+  "sanitizers": {
+    "source": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+    "job": 132016074560,
+    "archive": {
+      "id": 14058860894,
+      "bytes": 10134,
+      "sha256": "507fb23c0046310501e89f9845333774c4b1233ccab28de7f8181a45cd1aed48"
+    },
+    "log": {
+      "entry": "LastTest.log",
+      "sha256": "7158a05f2b2d18b1fca1fba894f92e90944df48f3bf21a908777da17da14d2e8",
+      "bytes": 121768,
+      "cases": 121,
+      "declared_totals": [
+        "121"
+      ],
+      "failed_markers": 0,
+      "passed_markers": 119,
+      "head": "Start testing: Nov 13 16:34 UTC\n----------------------------------------------------------\n1/121 Testing: native_persistent_workload\n1/121 Test: native_persistent_workload\nCommand: \"/home/runner/work/FlitzFS/FlitzFS/build-asan/flitzfs_native_workload_tests\"\nDirectory: /home/runner/work/FlitzFS/FlitzFS/build-asan\n\"native_persistent_workload\" start t",
+      "other_passes": [
+        {
+          "case": "118",
+          "name": "manifest_cli_list",
+          "text": "118/121 Testing: manifest_cli_list\n118/121 Test: manifest_cli_list\nCommand: \"/home/runner/work/FlitzFS/FlitzFS/build-asan/flitzfs\" \"catalog-list\" \"/home/runner/work/FlitzFS/FlitzFS/tests/fixtures/empty.flcatalog\"\nDirectory: /home/runner/work/FlitzFS/FlitzFS/build-asan\n\"manifest_cli_list\" start time: Nov 13 16:42 UTC\nOutput:\n----------------------------------------------------------\nMetadata only; use catalog-verify for bounded payload verification.\n<end of output>\nTest time =   0.01 sec\n----------------------------------------------------------\nTest Pass Reason:\nRequired regular expression found. Regex=[Metadata only]\n\"manifest_cli_list\" end time: Nov 13 16:42 UTC\n\"manifest_cli_list\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n"
+        },
+        {
+          "case": "119",
+          "name": "manifest_cli_verify",
+          "text": "119/121 Testing: manifest_cli_verify\n119/121 Test: manifest_cli_verify\nCommand: \"/home/runner/work/FlitzFS/FlitzFS/build-asan/flitzfs\" \"catalog-verify\" \"/home/runner/work/FlitzFS/FlitzFS/tests/fixtures/empty.flcatalog\"\nDirectory: /home/runner/work/FlitzFS/FlitzFS/build-asan\n\"manifest_cli_verify\" start time: Nov 13 16:42 UTC\nOutput:\n----------------------------------------------------------\nCatalog payloads verified under the 32 MiB total budget; NOT authenticated.\n<end of output>\nTest time =   0.01 sec\n----------------------------------------------------------\nTest Pass Reason:\nRequired regular expression found. Regex=[NOT authenticated]\n\"manifest_cli_verify\" end time: Nov 13 16:42 UTC\n\"manifest_cli_verify\" time elapsed: 00:00:00\n----------------------------------------------------------\n\n"
+        }
+      ],
+      "total_passed": 121
+    },
+    "scope": "All 121 declared tests passed: 119 explicit markers and two successful required-expression results; zero failure markers. ASan/UBSan command and job succeeded."
+  },
+  "core": {
+    "run": 43463416947,
+    "source": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 132016074560,
+        "name": "sanitizers",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132016075054,
+        "name": "windows-native",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132016075096,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132016075341,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132016075405,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132023070686,
+        "name": "windows-mount",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132025171220,
+        "name": "windows-write-mount (delete)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132025171315,
+        "name": "windows-write-mount (crash-restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132025171334,
+        "name": "windows-write-mount (mutations)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132025171369,
+        "name": "windows-write-mount (restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132025171375,
+        "name": "windows-write-mount (crash)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132025171393,
+        "name": "windows-write-mount (basic)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132025171451,
+        "name": "windows-write-mount (ram-handoff)",
+        "status": "completed"
+      }
+    ],
+    "all_13_jobs_succeeded": true,
+    "scope": "Job conclusions plus separately retained sanitizer log. Hosted synthetic tests; no physical power-loss or owner qualification inferred."
+  },
+  "navigation": {
+    "filesystem": {
+      "artifact": 14057985329,
+      "sha256": "f22525d0df45b4c697b6b1df54e3a90253ae20f8bca783f8d493d8a71340ba6e",
+      "receipt": {
+        "entry": "routing-receipt.json",
+        "sha256": "9dbcd8c3b089175ab87580d9f6071893466209a454162fadfb9107006cf06718",
+        "receipt": {
+          "actual_searches": 8,
+          "commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+          "workflow_commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+          "repository": "strmt7/FlitzFS",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "cpu_only": true,
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "provider_version": "0.2.43",
+          "query_group": "filesystem",
+          "shared_mcp_modified": false,
+          "source_files": 154,
+          "source_sha256": "bff3fcb2bc3d0226ba84a65ad5d1999e45e1ec17026d0da6f807fdce78603116"
+        }
+      }
+    },
+    "maintenance": {
+      "artifact": 14058426110,
+      "sha256": "a09a4702173e6316f656da23071d062313af195fcedf26bc0ff9bc9e944108b3",
+      "receipt": {
+        "entry": "routing-receipt.json",
+        "sha256": "a43219ebe5defe6d923574e6dc300b04c2eea2c1a403a2f5b56064aeb331f559",
+        "receipt": {
+          "actual_searches": 2,
+          "commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+          "workflow_commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+          "repository": "strmt7/FlitzFS",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "cpu_only": true,
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "provider_version": "0.2.43",
+          "query_group": "maintenance",
+          "shared_mcp_modified": false,
+          "source_files": 154,
+          "source_sha256": "bff3fcb2bc3d0226ba84a65ad5d1999e45e1ec17026d0da6f807fdce78603116"
+        }
+      },
+      "searches": [
+        {
+          "entry": "search-0.json",
+          "sha256": "2ef23ab1a69cb9d5bdd681ea44212a0701e2172d249ac7d7563f763e52c232ca",
+          "receipt": {
+            "commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+            "completed_utc": "2026-11-13T17:39:16.60833+01:00",
+            "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+            "hits": [
+              {
+                "end_line": 49,
+                "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+                "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+                "path": "tools/ci/hosted_semantic.py",
+                "score": 0.8298837568111637,
+                "start_line": 39
+              },
+              {
+                "end_line": 127,
+                "excerpt": "HostedIdleMaintenanceResult WinFspNativeSession::begin_idle_recompression_hosted( std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) { if(state_!=SessionState::running||!adapter_||requires_offline()||d",
+                "file_sha256": "e8fd9541d569512ef4f65b75bc9163e6ca731673ec8d8b77262a0d9048dad048",
+                "path": "src/windows/winfsp_session.cpp",
+                "score": 0.7832127670219222,
+                "start_line": 117
+              },
+              {
+                "end_line": 169,
+                "excerpt": "// fresh target. Suppress repeated attempts on the same acknowledged image. bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image, StoreCompressionOptions compression={},StoreCheckpointOptions check",
+                "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3",
+                "path": "include/flitzfs/native_session.hpp",
+                "score": 0.782736158494556,
+                "start_line": 160
+              },
+              {
+                "end_line": 160,
+                "excerpt": "RecompressionProgress advance_recompression(); // Optional bounded input for an external match finder. The caller may // compute outside the session control lock and submit only on a later call. std::optional<StoreRecompressionInput> next_r",
+                "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3",
+                "path": "include/flitzfs/native_session.hpp",
+                "score": 0.7770478436769803,
+                "start_line": 147
+              },
+              {
+                "end_line": 554,
+                "excerpt": "HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(HostedIdleMaintenanceAction action) { hosted(); return impl_->idle([&]() -> HostedIdleMaintenanceResult { using State=HostedIdleMaintenanceState; using Progress=Nat",
+                "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780",
+                "path": "src/windows/winfsp_native.cpp",
+                "score": 0.7738455694297315,
+                "start_line": 535
+              }
+            ],
+            "model": "Snowflake/snowflake-arctic-embed-xs",
+            "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+            "native_response_sha256": "3439dfbc61a019746ffca32399a17c1cebb6ff57de93dfdee37c317503e35b67",
+            "provider": "0.2.43",
+            "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+            "query": "adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities",
+            "query_sha256": "b78b1d274b65b13752a18ced233a3c62f22127ba9ab8813f3b8f1a819c439104",
+            "repository": "strmt7/FlitzFS",
+            "source_sha256": "bff3fcb2bc3d0226ba84a65ad5d1999e45e1ec17026d0da6f807fdce78603116",
+            "workflow_commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6"
+          }
+        },
+        {
+          "entry": "search-1.json",
+          "sha256": "ebbf240fb74c49b36ade752c978e8f0c77a22b2e1a6cabfcb4b808cb22482bd0",
+          "receipt": {
+            "commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6",
+            "completed_utc": "2026-11-13T17:39:16.943846+01:00",
+            "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+            "hits": [
+              {
+                "end_line": 49,
+                "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+                "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+                "path": "tools/ci/hosted_semantic.py",
+                "score": 0.8298303504127986,
+                "start_line": 39
+              },
+              {
+                "end_line": 169,
+                "excerpt": "// fresh target. Suppress repeated attempts on the same acknowledged image. bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image, StoreCompressionOptions compression={},StoreCheckpointOptions check",
+                "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3",
+                "path": "include/flitzfs/native_session.hpp",
+                "score": 0.7974270454312702,
+                "start_line": 160
+              },
+              {
+                "end_line": 322,
+                "excerpt": "\"hipStreamCreateWithPriority\", \"hipStreamQuery\", \"hipStreamDestroy\", \"hipFree\", \"hipMalloc\", \"hipErrorContext\", \"hipErrorLaunch\", \"hipErrorOutOfMemory\", \"priority\", \"process\", \"26H2\", \"26H1\", \"10.0.\", \"WHCP\", \"enforcement\", \"kernel\", \"drive",
+                "file_sha256": "0b45f8696435a3abd8b790cf2db5f3c86ea57c9869729b67d4118b59c8bbdb4f",
+                "path": "tools/ci/hosted_research.py",
+                "score": 0.7919343779269568,
+                "start_line": 313
+              },
+              {
+                "end_line": 62,
+                "excerpt": "WINDOWS_GPU_MEMORY_SOURCES = ( (\"windows-gpu-memory-query\", \"https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo\", \"QueryVideoMemoryInfo\", \"NodeIndex\"), (\"windows-gpu-memory-info\", \"http",
+                "file_sha256": "0b45f8696435a3abd8b790cf2db5f3c86ea57c9869729b67d4118b59c8bbdb4f",
+                "path": "tools/ci/hosted_research.py",
+                "score": 0.7811842072214787,
+                "start_line": 56
+              },
+              {
+                "end_line": 71,
+                "excerpt": "case HipWorkerStage::runtime_load: return \"runtime_load\"; case HipWorkerStage::kernel_load: return \"kernel_load\"; case HipWorkerStage::module_retire: return \"module_retire\"; case HipWorkerStage::worker_job: return \"worker_job\"; case HipWork",
+                "file_sha256": "79681016658ca28d0173784b15d8247f3309ba448c71078a620da0885f17e506",
+                "path": "src/windows/hip_worker_exit.hpp",
+                "score": 0.774764857990867,
+                "start_line": 59
+              }
+            ],
+            "model": "Snowflake/snowflake-arctic-embed-xs",
+            "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+            "native_response_sha256": "29cea783a000c8df75a62d8c6d9fc1ee5f3c1165dda8a82b400a0ac27a4e0462",
+            "provider": "0.2.43",
+            "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+            "query": "background maintenance resource headroom low priority incremental recompression sampling budget and duplicate attempt suppression",
+            "query_sha256": "1eb64f0856c12989e7d00d8c8980a3d163aa546ede7e4a8657f38b4722f75f5e",
+            "repository": "strmt7/FlitzFS",
+            "source_sha256": "bff3fcb2bc3d0226ba84a65ad5d1999e45e1ec17026d0da6f807fdce78603116",
+            "workflow_commit": "09c4fcaf174cf1592a9b85054f503e297272d2b6"
+          }
+        }
+      ]
+    },
+    "limitation": "Infrastructure-heavy hits; exact session/header candidates were confirmed in current source. No automatic governor or durable provider mapping inferred."
+  }
+}

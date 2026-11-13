@@ -21,6 +21,8 @@ on:
       - 'tools/ci/test_warp_sync_probe.py'
       - 'tools/ci/qualify_hipcomp_candidate.py'
       - 'tools/ci/hipcomp_native_sync.py'
+      - 'tools/ci/hipcomp_lz4_entry.py'
+      - 'tools/ci/test_hipcomp_lz4_entry.py'
       - 'tools/ci/test_hipcomp_native_sync.py'
       - 'tools/ci/test_hipcomp_candidate.py'
       - 'tools/ci/hip_runtime_exports.py'
@@ -99,6 +101,8 @@ jobs:
             ${{ runner.temp }}/flitzfs-rocm-sdk/qualification.json
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/qualification.json
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-native-sync/qualification.json
+            ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-bounded-entry/qualification.json
+            ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-bounded-entry/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-native-sync/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/sdk-cache/verified-distribution.json

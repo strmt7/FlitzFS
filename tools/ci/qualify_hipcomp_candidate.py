@@ -144,7 +144,9 @@ def main():
     parser=argparse.ArgumentParser()
     for name in ("source","provider","sdk","output"):parser.add_argument("--"+name,type=Path,required=True)
     parser.add_argument("--native-sync",action="store_true",help="Explicit offline transformed AMD candidate; never a runtime route")
+    parser.add_argument("--bounded-entry",action="store_true",help="Private checked byte entry; requires native-sync")
     args=parser.parse_args()
+    require(not args.bounded_entry or args.native_sync,"bounded entry requires native synchronization")
     source=verify_checkout(args.source,SOURCE_COMMIT);provider=verify_checkout(args.provider,MECHANISM_COMMIT)
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     require(not args.output.is_symlink() and not args.output.is_junction() and
@@ -171,6 +173,7 @@ def main():
     try:
         source_copy=output/"compile-input"
         entry,records=stage(source,source_copy,value)
+        original_entry=entry
         if args.native_sync:
             import shutil
             require(shutil.disk_usage(output).free>=4*1024**3+64*MIB,"native-sync free-space reserve")
@@ -186,13 +189,17 @@ def main():
             report["source_inputs"]=records
             report["cpu_index_oracle"]=qualify_index_oracle(canonical_header,output,bounds,report)
             report["variant"]="native-wave-sync"
+            if args.bounded_entry:
+                from hipcomp_lz4_entry import stage_entry
+                entry,records,report["bounded_entry_assets"]=stage_entry(REPO,source_copy,records,extra)
+                report["variant"]="bounded-native-wave-entry"
         else:
             report["variant"]="original"
         report["source_inputs"]=records
         if args.native_sync:
             fixture_records=[(row["target"],row["bytes"],row["sha256"]) for row in records]
-            fixture_records.append((entry.relative_to(source_copy).as_posix(),
-                len(entry.read_bytes()),digest(entry)))
+            fixture_records.append((original_entry.relative_to(source_copy).as_posix(),
+                len(original_entry.read_bytes()),digest(original_entry)))
             fixture_records.extend(("notices/"+row["path"],row["bytes"],row["sha256"]) for row in notices)
             require(len({name for name,_,_ in fixture_records})==len(fixture_records),
                 "native-sync fixture aliases")
@@ -230,6 +237,9 @@ def main():
             "candidate offload metadata truncated or warned")
         report["offload_target_ids"]=inspect_offload_targets(fatbin["stdout"],str(object_path),object_path.stat().st_size)
         report["object_inspected"]=True
+        if args.bounded_entry:
+            from hipcomp_lz4_entry import inspect_entry_object
+            inspect_entry_object(bounds,tools["llvm-readobj.exe"],object_path,output,fatbin["stdout"],report)
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,"candidate SDK inputs changed")
         if args.native_sync:
             require(regular(sdk/HEADER,sdk,128*1024)==header_raw,"native-sync SDK header changed")
@@ -241,6 +251,17 @@ def main():
                 regular_info(path,source_copy,MIB)
                 require(path.stat().st_size==size and digest(path)==expected,
                     "native-sync physical fixture input changed")
+            if args.bounded_entry:
+                from hipcomp_lz4_entry import unchanged
+                unchanged(REPO,report["bounded_entry_assets"])
+                required=[source_copy/"src/flitzfs_lz4_contract.hpp",
+                    source_copy/"src/LZ4Kernels.cuh",entry]
+                report["bounded_entry_dependencies"]=[
+                    dict(path=path.relative_to(source_copy).as_posix(),
+                        observed=dependency_header(regular(dependency,output,MIB),path))
+                    for path in required]
+                require(all(row["observed"] for row in report["bounded_entry_dependencies"]),
+                    "bounded entry actual source/header dependencies")
             report["physical_inputs_unchanged"]=True
         verify_checkout(source,SOURCE_COMMIT);verify_checkout(provider,MECHANISM_COMMIT)
         require(digest(object_path)==report["object"]["sha256"] and

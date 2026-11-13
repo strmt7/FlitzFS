@@ -1514,3 +1514,17 @@ Never load/export the object or oracle binary, add block barriers inside partial
 wave branches, weaken kernel assertions or infer runtime qualification/benefit.
 The CPU oracle executes only on disposable hosted Windows VMs; owner execution,
 normal operations, stored codecs and D01/G03 gates remain unchanged.
+
+## Bounded byte-compression entry gate
+
+Read docs/HIPCOMP_BOUNDED_ENTRY.md before changing the private contract/entry.
+Keep full canonical layout validation before any slab access, zero unused slots,
+actual hardware/selected/block wave agreement, one wave per chunk and byte input
+only. Preserve all eight-chunk/64-KiB/256-KiB total storage caps, full notices,
+NEW source/image files and exact control/source/SDK/dependency/physical identities.
+The separate native mode must retain original and native candidate objects,
+the real CPU index oracle, shared CPU validator tests, source/image refusal cases
+and strict native AMDGPU ELF identity plus both entry symbols. Stubbed object
+reader tests are not actual object or GPU evidence. Never export/load/link these
+objects, add a worker/runtime caller, alter a stored codec or infer a host/device
+execution gate from compilation. D01 and all owner-device gates remain unchanged.

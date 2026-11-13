@@ -141,6 +141,9 @@ def main():
         not native_git(REPO,"status","--porcelain","--untracked-files=no","--",PROBE),
         "warp synchronization probe source differs")
     probe_source(REPO)
+    if args.hipcomp_native_sync:
+        from hipcomp_lz4_entry import source_assets
+        source_assets(REPO) # Reject altered control assets before SDK provisioning.
     hipcomp_source=None
     if args.hipcomp_source is not None:
         from qualify_hipcomp_candidate import verify_checkout,SOURCE_COMMIT as CODEC_SOURCE_COMMIT
@@ -209,6 +212,22 @@ def main():
                 report["hipcomp_native_sync"].get("variant")=="native-wave-sync" and
                 not report["hipcomp_native_sync"]["gpu_executed"] and
                 not report["hipcomp_native_sync"]["module_loaded"],"native-sync offline scope")
+
+            run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_hipcomp_lz4_entry.py")],
+                report,"bounded-entry-source-admission-regressions",60)
+            checked=root/"hipcomp-bounded-entry"
+            run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/qualify_hipcomp_candidate.py"),
+                "--source",str(hipcomp_source),"--provider",str(provider),"--sdk",str(sdk),
+                "--output",str(checked),"--native-sync","--bounded-entry"],
+                report,"bounded-entry-offline-qualification",1200)
+            report["hipcomp_bounded_entry"]=json.loads((checked/"qualification.json").read_text(encoding="utf-8"))
+            require(report["hipcomp_bounded_entry"]["complete"] and
+                report["hipcomp_bounded_entry"]["object_inspected"] and
+                report["hipcomp_bounded_entry"]["entry_object"]["complete"] and
+                report["hipcomp_bounded_entry"].get("variant")=="bounded-native-wave-entry" and
+                report["hipcomp_bounded_entry"]["physical_inputs_unchanged"] and
+                not report["hipcomp_bounded_entry"]["gpu_executed"] and
+                not report["hipcomp_bounded_entry"]["module_loaded"],"bounded entry offline scope")
 
         # Reuse the unchanged compiler helper. Its explicit include root is a
         # fresh byte-identical source fixture, never a patched upstream checkout.
