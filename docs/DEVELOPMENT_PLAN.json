@@ -499,5 +499,13 @@
     "physical_provisioning_implemented": false,
     "tray_implemented": true,
     "tray_scope": "Experimental unmounted native control/editor/tray; full mounted/physical/installer lifecycle remains incomplete."
-  }
+  },
+  "release_checkpoint": "docs/RELEASE_READINESS.md",
+  "critical_path_focus": [
+    "GPU acceleration is mandatory; CPU-only implementation, SDK compilation and CPU mocks never satisfy G02.",
+    "Close the current typed compute failure without weakening verification; retain exact-source failure evidence.",
+    "Prioritize a complete bounded Windows write, actual GPU compression, native encoding, independent CPU read and fault/fallback/retirement slice over further disconnected prerequisites.",
+    "Measure whole-operation throughput and stored size on varied data, then advance automatic optimization, scaling, durability and Windows product gates.",
+    "Use extensive recent primary-source research for concrete unresolved design questions; do not substitute research or assertion counts for product integration."
+  ]
 }

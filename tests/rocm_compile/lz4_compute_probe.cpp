@@ -156,7 +156,11 @@ hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t
   if(active->fault=="pointer")bytes[plan.input_pointers]^=std::byte{1};
   if(active->fault=="size-zero")word(bytes,plan.output_sizes+8U*(plan.count-1),0);
   if(active->fault=="size-large")word(bytes,plan.output_sizes+8U*(plan.count-1),UINT64_MAX);
-  if(active->fault=="payload")bytes[last.output_offset]^=std::byte{1};
+  if(active->fault=="payload"){
+    const auto payload=literal(active->source.batch.input(plan.count-1));
+    bytes[last.output_offset+payload.size()-1]^=std::byte{1};
+  }
+  if(active->fault=="equivalent-token")bytes[last.output_offset]^=std::byte{1};
   return hipSuccess;
 }
 hipError_t attributes(hipFuncAttributes* out,const void* entry){
@@ -194,15 +198,22 @@ std::vector<Bytes> compute(State& state,Lz4KernelCoverage covered=coverage){
 }
 void refused(State& state,HipWorkerExit code,Lz4KernelCoverage covered=coverage){
   ++scenarios;++refusals;std::vector<Bytes> escaped;
-  try{escaped=compute(state,covered);throw std::runtime_error("Missing compute refusal");}
-  catch(const HipWorkerFailure& failure){require(failure.code==code,"Wrong compute recovery category");}
+  try{escaped=compute(state,covered);throw std::runtime_error("Missing compute refusal: "+state.fault);}
+  catch(const HipWorkerFailure& failure){if(failure.code!=code)throw std::runtime_error("Wrong compute recovery category: "+state.fault+
+      " expected="+std::to_string(static_cast<std::uint32_t>(code))+
+      " actual="+std::to_string(static_cast<std::uint32_t>(failure.code)));}
   require(escaped.empty() && !state.allocated && !state.stream_live,"Failure escaped data/resources");
 }
-void successful(const Lz4WorkerRequest& source,unsigned wave){
+void successful(const Lz4WorkerRequest& source,unsigned wave,bool equivalent_token=false){
   ++scenarios;++successes;State state(source,wave);
+  if(equivalent_token)state.fault="equivalent-token";
   const auto result=compute(state);
   require(result.size()==source.batch.count(),"Compute candidate count");
-  for(std::size_t i=0;i<result.size();++i)require(result[i]==literal(source.batch.input(i)),"Owned CPU-verified result");
+  for(std::size_t i=0;i<result.size();++i){
+    auto expected=literal(source.batch.input(i));
+    if(equivalent_token && i+1==result.size())expected[0]^=std::byte{1};
+    require(result[i]==expected,"Owned CPU-verified result");
+  }
   require(!state.allocated && !state.stream_live && state.completed,"Successful resources remained");
   require(state.priority_queries==2 && state.attribute_queries==2,"Metadata query bound");
   require(state.calls.size()>=2 && state.calls[state.calls.size()-2]=="stream-destroy" &&
@@ -233,6 +244,9 @@ int wmain(int argc,wchar_t** argv) {
       require(state.calls.empty(),"Missing CPU decoder touched a runtime or memory query");
     }else{
       successful(source,32);successful(source,64);
+      // The terminal literal token has unused low bits. This valid alternate
+      // representation must pass; a changed literal byte must fail.
+      successful(source,32,true);
       successful(request({Bytes(1,std::byte{1})}),32);
       successful(request({Bytes(65536,std::byte{1})}),32);
       successful(request(std::vector<Bytes>(8,Bytes(257,std::byte{2}))),32);
