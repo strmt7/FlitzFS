@@ -20,7 +20,7 @@ class DecoderStaging(unittest.TestCase):
         self.addCleanup(config.stop)
         self.source = self.control / "source"
         self.source.mkdir()
-        self.git("init", "--initial-branch=main")
+        self.git("init", "--object-format=sha1", "--initial-branch=main")
         self.git("config", "core.autocrlf", "false")
         specs = []
         for index, original in enumerate(decoder.ASSETS):
@@ -112,13 +112,21 @@ class DecoderStaging(unittest.TestCase):
 
     def test_crlf_checkout_admitted_without_rewrite(self):
         self.git("config", "core.autocrlf", "true")
+        # Changing conversion policy after the initial add requires fresh index
+        # normalization. Let Git create its physical checkout, not a byte rewrite
+        # that assumes the index/conversion state has already changed.
+        self.assertEqual(self.git("config", "--get", "core.autocrlf"), "true")
+        self.git("add", "--renormalize", "--all")
+        self.assertEqual(self.git("diff", "--cached", "--name-only"), "")
+        self.git("checkout-index", "--force", "--all")
         before = {}
         for spec in decoder.ASSETS:
-            path = self.source / spec["path"]
-            raw = path.read_bytes().replace(b"\n", b"\r\n")
-            path.write_bytes(raw)
+            raw = (self.source / spec["path"]).read_bytes()
+            self.assertIn(b"\r\n", raw)
+            self.assertNotIn(b"\n", raw.replace(b"\r\n", b""))
             before[spec["path"]] = raw
-        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=no"), "")
+        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=no"), "",
+                         self.git("ls-files", "--eol"))
         records = decoder.stage(self.source, self.control, self.output)
         self.assertTrue(all(r["physical"]["representation"] == "crlf-checkout" for r in records))
         for spec in decoder.ASSETS:

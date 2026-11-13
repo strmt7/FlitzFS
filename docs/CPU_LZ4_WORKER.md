@@ -79,3 +79,17 @@ qualified target/wave selection, authenticated candidate-module/worker binding,
 fresh resource admission, independent candidate verification, exact retirement
 and measured whole-operation benefit. Historical D01 and full-product gates
 remain open. No owner device experiment follows from successful compilation.
+
+## Retained initial fixture failure
+
+The initial manual run at fea9fc6 passed the preceding 6/28/9 source cases, then
+failed one of the ten new staging cases: Git considered all four manually
+rewritten CRLF fixture files modified. SDK provisioning, compilation and worker
+execution never started. This is a test-fixture failure, not decoder or GPU
+execution evidence. [Failure record](evidence/cpu-lz4-source-fixture-fea9fc6.json).
+
+The corrected fresh-Git fixture follows the current upstream normalization and
+checkout-index mechanisms. It requires no staged canonical change, actual
+whole-file CRLF bytes and clean Git state before exercising the production
+stager; those bytes must remain untouched afterward. No production guard or pin
+is relaxed and no case is removed. New execution remains mandatory.

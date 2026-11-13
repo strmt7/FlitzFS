@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "failed_source": "fea9fc661fb037b33c5006e5199d3106321f2619",
+  "run": 43495527712,
+  "job": 132127508144,
+  "artifact": {
+    "id": 14071013822,
+    "archive_sha256": "6ed039b439860e49679398a1101a9ba0a375b7ae4357bd2c3b51acc15677322a",
+    "report_path": "flitzfs-rocm-sdk/qualification.json",
+    "report_sha256": "6ba5dae344482f104d3fec31b94b4a849a7763627b924930a83804b70320e194"
+  },
+  "complete": false,
+  "sdk_bootstrap_attempted": false,
+  "driver_export_produced": false,
+  "owner_operations": false,
+  "classification": "CRLF source-test fixture preparation failure before SDK provisioning; not a decoder/compiler/runtime or D01 failure.",
+  "native_report": {
+    "commit": "fea9fc661fb037b33c5006e5199d3106321f2619",
+    "provider_repository": "strmt7/FlitzZip",
+    "provider_ref": "b46acb6dd7e48e1fb2dc182210495abb6a3c013f",
+    "lock_sha256": "9c17484f85824f2fa5365a172fa30d0aef21317417a664400786a0981b3551c0",
+    "commands": [
+      {
+        "name": "static-runtime-export-parser-regressions",
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+          "-B",
+          "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_hip_runtime_exports.py"
+        ],
+        "root_pid": 1968,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "......\r\n----------------------------------------------------------------------\r\nRan 6 tests in 0.002s\r\n\r\nOK\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "codec-source-admission-regressions",
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+          "-B",
+          "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_hipcomp_candidate.py"
+        ],
+        "root_pid": 612,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "............................\r\n----------------------------------------------------------------------\r\nRan 28 tests in 1.585s\r\n\r\nOK\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "warp-sync-source-admission-regressions",
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+          "-B",
+          "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_warp_sync_probe.py"
+        ],
+        "root_pid": 6860,
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ".........\r\n----------------------------------------------------------------------\r\nRan 9 tests in 0.027s\r\n\r\nOK\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      },
+      {
+        "name": "CPU-decoder-source-staging-regressions",
+        "argv": [
+          "C:\\hostedtoolcache\\windows\\Python\\3.15.2\\x64\\python.exe",
+          "-B",
+          "D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_lz4_worker_decoder.py"
+        ],
+        "root_pid": 5332,
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "F.........\r\n======================================================================\r\nFAIL: test_crlf_checkout_admitted_without_rewrite (__main__.DecoderStaging.test_crlf_checkout_admitted_without_rewrite)\r\n----------------------------------------------------------------------\r\nTraceback (most recent call last):\r\n  File \"D:\\a\\FlitzFS\\FlitzFS\\tools\\ci\\test_lz4_worker_decoder.py\", line 121, in test_crlf_checkout_admitted_without_rewrite\r\n    self.assertEqual(self.git(\"status\", \"--porcelain\", \"--untracked-files=no\"), \"\")\r\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: 'M LICENSE\\n M lib/LICENSE\\n M lib/lz4.c\\n M lib/lz4.h' != ''\r\n- M LICENSE\r\n-  M lib/LICENSE\r\n-  M lib/lz4.c\r\n-  M lib/lz4.h\r\n\r\n\r\n----------------------------------------------------------------------\r\nRan 10 tests in 5.684s\r\n\r\nFAILED (failures=1)\r\n",
+        "output_truncated": false,
+        "output_limit_exceeded": false,
+        "timed_out": false,
+        "job_memory_limit_bytes": 2147483648
+      }
+    ],
+    "complete": false,
+    "scope": "Complete SDK build, kernel link, worker bundle authentication and CPU-only refusal tests",
+    "error": "RuntimeError: native ROCm qualification command failed: CPU-decoder-source-staging-regressions"
+  },
+  "correction": {
+    "production_guards_changed": false,
+    "tests_removed": false,
+    "canonical_pins_changed": false,
+    "mechanism": "After changing the fresh synthetic repository's autocrlf policy, normalize its index, prove no staged byte change, and force Git to produce the physical checkout. Require actual whole-file CRLF bytes, Git cleanliness, canonical staging and unmodified physical source.",
+    "status": "Requires new Windows/Linux execution; no success is inferred."
+  },
+  "primary_source": {
+    "repository": "git/git",
+    "commit": "9354c5f04055932909b660a237905b360cba195a",
+    "committed_utc": "2026-11-12T18:42:08Z",
+    "transport": "GitHub native source API",
+    "paths": [
+      "Documentation/git-add.adoc",
+      "Documentation/git-checkout-index.adoc",
+      "t/t0020-crlf.sh"
+    ],
+    "basis": "The current git-add documentation prescribes renormalization after changing core.autocrlf. checkout-index copies index data to the working tree; its force option overwrites the fresh fixture's existing files. Current upstream CRLF tests use checkout-index to generate the physical representation."
+  }
+}
