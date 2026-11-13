@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "source_commit": "8540b35fce70323ba3e95b039a4bae263f7a232b",
+  "run": 43339126399,
+  "job": 131602731508,
+  "conclusion": "failure",
+  "build": "success",
+  "dependency_audit": "success",
+  "model": {
+    "conclusion": "success",
+    "checks": 377,
+    "native_rng": {
+      "cold": 84,
+      "first": 87,
+      "second": 88,
+      "remaining_cold_and_measured": 88
+    },
+    "native_window_thread": {
+      "before": 88,
+      "after_first": 113,
+      "remaining_cold_and_measured": 113
+    },
+    "full_application_cycles": [
+      {
+        "before": 113,
+        "after": 113
+      },
+      {
+        "before": 113,
+        "after": 113
+      },
+      {
+        "before": 113,
+        "after": 113
+      }
+    ],
+    "working_set_restoration": true,
+    "cleanup_healthy": true,
+    "scope": "Bounded synthetic CPU provider/model/controller checks; no mounted drive or GPU."
+  },
+  "gui": {
+    "conclusion": "failure",
+    "message": "GUI did not appear",
+    "cause": "The harness selected the newly created window and checked visibility immediately, before startup ShowWindow completed. Window discovery is not readiness.",
+    "correction": "Wait for observed visibility, required native controls and enabled Create. Fail immediately on actual child exit/wait failure. Keep the existing overall deadline and child job limits; no arbitrary startup sleep or retry."
+  },
+  "owner_execution": false
+}
