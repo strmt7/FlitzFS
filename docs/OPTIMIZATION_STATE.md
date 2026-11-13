@@ -217,3 +217,11 @@ live data handles. Healthy/exhausted advice cannot be rebuilt to reset allowance
 Four admitted areas cap total declared reservations at 512 KiB per session. This is
 not persistent write credit, area recycling, a durable provider mapping or an
 automatic learner. Publishing-source execution remains pending.
+
+## Windows helper consumer
+
+The [new helper integration](ADVISORY_HELPER.md) uses the existing identical-state
+check and failed-state rebuild through its real private memory provider. It
+retains every admitted mapping and keeps saves/reads independent. Its new
+qualification remains pending. This advances the process-lifetime backend;
+physical mappings, lifetime write credit and autonomous learning stay unfinished.

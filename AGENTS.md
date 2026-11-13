@@ -1301,3 +1301,17 @@ all old publication/format/resource limits. No allocation/I/O after successful
 creation for diagnostics; no automatic retry/reclamation or inferred persistent
 mapping/credit. Require publishing-source fault, raw/codec, sanitizer and Windows
 qualification; no owner mount/driver/GPU permission or full L01 completion follows.
+
+## Windows helper advice consumer
+
+Read docs/ADVISORY_HELPER.md before changing app advisory maintenance/mappings.
+Keep audits off ordinary file I/O, one distinct rebuild per explicit opportunity,
+healthy/exhausted allowance preservation and actual failed-state admission.
+The fixed helper array must retain every core-admitted area, including creation
+exceptions; adopt only through bounded nonthrowing ownership updates. Count all
+area extents/provider allocations, defer optional work at four-area exhaustion
+and preserve healthy file access. Keep the 12-MiB domain and all original limits.
+Qualification faults belong only to the test binary's freshly owned memory;
+never add a product fault flag/backing override, infer durable physical mapping
+or claim an autonomous learner/persistent rewrite budget. Require new-source
+model/controller/GUI/resource retirement and all existing regression gates.

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cstring>
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
 
 namespace flitzfs {
 namespace {
@@ -32,7 +34,7 @@ void VolumeModel::create() {
   require(advisory.phase==NativeOptimizationPhase::ready,"Optimization area creation failed");
   domain->verify_resident();
   domain_=std::move(domain);head_=std::move(head);image_=std::move(image);
-  advice_=std::move(advice);session_=std::move(session);
+  advice_[0]=std::move(advice);session_=std::move(session);
 }
 void VolumeModel::create_text(std::string_view name,std::string_view text) {
   require(ready(),"No volume");
@@ -67,8 +69,51 @@ std::string VolumeModel::read_text(std::string_view name) const {
   if(bytes.empty())return {};
   return {reinterpret_cast<const char*>(bytes.data()),bytes.size()};
 }
+NativeOptimizationInfo VolumeModel::optimization_info() const noexcept {
+  return session_?session_->optimization_info():NativeOptimizationInfo{};
+}
+void VolumeModel::adopt_attempt(unsigned slot,std::shared_ptr<StoreByteIo>& next) noexcept {
+  static_assert(std::is_nothrow_move_assignable_v<std::shared_ptr<StoreByteIo>>);
+  // slot was admitted before allocation. Core failure may still own a partial
+  // candidate; record that mapping even when its creation threw.
+  if(session_->optimization_info().binding_attempts==slot+1)advice_[slot]=std::move(next);
+}
+VolumeModel::AdviceMaintenance VolumeModel::maintain_optimization_state() {
+  require(ready()&&!session_->poisoned(),"Volume unavailable");
+  domain_->verify_resident();
+  auto info=session_->optimization_info();
+  require(info.binding_attempts&&info.binding_attempts<=advice_.size()&&
+      advice_[info.binding_attempts-1],"Optimization mapping unavailable");
+  if(info.phase==NativeOptimizationPhase::ready) {
+    try {
+      // Identical publication verifies both actual records without writing,
+      // advancing sequence or replenishing/consuming an allowance.
+      const auto current=session_->optimization_snapshot();
+      session_->publish_optimization_state(current.state);
+      return AdviceMaintenance::ready;
+    }catch(...) {
+      info=session_->optimization_info();
+      // Allocation/preflight refusal that left advice healthy is not damage.
+      if(info.phase!=NativeOptimizationPhase::terminal&&
+          info.phase!=NativeOptimizationPhase::unavailable)throw;
+    }
+  }
+  require(info.session_ready,"Volume unavailable after advisory audit");
+  if(info.phase!=NativeOptimizationPhase::terminal&&
+      info.phase!=NativeOptimizationPhase::unavailable)return AdviceMaintenance::unavailable;
+  const auto slot=info.binding_attempts;
+  if(slot>=advice_.size())return AdviceMaintenance::unavailable;
+  auto next=domain_->create_store(area_capacity);
+  NativeOptimizationInfo created;
+  try{created=session_->rebuild_optimization_area(next,1);}
+  catch(...){adopt_attempt(slot,next);throw;}
+  adopt_attempt(slot,next);
+  return created.phase==NativeOptimizationPhase::ready?
+      AdviceMaintenance::rebuilt:AdviceMaintenance::unavailable;
+}
 bool VolumeModel::optimize() {
   require(ready() && !session_->poisoned(),"Volume unavailable");
+  if(maintain_optimization_state()==AdviceMaintenance::unavailable)return false;
   auto target=domain_->create_store(image_capacity);
   if(!session_->begin_idle_recompression(target,fresh_identity(),
       {StoreCompressionMode::automatic,9,false}))return false;
@@ -93,12 +138,13 @@ VolumeView VolumeModel::view() const {
   VolumeView out;
   if(!session_)return out;
   domain_->verify_resident();
-  out.ready=true;out.fenced=session_->poisoned();
+  out.ready=true;out.fenced=session_->poisoned();out.optimization=optimization_info();
   const auto use=domain_->usage();out.allocated=use.allocated;out.capacity=use.capacity;
   if(out.fenced)return out; // Preserve ownership without trying a poisoned reader.
   auto snapshot=session_->snapshot();const auto info=snapshot.storage_info();
   out.payload_bytes=info.stored_payload_bytes;
-  out.physical_bytes=head_->extent()+image_->extent()+advice_->extent();
+  out.physical_bytes=head_->extent()+image_->extent();
+  for(const auto& area:advice_)if(area)out.physical_bytes+=area->extent();
   out.epoch=session_->volume_info().selection.epoch;
   out.files=snapshot.list();
   for(const auto& file:out.files)out.logical_bytes+=file.logical_bytes;
@@ -106,7 +152,8 @@ VolumeView VolumeModel::view() const {
 }
 void VolumeModel::discard() {
   if(domain_)domain_->verify_resident();
-  session_.reset();advice_.reset();image_.reset();head_.reset();domain_.reset();
+  session_.reset();for(auto& area:advice_)area.reset();
+  image_.reset();head_.reset();domain_.reset();
   require(MemoryVolumeDomain::cleanup_healthy(),"Memory cleanup failed; restart the application");
 }
 } // namespace flitzfs

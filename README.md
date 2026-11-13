@@ -209,3 +209,8 @@ file handles, starts empty advice in a new area and retains failed ownership
 within an aggregate cap. Provider mapping, persistent rewrite credit and automatic
 learning remain unfinished. The parent origin guard passed all 13 core/mounted jobs;
 [source-bound results](docs/evidence/origin-guard-053ade8.json).
+
+The Windows helper now prepares a [controlled advice-recovery consumer](docs/ADVISORY_HELPER.md)
+for its existing maintenance operation. It retains and accounts for new/failed
+areas and keeps file access independent. New-source VM qualification is pending;
+physical mapping, persistent rewrite credit and autonomous learning remain open.

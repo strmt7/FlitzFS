@@ -815,3 +815,12 @@ origin guard passed all 13 hosted core/mounted jobs at 053ade8. D01's historical
 cause remains unproven. Provider mapping/reclamation, persistent workload-derived
 write credit, helper authorization and automatic learning remain required; no
 package is declared complete by this checkpoint.
+
+## Helper consumer checkpoint
+
+The shared rebuild at 745d023 passed all 13 core/mounted jobs and 687 model
+assertions. The next [Windows helper consumer](ADVISORY_HELPER.md) prepares actual
+process-lifetime area ownership/accounting, one checked maintenance rebuild and
+continued data access after exhaustion. Publishing-source qualification is pending.
+L01 is not complete: durable provider mapping/reclamation, persistent rewrite
+credit, authorization and automatic learning remain required.

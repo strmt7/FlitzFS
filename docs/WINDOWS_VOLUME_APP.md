@@ -127,3 +127,11 @@ then requires actual clean process retirement. It adds no arbitrary startup slee
 W01 and the full product remain unfinished: mounted lifecycle, physical backend,
 complete semantics/authorization, install/update/rollback, automatic low-priority
 learning, useful AMD routing, scaling, repair and comparison gates remain required.
+
+## Pending advisory recovery consumer
+
+[ADVISORY_HELPER.md](ADVISORY_HELPER.md) describes the new maintenance-only audit
+and one-attempt rebuild path. The helper retains all four bounded area mappings,
+reports all advice extents and defers optional optimization at exhaustion while
+keeping file access available. This requires new-source VM qualification. It
+adds no autonomous executor, learner, persistent wear budget or physical mapping.

@@ -96,3 +96,12 @@ The retained-empty-area exclusion oracle gives those areas the same 4-MiB image
 capacity as a successful fresh control. Resource refusal therefore cannot hide
 a missing alias check. Separate cases reject reuse of retired empty advice while
 the current advice is unavailable and the binding cap has not been reached.
+
+## Executed shared-engine checkpoint
+
+At 745d023, all 13 core/mounted regression jobs passed. The direct advisory model
+passed 687 assertions, including 23 compound rebuild scenarios and equally funded
+retained-area controls; native Windows passed 136 groups and sanitizers 117.
+See [exact evidence](evidence/advisory-rebuild-745d023.json). Mounted jobs are
+existing-path regressions, not mounted use of this new rebuild API. The next
+[helper consumer](ADVISORY_HELPER.md) requires its own publishing-source checks.
