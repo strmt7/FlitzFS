@@ -166,3 +166,14 @@ bounded, checked allocation, preserving the kernel ABI and verification.
 See [GPU phase evidence and allocation boundary](docs/GPU_PHASE_PROFILE.md).
 The new path requires separate source-bound qualification; useful GPU throughput
 or compression benefit and the D01 retirement repair remain unproved.
+
+Source b6a9b4e passed all thirteen core jobs and the twenty-exit full-SDK gate;
+its changed 4-KiB match path also passed one actual GPU profile and independent CPU
+comparison. No stale process or driver change was observed. The single 423.0053-ms
+exchange does not establish a gain over the earlier observation.
+
+The next D01 change separates basic, mutation and deletion mounted clients from
+their filesystem hosts on disposable Windows runners. It preserves the original
+workloads and adds strict actor evidence; its publishing-source checks are pending.
+Restart/resumer, memory-handoff and read-only actor conversion, adapter-wide
+protection and the historical termination cause remain open.

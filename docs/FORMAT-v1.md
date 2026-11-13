@@ -320,3 +320,10 @@ format or IPC change. Its initialized alignment padding is included in admission
 input, little-endian predecessor links and sentinel output share one allocation.
 No file bytes, codec identifiers, dictionary dependencies or recovery encoding
 change. See GPU_PHASE_PROFILE.md for the checked ownership/qualification boundary.
+
+The ordered basic/mutation/delete mounted fixtures extend the existing bounded
+external-client diagnostic report variant to those profiles. The original schema1/
+schema2 storage-observation fields remain readable, while the current live gate
+requires distinct source/client/verifier actors and phase-correct observations.
+This changes no native container, checkpoint, codec, dictionary or worker-frame
+encoding. It grants no new write/recovery or physical durability guarantee.

@@ -837,3 +837,18 @@ check is removed. Source99's single actual GPU profile is evidence only for its
 older three-allocation path. The new path must pass exact-source isolated gates
 before any owner run; neither observation establishes no-freeze guarantees,
 useful compression benefit, power-loss safety or full-product qualification.
+
+The next D01 fixture change moves all mounted client calls in basic, mutations
+and delete to the supervised external controller. Its filesystem child holds no
+mounted client handle. Normal client handles close before ordered stop, and the
+exact source/supervisor lease must retire before CPU verification. Crash profiles
+retain their open external handle through source retirement. All old limits and
+oracles remain. Restart/resumer, RAM-handoff and read-only actor conversion are
+unfinished, and the source-specific guard is not production protection.
+Qualification of this publishing source is pending; no owner operation is enabled.
+
+Qualified b6a9b4e evidence, including one bounded actual GPU profile and postflight,
+is retained in evidence/gpu-slab-b6a9b4e.json. It records zero remaining FlitzFS
+processes and an unchanged installed runtime/driver after that experiment. These
+observations do not establish general no-freeze/data-loss guarantees or a GPU
+performance improvement.

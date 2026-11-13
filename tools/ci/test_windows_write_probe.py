@@ -61,12 +61,45 @@ class Evidence(unittest.TestCase):
                 with self.subTest(position=position, key=key, value=value), self.assertRaises(ValueError):
                     validate_pair(*invalid, "crash", COMMIT, require_external=True)
         wrong = reports("mutations")
+        for item in wrong:
+            item["profile"] = "restart"
         for position, item in enumerate(wrong):
             item.update(source_protocol="external-client", client_process=23,
                         host_self_io_rejected=position == 0,
                         client_flush_callback_observed=position == 0)
         with self.assertRaises(ValueError):
-            validate_pair(*wrong, "mutations", COMMIT)
+            validate_pair(*wrong, "restart", COMMIT)
+
+    def test_ordered_external_clients(self):
+        for profile in ("basic", "mutations", "delete"):
+            legacy = reports(profile)
+            self.assertTrue(validate_pair(*legacy, profile, COMMIT)["complete"])
+            with self.assertRaises(ValueError):
+                validate_pair(*legacy, profile, COMMIT, require_external=True)
+            pair = reports(profile)
+            for position, item in enumerate(pair):
+                item.update(source_protocol="external-client", client_process=23,
+                            host_self_io_rejected=position == 0,
+                            client_flush_callback_observed=position == 0)
+            with self.subTest(profile=profile):
+                self.assertTrue(validate_pair(*pair, profile, COMMIT, require_external=True)["complete"])
+            for position in (0, 1):
+                for key in ("source_protocol", "client_process", "host_self_io_rejected",
+                            "client_flush_callback_observed"):
+                    invalid = deepcopy(pair)
+                    del invalid[position][key]
+                    with self.subTest(profile=profile, position=position, missing=key), self.assertRaises(ValueError):
+                        validate_pair(*invalid, profile, COMMIT, require_external=True)
+                for key, value in (("client_process", True), ("client_process", 0),
+                                   ("client_process", 17), ("client_process", 18),
+                                   ("client_process", 29), ("source_protocol", "self-client"),
+                                   ("host_self_io_rejected", position != 0),
+                                   ("host_self_io_rejected", int(position == 0)),
+                                   ("client_flush_callback_observed", position != 0)):
+                    invalid = deepcopy(pair)
+                    invalid[position][key] = value
+                    with self.subTest(profile=profile, position=position, key=key, value=value), self.assertRaises(ValueError):
+                        validate_pair(*invalid, profile, COMMIT, require_external=True)
 
     def test_missing_extra_and_mismatched_fields(self):
         for profile in ("basic", "mutations", "delete", "crash"):

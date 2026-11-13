@@ -1,0 +1,144 @@
+{
+  "source": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
+  "run": 43353623905,
+  "artifact": 14005710402,
+  "artifact_sha256": "944966529c3394d580cc618485e3f34b62632ec69a50269ab9acc209e2f9de23",
+  "searches": [
+    {
+      "entry": "search-2.json",
+      "commit": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
+      "repository": "strmt7/FlitzFS",
+      "source_sha256": "7a0531d48cf4814d49d6b97bf0d9e73418800c55abbf2eda577d2ce8d419587e",
+      "provider": "0.2.43",
+      "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "query": "GPU worker supervision CPU fallback recovery configuration and runtime failure",
+      "native_response_sha256": "70650e5e749ab332b6d83294e58c2da55154cd7ec3c3c70f142b57658e2b679d",
+      "hits": [
+        {
+          "end_line": 57,
+          "excerpt": "WINDOWS_GPU_MEMORY_SOURCES = ( (\"windows-gpu-memory-query\", \"https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo\", \"QueryVideoMemoryInfo\", \"NodeIndex\"), (\"windows-gpu-memory-info\", \"http",
+          "file_sha256": "52b544a746226ae44ab6ccc4d561a9503038f175b4936f8bc8f12f036da293a9",
+          "path": "tools/ci/hosted_research.py",
+          "score": 0.7857446440183367,
+          "start_line": 51
+        },
+        {
+          "end_line": 12,
+          "excerpt": "#pragma once #include \"gpu_worker_common.hpp\" #include \"flitzfs/match_worker_wire.hpp\" #include <optional> namespace flitzfs { // Single control thread. Retain this object across requests so qualified // failure/recovery history survives CP",
+          "file_sha256": "d71c6a0897a7da5895fcef468a300b064b0a2c157f35b02388bbfd886ac00774",
+          "path": "src/windows/gpu_match_worker_controller.hpp",
+          "score": 0.7855983809676843,
+          "start_line": 1
+        },
+        {
+          "end_line": 258,
+          "excerpt": ", \"windows-runtime-trust\": WINDOWS_RUNTIME_TRUST_SOURCES, \"windows-process-retirement\": WINDOWS_PROCESS_RETIREMENT_SOURCES, \"windows-adapter-identity\": WINDOWS_ADAPTER_IDENTITY_SOURCES, \"windows-adapter-topology\": WINDOWS_ADAPTER_TOPOLOGY_S",
+          "file_sha256": "52b544a746226ae44ab6ccc4d561a9503038f175b4936f8bc8f12f036da293a9",
+          "path": "tools/ci/hosted_research.py",
+          "score": 0.7848286254445327,
+          "start_line": 253
+        },
+        {
+          "end_line": 41,
+          "excerpt": "void GpuMatchWorkerController::select_cpu(GpuRecoveryOutcome outcome,GpuGateCode code,bool finalize) noexcept { selected_.clear();state_=GpuWorkerState::cpu_selected;last_gate_=code; if(finalize)report(outcome); } bool GpuMatchWorkerControl",
+          "file_sha256": "e959d84680b32365162a7024ba032fd29a42a7a04fc78be366d933e026da46cc",
+          "path": "src/windows/gpu_match_worker_controller.cpp",
+          "score": 0.7827407161820172,
+          "start_line": 22
+        },
+        {
+          "end_line": 519,
+          "excerpt": "HostedVolumeMaintenanceResult WinFspNativeWritable::recompress_managed_hosted( std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) { hosted(); std::lock_guard guard(impl_->control); if(requires_offline(",
+          "file_sha256": "8aa9429d26337dcd3d20b8e5ad365bc3a731bb0375f8131ec25ed12e575354b9",
+          "path": "src/windows/winfsp_native.cpp",
+          "score": 0.7774115617862929,
+          "start_line": 504
+        }
+      ]
+    },
+    {
+      "entry": "search-5.json",
+      "commit": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
+      "repository": "strmt7/FlitzFS",
+      "source_sha256": "7a0531d48cf4814d49d6b97bf0d9e73418800c55abbf2eda577d2ce8d419587e",
+      "provider": "0.2.43",
+      "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "query": "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime",
+      "native_response_sha256": "4b54bd6a44c24f0332ec9bf5551319d594df5e394240720e2c3342aa6de901d3",
+      "hits": [
+        {
+          "end_line": 115,
+          "excerpt": "WINDOWS_FRAMEWORK_SOURCES = ( (\"winfsp-current-design\", \"https://winfsp.dev/doc/WinFsp-Design/\", \"FSD\", \"kernel\"), (\"winfsp-current-service\", \"https://winfsp.dev/doc/WinFsp-Service-Architecture/\", \"service\", \"Launcher\"), (\"winfsp-current-co",
+          "file_sha256": "52b544a746226ae44ab6ccc4d561a9503038f175b4936f8bc8f12f036da293a9",
+          "path": "tools/ci/hosted_research.py",
+          "score": 0.804082753264181,
+          "start_line": 104
+        },
+        {
+          "end_line": 299,
+          "excerpt": "// request effects even at unchanged EOF. No clock or policy is invented. NativeInodeWriteCommit write_inode_with_metadata(std::uint64_t inode,std::uint64_t offset, std::span<const std::byte>,NativeInodeWriteOptions,const NativeAutomaticMet",
+          "file_sha256": "30ac8c139b3c3b23929d2ec641c653af6824a23917c89334f71c2c2afb90f067",
+          "path": "include/flitzfs/native_filesystem.hpp",
+          "score": 0.7995123552733059,
+          "start_line": 293
+        },
+        {
+          "end_line": 364,
+          "excerpt": "NativeInodeAllocationInfo inspect_allocation(std::uint64_t inode) const; NativeAllocationUsage inspect_allocation_usage() const; NativeFsCommit retire_inode(std::uint64_t inode); // Single-control-thread committed view for the owning Window",
+          "file_sha256": "30ac8c139b3c3b23929d2ec641c653af6824a23917c89334f71c2c2afb90f067",
+          "path": "include/flitzfs/native_filesystem.hpp",
+          "score": 0.7971169272965124,
+          "start_line": 348
+        },
+        {
+          "end_line": 503,
+          "excerpt": "std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_hosted( std::shared_ptr<StoreByteIo> head,StoreIdentity volume, std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,StoreCompressionOptions foreground) { hoste",
+          "file_sha256": "8aa9429d26337dcd3d20b8e5ad365bc3a731bb0375f8131ec25ed12e575354b9",
+          "path": "src/windows/winfsp_native.cpp",
+          "score": 0.7970417436426498,
+          "start_line": 493
+        },
+        {
+          "end_line": 38,
+          "excerpt": "WHEEL_SHA=\"76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d\" MODEL=\"Snowflake/snowflake-arctic-embed-xs\" QUERIES=( \"native filesystem inode namespace sparse extent mutation commit and metadata encoding\", \"transactional objec",
+          "file_sha256": "5a82090f553af11e1ed35818ca16eb51e411385dfc4bd5040724c014c00136a7",
+          "path": "tools/ci/hosted_semantic.py",
+          "score": 0.7868863357493581,
+          "start_line": 27
+        }
+      ]
+    }
+  ],
+  "live_native_source_hashes": [
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "sha256": "8aa9429d26337dcd3d20b8e5ad365bc3a731bb0375f8131ec25ed12e575354b9",
+      "bytes": 35164
+    },
+    {
+      "path": "tools/ci/hosted_research.py",
+      "sha256": "52b544a746226ae44ab6ccc4d561a9503038f175b4936f8bc8f12f036da293a9",
+      "bytes": 27704
+    }
+  ],
+  "pinned_sdk_api": {
+    "chunk_id": "3fa830",
+    "wall_time_seconds": 1.0613545,
+    "exit_code": 0,
+    "original_token_count": 1247,
+    "output": "{\"blob\":\"0bfa8a25d8d33e893c52df49bdfc9bafafcbbb5b\",\"line\":1427,\"text\":\"{\\r\\n    if (NT_SUCCESS(DispatcherResult))\\r\\n        return;\\r\\n    InterlockedCompareExchange(&FileSystem->DispatcherResult, DispatcherResult, 0);\\r\\n}\\r\\nFSP_API VOID FspFileSystemSetDispatcherResultF(FSP_FILE_SYSTEM *FileSystem,\\r\\n    NTSTATUS DispatcherResult);\\r\\nstatic inline\\r\\nVOID FspFileSystemSetDebugLog(FSP_FILE_SYSTEM *FileSystem,\\r\\n    UINT32 DebugLog)\\r\\n{\\r\\n    FileSystem->DebugLog = DebugLog;\\r\\n}\\r\\nFSP_API VOID FspFileSystemSetDebugLogF(FSP_FILE_SYSTEM *FileSystem,\\r\\n    UINT32 DebugLog);\\r\\nstatic inline\\r\\nBOOLEAN FspFileSystemIsOperationCaseSensitive(VOID)\\r\\n{\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request = FspFileSystemGetOperationContext()->Request;\\r\\n    return\\r\\n        FspFsctlTransactCreateKind == Request->Kind && Request->Req.Create.CaseSensitive ||\\r\\n        FspFsctlTransactQueryDirectoryKind == Request->Kind && Request->Req.QueryDirectory.CaseSensitive;\\r\\n}\\r\\nFSP_API BOOLEAN FspFileSystemIsOperationCaseSensitiveF(VOID);\\r\\n/**\\r\\n * Gets the originating process ID.\\r\\n *\\r\\n * Valid only during Create, Open and Rename requests when the target exists.\\r\\n */\\r\\nstatic inline\\r\\nUINT32 FspFileSystemOperationProcessId(VOID)\\r\\n{\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request = FspFileSystemGetOperationContext()->Request;\\r\\n    switch (Request->Kind)\\r\\n    {\\r\\n    case FspFsctlTransactCreateKind:\\r\\n        return FSP_FSCTL_TRANSACT_REQ_TOKEN_PID(Request->Req.Create.AccessToken);\\r\\n    case FspFsctlTransactSetInformationKind:\\r\\n        if (10/*FileRenameInformation*/ == Request->Req.SetInformation.FileInformationClass ||\\r\\n            65/*FileRenameInformationEx*/ == Request->Req.SetInformation.FileInformationClass)\\r\\n            return FSP_FSCTL_TRANSACT_REQ_TOKEN_PID(Request->Req.SetInformation.Info.Rename.AccessToken);\\r\\n        /* fall through! */\\r\\n    default:\\r\\n        return 0;\\r\\n    }\\r\\n}\\r\\nFSP_API UINT32 FspFileSystemOperationProcessIdF(VOID);\\r\\n\\r\\n/*\\r\\n * Operations\\r\\n */\\r\\nFSP_API NTSTATUS FspFileSystemOpEnter(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\"}\r\n{\"blob\":\"0bfa8a25d8d33e893c52df49bdfc9bafafcbbb5b\",\"line\":1443,\"text\":\"BOOLEAN FspFileSystemIsOperationCaseSensitive(VOID)\\r\\n{\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request = FspFileSystemGetOperationContext()->Request;\\r\\n    return\\r\\n        FspFsctlTransactCreateKind == Request->Kind && Request->Req.Create.CaseSensitive ||\\r\\n        FspFsctlTransactQueryDirectoryKind == Request->Kind && Request->Req.QueryDirectory.CaseSensitive;\\r\\n}\\r\\nFSP_API BOOLEAN FspFileSystemIsOperationCaseSensitiveF(VOID);\\r\\n/**\\r\\n * Gets the originating process ID.\\r\\n *\\r\\n * Valid only during Create, Open and Rename requests when the target exists.\\r\\n */\\r\\nstatic inline\\r\\nUINT32 FspFileSystemOperationProcessId(VOID)\\r\\n{\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request = FspFileSystemGetOperationContext()->Request;\\r\\n    switch (Request->Kind)\\r\\n    {\\r\\n    case FspFsctlTransactCreateKind:\\r\\n        return FSP_FSCTL_TRANSACT_REQ_TOKEN_PID(Request->Req.Create.AccessToken);\\r\\n    case FspFsctlTransactSetInformationKind:\\r\\n        if (10/*FileRenameInformation*/ == Request->Req.SetInformation.FileInformationClass ||\\r\\n            65/*FileRenameInformationEx*/ == Request->Req.SetInformation.FileInformationClass)\\r\\n            return FSP_FSCTL_TRANSACT_REQ_TOKEN_PID(Request->Req.SetInformation.Info.Rename.AccessToken);\\r\\n        /* fall through! */\\r\\n    default:\\r\\n        return 0;\\r\\n    }\\r\\n}\\r\\nFSP_API UINT32 FspFileSystemOperationProcessIdF(VOID);\\r\\n\\r\\n/*\\r\\n * Operations\\r\\n */\\r\\nFSP_API NTSTATUS FspFileSystemOpEnter(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\\r\\nFSP_API NTSTATUS FspFileSystemOpLeave(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\\r\\nFSP_API NTSTATUS FspFileSystemOpCreate(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\\r\\nFSP_API NTSTATUS FspFileSystemOpOverwrite(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\\r\\nFSP_API NTSTATUS FspFileSystemOpCleanup(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\\r\\nFSP_API NTSTATUS FspFileSystemOpClose(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\\r\\nFSP_API NTSTATUS FspFileSystemOpRead(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\\r\\nFSP_API NTSTATUS FspFileSystemOpWrite(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\\r\\nFSP_API NTSTATUS FspFileSystemOpQueryInformation(FSP_FILE_SYSTEM *FileSystem,\\r\\n    FSP_FSCTL_TRANSACT_REQ *Request, FSP_FSCTL_TRANSACT_RSP *Response);\"}\r\n"
+  },
+  "upstream_issue": {
+    "api": "https://api.github.com/repos/winfsp/winfsp/issues/702",
+    "comments_api": "https://api.github.com/repos/winfsp/winfsp/issues/702/comments?per_page=100",
+    "transport": "authenticated gh native GitHub API, exact issue and comments",
+    "checked_date": "2026-11-13",
+    "state": "open",
+    "updated_at": "2026-10-30T14:10:01Z",
+    "comments": 0,
+    "maintainer_confirmation": false,
+    "conclusion": "Still an unconfirmed causal lead; no basis to close D01 or test owner mounts."
+  }
+}

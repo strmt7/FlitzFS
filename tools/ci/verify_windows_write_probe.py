@@ -17,6 +17,7 @@ BASE = {"schema", "phase", "commit", "source_process", "observer_process",
 EXTRA = {"profile", "file_count", "creation_time", "last_access_time", "last_write_time", "change_time", "attributes", "reservation",
          "data_digest", "security_digest", "keep_digest"}
 PROFILES = {"basic", "mutations", "delete", "crash", "restart", "crash-restart"}
+EXTERNAL_PROFILES = {"basic", "mutations", "delete", "crash", "crash-restart"}
 RESTART = {"restart", "crash-restart"}
 EXTERNAL = {"source_protocol", "client_process", "host_self_io_rejected", "client_flush_callback_observed"}
 RESTART_EXTRA = {"state_digest", "source_ack_digest", "resumer_process"}
@@ -35,8 +36,8 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str, *, re
     require(profile in PROFILES and SHA.fullmatch(commit) is not None, "invalid selected scope")
     extended = profile != "basic"
     external = type(writer) is dict and bool(set(writer) & EXTERNAL)
-    require(not external or profile in {"crash", "crash-restart"}, "external protocol on wrong profile")
-    require(not require_external or external, "live crash campaign requires an external client")
+    require(not external or profile in EXTERNAL_PROFILES, "external protocol on wrong profile")
+    require(not require_external or external, "live selected campaign requires an external client")
     fields = BASE | (EXTRA if extended else set()) | (EXTERNAL if external else set())
     expected_phase = "ack" if profile in {"crash", "crash-restart"} else "state" if extended else "write"
     size, inode, count = {"basic": (7001, 2, 1), "mutations": (89, 2, 2),
@@ -67,7 +68,7 @@ def validate_pair(writer: dict, verifier: dict, profile: str, commit: str, *, re
             require(item["client_process"] != item["source_process"]
                     and item["client_process"] != item["observer_process"], "filesystem host/verifier was its own client")
             for key in ("host_self_io_rejected", "client_flush_callback_observed"):
-                require(type(item[key]) is bool and item[key] == (phase == "ack"),
+                require(type(item[key]) is bool and item[key] == (phase != "verify"),
                         "unobserved external client/flush claim")
         if extended:
             require(item["profile"] == profile, "mixed profile")
@@ -211,7 +212,7 @@ def main() -> None:
     else:
         reports = [read_report(fixture / name) for name in names]
         result = validate_pair(*reports, args.profile, os.environ["GITHUB_SHA"],
-                               require_external=args.profile == "crash")
+                               require_external=args.profile in EXTERNAL_PROFILES)
     require(fixture.name == f"flitzfs-write-probe-{reports[0]['source_process']}", "fixture process binding")
     image_bytes = regular(fixture / "native.fltx").st_size
     require(image_bytes == result["image_bytes"] and image_bytes

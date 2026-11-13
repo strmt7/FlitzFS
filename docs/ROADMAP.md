@@ -747,3 +747,18 @@ with exhaustive bounded CPU layout checks and unchanged kernel/verification/
 process gates. Qualification of this changed source is pending. D01 causal
 retirement, useful G02 benefit and the full persistent filesystem exit criteria
 remain open. See GPU_PHASE_PROFILE.md and evidence/gpu-profile-99be6a2.json.
+
+## Lifecycle investigation after GPU allocation qualification
+
+b6a9b4e passed thirteen core jobs, the full-SDK twenty-exit lane and a single tiny
+owner GPU profile. The packed path verified correctly but did not establish a
+throughput/compression benefit. Initialization/allocation still dominated. The
+unchanged GPU workload is not repeated for test-only lifecycle edits.
+
+D01 now advances normal mounted actor separation: basic, mutations and deletion
+workloads move into the existing external controller, while their host verifies
+real client origin/Flush and retires before CPU reopen. Original metadata, EOF,
+rename/delete, readback and recovery checks remain. New-source qualification is
+pending. Remaining restart/resumer, RAM-handoff and read-only conversion must
+precede adapter-wide self-origin protection. The upstream issue still has no
+maintainer confirmation; the old kernel state is unknown, so D01 stays open.

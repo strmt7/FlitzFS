@@ -11,14 +11,15 @@
     "note": "Current qualified baseline. Independent cost profiling and parent preparation changes require new-source qualification; no new owner execution performed."
   },
   "current_qualification": {
-    "commit": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
-    "core_run": 43348957587,
+    "commit": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
+    "core_run": 43353623810,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "sdk_run": 43348957813,
+    "sdk_run": 43353623706,
     "sdk_conclusion": "success",
-    "evidence": "docs/evidence/gpu-profile-99be6a2.json"
+    "sdk_confirmed_exits": 20,
+    "evidence": "docs/evidence/gpu-slab-b6a9b4e.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -327,11 +328,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
-    "contract": "docs/GPU_PHASE_PROFILE.md",
-    "behavior": "Coalesced bounded aligned match slab: one allocation/upload/free, unchanged kernel and CPU verification.",
-    "status": "New-source exhaustive layout/CPU semantics, raw/codec/sanitizer/Windows/SDK and integration results required.",
-    "next": "Inspect layout and SDK evidence before any changed hardware invocation. Do not rerun unchanged profile. D01 and resident-worker/lifecycle gates remain open."
+    "source_parent": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
+    "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
+    "behavior": "Basic/mutations/delete actual mounted I/O executes in external controller, using existing protected events/supervisor and independent CPU reopen.",
+    "status": "Publishing-source full core matrix and affected external-actor report evidence required.",
+    "next": "Finish remaining mounted actor separation before adapter-wide self-origin protection. Preserve the unresolved historical cause; no unchanged owner GPU rerun."
   },
   "resolved": [
     {
@@ -376,17 +377,17 @@
     "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification."
   },
   "gpu_cost_observation": {
-    "commit": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
+    "commit": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
     "actual_gpu_execution": true,
     "input_bytes": 4096,
     "explicit_device_bytes": 14336,
-    "exchange_wall_ns": 390882700,
-    "worker_wall_ns": 351742700,
-    "kernel_launch_wait_wall_ns": 1044800,
-    "cpu_semantic_comparison_wall_ns": 84400,
+    "exchange_wall_ns": 423005300,
+    "worker_wall_ns": 382328200,
+    "kernel_launch_wait_wall_ns": 1553900,
+    "cpu_semantic_comparison_wall_ns": 85200,
     "driver_changes": false,
     "remaining_owned_processes": 0,
-    "evidence": "docs/evidence/gpu-profile-99be6a2.json",
-    "scope": "Single diagnostic, no candidate/benefit or cold-system benchmark claim."
+    "evidence": "docs/evidence/gpu-slab-b6a9b4e.json",
+    "scope": "One verified packed-allocation diagnostic; no accepted compression candidate or measured benefit/cold-system benchmark."
   }
 }
