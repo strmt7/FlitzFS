@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 import unittest
-from retirement_reference import ANCHOR, CPP_MAIN, PINS, blob, once, transform, reconcile, strict_json, same_git_root
+from retirement_reference import ANCHOR, CPP_MAIN, PINS, blob, once, transform, reconcile, strict_json, same_git_root, canonical_source, checkout_representation
 
 SOURCE = None  # The bounded in-memory test harness may supply the same exact blob.
 
@@ -15,10 +15,13 @@ class ReferenceTests(unittest.TestCase):
             path = Path(__file__).resolve().parents[2] / ".ci-retirement/tests/winfsp_write_probe.cpp"
             if path.stat().st_size > 128 * 1024:
                 raise ValueError("reference fixture cap")
-            data = path.read_bytes()
+            root = Path(__file__).resolve().parents[2] / ".ci-retirement"
+            data, receipt = canonical_source(root, "tests/winfsp_write_probe.cpp", PINS["tests/winfsp_write_probe.cpp"])
+            print("Verified reference representation: " + json.dumps(receipt, sort_keys=True), flush=True)
         if blob(data) != PINS["tests/winfsp_write_probe.cpp"]:
             raise ValueError("test fixture is not the canonical historical source")
         cls.original = data.decode()
+        cls.physical = data if SOURCE is not None else path.read_bytes()
 
     def test_git_root_normalization_uses_native_path_semantics(self):
         root = Path(__file__).resolve().parents[2]
@@ -37,6 +40,31 @@ class ReferenceTests(unittest.TestCase):
             self.assertNotEqual(spelling.casefold(), str(root).casefold())
             self.assertTrue(same_git_root(spelling, root))
             self.assertTrue(same_git_root(spelling, root))
+
+    def test_only_whole_canonical_or_crlf_checkout_bytes_are_admitted(self):
+        canonical = b"first\nsecond\n"
+        self.assertEqual(checkout_representation(canonical, canonical), "exact")
+        self.assertEqual(checkout_representation(canonical, b"first\r\nsecond\r\n"), "crlf-checkout")
+        self.assertEqual(checkout_representation(b"already\r\n", b"already\r\n"), "exact")
+        for changed in (b"first\r\nsecond\n", b"\xef\xbb\xbffirst\nsecond\n",
+                        b"first\nchanged\n", b"first\r\r\nsecond\r\r\n",
+                        b"first\nsecond", b""):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                checkout_representation(canonical, changed)
+        with self.assertRaises(ValueError):
+            checkout_representation(b"x" * (128 * 1024 + 1), b"x")
+
+    def test_actual_legacy_byte_check_and_canonical_input_are_distinguished(self):
+        expected = PINS["tests/winfsp_write_probe.cpp"]
+        canonical = self.original.encode()
+        self.assertEqual(blob(canonical), expected)
+        representation = checkout_representation(canonical, self.physical)
+        if representation == "exact":
+            self.assertEqual(blob(self.physical), expected)
+        else:
+            self.assertEqual(representation, "crlf-checkout")
+            self.assertNotEqual(blob(self.physical), expected)
+            self.assertEqual(self.physical, canonical.replace(b"\n", b"\r\n"))
 
     def test_exact_old_body_is_retained_except_closed_transformations(self):
         original = self.original

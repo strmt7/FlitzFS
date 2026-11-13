@@ -139,6 +139,46 @@ def read_regular(path: Path) -> bytes:
         raise ValueError("reference read cap")
     return data
 
+SDK_LOCK_BLOB = "0025dc6f9faedc910680b268ddf8b2fe36c09fc8"
+
+
+def checkout_representation(canonical: bytes, physical: bytes) -> str:
+    if len(canonical) > 128 * 1024 or len(physical) > 128 * 1024:
+        raise ValueError("source representation cap")
+    if physical == canonical:
+        return "exact"
+    # Admit only this whole-file checkout spelling, never arbitrary newline
+    # cleanup, a BOM, mixed endings, encodings or content modifications.
+    if b"\r" not in canonical and physical == canonical.replace(b"\n", b"\r\n"):
+        return "crlf-checkout"
+    raise ValueError("physical source is not a closed canonical representation")
+
+
+def canonical_source(root: Path, name: str, expected: str):
+    if not re.fullmatch("[0-9a-f]{40}", expected):
+        raise ValueError("canonical blob pin required")
+    actual = git(root, "rev-parse", "HEAD:" + name).decode().strip()
+    if actual != expected:
+        raise ValueError("canonical source object differs")
+    size_text = git(root, "cat-file", "-s", expected).decode().strip()
+    if not re.fullmatch("[0-9]{1,6}", size_text) or not 0 < int(size_text) <= 128 * 1024:
+        raise ValueError("canonical source size cap")
+    data = git(root, "cat-file", "blob", expected)
+    if len(data) != int(size_text) or blob(data) != expected:
+        raise ValueError("canonical source bytes differ")
+    physical = read_regular(root / name)
+    try:
+        representation = checkout_representation(data, physical)
+    except ValueError as error:
+        raise ValueError(f"source representation rejected: path={name} canonical_bytes={len(data)} "
+                         f"physical_bytes={len(physical)} physical_sha256={hashlib.sha256(physical).hexdigest()} "
+                         f"physical_crlf={physical.count(bytes((13, 10)))}") from error
+    return data, {"path": name, "canonical_git_blob": expected,
+                  "canonical_bytes": len(data), "canonical_sha256": hashlib.sha256(data).hexdigest(),
+                  "physical_bytes": len(physical), "physical_sha256": hashlib.sha256(physical).hexdigest(),
+                  "representation": representation}
+
+
 def new_file(path: Path, data: bytes) -> None:
     if len(data) > 128 * 1024:
         raise ValueError("generated file cap")
@@ -183,16 +223,19 @@ def prepare(control: Path, variant: str, verify: bool = False) -> None:
         raise ValueError("exact private reference checkout required")
     git(reference, "diff", "--quiet", "HEAD", "--")
     sources = {}
+    representations = []
     for name, expected in PINS.items():
-        data = read_regular(reference / name)
-        if blob(data) != expected or git(reference, "rev-parse", "HEAD:" + name).decode().strip() != expected:
-            raise ValueError("canonical historical blob differs")
+        data, record = canonical_source(reference, name, expected)
         sources[name] = data
-    budget = read_regular(control / "tests/gpu_probe_budget.hpp")
-    if blob(budget) != BUDGET_BLOB:
-        raise ValueError("qualified controller budget differs")
-    if read_regular(reference / "tools/winfsp-sdk-lock.json") != read_regular(control / "tools/winfsp-sdk-lock.json"):
+        representations.append(dict(record, role="historical"))
+    _, record = canonical_source(control, "tests/gpu_probe_budget.hpp", BUDGET_BLOB)
+    representations.append(dict(record, role="control-budget"))
+    old_lock, old_record = canonical_source(reference, "tools/winfsp-sdk-lock.json", SDK_LOCK_BLOB)
+    current_lock, current_record = canonical_source(control, "tools/winfsp-sdk-lock.json", SDK_LOCK_BLOB)
+    if old_lock != current_lock:
         raise ValueError("SDK identity differs")
+    representations.extend((dict(old_record, role="historical-sdk"),
+                            dict(current_record, role="control-sdk")))
     report_root = Path(os.environ["FLITZFS_RETIREMENT_REPORT_ROOT"])
     if (report_root.parent.resolve() != Path(os.environ["RUNNER_TEMP"]).resolve() or
             not re.fullmatch("flitzfs-retirement-reference-[0-9a-f]{32}", report_root.name)):
@@ -230,6 +273,7 @@ def prepare(control: Path, variant: str, verify: bool = False) -> None:
     new_file(report_root / "source.json", (json.dumps({
         "experimental": True, "commit": head, "reference": REFERENCE,
         "variant": variant, "canonical_blobs": PINS, "controller_budget_blob": BUDGET_BLOB,
+        "source_representations": representations,
         "generated": [{"name": str(path.relative_to(reference)), "bytes": len(data),
                        "sha256": hashlib.sha256(data).hexdigest()} for path, data in outputs.items()],
         "gpu_executed": False, "owner_execution": False}, indent=2) + "\n").encode())

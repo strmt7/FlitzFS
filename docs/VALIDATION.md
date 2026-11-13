@@ -373,3 +373,9 @@ phase/acknowledgement/result/CPU records. Windows/Linux source tests and actual
 controlled trials require new-source qualification; D01 remains unresolved.
 
 [Exact gate, source-preparation failure and recency review](evidence/retirement-preparation-497066c.json).
+
+
+At400f74c Linux passed16 source cases and Windows passed7 record cases before
+rejecting fixture bytes; no manual driver/trial was run. Canonical Git capture
+with separately verified exact/CRLF checkout identity is the next18-case gate.
+The source fixture failure is not a historical retirement result or GPU evidence.

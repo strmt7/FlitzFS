@@ -75,9 +75,10 @@
         ],
         "initial_source": "497066c8d4ab3f06937f61846e08829db47bee39",
         "run": 43442794675,
-        "status": "Preparation failed before driver/trial; identity correction and independent reconciliation pending.",
+        "status": "400f74c Windows source fixture setup failed; no manual trial. Canonical capture and18-case Windows/Linux qualification pending.",
         "evidence": "docs/evidence/retirement-preparation-497066c.json",
-        "owner_execution": false
+        "owner_execution": false,
+        "latest_failure_evidence": "docs/evidence/retirement-source-fixture-400f74c.json"
       }
     }
   ],
@@ -356,12 +357,12 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "497066c8d4ab3f06937f61846e08829db47bee39",
+    "source_parent": "400f74c27044ec3bea41137bb304b4514c0aacf8",
     "contract": "docs/RETIREMENT_REFERENCE.md",
-    "behavior": "Directory-identity correction and strict independent retained-record reconciliation for the manual historical source comparison.",
-    "status": "Initial comparison stopped both variants in preparation before compiler/driver/trial. New16-case Windows/Linux source gates, exact-source integration and first actual controlled trials require publishing-source execution.",
-    "failure_evidence": "docs/evidence/retirement-preparation-497066c.json",
-    "next": "Verify native root identities and compilation before any disposable driver stage. Qualify source/phase/ACK/result/CPU reconciliation; preserve D01 uncertainty and all full-product requirements."
+    "behavior": "Canonical Git source capture independent of exact/CRLF checkout representation, preserving physical bytes and strict pins.",
+    "status": "At400f74c Linux16 cases and Windows7 reconciliation cases passed; Windows fixture setup failed before root/reference tests. New18-case source, ordinary gates, compiler and first controlled trials require execution.",
+    "failure_evidence": "docs/evidence/retirement-source-fixture-400f74c.json",
+    "next": "Capture physical/canonical byte identities on both OSes, then qualify the controlled compiler/driver path. Preserve original D01 uncertainty and full-product requirements."
   },
   "resolved": [
     {
