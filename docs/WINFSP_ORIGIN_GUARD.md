@@ -85,3 +85,14 @@ arbitrary kernel faults or loss of all surviving verified copies. Those remain
 explicit lifecycle/backing/failure-model concerns. Historical issue702 remains
 an unconfirmed causal lead. Preserve all existing limits, immutable-source and
 independent CPU recovery contracts; no passing subset completes the filesystem.
+
+## First publishing-source qualification
+
+At `ad9be7a`, Windows compiled successfully and 135 of 136 callback/CPU test
+groups passed. The new origin fixture failed its kernel read because it supplied
+zero disposition (`FILE_SUPERSEDE`) rather than high-byte `FILE_OPEN` to native
+Open. The correction changes only that test request, retains the byte comparison
+and adds unchanged-generation/exact-size checks. Product code, resource limits
+and existing tests are unchanged. The failed native job is retained in
+`evidence/origin-fixture-ad9be7a.json`; corrected-source qualification remains
+required. This failure did not run or qualify the mounted guard jobs.
