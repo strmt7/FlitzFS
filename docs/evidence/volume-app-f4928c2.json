@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "experimental": true,
+  "source_commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
+  "source_tree": "0ab1b0f5955aaf3090f8fd5d741a6ac13dab62b4",
+  "application_contract": "docs/WINDOWS_VOLUME_APP.md",
+  "isolated_windows": {
+    "run": 43341114027,
+    "job": 131609363436,
+    "conclusion": "success",
+    "model_checks": 377,
+    "full_model_cycles": 3,
+    "handle_balance_each": [
+      113,
+      113
+    ],
+    "working_set_restored": true,
+    "provider_cleanup_healthy": true,
+    "gui_checks": 38,
+    "gui_commands": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106
+    ],
+    "gui_child_peak_commit_bytes": 13619200,
+    "child_exit_confirmed": true,
+    "child_exit_code": 0,
+    "forced_stop": false,
+    "scope": "Actual native window/control workflow with real CPU engine; no mount, driver or GPU."
+  },
+  "artifact": {
+    "id": 14000460591,
+    "archive_bytes": 856357,
+    "archive_sha256": "90d8c01937a85a30305be6655621605d89e9d0963999810b6177c46c0fffc11c",
+    "binaries": [
+      {
+        "role": "application",
+        "bytes": 950784,
+        "sha256": "385dacdd16e97ff5b066ede027e93dda6f0dee1eb1f28daf6be6bd9f7cf16cbf",
+        "os_imports": [
+          "bcrypt.dll",
+          "gdi32.dll",
+          "kernel32.dll",
+          "shell32.dll",
+          "user32.dll"
+        ]
+      },
+      {
+        "role": "harness",
+        "bytes": 1107456,
+        "sha256": "68cd7bb6df47c83cfae24286380312d400941f7fe40dd7060242f515692df6ee",
+        "os_imports": [
+          "bcrypt.dll",
+          "kernel32.dll",
+          "user32.dll"
+        ]
+      }
+    ],
+    "aslr": true,
+    "high_entropy_va": true,
+    "nx": true,
+    "delay_imports": false
+  },
+  "owner_host": {
+    "os_build": "26300",
+    "preflight": {
+      "authorized_staging_medium": "Verified non-boot/non-system SATA HDD",
+      "combined_staging_bytes_before": 23589240,
+      "staged_executable_bytes": 2058240,
+      "combined_cap_bytes": 268435456,
+      "minimum_free_storage_reserve_bytes": 10737418240
+    },
+    "launch": {
+      "working_directory": "Fresh uniquely owned staging fixture",
+      "executable_immutability": "Read-only non-write/non-delete-shared handles held through execution; exact audited SHA256 rechecked",
+      "path": "SystemRoot/System32 only in child environment",
+      "optional_gpu_environment": "HIP_PATH/ROCM_PATH/HIP_VISIBLE_DEVICES/ROCR_VISIBLE_DEVICES removed in child only",
+      "external_deadline_ms": 30000,
+      "root_budget": {
+        "memory_mib": 128,
+        "job_memory_mib": 256,
+        "active_process_limit": 2,
+        "cpu_rate_per_10000": 2000,
+        "user_cpu_seconds": 10
+      },
+      "gui_child_budget": {
+        "memory_mib": 128,
+        "job_memory_mib": 128,
+        "active_process_limit": 1,
+        "cpu_rate_per_10000": 2000,
+        "deadline_ms": 25000,
+        "creation_time_job": true
+      }
+    },
+    "model": {
+      "started_utc": "2026-11-13T01:01:48.8793740Z",
+      "finished_utc": "2026-11-13T01:01:49.6965661Z",
+      "available_physical_bytes": 32897249280,
+      "available_commit_bytes": 85289345024,
+      "checks": 377,
+      "cycles": 3,
+      "native_cold_handles": 103,
+      "rng_stable_handles": 108,
+      "window_thread_stable_handles": 179,
+      "handle_balance_each": [
+        179,
+        179
+      ],
+      "working_set_restored": true,
+      "provider_cleanup_healthy": true,
+      "exit_confirmed": true,
+      "exit_code": 0,
+      "forced_stop": false,
+      "stderr": ""
+    },
+    "gui": {
+      "started_utc": "2026-11-13T01:01:59.4840843Z",
+      "finished_utc": "2026-11-13T01:02:00.2517495Z",
+      "available_physical_bytes": 32570712064,
+      "available_commit_bytes": 85036068864,
+      "checks": 30,
+      "commands": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106
+      ],
+      "scope": "Create volume, save NEW UTF-8 file including surrogate-pair character, list/read exact text, retain live owner on Close, optimize, explicit discard, asynchronous Exit and actual child retirement.",
+      "child_peak_commit_bytes": 14209024,
+      "child_exit_code": 0,
+      "child_exit_confirmed": true,
+      "supervisor_exit_confirmed": true,
+      "supervisor_exit_code": 0,
+      "forced_stop": false,
+      "stderr": ""
+    },
+    "postflight": {
+      "checked_utc": "2026-11-13T01:02:50.4714144Z",
+      "remaining_flitzfs_processes": [],
+      "winfsp_driver": {
+        "name": "WinFsp+20260516T182719Z",
+        "state_before": "Stopped",
+        "state_after": "Stopped",
+        "start_mode_before": "Manual",
+        "start_mode_after": "Manual",
+        "path_unchanged": true
+      },
+      "driver_install_or_configuration_actions": false,
+      "services_or_tasks_created": false,
+      "mounted": false,
+      "physical_filesystem_backing": false,
+      "hip_compute_execution": false
+    }
+  },
+  "dependabot": {
+    "repository": "strmt7/FlitzFS",
+    "endpoint": "GET /repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100",
+    "native_transport": "authenticated gh api",
+    "exit_code": 0,
+    "open_alert_count": 0,
+    "response": {
+      "alerts": [],
+      "count": 0
+    },
+    "scope": "Open alerts only. Does not establish absence of undisclosed vulnerabilities.",
+    "checked_at_utc": "2026-11-13T00:23:52Z"
+  },
+  "limitations": [
+    "Bounded development checks, not production filesystem safety, full Windows 11 qualification, universal leak freedom or physical power-loss evidence.",
+    "The numeric GUI check count varies with observed readiness/status polling; 38 VM versus30 host is not a unique-test-count comparison. Every required command and final byte comparison passed.",
+    "No separate visual layout, high-DPI, full accessibility or independently observed tray-shell matrix was qualified.",
+    "No automatic learner, physical provisioning, mounted owner volume, protected helper authorization or useful GPU route is implemented by this slice.",
+    "The unchanged GPU experiment was not repeated; previous zero-benefit evidence remains unresolved.",
+    "Earlier failed app qualification evidence remains preserved in docs/evidence/volume-app-*.json.",
+    "Ordinary Windows GUI compositing was not measured as a GPU workload; no FlitzFS HIP runtime/compute path was initialized."
+  ],
+  "core": {
+    "run": 43341114080,
+    "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
+    "conclusion": "success",
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "verified_jobs": 13
+  },
+  "packaging_followup": "Add source/dependency notices alongside experimental executables; the publishing-commit package still requires its hosted result. Runtime source is unchanged and no unchanged owner rerun is needed."
+}

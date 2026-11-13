@@ -2,8 +2,8 @@
   "schema": 1,
   "updated": "2026-11-13",
   "baseline": {
-    "commit": "635abdb7c031446cba0c2896b71d6599cb83b3e2",
-    "tree": "76ff4ab042fe7622c535401d051f5d7765c6eba0"
+    "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
+    "tree": "0ab1b0f5955aaf3090f8fd5d741a6ac13dab62b4"
   },
   "goal_status": "active",
   "scope": "Complete Windows 11 AMD64 filesystem/helper/driver; effective AMD GPU acceleration, independent CPU recovery, high sustained throughput, exceptional lossless reduction, autonomous low-impact persistent learning and verified resilience.",
@@ -337,8 +337,16 @@
       "exit": "Published Windows capability matrix and reproducible client qualification cover the promised app/driver behaviors; hosted callback success alone is insufficient.",
       "preparatory_implementation": {
         "contract": "docs/WINDOWS_VOLUME_APP.md",
-        "scope": "Independent unmounted native app/controller and bounded process-lifetime memory provider; no dependency gate closed.",
-        "qualification": "Publishing-commit isolated model and actual GUI-control checks pending."
+        "scope": "Implemented unmounted native app/controller, bounded memory provider and real engine operations; no dependency gate closed.",
+        "qualification": {
+          "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
+          "vm_run": 43341114027,
+          "model_checks": 377,
+          "owner_model": "passed three balanced cycles",
+          "owner_gui": "passed actual native control workflow and clean retirement",
+          "evidence": "docs/evidence/volume-app-f4928c2.json"
+        },
+        "remaining": "Mounted/physical lifecycle, authorization, full Windows semantics, visual/accessibility/client matrix and installation/updates; preserve D01/S01/R01 dependencies."
       }
     },
     {

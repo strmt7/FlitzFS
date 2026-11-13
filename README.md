@@ -10,8 +10,8 @@ The goal is high sustained read/write speed, strong automatic lossless
 compression, useful AMD GPU acceleration with independent CPU fallback, and
 low-impact local learning that improves compression and layout over time.
 
-**This is not a production-ready filesystem.** The Windows application,
-production writable integration, scaling, automatic learning/maintenance and
+**This is not a production-ready filesystem.** Its native Windows application is
+experimental. Production writable integration, scaling, automatic learning/maintenance and
 general repair remain unfinished. Ordinary filesystem operations remain CPU-only.
 Use disposable fixtures and retain independent copies of valuable data.
 
@@ -25,6 +25,19 @@ filesystems and memory-backed virtual volumes through the shared engine.
 [Safety rules](docs/SAFETY.md)
 
 ## Current verified checkpoint
+
+The experimental Windows volume application at **f4928c2d2510cacb55da664a0338c8592194d9a0**
+passed isolated Windows qualification and exact-binary host checks: 377 model
+checks, three balanced ownership cycles, native UTF-8 save/readback, explicit
+optimization, discard and confirmed process exit. It uses the real CPU engine
+and remains unmounted; physical provisioning, automatic learning and useful GPU
+routing are unfinished. [Application scope](docs/WINDOWS_VOLUME_APP.md) ·
+[Exact VM/host evidence](docs/evidence/volume-app-f4928c2.json).
+
+All **13 existing core jobs** passed at that same source, including Windows
+native/raw, Linux raw/codec, sanitizers and isolated mounted profiles.
+
+### Earlier GPU observation, unchanged
 
 At source **645a1d15d4f0138c45df67c570f0acd52815345a**, all 13 core hosted
 jobs passed, including Windows native/raw, Linux raw/codec, sanitizers and
@@ -136,12 +149,3 @@ Useful contracts:
 
 Development stays on main. The owner controls release; development commits are
 not releases. Preserve the [license](LICENSE) and source/dependency notices.
-
-## Experimental Windows application
-
-An OFF-by-default native volume application now connects a serialized controller
-to the real CPU engine and a bounded locked-memory provider. It can create a
-volume, save and byte-verify NEW text files, list/read files, perform explicit
-recompression and retire the volume. It does not mount a drive or initialize HIP.
-Its publishing-commit GUI/provider qualification is pending; see
-[scope, ownership and checks](docs/WINDOWS_VOLUME_APP.md).

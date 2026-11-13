@@ -796,18 +796,24 @@ accounting and authorization. The scalar getter is diagnostic only.
 
 ## Native application ownership and volatile memory
 
-The optional Windows volume application uses a bounded private memory provider,
-not a storage path or mounted drive. A single process-domain lease and all store
-owners retain the working-set reservation until final retirement. Allocations
-are locked and initially residency-verified; missing headroom, capacity or locking
-refuses admission. The app's 12-MiB aggregate and provider's 40-MiB ceiling are
-experimental bounds. A failed cleanup permanently blocks another domain in
-that process, with unconfirmed free capacity retained in accounting.
+The opt-in native application uses a private bounded provider and a serialized
+CPU engine owner. At f4928c2 the exact audited binaries passed isolated Windows
+and owner-host provider/model/native-control checks. Three owner model cycles
+balanced 179 to 179 handles, restored working-set settings and passed cleanup;
+the GUI workflow verified UTF-8 bytes, explicit discard and clean process exit.
+Postflight found no remaining FlitzFS processes. WinFsp stayed Stopped/Manual.
+[Exact limits, hashes, evidence and exclusions](evidence/volume-app-f4928c2.json).
 
-Flush ordering has process-lifetime scope only. It does not survive exit or
-power loss and does not copy the complete image per transaction. The application
-makes no power-loss claim for a temporary memory volume. Close retains a live
-volume; explicit Discard retires it. Save creates a new name and reports any
-write failure; it never overwrites an existing file. GUI/provider tests require
-the exact publishing commit and isolated source-bound qualification before any
-owner execution. See WINDOWS_VOLUME_APP.md for the full current boundary.
+All stores remain locked under a process-wide lease until their final owners
+retire. The 64-store registry and explicit residency checks cover active stores;
+unconfirmed frees retain accounting and failed cleanup blocks another domain.
+The app's 12-MiB aggregate and provider's 40-MiB maximum are experimental limits.
+Flush preserves process-lifetime bytes without a whole-image copy; it makes no
+physical persistence or process-crash survival promise.
+
+Close retains a temporary volume. Explicit Discard retires it. NEW-only Save
+cannot overwrite an existing file, although a failed later write may leave its
+new empty name. These development checks do not qualify full Windows semantics,
+visual/accessibility behavior, an owner mount, physical media, power loss or
+FlitzFS HIP execution. No driver installation, settings change, service or
+scheduled task was performed. Preserve the existing separate gates.
