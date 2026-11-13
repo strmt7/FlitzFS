@@ -636,13 +636,17 @@
     },
     "static_sdk_cpu_decoder": {
       "contract": "docs/CPU_LZ4_WORKER.md",
-      "status": "Pending publishing-source CPU staging, optional static decoder and unavailable raw-control SDK qualification.",
+      "status": "Qualified CPU/SDK-only at 94ec882: five core configurations/all 13 ordinary jobs, ten staging cases, 806/621/968 decoder/frame/slab checks, successful enabled and unavailable raw worker retirement; all original 20 worker cases retained.",
       "upstream_source": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
       "source_bytes_cap": 524288,
       "default_enabled": false,
       "gpu_executed": false,
       "candidate_module_loaded": false,
-      "ordinary_io_caller": false
+      "ordinary_io_caller": false,
+      "qualified_source": "94ec88241f40de9f4f05228be1aa092468dd699f",
+      "sdk_run": 43497321613,
+      "core_run": 43497321733,
+      "evidence": "docs/evidence/cpu-lz4-worker-94ec882.json"
     }
   },
   "integration_checkpoints": [

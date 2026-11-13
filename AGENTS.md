@@ -1585,3 +1585,12 @@ AMD modules; it performs no bundle/device/runtime/channel operation. Require exa
 supervised retirement in both enabled and separate raw controls using the same
 SDK/object. Retain all original 20 worker cases and SDK/source/resource gates.
 Do not export/load/bundle the private compression module or infer GPU execution.
+
+## Source snapshot entry accounting
+
+Read docs/SOURCE_SNAPSHOT.md before changing the source-evidence archive.
+Admit tracked files plus unique parent directories against the existing 768
+total ZIP-entry limit; preserve inventory/per-file/expanded/compressed byte caps,
+exact HEAD binding, tracked-only scope and independent actual-ZIP checks.
+Do not omit historical evidence or use source packaging to qualify runtime/GPU
+behavior. Its CPU tests must exercise both flat and nested entry boundaries.

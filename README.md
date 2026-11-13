@@ -344,6 +344,9 @@ The [checked upload/readback layer](docs/GPU_LZ4_SLAB.md) passed all five core
 configurations and all 13 integration jobs at 38229d1
 ([evidence](docs/evidence/gpu-lz4-slab-38229d1.json)). The live host model/GUI also
 passed with full cleanup ([evidence](docs/evidence/owner-gui-38229d1.json)).
-The next [independent decoder in the SDK worker](docs/CPU_LZ4_WORKER.md) is an
-explicit hosted-VM prerequisite; its new qualification is pending.
-Actual GPU compression remains unimplemented.
+The [independent CPU decoder in the SDK worker](docs/CPU_LZ4_WORKER.md) qualified
+at 94ec882, including both capability states, the original 20 worker exits and
+all 13 ordinary integration jobs
+([evidence](docs/evidence/cpu-lz4-worker-94ec882.json)).
+The [source-snapshot accounting correction](docs/SOURCE_SNAPSHOT.md) is separate
+and pending. Actual GPU compression remains unimplemented.

@@ -1040,3 +1040,13 @@ The next [static SDK-worker CPU decoder](CPU_LZ4_WORKER.md) is explicitly opt-in
 New staging, decoder/protocol and both worker-capability configurations require
 publishing-source execution. No actual GPU compressor or normal-I/O route follows.
 D01 remains open.
+
+The optional static CPU LZ4 worker qualified at 94ec882: all five core
+configurations, all 13 ordinary integration jobs, ten staging cases per
+configuration, the same decoder's 806/621/968 verifier/frame/slab checks and both
+success/unavailable worker retirements. All original 20 admission cases remained.
+[Evidence](evidence/cpu-lz4-worker-94ec882.json).
+The separate source-snapshot job failed the obsolete 512-file preflight and is
+retained as a failure; SOURCE_SNAPSHOT.md defines the corrected combined
+file/directory accounting within the unchanged archive-byte/768-entry limits.
+New snapshot execution remains pending. No actual GPU compressor is enabled.
