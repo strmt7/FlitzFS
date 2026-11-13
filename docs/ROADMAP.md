@@ -707,12 +707,18 @@ the tray or physical provider is implemented.
 
 ## Native application and memory-provider implementation slice
 
-The OFF-by-default native application now has an actual serialized volume owner,
-a bounded locked-memory provider, NEW text save/readback, file listing, explicit
-staged optimization, tray lifecycle and explicit discard/stop. Provider locking,
-capacity/overflow, real-engine and GUI-control tests are added in an isolated
-Windows lane; publishing-commit execution is pending. This is independent W01
-preparatory work, not satisfaction or removal of its D01/S01/R01 dependencies.
-Mounted integration, physical provisioning, full semantics, authorization,
-installation, autonomous learning and useful GPU routing remain required.
-See WINDOWS_VOLUME_APP.md. No product completion percentage is inferred.
+The OFF-by-default native window/tray application now owns the actual CPU engine
+through one serialized controller and a bounded locked-memory provider. NEW text
+save/readback, listing, explicit staged optimization, separate Discard and
+confirmed retirement passed exact-source VM and owner-host checks at f4928c2.
+Three complete model cycles balanced handles and restored the working set on
+both systems. The GUI exercised UTF-8 including a surrogate-pair character,
+Close retaining a live owner, optimization, discard and actual clean exit.
+See WINDOWS_VOLUME_APP.md and evidence/volume-app-f4928c2.json.
+
+This is completed independent W01 preparation, not satisfaction or removal of
+D01/S01/R01 dependencies or completion of W01. Mounted/physical lifecycle, full
+semantics and authorization, installer/update/rollback, visual/accessibility/
+client matrices, automatic low-priority learning and useful GPU routing remain.
+The unchanged zero-benefit GPU experiment was not repeated. No product completion
+percentage, performance superiority or universal safety follows.

@@ -50,10 +50,42 @@ jobs:
       - name: Audit explicit native GUI executable dependencies
         shell: pwsh
         run: |
-          $receipt = Join-Path $env:RUNNER_TEMP ("flitzfs-volume-app-" + [guid]::NewGuid().ToString('N') + ".json")
-          python tools/ci/check_volume_app.py --app build-portable/Release/flitzfs_volume_app.exe --harness build-portable/Release/flitzfs_volume_app_tests.exe --receipt $receipt
+          $ownedId = [guid]::NewGuid().ToString('N')
+          $receipt = Join-Path $env:RUNNER_TEMP ("flitzfs-volume-app-" + $ownedId + ".json")
+          $notices = Join-Path $env:RUNNER_TEMP ("flitzfs-volume-notices-" + $ownedId)
+          python tools/ci/check_volume_app.py --app build-portable/Release/flitzfs_volume_app.exe --harness build-portable/Release/flitzfs_volume_app_tests.exe --receipt $receipt --notices $notices
           if ($LASTEXITCODE) { throw 'Application dependency audit failed' }
           "FLITZFS_APP_RECEIPT=$receipt" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "FLITZFS_APP_NOTICES=$notices" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Verify notice copies and reject reuse without changing evidence
+        shell: python
+        run: |
+          import hashlib, json, os, runpy, sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("tools/ci").resolve()))
+          module = runpy.run_path("tools/ci/check_volume_app.py", run_name="notice_qualification")
+          receipt_path = Path(os.environ["FLITZFS_APP_RECEIPT"])
+          receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+          directory = Path(os.environ["FLITZFS_APP_NOTICES"])
+          assert len(receipt["notices"]) == 7
+          before = {p.name: p.read_bytes() for p in directory.iterdir()}
+          assert set(before) == {r["file"] for r in receipt["notices"]}
+          for row in receipt["notices"]:
+              data = before[row["file"]]
+              assert len(data) == row["bytes"] and hashlib.sha256(data).hexdigest() == row["sha256"]
+          source = before["SOURCE.txt"].decode("utf-8")
+          assert ("https://github.com/strmt7/FlitzFS/tree/" + os.environ["GITHUB_SHA"]) in source
+          assert len(source.splitlines()) == 6
+          old_receipt = receipt_path.read_bytes()
+          try:
+              module["copy_notices"](directory, os.environ["GITHUB_SHA"])
+          except FileExistsError:
+              pass
+          else:
+              raise RuntimeError("Existing notice directory was accepted")
+          assert before == {p.name: p.read_bytes() for p in directory.iterdir()}
+          assert receipt_path.read_bytes() == old_receipt
+          print("Verified seven byte-exact notices/source records; existing output rejected without mutation")
       - name: Exercise provider, real volume and controller ownership
         run: ./build-portable/Release/flitzfs_volume_app_tests.exe --model
       - name: Exercise native GUI file workflow and verified process retirement
@@ -71,5 +103,6 @@ jobs:
             build-portable/Release/flitzfs_volume_app.exe
             build-portable/Release/flitzfs_volume_app_tests.exe
             ${{ env.FLITZFS_APP_RECEIPT }}
+            ${{ env.FLITZFS_APP_NOTICES }}
           if-no-files-found: error
           retention-days: 14

@@ -6,19 +6,17 @@
   "assessment": "docs/REPOSITORY_ASSESSMENT.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "reviewed_baseline": {
-    "commit": "955cd8ef000d9e7b7ae193df0506b17b6c3ac2fd",
-    "tree": "0ec257b5016b472aed2d20ec00cd12156803430a",
-    "note": "New feedback implementation needs its publishing-commit qualification. Prior accepted GPU experiments are explicitly bound to 04d884b."
+    "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
+    "tree": "0ab1b0f5955aaf3090f8fd5d741a6ac13dab62b4",
+    "note": "Actual unmounted native Windows app/control implementation and exact VM/owner binary qualification. Full product and useful GPU routing remain open."
   },
   "current_qualification": {
-    "commit": "635abdb7c031446cba0c2896b71d6599cb83b3e2",
-    "core_run": 43330815577,
+    "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
+    "core_run": 43341114080,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "dependency_run": 43330815548,
-    "dependency_conclusion": "success",
-    "scope": "Volume-owned advisory binding: 405 model checks; complete existing CPU/native/isolated-mount matrix. Current CMake 4.5.0 tooling qualified. New application source requires its own publishing-commit checks."
+    "scope": "Exact host-tested source passed all existing CPU/raw/codec/Windows native/sanitizer and isolated mount gates, plus the separate app and owner checks."
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -74,7 +72,8 @@
     "autonomous_background_executor": false,
     "general_payload_repair": false,
     "production_windows_app_installer": false,
-    "persistent_optimization_state": "Experimental journal plus volume-owned control binding; new integration qualification pending. Provider mapping, persistent write credit, automatic rebuild and learner remain unfinished."
+    "persistent_optimization_state": "Experimental journal and volume-owned binding passed; the application reserves its private area. Persistent write credit, in-session replacement, physical mappings and the automatic learner remain unfinished.",
+    "native_windows_application": "Implemented opt-in unmounted native controller/window/tray and bounded private memory provider; exact VM/owner qualification at f4928c2. Full app/installer/driver/physical lifecycle remains incomplete."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -88,15 +87,11 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "date": "2026-11-13",
-    "repository": "strmt7/FlitzFS",
-    "transport": "Authenticated native GitHub CLI REST API",
-    "endpoint": "repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100",
-    "success": true,
+    "checked_at_utc": "2026-11-13T00:23:52Z",
+    "native_transport": "Authenticated GitHub Dependabot alerts API",
     "open_alerts": 0,
-    "page": 1,
-    "complete": true,
-    "limitations": "Open-alert snapshot, not an exhaustive security audit."
+    "scope": "Open alerts only; no assertion that all vulnerabilities are absent.",
+    "evidence": "docs/evidence/volume-app-f4928c2.json"
   },
   "source_routing": {
     "commit": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
@@ -330,13 +325,9 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "635abdb7c031446cba0c2896b71d6599cb83b3e2",
-    "package": "W01 preparatory work",
-    "contract": "docs/WINDOWS_VOLUME_APP.md",
-    "behavior": "Native unmounted application, bounded locked-memory provider, serialized controller, real engine file/maintenance operations and tray lifecycle.",
-    "status": "Pending exact publishing-commit isolated provider/controller and GUI-control qualification plus existing regression gates.",
-    "default_route": "App opt-in; ordinary operations CPU-only; no mount or GPU runtime.",
-    "next": "Inspect new model and real native-control results; fix failures before any host GUI launch. W01 dependencies and full app/driver completion remain open."
+    "source_parent": "f4928c2d2510cacb55da664a0338c8592194d9a0",
+    "status": "The notice/corresponding-source packaging change requires its publishing-commit hosted artifact result. Runtime source is unchanged from the fully qualified owner-tested application.",
+    "next": "Do not repeat unchanged owner/GPU tests. Inspect packaging result, then continue D01/G03/G02 and full-product packages using current source-bound receipts."
   },
   "resolved": [
     {
@@ -358,5 +349,26 @@
     "repeat_backend_restriction_in_updates": false,
     "physical_provisioning_implemented": false,
     "tray_implemented": false
+  },
+  "windows_application_qualification": {
+    "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
+    "vm_run": 43341114027,
+    "vm_job": 131609363436,
+    "model_checks": 377,
+    "model_cycles": 3,
+    "vm_handles_each": [
+      113,
+      113
+    ],
+    "owner_handles_each": [
+      179,
+      179
+    ],
+    "owner_gui_peak_commit_bytes": 14209024,
+    "owner_model_exit": 0,
+    "owner_gui_exit": 0,
+    "remaining_owned_processes": 0,
+    "evidence": "docs/evidence/volume-app-f4928c2.json",
+    "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification."
   }
 }

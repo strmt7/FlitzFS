@@ -327,3 +327,22 @@ adds portable golden/malformed/cross-protocol checks, Windows CPU-channel cases
 and a separate SDK bad-runtime refusal. These new configured checks require
 exact executed CI before another owner diagnostic. All existing admission and
 fallback behavior remains unchanged; this is not a performance pass.
+
+## Native Windows application and controlled owner check
+
+At f4928c2d2510cacb55da664a0338c8592194d9a0, application run43341114027/
+job131609363436 passed the separate PE audit,377 model checks/three strictly
+balanced ownership cycles and actual native GUI-control workflow. The same
+hashed artifact then passed owner Windows build26300 checks: three179-to179
+model cycles, working-set restoration, healthy provider cleanup and a clean GUI
+create/save/read/optimize/discard/exit workflow. Its GUI child peaked at14209024
+committed bytes. Neither host run needed forced termination. Postflight found
+no remaining FlitzFS process; WinFsp remained Stopped/Manual.
+
+These numbers are bounded qualification observations, not throughput/compression
+benchmarks or complete Windows/client/driver/accessibility/power-loss coverage.
+The GUI's dynamic readiness polling yields different assertion counts per run;
+the complete required command and byte-comparison sequence passed in each.
+The app is unmounted and initializes no FlitzFS HIP compute. Preserve prior
+zero-benefit GPU evidence and all full-product gates.
+[Exact artifact/source/resource/failure record](evidence/volume-app-f4928c2.json).

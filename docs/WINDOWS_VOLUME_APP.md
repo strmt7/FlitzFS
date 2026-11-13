@@ -1,150 +1,129 @@
 # Experimental Windows volume application
 
-Implemented source slice, 13 November 2026. Qualification results must be tied to
-the exact commit and workflow run; this document does not predeclare a pass.
+At source **f4928c2d2510cacb55da664a0338c8592194d9a0**, the isolated Windows
+application job and exact-binary owner-host model/GUI checks passed. All 13 existing core jobs also passed at that source.
+[Source, hashes, limits, measurements and limitations](evidence/volume-app-f4928c2.json).
 
-The optional native Win32 application owns a real NativeFileSession on a
-process-lifetime locked-memory provider. It creates a new volume, reserves its
-separate optimization area, creates new text files, verifies saved bytes, lists
-and reads them, runs explicit bounded CPU recompression, and retires the engine.
-It never opens a storage path, initializes HIP, selects a driver or mounts a
-filesystem. It is not yet an Explorer-accessible volume manager.
+This is a functional, unmounted application slice using the real CPU filesystem
+engine. It creates a temporary volume, reserves its optimization area, saves NEW
+root-level text files, lists and reads them, verifies saved bytes, performs
+explicit staged recompression and retires the volume. It does not yet provide
+an Explorer drive, physical provisioning, a complete helper/installer or a GPU
+route. The final app must manage both memory and physical backends through the
+[same engine](WINDOWS_VOLUME_BACKENDS.md).
 
-## Ownership and resource limits
+## Provider ownership and accounting
 
-One domain is admitted per process. A domain lease remains owned until the last
-backing store is destroyed, including a store retained beyond its wrapper.
-Working-set changes affect this process only and restore the prior settings
-after retirement. Allocations use VirtualAlloc and VirtualLock with a verified
-initial page-residency query. No pageable fallback is accepted. Failed cleanup
-permanently refuses a new domain in the process; unconfirmed frees do not recycle
-their accounted capacity.
+The private Windows provider uses VirtualAlloc and VirtualLock, verifies initial
+residency and keeps one domain lease per process until the last store retires.
+A bounded registry tracks at most 64 stores. Status/discard checks verify every
+current store's pages and the working-set reservation. No pageable fallback is
+accepted. Allocation failure or unknown/low headroom refuses admission.
 
-The provider admits at most 40 MiB in one domain. This application uses a 12 MiB
-experimental aggregate reservation, a 4 MiB image, a 128 KiB head and a separately
-reserved 128 KiB advisory area. Candidate images share that same aggregate cap.
-The physical and commit reserve is the greater of 768 MiB and one eighth of
-detected physical memory. Missing/insufficient telemetry refuses admission.
-These bounds are qualification limits, not final product sizing.
+The provider ceiling is 40 MiB; this app reserves a 12 MiB experimental domain,
+with a 4 MiB image, 128 KiB head and separately allocated 128 KiB advisory area.
+Candidate images share that same aggregate limit. Capacity remains reserved
+through backing-store ownership, including references surviving a wrapper.
+Unconfirmed frees do not recycle their accounted bytes. Failed cleanup blocks
+a new domain in that process. Prior working-set settings restore after the last
+owner retires; no other process's settings are changed.
 
-A memory flush is a serial ordering barrier: prior bytes remain available
-while the process owns the allocation. It does not copy the entire image into
-a second buffer. The declared persistence scope is the owning process lifetime,
-not process-crash or power-loss survival. No disk durability is inferred.
-The app reports file logical bytes, combined current image/head/advice extent,
-and all allocated provider capacity separately; a payload ratio is not presented
+The physical/commit reserve is the greater of 768 MiB and one eighth of detected
+physical memory. These are qualification limits, not final host sizing policy.
+The app reports file bytes, combined current image/head/advice extent and all
+provider allocations separately. It does not present active payload reduction
 as total-space savings.
 
-## Controller and UI
+Flush is a serial ordering barrier without a full-image stable mirror or a copy
+of the entire extent on every transaction. Prior bytes remain available within
+the owning process lifetime. This temporary provider promises no process-crash
+or power-loss survival. Stored encodings and independent CPU readers are unchanged.
 
-One owned worker serializes all engine access. One command may be admitted;
-oversized commands or a concurrent operation are refused. Results are bounded
-owned copies and window notifications contain no heap pointers. Compression,
-resource admission and metadata queries run outside the window procedure.
+## Controller, editor and tray
 
-Native controls use the system font, UTF-8 conversion is checked and editor
-inputs are capped at 16 KiB. Save creates a NEW name only. Creation and writing
-are separate engine transactions: a failed write may leave an empty new file,
-and the UI reports failure while retaining ownership. Existing files are never
-overwritten by this editor.
+One owned worker serializes engine access, with one admitted command and bounded
+owned result copies. Notifications contain no heap pointers. Compression,
+headroom queries and metadata work run outside the window procedure.
 
-Optimize uses explicit staged engine maintenance and independently verified
-publication, with a maximum of 257 bounded engine advances. This is not yet
-automatic background learning or useful GPU acceleration. An unchanged image
-is suppressed by the engine policy. Advisory-state creation does not mean the
-application has implemented an autonomous learner.
+Native controls use the system font. UTF-8 conversions are checked; text input
+is capped at 16 KiB and names use the engine's conservative root-name rules.
+Save creates a NEW name and never overwrites an existing file. Creation and
+writing are separate transactions: a write failure may leave an empty new name;
+the UI reports failure and retains ownership. Binary import and complete
+Explorer/file-operation workflows remain future work.
 
-Close hides a live temporary volume when a tray icon exists; otherwise it keeps
-the window visible. Discard is a separate explicitly labelled action. Exit is
-available after discard. A normal stop reports completion only after engine
-owners and allocations retire. The controller joins its worker; no detached
-thread, service, scheduled task, registry edit or reboot persistence is used.
-The tray establishes notification version 4 and is removed during exit.
-Forced process termination necessarily loses this temporary memory volume.
+Optimize is an explicit development operation: at most 257 bounded advances,
+independent candidate verification and checked publication. Unchanged source
+generations are suppressed. It is not an autonomous scheduler, learned policy
+or proof of useful GPU compression. Reserving advisory state does not implement
+an automatic learner.
 
-## Build and qualification
+Close retains a live temporary volume, hiding to the tray when registration
+succeeds and keeping/restoring the window when it does not. Discard is a separate
+explicit action. Normal Exit follows discard and confirmed engine retirement.
+The controller joins its worker. The tray selects notification version 4 and
+removes its icon on exit. Cleanup failure returns a nonzero app exit status.
+There is no autostart, detached worker, service, scheduled task or registry edit.
+Forced process termination necessarily loses temporary memory contents.
 
-Build with FLITZFS_BUILD_VOLUME_APP=ON on Windows x64/MSVC. It defaults OFF and
-does not enable WinFsp. The hosted portable build uses the current pinned CPU
-dependencies and embeds an asInvoker, PerMonitorV2 manifest.
+## Executed qualification
 
-The separate volume-app workflow builds the application and a test harness.
-Model tests exercise lease lifetime, aggregate/alignment/overflow refusal, exact
-I/O, empty-write behavior, duplicate-name preservation, real file readback,
-recompression, controller stop permission and cleanup. GUI tests launch the
-actual executable inside the existing creation-time job containment, operate
-its native controls, compare readback, close without discarding an active volume,
-then explicitly discard and exit. Child limits are 128 MiB, 20% CPU and 25 seconds.
-The harness has its own bounded CPU/process/commit budget. These are synthetic
-qualification inputs, not full GUI/accessibility or mounted-filesystem coverage.
+The OFF-by-default FLITZFS_BUILD_VOLUME_APP target builds on Windows x64/MSVC.
+The hosted portable profile uses source-pinned static CPU dependencies and an
+asInvoker/PerMonitorV2 manifest. A separate role-specific PE audit checks native
+OS imports, subsystem, ASLR/high-entropy/NX and absence of delay imports. The
+console CPU dependency policy remains unchanged. Experimental executable artifacts
+include the project/static-library notices and an exact corresponding-source
+reference. The notice-packaging follow-up requires its own hosted artifact check;
+it changes no application runtime source.
 
-Physical provisioning, mount lifecycle, complete file operations, protected
-helper authorization, automatic low-priority learning and qualified useful AMD
-routing remain required product work. The final application must manage both
-memory and physical backends through the same engine; see
-[the backend contract](WINDOWS_VOLUME_BACKENDS.md).
+| Check at f4928c2 | Disposable Windows VM | Owner Windows build 26300 |
+|---|---|---|
+| Provider/model/controller checks | 377 passed | 377 passed |
+| Complete model ownership cycles | Three, each 113 to 113 handles | Three, each 179 to 179 handles |
+| Working-set restoration and provider cleanup | Passed | Passed |
+| Native GUI file workflow | Passed | Passed |
+| GUI child peak committed bytes | 13,619,200 | 14,209,024 |
+| Forced stop / unconfirmed exit | Neither | Neither |
+| Remaining FlitzFS processes | Confirmed child retirement | None in postflight |
 
-The initial 477e688 build compiled successfully, then its dependency audit stopped
-before execution because the console-only profile rejects native GUI libraries.
-[The retained failure and current source research](evidence/volume-app-477e688.json)
-document the correction: a separate role-specific GUI audit, unchanged console
-policy, ASLR/high-entropy/NX checks and no delay-loaded or non-OS imports. The
-application now also restores its window when tray registration is unavailable.
-Corrected-source execution remains pending.
+The workflow creates a real volume, saves and reads exact UTF-8 text including
+a surrogate-pair character, checks its file list, retains the live owner on Close,
+optimizes, explicitly discards and exits. GUI check counters were 38 in the VM
+and 30 on the host because readiness/status observations vary; they are not
+counts of distinct test cases.
 
-The corrected 58fa7c3 build and both role-specific PE audits passed. Its model
-reached the final handle-balance assertion and failed there; GUI execution was
-skipped and no owner binary was launched. The magnitude and cause were not
-recorded by that test version. The next tests retain the assertion and add
-provider/engine/controller phase counts. See
-[the retained failure](evidence/volume-app-58fa7c3.json).
+The harness has 128 MiB process/256 MiB aggregate memory, two processes, 20% CPU
+and ten user-CPU seconds. The GUI child additionally has creation-time one-process
+containment, 128 MiB and a 25-second deadline. Host supervision added a 30-second
+deadline, fresh headroom checks, immutable executable handles, exact artifact/PE
+hashes and a child environment with System32 PATH and optional GPU variables
+removed. It did not require installed codecs, HIP or another application's DLLs.
 
-The provider now keeps at most 64 store registrations and explicitly verifies
-all current pages and the working-set reservation at application status/discard
-boundaries. This complements initial allocation verification without copying
-image contents or changing transaction flush behavior.
+The host WinFsp driver remained Stopped/Manual; no driver/configuration action
+was performed. No FlitzFS HIP compute ran. Ordinary Windows GUI compositing was
+not measured. These checks are not full Windows 11 product, visual layout,
+high-DPI, accessibility, mounted-volume, power-loss or universal resource-safety
+qualification. No throughput/compression-superiority benchmark follows.
 
-The 5bdd166 diagnostic isolated the cold handle-count changes: 84 before and
-after the provider, 88 after the first volume and 113 after the first window/
-controller. This is not yet a root-cause verdict. The next qualification first
-runs native RNG and message-window/thread primitives without FlitzFS owners,
-requires repeated primitive calls to stop adding handles, and then requires
-exact balance for three complete model/controller cycles. No assertion is
-removed or allowed to grow per cycle. Cold counts remain visible. The GUI test
-also verifies non-ASCII UTF-8/surrogate-pair readback; application exit reports
-memory cleanup failure with a nonzero status.
+## Retained failed experiments
 
-The independent 7996266 discriminator stopped before FlitzFS model execution:
-standalone BCryptGenRandom changed the cold handle count 84 to 87 on its first
-call and 88 on its second. A single call was therefore an invalid initialization
-baseline. The corrected experiment retains all samples in two fixed 16-call
-cohorts for each native primitive group. Every measured-cohort count must equal
-the preceding sample, followed by three unchanged strict full-model balance
-checks. No production retry, allowance or resource cap changes. This bounded
-experiment does not claim that arbitrary Windows behavior is leak-free.
+Cold platform initialization was separated from repeated ownership: native RNG
+and window/thread primitives reproduced the initial handle increase, then every
+measured sample stabilized. Three subsequent full app cycles required exact
+balance, with no growth allowance. The initial one-call baseline was disproved.
 
-At 8540b35 all 377 model checks passed: native RNG stabilized at 88 handles,
-native window/thread initialization at 113, and three complete application
-cycles each balanced 113 to 113 with working-set restoration and healthy cleanup.
-The GUI test then failed by inspecting visibility immediately after window
-discovery, before startup ShowWindow completed. The harness now requires actual
-visibility, required controls and enabled Create, with immediate failure on
-child exit/wait failure and the same overall deadline. It adds no fixed sleep.
-See [the exact model result and retained GUI failure](evidence/volume-app-8540b35.json).
-No host GUI or application run has occurred yet.
+The earlier failures remain in the evidence directory: console-only import
+policy used for GUI ([477e688](evidence/volume-app-477e688.json)); unlocalized then
+measured cold handle changes ([58fa7c3](evidence/volume-app-58fa7c3.json),
+[5bdd166](evidence/volume-app-5bdd166.json)); incomplete RNG initialization
+([7996266](evidence/volume-app-7996266.json)); startup/readiness and cached-null
+control binding ([8540b35](evidence/volume-app-8540b35.json),
+[e743108](evidence/volume-app-e743108.json),
+[3eedfc7](evidence/volume-app-3eedfc7.json)).
+The fixed GUI test binds status after observed readiness and queues final Exit,
+then requires actual clean process retirement. It adds no arbitrary startup sleep.
 
-At e743108 the model passed again; the GUI fixture failed with an underspecified
-"GUI control timeout" in about 0.4 seconds. Its exact operation was not logged,
-so no root-cause claim follows. The harness now records command IDs and the
-failing message/control/Win32 error/elapsed time. It queues final Exit rather
-than requiring a synchronous reply from a control that may be destroyed during
-exit, while retaining exact process observation, clean status and all deadlines.
-See [the retained result](evidence/volume-app-e743108.json).
-
-The 3eedfc7 diagnostics identified the GUI failure exactly: after command 101,
-WM_GETTEXTLENGTH used control 0 and failed immediately with Win32 1400
-(ERROR_INVALID_WINDOW_HANDLE). The test had cached a null status HWND before
-its readiness wait; observing that the control later existed did not update
-the cached value. The lookup now occurs after readiness and is explicitly
-validated. All 377 model checks passed again; owner execution remains gated.
-[Exact failure and source-confirmed correction](evidence/volume-app-3eedfc7.json).
+W01 and the full product remain unfinished: mounted lifecycle, physical backend,
+complete semantics/authorization, install/update/rollback, automatic low-priority
+learning, useful AMD routing, scaling, repair and comparison gates remain required.
