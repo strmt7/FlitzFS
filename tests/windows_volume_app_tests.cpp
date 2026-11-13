@@ -15,10 +15,12 @@
 // thread, then disarm before exception unwinding. No global memory pressure,
 // product fault switch, changed provider or failure in the GUI child is used.
 namespace advice_allocation_fixture {
-thread_local bool armed=false,hit=false;
+thread_local bool armed=false,hit=false,capturing=false;
+thread_local std::size_t allocation_bytes=0,observed_bytes=0;
 thread_local unsigned remaining=0;
 bool refuse(std::size_t size) noexcept {
-  if(!armed||size!=flitzfs::kStoreCommitUnit)return false;
+  if(capturing)observed_bytes=(std::max)(observed_bytes,size);
+  if(!armed||size!=allocation_bytes)return false;
   if(remaining){--remaining;return false;}
   armed=false;hit=true;return true;
 }
@@ -207,6 +209,21 @@ void advice_application_tests() {
         "released provider capacity did not admit checked rebuilding");
     Q::close(model,handle);model.discard();
   }
+  // Calibrate this exact STL/toolchain's ordinary vector allocation request.
+  // MSVC may add alignment bookkeeping; never assume payload size is heap size.
+  advice_allocation_fixture::observed_bytes=0;
+  advice_allocation_fixture::capturing=true;
+  try {
+    std::vector<std::byte> probe(kStoreCommitUnit);
+    probe.back()=std::byte{1};
+    advice_allocation_fixture::capturing=false;
+    require(probe.size()==kStoreCommitUnit&&probe.back()==std::byte{1},"allocator calibration bytes");
+  }catch(...){advice_allocation_fixture::capturing=false;throw;}
+  advice_allocation_fixture::allocation_bytes=advice_allocation_fixture::observed_bytes;
+  require(advice_allocation_fixture::allocation_bytes>=kStoreCommitUnit&&
+      advice_allocation_fixture::allocation_bytes<=kStoreCommitUnit+512,
+      "allocator calibration outside bounded overhead");
+  std::cout<<"Helper record heap request: "<<advice_allocation_fixture::allocation_bytes<<" bytes\n";
   // Four real allocator cuts after core binding admission: the initial empty
   // record, either prepared record, and final readback scratch. The last cut
   // leaves valid-looking bytes; the failed owner must still expose no policy.
@@ -228,6 +245,7 @@ void advice_application_tests() {
       catch(const std::bad_alloc&){failed=true;}
       reached=fault.reached();
     }
+    if(!failed||!reached)throw std::runtime_error("post-admission allocator cut not reached/propagated: "+std::to_string(cut));
     require(failed&&reached,"post-admission allocator cut was not reached/propagated");
     const auto area=Q::current(model);const auto info=model.optimization_info();
     const auto written=cut? kOptimizationAreaBytes:0;
