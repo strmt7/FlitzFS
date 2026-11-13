@@ -85,7 +85,7 @@
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; source9977674 passed VM model/GUI and one healthy owner GUI, with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
-    "gpu_codec_candidate": "Pinned hipCOMP source is unbuilt and unqualified. New isolated source-index mode requires its own execution; it selects no runtime or stored-format dependency."
+    "gpu_codec_candidate": "Source navigation qualified at 905a4d3 with 22 admission tests, eight default and two upstream queries. New optional Windows object gate awaits its own tests/compilation; no runtime or storage dependency selected."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -99,11 +99,11 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13 10:35 UTC",
+    "checked_at_utc": "2026-11-13 11:31:26 UTC",
     "native_transport": "Authenticated GitHub open-alerts API",
     "open_alerts": 0,
     "scope": "Open alerts only, not absence of all vulnerabilities.",
-    "evidence": "docs/evidence/gpu-codec-sources-99d5365.json"
+    "evidence": "docs/evidence/gpu-codec-navigation-905a4d3.json"
   },
   "source_routing": {
     "indexed_commit": "22ba3b3238e2a4185705721deeb645b186f0d002",
@@ -342,11 +342,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "99d53658b16e414729654f67a5238e155a3f350e",
-    "contract": "docs/GPU_CODEC_CANDIDATES.md",
-    "behavior": "Closed pinned upstream GPU-codec source navigation with independent source/control identity, CUDA text scope, exact notices and no upstream execution.",
-    "status": "Publishing-source admission suite, default routing compatibility and actual upstream query/source receipts required.",
-    "next": "Admit actual upstream searches before kernel analysis, then audited offline Windows compilation, CPU format recovery and contained runtime/performance evaluation. No new owner/GPU test for unchanged runtime sources."
+    "source_parent": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+    "contract": "docs/HIPCOMP_OFFLINE.md",
+    "behavior": "Optional byte-checked private-source native Windows compilation of the pinned LZ4 translation unit; no candidate CMake execution, object loading/export or product linking.",
+    "status": "Publishing-source 20-case source/staging admission suite and explicit candidate compiler invocation required, retaining every original SDK/kernel/worker gate.",
+    "next": "Inspect actual test/compiler failures without blind reruns. After successful offline qualification, independently qualify resource/output bounds, CPU format recovery and contained runtime integration before any device experiment."
   },
   "resolved": [
     {
@@ -430,5 +430,16 @@
     "remaining_owned_processes": 0,
     "evidence": "docs/evidence/gpu-slab-b6a9b4e.json",
     "scope": "One verified packed-allocation diagnostic; no accepted compression candidate or measured benefit/cold-system benchmark."
+  },
+  "navigation_qualification": {
+    "source": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+    "default_run": 43411376274,
+    "upstream_run": 43412149098,
+    "tests_each": 22,
+    "default_queries": 8,
+    "upstream_queries": 2,
+    "upstream_files": 142,
+    "upstream_source": "03df9f7369211ee15d370817165224c73fdc9a46",
+    "evidence": "docs/evidence/gpu-codec-navigation-905a4d3.json"
   }
 }

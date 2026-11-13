@@ -1,10 +1,19 @@
 name: Pinned ROCm SDK compile qualification (no GPU)
 on:
+  workflow_dispatch:
+    inputs:
+      codec_candidate:
+        description: Compile the reviewed hipCOMP LZ4 translation unit without loading it
+        type: boolean
+        required: false
+        default: false
   push:
     branches: [main]
     paths:
       - 'tools/rocm-sdk-lock.json'
       - 'tools/ci/qualify_rocm_sdk.py'
+      - 'tools/ci/qualify_hipcomp_candidate.py'
+      - 'tools/ci/test_hipcomp_candidate.py'
       - 'tools/ci/hip_runtime_exports.py'
       - 'tools/ci/test_hip_runtime_exports.py'
       - 'tests/rocm_compile/**'
@@ -42,6 +51,14 @@ jobs:
             tools
             mcp
           persist-credentials: false
+      - name: Stage pinned codec candidate for optional offline compilation
+        if: inputs.codec_candidate == true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ROCm/hipCOMP-core
+          ref: 03df9f7369211ee15d370817165224c73fdc9a46
+          path: .ci-hipcomp-source
+          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15'
@@ -49,10 +66,16 @@ jobs:
       - name: Prepare exact job-local CMake
         run: python tools/ci/prepare_hosted_tools.py cmake
       - name: Qualify current ROCm SDK, filesystem kernel and worker admission
-        run: >-
-          python -B tools/ci/qualify_rocm_sdk.py
-          --provider ".ci-rocm-source"
-          --output "${{ runner.temp }}/flitzfs-rocm-sdk"
+        env:
+          FLITZFS_CODEC_CANDIDATE: ${{ inputs.codec_candidate && 'hipcomp' || 'none' }}
+        run: |
+          $taskSdkArguments=@('-B','tools/ci/qualify_rocm_sdk.py',
+            '--provider','.ci-rocm-source','--output',"${{ runner.temp }}/flitzfs-rocm-sdk")
+          if($env:FLITZFS_CODEC_CANDIDATE -eq 'hipcomp'){
+            $taskSdkArguments+=@('--hipcomp-source','.ci-hipcomp-source')
+          }elseif($env:FLITZFS_CODEC_CANDIDATE -ne 'none'){throw 'Unreviewed codec candidate'}
+          & python @taskSdkArguments
+          if($LASTEXITCODE){throw 'ROCm qualification failed'}
       - name: Retain identities and failures, never SDK or kernel binaries
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -60,6 +83,8 @@ jobs:
           name: rocm-sdk-qualification-${{ github.sha }}
           path: |
             ${{ runner.temp }}/flitzfs-rocm-sdk/qualification.json
+            ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/qualification.json
+            ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/sdk-cache/verified-distribution.json
             ${{ runner.temp }}/flitzfs-*-provision.json
           retention-days: 30

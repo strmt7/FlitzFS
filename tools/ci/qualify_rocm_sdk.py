@@ -111,6 +111,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--provider",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
+    parser.add_argument("--hipcomp-source",type=Path,help="Optional reviewed codec checkout; offline object only")
     args=parser.parse_args()
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve()
     root=args.output.resolve();provider=args.provider.resolve(strict=True)
@@ -121,6 +122,10 @@ def main():
     require(native_git(provider,"rev-parse","HEAD")==SOURCE_REF,"FlitzZip mechanism source identity changed")
     require(not native_git(provider,"status","--porcelain","--untracked-files=all"),
         "reference checkout must be unmodified before import")
+    hipcomp_source=None
+    if args.hipcomp_source is not None:
+        from qualify_hipcomp_candidate import verify_checkout,SOURCE_COMMIT as CODEC_SOURCE_COMMIT
+        hipcomp_source=verify_checkout(args.hipcomp_source,CODEC_SOURCE_COMMIT)
     own_lock=REPO/"tools/rocm-sdk-lock.json"
     require(own_lock.read_bytes()==(provider/"tools/rocm-sdk-lock.json").read_bytes(),
         "ROCm lock must match the reviewed complete-distribution source")
@@ -136,6 +141,8 @@ def main():
         bounds=load_source("flitzfs_reference_bounds",provider/"mcp/flitzzip_mcp.py")
         run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_hip_runtime_exports.py")],
             report,"static-runtime-export-parser-regressions",30)
+        run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_hipcomp_candidate.py")],
+            report,"codec-source-admission-regressions",60)
         lock=bootstrap.read_lock(own_lock)
         report["distribution"]=lock
         needed=lock["archive_bytes"]+lock["unpacked_bytes"]+4*GIB
@@ -151,6 +158,14 @@ def main():
         identity=bootstrap.sdk_identity(sdk,lock["version"])
         report["critical_inputs"]=identity
         report["bootstrap_receipt"]=json.loads((sdk_parent/"verified-distribution.json").read_text(encoding="utf-8"))
+        if hipcomp_source is not None:
+            candidate=root/"hipcomp-offline"
+            run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/qualify_hipcomp_candidate.py"),
+                "--source",str(hipcomp_source),"--provider",str(provider),"--sdk",str(sdk),
+                "--output",str(candidate)],report,"reviewed-hipcomp-offline-qualification",1200)
+            report["hipcomp_offline"]=json.loads((candidate/"qualification.json").read_text(encoding="utf-8"))
+            require(report["hipcomp_offline"]["complete"] and not report["hipcomp_offline"]["gpu_executed"] and
+                not report["hipcomp_offline"]["module_loaded"],"candidate offline scope")
 
         # Reuse the unchanged compiler helper. Its explicit include root is a
         # fresh byte-identical source fixture, never a patched upstream checkout.

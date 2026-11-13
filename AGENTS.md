@@ -1389,3 +1389,21 @@ performance qualification. Select future HIP/compiler/runtime from the reviewed
 ROCm distribution and inspected package, not an older candidate test matrix.
 No owner installation/GPU/driver/mount experiment or relaxed lifecycle/batch cap
 follows. Runtime sources are unchanged by this navigation infrastructure.
+
+
+## Optional hipCOMP offline object gate
+
+Read docs/HIPCOMP_OFFLINE.md before modifying the candidate helper, source asset,
+SDK qualifier or hip-compile workflow. Keep the pinned source inventory, exact Git
+blob sizes/digests, disabled Git replacements, Windows path/case/device rejection,
+private canonical/header include views, complete notices and NEW exclusive outputs.
+Verify an optional checkout before SDK download and independently again in its
+bounded child. Only explicit codec_candidate workflow input may compile the
+selected byte-identical LZ4 entry for synthetic gfx1100; never infer owner hardware
+or general architecture support. Keep all original SDK/filesystem-kernel/worker
+gates, command budgets and no owner-PC execution. Never execute candidate CMake,
+load/export the generated object, link it into product targets or introduce a
+stored codec merely because compilation succeeded. Require actual admission and
+compiler evidence before claiming the gate works; CPU format interoperability,
+runtime containment, resource admission and useful end-to-end benefit remain
+separate requirements. No unchanged owner GUI/GPU repetition follows.

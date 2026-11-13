@@ -55,10 +55,13 @@ rejects before indexing. The exact source inventory and native response digests
 remain required; a downloaded checkout or index marker alone is insufficient.
 Relevant hits must be confirmed in the actual pinned source before further work.
 
-The expanded admission suite uses fresh disposable-VM fixtures and real Git
-operations to reject wrong roots/revisions, staged and unstaged changes, source
-links and notice substitution. Notice output uses exclusive creation. Its full
-publishing-source execution and actual upstream query receipts remain pending.
+The expanded admission suite passed all 22 tests at `905a4d3`. Default routing
+completed eight queries over 143 FlitzFS files; upstream routing completed two
+queries over 142 pinned candidate files, with zero reported indexing errors.
+Repository/source/control identities, inventories, notices and relevant live LZ4
+source hashes were admitted. See [executed navigation evidence](evidence/gpu-codec-navigation-905a4d3.json).
+The next [offline Windows object gate](HIPCOMP_OFFLINE.md) requires its own test
+and compiler execution before any build qualification.
 
 ## Evaluation gates
 

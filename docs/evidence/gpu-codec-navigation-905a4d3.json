@@ -1,0 +1,876 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-13",
+  "source_parent": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+  "contract": "docs/HIPCOMP_OFFLINE.md",
+  "default_navigation": {
+    "run": 43411376274,
+    "job": 131838350138,
+    "artifact": 14029063967,
+    "archive_sha256": "e99f4ea13b1824e02ba859af84e34b5d98960390d8988c3a1168abf845b62fa3",
+    "admission_tests": 22,
+    "routing": {
+      "actual_searches": 8,
+      "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+      "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+      "repository": "strmt7/FlitzFS",
+      "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+      "cpu_only": true,
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "provider_version": "0.2.43",
+      "query_group": "filesystem",
+      "shared_mcp_modified": false,
+      "source_files": 143,
+      "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f"
+    },
+    "queries": [
+      {
+        "entry": "search-0.json",
+        "sha256": "48c4a7fa4d92a8fc249626e584bf1212f9b6c785044f5e437b73352bef1ccbce",
+        "receipt": {
+          "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+          "completed_utc": "2026-11-13T11:48:05.342816+01:00",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "hits": [
+            {
+              "end_line": 1109,
+              "excerpt": "NativeInodeWriteCommit NativeFilesystemWriter::write_inode_with_metadata(std::uint64_t inode, std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options, const NativeAutomaticMetadata& effect) { NativeInodeWriteCo",
+              "file_sha256": "c566e56ca93153d583ff1bf868db8c2325b068ed62f3cb53b2378b849ba37a5d",
+              "path": "src/native_filesystem.cpp",
+              "score": 0.8160678310875067,
+              "start_line": 1094
+            },
+            {
+              "end_line": 733,
+              "excerpt": "NativeFileInfo NativeFilesystemSnapshot::stat_inode(std::uint64_t inode) const { if(!impl_)fail(Code::invalid_operation,\"moved-from native snapshot\"); return file_info(impl_->model,selected_inode(impl_->model,inode)); } NativeInodeState Nat",
+              "file_sha256": "c566e56ca93153d583ff1bf868db8c2325b068ed62f3cb53b2378b849ba37a5d",
+              "path": "src/native_filesystem.cpp",
+              "score": 0.809870625946429,
+              "start_line": 717
+            },
+            {
+              "end_line": 139,
+              "excerpt": "// accrual; metadata work, truncate, recovery and image rewrites grant no input. struct NativeWorkloadInfo { bool enabled=false; std::uint64_t committed_input_bytes=0; bool operator==(const NativeWorkloadInfo&) const = default; }; struct Na",
+              "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6",
+              "path": "include/flitzfs/native_filesystem.hpp",
+              "score": 0.8092532985869791,
+              "start_line": 119
+            },
+            {
+              "end_line": 296,
+              "excerpt": "// Directories require absence. No host preallocation is implied. NativeInodeAllocationCommit create_inode_storage_result(std::string_view path,bool directory, const NativeBasicMetadata&,std::span<const std::byte> security, std::optional<st",
+              "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6",
+              "path": "include/flitzfs/native_filesystem.hpp",
+              "score": 0.8078325159624384,
+              "start_line": 285
+            },
+            {
+              "end_line": 338,
+              "excerpt": "// Existing regular inode: truncate to zero + merge/replace request attrs, // archive and access/write/change time in ONE publication. Preserve original // creation time, descriptor, inode and name. Requires a present basic tuple; // no all",
+              "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6",
+              "path": "include/flitzfs/native_filesystem.hpp",
+              "score": 0.803563868385508,
+              "start_line": 327
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "3f4ad8681e9896c12727c17de7a2b7c610e6887e39d6564e75109f95db695aac",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "native filesystem inode namespace sparse extent mutation commit and metadata encoding",
+          "query_sha256": "1ea7389dbf65a05cde8681b2e1a0623eb0a645037a941d5f41921b36aa8d1d3c",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      },
+      {
+        "entry": "search-1.json",
+        "sha256": "4a7c6be92da6aaa057d8e687260a66ae97ac3221d54351d33f7ae5adae8690f9",
+        "receipt": {
+          "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+          "completed_utc": "2026-11-13T11:48:05.677591+01:00",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "hits": [
+            {
+              "end_line": 188,
+              "excerpt": "ObjectStoreWriter& operator=(ObjectStoreWriter&&) noexcept; ObjectStoreWriter(const ObjectStoreWriter&)=delete; ObjectStoreWriter& operator=(const ObjectStoreWriter&)=delete; ~ObjectStoreWriter(); // Atomic mutation batch: unique nonzero ID",
+              "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30",
+              "path": "include/flitzfs/object_store.hpp",
+              "score": 0.82102223997944,
+              "start_line": 175
+            },
+            {
+              "end_line": 203,
+              "excerpt": "// the shared logical checkpoint even if either root is lost later. StoreCommitInfo commit_replicated(std::span<const StoreMutation> mutations); // Real backend barrier with exact current metadata/extent checks before and // after. No write",
+              "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30",
+              "path": "include/flitzfs/object_store.hpp",
+              "score": 0.7989815612509101,
+              "start_line": 188
+            },
+            {
+              "end_line": 214,
+              "excerpt": "StoreCommitInfo commit_impl(std::span<const StoreMutation> mutations,bool replicated); static ObjectStoreWriter compact_replacing(const ObjectStoreSnapshot& source, std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity, std::",
+              "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30",
+              "path": "include/flitzfs/object_store.hpp",
+              "score": 0.7955258834416554,
+              "start_line": 203
+            },
+            {
+              "end_line": 163,
+              "excerpt": "// Failure retains source and partial target; never retries/overwrites either. static ObjectStoreWriter compact(const ObjectStoreSnapshot& source, std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity, StoreCompressionOptions",
+              "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30",
+              "path": "include/flitzfs/object_store.hpp",
+              "score": 0.7946957776761963,
+              "start_line": 153
+            },
+            {
+              "end_line": 201,
+              "excerpt": "s.replicated=r.replicated;s.peer_index_offset=r.peer_index;s.checkpoint_generation=r.checkpoint_generation; s.compact_metadata=r.compact_metadata;s.metadata_unit=r.metadata_unit; const auto& other=choose_a?b:a; if(!r.replicated && other && ",
+              "file_sha256": "a2aac10f385cb42f7464b1d27a5923b3ac4f697346711f846ecc7fe2736dddf8",
+              "path": "src/object_store.cpp",
+              "score": 0.7896501783700511,
+              "start_line": 184
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "41cff20e3595a73c559fa65b8f9daf0a13e111736c3f54db5cdb226900fc94fa",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "transactional object store record integrity replicated checkpoints and durable publication",
+          "query_sha256": "3c084d9ab926a4ef9db0689bdb5d07e33e9ad96df79a6ba65ac380a6c2148b2a",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      },
+      {
+        "entry": "search-2.json",
+        "sha256": "974ff0494ca6d0272287c5080b191ad8842c93a3998b4ffb2d0e9e41a84fc823",
+        "receipt": {
+          "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+          "completed_utc": "2026-11-13T11:48:06.012073+01:00",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "hits": [
+            {
+              "end_line": 62,
+              "excerpt": "WINDOWS_GPU_MEMORY_SOURCES = ( (\"windows-gpu-memory-query\", \"https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo\", \"QueryVideoMemoryInfo\", \"NodeIndex\"), (\"windows-gpu-memory-info\", \"http",
+              "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+              "path": "tools/ci/hosted_research.py",
+              "score": 0.7857446440183367,
+              "start_line": 56
+            },
+            {
+              "end_line": 12,
+              "excerpt": "#pragma once #include \"gpu_worker_common.hpp\" #include \"flitzfs/match_worker_wire.hpp\" #include <optional> namespace flitzfs { // Single control thread. Retain this object across requests so qualified // failure/recovery history survives CP",
+              "file_sha256": "d71c6a0897a7da5895fcef468a300b064b0a2c157f35b02388bbfd886ac00774",
+              "path": "src/windows/gpu_match_worker_controller.hpp",
+              "score": 0.7855983809676843,
+              "start_line": 1
+            },
+            {
+              "end_line": 263,
+              "excerpt": ", \"windows-runtime-trust\": WINDOWS_RUNTIME_TRUST_SOURCES, \"windows-process-retirement\": WINDOWS_PROCESS_RETIREMENT_SOURCES, \"windows-adapter-identity\": WINDOWS_ADAPTER_IDENTITY_SOURCES, \"windows-adapter-topology\": WINDOWS_ADAPTER_TOPOLOGY_S",
+              "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+              "path": "tools/ci/hosted_research.py",
+              "score": 0.7848286254445327,
+              "start_line": 258
+            },
+            {
+              "end_line": 41,
+              "excerpt": "void GpuMatchWorkerController::select_cpu(GpuRecoveryOutcome outcome,GpuGateCode code,bool finalize) noexcept { selected_.clear();state_=GpuWorkerState::cpu_selected;last_gate_=code; if(finalize)report(outcome); } bool GpuMatchWorkerControl",
+              "file_sha256": "e959d84680b32365162a7024ba032fd29a42a7a04fc78be366d933e026da46cc",
+              "path": "src/windows/gpu_match_worker_controller.cpp",
+              "score": 0.7827407161820172,
+              "start_line": 22
+            },
+            {
+              "end_line": 526,
+              "excerpt": "HostedVolumeMaintenanceResult WinFspNativeWritable::recompress_managed_hosted( std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) { hosted(); std::lock_guard guard(impl_->control); if(requires_offline(",
+              "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780",
+              "path": "src/windows/winfsp_native.cpp",
+              "score": 0.7774114822479685,
+              "start_line": 511
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "7e0acb22af86e232ae184a235105a3c429c532a18271d077e73d827a5849a3bb",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "GPU worker supervision CPU fallback recovery configuration and runtime failure",
+          "query_sha256": "0fd61a95491f2ad687be6cc9875288b89b1a78c887b222c5313661a62d4b4182",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      },
+      {
+        "entry": "search-3.json",
+        "sha256": "14966edbf34f31deec7e1de6c4a6b88971479f5586f170ba95b152cf4abbe3f8",
+        "receipt": {
+          "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+          "completed_utc": "2026-11-13T11:48:06.346662+01:00",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "hits": [
+            {
+              "end_line": 36,
+              "excerpt": "bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept; struct EncodedStoreObject { std::uint32_t codec=kStoreRaw; std::vector<std::byte> payload; Digest decoded_digest{}; bool used_match_proposals",
+              "file_sha256": "f5d9083d545d8e86a928651d4f04366c2ad5d71c0ce95abf96b56d56e564c75e",
+              "path": "src/store_codec.hpp",
+              "score": 0.7915117143937476,
+              "start_line": 16
+            },
+            {
+              "end_line": 49,
+              "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+              "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+              "path": "tools/ci/hosted_semantic.py",
+              "score": 0.789350260253336,
+              "start_line": 39
+            },
+            {
+              "end_line": 149,
+              "excerpt": "// These are not allocation reservations or physical compressed-byte counts. struct NativeInodeCommitInfo { std::uint64_t inode=0,logical_bytes=0,modified_sequence=0; std::optional<NativeBasicMetadata> basic; bool directory=false,delete_pen",
+              "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6",
+              "path": "include/flitzfs/native_filesystem.hpp",
+              "score": 0.7844412736310389,
+              "start_line": 139
+            },
+            {
+              "end_line": 125,
+              "excerpt": "struct StoreCodecEncoder::Impl { StoreCompressionOptions options; StoreCodecDecoder verifier; #ifdef FLITZFS_STORE_HAS_ZSTD Budget budget{kStoreEncoderMemoryCap}; std::unique_ptr<ZSTD_CCtx,decltype(&ZSTD_freeCCtx)> context{nullptr,&ZSTD_fre",
+              "file_sha256": "a9babf296337afb54d5be744972aba45ef362c1d6f9e40b5da68ce3ed87d0b79",
+              "path": "src/store_codec.cpp",
+              "score": 0.7841452246177312,
+              "start_line": 112
+            },
+            {
+              "end_line": 53,
+              "excerpt": "UINT64 allocation=0; if(n.directory) { if(n.logical_bytes || state.reserved_bytes)return false; }else { if(!state.reserved_bytes || *state.reserved_bytes%kNativeAllocationUnit || *state.reserved_bytes<n.logical_bytes || *state.reserved_byte",
+              "file_sha256": "8eeb60b6da16c486dfe7ff65470eb47d19ecc577d3601a313569fc846e9ce6d1",
+              "path": "src/windows/native_file_info.cpp",
+              "score": 0.7771159390784916,
+              "start_line": 38
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "db4ea30ecad3699a09237b3711bb298b2957f21fe81e7ae76a6006ee0ab03154",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "compression codec selection allocation budget stored decoded digest and decompression",
+          "query_sha256": "2ee1298379cf6d6342f0221538fa260248d13dc79c27fc42a6594a16468533d2",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      },
+      {
+        "entry": "search-4.json",
+        "sha256": "6417b6dd6335665c2e632fb28d6d2b275a6436beb9642f84e22dd11757b07982",
+        "receipt": {
+          "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+          "completed_utc": "2026-11-13T11:48:06.681205+01:00",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "hits": [
+            {
+              "end_line": 163,
+              "excerpt": "// Failure retains source and partial target; never retries/overwrites either. static ObjectStoreWriter compact(const ObjectStoreSnapshot& source, std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity, StoreCompressionOptions",
+              "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30",
+              "path": "include/flitzfs/object_store.hpp",
+              "score": 0.8067793932019054,
+              "start_line": 153
+            },
+            {
+              "end_line": 263,
+              "excerpt": ", \"windows-runtime-trust\": WINDOWS_RUNTIME_TRUST_SOURCES, \"windows-process-retirement\": WINDOWS_PROCESS_RETIREMENT_SOURCES, \"windows-adapter-identity\": WINDOWS_ADAPTER_IDENTITY_SOURCES, \"windows-adapter-topology\": WINDOWS_ADAPTER_TOPOLOGY_S",
+              "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+              "path": "tools/ci/hosted_research.py",
+              "score": 0.7959300245510121,
+              "start_line": 258
+            },
+            {
+              "end_line": 144,
+              "excerpt": "// Candidate policy is separate from the retained foreground write policy. NativeVolumeHeadInfo compact_volume(std::shared_ptr<StoreByteIo> empty_target, StoreIdentity new_image_identity,StoreCompressionOptions candidate={}, StoreCheckpoint",
+              "file_sha256": "f5c71d8b7b3966803cabd6c39575da053d07b8175c425748ccff2c8cc844fdd3",
+              "path": "include/flitzfs/native_session.hpp",
+              "score": 0.7937739283685783,
+              "start_line": 134
+            },
+            {
+              "end_line": 203,
+              "excerpt": "// the shared logical checkpoint even if either root is lost later. StoreCommitInfo commit_replicated(std::span<const StoreMutation> mutations); // Real backend barrier with exact current metadata/extent checks before and // after. No write",
+              "file_sha256": "caeaca11784aa0d4a0f68be22b0226d95b89ea7012926957cd9f66d52efb7e30",
+              "path": "include/flitzfs/object_store.hpp",
+              "score": 0.7883750880789062,
+              "start_line": 188
+            },
+            {
+              "end_line": 255,
+              "excerpt": "// retain the original source. No in-place reclaim, filename swap or deletion. static NativeFilesystemWriter compact(const NativeFilesystemSnapshot& source, std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity, StoreCompress",
+              "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6",
+              "path": "include/flitzfs/native_filesystem.hpp",
+              "score": 0.7839036388497629,
+              "start_line": 243
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "e472f876c02e7d096fb9b8e77a676e0dc51b8eb2e0440c91efca3308a8d6090b",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "compacted copy source preservation destination identity and safe reclamation",
+          "query_sha256": "d4b6a385883912ebdf94f74fe2ba6c377e4e3122b1f0bb59ffdc42e53c07fe41",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      },
+      {
+        "entry": "search-5.json",
+        "sha256": "2ed5dc2a9c838eee950bf686c1a8987d2c59f142fb5dad887a4172ed73ea2289",
+        "receipt": {
+          "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+          "completed_utc": "2026-11-13T11:48:07.015964+01:00",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "hits": [
+            {
+              "end_line": 120,
+              "excerpt": "WINDOWS_FRAMEWORK_SOURCES = ( (\"winfsp-current-design\", \"https://winfsp.dev/doc/WinFsp-Design/\", \"FSD\", \"kernel\"), (\"winfsp-current-service\", \"https://winfsp.dev/doc/WinFsp-Service-Architecture/\", \"service\", \"Launcher\"), (\"winfsp-current-co",
+              "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+              "path": "tools/ci/hosted_research.py",
+              "score": 0.804082753264181,
+              "start_line": 109
+            },
+            {
+              "end_line": 314,
+              "excerpt": "// request effects even at unchanged EOF. No clock or policy is invented. NativeInodeWriteCommit write_inode_with_metadata(std::uint64_t inode,std::uint64_t offset, std::span<const std::byte>,NativeInodeWriteOptions,const NativeAutomaticMet",
+              "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6",
+              "path": "include/flitzfs/native_filesystem.hpp",
+              "score": 0.7995123175300876,
+              "start_line": 308
+            },
+            {
+              "end_line": 378,
+              "excerpt": "NativeInodeAllocationInfo inspect_allocation(std::uint64_t inode) const; NativeAllocationUsage inspect_allocation_usage() const; NativeFsCommit retire_inode(std::uint64_t inode); // Single-control-thread committed view for the owning Window",
+              "file_sha256": "b635eedda898558356abe678fd9a92d155770b622ee2ada701d7cdb6337f18b6",
+              "path": "include/flitzfs/native_filesystem.hpp",
+              "score": 0.7979247266401899,
+              "start_line": 363
+            },
+            {
+              "end_line": 510,
+              "excerpt": "std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_hosted( std::shared_ptr<StoreByteIo> head,StoreIdentity volume, std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,StoreCompressionOptions foreground) { hoste",
+              "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780",
+              "path": "src/windows/winfsp_native.cpp",
+              "score": 0.7970417436426498,
+              "start_line": 500
+            },
+            {
+              "end_line": 563,
+              "excerpt": "void WinFspNativeWritable::bind_callbacks(FSP_FILE_SYSTEM& fs,WinFspOriginQuery query) noexcept{ impl_->origin.bind(query);fs.UserContext=impl_.get(); } bool WinFspNativeWritable::self_origin_rejected() const noexcept{return impl_->origin.s",
+              "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780",
+              "path": "src/windows/winfsp_native.cpp",
+              "score": 0.7906532219324571,
+              "start_line": 555
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "af36fc678e9723e05930bca353bda4755bb42a82b585e6ead7dc7b7a0917e136",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "Windows WinFsp native image read-only projection callback mount session persistent inode and source lifetime",
+          "query_sha256": "f2b4f1dcd92196fd494d1ddd6740d2e0865d662f08270b3c21768aecd1f95193",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      },
+      {
+        "entry": "search-6.json",
+        "sha256": "fbc68bf8e9653f573cc457f31bfb2e7c5ac25f419bd82ef9fee55873e683ba84",
+        "receipt": {
+          "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+          "completed_utc": "2026-11-13T11:48:07.350999+01:00",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "hits": [
+            {
+              "end_line": 24,
+              "excerpt": "#include \"hip_decode_worker.hpp\" #include \"gpu_budget.hpp\" #include \"hip_worker_exit.hpp\" #include \"hip_api.hpp\" #include \"hip_identity_wire.hpp\" #include \"hip_worker_bundle.hpp\" #include \"hip_module_verification.hpp\" #include \"worker_excha",
+              "file_sha256": "00018cb472eb0e7d4064d16f425a8f40676e7132f38ec360c9dd6c01d1e8eea2",
+              "path": "src/windows/hip_worker_main.cpp",
+              "score": 0.7928791705998535,
+              "start_line": 1
+            },
+            {
+              "end_line": 126,
+              "excerpt": "require(verify_cached_signature(path_, &WinVerifyTrust), Exit::runtime_unavailable, \"system module trust unavailable\"); } catch (const HipWorkerFailure&) { throw; } catch (const std::bad_alloc&) { throw; } catch (const std::exception&) { th",
+              "file_sha256": "f2291b4a5c8ab032a737eb7df0bb1efbe07ef5e43fb235dcb53956beb4c45945",
+              "path": "src/windows/hip_module_verification.cpp",
+              "score": 0.788149653924263,
+              "start_line": 119
+            },
+            {
+              "end_line": 12,
+              "excerpt": "#include \"hip_decode_worker.hpp\" #include \"flitzfs/gpu_match_layout.hpp\" #include \"gpu_budget.hpp\" #include \"gpu_topology.hpp\" #include \"hip_worker_budget.hpp\" #include \"hip_worker_exit.hpp\" #include \"hip_api.hpp\" #include <hip/hip_runtime_",
+              "file_sha256": "311e1e31927cd765e07bdc839b7b79281e9f17a27daf054468d4c2942f633841",
+              "path": "src/windows/hip_decode_worker.cpp",
+              "score": 0.7858434252827635,
+              "start_line": 1
+            },
+            {
+              "end_line": 71,
+              "excerpt": "case HipWorkerStage::runtime_load: return \"runtime_load\"; case HipWorkerStage::kernel_load: return \"kernel_load\"; case HipWorkerStage::module_retire: return \"module_retire\"; case HipWorkerStage::worker_job: return \"worker_job\"; case HipWork",
+              "file_sha256": "79681016658ca28d0173784b15d8247f3309ba448c71078a620da0885f17e506",
+              "path": "src/windows/hip_worker_exit.hpp",
+              "score": 0.7837175096606188,
+              "start_line": 59
+            },
+            {
+              "end_line": 307,
+              "excerpt": "\"hipStreamCreateWithPriority\", \"hipStreamQuery\", \"hipStreamDestroy\", \"hipFree\", \"hipMalloc\", \"hipErrorContext\", \"hipErrorLaunch\", \"hipErrorOutOfMemory\", \"priority\", \"process\", \"26H2\", \"26H1\", \"10.0.\", \"WHCP\", \"enforcement\", \"kernel\", \"drive",
+              "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+              "path": "tools/ci/hosted_research.py",
+              "score": 0.7781921810646661,
+              "start_line": 298
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "f84cd7c5ad25cdaaa4ed3050f088a6405f3a083028977790c9f02969c1f04f00",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "trusted HIP worker bundle file digest DLL module loading signature and system directory",
+          "query_sha256": "7563d3b97faaf6deddb69582bf050896ecc39ce17654b383dd4d55293f69c9a0",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      },
+      {
+        "entry": "search-7.json",
+        "sha256": "0697d13554d4c89d657f134a135b45bbbb10a2822be2a83609d61cbfb62e3e6a",
+        "receipt": {
+          "commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+          "completed_utc": "2026-11-13T11:48:07.68571+01:00",
+          "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+          "hits": [
+            {
+              "end_line": 38,
+              "excerpt": "WHEEL_SHA=\"76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d\" MODEL=\"Snowflake/snowflake-arctic-embed-xs\" QUERIES=( \"native filesystem inode namespace sparse extent mutation commit and metadata encoding\", \"transactional objec",
+              "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+              "path": "tools/ci/hosted_semantic.py",
+              "score": 0.7979347679916469,
+              "start_line": 27
+            },
+            {
+              "end_line": 307,
+              "excerpt": "\"hipStreamCreateWithPriority\", \"hipStreamQuery\", \"hipStreamDestroy\", \"hipFree\", \"hipMalloc\", \"hipErrorContext\", \"hipErrorLaunch\", \"hipErrorOutOfMemory\", \"priority\", \"process\", \"26H2\", \"26H1\", \"10.0.\", \"WHCP\", \"enforcement\", \"kernel\", \"drive",
+              "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+              "path": "tools/ci/hosted_research.py",
+              "score": 0.7891553440490338,
+              "start_line": 298
+            },
+            {
+              "end_line": 8,
+              "excerpt": "#!/usr/bin/env python3 \"\"\"Reject mismatched/partial writable checkpoint evidence before mounted trials.\"\"\" from copy import deepcopy import json import unittest from verify_windows_write_probe import validate_pair, validate_continuation, va",
+              "file_sha256": "f02d3945d68534af26257f5b1bd29d1a3e89c02434e7d954d2461742f6cecf0e",
+              "path": "tools/ci/test_windows_write_probe.py",
+              "score": 0.7737970221276083,
+              "start_line": 1
+            },
+            {
+              "end_line": 146,
+              "excerpt": "command.push_back(token); (void)windows_child_command(helper.native(),command); // Validate before mappings or launch. Local acl;owner_security(acl); auto input=Mapping::create(object_name(token,false),kWorkerRequestLimit,request_magic,acl.",
+              "file_sha256": "bacc49a15b0985debd8c6b49c6e6713a73f31392f5990811a3a53f56c2aad2bc",
+              "path": "src/windows/worker_exchange.cpp",
+              "score": 0.7581518026259388,
+              "start_line": 133
+            },
+            {
+              "end_line": 76,
+              "excerpt": "void WinFspReadOnlySession::release() noexcept { if (!filesystem_) return; if (dispatcher_attempted_) api_.stop_dispatcher(filesystem_); if (mount_owned_) api_.remove_mount_point(filesystem_); api_.delete_filesystem(filesystem_); filesystem",
+              "file_sha256": "e8fd9541d569512ef4f65b75bc9163e6ca731673ec8d8b77262a0d9048dad048",
+              "path": "src/windows/winfsp_session.cpp",
+              "score": 0.7579281480220459,
+              "start_line": 57
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "093c4596f9cb2df0ae79d7881be66af105680a7ca1db1f1255df3038e99805df",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
+          "query_sha256": "5adf6d7a18ac2e5c93ff4fe9f7805e3ac14e1a2a8bbffc9c08469fd671236a61",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "76470105f5c0cf3ce58525183f238d11e2e1349f5d91821c1f2f7ad92880d91f",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      }
+    ]
+  },
+  "upstream_navigation": {
+    "run": 43412149098,
+    "job": 131840961242,
+    "artifact": 14030690460,
+    "archive_sha256": "b8d51512f32ea64eae3a1ba4f3b0548225ffbef5e1c5db30c99c543087e31a81",
+    "admission_tests": 22,
+    "routing": {
+      "actual_searches": 2,
+      "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+      "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
+      "repository": "ROCm/hipCOMP-core",
+      "config_sha256": "8957151919a14f2ae0a5e4291a5b1d95862b081854ca162505ef770e3a892c28",
+      "cpu_only": true,
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "provider_version": "0.2.43",
+      "query_group": "hipcomp",
+      "shared_mcp_modified": false,
+      "source_files": 142,
+      "source_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d"
+    },
+    "notices": {
+      "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+      "notices": [
+        {
+          "bytes": 1085,
+          "file": "upstream-hipcomp-LICENSE.txt",
+          "path": "LICENSE",
+          "sha256": "74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef"
+        },
+        {
+          "bytes": 14505,
+          "file": "upstream-hipcomp-CMakeLists.txt",
+          "path": "CMakeLists.txt",
+          "sha256": "19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7"
+        }
+      ],
+      "repository": "ROCm/hipCOMP-core"
+    },
+    "queries": [
+      {
+        "entry": "search-0.json",
+        "sha256": "c455067247d5fb6962d98ba978162323db9a9048659f07c80dbb13a4f70812dd",
+        "receipt": {
+          "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+          "completed_utc": "2026-11-13T11:53:17.736149+01:00",
+          "config_sha256": "8957151919a14f2ae0a5e4291a5b1d95862b081854ca162505ef770e3a892c28",
+          "hits": [
+            {
+              "end_line": 91,
+              "excerpt": "void lz4BatchCompress(const uint8_t *const *decomp_data_device, const size_t *decomp_sizes_device, const size_t max_chunk_size, const size_t batch_size, void *temp_data, size_t temp_bytes, uint8_t *const *comp_data_device, size_t *const com",
+              "file_sha256": "6403cf961776e05c86b5e9b592f4055539cda51a0262cfd9085301fe2d11c25b",
+              "path": "src/lowlevel/LZ4CompressionKernels.h",
+              "score": 0.8352181695999104,
+              "start_line": 76
+            },
+            {
+              "end_line": 213,
+              "excerpt": "void lz4BatchDecompress(const uint8_t *const *const device_in_ptrs, const size_t *const device_in_bytes, const size_t *const device_out_bytes, const size_t batch_size, void *const /* temp_ptr */, const size_t /* temp_bytes */, uint8_t *cons",
+              "file_sha256": "85cbb1d61e29aafda8523073e5d03abd9c96a3d7f159520f8c79d14127d76944",
+              "path": "src/lowlevel/LZ4CompressionKernels.cu",
+              "score": 0.8240061217870789,
+              "start_line": 205
+            },
+            {
+              "end_line": 235,
+              "excerpt": "void lz4BatchGetDecompressSizes(const uint8_t *const *device_compressed_ptrs, const size_t *device_compressed_bytes, size_t *device_uncompressed_bytes, size_t batch_size, hipStream_t stream)",
+              "file_sha256": "85cbb1d61e29aafda8523073e5d03abd9c96a3d7f159520f8c79d14127d76944",
+              "path": "src/lowlevel/LZ4CompressionKernels.cu",
+              "score": 0.8226007059856784,
+              "start_line": 232
+            },
+            {
+              "end_line": 182,
+              "excerpt": "void lz4HlifBatchDecompress(const uint8_t *comp_buffer, uint8_t *decomp_buffer, const size_t raw_chunk_size, uint32_t *ix_chunk, const size_t num_chunks, const size_t *comp_chunk_offsets, const size_t *comp_chunk_sizes, const uint32_t max_c",
+              "file_sha256": "d47019b36ab3791bafd95b57a03cc92e29cc1e927085ddbaddb19d5c70cb9498",
+              "path": "src/highlevel/LZ4HlifKernels.cu",
+              "score": 0.8205331710677157,
+              "start_line": 176
+            },
+            {
+              "end_line": 128,
+              "excerpt": "size_t *device_uncompressed_bytes, size_t batch_size, hipStream_t stream); size_t lz4ComputeChunksInBatch(const size_t *const decomp_data_size, const size_t batch_size, const size_t chunk_size); size_t lz4BatchCompressComputeTempSize(const ",
+              "file_sha256": "6403cf961776e05c86b5e9b592f4055539cda51a0262cfd9085301fe2d11c25b",
+              "path": "src/lowlevel/LZ4CompressionKernels.h",
+              "score": 0.8199511304114822,
+              "start_line": 107
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "8c353b70bc4ee31958c1c7b31442585a4c6bcdd691aaea054fadf0ade3832fa9",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "batched LZ4 compression scratch size output capacity asynchronous stream completion and status",
+          "query_sha256": "89a74e7e09d69ff4258d4531767a54a4bfffd634039f552842924bf12ab02688",
+          "repository": "ROCm/hipCOMP-core",
+          "source_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      },
+      {
+        "entry": "search-1.json",
+        "sha256": "8a2fbf22a5f384677d0be9271603caa7c87170e9525e97c69384c1628f89b08b",
+        "receipt": {
+          "commit": "03df9f7369211ee15d370817165224c73fdc9a46",
+          "completed_utc": "2026-11-13T11:53:18.010778+01:00",
+          "config_sha256": "8957151919a14f2ae0a5e4291a5b1d95862b081854ca162505ef770e3a892c28",
+          "hits": [
+            {
+              "end_line": 133,
+              "excerpt": "* for each compressed batch item (output). * @param device_compressed_bytes The compressed size of each chunk on the GPU * (output). * @param format_opts Compression options. * @param stream The stream to operate on. * * @return hipcompSucc",
+              "file_sha256": "8bda8d68a004583ede4fb8bed3bc8bd38ad664cc61ca8f6264c1bcbab87420e2",
+              "path": "include/hipcomp/ans.h",
+              "score": 0.8146552647451628,
+              "start_line": 126
+            },
+            {
+              "end_line": 113,
+              "excerpt": "/** * @brief Perform decompression. * * @param device_compresed_ptrs The pointers on the GPU, to the compressed * chunks. * @param device_compressed_bytes The size of each compressed chunk on the GPU. * @param device_uncompressed_bytes The ",
+              "file_sha256": "ea93744875722d8d215200f28e97e131a4be886e383ba26f8e338cbf31faeacd",
+              "path": "include/hipcomp/snappy.h",
+              "score": 0.8114822232047043,
+              "start_line": 107
+            },
+            {
+              "end_line": 101,
+              "excerpt": "__global__ void __launch_bounds__(deflate::DECOMP_WARPS_PER_BLOCK *warpsize) gpu_inflate_kernel(const void *const *__restrict__ device_in_ptr, const uint64_t *__restrict__ device_in_bytes, void *const *__restrict__ device_out_ptr, const uin",
+              "file_sha256": "528f57ddbbcb5186b592552c2489e8ab80ea9ee11c860ed349d439a13c427ed7",
+              "path": "src/lowlevel/DeflateBatchKernels.cu",
+              "score": 0.806187836727986,
+              "start_line": 93
+            },
+            {
+              "end_line": 206,
+              "excerpt": "* for each compressed batch item (output). * @param device_compressed_bytes The compressed size of each chunk on the GPU * (output). * @param format_ops Snappy compression options. * @param stream The HIP stream to operate on. * * @return h",
+              "file_sha256": "ea93744875722d8d215200f28e97e131a4be886e383ba26f8e338cbf31faeacd",
+              "path": "include/hipcomp/snappy.h",
+              "score": 0.8024555221327319,
+              "start_line": 188
+            },
+            {
+              "end_line": 191,
+              "excerpt": "/** * @brief Perform decompression. * * @param device_compresed_ptrs The pointers on the GPU, to the compressed * chunks. * @param device_compressed_bytes The size of each compressed chunk on the GPU. * @param device_uncompressed_bytes The ",
+              "file_sha256": "8bda8d68a004583ede4fb8bed3bc8bd38ad664cc61ca8f6264c1bcbab87420e2",
+              "path": "include/hipcomp/ans.h",
+              "score": 0.8002986797926734,
+              "start_line": 173
+            }
+          ],
+          "model": "Snowflake/snowflake-arctic-embed-xs",
+          "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+          "native_response_sha256": "476bc4430a753cd45e2363e6af51a2f9d60b33db72b3be24b4543958b964f287",
+          "provider": "0.2.43",
+          "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+          "query": "portable GPU warp cooperative compression and CPU decoding chunk framing",
+          "query_sha256": "0881bae2140ded4b1a941e8baf58aa589ca6640f7ce5012dcf60d5b84c4999fc",
+          "repository": "ROCm/hipCOMP-core",
+          "source_sha256": "8614af434e7bc2ad55587c4a4220e27df6db29962e794123bcfd63e62deb761d",
+          "workflow_commit": "905a4d34361dd2ca06245dfd9a2c064e18b1d718"
+        }
+      }
+    ]
+  },
+  "live_source_confirmation": [
+    {
+      "path": "src/lowlevel/LZ4CompressionKernels.h",
+      "blob": "268b76d3e7b14b7067234ad35d1acd914b330757",
+      "bytes": 5889,
+      "sha256": "6403cf961776e05c86b5e9b592f4055539cda51a0262cfd9085301fe2d11c25b"
+    },
+    {
+      "path": "src/lowlevel/LZ4CompressionKernels.cu",
+      "blob": "466efb2f62a9824f8fb2018fbe19c8d6e6a87163",
+      "bytes": 12763,
+      "sha256": "85cbb1d61e29aafda8523073e5d03abd9c96a3d7f159520f8c79d14127d76944"
+    },
+    {
+      "path": "src/LZ4Types.h",
+      "blob": "e0eabcf0de31ac62eb0fa9f2e3f463ed70fa2d87",
+      "bytes": 3155,
+      "sha256": "82c63b2b60748c2c0135af330b7b5e08055e789ec63810ec4ea0f98966fc0afd"
+    },
+    {
+      "path": "src/LZ4Kernels.cuh",
+      "blob": "e4ab8a16dc1e134b971784dc8121db81b5e16e2f",
+      "bytes": 34435,
+      "sha256": "11db6cb48273de0d105c3131795ab958f0c99760a47e6d26093b9d897490a112"
+    }
+  ],
+  "dependency_inventory": {
+    "run": 43411376128,
+    "artifact": 14028973743,
+    "archive_sha256": "8cf18f70643dae481fd8d8014c99ee079edf3c2a1c3821e0020110835821faf3",
+    "known_pins_current": 8,
+    "dependencies": [
+      {
+        "repository": "cocoindex-io/cocoindex-code",
+        "declared_tag": "v0.2.43",
+        "latest_stable": "v0.2.43",
+        "current": true
+      },
+      {
+        "repository": "meta/zstd",
+        "declared_tag": "v1.5.7",
+        "latest_stable": "v1.5.7",
+        "current": true
+      },
+      {
+        "repository": "lz4/lz4",
+        "declared_tag": "v1.11.1",
+        "latest_stable": "v1.11.1",
+        "current": true
+      },
+      {
+        "repository": "BLAKE3-team/BLAKE3",
+        "declared_tag": "1.8.7",
+        "latest_stable": "1.8.7",
+        "current": true
+      },
+      {
+        "repository": "winfsp/winfsp",
+        "declared_tag": "v2.2B5",
+        "latest_stable": "v2.1",
+        "latest_available": "v2.2B5",
+        "current": true,
+        "selected_prerelease": true
+      },
+      {
+        "repository": "actions/checkout",
+        "declared_tag": "v7.0.1",
+        "latest_stable": "v7.0.1",
+        "current": true
+      },
+      {
+        "repository": "actions/setup-python",
+        "declared_tag": "v7.1.0",
+        "latest_stable": "v7.1.0",
+        "current": true
+      },
+      {
+        "repository": "actions/upload-artifact",
+        "declared_tag": "v7.0.2",
+        "latest_stable": "v7.0.2",
+        "current": true
+      }
+    ],
+    "research_runtime_freshness_remaining": {
+      "reviewed_research_python": "3.13",
+      "note": "Research-provider lock/runtime freshness and broader portability qualification remain open"
+    }
+  },
+  "core_ci": {
+    "run": 43411376215,
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 131838350084,
+        "name": "sanitizers",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131838350387,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131838350395,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131838350455,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131838350571,
+        "name": "windows-native",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131843570431,
+        "name": "windows-mount",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131844993208,
+        "name": "windows-write-mount (crash)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131844993221,
+        "name": "windows-write-mount (basic)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131844993253,
+        "name": "windows-write-mount (mutations)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131844993305,
+        "name": "windows-write-mount (delete)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131844993327,
+        "name": "windows-write-mount (restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131844993334,
+        "name": "windows-write-mount (crash-restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 131844993351,
+        "name": "windows-write-mount (ram-handoff)",
+        "status": "completed"
+      }
+    ],
+    "all13_status_success": true,
+    "detail_report_review": "Source99d detailed functional/host evidence retained separately; runtime sources were unchanged by905.",
+    "functional_evidence": "docs/evidence/funded-helper-99d5365.json"
+  },
+  "candidate_state": {
+    "source_built": false,
+    "object_loaded": false,
+    "gpu_executed": false,
+    "cpu_codec_format_qualified": false,
+    "performance_qualified": false,
+    "normal_io_route": "CPU"
+  },
+  "pending": "New-source 20-case admission/staging suite and optional native Windows object compile; complete original SDK/worker gates remain required.",
+  "owner": {
+    "operations_this_source": false,
+    "unchanged_gui_gpu_repeated": false,
+    "driver_changes": false
+  },
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 11:31:26 UTC",
+    "native_transport": "Authenticated GitHub open-alerts API",
+    "open_alerts": 0,
+    "scope": "Open alerts only, not absence of all vulnerabilities.",
+    "evidence": "docs/evidence/gpu-codec-navigation-905a4d3.json"
+  }
+}

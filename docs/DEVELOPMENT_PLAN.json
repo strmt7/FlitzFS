@@ -149,12 +149,13 @@
         "next": "G02 remains in progress: no speed or size gain. Fix D01 to enable G03 lifecycle work; instrument complete costs and investigate candidates with genuine net compression benefit instead of forcing redundant hints.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
         "candidate_evaluation": {
-          "contract": "docs/GPU_CODEC_CANDIDATES.md",
+          "contract": "docs/HIPCOMP_OFFLINE.md",
           "source_repository": "ROCm/hipCOMP-core",
           "source_commit": "03df9f7369211ee15d370817165224c73fdc9a46",
-          "status": "Closed upstream source-navigation preparation; actual query execution pending. No build, runtime dependency or Windows/GPU gain qualification.",
-          "research": "docs/evidence/gpu-codec-sources-99d5365.json",
-          "next": "Admit actual source-specific searches, inspect kernel/API/CPU format and dependencies, then audited offline Windows compile and independent CPU recovery before runtime integration."
+          "navigation_qualified": "905a4d3: 22 admission cases, 142 upstream files, two actual queries and relevant live-source hashes/notices verified.",
+          "status": "New optional Windows object gate and 20 source/staging cases await execution. No GPU runtime or stored-format dependency selected.",
+          "research": "docs/evidence/gpu-codec-navigation-905a4d3.json",
+          "next": "Execute new-source admission suite and explicit compiler gate; retain all existing SDK/worker checks. Then independently qualify bounds, CPU decoding, lifecycle and useful end-to-end benefit."
         }
       }
     },
