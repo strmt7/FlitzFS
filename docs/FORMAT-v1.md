@@ -467,3 +467,7 @@ The candidate upload/readback slab is private ephemeral AMD64 device memory.
 Its little-endian device-address tables never enter a stored filesystem record
 or worker frame. Source data remains independently CPU-readable. No stored codec,
 capability, existing frame encoding or product numbering changes.
+
+The SDK worker's explicit CPU-decoder availability diagnostic produces no worker
+frame or stored record. Statically linking independent CPU LZ4 support into an
+optional hosted fixture adds no stored codec, capability or product numbering.

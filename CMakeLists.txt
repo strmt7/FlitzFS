@@ -596,6 +596,9 @@ if(FLITZFS_BUILD_TESTS)
   set_tests_properties(bounded_extent_codecs PROPERTIES TIMEOUT 45)
   find_package(Python3 3.9 QUIET COMPONENTS Interpreter)
   if(Python3_Interpreter_FOUND)
+    add_test(NAME bounded_lz4_worker_decoder_staging COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/test_lz4_worker_decoder.py")
+    set_tests_properties(bounded_lz4_worker_decoder_staging PROPERTIES TIMEOUT 45)
     add_test(NAME filesystem_product_scope COMMAND "${Python3_EXECUTABLE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/verify_filesystem_scope.py" "$<TARGET_FILE:flitzfs>")
     set_tests_properties(filesystem_product_scope PROPERTIES TIMEOUT 30)

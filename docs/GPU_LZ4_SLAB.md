@@ -48,9 +48,12 @@ that slab, guard/input/table corruption, zero/excessive/64-bit-extreme sizes,
 wrong source/address, address overflow and alignment, moved ownership, returned
 ownership, optional-decoder refusal, all eight chunks and 64-KiB source boundaries.
 One actual CPU-compressed result also passes through the existing candidate
-frames. These publishing-source tests are pending execution. Synthetic CPU
-readbacks are not GPU output, hardware safety, kernel qualification or performance
-evidence.
+frames. At 38229d1 these passed all five core configurations and all 13 integration
+jobs: enabled builds reported 968 slab checks, raw builds 939; all admitted
+LastTest.log reports had zero failures.
+[Evidence](evidence/gpu-lz4-slab-38229d1.json).
+Synthetic CPU readbacks are not GPU output, hardware safety, kernel qualification
+or performance evidence.
 
 The preceding candidate-frame work qualified at 959606a in all five core
 configurations, all 13 integration jobs and the trusted Windows CPU process

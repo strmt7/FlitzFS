@@ -17,11 +17,18 @@ on:
         type: boolean
         required: false
         default: false
+      cpu_lz4:
+        description: Stage and statically qualify independent CPU decoding in the SDK worker; requires link_candidate
+        type: boolean
+        required: false
+        default: false
   push:
     branches: [main]
     paths:
       - 'tools/rocm-sdk-lock.json'
       - 'tools/ci/qualify_rocm_sdk.py'
+      - 'tools/ci/stage_lz4_worker_decoder.py'
+      - 'tools/ci/test_lz4_worker_decoder.py'
       - 'tools/ci/qualify_warp_sync.py'
       - 'tools/ci/test_warp_sync_probe.py'
       - 'tools/ci/qualify_hipcomp_candidate.py'
@@ -75,6 +82,14 @@ jobs:
           ref: 03df9f7369211ee15d370817165224c73fdc9a46
           path: .ci-hipcomp-source
           persist-credentials: false
+      - name: Stage exact independent CPU decoder only for its explicit fixture
+        if: inputs.cpu_lz4 == true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lz4/lz4
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5
+          path: .ci-sdk-lz4
+          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.15'
@@ -86,6 +101,7 @@ jobs:
           FLITZFS_CODEC_CANDIDATE: ${{ inputs.codec_candidate && 'hipcomp' || 'none' }}
           FLITZFS_NATIVE_SYNC_CANDIDATE: ${{ inputs.native_sync_candidate && 'enabled' || 'none' }}
           FLITZFS_LINK_CANDIDATE: ${{ inputs.link_candidate && 'enabled' || 'none' }}
+          FLITZFS_CPU_LZ4: ${{ inputs.cpu_lz4 && 'enabled' || 'none' }}
         run: |
           $taskSdkArguments=@('-B','tools/ci/qualify_rocm_sdk.py',
             '--provider','.ci-rocm-source','--output',"${{ runner.temp }}/flitzfs-rocm-sdk")
@@ -100,6 +116,10 @@ jobs:
             if($env:FLITZFS_NATIVE_SYNC_CANDIDATE -ne 'enabled'){throw 'Private linking requires native synchronization'}
             $taskSdkArguments+='--hipcomp-link-candidate'
           }elseif($env:FLITZFS_LINK_CANDIDATE -ne 'none'){throw 'Unreviewed private link mode'}
+          if($env:FLITZFS_CPU_LZ4 -eq 'enabled'){
+            if($env:FLITZFS_LINK_CANDIDATE -ne 'enabled'){throw 'CPU decoder requires the private link fixture'}
+            $taskSdkArguments+=@('--cpu-lz4-source','.ci-sdk-lz4')
+          }elseif($env:FLITZFS_CPU_LZ4 -ne 'none'){throw 'Unreviewed CPU decoder mode'}
           & python @taskSdkArguments
           if($LASTEXITCODE){throw 'ROCm qualification failed'}
       - name: Retain identities and failures, never SDK or kernel binaries
@@ -115,6 +135,8 @@ jobs:
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-bounded-entry/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-native-sync/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/compile-input/notices/**
+            ${{ runner.temp }}/flitzfs-rocm-sdk/cpu-lz4-source/LICENSE
+            ${{ runner.temp }}/flitzfs-rocm-sdk/cpu-lz4-source/LICENSE-repository
             ${{ runner.temp }}/flitzfs-rocm-sdk/sdk-cache/verified-distribution.json
             ${{ runner.temp }}/flitzfs-*-provision.json
           retention-days: 30
