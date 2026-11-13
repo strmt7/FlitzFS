@@ -11,13 +11,14 @@
     "note": "New feedback implementation needs its publishing-commit qualification. Prior accepted GPU experiments are explicitly bound to 04d884b."
   },
   "current_qualification": {
-    "commit": "c30d01c4e72778fc5a34b907c17c4bbfb2e808c5",
-    "core_run": 43049779192,
+    "commit": "635abdb7c031446cba0c2896b71d6599cb83b3e2",
+    "core_run": 43330815577,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "evidence": "docs/evidence/optimization-state-c30d01c.json",
-    "scope": "Standalone advisory journal and all existing core routes passed. New session binding still requires its publishing-commit qualification."
+    "dependency_run": 43330815548,
+    "dependency_conclusion": "success",
+    "scope": "Volume-owned advisory binding: 405 model checks; complete existing CPU/native/isolated-mount matrix. Current CMake 4.5.0 tooling qualified. New application source requires its own publishing-commit checks."
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -329,13 +330,13 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "c30d01c4e72778fc5a34b907c17c4bbfb2e808c5",
-    "package": "L01",
-    "contract": "docs/OPTIMIZATION_STATE.md",
-    "behavior": "Volume-owned advisory binding/publication, independent failure domain, retained-handle handoff/resume and target alias exclusion.",
-    "status": "Pending exact publishing-commit model/raw/codec/Windows/native/sanitizer and existing integration results.",
-    "default_route": "No automatic advisory or GPU route",
-    "next": "Inspect new session/failure tests before any live-host use. Then implement qualified in-session area replacement, persistent write credit and helper/tray integration."
+    "source_parent": "635abdb7c031446cba0c2896b71d6599cb83b3e2",
+    "package": "W01 preparatory work",
+    "contract": "docs/WINDOWS_VOLUME_APP.md",
+    "behavior": "Native unmounted application, bounded locked-memory provider, serialized controller, real engine file/maintenance operations and tray lifecycle.",
+    "status": "Pending exact publishing-commit isolated provider/controller and GUI-control qualification plus existing regression gates.",
+    "default_route": "App opt-in; ordinary operations CPU-only; no mount or GPU runtime.",
+    "next": "Inspect new model and real native-control results; fix failures before any host GUI launch. W01 dependencies and full app/driver completion remain open."
   },
   "resolved": [
     {

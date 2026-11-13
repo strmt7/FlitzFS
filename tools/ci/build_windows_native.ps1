@@ -1,7 +1,7 @@
 # Input: staged SDK and pinned .ci-deps/zstd and .ci-deps/lz4 on a disposable Windows runner.
 # Output: native build; no downloads, driver installation or mount operations.
 [CmdletBinding()]
-param([switch]$BuildMountProbe, [switch]$BuildWriteProbe, [switch]$PortableCpu, [switch]$RamHostProbe)
+param([switch]$BuildMountProbe, [switch]$BuildWriteProbe, [switch]$PortableCpu, [switch]$RamHostProbe, [switch]$VolumeApp)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows') {
@@ -9,6 +9,7 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hoste
 }
 if ($BuildMountProbe -and $BuildWriteProbe) { throw 'Select one isolated mount profile.' }
 if ($PortableCpu -and ($BuildMountProbe -or $BuildWriteProbe)) { throw 'Portable CPU qualification never mounts or loads the SDK.' }
+if ($VolumeApp -and (-not $PortableCpu -or $RamHostProbe)) { throw 'Volume app qualification requires a separate portable CPU profile.' }
 if ($RamHostProbe -and -not $PortableCpu) { throw 'RAM host probe requires portable CPU mode.' }
 $zstdRuntime = if ($PortableCpu) { 'ON' } else { 'OFF' }
 $runtimeFlags = if ($PortableCpu) {
@@ -41,7 +42,7 @@ $writeProbe = if ($BuildWriteProbe) { 'ON' } else { 'OFF' }
 $native = if ($PortableCpu) { 'OFF' } else { 'ON' }
 $portable = if ($PortableCpu) { 'ON' } else { 'OFF' }
 $buildDirectory = if ($PortableCpu) { 'build-portable' } else { 'build-native' }
-$rootOptions = @()
+$rootOptions = @("-DFLITZFS_BUILD_VOLUME_APP=$(if ($VolumeApp) { 'ON' } else { 'OFF' })")
 if (-not $PortableCpu) { $rootOptions += "-DFLITZFS_WINFSP_SDK=$env:FLITZFS_WINFSP_SDK" }
 if ($RamHostProbe) {
     $rootOptions += '-DFLITZFS_BUILD_RAM_HOST_PROBE=ON'
@@ -52,7 +53,9 @@ cmake -S . -B $buildDirectory -A x64 "-DFLITZFS_PORTABLE_CPU=$portable" -DFLITZF
 if ($LASTEXITCODE) { throw 'Native configure failed' }
 # The gated mount job launches only this executable and its own children.
 # Ordinary/native qualification still builds/tests ALL targets separately.
-if ($RamHostProbe) {
+if ($VolumeApp) {
+    cmake --build $buildDirectory --config Release --target flitzfs_volume_app flitzfs_volume_app_tests --parallel 2
+} elseif ($RamHostProbe) {
     cmake --build $buildDirectory --config Release --target flitzfs_ram_host_probe flitzfs_gpu_ram_probe flitzfs_worker_exchange_tests --parallel 2
 } elseif ($BuildMountProbe) {
     cmake --build $buildDirectory --config Release --target flitzfs_mount_probe --parallel 2

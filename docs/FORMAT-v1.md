@@ -303,3 +303,8 @@ the native provider or an automatic learner. New-source qualification is require
 Volume-owned advisory control changes no stored encoding. The same FLTOP001
 records and existing user-image/namespace/head/codec bytes remain readable.
 The new session methods add ownership and failure isolation in memory only.
+
+The optional native application and process-lifetime memory provider introduce
+no stored encoding, codec, head, advisory-state or worker-frame change. Existing
+CPU readers remain independent. The volatile provider's successful-flush scope
+is its owning process lifetime; no physical-persistence claim follows.

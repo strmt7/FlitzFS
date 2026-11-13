@@ -793,3 +793,21 @@ Advisory corruption, allocation refusal or write/readback failure supplies no
 usable policy and must not fence user-data I/O or change file-context ownership.
 An external qualified provider still owns global reservation/mapping, capacity
 accounting and authorization. The scalar getter is diagnostic only.
+
+## Native application ownership and volatile memory
+
+The optional Windows volume application uses a bounded private memory provider,
+not a storage path or mounted drive. A single process-domain lease and all store
+owners retain the working-set reservation until final retirement. Allocations
+are locked and initially residency-verified; missing headroom, capacity or locking
+refuses admission. The app's 12-MiB aggregate and provider's 40-MiB ceiling are
+experimental bounds. A failed cleanup permanently blocks another domain in
+that process, with unconfirmed free capacity retained in accounting.
+
+Flush ordering has process-lifetime scope only. It does not survive exit or
+power loss and does not copy the complete image per transaction. The application
+makes no power-loss claim for a temporary memory volume. Close retains a live
+volume; explicit Discard retires it. Save creates a new name and reports any
+write failure; it never overwrites an existing file. GUI/provider tests require
+the exact publishing commit and isolated source-bound qualification before any
+owner execution. See WINDOWS_VOLUME_APP.md for the full current boundary.

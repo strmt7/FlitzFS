@@ -704,3 +704,15 @@ The Windows application/helper/taskbar tray must create and manage physical-disk
 filesystems and memory-backed virtual volumes using the shared engine; see
 WINDOWS_VOLUME_BACKENDS.md. This is a product requirement, not a statement that
 the tray or physical provider is implemented.
+
+## Native application and memory-provider implementation slice
+
+The OFF-by-default native application now has an actual serialized volume owner,
+a bounded locked-memory provider, NEW text save/readback, file listing, explicit
+staged optimization, tray lifecycle and explicit discard/stop. Provider locking,
+capacity/overflow, real-engine and GUI-control tests are added in an isolated
+Windows lane; publishing-commit execution is pending. This is independent W01
+preparatory work, not satisfaction or removal of its D01/S01/R01 dependencies.
+Mounted integration, physical provisioning, full semantics, authorization,
+installation, autonomous learning and useful GPU routing remain required.
+See WINDOWS_VOLUME_APP.md. No product completion percentage is inferred.

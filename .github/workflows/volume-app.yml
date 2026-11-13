@@ -1,0 +1,73 @@
+name: Experimental Windows volume application qualification
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'tests/**'
+      - 'third_party/**'
+      - 'CMakeLists.txt'
+      - 'tools/ci/build_windows_native.ps1'
+      - 'tools/ci/prepare_hosted_tools.py'
+      - '.github/workflows/volume-app.yml'
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.15'
+          check-latest: true
+      - name: Verify guarded tool provisioning
+        run: python tools/ci/test_hosted_tools.py
+      - name: Stage checksum-pinned current CMake
+        run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Verify pinned digest source
+        run: python tools/ci/verify_blake3_sources.py
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: meta/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99
+          path: .ci-deps/zstd
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: lz4/lz4
+          ref: aa4647fad575d01a874aaaadcdbe8e6a40e072f5
+          path: .ci-deps/lz4
+          persist-credentials: false
+      - name: Build isolated portable application without WinFsp SDK or driver
+        run: ./tools/ci/build_windows_native.ps1 -PortableCpu -VolumeApp
+      - name: Audit self-contained executable dependencies
+        shell: python
+        run: |
+          from pathlib import Path
+          import runpy
+          audit = runpy.run_path("tools/ci/check_portable_cpu.py", run_name="volume_app_audit")["audit_binary"]
+          for name in ("flitzfs_volume_app.exe", "flitzfs_volume_app_tests.exe"):
+              print(name, audit(Path("build-portable/Release", name).read_bytes()))
+      - name: Exercise provider, real volume and controller ownership
+        run: ./build-portable/Release/flitzfs_volume_app_tests.exe --model
+      - name: Exercise native GUI file workflow and verified process retirement
+        shell: pwsh
+        run: |
+          $app = (Resolve-Path 'build-portable/Release/flitzfs_volume_app.exe').Path
+          & ./build-portable/Release/flitzfs_volume_app_tests.exe --gui $app
+          if ($LASTEXITCODE) { throw 'Native application GUI qualification failed' }
+      - name: Retain experimental exact-source executables
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: experimental-volume-app-${{ github.sha }}
+          path: |
+            build-portable/Release/flitzfs_volume_app.exe
+            build-portable/Release/flitzfs_volume_app_tests.exe
+          if-no-files-found: error
+          retention-days: 14
