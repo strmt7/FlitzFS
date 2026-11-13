@@ -346,3 +346,10 @@ adapter state. The required eighth C++ lifecycle-provider entry and explicit
 callback binding change no stored checkpoint, codec, file byte or worker-wire
 encoding. Historical independent CPU readers and all report byte caps remain.
 No process diagnostic becomes a persistent decoding or recovery dependency.
+
+## Advisory rebuild control
+
+The experimental in-session rebuild API changes no serialized bytes, journal
+capability, volume head or user namespace. It creates empty FLTOP001 advice in a
+NEW qualified area and retains prior owners. See [ADVISORY_REBUILD.md](ADVISORY_REBUILD.md)
+for the ownership/resource contract and pending publishing-source qualification.

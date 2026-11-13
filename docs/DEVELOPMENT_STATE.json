@@ -8,15 +8,17 @@
   "reviewed_baseline": {
     "commit": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
     "tree": "6f3b85242d616d2b0f4331f3c83856b963a6775f",
-    "note": "Current qualified baseline. Independent cost profiling and parent preparation changes require new-source qualification; no new owner execution performed."
+    "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
-    "core_run": 43363992790,
+    "commit": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+    "core_run": 43369595873,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "evidence": "docs/evidence/ram-actors-fa9fe90.json"
+    "evidence": "docs/evidence/origin-guard-053ade8.json",
+    "native_groups": 136,
+    "sanitizer_groups": 117
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -61,6 +63,7 @@
     }
   ],
   "next_implementation": [
+    "L01",
     "D01",
     "G03",
     "G02"
@@ -72,7 +75,7 @@
     "autonomous_background_executor": false,
     "general_payload_repair": false,
     "production_windows_app_installer": false,
-    "persistent_optimization_state": "Experimental journal and volume-owned binding passed; the application reserves its private area. Persistent write credit, in-session replacement, physical mappings and the automatic learner remain unfinished.",
+    "persistent_optimization_state": "Existing journal and controlled initial binding qualified. Separate in-session failed-advice rebuilding implemented for new-source qualification; provider mapping/reclamation, persistent write credit and automatic learner remain unfinished.",
     "native_windows_application": "Implemented opt-in unmounted native controller/window/tray and bounded private memory provider; exact VM/owner qualification at f4928c2. Full app/installer/driver/physical lifecycle remains incomplete."
   },
   "safety": {
@@ -87,27 +90,27 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13T00:23:52Z",
+    "checked_at_utc": "2026-11-13 05:45:19 UTC",
     "native_transport": "Authenticated GitHub Dependabot alerts API",
     "open_alerts": 0,
-    "scope": "Open alerts only; no assertion that all vulnerabilities are absent.",
-    "evidence": "docs/evidence/volume-app-f4928c2.json"
+    "scope": "Open alerts only; no claim that all vulnerabilities are absent.",
+    "evidence": "docs/evidence/advisory-rebuild-sources-053ade8.json"
   },
   "source_routing": {
-    "commit": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
-    "artifact": 13864803939,
-    "artifact_sha256": "dbee1e92884d722bf70ddc8a9f7ec0181b08439359e83aa8285e63d92def598e",
+    "commit": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+    "run": 43372164699,
+    "artifact": 14012529360,
+    "artifact_sha256": "63ad5c0f49b1827862fc8b93b9eda5be45ab1b7005318730acb01c93ac920c95",
+    "query_group": "maintenance",
+    "actual_queries": 2,
+    "source_files": 143,
+    "source_sha256": "e42756355af2342b685d9c2a98fbab6a1991fed5f370df415b215466a30c533b",
     "provider": "0.2.43",
-    "source_files": 130,
-    "source_sha256": "a6ca26d2d5c1c7b889815dcb5768ff14dc53eefe32a0a2330b38bee125f6efd4",
-    "actual_queries": 8,
-    "query7": "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
-    "response_sha256": "2a6106df467403cc295b5f3756f29d3d1424c242566d4417bbc1db123ba639e6",
+    "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
     "live_relevant_candidate_hashes_verified": true,
     "infrastructure_self_hits_not_coverage": true,
     "tests_excluded_from_index_and_inspected_separately": true,
-    "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
-    "excluded_tests": "Exact tests/test_bounded_process.cpp and tests/supervised_source_fixture.hpp inspected separately; provider excludes tests."
+    "evidence": "docs/evidence/advisory-rebuild-sources-053ade8.json"
   },
   "historical": {
     "qualified_checkpoint": {
@@ -244,6 +247,32 @@
         "source_equivalent_gpu_graph": true
       },
       "scope": "Full prior-source matrix passed. New D01 actor-isolation candidate still requires its publishing-commit qualification; actual GPU evidence remains bound to645a1d1."
+    },
+    "previous_pending_qualification": {
+      "source_parent": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
+      "contract": "docs/WINFSP_ORIGIN_GUARD.md",
+      "behavior": "Mandatory product Create/Open self-origin admission, required explicit provider, CPU integration/lifecycle tests and real SDK product-denial probes.",
+      "status": "Initial new fixture needed FILE_OPEN then prior Cleanup for its adopted read handle. Both failures retained; corrected fixture now asserts query count, cleanup, retirement and offline state separately. All publishing-source gates required.",
+      "next": "Review actual product-denial/retirement and byte/resource evidence. Historical D01 cause and broader product/lifecycle/GPU/learning/resilience exits remain open. No owner operation.",
+      "failed_source": "52e6752b733624fa8173aeab0744dd6916eb47aa",
+      "failed_run": 43368688482,
+      "failed_evidence": "docs/evidence/origin-fixture-ad9be7a.json"
+    },
+    "prior_current_routing": {
+      "commit": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
+      "artifact": 13864803939,
+      "artifact_sha256": "dbee1e92884d722bf70ddc8a9f7ec0181b08439359e83aa8285e63d92def598e",
+      "provider": "0.2.43",
+      "source_files": 130,
+      "source_sha256": "a6ca26d2d5c1c7b889815dcb5768ff14dc53eefe32a0a2330b38bee125f6efd4",
+      "actual_queries": 8,
+      "query7": "supervised writable mount crash child timeout cancellation and confirmed exact process exit",
+      "response_sha256": "2a6106df467403cc295b5f3756f29d3d1424c242566d4417bbc1db123ba639e6",
+      "live_relevant_candidate_hashes_verified": true,
+      "infrastructure_self_hits_not_coverage": true,
+      "tests_excluded_from_index_and_inspected_separately": true,
+      "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+      "excluded_tests": "Exact tests/test_bounded_process.cpp and tests/supervised_source_fixture.hpp inspected separately; provider excludes tests."
     }
   },
   "remaining": [
@@ -325,14 +354,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
-    "contract": "docs/WINFSP_ORIGIN_GUARD.md",
-    "behavior": "Mandatory product Create/Open self-origin admission, required explicit provider, CPU integration/lifecycle tests and real SDK product-denial probes.",
-    "status": "Initial new fixture needed FILE_OPEN then prior Cleanup for its adopted read handle. Both failures retained; corrected fixture now asserts query count, cleanup, retirement and offline state separately. All publishing-source gates required.",
-    "next": "Review actual product-denial/retirement and byte/resource evidence. Historical D01 cause and broader product/lifecycle/GPU/learning/resilience exits remain open. No owner operation.",
-    "failed_source": "52e6752b733624fa8173aeab0744dd6916eb47aa",
-    "failed_run": 43368688482,
-    "failed_evidence": "docs/evidence/origin-fixture-ad9be7a.json"
+    "source_parent": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+    "contract": "docs/ADVISORY_REBUILD.md",
+    "behavior": "Separate unavailable/poisoned advisory-area rebuild; retained bounded history and lease ownership; unchanged serialized bytes, data writer and live handles.",
+    "status": "New publishing-source CPU/raw/codec/sanitizer/Windows and complete mounted regression gates required.",
+    "next": "Inspect new rebuild fault/ownership results. Provider-selected-area mapping, persistent workload-derived rewrite credit and automatic learner remain unfinished. No owner experiment."
   },
   "resolved": [
     {
@@ -353,7 +379,8 @@
     "development_volume": "memory-backed",
     "repeat_backend_restriction_in_updates": false,
     "physical_provisioning_implemented": false,
-    "tray_implemented": false
+    "tray_implemented": true,
+    "tray_scope": "Experimental unmounted native control/editor/tray; full mounted/physical/installer lifecycle remains incomplete."
   },
   "windows_application_qualification": {
     "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
@@ -374,7 +401,22 @@
     "owner_gui_exit": 0,
     "remaining_owned_processes": 0,
     "evidence": "docs/evidence/volume-app-f4928c2.json",
-    "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification."
+    "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification.",
+    "latest_vm": {
+      "commit": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+      "run": 43369595976,
+      "job": 131702005705,
+      "model_checks": 377,
+      "gui_observation_counter": 33,
+      "gui_counter_is_distinct_case_count": false,
+      "handles_each": [
+        113,
+        113
+      ],
+      "gui_peak_commit_bytes": 13627392,
+      "evidence": "docs/evidence/origin-guard-053ade8.json",
+      "scope": "Existing unmounted app slice, not complete W01."
+    }
   },
   "gpu_cost_observation": {
     "commit": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",

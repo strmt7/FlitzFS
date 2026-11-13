@@ -1,0 +1,225 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source_parent": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+  "semantic": {
+    "run": 43372164699,
+    "artifact": 14012529360,
+    "artifact_sha256": "63ad5c0f49b1827862fc8b93b9eda5be45ab1b7005318730acb01c93ac920c95",
+    "query_group": "maintenance",
+    "actual_searches": 2,
+    "source_sha256": "e42756355af2342b685d9c2a98fbab6a1991fed5f370df415b215466a30c533b",
+    "queries": [
+      {
+        "commit": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+        "completed_utc": "2026-11-13T05:31:07.706981+00:00",
+        "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+        "hits": [
+          {
+            "end_line": 127,
+            "excerpt": "HostedIdleMaintenanceResult WinFspNativeSession::begin_idle_recompression_hosted( std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) { if(state_!=SessionState::running||!adapter_||requires_offline()||d",
+            "file_sha256": "e8fd9541d569512ef4f65b75bc9163e6ca731673ec8d8b77262a0d9048dad048",
+            "path": "src/windows/winfsp_session.cpp",
+            "score": 0.7832127670219222,
+            "start_line": 117
+          },
+          {
+            "end_line": 156,
+            "excerpt": "// fresh target. Suppress repeated attempts on the same acknowledged image. bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image, StoreCompressionOptions compression={},StoreCheckpointOptions check",
+            "file_sha256": "f50ff43d350ad71ba719b1147cdf1dfe1ff4e7a799cbbd563931b68412b70878",
+            "path": "include/flitzfs/native_session.hpp",
+            "score": 0.782736158494556,
+            "start_line": 147
+          },
+          {
+            "end_line": 147,
+            "excerpt": "RecompressionProgress advance_recompression(); // Optional bounded input for an external match finder. The caller may // compute outside the session control lock and submit only on a later call. std::optional<StoreRecompressionInput> next_r",
+            "file_sha256": "f50ff43d350ad71ba719b1147cdf1dfe1ff4e7a799cbbd563931b68412b70878",
+            "path": "include/flitzfs/native_session.hpp",
+            "score": 0.777047803875341,
+            "start_line": 134
+          },
+          {
+            "end_line": 554,
+            "excerpt": "HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(HostedIdleMaintenanceAction action) { hosted(); return impl_->idle([&]() -> HostedIdleMaintenanceResult { using State=HostedIdleMaintenanceState; using Progress=Nat",
+            "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780",
+            "path": "src/windows/winfsp_native.cpp",
+            "score": 0.7738455694297315,
+            "start_line": 535
+          },
+          {
+            "end_line": 534,
+            "excerpt": "HostedIdleMaintenanceResult WinFspNativeWritable::begin_idle_recompression_hosted( std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) { hosted(); return impl_->idle([&]{ return HostedIdleMaintenanceRes",
+            "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780",
+            "path": "src/windows/winfsp_native.cpp",
+            "score": 0.7653488315386028,
+            "start_line": 527
+          }
+        ],
+        "model": "Snowflake/snowflake-arctic-embed-xs",
+        "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+        "native_response_sha256": "a456655608b519331476e5eee110cacabf81156d22364a9523e5cca1d845336c",
+        "provider": "0.2.43",
+        "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+        "query": "adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities",
+        "query_sha256": "b78b1d274b65b13752a18ced233a3c62f22127ba9ab8813f3b8f1a819c439104",
+        "repository": "strmt7/FlitzFS",
+        "source_sha256": "e42756355af2342b685d9c2a98fbab6a1991fed5f370df415b215466a30c533b"
+      },
+      {
+        "commit": "053ade8310bc0af9dbe1a150aa912a72f1549de7",
+        "completed_utc": "2026-11-13T05:31:07.985751+00:00",
+        "config_sha256": "375cb64f8082b79278478d9cecd3956b4a836d88a08b36a44334364ed2184b57",
+        "hits": [
+          {
+            "end_line": 156,
+            "excerpt": "// fresh target. Suppress repeated attempts on the same acknowledged image. bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image, StoreCompressionOptions compression={},StoreCheckpointOptions check",
+            "file_sha256": "f50ff43d350ad71ba719b1147cdf1dfe1ff4e7a799cbbd563931b68412b70878",
+            "path": "include/flitzfs/native_session.hpp",
+            "score": 0.797427121309255,
+            "start_line": 147
+          },
+          {
+            "end_line": 307,
+            "excerpt": "\"hipStreamCreateWithPriority\", \"hipStreamQuery\", \"hipStreamDestroy\", \"hipFree\", \"hipMalloc\", \"hipErrorContext\", \"hipErrorLaunch\", \"hipErrorOutOfMemory\", \"priority\", \"process\", \"26H2\", \"26H1\", \"10.0.\", \"WHCP\", \"enforcement\", \"kernel\", \"drive",
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.7919344163768596,
+            "start_line": 298
+          },
+          {
+            "end_line": 62,
+            "excerpt": "WINDOWS_GPU_MEMORY_SOURCES = ( (\"windows-gpu-memory-query\", \"https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo\", \"QueryVideoMemoryInfo\", \"NodeIndex\"), (\"windows-gpu-memory-info\", \"http",
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.781184286082862,
+            "start_line": 56
+          },
+          {
+            "end_line": 71,
+            "excerpt": "case HipWorkerStage::runtime_load: return \"runtime_load\"; case HipWorkerStage::kernel_load: return \"kernel_load\"; case HipWorkerStage::module_retire: return \"module_retire\"; case HipWorkerStage::worker_job: return \"worker_job\"; case HipWork",
+            "file_sha256": "79681016658ca28d0173784b15d8247f3309ba448c71078a620da0885f17e506",
+            "path": "src/windows/hip_worker_exit.hpp",
+            "score": 0.7747649380006578,
+            "start_line": 59
+          },
+          {
+            "end_line": 259,
+            "excerpt": ", \"rocm-runtime\": ROCM_RUNTIME_SOURCES, \"windows-target\": WINDOWS_TARGET_SOURCES, \"windows-framework\": WINDOWS_FRAMEWORK_SOURCES, \"windows-alternatives\": WINDOWS_ALTERNATIVE_SOURCES, \"rocm-stream\": ROCM_STREAM_SOURCES, \"windows-basic\": WIND",
+            "file_sha256": "ecd6034222e4d3c89b57389db6d279f282b3da2ab7a841c72032accc8537acff",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.7718683314793946,
+            "start_line": 254
+          }
+        ],
+        "model": "Snowflake/snowflake-arctic-embed-xs",
+        "model_revision": "d8c86521100d3556476a063fc2342036d45c106f",
+        "native_response_sha256": "c1f47d6af64a88fcf4ff75ec0b2d4fc86bbb087754c6631a3bd633515ac6640a",
+        "provider": "0.2.43",
+        "provider_wheel_sha256": "76b23b3c176f3cdace1f51ea1a332f4285e74fd296449e827be2134dbbdc885d",
+        "query": "background maintenance resource headroom low priority incremental recompression sampling budget and duplicate attempt suppression",
+        "query_sha256": "1eb64f0856c12989e7d00d8c8980a3d163aa546ede7e4a8657f38b4722f75f5e",
+        "repository": "strmt7/FlitzFS",
+        "source_sha256": "e42756355af2342b685d9c2a98fbab6a1991fed5f370df415b215466a30c533b"
+      }
+    ],
+    "live_candidate_confirmation": "{\"path\":\"include/flitzfs/native_session.hpp\",\"blob\":\"3e1ce59b95e3517d1011989fcf47fd0a6c948441\",\"bytes\":20666,\"sha256\":\"f50ff43d350ad71ba719b1147cdf1dfe1ff4e7a799cbbd563931b68412b70878\"}\r\n{\"path\":\"src/windows/winfsp_session.cpp\",\"blob\":\"ef9fd5b20bf598a82b96829f7b72c1cb3f8f7690\",\"bytes\":8473,\"sha256\":\"e8fd9541d569512ef4f65b75bc9163e6ca731673ec8d8b77262a0d9048dad048\"}\r\n",
+    "infrastructure_hits_not_coverage": true
+  },
+  "primary_source_review": {
+    "run": {
+      "conclusion": "success",
+      "created_at": "2026-11-09T10:15:22Z",
+      "head_sha": "740a12dff0cea9e42b16be973959063ed3b6ead4",
+      "id": 42599540602,
+      "status": "completed",
+      "updated_at": "2026-11-09T10:16:58Z"
+    },
+    "artifact": 13664668700,
+    "artifact_sha256": "ef3ba3ec18e8e2971ee48b34367f5c591b0003f93e7fb539e4161be7142cf5a2",
+    "capture_date": "2026-11-09",
+    "review_date": "2026-11-13",
+    "reuse": "Existing admitted native Crawl4AI captures; not new page fetches or newly published APIs.",
+    "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+    "robots_checked": true,
+    "page_timeout_seconds": 45,
+    "external_llm": false,
+    "persistent_profile": false,
+    "sources": [
+      {
+        "entry": "sqlite-testing.native.json",
+        "url": "https://www.sqlite.org/testing.html",
+        "provider": "0.9.5+flitzzip.portable2",
+        "diagnosis": {
+          "url": "https://www.sqlite.org/testing.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 52519,
+          "markdown_sha256": "3b623da9701b14a5884370a002c92534109c55dcd2d36d3ece49a1ac5e5c525b",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.341
+        },
+        "native_sha256": "923ee821882db3f124b545421e9ad105f909149c413c412d7840e9b7212a2ae4",
+        "reviewed_heading": "##  3.3. Crash Testing"
+      },
+      {
+        "entry": "sqlite-wal.native.json",
+        "url": "https://www.sqlite.org/wal.html",
+        "provider": "0.9.5+flitzzip.portable2",
+        "diagnosis": {
+          "url": "https://www.sqlite.org/wal.html",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 37556,
+          "markdown_sha256": "3d17c99402c7f30599458b856f6ece67d47e11ecc246deb6c27cc1370c8badd6",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.648
+        },
+        "native_sha256": "d9cb7091427022e596868ccf6079b66c8bfebfaf2237e6f43a72b5135120f5b9",
+        "reviewed_heading": "##  2.1. Checkpointing"
+      },
+      {
+        "entry": "windows-cache.native.json",
+        "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching",
+        "provider": "0.9.5+flitzzip.portable2",
+        "diagnosis": {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/fileio/file-caching",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 22863,
+          "markdown_sha256": "d528744cabcc2d9aada50539f4a8385800cb5f43119963fb36bb5c1841233244",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.273
+        },
+        "native_sha256": "d8080a364fbfb44d6f8ce0d3f97e74c5c1077506448b7bb03c7705715140b285",
+        "reviewed_heading": "# File Caching"
+      }
+    ],
+    "inferences": [
+      "Enumerate journal mutation boundaries and compound recovery with I/O/OOM failure; preserve independently verified user data.",
+      "Retain old ownership until independently justified retirement; no reused-format or SQLite runtime dependency.",
+      "Buffered Windows completion does not attest to the custom provider's successful-flush persistence contract. No new Windows persistence primitive is selected."
+    ]
+  },
+  "implementation_basis": [
+    "Existing OptimizationStateWriter create/publish/readback and poison-held leases; exact FLTOP001 bytes unchanged.",
+    "Current NativeFileSession explicit control binding and managed context ownership; no user-data publication path changed."
+  ],
+  "dependabot": {
+    "checked_at_utc": "2026-11-13 05:45:19 UTC",
+    "raw_api_result": "{\"numbers\":[],\"open_alerts\":0}\n"
+  },
+  "scope": "Source/routing and design evidence, not execution of the new rebuild implementation."
+}

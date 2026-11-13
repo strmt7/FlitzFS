@@ -80,6 +80,14 @@ struct NativeFileSession::Impl {
   std::unique_ptr<VolumeOwner> volume;
   // Retire data/advisory writers before the head owner.
   std::unique_ptr<OptimizationOwner> optimization;
+  std::array<std::unique_ptr<OptimizationOwner>,max_optimization_bindings-1> prior_optimization;
+  unsigned optimization_bindings=0;
+  // Current and prior areas remain unavailable as image/compaction targets.
+  bool owns_optimization_backend(const std::shared_ptr<StoreByteIo>& io) const noexcept {
+    if(optimization&&optimization->backing==io)return true;
+    for(const auto& prior:prior_optimization)if(prior&&prior->backing==io)return true;
+    return false;
+  }
   NativeFilesystemWriter writer;
   std::shared_ptr<const void> owner=std::make_shared<const int>(0);
   std::array<Slot,max_contexts> slots{};
@@ -226,6 +234,8 @@ NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
   NativeOptimizationInfo out;
   if(!impl_||!impl_->volume)return out;
   const auto& self=*impl_;out.session_ready=!self.terminal&&!self.writer.poisoned();
+  out.binding_attempts=self.optimization_bindings;
+  out.owned_area_bytes=std::uint64_t(self.optimization_bindings)*kOptimizationAreaBytes;
   if(!self.optimization)return out;
   const auto& area=*self.optimization;
   out.phase=area.phase;out.read_code=area.read_code;out.reserved_bytes=kOptimizationAreaBytes;
@@ -239,23 +249,35 @@ NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
   return out;
 }
 NativeOptimizationInfo NativeFileSession::create_optimization_area(std::shared_ptr<StoreByteIo> area,unsigned limit) {
-  return bind_optimization_area(std::move(area),0,limit,true);
+  return bind_optimization_area(std::move(area),0,limit,true,false);
 }
 NativeOptimizationInfo NativeFileSession::resume_optimization_area(std::shared_ptr<StoreByteIo> area,
     std::uint64_t sequence,unsigned limit) {
-  return bind_optimization_area(std::move(area),sequence,limit,false);
+  return bind_optimization_area(std::move(area),sequence,limit,false,false);
+}
+NativeOptimizationInfo NativeFileSession::rebuild_optimization_area(std::shared_ptr<StoreByteIo> area,unsigned limit) {
+  return bind_optimization_area(std::move(area),0,limit,true,true);
 }
 NativeOptimizationInfo NativeFileSession::bind_optimization_area(std::shared_ptr<StoreByteIo> area,
-    std::uint64_t sequence,unsigned limit,bool create) {
+    std::uint64_t sequence,unsigned limit,bool create,bool rebuild) {
   auto& self=ready();
-  if(!self.volume||!self.volume->head||self.optimization||self.recompression||
+  const bool failed=self.optimization&&
+      (self.optimization->phase==NativeOptimizationPhase::unavailable||
+       self.optimization->phase==NativeOptimizationPhase::terminal||
+       (self.optimization->writer&&self.optimization->writer->poisoned()));
+  if(!self.volume||!self.volume->head||self.recompression||
       !area||!limit||limit>4||(!create&&!sequence)||
+      (rebuild?(!create||!failed||!self.optimization_bindings||
+          self.optimization_bindings>=max_optimization_bindings):bool(self.optimization))||
+      self.owns_optimization_backend(area)||
       area==self.volume->head_io||area==self.volume->active_io||area==self.volume->candidate_io)
     fail(E::invalid_options,"new distinct provider-reserved advisory binding required");
-  // Own the attempted area before any backend operation. Never rebind/reset a
-  // partial area, even after failure; never reuse it as a maintenance target.
+  // Allocate before changing ownership. After admission retain the candidate,
+  // every old backend and each poison-held lease, including failed creations.
   auto owner=std::make_unique<Impl::OptimizationOwner>();owner->backing=std::move(area);
-  self.optimization=std::move(owner);auto& bound=*self.optimization;
+  if(rebuild)self.prior_optimization[self.optimization_bindings-1]=std::move(self.optimization);
+  self.optimization=std::move(owner);++self.optimization_bindings;
+  auto& bound=*self.optimization;
   try {
     if(create)bound.writer.emplace(OptimizationStateWriter::create(bound.backing,self.volume->volume_id,limit));
     else {
@@ -310,7 +332,7 @@ void NativeFileSession::admit_replacement(const Impl& self,
   if(self.recompression || volume.pending || next==StoreIdentity{} || next==volume.active_id ||
       next==volume.volume_id || next==volume.head->info().selection.parent_identity ||
       !target || target==volume.active_io || target==volume.head_io ||
-      (self.optimization&&target==self.optimization->backing))
+      self.owns_optimization_backend(target))
     fail(E::invalid_options,"new distinct maintenance image required");
 }
 

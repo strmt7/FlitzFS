@@ -202,3 +202,10 @@ admission to both adapters and requires an explicit origin provider in session
 binding. Mounted probes now test product rejection; direct CPU fixtures remain
 explicitly synthetic. See [origin boundary](docs/WINFSP_ORIGIN_GUARD.md).
 New-source qualification is pending; full filesystem readiness is unproven.
+
+The experimental shared engine now has a separate failed-advice rebuild path:
+[contract and pending qualification](docs/ADVISORY_REBUILD.md). It preserves live
+file handles, starts empty advice in a new area and retains failed ownership
+within an aggregate cap. Provider mapping, persistent rewrite credit and automatic
+learning remain unfinished. The parent origin guard passed all 13 core/mounted jobs;
+[source-bound results](docs/evidence/origin-guard-053ade8.json).

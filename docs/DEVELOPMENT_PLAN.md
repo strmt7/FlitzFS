@@ -371,3 +371,14 @@ tests actual product rejection through the SDK-driver callback path.
 CPU-only fake origins are not mounted-fixture evidence. Publishing-source
 qualification is pending. Preserve the historical unknown D01 cause and all
 full-product exit criteria; this does not enable owner mount/driver/GPU actions.
+
+## Executed parent and current L01 continuation
+
+At 053ade8, all 13 core/mounted jobs passed, including mandatory product origin
+admission. See [source-bound evidence](evidence/origin-guard-053ade8.json). D01's
+historical cause remains unproven. Independent L01 work now adds a separate
+[failed-advice rebuild control](ADVISORY_REBUILD.md) with retained ownership and
+live-handle preservation; its publishing-source gates remain pending. Provider
+mapping/reclamation, persistent workload-derived write credit and automatic
+learning are still required. The full product/GPU/Windows/recovery exits above
+remain intact.

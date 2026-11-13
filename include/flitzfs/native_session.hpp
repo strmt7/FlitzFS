@@ -95,10 +95,15 @@ struct NativeOptimizationInfo {
   std::uint64_t sequence=0,reserved_bytes=0;
   unsigned remaining_publications=0;
   bool session_ready=false;
+  // All admitted areas, including unavailable/poisoned history; no I/O.
+  std::uint64_t owned_area_bytes=0;
+  unsigned binding_attempts=0;
 };
 class NativeFileSession final {
  public:
   static constexpr std::size_t max_contexts=256;
+  // Experimental aggregate ownership ceiling, not a product sizing policy.
+  static constexpr unsigned max_optimization_bindings=4;
   // Consumes exclusive writer ownership and fully verifies admission. No raw
   // writer accessor; unresolved old-session state must be separately recovered.
   static NativeFileSession create(NativeFilesystemWriter writer);
@@ -163,6 +168,13 @@ class NativeFileSession final {
       unsigned publication_limit=1);
   NativeOptimizationInfo resume_optimization_area(std::shared_ptr<StoreByteIo>,
       std::uint64_t expected_sequence,unsigned publication_limit=1);
+  // Separate controlled recovery: only unavailable/poisoned advice, NEW area,
+  // empty policy. Retain every former backing/lease until session retirement.
+  // The provider must publish/retain its selected-area mapping independently;
+  // this operation never changes a data head or manufactures durable mapping.
+  // Healthy state cannot be rebuilt to reset its publication allowance.
+  NativeOptimizationInfo rebuild_optimization_area(std::shared_ptr<StoreByteIo>,
+      unsigned publication_limit=1);
   NativeOptimizationInfo publish_optimization_state(const OptimizationState&);
   // Owned cached copy; unavailable advice returns no policy. Normal I/O never
   // calls these methods. Diagnostics do not authorize a background operation.
@@ -308,7 +320,7 @@ class NativeFileSession final {
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
-      std::uint64_t,unsigned,bool create);
+      std::uint64_t,unsigned,bool create,bool rebuild);
   static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity);
   static void admit_handoff_contexts(const Impl&);
   static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);

@@ -1288,3 +1288,16 @@ before dispatch, never rebind live. The diagnostic survives native adapter stop
 but cannot authorize bytes/recovery/retry. Mounted self-open probes must observe
 PRODUCT rejection, not mask it in a test guard. Qualification of this publishing
 source is required; owner/driver/GPU gates and the historical unknown cause remain.
+
+## Separate failed-advice rebuild boundary
+
+Read docs/ADVISORY_REBUILD.md before changing advisory replacement. Original
+create/resume binding remains one-attempt; only rebuild_optimization_area admits
+NEW empty advice after unavailable/poisoned state. Never rebuild healthy or merely
+exhausted advice. Retain all previous areas and poison-held leases, reject their
+immediate/staged image aliases and preserve live/cleaned contexts and user-data
+ownership. Keep four total admitted bindings, 512-KiB declared reservations and
+all old publication/format/resource limits. No allocation/I/O after successful
+creation for diagnostics; no automatic retry/reclamation or inferred persistent
+mapping/credit. Require publishing-source fault, raw/codec, sanitizer and Windows
+qualification; no owner mount/driver/GPU permission or full L01 completion follows.

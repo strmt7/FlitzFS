@@ -447,12 +447,181 @@ void advisory_control_edges() {
         !m.session->optimization_snapshot().degraded&&!m.session->poisoned(),"session peer repair");
   }
 }
+void rebuild_live_ownership() {
+  Managed m;auto& session=*m.session;
+  session.create_entry("keep");const auto file=session.open("keep",{true,true,false});
+  const Bytes payload{std::byte{2},std::byte{4},std::byte{6}};session.write(file,0,payload);
+  const auto reader=session.open("keep");session.cleanup(reader,false);
+  session.create_optimization_area(m.area,4);session.publish_optimization_state(policy());
+  const auto retained=session.optimization_snapshot();
+  // Simulate damage to BOTH advisory copies, then let the controlled writer
+  // independently detect it. No caller flag can manufacture failed status.
+  m.area->live[96]^=std::byte{1};m.area->live[kStoreCommitUnit+96]^=std::byte{1};
+  m.area->stable=m.area->live;
+  rejects([&]{session.publish_optimization_state(policy());},"lost advice not detected");
+  require(session.optimization_info().phase==NativeOptimizationPhase::terminal&&!session.poisoned(),
+      "advisory loss fenced user data");
+  const auto old=m.area->stable,user=m.image_io->stable,head=m.head->stable;
+  const auto old_calls=m.area->calls,old_reads=m.area->reads;
+  rejects([&]{(void)OptimizationStateWriter::resume(m.area,volume(),2);},"poisoned advice lease lost");
+  require(m.area->reads==old_reads&&m.area->calls==old_calls,"competing owner reached poisoned advice");
+  auto next=std::make_shared<Ram>();
+  for(auto alias:{m.area,m.head,m.image_io})
+    rejects([&]{session.rebuild_optimization_area(alias,4);},"rebuild admitted an owned alias");
+  rejects([&]{session.rebuild_optimization_area(next,0);},"rebuild zero allowance");
+  rejects([&]{session.rebuild_optimization_area(next,5);},"rebuild excessive allowance");
+  require(next->calls==0&&next->reads==0&&session.optimization_info().binding_attempts==1,
+      "invalid rebuild consumed ownership or touched new area");
+  auto staged=std::make_shared<Ram>(4*1024*1024);
+  session.begin_recompression(staged,volume(116),{StoreCompressionMode::raw});
+  rejects([&]{session.rebuild_optimization_area(next,4);},"rebuild overlapped staged copy");
+  require(next->calls==0&&next->reads==0,"staged deferral touched advice");
+  session.cancel_recompression();
+  const auto info=session.rebuild_optimization_area(next,4);
+  require(info.phase==NativeOptimizationPhase::ready&&info.sequence==1&&info.remaining_publications==3&&
+      info.binding_attempts==2&&info.reserved_bytes==kOptimizationAreaBytes&&
+      info.owned_area_bytes==2*kOptimizationAreaBytes&&info.session_ready,
+      "rebuild accounting/initial sequence");
+  require(session.optimization_snapshot().state==OptimizationState{}&&retained.state==policy()&&
+      retained.sequence==2,"rebuild imported stale policy or changed retained snapshot");
+  require(m.area->stable==old&&m.area->calls==old_calls&&m.area->reads==old_reads&&
+      m.image_io->stable==user&&m.head->stable==head&&session.stats().contexts==2&&
+      session.stats().cleaned==1,"rebuild changed data/head/contexts or failed source");
+  const auto next_calls=next->calls,next_reads=next->reads;
+  rejects([&]{(void)OptimizationStateWriter::resume(next,volume(),1);},"new advisory lease absent");
+  require(next->calls==next_calls&&next->reads==next_reads,"competing new owner reached backend");
+  for(auto alias:{m.area,next}) {
+    rejects([&]{session.compact_volume(alias,volume(117),{StoreCompressionMode::raw});},"old/current advice used as image");
+    rejects([&]{session.begin_recompression(alias,volume(118),{StoreCompressionMode::raw});},"old/current advice staged as image");
+  }
+  const Bytes changed{std::byte{3},std::byte{5},std::byte{7}};
+  session.write(file,0,changed);session.flush(file);
+  require(session.read(file,0,3)==changed&&session.read(reader,0,3)==changed&&
+      next->calls==next_calls&&next->reads==next_reads&&
+      m.area->calls==old_calls&&m.area->reads==old_reads,
+      "ordinary file I/O consulted replaced advice or lost handles");
+  session.publish_optimization_state(policy(2));
+  auto target=std::make_shared<Ram>(4*1024*1024);
+  const auto area_calls=next->calls,area_reads=next->reads;
+  require(session.compact_volume(target,volume(119),{StoreCompressionMode::raw}).selection.epoch==2&&
+      session.read(file,0,3)==changed&&session.optimization_info().binding_attempts==2&&
+      session.optimization_snapshot().state==policy(2)&&next->calls==area_calls&&next->reads==area_reads,
+      "handoff changed advice ownership or live handle");
+  {
+    auto moved=std::move(session);m.session.reset();
+    require(moved.optimization_info().owned_area_bytes==2*kOptimizationAreaBytes&&
+        moved.read(reader,0,3)==changed,"move lost rebuilt advice/data");
+    moved.cleanup(file,false);moved.close(file);moved.close(reader);
+  }
+  // Actual destruction, not a declaration, releases both advisory owners.
+  const auto released_reads=m.area->reads;
+  rejects([&]{(void)OptimizationStateWriter::resume(m.area,volume(),2);},"lost old advice unexpectedly readable");
+  require(m.area->reads>released_reads,"retired poisoned owner retained its lease");
+  {
+    auto owner=OptimizationStateWriter::resume(next,volume(),2,1);
+    require(owner.snapshot().state==policy(2),"replacement lease did not retire");
+  }
+  m.session.emplace(NativeFileSession::resume_volume(m.head,volume(),2,
+      [&](const StoreIdentity& id)->std::shared_ptr<StoreByteIo>{
+        if(id==volume(119))return target;if(id==volume(101))return m.image_io;return {};
+      },{StoreCompressionMode::raw}));
+  // The qualified provider independently retains the selected new-area mapping.
+  require(m.session->resume_optimization_area(next,2,1).phase==NativeOptimizationPhase::ready,
+      "new controller could not resume selected advice");
+  const auto reopened=m.session->open("keep");
+  require(m.session->read(reopened,0,3)==changed,"independent resumed data changed");
+  m.session->cleanup(reopened,false);m.session->close(reopened);
+}
+void rebuild_limits_and_failures() {
+  {
+    Managed m;auto fresh=std::make_shared<Ram>();
+    rejects([&]{m.session->rebuild_optimization_area(fresh);},"unbound advice rebuilt");
+    require(fresh->calls==0&&fresh->reads==0&&!m.session->optimization_info().binding_attempts,
+        "unbound rebuild probed/consumed a binding");
+    m.session->create_optimization_area(m.area,1);
+    rejects([&]{m.session->rebuild_optimization_area(fresh,4);},"healthy rebuild reset exhausted allowance");
+    require(fresh->calls==0&&fresh->reads==0&&m.session->optimization_info().binding_attempts==1&&
+        !m.session->optimization_info().remaining_publications,"healthy rebuild consumed/reset allowance");
+  }
+  {
+    Managed m;std::array<std::shared_ptr<Ram>,NativeFileSession::max_optimization_bindings> attempted{};
+    attempted[0]=m.area;m.area->pressure=true;m.session->create_optimization_area(m.area);
+    for(unsigned i=1;i<attempted.size();++i) {
+      attempted[i]=std::make_shared<Ram>();attempted[i]->pressure=true;
+      const auto info=m.session->rebuild_optimization_area(attempted[i]);
+      require(info.phase==NativeOptimizationPhase::unavailable&&info.binding_attempts==i+1&&
+          info.owned_area_bytes==(i+1)*kOptimizationAreaBytes,"failed rebuild reservation lost");
+    }
+    auto denied=std::make_shared<Ram>();
+    rejects([&]{m.session->rebuild_optimization_area(denied);},"unbounded area replacements");
+    require(denied->calls==0&&denied->reads==0&&!m.session->poisoned()&&
+        m.session->optimization_info().owned_area_bytes==
+          NativeFileSession::max_optimization_bindings*kOptimizationAreaBytes,
+        "binding cap probed a backend or fenced data");
+    for(const auto& prior:attempted) {
+      prior->pressure=false; // Each empty area would otherwise be a valid target.
+      rejects([&]{m.session->compact_volume(prior,volume(120),{StoreCompressionMode::raw});},
+          "empty failed advisory history reused as image");
+      rejects([&]{m.session->rebuild_optimization_area(prior);},"old failed area retried");
+      require(prior->calls==0&&prior->reads==0,"retained-history refusal touched old area");
+    }
+  }
+  // Compound failures: an unavailable old area plus each new creation write/
+  // flush cut, partial persistence, failed final readback, allocation and input
+  // admission. User data and live handles remain independently usable.
+  for(unsigned scenario=0;scenario<23;++scenario) {
+    Managed m;auto& session=*m.session;session.create_entry("keep");
+    const auto file=session.open("keep",{true,true,false});const Bytes payload{std::byte{17}};
+    session.write(file,0,payload);m.area->pressure=true;session.create_optimization_area(m.area);
+    const auto user=m.image_io->stable,head=m.head->stable;
+    auto next=std::make_shared<Ram>();
+    if(scenario<18){next->mode=scenario/6;next->fail_at=scenario%6;}
+    else if(scenario==18)next->read_fail_after_calls=6;
+    else if(scenario==19)next->allocation_fail_after_reads=1;
+    else if(scenario==20)next->pressure=true;
+    else if(scenario==21)next->declared={65536,false};
+    else {next->live={std::byte{9}};next->stable=next->live;}
+    if(scenario==19) {
+      bool oom=false;try{session.rebuild_optimization_area(next,4);}catch(const std::bad_alloc&){oom=true;}
+      require(oom,"replacement allocation failure not reached");
+    }else require(session.rebuild_optimization_area(next,4).phase==NativeOptimizationPhase::unavailable,
+        "failed replacement became available");
+    require(session.optimization_info().binding_attempts==2&&
+        session.optimization_info().owned_area_bytes==2*kOptimizationAreaBytes&&
+        session.optimization_info().sequence==0&&session.optimization_info().session_ready&&
+        session.optimization_snapshot().state==OptimizationState{}&&!session.poisoned()&&
+        session.stats().contexts==1&&m.image_io->stable==user&&m.head->stable==head,
+        "failed rebuild changed data/context or exposed policy");
+    const auto calls=next->calls,reads=next->reads;
+    rejects([&]{session.rebuild_optimization_area(next,4);},"failed replacement retried");
+    require(next->calls==calls&&next->reads==reads,"failed replacement retry did I/O");
+    if(scenario<20) {
+      const auto observed=read(next->stable);
+      require(observed.code!=OptimizationReadCode::available||
+          (observed.sequence==1&&observed.state==OptimizationState{}),
+          "interrupted rebuild exposed partial or previous policy");
+    }
+    const Bytes changed{std::byte{18}};session.write(file,0,changed);session.flush(file);
+    auto independent=std::make_shared<Ram>(4*1024*1024);independent->live=m.image_io->stable;
+    require(NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(independent)).read("keep",0,1)==changed&&
+        session.read(file,0,1)==changed,"user continuation/recovery failed after advisory rebuild fault");
+    auto recovery=std::make_shared<Ram>();
+    require(session.rebuild_optimization_area(recovery,1).phase==NativeOptimizationPhase::ready&&
+        session.optimization_info().binding_attempts==3&&session.optimization_snapshot().state==OptimizationState{},
+        "distinct bounded replacement failed after compound fault");
+    require(next->calls==calls&&next->reads==reads&&m.area->calls==0&&m.area->reads==0,
+        "later rebuild revisited failed backings");
+    session.cleanup(file,false);session.close(file);
+  }
+}
+
 }
 int main() {
   try {
     admission_and_budget();const auto acknowledged=initial_area();
     decoding(acknowledged);crash_matrix(acknowledged);user_data_isolation(acknowledged);
     session_binding_and_handoff();advisory_failures_do_not_fence_data();advisory_control_edges();
+    rebuild_live_ownership();rebuild_limits_and_failures();
     std::cout<<"Optimization advisory-state checks: "<<checks
         <<"; fixed RAM area, all creation/update/repair boundaries, no files/GPU/mount.\n";
     return 0;

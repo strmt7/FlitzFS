@@ -888,3 +888,13 @@ for supported callback scope, immutable binding, retained diagnostic and limits.
 Publishing-source qualification is pending; duplicated/inherited handles, indirect
 backing cycles and arbitrary driver/kernel bugs are not solved by this one rule.
 No owner or GPU operation is enabled.
+
+## Bounded failed-advice rebuilding
+
+[ADVISORY_REBUILD.md](ADVISORY_REBUILD.md) specifies a separate control transition
+for unavailable/poisoned advice only. Original initial-binding calls stay one-
+attempt. Retain every failed area/lease, reject all owned area aliases as image
+targets and account at most four 128-KiB reservations. Never reset healthy advice,
+reuse partial bytes, infer durable mapping, loop automatically or fence user data
+because advice failed. New tests require their own publishing-source gates;
+parent 053ade8 passed all 13 jobs. No owner execution or lifetime wear claim follows.
