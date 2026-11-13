@@ -91,3 +91,8 @@ counter is not a distinct-case count. Exact evidence is
 [evidence/origin-guard-053ade8.json](evidence/origin-guard-053ade8.json).
 Those results do not qualify this new rebuild implementation or close the
 unexplained historical D01 failure, useful-GPU benefit or full-product gates.
+
+The retained-empty-area exclusion oracle gives those areas the same 4-MiB image
+capacity as a successful fresh control. Resource refusal therefore cannot hide
+a missing alias check. Separate cases reject reuse of retired empty advice while
+the current advice is unavailable and the binding cap has not been reached.
