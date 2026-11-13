@@ -140,3 +140,11 @@ failing message/control/Win32 error/elapsed time. It queues final Exit rather
 than requiring a synchronous reply from a control that may be destroyed during
 exit, while retaining exact process observation, clean status and all deadlines.
 See [the retained result](evidence/volume-app-e743108.json).
+
+The 3eedfc7 diagnostics identified the GUI failure exactly: after command 101,
+WM_GETTEXTLENGTH used control 0 and failed immediately with Win32 1400
+(ERROR_INVALID_WINDOW_HANDLE). The test had cached a null status HWND before
+its readiness wait; observing that the control later existed did not update
+the cached value. The lookup now occurs after readiness and is explicitly
+validated. All 377 model checks passed again; owner execution remains gated.
+[Exact failure and source-confirmed correction](evidence/volume-app-3eedfc7.json).

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "source_commit": "3eedfc74e7c997461ca99d39ebe6b3243fb7c5b0",
+  "run": 43340562547,
+  "job": 131607527457,
+  "conclusion": "failure",
+  "build": "success",
+  "dependency_audit": "success",
+  "model": {
+    "checks": 377,
+    "conclusion": "success",
+    "cycles": 3,
+    "handles_each": [
+      113,
+      113
+    ],
+    "working_set_restored": true,
+    "cleanup_healthy": true
+  },
+  "gui": {
+    "first_command": 101,
+    "error": {
+      "control": 0,
+      "message": 14,
+      "win32": 1400,
+      "elapsed_ms": 0
+    },
+    "cause": "The harness cached GetDlgItem(window,113) before its readiness wait. Early discovery returned null; the later predicate proved the control existed but the cached null remained. WM_GETTEXTLENGTH then failed with ERROR_INVALID_WINDOW_HANDLE. This is a source-confirmed harness binding bug.",
+    "fix": "Acquire and validate the status HWND after the visibility/control readiness predicate succeeds. Preserve message diagnostics, process observation, all deadlines and explicit clean exit."
+  },
+  "owner_execution": false
+}
