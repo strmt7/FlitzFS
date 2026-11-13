@@ -62,5 +62,15 @@
     "checked_at_utc": "2026-11-13 08:17 UTC",
     "open_alerts": 0,
     "native_transport": "Authenticated GitHub open-alerts API; not an absence-of-all-vulnerabilities claim."
+  },
+  "retained_failed_qualification": {
+    "source": "22ba3b3238e2a4185705721deeb645b186f0d002",
+    "run": 43392561538,
+    "job": 131775733192,
+    "error": "staged activation touched backing or fenced data",
+    "scope": "The new assertion required zero target writes after begin_recompression, but prepare_recompression intentionally initializes the private target header. It did not measure a target-counter delta.",
+    "reviewed_exact_source": "src/object_store.cpp rewrite admission writes zeroes at0..kDataStart; src/native_session.cpp stage_recompression invokes prepare_recompression before the rejected activation.",
+    "correction": "Capture established target calls/reads/bytes and head reads, then assert all remain unchanged by activation rejection. No product change or weakened source/head checks.",
+    "owner_execution": false
   }
 }
