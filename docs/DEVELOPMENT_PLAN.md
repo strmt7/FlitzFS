@@ -321,11 +321,11 @@ when the suggested encoding is never selected. Instrument CPU preparation,
 startup, GPU execution, full CPU oracle, candidate/baseline encoding and
 verification separately before choosing an optimization.
 
-D01's next investigation is process ownership. The current crash fixtures hold
-a client file handle in the same process that hosts its mounted filesystem.
-[Upstream issue 702](https://github.com/winfsp/winfsp/issues/702), created
-29 October 2026, reports a termination hazard for that pattern; it has no
-maintainer confirmation. Preserve the observed failures and open-handle crash
-coverage. Design separately supervised external clients and verify the actual
-SDK request identity contract before adding a host-self-I/O guard. Never close
-the handle early, widen a deadline or claim the current green run fixes D01.
+D01's current investigation is process ownership. Crash sources already use a
+separately supervised external client. The next change converts basic, mutations
+and delete while preserving the original workloads and strict independent CPU
+recovery. Restart/resumer, RAM-handoff and read-only mounted actor conversion
+remain prerequisites to adapter-wide self-origin protection. The upstream report
+still has no maintainer confirmation; the historical kernel state is unknown.
+Do not widen deadlines, bypass a guard with a fake origin, repeat an unchanged
+GPU experiment or treat a green run as a causal D01 fix.

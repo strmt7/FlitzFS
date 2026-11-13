@@ -145,3 +145,43 @@ repeat protocol, failed launch, post-ack cancellation, post-ack abandonment and
 early exit eight times with exact handle equality. No tolerance, mount, driver,
 GPU operation, larger deadline or new product route is added. These new checks
 require their own publishing-commit qualification.
+
+## Ordered external clients for basic, mutation and deletion profiles
+
+The next D01 change moves the actual Win32 client workload for basic, mutations
+and delete into the existing supervising controller. The filesystem child now
+owns only its backend, adapter and dispatcher. These profiles reuse the existing
+protected ready/written events and the exact Child supervisor; there is no new
+transport, process, service or worker loop.
+
+The child first proves rejection of its own Create through the same SDK callback
+guard as the crash source, without a context or native generation/extent/namespace
+change. It then signals ready. The controller independently checks the mounted
+identity, performs every original write/read/metadata/EOF/rename/delete operation
+and closes its client handles before signaling written. The child requires the
+actual originating controller PID and successful original Flush callback, drains
+contexts and performs the original ordered dispatcher/writer shutdown.
+
+The controller requires confirmed child AND supervisor retirement before an
+independent CPU verifier can start. Its source lease remains alive through that
+verification. The existing normal 30-second child operation, five-second protocol
+phases, two-second exit observations, 128-MiB process/256-MiB aggregate and 20%-CPU
+limits are unchanged. The crash source keeps its original 15-second deadline and
+open external handle through forced retirement.
+
+Basic schema1 and extended schema2 reports retain their historical fields.
+The existing external-client variant now also covers basic, mutations and delete:
+writer self-rejection/flush observations are true, independent verifier observations
+are false, and both bind the same distinct client PID. The current live campaigns
+require that variant; legacy self-client records remain readable only as historical
+evidence. Missing/mixed actors, aliased PIDs and invented verifier observations
+reject. Report counts/2048-byte limits and all stored filesystem bytes are unchanged.
+
+This publishing source requires its own CPU/Windows/sanitizer and affected mounted
+qualification. It does not resolve D01's historical kernel state. Ordered restart
+source/resumer, RAM-handoff and read-only mounted workloads still need actor
+separation before adapter-wide self-origin rejection can be enabled. The current
+guard remains fixture-specific; no production guard or owner mount is claimed.
+Do not bypass a future guard using a synthetic origin provider to keep a live
+self-client fixture passing. No unchanged GPU experiment is needed for these
+test-only lifecycle changes.

@@ -239,18 +239,46 @@ void report(const Fixture& fixture,std::string_view phase,std::uint32_t source_p
       <<",\"generation\":"<<info.generation<<",\"image_bytes\":"<<fs::file_size(image)
       <<",\"image_cap\":"<<image_cap<<",\"contexts\":0,\"explicit_flush_observed\":"
       <<(phase=="write"?"true":"false")<<",\"cpu_verified\":true"
-      <<",\"dispatcher_stopped\":"<<(stopped?"true":"false")<<",\"gpu\":false}";
+      <<",\"dispatcher_stopped\":"<<(stopped?"true":"false")<<",\"gpu\":false";
+  if(source_client_process)out<<",\"source_protocol\":\"external-client\",\"client_process\":"<<source_client_process
+      <<",\"host_self_io_rejected\":"<<(phase=="write"?"true":"false")
+      <<",\"client_flush_callback_observed\":"<<(phase=="write"?"true":"false");
+  out<<'}';
   const auto text=out.str();require(text.size()<=report_cap,"writable report budget");
   const auto* first=reinterpret_cast<const std::byte*>(text.data());
   write_new(fixture.root/(phase=="write"?L"write.json":L"verify.json"),{first,first+text.size()});
 }
-void write_probe() {
-  require_probe_job();stage=3;Fixture fixture;
-  const auto image=fixture.root/L"native.fltx",mount=fixture.root/L"mount";
-  flitzfs::WinFspNativeSession session(flitzfs::WinFspNativeWritable::create_new_hosted(
-      image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap),live_api());
-  stage=4;
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"writable mount startup");
+void prepare_external_actor(std::uint32_t client) {
+  require(client&&client!=GetCurrentProcessId(),"external client/source identity");
+  source_client_process=client;source_guard.expected.store(client,std::memory_order_release);
+}
+void self_open_probe(flitzfs::WinFspNativeSession& session,
+    const flitzfs::WinFspNativeWritable* observer,const fs::path& mount) {
+  require(session.stats().contexts==0,"source setup retained namespace handles");
+  source_guard.armed.store(true,std::memory_order_release);
+  // Prove the guard using the actual SDK/driver. This attempt MUST NOT acquire
+  // a namespace handle or mutate the newly created native filesystem.
+  {
+    const auto before=observer->snapshot();
+    const auto denied_path=mount/L"host-self-io-probe.bin";
+    const auto attempted=CreateFileW(denied_path.c_str(),GENERIC_READ|GENERIC_WRITE,
+        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
+    const auto error=GetLastError();Handle denied(attempted);
+    require(denied.value==INVALID_HANDLE_VALUE&&error==ERROR_ACCESS_DENIED&&
+        source_guard.self_denied.load()>0,"filesystem host self-I/O was not refused");
+    const auto after=observer->snapshot();
+    require(before.storage_info().generation==after.storage_info().generation&&
+        before.storage_info().physical_end==after.storage_info().physical_end&&
+        after.list().empty()&&session.stats().contexts==0,"self-I/O guard changed native state");
+  }
+}
+void external_origin_proof(const flitzfs::WinFspNativeSession& session) {
+  require(source_guard.observed.load(std::memory_order_acquire)==source_client_process&&
+      source_guard.flush_succeeded.load(std::memory_order_acquire)>0&&
+      !session.requires_offline()&&!session.dispatcher_stopped_unexpectedly(),
+      "external client/flush proof missing");
+}
+void basic_client(const fs::path& mount) {
   wchar_t filesystem[32]{};DWORD flags=0,serial=0;
   checked(GetVolumeInformationW((mount.native()+L"\\").c_str(),nullptr,0,&serial,nullptr,&flags,filesystem,32),
       "writable volume identity");
@@ -282,6 +310,21 @@ void write_probe() {
   }
   stage=7;
   require(read_all(target,expected.size())==expected,"mounted close/reopen parity");
+}
+void write_probe(std::wstring_view token,std::uint32_t client) {
+  require_probe_job();stage=3;Fixture fixture;
+  const auto image=fixture.root/L"native.fltx",mount=fixture.root/L"mount";
+  prepare_external_actor(client);
+  source_fixture::Events protocol(false,std::wstring(token));
+  auto adapter=flitzfs::WinFspNativeWritable::create_new_hosted(
+      image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
+  const auto* observer=adapter.get();
+  flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
+  stage=4;
+  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"writable mount startup");
+  self_open_probe(session,observer,mount);
+  stage=5;protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
+  external_origin_proof(session);
   const auto deadline=GetTickCount64()+2000;
   while(session.stats().contexts&&GetTickCount64()<deadline&&!session.requires_offline()&&
       !session.dispatcher_stopped_unexpectedly())Sleep(10);
@@ -391,11 +434,12 @@ std::string extended_text(std::string_view profile,std::string_view phase,std::u
       <<"\",\"explicit_flush_observed\":"<<(phase=="verify"?"false":"true")
       <<",\"cpu_verified\":true,\"dispatcher_stopped\":"<<(phase=="state"?"true":"false")<<",\"gpu\":false";
   if(source_client_process) {
-    require((profile=="crash"||profile=="crash-restart")&&(phase=="ack"||phase=="verify"),
+    require(((profile=="crash"||profile=="crash-restart")&&(phase=="ack"||phase=="verify"))||
+        ((profile=="mutations"||profile=="delete")&&(phase=="state"||phase=="verify")),
         "external client on wrong evidence phase");
     out<<",\"source_protocol\":\"external-client\",\"client_process\":"<<source_client_process
-        <<",\"host_self_io_rejected\":"<<(phase=="ack"?"true":"false")
-        <<",\"client_flush_callback_observed\":"<<(phase=="ack"?"true":"false");
+        <<",\"host_self_io_rejected\":"<<(phase!="verify"?"true":"false")
+        <<",\"client_flush_callback_observed\":"<<(phase!="verify"?"true":"false");
   }
   out<<'}';
   return out.str();
@@ -595,12 +639,9 @@ void ram_handoff_probe() {
   const auto* first=reinterpret_cast<const std::byte*>(body.data());
   write_new(fixture.root/L"ram-handoff.json",std::vector<std::byte>(first,first+body.size()));
 }
-void namespace_probe(bool deleting) {
-  require_probe_job();stage=20;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
+void namespace_client(const fs::path& mount,bool deleting) {
   const std::string_view profile=deleting?"delete":"mutations";
-  flitzfs::WinFspNativeSession session(flitzfs::WinFspNativeWritable::create_new_hosted(
-      image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap),live_api());
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"extended namespace mount");mounted_identity(mount);
+  mounted_identity(mount);
   stage=21;
   {
     Handle file(CreateFileW((mount/L"sample.bin").c_str(),GENERIC_READ|GENERIC_WRITE|DELETE,
@@ -631,6 +672,20 @@ void namespace_probe(bool deleting) {
       read_handle(file.value,profile_data(profile));
     }
   }
+}
+void namespace_probe(bool deleting,std::wstring_view token,std::uint32_t client) {
+  require_probe_job();stage=20;Fixture fixture;const auto mount=fixture.root/L"mount",image=fixture.root/L"native.fltx";
+  const std::string_view profile=deleting?"delete":"mutations";
+  prepare_external_actor(client);
+  source_fixture::Events protocol(false,std::wstring(token));
+  auto adapter=flitzfs::WinFspNativeWritable::create_new_hosted(
+      image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
+  const auto* observer=adapter.get();
+  flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
+  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"extended namespace mount");
+  self_open_probe(session,observer,mount);
+  stage=21;protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
+  external_origin_proof(session);
   stage=23;finish_session(session,mount);
   auto view=flitzfs::NativeFilesystemSnapshot::open(flitzfs::ObjectStoreSnapshot::open_file(image));view.verify_all();
   extended_report(fixture,profile,"state",GetCurrentProcessId(),view,0);
@@ -740,23 +795,7 @@ void crash_source(std::wstring_view token,std::uint32_t client_process,std::stri
   auto* observer=adapter.get();
   flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
   require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"external source mount");
-  require(session.stats().contexts==0,"source setup retained namespace handles");
-  source_guard.armed.store(true,std::memory_order_release);
-  // Prove the guard using the actual SDK/driver. This attempt MUST NOT acquire
-  // a namespace handle or mutate the newly created native filesystem.
-  {
-    const auto before=observer->snapshot();
-    const auto denied_path=mount/L"host-self-io-probe.bin";
-    const auto attempted=CreateFileW(denied_path.c_str(),GENERIC_READ|GENERIC_WRITE,
-        FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
-    const auto error=GetLastError();Handle denied(attempted);
-    require(denied.value==INVALID_HANDLE_VALUE&&error==ERROR_ACCESS_DENIED&&
-        source_guard.self_denied.load()>0,"filesystem host self-I/O was not refused");
-    const auto after=observer->snapshot();
-    require(before.storage_info().generation==after.storage_info().generation&&
-        before.storage_info().physical_end==after.storage_info().physical_end&&
-        after.list().empty()&&session.stats().contexts==0,"self-I/O guard changed native state");
-  }
+  self_open_probe(session,observer,mount);
   stage=31;protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
   require(source_guard.observed.load(std::memory_order_acquire)==client_process&&
       source_guard.flush_succeeded.load(std::memory_order_acquire)>0&&
@@ -798,6 +837,31 @@ void emit_extended(std::uint32_t source_process,std::string_view profile,std::st
       "extended aggregate fixture cap");
   std::cout<<"Windows writable extended evidence: "<<text<<"\n";
 }
+struct ExternalOrderedSource {
+  source_fixture::Events protocol{true};
+  std::unique_ptr<source_fixture::Child> child;
+  flitzfs::ProcessResult written;
+  ExternalOrderedSource(const fs::path& executable,std::string_view profile) {
+    require(profile=="basic"||profile=="mutations"||profile=="delete","ordered external profile");
+    const auto client=GetCurrentProcessId();
+    const auto mode=profile=="basic"?L"--write-child":profile=="delete"?L"--delete-child":L"--mutations-child";
+    child=std::make_unique<source_fixture::Child>(executable,
+        std::vector<std::wstring>{mode,protocol.token(),std::to_wstring(client)},
+        flitzfs::ProcessBudget{128,2000,30000});
+    child->await(protocol,source_fixture::Phase::ready);
+    require(child->process_id()&&child->process_id()!=client,"ordered source/client alias");
+    Fixture fixture(child->process_id());const auto mount=fixture.root/L"mount";
+    if(profile=="basic")basic_client(mount);
+    else namespace_client(mount,profile=="delete");
+    // All actual client handles are closed before authorizing ordered stop.
+    protocol.signal(source_fixture::Phase::written);
+    written=child->result();
+    require(written.process_id==child->process_id()&&written.exit_confirmed&&
+        !written.timed_out&&!written.cancelled&&written.exit_code==0&&child->retirement_confirmed(),
+        "ordered external source exact retirement failed");
+    require(source_fixture::cleanup_ok.load(),"ordered external protocol cleanup");
+  }
+};
 struct ExternalSource {
   source_fixture::Events protocol{true};
   std::unique_ptr<source_fixture::Child> child;
@@ -831,9 +895,12 @@ void run_extended(const fs::path& executable,std::string_view profile) {
   const std::wstring child=profile=="crash-restart"?L"--crash-restart-source-child":profile=="restart"?L"--restart-source-child":
       crash?L"--crash-child":profile=="delete"?L"--delete-child":L"--mutations-child";
   std::unique_ptr<ExternalSource> external;
+  std::unique_ptr<ExternalOrderedSource> ordered;
   flitzfs::ProcessResult written;
   if(crash){external=std::make_unique<ExternalSource>(executable,profile);written=external->written;}
-  else written=flitzfs::run_bounded_process(executable,{child},budget);
+  else if(profile=="mutations"||profile=="delete") {
+    ordered=std::make_unique<ExternalOrderedSource>(executable,profile);written=ordered->written;
+  } else written=flitzfs::run_bounded_process(executable,{child},budget);
   std::cout<<"extended_writer profile="<<profile<<" exit="<<written.exit_code<<" stage="<<(written.exit_code>>16U)
       <<" detail="<<(written.exit_code&0xffffU)<<" timed_out="<<written.timed_out<<" cancelled="<<written.cancelled
       <<" exit_confirmed="<<written.exit_confirmed<<" peak_commit_bytes="<<written.peak_committed_bytes<<"\n";
@@ -857,7 +924,7 @@ void run_extended(const fs::path& executable,std::string_view profile) {
   const std::wstring verifier=profile=="crash-restart"?L"--crash-restart-verify-child":profile=="restart"?L"--restart-verify-child":crash?L"--crash-verify-child":profile=="delete"?L"--delete-verify-child":L"--mutations-verify-child";
   std::vector<std::wstring> verify_arguments{verifier,std::to_wstring(written.process_id)};
   if(restart_profile(profile))verify_arguments.push_back(std::to_wstring(resumer_process));
-  if(crash)verify_arguments.push_back(std::to_wstring(GetCurrentProcessId()));
+  if(crash||ordered)verify_arguments.push_back(std::to_wstring(GetCurrentProcessId()));
   const auto verified=flitzfs::run_bounded_process(executable,verify_arguments,budget);
   std::cout<<"extended_verifier profile="<<profile<<" exit="<<verified.exit_code<<" stage="<<(verified.exit_code>>16U)
       <<" detail="<<(verified.exit_code&0xffffU)<<" timed_out="<<verified.timed_out<<" cancelled="<<verified.cancelled
@@ -871,8 +938,8 @@ int wmain(int argc,wchar_t** argv) {try {
   require_hosted_opt_in();require(argc>=2&&argc<=5,"explicit writable probe mode required");
   const std::wstring_view mode(argv[1]);
   if(mode==L"--ram-handoff-child"){require(argc==2,"unexpected RAM child argument");ram_handoff_probe();return 0;}
-  if(mode==L"--write-child"){require(argc==2,"unexpected writer argument");write_probe();return 0;}
-  if(mode==L"--verify-child"){require(argc==3,"missing source identity");verify_probe(process_number(argv[2]));return 0;}
+  if(mode==L"--write-child"){require(argc==4,"missing external writer identity");write_probe(argv[2],process_number(argv[3]));return 0;}
+  if(mode==L"--verify-child"){require(argc==4,"missing source/client identities");source_client_process=process_number(argv[3]);verify_probe(process_number(argv[2]));return 0;}
   if(mode==L"--restart-source-child") {
     require(argc==2,"unexpected restart source argument");restart_source();return 0;
   }
@@ -893,12 +960,11 @@ int wmain(int argc,wchar_t** argv) {try {
     extended_verify(process_number(argv[2]),killed?"crash-restart":"restart",process_number(argv[3]));return 0;
   }
   if(mode==L"--mutations-child"||mode==L"--delete-child") {
-    require(argc==2,"unexpected extended writer argument");namespace_probe(mode==L"--delete-child");return 0;
+    require(argc==4,"missing external namespace identity");namespace_probe(mode==L"--delete-child",argv[2],process_number(argv[3]));return 0;
   }
   if(mode==L"--mutations-verify-child"||mode==L"--delete-verify-child"||mode==L"--crash-verify-child") {
-    const bool killed=mode==L"--crash-verify-child";
-    require(argc==(killed?4:3),"missing extended source/client identity");
-    if(killed)source_client_process=process_number(argv[3]);
+    require(argc==4,"missing extended source/client identity");
+    source_client_process=process_number(argv[3]);
     extended_verify(process_number(argv[2]),mode==L"--crash-verify-child"?"crash":
         mode==L"--delete-verify-child"?"delete":"mutations");return 0;
   }
@@ -922,13 +988,14 @@ int wmain(int argc,wchar_t** argv) {try {
     require(source_fixture::cleanup_ok.load()&&!source_fixture::source_busy.load(),"source final cleanup");return 0;
   }
   flitzfs::ProcessBudget budget;budget.timeout_ms=30000;
-  const auto written=flitzfs::run_bounded_process(executable,{L"--write-child"},budget);
+  const ExternalOrderedSource ordered(executable,"basic");
+  const auto written=ordered.written;
   std::cout<<"writable_probe exit="<<written.exit_code<<" stage="<<(written.exit_code>>16U)
       <<" detail="<<(written.exit_code&0xffffU)<<" timed_out="<<written.timed_out<<" cancelled="<<written.cancelled
       <<" exit_confirmed="<<written.exit_confirmed<<" peak_commit_bytes="<<written.peak_committed_bytes<<"\n";
   require(written.process_id&&written.exit_confirmed&&!written.timed_out&&!written.cancelled&&written.exit_code==0,
       "supervised writable helper failed");emit(written.process_id,"write");
-  const auto verified=flitzfs::run_bounded_process(executable,{L"--verify-child",std::to_wstring(written.process_id)},budget);
+  const auto verified=flitzfs::run_bounded_process(executable,{L"--verify-child",std::to_wstring(written.process_id),std::to_wstring(GetCurrentProcessId())},budget);
   std::cout<<"writable_verify exit="<<verified.exit_code<<" stage="<<(verified.exit_code>>16U)
       <<" detail="<<(verified.exit_code&0xffffU)<<" timed_out="<<verified.timed_out<<" cancelled="<<verified.cancelled
       <<" exit_confirmed="<<verified.exit_confirmed<<" peak_commit_bytes="<<verified.peak_committed_bytes<<"\n";

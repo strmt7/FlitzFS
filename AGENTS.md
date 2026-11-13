@@ -1232,3 +1232,18 @@ verification. Count alignment padding in device admission; never increase the
 parent plan must reject upload construction. The changed allocation path needs
 exact-source isolated qualification before owner execution; the single source99
 profile is a baseline observation, not proof of packed-path speed or safety.
+
+## Ordered mounted source/client separation
+
+The basic, mutations and delete hosted probes use the same external-controller/
+protected-event protocol and exact Child retirement lease as the crash source.
+Read docs/MOUNT_PROCESS_ISOLATION.md before changing them. Preserve every original
+Win32/CPU oracle, close normal client handles before written/ordered stop, retain
+the source lease through independent verification and require actual controller
+origin plus original Flush observation. The live report reader must require the
+external-client variant for these profiles while preserving historical records.
+Keep every existing process/memory/CPU/deadline/report cap. Restart source/resumer,
+RAM-handoff and read-only workloads remain separate conversion work; the guard
+is still test-only. Never hide a live self-client behind a fake origin query or
+declare D01 fixed from a green qualification. These changes permit no owner mount,
+driver operation or GPU rerun.

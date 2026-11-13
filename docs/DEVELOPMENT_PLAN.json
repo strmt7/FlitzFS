@@ -93,14 +93,16 @@
       "exit": "The earlier failures are explained by captured evidence and a targeted regression; repeated isolated qualification confirms child exit and cleanup.",
       "checkpoint": {
         "source": "8122bf51f6ac3cf43512f8a2dc37368afa0772c5",
-        "qualification": "Full 13-job initial matrix passed; isolated repetition records in source-bound evidence.",
+        "qualification": "All thirteen core jobs passed; historical cause still unproven.",
         "evidence": "docs/evidence/mount-source-isolation-8122bf5.json",
         "contract": "docs/MOUNT_PROCESS_ISOLATION.md",
         "historical_root_cause": "unproven",
-        "next": "Publishing-commit qualification of post-ack cancellation/abandonment and early-exit tests; preserve unconfirmed historical failures.",
+        "next": "Qualify basic/mutations/delete external actors and strict report closure; then convert restart/resumer, RAM handoff and read-only clients before adapter-wide protection.",
         "source_child_deadline_seconds": 15,
         "source_exit_observation_seconds": 2,
-        "owner_execution": false
+        "owner_execution": false,
+        "qualified_source": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
+        "pending_implementation": "Original client workloads moved to the existing supervising controller; no new transport/worker/limits."
       }
     },
     {
@@ -169,13 +171,15 @@
       "entry_gate": "Actual G02 native proposal/compression composition is demonstrated at645a1d1. G02's benefit exit remains unmet; lifecycle work must not depend on already having that benefit.",
       "preparatory_implementation": {
         "contract": "docs/GPU_PHASE_PROFILE.md",
-        "qualified_source": "99be6a266d0fe4cb934c462ad14960e3d26df1a6",
+        "qualified_source": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
         "core_jobs": 13,
         "sdk_confirmed_exits": 20,
         "phase_unit_checks": 431,
-        "owner_gpu_profile": "One verified4-KiB profile; initialization/allocation/verification dominated, fullCPUcomparison retained.",
-        "evidence": "docs/evidence/gpu-profile-99be6a2.json",
-        "next": "Coalesced allocation/upload implementation requires new-source qualification. No expanded footprint, removed CPU checks or resident worker."
+        "owner_gpu_profile": "One verified 4-KiB packed-allocation profile, 423005300ns exchange; no measured benefit.",
+        "evidence": "docs/evidence/gpu-slab-b6a9b4e.json",
+        "next": "D01 lifecycle prerequisite, then useful whole-operation GPU gains; no removed CPU oracle or resident worker.",
+        "layout_cpu_checks": 8918,
+        "layout_sizes_checked": 65537
       }
     },
     {
