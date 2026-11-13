@@ -337,6 +337,9 @@ opted in and never loaded. CPU forwarding and real SDK linking remain pending.
 
 The private typed module qualified for linking at c86559b
 ([evidence](docs/evidence/hipcomp-module-link-c86559b.json)).
-The next [bounded candidate frames](docs/LZ4_WORKER_FRAMES.md) connect immutable
-input and independent CPU verification to the existing channel. Their portable
-and Windows CPU-helper qualification is pending; no GPU caller is enabled.
+The [bounded candidate frames](docs/LZ4_WORKER_FRAMES.md) passed portable,
+sanitizer and Windows CPU-helper checks at 959606a
+([evidence](docs/evidence/lz4-worker-frames-959606a.json)).
+The next [checked upload/readback layer](docs/GPU_LZ4_SLAB.md) protects inputs,
+tables and guards and independently verifies every returned block. Its new CPU
+checks are pending; actual GPU compression remains unimplemented.

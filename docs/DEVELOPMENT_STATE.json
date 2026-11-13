@@ -607,14 +607,28 @@
     },
     "lz4_worker_frames": {
       "contract": "docs/LZ4_WORKER_FRAMES.md",
-      "status": "Pending portable framing, optional-codec and real Windows trusted CPU child qualification.",
+      "status": "Qualified CPU-only at 959606a: five core configurations, all 13 integration jobs and real trusted Windows CPU exchange; 79 initial/final handles.",
       "chunks_cap": 8,
       "chunk_bytes_cap": 65536,
       "complete_device_bytes_cap": 262144,
       "request_frame_cap": 262244,
       "reply_frame_cap": 262272,
       "normal_io_unchanged": true,
-      "gpu_caller": false
+      "gpu_caller": false,
+      "qualified_source": "959606a93e7fff12c9ff1228962afba5e148c6dd",
+      "core_run": 43486028947,
+      "evidence": "docs/evidence/lz4-worker-frames-959606a.json"
+    },
+    "checked_slab": {
+      "contract": "docs/GPU_LZ4_SLAB.md",
+      "status": "Pending publishing-source CPU/optional-codec/sanitizer qualification.",
+      "complete_device_bytes_cap": 262144,
+      "chunks_cap": 8,
+      "chunk_bytes_cap": 65536,
+      "guard_bytes": 32,
+      "gpu_executed": false,
+      "runtime_caller": false,
+      "normal_io_changed": false
     }
   },
   "integration_checkpoints": [

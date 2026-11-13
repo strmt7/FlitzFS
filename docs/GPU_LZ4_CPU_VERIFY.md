@@ -1,7 +1,9 @@
 # Independent CPU check of private LZ4 candidates (experimental)
 
 The new verifier is a CPU-only prerequisite for a possible GPU compressor. No
-filesystem operation, worker or stored codec invokes it yet. It does not select
+filesystem operation or stored codec invokes it. The candidate-frame trusted CPU
+test child and checked slab layer reuse it; neither adds a HIP compressor.
+It does not select
 a compression policy, authenticate a GPU result or establish interoperability
 with the upstream GPU encoder.
 

@@ -23,8 +23,10 @@ The reviewed source identities are recorded in
 Each input/output region and the scratch base is eight-byte aligned. Each output
 also reserves 32 bytes for a future initialized guard check. A guard is a
 diagnostic for corruption after execution; it cannot prevent an out-of-bounds
-kernel write. No initialization, upload, guard verification or device execution
-is implemented by this metadata-only planner.
+kernel write. This metadata-only planner performs no upload or execution.
+The separate [checked slab layer](GPU_LZ4_SLAB.md) now constructs upload bytes
+and admits synthetic CPU readbacks; its publishing-source tests are pending.
+It adds no runtime caller or GPU qualification.
 
 The four tables describe a future AMD64 candidate contract with eight-byte
 pointer/size entries. They do not serialize host addresses or define an IPC ABI.

@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "qualified_source": "959606a93e7fff12c9ff1228962afba5e148c6dd",
+  "core_run": 43486028947,
+  "repository": "strmt7/FlitzFS",
+  "captured_utc": "2026-11-13 19:09:20 UTC",
+  "scope": "Owned compression-candidate frames, independent optional CPU LZ4 verification and trusted CPU-only Windows helper exchange. Synthetic data only.",
+  "gpu_executed": false,
+  "module_loaded": false,
+  "normal_io_changed": false,
+  "driver_or_mount_on_owner": false,
+  "owner_data_files_written": false,
+  "core_jobs": {
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 132094589798,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132094590169,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132094590209,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132094590231,
+        "name": "sanitizers",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132094590272,
+        "name": "windows-native",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132099662185,
+        "name": "windows-mount",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132101499903,
+        "name": "windows-write-mount (delete)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132101499927,
+        "name": "windows-write-mount (mutations)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132101499938,
+        "name": "windows-write-mount (ram-handoff)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132101499957,
+        "name": "windows-write-mount (restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132101499958,
+        "name": "windows-write-mount (crash-restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132101499982,
+        "name": "windows-write-mount (crash)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132101500223,
+        "name": "windows-write-mount (basic)",
+        "status": "completed"
+      }
+    ],
+    "total_count": 13
+  },
+  "admitted_test_reports": [
+    {
+      "configuration": "linux-on",
+      "artifact_id": 14068185683,
+      "archive_sha256": "6531bd07bd6418452e8f33f12437938ca920134f21dfb06736170524e0d2b0fd",
+      "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+      "sha256": "a516fc990394d5e0880926328f6d9803bd47980c9e55c27832f185fcf3089776",
+      "bytes": 122004,
+      "evidence": [
+        "LZ4 worker framing: 621 checks; decoder_available=1 gpu_executed=false"
+      ],
+      "cases": 123,
+      "passes": 121,
+      "expression_passes": 2,
+      "failures": 0
+    },
+    {
+      "configuration": "linux-off",
+      "artifact_id": 14067756199,
+      "archive_sha256": "d8e2a2e7b91ff24f0fa001965c5e7870a6da4296f213ad0a9692e7c4da64be76",
+      "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+      "sha256": "9e04eea8c5d0e4703a900e3dcea2b9171d95754182c00250ff9c7dc6003aab63",
+      "bytes": 122015,
+      "evidence": [
+        "LZ4 worker framing: 593 checks; decoder_available=0 gpu_executed=false"
+      ],
+      "cases": 123,
+      "passes": 121,
+      "expression_passes": 2,
+      "failures": 0
+    },
+    {
+      "configuration": "windows-off",
+      "artifact_id": 14066299610,
+      "archive_sha256": "b7ed04e41b9814ec985c20ec095930087678ae87d12e92d39aa9447d67a68757",
+      "entry": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+      "sha256": "483234c9d52e9ecc1bb366cb73ffb67116b7f1bde7b74fe3624677f71e2b37a1",
+      "bytes": 133233,
+      "evidence": [
+        "LZ4 worker framing: 593 checks; decoder_available=0 gpu_executed=false\r",
+        "LZ4 worker process framing: decoder_available=0 chunks=3 source_bytes=1074 gpu_executed=false\r",
+        "handle_totals initial=79 final=79\r",
+        "PASS: 1197 real Windows worker exchange checks; CPU semantics only, no GPU or data files.\r"
+      ],
+      "cases": 127,
+      "passes": 125,
+      "expression_passes": 2,
+      "failures": 0
+    },
+    {
+      "configuration": "windows-native",
+      "artifact_id": 14066279612,
+      "archive_sha256": "a3a5df186af348481682d31a13b1f1a28c0cf46500fb4c7aa5914306c05db262",
+      "entry": "LastTest.log",
+      "sha256": "659b4b51aa1bcb8d2f149779ab8f044dfc8566b631cc12bbae11139f558515bd",
+      "bytes": 151087,
+      "evidence": [
+        "LZ4 worker framing: 621 checks; decoder_available=1 gpu_executed=false\r",
+        "LZ4 worker process framing: decoder_available=1 chunks=3 source_bytes=1074 gpu_executed=false\r",
+        "handle_totals initial=79 final=79\r",
+        "PASS: 1209 real Windows worker exchange checks; CPU semantics only, no GPU or data files.\r"
+      ],
+      "cases": 142,
+      "passes": 140,
+      "expression_passes": 2,
+      "failures": 0
+    },
+    {
+      "configuration": "asan-ubsan",
+      "artifact_id": 14068146481,
+      "archive_sha256": "e55e59abdabecfc2cbdd313a6a90ba85f7acd0f391425a4123a57a36e82fcbbb",
+      "entry": "LastTest.log",
+      "sha256": "af9954daad266f4667b3bd4421cca57609d976a81b75f8589aec308ef1bc8036",
+      "bytes": 123238,
+      "evidence": [
+        "LZ4 worker framing: 621 checks; decoder_available=1 gpu_executed=false"
+      ],
+      "cases": 123,
+      "passes": 121,
+      "expression_passes": 2,
+      "failures": 0
+    }
+  ],
+  "worker_fixture": {
+    "chunks": 3,
+    "source_bytes": 1074,
+    "codec_enabled_exchange_checks": 1209,
+    "codec_disabled_exchange_checks": 1197,
+    "handle_initial": 79,
+    "handle_final": 79,
+    "note": "Counts cover the complete existing plus new worker exchange suite. They are not all new checks."
+  },
+  "limits": {
+    "chunks": 8,
+    "chunk_bytes": 65536,
+    "all_explicit_device_bytes": 262144,
+    "request_frame": 262244,
+    "reply_frame": 262272,
+    "existing_mapping_caps_increased": false
+  },
+  "remaining": [
+    "Actual HIP compression worker/runtime and authenticated private module binding",
+    "Complete resource/lifecycle and independent result admission",
+    "Actual GPU-output and useful whole-operation benefit",
+    "Historical D01 cause and full filesystem/recovery/learner qualification"
+  ],
+  "capture": {
+    "transport": "GitHub artifact API followed by bounded in-memory HTTP/ZIP",
+    "archive_cap_bytes": 4194304,
+    "expanded_cap_bytes": 33554432,
+    "max_entries": 256,
+    "report_cap_bytes": 1048576,
+    "timeout_seconds": 20,
+    "source_digest_verified": true,
+    "all_last_test_reports_zero_failures": true
+  },
+  "dependabot": {
+    "observed_utc": "2026-11-13 19:10:00 UTC",
+    "open_alerts": 0,
+    "transport": "Authenticated paginated GitHub Dependabot API"
+  }
+}

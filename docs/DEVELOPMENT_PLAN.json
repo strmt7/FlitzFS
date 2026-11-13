@@ -209,7 +209,19 @@
           },
           "worker_frames": {
             "contract": "docs/LZ4_WORKER_FRAMES.md",
-            "status": "Pending CPU framing and real trusted Windows CPU helper exchange; no actual HIP worker or ordinary-I/O route."
+            "status": "Qualified CPU-only at 959606a: five core configurations, all 13 ordinary jobs and trusted Windows CPU exchange; no HIP compressor or normal-I/O route.",
+            "evidence": "docs/evidence/lz4-worker-frames-959606a.json"
+          },
+          "checked_slab": {
+            "contract": "docs/GPU_LZ4_SLAB.md",
+            "status": "Pending publishing-source CPU/optional-codec/sanitizer qualification.",
+            "complete_device_bytes_cap": 262144,
+            "chunks_cap": 8,
+            "chunk_bytes_cap": 65536,
+            "guard_bytes": 32,
+            "gpu_executed": false,
+            "runtime_caller": false,
+            "normal_io_changed": false
           }
         }
       }
