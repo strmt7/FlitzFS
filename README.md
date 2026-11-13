@@ -212,5 +212,9 @@ learning remain unfinished. The parent origin guard passed all 13 core/mounted j
 
 The Windows helper now prepares a [controlled advice-recovery consumer](docs/ADVISORY_HELPER.md)
 for its existing maintenance operation. It retains and accounts for new/failed
-areas and keeps file access independent. New-source VM qualification is pending;
-physical mapping, persistent rewrite credit and autonomous learning remain open.
+areas and keeps file access independent. At 9977674, all 13 core/mounted jobs,
+461 app-model assertions and a healthy owner GUI workflow passed
+([source-bound evidence](docs/evidence/advisory-helper-9977674.json)). The next
+test-only follow-up covers allocator failure after binding admission; those
+new cases still need VM qualification. Physical mapping, persistent rewrite
+credit and autonomous learning remain open.

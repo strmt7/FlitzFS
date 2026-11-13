@@ -908,3 +908,9 @@ domain/four-area ceiling. Exhaustion defers optional work without fencing data.
 Fault tests touch only new private VM memory; no production injection command,
 backing override, host operation, timer or persistence is introduced. New-source
 qualification is required; physical mapping and persistent credit remain open.
+
+Source 9977674 passed its full VM matrix and a healthy owner GUI workflow;
+[evidence](evidence/advisory-helper-9977674.json). The next allocator fixture
+refuses one specific allocation in the VM test executable only, after the core
+admitted a new area. It creates no global memory pressure and is not an owner
+fault experiment. Its publishing-source qualification remains required.

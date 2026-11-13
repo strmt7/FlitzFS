@@ -11,15 +11,15 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
-    "core_run": 43375137215,
+    "commit": "9977674479d227bd195fe4c3b597e7f1084693cc",
+    "core_run": 43380495754,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
     "native_groups": 136,
     "sanitizer_groups": 117,
     "advisory_assertions": 687,
-    "evidence": "docs/evidence/advisory-rebuild-745d023.json"
+    "evidence": "docs/evidence/advisory-helper-9977674.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -76,8 +76,8 @@
     "autonomous_background_executor": false,
     "general_payload_repair": false,
     "production_windows_app_installer": false,
-    "persistent_optimization_state": "Journal and controlled rebuild qualified at745d023. New Windows helper process-lifetime mapping/rebuild consumer awaits its own qualification; physical mapping/reclamation, persistent rewrite credit and automatic learner remain incomplete.",
-    "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; latest executed VM at745d023 and original owner run atf4928c2. New advice consumer pending; mounted/physical/installer/authorization remain unfinished."
+    "persistent_optimization_state": "Journal, bounded rebuild and helper process-lifetime mapping qualified at9977674. Post-admission helper allocator coverage now awaits its own VM run; durable mapping/reclamation, lifetime credit and automatic learner remain incomplete.",
+    "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; source9977674 passed VM model/GUI and one healthy owner GUI, with exact retirement. Mounted/physical/installer/authorization remain unfinished."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -91,23 +91,23 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13 06:40:04 UTC",
+    "checked_at_utc": "2026-11-13 07:26 UTC",
     "native_transport": "Authenticated GitHub Dependabot alerts API",
     "open_alerts": 0,
     "scope": "Open alerts only, not absence of all vulnerabilities.",
-    "evidence": "docs/evidence/advisory-helper-sources-745d023.json"
+    "evidence": "docs/evidence/helper-allocation-sources-9977674.json"
   },
   "source_routing": {
-    "indexed_commit": "b580299785261ad4b8248bce02dc48a9fe45b495",
-    "equivalent_current_commit": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
-    "run": 43374617212,
-    "artifact": 14013724241,
-    "artifact_sha256": "74b4bae997ccb96afb1d2e99985d25616ccaaa5e3adbba4cf5b17e785508156b",
-    "source_sha256": "60d6127854111d5255df19f8e79a7d11339a1441e766ce68733e6d2308e885c2",
+    "indexed_commit": "9977674479d227bd195fe4c3b597e7f1084693cc",
+    "equivalent_current_commit": "9977674479d227bd195fe4c3b597e7f1084693cc",
+    "run": 43380495469,
+    "artifact": 14016711037,
+    "artifact_sha256": "8cc155a3195b755cd4b5d84cde3ae6707179d50d9c71e36efaf673b8eb0e1861",
+    "source_sha256": "fcae1f4238a30da3407a244422d74734b2fd605c4544f32ac2192e37b413f8b7",
     "actual_queries": 8,
     "provider": "0.2.43",
-    "source_equivalence": "745d023 changed only excluded tests/documentation; relevant live candidate hashes verified.",
-    "evidence": "docs/evidence/advisory-helper-sources-745d023.json",
+    "source_equivalence": "Actual eight-query receipt at9977674, relevant candidates confirmed live; current follow-up changes excluded test/documentation only.",
+    "evidence": "docs/evidence/advisory-helper-9977674.json",
     "infrastructure_hits_not_coverage": true,
     "provider_paths_read_as_exact_known_scope": true
   },
@@ -207,45 +207,15 @@
       "qualification": "Tiny diagnostic only; no native compression throughput or accepted filesystem candidate."
     },
     "previous_qualification": {
-      "commit": "343acaa6442a2ca28efb75401826ca4ed654c59a",
-      "core_run": 43031317907,
+      "commit": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+      "core_run": 43375137215,
       "conclusion": "success",
       "jobs_passed": 13,
       "jobs_total": 13,
-      "windows_native": {
-        "job": 130558791970,
-        "passed": true
-      },
-      "asan_ubsan": {
-        "job": 130558791507,
-        "passed": true
-      },
-      "windows_raw": {
-        "job": 130558791977,
-        "passed": true
-      },
-      "linux_raw": {
-        "job": 130558792332,
-        "passed": true
-      },
-      "linux_codec": {
-        "job": 130558791898,
-        "passed": true
-      },
-      "ram_host": {
-        "run": 43031317840,
-        "job": 130558791040,
-        "passed": true,
-        "four_native_cpu_modes": true,
-        "strict_handles": true
-      },
-      "sdk": {
-        "commit": "480573e71d2df72492d22b12422e9e1600013272",
-        "run": 43019981918,
-        "passed": true,
-        "source_equivalent_gpu_graph": true
-      },
-      "scope": "Full prior-source matrix passed. New D01 actor-isolation candidate still requires its publishing-commit qualification; actual GPU evidence remains bound to645a1d1."
+      "native_groups": 136,
+      "sanitizer_groups": 117,
+      "advisory_assertions": 687,
+      "evidence": "docs/evidence/advisory-rebuild-745d023.json"
     },
     "previous_pending_qualification": {
       "source_parent": "fa9fe908ee42cb69104a1541c8f6d871c664992f",
@@ -362,11 +332,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+    "source_parent": "9977674479d227bd195fe4c3b597e7f1084693cc",
     "contract": "docs/ADVISORY_HELPER.md",
-    "behavior": "Windows helper maintenance-only advice audit/rebuild; retained fixed provider mappings/accounting, optional-work deferral and native readiness display.",
-    "status": "Publishing-source model/controller/GUI/resource and full CPU/raw/codec/sanitizer/Windows/mounted regression gates required.",
-    "next": "Inspect actual helper damage/capacity/exhaustion, source/handle/cleanup and GUI results. No owner experiment or L01 completion."
+    "behavior": "Four one-shot test-executable allocation cuts after helper/core replacement admission, including final readback; actual mapping, file continuation and cleanup oracles.",
+    "status": "Publishing-source application model/GUI and existing full regression gates required; product runtime and stored bytes unchanged.",
+    "next": "Inspect the four actual allocator cuts in each of three balanced model cycles. Then persist trusted workload accounting and rewrite credit; no unchanged owner experiment."
   },
   "resolved": [
     {
@@ -411,19 +381,27 @@
     "evidence": "docs/evidence/volume-app-f4928c2.json",
     "scope": "Functional unmounted app/control slice, not complete W01 or driver/physical/GPU product qualification.",
     "latest_vm": {
-      "commit": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
-      "run": 43375137241,
-      "job": 131719744753,
-      "model_checks": 377,
-      "gui_observation_counter": 32,
-      "gui_counter_is_distinct_case_count": false,
+      "commit": "9977674479d227bd195fe4c3b597e7f1084693cc",
+      "run": 43380495530,
+      "job": 131736885429,
+      "model_checks": 461,
+      "model_cycles": 3,
       "handles_each": [
         113,
         113
       ],
-      "gui_peak_commit_bytes": 13602816,
-      "evidence": "docs/evidence/advisory-rebuild-745d023.json",
-      "scope": "Existing unmounted app before new helper advice recovery; not complete W01."
+      "gui_peak_commit_bytes": 13631488,
+      "evidence": "docs/evidence/advisory-helper-9977674.json"
+    },
+    "latest_owner_healthy_gui": {
+      "commit": "9977674479d227bd195fe4c3b597e7f1084693cc",
+      "harness_exit": 0,
+      "forced_stop": false,
+      "remaining_owned_processes": 0,
+      "gui_peak_commit_bytes": 14295040,
+      "driver_changes": false,
+      "hip_compute": false,
+      "evidence": "docs/evidence/advisory-helper-9977674.json"
     }
   },
   "gpu_cost_observation": {

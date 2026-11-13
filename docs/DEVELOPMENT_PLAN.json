@@ -217,19 +217,19 @@
       ],
       "exit": "A CPU-readable bounded optimization area survives the defined fault model without making data readability depend on a mutable learned model.",
       "checkpoint": {
-        "source_parent": "745d02387e19d8c8e1270a41f567f45e477b9b7b",
+        "source_parent": "9977674479d227bd195fe4c3b597e7f1084693cc",
         "contract": "docs/ADVISORY_HELPER.md",
         "implemented": "Qualified shared-engine rebuild; new Windows helper consumer adds actual process-lifetime provider mapping/accounting and maintenance-only repair without normal-file dependency.",
-        "qualified_baseline": "745d023 controlled rebuild: all13 core/mounted regressions,687 advisory assertions; see exact evidence.",
-        "new_source_qualification": "pending helper/model/controller/GUI and full regression gates",
+        "qualified_baseline": "9977674: all13 core/mounted jobs,687 core advisory assertions,461 VM app assertions and healthy owner GUI passed; no driver action or stale owned process.",
+        "new_source_qualification": "pending four post-admission helper allocator cuts, model/controller/GUI and regression gates",
         "remaining": [
-          "Publishing-source helper recovery/resource/GUI qualification",
+          "Publishing-source post-admission helper allocator-fault qualification",
           "Physical provider reservation/durable selected-area mapping/nonaliasing and qualified reclamation",
           "Lifetime workload-derived rewrite credit and helper IPC authorization",
           "Automatic low-priority executor and held-out learning consumers",
           "Interrupted native maintenance and physical-provider recovery qualification"
         ],
-        "evidence": "docs/evidence/advisory-rebuild-745d023.json"
+        "evidence": "docs/evidence/advisory-helper-9977674.json"
       }
     },
     {

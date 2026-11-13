@@ -1,8 +1,9 @@
 # Windows helper advisory recovery (experimental)
 
-13 November 2026. Publishing-source VM qualification is required. This connects
+13 November 2026. Source 9977674 passed all 13 core/mounted jobs, 461 app-model
+assertions and a healthy native GUI check on the owner PC. This connects
 the qualified shared-engine rebuild to the existing unmounted Windows helper.
-It is not an automatic learner, durable physical mapping or owner-PC test.
+It is not an automatic learner or durable physical mapping.
 
 ## Maintenance, not ordinary file I/O
 
@@ -73,3 +74,26 @@ The memory backend has process-lifetime mappings only. Physical reservation,
 durable selected-area mapping/reclamation, persistent write credit, helper IPC
 authorization, an autonomous low-priority executor and held-out learning/GPU
 benefit remain full-product work. The existing explicit worker is not that executor.
+
+## Post-admission allocator qualification
+
+The next test-only fixture refuses one selected 64-KiB allocation on the calling
+model-test thread and disarms before unwinding. Four cuts cover the initial empty
+record, either prepared record and readback scratch after both records are
+written. The last case deliberately leaves valid-looking records without
+granting the failed owner authority.
+
+Each cut checks the actual helper mapping, reserved bytes versus written extent,
+unchanged old bytes, a retained cleaned handle, subsequent real file writes,
+a distinct later rebuild and full discard/working-set/handle retirement. The
+fixture first makes the old advice terminal, so its allocation fault cannot be
+consumed by the healthy audit. It never exhausts the process heap, changes a
+provider, activates in a GUI child or adds a product fault command. Ordinary
+aligned allocations retain their original CRT pair.
+
+These new cases require publishing-source Windows application qualification.
+The complete source-9977674 results, including the separate healthy owner GUI,
+are retained in [advisory-helper-9977674.json](evidence/advisory-helper-9977674.json).
+The owner GUI result does not cover these new allocator faults. The current
+primary native-source review is in
+[helper-allocation-sources-9977674.json](evidence/helper-allocation-sources-9977674.json).
