@@ -1,0 +1,16 @@
+{
+  "experimental": true,
+  "source": "fd59778a21de0d13df8b0f3d278e64ed993f8d3f",
+  "sdk_run": 43603458223,
+  "job": 132472952850,
+  "artifact": 14117915913,
+  "artifact_sha256": "6da91a173e424c3f764cab79009e1f9a20262c520a404af6ec879f0632b83c2b",
+  "root_sha256": "2dc40920c91c8e46bd7e0266f66dde02b41f2ba3e239677de4f75839e6ba5d45",
+  "failed_command": "uniform-native-LZ4-storage-CPU-composition",
+  "stderr": "uniform native dedup object ambiguous",
+  "gpu_executed": false,
+  "owner_executed": false,
+  "cause": "The new fixture assumed identical extents must have one immutable data object. The native writer can retain two distinct objects.",
+  "correction": "Inspect every matching data object, require an inventory of one or two and exact supplied payload bytes for every object; retain independent current/prior CPU readback. Do not assume deduplication.",
+  "qualification": "Correction requires new exact-source execution."
+}

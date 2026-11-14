@@ -677,12 +677,24 @@
     "next": "Qualify terminal controller then prioritize controlled Windows-write integration and bounded actual uniform GPU calibration/cost acquisition. Do not substitute more standalone CPU capability probes for actual useful GPU work."
   },
   "native_uniform_write_checkpoint": {
-    "controller_source": "4d1ef00c95c3e4fa51f92569df3fc119f8b9526e",
-    "core_run": 43596989360,
-    "sdk_run": 43596989703,
+    "source": "b826cd0ab28beea7d10374f126f5e6b79b176713",
+    "core_run": 43600619226,
+    "sdk_run": 43600618638,
     "jobs_passed": 13,
     "jobs_total": 13,
+    "native_test_groups": 150,
     "contract": "docs/NATIVE_UNIFORM_WRITE.md",
-    "next": "Qualify native write composition, implement bounded actual uniform GPU native-write calibration without pretending empirical costs exist, acquire real configuration-keyed measurements, and integrate the controlled Windows application path. Actual GPU usefulness and minimum total stored cost remain required."
+    "next": "Qualify corrected two-extent uniform calibration, then perform one explicitly admitted synthetic owner GPU/native write trial. Keep normal callbacks CPU-only until configuration-keyed measured costs, resource/recovery admission and useful complete-operation results are established."
+  },
+  "uniform_calibration_checkpoint": {
+    "initial_source": "fd59778a21de0d13df8b0f3d278e64ed993f8d3f",
+    "core_native_groups_passed": 151,
+    "sdk_run": 43603458223,
+    "sdk_result": "failure",
+    "retained_evidence": "docs/evidence/uniform-calibration-fd59778-failure.json",
+    "correction": "Verify every matching immutable data object; do not assume identical extents must deduplicate. Expose all fifteen diagnostic wall-phase values.",
+    "publishing_source_qualification": "pending",
+    "owner_gpu_execution": false,
+    "cost_profile_qualified": false
   }
 }
