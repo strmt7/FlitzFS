@@ -92,3 +92,13 @@ COLD_COMPRESSION_RESEARCH.md permits larger shared groups and more work where
 total size justifies practical access costs. Experiment caps are not permanent
 filesystem group limits.
 
+
+## First publishing-source build
+
+At dfe94ac, all six provider-selected targets compiled and passed native image,
+architecture, symbol, extent and unchanged-input checks. All five ordinary
+CPU/native/sanitizer configurations passed (145 native tests), but the SDK host
+build failed: two executable targets attempted the same exclusive bundle
+generation. The new runtime worker/admission probe did not run and no AMD module
+loaded. The correction assigns each bundle to one shared custom target and
+preserves the exclusive-create guard. [Retained failure and native target records](evidence/lz4-runtime-build-dfe94ac.json).

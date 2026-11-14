@@ -1,0 +1,269 @@
+{
+  "experimental": true,
+  "date": "2026-11-14",
+  "source": "dfe94acb34297cfbda9b0d1e4177cdfe75fd31df",
+  "run": 43569521730,
+  "job": 132370633059,
+  "conclusion": "failure",
+  "artifact": {
+    "id": 14104321242,
+    "bytes": 121203,
+    "sha256": "dbef5dbce72d747cdee61f4ad3c1ee9f4ae203b56597b0e7ae767c82baad71ac",
+    "root_bytes": 296916,
+    "root_sha256": "ba7c38e0c3787cad5de0b6108c3819b6c088137d9aa79cea228fb395272246c1"
+  },
+  "observed": {
+    "commit": "dfe94acb34297cfbda9b0d1e4177cdfe75fd31df",
+    "complete": false,
+    "error": "RuntimeError: native ROCm qualification command failed: current-sdk-host-api-and-kernel-module-link",
+    "distribution": "10.1.0",
+    "runtime_targets": {
+      "control_commit": "dfe94acb34297cfbda9b0d1e4177cdfe75fd31df",
+      "complete": true,
+      "compile_targets": [
+        "gfx1100",
+        "gfx1101",
+        "gfx1102",
+        "gfx1151",
+        "gfx1200",
+        "gfx1201"
+      ],
+      "offload_target_ids": [
+        "hip-amdgcn-amd-amdhsa--gfx1201",
+        "hip-amdgcn-amd-amdhsa--gfx1200",
+        "hip-amdgcn-amd-amdhsa--gfx1151",
+        "hip-amdgcn-amd-amdhsa--gfx1102",
+        "hip-amdgcn-amd-amdhsa--gfx1101",
+        "hip-amdgcn-amd-amdhsa--gfx1100"
+      ],
+      "object": {
+        "bytes": 163518,
+        "sha256": "07fa6a1696a59e7a1beadea6b057d62a502e40ebfa5c9097ff3f0d9e5e502072"
+      },
+      "entry_objects": {
+        "gfx1100": {
+          "architecture": "gfx1100",
+          "bytes": 23792,
+          "sha256": "fcc328ba6ad88bfc79354b5b07722633517cf9b841c7409418055439491b741b",
+          "offset": 136861,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1101": {
+          "architecture": "gfx1101",
+          "bytes": 23792,
+          "sha256": "f7f4f3ccd21794500329aa08220e3da71153fd26d046282b4c0e9744da45f4d8",
+          "offset": 112285,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1102": {
+          "architecture": "gfx1102",
+          "bytes": 24048,
+          "sha256": "78ccda79d1b5a7080b2ac76fe309176efddb6ee59958a76bce4e4dd916ddf158",
+          "offset": 87709,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1151": {
+          "architecture": "gfx1151",
+          "bytes": 23536,
+          "sha256": "06d8ffa6dfdfe2ac281286ccf7edecd27d8897aa9f04edcb097bc9ac68f74588",
+          "offset": 63133,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1200": {
+          "architecture": "gfx1200",
+          "bytes": 25072,
+          "sha256": "16e217bda877403a4ffeaa8ac9c66e830ad5bae38a3b18e5801f87da5844d007",
+          "offset": 34461,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1201": {
+          "architecture": "gfx1201",
+          "bytes": 25072,
+          "sha256": "7543199f11404ba67e88a34a99fe0abaebcc05c333040016ac23de358f0b7569",
+          "offset": 5789,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        }
+      },
+      "physical_inputs_unchanged": true,
+      "gpu_executed": false,
+      "module_loaded": false
+    },
+    "runtime_fixture": null,
+    "lz4_compute_CPU": null,
+    "lz4_compute_raw_CPU": null,
+    "runtime_artifact": null,
+    "commands": [
+      {
+        "name": "static-runtime-export-parser-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "codec-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "warp-sync-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "CPU-decoder-source-staging-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "private-compression-runtime-staging-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-reference-bootstrap-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "complete-sdk-bootstrap",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "reviewed-hipcomp-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "native-sync-source-composition-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "native-sync-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-entry-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-entry-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "private-compression-runtime-target-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-device-compilation",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-host-api-and-link-configure",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-host-api-and-kernel-module-link",
+        "exit_code": 1,
+        "timed_out": false,
+        "failure": [
+          "  Generating Release/hip_worker_bundle.hpp, Release/hip-bundle.json\r",
+          "  Generating Release/hip_worker_bundle.hpp, Release/hip-bundle.json\r",
+          "      require(path.resolve().is_relative_to(root) and not path.exists(), \"new runner fixture required\")\r",
+          "      raise RuntimeError(message)\r",
+          "  RuntimeError: new runner fixture required\r",
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\MSBuild\\Microsoft\\VC\\v180\\Microsoft.CppCommon.targets(254,5): error MSB8066: Custom build for 'D:\\a\\_temp\\flitzfs-rocm-sdk\\build\\CMakeFiles\\04d6c0072c8c764f003f38a07510ae30\\hip_worker_bundle.hpp.rule;D:\\a\\_temp\\flitzfs-rocm-sdk\\build\\CMakeFiles\\04d6c0072c8c764f003f38a07510ae30\\hip_lz4_bundle.hpp.rule;D:\\a\\FlitzFS\\FlitzFS\\tests\\rocm_compile\\CMakeLists.txt' exited with code 1. [D:\\a\\_temp\\flitzfs-rocm-sdk\\build\\flitzfs_hip_lz4_worker.vcxproj]\r"
+        ],
+        "evidence": []
+      }
+    ]
+  },
+  "diagnosis": {
+    "cause": "The same exclusive header/bundle custom command was attached as generated sources to two executable targets. MSBuild ran both producer rules; the second correctly refused existing outputs.",
+    "correction": "Give each bundle exactly one custom target owner, remove its generated outputs from executable source lists, and make all consumers depend on that owner.",
+    "guards_preserved": [
+      "Exclusive new output creation",
+      "Complete module/target integrity verification",
+      "All prior SDK/CPU/core gates",
+      "No owner GPU execution before current-source qualification"
+    ],
+    "unreached": [
+      "New compression worker host compilation",
+      "Private runtime admission child cases",
+      "Actual GPU execution",
+      "Native stored-codec/file-operation integration"
+    ]
+  }
+}
