@@ -181,7 +181,18 @@ int wmain(int argc,wchar_t** argv){
       auto invalid=frame;invalid[offset]^=std::byte{1};
       exchange(worker,invalid,HipWorkerExit::invalid_request);
     }
-    exchange(worker,std::span<const std::byte>(frame).first(12),HipWorkerExit::invalid_request);
+    // A frame below the common transport header is rejected before launch.
+    // Keep that separate from the worker's truncated LZ4-directory rejection.
+    bool short_transport_refused=false;
+    try{
+      (void)run_worker_exchange(worker,{},std::span<const std::byte>(frame).first(12),budget);
+    }catch(const std::invalid_argument&){
+      short_transport_refused=true;
+    }
+    require(short_transport_refused && WorkerExchangeSession::available(),
+        "Short transport frame was admitted or consumed a worker slot");
+    exchange(worker,std::span<const std::byte>(frame).first(kLz4WorkerHeaderBytes),
+        HipWorkerExit::invalid_request);
     exchange(worker,frame,HipWorkerExit::invalid_request,
         {L"--driver-lz4-adapter",L"0",L"0100000000000000",L"3",std::wstring(64,L'0')});
     exchange(worker,frame,HipWorkerExit::invalid_request,

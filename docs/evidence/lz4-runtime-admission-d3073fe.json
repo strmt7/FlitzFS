@@ -1,0 +1,289 @@
+{
+  "experimental": true,
+  "source_commit": "d3073fe6ca62199b40ec7394f0c19ed19331c60e",
+  "run_id": 43570653419,
+  "job_id": 132374092249,
+  "artifact_id": 14103603313,
+  "archive_sha256": "1a52bcfce4a8c8cd1f611bc8af2e00898f83f863a6ad45a6d9370217aa42c615",
+  "archive_bytes": 129387,
+  "root_sha256": "3443189f4b384e5a8fb12df7a9841648a4fa3fa54bf24185816315e0cab3272a",
+  "root_bytes": 352438,
+  "content": {
+    "commit": "d3073fe6ca62199b40ec7394f0c19ed19331c60e",
+    "complete": false,
+    "error": "RuntimeError: native ROCm qualification command failed: supervised-private-LZ4-runtime-admission",
+    "distribution": "10.1.0",
+    "runtime_targets": {
+      "control_commit": "d3073fe6ca62199b40ec7394f0c19ed19331c60e",
+      "complete": true,
+      "compile_targets": [
+        "gfx1100",
+        "gfx1101",
+        "gfx1102",
+        "gfx1151",
+        "gfx1200",
+        "gfx1201"
+      ],
+      "offload_target_ids": [
+        "hip-amdgcn-amd-amdhsa--gfx1201",
+        "hip-amdgcn-amd-amdhsa--gfx1200",
+        "hip-amdgcn-amd-amdhsa--gfx1151",
+        "hip-amdgcn-amd-amdhsa--gfx1102",
+        "hip-amdgcn-amd-amdhsa--gfx1101",
+        "hip-amdgcn-amd-amdhsa--gfx1100"
+      ],
+      "object": {
+        "bytes": 163518,
+        "sha256": "28f8eed440ae9a93f904984d9763bad838870a8eaab31bd5100732244c8501bd"
+      },
+      "entry_objects": {
+        "gfx1100": {
+          "architecture": "gfx1100",
+          "bytes": 23792,
+          "sha256": "fcc328ba6ad88bfc79354b5b07722633517cf9b841c7409418055439491b741b",
+          "offset": 136861,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1101": {
+          "architecture": "gfx1101",
+          "bytes": 23792,
+          "sha256": "f7f4f3ccd21794500329aa08220e3da71153fd26d046282b4c0e9744da45f4d8",
+          "offset": 112285,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1102": {
+          "architecture": "gfx1102",
+          "bytes": 24048,
+          "sha256": "78ccda79d1b5a7080b2ac76fe309176efddb6ee59958a76bce4e4dd916ddf158",
+          "offset": 87709,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1151": {
+          "architecture": "gfx1151",
+          "bytes": 23536,
+          "sha256": "06d8ffa6dfdfe2ac281286ccf7edecd27d8897aa9f04edcb097bc9ac68f74588",
+          "offset": 63133,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1200": {
+          "architecture": "gfx1200",
+          "bytes": 25072,
+          "sha256": "16e217bda877403a4ffeaa8ac9c66e830ad5bae38a3b18e5801f87da5844d007",
+          "offset": 34461,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1201": {
+          "architecture": "gfx1201",
+          "bytes": 25072,
+          "sha256": "7543199f11404ba67e88a34a99fe0abaebcc05c333040016ac23de358f0b7569",
+          "offset": 5789,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        }
+      },
+      "physical_inputs_unchanged": true,
+      "gpu_executed": false,
+      "module_loaded": false
+    },
+    "runtime_fixture": null,
+    "lz4_compute_CPU": null,
+    "lz4_compute_raw_CPU": null,
+    "runtime_artifact": null,
+    "commands": [
+      {
+        "name": "static-runtime-export-parser-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "codec-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "warp-sync-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "CPU-decoder-source-staging-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "private-compression-runtime-staging-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-reference-bootstrap-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "complete-sdk-bootstrap",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "reviewed-hipcomp-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "native-sync-source-composition-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "native-sync-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-entry-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-entry-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "private-compression-runtime-target-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-device-compilation",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-host-api-and-link-configure",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-host-api-and-kernel-module-link",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "header-probe-without-loading-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "typed-device-identity-fake-runtime",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "previous-priority-capability-regression",
+        "exit_code": 1,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-priority-capability-regression",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "supervised-worker-CPU-decoder-capability",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "supervised-private-LZ4-runtime-admission",
+        "exit_code": 1,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      }
+    ]
+  },
+  "observed_failure": "invalid asynchronous worker admission",
+  "root_cause": "Negative fixture supplied 12 bytes below common transport minimum 32, but expected a worker invalid_request exit. Transport correctly threw before launch.",
+  "correction": "Keep transport guard; assert short transport rejection and free admission slot, then send exactly the 64-byte LZ4 header without directory for child-side rejection.",
+  "gpu_executed": false,
+  "qualification_complete": false
+}
