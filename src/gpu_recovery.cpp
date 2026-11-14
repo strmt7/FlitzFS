@@ -1,4 +1,5 @@
 #include "flitzfs/gpu_recovery.hpp"
+#include "flitzfs/lz4_worker_wire.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -33,6 +34,11 @@ GpuRouteDecision GpuRecoveryPolicy::consider(bool consent,bool worthwhile,
 GpuRouteDecision GpuRecoveryPolicy::consider(bool consent,bool worthwhile,
     const GpuHealthEvidence& e,const PreparedGpuMatchSearch& search,std::uint64_t now) noexcept {
   return consider_work(consent,worthwhile,e,search.input().size()>=4,search.device_buffer_bytes(),now);
+}
+GpuRouteDecision GpuRecoveryPolicy::consider(bool consent,bool worthwhile,
+    const GpuHealthEvidence& e,const PreparedLz4WorkerBatch& batch,std::uint64_t now) noexcept {
+  return consider_work(consent,worthwhile,e,batch.ready(),
+      batch.ready()?batch.device_layout().total_bytes:0,now);
 }
 GpuRouteDecision GpuRecoveryPolicy::consider_work(bool consent,bool worthwhile,
     const GpuHealthEvidence& e,bool has_work,std::uint64_t device_bytes,std::uint64_t now) noexcept {

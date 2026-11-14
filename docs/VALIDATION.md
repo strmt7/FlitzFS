@@ -469,4 +469,6 @@ file/directory accounting within the unchanged archive-byte/768-entry limits.
 New snapshot execution remains pending. No actual GPU compressor is enabled.
 ## Native compression composition diagnostic
 
-The separate experimental [native LZ4 composition fixture](NATIVE_LZ4_COMPOSITION.md) adds hosted CPU candidate/fallback verification and an explicit GPU-to-native-file diagnostic. It requires matching qualification before owner execution. Normal filesystem I/O does not launch this probe. Its new SDK fixture is pending; no GPU speed or physical power-loss claim follows.
+The separate experimental [native LZ4 composition fixture](NATIVE_LZ4_COMPOSITION.md) adds hosted CPU candidate/fallback verification and an explicit GPU-to-native-file diagnostic. It requires matching qualification before owner execution. Normal filesystem I/O does not launch this probe. Its exact-source SDK and 13-job core qualification passed at a047952. One actual GPU payload was stored and independently CPU-recovered; useful end-to-end benefit and physical durability remain unproved.
+
+The new [asynchronous compression controller](ASYNC_LZ4_CONTROLLER.md) reuses bounded worker supervision and evidence-aware recovery while making CPU source selection terminal and independent of worker retirement. Its publishing-source tests are pending; ordinary Windows I/O remains CPU-only.

@@ -1,8 +1,12 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Asynchronous LZ4 controller boundary
+
+Read docs/ASYNC_LZ4_CONTROLLER.md before changing the compression controller or its recovery overload. This uses the existing nonresident worker session and requires independent CPU verification before launch. Keep terminal immediate CPU source selection free of OS/runtime calls and waits, bounded ownership of old/new batches, full slab admission, late-reply classification, exact retirement and evidence-based quarantine. Normal filesystem I/O never launches it. All added portable/raw/Windows worker tests require matching-source execution; the controller is unqualified at initial publication. No new owner GPU or mount test follows from CPU controller success.
+
 ## Native LZ4 composition diagnostic
 
-Read docs/NATIVE_LZ4_COMPOSITION.md before changing the SDK native storage fixture or invoking its new mode. Keep it explicit, synthetic and unmounted, with same-source hosted CPU qualification and the complete core matrix before any owner GPU trial. Preserve all original runtime refusal/raw controls, locked live/checkpoint image bounds, independent public CPU readback, prior snapshot, exact stored payload comparison and confirmed retirement. This is a synchronous diagnostic, not immediate asynchronous CPU fallback or a product GPU route. No new execution is qualified at initial publication.
+Read docs/NATIVE_LZ4_COMPOSITION.md before changing the SDK native storage fixture or invoking its new mode. Keep it explicit, synthetic and unmounted, with same-source hosted CPU qualification and the complete core matrix before any owner GPU trial. Preserve all original runtime refusal/raw controls, locked live/checkpoint image bounds, independent public CPU readback, prior snapshot, exact stored payload comparison and confirmed retirement. This is a synchronous diagnostic, not immediate asynchronous CPU fallback or a product GPU route. The composition qualified at a047952; one actual GPU-to-native-file trial and independent CPU recovery passed. See docs/evidence/native-lz4-composition-a047952.json. Do not repeat the unchanged diagnostic.
 
 ## Native fast-ingestion storage candidate
 

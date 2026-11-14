@@ -18,7 +18,9 @@ empty advice selecting CPU encoding. Both cases require exact public native CPU
 readback, preservation of a previously acknowledged snapshot, verified locked
 pages, zero remaining locked bytes and restored working-set limits.
 
-The new composition remains unqualified until that exact-source workflow passes.
+The source-bound composition qualified at a047952, with all 13 core jobs and
+SDK run 43579045183. The retained evidence is
+[evidence/native-lz4-composition-a047952.json](evidence/native-lz4-composition-a047952.json).
 CPU success does not establish GPU execution. Owner execution additionally needs
 the matching full core matrix, reviewed source and artifacts, exact artifact/file
 digests, fresh current adapter/runtime identity, physical/commit headroom and fresh
@@ -66,3 +68,20 @@ remain development work. A volatile RAM checkpoint does not survive host power l
 
 Related: HIP_LZ4_RUNTIME.md, NATIVE_FAST_INGESTION.md, WORKER_CHANNEL.md,
 GPU_RESOURCE_ENVELOPE.md and HOST_RAM_TESTING.md.
+
+## Executed result at a047952
+
+One explicit AMD trial stored the exact 8,459-byte GPU payload for the synthetic
+65,536-byte extent and independently recovered both the current native file and
+the acknowledged prior snapshot on CPU. Complete device allocation was 164,168
+bytes. The worker exchange took 532,861,100 ns; outer observation was 604 ms.
+Worker/controller job peaks were 80,850,944/87,425,024 bytes. All 4,194,304 locked
+bytes were released, working-set limits restored, exact worker/supervisor exit
+confirmed, package/runtime hashes unchanged and no owned processes remained.
+
+Active payload totaled 8,575 bytes, equal to the hosted CPU fixture result.
+The full image including history/metadata/alignment occupied 983,040 bytes.
+This trial establishes actual GPU-to-native-storage correctness, not a whole-image
+space saving or speed advantage. It must not be repeated unchanged. The new
+asynchronous controller needs separate qualification; normal Windows routing,
+useful throughput, background learning and physical durability remain open.
