@@ -1,5 +1,7 @@
 #include "flitzfs/gpu_recovery.hpp"
+#include "flitzfs/lz4_worker_wire.hpp"
 #include <algorithm>
+#include <utility>
 #include <iostream>
 #include <stdexcept>
 
@@ -37,6 +39,40 @@ auto choose(flitzfs::GpuRecoveryPolicy& policy, const flitzfs::GpuHealthEvidence
 int main() {
   try {
     using namespace flitzfs;
+    // Compression admission accounts for the complete candidate slab, not
+    // just plaintext, and a moved-from batch cannot launch work.
+    {
+      std::vector<std::byte> source(65536,std::byte{0x5a});
+      const std::array<Lz4WorkerBytes,1> views{source};
+      auto input=PreparedLz4WorkerBatch::prepare(views);
+      require(input.device_layout().total_bytes>input.input_bytes(),
+          "compression admission omitted output/scratch");
+      GpuRecoveryPolicy compression;
+      auto health=evidence();
+      require(!compression.consider(false,true,health,input,100).try_gpu(),
+          "compression consent bypass");
+      require(!compression.consider(true,false,health,input,100).try_gpu(),
+          "compression workload qualification bypass");
+      const auto admitted=compression.consider(true,true,health,input,100);
+      require(admitted.try_gpu(),"complete bounded compression slab refused");
+      require(compression.finish(admitted.ticket,GpuRecoveryOutcome::runtime_unavailable,false),
+          "compression unavailable report");
+      advance(health);
+      require(compression.consider(true,true,health,input,101).reason==GpuRouteReason::worker_busy,
+          "compression retry preceded exact retirement");
+      require(compression.confirm_quiescent(admitted.ticket),"compression retirement confirmation");
+      require(compression.consider(true,true,health,input,101).reason==GpuRouteReason::configuration_blocked,
+          "unchanged unavailable compression runtime rediscovered");
+      auto retained=std::move(input);
+      GpuRecoveryPolicy moved;
+      require(!moved.consider(true,true,evidence(),input,100).try_gpu() && retained.ready(),
+          "moved compression source admitted");
+      GpuRecoveryPolicy pressure;
+      health=evidence();
+      health.memory.local_budget=health.memory.local_usage+retained.input_bytes();
+      require(!pressure.consider(true,true,health,retained,100).try_gpu(),
+          "plaintext-only compression headroom admitted");
+    }
     auto e = evidence();
     GpuRecoveryPolicy policy;
     require(!policy.consider(false,true,e,batch(),100).try_gpu(), "consent bypass");

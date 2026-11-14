@@ -11,13 +11,14 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
-    "core_run": 43575751686,
+    "commit": "a0479529203294bf73eea9a0e6da204b3af7fd5f",
+    "core_run": 43579045089,
+    "sdk_run": 43579045183,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "evidence": "docs/evidence/native-fast-ingestion-0d96d90.json",
-    "scope": "Native fast storage and independent CPU recovery; no GPU in these tests."
+    "evidence": "docs/evidence/native-lz4-composition-a047952.json",
+    "scope": "SDK/CPU composition and one actual GPU-to-native-file trial; normal Windows routing remains CPU-only."
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -109,8 +110,8 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-14 07:41 UTC",
-    "native_transport": "Authenticated paginated GitHub Dependabot alerts API, state=open, per_page=100",
+    "checked_at_utc": "2026-11-14 09:08 UTC",
+    "native_transport": "Authenticated paginated GitHub Dependabot alerts API",
     "open_alerts": 0,
     "scope": "Open alerts only; not absence of all vulnerabilities."
   },
@@ -352,8 +353,8 @@
   },
   "pending_qualification": {
     "status": "Publishing-source qualification pending.",
-    "behavior": "Direct native inode advisory-extent hook with original commit-bound outputs; no change to existing mutation layouts or normal worker routing.",
-    "tests": "Independent external representation, current/pinned bytes, stale/duplicate/partial hints, zero accepted count and pre-I/O resource rejection."
+    "contract": "docs/ASYNC_LZ4_CONTROLLER.md",
+    "behavior": "Immediate terminal CPU source selection, same supervised transport, independent block validation and evidence-aware recovery; no ordinary I/O caller."
   },
   "resolved": [
     {
@@ -759,14 +760,13 @@
     "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
   },
   "previous_current_qualification": {
-    "commit": "979cd512559b1d9731cbc6a7d920b78a63483703",
-    "core_run": 43572160653,
+    "commit": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
+    "core_run": 43575751686,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "sdk_run": 43572160545,
-    "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
-    "scope": "All ordinary core jobs and isolated SDK qualification; one tiny actual GPU compression diagnostic. Native GPU file-operation integration remains unfinished."
+    "evidence": "docs/evidence/native-fast-ingestion-0d96d90.json",
+    "scope": "Native fast storage and independent CPU recovery; no GPU in these tests."
   },
   "native_fast_ingestion_candidate": {
     "qualified_source": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
@@ -784,9 +784,50 @@
     "owner_executed": false,
     "default_encoding_changed": false,
     "native_inode_hook": {
-      "status": "Publishing-source qualification pending.",
+      "qualified_source": "3a797a3bc35ed59a512d451dd6460e2822d39f11",
+      "core_run": 43577491848,
+      "jobs_passed": 13,
+      "jobs_total": 13,
       "behavior": "Direct native inode advisory-extent hook with original commit-bound outputs; no change to existing mutation layouts or normal worker routing.",
+      "evidence": "docs/evidence/native-inode-lz4-3a797a3.json",
+      "gpu_executed": false,
       "tests": "Independent external representation, current/pinned bytes, stale/duplicate/partial hints, zero accepted count and pre-I/O resource rejection."
     }
+  },
+  "native_lz4_composition": {
+    "qualified_source": "a0479529203294bf73eea9a0e6da204b3af7fd5f",
+    "sdk_run": 43579045183,
+    "core_run": 43579045089,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "status": "Actual bounded GPU payload stored exactly through native inode hook and independently recovered on CPU.",
+    "contract": "docs/NATIVE_LZ4_COMPOSITION.md",
+    "evidence": "docs/evidence/native-lz4-composition-a047952.json",
+    "gpu_result_verified": true,
+    "gpu_payload_stored_exactly": true,
+    "CPU_fallback_selected": false,
+    "independent_native_readback": true,
+    "retained_source_verified": true,
+    "source_bytes": 65536,
+    "worker_payload_bytes": 8459,
+    "image_bytes": 983040,
+    "active_payload_bytes": 8575,
+    "device_bytes": 164168,
+    "exchange_ns": 532861100,
+    "worker_exit": 0,
+    "worker_category": 0,
+    "worker_stage": "none",
+    "worker_exit_confirmed": true,
+    "transport_quiescent": true,
+    "worker_timed_out": false,
+    "worker_peak_commit_bytes": 80850944,
+    "controller_job_peak_commit_bytes": 87425024,
+    "locked_peak_bytes": 4194304,
+    "locked_after_bytes": 0,
+    "working_set_restored": true,
+    "mounted": false,
+    "physical_power_loss_qualified": false,
+    "normal_io_caller": false,
+    "useful_end_to_end_benefit_established": false
   }
 }

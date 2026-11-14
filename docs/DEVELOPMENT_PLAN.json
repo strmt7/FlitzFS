@@ -164,7 +164,7 @@
           "benefit_demonstrated": false,
           "evidence": "docs/evidence/native-gpu-ram-645a1d1.json"
         },
-        "next": "Implement the native stored representation and independent CPU reader, then asynchronous immediate CPU fallback and the Windows write/store/read composition. Retain D01 and complete cost/benefit gates; do not rerun the unchanged diagnostic.",
+        "next": "Qualify the asynchronous LZ4 controller, then connect qualified Windows helper writes and measure full cost/benefit. Actual native composition is proved at a047952; useful benefit and G02 exit remain unmet.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
         "candidate_evaluation": {
           "contract": "docs/GPU_LZ4_KERNEL_REVIEW.md",
@@ -291,11 +291,57 @@
             "owner_executed": false,
             "default_encoding_changed": false,
             "native_inode_hook": {
-              "status": "Publishing-source qualification pending.",
+              "qualified_source": "3a797a3bc35ed59a512d451dd6460e2822d39f11",
+              "core_run": 43577491848,
+              "jobs_passed": 13,
+              "jobs_total": 13,
               "behavior": "Direct native inode advisory-extent hook with original commit-bound outputs; no change to existing mutation layouts or normal worker routing.",
+              "evidence": "docs/evidence/native-inode-lz4-3a797a3.json",
+              "gpu_executed": false,
               "tests": "Independent external representation, current/pinned bytes, stale/duplicate/partial hints, zero accepted count and pre-I/O resource rejection."
             }
           }
+        },
+        "native_lz4_composition": {
+          "qualified_source": "a0479529203294bf73eea9a0e6da204b3af7fd5f",
+          "sdk_run": 43579045183,
+          "core_run": 43579045089,
+          "jobs_passed": 13,
+          "jobs_total": 13,
+          "status": "Actual bounded GPU payload stored exactly through native inode hook and independently recovered on CPU.",
+          "contract": "docs/NATIVE_LZ4_COMPOSITION.md",
+          "evidence": "docs/evidence/native-lz4-composition-a047952.json",
+          "gpu_result_verified": true,
+          "gpu_payload_stored_exactly": true,
+          "CPU_fallback_selected": false,
+          "independent_native_readback": true,
+          "retained_source_verified": true,
+          "source_bytes": 65536,
+          "worker_payload_bytes": 8459,
+          "image_bytes": 983040,
+          "active_payload_bytes": 8575,
+          "device_bytes": 164168,
+          "exchange_ns": 532861100,
+          "worker_exit": 0,
+          "worker_category": 0,
+          "worker_stage": "none",
+          "worker_exit_confirmed": true,
+          "transport_quiescent": true,
+          "worker_timed_out": false,
+          "worker_peak_commit_bytes": 80850944,
+          "controller_job_peak_commit_bytes": 87425024,
+          "locked_peak_bytes": 4194304,
+          "locked_after_bytes": 0,
+          "working_set_restored": true,
+          "mounted": false,
+          "physical_power_loss_qualified": false,
+          "normal_io_caller": false,
+          "useful_end_to_end_benefit_established": false
+        },
+        "asynchronous_lz4_controller": {
+          "status": "Publishing-source qualification pending.",
+          "contract": "docs/ASYNC_LZ4_CONTROLLER.md",
+          "behavior": "Immediate terminal CPU source selection, same supervised transport, independent block validation and evidence-aware recovery; no ordinary I/O caller."
         }
       }
     },

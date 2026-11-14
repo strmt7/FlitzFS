@@ -6,6 +6,7 @@
 #include "hip_phase_profile.hpp"
 #include "gpu_worker_controller.hpp"
 #include "gpu_match_worker_controller.hpp"
+#include "gpu_lz4_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
 #include "flitzfs/lz4_worker_wire.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
@@ -116,14 +117,18 @@ int child(std::wstring_view mode,std::wstring_view token) {
         static_cast<HipWorkerExit>(0x46530000U+static_cast<unsigned>(mode.back()-L'0')),
         HipWorkerStage::device_properties));
   auto channel=WorkerChannel::open(token);
-  if(mode==L"lz4-ok" || mode==L"lz4-corrupt" || mode==L"lz4-fail-after") {
+  if(mode==L"lz4-ok" || mode==L"lz4-corrupt" || mode==L"lz4-fail-after" ||
+      mode==L"lz4-hold" || mode==L"lz4-delay-invalid" || mode==L"lz4-hip-declaration") {
     const auto input=decode_lz4_worker_request(channel.request());
+    if(mode==L"lz4-hold"){Sleep(5000);return 0;}
     if(!gpu_lz4_cpu_verification_available())return 17;
     std::vector<Bytes> payloads;
     for(std::size_t i=0;i<input.batch.count();++i)payloads.push_back(lz4_literal_fixture(input.batch.input(i)));
     std::vector<Lz4WorkerBytes> views;for(const auto& payload:payloads)views.emplace_back(payload);
-    auto frame=encode_lz4_worker_reply(input.batch,input.request_id,views,WorkerExecution::cpu_semantics);
-    if(mode==L"lz4-corrupt")frame.back()^=std::byte{1};
+    auto frame=encode_lz4_worker_reply(input.batch,input.request_id,views,
+        mode==L"lz4-hip-declaration"?WorkerExecution::hip:WorkerExecution::cpu_semantics);
+    if(mode==L"lz4-corrupt" || mode==L"lz4-delay-invalid")frame.back()^=std::byte{1};
+    if(mode==L"lz4-delay-invalid")Sleep(150);
     channel.publish(frame);
     return mode==L"lz4-fail-after"?17:0;
   }
@@ -592,7 +597,7 @@ void coordinated_match_requests(const std::filesystem::path& executable) {
     const auto selected=controller.selected_proposals().size();
     (void)controller.use_cpu_fallback();
     check(controller.state()==GpuWorkerState::worker_selected&&controller.selected_proposals().size()==selected,
-        "CPU selection overwrote a terminal match result");
+        "CPU selection overwrote a terminal compression result");
     same_source(controller,original);
     eventually([&]{return controller.try_retire();},2000,"successful match controller did not retire");
     // Feed the controller-selected hints through the real native writer.
@@ -707,6 +712,187 @@ void coordinated_match_requests(const std::filesystem::path& executable) {
         "match telemetry failure exposed proposals");
     eventually([&]{return controller.try_retire();},2000,"invalid-telemetry match did not retire");
   }
+}
+PreparedLz4WorkerBatch coordinated_lz4(unsigned seed=0,bool full=false) {
+  Bytes bytes(full?65536:128);
+  for(unsigned i=0;i<bytes.size();++i)bytes[i]=static_cast<std::byte>((i%31)+seed);
+  const std::array<Lz4WorkerBytes,1> input{bytes};
+  return PreparedLz4WorkerBatch::prepare(input);
+}
+void coordinated_lz4_requests(const std::filesystem::path& executable) {
+  if(!gpu_lz4_cpu_verification_available()) {
+    GpuLz4WorkerController controller;
+    auto input=coordinated_lz4();
+    const Bytes plain(input.plaintext().begin(),input.plaintext().end());
+    const auto refused=controller.begin(std::move(input),executable,{L"lz4-ok"},true,true,
+        coordinated_health(1,100),100);
+    check(!refused.submitted && refused.route.reason==GpuRouteReason::unqualified &&
+        !controller.process_id() && std::ranges::equal(controller.source(),plain),
+        "missing independent compression decoder launched work or lost CPU bytes");
+    std::cout<<"LZ4 controller: missing CPU decoder refused before launch; gpu_executed=false\n";
+    return;
+  }
+  const auto health=coordinated_health(1,100);
+  const auto after=coordinated_health(2,101).memory;
+  const auto missing=executable.parent_path()/L"missing-flitzfs-worker.exe";
+  const auto same_source=[&](GpuLz4WorkerController& controller,const Bytes& source) {
+    check(std::ranges::equal(controller.source(),source),"compression controller lost current CPU source");
+    if(controller.state()==GpuWorkerState::cpu_selected)
+      check(controller.candidate(0).empty(),"CPU compression selection retained worker blocks");
+  };
+  {
+    Bytes first(128,std::byte{0x34}),second(65,std::byte{0x76});
+    const auto expected_first=first,expected_second=second;
+    const std::array<Lz4WorkerBytes,2> views{first,second};
+    auto input=PreparedLz4WorkerBatch::prepare(views);
+    first.assign(first.size(),std::byte{0xff});
+    second.assign(second.size(),std::byte{0xee});
+    GpuLz4WorkerController controller(WorkerExecution::cpu_semantics);
+    check(controller.begin(std::move(input),executable,{L"lz4-ok"},true,true,health,100).submitted,
+        "two-chunk compression request did not start");
+    check(controller.count()==2 && std::ranges::equal(controller.source(0),expected_first) &&
+        std::ranges::equal(controller.source(1),expected_second) && controller.source(2).empty() &&
+        controller.candidate(0).empty(),"compression source ownership or waiting candidate exposure");
+    eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},
+        3000,"two-chunk compression did not finish");
+    check(controller.state()==GpuWorkerState::worker_selected &&
+        std::ranges::equal(controller.candidate(0),lz4_literal_fixture(expected_first)) &&
+        std::ranges::equal(controller.candidate(1),lz4_literal_fixture(expected_second)) &&
+        controller.candidate(2).empty(),"compression block order or independent owned source changed");
+    eventually([&]{return controller.try_retire();},2000,"two-chunk compression did not retire");
+  }
+  {
+    GpuLz4WorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_lz4();
+    const Bytes original(input.plaintext().begin(),input.plaintext().end());
+    const auto disabled=controller.begin(std::move(input),missing,{L"lz4-ok"},false,true,health,100);
+    check(!disabled.submitted&&disabled.route.reason==GpuRouteReason::disabled&&!controller.process_id(),
+        "disabled compression request launched a process");
+    same_source(controller,original);
+    auto next=coordinated_lz4(1);
+    const auto denied=controller.begin(std::move(next),missing,{L"lz4-ok"},true,false,health,100);
+    check(!denied.submitted&&denied.route.reason==GpuRouteReason::unqualified&&controller.consecutive_failures()==0,
+        "unqualified compression work changed recovery history");
+  }
+  {
+    GpuLz4WorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_lz4(0,true);
+    const Bytes original(input.plaintext().begin(),input.plaintext().end());
+    check(controller.begin(std::move(input),executable,{L"lz4-ok"},true,true,health,100).submitted,
+        "qualified compression request did not start");
+    auto overlapping=coordinated_lz4(1);
+    const auto size=overlapping.plaintext().size();
+    check(!controller.begin(std::move(overlapping),executable,{L"lz4-ok"},true,true,health,100).submitted&&
+        overlapping.plaintext().size()==size,"overlapping compression attempt consumed caller input");
+    eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,"compression controller success did not finish");
+    check(controller.state()==GpuWorkerState::worker_selected&&controller.last_gate_code()==GpuGateCode::accepted&&
+        !controller.candidate(0).empty(),"compression controller accepted no blocks");
+    const auto selected=controller.candidate(0).size();
+    (void)controller.use_cpu_fallback();
+    check(controller.state()==GpuWorkerState::worker_selected&&controller.candidate(0).size()==selected,
+        "CPU selection overwrote a terminal compression result");
+    same_source(controller,original);
+    eventually([&]{return controller.try_retire();},2000,"successful compression controller did not retire");
+
+  }
+  for(const auto* mode:{L"missing",L"lz4-corrupt",L"lz4-delay-invalid"}) {
+    GpuLz4WorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_lz4();
+    const auto helper=std::wstring_view(mode)==L"missing"?missing:executable;
+    check(controller.begin(std::move(input),helper,{mode},true,true,health,100).submitted,"compression fault request not submitted");
+    (void)controller.use_cpu_fallback();
+    auto later=coordinated_lz4(1);
+    const Bytes later_source(later.plaintext().begin(),later.plaintext().end());
+    const auto fresh=coordinated_health(2,102);
+    const auto busy=controller.begin(std::move(later),executable,{L"lz4-ok"},true,true,fresh,102);
+    check(!busy.submitted&&(busy.route.reason==GpuRouteReason::worker_busy||
+        busy.route.reason==GpuRouteReason::configuration_blocked),"compression retry bypassed pending fault/retirement");
+    same_source(controller,later_source);
+    eventually([&]{return controller.try_retire();},3000,"late compression fault did not retire");
+    check(controller.consecutive_failures()==1&&controller.state()==GpuWorkerState::cpu_selected,
+        "late compression fault was forgotten or counted twice");
+    auto retry=coordinated_lz4(2);
+    const auto denied=controller.begin(std::move(retry),executable,{L"lz4-ok"},true,true,coordinated_health(3,103),103);
+    check(!denied.submitted&&denied.route.reason==GpuRouteReason::configuration_blocked,
+        "unchanged corrupt/unavailable compression configuration retried");
+  }
+  {
+    GpuLz4WorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_lz4();
+    check(controller.begin(std::move(input),executable,{L"lz4-hold"},true,true,health,100).submitted,"held compression start");
+    eventually([&]{return controller.process_id()!=0;},2000,"held compression child did not start");
+    HANDLE child=OpenProcess(SYNCHRONIZE,FALSE,controller.process_id());
+    check(child!=nullptr,"held compression exact child observation");
+    struct Close {HANDLE value;~Close(){CloseHandle(value);}} close{child};
+    const auto cpu=controller.use_cpu_fallback();
+    check(!cpu.empty()&&WaitForSingleObject(child,0)==WAIT_TIMEOUT&&controller.consecutive_failures()==0,
+        "compression CPU selection waited for retirement or invented a failure");
+    auto other=coordinated_lz4(3);const Bytes expected(other.plaintext().begin(),other.plaintext().end());
+    const auto busy=controller.begin(std::move(other),executable,{L"lz4-ok"},true,true,coordinated_health(2,102),102);
+    check(!busy.submitted&&busy.route.reason==GpuRouteReason::worker_busy,"new compression CPU request launched during retirement");
+    same_source(controller,expected);
+    check(controller.request_cancel(),"held compression cancellation failed");
+    eventually([&]{return controller.try_retire();},3000,"held compression controller did not retire");
+    check(controller.consecutive_failures()==1,"compression cancellation outcome missing");
+    for(unsigned i=0;i<2;++i) {
+      auto recovered=coordinated_lz4();
+      const auto e=coordinated_health(3+i,103+i);
+      check(controller.begin(std::move(recovered),executable,{L"lz4-ok"},true,true,e,103+i).submitted,
+          "fresh healthy evidence after compression pressure did not allow one attempt");
+      eventually([&]{return controller.poll(coordinated_health(4+i,104+i).memory,104+i)!=GpuWorkerState::waiting;},
+          3000,"recovered compression did not finish");
+      check(controller.state()==GpuWorkerState::worker_selected&&
+          controller.consecutive_failures()==(i?0U:1U),"compression flapping history cleared prematurely");
+      eventually([&]{return controller.try_retire();},2000,"recovered compression controller did not retire");
+    }
+  }
+  // These use a CPU helper and synthetic telemetry while exercising HIP policy.
+  for(const auto* trigger:{L"cancel",L"timeout",L"expire"}) {
+    GpuLz4WorkerController controller(WorkerExecution::hip);
+    auto input=coordinated_lz4();
+    ProcessBudget budget;budget.timeout_ms=std::wstring_view(trigger)==L"timeout"?250:5000;
+    check(controller.begin(std::move(input),executable,{L"lz4-hold"},true,true,health,100,budget).submitted,
+        "HIP-policy compression fixture not submitted");
+    eventually([&]{return controller.process_id()!=0;},2000,"HIP-policy compression child did not start");
+    if(std::wstring_view(trigger)==L"cancel")check(controller.request_cancel(),"HIP-policy compression cancel");
+    if(std::wstring_view(trigger)==L"expire")
+      check(controller.poll(coordinated_health(2,200).memory,200)==GpuWorkerState::cpu_selected&&
+          controller.last_gate_code()==GpuGateCode::expired,"compression gate expiry did not select CPU");
+    else eventually([&]{return controller.poll(after,101)!=GpuWorkerState::waiting;},3000,"HIP-policy compression result not observed");
+    eventually([&]{return controller.try_retire();},3000,"HIP-policy compression retirement missing");
+    check(controller.consecutive_failures()==1&&controller.candidate(0).empty(),"HIP compression failure outcome");
+    for(unsigned i=0;i<3;++i) {
+      auto retry=coordinated_lz4();
+      const auto denied=controller.begin(std::move(retry),executable,{L"lz4-hip-declaration"},true,true,
+          coordinated_health(3+i,300+i),300+i);
+      check(!denied.submitted&&denied.route.reason==GpuRouteReason::device_quarantined,
+          "compression telemetry/retirement cleared a device fault");
+    }
+    auto recovered=coordinated_lz4();
+    auto qualified=coordinated_health(6,400);qualified.recovery_generation=1;
+    check(controller.begin(std::move(recovered),executable,{L"lz4-hip-declaration"},true,true,qualified,400).submitted,
+        "separately qualified compression recovery did not admit work");
+    auto valid_after=coordinated_health(7,401).memory;
+    eventually([&]{return controller.poll(valid_after,401)!=GpuWorkerState::waiting;},3000,"qualified compression recovery did not finish");
+    check(controller.state()==GpuWorkerState::worker_selected,"qualified compression recovery failed verification");
+    eventually([&]{return controller.try_retire();},2000,"qualified recovered compression did not retire");
+  }
+  for(unsigned fault=0;fault<4;++fault) {
+    GpuLz4WorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=coordinated_lz4();
+    check(controller.begin(std::move(input),executable,{L"lz4-ok"},true,true,health,100).submitted,"compression telemetry fixture");
+    auto bad=after;
+    if(fault==0)bad.captured_ms=99;
+    if(fault==1)bad.luid[0]=std::byte{2};
+    if(fault==2)bad.nonlocal_usage+=29ULL<<20;
+    if(fault==3)bad.local_budget=bad.local_usage;
+    eventually([&]{return controller.poll(bad,101)!=GpuWorkerState::waiting;},3000,"invalid compression telemetry not observed");
+    check(controller.state()==GpuWorkerState::cpu_selected&&controller.candidate(0).empty(),
+        "compression telemetry failure exposed blocks");
+    eventually([&]{return controller.try_retire();},2000,"invalid-telemetry compression did not retire");
+  }
+  check(WorkerExchangeSession::available(),"compression controller leaked worker admission");
+  std::cout<<"LZ4 controller: terminal CPU selection, late reply quarantine and exact retirement passed; gpu_executed=false\n";
 }
 void match_transactions(const std::filesystem::path& executable) {
   using Progress=NativeFileSession::RecompressionProgress;
@@ -1059,6 +1245,7 @@ int wmain(int argc,wchar_t** argv){try{
     }
   }
   lz4_worker_transactions(executable);
+  coordinated_lz4_requests(executable);
   observe(L"match-profile-metadata");
   coordinated_requests(executable);observe(L"coordinated-recovery");
   match_transactions(executable);observe(L"match-transactions");
