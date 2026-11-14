@@ -480,3 +480,5 @@ The opt-in [uniform phase envelope](UNIFORM_GPU_CALIBRATION.md) is a separate 25
 The experimental finite uniform sweep keeps ordinary version-2 request/reply bytes unchanged. Its explicit command interprets the supplied chunk/device grant per serial quantum; whole-frame limits still bind the complete immutable input and dense reply. This changes no stored record, capability or decoding dependency. See [UNIFORM_LZ4_SWEEP.md](UNIFORM_LZ4_SWEEP.md).
 
 The experimental reusable sweep changes only bounded worker resource ownership. It uses the same version-2 frames, canonical active device layout and stored LZ4 records. The unused physical slab tail is an ephemeral canary, never persistent data or a decoder dependency. See [UNIFORM_LZ4_REUSE.md](UNIFORM_LZ4_REUSE.md).
+
+The bounded hardware observation at `d33efd6` stored existing codec-4 bytes and recovered them through the independent CPU reader; no persistent format change follows. Its [source-bound evidence](evidence/uniform-reuse-d33efd6.json) distinguishes encoded payload from complete image size.

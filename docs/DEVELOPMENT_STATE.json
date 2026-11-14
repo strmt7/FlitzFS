@@ -11,18 +11,25 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "source": "847423fb996bef964d1da1d49a1f6376a07d5333",
-    "core_run": 43608595532,
+    "source": "d33efd64d94427f5b6c9f2e269520d4ba5e26bcd",
+    "core_run": 43613526754,
     "core_jobs_passed": 13,
     "core_jobs_total": 13,
     "native_test_groups": 152,
-    "sdk_run": 43608595922,
+    "sdk_run": 43613527401,
     "sdk_complete": true,
-    "owner_uniform_sweep_GPU": false,
-    "owner_CPU_fallback_verified": true,
-    "owner_worker_native_exit": "0xc0000409",
-    "GPU_failure_cause": "unproven",
-    "evidence": "docs/evidence/uniform-sweep-847423f-failure.json"
+    "owner_bounded_reused_GPU_sweep": true,
+    "owner_CPU_current_and_prior_recovery": true,
+    "worker_peak_commit_bytes": 92737536,
+    "job_cap_bytes": 134217728,
+    "device_bytes": 328288,
+    "source_bytes": 1048576,
+    "encoded_payload_bytes": 135344,
+    "image_bytes": 1114112,
+    "exchange_ns": 626486100,
+    "evidence": "docs/evidence/uniform-reuse-d33efd6.json",
+    "comparative_benefit_proven": false,
+    "normal_GPU_routing": false
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -85,7 +92,7 @@
   ],
   "next_implementation": {
     "contract": "docs/UNIFORM_LZ4_REUSE.md",
-    "next": "Qualify one device setup/stream/slab, fresh per-quantum admission, active/unused-tail CPU verification and exact final retirement. Retain failures; no owner retry before full new-source core/SDK gates. Advance useful complete costs and automatic Windows integration without shrinking the full cold-compression/learning/recovery objective."
+    "next": "Acquire repeated configuration/recovery keyed whole-operation cost and foreground-impact evidence, then integrate the controlled application under admitted resource/recovery policy. One aligned sample is not a reusable bound. Continue minimum-total-size collective compression and full Windows/recovery/learning gates; no unchanged owner trial or release."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
@@ -367,10 +374,8 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "Reusable bounded scope compiled, but the first SDK CPU matrix failed on a stale copy-size fixture predicate. Exact allocator-owned copy sizing is corrected; new publishing-source qualification remains pending.",
+    "status": "No new runtime source awaiting qualification. Reusable cost acquisition, varied complete-cost comparisons and automatic Windows integration remain unfinished.",
     "contract": "docs/UNIFORM_LZ4_REUSE.md",
-    "job_cap_raised": false,
-    "owner_executed": false,
     "normal_GPU_routing": false
   },
   "resolved": [
@@ -942,29 +947,28 @@
       "normal_GPU_routing": false
     },
     "reused_sweep": {
-      "status": "Reusable bounded uniform scope implemented; publishing-source qualification pending. Historical abnormal exit remains unproven.",
-      "contract": "docs/UNIFORM_LZ4_REUSE.md",
-      "job_cap_raised": false,
-      "owner_executed": false,
+      "source": "d33efd64d94427f5b6c9f2e269520d4ba5e26bcd",
+      "core_run": 43613526754,
+      "core_jobs_passed": 13,
+      "core_jobs_total": 13,
+      "native_test_groups": 152,
+      "sdk_run": 43613527401,
+      "sdk_complete": true,
+      "owner_bounded_reused_GPU_sweep": true,
+      "owner_CPU_current_and_prior_recovery": true,
+      "worker_peak_commit_bytes": 92737536,
+      "job_cap_bytes": 134217728,
+      "device_bytes": 328288,
+      "source_bytes": 1048576,
+      "encoded_payload_bytes": 135344,
+      "image_bytes": 1114112,
+      "exchange_ns": 626486100,
+      "evidence": "docs/evidence/uniform-reuse-d33efd6.json",
+      "comparative_benefit_proven": false,
       "normal_GPU_routing": false,
-      "first_SDK_failure": {
-        "experimental": true,
-        "source_commit": "92d326ea7029068571f0fb692a8c4693b5568d7b",
-        "sdk_run": 43612540158,
-        "sdk_job": 132500492009,
-        "artifact": 14120408950,
-        "artifact_sha256": "2b9150fbacb7880a49dca4325e362870dbf30a4a9f916cfc33912685e1d1b7ee",
-        "root_sha256": "4f431e6024c16f3ed3c6deb06df267712a5e277552a6d5d834945a7da8ac6d41",
-        "failed_command": "typed-uniform-LZ4-compute-CPU-fault-matrix",
-        "command_exit": 1,
-        "stderr": "Copy slab extent",
-        "hip_runtime_loaded": false,
-        "GPU_executed": false,
-        "owner_executed": false,
-        "cause": "The fake allocator admitted the quantum slab, but its copy predicate still required the whole request's canonical slab size. The new production path copies the exact reusable allocation.",
-        "correction": "Record the actual successful allocation size in the fake owner. Require complete copies of exactly that allocation and active launch extents no larger than it. Preserve original exact single-window sizing, no tolerance, source/guard/CPU comparison and all failure/resource tests.",
-        "qualification": "Correction requires publishing-source execution."
-      }
+      "status": "Bounded aligned hardware case passed; do not repeat unchanged. Old abnormal exit remains causally unproven.",
+      "old_failure": "docs/evidence/uniform-sweep-847423f-failure.json",
+      "fixture_failure": "docs/evidence/uniform-reuse-92d326e-fixture-failure.json"
     }
   }
 }

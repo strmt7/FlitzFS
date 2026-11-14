@@ -24,7 +24,7 @@ Portable wire tests compare initialization of dirty reused storage against canon
 
 The old single-window, phase-profile, serial-callback and raw/refusal controls remain. The raw control now exercises both single and reusable APIs without CPU decoding and must touch no HIP API. Both actual wrapper entry points are checked with a null runtime in the supervised child. Fake CPU calls are not hardware execution.
 
-Publishing-source core and full SDK qualification are pending. Any later owner experiment must use audited exact qualified binaries, fresh adapter/runtime/topology/headroom and unchanged strict jobs. Do not repeat source `847423f`, increase its cap to obscure failure, deliberately inject a driver fault or leave a resident helper.
+Publishing-source core and full SDK qualification passed at `d33efd6`; the executed scope is recorded below. Any later owner experiment must use audited exact qualified binaries, fresh adapter/runtime/topology/headroom and unchanged strict jobs. Do not repeat source `847423f`, increase its cap to obscure failure, deliberately inject a driver fault or leave a resident helper.
 
 ## Research and remaining work
 
@@ -35,3 +35,13 @@ A successful new trial would establish only this bounded implementation on the o
 ## First SDK fixture correction
 
 At `92d326e`, SDK compilation reached the CPU matrix and failed with `Copy slab extent`. The fake allocator admitted the quantum slab while its copy predicate still expected the whole request's slab. The correction records the successful allocation extent, requires both full copies to equal that exact extent and bounds each active kernel layout within it. It adds no size tolerance and changes no production execution. [The failed result](evidence/uniform-reuse-92d326e-fixture-failure.json) is retained; the corrected source requires new qualification.
+
+## Executed qualification and bounded hardware result
+
+Source `d33efd64d94427f5b6c9f2e269520d4ba5e26bcd` passed all 13 core jobs (run 43613526754), 152 native Windows groups, both Linux 131-test configurations, Windows raw and sanitizers. Full SDK run 43613527401 passed 3,074 uniform-compute checks across 79 scenarios (9 successes, 70 refusals), both missing-decoder controls and 20 confirmed admission exits. CPU tests enforce one setup/stream/allocation/retirement and cover partial final quanta, memory refusal, active/unused-tail corruption and cleanup failure.
+
+One separately admitted owner trial then completed the 1,048,576-byte synthetic native operation as eight two-chunk quanta. The GPU returned 135,344 encoded bytes, stored exactly and independently recovered on CPU together with prior acknowledged data. Explicit device bytes stayed at 328,288. Worker peak commit was 92,737,536 bytes (88.44 MiB) under the unchanged 128 MiB cap; aggregate job peak was 104,452,096 bytes. All 4,194,304 locked bytes returned to zero, working-set limits restored, exact worker/supervisor retirement completed and no FlitzFS process remained. Runtime digest and driver version stayed unchanged; the GPU reported healthy. The scoped recorded-event check found no matching warnings/errors and cannot prove absence of a driver fault or reset.
+
+Exchange wall time was 626,486,100 ns. This mode has no phase profile. Both CPU/GPU complete fixture images occupied 1,114,112 bytes; payload differences against the manually constructed CPU advice are not an optimized CPU-compressor comparison. This single aligned hardware case establishes no comparative speed, whole-image gain, larger-group cost bound or physical-power-loss qualification. The original `847423f` abnormal exit remains retained and causally unproven.
+
+[Exact source, artifacts, raw results and cleanup evidence](evidence/uniform-reuse-d33efd6.json) is retained. Do not repeat the unchanged trial. Ordinary callbacks remain CPU-only. Repeated configuration/recovery keyed complete-cost measurements, varied real data, automatic resource policy, controlled Windows routing and minimum-total-size collective compression remain required.

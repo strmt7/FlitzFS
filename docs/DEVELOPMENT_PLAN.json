@@ -736,12 +736,30 @@
     "next": "Do not retry unchanged or raise the cap to obscure failure. Implement one verified bounded device/resource lifetime across serial quanta, fresh memory/CPU validation, exact final retirement and unused-tail guards; qualify ownership/fault paths before another source-specific hardware trial."
   },
   "uniform_reused_sweep": {
-    "contract": "docs/UNIFORM_LZ4_REUSE.md",
-    "status": "Implemented; publishing-source qualification pending",
-    "historical_failure": "docs/evidence/uniform-sweep-847423f-failure.json",
-    "job_cap_raised": false,
-    "owner_GPU_executed": false,
+    "source": "d33efd64d94427f5b6c9f2e269520d4ba5e26bcd",
+    "core_run": 43613526754,
+    "core_jobs_passed": 13,
+    "core_jobs_total": 13,
+    "native_test_groups": 152,
+    "sdk_run": 43613527401,
+    "sdk_complete": true,
+    "owner_bounded_reused_GPU_sweep": true,
+    "owner_CPU_current_and_prior_recovery": true,
+    "worker_peak_commit_bytes": 92737536,
+    "job_cap_bytes": 134217728,
+    "device_bytes": 328288,
+    "source_bytes": 1048576,
+    "encoded_payload_bytes": 135344,
+    "image_bytes": 1114112,
+    "exchange_ns": 626486100,
+    "evidence": "docs/evidence/uniform-reuse-d33efd6.json",
+    "comparative_benefit_proven": false,
     "normal_GPU_routing": false,
-    "next": "Run current-source CPU/raw/native/sanitizer/fullSDK and existing VM gates. Require exact one-setup/resource accounting and terminal memory/guard/cleanup failures before a newly qualified bounded hardware trial."
+    "contract": "docs/UNIFORM_LZ4_REUSE.md",
+    "status": "Bounded aligned actual GPU/native-storage case passed; full product incomplete.",
+    "historical_failure": "docs/evidence/uniform-sweep-847423f-failure.json",
+    "fixture_failure": "docs/evidence/uniform-reuse-92d326e-fixture-failure.json",
+    "old_failure_cause_proven": false,
+    "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   }
 }
