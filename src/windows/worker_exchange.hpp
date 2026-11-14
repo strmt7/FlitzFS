@@ -7,6 +7,12 @@
 #include <string_view>
 
 namespace flitzfs {
+// Explicit sized transport; byte bounds come from the caller's resource-sized
+// window. Legacy entry points keep their original fixed framing unchanged.
+struct WorkerChannelCapacity {
+  std::size_t request_bytes=0,reply_bytes=0;
+};
+bool valid_worker_channel_capacity(WorkerChannelCapacity,ProcessBudget) noexcept;
 enum class WorkerExchangeCode { completed, worker_failed, timed_out, cancelled, exit_unconfirmed, invalid_response, supervisor_failed, supervisor_exit_unconfirmed };
 struct WorkerExchangeResult {
   WorkerExchangeCode code = WorkerExchangeCode::invalid_response;
@@ -36,6 +42,9 @@ class WorkerExchangeSession final {
   static WorkerExchangeSession start(const std::filesystem::path& helper,
       const std::vector<std::wstring>& arguments, std::span<const std::byte> request,
       ProcessBudget budget = {});
+  static WorkerExchangeSession start_sized(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments, std::span<const std::byte> request,
+      WorkerChannelCapacity capacity, ProcessBudget budget);
   ~WorkerExchangeSession();
   WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
   WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;
@@ -54,6 +63,9 @@ class WorkerExchangeSession final {
   // blocking wait, discovery scan or automatic retry.
   static bool available() noexcept;
  private:
+  static WorkerExchangeSession start_impl(const std::filesystem::path&,
+      const std::vector<std::wstring>&,std::span<const std::byte>,
+      WorkerChannelCapacity,ProcessBudget,bool sized);
   struct Impl;
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
   WorkerExchangeResult wait_result(); // Legacy synchronous adapter only.
@@ -70,6 +82,10 @@ class WorkerExchangeSession final {
 class WorkerChannel final {
  public:
   static WorkerChannel open(std::wstring_view token);
+  // The trusted child must independently obtain its exact window capacities.
+  // Requires an already enforced bounded single-process Job Object; it never
+  // infers arbitrary allocation sizes from writable shared metadata.
+  static WorkerChannel open_sized(std::wstring_view token,WorkerChannelCapacity);
   ~WorkerChannel();
   WorkerChannel(WorkerChannel&&) noexcept;
   WorkerChannel& operator=(WorkerChannel&&) noexcept;

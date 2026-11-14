@@ -10,6 +10,7 @@
 #include <array>
 #include <cstring>
 #include <mutex>
+#include <limits>
 #include <stdexcept>
 #include <system_error>
 #include <utility>
@@ -17,6 +18,14 @@
 namespace flitzfs {
 namespace {
 constexpr ULONG request_magic=0x51575846, reply_magic=0x52575846;
+constexpr ULONG sized_request_magic=0x32575846, sized_reply_magic=0x32525946;
+struct ChannelProfile {
+  WorkerChannelCapacity capacity{kWorkerRequestLimit,kWorkerReplyLimit};
+  bool sized=false;
+  ULONG input_magic() const noexcept {return sized?sized_request_magic:request_magic;}
+  ULONG output_magic() const noexcept {return sized?sized_reply_magic:reply_magic;}
+  ULONG version() const noexcept {return sized?2U:0U;}
+};
 constexpr LONG pending=-1, writing=-2;
 constexpr std::size_t guard_bytes=16;
 struct Control { ULONG magic, capacity; LONG published; ULONG reserved; };
@@ -86,12 +95,12 @@ struct Mapping {
   }
   Control* control() const noexcept {return static_cast<Control*>(view.value);}
   std::byte* bytes() const noexcept {return static_cast<std::byte*>(view.value)+sizeof(Control);}
-  bool intact(ULONG magic) const noexcept {
+  bool intact(ULONG magic,ULONG version=0) const noexcept {
     const auto* c=control();
-    return c->magic==magic && c->capacity==capacity && !c->reserved &&
+    return c->magic==magic && c->capacity==capacity && c->reserved==version &&
         std::all_of(bytes()+capacity,bytes()+capacity+guard_bytes,[](auto b){return b==std::byte{0xa7};});
   }
-  static Mapping create(const std::wstring& name,std::size_t count,ULONG magic,PSECURITY_DESCRIPTOR acl) {
+  static Mapping create(const std::wstring& name,std::size_t count,ULONG magic,PSECURITY_DESCRIPTOR acl,ULONG version=0) {
     SECURITY_ATTRIBUTES security{sizeof(SECURITY_ATTRIBUTES),acl,FALSE};
     SetLastError(ERROR_SUCCESS);
     Handle h(CreateFileMappingW(INVALID_HANDLE_VALUE,&security,PAGE_READWRITE,0,
@@ -100,7 +109,7 @@ struct Mapping {
     if(!h.value)failed("worker mapping creation",error);
     require(error!=ERROR_ALREADY_EXISTS,"worker mapping name collision");
     Mapping mapping(std::move(h),FILE_MAP_WRITE,count);
-    *mapping.control()={magic,static_cast<ULONG>(count),pending,0};
+    *mapping.control()={magic,static_cast<ULONG>(count),pending,version};
     std::fill_n(mapping.bytes()+count,guard_bytes,std::byte{0xa7});return mapping;
   }
   static Mapping open(const std::wstring& name,std::size_t count,DWORD access) {
@@ -109,32 +118,57 @@ struct Mapping {
     return Mapping(std::move(h),access,count);
   }
 };
-void headroom(ProcessBudget budget) {
+void headroom(ProcessBudget budget,ChannelProfile profile={}) {
   require(valid_process_budget(budget),"invalid worker process budget");
+  if(profile.sized)require(valid_worker_channel_capacity(profile.capacity,budget),
+      "invalid sized worker capacity");
   MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
   if(!GlobalMemoryStatusEx(&memory))failed("worker memory headroom");
+  // A valid adaptive budget can exceed the legacy fixture's MiB range. Check
+  // the complete sum before adding transport copies and reserves.
+  const auto overhead=512ULL*1024*1024+3ULL*profile.capacity.request_bytes+
+      2ULL*profile.capacity.reply_bytes+2*(sizeof(Control)+guard_bytes)+4ULL*1024*1024;
+  require(budget.memory_mib<=((std::numeric_limits<ULONGLONG>::max)()-overhead)/(1024*1024),
+      "worker resident accounting overflow");
   const auto needed=static_cast<ULONGLONG>(budget.memory_mib)*1024*1024+
-      512ULL*1024*1024+kWorkerRequestLimit+kWorkerReplyLimit+2*(sizeof(Control)+guard_bytes)+
-      2*kWorkerRequestLimit+kWorkerReplyLimit+4ULL*1024*1024;
+      512ULL*1024*1024+3ULL*profile.capacity.request_bytes+2ULL*profile.capacity.reply_bytes+
+      2*(sizeof(Control)+guard_bytes)+4ULL*1024*1024;
   if(memory.ullAvailPhys<needed || memory.ullAvailPageFile<needed)
     throw std::runtime_error("insufficient worker channel memory headroom");
+  // The optional large-window route yields at least 15/16 of CURRENT spare
+  // physical/commit headroom, including runtime allowance and all parent copies.
+  const auto resident=needed-512ULL*1024*1024;
+  if(profile.sized && (resident>(memory.ullAvailPhys-512ULL*1024*1024)/(std::max)(16U,budget.memory_share_divisor) ||
+      resident>(memory.ullAvailPageFile-512ULL*1024*1024)/(std::max)(16U,budget.memory_share_divisor)))
+    throw std::runtime_error("sized worker would consume excessive live headroom");
 }
+}
+bool valid_worker_channel_capacity(WorkerChannelCapacity capacity,ProcessBudget budget) noexcept {
+  if(!valid_process_budget(budget) || capacity.request_bytes<kWorkerHeaderBytes ||
+      capacity.reply_bytes<kWorkerHeaderBytes ||
+      capacity.request_bytes>static_cast<std::size_t>((std::numeric_limits<LONG>::max)()) ||
+      capacity.reply_bytes>static_cast<std::size_t>((std::numeric_limits<LONG>::max)()))return false;
+  // Caller chooses actual capacities. Checked representation and the enforced
+  // child commitment allowance bound copies before mapping or allocation.
+  const auto charged=3ULL*capacity.request_bytes+2ULL*capacity.reply_bytes+
+      2*(sizeof(Control)+guard_bytes);
+  return charged<=std::uint64_t(budget.memory_mib)*1024*1024/2;
 }
 namespace {
 WorkerExchangeResult exchange_unclaimed(const std::filesystem::path& helper,
     const std::vector<std::wstring>& arguments,std::span<const std::byte> request,ProcessBudget budget,
-    const std::shared_ptr<ProcessObserver>& observer) {
-  require(request.size()>=kWorkerHeaderBytes && request.size()<=kWorkerRequestLimit &&
+    const std::shared_ptr<ProcessObserver>& observer,ChannelProfile profile) {
+  require(request.size()>=kWorkerHeaderBytes && request.size()<=profile.capacity.request_bytes &&
       arguments.size()<=14,"invalid worker request or argument bound");
-  headroom(budget);
+  headroom(budget,profile);
   const std::vector<std::byte> owned_request(request.begin(),request.end());
   request=owned_request;
   const auto token=random_token();auto command=arguments;
   command.push_back(L"--worker-channel");command.push_back(token);
   (void)windows_child_command(helper.native(),command); // Validate before mappings or launch.
   Local acl;owner_security(acl);
-  auto input=Mapping::create(object_name(token,false),kWorkerRequestLimit,request_magic,acl.value);
-  auto output=Mapping::create(object_name(token,true),kWorkerReplyLimit,reply_magic,acl.value);
+  auto input=Mapping::create(object_name(token,false),profile.capacity.request_bytes,profile.input_magic(),acl.value,profile.version());
+  auto output=Mapping::create(object_name(token,true),profile.capacity.reply_bytes,profile.output_magic(),acl.value,profile.version());
   std::memcpy(input.bytes(),request.data(),request.size());
   input.control()->published=static_cast<LONG>(request.size());
   MemoryBarrier();
@@ -145,17 +179,17 @@ WorkerExchangeResult exchange_unclaimed(const std::filesystem::path& helper,
   // This diagnostic never permits timed-out or unsuccessful output to escape.
   MemoryBarrier();
   const LONG length=output.control()->published;
-  result.publication_observed=output.intact(reply_magic) &&
-      length>=static_cast<LONG>(kWorkerHeaderBytes) && length<=static_cast<LONG>(kWorkerReplyLimit);
+  result.publication_observed=output.intact(profile.output_magic(),profile.version()) &&
+      length>=static_cast<LONG>(kWorkerHeaderBytes) && length<=static_cast<LONG>(profile.capacity.reply_bytes);
   if(result.process.cancelled) {result.code=WorkerExchangeCode::cancelled;return result;}
   if(result.process.timed_out) {result.code=WorkerExchangeCode::timed_out;return result;}
   if(result.process.exit_code) {result.code=WorkerExchangeCode::worker_failed;return result;}
   // Wait on child exit is the synchronization boundary; there is no live helper
   // able to mutate this reply. No success is inferred from shared flags alone.
-  if(!input.intact(request_magic) || !output.intact(reply_magic) ||
+  if(!input.intact(profile.input_magic(),profile.version()) || !output.intact(profile.output_magic(),profile.version()) ||
       input.control()->published!=static_cast<LONG>(request.size()) ||
       std::memcmp(input.bytes(),request.data(),request.size()) ||
-      length<static_cast<LONG>(kWorkerHeaderBytes) || length>static_cast<LONG>(kWorkerReplyLimit))return result;
+      length<static_cast<LONG>(kWorkerHeaderBytes) || length>static_cast<LONG>(profile.capacity.reply_bytes))return result;
   result.response.assign(output.bytes(),output.bytes()+length);
   result.code=WorkerExchangeCode::completed;return result;
 }
@@ -189,14 +223,15 @@ struct ExchangeState {
   const std::vector<std::wstring> arguments;
   const std::vector<std::byte> request;
   const ProcessBudget budget;
+  const ChannelProfile profile;
   WorkerExchangeResult result;
   std::exception_ptr error;
   std::atomic<bool> done{false}, retired{false};
   std::mutex mutex;
   std::condition_variable ready;
   ExchangeState(std::shared_ptr<ExchangeControl> c,const std::filesystem::path& h,
-      const std::vector<std::wstring>& a,std::span<const std::byte> r,ProcessBudget b):
-      control(std::move(c)),helper(h),arguments(a),request(r.begin(),r.end()),budget(b) {}
+      const std::vector<std::wstring>& a,std::span<const std::byte> r,ProcessBudget b,ChannelProfile p):
+      control(std::move(c)),helper(h),arguments(a),request(r.begin(),r.end()),budget(b),profile(p) {}
 };
 void record_retirement(const std::shared_ptr<ExchangeState>& state,ProcessObservation observation) noexcept {
   if(observation==ProcessObservation::exited || observation==ProcessObservation::not_started)
@@ -217,7 +252,7 @@ unsigned __stdcall supervise_exchange(void* opaque) noexcept {
   try {
     if(!SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_LOWEST))
       failed("worker supervisor priority");
-    state->result=exchange_unclaimed(state->helper,state->arguments,state->request,state->budget,state->observer);
+    state->result=exchange_unclaimed(state->helper,state->arguments,state->request,state->budget,state->observer,state->profile);
   } catch(...) {
     state->error=std::current_exception();
     state->result=WorkerExchangeResult{};
@@ -252,8 +287,20 @@ WorkerExchangeSession::WorkerExchangeSession(WorkerExchangeSession&&) noexcept=d
 WorkerExchangeSession& WorkerExchangeSession::operator=(WorkerExchangeSession&&) noexcept=default;
 WorkerExchangeSession WorkerExchangeSession::start(const std::filesystem::path& helper,
     const std::vector<std::wstring>& arguments,std::span<const std::byte> request,ProcessBudget budget) {
+  return start_impl(helper,arguments,request,{kWorkerRequestLimit,kWorkerReplyLimit},budget,false);
+}
+WorkerExchangeSession WorkerExchangeSession::start_sized(const std::filesystem::path& helper,
+    const std::vector<std::wstring>& arguments,std::span<const std::byte> request,
+    WorkerChannelCapacity capacity,ProcessBudget budget) {
+  require(valid_worker_channel_capacity(capacity,budget),"invalid sized worker admission");
+  return start_impl(helper,arguments,request,capacity,budget,true);
+}
+WorkerExchangeSession WorkerExchangeSession::start_impl(const std::filesystem::path& helper,
+    const std::vector<std::wstring>& arguments,std::span<const std::byte> request,
+    WorkerChannelCapacity capacity,ProcessBudget budget,bool sized) {
+  const ChannelProfile profile{capacity,sized};
   require(valid_process_budget(budget) && request.size()>=kWorkerHeaderBytes &&
-      request.size()<=kWorkerRequestLimit && arguments.size()<=14,"invalid asynchronous worker admission");
+      request.size()<=capacity.request_bytes && arguments.size()<=14,"invalid asynchronous worker admission");
   auto command=arguments;
   command.push_back(L"--worker-channel");command.push_back(std::wstring(32,L'0'));
   (void)windows_child_command(helper.native(),command);
@@ -274,9 +321,9 @@ WorkerExchangeSession WorkerExchangeSession::start(const std::filesystem::path& 
       if(!transferred){std::lock_guard lock(control->mutex);control->busy=false;}
     }
   } reservation{control};
-  headroom(budget); // Refuse before proportional copies or supervisor creation.
+  headroom(budget,profile); // Refuse before proportional copies or supervisor creation.
   // All proportional storage is bounded and allocated before a thread exists.
-  auto state=std::make_shared<ExchangeState>(control,helper,arguments,request,budget);
+  auto state=std::make_shared<ExchangeState>(control,helper,arguments,request,budget,profile);
   auto impl=std::make_unique<Impl>(state);
   auto* context=new std::shared_ptr<ExchangeState>(state);
   const auto thread=_beginthreadex(nullptr,0,supervise_exchange,context,0,nullptr);
@@ -356,14 +403,15 @@ WorkerExchangeResult run_worker_exchange(const std::filesystem::path& helper,
 }
 
 struct WorkerChannel::Impl {
+  ChannelProfile profile;
   Mapping input,output;
   std::vector<std::byte> owned;
-  explicit Impl(std::wstring_view token):
-      input(Mapping::open(object_name(token,false),kWorkerRequestLimit,FILE_MAP_READ)),
-      output(Mapping::open(object_name(token,true),kWorkerReplyLimit,FILE_MAP_WRITE)) {
+  explicit Impl(std::wstring_view token,ChannelProfile p={}):profile(p),
+      input(Mapping::open(object_name(token,false),p.capacity.request_bytes,FILE_MAP_READ)),
+      output(Mapping::open(object_name(token,true),p.capacity.reply_bytes,FILE_MAP_WRITE)) {
     const LONG length=input.control()->published;
-    require(input.intact(request_magic) && output.intact(reply_magic) && output.control()->published==pending &&
-        length>=static_cast<LONG>(kWorkerHeaderBytes) && length<=static_cast<LONG>(kWorkerRequestLimit),
+    require(input.intact(profile.input_magic(),profile.version()) && output.intact(profile.output_magic(),profile.version()) && output.control()->published==pending &&
+        length>=static_cast<LONG>(kWorkerHeaderBytes) && length<=static_cast<LONG>(profile.capacity.request_bytes),
         "invalid worker channel framing");
     owned.assign(input.bytes(),input.bytes()+length);
   }
@@ -376,14 +424,32 @@ WorkerChannel WorkerChannel::open(std::wstring_view token) {
   require(valid_token(token),"invalid worker channel token");
   return WorkerChannel(std::make_unique<Impl>(token));
 }
+WorkerChannel WorkerChannel::open_sized(std::wstring_view token,WorkerChannelCapacity capacity) {
+  require(valid_token(token),"invalid sized worker channel token");
+  JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+  if(!QueryInformationJobObject(nullptr,JobObjectExtendedLimitInformation,&limits,sizeof(limits),nullptr))
+    failed("sized worker job admission");
+  const auto flags=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE|JOB_OBJECT_LIMIT_ACTIVE_PROCESS|
+      JOB_OBJECT_LIMIT_PROCESS_MEMORY|JOB_OBJECT_LIMIT_JOB_MEMORY;
+  require((limits.BasicLimitInformation.LimitFlags&flags)==flags &&
+      limits.BasicLimitInformation.ActiveProcessLimit==1 && limits.ProcessMemoryLimit &&
+      limits.JobMemoryLimit==limits.ProcessMemoryLimit && limits.ProcessMemoryLimit%(1024*1024)==0,
+      "sized channel requires enforced process limits");
+  ProcessBudget budget;budget.memory_mib=limits.ProcessMemoryLimit/(1024*1024);
+  budget.memory_share_divisor=16;
+  require(valid_worker_channel_capacity(capacity,budget),"sized child capacity exceeds job allowance");
+  headroom(budget,{capacity,true});
+  return WorkerChannel(std::make_unique<Impl>(token,ChannelProfile{capacity,true}));
+}
 std::span<const std::byte> WorkerChannel::request() const noexcept {
   return impl_?std::span<const std::byte>(impl_->owned):std::span<const std::byte>{};
 }
 void WorkerChannel::publish(std::span<const std::byte> response) {
-  require(impl_ && response.size()>=kWorkerHeaderBytes && response.size()<=kWorkerReplyLimit,
+  require(impl_ && response.size()>=kWorkerHeaderBytes && response.size()<=impl_->profile.capacity.reply_bytes,
       "invalid worker response bound");
   auto& output=impl_->output;
-  require(output.intact(reply_magic),"worker response mapping changed");
+  const auto profile=impl_->profile;
+  require(output.intact(profile.output_magic(),profile.version()),"worker response mapping changed");
   require(InterlockedCompareExchange(&output.control()->published,writing,pending)==pending,
       "worker response already published");
   std::memcpy(output.bytes(),response.data(),response.size());

@@ -62,12 +62,15 @@ ProcessResult run_bounded_process(const std::filesystem::path& executable,
   const auto observer = supplied_observer ? supplied_observer : std::make_shared<ProcessObserver>();
   if (observer->claimed_.exchange(true))
     throw std::invalid_argument("process observer may be used for only one launch");
-  const auto memory_bytes = budget.memory_mib * 1024U * 1024U;
+  const auto memory_bytes = budget.memory_mib * 1024ULL * 1024ULL;
   MEMORYSTATUSEX available{}; available.dwLength = sizeof(available);
   if (!GlobalMemoryStatusEx(&available)) failed("memory headroom query");
   constexpr ULONGLONG reserve = 512ULL * 1024 * 1024;
-  if (available.ullAvailPhys < memory_bytes + reserve ||
-      available.ullAvailPageFile < memory_bytes + reserve)
+  if (available.ullAvailPhys <= reserve || available.ullAvailPageFile <= reserve ||
+      memory_bytes > available.ullAvailPhys-reserve || memory_bytes > available.ullAvailPageFile-reserve ||
+      (budget.memory_share_divisor &&
+       (memory_bytes > (available.ullAvailPhys-reserve)/budget.memory_share_divisor ||
+        memory_bytes > (available.ullAvailPageFile-reserve)/budget.memory_share_divisor)))
     throw std::runtime_error("insufficient memory headroom for bounded child");
   const auto attributes = GetFileAttributesW(executable.c_str());
   if (attributes == INVALID_FILE_ATTRIBUTES) failed("child executable attributes");
