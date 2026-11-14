@@ -71,6 +71,47 @@ class Volume final {
     }
     throw std::runtime_error("native inspected object absent");
   }
+  bool publish_uniform(std::span<const std::byte> plain,std::span<const NativeLz4ExtentCandidate> candidates){
+    check(plain.size()==2U*65536 && (candidates.empty() || candidates.size()==2),
+        "two-extent native calibration shape");
+    const auto committed=writer_->write_inode_storage_with_lz4(inode_,0,plain,candidates);
+    check(committed.bytes==plain.size() && committed.offset==0 && committed.state.info.inode==inode_,
+        "uniform native commit-bound result");
+    auto objects=ObjectStoreSnapshot::open(store_);const auto info=objects.info();
+    image_bytes=store_->extent();active_payload_bytes=info.stored_payload_bytes;
+    const auto independent=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(store_));
+    check(independent.read("candidate.bin",0,static_cast<std::uint32_t>(plain.size()))==Bytes(plain.begin(),plain.end()) &&
+        old_->read("candidate.bin",0,4)==Bytes(sentinel_.begin(),sentinel_.end()),
+        "uniform native current/prior CPU recovery");
+    independent.verify_all();store_->verify();
+    if(candidates.empty())return false;
+    // This synthetic source repeats the SAME extent. Native deduplication may
+    // select one immutable object for both. Accept only an exact encoded payload
+    // supplied for that same plaintext, never size equality or a backend label.
+    std::uint64_t object_id=0;
+    for(const auto& object:objects.list())if(object.logical_bytes==65536 &&
+        objects.read(object.id)==Bytes(plain.begin(),plain.begin()+65536)){
+      check(!object_id,"uniform native dedup object ambiguous");object_id=object.id;
+    }
+    check(object_id!=0,"uniform native data object missing");
+    std::array<std::byte,4096> root{};store_->read_exact((info.generation%2)*kStoreCommitUnit,root);
+    check(integer(root,16,8)==info.generation,"uniform native generation changed");
+    const auto count=integer(root,44,4),index_bytes=integer(root,40,4);
+    check(count && count<=kStoreMaxObjects && index_bytes==64+64*count,"uniform native index shape");
+    Bytes index(static_cast<std::size_t>(index_bytes));store_->read_exact(integer(root,32,8),index);
+    for(std::size_t i=0;i<count;++i){
+      const auto at=64+64*i;if(integer(index,at,8)!=object_id)continue;
+      std::array<std::byte,128> record{};const auto offset=integer(index,at+16,8);
+      store_->read_exact(offset,record);
+      if(integer(record,12,4)!=4 || integer(record,32,4)!=65536)return false;
+      const auto size=integer(record,36,4);if(!size || size>65536)return false;
+      Bytes payload(static_cast<std::size_t>(size));store_->read_exact(offset+128,payload);
+      for(const auto& hint:candidates)if(hint.extent_index<2 && hint.payload.size()==payload.size() &&
+          std::equal(hint.payload.begin(),hint.payload.end(),payload.begin()))return true;
+      return false;
+    }
+    throw std::runtime_error("uniform native inspected object absent");
+  }
   void close(){
     old_.reset();writer_.reset();store_.reset();
     check(locked_ram_fixture::locked_bytes==0 && locked_ram_fixture::cleanup_ok,"native locked image retirement");

@@ -485,13 +485,28 @@ def main():
             uniform_prefix="Uniform LZ4 runtime admission: "
             uniform_rows=[json.loads(line[len(uniform_prefix):]) for line in uniform_result["stdout"].splitlines()
                 if line.startswith(uniform_prefix)]
-            require(len(uniform_rows)==1 and uniform_rows[0]["checks"]>=30 and uniform_rows[0]["exits_confirmed"]==11 and
+            require(len(uniform_rows)==1 and uniform_rows[0]["checks"]>=30 and uniform_rows[0]["exits_confirmed"]==15 and
                 all(uniform_rows[0][key] is True for key in ("complete","bundle_verified","tamper_refused","CPU_source_unchanged")) and
                 uniform_rows[0]["hip_runtime_loaded"] is False and uniform_rows[0]["gpu_executed"] is False,
                 "uniform runtime admission evidence mismatch")
             report["uniform_lz4_runtime_fixture"]=dict(qualification=uniform_rows[0],
                 bundle=json.loads((build/"Release/hip-uniform-lz4-bundle.json").read_text(encoding="utf-8")),
                 product_linked=False,actual_gpu_execution=False)
+            uniform_native_result=run(bounds,[str(runtime_probe),"--uniform-native-cpu-fixture"],report,
+                "uniform-native-LZ4-storage-CPU-composition",30)
+            uniform_native_prefix="Uniform native CPU fixture: "
+            uniform_native_rows=[json.loads(line[len(uniform_native_prefix):])
+                for line in uniform_native_result["stdout"].splitlines() if line.startswith(uniform_native_prefix)]
+            require(len(uniform_native_rows)==1,"missing uniform native CPU composition receipt")
+            uniform_native=uniform_native_rows[0]
+            require(all(uniform_native[key] is True for key in ("complete","candidate_stored_exactly",
+                    "independent_native_readback","prior_preserved","working_set_restored")) and
+                uniform_native["gpu_executed"] is False and uniform_native["mounted"] is False and
+                uniform_native["source_bytes"]==131072 and uniform_native["locked_peak_bytes"]==4*1024*1024 and
+                uniform_native["locked_after_bytes"]==0 and 0<uniform_native["image_bytes"]<=2*1024*1024 and
+                0<uniform_native["active_payload_bytes"]<=uniform_native["image_bytes"],
+                "uniform native CPU composition or retirement mismatch")
+            report["uniform_lz4_runtime_fixture"]["native_storage_CPU"]=uniform_native
             native_result=run(bounds,[str(runtime_probe),"--native-cpu-fixture"],report,
                 "native-LZ4-storage-CPU-composition",30)
             prefix="LZ4 native CPU fixture: "
@@ -554,7 +569,7 @@ def main():
                 row["gpu_executed"] is False and type(row["checks"]) is int and row["checks"]>0 and
                 row["scenarios"]==row["successes"]+row["refusals"],
                 "uniform compute CPU qualification contract")
-            require((available and row["successes"]==3 and row["refusals"]>=35) or
+            require((available and row["successes"]==4 and row["refusals"]>=36) or
                 (not available and row["successes"]==0 and row["refusals"]==1),
                 "uniform compute CPU positive/failure coverage mismatch")
             return dict(bytes=executable.stat().st_size,sha256=digest(executable),
@@ -901,7 +916,7 @@ def main():
                 runtime_basename=runtime_name.group(1),runtime_shipped=False,kpack_shipped=False,
                 files=runtime_files,coverage=report["lz4_runtime_fixture"]["bundle"]["coverage"],
                 controller_job_mib=256,worker_job_mib=128,cpu_rate=2000,worker_timeout_ms=15000,
-                cpu_admission_exits=10,uniform_cpu_admission_exits=11,
+                cpu_admission_exits=10,uniform_cpu_admission_exits=15,
                 uniform_layout_version=2,uniform_runtime_packaged=True,uniform_gpu_execution=False,
                 native_storage_CPU_qualified=True,native_gpu_worker_timeout_ms=5000,
                 native_store_capacity_bytes=2*1024*1024,native_locked_peak_bytes=4*1024*1024,

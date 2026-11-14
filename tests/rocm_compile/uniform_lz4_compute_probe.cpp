@@ -168,7 +168,7 @@ hipError_t attributes(hipFuncAttributes* out,const void* entry){
 }
 HipApi functions(){return {&init,&properties,&select,&priorities,&create_stream,&destroy_stream,
     &synchronize,&allocate,&release,&copy,&launch};}
-UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,UniformLz4ComputeGrant grant={}){
+UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,UniformLz4ComputeGrant grant={},HipPhaseTrace* trace=nullptr){
   Activate owner(state);const auto api=functions();
   const auto initialize=[&] {
     const auto priority=initialize_device(api,0,identity,1);
@@ -190,7 +190,16 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
   };
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)
     grant={state.source.batch.layout().chunks,state.source.batch.layout().total_bytes,state.source.batch.layout().chunk_bytes};
-  return execute_uniform_lz4_compute(api,&attributes,kernels,state.source,covered,grant,initialize,memory);
+  HipPhaseRecorder recorder(trace);
+  if(trace)for(unsigned i=0;i<5;++i){recorder.begin(static_cast<HipPhase>(i));recorder.end(static_cast<HipPhase>(i));}
+  auto result=execute_uniform_lz4_compute(api,&attributes,kernels,state.source,covered,grant,initialize,memory,trace?&recorder:nullptr);
+  if(trace){
+    recorder.begin(HipPhase::reply_encode);
+    (void)encode_uniform_lz4_reply(state.source.batch,state.source.request_id,result,WorkerExecution::cpu_semantics);
+    recorder.end(HipPhase::reply_encode);recorder.begin(HipPhase::modules_release);
+    recorder.end(HipPhase::modules_release);recorder.finish();
+  }
+  return result;
 }
 void refused(State& state,HipWorkerExit code,UniformLz4ComputeGrant grant={}){
   ++scenarios;++refusals;UniformLz4Candidates escaped;
@@ -229,6 +238,18 @@ int wmain(int argc,wchar_t** argv){try{
     require(state.calls.empty(),"raw uniform refusal touched runtime");
   }else{
     success(source,32);success(source,64);success(request(1),32);
+    {
+      ++scenarios;++successes;State state(source);HipPhaseTrace trace;
+      const auto candidate=compute(state,coverage,{},&trace);
+      require(trace.finished && trace.completed==hip_phase_complete && !candidate.payload.empty() &&
+          !state.allocated && !state.stream_live,"uniform actual compute trace incomplete");
+      State failed(source);failed.fault="wait";HipPhaseTrace partial;
+      ++scenarios;++refusals;
+      try{(void)compute(failed,coverage,{},&partial);throw std::runtime_error("profile wait failure ignored");}
+      catch(const HipWorkerFailure& f){require(f.code==HipWorkerExit::device_fault,"profile wait failure category");}
+      require(!partial.finished && partial.completed!=hip_phase_complete &&
+          !failed.allocated && !failed.stream_live,"failed compute emitted complete timing or leaked resources");
+    }
     for(const auto* name:{"initialize","properties-1","properties-2","select","priority-1","priority-2",
         "attributes-1","attributes-2","stream-create","upload","launch","wait","readback","stream-destroy","release"}){
       State state(source);state.fault=name;refused(state,HipWorkerExit::device_fault);

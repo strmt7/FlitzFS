@@ -8,6 +8,7 @@
 #ifdef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
 #include "hip_lz4_compute.hpp"
 #include "hip_uniform_lz4_compute.hpp"
+#include "uniform_lz4_profile.hpp"
 #include "hip_lz4_bundle.hpp"
 #include "hip_uniform_lz4_bundle.hpp"
 #endif
@@ -250,7 +251,9 @@ int worker(int argc, wchar_t** argv) {
         GetModuleHandleW(hip_bundle::runtime)==nullptr,Exit::integrity_failure,
         "uniform metadata verification loaded AMD code");return 0;
   }
-  if(argc>1 && std::wstring_view(argv[1])==L"--driver-uniform-lz4-adapter"){
+  if(argc>1 && (std::wstring_view(argv[1])==L"--driver-uniform-lz4-adapter" ||
+      std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter")){
+    const bool recording=std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter";
     require(argc==13 && std::wstring_view(argv[11])==L"--worker-channel",
         Exit::invalid_request,"explicit uniform adapter/channel/capacities required");
     require(gpu_lz4_cpu_verification_available(),Exit::unsupported_configuration,
@@ -265,10 +268,14 @@ int worker(int argc, wchar_t** argv) {
         decimal(argv[8],(std::numeric_limits<unsigned>::max)()),wide_decimal(argv[9]),
         decimal(argv[10],uniform_lz4::max_chunk_bytes)};
     require(grant.maximum_chunks && grant.maximum_device_bytes && grant.chunk_bytes,Exit::invalid_request,"missing uniform work grant");
+    require(!recording || reply_capacity>kUniformLz4ProfileBytes,Exit::invalid_request,"uniform profile capacity");
+    const auto data_capacity=reply_capacity-(recording?kUniformLz4ProfileBytes:0);
     auto channel=WorkerChannel::open_sized(argv[12],{request_capacity,reply_capacity});
+    HipPhaseTrace trace;HipPhaseRecorder clock(recording?&trace:nullptr);
+    clock.begin(HipPhase::request_decode);
     std::optional<UniformLz4Request> request;
     try{
-      const auto limits=inspect_uniform_lz4_request(channel.request(),request_capacity,reply_capacity);
+      const auto limits=inspect_uniform_lz4_request(channel.request(),request_capacity,data_capacity);
       request.emplace(decode_uniform_lz4_request(channel.request(),limits));
     }catch(const std::bad_alloc&){throw;}
     catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"invalid uniform compression frame");}
@@ -276,11 +283,16 @@ int worker(int argc, wchar_t** argv) {
         request->batch.layout().chunks<=grant.maximum_chunks &&
         request->batch.layout().total_bytes<=grant.maximum_device_bytes,
         Exit::invalid_request,"uniform frame exceeds qualified work grant");
+    clock.end(HipPhase::request_decode);
+    clock.begin(HipPhase::bundle_verify);
     const auto bundle=verify_bundle(false,false,true);
+    clock.end(HipPhase::bundle_verify);
+    clock.begin(HipPhase::adapter_admit);
     const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
     const auto before=query_windows_gpu_budget(luid,mask);
     require_hip_memory(before.snapshot,luid,mask,GetTickCount64(),
         request->batch.layout().total_bytes,HipMemoryPoint::pre_initialize);
+    clock.end(HipPhase::adapter_admit);clock.begin(HipPhase::modules_load);
     require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
         Exit::runtime_unavailable,"restrict uniform DLL lookup");
     bundle.check_loaded_paths();
@@ -289,15 +301,25 @@ int worker(int argc, wchar_t** argv) {
     bundle.check_loaded_paths();
     require(GetModuleHandleW(hip_bundle::runtime)==runtime.get(),Exit::integrity_failure,
         "uniform runtime identity changed");
+    clock.end(HipPhase::modules_load);clock.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernels.get(),"flitzfs_uniform_lz4_kernel_api");
     require(address!=nullptr,Exit::unsupported_configuration,"uniform API entry unavailable",HipWorkerStage::kernel_entry);
     const auto entry=std::bit_cast<uniform_lz4::KernelApiEntry>(address);const auto* api=entry();
     require(api && uniform_lz4::compatible_kernel_api(*api),Exit::unsupported_configuration,
         "incompatible uniform API table",HipWorkerStage::kernel_table);
+    clock.end(HipPhase::entry_bind);
     const auto candidates=run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
-        *request,grant,std::span<const hip_detail::Lz4KernelCoverage>(hip_uniform_lz4_bundle::targets));
-    const auto frame=encode_uniform_lz4_reply(request->batch,request->request_id,candidates,WorkerExecution::hip);
-    kernels.close();runtime.close();channel.publish(frame);return 0;
+        *request,grant,std::span<const hip_detail::Lz4KernelCoverage>(hip_uniform_lz4_bundle::targets),recording?&clock:nullptr);
+    clock.begin(HipPhase::reply_encode);
+    auto frame=encode_uniform_lz4_reply(request->batch,request->request_id,candidates,WorkerExecution::hip);
+    clock.end(HipPhase::reply_encode);clock.begin(HipPhase::modules_release);
+    kernels.close();runtime.close();clock.end(HipPhase::modules_release);clock.finish();
+    if(recording){
+      const UniformLz4ProfileBinding binding{request->request_id,ordinal,mask,grant.maximum_chunks,
+          grant.chunk_bytes,grant.maximum_device_bytes,luid};
+      frame=encode_uniform_lz4_profile_reply(request->batch,binding,trace,frame,WorkerExecution::hip);
+    }
+    channel.publish(frame);return 0;
   }
   if(argc==2 && std::wstring_view(argv[1])==L"--verify-lz4-kernel-bundle"){
     const auto bundle=verify_bundle(false,true);
