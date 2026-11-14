@@ -8,6 +8,7 @@
 #include <cstring>
 #include <iostream>
 #include <mutex>
+#include <thread>
 namespace {
 using namespace flitzfs;
 unsigned checks=0;
@@ -118,10 +119,18 @@ void run(const std::filesystem::path& worker,unsigned kind){
         got==expected.size()&&actual==expected,"read did not resolve pending CPU bytes");
   }
   if(kind==3){
-    NativeDeferredStop state;
-    eventually([&]{state=h.adapter->stop_deferred_writes_hosted();return state!=NativeDeferredStop::running;},
-        "queued shutdown did not retire");
-    check(state==NativeDeferredStop::quiescent,"queued shutdown retirement unconfirmed");
+    std::array<NativeDeferredStop,2> states{NativeDeferredStop::running,NativeDeferredStop::running};
+    std::atomic<bool> ok{true};
+    auto stop=[&](unsigned index) noexcept{
+      try{eventually([&]{states[index]=h.adapter->stop_deferred_writes_hosted();
+        return states[index]!=NativeDeferredStop::running;},"queued shutdown did not retire");}
+      catch(...){ok.store(false);}
+    };
+    // Both callers may observe the signaled OS thread. Joining must stay
+    // serialized even after native pending publication has completed.
+    std::jthread first(stop,0),second(stop,1);first.join();second.join();
+    check(ok.load()&&states[0]==NativeDeferredStop::quiescent&&states[1]==NativeDeferredStop::quiescent,
+        "concurrent queued shutdown retirement unconfirmed");
   }
   const auto response=h.reply(0);
   check(response.Kind==FspFsctlTransactWriteKind && response.Hint==expected_hint &&

@@ -63,7 +63,9 @@ NativeDeferredStop NativeDeferredWriteService::stop(){
   if(!thread_.joinable())return stats_.retirement_confirmed?NativeDeferredStop::quiescent:
       NativeDeferredStop::retirement_unconfirmed;
   if(WaitForSingleObject(thread_.native_handle(),0)!=WAIT_OBJECT_0)return NativeDeferredStop::running;
-  guard.unlock();thread_.join();guard.lock();
+  // The OS thread has exited: join cannot need control_. Keep the lock
+  // so simultaneous stop callers cannot race joinable()/join().
+  thread_.join();
   return stats_.retirement_confirmed?NativeDeferredStop::quiescent:NativeDeferredStop::retirement_unconfirmed;
 }
 void NativeDeferredWriteService::run() noexcept{
