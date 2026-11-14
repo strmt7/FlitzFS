@@ -896,15 +896,15 @@
     "worker_handle_final": 79
   },
   "uniform_lz4_runtime": {
-    "status": "Authenticated uniform worker package qualified at c96115e; resource-admitted terminal controller added and requires publishing-source qualification.",
+    "status": "Uniform recovery/terminal controller qualified at 4d1ef00; controlled native Windows-write operation added and requires publishing-source qualification.",
     "contract": "docs/UNIFORM_LZ4_RUNTIME.md",
     "runtime_packaged": true,
     "actual_gpu_executed": false,
     "normal_GPU_routing": false,
-    "next": "Qualify controller; acquire configuration-keyed measured costs/grants, compose controlled Windows writes, and perform separately admitted bounded actual uniform GPU calibration. No ordinary GPU route yet.",
-    "qualified_source": "c96115e871dc522678904464766c5298181321c5",
-    "core_run": 43594652822,
-    "sdk_run": 43594653048,
+    "next": "Qualify controlled native write operation; prioritize separately admitted actual uniform GPU native-write calibration and measured per-configuration costs/grants. No additional disconnected CPU capability-probe phase.",
+    "qualified_source": "4d1ef00c95c3e4fa51f92569df3fc119f8b9526e",
+    "core_run": 43596989360,
+    "sdk_run": 43596989703,
     "native_CTest_passed": 149,
     "core_cpu_native_sanitizers_passed": true,
     "dependent_mount_checks_pending": false,
@@ -917,6 +917,8 @@
     "jobs_passed": 13,
     "jobs_total": 13,
     "uniform_admission_exits": 11,
-    "controller_contract": "docs/UNIFORM_LZ4_CONTROLLER.md"
+    "controller_contract": "docs/UNIFORM_LZ4_CONTROLLER.md",
+    "controller_qualified": true,
+    "native_write_contract": "docs/NATIVE_UNIFORM_WRITE.md"
   }
 }

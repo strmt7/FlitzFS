@@ -485,3 +485,6 @@ Uniform frames/slab and typed compute at `f8c0d05` passed all 149 native Windows
 
 
 The explicit resource-admitted uniform controller adds complete parent/child accounting, persistent recovery/quarantine, fresh observation after CPU validation and constant-work terminal CPU selection; see UNIFORM_LZ4_CONTROLLER.md. Its publishing-source checks are pending. The packaged worker at `c96115e` passed all 13 core jobs and SDK qualification. Real cost acquisition, controlled Windows writes and actual uniform-device benefits remain open; no normal GPU route is enabled.
+
+
+The explicit [controlled native uniform write](NATIVE_UNIFORM_WRITE.md) now joins owned write buffers, resource-selected complete extents, the uniform worker controller and commit-bound Windows outputs. Publishing-source qualification is pending. Its controller at `4d1ef00` passed all 13 core jobs and SDK qualification. Ordinary callbacks remain CPU-only; actual uniform GPU native-write calibration, measured costs and useful end-to-end results are still required.

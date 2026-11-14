@@ -675,5 +675,14 @@
     "jobs_total": 13,
     "contract": "docs/UNIFORM_LZ4_CONTROLLER.md",
     "next": "Qualify terminal controller then prioritize controlled Windows-write integration and bounded actual uniform GPU calibration/cost acquisition. Do not substitute more standalone CPU capability probes for actual useful GPU work."
+  },
+  "native_uniform_write_checkpoint": {
+    "controller_source": "4d1ef00c95c3e4fa51f92569df3fc119f8b9526e",
+    "core_run": 43596989360,
+    "sdk_run": 43596989703,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "next": "Qualify native write composition, implement bounded actual uniform GPU native-write calibration without pretending empirical costs exist, acquire real configuration-keyed measurements, and integrate the controlled Windows application path. Actual GPU usefulness and minimum total stored cost remain required."
   }
 }
