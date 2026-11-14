@@ -208,13 +208,17 @@ target_compile_options(flitzfs_rocm_cpu_lz4_probe PRIVATE /W4 /permissive-)
 # SDK-only CPU qualification; neither implementation nor candidate module is
 # linked into the normal worker, helper, filesystem, or distributable bundle.
 if(FLITZFS_ROCM_LZ4_OBJECT AND FLITZFS_ROCM_LZ4_SOURCE)
-  add_library(flitzfs_rocm_lz4_compute STATIC "${flitzfs_root}/src/windows/hip_lz4_compute.cpp")
+  add_library(flitzfs_rocm_lz4_compute STATIC "${flitzfs_root}/src/windows/hip_lz4_compute.cpp"
+    "${flitzfs_root}/src/windows/hip_uniform_lz4_compute.cpp")
   target_include_directories(flitzfs_rocm_lz4_compute PUBLIC "${lz4_source_dir}")
   target_link_libraries(flitzfs_rocm_lz4_compute PUBLIC flitzfs_hip_compute_common)
   target_compile_options(flitzfs_rocm_lz4_compute PRIVATE /W4 /permissive-)
   add_executable(flitzfs_rocm_lz4_compute_probe lz4_compute_probe.cpp)
   target_link_libraries(flitzfs_rocm_lz4_compute_probe PRIVATE flitzfs_rocm_lz4_compute)
   target_compile_options(flitzfs_rocm_lz4_compute_probe PRIVATE /W4 /permissive-)
+  add_executable(flitzfs_rocm_uniform_lz4_compute_probe uniform_lz4_compute_probe.cpp)
+  target_link_libraries(flitzfs_rocm_uniform_lz4_compute_probe PRIVATE flitzfs_rocm_lz4_compute)
+  target_compile_options(flitzfs_rocm_uniform_lz4_compute_probe PRIVATE /W4 /permissive-)
 endif()
 
 # Explicit disposable-VM runtime fixture. This separate executable leaves the

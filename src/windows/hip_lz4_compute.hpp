@@ -100,7 +100,8 @@ inline Lz4KernelCoverage select_lz4_coverage(const hipDeviceProp_t& properties,
   throw HipWorkerFailure(HipWorkerExit::unsupported_configuration,
       "compression device has no qualified code image",HipWorkerStage::device_properties);
 }
-inline void check_lz4_attributes(Lz4Attributes query,candidate_lz4::CompressKernel selected,
+template<class Kernel>
+inline void check_lz4_attributes(Lz4Attributes query,Kernel selected,
     Lz4DeviceInfo device) {
   lz4_require(query && selected,HipWorkerExit::unsupported_configuration,
       "compression function metadata unavailable",HipWorkerStage::kernel_entry);

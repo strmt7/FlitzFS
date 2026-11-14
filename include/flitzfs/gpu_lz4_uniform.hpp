@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FLITZFS_GPU_LZ4_UNIFORM_HPP
+#define FLITZFS_GPU_LZ4_UNIFORM_HPP
 #include <cstdint>
 #include <type_traits>
 #if defined(__HIPCC__)
@@ -85,3 +86,5 @@ FLITZFS_UNIFORM_LZ4_HD inline bool chunk(const Layout& p,u32 index,Chunk& out) n
 }
 }
 #undef FLITZFS_UNIFORM_LZ4_HD
+
+#endif // FLITZFS_GPU_LZ4_UNIFORM_HPP

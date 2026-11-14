@@ -18,7 +18,7 @@ class EntryAssets(unittest.TestCase):
         values=source_assets(REPO)
         self.assertEqual(len(values),7)
         self.assertEqual([row["path"] for row in values],[row["path"] for row in ASSETS])
-        self.assertEqual(sum(len(row["body"]) for row in values),14883)
+        self.assertEqual(sum(len(row["body"]) for row in values),14981)
 
     def test_new_staging_and_exact_records(self):
         with tempfile.TemporaryDirectory(prefix="flitzfs-lz4-entry-") as name:
