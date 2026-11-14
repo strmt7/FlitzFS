@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regression: an HTTP-200 retired AMD page must not qualify as current research."""
 import unittest
-from hosted_research import qualify_source_scope, ROCM_WARP_SOURCES, COMPRESSION_LEARNED_SOURCES, COMPRESSION_SYSTEMS_SOURCES
+from hosted_research import qualify_source_scope, ROCM_WARP_SOURCES, COMPRESSION_LEARNED_SOURCES, COMPRESSION_SYSTEMS_SOURCES, ROCM_AMORTIZATION_SOURCES
 
 class SourceScopeTests(unittest.TestCase):
     def setUp(self):
@@ -115,6 +115,35 @@ class CompressionSourceScope(unittest.TestCase):
         row=dict(success=False,url=COMPRESSION_LEARNED_SOURCES[0][1],
             native_success=False,error="robots denied",failure_category="robots_denied")
         self.assertIs(qualify_source_scope("compression-learned",row,"x"*3000),row)
+
+class AmortizationSourceScope(unittest.TestCase):
+    def test_closed_current_sdk_urls(self):
+        self.assertEqual(len(ROCM_AMORTIZATION_SOURCES),4)
+        self.assertEqual(len({row[0] for row in ROCM_AMORTIZATION_SOURCES}),4)
+        self.assertEqual(len({row[1] for row in ROCM_AMORTIZATION_SOURCES}),4)
+        for _,url,marker,term in ROCM_AMORTIZATION_SOURCES:
+            self.assertTrue(url.startswith("https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/"))
+            self.assertTrue(marker.startswith("# "))
+            self.assertTrue(term)
+
+    def test_wrong_version_uri_partial_body_and_native_denial(self):
+        for _,url,marker,term in ROCM_AMORTIZATION_SOURCES:
+            row=dict(success=True,url=url,native_success=True,http_status=200,
+                capture="kept.native.json",capture_sha256="e"*64)
+            text="HIP 7.16.0 Documentation\n"+marker+"\n"+term+"\n"+("source body "*220)
+            with self.subTest(url=url):
+                self.assertIs(qualify_source_scope("rocm-amortization",row,text),row)
+                for changed,body in ((row,text.replace("7.16.0","7.15.0")),
+                        (row,text.replace(marker,"wrong heading")),
+                        (row,marker+" "+term),
+                        (dict(row,url=url.replace("docs-10.1.0","latest")),text)):
+                    result=qualify_source_scope("rocm-amortization",changed,body)
+                    self.assertFalse(result["success"])
+                    self.assertEqual(result["failure_category"],"unexpected_amortization_source_scope")
+                    self.assertEqual(result["capture_sha256"],row["capture_sha256"])
+                    self.assertTrue(changed["success"])
+                denied=dict(row,success=False,error="robots denied",failure_category="robots_denied")
+                self.assertIs(qualify_source_scope("rocm-amortization",denied,text),denied)
 
 if __name__=="__main__":
     unittest.main()

@@ -124,6 +124,13 @@ ROCM_WARP_SOURCES = (
     ("hip-current-warp-stream", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html", "hipStreamCreateWithPriority", "priority"),
 )
 
+ROCM_AMORTIZATION_SOURCES = (
+    ("hip-current-initialization", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/initialization.html", "# Initialization", "hipInit"),
+    ("hip-current-asynchronous", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/asynchronous.html", "# Asynchronous concurrent execution", "stream"),
+    ("hip-current-reuse-streams", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html", "# Stream management", "hipStreamQuery"),
+    ("hip-current-reuse-errors", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/error_codes.html", "# HIP error codes", "context"),
+)
+
 ROCM_STREAM_SOURCES = (
     ("hip-current-stream-management", "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html", "hipStreamCreateWithPriority", "hipStreamDestroy"),
 )
@@ -274,6 +281,14 @@ def qualify_source_scope(source_group, row, markdown):
             return dict(row,success=False,expected_content=False,
                 failure_category="unexpected_documentation_scope",
                 error="Expected the closed HIP 7.16.0 page and substantive source markers")
+    if source_group=="rocm-amortization" and row["success"]:
+        admitted={url:(marker,term) for _,url,marker,term in ROCM_AMORTIZATION_SOURCES}
+        markers=admitted.get(row.get("url"))
+        if (markers is None or len(markdown)<2000 or "HIP 7.16.0 Documentation" not in markdown or
+                not all(marker.casefold() in markdown.casefold() for marker in markers)):
+            return dict(row,success=False,expected_content=False,
+                failure_category="unexpected_amortization_source_scope",
+                error="Expected the closed HIP 7.16.0 source, substantive body and exact selected URL")
     if source_group in ("compression-learned","compression-systems") and row["success"]:
         selected=COMPRESSION_LEARNED_SOURCES if source_group=="compression-learned" else COMPRESSION_SYSTEMS_SOURCES
         admitted={url:(marker,term) for _,url,marker,term in selected}
@@ -298,6 +313,7 @@ async def capture(args):
         selected = {"process": PROCESS_SOURCES, "amd": AMD_SOURCES, "durability": SOURCES, "rocm-windows-hardware": ROCM_WINDOWS_HARDWARE_SOURCES, "rocm-current": ROCM_CURRENT_SOURCES, "rocm-runtime": ROCM_RUNTIME_SOURCES, "windows-target": WINDOWS_TARGET_SOURCES,
                     "windows-framework": WINDOWS_FRAMEWORK_SOURCES, "windows-alternatives": WINDOWS_ALTERNATIVE_SOURCES,
                     "rocm-stream": ROCM_STREAM_SOURCES, "rocm-warp": ROCM_WARP_SOURCES,
+                    "rocm-amortization": ROCM_AMORTIZATION_SOURCES,
                     "windows-basic": WINDOWS_BASIC_SOURCES, "windows-security": WINDOWS_SECURITY_SOURCES,
                     "windows-protocol": WINDOWS_PROTOCOL_SOURCES, "windows-ownership": WINDOWS_OWNERSHIP_SOURCES, "windows-locked-ram": WINDOWS_LOCKED_RAM_SOURCES, "windows-runtime-trust": WINDOWS_RUNTIME_TRUST_SOURCES,
                     "windows-process-retirement": WINDOWS_PROCESS_RETIREMENT_SOURCES,
@@ -336,7 +352,7 @@ async def capture(args):
                     print(json.dumps({"native_navigation": name, "official_links": selected_links}), flush=True)
                 offset = markdown.lower().rfind(term.lower())
                 print(json.dumps({"review": name, "excerpt": markdown[max(0, offset-200):offset+1100]}), flush=True)
-                if args.source_group in ("rocm-runtime", "rocm-stream", "rocm-warp") or args.source_group.startswith("windows-"):
+                if args.source_group in ("rocm-runtime", "rocm-stream", "rocm-warp", "rocm-amortization") or args.source_group.startswith("windows-"):
                     terms = ("__syncwarp", "lockstep", "preempt", "GetNodeCount", "D3D12CreateDevice", "physical adapter", "node mask", "EnumAdapters1", "DXGI_ERROR_NOT_FOUND", "AdapterLuid", "DedicatedVideoMemory",
                              "VendorId", "DXGI_ADAPTER_FLAG_SOFTWARE", "WinVerifyTrust", "WTD_CACHE_ONLY_URL_RETRIEVAL", "WTD_UI_NONE",
                              "LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR", "LOAD_LIBRARY_SEARCH_SYSTEM32",
@@ -359,7 +375,7 @@ async def capture(args):
                                 "text": markdown[max(0, offset-160):offset+950]})
                     print(json.dumps({"runtime_source_review": name,
                         "excerpts": excerpts[:40]}), flush=True)
-                if args.source_group in ("rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp") or args.source_group.startswith("windows-"):
+                if args.source_group in ("rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "rocm-amortization") or args.source_group.startswith("windows-"):
                     print(json.dumps({"current_source_review": name,
                         "opening": markdown[:10000],
                         "body": markdown[(re.search(r"(?m)^# ", markdown).start()
@@ -382,7 +398,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("compression-learned","compression-systems","process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test") and not all(r["success"] for r in rows):
+    if args.source_group in ("compression-learned","compression-systems","process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "rocm-amortization", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -392,7 +408,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("compression-learned","compression-systems","durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("compression-learned","compression-systems","durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "rocm-amortization", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)
