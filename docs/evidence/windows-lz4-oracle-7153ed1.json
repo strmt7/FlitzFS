@@ -1,0 +1,50 @@
+{
+  "experimental": true,
+  "source_commit": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+  "core_run": 43583139415,
+  "failed_job": 132411972281,
+  "tests_passed": 146,
+  "tests_total": 147,
+  "failed_test": "bounded_winfsp_native_data_lz4_faults",
+  "native_error": "SDK fault mixed acknowledged data/reservation/basic/security",
+  "diagnosis": "The new fixture expects 131072 bytes but its inherited comparison requested only 100000. That short read cannot equal the complete expected vector.",
+  "evidence": {
+    "expected_bytes": 131072,
+    "requested_bytes": 100000,
+    "path": "tests/test_native_file_info_sdk.cpp",
+    "symbol": "closure"
+  },
+  "correction": "Assert exact logical EOF, request exactly the complete expected length, compare every byte, and validate the successful un-faulted reference before enumerating failures. Preserve all fault points, modes, metadata comparisons, limits and old tests.",
+  "physical_power_loss_qualified": false,
+  "owner_executed": false,
+  "status": "Test-oracle correction requires matching-source qualification; the original failed result is retained.",
+  "native_artifact": {
+    "id": 14109387715,
+    "artifact_sha256": "929987b42005890b6430bb458e0b31a1cd6b291b25a6cdd365ff78843546fe16",
+    "archive_bytes": 13191,
+    "log": "LastTest.log",
+    "log_bytes": 155458,
+    "log_sha256": "627d908b3f996cbe2a5d3027e67c4ca54b9448ad79c4d3cda28f71c75fb16df3",
+    "evidence": [
+      "Windows data-bridge invariants: {\"schema\":1,\"checks\":631,\"sealed_cases\":28,\"sdk_calls\":189,\"backend_retired\":4,\"handles_initial\":123,\"handles_final\":123,\"advice_cases\":4,\"advice_sealed_cases\":4,\"complete\":true,\"mount\":false}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"write\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":59,\"fault_cases\":177,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"write\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"write\",\"mode\":\"automatic\",\"layout\":\"fixed\",\"io_steps\":59,\"fault_cases\":177,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"write\",\"mode\":\"automatic\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"eof\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":57,\"fault_cases\":171,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"eof\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":12,\"fault_cases\":36,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"eof\",\"mode\":\"automatic\",\"layout\":\"fixed\",\"io_steps\":57,\"fault_cases\":171,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"eof\",\"mode\":\"automatic\",\"layout\":\"compact\",\"io_steps\":12,\"fault_cases\":36,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"reserve\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":59,\"fault_cases\":177,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"reserve\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"reserve\",\"mode\":\"automatic\",\"layout\":\"fixed\",\"io_steps\":58,\"fault_cases\":174,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"reserve\",\"mode\":\"automatic\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"flush\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":1,\"fault_cases\":3,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"flush\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":1,\"fault_cases\":3,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"flush\",\"mode\":\"automatic\",\"layout\":\"fixed\",\"io_steps\":1,\"fault_cases\":3,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"flush\",\"mode\":\"automatic\",\"layout\":\"compact\",\"io_steps\":1,\"fault_cases\":3,\"complete\":true}\r",
+      "Windows data-bridge failure: SDK fault mixed acknowledged data/reservation/basic/security\r"
+    ]
+  },
+  "production_files_changed_for_correction": false
+}
