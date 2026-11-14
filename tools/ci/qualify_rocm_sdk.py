@@ -520,9 +520,35 @@ def main():
             return dict(bytes=executable.stat().st_size,sha256=digest(executable),
                 imports=sorted(set(imports)),qualification=row,private_module_loaded=False,
                 linked_into_product=False,in_worker_bundle=False,exported_as_artifact=False)
+        def qualify_uniform_compute(directory,available,label):
+            executable=directory/"Release/flitzfs_rocm_uniform_lz4_compute_probe.exe"
+            require(executable.is_file() and 0<executable.stat().st_size<=32*1024*1024,
+                "uniform compute CPU executable budget")
+            imports,delay=pe_import_names(executable.read_bytes())
+            require(bool(imports) and set(imports)<=allowed and not delay,
+                "uniform compute CPU has eager runtime dependencies")
+            result=run(bounds,[str(executable)],report,label,30)
+            prefix="HIP uniform LZ4 CPU qualification: "
+            rows=[json.loads(line[len(prefix):]) for line in result["stdout"].splitlines()
+                if line.startswith(prefix)]
+            require(len(rows)==1,"missing uniform compute CPU receipt")
+            row=rows[0]
+            require(row["decoder_available"] is available and row["complete"] is True and
+                row["guarded_exit_confirmed"] is True and row["hip_runtime_loaded"] is False and
+                row["gpu_executed"] is False and type(row["checks"]) is int and row["checks"]>0 and
+                row["scenarios"]==row["successes"]+row["refusals"],
+                "uniform compute CPU qualification contract")
+            require((available and row["successes"]==3 and row["refusals"]>=30) or
+                (not available and row["successes"]==0 and row["refusals"]==1),
+                "uniform compute CPU positive/failure coverage mismatch")
+            return dict(bytes=executable.stat().st_size,sha256=digest(executable),
+                imports=sorted(set(imports)),qualification=row,private_module_loaded=False,
+                linked_into_product=False,in_worker_bundle=False,exported_as_artifact=False)
         if args.hipcomp_link_candidate:
             report["lz4_compute_CPU"]=qualify_lz4_compute(build,cpu_lz4_source is not None,
                 "typed-LZ4-compute-CPU-fault-matrix")
+            report["uniform_lz4_compute_CPU"]=qualify_uniform_compute(build,cpu_lz4_source is not None,
+                "typed-uniform-LZ4-compute-CPU-fault-matrix")
         if cpu_lz4_source is not None:
             decoder_tests=[]
             for name,prefix,available in (
@@ -546,10 +572,13 @@ def main():
                 "-DFLITZFS_ROCM_LZ4_SOURCE="+str(root/"hipcomp-bounded-entry/compile-input/src/flitzfs_lz4_module.cpp")],
                 report,"raw-worker-control-configure")
             run(bounds,[cmake,"--build",str(raw_build),"--config","Release","--target",
-                "flitzfs_rocm_cpu_lz4_probe","flitzfs_hip_worker","flitzfs_rocm_lz4_compute_probe","--parallel","2"],
+                "flitzfs_rocm_cpu_lz4_probe","flitzfs_hip_worker","flitzfs_rocm_lz4_compute_probe",
+                "flitzfs_rocm_uniform_lz4_compute_probe","--parallel","2"],
                 report,"raw-worker-control-build")
             report["lz4_compute_raw_CPU"]=qualify_lz4_compute(raw_build,False,
                 "typed-LZ4-compute-raw-refusal")
+            report["uniform_lz4_compute_raw_CPU"]=qualify_uniform_compute(raw_build,False,
+                "typed-uniform-LZ4-compute-raw-refusal")
             raw_probe=raw_build/"Release/flitzfs_rocm_cpu_lz4_probe.exe"
             raw_worker=raw_build/"Release/flitzfs_hip_worker.exe"
             raw_result=run(bounds,[str(raw_probe),str(raw_worker),"--unavailable"],

@@ -649,5 +649,14 @@
     "constraints": "Latency must remain practical and sustained access must not become dramatically slow. Moderate penalties are acceptable; do not impose minimum latency, tiny groups or universal faster-than-baseline requirements on cold recompression.",
     "safety": "Exact byte reconstruction, independent CPU fallback, protected decoder state and bounded resource/transactional safety remain mandatory.",
     "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
+  },
+  "resource_adaptive_checkpoint": {
+    "source": "38e1f080c3a3ab3c80d5a3dee31e3b6deee157a3",
+    "core_run": 43590755665,
+    "sdk_run": 43590756685,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "contract": "docs/UNIFORM_LZ4_RUNTIME.md",
+    "next": "Finish source-qualified version-2 messages/typed compute, then authenticated uniform worker packaging, repeated configuration-qualified grants and end-to-end controlled Windows write integration. Keep actual useful GPU throughput and total stored cost as explicit open gates."
   }
 }

@@ -9,6 +9,7 @@
 #include "gpu_lz4_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
 #include "flitzfs/lz4_worker_wire.hpp"
+#include "flitzfs/uniform_lz4_wire.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include "flitzfs/native_session.hpp"
 #include "native_fs_fixture.hpp"
@@ -107,6 +108,10 @@ Bytes lz4_literal_fixture(Lz4WorkerBytes input) {
   }
   result.insert(result.end(),input.begin(),input.end());return result;
 }
+UniformLz4Limits uniform_fixture_limits(){
+  uniform_lz4::Layout p{};check(uniform_lz4::make_layout(16U*65536+37,65536,p),"uniform channel fixture layout");
+  return uniform_lz4_limits(p);
+}
 constexpr WorkerChannelCapacity sized_capacity{3U*1024*1024+37,2U*1024*1024+71};
 int sized_child(std::wstring_view mode,std::wstring_view token) {
   check_job();
@@ -141,6 +146,21 @@ int sized_child(std::wstring_view mode,std::wstring_view token) {
   return mode==L"sized-fail-after"?17:0;
 }
 int child(std::wstring_view mode,std::wstring_view token) {
+  if(mode.starts_with(L"uniform-")){
+    check_job();const auto limits=uniform_fixture_limits();
+    auto channel=WorkerChannel::open_sized(token,{static_cast<std::size_t>(limits.request_bytes),
+        static_cast<std::size_t>(limits.reply_bytes)});
+    auto request=decode_uniform_lz4_request(channel.request(),limits);
+    if(!gpu_lz4_cpu_verification_available())return 17;
+    UniformLz4Candidates c;
+    for(std::uint32_t i=0;i<request.batch.layout().chunks;++i){
+      const auto payload=lz4_literal_fixture(request.batch.input(i));c.sizes.push_back(static_cast<std::uint32_t>(payload.size()));
+      c.payload.insert(c.payload.end(),payload.begin(),payload.end());
+    }
+    auto frame=encode_uniform_lz4_reply(request.batch,request.request_id,c,WorkerExecution::cpu_semantics);
+    if(mode==L"uniform-corrupt")frame.back()^=std::byte{1};
+    channel.publish(frame);return mode==L"uniform-fail-after"?17:0;
+  }
   if(mode.starts_with(L"sized-"))return sized_child(mode,token);
   check_job();
   if(mode==L"exit-empty")return 0;
@@ -993,6 +1013,35 @@ void match_transactions(const std::filesystem::path& executable) {
         "match channel CPU reopen or context retirement failed");
   }
 }
+void uniform_transactions(const std::filesystem::path& executable){
+  const auto limits=uniform_fixture_limits();Bytes source(static_cast<std::size_t>(limits.input_bytes));
+  for(std::size_t i=0;i<source.size();++i)source[i]=static_cast<std::byte>((i*17+i/101)%256);
+  const auto prepared=PreparedUniformLz4::prepare(source,limits);
+  const auto request=encode_uniform_lz4_request(prepared,941);
+  WorkerChannelCapacity capacity{static_cast<std::size_t>(limits.request_bytes),static_cast<std::size_t>(limits.reply_bytes)};
+  for(const auto* mode:{L"uniform-ok",L"uniform-corrupt",L"uniform-fail-after"}){
+    auto session=WorkerExchangeSession::start_sized(executable,{mode},request,capacity,{});
+    eventually([&]{return session.try_result()!=nullptr;},5000,"uniform channel did not finish");
+    const auto* result=session.try_result();
+    check(result && !session.failure() && result->process.exit_confirmed,"uniform channel child retirement");
+    if(!gpu_lz4_cpu_verification_available() || std::wstring_view(mode)==L"uniform-fail-after")
+      check(result->code==WorkerExchangeCode::worker_failed && result->response.empty(),"failed uniform child exposed reply");
+    else if(std::wstring_view(mode)==L"uniform-corrupt"){
+      check(result->code==WorkerExchangeCode::completed,"corrupt uniform child transport");
+      rejects([&]{(void)accept_uniform_lz4_reply(result->response,prepared,941,WorkerExecution::cpu_semantics);});
+    }else{
+      check(result->code==WorkerExchangeCode::completed,"uniform channel transport failed");
+      const auto accepted=accept_uniform_lz4_reply(result->response,prepared,941,WorkerExecution::cpu_semantics);
+      verify_uniform_lz4_candidates(prepared,accepted);
+      check(accepted.sizes.size()==17 && std::equal(source.begin(),source.end(),prepared.plaintext().begin()),
+          "uniform real channel changed source or dropped chunks");
+    }
+    eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},
+        2000,"uniform supervisor failed retirement");check_closed(*result);
+  }
+  std::cout<<"Uniform channel: input="<<source.size()<<" chunks="<<prepared.layout().chunks
+      <<" CPU_decoder="<<gpu_lz4_cpu_verification_available()<<" gpu_executed=false\n";
+}
 void sized_transactions(const std::filesystem::path& executable) {
   ProcessBudget budget;
   check(valid_worker_channel_capacity(sized_capacity,budget),"valid sized capacity rejected");
@@ -1036,7 +1085,7 @@ void sized_transactions(const std::filesystem::path& executable) {
   rejects([&]{(void)WorkerExchangeSession::start_sized(executable,{L"sized-ok"},source,{32,32},budget);});
   check(WorkerExchangeSession::available(),"invalid sized admission held supervisor");
   std::cout<<"Sized channel: request="<<sized_capacity.request_bytes<<" reply="
-      <<sized_capacity.reply_bytes<<" cpu_semantics_only=true gpu_executed=false\\n";
+      <<sized_capacity.reply_bytes<<" cpu_semantics_only=true gpu_executed=false\n";
 }
 void asynchronous_fallback(const std::filesystem::path& executable) {
   std::array<std::byte,8> luid{};luid[0]=std::byte{1};
@@ -1193,6 +1242,7 @@ int wmain(int argc,wchar_t** argv){try{
     check_closed(*result);
   }
   observe(L"async-success");
+  uniform_transactions(executable);observe(L"uniform-transport");
   sized_transactions(executable);observe(L"sized-transport");
   asynchronous_fallback(executable);
   observe(L"async-fallback");

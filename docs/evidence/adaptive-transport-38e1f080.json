@@ -1,0 +1,206 @@
+{
+  "source": "38e1f080c3a3ab3c80d5a3dee31e3b6deee157a3",
+  "tree": "7ba4c63ade827734d2bab28d2e8bf04c93289e4e",
+  "qualification": "All 13 core jobs and the full SDK qualification passed.",
+  "core_run": 43590755665,
+  "sdk_run": 43590756685,
+  "native": {
+    "artifact_sha256": "5c82404114730f52c1a7f380b7df215b312a484d2348b3c65e38107f13987eb3",
+    "archive_bytes": 13307,
+    "log": "LastTest.log",
+    "log_bytes": 156910,
+    "log_sha256": "2ac658d69e59772f35007937b4e992d2ef5a6a314adcc6bc1d18cf6a636d2bc9",
+    "evidence": [
+      "Adaptive LZ4 windows: small_input=16711680 large_input=99942400 background_input=87031808 gpu_executed=false\r",
+      "PASS: 754 scalable layout/resource window checks; no payload allocation or GPU execution\r",
+      "Sized channel: request=3145765 reply=2097223 cpu_semantics_only=true gpu_executed=false\\nPASS: verified CPU bytes became available while the exact helper remained live; cancellation ran separately.\r",
+      "handle_totals initial=79 final=79\r",
+      "PASS: 1399 real Windows worker exchange checks; CPU semantics only, no GPU or data files.\r"
+    ]
+  },
+  "prior_adaptive": {
+    "schema": "flitzfs-adaptive-execution-proof-1",
+    "source": "dce38bd5f5cb2609bfa1862f7d2420d5b1287f08",
+    "sdk": {
+      "run": 43590227832,
+      "job": 132433208160,
+      "artifact": 14111074810,
+      "archive_sha256": "f124485cd299de3a9d2702087e85711c0039baf9c632ff577dcd35296f9cb4a9",
+      "archive_bytes": 138910,
+      "root_sha256": "cf836b252c2ec004db8149f779d91c156b7ac52645570df12c8a3b98ed65c024",
+      "root_bytes": 416346,
+      "commit": "dce38bd5f5cb2609bfa1862f7d2420d5b1287f08",
+      "complete": true,
+      "distribution": "10.1.0",
+      "uniform": {
+        "complete": true,
+        "bytes": 330240,
+        "sha256": "865a93dd3bda93b71f5a28a8bbb9f9209f8338a0c96a237344fd94a8cab2d004",
+        "imports": [
+          "amdhip64_7.dll",
+          "kernel32.dll"
+        ],
+        "exports": [
+          "flitzfs_uniform_lz4_kernel_api"
+        ],
+        "layout_bytes": 80,
+        "version": 2,
+        "wave_mask": 1,
+        "loaded": false,
+        "gpu_executed": false,
+        "linked_into_product": false,
+        "in_worker_bundle": false,
+        "exported_as_artifact": false
+      },
+      "targets": [
+        "gfx1100",
+        "gfx1101",
+        "gfx1102",
+        "gfx1151",
+        "gfx1200",
+        "gfx1201"
+      ],
+      "compute": {
+        "checks": 828,
+        "scenarios": 58,
+        "successes": 6,
+        "refusals": 52,
+        "decoder_available": true,
+        "attribute_symbol": "hipFuncGetAttributes",
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "raw_compute": {
+        "checks": 8,
+        "scenarios": 1,
+        "successes": 0,
+        "refusals": 1,
+        "decoder_available": false,
+        "attribute_symbol": "hipFuncGetAttributes",
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "worker": {
+        "checks": 55,
+        "exits_confirmed": 10,
+        "bundle_verified": true,
+        "tamper_refused": true,
+        "CPU_source_unchanged": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      }
+    },
+    "core": {
+      "run": 43590204711,
+      "native_job": 132433133691,
+      "native_ctest_groups": 148,
+      "native_passed": true,
+      "linux_codec_enabled_passed": true,
+      "linux_raw_passed": true,
+      "windows_raw_passed": true,
+      "sanitizers_passed": true,
+      "mount_jobs_pending": false,
+      "jobs_passed": 13,
+      "jobs_total": 13,
+      "all_jobs_passed": true
+    },
+    "owner_executed": false,
+    "actual_adaptive_gpu_execution": false,
+    "ordinary_gpu_route": false,
+    "unresolved": [
+      "Uniform codec frames and independent CPU verification integration",
+      "Configuration-qualified adaptive runtime/worker",
+      "Streaming foreground/background controller/helper integration",
+      "Useful end-to-end compression and throughput measurement"
+    ],
+    "dependabot": {
+      "checked_utc": "2026-11-14T11:38:00Z",
+      "open": 0,
+      "transport": "authenticated paginated GitHub API"
+    }
+  },
+  "next": "Integrate version-2 uniform codec frames, independent CPU verification and actual adaptive GPU runtime into controlled Windows writes; measure complete-operation benefit. Do not repeat old unchanged owner GPU experiments or spend the next turn on disconnected capability probes.",
+  "owner_checkout_preserved": true,
+  "owner_executed": false,
+  "normal_adaptive_gpu_route": false,
+  "publication": "Batch verified evidence/docs with next functional commit; avoid a redundant documentation-only qualification cycle.",
+  "sdk": {
+    "source": "38e1f080c3a3ab3c80d5a3dee31e3b6deee157a3",
+    "complete": true,
+    "artifact_id": 14111829635,
+    "archive_bytes": 138908,
+    "archive_sha256": "7c0a63586832e83e656c0a3783f0d86e097a15331271c23ec42ddc749e98855d",
+    "root_bytes": 416348,
+    "root_sha256": "ccb74b671d61f5167e5c2253db1f19a861ab910a8415e31284fb2e6365429aa2",
+    "uniform": {
+      "complete": true,
+      "bytes": 330240,
+      "sha256": "ae32e354ea2bdb182cdd4896ce15f1e20635a7c4a0faee121daf18c4b5c731b0",
+      "imports": [
+        "amdhip64_7.dll",
+        "kernel32.dll"
+      ],
+      "exports": [
+        "flitzfs_uniform_lz4_kernel_api"
+      ],
+      "layout_bytes": 80,
+      "version": 2,
+      "wave_mask": 1,
+      "loaded": false,
+      "gpu_executed": false,
+      "linked_into_product": false,
+      "in_worker_bundle": false,
+      "exported_as_artifact": false
+    },
+    "targets": [
+      "gfx1100",
+      "gfx1101",
+      "gfx1102",
+      "gfx1151",
+      "gfx1200",
+      "gfx1201"
+    ],
+    "compute": {
+      "checks": 828,
+      "scenarios": 58,
+      "successes": 6,
+      "refusals": 52,
+      "decoder_available": true,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "raw_compute": {
+      "checks": 8,
+      "scenarios": 1,
+      "successes": 0,
+      "refusals": 1,
+      "decoder_available": false,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "worker": {
+      "checks": 55,
+      "exits_confirmed": 10,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    }
+  },
+  "next_implementation": "Integrate uniform version-2 codec frames and actual adaptive runtime/controller into owned Windows writes; retain CPU readback/fallback and measure complete-operation speed/total size.",
+  "core_jobs_passed": 13,
+  "core_jobs_total": 13
+}

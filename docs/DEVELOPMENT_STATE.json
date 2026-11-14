@@ -874,7 +874,7 @@
     "normal_gpu_routing": false
   },
   "resource_adaptive_execution": {
-    "status": "Uniform layout, resource/time window planner and separate private typed-module compilation require publishing-source qualification; adaptive transport/runtime integration remains required.",
+    "status": "Uniform layout/window planner and resource-sized transport qualified at 38e1f080; version-2 messages/slab/typed compute require publishing-source qualification.",
     "contract": "docs/ADAPTIVE_LZ4_EXECUTION.md",
     "fixed_allocation_ceiling": false,
     "byte_offsets": 64,
@@ -883,6 +883,24 @@
     "configured_memory_keyed": true,
     "qualified_grid_and_kernel_cost_required": true,
     "normal_GPU_routing": false,
-    "owner_executed": false
+    "owner_executed": false,
+    "qualified_source": "38e1f080c3a3ab3c80d5a3dee31e3b6deee157a3",
+    "core_run": 43590755665,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "sdk_run": 43590756685,
+    "native_CTest_passed": 148,
+    "window_checks": 754,
+    "windows_worker_exchange_checks": 1399,
+    "worker_handle_initial": 79,
+    "worker_handle_final": 79
+  },
+  "uniform_lz4_runtime": {
+    "status": "Version-2 owned messages, independent CPU/slab verification, sized-channel CPU integration and SDK-typed compute are added; exact-source qualification pending.",
+    "contract": "docs/UNIFORM_LZ4_RUNTIME.md",
+    "runtime_packaged": false,
+    "actual_gpu_executed": false,
+    "normal_GPU_routing": false,
+    "next": "Authenticate and package uniform module/worker, repeat qualified resource/time grants in worker, compose recovery/terminal CPU fallback and controlled Windows writes."
   }
 }
