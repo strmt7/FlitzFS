@@ -1,0 +1,306 @@
+{
+  "experimental": true,
+  "date": "2026-11-14",
+  "question": "Amortize measured HIP initialization across a finite serial sweep without accepting replies from a live child or retaining an idle worker.",
+  "measured_input": "docs/evidence/uniform-gpu-native-7e87bb4.json",
+  "webpages": {
+    "run": 43606936939,
+    "job": 132483489304,
+    "artifact": 14118239876,
+    "qualification": "failed; zero accepted pages",
+    "archive_sha256": "b6cb0ec81c4a2b9c45c84a9ea5ae12809b987fae043b8b2c73d07c52ce8a59b1",
+    "archive_bytes": 51916,
+    "receipt_sha256": "419a957cb8abf6a02a6645998726e0e7c53a75a78f85701a99bd1f270314de90",
+    "native_captures_verified": 4,
+    "receipt": {
+      "experimental": true,
+      "commit": "e7d8598e7f7cebb4b59aab025ae5d546bf982007",
+      "provider_repository": "strmt7/FlitzZip",
+      "provider_commit": "4e6a1bb0d144611a09dcbc65276faa676e923882",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "python": "3.13.18 (main, Oct 26 2026, 14:20:56) [GCC 13.3.0]",
+      "source_group": "rocm-amortization",
+      "limits": {
+        "memory_max": 3221225472,
+        "tasks_max": 256,
+        "cpu_max": [
+          200000,
+          100000
+        ]
+      },
+      "page_timeout_seconds": 45,
+      "robots_checked": true,
+      "external_llm": false,
+      "persistent_profile": false,
+      "sources": [
+        {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/initialization.html",
+          "success": false,
+          "native_success": false,
+          "http_status": 307,
+          "final_http_status": 429,
+          "markdown_bytes": 519,
+          "markdown_sha256": "31f86e59e5aa99b055d4ca2388443733e286d688bb6330d069de3a36da090130",
+          "expected_content": false,
+          "failure_category": "access_challenge",
+          "error": "Blocked by anti-bot protection: Cloudflare JS challenge",
+          "seconds": 0.469,
+          "capture": "hip-current-initialization.native.json",
+          "capture_sha256": "51b9118ffd5c627c96da63a94ea6149426235ad88370d1346371623e98099e60",
+          "name": "hip-current-initialization"
+        },
+        {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/asynchronous.html",
+          "success": false,
+          "native_success": false,
+          "http_status": 429,
+          "final_http_status": 429,
+          "markdown_bytes": 519,
+          "markdown_sha256": "ee8e18a479b2451a7f943f75e86fbe8686d75774c3627bb78508e544b6fbb903",
+          "expected_content": false,
+          "failure_category": "access_challenge",
+          "error": "Blocked by anti-bot protection: HTTP 429 Too Many Requests",
+          "seconds": 0.53,
+          "capture": "hip-current-asynchronous.native.json",
+          "capture_sha256": "9e0c3ccaca0a09d541b260259d6d9512bea425378575c9758ce955b00eecff0c",
+          "name": "hip-current-asynchronous"
+        },
+        {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html",
+          "success": false,
+          "native_success": false,
+          "http_status": 429,
+          "final_http_status": 429,
+          "markdown_bytes": 519,
+          "markdown_sha256": "cb520a3d47965787ad3f62f8d8fdbab2cb64d36d0f986bd39254703436470b88",
+          "expected_content": false,
+          "failure_category": "access_challenge",
+          "error": "Blocked by anti-bot protection: HTTP 429 Too Many Requests",
+          "seconds": 0.392,
+          "capture": "hip-current-reuse-streams.native.json",
+          "capture_sha256": "f6ab9a02575f6c79ce31db310c9303e8b0a7debb59f6b0a06f1b9d887a331321",
+          "name": "hip-current-reuse-streams"
+        },
+        {
+          "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/error_codes.html",
+          "success": false,
+          "native_success": false,
+          "http_status": 429,
+          "final_http_status": 429,
+          "markdown_bytes": 519,
+          "markdown_sha256": "227db2ff4ecae7d3b1833a755aa486de8901ba9a3352647eaca24281ceb0ea4a",
+          "expected_content": false,
+          "failure_category": "access_challenge",
+          "error": "Blocked by anti-bot protection: HTTP 429 Too Many Requests",
+          "seconds": 0.909,
+          "capture": "hip-current-reuse-errors.native.json",
+          "capture_sha256": "29ed61342a49ca182ad5049af056a9148d1bcd6af054214a8b0a569599cb94e9",
+          "name": "hip-current-reuse-errors"
+        }
+      ]
+    }
+  },
+  "native_primary": {
+    "repository": "ROCm/hip",
+    "commit": "974dfc3e6dfbaf5022025b33fd1f727cb59c45b4",
+    "committed_utc": "2026-11-11T20:17:15Z",
+    "transport": "GitHub REST contents, native Git blob and SHA-256 verified",
+    "captures": [
+      {
+        "path": "docs/how-to/hip_runtime_api/initialization.rst",
+        "bytes": 4136,
+        "git_blob": "11b20ffb84c8c14acd1a826321f09f13c667d699",
+        "sha256": "9255a4b80709863ddf13344247288e00cf830a91a36b34ae62b062fcd38718e3",
+        "capture": "hip-native-974dfc3-initialization.rst.json",
+        "capture_sha256": "7965896973c44256199eb94ae62ea7ebfce31a14120569930505a0d950bad7e7"
+      },
+      {
+        "path": "docs/how-to/hip_runtime_api/asynchronous.rst",
+        "bytes": 11926,
+        "git_blob": "e1c93cd2b3f2eb428e86f945bee76ebd35de1d55",
+        "sha256": "de20209442322b71e2b273fef595d6433521cce5869e7bcaacec5542c78437d0",
+        "capture": "hip-native-974dfc3-asynchronous.rst.json",
+        "capture_sha256": "cdc0f0d6f4bc594f6067ff69065b0351730b5a8b5044904bc51b5da91da1aa30"
+      },
+      {
+        "path": "docs/reference/hip_runtime_api/modules/stream_management.rst",
+        "bytes": 382,
+        "git_blob": "6e5de67d7c8e6052448af7e1f76ac4dfbc28c737",
+        "sha256": "3b1f4c318206a6d74f0ef55b2c8e16cb3498c55786e7796912e425bc38a5dada",
+        "capture": "hip-native-974dfc3-stream_management.rst.json",
+        "capture_sha256": "624688bc3fef735e604b76069944aa7307dc20380566fb86c1827d9f5e4d4b70"
+      },
+      {
+        "path": "docs/reference/error_codes.rst",
+        "bytes": 54119,
+        "git_blob": "047f7b5c69ce1ea3e31dbf35feb357ba4b87487d",
+        "sha256": "0b12876ef9709f64ac26194d40575fb0e4b2e605b3e1f4137724c2f9432d4b65",
+        "capture": "hip-native-974dfc3-error_codes.rst.json",
+        "capture_sha256": "4e61c1be93b80ea49754a7eff8e7443e29d7358344ad3c391325f86c009fd92b"
+      },
+      {
+        "path": "include/hip/hip_runtime_api.h",
+        "bytes": 454839,
+        "git_blob": "1faa642a8df557443a3ec14557825c1e9d89536e",
+        "sha256": "09a4b0a4c1d0748d30dc485953f684120f0973a30c7c59d7dde4931cf9f6fff3",
+        "capture": "hip-native-974dfc3-hip_runtime_api.h.json",
+        "capture_sha256": "885339cfc944ab02aea333e98b4650d0608eef1005da3d867b9871325320209c"
+      }
+    ],
+    "SDK_source_identity_match": false,
+    "limitation": "The selected distribution's short identifier 7da43026e4 did not resolve in the checked public HIP/clr repositories; no exact installed-source match is claimed. The current public documentation informs the design, while selected-SDK compilation and typed tests remain separate mandatory gates."
+  },
+  "navigation": {
+    "run": 43606937053,
+    "artifact": 14118389901,
+    "archive_sha256": "9f9db50bb090b9c296307730d831e62994be2b8bfc97d12126b48f22d3c1515a",
+    "archive_bytes": 675194,
+    "receipts": [
+      {
+        "name": "routing-receipt.json",
+        "sha256": "7f82c3429fb8aefde383f562439d464d4a7507e23de3053c996aa815b26be0b0",
+        "commit": "e7d8598e7f7cebb4b59aab025ae5d546bf982007",
+        "repository": "strmt7/FlitzFS",
+        "source_sha256": "377bdac105ceb5bd152dca6834fe796887cdea89511474980b0e507b883e47b9",
+        "source_files": 184,
+        "provider_version": "0.2.43",
+        "actual_searches": 8,
+        "cpu_only": true,
+        "shared_mcp_modified": false
+      },
+      {
+        "name": "search-2.json",
+        "sha256": "fcb4d909545710bef891d7df462202d6c8631e33446be421f7a1956e5a122118",
+        "query": "GPU worker supervision CPU fallback recovery configuration and runtime failure",
+        "source_sha256": "377bdac105ceb5bd152dca6834fe796887cdea89511474980b0e507b883e47b9",
+        "hits": [
+          {
+            "end_line": 16,
+            "excerpt": "#pragma once #include \"gpu_worker_common.hpp\" #include \"flitzfs/lz4_worker_wire.hpp\" #include <optional> namespace flitzfs { // Single control thread. Retain this object across requests so qualified // failure/recovery history survives CPU ",
+            "file_sha256": "f6c6a6519d315c1a3d45eff7b4d6989f50c9bd6913ddefaab91a097bfc0cdd98",
+            "path": "src/windows/gpu_lz4_worker_controller.hpp",
+            "score": 0.7923931397290005,
+            "start_line": 1
+          },
+          {
+            "end_line": 62,
+            "excerpt": "WINDOWS_GPU_MEMORY_SOURCES = ( (\"windows-gpu-memory-query\", \"https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo\", \"QueryVideoMemoryInfo\", \"NodeIndex\"), (\"windows-gpu-memory-info\", \"http",
+            "file_sha256": "df091fad18e5317cfdd15b2c8ec91cd5ca7981dd9e9bbb8eefd4faa9886910c8",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.7857446050006995,
+            "start_line": 56
+          },
+          {
+            "end_line": 12,
+            "excerpt": "#pragma once #include \"gpu_worker_common.hpp\" #include \"flitzfs/match_worker_wire.hpp\" #include <optional> namespace flitzfs { // Single control thread. Retain this object across requests so qualified // failure/recovery history survives CP",
+            "file_sha256": "d71c6a0897a7da5895fcef468a300b064b0a2c157f35b02388bbfd886ac00774",
+            "path": "src/windows/gpu_match_worker_controller.hpp",
+            "score": 0.7855983809676843,
+            "start_line": 1
+          },
+          {
+            "end_line": 43,
+            "excerpt": "void GpuLz4WorkerController::select_cpu(GpuRecoveryOutcome outcome,GpuGateCode code,bool finalize) noexcept { selected_.clear();state_=GpuWorkerState::cpu_selected;last_gate_=code; if(finalize)report(outcome); } bool GpuLz4WorkerController:",
+            "file_sha256": "8d48dfeada69ea8d052f15e24ce3d54c0af3e300a8352c4dee6ffe10172622d0",
+            "path": "src/windows/gpu_lz4_worker_controller.cpp",
+            "score": 0.7839044617320425,
+            "start_line": 24
+          }
+        ]
+      },
+      {
+        "name": "search-3.json",
+        "sha256": "74d2efb1870f8e2f75deb022c64ffc7f778891b802ae0fec5c35543bb3bc93eb",
+        "query": "compression codec selection allocation budget stored decoded digest and decompression",
+        "source_sha256": "377bdac105ceb5bd152dca6834fe796887cdea89511474980b0e507b883e47b9",
+        "hits": [
+          {
+            "end_line": 36,
+            "excerpt": "bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept; struct EncodedStoreObject { std::uint32_t codec=kStoreRaw; std::vector<std::byte> payload; Digest decoded_digest{}; bool used_match_proposals",
+            "file_sha256": "25d9614983369ba876c26c0dbd7c462a8b219324dc40f7cc54b7acf32a103615",
+            "path": "src/store_codec.hpp",
+            "score": 0.791511791371617,
+            "start_line": 16
+          },
+          {
+            "end_line": 49,
+            "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+            "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+            "path": "tools/ci/hosted_semantic.py",
+            "score": 0.789350260253336,
+            "start_line": 39
+          },
+          {
+            "end_line": 264,
+            "excerpt": "# Closed primary-source scope for the owner's background recompression question. # These are research candidates, not adopted codecs or performance evidence. COMPRESSION_LEARNED_SOURCES = ( (\"llm-invocation-2026\", \"https://arxiv.org/html/26",
+            "file_sha256": "df091fad18e5317cfdd15b2c8ec91cd5ca7981dd9e9bbb8eefd4faa9886910c8",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.787972853220877,
+            "start_line": 247
+          },
+          {
+            "end_line": 139,
+            "excerpt": "struct StoreCodecEncoder::Impl { StoreCompressionOptions options; StoreCodecDecoder verifier; #ifdef FLITZFS_STORE_HAS_ZSTD Budget budget{kStoreEncoderMemoryCap}; std::unique_ptr<ZSTD_CCtx,decltype(&ZSTD_freeCCtx)> context{nullptr,&ZSTD_fre",
+            "file_sha256": "f99046c0a746c846cbea66946a5cf74ff6b08387304b7df4d1fdc86a263f1f1a",
+            "path": "src/store_codec.cpp",
+            "score": 0.7846911636453893,
+            "start_line": 124
+          }
+        ]
+      },
+      {
+        "name": "search-6.json",
+        "sha256": "3350b2f596b77309d0d16e056aa40832524beeec731a4774624176225214b7bb",
+        "query": "trusted HIP worker bundle file digest DLL module loading signature and system directory",
+        "source_sha256": "377bdac105ceb5bd152dca6834fe796887cdea89511474980b0e507b883e47b9",
+        "hits": [
+          {
+            "end_line": 300,
+            "excerpt": "clock.begin(HipPhase::bundle_verify); const auto bundle=verify_bundle(false,false,true); clock.end(HipPhase::bundle_verify); clock.begin(HipPhase::adapter_admit); const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected",
+            "file_sha256": "29c96a395e1fbe26e34c0c1269f6e5f3696b4109c7705dad05fde5e4abc63234",
+            "path": "src/windows/hip_worker_main.cpp",
+            "score": 0.7998879506613701,
+            "start_line": 287
+          },
+          {
+            "end_line": 126,
+            "excerpt": "require(verify_cached_signature(path_, &WinVerifyTrust), Exit::runtime_unavailable, \"system module trust unavailable\"); } catch (const HipWorkerFailure&) { throw; } catch (const std::bad_alloc&) { throw; } catch (const std::exception&) { th",
+            "file_sha256": "f2291b4a5c8ab032a737eb7df0bb1efbe07ef5e43fb235dcb53956beb4c45945",
+            "path": "src/windows/hip_module_verification.cpp",
+            "score": 0.788149653924263,
+            "start_line": 119
+          },
+          {
+            "end_line": 13,
+            "excerpt": "#include \"hip_decode_worker.hpp\" #include \"flitzfs/gpu_match_layout.hpp\" #include \"gpu_budget.hpp\" #include \"gpu_topology.hpp\" #include \"hip_worker_budget.hpp\" #include \"hip_worker_exit.hpp\" #include \"hip_api.hpp\" #include \"hip_device_resou",
+            "file_sha256": "3c7098a927405a73efc352442737b9969fc96b8b6ff0fd423ec171830cb610e9",
+            "path": "src/windows/hip_decode_worker.cpp",
+            "score": 0.7845449719078488,
+            "start_line": 1
+          },
+          {
+            "end_line": 71,
+            "excerpt": "case HipWorkerStage::runtime_load: return \"runtime_load\"; case HipWorkerStage::kernel_load: return \"kernel_load\"; case HipWorkerStage::module_retire: return \"module_retire\"; case HipWorkerStage::worker_job: return \"worker_job\"; case HipWork",
+            "file_sha256": "79681016658ca28d0173784b15d8247f3309ba448c71078a620da0885f17e506",
+            "path": "src/windows/hip_worker_exit.hpp",
+            "score": 0.7837176272659416,
+            "start_line": 59
+          }
+        ]
+      }
+    ],
+    "live_worker_sha256": "29c96a395e1fbe26e34c0c1269f6e5f3696b4109c7705dad05fde5e4abc63234"
+  },
+  "decisions": [
+    "Keep one authenticated runtime/kernel module load around a finite immutable input sweep; do not create a resident idle helper.",
+    "Use the existing typed per-quantum compute, fresh budget checks, synchronization, full readback CPU validation and successful stream/buffer retirement.",
+    "Abort on the first failed quantum. No retry, partial reply or partial native write is authorized.",
+    "Retain combined ordinary version-2 framing and successful exact child/supervisor retirement before parent copying/acceptance.",
+    "Treat batching amortization as a hypothesis requiring measurements. Do not extrapolate prior two-chunk timing into new safe time bounds or claim speed gains."
+  ],
+  "source_summaries": {
+    "initialization": "The current primary source describes runtime setup on first HIP API use and explicit timing control through hipInit.",
+    "asynchronous": "The source describes ordered operations within one stream and host synchronization before proceeding.",
+    "api": "The header distinguishes full stream synchronization from a point-in-time query and warns that stream destruction can overlap in-flight work; the implementation retains explicit completion before successful resource release."
+  }
+}

@@ -1,4 +1,5 @@
 #include "hip_uniform_lz4_compute.hpp"
+#include "flitzfs/uniform_lz4_sweep.hpp"
 #include "bounded_process.hpp"
 #include <algorithm>
 #include <array>
@@ -249,6 +250,23 @@ int wmain(int argc,wchar_t** argv){try{
       catch(const HipWorkerFailure& f){require(f.code==HipWorkerExit::device_fault,"profile wait failure category");}
       require(!partial.finished && partial.completed!=hip_phase_complete &&
           !failed.allocated && !failed.stream_live,"failed compute emitted complete timing or leaked resources");
+    }
+    {
+      uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"typed sweep quantum");
+      const auto plan=plan_uniform_lz4_sweep(source.batch,2,quantum.total_bytes);
+      unsigned windows=0;++scenarios;++successes;
+      const auto all=compute_uniform_lz4_sweep(source,plan,[&](const UniformLz4Request& part){
+        ++windows;State state(part);auto candidate=compute(state);
+        require(!state.allocated && !state.stream_live && state.completed,"typed sweep quantum retirement");
+        return candidate;
+      });
+      require(windows==9 && all.sizes.size()==17,"typed sweep complete source");
+      UniformLz4Candidates escaped;windows=0;++scenarios;++refusals;
+      try{escaped=compute_uniform_lz4_sweep(source,plan,[&](const UniformLz4Request& part){
+        State state(part);if(++windows==2)state.fault="wait";return compute(state);
+      });throw std::runtime_error("typed sweep ignored device failure");}
+      catch(const HipWorkerFailure& f){require(f.code==HipWorkerExit::device_fault,"typed sweep failure category");}
+      require(windows==2 && escaped.payload.empty() && escaped.sizes.empty(),"typed sweep partial exposure/retry");
     }
     for(const auto* name:{"initialize","properties-1","properties-2","select","priority-1","priority-2",
         "attributes-1","attributes-2","stream-create","upload","launch","wait","readback","stream-destroy","release"}){

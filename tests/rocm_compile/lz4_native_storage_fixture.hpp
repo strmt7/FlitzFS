@@ -72,8 +72,9 @@ class Volume final {
     throw std::runtime_error("native inspected object absent");
   }
   bool publish_uniform(std::span<const std::byte> plain,std::span<const NativeLz4ExtentCandidate> candidates){
-    check(plain.size()==2U*65536 && (candidates.empty() || candidates.size()==2),
-        "two-extent native calibration shape");
+    const auto chunks=plain.size()/kNativeExtentBytes;
+    check(chunks && plain.size()%kNativeExtentBytes==0 && plain.size()<=kStoreMaxObjectBytes &&
+        (candidates.empty() || candidates.size()==chunks),"native calibration operation shape");
     const auto committed=writer_->write_inode_storage_with_lz4(inode_,0,plain,candidates);
     check(committed.bytes==plain.size() && committed.offset==0 && committed.state.info.inode==inode_,
         "uniform native commit-bound result");
@@ -85,7 +86,7 @@ class Volume final {
         "uniform native current/prior CPU recovery");
     independent.verify_all();store_->verify();
     if(candidates.empty())return false;
-    // Both extents contain identical plaintext. The native writer may retain
+    // These extents contain identical plaintext. The native writer may retain
     // separate immutable objects or deduplicate them. Verify EVERY matching
     // data object, rather than assuming either allocation behavior.
     std::vector<std::uint64_t> object_ids;
@@ -93,7 +94,7 @@ class Volume final {
         objects.read(object.id)==Bytes(plain.begin(),plain.begin()+65536)){
       object_ids.push_back(object.id);
     }
-    check(!object_ids.empty() && object_ids.size()<=2,"uniform native data object inventory");
+    check(!object_ids.empty() && object_ids.size()<=chunks,"uniform native data object inventory");
     std::array<std::byte,4096> root{};store_->read_exact((info.generation%2)*kStoreCommitUnit,root);
     check(integer(root,16,8)==info.generation,"uniform native generation changed");
     const auto count=integer(root,44,4),index_bytes=integer(root,40,4);
@@ -109,7 +110,7 @@ class Volume final {
         if(integer(record,12,4)!=4 || integer(record,32,4)!=65536)continue;
         const auto size=integer(record,36,4);if(!size || size>65536)continue;
         Bytes payload(static_cast<std::size_t>(size));store_->read_exact(offset+128,payload);
-        for(const auto& hint:candidates)if(hint.extent_index<2 && hint.payload.size()==payload.size() &&
+        for(const auto& hint:candidates)if(hint.extent_index<chunks && hint.payload.size()==payload.size() &&
             std::equal(hint.payload.begin(),hint.payload.end(),payload.begin()))exact=true;
       }
       check(located,"uniform native inspected object absent");

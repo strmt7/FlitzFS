@@ -715,5 +715,13 @@
       "Connect controlled GPU/native writes to the Windows application under those measured resource/recovery gates.",
       "Continue minimum-total-size collective background compression, scalable catalogs and durability/Windows product gates; do not declare the full goal complete."
     ]
+  },
+  "uniform_serial_sweep": {
+    "contract": "docs/UNIFORM_LZ4_SWEEP.md",
+    "status": "Publishing-source qualification pending",
+    "normal_GPU_routing": false,
+    "owner_GPU_executed": false,
+    "research": "docs/evidence/uniform-sweep-research-2026-11-14.json",
+    "next": "Qualify serial whole-request/quantum accounting, typed failure/retirement and full native operation composition, then measure one newly qualified GPU sweep without repeating unchanged two-chunk trials."
   }
 }

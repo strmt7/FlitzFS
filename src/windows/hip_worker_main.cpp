@@ -9,6 +9,7 @@
 #include "hip_lz4_compute.hpp"
 #include "hip_uniform_lz4_compute.hpp"
 #include "uniform_lz4_profile.hpp"
+#include "flitzfs/uniform_lz4_sweep.hpp"
 #include "hip_lz4_bundle.hpp"
 #include "hip_uniform_lz4_bundle.hpp"
 #endif
@@ -252,8 +253,10 @@ int worker(int argc, wchar_t** argv) {
         "uniform metadata verification loaded AMD code");return 0;
   }
   if(argc>1 && (std::wstring_view(argv[1])==L"--driver-uniform-lz4-adapter" ||
-      std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter")){
+      std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter" ||
+      std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter")){
     const bool recording=std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter";
+    const bool sweeping=std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter";
     require(argc==13 && std::wstring_view(argv[11])==L"--worker-channel",
         Exit::invalid_request,"explicit uniform adapter/channel/capacities required");
     require(gpu_lz4_cpu_verification_available(),Exit::unsupported_configuration,
@@ -279,10 +282,16 @@ int worker(int argc, wchar_t** argv) {
       request.emplace(decode_uniform_lz4_request(channel.request(),limits));
     }catch(const std::bad_alloc&){throw;}
     catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"invalid uniform compression frame");}
-    require(request->batch.layout().chunk_bytes==grant.chunk_bytes &&
-        request->batch.layout().chunks<=grant.maximum_chunks &&
+    require(request->batch.layout().chunk_bytes==grant.chunk_bytes,
+        Exit::invalid_request,"uniform frame/grant width mismatch");
+    std::optional<UniformLz4SweepPlan> sweep_plan;
+    if(sweeping){
+      try{sweep_plan=plan_uniform_lz4_sweep(request->batch,grant.maximum_chunks,grant.maximum_device_bytes);}
+      catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"uniform sweep exceeds work grant");}
+    }else require(request->batch.layout().chunks<=grant.maximum_chunks &&
         request->batch.layout().total_bytes<=grant.maximum_device_bytes,
         Exit::invalid_request,"uniform frame exceeds qualified work grant");
+    const auto device_bytes=sweeping?sweep_plan->device_peak_bytes:request->batch.layout().total_bytes;
     clock.end(HipPhase::request_decode);
     clock.begin(HipPhase::bundle_verify);
     const auto bundle=verify_bundle(false,false,true);
@@ -291,7 +300,7 @@ int worker(int argc, wchar_t** argv) {
     const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
     const auto before=query_windows_gpu_budget(luid,mask);
     require_hip_memory(before.snapshot,luid,mask,GetTickCount64(),
-        request->batch.layout().total_bytes,HipMemoryPoint::pre_initialize);
+        device_bytes,HipMemoryPoint::pre_initialize);
     clock.end(HipPhase::adapter_admit);clock.begin(HipPhase::modules_load);
     require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
         Exit::runtime_unavailable,"restrict uniform DLL lookup");
@@ -308,8 +317,13 @@ int worker(int argc, wchar_t** argv) {
     require(api && uniform_lz4::compatible_kernel_api(*api),Exit::unsupported_configuration,
         "incompatible uniform API table",HipWorkerStage::kernel_table);
     clock.end(HipPhase::entry_bind);
-    const auto candidates=run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
-        *request,grant,std::span<const hip_detail::Lz4KernelCoverage>(hip_uniform_lz4_bundle::targets),recording?&clock:nullptr);
+    const auto targets=std::span<const hip_detail::Lz4KernelCoverage>(hip_uniform_lz4_bundle::targets);
+    const auto candidates=sweeping?compute_uniform_lz4_sweep(*request,*sweep_plan,
+        [&](const UniformLz4Request& quantum){
+          return run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
+              quantum,grant,targets);
+        }):run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
+            *request,grant,targets,recording?&clock:nullptr);
     clock.begin(HipPhase::reply_encode);
     auto frame=encode_uniform_lz4_reply(request->batch,request->request_id,candidates,WorkerExecution::hip);
     clock.end(HipPhase::reply_encode);clock.begin(HipPhase::modules_release);

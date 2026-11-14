@@ -485,7 +485,7 @@ def main():
             uniform_prefix="Uniform LZ4 runtime admission: "
             uniform_rows=[json.loads(line[len(uniform_prefix):]) for line in uniform_result["stdout"].splitlines()
                 if line.startswith(uniform_prefix)]
-            require(len(uniform_rows)==1 and uniform_rows[0]["checks"]>=30 and uniform_rows[0]["exits_confirmed"]==15 and
+            require(len(uniform_rows)==1 and uniform_rows[0]["checks"]>=30 and uniform_rows[0]["exits_confirmed"]==20 and
                 all(uniform_rows[0][key] is True for key in ("complete","bundle_verified","tamper_refused","CPU_source_unchanged")) and
                 uniform_rows[0]["hip_runtime_loaded"] is False and uniform_rows[0]["gpu_executed"] is False,
                 "uniform runtime admission evidence mismatch")
@@ -507,6 +507,21 @@ def main():
                 0<uniform_native["active_payload_bytes"]<=uniform_native["image_bytes"],
                 "uniform native CPU composition or retirement mismatch")
             report["uniform_lz4_runtime_fixture"]["native_storage_CPU"]=uniform_native
+            sweep_native_result=run(bounds,[str(runtime_probe),"--uniform-sweep-native-cpu-fixture"],report,
+                "uniform-sweep-native-LZ4-storage-CPU-composition",30)
+            sweep_prefix="Uniform sweep native CPU fixture: "
+            sweep_rows=[json.loads(line[len(sweep_prefix):]) for line in sweep_native_result["stdout"].splitlines()
+                if line.startswith(sweep_prefix)]
+            require(len(sweep_rows)==1,"missing serial sweep native CPU receipt")
+            sweep_row=sweep_rows[0]
+            require(all(sweep_row[key] is True for key in ("complete","candidate_stored_exactly",
+                    "independent_native_readback","prior_preserved","working_set_restored")) and
+                sweep_row["gpu_executed"] is False and sweep_row["mounted"] is False and
+                sweep_row["source_bytes"]==1024*1024 and sweep_row["locked_peak_bytes"]==4*1024*1024 and
+                sweep_row["locked_after_bytes"]==0 and 0<sweep_row["image_bytes"]<=2*1024*1024 and
+                0<sweep_row["active_payload_bytes"]<=sweep_row["image_bytes"],
+                "serial sweep native CPU composition/retirement mismatch")
+            report["uniform_lz4_runtime_fixture"]["sweep_native_storage_CPU"]=sweep_row
             native_result=run(bounds,[str(runtime_probe),"--native-cpu-fixture"],report,
                 "native-LZ4-storage-CPU-composition",30)
             prefix="LZ4 native CPU fixture: "
@@ -569,7 +584,7 @@ def main():
                 row["gpu_executed"] is False and type(row["checks"]) is int and row["checks"]>0 and
                 row["scenarios"]==row["successes"]+row["refusals"],
                 "uniform compute CPU qualification contract")
-            require((available and row["successes"]==4 and row["refusals"]>=36) or
+            require((available and row["successes"]==5 and row["refusals"]>=37) or
                 (not available and row["successes"]==0 and row["refusals"]==1),
                 "uniform compute CPU positive/failure coverage mismatch")
             return dict(bytes=executable.stat().st_size,sha256=digest(executable),
@@ -916,8 +931,9 @@ def main():
                 runtime_basename=runtime_name.group(1),runtime_shipped=False,kpack_shipped=False,
                 files=runtime_files,coverage=report["lz4_runtime_fixture"]["bundle"]["coverage"],
                 controller_job_mib=256,worker_job_mib=128,cpu_rate=2000,worker_timeout_ms=15000,
-                cpu_admission_exits=10,uniform_cpu_admission_exits=15,
+                cpu_admission_exits=10,uniform_cpu_admission_exits=20,
                 uniform_layout_version=2,uniform_runtime_packaged=True,uniform_gpu_execution=False,
+                uniform_serial_sweep_packaged=True,uniform_sweep_cpu_source_bytes=1024*1024,
                 native_storage_CPU_qualified=True,native_gpu_worker_timeout_ms=5000,
                 native_store_capacity_bytes=2*1024*1024,native_locked_peak_bytes=4*1024*1024,
                 actual_gpu_execution=False,ordinary_filesystem_route=False)

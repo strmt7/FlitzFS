@@ -11,17 +11,15 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "25ea952ced346ec836e326ff3c72fdb32416c0ca",
-    "core_run": 43584141229,
-    "conclusion": "success",
-    "jobs_passed": 13,
-    "jobs_total": 13,
-    "native_CTest_passed": 147,
-    "sdk_source_commit": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
-    "sdk_run": 43583139445,
-    "SDK_inputs_unchanged_by_test_fix": true,
-    "evidence": "docs/evidence/windows-lz4-advice-25ea952.json",
-    "scope": "Owned-session/SDK compressed-candidate forwarding and modeled faults; all executed tests CPU-only. Actual GPU evidence remains separately bound to a047952."
+    "source": "7e87bb4f714c4c7fc852ca9052d6f9ef48fed204",
+    "core_run": 43604457180,
+    "core_jobs_passed": 13,
+    "core_jobs_total": 13,
+    "native_test_groups": 151,
+    "sdk_run": 43604457176,
+    "sdk_complete": true,
+    "owner_uniform_GPU_native": true,
+    "evidence": "docs/evidence/uniform-gpu-native-7e87bb4.json"
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -82,12 +80,10 @@
       }
     }
   ],
-  "next_implementation": [
-    "G02",
-    "G03",
-    "L01",
-    "D01"
-  ],
+  "next_implementation": {
+    "contract": "docs/UNIFORM_LZ4_SWEEP.md",
+    "next": "Qualify serial quantum amortization, retain failures, then one separately admitted synthetic owner sweep. Measure useful complete costs before automatic application routing; continue deep collective compression and full-product gates."
+  },
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
     "native_compression": "CPU raw/Zstd/zero/pattern; experimental GPU match route not qualified for production gain",
@@ -274,7 +270,20 @@
         "status": "New publishing-source CPU/raw/codec/sanitizer/Windows and complete mounted regression gates required.",
         "next": "Inspect new rebuild fault/ownership results. Provider-selected-area mapping, persistent workload-derived rewrite credit and automatic learner remain unfinished. No owner experiment."
       }
-    ]
+    ],
+    "before_uniform_sweep_current_qualification": {
+      "commit": "25ea952ced346ec836e326ff3c72fdb32416c0ca",
+      "core_run": 43584141229,
+      "conclusion": "success",
+      "jobs_passed": 13,
+      "jobs_total": 13,
+      "native_CTest_passed": 147,
+      "sdk_source_commit": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+      "sdk_run": 43583139445,
+      "SDK_inputs_unchanged_by_test_fix": true,
+      "evidence": "docs/evidence/windows-lz4-advice-25ea952.json",
+      "scope": "Owned-session/SDK compressed-candidate forwarding and modeled faults; all executed tests CPU-only. Actual GPU evidence remains separately bound to a047952."
+    }
   },
   "remaining": [
     {
@@ -355,14 +364,8 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "Uniform layout, resource/time window planner and separate private typed-module compilation require publishing-source qualification; adaptive transport/runtime integration remains required.",
-    "contract": "docs/ADAPTIVE_LZ4_EXECUTION.md",
-    "fixed_allocation_ceiling": false,
-    "byte_offsets": 64,
-    "layout_bytes": 80,
-    "legacy_compatibility_controls_preserved": true,
-    "configured_memory_keyed": true,
-    "qualified_grid_and_kernel_cost_required": true,
+    "status": "Finite serial uniform sweep, complete native operation fixture and sweep refusal/typed tests require new publishing-source qualification.",
+    "contract": "docs/UNIFORM_LZ4_SWEEP.md",
     "normal_GPU_routing": false,
     "owner_executed": false
   },
@@ -450,15 +453,13 @@
     "scope": "One verified packed-allocation diagnostic; no accepted compression candidate or measured benefit/cold-system benchmark."
   },
   "navigation_qualification": {
-    "source": "905a4d34361dd2ca06245dfd9a2c064e18b1d718",
-    "default_run": 43411376274,
-    "upstream_run": 43412149098,
-    "tests_each": 22,
-    "default_queries": 8,
-    "upstream_queries": 2,
-    "upstream_files": 142,
-    "upstream_source": "03df9f7369211ee15d370817165224c73fdc9a46",
-    "evidence": "docs/evidence/gpu-codec-navigation-905a4d3.json"
+    "source": "e7d8598e7f7cebb4b59aab025ae5d546bf982007",
+    "run": 43606937053,
+    "receipt_sha256": "7f82c3429fb8aefde383f562439d464d4a7507e23de3053c996aa815b26be0b0",
+    "source_sha256": "377bdac105ceb5bd152dca6834fe796887cdea89511474980b0e507b883e47b9",
+    "actual_searches": 8,
+    "shared_mcp_modified": false,
+    "local_adapter": "stale; not used as a FlitzFS receipt"
   },
   "gpu_codec_qualification": {
     "control_source": "df51d8c5ba80430453c805619438f431d5677f3b",
@@ -919,6 +920,12 @@
     "uniform_admission_exits": 11,
     "controller_contract": "docs/UNIFORM_LZ4_CONTROLLER.md",
     "controller_qualified": true,
-    "native_write_contract": "docs/NATIVE_UNIFORM_WRITE.md"
+    "native_write_contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "serial_sweep": {
+      "status": "Finite serial uniform sweep, complete native operation fixture and sweep refusal/typed tests require new publishing-source qualification.",
+      "contract": "docs/UNIFORM_LZ4_SWEEP.md",
+      "normal_GPU_routing": false,
+      "owner_executed": false
+    }
   }
 }
