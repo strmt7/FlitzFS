@@ -16,10 +16,22 @@ ASSETS = (
          target="src/flitzfs_lz4_module.cpp", bytes=526,
          sha256="c1d17f951356d637260588bd2046e25cdde38373544010aa143beac8662b06b7",
          blob="2bf2cc5344f188b4865e362ee4b5a0d885ea4540"),
+    dict(path="include/flitzfs/gpu_lz4_uniform.hpp",
+         target="src/gpu_lz4_uniform.hpp", bytes=4528,
+         sha256="1d0f4170213f5bbaf43373d3ac04df9b4e46aa0eeccbda6353bbadd8329f9431",
+         blob="9d2e9b38f4a33a7a5cbbf509c4674fc3d7ed4767"),
+    dict(path="tests/rocm_compile/hipcomp_uniform_lz4_api.hpp",
+         target="src/hipcomp_uniform_lz4_api.hpp", bytes=815,
+         sha256="d3af1cc71dcedeed694749736b779fbc67d6d60d3cf5084b8109a7f6d547b5f7",
+         blob="9b0cbc018990c6daca33807bfef4378c90cbe53e"),
+    dict(path="tests/rocm_compile/hipcomp_uniform_lz4_module.cpp",
+         target="src/flitzfs_uniform_lz4_module.cpp", bytes=527,
+         sha256="a4fd21eba2d2a3cc8e8f40b09fe6843be18c80c987f881a8e9e1cfbf172abe46",
+         blob="523af810343025119614b3a0e07e52f755a36c57"),
     dict(path="tests/rocm_compile/hipcomp_lz4_entry.hip",
-         target="src/lowlevel/FlitzFsLz4Candidate.hip", bytes=2189,
-         sha256="8c8daf970461a0bad63664af2568d7931c948e043a67a8f891d636afa5b3653c",
-         blob="76612695a2f5c339825124d82ce92231ed77dc79"),
+         target="src/lowlevel/FlitzFsLz4Candidate.hip", bytes=3640,
+         sha256="472b0ad419b4d3f9bed679a91439381796648a8ab82389eea6919603b92c99d3",
+         blob="23cdc3d524a5ac5ac98629f9d8074c5170d2ef9e"),
 )
 
 def source_assets(repo: Path):
@@ -123,11 +135,12 @@ def inspect_entry_object(bounds, reader: Path, obj: Path, output: Path, metadata
     if machines!=[architecture.upper()]:
         raise ValueError("bounded entry native architecture does not match its advertised image")
     names = ["flitzfs_candidate_lz4_wave32","flitzfs_candidate_lz4_wave64"]
-    for name in names:
+    uniform_names = ["flitzfs_uniform_lz4_wave32","flitzfs_uniform_lz4_wave64"]
+    for name in names + uniform_names:
         pattern = r"(?m)^\s+Name: " + re.escape(name) + r"(?: \([0-9]+\))?\r?$"
         if len(re.findall(pattern,symbols["stdout"])) != 1:
             raise ValueError("bounded entry exact device symbol missing or ambiguous")
     if digest(path) != observed["sha256"]:
         raise ValueError("native reader changed bounded entry device image")
-    observed.update(symbols=names,complete=True)
+    observed.update(symbols=names,uniform_symbols=uniform_names,complete=True)
 

@@ -366,6 +366,25 @@ def main():
                 sha256=digest(private_module),imports=sorted(set(imports)),delay_imports=False,
                 exports=sorted(actual_exports),loaded=False,gpu_executed=False,
                 linked_into_product=False,in_worker_bundle=False,exported_as_artifact=False)
+            uniform_module=build/"Release/flitzfs_rocm_uniform_lz4_candidate.dll"
+            regular_info(uniform_module,root,32*1024*1024)
+            uniform_imports,uniform_delay=pe_import_names(uniform_module.read_bytes())
+            require(bool(uniform_imports) and not uniform_delay and
+                set(uniform_imports)<={expected_runtime,"kernel32.dll"},
+                "adaptive-layout module import closure")
+            uniform_exports=pe_function_exports(uniform_module.read_bytes())
+            require(uniform_exports=={"flitzfs_uniform_lz4_kernel_api"},
+                "adaptive-layout exact direct API export")
+            require(all(row.get("uniform_symbols")==[
+                "flitzfs_uniform_lz4_wave32","flitzfs_uniform_lz4_wave64"] and row["complete"]
+                for row in private_candidate_receipt.get("entry_objects",
+                    {"selected":private_candidate_receipt["entry_object"]}).values()),
+                "adaptive-layout selected native bodies absent")
+            report["uniform_lz4_link_candidate"]=dict(complete=True,
+                bytes=uniform_module.stat().st_size,sha256=digest(uniform_module),
+                imports=sorted(set(uniform_imports)),exports=sorted(uniform_exports),
+                layout_bytes=80,version=2,wave_mask=1,loaded=False,gpu_executed=False,
+                linked_into_product=False,in_worker_bundle=False,exported_as_artifact=False)
         api_probe=build/"Release/flitzfs_rocm_api_probe.exe"
         report["api_probe"]=dict(bytes=api_probe.stat().st_size,sha256=digest(api_probe),
             imports=audit_binary(api_probe.read_bytes()))

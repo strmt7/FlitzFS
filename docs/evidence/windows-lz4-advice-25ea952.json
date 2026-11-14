@@ -1,0 +1,499 @@
+{
+  "experimental": true,
+  "source_commit": "25ea952ced346ec836e326ff3c72fdb32416c0ca",
+  "production_commit": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+  "core_run": 43584141229,
+  "core_conclusion": "success",
+  "native_job": 132414914722,
+  "native_ctest_passed": 147,
+  "native_ctest_total": 147,
+  "native_artifact": {
+    "id": 14110310131,
+    "artifact_sha256": "e1a9af74edb2744895cb8e56da3f95d9cf5f47513178b94e6291febc94469ee1",
+    "archive_bytes": 13125,
+    "log": "LastTest.log",
+    "log_bytes": 155911,
+    "log_sha256": "987d802ef3e3158bb49196de4c7b5445e2a90c39b06f3ccc3e2561aa3a016a27",
+    "evidence": [
+      "Windows data-bridge invariants: {\"schema\":1,\"checks\":631,\"sealed_cases\":28,\"sdk_calls\":189,\"backend_retired\":4,\"handles_initial\":123,\"handles_final\":123,\"advice_cases\":4,\"advice_sealed_cases\":4,\"complete\":true,\"mount\":false}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"write\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":59,\"fault_cases\":177,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"write\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"write\",\"mode\":\"automatic\",\"layout\":\"fixed\",\"io_steps\":59,\"fault_cases\":177,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"write\",\"mode\":\"automatic\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"eof\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":57,\"fault_cases\":171,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"eof\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":12,\"fault_cases\":36,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"eof\",\"mode\":\"automatic\",\"layout\":\"fixed\",\"io_steps\":57,\"fault_cases\":171,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"eof\",\"mode\":\"automatic\",\"layout\":\"compact\",\"io_steps\":12,\"fault_cases\":36,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"reserve\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":59,\"fault_cases\":177,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"reserve\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"reserve\",\"mode\":\"automatic\",\"layout\":\"fixed\",\"io_steps\":58,\"fault_cases\":174,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"reserve\",\"mode\":\"automatic\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"flush\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":1,\"fault_cases\":3,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"flush\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":1,\"fault_cases\":3,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"flush\",\"mode\":\"automatic\",\"layout\":\"fixed\",\"io_steps\":1,\"fault_cases\":3,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"flush\",\"mode\":\"automatic\",\"layout\":\"compact\",\"io_steps\":1,\"fault_cases\":3,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"lz4\",\"mode\":\"raw\",\"layout\":\"fixed\",\"io_steps\":59,\"fault_cases\":177,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"lz4\",\"mode\":\"raw\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"lz4\",\"mode\":\"fast\",\"layout\":\"fixed\",\"io_steps\":57,\"fault_cases\":171,\"complete\":true}\r",
+      "Windows data-bridge faults: {\"schema\":1,\"phase\":\"lz4\",\"mode\":\"fast\",\"layout\":\"compact\",\"io_steps\":14,\"fault_cases\":42,\"complete\":true}\r"
+    ]
+  },
+  "profiles": {
+    "invariants": {
+      "schema": 1,
+      "checks": 631,
+      "sealed_cases": 28,
+      "sdk_calls": 189,
+      "backend_retired": 4,
+      "handles_initial": 123,
+      "handles_final": 123,
+      "advice_cases": 4,
+      "advice_sealed_cases": 4,
+      "complete": true,
+      "mount": false
+    },
+    "faults": [
+      {
+        "schema": 1,
+        "phase": "write",
+        "mode": "raw",
+        "layout": "fixed",
+        "io_steps": 59,
+        "fault_cases": 177,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "write",
+        "mode": "raw",
+        "layout": "compact",
+        "io_steps": 14,
+        "fault_cases": 42,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "write",
+        "mode": "automatic",
+        "layout": "fixed",
+        "io_steps": 59,
+        "fault_cases": 177,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "write",
+        "mode": "automatic",
+        "layout": "compact",
+        "io_steps": 14,
+        "fault_cases": 42,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "eof",
+        "mode": "raw",
+        "layout": "fixed",
+        "io_steps": 57,
+        "fault_cases": 171,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "eof",
+        "mode": "raw",
+        "layout": "compact",
+        "io_steps": 12,
+        "fault_cases": 36,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "eof",
+        "mode": "automatic",
+        "layout": "fixed",
+        "io_steps": 57,
+        "fault_cases": 171,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "eof",
+        "mode": "automatic",
+        "layout": "compact",
+        "io_steps": 12,
+        "fault_cases": 36,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "reserve",
+        "mode": "raw",
+        "layout": "fixed",
+        "io_steps": 59,
+        "fault_cases": 177,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "reserve",
+        "mode": "raw",
+        "layout": "compact",
+        "io_steps": 14,
+        "fault_cases": 42,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "reserve",
+        "mode": "automatic",
+        "layout": "fixed",
+        "io_steps": 58,
+        "fault_cases": 174,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "reserve",
+        "mode": "automatic",
+        "layout": "compact",
+        "io_steps": 14,
+        "fault_cases": 42,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "flush",
+        "mode": "raw",
+        "layout": "fixed",
+        "io_steps": 1,
+        "fault_cases": 3,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "flush",
+        "mode": "raw",
+        "layout": "compact",
+        "io_steps": 1,
+        "fault_cases": 3,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "flush",
+        "mode": "automatic",
+        "layout": "fixed",
+        "io_steps": 1,
+        "fault_cases": 3,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "flush",
+        "mode": "automatic",
+        "layout": "compact",
+        "io_steps": 1,
+        "fault_cases": 3,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "lz4",
+        "mode": "raw",
+        "layout": "fixed",
+        "io_steps": 59,
+        "fault_cases": 177,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "lz4",
+        "mode": "raw",
+        "layout": "compact",
+        "io_steps": 14,
+        "fault_cases": 42,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "lz4",
+        "mode": "fast",
+        "layout": "fixed",
+        "io_steps": 57,
+        "fault_cases": 171,
+        "complete": true
+      },
+      {
+        "schema": 1,
+        "phase": "lz4",
+        "mode": "fast",
+        "layout": "compact",
+        "io_steps": 14,
+        "fault_cases": 42,
+        "complete": true
+      }
+    ]
+  },
+  "existing_sdk_fault_cases": 1299,
+  "new_advised_sdk_fault_cases": 432,
+  "existing_sealed_cases": 28,
+  "new_sealed_cases": 4,
+  "SDK": {
+    "source_commit": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+    "run": 43583139445,
+    "job": 132411975704,
+    "artifact_id": 14108864596,
+    "archive_sha256": "db77ba0f596a36e28e33f74ed7b96d291aa2fd81f045392e9b18b3c6869cd8e6",
+    "archive_bytes": 135990,
+    "root_sha256": "fc89ddf1e8744c1a1f86332324b6e3a954c8fae9dc37c391e6f93e0b61808a9f",
+    "root_bytes": 400409,
+    "complete": true,
+    "runtime_admission": {
+      "checks": 55,
+      "exits_confirmed": 10,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "compute_CPU": {
+      "checks": 828,
+      "scenarios": 58,
+      "successes": 6,
+      "refusals": 52,
+      "decoder_available": true,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "compute_raw_CPU": {
+      "checks": 8,
+      "scenarios": 1,
+      "successes": 0,
+      "refusals": 1,
+      "decoder_available": false,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "native_CPU_composition": {
+      "complete": true,
+      "gpu_executed": false,
+      "candidate_stored_exactly": true,
+      "CPU_fallback_verified": true,
+      "independent_native_readback": true,
+      "source_bytes": 65536,
+      "image_bytes": 983040,
+      "active_payload_bytes": 8575,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "controller_job_peak_commit_bytes": 6119424,
+      "working_set_restored": true,
+      "mounted": false,
+      "physical_power_loss_qualified": false
+    }
+  },
+  "sdk_source_equivalence": {
+    "base": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+    "head": "25ea952ced346ec836e326ff3c72fdb32416c0ca",
+    "changed_files": [
+      "docs/NATIVE_WINDOWS_LZ4_ADVICE.md",
+      "docs/evidence/windows-lz4-oracle-7153ed1.json",
+      "tests/test_native_file_info_sdk.cpp"
+    ],
+    "production_CMake_SDK_inputs_unchanged": true
+  },
+  "retained_initial_failure": "docs/evidence/windows-lz4-oracle-7153ed1.json",
+  "gpu_executed": false,
+  "owner_executed": false,
+  "ordinary_GPU_routing": false,
+  "physical_power_loss_qualified": false,
+  "notes": [
+    "Actual GPU evidence remains separately bound to a047952; no unchanged owner experiment repeated.",
+    "631 is the full invariant assertion total, not 631 new cases. 432 new advised fault cases are separate from the 1299 preserved data-bridge cases.",
+    "No universal safety, Windows 11 client qualification, useful GPU throughput or release claim."
+  ],
+  "core_jobs": [
+    {
+      "conclusion": "success",
+      "id": 132414914505,
+      "name": "cpu (ubuntu-24.04, ON)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132414914722,
+      "name": "windows-native",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132414914765,
+      "name": "cpu (windows-2025-vs2026, OFF)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132414914788,
+      "name": "cpu (ubuntu-24.04, OFF)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132414914813,
+      "name": "sanitizers",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132416971538,
+      "name": "windows-mount",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132417806891,
+      "name": "windows-write-mount (delete)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132417806892,
+      "name": "windows-write-mount (crash-restart)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132417806894,
+      "name": "windows-write-mount (mutations)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132417806898,
+      "name": "windows-write-mount (restart)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132417806903,
+      "name": "windows-write-mount (crash)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132417806960,
+      "name": "windows-write-mount (basic)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132417806987,
+      "name": "windows-write-mount (ram-handoff)",
+      "status": "completed"
+    }
+  ],
+  "observed_utc": "2026-11-14T10:28:57Z",
+  "maintenance_navigation": {
+    "run": 43584883122,
+    "artifact_id": 14109991455,
+    "receipt": {
+      "archive_sha256": "5bf678d7812c94f2d89c669cb351a6e9dac9d5fc808fd90ae334c3c4a8c657d3",
+      "archive_bytes": 617571,
+      "receipts": [
+        {
+          "name": "routing-receipt.json",
+          "sha256": "0568bcc51681973d8433f20dcb454ca2cc8f33f72f883340d565f77404b3e5dd",
+          "commit": "25ea952ced346ec836e326ff3c72fdb32416c0ca",
+          "repository": "strmt7/FlitzFS",
+          "source_sha256": "004462dbd16b0f6db78ce41f634b96cb474ce6519effd2923a492e97dd0bc022",
+          "source_files": 172,
+          "provider_version": "0.2.43",
+          "actual_searches": 2,
+          "cpu_only": true,
+          "shared_mcp_modified": false
+        },
+        {
+          "name": "search-0.json",
+          "sha256": "63854fa57ad309cbc32794ee1ac6c3f1a7652c574f6a5f8ff568131eb622c1d9",
+          "query": "adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities",
+          "source_sha256": "004462dbd16b0f6db78ce41f634b96cb474ce6519effd2923a492e97dd0bc022",
+          "hits": [
+            {
+              "end_line": 49,
+              "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+              "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+              "path": "tools/ci/hosted_semantic.py",
+              "score": 0.8298837220440998,
+              "start_line": 39
+            },
+            {
+              "end_line": 127,
+              "excerpt": "HostedIdleMaintenanceResult WinFspNativeSession::begin_idle_recompression_hosted( std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) { if(state_!=SessionState::running||!adapter_||requires_offline()||d",
+              "file_sha256": "e8fd9541d569512ef4f65b75bc9163e6ca731673ec8d8b77262a0d9048dad048",
+              "path": "src/windows/winfsp_session.cpp",
+              "score": 0.7832127670219222,
+              "start_line": 117
+            },
+            {
+              "end_line": 169,
+              "excerpt": "// fresh target. Suppress repeated attempts on the same acknowledged image. bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image, StoreCompressionOptions compression={},StoreCheckpointOptions check",
+              "file_sha256": "c5514ff18e498332212232cf6d978ebacd27b3c281aa755fe715b71a764faf5b",
+              "path": "include/flitzfs/native_session.hpp",
+              "score": 0.782736119203939,
+              "start_line": 160
+            },
+            {
+              "end_line": 554,
+              "excerpt": "HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(HostedIdleMaintenanceAction action) { hosted(); return impl_->idle([&]() -> HostedIdleMaintenanceResult { using State=HostedIdleMaintenanceState; using Progress=Nat",
+              "file_sha256": "30150bff290f1d6aa32a08129cc516a7e76f1864a03ad48fdf8233ce3cfd1780",
+              "path": "src/windows/winfsp_native.cpp",
+              "score": 0.7738455694297315,
+              "start_line": 535
+            }
+          ]
+        },
+        {
+          "name": "search-1.json",
+          "sha256": "b203e9f17f7939d958aa864c505b915f7ff00448508675cb5d670214a5e38b1f",
+          "query": "background maintenance resource headroom low priority incremental recompression sampling budget and duplicate attempt suppression",
+          "source_sha256": "004462dbd16b0f6db78ce41f634b96cb474ce6519effd2923a492e97dd0bc022",
+          "hits": [
+            {
+              "end_line": 49,
+              "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+              "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+              "path": "tools/ci/hosted_semantic.py",
+              "score": 0.8298304547303399,
+              "start_line": 39
+            },
+            {
+              "end_line": 169,
+              "excerpt": "// fresh target. Suppress repeated attempts on the same acknowledged image. bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image, StoreCompressionOptions compression={},StoreCheckpointOptions check",
+              "file_sha256": "c5514ff18e498332212232cf6d978ebacd27b3c281aa755fe715b71a764faf5b",
+              "path": "include/flitzfs/native_session.hpp",
+              "score": 0.7974270833702644,
+              "start_line": 160
+            },
+            {
+              "end_line": 257,
+              "excerpt": "# Closed primary-source scope for the owner's background recompression question. # These are research candidates, not adopted codecs or performance evidence. COMPRESSION_LEARNED_SOURCES = ( (\"llm-invocation-2026\", \"https://arxiv.org/html/26",
+              "file_sha256": "b36f07a9130c7dc7017def853ca2d5bfacfe0dca72d940640f92248f2a6e9421",
+              "path": "tools/ci/hosted_research.py",
+              "score": 0.7949136924258067,
+              "start_line": 240
+            }
+          ]
+        }
+      ]
+    },
+    "scope": "Two actual current-source queries; relevant live NativeSession and WinFsp candidates confirmed. Infrastructure self-hits are not architecture proof."
+  }
+}

@@ -77,6 +77,13 @@ if(FLITZFS_ROCM_LZ4_OBJECT OR FLITZFS_ROCM_LZ4_SOURCE)
   target_include_directories(flitzfs_rocm_lz4_candidate PRIVATE "${lz4_source_dir}")
   target_link_libraries(flitzfs_rocm_lz4_candidate PRIVATE "${FLITZFS_ROCM_SDK}/lib/amdhip64.lib")
   target_compile_options(flitzfs_rocm_lz4_candidate PRIVATE /W4 /permissive-)
+  # Resource-adaptive ABI; separate link-only module until its runtime qualifies.
+  add_library(flitzfs_rocm_uniform_lz4_candidate SHARED "${FLITZFS_ROCM_LZ4_OBJECT}"
+    "${lz4_source_dir}/flitzfs_uniform_lz4_module.cpp")
+  target_compile_features(flitzfs_rocm_uniform_lz4_candidate PRIVATE cxx_std_20)
+  target_include_directories(flitzfs_rocm_uniform_lz4_candidate PRIVATE "${lz4_source_dir}")
+  target_link_libraries(flitzfs_rocm_uniform_lz4_candidate PRIVATE "${FLITZFS_ROCM_SDK}/lib/amdhip64.lib")
+  target_compile_options(flitzfs_rocm_uniform_lz4_candidate PRIVATE /W4 /permissive-)
 endif()
 
 # The SDK worker and its import closure stay in the disposable build fixture.

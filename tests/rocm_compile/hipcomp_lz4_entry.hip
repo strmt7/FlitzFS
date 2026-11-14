@@ -43,3 +43,33 @@ void bind_compression_kernels(KernelApi& api) noexcept {
   api.wave64=flitzfs_candidate_lz4_wave64;
 }
 }
+
+#include "hipcomp_uniform_lz4_api.hpp"
+namespace {
+template<unsigned int Wave>
+__device__ void compress_uniform_checked(unsigned char* slab,flitzfs::uniform_lz4::u64 allocated,
+    flitzfs::uniform_lz4::Layout p) {
+  using namespace flitzfs::uniform_lz4;
+  if(!valid_geometry(Wave,static_cast<u32>(warpSize),blockDim.x,blockDim.y,blockDim.z,
+        gridDim.x,gridDim.y,gridDim.z,p.chunks) || !valid_layout(p,allocated) ||
+      !slab || (reinterpret_cast<std::uintptr_t>(slab)&7U))return;
+  Chunk part{};if(!chunk(p,static_cast<u32>(blockIdx.x),part))return;
+  auto* result=reinterpret_cast<std::size_t*>(slab+part.size_slot);
+  if(threadIdx.x==0U)*result=0;
+  __syncwarp();
+  auto* hash=reinterpret_cast<hipcomp::offset_type*>(slab+part.scratch);
+  hipcomp::compressStream<Wave,unsigned char>(slab+part.output,slab+part.input,
+      hash,p.hash_entries,part.input_bytes,result);
+}
+}
+extern "C" __global__
+void flitzfs_uniform_lz4_wave32(unsigned char* slab,flitzfs::uniform_lz4::u64 allocated,
+    flitzfs::uniform_lz4::Layout p){compress_uniform_checked<32>(slab,allocated,p);}
+extern "C" __global__
+void flitzfs_uniform_lz4_wave64(unsigned char* slab,flitzfs::uniform_lz4::u64 allocated,
+    flitzfs::uniform_lz4::Layout p){compress_uniform_checked<64>(slab,allocated,p);}
+namespace flitzfs::uniform_lz4 {
+void bind_compression_kernels(KernelApi& api) noexcept {
+  api.wave32=flitzfs_uniform_lz4_wave32;api.wave64=flitzfs_uniform_lz4_wave64;
+}
+}

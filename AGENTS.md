@@ -1,5 +1,9 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Resource-adaptive full-development direction
+
+Owner clarification, 14 November 2026: remove the tiny prototype allocation ceiling as a development/product policy. Read docs/ADAPTIVE_LZ4_EXECUTION.md. Discover actual capabilities and live local/nonlocal GPU, physical and commit headroom; size windows and work shares from demand, contention and configuration-qualified costs. Keep independent CPU recovery, checked arithmetic, protected immutable input, finite queues/work quanta, fresh re-admission and exact retirement. Unknown evidence selects CPU. Do not hardcode one host or treat a mutable learned policy as safety authority. Existing tiny tests remain compatibility controls, not production sizing defaults. New streaming/runtime integration still requires isolated exact-source qualification before any owner trial. This authorizes no driver change, owner mount, exhaustion or stress test.
+
 ## Windows compression advice forwarding
 
 Read docs/NATIVE_WINDOWS_LZ4_ADVICE.md before changing the session/SDK advice bridge or public descriptor validator. Preserve original APIs, active write ownership, pure budget/input admission before metadata reads, the same Stage/publication, independent CPU comparison and committed count/FileInfo without post-publication queries. Keep all original invariants, four additional raw/fast fixed/compact sealed profiles and the complete three-model advised fault trace. This starts no GPU work and requires matching-source qualification. No owner mount or new GPU trial follows.

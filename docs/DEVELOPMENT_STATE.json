@@ -11,14 +11,17 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "f08e6b8d250fab5e5faa3ebe9cf3e0ee16bd4ad9",
-    "core_run": 43580680270,
-    "sdk_run": 43580712067,
+    "commit": "25ea952ced346ec836e326ff3c72fdb32416c0ca",
+    "core_run": 43584141229,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "evidence": "docs/evidence/asynchronous-lz4-f08e6b8.json",
-    "scope": "CPU-only asynchronous compression controller, portable/raw/sanitizer/Windows native and hosted mount qualification. Actual native GPU evidence remains separately bound to a047952."
+    "native_CTest_passed": 147,
+    "sdk_source_commit": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+    "sdk_run": 43583139445,
+    "SDK_inputs_unchanged_by_test_fix": true,
+    "evidence": "docs/evidence/windows-lz4-advice-25ea952.json",
+    "scope": "Owned-session/SDK compressed-candidate forwarding and modeled faults; all executed tests CPU-only. Actual GPU evidence remains separately bound to a047952."
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -352,12 +355,16 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "Publishing-source qualification pending.",
-    "contract": "docs/NATIVE_WINDOWS_LZ4_ADVICE.md",
-    "behavior": "Owned session and real SDK write dispatch forward optional independently verified candidates. Pure shared budget rejection precedes metadata I/O; commit-bound outputs and original APIs remain.",
-    "gpu_executed": false,
-    "owner_executed": false,
-    "normal_gpu_routing": false
+    "status": "Uniform layout, resource/time window planner and separate private typed-module compilation require publishing-source qualification; adaptive transport/runtime integration remains required.",
+    "contract": "docs/ADAPTIVE_LZ4_EXECUTION.md",
+    "fixed_allocation_ceiling": false,
+    "byte_offsets": 64,
+    "layout_bytes": 80,
+    "legacy_compatibility_controls_preserved": true,
+    "configured_memory_keyed": true,
+    "qualified_grid_and_kernel_cost_required": true,
+    "normal_GPU_routing": false,
+    "owner_executed": false
   },
   "resolved": [
     {
@@ -763,14 +770,14 @@
     "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
   },
   "previous_current_qualification": {
-    "commit": "a0479529203294bf73eea9a0e6da204b3af7fd5f",
-    "core_run": 43579045089,
-    "sdk_run": 43579045183,
+    "commit": "f08e6b8d250fab5e5faa3ebe9cf3e0ee16bd4ad9",
+    "core_run": 43580680270,
+    "sdk_run": 43580712067,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "evidence": "docs/evidence/native-lz4-composition-a047952.json",
-    "scope": "SDK/CPU composition and one actual GPU-to-native-file trial; normal Windows routing remains CPU-only."
+    "evidence": "docs/evidence/asynchronous-lz4-f08e6b8.json",
+    "scope": "CPU-only asynchronous compression controller, portable/raw/sanitizer/Windows native and hosted mount qualification. Actual native GPU evidence remains separately bound to a047952."
   },
   "native_fast_ingestion_candidate": {
     "qualified_source": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
@@ -846,5 +853,36 @@
     "owner_executed": false,
     "normal_io_caller": false,
     "status": "Source-bound CPU/raw/Windows/sanitizer/SDK and all mounted VM scenarios passed. Immediate terminal CPU source selection and independent late-output validation use existing supervised transport."
+  },
+  "windows_lz4_advice": {
+    "status": "Qualified owned-session/SDK forwarding; no automatic GPU caller.",
+    "qualified_source": "25ea952ced346ec836e326ff3c72fdb32416c0ca",
+    "production_source": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+    "core_run": 43584141229,
+    "sdk_source": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+    "sdk_run": 43583139445,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "native_CTest_passed": 147,
+    "new_advised_fault_cases": 432,
+    "preserved_data_bridge_fault_cases": 1299,
+    "new_sealed_profiles": 4,
+    "contract": "docs/NATIVE_WINDOWS_LZ4_ADVICE.md",
+    "evidence": "docs/evidence/windows-lz4-advice-25ea952.json",
+    "gpu_executed": false,
+    "owner_executed": false,
+    "normal_gpu_routing": false
+  },
+  "resource_adaptive_execution": {
+    "status": "Uniform layout, resource/time window planner and separate private typed-module compilation require publishing-source qualification; adaptive transport/runtime integration remains required.",
+    "contract": "docs/ADAPTIVE_LZ4_EXECUTION.md",
+    "fixed_allocation_ceiling": false,
+    "byte_offsets": 64,
+    "layout_bytes": 80,
+    "legacy_compatibility_controls_preserved": true,
+    "configured_memory_keyed": true,
+    "qualified_grid_and_kernel_cost_required": true,
+    "normal_GPU_routing": false,
+    "owner_executed": false
   }
 }
