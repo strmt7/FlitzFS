@@ -7,6 +7,7 @@
 #include "gpu_worker_controller.hpp"
 #include "gpu_match_worker_controller.hpp"
 #include "gpu_lz4_worker_controller.hpp"
+#include "uniform_lz4_worker_controller.hpp"
 #include "flitzfs/match_worker_wire.hpp"
 #include "flitzfs/lz4_worker_wire.hpp"
 #include "flitzfs/uniform_lz4_wire.hpp"
@@ -152,13 +153,15 @@ int child(std::wstring_view mode,std::wstring_view token) {
         static_cast<std::size_t>(limits.reply_bytes)});
     auto request=decode_uniform_lz4_request(channel.request(),limits);
     if(!gpu_lz4_cpu_verification_available())return 17;
+    if(mode==L"uniform-hold"){Sleep(5000);return 0;}
     UniformLz4Candidates c;
     for(std::uint32_t i=0;i<request.batch.layout().chunks;++i){
       const auto payload=lz4_literal_fixture(request.batch.input(i));c.sizes.push_back(static_cast<std::uint32_t>(payload.size()));
       c.payload.insert(c.payload.end(),payload.begin(),payload.end());
     }
     auto frame=encode_uniform_lz4_reply(request.batch,request.request_id,c,WorkerExecution::cpu_semantics);
-    if(mode==L"uniform-corrupt")frame.back()^=std::byte{1};
+    if(mode==L"uniform-corrupt" || mode==L"uniform-delay-invalid")frame.back()^=std::byte{1};
+    if(mode==L"uniform-delay-invalid")Sleep(150);
     channel.publish(frame);return mode==L"uniform-fail-after"?17:0;
   }
   if(mode.starts_with(L"sized-"))return sized_child(mode,token);
@@ -1042,6 +1045,109 @@ void uniform_transactions(const std::filesystem::path& executable){
   std::cout<<"Uniform channel: input="<<source.size()<<" chunks="<<prepared.layout().chunks
       <<" CPU_decoder="<<gpu_lz4_cpu_verification_available()<<" gpu_executed=false\n";
 }
+PreparedUniformLz4 uniform_owned(unsigned fill=0){
+  const auto limits=uniform_fixture_limits();Bytes source(static_cast<std::size_t>(limits.input_bytes),static_cast<std::byte>(fill));
+  return PreparedUniformLz4::prepare(source,limits);
+}
+GpuLz4ResidentCost uniform_cost(const GpuHealthEvidence& e){
+  GpuLz4ResidentCost c;c.fixed_bytes=256ULL<<20;c.input_copies=6;c.slab_copies=2;
+  c.output_copies=3;c.per_chunk_bytes=64;c.configuration=e.configuration;c.recovery_generation=e.recovery_generation;
+  c.profiled_chunk_bytes=65536;c.maximum_grid_x=65535;c.kernel_ns_per_chunk=1000000;
+  c.qualified_kernel_quantum_ns=200000000;c.qualified=true;return c;
+}
+void coordinated_uniform_requests(const std::filesystem::path& executable){
+  const auto e=coordinated_health(1,100);const auto cost=uniform_cost(e);
+  const GpuLz4WindowPolicy window{16,100000000};ProcessBudget budget;
+  const auto begin=[&](UniformLz4WorkerController& controller,PreparedUniformLz4&& input,
+      const wchar_t* mode,const GpuHealthEvidence& health,const GpuLz4ResidentCost& profile){
+    return controller.begin(std::move(input),executable,{mode},true,true,health,health.memory.captured_ms,
+        profile,window,budget,3000);
+  };
+  if(!gpu_lz4_cpu_verification_available()){
+    UniformLz4WorkerController controller;auto input=uniform_owned(7);
+    const auto size=input.plaintext().size();const auto r=begin(controller,std::move(input),L"uniform-ok",e,cost);
+    check(r.source_adopted && !r.decision.submitted && r.decision.route.reason==GpuRouteReason::unqualified &&
+        !controller.process_id() && controller.source().size()==size,"raw uniform controller touched worker/lost source");
+    return;
+  }
+  {
+    UniformLz4WorkerController controller(WorkerExecution::cpu_semantics);
+    auto input=uniform_owned(7);const auto r=begin(controller,std::move(input),L"uniform-ok",e,cost);
+    check(r.source_adopted && r.decision.submitted && !input.ready(),"uniform controller source ownership");
+    auto overlap=uniform_owned(8);
+    const auto busy=begin(controller,std::move(overlap),L"uniform-ok",e,cost);
+    check(!busy.source_adopted && !busy.decision.submitted && overlap.ready(),"uniform overlap consumed caller source");
+    eventually([&]{controller.poll(e.memory,101);return controller.awaiting_fresh_observation();},
+        3000,"uniform controller did not verify candidate");
+    check(controller.state()==GpuWorkerState::waiting && controller.candidate(0).empty(),
+        "uniform controller accepted before fresh final observation");
+    controller.poll(e.memory,101);
+    check(controller.awaiting_fresh_observation() && controller.candidate(0).empty(),
+        "identical observation authorized uniform output");
+    const auto after=coordinated_health(2,102).memory;
+    controller.poll(after,102);
+    check(controller.state()==GpuWorkerState::worker_selected && controller.count()==17 &&
+        !controller.candidate(0).empty() && !controller.candidate(16).empty() && controller.candidate(17).empty(),
+        "uniform controller lost verified block order");
+    (void)controller.use_cpu_fallback();
+    check(controller.state()==GpuWorkerState::worker_selected,"CPU overwrote terminal uniform result");
+    eventually([&]{return controller.try_retire();},2000,"uniform success did not retire");
+  }
+  for(const bool expired:{false,true}){
+    UniformLz4WorkerController controller(WorkerExecution::cpu_semantics);auto input=uniform_owned(8);
+    check(begin(controller,std::move(input),L"uniform-ok",e,cost).decision.submitted,"uniform final-stage fixture");
+    eventually([&]{controller.poll(e.memory,101);return controller.awaiting_fresh_observation();},
+        3000,"uniform final-stage verification did not complete");
+    const auto* retained=controller.source().data();
+    if(expired)controller.poll(coordinated_health(2,3100).memory,3100);
+    else (void)controller.use_cpu_fallback();
+    check(controller.state()==GpuWorkerState::cpu_selected && controller.source().data()==retained &&
+        controller.candidate(0).empty(),"uniform verified candidate escaped terminal CPU/deadline selection");
+    controller.poll(coordinated_health(3,3101).memory,3101);
+    check(controller.state()==GpuWorkerState::cpu_selected,"fresh data reopened terminal uniform CPU result");
+    eventually([&]{return controller.try_retire();},2000,"uniform final-stage fixture retirement");
+  }
+  for(unsigned fault=0;fault<3;++fault){
+    UniformLz4WorkerController controller(WorkerExecution::cpu_semantics);auto input=uniform_owned(9);
+    auto changed=cost;
+    if(fault==0)changed.configuration[1]=std::byte{1};
+    if(fault==1){changed.fixed_bytes=8ULL<<20;changed.input_copies=1;changed.slab_copies=0;changed.output_copies=0;changed.per_chunk_bytes=0;}
+    if(fault==2)changed.profiled_chunk_bytes=32768;
+    const auto r=begin(controller,std::move(input),L"uniform-ok",e,changed);
+    check(r.source_adopted && !r.decision.submitted && !controller.process_id() &&
+        !controller.source().empty(),"unqualified/underaccounted uniform profile launched worker");
+  }
+  {
+    UniformLz4WorkerController controller(WorkerExecution::cpu_semantics);auto input=uniform_owned(11);
+    check(begin(controller,std::move(input),L"uniform-hold",e,cost).decision.submitted,"uniform held request not started");
+    eventually([&]{return controller.process_id()!=0;},2000,"uniform held PID missing");
+    HANDLE child=OpenProcess(SYNCHRONIZE,FALSE,controller.process_id());
+    check(child!=nullptr,"uniform held exact child");struct Close{HANDLE h;~Close(){CloseHandle(h);}} close{child};
+    const auto original=controller.source().data();const auto cpu=controller.use_cpu_fallback();
+    check(cpu.data()==original && cpu.size()==16U*65536+37 &&
+        WaitForSingleObject(child,0)==WAIT_TIMEOUT && controller.state()==GpuWorkerState::cpu_selected &&
+        controller.candidate(0).empty(),"uniform CPU selection waited for cleanup or exposed a candidate");
+    auto next=uniform_owned(12);const auto replacement=begin(controller,std::move(next),L"uniform-ok",e,cost);
+    check(replacement.source_adopted && !replacement.decision.submitted &&
+        controller.source()[0]==std::byte{12},"uniform retiring worker blocked/lost replacement CPU source");
+    check(controller.request_cancel(),"uniform cancellation signal");
+    eventually([&]{return controller.try_retire();},4000,"uniform held supervisor did not retire");
+    check(controller.source()[0]==std::byte{12},"retirement changed replacement CPU bytes");
+  }
+  {
+    UniformLz4WorkerController controller(WorkerExecution::cpu_semantics);auto input=uniform_owned(13);
+    check(begin(controller,std::move(input),L"uniform-delay-invalid",e,cost).decision.submitted,"uniform late-invalid start");
+    (void)controller.use_cpu_fallback();auto next=uniform_owned(14);
+    check(begin(controller,std::move(next),L"uniform-ok",e,cost).source_adopted,"uniform late CPU replacement");
+    eventually([&]{return controller.try_retire();},4000,"uniform late invalid worker did not retire");
+    auto fresh=coordinated_health(2,110);auto fresh_cost=uniform_cost(fresh);auto final=uniform_owned(15);
+    const auto denied=begin(controller,std::move(final),L"uniform-ok",fresh,fresh_cost);
+    check(!denied.decision.submitted && denied.decision.route.reason==GpuRouteReason::configuration_blocked &&
+        controller.source()[0]==std::byte{15},"late corruption was forgotten or changed CPU bytes");
+  }
+  std::cout<<"Uniform controller: configuration/peak/shape admission, fresh final observation, live-helper CPU fallback, "
+      "late quarantine and exact retirement passed; gpu_executed=false\n";
+}
 void sized_transactions(const std::filesystem::path& executable) {
   ProcessBudget budget;
   check(valid_worker_channel_capacity(sized_capacity,budget),"valid sized capacity rejected");
@@ -1243,6 +1349,7 @@ int wmain(int argc,wchar_t** argv){try{
   }
   observe(L"async-success");
   uniform_transactions(executable);observe(L"uniform-transport");
+  coordinated_uniform_requests(executable);observe(L"uniform-controller");
   sized_transactions(executable);observe(L"sized-transport");
   asynchronous_fallback(executable);
   observe(L"async-fallback");

@@ -1,0 +1,252 @@
+{
+  "source": "c96115e871dc522678904464766c5298181321c5",
+  "core_run": 43594652822,
+  "sdk_run": 43594653048,
+  "jobs_passed": 13,
+  "jobs_total": 13,
+  "native_ctest_groups": 149,
+  "sdk": {
+    "source": "c96115e871dc522678904464766c5298181321c5",
+    "complete": true,
+    "artifact_id": 14114390045,
+    "archive_bytes": 139500,
+    "archive_sha256": "c12a38c0edab51913edacdf7942ca03e82bdca5d50eeb8607e3af9e65acc1fa7",
+    "root_bytes": 424664,
+    "root_sha256": "de8a0319c1246a0b04f28f3bb4d5b5468cca2fd7884c1bfa9097978fb02ec868",
+    "uniform": {
+      "complete": true,
+      "bytes": 330240,
+      "sha256": "0f265877087cfbfba1751405089fbb2362055c69afb691ed1426eeb3a548ed51",
+      "imports": [
+        "amdhip64_7.dll",
+        "kernel32.dll"
+      ],
+      "exports": [
+        "flitzfs_uniform_lz4_kernel_api"
+      ],
+      "layout_bytes": 80,
+      "version": 2,
+      "wave_mask": 1,
+      "loaded": false,
+      "gpu_executed": false,
+      "linked_into_product": false,
+      "in_worker_bundle": true,
+      "exported_as_artifact": true
+    },
+    "uniform_compute": {
+      "checks": 1058,
+      "scenarios": 38,
+      "successes": 3,
+      "refusals": 35,
+      "decoder_available": true,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "uniform_raw": {
+      "checks": 10,
+      "scenarios": 1,
+      "successes": 0,
+      "refusals": 1,
+      "decoder_available": false,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "uniform_runtime": {
+      "qualification": {
+        "checks": 71,
+        "exits_confirmed": 11,
+        "bundle_verified": true,
+        "tamper_refused": true,
+        "CPU_source_unchanged": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "bundle": {
+        "experimental": true,
+        "control_commit": "c96115e871dc522678904464766c5298181321c5",
+        "coverage": {
+          "targets": [
+            {
+              "architecture": "gfx1100",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1101",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1102",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1151",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1200",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1201",
+              "wave_mask": 1
+            }
+          ],
+          "object_sha256": "1f28eb70bf689b1c2fc2d2fc610b7e5f643a1447428008e2536c9a9fe466bb5a"
+        },
+        "coverage_receipt_sha256": "e40dbfb688e80b60112bb57cdb81ab06506a743c2590334a6beea8762c78cdeb",
+        "files": [
+          {
+            "name": "flitzfs_rocm_uniform_lz4_candidate.dll",
+            "bytes": 330240,
+            "sha256": "0f265877087cfbfba1751405089fbb2362055c69afb691ed1426eeb3a548ed51"
+          }
+        ],
+        "runtime_basename": "amdhip64_7.dll",
+        "imports": [
+          "amdhip64_7.dll",
+          "kernel32.dll"
+        ],
+        "runtime_shipped": false,
+        "module_loaded": false,
+        "gpu_executed": false,
+        "layout_version": 2,
+        "layout_bytes": 80,
+        "getter": "flitzfs_uniform_lz4_kernel_api"
+      },
+      "product_linked": false,
+      "actual_gpu_execution": false
+    },
+    "legacy_runtime": {
+      "checks": 55,
+      "exits_confirmed": 10,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "runtime_manifest": {
+      "experimental": true,
+      "commit": "c96115e871dc522678904464766c5298181321c5",
+      "rocm": "10.1.0",
+      "runtime_basename": "amdhip64_7.dll",
+      "runtime_shipped": false,
+      "kpack_shipped": false,
+      "files": [
+        {
+          "path": "flitzfs_hip_lz4_worker.exe",
+          "bytes": 481280,
+          "sha256": "f8972fbe006e91767457343be42c2fde5f35ebd6df90a8394d1366cb26cc96f6"
+        },
+        {
+          "path": "flitzfs_lz4_runtime_probe.exe",
+          "bytes": 625152,
+          "sha256": "358f20f2ecf14063769f6d59eae22c230ce0a02d29b1d365467b585d8ec734f0"
+        },
+        {
+          "path": "hip-lz4/flitzfs_rocm_lz4_candidate.dll",
+          "bytes": 330240,
+          "sha256": "b7b5cb5e1c7259f3d1b26a4dc305db089cd6c734c83a591d74d36f657e8040ab"
+        },
+        {
+          "path": "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+          "bytes": 330240,
+          "sha256": "0f265877087cfbfba1751405089fbb2362055c69afb691ed1426eeb3a548ed51"
+        },
+        {
+          "path": "LICENSE",
+          "bytes": 35184,
+          "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+        },
+        {
+          "path": "licenses/blake3/LICENSE_A2",
+          "bytes": 11563,
+          "sha256": "3da8137480af96e14b27ac9474c6a76a0102596493e5ab075ba98c7ffc64d552"
+        },
+        {
+          "path": "licenses/blake3/LICENSE_A2LLVM",
+          "bytes": 12486,
+          "sha256": "b944109ea368e9bf114cb87a21a7ccf11edb6621fe0bd8357ae51dced0afbbb3"
+        },
+        {
+          "path": "licenses/blake3/LICENSE_CC0",
+          "bytes": 7169,
+          "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328"
+        },
+        {
+          "path": "licenses/lz4/LICENSE",
+          "bytes": 1311,
+          "sha256": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c"
+        },
+        {
+          "path": "licenses/lz4/LICENSE-repository",
+          "bytes": 646,
+          "sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5"
+        },
+        {
+          "path": "licenses/hipcomp/LICENSE",
+          "bytes": 1085,
+          "sha256": "74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef"
+        },
+        {
+          "path": "licenses/hipcomp/CMakeLists.txt",
+          "bytes": 14505,
+          "sha256": "19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7"
+        }
+      ],
+      "coverage": {
+        "targets": [
+          {
+            "architecture": "gfx1100",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1101",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1102",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1151",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1200",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1201",
+            "wave_mask": 1
+          }
+        ],
+        "object_sha256": "1f28eb70bf689b1c2fc2d2fc610b7e5f643a1447428008e2536c9a9fe466bb5a"
+      },
+      "controller_job_mib": 256,
+      "worker_job_mib": 128,
+      "cpu_rate": 2000,
+      "worker_timeout_ms": 15000,
+      "cpu_admission_exits": 10,
+      "uniform_cpu_admission_exits": 11,
+      "uniform_layout_version": 2,
+      "uniform_runtime_packaged": true,
+      "uniform_gpu_execution": false,
+      "native_storage_CPU_qualified": true,
+      "native_gpu_worker_timeout_ms": 5000,
+      "native_store_capacity_bytes": 2097152,
+      "native_locked_peak_bytes": 4194304,
+      "actual_gpu_execution": false,
+      "ordinary_filesystem_route": false
+    }
+  },
+  "actual_gpu_executed": false,
+  "owner_executed": false,
+  "normal_gpu_routing": false
+}

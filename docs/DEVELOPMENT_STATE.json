@@ -896,23 +896,27 @@
     "worker_handle_final": 79
   },
   "uniform_lz4_runtime": {
-    "status": "Frames/slab, sized-channel CPU integration and SDK typed compute qualified at f8c0d05. Authenticated uniform worker packaging added; publishing-source qualification pending.",
+    "status": "Authenticated uniform worker package qualified at c96115e; resource-admitted terminal controller added and requires publishing-source qualification.",
     "contract": "docs/UNIFORM_LZ4_RUNTIME.md",
     "runtime_packaged": true,
     "actual_gpu_executed": false,
     "normal_GPU_routing": false,
-    "next": "Qualify authenticated uniform worker package; integrate configuration-keyed work/cost grants, recovery/terminal CPU fallback and controlled Windows writes; execute a separately admitted bounded device trial.",
-    "qualified_source": "f8c0d05e80e3991c92c85368a615b56e416dd348",
-    "core_run": 43593031457,
-    "sdk_run": 43593031802,
+    "next": "Qualify controller; acquire configuration-keyed measured costs/grants, compose controlled Windows writes, and perform separately admitted bounded actual uniform GPU calibration. No ordinary GPU route yet.",
+    "qualified_source": "c96115e871dc522678904464766c5298181321c5",
+    "core_run": 43594652822,
+    "sdk_run": 43594653048,
     "native_CTest_passed": 149,
     "core_cpu_native_sanitizers_passed": true,
-    "dependent_mount_checks_pending": true,
-    "uniform_compute_scenarios": 37,
+    "dependent_mount_checks_pending": false,
+    "uniform_compute_scenarios": 38,
     "uniform_compute_successes": 3,
-    "uniform_compute_refusals": 34,
+    "uniform_compute_refusals": 35,
     "worker_handle_initial": 79,
     "worker_handle_final": 79,
-    "runtime_packaging_qualified": false
+    "runtime_packaging_qualified": true,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "uniform_admission_exits": 11,
+    "controller_contract": "docs/UNIFORM_LZ4_CONTROLLER.md"
   }
 }

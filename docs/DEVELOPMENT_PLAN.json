@@ -666,5 +666,14 @@
     "contract": "docs/UNIFORM_LZ4_RUNTIME.md",
     "evidence": "docs/evidence/uniform-lz4-f8c0d05.json",
     "next": "Qualify authenticated uniform worker packaging, then connect configuration-qualified resource/time grants, evidence-aware recovery, terminal CPU selection and controlled Windows writes. Actual adaptive GPU execution and useful complete-operation benefit remain required."
+  },
+  "uniform_controller_checkpoint": {
+    "packaged_worker_source": "c96115e871dc522678904464766c5298181321c5",
+    "core_run": 43594652822,
+    "sdk_run": 43594653048,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "contract": "docs/UNIFORM_LZ4_CONTROLLER.md",
+    "next": "Qualify terminal controller then prioritize controlled Windows-write integration and bounded actual uniform GPU calibration/cost acquisition. Do not substitute more standalone CPU capability probes for actual useful GPU work."
   }
 }
