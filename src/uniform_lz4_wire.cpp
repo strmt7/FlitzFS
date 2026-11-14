@@ -158,7 +158,7 @@ Bytes encode_uniform_lz4_reply(const PreparedUniformLz4& batch,std::uint64_t id,
   }
   f.insert(f.end(),c.payload.begin(),c.payload.end());return f;
 }
-UniformLz4Candidates accept_uniform_lz4_reply(UniformLz4Bytes f,const PreparedUniformLz4& batch,
+void verify_uniform_lz4_reply(UniformLz4Bytes f,const PreparedUniformLz4& batch,
     std::uint64_t id,WorkerExecution e){
   owned(batch,id);backend(e);framing(f,batch.limits(),true);
   if(get(f,8,8)!=id || get(f,32,4)!=static_cast<std::uint32_t>(e) ||
@@ -179,8 +179,15 @@ UniformLz4Candidates accept_uniform_lz4_reply(UniformLz4Bytes f,const PreparedUn
   const auto size=[&](auto i){return static_cast<std::uint32_t>(get(f,kUniformLz4HeaderBytes+8ULL*i+4,4));};
   (void)verify_parts(batch,batch.layout().chunks,size,[&](auto i){
     const auto n=size(i);auto s=payload.subspan(at,n);at+=n;return s;});
+}
+UniformLz4Candidates accept_uniform_lz4_reply(UniformLz4Bytes f,const PreparedUniformLz4& batch,
+    std::uint64_t id,WorkerExecution e){
+  verify_uniform_lz4_reply(f,batch,id,e);
+  const auto directory=std::size_t(batch.layout().chunks)*8;
+  const auto payload=f.subspan(kUniformLz4HeaderBytes+directory);
   UniformLz4Candidates result;result.sizes.reserve(batch.layout().chunks);
-  for(std::uint32_t i=0;i<batch.layout().chunks;++i)result.sizes.push_back(size(i));
+  for(std::uint32_t i=0;i<batch.layout().chunks;++i)
+    result.sizes.push_back(static_cast<std::uint32_t>(get(f,kUniformLz4HeaderBytes+8ULL*i+4,4)));
   result.payload.assign(payload.begin(),payload.end());return result;
 }
 Bytes uniform_lz4_upload(const PreparedUniformLz4& batch){

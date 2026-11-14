@@ -53,6 +53,8 @@ UniformLz4Request decode_uniform_lz4_request(UniformLz4Bytes,const UniformLz4Lim
 void verify_uniform_lz4_candidates(const PreparedUniformLz4&,const UniformLz4Candidates&);
 std::vector<std::byte> encode_uniform_lz4_reply(const PreparedUniformLz4&,std::uint64_t,
     const UniformLz4Candidates&,WorkerExecution);
+void verify_uniform_lz4_reply(UniformLz4Bytes,const PreparedUniformLz4&,
+    std::uint64_t,WorkerExecution);
 UniformLz4Candidates accept_uniform_lz4_reply(UniformLz4Bytes,const PreparedUniformLz4&,
     std::uint64_t,WorkerExecution);
 // Same canonical shared layout as the typed device entry. Every output guard,

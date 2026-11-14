@@ -482,3 +482,6 @@ The experimental [uniform version-2 compression path](UNIFORM_LZ4_RUNTIME.md) ad
 
 
 Uniform frames/slab and typed compute at `f8c0d05` passed all 149 native Windows groups, both Linux builds, Windows raw-only, sanitizers and full SDK qualification. Dependent mount checks remain separate. The explicit authenticated uniform worker package and its metadata-only admission tests are now added and require publishing-source qualification. This enables no ordinary GPU route or owner-device execution; configuration-qualified cost/grant/recovery and Windows write integration remain required.
+
+
+The explicit resource-admitted uniform controller adds complete parent/child accounting, persistent recovery/quarantine, fresh observation after CPU validation and constant-work terminal CPU selection; see UNIFORM_LZ4_CONTROLLER.md. Its publishing-source checks are pending. The packaged worker at `c96115e` passed all 13 core jobs and SDK qualification. Real cost acquisition, controlled Windows writes and actual uniform-device benefits remain open; no normal GPU route is enabled.
