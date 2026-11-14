@@ -1,5 +1,9 @@
 # FlitzFS safety gates and threat model
 
+## Native fast-ingestion storage candidate
+
+[Native fast ingestion](NATIVE_FAST_INGESTION.md) retains the existing publication barriers and terminal I/O failure policy. Independent LZ4 CPU recovery, exact round-trip equality, strict nonexpansion, bounded external compressor state and pre-I/O advisory budgets are required. Malformed/stale suggestions select CPU encoding. Older readers cannot read codec 4. No worker or GPU is launched by storage calls; new-source qualification is pending.
+
 ## Qualified isolated compression runtime diagnostic
 
 [HIP_LZ4_RUNTIME.md](HIP_LZ4_RUNTIME.md) defines a separate opt-in SDK worker and private-module artifact. The old worker/default filesystem remains unchanged. All target images and source-bound module hashes must qualify; malformed requests, unknown coverage and unconfirmed retirement cannot publish data. CPU/refusal tests do not prove GPU execution or authorize an automatic owner trial. One actual synthetic 4-KiB trial passed at 979cd512 with CPU readback, exact retirement, unchanged inputs/runtime and no remaining owned processes; see [the evidence](evidence/hip-lz4-runtime-979cd512.json). This does not authorize an unchanged rerun, mounted/normal routing or relaxed resources. Keep the existing host/driver constraints and historical retirement uncertainty.

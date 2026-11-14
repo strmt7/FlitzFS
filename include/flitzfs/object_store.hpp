@@ -55,7 +55,7 @@ class StoreByteIo {
   std::atomic<bool> writer_owned_{false};
 };
 
-enum class StoreCompressionMode { raw,automatic };
+enum class StoreCompressionMode { raw,automatic,fast };
 struct StoreCompressionOptions {
   StoreCompressionMode mode=StoreCompressionMode::automatic;
   int zstd_level=6; // 1..9, bounded single-threaded tables; no GPU dependency.
@@ -65,6 +65,8 @@ struct StoreCompressionOptions {
 // backend contract, never guessed device geometry. Default bytes stay fixed.
 struct StoreCheckpointOptions { bool compact_metadata=false; };
 bool store_zstd_available() noexcept;
+// Fast ingestion uses bounded CPU LZ4, or raw/pattern fallback when unavailable.
+bool store_lz4_available() noexcept;
 std::uint32_t store_zstd_version() noexcept; // Runtime library version, zero if not compiled.
 
 struct StoreObjectInfo {
@@ -94,6 +96,10 @@ struct StoreMutation {
   std::uint64_t id=0;
   bool erase=false;
   std::vector<std::byte> bytes;
+  // Optional complete independent LZ4 block; advisory, never trusted by its tag.
+  // Borrowed as part of this immutable mutation. Invalid/inferior input selects
+  // ordinary CPU encoding before any I/O. No worker is launched here.
+  std::vector<std::byte> lz4_candidate{};
 };
 struct StoreCommitInfo {
   std::uint64_t generation=0,physical_end=0,logical_bytes=0;

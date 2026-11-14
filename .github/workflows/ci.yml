@@ -73,6 +73,14 @@ jobs:
           ref: 94d0b3d85764843c6d7855c889137c8ea103689d
           path: .ci-deps/reuse-baseline
           persist-credentials: false
+      - name: Check out immutable pre-LZ4-store decoder for regression
+        if: runner.os == 'Linux' && matrix.zstd == 'ON'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: strmt7/FlitzFS
+          ref: 5da33dcae667d23e68a54f70e109b1920a341518
+          path: .ci-deps/lz4-store-baseline
+          persist-credentials: false
       - name: Configure minimal build
         if: matrix.zstd == 'OFF'
         run: cmake -S . -B build -DFLITZFS_PORTABLE_CPU=ON -DFLITZFS_WITH_ZSTD=${{ matrix.zstd }} -DFLITZFS_REQUIRE_ZSTD=${{ matrix.zstd }} -DFLITZFS_WITH_LZ4=${{ matrix.zstd }} -DFLITZFS_REQUIRE_LZ4=${{ matrix.zstd }} -DCMAKE_BUILD_TYPE=Release
@@ -83,6 +91,17 @@ jobs:
           -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
       - name: Build
         run: cmake --build build --config Release --parallel 2
+      - name: Reproduce the native LZ4 decoder failure on the immutable CPU baseline
+        if: runner.os == 'Linux' && matrix.zstd == 'ON'
+        run: python tools/ci/qualify_lz4_store_baseline.py
+      - name: Retain exact native LZ4 baseline regression receipt
+        if: always() && runner.os == 'Linux' && matrix.zstd == 'ON'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lz4-store-baseline-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-lz4-store-baseline-*.json
+          retention-days: 30
+          if-no-files-found: warn
       - name: Independently inspect native error runtime handle initialization
         if: runner.os == 'Windows'
         run: ./build/Release/flitzfs_worker_exchange_tests.exe --native-error-resource-probe

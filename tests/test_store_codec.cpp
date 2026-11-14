@@ -5,6 +5,9 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#ifdef FLITZFS_TEST_HAS_LZ4
+#include <lz4.h>
+#endif
 #ifdef FLITZFS_TEST_HAS_ZSTD
 #include <zstd.h>
 #endif
@@ -92,6 +95,32 @@ void policies_and_patterns() {
   rejects([&]{StoreCodecEncoder bad({},kStoreEncoderMemoryCap+1);},"encoder cap raised");
   rejects([&]{StoreCodecDecoder bad(kStoreDecoderMemoryCap+1);},"decoder cap raised");
 }
+void independent_lz4_record_oracle() {
+  // Complete block: one literal, a 15-byte offset-one match, five final literals.
+  // Derived from the pinned official block specification, not this encoder.
+  const Bytes block{std::byte{0x1b},std::byte{'A'},std::byte{1},std::byte{0},std::byte{0x50},
+      std::byte{'A'},std::byte{'A'},std::byte{'A'},std::byte{'A'},std::byte{'A'}};
+  const Bytes source(21,std::byte{'A'});
+  StoreCodecDecoder reader;
+#ifdef FLITZFS_TEST_HAS_LZ4
+  if(LZ4_versionNumber()<11101){
+    rejects([&]{(void)reader.decode(4,block,21);},"unqualified old LZ4 returned stored bytes");return;
+  }
+  Bytes reference(source.size());
+  require(LZ4_decompress_safe(reinterpret_cast<const char*>(block.data()),
+      reinterpret_cast<char*>(reference.data()),static_cast<int>(block.size()),
+      static_cast<int>(reference.size()))==21 && reference==source,"independent LZ4 block oracle");
+  require(reader.decode(4,block,21)==source,"native LZ4 record CPU recovery");
+  for(std::size_t n=1;n<block.size();++n)
+    rejects([&]{(void)reader.decode(4,std::span(block).first(n),21);},"truncated LZ4 record admitted");
+  auto trailing=block;trailing.push_back(std::byte{0});
+  rejects([&]{(void)reader.decode(4,trailing,21);},"trailing LZ4 bytes admitted");
+  rejects([&]{(void)reader.decode(4,block,20);},"undersized LZ4 output admitted");
+  rejects([&]{(void)reader.decode(4,block,22);},"wrong LZ4 logical length admitted");
+#else
+  rejects([&]{(void)reader.decode(4,block,21);},"unavailable LZ4 recovery returned bytes");
+#endif
+}
 void malformed_and_budget() {
   StoreCodecDecoder decoder;
   for(auto codec:{4U,99U,255U})rejects([&]{(void)decoder.decode(codec,{},32);},"unknown codec admitted");
@@ -146,7 +175,7 @@ void malformed_and_budget() {
 }
 }
 int main(){
-  try{repeated_copy_guards();policies_and_patterns();malformed_and_budget();
+  try{independent_lz4_record_oracle();repeated_copy_guards();policies_and_patterns();malformed_and_budget();
     std::cout<<"PASS: "<<checks<<" native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.\n";return 0;
   }catch(const std::exception& e){std::cerr<<"store codec failure after "<<checks<<": "<<e.what()<<'\n';return 1;}
 }

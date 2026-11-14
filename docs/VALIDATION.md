@@ -1,5 +1,9 @@
 # Validation ledger — experimental release 0.2
 
+## Native fast-ingestion storage candidate
+
+The new [fast-ingestion storage path](NATIVE_FAST_INGESTION.md) requires exact-source enabled/raw/Windows/sanitizer qualification, independent codec-4 decoding and immutable-baseline failure reproduction, resource/candidate rejection and full modeled transactional I/O fault coverage. Its added tests execute CPU code only. Results remain pending.
+
 ## Executed isolated compression worker qualification — 14 November 2026
 
 At979cd512 the [runtime fixture](HIP_LZ4_RUNTIME.md) passed complete SDK qualification: six target images, 12 staging cases, 55 admission checks/10 confirmed exits, 828 compute checks across 58 scenarios, 8 raw-control checks and all 20 original worker cases. A separately supervised actual AMD trial CPU-verified 4,096 input bytes compressed to 118 payload bytes, with 16,544 explicit device bytes, 575,130,900 ns complete cold exchange and confirmed cleanup. [Source/artifact/host evidence](evidence/hip-lz4-runtime-979cd512.json). These measurements establish neither a filesystem ratio nor a speed benefit. All13 ordinary jobs passed at 516e4e9; latest979cd512 integration results are recorded separately.

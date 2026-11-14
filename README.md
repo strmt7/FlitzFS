@@ -1,5 +1,9 @@
 # FlitzFS
 
+## Native fast-ingestion storage candidate
+
+The experimental [fast-ingestion storage path](docs/NATIVE_FAST_INGESTION.md) adds CPU-readable independent LZ4 records and verified advisory compression candidates. Default encoding remains unchanged. Publishing-source CPU/raw/sanitizer/Windows and transactional fault qualification is pending; no normal filesystem GPU route is enabled.
+
 The [deep background compression plan](docs/COLD_COMPRESSION_RESEARCH.md) requires transparent cross-file grouping and GPU-supported learned or experimentally justified novel compression, separate from fast ingestion. It remains unimplemented and must preserve ordinary Explorer file/folder behavior, bounded access and exact CPU recovery.
 
 The experimental [HIP compression worker](docs/HIP_LZ4_RUNTIME.md) passed its SDK/CPU gates and one actual AMD GPU trial at **979cd512**: two synthetic blocks totaling 4,096 bytes produced 118 compressed payload bytes, independently verified by the CPU. The complete cold worker exchange took 575 ms. This is a correctness diagnostic, not a filesystem compression ratio or speed gain; ordinary file operations remain CPU-only. [Exact evidence](docs/evidence/hip-lz4-runtime-979cd512.json).
