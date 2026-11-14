@@ -1,0 +1,24 @@
+# Developer guide
+
+Start with [CONTRIBUTING.md](../../CONTRIBUTING.md), then read the guide for the
+affected component. [End-user documentation](../README.md) is separate.
+
+| Work | Canonical guide |
+| --- | --- |
+| Set up and build | [Building and testing](building.md), [host independence](../HOST_INDEPENDENCE.md) |
+| Choose checks and interpret results | [Validation](../validation/README.md), [validation details](../VALIDATION.md) |
+| Plan implementation | [Development plan](../DEVELOPMENT_PLAN.md), [current state](../DEVELOPMENT_STATE.json) |
+| Change the storage format or recovery | [Storage references](../reference/README.md#storage-and-recovery) |
+| Change Windows file operations | [Windows references](../reference/README.md#windows-integration) |
+| Change GPU compression or fallback | [GPU references](../reference/README.md#gpu-compression-and-worker-lifecycle) |
+| Change compression or maintenance | [Compression references](../reference/README.md#compression-and-learning), [research](../research/README.md) |
+| Change the application | [Application contract](../WINDOWS_VOLUME_APP.md), [shared backends](../WINDOWS_VOLUME_BACKENDS.md) |
+| Review dependencies | [Dependency audit](../DEPENDENCY_AUDIT.md) |
+| Write or reorganize documentation | [Documentation conventions](documentation.md) |
+
+The [complete reference catalog](../reference/README.md#complete-component-catalog)
+keeps existing technical documents discoverable without moving their paths.
+
+AI agents follow [AGENTS.md](../../AGENTS.md). Its safety and domain rules remain
+controlling. Keep commands and requirements in their canonical guide and link
+to them from navigation pages.

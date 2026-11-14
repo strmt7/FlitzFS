@@ -1,5 +1,19 @@
 # Agent instructions for autonomous FlitzFS development
 
+## End-user documentation boundary
+
+Owner direction, 14 November 2026: follow FlitzZip's end-user README structure
+and task-based documentation navigation, adapting it to the actual FlitzFS
+product. Read docs/development/documentation.md before changing documentation.
+
+Keep README focused on product introduction, actual capabilities, availability,
+requirements, quick start, documentation, contributions and license. Link to
+developer guides; never append commit hashes, CI/assertion counts, fixture
+budgets, worker internals, trial histories or per-round development updates.
+Only user-visible product changes require a README update. Keep source-bound
+results in validation/evidence and current work in the development ledger.
+Preserve existing document paths, notices, safety rules and failure evidence.
+
 ## Owned deferred write boundary
 
 Read `docs/OWNED_DEFERRED_WRITES.md` before changing pending writes or native shutdown. Copy input and the opaque request identity before returning pending. Keep the GPU coordinator on its single owned thread; callbacks may request CPU publication but never poll/retire it or query GPU drivers. Join completion ownership before deleting the filesystem. Never replay committed storage because response delivery fails. Explicit hosted configuration and CPU-only defaults remain controlling.
@@ -50,7 +64,7 @@ Read docs/NATIVE_LZ4_COMPOSITION.md before changing the SDK native storage fixtu
 
 Read docs/NATIVE_FAST_INGESTION.md before changing native codec 4, StoreCompressionMode::fast, advisory mutation data or their tests. Preserve all historical default/raw bytes, exact CPU block recovery, stored/decoded digests, strict nonexpansion and 64-KiB aligned external-state ceiling. Valid fast candidates avoid redundant CPU compression; malformed/stale/inferior advice selects ordinary CPU encoding. Keep each original/advisory transaction input within its separate 4-MiB budget and existing per-object limits. The immutable-baseline probe is disposable-hosted only and must reproduce the exact unknown-codec error; it never modifies baseline source. Storage methods must not launch GPU work or broaden owner testing. The storage foundation qualified at 0d96d903; the native inode hook qualified at 3a797a3; the separate native composition qualified at a047952, with actual bounded GPU bytes stored and independently CPU-read.
 
-The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The direct native inode candidate hook passed all 13 core jobs at 3a797a3; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
+The [fast-ingestion storage foundation](docs/NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The direct native inode candidate hook passed all 13 core jobs at 3a797a3; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
 
 ## Isolated compression runtime boundary
 
@@ -181,7 +195,7 @@ checks. Preserve existing wire compatibility and historical evidence.
 4. Run CPU-only unit tests, raw-only build, ASan/UBSan where supported, and CI on both Windows and Linux. Do not substitute Linux success for Windows qualification.
 5. Design filesystem changes with explicit rollback/recovery, correct flush durability, no data loss under kill/power failure, and an independent CPU reader.
 6. Run any system-level or GPU tests only after the source is audited and the test harness enforces strict resource budgets and kill-switch behavior; never use primary disks or unique user data.
-7. Update README, FORMAT, SAFETY, ROADMAP, and validation results with actual measured facts, not projected results.
+7. Update canonical component contracts, FORMAT, SAFETY, ROADMAP and validation evidence with actual facts. Update README only for user-visible product information; keep implementation and qualification details behind documentation links.
 
 ## Present development boundary
 

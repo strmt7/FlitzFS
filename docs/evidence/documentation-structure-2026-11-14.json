@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "review_date": "2026-11-14",
+  "scope": "Complete documentation layout and entry-point review; not an exhaustive content or external-link audit of every historical page.",
+  "reference": {
+    "repository": "strmt7/FlitzZip",
+    "commit": "dc1a5f0582b95bb389d658d9caef6f973e8b94fe",
+    "tree": "055369b39674743341eca30f66e6ba234962332e",
+    "native_tree_truncated": false,
+    "docs_files": 108,
+    "docs_markdown": 84,
+    "directories": {
+      "docs": 39,
+      "docs/benchmarks": 2,
+      "docs/benchmarks/corpora": 2,
+      "docs/benchmarks/data": 5,
+      "docs/benchmarks/data/fixtures": 2,
+      "docs/benchmarks/data/fixtures/effort": 9,
+      "docs/development": 4,
+      "docs/licenses": 7,
+      "docs/releases": 1,
+      "docs/security-reviews": 37
+    },
+    "entrypoints_read": [
+      "README.md",
+      "docs/README.md",
+      "docs/development/README.md",
+      "CONTRIBUTING.md",
+      "docs/installing.md",
+      "docs/using-flitzzip.md",
+      "docs/troubleshooting.md",
+      "docs/benchmarks/README.md",
+      "docs/development/building.md",
+      "docs/third-party.md",
+      "mcp/README.md"
+    ],
+    "other_markdown_locations": [
+      ".agents/skills/",
+      "AGENTS.md",
+      "CONTRIBUTING.md",
+      "IMPLEMENTATION_PLAN.md",
+      "README.md",
+      "SECURITY.md",
+      "mcp/README.md"
+    ]
+  },
+  "flitzfs": {
+    "reviewed_commit": "f82a4cf7da392bf514ff6c1e50786e6e7471b5b0",
+    "tree": "95591a69215e71a84be8fc789ab7a2e5d99431c6",
+    "native_tree_truncated": false,
+    "existing_component_markdown": 127,
+    "README_before_utf16_units": 30185,
+    "README_after_utf16_units": 4395
+  },
+  "adopted": [
+    "End-user README structure with branding, product description, actual capabilities, availability, requirements, quick start and links.",
+    "Task-oriented user documentation index and separate developer entry point.",
+    "Canonical component guides, source-bound evidence and research kept separate from product claims."
+  ],
+  "improved": [
+    "Dedicated user guides with current filesystem-specific limitations instead of copying archive or installation behavior.",
+    "Separate reference/research/validation entry points and a complete catalog covering all existing technical Markdown paths.",
+    "Explicit agent instruction preventing future README progress-log accumulation.",
+    "Preserved existing technical paths and evidence; corrected one existing AGENTS link."
+  ],
+  "semantic": {
+    "limitation": "Shared MCP returned stale snapshot. It was not reconfigured; restored isolated hosted CLI scopes were used instead.",
+    "tooling_source": "f82a4cf7da392bf514ff6c1e50786e6e7471b5b0",
+    "provider": "0.2.43",
+    "admission_tests": 23,
+    "reference_run": 43635796450,
+    "reference_artifact": 14130102958,
+    "reference_receipt": {
+      "name": "routing-receipt.json",
+      "sha256": "c6665b6699dee5ac50b1952d7771a460ac8f35aa4c3028d5905451a743a65fc9",
+      "commit": "dc1a5f0582b95bb389d658d9caef6f973e8b94fe",
+      "repository": "strmt7/FlitzZip",
+      "source_sha256": "ab6b0f80bef4da8554cddffb08478599aa245928458f8b6bc929a0cd010fc813",
+      "source_files": 97,
+      "provider_version": "0.2.43",
+      "actual_searches": 3,
+      "cpu_only": true,
+      "shared_mcp_modified": false
+    },
+    "reference_archive_sha256": "b3b26722a9f216eab4a14e6c5328f658777219d14d15662d8d68b970c32c9267",
+    "flitzfs_run": 43635799415,
+    "flitzfs_artifact": 14130142742,
+    "flitzfs_receipt": {
+      "name": "routing-receipt.json",
+      "sha256": "9ff60c9d984e1c935e0aa3fd9ed2a99125d6a5b2ae31778287d860c447668c2a",
+      "commit": "f82a4cf7da392bf514ff6c1e50786e6e7471b5b0",
+      "repository": "strmt7/FlitzFS",
+      "source_sha256": "cb4b5123be4e29f022efc53fe8b5fc4cb771d8fd622c474e387b995c1285ea92",
+      "source_files": 130,
+      "provider_version": "0.2.43",
+      "actual_searches": 3,
+      "cpu_only": true,
+      "shared_mcp_modified": false
+    },
+    "flitzfs_archive_sha256": "0bfde320f119d49f6a28a73bf014a5621a11579f57ce6255003f187f12afaf68",
+    "live_candidates_verified": [
+      {
+        "repository": "strmt7/FlitzZip",
+        "path": "docs/development/README.md",
+        "sha256": "db7562ca32f7c1e50084d8e7541656739ed259bd296c56251923e8f3ae61227b"
+      },
+      {
+        "repository": "strmt7/FlitzFS",
+        "path": "docs/WINDOWS_VOLUME_BACKENDS.md",
+        "sha256": "c8da68796f73ec016480bb1bbef2f9b5f274fe8f963eddde96e6c586d8eaad57"
+      }
+    ],
+    "shared_registration_modified": false,
+    "owner_index_built": false
+  },
+  "validation": {
+    "changed_markdown": 15,
+    "local_links_checked": 295,
+    "images_checked": 2,
+    "anchors_checked": 6,
+    "existing_component_pages": 127,
+    "catalog_omissions": 0,
+    "broken_targets": 0,
+    "developer_log_markers_in_readme": 0,
+    "legacy_link_corrected": "AGENTS.md: NATIVE_FAST_INGESTION.md -> docs/NATIVE_FAST_INGESTION.md",
+    "method": "Changed Markdown navigation checked against complete immutable Git tree plus new pages; anchors checked against target headings. This is not an audit of every link in every historical component page."
+  },
+  "runtime_behavior_changed": false,
+  "owner_executables_started": false,
+  "owner_driver_mount_or_storage_operation": false,
+  "release_or_package_published": false,
+  "tooling_core_qualification": {
+    "source": "f82a4cf7da392bf514ff6c1e50786e6e7471b5b0",
+    "run": 43635788559,
+    "status": "success",
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "scope": "Documentation-search infrastructure; filesystem runtime source unchanged."
+  }
+}

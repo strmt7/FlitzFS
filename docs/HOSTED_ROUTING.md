@@ -137,3 +137,34 @@ official native API origin, never redirected or stored in receipts. The source
 evidence workflow uploads these diagnostics separately before source packaging.
 No owner-PC process, shared provider registration or product dependency changes
 follow from this development investigation.
+
+## Documentation scopes
+
+The same isolated provider supports two closed Markdown-only query groups:
+
+| Group | Source |
+| --- | --- |
+| documentation | The workflow's exact FlitzFS checkout |
+| flitzzip-documentation | The read-only FlitzZip revision pinned in both the workflow and provider |
+
+These groups index admitted tracked Markdown, including documentation entry
+points, instead of mixing documentation searches with C/C++ source results.
+They keep the existing file/count/aggregate limits, checked source paths,
+CPU-only model, cgroup limits, immutable source binding, native search receipts
+and explicit daemon retirement. The default filesystem/maintenance and hipCOMP
+source scopes retain their existing behavior.
+
+Use workflow dispatch with the required query group. The reference checkout is
+public source read only; it does not change FlitzZip, another checkout's shared
+MCP registration or the owner's installed tools. A stale shared index remains
+stale until independently repaired; an isolated result must identify its own
+repository, revision, inventory digest and actual searches.
+
+For a different reference revision, update the provider pin and workflow
+checkout together, verify the Git root/commit and relevant live files, and
+repeat qualification. Do not generalize this closed reference into an arbitrary
+repository or path input. A source inventory is not a semantic search receipt;
+both remain required.
+
+See [documentation conventions](development/documentation.md) for how the
+navigation review uses these scopes.
