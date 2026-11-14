@@ -384,7 +384,8 @@ def main():
                 bytes=uniform_module.stat().st_size,sha256=digest(uniform_module),
                 imports=sorted(set(uniform_imports)),exports=sorted(uniform_exports),
                 layout_bytes=80,version=2,wave_mask=1,loaded=False,gpu_executed=False,
-                linked_into_product=False,in_worker_bundle=False,exported_as_artifact=False)
+                linked_into_product=False,in_worker_bundle=args.lz4_runtime_fixture,
+                exported_as_artifact=args.lz4_runtime_fixture)
         api_probe=build/"Release/flitzfs_rocm_api_probe.exe"
         report["api_probe"]=dict(bytes=api_probe.stat().st_size,sha256=digest(api_probe),
             imports=audit_binary(api_probe.read_bytes()))
@@ -476,6 +477,21 @@ def main():
                 all(rows[0][key] is True for key in ("complete","bundle_verified","tamper_refused","CPU_source_unchanged")) and
                 rows[0]["hip_runtime_loaded"] is False and rows[0]["gpu_executed"] is False,
                 "compression runtime admission evidence mismatch")
+            uniform_copy=build/"Release/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll"
+            require(uniform_copy.is_file() and digest(uniform_copy)==report["uniform_lz4_link_candidate"]["sha256"],
+                "uniform runtime staged module identity")
+            uniform_result=run(bounds,[str(runtime_probe),"--uniform-admission",str(runtime_worker),
+                str(root/"uniform-lz4-runtime-admission")],report,"supervised-uniform-LZ4-runtime-admission",60)
+            uniform_prefix="Uniform LZ4 runtime admission: "
+            uniform_rows=[json.loads(line[len(uniform_prefix):]) for line in uniform_result["stdout"].splitlines()
+                if line.startswith(uniform_prefix)]
+            require(len(uniform_rows)==1 and uniform_rows[0]["checks"]>=30 and uniform_rows[0]["exits_confirmed"]==11 and
+                all(uniform_rows[0][key] is True for key in ("complete","bundle_verified","tamper_refused","CPU_source_unchanged")) and
+                uniform_rows[0]["hip_runtime_loaded"] is False and uniform_rows[0]["gpu_executed"] is False,
+                "uniform runtime admission evidence mismatch")
+            report["uniform_lz4_runtime_fixture"]=dict(qualification=uniform_rows[0],
+                bundle=json.loads((build/"Release/hip-uniform-lz4-bundle.json").read_text(encoding="utf-8")),
+                product_linked=False,actual_gpu_execution=False)
             native_result=run(bounds,[str(runtime_probe),"--native-cpu-fixture"],report,
                 "native-LZ4-storage-CPU-composition",30)
             prefix="LZ4 native CPU fixture: "
@@ -538,7 +554,7 @@ def main():
                 row["gpu_executed"] is False and type(row["checks"]) is int and row["checks"]>0 and
                 row["scenarios"]==row["successes"]+row["refusals"],
                 "uniform compute CPU qualification contract")
-            require((available and row["successes"]==3 and row["refusals"]>=30) or
+            require((available and row["successes"]==3 and row["refusals"]>=35) or
                 (not available and row["successes"]==0 and row["refusals"]==1),
                 "uniform compute CPU positive/failure coverage mismatch")
             return dict(bytes=executable.stat().st_size,sha256=digest(executable),
@@ -855,6 +871,7 @@ def main():
                 (runtime_worker,runtime_worker.name),
                 (runtime_probe,runtime_probe.name),
                 (candidate_copy,"hip-lz4/"+candidate_copy.name),
+                (uniform_copy,"hip-uniform-lz4/"+uniform_copy.name),
                 (REPO/"LICENSE","LICENSE"),
                 *((REPO/"third_party/blake3"/name,"licenses/blake3/"+name)
                     for name in ("LICENSE_A2","LICENSE_A2LLVM","LICENSE_CC0")),
@@ -884,7 +901,9 @@ def main():
                 runtime_basename=runtime_name.group(1),runtime_shipped=False,kpack_shipped=False,
                 files=runtime_files,coverage=report["lz4_runtime_fixture"]["bundle"]["coverage"],
                 controller_job_mib=256,worker_job_mib=128,cpu_rate=2000,worker_timeout_ms=15000,
-                cpu_admission_exits=10,native_storage_CPU_qualified=True,native_gpu_worker_timeout_ms=5000,
+                cpu_admission_exits=10,uniform_cpu_admission_exits=11,
+                uniform_layout_version=2,uniform_runtime_packaged=True,uniform_gpu_execution=False,
+                native_storage_CPU_qualified=True,native_gpu_worker_timeout_ms=5000,
                 native_store_capacity_bytes=2*1024*1024,native_locked_peak_bytes=4*1024*1024,
                 actual_gpu_execution=False,ordinary_filesystem_route=False)
             with (runtime_package/"qualification-manifest.json").open("x",encoding="utf-8") as out:

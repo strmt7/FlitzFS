@@ -7,12 +7,15 @@
 #include "hip_worker_bundle.hpp"
 #ifdef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
 #include "hip_lz4_compute.hpp"
+#include "hip_uniform_lz4_compute.hpp"
 #include "hip_lz4_bundle.hpp"
+#include "hip_uniform_lz4_bundle.hpp"
 #endif
 #include "hip_module_verification.hpp"
 #include "worker_exchange.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include <bcrypt.h>
+#include <cstdint>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -53,13 +56,14 @@ bool same_path(const fs::path& left, const fs::path& right) {
 
 class Bundle {
  public:
-  explicit Bundle(bool kernel_only = false, bool compression_only = false)
-      : root_(module_path(nullptr).parent_path() / (compression_only ? L"hip-lz4" : L"hip")),
-        kernel_only_(kernel_only),compression_only_(compression_only) {
+  explicit Bundle(bool kernel_only = false, bool compression_only = false, bool uniform_only=false)
+      : root_(module_path(nullptr).parent_path() / (uniform_only ? L"hip-uniform-lz4" : compression_only ? L"hip-lz4" : L"hip")),
+        kernel_only_(kernel_only),compression_only_(compression_only),uniform_only_(uniform_only) {
 #ifndef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
-    require(!compression_only_,Exit::unsupported_configuration,"compression fixture not compiled");
+    require(!compression_only_ && !uniform_only_,Exit::unsupported_configuration,"compression fixture not compiled");
 #endif
-    require(!(kernel_only_ && compression_only_),Exit::invalid_request,"conflicting bundle scope");
+    require(!(kernel_only_ && (compression_only_ || uniform_only_)) && !(compression_only_ && uniform_only_),
+        Exit::invalid_request,"conflicting bundle scope");
     const auto drive = root_.root_name().native();
     require(root_.is_absolute() && drive.size() == 2 && drive[1] == L':',
         Exit::runtime_unavailable, "HIP bundle must be on a local drive path");
@@ -71,7 +75,7 @@ class Bundle {
       parent /= component;
       directories_.emplace_back(parent);
     }
-    const auto expected_count = kernel_only_ || compression_only_ ? std::size_t{1} : std::size(hip_bundle::files);
+    const auto expected_count = kernel_only_ || compression_only_ || uniform_only_ ? std::size_t{1} : std::size(hip_bundle::files);
     std::size_t count = 0;
     for (const auto& entry : fs::directory_iterator(root_)) {
       ++count;
@@ -105,21 +109,22 @@ class Bundle {
  private:
   template<class Visit> void entries(Visit&& visit) const {
 #ifdef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
+    if(uniform_only_){for(const auto& entry:hip_uniform_lz4_bundle::files)visit(entry);return;}
     if(compression_only_){for(const auto& entry:hip_lz4_bundle::files)visit(entry);return;}
 #endif
     for(const auto& entry:hip_bundle::files)visit(entry);
   }
   bool included(const wchar_t* name) const {
-    return compression_only_ || !kernel_only_ || same_path(name, hip_bundle::kernel);
+    return uniform_only_ || compression_only_ || !kernel_only_ || same_path(name, hip_bundle::kernel);
   }
   fs::path root_;
-  bool kernel_only_ = false,compression_only_ = false;
+  bool kernel_only_ = false,compression_only_ = false,uniform_only_ = false;
   std::vector<DirectoryPin> directories_;
   std::vector<ReadOnlyFile> files_;
 };
 
-Bundle verify_bundle(bool kernel_only = false,bool compression_only=false) {
-  try { return Bundle(kernel_only,compression_only); }
+Bundle verify_bundle(bool kernel_only = false,bool compression_only=false,bool uniform_only=false) {
+  try { return Bundle(kernel_only,compression_only,uniform_only); }
   catch (const HipWorkerFailure&) { throw; }
   catch (const std::bad_alloc&) { throw; }
   catch (const std::exception&) {
@@ -160,6 +165,18 @@ unsigned decimal(std::wstring_view input, unsigned limit) {
     const auto next = static_cast<unsigned>(digit - L'0');
     require(next <= limit && value <= (limit - next) / 10, Exit::invalid_request, "adapter decimal range");
     value = 10 * value + next;
+  }
+  return value;
+}
+
+std::uint64_t wide_decimal(std::wstring_view input){
+  require(!input.empty() && input.size()<=20,Exit::invalid_request,"uniform decimal field");
+  std::uint64_t value=0;
+  for(const auto digit:input){
+    require(digit>=L'0' && digit<=L'9',Exit::invalid_request,"uniform decimal digit");
+    const auto next=static_cast<unsigned>(digit-L'0');
+    require(value<=((std::numeric_limits<std::uint64_t>::max)()-next)/10,
+        Exit::invalid_request,"uniform decimal overflow");value=value*10+next;
   }
   return value;
 }
@@ -227,6 +244,61 @@ int worker(int argc, wchar_t** argv) {
   }
 
 #ifdef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
+  if(argc==2 && std::wstring_view(argv[1])==L"--verify-uniform-lz4-kernel-bundle"){
+    const auto bundle=verify_bundle(false,false,true);
+    require(GetModuleHandleW(hip_uniform_lz4_bundle::kernel)==nullptr &&
+        GetModuleHandleW(hip_bundle::runtime)==nullptr,Exit::integrity_failure,
+        "uniform metadata verification loaded AMD code");return 0;
+  }
+  if(argc>1 && std::wstring_view(argv[1])==L"--driver-uniform-lz4-adapter"){
+    require(argc==13 && std::wstring_view(argv[11])==L"--worker-channel",
+        Exit::invalid_request,"explicit uniform adapter/channel/capacities required");
+    require(gpu_lz4_cpu_verification_available(),Exit::unsupported_configuration,
+        "independent CPU uniform recovery unavailable");
+    const auto ordinal=decimal(argv[2],63);const auto luid=parse_luid(argv[3]);
+    const auto mask=decimal(argv[4],(std::numeric_limits<unsigned>::max)());
+    require(mask && std::has_single_bit(mask),Exit::invalid_request,"uniform node mask");
+    const auto expected_runtime=runtime_digest(argv[5]);
+    const auto request_capacity=decimal(argv[6],(std::numeric_limits<std::int32_t>::max)());
+    const auto reply_capacity=decimal(argv[7],(std::numeric_limits<std::int32_t>::max)());
+    const hip_detail::UniformLz4ComputeGrant grant{
+        decimal(argv[8],(std::numeric_limits<unsigned>::max)()),wide_decimal(argv[9]),
+        decimal(argv[10],uniform_lz4::max_chunk_bytes)};
+    require(grant.maximum_chunks && grant.maximum_device_bytes && grant.chunk_bytes,Exit::invalid_request,"missing uniform work grant");
+    auto channel=WorkerChannel::open_sized(argv[12],{request_capacity,reply_capacity});
+    std::optional<UniformLz4Request> request;
+    try{
+      const auto limits=inspect_uniform_lz4_request(channel.request(),request_capacity,reply_capacity);
+      request.emplace(decode_uniform_lz4_request(channel.request(),limits));
+    }catch(const std::bad_alloc&){throw;}
+    catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"invalid uniform compression frame");}
+    require(request->batch.layout().chunk_bytes==grant.chunk_bytes &&
+        request->batch.layout().chunks<=grant.maximum_chunks &&
+        request->batch.layout().total_bytes<=grant.maximum_device_bytes,
+        Exit::invalid_request,"uniform frame exceeds qualified work grant");
+    const auto bundle=verify_bundle(false,false,true);
+    const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
+    const auto before=query_windows_gpu_budget(luid,mask);
+    require_hip_memory(before.snapshot,luid,mask,GetTickCount64(),
+        request->batch.layout().total_bytes,HipMemoryPoint::pre_initialize);
+    require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
+        Exit::runtime_unavailable,"restrict uniform DLL lookup");
+    bundle.check_loaded_paths();
+    Module runtime(installed.path(),HipWorkerStage::runtime_load);
+    Module kernels(bundle.path(hip_uniform_lz4_bundle::kernel),HipWorkerStage::kernel_load);
+    bundle.check_loaded_paths();
+    require(GetModuleHandleW(hip_bundle::runtime)==runtime.get(),Exit::integrity_failure,
+        "uniform runtime identity changed");
+    const auto address=GetProcAddress(kernels.get(),"flitzfs_uniform_lz4_kernel_api");
+    require(address!=nullptr,Exit::unsupported_configuration,"uniform API entry unavailable",HipWorkerStage::kernel_entry);
+    const auto entry=std::bit_cast<uniform_lz4::KernelApiEntry>(address);const auto* api=entry();
+    require(api && uniform_lz4::compatible_kernel_api(*api),Exit::unsupported_configuration,
+        "incompatible uniform API table",HipWorkerStage::kernel_table);
+    const auto candidates=run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
+        *request,grant,std::span<const hip_detail::Lz4KernelCoverage>(hip_uniform_lz4_bundle::targets));
+    const auto frame=encode_uniform_lz4_reply(request->batch,request->request_id,candidates,WorkerExecution::hip);
+    kernels.close();runtime.close();channel.publish(frame);return 0;
+  }
   if(argc==2 && std::wstring_view(argv[1])==L"--verify-lz4-kernel-bundle"){
     const auto bundle=verify_bundle(false,true);
     require(GetModuleHandleW(hip_lz4_bundle::kernel)==nullptr &&

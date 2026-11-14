@@ -9,6 +9,7 @@
 #include <limits>
 #include <string_view>
 #include "flitzfs/lz4_worker_wire.hpp"
+#include "flitzfs/uniform_lz4_wire.hpp"
 #include <windows.h>
 #include <array>
 #include <algorithm>
@@ -70,6 +71,75 @@ void write_new(const fs::path& path,std::span<const std::byte> bytes){
   require(ok && actual==bytes.size() && closed,"Fixture copy failed");
 }
 
+void uniform_exchange(const fs::path& worker,const PreparedUniformLz4& batch,
+    std::span<const std::byte> frame,HipWorkerExit expected,bool missing_runtime=false,
+    unsigned fault=0){
+  const auto& limits=batch.limits();
+  std::vector<std::wstring> args{L"--driver-uniform-lz4-adapter",L"0",L"0100000000000000",L"1",
+      std::wstring(64,L'0'),std::to_wstring(limits.request_bytes),std::to_wstring(limits.reply_bytes),
+      std::to_wstring(limits.chunks),std::to_wstring(limits.device_bytes),std::to_wstring(limits.chunk_bytes)};
+  if(fault==1)args[7]=L"1"; // Actual 17-block request exceeds independently supplied grant.
+  if(fault==2)args[8]=L"18446744073709551616";
+  if(fault==3)args[6]=std::to_wstring(limits.reply_bytes-1);
+  if(fault==4)args[9]=L"32768";
+  auto session=WorkerExchangeSession::start_sized(worker,args,frame,
+      {static_cast<std::size_t>(limits.request_bytes),static_cast<std::size_t>(limits.reply_bytes)},budget);
+  const auto start=GetTickCount64();
+  while(!session.try_result() && GetTickCount64()-start<17000)Sleep(1);
+  const auto* result=session.try_result();
+  require(result && !session.failure() && result->process.process_id && result->process.exit_confirmed &&
+      !result->process.timed_out && !result->process.cancelled &&
+      result->process.peak_committed_bytes<=128ULL*1024*1024,"Uniform admission child retirement");++exits;
+  const auto category=hip_worker_exit_category(result->process.exit_code);
+  require(result->code==WorkerExchangeCode::worker_failed && result->response.empty() &&
+      !result->publication_observed && (category==static_cast<std::uint32_t>(expected) ||
+      (missing_runtime && category==static_cast<std::uint32_t>(HipWorkerExit::integrity_failure))),
+      "Uniform admission failure exposed candidate/incorrect category");
+  while((!session.retirement_confirmed() || !WorkerExchangeSession::available()) &&
+      GetTickCount64()-start<19000)Sleep(1);
+  require(session.retirement_confirmed() && WorkerExchangeSession::available(),"Uniform supervisor not quiescent");
+  for(const auto* suffix:{L".request",L".reply"}){
+    const auto name=L"Local\\FlitzFS.worker."+result->channel_token+suffix;
+    const auto mapping=OpenFileMappingW(FILE_MAP_READ,FALSE,name.c_str());
+    const auto error=GetLastError();if(mapping)CloseHandle(mapping);
+    require(!mapping && error==ERROR_FILE_NOT_FOUND,"Uniform admission retained a mapping");
+  }
+}
+int uniform_admission(const fs::path& worker,const fs::path& root){
+  require(worker.is_absolute() && root.is_absolute() && root.has_filename() &&
+      root.filename()!=L"." && root.filename()!=L"..","Uniform absolute fixture paths");
+  require(!fs::exists(root) && fs::create_directory(root),"NEW uniform fixture required");
+  const auto binary=read(worker);
+  const auto module_path=worker.parent_path()/L"hip-uniform-lz4"/L"flitzfs_rocm_uniform_lz4_candidate.dll";
+  const auto module=read(module_path);
+  child(worker,{L"--verify-uniform-lz4-kernel-bundle"},HipWorkerExit::invalid_request,true);
+  const auto missing=root/L"missing";require(fs::create_directory(missing),"Uniform missing fixture");
+  write_new(missing/worker.filename(),binary);
+  child(missing/worker.filename(),{L"--verify-uniform-lz4-kernel-bundle"},HipWorkerExit::runtime_unavailable);
+  const auto tamper=root/L"tamper";require(fs::create_directory(tamper),"Uniform tamper fixture");
+  require(fs::create_directory(tamper/L"hip-uniform-lz4"),"Uniform tamper module directory");
+  write_new(tamper/worker.filename(),binary);auto changed=module;changed.back()^=std::byte{1};
+  write_new(tamper/L"hip-uniform-lz4"/module_path.filename(),changed);
+  child(tamper/worker.filename(),{L"--verify-uniform-lz4-kernel-bundle"},HipWorkerExit::integrity_failure);
+  Bytes source(16U*65536+37,std::byte{0x51});uniform_lz4::Layout layout{};
+  require(uniform_lz4::make_layout(source.size(),65536,layout),"Uniform admission layout");
+  const auto batch=PreparedUniformLz4::prepare(source,uniform_lz4_limits(layout));
+  const auto frame=encode_uniform_lz4_request(batch,73519);
+  uniform_exchange(worker,batch,frame,HipWorkerExit::runtime_unavailable,true);
+  for(const auto at:{std::size_t{0},std::size_t{36},std::size_t{48}}){
+    auto invalid=frame;invalid[at]^=std::byte{1};uniform_exchange(worker,batch,invalid,HipWorkerExit::invalid_request);
+  }
+  uniform_exchange(worker,batch,frame,HipWorkerExit::invalid_request,false,1);
+  uniform_exchange(worker,batch,frame,HipWorkerExit::invalid_request,false,2);
+  uniform_exchange(worker,batch,frame,HipWorkerExit::device_fault,false,3);
+  uniform_exchange(worker,batch,frame,HipWorkerExit::invalid_request,false,4);
+  require(read(worker)==binary && read(module_path)==module &&
+      std::equal(source.begin(),source.end(),batch.plaintext().begin()),"Uniform trusted input/source changed");
+  std::cout<<"Uniform LZ4 runtime admission: {\"checks\":"<<checks<<",\"exits_confirmed\":"<<exits
+      <<",\"bundle_verified\":true,\"tamper_refused\":true,\"CPU_source_unchanged\":true,"
+      "\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\n";
+  return 0;
+}
 unsigned number(std::wstring_view value,unsigned limit){
   require(!value.empty() && value.size()<=10,"Bounded adapter number required");
   unsigned result=0;
@@ -248,6 +318,7 @@ int gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller
 int wmain(int argc,wchar_t** argv){
   try{
     gpu_probe_fixture::Budget controller;
+    if(argc==4 && std::wstring_view(argv[1])==L"--uniform-admission")return uniform_admission(argv[2],argv[3]);
     if(argc==2 && std::wstring_view(argv[1])==L"--native-cpu-fixture")return native_cpu_fixture(controller);
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-native-once")return native_gpu_once(argc,argv,controller);
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-once")return gpu_once(argc,argv,controller);

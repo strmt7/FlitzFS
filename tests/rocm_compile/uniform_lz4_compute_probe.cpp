@@ -189,7 +189,7 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
         point,index?&before:nullptr);
   };
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)
-    grant={state.source.batch.layout().chunks,state.source.batch.layout().total_bytes};
+    grant={state.source.batch.layout().chunks,state.source.batch.layout().total_bytes,state.source.batch.layout().chunk_bytes};
   return execute_uniform_lz4_compute(api,&attributes,kernels,state.source,covered,grant,initialize,memory);
 }
 void refused(State& state,HipWorkerExit code,UniformLz4ComputeGrant grant={}){
@@ -217,7 +217,7 @@ int wmain(int argc,wchar_t** argv){try{
   const auto source=request();
   if(argc==2 && std::wstring_view(argv[1])==L"--guarded-refusal"){
     try{(void)run_hip_uniform_lz4_in_worker(nullptr,kernels,0,identity,1,source,
-        {source.batch.layout().chunks,source.batch.layout().total_bytes},std::span(&coverage,1));
+        {source.batch.layout().chunks,source.batch.layout().total_bytes,source.batch.layout().chunk_bytes},std::span(&coverage,1));
       throw std::runtime_error("uniform null runtime admitted");}
     catch(const HipWorkerFailure& f){require(f.code==(gpu_lz4_cpu_verification_available()?
         HipWorkerExit::invalid_request:HipWorkerExit::unsupported_configuration),"uniform guarded refusal category");}
@@ -246,11 +246,16 @@ int wmain(int argc,wchar_t** argv){try{
     {State state(source);state.missing_attributes=true;refused(state,HipWorkerExit::unsupported_configuration);}
     {State state(source);state.properties.maxGridSize[0]=8;refused(state,HipWorkerExit::unsupported_configuration);
       require(!state.allocated && !state.stream_live,"unsupported dynamic grid allocated work");}
-    {State state(source);refused(state,HipWorkerExit::invalid_request,{8,source.batch.layout().total_bytes});
+    {State state(source);refused(state,HipWorkerExit::invalid_request,{8,source.batch.layout().total_bytes,source.batch.layout().chunk_bytes});
       require(state.calls.empty(),"kernel quantum grant touched runtime");}
     {State state(source);refused(state,HipWorkerExit::invalid_request,
-        {source.batch.layout().chunks,source.batch.layout().total_bytes-1});
+        {source.batch.layout().chunks,source.batch.layout().total_bytes-1,source.batch.layout().chunk_bytes});
       require(state.calls.empty(),"memory grant touched runtime");}
+  }
+  if(gpu_lz4_cpu_verification_available()){
+    State state(source);refused(state,HipWorkerExit::invalid_request,
+        {source.batch.layout().chunks,source.batch.layout().total_bytes,32768});
+    require(state.calls.empty(),"mismatched profiled width touched runtime");
   }
   require(!GetModuleHandleA(FLITZFS_REQUIRED_HIP_RUNTIME_DLL_NAME),"uniform probe initialized runtime");
   std::array<wchar_t,32768> path{};

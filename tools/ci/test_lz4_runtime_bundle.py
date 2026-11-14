@@ -48,6 +48,32 @@ class BundleTests(unittest.TestCase):
         self.assertFalse(result["module_loaded"])
         self.assertIn(hashlib.sha256(before[0]).hexdigest(),(self.root/"bundle.hpp").read_text())
         self.assertEqual(before,(self.module.read_bytes(),self.obj.read_bytes(),self.proof.read_bytes()))
+    def uniform_stage(self):
+        return stage(self.module,self.obj,self.proof,self.root/"hip-uniform-lz4",
+            self.root/"uniform.hpp",self.root/"uniform.json","amdhip64_7.dll","a"*40,uniform=True)
+    def uniform_proof(self):
+        self.record["entry_objects"]["gfx1100"]["uniform_symbols"]=[
+            "flitzfs_uniform_lz4_wave32","flitzfs_uniform_lz4_wave64"]
+        self.export_mock.return_value={"flitzfs_uniform_lz4_kernel_api"};self.save()
+    def test_uniform_copy_has_distinct_getter_namespace_and_layout(self):
+        self.uniform_proof();result=self.uniform_stage()
+        self.assertEqual(result["layout_version"],2);self.assertEqual(result["layout_bytes"],80)
+        self.assertEqual(result["getter"],"flitzfs_uniform_lz4_kernel_api")
+        self.assertEqual((self.root/"hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll").read_bytes(),
+            self.module.read_bytes())
+        self.assertIn("namespace flitzfs::hip_uniform_lz4_bundle",(self.root/"uniform.hpp").read_text())
+        self.assertEqual(result["coverage"]["targets"][0]["wave_mask"],1)
+        self.assertFalse(result["gpu_executed"]);self.assertFalse(result["module_loaded"])
+    def test_uniform_missing_native_symbols_refuses_before_output(self):
+        self.export_mock.return_value={"flitzfs_uniform_lz4_kernel_api"}
+        with self.assertRaises((ValueError,RuntimeError)):self.uniform_stage()
+        self.assertFalse((self.root/"hip-uniform-lz4").exists())
+    def test_uniform_legacy_getter_cannot_supply_new_profile(self):
+        self.uniform_proof();self.export_mock.return_value={"flitzfs_candidate_lz4_api"}
+        with self.assertRaises((ValueError,RuntimeError)):self.uniform_stage()
+        self.assertFalse((self.root/"hip-uniform-lz4").exists())
+    def test_uniform_getter_cannot_supply_legacy_profile(self):
+        self.uniform_proof();self.rejected()
     def test_wrong_source_lease(self):
         self.record["control_commit"]="b"*40;self.save();self.rejected()
     def test_changed_object(self):

@@ -87,3 +87,33 @@ larger-window GPU benefit, or new owner-device trial is claimed. The next work
 must integrate authenticated packaging, independently repeated qualified grants,
 the existing evidence-aware recovery policy and terminal CPU selection, then
 connect controlled Windows writes and low-priority streamed maintenance.
+
+## Authenticated supervised worker packaging (qualification pending)
+
+The explicit runtime fixture now stages the uniform DLL in hip-uniform-lz4,
+with its own exact getter, generated namespace, file digest, source-bound native
+image inventory and wave mask. The legacy bundle remains distinct. Staging
+requires every uniform device entry in every selected native image and rejects
+cross-profile getters before creating outputs. No AMD runtime or driver is shipped.
+
+The worker's explicit uniform adapter command receives independently supplied
+channel capacities and work/device bounds. It opens only the sized protected
+transport, inspects canonical framing before proportional source preparation,
+verifies its private module and installed-system runtime identity, repeats live
+memory and device checks, and calls the typed compute wrapper. It CPU-verifies
+all candidates and closes both modules before publication. Successful confirmed
+child/supervisor retirement remains required in the parent.
+
+The command's grant is a bound supplied by a TRUSTED configuration-qualified
+controller; command-line numbers do not themselves attest a measured cost
+profile. Automatic cost acquisition, configuration/recovery-key binding in the
+supervisor, terminal CPU selection and native write routing still require
+integration. No normal operation or owner experiment is enabled here.
+
+The hosted runtime admission probe adds separate metadata-only checks for valid,
+missing and tampered uniform bundles, a deliberately invalid runtime digest,
+malformed source/header/digest, too-small work grants, numeric overflow and
+incompatible channel capacities. These use synthetic data and never initialize
+HIP. New source must pass its matching qualification before any device trial.
+
+The supplied compute grant also binds the profiled block width. A differently shaped request refuses before initialization, preventing a time estimate for one block geometry from authorizing another. Parent cost/configuration qualification remains a separate requirement.

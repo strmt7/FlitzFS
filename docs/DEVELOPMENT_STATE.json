@@ -896,11 +896,23 @@
     "worker_handle_final": 79
   },
   "uniform_lz4_runtime": {
-    "status": "Version-2 owned messages, independent CPU/slab verification, sized-channel CPU integration and SDK-typed compute are added; exact-source qualification pending.",
+    "status": "Frames/slab, sized-channel CPU integration and SDK typed compute qualified at f8c0d05. Authenticated uniform worker packaging added; publishing-source qualification pending.",
     "contract": "docs/UNIFORM_LZ4_RUNTIME.md",
-    "runtime_packaged": false,
+    "runtime_packaged": true,
     "actual_gpu_executed": false,
     "normal_GPU_routing": false,
-    "next": "Authenticate and package uniform module/worker, repeat qualified resource/time grants in worker, compose recovery/terminal CPU fallback and controlled Windows writes."
+    "next": "Qualify authenticated uniform worker package; integrate configuration-keyed work/cost grants, recovery/terminal CPU fallback and controlled Windows writes; execute a separately admitted bounded device trial.",
+    "qualified_source": "f8c0d05e80e3991c92c85368a615b56e416dd348",
+    "core_run": 43593031457,
+    "sdk_run": 43593031802,
+    "native_CTest_passed": 149,
+    "core_cpu_native_sanitizers_passed": true,
+    "dependent_mount_checks_pending": true,
+    "uniform_compute_scenarios": 37,
+    "uniform_compute_successes": 3,
+    "uniform_compute_refusals": 34,
+    "worker_handle_initial": 79,
+    "worker_handle_final": 79,
+    "runtime_packaging_qualified": false
   }
 }

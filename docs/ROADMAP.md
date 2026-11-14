@@ -1078,3 +1078,6 @@ The new [resource-adaptive execution path](ADAPTIVE_LZ4_EXECUTION.md) replaces t
 
 
 The experimental [uniform version-2 compression path](UNIFORM_LZ4_RUNTIME.md) adds owned variable-count messages, guarded slab/CPU verification, real sized-channel CPU integration and a typed SDK compute wrapper. Its publishing-source qualification is pending. Resource-sized transport at `38e1f080` passed all 13 core jobs and full SDK qualification; see evidence/adaptive-transport-38e1f080.json. Authenticated version-2 worker packaging, actual larger-window GPU dispatch, normal Windows routing and useful end-to-end benefit remain unfinished.
+
+
+Uniform frames/slab and typed compute at `f8c0d05` passed all 149 native Windows groups, both Linux builds, Windows raw-only, sanitizers and full SDK qualification. Dependent mount checks remain separate. The explicit authenticated uniform worker package and its metadata-only admission tests are now added and require publishing-source qualification. This enables no ordinary GPU route or owner-device execution; configuration-qualified cost/grant/recovery and Windows write integration remain required.
