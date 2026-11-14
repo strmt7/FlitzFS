@@ -47,6 +47,7 @@ struct State {
   int stream_tag=0;
   bool reuse=false,null_stream=false;
   std::uint64_t allocation_bytes=0,source_offset=0;
+  std::size_t allocated_size=0;
   unsigned waits=0;uniform_lz4::Layout current_plan{};
   void* allocation=nullptr;
   explicit State(const UniformLz4Request& input,unsigned wave=32):source(input),arena((input.batch.layout().total_bytes+7)/8+1) {
@@ -105,14 +106,14 @@ hipError_t allocate(void** out,std::size_t size){
   if(status!=hipSuccess)return active->fault=="allocate"?hipErrorOutOfMemory:status;
   if(active->null_allocation){*out=nullptr;return hipSuccess;}
   active->allocation=active->bytes().data()+(active->bad_alignment?1:0);
-  active->allocated=true;*out=active->allocation;return hipSuccess;
+  active->allocated_size=size;active->allocated=true;*out=active->allocation;return hipSuccess;
 }
 hipError_t release(void* value){
   require(active->allocated && value==active->allocation,"Foreign/duplicate slab release");
-  active->allocated=false;return active->step("release");
+  active->allocated=false;active->allocated_size=0;return active->step("release");
 }
 hipError_t copy(void* out,const void* in,std::size_t size,hipMemcpyKind kind){
-  require(active->allocated && size==active->source.batch.layout().total_bytes,"Copy slab extent");
+  require(active->allocated && size==active->allocated_size,"Copy does not match the exact owned allocation");
   const auto name=kind==hipMemcpyHostToDevice?"upload":"readback";
   require(kind==hipMemcpyHostToDevice || kind==hipMemcpyDeviceToHost,"Unexpected copy direction");
   if(kind==hipMemcpyHostToDevice)require(out==active->allocation,"Upload address");
@@ -149,7 +150,7 @@ hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t
   auto* slab=*static_cast<unsigned char**>(args[0]);
   const auto allocated=*static_cast<uniform_lz4::u64*>(args[1]);
   const auto plan=*static_cast<uniform_lz4::Layout*>(args[2]);
-  require(slab==active->allocation && allocated==expected.total_bytes &&
+  require(slab==active->allocation && allocated==expected.total_bytes && allocated<=active->allocated_size &&
       plan.chunks==expected.chunks && uniform_lz4::valid_layout(plan,allocated),"uniform 64-bit by-value ABI");
   const auto status=active->step("launch");if(status!=hipSuccess)return status;
   active->submitted=true;active->current_plan=plan;

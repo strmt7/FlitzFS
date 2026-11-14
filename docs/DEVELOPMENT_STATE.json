@@ -367,7 +367,7 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "Reusable bounded uniform scope implemented; publishing-source qualification pending. Historical abnormal exit remains unproven.",
+    "status": "Reusable bounded scope compiled, but the first SDK CPU matrix failed on a stale copy-size fixture predicate. Exact allocator-owned copy sizing is corrected; new publishing-source qualification remains pending.",
     "contract": "docs/UNIFORM_LZ4_REUSE.md",
     "job_cap_raised": false,
     "owner_executed": false,
@@ -946,7 +946,25 @@
       "contract": "docs/UNIFORM_LZ4_REUSE.md",
       "job_cap_raised": false,
       "owner_executed": false,
-      "normal_GPU_routing": false
+      "normal_GPU_routing": false,
+      "first_SDK_failure": {
+        "experimental": true,
+        "source_commit": "92d326ea7029068571f0fb692a8c4693b5568d7b",
+        "sdk_run": 43612540158,
+        "sdk_job": 132500492009,
+        "artifact": 14120408950,
+        "artifact_sha256": "2b9150fbacb7880a49dca4325e362870dbf30a4a9f916cfc33912685e1d1b7ee",
+        "root_sha256": "4f431e6024c16f3ed3c6deb06df267712a5e277552a6d5d834945a7da8ac6d41",
+        "failed_command": "typed-uniform-LZ4-compute-CPU-fault-matrix",
+        "command_exit": 1,
+        "stderr": "Copy slab extent",
+        "hip_runtime_loaded": false,
+        "GPU_executed": false,
+        "owner_executed": false,
+        "cause": "The fake allocator admitted the quantum slab, but its copy predicate still required the whole request's canonical slab size. The new production path copies the exact reusable allocation.",
+        "correction": "Record the actual successful allocation size in the fake owner. Require complete copies of exactly that allocation and active launch extents no larger than it. Preserve original exact single-window sizing, no tolerance, source/guard/CPU comparison and all failure/resource tests.",
+        "qualification": "Correction requires publishing-source execution."
+      }
     }
   }
 }

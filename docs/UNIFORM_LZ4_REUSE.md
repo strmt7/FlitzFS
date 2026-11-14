@@ -31,3 +31,7 @@ Publishing-source core and full SDK qualification are pending. Any later owner e
 The current primary HIP sources and native transport receipts are retained in [the sweep research evidence](evidence/uniform-sweep-research-2026-11-14.json). They document stream ordering, full synchronization and the distinction between completion and destruction; no new HIP API or installed toolchain is introduced here. The public source is not asserted to match the installed SDK build identifier.
 
 A successful new trial would establish only this bounded implementation on the observed configuration. Root-cause attribution, repeated complete-cost measurements, production cost qualification, automatic Windows routing and minimum-total-size collective learning remain separate work. The full filesystem goal remains active.
+
+## First SDK fixture correction
+
+At `92d326e`, SDK compilation reached the CPU matrix and failed with `Copy slab extent`. The fake allocator admitted the quantum slab while its copy predicate still expected the whole request's slab. The correction records the successful allocation extent, requires both full copies to equal that exact extent and bounds each active kernel layout within it. It adds no size tolerance and changes no production execution. [The failed result](evidence/uniform-reuse-92d326e-fixture-failure.json) is retained; the corrected source requires new qualification.
