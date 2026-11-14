@@ -33,6 +33,11 @@ void shape_and_wire(){
   check(source.ready() && source.layout().chunks==17 && source.layout().total_bytes>262144,"legacy ceiling retained");
   const Bytes expected(source.plaintext().begin(),source.plaintext().end());
   auto frame=encode_uniform_lz4_request(source,73);
+  check(inspect_uniform_lz4_request(frame,source.limits().request_bytes,source.limits().reply_bytes)==source.limits(),
+      "independent uniform channel capacities lost");
+  rejects([&]{(void)inspect_uniform_lz4_request(frame,source.limits().request_bytes-1,source.limits().reply_bytes);});
+  rejects([&]{(void)inspect_uniform_lz4_request(frame,source.limits().request_bytes,source.limits().reply_bytes-1);});
+  rejects([&]{(void)inspect_uniform_lz4_request(std::span(frame).first(79),79,source.limits().reply_bytes);});
   auto request=decode_uniform_lz4_request(frame,source.limits());
   check(request.request_id==73 && request.batch.digest()==source.digest() &&
       std::equal(expected.begin(),expected.end(),request.batch.plaintext().begin()),"version-2 source round trip");

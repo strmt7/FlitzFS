@@ -9,6 +9,7 @@ namespace flitzfs::hip_detail {
 struct UniformLz4ComputeGrant {
   std::uint32_t maximum_chunks=0;
   std::uint64_t maximum_device_bytes=0;
+  std::uint32_t chunk_bytes=0;
 };
 inline Lz4DeviceInfo uniform_lz4_device_info(const hipDeviceProp_t& p,
     Lz4KernelCoverage coverage,std::uint32_t chunks,int priority){
@@ -32,6 +33,7 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
   lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform LZ4 verification unavailable");
   lz4_require(request.request_id && request.batch.ready() && uniform_lz4::compatible_kernel_api(kernel) &&
+      grant.chunk_bytes && request.batch.layout().chunk_bytes==grant.chunk_bytes &&
       grant.maximum_chunks && request.batch.layout().chunks<=grant.maximum_chunks &&
       grant.maximum_device_bytes && request.batch.layout().total_bytes<=grant.maximum_device_bytes,
       HipWorkerExit::invalid_request,"uniform compression request exceeds qualified grant");

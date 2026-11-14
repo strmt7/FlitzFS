@@ -45,6 +45,10 @@ struct UniformLz4Candidates {
   std::vector<std::uint32_t> sizes;
 };
 std::vector<std::byte> encode_uniform_lz4_request(const PreparedUniformLz4&,std::uint64_t);
+// Inspect an already owned immutable request against independently supplied
+// channel capacities, without allocating or trusting shared metadata.
+UniformLz4Limits inspect_uniform_lz4_request(UniformLz4Bytes,std::uint64_t request_capacity,
+    std::uint64_t reply_capacity);
 UniformLz4Request decode_uniform_lz4_request(UniformLz4Bytes,const UniformLz4Limits&);
 void verify_uniform_lz4_candidates(const PreparedUniformLz4&,const UniformLz4Candidates&);
 std::vector<std::byte> encode_uniform_lz4_reply(const PreparedUniformLz4&,std::uint64_t,

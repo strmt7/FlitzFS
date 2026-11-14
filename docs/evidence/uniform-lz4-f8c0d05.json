@@ -1,0 +1,128 @@
+{
+  "schema": "flitzfs-uniform-lz4-qualified-1",
+  "source": "f8c0d05e80e3991c92c85368a615b56e416dd348",
+  "core_run": 43593031457,
+  "sdk_run": 43593031802,
+  "native_ctest_groups": 149,
+  "core_cpu_native_sanitizer_passed": true,
+  "dependent_mount_jobs_pending": true,
+  "sdk": {
+    "source": "f8c0d05e80e3991c92c85368a615b56e416dd348",
+    "complete": true,
+    "artifact_id": 14113461783,
+    "archive_bytes": 139236,
+    "archive_sha256": "718a3506aa7d2048cf9b13a092eb54e91e5cf46a14785d9dce67f915d3995625",
+    "root_bytes": 421522,
+    "root_sha256": "d7edead2145adc168157ad785ad9f4b380571549c3262fbd9d5d54bfd3d11c47",
+    "uniform": {
+      "complete": true,
+      "bytes": 330240,
+      "sha256": "e0dfd160e7f6067b5dc5f826674c8ef57e056e4e690ec3a82e5909eeaf423704",
+      "imports": [
+        "amdhip64_7.dll",
+        "kernel32.dll"
+      ],
+      "exports": [
+        "flitzfs_uniform_lz4_kernel_api"
+      ],
+      "layout_bytes": 80,
+      "version": 2,
+      "wave_mask": 1,
+      "loaded": false,
+      "gpu_executed": false,
+      "linked_into_product": false,
+      "in_worker_bundle": false,
+      "exported_as_artifact": false
+    },
+    "uniform_compute": {
+      "bytes": 433152,
+      "sha256": "3499129cb78c439cb2e09737507cf07d8613934a4774aad6178d6e744ed81929",
+      "imports": [
+        "dxgi.dll",
+        "kernel32.dll"
+      ],
+      "qualification": {
+        "checks": 1054,
+        "scenarios": 37,
+        "successes": 3,
+        "refusals": 34,
+        "decoder_available": true,
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "private_module_loaded": false,
+      "linked_into_product": false,
+      "in_worker_bundle": false,
+      "exported_as_artifact": false
+    },
+    "uniform_raw": {
+      "bytes": 430592,
+      "sha256": "0072e375bf41a5f7e64637638ee9cfe9e580ba3573e7818b778964dcfdd50c5d",
+      "imports": [
+        "dxgi.dll",
+        "kernel32.dll"
+      ],
+      "qualification": {
+        "checks": 10,
+        "scenarios": 1,
+        "successes": 0,
+        "refusals": 1,
+        "decoder_available": false,
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "private_module_loaded": false,
+      "linked_into_product": false,
+      "in_worker_bundle": false,
+      "exported_as_artifact": false
+    },
+    "legacy_compute": {
+      "checks": 828,
+      "scenarios": 58,
+      "successes": 6,
+      "refusals": 52,
+      "decoder_available": true,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "legacy_runtime": {
+      "checks": 55,
+      "exits_confirmed": 10,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    }
+  },
+  "native": {
+    "artifact_sha256": "1b3fb9a57a01a603dd59d7dee418447d2483fb9719aee9d0eb4b5466e620d595",
+    "archive_bytes": 13442,
+    "log": "LastTest.log",
+    "log_bytes": 157784,
+    "log_sha256": "f2b45537275f8133008484afc7c3ab17d3d3e6b130b1bf485d76eb151d95a745",
+    "evidence": [
+      "Uniform LZ4 frames/slab: checks=441 CPU_decoder=1 gpu_executed=false\r",
+      "Uniform channel: input=1048613 chunks=17 CPU_decoder=1 gpu_executed=false\r",
+      "handle_totals initial=79 final=79\r",
+      "PASS: 1434 real Windows worker exchange checks; CPU semantics only, no GPU or data files.\r"
+    ]
+  },
+  "actual_gpu_executed": false,
+  "owner_executed": false,
+  "normal_gpu_routing": false,
+  "unresolved": [
+    "Authenticate uniform worker packaging",
+    "Configuration-keyed qualified cost/grant acquisition and worker enforcement",
+    "Recovery/terminal CPU source selection and controlled native Windows writes",
+    "Actual useful larger-window GPU throughput and minimum total stored cost"
+  ]
+}

@@ -242,10 +242,22 @@ if(FLITZFS_ROCM_LZ4_RUNTIME_FIXTURE)
       "${FLITZFS_ROCM_LZ4_COVERAGE}" "${flitzfs_root}/tools/ci/stage_lz4_runtime_bundle.py"
     VERBATIM)
   add_custom_target(flitzfs_hip_lz4_bundle DEPENDS "${lz4_bundle_header}" "${lz4_bundle_receipt}")
+  set(uniform_bundle_header "${worker_output}/hip_uniform_lz4_bundle.hpp")
+  set(uniform_bundle_receipt "${worker_output}/hip-uniform-lz4-bundle.json")
+  add_custom_command(OUTPUT "${uniform_bundle_header}" "${uniform_bundle_receipt}"
+    COMMAND "${Python3_EXECUTABLE}" -B "${flitzfs_root}/tools/ci/stage_lz4_runtime_bundle.py"
+      --uniform --module "$<TARGET_FILE:flitzfs_rocm_uniform_lz4_candidate>"
+      --object "${FLITZFS_ROCM_LZ4_OBJECT}" --coverage "${FLITZFS_ROCM_LZ4_COVERAGE}"
+      --runtime "${runtime_name}" --output "${worker_output}/hip-uniform-lz4"
+      --header "${uniform_bundle_header}" --receipt "${uniform_bundle_receipt}"
+    DEPENDS flitzfs_rocm_uniform_lz4_candidate "${FLITZFS_ROCM_LZ4_OBJECT}"
+      "${FLITZFS_ROCM_LZ4_COVERAGE}" "${flitzfs_root}/tools/ci/stage_lz4_runtime_bundle.py"
+    VERBATIM)
+  add_custom_target(flitzfs_hip_uniform_lz4_bundle DEPENDS "${uniform_bundle_header}" "${uniform_bundle_receipt}")
   add_executable(flitzfs_hip_lz4_worker
     "${flitzfs_root}/src/windows/hip_worker_main.cpp"
     "${flitzfs_root}/src/windows/hip_module_verification.cpp")
-  add_dependencies(flitzfs_hip_lz4_worker flitzfs_hip_worker_bundle flitzfs_hip_lz4_bundle)
+  add_dependencies(flitzfs_hip_lz4_worker flitzfs_hip_worker_bundle flitzfs_hip_lz4_bundle flitzfs_hip_uniform_lz4_bundle)
   target_include_directories(flitzfs_hip_lz4_worker PRIVATE "${worker_output}")
   target_compile_definitions(flitzfs_hip_lz4_worker PRIVATE FLITZFS_HIP_LZ4_RUNTIME_FIXTURE=1)
   target_compile_options(flitzfs_hip_lz4_worker PRIVATE /W4 /permissive-)

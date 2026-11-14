@@ -114,6 +114,18 @@ Bytes encode_uniform_lz4_request(const PreparedUniformLz4& batch,std::uint64_t i
   auto f=header(batch,id,WorkerExecution::cpu_semantics,false,batch.layout().input_bytes);
   f.reserve(static_cast<std::size_t>(batch.limits().request_bytes));f.insert(f.end(),batch.plaintext().begin(),batch.plaintext().end());return f;
 }
+UniformLz4Limits inspect_uniform_lz4_request(UniformLz4Bytes frame,std::uint64_t request_capacity,
+    std::uint64_t reply_capacity){
+  if(frame.size()<kUniformLz4HeaderBytes || frame.size()!=request_capacity)
+    invalid("uniform request capacity mismatch");
+  uniform_lz4::Layout p{};
+  if(!uniform_lz4::make_layout(get(frame,16,8),static_cast<std::uint32_t>(get(frame,28,4)),p))
+    invalid("uniform request layout not representable");
+  const auto limits=uniform_lz4_limits(p);
+  if(limits.request_bytes!=request_capacity || limits.reply_bytes!=reply_capacity)
+    invalid("uniform request exceeds independent channel capacities");
+  framing(frame,limits,false);return limits;
+}
 UniformLz4Request decode_uniform_lz4_request(UniformLz4Bytes frame,const UniformLz4Limits& limits){
   framing(frame,limits,false);
   if(get(frame,32,4)!=0 || get(frame,40,8)!=limits.input_bytes || frame.size()!=limits.request_bytes)

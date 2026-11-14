@@ -658,5 +658,13 @@
     "jobs_total": 13,
     "contract": "docs/UNIFORM_LZ4_RUNTIME.md",
     "next": "Finish source-qualified version-2 messages/typed compute, then authenticated uniform worker packaging, repeated configuration-qualified grants and end-to-end controlled Windows write integration. Keep actual useful GPU throughput and total stored cost as explicit open gates."
+  },
+  "uniform_runtime_checkpoint": {
+    "source": "f8c0d05e80e3991c92c85368a615b56e416dd348",
+    "core_run": 43593031457,
+    "sdk_run": 43593031802,
+    "contract": "docs/UNIFORM_LZ4_RUNTIME.md",
+    "evidence": "docs/evidence/uniform-lz4-f8c0d05.json",
+    "next": "Qualify authenticated uniform worker packaging, then connect configuration-qualified resource/time grants, evidence-aware recovery, terminal CPU selection and controlled Windows writes. Actual adaptive GPU execution and useful complete-operation benefit remain required."
   }
 }
