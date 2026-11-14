@@ -276,3 +276,7 @@ NATIVE_ALLOCATED_EVENTS.md adds prepared storage creation, separately granted st
 ### Data-output preflight
 
 mutation_info checks active context/data-write ownership before backing reads and returns verified bounded storage facts for the Windows bridge's output preflight. It does not grant data/basic/security access, adopt provisional contexts or mutate a reservation. NATIVE_WINDOWS_IO.md preserves serialized ownership, late paging, no post-publication query and terminal no-retry/context-retention behavior. Actual writable driver/helper and physical allocation remain separate gates.
+
+## Optional compressed-extent advice
+
+The separate [Windows LZ4 advice bridge](NATIVE_WINDOWS_LZ4_ADVICE.md) adds explicit forwarding without changing original APIs, ownership, output preflight, publication or recovery. Its new source-bound cases are pending; normal writes start no GPU work.

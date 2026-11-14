@@ -1,8 +1,12 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Windows compression advice forwarding
+
+Read docs/NATIVE_WINDOWS_LZ4_ADVICE.md before changing the session/SDK advice bridge or public descriptor validator. Preserve original APIs, active write ownership, pure budget/input admission before metadata reads, the same Stage/publication, independent CPU comparison and committed count/FileInfo without post-publication queries. Keep all original invariants, four additional raw/fast fixed/compact sealed profiles and the complete three-model advised fault trace. This starts no GPU work and requires matching-source qualification. No owner mount or new GPU trial follows.
+
 ## Asynchronous LZ4 controller boundary
 
-Read docs/ASYNC_LZ4_CONTROLLER.md before changing the compression controller or its recovery overload. This uses the existing nonresident worker session and requires independent CPU verification before launch. Keep terminal immediate CPU source selection free of OS/runtime calls and waits, bounded ownership of old/new batches, full slab admission, late-reply classification, exact retirement and evidence-based quarantine. Normal filesystem I/O never launches it. All added portable/raw/Windows worker tests require matching-source execution; the controller is unqualified at initial publication. No new owner GPU or mount test follows from CPU controller success.
+Read docs/ASYNC_LZ4_CONTROLLER.md before changing the compression controller or its recovery overload. This uses the existing nonresident worker session and requires independent CPU verification before launch. Keep terminal immediate CPU source selection free of OS/runtime calls and waits, bounded ownership of old/new batches, full slab admission, late-reply classification, exact retirement and evidence-based quarantine. Normal filesystem I/O never launches it. The controller qualified at f08e6b8: all 13 core jobs and full SDK qualification passed. The retained CPU-only controller evidence is docs/evidence/asynchronous-lz4-f08e6b8.json. No new owner GPU or mount test follows from CPU controller success.
 
 ## Native LZ4 composition diagnostic
 
@@ -10,7 +14,7 @@ Read docs/NATIVE_LZ4_COMPOSITION.md before changing the SDK native storage fixtu
 
 ## Native fast-ingestion storage candidate
 
-Read docs/NATIVE_FAST_INGESTION.md before changing native codec 4, StoreCompressionMode::fast, advisory mutation data or their tests. Preserve all historical default/raw bytes, exact CPU block recovery, stored/decoded digests, strict nonexpansion and 64-KiB aligned external-state ceiling. Valid fast candidates avoid redundant CPU compression; malformed/stale/inferior advice selects ordinary CPU encoding. Keep each original/advisory transaction input within its separate 4-MiB budget and existing per-object limits. The immutable-baseline probe is disposable-hosted only and must reproduce the exact unknown-codec error; it never modifies baseline source. Storage methods must not launch GPU work or broaden owner testing. The storage foundation qualified at 0d96d903; the native inode hook qualified at 3a797a3; the separate SDK composition remains pending.
+Read docs/NATIVE_FAST_INGESTION.md before changing native codec 4, StoreCompressionMode::fast, advisory mutation data or their tests. Preserve all historical default/raw bytes, exact CPU block recovery, stored/decoded digests, strict nonexpansion and 64-KiB aligned external-state ceiling. Valid fast candidates avoid redundant CPU compression; malformed/stale/inferior advice selects ordinary CPU encoding. Keep each original/advisory transaction input within its separate 4-MiB budget and existing per-object limits. The immutable-baseline probe is disposable-hosted only and must reproduce the exact unknown-codec error; it never modifies baseline source. Storage methods must not launch GPU work or broaden owner testing. The storage foundation qualified at 0d96d903; the native inode hook qualified at 3a797a3; the separate native composition qualified at a047952, with actual bounded GPU bytes stored and independently CPU-read.
 
 The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The direct native inode candidate hook passed all 13 core jobs at 3a797a3; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
 

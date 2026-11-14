@@ -15,6 +15,24 @@ filesystem or the requested autonomous GPU-compression product**.
 The detailed execution contract is [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md);
 [DEVELOPMENT_PLAN.json](DEVELOPMENT_PLAN.json) is its compact harness ledger.
 
+## 14 November integration update
+
+The source-bound [native LZ4 composition](evidence/native-lz4-composition-a047952.json)
+at a047952 passed all 13 core jobs and SDK qualification, then one bounded actual
+AMD trial stored the exact GPU payload and independently recovered the current
+file and prior acknowledged snapshot on CPU. Its full image and startup costs
+show no whole-operation benefit yet. Normal Windows I/O remains CPU-only.
+
+The asynchronous compression controller at f08e6b8 passed all 13 core jobs and
+full SDK qualification. It addresses terminal CPU selection, late output and recovery
+policy through the existing supervised worker transport. The next product slice
+is ordinary Windows helper write/read integration and complete cost/benefit
+measurement; this does not close historical D01 or the learning, scaling,
+durability and release gates. See [current release readiness](RELEASE_READINESS.md).
+
+The counts and architecture findings below describe the explicitly pinned
+11 November baseline, not the current repository inventory.
+
 ## Review method and source identity
 
 This is a source/evidence-based architecture, readiness and efficiency review,

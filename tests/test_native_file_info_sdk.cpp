@@ -1,5 +1,6 @@
 #include "native_file_info.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_lz4_fixture.hpp"
 #include "native_security_fixture.hpp"
 #include <array>
 #include <algorithm>
@@ -10,7 +11,7 @@
 #include <type_traits>
 namespace {
 using namespace flitzfs;using namespace native_fixture;namespace sec=native_security_fixture;
-unsigned checks=0,sealed_cases=0,sdk_calls=0,retired=0;
+unsigned checks=0,sealed_cases=0,sdk_calls=0,retired=0,advice_cases=0,advice_sealed_cases=0;
 constexpr auto mode=NativeFileInfoAllocation::native_reserved_cache;
 constexpr std::uint64_t stamp=133800000000000137ULL;
 constexpr NativeFileAccess all{true,true,true};
@@ -39,6 +40,7 @@ struct Result {
 struct Dispatch {
   NativeFileSession& session;const NativeFileHandle& handle;Result& result;
   NativeAutomaticMetadata effect;NativeFileInfoAllocation policy=mode;
+  std::span<const NativeLz4ExtentCandidate> candidates{};bool advice=false;
   bool valid(PVOID context) noexcept {
     if(context==&handle)return true;
     session.fence();result.outcome={STATUS_INVALID_HANDLE,true};return false;
@@ -47,8 +49,12 @@ struct Dispatch {
       BOOLEAN append,BOOLEAN constrained,PULONG count,FSP_FSCTL_FILE_INFO* info) noexcept {
     auto& d=*static_cast<Dispatch*>(fs->UserContext);++d.result.callbacks;
     if(!d.valid(ctx))return d.result.outcome.status;
-    d.result.outcome=dispatch_native_write(d.session,d.handle,buffer,offset,length,append!=FALSE,constrained!=FALSE,
-        d.effect,d.policy,count,info);return d.result.outcome.status;
+    d.result.outcome=d.advice?
+        dispatch_native_write_with_lz4(d.session,d.handle,buffer,offset,length,append!=FALSE,constrained!=FALSE,
+            d.candidates,d.effect,d.policy,count,info):
+        dispatch_native_write(d.session,d.handle,buffer,offset,length,append!=FALSE,constrained!=FALSE,
+            d.effect,d.policy,count,info);
+    return d.result.outcome.status;
   }
   static NTSTATUS size(FSP_FILE_SYSTEM* fs,PVOID ctx,UINT64 bytes,BOOLEAN allocation,FSP_FSCTL_FILE_INFO* info) noexcept {
     auto& d=*static_cast<Dispatch*>(fs->UserContext);++d.result.callbacks;
@@ -70,8 +76,9 @@ struct Dispatch {
 enum class Op {write,eof,reserve,query,flush,volume};
 Result dispatch(NativeFileSession& session,const NativeFileHandle& handle,Op op,
     std::uint64_t at=0,const Bytes& bytes={},bool constrained=false,
-    NativeAutomaticMetadata effect={},NativeFileInfoAllocation policy=mode) {
-  Result r;Dispatch d{session,handle,r,effect,policy};FSP_FILE_SYSTEM_INTERFACE table{};
+    NativeAutomaticMetadata effect={},NativeFileInfoAllocation policy=mode,
+    std::span<const NativeLz4ExtentCandidate> candidates={},bool advice=false) {
+  Result r;Dispatch d{session,handle,r,effect,policy,candidates,advice};FSP_FILE_SYSTEM_INTERFACE table{};
   table.Write=Dispatch::write;table.SetFileSize=Dispatch::size;table.GetFileInfo=Dispatch::query;table.Flush=Dispatch::flush;
   FSP_FILE_SYSTEM fs{};fs.Version=static_cast<UINT16>(sizeof(fs));fs.UserContext=&d;
   fs.Interface=&table;fs.UmFileContextIsUserContext2=TRUE;
@@ -269,14 +276,112 @@ void sealed(StoreCompressionMode compression,bool compact,unsigned kind) {
       io->blocked==blocked&&s.stats().contexts==1,"fenced SDK data call retried/released");
   ++sealed_cases;
 }
-enum class Phase {write,eof,reserve,flush};
-const char* name(Phase p){return p==Phase::write?"write":p==Phase::eof?"eof":p==Phase::reserve?"reserve":"flush";}
+void advisory(StoreCompressionMode compression,bool compact) {
+  auto ram=std::make_shared<Ram>();auto writer=fresh(ram,compression,compact);seed(writer);
+  auto session=NativeFileSession::create(std::move(writer));auto handle=session.open("target",all);
+  const auto plain=native_lz4_fixture::source(),encoded=native_lz4_fixture::alternative_block(plain);
+  const NativeLz4ExtentCandidate hint{0,encoded};
+  auto old=session.snapshot();
+  auto result=dispatch(session,handle,Op::write,0,plain,false,effects(),mode,{&hint,1},true);
+  require(result.status==STATUS_SUCCESS && result.count==65536 && !result.outcome.offline_required,
+      "SDK advised write lost durable count");
+  exact(result.info,65536,65536,updated());
+  require(session.read(handle,0,65536)==plain && old.read("target",0,10000)==data(7001,91),
+      "SDK advice changed CPU-read current/prior bytes");
+  auto independent=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(ram));
+  require(independent.read("target",0,65536)==plain,"SDK advised write failed independent native recovery");
+  auto objects=ObjectStoreSnapshot::open(ram);bool found=false;
+  for(const auto& object:objects.list())if(object.logical_bytes==plain.size() && objects.read(object.id)==plain){
+    found=true;
+    require(object.stored_payload_bytes==(compression==StoreCompressionMode::fast && store_lz4_available()?
+        encoded.size():plain.size()),"SDK advice did not reach native record");
+  }
+  require(found,"SDK advised extent absent");
+  auto changed=plain;changed[19]^=std::byte{1};
+  result=dispatch(session,handle,Op::write,0,changed,false,{},mode,{&hint,1},true);
+  require(result.status==STATUS_SUCCESS && result.count==65536 && session.read(handle,0,65536)==changed,
+      "stale SDK advice replaced current bytes");
+  const std::array duplicates{hint,hint};
+  result=dispatch(session,handle,Op::write,0,plain,false,{},mode,duplicates,true);
+  require(result.status==STATUS_SUCCESS && session.read(handle,0,65536)==plain,
+      "duplicate SDK advice corrupted CPU fallback");
+  const auto patch=data(31,191);
+  result=dispatch(session,handle,Op::write,65530,patch,false,{},mode,{&hint,1},true);
+  auto expected=plain;expected.resize(65561);std::copy(patch.begin(),patch.end(),expected.begin()+65530);
+  require(result.status==STATUS_SUCCESS && result.count==patch.size() && session.read(handle,0,100000)==expected,
+      "SDK partial cross-extent advice corrupted merged data");
+  exact(result.info,65561,69632,updated());
+  const auto calls=ram->calls;
+  result=dispatch(session,handle,Op::write,UINT64_MAX,patch,true,effects(),mode,{&hint,1},true);
+  require(result.status==STATUS_SUCCESS && !result.count && ram->calls==calls,
+      "zero accepted SDK advised write published metadata/data");
+  exact(result.info,65561,69632,updated());
+  result=dispatch(session,handle,Op::write,UINT64_MAX,patch,false,{},mode,{&hint,1},true);
+  expected.insert(expected.end(),patch.begin(),patch.end());
+  require(result.status==STATUS_SUCCESS && result.count==patch.size() &&
+      session.read(handle,0,100000)==expected,"SDK advised append redirected EOF");
+  exact(result.info,65592,69632,updated());
+  // Closed, grant-denied and oversized advice must not touch backing.
+  auto reader=session.open("target",{true,false,false});
+  const auto unchanged=ram->live;const auto reads=ram->read_calls;const auto mutations=ram->calls;
+  result=dispatch(session,reader,Op::write,0,plain,false,{},mode,{&hint,1},true);
+  require(result.status==STATUS_ACCESS_DENIED && !result.count && zero(result.info) &&
+      !result.outcome.offline_required && ram->read_calls==reads && ram->calls==mutations,
+      "SDK advised write bypassed grant or read backing");
+  session.cleanup(reader,false);session.close(reader);
+  const auto before_reads=ram->read_calls,before_calls=ram->calls;
+  result=dispatch(session,reader,Op::write,0,plain,false,{},mode,{&hint,1},true);
+  require(result.status==STATUS_INVALID_HANDLE && !result.count && zero(result.info) &&
+      ram->read_calls==before_reads && ram->calls==before_calls,"closed advised handle touched backing");
+  std::vector<NativeLz4ExtentCandidate> too_many(kNativeMaxDirtyExtents+1);
+  const Bytes oversized(kStoreMaxObjectBytes+1);
+  const NativeLz4ExtentCandidate too_big{0,oversized};
+  const Bytes megabyte(kStoreMaxObjectBytes);
+  const std::array aggregate{NativeLz4ExtentCandidate{0,megabyte},NativeLz4ExtentCandidate{1,megabyte},
+      NativeLz4ExtentCandidate{2,megabyte},NativeLz4ExtentCandidate{3,megabyte},NativeLz4ExtentCandidate{4,megabyte}};
+  for(const auto hints:{std::span<const NativeLz4ExtentCandidate>(too_many),
+      std::span<const NativeLz4ExtentCandidate>(&too_big,1),std::span<const NativeLz4ExtentCandidate>(aggregate)}){
+    result=dispatch(session,handle,Op::write,0,plain,false,{},mode,hints,true);
+    require(result.status==STATUS_INSUFFICIENT_RESOURCES && !result.count && zero(result.info) &&
+        !result.outcome.offline_required && ram->read_calls==before_reads && ram->calls==before_calls &&
+        ram->live==unchanged && !session.poisoned(),"SDK advised budget touched backing/health or returned output");
+  }
+  session.set_delete(handle,true);session.cleanup(handle,true);
+  std::copy(plain.begin(),plain.end(),expected.begin());
+  result=dispatch(session,handle,Op::write,0,plain,false,{},mode,{&hint,1},true);
+  require(result.status==STATUS_SUCCESS && result.count==65536 &&
+      session.read(handle,0,100000)==expected,"late detached SDK advised write lost context/EOF");
+  session.close(handle);require(session.stats().contexts==0,"SDK advice retained native context");
+  keep(session.snapshot());++advice_cases;
+}
+void advisory_sealed(StoreCompressionMode compression,bool compact) {
+  auto io=std::make_shared<Sealed>();if(compact)io->ram->failure_unit=4096;
+  auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(io,identity(),{compression,6,false},{compact}));
+  seed(writer);auto session=NativeFileSession::create(std::move(writer));auto handle=session.open("target",all);
+  const auto source=native_lz4_fixture::source(),encoded=native_lz4_fixture::alternative_block(source);
+  const NativeLz4ExtentCandidate hint{0,encoded};io->seal_at=io->ram->flushes+3;
+  const auto result=dispatch(session,handle,Op::write,0,source,false,effects(),mode,{&hint,1},true);
+  require(io->sealed && !io->blocked && result.status==STATUS_SUCCESS &&
+      result.count==65536 && !result.outcome.offline_required && session.stats().contexts==1,
+      "advised SDK return queried backing after durable publication");
+  exact(result.info,65536,65536,updated());
+  auto recovered=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(image(io->ram->stable,io->ram->failure_unit)));
+  require(recovered.read("target",0,65536)==source,"sealed advised SDK recovery differs");keep(recovered);
+  ++advice_sealed_cases;
+}
+enum class Phase {write,eof,reserve,flush,lz4};
+const char* name(Phase p){return p==Phase::write?"write":p==Phase::eof?"eof":p==Phase::reserve?"reserve":p==Phase::lz4?"lz4":"flush";}
 struct Case {std::shared_ptr<Ram> ram;NativeFileSession session;NativeFileHandle handle;};
 Case setup(StoreCompressionMode compression,bool compact) {
   auto ram=std::make_shared<Ram>();auto writer=fresh(ram,compression,compact);seed(writer);
   auto s=NativeFileSession::create(std::move(writer));auto h=s.open("target",all);return {ram,std::move(s),h};
 }
 Result action(Case& c,Phase p) {
+  if(p==Phase::lz4){
+    const auto source=native_lz4_fixture::source(),encoded=native_lz4_fixture::alternative_block(source);
+    const NativeLz4ExtentCandidate hint{1,encoded};
+    return dispatch(c.session,c.handle,Op::write,65536,source,false,effects(),mode,{&hint,1},true);
+  }
   if(p==Phase::write)return dispatch(c.session,c.handle,Op::write,70000,data(73,101),false,effects());
   if(p==Phase::eof)return dispatch(c.session,c.handle,Op::eof,70073,{},false,effects());
   if(p==Phase::reserve)return dispatch(c.session,c.handle,Op::reserve,4096,{},false,effects());
@@ -285,9 +390,13 @@ Result action(Case& c,Phase p) {
 void closure(const NativeFilesystemSnapshot& view,Phase p,bool changed) {
   keep(view);auto bytes=data(7001,91);
   if(changed && (p==Phase::write||p==Phase::eof))bytes.resize(70073);
+  if(changed && p==Phase::lz4){
+    bytes.resize(131072);const auto source=native_lz4_fixture::source();
+    std::copy(source.begin(),source.end(),bytes.begin()+65536);
+  }
   if(changed && p==Phase::write){const auto extra=data(73,101);std::copy(extra.begin(),extra.end(),bytes.begin()+70000);}
   if(changed && p==Phase::reserve)bytes.resize(4096);
-  const auto allocation=changed?(p==Phase::reserve?4096:p==Phase::flush?8192:73728):8192;
+  const auto allocation=changed?(p==Phase::reserve?4096:p==Phase::flush?8192:p==Phase::lz4?131072:73728):8192;
   require(view.read("target",0,100000)==bytes && view.allocation_info(2).reserved_bytes==static_cast<std::uint64_t>(allocation)&&
       view.basic_metadata(2)==(changed&&p!=Phase::flush?updated():tuple())&&view.security_descriptor(2)==sec::descriptor(),
       "SDK fault mixed acknowledged data/reservation/basic/security");
@@ -320,7 +429,7 @@ void faults(StoreCompressionMode compression,bool compact,Phase p) {
     require(writer.snapshot().read("continued",0,100)==data(17,102),"SDK independent CPU continuation failed");
   }
   std::cout<<"Windows data-bridge faults: {\"schema\":1,\"phase\":\""<<name(p)
-      <<"\",\"mode\":\""<<(compression==StoreCompressionMode::raw?"raw":"automatic")
+      <<"\",\"mode\":\""<<(compression==StoreCompressionMode::raw?"raw":compression==StoreCompressionMode::fast?"fast":"automatic")
       <<"\",\"layout\":\""<<(compact?"compact":"fixed")<<"\",\"io_steps\":"<<steps
       <<",\"fault_cases\":"<<cases<<",\"complete\":true}\n";
 }
@@ -337,16 +446,24 @@ int main(int argc,char** argv){try {
     for(const auto compression:{StoreCompressionMode::raw,StoreCompressionMode::automatic})for(bool compact:{false,true}) {
       positive(compression,compact);for(unsigned kind=0;kind<7;++kind)sealed(compression,compact,kind);
     }
+    for(const auto compression:{StoreCompressionMode::raw,StoreCompressionMode::fast})for(bool compact:{false,true}){
+      advisory(compression,compact);advisory_sealed(compression,compact);
+    }
+    require(advice_cases==4 && advice_sealed_cases==4,"SDK advised profiles or sealed cases omitted");
     require(GetProcessHandleCount(GetCurrentProcess(),&final)!=FALSE&&initial==final,"SDK data bridge leaked OS handles");
     require(retired==4&&sealed_cases==28,"SDK data bridge lifecycle/sealed cases omitted");
     std::cout<<"Windows data-bridge invariants: {\"schema\":1,\"checks\":"<<checks<<",\"sealed_cases\":"<<sealed_cases
         <<",\"sdk_calls\":"<<sdk_calls<<",\"backend_retired\":"<<retired<<",\"handles_initial\":"<<initial
-        <<",\"handles_final\":"<<final<<",\"complete\":true,\"mount\":false}\n";
+        <<",\"handles_final\":"<<final<<",\"advice_cases\":"<<advice_cases
+        <<",\"advice_sealed_cases\":"<<advice_sealed_cases<<",\"complete\":true,\"mount\":false}\n";
   }else {
     const auto p=group=="--write-faults"?Phase::write:group=="--eof-faults"?Phase::eof:
         group=="--reserve-faults"?Phase::reserve:group=="--flush-faults"?Phase::flush:
+        group=="--lz4-faults"?Phase::lz4:
         throw std::runtime_error("unknown SDK bridge group");
-    for(const auto compression:{StoreCompressionMode::raw,StoreCompressionMode::automatic})for(bool compact:{false,true})faults(compression,compact,p);
+    for(const auto compression:std::array{StoreCompressionMode::raw,
+        p==Phase::lz4?StoreCompressionMode::fast:StoreCompressionMode::automatic})
+      for(bool compact:{false,true})faults(compression,compact,p);
   }
   return 0;
 }catch(const std::exception& e){std::cerr<<"Windows data-bridge failure: "<<e.what()<<"\n";return 1;}}

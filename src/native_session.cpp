@@ -914,9 +914,14 @@ NativeInodeAllocationCommit NativeFileSession::overwrite_prepared_storage_result
 NativeInodeStorageMutationCommit NativeFileSession::write_storage_result(const NativeFileHandle& handle,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
     const NativeAutomaticMetadata& effect) {
+  return write_storage_with_lz4_result(handle,offset,bytes,{},options,effect);
+}
+NativeInodeStorageMutationCommit NativeFileSession::write_storage_with_lz4_result(const NativeFileHandle& handle,
+    std::uint64_t offset,std::span<const std::byte> bytes,std::span<const NativeLz4ExtentCandidate> candidates,
+    NativeInodeWriteOptions options,const NativeAutomaticMetadata& effect) {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
   if(!slot.access.write)fail(E::access_denied,"native context has no write access");
-  return self.writer.write_inode_storage_result(slot.inode,offset,bytes,options,effect);
+  return self.writer.write_inode_storage_with_lz4(slot.inode,offset,bytes,candidates,options,effect);
 }
 NativeInodeStorageMutationCommit NativeFileSession::truncate_storage_result(const NativeFileHandle& handle,
     std::uint64_t bytes,const NativeAutomaticMetadata& effect) {

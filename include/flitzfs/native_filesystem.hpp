@@ -35,6 +35,10 @@ struct NativeLz4ExtentCandidate {
   std::uint64_t extent_index=0;
   std::span<const std::byte> payload;
 };
+// Pure bounded descriptor admission, before backing I/O; throws limit on an
+// excessive count, per-payload size or aggregate size. Never reads payload data.
+void validate_native_lz4_extent_candidates(std::span<const NativeLz4ExtentCandidate>);
+
 struct NativeFileInfo {
   std::uint64_t inode=0,parent=0,logical_bytes=0,created_sequence=0,modified_sequence=0;
   bool directory=false;

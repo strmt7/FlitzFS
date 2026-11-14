@@ -1,5 +1,7 @@
 #include "store_codec.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_lz4_fixture.hpp"
+#include "flitzfs/native_session.hpp"
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -138,23 +140,7 @@ void native_file_readback(){
 
 Bytes alternative_block(const Bytes& source){
   require(source.size()==65536,"alternative block extent");
-  Bytes out;
-  const auto extension=[&](std::size_t value){
-    while(value>=255){out.push_back(std::byte{255});value-=255;}
-    out.push_back(static_cast<std::byte>(value));
-  };
-  const auto match=[&](std::span<const std::byte> literals,std::size_t length){
-    out.push_back(static_cast<std::byte>((std::min<std::size_t>(15,literals.size())<<4)|
-        std::min<std::size_t>(15,length-4)));
-    if(literals.size()>=15)extension(literals.size()-15);
-    out.insert(out.end(),literals.begin(),literals.end());
-    out.push_back(std::byte{0});out.push_back(std::byte{32}); // Offset8192.
-    if(length>=19)extension(length-19);
-  };
-  match(std::span(source).first(8192),8192);
-  match({},source.size()-16384-5);
-  out.push_back(std::byte{0x50});
-  out.insert(out.end(),source.end()-5,source.end());return out;
+  return native_lz4_fixture::alternative_block(source);
 }
 void native_advisory_write(){
   using namespace native_fixture;
@@ -216,9 +202,61 @@ void native_advisory_write(){
   require(ram->writes==writes && !volume.poisoned(),"advisory admission wrote or poisoned native volume");
 }
 
+void session_advisory_write(){
+  using namespace native_fixture;
+  const auto plain=native_lz4_fixture::source(),candidate=native_lz4_fixture::alternative_block(plain);
+  for(const auto mode:{StoreCompressionMode::raw,StoreCompressionMode::fast}){
+    auto ram=std::make_shared<Ram>();
+    auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(ram,identity(),{mode,6,false}));
+    file_apply(writer,file_create("session.bin"));
+    auto session=NativeFileSession::create(std::move(writer));
+    const auto writable=session.open("session.bin",{true,true,true});
+    const auto reader=session.open("session.bin",{true,false,false});
+    const NativeLz4ExtentCandidate hint{0,candidate};
+    const auto calls=ram->calls,reads=ram->read_calls;
+    const auto denied=[&](const NativeFileHandle& handle,NativeSessionErrorCode code){
+      bool matched=false;
+      try{(void)session.write_storage_with_lz4_result(handle,0,plain,{&hint,1});}
+      catch(const NativeSessionError& error){matched=error.code()==code;}
+      require(matched,"advised session returned wrong ownership/grant failure");
+    };
+    denied(reader,NativeSessionErrorCode::access_denied);
+    denied({},NativeSessionErrorCode::invalid_handle);
+    require(ram->calls==calls && ram->read_calls==reads && !session.poisoned(),
+        "advisory session admission touched backing or fenced healthy owner");
+    const auto committed=session.write_storage_with_lz4_result(writable,0,plain,{&hint,1});
+    require(committed.bytes==plain.size() && committed.offset==0 &&
+        committed.state.info.inode==session.info(writable).info.inode,
+        "session advice lost committed count/offset/inode");
+    auto pinned=session.snapshot();
+    require(session.read(reader,0,65536)==plain && pinned.read("session.bin",0,65536)==plain,
+        "session advice did not preserve CPU-read data");
+    auto objects=ObjectStoreSnapshot::open(ram);bool found=false;
+    for(const auto& object:objects.list())if(object.logical_bytes==plain.size() && objects.read(object.id)==plain){
+      found=true;
+      require(object.stored_payload_bytes==(mode==StoreCompressionMode::fast && store_lz4_available()?
+          candidate.size():plain.size()),"session advice did not reach native storage");
+    }
+    require(found,"session stored extent absent");
+    session.cleanup(reader,false);session.close(reader);
+    session.set_delete(writable,true);session.cleanup(writable,true);
+    auto changed=plain;changed[31]^=std::byte{1};
+    const auto late=session.write_storage_with_lz4_result(writable,0,changed,{&hint,1});
+    require(late.bytes==changed.size() && session.read(writable,0,65536)==changed &&
+        pinned.read("session.bin",0,65536)==plain,"late detached advice changed prior snapshot or inode identity");
+    const auto before=ram->calls,before_reads=ram->read_calls;
+    std::vector<NativeLz4ExtentCandidate> excessive(kNativeMaxDirtyExtents+1);
+    rejects([&]{session.write_storage_with_lz4_result(writable,0,plain,excessive);},
+        "session advisory descriptor budget ignored");
+    require(ram->calls==before && ram->read_calls==before_reads && !session.poisoned(),
+        "session advisory budget changed backing/health");
+    session.close(writable);require(session.stats().contexts==0,"advisory session leaked a context");
+  }
+}
+
 }
 int main(){
-  try{policies();advisory();native_file_readback();native_advisory_write();std::cout<<"Fast native ingestion: "<<checks
+  try{policies();advisory();native_file_readback();native_advisory_write();session_advisory_write();std::cout<<"Fast native ingestion: "<<checks
       <<" checks; cpu_lz4="<<store_lz4_available()<<" gpu_executed=false\n";return 0;}
   catch(const std::exception& e){std::cerr<<"fast ingestion: "<<e.what()<<'\n';return 1;}
 }
