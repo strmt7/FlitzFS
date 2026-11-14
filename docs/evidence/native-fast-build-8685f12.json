@@ -1,0 +1,24 @@
+{
+  "experimental": true,
+  "source_commit": "8685f121556654633ad6f80ea9ecb6d19f66f276",
+  "core_run": 43575492539,
+  "failed_jobs": [
+    {
+      "id": 132388692038,
+      "name": "cpu (ubuntu-24.04, ON)"
+    },
+    {
+      "id": 132388692042,
+      "name": "cpu (ubuntu-24.04, OFF)"
+    }
+  ],
+  "phase": "Build",
+  "file": "tests/test_store_fast.cpp",
+  "line": 70,
+  "error": "no matching constructor for initialization of StoreCodecEncoder",
+  "cause": "The new advisory test declared StoreCodecEncoder automatic without its required StoreCompressionOptions argument.",
+  "correction": "Pass explicit {} policy in the test. Do not add a default production constructor or relax codec/state verification.",
+  "runtime_tests_executed": false,
+  "gpu_executed": false,
+  "qualification_complete": false
+}

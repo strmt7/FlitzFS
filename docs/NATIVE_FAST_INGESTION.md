@@ -83,3 +83,11 @@ aa4647fad575d01a874aaaadcdbe8e6a40e072f5:
   independent literal/match sequences and final-literal constraints.
 
 These were exact source/API reads, not search snippets or a performance claim.
+
+## Retained first-build failure
+
+At 8685f12, Linux enabled/raw builds stopped in the new test: its automatic
+encoder omitted the required policy argument. Pass an explicit empty policy;
+keep the production constructor and all decoder/fault gates unchanged.
+[Exact failure](evidence/native-fast-build-8685f12.json). This was a build result,
+not a passed storage or GPU qualification.
