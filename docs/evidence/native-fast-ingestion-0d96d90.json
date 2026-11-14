@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source_commit": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
+  "core_run": 43575751686,
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 132389477830,
+      "name": "windows-native",
+      "conclusion": "success"
+    },
+    {
+      "id": 132389478071,
+      "name": "cpu (windows-2025-vs2026, OFF)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132389478091,
+      "name": "sanitizers",
+      "conclusion": "success"
+    },
+    {
+      "id": 132389478106,
+      "name": "cpu (ubuntu-24.04, ON)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132389478138,
+      "name": "cpu (ubuntu-24.04, OFF)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132391377030,
+      "name": "windows-mount",
+      "conclusion": "success"
+    },
+    {
+      "id": 132392179500,
+      "name": "windows-write-mount (restart)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132392179509,
+      "name": "windows-write-mount (mutations)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132392179517,
+      "name": "windows-write-mount (delete)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132392179537,
+      "name": "windows-write-mount (crash)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132392179564,
+      "name": "windows-write-mount (crash-restart)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132392179579,
+      "name": "windows-write-mount (ram-handoff)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132392179600,
+      "name": "windows-write-mount (basic)",
+      "conclusion": "success"
+    }
+  ],
+  "configs": [
+    {
+      "name": "Linux-LZ4-enabled",
+      "ctest_cases": 127,
+      "artifact_sha256": "686de83d6817034b68528a2b8f801e00244de521a964cd9c97b5fe2d8457f45d",
+      "archive_bytes": 10497,
+      "log": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+      "log_bytes": 125154,
+      "log_sha256": "d46278cb938e8291a6bcecb1a5f1e1dc41e4bbee7ccd9a09c8230bfecfb55ee6",
+      "evidence": [
+        "PASS: 623513 native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.",
+        "Fast native ingestion: 119 checks; cpu_lz4=1 gpu_executed=false",
+        "Fast store transaction evidence: cpu_lz4=1 fault_operations=55 gpu_executed=false",
+        "PASS: 41933 object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only."
+      ]
+    },
+    {
+      "name": "Linux-codecs-disabled",
+      "ctest_cases": 127,
+      "artifact_sha256": "62ecc1fdae0a0c73a656678efaf6d2b163b7d1af45f42a8524eaaf56d14b8c37",
+      "archive_bytes": 11255,
+      "log": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+      "log_bytes": 125162,
+      "log_sha256": "f337227a6776570098cec817de54ef6cce71e2e68776c03456e9bd5b9891c23b",
+      "evidence": [
+        "PASS: 623485 native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.",
+        "Fast native ingestion: 109 checks; cpu_lz4=0 gpu_executed=false",
+        "Fast store transaction evidence: cpu_lz4=0 fault_operations=57 gpu_executed=false",
+        "PASS: 42134 object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only."
+      ]
+    },
+    {
+      "name": "Windows-codecs-disabled",
+      "artifact_sha256": "10cbc599ecd57c39599c4db90fce10845c9370669b97b08235b0bc6308e2526c",
+      "archive_bytes": 12901,
+      "log": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+      "log_bytes": 136570,
+      "log_sha256": "8473454d2109641b28a55273c91dc49511eb798207217118302e7fd50c566d34",
+      "evidence": [
+        "PASS: 623485 native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.\r",
+        "Fast native ingestion: 109 checks; cpu_lz4=0 gpu_executed=false\r",
+        "Fast store transaction evidence: cpu_lz4=0 fault_operations=57 gpu_executed=false\r",
+        "PASS: 42134 object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\r"
+      ]
+    },
+    {
+      "name": "Windows-native-LZ4-enabled",
+      "ctest_cases": 146,
+      "artifact_sha256": "f6395057c2c239db89bb6ac0e1123dc87db5754e77bbd6a8f7633bd047c75646",
+      "archive_bytes": 13024,
+      "log": "LastTest.log",
+      "log_bytes": 154458,
+      "log_sha256": "566b16aba31a8eaaf9b9c8ad8384caf87bdeffb5f4fa1fdd6d5f9137acbbb464",
+      "evidence": [
+        "PASS: 623513 native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.\r",
+        "Fast native ingestion: 119 checks; cpu_lz4=1 gpu_executed=false\r",
+        "Fast store transaction evidence: cpu_lz4=1 fault_operations=55 gpu_executed=false\r",
+        "PASS: 41933 object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\r"
+      ]
+    },
+    {
+      "name": "Clang-ASan-UBSan",
+      "ctest_cases": 127,
+      "artifact_sha256": "eb7537e67111afa7a0282c74cbf029250e4cb0045a32012927ade1ca3d85975c",
+      "archive_bytes": 10554,
+      "log": "LastTest.log",
+      "log_bytes": 126418,
+      "log_sha256": "250e5787e333a454bb71919854960e50d71be3b40d92104abc61eafa6f1e6fd2",
+      "evidence": [
+        "PASS: 623513 native store compression checks; exact patterns, raw fallback, CPU frames and allocator caps.",
+        "Fast native ingestion: 119 checks; cpu_lz4=1 gpu_executed=false",
+        "Fast store transaction evidence: cpu_lz4=1 fault_operations=55 gpu_executed=false",
+        "PASS: 41933 object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only."
+      ]
+    }
+  ],
+  "baseline_regression": {
+    "experimental": true,
+    "baseline": "5da33dcae667d23e68a54f70e109b1920a341518",
+    "head": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
+    "oracle_sha256": "9073764b0460eb2985201fd16d444fed6b703baa5057905832d60d34092537a2",
+    "baseline_exit": 1,
+    "baseline_stderr": "store codec failure after 1: FlitzFS store codec: unknown codec or invalid stored/logical extent",
+    "independent_library_oracle_passed": true,
+    "missing_native_decoder_reproduced": true,
+    "gpu_executed": false
+  },
+  "baseline_artifact": [
+    {
+      "id": 14105539231,
+      "name": "lz4-store-baseline-0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
+      "bytes": 566,
+      "sha256": "0ea59866b55218a7b66019ee4d07b4944ba05c1db361f1560ea78c5359eed6e1"
+    }
+  ],
+  "fault_campaign": {
+    "enabled": {
+      "operations": 55,
+      "fault_models": 3,
+      "cases": 165
+    },
+    "raw": {
+      "operations": 57,
+      "fault_models": 3,
+      "cases": 171
+    },
+    "scope": "Every observed write/flush step of a replicated replacement under fail-before-flush, partial-persist and failure-unit collateral models. Independent CPU reopen must yield acknowledged or complete new bytes."
+  },
+  "native_file_scope": [
+    "Fast-encoded native extents",
+    "Partial cross-extent overwrite",
+    "Retained file snapshot",
+    "Truncate",
+    "Independent CPU reopen and verified read"
+  ],
+  "gpu_executed": false,
+  "owner_executed": false,
+  "stored_codec": 4,
+  "default_encoding_changed": false,
+  "limitations": [
+    "Modeled CPU/RAM durability, not physical power loss or Windows 11 client qualification.",
+    "Tests do not launch a GPU or qualify normal Windows GPU routing, automatic policy or end-to-end benefit.",
+    "The subsequent native advisory inode-write hook requires its own qualification."
+  ]
+}

@@ -276,16 +276,25 @@
             "core_jobs_total": 13
           },
           "native_storage_candidate": {
-            "contract": "docs/NATIVE_FAST_INGESTION.md",
-            "status": "Publishing-source qualification pending.",
-            "behavior": "Explicit CPU-fast native ingestion, independent LZ4 record decoding and verified advisory StoreMutation candidates under existing transactions.",
-            "baseline": "5da33dcae667d23e68a54f70e109b1920a341518",
-            "default_encoding_changed": false,
+            "qualified_source": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
+            "core_run": 43575751686,
+            "jobs_passed": 13,
+            "jobs_total": 13,
+            "enabled_fast_checks": 119,
+            "raw_fast_checks": 109,
+            "enabled_commit_fault_cases": 165,
+            "raw_commit_fault_cases": 171,
             "stored_codec": 4,
-            "cpu_decoder_required": true,
-            "gpu_launched_by_storage": false,
-            "normal_windows_gpu_route": false,
-            "validation": "Independent block oracle, immutable-baseline failure, enabled/raw/native/sanitizer cases, native partial-write/read/reopen and complete bounded commit-fault campaign."
+            "contract": "docs/NATIVE_FAST_INGESTION.md",
+            "evidence": "docs/evidence/native-fast-ingestion-0d96d90.json",
+            "gpu_executed": false,
+            "owner_executed": false,
+            "default_encoding_changed": false,
+            "native_inode_hook": {
+              "status": "Publishing-source qualification pending.",
+              "behavior": "Direct native inode advisory-extent hook with original commit-bound outputs; no change to existing mutation layouts or normal worker routing.",
+              "tests": "Independent external representation, current/pinned bytes, stale/duplicate/partial hints, zero accepted count and pre-I/O resource rejection."
+            }
           }
         }
       }

@@ -136,9 +136,89 @@ void native_file_readback(){
   reopened.verify_all();
 }
 
+Bytes alternative_block(const Bytes& source){
+  require(source.size()==65536,"alternative block extent");
+  Bytes out;
+  const auto extension=[&](std::size_t value){
+    while(value>=255){out.push_back(std::byte{255});value-=255;}
+    out.push_back(static_cast<std::byte>(value));
+  };
+  const auto match=[&](std::span<const std::byte> literals,std::size_t length){
+    out.push_back(static_cast<std::byte>((std::min<std::size_t>(15,literals.size())<<4)|
+        std::min<std::size_t>(15,length-4)));
+    if(literals.size()>=15)extension(literals.size()-15);
+    out.insert(out.end(),literals.begin(),literals.end());
+    out.push_back(std::byte{0});out.push_back(std::byte{32}); // Offset8192.
+    if(length>=19)extension(length-19);
+  };
+  match(std::span(source).first(8192),8192);
+  match({},source.size()-16384-5);
+  out.push_back(std::byte{0x50});
+  out.insert(out.end(),source.end()-5,source.end());return out;
+}
+void native_advisory_write(){
+  using namespace native_fixture;
+  auto ram=std::make_shared<Ram>();
+  auto volume=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(ram,identity(),
+      {StoreCompressionMode::fast,6,false}));
+  file_apply(volume,file_create("gpu-candidate.bin"));
+  const auto inode=volume.snapshot().stat("gpu-candidate.bin").inode;
+  const auto plain=input(65536,true),foreign=alternative_block(plain);
+  StoreCodecEncoder cpu({StoreCompressionMode::fast,6,false});
+  const auto baseline=cpu.encode(plain);
+  const NativeLz4ExtentCandidate suggestion{0,foreign};
+  const auto committed=volume.write_inode_storage_with_lz4(inode,0,plain,{&suggestion,1});
+  require(committed.bytes==plain.size() && committed.offset==0 && committed.state.info.inode==inode,
+      "advisory inode write lost commit-bound result");
+  auto pinned=volume.snapshot();
+  require(pinned.read("gpu-candidate.bin",0,65536)==plain,"advisory native write changed bytes");
+  const auto stored_payload=[&](const Bytes& expected){
+    auto objects=ObjectStoreSnapshot::open(ram);
+    for(const auto& object:objects.list())
+      if(object.logical_bytes==expected.size() && objects.read(object.id)==expected)
+        return object.stored_payload_bytes;
+    throw std::runtime_error("native extent record absent");
+  };
+  if(store_lz4_available()){
+    StoreCodecDecoder independent;
+    require(independent.decode(kStoreLz4,foreign,65536)==plain,"independent full-extent LZ4 oracle");
+    require(foreign!=baseline.payload && foreign.size()!=baseline.payload.size(),
+        "independent candidate did not differ from CPU representation");
+    require(stored_payload(plain)==foreign.size(),"valid foreign candidate was not stored");
+  }
+  auto changed=plain;changed[17]^=std::byte{1};
+  volume.write_inode_storage_with_lz4(inode,0,changed,{&suggestion,1});
+  require(volume.snapshot().read("gpu-candidate.bin",0,65536)==changed &&
+      pinned.read("gpu-candidate.bin",0,65536)==plain,
+      "stale advisory changed current or pinned file");
+  require(stored_payload(changed)==cpu.encode(changed).payload.size(),"stale advisory displaced CPU result");
+  const std::array duplicates{suggestion,suggestion};
+  volume.write_inode_storage_with_lz4(inode,0,plain,duplicates);
+  require(stored_payload(plain)==baseline.payload.size(),"ambiguous advisory was selected");
+  const auto patch=input(31,false);
+  volume.write_inode_storage_with_lz4(inode,65530,patch,{&suggestion,1});
+  auto expected=plain;expected.resize(65561);
+  std::copy(patch.begin(),patch.end(),expected.begin()+65530);
+  require(volume.snapshot().read("gpu-candidate.bin",0,65561)==expected,
+      "stale full-extent hint corrupted partial cross-extent write");
+  const auto writes=ram->writes;
+  NativeInodeWriteOptions constrained;constrained.constrained=true;
+  const auto no_op=volume.write_inode_storage_with_lz4(inode,
+      (std::numeric_limits<std::uint64_t>::max)(),patch,{&suggestion,1},constrained);
+  require(no_op.bytes==0 && ram->writes==writes,"zero accepted write consumed an advisory or wrote storage");
+  std::vector<NativeLz4ExtentCandidate> excessive(64);
+  rejects([&]{volume.write_inode_storage_with_lz4(inode,0,plain,excessive);},
+      "advisory extent count ignored");
+  Bytes oversized(kStoreMaxObjectBytes+1);
+  const NativeLz4ExtentCandidate too_big{0,oversized};
+  rejects([&]{volume.write_inode_storage_with_lz4(inode,0,plain,{&too_big,1});},
+      "advisory per-block budget ignored");
+  require(ram->writes==writes && !volume.poisoned(),"advisory admission wrote or poisoned native volume");
+}
+
 }
 int main(){
-  try{policies();advisory();native_file_readback();std::cout<<"Fast native ingestion: "<<checks
+  try{policies();advisory();native_file_readback();native_advisory_write();std::cout<<"Fast native ingestion: "<<checks
       <<" checks; cpu_lz4="<<store_lz4_available()<<" gpu_executed=false\n";return 0;}
   catch(const std::exception& e){std::cerr<<"fast ingestion: "<<e.what()<<'\n';return 1;}
 }

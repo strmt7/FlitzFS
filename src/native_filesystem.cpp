@@ -347,6 +347,16 @@ struct DirtyExtent {
   bool modified=false,compare_original=false;
 };
 using Dirty=std::map<std::pair<std::uint64_t,std::uint64_t>,DirtyExtent>;
+void admit_lz4_extent_candidates(std::span<const NativeLz4ExtentCandidate> candidates) {
+  if(candidates.size()>kDirtyCap)fail(Code::limit,"native advisory extent count");
+  std::uint64_t total=0;
+  for(const auto& candidate:candidates) {
+    if(candidate.payload.size()>kStoreMaxObjectBytes ||
+        candidate.payload.size()>kStoreMaxTransactionBytes-total)
+      fail(Code::limit,"native advisory byte budget");
+    total+=candidate.payload.size();
+  }
+}
 struct Stage {
   Model model;const Model& original;const ObjectStoreSnapshot& base;Dirty dirty;
   bool changed=false;std::vector<std::uint64_t> created;
@@ -610,7 +620,8 @@ struct Stage {
     if(op.operation==NativeFileOperation::remove){discard(n);return;}
     fail(Code::invalid_operation,"unknown native operation");
   }
-  std::vector<StoreMutation> mutations() {
+  std::vector<StoreMutation> mutations(std::uint64_t candidate_inode,
+      std::span<const NativeLz4ExtentCandidate> candidates) {
     if(extent_count(model)>kNativeMaxExtents)fail(Code::limit,"native live extent budget");
     // Unchanged records were fully admitted on initialize/resume or a prior
     // acknowledgement. Verify and validate every touched record privately;
@@ -649,7 +660,18 @@ struct Stage {
     std::vector<StoreMutation> output;output.reserve(kStoreMaxObjects);
     output.push_back({kNamespaceObject,false,encode(model)});
     for(const auto& [id,n]:model.nodes)for(const auto& [index,object]:n.extents) {
-      const auto found=dirty.find({id,index});if(found!=dirty.end())output.push_back({object,false,found->second.bytes});
+      const auto found=dirty.find({id,index});
+      if(found!=dirty.end()) {
+        StoreMutation mutation{object,false,found->second.bytes};
+        std::span<const std::byte> selected;unsigned matches=0;
+        if(id==candidate_inode)for(const auto& candidate:candidates)
+          if(candidate.extent_index==index){++matches;selected=candidate.payload;}
+        // Reused/zero records never reach this branch. Ambiguous advice is
+        // discarded; complete CPU source comparison remains in the encoder.
+        if(matches==1 && !selected.empty() && selected.size()<found->second.bytes.size())
+          mutation.lz4_candidate.assign(selected.begin(),selected.end());
+        output.push_back(std::move(mutation));
+      }
     }
     for(const auto& previous:base.list())if(previous.id!=kNamespaceObject && !used.contains(previous.id))output.push_back({previous.id,true,{}});
     if(output.size()>kStoreMaxObjects)fail(Code::limit,"native object mutation budget");
@@ -990,8 +1012,12 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     InodeAction action,std::uint64_t inode,std::span<const NativeBasicMutation> basic,
     const NativeAutomaticMetadata* automatic,bool delete_requested,NativeInodeCommitInfo* published,
     std::span<const NativeSecurityMutation> security,const NativeOverwriteMetadata* overwrite,
-    const std::uint64_t* reservation,NativeInodeAllocationInfo* allocation,bool trim_allocation) {
+    const std::uint64_t* reservation,NativeInodeAllocationInfo* allocation,bool trim_allocation,
+    std::span<const NativeLz4ExtentCandidate> lz4_candidates) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  admit_lz4_extent_candidates(lz4_candidates);
+  if(!lz4_candidates.empty() && action!=InodeAction::mutate)
+    fail(Code::invalid_operation,"native advice requires a selected inode mutation");
   if(automatic && !native_cleanup_metadata_valid(*automatic))
     fail(Code::invalid_operation,"invalid automatic metadata time/unused clock");
   bool committing=false;
@@ -1070,7 +1096,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       if(allocation)*allocation=allocation_info;
       return result;
     }
-    auto changes=stage.mutations();result.sequence=stage.model.sequence;
+    auto changes=stage.mutations(inode,lz4_candidates);result.sequence=stage.model.sequence;
     committing=true;
     try{result.storage=impl_->objects.commit_replicated(changes);}
     catch(const std::exception&){
@@ -1110,6 +1136,12 @@ NativeInodeMutationCommit NativeFilesystemWriter::write_inode_result(std::uint64
 NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_result(std::uint64_t inode,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
     const NativeAutomaticMetadata& effect) {
+  return write_inode_storage_with_lz4(inode,offset,bytes,{},options,effect);
+}
+NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_with_lz4(std::uint64_t inode,
+    std::uint64_t offset,std::span<const std::byte> bytes,
+    std::span<const NativeLz4ExtentCandidate> candidates,NativeInodeWriteOptions options,
+    const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic write time/unused clock");
@@ -1135,7 +1167,7 @@ NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_res
     NativeInodeStorageMutationCommit result;result.offset=selected;
     result.bytes=static_cast<std::uint32_t>(count);
     result.transaction=transact({&op,1},InodeAction::mutate,inode,{},
-        count && effect.any()?&effect:nullptr,false,nullptr,{},nullptr,nullptr,&result.state);
+        count && effect.any()?&effect:nullptr,false,nullptr,{},nullptr,nullptr,&result.state,false,candidates);
     return result;
   }catch(const std::bad_alloc&){fail(Code::limit,"native inode write allocation failure");}
 }

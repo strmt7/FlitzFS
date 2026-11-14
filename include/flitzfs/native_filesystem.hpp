@@ -29,6 +29,12 @@ class NativeFsError final:public std::runtime_error {
  private:
   NativeFsErrorCode code_;
 };
+// Borrowed complete LZ4 block for one final native extent. The call must remain
+// serialized and both this span and its bytes immutable until return.
+struct NativeLz4ExtentCandidate {
+  std::uint64_t extent_index=0;
+  std::span<const std::byte> payload;
+};
 struct NativeFileInfo {
   std::uint64_t inode=0,parent=0,logical_bytes=0,created_sequence=0,modified_sequence=0;
   bool directory=false;
@@ -320,6 +326,13 @@ class NativeFilesystemWriter final {
   NativeInodeStorageMutationCommit write_inode_storage_result(std::uint64_t inode,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={},
       const NativeAutomaticMetadata& effect={});
+  // Same committed count/metadata contract as the ordinary inode write. Hints
+  // apply only to this inode's changed extents, never namespace or other files.
+  // Invalid, stale, duplicate and non-saving payloads keep CPU encoding.
+  NativeInodeStorageMutationCommit write_inode_storage_with_lz4(std::uint64_t inode,
+      std::uint64_t offset,std::span<const std::byte>,
+      std::span<const NativeLz4ExtentCandidate>,NativeInodeWriteOptions options={},
+      const NativeAutomaticMetadata& effect={});
   NativeInodeStorageMutationCommit truncate_inode_storage_result(std::uint64_t inode,std::uint64_t bytes,
       const NativeAutomaticMetadata& effect={});
   NativeInodeAllocationCommit overwrite_inode_storage_result(std::uint64_t inode,
@@ -396,7 +409,7 @@ class NativeFilesystemWriter final {
       std::span<const NativeSecurityMutation> security={},
       const NativeOverwriteMetadata* overwrite=nullptr,
       const std::uint64_t* reservation=nullptr,NativeInodeAllocationInfo* allocation=nullptr,
-      bool trim_allocation=false);
+      bool trim_allocation=false,std::span<const NativeLz4ExtentCandidate> lz4_candidates={});
   static NativeFilesystemWriter copy_image(const NativeFilesystemSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool reencode);
