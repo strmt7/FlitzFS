@@ -15,6 +15,33 @@ filesystem or the requested autonomous GPU-compression product**.
 The detailed execution contract is [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md);
 [DEVELOPMENT_PLAN.json](DEVELOPMENT_PLAN.json) is its compact harness ledger.
 
+## Current product checkpoint and inefficiencies
+
+The refreshed [release-readiness evaluation](RELEASE_READINESS.md) and
+[implementation plan](DEVELOPMENT_PLAN.md) govern current work. The historical
+tables below remain tied to their stated baseline; current capacity/codec
+constraints were rechecked through the object/native headers and codec sources.
+CocoIndex 0.2.43 at 1d9d0e0 performed eight actual searches over 188 source files,
+source digest 62d6ea6ffe24de000abc764a743c4ddbe35e9064ac57a05bf32451ebe3dc3ee3.
+Five relevant live source hashes matched. Search self-hits were not treated as
+implementation evidence.
+
+The latest qualified hardware case is d33efd6: a finite 1-MiB GPU-native operation
+with independent current/prior CPU recovery. Ordinary callbacks remain CPU-only;
+complete image size and exchange timing do not establish a comparative advantage.
+Prototype capacity, absent product collective compression, incomplete automatic
+cost acquisition/learning, durability/repair and latest-client Windows semantics
+remain release blockers.
+
+Too much delivery has accumulated as isolated fixtures and historical documents
+relative to those unfinished product paths. Keep one authoritative current
+checkpoint, verify cached source against its immutable revision before editing,
+reuse unchanged evidence and avoid repeated trials or redundant workflows.
+Prioritize automatic ordinary GPU I/O, scalable populated storage and one real
+cross-file compression transaction. CPU fallback may encode differently; its
+requirement is continued operation and independent lossless access to stored data.
+
+
 ## 14 November integration update
 
 The source-bound [native LZ4 composition](evidence/native-lz4-composition-a047952.json)

@@ -1,5 +1,11 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Source freshness before edits
+
+Verify every reused cached source against its immutable Git revision before editing.
+A cache key or summary label does not prove source identity. Preserve qualified fixes;
+SDK/package counts must come from validated receipts rather than duplicated literals.
+
 ## Measured sweep observations and encoding independence
 
 Read docs/UNIFORM_LZ4_SWEEP_PROFILE.md before changing the opt-in finite-sweep

@@ -59,6 +59,11 @@ collective/learned encoders.
 
 ## Transparent cross-file grouping
 
+CPU-only degraded operation may be slower; encoder, size and performance parity
+are not requirements. Decode must be self-contained without GPU, its runtime,
+a network service or a separately fetched model, with bounded resources and
+forward progress.
+
 The user sees ordinary files and folders in Windows Explorer. Internal compression
 groups must not become archives, require extraction, rename/rearrange folders,
 or expose optimization artifacts as user files. File identity, names, permissions,

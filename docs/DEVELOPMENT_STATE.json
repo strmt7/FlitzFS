@@ -972,12 +972,27 @@
     }
   },
   "uniform_sweep_observations": {
-    "status": "implemented; publishing-source CPU/SDK qualification pending",
+    "status": "implemented; source/SDK CPU checks passed at 1d9d0e0; final metadata-correction source qualification pending",
     "contract": "docs/UNIFORM_LZ4_SWEEP_PROFILE.md",
+    "previous_source": "1d9d0e067787a824df8d3e0d8a84b5c4e1356714",
+    "previous_sdk_run": 43618214759,
+    "checks": 190,
+    "uniform_compute_scenarios": 83,
+    "uniform_compute_successes": 10,
+    "uniform_compute_refusals": 73,
+    "admission_exits": 25,
     "owner_executed": false,
     "normal_GPU_routing": false,
     "cost_profile_qualified": false,
     "stored_formats_changed": false
   },
-  "cpu_fallback_contract": "Different encoder/format/size permitted; continued operation and independent CPU decoding of every stored GPU representation mandatory."
+  "cpu_fallback_contract": "Different encoder/format/size permitted; continued operation and independent CPU decoding of every stored GPU representation mandatory.",
+  "release_readiness": "Experimental prototype, substantially short of a release candidate. Ordinary GPU I/O, scalable storage and collective-compression proof remain absent; no reliable date or percentage.",
+  "release_assessment": "docs/RELEASE_READINESS.md",
+  "next_product_slices": [
+    "Finish source-specific sweep observation qualification; acquire repeated varied-input keyed costs and connect ordinary Windows/GPU/native storage/read/fallback.",
+    "Replace small structural store limits using bounded paged data structures and incremental reclamation, while specifying and implementing one protected cross-file compression transaction.",
+    "Make persistent learning and collective optimization automatic, with admission from opportunity and fresh contention, prompt yield and practical independently measured read costs.",
+    "Complete explicit durability/repair, latest Windows 11 application/driver lifecycle, independent security and unbiased comparative qualification before a release estimate."
+  ]
 }

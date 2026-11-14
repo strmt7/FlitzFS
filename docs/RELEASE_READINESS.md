@@ -1,72 +1,86 @@
 # Release readiness checkpoint — 14 November 2026
 
-Stage: experimental prototype. The owner alone decides when to release.
-No release, tag, package publication or version change is authorized.
+FlitzFS remains an experimental filesystem/storage prototype, substantially short
+of a release candidate. The owner alone decides when to release. No release,
+tag, package publication or version change is authorized.
 
-Actual AMD GPU compression is now demonstrated through a native-file storage
-operation, rather than only a standalone kernel. At a047952 the 65,536-byte
-synthetic extent produced an 8,459-byte GPU payload that was stored exactly
-through the inode hook and recovered by the independent CPU reader. The prior
-acknowledged snapshot remained readable. The complete core matrix and SDK
-qualification passed. [Retained source-bound evidence](evidence/native-lz4-composition-a047952.json)
-includes artifact digests, current adapter/runtime admission, exact retirement,
-restored working-set limits, zero remaining locked bytes and no owned processes.
+This assessment separates implemented mechanisms, executed qualification and
+unmet product goals. A passing fixture or large assertion count is not a
+completion percentage. There is no defensible release date yet: ordinary
+accelerated operation, scalable storage and the central collective-compression
+mechanism still need implementation and measurement.
 
-That experiment used an explicit unmounted diagnostic. Ordinary Windows file
-operations remain CPU-only. Its worker exchange took about 533 ms; active payload
-equaled the CPU fixture result, and the complete image occupied 983,040 bytes
-including history, metadata and alignment. There is no demonstrated end-to-end
-speed or whole-image compression advantage. The unchanged trial must not be
-repeated.
+## Demonstrated progress
 
-The native helper/editor/tray, bounded memory provider, native CPU storage and
-namespace, and disposable-VM Windows mount/recovery fixtures exist within their
-documented experimental scopes. They do not establish a production writable
-filesystem or a completion percentage.
+The latest qualified hardware source is d33efd64d94427f5b6c9f2e269520d4ba5e26bcd.
+Its full 13-job core matrix and complete selected ROCm SDK qualification passed.
+One explicit, finite synthetic operation GPU-encoded 1,048,576 input bytes into
+135,344 payload bytes, stored the accepted GPU representation through the native
+storage path, and recovered both current and prior data through the independent
+CPU reader. Exact worker/supervisor retirement, zero remaining locked bytes and
+restored working-set limits were checked. It was unmounted.
+[Source-bound evidence](evidence/uniform-reuse-d33efd6.json)
 
-The new asynchronous LZ4 controller at f08e6b8 reuses bounded supervision and
-evidence-aware recovery. Its terminal CPU selection does not wait for a worker;
-late replies cannot replace selected CPU bytes. All 13 core jobs and full SDK qualification passed at that exact source.
-CPU child fixtures are not actual GPU evidence.
+That exchange took 626,486,100 ns. The complete image occupied 1,114,112 bytes,
+including fixed metadata, alignment and retained history. This is **not** a
+demonstrated whole-image size or end-to-end speed advantage. The CPU fixture used
+a manually constructed alternate representation, not a competitive optimized CPU
+compressor. Neither payload difference nor unmatched timings prove superiority.
 
-Major unfinished release gates are:
+The previous non-reusing sweep exited with 0xc0000409; CPU fallback and recovery
+passed. The successful replacement does not establish that historical failure's
+cause. Keep the failed evidence and do not claim a proven memory-cap diagnosis.
+[Failure evidence](evidence/uniform-sweep-847423f-failure.json)
 
-- Complete ordinary Windows write/read integration with useful GPU compression,
-  verified native encoding, independently tested immediate CPU fallback and
-  exact worker/helper retirement.
-- Whole-operation throughput and total stored-size gains on varied real data,
-  including startup, transfers, validation, metadata, history and retained copies.
-- Causal resolution of historical unconfirmed child retirement, plus complete
-  promised Windows semantics, cancellation, shutdown and helper/driver lifecycle.
-- Scalable bounded metadata and storage operations.
-- Automatic resource governance, persistent workload learning and low-priority
-  collective recompression/layout improvement with measured foreground impact.
-- Acknowledged-write durability and recoverable corruption under an explicit
-  fault model. Volatile RAM checkpoints and process-interruption tests do not
-  establish physical power-loss survival.
-- Physical/virtual volume creation integration, installer/update behavior,
-  security review and independent filesystem comparisons.
+The new finite-sweep observation round adds source/adapter/grant-bound timing
+of setup, each serialized work phase, slowest kernel/quantum and final retirement.
+Its exact-source qualification is retained in the state/validation ledger; no
+owner execution of the new instrumented source is claimed in this assessment. It does not automatically produce
+qualified costs or enable an ordinary Windows callback route.
 
-## Development emphasis
+## Product gaps and release gates
 
-The current direction has reached actual GPU-compressed native bytes and exact
-CPU recovery. Complete the asynchronous failure/retirement and ordinary Windows
-helper route before treating that as the requested file-operation slice.
-Measure complete costs and gains; startup amortization is a real unresolved cost.
-Do not remove CPU verification, resource limits, authentication or supervision to
-make a benchmark appear faster.
+| Area | Current position | Required exit |
+|---|---|---|
+| Ordinary Windows GPU I/O | Controlled native advice operation exists; normal callbacks remain CPU-only | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
+| GPU benefit | Actual bounded GPU bytes and CPU recovery demonstrated | Repeated controlled comparisons on varied real data show useful complete-operation throughput and/or net stored-size benefit |
+| Capacity | 256 objects/nodes, about 15.94 MiB populated native extents, 64 MiB image bound remain in current implementation | Paged indices, allocation and bounded reclamation handle growing file trees/data without whole-tree residency or merely larger constants |
+| Extreme collective compression | Research/design objective; no product cross-file learned codec | A lossless cross-file representation produces substantial held-out TOTAL-size gains, with practical individually addressed reads and protected dependencies |
+| Resource adaptation | Live admission, resource-sized layouts/planner and terminal recovery exist | Automatic configuration/shape cost acquisition, contention-aware selection and finite low-priority work; no host-specific product defaults |
+| Learning and maintenance | Persistent advisory-state and explicit recompression/handoff primitives exist | Workload learning actually drives automatic grouping/codec/layout choices and resumes after restart while promptly yielding to foreground work |
+| Durability and repair | Copy-on-write checkpoints, redundancy for selected metadata and process/fault fixtures exist | Explicit acknowledged-write contract, data/dependency redundancy, recovery/repair and fault campaigns cover the promised backend failure model |
+| Windows product | Native callbacks, helper/app/tray and disposable-VM writable probes exist | Complete promised Win32 semantics, Windows 11 client qualification, lifecycle, packaging, secure installation/update and supported volume-creation workflows |
+| Security and comparisons | Source/dependency inventories and bounded-input checks exist | Independent review, malformed-input/fuzz campaigns, reproducible filesystem comparisons, supply-chain/installer review and exact-build acceptance |
 
-Minimum total stored size remains the primary compression objective, subject to
-practical retrieval latency and throughput. Later collective, learned or novel
-cold-data compression must count models, dictionaries, indexes and redundancy,
-retain independent lossless CPU recovery, and yield promptly to foreground work.
-The initial LZ4 representation does not constrain that research or architecture.
+Capacity values above were rechecked in current object/native headers. A large
+sparse logical address range is not populated capacity. SDK and mounted hosted
+Windows Server fixtures are not qualification on the latest Windows 11 client.
+RAM-backed interruption tests do not prove physical power-loss durability.
 
-Advance the full plan against explicit product exits. Assertion totals, document
-volume and green infrastructure jobs are not product-readiness metrics.
-Use recent primary-source research for concrete unresolved decisions, then
-implement and validate the supported mechanism. Avoid unchanged research and
-hardware reruns.
+CPU fallback may encode with a different codec and produce a different size.
+It must continue operations and independently decode every admitted GPU-stored
+format and protected dictionary/model/base. CPU/GPU compressed-stream equality
+is not a goal. Recovery compares decoded source bytes.
 
-No reliable release date or completion percentage is established. This remains
-substantial implementation and qualification work.
+## Direction and revised emphasis
+
+The ownership, transaction, containment and independent-reader foundations are
+useful. Delivery has nevertheless accumulated many isolated stages while the
+main user-visible GPU path and the distinctive compression engine remain absent.
+Further assertion counts and documentation alone will not close that gap.
+
+The next work must deliver a complete automatic Windows/GPU/native-write/read/
+fallback slice, then a scalable store and a real collective-compression slice.
+Acquire only the measurements needed to make those decisions; avoid indefinite
+LZ4 tuning or another sequence of disconnected capability probes. Keep the
+[implementation plan](DEVELOPMENT_PLAN.md) and its dependency ledger current.
+
+Before a credible release estimate, demonstrate all three: useful ordinary GPU
+I/O, bounded scalable populated storage, and a measured cross-file compression
+advantage. After those, durability, Windows/security qualification and comparative
+testing remain substantial work. Superior compression is an experimental goal,
+not an established property of the current code.
+
+No test establishes survival of arbitrary bugs or destruction of every copy.
+Specify the covered fault model and retain enough independent data/dependencies
+to recover under it; detection alone is not repair.

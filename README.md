@@ -1,13 +1,15 @@
 # FlitzFS
 
-## Finite-sweep measurement candidate
+## Current development checkpoint
 
 The opt-in [finite-sweep profile](docs/UNIFORM_LZ4_SWEEP_PROFILE.md)
 separates reusable setup, accumulated work phases and the slowest kernel/quantum.
-Current-source qualification is pending. This does not enable ordinary GPU I/O,
+The final packaging-metadata source is being qualified; see the state ledger. This does not enable ordinary GPU I/O,
 automatically qualify costs, prove comparative benefit or change stored codecs.
 CPU fallback may use a different encoder and stored size while retaining
-independent byte-exact reads of every admitted GPU representation.
+independent byte-exact reads of every admitted GPU representation. The refreshed
+[release assessment](docs/RELEASE_READINESS.md) identifies the remaining major gates;
+the [implementation plan](docs/DEVELOPMENT_PLAN.md) prioritizes complete product paths.
 
 ## Native fast-ingestion storage candidate
 

@@ -10,6 +10,9 @@
   "next": [
     "G02",
     "G03",
+    "S01",
+    "A04",
+    "A01",
     "L01",
     "D01"
   ],
@@ -23,7 +26,7 @@
   },
   "continuation": [
     "Read AGENTS and this ledger; verify actual main and source-bound CI before selecting work.",
-    "Take dependency-ready unfinished work. G01 is complete. G02 candidate source/API/offline-format evaluation proceeds independently; no useful gain is demonstrated. G03 worker changes still require a reviewed equivalent lifecycle contract and its explicit gates. Preserve historical D01 uncertainty and all full-product exits; L01 mapping/authorization, funded continuation and automatic governance/learning remain required.",
+    "Take a dependency-ready product slice. Distinguish preparatory-entry dependencies from full package exits. Prioritize complete ordinary GPU I/O, scalable storage and real collective compression; preserve historical D01 uncertainty without using it to indefinitely block independent work. No disconnected probe chain or LZ4-only scope substitution.",
     "Read applicable boundary docs and current primary sources before important changes; use mandatory semantic and Crawl4AI providers.",
     "Implement a bounded substantive change, qualify in isolated environments, retain failures and update evidence in a coherent main commit.",
     "Complete packages only when their exit criteria are met. Keep the existing full goal active; no new goal, thread, scheduled task or inferred delegation."
@@ -130,8 +133,9 @@
       ],
       "status": "in_progress",
       "deliverables": [
-        "Qualify the actual match-proposal to native lossless encode route and map which native formats have genuine GPU execution.",
-        "Retain immutable input, CPU-readable encoded output and byte-exact independent verification. Unsupported codecs and runtime faults select CPU immediately."
+        "Connect the qualified controlled native write and resource-sized GPU worker to the actual Windows helper/callback lifecycle; preserve independent CPU source, one outstanding admitted operation and separate exact retirement.",
+        "Use GPU output only after immutable-source/CPU decode comparison, fresh completion admission and confirmed child/supervisor exit. CPU fallback may use a different encoder, format and size; it must read every admitted GPU representation.",
+        "Measure whole-operation throughput, fallback behavior and TOTAL image size on varied data. Prototype results and manually constructed CPU controls are not competitive compression baselines."
       ],
       "validation": [
         "Mixed synthetic and bounded public real data: offsets, truncations, overlaps, malformed proposals, incompressible bytes and corruption.",
@@ -164,7 +168,7 @@
           "benefit_demonstrated": false,
           "evidence": "docs/evidence/native-gpu-ram-645a1d1.json"
         },
-        "next": "Finish the resource-adaptive streaming transport and authenticated uniform runtime/controller integration, then connect the Windows advice consumer. The old tiny profile is a compatibility control, not a full-development ceiling. Size from actual capabilities, fresh headroom/contention, qualified costs and foreground quanta. Preserve independent CPU recovery, exact retirement and complete-operation measurements.",
+        "next": "Qualify finite-sweep observations, acquire configuration/recovery/shape-bound costs, then deliver ordinary automatic Windows GPU I/O with CPU-only reopen/failure paths and measured useful benefit.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
         "candidate_evaluation": {
           "contract": "docs/GPU_LZ4_KERNEL_REVIEW.md",
@@ -388,20 +392,20 @@
       "id": "G03",
       "title": "Reduce GPU pipeline overhead while preserving containment",
       "depends": [
-        "G01",
-        "D01"
+        "G01"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "deliverables": [
-        "Instrument process/runtime/context/module startup, transfer, kernel, comparison, native encode and retirement separately.",
-        "Research and compare safe amortization, bounded batching and verification strategies. A resident worker or relaxed batch cap requires a reviewed replacement lifecycle/security contract and equivalent fault containment before implementation."
+        "Separate complete exchange cost from reusable setup, transfers, per-quantum kernel/full wait, CPU verification and operation retirement. Acquire configuration/recovery/shape-bound repeated measurements and resource peaks without extrapolating a single sample.",
+        "Select useful demonstrated batch/window choices from fresh headroom and contention. Keep independently enforced grants; advisory learning never overrides safety or recovery.",
+        "Use the existing finite reused scope first. A resident helper or changed process containment requires a reviewed replacement lifecycle contract and equivalent fault qualification."
       ],
       "validation": [
         "Matched alternating cold/warm CPU/GPU trials with confidence/noise reporting, responsiveness and live resource evidence.",
         "Test shutdown/cancel/driver disappearance in isolated VMs or mocks only; never stress owner WDDM or leave idle workers without a justified bounded lifecycle."
       ],
       "exit": "Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes.",
-      "entry_gate": "Actual G02 native proposal/compression composition is demonstrated at645a1d1. G02's benefit exit remains unmet; lifecycle work must not depend on already having that benefit.",
+      "entry_gate": "Finite native GPU bytes and exact CPU recovery are demonstrated. D01's unresolved historical failures remain open; they do not block unrelated source/measurement/scaling work. Every changed lifecycle must independently prove containment and exact quiescence; do not assume a historical cause.",
       "preparatory_implementation": {
         "contract": "docs/GPU_PHASE_PROFILE.md",
         "qualified_source": "b6a9b4e834ac914ae9d68772b04bfbc4349c38d3",
@@ -419,8 +423,7 @@
       "id": "S01",
       "title": "Scale the store and namespace with bounded incremental work",
       "depends": [
-        "P00",
-        "D01"
+        "P00"
       ],
       "status": "pending",
       "deliverables": [
@@ -431,7 +434,8 @@
         "Small-RAM sparse/mock backends exercise large logical address spaces, adversarial indexes, interrupted allocation/reclamation and reader pin races.",
         "Legacy CPU reader, create-new output, capacity exhaustion, rollback and independent recovery tests; no giant owner images."
       ],
-      "exit": "Explicit scaling targets and measured resource bounds pass without merely increasing constants or abandoning recovery."
+      "exit": "Explicit scaling targets and measured resource bounds pass without merely increasing constants or abandoning recovery.",
+      "preparatory_entry": "Review current 256-object/node, 16-MiB live object, approximately 15.94-MiB populated native extent and 64-MiB image limits. Implement paged indices and incremental allocation/reclamation; no blind constant increases."
     },
     {
       "id": "L01",
@@ -542,7 +546,9 @@
         "Real heterogeneous held-out corpora plus incompressible/adversarial data; report total image size and steady-state performance, not payload-only ratios.",
         "Use current primary-source evidence and held-out mixed real corpora; charge models/indexes/dependencies and measure cold/random retrieval, GPU/CPU parity and foreground interference. No lossy semantic reconstruction or claims from specialized datasets alone."
       ],
-      "exit": "Unattended collective optimization minimizes total stored bytes on held-out workloads within measured practical latency/speed and resource constraints, preserving exact recovery, normal Windows behavior and promptly yielding background work. Moderate retrieval cost is acceptable; no required superiority in every metric."
+      "exit": "Unattended collective optimization minimizes total stored bytes on held-out workloads within measured practical latency/speed and resource constraints, preserving exact recovery, normal Windows behavior and promptly yielding background work. Moderate retrieval cost is acceptable; no required superiority in every metric.",
+      "preparatory_entry": "A bounded cross-file codec/manifest/independent-CPU-reader transaction prototype may proceed before full A03 autonomy or S01 scale. The full automatic scalable exit still depends on A03/S01. GPU-only encoding with independent CPU decoding is permitted.",
+      "codec_contract": "Protect immutable versioned dictionaries/models/bases, exact portable decoding semantics, independently verifiable source bytes, random-access checkpoints and bounded dependency traversal. Publish new generation transactionally, preserve old generations until reader retirement, and charge every dependency/history/redundancy byte."
     },
     {
       "id": "R01",
@@ -561,7 +567,8 @@
         "Deterministic fault injection at every persist boundary, short/torn/reordered writes, corrupted replicas, OOM, kill and candidate publication.",
         "Use disposable VM/backend models for crash tests. Physical power-loss claims need matching storage/barrier qualification elsewhere; owner RAM tests cannot provide it."
       ],
-      "exit": "The explicit fault model and acknowledgement contract pass independent recovery with no unexplained lost acknowledged bytes. Universal survival of arbitrary bugs or loss of all copies is not a claim."
+      "exit": "The explicit fault model and acknowledgement contract pass independent recovery with no unexplained lost acknowledged bytes. Universal survival of arbitrary bugs or loss of all copies is not a claim.",
+      "preparatory_entry": "Fault-model, acknowledgement and protected data/dependency publication work can proceed before full-scale storage; final exit still requires the complete listed dependencies."
     },
     {
       "id": "W01",
@@ -596,7 +603,8 @@
           "evidence": "docs/evidence/volume-app-f4928c2.json"
         },
         "remaining": "Mounted/physical lifecycle, authorization, full Windows semantics, visual/accessibility/client matrix and installation/updates; preserve D01/S01/R01 dependencies."
-      }
+      },
+      "preparatory_entry": "Semantics matrix and latest Windows 11 disposable-client qualification can proceed while scaling/durability advance; final product exit still requires complete dependencies."
     },
     {
       "id": "Q01",
@@ -645,9 +653,11 @@
   ],
   "cold_compression_research": "docs/COLD_COMPRESSION_RESEARCH.md",
   "compression_objective": {
-    "primary": "Minimum total stored bytes, including models/indexes/checkpoints/redundancy/dependencies.",
-    "constraints": "Latency must remain practical and sustained access must not become dramatically slow. Moderate penalties are acceptable; do not impose minimum latency, tiny groups or universal faster-than-baseline requirements on cold recompression.",
-    "safety": "Exact byte reconstruction, independent CPU fallback, protected decoder state and bounded resource/transactional safety remain mandatory.",
+    "primary": "Minimum TOTAL stored bytes, including models/dictionaries/bases, indices, redundancy and retained generations.",
+    "constraints": "Practical measured retrieval latency and sustained speed; moderate read penalties are acceptable. No universal compressibility or superiority claim.",
+    "cpu_fallback": "Continued operation and independent byte-exact decoding of every stored GPU format/dependency. CPU encoding algorithm, format and stored size may differ.",
+    "gpu_encoding": "GPU-supported cross-file/learned or experimentally justified novel encoders are allowed; neither LZ4 nor the CPU encoder limits cold representations.",
+    "safety": "Exact byte reconstruction, independent CPU recovery, protected decoder dependencies and bounded resources/transactional safety remain mandatory.",
     "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
   },
   "resource_adaptive_checkpoint": {
@@ -761,5 +771,24 @@
     "fixture_failure": "docs/evidence/uniform-reuse-92d326e-fixture-failure.json",
     "old_failure_cause_proven": false,
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
-  }
+  },
+  "current_round": {
+    "source": "publishing source; exact commit to be recorded after qualification",
+    "contract": "docs/UNIFORM_LZ4_SWEEP_PROFILE.md",
+    "qualification": "pending exact publishing-source core and complete SDK checks",
+    "previous_measurement_source": "1d9d0e067787a824df8d3e0d8a84b5c4e1356714",
+    "previous_measurement_sdk_run": 43618214759,
+    "previous_measurement_sdk_complete": true,
+    "retained_fixture_failure": "docs/evidence/uniform-sweep-profile-dc26fc3-fixture-failure.json",
+    "owner_executed": false,
+    "ordinary_GPU_route": false,
+    "cost_qualification_automatic": false,
+    "manifest_correction": "Take admission counts from the validated qualification rows; advertise the opt-in sweep profile envelope explicitly."
+  },
+  "next_product_slices": [
+    "Finish source-specific sweep observation qualification; acquire repeated varied-input keyed costs and connect ordinary Windows/GPU/native storage/read/fallback.",
+    "Replace small structural store limits using bounded paged data structures and incremental reclamation, while specifying and implementing one protected cross-file compression transaction.",
+    "Make persistent learning and collective optimization automatic, with admission from opportunity and fresh contention, prompt yield and practical independently measured read costs.",
+    "Complete explicit durability/repair, latest Windows 11 application/driver lifecycle, independent security and unbiased comparative qualification before a release estimate."
+  ]
 }

@@ -6,9 +6,167 @@ The owner's background-compression direction is specified in [COLD_COMPRESSION_R
 
 [Release-readiness checkpoint](RELEASE_READINESS.md): the project is an experimental prototype. Actual useful GPU compression with CPU fallback is mandatory. Prioritize the complete Windows/GPU/native-storage/readback/failure path; isolated checks alone do not satisfy the product goal.
 
-## Next implemented compute boundary
+## Revised implementation round — 14 November 2026
 
-The SDK-only [LZ4 compute candidate](HIP_LZ4_COMPUTE.md) connects typed HIP calls to the already qualified owned slab and CPU verifier. Current-source compile and CPU fault tests remain pending. After those pass, authenticate the candidate module and object coverage before a separately gated isolated runtime trial; then measure byte-exact benefit before filesystem routing. G02/G03 and the full-product goal remain open, including native storage integration, autonomous optimization, durability and repair.
+The [release assessment](RELEASE_READINESS.md) identifies an experimental prototype,
+not a release candidate. The active harness goal remains the full Windows product.
+This round prioritizes complete product paths over more disconnected probes.
+
+### 1. Finish useful automatic GPU operation — G02/G03/A01/A02
+
+Qualify the finite-sweep observation source first. Acquire repeated, varied-input,
+configuration/recovery/shape-bound costs from successful independently checked
+results and confirmed retirement, including process peaks and full parent cost.
+Reject missing/stale/partial evidence; do not qualify or extrapolate from one
+success. Rank demonstrated choices under fresh resources and contention, with
+bounded exploratory work only when separately admitted. Test selection against
+a fixed-policy baseline and adverse/noisy observations.
+
+Connect the existing controlled native write operation and resource-sized worker
+to the actual serialized Windows helper/write lifecycle. Define pending-response
+ownership, file-context lifetime, cancellation, append/offset ordering and one
+commit-bound acknowledgement; do not wait for a GPU worker while holding a
+filesystem-wide callback lock. Preserve independent
+CPU bytes, owned buffers, exactly one admitted outstanding operation and terminal
+per-request outcomes. CPU selection must not wait for GPU cleanup; retirement is
+separate and blocks replacement GPU work until confirmed. Loss of runtime, driver,
+device or headroom must preserve reads and continued CPU writes without repeated
+device scans. Recovery requires relevant changed/qualified evidence, not merely
+elapsed time. Do not introduce a resident helper until its bounded lifecycle and
+equivalent containment are reviewed and independently exercised.
+
+Exit: real Win32/Explorer-path I/O uses actual admitted GPU compression, independently
+reopens on CPU with GPU unavailable, survives injected refusals/cancellation, and
+shows useful complete-operation benefit in stated workloads. Preserve D01's
+unproven historical failures as open investigations; a green rerun is not a cause.
+
+### 2. Replace structural capacity bottlenecks — S01/R01/L01
+
+Design and implement versioned paged namespace/extent/object indices, incremental
+allocation and reclamation, bounded caches and resumable transactions. Preserve
+old-reader compatibility or provide an explicitly qualified migration/new-volume
+boundary; no silent format change. Large files, many files and large logical
+compression groups must not require whole-volume RAM residency. Stream through
+admitted work windows; existing 64-KiB codec blocks and tiny test grants do not
+define compression-group size.
+
+Exit: growing populated data/tree workloads, random updates, restart, interrupted
+index/reclamation steps and independent CPU readback pass with bounded memory and
+amplification. Merely raising 256-node/64-MiB constants is not completion.
+
+### 3. Build the distinctive collective compression slice — A04
+
+Start with content similarity across files/generations and a versioned group
+manifest mapping ordinary file extents to shared representations. Measure shared
+dictionaries, verified delta/base composition and deterministic model/residual
+coding against strong recent baselines. Research concrete choices using recent
+primary sources and admitted captures before adoption. Permit a genuinely new
+GPU encoder if experiments justify it; neither LZ4 nor the CPU writer constrains
+the cold format. Avoid file-extension-only classification.
+
+Specify each format's independent CPU decoder first, including exact integer/
+entropy semantics, protected immutable dictionaries/models/bases, reference
+validation, seek checkpoints and bounded dependency traversal. GPU-only encoding
+is allowed; acknowledged data must remain readable without GPU, its runtime,
+a network service or an externally fetched model.
+Fallback writes may use a cheaper different codec/format/size and coexist until
+later recompression. CPU-only degraded operation may be slower; CPU/GPU encoding,
+compression ratio and performance parity are not requirements. Retain bounded
+decoder resources and forward progress.
+
+Count complete images, models, indices, redundancy, retained generations and
+access amplification. Minimum TOTAL stored size is primary, with measured
+practical retrieval constraints; moderate read penalties may be justified.
+Publish smaller/slower choices and adverse cases rather than hiding them behind
+a throughput-only score.
+
+Exit: one complete cross-file write/group/recompress/read/recover transaction
+beats appropriate independent baselines on held-out real corpora in stated
+conditions, with no data loss under its injected failure model. This proof
+precedes claims about unprecedented compression.
+
+### 4. Make learning and maintenance automatic — L01/A01/A03/A04
+
+Use observed workload/content changes and measured opportunity to propose work,
+with fresh headroom, contention and energy/foreground impact controlling admission.
+Run finite lowest-priority CPU/GPU work, bounded queues/checkpoints and prompt
+yield/cancellation. Avoid timer-only discovery and repeated ineffective attempts.
+Include automatic grouping, recompression, layout/reclamation and resumable progress.
+
+Persist advisory policy/history in the protected internal area with crash-safe
+generations and stale/configuration invalidation. Losing learned advice must only
+lose optimization; models needed to decode stored data are protected dependencies
+and cannot be discarded or retrained in place.
+
+Exit: reboot/reopen continues useful learned behavior; held-out workloads show
+benefit over simpler policies; active-user load promptly suppresses background
+work; repeated unhelpful candidates stop consuming resources.
+
+### 5. Prove the durability and repair contract — R01/D01
+
+Define precisely when an operation is acknowledged, which backend barriers/order
+are required, and which losses are covered. Publish new groups/indices/dependencies
+atomically only after independent verification; retain prior generations and
+reader references until retirement. Add data/dependency redundancy and verified
+repair selection, not checksum detection presented as repair.
+
+Campaign across short/torn/reordered/lost writes, failed barriers, process kills,
+incomplete dependency publication, corrupted metadata/payload/model copies,
+interrupted reclamation and restart. Use isolated backends/VMs for destructive
+faults. Physical-media/power-loss qualification remains a later separate gate;
+volatile-memory tests cannot establish persistence through lost power.
+
+Exit: independently reopen every acknowledged byte under the declared model,
+or report a precise unrecoverable condition without corrupting surviving copies.
+No universal arbitrary-bug or loss-of-all-copies guarantee is claimed.
+
+### 6. Complete the Windows product — W01
+
+Maintain a promised-semantics matrix for share modes, byte-range locks, rename/
+replace/delete with open handles, truncation/sparse behavior, security, notifications,
+metadata, flush, memory-mapped/cache interactions and application compatibility.
+Implement remaining behavior through the helper/WinFsp lifecycle; distinguish
+unsupported operations explicitly.
+
+Qualify the latest Windows 11 client in disposable VMs as well as existing hosted
+Server checks. Complete helper/tray startup, shutdown/crash recovery, diagnostics,
+secure update/rollback and resource cleanup. Discover capabilities/dependencies
+without host-specific paths or driver replacement. Prepare physical and virtual
+volume-creation UX and backend validation in isolated environments; owner physical
+volumes and driver-backed mounts stay outside authorized testing.
+
+Exit: reproducible latest-client workflows and lifecycle/compatibility matrix pass,
+including GPU absent/faulted, clean uninstall/update and no orphan processes,
+handles, mappings, locked memory or persistence.
+
+### 7. Independent acceptance and release estimate — Q01
+
+Use bounded public real-file corpora, varied content families and held-out sets;
+record provenance/hashes and exact source/tool/driver identities. Compare strong
+CPU codecs, fixed/adaptive FlitzFS, GPU paths and several supported filesystems
+under matched backing/cache/retention conditions. Use suitable popular benchmarks
+plus file-tree/application workloads, alternating repeated trials and noise bounds.
+Report all total bytes and latency/throughput/CPU/GPU/memory/foreground-impact costs;
+do not compare raw payloads to complete competing volumes.
+
+Run malformed-input/fuzz, concurrency, supply-chain, installer and independent
+security/recovery review before a release candidate. Open Dependabot alerts were
+rechecked through the authenticated paginated API on 14 November: zero at that
+observation; this is not a complete security audit.
+
+Estimate a release only after useful ordinary GPU I/O, scalable populated storage
+and collective-compression proof exist. Then size the remaining qualification
+campaign from measured failure/rework rates. Owner alone authorizes release.
+
+### Execution discipline
+
+Keep one dependency-ready substantive slice active. Reuse unchanged exact-source
+evidence and providers; fetch only changed scope. Do not repeat unchanged hardware
+trials, expand a cap to hide a failure, run redundant workflows, or substitute
+documentation/assertion totals for product progress. Update compact state and
+proof once a slice is qualified; batch related publication. Preserve all earlier
+failure evidence, owner edits, licenses and safety boundaries.
+
 
 
 Baseline: 11 November 2026, main 8a5633b588869eb3808d089fca76937c6781991c.
