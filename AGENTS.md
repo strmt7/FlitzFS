@@ -1,10 +1,14 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Native LZ4 composition diagnostic
+
+Read docs/NATIVE_LZ4_COMPOSITION.md before changing the SDK native storage fixture or invoking its new mode. Keep it explicit, synthetic and unmounted, with same-source hosted CPU qualification and the complete core matrix before any owner GPU trial. Preserve all original runtime refusal/raw controls, locked live/checkpoint image bounds, independent public CPU readback, prior snapshot, exact stored payload comparison and confirmed retirement. This is a synchronous diagnostic, not immediate asynchronous CPU fallback or a product GPU route. No new execution is qualified at initial publication.
+
 ## Native fast-ingestion storage candidate
 
-Read docs/NATIVE_FAST_INGESTION.md before changing native codec 4, StoreCompressionMode::fast, advisory mutation data or their tests. Preserve all historical default/raw bytes, exact CPU block recovery, stored/decoded digests, strict nonexpansion and 64-KiB aligned external-state ceiling. Valid fast candidates avoid redundant CPU compression; malformed/stale/inferior advice selects ordinary CPU encoding. Keep each original/advisory transaction input within its separate 4-MiB budget and existing per-object limits. The immutable-baseline probe is disposable-hosted only and must reproduce the exact unknown-codec error; it never modifies baseline source. Storage methods must not launch GPU work or broaden owner testing. The storage foundation qualified at 0d96d903; the new inode hook requires separate source-bound qualification.
+Read docs/NATIVE_FAST_INGESTION.md before changing native codec 4, StoreCompressionMode::fast, advisory mutation data or their tests. Preserve all historical default/raw bytes, exact CPU block recovery, stored/decoded digests, strict nonexpansion and 64-KiB aligned external-state ceiling. Valid fast candidates avoid redundant CPU compression; malformed/stale/inferior advice selects ordinary CPU encoding. Keep each original/advisory transaction input within its separate 4-MiB budget and existing per-object limits. The immutable-baseline probe is disposable-hosted only and must reproduce the exact unknown-codec error; it never modifies baseline source. Storage methods must not launch GPU work or broaden owner testing. The storage foundation qualified at 0d96d903; the native inode hook qualified at 3a797a3; the separate SDK composition remains pending.
 
-The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The new direct native inode candidate hook is pending its own source qualification; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
+The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The direct native inode candidate hook passed all 13 core jobs at 3a797a3; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
 
 ## Isolated compression runtime boundary
 

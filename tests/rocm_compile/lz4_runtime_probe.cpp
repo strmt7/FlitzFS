@@ -1,4 +1,7 @@
 #include "worker_exchange.hpp"
+#include "lz4_native_storage_fixture.hpp"
+#include "flitzfs/gpu_lz4_verify.hpp"
+#include <cstdlib>
 #include "hip_worker_exit.hpp"
 #include "gpu_budget.hpp"
 #include "../gpu_probe_budget.hpp"
@@ -89,6 +92,100 @@ std::array<std::byte,8> luid_value(std::wstring_view text){
   require(std::any_of(result.begin(),result.end(),[](auto x){return x!=std::byte{0};}),"Zero adapter LUID");
   return result;
 }
+int native_cpu_fixture(const gpu_probe_fixture::Budget& controller){
+  const auto* actions=std::getenv("GITHUB_ACTIONS");
+  const auto* runner=std::getenv("RUNNER_ENVIRONMENT");
+  require(actions && std::string_view(actions)=="true" && runner &&
+      std::string_view(runner)=="github-hosted","Native CPU composition is disposable-hosted only");
+  require(store_lz4_available() && gpu_lz4_cpu_verification_available(),"Independent native CPU LZ4 required");
+  const auto plain=lz4_native_fixture::source();
+  detail::StoreCodecEncoder encoder({StoreCompressionMode::fast,6,false});
+  const auto candidate=encoder.encode(plain);
+  require(candidate.codec==detail::kStoreLz4,"Native CPU candidate did not compress");
+  std::uint64_t image_bytes=0,active_payload=0;
+  for(const bool supplied:{true,false}){
+    lz4_native_fixture::Volume volume;
+    const auto selected=volume.publish(plain,supplied?std::span<const std::byte>(candidate.payload):
+        std::span<const std::byte>{});
+    require(selected==supplied,"Native candidate/CPU fallback selection mismatch");
+    image_bytes=(std::max)(image_bytes,volume.image_bytes);
+    active_payload=(std::max)(active_payload,volume.active_payload_bytes);
+    volume.close();require(volume.closed,"Native working-set retirement not confirmed");
+  }
+  require(locked_ram_fixture::locked_bytes==0 && locked_ram_fixture::cleanup_ok,
+      "Native CPU fixture leaked locked memory");
+  std::cout<<"LZ4 native CPU fixture: {\"complete\":true,\"gpu_executed\":false,"
+      "\"candidate_stored_exactly\":true,\"CPU_fallback_verified\":true,\"independent_native_readback\":true,"
+      "\"source_bytes\":"<<plain.size()<<",\"image_bytes\":"<<image_bytes<<",\"active_payload_bytes\":"<<active_payload
+      <<",\"locked_peak_bytes\":"<<locked_ram_fixture::peak_locked_bytes.load()
+      <<",\"locked_after_bytes\":"<<locked_ram_fixture::locked_bytes.load()
+      <<",\"controller_job_peak_commit_bytes\":"<<controller.peak_commit()
+      <<",\"working_set_restored\":true,\"mounted\":false,\"physical_power_loss_qualified\":false}\n";
+  return 0;
+}
+int native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller){
+  require(argc==7,"Native GPU composition needs explicit worker/ordinal/LUID/node/runtime hash");
+  require(store_lz4_available() && gpu_lz4_cpu_verification_available(),"Independent native CPU recovery required");
+  const fs::path worker(argv[2]);
+  require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_lz4_worker.exe",
+      "Absolute trusted compression worker required");
+  const auto ordinal=number(argv[3],63),mask=number(argv[5],(std::numeric_limits<unsigned>::max)());
+  const auto luid=luid_value(argv[4]);
+  require(mask && !(mask&(mask-1)),"Native composition needs one physical node");
+  const std::wstring_view digest(argv[6]);
+  require(digest.size()==64 && std::all_of(digest.begin(),digest.end(),[](wchar_t c){
+      return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');}),"Exact installed runtime digest required");
+  const auto plain=lz4_native_fixture::source();
+  const std::array<Lz4WorkerBytes,1> input{plain};
+  const auto prepared=PreparedLz4WorkerBatch::prepare(input);
+  lz4_native_fixture::Volume volume; // Preserve a CPU-readable acknowledged sentinel before GPU work.
+  const auto before=query_windows_gpu_budget(luid,mask);
+  require(before.status==WindowsGpuBudgetStatus::success &&
+      check_gpu_memory_budget(before.snapshot,luid,mask,GetTickCount64(),
+          prepared.device_layout().total_bytes)==GpuGateCode::admitted,"Native GPU headroom unavailable");
+  const auto frame=encode_lz4_worker_request(prepared,521);
+  const auto started=std::chrono::steady_clock::now();
+  const auto result=run_worker_exchange(worker,{L"--driver-lz4-adapter",std::to_wstring(ordinal),
+      argv[4],std::to_wstring(mask),std::wstring(digest)},frame,{128,2000,5000});
+  const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::steady_clock::now()-started).count();
+  require(result.process.process_id && result.process.exit_confirmed &&
+      WorkerExchangeSession::available(),"Native worker/supervisor retirement unconfirmed; no retry");
+  std::vector<Bytes> payloads;bool verified=false;
+  if(result.code==WorkerExchangeCode::completed && result.process.exit_code==0 &&
+      !result.process.timed_out && !result.process.cancelled){
+    const auto after=query_windows_gpu_budget(luid,mask);
+    require(after.status==WindowsGpuBudgetStatus::success &&
+        check_gpu_memory_transition(before.snapshot,after.snapshot,luid,mask,GetTickCount64(),
+            prepared.device_layout().total_bytes)==GpuGateCode::admitted,"Native GPU completion resource refusal");
+    payloads=accept_lz4_worker_reply(result.response,prepared,521,WorkerExecution::hip);
+    require(payloads.size()==1,"Native composition returned wrong block count");verified=true;
+  }
+  const std::span<const std::byte> candidate=verified?std::span<const std::byte>(payloads.front()):
+      std::span<const std::byte>{};
+  const auto selected=volume.publish(plain,candidate);
+  require(std::equal(plain.begin(),plain.end(),prepared.input(0).begin(),prepared.input(0).end()),
+      "Native GPU source changed");
+  const auto image_bytes=volume.image_bytes,active_payload=volume.active_payload_bytes;
+  volume.close();
+  require(volume.closed && locked_ram_fixture::locked_bytes==0 && locked_ram_fixture::cleanup_ok,
+      "Native GPU fixture cleanup failed");
+  std::cout<<"LZ4 native GPU composition: {\"gpu_result_verified\":"<<(verified?"true":"false")
+      <<",\"gpu_payload_stored_exactly\":"<<(selected?"true":"false")<<",\"CPU_fallback_selected\":"<<(!selected?"true":"false")
+      <<",\"independent_native_readback\":true,\"retained_source_verified\":true,\"source_bytes\":"<<plain.size()
+      <<",\"worker_payload_bytes\":"<<candidate.size()<<",\"image_bytes\":"<<image_bytes
+      <<",\"active_payload_bytes\":"<<active_payload<<",\"device_bytes\":"<<prepared.device_layout().total_bytes
+      <<",\"exchange_ns\":"<<elapsed<<",\"worker_exit\":"<<result.process.exit_code
+      <<",\"worker_category\":"<<hip_worker_exit_category(result.process.exit_code)
+      <<",\"worker_stage\":\""<<hip_worker_stage_name(hip_worker_exit_stage(result.process.exit_code))
+      <<"\",\"worker_exit_confirmed\":true,\"transport_quiescent\":true,\"worker_timed_out\":"
+      <<(result.process.timed_out?"true":"false")<<",\"worker_peak_commit_bytes\":"<<result.process.peak_committed_bytes
+      <<",\"controller_job_peak_commit_bytes\":"<<controller.peak_commit()
+      <<",\"locked_peak_bytes\":"<<locked_ram_fixture::peak_locked_bytes.load()
+      <<",\"locked_after_bytes\":0,\"working_set_restored\":true,\"mounted\":false,"
+      "\"physical_power_loss_qualified\":false}\n";
+  return verified && selected?0:2;
+}
 int gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller){
   require(argc==7,"Explicit GPU worker, ordinal, LUID, node mask and runtime hash required");
   const fs::path worker(argv[2]);require(worker.is_absolute(),"Absolute trusted compression worker required");
@@ -151,6 +248,8 @@ int gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller
 int wmain(int argc,wchar_t** argv){
   try{
     gpu_probe_fixture::Budget controller;
+    if(argc==2 && std::wstring_view(argv[1])==L"--native-cpu-fixture")return native_cpu_fixture(controller);
+    if(argc>1 && std::wstring_view(argv[1])==L"--gpu-native-once")return native_gpu_once(argc,argv,controller);
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-once")return gpu_once(argc,argv,controller);
     require(argc==3,"Explicit trusted worker and NEW fixture required");
     const fs::path worker(argv[1]),root(argv[2]);

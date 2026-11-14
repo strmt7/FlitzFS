@@ -1,0 +1,85 @@
+{
+  "experimental": true,
+  "source_commit": "3a797a3bc35ed59a512d451dd6460e2822d39f11",
+  "run_id": 43577491848,
+  "url": "https://github.com/strmt7/FlitzFS/actions/runs/43577491848",
+  "observed_utc": "2026-11-14T09:06:31Z",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 132394823753,
+      "name": "windows-native",
+      "conclusion": "success"
+    },
+    {
+      "id": 132394823851,
+      "name": "cpu ubuntu OFF",
+      "conclusion": "success"
+    },
+    {
+      "id": 132394823884,
+      "name": "sanitizers",
+      "conclusion": "success"
+    },
+    {
+      "id": 132394823980,
+      "name": "cpu ubuntu ON",
+      "conclusion": "success"
+    },
+    {
+      "id": 132394824056,
+      "name": "cpu windows OFF",
+      "conclusion": "success"
+    },
+    {
+      "id": 132397553404,
+      "name": "windows-mount",
+      "conclusion": "success"
+    },
+    {
+      "id": 132398313772,
+      "name": "write ram-handoff",
+      "conclusion": "success"
+    },
+    {
+      "id": 132398313776,
+      "name": "write restart",
+      "conclusion": "success"
+    },
+    {
+      "id": 132398313778,
+      "name": "write crash",
+      "conclusion": "success"
+    },
+    {
+      "id": 132398313794,
+      "name": "write crash-restart",
+      "conclusion": "success"
+    },
+    {
+      "id": 132398313808,
+      "name": "write basic",
+      "conclusion": "success"
+    },
+    {
+      "id": 132398313817,
+      "name": "write mutations",
+      "conclusion": "success"
+    },
+    {
+      "id": 132398313822,
+      "name": "write delete",
+      "conclusion": "success"
+    }
+  ],
+  "new_behavior": "Native inode advisory LZ4 bytes pass through bounded mutation staging and independent CPU validation; existing write entry point preserved.",
+  "gpu_executed": false,
+  "owner_mount_performed": false,
+  "physical_power_loss_qualified": false,
+  "production_gpu_route": false,
+  "notes": [
+    "API run/job metadata verified; no new performance claim.",
+    "Historical D01 mounted retirement cause remains open despite this green matrix.",
+    "The separate new SDK native composition diagnostic remains unqualified at initial publication."
+  ]
+}
