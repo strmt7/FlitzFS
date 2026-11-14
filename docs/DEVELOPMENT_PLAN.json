@@ -785,18 +785,18 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
-    "tree": "3374d24b761c74d22b5451ac23340e3aa764adce",
-    "contract": "docs/UNIFORM_LZ4_SWEEP_PROFILE.md",
-    "qualification": "All 13 core jobs, full SDK and one bounded instrumented synthetic owner GPU/native/CPU-recovery operation passed.",
-    "core_run": 43619821755,
-    "sdk_run": 43619822169,
-    "evidence": "docs/evidence/uniform-sweep-profile-11fbf07.json",
-    "retained_fixture_failure": "docs/evidence/uniform-sweep-profile-dc26fc3-fixture-failure.json",
-    "owner_executed": true,
+    "source": "3b7a6c90a41535789854341da804bc48b2454951",
+    "status": "All 13 core jobs and full SDK qualification passed; 199 controlled native-write CPU checks.",
+    "core_run": 43624202180,
+    "sdk_run": 43624202093,
+    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "evidence": "docs/evidence/native-reused-dispatch-3b7a6c9.json",
     "ordinary_GPU_route": false,
-    "cost_qualification_automatic": false,
-    "comparative_benefit_proven": false
+    "cost_model_qualified": false,
+    "actual_GPU_through_coordinator": false,
+    "cross_operation_batching": false,
+    "owner_executed": false,
+    "latest_actual_GPU_source": "11fbf0797769f234aeab835f71afa678c5ac174a"
   },
   "next_product_slices": [
     "Finish source-specific sweep observation qualification; acquire repeated varied-input keyed costs and connect ordinary Windows/GPU/native storage/read/fallback.",
@@ -805,11 +805,22 @@
     "Complete explicit durability/repair, latest Windows 11 application/driver lifecycle, independent security and unbiased comparative qualification before a release estimate."
   ],
   "controlled_reused_dispatch": {
-    "status": "implemented; publishing-source qualification pending",
+    "source": "3b7a6c90a41535789854341da804bc48b2454951",
+    "status": "All 13 core jobs and full SDK qualification passed; 199 controlled native-write CPU checks.",
+    "core_run": 43624202180,
+    "sdk_run": 43624202093,
     "contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "evidence": "docs/evidence/native-reused-dispatch-3b7a6c9.json",
     "ordinary_GPU_route": false,
     "cost_model_qualified": false,
     "actual_GPU_through_coordinator": false,
     "cross_operation_batching": false
+  },
+  "ordinary_write_bridge": {
+    "status": "researched; implementation pending",
+    "contract": "docs/ASYNC_NATIVE_WRITE_PLAN.md",
+    "research": "docs/evidence/native-async-write-research-2026-11-14.json",
+    "upstream_source": "winfsp/winfsp@b0508fad28306b71d7eba340915ed64798229607",
+    "next": "Implement owned pending writes and one commit-bound response without callback-TLS retention, storage replay or controller concurrency races."
   }
 }

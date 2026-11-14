@@ -11,30 +11,19 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
-    "tree": "3374d24b761c74d22b5451ac23340e3aa764adce",
-    "core_run": 43619821755,
+    "source": "3b7a6c90a41535789854341da804bc48b2454951",
+    "tree": "b0732a4bfb3eb15d02e69784f269c8eb504062ee",
+    "core_run": 43624202180,
     "core_jobs_passed": 13,
     "core_jobs_total": 13,
     "native_test_groups": 153,
-    "sdk_run": 43619822169,
-    "sdk_complete": true,
-    "owner_bounded_instrumented_GPU_sweep": true,
-    "owner_CPU_current_and_prior_recovery": true,
-    "worker_peak_commit_bytes": 92364800,
-    "job_cap_bytes": 134217728,
-    "device_bytes": 328288,
-    "source_bytes": 1048576,
-    "encoded_payload_bytes": 135344,
-    "image_bytes": 1114112,
-    "exchange_ns": 625472600,
-    "setup_wall_ns": 423295500,
-    "kernel_wait_sum_wall_ns": 21927100,
-    "maximum_kernel_wait_wall_ns": 4414600,
-    "evidence": "docs/evidence/uniform-sweep-profile-11fbf07.json",
-    "comparative_benefit_proven": false,
+    "controlled_native_write_checks": 199,
+    "evidence": "docs/evidence/native-reused-dispatch-3b7a6c9.json",
+    "owner_current_source_GPU_executed": false,
     "normal_GPU_routing": false,
-    "cost_profile_qualified": false
+    "comparative_benefit_proven": false,
+    "sdk_run": 43624202093,
+    "sdk_complete": true
   },
   "owner_gpu_observation": {
     "source_commit": "11fbf0797769f234aeab835f71afa678c5ac174a",
@@ -116,12 +105,12 @@
     }
   ],
   "next_implementation": {
-    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
-    "next": "Qualify the controlled coordinator's reused dispatch with full write/read/CPU fallback/retirement tests; then integrate finite cross-operation batching, automatic keyed costs and ordinary Windows I/O. Keep scalable storage, collective compression and the complete product goal open."
+    "contract": "docs/ASYNC_NATIVE_WRITE_PLAN.md",
+    "next": "Implement bounded owned pending-write/completion state in the actual Windows adapter, preserving serialized GPU control and independent CPU fallback. Then finite cross-operation coalescing, automatic costs and ordinary GPU I/O. Continue scalable storage and protected collective compression; no unchanged owner trial or release."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
-    "native_compression": "CPU raw/Zstd/zero/pattern/LZ4; resource-sized authenticated GPU LZ4 candidates are stored/recovered in explicit native operations. The bounded instrumented 11fbf07 hardware case passed; ordinary Windows I/O remains CPU-only and comparative benefit is unproven.",
+    "native_compression": "CPU native codecs and explicit GPU candidate advice. Controlled native writes now optionally select the reused worker from a canonical qualified grant; source 3b7a6c9 CPU/SDK validation passed. Actual hardware evidence remains the explicit 11fbf07 diagnostic; ordinary callbacks remain CPU-only.",
     "persistent_learner": false,
     "autonomous_background_executor": false,
     "general_payload_repair": false,
@@ -398,8 +387,8 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "Controlled native-write finite reused dispatch implemented; publishing-source qualification pending.",
-    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "status": "No source awaiting qualification from this round. Actual GPU execution through the new coordinator, owned ordinary callback integration and automatic keyed costs remain unfinished.",
+    "contract": "docs/ASYNC_NATIVE_WRITE_PLAN.md",
     "normal_GPU_routing": false,
     "owner_executed": false
   },
@@ -1024,5 +1013,17 @@
     "Replace small structural store limits using bounded paged data structures and incremental reclamation, while specifying and implementing one protected cross-file compression transaction.",
     "Make persistent learning and collective optimization automatic, with admission from opportunity and fresh contention, prompt yield and practical independently measured read costs.",
     "Complete explicit durability/repair, latest Windows 11 application/driver lifecycle, independent security and unbiased comparative qualification before a release estimate."
-  ]
+  ],
+  "controlled_reused_dispatch": {
+    "source": "3b7a6c90a41535789854341da804bc48b2454951",
+    "status": "All 13 core jobs and full SDK qualification passed; 199 controlled native-write CPU checks.",
+    "core_run": 43624202180,
+    "sdk_run": 43624202093,
+    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "evidence": "docs/evidence/native-reused-dispatch-3b7a6c9.json",
+    "ordinary_GPU_route": false,
+    "cost_model_qualified": false,
+    "actual_GPU_through_coordinator": false,
+    "cross_operation_batching": false
+  }
 }

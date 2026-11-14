@@ -4,8 +4,9 @@
 
 The [native write coordinator](docs/NATIVE_UNIFORM_WRITE.md) can now select the
 existing finite reused worker from a qualified quantum grant. Full input and
-ordinary reply/commit semantics stay unchanged. Publishing-source checks are
-pending; this adds no ordinary automatic GPU route or performance claim.
+ordinary reply/commit semantics stay unchanged. Source 3b7a6c9 passed all 13 core jobs and full SDK qualification, including
+199 controlled-write checks. [Evidence](docs/evidence/native-reused-dispatch-3b7a6c9.json).
+These CPU-semantic checks add no ordinary automatic GPU route or performance claim.
 
 ## Current development checkpoint
 

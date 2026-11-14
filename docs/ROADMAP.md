@@ -5,7 +5,10 @@
 [NATIVE_UNIFORM_WRITE.md](NATIVE_UNIFORM_WRITE.md) describes optional canonical
 sweep dispatch through the checked native write coordinator. Ordinary version-2
 replies and stored codecs are unchanged; full-window admission and exact
-retirement remain required. Publishing-source CPU/SDK checks are pending.
+retirement remain required. Source 3b7a6c9 passed all 13 core jobs and full SDK qualification, including
+199 controlled native-write checks. [Evidence](evidence/native-reused-dispatch-3b7a6c9.json).
+These are CPU-semantic coordinator checks; no new owner/GPU execution or ordinary
+automatic GPU route is claimed.
 CPU fixture results must not be reported as GPU execution.
 
 ## Qualified experimental finite-sweep observations

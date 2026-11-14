@@ -127,7 +127,7 @@ and malformed/reserved/stream/UNC/relative spellings. The exact original failed
 artifact, command and log digests remain in evidence/native-uniform-path-be5c284.json.
 Corrected-source execution is required before qualification.
 
-## Reused-dispatch validation candidate
+## Executed reused-dispatch validation
 
 The Windows SDK fixture adds a full 1-MiB, sixteen-extent owned write through a
 CPU-semantic child that actually executes eight serial quanta and returns one
@@ -137,7 +137,12 @@ live held-child CPU selection/cancellation, and zero/insufficient work grants
 that must not launch a process. Pure real-command checks bind the full capacities,
 configuration/ordinal/LUID/runtime hash and derived quantum/peak; no HIP is loaded.
 
-These checks require publishing-source execution before qualification. They do
-not establish actual GPU execution through this coordinator, mounted GPU I/O or
+At source 3b7a6c9, all 13 core jobs and full SDK qualification passed, with
+199 controlled native-write checks and 153 native CTest groups. These do not establish actual GPU execution through this coordinator, mounted GPU I/O or
 performance benefit. The prior instrumented hardware evidence at 11fbf07 remains
 scoped to its explicit diagnostic. Do not repeat that unchanged owner trial.
+
+[Retained qualification](evidence/native-reused-dispatch-3b7a6c9.json) binds the exact
+source, job/artifact digests, semantic navigation and coverage. The next ordinary
+callback integration must follow [the researched ownership boundary](ASYNC_NATIVE_WRITE_PLAN.md);
+cross-operation batching and automatic cost qualification remain unfinished.

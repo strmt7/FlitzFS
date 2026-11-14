@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "question": "How can the next ordinary Windows GPU write bridge defer completion without retaining callback-local state or replaying a committed write?",
+  "capture": {
+    "repository": "winfsp/winfsp",
+    "commit": "b0508fad28306b71d7eba340915ed64798229607",
+    "commit_date": "2026-11-12T16:49:43Z",
+    "observed_utc": "2026-11-14T18:10:55.0749440Z",
+    "transport": "Native GitHub contents API; base64, size, Git blob and SHA256 checked",
+    "source_only": true,
+    "executed": false,
+    "files": [
+      {
+        "path": "inc/winfsp/winfsp.h",
+        "capture": "E:\\FlitzFS-source-20261114-842d25ec3e53469fb4bb112cfe5578f7\\research-winfsp-b0508fad-5f337f2181734d42af353489f693c62f\\inc-winfsp-winfsp.h",
+        "git_blob": "0bfa8a25d8d33e893c52df49bdfc9bafafcbbb5b",
+        "bytes": 94418,
+        "sha256": "b8e5c3320bfb58d086ee622dd13370eb38a49e1142877c9d8af827515f916540"
+      },
+      {
+        "path": "src/dll/fs.c",
+        "capture": "E:\\FlitzFS-source-20261114-842d25ec3e53469fb4bb112cfe5578f7\\research-winfsp-b0508fad-5f337f2181734d42af353489f693c62f\\src-dll-fs.c",
+        "git_blob": "8dfd46f82b57978689cd6f50ddbbe151bcc838d8",
+        "bytes": 19225,
+        "sha256": "17df7498863300861292b82cbdfe718206ced33d835a1f95f965fa93dbdbffe9"
+      },
+      {
+        "path": "tst/memfs/memfs.cpp",
+        "capture": "E:\\FlitzFS-source-20261114-842d25ec3e53469fb4bb112cfe5578f7\\research-winfsp-b0508fad-5f337f2181734d42af353489f693c62f\\tst-memfs-memfs.cpp",
+        "git_blob": "b693a9af4d45225757f9c6938cbe84fb8a11c2d4",
+        "bytes": 77263,
+        "sha256": "4db8a7ec4bcf68b2c2ccbaf7572d000a0bcc7f2a4194989f24daaf2618078595"
+      }
+    ]
+  },
+  "native_source_urls": [
+    "https://api.github.com/repos/winfsp/winfsp/contents/inc/winfsp/winfsp.h?ref=b0508fad28306b71d7eba340915ed64798229607",
+    "https://api.github.com/repos/winfsp/winfsp/contents/src/dll/fs.c?ref=b0508fad28306b71d7eba340915ed64798229607",
+    "https://api.github.com/repos/winfsp/winfsp/contents/tst/memfs/memfs.cpp?ref=b0508fad28306b71d7eba340915ed64798229607"
+  ],
+  "transport_success": true,
+  "errors": [],
+  "webpage_extraction_claimed": false,
+  "provider_version": null,
+  "current_stable_discovery": {
+    "endpoint": "https://api.github.com/repos/winfsp/winfsp/releases/latest",
+    "tag": "v2.1",
+    "published_at": "2025-06-05T15:28:51Z",
+    "interpretation": "Current API observation only. Research uses the pinned 12 November 2026 source; no dependency, SDK or driver is upgraded."
+  },
+  "findings": [
+    {
+      "source": "inc/winfsp/winfsp.h",
+      "scope": "Public API comments/signatures",
+      "fact": "Deferred response is documented for Read, Write and ReadDirectory; the operation context is callback-only thread-local state."
+    },
+    {
+      "source": "src/dll/fs.c",
+      "scope": "FspFileSystemSendResponse implementation",
+      "fact": "Response submission uses FspFsctlTransact. A failed submission records dispatcher failure and stops transactions; the API returns void."
+    },
+    {
+      "source": "tst/memfs/memfs.cpp",
+      "scope": "Upstream slow-I/O test/sample",
+      "fact": "A deferred write constructs a response with write kind, request hint, status, byte count and FileInfo; shutdown tracks unfinished asynchronous work. This is not a qualified FlitzFS scheduler."
+    }
+  ],
+  "decisions": [
+    "Copy and own immutable input plus opaque request identity before returning a pending result; do not retain the TLS operation context.",
+    "Keep GPU supervision/verification separate from filesystem publication. Preserve one terminal outcome and one commit-bound response; a delivery failure never authorizes replaying a storage mutation.",
+    "Design file-context lifetime, append/overlap ordering, flush/cleanup/close and shutdown with bounded owned work before implementing pending callbacks.",
+    "Do not assume operations outside the documented asynchronous set can return STATUS_PENDING.",
+    "Keep the current single-control-thread GPU controller serialized. Do not allow new callback concurrency to race polling, CPU selection or retirement.",
+    "Verify against the exact pinned SDK/driver in disposable qualification before adoption. No ordinary callback route or owner mount follows from this research."
+  ],
+  "remaining": "Bounded pending-request implementation, exact pinned-SDK ABI/lifecycle validation, cancellation/concurrency/fault tests, useful measured GPU costs and actual ordinary I/O remain unfinished."
+}
