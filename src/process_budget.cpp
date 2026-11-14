@@ -25,9 +25,14 @@ ProcessBudget plan_resource_process_budget(std::uint64_t required,std::uint64_t 
 }
 std::wstring windows_child_command(std::wstring_view executable,
     const std::vector<std::wstring>& arguments) {
-  if (executable.size() < 4 || executable.size() > 240 ||
-      !ordinary_windows_file_path(executable) || executable[1] != L':' ||
-      executable[2] != L'\\' || arguments.size() > 16)
+  if(executable.size()<4 || executable.size()>240 || arguments.size()>16)
+    throw std::invalid_argument("invalid bounded executable path or argument count");
+  // Windows accepts generic separators; path construction preserves them.
+  // Normalize only separators, never dot segments, aliases or relative roots.
+  std::wstring normalized(executable);
+  std::replace(normalized.begin(),normalized.end(),L'/',L'\\');
+  executable=normalized;
+  if(!ordinary_windows_file_path(executable) || executable[1]!=L':' || executable[2]!=L'\\')
     throw std::invalid_argument("invalid bounded executable path or argument count");
   // argv[0] uses different CRT rules; quotes cannot occur in a valid filename.
   std::wstring result = L"\"" + std::wstring(executable) + L"\"";

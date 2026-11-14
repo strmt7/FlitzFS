@@ -59,6 +59,15 @@ int main() {
     const std::wstring exe = L"C:\\Program Files\\FlitzFS\\helper.exe";
     const auto prefix = L"\"" + exe + L"\"";
     require(windows_child_command(exe, {}) == prefix, "executable quoting");
+    const std::wstring generic=L"C:/Program Files/FlitzFS/helper.exe";
+    require(windows_child_command(generic,{L"a b"})==prefix+L" \"a b\"",
+        "valid generic Windows executable path rejected or misquoted");
+    require(generic==L"C:/Program Files/FlitzFS/helper.exe","command encoder mutated borrowed source");
+    require(windows_child_command(L"C:/Program Files\\FlitzFS/helper.exe",{})==prefix,
+        "mixed valid Windows separators changed executable identity");
+    for(const auto* invalid:{L"C:/NUL.exe",L"C:/dir/..",L"C:/helper.exe:stream",
+        L"C://helper.exe",L"//server/helper.exe",L"C:helper.exe"})
+      rejects([&]{(void)windows_child_command(invalid,{});});
     require(windows_child_command(exe, {L""}) == prefix + L" \"\"", "empty argument");
     require(windows_child_command(exe, {L"a b", L"a\tb"}) == prefix + L" \"a b\" \"a\tb\"", "spaces/tabs");
     require(windows_child_command(exe, {L"a\"b"}) == prefix + L" \"a\\\"b\"", "embedded quote");

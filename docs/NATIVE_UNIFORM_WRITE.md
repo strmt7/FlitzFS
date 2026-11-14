@@ -74,3 +74,24 @@ The next required work is a separately admitted actual uniform GPU calibration
 through the native write path, measured configuration-specific costs/grants and
 controlled application integration. No useful GPU speed/total-size improvement,
 Windows 11 client mount, physical-power-loss result or release is claimed here.
+
+## Retained initial path-admission failure
+
+At be5c284, native Windows passed 149 of 150 groups. The new controlled-write
+fixture received a generic D:/... helper path from CMake, while the command
+encoder required a backslash after the drive. The trusted helper therefore did
+not launch. The original assertion remains required; CPU fallback is not counted
+as GPU/worker success.
+
+Microsoft's current filesystem implementation was inspected through its native
+repository API at e1ed302683e5e822f663fbb0f44cee7e9ddc6af0 (29 October 2026).
+Its path constructor preserves source separators, and make_preferred explicitly
+replaces forward separators with backslashes. The shared command encoder now
+normalizes separators before its existing root/component/argument validation.
+It does not resolve dot components, aliases or relative paths, alter the caller's
+string, invoke a shell, or remove any existing limit.
+
+Portable tests cover generic/mixed separator equality, spaces, source immutability
+and malformed/reserved/stream/UNC/relative spellings. The exact original failed
+artifact, command and log digests remain in evidence/native-uniform-path-be5c284.json.
+Corrected-source execution is required before qualification.
