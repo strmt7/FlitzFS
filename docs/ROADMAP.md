@@ -1,5 +1,10 @@
 # Development gates and acceptance criteria
 
+## Compression runtime integration candidate
+
+The separate [compression worker](HIP_LZ4_RUNTIME.md) connects protected requests, authenticated module/target coverage, typed compute and verified replies. Current-source CPU/compiler/admission checks are pending; actual GPU output and native stored-codec/Windows-write composition remain the next exits. Minimum total cold-data size and transparent cross-file grouping remain mandatory.
+
+
 ## SDK-only compression compute candidate
 
 A typed compute implementation now spans admission, one complete slab, kernel submission, full CPU-verified readback and confirmed API resource retirement. [Its contract](HIP_LZ4_COMPUTE.md) requires current-source SDK/CPU qualification, authenticated module/coverage integration and isolated runtime/benefit evidence before ordinary file routing. No GPU execution or product completion is claimed.
@@ -1055,3 +1060,4 @@ The separate source-snapshot job failed the obsolete 512-file preflight and is
 retained as a failure; SOURCE_SNAPSHOT.md defines the corrected combined
 file/directory accounting within the unchanged archive-byte/768-entry limits.
 New snapshot execution remains pending. No actual GPU compressor is enabled.
+

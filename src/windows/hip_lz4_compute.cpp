@@ -6,9 +6,9 @@ namespace flitzfs {
 std::vector<std::vector<std::byte>> run_hip_lz4_in_worker(HMODULE runtime,
     const candidate_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const Lz4WorkerRequest& request,
-    hip_detail::Lz4KernelCoverage coverage) {
+    std::span<const hip_detail::Lz4KernelCoverage> targets) {
   require_hip_worker_job();
-  hip_detail::admit_lz4_compute(kernel,request,coverage);
+  const auto coverage=hip_detail::admit_lz4_compute_targets(kernel,request,targets);
   hip_detail::lz4_require(runtime && ordinal>=0 && ordinal<64 && node_mask &&
       std::has_single_bit(node_mask) &&
       std::any_of(luid.begin(),luid.end(),[](auto b){return b!=std::byte{0};}),
@@ -41,8 +41,10 @@ std::vector<std::vector<std::byte>> run_hip_lz4_in_worker(HMODULE runtime,
          (!properties.luidDeviceNodeMask && node_mask==1 && single_node(luid))),
         HipWorkerExit::unsupported_configuration,"compression device identity changed",
         HipWorkerStage::adapter_luid);
-    return hip_detail::lz4_device_info(properties,coverage,request.batch.count(),priority);
+    const auto selected=hip_detail::select_lz4_coverage(properties,targets);
+    return hip_detail::lz4_device_info(properties,selected,request.batch.count(),priority);
   };
   return hip_detail::execute_lz4_compute(api,attributes,kernel,request,coverage,initialize,memory);
 }
 } // namespace flitzfs
+

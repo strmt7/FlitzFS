@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "updated": "2026-11-13",
+  "updated": "2026-11-14",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_ASSESSMENT.md",
@@ -360,11 +360,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "df8b08e9e9bac78876f055a8c14c4e5bd2475522",
-    "behavior": "Authenticated private compression module/coverage and worker-channel runtime integration.",
-    "status": "Unimplemented; next GPU file-operation milestone remains open.",
-    "contract": "docs/HIP_LZ4_COMPUTE.md",
-    "next": "Integrate existing typed compute with module authentication, exact target coverage, supervised channel and native stored output; isolate runtime qualification before any owner-device experiment. Keep full GPU product and cold compression requirements active."
+    "source_parent": "2b57fe0d2c54d9c55f5165b57368a5f5d712c54a",
+    "contract": "docs/HIP_LZ4_RUNTIME.md",
+    "behavior": "Separate opt-in authenticated compression worker, compiler-derived target inventory and supervised request/reply route.",
+    "status": "Pending publishing-source CPU/compiler/admission/core qualification; no owner GPU launch or native stored codec.",
+    "next": "Qualify each actual target image, then one bounded actual-GPU output trial, independent CPU verification and native storage/Windows-write composition."
   },
   "resolved": [
     {
@@ -700,3 +700,4 @@
     "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
   }
 }
+

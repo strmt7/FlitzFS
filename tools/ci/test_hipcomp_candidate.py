@@ -230,7 +230,30 @@ class OffloadMetadata(unittest.TestCase):
             with self.subTest(path=path,size=size),self.assertRaisesRegex(RuntimeError,"object identity"):
                 subject.inspect_offload_targets(self.good,path,size)
 
+
+class RuntimeOffloadMetadata(unittest.TestCase):
+    path="D:/new/multi.obj"
+    targets=("gfx1100","gfx1201")
+    host="host-x86_64-pc-windows-msvc-\tfile://D:/new/multi.obj#offset=32&size=0\n"
+    first="hip-amdgcn-amd-amdhsa--gfx1100\tfile://D:/new/multi.obj#offset=32&size=128\n"
+    second="hip-amdgcn-amd-amdhsa--gfx1201\tfile://D:/new/multi.obj#offset=160&size=128\n"
+    def inspect(self,text):
+        return subject.inspect_offload_targets(text,self.path,1024,self.targets)
+    def test_exact_multi_target_inventory(self):
+        self.assertEqual(self.inspect(self.host+self.first+self.second),
+            ["hip-amdgcn-amd-amdhsa--gfx1100","hip-amdgcn-amd-amdhsa--gfx1201"])
+    def test_missing_duplicate_foreign_or_overlapping_image_rejects(self):
+        for text in (self.host+self.first,self.host+self.first+self.first,
+                     self.host+self.first+self.second.replace("gfx1201","gfx1200"),
+                     self.host+self.first+self.second.replace("offset=160","offset=100")):
+            with self.subTest(text=text),self.assertRaisesRegex(RuntimeError,"target"):
+                self.inspect(text)
+    def test_multi_target_uri_stays_bound_to_exact_object(self):
+        with self.assertRaisesRegex(RuntimeError,"target"):
+            self.inspect(self.host+self.first+self.second.replace("multi.obj","other.obj"))
+
 if __name__=="__main__":
     if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
         raise RuntimeError("disposable hosted fixture required; never the owner PC")
     unittest.main()
+

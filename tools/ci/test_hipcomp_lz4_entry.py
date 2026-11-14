@@ -91,8 +91,9 @@ class DeviceObjectAdmission(unittest.TestCase):
 
     def reader(self,mode="ok"):
         def run(bounds,arguments,report,name,seconds):
-            header="Format: elf64-amdgpu\nMachine: EM_AMDGPU\n"
+            header="Format: elf64-amdgpu\nMachine: EM_AMDGPU\nFlags [\n  EF_AMDGPU_MACH_AMDGCN_GFX1100 (0x41)\n]\n"
             symbols="  Name: flitzfs_candidate_lz4_wave32 (1)\n  Name: flitzfs_candidate_lz4_wave64 (2)\n"
+            if mode=="wrong-target":header=header.replace("GFX1100","GFX1201")
             if mode=="arch":header="Format: elf64-x86-64\nMachine: EM_X86_64\n"
             if mode=="missing":symbols=symbols.splitlines()[0]+"\n"
             if mode=="duplicate":symbols+=symbols
@@ -137,7 +138,7 @@ class DeviceObjectAdmission(unittest.TestCase):
                 self.assertFalse((root/"bounded-entry-device.elf").exists())
 
     def test_native_arch_symbol_warning_and_truncation_refusals(self):
-        for mode in ("arch","missing","duplicate","warning","truncated"):
+        for mode in ("arch","wrong-target","missing","duplicate","warning","truncated"):
             with tempfile.TemporaryDirectory(prefix="flitzfs-lz4-device-") as name:
                 root,obj,image,line=self.fixture(name)
                 with self.assertRaises(ValueError):self.inspect(root,obj,line,mode)
@@ -151,3 +152,4 @@ class DeviceObjectAdmission(unittest.TestCase):
             self.assertEqual(output.read_bytes(),b"sentinel")
 
 if __name__=="__main__":unittest.main()
+

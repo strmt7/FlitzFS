@@ -1,5 +1,10 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Isolated compression runtime boundary
+
+Read docs/HIP_LZ4_RUNTIME.md before changing the new worker route, target coverage, stager or probe. The explicit SDK-only lz4_runtime_fixture may build/export the separate experimental worker and private module with complete notices; this is an exception to the earlier link-only fixture, not a normal filesystem route or release. CI runs CPU/module-metadata/refusal checks only. Keep source-bound nonoverlapping target images, native architecture checks, installed-runtime trust, private module pins, independent CPU verification, complete256-KiB device cap, exact retirement and current resource gates. Owner GPU execution remains gated on audited current-source isolated qualification and the bounded explicit synthetic probe. No driver changes, mounts, retries or services are authorized by this fixture. Qualification is pending.
+
+
 ## Deep background compression requirement
 
 Read docs/COLD_COMPRESSION_RESEARCH.md before choosing cold-data codecs or model dependencies. The fast write codec must not constrain later GPU-supported deep collective compression. Learned/novel methods need recent primary-source research, exact lossless CPU recovery, protected immutable decoder dependencies, bounded random access and total storage/model/index accounting. Minimum total stored size is the owner's primary objective, with practical latency/speed constraints. Moderate access penalties and larger shared groups are acceptable; do not impose minimum latency or require cold codecs to beat conventional throughput. Experimental allocation caps are not permanent format/group-size limits. Keep actual GPU execution mandatory and background work automatically resource-governed; do not claim research or specialized benchmark results as implementation.
@@ -1603,3 +1608,4 @@ total ZIP-entry limit; preserve inventory/per-file/expanded/compressed byte caps
 exact HEAD binding, tracked-only scope and independent actual-ZIP checks.
 Do not omit historical evidence or use source packaging to qualify runtime/GPU
 behavior. Its CPU tests must exercise both flat and nested entry boundaries.
+

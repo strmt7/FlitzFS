@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-11-13",
+  "updated": "2026-11-14",
   "baseline": {
     "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
     "tree": "0ab1b0f5955aaf3090f8fd5d741a6ac13dab62b4"
@@ -251,6 +251,13 @@
             "normal_io_caller": false,
             "candidate_module_loaded": false,
             "gpu_executed": false
+          },
+          "runtime_worker": {
+            "source_parent": "2b57fe0d2c54d9c55f5165b57368a5f5d712c54a",
+            "contract": "docs/HIP_LZ4_RUNTIME.md",
+            "behavior": "Separate opt-in authenticated compression worker, compiler-derived target inventory and supervised request/reply route.",
+            "status": "Pending publishing-source CPU/compiler/admission/core qualification; no owner GPU launch or native stored codec.",
+            "next": "Qualify each actual target image, then one bounded actual-GPU output trial, independent CPU verification and native storage/Windows-write composition."
           }
         }
       }
@@ -522,3 +529,4 @@
     "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
   }
 }
+

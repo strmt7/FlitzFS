@@ -5,6 +5,10 @@
 #include "hip_api.hpp"
 #include "hip_identity_wire.hpp"
 #include "hip_worker_bundle.hpp"
+#ifdef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
+#include "hip_lz4_compute.hpp"
+#include "hip_lz4_bundle.hpp"
+#endif
 #include "hip_module_verification.hpp"
 #include "worker_exchange.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -49,8 +53,13 @@ bool same_path(const fs::path& left, const fs::path& right) {
 
 class Bundle {
  public:
-  explicit Bundle(bool kernel_only = false) : root_(module_path(nullptr).parent_path() / L"hip"),
-      kernel_only_(kernel_only) {
+  explicit Bundle(bool kernel_only = false, bool compression_only = false)
+      : root_(module_path(nullptr).parent_path() / (compression_only ? L"hip-lz4" : L"hip")),
+        kernel_only_(kernel_only),compression_only_(compression_only) {
+#ifndef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
+    require(!compression_only_,Exit::unsupported_configuration,"compression fixture not compiled");
+#endif
+    require(!(kernel_only_ && compression_only_),Exit::invalid_request,"conflicting bundle scope");
     const auto drive = root_.root_name().native();
     require(root_.is_absolute() && drive.size() == 2 && drive[1] == L':',
         Exit::runtime_unavailable, "HIP bundle must be on a local drive path");
@@ -62,47 +71,55 @@ class Bundle {
       parent /= component;
       directories_.emplace_back(parent);
     }
-    const auto expected_count = kernel_only_ ? std::size_t{1} : std::size(hip_bundle::files);
+    const auto expected_count = kernel_only_ || compression_only_ ? std::size_t{1} : std::size(hip_bundle::files);
     std::size_t count = 0;
     for (const auto& entry : fs::directory_iterator(root_)) {
       ++count;
-      const auto known = std::any_of(std::begin(hip_bundle::files), std::end(hip_bundle::files),
-          [&](const auto& file) { return included(file.name) && same_path(entry.path().filename(), file.name); });
+      bool known=false;
+      entries([&](const auto& file) {
+        known=known || (included(file.name) && same_path(entry.path().filename(),file.name));
+      });
       require(count <= expected_count && known,
           Exit::integrity_failure, "unexpected HIP bundle entry");
     }
     require(count == expected_count, Exit::runtime_unavailable, "HIP bundle incomplete");
     files_.reserve(count);
-    for (const auto& entry : hip_bundle::files) {
-      if (!included(entry.name)) continue;
+    entries([&](const auto& entry) {
+      if (!included(entry.name)) return;
       auto file = ReadOnlyFile::open(root_ / entry.name);
       require(file.size() == entry.size && matches_sha256(file, entry.sha256),
           Exit::integrity_failure, "HIP bundle file identity");
       files_.push_back(std::move(file));
-    }
+    });
   }
   fs::path path(const wchar_t* name) const { return root_ / name; }
   void check_loaded_paths() const {
-    for (const auto& entry : hip_bundle::files) {
-      if (!included(entry.name)) continue;
+    entries([&](const auto& entry) {
+      if (!included(entry.name)) return;
       if (const auto loaded = GetModuleHandleW(entry.name)) {
         require(same_path(path(entry.name), module_path(loaded)),
             Exit::integrity_failure, "different HIP dependency already loaded");
       }
-    }
+    });
   }
  private:
+  template<class Visit> void entries(Visit&& visit) const {
+#ifdef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
+    if(compression_only_){for(const auto& entry:hip_lz4_bundle::files)visit(entry);return;}
+#endif
+    for(const auto& entry:hip_bundle::files)visit(entry);
+  }
   bool included(const wchar_t* name) const {
-    return !kernel_only_ || same_path(name, hip_bundle::kernel);
+    return compression_only_ || !kernel_only_ || same_path(name, hip_bundle::kernel);
   }
   fs::path root_;
-  bool kernel_only_ = false;
+  bool kernel_only_ = false,compression_only_ = false;
   std::vector<DirectoryPin> directories_;
   std::vector<ReadOnlyFile> files_;
 };
 
-Bundle verify_bundle(bool kernel_only = false) {
-  try { return Bundle(kernel_only); }
+Bundle verify_bundle(bool kernel_only = false,bool compression_only=false) {
+  try { return Bundle(kernel_only,compression_only); }
   catch (const HipWorkerFailure&) { throw; }
   catch (const std::bad_alloc&) { throw; }
   catch (const std::exception&) {
@@ -208,6 +225,62 @@ int worker(int argc, wchar_t** argv) {
         "independent CPU LZ4 verification unavailable");
     return 0;
   }
+
+#ifdef FLITZFS_HIP_LZ4_RUNTIME_FIXTURE
+  if(argc==2 && std::wstring_view(argv[1])==L"--verify-lz4-kernel-bundle"){
+    const auto bundle=verify_bundle(false,true);
+    require(GetModuleHandleW(hip_lz4_bundle::kernel)==nullptr &&
+        GetModuleHandleW(hip_bundle::runtime)==nullptr,Exit::integrity_failure,
+        "compression bundle metadata loaded AMD code");
+    return 0;
+  }
+  if(argc>1 && std::wstring_view(argv[1])==L"--driver-lz4-adapter"){
+    require(argc==8 && std::wstring_view(argv[6])==L"--worker-channel",
+        Exit::invalid_request,"explicit compression adapter/channel required");
+    require(gpu_lz4_cpu_verification_available(),Exit::unsupported_configuration,
+        "independent CPU compression recovery unavailable");
+    const auto ordinal=decimal(argv[2],63);
+    const auto luid=parse_luid(argv[3]);
+    const auto node_mask=decimal(argv[4],(std::numeric_limits<unsigned>::max)());
+    require(node_mask && std::has_single_bit(node_mask),Exit::invalid_request,"compression node mask");
+    const auto expected_runtime=runtime_digest(argv[5]);
+    auto channel=WorkerChannel::open(argv[7]);
+    std::optional<Lz4WorkerRequest> request;
+    try{request.emplace(decode_lz4_worker_request(channel.request()));}
+    catch(const std::bad_alloc&){throw;}
+    catch(const std::exception&){throw HipWorkerFailure(Exit::invalid_request,"invalid compression frame");}
+    const auto bundle=verify_bundle(false,true);
+    const hip_detail::VerifiedSystemModule installed(hip_bundle::runtime,expected_runtime);
+    const auto before=query_windows_gpu_budget(luid,node_mask);
+    require(before.status==WindowsGpuBudgetStatus::success,Exit::unsupported_configuration,
+        "compression adapter unavailable",HipWorkerStage::adapter_budget);
+    require_hip_memory(before.snapshot,luid,node_mask,GetTickCount64(),
+        request->batch.device_layout().total_bytes,HipMemoryPoint::pre_initialize);
+    require(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)!=0,
+        Exit::runtime_unavailable,"restrict compression DLL lookup");
+    bundle.check_loaded_paths();
+    Module runtime(installed.path(),HipWorkerStage::runtime_load);
+    Module kernels(bundle.path(hip_lz4_bundle::kernel),HipWorkerStage::kernel_load);
+    bundle.check_loaded_paths();
+    require(GetModuleHandleW(hip_bundle::runtime)==runtime.get(),
+        Exit::integrity_failure,"compression runtime identity changed");
+    const auto address=GetProcAddress(kernels.get(),"flitzfs_candidate_lz4_api");
+    require(address!=nullptr,Exit::unsupported_configuration,"compression API entry unavailable",
+        HipWorkerStage::kernel_entry);
+    const auto entry=std::bit_cast<candidate_lz4::KernelApiEntry>(address);
+    const auto* api=entry();
+    require(api && candidate_lz4::compatible_kernel_api(*api),Exit::unsupported_configuration,
+        "incompatible compression API table",HipWorkerStage::kernel_table);
+    auto candidates=run_hip_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,
+        *request,std::span<const hip_detail::Lz4KernelCoverage>(hip_lz4_bundle::targets));
+    std::vector<Lz4WorkerBytes> views;views.reserve(candidates.size());
+    for(const auto& bytes:candidates)views.emplace_back(bytes);
+    const auto frame=encode_lz4_worker_reply(request->batch,request->request_id,views,WorkerExecution::hip);
+    kernels.close();runtime.close();
+    channel.publish(frame);
+    return 0;
+  }
+#endif
   if (argc == 3 && std::wstring_view(argv[1]) == L"--verify-system-runtime") {
     const hip_detail::VerifiedSystemModule verified(hip_bundle::runtime, runtime_digest(argv[2]));
     return 0;
@@ -383,3 +456,4 @@ int wmain(int argc, wchar_t** argv) {
     return static_cast<int>(flitzfs::HipWorkerExit::device_fault);
   }
 }
+

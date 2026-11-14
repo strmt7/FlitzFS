@@ -22,11 +22,18 @@ on:
         type: boolean
         required: false
         default: false
+      lz4_runtime_fixture:
+        description: Build isolated authenticated compression worker and CPU admission probes; requires all prior flags
+        type: boolean
+        required: false
+        default: false
   push:
     branches: [main]
     paths:
       - 'tools/rocm-sdk-lock.json'
       - 'tools/ci/qualify_rocm_sdk.py'
+      - 'tools/ci/stage_lz4_runtime_bundle.py'
+      - 'tools/ci/test_lz4_runtime_bundle.py'
       - 'tools/ci/stage_lz4_worker_decoder.py'
       - 'tools/ci/test_lz4_worker_decoder.py'
       - 'tools/ci/qualify_warp_sync.py'
@@ -102,6 +109,7 @@ jobs:
           FLITZFS_NATIVE_SYNC_CANDIDATE: ${{ inputs.native_sync_candidate && 'enabled' || 'none' }}
           FLITZFS_LINK_CANDIDATE: ${{ inputs.link_candidate && 'enabled' || 'none' }}
           FLITZFS_CPU_LZ4: ${{ inputs.cpu_lz4 && 'enabled' || 'none' }}
+          FLITZFS_LZ4_RUNTIME_FIXTURE: ${{ inputs.lz4_runtime_fixture && 'enabled' || 'none' }}
         run: |
           $taskSdkArguments=@('-B','tools/ci/qualify_rocm_sdk.py',
             '--provider','.ci-rocm-source','--output',"${{ runner.temp }}/flitzfs-rocm-sdk")
@@ -120,6 +128,10 @@ jobs:
             if($env:FLITZFS_LINK_CANDIDATE -ne 'enabled'){throw 'CPU decoder requires the private link fixture'}
             $taskSdkArguments+=@('--cpu-lz4-source','.ci-sdk-lz4')
           }elseif($env:FLITZFS_CPU_LZ4 -ne 'none'){throw 'Unreviewed CPU decoder mode'}
+          if($env:FLITZFS_LZ4_RUNTIME_FIXTURE -eq 'enabled'){
+            if($env:FLITZFS_CPU_LZ4 -ne 'enabled'){throw 'Runtime fixture requires static CPU recovery'}
+            $taskSdkArguments+='--lz4-runtime-fixture'
+          }elseif($env:FLITZFS_LZ4_RUNTIME_FIXTURE -ne 'none'){throw 'Unreviewed compression runtime mode'}
           & python @taskSdkArguments
           if($LASTEXITCODE){throw 'ROCm qualification failed'}
       - name: Retain identities and failures, never SDK or kernel binaries
@@ -132,6 +144,7 @@ jobs:
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/qualification.json
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-native-sync/qualification.json
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-bounded-entry/qualification.json
+            ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-runtime-targets/qualification.json
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-bounded-entry/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-native-sync/compile-input/notices/**
             ${{ runner.temp }}/flitzfs-rocm-sdk/hipcomp-offline/compile-input/notices/**
@@ -150,3 +163,13 @@ jobs:
           path: ${{ runner.temp }}/flitzfs-rocm-sdk/driver-probe.zip
           retention-days: 7
           if-no-files-found: error
+
+      - name: Retain experimental isolated compression fixture without AMD runtime
+        if: success() && inputs.lz4_runtime_fixture == true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lz4-runtime-fixture-${{ github.sha }}
+          path: ${{ runner.temp }}/flitzfs-rocm-sdk/lz4-runtime-fixture.zip
+          retention-days: 7
+          if-no-files-found: error
+
