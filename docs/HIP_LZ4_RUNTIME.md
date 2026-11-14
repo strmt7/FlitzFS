@@ -115,3 +115,17 @@ to throw before consuming an admission slot; a 64-byte LZ4 header with its sourc
 directory missing exercises the worker rejection and confirmed retirement.
 [Retained exact-source failure](evidence/lz4-runtime-admission-d3073fe.json).
 The corrected full admission suite still needs execution before artifact promotion.
+
+## Admission passed; artifact packaging correction
+
+At 516e4e9 the corrected private-worker admission passed55 checks with10
+confirmed child exits. The SDK compute matrix passed828 checks across58
+scenarios (6 positive,52 refusal), and the raw decoder control passed8 checks.
+All20 original worker-admission cases passed. These remain CPU/refusal results.
+
+The run then stopped before promotion because a pre-existing topology loop
+rebound the argparse namespace name to its argument list; the newly added final
+package condition exposed that collision. Rename the loop's local command
+arguments, preserving the parsed options and every qualification gate.
+[Exact failed-run receipt](evidence/lz4-runtime-packaging-516e4e9.json).
+No artifact from this incomplete run is qualified for owner execution.

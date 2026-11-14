@@ -1,0 +1,579 @@
+{
+  "experimental": true,
+  "run_id": 43571457727,
+  "job_id": 132376560052,
+  "artifact_id": 14104388569,
+  "archive_sha256": "1c0766e65823b812d1b3b14165e5dd241a754130cdbc034b44a0f7f215e687d9",
+  "archive_bytes": 135180,
+  "root_sha256": "137339d4648f56d07f2c6729ee3e3c096656c57bfa59d0497f2e5b994b312071",
+  "root_bytes": 394637,
+  "content": {
+    "commit": "516e4e965ccc357a10989e48f5f1baf27fe867d0",
+    "complete": false,
+    "error": "AttributeError: 'list' object has no attribute 'lz4_runtime_fixture'",
+    "distribution": "10.1.0",
+    "runtime_targets": {
+      "control_commit": "516e4e965ccc357a10989e48f5f1baf27fe867d0",
+      "complete": true,
+      "compile_targets": [
+        "gfx1100",
+        "gfx1101",
+        "gfx1102",
+        "gfx1151",
+        "gfx1200",
+        "gfx1201"
+      ],
+      "offload_target_ids": [
+        "hip-amdgcn-amd-amdhsa--gfx1201",
+        "hip-amdgcn-amd-amdhsa--gfx1200",
+        "hip-amdgcn-amd-amdhsa--gfx1151",
+        "hip-amdgcn-amd-amdhsa--gfx1102",
+        "hip-amdgcn-amd-amdhsa--gfx1101",
+        "hip-amdgcn-amd-amdhsa--gfx1100"
+      ],
+      "object": {
+        "bytes": 163518,
+        "sha256": "f8685e805f708fd7fd2186081f615508ed20612de341c52a136b4db50a076248"
+      },
+      "entry_objects": {
+        "gfx1100": {
+          "architecture": "gfx1100",
+          "bytes": 23792,
+          "sha256": "fcc328ba6ad88bfc79354b5b07722633517cf9b841c7409418055439491b741b",
+          "offset": 136861,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1101": {
+          "architecture": "gfx1101",
+          "bytes": 23792,
+          "sha256": "f7f4f3ccd21794500329aa08220e3da71153fd26d046282b4c0e9744da45f4d8",
+          "offset": 112285,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1102": {
+          "architecture": "gfx1102",
+          "bytes": 24048,
+          "sha256": "78ccda79d1b5a7080b2ac76fe309176efddb6ee59958a76bce4e4dd916ddf158",
+          "offset": 87709,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1151": {
+          "architecture": "gfx1151",
+          "bytes": 23536,
+          "sha256": "06d8ffa6dfdfe2ac281286ccf7edecd27d8897aa9f04edcb097bc9ac68f74588",
+          "offset": 63133,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1200": {
+          "architecture": "gfx1200",
+          "bytes": 25072,
+          "sha256": "16e217bda877403a4ffeaa8ac9c66e830ad5bae38a3b18e5801f87da5844d007",
+          "offset": 34461,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        },
+        "gfx1201": {
+          "architecture": "gfx1201",
+          "bytes": 25072,
+          "sha256": "7543199f11404ba67e88a34a99fe0abaebcc05c333040016ac23de358f0b7569",
+          "offset": 5789,
+          "complete": true,
+          "loaded": false,
+          "executed": false,
+          "symbols": [
+            "flitzfs_candidate_lz4_wave32",
+            "flitzfs_candidate_lz4_wave64"
+          ]
+        }
+      },
+      "physical_inputs_unchanged": true,
+      "gpu_executed": false,
+      "module_loaded": false
+    },
+    "runtime_fixture": {
+      "qualification": {
+        "checks": 55,
+        "exits_confirmed": 10,
+        "bundle_verified": true,
+        "tamper_refused": true,
+        "CPU_source_unchanged": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "binaries": [
+        {
+          "name": "flitzfs_hip_lz4_worker.exe",
+          "bytes": 452608,
+          "sha256": "cbd52db993428f605880380c7e3bc7dbe91beb3c65ed3890f1ba6cf4e408e3b4",
+          "imports": [
+            "bcrypt.dll",
+            "dxgi.dll",
+            "kernel32.dll",
+            "wintrust.dll"
+          ]
+        },
+        {
+          "name": "flitzfs_lz4_runtime_probe.exe",
+          "bytes": 449024,
+          "sha256": "73883c86e652476859092447f08a3a256e462e77d4933964f01d9e778f9c353e",
+          "imports": [
+            "advapi32.dll",
+            "bcrypt.dll",
+            "dxgi.dll",
+            "kernel32.dll"
+          ]
+        }
+      ],
+      "bundle": {
+        "experimental": true,
+        "control_commit": "516e4e965ccc357a10989e48f5f1baf27fe867d0",
+        "coverage": {
+          "targets": [
+            {
+              "architecture": "gfx1100",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1101",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1102",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1151",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1200",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1201",
+              "wave_mask": 1
+            }
+          ],
+          "object_sha256": "f8685e805f708fd7fd2186081f615508ed20612de341c52a136b4db50a076248"
+        },
+        "coverage_receipt_sha256": "6b874dca04a60e5ee698af0abbbf53f435ccf19f67d40147d428a0a5483234e4",
+        "files": [
+          {
+            "name": "flitzfs_rocm_lz4_candidate.dll",
+            "bytes": 266752,
+            "sha256": "17e9ba218a259c4b93d555da01efd0d4fedcd62ec47cd569b29a08d8609b38d4"
+          }
+        ],
+        "runtime_basename": "amdhip64_7.dll",
+        "imports": [
+          "amdhip64_7.dll",
+          "kernel32.dll"
+        ],
+        "runtime_shipped": false,
+        "module_loaded": false,
+        "gpu_executed": false
+      },
+      "product_linked": false,
+      "actual_gpu_execution": false
+    },
+    "lz4_compute_CPU": {
+      "bytes": 439296,
+      "sha256": "374b63ce1ce3a2f0baffc738889b0ca57b9c721e47e701d0190747a15ba46214",
+      "imports": [
+        "dxgi.dll",
+        "kernel32.dll"
+      ],
+      "qualification": {
+        "checks": 828,
+        "scenarios": 58,
+        "successes": 6,
+        "refusals": 52,
+        "decoder_available": true,
+        "attribute_symbol": "hipFuncGetAttributes",
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "private_module_loaded": false,
+      "linked_into_product": false,
+      "in_worker_bundle": false,
+      "exported_as_artifact": false
+    },
+    "lz4_compute_raw_CPU": {
+      "bytes": 436736,
+      "sha256": "3e70d74636dc9275a67858f855ff0cc262862135045fecd9417760b1025c1c71",
+      "imports": [
+        "dxgi.dll",
+        "kernel32.dll"
+      ],
+      "qualification": {
+        "checks": 8,
+        "scenarios": 1,
+        "successes": 0,
+        "refusals": 1,
+        "decoder_available": false,
+        "attribute_symbol": "hipFuncGetAttributes",
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "private_module_loaded": false,
+      "linked_into_product": false,
+      "in_worker_bundle": false,
+      "exported_as_artifact": false
+    },
+    "runtime_artifact": null,
+    "commands": [
+      {
+        "name": "static-runtime-export-parser-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "codec-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "warp-sync-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "CPU-decoder-source-staging-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "private-compression-runtime-staging-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-reference-bootstrap-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "complete-sdk-bootstrap",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "reviewed-hipcomp-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "native-sync-source-composition-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "native-sync-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-entry-source-admission-regressions",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-entry-offline-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "private-compression-runtime-target-qualification",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-device-compilation",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-host-api-and-link-configure",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-sdk-host-api-and-kernel-module-link",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "header-probe-without-loading-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "typed-device-identity-fake-runtime",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "previous-priority-capability-regression",
+        "exit_code": 1,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "current-priority-capability-regression",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "supervised-worker-CPU-decoder-capability",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "supervised-private-LZ4-runtime-admission",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": [
+          "LZ4 runtime admission: {\"checks\":55,\"exits_confirmed\":10,\"bundle_verified\":true,\"tamper_refused\":true,\"CPU_source_unchanged\":true,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\r"
+        ]
+      },
+      {
+        "name": "typed-LZ4-compute-CPU-fault-matrix",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": [
+          "HIP LZ4 compute CPU qualification: {\"checks\":828,\"scenarios\":58,\"successes\":6,\"refusals\":52,\"decoder_available\":true,\"attribute_symbol\":\"hipFuncGetAttributes\",\"guarded_exit_confirmed\":true,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\r"
+        ]
+      },
+      {
+        "name": "SDK-static-CPU-gpu_lz4_verify",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": [
+          "GPU LZ4 CPU verification checks: 806 lz4_available=1 gpu_executed=false stored_codec_added=false\r"
+        ]
+      },
+      {
+        "name": "SDK-static-CPU-lz4_worker_wire",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": [
+          "LZ4 worker framing: 621 checks; decoder_available=1 gpu_executed=false\r"
+        ]
+      },
+      {
+        "name": "SDK-static-CPU-gpu_lz4_slab",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": [
+          "LZ4 slab admission: 968 checks; decoder_available=1 gpu_executed=false\r"
+        ]
+      },
+      {
+        "name": "raw-worker-control-configure",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "raw-worker-control-build",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "typed-LZ4-compute-raw-refusal",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": [
+          "HIP LZ4 compute CPU qualification: {\"checks\":8,\"scenarios\":1,\"successes\":0,\"refusals\":1,\"decoder_available\":false,\"attribute_symbol\":\"hipFuncGetAttributes\",\"guarded_exit_confirmed\":true,\"hip_runtime_loaded\":false,\"gpu_executed\":false,\"complete\":true}\r"
+        ]
+      },
+      {
+        "name": "raw-worker-control-unavailable",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-worker-admission-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": [
+          "HIP worker admission: {\"bundle_verified\":true,\"missing_bundle_refused\":true,\"tampered_bundle_refused\":true,\"invalid_wire_refused\":true,\"invalid_match_refused\":true,\"missing_match_runtime_refused\":true,\"compiler_environment_isolated\":true,\"system_module_metadata_passed\":true,\"system_runtime_bad_hash_refused\":true,\"system_runtime_argument_refused\":true,\"kernel_only_verified\":true,\"kernel_only_full_bundle_refused\":true,\"kernel_only_tamper_refused\":true,\"driver_wire_refusals\":5,\"profile_wire_refused\":true,\"profile_argument_refused\":true,\"profile_runtime_refused\":true,\"exits_confirmed\":20,\"gpu_executed\":false,\"complete\":true}\r"
+        ]
+      },
+      {
+        "name": "bounded-adapter-identity-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-budget-metadata-without-HIP",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-topology-metadata-unknown_adapter",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-topology-metadata-warp",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "one-shot-probe-missing-runtime",
+        "exit_code": 2,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-driver_memory-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-driver_identity-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-metadata-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-driver_decode-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-driver_profile-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "bounded-driver_match-refusal",
+        "exit_code": 2,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      },
+      {
+        "name": "actual-AMD-compiler-version",
+        "exit_code": 0,
+        "timed_out": false,
+        "failure": [],
+        "evidence": []
+      }
+    ]
+  },
+  "root_cause": "Topology loop rebound parsed argparse namespace 'args' to a list. Final optional runtime packaging accessed args.lz4_runtime_fixture and failed.",
+  "correction": "Rename topology-loop argument list to topology_arguments; retain all checks and exclusive outputs.",
+  "owner_gpu_executed": false
+}

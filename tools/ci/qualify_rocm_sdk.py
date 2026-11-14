@@ -634,11 +634,11 @@ def main():
             0<budget_row["controller_job_peak_commit_bytes"]<=256*1024*1024,
             "fake-LUID budget query did not fail closed without HIP")
         report["hardware_probe"]["budget_metadata"]=budget_row
-        for name,args,software in (
+        for name,topology_arguments,software in (
             ("unknown_adapter",["--inspect-adapter-topology","0100000000000000"],False),
             ("warp",["--inspect-warp-topology"],True),
         ):
-            topology_result=run(bounds,[str(hardware_probe),*args],report,
+            topology_result=run(bounds,[str(hardware_probe),*topology_arguments],report,
                 "bounded-topology-metadata-"+name,15)
             prefix="GPU topology metadata: "
             rows=[json.loads(line[len(prefix):]) for line in topology_result["stdout"].splitlines()
