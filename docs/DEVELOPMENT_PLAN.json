@@ -274,6 +274,18 @@
             "core_run": 43572160653,
             "core_jobs_passed": 13,
             "core_jobs_total": 13
+          },
+          "native_storage_candidate": {
+            "contract": "docs/NATIVE_FAST_INGESTION.md",
+            "status": "Publishing-source qualification pending.",
+            "behavior": "Explicit CPU-fast native ingestion, independent LZ4 record decoding and verified advisory StoreMutation candidates under existing transactions.",
+            "baseline": "5da33dcae667d23e68a54f70e109b1920a341518",
+            "default_encoding_changed": false,
+            "stored_codec": 4,
+            "cpu_decoder_required": true,
+            "gpu_launched_by_storage": false,
+            "normal_windows_gpu_route": false,
+            "validation": "Independent block oracle, immutable-baseline failure, enabled/raw/native/sanitizer cases, native partial-write/read/reopen and complete bounded commit-fault campaign."
           }
         }
       }

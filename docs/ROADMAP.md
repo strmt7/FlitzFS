@@ -1,5 +1,9 @@
 # Development gates and acceptance criteria
 
+## Native fast-ingestion storage candidate
+
+The [fast-ingestion representation](NATIVE_FAST_INGESTION.md) now connects verified compressed candidates to native transactional object records and independent CPU recovery. Qualify its immutable-baseline decoder regression, raw/codec/native/sanitizer cases and every modeled commit fault before connecting asynchronous GPU results to Windows file operations. G02 and measured benefit remain open.
+
 ## Compression runtime integration candidate
 
 The separate [compression worker](HIP_LZ4_RUNTIME.md) connects protected requests, authenticated module/target coverage, typed compute and verified replies. SDK/CPU qualification and one actual AMD compression trial passed at 979cd512: 4,096 synthetic bytes became 118 payload bytes with independent CPU readback and confirmed retirement. [Exact evidence](evidence/hip-lz4-runtime-979cd512.json). Native stored-codec/CPU-reader/Windows-write/fallback composition and measured end-to-end benefit remain the next exits. Minimum total cold-data size and transparent cross-file grouping remain mandatory.

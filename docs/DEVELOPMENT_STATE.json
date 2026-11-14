@@ -352,9 +352,16 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "contract": "docs/HIP_LZ4_RUNTIME.md",
-    "status": "Native stored encoding, CPU recovery and asynchronous Windows file-operation/fallback composition remain pending; runtime diagnostic is qualified separately.",
-    "next": "Implement the native stored representation and independent CPU reader, then asynchronous immediate CPU fallback and the Windows write/store/read composition. Retain D01 and complete cost/benefit gates; do not rerun the unchanged diagnostic."
+    "contract": "docs/NATIVE_FAST_INGESTION.md",
+    "status": "Publishing-source qualification pending.",
+    "behavior": "Explicit CPU-fast native ingestion, independent LZ4 record decoding and verified advisory StoreMutation candidates under existing transactions.",
+    "baseline": "5da33dcae667d23e68a54f70e109b1920a341518",
+    "default_encoding_changed": false,
+    "stored_codec": 4,
+    "cpu_decoder_required": true,
+    "gpu_launched_by_storage": false,
+    "normal_windows_gpu_route": false,
+    "validation": "Independent block oracle, immutable-baseline failure, enabled/raw/native/sanitizer cases, native partial-write/read/reopen and complete bounded commit-fault campaign."
   },
   "resolved": [
     {
@@ -775,5 +782,17 @@
     "managed_invariants_native": 412,
     "managed_invariants_raw": 404,
     "evidence": "docs/evidence/funded-helper-99d5365.json"
+  },
+  "native_fast_ingestion_candidate": {
+    "contract": "docs/NATIVE_FAST_INGESTION.md",
+    "status": "Publishing-source qualification pending.",
+    "behavior": "Explicit CPU-fast native ingestion, independent LZ4 record decoding and verified advisory StoreMutation candidates under existing transactions.",
+    "baseline": "5da33dcae667d23e68a54f70e109b1920a341518",
+    "default_encoding_changed": false,
+    "stored_codec": 4,
+    "cpu_decoder_required": true,
+    "gpu_launched_by_storage": false,
+    "normal_windows_gpu_route": false,
+    "validation": "Independent block oracle, immutable-baseline failure, enabled/raw/native/sanitizer cases, native partial-write/read/reopen and complete bounded commit-fault campaign."
   }
 }

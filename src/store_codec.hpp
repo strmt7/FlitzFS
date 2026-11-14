@@ -5,7 +5,7 @@
 #include <span>
 #include <vector>
 namespace flitzfs::detail {
-inline constexpr std::uint32_t kStoreRaw=0,kStoreZstd=1,kStoreZero=2,kStorePattern=3;
+inline constexpr std::uint32_t kStoreRaw=0,kStoreZstd=1,kStoreZero=2,kStorePattern=3,kStoreLz4=4;
 inline constexpr std::size_t kStoreMaxPatternBytes=4096;
 inline constexpr std::size_t kStoreMaxMatchInputBytes=64U*1024U;
 inline constexpr std::size_t kStoreMaxMatchProposals=4096;
@@ -42,9 +42,11 @@ class StoreCodecEncoder final {
   StoreCodecEncoder& operator=(const StoreCodecEncoder&)=delete;
   // Takes ownership. Compression/round-trip validation finish before I/O.
   EncodedStoreObject encode(std::vector<std::byte> input);
+  EncodedStoreObject encode_with_lz4(std::vector<std::byte> input,std::span<const std::byte> candidate);
   EncodedStoreObject encode_with_matches(std::vector<std::byte> input,std::span<const StoreMatchProposal> matches);
   std::size_t peak_bytes() const noexcept;
  private:
+  EncodedStoreObject encode_impl(std::vector<std::byte> input,bool cpu_fast);
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };

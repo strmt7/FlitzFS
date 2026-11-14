@@ -2,21 +2,21 @@
 
 This bounded C++ library is a storage foundation, not a writable mounted
 filesystem. It has no CLI route, GPU dependency, authentication or encryption.
-It supports native raw, zero, repeated-pattern and optional Zstandard object
+It supports native raw, zero, repeated-pattern, optional Zstandard and explicit LZ4 object
 records. Compression happens before transactional publication; it is not an
 archive format or writable mounted volume. Existing
 .flfs and .flcatalog native bytes are unchanged. Never use it for
 sole-copy data. Limits are development admission bounds, not the final product
 capacity or a production format commitment.
 
-## Compression runtime experiment and format boundary
+## Experimental fast-ingestion codec
 
-The separate GPU diagnostic qualified at 979cd512 emits independently CPU-verified
-LZ4 blocks over protected memory transport. Those blocks are not stored by this
-object format. Native raw/zero/pattern/Zstandard records and existing CPU readers
-remain unchanged. A stored representation requires explicit framing, rejection,
-transactional publication and CPU recovery tests before any filesystem route.
-See [the runtime evidence](evidence/hip-lz4-runtime-979cd512.json).
+[Native fast ingestion](NATIVE_FAST_INGESTION.md) adds explicit CPU-fast mode and
+native codec 4: one independent LZ4 block under the existing stored/logical size
+and dual-integrity fields. CPU recovery requires the optional LZ4 dependency;
+older readers reject this new codec. Existing records and default/raw bytes stay
+compatible. Advisory candidates are independently CPU-verified before private
+selection and transactional publication. Publishing-source qualification is pending.
 
 ## API and ownership
 
@@ -144,7 +144,7 @@ payload allocation. Maximum manifest size is 16,448 bytes at the current 256-obj
 |---:|---:|---|
 | 0 | 8 | ASCII FLTXDAT1 |
 | 8 | 4 | Format field 1 |
-| 12 | 4 | Codec 0 raw, 1 Zstandard, 2 implicit zero, 3 repeated pattern |
+| 12 | 4 | Codec 0 raw, 1 Zstandard, 2 implicit zero, 3 repeated pattern, 4 independent LZ4 |
 | 16 | 8 | Object ID |
 | 24 | 8 | Object generation |
 | 32 | 4 | Logical bytes, at most 1 MiB |
@@ -166,7 +166,10 @@ payload, reconstructing zeros. Codec 3 stores a motif of 1..4,096 bytes shorter
 than logical size, repeated with a possible partial final motif. Codec 1 stores
 one complete independent Zstandard frame, with known content size equal to the
 logical size and no external dictionary ID. Concatenated, skippable, unknown-size,
-truncated and trailing frames are rejected. Unknown codecs fail explicitly.
+truncated and trailing frames are rejected. Codec 4 stores a complete independent
+LZ4 block with positive logical/stored sizes, stored size strictly below logical
+size, exact CPU decoded length and no external dictionary. Missing or unqualified
+CPU LZ4 support rejects before exposure. Unknown codecs fail explicitly.
 
 Opening verifies every reachable stored record and its full decoded content
 before exposing a snapshot. Each compressed read verifies both digests again;

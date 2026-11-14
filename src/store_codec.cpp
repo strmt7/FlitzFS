@@ -5,9 +5,13 @@
 #include <array>
 #include <cstdlib>
 #include <limits>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <utility>
+#ifdef FLITZFS_HAS_LZ4
+#include <lz4.h>
+#endif
 #ifdef FLITZFS_STORE_HAS_ZSTD
 #define ZSTD_STATIC_LINKING_ONLY
 #include <zstd.h>
@@ -15,6 +19,13 @@ static_assert(ZSTD_VERSION_NUMBER>=10504,"Zstandard 1.5.4 or newer required");
 #endif
 
 namespace flitzfs {
+bool store_lz4_available() noexcept {
+#ifdef FLITZFS_HAS_LZ4
+  return LZ4_versionNumber()>=11101;
+#else
+  return false;
+#endif
+}
 std::uint32_t store_zstd_version() noexcept {
 #ifdef FLITZFS_STORE_HAS_ZSTD
   return ZSTD_versionNumber();
@@ -81,9 +92,9 @@ bool store_match_sequences_available() noexcept {
 #endif
 }
 void validate_store_compression(StoreCompressionOptions options) {
-  if((options.mode!=StoreCompressionMode::raw && options.mode!=StoreCompressionMode::automatic) ||
+  if((options.mode!=StoreCompressionMode::raw && options.mode!=StoreCompressionMode::automatic && options.mode!=StoreCompressionMode::fast) ||
       options.zstd_level<1 || options.zstd_level>9 ||
-      (options.require_zstd && (options.mode==StoreCompressionMode::raw || !store_zstd_available())))
+      (options.require_zstd && (options.mode!=StoreCompressionMode::automatic || !store_zstd_available())))
     fail("invalid policy or required bounded Zstandard unavailable");
 }
 bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept {
@@ -92,6 +103,7 @@ bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t
     case kStoreRaw:return stored==logical;
     case kStoreZero:return logical>0 && stored==0;
     case kStorePattern:return stored>0 && stored<=kStoreMaxPatternBytes && stored<logical;
+    case kStoreLz4:return logical>0 && stored>0 && stored<logical;
     case kStoreZstd:return stored>0 && stored<logical;
     default:return false;
   }
@@ -116,7 +128,9 @@ struct StoreCodecEncoder::Impl {
   Budget budget{kStoreEncoderMemoryCap};
   std::unique_ptr<ZSTD_CCtx,decltype(&ZSTD_freeCCtx)> context{nullptr,&ZSTD_freeCCtx};
 #endif
-  explicit Impl(StoreCompressionOptions o,std::size_t cap):options(o){
+  std::size_t allocation_limit=0,lz4_peak=0;
+  std::vector<std::max_align_t> lz4_state;
+  explicit Impl(StoreCompressionOptions o,std::size_t cap):options(o),allocation_limit(cap){
 #ifdef FLITZFS_STORE_HAS_ZSTD
     budget.limit=cap;
 #else
@@ -162,9 +176,9 @@ std::size_t StoreCodecDecoder::peak_bytes() const noexcept {
 }
 std::size_t StoreCodecEncoder::peak_bytes() const noexcept {
 #ifdef FLITZFS_STORE_HAS_ZSTD
-  return impl_->budget.peak;
+  return impl_->budget.peak+impl_->lz4_peak;
 #else
-  return 0;
+  return impl_->lz4_peak;
 #endif
 }
 std::vector<std::byte> StoreCodecDecoder::decode(std::uint32_t codec,
@@ -174,11 +188,20 @@ std::vector<std::byte> StoreCodecDecoder::decode(std::uint32_t codec,
     fail("unknown codec or invalid stored/logical extent");
   if(codec==kStoreZstd && !native_zstd_frame(payload)) fail("noncanonical Zstandard magic");
   if(codec==kStoreZstd && !store_zstd_available()) fail("Zstandard recovery unavailable");
+  if(codec==kStoreLz4 && !store_lz4_available()) fail("LZ4 recovery unavailable");
   Bytes output(logical);
   if(codec==kStoreRaw) std::copy(payload.begin(),payload.end(),output.begin());
   else if(codec==kStoreZero) {} // Value-initialized bytes are zero.
   else if(codec==kStorePattern) repeat_bytes(payload,output);
-  else {
+  else if(codec==kStoreLz4) {
+#ifdef FLITZFS_HAS_LZ4
+    const auto n=LZ4_decompress_safe(reinterpret_cast<const char*>(payload.data()),
+        reinterpret_cast<char*>(output.data()),static_cast<int>(payload.size()),static_cast<int>(logical));
+    if(n<0 || static_cast<std::uint32_t>(n)!=logical)fail("LZ4 decoding failed");
+#else
+    fail("LZ4 recovery unavailable");
+#endif
+  } else {
 #ifdef FLITZFS_STORE_HAS_ZSTD
     // Reject concatenation, skippable/unknown-size frames and dictionaries.
     const auto frame=ZSTD_findFrameCompressedSize(payload.data(),payload.size());
@@ -201,6 +224,9 @@ std::vector<std::byte> StoreCodecDecoder::decode(std::uint32_t codec,
   return output;
 }
 EncodedStoreObject StoreCodecEncoder::encode(Bytes input) {
+  return encode_impl(std::move(input),true);
+}
+EncodedStoreObject StoreCodecEncoder::encode_impl(Bytes input,bool cpu_fast) {
   if(input.size()>kStoreMaxObjectBytes) fail("object exceeds codec limit");
   EncodedStoreObject result;
   if(impl_->options.mode==StoreCompressionMode::raw || input.empty()) {
@@ -213,7 +239,7 @@ EncodedStoreObject StoreCodecEncoder::encode(Bytes input) {
   }
 #ifdef FLITZFS_STORE_HAS_ZSTD
   // Zero and a one-byte motif cannot be improved by a complete Zstandard frame.
-  if(store_zstd_available() && result.codec!=kStoreZero && !(result.codec==kStorePattern && result.payload.size()==1)) {
+  if(impl_->options.mode==StoreCompressionMode::automatic && store_zstd_available() && result.codec!=kStoreZero && !(result.codec==kStorePattern && result.payload.size()==1)) {
     auto* context=impl_->prepare_context();
     Bytes candidate(ZSTD_compressBound(input.size()));
     const auto n=ZSTD_compress2(context,candidate.data(),candidate.size(),input.data(),input.size());
@@ -224,6 +250,36 @@ EncodedStoreObject StoreCodecEncoder::encode(Bytes input) {
     }
   }
 #endif
+#ifdef FLITZFS_HAS_LZ4
+  if(cpu_fast && impl_->options.mode==StoreCompressionMode::fast && store_lz4_available() &&
+      result.codec!=kStoreZero && !(result.codec==kStorePattern && result.payload.size()==1)) {
+    static_assert(alignof(std::max_align_t)>=8);
+    // The official extState API initializes caller-owned, 8-byte-aligned state.
+    // No hidden compressor allocation or streaming dictionary dependency.
+    const auto size=LZ4_sizeofState();
+    if(size>0 && static_cast<std::size_t>(size)<=65536U) {
+      const auto words=(static_cast<std::size_t>(size)+sizeof(std::max_align_t)-1)/sizeof(std::max_align_t);
+      const auto state_bytes=words*sizeof(std::max_align_t);
+      if(state_bytes<=impl_->allocation_limit) {
+        try {
+          if(impl_->lz4_state.empty())impl_->lz4_state.resize(words);
+          impl_->lz4_peak=(std::max)(impl_->lz4_peak,state_bytes);
+          Bytes candidate(input.size()); // Strictly nonexpanding output capacity.
+          const auto n=LZ4_compress_fast_extState(impl_->lz4_state.data(),
+              reinterpret_cast<const char*>(input.data()),reinterpret_cast<char*>(candidate.data()),
+              static_cast<int>(input.size()),static_cast<int>(candidate.size()),1);
+          const auto best=result.codec==kStoreRaw?input.size():result.payload.size();
+          if(n>0 && static_cast<std::size_t>(n)<best) {
+            candidate.resize(static_cast<std::size_t>(n));
+            result.codec=kStoreLz4;result.payload=std::move(candidate);
+          }
+        }catch(const std::bad_alloc&){} // Pressure keeps the already-owned raw/pattern result.
+      }
+    }
+  }
+#else
+  (void)cpu_fast;
+#endif
   if(result.codec==kStoreRaw) {result.payload=std::move(input);return result;}
   // All compressed candidates remain private until independent CPU readback
   // agrees byte-for-byte. Codec errors cannot poison or mutate backing storage.
@@ -231,6 +287,24 @@ EncodedStoreObject StoreCodecEncoder::encode(Bytes input) {
   if(decoded!=input) fail("compression round-trip mismatch");
   result.decoded_digest=record_digest(input);
   return result;
+}
+EncodedStoreObject StoreCodecEncoder::encode_with_lz4(Bytes input,std::span<const std::byte> candidate) {
+  if(input.size()>kStoreMaxObjectBytes)fail("object exceeds codec limit");
+  if(impl_->options.mode==StoreCompressionMode::raw || input.empty() ||
+      candidate.empty() || candidate.size()>=input.size() || !store_lz4_available())
+    return encode(std::move(input));
+  Bytes owned;
+  bool valid=false;
+  try {
+    valid=impl_->verifier.decode(kStoreLz4,candidate,static_cast<std::uint32_t>(input.size()))==input;
+    if(valid)owned.assign(candidate.begin(),candidate.end()); // Retain no borrowed worker bytes.
+  }catch(const std::exception&){valid=false;}
+  if(!valid)return encode(std::move(input));
+  // A valid fast candidate avoids running the CPU compressor a second time.
+  // The automatic policy still compares its ordinary CPU baseline by size.
+  auto baseline=encode_impl(Bytes(input),false);
+  if(owned.size()>=baseline.payload.size())return baseline;
+  return {kStoreLz4,std::move(owned),record_digest(input),false,0};
 }
 EncodedStoreObject StoreCodecEncoder::encode_with_matches(Bytes input,std::span<const StoreMatchProposal> matches) {
 #ifdef FLITZFS_STORE_HAS_SEQUENCE_API

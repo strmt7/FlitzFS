@@ -881,6 +881,80 @@ void proposed_matches() {
       <<" accepted="<<accepted<<" gpu=0\n";
 }
 
+void fast_ingestion_transactions() {
+  using namespace flitzfs::detail;
+  Bytes plain(65536);std::uint64_t random=0xa921b43c5678def0ULL;
+  Bytes prefix(8192);
+  for(auto& byte:prefix){random^=random<<13;random^=random>>7;random^=random<<17;byte=static_cast<std::byte>(random>>19);}
+  for(std::size_t i=0;i<plain.size();++i)plain[i]=prefix[i%prefix.size()];
+  StoreCodecEncoder encoder({StoreCompressionMode::fast,6,false});
+  const auto reference=encoder.encode(plain);
+  const StoreCompressionOptions fast{StoreCompressionMode::fast,6,false};
+  auto ram=std::make_shared<Ram>();auto writer=ObjectStoreWriter::create(ram,identity(),fast);
+  StoreMutation put{1,false,plain,reference.payload};
+  const auto original=put;
+  const auto committed=writer.commit_replicated({&put,1});
+  require(put.bytes==original.bytes && put.lz4_candidate==original.lz4_candidate,"native mutation input changed");
+  require(committed.replicated_checkpoint && committed.stored_payload_bytes==reference.payload.size(),
+      "fast record publication/size disagrees with CPU recovery");
+  const auto snapshot=ObjectStoreSnapshot::open(ram);
+  require(snapshot.read(1)==plain,"fast persisted independent CPU recovery");
+  auto changed=plain;changed[17]^=std::byte{1};
+  StoreMutation stale{1,false,changed,reference.payload};
+  const auto expected=encoder.encode(changed);
+  const auto next=writer.commit_replicated({&stale,1});
+  require(next.stored_payload_bytes==expected.payload.size() &&
+      ObjectStoreSnapshot::open(ram).read(1)==changed && snapshot.read(1)==plain,
+      "stale compressed bytes changed current or retained generation");
+  const auto writes=ram->writes;
+  StoreMutation erase{1,true,{},Bytes{std::byte{1}}};
+  rejects([&]{writer.commit({&erase,1});},"erase accepted advisory payload");
+  require(ram->writes==writes && !writer.poisoned(),"bad advisory admission wrote or poisoned storage");
+  std::array<StoreMutation,5> excessive;
+  for(std::size_t i=0;i<excessive.size();++i){excessive[i].id=10+i;excessive[i].lz4_candidate.resize(kStoreMaxObjectBytes);}
+  rejects([&]{writer.commit(excessive);},"aggregate advisory memory budget ignored");
+  require(ram->writes==writes && !writer.poisoned(),"advisory memory admission happened after I/O");
+
+  // Fault every actual write/barrier while replacing the last acknowledged set.
+  const auto baseline=ram->stable;
+  auto measure=image(baseline);auto measured=ObjectStoreWriter::resume(measure,identity(),next.generation,fast);
+  measure->calls=0;
+  StoreMutation replacement{1,false,plain,reference.payload};
+  measured.commit_replicated({&replacement,1});const auto operations=measure->calls;
+  require(operations>0 && operations<=64,"bounded fast transaction fault campaign");
+  for(unsigned fault=0;fault<3;++fault)for(std::size_t step=0;step<operations;++step){
+    auto broken=image(baseline);broken->stable=baseline;
+    auto active=ObjectStoreWriter::resume(broken,identity(),next.generation,fast);
+    broken->calls=0;broken->fail_call=step;broken->failure=fault;
+    rejects([&]{active.commit_replicated({&replacement,1});},"fast transaction fault not propagated");
+    require(active.poisoned(),"fast I/O failure did not terminally fence writer");
+    auto recovered=ObjectStoreSnapshot::open(image(broken->stable));
+    const auto recovered_bytes=recovered.read(1);
+    require(recovered_bytes==changed || recovered_bytes==plain,"fast fault lost acknowledged source or exposed mixed bytes");
+    require(recovered.info().replicated_checkpoint && recovered.list().size()==1,"fast fault exposed partial checkpoint");
+  }
+  if(store_lz4_available()){
+    auto fixture=std::make_shared<Ram>();auto fresh=ObjectStoreWriter::create(fixture,identity(),fast);
+    fresh.commit({&put,1});const auto saved=fixture->stable;
+    const auto index=static_cast<std::size_t>(u64(saved,65536+32));
+    const auto record=static_cast<std::size_t>(u64(saved,index+64+16));
+    require(std::to_integer<unsigned>(saved[record+12])==kStoreLz4,"fast integrity fixture not LZ4");
+    for(const auto offset:{record+56,record+128}){
+      auto damaged=saved;damaged[offset]^=std::byte{1};
+      const auto stored=static_cast<std::size_t>(u64(saved,index+64+28)&0xffffffffU)-128;
+      const auto seal=record_digest(std::span<const std::byte>(damaged).subspan(record,96),
+          std::span<const std::byte>(damaged).subspan(record+128,stored));
+      std::copy(seal.begin(),seal.end(),damaged.begin()+static_cast<std::ptrdiff_t>(record+96));
+      std::copy(seal.begin(),seal.end(),damaged.begin()+static_cast<std::ptrdiff_t>(index+64+32));
+      manifest_digest(damaged,65536);
+      rejects([&]{(void)ObjectStoreSnapshot::open(image(damaged));},
+          "LZ4 decoded corruption escaped an independently resealed stored chain");
+    }
+  }
+  std::cout<<"Fast store transaction evidence: cpu_lz4="<<store_lz4_available()
+      <<" fault_operations="<<operations<<" gpu_executed=false\n";
+}
+
 void history_cap() {
   auto ram=std::make_shared<Sparse>();auto writer=ObjectStoreWriter::create(ram,identity());
   const StoreMutation empty{1,false,{}};
@@ -893,7 +967,7 @@ void history_cap() {
 }
 int main() {
   try {
-    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();compacted_copies();compaction_faults();replicated_media_recovery();replicated_faults_and_fencing();proposed_matches();history_cap();
+    known_vectors();basic_and_admission();interrupted_io();torn_roots();malformed_images();decoded_live_budget();physical_record_order();compressed_transactions();resume_leases_and_orphans();resume_complete_unacknowledged_candidate();resume_root_repair();compacted_copies();compaction_faults();replicated_media_recovery();replicated_faults_and_fencing();proposed_matches();fast_ingestion_transactions();history_cap();
     std::cout<<"PASS: "<<checks<<" object-store checks, official digest vectors, I/O failures, torn roots and bounded sparse history; RAM only.\n";
     return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
