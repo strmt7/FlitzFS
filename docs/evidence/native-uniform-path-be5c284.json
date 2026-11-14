@@ -1,0 +1,24 @@
+{
+  "source": "be5c284217a7fb4a164a6b37df7e865f65f573fa",
+  "core_run": 43599530451,
+  "job": 132461097467,
+  "native_groups": 150,
+  "passed": 149,
+  "failed_test": "controlled_native_uniform_write_sdk",
+  "failure": "qualified controlled worker did not start",
+  "artifact_id": 14115552163,
+  "artifact_sha256": "17509570ad234bfdd7af9e4a435c5c96d797213576ccdbdf86feb2e292c2d6d1",
+  "archive_bytes": 13557,
+  "log": "LastTest.log",
+  "log_bytes": 158859,
+  "log_sha256": "79bc93c1b10b7e5cff7d934947517c823792b8b53ab342c7a6832e008556bfe5",
+  "evidence": [
+    "Command: \"D:/a/FlitzFS/FlitzFS/build-native/Release/flitzfs_native_uniform_write_sdk_tests.exe\" \"D:/a/FlitzFS/FlitzFS/build-native/Release/flitzfs_worker_exchange_tests.exe\"\r",
+    "qualified controlled worker did not start\r"
+  ],
+  "official_path_source": "microsoft/STL@e1ed302683e5e822f663fbb0f44cee7e9ddc6af0:stl/inc/filesystem",
+  "cause": "CMake supplied forward separators; std::filesystem::path preserves them; strict command encoder rejected them before launch. Separator-only normalization retains all existing component/root/argument limits.",
+  "correction_qualified": false,
+  "owner_executed": false,
+  "actual_gpu_executed": false
+}
