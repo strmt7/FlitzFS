@@ -24,5 +24,20 @@
   "production_changed_by_correction": false,
   "owner_executed": false,
   "gpu_executed": false,
-  "qualification": "No all-matrix qualification at this source. Corrected publishing source requires a new exact-source matrix."
+  "qualification": "No all-matrix qualification at this source. Corrected publishing source requires a new exact-source matrix.",
+  "sdk_failure": {
+    "run": 43617288209,
+    "job": 132515027878,
+    "artifact": 14122079252,
+    "archive_sha256": "f374eeff86c365e43e655785c5535e91a7126911047f2846c6384abd05ac47c6",
+    "root_sha256": "4932308fac8b3d768c7ad726892a1b52c4a40ae50c96fcd000265a04d2521e49",
+    "command": "typed-uniform-LZ4-compute-CPU-fault-matrix",
+    "exit_code": 1,
+    "diagnostic": "Copy slab extent",
+    "cause": "The change used a cached fixture predating the qualified d33efd6 allocated_size fix. It restored an already corrected whole-layout copy assertion.",
+    "correction": "Rebase profile additions onto the exact d33efd6 fixture, restoring owned allocated_size tracking, exact copy-size checks and active kernel extent within allocation. Four other cached production inputs were compared to pinned 7dfb642 and matched exactly.",
+    "superseded_followup_source": "24a4709a5825aeebe6654be863eb76da27c92674",
+    "superseded_sdk_run": 43617942325,
+    "superseded_sdk_status": "cancel_requested_before_completion; same known faulty fixture"
+  }
 }
