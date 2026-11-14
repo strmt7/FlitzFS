@@ -474,3 +474,5 @@ capability, existing frame encoding or product numbering changes.
 The SDK worker's explicit CPU-decoder availability diagnostic produces no worker
 frame or stored record. Statically linking independent CPU LZ4 support into an
 optional hosted fixture adds no stored codec, capability or product numbering.
+
+The opt-in [uniform phase envelope](UNIFORM_GPU_CALIBRATION.md) is a separate 256-byte diagnostic prefix around an unchanged version-2 uniform reply. It binds shape, source, adapter and work grant; ordinary reply readers reject its distinct magic. Timing fields never enter stored filesystem records or decoding dependencies. The source-qualified native GPU observation at `7e87bb4` stores existing CPU-readable LZ4 extent records; it changes no persisted format or product numbering.
