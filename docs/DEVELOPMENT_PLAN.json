@@ -734,5 +734,14 @@
     "evidence": "docs/evidence/uniform-sweep-847423f-failure.json",
     "normal_GPU_routing": false,
     "next": "Do not retry unchanged or raise the cap to obscure failure. Implement one verified bounded device/resource lifetime across serial quanta, fresh memory/CPU validation, exact final retirement and unused-tail guards; qualify ownership/fault paths before another source-specific hardware trial."
+  },
+  "uniform_reused_sweep": {
+    "contract": "docs/UNIFORM_LZ4_REUSE.md",
+    "status": "Implemented; publishing-source qualification pending",
+    "historical_failure": "docs/evidence/uniform-sweep-847423f-failure.json",
+    "job_cap_raised": false,
+    "owner_GPU_executed": false,
+    "normal_GPU_routing": false,
+    "next": "Run current-source CPU/raw/native/sanitizer/fullSDK and existing VM gates. Require exact one-setup/resource accounting and terminal memory/guard/cleanup failures before a newly qualified bounded hardware trial."
   }
 }

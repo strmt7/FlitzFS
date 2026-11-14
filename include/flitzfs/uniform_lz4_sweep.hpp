@@ -32,11 +32,12 @@ inline UniformLz4SweepPlan plan_uniform_lz4_sweep(const PreparedUniformLz4& sour
   if(!selected)throw std::invalid_argument("uniform sweep cannot admit one quantum");
   return {source.limits(),selected,1+(shape.chunks-1)/selected,peak};
 }
-// Callback completes and retires ONE quantum, returning independently verifiable
-// candidates. No automatic retry or partial publication. Keep the runtime/module
-// loaded in the caller across this finite sweep; successful child exit remains
-// the parent acceptance boundary. Caller must charge the whole source/result,
-// one prepared quantum, compute scratch and transport BEFORE this operation.
+// Callback completes ONE quantum before another begins, returning independently
+// verifiable candidates. It must synchronize device work before returning. A
+// bounded caller may reuse its stream/slab, but must retire them before publishing
+// the combined result. No automatic retry or partial publication. Successful
+// child exit remains the parent acceptance boundary. Charge the whole source,
+// result, one prepared quantum, compute scratch and transport BEFORE entry.
 template<class Compute>
 UniformLz4Candidates compute_uniform_lz4_sweep(const UniformLz4Request& request,
     const UniformLz4SweepPlan& plan,Compute&& compute){

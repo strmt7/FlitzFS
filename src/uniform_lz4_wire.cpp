@@ -190,15 +190,24 @@ UniformLz4Candidates accept_uniform_lz4_reply(UniformLz4Bytes f,const PreparedUn
     result.sizes.push_back(static_cast<std::uint32_t>(get(f,kUniformLz4HeaderBytes+8ULL*i+4,4)));
   result.payload.assign(payload.begin(),payload.end());return result;
 }
-Bytes uniform_lz4_upload(const PreparedUniformLz4& batch){
-  if(!batch.ready())invalid("uniform LZ4 upload source");
-  const auto& p=batch.layout();Bytes slab(static_cast<std::size_t>(p.total_bytes));
+namespace {
+void fill_uniform_lz4_upload(const PreparedUniformLz4& batch,std::span<std::byte> slab,bool clear){
+  if(!batch.ready() || slab.size()!=batch.layout().total_bytes)invalid("uniform LZ4 upload extent");
+  const auto& p=batch.layout();if(clear)std::fill(slab.begin(),slab.end(),std::byte{0});
   std::copy(batch.plaintext().begin(),batch.plaintext().end(),slab.begin()+static_cast<std::ptrdiff_t>(p.input_offset));
   for(std::uint32_t i=0;i<p.chunks;++i){
     const auto guard=p.output_offset+std::uint64_t(i)*p.output_stride+p.output_stride-uniform_lz4::guard_bytes;
     std::fill_n(slab.begin()+static_cast<std::ptrdiff_t>(guard),uniform_lz4::guard_bytes,std::byte{0xa7});
   }
-  return slab;
+}
+}
+void initialize_uniform_lz4_upload(const PreparedUniformLz4& batch,std::span<std::byte> slab){
+  fill_uniform_lz4_upload(batch,slab,true);
+}
+Bytes uniform_lz4_upload(const PreparedUniformLz4& batch){
+  if(!batch.ready())invalid("uniform LZ4 upload source");
+  Bytes slab(static_cast<std::size_t>(batch.layout().total_bytes));
+  fill_uniform_lz4_upload(batch,slab,false);return slab; // vector construction already zeroed every byte.
 }
 UniformLz4Candidates verify_uniform_lz4_readback(const PreparedUniformLz4& batch,UniformLz4Bytes slab){
   if(!batch.ready() || slab.size()!=batch.layout().total_bytes)invalid("uniform LZ4 readback size");

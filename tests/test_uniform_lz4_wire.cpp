@@ -32,6 +32,14 @@ void shape_and_wire(){
   auto source=prepared(16U*65536+37);
   check(source.ready() && source.layout().chunks==17 && source.layout().total_bytes>262144,"legacy ceiling retained");
   const Bytes expected(source.plaintext().begin(),source.plaintext().end());
+  const auto canonical_upload=uniform_lz4_upload(source);
+  Bytes dirty(canonical_upload.size()+2,std::byte{0x51});
+  auto active=std::span(dirty).subspan(1,canonical_upload.size());
+  initialize_uniform_lz4_upload(source,active);
+  check(std::equal(canonical_upload.begin(),canonical_upload.end(),active.begin()) &&
+      dirty.front()==std::byte{0x51} && dirty.back()==std::byte{0x51},"reused upload/outer guards");
+  rejects([&]{initialize_uniform_lz4_upload(source,active.first(active.size()-1));});
+  rejects([&]{initialize_uniform_lz4_upload(source,dirty);});
   auto frame=encode_uniform_lz4_request(source,73);
   check(inspect_uniform_lz4_request(frame,source.limits().request_bytes,source.limits().reply_bytes)==source.limits(),
       "independent uniform channel capacities lost");

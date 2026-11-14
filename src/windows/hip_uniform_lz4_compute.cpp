@@ -1,4 +1,4 @@
-#include "hip_uniform_lz4_compute.hpp"
+#include "hip_uniform_lz4_reuse.hpp"
 #include "gpu_budget.hpp"
 #include "gpu_topology.hpp"
 #include "flitzfs/process_budget.hpp"
@@ -29,10 +29,11 @@ void require_uniform_job(){
       HipWorkerExit::temporary_pressure,"uniform worker exceeds live host share",HipWorkerStage::worker_job);
 }
 }
-UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
-    const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
-    std::span<const hip_detail::Lz4KernelCoverage> targets,HipPhaseRecorder* profile){
+namespace {
+template<class Compute>
+UniformLz4Candidates with_uniform_device(HMODULE runtime,int ordinal,std::array<std::byte,8> luid,std::uint32_t node_mask,
+    std::span<const hip_detail::Lz4KernelCoverage> targets,std::uint32_t maximum_chunks,
+    std::uint64_t device_bytes,Compute&& compute){
   require_uniform_job();
   hip_detail::lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform LZ4 verification unavailable");
@@ -56,7 +57,7 @@ UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
   hip_detail::lz4_require(entry!=nullptr,HipWorkerExit::runtime_unavailable,
       "uniform function metadata unavailable",HipWorkerStage::runtime_api);
   const auto attributes=std::bit_cast<hip_detail::Lz4Attributes>(entry);
-  GpuMemorySnapshot baseline{};const auto bytes=request.batch.layout().total_bytes;
+  GpuMemorySnapshot baseline{};const auto bytes=device_bytes;
   const auto memory=[&](HipMemoryPoint point){
     const auto current=query_windows_gpu_budget(luid,node_mask).snapshot;
     if(point==HipMemoryPoint::pre_initialize){
@@ -79,8 +80,33 @@ UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
         (!p.luidDeviceNodeMask && node_mask==1 && single_node(luid))),
         HipWorkerExit::unsupported_configuration,"uniform device identity changed",HipWorkerStage::adapter_luid);
     selected=hip_detail::select_lz4_coverage(p,targets);
-    return hip_detail::uniform_lz4_device_info(p,selected,request.batch.layout().chunks,priority);
+    return hip_detail::uniform_lz4_device_info(p,selected,maximum_chunks,priority);
   };
-  return hip_detail::execute_uniform_lz4_compute(api,attributes,kernel,request,all,grant,initialize,memory,profile);
+  return compute(api,attributes,all,initialize,memory);
+}
+}
+UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
+    const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
+    std::span<const hip_detail::Lz4KernelCoverage> targets,HipPhaseRecorder* profile){
+  return with_uniform_device(runtime,ordinal,luid,node_mask,targets,
+      request.batch.layout().chunks,request.batch.layout().total_bytes,
+      [&](const auto& api,auto attributes,auto coverage,auto&& initialize,auto&& memory){
+        return hip_detail::execute_uniform_lz4_compute(api,attributes,kernel,request,coverage,grant,initialize,memory,profile);
+      });
+}
+UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
+    const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
+    std::span<const hip_detail::Lz4KernelCoverage> targets){
+  hip_detail::lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
+      "independent CPU uniform sweep verification unavailable");
+  UniformLz4SweepPlan plan;
+  try{plan=plan_uniform_lz4_sweep(request.batch,grant.maximum_chunks,grant.maximum_device_bytes);}
+  catch(const std::exception&){throw HipWorkerFailure(HipWorkerExit::invalid_request,"invalid uniform sweep grant");}
+  return with_uniform_device(runtime,ordinal,luid,node_mask,targets,plan.quantum_chunks,plan.device_peak_bytes,
+      [&](const auto& api,auto attributes,auto coverage,auto&& initialize,auto&& memory){
+        return hip_detail::execute_uniform_lz4_reused_sweep(api,attributes,kernel,request,coverage,grant,initialize,memory);
+      });
 }
 }

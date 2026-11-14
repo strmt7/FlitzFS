@@ -1,4 +1,4 @@
-#include "hip_uniform_lz4_compute.hpp"
+#include "hip_uniform_lz4_reuse.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include "bounded_process.hpp"
 #include <algorithm>
@@ -45,6 +45,9 @@ struct State {
   bool bad_alignment=false,null_allocation=false,missing_attributes=false,inconsistent_attributes=false;
   unsigned property_queries=0,priority_queries=0,attribute_queries=0;
   int stream_tag=0;
+  bool reuse=false,null_stream=false;
+  std::uint64_t allocation_bytes=0,source_offset=0;
+  unsigned waits=0;uniform_lz4::Layout current_plan{};
   void* allocation=nullptr;
   explicit State(const UniformLz4Request& input,unsigned wave=32):source(input),arena((input.batch.layout().total_bytes+7)/8+1) {
     std::copy(identity.begin(),identity.end(),reinterpret_cast<std::byte*>(properties.luid));
@@ -58,7 +61,9 @@ struct State {
   hipStream_t stream(){return reinterpret_cast<hipStream_t>(&stream_tag);}
   std::span<std::byte> bytes(){return {reinterpret_cast<std::byte*>(arena.data()),arena.size()*8};}
   hipError_t step(const std::string& name){
-    calls.push_back(name);return fault==name || secondary_fault==name?hipErrorUnknown:hipSuccess;
+    calls.push_back(name);
+    if(name=="wait" && ++waits==2 && fault=="reuse-wait-second")return hipErrorUnknown;
+    return fault==name || secondary_fault==name?hipErrorUnknown:hipSuccess;
   }
 };
 State* active=nullptr;
@@ -81,6 +86,7 @@ hipError_t priorities(int* least,int* greatest){
 hipError_t create_stream(hipStream_t* out,unsigned flags,int priority){
   require(flags==hipStreamNonBlocking && priority==0,"Lowest-priority stream admission");
   const auto status=active->step("stream-create");
+  if(status==hipSuccess && active->null_stream){*out=nullptr;return status;}
   if(status==hipSuccess){require(!active->stream_live,"Duplicate stream");active->stream_live=true;*out=active->stream();}
   return status;
 }
@@ -93,7 +99,7 @@ hipError_t synchronize(hipStream_t stream){
   const auto status=active->step("wait");if(status==hipSuccess)active->completed=true;return status;
 }
 hipError_t allocate(void** out,std::size_t size){
-  require(!active->allocated && size==active->source.batch.layout().total_bytes && size<=4U*1024*1024,
+  require(!active->allocated && size==(active->reuse?active->allocation_bytes:active->source.batch.layout().total_bytes) && size<=4U*1024*1024,
       "Allocation is not the complete bounded slab");
   const auto status=active->step("allocate");
   if(status!=hipSuccess)return active->fault=="allocate"?hipErrorOutOfMemory:status;
@@ -112,7 +118,10 @@ hipError_t copy(void* out,const void* in,std::size_t size,hipMemcpyKind kind){
   if(kind==hipMemcpyHostToDevice)require(out==active->allocation,"Upload address");
   else require(in==active->allocation && active->completed,"Read before confirmed completion");
   const auto status=active->step(name);if(status!=hipSuccess)return status;
-  std::memcpy(out,in,size);return hipSuccess;
+  std::memcpy(out,in,size);
+  if(active->reuse && kind==hipMemcpyHostToDevice){active->submitted=false;active->completed=false;}
+  if(active->reuse && kind==hipMemcpyDeviceToHost)active->source_offset+=active->current_plan.input_bytes;
+  return hipSuccess;
 }
 Bytes literal(std::span<const std::byte> source){
   Bytes out{static_cast<std::byte>((std::min)(source.size(),std::size_t{15})<<4)};
@@ -127,7 +136,12 @@ void word(std::span<std::byte> bytes,std::size_t at,std::uint64_t value){
   for(unsigned i=0;i<8;++i)bytes[at+i]=static_cast<std::byte>((value>>(8U*i))&255U);
 }
 hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t shared,hipStream_t stream){
-  const auto& expected=active->source.batch.layout();
+  auto expected=active->source.batch.layout();
+  if(active->reuse){
+    const auto left=active->source.batch.plaintext().size()-active->source_offset;
+    require(uniform_lz4::make_layout((std::min)(std::uint64_t(left),std::uint64_t{2}*65536),65536,expected),
+        "reused fake expected quantum");
+  }
   require(active->allocated && active->stream_live && stream==active->stream() && !shared,"uniform launch resources");
   require((entry==reinterpret_cast<const void*>(&kernel32) && block.x==32) ||
       (entry==reinterpret_cast<const void*>(&kernel64) && block.x==64),"uniform typed wave selection");
@@ -138,7 +152,12 @@ hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t
   require(slab==active->allocation && allocated==expected.total_bytes &&
       plan.chunks==expected.chunks && uniform_lz4::valid_layout(plan,allocated),"uniform 64-bit by-value ABI");
   const auto status=active->step("launch");if(status!=hipSuccess)return status;
-  active->submitted=true;auto bytes=active->bytes().first(static_cast<std::size_t>(allocated));
+  active->submitted=true;active->current_plan=plan;
+  auto bytes=active->bytes().first(static_cast<std::size_t>(allocated));
+  const auto expected_source=active->source.batch.plaintext().subspan(
+      static_cast<std::size_t>(active->reuse?active->source_offset:0),static_cast<std::size_t>(plan.input_bytes));
+  require(std::equal(expected_source.begin(),expected_source.end(),bytes.begin()+static_cast<std::ptrdiff_t>(plan.input_offset)),
+      "typed upload differs from exact quantum source");
   uniform_lz4::Chunk last{};
   for(std::uint32_t i=0;i<plan.chunks;++i){
     uniform_lz4::Chunk part{};require(uniform_lz4::chunk(plan,i,part),"uniform chunk mapping");
@@ -147,6 +166,8 @@ hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t
     std::copy(payload.begin(),payload.end(),bytes.begin()+static_cast<std::ptrdiff_t>(part.output));
     word(bytes,static_cast<std::size_t>(part.size_slot),payload.size());last=part;
   }
+  if(active->fault=="reuse-unused-tail" && allocated<active->allocation_bytes)
+    active->bytes()[static_cast<std::size_t>(allocated)]^=std::byte{1};
   if(active->fault=="guard")bytes[last.output+last.output_capacity]^=std::byte{1};
   if(active->fault=="input")bytes[last.input]^=std::byte{1};
   if(active->fault=="padding")bytes[plan.output_offset-1]^=std::byte{1};
@@ -202,6 +223,56 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
   }
   return result;
 }
+UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}){
+  Activate owner(state);state.reuse=true;
+  uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"reused fixture peak");
+  if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
+  const auto admitted=plan_uniform_lz4_sweep(state.source.batch,2,quantum.total_bytes);
+  state.allocation_bytes=admitted.device_peak_bytes;
+  const auto api=functions();
+  const auto initialize=[&]{
+    const auto priority=initialize_device(api,0,identity,1);
+    hipDeviceProp_t actual{};check_hip(api.properties(&actual,0),"reused compute properties",HipWorkerStage::device_properties);
+    return uniform_lz4_device_info(actual,coverage,admitted.quantum_chunks,priority);
+  };
+  unsigned initialized=0;std::uint64_t tick=1000;
+  const auto memory=[&](HipMemoryPoint point){
+    state.calls.push_back(point==HipMemoryPoint::pre_initialize?"reuse-pre":
+        point==HipMemoryPoint::initialized?"reuse-admit":"reuse-complete");
+    if(point==HipMemoryPoint::initialized && ++initialized==4 && state.fault=="reuse-memory-next")
+      throw HipWorkerFailure(HipWorkerExit::temporary_pressure,"next quantum pressure",HipWorkerStage::execution);
+    auto current=baseline();current.captured_ms=++tick;
+    if(state.allocated)current.local_usage+=state.allocation_bytes;
+    const auto before=baseline();
+    require_hip_memory(current,identity,1,tick,state.allocation_bytes,point,
+        point==HipMemoryPoint::pre_initialize?nullptr:&before);
+  };
+  return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory);
+}
+void reused_success(const UniformLz4Request& source,unsigned wave){
+  ++scenarios;++successes;State state(source,wave);state.properties.maxGridSize[0]=2;
+  const auto c=reused_compute(state);verify_uniform_lz4_candidates(source.batch,c);
+  const auto count=[&](const char* name){return std::count(state.calls.begin(),state.calls.end(),name);};
+  const auto windows=(source.batch.layout().chunks+1)/2;
+  require(count("initialize")==1 && count("stream-create")==1 && count("allocate")==1 &&
+      count("stream-destroy")==1 && count("release")==1 && count("attributes-1")==1 && count("attributes-2")==1,
+      "reused sweep repeated setup or resource lifetime");
+  require(count("launch")==windows && count("wait")==windows && count("upload")==windows &&
+      count("readback")==windows && count("reuse-complete")==windows && state.property_queries==2 &&
+      state.priority_queries==2 && state.source_offset==source.batch.plaintext().size() &&
+      !state.allocated && !state.stream_live,"reused sweep incomplete coverage/admission/retirement");
+}
+void reused_refused(State& state,HipWorkerExit code,UniformLz4ComputeGrant grant={}){
+  ++scenarios;++refusals;UniformLz4Candidates escaped;
+  try{escaped=reused_compute(state,grant);throw std::runtime_error("missing reused refusal: "+state.fault);}
+  catch(const HipWorkerFailure& f){require(f.code==code,"wrong reused failure category");}
+  require(escaped.payload.empty() && escaped.sizes.empty() && !state.allocated && !state.stream_live,
+      "reused failure exposed partial output or resources");
+  if(state.fault=="reuse-wait-second")require(state.waits==2,"reused wait failure retried");
+  if(state.fault=="reuse-memory-next")require(state.waits==1,"reused pressure submitted next quantum");
+  if(state.fault=="reuse-unused-tail")require(state.waits==(state.source.batch.layout().chunks+1)/2,
+      "unused-tail refusal did not reach partial final quantum");
+}
 void refused(State& state,HipWorkerExit code,UniformLz4ComputeGrant grant={}){
   ++scenarios;++refusals;UniformLz4Candidates escaped;
   try{escaped=compute(state,coverage,grant);throw std::runtime_error("missing uniform compute refusal: "+state.fault);}
@@ -231,14 +302,48 @@ int wmain(int argc,wchar_t** argv){try{
       throw std::runtime_error("uniform null runtime admitted");}
     catch(const HipWorkerFailure& f){require(f.code==(gpu_lz4_cpu_verification_available()?
         HipWorkerExit::invalid_request:HipWorkerExit::unsupported_configuration),"uniform guarded refusal category");}
+    try{(void)run_hip_uniform_lz4_sweep_in_worker(nullptr,kernels,0,identity,1,source,
+        {2,source.batch.layout().total_bytes,65536},std::span(&coverage,1));
+      throw std::runtime_error("reused null runtime admitted");}
+    catch(const HipWorkerFailure& f){require(f.code==(gpu_lz4_cpu_verification_available()?
+        HipWorkerExit::invalid_request:HipWorkerExit::unsupported_configuration),"reused guarded refusal category");}
     return 0;
   }
   require(argc==1,"invalid uniform probe arguments");
   if(!gpu_lz4_cpu_verification_available()){
     State state(source);refused(state,HipWorkerExit::unsupported_configuration);
     require(state.calls.empty(),"raw uniform refusal touched runtime");
+    State reused(source);reused_refused(reused,HipWorkerExit::unsupported_configuration);
+    require(reused.calls.empty(),"raw reused sweep touched runtime");
   }else{
     success(source,32);success(source,64);success(request(1),32);
+    reused_success(source,32);reused_success(source,64);reused_success(request(16U*65536),32);reused_success(request(1),32);
+    for(const auto* name:{"initialize","properties-1","properties-2","select","priority-1","priority-2",
+        "attributes-1","attributes-2","stream-create","allocate","upload","launch","wait","readback",
+        "stream-destroy","release","reuse-wait-second","reuse-unused-tail","reuse-memory-next",
+        "guard","input","padding","size-zero","size-large","payload"}){
+      State state(source);state.fault=name;
+      const auto code=state.fault=="allocate" || state.fault=="reuse-memory-next"?HipWorkerExit::temporary_pressure:
+          state.fault=="reuse-unused-tail" || state.fault=="guard" || state.fault=="input" ||
+          state.fault=="padding" || state.fault=="size-zero" || state.fault=="size-large" ||
+          state.fault=="payload"?HipWorkerExit::integrity_failure:HipWorkerExit::device_fault;
+      reused_refused(state,code);
+    }
+    {State state(source);state.fault="guard";state.secondary_fault="release";reused_refused(state,HipWorkerExit::device_fault);}
+    {State state(source);state.null_stream=true;reused_refused(state,HipWorkerExit::device_fault);
+      require(state.waits==0 && std::count(state.calls.begin(),state.calls.end(),"allocate")==0,
+          "null reused stream allocated or submitted work");}
+    {State state(source);state.bad_alignment=true;reused_refused(state,HipWorkerExit::device_fault);}
+    {State state(source);state.null_allocation=true;reused_refused(state,HipWorkerExit::device_fault);}
+    for(const auto bad:std::array<UniformLz4ComputeGrant,3>{{{0,1,65536},{2,1,65536},{2,328288,32768}}}){
+      State state(source);reused_refused(state,HipWorkerExit::invalid_request,bad);
+      require(state.calls.empty(),"invalid reused grant touched runtime");
+    }
+    {State state(source);state.properties.maxGridSize[0]=1;
+      reused_refused(state,HipWorkerExit::unsupported_configuration);
+      require(!state.allocated && !state.stream_live,"unsupported reused grid allocated work");}
+
+
     {
       ++scenarios;++successes;State state(source);HipPhaseTrace trace;
       const auto candidate=compute(state,coverage,{},&trace);

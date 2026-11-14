@@ -59,6 +59,8 @@ UniformLz4Candidates accept_uniform_lz4_reply(UniformLz4Bytes,const PreparedUnif
     std::uint64_t,WorkerExecution);
 // Same canonical shared layout as the typed device entry. Every output guard,
 // immutable input and alignment gap is checked; scratch may change. No launch.
+// Exact active extent; initializes every byte, including reused dirty storage.
+void initialize_uniform_lz4_upload(const PreparedUniformLz4&,std::span<std::byte>);
 std::vector<std::byte> uniform_lz4_upload(const PreparedUniformLz4&);
 UniformLz4Candidates verify_uniform_lz4_readback(const PreparedUniformLz4&,UniformLz4Bytes);
 }

@@ -318,11 +318,9 @@ int worker(int argc, wchar_t** argv) {
         "incompatible uniform API table",HipWorkerStage::kernel_table);
     clock.end(HipPhase::entry_bind);
     const auto targets=std::span<const hip_detail::Lz4KernelCoverage>(hip_uniform_lz4_bundle::targets);
-    const auto candidates=sweeping?compute_uniform_lz4_sweep(*request,*sweep_plan,
-        [&](const UniformLz4Request& quantum){
-          return run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
-              quantum,grant,targets);
-        }):run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
+    const auto candidates=sweeping?run_hip_uniform_lz4_sweep_in_worker(runtime.get(),*api,
+        static_cast<int>(ordinal),luid,mask,*request,grant,targets):
+        run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
             *request,grant,targets,recording?&clock:nullptr);
     clock.begin(HipPhase::reply_encode);
     auto frame=encode_uniform_lz4_reply(request->batch,request->request_id,candidates,WorkerExecution::hip);

@@ -584,8 +584,8 @@ def main():
                 row["gpu_executed"] is False and type(row["checks"]) is int and row["checks"]>0 and
                 row["scenarios"]==row["successes"]+row["refusals"],
                 "uniform compute CPU qualification contract")
-            require((available and row["successes"]==5 and row["refusals"]>=37) or
-                (not available and row["successes"]==0 and row["refusals"]==1),
+            require((available and row["successes"]==9 and row["refusals"]>=70) or
+                (not available and row["successes"]==0 and row["refusals"]==2),
                 "uniform compute CPU positive/failure coverage mismatch")
             return dict(bytes=executable.stat().st_size,sha256=digest(executable),
                 imports=sorted(set(imports)),qualification=row,private_module_loaded=False,

@@ -84,8 +84,8 @@
     }
   ],
   "next_implementation": {
-    "contract": "docs/UNIFORM_LZ4_SWEEP.md",
-    "next": "Implement a bounded-operation device context/resource scope with one verified setup and one stream/slab, fresh per-quantum memory/CPU verification and guarded unused tail; qualify initialization/ownership/terminal failure before any different owner trial. Root cause remains unproven. Preserve the full compression/Windows/learning/recovery goal."
+    "contract": "docs/UNIFORM_LZ4_REUSE.md",
+    "next": "Qualify one device setup/stream/slab, fresh per-quantum admission, active/unused-tail CPU verification and exact final retirement. Retain failures; no owner retry before full new-source core/SDK gates. Advance useful complete costs and automatic Windows integration without shrinking the full cold-compression/learning/recovery objective."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
@@ -367,9 +367,11 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "No correction implemented. Reusable bounded-operation device setup/stream/slab and guarded per-quantum validation require design, implementation and exact-source qualification.",
-    "contract": "docs/UNIFORM_LZ4_SWEEP.md",
-    "owner_executed": false
+    "status": "Reusable bounded uniform scope implemented; publishing-source qualification pending. Historical abnormal exit remains unproven.",
+    "contract": "docs/UNIFORM_LZ4_REUSE.md",
+    "job_cap_raised": false,
+    "owner_executed": false,
+    "normal_GPU_routing": false
   },
   "resolved": [
     {
@@ -937,6 +939,13 @@
       "GPU_failure_cause": "unproven",
       "evidence": "docs/evidence/uniform-sweep-847423f-failure.json",
       "status": "CPU/SDK qualified; actual owner GPU sweep failed. Do not repeat unchanged.",
+      "normal_GPU_routing": false
+    },
+    "reused_sweep": {
+      "status": "Reusable bounded uniform scope implemented; publishing-source qualification pending. Historical abnormal exit remains unproven.",
+      "contract": "docs/UNIFORM_LZ4_REUSE.md",
+      "job_cap_raised": false,
+      "owner_executed": false,
       "normal_GPU_routing": false
     }
   }

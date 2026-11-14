@@ -26,6 +26,20 @@ inline Lz4DeviceInfo uniform_lz4_device_info(const hipDeviceProp_t& p,
       HipWorkerStage::device_properties);
   return {priority,static_cast<std::uint32_t>(wave),p.sharedMemPerBlock};
 }
+inline void uniform_lz4_runtime_preflight(const HipApi& api,
+    const uniform_lz4::KernelApi& kernel,Lz4KernelCoverage coverage){
+  lz4_require(uniform_lz4::compatible_kernel_api(kernel),HipWorkerExit::invalid_request,
+      "incompatible uniform compression kernel table");
+  lz4_require(coverage.architecture.starts_with("gfx") && coverage.architecture.size()>3 &&
+      coverage.architecture.size()<=32 && coverage.wave_mask && !(coverage.wave_mask&~3U) &&
+      std::all_of(coverage.architecture.begin(),coverage.architecture.end(),[](char c){
+        return (c>='a'&&c<='z')||(c>='0'&&c<='9');}),
+      HipWorkerExit::invalid_request,"invalid uniform compression coverage");
+  lz4_require(api.init && api.properties && api.set_device && api.priority_range &&
+      api.create_stream && api.destroy_stream && api.synchronize && api.allocate &&
+      api.release && api.copy && api.launch,HipWorkerExit::runtime_unavailable,
+      "uniform compression runtime table incomplete",HipWorkerStage::runtime_api);
+}
 template<class Initialize,class MemoryPolicy>
 UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes attributes,
     const uniform_lz4::KernelApi& kernel,const UniformLz4Request& request,
@@ -38,15 +52,7 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
       grant.maximum_chunks && request.batch.layout().chunks<=grant.maximum_chunks &&
       grant.maximum_device_bytes && request.batch.layout().total_bytes<=grant.maximum_device_bytes,
       HipWorkerExit::invalid_request,"uniform compression request exceeds qualified grant");
-  lz4_require(coverage.architecture.starts_with("gfx") && coverage.architecture.size()>3 &&
-      coverage.architecture.size()<=32 && coverage.wave_mask && !(coverage.wave_mask&~3U) &&
-      std::all_of(coverage.architecture.begin(),coverage.architecture.end(),[](char c){
-        return (c>='a'&&c<='z')||(c>='0'&&c<='9');}),
-      HipWorkerExit::invalid_request,"invalid uniform compression coverage");
-  lz4_require(api.init && api.properties && api.set_device && api.priority_range &&
-      api.create_stream && api.destroy_stream && api.synchronize && api.allocate &&
-      api.release && api.copy && api.launch,HipWorkerExit::runtime_unavailable,
-      "uniform compression runtime table incomplete",HipWorkerStage::runtime_api);
+  uniform_lz4_runtime_preflight(api,kernel,coverage);
   const auto plan=request.batch.layout();
   if(profile)profile->begin(HipPhase::device_initialize);
   memory(HipMemoryPoint::pre_initialize);
@@ -116,4 +122,9 @@ UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
     std::span<const hip_detail::Lz4KernelCoverage>,HipPhaseRecorder* profile=nullptr);
+UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
+    const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
+    std::span<const hip_detail::Lz4KernelCoverage>);
+
 }
