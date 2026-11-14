@@ -11,49 +11,66 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "source": "d33efd64d94427f5b6c9f2e269520d4ba5e26bcd",
-    "core_run": 43613526754,
+    "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+    "tree": "3374d24b761c74d22b5451ac23340e3aa764adce",
+    "core_run": 43619821755,
     "core_jobs_passed": 13,
     "core_jobs_total": 13,
-    "native_test_groups": 152,
-    "sdk_run": 43613527401,
+    "native_test_groups": 153,
+    "sdk_run": 43619822169,
     "sdk_complete": true,
-    "owner_bounded_reused_GPU_sweep": true,
+    "owner_bounded_instrumented_GPU_sweep": true,
     "owner_CPU_current_and_prior_recovery": true,
-    "worker_peak_commit_bytes": 92737536,
+    "worker_peak_commit_bytes": 92364800,
     "job_cap_bytes": 134217728,
     "device_bytes": 328288,
     "source_bytes": 1048576,
     "encoded_payload_bytes": 135344,
     "image_bytes": 1114112,
-    "exchange_ns": 626486100,
-    "evidence": "docs/evidence/uniform-reuse-d33efd6.json",
+    "exchange_ns": 625472600,
+    "setup_wall_ns": 423295500,
+    "kernel_wait_sum_wall_ns": 21927100,
+    "maximum_kernel_wait_wall_ns": 4414600,
+    "evidence": "docs/evidence/uniform-sweep-profile-11fbf07.json",
     "comparative_benefit_proven": false,
-    "normal_GPU_routing": false
+    "normal_GPU_routing": false,
+    "cost_profile_qualified": false
   },
   "owner_gpu_observation": {
-    "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
-    "worker_commit": "480573e71d2df72492d22b12422e9e1600013272",
+    "source_commit": "11fbf0797769f234aeab835f71afa678c5ac174a",
     "actual_gpu_execution": true,
     "synthetic": true,
-    "match_input_bytes": 65536,
-    "match_proposals": 56,
-    "native_forwarded_proposals": 56,
-    "native_selected_records": 0,
-    "cpu_payload_bytes": 8316,
-    "proposed_payload_bytes": 8316,
-    "cpu_profile_ns": 5410700,
-    "proposed_profile_ns": 714189100,
-    "exchange_ns": 706522500,
-    "device_bytes": 229376,
-    "locked_peak_bytes": 8650752,
-    "result_admitted": true,
+    "profile": "FLUSP001 finite sweep; legacy phase fields unsupported",
+    "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+    "tree": "3374d24b761c74d22b5451ac23340e3aa764adce",
+    "core_run": 43619821755,
+    "core_jobs_passed": 13,
+    "core_jobs_total": 13,
+    "native_test_groups": 153,
+    "sdk_run": 43619822169,
+    "sdk_complete": true,
+    "owner_bounded_instrumented_GPU_sweep": true,
+    "owner_CPU_current_and_prior_recovery": true,
+    "worker_peak_commit_bytes": 92364800,
+    "job_cap_bytes": 134217728,
+    "device_bytes": 328288,
+    "source_bytes": 1048576,
+    "encoded_payload_bytes": 135344,
+    "image_bytes": 1114112,
+    "exchange_ns": 625472600,
+    "setup_wall_ns": 423295500,
+    "kernel_wait_sum_wall_ns": 21927100,
+    "maximum_kernel_wait_wall_ns": 4414600,
+    "evidence": "docs/evidence/uniform-sweep-profile-11fbf07.json",
+    "comparative_benefit_proven": false,
+    "normal_GPU_routing": false,
+    "cost_profile_qualified": false,
     "confirmed_process_exit": true,
-    "no_timeouts": true,
     "no_owned_workers_after": true,
-    "driver_runtime_unchanged": true,
-    "evidence": "docs/evidence/native-gpu-ram-645a1d1.json",
-    "qualification": "Explicit unmounted synthetic native composition only. Cold GPU path slower and no proposal encoding selected; normal I/O remains CPU-only."
+    "locked_peak_bytes": 4194304,
+    "locked_after_bytes": 0,
+    "working_set_restored": true,
+    "qualification": "One aligned finite hardware case, source-bound independent CPU current/prior recovery. No comparative benefit, automatic costs or ordinary GPU I/O."
   },
   "unresolved": [
     {
@@ -88,15 +105,23 @@
         "qualified_run": 43450358079,
         "root_and_source_admission_resolved": true
       }
+    },
+    {
+      "id": "uniform-sweep-847423f-abnormal-exit",
+      "next_package": "D01",
+      "status": "historical cause unproven",
+      "evidence": "docs/evidence/uniform-sweep-847423f-failure.json",
+      "failure": "0xc0000409 in the old repeated-setup sweep; independent CPU fallback/recovery/cleanup passed.",
+      "next": "Retain causal uncertainty and investigate with isolated evidence. The later reused scope passed; neither a green case nor proximity to the commitment cap proves the old cause. No unchanged owner retry."
     }
   ],
   "next_implementation": {
-    "contract": "docs/UNIFORM_LZ4_REUSE.md",
-    "next": "Acquire repeated configuration/recovery keyed whole-operation cost and foreground-impact evidence, then integrate the controlled application under admitted resource/recovery policy. One aligned sample is not a reusable bound. Continue minimum-total-size collective compression and full Windows/recovery/learning gates; no unchanged owner trial or release."
+    "contract": "docs/DEVELOPMENT_PLAN.md",
+    "next": "Acquire varied repeated configuration/recovery/shape-bound costs, amortize setup safely, connect ordinary Windows GPU I/O with independent CPU recovery, then deliver scalable storage and a protected cross-file compression transaction. No unchanged owner trial; no release."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
-    "native_compression": "CPU raw/Zstd/zero/pattern; experimental GPU match route not qualified for production gain",
+    "native_compression": "CPU raw/Zstd/zero/pattern/LZ4; resource-sized authenticated GPU LZ4 candidates are stored/recovered in explicit native operations. The bounded instrumented 11fbf07 hardware case passed; ordinary Windows I/O remains CPU-only and comparative benefit is unproven.",
     "persistent_learner": false,
     "autonomous_background_executor": false,
     "general_payload_repair": false,
@@ -105,7 +130,7 @@
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; 99d5365 passed VM model/GUI and one healthy owner GUI with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
-    "gpu_codec_candidate": "Complete allocation and independent CPU verification passed all five core configurations at86bc830. Offline object inspection passed at1d20f40 and current-AMD content at5eaa07a. Priority capability corroboration, exact old/current CPU oracle and SDK/worker gates passed atb2cf989. No runtime/stored codec or useful GPU gain selected."
+    "gpu_codec_candidate": "Uniform version-2 typed runtime, finite reused compute and FLUSP001 observations passed full SDK/all 13 core jobs at 11fbf07, then one bounded hardware/native/independent-CPU-recovery check. Cost qualification, ordinary Windows routing and collective GPU formats remain unfinished."
   },
   "safety": {
     "filesystem_backing": "bounded locked RAM only",
@@ -119,24 +144,23 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-14 09:08 UTC",
-    "native_transport": "Authenticated paginated GitHub Dependabot alerts API",
     "open_alerts": 0,
-    "scope": "Open alerts only; not absence of all vulnerabilities."
+    "pages": 1,
+    "checked_utc": "2026-11-14 17:35:19 UTC",
+    "transport": "Authenticated paginated GitHub Dependabot alerts API",
+    "scope": "Open alerts only; not a security audit."
   },
   "source_routing": {
-    "indexed_commit": "df51d8c5ba80430453c805619438f431d5677f3b",
-    "equivalent_current_commit": "df51d8c5ba80430453c805619438f431d5677f3b",
-    "run": 43418598342,
-    "artifact": 14032499233,
-    "artifact_sha256": "99a540407e38e4cada6b5fcf38620af0789888702c00e789411ea7761ee09115",
-    "source_sha256": "067658b6e085c1387505cafe47666de7d1b8127999001bb0ca8653218bea07ef",
-    "actual_queries": 8,
-    "provider": "0.2.43",
-    "source_equivalence": "Exact source-bound default receipt; live protocol, allocation-layout and build integration files confirmed before this change.",
-    "evidence": "docs/evidence/gpu-lz4-offline-df51d8c.json",
-    "infrastructure_hits_not_coverage": true,
-    "provider_paths_read_as_exact_known_scope": true
+    "indexed_source": "1d9d0e067787a824df8d3e0d8a84b5c4e1356714",
+    "reviewed_source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+    "provider": "cocoindex-code",
+    "provider_version": "0.2.43",
+    "actual_searches": 8,
+    "source_files": 188,
+    "source_sha256": "62d6ea6ffe24de000abc764a743c4ddbe35e9064ac57a05bf32451ebe3dc3ee3",
+    "artifact": 14123716095,
+    "verified_live_candidates": 5,
+    "note": "The comparison to reviewed source changes documentation and one packaging Python file; the five candidate product files are unchanged. Shared owner MCP was not modified."
   },
   "historical": {
     "qualified_checkpoint": {
@@ -310,7 +334,7 @@
       "id": "G03",
       "title": "Reduce GPU pipeline overhead while preserving containment",
       "exit": "Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes.",
-      "entry_gate": "Actual G02 native proposal/compression composition is demonstrated at645a1d1. G02's benefit exit remains unmet; lifecycle work must not depend on already having that benefit."
+      "entry_gate": "Finite native GPU bytes and exact CPU recovery are demonstrated. D01's unresolved historical failures remain open; they do not block unrelated source/measurement/scaling work. Every changed lifecycle must independently prove containment and exact quiescence; do not assume a historical cause."
     },
     {
       "id": "S01",
@@ -340,7 +364,7 @@
     {
       "id": "A04",
       "title": "Collectively optimize cold data and layout",
-      "exit": "Unattended collective optimization produces verified net gains without manual intervention, runaway rewrites or material foreground disruption."
+      "exit": "Unattended collective optimization minimizes total stored bytes on held-out workloads within measured practical latency/speed and resource constraints, preserving exact recovery, normal Windows behavior and promptly yielding background work. Moderate retrieval cost is acceptable; no required superiority in every metric."
     },
     {
       "id": "R01",
@@ -374,8 +398,8 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "No new runtime source awaiting qualification. Reusable cost acquisition, varied complete-cost comparisons and automatic Windows integration remain unfinished.",
-    "contract": "docs/UNIFORM_LZ4_REUSE.md",
+    "status": "No runtime source awaiting qualification from this round. Automatic keyed cost acquisition, ordinary Windows GPU integration, scalable storage and collective compression remain unfinished.",
+    "contract": "docs/UNIFORM_LZ4_SWEEP_PROFILE.md",
     "normal_GPU_routing": false
   },
   "resolved": [
@@ -972,18 +996,23 @@
     }
   },
   "uniform_sweep_observations": {
-    "status": "implemented; source/SDK CPU checks passed at 1d9d0e0; final metadata-correction source qualification pending",
+    "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+    "tree": "3374d24b761c74d22b5451ac23340e3aa764adce",
     "contract": "docs/UNIFORM_LZ4_SWEEP_PROFILE.md",
-    "previous_source": "1d9d0e067787a824df8d3e0d8a84b5c4e1356714",
-    "previous_sdk_run": 43618214759,
+    "qualification": "All 13 core jobs, full SDK and one bounded instrumented synthetic owner GPU/native/CPU-recovery operation passed.",
+    "core_run": 43619821755,
+    "sdk_run": 43619822169,
+    "evidence": "docs/evidence/uniform-sweep-profile-11fbf07.json",
+    "retained_fixture_failure": "docs/evidence/uniform-sweep-profile-dc26fc3-fixture-failure.json",
+    "owner_executed": true,
+    "ordinary_GPU_route": false,
+    "cost_qualification_automatic": false,
+    "comparative_benefit_proven": false,
     "checks": 190,
     "uniform_compute_scenarios": 83,
     "uniform_compute_successes": 10,
     "uniform_compute_refusals": 73,
     "admission_exits": 25,
-    "owner_executed": false,
-    "normal_GPU_routing": false,
-    "cost_profile_qualified": false,
     "stored_formats_changed": false
   },
   "cpu_fallback_contract": "Different encoder/format/size permitted; continued operation and independent CPU decoding of every stored GPU representation mandatory.",

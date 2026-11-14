@@ -135,7 +135,8 @@
       "deliverables": [
         "Connect the qualified controlled native write and resource-sized GPU worker to the actual Windows helper/callback lifecycle; preserve independent CPU source, one outstanding admitted operation and separate exact retirement.",
         "Use GPU output only after immutable-source/CPU decode comparison, fresh completion admission and confirmed child/supervisor exit. CPU fallback may use a different encoder, format and size; it must read every admitted GPU representation.",
-        "Measure whole-operation throughput, fallback behavior and TOTAL image size on varied data. Prototype results and manually constructed CPU controls are not competitive compression baselines."
+        "Measure whole-operation throughput, fallback behavior and TOTAL image size on varied data. Prototype results and manually constructed CPU controls are not competitive compression baselines.",
+        "Add separately qualified GPU read/decode where useful; maintain protected decoded-byte verification and independent CPU access to every stored format/dependency. Read/write routes may choose different backends."
       ],
       "validation": [
         "Mixed synthetic and bounded public real data: offsets, truncations, overlaps, malformed proposals, incompressible bytes and corruption.",
@@ -417,6 +418,17 @@
         "next": "D01 lifecycle prerequisite, then useful whole-operation GPU gains; no removed CPU oracle or resident worker.",
         "layout_cpu_checks": 8918,
         "layout_sizes_checked": 65537
+      },
+      "reused_sweep_observations": {
+        "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+        "evidence": "docs/evidence/uniform-sweep-profile-11fbf07.json",
+        "setup_ns": 423295500,
+        "kernel_wait_sum_ns": 21927100,
+        "maximum_kernel_wait_ns": 4414600,
+        "exchange_ns": 625472600,
+        "sample_count": 1,
+        "cost_model_qualified": false,
+        "next": "Repeated varied-input keyed costs, useful finite-work amortization and ordinary Windows integration; no unchanged rerun."
       }
     },
     {
@@ -773,17 +785,18 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source": "publishing source; exact commit to be recorded after qualification",
+    "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+    "tree": "3374d24b761c74d22b5451ac23340e3aa764adce",
     "contract": "docs/UNIFORM_LZ4_SWEEP_PROFILE.md",
-    "qualification": "pending exact publishing-source core and complete SDK checks",
-    "previous_measurement_source": "1d9d0e067787a824df8d3e0d8a84b5c4e1356714",
-    "previous_measurement_sdk_run": 43618214759,
-    "previous_measurement_sdk_complete": true,
+    "qualification": "All 13 core jobs, full SDK and one bounded instrumented synthetic owner GPU/native/CPU-recovery operation passed.",
+    "core_run": 43619821755,
+    "sdk_run": 43619822169,
+    "evidence": "docs/evidence/uniform-sweep-profile-11fbf07.json",
     "retained_fixture_failure": "docs/evidence/uniform-sweep-profile-dc26fc3-fixture-failure.json",
-    "owner_executed": false,
+    "owner_executed": true,
     "ordinary_GPU_route": false,
     "cost_qualification_automatic": false,
-    "manifest_correction": "Take admission counts from the validated qualification rows; advertise the opt-in sweep profile envelope explicitly."
+    "comparative_benefit_proven": false
   },
   "next_product_slices": [
     "Finish source-specific sweep observation qualification; acquire repeated varied-input keyed costs and connect ordinary Windows/GPU/native storage/read/fallback.",

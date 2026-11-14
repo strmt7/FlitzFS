@@ -26,8 +26,11 @@ source digest 62d6ea6ffe24de000abc764a743c4ddbe35e9064ac57a05bf32451ebe3dc3ee3.
 Five relevant live source hashes matched. Search self-hits were not treated as
 implementation evidence.
 
-The latest qualified hardware case is d33efd6: a finite 1-MiB GPU-native operation
-with independent current/prior CPU recovery. Ordinary callbacks remain CPU-only;
+The latest qualified hardware case is 11fbf07: a finite instrumented 1-MiB GPU-native operation
+with independent current/prior CPU recovery. It passed all 13 core jobs and full
+SDK qualification. Setup took 423 ms versus 22 ms accumulated kernel/full wait
+within the measured scope; [evidence](evidence/uniform-sweep-profile-11fbf07.json).
+Ordinary callbacks remain CPU-only;
 complete image size and exchange timing do not establish a comparative advantage.
 Prototype capacity, absent product collective compression, incomplete automatic
 cost acquisition/learning, durability/repair and latest-client Windows semantics

@@ -4,7 +4,8 @@
 
 The opt-in [finite-sweep profile](docs/UNIFORM_LZ4_SWEEP_PROFILE.md)
 separates reusable setup, accumulated work phases and the slowest kernel/quantum.
-The final packaging-metadata source is being qualified; see the state ledger. This does not enable ordinary GPU I/O,
+Source 11fbf07 passed all 13 core jobs, full SDK qualification and one bounded
+instrumented hardware case; [source-bound evidence](docs/evidence/uniform-sweep-profile-11fbf07.json). This does not enable ordinary GPU I/O,
 automatically qualify costs, prove comparative benefit or change stored codecs.
 CPU fallback may use a different encoder and stored size while retaining
 independent byte-exact reads of every admitted GPU representation. The refreshed

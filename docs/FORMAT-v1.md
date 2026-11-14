@@ -4,7 +4,8 @@
 
 The new [finite-sweep profile](UNIFORM_LZ4_SWEEP_PROFILE.md) uses a separate
 256-byte FLUSP001 worker diagnostic envelope. Stored formats and ordinary
-version-2 replies are unchanged. CPU encoding may differ from GPU encoding;
+version-2 replies are unchanged. Source 11fbf07 passed its complete isolated gates
+and one instrumented hardware case; see [evidence](evidence/uniform-sweep-profile-11fbf07.json). CPU encoding may differ from GPU encoding;
 independent readers must recover all admitted stored representations.
 
 The SDK-only HIP LZ4 compute candidate does not add or change any stored encoding.

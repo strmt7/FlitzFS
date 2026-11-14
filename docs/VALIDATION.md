@@ -1,10 +1,13 @@
 # Validation ledger — experimental release 0.2
 
-## Finite-sweep measurement candidate
+## Qualified experimental finite-sweep observations
 
 The opt-in [finite-sweep profile](UNIFORM_LZ4_SWEEP_PROFILE.md)
 separates reusable setup, accumulated work phases and the slowest kernel/quantum.
-Current-source qualification is pending. This does not enable ordinary GPU I/O,
+Source 11fbf07 passed all 13 core jobs, complete SDK qualification and one
+bounded instrumented synthetic hardware operation. See
+[evidence](evidence/uniform-sweep-profile-11fbf07.json). These are scoped experimental results,
+not automatic cost qualification or ordinary GPU filesystem routing. This does not enable ordinary GPU I/O,
 automatically qualify costs, prove comparative benefit or change stored codecs.
 CPU fallback may use a different encoder and stored size while retaining
 independent byte-exact reads of every admitted GPU representation.

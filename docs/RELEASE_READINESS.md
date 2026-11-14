@@ -12,16 +12,16 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
-The latest qualified hardware source is d33efd64d94427f5b6c9f2e269520d4ba5e26bcd.
+The latest qualified hardware source is 11fbf0797769f234aeab835f71afa678c5ac174a.
 Its full 13-job core matrix and complete selected ROCm SDK qualification passed.
 One explicit, finite synthetic operation GPU-encoded 1,048,576 input bytes into
 135,344 payload bytes, stored the accepted GPU representation through the native
 storage path, and recovered both current and prior data through the independent
 CPU reader. Exact worker/supervisor retirement, zero remaining locked bytes and
 restored working-set limits were checked. It was unmounted.
-[Source-bound evidence](evidence/uniform-reuse-d33efd6.json)
+[Source-bound evidence](evidence/uniform-sweep-profile-11fbf07.json)
 
-That exchange took 626,486,100 ns. The complete image occupied 1,114,112 bytes,
+That exchange took 625,472,600 ns. The complete image occupied 1,114,112 bytes,
 including fixed metadata, alignment and retained history. This is **not** a
 demonstrated whole-image size or end-to-end speed advantage. The CPU fixture used
 a manually constructed alternate representation, not a competitive optimized CPU
@@ -34,9 +34,13 @@ cause. Keep the failed evidence and do not claim a proven memory-cap diagnosis.
 
 The new finite-sweep observation round adds source/adapter/grant-bound timing
 of setup, each serialized work phase, slowest kernel/quantum and final retirement.
-Its exact-source qualification is retained in the state/validation ledger; no
-owner execution of the new instrumented source is claimed in this assessment. It does not automatically produce
-qualified costs or enable an ordinary Windows callback route.
+The instrumented source passed its complete isolated gates and one bounded
+hardware operation. Setup took 423,295,500 ns of the 467,675,900-ns measured
+compute scope; accumulated kernel/full-wait time was 21,927,100 ns. These are one
+sample's host wall measurements, not GPU-event timing or a reusable cost bound.
+The result prioritizes safe amortization and complete Windows integration over
+kernel-only tuning. Automatic qualified costs and ordinary GPU callbacks remain
+unimplemented.
 
 ## Product gaps and release gates
 

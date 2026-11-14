@@ -14,7 +14,11 @@ This round prioritizes complete product paths over more disconnected probes.
 
 ### 1. Finish useful automatic GPU operation — G02/G03/A01/A02
 
-Qualify the finite-sweep observation source first. Acquire repeated, varied-input,
+Finite-sweep observations are qualified at 11fbf07; the one hardware sample spent
+423 ms in setup and 22 ms in accumulated kernel/full wait. The complete exchange
+was 625 ms. Use that diagnosis to prioritize safe finite-work amortization and
+ordinary integration; it is not a comparative performance result.
+Acquire repeated, varied-input,
 configuration/recovery/shape-bound costs from successful independently checked
 results and confirmed retirement, including process peaks and full parent cost.
 Reject missing/stale/partial evidence; do not qualify or extrapolate from one
@@ -34,6 +38,11 @@ device or headroom must preserve reads and continued CPU writes without repeated
 device scans. Recovery requires relevant changed/qualified evidence, not merely
 elapsed time. Do not introduce a resident helper until its bounded lifecycle and
 equivalent containment are reviewed and independently exercised.
+
+Add a separately qualified GPU read/decode path where it provides measured value,
+with protected decoded-byte verification and independent CPU recovery for every
+format/dependency. Read and write routing may choose different backends from
+actual benefit and contention; GPU presence alone is not a benefit measurement.
 
 Exit: real Win32/Explorer-path I/O uses actual admitted GPU compression, independently
 reopens on CPU with GPU unavailable, survives injected refusals/cancellation, and

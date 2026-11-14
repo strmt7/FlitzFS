@@ -1,0 +1,517 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+  "tree": "3374d24b761c74d22b5451ac23340e3aa764adce",
+  "date": "2026-11-14",
+  "qualification": {
+    "core_run": 43619821755,
+    "core_jobs_passed": 13,
+    "core_jobs_total": 13,
+    "native_CTest_groups": 153,
+    "sdk_run": 43619822169,
+    "sdk_job": 132522739091,
+    "sdk_complete": true,
+    "sdk_artifact": 14123684930,
+    "sdk_archive_sha256": "1b4980c1599f1b4f4663756f41ceb5b75da1f11231ac07b0398fab6f72add39b",
+    "sdk_root_sha256": "ccbdfa4acd36290060fde9ab0ca896a8105fbc41b38557dd7c340f618240e263",
+    "sdk_root_bytes": 427444,
+    "uniform_compute": {
+      "checks": 3485,
+      "scenarios": 83,
+      "successes": 10,
+      "refusals": 73,
+      "decoder_available": true,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "uniform_raw": {
+      "checks": 15,
+      "scenarios": 2,
+      "successes": 0,
+      "refusals": 2,
+      "decoder_available": false,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "uniform_admission": {
+      "checks": 151,
+      "exits_confirmed": 25,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "native_tests": {
+      "artifact_sha256": "5a09f4c862219fa618df9c21e493a856a345e4d317f271395b2ae86f87baf9e4",
+      "archive_bytes": 13769,
+      "log": "LastTest.log",
+      "log_bytes": 161352,
+      "log_sha256": "6f6400608bfb84309b03357c9041cf082ade11ed7bc94cce957cf024b05db74e",
+      "evidence": [
+        "Uniform sweep: checks=48 serial_complete=true partial_failure_terminal=true gpu_executed=false\r",
+        "Uniform profile: checks=143 exact_data=true disabled_clock_calls=0 gpu_executed=false\r",
+        "Uniform sweep profile: checks=190 exact_data=true disabled_clock_calls=0 gpu_executed=false\r",
+        "Controlled native uniform writes: checks=106 exact_advice_storage=true CPU_fallback=true prior_and_unrelated_preserved=true gpu_executed=false mounted=false\r",
+        "Uniform controller: configuration/peak/shape admission, fresh final observation, live-helper CPU fallback, late quarantine and exact retirement passed; gpu_executed=false\r"
+      ]
+    },
+    "core": {
+      "conclusion": "success",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "id": 132522733979,
+          "name": "cpu (windows-2025-vs2026, OFF)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132522734146,
+          "name": "cpu (ubuntu-24.04, ON)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132522734148,
+          "name": "sanitizers",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132522734166,
+          "name": "windows-native",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132522734170,
+          "name": "cpu (ubuntu-24.04, OFF)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132526136698,
+          "name": "windows-mount",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132526923024,
+          "name": "windows-write-mount (mutations)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132526923029,
+          "name": "windows-write-mount (basic)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132526923031,
+          "name": "windows-write-mount (restart)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132526923042,
+          "name": "windows-write-mount (delete)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132526923085,
+          "name": "windows-write-mount (ram-handoff)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132526923089,
+          "name": "windows-write-mount (crash-restart)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 132526923112,
+          "name": "windows-write-mount (crash)",
+          "status": "completed"
+        }
+      ],
+      "source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+      "status": "completed"
+    }
+  },
+  "package": {
+    "artifact": 14124340594,
+    "destination": "E:\\FlitzFS-source-20261114-842d25ec3e53469fb4bb112cfe5578f7\\runtime-sweep-profile-11fbf07",
+    "commit": "11fbf0797769f234aeab835f71afa678c5ac174a",
+    "outer_sha256": "83b7dedf259bda0ef96bc3f3d10d829c8d93984968bd953da71539605ab7cbb4",
+    "inner_sha256": "b8beb55409e1aa0047b6d98bc928bd0df61ee251e71d18a2d2d933e6e4b77402",
+    "files": 14,
+    "bytes": 1917205,
+    "executed": false,
+    "manifest_uniform_admission_exits": 25,
+    "manifest_sweep_profile": true,
+    "envelope": "FLUSP001",
+    "native_worker_limit_bytes": 134217728,
+    "controller_limit_bytes": 268435456,
+    "cpu_rate": 2000
+  },
+  "owner": {
+    "preflight": {
+      "observed_utc": "2026-11-14T17:31:03.0876027Z",
+      "boot": "2026-11-14T07:29:07.5000000+01:00",
+      "physical_total_kib": 66704480,
+      "physical_available_kib": 28688024,
+      "commit_available_kib": 72926272,
+      "gpu": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "DriverVersion": "32.0.32015.16001",
+          "Status": "OK"
+        }
+      ],
+      "runtime_path": "C:\\WINDOWS\\system32\\amdhip64_7.dll",
+      "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+      "owned_named_processes": []
+    },
+    "cpu_fixture": {
+      "exit": 0,
+      "pid": 50996,
+      "exit_confirmed": true,
+      "elapsed_ms": 73,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "Uniform sweep native CPU fixture: {\"complete\":true,\"source_bytes\":1048576,\"image_bytes\":1114112,\"active_payload_bytes\":135625,\"candidate_stored_exactly\":true,\"independent_native_readback\":true,\"prior_preserved\":true,\"locked_peak_bytes\":4194304,\"locked_after_bytes\":0,\"working_set_restored\":true,\"gpu_executed\":false,\"mounted\":false}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "discovery": {
+      "exit": 0,
+      "pid": 15744,
+      "exit_confirmed": true,
+      "elapsed_ms": 44,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "HIP adapter metadata: {\"complete\":true,\"gpu_executed\":false,\"hip_initialized\":false,\"adapters_seen\":2,\"adapters\":[{\"dxgi_ordinal\":0,\"luid\":\"9274010000000000\",\"vendor\":4098,\"device\":30032,\"dedicated_bytes\":16977985536,\"probe_node_mask\":1}],\"controller_job_peak_commit_bytes\":1871872}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "topology": {
+      "exit": 0,
+      "pid": 44732,
+      "exit_confirmed": true,
+      "elapsed_ms": 152,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "GPU topology metadata: {\"gpu_executed\":false,\"hip_initialized\":false,\"queues_requested\":false,\"batch_allocations_requested\":false,\"kernel_launch_requested\":false,\"status\":0,\"phase\":10,\"native_status\":0,\"node_count\":1,\"amd_hardware\":true,\"luid_matches\":true,\"single_node_verified\":true,\"software_fixture\":false,\"controller_job_peak_commit_bytes\":46665728}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "runtime_identity": {
+      "exit": 0,
+      "pid": 51756,
+      "exit_confirmed": true,
+      "elapsed_ms": 146,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "HIP identity metadata: {\"properties_verified\":true,\"hip_initialization_confirmed\":true,\"flitzfs_kernel_load_requested\":false,\"batch_allocations_requested\":false,\"kernel_launch_requested\":false,\"ordinal\":0,\"node_mask\":0,\"luid\":\"9274010000000000\",\"luid_matches\":true,\"node_mask_matches\":false,\"worker_exit\":0,\"worker_category\":0,\"worker_stage\":\"none\",\"timed_out\":false,\"exit_confirmed\":true,\"peak_commit_bytes\":9555968,\"controller_job_peak_commit_bytes\":10948608}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "budget": {
+      "exit": 0,
+      "pid": 10016,
+      "exit_confirmed": true,
+      "elapsed_ms": 41,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "HIP budget metadata: {\"gpu_executed\":false,\"hip_initialized\":false,\"status\":0,\"phase\":6,\"native_status\":0,\"snapshot_valid\":true,\"dedicated_bytes\":16977985536,\"local_budget\":16168480768,\"local_usage\":0,\"nonlocal_budget\":50320211968,\"nonlocal_usage\":0,\"physical_total\":68305387520,\"physical_available\":29092225024,\"commit_limit\":137024864256,\"commit_available\":74434420736,\"nonlocal_growth_envelope\":96965319,\"gate_code\":0,\"controller_job_peak_commit_bytes\":1880064}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "gpu_trial": {
+      "exit": 0,
+      "pid": 19172,
+      "exit_confirmed": true,
+      "elapsed_ms": 675,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "Uniform native sweep GPU: {\"gpu_result_verified\":true,\"gpu_payload_stored_exactly\":true,\"CPU_fallback_selected\":false,\"source_bytes\":1048576,\"chunks\":16,\"device_bytes\":328288,\"planned_windows\":8,\"quantum_chunks\":2,\"worker_payload_bytes\":135344,\"image_bytes\":1114112,\"active_payload_bytes\":135561,\"exchange_ns\":625472600,\"phase_profile_supported\":false,\"trace_total_wall_ns\":0,\"kernel_wait_wall_ns\":0,\"phase_wall_ns\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"sweep_profile_supported\":true,\"sweep_trace_complete\":true,\"sweep_trace_total_wall_ns\":467675900,\"sweep_completed_windows\":8,\"sweep_maximum_kernel_wall_ns\":4414600,\"sweep_minimum_kernel_wall_ns\":1772500,\"sweep_maximum_quantum_wall_ns\":17776500,\"sweep_phase_wall_ns\":[423295500,1605100,66800,13560500,21927100,2556800,76900,1726200,2500200],\"trace_complete\":false,\"worker_exit\":0,\"worker_peak_commit_bytes\":92364800,\"controller_job_peak_commit_bytes\":104067072,\"transport_quiescent\":true,\"independent_native_readback\":true,\"prior_preserved\":true,\"retained_source_verified\":true,\"locked_peak_bytes\":4194304,\"locked_after_bytes\":0,\"working_set_restored\":true,\"normal_io_route\":false,\"cost_profile_qualified\":false,\"mounted\":false,\"physical_power_loss_qualified\":false}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "gpu_result": {
+      "gpu_result_verified": true,
+      "gpu_payload_stored_exactly": true,
+      "CPU_fallback_selected": false,
+      "source_bytes": 1048576,
+      "chunks": 16,
+      "device_bytes": 328288,
+      "planned_windows": 8,
+      "quantum_chunks": 2,
+      "worker_payload_bytes": 135344,
+      "image_bytes": 1114112,
+      "active_payload_bytes": 135561,
+      "exchange_ns": 625472600,
+      "phase_profile_supported": false,
+      "trace_total_wall_ns": 0,
+      "kernel_wait_wall_ns": 0,
+      "phase_wall_ns": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "sweep_profile_supported": true,
+      "sweep_trace_complete": true,
+      "sweep_trace_total_wall_ns": 467675900,
+      "sweep_completed_windows": 8,
+      "sweep_maximum_kernel_wall_ns": 4414600,
+      "sweep_minimum_kernel_wall_ns": 1772500,
+      "sweep_maximum_quantum_wall_ns": 17776500,
+      "sweep_phase_wall_ns": [
+        423295500,
+        1605100,
+        66800,
+        13560500,
+        21927100,
+        2556800,
+        76900,
+        1726200,
+        2500200
+      ],
+      "trace_complete": false,
+      "worker_exit": 0,
+      "worker_peak_commit_bytes": 92364800,
+      "controller_job_peak_commit_bytes": 104067072,
+      "transport_quiescent": true,
+      "independent_native_readback": true,
+      "prior_preserved": true,
+      "retained_source_verified": true,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "working_set_restored": true,
+      "normal_io_route": false,
+      "cost_profile_qualified": false,
+      "mounted": false,
+      "physical_power_loss_qualified": false
+    },
+    "postflight": {
+      "observed_utc": "2026-11-14T17:32:21.6036037Z",
+      "owned_named_processes": [],
+      "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+      "gpu": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "DriverVersion": "32.0.32015.16001",
+          "Status": "OK"
+        }
+      ],
+      "system_warning_error_query": {
+        "from_utc": "2026-11-14T17:31:03.0876027Z",
+        "to_utc": "2026-11-14T17:32:21.6036037Z",
+        "provider_regex": "Display|DxgKrnl|AMD|amdk|amdw",
+        "maximum_rows": 129,
+        "query_complete": true,
+        "error": null,
+        "matching": [],
+        "scope": "Bounded System warning/error subset; not proof of absence of a driver reset or all GPU faults"
+      }
+    }
+  },
+  "interpretation": {
+    "timing": "Host wall observations, not GPU event time. Setup includes initialization, qualification, stream/workspace/slab setup. Compute total excludes earlier decoding/bundle/module binding and later encoding/module release/publication/parent acceptance; exchange is separate.",
+    "legacy_fields": "phase_profile_supported=false, trace_complete=false and zero legacy 15-phase fields mean unsupported/unmeasured. The new nine-phase sweep_profile_supported and sweep_trace_complete fields are true.",
+    "measured_once": true,
+    "comparative_benefit_proven": false,
+    "cost_model_qualified": false,
+    "normal_GPU_route": false,
+    "payload_comparison": "CPU fixture uses a manually built alternate representation, not an optimized CPU compressor. Different CPU/GPU encoders and sizes are permitted; equality concerns original decoded bytes.",
+    "total_image": "1114112 bytes exceeds 1048576 input bytes because the test retains metadata/alignment/history; no whole-image compression advantage established.",
+    "coverage": "One aligned synthetic 16-chunk, eight-window hardware case. Partial-tail hardware, varied real data, matched repeated benchmarks, automatic costs, ordinary mounted GPU I/O and physical power-loss qualification remain open.",
+    "cleanup": "Confirmed worker/supervisor exit, input pins unchanged, independent current/prior CPU recovery, locked bytes zero, working-set restored, no named FlitzFS processes. Bounded System event subset returned no matching warning/error; this is not proof of no reset or universal safety.",
+    "ordinal": "Runtime ordinal 0 was explicitly inspected and matched the freshly discovered LUID. DXGI/HIP ordinal equivalence was not assumed. HIP node-mask omission 0 was corroborated by fresh same-LUID independent single-node topology.",
+    "old_failure": "Historical 847423f 0xc0000409 cause remains unproven; no unchanged retry or cap increase was used."
+  },
+  "retained_failures": [
+    "docs/evidence/uniform-sweep-profile-dc26fc3-fixture-failure.json",
+    "docs/evidence/uniform-sweep-847423f-failure.json"
+  ],
+  "navigation": {
+    "archive_sha256": "0659ff852b26dca483a22cc885b5b2449d6378329091dbcbe800d05ebb8563e4",
+    "archive_bytes": 676232,
+    "receipts": [
+      {
+        "name": "routing-receipt.json",
+        "sha256": "c5f7b51d375f9f01bc854181eb49d92c2411baee8d4a5f771b48664f59041a15",
+        "commit": "1d9d0e067787a824df8d3e0d8a84b5c4e1356714",
+        "repository": "strmt7/FlitzFS",
+        "source_sha256": "62d6ea6ffe24de000abc764a743c4ddbe35e9064ac57a05bf32451ebe3dc3ee3",
+        "source_files": 188,
+        "provider_version": "0.2.43",
+        "actual_searches": 8,
+        "cpu_only": true,
+        "shared_mcp_modified": false
+      },
+      {
+        "name": "search-0.json",
+        "sha256": "1f3d9dbc38623f4d1acb8cd4e442ac019b78ffecd5898a390b1d981cade91dae",
+        "query": "native filesystem inode namespace sparse extent mutation commit and metadata encoding",
+        "source_sha256": "62d6ea6ffe24de000abc764a743c4ddbe35e9064ac57a05bf32451ebe3dc3ee3",
+        "hits": [
+          {
+            "end_line": 335,
+            "excerpt": "// allocation, snapshot, pathname lookup or backing query forms these facts. NativeInodeMutationCommit write_inode_result(std::uint64_t inode,std::uint64_t offset, std::span<const std::byte>,NativeInodeWriteOptions options={}, const NativeA",
+            "file_sha256": "e0ca0f18d80077c3252afed11fbdee8a5e31fb859033d5a99302a59642b35a89",
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "score": 0.853845431839197,
+            "start_line": 324
+          },
+          {
+            "end_line": 758,
+            "excerpt": "NativeFileInfo NativeFilesystemSnapshot::stat_inode(std::uint64_t inode) const { if(!impl_)fail(Code::invalid_operation,\"moved-from native snapshot\"); return file_info(impl_->model,selected_inode(impl_->model,inode)); } NativeInodeState Nat",
+            "file_sha256": "46ff52b75b02492b5abb6514e762c77464ea71238ee4c583a9fc51357525d62e",
+            "path": "src/native_filesystem.cpp",
+            "score": 0.8098708097227743,
+            "start_line": 742
+          }
+        ]
+      },
+      {
+        "name": "search-3.json",
+        "sha256": "6d97a78ef27db8056e81a73c9c31b1d012e450935de07323f515e5f19ed5af92",
+        "query": "compression codec selection allocation budget stored decoded digest and decompression",
+        "source_sha256": "62d6ea6ffe24de000abc764a743c4ddbe35e9064ac57a05bf32451ebe3dc3ee3",
+        "hits": [
+          {
+            "end_line": 36,
+            "excerpt": "bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept; struct EncodedStoreObject { std::uint32_t codec=kStoreRaw; std::vector<std::byte> payload; Digest decoded_digest{}; bool used_match_proposals",
+            "file_sha256": "25d9614983369ba876c26c0dbd7c462a8b219324dc40f7cc54b7acf32a103615",
+            "path": "src/store_codec.hpp",
+            "score": 0.791511791371617,
+            "start_line": 16
+          },
+          {
+            "end_line": 49,
+            "excerpt": "MAINTENANCE_QUERIES=( \"adaptive idle recompression maintenance controller workload observation learned compression policy and bounded quiet opportunities\", \"background maintenance resource headroom low priority incremental recompression sam",
+            "file_sha256": "4b8cee4d3324573772f95a10215c99826a2811aa53e02292b2ace4114b52303c",
+            "path": "tools/ci/hosted_semantic.py",
+            "score": 0.789350260253336,
+            "start_line": 39
+          },
+          {
+            "end_line": 264,
+            "excerpt": "# Closed primary-source scope for the owner's background recompression question. # These are research candidates, not adopted codecs or performance evidence. COMPRESSION_LEARNED_SOURCES = ( (\"llm-invocation-2026\", \"https://arxiv.org/html/26",
+            "file_sha256": "df091fad18e5317cfdd15b2c8ec91cd5ca7981dd9e9bbb8eefd4faa9886910c8",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.787972853220877,
+            "start_line": 247
+          },
+          {
+            "end_line": 139,
+            "excerpt": "struct StoreCodecEncoder::Impl { StoreCompressionOptions options; StoreCodecDecoder verifier; #ifdef FLITZFS_STORE_HAS_ZSTD Budget budget{kStoreEncoderMemoryCap}; std::unique_ptr<ZSTD_CCtx,decltype(&ZSTD_freeCCtx)> context{nullptr,&ZSTD_fre",
+            "file_sha256": "f99046c0a746c846cbea66946a5cf74ff6b08387304b7df4d1fdc86a263f1f1a",
+            "path": "src/store_codec.cpp",
+            "score": 0.7846911636453893,
+            "start_line": 124
+          }
+        ]
+      },
+      {
+        "name": "search-4.json",
+        "sha256": "b72814d879f030b3ca42ca617b863b5f8bcc10066ed1a0c6532d56b152a1d201",
+        "query": "compacted copy source preservation destination identity and safe reclamation",
+        "source_sha256": "62d6ea6ffe24de000abc764a743c4ddbe35e9064ac57a05bf32451ebe3dc3ee3",
+        "hits": [
+          {
+            "end_line": 169,
+            "excerpt": "// Failure retains source and partial target; never retries/overwrites either. static ObjectStoreWriter compact(const ObjectStoreSnapshot& source, std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity, StoreCompressionOptions",
+            "file_sha256": "a6b8a14e43ec88f075ed4440b156ce7792accb9f1f82523463e2096431eff2af",
+            "path": "include/flitzfs/object_store.hpp",
+            "score": 0.8067794302547711,
+            "start_line": 159
+          },
+          {
+            "end_line": 325,
+            "excerpt": ", \"windows-runtime-trust\": WINDOWS_RUNTIME_TRUST_SOURCES, \"windows-process-retirement\": WINDOWS_PROCESS_RETIREMENT_SOURCES, \"windows-adapter-identity\": WINDOWS_ADAPTER_IDENTITY_SOURCES, \"windows-adapter-topology\": WINDOWS_ADAPTER_TOPOLOGY_S",
+            "file_sha256": "df091fad18e5317cfdd15b2c8ec91cd5ca7981dd9e9bbb8eefd4faa9886910c8",
+            "path": "tools/ci/hosted_research.py",
+            "score": 0.8045537391844206,
+            "start_line": 318
+          },
+          {
+            "end_line": 144,
+            "excerpt": "// Candidate policy is separate from the retained foreground write policy. NativeVolumeHeadInfo compact_volume(std::shared_ptr<StoreByteIo> empty_target, StoreIdentity new_image_identity,StoreCompressionOptions candidate={}, StoreCheckpoint",
+            "file_sha256": "c5514ff18e498332212232cf6d978ebacd27b3c281aa755fe715b71a764faf5b",
+            "path": "include/flitzfs/native_session.hpp",
+            "score": 0.793773890089021,
+            "start_line": 134
+          },
+          {
+            "end_line": 265,
+            "excerpt": "// retain the original source. No in-place reclaim, filename swap or deletion. static NativeFilesystemWriter compact(const NativeFilesystemSnapshot& source, std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity, StoreCompress",
+            "file_sha256": "e0ca0f18d80077c3252afed11fbdee8a5e31fb859033d5a99302a59642b35a89",
+            "path": "include/flitzfs/native_filesystem.hpp",
+            "score": 0.7839035996648533,
+            "start_line": 253
+          }
+        ]
+      }
+    ],
+    "live_candidates": [
+      {
+        "path": "include/flitzfs/native_filesystem.hpp",
+        "sha256": "e0ca0f18d80077c3252afed11fbdee8a5e31fb859033d5a99302a59642b35a89"
+      },
+      {
+        "path": "include/flitzfs/object_store.hpp",
+        "sha256": "a6b8a14e43ec88f075ed4440b156ce7792accb9f1f82523463e2096431eff2af"
+      },
+      {
+        "path": "include/flitzfs/native_session.hpp",
+        "sha256": "c5514ff18e498332212232cf6d978ebacd27b3c281aa755fe715b71a764faf5b"
+      },
+      {
+        "path": "src/store_codec.hpp",
+        "sha256": "25d9614983369ba876c26c0dbd7c462a8b219324dc40f7cc54b7acf32a103615"
+      },
+      {
+        "path": "src/store_codec.cpp",
+        "sha256": "f99046c0a746c846cbea66946a5cf74ff6b08387304b7df4d1fdc86a263f1f1a"
+      }
+    ],
+    "note": "Navigation source 1d9d0e0; comparison to 11fbf07 changes only the packaging Python file and documentation. The five verified product source candidates are unchanged."
+  },
+  "security": {
+    "open_alerts": 0,
+    "pages": 1,
+    "checked_utc": "2026-11-14 17:35:19 UTC",
+    "transport": "Authenticated paginated GitHub Dependabot alerts API",
+    "scope": "Open alerts only; not a security audit.",
+    "release": false
+  },
+  "owner_private_receipt": {
+    "path": "E:\\FlitzFS-source-20261114-842d25ec3e53469fb4bb112cfe5578f7\\uniform-sweep-profile-11fbf07-owner-qualified.json",
+    "bytes": 8804,
+    "sha256": "b62f1eb352a3fd3f83e0aa4573908d40ddcd88fcd0f890bf3233d98cebc275e6"
+  }
+}
