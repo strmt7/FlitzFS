@@ -1,6 +1,7 @@
 # FlitzFS repository assessment
 
-Assessment date: 11 November 2026. Reviewed baseline:
+Current checkpoint: 14 November 2026; see the current section below. Historical
+assessment baseline (11 November 2026):
 [8a5633b588869eb3808d089fca76937c6781991c](https://github.com/strmt7/FlitzFS/commit/8a5633b588869eb3808d089fca76937c6781991c),
 tree 01cf46b6fd34107ff53bb0f2604a2b8c1f10b8c7.
 The continuing objective is the full Windows 11 AMD64 filesystem/helper/driver
@@ -17,6 +18,11 @@ The detailed execution contract is [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md);
 
 ## Current product checkpoint and inefficiencies
 
+Current source a4ad5166d5063d820cfdd704a600ea20a23f1d93 passed all 13 core jobs and complete SDK
+qualification. Its owned deferred callback service passed 54 CPU checks and the
+real disposable CPU-only pending-response mount. Automatic GPU routing and GPU
+execution through this service remain unqualified. [Executed evidence](evidence/owned-deferred-a4ad516.json).
+
 The refreshed [release-readiness evaluation](RELEASE_READINESS.md) and
 [implementation plan](DEVELOPMENT_PLAN.md) govern current work. The historical
 tables below remain tied to their stated baseline; current capacity/codec
@@ -30,11 +36,18 @@ The latest qualified hardware case is 11fbf07: a finite instrumented 1-MiB GPU-n
 with independent current/prior CPU recovery. It passed all 13 core jobs and full
 SDK qualification. Setup took 423 ms versus 22 ms accumulated kernel/full wait
 within the measured scope; [evidence](evidence/uniform-sweep-profile-11fbf07.json).
-Ordinary callbacks remain CPU-only;
-complete image size and exchange timing do not establish a comparative advantage.
+Automatic GPU routing remains absent; an explicit owned pending-write service is
+implemented this round with qualification recorded in the release assessment.
+Complete image size and exchange timing do not establish a comparative advantage.
 Prototype capacity, absent product collective compression, incomplete automatic
 cost acquisition/learning, durability/repair and latest-client Windows semantics
 remain release blockers.
+
+Agent instructions, safety/roadmap documents and the state ledger also mix long
+historical qualification records with active rules. That increases context cost
+and the risk of reading an old partial result as present authority. A later
+consumer/rule audit should separate immutable history from concise current
+contracts without dropping safety constraints or failure evidence.
 
 Too much delivery has accumulated as isolated fixtures and historical documents
 relative to those unfinished product paths. Keep one authoritative current
@@ -182,7 +195,12 @@ Authenticated native Dependabot OPEN-alert access was refreshed during this
 review and returned zero open alerts. This is a current alert snapshot, not a
 complete vulnerability assessment or proof that all dependency choices are optimal.
 
-## Problems in priority order
+## Historical baseline problems in priority order
+
+These findings describe the pinned 11 November baseline. Subsequent corrections
+and remaining product blockers are tracked in the current release assessment;
+do not treat an old admission failure as the current implementation state.
+
 
 1. **GPU result admission rejects useful work.** The current process-wide nonlocal
    usage increase is treated as a terminal failure even after exact CPU comparison,

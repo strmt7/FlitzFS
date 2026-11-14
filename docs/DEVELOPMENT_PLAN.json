@@ -556,7 +556,7 @@
       "validation": [
         "Concurrent readers/writers, cancellation, resource pressure, interrupted handoff/reclamation, capacity failure and recovery.",
         "Real heterogeneous held-out corpora plus incompressible/adversarial data; report total image size and steady-state performance, not payload-only ratios.",
-        "Use current primary-source evidence and held-out mixed real corpora; charge models/indexes/dependencies and measure cold/random retrieval, GPU/CPU parity and foreground interference. No lossy semantic reconstruction or claims from specialized datasets alone."
+        "Use current primary-source evidence and held-out mixed real corpora; charge models/indexes/dependencies and measure cold/random retrieval, byte-exact independent CPU decoding (encoder format, size and performance may differ) and foreground interference. No lossy semantic reconstruction or claims from specialized datasets alone."
       ],
       "exit": "Unattended collective optimization minimizes total stored bytes on held-out workloads within measured practical latency/speed and resource constraints, preserving exact recovery, normal Windows behavior and promptly yielding background work. Moderate retrieval cost is acceptable; no required superiority in every metric.",
       "preparatory_entry": "A bounded cross-file codec/manifest/independent-CPU-reader transaction prototype may proceed before full A03 autonomy or S01 scale. The full automatic scalable exit still depends on A03/S01. GPU-only encoding with independent CPU decoding is permitted.",
@@ -658,7 +658,7 @@
   "release_checkpoint": "docs/RELEASE_READINESS.md",
   "critical_path_focus": [
     "GPU acceleration is mandatory; CPU-only implementation, SDK compilation and CPU mocks never satisfy G02.",
-    "Actual bounded AMD compression passed at979cd512. Complete the transactional native-storage/CPU-reader/Windows-write/fallback slice and measured benefit; preserve exact-source runtime evidence.",
+    "The latest bounded actual AMD GPU/native/independent CPU recovery case is 11fbf07. The owned callback bridge at a4ad516 is CPU/SDK-qualified; finish its mounted gate, then actual GPU service qualification and automatic useful routing. Preserve exact-source evidence and avoid unchanged diagnostics.",
     "Prioritize a complete bounded Windows write, actual GPU compression, native encoding, independent CPU read and fault/fallback/retirement slice over further disconnected prerequisites.",
     "Measure whole-operation throughput and stored size on varied data, then advance automatic optimization, scaling, durability and Windows product gates.",
     "Use extensive recent primary-source research for concrete unresolved design questions; do not substitute research or assertion counts for product integration."
@@ -785,24 +785,28 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source": "3b7a6c90a41535789854341da804bc48b2454951",
-    "status": "All 13 core jobs and full SDK qualification passed; 199 controlled native-write CPU checks.",
-    "core_run": 43624202180,
-    "sdk_run": 43624202093,
-    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
-    "evidence": "docs/evidence/native-reused-dispatch-3b7a6c9.json",
+    "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+    "status": "All 13 core jobs, 154 native test groups and full SDK passed; real CPU-only pending-response RAM-handoff mount passed.",
+    "core_run": 43633235875,
+    "sdk_run": 43633243098,
+    "contract": "docs/OWNED_DEFERRED_WRITES.md",
     "ordinary_GPU_route": false,
     "cost_model_qualified": false,
-    "actual_GPU_through_coordinator": false,
+    "actual_GPU_through_service": false,
     "cross_operation_batching": false,
     "owner_executed": false,
-    "latest_actual_GPU_source": "11fbf0797769f234aeab835f71afa678c5ac174a"
+    "latest_actual_GPU_source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+    "evidence": "docs/evidence/owned-deferred-a4ad516.json",
+    "deferred_checks": 54
   },
   "next_product_slices": [
-    "Finish source-specific sweep observation qualification; acquire repeated varied-input keyed costs and connect ordinary Windows/GPU/native storage/read/fallback.",
-    "Replace small structural store limits using bounded paged data structures and incremental reclamation, while specifying and implementing one protected cross-file compression transaction.",
-    "Make persistent learning and collective optimization automatic, with admission from opportunity and fresh contention, prompt yield and practical independently measured read costs.",
-    "Complete explicit durability/repair, latest Windows 11 application/driver lifecycle, independent security and unbiased comparative qualification before a release estimate."
+    "Qualify the owned pending-write service and disposable real SendResponse path. Retain single-threaded coordinator ownership, immutable input, CPU publication and joined shutdown.",
+    "Add one unmounted actual-GPU callback-service qualification after exact-source gates; verify admitted stored bytes and independent GPU-absent readback. Do not repeat the earlier unchanged diagnostic.",
+    "Acquire repeated configuration/recovery/work-shape keyed complete costs from finite windows, qualify independent helper dependencies and connect automatic useful Windows write/read/fallback; then coalesce compatible operations under a bounded lifetime.",
+    "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
+    "Evaluate shared dictionaries, verified delta/base and GPU-supported model/residual candidates on held-out real data; minimize complete stored bytes with practical measured cold/random retrieval.",
+    "Persist advisory learning and run event/evidence-driven lowest-priority optimization, with prompt yield and negative-benefit suppression; integrate actual grouping/recompression/layout.",
+    "Close acknowledged-write durability/repair, historical retirement investigation, latest Windows 11 semantics/application/backends, secure lifecycle and independent comparisons. No release without owner decision."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -817,10 +821,84 @@
     "cross_operation_batching": false
   },
   "ordinary_write_bridge": {
-    "status": "researched; implementation pending",
-    "contract": "docs/ASYNC_NATIVE_WRITE_PLAN.md",
+    "status": "CPU/SDK and real CPU-only mounted response path qualified",
+    "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+    "contract": "docs/OWNED_DEFERRED_WRITES.md",
     "research": "docs/evidence/native-async-write-research-2026-11-14.json",
-    "upstream_source": "winfsp/winfsp@b0508fad28306b71d7eba340915ed64798229607",
-    "next": "Implement owned pending writes and one commit-bound response without callback-TLS retention, storage replay or controller concurrency races."
+    "next": "Qualify actual GPU completion through this callback service; acquire repeated complete costs and automatic helper/dependency activation, then finite coalescing and ordinary useful routing.",
+    "evidence": "docs/evidence/owned-deferred-a4ad516.json"
+  },
+  "execution_round": {
+    "date": "2026-11-14",
+    "status": "Owned deferred write slice qualified; full goal active",
+    "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+    "release_assessment": "docs/RELEASE_READINESS.md",
+    "principle": "Complete one product behavior and its adversarial qualification; do not substitute more probes or counts for ordinary GPU use or collective compression.",
+    "work": [
+      {
+        "id": "bridge",
+        "entry": "Native advice coordinator and pinned SDK researched",
+        "implementation": "Own copied input and opaque Hint; one service thread/coordinator; CPU drain ordering; exact response; stop/join before filesystem destruction.",
+        "acceptance": "Direct SDK owned/held/shutdown cases plus existing real RAM-handoff response path pass with exact retirement.",
+        "status": "CPU/SDK and real CPU-only mounted response path qualified",
+        "evidence": "docs/evidence/owned-deferred-a4ad516.json"
+      },
+      {
+        "id": "gpu-callback",
+        "entry": "Bridge exact-source qualification",
+        "implementation": "Integrate the existing finite GPU worker into an unmounted callback-service harness with independently supervised fresh evidence and helper/runtime provenance.",
+        "acceptance": "Actual GPU bytes accepted/stored, current/prior CPU readback with GPU unavailable; forced fallback and cleanup; source-bound tiny experiment only.",
+        "status": "next"
+      },
+      {
+        "id": "automatic-routing",
+        "entry": "Qualified callback-service GPU behavior",
+        "implementation": "Configuration/recovery/shape-keyed repeated complete costs, automatic safe private helper/dependency discovery and workload/resource selection; finite coalescing after ownership proof.",
+        "acceptance": "Ordinary Win32/Explorer I/O routes useful work automatically; repeated comparisons show useful complete-operation gain and prompt CPU fallback without scan loops.",
+        "status": "required"
+      },
+      {
+        "id": "scalable-collective",
+        "entry": "Independent design/prototype may proceed while routing completes",
+        "implementation": "Paged namespace/extent/dependency indexes, incremental allocator/reclaimer and one protected cross-file manifest; CPU reader and exact versioned dependencies before new encoders.",
+        "acceptance": "Bounded growing populated workloads and one interrupted cross-file publish/recover transaction; complete stored-size accounting.",
+        "status": "required"
+      },
+      {
+        "id": "compression-experiment",
+        "entry": "Protected group prototype",
+        "implementation": "Recent primary-source research for selected shared/delta/model candidates; GPU-only encoder allowed; reproducible mixed public corpus with held-out split, hashes and strong baselines.",
+        "acceptance": "Publish gains/failures in complete bytes and practical random/cold reads; keep simpler winner if novelty does not improve results.",
+        "status": "required"
+      },
+      {
+        "id": "autonomy-resilience-product",
+        "entry": "Individual preparatory work may overlap; final dependency exits remain controlling",
+        "implementation": "Persistent advisory learning/governor, safe maintenance and repair, latest Windows 11 helper/tray/driver semantics and both volume backends, secure install/update/rollback.",
+        "acceptance": "Declared fault campaign, held-out foreground impact, restart recovery, no leaked resources; independent security and matched filesystem comparisons.",
+        "status": "required"
+      }
+    ],
+    "stop_rule": "Do not estimate a date or completion percentage until ordinary useful GPU I/O, scalable populated storage and collective-compression proof have measured completion/rework rates."
+  },
+  "efficiency_actions": [
+    "Keep one current source-bound checkpoint and reuse unchanged evidence; historical records must not become instructions to repeat completed stages.",
+    "Investigate digest/provenance-bound hosted toolchain/codec caching before changing CI; retain fresh official release inventory, exact source binding and every required gate.",
+    "Use changed-scope reads and actual semantic receipts; do not expand isolated probes or documentation in place of ordinary GPU I/O, scalable storage or collective compression.",
+    "Audit instruction/ledger consumers, then separate long historical qualification records from concise current contracts; preserve every safety rule, failure and source identity. Do not restructure blindly during a runtime change."
+  ],
+  "release_readiness": {
+    "assessment": "docs/RELEASE_READINESS.md",
+    "stage": "experimental prototype; substantially short of release candidate",
+    "release_date_established": false,
+    "completion_percentage_established": false,
+    "critical_remaining": [
+      "ordinary useful automatic GPU I/O",
+      "scalable populated storage",
+      "held-out complete-size collective compression advantage",
+      "acknowledged-write durability and verified repair",
+      "latest Windows 11 product/security/independent comparative acceptance"
+    ],
+    "owner_alone_authorizes_release": true
   }
 }

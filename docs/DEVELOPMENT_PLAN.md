@@ -6,6 +6,34 @@ The owner's background-compression direction is specified in [COLD_COMPRESSION_R
 
 [Release-readiness checkpoint](RELEASE_READINESS.md): the project is an experimental prototype. Actual useful GPU compression with CPU fallback is mandatory. Prioritize the complete Windows/GPU/native-storage/readback/failure path; isolated checks alone do not satisfy the product goal.
 
+## Current implementation round — 14 November 2026
+
+The owned pending-write bridge is implemented at a4ad5166d5063d820cfdd704a600ea20a23f1d93; all 13 core jobs,
+154 native test groups and complete SDK qualification passed. The CPU-only real
+pending-response mount passed. [Executed evidence](evidence/owned-deferred-a4ad516.json). It copies callback input and
+request identity, serializes GPU control on one owned thread, publishes CPU
+fallback without waiting for GPU retirement, and joins completion ownership before
+filesystem deletion. The existing disposable RAM-handoff scenario exercises real
+CPU-only pending responses. Automatic GPU activation and useful acceleration
+remain separate exits. See [the ownership contract](OWNED_DEFERRED_WRITES.md).
+
+Next, qualify one actual GPU operation through this service; then acquire repeated
+configuration/recovery/shape-keyed complete costs and verify independent helper
+dependencies before automatic Windows routing. Finite cross-operation coalescing
+must preserve ordering, immutable input, bounded lifetime and immediate CPU
+selection. Avoid a resident helper until equivalent containment is proven.
+
+Begin the paged-index/allocator and protected cross-file manifest design alongside
+that integration. A bounded collective codec transaction may start before full
+learning autonomy. Specify the independent CPU decoder and immutable versioned
+bases/dictionaries/models first; evaluate shared, delta and GPU-supported deeper
+model/residual candidates with held-out total-size and random-read measurements.
+The full package exits below remain controlling.
+
+Each next slice must produce implemented behavior, a precise failure model and
+source-bound qualification. Keep the full harness goal active. Do not declare a
+release from the bridge, a kernel success or a test count.
+
 ## Revised implementation round — 14 November 2026
 
 The [release assessment](RELEASE_READINESS.md) identifies an experimental prototype,
@@ -26,18 +54,15 @@ success. Rank demonstrated choices under fresh resources and contention, with
 bounded exploratory work only when separately admitted. Test selection against
 a fixed-policy baseline and adverse/noisy observations.
 
-Connect the existing controlled native write operation and resource-sized worker
-to the actual serialized Windows helper/write lifecycle. Define pending-response
-ownership, file-context lifetime, cancellation, append/offset ordering and one
-commit-bound acknowledgement; do not wait for a GPU worker while holding a
-filesystem-wide callback lock. Preserve independent
-CPU bytes, owned buffers, exactly one admitted outstanding operation and terminal
-per-request outcomes. CPU selection must not wait for GPU cleanup; retirement is
-separate and blocks replacement GPU work until confirmed. Loss of runtime, driver,
-device or headroom must preserve reads and continued CPU writes without repeated
-device scans. Recovery requires relevant changed/qualified evidence, not merely
-elapsed time. Do not introduce a resident helper until its bounded lifecycle and
-equivalent containment are reviewed and independently exercised.
+The [owned pending-write bridge](OWNED_DEFERRED_WRITES.md) is now qualified for
+CPU/SDK behavior and real CPU-only responses. Next, qualify actual GPU completion
+through this service and integrate automatic independently verified helper/cost
+acquisition. Preserve copied input, request identity, serialized coordinator
+ownership, one response and ordered CPU publication. CPU selection must not wait
+for GPU cleanup; replacement GPU work still requires confirmed retirement and
+relevant evidence. Timers alone cannot authorize retry. Finite cross-operation
+coalescing and a resident helper require their own reviewed lifetime/containment
+qualification. No unchanged diagnostic repetition follows from this pass.
 
 Add a separately qualified GPU read/decode path where it provides measured value,
 with protected decoded-byte verification and independent CPU recovery for every

@@ -1,5 +1,9 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Owned deferred write boundary
+
+Read `docs/OWNED_DEFERRED_WRITES.md` before changing pending writes or native shutdown. Copy input and the opaque request identity before returning pending. Keep the GPU coordinator on its single owned thread; callbacks may request CPU publication but never poll/retire it or query GPU drivers. Join completion ownership before deleting the filesystem. Never replay committed storage because response delivery fails. Explicit hosted configuration and CPU-only defaults remain controlling.
+
 ## Source freshness before edits
 
 Verify every reused cached source against its immutable Git revision before editing.
@@ -1657,7 +1661,3 @@ exact HEAD binding, tracked-only scope and independent actual-ZIP checks.
 Do not omit historical evidence or use source packaging to qualify runtime/GPU
 behavior. Its CPU tests must exercise both flat and nested entry boundaries.
 
-
-## Owned deferred write boundary
-
-Read `docs/OWNED_DEFERRED_WRITES.md` before changing pending writes or native shutdown. Copy input and the opaque request identity before returning pending. Keep the GPU coordinator on its single owned thread; callbacks may request CPU publication but never poll/retire it or query GPU drivers. Join completion ownership before deleting the filesystem. Never replay committed storage because response delivery fails. Explicit hosted configuration and CPU-only defaults remain controlling.

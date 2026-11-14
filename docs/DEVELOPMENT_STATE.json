@@ -11,19 +11,22 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "source": "3b7a6c90a41535789854341da804bc48b2454951",
-    "tree": "b0732a4bfb3eb15d02e69784f269c8eb504062ee",
-    "core_run": 43624202180,
+    "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+    "tree": "e4fa1af6552cbaba843b8dc1a16852b82e777152",
+    "core_run": 43633235875,
     "core_jobs_passed": 13,
     "core_jobs_total": 13,
-    "native_test_groups": 153,
+    "native_test_groups": 154,
+    "deferred_write_checks": 54,
     "controlled_native_write_checks": 199,
-    "evidence": "docs/evidence/native-reused-dispatch-3b7a6c9.json",
+    "evidence": "docs/evidence/owned-deferred-a4ad516.json",
+    "sdk_run": 43633243098,
+    "sdk_complete": true,
+    "real_CPU_deferred_response_mount": true,
+    "actual_GPU_through_service": false,
     "owner_current_source_GPU_executed": false,
     "normal_GPU_routing": false,
-    "comparative_benefit_proven": false,
-    "sdk_run": 43624202093,
-    "sdk_complete": true
+    "comparative_benefit_proven": false
   },
   "owner_gpu_observation": {
     "source_commit": "11fbf0797769f234aeab835f71afa678c5ac174a",
@@ -106,12 +109,11 @@
   ],
   "next_implementation": {
     "contract": "docs/OWNED_DEFERRED_WRITES.md",
-    "candidate": "Owned pending native writes with one coordinator thread, CPU publication and joined completion; exact-source CI pending.",
-    "next": "Qualify actual callback and disposable CPU-only pending-response mount paths. Then GPU callback execution, automatic costs/helper provisioning and finite cross-operation batching; preserve scalable storage/collective compression/full goal."
+    "next": "Qualify actual GPU completion through the owned callback service, then repeated keyed costs, independent helper/dependency discovery and automatic useful Windows routing with finite coalescing. Co-design scalable populated storage and one protected cross-file compression transaction; preserve the full goal."
   },
   "implementation_boundary": {
-    "normal_filesystem_operations": "CPU only; no automatic worker launch",
-    "native_compression": "CPU native codecs and explicit GPU candidate advice. Controlled native writes now optionally select the reused worker from a canonical qualified grant; source 3b7a6c9 CPU/SDK validation passed. Actual hardware evidence remains the explicit 11fbf07 diagnostic; ordinary callbacks remain CPU-only.",
+    "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
+    "native_compression": "Independent CPU formats and controlled GPU advice; a4ad516 qualifies the owned callback service in CPU/SDK and a real CPU-only mount. Actual GPU hardware evidence remains the unmounted 11fbf07 diagnostic; actual GPU through this service and automatic useful routing remain unqualified.",
     "persistent_learner": false,
     "autonomous_background_executor": false,
     "general_payload_repair": false,
@@ -134,11 +136,11 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "open_alerts": 0,
+    "checked_utc": "2026-11-14T19:24:08.6286530Z",
+    "transport": "Authenticated paginated native GitHub API",
     "pages": 1,
-    "checked_utc": "2026-11-14 17:35:19 UTC",
-    "transport": "Authenticated paginated GitHub Dependabot alerts API",
-    "scope": "Open alerts only; not a security audit."
+    "open_alerts": 0,
+    "scope": "OPEN alerts only; not a security audit"
   },
   "source_routing": {
     "indexed_source": "1d9d0e067787a824df8d3e0d8a84b5c4e1356714",
@@ -386,12 +388,6 @@
     "page_reading": "reviewed hosted Crawl4AI; exact native API/package/archive captures retain native transports",
     "no_delegation": true,
     "no_archive_product_routes": true
-  },
-  "pending_qualification": {
-    "behavior": "owned deferred native writes",
-    "status": "not executed",
-    "owner_execution": false,
-    "default_cpu": true
   },
   "resolved": [
     {
@@ -1007,13 +1003,16 @@
     "stored_formats_changed": false
   },
   "cpu_fallback_contract": "Different encoder/format/size permitted; continued operation and independent CPU decoding of every stored GPU representation mandatory.",
-  "release_readiness": "Experimental prototype, substantially short of a release candidate. Ordinary GPU I/O, scalable storage and collective-compression proof remain absent; no reliable date or percentage.",
+  "release_readiness": "Experimental prototype, substantially short of a release candidate. Owned deferred response lifecycle is qualified; ordinary useful GPU I/O, scalable storage and collective-compression proof remain absent. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Finish source-specific sweep observation qualification; acquire repeated varied-input keyed costs and connect ordinary Windows/GPU/native storage/read/fallback.",
-    "Replace small structural store limits using bounded paged data structures and incremental reclamation, while specifying and implementing one protected cross-file compression transaction.",
-    "Make persistent learning and collective optimization automatic, with admission from opportunity and fresh contention, prompt yield and practical independently measured read costs.",
-    "Complete explicit durability/repair, latest Windows 11 application/driver lifecycle, independent security and unbiased comparative qualification before a release estimate."
+    "Qualify the owned pending-write service and disposable real SendResponse path. Retain single-threaded coordinator ownership, immutable input, CPU publication and joined shutdown.",
+    "Add one unmounted actual-GPU callback-service qualification after exact-source gates; verify admitted stored bytes and independent GPU-absent readback. Do not repeat the earlier unchanged diagnostic.",
+    "Acquire repeated configuration/recovery/work-shape keyed complete costs from finite windows, qualify independent helper dependencies and connect automatic useful Windows write/read/fallback; then coalesce compatible operations under a bounded lifetime.",
+    "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
+    "Evaluate shared dictionaries, verified delta/base and GPU-supported model/residual candidates on held-out real data; minimize complete stored bytes with practical measured cold/random retrieval.",
+    "Persist advisory learning and run event/evidence-driven lowest-priority optimization, with prompt yield and negative-benefit suppression; integrate actual grouping/recompression/layout.",
+    "Close acknowledged-write durability/repair, historical retirement investigation, latest Windows 11 semantics/application/backends, secure lifecycle and independent comparisons. No release without owner decision."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1026,5 +1025,31 @@
     "cost_model_qualified": false,
     "actual_GPU_through_coordinator": false,
     "cross_operation_batching": false
+  },
+  "owned_deferred_write_checkpoint": {
+    "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+    "status": "All 13 core jobs, 154 native test groups and full SDK passed; real CPU-only pending-response RAM-handoff mount passed.",
+    "core_run": 43633235875,
+    "sdk_run": 43633243098,
+    "contract": "docs/OWNED_DEFERRED_WRITES.md",
+    "ordinary_GPU_route": false,
+    "cost_model_qualified": false,
+    "actual_GPU_through_service": false,
+    "cross_operation_batching": false,
+    "owner_executed": false,
+    "latest_actual_GPU_source": "11fbf0797769f234aeab835f71afa678c5ac174a",
+    "evidence": "docs/evidence/owned-deferred-a4ad516.json",
+    "deferred_checks": 54
+  },
+  "owner_hygiene": {
+    "utc": "2026-11-14T19:56:40.3340866Z",
+    "local_head": "d6bb574afe21a3b5185c268df2eda9bdbd02f5e1",
+    "modified_tracked": 7,
+    "untracked_entries": 18,
+    "flitzfs_processes": [],
+    "owner_binary_started": false,
+    "owner_driver_or_mount_operation": false,
+    "owner_backing_or_source_mutation": false,
+    "proof_downloads": "Bounded in-memory artifact reads only; no new owner fixture files."
   }
 }

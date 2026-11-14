@@ -39,14 +39,39 @@ hardware operation. Setup took 423,295,500 ns of the 467,675,900-ns measured
 compute scope; accumulated kernel/full-wait time was 21,927,100 ns. These are one
 sample's host wall measurements, not GPU-event timing or a reusable cost bound.
 The result prioritizes safe amortization and complete Windows integration over
-kernel-only tuning. Automatic qualified costs and ordinary GPU callbacks remain
-unimplemented.
+kernel-only tuning. Automatic qualified costs and ordinary GPU activation remain
+unimplemented. The current round implements an explicit hosted pending-write
+service; its CPU-semantic coordinator tests and real CPU-only response lifecycle
+are recorded below. They do not establish GPU execution through that service.
+
+## This implementation round
+
+Source a4ad5166d5063d820cfdd704a600ea20a23f1d93 implements one owned deferred write in the actual SDK callback
+path. It owns immutable input and request identity, serializes coordinator access,
+orders following callbacks through CPU publication, and joins response ownership
+before filesystem destruction. All 13 core jobs, 154 native test groups and the full ROCm SDK gate passed.
+The 54 deferred checks include owned input, exact response, held-worker CPU
+fallback and concurrent shutdown. The real CPU-only pending-response mount
+passed with independent current/prior recovery and complete cleanup.
+[Executed source-bound evidence](evidence/owned-deferred-a4ad516.json)
+
+The direct callback cases use CPU semantics; the real disposable RAM-handoff mount
+uses CPU-only deferred responses. No actual GPU completion through this service,
+automatic helper/cost acquisition, cross-operation batching or owner execution is
+claimed. The first source 7ef0dd3 failed Windows compilation; its missing include
+and SDK variable-tail initialization errors were corrected without suppressions.
+[Failure record](evidence/owned-deferred-7ef0dd3-build-failure.json)
+
+This is useful integration progress, but does not close any of the three largest
+product exits: ordinary useful GPU I/O, scalable populated storage and measured
+collective compression. It does not justify a calendar estimate or percentage.
+[Ownership and qualification contract](OWNED_DEFERRED_WRITES.md)
 
 ## Product gaps and release gates
 
 | Area | Current position | Required exit |
 |---|---|---|
-| Ordinary Windows GPU I/O | Controlled native advice operation exists; normal callbacks remain CPU-only | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
+| Ordinary Windows GPU I/O | Owned pending-write service and controlled native advice exist; automatic GPU activation remains absent | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
 | GPU benefit | Actual bounded GPU bytes and CPU recovery demonstrated | Repeated controlled comparisons on varied real data show useful complete-operation throughput and/or net stored-size benefit |
 | Capacity | 256 objects/nodes, about 15.94 MiB populated native extents, 64 MiB image bound remain in current implementation | Paged indices, allocation and bounded reclamation handle growing file trees/data without whole-tree residency or merely larger constants |
 | Extreme collective compression | Research/design objective; no product cross-file learned codec | A lossless cross-file representation produces substantial held-out TOTAL-size gains, with practical individually addressed reads and protected dependencies |

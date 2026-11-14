@@ -1,0 +1,307 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-14",
+  "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+  "tree": "e4fa1af6552cbaba843b8dc1a16852b82e777152",
+  "behavior": "Owned deferred native Windows writes, CPU publication and joined completion ownership",
+  "contract": "docs/OWNED_DEFERRED_WRITES.md",
+  "implementation": [
+    "Immutable request input and opaque WinFsp Hint copied before STATUS_PENDING; no callback output/TLS pointer retained.",
+    "One service thread alone controls the persistent GPU coordinator; health enters through a POD mailbox without callback/control-thread driver discovery or queries.",
+    "Following callbacks request CPU fallback and drain native publication before session access; already terminal verified results may complete normally.",
+    "Exactly one commit-bound response attempt; response submission cannot replay storage.",
+    "Session stop completes and joins response ownership before dispatcher/filesystem deletion; concurrent stop joins remain serialized after actual OS thread exit.",
+    "Explicit configuration before binding; independent qualified helper dependencies required for GPU consent; default application routes remain CPU-only."
+  ],
+  "qualification": {
+    "core_run": 43633235875,
+    "core_status": "success",
+    "native_groups": 154,
+    "deferred_checks": 54,
+    "controlled_native_checks": 199,
+    "native_artifact": {
+      "id": 14128838595,
+      "artifact_sha256": "ceb76c2985b64b296e6f2d4ed431c47650bbf4f4178a38254823c727e5bd9a3c",
+      "archive_bytes": 13840,
+      "log": "LastTest.log",
+      "log_bytes": 162323,
+      "log_sha256": "8239b66d11e13cc580fb28c45e497da942fac91c6f8c11737acc58428bb8ffe9",
+      "evidence": [
+        "Deferred native callbacks: checks=54 owned_input=true exact_response=true CPU_fallback=true controller_joined=true gpu_executed=false mounted=false\r",
+        "Controlled native uniform writes: checks=199 exact_advice_storage=true CPU_fallback=true prior_and_unrelated_preserved=true reused_sweep_dispatch=true gpu_executed=false mounted=false\r",
+        "Uniform controller: configuration/peak/shape admission, fresh final observation, live-helper CPU fallback, late quarantine and exact retirement passed; gpu_executed=false\r"
+      ]
+    },
+    "sdk_run": 43633243098,
+    "sdk_status": "success",
+    "real_deferred_response": {
+      "profile": "ram-handoff",
+      "execution": "CPU only",
+      "status": "success",
+      "job": 132568067770,
+      "artifact_id": 14130160094,
+      "artifact_sha256": "f6e178f1de8d8d3658375e863ffc0b83da61aa393669977a0f0a43da45439c7d",
+      "archive_bytes": 538,
+      "entry": "flitzfs-write-probe-2336/ram-handoff.json",
+      "entry_bytes": 594,
+      "entry_sha256": "bd0b86f4fe3fdb14778d4122b3aac5ef3ad577dfd1018017f991a277b2ef9008",
+      "report": {
+        "schema": 1,
+        "phase": "ram-handoff",
+        "commit": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+        "source_process": 2336,
+        "volume_serial": 1476416087,
+        "idle_copy_steps": 2,
+        "stale_candidate_rejected": true,
+        "repeat_suppressed": true,
+        "epoch": 2,
+        "user_bytes": 65609,
+        "raw_payload": 66062,
+        "compressed_payload": 220,
+        "generation": 22,
+        "locked_peak": 17301504,
+        "locked_after": 0,
+        "contexts": 0,
+        "cpu_verified": true,
+        "mounted": true,
+        "unmounted": true,
+        "recovered_capacity_failure": true,
+        "gpu": false,
+        "complete": true,
+        "source_protocol": "external-client",
+        "client_process": 6208,
+        "host_self_io_rejected": true,
+        "client_flush_callback_observed": true
+      },
+      "source_assertions": "Positive deferred queue, completed==queued, response_attempts==queued, control thread exited, retirement confirmed, no pending/busy/disabled worker, no submitted/advised GPU work; independently recovered final/pinned bytes."
+    },
+    "test_cases": [
+      "CPU-only pending completion",
+      "CPU-semantic finite reused worker advice",
+      "Held CPU worker with read-triggered CPU publication",
+      "Queued shutdown with two concurrent stop callers"
+    ],
+    "sdk_job": 132564325303,
+    "sdk_artifact": {
+      "id": 14129044314,
+      "archive_sha256": "6929e2cb57234320d4cbef1edcf31812e4d4fe638753df40595617e67101ae9c",
+      "archive_bytes": 139823,
+      "root_sha256": "d988537f2a83721cadb27bd94bfa55df6d1661c2efb92df5be1cf1321b34cd59",
+      "root_bytes": 427441,
+      "complete": true,
+      "distribution": "10.1.0",
+      "commands": 49,
+      "timeouts": 0,
+      "uniform_compute": {
+        "checks": 3485,
+        "scenarios": 83,
+        "successes": 10,
+        "refusals": 73,
+        "decoder_available": true,
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "uniform_raw": {
+        "checks": 15,
+        "scenarios": 2,
+        "successes": 0,
+        "refusals": 2,
+        "decoder_available": false,
+        "guarded_exit_confirmed": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "uniform_runtime": {
+        "checks": 151,
+        "exits_confirmed": 25,
+        "bundle_verified": true,
+        "tamper_refused": true,
+        "CPU_source_unchanged": true,
+        "hip_runtime_loaded": false,
+        "gpu_executed": false,
+        "complete": true
+      },
+      "native_store_CPU": {
+        "complete": true,
+        "source_bytes": 131072,
+        "image_bytes": 983040,
+        "active_payload_bytes": 17045,
+        "candidate_stored_exactly": true,
+        "independent_native_readback": true,
+        "prior_preserved": true,
+        "locked_peak_bytes": 4194304,
+        "locked_after_bytes": 0,
+        "working_set_restored": true,
+        "gpu_executed": false,
+        "mounted": false
+      },
+      "reused_sweep_native_store_CPU": {
+        "complete": true,
+        "source_bytes": 1048576,
+        "image_bytes": 1114112,
+        "active_payload_bytes": 135625,
+        "candidate_stored_exactly": true,
+        "independent_native_readback": true,
+        "prior_preserved": true,
+        "locked_peak_bytes": 4194304,
+        "locked_after_bytes": 0,
+        "working_set_restored": true,
+        "gpu_executed": false,
+        "mounted": false
+      }
+    },
+    "core_jobs": [
+      {
+        "conclusion": "success",
+        "id": 132564298437,
+        "name": "windows-native",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132564298659,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132564298713,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132564298737,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132564298946,
+        "name": "sanitizers",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132566995118,
+        "name": "windows-mount",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132568067755,
+        "name": "windows-write-mount (crash-restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132568067770,
+        "name": "windows-write-mount (ram-handoff)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132568067785,
+        "name": "windows-write-mount (restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132568067792,
+        "name": "windows-write-mount (mutations)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132568067801,
+        "name": "windows-write-mount (crash)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132568067823,
+        "name": "windows-write-mount (delete)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132568067827,
+        "name": "windows-write-mount (basic)",
+        "status": "completed"
+      }
+    ],
+    "core_jobs_total": 13,
+    "core_jobs_passed": 13
+  },
+  "scope": {
+    "owner_executed": false,
+    "actual_GPU_through_service": false,
+    "normal_GPU_routing": false,
+    "cost_profile_qualified": false,
+    "cross_operation_batching": false,
+    "stored_format_changed": false,
+    "product_release": false,
+    "physical_power_loss_qualified": false
+  },
+  "retained_failure": "docs/evidence/owned-deferred-7ef0dd3-build-failure.json",
+  "source_review_correction": "c9decb1 passed native CPU qualification; subsequent review found the unlocked join race between concurrent stop callers. a4ad516 serializes the observed-exit join and tests both callers. No claim that the race was observed live.",
+  "primary_research": "docs/evidence/native-async-write-research-2026-11-14.json",
+  "navigation": {
+    "source": "389934b5b6b93003de6a049aa217ce0f7b88711f",
+    "run": 43626712071,
+    "actual_queries": 8,
+    "provider": "0.2.43",
+    "source_files": 188,
+    "source_digest": "42345e6543d4ec2765ff1b5d0e5250f3e2b6ca901d33c9902528b237e5f103cb",
+    "routing_receipt_sha256": "1fccfa92bc5cbab1188be0f217798283dc82d2e31c07d71fd3af6aab4bc04ae0",
+    "live_candidates_verified": [
+      "src/windows/winfsp_native.cpp",
+      "src/windows/winfsp_session.cpp"
+    ],
+    "shared_provider_modified": false
+  },
+  "dependabot": {
+    "checked_utc": "2026-11-14T19:24:08.6286530Z",
+    "transport": "Authenticated paginated native GitHub API",
+    "pages": 1,
+    "open_alerts": 0,
+    "scope": "OPEN alerts only; not a security audit"
+  },
+  "dependency_inventory": {
+    "source": "7ef0dd378237dc7b13f3ad83bbbec76be6848478",
+    "run": 43631794312,
+    "job": 132559808304,
+    "status": "success",
+    "observed_utc": "2026-11-14T19:23:57Z",
+    "scope": "Official CMake/LLVM stable releases and tool pins",
+    "pins_current": true,
+    "outdated_pins": [],
+    "versions": {
+      "cmake": "4.5.0",
+      "llvm": "23.1.5"
+    },
+    "note": "No dependency pins changed in c9decb1 or a4ad516; this is not an all-package freshness or compatibility claim."
+  },
+  "limitations": [
+    "Direct callback cases use CPU semantics, not GPU hardware.",
+    "Mounted pending responses are CPU-only and disposable-hosted; they do not qualify latest Windows 11 client compatibility.",
+    "No owner process, GUI, GPU or mount trial was repeated for this change.",
+    "GPU helper/dependency attestation and costs remain explicit trusted configuration, not automatic product acquisition.",
+    "No measured acceleration or collective-compression superiority follows from these checks."
+  ],
+  "owner_hygiene": {
+    "utc": "2026-11-14T19:56:40.3340866Z",
+    "local_head": "d6bb574afe21a3b5185c268df2eda9bdbd02f5e1",
+    "modified_tracked": 7,
+    "untracked_entries": 18,
+    "flitzfs_processes": [],
+    "owner_binary_started": false,
+    "owner_driver_or_mount_operation": false,
+    "owner_backing_or_source_mutation": false,
+    "proof_downloads": "Bounded in-memory artifact reads only; no new owner fixture files."
+  }
+}

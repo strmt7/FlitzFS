@@ -1,8 +1,7 @@
 # Owned deferred Windows writes (experimental)
 
-The explicit hosted-only native adapter can now own one pending write. This is
-an implementation candidate awaiting exact-source CI, not qualified ordinary GPU
-I/O. Default application/filesystem paths remain CPU-only and create no service.
+The explicit hosted-only native adapter can now own one pending write. Its CPU/SDK and disposable mounted response paths passed at a4ad516.
+Automatic ordinary GPU I/O remains unqualified. Default application/filesystem paths remain CPU-only and create no service.
 
 ## Ownership and ordering
 
@@ -13,8 +12,9 @@ It retains no callback buffer, byte-count, FileInfo or thread-local request
 pointer. An accepted request returns STATUS_PENDING. One owned control thread
 alone accesses the persistent GPU coordinator.
 
-Following native callbacks drain pending publication through CPU fallback before
-accessing the session. This serializes append, overlapping writes, reads,
+Following native callbacks request CPU fallback and drain pending publication
+before accessing the session. An already terminal verified result may complete
+normally. This serializes append, overlapping writes, reads,
 truncate, rename/delete, flush, cleanup and close. Callbacks wait for CPU
 publication, never worker/driver retirement. The shared session lock protects
 begin/finish and native mutation; worker polling/verification and retirement run
@@ -52,9 +52,18 @@ reference. No perpetual service, scheduled task or driver change is added.
 
 ## Qualification
 
+Source [a4ad516](https://github.com/strmt7/FlitzFS/commit/a4ad5166d5063d820cfdd704a600ea20a23f1d93)
+passed all 13 [core jobs](https://github.com/strmt7/FlitzFS/actions/runs/43633235875),
+154 native test groups (54 new deferred checks) and the complete
+[ROCm SDK gate](https://github.com/strmt7/FlitzFS/actions/runs/43633243098).
+The real CPU-only RAM-handoff mount passed and retired: zero contexts and locked
+bytes, observed client flush, exact independent readback. Digest-verified
+[receipts](evidence/owned-deferred-a4ad516.json) retain the detailed scope.
+
+
 The direct SDK test uses four bounded synthetic CPU cases: deferred completion,
 CPU-semantic verified worker advice, held-worker fallback triggered by a read,
-and queued shutdown. It checks immutable input, exact response identity/facts,
+and queued shutdown with concurrent stop callers. It checks immutable input, exact response identity/facts,
 current/prior independent readback, one completion and joined resource ownership.
 It does not execute a GPU or create a mount.
 
@@ -69,4 +78,4 @@ The historical [bridge plan](ASYNC_NATIVE_WRITE_PLAN.md) describes the preceding
 design boundary. Finite cross-operation batching, automatic costs, actual GPU
 callback qualification, scalable metadata, collective compression, persistent
 learning and release qualification remain required. No owner execution or
-production data-safety claim follows from this candidate.
+production data-safety claim follows from this qualification.

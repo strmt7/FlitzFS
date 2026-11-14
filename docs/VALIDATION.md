@@ -516,6 +516,25 @@ The [finite uniform sweep](UNIFORM_LZ4_SWEEP.md) passed all 13 core jobs, 152 na
 
 The [reusable uniform compute scope](UNIFORM_LZ4_REUSE.md) passed all 13 core jobs, 152 native Windows groups and full SDK qualification at `d33efd6`. One bounded owner GPU operation stored 135,344 encoded bytes from 1 MiB of source exactly and passed independent current/prior CPU recovery. Worker peak commit was 88.44 MiB under the unchanged 128 MiB cap; all locks and owned processes retired. The complete image stayed equal to the CPU fixture. [Exact evidence](evidence/uniform-reuse-d33efd6.json) records the 626 ms exchange and its limits. This is no comparative speed/whole-image gain or diagnosis of the retained old abnormal exit. Ordinary callbacks remain CPU-only; useful measured costs, autonomous policy, controlled Windows integration and deep collective compression remain open.
 
-## Owned deferred write candidate
+## Owned deferred Windows writes — a4ad516
 
-Exact-source qualification is pending. The new SDK test checks copied request input, exact completion facts, held-worker CPU publication and queued shutdown using CPU semantics only. The hosted RAM-handoff scenario now exercises real CPU-only pending Write/SendResponse ownership. No new owner binary, GPU run, mount or driver change has occurred for this candidate.
+All 13 [core jobs](https://github.com/strmt7/FlitzFS/actions/runs/43633235875)
+and the complete [ROCm SDK gate](https://github.com/strmt7/FlitzFS/actions/runs/43633243098)
+passed for a4ad5166d5063d820cfdd704a600ea20a23f1d93. Windows native CTest passed 154 groups, including 54
+deferred-write checks and the retained 199 controlled-native-write checks.
+
+Four direct CPU cases cover copied input, exact completion facts, verified
+CPU-semantic worker advice, held-worker read-triggered fallback and queued
+shutdown with two concurrent stop callers. The real hosted RAM-handoff mount
+passed with CPU-only deferred responses, observed client flush, independent
+current/prior readback, zero remaining contexts/locked bytes and complete unmount.
+
+The SDK retained 3,485 compute checks across 83 scenarios (10 success/73 refusal),
+15 raw checks across two refusal scenarios, 25 confirmed admission exits and
+zero command timeouts. These are CPU/SDK tests, not new hardware execution.
+
+[Digest-verified evidence](evidence/owned-deferred-a4ad516.json) retains source,
+artifacts and scope. The [initial compilation failure](evidence/owned-deferred-7ef0dd3-build-failure.json)
+remains recorded. No owner binary, mount, driver, GUI or GPU operation ran this
+round. Actual GPU completion through this service, automatic costs/routing and
+comparative benefit remain unqualified.
