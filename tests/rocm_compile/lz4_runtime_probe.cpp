@@ -288,7 +288,9 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
       <<",\"worker_payload_bytes\":"<<accepted.candidates.payload.size()<<",\"image_bytes\":"<<image
       <<",\"active_payload_bytes\":"<<payload<<",\"exchange_ns\":"<<exchange_ns
       <<",\"trace_total_wall_ns\":"<<accepted.trace.total_wall_ns<<",\"kernel_wait_wall_ns\":"<<kernel
-      <<",\"trace_complete\":"<<(accepted.trace.finished?"true":"false")
+      <<",\"phase_wall_ns\":[";
+  for(unsigned i=0;i<hip_phase_count;++i){if(i)std::cout<<',';std::cout<<accepted.trace.wall_ns[i];}
+  std::cout<<"],\"trace_complete\":"<<(accepted.trace.finished?"true":"false")
       <<",\"worker_exit\":"<<(result?result->process.exit_code:0)
       <<",\"worker_peak_commit_bytes\":"<<(result?result->process.peak_committed_bytes:0)
       <<",\"controller_job_peak_commit_bytes\":"<<controller.peak_commit()

@@ -85,32 +85,37 @@ class Volume final {
         "uniform native current/prior CPU recovery");
     independent.verify_all();store_->verify();
     if(candidates.empty())return false;
-    // This synthetic source repeats the SAME extent. Native deduplication may
-    // select one immutable object for both. Accept only an exact encoded payload
-    // supplied for that same plaintext, never size equality or a backend label.
-    std::uint64_t object_id=0;
+    // Both extents contain identical plaintext. The native writer may retain
+    // separate immutable objects or deduplicate them. Verify EVERY matching
+    // data object, rather than assuming either allocation behavior.
+    std::vector<std::uint64_t> object_ids;
     for(const auto& object:objects.list())if(object.logical_bytes==65536 &&
         objects.read(object.id)==Bytes(plain.begin(),plain.begin()+65536)){
-      check(!object_id,"uniform native dedup object ambiguous");object_id=object.id;
+      object_ids.push_back(object.id);
     }
-    check(object_id!=0,"uniform native data object missing");
+    check(!object_ids.empty() && object_ids.size()<=2,"uniform native data object inventory");
     std::array<std::byte,4096> root{};store_->read_exact((info.generation%2)*kStoreCommitUnit,root);
     check(integer(root,16,8)==info.generation,"uniform native generation changed");
     const auto count=integer(root,44,4),index_bytes=integer(root,40,4);
     check(count && count<=kStoreMaxObjects && index_bytes==64+64*count,"uniform native index shape");
     Bytes index(static_cast<std::size_t>(index_bytes));store_->read_exact(integer(root,32,8),index);
-    for(std::size_t i=0;i<count;++i){
-      const auto at=64+64*i;if(integer(index,at,8)!=object_id)continue;
-      std::array<std::byte,128> record{};const auto offset=integer(index,at+16,8);
-      store_->read_exact(offset,record);
-      if(integer(record,12,4)!=4 || integer(record,32,4)!=65536)return false;
-      const auto size=integer(record,36,4);if(!size || size>65536)return false;
-      Bytes payload(static_cast<std::size_t>(size));store_->read_exact(offset+128,payload);
-      for(const auto& hint:candidates)if(hint.extent_index<2 && hint.payload.size()==payload.size() &&
-          std::equal(hint.payload.begin(),hint.payload.end(),payload.begin()))return true;
-      return false;
+    for(const auto object_id:object_ids){
+      bool located=false,exact=false;
+      for(std::size_t i=0;i<count;++i){
+        const auto at=64+64*i;if(integer(index,at,8)!=object_id)continue;
+        check(!located,"uniform native duplicate index identity");located=true;
+        std::array<std::byte,128> record{};const auto offset=integer(index,at+16,8);
+        store_->read_exact(offset,record);
+        if(integer(record,12,4)!=4 || integer(record,32,4)!=65536)continue;
+        const auto size=integer(record,36,4);if(!size || size>65536)continue;
+        Bytes payload(static_cast<std::size_t>(size));store_->read_exact(offset+128,payload);
+        for(const auto& hint:candidates)if(hint.extent_index<2 && hint.payload.size()==payload.size() &&
+            std::equal(hint.payload.begin(),hint.payload.end(),payload.begin()))exact=true;
+      }
+      check(located,"uniform native inspected object absent");
+      if(!exact)return false;
     }
-    throw std::runtime_error("uniform native inspected object absent");
+    return true;
   }
   void close(){
     old_.reset();writer_.reset();store_.reset();
