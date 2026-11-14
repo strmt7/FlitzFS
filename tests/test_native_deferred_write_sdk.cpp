@@ -16,14 +16,14 @@ template<class F>void eventually(F&& done,const char* why){
   const auto start=GetTickCount64();while(!done()){if(GetTickCount64()-start>6000)throw std::runtime_error(why);Sleep(1);}
 }
 struct Collector {
-  std::mutex mutex;std::array<FSP_FSCTL_TRANSACT_RSP,16> replies{};unsigned count=0;bool overflow=false;
+  std::mutex mutex;std::array<std::array<std::byte,sizeof(FSP_FSCTL_TRANSACT_RSP)>,16> replies{};unsigned count=0;bool overflow=false;
 };
 Collector* receiver=nullptr;std::atomic<UINT64> hints{71};
 bool hint(UINT64& value) noexcept{value=hints.fetch_add(1);return true;}
 void send(FSP_FILE_SYSTEM*,FSP_FSCTL_TRANSACT_RSP& response) noexcept{
   std::lock_guard guard(receiver->mutex);
   if(receiver->count==receiver->replies.size()){receiver->overflow=true;return;}
-  receiver->replies[receiver->count++]=response;
+  std::memcpy(receiver->replies[receiver->count++].data(),&response,sizeof(response));
 }
 GpuHealthEvidence health(){
   GpuHealthEvidence e;const auto now=GetTickCount64();
@@ -80,20 +80,20 @@ struct Harness {
         "deferred callback create");return context;
   }
   FSP_FSCTL_TRANSACT_RSP reply(unsigned index){
-    FSP_FSCTL_TRANSACT_RSP response{};
+    FSP_FSCTL_TRANSACT_RSP response;std::memset(&response,0,sizeof(response));
     eventually([&]{
       adapter->publish_deferred_health_hosted(health());
       std::lock_guard guard(collector.mutex);
-      if(collector.count<=index)return false;response=collector.replies[index];return true;
+      if(collector.count<=index)return false;std::memcpy(&response,collector.replies[index].data(),sizeof(response));return true;
     },"deferred callback completion absent");
     return response;
   }
   void close(PVOID context){
-    FSP_FSCTL_TRANSACT_REQ request{};FSP_FSCTL_TRANSACT_RSP response{};
+    FSP_FSCTL_TRANSACT_REQ request;std::memset(&request,0,sizeof(request));FSP_FSCTL_TRANSACT_RSP response;std::memset(&response,0,sizeof(response));
     request.Kind=FspFsctlTransactCleanupKind;
     request.Req.Cleanup.UserContext2=reinterpret_cast<std::uintptr_t>(context);
     check(FspFileSystemOpCleanup(&fs,&request,&response)==STATUS_SUCCESS,"deferred SDK cleanup");
-    request={};response={};request.Kind=FspFsctlTransactCloseKind;
+    std::memset(&request,0,sizeof(request));std::memset(&response,0,sizeof(response));request.Kind=FspFsctlTransactCloseKind;
     request.Req.Close.UserContext2=reinterpret_cast<std::uintptr_t>(context);
     check(FspFileSystemOpClose(&fs,&request,&response)==STATUS_SUCCESS,"deferred SDK close");
   }

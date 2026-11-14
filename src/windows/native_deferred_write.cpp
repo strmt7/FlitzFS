@@ -1,6 +1,7 @@
 #include "native_deferred_write.hpp"
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <limits>
 #include <stdexcept>
 namespace flitzfs {
@@ -106,10 +107,10 @@ void NativeDeferredWriteService::run() noexcept{
       }
       if(result.outcome.offline_required)offline_.store(true,std::memory_order_release);
       if(result.candidate_count)increment(stats_.advised);
-      FSP_FSCTL_TRANSACT_RSP response{};
+      FSP_FSCTL_TRANSACT_RSP response;std::memset(&response,0,sizeof(response));
       static_assert(sizeof(response)<=(std::numeric_limits<UINT16>::max)());
       response.Size=static_cast<UINT16>(sizeof(response));response.Kind=FspFsctlTransactWriteKind;
-      response.Hint=request_->hint;response.IoStatus.Status=result.outcome.status;
+      response.Hint=request_->hint;response.IoStatus.Status=static_cast<UINT32>(result.outcome.status);
       response.IoStatus.Information=result.transferred;response.Rsp.Write.FileInfo=result.info;
       auto* filesystem=request_->filesystem;
       stats_.native_pending=false;increment(stats_.completed);changed_.notify_all();
@@ -130,13 +131,13 @@ void NativeDeferredWriteService::run() noexcept{
       if(stats_.stopping)break;
     }
   }catch(...){
-    FSP_FSCTL_TRANSACT_RSP response{};FSP_FILE_SYSTEM* filesystem=nullptr;
+    FSP_FSCTL_TRANSACT_RSP response;std::memset(&response,0,sizeof(response));FSP_FILE_SYSTEM* filesystem=nullptr;
     {
       std::lock_guard guard(control_);
       // Fail an accepted pending request once; never replay a mutation.
       if(stats_.native_pending&&request_){
         response.Size=static_cast<UINT16>(sizeof(response));response.Kind=FspFsctlTransactWriteKind;
-        response.Hint=request_->hint;response.IoStatus.Status=STATUS_IO_DEVICE_ERROR;
+        response.Hint=request_->hint;response.IoStatus.Status=static_cast<UINT32>(STATUS_IO_DEVICE_ERROR);
         filesystem=request_->filesystem;increment(stats_.completed);
       }
       offline_.store(true,std::memory_order_release);stats_.disabled=true;

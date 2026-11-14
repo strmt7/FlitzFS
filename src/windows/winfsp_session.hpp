@@ -1,5 +1,6 @@
 #pragma once
 #include "winfsp_readonly.hpp"
+#include "native_deferred_write.hpp"
 #include <memory>
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/mount_plan.hpp"

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "source": "7ef0dd378237dc7b13f3ad83bbbec76be6848478",
+  "run": 43631794283,
+  "job": 132559808493,
+  "status": "Windows compilation failed; no native callback test or mount ran",
+  "errors": [
+    "winfsp_session.hpp omitted the complete deferred option/stats type include (C2061/C4430/C3646).",
+    "MSVC rejected aggregate empty initialization of the SDK variable-tail response type (C2466)."
+  ],
+  "correction": "Include the deferred contract explicitly; declare SDK request/response objects then clear their fixed storage using memset; collector stores bounded byte copies rather than nested aggregate SDK records.",
+  "owner_execution": false,
+  "original_logs": "https://github.com/strmt7/FlitzFS/actions/runs/43631794283/job/132559808493",
+  "safety": "No owner binary, mount, driver or GPU operation.",
+  "follow_up": "Full exact-source requalification; no suppression or weakened assertion."
+}
