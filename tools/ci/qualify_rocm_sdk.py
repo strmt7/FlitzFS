@@ -485,7 +485,7 @@ def main():
             uniform_prefix="Uniform LZ4 runtime admission: "
             uniform_rows=[json.loads(line[len(uniform_prefix):]) for line in uniform_result["stdout"].splitlines()
                 if line.startswith(uniform_prefix)]
-            require(len(uniform_rows)==1 and uniform_rows[0]["checks"]>=30 and uniform_rows[0]["exits_confirmed"]==20 and
+            require(len(uniform_rows)==1 and uniform_rows[0]["checks"]>=30 and uniform_rows[0]["exits_confirmed"]==25 and
                 all(uniform_rows[0][key] is True for key in ("complete","bundle_verified","tamper_refused","CPU_source_unchanged")) and
                 uniform_rows[0]["hip_runtime_loaded"] is False and uniform_rows[0]["gpu_executed"] is False,
                 "uniform runtime admission evidence mismatch")
@@ -584,7 +584,7 @@ def main():
                 row["gpu_executed"] is False and type(row["checks"]) is int and row["checks"]>0 and
                 row["scenarios"]==row["successes"]+row["refusals"],
                 "uniform compute CPU qualification contract")
-            require((available and row["successes"]==9 and row["refusals"]>=70) or
+            require((available and row["successes"]==10 and row["refusals"]>=73) or
                 (not available and row["successes"]==0 and row["refusals"]==2),
                 "uniform compute CPU positive/failure coverage mismatch")
             return dict(bytes=executable.stat().st_size,sha256=digest(executable),

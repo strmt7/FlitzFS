@@ -1,5 +1,14 @@
 # FlitzFS safety gates and threat model
 
+## Finite-sweep measurement candidate
+
+The opt-in [finite-sweep profile](UNIFORM_LZ4_SWEEP_PROFILE.md)
+separates reusable setup, accumulated work phases and the slowest kernel/quantum.
+Current-source qualification is pending. This does not enable ordinary GPU I/O,
+automatically qualify costs, prove comparative benefit or change stored codecs.
+CPU fallback may use a different encoder and stored size while retaining
+independent byte-exact reads of every admitted GPU representation.
+
 ## Native fast-ingestion storage candidate
 
 [Native fast ingestion](NATIVE_FAST_INGESTION.md) retains the existing publication barriers and terminal I/O failure policy. Independent LZ4 CPU recovery, exact round-trip equality, strict nonexpansion, bounded external compressor state and pre-I/O advisory budgets are required. Malformed/stale suggestions select CPU encoding. Older readers cannot read codec 4. No worker or GPU is launched by storage calls. The storage foundation qualified at 0d96d903; the new inode hook needs its own source-bound gates.

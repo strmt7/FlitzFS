@@ -41,6 +41,22 @@ generations. Do not assume extensions imply content or apply one model to every
 file. Background work must be automatic, persist useful learning, remain very low
 priority, and promptly yield to foreground activity under fresh resource evidence.
 
+## CPU fallback and independent decoding
+
+CPU fallback provides continued operation and independent access to every stored
+representation. Its encoder may deliberately choose a different algorithm, format,
+compression level or resulting size. It need not reproduce a GPU-generated
+compressed stream or its ratio. GPU-only encoding with an independent CPU decoder
+is permitted; GPU-required decoding of acknowledged data is not.
+
+Verification compares recovered source bytes. Shared dictionary/model/base
+dependencies must be immutable, protected, versioned, independently CPU-readable
+and included in publication, recovery and total-size accounting. New fallback
+writes may coexist with older GPU representations; later GPU maintenance can
+recompress them without exposing this distinction in Explorer. This preserves
+the owner's continued-operation requirement while allowing more ambitious GPU
+collective/learned encoders.
+
 ## Transparent cross-file grouping
 
 The user sees ordinary files and folders in Windows Explorer. Internal compression

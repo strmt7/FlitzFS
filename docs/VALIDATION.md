@@ -1,5 +1,14 @@
 # Validation ledger — experimental release 0.2
 
+## Finite-sweep measurement candidate
+
+The opt-in [finite-sweep profile](UNIFORM_LZ4_SWEEP_PROFILE.md)
+separates reusable setup, accumulated work phases and the slowest kernel/quantum.
+Current-source qualification is pending. This does not enable ordinary GPU I/O,
+automatically qualify costs, prove comparative benefit or change stored codecs.
+CPU fallback may use a different encoder and stored size while retaining
+independent byte-exact reads of every admitted GPU representation.
+
 ## Native fast-ingestion storage candidate
 
 The new [fast-ingestion storage path](NATIVE_FAST_INGESTION.md) requires exact-source enabled/raw/Windows/sanitizer qualification, independent codec-4 decoding and immutable-baseline failure reproduction, resource/candidate rejection and full modeled transactional I/O fault coverage. Its added tests execute CPU code only. The storage gates passed at 0d96d903; the native inode hook passed all 13 core jobs at 3a797a3.

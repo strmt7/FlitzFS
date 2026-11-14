@@ -1,5 +1,21 @@
 # Agent instructions for autonomous FlitzFS development
 
+## Measured sweep observations and encoding independence
+
+Read docs/UNIFORM_LZ4_SWEEP_PROFILE.md before changing the opt-in finite-sweep
+recorder or envelope. Preserve serial ordering, zero disabled clock calls,
+complete setup/quanta/retirement, source/adapter/grant binding and independent
+CPU bytes. Wall observations are not qualified costs, device-event times or
+GPU evidence from CPU fixtures. No ordinary route or owner trial is authorized
+by a new successful CPU measurement.
+
+Owner clarification, 14 November 2026: CPU fallback may use a different encoder,
+algorithm, format and stored size. It must continue operation and independently
+read EVERY admitted stored GPU representation, including protected collective
+dictionary/model/base dependencies. Do not require equal compressed streams or
+ratios, or constrain GPU/cold-codec creativity to the CPU writer. Verify decoded
+bytes. Minimum TOTAL stored size remains the primary compression objective.
+
 ## Resource-adaptive full-development direction
 
 Owner clarification, 14 November 2026: remove the tiny prototype allocation ceiling as a development/product policy. Read docs/ADAPTIVE_LZ4_EXECUTION.md. Discover actual capabilities and live local/nonlocal GPU, physical and commit headroom; size windows and work shares from demand, contention and configuration-qualified costs. Keep independent CPU recovery, checked arithmetic, protected immutable input, finite queues/work quanta, fresh re-admission and exact retirement. Unknown evidence selects CPU. Do not hardcode one host or treat a mutable learned policy as safety authority. Existing tiny tests remain compatibility controls, not production sizing defaults. New streaming/runtime integration still requires isolated exact-source qualification before any owner trial. This authorizes no driver change, owner mount, exhaustion or stress test.

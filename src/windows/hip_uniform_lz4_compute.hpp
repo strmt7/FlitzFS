@@ -3,6 +3,7 @@
 #include "flitzfs/uniform_lz4_wire.hpp"
 #include "hipcomp_uniform_lz4_api.hpp"
 #include "hip_phase_profile.hpp"
+#include "uniform_lz4_sweep_trace.hpp"
 namespace flitzfs::hip_detail {
 // A configuration-qualified maximum kernel quantum expressed as work, not a
 // universal input cap. A trusted caller must obtain this from its admitted
@@ -125,6 +126,6 @@ UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
 UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
-    std::span<const hip_detail::Lz4KernelCoverage>);
+    std::span<const hip_detail::Lz4KernelCoverage>,UniformLz4SweepTrace* trace=nullptr);
 
 }

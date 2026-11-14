@@ -1,4 +1,5 @@
 #include "hip_uniform_lz4_reuse.hpp"
+#include "uniform_lz4_sweep_profile.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include "bounded_process.hpp"
 #include <algorithm>
@@ -47,7 +48,6 @@ struct State {
   int stream_tag=0;
   bool reuse=false,null_stream=false;
   std::uint64_t allocation_bytes=0,source_offset=0;
-  std::size_t allocated_size=0;
   unsigned waits=0;uniform_lz4::Layout current_plan{};
   void* allocation=nullptr;
   explicit State(const UniformLz4Request& input,unsigned wave=32):source(input),arena((input.batch.layout().total_bytes+7)/8+1) {
@@ -106,14 +106,14 @@ hipError_t allocate(void** out,std::size_t size){
   if(status!=hipSuccess)return active->fault=="allocate"?hipErrorOutOfMemory:status;
   if(active->null_allocation){*out=nullptr;return hipSuccess;}
   active->allocation=active->bytes().data()+(active->bad_alignment?1:0);
-  active->allocated_size=size;active->allocated=true;*out=active->allocation;return hipSuccess;
+  active->allocated=true;*out=active->allocation;return hipSuccess;
 }
 hipError_t release(void* value){
   require(active->allocated && value==active->allocation,"Foreign/duplicate slab release");
-  active->allocated=false;active->allocated_size=0;return active->step("release");
+  active->allocated=false;return active->step("release");
 }
 hipError_t copy(void* out,const void* in,std::size_t size,hipMemcpyKind kind){
-  require(active->allocated && size==active->allocated_size,"Copy does not match the exact owned allocation");
+  require(active->allocated && size==active->source.batch.layout().total_bytes,"Copy slab extent");
   const auto name=kind==hipMemcpyHostToDevice?"upload":"readback";
   require(kind==hipMemcpyHostToDevice || kind==hipMemcpyDeviceToHost,"Unexpected copy direction");
   if(kind==hipMemcpyHostToDevice)require(out==active->allocation,"Upload address");
@@ -150,7 +150,7 @@ hipError_t launch(const void* entry,dim3 grid,dim3 block,void** args,std::size_t
   auto* slab=*static_cast<unsigned char**>(args[0]);
   const auto allocated=*static_cast<uniform_lz4::u64*>(args[1]);
   const auto plan=*static_cast<uniform_lz4::Layout*>(args[2]);
-  require(slab==active->allocation && allocated==expected.total_bytes && allocated<=active->allocated_size &&
+  require(slab==active->allocation && allocated==expected.total_bytes &&
       plan.chunks==expected.chunks && uniform_lz4::valid_layout(plan,allocated),"uniform 64-bit by-value ABI");
   const auto status=active->step("launch");if(status!=hipSuccess)return status;
   active->submitted=true;active->current_plan=plan;
@@ -224,7 +224,7 @@ UniformLz4Candidates compute(State& state,Lz4KernelCoverage covered=coverage,Uni
   }
   return result;
 }
-UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}){
+UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={},UniformLz4SweepTrace* trace=nullptr){
   Activate owner(state);state.reuse=true;
   uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*65536,65536,quantum),"reused fixture peak");
   if(!grant.maximum_chunks && !grant.maximum_device_bytes)grant={2,quantum.total_bytes,65536};
@@ -248,7 +248,7 @@ UniformLz4Candidates reused_compute(State& state,UniformLz4ComputeGrant grant={}
     require_hip_memory(current,identity,1,tick,state.allocation_bytes,point,
         point==HipMemoryPoint::pre_initialize?nullptr:&before);
   };
-  return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory);
+  return execute_uniform_lz4_reused_sweep(api,&attributes,kernels,state.source,coverage,grant,initialize,memory,trace);
 }
 void reused_success(const UniformLz4Request& source,unsigned wave){
   ++scenarios;++successes;State state(source,wave);state.properties.maxGridSize[0]=2;
@@ -319,6 +319,31 @@ int wmain(int argc,wchar_t** argv){try{
   }else{
     success(source,32);success(source,64);success(request(1),32);
     reused_success(source,32);reused_success(source,64);reused_success(request(16U*65536),32);reused_success(request(1),32);
+    {
+      ++scenarios;++successes;State state(source);UniformLz4SweepTrace trace;
+      const auto candidate=reused_compute(state,{},&trace);
+      require(trace.finished && trace.completed_windows==9 &&
+          trace.maximum_kernel_wall_ns<=trace.maximum_quantum_wall_ns &&
+          !state.allocated && !state.stream_live,"reused actual compute trace incomplete");
+      uniform_lz4::Layout q{};require(uniform_lz4::make_layout(2U*65536,65536,q),"reused profile peak");
+      const UniformLz4ProfileBinding binding{source.request_id,0,1,2,65536,q.total_bytes,identity};
+      const auto ordinary=encode_uniform_lz4_reply(source.batch,source.request_id,candidate,WorkerExecution::cpu_semantics);
+      const auto frame=encode_uniform_lz4_sweep_profile_reply(source.batch,binding,trace,ordinary,WorkerExecution::cpu_semantics);
+      const auto accepted=accept_uniform_lz4_sweep_profile_reply(frame,source.batch,binding,WorkerExecution::cpu_semantics);
+      require(accepted.candidates.payload==candidate.payload && accepted.candidates.sizes==candidate.sizes &&
+          accepted.trace.wall_ns==trace.wall_ns,"reused compute/envelope/CPU comparison mismatch");
+      for(const auto* fault:{"reuse-wait-second","release","reuse-memory-next"}){
+        ++scenarios;++refusals;State failed(source);failed.fault=fault;UniformLz4SweepTrace partial;
+        UniformLz4Candidates escaped;
+        try{escaped=reused_compute(failed,{},&partial);throw std::runtime_error("profiled reuse failure ignored");}
+        catch(const HipWorkerFailure& f){
+          require(f.code==(failed.fault=="reuse-memory-next"?HipWorkerExit::temporary_pressure:HipWorkerExit::device_fault),
+              "profiled reuse failure category");
+        }
+        require(!partial.finished && escaped.payload.empty() && escaped.sizes.empty() &&
+            !failed.allocated && !failed.stream_live,"failed reuse published observation or leaked resources");
+      }
+    }
     for(const auto* name:{"initialize","properties-1","properties-2","select","priority-1","priority-2",
         "attributes-1","attributes-2","stream-create","allocate","upload","launch","wait","readback",
         "stream-destroy","release","reuse-wait-second","reuse-unused-tail","reuse-memory-next",

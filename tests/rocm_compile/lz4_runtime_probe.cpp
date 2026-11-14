@@ -11,6 +11,7 @@
 #include "flitzfs/lz4_worker_wire.hpp"
 #include "flitzfs/uniform_lz4_wire.hpp"
 #include "uniform_lz4_profile.hpp"
+#include "uniform_lz4_sweep_profile.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include "../native_lz4_fixture.hpp"
 #include <windows.h>
@@ -83,8 +84,7 @@ void uniform_exchange(const fs::path& worker,const PreparedUniformLz4& batch,
       std::wstring(64,L'0'),std::to_wstring(limits.request_bytes),std::to_wstring(reply_bytes),
       std::to_wstring(limits.chunks),std::to_wstring(limits.device_bytes),std::to_wstring(limits.chunk_bytes)};
   if(sweep){
-    require(!profile,"separate sweep/profile mode");
-    args[0]=L"--driver-uniform-lz4-sweep-adapter";
+    args[0]=profile?L"--driver-uniform-lz4-sweep-profile-adapter":L"--driver-uniform-lz4-sweep-adapter";
     uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*limits.chunk_bytes,limits.chunk_bytes,quantum),"admission sweep quantum");
     args[7]=L"2";args[8]=std::to_wstring(quantum.total_bytes);
   }
@@ -155,6 +155,11 @@ int uniform_admission(const fs::path& worker,const fs::path& root){
   uniform_exchange(worker,batch,frame,HipWorkerExit::invalid_request,false,5,false,true);
   uniform_exchange(worker,batch,frame,HipWorkerExit::invalid_request,false,6,false,true);
   uniform_exchange(worker,batch,invalid_profile,HipWorkerExit::invalid_request,false,0,false,true);
+  uniform_exchange(worker,batch,frame,HipWorkerExit::runtime_unavailable,true,0,true,true);
+  uniform_exchange(worker,batch,frame,HipWorkerExit::invalid_request,false,4,true,true);
+  uniform_exchange(worker,batch,frame,HipWorkerExit::invalid_request,false,5,true,true);
+  uniform_exchange(worker,batch,frame,HipWorkerExit::invalid_request,false,6,true,true);
+  uniform_exchange(worker,batch,invalid_profile,HipWorkerExit::invalid_request,false,0,true,true);
   require(read(worker)==binary && read(module_path)==module &&
       std::equal(source.begin(),source.end(),batch.plaintext().begin()),"Uniform trusted input/source changed");
   std::cout<<"Uniform LZ4 runtime admission: {\"checks\":"<<checks<<",\"exits_confirmed\":"<<exits
@@ -238,7 +243,7 @@ int uniform_native_cpu_fixture(bool sweep=false){
       <<",\"locked_after_bytes\":0,\"working_set_restored\":true,\"gpu_executed\":false,\"mounted\":false}\n";
   return 0;
 }
-int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller,bool sweep=false){
+int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller,bool sweep=false,bool sweep_profile=false){
   require(argc==7,"Uniform calibration needs explicit trusted worker/ordinal/LUID/node/runtime digest");
   require(store_lz4_available() && gpu_lz4_cpu_verification_available(),"Independent uniform CPU recovery required");
   const fs::path worker(argv[2]);
@@ -255,18 +260,18 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
   uniform_lz4::Layout quantum{};require(uniform_lz4::make_layout(2U*kNativeExtentBytes,kNativeExtentBytes,quantum),"native sweep quantum");
   const auto plan=plan_uniform_lz4_sweep(batch,2,quantum.total_bytes);
   const auto device_bytes=sweep?plan.device_peak_bytes:layout.total_bytes;
-  const auto reply_bytes=batch.limits().reply_bytes+(sweep?0:kUniformLz4ProfileBytes);
+  const auto reply_bytes=batch.limits().reply_bytes+(sweep?(sweep_profile?kUniformLz4SweepProfileBytes:0):kUniformLz4ProfileBytes);
   const auto grant_chunks=sweep?plan.quantum_chunks:layout.chunks;
   lz4_native_fixture::Volume volume;
   const auto before=query_windows_gpu_budget(luid,mask);
   const bool admitted=before.status==WindowsGpuBudgetStatus::success &&
       check_gpu_memory_budget(before.snapshot,luid,mask,GetTickCount64(),device_bytes)==GpuGateCode::admitted;
   std::optional<WorkerExchangeSession> session;const WorkerExchangeResult* result=nullptr;
-  bool verified=false;UniformLz4ProfiledReply accepted;std::uint64_t exchange_ns=0;
+  bool verified=false;UniformLz4ProfiledReply accepted;UniformLz4SweepTrace sweep_trace;std::uint64_t exchange_ns=0;
   if(admitted){
     try{
     const auto frame=encode_uniform_lz4_request(batch,binding.request_id);const auto started=std::chrono::steady_clock::now();
-    session.emplace(WorkerExchangeSession::start_sized(worker,{sweep?L"--driver-uniform-lz4-sweep-adapter":L"--driver-uniform-lz4-profile-adapter",
+    session.emplace(WorkerExchangeSession::start_sized(worker,{sweep?(sweep_profile?L"--driver-uniform-lz4-sweep-profile-adapter":L"--driver-uniform-lz4-sweep-adapter"):L"--driver-uniform-lz4-profile-adapter",
         std::to_wstring(ordinal),argv[4],std::to_wstring(mask),std::wstring(digest),
         std::to_wstring(batch.limits().request_bytes),std::to_wstring(reply_bytes),
         std::to_wstring(grant_chunks),std::to_wstring(device_bytes),std::to_wstring(layout.chunk_bytes)},
@@ -282,7 +287,11 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
         const auto after=query_windows_gpu_budget(luid,mask);
         if(after.status==WindowsGpuBudgetStatus::success &&
             check_gpu_memory_transition(before.snapshot,after.snapshot,luid,mask,GetTickCount64(),device_bytes)==GpuGateCode::admitted){
-          if(sweep)accepted.candidates=accept_uniform_lz4_reply(result->response,batch,binding.request_id,WorkerExecution::hip);
+          if(sweep_profile){
+            const UniformLz4ProfileBinding sweep_binding{binding.request_id,ordinal,mask,grant_chunks,layout.chunk_bytes,device_bytes,luid};
+            auto profiled=accept_uniform_lz4_sweep_profile_reply(result->response,batch,sweep_binding,WorkerExecution::hip);
+            sweep_trace=profiled.trace;accepted.candidates=std::move(profiled.candidates);
+          }else if(sweep)accepted.candidates=accept_uniform_lz4_reply(result->response,batch,binding.request_id,WorkerExecution::hip);
           else accepted=accept_uniform_lz4_profile_reply(result->response,batch,binding,WorkerExecution::hip);
           verified=true;
         }
@@ -321,6 +330,15 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
       <<",\"trace_total_wall_ns\":"<<accepted.trace.total_wall_ns<<",\"kernel_wait_wall_ns\":"<<kernel
       <<",\"phase_wall_ns\":[";
   for(unsigned i=0;i<hip_phase_count;++i){if(i)std::cout<<',';std::cout<<accepted.trace.wall_ns[i];}
+  std::cout<<"],\"sweep_profile_supported\":"<<(sweep_profile?"true":"false")
+      <<",\"sweep_trace_complete\":"<<(sweep_trace.finished?"true":"false")
+      <<",\"sweep_trace_total_wall_ns\":"<<sweep_trace.total_wall_ns
+      <<",\"sweep_completed_windows\":"<<sweep_trace.completed_windows
+      <<",\"sweep_maximum_kernel_wall_ns\":"<<sweep_trace.maximum_kernel_wall_ns
+      <<",\"sweep_minimum_kernel_wall_ns\":"<<sweep_trace.minimum_kernel_wall_ns
+      <<",\"sweep_maximum_quantum_wall_ns\":"<<sweep_trace.maximum_quantum_wall_ns
+      <<",\"sweep_phase_wall_ns\":[";
+  for(unsigned i=0;i<uniform_sweep_phase_count;++i){if(i)std::cout<<',';std::cout<<sweep_trace.wall_ns[i];}
   std::cout<<"],\"trace_complete\":"<<(accepted.trace.finished?"true":"false")
       <<",\"worker_exit\":"<<(result?result->process.exit_code:0)
       <<",\"worker_peak_commit_bytes\":"<<(result?result->process.peak_committed_bytes:0)
@@ -459,6 +477,7 @@ int wmain(int argc,wchar_t** argv){
     gpu_probe_fixture::Budget controller;
     if(argc==4 && std::wstring_view(argv[1])==L"--uniform-admission")return uniform_admission(argv[2],argv[3]);
     if(argc==2 && std::wstring_view(argv[1])==L"--uniform-sweep-native-cpu-fixture")return uniform_native_cpu_fixture(true);
+    if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-sweep-profile-native-once")return uniform_native_gpu_once(argc,argv,controller,true,true);
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-sweep-native-once")return uniform_native_gpu_once(argc,argv,controller,true);
     if(argc==2 && std::wstring_view(argv[1])==L"--uniform-native-cpu-fixture")return uniform_native_cpu_fixture();
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-native-once")return uniform_native_gpu_once(argc,argv,controller);

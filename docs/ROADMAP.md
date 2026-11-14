@@ -1,5 +1,14 @@
 # Development gates and acceptance criteria
 
+## Finite-sweep measurement candidate
+
+The opt-in [finite-sweep profile](UNIFORM_LZ4_SWEEP_PROFILE.md)
+separates reusable setup, accumulated work phases and the slowest kernel/quantum.
+Current-source qualification is pending. This does not enable ordinary GPU I/O,
+automatically qualify costs, prove comparative benefit or change stored codecs.
+CPU fallback may use a different encoder and stored size while retaining
+independent byte-exact reads of every admitted GPU representation.
+
 ## Native fast-ingestion storage candidate
 
 The [fast-ingestion representation](NATIVE_FAST_INGESTION.md) now connects verified compressed candidates to native transactional object records and independent CPU recovery. Qualify its immutable-baseline decoder regression, raw/codec/native/sanitizer cases and every modeled commit fault before connecting asynchronous GPU results to Windows file operations. G02 and measured benefit remain open.

@@ -1,5 +1,12 @@
 # `.flfs` v1 experimental chunk container
 
+## Opt-in sweep diagnostic envelope
+
+The new [finite-sweep profile](UNIFORM_LZ4_SWEEP_PROFILE.md) uses a separate
+256-byte FLUSP001 worker diagnostic envelope. Stored formats and ordinary
+version-2 replies are unchanged. CPU encoding may differ from GPU encoding;
+independent readers must recover all admitted stored representations.
+
 The SDK-only HIP LZ4 compute candidate does not add or change any stored encoding.
 Its private layout and typed function table are not this on-storage format.
 

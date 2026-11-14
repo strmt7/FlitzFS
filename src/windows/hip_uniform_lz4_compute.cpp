@@ -98,7 +98,7 @@ UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
 UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
-    std::span<const hip_detail::Lz4KernelCoverage> targets){
+    std::span<const hip_detail::Lz4KernelCoverage> targets,UniformLz4SweepTrace* trace){
   hip_detail::lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform sweep verification unavailable");
   UniformLz4SweepPlan plan;
@@ -106,7 +106,7 @@ UniformLz4Candidates run_hip_uniform_lz4_sweep_in_worker(HMODULE runtime,
   catch(const std::exception&){throw HipWorkerFailure(HipWorkerExit::invalid_request,"invalid uniform sweep grant");}
   return with_uniform_device(runtime,ordinal,luid,node_mask,targets,plan.quantum_chunks,plan.device_peak_bytes,
       [&](const auto& api,auto attributes,auto coverage,auto&& initialize,auto&& memory){
-        return hip_detail::execute_uniform_lz4_reused_sweep(api,attributes,kernel,request,coverage,grant,initialize,memory);
+        return hip_detail::execute_uniform_lz4_reused_sweep(api,attributes,kernel,request,coverage,grant,initialize,memory,trace);
       });
 }
 }

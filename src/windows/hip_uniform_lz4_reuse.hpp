@@ -1,6 +1,7 @@
 #pragma once
 #include "hip_uniform_lz4_compute.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
+#include "uniform_lz4_sweep_trace.hpp"
 namespace flitzfs::hip_detail {
 // One authenticated bounded operation; no persistent device owner or retry.
 // Initializer must qualify geometry for the plan's MAXIMUM quantum.
@@ -8,7 +9,8 @@ template<class Initialize,class MemoryPolicy>
 UniformLz4Candidates execute_uniform_lz4_reused_sweep(const HipApi& api,Lz4Attributes attributes,
     const uniform_lz4::KernelApi& kernel,const UniformLz4Request& request,
     Lz4KernelCoverage coverage,UniformLz4ComputeGrant grant,
-    Initialize&& initialize,MemoryPolicy&& memory){
+    Initialize&& initialize,MemoryPolicy&& memory,UniformLz4SweepTrace* trace=nullptr,
+    UniformLz4SweepRecorder::Clock clock=hip_phase_detail::clock_ns){
   lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform sweep verification unavailable");
   lz4_require(request.request_id && request.batch.ready() && grant.chunk_bytes &&
@@ -18,6 +20,7 @@ UniformLz4Candidates execute_uniform_lz4_reused_sweep(const HipApi& api,Lz4Attri
   try{sweep=plan_uniform_lz4_sweep(request.batch,grant.maximum_chunks,grant.maximum_device_bytes);}
   catch(const std::exception&){throw HipWorkerFailure(HipWorkerExit::invalid_request,"invalid uniform sweep grant");}
   uniform_lz4_runtime_preflight(api,kernel,coverage);
+  UniformLz4SweepRecorder recorder(trace,sweep.windows,clock);
   DeviceResources resources(api);
   std::vector<std::byte> upload,readback;
   Lz4DeviceInfo device{};bool ready=false;
@@ -25,6 +28,7 @@ UniformLz4Candidates execute_uniform_lz4_reused_sweep(const HipApi& api,Lz4Attri
   try{
     auto result=compute_uniform_lz4_sweep(request,sweep,[&](const UniformLz4Request& part){
       if(!ready){
+        recorder.begin(UniformSweepPhase::setup);
         memory(HipMemoryPoint::pre_initialize);device=initialize();
         const auto mask=device.wave==32?1U:device.wave==64?2U:0U;
         lz4_require(mask && (mask&coverage.wave_mask),HipWorkerExit::unsupported_configuration,
@@ -41,18 +45,22 @@ UniformLz4Candidates execute_uniform_lz4_reused_sweep(const HipApi& api,Lz4Attri
         const auto address=reinterpret_cast<std::uintptr_t>(resources.buffers[0]);
         lz4_require(address && !(address&7U) && sweep.device_peak_bytes<=~std::uintptr_t{0}-address,
             HipWorkerExit::device_fault,"invalid reusable uniform slab address",HipWorkerStage::execution);
-        ready=true;
+        ready=true;recorder.end(UniformSweepPhase::setup);
       }
       // Admission includes retained setup, complete result capacity, both host
       // workspaces and this owned quantum, against the original baseline.
+      recorder.begin(UniformSweepPhase::admission);
       memory(HipMemoryPoint::initialized);
+      recorder.end(UniformSweepPhase::admission);recorder.begin(UniformSweepPhase::prepare);
       const auto plan=part.batch.layout();
       lz4_require(plan.chunks<=sweep.quantum_chunks && plan.total_bytes<=sweep.device_peak_bytes,
           HipWorkerExit::invalid_request,"reused quantum exceeds admitted geometry");
       std::fill(upload.begin(),upload.end(),std::byte{0xd3});
       initialize_uniform_lz4_upload(part.batch,std::span(upload).first(static_cast<std::size_t>(plan.total_bytes)));
+      recorder.end(UniformSweepPhase::prepare);recorder.begin(UniformSweepPhase::upload);
       check_hip(api.copy(resources.buffers[0],upload.data(),peak,hipMemcpyHostToDevice),
           "upload reusable uniform slab",HipWorkerStage::execution);
+      recorder.end(UniformSweepPhase::upload);recorder.begin(UniformSweepPhase::kernel_wait);
       auto* slab=static_cast<unsigned char*>(resources.buffers[0]);
       // The kernel receives the canonical ACTIVE extent within the larger owned
       // allocation. The remaining bytes stay protected and are read back too.
@@ -61,8 +69,10 @@ UniformLz4Candidates execute_uniform_lz4_reused_sweep(const HipApi& api,Lz4Attri
       check_hip(api.launch(reinterpret_cast<const void*>(selected),dim3(plan.chunks),dim3(device.wave),
           arguments,0,resources.stream),"submit reusable uniform quantum",HipWorkerStage::execution);
       check_hip(api.synchronize(resources.stream),"complete reusable uniform quantum",HipWorkerStage::execution);
+      recorder.end(UniformSweepPhase::kernel_wait);recorder.begin(UniformSweepPhase::download);
       check_hip(api.copy(readback.data(),resources.buffers[0],peak,hipMemcpyDeviceToHost),
           "read reusable uniform slab",HipWorkerStage::execution);
+      recorder.end(UniformSweepPhase::download);recorder.begin(UniformSweepPhase::verification);
       UniformLz4Candidates candidate;
       try{
         if(!std::all_of(readback.begin()+static_cast<std::ptrdiff_t>(plan.total_bytes),readback.end(),
@@ -73,11 +83,15 @@ UniformLz4Candidates execute_uniform_lz4_reused_sweep(const HipApi& api,Lz4Attri
       }catch(const std::bad_alloc&){throw;}
       catch(const std::exception&){throw HipWorkerFailure(HipWorkerExit::integrity_failure,
           "reused uniform quantum failed CPU/guard verification",HipWorkerStage::execution);}
+      recorder.end(UniformSweepPhase::verification);recorder.begin(UniformSweepPhase::completion);
       memory(HipMemoryPoint::completed);
+      recorder.end(UniformSweepPhase::completion);
       return candidate;
     });
+    recorder.begin(UniformSweepPhase::retirement);
     lz4_require(ready && resources.release_all()==hipSuccess && !resources.retirement_failed,
         HipWorkerExit::device_fault,"reusable uniform retirement failed",HipWorkerStage::execution);
+    recorder.end(UniformSweepPhase::retirement);recorder.finish();
     return result;
   }catch(...){
     const auto failure=std::current_exception();

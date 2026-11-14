@@ -1,5 +1,14 @@
 # FlitzFS
 
+## Finite-sweep measurement candidate
+
+The opt-in [finite-sweep profile](docs/UNIFORM_LZ4_SWEEP_PROFILE.md)
+separates reusable setup, accumulated work phases and the slowest kernel/quantum.
+Current-source qualification is pending. This does not enable ordinary GPU I/O,
+automatically qualify costs, prove comparative benefit or change stored codecs.
+CPU fallback may use a different encoder and stored size while retaining
+independent byte-exact reads of every admitted GPU representation.
+
 ## Native fast-ingestion storage candidate
 
 The experimental [fast-ingestion storage path](docs/NATIVE_FAST_INGESTION.md) adds CPU-readable independent LZ4 records and verified advisory compression candidates. Default encoding remains unchanged. Storage qualification passed at 0d96d903; the native inode hook passed all 13 core jobs at 3a797a3; no normal filesystem GPU route is enabled.

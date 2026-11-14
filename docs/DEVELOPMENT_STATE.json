@@ -970,5 +970,14 @@
       "old_failure": "docs/evidence/uniform-sweep-847423f-failure.json",
       "fixture_failure": "docs/evidence/uniform-reuse-92d326e-fixture-failure.json"
     }
-  }
+  },
+  "uniform_sweep_observations": {
+    "status": "implemented; publishing-source CPU/SDK qualification pending",
+    "contract": "docs/UNIFORM_LZ4_SWEEP_PROFILE.md",
+    "owner_executed": false,
+    "normal_GPU_routing": false,
+    "cost_profile_qualified": false,
+    "stored_formats_changed": false
+  },
+  "cpu_fallback_contract": "Different encoder/format/size permitted; continued operation and independent CPU decoding of every stored GPU representation mandatory."
 }

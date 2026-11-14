@@ -9,6 +9,7 @@
 #include "hip_lz4_compute.hpp"
 #include "hip_uniform_lz4_compute.hpp"
 #include "uniform_lz4_profile.hpp"
+#include "uniform_lz4_sweep_profile.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include "hip_lz4_bundle.hpp"
 #include "hip_uniform_lz4_bundle.hpp"
@@ -254,9 +255,11 @@ int worker(int argc, wchar_t** argv) {
   }
   if(argc>1 && (std::wstring_view(argv[1])==L"--driver-uniform-lz4-adapter" ||
       std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter" ||
-      std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter")){
+      std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter" ||
+      std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter")){
     const bool recording=std::wstring_view(argv[1])==L"--driver-uniform-lz4-profile-adapter";
-    const bool sweeping=std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter";
+    const bool sweep_recording=std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-profile-adapter";
+    const bool sweeping=sweep_recording || std::wstring_view(argv[1])==L"--driver-uniform-lz4-sweep-adapter";
     require(argc==13 && std::wstring_view(argv[11])==L"--worker-channel",
         Exit::invalid_request,"explicit uniform adapter/channel/capacities required");
     require(gpu_lz4_cpu_verification_available(),Exit::unsupported_configuration,
@@ -271,10 +274,12 @@ int worker(int argc, wchar_t** argv) {
         decimal(argv[8],(std::numeric_limits<unsigned>::max)()),wide_decimal(argv[9]),
         decimal(argv[10],uniform_lz4::max_chunk_bytes)};
     require(grant.maximum_chunks && grant.maximum_device_bytes && grant.chunk_bytes,Exit::invalid_request,"missing uniform work grant");
-    require(!recording || reply_capacity>kUniformLz4ProfileBytes,Exit::invalid_request,"uniform profile capacity");
-    const auto data_capacity=reply_capacity-(recording?kUniformLz4ProfileBytes:0);
+    const auto profile_bytes=recording?kUniformLz4ProfileBytes:sweep_recording?kUniformLz4SweepProfileBytes:0;
+    require(reply_capacity>profile_bytes,Exit::invalid_request,"uniform profile capacity");
+    const auto data_capacity=reply_capacity-profile_bytes;
     auto channel=WorkerChannel::open_sized(argv[12],{request_capacity,reply_capacity});
     HipPhaseTrace trace;HipPhaseRecorder clock(recording?&trace:nullptr);
+    UniformLz4SweepTrace sweep_trace;
     clock.begin(HipPhase::request_decode);
     std::optional<UniformLz4Request> request;
     try{
@@ -319,17 +324,18 @@ int worker(int argc, wchar_t** argv) {
     clock.end(HipPhase::entry_bind);
     const auto targets=std::span<const hip_detail::Lz4KernelCoverage>(hip_uniform_lz4_bundle::targets);
     const auto candidates=sweeping?run_hip_uniform_lz4_sweep_in_worker(runtime.get(),*api,
-        static_cast<int>(ordinal),luid,mask,*request,grant,targets):
+        static_cast<int>(ordinal),luid,mask,*request,grant,targets,sweep_recording?&sweep_trace:nullptr):
         run_hip_uniform_lz4_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,mask,
             *request,grant,targets,recording?&clock:nullptr);
     clock.begin(HipPhase::reply_encode);
     auto frame=encode_uniform_lz4_reply(request->batch,request->request_id,candidates,WorkerExecution::hip);
     clock.end(HipPhase::reply_encode);clock.begin(HipPhase::modules_release);
     kernels.close();runtime.close();clock.end(HipPhase::modules_release);clock.finish();
-    if(recording){
+    if(recording || sweep_recording){
       const UniformLz4ProfileBinding binding{request->request_id,ordinal,mask,grant.maximum_chunks,
           grant.chunk_bytes,grant.maximum_device_bytes,luid};
-      frame=encode_uniform_lz4_profile_reply(request->batch,binding,trace,frame,WorkerExecution::hip);
+      frame=sweep_recording?encode_uniform_lz4_sweep_profile_reply(request->batch,binding,sweep_trace,frame,WorkerExecution::hip):
+          encode_uniform_lz4_profile_reply(request->batch,binding,trace,frame,WorkerExecution::hip);
     }
     channel.publish(frame);return 0;
   }
