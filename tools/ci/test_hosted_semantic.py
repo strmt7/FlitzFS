@@ -18,7 +18,7 @@ import hosted_semantic as subject
 
 class QueryGroups(unittest.TestCase):
     def test_closed_groups_preserve_default_and_bound_maintenance_queries(self):
-        self.assertEqual(set(subject.QUERY_GROUPS),{"filesystem","maintenance","hipcomp"})
+        self.assertEqual(set(subject.QUERY_GROUPS),{"filesystem","maintenance","hipcomp","documentation","flitzzip-documentation"})
         self.assertIs(subject.QUERY_GROUPS["filesystem"],subject.QUERIES)
         self.assertEqual(len(subject.QUERIES),8)
         self.assertEqual(len(subject.QUERY_GROUPS["maintenance"]),2)
@@ -33,11 +33,30 @@ class QueryGroups(unittest.TestCase):
 
     def test_cross_source_queries_fail_before_source_access(self):
         for repository,group in (("strmt7/FlitzFS","hipcomp"),(subject.HIPCOMP_REPOSITORY,"filesystem"),
-                                 ("other/repository","maintenance")):
+                                 ("other/repository","maintenance"),("strmt7/FlitzFS","flitzzip-documentation"),
+                                 (subject.FLITZZIP_REPOSITORY,"documentation")):
             provider=object.__new__(subject.Provider);provider.repository=repository
             with self.subTest(repository=repository,group=group),\
                  self.assertRaisesRegex(RuntimeError,"source/query binding"):
                 provider.route("unused",group)
+
+
+class DocumentationInventory(unittest.TestCase):
+    def test_documentation_inventory_excludes_code_and_preserves_exact_bytes(self):
+        with tempfile.TemporaryDirectory(prefix="flitzfs-doc-index-",dir=os.environ["RUNNER_TEMP"]) as raw:
+            root=Path(raw);(root/"docs").mkdir()
+            (root/"README.md").write_bytes(b"# User entry\n")
+            (root/"docs"/"guide.md").write_bytes(b"# Developer entry\n")
+            (root/"core.cpp").write_bytes(b"int excluded;\n")
+            (root/"CMakeLists.txt").write_bytes(b"# excluded\n")
+            provider=object.__new__(subject.Provider)
+            provider.repo=root;provider.repository="strmt7/FlitzFS";provider.documentation=True
+            provider.run=lambda *args:(b"README.md\0docs/guide.md\0core.cpp\0CMakeLists.txt\0")
+            rows=provider.inventory()
+            self.assertEqual([r["path"] for r in rows],["README.md","docs/guide.md"])
+            self.assertEqual(rows[0]["sha256"],subject.digest(b"# User entry\n"))
+            provider.documentation=False
+            self.assertEqual([r["path"] for r in provider.inventory()],["CMakeLists.txt","core.cpp"])
 
 class SourceBinding(unittest.TestCase):
     def setUp(self):

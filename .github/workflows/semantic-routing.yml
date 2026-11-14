@@ -11,6 +11,8 @@ on:
           - filesystem
           - maintenance
           - hipcomp
+          - documentation
+          - flitzzip-documentation
   push:
     branches: [main]
     paths:
@@ -47,6 +49,14 @@ jobs:
           repository: ROCm/hipCOMP-core
           ref: 03df9f7369211ee15d370817165224c73fdc9a46
           path: .ci-hipcomp
+          persist-credentials: false
+      - name: Stage read-only documentation reference
+        if: inputs.query_group == 'flitzzip-documentation'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: strmt7/FlitzZip
+          ref: dc1a5f0582b95bb389d658d9caef6f973e8b94fe
+          path: .ci-flitzzip-docs
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:

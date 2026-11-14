@@ -46,7 +46,15 @@ HIPCOMP_QUERIES=(
     "batched LZ4 compression scratch size output capacity asynchronous stream completion and status",
     "portable GPU warp cooperative compression and CPU decoding chunk framing",
 )
-QUERY_GROUPS={"filesystem":QUERIES,"maintenance":MAINTENANCE_QUERIES,"hipcomp":HIPCOMP_QUERIES}
+DOCUMENTATION_QUERIES=(
+    "end-user installation graphical usage troubleshooting documentation index",
+    "developer build test component canonical guide contribution documentation",
+    "documentation ownership specifications benchmark evidence security release research and historical records",
+)
+FLITZZIP_REPOSITORY="strmt7/FlitzZip"
+FLITZZIP_COMMIT="dc1a5f0582b95bb389d658d9caef6f973e8b94fe"
+QUERY_GROUPS={"filesystem":QUERIES,"maintenance":MAINTENANCE_QUERIES,"hipcomp":HIPCOMP_QUERIES,
+    "documentation":DOCUMENTATION_QUERIES,"flitzzip-documentation":DOCUMENTATION_QUERIES}
 HIPCOMP_NOTICES=(
     ("LICENSE","upstream-hipcomp-LICENSE.txt","74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef"),
     ("CMakeLists.txt","upstream-hipcomp-CMakeLists.txt","19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7"),
@@ -67,11 +75,14 @@ def source_selection(workspace,query_group,workflow_commit):
     require(query_group in QUERY_GROUPS,"unreviewed semantic query group")
     require(re.fullmatch(r"[0-9a-f]{40}",workflow_commit) is not None,"invalid workflow identity")
     workspace=workspace.resolve(strict=True)
-    if query_group!="hipcomp":return workspace,"strmt7/FlitzFS",workflow_commit
-    candidate=workspace/".ci-hipcomp"
+    if query_group not in ("hipcomp","flitzzip-documentation"):
+        return workspace,"strmt7/FlitzFS",workflow_commit
+    reference=query_group=="flitzzip-documentation"
+    candidate=workspace/(".ci-flitzzip-docs" if reference else ".ci-hipcomp")
     require(not candidate.is_symlink() and candidate.is_dir() and
         candidate.resolve(strict=True).is_relative_to(workspace),"candidate checkout boundary")
-    return candidate.resolve(strict=True),HIPCOMP_REPOSITORY,HIPCOMP_COMMIT
+    return (candidate.resolve(strict=True),FLITZZIP_REPOSITORY,FLITZZIP_COMMIT) if reference else \
+        (candidate.resolve(strict=True),HIPCOMP_REPOSITORY,HIPCOMP_COMMIT)
 def verify_checkout(run,repo,commit):
     require(re.fullmatch(r"[0-9a-f]{40}",commit) is not None,"invalid source identity")
     actual=run(["git","-C",repo,"rev-parse","--show-toplevel"],30).decode().strip()
@@ -98,10 +109,12 @@ class Provider:
         self.repository=repository;self.commit=os.environ["GITHUB_SHA"] if commit is None else commit
         self.workflow_commit=os.environ["GITHUB_SHA"]
         require(re.fullmatch(r"[0-9a-f]{40}",self.workflow_commit) is not None,"invalid workflow identity")
-        require(repository in ("strmt7/FlitzFS",HIPCOMP_REPOSITORY) and
+        require(repository in ("strmt7/FlitzFS",HIPCOMP_REPOSITORY,FLITZZIP_REPOSITORY) and
             re.fullmatch(r"[0-9a-f]{40}",self.commit) is not None,"unreviewed semantic source identity")
         require(repository!=HIPCOMP_REPOSITORY or self.commit==HIPCOMP_COMMIT,
             "unreviewed candidate revision")
+        require(repository!=FLITZZIP_REPOSITORY or self.commit==FLITZZIP_COMMIT,
+            "unreviewed documentation reference revision")
         self.root=root;self.repo=repo;self.downloads=[];self.commands=[];self.package_bytes=0
         self.expanded_bytes=0;self.wheel_entries=0;self.log_number=0
         self.end=time.monotonic()+1150
@@ -374,7 +387,9 @@ class Provider:
             candidate=self.repository==HIPCOMP_REPOSITORY
             if candidate and any(part in ("test","tests") for part in pure.parts):continue
             suffixes=SUFFIXES|{".cu",".cuh"} if candidate else SUFFIXES
-            if pure.suffix not in suffixes and pure.name!="CMakeLists.txt":continue
+            if getattr(self,"documentation",False):
+                if pure.suffix!=".md":continue
+            elif pure.suffix not in suffixes and pure.name!="CMakeLists.txt":continue
             require(not pure.is_absolute() and "\\" not in name and
                 all(x not in ("",".","..") for x in pure.parts),"unsafe source path")
             source=self.repo/pure
@@ -388,9 +403,10 @@ class Provider:
         return entries
     def route(self,revision,query_group="filesystem"):
         require(query_group in QUERY_GROUPS,"unreviewed semantic query group")
-        require(self.repository in ("strmt7/FlitzFS",HIPCOMP_REPOSITORY) and
-            (query_group=="hipcomp")==(self.repository==HIPCOMP_REPOSITORY),
-            "semantic source/query binding differs")
+        expected=HIPCOMP_REPOSITORY if query_group=="hipcomp" else \
+            FLITZZIP_REPOSITORY if query_group=="flitzzip-documentation" else "strmt7/FlitzFS"
+        require(self.repository==expected,"semantic source/query binding differs")
+        self.documentation=query_group in ("documentation","flitzzip-documentation")
         queries=QUERY_GROUPS[query_group]
         entries=self.inventory();binding=digest(encoded(entries))
         save(self.root/"source-inventory.json",entries)
