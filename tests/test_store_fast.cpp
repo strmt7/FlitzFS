@@ -67,7 +67,7 @@ void policies(){
 void advisory(){
   const auto plain=input(65536,true);
   StoreCodecEncoder fast({StoreCompressionMode::fast,6,false});
-  StoreCodecEncoder automatic;
+  StoreCodecEncoder automatic({});
   StoreCodecDecoder reader;
 #ifdef FLITZFS_TEST_HAS_LZ4
   if(store_lz4_available()){
