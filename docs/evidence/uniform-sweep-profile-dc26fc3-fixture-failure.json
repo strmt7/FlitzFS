@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "source": "dc26fc3aa9f3557546d48057e8f68b0649d3c30a",
+  "core_run": 43617260803,
+  "failures": [
+    {
+      "job": 132514939497,
+      "os": "Linux",
+      "mode": "raw",
+      "failed_test": "uniform_lz4_sweep_profile_envelope",
+      "diagnostic": "independent CPU LZ4 verification unavailable"
+    },
+    {
+      "job": 132514939605,
+      "os": "Windows",
+      "mode": "raw",
+      "failed_test": "uniform_lz4_sweep_profile_envelope",
+      "diagnostic": "independent CPU LZ4 verification unavailable"
+    }
+  ],
+  "cause": "New test helper caught std::invalid_argument only; missing decoder deliberately throws std::runtime_error. Production correctly refused and no candidate escaped.",
+  "correction": "Test the raw missing-decoder path explicitly for std::runtime_error with the exact expected diagnostic; require that refusal occurred. Keep malformed-envelope cases restricted to std::invalid_argument.",
+  "production_changed_by_correction": false,
+  "owner_executed": false,
+  "gpu_executed": false,
+  "qualification": "No all-matrix qualification at this source. Corrected publishing source requires a new exact-source matrix."
+}

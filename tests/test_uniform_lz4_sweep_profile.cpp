@@ -81,7 +81,13 @@ int main(){try{
     c.payload.insert(c.payload.end(),p.begin(),p.end());
   }
   if(!gpu_lz4_cpu_verification_available()){
-    rejects([&]{(void)encode_uniform_lz4_reply(batch,77,c,WorkerExecution::cpu_semantics);});
+    bool refused=false;
+    try{(void)encode_uniform_lz4_reply(batch,77,c,WorkerExecution::cpu_semantics);}
+    catch(const std::runtime_error& e){
+      check(std::string_view(e.what())=="independent CPU LZ4 verification unavailable","wrong raw decoder refusal");
+      refused=true;
+    }
+    check(refused,"raw sweep profile encoded without CPU verification");
     std::cout<<"Uniform sweep profile: checks="<<checks<<" missing_decoder_refused=true gpu_executed=false\n";return 0;
   }
   const auto ordinary=encode_uniform_lz4_reply(batch,77,c,WorkerExecution::cpu_semantics);
