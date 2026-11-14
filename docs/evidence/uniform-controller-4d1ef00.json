@@ -1,0 +1,94 @@
+{
+  "source": "4d1ef00c95c3e4fa51f92569df3fc119f8b9526e",
+  "core_run": 43596989360,
+  "sdk_run": 43596989703,
+  "jobs_passed": 13,
+  "jobs_total": 13,
+  "native_ctest_groups": 149,
+  "native": {
+    "artifact_sha256": "2a17b03b02b5976c8b7966f57c86810810fcd7f0684eba0c6d8fbeeed634a18f",
+    "archive_bytes": 13516,
+    "log": "LastTest.log",
+    "log_bytes": 157998,
+    "log_sha256": "4f10fa6bda8f8ad6948b91253af121fd6334d31028f1362f6d82ce9a69ec988f",
+    "evidence": [
+      "Uniform controller: configuration/peak/shape admission, fresh final observation, live-helper CPU fallback, late quarantine and exact retirement passed; gpu_executed=false\r",
+      "handle_totals initial=79 final=79\r",
+      "PASS: 1535 real Windows worker exchange checks; CPU semantics only, no GPU or data files.\r"
+    ]
+  },
+  "sdk": {
+    "source": "4d1ef00c95c3e4fa51f92569df3fc119f8b9526e",
+    "complete": true,
+    "artifact_id": 14114473194,
+    "archive_bytes": 139487,
+    "archive_sha256": "f0ac827c4af5f0a370859b9e0574b83525e81494443f9834afdb15294f4285bf",
+    "root_bytes": 424700,
+    "root_sha256": "101f0c309ceafa4e501dc0928ed12cf453961d79ac8c354c7f31e9190c40dd28",
+    "uniform": {
+      "complete": true,
+      "bytes": 330240,
+      "sha256": "53db30572823f5d7723b1308c90f9588d6dd59c96c41100df89a97e40e3a6838",
+      "imports": [
+        "amdhip64_7.dll",
+        "kernel32.dll"
+      ],
+      "exports": [
+        "flitzfs_uniform_lz4_kernel_api"
+      ],
+      "layout_bytes": 80,
+      "version": 2,
+      "wave_mask": 1,
+      "loaded": false,
+      "gpu_executed": false,
+      "linked_into_product": false,
+      "in_worker_bundle": true,
+      "exported_as_artifact": true
+    },
+    "uniform_compute": {
+      "checks": 1058,
+      "scenarios": 38,
+      "successes": 3,
+      "refusals": 35,
+      "decoder_available": true,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "uniform_raw": {
+      "checks": 10,
+      "scenarios": 1,
+      "successes": 0,
+      "refusals": 1,
+      "decoder_available": false,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "uniform_runtime": {
+      "checks": 71,
+      "exits_confirmed": 11,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "legacy_runtime": {
+      "checks": 55,
+      "exits_confirmed": 10,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    }
+  },
+  "actual_gpu_executed": false,
+  "owner_executed": false,
+  "normal_gpu_routing": false
+}

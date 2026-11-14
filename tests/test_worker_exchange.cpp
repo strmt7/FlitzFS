@@ -14,6 +14,7 @@
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include "flitzfs/native_session.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_lz4_fixture.hpp"
 #include "store_codec.hpp"
 #include "extent_codec_fixture.hpp"
 #include "gpu/decode_kernel.hpp"
@@ -148,19 +149,28 @@ int sized_child(std::wstring_view mode,std::wstring_view token) {
 }
 int child(std::wstring_view mode,std::wstring_view token) {
   if(mode.starts_with(L"uniform-")){
-    check_job();const auto limits=uniform_fixture_limits();
+    check_job();auto limits=uniform_fixture_limits();
+    if(mode.starts_with(L"uniform-native")){
+      const auto bytes=mode.starts_with(L"uniform-native1")?65536U:2U*65536;
+      uniform_lz4::Layout layout{};check(uniform_lz4::make_layout(bytes,65536,layout),"native fixture uniform layout");
+      limits=uniform_lz4_limits(layout);
+    }
     auto channel=WorkerChannel::open_sized(token,{static_cast<std::size_t>(limits.request_bytes),
         static_cast<std::size_t>(limits.reply_bytes)});
     auto request=decode_uniform_lz4_request(channel.request(),limits);
     if(!gpu_lz4_cpu_verification_available())return 17;
-    if(mode==L"uniform-hold"){Sleep(5000);return 0;}
+    if(mode==L"uniform-hold" || mode==L"uniform-native2-hold"){Sleep(5000);return 0;}
     UniformLz4Candidates c;
     for(std::uint32_t i=0;i<request.batch.layout().chunks;++i){
-      const auto payload=lz4_literal_fixture(request.batch.input(i));c.sizes.push_back(static_cast<std::uint32_t>(payload.size()));
+      const auto source=request.batch.input(i);
+      const auto fixture=native_lz4_fixture::source();
+      const auto payload=mode.starts_with(L"uniform-native") && std::ranges::equal(source,fixture)?
+          native_lz4_fixture::alternative_block(source):lz4_literal_fixture(source);
+      c.sizes.push_back(static_cast<std::uint32_t>(payload.size()));
       c.payload.insert(c.payload.end(),payload.begin(),payload.end());
     }
     auto frame=encode_uniform_lz4_reply(request.batch,request.request_id,c,WorkerExecution::cpu_semantics);
-    if(mode==L"uniform-corrupt" || mode==L"uniform-delay-invalid")frame.back()^=std::byte{1};
+    if(mode==L"uniform-corrupt" || mode==L"uniform-delay-invalid" || mode==L"uniform-native2-corrupt")frame.back()^=std::byte{1};
     if(mode==L"uniform-delay-invalid")Sleep(150);
     channel.publish(frame);return mode==L"uniform-fail-after"?17:0;
   }
