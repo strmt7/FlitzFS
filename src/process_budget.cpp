@@ -1,11 +1,27 @@
 #include "flitzfs/process_budget.hpp"
 #include "flitzfs/windows_path.hpp"
 #include <stdexcept>
+#include <algorithm>
+#include <limits>
 
 namespace flitzfs {
 bool valid_process_budget(const ProcessBudget& b) noexcept {
-  return b.memory_mib >= 64 && b.memory_mib <= 256 && b.cpu_rate >= 100 &&
+  return b.memory_mib >= 64 &&
+      b.memory_mib <= (std::numeric_limits<std::size_t>::max)()/(1024U*1024U) &&
+      (b.memory_share_divisor ? b.memory_share_divisor>=16 : b.memory_mib<=256) && b.cpu_rate >= 100 &&
       b.cpu_rate <= 2000 && b.timeout_ms >= 1 && b.timeout_ms <= 40000;
+}
+ProcessBudget plan_resource_process_budget(std::uint64_t required,std::uint64_t physical,
+    std::uint64_t commit,std::uint32_t divisor,std::uint32_t cpu,std::uint32_t timeout) noexcept {
+  constexpr std::uint64_t mib=1024*1024,reserve=512*mib;
+  ProcessBudget refused;refused.memory_mib=0;
+  if(!required || divisor<16 || physical<=reserve || commit<=reserve)return refused;
+  const auto allowance=(std::min)(physical-reserve,commit-reserve)/divisor;
+  const auto rounded=required/mib+(required%mib!=0);
+  const auto count=(std::max)(rounded,std::uint64_t{64});
+  if(count>allowance/mib || count>(std::numeric_limits<std::size_t>::max)()/mib)return refused;
+  ProcessBudget budget{static_cast<std::size_t>(count),cpu,timeout,divisor};
+  return valid_process_budget(budget)?budget:refused;
 }
 std::wstring windows_child_command(std::wstring_view executable,
     const std::vector<std::wstring>& arguments) {

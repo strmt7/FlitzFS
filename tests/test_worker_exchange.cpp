@@ -107,7 +107,41 @@ Bytes lz4_literal_fixture(Lz4WorkerBytes input) {
   }
   result.insert(result.end(),input.begin(),input.end());return result;
 }
+constexpr WorkerChannelCapacity sized_capacity{3U*1024*1024+37,2U*1024*1024+71};
+int sized_child(std::wstring_view mode,std::wstring_view token) {
+  check_job();
+  if(mode==L"sized-wrong-capacity") {
+    auto wrong=sized_capacity;wrong.request_bytes--;
+    rejects([&]{(void)WorkerChannel::open_sized(token,wrong);});return 0;
+  }
+  if(mode==L"sized-legacy") {
+    rejects([&]{(void)WorkerChannel::open(token);});return 0;
+  }
+  auto channel=WorkerChannel::open_sized(token,sized_capacity);
+  const auto input=channel.request();
+  check(input.size()==sized_capacity.request_bytes,"sized source extent lost");
+  bool exact=true;
+  for(std::size_t i=0;i<input.size();++i)
+    exact=exact && input[i]==static_cast<std::byte>((i*13+i/251)%256);
+  check(exact,"sized private input mismatch");
+  Bytes output(sized_capacity.reply_bytes);
+  for(std::size_t i=0;i<output.size();++i)output[i]=input[input.size()-1-i];
+  if(mode==L"sized-hold"){Sleep(5000);return 0;}
+  if(mode==L"sized-guard") {
+    const auto name=L"Local\\FlitzFS.worker."+std::wstring(token)+L".reply";
+    HANDLE object=OpenFileMappingW(FILE_MAP_WRITE,FALSE,name.c_str());
+    check(object!=nullptr,"sized guard mapping");
+    auto* view=static_cast<std::byte*>(MapViewOfFile(object,FILE_MAP_WRITE,0,0,16+output.size()+16));
+    if(!view){CloseHandle(object);throw std::runtime_error("sized guard view");}
+    view[16+output.size()]=std::byte{0};UnmapViewOfFile(view);CloseHandle(object);
+    rejects([&]{channel.publish(output);});return 0;
+  }
+  channel.publish(output);
+  rejects([&]{channel.publish(output);});
+  return mode==L"sized-fail-after"?17:0;
+}
 int child(std::wstring_view mode,std::wstring_view token) {
+  if(mode.starts_with(L"sized-"))return sized_child(mode,token);
   check_job();
   if(mode==L"exit-empty")return 0;
   if(mode==L"exit-bad")return 17;
@@ -959,6 +993,51 @@ void match_transactions(const std::filesystem::path& executable) {
         "match channel CPU reopen or context retirement failed");
   }
 }
+void sized_transactions(const std::filesystem::path& executable) {
+  ProcessBudget budget;
+  check(valid_worker_channel_capacity(sized_capacity,budget),"valid sized capacity rejected");
+  for(const auto capacity:{WorkerChannelCapacity{},WorkerChannelCapacity{31,32},
+      WorkerChannelCapacity{32,31},WorkerChannelCapacity{~std::size_t{0},32},
+      WorkerChannelCapacity{32,~std::size_t{0}},WorkerChannelCapacity{128U*1024*1024,32}})
+    check(!valid_worker_channel_capacity(capacity,budget),"invalid sized capacity admitted");
+  Bytes source(sized_capacity.request_bytes);
+  for(std::size_t i=0;i<source.size();++i)source[i]=static_cast<std::byte>((i*13+i/251)%256);
+  for(const auto* mode:{L"sized-ok",L"sized-fail-after",L"sized-guard",L"sized-wrong-capacity",L"sized-legacy"}) {
+    auto session=WorkerExchangeSession::start_sized(executable,{mode},source,sized_capacity,budget);
+    eventually([&]{return session.try_result()!=nullptr;},5000,"sized exchange did not finish");
+    const auto* result=session.try_result();
+    check(result && !session.failure() && result->process.exit_confirmed &&
+        !result->process.timed_out,"sized exchange supervisor failed");
+    if(std::wstring_view(mode)==L"sized-ok") {
+      check(result->code==WorkerExchangeCode::completed &&
+          result->response.size()==sized_capacity.reply_bytes,"large sized response rejected");
+      check(std::equal(result->response.begin(),result->response.end(),source.rbegin()),
+          "large sized byte mismatch");
+    }else check(result->code!=WorkerExchangeCode::completed && result->response.empty(),
+        "failed/incompatible sized child exposed bytes");
+    eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},
+        2000,"sized worker failed exact retirement");
+    check_closed(*result);
+  }
+  {
+    auto session=WorkerExchangeSession::start_sized(executable,{L"sized-hold"},source,sized_capacity,budget);
+    eventually([&]{return session.process_id()!=0 || session.try_result();},2000,"sized child did not start");
+    check(session.process_id()!=0 && !session.try_result(),"sized hold did not stay active");
+    rejects([&]{(void)WorkerExchangeSession::start(executable,{L"ok"},source);});
+    rejects([&]{(void)WorkerExchangeSession::start_sized(executable,{L"sized-ok"},source,sized_capacity,budget);});
+    check(session.request_cancel(),"sized cancel signal failed");
+    eventually([&]{return session.try_result()!=nullptr;},4000,"sized cancel failed");
+    check(session.try_result()->code==WorkerExchangeCode::cancelled &&
+        session.try_result()->response.empty(),"cancelled sized output escaped");
+    eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},
+        2000,"cancelled sized supervisor retained admission");
+    check_closed(*session.try_result());
+  }
+  rejects([&]{(void)WorkerExchangeSession::start_sized(executable,{L"sized-ok"},source,{32,32},budget);});
+  check(WorkerExchangeSession::available(),"invalid sized admission held supervisor");
+  std::cout<<"Sized channel: request="<<sized_capacity.request_bytes<<" reply="
+      <<sized_capacity.reply_bytes<<" cpu_semantics_only=true gpu_executed=false\\n";
+}
 void asynchronous_fallback(const std::filesystem::path& executable) {
   std::array<std::byte,8> luid{};luid[0]=std::byte{1};
   GpuResultGate gate(mixed(),luid,1);
@@ -1114,6 +1193,7 @@ int wmain(int argc,wchar_t** argv){try{
     check_closed(*result);
   }
   observe(L"async-success");
+  sized_transactions(executable);observe(L"sized-transport");
   asynchronous_fallback(executable);
   observe(L"async-fallback");
   abandoned_session(executable,request);

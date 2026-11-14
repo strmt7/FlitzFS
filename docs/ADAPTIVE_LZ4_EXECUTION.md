@@ -98,3 +98,12 @@ This is an active implementation path toward the full filesystem. A planner,
 compiled kernel, green CPU test or larger allowable allocation does not prove
 the requested autonomous resource governor, useful GPU acceleration, extreme
 compression, universal data safety or release readiness.
+
+The explicit resource-sized Windows transport now carries caller-admitted
+capacities through the same supervisor, with independent child Job Object
+verification. A separately selected resource process profile also removes the
+legacy fixture's 256 MiB commitment ceiling while preserving fresh physical/
+commit share admission and creation-time hard enforcement. Portable simulated
+resource tests and real hosted CPU exchange tests are added; their exact-source
+results remain pending. New uniform codec frames, runtime cost qualification,
+streamed GPU dispatch and normal filesystem routing still need integration.

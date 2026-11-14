@@ -294,3 +294,50 @@ corrupt candidate and failure after publication, with unchanged exact retirement
 closed mappings and zero-growth handle checks. New-source execution is pending.
 Neither those CPU semantics nor backend declarations establish actual GPU work.
 Normal operations still never launch a worker or load the private candidate DLL.
+
+## Resource-sized transport (experimental)
+
+The new explicit `WorkerExchangeSession::start_sized` and
+`WorkerChannel::open_sized` routes accept exact request/reply capacities chosen
+for a resource-admitted window. They share the SAME process-wide admission lease,
+supervisor, cancellation, process observer, protected create-only mappings,
+immutable input comparison and successful exact-child-exit rule. They create no
+queue or persistent service. Legacy entry points, fixed payload frames and their
+wire bytes remain unchanged.
+
+The sized transport uses distinct request/reply magic and control version 2.
+Capacities must fit the signed publication-length representation and their
+complete accounting (three request copies, two reply copies and guards) must
+fit half the enforced child's committed-memory allowance. Mapping sizes are
+never inferred from untrusted shared control fields. The child must independently
+receive its exact expected capacities and verify the existing single-process,
+kill-on-close process/job memory limits before opening either mapping. The
+actual codec-frame parser and independent CPU reference check remain required.
+This transport alone is not a new compression message format or GPU execution.
+
+Before proportional copies or launching the supervisor, the parent rechecks
+current physical AND commit headroom, including the child allowance, all parent
+copies, 4 MiB supervisor overhead and a separate 512 MiB reserve. Sized work may
+use at most the selected share (at least divisor 16) of the remaining headroom.
+The supervisor repeats that check before mapping creation; the child repeats
+admission before mapping/copying. Snapshots are admission observations, not
+physical reservations or protection against a kernel fault.
+
+`ProcessBudget::memory_share_divisor == 0` keeps the historical 64..256 MiB
+fixture profile. The explicit resource profile removes that absolute MiB
+ceiling: `plan_resource_process_budget` rounds the configuration-qualified
+COMPLETE child peak upward and compares it with both fresh memory pools. Unknown,
+zero, overflowing, insufficient or unsafe-share inputs refuse without allocation.
+The launch supervisor independently rechecks the selected share and enforces the
+exact resulting process/job bytes at creation. CPU scheduling and process-lifetime
+controls remain independent; extra memory never authorizes a longer kernel or
+more concurrent processes. Product runtime peak calibration and actual adaptive
+GPU routing remain unfinished.
+
+New hosted-only CPU fixtures transfer 3,145,765 request bytes and 2,097,223 reply
+bytes, compare the entire reply, and reject incompatible legacy/capacity framing,
+corrupt guards, failure after publication, double publication and cancellation.
+They check the same exclusive admission, exact retirement, closed mappings and
+zero-growth handle baseline as the legacy suite. Those sizes are TEST fixtures,
+not product caps or assumed host specifications. Exact-source CI outcomes are
+required before qualification; no owner-PC execution is authorized by these tests.
