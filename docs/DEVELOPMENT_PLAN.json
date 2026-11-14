@@ -164,7 +164,7 @@
           "benefit_demonstrated": false,
           "evidence": "docs/evidence/native-gpu-ram-645a1d1.json"
         },
-        "next": "G02 remains in progress: no speed or size gain. Fix D01 to enable G03 lifecycle work; instrument complete costs and investigate candidates with genuine net compression benefit instead of forcing redundant hints.",
+        "next": "Implement the native stored representation and independent CPU reader, then asynchronous immediate CPU fallback and the Windows write/store/read composition. Retain D01 and complete cost/benefit gates; do not rerun the unchanged diagnostic.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
         "candidate_evaluation": {
           "contract": "docs/GPU_LZ4_KERNEL_REVIEW.md",
@@ -253,11 +253,27 @@
             "gpu_executed": false
           },
           "runtime_worker": {
-            "source_parent": "2b57fe0d2c54d9c55f5165b57368a5f5d712c54a",
+            "qualified_source": "979cd512559b1d9731cbc6a7d920b78a63483703",
             "contract": "docs/HIP_LZ4_RUNTIME.md",
-            "behavior": "Separate opt-in authenticated compression worker, compiler-derived target inventory and supervised request/reply route.",
-            "status": "Pending publishing-source CPU/compiler/admission/core qualification; no owner GPU launch or native stored codec.",
-            "next": "Qualify each actual target image, then one bounded actual-GPU output trial, independent CPU verification and native storage/Windows-write composition."
+            "sdk_run": 43572160545,
+            "sdk_job": 132378683450,
+            "status": "Complete isolated SDK/CPU admission plus one actual AMD GPU compression diagnostic. Native stored-codec and normal Windows file operations remain unconnected.",
+            "actual_gpu_compression": true,
+            "source_bytes": 4096,
+            "compressed_payload_bytes": 118,
+            "explicit_device_bytes": 16544,
+            "exchange_ns": 575130900,
+            "outer_elapsed_ms": 647,
+            "child_exit_confirmed": true,
+            "supervisor_quiescent": true,
+            "normal_io_caller": false,
+            "stored_codec_added": false,
+            "useful_end_to_end_benefit_established": false,
+            "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
+            "next": "Implement the native stored representation and independent CPU reader, then asynchronous immediate CPU fallback and the Windows write/store/read composition. Retain D01 and complete cost/benefit gates; do not rerun the unchanged diagnostic.",
+            "core_run": 43572160653,
+            "core_jobs_passed": 13,
+            "core_jobs_total": 13
           }
         }
       }
@@ -516,7 +532,7 @@
   "release_checkpoint": "docs/RELEASE_READINESS.md",
   "critical_path_focus": [
     "GPU acceleration is mandatory; CPU-only implementation, SDK compilation and CPU mocks never satisfy G02.",
-    "Close the current typed compute failure without weakening verification; retain exact-source failure evidence.",
+    "Actual bounded AMD compression passed at979cd512. Complete the transactional native-storage/CPU-reader/Windows-write/fallback slice and measured benefit; preserve exact-source runtime evidence.",
     "Prioritize a complete bounded Windows write, actual GPU compression, native encoding, independent CPU read and fault/fallback/retirement slice over further disconnected prerequisites.",
     "Measure whole-operation throughput and stored size on varied data, then advance automatic optimization, scaling, durability and Windows product gates.",
     "Use extensive recent primary-source research for concrete unresolved design questions; do not substitute research or assertion counts for product integration."
@@ -529,4 +545,3 @@
     "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
   }
 }
-

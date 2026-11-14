@@ -2,7 +2,7 @@
 
 The [deep background compression plan](docs/COLD_COMPRESSION_RESEARCH.md) requires transparent cross-file grouping and GPU-supported learned or experimentally justified novel compression, separate from fast ingestion. It remains unimplemented and must preserve ordinary Explorer file/folder behavior, bounded access and exact CPU recovery.
 
-The experimental [HIP LZ4 compute implementation](docs/HIP_LZ4_COMPUTE.md) now has an SDK-only allocation, submission, readback and retirement path. Selected-SDK CPU qualification passed at df8b08e ([evidence](docs/evidence/hip-lz4-compute-df8b08e.json)); it remains disconnected from ordinary file operations and no GPU performance result is claimed.
+The experimental [HIP compression worker](docs/HIP_LZ4_RUNTIME.md) passed its SDK/CPU gates and one actual AMD GPU trial at **979cd512**: two synthetic blocks totaling 4,096 bytes produced 118 compressed payload bytes, independently verified by the CPU. The complete cold worker exchange took 575 ms. This is a correctness diagnostic, not a filesystem compression ratio or speed gain; ordinary file operations remain CPU-only. [Exact evidence](docs/evidence/hip-lz4-runtime-979cd512.json).
 
 
 <picture>
@@ -250,7 +250,7 @@ volume creation and preserves it across live handles, handoff and reopen.
 That integration requires new-source qualification; automatic spending/learning
 and useful GPU gains remain unfinished.
 
-The managed/helper consumer at5b58568 passed all13 jobs,4,645 workload
+The managed/helper consumer at5b58568 passed all 13 jobs,4,645 workload
 assertions and590 VM app assertions, plus one healthy owner GUI workflow with
 clean retirement. The next [input-funded advisory controls](docs/OPTIMIZATION_BUDGET.md)
 add persistent settlement and charged repair/replacement with fresh-input loss
@@ -293,7 +293,7 @@ lockstep distinct from memory visibility and priority hints distinct from OS
 scheduling guarantees. The next [priority capability change](docs/HIP_PRIORITY_CAPABILITY.md)
 corroborates reported outputs and classifies incomplete capability separately
 from a stable invalid range. Its exact old/new CPU regression,235 assertions/12 scenarios, SDK/worker gates
-and all13 core jobs passed atb2cf989
+and all 13 core jobs passed atb2cf989
 ([evidence](docs/evidence/priority-capability-b2cf989.json)). No actual device case
 or performance gain is claimed.
 

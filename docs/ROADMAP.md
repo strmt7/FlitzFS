@@ -2,7 +2,7 @@
 
 ## Compression runtime integration candidate
 
-The separate [compression worker](HIP_LZ4_RUNTIME.md) connects protected requests, authenticated module/target coverage, typed compute and verified replies. Current-source CPU/compiler/admission checks are pending; actual GPU output and native stored-codec/Windows-write composition remain the next exits. Minimum total cold-data size and transparent cross-file grouping remain mandatory.
+The separate [compression worker](HIP_LZ4_RUNTIME.md) connects protected requests, authenticated module/target coverage, typed compute and verified replies. SDK/CPU qualification and one actual AMD compression trial passed at 979cd512: 4,096 synthetic bytes became 118 payload bytes with independent CPU readback and confirmed retirement. [Exact evidence](evidence/hip-lz4-runtime-979cd512.json). Native stored-codec/CPU-reader/Windows-write/fallback composition and measured end-to-end benefit remain the next exits. Minimum total cold-data size and transparent cross-file grouping remain mandatory.
 
 
 ## SDK-only compression compute candidate
@@ -864,7 +864,7 @@ mapping/authorization and an automatic low-priority learner remain required.
 
 ## Input-funded advisory control preparation
 
-At5b58568, managed/helper workload integration passed all13 core/mounted jobs,
+At5b58568, managed/helper workload integration passed all 13 core/mounted jobs,
 4,645 workload assertions,590 app assertions and a healthy owner GUI check.
 The next [funded journal protocol](OPTIMIZATION_BUDGET.md) adds persistent settlement,
 charged repair and loss-safe fresh-input replacement. Its new-source fault/parser/
@@ -977,7 +977,7 @@ state by itself. Publishing-source execution is still required.
 Priority capability corroboration qualified atb2cf989; see
 [evidence](evidence/priority-capability-b2cf989.json). Full product packages remain active.
 
-At497066c all13 ordinary jobs and8 Linux source tests passed. Both historical
+At497066c all 13 ordinary jobs and8 Linux source tests passed. Both historical
 comparison variants failed preparation before driver installation or trial.
 The correction binds actual directory identities and independently reconciles raw
 phase/acknowledgement/result/CPU records. Windows/Linux source tests and actual
@@ -990,7 +990,7 @@ with separately verified exact/CRLF checkout identity is the next18-case gate.
 The source fixture failure is not a historical retirement result or GPU evidence.
 
 
-At ab37c4a, all18 source cases passed on both OSes, all13 core jobs passed, and
+At ab37c4a, all18 source cases passed on both OSes, all 13 core jobs passed, and
 both historical held/closed-handle trials retired under original limits with
 exact7001-byte CPU recovery. Their one-shot outcome remains inconclusive for D01.
 [Raw source-bound evidence](evidence/retirement-reference-ab37c4a.json).
