@@ -2,6 +2,7 @@
 #include "hip_lz4_compute.hpp"
 #include "flitzfs/uniform_lz4_wire.hpp"
 #include "hipcomp_uniform_lz4_api.hpp"
+#include "hip_phase_profile.hpp"
 namespace flitzfs::hip_detail {
 // A configuration-qualified maximum kernel quantum expressed as work, not a
 // universal input cap. A trusted caller must obtain this from its admitted
@@ -29,7 +30,7 @@ template<class Initialize,class MemoryPolicy>
 UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes attributes,
     const uniform_lz4::KernelApi& kernel,const UniformLz4Request& request,
     Lz4KernelCoverage coverage,UniformLz4ComputeGrant grant,
-    Initialize&& initialize,MemoryPolicy&& memory){
+    Initialize&& initialize,MemoryPolicy&& memory,HipPhaseRecorder* profile=nullptr){
   lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform LZ4 verification unavailable");
   lz4_require(request.request_id && request.batch.ready() && uniform_lz4::compatible_kernel_api(kernel) &&
@@ -47,6 +48,7 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
       api.release && api.copy && api.launch,HipWorkerExit::runtime_unavailable,
       "uniform compression runtime table incomplete",HipWorkerStage::runtime_api);
   const auto plan=request.batch.layout();
+  if(profile)profile->begin(HipPhase::device_initialize);
   memory(HipMemoryPoint::pre_initialize);
   const auto device=initialize();
   const auto mask=device.wave==32?1U:device.wave==64?2U:0U;
@@ -54,8 +56,10 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
       "uniform compression wave not qualified",HipWorkerStage::device_properties);
   const auto selected=device.wave==32?kernel.wave32:kernel.wave64;
   check_lz4_attributes(attributes,selected,device);
+  if(profile)profile->end(HipPhase::device_initialize);
   DeviceResources resources(api);
   try{
+    if(profile)profile->begin(HipPhase::stream_allocate);
     check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,device.priority),
         "create uniform compression stream",HipWorkerStage::stream_create);
     memory(HipMemoryPoint::initialized);
@@ -67,23 +71,36 @@ UniformLz4Candidates execute_uniform_lz4_compute(const HipApi& api,Lz4Attributes
     const auto address=reinterpret_cast<std::uintptr_t>(resources.buffers[0]);
     lz4_require(address && !(address&7U) && plan.total_bytes<=~std::uintptr_t{0}-address,
         HipWorkerExit::device_fault,"invalid uniform device slab address",HipWorkerStage::execution);
+    if(profile)profile->end(HipPhase::stream_allocate);
+    if(profile)profile->begin(HipPhase::host_to_device);
     check_hip(api.copy(resources.buffers[0],upload.data(),upload.size(),hipMemcpyHostToDevice),
         "upload uniform compression slab",HipWorkerStage::execution);
+    if(profile)profile->end(HipPhase::host_to_device);
     auto* slab=static_cast<unsigned char*>(resources.buffers[0]);
     auto allocated=plan.total_bytes;auto layout=plan;void* arguments[]{&slab,&allocated,&layout};
+    if(profile)profile->begin(HipPhase::kernel_wait);
     check_hip(api.launch(reinterpret_cast<const void*>(selected),dim3(plan.chunks),dim3(device.wave),
         arguments,0,resources.stream),"submit uniform compression kernel",HipWorkerStage::execution);
     check_hip(api.synchronize(resources.stream),"complete uniform compression kernel",HipWorkerStage::execution);
+    if(profile)profile->end(HipPhase::kernel_wait);
+    if(profile)profile->begin(HipPhase::device_to_host);
     check_hip(api.copy(readback.data(),resources.buffers[0],readback.size(),hipMemcpyDeviceToHost),
         "read uniform compression slab",HipWorkerStage::execution);
+    if(profile)profile->end(HipPhase::device_to_host);
+    if(profile)profile->begin(HipPhase::cpu_verification);
     UniformLz4Candidates result;
     try{result=verify_uniform_lz4_readback(request.batch,readback);}
     catch(const std::bad_alloc&){throw;}
     catch(const std::exception&){throw HipWorkerFailure(HipWorkerExit::integrity_failure,
         "uniform compression failed independent CPU verification",HipWorkerStage::execution);}
+    if(profile)profile->end(HipPhase::cpu_verification);
+    if(profile)profile->begin(HipPhase::post_admission);
     memory(HipMemoryPoint::completed);
+    if(profile)profile->end(HipPhase::post_admission);
+    if(profile)profile->begin(HipPhase::resources_release);
     lz4_require(resources.release_all()==hipSuccess,HipWorkerExit::device_fault,
         "uniform compression retirement failed",HipWorkerStage::execution);
+    if(profile)profile->end(HipPhase::resources_release);
     return result;
   }catch(...){
     const auto failure=std::current_exception();
@@ -98,5 +115,5 @@ namespace flitzfs {
 UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request&,hip_detail::UniformLz4ComputeGrant,
-    std::span<const hip_detail::Lz4KernelCoverage>);
+    std::span<const hip_detail::Lz4KernelCoverage>,HipPhaseRecorder* profile=nullptr);
 }

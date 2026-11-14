@@ -32,7 +32,7 @@ void require_uniform_job(){
 UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
     const uniform_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const UniformLz4Request& request,hip_detail::UniformLz4ComputeGrant grant,
-    std::span<const hip_detail::Lz4KernelCoverage> targets){
+    std::span<const hip_detail::Lz4KernelCoverage> targets,HipPhaseRecorder* profile){
   require_uniform_job();
   hip_detail::lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
       "independent CPU uniform LZ4 verification unavailable");
@@ -81,6 +81,6 @@ UniformLz4Candidates run_hip_uniform_lz4_in_worker(HMODULE runtime,
     selected=hip_detail::select_lz4_coverage(p,targets);
     return hip_detail::uniform_lz4_device_info(p,selected,request.batch.layout().chunks,priority);
   };
-  return hip_detail::execute_uniform_lz4_compute(api,attributes,kernel,request,all,grant,initialize,memory);
+  return hip_detail::execute_uniform_lz4_compute(api,attributes,kernel,request,all,grant,initialize,memory,profile);
 }
 }
