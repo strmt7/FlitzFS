@@ -1,5 +1,12 @@
 # FlitzFS
 
+## Controlled write integration candidate
+
+The [native write coordinator](docs/NATIVE_UNIFORM_WRITE.md) can now select the
+existing finite reused worker from a qualified quantum grant. Full input and
+ordinary reply/commit semantics stay unchanged. Publishing-source checks are
+pending; this adds no ordinary automatic GPU route or performance claim.
+
 ## Current development checkpoint
 
 The opt-in [finite-sweep profile](docs/UNIFORM_LZ4_SWEEP_PROFILE.md)

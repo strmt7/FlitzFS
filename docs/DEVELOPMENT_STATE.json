@@ -116,8 +116,8 @@
     }
   ],
   "next_implementation": {
-    "contract": "docs/DEVELOPMENT_PLAN.md",
-    "next": "Acquire varied repeated configuration/recovery/shape-bound costs, amortize setup safely, connect ordinary Windows GPU I/O with independent CPU recovery, then deliver scalable storage and a protected cross-file compression transaction. No unchanged owner trial; no release."
+    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "next": "Qualify the controlled coordinator's reused dispatch with full write/read/CPU fallback/retirement tests; then integrate finite cross-operation batching, automatic keyed costs and ordinary Windows I/O. Keep scalable storage, collective compression and the complete product goal open."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
@@ -398,9 +398,10 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "No runtime source awaiting qualification from this round. Automatic keyed cost acquisition, ordinary Windows GPU integration, scalable storage and collective compression remain unfinished.",
-    "contract": "docs/UNIFORM_LZ4_SWEEP_PROFILE.md",
-    "normal_GPU_routing": false
+    "status": "Controlled native-write finite reused dispatch implemented; publishing-source qualification pending.",
+    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "normal_GPU_routing": false,
+    "owner_executed": false
   },
   "resolved": [
     {

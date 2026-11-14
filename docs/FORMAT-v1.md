@@ -1,5 +1,13 @@
 # `.flfs` v1 experimental chunk container
 
+## Controlled write reused-dispatch candidate
+
+[NATIVE_UNIFORM_WRITE.md](NATIVE_UNIFORM_WRITE.md) describes optional canonical
+sweep dispatch through the checked native write coordinator. Ordinary version-2
+replies and stored codecs are unchanged; full-window admission and exact
+retirement remain required. Publishing-source CPU/SDK checks are pending.
+CPU fixture results must not be reported as GPU execution.
+
 ## Opt-in sweep diagnostic envelope
 
 The new [finite-sweep profile](UNIFORM_LZ4_SWEEP_PROFILE.md) uses a separate

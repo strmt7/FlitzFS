@@ -8,6 +8,7 @@
 #include <array>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 namespace {
 using namespace flitzfs;using namespace native_fixture;
@@ -37,6 +38,46 @@ void exact(const FSP_FSCTL_FILE_INFO& i,std::uint64_t bytes){
       i.CreationTime==11 && i.LastAccessTime==stamp && i.LastWriteTime==stamp && i.ChangeTime==stamp &&
       i.IndexNumber==2 && !i.HardLinks && !i.EaSize,"controlled uniform write lost complete FileInfo");
 }
+void dispatch_geometry(){
+  const auto e=health(100);uniform_lz4::Layout whole{},peak{};
+  check(uniform_lz4::make_layout(16U*65536,65536,whole) &&
+      uniform_lz4::make_layout(2U*65536,65536,peak),"dispatch layouts");
+  const auto batch=PreparedUniformLz4::prepare(Bytes(16U*65536,std::byte{0x51}),uniform_lz4_limits(whole));
+  NativeUniformWorkerBinding binding;binding.configuration=e.configuration;binding.ordinal=4;
+  binding.runtime_sha256[0]=std::byte{0xa3};binding.cpu_fixture_arguments={L"uniform-native16-sweep"};
+  const auto old=prepare_native_uniform_dispatch(binding,e,batch,WorkerExecution::hip);
+  check(!old.reused && old.windows==1 && old.quantum_chunks==16 && old.device_peak_bytes==whole.total_bytes &&
+      old.arguments.size()==10 && old.arguments[0]==L"--driver-uniform-lz4-adapter" &&
+      old.arguments[7]==L"16" && old.arguments[8]==std::to_wstring(whole.total_bytes),
+      "legacy uniform dispatch changed");
+  binding.sweep=NativeUniformSweepGrant{(std::numeric_limits<std::uint32_t>::max)(),peak.total_bytes};
+  const auto selected=prepare_native_uniform_dispatch(binding,e,batch,WorkerExecution::hip);
+  check(selected.reused && selected.windows==8 && selected.quantum_chunks==2 &&
+      selected.device_peak_bytes==peak.total_bytes && selected.arguments.size()==10 &&
+      selected.arguments[0]==L"--driver-uniform-lz4-sweep-adapter" && selected.arguments[1]==L"4" &&
+      selected.arguments[2]==L"0100000000000000" && selected.arguments[3]==L"1" &&
+      selected.arguments[4].size()==64 && selected.arguments[4].starts_with(L"a3") &&
+      selected.arguments[5]==std::to_wstring(batch.limits().request_bytes) &&
+      selected.arguments[6]==std::to_wstring(batch.limits().reply_bytes) &&
+      selected.arguments[7]==L"2" && selected.arguments[8]==std::to_wstring(peak.total_bytes) &&
+      selected.arguments[9]==L"65536","real reused argv lost exact full/quantum binding");
+  const auto cpu=prepare_native_uniform_dispatch(binding,e,batch,WorkerExecution::cpu_semantics);
+  check(cpu.reused && cpu.windows==8 && cpu.arguments==binding.cpu_fixture_arguments,
+      "CPU semantic dispatch geometry differs");
+  const auto rejects=[&](const NativeUniformWorkerBinding& b,WorkerExecution expected){
+    bool failed=false;try{(void)prepare_native_uniform_dispatch(b,e,batch,expected);}
+    catch(const std::invalid_argument&){failed=true;}check(failed,"invalid native dispatch accepted");
+  };
+  for(const auto grant:std::array<NativeUniformSweepGrant,3>{{{0,peak.total_bytes},{2,0},{2,1}}}){
+    auto bad=binding;bad.sweep=grant;
+    rejects(bad,WorkerExecution::hip);rejects(bad,WorkerExecution::cpu_semantics);
+  }
+  auto bad=binding;bad.configuration[1]=std::byte{1};rejects(bad,WorkerExecution::hip);
+  bad=binding;bad.ordinal=-1;rejects(bad,WorkerExecution::hip);
+  bad=binding;bad.runtime_sha256={};rejects(bad,WorkerExecution::hip);
+  rejects(binding,static_cast<WorkerExecution>(99));
+}
+
 void run(const std::filesystem::path& worker,StoreCompressionMode compression,bool compact,unsigned fault){
   auto ram=std::make_shared<Ram>();if(compact)ram->failure_unit=4096;
   auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(ram,identity(),{compression,6,false},{compact}));
@@ -47,6 +88,8 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
   auto session=NativeFileSession::create(std::move(writer));auto handle=session.open("target",{true,true,true});
   const auto prior=session.snapshot();
   const auto block=native_lz4_fixture::source();Bytes input=block;input.insert(input.end(),block.begin(),block.end());
+  const bool sweep=fault>=7;
+  if(sweep){input.clear();for(unsigned i=0;i<16;++i)input.insert(input.end(),block.begin(),block.end());}
   const auto payload=input;auto expected=input;
   if(fault==4){expected=data(7001,91);expected.insert(expected.end(),payload.begin(),payload.end());}
   if(fault==5)expected.resize(7001);
@@ -56,15 +99,28 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
   NativeUniformWorkerBinding binding;binding.helper=worker;binding.configuration=e.configuration;
   binding.cpu_fixture_arguments={fault==1?L"uniform-native2-corrupt":fault==2?L"uniform-native2-hold":
       fault==4 || fault==6?L"uniform-native1":L"uniform-native2"};
+  if(sweep){
+    uniform_lz4::Layout quantum{};check(uniform_lz4::make_layout(2U*65536,65536,quantum),"controlled sweep peak");
+    binding.sweep=NativeUniformSweepGrant{(std::numeric_limits<std::uint32_t>::max)(),quantum.total_bytes};
+    binding.cpu_fixture_arguments={fault==8?L"uniform-native16-sweep-corrupt":
+        fault==9?L"uniform-native16-sweep-hold":L"uniform-native16-sweep"};
+    if(fault==10)binding.sweep->maximum_chunks=0;
+    if(fault==11)binding.sweep->maximum_device_bytes=1;
+  }
   ControlledNativeUniformWrite operation(session,WorkerExecution::cpu_semantics);
   const auto started=operation.begin(handle,input,fault==4?UINT64_MAX:fault==6?31:0,fault==4,fault==5,{stamp,true,true,true,true},mode,binding,
       true,true,e,100,profile,{16,100000000},{},3000);
   check(started.admission.status==STATUS_SUCCESS && !started.admission.offline_required &&
-      started.eligible_bytes==(fault==5?0U:fault==4 || fault==6?65536U:131072U),"controlled uniform begin rejected complete extents");
+      started.eligible_bytes==(fault==5?0U:fault==4 || fault==6?65536U:fault==10 || fault==11?0U:sweep?1048576U:131072U),"controlled uniform begin rejected complete extents");
+  if(sweep && fault!=10 && fault!=11)check(started.reused && started.quantum_chunks==2 &&
+      started.planned_windows==8 && started.device_peak_bytes<started.eligible_bytes,
+      "controlled sweep did not retain resource-derived serial geometry");
+  if(fault==10 || fault==11)check(!started.worker.decision.submitted && !operation.process_id() &&
+      started.worker.decision.route.reason==GpuRouteReason::bad_evidence,"invalid sweep grant launched work");
   input.assign(input.size(),std::byte{0xff}); // External caller storage no longer owns the request.
   if(started.worker.decision.submitted){
     check(!operation.finish(),"waiting controlled write acknowledged bytes");
-    if(fault==2){
+    if(fault==2 || fault==9){
       eventually([&]{return operation.process_id()!=0;},2000,"controlled held worker PID");
       const auto cpu=operation.use_cpu_fallback();
       check(std::ranges::equal(cpu,payload),"controlled CPU selection changed full owned write");
@@ -75,7 +131,7 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
         3000,"controlled uniform worker did not validate");
       if(operation.awaiting_fresh_observation())operation.poll(health(102).memory,102);
     }
-  }else check(!gpu_lz4_cpu_verification_available() || fault==5,"qualified controlled worker did not start");
+  }else check(!gpu_lz4_cpu_verification_available() || fault==5 || fault==10 || fault==11,"qualified controlled worker did not start");
   if(fault==3)ram->fail_at=ram->calls;
   const auto result=operation.finish();
   if(fault==3){
@@ -96,8 +152,8 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
   check(result && result->outcome.status==STATUS_SUCCESS && !result->outcome.offline_required &&
       result->transferred==(fault==5?7001U:payload.size()),"controlled write lost committed count");
   exact(result->info,expected.size());
-  check(result->candidate_count==(!gpu_lz4_cpu_verification_available() || fault==1 || fault==2 || fault==5?0U:
-      fault==4 || fault==6?1U:2U),
+  check(result->candidate_count==(!gpu_lz4_cpu_verification_available() || fault==1 || fault==2 || fault==5 || fault==8 || fault==9 || fault==10 || fault==11?0U:
+      fault==4 || fault==6?1U:sweep?16U:2U),
       "controlled write supplied wrong advisory extent count");
   const auto calls=ram->calls,reads=ram->read_calls;
   const auto again=operation.finish();
@@ -110,7 +166,7 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
   auto reopened=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(ram));
   check(reopened.read("target",0,expected.size())==expected && reopened.read("keep",0,37)==data(37,92),
       "controlled write failed independent CPU recovery");
-  if(fault==0 && compression==StoreCompressionMode::fast && store_lz4_available()){
+  if((fault==0 || fault==7) && compression==StoreCompressionMode::fast && store_lz4_available()){
     auto objects=ObjectStoreSnapshot::open(ram);bool found=false;
     for(const auto& object:objects.list())if(object.logical_bytes==block.size() && objects.read(object.id)==block){
       found=true;check(object.stored_payload_bytes==native_lz4_fixture::alternative_block(block).size(),
@@ -131,13 +187,15 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
 int wmain(int argc,wchar_t** argv){try{
   check(argc==2,"trusted worker path required");const std::filesystem::path worker(argv[1]);
   check(worker.is_absolute(),"absolute trusted worker required");
+  dispatch_geometry();
   for(const auto compression:{StoreCompressionMode::raw,StoreCompressionMode::fast})
     for(bool compact:{false,true})run(worker,compression,compact,0);
   run(worker,StoreCompressionMode::fast,true,1);run(worker,StoreCompressionMode::fast,true,2);
   run(worker,StoreCompressionMode::fast,true,3);
   run(worker,StoreCompressionMode::fast,true,4);run(worker,StoreCompressionMode::fast,true,5);
   run(worker,StoreCompressionMode::fast,true,6);
+  for(unsigned fault=7;fault<=11;++fault)run(worker,StoreCompressionMode::fast,true,fault);
   std::cout<<"Controlled native uniform writes: checks="<<checks
-      <<" exact_advice_storage=true CPU_fallback=true prior_and_unrelated_preserved=true"
+      <<" exact_advice_storage=true CPU_fallback=true prior_and_unrelated_preserved=true reused_sweep_dispatch=true"
       <<" gpu_executed=false mounted=false\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

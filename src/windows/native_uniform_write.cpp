@@ -23,18 +23,31 @@ template<std::size_t N>std::wstring hex(const std::array<std::byte,N>& bytes){
   for(const auto b:bytes){const auto v=std::to_integer<unsigned>(b);result+=digits[v>>4];result+=digits[v&15];}
   return result;
 }
-std::vector<std::wstring> arguments(const NativeUniformWorkerBinding& binding,
-    const GpuHealthEvidence& evidence,const UniformLz4Limits& l,WorkerExecution expected){
-  if(binding.configuration!=evidence.configuration)throw std::invalid_argument("native uniform configuration mismatch");
-  if(expected==WorkerExecution::cpu_semantics)return binding.cpu_fixture_arguments;
+}
+NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding& binding,
+    const GpuHealthEvidence& evidence,const PreparedUniformLz4& batch,WorkerExecution expected){
+  if(!batch.ready() || binding.configuration!=evidence.configuration ||
+      (expected!=WorkerExecution::hip && expected!=WorkerExecution::cpu_semantics))
+    throw std::invalid_argument("native uniform dispatch binding mismatch");
+  const auto& l=batch.limits();
+  NativeUniformDispatch result;result.quantum_chunks=l.chunks;result.windows=1;
+  result.device_peak_bytes=l.device_bytes;
+  if(binding.sweep){
+    const auto plan=plan_uniform_lz4_sweep(batch,binding.sweep->maximum_chunks,binding.sweep->maximum_device_bytes);
+    result.reused=true;result.quantum_chunks=plan.quantum_chunks;result.windows=plan.windows;
+    result.device_peak_bytes=plan.device_peak_bytes;
+  }
+  if(expected==WorkerExecution::cpu_semantics){result.arguments=binding.cpu_fixture_arguments;return result;}
   if(binding.ordinal<0 || binding.ordinal>=64 ||
       std::none_of(binding.runtime_sha256.begin(),binding.runtime_sha256.end(),[](auto b){return b!=std::byte{0};}))
     throw std::invalid_argument("native uniform runtime unqualified");
-  return {L"--driver-uniform-lz4-adapter",std::to_wstring(binding.ordinal),hex(evidence.memory.luid),
-      std::to_wstring(evidence.memory.node_mask),hex(binding.runtime_sha256),std::to_wstring(l.request_bytes),
-      std::to_wstring(l.reply_bytes),std::to_wstring(l.chunks),std::to_wstring(l.device_bytes),std::to_wstring(l.chunk_bytes)};
+  result.arguments={result.reused?L"--driver-uniform-lz4-sweep-adapter":L"--driver-uniform-lz4-adapter",
+      std::to_wstring(binding.ordinal),hex(evidence.memory.luid),std::to_wstring(evidence.memory.node_mask),
+      hex(binding.runtime_sha256),std::to_wstring(l.request_bytes),std::to_wstring(l.reply_bytes),
+      std::to_wstring(result.quantum_chunks),std::to_wstring(result.device_peak_bytes),std::to_wstring(l.chunk_bytes)};
+  return result;
 }
-}
+
 static_assert(std::is_nothrow_copy_assignable_v<NativeFileHandle>);
 static_assert(std::is_trivially_copyable_v<NativeUniformWriteResult>);
 static_assert(std::is_nothrow_copy_constructible_v<std::optional<NativeUniformWriteResult>>);
@@ -81,11 +94,13 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
               const auto l=uniform_lz4_limits(plan.layout);
               auto batch=PreparedUniformLz4::prepare(std::span<const std::byte>(owned).subspan(
                   static_cast<std::size_t>(gap),static_cast<std::size_t>(l.input_bytes)),l);
-              const auto args=arguments(binding,evidence,l,expected_);
-              start.worker=controller_.begin(std::move(batch),binding.helper,args,consent,worthwhile,
+              const auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,expected_);
+              start.worker=controller_.begin(std::move(batch),binding.helper,dispatch.arguments,consent,worthwhile,
                   evidence,now,charged,window,budget,deadline);
               first=(position+gap)/kNativeExtentBytes;
               start.eligible_bytes=static_cast<std::uint32_t>(plan.layout.input_bytes);
+              start.quantum_chunks=dispatch.quantum_chunks;start.planned_windows=dispatch.windows;
+              start.device_peak_bytes=dispatch.device_peak_bytes;start.reused=dispatch.reused;
             }
           }catch(const std::bad_alloc&){start.worker.decision.route.reason=GpuRouteReason::memory_pressure;}
           catch(...){start.worker.decision.route.reason=GpuRouteReason::bad_evidence;}

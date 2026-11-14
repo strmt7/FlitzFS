@@ -1,20 +1,40 @@
 #pragma once
 #include "native_file_info.hpp"
 #include "uniform_lz4_worker_controller.hpp"
+#include "flitzfs/uniform_lz4_sweep.hpp"
 #include <optional>
 namespace flitzfs {
+struct NativeUniformSweepGrant {
+  std::uint32_t maximum_chunks=0;
+  std::uint64_t maximum_device_bytes=0;
+};
 struct NativeUniformWorkerBinding {
   std::filesystem::path helper;
   GpuConfigurationId configuration{};
   int ordinal=-1;
   std::array<std::byte,32> runtime_sha256{};
+  // Optional qualified per-quantum work grant, not a limit on the full write.
+  // Absent preserves the original single-window worker route.
+  std::optional<NativeUniformSweepGrant> sweep;
   // Used ONLY with the explicitly CPU-semantic test backend.
   std::vector<std::wstring> cpu_fixture_arguments;
 };
+struct NativeUniformDispatch {
+  std::vector<std::wstring> arguments;
+  std::uint32_t quantum_chunks=0,windows=0;
+  std::uint64_t device_peak_bytes=0;
+  bool reused=false;
+};
+// Pure command/geometry preparation; no runtime, process, backing or GPU calls.
+// Validates optional sweep grants for BOTH real and CPU-semantic callers.
+NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding&,
+    const GpuHealthEvidence&,const PreparedUniformLz4&,WorkerExecution);
 struct NativeUniformWriteStart {
   NativeWindowsIoOutcome admission;
   UniformLz4WorkerStart worker;
-  std::uint32_t eligible_bytes=0;
+  std::uint32_t eligible_bytes=0,quantum_chunks=0,planned_windows=0;
+  std::uint64_t device_peak_bytes=0;
+  bool reused=false;
 };
 struct NativeUniformWriteResult {
   NativeWindowsIoOutcome outcome;

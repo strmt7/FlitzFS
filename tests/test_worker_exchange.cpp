@@ -11,6 +11,7 @@
 #include "flitzfs/match_worker_wire.hpp"
 #include "flitzfs/lz4_worker_wire.hpp"
 #include "flitzfs/uniform_lz4_wire.hpp"
+#include "flitzfs/uniform_lz4_sweep.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include "flitzfs/native_session.hpp"
 #include "native_fs_fixture.hpp"
@@ -151,7 +152,7 @@ int child(std::wstring_view mode,std::wstring_view token) {
   if(mode.starts_with(L"uniform-")){
     check_job();auto limits=uniform_fixture_limits();
     if(mode.starts_with(L"uniform-native")){
-      const auto bytes=mode.starts_with(L"uniform-native1")?65536U:2U*65536;
+      const auto bytes=mode.starts_with(L"uniform-native16-sweep")?16U*65536:mode.starts_with(L"uniform-native1")?65536U:2U*65536;
       uniform_lz4::Layout layout{};check(uniform_lz4::make_layout(bytes,65536,layout),"native fixture uniform layout");
       limits=uniform_lz4_limits(layout);
     }
@@ -159,18 +160,30 @@ int child(std::wstring_view mode,std::wstring_view token) {
         static_cast<std::size_t>(limits.reply_bytes)});
     auto request=decode_uniform_lz4_request(channel.request(),limits);
     if(!gpu_lz4_cpu_verification_available())return 17;
-    if(mode==L"uniform-hold" || mode==L"uniform-native2-hold"){Sleep(5000);return 0;}
+    if(mode==L"uniform-hold" || mode==L"uniform-native2-hold" || mode==L"uniform-native16-sweep-hold"){Sleep(5000);return 0;}
+    const auto encode=[&](const UniformLz4Request& part){
+      UniformLz4Candidates candidate;
+      for(std::uint32_t i=0;i<part.batch.layout().chunks;++i){
+        const auto source=part.batch.input(i);const auto fixture=native_lz4_fixture::source();
+        const auto payload=mode.starts_with(L"uniform-native") && std::ranges::equal(source,fixture)?
+            native_lz4_fixture::alternative_block(source):lz4_literal_fixture(source);
+        candidate.sizes.push_back(static_cast<std::uint32_t>(payload.size()));
+        candidate.payload.insert(candidate.payload.end(),payload.begin(),payload.end());
+      }
+      return candidate;
+    };
     UniformLz4Candidates c;
-    for(std::uint32_t i=0;i<request.batch.layout().chunks;++i){
-      const auto source=request.batch.input(i);
-      const auto fixture=native_lz4_fixture::source();
-      const auto payload=mode.starts_with(L"uniform-native") && std::ranges::equal(source,fixture)?
-          native_lz4_fixture::alternative_block(source):lz4_literal_fixture(source);
-      c.sizes.push_back(static_cast<std::uint32_t>(payload.size()));
-      c.payload.insert(c.payload.end(),payload.begin(),payload.end());
-    }
+    if(mode.starts_with(L"uniform-native16-sweep")){
+      uniform_lz4::Layout quantum{};check(uniform_lz4::make_layout(2U*65536,65536,quantum),"native sweep fixture peak");
+      const auto plan=plan_uniform_lz4_sweep(request.batch,2,quantum.total_bytes);
+      unsigned calls=0;
+      c=compute_uniform_lz4_sweep(request,plan,[&](const UniformLz4Request& part){
+        ++calls;return encode(part);
+      });
+      check(calls==8 && plan.windows==8 && c.sizes.size()==16,"native sweep fixture omitted work");
+    }else c=encode(request);
     auto frame=encode_uniform_lz4_reply(request.batch,request.request_id,c,WorkerExecution::cpu_semantics);
-    if(mode==L"uniform-corrupt" || mode==L"uniform-delay-invalid" || mode==L"uniform-native2-corrupt")frame.back()^=std::byte{1};
+    if(mode==L"uniform-corrupt" || mode==L"uniform-delay-invalid" || mode==L"uniform-native2-corrupt" || mode==L"uniform-native16-sweep-corrupt")frame.back()^=std::byte{1};
     if(mode==L"uniform-delay-invalid")Sleep(150);
     channel.publish(frame);return mode==L"uniform-fail-after"?17:0;
   }

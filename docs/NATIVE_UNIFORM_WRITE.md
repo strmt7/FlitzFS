@@ -32,6 +32,37 @@ all calls run on one serialized control thread. Caller buffers can be released
 or changed after successful begin; the coordinator owns the full original bytes.
 The existing controller independently owns its in-flight subset.
 
+## Reused finite-sweep dispatch
+
+An optional NativeUniformSweepGrant on the qualified worker binding selects the
+already authenticated finite reused worker. The coordinator derives canonical
+quantum size, number of windows and peak slab from the complete immutable batch,
+the caller's maximum work and device grant. It passes full request/reply capacities
+together with the derived quantum/peak to --driver-uniform-lz4-sweep-adapter.
+NativeUniformWriteStart reports that planned geometry without claiming execution.
+
+Dispatch preparation is pure and validates grants for real and CPU-semantic
+callers. Invalid or insufficient grants select CPU before a process can start.
+Absent the optional grant, the original single-window command and geometry are
+preserved. There is no host-specific allocation or two-chunk product default.
+
+The complete source, result, transport, recovery and deadline admission remain
+unchanged. They conservatively charge the whole canonical window, even though
+the reused worker allocates only its peak slab. This change does not reduce those
+bounds or qualify a new cost model. Each native operation still owns at most the
+existing 1-MiB write; cross-operation coalescing remains unfinished.
+
+The reused worker returns the same ordinary version-2 reply. The controller still
+requires full independent CPU comparison, a fresh final observation and successful
+exact child/supervisor retirement. No intermediate quantum becomes a candidate
+or acknowledges bytes. All accepted extents enter the same checked native mutation
+and commit-bound FileInfo/result path.
+
+This connects the controlled write coordinator to the existing reused engine;
+ordinary callbacks do not enable GPU automatically. It does not implement shared
+dictionaries, collective/learned compression or GPU read acceleration. CPU fallback
+may encode differently and produce a different size while preserving all bytes.
+
 ## Completion, failure and retirement
 
 The two-stage controller poll retains independent CPU verification and a fresh
@@ -95,3 +126,18 @@ Portable tests cover generic/mixed separator equality, spaces, source immutabili
 and malformed/reserved/stream/UNC/relative spellings. The exact original failed
 artifact, command and log digests remain in evidence/native-uniform-path-be5c284.json.
 Corrected-source execution is required before qualification.
+
+## Reused-dispatch validation candidate
+
+The Windows SDK fixture adds a full 1-MiB, sixteen-extent owned write through a
+CPU-semantic child that actually executes eight serial quanta and returns one
+combined ordinary reply. Cases cover exact advice storage, independent current/
+prior/unrelated CPU readback, caller-buffer mutation, corrupt combined output,
+live held-child CPU selection/cancellation, and zero/insufficient work grants
+that must not launch a process. Pure real-command checks bind the full capacities,
+configuration/ordinal/LUID/runtime hash and derived quantum/peak; no HIP is loaded.
+
+These checks require publishing-source execution before qualification. They do
+not establish actual GPU execution through this coordinator, mounted GPU I/O or
+performance benefit. The prior instrumented hardware evidence at 11fbf07 remains
+scoped to its explicit diagnostic. Do not repeat that unchanged owner trial.

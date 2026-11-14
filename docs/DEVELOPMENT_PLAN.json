@@ -803,5 +803,13 @@
     "Replace small structural store limits using bounded paged data structures and incremental reclamation, while specifying and implementing one protected cross-file compression transaction.",
     "Make persistent learning and collective optimization automatic, with admission from opportunity and fresh contention, prompt yield and practical independently measured read costs.",
     "Complete explicit durability/repair, latest Windows 11 application/driver lifecycle, independent security and unbiased comparative qualification before a release estimate."
-  ]
+  ],
+  "controlled_reused_dispatch": {
+    "status": "implemented; publishing-source qualification pending",
+    "contract": "docs/NATIVE_UNIFORM_WRITE.md",
+    "ordinary_GPU_route": false,
+    "cost_model_qualified": false,
+    "actual_GPU_through_coordinator": false,
+    "cross_operation_batching": false
+  }
 }
