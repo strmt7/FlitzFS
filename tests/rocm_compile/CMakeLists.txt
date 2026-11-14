@@ -140,6 +140,7 @@ add_custom_command(OUTPUT "${bundle_header}" "${bundle_receipt}"
     "${flitzfs_root}/tools/ci/check_portable_cpu.py"
   VERBATIM)
 
+add_custom_target(flitzfs_hip_worker_bundle DEPENDS "${bundle_header}" "${bundle_receipt}")
 add_library(flitzfs_hip_compute_common STATIC "${flitzfs_root}/src/windows/hip_decode_worker.cpp")
 target_compile_features(flitzfs_hip_compute_common PUBLIC cxx_std_20)
 target_include_directories(flitzfs_hip_compute_common PUBLIC "${flitzfs_root}/src/windows")
@@ -152,8 +153,8 @@ target_link_libraries(flitzfs_hip_compute_common PUBLIC flitzfs_worker_exchange 
 
 add_executable(flitzfs_hip_worker
   "${flitzfs_root}/src/windows/hip_worker_main.cpp"
-  "${flitzfs_root}/src/windows/hip_module_verification.cpp"
-  "${bundle_header}")
+  "${flitzfs_root}/src/windows/hip_module_verification.cpp")
+add_dependencies(flitzfs_hip_worker flitzfs_hip_worker_bundle)
 target_compile_features(flitzfs_hip_worker PRIVATE cxx_std_20)
 target_include_directories(flitzfs_hip_worker PRIVATE "${worker_output}")
 target_include_directories(flitzfs_hip_worker SYSTEM PRIVATE "${FLITZFS_ROCM_SDK}/include")
@@ -229,10 +230,11 @@ if(FLITZFS_ROCM_LZ4_RUNTIME_FIXTURE)
     DEPENDS flitzfs_rocm_lz4_candidate "${FLITZFS_ROCM_LZ4_OBJECT}"
       "${FLITZFS_ROCM_LZ4_COVERAGE}" "${flitzfs_root}/tools/ci/stage_lz4_runtime_bundle.py"
     VERBATIM)
+  add_custom_target(flitzfs_hip_lz4_bundle DEPENDS "${lz4_bundle_header}" "${lz4_bundle_receipt}")
   add_executable(flitzfs_hip_lz4_worker
     "${flitzfs_root}/src/windows/hip_worker_main.cpp"
-    "${flitzfs_root}/src/windows/hip_module_verification.cpp"
-    "${bundle_header}" "${lz4_bundle_header}")
+    "${flitzfs_root}/src/windows/hip_module_verification.cpp")
+  add_dependencies(flitzfs_hip_lz4_worker flitzfs_hip_worker_bundle flitzfs_hip_lz4_bundle)
   target_include_directories(flitzfs_hip_lz4_worker PRIVATE "${worker_output}")
   target_compile_definitions(flitzfs_hip_lz4_worker PRIVATE FLITZFS_HIP_LZ4_RUNTIME_FIXTURE=1)
   target_compile_options(flitzfs_hip_lz4_worker PRIVATE /W4 /permissive-)

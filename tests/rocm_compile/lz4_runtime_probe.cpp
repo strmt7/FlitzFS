@@ -32,15 +32,19 @@ void child(const fs::path& worker,std::vector<std::wstring> args,HipWorkerExit e
       "Unexpected compression metadata exit");
 }
 void exchange(const fs::path& worker,std::span<const std::byte> frame,HipWorkerExit expected,
-    std::vector<std::wstring> args={}){
+    std::vector<std::wstring> args={},bool runtime_digest_refusal=false){
   if(args.empty())args={L"--driver-lz4-adapter",L"0",L"0100000000000000",L"1",std::wstring(64,L'0')};
   const auto r=run_worker_exchange(worker,args,frame,budget);++exits;
   require(r.process.process_id && r.process.exit_confirmed && !r.process.timed_out &&
       !r.process.cancelled && r.process.peak_committed_bytes<=128ULL*1024*1024,
       "Compression exchange child did not retire");
+  const auto category=hip_worker_exit_category(r.process.exit_code);
+  // A disposable runner can have no installed AMD runtime or a different
+  // installed file. Both must refuse the deliberately zero digest before load.
+  const bool expected_exit=category==static_cast<std::uint32_t>(expected) ||
+      (runtime_digest_refusal && category==static_cast<std::uint32_t>(HipWorkerExit::integrity_failure));
   require(r.code==WorkerExchangeCode::worker_failed && r.response.empty() &&
-      !r.publication_observed &&
-      hip_worker_exit_category(r.process.exit_code)==static_cast<std::uint32_t>(expected),
+      !r.publication_observed && expected_exit,
       "Rejected compression request exposed a reply");
   require(WorkerExchangeSession::available(),"Compression supervisor not quiescent");
 }
@@ -172,7 +176,7 @@ int wmain(int argc,wchar_t** argv){
     const auto prepared=PreparedLz4WorkerBatch::prepare(views);
     const auto original=Bytes(prepared.plaintext().begin(),prepared.plaintext().end());
     const auto frame=encode_lz4_worker_request(prepared,519);
-    exchange(worker,frame,HipWorkerExit::runtime_unavailable);
+    exchange(worker,frame,HipWorkerExit::runtime_unavailable,{},true);
     for(const auto offset:{std::size_t{0},std::size_t{24},std::size_t{32}}){
       auto invalid=frame;invalid[offset]^=std::byte{1};
       exchange(worker,invalid,HipWorkerExit::invalid_request);
