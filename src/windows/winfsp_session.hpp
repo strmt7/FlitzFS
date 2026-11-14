@@ -69,6 +69,9 @@ class WinFspNativeSession final {
   ~WinFspNativeSession();
   WinFspNativeSession(const WinFspNativeSession&)=delete;
   WinFspNativeSession& operator=(const WinFspNativeSession&)=delete;
+  void enable_deferred_writes_hosted(NativeDeferredWriteOptions);
+  void publish_deferred_health_hosted(const GpuHealthEvidence&);
+  NativeDeferredWriteStats deferred_write_stats() const;
   NTSTATUS start(const NativeWriteMountPlan&) noexcept;
   // Serialized hosted controller request only; callbacks never initiate it.
   HostedVolumeMaintenanceResult recompress_managed_hosted(
@@ -95,5 +98,6 @@ class WinFspNativeSession final {
   bool dispatcher_attempted_=false,mount_owned_=false,unexpected_stop_=false,offline_=false,stopped_=false;
   bool self_rejected_=false;
   NativeSessionStats retired_stats_{};
+  NativeDeferredWriteStats retired_deferred_{};
 };
 } // namespace flitzfs

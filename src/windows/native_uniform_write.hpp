@@ -4,6 +4,8 @@
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include <optional>
 namespace flitzfs {
+// Admission and immutable copying shared with the deferred callback owner.
+std::vector<std::byte> own_native_uniform_source(std::span<const std::byte>);
 struct NativeUniformSweepGrant {
   std::uint32_t maximum_chunks=0;
   std::uint64_t maximum_device_bytes=0;

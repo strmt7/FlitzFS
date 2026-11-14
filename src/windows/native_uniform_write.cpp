@@ -24,6 +24,12 @@ template<std::size_t N>std::wstring hex(const std::array<std::byte,N>& bytes){
   return result;
 }
 }
+std::vector<std::byte> own_native_uniform_source(std::span<const std::byte> bytes){
+  if(bytes.size()>kStoreMaxObjectBytes || (!bytes.empty()&&!bytes.data()))
+    throw std::invalid_argument("native write source bound");
+  admit_source_copy(bytes.size());
+  return bytes.empty()?std::vector<std::byte>{}:std::vector<std::byte>(bytes.begin(),bytes.end());
+}
 NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding& binding,
     const GpuHealthEvidence& evidence,const PreparedUniformLz4& batch,WorkerExecution expected){
   if(!batch.ready() || binding.configuration!=evidence.configuration ||
@@ -70,8 +76,7 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
   start.admission=win_detail::boundary(session_,[&]{
     const auto before=session_.mutation_info(handle);FSP_FSCTL_FILE_INFO prepared{};
     if(!encode_native_file_info(before,mode,prepared))return win_detail::failure(session_,STATUS_INVALID_DEVICE_STATE);
-    admit_source_copy(bytes.size());std::vector<std::byte> owned;
-    if(!bytes.empty())owned.assign(bytes.begin(),bytes.end());
+    auto owned=own_native_uniform_source(bytes);
     const auto position=append?before.info.logical_bytes:offset;
     auto accepted=std::uint64_t(owned.size());
     if(constrained)accepted=position>=before.info.logical_bytes?0:(std::min)(accepted,before.info.logical_bytes-position);

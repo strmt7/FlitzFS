@@ -585,6 +585,9 @@ void ram_handoff_probe(std::wstring_view token,std::uint32_t client) {
       auto target=std::make_shared<locked_ram_fixture::Store>(image_cap);
       auto adapter=flitzfs::WinFspNativeWritable::create_managed_hosted(
           head,volume_id,source,source_id,{flitzfs::StoreCompressionMode::raw,6,false});
+      // Real SDK TLS request hints and real FSD responses, still CPU-only.
+      // Default factories and the other mount profiles remain unchanged.
+      adapter->enable_deferred_writes_hosted(flitzfs::NativeDeferredWriteOptions{});
       const auto* observer=adapter.get();
       serial=observer->parameters().VolumeSerialNumber;
       flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
@@ -645,6 +648,11 @@ void ram_handoff_probe(std::wstring_view token,std::uint32_t client) {
       auto final=original;const std::vector<std::byte> tail(73,std::byte{0x3d});
       final.insert(final.end(),tail.begin(),tail.end());
       finish_session(session,mount);
+      const auto deferred=session.deferred_write_stats();
+      require(deferred.queued>0&&deferred.completed==deferred.queued&&
+          deferred.response_attempts==deferred.queued&&deferred.thread_exited&&deferred.retirement_confirmed&&
+          !deferred.native_pending&&!deferred.worker_busy&&!deferred.disabled&&
+          !deferred.worker_submitted&&!deferred.advised,"RAM deferred CPU write lifecycle");
       stage=75;
       auto selected=flitzfs::NativeVolumeHeadView::open(head,volume_id,
           [&](const auto& id)->std::shared_ptr<flitzfs::StoreByteIo>{

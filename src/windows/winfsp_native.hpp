@@ -1,5 +1,6 @@
 #pragma once
 #include "native_file_info.hpp"
+#include "native_deferred_write.hpp"
 #include "winfsp_origin.hpp"
 #include <filesystem>
 #include <memory>
@@ -47,6 +48,12 @@ class WinFspNativeWritable final {
   ~WinFspNativeWritable();
   WinFspNativeWritable(const WinFspNativeWritable&)=delete;
   WinFspNativeWritable& operator=(const WinFspNativeWritable&)=delete;
+  // Explicit hosted opt-in, before binding/mounting. The helper must be
+  // independently qualified outside this volume; default factories stay CPU.
+  void enable_deferred_writes_hosted(NativeDeferredWriteOptions);
+  void publish_deferred_health_hosted(const GpuHealthEvidence&);
+  NativeDeferredWriteStats deferred_write_stats() const;
+  NativeDeferredStop stop_deferred_writes_hosted();
   void bind_callbacks(FSP_FILE_SYSTEM&,WinFspOriginQuery) noexcept;
   bool self_origin_rejected() const noexcept;
   FSP_FSCTL_VOLUME_PARAMS parameters() const noexcept;

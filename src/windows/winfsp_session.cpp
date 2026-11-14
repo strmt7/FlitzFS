@@ -83,6 +83,17 @@ WinFspNativeSession::WinFspNativeSession(std::unique_ptr<WinFspNativeWritable> a
   if(!adapter_)throw std::invalid_argument("missing native writable adapter");
 }
 WinFspNativeSession::~WinFspNativeSession(){stop();}
+void WinFspNativeSession::enable_deferred_writes_hosted(NativeDeferredWriteOptions options){
+  if(state_!=SessionState::ready||!adapter_)throw std::runtime_error("deferred configuration requires ready session");
+  adapter_->enable_deferred_writes_hosted(std::move(options));
+}
+void WinFspNativeSession::publish_deferred_health_hosted(const GpuHealthEvidence& health){
+  if(!adapter_)throw std::runtime_error("retired deferred adapter");
+  adapter_->publish_deferred_health_hosted(health);
+}
+NativeDeferredWriteStats WinFspNativeSession::deferred_write_stats() const{
+  return adapter_?adapter_->deferred_write_stats():retired_deferred_;
+}
 NTSTATUS WinFspNativeSession::start(const NativeWriteMountPlan& plan) noexcept {
   if(state_!=SessionState::ready||!adapter_)return STATUS_INVALID_DEVICE_STATE;
   if(!valid_native_write_plan(plan))return STATUS_INVALID_PARAMETER;
@@ -127,6 +138,11 @@ HostedIdleMaintenanceResult WinFspNativeSession::idle_recompression_hosted(Hoste
 }
 void WinFspNativeSession::release() noexcept {
   if(!filesystem_)return;
+  if(adapter_){
+    auto deferred=adapter_->stop_deferred_writes_hosted();
+    while(deferred==NativeDeferredStop::running){Sleep(1);deferred=adapter_->stop_deferred_writes_hosted();}
+    if(deferred==NativeDeferredStop::retirement_unconfirmed)offline_=true;
+  }
   if(dispatcher_attempted_)api_.stop_dispatcher(filesystem_);
   if(mount_owned_)api_.remove_mount_point(filesystem_);
   api_.delete_filesystem(filesystem_);filesystem_=nullptr;
@@ -138,7 +154,7 @@ void WinFspNativeSession::retire_adapter() noexcept {
     offline_=offline_||adapter_->requires_offline();
     stopped_=stopped_||adapter_->dispatcher_stopped();
     unexpected_stop_=unexpected_stop_||adapter_->dispatcher_stopped_unexpectedly();
-    try{retired_stats_=adapter_->stats();offline_=offline_||retired_stats_.contexts!=0||retired_stats_.fenced;}
+    try{retired_deferred_=adapter_->deferred_write_stats();retired_stats_=adapter_->stats();offline_=offline_||retired_stats_.contexts!=0||retired_stats_.fenced;}
     catch(...){offline_=true;}
     adapter_.reset(); // Only AFTER dispatcher join and owned FS deletion.
   }

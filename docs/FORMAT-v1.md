@@ -501,3 +501,5 @@ The experimental finite uniform sweep keeps ordinary version-2 request/reply byt
 The experimental reusable sweep changes only bounded worker resource ownership. It uses the same version-2 frames, canonical active device layout and stored LZ4 records. The unused physical slab tail is an ephemeral canary, never persistent data or a decoder dependency. See [UNIFORM_LZ4_REUSE.md](UNIFORM_LZ4_REUSE.md).
 
 The bounded hardware observation at `d33efd6` stored existing codec-4 bytes and recovered them through the independent CPU reader; no persistent format change follows. Its [source-bound evidence](evidence/uniform-reuse-d33efd6.json) distinguishes encoded payload from complete image size.
+
+The experimental deferred callback transport does not change stored formats. Request identity and response ownership remain volatile; only native commit facts determine stored bytes. CPU encoders need not match GPU encoding/size. Every stored representation still requires independent CPU recovery. See [owned deferred writes](OWNED_DEFERRED_WRITES.md).

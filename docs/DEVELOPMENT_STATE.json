@@ -105,8 +105,9 @@
     }
   ],
   "next_implementation": {
-    "contract": "docs/ASYNC_NATIVE_WRITE_PLAN.md",
-    "next": "Implement bounded owned pending-write/completion state in the actual Windows adapter, preserving serialized GPU control and independent CPU fallback. Then finite cross-operation coalescing, automatic costs and ordinary GPU I/O. Continue scalable storage and protected collective compression; no unchanged owner trial or release."
+    "contract": "docs/OWNED_DEFERRED_WRITES.md",
+    "candidate": "Owned pending native writes with one coordinator thread, CPU publication and joined completion; exact-source CI pending.",
+    "next": "Qualify actual callback and disposable CPU-only pending-response mount paths. Then GPU callback execution, automatic costs/helper provisioning and finite cross-operation batching; preserve scalable storage/collective compression/full goal."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "CPU only; no automatic worker launch",
@@ -387,10 +388,10 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "status": "No source awaiting qualification from this round. Actual GPU execution through the new coordinator, owned ordinary callback integration and automatic keyed costs remain unfinished.",
-    "contract": "docs/ASYNC_NATIVE_WRITE_PLAN.md",
-    "normal_GPU_routing": false,
-    "owner_executed": false
+    "behavior": "owned deferred native writes",
+    "status": "not executed",
+    "owner_execution": false,
+    "default_cpu": true
   },
   "resolved": [
     {
