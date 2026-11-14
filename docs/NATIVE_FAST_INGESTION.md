@@ -1,6 +1,7 @@
 # Native fast ingestion and verified LZ4 records — experimental
 
-14 November 2026. This implementation is pending its publishing-source tests.
+14 November 2026. The storage foundation passed all 13 core jobs at 0d96d903.
+The native inode candidate hook below still needs its publishing-source tests.
 The actual AMD worker diagnostic at 979cd512 is separate evidence; this storage
 change does not establish a GPU filesystem operation or end-to-end speed gain.
 
@@ -91,3 +92,44 @@ encoder omitted the required policy argument. Pass an explicit empty policy;
 keep the production constructor and all decoder/fault gates unchanged.
 [Exact failure](evidence/native-fast-build-8685f12.json). This was a build result,
 not a passed storage or GPU qualification.
+
+## Executed storage qualification at 0d96d903
+
+[Exact source-bound evidence](evidence/native-fast-ingestion-0d96d90.json)
+records all 13 jobs in run 43575751686. Linux enabled/raw and ASan/UBSan each
+passed 127 CTest entries; Windows native passed 146. The new enabled fast-ingestion
+suite passed 119 checks, including native file partial-write/truncate/reopen.
+Its replicated transaction campaign covered 55 operation boundaries under three
+fault models (165 cases); raw fallback covered 57 (171 cases). Existing checksum,
+allocator and object-store assertions remain separately identified.
+
+The immutable 5da33dca source failed the independent valid-block oracle at exactly
+the missing native decoder; current source recovered that same block. Archive
+and native log digests bind the retained results. No GPU or owner execution
+occurred in this storage qualification, and modeled flushes are not physical
+power-loss evidence.
+
+## Native inode candidate hook — publishing-source qualification pending
+
+write_inode_storage_with_lz4 reuses the ordinary inode write's committed count,
+offset and metadata result. Borrowed NativeLz4ExtentCandidate spans must remain
+valid and immutable on the same serialized control thread until return.
+Hints address extent indexes only within the explicitly selected inode.
+
+The bridge forwards one unambiguous saving candidate only for a changed,
+nonsparse extent. Namespace records, other files, zero extents and reused
+unchanged records receive none. Duplicate, stale and non-saving advice selects
+CPU encoding; the storage encoder still compares every recovered byte with the
+final CPU-merged extent. Partial writes therefore cannot publish a candidate for
+a different old/full extent.
+
+Keep the existing 63-dirty-extent count, 1-MiB per-advisory and 4-MiB aggregate
+advisory budgets. Budget/caller errors reject before backing I/O; they do not
+poison a healthy volume. There is no device query, worker, clock, scheduler or
+automatic GPU dispatch in this hook. Existing request/mutation layouts and the
+ordinary public write signature remain unchanged.
+
+The new tests use an independently constructed two-match LZ4 representation
+distinct from CPU output, then check candidate selection, stale/duplicate
+fallback, cross-extent merging, retained snapshots, zero-byte constrained writes
+and rejection before I/O. These new hook cases require their own execution.

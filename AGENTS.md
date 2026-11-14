@@ -2,7 +2,9 @@
 
 ## Native fast-ingestion storage candidate
 
-Read docs/NATIVE_FAST_INGESTION.md before changing native codec 4, StoreCompressionMode::fast, advisory mutation data or their tests. Preserve all historical default/raw bytes, exact CPU block recovery, stored/decoded digests, strict nonexpansion and 64-KiB aligned external-state ceiling. Valid fast candidates avoid redundant CPU compression; malformed/stale/inferior advice selects ordinary CPU encoding. Keep each original/advisory transaction input within its separate 4-MiB budget and existing per-object limits. The immutable-baseline probe is disposable-hosted only and must reproduce the exact unknown-codec error; it never modifies baseline source. Storage methods must not launch GPU work or broaden owner testing. Publishing-source qualification is pending.
+Read docs/NATIVE_FAST_INGESTION.md before changing native codec 4, StoreCompressionMode::fast, advisory mutation data or their tests. Preserve all historical default/raw bytes, exact CPU block recovery, stored/decoded digests, strict nonexpansion and 64-KiB aligned external-state ceiling. Valid fast candidates avoid redundant CPU compression; malformed/stale/inferior advice selects ordinary CPU encoding. Keep each original/advisory transaction input within its separate 4-MiB budget and existing per-object limits. The immutable-baseline probe is disposable-hosted only and must reproduce the exact unknown-codec error; it never modifies baseline source. Storage methods must not launch GPU work or broaden owner testing. The storage foundation qualified at 0d96d903; the new inode hook requires separate source-bound qualification.
+
+The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The new direct native inode candidate hook is pending its own source qualification; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
 
 ## Isolated compression runtime boundary
 

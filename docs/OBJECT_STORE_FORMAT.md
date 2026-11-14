@@ -16,7 +16,10 @@ native codec 4: one independent LZ4 block under the existing stored/logical size
 and dual-integrity fields. CPU recovery requires the optional LZ4 dependency;
 older readers reject this new codec. Existing records and default/raw bytes stay
 compatible. Advisory candidates are independently CPU-verified before private
-selection and transactional publication. Publishing-source qualification is pending.
+selection and transactional publication. Storage qualification passed at 0d96d903;
+[exact evidence](evidence/native-fast-ingestion-0d96d90.json) retains all 13 jobs.
+The separate native inode advisory hook changes no stored fields and requires
+its own new-source qualification.
 
 ## API and ownership
 

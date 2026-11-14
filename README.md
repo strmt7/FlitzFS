@@ -2,7 +2,9 @@
 
 ## Native fast-ingestion storage candidate
 
-The experimental [fast-ingestion storage path](docs/NATIVE_FAST_INGESTION.md) adds CPU-readable independent LZ4 records and verified advisory compression candidates. Default encoding remains unchanged. Publishing-source CPU/raw/sanitizer/Windows and transactional fault qualification is pending; no normal filesystem GPU route is enabled.
+The experimental [fast-ingestion storage path](docs/NATIVE_FAST_INGESTION.md) adds CPU-readable independent LZ4 records and verified advisory compression candidates. Default encoding remains unchanged. Storage qualification passed at 0d96d903; the new inode hook is pending; no normal filesystem GPU route is enabled.
+
+The [fast-ingestion storage foundation](docs/NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The new direct native inode candidate hook is pending its own source qualification; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
 
 The [deep background compression plan](docs/COLD_COMPRESSION_RESEARCH.md) requires transparent cross-file grouping and GPU-supported learned or experimentally justified novel compression, separate from fast ingestion. It remains unimplemented and must preserve ordinary Explorer file/folder behavior, bounded access and exact CPU recovery.
 

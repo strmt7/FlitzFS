@@ -2,7 +2,9 @@
 
 ## Native fast-ingestion storage candidate
 
-The new [fast-ingestion storage path](NATIVE_FAST_INGESTION.md) requires exact-source enabled/raw/Windows/sanitizer qualification, independent codec-4 decoding and immutable-baseline failure reproduction, resource/candidate rejection and full modeled transactional I/O fault coverage. Its added tests execute CPU code only. Results remain pending.
+The new [fast-ingestion storage path](NATIVE_FAST_INGESTION.md) requires exact-source enabled/raw/Windows/sanitizer qualification, independent codec-4 decoding and immutable-baseline failure reproduction, resource/candidate rejection and full modeled transactional I/O fault coverage. Its added tests execute CPU code only. The storage gates passed at 0d96d903; new inode-hook results remain pending.
+
+The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The new direct native inode candidate hook is pending its own source qualification; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
 
 ## Executed isolated compression worker qualification — 14 November 2026
 

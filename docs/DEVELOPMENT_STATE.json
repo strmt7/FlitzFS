@@ -11,14 +11,13 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "979cd512559b1d9731cbc6a7d920b78a63483703",
-    "core_run": 43572160653,
+    "commit": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
+    "core_run": 43575751686,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "sdk_run": 43572160545,
-    "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
-    "scope": "All ordinary core jobs and isolated SDK qualification; one tiny actual GPU compression diagnostic. Native GPU file-operation integration remains unfinished."
+    "evidence": "docs/evidence/native-fast-ingestion-0d96d90.json",
+    "scope": "Native fast storage and independent CPU recovery; no GPU in these tests."
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -352,16 +351,9 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "contract": "docs/NATIVE_FAST_INGESTION.md",
     "status": "Publishing-source qualification pending.",
-    "behavior": "Explicit CPU-fast native ingestion, independent LZ4 record decoding and verified advisory StoreMutation candidates under existing transactions.",
-    "baseline": "5da33dcae667d23e68a54f70e109b1920a341518",
-    "default_encoding_changed": false,
-    "stored_codec": 4,
-    "cpu_decoder_required": true,
-    "gpu_launched_by_storage": false,
-    "normal_windows_gpu_route": false,
-    "validation": "Independent block oracle, immutable-baseline failure, enabled/raw/native/sanitizer cases, native partial-write/read/reopen and complete bounded commit-fault campaign."
+    "behavior": "Direct native inode advisory-extent hook with original commit-bound outputs; no change to existing mutation layouts or normal worker routing.",
+    "tests": "Independent external representation, current/pinned bytes, stale/duplicate/partial hints, zero accepted count and pre-I/O resource rejection."
   },
   "resolved": [
     {
@@ -704,12 +696,11 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "979cd512559b1d9731cbc6a7d920b78a63483703",
-    "run": 43572160653,
+    "source": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
+    "run": 43575751686,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
-    "scope": "All ordinary core jobs and isolated SDK qualification; one tiny actual GPU compression diagnostic. Native GPU file-operation integration remains unfinished."
+    "evidence": "docs/evidence/native-fast-ingestion-0d96d90.json"
   },
   "release_checkpoint": "docs/RELEASE_READINESS.md",
   "cold_compression_research": "docs/COLD_COMPRESSION_RESEARCH.md",
@@ -768,31 +759,34 @@
     "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
   },
   "previous_current_qualification": {
-    "commit": "99d53658b16e414729654f67a5238e155a3f350e",
-    "core_run": 43406031065,
+    "commit": "979cd512559b1d9731cbc6a7d920b78a63483703",
+    "core_run": 43572160653,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "native_groups": 138,
-    "sanitizer_groups": 119,
-    "advisory_assertions": 687,
-    "workload_assertions_per_examined_log": 4645,
-    "budget_assertions_per_examined_log": 398,
-    "budget_faults_per_examined_log": 42,
-    "managed_invariants_native": 412,
-    "managed_invariants_raw": 404,
-    "evidence": "docs/evidence/funded-helper-99d5365.json"
+    "sdk_run": 43572160545,
+    "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
+    "scope": "All ordinary core jobs and isolated SDK qualification; one tiny actual GPU compression diagnostic. Native GPU file-operation integration remains unfinished."
   },
   "native_fast_ingestion_candidate": {
-    "contract": "docs/NATIVE_FAST_INGESTION.md",
-    "status": "Publishing-source qualification pending.",
-    "behavior": "Explicit CPU-fast native ingestion, independent LZ4 record decoding and verified advisory StoreMutation candidates under existing transactions.",
-    "baseline": "5da33dcae667d23e68a54f70e109b1920a341518",
-    "default_encoding_changed": false,
+    "qualified_source": "0d96d903b0e1d7c8cd96edc089b5334b49a3d382",
+    "core_run": 43575751686,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "enabled_fast_checks": 119,
+    "raw_fast_checks": 109,
+    "enabled_commit_fault_cases": 165,
+    "raw_commit_fault_cases": 171,
     "stored_codec": 4,
-    "cpu_decoder_required": true,
-    "gpu_launched_by_storage": false,
-    "normal_windows_gpu_route": false,
-    "validation": "Independent block oracle, immutable-baseline failure, enabled/raw/native/sanitizer cases, native partial-write/read/reopen and complete bounded commit-fault campaign."
+    "contract": "docs/NATIVE_FAST_INGESTION.md",
+    "evidence": "docs/evidence/native-fast-ingestion-0d96d90.json",
+    "gpu_executed": false,
+    "owner_executed": false,
+    "default_encoding_changed": false,
+    "native_inode_hook": {
+      "status": "Publishing-source qualification pending.",
+      "behavior": "Direct native inode advisory-extent hook with original commit-bound outputs; no change to existing mutation layouts or normal worker routing.",
+      "tests": "Independent external representation, current/pinned bytes, stale/duplicate/partial hints, zero accepted count and pre-I/O resource rejection."
+    }
   }
 }
