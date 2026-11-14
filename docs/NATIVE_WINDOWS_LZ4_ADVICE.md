@@ -82,3 +82,18 @@ must still connect fresh resource/workload admission, request ownership,
 candidate lifetime, immediate CPU selection and exact retirement to file I/O.
 Do not repeat an unchanged hardware trial or remove verification to improve
 timings. The owner alone decides when to release.
+
+## Retained initial qualification failure
+
+At 7153ed1, Windows native passed 146/147 CTest groups. The four advised
+invariant profiles and four additional sealed profiles passed, with handle count
+123 before and after. The new advised fault campaign failed because its inherited
+oracle requested only 100,000 bytes while comparing a 131,072-byte expected file.
+
+The [retained failure](evidence/windows-lz4-oracle-7153ed1.json) includes verified
+artifact/log digests and all preceding data-bridge evidence. The correction
+asserts exact EOF, reads the full expected length and checks the un-faulted
+reference before enumerating failures. It preserves every operation/fault mode,
+metadata/security/reservation check and resource limit. Production source is
+unchanged by this test correction. Matching-source qualification is required;
+the original failure is not hidden by a rerun.

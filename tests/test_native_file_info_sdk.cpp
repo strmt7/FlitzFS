@@ -397,14 +397,20 @@ void closure(const NativeFilesystemSnapshot& view,Phase p,bool changed) {
   if(changed && p==Phase::write){const auto extra=data(73,101);std::copy(extra.begin(),extra.end(),bytes.begin()+70000);}
   if(changed && p==Phase::reserve)bytes.resize(4096);
   const auto allocation=changed?(p==Phase::reserve?4096:p==Phase::flush?8192:p==Phase::lz4?131072:73728):8192;
-  require(view.read("target",0,100000)==bytes && view.allocation_info(2).reserved_bytes==static_cast<std::uint64_t>(allocation)&&
-      view.basic_metadata(2)==(changed&&p!=Phase::flush?updated():tuple())&&view.security_descriptor(2)==sec::descriptor(),
-      "SDK fault mixed acknowledged data/reservation/basic/security");
+  require(view.stat("target").logical_bytes==bytes.size() &&
+      view.read("target",0,static_cast<std::uint32_t>(bytes.size()))==bytes,
+      "SDK fault changed complete acknowledged bytes/EOF");
+  require(view.allocation_info(2).reserved_bytes==static_cast<std::uint64_t>(allocation) &&
+      view.basic_metadata(2)==(changed&&p!=Phase::flush?updated():tuple()) &&
+      view.security_descriptor(2)==sec::descriptor(),
+      "SDK fault mixed acknowledged reservation/basic/security");
 }
 void faults(StoreCompressionMode compression,bool compact,Phase p) {
   std::size_t steps=0;
   {auto c=setup(compression,compact);c.ram->calls=0;auto r=action(c,p);
-    require(r.status==STATUS_SUCCESS,"positive SDK fault trace failed");steps=c.ram->calls;}
+    require(r.status==STATUS_SUCCESS,"positive SDK fault trace failed");steps=c.ram->calls;
+    closure(c.session.snapshot(),p,true);
+  }
   require((p==Phase::flush?steps==1:steps>3&&steps<100),"SDK observed trace outside limits");std::size_t cases=0;
   for(unsigned fault=0;fault<3;++fault)for(std::size_t step=0;step<steps;++step) {
     ++cases;std::shared_ptr<Ram> ram;std::uint64_t sequence=0;
