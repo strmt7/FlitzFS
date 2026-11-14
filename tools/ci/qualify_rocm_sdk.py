@@ -457,7 +457,23 @@ def main():
                 all(rows[0][key] is True for key in ("complete","bundle_verified","tamper_refused","CPU_source_unchanged")) and
                 rows[0]["hip_runtime_loaded"] is False and rows[0]["gpu_executed"] is False,
                 "compression runtime admission evidence mismatch")
-            report["lz4_runtime_fixture"]=dict(qualification=rows[0],binaries=runtime_records,
+            native_result=run(bounds,[str(runtime_probe),"--native-cpu-fixture"],report,
+                "native-LZ4-storage-CPU-composition",30)
+            prefix="LZ4 native CPU fixture: "
+            native_rows=[json.loads(line[len(prefix):]) for line in native_result["stdout"].splitlines()
+                if line.startswith(prefix)]
+            require(len(native_rows)==1,"missing native LZ4 CPU composition receipt")
+            native_row=native_rows[0]
+            require(all(native_row[key] is True for key in ("complete","candidate_stored_exactly",
+                    "CPU_fallback_verified","independent_native_readback","working_set_restored")) and
+                all(native_row[key] is False for key in ("gpu_executed","mounted","physical_power_loss_qualified")) and
+                native_row["source_bytes"]==65536 and native_row["locked_peak_bytes"]==4*1024*1024 and
+                native_row["locked_after_bytes"]==0 and
+                0<native_row["image_bytes"]<=2*1024*1024 and
+                0<native_row["active_payload_bytes"]<=native_row["image_bytes"] and
+                0<native_row["controller_job_peak_commit_bytes"]<=256*1024*1024,
+                "native LZ4 CPU composition or resource retirement mismatch")
+            report["lz4_runtime_fixture"]=dict(qualification=rows[0],native_storage_CPU=native_row,binaries=runtime_records,
                 bundle=json.loads((build/"Release/hip-lz4-bundle.json").read_text(encoding="utf-8")),
                 product_linked=False,actual_gpu_execution=False)
         def qualify_lz4_compute(directory,available,label):
@@ -820,7 +836,9 @@ def main():
                 runtime_basename=runtime_name.group(1),runtime_shipped=False,kpack_shipped=False,
                 files=runtime_files,coverage=report["lz4_runtime_fixture"]["bundle"]["coverage"],
                 controller_job_mib=256,worker_job_mib=128,cpu_rate=2000,worker_timeout_ms=15000,
-                cpu_admission_exits=10,actual_gpu_execution=False,ordinary_filesystem_route=False)
+                cpu_admission_exits=10,native_storage_CPU_qualified=True,native_gpu_worker_timeout_ms=5000,
+                native_store_capacity_bytes=2*1024*1024,native_locked_peak_bytes=4*1024*1024,
+                actual_gpu_execution=False,ordinary_filesystem_route=False)
             with (runtime_package/"qualification-manifest.json").open("x",encoding="utf-8") as out:
                 json.dump(runtime_manifest,out,indent=2);out.write("\n")
             with (runtime_package/"EXPERIMENTAL.txt").open("x",encoding="utf-8") as out:

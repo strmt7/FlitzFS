@@ -159,3 +159,6 @@ record costs and establish no comparative compression, throughput or power-loss
 claim. No LZ4 stored codec or ordinary filesystem GPU route is added. Do not repeat
 this unchanged diagnostic: the next implementation connects storage/CPU recovery/
 Windows writes and asynchronous fallback, followed by useful net-benefit testing.
+## Native compression composition diagnostic
+
+The separate experimental [native LZ4 composition fixture](NATIVE_LZ4_COMPOSITION.md) adds hosted CPU candidate/fallback verification and an explicit GPU-to-native-file diagnostic. It requires matching qualification before owner execution. Normal filesystem I/O does not launch this probe. Its new SDK fixture is pending; no GPU speed or physical power-loss claim follows.

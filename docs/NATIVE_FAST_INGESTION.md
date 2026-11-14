@@ -1,7 +1,7 @@
 # Native fast ingestion and verified LZ4 records — experimental
 
 14 November 2026. The storage foundation passed all 13 core jobs at 0d96d903.
-The native inode candidate hook below still needs its publishing-source tests.
+The native inode candidate hook passed all 13 core jobs at 3a797a3.
 The actual AMD worker diagnostic at 979cd512 is separate evidence; this storage
 change does not establish a GPU filesystem operation or end-to-end speed gain.
 
@@ -109,7 +109,7 @@ and native log digests bind the retained results. No GPU or owner execution
 occurred in this storage qualification, and modeled flushes are not physical
 power-loss evidence.
 
-## Native inode candidate hook — publishing-source qualification pending
+## Native inode candidate hook — qualified at 3a797a3
 
 write_inode_storage_with_lz4 reuses the ordinary inode write's committed count,
 offset and metadata result. Borrowed NativeLz4ExtentCandidate spans must remain
@@ -132,4 +132,7 @@ ordinary public write signature remain unchanged.
 The new tests use an independently constructed two-match LZ4 representation
 distinct from CPU output, then check candidate selection, stale/duplicate
 fallback, cross-extent merging, retained snapshots, zero-byte constrained writes
-and rejection before I/O. These new hook cases require their own execution.
+and rejection before I/O. The source-bound [native inode qualification](evidence/native-inode-lz4-3a797a3.json) passed all 13 core jobs, including enabled/raw, Windows native, sanitizers and seven hosted writable mount scenarios. These cases execute CPU code.
+## Native compression composition diagnostic
+
+The separate experimental [native LZ4 composition fixture](NATIVE_LZ4_COMPOSITION.md) adds hosted CPU candidate/fallback verification and an explicit GPU-to-native-file diagnostic. It requires matching qualification before owner execution. Normal filesystem I/O does not launch this probe. Its new SDK fixture is pending; no GPU speed or physical power-loss claim follows.

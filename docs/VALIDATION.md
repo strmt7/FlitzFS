@@ -2,9 +2,9 @@
 
 ## Native fast-ingestion storage candidate
 
-The new [fast-ingestion storage path](NATIVE_FAST_INGESTION.md) requires exact-source enabled/raw/Windows/sanitizer qualification, independent codec-4 decoding and immutable-baseline failure reproduction, resource/candidate rejection and full modeled transactional I/O fault coverage. Its added tests execute CPU code only. The storage gates passed at 0d96d903; new inode-hook results remain pending.
+The new [fast-ingestion storage path](NATIVE_FAST_INGESTION.md) requires exact-source enabled/raw/Windows/sanitizer qualification, independent codec-4 decoding and immutable-baseline failure reproduction, resource/candidate rejection and full modeled transactional I/O fault coverage. Its added tests execute CPU code only. The storage gates passed at 0d96d903; the native inode hook passed all 13 core jobs at 3a797a3.
 
-The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The new direct native inode candidate hook is pending its own source qualification; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
+The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 core jobs at 0d96d903, including independent CPU recovery and transactional faults. The direct native inode candidate hook passed all 13 core jobs at 3a797a3; ordinary Windows GPU routing and useful end-to-end benefit remain unfinished.
 
 ## Executed isolated compression worker qualification — 14 November 2026
 
@@ -467,4 +467,6 @@ The separate source-snapshot job failed the obsolete 512-file preflight and is
 retained as a failure; SOURCE_SNAPSHOT.md defines the corrected combined
 file/directory accounting within the unchanged archive-byte/768-entry limits.
 New snapshot execution remains pending. No actual GPU compressor is enabled.
+## Native compression composition diagnostic
 
+The separate experimental [native LZ4 composition fixture](NATIVE_LZ4_COMPOSITION.md) adds hosted CPU candidate/fallback verification and an explicit GPU-to-native-file diagnostic. It requires matching qualification before owner execution. Normal filesystem I/O does not launch this probe. Its new SDK fixture is pending; no GPU speed or physical power-loss claim follows.
