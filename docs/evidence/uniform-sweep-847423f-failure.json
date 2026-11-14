@@ -1,0 +1,480 @@
+{
+  "experimental": true,
+  "source_commit": "847423fb996bef964d1da1d49a1f6376a07d5333",
+  "source_tree": "686bffb665118782a5fb29ae2a4ee81a8c711f2d",
+  "core": {
+    "run": 43608595532,
+    "conclusion": "success",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "id": 132488452753,
+        "name": "windows-native",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132488452832,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132488452974,
+        "name": "sanitizers",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132488452977,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132488453001,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132491794996,
+        "name": "windows-mount",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132492676967,
+        "name": "windows-write-mount (mutations)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132492676995,
+        "name": "windows-write-mount (ram-handoff)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132492676997,
+        "name": "windows-write-mount (crash-restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132492676999,
+        "name": "windows-write-mount (delete)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132492677019,
+        "name": "windows-write-mount (crash)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132492677024,
+        "name": "windows-write-mount (restart)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "id": 132492677049,
+        "name": "windows-write-mount (basic)",
+        "status": "completed"
+      }
+    ],
+    "passed": 13,
+    "status": "completed",
+    "total": 13
+  },
+  "native_tests": {
+    "groups": 152,
+    "artifact_id": 14118544119,
+    "artifact_sha256": "2900a504ef81ae82e099121f05c49e6ff3743f1572fa8e5e4bc6d91d0bad88aa",
+    "archive_bytes": 13744,
+    "log": "LastTest.log",
+    "log_bytes": 160523,
+    "log_sha256": "0b9b37273883439e73c8b82bef3ea96bfa2d35e1066e78699c70b4e3047d0a4d",
+    "evidence": [
+      "Uniform sweep: checks=48 serial_complete=true partial_failure_terminal=true gpu_executed=false\r",
+      "Uniform profile: checks=143 exact_data=true disabled_clock_calls=0 gpu_executed=false\r",
+      "Controlled native uniform writes: checks=106 exact_advice_storage=true CPU_fallback=true prior_and_unrelated_preserved=true gpu_executed=false mounted=false\r",
+      "Uniform controller: configuration/peak/shape admission, fresh final observation, live-helper CPU fallback, late quarantine and exact retirement passed; gpu_executed=false\r"
+    ]
+  },
+  "sdk": {
+    "run": 43608595922,
+    "job": 132488457555,
+    "artifact_id": 14118838321,
+    "archive_sha256": "75f348277df802d471f3f94511677b0deb5a4f8bff086c847f5887f4d0ac3cff",
+    "root_sha256": "5fa09a4953097aa3e2879b806e65d963f12e6efa1cc4bd88dc7f549cf9bb0a5b",
+    "complete": true,
+    "compute": {
+      "checks": 1477,
+      "scenarios": 42,
+      "successes": 5,
+      "refusals": 37,
+      "decoder_available": true,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "raw": {
+      "checks": 10,
+      "scenarios": 1,
+      "successes": 0,
+      "refusals": 1,
+      "decoder_available": false,
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "runtime": {
+      "checks": 126,
+      "exits_confirmed": 20,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "native_CPU": {
+      "complete": true,
+      "source_bytes": 1048576,
+      "image_bytes": 1114112,
+      "active_payload_bytes": 135625,
+      "candidate_stored_exactly": true,
+      "independent_native_readback": true,
+      "prior_preserved": true,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "working_set_restored": true,
+      "gpu_executed": false,
+      "mounted": false
+    },
+    "runtime_artifact": {
+      "bytes": 850938,
+      "sha256": "f2d40211f527704c5f98a2d8f10f6fb571bb01d7e15e1dedbf4a81cb22906264",
+      "manifest": {
+        "experimental": true,
+        "commit": "847423fb996bef964d1da1d49a1f6376a07d5333",
+        "rocm": "10.1.0",
+        "runtime_basename": "amdhip64_7.dll",
+        "runtime_shipped": false,
+        "kpack_shipped": false,
+        "files": [
+          {
+            "path": "flitzfs_hip_lz4_worker.exe",
+            "bytes": 494592,
+            "sha256": "5dc54658ee8f21a1dded736063018c2527bcf35a519b755649f2c473e26a50b6"
+          },
+          {
+            "path": "flitzfs_lz4_runtime_probe.exe",
+            "bytes": 652800,
+            "sha256": "7eca48ed01c4cbc3dfd2326257b2b819bfc93cf9ac8cc129d195af4d51f0258b"
+          },
+          {
+            "path": "hip-lz4/flitzfs_rocm_lz4_candidate.dll",
+            "bytes": 330240,
+            "sha256": "2faea80261f155da0e30d524c4ec1e2f0314b4fdc2278f00249f70a72db54c9d"
+          },
+          {
+            "path": "hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll",
+            "bytes": 330240,
+            "sha256": "e1ee4063653b2203df662661fee1e2e4757167c708574c17601c03a8a38d9f59"
+          },
+          {
+            "path": "LICENSE",
+            "bytes": 35184,
+            "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+          },
+          {
+            "path": "licenses/blake3/LICENSE_A2",
+            "bytes": 11563,
+            "sha256": "3da8137480af96e14b27ac9474c6a76a0102596493e5ab075ba98c7ffc64d552"
+          },
+          {
+            "path": "licenses/blake3/LICENSE_A2LLVM",
+            "bytes": 12486,
+            "sha256": "b944109ea368e9bf114cb87a21a7ccf11edb6621fe0bd8357ae51dced0afbbb3"
+          },
+          {
+            "path": "licenses/blake3/LICENSE_CC0",
+            "bytes": 7169,
+            "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328"
+          },
+          {
+            "path": "licenses/lz4/LICENSE",
+            "bytes": 1311,
+            "sha256": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c"
+          },
+          {
+            "path": "licenses/lz4/LICENSE-repository",
+            "bytes": 646,
+            "sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5"
+          },
+          {
+            "path": "licenses/hipcomp/LICENSE",
+            "bytes": 1085,
+            "sha256": "74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef"
+          },
+          {
+            "path": "licenses/hipcomp/CMakeLists.txt",
+            "bytes": 14505,
+            "sha256": "19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7"
+          }
+        ],
+        "coverage": {
+          "targets": [
+            {
+              "architecture": "gfx1100",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1101",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1102",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1151",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1200",
+              "wave_mask": 1
+            },
+            {
+              "architecture": "gfx1201",
+              "wave_mask": 1
+            }
+          ],
+          "object_sha256": "17364ec6c6c9ebb8eb92510ca41222b7dbdb710099876ff35b39a848d7196972"
+        },
+        "controller_job_mib": 256,
+        "worker_job_mib": 128,
+        "cpu_rate": 2000,
+        "worker_timeout_ms": 15000,
+        "cpu_admission_exits": 10,
+        "uniform_cpu_admission_exits": 20,
+        "uniform_layout_version": 2,
+        "uniform_runtime_packaged": true,
+        "uniform_gpu_execution": false,
+        "uniform_serial_sweep_packaged": true,
+        "uniform_sweep_cpu_source_bytes": 1048576,
+        "native_storage_CPU_qualified": true,
+        "native_gpu_worker_timeout_ms": 5000,
+        "native_store_capacity_bytes": 2097152,
+        "native_locked_peak_bytes": 4194304,
+        "actual_gpu_execution": false,
+        "ordinary_filesystem_route": false
+      },
+      "runtime_shipped": false,
+      "actual_gpu_execution": false
+    }
+  },
+  "staging": {
+    "destination": "E:\\FlitzFS-source-20261114-b4d2d879e877449f976ee8320cfa4868\\runtime-sweep-847423f",
+    "commit": "847423fb996bef964d1da1d49a1f6376a07d5333",
+    "outer_sha256": "4b8775839d6164f9cd2c056bad1109e8905d98715fabe549429cd370abe688ab",
+    "inner_sha256": "f2d40211f527704c5f98a2d8f10f6fb571bb01d7e15e1dedbf4a81cb22906264",
+    "files": 14,
+    "bytes": 1895609,
+    "executed": false
+  },
+  "owner": {
+    "preflight": {
+      "observed_utc": "2026-11-14T15:28:44.5834843Z",
+      "boot": "2026-11-14T07:29:07.5+01:00",
+      "physical_total_kib": 66704480,
+      "physical_available_kib": 33904624,
+      "commit_available_kib": 80078188,
+      "gpu": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "DriverVersion": "32.0.32015.16001",
+          "Status": "OK"
+        }
+      ],
+      "runtime_path": "C:\\WINDOWS\\system32\\amdhip64_7.dll",
+      "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+      "owned_named_processes": []
+    },
+    "metadata_probe_source": "7e87bb4f714c4c7fc852ca9052d6f9ef48fed204",
+    "metadata_probe_note": "Reused independently qualified unchanged hardware metadata helpers; the compression worker/probe are from847423f.",
+    "discovery": {
+      "exit": 0,
+      "pid": 48508,
+      "exit_confirmed": true,
+      "elapsed_ms": 37,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "HIP adapter metadata: {\"complete\":true,\"gpu_executed\":false,\"hip_initialized\":false,\"adapters_seen\":2,\"adapters\":[{\"dxgi_ordinal\":0,\"luid\":\"9274010000000000\",\"vendor\":4098,\"device\":30032,\"dedicated_bytes\":16977985536,\"probe_node_mask\":1}],\"controller_job_peak_commit_bytes\":1888256}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "topology": {
+      "exit": 0,
+      "pid": 52232,
+      "exit_confirmed": true,
+      "elapsed_ms": 120,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "GPU topology metadata: {\"gpu_executed\":false,\"hip_initialized\":false,\"queues_requested\":false,\"batch_allocations_requested\":false,\"kernel_launch_requested\":false,\"status\":0,\"phase\":10,\"native_status\":0,\"node_count\":1,\"amd_hardware\":true,\"luid_matches\":true,\"single_node_verified\":true,\"software_fixture\":false,\"controller_job_peak_commit_bytes\":46575616}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "identity": {
+      "exit": 0,
+      "pid": 4132,
+      "exit_confirmed": true,
+      "elapsed_ms": 141,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "HIP identity metadata: {\"properties_verified\":true,\"hip_initialization_confirmed\":true,\"flitzfs_kernel_load_requested\":false,\"batch_allocations_requested\":false,\"kernel_launch_requested\":false,\"ordinal\":0,\"node_mask\":0,\"luid\":\"9274010000000000\",\"luid_matches\":true,\"node_mask_matches\":false,\"worker_exit\":0,\"worker_category\":0,\"worker_stage\":\"none\",\"timed_out\":false,\"exit_confirmed\":true,\"peak_commit_bytes\":9617408,\"controller_job_peak_commit_bytes\":11001856}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "budget": {
+      "exit": 0,
+      "pid": 46100,
+      "exit_confirmed": true,
+      "elapsed_ms": 46,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "HIP budget metadata: {\"gpu_executed\":false,\"hip_initialized\":false,\"status\":0,\"phase\":6,\"native_status\":0,\"snapshot_valid\":true,\"dedicated_bytes\":16977985536,\"local_budget\":16168480768,\"local_usage\":0,\"nonlocal_budget\":50320211968,\"nonlocal_usage\":0,\"physical_total\":68305387520,\"physical_available\":32835076096,\"commit_limit\":137024864256,\"commit_available\":80872927232,\"nonlocal_growth_envelope\":111585831,\"gate_code\":0,\"controller_job_peak_commit_bytes\":1871872}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "CPU": {
+      "exit": 0,
+      "pid": 42524,
+      "exit_confirmed": true,
+      "elapsed_ms": 66,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "Uniform sweep native CPU fixture: {\"complete\":true,\"source_bytes\":1048576,\"image_bytes\":1114112,\"active_payload_bytes\":135625,\"candidate_stored_exactly\":true,\"independent_native_readback\":true,\"prior_preserved\":true,\"locked_peak_bytes\":4194304,\"locked_after_bytes\":0,\"working_set_restored\":true,\"gpu_executed\":false,\"mounted\":false}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "CPU_result": {
+      "complete": true,
+      "source_bytes": 1048576,
+      "image_bytes": 1114112,
+      "active_payload_bytes": 135625,
+      "candidate_stored_exactly": true,
+      "independent_native_readback": true,
+      "prior_preserved": true,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "working_set_restored": true,
+      "gpu_executed": false,
+      "mounted": false
+    },
+    "trial": {
+      "exit": 2,
+      "pid": 61628,
+      "exit_confirmed": true,
+      "elapsed_ms": 2915,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "Uniform native sweep GPU: {\"gpu_result_verified\":false,\"gpu_payload_stored_exactly\":false,\"CPU_fallback_selected\":true,\"source_bytes\":1048576,\"chunks\":16,\"device_bytes\":328288,\"planned_windows\":8,\"quantum_chunks\":2,\"worker_payload_bytes\":0,\"image_bytes\":1114112,\"active_payload_bytes\":135561,\"exchange_ns\":2861650000,\"phase_profile_supported\":false,\"trace_total_wall_ns\":0,\"kernel_wait_wall_ns\":0,\"phase_wall_ns\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"trace_complete\":false,\"worker_exit\":3221226505,\"worker_peak_commit_bytes\":133992448,\"controller_job_peak_commit_bytes\":145694720,\"transport_quiescent\":true,\"independent_native_readback\":true,\"prior_preserved\":true,\"retained_source_verified\":true,\"locked_peak_bytes\":4194304,\"locked_after_bytes\":0,\"working_set_restored\":true,\"normal_io_route\":false,\"cost_profile_qualified\":false,\"mounted\":false,\"physical_power_loss_qualified\":false}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "result": {
+      "gpu_result_verified": false,
+      "gpu_payload_stored_exactly": false,
+      "CPU_fallback_selected": true,
+      "source_bytes": 1048576,
+      "chunks": 16,
+      "device_bytes": 328288,
+      "planned_windows": 8,
+      "quantum_chunks": 2,
+      "worker_payload_bytes": 0,
+      "image_bytes": 1114112,
+      "active_payload_bytes": 135561,
+      "exchange_ns": 2861650000,
+      "phase_profile_supported": false,
+      "trace_total_wall_ns": 0,
+      "kernel_wait_wall_ns": 0,
+      "phase_wall_ns": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trace_complete": false,
+      "worker_exit": 3221226505,
+      "worker_peak_commit_bytes": 133992448,
+      "controller_job_peak_commit_bytes": 145694720,
+      "transport_quiescent": true,
+      "independent_native_readback": true,
+      "prior_preserved": true,
+      "retained_source_verified": true,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "working_set_restored": true,
+      "normal_io_route": false,
+      "cost_profile_qualified": false,
+      "mounted": false,
+      "physical_power_loss_qualified": false
+    },
+    "postflight": {
+      "observed_utc": "2026-11-14T15:30:33.6641676Z",
+      "owned_processes": [],
+      "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+      "gpu": [
+        {
+          "Name": "AMD Radeon RX 9070 XT",
+          "DriverVersion": "32.0.32015.16001",
+          "Status": "OK"
+        }
+      ],
+      "staging_bytes": 14526281,
+      "staging_free_bytes": 16000176205824
+    }
+  },
+  "interpretation": {
+    "outcome": "GPU sweep failed; independent CPU publication and recovery succeeded.",
+    "worker_native_exit_hex": "0xc0000409",
+    "worker_peak_commit_bytes": 133992448,
+    "worker_job_limit_bytes": 134217728,
+    "near_job_commit_limit": true,
+    "memory_limit_causal_proof": false,
+    "abnormal_exit_root_cause": "unproven",
+    "GPU_payload_accepted": false,
+    "actual_completed_GPU_sweep_qualified": false,
+    "comparative_speed_gain": false,
+    "whole_image_size_gain": false,
+    "automatic_GPU_route": false,
+    "physical_power_loss_qualified": false,
+    "no_retry_unchanged": true,
+    "notes": [
+      "The native exit code is reported literally; no crash subcode/stack or allocator evidence was collected.",
+      "Peak commit127.785 MiB was close to the128 MiB job cap. This is not proof that the cap caused the abnormal exit.",
+      "All1048576 source bytes were independently CPU-readable after fallback; prior acknowledged data and retained source also verified.",
+      "Current code repeats device initialization/properties/topology and stream/slab creation for every quantum. Reusing a bounded operation's verified setup and device resources is the next mechanism to qualify, not an established diagnosis.",
+      "Do not raise the job ceiling, hide the failed result, retry this source or infer hardware correctness from green CPU/SDK jobs.",
+      "No owner mount, driver change, reset, stress/fault injection, persistent service or physical filesystem image occurred."
+    ]
+  }
+}

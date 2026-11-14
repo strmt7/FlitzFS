@@ -171,7 +171,7 @@
           "source_repository": "ROCm/hipCOMP-core",
           "source_commit": "03df9f7369211ee15d370817165224c73fdc9a46",
           "navigation_qualified": "905a4d3: 22 admission cases, 142 upstream files, two actual queries and relevant live-source hashes/notices verified.",
-          "status": "CPU verifier, offline object and current-AMD content gates are qualified at exact sources. Priority metadata corroboration passed235 CPU checks/12 scenarios, exact historical/current oracle, complete SDK/worker and all13 core jobs atb2cf989.",
+          "status": "CPU verifier, offline object and current-AMD content gates are qualified at exact sources. Priority metadata corroboration passed235 CPU checks/12 scenarios, exact historical/current oracle, complete SDK/worker and all 13 core jobs atb2cf989.",
           "research": "docs/evidence/gpu-priority-sources-5eaa07a.json",
           "next": "Continue kernel/ABI/lifecycle and actual useful GPU integration; inspect the bounded historical retirement comparison without assuming a cause.",
           "priority_evidence": "docs/evidence/priority-capability-b2cf989.json",
@@ -718,10 +718,21 @@
   },
   "uniform_serial_sweep": {
     "contract": "docs/UNIFORM_LZ4_SWEEP.md",
-    "status": "Publishing-source qualification pending",
+    "source": "847423fb996bef964d1da1d49a1f6376a07d5333",
+    "core_run": 43608595532,
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "native_groups": 152,
+    "sdk_run": 43608595922,
+    "SDK_complete": true,
+    "owner_GPU_result": "failed; no GPU result accepted",
+    "owner_CPU_fallback": "complete current/prior recovery, zero locks and no owned processes",
+    "worker_exit": "0xc0000409",
+    "worker_peak_commit_bytes": 133992448,
+    "job_limit_bytes": 134217728,
+    "cause": "unproven; no crash subcode/stack/allocator evidence",
+    "evidence": "docs/evidence/uniform-sweep-847423f-failure.json",
     "normal_GPU_routing": false,
-    "owner_GPU_executed": false,
-    "research": "docs/evidence/uniform-sweep-research-2026-11-14.json",
-    "next": "Qualify serial whole-request/quantum accounting, typed failure/retirement and full native operation composition, then measure one newly qualified GPU sweep without repeating unchanged two-chunk trials."
+    "next": "Do not retry unchanged or raise the cap to obscure failure. Implement one verified bounded device/resource lifetime across serial quanta, fresh memory/CPU validation, exact final retirement and unused-tail guards; qualify ownership/fault paths before another source-specific hardware trial."
   }
 }
