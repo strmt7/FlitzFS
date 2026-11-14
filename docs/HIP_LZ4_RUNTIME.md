@@ -102,3 +102,16 @@ build failed: two executable targets attempted the same exclusive bundle
 generation. The new runtime worker/admission probe did not run and no AMD module
 loaded. The correction assigns each bundle to one shared custom target and
 preserves the exclusive-create guard. [Retained failure and native target records](evidence/lz4-runtime-build-dfe94ac.json).
+
+## Transport versus worker rejection
+
+At d3073fe the shared-bundle build correction succeeded: both worker executables
+and the private module linked, and all six native target images passed inspection.
+The optional admission test then failed with "invalid asynchronous worker admission".
+Its 12-byte truncated frame was below the transport's 32-byte minimum, so it
+never reached the LZ4 worker. This was an incorrect test expectation, not permission
+to relax the transport. The corrected probe separately requires that short frame
+to throw before consuming an admission slot; a 64-byte LZ4 header with its source
+directory missing exercises the worker rejection and confirmed retirement.
+[Retained exact-source failure](evidence/lz4-runtime-admission-d3073fe.json).
+The corrected full admission suite still needs execution before artifact promotion.
