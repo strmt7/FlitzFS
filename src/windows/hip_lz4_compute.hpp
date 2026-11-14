@@ -12,6 +12,7 @@
 #include <exception>
 #include <limits>
 #include <string_view>
+#include <span>
 #include <vector>
 
 namespace flitzfs::hip_detail {
@@ -71,6 +72,33 @@ inline Lz4DeviceInfo lz4_device_info(const hipDeviceProp_t& properties,
       properties.sharedMemPerBlock>0, HipWorkerExit::unsupported_configuration,
       "compression architecture or launch geometry is not qualified",HipWorkerStage::device_properties);
   return {priority,static_cast<std::uint32_t>(wave),properties.sharedMemPerBlock};
+}
+inline Lz4KernelCoverage admit_lz4_compute_targets(const candidate_lz4::KernelApi& kernel,
+    const Lz4WorkerRequest& request,std::span<const Lz4KernelCoverage> targets) {
+  lz4_require(gpu_lz4_cpu_verification_available(),HipWorkerExit::unsupported_configuration,
+      "independent CPU LZ4 verification unavailable");
+  lz4_require(!targets.empty() && targets.size()<=16,HipWorkerExit::invalid_request,
+      "bounded compression target inventory required");
+  auto admitted=targets.front();
+  for(std::size_t i=0;i<targets.size();++i){
+    admit_lz4_compute(kernel,request,targets[i]);
+    for(std::size_t j=0;j<i;++j)
+      lz4_require(targets[i].architecture!=targets[j].architecture,HipWorkerExit::invalid_request,
+          "duplicate compression architecture coverage");
+    admitted.wave_mask|=targets[i].wave_mask;
+  }
+  return admitted;
+}
+inline Lz4KernelCoverage select_lz4_coverage(const hipDeviceProp_t& properties,
+    std::span<const Lz4KernelCoverage> targets) {
+  const auto end=std::find(std::begin(properties.gcnArchName),std::end(properties.gcnArchName),'\0');
+  lz4_require(end!=std::end(properties.gcnArchName),HipWorkerExit::unsupported_configuration,
+      "compression architecture missing",HipWorkerStage::device_properties);
+  const std::string_view actual(properties.gcnArchName,
+      static_cast<std::size_t>(end-std::begin(properties.gcnArchName)));
+  for(const auto& target:targets)if(target.architecture==actual)return target;
+  throw HipWorkerFailure(HipWorkerExit::unsupported_configuration,
+      "compression device has no qualified code image",HipWorkerStage::device_properties);
 }
 inline void check_lz4_attributes(Lz4Attributes query,candidate_lz4::CompressKernel selected,
     Lz4DeviceInfo device) {
@@ -163,5 +191,12 @@ namespace flitzfs {
 // retirement. This function neither loads modules nor publishes a frame.
 std::vector<std::vector<std::byte>> run_hip_lz4_in_worker(HMODULE runtime,
     const candidate_lz4::KernelApi&,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const Lz4WorkerRequest&,hip_detail::Lz4KernelCoverage);
+    std::uint32_t node_mask,const Lz4WorkerRequest&,std::span<const hip_detail::Lz4KernelCoverage>);
+inline std::vector<std::vector<std::byte>> run_hip_lz4_in_worker(HMODULE runtime,
+    const candidate_lz4::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,const Lz4WorkerRequest& request,hip_detail::Lz4KernelCoverage coverage) {
+  return run_hip_lz4_in_worker(runtime,kernel,ordinal,luid,node_mask,request,
+      std::span<const hip_detail::Lz4KernelCoverage>(&coverage,1));
 }
+}
+

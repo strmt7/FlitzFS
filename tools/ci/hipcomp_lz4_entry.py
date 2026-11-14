@@ -73,13 +73,16 @@ def unchanged(repo: Path, proof):
     if current != proof:
         raise ValueError("bounded-entry physical control assets changed")
 
-def inspect_entry_object(bounds, reader: Path, obj: Path, output: Path, metadata: str, report):
+def inspect_entry_object(bounds, reader: Path, obj: Path, output: Path, metadata: str, report,
+                         architecture: str = "gfx1100"):
     """Extract exactly the already-admitted embedded image; native readers only."""
     import re
     from qualify_rocm_sdk import run, digest
     from qualify_warp_sync import regular_info
     selected = []
-    expected_target = "hip-amdgcn-amd-amdhsa--gfx1100"
+    if re.fullmatch(r"gfx[0-9a-z]+",architecture) is None:
+        raise ValueError("bounded entry target name")
+    expected_target = "hip-amdgcn-amd-amdhsa--"+architecture
     location = re.compile(re.escape("file://" + str(obj)) + r"#offset=([0-9]{1,9})&size=([0-9]{1,9})")
     for line in metadata.splitlines():
         fields = line.split("\t")
@@ -99,11 +102,12 @@ def inspect_entry_object(bounds, reader: Path, obj: Path, output: Path, metadata
         image = stream.read(size + 1 if offset + size == info.st_size else size)
     if len(image) != size or image[:6] != b"\x7fELF\x02\x01":
         raise ValueError("bounded entry image is not complete little-endian ELF64")
-    path = output / "bounded-entry-device.elf"
+    path = output / ("bounded-entry-device.elf" if architecture=="gfx1100" else
+                     "bounded-entry-device-"+architecture+".elf")
     with path.open("xb") as stream:
         stream.write(image)
     regular_info(path, output, 16 * 1024 * 1024)
-    observed = dict(bytes=size, sha256=hashlib.sha256(image).hexdigest(), offset=offset,
+    observed = dict(architecture=architecture,bytes=size, sha256=hashlib.sha256(image).hexdigest(), offset=offset,
                     complete=False, loaded=False, executed=False)
     report["entry_object"] = observed
     headers = run(bounds,[str(reader),"--file-header",str(path)],
@@ -115,6 +119,9 @@ def inspect_entry_object(bounds, reader: Path, obj: Path, output: Path, metadata
             raise ValueError("bounded entry native reader warned or truncated")
     if "EM_AMDGPU" not in headers["stdout"] or "elf64-amdgpu" not in headers["stdout"].lower():
         raise ValueError("bounded entry actual AMDGPU ELF identity")
+    machines=re.findall(r"\bEF_AMDGPU_MACH_AMDGCN_([A-Z0-9]+)\b",headers["stdout"])
+    if machines!=[architecture.upper()]:
+        raise ValueError("bounded entry native architecture does not match its advertised image")
     names = ["flitzfs_candidate_lz4_wave32","flitzfs_candidate_lz4_wave64"]
     for name in names:
         pattern = r"(?m)^\s+Name: " + re.escape(name) + r"(?: \([0-9]+\))?\r?$"
@@ -123,3 +130,4 @@ def inspect_entry_object(bounds, reader: Path, obj: Path, output: Path, metadata
     if digest(path) != observed["sha256"]:
         raise ValueError("native reader changed bounded entry device image")
     observed.update(symbols=names,complete=True)
+

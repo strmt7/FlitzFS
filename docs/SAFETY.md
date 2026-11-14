@@ -1,5 +1,10 @@
 # FlitzFS safety gates and threat model
 
+## Pending isolated compression runtime route
+
+[HIP_LZ4_RUNTIME.md](HIP_LZ4_RUNTIME.md) defines a separate opt-in SDK worker and private-module artifact. The old worker/default filesystem remains unchanged. All target images and source-bound module hashes must qualify; malformed requests, unknown coverage and unconfirmed retirement cannot publish data. CPU/refusal tests do not prove GPU execution or authorize an automatic owner trial. Keep the existing host/driver constraints and historical retirement uncertainty.
+
+
 ## Unqualified SDK-only LZ4 compute implementation
 
 [HIP_LZ4_COMPUTE.md](HIP_LZ4_COMPUTE.md) defines the new typed compute contract. It is compiled only in the optional private SDK fixture and has no normal caller. CPU fake tests do not authorize owner-device execution, module loading or mounting. Retain exact process/supervisor retirement and independent CPU verification; a failed resource release overrides acceptance. Original memory caps and historical unresolved retirement failures remain controlling. No stored bytes or format change.
@@ -1163,3 +1168,4 @@ The separate source-snapshot job failed the obsolete 512-file preflight and is
 retained as a failure; SOURCE_SNAPSHOT.md defines the corrected combined
 file/directory accounting within the unchanged archive-byte/768-entry limits.
 New snapshot execution remains pending. No actual GPU compressor is enabled.
+

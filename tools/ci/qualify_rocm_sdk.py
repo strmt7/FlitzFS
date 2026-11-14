@@ -115,9 +115,12 @@ def main():
     parser.add_argument("--hipcomp-source",type=Path,help="Optional reviewed codec checkout; offline object only")
     parser.add_argument("--hipcomp-native-sync",action="store_true")
     parser.add_argument("--hipcomp-link-candidate",action="store_true")
+    parser.add_argument("--lz4-runtime-fixture",action="store_true")
     parser.add_argument("--cpu-lz4-source",type=Path,
         help="Optional exact independent decoder checkout; requires the private link fixture")
     args=parser.parse_args()
+    require(not args.lz4_runtime_fixture or args.cpu_lz4_source is not None,
+        "isolated compression runtime fixture requires static CPU recovery")
     require(args.cpu_lz4_source is None or args.hipcomp_link_candidate,
         "CPU decoder requires the separate private typed-module fixture")
     require(not args.hipcomp_link_candidate or args.hipcomp_native_sync,
@@ -181,6 +184,8 @@ def main():
             report,"warp-sync-source-admission-regressions",60)
         run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_lz4_worker_decoder.py")],
             report,"CPU-decoder-source-staging-regressions",60)
+        run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/test_lz4_runtime_bundle.py")],
+            report,"private-compression-runtime-staging-regressions",30)
         if cpu_lz4_source is not None:
             from stage_lz4_worker_decoder import stage
             report["cpu_lz4_source"]=dict(repository="lz4/lz4",
@@ -251,6 +256,25 @@ def main():
 
         # Reuse the unchanged compiler helper. Its explicit include root is a
         # fresh byte-identical source fixture, never a patched upstream checkout.
+        private_candidate_root=root/"hipcomp-bounded-entry"
+        private_candidate_receipt=report.get("hipcomp_bounded_entry")
+        if args.lz4_runtime_fixture:
+            private_candidate_root=root/"hipcomp-runtime-targets"
+            run(bounds,[sys.executable,"-B",str(REPO/"tools/ci/qualify_hipcomp_candidate.py"),
+                "--source",str(hipcomp_source),"--provider",str(provider),"--sdk",str(sdk),
+                "--output",str(private_candidate_root),"--native-sync","--bounded-entry","--runtime-targets"],
+                report,"private-compression-runtime-target-qualification",1200)
+            private_candidate_receipt=json.loads((private_candidate_root/"qualification.json").read_text(encoding="utf-8"))
+            require(private_candidate_receipt["complete"] and
+                private_candidate_receipt["runtime_target_fixture"] is True and
+                private_candidate_receipt["object_inspected"] and
+                private_candidate_receipt["physical_inputs_unchanged"] and
+                not private_candidate_receipt["gpu_executed"] and
+                not private_candidate_receipt["module_loaded"] and
+                set(private_candidate_receipt["entry_objects"])==set(private_candidate_receipt["compile_targets"]) and
+                all(row["complete"] for row in private_candidate_receipt["entry_objects"].values()),
+                "runtime-target native object qualification")
+            report["hipcomp_runtime_targets"]=private_candidate_receipt
         inputs=root/"compile-input"
         copies=(("src/gpu/decode_kernel.hip","src/gpu/decode_kernel.hip"),
                 ("src/gpu/decode_kernel.hpp","src/gpu/decode_kernel.hpp"),
@@ -279,10 +303,13 @@ def main():
         configure=[cmake,"-S",str(REPO/"tests/rocm_compile"),"-B",str(build),"-A","x64",
             "-DFLITZFS_ROCM_SDK="+str(sdk),"-DFLITZFS_ROCM_KERNEL_OBJECT="+str(obj)]
         if args.hipcomp_link_candidate:
-            configure.extend(["-DFLITZFS_ROCM_LZ4_OBJECT="+str(root/"hipcomp-bounded-entry/hipcomp_lz4.obj"),
-                "-DFLITZFS_ROCM_LZ4_SOURCE="+str(root/"hipcomp-bounded-entry/compile-input/src/flitzfs_lz4_module.cpp")])
+            configure.extend(["-DFLITZFS_ROCM_LZ4_OBJECT="+str(private_candidate_root/"hipcomp_lz4.obj"),
+                "-DFLITZFS_ROCM_LZ4_SOURCE="+str(private_candidate_root/"compile-input/src/flitzfs_lz4_module.cpp")])
         if cpu_lz4_source is not None:
             configure.append("-DFLITZFS_ROCM_LZ4_CPU_SOURCE="+str(root/"cpu-lz4-source"))
+        if args.lz4_runtime_fixture:
+            configure.extend(["-DFLITZFS_ROCM_LZ4_RUNTIME_FIXTURE=ON",
+                "-DFLITZFS_ROCM_LZ4_COVERAGE="+str(private_candidate_root/"qualification.json")])
         run(bounds,configure,report,"current-sdk-host-api-and-link-configure")
         run(bounds,[cmake,"--build",str(build),"--config","Release","--parallel","2"],
             report,"current-sdk-host-api-and-kernel-module-link")
@@ -325,15 +352,15 @@ def main():
             from hip_runtime_exports import pe_function_exports
             actual_exports=pe_function_exports(private_module.read_bytes())
             require(actual_exports=={"flitzfs_candidate_lz4_api"},"private candidate exact direct API export")
-            assets=report["hipcomp_bounded_entry"]["bounded_entry_assets"]
+            assets=private_candidate_receipt["bounded_entry_assets"]
             unchanged(REPO,assets)
             for asset in assets:
-                path=root/"hipcomp-bounded-entry/compile-input"/asset["target"]
+                path=private_candidate_root/"compile-input"/asset["target"]
                 regular_info(path,root,1024*1024)
                 require(path.stat().st_size==asset["bytes"] and digest(path)==asset["sha256"],
                     "private link changed canonical source")
-            candidate_object=root/"hipcomp-bounded-entry/hipcomp_lz4.obj"
-            require(digest(candidate_object)==report["hipcomp_bounded_entry"]["object"]["sha256"],
+            candidate_object=private_candidate_root/"hipcomp_lz4.obj"
+            require(digest(candidate_object)==private_candidate_receipt["object"]["sha256"],
                 "private link changed qualified candidate object")
             report["hipcomp_link_candidate"]=dict(complete=True,bytes=private_module.stat().st_size,
                 sha256=digest(private_module),imports=sorted(set(imports)),delay_imports=False,
@@ -406,6 +433,33 @@ def main():
             cpu_rows[0]["exit_confirmed"] is True and cpu_rows[0]["gpu_executed"] is False and
             cpu_rows[0]["complete"] is True,"CPU decoder worker capability mismatch")
         report["cpu_lz4_worker_probe"]["qualification"]=cpu_rows[0]
+        if args.lz4_runtime_fixture:
+            runtime_worker=build/"Release/flitzfs_hip_lz4_worker.exe"
+            runtime_probe=build/"Release/flitzfs_lz4_runtime_probe.exe"
+            runtime_records=[]
+            for executable in (runtime_worker,runtime_probe):
+                require(executable.is_file() and 0<executable.stat().st_size<=32*1024*1024,
+                    "compression runtime fixture executable budget")
+                imports,delay=pe_import_names(executable.read_bytes())
+                require(bool(imports) and not delay and set(imports)<=allowed,
+                    "compression runtime fixture eager SDK dependency")
+                runtime_records.append(dict(name=executable.name,bytes=executable.stat().st_size,
+                    sha256=digest(executable),imports=sorted(set(imports))))
+            candidate_copy=build/"Release/hip-lz4/flitzfs_rocm_lz4_candidate.dll"
+            require(candidate_copy.is_file() and digest(candidate_copy)==report["hipcomp_link_candidate"]["sha256"],
+                "compression runtime staged module identity")
+            runtime_result=run(bounds,[str(runtime_probe),str(runtime_worker),
+                str(root/"lz4-runtime-admission")],report,"supervised-private-LZ4-runtime-admission",60)
+            prefix="LZ4 runtime admission: "
+            rows=[json.loads(line[len(prefix):]) for line in runtime_result["stdout"].splitlines()
+                if line.startswith(prefix)]
+            require(len(rows)==1 and rows[0]["checks"]>=30 and rows[0]["exits_confirmed"]==10 and
+                all(rows[0][key] is True for key in ("complete","bundle_verified","tamper_refused","CPU_source_unchanged")) and
+                rows[0]["hip_runtime_loaded"] is False and rows[0]["gpu_executed"] is False,
+                "compression runtime admission evidence mismatch")
+            report["lz4_runtime_fixture"]=dict(qualification=rows[0],binaries=runtime_records,
+                bundle=json.loads((build/"Release/hip-lz4-bundle.json").read_text(encoding="utf-8")),
+                product_linked=False,actual_gpu_execution=False)
         def qualify_lz4_compute(directory,available,label):
             executable=directory/"Release/flitzfs_rocm_lz4_compute_probe.exe"
             require(executable.is_file() and 0<executable.stat().st_size<=32*1024*1024,
@@ -730,6 +784,59 @@ def main():
         require(0<archive.stat().st_size<=8*1024*1024,"own artifact compressed budget")
         report["driver_probe_artifact"]=dict(bytes=archive.stat().st_size,sha256=digest(archive),
             files=records,runtime_shipped=False,kpack_shipped=False,hardware_executed=False)
+        if args.lz4_runtime_fixture:
+            runtime_package=root/"lz4-runtime-package"
+            runtime_package.mkdir()
+            runtime_copies=[
+                (runtime_worker,runtime_worker.name),
+                (runtime_probe,runtime_probe.name),
+                (candidate_copy,"hip-lz4/"+candidate_copy.name),
+                (REPO/"LICENSE","LICENSE"),
+                *((REPO/"third_party/blake3"/name,"licenses/blake3/"+name)
+                    for name in ("LICENSE_A2","LICENSE_A2LLVM","LICENSE_CC0")),
+                *((root/"cpu-lz4-source"/name,"licenses/lz4/"+name)
+                    for name in ("LICENSE","LICENSE-repository")),
+            ]
+            from qualify_hipcomp_candidate import validate_manifest
+            source_manifest=json.loads((REPO/"tests/rocm_compile/hipcomp_lz4_source.json").read_text(encoding="utf-8"))
+            _,notices=validate_manifest(source_manifest)
+            for notice in notices:
+                source=private_candidate_root/"compile-input/notices"/notice["path"]
+                require(source.stat().st_size==notice["bytes"] and digest(source)==notice["sha256"],
+                    "private compression notice identity")
+                runtime_copies.append((source,"licenses/hipcomp/"+notice["path"]))
+            runtime_files=[]
+            for source,relative in runtime_copies:
+                require(source.is_file() and 0<source.stat().st_size<=32*1024*1024,
+                    "compression runtime package input size")
+                target=runtime_package/relative
+                target.parent.mkdir(parents=True,exist_ok=True)
+                with source.open("rb") as incoming,target.open("xb") as outgoing:
+                    shutil.copyfileobj(incoming,outgoing,64*1024)
+                require(target.stat().st_size==source.stat().st_size and digest(target)==digest(source),
+                    "compression runtime package copy identity")
+                runtime_files.append(dict(path=relative,bytes=target.stat().st_size,sha256=digest(target)))
+            runtime_manifest=dict(experimental=True,commit=os.environ["GITHUB_SHA"],rocm=lock["version"],
+                runtime_basename=runtime_name.group(1),runtime_shipped=False,kpack_shipped=False,
+                files=runtime_files,coverage=report["lz4_runtime_fixture"]["bundle"]["coverage"],
+                controller_job_mib=256,worker_job_mib=128,cpu_rate=2000,worker_timeout_ms=15000,
+                cpu_admission_exits=10,actual_gpu_execution=False,ordinary_filesystem_route=False)
+            with (runtime_package/"qualification-manifest.json").open("x",encoding="utf-8") as out:
+                json.dump(runtime_manifest,out,indent=2);out.write("\n")
+            with (runtime_package/"EXPERIMENTAL.txt").open("x",encoding="utf-8") as out:
+                out.write("Experimental FlitzFS compression runtime fixture; no AMD runtime included.\n"
+                    "Not an installer, release, mounted filesystem or automatic worker route.\n"
+                    "CPU/refusal qualification does not prove GPU execution, safety or speed.\n"
+                    "Any owner-device trial still requires exact-source admission and fresh resource checks.\n")
+            files=sorted(path for path in runtime_package.rglob("*") if path.is_file())
+            require(len(files)<=32 and sum(path.stat().st_size for path in files)<=8*1024*1024,
+                "compression runtime artifact expanded budget")
+            runtime_archive=root/"lz4-runtime-fixture.zip"
+            with zipfile.ZipFile(runtime_archive,"x",compression=zipfile.ZIP_DEFLATED,compresslevel=6) as out:
+                for path in files:out.write(path,path.relative_to(runtime_package).as_posix())
+            require(0<runtime_archive.stat().st_size<=8*1024*1024,"compression runtime artifact compressed budget")
+            report["lz4_runtime_artifact"]=dict(bytes=runtime_archive.stat().st_size,
+                sha256=digest(runtime_archive),manifest=runtime_manifest,runtime_shipped=False,actual_gpu_execution=False)
         require(native_git(REPO,"rev-parse","HEAD")==os.environ["GITHUB_SHA"] and
             not native_git(REPO,"status","--porcelain","--untracked-files=no","--",previous_api),
             "priority oracle/control source changed during qualification")
@@ -744,3 +851,4 @@ def main():
         distribution=report["distribution"]["version"],gpu_executed=False)))
 if __name__=="__main__":
     main()
+

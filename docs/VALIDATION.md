@@ -1,5 +1,10 @@
 # Validation ledger — experimental release 0.2
 
+## Pending isolated compression worker qualification
+
+The new [runtime fixture](HIP_LZ4_RUNTIME.md) requires new-source twelve-case staging, per-target native inspection, SDK-typed coverage/compute checks, ten confirmed refusal/metadata child exits, all original twenty worker cases and ordinary CI. No new GPU execution, speed, compression-ratio or native file-operation result is claimed.
+
+
 ## Pending typed compression compute qualification
 
 The SDK-only [HIP LZ4 compute candidate](HIP_LZ4_COMPUTE.md) adds new typed calls and CPU fault probes. Its source-bound compilation, positive/raw refusal matrix and full existing CI gates must execute before recording success. No owner GPU, mounted test, throughput result or storage durability result follows from these probes. Prior decoder qualification remains tied to 94ec882.
@@ -456,3 +461,4 @@ The separate source-snapshot job failed the obsolete 512-file preflight and is
 retained as a failure; SOURCE_SNAPSHOT.md defines the corrected combined
 file/directory accounting within the unchanged archive-byte/768-entry limits.
 New snapshot execution remains pending. No actual GPU compressor is enabled.
+

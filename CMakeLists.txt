@@ -599,6 +599,9 @@ if(FLITZFS_BUILD_TESTS)
     add_test(NAME bounded_lz4_worker_decoder_staging COMMAND "${Python3_EXECUTABLE}" -B
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/test_lz4_worker_decoder.py")
     set_tests_properties(bounded_lz4_worker_decoder_staging PROPERTIES TIMEOUT 45)
+    add_test(NAME bounded_lz4_runtime_bundle_staging COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/test_lz4_runtime_bundle.py")
+    set_tests_properties(bounded_lz4_runtime_bundle_staging PROPERTIES TIMEOUT 30)
     add_test(NAME filesystem_product_scope COMMAND "${Python3_EXECUTABLE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/verify_filesystem_scope.py" "$<TARGET_FILE:flitzfs>")
     set_tests_properties(filesystem_product_scope PROPERTIES TIMEOUT 30)
@@ -955,3 +958,4 @@ if(FLITZFS_BUILD_VOLUME_APP)
     # GUI qualification is explicit and separate from normal CTest.
   endif()
 endif()
+

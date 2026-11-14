@@ -208,3 +208,38 @@ if(FLITZFS_ROCM_LZ4_OBJECT AND FLITZFS_ROCM_LZ4_SOURCE)
   target_link_libraries(flitzfs_rocm_lz4_compute_probe PRIVATE flitzfs_rocm_lz4_compute)
   target_compile_options(flitzfs_rocm_lz4_compute_probe PRIVATE /W4 /permissive-)
 endif()
+
+# Explicit disposable-VM runtime fixture. This separate executable leaves the
+# original/default worker disconnected from compression compute.
+option(FLITZFS_ROCM_LZ4_RUNTIME_FIXTURE "Build isolated compression runtime fixture" OFF)
+set(FLITZFS_ROCM_LZ4_COVERAGE "" CACHE FILEPATH "Qualified offline object receipt")
+if(FLITZFS_ROCM_LZ4_RUNTIME_FIXTURE)
+  if(NOT FLITZFS_ROCM_LZ4_CPU_SOURCE OR NOT TARGET flitzfs_rocm_lz4_compute OR
+      NOT EXISTS "${FLITZFS_ROCM_LZ4_COVERAGE}")
+    message(FATAL_ERROR "Runtime fixture requires qualified typed object and static CPU recovery")
+  endif()
+  set(lz4_bundle_header "${worker_output}/hip_lz4_bundle.hpp")
+  set(lz4_bundle_receipt "${worker_output}/hip-lz4-bundle.json")
+  add_custom_command(OUTPUT "${lz4_bundle_header}" "${lz4_bundle_receipt}"
+    COMMAND "${Python3_EXECUTABLE}" -B "${flitzfs_root}/tools/ci/stage_lz4_runtime_bundle.py"
+      --module "$<TARGET_FILE:flitzfs_rocm_lz4_candidate>"
+      --object "${FLITZFS_ROCM_LZ4_OBJECT}" --coverage "${FLITZFS_ROCM_LZ4_COVERAGE}"
+      --runtime "${runtime_name}" --output "${worker_output}/hip-lz4"
+      --header "${lz4_bundle_header}" --receipt "${lz4_bundle_receipt}"
+    DEPENDS flitzfs_rocm_lz4_candidate "${FLITZFS_ROCM_LZ4_OBJECT}"
+      "${FLITZFS_ROCM_LZ4_COVERAGE}" "${flitzfs_root}/tools/ci/stage_lz4_runtime_bundle.py"
+    VERBATIM)
+  add_executable(flitzfs_hip_lz4_worker
+    "${flitzfs_root}/src/windows/hip_worker_main.cpp"
+    "${flitzfs_root}/src/windows/hip_module_verification.cpp"
+    "${bundle_header}" "${lz4_bundle_header}")
+  target_include_directories(flitzfs_hip_lz4_worker PRIVATE "${worker_output}")
+  target_compile_definitions(flitzfs_hip_lz4_worker PRIVATE FLITZFS_HIP_LZ4_RUNTIME_FIXTURE=1)
+  target_compile_options(flitzfs_hip_lz4_worker PRIVATE /W4 /permissive-)
+  target_link_libraries(flitzfs_hip_lz4_worker PRIVATE flitzfs_rocm_lz4_compute bcrypt wintrust)
+  add_executable(flitzfs_lz4_runtime_probe lz4_runtime_probe.cpp)
+  target_compile_features(flitzfs_lz4_runtime_probe PRIVATE cxx_std_20)
+  target_link_libraries(flitzfs_lz4_runtime_probe PRIVATE flitzfs_worker_exchange flitzfs_gpu_budget)
+  target_compile_options(flitzfs_lz4_runtime_probe PRIVATE /W4 /permissive-)
+endif()
+

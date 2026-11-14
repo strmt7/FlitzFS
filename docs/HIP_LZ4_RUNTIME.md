@@ -1,0 +1,94 @@
+# Isolated HIP compression worker — experimental
+
+14 November 2026. Current-source compilation and qualification are pending.
+Actual GPU compression, useful benefit and native filesystem write integration
+remain unproved. This is not a release, driver installer or mounted product.
+
+## Route and containment
+
+The optional lz4_runtime_fixture SDK input requires all preceding candidate,
+native-sync, typed-link and static CPU-decoder inputs. It creates a separate
+flitzfs_hip_lz4_worker executable; the default worker, helper, filesystem and
+normal builds retain their existing routes. No normal file operation launches it.
+
+The explicit --driver-lz4-adapter route takes an ordinal, LUID, single-node mask,
+exact installed-runtime digest and protected worker channel. It requires the
+existing 128-MiB/20%-CPU/single-process/below-normal/kill-on-close job before
+reading arguments. The request is privately owned and the independent CPU LZ4
+decoder must be available before runtime discovery or loading.
+
+The worker pins its private module directory and read-only file, checks exact
+size/SHA-256 and excludes unexpected files. The installed runtime uses the
+existing pinned-system-module signature/hash verifier and restricted DLL search.
+The kernel getter/table is used only after module authentication and identity
+checks. No compiler/runtime package is installed on the owner machine.
+
+Only independently verified complete-slab results may be encoded into a reply.
+Explicit stream/buffer retirement and kernel/runtime module retirement must
+succeed before publication. The supervisor still requires successful exact
+child and supervisor retirement before copying a response; the receiving caller
+must independently CPU-verify the LZ4 reply and enforce current result resources.
+Unknown exits, stale results and missing/incompatible capabilities do not grant
+acceptance or retry authority.
+
+## Target coverage
+
+The separate offline runtime fixture obtains the bounded target list from the
+pinned toolchain's architecture-selection mechanism. It does not infer hardware
+from the owner's model name. Native object inspection requires one exact host
+placeholder, the complete target set, file-bound nonoverlapping device-image
+extents, AMDGPU ELF identity, matching native architecture flags and both entry
+symbols for every image. Physical source and object bytes remain checked.
+
+The staged module's source-bound receipt and object digest generate its compiled
+coverage table. Runtime device properties must match a qualified image and wave,
+with the existing geometry, two function-attribute queries and memory gates.
+The current RDNA fixture grants wave32 coverage only. The wave64 refusal symbol
+is not evidence of wave64 support. Unknown hardware combinations remain CPU
+readable; adding another code image requires its own qualification.
+
+The earlier gfx1100-only object did not establish RX 9070 XT coverage. A read-only
+post-restart host query found an RX 9070 XT; no kernel was run by that query.
+The new build must prove its gfx1201 image rather than assuming compatibility.
+
+## Qualification and artifacts
+
+Twelve CPU staging cases check source/object leases, target inventory, import and
+getter closure, source links, immutable copies and exclusive new outputs. Native
+metadata cases additionally reject missing, foreign, duplicate and overlapping
+images, wrong object URIs and wrong advertised architectures.
+
+The SDK-typed compute tests retain their positive/fault matrix and raw decoder
+control, with additional coverage selection checks. A real bounded child probe
+checks the authentic private bundle and refuses missing/tampered copies, malformed
+frames/selectors and a missing or incorrect runtime. These are ten confirmed
+CPU/refusal child exits and no AMD module loading; they are not GPU results.
+All original twenty worker cases and ordinary CI gates remain required.
+
+The optional experimental artifact contains only this project's diagnostic
+executables, the private kernel module and all required notices. It contains no
+AMD runtime, SDK or driver. Every file has a source-bound manifest/hash, and the
+expanded/compressed artifact caps remain 8 MiB with at most32 files. A passing
+CPU/refusal job authorizes no automatic owner-device execution.
+
+The separate --gpu-once diagnostic is explicit and synthetic: two2048-byte inputs,
+one request, no file-data writes or retries, existing parent128/256-MiB/two-process/
+20%-CPU/CPU-time limits, child128-MiB/20%-CPU/15-second limits, fresh DXGI memory
+admission and completion transition, CPU reply verification and exact retirement.
+Resource/ownership failure must stop further GPU attempts. A source audit and
+current-source isolated qualification must precede any owner trial.
+
+No process timeout or user-mode check can guarantee immunity to a driver/kernel
+fault. The existing historical retirement uncertainty remains open. Do not
+describe compiler output, CPU mocks or admission refusals as GPU execution.
+
+## Next product connection
+
+After actual bounded GPU output is verified, connect the accepted representation
+to native transactional storage with an independent CPU reader, then the Windows
+file-operation path. Preserve immediate CPU selection and quarantine behavior.
+Cold collective compression remains a separate size-first requirement:
+COLD_COMPRESSION_RESEARCH.md permits larger shared groups and more work where
+total size justifies practical access costs. Experiment caps are not permanent
+filesystem group limits.
+

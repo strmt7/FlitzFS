@@ -243,6 +243,23 @@ int wmain(int argc,wchar_t** argv) {
       State state(source);refused(state,HipWorkerExit::unsupported_configuration);
       require(state.calls.empty(),"Missing CPU decoder touched a runtime or memory query");
     }else{
+      const std::array<Lz4KernelCoverage,2> target_list{{{"gfx1100",1},{"gfx1201",1}}};
+      const auto admitted=admit_lz4_compute_targets(kernels,source,target_list);
+      require(admitted.wave_mask==1,"Qualified target wave union");
+      State other_target(source);
+      std::memcpy(other_target.properties.gcnArchName,"gfx1201",8);
+      require(select_lz4_coverage(other_target.properties,target_list).architecture=="gfx1201",
+          "Detected architecture did not select its compiled code image");
+      const auto metadata_refused=[&](auto&& operation,HipWorkerExit expected){
+        try{operation();throw std::runtime_error("Missing target coverage refusal");}
+        catch(const HipWorkerFailure& e){require(e.code==expected,"Target coverage category");}
+      };
+      metadata_refused([&]{(void)admit_lz4_compute_targets(kernels,source,{});},HipWorkerExit::invalid_request);
+      const std::array<Lz4KernelCoverage,2> duplicates{{{"gfx1100",1},{"gfx1100",1}}};
+      metadata_refused([&]{(void)admit_lz4_compute_targets(kernels,source,duplicates);},HipWorkerExit::invalid_request);
+      std::memcpy(other_target.properties.gcnArchName,"gfx1202",8);
+      metadata_refused([&]{(void)select_lz4_coverage(other_target.properties,target_list);},
+          HipWorkerExit::unsupported_configuration);
       successful(source,32);successful(source,64);
       // The terminal literal token has unused low bits. This valid alternate
       // representation must pass; a changed literal byte must fail.
@@ -319,3 +336,4 @@ int wmain(int argc,wchar_t** argv) {
     return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }
+

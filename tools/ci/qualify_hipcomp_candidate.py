@@ -113,12 +113,14 @@ def stage(source,output,value):
     require(sum(row["bytes"] for row in records)+entry["bytes"]+sum(x["bytes"] for x in notices)<=MAX_BYTES,
         "candidate compiler fixture aggregate")
     return compiled,records
-def inspect_offload_targets(text,object_path,object_bytes):
+def inspect_offload_targets(text,object_path,object_bytes,expected=("gfx1100",)):
     require(isinstance(text,str) and 0<len(text)<=16384,"candidate offload metadata size")
     require(isinstance(object_path,str) and 0<len(object_path)<=1024 and
         not any(c in object_path for c in "\r\n\t") and type(object_bytes) is int and
         0<object_bytes<=16*MIB,"candidate offload object identity")
-    targets=[];hosts=0
+    require(1<=len(expected)<=16 and len(set(expected))==len(expected) and
+        all(re.fullmatch(r"gfx[0-9a-z]+",x) for x in expected),"expected candidate target set")
+    targets=[];architectures=[];extents=[];hosts=0
     location=re.compile(re.escape("file://"+object_path)+r"#offset=([0-9]{1,9})&size=([0-9]{1,9})")
     for line in text.splitlines():
         if "\tfile://" not in line:continue
@@ -132,11 +134,16 @@ def inspect_offload_targets(text,object_path,object_bytes):
             require(size==0,"candidate offload host placeholder")
             hosts+=1
         else:
-            require(size>0 and re.fullmatch(
-                r"hip(?:v[0-9]+)?-amdgcn-amd-amdhsa--gfx1100(?::[A-Za-z0-9_+:-]+)?",target)
-                is not None,"candidate offload target metadata")
+            target_match=re.fullmatch(
+                r"hip(?:v[0-9]+)?-amdgcn-amd-amdhsa--(gfx[0-9a-z]+)(?::[A-Za-z0-9_+:-]+)?",target)
+            require(size>0 and target_match is not None and target_match.group(1) in expected,
+                "candidate offload target metadata")
+            require(not any(offset<start+count and start<offset+size for start,count in extents),
+                "candidate offload target images overlap")
+            extents.append((offset,size));architectures.append(target_match.group(1))
             targets.append(target)
-    require(hosts==1 and len(targets)==1,"candidate offload target count")
+    require(hosts==1 and len(targets)==len(expected) and
+        set(architectures)==set(expected),"candidate offload target count")
     return targets
 def main():
     require(os.name=="nt" and os.environ.get("GITHUB_ACTIONS")=="true" and
@@ -145,7 +152,9 @@ def main():
     for name in ("source","provider","sdk","output"):parser.add_argument("--"+name,type=Path,required=True)
     parser.add_argument("--native-sync",action="store_true",help="Explicit offline transformed AMD candidate; never a runtime route")
     parser.add_argument("--bounded-entry",action="store_true",help="Private checked byte entry; requires native-sync")
+    parser.add_argument("--runtime-targets",action="store_true",help="Compile the pinned provider target set; requires bounded entry")
     args=parser.parse_args()
+    require(not args.runtime_targets or args.bounded_entry,"runtime target set requires bounded entry")
     require(not args.bounded_entry or args.native_sync,"bounded entry requires native synchronization")
     source=verify_checkout(args.source,SOURCE_COMMIT);provider=verify_checkout(args.provider,MECHANISM_COMMIT)
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
@@ -171,6 +180,19 @@ def main():
         module_loaded=False,linked_into_product=False,upstream_build_scripts_executed=False,object_inspected=False)
     output.mkdir()
     try:
+        targets=["gfx1100"]
+        if args.runtime_targets:
+            selection=run(bounds,["powershell.exe","-NoProfile","-ExecutionPolicy","Bypass","-File",
+                str(provider/"tools/hip_architecture.ps1"),"-Architecture","release"],
+                report,"pinned-provider-runtime-target-set",30)
+            selected=selection["stdout"].strip()
+            require(not selection["output_truncated"] and not selection["stderr"].strip() and
+                len(selected)<=256 and re.fullmatch(r"gfx[0-9a-z]+(?:,gfx[0-9a-z]+)*",selected),
+                "pinned provider architecture selection")
+            targets=selected.split(",")
+            require(1<=len(targets)<=16 and len(set(targets))==len(targets),"bounded runtime target set")
+        report["compile_targets"]=targets;report["runtime_target_fixture"]=args.runtime_targets
+        report["synthetic_compile_target"]=targets[0] if len(targets)==1 else None
         source_copy=output/"compile-input"
         entry,records=stage(source,source_copy,value)
         original_entry=entry
@@ -211,7 +233,7 @@ def main():
         object_path=output/"hipcomp_lz4.obj";dependency=output/"hipcomp_lz4.obj.d"
         run(bounds,["powershell.exe","-NoProfile","-ExecutionPolicy","Bypass","-File",
             str(provider/"tools/compile_hip_object.ps1"),"-Source",str(entry),"-Output",str(object_path),
-            "-DependencyFile",str(dependency),"-RepoRoot",str(source_copy),"-HipPath",str(sdk),"-Arch","gfx1100"],
+            "-DependencyFile",str(dependency),"-RepoRoot",str(source_copy),"-HipPath",str(sdk),"-Arch",",".join(targets)],
             report,"hipcomp-LZ4-offline-translation-unit",900)
         require(object_path.is_file() and 0<object_path.stat().st_size<=16*MIB and
             dependency.is_file() and 0<dependency.stat().st_size<=MIB,"candidate compiler outputs")
@@ -235,11 +257,19 @@ def main():
             report,"candidate-offload-bundle-metadata",30)
         require(not fatbin["output_truncated"] and not fatbin["stderr"].strip(),
             "candidate offload metadata truncated or warned")
-        report["offload_target_ids"]=inspect_offload_targets(fatbin["stdout"],str(object_path),object_path.stat().st_size)
+        report["offload_target_ids"]=inspect_offload_targets(fatbin["stdout"],str(object_path),object_path.stat().st_size,tuple(targets))
         report["object_inspected"]=True
         if args.bounded_entry:
             from hipcomp_lz4_entry import inspect_entry_object
-            inspect_entry_object(bounds,tools["llvm-readobj.exe"],object_path,output,fatbin["stdout"],report)
+            if args.runtime_targets:
+                report["entry_objects"]={}
+                for target in targets:
+                    inspect_entry_object(bounds,tools["llvm-readobj.exe"],object_path,output,
+                        fatbin["stdout"],report,architecture=target)
+                    report["entry_objects"][target]=report["entry_object"]
+                report["entry_object"]=report["entry_objects"][targets[0]]
+            else:
+                inspect_entry_object(bounds,tools["llvm-readobj.exe"],object_path,output,fatbin["stdout"],report)
         require(bootstrap.sdk_identity(sdk,lock["version"])==identity,"candidate SDK inputs changed")
         if args.native_sync:
             require(regular(sdk/HEADER,sdk,128*1024)==header_raw,"native-sync SDK header changed")
@@ -275,5 +305,6 @@ def main():
         with (output/"qualification.json").open("x",encoding="utf-8") as file:
             json.dump(report,file,indent=2);file.write("\n")
     print("hipCOMP offline qualification: "+json.dumps(dict(complete=True,source=SOURCE_COMMIT,
-        target="gfx1100",gpu_executed=False,module_loaded=False)))
+        target=",".join(targets),gpu_executed=False,module_loaded=False)))
 if __name__=="__main__":main()
+
