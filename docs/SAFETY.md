@@ -1,11 +1,11 @@
 # FlitzFS safety gates and threat model
 
-## Pending isolated compression runtime route
+## Qualified isolated compression runtime diagnostic
 
-[HIP_LZ4_RUNTIME.md](HIP_LZ4_RUNTIME.md) defines a separate opt-in SDK worker and private-module artifact. The old worker/default filesystem remains unchanged. All target images and source-bound module hashes must qualify; malformed requests, unknown coverage and unconfirmed retirement cannot publish data. CPU/refusal tests do not prove GPU execution or authorize an automatic owner trial. Keep the existing host/driver constraints and historical retirement uncertainty.
+[HIP_LZ4_RUNTIME.md](HIP_LZ4_RUNTIME.md) defines a separate opt-in SDK worker and private-module artifact. The old worker/default filesystem remains unchanged. All target images and source-bound module hashes must qualify; malformed requests, unknown coverage and unconfirmed retirement cannot publish data. CPU/refusal tests do not prove GPU execution or authorize an automatic owner trial. One actual synthetic 4-KiB trial passed at 979cd512 with CPU readback, exact retirement, unchanged inputs/runtime and no remaining owned processes; see [the evidence](evidence/hip-lz4-runtime-979cd512.json). This does not authorize an unchanged rerun, mounted/normal routing or relaxed resources. Keep the existing host/driver constraints and historical retirement uncertainty.
 
 
-## Unqualified SDK-only LZ4 compute implementation
+## SDK-only compute boundaries
 
 [HIP_LZ4_COMPUTE.md](HIP_LZ4_COMPUTE.md) defines the new typed compute contract. It is compiled only in the optional private SDK fixture and has no normal caller. CPU fake tests do not authorize owner-device execution, module loading or mounting. Retain exact process/supervisor retirement and independent CPU verification; a failed resource release overrides acceptance. Original memory caps and historical unresolved retirement failures remain controlling. No stored bytes or format change.
 
@@ -1085,7 +1085,7 @@ No owner driver/mount/GPU operation or stored-format change follows. Unknown
 retirement remains terminal; a green reconstruction cannot explain the old kernel
 state by itself. Publishing-source execution is still required.
 
-At497066c all13 ordinary jobs and8 Linux source tests passed. Both historical
+At497066c all 13 ordinary jobs and8 Linux source tests passed. Both historical
 comparison variants failed preparation before driver installation or trial.
 The correction binds actual directory identities and independently reconciles raw
 phase/acknowledgement/result/CPU records. Windows/Linux source tests and actual
@@ -1098,7 +1098,7 @@ with separately verified exact/CRLF checkout identity is the next18-case gate.
 The source fixture failure is not a historical retirement result or GPU evidence.
 
 
-At ab37c4a, all18 source cases passed on both OSes, all13 core jobs passed, and
+At ab37c4a, all18 source cases passed on both OSes, all 13 core jobs passed, and
 both historical held/closed-handle trials retired under original limits with
 exact7001-byte CPU recovery. Their one-shot outcome remains inconclusive for D01.
 [Raw source-bound evidence](evidence/retirement-reference-ab37c4a.json).

@@ -11,20 +11,14 @@
     "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
   },
   "current_qualification": {
-    "commit": "99d53658b16e414729654f67a5238e155a3f350e",
-    "core_run": 43406031065,
+    "commit": "979cd512559b1d9731cbc6a7d920b78a63483703",
+    "core_run": 43572160653,
     "conclusion": "success",
     "jobs_passed": 13,
     "jobs_total": 13,
-    "native_groups": 138,
-    "sanitizer_groups": 119,
-    "advisory_assertions": 687,
-    "workload_assertions_per_examined_log": 4645,
-    "budget_assertions_per_examined_log": 398,
-    "budget_faults_per_examined_log": 42,
-    "managed_invariants_native": 412,
-    "managed_invariants_raw": 404,
-    "evidence": "docs/evidence/funded-helper-99d5365.json"
+    "sdk_run": 43572160545,
+    "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
+    "scope": "All ordinary core jobs and isolated SDK qualification; one tiny actual GPU compression diagnostic. Native GPU file-operation integration remains unfinished."
   },
   "owner_gpu_observation": {
     "source_commit": "645a1d15d4f0138c45df67c570f0acd52815345a",
@@ -116,12 +110,10 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_at_utc": "2026-11-13 14:39:39 UTC",
-    "native_transport": "Authenticated GitHub open-alerts API",
+    "checked_at_utc": "2026-11-14 07:41 UTC",
+    "native_transport": "Authenticated paginated GitHub Dependabot alerts API, state=open, per_page=100",
     "open_alerts": 0,
-    "scope": "Open alerts only, not absence of all vulnerabilities.",
-    "evidence": "docs/evidence/retirement-preparation-497066c.json",
-    "native_api": "Authenticated GitHub Dependabot alerts API, state=open, per_page=100; empty first page."
+    "scope": "Open alerts only; not absence of all vulnerabilities."
   },
   "source_routing": {
     "indexed_commit": "df51d8c5ba80430453c805619438f431d5677f3b",
@@ -360,11 +352,9 @@
     "no_archive_product_routes": true
   },
   "pending_qualification": {
-    "source_parent": "2b57fe0d2c54d9c55f5165b57368a5f5d712c54a",
     "contract": "docs/HIP_LZ4_RUNTIME.md",
-    "behavior": "Separate opt-in authenticated compression worker, compiler-derived target inventory and supervised request/reply route.",
-    "status": "Pending publishing-source CPU/compiler/admission/core qualification; no owner GPU launch or native stored codec.",
-    "next": "Qualify each actual target image, then one bounded actual-GPU output trial, independent CPU verification and native storage/Windows-write composition."
+    "status": "Native stored encoding, CPU recovery and asynchronous Windows file-operation/fallback composition remain pending; runtime diagnostic is qualified separately.",
+    "next": "Implement the native stored representation and independent CPU reader, then asynchronous immediate CPU fallback and the Windows write/store/read composition. Retain D01 and complete cost/benefit gates; do not rerun the unchanged diagnostic."
   },
   "resolved": [
     {
@@ -658,6 +648,29 @@
       "normal_io_caller": false,
       "candidate_module_loaded": false,
       "gpu_executed": false
+    },
+    "runtime_worker": {
+      "qualified_source": "979cd512559b1d9731cbc6a7d920b78a63483703",
+      "contract": "docs/HIP_LZ4_RUNTIME.md",
+      "sdk_run": 43572160545,
+      "sdk_job": 132378683450,
+      "status": "Complete isolated SDK/CPU admission plus one actual AMD GPU compression diagnostic. Native stored-codec and normal Windows file operations remain unconnected.",
+      "actual_gpu_compression": true,
+      "source_bytes": 4096,
+      "compressed_payload_bytes": 118,
+      "explicit_device_bytes": 16544,
+      "exchange_ns": 575130900,
+      "outer_elapsed_ms": 647,
+      "child_exit_confirmed": true,
+      "supervisor_quiescent": true,
+      "normal_io_caller": false,
+      "stored_codec_added": false,
+      "useful_end_to_end_benefit_established": false,
+      "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
+      "next": "Implement the native stored representation and independent CPU reader, then asynchronous immediate CPU fallback and the Windows write/store/read composition. Retain D01 and complete cost/benefit gates; do not rerun the unchanged diagnostic.",
+      "core_run": 43572160653,
+      "core_jobs_passed": 13,
+      "core_jobs_total": 13
     }
   },
   "integration_checkpoints": [
@@ -684,12 +697,12 @@
     "limitation": "Prominent infrastructure hits; explicit production maintenance API live-confirmed. No automatic governor or durable mapping inferred."
   },
   "latest_integration_qualification": {
-    "source": "2a757592ab4060406afc05efd5735b5d9412944b",
-    "run": 43501458840,
+    "source": "979cd512559b1d9731cbc6a7d920b78a63483703",
+    "run": 43572160653,
     "jobs_passed": 13,
     "jobs_total": 13,
-    "evidence": "docs/evidence/source-snapshot-2a75759.json",
-    "scope": "All 13 ordinary jobs passed; all 519 source archive files independently match canonical Git blobs. SDK CPU decoder qualification remains source-bound to 94ec882."
+    "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
+    "scope": "All ordinary core jobs and isolated SDK qualification; one tiny actual GPU compression diagnostic. Native GPU file-operation integration remains unfinished."
   },
   "release_checkpoint": "docs/RELEASE_READINESS.md",
   "cold_compression_research": "docs/COLD_COMPRESSION_RESEARCH.md",
@@ -698,6 +711,69 @@
     "constraints": "Latency must remain practical and sustained access must not become dramatically slow. Moderate penalties are acceptable; do not impose minimum latency, tiny groups or universal faster-than-baseline requirements on cold recompression.",
     "safety": "Exact byte reconstruction, independent CPU fallback, protected decoder state and bounded resource/transactional safety remain mandatory.",
     "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
+  },
+  "compression_runtime_qualification": {
+    "qualified_source": "979cd512559b1d9731cbc6a7d920b78a63483703",
+    "contract": "docs/HIP_LZ4_RUNTIME.md",
+    "sdk_run": 43572160545,
+    "sdk_job": 132378683450,
+    "status": "Complete isolated SDK/CPU admission plus one actual AMD GPU compression diagnostic. Native stored-codec and normal Windows file operations remain unconnected.",
+    "actual_gpu_compression": true,
+    "source_bytes": 4096,
+    "compressed_payload_bytes": 118,
+    "explicit_device_bytes": 16544,
+    "exchange_ns": 575130900,
+    "outer_elapsed_ms": 647,
+    "child_exit_confirmed": true,
+    "supervisor_quiescent": true,
+    "normal_io_caller": false,
+    "stored_codec_added": false,
+    "useful_end_to_end_benefit_established": false,
+    "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
+    "next": "Implement the native stored representation and independent CPU reader, then asynchronous immediate CPU fallback and the Windows write/store/read composition. Retain D01 and complete cost/benefit gates; do not rerun the unchanged diagnostic.",
+    "core_run": 43572160653,
+    "core_jobs_passed": 13,
+    "core_jobs_total": 13
+  },
+  "owner_gpu_compression_observation": {
+    "qualified_source": "979cd512559b1d9731cbc6a7d920b78a63483703",
+    "contract": "docs/HIP_LZ4_RUNTIME.md",
+    "sdk_run": 43572160545,
+    "sdk_job": 132378683450,
+    "status": "Complete isolated SDK/CPU admission plus one actual AMD GPU compression diagnostic. Native stored-codec and normal Windows file operations remain unconnected.",
+    "actual_gpu_compression": true,
+    "source_bytes": 4096,
+    "compressed_payload_bytes": 118,
+    "explicit_device_bytes": 16544,
+    "exchange_ns": 575130900,
+    "outer_elapsed_ms": 647,
+    "child_exit_confirmed": true,
+    "supervisor_quiescent": true,
+    "normal_io_caller": false,
+    "stored_codec_added": false,
+    "useful_end_to_end_benefit_established": false,
+    "evidence": "docs/evidence/hip-lz4-runtime-979cd512.json",
+    "next": "Implement the native stored representation and independent CPU reader, then asynchronous immediate CPU fallback and the Windows write/store/read composition. Retain D01 and complete cost/benefit gates; do not rerun the unchanged diagnostic.",
+    "scope": "One synthetic two-block GPU correctness trial; no mounted or ordinary filesystem operation.",
+    "postflight_owned_processes": 0,
+    "staged_inputs_unchanged": true,
+    "driver_version": "32.0.32015.16001",
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+  },
+  "previous_current_qualification": {
+    "commit": "99d53658b16e414729654f67a5238e155a3f350e",
+    "core_run": 43406031065,
+    "conclusion": "success",
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "native_groups": 138,
+    "sanitizer_groups": 119,
+    "advisory_assertions": 687,
+    "workload_assertions_per_examined_log": 4645,
+    "budget_assertions_per_examined_log": 398,
+    "budget_faults_per_examined_log": 42,
+    "managed_invariants_native": 412,
+    "managed_invariants_raw": 404,
+    "evidence": "docs/evidence/funded-helper-99d5365.json"
   }
 }
-

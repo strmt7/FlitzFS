@@ -1,8 +1,8 @@
 # Isolated HIP compression worker — experimental
 
-14 November 2026. Current-source compilation and qualification are pending.
-Actual GPU compression, useful benefit and native filesystem write integration
-remain unproved. This is not a release, driver installer or mounted product.
+14 November 2026. Isolated SDK/CPU qualification and one actual AMD GPU
+compression diagnostic passed at 979cd512. Useful end-to-end benefit and native
+filesystem write integration remain unproved. This is not a release, driver installer or mounted product.
 
 ## Route and containment
 
@@ -119,7 +119,7 @@ The corrected full admission suite still needs execution before artifact promoti
 ## Admission passed; artifact packaging correction
 
 At 516e4e9 the corrected private-worker admission passed55 checks with10
-confirmed child exits. The SDK compute matrix passed828 checks across58
+confirmed child exits. The SDK compute matrix passed828 checks across 58
 scenarios (6 positive,52 refusal), and the raw decoder control passed8 checks.
 All20 original worker-admission cases passed. These remain CPU/refusal results.
 
@@ -129,3 +129,33 @@ package condition exposed that collision. Rename the loop's local command
 arguments, preserving the parsed options and every qualification gate.
 [Exact failed-run receipt](evidence/lz4-runtime-packaging-516e4e9.json).
 No artifact from this incomplete run is qualified for owner execution.
+
+## Executed runtime and owner-device qualification at 979cd512
+
+[The exact evidence](evidence/hip-lz4-runtime-979cd512.json) binds the source,
+SDK job 132378683450/run 43572160545, archive/binary hashes and owner observations.
+The complete SDK run passed, including six native architecture images,
+55 admission checks/10 confirmed child exits, 828 compute checks across 58 scenarios,
+eight raw-control checks and all 20 original worker cases. All five ordinary configurations and all 13 integration jobs also passed at
+979cd512 (run 43572160653). The earlier admission-test and packaging failures
+remain retained above.
+
+Before compute, bounded metadata confirmed the installed runtime and matching
+HIP/DXGI LUID. HIP returned node mask 0; separate native Windows topology proved
+one physical node on that exact AMD adapter. The existing worker contract
+independently repeats that proof before accepting mask 1. No identity guard,
+driver, runtime installation or system setting was changed.
+
+One explicit two-block synthetic request then compressed 4,096 input bytes into
+118 payload bytes. Complete-slab guards and independent CPU decompression passed
+before publication and again at the receiving parent. Explicit device bytes
+were 16,544. The cold worker exchange was 575,130,900 ns; outer supervision observed
+647 ms. Worker/controller job peaks were 80,535,552/82,534,400 bytes.
+Child exit and transport quiescence were confirmed, all staged bytes remained
+unchanged and postflight found no owned worker/probe processes.
+
+These are payload-only correctness observations. They exclude native file/index/
+record costs and establish no comparative compression, throughput or power-loss
+claim. No LZ4 stored codec or ordinary filesystem GPU route is added. Do not repeat
+this unchanged diagnostic: the next implementation connects storage/CPU recovery/
+Windows writes and asynchronous fallback, followed by useful net-benefit testing.

@@ -1,0 +1,351 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "observed_utc": "2026-11-14T07:55:18.6880943Z",
+  "source_commit": "979cd512559b1d9731cbc6a7d920b78a63483703",
+  "qualification": {
+    "sdk_run": 43572160545,
+    "sdk_job": 132378683450,
+    "sdk_complete": true,
+    "sdk_root_sha256": "d4654e7d4dccc9db77f89b86759f0da21180bf8df0e4bdb653ab54cbe793a276",
+    "sdk_artifacts": [
+      {
+        "id": 14105500628,
+        "name": "driver-probe-979cd512559b1d9731cbc6a7d920b78a63483703",
+        "bytes": 492736,
+        "sha256": "b4e0c387775bc66dd6a29a1f3cb2c664a7adb0c648e4313f30fa9c6421e2f6e3"
+      },
+      {
+        "id": 14105475617,
+        "name": "rocm-sdk-qualification-979cd512559b1d9731cbc6a7d920b78a63483703",
+        "bytes": 135560,
+        "sha256": "ec0547b6378a97cf98b45776dbe7afd3118d37825b7a99ed5ad4a5778b8f9915"
+      },
+      {
+        "id": 14105440673,
+        "name": "lz4-runtime-fixture-979cd512559b1d9731cbc6a7d920b78a63483703",
+        "bytes": 530466,
+        "sha256": "9de2e300879e2b07d5c910049499a08161bdac0a4e04d44c9da644ad3c58ea38"
+      }
+    ],
+    "ordinary_core": {
+      "commit": "979cd512559b1d9731cbc6a7d920b78a63483703",
+      "run": 43572160653,
+      "passed": 13,
+      "total": 13,
+      "jobs": [
+        {
+          "id": 132378680210,
+          "name": "windows-native",
+          "conclusion": "success"
+        },
+        {
+          "id": 132378680397,
+          "name": "sanitizers",
+          "conclusion": "success"
+        },
+        {
+          "id": 132378680409,
+          "name": "cpu (ubuntu-24.04, ON)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132378680432,
+          "name": "cpu (ubuntu-24.04, OFF)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132378680453,
+          "name": "cpu (windows-2025-vs2026, OFF)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132381257563,
+          "name": "windows-mount",
+          "conclusion": "success"
+        },
+        {
+          "id": 132381798642,
+          "name": "windows-write-mount (crash-restart)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132381798650,
+          "name": "windows-write-mount (restart)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132381798657,
+          "name": "windows-write-mount (mutations)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132381798666,
+          "name": "windows-write-mount (delete)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132381798692,
+          "name": "windows-write-mount (basic)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132381798701,
+          "name": "windows-write-mount (crash)",
+          "conclusion": "success"
+        },
+        {
+          "id": 132381798729,
+          "name": "windows-write-mount (ram-handoff)",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "runtime_admission": {
+      "checks": 55,
+      "exits_confirmed": 10,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "typed_compute": {
+      "checks": 828,
+      "scenarios": 58,
+      "successes": 6,
+      "refusals": 52
+    },
+    "raw_compute": {
+      "checks": 8,
+      "scenarios": 1,
+      "refusals": 1
+    },
+    "original_worker_exits": 20
+  },
+  "package": {
+    "bytes": 532112,
+    "sha256": "49c2c72bb5e95493fd937f5a1f58e107b2eaff9dcac06ca9cd1381b20e894568",
+    "manifest": {
+      "experimental": true,
+      "commit": "979cd512559b1d9731cbc6a7d920b78a63483703",
+      "rocm": "10.1.0",
+      "runtime_basename": "amdhip64_7.dll",
+      "runtime_shipped": false,
+      "kpack_shipped": false,
+      "files": [
+        {
+          "path": "flitzfs_hip_lz4_worker.exe",
+          "bytes": 452608,
+          "sha256": "c0e258f7ed30ce8bce61e0ddbd1eb1bdc7d2eee5967e6a7f70f1103a48e2d403"
+        },
+        {
+          "path": "flitzfs_lz4_runtime_probe.exe",
+          "bytes": 449024,
+          "sha256": "53e7ca2a71fd0e8f228a0cd6f4cec31a64ca4a9f28e862e036d4f567bf9f3d0d"
+        },
+        {
+          "path": "hip-lz4/flitzfs_rocm_lz4_candidate.dll",
+          "bytes": 266752,
+          "sha256": "72e58242512925179075b1749183d2d4e50b841a1b6b1e27bc9e8bd40e24ce66"
+        },
+        {
+          "path": "LICENSE",
+          "bytes": 35184,
+          "sha256": "6f1e622c82a380075843bb084a7ec3b1f1d12a4a02526d75e78b0924a860aa75"
+        },
+        {
+          "path": "licenses/blake3/LICENSE_A2",
+          "bytes": 11563,
+          "sha256": "3da8137480af96e14b27ac9474c6a76a0102596493e5ab075ba98c7ffc64d552"
+        },
+        {
+          "path": "licenses/blake3/LICENSE_A2LLVM",
+          "bytes": 12486,
+          "sha256": "b944109ea368e9bf114cb87a21a7ccf11edb6621fe0bd8357ae51dced0afbbb3"
+        },
+        {
+          "path": "licenses/blake3/LICENSE_CC0",
+          "bytes": 7169,
+          "sha256": "f4e7f373b9b996950337e8d41a4a2939c2d90b7725e9baf3d5084a22717ad328"
+        },
+        {
+          "path": "licenses/lz4/LICENSE",
+          "bytes": 1311,
+          "sha256": "8b58c446121a109ccf32edc094bba3010a3d85e4ee3702950db55e4d3e87736c"
+        },
+        {
+          "path": "licenses/lz4/LICENSE-repository",
+          "bytes": 646,
+          "sha256": "4bc9c403f6b679cc076dee210e0e21c27b4e8f6d3fb43d85364c76657bfaaac5"
+        },
+        {
+          "path": "licenses/hipcomp/LICENSE",
+          "bytes": 1085,
+          "sha256": "74e309b2672c84f53290161efaa80b59c068ddaca84842cb5e02f1d34eae29ef"
+        },
+        {
+          "path": "licenses/hipcomp/CMakeLists.txt",
+          "bytes": 14505,
+          "sha256": "19c5e33cf8f3c4f3a01236d4fa1869d7f7497c84e07bb6b0ee98628692b550e7"
+        }
+      ],
+      "coverage": {
+        "targets": [
+          {
+            "architecture": "gfx1100",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1101",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1102",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1151",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1200",
+            "wave_mask": 1
+          },
+          {
+            "architecture": "gfx1201",
+            "wave_mask": 1
+          }
+        ],
+        "object_sha256": "03a86944a8260712fa147be677c563052523bc7c2a1d0ef65fe28d0d401bd00c"
+      },
+      "controller_job_mib": 256,
+      "worker_job_mib": 128,
+      "cpu_rate": 2000,
+      "worker_timeout_ms": 15000,
+      "cpu_admission_exits": 10,
+      "actual_gpu_execution": false,
+      "ordinary_filesystem_route": false
+    },
+    "runtime_shipped": false,
+    "actual_gpu_execution": false
+  },
+  "metadata": {
+    "adapter": {
+      "exit": 0,
+      "pid": 27960,
+      "exit_confirmed": true,
+      "elapsed_ms": 61,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "HIP adapter metadata: {\"complete\":true,\"gpu_executed\":false,\"hip_initialized\":false,\"adapters_seen\":2,\"adapters\":[{\"dxgi_ordinal\":0,\"luid\":\"9274010000000000\",\"vendor\":4098,\"device\":30032,\"dedicated_bytes\":16977985536,\"probe_node_mask\":1}],\"controller_job_peak_commit_bytes\":1937408}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "identity": {
+      "exit": 0,
+      "pid": 59408,
+      "exit_confirmed": true,
+      "elapsed_ms": 145,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "HIP identity metadata: {\"properties_verified\":true,\"hip_initialization_confirmed\":true,\"flitzfs_kernel_load_requested\":false,\"batch_allocations_requested\":false,\"kernel_launch_requested\":false,\"ordinal\":0,\"node_mask\":0,\"luid\":\"9274010000000000\",\"luid_matches\":true,\"node_mask_matches\":false,\"worker_exit\":0,\"worker_category\":0,\"worker_stage\":\"none\",\"timed_out\":false,\"exit_confirmed\":true,\"peak_commit_bytes\":9596928,\"controller_job_peak_commit_bytes\":11005952}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "topology": {
+      "exit": 0,
+      "pid": 44696,
+      "exit_confirmed": true,
+      "elapsed_ms": 174,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "GPU topology metadata: {\"gpu_executed\":false,\"hip_initialized\":false,\"queues_requested\":false,\"batch_allocations_requested\":false,\"kernel_launch_requested\":false,\"status\":0,\"phase\":10,\"native_status\":0,\"node_count\":1,\"amd_hardware\":true,\"luid_matches\":true,\"single_node_verified\":true,\"software_fixture\":false,\"controller_job_peak_commit_bytes\":52629504}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    },
+    "node_contract": "HIP reported matching LUID with node_mask=0. A separate fresh native Windows observation proved exactly one physical AMD node. Existing initialize_device and compute checks independently require that same-identity proof for selecting mask 1; no product guard changed."
+  },
+  "execution": {
+    "exit": 0,
+    "pid": 19580,
+    "exit_confirmed": true,
+    "elapsed_ms": 647,
+    "outer_wall_ms": 15000,
+    "termination_observation_ms": 2000,
+    "stdout": "LZ4 GPU one-shot: {\"gpu_result_verified\":true,\"cpu_selected\":false,\"source_bytes\":4096,\"candidate_bytes\":118,\"device_bytes\":16544,\"exchange_ns\":575130900,\"worker_exit\":0,\"worker_category\":0,\"worker_stage\":\"none\",\"exit_confirmed\":true,\"publication_observed\":true,\"timed_out\":false,\"peak_commit_bytes\":80535552,\"controller_job_peak_commit_bytes\":82534400,\"transport_quiescent\":true}\r\n",
+    "stderr": "",
+    "staged_files_unchanged": true,
+    "verified_result": {
+      "gpu_result_verified": true,
+      "cpu_selected": false,
+      "source_bytes": 4096,
+      "candidate_bytes": 118,
+      "device_bytes": 16544,
+      "exchange_ns": 575130900,
+      "worker_exit": 0,
+      "worker_category": 0,
+      "worker_stage": "none",
+      "exit_confirmed": true,
+      "publication_observed": true,
+      "timed_out": false,
+      "peak_commit_bytes": 80535552,
+      "controller_job_peak_commit_bytes": 82534400,
+      "transport_quiescent": true
+    }
+  },
+  "supervision": {
+    "source_pattern": ".github/workflows/ram-host.yml Invoke-NativeRamFixture",
+    "wrapper_sha256": "5ef96dbf1a74d082de9ad2fbcaa777c400f8757f0d000398e9e871274e398d4d",
+    "archive_stager_sha256": "2898411338a27cee0b75a2950bc39d4d0214b8c3b3b51f0f36ed5690fc9f4fa5",
+    "parent_process_mib": 128,
+    "parent_job_mib": 256,
+    "active_process_limit": 2,
+    "cpu_rate_per_10000": 2000,
+    "process_user_cpu_seconds": 10,
+    "outer_wall_ms": 15000,
+    "termination_observation_ms": 2000,
+    "one_compute_request": true,
+    "automatic_retry": false
+  },
+  "postflight": {
+    "utc": "2026-11-14T07:55:18.6880943Z",
+    "owned_processes": [],
+    "gpu": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32015.16001",
+        "Status": "OK"
+      }
+    ],
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "fixture_bytes": 3178344,
+    "free_hdd_bytes": 16000187891712,
+    "os": {
+      "LastBootUpTime": "2026-11-14T07:29:07.5+01:00",
+      "FreePhysicalMemory": 33211280,
+      "TotalVisibleMemorySize": 66704480
+    }
+  },
+  "interpretation": {
+    "actual_gpu_compression": true,
+    "independent_cpu_readback_verified": true,
+    "source_bytes": 4096,
+    "compressed_payload_bytes": 118,
+    "filesystem_operation": false,
+    "new_stored_codec": false,
+    "end_to_end_speedup_established": false,
+    "comparative_compression_gain_established": false,
+    "physical_power_loss_qualified": false,
+    "normal_io_stays_cpu_only": true,
+    "driver_change_performed": false,
+    "mounted": false,
+    "limitations": [
+      "One tiny synthetic correctness trial; 118 bytes is compressed block payload, excluding file/record/index/metadata costs.",
+      "575130900 ns is complete cold worker exchange, not kernel-only timing or a throughput benchmark.",
+      "Stored LZ4/native write routing, immediate asynchronous compression fallback integration, real mixed-corpus measurements and useful net benefit remain unfinished.",
+      "Historical D01 retirement uncertainty and full Windows client, scaling, repair and physical durability gates remain open."
+    ]
+  }
+}

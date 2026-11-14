@@ -9,6 +9,15 @@ archive format or writable mounted volume. Existing
 sole-copy data. Limits are development admission bounds, not the final product
 capacity or a production format commitment.
 
+## Compression runtime experiment and format boundary
+
+The separate GPU diagnostic qualified at 979cd512 emits independently CPU-verified
+LZ4 blocks over protected memory transport. Those blocks are not stored by this
+object format. Native raw/zero/pattern/Zstandard records and existing CPU readers
+remain unchanged. A stored representation requires explicit framing, rejection,
+transactional publication and CPU recovery tests before any filesystem route.
+See [the runtime evidence](evidence/hip-lz4-runtime-979cd512.json).
+
 ## API and ownership
 
 include/flitzfs/object_store.hpp exposes StoreByteIo, ObjectStoreWriter and

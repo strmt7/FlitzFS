@@ -1,8 +1,8 @@
 # Validation ledger — experimental release 0.2
 
-## Pending isolated compression worker qualification
+## Executed isolated compression worker qualification — 14 November 2026
 
-The new [runtime fixture](HIP_LZ4_RUNTIME.md) requires new-source twelve-case staging, per-target native inspection, SDK-typed coverage/compute checks, ten confirmed refusal/metadata child exits, all original twenty worker cases and ordinary CI. No new GPU execution, speed, compression-ratio or native file-operation result is claimed.
+At979cd512 the [runtime fixture](HIP_LZ4_RUNTIME.md) passed complete SDK qualification: six target images, 12 staging cases, 55 admission checks/10 confirmed exits, 828 compute checks across 58 scenarios, 8 raw-control checks and all 20 original worker cases. A separately supervised actual AMD trial CPU-verified 4,096 input bytes compressed to 118 payload bytes, with 16,544 explicit device bytes, 575,130,900 ns complete cold exchange and confirmed cleanup. [Source/artifact/host evidence](evidence/hip-lz4-runtime-979cd512.json). These measurements establish neither a filesystem ratio nor a speed benefit. All13 ordinary jobs passed at 516e4e9; latest979cd512 integration results are recorded separately.
 
 
 ## Pending typed compression compute qualification
@@ -363,7 +363,7 @@ At b2cf9899417d52c2266d86fa1246b874001376a3, SDK run43432703582 passed235 CPU
 assertions across12 priority scenarios. The exact historical probe reported
 category1179844613 with one query; the corrected probe reported1179844611 with
 two. Neither loaded HIP or executed GPU work. Every original SDK/worker gate,
-including20 confirmed exits, passed; core run43432703721 passed all13 jobs.
+including20 confirmed exits, passed; core run43432703721 passed all 13 jobs.
 [Source-bound evidence](evidence/priority-capability-b2cf989.json).
 
 
@@ -376,7 +376,7 @@ No owner driver/mount/GPU operation or stored-format change follows. Unknown
 retirement remains terminal; a green reconstruction cannot explain the old kernel
 state by itself. Publishing-source execution is still required.
 
-At497066c all13 ordinary jobs and8 Linux source tests passed. Both historical
+At497066c all 13 ordinary jobs and8 Linux source tests passed. Both historical
 comparison variants failed preparation before driver installation or trial.
 The correction binds actual directory identities and independently reconciles raw
 phase/acknowledgement/result/CPU records. Windows/Linux source tests and actual
@@ -391,7 +391,7 @@ with separately verified exact/CRLF checkout identity is the next18-case gate.
 The source fixture failure is not a historical retirement result or GPU evidence.
 
 
-At ab37c4a, all18 source cases passed on both OSes, all13 core jobs passed, and
+At ab37c4a, all18 source cases passed on both OSes, all 13 core jobs passed, and
 both historical held/closed-handle trials retired under original limits with
 exact7001-byte CPU recovery. Their one-shot outcome remains inconclusive for D01.
 [Raw source-bound evidence](evidence/retirement-reference-ab37c4a.json).
