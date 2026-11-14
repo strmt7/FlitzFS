@@ -42,7 +42,9 @@ selection, corrupt/late replies, unavailable helper, live-child CPU selection,
 cancellation, deadlines, resource transitions, exact retirement and qualified
 recovery. A fake HIP execution tag exercises policy only and proves no GPU work.
 
-At initial publication this controller is unqualified. Source review and all
-existing portable, raw, sanitizer and Windows native/worker checks are required. It does not implement ordinary
+The source-bound controller qualified at f08e6b8: all 13 core jobs and full SDK
+qualification passed. The retained evidence is
+[evidence/asynchronous-lz4-f08e6b8.json](evidence/asynchronous-lz4-f08e6b8.json).
+These are CPU-only controller tests, not actual GPU execution. It does not implement ordinary
 Windows write routing, lifecycle amortization or measured GPU benefit. D01 remains
 open and a resident worker still needs a separately reviewed lifecycle contract.

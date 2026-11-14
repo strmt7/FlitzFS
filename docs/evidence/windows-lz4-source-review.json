@@ -1,0 +1,25 @@
+{
+  "observed_utc": "2026-11-14T09:49:00Z",
+  "transport": "Native GitHub release and immutable source API captures",
+  "repository": "winfsp/winfsp",
+  "selected_tag": "v2.2B5",
+  "prerelease": true,
+  "published_at": "2026-10-13T14:17:29Z",
+  "source_commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
+  "latest_stable_tag": "v2.1",
+  "latest_stable_published_at": "2025-06-05T15:28:51Z",
+  "reviewed_sources": [
+    {
+      "path": "inc/winfsp/winfsp.h",
+      "bytes": 94418,
+      "contract": "Write append sentinel -1, constrained EOF, actual accepted count and FileInfo on success."
+    },
+    {
+      "path": "src/dll/fsop.c",
+      "bytes": 75283,
+      "contract": "FspFileSystemOpWrite derives append from UINT64_MAX and copies count and complete FileInfo only on successful synchronous completion."
+    }
+  ],
+  "dependency_changed": false,
+  "decision": "Preserve the already-qualified 2026 prerelease SDK and unchanged ABI; this feature adds optional native advice, not a new Windows API. Do not confuse the stable-only latest endpoint with newest prerelease."
+}

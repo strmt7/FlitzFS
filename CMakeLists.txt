@@ -704,7 +704,7 @@ if(FLITZFS_BUILD_WINFSP)
     if("$ENV{GITHUB_ACTIONS}" STREQUAL "true" AND "$ENV{RUNNER_ENVIRONMENT}" STREQUAL "github-hosted")
       add_test(NAME bounded_winfsp_native_data_invariants COMMAND flitzfs_native_file_info_sdk_tests --invariants)
       set_tests_properties(bounded_winfsp_native_data_invariants PROPERTIES TIMEOUT 45)
-      foreach(data_phase write eof reserve flush)
+      foreach(data_phase write eof reserve flush lz4)
         add_test(NAME bounded_winfsp_native_data_${data_phase}_faults
           COMMAND flitzfs_native_file_info_sdk_tests --${data_phase}-faults)
         set_tests_properties(bounded_winfsp_native_data_${data_phase}_faults PROPERTIES TIMEOUT 45)

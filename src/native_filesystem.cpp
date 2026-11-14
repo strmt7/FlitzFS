@@ -688,6 +688,9 @@ struct NativeFilesystemWriter::Impl {
   ObjectStoreWriter objects;Model model;bool poisoned=false;
   Impl(ObjectStoreWriter writer,Model state):objects(std::move(writer)),model(std::move(state)){}
 };
+void validate_native_lz4_extent_candidates(std::span<const NativeLz4ExtentCandidate> candidates) {
+  admit_lz4_extent_candidates(candidates);
+}
 NativeFilesystemSnapshot::NativeFilesystemSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
 NativeFilesystemSnapshot::NativeFilesystemSnapshot(NativeFilesystemSnapshot&&) noexcept=default;
 NativeFilesystemSnapshot& NativeFilesystemSnapshot::operator=(NativeFilesystemSnapshot&&) noexcept=default;

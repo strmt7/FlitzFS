@@ -65,15 +65,23 @@ NativeWindowsIoOutcome dispatch_native_write(NativeFileSession& session,const Na
     const void* buffer,UINT64 offset,ULONG length,bool append,bool constrained,
     const NativeAutomaticMetadata& effect,NativeFileInfoAllocation mode,PULONG transferred,
     FSP_FSCTL_FILE_INFO* output) noexcept {
+  return dispatch_native_write_with_lz4(session,handle,buffer,offset,length,append,constrained,
+      {},effect,mode,transferred,output);
+}
+NativeWindowsIoOutcome dispatch_native_write_with_lz4(NativeFileSession& session,const NativeFileHandle& handle,
+    const void* buffer,UINT64 offset,ULONG length,bool append,bool constrained,
+    std::span<const NativeLz4ExtentCandidate> candidates,const NativeAutomaticMetadata& effect,
+    NativeFileInfoAllocation mode,PULONG transferred,FSP_FSCTL_FILE_INFO* output) noexcept {
   if(transferred)*transferred=0;if(output)*output={};
   if(!transferred || !output || !policy(mode) || (length && !buffer) ||
       length>kStoreMaxObjectBytes || append!=(offset==UINT64_MAX) || !native_cleanup_metadata_valid(effect))
     return failure(session,STATUS_INVALID_PARAMETER);
   return boundary(session,[&] {
+    validate_native_lz4_extent_candidates(candidates);
     const auto before=session.mutation_info(handle);
     if(!preflight(before,mode))return failure(session,STATUS_INVALID_DEVICE_STATE);
     const auto bytes=std::span<const std::byte>(static_cast<const std::byte*>(buffer),length);
-    auto committed=session.write_storage_result(handle,offset,bytes,{append,constrained},effect);
+    auto committed=session.write_storage_with_lz4_result(handle,offset,bytes,candidates,{append,constrained},effect);
     // Only bounded scalar validation/copy remains. Never query storage/path,
     // sample a clock, allocate, release a context or retry after publication.
     if(!encode_native_file_info(committed.state,mode,*output))

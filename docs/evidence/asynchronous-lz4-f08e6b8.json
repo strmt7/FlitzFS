@@ -1,0 +1,204 @@
+{
+  "source_commit": "f08e6b8d250fab5e5faa3ebe9cf3e0ee16bd4ad9",
+  "core_run": 43580680270,
+  "core_conclusion": "success",
+  "sdk_run": 43580712067,
+  "sdk_job": 132404659014,
+  "sdk_conclusion": "success",
+  "windows_native": {
+    "artifact_sha256": "c4b68b87138021060434d20967dd69de0332e5bf1540838bea73d8153fc84843",
+    "archive_bytes": 13029,
+    "log": "LastTest.log",
+    "log_bytes": 154573,
+    "log_sha256": "a31a10f9b726ddd45051d07933a3041335e249b258823d6c04390e3491a5b200",
+    "evidence": [
+      "PASS: 987 GPU recovery/fallback policy checks (CPU only, no runtime loaded)\r",
+      "LZ4 controller: terminal CPU selection, late reply quarantine and exact retirement passed; gpu_executed=false\r"
+    ]
+  },
+  "windows_raw": {
+    "artifact_sha256": "693548448234bb4451f87ccdeb242410b9f9fc7c6aae1653f131b03faf12197e",
+    "archive_bytes": 12877,
+    "log": "FlitzFS/FlitzFS/build/Testing/Temporary/LastTest.log",
+    "log_bytes": 136649,
+    "log_sha256": "a3da0d6a9f9590d4a544fffd0f2c48e066bc765e82be9466c922e59c9fc7d5b6",
+    "evidence": [
+      "PASS: 987 GPU recovery/fallback policy checks (CPU only, no runtime loaded)\r",
+      "LZ4 controller: missing CPU decoder refused before launch; gpu_executed=false\r"
+    ]
+  },
+  "sdk": {
+    "artifact_id": 14108816231,
+    "archive_sha256": "b767b6b344e4969547b74f8fddd69f41ab744b555e5f28c73d24ef4b5052eb63",
+    "archive_bytes": 135960,
+    "root_sha256": "3043bf980cd8da60d0071fa400aaf07e7f1db5727de0faab6ae2519c52a2b0ce",
+    "root_bytes": 400407,
+    "complete": true,
+    "compute_CPU": {
+      "checks": 828,
+      "scenarios": 58,
+      "successes": 6,
+      "refusals": 52,
+      "decoder_available": true,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "compute_raw_CPU": {
+      "checks": 8,
+      "scenarios": 1,
+      "successes": 0,
+      "refusals": 1,
+      "decoder_available": false,
+      "attribute_symbol": "hipFuncGetAttributes",
+      "guarded_exit_confirmed": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    },
+    "native_CPU_composition": {
+      "complete": true,
+      "gpu_executed": false,
+      "candidate_stored_exactly": true,
+      "CPU_fallback_verified": true,
+      "independent_native_readback": true,
+      "source_bytes": 65536,
+      "image_bytes": 983040,
+      "active_payload_bytes": 8575,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "controller_job_peak_commit_bytes": 6107136,
+      "working_set_restored": true,
+      "mounted": false,
+      "physical_power_loss_qualified": false
+    },
+    "runtime_admission": {
+      "checks": 55,
+      "exits_confirmed": 10,
+      "bundle_verified": true,
+      "tamper_refused": true,
+      "CPU_source_unchanged": true,
+      "hip_runtime_loaded": false,
+      "gpu_executed": false,
+      "complete": true
+    }
+  },
+  "semantic": [
+    {
+      "name": "routing-receipt.json",
+      "sha256": "ad8d44036e50bfef3137220bcdffdd3bb691d37b9e6461bf2134cf8adc515a3b",
+      "source_sha256": "1b670de6622a4a685f9af89444fc253a77f56ca6e8e8472df63113ba0ad8bf9c",
+      "commit": "f08e6b8d250fab5e5faa3ebe9cf3e0ee16bd4ad9",
+      "provider_version": "0.2.43",
+      "actual_searches": 8
+    },
+    {
+      "name": "search-0.json",
+      "sha256": "08cc1b8366c72bdea8562a9cb4a803e9a5edc635c4d4eb2ae76efa07af246131",
+      "source_sha256": "1b670de6622a4a685f9af89444fc253a77f56ca6e8e8472df63113ba0ad8bf9c"
+    },
+    {
+      "name": "search-2.json",
+      "sha256": "c692401f99cb515402b8a41528566a6467a916592bb4969e897ad22291cefe41",
+      "source_sha256": "1b670de6622a4a685f9af89444fc253a77f56ca6e8e8472df63113ba0ad8bf9c"
+    },
+    {
+      "name": "search-5.json",
+      "sha256": "92368e238c48e5c709171fa5f88703ef8c53fcbb5755bc2c8e01afa5631c7697",
+      "source_sha256": "1b670de6622a4a685f9af89444fc253a77f56ca6e8e8472df63113ba0ad8bf9c"
+    }
+  ],
+  "gpu_executed": false,
+  "owner_controller_executed": false,
+  "production_windows_route": false,
+  "previous_actual_gpu_evidence": "docs/evidence/native-lz4-composition-a047952.json",
+  "notes": [
+    "987 is the complete existing recovery-policy assertion total, including nine added compression admission assertions; it is not 987 new cases.",
+    "Enabled/raw controller fixtures execute CPU child processes only.",
+    "The unchanged actual native GPU trial was not repeated. Historical D01 remains open."
+  ],
+  "experimental": true,
+  "core_jobs": [
+    {
+      "conclusion": "success",
+      "id": 132404559281,
+      "name": "sanitizers",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132404559546,
+      "name": "cpu (ubuntu-24.04, OFF)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132404559568,
+      "name": "cpu (windows-2025-vs2026, OFF)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132404559574,
+      "name": "cpu (ubuntu-24.04, ON)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132404559590,
+      "name": "windows-native",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132407359463,
+      "name": "windows-mount",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132407916270,
+      "name": "windows-write-mount (restart)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132407916297,
+      "name": "windows-write-mount (mutations)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132407916300,
+      "name": "windows-write-mount (basic)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132407916309,
+      "name": "windows-write-mount (crash)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132407916312,
+      "name": "windows-write-mount (ram-handoff)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132407916313,
+      "name": "windows-write-mount (delete)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 132407916323,
+      "name": "windows-write-mount (crash-restart)",
+      "status": "completed"
+    }
+  ],
+  "observed_utc": "2026-11-14T09:46:02Z"
+}

@@ -262,6 +262,11 @@ class NativeFileSession final {
   NativeInodeStorageMutationCommit write_storage_result(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={},
       const NativeAutomaticMetadata& effect={});
+  // Optional independently checked extent advice; active write ownership and
+  // commit-bound outputs are identical to write_storage_result. No worker starts.
+  NativeInodeStorageMutationCommit write_storage_with_lz4_result(const NativeFileHandle&,
+      std::uint64_t offset,std::span<const std::byte>,std::span<const NativeLz4ExtentCandidate>,
+      NativeInodeWriteOptions options={},const NativeAutomaticMetadata& effect={});
   NativeInodeStorageMutationCommit truncate_storage_result(const NativeFileHandle&,std::uint64_t bytes,
       const NativeAutomaticMetadata& effect={});
   std::optional<NativeSecurityDescriptor> security_descriptor(const NativeFileHandle&) const;

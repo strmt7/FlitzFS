@@ -140,3 +140,7 @@ Raw Windows and relocated Windows passed 93 CTest groups; CPU raw/codec and relo
 Linux ASan/UBSan/leak job 129734480608 passed 89 groups and the expanded 235 core allocation-event checks. The Windows SDK bridge itself was exercised on Windows release builds, not ASan-instrumented by that Linux job. The dependency release inventory passed with outdated_pins empty. A fresh Dependabot endpoint read through the connector was rejected HTTP 400, INVALID_ARGUMENT: endpoint not allowed; no new alert count was established.
 
 All 11 workflows completed successfully. Existing read-only mount job 129738984778 completed normal, deliberately terminated-helper and recovery phases with confirmed exits 0, 1460 and 0. All three source-bound space reports reconciled and backing-image parity held; process peaks were 6,156,288 / 6,119,424 / 5,140,480 bytes under unchanged caps. This does not exercise a mounted writable data bridge, Windows 11 client policy or live AMD path. Those product gates and physical-space, power-loss, scale/reclaim/repair/learning requirements remain open.
+
+## Optional compressed-extent advice
+
+The separate [Windows LZ4 advice bridge](NATIVE_WINDOWS_LZ4_ADVICE.md) adds explicit forwarding without changing original APIs, ownership, output preflight, publication or recovery. Its new source-bound cases are pending; normal writes start no GPU work.

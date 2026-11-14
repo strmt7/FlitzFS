@@ -1178,4 +1178,6 @@ New snapshot execution remains pending. No actual GPU compressor is enabled.
 
 The separate experimental [native LZ4 composition fixture](NATIVE_LZ4_COMPOSITION.md) adds hosted CPU candidate/fallback verification and an explicit GPU-to-native-file diagnostic. It requires matching qualification before owner execution. Normal filesystem I/O does not launch this probe. Its exact-source SDK and 13-job core qualification passed at a047952. One actual GPU payload was stored and independently CPU-recovered; useful end-to-end benefit and physical durability remain unproved.
 
-The new [asynchronous compression controller](ASYNC_LZ4_CONTROLLER.md) reuses bounded worker supervision and evidence-aware recovery while making CPU source selection terminal and independent of worker retirement. Its publishing-source tests are pending; ordinary Windows I/O remains CPU-only.
+The new [asynchronous compression controller](ASYNC_LZ4_CONTROLLER.md) reuses bounded worker supervision and evidence-aware recovery while making CPU source selection terminal and independent of worker retirement. Its 13-job core matrix and full SDK qualification passed at f08e6b8; ordinary Windows I/O remains CPU-only.
+
+The experimental [Windows LZ4 advice bridge](NATIVE_WINDOWS_LZ4_ADVICE.md) forwards optional verified candidates through owned session writes and actual SDK dispatch. Existing access, budget, metadata, count and terminal-failure rules remain; its added source-bound tests are pending. This does not start GPU work from normal writes.
