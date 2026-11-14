@@ -16,16 +16,16 @@ class EntryAssets(unittest.TestCase):
 
     def test_actual_canonical_assets(self):
         values=source_assets(REPO)
-        self.assertEqual(len(values),4)
+        self.assertEqual(len(values),7)
         self.assertEqual([row["path"] for row in values],[row["path"] for row in ASSETS])
-        self.assertEqual(sum(len(row["body"]) for row in values),7562)
+        self.assertEqual(sum(len(row["body"]) for row in values),14883)
 
     def test_new_staging_and_exact_records(self):
         with tempfile.TemporaryDirectory(prefix="flitzfs-lz4-entry-") as name:
             root=self.fixture(name)
             entry,records,proof=stage_entry(REPO,root,[],68*1024)
             self.assertEqual(entry,root/ASSETS[-1]["target"])
-            self.assertEqual(len(records),4)
+            self.assertEqual(len(records),7)
             for spec in source_assets(REPO):
                 self.assertEqual((root/spec["target"]).read_bytes(),spec["body"])
             unchanged(REPO,proof)
@@ -92,10 +92,12 @@ class DeviceObjectAdmission(unittest.TestCase):
     def reader(self,mode="ok"):
         def run(bounds,arguments,report,name,seconds):
             header="Format: elf64-amdgpu\nMachine: EM_AMDGPU\nFlags [\n  EF_AMDGPU_MACH_AMDGCN_GFX1100 (0x41)\n]\n"
-            symbols="  Name: flitzfs_candidate_lz4_wave32 (1)\n  Name: flitzfs_candidate_lz4_wave64 (2)\n"
+            symbols=("  Name: flitzfs_candidate_lz4_wave32 (1)\n  Name: flitzfs_candidate_lz4_wave64 (2)\n"
+                     "  Name: flitzfs_uniform_lz4_wave32 (3)\n  Name: flitzfs_uniform_lz4_wave64 (4)\n")
             if mode=="wrong-target":header=header.replace("GFX1100","GFX1201")
             if mode=="arch":header="Format: elf64-x86-64\nMachine: EM_X86_64\n"
             if mode=="missing":symbols=symbols.splitlines()[0]+"\n"
+            if mode=="missing-uniform":symbols="\n".join(symbols.splitlines()[:2])+"\n"
             if mode=="duplicate":symbols+=symbols
             return dict(stdout=header if "--file-header" in arguments else symbols,
                         stderr="warning" if mode=="warning" else "",
@@ -138,7 +140,7 @@ class DeviceObjectAdmission(unittest.TestCase):
                 self.assertFalse((root/"bounded-entry-device.elf").exists())
 
     def test_native_arch_symbol_warning_and_truncation_refusals(self):
-        for mode in ("arch","wrong-target","missing","duplicate","warning","truncated"):
+        for mode in ("arch","wrong-target","missing","missing-uniform","duplicate","warning","truncated"):
             with tempfile.TemporaryDirectory(prefix="flitzfs-lz4-device-") as name:
                 root,obj,image,line=self.fixture(name)
                 with self.assertRaises(ValueError):self.inspect(root,obj,line,mode)

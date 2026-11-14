@@ -285,7 +285,8 @@ def main():
                 from hipcomp_lz4_entry import unchanged
                 unchanged(REPO,report["bounded_entry_assets"])
                 required=[source_copy/"src/hipcomp_lz4_contract.hpp",source_copy/"src/hipcomp_lz4_api.hpp",
-                    source_copy/"src/LZ4Kernels.cuh",entry]
+                    source_copy/"src/LZ4Kernels.cuh",source_copy/"src/gpu_lz4_uniform.hpp",
+                    source_copy/"src/hipcomp_uniform_lz4_api.hpp",entry]
                 report["bounded_entry_dependencies"]=[
                     dict(path=path.relative_to(source_copy).as_posix(),
                         observed=dependency_header(regular(dependency,output,MIB),path))

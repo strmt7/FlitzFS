@@ -97,3 +97,20 @@ reference before enumerating failures. It preserves every operation/fault mode,
 metadata/security/reservation check and resource limit. Production source is
 unchanged by this test correction. Matching-source qualification is required;
 the original failure is not hidden by a rerun.
+
+## Qualified checkpoint at 25ea952
+
+All 13 core jobs passed in run 43584141229. Windows native passed 147 CTest
+groups, 631 complete data-bridge invariant checks, the four advised and four
+additional sealed profiles, and unchanged handle counts 123 to 123. The new
+advised campaign passed 432 cases: raw fixed59/compact14 and fast fixed57/
+compact14 observed I/O boundaries, each under three fault models. The original
+1,299 data-bridge cases and 28 original sealed cases remain separately preserved.
+
+Full SDK qualification passed at production source 7153ed1 in run 43583139445.
+The correction changes only the SDK test and documentation; Git comparison
+confirms identical production, CMake and SDK inputs. No redundant SDK or owner
+hardware trial was substituted for the corrected 147-group Windows execution.
+[Retained evidence](evidence/windows-lz4-advice-25ea952.json) binds artifacts and
+native log digests. These are CPU-only tests and modeled failures, not a new
+GPU execution, Windows 11 client or physical-power qualification.

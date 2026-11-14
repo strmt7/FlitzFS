@@ -18,7 +18,7 @@
     "owner_mounts": false,
     "driver_changes": false,
     "privileged_or_persistent_changes": false,
-    "gpu": "tiny synthetic only after exact-source isolated qualification and audited hard limits",
+    "gpu": "Resource-adaptive bounded development after exact-source isolated qualification, fresh memory/contention/work-cost admission and exact retirement; no owner stress test or driver change.",
     "staging": "small source/tool/report staging only on verified authorized HDD, never filesystem backing"
   },
   "continuation": [
@@ -164,7 +164,7 @@
           "benefit_demonstrated": false,
           "evidence": "docs/evidence/native-gpu-ram-645a1d1.json"
         },
-        "next": "Qualify the owned-session/SDK advice bridge and every modeled advised transaction boundary. Then connect the controlled helper and asynchronous controller, qualify immediate CPU selection/retirement through Windows file operations, and measure actual complete-operation gains. D01 remains open.",
+        "next": "Finish the resource-adaptive streaming transport and authenticated uniform runtime/controller integration, then connect the Windows advice consumer. The old tiny profile is a compatibility control, not a full-development ceiling. Size from actual capabilities, fresh headroom/contention, qualified costs and foreground quanta. Preserve independent CPU recovery, exact retirement and complete-operation measurements.",
         "contract": "docs/NATIVE_GPU_RAM_PROBE.md",
         "candidate_evaluation": {
           "contract": "docs/GPU_LZ4_KERNEL_REVIEW.md",
@@ -352,12 +352,35 @@
           "status": "Source-bound CPU/raw/Windows/sanitizer/SDK and all mounted VM scenarios passed. Immediate terminal CPU source selection and independent late-output validation use existing supervised transport."
         },
         "windows_lz4_advice": {
-          "status": "Publishing-source qualification pending.",
+          "status": "Qualified owned-session/SDK forwarding; no automatic GPU caller.",
+          "qualified_source": "25ea952ced346ec836e326ff3c72fdb32416c0ca",
+          "production_source": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+          "core_run": 43584141229,
+          "sdk_source": "7153ed1ef3dbbb5ca863ce886c1a388b8d07ebe6",
+          "sdk_run": 43583139445,
+          "jobs_passed": 13,
+          "jobs_total": 13,
+          "native_CTest_passed": 147,
+          "new_advised_fault_cases": 432,
+          "preserved_data_bridge_fault_cases": 1299,
+          "new_sealed_profiles": 4,
           "contract": "docs/NATIVE_WINDOWS_LZ4_ADVICE.md",
-          "behavior": "Owned session and real SDK write dispatch forward optional independently verified candidates. Pure shared budget rejection precedes metadata I/O; commit-bound outputs and original APIs remain.",
+          "evidence": "docs/evidence/windows-lz4-advice-25ea952.json",
           "gpu_executed": false,
           "owner_executed": false,
           "normal_gpu_routing": false
+        },
+        "resource_adaptive_execution": {
+          "status": "Uniform layout, resource/time window planner and separate private typed-module compilation require publishing-source qualification; adaptive transport/runtime integration remains required.",
+          "contract": "docs/ADAPTIVE_LZ4_EXECUTION.md",
+          "fixed_allocation_ceiling": false,
+          "byte_offsets": 64,
+          "layout_bytes": 80,
+          "legacy_compatibility_controls_preserved": true,
+          "configured_memory_keyed": true,
+          "qualified_grid_and_kernel_cost_required": true,
+          "normal_GPU_routing": false,
+          "owner_executed": false
         }
       }
     },
