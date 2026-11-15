@@ -7,6 +7,10 @@ flat-store-only selection/resume barrier. The separate
 factory and drives background group opportunities. Neither integration installs
 a driver, creates a mount or qualifies useful GPU operation.
 
+The [WinFsp paged factory and restart bridge](WINFSP_PAGED_VOLUMES.md) now expose
+these same sessions through the existing writable SDK callbacks, with serialized
+group opportunities. Actual mounted scheduling/qualification remains separate.
+
 ## Creation, reading and ordinary files
 
 `NativeFileSession::create_paged_volume` requires new empty qualified head/image

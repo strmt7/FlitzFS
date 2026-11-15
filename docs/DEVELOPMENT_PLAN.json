@@ -626,6 +626,14 @@
         "scope": "Typed managed head/session/advice integration and synchronous verified handoff; bounded native Model remains",
         "native_scaling_exit_closed": false,
         "automatic_maintenance": false
+      },
+      "paged_WinFsp_bridge": {
+        "contract": "docs/WINFSP_PAGED_VOLUMES.md",
+        "evidence": "docs/evidence/paged-winfsp-2026-11-15.json",
+        "creation_resume_callbacks": true,
+        "cooperative_groups": true,
+        "mounted_scheduler": false,
+        "package_exit_closed": false
       }
     },
     {
@@ -799,6 +807,14 @@
         "owned_idle_execution": true,
         "Explorer_paged_bridge": false,
         "package_exit_closed": false
+      },
+      "paged_WinFsp_bridge": {
+        "contract": "docs/WINFSP_PAGED_VOLUMES.md",
+        "evidence": "docs/evidence/paged-winfsp-2026-11-15.json",
+        "creation_resume_callbacks": true,
+        "cooperative_groups": true,
+        "mounted_scheduler": false,
+        "package_exit_closed": false
       }
     },
     {
@@ -901,6 +917,14 @@
         "live_telemetry": true,
         "owned_idle_execution": true,
         "Explorer_paged_bridge": false,
+        "package_exit_closed": false
+      },
+      "paged_WinFsp_bridge": {
+        "contract": "docs/WINFSP_PAGED_VOLUMES.md",
+        "evidence": "docs/evidence/paged-winfsp-2026-11-15.json",
+        "creation_resume_callbacks": true,
+        "cooperative_groups": true,
+        "mounted_scheduler": false,
         "package_exit_closed": false
       }
     },
@@ -1096,84 +1120,66 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "b72e72b8908d63dd4f92f576a71b43bf2f094742",
-    "contract": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md",
-    "evidence": "docs/evidence/windows-background-maintenance-2026-11-15.json",
-    "status": "Managed mirrored paged helper volumes with live local CPU/physical/commit observations, owned low-priority opportunities, full-quantum pacing, automatic group publication, foreground access and GUI editor preservation",
+    "source_base": "a3f5530fb350a56ebebc7c5f55ca14db2e29cfed",
+    "contract": "docs/WINFSP_PAGED_VOLUMES.md",
+    "evidence": "docs/evidence/paged-winfsp-2026-11-15.json",
+    "status": "Writable WinFsp managed paged factory, compatible retired-owner resume, pre-repair Windows profile validation, pinned image mapping, input/advice provenance and cooperative grouping serialized with callbacks/responses/lifecycle",
     "configurations": [
       {
         "configuration": "raw",
-        "suites": 103,
-        "application_checks": {
-          "model": 841,
-          "maintenance": 2767,
-          "gui": 76
-        },
-        "live_group_members": 3,
-        "live_groups": 1,
-        "quanta": 43,
-        "total_quantum_elapsed_ns": 25307700,
-        "maximum_quantum_elapsed_ns": 1002500
+        "selected_CTest_groups": 6,
+        "direct_SDK_regression_executables": 2,
+        "new_SDK_checks": 4290,
+        "publication_fault_cases": 492,
+        "callback_checks": 296
       },
       {
         "configuration": "asan",
-        "suites": 103,
-        "application_checks": {
-          "model": 841,
-          "maintenance": 2666,
-          "gui": 121
-        },
-        "live_group_members": 3,
-        "live_groups": 1,
-        "quanta": 33,
-        "total_quantum_elapsed_ns": 29001300,
-        "maximum_quantum_elapsed_ns": 1667100
+        "selected_CTest_groups": 6,
+        "direct_SDK_regression_executables": 2,
+        "new_SDK_checks": 4290,
+        "publication_fault_cases": 492,
+        "callback_checks": 296
       }
     ],
-    "default_helper_managed_paged": true,
-    "resource_admitted_capacity": true,
-    "provider_qualification_ceiling_bytes": 41943040,
-    "fresh_local_Windows_observations": true,
-    "processor_counter": "Processor Information(_Total)/% Processor Time; English API",
-    "cpu_window_ms": [
-      1000,
-      2000
-    ],
-    "capture_age_policy_ms": 250,
-    "CPU_ratio_units": 1000000,
-    "owned_worker_reused": true,
-    "resource_background_mode": true,
-    "complete_quantum_pacing_ppm": 10000,
-    "foreground_preparation_readback": true,
-    "editor_draft_preserved": true,
-    "notifications_coalesced": true,
-    "joined_shutdown": true,
+    "actual_user_mode_SDK_DLL": true,
+    "SDK_tag": "v2.2B5",
+    "SDK_prerelease": true,
+    "SDK_latest_development_candidate_checked": true,
+    "native_staging_without_7zip": true,
+    "Windows_global_disposition": true,
+    "root_ACL_and_times_preserved": true,
+    "retired_flat_and_paged_resume": true,
+    "pre_repair_Windows_profile_admission": true,
+    "image_resolver_pinned_once": true,
+    "callback_active_context_group_readback": true,
+    "selected_callback_write_preserved": true,
+    "foreground_and_response_busy_gates": true,
+    "canceled_and_stopped_owner_gates": true,
+    "injected_lifecycle_stop_order": true,
     "CPU_recovery": true,
-    "native_PDH_cold_initialization_diagnosed": true,
-    "core_suites_reused_after_application_only_cleanup": true,
-    "ASan_fixture_memory_headroom_divisor": 16,
-    "GPU_executed_this_round": false,
-    "ordinary_GPU_route": false,
+    "source_unchanged_after_refused_root_profile": true,
+    "supplied_observations": "modeled",
+    "actual_mounted_background_controller": false,
     "mounted": false,
-    "driver_installed": false,
+    "driver_install": false,
+    "GPU": false,
+    "ordinary_GPU_route": false,
+    "physical_power_loss": false,
     "persistent_coherence": false,
-    "automatic_compaction": false,
-    "lifetime_data_write_budget": false,
     "fully_paged_namespace": false,
-    "Explorer_product_required": true,
-    "Explorer_paged_factory_integrated": false,
+    "automatic_reclamation": false,
     "compression_record": false,
-    "physical_power_loss_qualified": false,
     "release": false,
-    "next": "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
+    "next": "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
     "full_goal_status": "active"
   },
   "next_product_slices": [
-    "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
-    "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, stable content generations, resumable scans and outcomes, and qualify many populated named files.",
-    "Implement useful actual AMD collective/ingestion work with measured complete costs, trusted automatic runtime/cost admission and independent CPU recovery. Compare stronger shifted, dictionary, multi-reference and offline learned representations on held-out heterogeneous data.",
-    "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and a justified data-work/write-amplification policy. Protect acknowledged state and immutable decoder dependencies through interruption and upgrades.",
-    "Complete Windows client semantics, install/update/rollback and multi-release compatibility, historical retirement diagnosis, security, physical fault qualification, recognized benchmarks and soak. No release without the owner."
+    "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
+    "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures.",
+    "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, content generations, continuation/outcome state and qualify large populated named-file workloads.",
+    "Implement required useful actual AMD collective/ingestion work with complete-cost measurement and automatic CPU fallback. Compare shifted, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data.",
+    "Complete Windows client semantics, physical providers, secure installation/update/rollback, multi-release compatibility, historical retirement diagnosis, security, recognized benchmarks and soak. No release without the owner."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1968,6 +1974,79 @@
     "driver_installed": false,
     "release": false,
     "next": "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
+    "full_goal_status": "active"
+  },
+  "previous_windows_background_round": {
+    "source_base": "b72e72b8908d63dd4f92f576a71b43bf2f094742",
+    "contract": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md",
+    "evidence": "docs/evidence/windows-background-maintenance-2026-11-15.json",
+    "status": "Managed mirrored paged helper volumes with live local CPU/physical/commit observations, owned low-priority opportunities, full-quantum pacing, automatic group publication, foreground access and GUI editor preservation",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "suites": 103,
+        "application_checks": {
+          "model": 841,
+          "maintenance": 2767,
+          "gui": 76
+        },
+        "live_group_members": 3,
+        "live_groups": 1,
+        "quanta": 43,
+        "total_quantum_elapsed_ns": 25307700,
+        "maximum_quantum_elapsed_ns": 1002500
+      },
+      {
+        "configuration": "asan",
+        "suites": 103,
+        "application_checks": {
+          "model": 841,
+          "maintenance": 2666,
+          "gui": 121
+        },
+        "live_group_members": 3,
+        "live_groups": 1,
+        "quanta": 33,
+        "total_quantum_elapsed_ns": 29001300,
+        "maximum_quantum_elapsed_ns": 1667100
+      }
+    ],
+    "default_helper_managed_paged": true,
+    "resource_admitted_capacity": true,
+    "provider_qualification_ceiling_bytes": 41943040,
+    "fresh_local_Windows_observations": true,
+    "processor_counter": "Processor Information(_Total)/% Processor Time; English API",
+    "cpu_window_ms": [
+      1000,
+      2000
+    ],
+    "capture_age_policy_ms": 250,
+    "CPU_ratio_units": 1000000,
+    "owned_worker_reused": true,
+    "resource_background_mode": true,
+    "complete_quantum_pacing_ppm": 10000,
+    "foreground_preparation_readback": true,
+    "editor_draft_preserved": true,
+    "notifications_coalesced": true,
+    "joined_shutdown": true,
+    "CPU_recovery": true,
+    "native_PDH_cold_initialization_diagnosed": true,
+    "core_suites_reused_after_application_only_cleanup": true,
+    "ASan_fixture_memory_headroom_divisor": 16,
+    "GPU_executed_this_round": false,
+    "ordinary_GPU_route": false,
+    "mounted": false,
+    "driver_installed": false,
+    "persistent_coherence": false,
+    "automatic_compaction": false,
+    "lifetime_data_write_budget": false,
+    "fully_paged_namespace": false,
+    "Explorer_product_required": true,
+    "Explorer_paged_factory_integrated": false,
+    "compression_record": false,
+    "physical_power_loss_qualified": false,
+    "release": false,
+    "next": "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
     "full_goal_status": "active"
   }
 }

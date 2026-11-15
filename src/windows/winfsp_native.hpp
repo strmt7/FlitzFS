@@ -2,6 +2,7 @@
 #include "native_file_info.hpp"
 #include "native_deferred_write.hpp"
 #include "winfsp_origin.hpp"
+#include "flitzfs/native_maintenance.hpp"
 #include <filesystem>
 #include <memory>
 namespace flitzfs {
@@ -19,6 +20,11 @@ struct HostedIdleMaintenanceResult {
   HostedIdleMaintenanceState state;
   NativeVolumeHeadInfo head{};
 };
+enum class WinFspGroupMaintenanceState {busy,unavailable,unchanged,advanced};
+struct WinFspGroupMaintenanceResult {
+  WinFspGroupMaintenanceState state=WinFspGroupMaintenanceState::unavailable;
+  NativeMaintenanceProgress progress;
+};
 class WinFspNativeWritable final {
  public:
   static std::unique_ptr<WinFspNativeWritable> create_new_hosted(
@@ -28,6 +34,26 @@ class WinFspNativeWritable final {
       std::shared_ptr<StoreByteIo> empty_head,StoreIdentity volume_identity,
       std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
       StoreCompressionOptions foreground={});
+  // New empty mirrored paged volume with the SAME writable SDK callbacks,
+  // Windows-global disposition, protected owner ACLs and input provenance.
+  // Optional advice is a distinct qualified reserved backend, never a path.
+  static std::unique_ptr<WinFspNativeWritable> create_managed_paged(
+      std::shared_ptr<StoreByteIo> empty_head,StoreIdentity volume_identity,
+      std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
+      PagedStoreLimits,StoreCompressionOptions foreground={},
+      std::shared_ptr<StoreByteIo> empty_advice={});
+  // Qualified exact head epoch/resolver after actual previous-owner retirement.
+  // Retains supported flat/paged representations and stored root metadata/ACLs.
+  static std::unique_ptr<WinFspNativeWritable> resume_managed_retired(
+      std::shared_ptr<StoreByteIo> head,StoreIdentity volume_identity,std::uint64_t expected_epoch,
+      const NativeVolumeImageResolver&,StoreCompressionOptions foreground={},
+      std::shared_ptr<StoreByteIo> advice={},std::uint64_t expected_advice_sequence=0);
+  // Trusted low-priority controller opportunity, not a filesystem callback.
+  // Try-lock/refuse foreground or deferred publication before backing access.
+  // Caller supplies fresh observations and owns serialization with stop.
+  WinFspGroupMaintenanceResult advance_group_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
+  bool group_maintenance_pending() const;
+  void cancel_group_maintenance();
   HostedVolumeMaintenanceResult recompress_managed_hosted(
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
       StoreCompressionOptions candidate={});

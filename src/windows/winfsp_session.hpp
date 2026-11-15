@@ -55,6 +55,8 @@ class WinFspNativeWritable;
 struct HostedVolumeMaintenanceResult;
 enum class HostedIdleMaintenanceAction;
 struct HostedIdleMaintenanceResult;
+struct WinFspGroupMaintenanceResult;
+struct NativeMaintenanceObservation;
 struct NativeWriteMountPlan {
   std::wstring directory;
   std::uint32_t lifetime_seconds=15;
@@ -82,6 +84,9 @@ class WinFspNativeSession final {
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
       StoreCompressionOptions candidate={});
   HostedIdleMaintenanceResult idle_recompression_hosted(HostedIdleMaintenanceAction);
+  WinFspGroupMaintenanceResult advance_group_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
+  bool group_maintenance_pending() const;
+  void cancel_group_maintenance();
   void stop() noexcept;
   SessionState state() const noexcept{return state_;}
   bool requires_offline() const noexcept;

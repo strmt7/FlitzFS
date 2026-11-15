@@ -12,9 +12,10 @@ after content changes; callers no longer supply candidate file lists.
 
 This helper is an integration stage, not the final file browser. **Normal Windows
 Explorer/Win32 access remains a required product feature.** The existing WinFsp
-writable callback layer already owns `NativeFileSession`; its managed factory
-still creates flat storage. Connecting that factory and its synchronized mounted
-lifecycle to the managed paged engine and background opportunities is next work.
+writable callback layer already owns `NativeFileSession` and now has an explicit
+[paged factory and cooperative group entry point](WINFSP_PAGED_VOLUMES.md).
+Connecting actual controller events, resource priority and its synchronized
+mounted lifecycle remains next work.
 The tray controls lifecycle/status; it must not become a separate filesystem or
 be required for ordinary file reads/writes. See [the Windows product contract](WINDOWS_PRODUCT.md).
 

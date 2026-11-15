@@ -784,6 +784,14 @@ if(FLITZFS_BUILD_WINFSP)
   if(FLITZFS_BUILD_TESTS)
     # Hosted, user-mode callbacks and injected lifecycle only. No real provider
     # is selected; these tests never create a volume/dispatcher/mount/driver.
+    add_executable(flitzfs_winfsp_paged_tests tests/test_winfsp_paged.cpp)
+    target_link_libraries(flitzfs_winfsp_paged_tests PRIVATE flitzfs_winfsp Threads::Threads)
+    add_custom_command(TARGET flitzfs_winfsp_paged_tests POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_winfsp_paged_tests>")
+    foreach(mode callbacks faults-4096 faults-65536)
+      add_test(NAME bounded_winfsp_paged_${mode} COMMAND flitzfs_winfsp_paged_tests --${mode})
+      set_tests_properties(bounded_winfsp_paged_${mode} PROPERTIES TIMEOUT 120)
+    endforeach()
     foreach(native_target native native_session origin)
       add_executable(flitzfs_winfsp_${native_target}_tests tests/test_winfsp_${native_target}.cpp)
       target_link_libraries(flitzfs_winfsp_${native_target}_tests PRIVATE flitzfs_winfsp Threads::Threads)

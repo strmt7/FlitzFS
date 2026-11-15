@@ -359,6 +359,9 @@ class NativeFileSession final {
   NativeFsCommit flush(const NativeFileHandle&);
   NativeFilesystemSnapshot snapshot() const;
   NativeSessionStats stats() const noexcept;
+  // Cached advisory change detection only: zero for terminal/moved state.
+  // No backing read, authorization or independently verified health claim.
+  std::uint64_t namespace_sequence() const noexcept;
   bool poisoned() const noexcept;
  private:
   friend class NativeGroupMaintenance;

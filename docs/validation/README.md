@@ -30,6 +30,7 @@ not establish speed or size superiority over other filesystems.
 | Where are immutable receipts? | [Evidence directory](../evidence/) |
 | What qualifies automatic group discovery? | [Controller contract](../AUTOMATIC_GROUP_MAINTENANCE.md), [source-bound CPU/model evidence](../evidence/automatic-group-maintenance-2026-11-15.json) |
 | What qualifies live helper idle work? | [Windows background contract](../WINDOWS_BACKGROUND_MAINTENANCE.md), [source-bound live/GUI evidence](../evidence/windows-background-maintenance-2026-11-15.json) |
+| What qualifies paged writable SDK callbacks? | [Paged adapter contract](../WINFSP_PAGED_VOLUMES.md), [runtime/model evidence](../evidence/paged-winfsp-2026-11-15.json) |
 | What does the native store measurement cover? | [Native measurements](../NATIVE_STORE_MEASUREMENTS.md) |
 | What failure model is promised? | [Persistence model](../PERSISTENCE_MODEL.md), [resilient store design](../RESILIENT_STORE_DESIGN.md) |
 

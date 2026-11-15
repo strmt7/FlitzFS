@@ -1185,5 +1185,8 @@ NativeSessionStats NativeFileSession::stats() const noexcept {
   for(const auto id:impl_->latched)if(id)++result.latched_inodes;
   return result;
 }
+std::uint64_t NativeFileSession::namespace_sequence() const noexcept {
+  return poisoned()?0:impl_->writer.maintenance_sequence();
+}
 bool NativeFileSession::poisoned() const noexcept{return !impl_ || impl_->terminal || impl_->writer.poisoned();}
 }

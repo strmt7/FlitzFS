@@ -110,7 +110,7 @@
   ],
   "next_implementation": {
     "contract": "docs/RELEASE_EXECUTION_PLAN.md",
-    "next": "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment. Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, stable content generations, resumable scans and outcomes, and qualify many populated named files."
+    "next": "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization. Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
@@ -130,7 +130,8 @@
     "cooperative_shared_base": "Owned one-extent CPU preparation, selected-object revisions and current-namespace publication preserve unrelated writes. No automatic scheduler, persistent restart or AMD collective execution.",
     "managed_paged_volumes": "Typed managed mirrored paged sessions, contexts, advice and verified handoff are integrated into the helper. Explorer-facing factories, paged native access, persistent coherence and physical qualification remain open.",
     "automatic_group_maintenance": "Bounded managed-paged CPU content discovery and supplied-observation gating; no live Windows priority/idle integration, persistent coherence, ordinary GPU route or automatic compaction.",
-    "Windows_background_helper": "Live all-processor/memory collection, current-thread resource background mode, measured pacing and auto groups in the unmounted paged helper. Explorer-facing paged factories, persistent scalable coherence and useful ordinary GPU operation remain open."
+    "Windows_background_helper": "Live all-processor/memory collection, current-thread resource background mode, measured pacing and auto groups in the unmounted paged helper. Explorer-facing paged factories, persistent scalable coherence and useful ordinary GPU operation remain open.",
+    "paged_WinFsp_bridge": "Actual user-mode SDK callbacks support mirrored managed paged creation/resume and cooperative groups with Windows profile/ownership gates. Real mounted scheduling, staged reclamation and kernel/client qualification remain open."
   },
   "safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
@@ -1014,11 +1015,11 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
-    "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, stable content generations, resumable scans and outcomes, and qualify many populated named files.",
-    "Implement useful actual AMD collective/ingestion work with measured complete costs, trusted automatic runtime/cost admission and independent CPU recovery. Compare stronger shifted, dictionary, multi-reference and offline learned representations on held-out heterogeneous data.",
-    "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and a justified data-work/write-amplification policy. Protect acknowledged state and immutable decoder dependencies through interruption and upgrades.",
-    "Complete Windows client semantics, install/update/rollback and multi-release compatibility, historical retirement diagnosis, security, physical fault qualification, recognized benchmarks and soak. No release without the owner."
+    "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
+    "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures.",
+    "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, content generations, continuation/outcome state and qualify large populated named-file workloads.",
+    "Implement required useful actual AMD collective/ingestion work with complete-cost measurement and automatic CPU fallback. Compare shifted, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data.",
+    "Complete Windows client semantics, physical providers, secure installation/update/rollback, multi-release compatibility, historical retirement diagnosis, security, recognized benchmarks and soak. No release without the owner."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1809,6 +1810,61 @@
     "physical_power_loss_qualified": false,
     "release": false,
     "next": "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
+    "full_goal_status": "active"
+  },
+  "paged_WinFsp_checkpoint": {
+    "source_base": "a3f5530fb350a56ebebc7c5f55ca14db2e29cfed",
+    "contract": "docs/WINFSP_PAGED_VOLUMES.md",
+    "evidence": "docs/evidence/paged-winfsp-2026-11-15.json",
+    "status": "Writable WinFsp managed paged factory, compatible retired-owner resume, pre-repair Windows profile validation, pinned image mapping, input/advice provenance and cooperative grouping serialized with callbacks/responses/lifecycle",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "selected_CTest_groups": 6,
+        "direct_SDK_regression_executables": 2,
+        "new_SDK_checks": 4290,
+        "publication_fault_cases": 492,
+        "callback_checks": 296
+      },
+      {
+        "configuration": "asan",
+        "selected_CTest_groups": 6,
+        "direct_SDK_regression_executables": 2,
+        "new_SDK_checks": 4290,
+        "publication_fault_cases": 492,
+        "callback_checks": 296
+      }
+    ],
+    "actual_user_mode_SDK_DLL": true,
+    "SDK_tag": "v2.2B5",
+    "SDK_prerelease": true,
+    "SDK_latest_development_candidate_checked": true,
+    "native_staging_without_7zip": true,
+    "Windows_global_disposition": true,
+    "root_ACL_and_times_preserved": true,
+    "retired_flat_and_paged_resume": true,
+    "pre_repair_Windows_profile_admission": true,
+    "image_resolver_pinned_once": true,
+    "callback_active_context_group_readback": true,
+    "selected_callback_write_preserved": true,
+    "foreground_and_response_busy_gates": true,
+    "canceled_and_stopped_owner_gates": true,
+    "injected_lifecycle_stop_order": true,
+    "CPU_recovery": true,
+    "source_unchanged_after_refused_root_profile": true,
+    "supplied_observations": "modeled",
+    "actual_mounted_background_controller": false,
+    "mounted": false,
+    "driver_install": false,
+    "GPU": false,
+    "ordinary_GPU_route": false,
+    "physical_power_loss": false,
+    "persistent_coherence": false,
+    "fully_paged_namespace": false,
+    "automatic_reclamation": false,
+    "compression_record": false,
+    "release": false,
+    "next": "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
     "full_goal_status": "active"
   }
 }

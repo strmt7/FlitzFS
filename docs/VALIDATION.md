@@ -1,5 +1,13 @@
 # Validation ledger — experimental release 0.2
 
+## WinFsp paged-volume callbacks — 15 November 2026
+
+[Contract](WINFSP_PAGED_VOLUMES.md) and
+[source-bound evidence](evidence/paged-winfsp-2026-11-15.json) record real
+user-mode SDK callback/group behavior, flat/paged resume, modeled interruption
+recovery and injected lifecycle retirement. SDK runtime execution is now
+distinguished from syntax-only evidence; a driver or real mount is not invoked.
+
 ## Windows helper background integration — 15 November 2026
 
 [Contract](WINDOWS_BACKGROUND_MAINTENANCE.md) and

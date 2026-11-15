@@ -30,6 +30,14 @@ choose useful implementation work, fix failures at their cause, and reuse valid
 unchanged evidence. Do not repeat an unchanged diagnostic or add more isolated
 probes in place of product integration. Do not ask for permission already given.
 
+The owner subsequently authorized necessary 7-Zip/filesystem-driver setup
+silently and reaffirmed full permission to continue development. Handle required
+setup autonomously; do not make it or future deployment qualification a blocker
+for independent development. Prefer the current read-only MSI/native cabinet
+extractor when staging the WinFsp SDK; it needs no 7-Zip or driver installation.
+Keep actual artifact/host-stability evidence and data protection in scope, and
+leave GPU/unrelated drivers untouched. Do not infer approval to release.
+
 ## Data and host protection
 
 - Preserve all existing user files and changes. Never format, repartition,
@@ -196,6 +204,7 @@ cover narrower contracts. In particular:
   docs/NATIVE_FILE_LIFETIME.md, docs/VOLUME_SESSION.md, docs/COMPACTED_COPY.md,
   docs/RECOMPRESSION.md, docs/OPTIMIZATION_STATE.md, docs/COLD_COMPRESSION_RESEARCH.md.
 - Windows callbacks and pending ownership: docs/WINFSP_CALLBACKS.md,
+  docs/WINFSP_PAGED_VOLUMES.md,
   docs/NATIVE_WRITABLE_ADAPTER.md, docs/OWNED_DEFERRED_WRITES.md,
   docs/NATIVE_WINDOWS_LZ4_ADVICE.md, docs/MOUNT_PROCESS_ISOLATION.md.
 - GPU/runtime/worker boundaries: docs/HIP_BATCH_PLAN.md, docs/GPU_RECOVERY.md,

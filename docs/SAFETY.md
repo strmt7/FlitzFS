@@ -8,6 +8,13 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The [WinFsp paged bridge](WINFSP_PAGED_VOLUMES.md) admits Windows metadata/ACLs
+before resume repair, pins the image mapping and serializes group opportunities
+with callbacks and response ownership. Its real user-mode SDK callback tests
+use memory backends and injected lifecycle functions. Those results do not
+qualify a real mount or a driver installation. SDK staging reads MSI streams
+without installation and selectively extracts no kernel payload.
+
 The [Windows helper](WINDOWS_BACKGROUND_MAINTENANCE.md) now uses live local
 resource observations and current-thread background resource mode for pending
 groups. Failures disable optional maintenance while retaining volume ownership.

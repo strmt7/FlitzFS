@@ -63,27 +63,10 @@ try {
 if ($total -ne $recipe.bytes -or (Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
     throw 'WinFsp SDK hash does not match the pinned official release.'
 }
-$seven = (Get-Command 7z.exe -ErrorAction Stop).Source
-$unpacked = Join-Path $root 'unpacked'
-& $seven x $msi "-o$unpacked" -aos -y | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'MSI archive extraction failed.' }
-$cabinets = @(Get-ChildItem -LiteralPath $unpacked -Recurse -File -Filter '*.cab')
-if ($cabinets.Count -gt 16) { throw 'Unexpected cabinet count.' }
-foreach ($cabinet in $cabinets) {
-    $destination = Join-Path $root ('cab-' + [guid]::NewGuid().ToString('N'))
-    [IO.Directory]::CreateDirectory($destination) | Out-Null
-    & "$env:SystemRoot\System32\expand.exe" $cabinet.FullName '-F:*' $destination | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'SDK cabinet extraction failed.' }
-}
-$all = @(Get-ChildItem -LiteralPath $root -Recurse -File)
-if ($all.Count -gt 2048 -or ($all | Measure-Object Length -Sum).Sum -gt 64MB) {
-    throw 'Unexpected SDK extracted size.'
-}
 # Windows Installer database mode 0 is read-only. No install/custom actions run.
 $installer = New-Object -ComObject WindowsInstaller.Installer
 $database = $installer.OpenDatabase($msi, 0)
-$view = $database.OpenView('SELECT `File`, `FileName`, `Component_` FROM `File`')
-$view.Execute()
+$view = $null
 $wanted = @{
     'winfsp.h' = 'include/winfsp/winfsp.h'
     'fsctl.h' = 'include/winfsp/fsctl.h'
@@ -101,23 +84,79 @@ $components = @{
 $sdk = Join-Path $root 'sdk'
 $copied = @{}
 try {
+    # Embedded cabinet streams are database bytes, not an installation. Native
+    # ReadStream format 1 returns one byte per BSTR character; strict Latin-1
+    # conversion preserves NUL/high bytes and rejects unexpected characters.
+    $encoding = [Text.Encoding]::GetEncoding(28591, [Text.EncoderExceptionFallback]::new(), [Text.DecoderExceptionFallback]::new())
+    $cabinets = [Collections.Generic.List[object]]::new()
+    $media = $database.OpenView('SELECT `Cabinet`, `LastSequence` FROM `Media` ORDER BY `DiskId`')
+    try {
+        $media.Execute()
+        while ($row = $media.Fetch()) {
+            try {
+                $name = $row.StringData(1)
+                $lastSequence = $row.IntegerData(2)
+                if ($cabinets.Count -ge 16 -or $name -cnotmatch '^#[A-Za-z0-9_-][A-Za-z0-9_.-]{0,79}\.cab$' -or
+                    $name.Contains('..') -or $lastSequence -le 0 -or
+                    ($cabinets.Count -and $lastSequence -le $cabinets[$cabinets.Count-1].LastSequence)) {
+                    throw 'Unexpected embedded cabinet descriptor.'
+                }
+                $streamName = $name.Substring(1)
+                $cabinetPath = Join-Path $root $streamName
+                $streamView = $database.OpenView("SELECT ``Data`` FROM ``_Streams`` WHERE ``Name`` = '$streamName'")
+                $record = $null; $outputCabinet = $null
+                try {
+                    $streamView.Execute(); $record = $streamView.Fetch()
+                    if (-not $record) { throw 'Embedded cabinet stream missing.' }
+                    $outputCabinet = [IO.File]::Open($cabinetPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+                    $cabinetBytes = 0L
+                    while ($chunk = $record.ReadStream(1, 65536, 1)) {
+                        $bytes = $encoding.GetBytes($chunk); $cabinetBytes += $bytes.Length
+                        if ($bytes.Length -ne $chunk.Length -or $cabinetBytes -gt $recipe.bytes) { throw 'Cabinet byte budget.' }
+                        $outputCabinet.Write($bytes, 0, $bytes.Length)
+                    }
+                    if (-not $cabinetBytes) { throw 'Empty embedded cabinet.' }
+                    $cabinets.Add([pscustomobject]@{ Path=$cabinetPath; LastSequence=$lastSequence })
+                } finally {
+                    if ($outputCabinet) { $outputCabinet.Dispose() }
+                    if ($record) { [Runtime.InteropServices.Marshal]::FinalReleaseComObject($record) | Out-Null }
+                    $streamView.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($streamView) | Out-Null
+                }
+            } finally { [Runtime.InteropServices.Marshal]::FinalReleaseComObject($row) | Out-Null }
+        }
+    } finally { $media.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($media) | Out-Null }
+    if (-not $cabinets.Count) { throw 'No embedded SDK cabinet.' }
+    $destination = Join-Path $root 'selected-payloads'
+    [IO.Directory]::CreateDirectory($destination) | Out-Null
+    $expand = Join-Path ([Environment]::SystemDirectory) 'expand.exe'
+    if (-not (Test-Path -LiteralPath $expand -PathType Leaf)) { throw 'Native cabinet extraction unavailable.' }
+    $view = $database.OpenView('SELECT `File`, `FileName`, `Component_`, `Sequence`, `FileSize` FROM `File`')
+    $view.Execute()
     while ($record = $view.Fetch()) {
+      try {
         $key = $record.StringData(1)
         $filename = ($record.StringData(2) -split '\|')[-1]
         if (-not $wanted.ContainsKey($filename)) { continue }
         if ($record.StringData(3) -ne $components[$filename]) { continue }
         if ($copied.ContainsKey($filename)) { throw "Ambiguous SDK table entry: $filename" }
-        $matches = @($all | Where-Object { $_.Name -eq $key })
-        if ($matches.Count -eq 0) { $matches = @($all | Where-Object { $_.Name -eq $filename }) }
-        if ($matches.Count -ne 1) { throw "Expected exactly one extracted payload for $filename ($key); found $($matches.Count)." }
+        $sequence = $record.IntegerData(4); $fileBytes = $record.IntegerData(5)
+        if ($key -cnotmatch '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,159}$' -or $key.Contains('..') -or
+            $sequence -le 0 -or $fileBytes -le 0 -or $fileBytes -gt 8MB) { throw 'Unexpected SDK payload descriptor.' }
+        $cabinet = @($cabinets | Where-Object { $_.LastSequence -ge $sequence } | Select-Object -First 1)
+        if ($cabinet.Count -ne 1) { throw 'SDK payload has no cabinet.' }
+        $source = Join-Path $destination $key
+        if (Test-Path -LiteralPath $source) { throw 'SDK payload destination already exists.' }
+        & $expand $cabinet[0].Path "-F:$key" $destination | Out-Null
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $source -PathType Leaf) -or
+            (Get-Item -LiteralPath $source).Length -ne $fileBytes) { throw 'Selective SDK extraction failed.' }
         $target = Join-Path $sdk $wanted[$filename]
         [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target)) | Out-Null
-        [IO.File]::Copy($matches[0].FullName, $target, $false)
+        [IO.File]::Copy($source, $target, $false)
         $copied[$filename] = $true
+      } finally { [Runtime.InteropServices.Marshal]::FinalReleaseComObject($record) | Out-Null }
     }
 } finally {
-    $view.Close()
-    [Runtime.InteropServices.Marshal]::FinalReleaseComObject($view) | Out-Null
+    if ($view) { $view.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($view) | Out-Null }
     [Runtime.InteropServices.Marshal]::FinalReleaseComObject($database) | Out-Null
     [Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) | Out-Null
 }

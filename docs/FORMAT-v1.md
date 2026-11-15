@@ -546,3 +546,8 @@ The [Windows background helper](WINDOWS_BACKGROUND_MAINTENANCE.md) now selects
 the existing managed paged/shared-base encodings for new volumes. Resource
 observations, pacing, notification generations and CPU window policy remain
 volatile. This introduces no additional wire capability, codec or product number.
+
+The [WinFsp paged bridge](WINFSP_PAGED_VOLUMES.md) selects existing managed
+head/paged/shared-base encodings and preserves supported flat resume. Cached
+namespace sequence diagnostics and controller opportunity state are volatile;
+this bridge introduces no stored encoding, capability or product number.

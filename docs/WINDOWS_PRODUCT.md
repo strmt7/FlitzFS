@@ -13,8 +13,9 @@ Normal Windows Explorer access through a mounted volume is required. The helper
 and tray manage that volume; they do not replace Explorer with a private browser.
 WinFsp provides a kernel driver/user-mode bridge and Windows shell integration.
 The existing FlitzFS writable adapter already owns the native session. Its
-managed paged factory, mounted low-priority maintenance, lifecycle and broad
-Windows-client qualification remain work to integrate with the
+managed paged factory and cooperative group API are now implemented in the
+[paged callback bridge](WINFSP_PAGED_VOLUMES.md). Mounted low-priority scheduling,
+lifecycle and broad Windows-client qualification remain work to integrate with the
 [current helper engine](WINDOWS_BACKGROUND_MAINTENANCE.md). No current driver
 installation is qualified by an unmounted helper test.
 

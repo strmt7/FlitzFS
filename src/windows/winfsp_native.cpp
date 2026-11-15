@@ -81,6 +81,21 @@ std::vector<std::byte> owner_security() {
     throw std::runtime_error("owner descriptor");
   return descriptor(result.value);
 }
+UINT64 admit_windows_snapshot(const NativeFilesystemSnapshot& view) {
+  if(view.needs_session_recovery())throw std::runtime_error("restart requires resolved old-session state");
+  UINT64 created=0;std::vector<std::uint64_t> pending{1};
+  for(std::size_t at=0;at<pending.size();++at) {
+    if(pending.size()>kNativeMaxNodes)throw std::runtime_error("restart namespace bound");
+    const auto inode=pending[at];const auto state=view.allocation_info(inode);FSP_FSCTL_FILE_INFO info{};
+    if(!encode_native_file_info(state,cache_policy,info))throw std::runtime_error("unqualified restart FileInfo/reservation");
+    const auto security=view.security_descriptor(inode);
+    if(!security)throw std::runtime_error("missing restart descriptor");
+    (void)descriptor(const_cast<std::byte*>(security->data()));
+    if(inode==1){created=state.info.basic->creation_time;if(!created)throw std::runtime_error("missing original volume creation time");}
+    if(state.info.directory)for(const auto& child:view.list_inode(inode))pending.push_back(child.inode);
+  }
+  return created;
+}
 std::wstring_view bounded(PCWSTR value,std::size_t maximum=241) {
   if(!value)throw NativeFsError(NativeFsErrorCode::invalid_path,"null Windows name");
   for(std::size_t i=0;i<=maximum;++i)if(!value[i])return {value,i};
@@ -117,6 +132,8 @@ struct WinFspNativeWritable::Impl {
   std::atomic<unsigned> stopped{0};
   // Declared after session/control/offline so the service retires first.
   std::unique_ptr<NativeDeferredWriteService> deferred;
+  std::unique_ptr<NativeGroupMaintenance> groups;
+  std::uint64_t groups_completed_sequence=0;
   bool callbacks_bound=false;
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
   Impl(NativeFileSession s,StoreIdentity id,UINT64 stamp):session(std::move(s)),identity(id),created(stamp) {
@@ -481,25 +498,8 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_retired_hoste
     if(objects.identity()!=id||objects.info().generation!=generation)
       throw std::runtime_error("hosted restart identity/generation mismatch");
     auto view=NativeFilesystemSnapshot::open(std::move(objects));view.verify_all();
-    if(view.needs_session_recovery())
-      throw std::runtime_error("hosted restart requires resolved old-session state");
     // Admit the complete Windows profile BEFORE resume can repair a root.
-    std::vector<std::uint64_t> pending{1};
-    for(std::size_t at=0;at<pending.size();++at) {
-      if(pending.size()>kNativeMaxNodes)throw std::runtime_error("restart namespace bound");
-      const auto inode=pending[at];const auto state=view.allocation_info(inode);
-      FSP_FSCTL_FILE_INFO info{};
-      if(!encode_native_file_info(state,cache_policy,info))
-        throw std::runtime_error("unqualified restart FileInfo/reservation");
-      const auto security=view.security_descriptor(inode);
-      if(!security)throw std::runtime_error("missing restart descriptor");
-      (void)descriptor(const_cast<std::byte*>(security->data()));
-      if(inode==1) {
-        created=state.info.basic->creation_time;
-        if(!created)throw std::runtime_error("missing original volume creation time");
-      }
-      if(state.info.directory)for(const auto& child:view.list_inode(inode))pending.push_back(child.inode);
-    }
+    created=admit_windows_snapshot(view);
   }
   auto objects=ObjectStoreWriter::resume(io,id,generation,compression);
   auto writer=NativeFilesystemWriter::resume(std::move(objects)); // Never fabricate old Cleanup.
@@ -517,6 +517,76 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_hoste
       foreground,{},NativeDispositionPolicy::windows_global,root);
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(
       std::make_unique<Impl>(std::move(session),volume,stamp)));
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_paged(
+    std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::shared_ptr<StoreByteIo> image,
+    StoreIdentity image_id,PagedStoreLimits limits,StoreCompressionOptions foreground,
+    std::shared_ptr<StoreByteIo> advice) {
+  const auto security=owner_security();const auto stamp=native_cleanup_utc();
+  const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
+  auto session=NativeFileSession::create_paged_volume(std::move(head),volume,std::move(image),image_id,
+      limits,foreground,NativeDispositionPolicy::windows_global,root);
+  session.enable_workload_accounting();
+  if(advice)session.create_budgeted_optimization_area(std::move(advice),1);
+  auto impl=std::make_unique<Impl>(std::move(session),volume,stamp);
+  impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
+  return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_retired(
+    std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
+    const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground,
+    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence) {
+  if(bool(advice)!=bool(advice_sequence))throw std::invalid_argument("exact advisory sequence required");
+  std::shared_ptr<StoreByteIo> selected;StoreIdentity selected_id{};
+  const NativeVolumeImageResolver pinned=[&](const StoreIdentity& id){
+    if(!selected){selected=resolver(id);selected_id=id;}
+    else if(id!=selected_id)throw std::invalid_argument("restart image mapping changed");
+    return selected;
+  };
+  const auto view=NativeVolumeHeadView::open(head,volume,pinned);
+  if(view.info().selection.epoch!=epoch)throw std::invalid_argument("exact head epoch required");
+  const auto created=admit_windows_snapshot(view.filesystem());
+  const bool grouped=view.filesystem().image_storage().kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled;
+  auto session=NativeFileSession::resume_volume(std::move(head),volume,epoch,pinned,foreground,NativeDispositionPolicy::windows_global);
+  if(advice)session.resume_budgeted_optimization_area(std::move(advice),advice_sequence,1);
+  auto impl=std::make_unique<Impl>(std::move(session),volume,created);
+  if(grouped)
+    impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
+  return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
+}
+bool WinFspNativeWritable::group_maintenance_pending() const {
+  std::unique_lock guard(impl_->control,std::try_to_lock);
+  // A busy control is not proof of quiescence. This cached query performs no
+  // storage I/O and also sees publications by the deferred service thread.
+  return !guard || (impl_->groups && !requires_offline() && !dispatcher_stopped() &&
+      !impl_->session.poisoned() && impl_->session.namespace_sequence()!=impl_->groups_completed_sequence);
+}
+void WinFspNativeWritable::cancel_group_maintenance() {
+  std::lock_guard guard(impl_->control);impl_->groups.reset();
+}
+WinFspGroupMaintenanceResult WinFspNativeWritable::advance_group_maintenance(
+    const NativeMaintenanceObservation& observed,std::uint64_t now) {
+  std::unique_lock guard(impl_->control,std::try_to_lock);
+  if(!guard || impl_->foreground.load(std::memory_order_acquire)!=0 ||
+      (impl_->deferred&&(impl_->deferred->publication_pending_locked() || impl_->deferred->stats_locked().worker_busy)))
+    return {WinFspGroupMaintenanceState::busy};
+  if(impl_->deferred && !impl_->deferred->stats_locked().retirement_confirmed) {
+    impl_->groups.reset();
+    return {WinFspGroupMaintenanceState::unavailable};
+  }
+  if(!impl_->groups || requires_offline() || dispatcher_stopped() || impl_->session.poisoned()) {
+    impl_->groups.reset();
+    return {WinFspGroupMaintenanceState::unavailable};
+  }
+  if(impl_->session.namespace_sequence()==impl_->groups_completed_sequence)
+    return {WinFspGroupMaintenanceState::unchanged,impl_->groups->progress()};
+  auto progress=impl_->groups->advance(observed,now);
+  if(progress.phase==NativeMaintenancePhase::idle)impl_->groups_completed_sequence=impl_->session.namespace_sequence();
+  if(progress.phase==NativeMaintenancePhase::failed) {
+    if(impl_->session.poisoned())impl_->offline.store(true,std::memory_order_release);
+    impl_->groups.reset();
+  }
+  return {WinFspGroupMaintenanceState::advanced,progress};
 }
 HostedVolumeMaintenanceResult WinFspNativeWritable::recompress_managed_hosted(
     std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) {

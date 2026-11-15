@@ -136,6 +136,19 @@ HostedIdleMaintenanceResult WinFspNativeSession::idle_recompression_hosted(Hoste
     throw std::runtime_error("mounted session is unavailable for idle maintenance");
   return adapter_->idle_recompression_hosted(action);
 }
+WinFspGroupMaintenanceResult WinFspNativeSession::advance_group_maintenance(
+    const NativeMaintenanceObservation& observed,std::uint64_t now) {
+  if(state_!=SessionState::running||!adapter_||requires_offline()||dispatcher_stopped())
+    throw std::runtime_error("session is unavailable for group maintenance");
+  return adapter_->advance_group_maintenance(observed,now);
+}
+bool WinFspNativeSession::group_maintenance_pending() const {
+  return state_==SessionState::running && adapter_ && !requires_offline() && !dispatcher_stopped() &&
+      adapter_->group_maintenance_pending();
+}
+void WinFspNativeSession::cancel_group_maintenance() {
+  if(adapter_)adapter_->cancel_group_maintenance();
+}
 void WinFspNativeSession::release() noexcept {
   if(!filesystem_)return;
   if(adapter_){

@@ -2,6 +2,13 @@
 
 ## Current local development
 
+The [WinFsp writable paged bridge](WINFSP_PAGED_VOLUMES.md) now exposes the same
+managed engine, groups and supported-format resume through real SDK callbacks.
+It gates cooperative opportunities against foreground calls, deferred responses
+and retirement. Actual controller event/scheduling integration, disposable
+memory-backed mounted qualification and automatic staged reclamation are next.
+There is no new mounted/GPU/physical or release claim.
+
 The [Windows background integration](WINDOWS_BACKGROUND_MAINTENANCE.md) now drives
 automatic groups on admitted paged helper volumes using live telemetry and
 resource background mode. Foreground commands and joined shutdown share the

@@ -1,0 +1,1570 @@
+{
+  "schema": 1,
+  "utc": "2026-11-15T22:24:08.261249+00:00",
+  "source_base": "a3f5530fb350a56ebebc7c5f55ca14db2e29cfed",
+  "source_files": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 17985,
+      "sha256": "cff25baec6b2e2c4d031ec5c55d91b73022f89794287579d08342515883a39bc",
+      "git_filtered_blob_sha1": "5719ff8d242ad34ae51415db1523ed7f11867f93"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "bytes": 73949,
+      "sha256": "9dd361bf96d59575f960b9cdf8a8624a402bdd7341c5de2857209a3881b2c7fc",
+      "git_filtered_blob_sha1": "72c63767409bc6a8c0fc9611914901e295116844"
+    },
+    {
+      "path": "docs/DEVELOPMENT_PLAN.json",
+      "bytes": 111645,
+      "sha256": "66c609cfc03ef7abd0f6ca87699ddb58b4c7283d5e1e5ebd4222747f265adc32",
+      "git_filtered_blob_sha1": "497d596da7d60b44ede6bfd4bbbabdb2ac16ba0a"
+    },
+    {
+      "path": "docs/DEVELOPMENT_STATE.json",
+      "bytes": 85821,
+      "sha256": "7199c1e6bb34ac22ddd304b4782fe95fc8ab888ec3c1e17f2920afeb737d3b1b",
+      "git_filtered_blob_sha1": "2616f90c1aea856c90c7f3788f21c9e890efd715"
+    },
+    {
+      "path": "docs/FORMAT-v1.md",
+      "bytes": 33620,
+      "sha256": "6b4e1e2d888dbba5788e1fb3b1db429d765ec543b4082078215e92d728d1c351",
+      "git_filtered_blob_sha1": "e6d287540df06748ab2a0d13cfcafa465654676f"
+    },
+    {
+      "path": "docs/MANAGED_PAGED_VOLUMES.md",
+      "bytes": 7304,
+      "sha256": "8ed58b82ec3164ab9779e91392b2f2dcfb37fd07a86b232a0d0b618ca9730318",
+      "git_filtered_blob_sha1": "b9d7a44e244df5cd3fee206d501c2d35e4c04750"
+    },
+    {
+      "path": "docs/NATIVE_WRITABLE_ADAPTER.md",
+      "bytes": 29417,
+      "sha256": "e704170750d23d656b54351c105f811578fb39b2583b1b5ff1db503bc1bf54b5",
+      "git_filtered_blob_sha1": "e8fd18eea267d74c2bb6d1b69af6beedb8da6d71"
+    },
+    {
+      "path": "docs/RELEASE_EXECUTION_PLAN.md",
+      "bytes": 23153,
+      "sha256": "3508c3916ed81f34bb83336ab89c8e3327b59459792437c916f7647c09439b7f",
+      "git_filtered_blob_sha1": "ff8afd9e920cb5b8dd764fa19d83865702919c52"
+    },
+    {
+      "path": "docs/RELEASE_READINESS.md",
+      "bytes": 14945,
+      "sha256": "5093334ff3c0c9dec4ff3281ede5a4c8e8caf22011c38e39dfc709f32314ff2c",
+      "git_filtered_blob_sha1": "43c038c2ca61d59b9d6dfdb60cddbc54629ed782"
+    },
+    {
+      "path": "docs/ROADMAP.md",
+      "bytes": 79861,
+      "sha256": "1f40191b6e65aa06eec465b80aa5790361ce29732ee61e96926cd00b89a48f5f",
+      "git_filtered_blob_sha1": "7f75ff5bcd50bb4709585d70540c3bbd23d2c58e"
+    },
+    {
+      "path": "docs/SAFETY.md",
+      "bytes": 90370,
+      "sha256": "cb30592bdd74f8a113cf46102600fabb7d4a1b5d88abf7336a04eab7e4d67928",
+      "git_filtered_blob_sha1": "c60be538f581f0ae136f97a33f5c1dfef48e823a"
+    },
+    {
+      "path": "docs/VALIDATION.md",
+      "bytes": 43508,
+      "sha256": "a6be5190f658e6e896c8e999de4854b270732307e13f56a1efe62289218afe43",
+      "git_filtered_blob_sha1": "8e50709252382e9c3e0d52036c5159043846029e"
+    },
+    {
+      "path": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md",
+      "bytes": 7192,
+      "sha256": "c1665e5823e55707f497e37f38785003c7cd4e19df71a0f15b3aed5514d9f7e9",
+      "git_filtered_blob_sha1": "69fd40adef20d6225279a7ea335fade3f69361e3"
+    },
+    {
+      "path": "docs/WINDOWS_PRODUCT.md",
+      "bytes": 5178,
+      "sha256": "f3f6af0dd431df2f03348d6b0f22733f0d8607290a15731937722ea011bad2dd",
+      "git_filtered_blob_sha1": "88b2713e7c7914dd7d870ba762e5c031cdd46b6b"
+    },
+    {
+      "path": "docs/WINFSP_PAGED_VOLUMES.md",
+      "bytes": 5495,
+      "sha256": "043118e8fd7c7327f19260150df28443d8efa15ea11b511eef6e0154be683c55",
+      "git_filtered_blob_sha1": "2a3d326fa65d2fdd1e5a0e8675445d4f36f3a6dc"
+    },
+    {
+      "path": "docs/development/README.md",
+      "bytes": 2792,
+      "sha256": "f3893ea0334c2fe8067e9641e21c6c42bd2fa6d846fcc81e41eaa34f2002374d",
+      "git_filtered_blob_sha1": "b7b6ca7f81756411a229ff9b9636d706a38df9fc"
+    },
+    {
+      "path": "docs/reference/README.md",
+      "bytes": 4488,
+      "sha256": "52c11dd601c4122db725a05e4f0bf0c79dafb14e0b564dc5992a799b21d66814",
+      "git_filtered_blob_sha1": "e6120fab9bd8396aed007a6044d13aa4c64a178f"
+    },
+    {
+      "path": "docs/reference/catalog.md",
+      "bytes": 7282,
+      "sha256": "261e48be6c1e594f7c13869393879fa56a4f809c144f714473f9adbe899cbd90",
+      "git_filtered_blob_sha1": "e765a1002456c1ad34b6cd0e5c5d4e774d06d85b"
+    },
+    {
+      "path": "docs/validation/README.md",
+      "bytes": 2303,
+      "sha256": "ed45264805d0348eee0a46d21a4f8b561a5a5afae3cae5de46bd5cd2aa87a1e0",
+      "git_filtered_blob_sha1": "9ee9561a1d1c874da883be711d6f8fbac1ca0875"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "bytes": 25670,
+      "sha256": "a4a8104485808e6acd19872c32740853a2f7ab86a978928be974290d424478f4",
+      "git_filtered_blob_sha1": "e0927e36318fa08fd4e20f7501481f17160e45c8"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "bytes": 70426,
+      "sha256": "196d80334ea9760e9dccd6efb30289ec6d6ce42521c6602ff71d9b8470e6ff21",
+      "git_filtered_blob_sha1": "49071b9718214c8f7b4c0753d68bca79f4e54a99"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "bytes": 43028,
+      "sha256": "1aed54387350d3cad4c2dc6c9d48ce69f898d50e131ce55457fea998b2b0f0ab",
+      "git_filtered_blob_sha1": "d0758107bf66557bb9b2a715513735e5758ee395"
+    },
+    {
+      "path": "src/windows/winfsp_native.hpp",
+      "bytes": 5805,
+      "sha256": "01d6a6a79c4f310bd788482ec26488be1b3f8ca0e0db187538ec1d2c74139d3e",
+      "git_filtered_blob_sha1": "df341d121c30ed5f82ca2490160795a609d0cfba"
+    },
+    {
+      "path": "src/windows/winfsp_session.cpp",
+      "bytes": 10315,
+      "sha256": "5373bffa8c5f7be384b926dd1e595ecaf4c35062cb7b52c104f581a9aff7abe3",
+      "git_filtered_blob_sha1": "6c560f1391f886ef40a8fa41021a42d6cc64d219"
+    },
+    {
+      "path": "src/windows/winfsp_session.hpp",
+      "bytes": 5292,
+      "sha256": "0c3d010d7216bd34dd8c92662ffe30f9ed025432d9a7f616e3500a53332f4c28",
+      "git_filtered_blob_sha1": "0c1a016af3a6fd26b2ab19ba4ac22f2590a2f65b"
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "bytes": 20311,
+      "sha256": "8fb5591b4cc3b8d0a5898f96e2980e1b6b2352951eea17a97f2ea452d763cfec",
+      "git_filtered_blob_sha1": "e76882769c0e35a5e829d3b073a990f45b62138b"
+    },
+    {
+      "path": "tools/ci/prepare_winfsp_sdk.ps1",
+      "bytes": 11380,
+      "sha256": "950c6291c1c39364b8313489b4138212c130b7c197b7fd35a565667a3dec6cd5",
+      "git_filtered_blob_sha1": "748784713ea220e95c7d99361a9ada1ce0dd5a39"
+    }
+  ],
+  "final_build_inputs": {
+    "receipt": {
+      "path": "paged-winfsp-final-input.json",
+      "bytes": 924,
+      "sha256": "1ab63a63455069431b5376403ea68c2bc66ac5becec653f47e5cb8bedb29a29f"
+    },
+    "sha256_by_path": {
+      "CMakeLists.txt": "9dd361bf96d59575f960b9cdf8a8624a402bdd7341c5de2857209a3881b2c7fc",
+      "include/flitzfs/native_session.hpp": "a4a8104485808e6acd19872c32740853a2f7ab86a978928be974290d424478f4",
+      "src/native_session.cpp": "196d80334ea9760e9dccd6efb30289ec6d6ce42521c6602ff71d9b8470e6ff21",
+      "src/windows/winfsp_native.cpp": "1aed54387350d3cad4c2dc6c9d48ce69f898d50e131ce55457fea998b2b0f0ab",
+      "src/windows/winfsp_native.hpp": "01d6a6a79c4f310bd788482ec26488be1b3f8ca0e0db187538ec1d2c74139d3e",
+      "src/windows/winfsp_session.cpp": "5373bffa8c5f7be384b926dd1e595ecaf4c35062cb7b52c104f581a9aff7abe3",
+      "src/windows/winfsp_session.hpp": "0c3d010d7216bd34dd8c92662ffe30f9ed025432d9a7f616e3500a53332f4c28",
+      "tests/test_winfsp_paged.cpp": "8fb5591b4cc3b8d0a5898f96e2980e1b6b2352951eea17a97f2ea452d763cfec",
+      "tools/ci/prepare_winfsp_sdk.ps1": "950c6291c1c39364b8313489b4138212c130b7c197b7fd35a565667a3dec6cd5"
+    },
+    "unchanged": true
+  },
+  "semantic": {
+    "receipt": {
+      "repository": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+      "commit": "a3f5530fb350a56ebebc7c5f55ca14db2e29cfed",
+      "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_files": 65,
+      "source_bytes": 409124,
+      "inventory_sha256": "053f56822b2ffb25c91ec42cb5778d4764b53d2bc7ccc36e547c339845b1583d",
+      "provider_version": "0.2.43",
+      "model": "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\huggingface\\hub\\models--Snowflake--snowflake-arctic-embed-xs\\snapshots\\d8c86521100d3556476a063fc2342036d45c106f",
+      "scope": "code",
+      "path_prefixes": [
+        "src/windows/"
+      ],
+      "query": "Writable WinFsp adapter managed volume factory NativeFileSession callback control mutex foreground count idle maintenance deferred pending write stop join lifecycle SDK tests without driver or mount",
+      "native_response_sha256": "0402f81a77987916467ddc33dfaa44561e68a881480f12d870ee0fde1a433e3d",
+      "actual_searches": 1,
+      "cpu_only": true,
+      "offline_model": true,
+      "shared_mcp_modified": false,
+      "commands": [
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "rev-parse",
+            "--show-toplevel"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.062026799998420756,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "rev-parse",
+            "HEAD"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.06045730000187177,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "diff",
+            "--binary",
+            "HEAD",
+            "--"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.05864750000182539,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "version"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.8262111000003642,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "ls-files",
+            "-z"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 2.0689488999996684,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "index"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 57.75013020000188,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "Writable WinFsp adapter managed volume factory NativeFileSession callback control mutex foreground count idle maintenance deferred pending write stop join lifecycle SDK tests without driver or mount"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.2871741999988444,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "daemon",
+            "stop"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.4249299000002793,
+          "timed_out": false
+        }
+      ]
+    },
+    "native": {
+      "path": "semantic-paged-winfsp-a3f5530\\search-native-0.json",
+      "bytes": 5443,
+      "sha256": "766ecc9f30c9e2bd20eab03a9da029083fdb677522e4c5f25bdd1bf42226677d"
+    },
+    "receipt_file": {
+      "path": "semantic-paged-winfsp-a3f5530\\routing-receipt-0.json",
+      "bytes": 3488,
+      "sha256": "6f0fdc28d67a092f99bd248a4073b3fca388aaa9e70c88d8308513e449b71ac0"
+    },
+    "supervised": {
+      "command": [
+        "C:\\Users\\strat\\AppData\\Local\\Python\\pythoncore-3.15-64\\python.exe",
+        "-B",
+        "tools/dev/semantic_search.py",
+        "--repository",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+        "--ccc",
+        "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+        "--model",
+        "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\huggingface\\hub\\models--Snowflake--snowflake-arctic-embed-xs\\snapshots\\d8c86521100d3556476a063fc2342036d45c106f",
+        "--output",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\semantic-paged-winfsp-a3f5530",
+        "--scope",
+        "code",
+        "--path-prefix",
+        "src/windows/",
+        "--query",
+        "Writable WinFsp adapter managed volume factory NativeFileSession callback control mutex foreground count idle maintenance deferred pending write stop join lifecycle SDK tests without driver or mount"
+      ],
+      "timeout_seconds": 180.0,
+      "memory_bytes": 7554990080,
+      "cpu_percent": 50,
+      "maximum_processes": 24,
+      "physical_available_bytes": 34492485632,
+      "commit_available_bytes": 81853394944,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1888747520,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 20724,
+      "exit_code": 0,
+      "peak_job_bytes": 1090699264,
+      "elapsed_seconds": 62.19430979999743,
+      "error": null
+    }
+  },
+  "research": {
+    "receipt": {
+      "path": "paged-winfsp-research-8357acff1782454cabda6e8828f058ed\\receipt.json",
+      "bytes": 3774,
+      "sha256": "72acbe83ec8551975edac1417d20dbc8948178867d86be263715f0ca808ccab1"
+    },
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "provider_source_identity": {
+      "tools/crawl4ai_tool.py": "e84a0e54ee07e4e13d3d2f35491f641730096a78126068f232c1f2397a467d8c",
+      "tools/crawl4ai_research.py": "ec3cb7a98eceed8fef08f3af806d6eaed35656bd76ca0ee8853d273f790337a5",
+      "tools/requirements/crawl4ai.txt": "6a42b0ff5ff6c63c843c6329ce823b819fd4f6f068e68d1836ab6dbec96e8f2f",
+      "tools/crawl4ai_sites.json": "e8869cb0488d78762a90aea6ecf2c3616bb89f0c89a8800cc512c613a750dc86",
+      "tools/nltk_distribution.py": "19eb3007c226b1a13e1ad0daa79cbd8a7bf6d082a20bf386e36ac060d0000919",
+      "tools/python_wheel.py": "c3c9a62454cb377203abce32154bec07cbf805bc7420cc89386c1c18370b301a",
+      "tools/test_nltk_model_security.py": "8aab7e2a704af875992ecae9137cdf5e5ff6935a4dd49e6751c54b2629a7280b",
+      "tools/requirements/python-build.txt": "9b280d724fda87773ba33a2654362adad84c68c4f79394adc07ff2e0293ca498",
+      "tools/crawl4ai_source_build.py": "5c27c4693fa0880a8db399825f637b694616963fc11f708afed33fa5b2e38b48",
+      "tools/crawl4ai_download_opener.py": "d5fd20b5545fd64c93a06b3ef07732f1c2da7e09ee6cda80662475007db52538",
+      "tools/test_crawl4ai_downloads.py": "ae4cf54c351a9da2de49caeb96306f384bb6a8f487318eabc69db4132d658619",
+      "third_party/upstream/nltk/3.10.4/distribution.json": "3241a8670f12e205525fc096572ed1969c063f77e13cffd70eff5eb656fbe1b0",
+      "nltk_upstream_wheel": "e46d89e59ef949270e3b19ab097da8dbb09350e05cb5a746ff92f6ccf6e8ce90",
+      "crawl4ai_source_build": "7da6376934254d9ad1de9e016a4509dae32c47559955889424435fcbbc7419f5"
+    },
+    "native_pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/msi/record-readstream",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21785,
+        "markdown_sha256": "51eb010c2decb3f542a807a94e62069f85cfed6b55c16b3d7290a701c40a262a",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.136,
+        "capture": "msi-bytes.native.json",
+        "capture_sha256": "bdb2e76866c9a2bb3b5852f26f1c5da4193443278dfef33ae83c22d03ffc863f",
+        "name": "msi-bytes",
+        "file": {
+          "path": "paged-winfsp-research-8357acff1782454cabda6e8828f058ed\\msi-bytes.native.json",
+          "bytes": 202249,
+          "sha256": "bdb2e76866c9a2bb3b5852f26f1c5da4193443278dfef33ae83c22d03ffc863f"
+        }
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/msiquery/nf-msiquery-msiopendatabasew",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 21559,
+        "markdown_sha256": "d244125d8cc2eb395b4122da8cf912340ee9fcd9cf95fa64fcec8a0ba83a50bd",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.689,
+        "capture": "msi-readonly.native.json",
+        "capture_sha256": "a7a72059c80f290e588042889fd6a45ad255990d4554efbfecd97534da044762",
+        "name": "msi-readonly",
+        "file": {
+          "path": "paged-winfsp-research-8357acff1782454cabda6e8828f058ed\\msi-readonly.native.json",
+          "bytes": 188337,
+          "sha256": "a7a72059c80f290e588042889fd6a45ad255990d4554efbfecd97534da044762"
+        }
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/msi/-streams-table",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 31189,
+        "markdown_sha256": "79d385eb47a85ec6436b1884b0476b3498f315750a90cc62d0c22d8606afe9ab",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.738,
+        "capture": "msi-streams.native.json",
+        "capture_sha256": "665c22dc82fd1ea85ec24b547e48205dbb9099f004c06b1b899ed5c0d7aa65b5",
+        "name": "msi-streams",
+        "file": {
+          "path": "paged-winfsp-research-8357acff1782454cabda6e8828f058ed\\msi-streams.native.json",
+          "bytes": 247323,
+          "sha256": "665c22dc82fd1ea85ec24b547e48205dbb9099f004c06b1b899ed5c0d7aa65b5"
+        }
+      }
+    ],
+    "interpretation": "Current MSI API background captured with robots/no LLM; older page update dates are not new research. Windows SDK 10.0.28000.0 declarations and actual extraction/runtime provide separate current platform evidence."
+  },
+  "release_API": {
+    "file": {
+      "path": "winfsp-releases-a3f5530.json",
+      "bytes": 35261,
+      "sha256": "3fbb5154f4634f2d7be06b73d266d766ad004dd3bb5371e0b079f44d9d1ae62d"
+    },
+    "tag": "v2.2B5",
+    "published_at": "2026-10-13T14:17:29Z",
+    "asset_bytes": 2207744,
+    "checked_current": true
+  },
+  "SDK": {
+    "provenance": {
+      "commit": "a3f5530fb350a56ebebc7c5f55ca14db2e29cfed",
+      "dependency": {
+        "schema": 1,
+        "repository": "winfsp/winfsp",
+        "tag": "v2.2B5",
+        "prerelease": true,
+        "source_commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
+        "msi_name": "winfsp-2.2.26286.msi",
+        "url": "https://github.com/winfsp/winfsp/releases/download/v2.2B5/winfsp-2.2.26286.msi",
+        "bytes": 2207744,
+        "sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+        "release_url": "https://github.com/winfsp/winfsp/releases/tag/v2.2B5",
+        "policy": "Hosted development candidate: upstream security/deadlock fixes beyond latest-stable v2.1. Not owner-PC installation or production qualification."
+      },
+      "msi_bytes": 2207744,
+      "payloads": [
+        {
+          "path": "include/winfsp/winfsp.h",
+          "bytes": 94418,
+          "sha256": "b8e5c3320bfb58d086ee622dd13370eb38a49e1142877c9d8af827515f916540"
+        },
+        {
+          "path": "bin/winfsp-x64.dll",
+          "bytes": 200816,
+          "sha256": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3"
+        },
+        {
+          "path": "lib/winfsp-x64.lib",
+          "bytes": 55054,
+          "sha256": "41ee9db17da0196aed067605caa719443142f74c0fa8e7800d2acb3fabf78354"
+        },
+        {
+          "path": "include/winfsp/fsctl.h",
+          "bytes": 31685,
+          "sha256": "f03bbbef67430335b8f36544d62c2abfa8b3b2823ca325d8b542b5bebed832b1"
+        }
+      ],
+      "driver_installed": false,
+      "driver_loaded": false
+    },
+    "receipt": {
+      "path": "flitzfs-sdk-a9e38f59cc9a4485ba048c89cb7c9d7f\\sdk-provenance.json",
+      "bytes": 1481,
+      "sha256": "23d95d0abeacf8f508bb8b1197b27fe61e9205cba216c1bec88b2ea132df4163"
+    },
+    "MSI": {
+      "path": "flitzfs-sdk-a9e38f59cc9a4485ba048c89cb7c9d7f\\winfsp.msi",
+      "bytes": 2207744,
+      "sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f"
+    },
+    "staging_result": {
+      "command": [
+        "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1112-611-0_26.1112.611.0_x64__3k8sg7r9htsxt\\dependencies\\native\\powershell\\pwsh.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-File",
+        "tools/ci/prepare_winfsp_sdk.ps1",
+        "-OutputRoot",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42"
+      ],
+      "timeout_seconds": 150.0,
+      "memory_bytes": 6123683840,
+      "cpu_percent": 50,
+      "maximum_processes": 16,
+      "physical_available_bytes": 28764565504,
+      "commit_available_bytes": 77241200640,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1530920960,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 3488,
+      "exit_code": 0,
+      "peak_job_bytes": 72265728,
+      "elapsed_seconds": 1.438003999995999,
+      "error": null
+    },
+    "result_file": {
+      "path": "local-run-e6958919b6cd4a5f946294ef1af6c8e7\\result.json",
+      "bytes": 923,
+      "sha256": "c2555a1c0b5bce5c6b01c7f390be614ef89b58dc783f8e549a74cb45b23e6b40"
+    },
+    "output": {
+      "path": "local-run-e6958919b6cd4a5f946294ef1af6c8e7\\output.log",
+      "bytes": 402,
+      "sha256": "ad1ca05f5a279b88285b4500734345a4986a283e2ea44d3f25d86a5b58b7d1dc"
+    },
+    "method": "Read-only Windows Installer COM streams and strict byte conversion; native expand selects four exact File-table keys. No 7z, installation, custom action or driver selection.",
+    "no_extracted_sys_files": true
+  },
+  "retained_failures": [
+    {
+      "reason": "Unquoted PowerShell -D path was split at E:. Reconfigured with one correctly quoted argument; no runtime test executed.",
+      "result": {
+        "command": [
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+          "-S",
+          ".",
+          "-B",
+          "..\\build-sdk-raw",
+          "-G",
+          "Visual Studio 18 2026",
+          "-A",
+          "x64",
+          "-DFLITZFS_PORTABLE_CPU=ON",
+          "-DFLITZFS_WITH_ZSTD=OFF",
+          "-DFLITZFS_WITH_LZ4=OFF",
+          "-DFLITZFS_BUILD_WINFSP=ON",
+          "-DFLITZFS_BUILD_MOUNT_PROBE=OFF",
+          "-DFLITZFS_REGISTER_INTEGRATION_FIXTURES=OFF",
+          "-DFLITZFS_WINFSP_SDK=E:",
+          "/FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42/flitzfs-sdk-a9e38f59cc9a4485ba048c89cb7c9d7f/sdk",
+          "-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded"
+        ],
+        "timeout_seconds": 120.0,
+        "memory_bytes": 6276775936,
+        "cpu_percent": 50,
+        "maximum_processes": 24,
+        "physical_available_bytes": 29377261568,
+        "commit_available_bytes": 77549817856,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1569193984,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 1,
+        "process_id": 40200,
+        "exit_code": 1,
+        "peak_job_bytes": 334245888,
+        "elapsed_seconds": 13.764481800004432,
+        "error": null
+      },
+      "result_file": {
+        "path": "local-run-addd4a1ebbcf4a44899165a50758e101\\result.json",
+        "bytes": 1267,
+        "sha256": "3ce25de29627342c72c07a57eb4d3ccd1b282aa1a73a728ed271c6b2aa18e4ea"
+      },
+      "output": {
+        "path": "local-run-addd4a1ebbcf4a44899165a50758e101\\output.log",
+        "bytes": 2001,
+        "sha256": "58475716cb268f91ce8d948d9a13a5cb32d79a1ef3b8222f4eef7150ba70c3b5"
+      }
+    },
+    {
+      "reason": "SDK flexible trailing arrays reject aggregate zero initialization. Used the SDK fixture pattern of owned structs plus explicit zeroing.",
+      "result": {
+        "command": [
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+          "--build",
+          "..\\build-sdk-raw",
+          "--config",
+          "Release",
+          "--parallel",
+          "8",
+          "--target",
+          "flitzfs_winfsp_paged_tests",
+          "--",
+          "/nr:false"
+        ],
+        "timeout_seconds": 240.0,
+        "memory_bytes": 6163529728,
+        "cpu_percent": 50,
+        "maximum_processes": 32,
+        "physical_available_bytes": 28927045632,
+        "commit_available_bytes": 77308239872,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1540882432,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 1,
+        "process_id": 55684,
+        "exit_code": 1,
+        "peak_job_bytes": 742633472,
+        "elapsed_seconds": 57.51813460000267,
+        "error": null
+      },
+      "result_file": {
+        "path": "local-run-bf332f32027d46feb374b3689fecac17\\result.json",
+        "bytes": 905,
+        "sha256": "26296c30da5b52f971b168e889d4c424736fb05d706a02e3ae6255d6193a850e"
+      },
+      "output": {
+        "path": "local-run-bf332f32027d46feb374b3689fecac17\\output.log",
+        "bytes": 40052,
+        "sha256": "e3b32f0dd1dc7f04d8661f8b17314bab04ca168f268f1dcdb858d00e3c5df6d1"
+      }
+    },
+    {
+      "reason": "Resume draft incorrectly expected basic metadata on NativeFileInfo. Corrected to the actual metadata API and then shared complete pre-repair Windows profile admission.",
+      "result": {
+        "command": [
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+          "--build",
+          "..\\build-sdk-raw",
+          "--config",
+          "Release",
+          "--parallel",
+          "8",
+          "--target",
+          "flitzfs_winfsp_paged_tests",
+          "--",
+          "/nr:false"
+        ],
+        "timeout_seconds": 180.0,
+        "memory_bytes": 6245318656,
+        "cpu_percent": 50,
+        "maximum_processes": 32,
+        "physical_available_bytes": 29251129344,
+        "commit_available_bytes": 77466726400,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1561329664,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 1,
+        "process_id": 62156,
+        "exit_code": 1,
+        "peak_job_bytes": 614043648,
+        "elapsed_seconds": 5.828273099999933,
+        "error": null
+      },
+      "result_file": {
+        "path": "local-run-fba96b9730234a64b3342c321e0223c6\\result.json",
+        "bytes": 905,
+        "sha256": "afdbb39cc5a4b16ba29c48ca7c73d885a77349f833b4c1fffc182ee1e9d99966"
+      },
+      "output": {
+        "path": "local-run-fba96b9730234a64b3342c321e0223c6\\output.log",
+        "bytes": 2483,
+        "sha256": "51c90951dd19b1899767ed1fa2c7f971c50d9e2540250d7d97014dc09c80e24b"
+      }
+    },
+    {
+      "reason": "Test Open omitted the high FILE_OPEN disposition byte and requested supersede semantics. The production prepared-overwrite guard correctly refused Write; corrected only the request stimulus.",
+      "result": {
+        "command": [
+          "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-raw\\Release\\flitzfs_winfsp_paged_tests.exe",
+          "--callbacks"
+        ],
+        "timeout_seconds": 60.0,
+        "memory_bytes": 6225395712,
+        "cpu_percent": 50,
+        "maximum_processes": 8,
+        "physical_available_bytes": 29173972992,
+        "commit_available_bytes": 77361786880,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1556348928,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 0,
+        "process_id": 40288,
+        "exit_code": 1,
+        "peak_job_bytes": 16625664,
+        "elapsed_seconds": 0.14043970000057016,
+        "error": null
+      },
+      "result_file": {
+        "path": "local-run-a6d97283ac4a470caae259011d105f65\\result.json",
+        "bytes": 724,
+        "sha256": "4f4d9dbb7d579660089a7f28152ea909ce74816080e95d534fdf8ee1242dd948"
+      },
+      "output": {
+        "path": "local-run-a6d97283ac4a470caae259011d105f65\\output.log",
+        "bytes": 288,
+        "sha256": "c08625e4d518ec4da2996177deaa78ce363fbee17dfed2b5bf77559c5617e63a"
+      }
+    }
+  ],
+  "validation": [
+    {
+      "name": "raw-configure",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-76173c641b3c47f1afd7d54555d12e14",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+        "-S",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+        "-B",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-raw",
+        "-G",
+        "Visual Studio 18 2026",
+        "-A",
+        "x64",
+        "-DFLITZFS_PORTABLE_CPU=ON",
+        "-DFLITZFS_WITH_ZSTD=OFF",
+        "-DFLITZFS_WITH_LZ4=OFF",
+        "-DFLITZFS_BUILD_WINFSP=ON",
+        "-DFLITZFS_BUILD_MOUNT_PROBE=OFF",
+        "-DFLITZFS_REGISTER_INTEGRATION_FIXTURES=OFF",
+        "-DFLITZFS_BUILD_VOLUME_APP=OFF",
+        "-DFLITZFS_WINFSP_SDK=E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\flitzfs-sdk-a9e38f59cc9a4485ba048c89cb7c9d7f\\sdk",
+        "-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded"
+      ],
+      "timeout_seconds": 120.0,
+      "memory_bytes": 6149898240,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28872065024,
+      "commit_available_bytes": 77432086528,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1537474560,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 60096,
+      "exit_code": 0,
+      "peak_job_bytes": 28450816,
+      "elapsed_seconds": 7.837563200002478,
+      "error": null,
+      "result_file": {
+        "path": "local-run-76173c641b3c47f1afd7d54555d12e14\\result.json",
+        "bytes": 1419,
+        "sha256": "52e19bde38801163a5597b8b5afcf55ced95ac807679d77ecc280ad5d34e3165"
+      },
+      "output_file": {
+        "path": "local-run-76173c641b3c47f1afd7d54555d12e14\\output.log",
+        "bytes": 456,
+        "sha256": "90652da74a0b05b842fbf579ebbed564d40c7a49dc24105ce151dbc6f9b59e86"
+      }
+    },
+    {
+      "name": "raw-build",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-3185ce3975e64c1481037b0999abeb39",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+        "--build",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-raw",
+        "--config",
+        "Release",
+        "--parallel",
+        "8",
+        "--target",
+        "flitzfs_winfsp_paged_tests",
+        "flitzfs_native_file_info_sdk_tests",
+        "flitzfs_native_cleanup_sdk_tests",
+        "flitzfs_staged_shared_base_tests",
+        "flitzfs_paged_volume_tests",
+        "flitzfs_native_group_maintenance_tests",
+        "--",
+        "/nr:false"
+      ],
+      "timeout_seconds": 300.0,
+      "memory_bytes": 6154092544,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28886704128,
+      "commit_available_bytes": 77459685376,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1538523136,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "process_id": 18984,
+      "exit_code": 0,
+      "peak_job_bytes": 614731776,
+      "elapsed_seconds": 19.435446900002717,
+      "error": null,
+      "result_file": {
+        "path": "local-run-3185ce3975e64c1481037b0999abeb39\\result.json",
+        "bytes": 1170,
+        "sha256": "9d7199db2145c25e7ff5b4338bb84b11f40e0e32440acaac638c3d483cadeed9"
+      },
+      "output_file": {
+        "path": "local-run-3185ce3975e64c1481037b0999abeb39\\output.log",
+        "bytes": 5677,
+        "sha256": "e7462bdb70940f33813bbb268d27c173a6349bdef53b560469002b162895f697"
+      }
+    },
+    {
+      "name": "raw-inventory",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-bc7a873817ec45a2bec42675109430ab",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-raw",
+        "-C",
+        "Release",
+        "--show-only=json-v1",
+        "-R",
+        "^bounded_winfsp_paged_"
+      ],
+      "timeout_seconds": 30.0,
+      "memory_bytes": 6147801088,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28863098880,
+      "commit_available_bytes": 77413998592,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1536950272,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 21304,
+      "exit_code": 0,
+      "peak_job_bytes": 9555968,
+      "elapsed_seconds": 0.7402695999990101,
+      "error": null,
+      "result_file": {
+        "path": "local-run-bc7a873817ec45a2bec42675109430ab\\result.json",
+        "bytes": 917,
+        "sha256": "a3162311aea7480cdc5c9ea40ddcabee4a5166d570d781fc575ab695629c44cc"
+      },
+      "output_file": {
+        "path": "local-run-bc7a873817ec45a2bec42675109430ab\\output.log",
+        "bytes": 2443,
+        "sha256": "9a1a56a3686e857c6728be74de74523c9d339f61e599967185433910240b4135"
+      }
+    },
+    {
+      "name": "raw-paged-callback-suites",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-62bfa6b6f4f844179ce1c9e7da681488",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-raw",
+        "-C",
+        "Release",
+        "-V",
+        "-R",
+        "^bounded_winfsp_paged_"
+      ],
+      "timeout_seconds": 240.0,
+      "memory_bytes": 6149898240,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28872138752,
+      "commit_available_bytes": 77413793792,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1537474560,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 60800,
+      "exit_code": 0,
+      "peak_job_bytes": 40812544,
+      "elapsed_seconds": 5.106449699997029,
+      "error": null,
+      "result_file": {
+        "path": "local-run-62bfa6b6f4f844179ce1c9e7da681488\\result.json",
+        "bytes": 901,
+        "sha256": "426e3c5c8c743baf1d0fce67830869912f5a6afb7b4193129595040d6d635053"
+      },
+      "output_file": {
+        "path": "local-run-62bfa6b6f4f844179ce1c9e7da681488\\output.log",
+        "bytes": 2915,
+        "sha256": "702cb754c1654cc2ff1add090ad46e93dcf6f47289ace853fbd8b0851aa29d83"
+      }
+    },
+    {
+      "name": "raw-SDK-data-invariants",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-dfd5ab72bd7041a28a0a82dc225d1a84",
+      "command": [
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-raw\\Release\\flitzfs_native_file_info_sdk_tests.exe",
+        "--invariants"
+      ],
+      "timeout_seconds": 90.0,
+      "memory_bytes": 6057623552,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28503617536,
+      "commit_available_bytes": 77245800448,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1514405888,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 58008,
+      "exit_code": 0,
+      "peak_job_bytes": 16371712,
+      "elapsed_seconds": 0.1789961000031326,
+      "error": null,
+      "result_file": {
+        "path": "local-run-dfd5ab72bd7041a28a0a82dc225d1a84\\result.json",
+        "bytes": 733,
+        "sha256": "67d1a7330f7a6c78ddccbd7a6638dcf5a05053180755475245159730e9935054"
+      },
+      "output_file": {
+        "path": "local-run-dfd5ab72bd7041a28a0a82dc225d1a84\\output.log",
+        "bytes": 226,
+        "sha256": "82ca7c923fc0ee4cb5ba2b9eed75cffe907f505a0a264af92229ba793cc4f58a"
+      }
+    },
+    {
+      "name": "raw-SDK-cleanup",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-f931ed031c4f48a7b0a5fec532251827",
+      "command": [
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-raw\\Release\\flitzfs_native_cleanup_sdk_tests.exe"
+      ],
+      "timeout_seconds": 60.0,
+      "memory_bytes": 6150946816,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28875341824,
+      "commit_available_bytes": 77408624640,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1537736704,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 34196,
+      "exit_code": 0,
+      "peak_job_bytes": 7155712,
+      "elapsed_seconds": 0.8099948000017321,
+      "error": null,
+      "result_file": {
+        "path": "local-run-f931ed031c4f48a7b0a5fec532251827\\result.json",
+        "bytes": 709,
+        "sha256": "400832ee5a74273623adbef0723f2a8beb73af2bfbe393287220b8847be92999"
+      },
+      "output_file": {
+        "path": "local-run-f931ed031c4f48a7b0a5fec532251827\\output.log",
+        "bytes": 65,
+        "sha256": "1f205e703ac4d333863d2918210904c26de0f784fff77b1cdac3cc05204080a9"
+      }
+    },
+    {
+      "name": "raw-core-regressions",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-35ac730db5324fe0bfed5184173c54d7",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-raw",
+        "-C",
+        "Release",
+        "-V",
+        "-R",
+        "^bounded_native_(staged_shared_bases|managed_paged_volume|automatic_group_maintenance)$"
+      ],
+      "timeout_seconds": 240.0,
+      "memory_bytes": 6144655360,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28848947200,
+      "commit_available_bytes": 77387862016,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1536163840,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 32956,
+      "exit_code": 0,
+      "peak_job_bytes": 174616576,
+      "elapsed_seconds": 28.706596199997875,
+      "error": null,
+      "result_file": {
+        "path": "local-run-35ac730db5324fe0bfed5184173c54d7\\result.json",
+        "bytes": 968,
+        "sha256": "73a19940f4024cc7c1e3dd7d27adc3595cb49d0961a7d4f88adf276c03d7a425"
+      },
+      "output_file": {
+        "path": "local-run-35ac730db5324fe0bfed5184173c54d7\\output.log",
+        "bytes": 3098,
+        "sha256": "aef505e1da64bffc0d5d72b29d924f3fd34a66dc98ae1897e6aacff30e57cd02"
+      }
+    },
+    {
+      "name": "asan-configure",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-7226dab84a6442f692b5b09b68d2a485",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+        "-S",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+        "-B",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-asan",
+        "-G",
+        "Visual Studio 18 2026",
+        "-A",
+        "x64",
+        "-DFLITZFS_PORTABLE_CPU=ON",
+        "-DFLITZFS_WITH_ZSTD=OFF",
+        "-DFLITZFS_WITH_LZ4=OFF",
+        "-DFLITZFS_BUILD_WINFSP=ON",
+        "-DFLITZFS_BUILD_MOUNT_PROBE=OFF",
+        "-DFLITZFS_REGISTER_INTEGRATION_FIXTURES=OFF",
+        "-DFLITZFS_BUILD_VOLUME_APP=OFF",
+        "-DFLITZFS_WINFSP_SDK=E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\flitzfs-sdk-a9e38f59cc9a4485ba048c89cb7c9d7f\\sdk",
+        "-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded",
+        "-DCMAKE_CXX_FLAGS=/fsanitize=address"
+      ],
+      "timeout_seconds": 120.0,
+      "memory_bytes": 6182404096,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 29002219520,
+      "commit_available_bytes": 77514780672,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1545601024,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "process_id": 55096,
+      "exit_code": 0,
+      "peak_job_bytes": 468623360,
+      "elapsed_seconds": 13.828601599998365,
+      "error": null,
+      "result_file": {
+        "path": "local-run-7226dab84a6442f692b5b09b68d2a485\\result.json",
+        "bytes": 1467,
+        "sha256": "f18b28922746f1a2bcec4e8af340836a1d94940678651fe01f6e57f8a12b1109"
+      },
+      "output_file": {
+        "path": "local-run-7226dab84a6442f692b5b09b68d2a485\\output.log",
+        "bytes": 1818,
+        "sha256": "19d6f0b41237d2d2ee48488af25ef43052d248da517937bc76f9eae4ad9b1c8a"
+      }
+    },
+    {
+      "name": "asan-build",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-1c540091fd6140c9955bad90cf331443",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+        "--build",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-asan",
+        "--config",
+        "Release",
+        "--parallel",
+        "8",
+        "--target",
+        "flitzfs_winfsp_paged_tests",
+        "flitzfs_native_file_info_sdk_tests",
+        "flitzfs_native_cleanup_sdk_tests",
+        "flitzfs_staged_shared_base_tests",
+        "flitzfs_paged_volume_tests",
+        "flitzfs_native_group_maintenance_tests",
+        "--",
+        "/nr:false"
+      ],
+      "timeout_seconds": 300.0,
+      "memory_bytes": 6189744128,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 29028888576,
+      "commit_available_bytes": 77535612928,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1547436032,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "process_id": 57912,
+      "exit_code": 0,
+      "peak_job_bytes": 756346880,
+      "elapsed_seconds": 70.03914680000162,
+      "error": null,
+      "result_file": {
+        "path": "local-run-1c540091fd6140c9955bad90cf331443\\result.json",
+        "bytes": 1170,
+        "sha256": "abf9f41d2f070d1dbce5508e48cc9bb32f60c969da3c9ab2b733ca631184a286"
+      },
+      "output_file": {
+        "path": "local-run-1c540091fd6140c9955bad90cf331443\\output.log",
+        "bytes": 56434,
+        "sha256": "d4ce38ff8c858b3849a52c1998547a8c3029c2b6a7b8db295422fa5f6ec39b63"
+      }
+    },
+    {
+      "name": "asan-inventory",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-c48fbdc9bdd349e2b9ad1e33dd3c802a",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-asan",
+        "-C",
+        "Release",
+        "--show-only=json-v1",
+        "-R",
+        "^bounded_winfsp_paged_"
+      ],
+      "timeout_seconds": 30.0,
+      "memory_bytes": 6167724032,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28942008320,
+      "commit_available_bytes": 77495242752,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1541931008,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 9112,
+      "exit_code": 0,
+      "peak_job_bytes": 9535488,
+      "elapsed_seconds": 0.09249920000002021,
+      "error": null,
+      "result_file": {
+        "path": "local-run-c48fbdc9bdd349e2b9ad1e33dd3c802a\\result.json",
+        "bytes": 918,
+        "sha256": "8284f54d8b92c87e4430db2985041804f1151bb35dae9482183118072bfc91c7"
+      },
+      "output_file": {
+        "path": "local-run-c48fbdc9bdd349e2b9ad1e33dd3c802a\\output.log",
+        "bytes": 2449,
+        "sha256": "b00bfbd5aa4d010efcaa6a8101a414a7709316fd440f2a70ae6c2ddee6691e86"
+      }
+    },
+    {
+      "name": "asan-paged-callback-suites",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-6ca45a3037574eb9af0080bddcb8b278",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-asan",
+        "-C",
+        "Release",
+        "-V",
+        "-R",
+        "^bounded_winfsp_paged_"
+      ],
+      "timeout_seconds": 240.0,
+      "memory_bytes": 6168772608,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28944306176,
+      "commit_available_bytes": 77498556416,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1542193152,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 7752,
+      "exit_code": 0,
+      "peak_job_bytes": 479412224,
+      "elapsed_seconds": 13.061230499995872,
+      "error": null,
+      "result_file": {
+        "path": "local-run-6ca45a3037574eb9af0080bddcb8b278\\result.json",
+        "bytes": 903,
+        "sha256": "5a06bd3513418008bc9d9501448194a638ba7b2a3cfbd1b9773ba43e16f8e840"
+      },
+      "output_file": {
+        "path": "local-run-6ca45a3037574eb9af0080bddcb8b278\\output.log",
+        "bytes": 2926,
+        "sha256": "8f5bc884d64104fca590347fe68ef59dcf9805e3dc5403f0d0aa9337a664e11a"
+      }
+    },
+    {
+      "name": "asan-SDK-data-invariants",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-b461cd8b803441cb8bac0b957b7a622b",
+      "command": [
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-asan\\Release\\flitzfs_native_file_info_sdk_tests.exe",
+        "--invariants"
+      ],
+      "timeout_seconds": 90.0,
+      "memory_bytes": 6210715648,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 29114052608,
+      "commit_available_bytes": 77703618560,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1552678912,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 57236,
+      "exit_code": 0,
+      "peak_job_bytes": 388059136,
+      "elapsed_seconds": 0.29600370000116527,
+      "error": null,
+      "result_file": {
+        "path": "local-run-b461cd8b803441cb8bac0b957b7a622b\\result.json",
+        "bytes": 736,
+        "sha256": "2ebc2440b5410f321a745386590da96ef9df7c613e0053a0dce53f7784a9dd34"
+      },
+      "output_file": {
+        "path": "local-run-b461cd8b803441cb8bac0b957b7a622b\\output.log",
+        "bytes": 226,
+        "sha256": "bd67d320ecd209072ce2552f22114852b92ddda5307c368d47cfa79fd6331f3a"
+      }
+    },
+    {
+      "name": "asan-SDK-cleanup",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-49f75bd625fa4417b1b2abdea21a5e50",
+      "command": [
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-asan\\Release\\flitzfs_native_cleanup_sdk_tests.exe"
+      ],
+      "timeout_seconds": 60.0,
+      "memory_bytes": 6207569920,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 29100331008,
+      "commit_available_bytes": 77687267328,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1551892480,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 62884,
+      "exit_code": 0,
+      "peak_job_bytes": 118829056,
+      "elapsed_seconds": 0.1116455999945174,
+      "error": null,
+      "result_file": {
+        "path": "local-run-49f75bd625fa4417b1b2abdea21a5e50\\result.json",
+        "bytes": 712,
+        "sha256": "96bb328a11939d868715a9d9e975cda8c9be1f29f73f88f6b33d4e907cb296c8"
+      },
+      "output_file": {
+        "path": "local-run-49f75bd625fa4417b1b2abdea21a5e50\\output.log",
+        "bytes": 65,
+        "sha256": "1f205e703ac4d333863d2918210904c26de0f784fff77b1cdac3cc05204080a9"
+      }
+    },
+    {
+      "name": "asan-core-regressions",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-d8bdde6d23b04877baf4a9c9f5516de3",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-sdk-asan",
+        "-C",
+        "Release",
+        "-V",
+        "-R",
+        "^bounded_native_(staged_shared_bases|managed_paged_volume|automatic_group_maintenance)$"
+      ],
+      "timeout_seconds": 240.0,
+      "memory_bytes": 6135218176,
+      "cpu_percent": 50,
+      "maximum_processes": 32,
+      "physical_available_bytes": 28812537856,
+      "commit_available_bytes": 77630971904,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1533804544,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 29828,
+      "exit_code": 0,
+      "peak_job_bytes": 1123020800,
+      "elapsed_seconds": 74.91022630000225,
+      "error": null,
+      "result_file": {
+        "path": "local-run-d8bdde6d23b04877baf4a9c9f5516de3\\result.json",
+        "bytes": 969,
+        "sha256": "131ae8cc1eefcd4484a7214373abe1c863e3d70fac0390e43a06bbf2f78de91b"
+      },
+      "output_file": {
+        "path": "local-run-d8bdde6d23b04877baf4a9c9f5516de3\\output.log",
+        "bytes": 3106,
+        "sha256": "b6fe6f78b569209bc6bee803d9dc242dffdcb2fe85398360f4a37d94bd61c46e"
+      }
+    }
+  ],
+  "build_configurations": [
+    {
+      "configuration": "raw",
+      "selected_CTest_groups": 6,
+      "direct_SDK_regression_executables": 2,
+      "new_SDK_checks": 4290,
+      "publication_fault_cases": 492,
+      "callback_checks": 296,
+      "modeled_failure_units": [
+        4096,
+        65536
+      ],
+      "data_bridge": {
+        "schema": 1,
+        "checks": 631,
+        "sealed_cases": 28,
+        "sdk_calls": 189,
+        "backend_retired": 4,
+        "handles_initial": 115,
+        "handles_final": 115,
+        "advice_cases": 4,
+        "advice_sealed_cases": 4,
+        "complete": true,
+        "mount": false
+      },
+      "cleanup": {
+        "schema": 1,
+        "cases": 9,
+        "complete": true
+      },
+      "cache": {
+        "path": "build-sdk-raw\\CMakeCache.txt",
+        "bytes": 20111,
+        "sha256": "47a51dac6871f0d5a846793db188911b53e520630cceadbfaea01963f5bd4726"
+      },
+      "project": {
+        "path": "build-sdk-raw\\flitzfs_winfsp_paged_tests.vcxproj",
+        "bytes": 66238,
+        "sha256": "9b70f4030f1d1b95dc083de89b5f5cd0a4d782dade3ee305117b5ed6e47adee2"
+      },
+      "core_library": {
+        "path": "build-sdk-raw\\Release\\flitzfs_core.lib",
+        "bytes": 12062702,
+        "sha256": "0526eb3053fa3d9ab909825ad0df698e057e738bd23fd3c0f871433f8a65cc51"
+      },
+      "adapter_library": {
+        "path": "build-sdk-raw\\Release\\flitzfs_winfsp.lib",
+        "bytes": 2422518,
+        "sha256": "f1503d7399f35baf64103b4268171aa8c8041fd48263e34ec149cb7a448daabd"
+      },
+      "fixture": {
+        "path": "build-sdk-raw\\Release\\flitzfs_winfsp_paged_tests.exe",
+        "bytes": 926720,
+        "sha256": "a970e18f61a361b937de14f2227abd064f750c50799fc3f984c79e30b6f6d830"
+      },
+      "runtime_DLL": {
+        "path": "build-sdk-raw\\Release\\winfsp-x64.dll",
+        "bytes": 200816,
+        "sha256": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3"
+      },
+      "external_DLL_instrumented": false
+    },
+    {
+      "configuration": "asan",
+      "selected_CTest_groups": 6,
+      "direct_SDK_regression_executables": 2,
+      "new_SDK_checks": 4290,
+      "publication_fault_cases": 492,
+      "callback_checks": 296,
+      "modeled_failure_units": [
+        4096,
+        65536
+      ],
+      "data_bridge": {
+        "schema": 1,
+        "checks": 631,
+        "sealed_cases": 28,
+        "sdk_calls": 189,
+        "backend_retired": 4,
+        "handles_initial": 119,
+        "handles_final": 119,
+        "advice_cases": 4,
+        "advice_sealed_cases": 4,
+        "complete": true,
+        "mount": false
+      },
+      "cleanup": {
+        "schema": 1,
+        "cases": 9,
+        "complete": true
+      },
+      "cache": {
+        "path": "build-sdk-asan\\CMakeCache.txt",
+        "bytes": 20109,
+        "sha256": "6e638d8b922448ca6b93b3b7eea22d1f642761a84489abb479f3e0ad94838e96"
+      },
+      "project": {
+        "path": "build-sdk-asan\\flitzfs_winfsp_paged_tests.vcxproj",
+        "bytes": 127505,
+        "sha256": "4ba9511ea4ac4e843f7d0c4306d83d62b34381a787ffbaf9f8e291d63dfc354a"
+      },
+      "core_library": {
+        "path": "build-sdk-asan\\Release\\flitzfs_core.lib",
+        "bytes": 19159856,
+        "sha256": "82ba0d491d4b916f407f2790b617a7d2c6899f89866b6d112d050824ae74f3d8"
+      },
+      "adapter_library": {
+        "path": "build-sdk-asan\\Release\\flitzfs_winfsp.lib",
+        "bytes": 3316724,
+        "sha256": "1582a04a68750a1bd703eceb0901507036d09548e16f26c2e73b529a3ffb4cb7"
+      },
+      "fixture": {
+        "path": "build-sdk-asan\\Release\\flitzfs_winfsp_paged_tests.exe",
+        "bytes": 1840128,
+        "sha256": "23d02e1076239de045ff5acfbbb7c9f976d3cb6914ed91d9fd617c0bd6453f03"
+      },
+      "runtime_DLL": {
+        "path": "build-sdk-asan\\Release\\winfsp-x64.dll",
+        "bytes": 200816,
+        "sha256": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3"
+      },
+      "external_DLL_instrumented": false
+    }
+  ],
+  "summary": {
+    "source_base": "a3f5530fb350a56ebebc7c5f55ca14db2e29cfed",
+    "contract": "docs/WINFSP_PAGED_VOLUMES.md",
+    "evidence": "docs/evidence/paged-winfsp-2026-11-15.json",
+    "status": "Writable WinFsp managed paged factory, compatible retired-owner resume, pre-repair Windows profile validation, pinned image mapping, input/advice provenance and cooperative grouping serialized with callbacks/responses/lifecycle",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "selected_CTest_groups": 6,
+        "direct_SDK_regression_executables": 2,
+        "new_SDK_checks": 4290,
+        "publication_fault_cases": 492,
+        "callback_checks": 296
+      },
+      {
+        "configuration": "asan",
+        "selected_CTest_groups": 6,
+        "direct_SDK_regression_executables": 2,
+        "new_SDK_checks": 4290,
+        "publication_fault_cases": 492,
+        "callback_checks": 296
+      }
+    ],
+    "actual_user_mode_SDK_DLL": true,
+    "SDK_tag": "v2.2B5",
+    "SDK_prerelease": true,
+    "SDK_latest_development_candidate_checked": true,
+    "native_staging_without_7zip": true,
+    "Windows_global_disposition": true,
+    "root_ACL_and_times_preserved": true,
+    "retired_flat_and_paged_resume": true,
+    "pre_repair_Windows_profile_admission": true,
+    "image_resolver_pinned_once": true,
+    "callback_active_context_group_readback": true,
+    "selected_callback_write_preserved": true,
+    "foreground_and_response_busy_gates": true,
+    "canceled_and_stopped_owner_gates": true,
+    "injected_lifecycle_stop_order": true,
+    "CPU_recovery": true,
+    "source_unchanged_after_refused_root_profile": true,
+    "supplied_observations": "modeled",
+    "actual_mounted_background_controller": false,
+    "mounted": false,
+    "driver_install": false,
+    "GPU": false,
+    "ordinary_GPU_route": false,
+    "physical_power_loss": false,
+    "persistent_coherence": false,
+    "fully_paged_namespace": false,
+    "automatic_reclamation": false,
+    "compression_record": false,
+    "release": false,
+    "next": "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
+    "full_goal_status": "active"
+  },
+  "assertions": {
+    "package_DAG_nodes": 15,
+    "local_markdown_links_checked": 559,
+    "README_unchanged": true
+  },
+  "scope": {
+    "platform": "Windows 11 AMD64",
+    "backing": "Synthetic in-memory byte I/O only; scoped SDK/source/build/reports on authorized local storage",
+    "SDK_Dll_executed": true,
+    "full_CTest": false,
+    "optional_codecs": false,
+    "Linux": false,
+    "UBSan": false,
+    "real_OS_telemetry_in_new_callback_tests": false,
+    "lifecycle_functions_injected": true,
+    "native_mount_invoked": false,
+    "driver_install_invoked": false,
+    "driver_load_invoked": false,
+    "GPU": false,
+    "physical_faults": false,
+    "compression_record": false,
+    "release": false
+  },
+  "warnings": "Upstream SDK C4324 alignment and compiler conversion/link diagnostics retained; no suppression or warning-free claim.",
+  "lifecycle": "All reported supervised trees retired; semantic daemon stopped. The bounded response/read threads and CPU deferred service are released/joined. No new service, task, driver or GPU configuration.",
+  "original_checkout": {
+    "path": "C:\\Users\\strat\\Documents\\ChatGPT\\FlitzFS",
+    "commit": "d6bb574afe21a3b5185c268df2eda9bdbd02f5e1",
+    "status_lines": 32,
+    "modified_by_round": false
+  },
+  "pushed": false,
+  "full_goal_status": "active"
+}

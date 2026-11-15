@@ -19,6 +19,12 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
+The [WinFsp paged bridge](WINFSP_PAGED_VOLUMES.md) now connects the shared managed
+engine to writable SDK callbacks, compatible retired-owner resume and cooperative
+grouping. Source-bound raw/ASan tests use the real user-mode DLL and injected
+lifecycle functions. Actual mounted scheduling, interference, driver deployment
+and current-source Explorer qualification remain open.
+
 The [Windows background helper](WINDOWS_BACKGROUND_MAINTENANCE.md) now uses the
 managed paged engine with live resource admission, measured pacing, automatic
 groups and foreground/stop ownership. It remains unmounted. Normal Explorer

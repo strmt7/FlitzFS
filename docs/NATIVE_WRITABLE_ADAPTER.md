@@ -1,5 +1,10 @@
 # Native writable Windows adapter candidate (experimental)
 
+The current [paged adapter bridge](WINFSP_PAGED_VOLUMES.md) adds mirrored managed
+creation, compatible retired-owner resume and cooperative groups through this
+same writable callback table. Its source-bound real SDK tests are separate from
+the historical ordinary-file/mount qualification and remaining product gates below.
+
 This candidate combines the native transaction engine and actual WinFsp SDK
 callbacks. It is built only with the opt-in Windows SDK target. Its factory
 requires qualified backing/runtime/containment and creates a NEW ordinary image with
