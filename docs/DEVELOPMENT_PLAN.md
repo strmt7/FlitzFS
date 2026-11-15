@@ -46,11 +46,14 @@ verification and copying into bounded opportunities, without a full backing scan
 at finish. It still needs automatic admission and paged active-volume handoff.
 Opt-in [payload mirroring](MIRRORED_PAYLOADS.md) now preserves CPU access through
 one surviving copy and reconstructs protection into a new image. It adds real
-space overhead; automatic repair, physical fault qualification and protected
-cross-file decoder-dependency manifests remain open.
-Then persist similarity scans and protected shared
-group/decode-unit manifests. Couple the collective representation to finite AMD
-work amortization, independent CPU recovery and useful ordinary Windows routing;
+space overhead; automatic repair and physical fault qualification remain open.
+The explicit [shared-base extension](SHARED_BASE_GROUPS.md) now supplies protected
+one-level dependencies, independent CPU decoding and complete compacted-size
+admission. It is a position-aligned baseline, not learned or GPU compression.
+Next persist sparse candidate scans, prepare groups incrementally and compare
+stronger representations on held-out mixed data. Couple the collective
+representation to finite AMD work amortization, independent CPU recovery and
+useful ordinary Windows routing;
 follow with yielding learning/rebuild scheduling and representative comparisons.
 The JSON current_round/next_product_slices contain the ordered work. The hardware
 comparison below is historical and remains a required negative result to retain.

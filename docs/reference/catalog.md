@@ -111,6 +111,7 @@ A historical test result or design document is not present execution authority.
 - [RETIREMENT_REFERENCE](../RETIREMENT_REFERENCE.md)
 - [ROADMAP](../ROADMAP.md)
 - [SAFETY](../SAFETY.md)
+- [SHARED_BASE_GROUPS](../SHARED_BASE_GROUPS.md)
 - [SHARED_EXTENTS](../SHARED_EXTENTS.md)
 - [SESSION_LIFECYCLE](../SESSION_LIFECYCLE.md)
 - [SOURCE_SNAPSHOT](../SOURCE_SNAPSHOT.md)

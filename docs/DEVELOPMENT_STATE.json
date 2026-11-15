@@ -110,11 +110,11 @@
   ],
   "next_implementation": {
     "contract": "docs/RELEASE_EXECUTION_PLAN.md",
-    "next": "Implement paged native inode/name/extent transactions through the shared native/session engine APIs, stable directory pagination and explicit legacy migration. Protect exact sharing and file lifetimes. Qualify populated named files separately from the million-object index result."
+    "next": "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes. Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist the sparse protected coherence catalog and resumable scans with unchanged-content/negative-result suppression."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
-    "native_compression": "Independent CPU formats and controlled GPU advice; d384b6c passed three actual owned-service GPU requests in a matched series with CPU recovery. Explicit exact sharing/private updates are locally implemented in format 7. Automatic useful GPU routing, scalable indices, learned collective codecs and payload repair remain unfinished.",
+    "native_compression": "Independent CPU formats and controlled GPU advice; d384b6c passed three actual owned-service GPU requests in a matched series with CPU recovery. Explicit exact sharing/private updates are locally implemented in format 7. Automatic useful GPU routing, scalable indices, learned collective codecs and payload repair remain unfinished. Explicit PN capability-3 shared-base groups now have independent CPU decoding and conservative complete-size admission; selected raw/ASan checks do not qualify actual AMD collective execution.",
     "persistent_learner": false,
     "autonomous_background_executor": false,
     "general_payload_repair": false,
@@ -1010,13 +1010,11 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Implement protected immutable cross-file group/dependency manifests and independent CPU decoding, with generation-safe publication and complete-size accounting. Connect low-priority repair/handoff to fresh resource evidence; continue bounded paged native residency and qualify actual AMD candidate work separately.",
-    "Add one unmounted actual-GPU callback-service qualification after exact-source gates; verify admitted stored bytes and independent GPU-absent readback. Do not repeat the earlier unchanged diagnostic.",
-    "Acquire repeated configuration/recovery/work-shape keyed complete costs from finite windows, qualify independent helper dependencies and connect automatic useful Windows write/read/fallback; then coalesce compatible operations under a bounded lifetime.",
-    "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
-    "Evaluate shared dictionaries, verified delta/base and GPU-supported model/residual candidates on held-out real data; minimize complete stored bytes with practical measured cold/random retrieval.",
-    "Persist advisory learning and run event/evidence-driven lowest-priority optimization, with prompt yield and negative-benefit suppression; integrate actual grouping/recompression/layout.",
-    "Close acknowledged-write durability/repair, historical retirement investigation, latest Windows 11 semantics/application/backends, secure lifecycle and independent comparisons. No release without owner decision."
+    "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes.",
+    "Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist the sparse protected coherence catalog and resumable scans with unchanged-content/negative-result suppression.",
+    "Compare shifted/fine-grained, dictionary, multi-reference and learned candidates on held-out heterogeneous real data. Charge full protected images, dependencies, history and temporary space; measure random/cold retrieval and foreground interference.",
+    "Implement useful finite AMD collective work and automatic ordinary Windows operation through qualified discovery, configuration-keyed costs, CPU recovery and confirmed worker retirement. Do not repeat the unchanged negative diagnostic as product progress.",
+    "Connect offline adaptive learning, genuinely low-priority execution, repair and gradual format migration. Complete Windows semantics/helper/tray/backends, historical retirement diagnosis, security, compatibility, DiskSpd/fio/fsbench/lzbench comparisons and soak; no autonomous release."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1486,5 +1484,64 @@
     "driver_installed": false,
     "release": false,
     "next": "Implement protected immutable cross-file group/dependency manifests and independent CPU decoding, with generation-safe publication and complete-size accounting. Connect low-priority repair/handoff to fresh resource evidence; continue bounded paged native residency and qualify actual AMD candidate work separately."
+  },
+  "shared_base_checkpoint": {
+    "source_base": "21812871786d0c68d54b60ec6bc3a44109720c66",
+    "contract": "docs/SHARED_BASE_GROUPS.md",
+    "evidence": "docs/evidence/shared-base-groups-2026-11-15.json",
+    "status": "Explicit native capability 3: mirrored immutable shared bases, one-level independently CPU-decoded patch members, atomic publication/private detachment and conservative complete compacted-image admission",
+    "broad_raw_suites": 100,
+    "broad_ASan_suites": 100,
+    "shared_base_checks": 12875,
+    "shared_base_fault_cases": 492,
+    "failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "write_barrier_cuts": [
+      67,
+      97
+    ],
+    "malformed_stored_dependency_variants": 12,
+    "malformed_private_frame_variants": 14,
+    "layout_estimate_cases": 16,
+    "layout_estimate_maximum_records": 1926,
+    "single_base_bank_loss_repairs": 4,
+    "double_base_copy_loss_refusals": 2,
+    "live_dependency_failure_fencing_cases": 2,
+    "compacted_images": [
+      {
+        "unit": 4096,
+        "before_lower": 1196032,
+        "after_upper": 286720,
+        "actual_before": 1196032,
+        "actual_after": 286720
+      },
+      {
+        "unit": 65536,
+        "before_lower": 1441792,
+        "after_upper": 524288,
+        "actual_before": 1441792,
+        "actual_after": 524288
+      }
+    ],
+    "independent_CPU_decode": true,
+    "immutable_generation_digest_binding": true,
+    "complete_size_admission": true,
+    "source_preserving_rebuild": true,
+    "synchronous_explicit_candidate": true,
+    "protected_decoder_dependencies": true,
+    "persistent_coherence_catalog": false,
+    "automatic_learning": false,
+    "automatic_background_execution": false,
+    "fully_paged_namespace": false,
+    "bounded_native_cache": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes.",
+    "full_goal_status": "active"
   }
 }

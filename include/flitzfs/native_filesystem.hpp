@@ -136,10 +136,18 @@ struct NativeWorkloadInfo {
   std::uint64_t committed_input_bytes=0;
   bool operator==(const NativeWorkloadInfo&) const = default;
 };
+struct NativeSharedBaseInfo {bool enabled=false;std::size_t members=0,bases=0;};
+struct NativeExtentSelection {std::uint64_t inode=0,extent_index=0;};
 struct NativeFsCommit {
   StoreCommitInfo storage;
   std::uint64_t sequence=0; // Namespace transaction sequence, distinct from root repair generation.
   std::vector<std::uint64_t> created_inodes;
+};
+struct NativeSharedBaseCommit {
+  NativeFsCommit transaction;
+  bool applied=false;
+  std::uint64_t before_compacted_lower_bound=0,after_compacted_upper_bound=0;
+  std::size_t members=0;
 };
 
 struct NativeInodeWriteCommit {
@@ -221,6 +229,7 @@ class NativeFilesystemSnapshot final {
   StoreCommitInfo storage_info() const noexcept;
   std::uint64_t sequence() const noexcept;
   NativeWorkloadInfo workload_info() const noexcept; // Validated cached scalar; moved-from is disabled.
+  NativeSharedBaseInfo shared_base_info() const noexcept;
   NativeFileInfo stat(std::string_view path) const;
   // IDs belong to this volume/snapshot. Missing/deleted IDs return not_found;
   // a later file at the old path is never selected instead.
@@ -273,6 +282,14 @@ class NativeFilesystemWriter final {
   // New empty layout with separately indexed canonical directory names.
   // Existing layouts are never converted in place. Current frontend limits remain.
   static NativeFilesystemWriter initialize_indexed_names(PagedObjectStoreWriter objects);
+  // Capability-3 namespace on a NEW empty mirrored paged store. Ordinary
+  // writes stay independent; explicit shared-base work is separately selected.
+  static NativeFilesystemWriter initialize_shared_bases(PagedObjectStoreWriter objects);
+  // Explicit CPU primitive, not an idle scheduler/GPU route. Atomically install
+  // position-aligned shared-base patches only when conservative COMPLETE
+  // compacted-image bounds prove a reduction. Existing frontend limits remain.
+  NativeSharedBaseCommit compress_shared_base(NativeExtentSelection base,
+      std::span<const NativeExtentSelection> members);
   // Explicit sticky namespace capability; legacy initialization is unchanged.
   // Start at zero without crediting old files. Commit through the same
   // replicated metadata transaction. Repeated enable never resets the count.
@@ -476,7 +493,7 @@ class NativeFilesystemWriter final {
       std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool reencode);
   static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter,bool inode_records=false,
-      bool indexed_names=false);
+      bool indexed_names=false,bool shared_bases=false);
   static NativeFilesystemWriter resume_impl(detail::NativeObjectWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

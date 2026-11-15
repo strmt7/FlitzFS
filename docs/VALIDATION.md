@@ -1,5 +1,12 @@
 # Validation ledger — experimental release 0.2
 
+## Protected shared-base checkpoint — 15 November 2026
+
+[Contract](SHARED_BASE_GROUPS.md) and
+[source-bound evidence](evidence/shared-base-groups-2026-11-15.json) separate
+selected Windows raw/AddressSanitizer checks and complete synthetic image-size
+measurements from unexecuted GPU, mount, physical power-loss and benchmark claims.
+
 ## Local paged storage checkpoint — 15 November 2026
 
 [Paged storage](PAGED_OBJECT_STORE.md) and its

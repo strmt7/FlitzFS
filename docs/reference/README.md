@@ -21,6 +21,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Native paged compaction and recompression](../NATIVE_PAGED_MAINTENANCE.md)
 - [Bounded staged paged rebuild](../STAGED_PAGED_REBUILD.md)
 - [Mirrored payloads and surviving-copy CPU recovery](../MIRRORED_PAYLOADS.md)
+- [Protected shared-base cross-file groups](../SHARED_BASE_GROUPS.md)
 
 ## Windows integration
 

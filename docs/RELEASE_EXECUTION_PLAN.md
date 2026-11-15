@@ -7,7 +7,8 @@ Assessment: 15 November 2026. Reviewed local source:
 [directory name indices](DIRECTORY_NAME_INDEX.md) and
 [native paged maintenance](NATIVE_PAGED_MAINTENANCE.md) and
 [bounded staged rebuilding](STAGED_PAGED_REBUILD.md) and
-[payload mirroring](MIRRORED_PAYLOADS.md) are traced separately; the
+[payload mirroring](MIRRORED_PAYLOADS.md) and
+[shared-base groups](SHARED_BASE_GROUPS.md) are traced separately; the
 paged namespace work and release gates remain open. The full product goal remains active.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,
@@ -25,7 +26,7 @@ application slices, bounded GPU workers and independent CPU result validation.
 | --- | --- | --- |
 | Scalable storage | The opt-in paged store has writes, deletion, paginated lookup, resume and streaming new-image rebuild. A million populated object records were tested. | The ordinary native namespace still uses a flat model: 256 nodes, 255 extents and a 64-MiB image bound. Paged objects are not yet million-file Explorer support. |
 | Local qualification | Three selected suites passed in raw-only Windows Release and AddressSanitizer: 48,739 checks per configuration, plus a separate million-object run. | This is not the full current-source suite, optional-codec qualification, a mounted Windows qualification or physical power-loss evidence. |
-| Sharing | Format 7 supports verified exact shared extents and private updates; a duplicate fixture shrank after new-image compaction. | No automatic large-scale similarity grouping or deeper collective codec. Both small fixture images exceeded their input size. |
+| Sharing | Exact extent sharing/private updates and explicit protected shared-base patch groups with complete-size admission; related synthetic family images shrink after compaction. | No automatic scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
 | GPU | Actual AMD execution and independent current/prior CPU recovery passed controlled service tests. | The last matched case was slower on GPU: CPU median 24.2311 ms, GPU 513.918 ms, identical complete image sizes. Useful automatic ordinary I/O remains absent. |
 | Learning/background work | Persistent advisory state, workload provenance, resource-admission and staged maintenance primitives exist. | No complete autonomous learner, coherence catalog, contention-aware executor, gradual migration or lifetime write-amplification governor. |
 | Windows product | Read-only and writable callback experiments, disposable mounted tests, and an unmounted editor/control/tray slice exist. | Full client semantics, shared scalable engine integration, supported physical/memory providers, packaging, secure updates and broad application qualification remain incomplete. |

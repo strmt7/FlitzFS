@@ -2,6 +2,7 @@
 #include "native_object_storage.hpp"
 #include "flitzfs/catalog.hpp"
 #include "record_digest.hpp"
+#include "native_group_codec.hpp"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -74,6 +75,9 @@ struct Model {
   std::uint32_t format=1;
   bool inode_records=false;
   bool indexed_names=false;
+  bool shared_bases=false;
+  std::map<std::uint64_t,detail::NativeGroupReference> members;
+  std::set<std::uint64_t> bases;
   std::map<std::uint64_t,Node> nodes;
   std::map<std::pair<std::uint64_t,std::string>,std::uint64_t> names;
 };
@@ -196,6 +200,8 @@ void validate_structure(const Model& model,bool pending=false) {
     fail(Code::corrupt,"inode-record capability/allocator");
   if(model.indexed_names && (!model.inode_records || model.next_inode>kDirectoryObjectBit))
     fail(Code::corrupt,"directory-index capability/allocator");
+  if(model.shared_bases && !model.indexed_names)fail(Code::corrupt,"shared-base namespace capability");
+  if(!model.shared_bases && (!model.members.empty() || !model.bases.empty()))fail(Code::corrupt,"legacy shared dependency cache");
   const auto& root=node(model,1);
   if(root.parent || !root.directory || !root.name.empty() || root.size || !root.extents.empty() ||
       root.born!=1 || root.delete_pending || root.unlinked)
@@ -251,6 +257,29 @@ Bytes object_bytes(const detail::NativeObjectSnapshot& objects,std::uint64_t id)
   catch(const std::bad_alloc&){throw;}
   catch(const std::exception&){fail(Code::storage_failure,"native backing object verification failed");}
 }
+detail::NativeGroupReference group_reference(std::span<const std::byte> bytes) {
+  try{return detail::parse_native_group_member(bytes);}
+  catch(const std::bad_alloc&){throw;}
+  catch(const std::exception&){fail(Code::corrupt,"invalid native shared-base frame");}
+}
+bool group_base_id(std::uint64_t id){return id>detail::kNativeGroupBaseBit && id<kDirectoryObjectBit;}
+Bytes extent_bytes(const detail::NativeObjectSnapshot& objects,const Model& model,std::uint64_t id) {
+  auto bytes=object_bytes(objects,id);const auto found=model.members.find(id);
+  if(found==model.members.end()) {
+    if(bytes.size()!=kNativeExtentBytes)fail(Code::corrupt,"native plain extent size");return bytes;
+  }
+  if(!model.shared_bases || group_reference(bytes)!=found->second)fail(Code::corrupt,"shared dependency cache differs");
+  const auto& ref=found->second;const auto base=objects.stat(ref.base_id);
+  if(!base || base->generation!=ref.base_generation || base->logical_bytes!=kNativeExtentBytes)
+    fail(Code::corrupt,"shared base missing/generation differs");
+  const auto data=object_bytes(objects,ref.base_id);
+  try{return detail::decode_native_group_member(bytes,data);}
+  catch(const std::bad_alloc&){throw;}
+  catch(const std::exception&){fail(Code::corrupt,"shared extent CPU verification failed");}
+}
+void refresh_group_bases(Model& model) {
+  model.bases.clear();for(const auto& [id,ref]:model.members){(void)id;model.bases.insert(ref.base_id);}
+}
 template<class Read> void validate_data(const Model& model,Read read) {
   for(const auto& [id,n]:model.nodes)for(const auto& [block,object]:n.extents) {
     const auto bytes=read(id,block,object);
@@ -296,11 +325,11 @@ Bytes encode(const Model& model) {
   return bytes;
 }
 std::size_t inventory_limit(const Model& model) {
-  return model.indexed_names?3*kStoreMaxObjects:model.inode_records?2*kStoreMaxObjects:kStoreMaxObjects;
+  return model.shared_bases?4*kStoreMaxObjects:model.indexed_names?3*kStoreMaxObjects:model.inode_records?2*kStoreMaxObjects:kStoreMaxObjects;
 }
-Bytes inode_root(std::span<const std::byte> normalized,bool indexed_names) {
+Bytes inode_root(std::span<const std::byte> normalized,bool indexed_names,bool shared_bases=false) {
   Bytes root(normalized.begin(),normalized.begin()+64);
-  std::copy(kInodeRootMagic.begin(),kInodeRootMagic.end(),root.begin());put(root,8,indexed_names?2:1,4);return root;
+  std::copy(kInodeRootMagic.begin(),kInodeRootMagic.end(),root.begin());put(root,8,shared_bases?3:indexed_names?2:1,4);return root;
 }
 Bytes directory_bytes(const Model& model,std::uint64_t directory) {
   Bytes bytes(24);std::copy(kDirectoryMagic.begin(),kDirectoryMagic.end(),bytes.begin());
@@ -363,7 +392,7 @@ NodeFrames node_frames(const Model& model,std::span<const std::byte> bytes) {
 void namespace_mutations(std::vector<StoreMutation>& output,const Model& model,const Model* previous=nullptr) {
   const auto current=encode(model);
   if(!model.inode_records){output.push_back({kNamespaceObject,false,current});return;}
-  output.push_back({kNamespaceObject,false,inode_root(current,model.indexed_names)});
+  output.push_back({kNamespaceObject,false,inode_root(current,model.indexed_names,model.shared_bases)});
   const auto frames=node_frames(model,current);
   const auto old=previous?encode(*previous):Bytes{};
   const auto prior=previous?node_frames(*previous,old):NodeFrames{};
@@ -396,14 +425,15 @@ bool namespace_matches(const detail::NativeObjectSnapshot& objects,const Model& 
 Model decode(const detail::NativeObjectSnapshot& objects) {
   auto bytes=object_bytes(objects,kNamespaceObject);
   const bool inode_records=bytes.size()>=8 && std::equal(kInodeRootMagic.begin(),kInodeRootMagic.end(),bytes.begin());
-  bool indexed_names=false;
+  bool indexed_names=false,shared_bases=false;
   if(inode_records) {
-    if(!objects.paged() || bytes.size()!=64 || (integer(bytes,8,4)!=1 && integer(bytes,8,4)!=2) || !integer(bytes,12,4) ||
+    if(!objects.paged() || bytes.size()!=64 || integer(bytes,8,4)<1 || integer(bytes,8,4)>3 || !integer(bytes,12,4) ||
         integer(bytes,12,4)>kNativeMaxNodes || integer(bytes,36,4)>kNativeMaxExtents)
       fail(Code::corrupt,"unsupported inode-record root");
-    indexed_names=integer(bytes,8,4)==2;
+    indexed_names=integer(bytes,8,4)>=2;shared_bases=integer(bytes,8,4)==3;
+    if(shared_bases && !objects.mirrored())fail(Code::corrupt,"shared bases require protected payloads");
     const auto count=integer(bytes,12,4);std::size_t observed=0;
-    const auto catalog=objects.list((indexed_names?3:2)*kStoreMaxObjects);
+    const auto catalog=objects.list((shared_bases?4:indexed_names?3:2)*kStoreMaxObjects);
     for(const auto& record:catalog)if(record.id&kInodeObjectBit) {
       if(++observed>count)fail(Code::corrupt,"extra inode metadata record");
       const auto frame=object_bytes(objects,record.id);
@@ -432,7 +462,7 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
   if(!count || count>kNativeMaxNodes || declared_extents>kNativeMaxExtents)fail(Code::limit,"native metadata counts");
   if(format>=2 && !objects.info().replicated_checkpoint)
     fail(Code::corrupt,"native lifetime capability requires replicated current checkpoints");
-  Model model;model.format=static_cast<std::uint32_t>(format);model.inode_records=inode_records;model.indexed_names=indexed_names;
+  Model model;model.format=static_cast<std::uint32_t>(format);model.inode_records=inode_records;model.indexed_names=indexed_names;model.shared_bases=shared_bases;
   if(format>=6)model.committed_input_bytes=integer(all,56,8);
   model.sequence=integer(all,16,8);model.next_inode=integer(all,24,8);
   std::copy_n(bytes.begin()+40,16,model.identity.begin());
@@ -493,12 +523,19 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
     }
     for(const auto& [block,object]:n.extents){(void)block;expected.insert(object);}}
   const auto catalog=objects.list(inventory_limit(model));
+  if(shared_bases) {
+    for(const auto& object:catalog)if(object.id>=2 && object.id<=kStoreMaxObjects && expected.contains(object.id) && object.logical_bytes!=kNativeExtentBytes) {
+      const auto ref=group_reference(object_bytes(objects,object.id));model.members.emplace(object.id,ref);model.bases.insert(ref.base_id);
+    }
+    expected.insert(model.bases.begin(),model.bases.end());
+  }
   if(catalog.size()!=expected.size())fail(Code::corrupt,"foreign or dangling native objects");
   for(const auto& object:catalog)if(!expected.contains(object.id) ||
       (object.id!=kNamespaceObject && !(inode_records && (object.id&kInodeObjectBit)) &&
-       !(indexed_names && (object.id&kDirectoryObjectBit)) && object.logical_bytes!=kNativeExtentBytes))
+       !(indexed_names && (object.id&kDirectoryObjectBit)) &&
+       !(shared_bases && model.members.contains(object.id)) && object.logical_bytes!=kNativeExtentBytes))
     fail(Code::corrupt,"native object extent mismatch");
-  validate_data(model,[&](auto,auto,std::uint64_t object){return object_bytes(objects,object);});
+  validate_data(model,[&](auto,auto,std::uint64_t object){return extent_bytes(objects,model,object);});
   return model;
 }
 struct DirtyExtent {
@@ -529,7 +566,7 @@ struct Stage {
     if(auto found=dirty.find(key);found!=dirty.end())return found->second;
     if(dirty.size()>=kDirtyCap)fail(Code::limit,"native staging extent budget");
     const auto existing=n.extents.find(index);
-    auto bytes=existing==n.extents.end()?Bytes(kNativeExtentBytes):object_bytes(base,existing->second);
+    auto bytes=existing==n.extents.end()?Bytes(kNativeExtentBytes):extent_bytes(base,original,existing->second);
     if(bytes.size()!=kNativeExtentBytes)fail(Code::corrupt,"native source extent size");
     std::uint64_t previous_object=0;
     if(const auto inode=original.nodes.find(n.inode);inode!=original.nodes.end())
@@ -572,7 +609,7 @@ struct Stage {
       if(resolved.contains(object))continue;
       const auto cost=costs.find(object);
       if(cost==costs.end())fail(Code::corrupt,"coalescing object missing from inventory");
-      const auto bytes=object_bytes(base,object);
+      const auto bytes=extent_bytes(base,original,object);
       if(bytes.size()!=kNativeExtentBytes || zeros(bytes))
         fail(Code::corrupt,"invalid coalescing source extent");
       auto& candidates=representatives[detail::record_digest(bytes)];
@@ -581,7 +618,7 @@ struct Stage {
         // Also bound adversarial hash-bucket work; no writes have occurred.
         if(comparisons>=kNativeMaxExtents)fail(Code::limit,"coalescing comparison budget");
         ++comparisons;
-        if(object_bytes(base,groups.at(candidate).object)==bytes){selected=candidate;break;}
+        if(extent_bytes(base,original,groups.at(candidate).object)==bytes){selected=candidate;break;}
       }
       if(selected==groups.size()) {
         groups.push_back({object,cost->second});candidates.push_back(selected);
@@ -857,7 +894,7 @@ struct Stage {
     for(auto it=dirty.begin();it!=dirty.end();) {
       const auto& extent=it->second;
       if(extent.compare_original && extent.original_object &&
-          extent.bytes==object_bytes(base,extent.original_object)) {
+          extent.bytes==extent_bytes(base,original,extent.original_object)) {
         node(model,it->first.first).extents.at(it->first.second)=extent.original_object;
         it=dirty.erase(it);
       } else ++it;
@@ -870,7 +907,10 @@ struct Stage {
       if(candidate>kStoreMaxObjects)fail(Code::limit,"native extent object allocator");
       object=candidate;used.insert(object);
     }
-    validate_structure(model);
+    for(const auto& [id,n]:model.nodes)for(const auto& [index,object]:n.extents)
+      if(dirty.contains({id,index}))model.members.erase(object);
+    for(auto it=model.members.begin();it!=model.members.end();)it=!used.contains(it->first)?model.members.erase(it):std::next(it);
+    refresh_group_bases(model);validate_structure(model);
     std::vector<StoreMutation> output;output.reserve(kStoreMaxObjects);
     namespace_mutations(output,model,&original);
     for(const auto& [id,n]:model.nodes)for(const auto& [index,object]:n.extents) {
@@ -889,7 +929,8 @@ struct Stage {
     }
     for(const auto& previous:base.list(inventory_limit(model)))if(previous.id!=kNamespaceObject &&
         !(model.inode_records && (previous.id&kInodeObjectBit)) &&
-        !(model.indexed_names && (previous.id&kDirectoryObjectBit)) && !used.contains(previous.id))
+        !(model.indexed_names && (previous.id&kDirectoryObjectBit)) &&
+        !(model.shared_bases && model.bases.contains(previous.id)) && !used.contains(previous.id))
       output.push_back({previous.id,true,{}});
     if(output.size()>inventory_limit(model))fail(Code::limit,"native object mutation budget");
     return output;
@@ -933,6 +974,9 @@ NativeWorkloadInfo NativeFilesystemSnapshot::workload_info() const noexcept {
   if(!impl_||impl_->model.format<6)return {};
   return {true,impl_->model.committed_input_bytes};
 }
+NativeSharedBaseInfo NativeFilesystemSnapshot::shared_base_info() const noexcept {
+  return impl_?NativeSharedBaseInfo{impl_->model.shared_bases,impl_->model.members.size(),impl_->model.bases.size()}:NativeSharedBaseInfo{};
+}
 NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   return file_info(impl_->model,node(impl_->model,resolve_snapshot(impl_->objects,impl_->model,path)));
@@ -945,14 +989,14 @@ std::vector<NativeFileInfo> list_node(const Model& model,const Node& directory) 
     result.push_back(file_info(model,node(model,it->second)));
   return result;
 }
-Bytes read_node(const detail::NativeObjectSnapshot& objects,const Node& n,std::uint64_t offset,std::uint32_t bytes) {
+Bytes read_node(const detail::NativeObjectSnapshot& objects,const Model& model,const Node& n,std::uint64_t offset,std::uint32_t bytes) {
   if(n.directory)fail(Code::is_directory,"cannot read native directory");
   if(offset>=n.size || !bytes)return {};
   const auto count=(std::min)(std::uint64_t(bytes),n.size-offset),end=offset+count;
   Bytes output(static_cast<std::size_t>(count));
   for(auto it=n.extents.lower_bound(offset/kNativeExtentBytes);it!=n.extents.end();++it) {
     const auto begin=it->first*kNativeExtentBytes;if(begin>=end)break;
-    const auto data=object_bytes(objects,it->second);
+    const auto data=extent_bytes(objects,model,it->second);
     if(data.size()!=kNativeExtentBytes)fail(Code::corrupt,"native read extent size");
     const auto first=(std::max)(begin,offset),last=(std::min)(begin+kNativeExtentBytes,end);
     std::copy_n(data.begin()+static_cast<std::ptrdiff_t>(first-begin),static_cast<std::size_t>(last-first),
@@ -1036,12 +1080,12 @@ NativeDirectoryPage NativeFilesystemSnapshot::list_inode_page(std::uint64_t dire
 Bytes NativeFilesystemSnapshot::read(std::string_view path,std::uint64_t offset,std::uint32_t bytes) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
-  return read_node(impl_->objects,node(impl_->model,resolve_snapshot(impl_->objects,impl_->model,path)),offset,bytes);
+  return read_node(impl_->objects,impl_->model,node(impl_->model,resolve_snapshot(impl_->objects,impl_->model,path)),offset,bytes);
 }
 Bytes NativeFilesystemSnapshot::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
-  return read_node(impl_->objects,selected_inode(impl_->model,inode),offset,bytes);
+  return read_node(impl_->objects,impl_->model,selected_inode(impl_->model,inode),offset,bytes);
 }
 void NativeFilesystemSnapshot::verify_all() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
@@ -1059,22 +1103,103 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize_inode_records(PagedObj
 NativeFilesystemWriter NativeFilesystemWriter::initialize_indexed_names(PagedObjectStoreWriter objects) {
   return initialize_storage(std::move(objects),true,true);
 }
-NativeFilesystemWriter NativeFilesystemWriter::initialize_storage(detail::NativeObjectWriter objects,bool inode_records,bool indexed_names) {
+NativeFilesystemWriter NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter objects) {
+  return initialize_storage(std::move(objects),true,true,true);
+}
+NativeFilesystemWriter NativeFilesystemWriter::initialize_storage(detail::NativeObjectWriter objects,bool inode_records,bool indexed_names,bool shared_bases) {
   auto snapshot=objects.snapshot();
   if(objects.poisoned() || snapshot.info().generation!=(objects.paged()?2U:0U) || !snapshot.list().empty())
     fail(Code::invalid_operation,"native initialization requires new empty store");
   if(inode_records && !objects.paged())fail(Code::invalid_operation,"inode records require paged storage");
+  if(shared_bases && !snapshot.mirrored())fail(Code::invalid_operation,"shared bases require mirrored paged storage");
   Model model;model.identity=snapshot.identity();model.inode_records=inode_records;model.indexed_names=indexed_names;
+  model.shared_bases=shared_bases;
   if(inode_records)model.format=7;
   Node root;root.inode=1;root.directory=true;root.born=root.modified=1;
   model.nodes.emplace(1,std::move(root));
   auto p=std::make_unique<Impl>(std::move(objects),model);
   std::vector<StoreMutation> metadata;namespace_mutations(metadata,model);
-  p->objects.commit_replicated(metadata,model.indexed_names);
+  p->objects.commit_replicated(metadata,model.indexed_names,model.shared_bases);
   return NativeFilesystemWriter(std::move(p));
 }
 NativeFsCommit NativeFilesystemWriter::enable_workload_accounting() {
   return transact({},InodeAction::enable_workload,0);
+}
+NativeSharedBaseCommit NativeFilesystemWriter::compress_shared_base(NativeExtentSelection base_selection,
+    std::span<const NativeExtentSelection> members) {
+  if(poisoned() || !impl_->model.shared_bases)fail(Code::invalid_operation,"shared-base work requires its explicit namespace");
+  if(members.size()>kNativeMaxExtents)fail(Code::limit,"shared-base selection budget");
+  auto source=checked_namespace();const auto* paged=source.paged_if();
+  if(!paged || !source.mirrored())fail(Code::invalid_operation,"shared-base dependencies require protected backing");
+  NativeSharedBaseCommit result;result.transaction.storage=source.info();result.transaction.sequence=impl_->model.sequence;
+  bool committing=false;
+  try {
+    auto selected_object=[&](NativeExtentSelection selected) {
+      const auto& n=selected_inode(impl_->model,selected.inode);
+      if(n.directory)fail(Code::is_directory,"shared-base selection is a directory");
+      const auto found=n.extents.find(selected.extent_index);
+      if(found==n.extents.end())fail(Code::not_found,"shared-base selection is a sparse/missing extent");
+      return found->second;
+    };
+    const auto base_object=selected_object(base_selection);std::set<std::uint64_t> selected{base_object};
+    for(const auto member:members)selected.insert(selected_object(member));result.members=selected.size();
+    if(selected.size()<2)return result;
+    if(impl_->model.sequence==(std::numeric_limits<std::uint64_t>::max)() ||
+        source.info().generation>(std::numeric_limits<std::uint64_t>::max)()-2)
+      fail(Code::limit,"shared-base generation exhausted");
+    std::uint64_t anchor=detail::kNativeGroupBaseBit+1;
+    while(impl_->model.bases.contains(anchor))++anchor;
+    if(!group_base_id(anchor))fail(Code::limit,"shared-base identity exhausted");
+    const auto generation=source.info().generation+1;
+    const auto base=extent_bytes(source,impl_->model,base_object);
+    auto model=impl_->model;++model.sequence;
+    std::vector<StoreMutation> changes;changes.reserve(selected.size()+model.bases.size()+2);
+    std::uint64_t input=kNativeExtentBytes+64;
+    for(const auto id:selected) {
+      const auto bytes=extent_bytes(source,impl_->model,id);
+      auto encoded=detail::encode_native_group_member(bytes,base,anchor,generation);
+      if(!encoded)return result;
+      input+=encoded->size();if(input>kStoreMaxTransactionBytes+2*kMetadataCap)return result;
+      if(detail::decode_native_group_member(*encoded,base)!=bytes)fail(Code::corrupt,"shared-base private CPU comparison");
+      model.members[id]=group_reference(*encoded);changes.push_back({id,false,std::move(*encoded)});
+    }
+    refresh_group_bases(model);
+    changes.push_back({anchor,false,base});
+    for(const auto old:impl_->model.bases)if(!model.bases.contains(old))changes.push_back({old,true,{}});
+    changes.push_back({kNamespaceObject,false,inode_root(encode(model),true,true)});
+
+    // Source root re-encoding under a future image identity can change size.
+    // Zero root payload is a conservative BEFORE lower bound; raw changed
+    // payloads are an AFTER upper bound because the store never expands them.
+    auto before=source.list(inventory_limit(model));auto after=before;
+    for(auto& object:before)if(object.id==kNamespaceObject)object.stored_payload_bytes=0;
+    for(const auto& change:changes) {
+      const auto found=std::lower_bound(after.begin(),after.end(),change.id,[](const auto& object,auto id){return object.id<id;});
+      if(change.erase){if(found==after.end() || found->id!=change.id)fail(Code::corrupt,"shared-base garbage reference missing");after.erase(found);}
+      else {
+        StoreObjectInfo object{change.id,generation,static_cast<std::uint32_t>(change.bytes.size()),static_cast<std::uint32_t>(change.bytes.size())};
+        if(found!=after.end() && found->id==change.id)*found=object;else after.insert(found,object);
+      }
+    }
+    result.before_compacted_lower_bound=paged->rebuilt_size(before);
+    result.after_compacted_upper_bound=paged->rebuilt_size(after);
+    if(result.after_compacted_upper_bound>=result.before_compacted_lower_bound)return result;
+    if(impl_->objects.generation_for_staging()!=source.info().generation)
+      fail(Code::invalid_operation,"shared-base source generation changed");
+    result.transaction.sequence=model.sequence;committing=true;
+    result.transaction.storage=impl_->objects.commit_replicated(changes,true,true);
+    impl_->model=std::move(model);result.applied=true;return result;
+  }catch(const std::bad_alloc&) {
+    if(committing && impl_->objects.poisoned())impl_->poisoned=true;
+    fail(Code::limit,"shared-base preparation allocation failure");
+  }catch(const NativeFsError& error){
+    if(error.code()==Code::corrupt || (error.code()==Code::storage_failure && (!committing || impl_->objects.poisoned())))
+      impl_->poisoned=true;
+    throw;
+  }catch(const std::exception&) {
+    if(!committing || impl_->objects.poisoned())impl_->poisoned=true;
+    fail(Code::storage_failure,"shared-base transaction failed; recover independently");
+  }
 }
 NativeFsCommit NativeFilesystemWriter::coalesce_equal_extents() {
   return transact({},InodeAction::coalesce_extents,0);
@@ -1160,7 +1285,7 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
     if(const auto* paged=source.impl_->objects.paged_if()) {
       if(checkpoints.compact_metadata)
         fail(Code::invalid_operation,"paged rebuild isolation already derives from the backend contract");
-      const auto root=model.inode_records?inode_root(metadata,model.indexed_names):metadata;
+      const auto root=model.inode_records?inode_root(metadata,model.indexed_names,model.shared_bases):metadata;
       return resume(detail::NativeObjectWriter::rebuild(*paged,std::move(target),id,root,compression,reencode));
     }
     return resume(ObjectStoreWriter::compact_replacing(source.impl_->objects.flat(),
@@ -1206,7 +1331,7 @@ PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompress
   }
   try {
     auto model=impl_->model;model.identity=id;const auto metadata=encode(model);
-    const auto root=model.inode_records?inode_root(metadata,model.indexed_names):metadata;
+    const auto root=model.inode_records?inode_root(metadata,model.indexed_names,model.shared_bases):metadata;
     return impl_->objects.prepare_paged_rebuild(std::move(target),id,root,compression,reencode);
   }catch(const std::bad_alloc&){fail(Code::limit,"staged paged preparation allocation failure");}
   catch(const NativeFsError&){throw;}
@@ -1432,7 +1557,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     }
     auto changes=stage.mutations(inode,lz4_candidates);result.sequence=stage.model.sequence;
     committing=true;
-    try{result.storage=impl_->objects.commit_replicated(changes,stage.model.indexed_names);}
+    try{result.storage=impl_->objects.commit_replicated(changes,stage.model.indexed_names,stage.model.shared_bases);}
     catch(const std::exception&){
       if(impl_->objects.poisoned())impl_->poisoned=true;
       fail(Code::storage_failure,"native transaction storage commit failed");
@@ -1649,7 +1774,7 @@ Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offse
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
   try {
     auto objects=checked_namespace();
-    return read_node(objects,selected_inode(impl_->model,inode),offset,bytes);
+    return read_node(objects,impl_->model,selected_inode(impl_->model,inode),offset,bytes);
   }catch(const std::bad_alloc&){fail(Code::limit,"native range read allocation failure");}
   catch(const NativeFsError& error) {
     if(error.code()==Code::corrupt || error.code()==Code::storage_failure)impl_->poisoned=true;

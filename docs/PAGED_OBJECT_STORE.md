@@ -4,6 +4,13 @@ The explicit [mirrored-payload extension](MIRRORED_PAYLOADS.md) adds capability 
 with bank-separated payload copies and surviving-copy CPU reads. The ordinary
 capability-1 encoding described below remains unchanged and single-copy.
 
+Native [shared-base groups](SHARED_BASE_GROUPS.md) explicitly require capability-2
+backing. `rebuilt_size` provides pure streaming-layout accounting for sorted
+hypothetical encoded records, including payload replicas, headers, tree levels
+and isolation padding. It performs no backend I/O or encoding. Native group
+admission uses bounded inventories and conservative complete-image bounds; this
+does not add a volume-sized catalog to the paged storage engine.
+
 `include/flitzfs/paged_store.hpp` provides an explicitly selected storage path
 over the existing `StoreByteIo` backend/ownership contract. It implements actual
 compressed-object writes, lookup, deletion, stable keyset pagination, retained

@@ -470,9 +470,15 @@ struct Rebuild {
   State next;
   std::uint64_t cursor=start;
   PayloadAllocation allocation;
+  bool size_only=false;
   Node leaf;
   std::array<Node,maximum_height+1> levels;
   Ref write_node(const Node& node,std::uint32_t height) {
+    if(size_only) {
+      auto ref=summary(next,node,height);ref.generation=next.checkpoint;
+      ref.primary=align(cursor,next.unit);ref.peer=add(ref.primary,next.unit);cursor=add(ref.peer,next.unit);
+      allocation.seal();allocation.padding.clear();return ref;
+    }
     Plan plan;plan.next=next;plan.page_start=align(cursor,next.unit);
     auto ref=plan.make_page(node,height);plan.finish({ref});next.image->admit_write(plan.next.end);
     allocation.seal();allocation.write_padding(*next.image);
@@ -696,6 +702,19 @@ PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open(std::shared_ptr<StoreByt
 }
 StoreIdentity PagedObjectStoreSnapshot::identity() const noexcept {return impl_?impl_->state.id:StoreIdentity{};}
 PagedStoreLimits PagedObjectStoreSnapshot::limits() const noexcept {return impl_?impl_->state.limits:PagedStoreLimits{};}
+std::uint32_t PagedObjectStoreSnapshot::isolation_unit() const noexcept {return impl_?impl_->state.unit:0;}
+std::uint64_t PagedObjectStoreSnapshot::rebuilt_size(std::span<const StoreObjectInfo> records) const {
+  if(!impl_)fail("moved-from size estimate");
+  Rebuild build;build.size_only=true;build.next=impl_->state;std::uint64_t previous=0;
+  for(const auto& record:records) {
+    if(!record.id || record.id<=previous || record.logical_bytes>kStoreMaxObjectBytes || record.stored_payload_bytes>record.logical_bytes)
+      fail("hypothetical record ordering/length");
+    Entry entry{record.id,1,0,record.logical_bytes,record.stored_payload_bytes,{}};
+    build.allocation.place(build.next,entry,128ULL+entry.stored,build.cursor);
+    build.entry(entry);previous=entry.id;
+  }
+  build.finish();return build.next.end;
+}
 PagedStoreInfo PagedObjectStoreSnapshot::info() const noexcept {return impl_?flitzfs::info(impl_->state):PagedStoreInfo{};}
 std::optional<StoreObjectInfo> PagedObjectStoreSnapshot::stat(std::uint64_t id) const {
   if(!impl_)fail("moved-from snapshot");auto e=lookup(impl_->state,id);
@@ -803,9 +822,9 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
 PagedStoreInfo PagedObjectStoreWriter::commit(std::span<const StoreMutation> mutations) {
   return commit_impl(mutations,kStoreMaxObjects);
 }
-PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutation> mutations,bool directory_indexes) {
-  return commit_impl(mutations,(directory_indexes?3:2)*kStoreMaxObjects,
-      kStoreMaxTransactionBytes+(directory_indexes?65536U:0U));
+PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutation> mutations,bool directory_indexes,bool shared_bases) {
+  return commit_impl(mutations,(shared_bases?4:directory_indexes?3:2)*kStoreMaxObjects,
+      kStoreMaxTransactionBytes+(shared_bases?131072U:directory_indexes?65536U:0U));
 }
 PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation> mutations,std::size_t maximum_operations,
     std::uint64_t maximum_input) {

@@ -19,6 +19,13 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
+[Protected shared-base groups](SHARED_BASE_GROUPS.md) add an explicit cross-file
+CPU representation with immutable mirrored dependencies and conservative complete
+compacted-image admission. This is a tested position-aligned baseline; automatic
+learning, yielding group preparation, stronger models, AMD acceleration and
+representative access/size comparisons remain open. The release effort range
+has not been recalibrated from this small implementation slice.
+
 The explicit [paged native backend](NATIVE_PAGED_BACKEND.md) connects native
 operations and sessions to paged object storage through the shared engine.
 Native metadata is still a complete bounded flat Model; scalable names/extents,

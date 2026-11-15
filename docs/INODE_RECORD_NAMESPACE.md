@@ -71,6 +71,10 @@ the prior pending/unlinked lifecycle semantics.
 
 Paged index/root metadata has its existing replica protection. On ordinary
 capability-1 paged backing, inode/data payloads are checked but not replicated.
+The separate [native capability-3 extension](SHARED_BASE_GROUPS.md) adds
+protected shared-base members while retaining these inode bodies and name keys.
+It remains explicitly selected; earlier root capabilities are unchanged.
+
 The separately selected [mirrored backing](MIRRORED_PAYLOADS.md) now protects
 those payloads and supports surviving-copy new-image reconstruction. Losing
 all required copies cannot be repaired by a checksum. Automatic repair and

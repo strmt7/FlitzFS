@@ -1,11 +1,18 @@
 # FlitzFS safety gates and threat model
 
 The opt-in [paged storage path](PAGED_OBJECT_STORE.md) checks metadata peers and
-supports explicit streaming recovery into a new image. Its payloads are not
-replicated. Modeled fault tests do not establish arbitrary-failure survival or
+supports explicit streaming recovery into a new image. Default capability-1
+payloads are single-copy; capability 2 explicitly adds mirrored payloads.
+Modeled fault tests do not establish arbitrary-failure survival or
 physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
+
+[Shared-base groups](SHARED_BASE_GROUPS.md) require mirrored immutable decoder
+dependencies, exact generation/hash binding, one-level CPU decoding and atomic
+publication. Complete-size bounds include protection, headers/indexes and padding.
+The explicit synchronous candidate is not an automatic background task. Known
+loss of both base copies rejects exposure; no arbitrary-failure guarantee follows.
 
 [Mirrored paged payloads](MIRRORED_PAYLOADS.md) optionally isolate two record
 streams into separate qualified units, check both during scrub and repair only
@@ -26,13 +33,15 @@ candidate. It does not install a driver, select a volume or qualify physical pow
 
 The new [inode-record layout](INODE_RECORD_NAMESPACE.md) validates each record
 boundary and key identity before namespace exposure and publishes metadata/data
-atomically. Its payloads remain integrity checked rather than independently
-replicated. Modeled recovery does not establish physical power-loss or arbitrary-
-corruption repair. Default layouts and driver/GPU admission remain unchanged.
+atomically. Its default backing is integrity checked and single-copy; explicitly
+mirrored paged backing additionally replicates the record streams. Modeled
+recovery does not establish physical power-loss or arbitrary-corruption repair.
+Default layouts and driver/GPU admission remain unchanged.
 The opt-in [directory index](DIRECTORY_NAME_INDEX.md) joins name, inode and data
 changes in one publication. Snapshot-bound cursors reject foreign/expired owners
-before I/O. Index object payloads are not independently replicated, and the full
-bounded Model is still required; this does not establish scalable or mounted safety.
+before I/O. Index payloads are replicated only on explicitly mirrored backing,
+and the full bounded Model is still required; this does not establish scalable
+or mounted safety.
 
 The owner's 15 November 2026 instruction deletes blanket off-host, GitHub-only
 development and mandatory VM-first restrictions. Local source work, builds,

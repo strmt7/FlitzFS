@@ -31,6 +31,10 @@ class PagedObjectStoreSnapshot final {
   ~PagedObjectStoreSnapshot();
   StoreIdentity identity() const noexcept;
   PagedStoreLimits limits() const noexcept;
+  std::uint32_t isolation_unit() const noexcept;
+  // Pure layout accounting for sorted hypothetical encoded records, using this
+  // image's capability/isolation. No backend I/O, root publication or encoding.
+  std::uint64_t rebuilt_size(std::span<const StoreObjectInfo> records) const;
   PagedStoreInfo info() const noexcept;
   std::optional<StoreObjectInfo> stat(std::uint64_t id) const;
   std::vector<std::byte> read(std::uint64_t id) const;
@@ -97,8 +101,9 @@ class PagedObjectStoreWriter final {
   // Native inode records consume their own metadata entries. Keep public
   // transactions at 256 operations. The native adapter admits 512 operations
   // with 4 MiB input, or 768 operations and 64 KiB extra directory-index input
-  // for the explicit indexed-name layout. Public admission is unchanged.
-  PagedStoreInfo commit_native(std::span<const StoreMutation>,bool directory_indexes=false);
+  // for the explicit indexed-name layout, or 1024 operations / 128 KiB extra
+  // input for shared-base namespaces. Public admission is unchanged.
+  PagedStoreInfo commit_native(std::span<const StoreMutation>,bool directory_indexes=false,bool shared_bases=false);
   PagedStoreInfo commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations,
       std::uint64_t maximum_input=kStoreMaxTransactionBytes);
   struct Impl;

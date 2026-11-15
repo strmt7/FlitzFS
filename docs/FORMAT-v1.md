@@ -16,6 +16,11 @@ it preserves these bytes and introduces no stored progress journal or codec.
 The separate [mirrored paged capability 2](MIRRORED_PAYLOADS.md) uses 72-byte leaf
 entries and paired record-stream banks. Capability 1, native namespace bodies,
 record codecs and this chunk container retain their original encodings.
+The separately selected [native capability 3](SHARED_BASE_GROUPS.md) adds
+`FLTXGM01` member frames and immutable anchor objects on mirrored backing.
+The current reader still accepts earlier images. This leaves paged
+record codecs, earlier native encodings and this chunk container unchanged.
+Older readers reject the new native capability rather than reinterpret it.
 
 The native filesystem's separate [format-7 shared-extent namespace](SHARED_EXTENTS.md)
 extends native object references with exact sharing/private updates. It does not

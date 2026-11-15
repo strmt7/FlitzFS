@@ -9,6 +9,11 @@ sparse coherence catalog, offline intelligence, multi-release compatibility and
 resumable, contention-aware background migration. These remain product work,
 not implemented features inferred from this research document.
 
+The separately implemented [shared-base baseline](SHARED_BASE_GROUPS.md) now
+provides protected cross-file patch dependencies and independent CPU reads with
+complete-size admission. It does not implement this research agenda, learned
+candidate discovery, AMD computation or automatic background scheduling.
+
 ## Optimization priority
 
 The owner's priority is minimum TOTAL stored bytes. Latency may increase and
