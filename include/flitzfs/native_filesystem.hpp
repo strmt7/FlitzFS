@@ -9,6 +9,9 @@
 #include <vector>
 
 namespace flitzfs {
+class PagedObjectStoreSnapshot;
+class PagedObjectStoreWriter;
+namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;}
 // Native file/extent layer, experimental and CPU-only. Explicit Windows
 // read-only projection is available; mounted writes and live GPU remain absent.
 inline constexpr std::uint32_t kNativeExtentBytes=65536;
@@ -190,6 +193,10 @@ class NativeFilesystemSnapshot final {
  public:
   // Consumes a fully verified object snapshot; validates native namespace and all references.
   static NativeFilesystemSnapshot open(ObjectStoreSnapshot objects);
+  // Explicit paged storage backend, same native namespace/operation semantics.
+  // Still eagerly validates the bounded flat namespace and all live extents.
+  // This does not remove native node/extent limits or implement paged names.
+  static NativeFilesystemSnapshot open(PagedObjectStoreSnapshot objects);
   NativeFilesystemSnapshot(NativeFilesystemSnapshot&&) noexcept;
   NativeFilesystemSnapshot& operator=(NativeFilesystemSnapshot&&) noexcept;
   NativeFilesystemSnapshot(const NativeFilesystemSnapshot&)=delete;
@@ -225,6 +232,7 @@ class NativeFilesystemSnapshot final {
   const ObjectStoreSnapshot& objects_for_volume_head() const;
   void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&) const;
   struct Impl;
+  static NativeFilesystemSnapshot open_storage(detail::NativeObjectSnapshot);
   explicit NativeFilesystemSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
@@ -233,6 +241,10 @@ class NativeFilesystemWriter final {
  public:
   // A NEW empty generation-zero object store only. Never reinterprets existing objects.
   static NativeFilesystemWriter initialize(ObjectStoreWriter objects);
+  // Explicitly opt into a NEW empty paged store (initial publication generation
+  // 2). Uses the same mutation/session engine and namespace bytes. Flat volume-
+  // head/recompression facilities require their existing flat backend.
+  static NativeFilesystemWriter initialize(PagedObjectStoreWriter objects);
   // Explicit sticky namespace capability; legacy initialization is unchanged.
   // Start at zero without crediting old files. Commit through the same
   // replicated metadata transaction. Repeated enable never resets the count.
@@ -250,11 +262,13 @@ class NativeFilesystemWriter final {
   // Ordinary admission refuses pending/unlinked state. A live old file context
   // must never be silently treated as closed.
   static NativeFilesystemWriter resume(ObjectStoreWriter objects);
+  static NativeFilesystemWriter resume(PagedObjectStoreWriter objects);
   // ONLY after the caller has independently established retirement of ALL old
   // file contexts and exclusive backend ownership. Finish persisted deletions
   // and detached inode retirement atomically before returning. This declaration
   // is not itself driver/context attestation; the future helper must prove it.
   static NativeFilesystemWriter resume_closed_session(ObjectStoreWriter objects);
+  static NativeFilesystemWriter resume_closed_session(PagedObjectStoreWriter objects);
   // Copy a quiescent latest snapshot into an empty NEW volume identity.
   // Preserve inode IDs/sequences/contents, rebind namespace identity, and
   // retain the original source. No in-place reclaim, filename swap or deletion.
@@ -411,7 +425,7 @@ class NativeFilesystemWriter final {
   static bool advance_recompression(Recompression&,std::uint64_t,std::span<const StoreMatchProposal>);
   static void finish_recompression(Recompression&);
   struct Impl;
-  ObjectStoreSnapshot checked_namespace() const;
+  detail::NativeObjectSnapshot checked_namespace() const;
   enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
@@ -424,7 +438,8 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter copy_image(const NativeFilesystemSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool reencode);
-  static NativeFilesystemWriter resume_impl(ObjectStoreWriter,bool closed_session);
+  static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter);
+  static NativeFilesystemWriter resume_impl(detail::NativeObjectWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };

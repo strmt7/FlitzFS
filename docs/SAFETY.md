@@ -12,7 +12,11 @@ development and mandatory VM-first restrictions. Local source work, builds,
 research, CPU/GPU/GUI tests and safe benchmarks are authorized. Use the
 [host guide](HOST_RAM_TESTING.md) for resource containment and backing rules.
 Preserve existing data, driver/system state and confirmed resource retirement.
-Use disposable VMs for driver provisioning and deliberately destabilizing tests.
+Unqualified driver provisioning and deliberately destabilizing tests use
+disposable VMs. The owner's subsequent conditional permission permits a
+FlitzFS-related host installation only after artifact-bound stability and
+installation/rollback qualification; see AGENTS.md. GPU and unrelated driver
+changes remain forbidden. There is no newly qualified installable driver here.
 Historical qualification records below describe their executed scope; they do
 not impose a new global location gate or qualify changed behavior.
 

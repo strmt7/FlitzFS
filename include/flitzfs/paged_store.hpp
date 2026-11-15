@@ -3,7 +3,8 @@
 
 namespace flitzfs {
 // Experimental scalable object-storage path. Explicitly opted in; the flat
-// native filesystem namespace has not yet migrated to it. No file/driver/GPU I/O
+// native filesystem can explicitly use this backend; namespace metadata is
+// still flat/bounded. No file/driver/GPU I/O
 // factories. Caller supplies an exclusively owned, resource-admitted backend.
 // One control thread; do not race writers, snapshots or backing mutations.
 struct PagedStoreLimits {
@@ -62,9 +63,16 @@ class PagedObjectStoreWriter final {
   // inventory is bounded by backing capacity, not kStoreMaxObjects.
   // Three barriers; any I/O/publication failure terminally fences this writer.
   PagedStoreInfo commit(std::span<const StoreMutation>);
+  // Actual backend barrier; no new records, root publication or generation.
+  // Check current roots/contract/extent before and after. Any failure after
+  // barrier entry fences the writer; preflight allocation pressure does not.
+  PagedStoreInfo flush_checkpoint();
   PagedObjectStoreSnapshot snapshot() const;
   bool poisoned() const noexcept;
  private:
+  friend class detail::NativeObjectWriter;
+  PagedObjectStoreSnapshot snapshot_for_staging() const;
+  std::uint64_t generation_for_staging() const noexcept;
   struct Impl;
   explicit PagedObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

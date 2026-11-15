@@ -3,8 +3,10 @@
 `include/flitzfs/paged_store.hpp` provides an explicitly selected storage path
 over the existing `StoreByteIo` backend/ownership contract. It implements actual
 compressed-object writes, lookup, deletion, stable keyset pagination, retained
-snapshots, recovery and streaming rebuilding. It does not change the flat native
-filesystem namespace, Explorer callbacks, default formats or GPU routing.
+snapshots, recovery and streaming rebuilding. Native filesystem snapshots,
+writers and file sessions can now explicitly use this backend through their
+existing operation engine. The native namespace representation, Explorer
+factories, default formats and GPU routing remain unchanged.
 
 The distinction matters: a million populated object records are now tested;
 a million named Windows files and scalable automatic compression grouping are
@@ -19,6 +21,10 @@ visits a root-to-leaf path; pagination prunes key ranges and returns at most
 4,096 entries. Full CPU verification streams one object at a time. Tree height
 is bounded at 16 for malformed-input/depth admission. No unbounded page cache
 is introduced; a bounded cache and background scrub quanta remain future work.
+
+This describes the paged object catalog. The current native frontend still loads
+and validates its complete bounded namespace/extent model; selecting the paged
+backend does not remove that frontend's 256-node/255-extent limits.
 
 The caller must supply an explicit physical capacity and a backend that admits
 growth using current resources. No host capacity, drive, GPU or RAM size is
@@ -119,7 +125,22 @@ storage tests, not mounted Windows qualification, real power cuts, a general
 compression ratio or a filesystem/GPU speed claim. Tiny records intentionally
 make metadata/history overhead visible.
 
-Before the native namespace migrates: define paged inode/name/extent keys and
+The native backend bridge uses the existing namespace formats 1..7 and the same
+Stage, mutation, metadata, sharing, session and CPU validation code. A NEW empty
+paged store starts at publication generation 2; native initialization publishes
+the root inode normally. Resume requires a recovered exclusive paged writer;
+pending/unlinked state still requires explicit retired-context recovery. A real
+`flush_checkpoint()` checks roots, backend contract and unchanged extent before
+and after the barrier without publishing or rewriting records. Native Flush
+retains its own pre/post namespace verification.
+
+Flat volume-head and staged recompression APIs explicitly reject paged sources
+before target writes. Generic paged rebuilding changes the store identity and
+cannot, by itself, rebind the identity inside a native namespace. A native-aware
+migration/rebuild is still required; do not present generic rebuilding as native
+volume compaction. This bridge does not change any existing wire encoding.
+
+Before the native namespace itself migrates: define paged inode/name/extent keys and
 atomic multi-index roots, preserve namespace/security/open-handle semantics,
 add explicit old-format migration, resumable scan cursors and bounded caches.
 Automatic reclaim/rebuild scheduling, concurrent reader retirement and data

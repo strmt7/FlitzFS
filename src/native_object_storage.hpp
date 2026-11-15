@@ -1,0 +1,86 @@
+#pragma once
+#include "flitzfs/native_filesystem.hpp"
+#include "flitzfs/paged_store.hpp"
+#include <variant>
+
+namespace flitzfs::detail {
+// Internal dispatch only: native mutation/session logic and format validation
+// remain shared. No backend discovery, mount, worker or I/O retry lives here.
+inline StoreCommitInfo native_paged_info(PagedStoreInfo value) noexcept {
+  StoreCommitInfo result;
+  result.generation=value.generation;result.physical_end=value.physical_end;
+  result.logical_bytes=value.logical_bytes;result.objects=static_cast<std::size_t>(value.objects);
+  result.degraded_root=value.degraded_roots;result.stored_payload_bytes=value.stored_payload_bytes;
+  result.checkpoint_generation=value.checkpoint_generation;result.replicated_checkpoint=true;
+  result.degraded_checkpoint=value.degraded_roots || value.degraded_metadata;
+  return result;
+}
+class NativeObjectSnapshot final {
+ public:
+  NativeObjectSnapshot(ObjectStoreSnapshot value):value_(std::move(value)){}
+  NativeObjectSnapshot(PagedObjectStoreSnapshot value):value_(std::move(value)){}
+  StoreIdentity identity() const noexcept {
+    return std::visit([](const auto& value){return value.identity();},value_);
+  }
+  StoreCommitInfo info() const noexcept {
+    if(const auto* flat=std::get_if<ObjectStoreSnapshot>(&value_))return flat->info();
+    return native_paged_info(std::get<PagedObjectStoreSnapshot>(value_).info());
+  }
+  std::vector<StoreObjectInfo> list() const {
+    if(const auto* flat=std::get_if<ObjectStoreSnapshot>(&value_))return flat->list();
+    const auto& paged=std::get<PagedObjectStoreSnapshot>(value_);
+    if(paged.info().objects>kStoreMaxObjects)
+      throw NativeFsError(NativeFsErrorCode::limit,"paged inventory exceeds current native namespace bounds");
+    return paged.list_page(0,kStoreMaxObjects);
+  }
+  std::vector<std::byte> read(std::uint64_t id) const {
+    return std::visit([&](const auto& value){return value.read(id);},value_);
+  }
+  void verify_all() const {std::visit([](const auto& value){value.verify_all();},value_);}
+  const ObjectStoreSnapshot& flat() const {
+    const auto* result=std::get_if<ObjectStoreSnapshot>(&value_);
+    if(!result)throw NativeFsError(NativeFsErrorCode::invalid_operation,
+        "this volume-head/recompression operation requires the flat storage backend");
+    return *result;
+  }
+ private:
+  std::variant<ObjectStoreSnapshot,PagedObjectStoreSnapshot> value_;
+};
+class NativeObjectWriter final {
+ public:
+  NativeObjectWriter(ObjectStoreWriter value):value_(std::move(value)){}
+  NativeObjectWriter(PagedObjectStoreWriter value):value_(std::move(value)){}
+  bool paged() const noexcept {return std::holds_alternative<PagedObjectStoreWriter>(value_);}
+  const ObjectStoreWriter* flat_if() const noexcept {return std::get_if<ObjectStoreWriter>(&value_);}
+  bool poisoned() const noexcept {
+    return std::visit([](const auto& value){return value.poisoned();},value_);
+  }
+  NativeObjectSnapshot snapshot() const {
+    return std::visit([](const auto& value)->NativeObjectSnapshot{return value.snapshot();},value_);
+  }
+  NativeObjectSnapshot snapshot_for_staging() const {
+    return std::visit([](const auto& value)->NativeObjectSnapshot{return value.snapshot_for_staging();},value_);
+  }
+  std::uint64_t generation_for_staging() const noexcept {
+    return std::visit([](const auto& value){return value.generation_for_staging();},value_);
+  }
+  StoreCommitInfo commit_replicated(std::span<const StoreMutation> changes) {
+    if(auto* flat=std::get_if<ObjectStoreWriter>(&value_))return flat->commit_replicated(changes);
+    return native_paged_info(std::get<PagedObjectStoreWriter>(value_).commit(changes));
+  }
+  StoreCommitInfo flush_checkpoint() {
+    if(auto* flat=std::get_if<ObjectStoreWriter>(&value_))return flat->flush_checkpoint();
+    return native_paged_info(std::get<PagedObjectStoreWriter>(value_).flush_checkpoint());
+  }
+  ObjectStoreWriter::Rewrite prepare_recompression(std::shared_ptr<StoreByteIo> target,
+      StoreIdentity id,std::uint64_t replacement_id,std::span<const std::byte> replacement,
+      StoreCompressionOptions compression,StoreCheckpointOptions checkpoints) const {
+    const auto* flat=std::get_if<ObjectStoreWriter>(&value_);
+    if(!flat)throw NativeFsError(NativeFsErrorCode::invalid_operation,
+        "staged native recompression requires the flat storage backend");
+    return flat->prepare_recompression(std::move(target),id,replacement_id,replacement,compression,checkpoints);
+  }
+ private:
+  std::variant<ObjectStoreWriter,PagedObjectStoreWriter> value_;
+};
+} // namespace flitzfs::detail

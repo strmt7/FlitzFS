@@ -10,7 +10,7 @@ GitHub APIs as a substitute for a local checkout or require hosted CI before
 ordinary local development or tests. Use GitHub for source synchronization,
 security information and complementary checks; push at meaningful checkpoints.
 Use VMs or hosted machines for operations that cannot safely run on this host,
-including deliberate kernel/driver/power faults and driver provisioning.
+including deliberate kernel/driver/power faults and unqualified driver provisioning.
 
 The owner reaffirmed full host use during this planning round. Remove obsolete
 location-only instructions and checks from safe tooling; resource, source,
@@ -39,10 +39,19 @@ probes in place of product integration. Do not ask for permission already given.
   build, dependency, cache, corpus and report files are ordinary development
   artifacts and may use a scoped development directory with verified free space.
   An in-memory model does not prove that Windows performs zero storage I/O.
-- Do not install, replace, reconfigure or enable kernel/GPU/filesystem drivers,
-  alter GPU clocks/power/voltage, or mount over an existing directory/drive letter.
-  Driver provisioning and deliberately destabilizing tests belong in disposable
-  VMs. Do not transfer a VM's driver/mount permission to this host.
+- The owner's later 15 November instruction permits installing a FlitzFS-related
+  driver on this host only after its stability has been established. Preserve
+  this conditional permission; older blanket driver-install prohibitions do not
+  override it. No current experimental driver is thereby qualified. Before any
+  install, bind the exact signed artifact to current Windows 11 client, integrity,
+  filesystem/lifecycle, resource, recovery and isolated driver-fault evidence;
+  verify installation/rollback and compatibility with existing driver state.
+  Do not claim perfection or qualification from a clean build or a short test.
+- Never modify, replace or reconfigure the GPU driver, unrelated drivers or GPU
+  clocks/power/voltage. Never weaken boot/security policy or mount over an existing
+  directory/drive letter. Unqualified installation and destabilizing driver/kernel/
+  power tests remain isolated. No current install action is authorized by tests
+  that did not establish the owner's driver-stability condition.
 - Do not exhaust RAM, VRAM, CPU or storage. Discover actual capabilities, load
   and available physical/commit/device headroom. Size build concurrency and test
   envelopes from that evidence; do not assume one host's specifications or turn
@@ -85,7 +94,8 @@ Use recent reputable primary sources and current official documentation for
 important API, dependency, algorithm or feature decisions. Verify current facts;
 do not substitute model recollection, a success flag or an undated page for
 source review. Pin/audit dependencies and support safe private installation of
-missing user-mode tools where appropriate. Do not change host drivers as setup.
+missing user-mode tools where appropriate. Dependency setup never changes GPU or
+unrelated drivers; qualified FlitzFS driver deployment follows the condition above.
 
 ## Local source and Git workflow
 

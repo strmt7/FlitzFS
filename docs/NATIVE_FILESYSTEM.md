@@ -12,8 +12,14 @@ object store, not an archive reader or archive-backed mount.
 
 ## Implemented operations and lifetime
 
-NativeFilesystemWriter consumes an exclusively owned ObjectStoreWriter.
-Initialize accepts only a NEW empty generation-zero store. Resume accepts a
+NativeFilesystemWriter consumes an exclusively owned ObjectStoreWriter or an
+explicitly selected PagedObjectStoreWriter. Both use the same native operation
+and file-session engine. The paged selection preserves the current bounded flat
+namespace and eager CPU verification; it does not yet provide paged names,
+million-file operation or automatic Windows routing. See
+[paged storage](PAGED_OBJECT_STORE.md) for the bridge and maintenance boundaries.
+Initialize accepts only a NEW empty generation-zero flat store or the initial
+generation-two empty paged store. Resume accepts a
 writer whose custom backend has already passed identity/generation verification,
 exclusive ownership and the recovery fence. There is no new ordinary-file
 reopening factory. Local execution follows the current host guide.

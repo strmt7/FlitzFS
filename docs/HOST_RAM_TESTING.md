@@ -9,9 +9,13 @@ changes must be preserved; use a separate local checkout when appropriate.
 
 Filesystem experiment backing remains in memory. Normal source, build, tool,
 dependency, cache and report files may use a scoped development directory with
-fresh storage headroom. Do not install/change drivers, alter clocks/power/boot
-settings, induce driver/kernel faults, overwrite user data or leave stale
-processes, services or tasks. Host authorization does not authorize releases.
+fresh storage headroom. The owner's later 15 November direction conditionally
+permits installing a stable, qualified FlitzFS-related driver; see AGENTS.md for
+the artifact-bound qualification and rollback gate. No current experimental
+driver is qualified by that permission. Never change the GPU or unrelated
+drivers, alter clocks/power/boot/security settings, induce driver/kernel faults,
+overwrite user data or leave stale processes, services or tasks. Host
+authorization does not authorize releases.
 
 The standard-library-only tools/dev/windows_run.py supports local Windows builds
 and tests with creation-time Job Object assignment, aggregate process/memory/CPU

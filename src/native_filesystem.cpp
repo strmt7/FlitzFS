@@ -1,4 +1,5 @@
 #include "flitzfs/native_filesystem.hpp"
+#include "native_object_storage.hpp"
 #include "flitzfs/catalog.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
@@ -218,7 +219,7 @@ void validate_structure(const Model& model,bool pending=false) {
   if(allocation_usage(model).charged_extents>kNativeMaxExtents)
     fail(Code::limit,"native reserved/live extent budget");
 }
-Bytes object_bytes(const ObjectStoreSnapshot& objects,std::uint64_t id) {
+Bytes object_bytes(const detail::NativeObjectSnapshot& objects,std::uint64_t id) {
   try{return objects.read(id);}
   catch(const std::bad_alloc&){throw;}
   catch(const std::exception&){fail(Code::storage_failure,"native backing object verification failed");}
@@ -267,7 +268,7 @@ Bytes encode(const Model& model) {
   }
   return bytes;
 }
-Model decode(const ObjectStoreSnapshot& objects) {
+Model decode(const detail::NativeObjectSnapshot& objects) {
   const auto bytes=object_bytes(objects,kNamespaceObject);
   const auto all=std::span<const std::byte>(bytes);
   if(bytes.size()<64 || bytes.size()>kMetadataCap ||
@@ -360,9 +361,9 @@ void admit_lz4_extent_candidates(std::span<const NativeLz4ExtentCandidate> candi
   }
 }
 struct Stage {
-  Model model;const Model& original;const ObjectStoreSnapshot& base;Dirty dirty;
+  Model model;const Model& original;const detail::NativeObjectSnapshot& base;Dirty dirty;
   bool changed=false;std::vector<std::uint64_t> created;
-  Stage(const Model& previous,const ObjectStoreSnapshot& objects):model(previous),original(previous),base(objects) {
+  Stage(const Model& previous,const detail::NativeObjectSnapshot& objects):model(previous),original(previous),base(objects) {
     if(model.sequence==(std::numeric_limits<std::uint64_t>::max)())fail(Code::limit,"native sequence exhausted");
     ++model.sequence;created.reserve(16);
   }
@@ -737,12 +738,12 @@ struct Stage {
 }
 
 struct NativeFilesystemSnapshot::Impl {
-  ObjectStoreSnapshot objects;Model model;
-  explicit Impl(ObjectStoreSnapshot snapshot):objects(std::move(snapshot)),model(decode(objects)){}
+  detail::NativeObjectSnapshot objects;Model model;
+  explicit Impl(detail::NativeObjectSnapshot snapshot):objects(std::move(snapshot)),model(decode(objects)){}
 };
 struct NativeFilesystemWriter::Impl {
-  ObjectStoreWriter objects;Model model;bool poisoned=false;
-  Impl(ObjectStoreWriter writer,Model state):objects(std::move(writer)),model(std::move(state)){}
+  detail::NativeObjectWriter objects;Model model;bool poisoned=false;
+  Impl(detail::NativeObjectWriter writer,Model state):objects(std::move(writer)),model(std::move(state)){}
 };
 void validate_native_lz4_extent_candidates(std::span<const NativeLz4ExtentCandidate> candidates) {
   admit_lz4_extent_candidates(candidates);
@@ -756,6 +757,12 @@ NativeFilesystemWriter::NativeFilesystemWriter(NativeFilesystemWriter&&) noexcep
 NativeFilesystemWriter& NativeFilesystemWriter::operator=(NativeFilesystemWriter&&) noexcept=default;
 NativeFilesystemWriter::~NativeFilesystemWriter()=default;
 NativeFilesystemSnapshot NativeFilesystemSnapshot::open(ObjectStoreSnapshot objects) {
+  return open_storage(std::move(objects));
+}
+NativeFilesystemSnapshot NativeFilesystemSnapshot::open(PagedObjectStoreSnapshot objects) {
+  return open_storage(std::move(objects));
+}
+NativeFilesystemSnapshot NativeFilesystemSnapshot::open_storage(detail::NativeObjectSnapshot objects) {
   return NativeFilesystemSnapshot(std::make_unique<Impl>(std::move(objects)));
 }
 StoreIdentity NativeFilesystemSnapshot::identity() const noexcept{return impl_?impl_->model.identity:StoreIdentity{};}
@@ -779,7 +786,7 @@ std::vector<NativeFileInfo> list_node(const Model& model,const Node& directory) 
   result.reserve(children.size());for(const auto* n:children)result.push_back(file_info(model,*n));
   return result;
 }
-Bytes read_node(const ObjectStoreSnapshot& objects,const Node& n,std::uint64_t offset,std::uint32_t bytes) {
+Bytes read_node(const detail::NativeObjectSnapshot& objects,const Node& n,std::uint64_t offset,std::uint32_t bytes) {
   if(n.directory)fail(Code::is_directory,"cannot read native directory");
   if(offset>=n.size || !bytes)return {};
   const auto count=(std::min)(std::uint64_t(bytes),n.size-offset),end=offset+count;
@@ -848,8 +855,15 @@ void NativeFilesystemSnapshot::verify_all() const {
   impl_->objects.verify_all();(void)decode(impl_->objects);
 }
 NativeFilesystemWriter NativeFilesystemWriter::initialize(ObjectStoreWriter objects) {
+  return initialize_storage(std::move(objects));
+}
+NativeFilesystemWriter NativeFilesystemWriter::initialize(PagedObjectStoreWriter objects) {
+  return initialize_storage(std::move(objects));
+}
+NativeFilesystemWriter NativeFilesystemWriter::initialize_storage(detail::NativeObjectWriter objects) {
   auto snapshot=objects.snapshot();
-  if(snapshot.info().generation!=0 || !snapshot.list().empty())fail(Code::invalid_operation,"native initialization requires new empty store");
+  if(objects.poisoned() || snapshot.info().generation!=(objects.paged()?2U:0U) || !snapshot.list().empty())
+    fail(Code::invalid_operation,"native initialization requires new empty store");
   Model model;model.identity=snapshot.identity();
   Node root;root.inode=1;root.directory=true;root.born=root.modified=1;
   model.nodes.emplace(1,std::move(root));
@@ -867,10 +881,16 @@ NativeFsCommit NativeFilesystemWriter::coalesce_equal_extents() {
 NativeFilesystemWriter NativeFilesystemWriter::resume(ObjectStoreWriter objects) {
   return resume_impl(std::move(objects),false);
 }
+NativeFilesystemWriter NativeFilesystemWriter::resume(PagedObjectStoreWriter objects) {
+  return resume_impl(std::move(objects),false);
+}
 NativeFilesystemWriter NativeFilesystemWriter::resume_closed_session(ObjectStoreWriter objects) {
   return resume_impl(std::move(objects),true);
 }
-NativeFilesystemWriter NativeFilesystemWriter::resume_impl(ObjectStoreWriter objects,bool closed_session) {
+NativeFilesystemWriter NativeFilesystemWriter::resume_closed_session(PagedObjectStoreWriter objects) {
+  return resume_impl(std::move(objects),true);
+}
+NativeFilesystemWriter NativeFilesystemWriter::resume_impl(detail::NativeObjectWriter objects,bool closed_session) {
   if(objects.poisoned())fail(Code::invalid_operation,"native admission requires a healthy recovered writer");
   try {
     auto snapshot=objects.snapshot();auto model=decode(snapshot);bool needs=false;
@@ -890,7 +910,7 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_impl(ObjectStoreWriter obj
 }
 
 const ObjectStoreSnapshot& NativeFilesystemSnapshot::objects_for_volume_head() const {
-  if(!impl_)fail(Code::invalid_operation,"moved-from volume image");return impl_->objects;
+  if(!impl_)fail(Code::invalid_operation,"moved-from volume image");return impl_->objects.flat();
 }
 void NativeFilesystemSnapshot::verify_compacted_equivalent_for_volume_head(
     const NativeFilesystemSnapshot& target) const {
@@ -936,7 +956,7 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
   try {
     auto model=decode(source.impl_->objects);model.identity=id;
     const auto metadata=encode(model);
-    return resume(ObjectStoreWriter::compact_replacing(source.impl_->objects,
+    return resume(ObjectStoreWriter::compact_replacing(source.impl_->objects.flat(),
         std::move(target),id,kNamespaceObject,metadata,compression,checkpoints,reencode));
   }catch(const std::bad_alloc&){fail(Code::limit,"native compaction allocation failure");}
   catch(const NativeFsError&){throw;}
@@ -971,7 +991,7 @@ NativeFilesystemWriter::Recompression NativeFilesystemWriter::prepare_recompress
 }
 
 bool NativeFilesystemWriter::matches_recompression(const Recompression& candidate) const noexcept {
-  return !poisoned() && candidate.matches(impl_->objects);
+  return !poisoned() && impl_->objects.flat_if() && candidate.matches(*impl_->objects.flat_if());
 }
 
 std::uint64_t NativeFilesystemWriter::recompression_generation() const noexcept {
@@ -1346,7 +1366,7 @@ NativeAllocationUsage NativeFilesystemWriter::inspect_allocation_usage() const {
 NativeFsCommit NativeFilesystemWriter::retire_inode(std::uint64_t inode) {
   return transact({},InodeAction::retire,inode);
 }
-ObjectStoreSnapshot NativeFilesystemWriter::checked_namespace() const {
+detail::NativeObjectSnapshot NativeFilesystemWriter::checked_namespace() const {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   try {
     auto snapshot=impl_->objects.snapshot_for_staging();
@@ -1421,7 +1441,7 @@ NativeFsCommit NativeFilesystemWriter::flush() {
 }
 NativeFilesystemSnapshot NativeFilesystemWriter::snapshot() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native writer");
-  try{return NativeFilesystemSnapshot::open(impl_->objects.snapshot());}
+  try{return NativeFilesystemSnapshot::open_storage(impl_->objects.snapshot());}
   catch(const std::bad_alloc&){fail(Code::limit,"native snapshot allocation failure");}
   catch(const NativeFsError& e){
     if(e.code()==Code::corrupt || e.code()==Code::storage_failure)impl_->poisoned=true;

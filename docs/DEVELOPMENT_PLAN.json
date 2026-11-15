@@ -19,10 +19,10 @@
   ],
   "owner_safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
-    "owner_mounts": "Qualified explicit memory-backed fixtures with existing runtime support only; no blanket host ban, driver installation or physical image backing",
-    "driver_changes": false,
-    "privileged_or_persistent_changes": false,
-    "gpu": "Local resource-adaptive GPU development is authorized with source review, fresh resource/runtime/adapter admission, independent CPU comparison and confirmed retirement. No blanket hosted/VM-first gate; no stress or driver changes.",
+    "owner_mounts": "Qualified explicit memory-backed fixtures; a FlitzFS driver install additionally requires the owner stability condition, never physical image backing or unrelated driver changes",
+    "driver_changes": "Owner conditionally permits only a stable, qualified FlitzFS-related driver installation; exact artifact/client/lifecycle/recovery/rollback qualification required. No current installation qualified. GPU and unrelated drivers remain untouched.",
+    "privileged_or_persistent_changes": "Only those required by a stable, qualified FlitzFS-related driver installation under the explicit owner condition; no unrelated system/security changes or unintended persistence",
+    "gpu": "Local resource-adaptive GPU development is authorized with source review, fresh resource/runtime/adapter admission, independent CPU comparison and confirmed retirement. No blanket hosted/VM-first gate; no stress or GPU/unrelated driver changes.",
     "staging": "Local source/build/tool/dependency/cache/corpus/report files in scoped development directories with measured free-space reserves; filesystem backing remains in memory"
   },
   "continuation": [
@@ -467,6 +467,23 @@
         "ordinary_GPU_route": false,
         "release": false,
         "remaining": "Paged native inode/name/extent transactions, bounded caches, explicit legacy migration, resumable similarity scans and automatic reader-safe reclaim. Object-index coverage does not close the full S01 exit."
+      },
+      "native_backend_checkpoint": {
+        "source_base": "622ee19a30c2dad232c5b37c871f2e624ea7e998",
+        "evidence": "docs/evidence/native-paged-backend-2026-11-15.json",
+        "contract": "docs/NATIVE_PAGED_BACKEND.md",
+        "status": "Explicit paged storage through the existing native mutation/session engine; native namespace still flat/bounded",
+        "raw_native_storage_suites": 95,
+        "asan_native_storage_suites": 95,
+        "new_backend_checks": 6942,
+        "injected_transaction_failures": 231,
+        "native_paged_metadata": false,
+        "native_namespace_migrated": false,
+        "automatic_Windows_factory": false,
+        "ordinary_GPU_route": false,
+        "driver_installed": false,
+        "release": false,
+        "remaining": "Paged inode/name/extent metadata, bounded residency/cursors, native-aware migration/rebuild/volume-head handoff, reclamation and Windows factory integration"
       }
     },
     {
@@ -840,24 +857,23 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "7c601d39c8eb5f04a02bb889840efc06eac68171",
-    "status": "Comprehensive source-based release/benchmark plan and removal of obsolete location-only checks; selected local tooling and compilation qualification recorded separately.",
-    "full_goal_status": "active",
-    "release_plan": "docs/RELEASE_EXECUTION_PLAN.md",
-    "benchmark_protocol": "docs/BENCHMARK_PROTOCOL.md",
-    "evidence": "docs/evidence/release-plan-review-2026-11-15.json",
-    "GPU_executed_this_round": false,
+    "source_base": "622ee19a30c2dad232c5b37c871f2e624ea7e998",
+    "evidence": "docs/evidence/native-paged-backend-2026-11-15.json",
+    "contract": "docs/NATIVE_PAGED_BACKEND.md",
+    "status": "Explicit paged storage through the existing native mutation/session engine; native namespace still flat/bounded",
+    "raw_native_storage_suites": 95,
+    "asan_native_storage_suites": 95,
+    "new_backend_checks": 6942,
+    "injected_transaction_failures": 231,
+    "native_paged_metadata": false,
+    "native_namespace_migrated": false,
+    "automatic_Windows_factory": false,
+    "ordinary_GPU_route": false,
+    "driver_installed": false,
     "release": false,
-    "local_validation": {
-      "evidence": "docs/evidence/release-plan-review-2026-11-15.json",
-      "selected_raw_checks": 48739,
-      "selected_asan_checks": 48739,
-      "worker_checks": 1199,
-      "syntax_only_units": 14,
-      "full_sdk_matrix": false,
-      "mount": false,
-      "GPU": false
-    }
+    "remaining": "Paged inode/name/extent metadata, bounded residency/cursors, native-aware migration/rebuild/volume-head handoff, reclamation and Windows factory integration",
+    "full_goal_status": "active",
+    "GPU_executed_this_round": false
   },
   "next_product_slices": [
     "Implement paged native inode/name/extent transactions through the shared native/session engine APIs, stable directory pagination and explicit legacy migration. Protect exact sharing and file lifetimes. Qualify populated named files separately from the million-object index result.",
@@ -1184,5 +1200,35 @@
     "compatibility_target": "Current release reads at least three preceding released software versions; preserve decoding support while live volumes/snapshots need it.",
     "soak_targets": "30 days on an exact candidate plus a 90-day rolling representative stability record; counts/time do not replace defect and data-integrity exits",
     "owner_releases_only": true
+  },
+  "owner_driver_permission": {
+    "date": "2026-11-15",
+    "conditional": true,
+    "scope": "Stable, qualified FlitzFS-related driver",
+    "GPU_driver_changes": false,
+    "unrelated_driver_changes": false,
+    "current_candidate_qualified": false,
+    "installed_this_round": false,
+    "gate": "AGENTS.md: Data and host protection"
+  },
+  "release_planning_checkpoint": {
+    "source_base": "7c601d39c8eb5f04a02bb889840efc06eac68171",
+    "status": "Comprehensive source-based release/benchmark plan and removal of obsolete location-only checks; selected local tooling and compilation qualification recorded separately.",
+    "full_goal_status": "active",
+    "release_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+    "benchmark_protocol": "docs/BENCHMARK_PROTOCOL.md",
+    "evidence": "docs/evidence/release-plan-review-2026-11-15.json",
+    "GPU_executed_this_round": false,
+    "release": false,
+    "local_validation": {
+      "evidence": "docs/evidence/release-plan-review-2026-11-15.json",
+      "selected_raw_checks": 48739,
+      "selected_asan_checks": 48739,
+      "worker_checks": 1199,
+      "syntax_only_units": 14,
+      "full_sdk_matrix": false,
+      "mount": false,
+      "GPU": false
+    }
   }
 }

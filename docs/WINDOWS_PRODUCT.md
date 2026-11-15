@@ -55,9 +55,12 @@ provides native build/API/lifecycle evidence only; actual latest Windows 11 clie
 VM, driver signing/security, application behavior and AMD hardware qualification
 remain required. Local development, builds, GUI/GPU and safe tests use the host
 under AGENTS.md and HOST_RAM_TESTING.md. Preserve existing data and driver/system
-state, discover fresh resources and retire owned work. Driver provisioning and
-deliberately destabilizing fault campaigns require isolation; there is no blanket
-hosted-only or VM-first development rule.
+state, discover fresh resources and retire owned work. Unqualified driver
+provisioning and destabilizing fault campaigns require isolation. The owner's
+later 15 November permission permits installing a stable, qualified FlitzFS-
+related driver after the exact artifact passes the host guide/AGENTS.md gates.
+GPU and unrelated drivers remain untouched. There is no blanket hosted-only or
+VM-first development rule and no currently qualified driver-install claim.
 
 An app/driver package, working writable Windows volume, automatic resource-bounded
 learning/repair, qualified AMD execution and independently verified recovery are

@@ -16,8 +16,10 @@ The owner's 15 November 2026 direction deletes the former blanket off-host and
 VM-first restriction. Normal development, research, builds and safe CPU/GPU/GUI
 tests use the local host. Keep filesystem experiment backing in memory, preserve
 existing data and control resource use. Anonymous memory can be paged; do not
-claim zero OS storage activity. Driver provisioning and deliberately destabilizing
-power/kernel/GPU fault tests remain confined to disposable VMs. See
+claim zero OS storage activity. Unqualified driver provisioning and destabilizing
+power/kernel/GPU fault tests remain confined to disposable VMs. The owner's later
+conditional permission allows a stable, qualified FlitzFS-related host driver;
+GPU and unrelated driver changes remain forbidden. See
 [the current host guide](HOST_RAM_TESTING.md).
 
 No software can guarantee every hardware/firmware/media failure without defined

@@ -19,6 +19,13 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
+The explicit [paged native backend](NATIVE_PAGED_BACKEND.md) connects native
+operations and sessions to paged object storage through the shared engine.
+Native metadata is still a complete bounded flat Model; scalable names/extents,
+native-aware migration/handoff and Windows factory integration remain open.
+Conditional owner permission for a qualified FlitzFS-related driver does not
+qualify an experimental driver or authorize GPU/unrelated driver changes.
+
 The latest qualified hardware source is d384b6c20cf686520e3a94c156e532307ca0fbf8.
 All thirteen core jobs and all 53 prescribed selected-SDK commands passed before
 one predeclared CPU/GPU, GPU/CPU, CPU/GPU owner comparison. Each request began

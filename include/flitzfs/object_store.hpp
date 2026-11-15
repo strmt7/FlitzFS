@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace flitzfs {
+namespace detail {class NativeObjectWriter;}
 // Experimental immutable-object transaction core. No filesystem/GPU/driver routing.
 using StoreIdentity = std::array<std::byte,16>;
 inline constexpr std::uint64_t kStoreMaxPhysicalBytes=64ULL*1024*1024;
@@ -203,6 +204,7 @@ class ObjectStoreWriter final {
   bool poisoned() const noexcept;
  private:
   friend class NativeFilesystemWriter;
+  friend class detail::NativeObjectWriter;
   class Rewrite;
   std::uint64_t generation_for_staging() const noexcept;
   Rewrite prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,

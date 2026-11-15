@@ -148,17 +148,24 @@ void interrupted(StoreCompressionMode mode,bool enabling) {
 }
 void forged_metadata() {
   const auto original=baseline(StoreCompressionMode::raw,true);
-  for(unsigned variant=0;variant<4;++variant) {
+  for(unsigned variant=0;variant<5;++variant) {
     auto ram=image(original);
     {
       const auto snapshot=ObjectStoreSnapshot::open(ram);auto metadata=snapshot.read(1);
       if(variant==0)for(unsigned i=0;i<8;++i)metadata[56+i]=std::byte{255};
       if(variant==1){metadata[7]=std::byte{'5'};metadata[8]=std::byte{5};}
-      if(variant==2){metadata[7]=std::byte{'7'};metadata[8]=std::byte{7};}
+      if(variant==2)std::fill_n(metadata.begin()+8,4,std::byte{255}); // Unknown capability, not supported format 7.
       if(variant==3)metadata[7]=std::byte{'5'};
+      if(variant==4){metadata[7]=std::byte{'7'};metadata[8]=std::byte{7};}
       auto writer=ObjectStoreWriter::resume(ram,identity(),snapshot.info().generation,
           {StoreCompressionMode::raw,3,false});
       const StoreMutation changed{1,false,std::move(metadata)};writer.commit_replicated({&changed,1});
+    }
+    if(variant==4) {
+      const auto shared=reopen(ram->stable);
+      require(count(shared)==7 && shared.read("keep",0,100)==data(7,1),
+          "supported format-7 extension lost workload provenance or file bytes");
+      continue;
     }
     if(variant) {
       rejects([&]{(void)reopen(ram->stable);},"intact invalid/unsupported accounting framing accepted");

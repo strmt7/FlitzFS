@@ -1,0 +1,2040 @@
+{
+  "schema": 1,
+  "utc": "2026-11-15T15:15:47.219103+00:00",
+  "source_base": "622ee19a30c2dad232c5b37c871f2e624ea7e998",
+  "branch": "main",
+  "source_binding": "Base plus exact physical working files and Git-filtered blobs. Evidence excludes itself to avoid circular hashing.",
+  "source_files": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 15480,
+      "sha256": "b5af6aaab4abce3d0de19f60804b5b2638f6518862c6a7f27cebb4b71828b9a0",
+      "git_filtered_blob_sha1": "b1223effb7aca6845a73f5a858d5aaf1a1ac7214"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "bytes": 69819,
+      "sha256": "35b8021e460a1cc5bf81817ed86f739a3ff66ce02b3f904ea9621ea9f55d85d6",
+      "git_filtered_blob_sha1": "03a1609565a50584d015651daf9ef9c7d1957c82"
+    },
+    {
+      "path": "docs/DEVELOPMENT_PLAN.json",
+      "bytes": 76103,
+      "sha256": "228ad70d6678b5ceef2ebaec1ec41cab52cc69b3bf9d92327f2a1c8b1ea26d0b",
+      "git_filtered_blob_sha1": "fa39314b82963eb3acbd4e4d0c18b657049ecea0"
+    },
+    {
+      "path": "docs/DEVELOPMENT_STATE.json",
+      "bytes": 60482,
+      "sha256": "ca05c6163b96674cea2310a7ca33dec94a0764d1e1051c7175901ef8e960f8be",
+      "git_filtered_blob_sha1": "4090538b88fc3404ee307bfb6cd1a2544cfcc0d2"
+    },
+    {
+      "path": "docs/FORMAT-v1.md",
+      "bytes": 31433,
+      "sha256": "dc21fecf01e16bce2cbac9efeee1ed27b31cd72c36c14f9eae3ce8e16a57aad4",
+      "git_filtered_blob_sha1": "8f628df5dd340d01967587033398a88814fd2050"
+    },
+    {
+      "path": "docs/HOST_INDEPENDENCE.md",
+      "bytes": 16504,
+      "sha256": "dd923fc8248619966c6d0e935a712a449bc3ed9ded85a06a0deef33446f99ba4",
+      "git_filtered_blob_sha1": "af9b34087661054759126b8b58045cdcc9a4d7eb"
+    },
+    {
+      "path": "docs/HOST_RAM_TESTING.md",
+      "bytes": 8508,
+      "sha256": "ccb5652097c13e9491269aa6fa9e3f59805c8e9c84eba155d6f5617eb544bee4",
+      "git_filtered_blob_sha1": "70bec01bcff32fe501f5b1d22b40b0f5854d77b7"
+    },
+    {
+      "path": "docs/NATIVE_FILESYSTEM.md",
+      "bytes": 22976,
+      "sha256": "83be5c37311e0a37a2e5fd92d70f332808368546a7a512c33b9198f95a0da884",
+      "git_filtered_blob_sha1": "833f3a7608bf423f7055863501a7ce4fa69e7603"
+    },
+    {
+      "path": "docs/NATIVE_FLUSH.md",
+      "bytes": 8666,
+      "sha256": "0d10002511ed4c5f9ac54a3b47ce6c9177f607bc98c91b77699542e454712018",
+      "git_filtered_blob_sha1": "11cab64d2dfa04d2f8dc7f9349e9b8f6cef06bad"
+    },
+    {
+      "path": "docs/NATIVE_PAGED_BACKEND.md",
+      "bytes": 3604,
+      "sha256": "f749f4e123ca3de23ae5ef3e66bf034e45526c6fb17aca6ca54173e125a6d92e",
+      "git_filtered_blob_sha1": "ef2218bdf25a0e0f7d13134745572e7d481e75d3"
+    },
+    {
+      "path": "docs/PAGED_OBJECT_STORE.md",
+      "bytes": 9420,
+      "sha256": "7c65f8e66e03fc13b249238d4669691ed88ec88f6114aca0b9e756fdb71a9601",
+      "git_filtered_blob_sha1": "45206f171c41194f2caaf47a3eea74940e1cfa32"
+    },
+    {
+      "path": "docs/RELEASE_EXECUTION_PLAN.md",
+      "bytes": 20994,
+      "sha256": "3392477614848814c56c882c3964bb1d42c216ac197f51d0859913009aa56503",
+      "git_filtered_blob_sha1": "7728c73555b3c99103333f462ff97b98f4a48906"
+    },
+    {
+      "path": "docs/RELEASE_READINESS.md",
+      "bytes": 12912,
+      "sha256": "5a5e34dbc8415aa1709185ec54e96219d077398b472a78135ac71ce1fde09669",
+      "git_filtered_blob_sha1": "ebb9c51efeec375b35439cc67f45415c2a7fc7fc"
+    },
+    {
+      "path": "docs/REPOSITORY_ASSESSMENT.md",
+      "bytes": 20598,
+      "sha256": "0f66df3f5175e28969bda434543ab095623fab9ad89395bea4754b4aa7225049",
+      "git_filtered_blob_sha1": "1894efb1350e5450d7bec746c33051e464c4a505"
+    },
+    {
+      "path": "docs/RESILIENT_STORE_DESIGN.md",
+      "bytes": 12856,
+      "sha256": "9ac7fe960ef74f719fd7ee17ff169abaeccb0c276ca5ca8308630adf8cc6c7ef",
+      "git_filtered_blob_sha1": "bb7ea9f68a9a6d35f18e8b7c1709965718afc865"
+    },
+    {
+      "path": "docs/ROADMAP.md",
+      "bytes": 75991,
+      "sha256": "b14cc1f24624967f39ed29f64aa3cc5545cc2f83595d326f18520274ac077114",
+      "git_filtered_blob_sha1": "3ff4452225b58cd49a387e56f25d3aa806428251"
+    },
+    {
+      "path": "docs/SAFETY.md",
+      "bytes": 85900,
+      "sha256": "f6dbcdad05d0a22b7b7296f4002ecdc2ad1d19566c4c815d4ecb0c33999649f9",
+      "git_filtered_blob_sha1": "051c0aa8a5b7080fe1854279d3392a9933c21c76"
+    },
+    {
+      "path": "docs/WINDOWS_PRODUCT.md",
+      "bytes": 4476,
+      "sha256": "f584a2c0b586208be20fc6714d550e756e45a82bda90489ba9f9a172b8ddfcb4",
+      "git_filtered_blob_sha1": "d82c4982e7b75790586de1b6054c5cc3396dd20a"
+    },
+    {
+      "path": "docs/development/README.md",
+      "bytes": 1898,
+      "sha256": "3659bdf46e44a9c930c315b6ff7f974dc79e2bf2a4276cd54468f22137f65da8",
+      "git_filtered_blob_sha1": "120014b06cabf15b7f1838a1399d792e845dd5d2"
+    },
+    {
+      "path": "docs/reference/README.md",
+      "bytes": 3753,
+      "sha256": "781d5a901485baea8bdeb6d44c546aaf35d876d86ed51a585a9f8f96e5553e14",
+      "git_filtered_blob_sha1": "46ccd00c7c88a729c1ba3c51bda0fc8bbb2a1609"
+    },
+    {
+      "path": "docs/reference/catalog.md",
+      "bytes": 7068,
+      "sha256": "c7ee4b78ebe8ec095ce51a69818a7992869dcc55910498b67e61447e0baa2052",
+      "git_filtered_blob_sha1": "dec01d8701bb414de488d2d150414851013caadf"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "bytes": 25824,
+      "sha256": "6e3b45cd2592292ef92b9e46d22ecb4b688cb944e73ccdec96b9e3be3fc949a6",
+      "git_filtered_blob_sha1": "96cfa49b99e0ade12cd5ce49fa2f3eb182da926c"
+    },
+    {
+      "path": "include/flitzfs/object_store.hpp",
+      "bytes": 13084,
+      "sha256": "d698ce86c9aea25865eac8a369c8b63008cda56bf7bb06e6b1f9e96d5995e271",
+      "git_filtered_blob_sha1": "ce2126481fdf7bc91f7c1092488331ddc8fbd1d8"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "bytes": 4207,
+      "sha256": "91a73847dc03562bb0d0ad95c1966bf97a699278a8bcdb338bdbe106518dd6ab",
+      "git_filtered_blob_sha1": "9cd67958c0a7e3f0ea1a4dac4a6009601190c876"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "bytes": 84120,
+      "sha256": "8a12539bfff98648eb609b7079890885efdc780774415daa1dc457b2b5b45a30",
+      "git_filtered_blob_sha1": "535944a3f617c0e6e1db7f14904cdbd62d812721"
+    },
+    {
+      "path": "src/native_object_storage.hpp",
+      "bytes": 4593,
+      "sha256": "732a5a6973e3d18673446b35f55060209e9d681424e59483014e7319dc62215b",
+      "git_filtered_blob_sha1": "07c0c8e128b291682ae59026c16f0933b64def37"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "bytes": 34327,
+      "sha256": "5b6e92e8f215c5c193fd5499eb8acc825cdd0a1a4a339c43a2d36f04893ef2c0",
+      "git_filtered_blob_sha1": "e7f754c975f52af8c2a4e9132f39aa43f646db6f"
+    },
+    {
+      "path": "tests/test_native_paged_backend.cpp",
+      "bytes": 12579,
+      "sha256": "732579c63359c5cbc62bf7618552fa7a0b569200c9579e4d09b65a9bde6486ca",
+      "git_filtered_blob_sha1": "3566a168b0be1121728385611bfc065177f774cd"
+    },
+    {
+      "path": "tests/test_native_workload.cpp",
+      "bytes": 10895,
+      "sha256": "cbac7b49f947e1df2f805a5ab6c2f5526433168f9052a62428f293469b3b9925",
+      "git_filtered_blob_sha1": "55c199f4be62c34204de6c8d35fe64b2f7d31905"
+    }
+  ],
+  "tracked_patch_sha256": "d6b07af2c26364e7c9ee96d830e5d1f8f67b984dc5ba715b82f9fc9a726f1fe4",
+  "goal_status": "active",
+  "checkpoint": {
+    "source_base": "622ee19a30c2dad232c5b37c871f2e624ea7e998",
+    "evidence": "docs/evidence/native-paged-backend-2026-11-15.json",
+    "contract": "docs/NATIVE_PAGED_BACKEND.md",
+    "status": "Explicit paged storage through the existing native mutation/session engine; native namespace still flat/bounded",
+    "raw_native_storage_suites": 95,
+    "asan_native_storage_suites": 95,
+    "new_backend_checks": 6942,
+    "injected_transaction_failures": 231,
+    "native_paged_metadata": false,
+    "native_namespace_migrated": false,
+    "automatic_Windows_factory": false,
+    "ordinary_GPU_route": false,
+    "driver_installed": false,
+    "release": false,
+    "remaining": "Paged inode/name/extent metadata, bounded residency/cursors, native-aware migration/rebuild/volume-head handoff, reclamation and Windows factory integration"
+  },
+  "validation": {
+    "checks": [
+      {
+        "name": "raw-build",
+        "receipt": {
+          "command": [
+            "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+            "--build",
+            "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+            "--config",
+            "Release",
+            "--parallel",
+            "8",
+            "--",
+            "/nr:false"
+          ],
+          "timeout_seconds": 360.0,
+          "memory_bytes": 7560232960,
+          "cpu_percent": 50,
+          "maximum_processes": 48,
+          "physical_available_bytes": 34511052800,
+          "commit_available_bytes": 83193671680,
+          "reserve_bytes": 4269086720,
+          "creation_time_job": true,
+          "exit_confirmed": true,
+          "disk_reserve_bytes": 1890058240,
+          "stop_reason": null,
+          "tree_retired": true,
+          "timed_out": false,
+          "residual_children": 1,
+          "process_id": 41628,
+          "exit_code": 0,
+          "peak_job_bytes": 918327296,
+          "elapsed_seconds": 5.341561100001854,
+          "error": null
+        },
+        "receipt_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-14409fefcdd54542b222610c4730b73a\\result.json",
+          "bytes": 906,
+          "sha256": "b51c28ff318f95285addc73402598064d772dd77190fdc2884455a28dddc0d0d"
+        },
+        "output_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-14409fefcdd54542b222610c4730b73a\\output.log",
+          "bytes": 12364,
+          "sha256": "d37e6e3ff95f8fc66264c4a26de2fdde707d8ae8fc36b352c6fde6a6feea151e"
+        },
+        "output_tail": [
+          "  flitzfs_catalog_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_catalog_tests.exe",
+          "  flitzfs_admission_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_admission_tests.exe",
+          "  flitzfs_gpu_batch_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_gpu_batch_tests.exe",
+          "  flitzfs_worker_exchange.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_worker_exchange.lib",
+          "  flitzfs_worker_wire_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_worker_wire_tests.exe",
+          "  flitzfs_worker_exchange_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_worker_exchange_tests.exe",
+          "  flitzfs_compact_checkpoint_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_compact_checkpoint_tests.exe",
+          "  flitzfs_native_paged_backend_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_native_paged_backend_tests.exe",
+          "  flitzfs_native_workload_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_native_workload_tests.exe"
+        ]
+      },
+      {
+        "name": "raw-test-inventory",
+        "receipt": {
+          "command": [
+            "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+            "--test-dir",
+            "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+            "-C",
+            "Release",
+            "--show-only=json-v1",
+            "-R",
+            "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+          ],
+          "timeout_seconds": 30.0,
+          "memory_bytes": 7557087232,
+          "cpu_percent": 50,
+          "maximum_processes": 48,
+          "physical_available_bytes": 34498588672,
+          "commit_available_bytes": 83156942848,
+          "reserve_bytes": 4269086720,
+          "creation_time_job": true,
+          "exit_confirmed": true,
+          "disk_reserve_bytes": 1889271808,
+          "stop_reason": null,
+          "tree_retired": true,
+          "timed_out": false,
+          "residual_children": 0,
+          "process_id": 15888,
+          "exit_code": 0,
+          "peak_job_bytes": 9211904,
+          "elapsed_seconds": 0.2624122000015632,
+          "error": null
+        },
+        "receipt_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-dcb5deefdfa74760bfdd7c859bf024ee\\result.json",
+          "bytes": 1151,
+          "sha256": "3b9b9c7ffadf6956d909d7e27a9a504e134436a258ac97e02e47eeadf0043d9e"
+        },
+        "output_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-dcb5deefdfa74760bfdd7c859bf024ee\\output.log",
+          "bytes": 67496,
+          "sha256": "ecefbf65a175b407d610bd1e4f309b96320fee2de64d6871a12c9052e686d200"
+        },
+        "output_tail": [
+          "      ]",
+          "    }",
+          "  ],",
+          "  \"version\" : ",
+          "  {",
+          "    \"major\" : 1,",
+          "    \"minor\" : 0",
+          "  }",
+          "}"
+        ]
+      },
+      {
+        "name": "raw-native-memory-suites",
+        "receipt": {
+          "command": [
+            "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+            "--test-dir",
+            "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+            "-C",
+            "Release",
+            "-V",
+            "-R",
+            "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+          ],
+          "timeout_seconds": 300.0,
+          "memory_bytes": 7539261440,
+          "cpu_percent": 50,
+          "maximum_processes": 48,
+          "physical_available_bytes": 34428874752,
+          "commit_available_bytes": 83088474112,
+          "reserve_bytes": 4269086720,
+          "creation_time_job": true,
+          "exit_confirmed": true,
+          "disk_reserve_bytes": 1884815360,
+          "stop_reason": null,
+          "tree_retired": true,
+          "timed_out": false,
+          "residual_children": 0,
+          "process_id": 21128,
+          "exit_code": 0,
+          "peak_job_bytes": 150048768,
+          "elapsed_seconds": 61.64545259999795,
+          "error": null
+        },
+        "receipt_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-78165303024b47bd855f9a145d891a64\\result.json",
+          "bytes": 1136,
+          "sha256": "ff2abc155fdbca6ea9d594c1c536c93e5f523a16411edb34adf980ef7c4f60ea"
+        },
+        "output_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-78165303024b47bd855f9a145d891a64\\output.log",
+          "bytes": 83366,
+          "sha256": "d1e8561a0306248c7d192095058ecc27f8190a3f5ff5a7c8873b2c523b442783"
+        },
+        "output_tail": [
+          "\tbounded_native_cleanup_unlink_faults",
+          "\tbounded_native_flush_test",
+          "\tbounded_transactional_object_store",
+          "\tbounded_gpu_recovery_policy",
+          "\tbounded_extent_codecs",
+          "",
+          "100% tests passed, 0 tests failed out of 95",
+          "",
+          "Total Test time (real) =  61.60 sec"
+        ]
+      },
+      {
+        "name": "asan-build",
+        "receipt": {
+          "command": [
+            "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+            "--build",
+            "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan",
+            "--config",
+            "Release",
+            "--parallel",
+            "8",
+            "--",
+            "/nr:false"
+          ],
+          "timeout_seconds": 360.0,
+          "memory_bytes": 7526678528,
+          "cpu_percent": 50,
+          "maximum_processes": 48,
+          "physical_available_bytes": 34378940416,
+          "commit_available_bytes": 83157815296,
+          "reserve_bytes": 4269086720,
+          "creation_time_job": true,
+          "exit_confirmed": true,
+          "disk_reserve_bytes": 1881669632,
+          "stop_reason": null,
+          "tree_retired": true,
+          "timed_out": false,
+          "residual_children": 1,
+          "process_id": 26012,
+          "exit_code": 0,
+          "peak_job_bytes": 1893396480,
+          "elapsed_seconds": 49.79571299999952,
+          "error": null
+        },
+        "receipt_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-3a90dbb196ee4696aee988e9fb0bd477\\result.json",
+          "bytes": 908,
+          "sha256": "9885e1adfa531940d71fc0898f90c987e5af4c1c1210d2f4d10a7101a6100132"
+        },
+        "output_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-3a90dbb196ee4696aee988e9fb0bd477\\output.log",
+          "bytes": 38596,
+          "sha256": "e26d99e3795c173f968b0f7584c1e65e9e23a7cd9e7fda0374116e818eb7f88a"
+        },
+        "output_tail": [
+          "  gpu_lz4_worker_controller.cpp",
+          "  uniform_lz4_worker_controller.cpp",
+          "  Generating Code...",
+          "  flitzfs_worker_exchange.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan\\Release\\flitzfs_worker_exchange.lib",
+          "  Building Custom Rule E:/FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42/repo/CMakeLists.txt",
+          "  test_worker_exchange.cpp",
+          "LINK : warning LNK4302: please add '/DEBUG' to the link command line for better ASAN error reporting [E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan\\flitzfs_worker_exchange_tests.vcxproj]",
+          "  flitzfs_worker_exchange_tests.vcxproj -> E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan\\Release\\flitzfs_worker_exchange_tests.exe",
+          "  Building Custom Rule E:/FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42/repo/CMakeLists.txt"
+        ]
+      },
+      {
+        "name": "asan-test-inventory",
+        "receipt": {
+          "command": [
+            "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+            "--test-dir",
+            "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan",
+            "-C",
+            "Release",
+            "--show-only=json-v1",
+            "-R",
+            "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+          ],
+          "timeout_seconds": 30.0,
+          "memory_bytes": 7489978368,
+          "cpu_percent": 50,
+          "maximum_processes": 48,
+          "physical_available_bytes": 34229121024,
+          "commit_available_bytes": 83076702208,
+          "reserve_bytes": 4269086720,
+          "creation_time_job": true,
+          "exit_confirmed": true,
+          "disk_reserve_bytes": 1872494592,
+          "stop_reason": null,
+          "tree_retired": true,
+          "timed_out": false,
+          "residual_children": 0,
+          "process_id": 63144,
+          "exit_code": 0,
+          "peak_job_bytes": 9211904,
+          "elapsed_seconds": 0.47958769999968354,
+          "error": null
+        },
+        "receipt_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-36622de2146f4d74a141a7f53d4b2044\\result.json",
+          "bytes": 1153,
+          "sha256": "db91e0acb1ebb96a7a14fb272f4936a614604cff65c4fb5aed43267819454120"
+        },
+        "output_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-36622de2146f4d74a141a7f53d4b2044\\output.log",
+          "bytes": 67686,
+          "sha256": "95fd8892b6d516391011e4a4a980648fe873d77ef7fd63a5c7ccf134ad30ab55"
+        },
+        "output_tail": [
+          "      ]",
+          "    }",
+          "  ],",
+          "  \"version\" : ",
+          "  {",
+          "    \"major\" : 1,",
+          "    \"minor\" : 0",
+          "  }",
+          "}"
+        ]
+      },
+      {
+        "name": "asan-native-memory-suites",
+        "receipt": {
+          "command": [
+            "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+            "--test-dir",
+            "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan",
+            "-C",
+            "Release",
+            "-V",
+            "-R",
+            "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+          ],
+          "timeout_seconds": 300.0,
+          "memory_bytes": 7496269824,
+          "cpu_percent": 50,
+          "maximum_processes": 48,
+          "physical_available_bytes": 34257395712,
+          "commit_available_bytes": 83115884544,
+          "reserve_bytes": 4269086720,
+          "creation_time_job": true,
+          "exit_confirmed": true,
+          "disk_reserve_bytes": 1874067456,
+          "stop_reason": null,
+          "tree_retired": true,
+          "timed_out": false,
+          "residual_children": 0,
+          "process_id": 22876,
+          "exit_code": 0,
+          "peak_job_bytes": 837726208,
+          "elapsed_seconds": 183.35538389999783,
+          "error": null
+        },
+        "receipt_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-29d71c3ea53d41c6a9ce30767f904978\\result.json",
+          "bytes": 1138,
+          "sha256": "cc17d79dbcfd2ccb3cea284c5ba76df838260627ea2d4356901a079c4594b0ac"
+        },
+        "output_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-29d71c3ea53d41c6a9ce30767f904978\\output.log",
+          "bytes": 83557,
+          "sha256": "7f26b7a5222681ee2177254b1e255ca1f5b13bbb81842a860c45ea3a17145149"
+        },
+        "output_tail": [
+          "\tbounded_native_cleanup_unlink_faults",
+          "\tbounded_native_flush_test",
+          "\tbounded_transactional_object_store",
+          "\tbounded_gpu_recovery_policy",
+          "\tbounded_extent_codecs",
+          "",
+          "100% tests passed, 0 tests failed out of 95",
+          "",
+          "Total Test time (real) = 183.31 sec"
+        ]
+      },
+      {
+        "name": "native-SDK-syntax-only",
+        "receipt": {
+          "command": [
+            "C:\\Windows\\System32\\cmd.exe",
+            "/d",
+            "/c",
+            "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\final-release-validation-9f77c073bc2e4894ace11521126dfbbe\\syntax-native-policy.cmd"
+          ],
+          "timeout_seconds": 120.0,
+          "memory_bytes": 7438598144,
+          "cpu_percent": 50,
+          "maximum_processes": 32,
+          "physical_available_bytes": 34024529920,
+          "commit_available_bytes": 82712293376,
+          "reserve_bytes": 4269086720,
+          "creation_time_job": true,
+          "exit_confirmed": true,
+          "disk_reserve_bytes": 1859649536,
+          "stop_reason": null,
+          "tree_retired": true,
+          "timed_out": false,
+          "residual_children": 1,
+          "process_id": 6028,
+          "exit_code": 0,
+          "peak_job_bytes": 270626816,
+          "elapsed_seconds": 27.80449320000116,
+          "error": null
+        },
+        "receipt_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-2c52247fe32f4f5d9402c4a267ccbab1\\result.json",
+          "bytes": 794,
+          "sha256": "027d8fd089c7c7ce50693d2417656a0c2416c4f3df6f73aee72fd642762f6581"
+        },
+        "output_file": {
+          "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-2c52247fe32f4f5d9402c4a267ccbab1\\output.log",
+          "bytes": 2566,
+          "sha256": "827744b4f13106f4d08cc8a706da5b6e962ac6e3353c3c190bed2a114da3eacb"
+        },
+        "output_tail": [
+          "            _OutIt=char *,",
+          "            _Size=unsigned __int64,",
+          "            _InIt=const wchar_t *,",
+          "            _SizeTy=unsigned __int64",
+          "        ]",
+          "winfsp_write_probe.cpp",
+          "windows_gpu_ram_probe.cpp",
+          "hardware_probe.cpp",
+          "lz4_runtime_probe.cpp"
+        ]
+      }
+    ],
+    "test_inventories": {
+      "raw": [
+        "native_persistent_workload",
+        "optimization_budget_crash_model",
+        "optimization_state_crash_model",
+        "bounded_commit_persistence_model",
+        "bounded_native_compression_profile_probe",
+        "bounded_native_store_compression",
+        "bounded_native_fast_ingestion",
+        "bounded_native_filesystem",
+        "bounded_paged_object_store",
+        "bounded_native_paged_backend",
+        "bounded_native_shared_extents",
+        "bounded_native_inode_io_test",
+        "bounded_native_lifetime_invariants",
+        "bounded_native_lifetime_mark_faults",
+        "bounded_native_lifetime_cancel_faults",
+        "bounded_native_lifetime_detach_faults",
+        "bounded_native_lifetime_write_faults",
+        "bounded_native_lifetime_retire_faults",
+        "bounded_native_lifetime_finish_faults",
+        "bounded_native_session_invariants",
+        "bounded_native_session_mark_faults",
+        "bounded_native_session_cleanup_faults",
+        "bounded_native_session_close_faults",
+        "bounded_native_global_disposition_invariants",
+        "bounded_native_global_disposition_arm-faults",
+        "bounded_native_global_disposition_cancel-faults",
+        "bounded_native_allocated_event_invariants",
+        "bounded_native_allocated_event_create_faults",
+        "bounded_native_allocated_event_merge_faults",
+        "bounded_native_allocated_event_supersede_faults",
+        "bounded_native_allocated_event_trim_faults",
+        "bounded_native_allocation_invariants",
+        "bounded_native_allocation_reserve_faults",
+        "bounded_native_allocation_shrink_faults",
+        "bounded_native_allocation_write-grow_faults",
+        "bounded_native_allocation_eof-grow_faults",
+        "bounded_native_initial_delete_invariants",
+        "bounded_native_initial_delete_arm_faults",
+        "bounded_native_initial_delete_unlink_faults",
+        "bounded_native_initial_delete_retain_faults",
+        "bounded_native_initial_delete_final-dir_faults",
+        "bounded_native_provisional_invariants",
+        "bounded_native_provisional_merge_faults",
+        "bounded_native_provisional_replace_faults",
+        "bounded_native_overwrite_invariants",
+        "bounded_native_overwrite_merge_faults",
+        "bounded_native_overwrite_replace_faults",
+        "bounded_native_create_invariants",
+        "bounded_native_create_file_faults",
+        "bounded_native_create_directory_faults",
+        "bounded_native_create_delete-file_faults",
+        "bounded_native_create_delete-directory_faults",
+        "bounded_volume_session_invariants",
+        "bounded_volume_session_maintenance-4096",
+        "bounded_volume_session_maintenance-65536",
+        "bounded_volume_session_recovery-4096",
+        "bounded_volume_session_recovery-65536",
+        "bounded_volume_head_invariants",
+        "bounded_volume_head_create",
+        "bounded_volume_head_publish",
+        "bounded_volume_head_repair",
+        "bounded_native_security_invariants",
+        "bounded_native_security_upgrade_faults",
+        "bounded_native_security_update_faults",
+        "bounded_native_security_compound_faults",
+        "bounded_native_basic_invariants",
+        "bounded_native_basic_upgrade_faults",
+        "bounded_native_basic_update_faults",
+        "bounded_native_basic_compound_faults",
+        "bounded_native_recompression_invariants",
+        "bounded_native_recompression_4096",
+        "bounded_native_recompression_65536",
+        "bounded_compact_checkpoint_invariants",
+        "bounded_compact_checkpoint_commit_4096",
+        "bounded_compact_checkpoint_commit_16384",
+        "bounded_compact_checkpoint_commit_65536",
+        "bounded_compact_checkpoint_repair_4096",
+        "bounded_compact_checkpoint_repair_65536",
+        "bounded_native_compact_metadata_invariants",
+        "bounded_native_compact_metadata_append_faults",
+        "bounded_native_compact_metadata_constrained_faults",
+        "bounded_native_compact_metadata_truncate_faults",
+        "bounded_native_mutation_result_test",
+        "bounded_native_mutation_metadata_invariants",
+        "bounded_native_mutation_metadata_append_faults",
+        "bounded_native_mutation_metadata_constrained_faults",
+        "bounded_native_mutation_metadata_truncate_faults",
+        "bounded_native_cleanup_invariants",
+        "bounded_native_cleanup_retain_faults",
+        "bounded_native_cleanup_latch_faults",
+        "bounded_native_cleanup_unlink_faults",
+        "bounded_native_flush_test",
+        "bounded_transactional_object_store",
+        "bounded_gpu_recovery_policy",
+        "bounded_extent_codecs"
+      ],
+      "asan": [
+        "native_persistent_workload",
+        "optimization_budget_crash_model",
+        "optimization_state_crash_model",
+        "bounded_commit_persistence_model",
+        "bounded_native_compression_profile_probe",
+        "bounded_native_store_compression",
+        "bounded_native_fast_ingestion",
+        "bounded_native_filesystem",
+        "bounded_paged_object_store",
+        "bounded_native_paged_backend",
+        "bounded_native_shared_extents",
+        "bounded_native_inode_io_test",
+        "bounded_native_lifetime_invariants",
+        "bounded_native_lifetime_mark_faults",
+        "bounded_native_lifetime_cancel_faults",
+        "bounded_native_lifetime_detach_faults",
+        "bounded_native_lifetime_write_faults",
+        "bounded_native_lifetime_retire_faults",
+        "bounded_native_lifetime_finish_faults",
+        "bounded_native_session_invariants",
+        "bounded_native_session_mark_faults",
+        "bounded_native_session_cleanup_faults",
+        "bounded_native_session_close_faults",
+        "bounded_native_global_disposition_invariants",
+        "bounded_native_global_disposition_arm-faults",
+        "bounded_native_global_disposition_cancel-faults",
+        "bounded_native_allocated_event_invariants",
+        "bounded_native_allocated_event_create_faults",
+        "bounded_native_allocated_event_merge_faults",
+        "bounded_native_allocated_event_supersede_faults",
+        "bounded_native_allocated_event_trim_faults",
+        "bounded_native_allocation_invariants",
+        "bounded_native_allocation_reserve_faults",
+        "bounded_native_allocation_shrink_faults",
+        "bounded_native_allocation_write-grow_faults",
+        "bounded_native_allocation_eof-grow_faults",
+        "bounded_native_initial_delete_invariants",
+        "bounded_native_initial_delete_arm_faults",
+        "bounded_native_initial_delete_unlink_faults",
+        "bounded_native_initial_delete_retain_faults",
+        "bounded_native_initial_delete_final-dir_faults",
+        "bounded_native_provisional_invariants",
+        "bounded_native_provisional_merge_faults",
+        "bounded_native_provisional_replace_faults",
+        "bounded_native_overwrite_invariants",
+        "bounded_native_overwrite_merge_faults",
+        "bounded_native_overwrite_replace_faults",
+        "bounded_native_create_invariants",
+        "bounded_native_create_file_faults",
+        "bounded_native_create_directory_faults",
+        "bounded_native_create_delete-file_faults",
+        "bounded_native_create_delete-directory_faults",
+        "bounded_volume_session_invariants",
+        "bounded_volume_session_maintenance-4096",
+        "bounded_volume_session_maintenance-65536",
+        "bounded_volume_session_recovery-4096",
+        "bounded_volume_session_recovery-65536",
+        "bounded_volume_head_invariants",
+        "bounded_volume_head_create",
+        "bounded_volume_head_publish",
+        "bounded_volume_head_repair",
+        "bounded_native_security_invariants",
+        "bounded_native_security_upgrade_faults",
+        "bounded_native_security_update_faults",
+        "bounded_native_security_compound_faults",
+        "bounded_native_basic_invariants",
+        "bounded_native_basic_upgrade_faults",
+        "bounded_native_basic_update_faults",
+        "bounded_native_basic_compound_faults",
+        "bounded_native_recompression_invariants",
+        "bounded_native_recompression_4096",
+        "bounded_native_recompression_65536",
+        "bounded_compact_checkpoint_invariants",
+        "bounded_compact_checkpoint_commit_4096",
+        "bounded_compact_checkpoint_commit_16384",
+        "bounded_compact_checkpoint_commit_65536",
+        "bounded_compact_checkpoint_repair_4096",
+        "bounded_compact_checkpoint_repair_65536",
+        "bounded_native_compact_metadata_invariants",
+        "bounded_native_compact_metadata_append_faults",
+        "bounded_native_compact_metadata_constrained_faults",
+        "bounded_native_compact_metadata_truncate_faults",
+        "bounded_native_mutation_result_test",
+        "bounded_native_mutation_metadata_invariants",
+        "bounded_native_mutation_metadata_append_faults",
+        "bounded_native_mutation_metadata_constrained_faults",
+        "bounded_native_mutation_metadata_truncate_faults",
+        "bounded_native_cleanup_invariants",
+        "bounded_native_cleanup_retain_faults",
+        "bounded_native_cleanup_latch_faults",
+        "bounded_native_cleanup_unlink_faults",
+        "bounded_native_flush_test",
+        "bounded_transactional_object_store",
+        "bounded_gpu_recovery_policy",
+        "bounded_extent_codecs"
+      ]
+    },
+    "suite_scope": "95 selected Windows native/storage CPU memory suites per raw-only Release and ASan configuration; optional Zstd/LZ4 OFF",
+    "excluded": "Legacy ordinary-file container/catalog/projection/admission/manifest fixtures, file-backed integration, SDK DLL/mount/GPU and other unselected tests were not executed",
+    "SDK_scope": "14 MSVC /Zs units with staged v2.2B5 headers only; no link, DLL load, runtime, driver or dispatch qualification",
+    "SDK_warning": "Existing C4244 wchar_t-to-char conversion in ASCII-scoped mount reporting retained",
+    "physical_power_loss": false,
+    "actual_GPU": false,
+    "mount": false,
+    "driver_install": false,
+    "full_CTest": false,
+    "full_SDK_matrix": false,
+    "Linux": false
+  },
+  "retained_failures": [
+    {
+      "reason": "Initial refactor missed the flat-only Rewrite::matches argument; corrected explicit flat selection, paged returns false without allocation",
+      "receipt": {
+        "command": [
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+          "--build",
+          "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+          "--config",
+          "Release",
+          "--parallel",
+          "8",
+          "--target",
+          "flitzfs_native_filesystem_tests",
+          "flitzfs_native_shared_extent_tests",
+          "flitzfs_paged_store_tests",
+          "--",
+          "/nr:false"
+        ],
+        "timeout_seconds": 180.0,
+        "memory_bytes": 7730102272,
+        "cpu_percent": 50,
+        "maximum_processes": 32,
+        "physical_available_bytes": 35192205312,
+        "commit_available_bytes": 83385798656,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1932525568,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 1,
+        "process_id": 40912,
+        "exit_code": 1,
+        "peak_job_bytes": 412930048,
+        "elapsed_seconds": 20.75727910000205,
+        "error": null
+      },
+      "output_file": {
+        "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-110b77d8c87548b3ab56b232d5caa64b\\output.log",
+        "bytes": 1774,
+        "sha256": "890efd3a4c7cea677970c5754c3ca69efba0a11d3bd78de8d84518d0cd054a21"
+      }
+    },
+    {
+      "reason": "New test used a nonexistent allocation field; corrected to the existing reserved_bytes API",
+      "receipt": {
+        "command": [
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+          "--build",
+          "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+          "--config",
+          "Release",
+          "--parallel",
+          "8",
+          "--target",
+          "flitzfs_native_paged_backend_tests",
+          "flitzfs_native_filesystem_tests",
+          "flitzfs_native_shared_extent_tests",
+          "flitzfs_paged_store_tests",
+          "--",
+          "/nr:false"
+        ],
+        "timeout_seconds": 180.0,
+        "memory_bytes": 7636779008,
+        "cpu_percent": 50,
+        "maximum_processes": 32,
+        "physical_available_bytes": 34817851392,
+        "commit_available_bytes": 83374608384,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1909194752,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 1,
+        "process_id": 8676,
+        "exit_code": 1,
+        "peak_job_bytes": 387084288,
+        "elapsed_seconds": 7.5330161999991105,
+        "error": null
+      },
+      "output_file": {
+        "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-275e03799ee34338878b5ae5797a9ab4\\output.log",
+        "bytes": 2282,
+        "sha256": "4aadb26d45b4ae870c762ae2f7907b8d616fe210516120086f66048fe87a64b4"
+      }
+    },
+    {
+      "reason": "New session test requested deletion but supplied Cleanup false; existing guard rejected last Close. Corrected fixture Cleanup true, preserved production guard",
+      "receipt": {
+        "command": [
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+          "--test-dir",
+          "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+          "-C",
+          "Release",
+          "-V",
+          "-R",
+          "^(bounded_native_paged_backend|bounded_native_filesystem|bounded_native_shared_extents|bounded_paged_object_store)$"
+        ],
+        "timeout_seconds": 120.0,
+        "memory_bytes": 7634681856,
+        "cpu_percent": 50,
+        "maximum_processes": 32,
+        "physical_available_bytes": 34809982976,
+        "commit_available_bytes": 83443146752,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1908670464,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 0,
+        "process_id": 37368,
+        "exit_code": 8,
+        "peak_job_bytes": 148938752,
+        "elapsed_seconds": 4.693622499999037,
+        "error": null
+      },
+      "output_file": {
+        "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-2a63a27e5d3349c0a293f65e5f565fce\\output.log",
+        "bytes": 4160,
+        "sha256": "a70ae73484cdde20122392e3efb6ff5fb1bc8723d2bbd630c04fb0fca3ea4096"
+      }
+    },
+    {
+      "reason": "Broader suite exposed an existing test that classified supported namespace format 7 as unsupported. Preserved rejection using an unknown capability and added explicit format-7 workload/byte preservation; all 95 suites then passed",
+      "receipt": {
+        "command": [
+          "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+          "--test-dir",
+          "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+          "-C",
+          "Release",
+          "-V",
+          "-R",
+          "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+        ],
+        "timeout_seconds": 300.0,
+        "memory_bytes": 7546601472,
+        "cpu_percent": 50,
+        "maximum_processes": 48,
+        "physical_available_bytes": 34457415680,
+        "commit_available_bytes": 83106078720,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1886650368,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 0,
+        "process_id": 17124,
+        "exit_code": 8,
+        "peak_job_bytes": 150052864,
+        "elapsed_seconds": 63.41631459999917,
+        "error": null
+      },
+      "output_file": {
+        "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-49372a8dbdec404196013be313702728\\output.log",
+        "bytes": 83651,
+        "sha256": "c7cfad73fc8502f88e472056c6e7c72f63e32af10f3ca954bb0fc3abb08d2f74"
+      }
+    }
+  ],
+  "semantic": {
+    "receipt": {
+      "repository": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+      "commit": "622ee19a30c2dad232c5b37c871f2e624ea7e998",
+      "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_files": 6,
+      "source_bytes": 235014,
+      "inventory_sha256": "c73fcfcb8655d6b809692251256392dd0228f78637d7fa2f19e2ff800779469b",
+      "provider_version": "0.2.43",
+      "model": "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\huggingface\\hub\\models--Snowflake--snowflake-arctic-embed-xs\\snapshots\\d8c86521100d3556476a063fc2342036d45c106f",
+      "scope": "code",
+      "path_prefixes": [
+        "src/native_filesystem",
+        "include/flitzfs/native_filesystem",
+        "src/paged_store",
+        "include/flitzfs/paged_store",
+        "src/native_session",
+        "include/flitzfs/native_session"
+      ],
+      "query": "Native namespace Model node maps directory names inode extent lookup writer transaction serialization snapshot open and bounded paged object store keyset pagination integration",
+      "native_response_sha256": "7dfb6b3328f213b8a03061b00d03a10ee5746a6c4abbe593b73ab11f2e3061d9",
+      "actual_searches": 1,
+      "cpu_only": true,
+      "offline_model": true,
+      "shared_mcp_modified": false,
+      "commands": [
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "rev-parse",
+            "--show-toplevel"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.02339850000134902,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "rev-parse",
+            "HEAD"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.021562900001299568,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "diff",
+            "--binary",
+            "HEAD",
+            "--"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.027501199998368975,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "version"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.2095977999997558,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "ls-files",
+            "-z"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.02430889999959618,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "index"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 37.869321400001354,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "Native namespace Model node maps directory names inode extent lookup writer transaction serialization snapshot open and bounded paged object store keyset pagination integration"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.28387690000090515,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "daemon",
+            "stop"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.4255846999985806,
+          "timed_out": false
+        }
+      ]
+    },
+    "native_response": {
+      "type": "search",
+      "success": true,
+      "results": [
+        {
+          "file_path": "include/flitzfs/native_filesystem.hpp",
+          "language": "cpp",
+          "content": "  // allocation, snapshot, pathname lookup or backing query forms these facts.\n  NativeInodeMutationCommit write_inode_result(std::uint64_t inode,std::uint64_t offset,\n      std::span<const std::byte>,NativeInodeWriteOptions options={},\n      const NativeAutomaticMetadata& effect={});\n  NativeInodeMutationCommit truncate_inode_result(std::uint64_t inode,std::uint64_t bytes,\n      const NativeAutomaticMetadata& effect={});\n  NativeInodeStorageMutationCommit write_inode_storage_result(std::uint64_t inode,std::uint64_t offset,\n      std::span<const std::byte>,NativeInodeWriteOptions options={},\n      const NativeAutomaticMetadata& effect={});\n  // Same committed count/metadata contract as the ordinary inode write. Hints\n  // apply only to this inode's changed extents, never namespace or other files.\n  // Invalid, stale, duplicate and non-saving payloads keep CPU encoding.",
+          "start_line": 331,
+          "end_line": 342,
+          "score": 0.8231920200886247
+        },
+        {
+          "file_path": "src/native_filesystem.cpp",
+          "language": "cpp",
+          "content": "NativeAllocationUsage NativeFilesystemWriter::inspect_allocation_usage() const {\n  auto objects=checked_namespace();(void)objects;return allocation_usage(impl_->model);\n}\nNativeFsCommit NativeFilesystemWriter::retire_inode(std::uint64_t inode) {\n  return transact({},InodeAction::retire,inode);\n}",
+          "start_line": 1343,
+          "end_line": 1348,
+          "score": 0.7991619452466932
+        },
+        {
+          "file_path": "include/flitzfs/native_filesystem.hpp",
+          "language": "cpp",
+          "content": "  // request effects even at unchanged EOF. No clock or policy is invented.\n  NativeInodeWriteCommit write_inode_with_metadata(std::uint64_t inode,std::uint64_t offset,\n      std::span<const std::byte>,NativeInodeWriteOptions,const NativeAutomaticMetadata&);\n  NativeFsCommit truncate_inode_with_metadata(std::uint64_t inode,std::uint64_t bytes,\n      const NativeAutomaticMetadata&);\n  // Commit-bound output for the future Windows callback. No post-publication\n  // allocation, snapshot, pathname lookup or backing query forms these facts.",
+          "start_line": 325,
+          "end_line": 331,
+          "score": 0.793409269381284
+        },
+        {
+          "file_path": "src/native_filesystem.cpp",
+          "language": "cpp",
+          "content": "NativeInodeWriteCommit NativeFilesystemWriter::write_inode(std::uint64_t inode,\n    std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options) {\n  return write_inode_with_metadata(inode,offset,bytes,options,{});\n}\nNativeInodeWriteCommit NativeFilesystemWriter::write_inode_with_metadata(std::uint64_t inode,\n    std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,\n    const NativeAutomaticMetadata& effect) {\n  NativeInodeWriteCommit result;\n  auto committed=write_inode_result(inode,offset,bytes,options,effect);\n  result.inode=committed.info.inode;result.offset=committed.offset;result.bytes=committed.bytes;\n  result.transaction=std::move(committed.transaction);\n  return result;\n}",
+          "start_line": 1187,
+          "end_line": 1199,
+          "score": 0.7921650902628414
+        },
+        {
+          "file_path": "src/native_filesystem.cpp",
+          "language": "cpp",
+          "content": "NativeInodeAllocationCommit NativeFilesystemWriter::overwrite_inode_storage_result(std::uint64_t inode,\n    const NativeOverwriteMetadata& effect,std::optional<std::uint64_t> reservation) {\n  if(poisoned())fail(Code::storage_failure,\"native writer is terminal\");\n  if(!native_overwrite_metadata_valid(effect) ||\n      (reservation && (*reservation%kNativeAllocationUnit || *reservation>kNativeAllocationCapacity)))\n    fail(Code::invalid_operation,\"invalid canonical native overwrite metadata/reservation\");\n  const auto& n=selected_inode(impl_->model,inode);\n  if(n.directory)fail(Code::is_directory,\"cannot overwrite native directory\");\n  if(n.delete_pending || n.unlinked || !n.basic)\n    fail(Code::invalid_operation,\"overwrite needs a live regular inode with basic metadata\");\n  NativeInodeAllocationCommit result;\n  result.transaction=transact({},InodeAction::overwrite,inode,{},nullptr,false,nullptr,{},&effect,\n      reservation?&*reservation:nullptr,&result.state);\n  return result;\n}",
+          "start_line": 1282,
+          "end_line": 1296,
+          "score": 0.7908166416350024
+        }
+      ],
+      "total_returned": 5,
+      "offset": 0,
+      "message": null
+    },
+    "raw_response": {
+      "path": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\semantic-native-integration-622ee19\\command-6.stdout",
+      "bytes": 4288,
+      "sha256": "7dfb6b3328f213b8a03061b00d03a10ee5746a6c4abbe593b73ab11f2e3061d9"
+    },
+    "note": "Actual clean-baseline search, candidates confirmed in live source; not a refreshed index of edits"
+  },
+  "static": {
+    "package_DAG": "15 unique package IDs, closed and acyclic",
+    "README_unchanged": true,
+    "navigation_links": [
+      {
+        "document": "docs/reference/README.md",
+        "target": "../README.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../development/README.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../RELEASE_READINESS.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../DEVELOPMENT_STATE.json"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_FILESYSTEM.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../OBJECT_STORE_FORMAT.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../FORMAT-v1.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../PERSISTENCE_MODEL.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../REPLICATED_CHECKPOINTS.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../VOLUME_HEAD.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../VOLUME_SESSION.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../COMPACTED_COPY.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../RECOMPRESSION.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../RESILIENT_STORE_DESIGN.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../SHARED_EXTENTS.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../RELEASE_EXECUTION_PLAN.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../BENCHMARK_PROTOCOL.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../PAGED_OBJECT_STORE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_PAGED_BACKEND.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WINDOWS_ARCHITECTURE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WINDOWS_PRODUCT.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_WINDOWS_IO.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_WRITABLE_ADAPTER.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WINFSP_CALLBACKS.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_FILE_SESSION.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_FLUSH.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_SECURITY.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WINDOWS_SPACE_REPORTING.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../SESSION_LIFECYCLE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WINFSP_ORIGIN_GUARD.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../MOUNT_PROCESS_ISOLATION.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../OWNED_DEFERRED_WRITES.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../UNIFORM_LZ4_RUNTIME.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../UNIFORM_LZ4_CONTROLLER.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_UNIFORM_WRITE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../UNIFORM_LZ4_REUSE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../UNIFORM_LZ4_SWEEP.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../UNIFORM_LZ4_SWEEP_PROFILE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../GPU_RESOURCE_ENVELOPE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../ADAPTIVE_LZ4_EXECUTION.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../GPU_RECOVERY.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WORKER_CHANNEL.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../GPU_DRIVER_WORKER.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../HIP_API_BINDING.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../GPU_LZ4_CPU_VERIFY.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../COMPRESSION_STRATEGY.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../COLD_COMPRESSION_RESEARCH.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../AUTONOMOUS_MAINTENANCE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../OPTIMIZATION_STATE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../OPTIMIZATION_BUDGET.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WORKLOAD_ACCOUNTING.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WORKLOAD_HELPER.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../ADVISORY_REBUILD.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../CPU_PIPELINE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../EXTENT_CODECS.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../NATIVE_FAST_INGESTION.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WINDOWS_VOLUME_APP.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../WINDOWS_VOLUME_BACKENDS.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../HOST_INDEPENDENCE.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../HOST_RAM_TESTING.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../SOURCE_SNAPSHOT.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../HOSTED_ROUTING.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../DEPENDENCY_AUDIT.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../SAFETY.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "../validation/README.md"
+      },
+      {
+        "document": "docs/reference/README.md",
+        "target": "catalog.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "README.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../development/README.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../RELEASE_READINESS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../ADAPTER_IDENTITY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../ADAPTIVE_LZ4_EXECUTION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../ADVISORY_HELPER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../ADVISORY_REBUILD.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../ARCHITECTURE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../BENCHMARK_PROTOCOL.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../ASYNC_LZ4_CONTROLLER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../ASYNC_NATIVE_WRITE_PLAN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../AUTONOMOUS_MAINTENANCE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../CATALOG_MANIFEST.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../COLD_COMPRESSION_RESEARCH.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../COMPACTED_COPY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../COMPACT_CHECKPOINT_METADATA.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../COMPRESSION_PROBES.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../COMPRESSION_STRATEGY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../CPU_DIGEST_ACCELERATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../CPU_LZ4_WORKER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../CPU_PIPELINE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../CRASH_RECOVERY_PROBE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../DEPENDENCY_AUDIT.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../DEVELOPMENT_PLAN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../EXTENT_CODECS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../FLZIP_READONLY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../FORMAT-v1.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_CODEC_CANDIDATES.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_DRIVER_RUNTIME_PLAN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_DRIVER_WORKER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_LZ4_CPU_VERIFY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_LZ4_KERNEL_REVIEW.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_LZ4_LAYOUT.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_LZ4_SLAB.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_MATCH_CONTROLLER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_MEMORY_OBSERVATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_NODE_PROOF.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_PHASE_PROFILE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_RECOVERY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_RESOURCE_ENVELOPE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../GPU_WORKER_CONTROLLER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIPCOMP_BOUNDED_ENTRY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIPCOMP_MODULE_LINK.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIPCOMP_NATIVE_SYNC.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIPCOMP_OFFLINE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_API_BINDING.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_BATCH_PLAN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_BATCH_VALIDATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_IDENTITY_METADATA.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_LZ4_COMPUTE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_LZ4_RUNTIME.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_PRIORITY_CAPABILITY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_RUNTIME_WORKER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HIP_WARP_SYNC_PROBE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HOSTED_ROUTING.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HOST_INDEPENDENCE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../HOST_RAM_TESTING.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../LIVE_MOUNT_PROBE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../LZ4_WORKER_FRAMES.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../MATCH_PROPOSALS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../MOUNT_PROCESS_ISOLATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_ALLOCATED_EVENTS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_ALLOCATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_BASIC_METADATA.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_CLEANUP_METADATA.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_CODEC_PLAN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_CODEC_VALIDATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_CREATE_OPEN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_FAST_INGESTION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_FILESYSTEM.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_FILE_LIFETIME.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_FILE_SESSION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_FLUSH.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_GPU_RAM_PROBE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_INITIAL_DELETE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_INODE_IO.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_LZ4_COMPOSITION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_MUTATION_METADATA.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_MUTATION_RESULTS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_OVERWRITE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_PROVISIONAL_OPEN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_SECURITY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_STORE_MEASUREMENTS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_UNIFORM_WRITE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_WINDOWS_IO.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_WINDOWS_LZ4_ADVICE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_WINDOWS_PROJECTION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_WRITABLE_ADAPTER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../OBJECT_STORE_FORMAT.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../PAGED_OBJECT_STORE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../NATIVE_PAGED_BACKEND.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../OPTIMIZATION_BUDGET.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../OPTIMIZATION_STATE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../OWNED_DEFERRED_WRITES.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../PERSISTENCE_MODEL.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../PROCESS_ISOLATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../RECOMPRESSION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../RECOMPRESSION_FEEDBACK.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../RELEASE_READINESS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../RELEASE_EXECUTION_PLAN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../REPLICATED_CHECKPOINTS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../REPOSITORY_ASSESSMENT.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../RESEARCH_2026-11-07.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../RESILIENT_STORE_DESIGN.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../RETIREMENT_REFERENCE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../ROADMAP.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../SAFETY.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../SHARED_EXTENTS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../SESSION_LIFECYCLE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../SOURCE_SNAPSHOT.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../STORE_RESUME_AND_INTERRUPTION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../SYSTEM_RUNTIME_METADATA.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../UNIFORM_GPU_CALIBRATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../UNIFORM_LZ4_CONTROLLER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../UNIFORM_LZ4_REUSE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../UNIFORM_LZ4_RUNTIME.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../UNIFORM_LZ4_SWEEP.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../UNIFORM_LZ4_SWEEP_PROFILE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../VALIDATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../VOLUME_HEAD.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../VOLUME_HEAD_VALIDATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../VOLUME_SESSION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WINDOWS_ARCHITECTURE.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WINDOWS_NATIVE_METADATA.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WINDOWS_PRODUCT.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WINDOWS_SPACE_REPORTING.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WINDOWS_VOLUME_APP.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WINDOWS_VOLUME_BACKENDS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WINFSP_CALLBACKS.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WINFSP_ORIGIN_GUARD.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WORKER_CHANNEL.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WORKER_CHANNEL_VALIDATION.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WORKLOAD_ACCOUNTING.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WORKLOAD_HELPER.md"
+      },
+      {
+        "document": "docs/reference/catalog.md",
+        "target": "../WRITABLE_MOUNT_TRIAL.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../../CONTRIBUTING.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../README.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "building.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../HOST_INDEPENDENCE.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../validation/README.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../VALIDATION.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../RELEASE_EXECUTION_PLAN.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../DEVELOPMENT_PLAN.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../DEVELOPMENT_STATE.json"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../reference/README.md#storage-and-recovery"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../PAGED_OBJECT_STORE.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../NATIVE_PAGED_BACKEND.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../reference/README.md#windows-integration"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../reference/README.md#gpu-compression-and-worker-lifecycle"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../reference/README.md#compression-and-learning"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../research/README.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../WINDOWS_VOLUME_APP.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../WINDOWS_VOLUME_BACKENDS.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../DEPENDENCY_AUDIT.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "documentation.md"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../reference/README.md#complete-component-catalog"
+      },
+      {
+        "document": "docs/development/README.md",
+        "target": "../../AGENTS.md"
+      }
+    ]
+  },
+  "changes": [
+    "Shared native object-storage dispatch, explicit paged initialize/open/resume/session path, unchanged namespace and object wire encodings",
+    "Real paged checkpoint Flush with pre/post state/contract/extent checks and terminal post-entry failure",
+    "Conditional owner FlitzFS-driver installation permission, GPU/unrelated driver prohibition preserved"
+  ],
+  "limitations": [
+    "Native Model and namespace record remain flat/bounded; no million-file claim",
+    "Flat volume-head/compaction/recompression reject paged input; native-aware identity migration and handoff remain pending",
+    "No ordinary automatic GPU route, driver stability qualification, release or deployment claim"
+  ]
+}

@@ -574,5 +574,31 @@ PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot() const {
   p->state=impl_->state;if(impl_->poisoned)p->state.degraded_roots=true;
   (void)read_node(p->state,p->state.root);return PagedObjectStoreSnapshot(std::move(p));
 }
+PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_staging() const {
+  if(!impl_ || impl_->poisoned)fail("staging requires a healthy writer");
+  auto p=std::make_unique<PagedObjectStoreSnapshot::Impl>();p->state=impl_->state;
+  return PagedObjectStoreSnapshot(std::move(p));
+}
+std::uint64_t PagedObjectStoreWriter::generation_for_staging() const noexcept {
+  return poisoned()?0:impl_->state.generation;
+}
+PagedStoreInfo PagedObjectStoreWriter::flush_checkpoint() {
+  if(poisoned())fail("flush requires a healthy writer");
+  auto& p=*impl_;const auto& old=p.state;bool barrier_entered=false;
+  try {
+    const auto extent=old.image->extent();
+    if(extent<old.end || extent>old.limits.maximum_physical_bytes)fail("flush extent bounds");
+    auto check=[&] {
+      admit_contract(old.image->contract());
+      if(old.image->contract().write_failure_unit_bytes>old.unit)fail("flush failure unit changed");
+      const auto actual=load(old.image,old.limits);
+      if(!same(actual,old) || actual.degraded_roots || actual.degraded_metadata || old.image->extent()!=extent)
+        fail("flush checkpoint changed/degraded; independent recovery required");
+    };
+    check();const auto result=flitzfs::info(old);
+    barrier_entered=true;old.image->flush();check();return result;
+  }catch(const std::bad_alloc&) {if(barrier_entered)p.poisoned=true;throw;}
+  catch(...) {p.poisoned=true;throw;}
+}
 bool PagedObjectStoreWriter::poisoned() const noexcept {return !impl_ || impl_->poisoned;}
 } // namespace flitzfs

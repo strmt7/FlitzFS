@@ -1,6 +1,9 @@
 # FlitzFS repository assessment
 
-Current checkpoint: 15 November 2026, local source `7c601d3`; use
+Current checkpoint: 15 November 2026. The
+[native paged-backend follow-up](NATIVE_PAGED_BACKEND.md) connects the shared
+native engine to paged storage while retaining flat namespace limits. The
+earlier object-index qualification is bound to `7c601d3`; use
 [the release execution plan](RELEASE_EXECUTION_PLAN.md) for current gaps,
 effort estimates and gates. Historical
 assessment baseline (11 November 2026):

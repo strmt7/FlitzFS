@@ -1,7 +1,9 @@
 # Path to a stable FlitzFS release
 
 Assessment: 15 November 2026. Reviewed local source:
-`7c601d39c8eb5f04a02bb889840efc06eac68171`. The full product goal remains active.
+`7c601d39c8eb5f04a02bb889840efc06eac68171`. The subsequent
+[native backend bridge](NATIVE_PAGED_BACKEND.md) is traced separately; the
+paged namespace work and release gates remain open. The full product goal remains active.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,
 not competing instructions to repeat completed experiments.
@@ -65,9 +67,11 @@ constants or more unchanged LZ4 trials as substitutes for the requested product.
 7. **Existing data and host stability remain protected.** The host is the default
    development/research/build/test/GUI/GPU/benchmark machine. No blanket hosted-CI
    or VM-first requirement applies. Keep experiment backing in memory and own
-   resource/process lifetimes. Use isolation for operations that would change
-   drivers or deliberately destabilize the system, not as a reason to avoid local
-   work. Do not format/repartition or risk existing user storage.
+   resource/process lifetimes. Unqualified driver deployment and destabilizing
+   tests use isolation. The owner's later 15 November permission allows a
+   FlitzFS-related host driver install after exact-artifact stability and rollback
+   qualification; GPU and unrelated drivers remain untouched. No current install
+   is qualified. Do not format/repartition or risk existing user storage.
 
 ## Concrete work and estimated remaining effort
 

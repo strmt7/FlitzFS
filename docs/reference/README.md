@@ -15,6 +15,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Exact shared extents and private updates](../SHARED_EXTENTS.md)
 - [Release execution and compatibility plan](../RELEASE_EXECUTION_PLAN.md), [benchmark protocol](../BENCHMARK_PROTOCOL.md)
 - [Paged object storage and streaming rebuild](../PAGED_OBJECT_STORE.md)
+- [Native operations on paged storage](../NATIVE_PAGED_BACKEND.md)
 
 ## Windows integration
 

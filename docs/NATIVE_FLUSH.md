@@ -4,6 +4,12 @@ Experimental CPU durability API for the future Windows writable engine.
 It does not enable mounted writes, install a driver or start a helper/GPU.
 Safe local execution follows AGENTS.md and HOST_RAM_TESTING.md.
 
+The explicit [native paged backend](NATIVE_PAGED_BACKEND.md) supplies the same
+real-barrier operation with paged-root, contract and extent checks. Native
+namespace verification and terminal post-barrier failure semantics remain in
+force. Flush adds no writes or generation advance and implies no physical
+power-loss evidence.
+
 ## Contract and layers
 
 The selected current WinFsp v2.2B5 header was fetched again and compared at
