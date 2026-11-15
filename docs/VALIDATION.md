@@ -1,5 +1,14 @@
 # Validation ledger — experimental release 0.2
 
+## Windows helper background integration — 15 November 2026
+
+[Contract](WINDOWS_BACKGROUND_MAINTENANCE.md) and
+[exact-source evidence](evidence/windows-background-maintenance-2026-11-15.json)
+cover live local CPU/memory observations, automatic grouping in the actual
+Windows provider, foreground access during preparation, GUI draft preservation
+and owned retirement. Core model, live helper, SDK syntax, mounted and GPU
+evidence remain separate. No new mounted/driver/GPU result is implied.
+
 ## Automatic shared-base discovery — 15 November 2026
 
 [Contract](AUTOMATIC_GROUP_MAINTENANCE.md) and

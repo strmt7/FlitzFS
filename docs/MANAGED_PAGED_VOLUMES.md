@@ -2,9 +2,10 @@
 
 Experimental opt-in integration of the paged/native engine with the existing
 volume head, file-session ownership and funded advisory journal. It removes the
-flat-store-only selection/resume barrier. It does not install a driver, create
-a mount, change the application's default volume factory, start a background
-scheduler or qualify useful GPU operation.
+flat-store-only selection/resume barrier. The separate
+[Windows helper integration](WINDOWS_BACKGROUND_MAINTENANCE.md) now selects this
+factory and drives background group opportunities. Neither integration installs
+a driver, creates a mount or qualifies useful GPU operation.
 
 ## Creation, reading and ordinary files
 
@@ -92,8 +93,9 @@ and a separate appropriate data-work/write-amplification policy remain required.
 
 The new [automatic group controller](AUTOMATIC_GROUP_MAINTENANCE.md) supplies
 aligned content discovery and resource admission from trusted supplied
-observations through this same session. Live Windows observations/scheduling,
-persistent learning and a data-work/write-amplification policy remain unfinished.
+observations through this same session. Its [Windows helper integration](WINDOWS_BACKGROUND_MAINTENANCE.md)
+now supplies live observations/scheduling; persistent learning, mounted integration
+and a data-work/write-amplification policy remain unfinished.
 
 ## Evidence and source scope
 

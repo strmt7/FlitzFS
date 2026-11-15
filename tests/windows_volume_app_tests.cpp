@@ -1,8 +1,9 @@
 #include "volume_controller.hpp"
 #include "bounded_process.hpp"
-#include "gpu_probe_budget.hpp"
+#include "windows_app_budget.hpp"
 #include <windows.h>
 #include <bcrypt.h>
+#include <pdh.h>
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -166,6 +167,21 @@ void native_initialization() {
     window_baseline=current;
   }
   handles("native-window-thread-stable");
+  // Separate native PDH cold initialization from product ownership. Every query
+  // must close, and repeated native-only cycles must stabilize before full
+  // controller cycles are required to return to their exact handle baseline.
+  DWORD counter_baseline=0;
+  for(unsigned i=0;i<32;++i) {
+    PDH_HQUERY query=nullptr;PDH_HCOUNTER counter=nullptr;
+    require(PdhOpenQueryW(nullptr,0,&query)==ERROR_SUCCESS,"Native PDH query creation");
+    const auto added=PdhAddEnglishCounterW(query,L"\\Processor Information(_Total)\\% Processor Time",0,&counter);
+    const auto collected=added==ERROR_SUCCESS?PdhCollectQueryData(query):added;
+    const auto closed=PdhCloseQuery(query);
+    require(added==ERROR_SUCCESS && collected==ERROR_SUCCESS && closed==ERROR_SUCCESS,"Native PDH query lifecycle");
+    const auto current=handle_count();std::cout<<"Native PDH repetition "<<i<<" handles="<<current<<"\n";
+    if(i>=16)require(current==counter_baseline,"Measured native PDH handle growth");counter_baseline=current;
+  }
+  handles("native-pdh-stable");
 }
 
 void advice_application_tests() {
@@ -384,8 +400,11 @@ void model_tests() {
   {
     VolumeModel model;require(!model.ready(),"Unexpected initial volume");
     model.create();const auto initial=model.view();
-    require(initial.ready && initial.allocated==4*1024*1024+262144 &&
-        initial.capacity==12*1024*1024 && initial.files.empty(),"Initial real volume");
+    const auto image_capacity=initial.allocated-262144;
+    require(initial.ready && image_capacity>=4*1024*1024 && image_capacity%65536==0 &&
+        initial.capacity<=MemoryVolumeDomain::maximum_capacity &&
+        2*image_capacity+(NativeFileSession::max_optimization_bindings+1)*131072<=initial.capacity &&
+        initial.files.empty(),"Initial admitted paged volume and maintenance reserve");
     rejects([&]{model.create();},"Duplicate create replaced volume");
     std::string data(8192,'A');for(std::size_t i=0;i<data.size();i+=37)data[i]='B';
     model.create_text("first.txt",data);
@@ -446,6 +465,89 @@ void model_tests() {
   std::cout<<"Application handle balance: "<<before<<" -> "<<after<<"\n";
   require(after==before,"Controller handle leak");
 }
+void maintenance_tests() {
+  // Real OS collector and current-thread priority, without a provider, file,
+  // process worker or remote counter. Failed collection is a test failure.
+  {
+    const auto priority=GetThreadPriority(GetCurrentThread());require(priority!=THREAD_PRIORITY_ERROR_RETURN,"Priority query");
+    {MaintenanceThreadScope scope;require(scope.active(),"Background resource mode unavailable");
+      require(scope.finish(),"Background resource priority restoration failed");}
+    require(GetThreadPriority(GetCurrentThread())==priority,"Priority changed after background scope");
+    WindowsMaintenanceHost host;auto observation=host.observe(false);
+    require(!observation.valid,"Cold CPU rate observation admitted");
+    const auto deadline=GetTickCount64()+6000;
+    until([&]{
+      if(host.status()==MaintenanceHostStatus::unavailable)throw std::runtime_error("Built-in CPU telemetry unavailable");
+      if(host.next_delay_ms())return false;
+      observation=host.observe(false);return observation.valid;
+    },deadline);
+    require(observation.cpu_total_ticks==1000000 && observation.cpu_busy_ticks<=1000000 &&
+        observation.cpu_window_ms>=1000 && observation.cpu_window_ms<=2000 &&
+        observation.physical_total && observation.physical_available<=observation.physical_total &&
+        observation.commit_limit && observation.commit_available<=observation.commit_limit,"Invalid live resource ratios");
+    std::cout<<"Live maintenance telemetry: busy_ppm="<<observation.cpu_busy_ticks<<" window_ms="<<observation.cpu_window_ms
+        <<" physical_available="<<observation.physical_available<<" commit_available="<<observation.commit_available<<"\n";
+  }
+  // Grouping in the actual locked Windows provider, with explicitly modeled
+  // quiet observations. This is not a claim of live host contention admission.
+  {
+    VolumeModel model;model.create();std::string a(VolumeModel::text_limit,'A');
+    for(std::size_t i=0;i<a.size();++i)a[i]=static_cast<char>('!'+((i*31+i/7)%90));
+    auto b=a,c=a;b[13]='z';c[47]='y';model.create_text("a",a);model.create_text("b",b);model.create_text("c",c);
+    auto o=NativeMaintenanceObservation{};o.valid=true;o.physical_total=16ULL<<30;o.physical_available=12ULL<<30;
+    o.commit_limit=32ULL<<30;o.commit_available=24ULL<<30;o.cpu_total_ticks=1000;o.cpu_window_ms=1000;
+    for(unsigned i=0;i<500 && model.maintenance_pending();++i){++o.sequence;o.captured_ms+=1000;model.maintain_groups(o,o.captured_ms);}
+    const auto progress=model.maintenance_progress();
+    require(!model.maintenance_pending() && progress.phase==NativeMaintenancePhase::idle && progress.published_groups==1,
+        "Windows provider did not automatically group related files");
+    require(model.read_text("a")==a && model.read_text("b")==b && model.read_text("c")==c,"Windows background grouping changed file bytes");
+    require(model.optimize() && model.read_text("a")==a && model.read_text("b")==b && model.read_text("c")==c,
+        "Paged application maintenance changed grouped bytes");
+    model.create_text("d",a);
+    for(unsigned i=0;i<500 && model.maintenance_progress().owned_payload_bytes==0;++i) {
+      ++o.sequence;o.captured_ms+=1000;model.maintain_groups(o,o.captured_ms);
+    }
+    require(model.maintenance_progress().owned_payload_bytes>0,"No helper private work to retire");
+    model.stop_maintenance();
+    require(!model.maintenance_pending() && model.maintenance_progress().owned_payload_bytes==0 &&
+        model.read_text("a")==a && model.read_text("d")==a,"Stopping optional work retained buffers or changed data");
+    model.discard();require(MemoryVolumeDomain::cleanup_healthy(),"Grouped model did not retire");
+  }
+  // Existing controller thread + real telemetry automatically drive three related
+  // files. Foreground remains admitted while background work is pending.
+  {
+    auto window=CreateWindowExW(0,L"STATIC",L"FlitzFS idle integration qualification",0,
+        0,0,0,0,HWND_MESSAGE,nullptr,GetModuleHandleW(nullptr),nullptr);
+    require(window!=nullptr,"Maintenance controller window");
+    {
+      VolumeController controller(window);const auto deadline=GetTickCount64()+60000;
+      auto command=[&](VolumeCommand c){require(controller.submit(std::move(c)),"Foreground refused during background maintenance");
+        until([&]{return !controller.view().busy;},deadline);require(!controller.view().volume.fenced,"Maintenance fenced volume");};
+      command({VolumeCommandKind::create,{},{}});
+      std::string a(8192,'K'),b=a,c=a;b[1]='L';c[5]='M';
+      command({VolumeCommandKind::create_text,"one",a});command({VolumeCommandKind::create_text,"two",b});
+      command({VolumeCommandKind::create_text,"three",c});
+      until([&]{const auto p=controller.view().volume.maintenance;
+        return p.phase==NativeMaintenancePhase::preparing && p.owned_payload_bytes>0;},deadline);
+      command({VolumeCommandKind::read_text,"one",{}});require(controller.view().text==a,"Foreground read during group preparation");
+      const auto content_generation=controller.view().content_generation;
+      until([&]{const auto v=controller.view();require(!v.maintenance_disabled,"Native background scheduling disabled");
+        return !v.volume.maintenance_pending;},deadline);
+      const auto completed=controller.view();
+      require(completed.volume.maintenance.published_groups==1 && completed.content_generation==content_generation,
+          "Live idle grouping did not publish or changed foreground content generation");
+      command({VolumeCommandKind::read_text,"one",{}});require(controller.view().text==a,"Live grouped readback");
+      command({VolumeCommandKind::read_text,"two",{}});require(controller.view().text==b,"Live grouped second readback");
+      command({VolumeCommandKind::read_text,"three",{}});require(controller.view().text==c,"Live grouped third readback");
+      require(controller.stop(true),"Maintenance controller stop refused");until([&]{return controller.view().stopped;},deadline);
+      std::cout<<"Live idle groups="<<completed.volume.maintenance.published_groups<<" samples="<<completed.volume.maintenance.sampled_extents
+          <<" control_generation="<<completed.content_generation<<" notifications="<<completed.generation
+          <<" quanta="<<completed.maintenance_quanta<<" elapsed_ns="<<completed.maintenance_elapsed_ns
+          <<" maximum_quantum_ns="<<completed.maintenance_maximum_quantum_ns<<"\n";
+    }
+    require(DestroyWindow(window)!=FALSE && MemoryVolumeDomain::cleanup_healthy(),"Live maintenance controller retirement");
+  }
+}
 HWND find_window(DWORD pid) {
   struct Context{DWORD pid;HWND window=nullptr;}context{pid};
   EnumWindows([](HWND window,LPARAM param)->BOOL {
@@ -481,7 +583,8 @@ std::wstring text(HWND window) {
 void gui_tests(const std::filesystem::path& app) {
   auto observer=std::make_shared<ProcessObserver>();ProcessResult result;
   std::exception_ptr failure;
-  std::thread supervisor([&]{try{result=run_bounded_process(app,{},ProcessBudget{128,2000,25000},observer);}
+  const auto child_memory_mib=app_fixture::memory_allowance()/2/(1024*1024);
+  std::thread supervisor([&]{try{result=run_bounded_process(app,{},ProcessBudget{child_memory_mib,2000,25000,32},observer);}
       catch(...){failure=std::current_exception();}});
   std::exception_ptr test_failure;
   try {
@@ -515,6 +618,11 @@ void gui_tests(const std::filesystem::path& app) {
     send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L""));
     button(103);wait_status(L"File read and integrity-checked.");
     require(text(GetDlgItem(window,112))==payload,"GUI content readback");
+    const std::wstring draft=L"Unsaved editor changes must survive background notifications.";
+    send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(draft.c_str()));
+    const auto edit_deadline=GetTickCount64()+3000;
+    until([&]{send(window,VolumeController::completion_message);return GetTickCount64()>=edit_deadline;},deadline);
+    require(text(GetDlgItem(window,112))==draft,"Background status replaced unsaved editor contents");
     send(window,WM_CLOSE);
     // Shell presence is not guaranteed on a hosted runner. Either a live tray
     // hides the window, or the application keeps the owner visible.
@@ -543,13 +651,14 @@ void gui_tests(const std::filesystem::path& app) {
 }
 int wmain(int argc,wchar_t** argv) {
   try {
-    gpu_probe_fixture::Budget budget;
+    app_fixture::Budget budget;
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
       native_initialization();
       for(unsigned cycle=0;cycle<3;++cycle)model_tests();
     }
+    else if(argc==2 && std::wstring_view(argv[1])==L"--maintenance")maintenance_tests();
     else if(argc==3 && std::wstring_view(argv[1])==L"--gui")gui_tests(std::filesystem::path(argv[2]));
-    else throw std::runtime_error("Explicit --model or --gui absolute-app-path required");
+    else throw std::runtime_error("Explicit --model, --maintenance or --gui absolute-app-path required");
     std::cout<<"Windows volume application checks: "<<checks
         <<"; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\n";return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}

@@ -110,7 +110,7 @@
   ],
   "next_implementation": {
     "contract": "docs/RELEASE_EXECUTION_PLAN.md",
-    "next": "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization. Replace complete native Model residency and whole directory objects with paged inode/name/extent access and bounded caches. Persist sparse content features, content generations, resumable scans and negative outcomes; qualify named files beyond current prototype limits."
+    "next": "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment. Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, stable content generations, resumable scans and outcomes, and qualify many populated named files."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
@@ -120,7 +120,7 @@
     "general_payload_repair": false,
     "production_windows_app_installer": false,
     "persistent_optimization_state": "Funded journal and explicit helper creation/replacement/pre-allocation admission qualified at 99d5365. Durable mapping, authorization, long-lived continuation and autonomous learning remain incomplete.",
-    "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; 99d5365 passed VM model/GUI and one healthy owner GUI with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
+    "native_windows_application": "Current unmounted paged helper/editor/tray uses live resource background opportunities and automatic groups with joined retirement. Explorer factory integration, physical provisioning, installer and full client semantics remain open.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
     "gpu_codec_candidate": "Uniform version-2 typed runtime, finite reused compute and FLUSP001 observations passed full SDK/all 13 core jobs at 11fbf07, then one bounded hardware/native/independent-CPU-recovery check. Cost qualification, ordinary Windows routing and collective GPU formats remain unfinished.",
@@ -128,8 +128,9 @@
     "automatic_format_migration": false,
     "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending.",
     "cooperative_shared_base": "Owned one-extent CPU preparation, selected-object revisions and current-namespace publication preserve unrelated writes. No automatic scheduler, persistent restart or AMD collective execution.",
-    "managed_paged_volumes": "Explicit typed managed heads, grouped session control, advisory provenance and synchronous handoff/repair. App defaults, resource controller, automatic selection and physical qualification remain open.",
-    "automatic_group_maintenance": "Bounded managed-paged CPU content discovery and supplied-observation gating; no live Windows priority/idle integration, persistent coherence, ordinary GPU route or automatic compaction."
+    "managed_paged_volumes": "Typed managed mirrored paged sessions, contexts, advice and verified handoff are integrated into the helper. Explorer-facing factories, paged native access, persistent coherence and physical qualification remain open.",
+    "automatic_group_maintenance": "Bounded managed-paged CPU content discovery and supplied-observation gating; no live Windows priority/idle integration, persistent coherence, ordinary GPU route or automatic compaction.",
+    "Windows_background_helper": "Live all-processor/memory collection, current-thread resource background mode, measured pacing and auto groups in the unmounted paged helper. Explorer-facing paged factories, persistent scalable coherence and useful ordinary GPU operation remain open."
   },
   "safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
@@ -1013,11 +1014,11 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
-    "Replace complete native Model residency and whole directory objects with paged inode/name/extent access and bounded caches. Persist sparse content features, content generations, resumable scans and negative outcomes; qualify named files beyond current prototype limits.",
-    "Connect staged paged rebuilding to reader-safe managed selection/reclamation and automatic compaction. Preserve contexts, source generations, decoder dependencies and interruption recovery.",
-    "Evaluate shifted/fine-grained, dictionary, multi-reference and offline learned collective candidates on held-out heterogeneous data. Minimize complete protected bytes with practical access; implement useful actual AMD work and ordinary automatic CPU-fallback routing.",
-    "Complete Windows semantics, installation/update/compatibility, historical retirement diagnosis, corruption/physical backend qualification, security, recognized benchmarks and soak. No release without the owner."
+    "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
+    "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, stable content generations, resumable scans and outcomes, and qualify many populated named files.",
+    "Implement useful actual AMD collective/ingestion work with measured complete costs, trusted automatic runtime/cost admission and independent CPU recovery. Compare stronger shifted, dictionary, multi-reference and offline learned representations on held-out heterogeneous data.",
+    "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and a justified data-work/write-amplification policy. Protect acknowledged state and immutable decoder dependencies through interruption and upgrades.",
+    "Complete Windows client semantics, install/update/rollback and multi-release compatibility, historical retirement diagnosis, security, physical fault qualification, recognized benchmarks and soak. No release without the owner."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1735,6 +1736,79 @@
     "driver_installed": false,
     "release": false,
     "next": "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
+    "full_goal_status": "active"
+  },
+  "Windows_background_checkpoint": {
+    "source_base": "b72e72b8908d63dd4f92f576a71b43bf2f094742",
+    "contract": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md",
+    "evidence": "docs/evidence/windows-background-maintenance-2026-11-15.json",
+    "status": "Managed mirrored paged helper volumes with live local CPU/physical/commit observations, owned low-priority opportunities, full-quantum pacing, automatic group publication, foreground access and GUI editor preservation",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "suites": 103,
+        "application_checks": {
+          "model": 841,
+          "maintenance": 2767,
+          "gui": 76
+        },
+        "live_group_members": 3,
+        "live_groups": 1,
+        "quanta": 43,
+        "total_quantum_elapsed_ns": 25307700,
+        "maximum_quantum_elapsed_ns": 1002500
+      },
+      {
+        "configuration": "asan",
+        "suites": 103,
+        "application_checks": {
+          "model": 841,
+          "maintenance": 2666,
+          "gui": 121
+        },
+        "live_group_members": 3,
+        "live_groups": 1,
+        "quanta": 33,
+        "total_quantum_elapsed_ns": 29001300,
+        "maximum_quantum_elapsed_ns": 1667100
+      }
+    ],
+    "default_helper_managed_paged": true,
+    "resource_admitted_capacity": true,
+    "provider_qualification_ceiling_bytes": 41943040,
+    "fresh_local_Windows_observations": true,
+    "processor_counter": "Processor Information(_Total)/% Processor Time; English API",
+    "cpu_window_ms": [
+      1000,
+      2000
+    ],
+    "capture_age_policy_ms": 250,
+    "CPU_ratio_units": 1000000,
+    "owned_worker_reused": true,
+    "resource_background_mode": true,
+    "complete_quantum_pacing_ppm": 10000,
+    "foreground_preparation_readback": true,
+    "editor_draft_preserved": true,
+    "notifications_coalesced": true,
+    "joined_shutdown": true,
+    "CPU_recovery": true,
+    "native_PDH_cold_initialization_diagnosed": true,
+    "core_suites_reused_after_application_only_cleanup": true,
+    "ASan_fixture_memory_headroom_divisor": 16,
+    "GPU_executed_this_round": false,
+    "ordinary_GPU_route": false,
+    "mounted": false,
+    "driver_installed": false,
+    "persistent_coherence": false,
+    "automatic_compaction": false,
+    "lifetime_data_write_budget": false,
+    "fully_paged_namespace": false,
+    "Explorer_product_required": true,
+    "Explorer_paged_factory_integrated": false,
+    "compression_record": false,
+    "physical_power_loss_qualified": false,
+    "release": false,
+    "next": "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
     "full_goal_status": "active"
   }
 }

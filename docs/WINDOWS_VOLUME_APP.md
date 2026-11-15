@@ -1,5 +1,15 @@
 # Experimental Windows volume application
 
+The current helper uses managed mirrored paged volumes, host-admitted capacity,
+live CPU/memory observations and owned low-priority group opportunities. See
+[Windows background maintenance](WINDOWS_BACKGROUND_MAINTENANCE.md) for its current
+contract and source-bound validation. Explorer access remains required; this
+unmounted editor is an intermediate control surface.
+
+The following f4928c2 qualification and fixed allocation/staging profile are
+historical evidence for the earlier flat-volume application. They do not
+override the current paged factory, dynamic capacity or idle-work contract.
+
 At source **f4928c2d2510cacb55da664a0338c8592194d9a0**, the isolated Windows
 application job and exact-binary owner-host model/GUI checks passed. All 13 existing core jobs also passed at that source.
 [Source, hashes, limits, measurements and limitations](evidence/volume-app-f4928c2.json).

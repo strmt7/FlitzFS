@@ -8,12 +8,20 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The [Windows helper](WINDOWS_BACKGROUND_MAINTENANCE.md) now uses live local
+resource observations and current-thread background resource mode for pending
+groups. Failures disable optional maintenance while retaining volume ownership.
+Current headroom, measured pacing, foreground wakeup, GUI editor preservation
+and joined retirement are separate from mounted/driver/physical qualification.
+No driver, service, registry or GPU configuration is changed by this integration.
+
 The [automatic group controller](AUTOMATIC_GROUP_MAINTENANCE.md) requires fresh
 trusted observations before each opportunity, releases optional work under
 memory pressure, rejects changed selected content and stops on source failure.
-Its tests supply modeled telemetry. Caller-enforced Windows scheduling/I/O
-priority, real interference, persistent restart, a data-write budget and physical
-fault qualification remain open. App defaults and normal GPU routing are unchanged.
+Its generic core tests supply modeled telemetry; the helper's separate tests
+exercise live Windows opportunities. Broad interference, persistent restart,
+a data-write budget and physical fault qualification remain open. Normal GPU
+routing is unchanged.
 
 [Managed paged volumes](MANAGED_PAGED_VOLUMES.md) bind the exact reader kind
 and capacity without another-format fallback. New selected images must pass

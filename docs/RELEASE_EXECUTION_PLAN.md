@@ -21,6 +21,12 @@ outcomes under supplied/model resource observations. It does not close E04/E07:
 live Windows observation/priority/idle scheduling, persistent paged coherence,
 wear policy and application factories remain. No remaining-effort reduction is
 claimed without measured integration velocity or held-out compression results.
+The [Windows helper](WINDOWS_BACKGROUND_MAINTENANCE.md) now integrates live
+CPU/memory observations, background resource mode, full-quantum pacing and
+automatic groups on managed paged volumes. This advances E07/E08 but does not
+close them. The next bridge is its Explorer-facing WinFsp managed factory and
+synchronized maintenance/lifecycle, followed by scalable persistent access and
+useful ordinary GPU work. The helper editor does not replace Explorer.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,
 not competing instructions to repeat completed experiments.
@@ -39,8 +45,8 @@ application slices, bounded GPU workers and independent CPU result validation.
 | Local qualification | [103 selected Windows CPU groups](evidence/automatic-group-maintenance-2026-11-15.json) passed in raw Release and AddressSanitizer, including managed paged recovery and automatic grouping. The million-object run remains a separate earlier experiment. | This is not the full CTest/optional-codec suite, live host-telemetry/background qualification, mounted Windows qualification or physical power-loss evidence. |
 | Sharing | Exact extent sharing/private updates, protected shared-base patch groups, and automatic aligned-family discovery/extension with complete-size admission. | The controller uses the bounded native model; no persistent scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
 | GPU | Actual AMD execution and independent current/prior CPU recovery passed controlled service tests. | The last matched case was slower on GPU: CPU median 24.2311 ms, GPU 513.918 ms, identical complete image sizes. Useful automatic ordinary I/O remains absent. |
-| Learning/background work | Persistent advisory state, workload provenance, supplied-observation grouping admission, measured elapsed-work pacing and outcome reuse exist. | No live Windows idle executor, complete autonomous learner, persistent coherence catalog, gradual migration or lifetime write-amplification governor. |
-| Windows product | Read-only and writable callback experiments, disposable mounted tests, and an unmounted editor/control/tray slice exist. | Full client semantics, shared scalable engine integration, supported physical/memory providers, packaging, secure updates and broad application qualification remain incomplete. |
+| Learning/background work | Persistent advice/provenance, automatic grouping, live Windows helper observations/resource background mode, measured complete-quantum pacing and outcome reuse exist. | The helper is unmounted; no complete autonomous learner, persistent scalable coherence, mounted executor, gradual migration or lifetime write-amplification governor. |
+| Windows product | Callback/disposable mount evidence and an unmounted paged helper/tray with automatic idle grouping exist. | Connect the paged/maintenance path to the Explorer-facing WinFsp factory and lifecycle; complete client semantics, scalable access, supported providers, packaging, secure updates and broad qualification. |
 | Recovery | COW checkpoints, metadata replicas, modeled failures, explicit recovery and source-preserving rebuilding exist. | General payload/dependency repair, scalable reclamation and complete backend fault qualification remain open. Historical retirement failures are not diagnosed by later successful runs. |
 
 The million-object experiment used 16,000,000 bytes of tiny raw payloads in a

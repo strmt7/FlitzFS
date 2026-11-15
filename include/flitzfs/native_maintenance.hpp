@@ -11,7 +11,7 @@ struct NativeMaintenanceObservation {
   bool valid=false,foreground_pending=false;
 };
 struct NativeMaintenancePolicy {
-  std::uint32_t maximum_age_ms=250,memory_share_divisor=64;
+  std::uint32_t maximum_age_ms=250,memory_share_divisor=64,maximum_cpu_window_ms=2000;
   std::uint32_t maximum_cpu_busy_ppm=125000,work_share_ppm=10000;
 };
 enum class NativeMaintenancePhase {idle,scanning,candidates,preparing,publishing,deferred,failed};

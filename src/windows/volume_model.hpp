@@ -1,6 +1,7 @@
 #pragma once
 #include "memory_volume.hpp"
 #include "flitzfs/native_session.hpp"
+#include "flitzfs/native_maintenance.hpp"
 #include <string>
 #include <array>
 namespace flitzfs {
@@ -10,6 +11,8 @@ struct VolumeView {
   bool ready=false,fenced=false;
   std::uint64_t allocated=0,capacity=0,physical_bytes=0,logical_bytes=0,payload_bytes=0,epoch=0;
   NativeOptimizationInfo optimization;
+  NativeMaintenanceProgress maintenance;
+  bool maintenance_pending=false;
   std::vector<NativeFileInfo> files;
 };
 class VolumeModel final {
@@ -26,10 +29,15 @@ class VolumeModel final {
   AdviceMaintenance maintain_optimization_state();
   NativeOptimizationInfo optimization_info() const noexcept;
   bool optimize();
+  bool maintenance_pending() const noexcept;
+  NativeMaintenanceProgress maintain_groups(const NativeMaintenanceObservation&,std::uint64_t now_ms);
+  NativeMaintenanceProgress maintenance_progress() const noexcept;
+  void stop_maintenance() noexcept;
   VolumeView view() const;
   // Explicit destruction of a temporary volume, never automatic on WM_CLOSE.
   void discard();
   bool ready() const noexcept {return session_!=nullptr;}
+  bool fenced() const noexcept {return session_ && session_->poisoned();}
  private:
   // Test-binary friend only; no runtime fault command/provider substitution.
   friend struct VolumeModelQualification;
@@ -41,5 +49,8 @@ class VolumeModel final {
   // must not allocate, query a backend or release its retained old owner.
   void adopt_attempt(unsigned,std::shared_ptr<StoreByteIo>&) noexcept;
   std::unique_ptr<NativeFileSession> session_;
+  std::unique_ptr<NativeGroupMaintenance> maintenance_;
+  bool maintenance_pending_=false;
+  std::uint64_t image_capacity_=0,last_optimized_sequence_=0;
 };
 } // namespace flitzfs

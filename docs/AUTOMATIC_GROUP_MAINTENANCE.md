@@ -66,9 +66,10 @@ performs at most one controller step. Namespace validation can still read the
 whole bounded native model, and final publication is synchronous.
 
 The caller must provide trusted real host observations, low OS scheduling/I/O
-priority and foreground serialization. There is no live Windows collector or
-helper idle scheduler connected yet. Modeled telemetry tests cannot establish
-actual background interference or a hard maximum foreground stall.
+priority and foreground serialization. The [Windows helper integration](WINDOWS_BACKGROUND_MAINTENANCE.md)
+now supplies those observations and opportunities through its owned worker.
+Generic core tests still use modeled telemetry. A live small-volume case cannot
+establish universal background interference or a hard maximum foreground stall.
 
 ## Writes, accounting and failures
 
@@ -97,8 +98,8 @@ and 492 injected publication failures across 4-KiB/64-KiB modeled failure units.
 Independent CPU readback checks every original file after each injected case.
 This is correctness evidence, not a recognized benchmark or real-data size record.
 
-Next integrate trustworthy Windows observations and low-priority opportunities
-with the helper's owned lifecycle. Replace whole-model residency with paged
+The Windows helper now integrates observations and low-priority opportunities.
+Connect that path to the synchronized Explorer-facing adapter. Replace whole-model residency with paged
 inode/name/extent access and persistent sparse features/restart cursors. Add a
 measured data-work/write-amplification policy and reader-safe staged reclamation.
 Compare stronger collective representations on held-out heterogeneous data,

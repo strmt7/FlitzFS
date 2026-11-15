@@ -154,7 +154,7 @@ struct NativeGroupMaintenance::Impl {
 NativeGroupMaintenance::NativeGroupMaintenance(NativeFileSession& session,NativeMaintenancePolicy policy) {
   if(!policy.maximum_age_ms || policy.maximum_age_ms>1000 || policy.memory_share_divisor<16 ||
       policy.memory_share_divisor>4096 || policy.maximum_cpu_busy_ppm>million ||
-      !policy.work_share_ppm || policy.work_share_ppm>50000)
+      !policy.work_share_ppm || policy.work_share_ppm>50000 || !policy.maximum_cpu_window_ms || policy.maximum_cpu_window_ms>2000)
     throw NativeFsError(NativeFsErrorCode::invalid_operation,"invalid maintenance policy");
   const auto source=session.maintenance_source().lock();
   if(!source || !source->active.expired())throw NativeFsError(NativeFsErrorCode::invalid_operation,"maintenance controller already owned");
@@ -184,7 +184,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(!observed.valid || observed.captured_ms>now_ms || now_ms-observed.captured_ms>p.policy.maximum_age_ms ||
       observed.captured_ms<p.last_capture || !observed.physical_total || observed.physical_available>observed.physical_total ||
       !observed.commit_limit || observed.commit_available>observed.commit_limit || !observed.cpu_total_ticks ||
-      observed.cpu_busy_ticks>observed.cpu_total_ticks || !observed.cpu_window_ms || observed.cpu_window_ms>1000 ||
+      observed.cpu_busy_ticks>observed.cpu_total_ticks || !observed.cpu_window_ms || observed.cpu_window_ms>p.policy.maximum_cpu_window_ms ||
       observed.cpu_window_ms>observed.captured_ms)return p.defer(Defer::observation,true);
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
   p.last_capture=observed.captured_ms;

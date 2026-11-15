@@ -59,7 +59,7 @@ void admission() {
     if(variant==3)o.physical_total=0;if(variant==4)o.physical_available=o.physical_total+1;
     if(variant==5)o.commit_limit=0;if(variant==6)o.commit_available=o.commit_limit+1;
     if(variant==7)o.cpu_total_ticks=0;if(variant==8)o.cpu_busy_ticks=1001;
-    if(variant==9)o.cpu_window_ms=0;if(variant==10)o.cpu_window_ms=1001;if(variant==11)o.captured_ms=0;
+    if(variant==9)o.cpu_window_ms=0;if(variant==10)o.cpu_window_ms=2001;if(variant==11)o.captured_ms=0;
     require(controller.advance(o,now).deferral==Defer::observation,"bad observation admitted");
   }
   auto o=f.clock.next();o.foreground_pending=true;require(controller.advance(o,f.clock.now).deferral==Defer::foreground,"foreground queue ignored");

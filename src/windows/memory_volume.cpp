@@ -59,7 +59,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     headroom(capacity);
     data_=static_cast<std::byte*>(VirtualAlloc(nullptr,static_cast<SIZE_T>(capacity),
         MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE));
-    require(data_!=nullptr,"Memory reservation failed");
+    if(!data_)throw std::runtime_error("Memory reservation failed; Windows status "+std::to_string(GetLastError()));
     state_->allocated+=capacity;state_->peak=(std::max)(state_->peak,state_->allocated);
     ++state_->stores;
     for(auto& entry:state_->registry)if(!entry){entry=this;break;}

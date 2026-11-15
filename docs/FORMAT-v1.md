@@ -541,3 +541,8 @@ uses volatile sparse content features, physical/content revision stamps and
 outcome digests. It stores existing PNcap3 shared-base representations only.
 No new wire capability, codec, stored learner or product numbering is introduced.
 Reopening discards this advice; independent decoding never depends on it.
+
+The [Windows background helper](WINDOWS_BACKGROUND_MAINTENANCE.md) now selects
+the existing managed paged/shared-base encodings for new volumes. Resource
+observations, pacing, notification generations and CPU window policy remain
+volatile. This introduces no additional wire capability, codec or product number.

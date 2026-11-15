@@ -118,8 +118,8 @@ struct App {
     for(std::size_t i=1;i<4;++i)EnableWindow(buttons[i],idle&&v.volume.ready&&!v.volume.fenced);
     EnableWindow(buttons[4],idle&&v.volume.ready);
     EnableWindow(buttons[5],(idle&&!v.volume.ready)||v.stopped);
-    if(v.generation!=rendered) {
-      rendered=v.generation;paths.clear();SendMessageW(files,LB_RESETCONTENT,0,0);
+    if(v.content_generation!=rendered) {
+      rendered=v.content_generation;paths.clear();SendMessageW(files,LB_RESETCONTENT,0,0);
       for(const auto& f:v.volume.files) {
         paths.push_back(f.path);const auto label=wide(f.path)+L"  ["+std::to_wstring(f.logical_bytes)+L" B]";
         SendMessageW(files,LB_ADDSTRING,0,reinterpret_cast<LPARAM>(label.c_str()));
@@ -129,6 +129,8 @@ struct App {
     std::wstring state=L"Experimental | CPU engine | Not mounted";
     if(v.volume.ready)state+=v.volume.optimization.phase==NativeOptimizationPhase::ready?
         L" | Optimization state: ready":L" | Optimization state: unavailable";
+    if(v.volume.ready)state+=v.maintenance_disabled?L" | Background optimization unavailable":
+        v.volume.maintenance_pending?L" | Background optimization pending":L" | Background optimization idle";
     if(v.volume.ready)state+=L"\r\nFile bytes: "+std::to_wstring(v.volume.logical_bytes)+
         L" | Image/head/advice bytes: "+std::to_wstring(v.volume.physical_bytes)+
         L" | Locked allocation: "+std::to_wstring(v.volume.allocated)+L"/"+std::to_wstring(v.volume.capacity);
@@ -201,7 +203,8 @@ LRESULT CALLBACK procedure(HWND window,UINT message,WPARAM w,LPARAM l) {
         app->layout();return 0;
       }
       case WM_COMMAND:app->command(LOWORD(w));return 0;
-      case VolumeController::completion_message:app->refresh();return 0;
+      case VolumeController::completion_message:
+        if(app->controller)app->controller->acknowledge_notification();app->refresh();return 0;
       case tray_message:app->tray_event(l);return 0;
       case WM_CLOSE:
         if(app->controller && app->controller->view().volume.ready) {

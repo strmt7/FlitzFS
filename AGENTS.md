@@ -227,8 +227,19 @@ must update physical and content revisions; representation-only shared-base
 rewrites update physical revisions alone. Preserve stale-selection rejection,
 independent CPU verification, weak session lifetime and one serialized control
 context. Supplied/model observations do not prove real host telemetry, low OS
-priority or bounded foreground interference. No helper idle scheduler or normal
-GPU route is enabled by the CPU controller.
+priority or bounded foreground interference. The core controller alone supplies
+neither Windows scheduling nor a normal GPU route; the helper integration below
+provides separately qualified Windows opportunities.
+
+Read docs/WINDOWS_BACKGROUND_MAINTENANCE.md before changing the helper's volume
+factory, PDH observation window, background thread scope or idle loop. Preserve
+fresh all-processor observations, measured full-quantum pacing, foreground/stop
+preemption before the next quantum, one unconsumed scalar notification and the
+separate foreground content generation that protects unsaved editor text.
+The helper now selects managed mirrored paged storage; Explorer/WinFsp factory
+integration remains required. Background scheduling is not GPU qualification or
+permission to install a driver. Preserve exact resource retirement checks;
+separate native PDH cold initialization from leaks in product-owned lifecycles.
 
 Read docs/development/documentation.md before changing documentation. Follow
 FlitzZip's end-user README/navigation logic, adapted to FlitzFS. README contains

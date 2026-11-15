@@ -2,19 +2,25 @@
 
 ## Current local development
 
+The [Windows background integration](WINDOWS_BACKGROUND_MAINTENANCE.md) now drives
+automatic groups on admitted paged helper volumes using live telemetry and
+resource background mode. Foreground commands and joined shutdown share the
+owned worker. Connecting this same path to the Explorer-facing WinFsp adapter,
+scalable persistent coherence, useful GPU work and automatic reclamation remain.
+
 [Automatic group maintenance](AUTOMATIC_GROUP_MAINTENANCE.md) now discovers
 aligned content families, extends existing groups, reuses unchanged features
 and suppresses repeated outcomes under supplied resource/foreground observations.
 Measured elapsed work paces later opportunities; selected edits are reconciled.
-This is a bounded CPU controller, not live Windows background execution or a
-persistent scalable learner. Those integrations, stronger representations and
-useful actual AMD work remain required.
+This bounded CPU controller now has the separate Windows helper integration
+above. Persistent scalable learning, stronger representations, mounted
+opportunities and useful actual AMD work remain required.
 
 [Managed paged volumes](MANAGED_PAGED_VOLUMES.md) now join protected shared-base
 data, typed volume heads, file contexts, compaction/recompression and input-funded
-advice. This removes the flat-only ownership/provenance barrier. Resource-aware
-background execution, persistent coherence/learning and ordinary useful AMD work
-remain open; helper/application defaults remain unchanged.
+advice. This removes the flat-only ownership/provenance barrier. The helper now
+selects managed paged storage and live resource-aware opportunities. Mounted
+integration, persistent coherence/learning and ordinary useful AMD work remain open.
 
 The opt-in [mirrored-payload store](MIRRORED_PAYLOADS.md) now supplies a redundant
 foundation for native metadata/data and future decoder dependencies. CPU reads
@@ -27,8 +33,9 @@ when conservative complete compacted-image bounds prove a reduction. Scalable
 candidate discovery, broader models, useful AMD work and automatic yielding
 publication/selection remain A04/S01/G02/L01 work.
 Group preparation now advances one decoded extent per opportunity and reconciles
-unrelated foreground changes at publication. Automatic contention admission,
-persistent restart and scheduling remain open; see the shared-base contract.
+unrelated foreground changes at publication. The helper now adds contention
+admission and scheduling; persistent restart and mounted integration remain open.
+See the shared-base and Windows background contracts.
 
 The [staged paged candidate](STAGED_PAGED_REBUILD.md) now splits complete source/
 target verification, copying and post-publication checks into bounded steps.

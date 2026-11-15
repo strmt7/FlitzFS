@@ -19,6 +19,13 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
+The [Windows background helper](WINDOWS_BACKGROUND_MAINTENANCE.md) now uses the
+managed paged engine with live resource admission, measured pacing, automatic
+groups and foreground/stop ownership. It remains unmounted. Normal Explorer
+access through the driver/framework is required; its paged factory and mounted
+maintenance/lifecycle integration are next, not an optional replacement by the
+helper's editor. No driver installation is qualified by this checkpoint.
+
 [Automatic shared-base discovery](AUTOMATIC_GROUP_MAINTENANCE.md) now operates
 through managed paged sessions with supplied-observation resource admission,
 content-feature reuse, outcome suppression and selected-edit reconciliation.

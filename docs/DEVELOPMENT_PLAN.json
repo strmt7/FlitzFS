@@ -684,7 +684,16 @@
         "Mock heterogeneous CPUs/GPUs, no GPU, unknown metrics, foreground load, budget changes, suspend/resume and multiple volumes.",
         "Measure actual foreground interference and immediate yield; enforce hard process-tree memory/CPU/time limits and confirmed cleanup."
       ],
-      "exit": "The same OS/architecture runs without host-specific paths/specs; unknown headroom fails closed and background work obeys a documented bounded interference budget."
+      "exit": "The same OS/architecture runs without host-specific paths/specs; unknown headroom fails closed and background work obeys a documented bounded interference budget.",
+      "Windows_background_helper": {
+        "contract": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md",
+        "evidence": "docs/evidence/windows-background-maintenance-2026-11-15.json",
+        "managed_paged": true,
+        "live_telemetry": true,
+        "owned_idle_execution": true,
+        "Explorer_paged_bridge": false,
+        "package_exit_closed": false
+      }
     },
     {
       "id": "A02",
@@ -781,6 +790,15 @@
         "live_Windows_background_execution": false,
         "persistent_scalable_coherence": false,
         "package_exit_closed": false
+      },
+      "Windows_background_helper": {
+        "contract": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md",
+        "evidence": "docs/evidence/windows-background-maintenance-2026-11-15.json",
+        "managed_paged": true,
+        "live_telemetry": true,
+        "owned_idle_execution": true,
+        "Explorer_paged_bridge": false,
+        "package_exit_closed": false
       }
     },
     {
@@ -875,7 +893,16 @@
         },
         "remaining": "Mounted/physical lifecycle, authorization, full Windows semantics, visual/accessibility/client matrix and installation/updates; preserve D01/S01/R01 dependencies."
       },
-      "preparatory_entry": "Semantics matrix and latest Windows 11 disposable-client qualification can proceed while scaling/durability advance; final product exit still requires complete dependencies."
+      "preparatory_entry": "Semantics matrix and latest Windows 11 disposable-client qualification can proceed while scaling/durability advance; final product exit still requires complete dependencies.",
+      "Windows_background_helper": {
+        "contract": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md",
+        "evidence": "docs/evidence/windows-background-maintenance-2026-11-15.json",
+        "managed_paged": true,
+        "live_telemetry": true,
+        "owned_idle_execution": true,
+        "Explorer_paged_bridge": false,
+        "package_exit_closed": false
+      }
     },
     {
       "id": "Q01",
@@ -1069,79 +1096,84 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "3a8cb64cead78367408642718d6aab9bc68fa50e",
-    "contract": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
-    "evidence": "docs/evidence/automatic-group-maintenance-2026-11-15.json",
-    "status": "Automatic aligned-family discovery/extension through managed paged sessions; content hash reuse, outcome suppression, selected-edit reconciliation and supplied-observation resource/duty admission",
+    "source_base": "b72e72b8908d63dd4f92f576a71b43bf2f094742",
+    "contract": "docs/WINDOWS_BACKGROUND_MAINTENANCE.md",
+    "evidence": "docs/evidence/windows-background-maintenance-2026-11-15.json",
+    "status": "Managed mirrored paged helper volumes with live local CPU/physical/commit observations, owned low-priority opportunities, full-quantum pacing, automatic group publication, foreground access and GUI editor preservation",
     "configurations": [
       {
         "configuration": "raw",
         "suites": 103,
-        "automatic_group_checks": 3636,
-        "publication_fault_cases": 492
+        "application_checks": {
+          "model": 841,
+          "maintenance": 2767,
+          "gui": 76
+        },
+        "live_group_members": 3,
+        "live_groups": 1,
+        "quanta": 43,
+        "total_quantum_elapsed_ns": 25307700,
+        "maximum_quantum_elapsed_ns": 1002500
       },
       {
         "configuration": "asan",
         "suites": 103,
-        "automatic_group_checks": 3636,
-        "publication_fault_cases": 492
+        "application_checks": {
+          "model": 841,
+          "maintenance": 2666,
+          "gui": 121
+        },
+        "live_group_members": 3,
+        "live_groups": 1,
+        "quanta": 33,
+        "total_quantum_elapsed_ns": 29001300,
+        "maximum_quantum_elapsed_ns": 1667100
       }
     ],
-    "modeled_failure_units": [
-      4096,
-      65536
+    "default_helper_managed_paged": true,
+    "resource_admitted_capacity": true,
+    "provider_qualification_ceiling_bytes": 41943040,
+    "fresh_local_Windows_observations": true,
+    "processor_counter": "Processor Information(_Total)/% Processor Time; English API",
+    "cpu_window_ms": [
+      1000,
+      2000
     ],
-    "failure_modes": 3,
-    "publication_cuts": [
-      67,
-      97
-    ],
-    "automatic_candidate_selection": true,
-    "sparse_inverted_bands": true,
-    "existing_group_extension": true,
-    "separate_volatile_content_revision": true,
-    "unchanged_source_IO": false,
-    "content_features_persistent": false,
-    "resource_observations": "supplied/model",
-    "real_Windows_collector": false,
-    "live_low_priority_executor": false,
-    "duty_cost": "measured steady-clock elapsed nanoseconds, not CPU time",
-    "synthetic_extension": {
-      "initial_members": 8,
-      "final_members": 9,
-      "final_bases": 1,
-      "sampled_extents": 9,
-      "reused_features": 25,
-      "cumulative_admitted_compacted_savings": [
-        1040384,
-        1048576
-      ],
-      "these_are_current_image_savings": false
-    },
-    "prospective_complete_size_gate": true,
-    "physical_history_grows": true,
-    "automatic_compaction": false,
-    "advisory_funding_unchanged": true,
-    "data_write_budget": false,
-    "selected_edit_reconciliation": true,
-    "independent_CPU_recovery": true,
-    "publication_synchronous": true,
-    "persistent_coherence_catalog": false,
-    "fully_paged_namespace": false,
-    "Windows_app_default_changed": false,
-    "ordinary_GPU_route": false,
+    "capture_age_policy_ms": 250,
+    "CPU_ratio_units": 1000000,
+    "owned_worker_reused": true,
+    "resource_background_mode": true,
+    "complete_quantum_pacing_ppm": 10000,
+    "foreground_preparation_readback": true,
+    "editor_draft_preserved": true,
+    "notifications_coalesced": true,
+    "joined_shutdown": true,
+    "CPU_recovery": true,
+    "native_PDH_cold_initialization_diagnosed": true,
+    "core_suites_reused_after_application_only_cleanup": true,
+    "ASan_fixture_memory_headroom_divisor": 16,
     "GPU_executed_this_round": false,
+    "ordinary_GPU_route": false,
+    "mounted": false,
     "driver_installed": false,
+    "persistent_coherence": false,
+    "automatic_compaction": false,
+    "lifetime_data_write_budget": false,
+    "fully_paged_namespace": false,
+    "Explorer_product_required": true,
+    "Explorer_paged_factory_integrated": false,
+    "compression_record": false,
+    "physical_power_loss_qualified": false,
     "release": false,
-    "next": "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
+    "next": "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
     "full_goal_status": "active"
   },
   "next_product_slices": [
-    "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
-    "Replace complete native Model residency and whole directory objects with paged inode/name/extent access and bounded caches. Persist sparse content features, content generations, resumable scans and negative outcomes; qualify named files beyond current prototype limits.",
-    "Connect staged paged rebuilding to reader-safe managed selection/reclamation and automatic compaction. Preserve contexts, source generations, decoder dependencies and interruption recovery.",
-    "Evaluate shifted/fine-grained, dictionary, multi-reference and offline learned collective candidates on held-out heterogeneous data. Minimize complete protected bytes with practical access; implement useful actual AMD work and ordinary automatic CPU-fallback routing.",
-    "Complete Windows semantics, installation/update/compatibility, historical retirement diagnosis, corruption/physical backend qualification, security, recognized benchmarks and soak. No release without the owner."
+    "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
+    "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, stable content generations, resumable scans and outcomes, and qualify many populated named files.",
+    "Implement useful actual AMD collective/ingestion work with measured complete costs, trusted automatic runtime/cost admission and independent CPU recovery. Compare stronger shifted, dictionary, multi-reference and offline learned representations on held-out heterogeneous data.",
+    "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and a justified data-work/write-amplification policy. Protect acknowledged state and immutable decoder dependencies through interruption and upgrades.",
+    "Complete Windows client semantics, install/update/rollback and multi-release compatibility, historical retirement diagnosis, security, physical fault qualification, recognized benchmarks and soak. No release without the owner."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1868,6 +1900,74 @@
     "driver_installed": false,
     "release": false,
     "next": "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression.",
+    "full_goal_status": "active"
+  },
+  "previous_automatic_group_round": {
+    "source_base": "3a8cb64cead78367408642718d6aab9bc68fa50e",
+    "contract": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+    "evidence": "docs/evidence/automatic-group-maintenance-2026-11-15.json",
+    "status": "Automatic aligned-family discovery/extension through managed paged sessions; content hash reuse, outcome suppression, selected-edit reconciliation and supplied-observation resource/duty admission",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "suites": 103,
+        "automatic_group_checks": 3636,
+        "publication_fault_cases": 492
+      },
+      {
+        "configuration": "asan",
+        "suites": 103,
+        "automatic_group_checks": 3636,
+        "publication_fault_cases": 492
+      }
+    ],
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "publication_cuts": [
+      67,
+      97
+    ],
+    "automatic_candidate_selection": true,
+    "sparse_inverted_bands": true,
+    "existing_group_extension": true,
+    "separate_volatile_content_revision": true,
+    "unchanged_source_IO": false,
+    "content_features_persistent": false,
+    "resource_observations": "supplied/model",
+    "real_Windows_collector": false,
+    "live_low_priority_executor": false,
+    "duty_cost": "measured steady-clock elapsed nanoseconds, not CPU time",
+    "synthetic_extension": {
+      "initial_members": 8,
+      "final_members": 9,
+      "final_bases": 1,
+      "sampled_extents": 9,
+      "reused_features": 25,
+      "cumulative_admitted_compacted_savings": [
+        1040384,
+        1048576
+      ],
+      "these_are_current_image_savings": false
+    },
+    "prospective_complete_size_gate": true,
+    "physical_history_grows": true,
+    "automatic_compaction": false,
+    "advisory_funding_unchanged": true,
+    "data_write_budget": false,
+    "selected_edit_reconciliation": true,
+    "independent_CPU_recovery": true,
+    "publication_synchronous": true,
+    "persistent_coherence_catalog": false,
+    "fully_paged_namespace": false,
+    "Windows_app_default_changed": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
     "full_goal_status": "active"
   }
 }
