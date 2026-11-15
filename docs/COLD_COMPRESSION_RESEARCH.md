@@ -142,6 +142,57 @@ never turn an optimization into a loss of the only readable representation.
 Process-interruption and memory fixtures do not establish physical power-loss
 survival.
 
+## Reviewed source findings — 15 November 2026
+
+The retained isolated Crawl4AI captures from 13 November contain five substantive
+primary-source pages. The sixth, ACM's L3 publisher page, returned a Cloudflare
+challenge and remains unusable evidence. Successful extraction does not establish
+reproducibility, AMD support or an independently verified publication revision.
+The [source receipt](evidence/cold-compression-source-review-2026-11-15.json)
+records exact URLs, provider, archive and capture digests.
+
+- [The Invocation Bottleneck](https://arxiv.org/html/2611.05871v1), sections 4.2
+  and 6.1: the authors exclude backbone/head weights from headline bits per byte
+  and report failed half-precision reconstruction in their dual-model
+  implementation. FlitzFS must charge required weights and establish exact CPU
+  decoding; those reported ratios are not directly comparable to a filesystem's
+  total footprint.
+- [Diffuse to Compress](https://arxiv.org/html/2608.11249v1), implementation and
+  conclusions: this is a tokenized text experiment with fixed windows and a
+  diffusion-model backbone. It motivates parallel prediction experiments, but
+  does not establish arbitrary-byte restoration, CPU recovery or mixed-file
+  filesystem benefits.
+- [Fixed-Capacity Causal Models](https://arxiv.org/html/2610.02236v4), sections
+  3.1, 3.2 and 6: integer frequency tables, explicit terminal-state checks and
+  independent CPU reception are useful design references. Its residual modes
+  require tile-level reconstruction and do not offer sub-tile random access.
+  Evaluate such transforms only for qualifying content and charge restart costs.
+- [Cross-Backup First](https://www.mdpi.com/2079-9292/15/20/4712), section 3.2:
+  historical-base selection can outperform the first similar candidate in backup
+  workloads. Its deferred global sketch index has a distinct memory cost, and
+  delta chains complicate recovery. Filesystem base selection must compare
+  measured encoded sizes and protect immutable bases independently of filenames.
+- [Invariant Bit Packing](https://arxiv.org/html/2605.30728v1), sections 4 and
+  A.2: the approach targets structured ML tensors; its documented artifact needs
+  NVIDIA hardware and substantial resources. No AMD portability or general-file
+  benefit follows. Bit-column transforms remain a content-specific hypothesis,
+  not a replacement for general-purpose compression.
+
+These findings change the implementation order, not the final compression goal.
+First implement protected, immutable cross-object dependency ownership and a
+bounded CPU decoder contract. Current native metadata explicitly rejects shared
+extent IDs; reusing an object's ID across files would violate its existing
+ownership invariant. Shared representations need an explicit compatible format
+extension and copy-on-write updates, deletion and reclamation rules. Do not merely
+relax the duplicate-reference check or increase flat-index constants.
+
+Then compare protected base/delta and shared-dictionary candidates with compact
+integer-predictor candidates on held-out file families. Fit selection to complete
+stored bytes, including dependencies, redundancy and restart indexes. Retain
+larger learned models as candidates when their measured total-size gain pays for
+their footprint and access cost. No candidate is selected from a paper's headline
+ratio, and the final GPU-supported collective codec remains unimplemented.
+
 ## Experiments and decision gates
 
 1. Finish the bounded actual-GPU file-operation slice so the GPU path is real.

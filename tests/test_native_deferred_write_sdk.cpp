@@ -5,6 +5,9 @@
 #include "native_fs_fixture.hpp"
 #include "native_security_fixture.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
+// Type-check the driver-independent composition fixture in the ordinary SDK
+// build too. Its execution remains in the separate runtime qualification gate.
+#include "rocm_compile/deferred_native_fixture.hpp"
 #include <array>
 #include <atomic>
 #include <cstring>

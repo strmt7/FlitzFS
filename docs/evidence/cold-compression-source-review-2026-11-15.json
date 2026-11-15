@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "review_date": "2026-11-15",
+  "capture_date": "2026-11-13",
+  "scope": "Selected compression, decoder, accounting and limitations sections of five primary-source pages; not full artifact reproduction or independent publication-revision qualification",
+  "research_run": 43511446320,
+  "research_job": 132182449447,
+  "research_source": "2b57fe0d2c54d9c55f5165b57368a5f5d712c54a",
+  "artifact_id": 14078318280,
+  "artifact_bytes": 778401,
+  "artifact_sha256": "f8ee6b9f28a9adb82c5c7408d14609b3122a917c458b82974c1849a4972eab82",
+  "overall_run": "failure: ACM access challenge retained; five substantive captures independently reviewed",
+  "captures": [
+    {
+      "name": "llm-invocation-2026",
+      "url": "https://arxiv.org/html/2611.05871v1",
+      "provider": "0.9.5+flitzzip.portable2",
+      "native_success": true,
+      "native_status": 200,
+      "error": "",
+      "capture_bytes": 822033,
+      "capture_sha256": "14f973161bc96c79b6957487a0394b6f5d810abf7566abb0c09f359177a917f1",
+      "markdown_bytes": 151136,
+      "markdown_sha256": "ffdade137f8bf1a1c6054315d7c47b393fddf41ca91fb3b6d61105b6064c4367"
+    },
+    {
+      "name": "diffusion-lossless-2026",
+      "url": "https://arxiv.org/html/2608.11249v1",
+      "provider": "0.9.5+flitzzip.portable2",
+      "native_success": true,
+      "native_status": 200,
+      "error": "",
+      "capture_bytes": 341230,
+      "capture_sha256": "437571fd2837ca120e4d7ab64f7540ea0965bee39711d23bf024ecdd91dcfeae",
+      "markdown_bytes": 80268,
+      "markdown_sha256": "70d97b7648f517d1157958b1e7a1f8a876be4274ff9897c6dcbe69c8d31578f5"
+    },
+    {
+      "name": "causal-gpu-2026",
+      "url": "https://arxiv.org/html/2610.02236v4",
+      "provider": "0.9.5+flitzzip.portable2",
+      "native_success": true,
+      "native_status": 200,
+      "error": "",
+      "capture_bytes": 218346,
+      "capture_sha256": "cff857f970db4353f4695ff02579d95f5d25cd249754d3f3e62fa898471882e5",
+      "markdown_bytes": 37820,
+      "markdown_sha256": "38dc29b9bad00165cf1677547c1a7112855fcea1cb97aad22711c189d6d0c679"
+    },
+    {
+      "name": "cross-backup-2026",
+      "url": "https://www.mdpi.com/2079-9292/15/20/4712",
+      "provider": "0.9.5+flitzzip.portable2",
+      "native_success": true,
+      "native_status": 200,
+      "error": "",
+      "capture_bytes": 663723,
+      "capture_sha256": "003c33be3da23283f0437b06fea93595d9e2f55553cc44350055b53ac0eb128b",
+      "markdown_bytes": 87281,
+      "markdown_sha256": "56b46b60e8b70e4bd5994f55b4f7120201def3036751864aec772186d62abb11"
+    },
+    {
+      "name": "ibp-gpu-2026",
+      "url": "https://arxiv.org/html/2605.30728v1",
+      "provider": "0.9.5+flitzzip.portable2",
+      "native_success": true,
+      "native_status": 200,
+      "error": "",
+      "capture_bytes": 718767,
+      "capture_sha256": "088835e6942186a7cef57771bd575c04078de2b6e42dfcb8a0bd3ddfb360839e",
+      "markdown_bytes": 152870,
+      "markdown_sha256": "7e4b4d4006c12718882bb6e0d8227cfe8b4f093e78ac1aa902e5a7d3b2929d72"
+    },
+    {
+      "name": "l3-publisher-2026",
+      "url": "https://dl.acm.org/doi/10.1145/3802078",
+      "provider": "0.9.5+flitzzip.portable2",
+      "native_success": false,
+      "native_status": 307,
+      "error": "Blocked by anti-bot protection: Cloudflare JS challenge",
+      "capture_bytes": 47461,
+      "capture_sha256": "7bc49fd4176e9c0517317540c816da69609c60d4d5a0cb9f56d4702f4bafa37d",
+      "markdown_bytes": 491,
+      "markdown_sha256": "290ca508bf9e8259610949592a14f6e4ee8649b02bf5cb6a6f862cb67972648f"
+    }
+  ],
+  "semantic": {
+    "run": 43692228849,
+    "receipt_sha256": "03ef074c3874470609378217c835d1a472cc6959f690435847baea75c48873c3",
+    "inventory_sha256": "8008fc0b5d204eeed8c48f383a0c40bc01281b581e3a0af0158ffb7349da80d9",
+    "source_files": 190,
+    "actual_searches": 8,
+    "source": "1a38b7a9341f0080e81e856cb770cb9b4fb2f186",
+    "artifact_id": 14152348675,
+    "archive_sha256": "0d034fa3e8e298884559505efd9e8cbda3d3e0657dbdd256e48ce8e7a5d6edc7",
+    "queries_used": [
+      0,
+      1,
+      3,
+      4
+    ],
+    "shared_MCP_modified": false,
+    "provider": "0.2.43"
+  },
+  "native_ownership_source": [
+    {
+      "commit": "1a38b7a9341f0080e81e856cb770cb9b4fb2f186",
+      "git_blob": "899be3349ee61a3f441a25040e19a14982ab53e7",
+      "sha256": "46ff52b75b02492b5abb6514e762c77464ea71238ee4c583a9fc51357525d62e"
+    },
+    {
+      "commit": "94aaa2a772e03689044df4c0b7504903faa9d553",
+      "git_blob": "899be3349ee61a3f441a25040e19a14982ab53e7",
+      "sha256": "46ff52b75b02492b5abb6514e762c77464ea71238ee4c583a9fc51357525d62e"
+    }
+  ],
+  "source_findings": {
+    "path": "src/native_filesystem.cpp",
+    "mutations_line": 665,
+    "decision": "Do not relax alias rejection or reuse mutable object IDs across files. Define immutable protected dependency ownership and copy-on-write publication before shared compression.",
+    "unique_ownership_check_line": 210,
+    "pending_extent_allocator_line": 653
+  },
+  "interpretation": "Research changes experiment order; no codec, AMD portability, whole-image compression gain, independent CPU compatibility or release completion is established by these papers",
+  "host_executable_started": false,
+  "release_created": false
+}
