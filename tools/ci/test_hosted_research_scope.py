@@ -2,6 +2,7 @@
 """Regression: an HTTP-200 retired AMD page must not qualify as current research."""
 import unittest
 from hosted_research import qualify_source_scope, ROCM_WARP_SOURCES, COMPRESSION_LEARNED_SOURCES, COMPRESSION_SYSTEMS_SOURCES, ROCM_AMORTIZATION_SOURCES
+from hosted_research import WINDOWS_HELPER_DEPENDENCY_SOURCES
 
 class SourceScopeTests(unittest.TestCase):
     def setUp(self):
@@ -144,6 +145,30 @@ class AmortizationSourceScope(unittest.TestCase):
                     self.assertTrue(changed["success"])
                 denied=dict(row,success=False,error="robots denied",failure_category="robots_denied")
                 self.assertIs(qualify_source_scope("rocm-amortization",denied,text),denied)
+
+class HelperDependencyScope(unittest.TestCase):
+    def test_closed_handle_and_storage_contracts(self):
+        self.assertEqual(len(WINDOWS_HELPER_DEPENDENCY_SOURCES),4)
+        self.assertEqual(len({row[1] for row in WINDOWS_HELPER_DEPENDENCY_SOURCES}),4)
+        for _,url,marker,term in WINDOWS_HELPER_DEPENDENCY_SOURCES:
+            self.assertTrue(url.startswith("https://learn.microsoft.com/en-us/windows/win32/api/"))
+            row=dict(success=True,url=url,native_success=True,http_status=200,
+                capture="retained.native.json",capture_sha256="f"*64)
+            body=marker+"\n"+term+"\n"+("substantive API contract "*110)
+            self.assertIs(qualify_source_scope("windows-helper-dependencies",row,body),row)
+            for changed,text in ((dict(row,url="https://example.invalid/"),body),
+                    (row,marker+" "+term),(row,body.replace(term,"unrelated text"))):
+                result=qualify_source_scope("windows-helper-dependencies",changed,text)
+                self.assertFalse(result["success"])
+                self.assertFalse(result["expected_content"])
+                self.assertEqual(result["failure_category"],"unexpected_helper_dependency_scope")
+                self.assertEqual(result["capture_sha256"],row["capture_sha256"])
+                self.assertTrue(changed["success"])
+
+    def test_native_denial_keeps_original_failure(self):
+        row=dict(success=False,url=WINDOWS_HELPER_DEPENDENCY_SOURCES[0][1],
+            native_success=False,error="robots denied",failure_category="robots_denied")
+        self.assertIs(qualify_source_scope("windows-helper-dependencies",row,"x"*3000),row)
 
 if __name__=="__main__":
     unittest.main()

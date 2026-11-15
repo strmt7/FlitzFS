@@ -89,6 +89,16 @@ WINDOWS_RUNTIME_TRUST_SOURCES = (
     ("windows-runtime-search", "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw", "LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR", "LOAD_LIBRARY_SEARCH_SYSTEM32"),
     ("windows-runtime-system-directory", "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemdirectoryw", "GetSystemDirectoryW", "return"),
 )
+WINDOWS_HELPER_DEPENDENCY_SOURCES = (
+    ("windows-helper-volume-information", "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationbyhandlew",
+     "GetVolumeInformationByHandleW", "lpFileSystemNameBuffer"),
+    ("windows-helper-final-path", "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew",
+     "GetFinalPathNameByHandleW", "VOLUME_NAME_GUID"),
+    ("windows-helper-storage-dependencies", "https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/nf-virtdisk-getstoragedependencyinformation",
+     "GetStorageDependencyInformation", "StorageDependencyInfo"),
+    ("windows-helper-dependency-direction", "https://learn.microsoft.com/en-us/windows/win32/api/virtdisk/ne-virtdisk-get_storage_dependency_flag",
+     "GET_STORAGE_DEPENDENCY_FLAG", "GET_STORAGE_DEPENDENCY_FLAG_HOST_VOLUMES"),
+)
 WINDOWS_PROCESS_RETIREMENT_SOURCES = (
     ("windows-process-termination", "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess", "TerminateProcess", "asynchronous"),
     ("windows-job-termination", "https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-terminatejobobject", "TerminateJobObject", "pending"),
@@ -298,6 +308,14 @@ def qualify_source_scope(source_group, row, markdown):
             return dict(row,success=False,expected_content=False,
                 failure_category="unexpected_compression_source_scope",
                 error="Expected the closed recent primary-source page and substantive content markers")
+    if source_group=="windows-helper-dependencies" and row["success"]:
+        admitted={url:(marker,term) for _,url,marker,term in WINDOWS_HELPER_DEPENDENCY_SOURCES}
+        markers=admitted.get(row.get("url"))
+        if (markers is None or len(markdown)<2000 or
+                not all(marker.casefold() in markdown.casefold() for marker in markers)):
+            return dict(row,success=False,expected_content=False,
+                failure_category="unexpected_helper_dependency_scope",
+                error="Expected the closed Microsoft handle/volume dependency API source and substantive body")
     return row
 
 async def capture(args):
@@ -321,6 +339,7 @@ async def capture(args):
                     "windows-adapter-topology": WINDOWS_ADAPTER_TOPOLOGY_SOURCES,
                     "windows-gpu-memory": WINDOWS_GPU_MEMORY_SOURCES,
                     "windows-app": WINDOWS_APP_SOURCES, "windows-app-test": WINDOWS_APP_TEST_SOURCES,
+                    "windows-helper-dependencies": WINDOWS_HELPER_DEPENDENCY_SOURCES,
                     "compression-learned": COMPRESSION_LEARNED_SOURCES,
                     "compression-systems": COMPRESSION_SYSTEMS_SOURCES}[args.source_group]
         for name, url, marker, term in selected:
@@ -398,7 +417,7 @@ async def capture(args):
                       "accepted": sum(r["success"] for r in rows), "total": len(rows)}), flush=True)
     if not any(r["success"] for r in rows):
         raise RuntimeError("No substantive source extracted")
-    if args.source_group in ("compression-learned","compression-systems","process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "rocm-amortization", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test") and not all(r["success"] for r in rows):
+    if args.source_group in ("windows-helper-dependencies","compression-learned","compression-systems","process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "rocm-amortization", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test") and not all(r["success"] for r in rows):
         raise RuntimeError("Requested source group requires every native capture")
 
 
@@ -408,7 +427,7 @@ def main():
     parser.add_argument("--home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--runtime", action="store_true")
-    parser.add_argument("--source-group", choices=("compression-learned","compression-systems","durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "rocm-amortization", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test"), default="rocm-current")
+    parser.add_argument("--source-group", choices=("windows-helper-dependencies","compression-learned","compression-systems","durability", "process", "amd", "rocm-windows-hardware", "rocm-current", "rocm-runtime", "rocm-stream", "rocm-warp", "rocm-amortization", "windows-target", "windows-framework", "windows-alternatives", "windows-basic", "windows-security", "windows-protocol", "windows-ownership", "windows-locked-ram", "windows-runtime-trust", "windows-process-retirement", "windows-adapter-identity", "windows-adapter-topology", "windows-gpu-memory", "windows-app", "windows-app-test"), default="rocm-current")
     args = parser.parse_args()
     guard()
     args.provider = args.provider.resolve(strict=True)
