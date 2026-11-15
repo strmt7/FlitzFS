@@ -109,7 +109,7 @@ write/truncate capture across both modes/layouts. Every backend operation is
 denied after the final barrier. Return/latch updates must finish without I/O;
 a later query proves denial and fencing without ownership release.
 
-The new hosted-only SDK group uses actual FspFileSystemOpCleanup/Close exports.
+The explicit SDK group uses actual FspFileSystemOpCleanup/Close exports.
 Two cohorts cover raw/automatic trim, trim-only clock avoidance, duplicate first
 stamp, nonempty directory retention, untracked/failed-engine fencing and the
 source-derived impossible flag combination. It checks backing ownership expires

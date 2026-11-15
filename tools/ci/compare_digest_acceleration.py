@@ -100,8 +100,8 @@ def validate_stdio(default,text,binary):
                 binary_sha256=hashlib.sha256(binary).hexdigest(),complete=True)
 
 def main():
-    if os.name!="nt" or os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-        raise RuntimeError("disposable hosted Windows VM required")
+    if os.name!="nt":
+        raise RuntimeError("native Windows process/API support required")
     parser=argparse.ArgumentParser()
     parser.add_argument("--output",type=Path,required=True)
     args=parser.parse_args()

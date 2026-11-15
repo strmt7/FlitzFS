@@ -20,8 +20,6 @@ def run(argv,seconds):
     return result
 
 def main():
-    if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-        raise RuntimeError("disposable hosted runner required")
     source=ROOT/".ci-deps/lz4-store-baseline"
     if run(["git","-C",source,"rev-parse","HEAD"],15).stdout.strip()!=BASELINE:
         raise RuntimeError("immutable LZ4 baseline source mismatch")

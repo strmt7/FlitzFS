@@ -1,5 +1,12 @@
 # FlitzFS development execution plan
 
+The current forward release plan is [RELEASE_EXECUTION_PLAN.md](RELEASE_EXECUTION_PLAN.md),
+with concrete work packages, effort ranges, dependency gates, offline coherence,
+format compatibility and background/write-amplification requirements. Use
+[BENCHMARK_PROTOCOL.md](BENCHMARK_PROTOCOL.md) for objective recognized-tool
+comparisons. Older dated checkpoints below retain their original evidence;
+the new release plan and JSON ledger govern what happens next.
+
 Compression priority: minimize total stored size, including shared models and indexes, subject to practical retrieval latency/speed. Moderate read penalties are acceptable; cold recompression need not be faster than conventional codecs. Do not confuse bounded experiment allocations with permanent compression-group limits.
 
 The owner's 15 November scale/group clarification targets millions of files,

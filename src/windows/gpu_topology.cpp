@@ -98,11 +98,6 @@ WindowsGpuTopologyResult query_windows_gpu_topology(std::array<std::byte,8> luid
   return query(luid,false);
 }
 WindowsGpuTopologyResult query_windows_software_topology_fixture(std::array<std::byte,8> luid) noexcept {
-  const auto* actions=std::getenv("GITHUB_ACTIONS");const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
-  if(!actions || std::string_view(actions)!="true" || !environment ||
-      std::string_view(environment)!="github-hosted") {
-    WindowsGpuTopologyResult result;result.status=WindowsGpuTopologyStatus::fixture_forbidden;return result;
-  }
   return query(luid,true);
 }
 }

@@ -7,7 +7,7 @@ affected component. [End-user documentation](../README.md) is separate.
 | --- | --- |
 | Set up and build | [Building and testing](building.md), [host independence](../HOST_INDEPENDENCE.md) |
 | Choose checks and interpret results | [Validation](../validation/README.md), [validation details](../VALIDATION.md) |
-| Plan implementation | [Development plan](../DEVELOPMENT_PLAN.md), [current state](../DEVELOPMENT_STATE.json) |
+| Plan implementation | [Release execution plan](../RELEASE_EXECUTION_PLAN.md), [package contracts](../DEVELOPMENT_PLAN.md), [current state](../DEVELOPMENT_STATE.json) |
 | Change the storage format or recovery | [Storage references](../reference/README.md#storage-and-recovery) |
 | Scale object storage and enumeration | [Paged object store](../PAGED_OBJECT_STORE.md) |
 | Change Windows file operations | [Windows references](../reference/README.md#windows-integration) |

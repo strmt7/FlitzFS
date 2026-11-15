@@ -115,7 +115,7 @@ Existing native graph, 976-case hosted process campaign, metadata replica
 recovery, CPU/reference/sanitizer, relocated binary and read-only mount lanes
 remain required. New checks are configured until exact-commit CI is inspected.
 RAM/process interruption is distinct from physical power-cut and writable
-Windows application qualification. No owner-host execution is authorized.
+Windows application qualification. Local execution follows current resource/backing qualification in AGENTS.md.
 
 
 Persistent intent and detached-inode state now have CPU transaction primitives

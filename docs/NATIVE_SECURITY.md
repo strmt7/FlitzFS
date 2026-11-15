@@ -355,8 +355,9 @@ Inspect/reuse WinFsp's existing Create capture/prepare/finalize design, rather
 than reopening a process by PID. Require negotiated capability and fail-closed
 behavior with older peers; an unauthenticated flag/handle/boolean is insufficient.
 This is a pending design gate, not permission to patch/install/load a driver on
-the PC or claim a new protocol exists. All driver experiments stay on disposable
-VMs after their separate audit/resource/lifecycle gates.
+the PC or claim a new protocol exists. Driver provisioning and deliberately
+destabilizing experiments require isolation. Safe local user-mode/SDK work uses
+the current host policy and its audit/resource/lifecycle gates.
 
 New SDK regressions require same-owner, same-group, owner-only/group-only and
 mixed atomic rejection with original rights, unchanged checkpoint extent/

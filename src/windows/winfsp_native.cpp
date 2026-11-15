@@ -31,11 +31,6 @@ void sdk_response(FSP_FILE_SYSTEM* fs,FSP_FSCTL_TRANSACT_RSP& response) noexcept
 }
 struct Handle {HANDLE value=nullptr;~Handle(){if(value)CloseHandle(value);}};
 struct Local {void* value=nullptr;~Local(){if(value)LocalFree(value);}};
-void hosted() {
-  const auto* a=std::getenv("GITHUB_ACTIONS");const auto* e=std::getenv("RUNNER_ENVIRONMENT");
-  if(!a||std::string_view(a)!="true"||!e||std::string_view(e)!="github-hosted")
-    throw std::runtime_error("writable adapter factory is hosted-only pending qualification");
-}
 // Owns the SAME new-file backend and its lease/barriers. The smaller cap never
 // replaces its free-space/memory/identity admission or physical-failure contract.
 class CappedFile final:public StoreByteIo {
@@ -454,7 +449,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_new_hosted(
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_new_hosted(
     const std::filesystem::path& file,StoreIdentity id,StoreCompressionOptions compression,std::uint64_t cap) {
-  hosted();
+
   if(cap<4U*1024*1024||cap>kStoreMaxPhysicalBytes||cap%65536)
     throw std::invalid_argument("native image cap must be aligned and 4..64 MiB");
   if(std::all_of(id.begin(),id.end(),[](auto b){return b==std::byte{0};}))
@@ -472,7 +467,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_new_hosted(
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_retired_hosted(
     const std::filesystem::path& file,StoreIdentity id,std::uint64_t generation,
     StoreCompressionOptions compression,std::uint64_t cap) {
-  hosted();
+
   if(cap<4U*1024*1024||cap>kStoreMaxPhysicalBytes||cap%65536||!generation||
       std::all_of(id.begin(),id.end(),[](auto b){return b==std::byte{0};}))
     throw std::invalid_argument("invalid hosted restart lease");
@@ -515,7 +510,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_retired_hoste
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_hosted(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,
     std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,StoreCompressionOptions foreground) {
-  hosted();
+
   const auto security=owner_security();const auto stamp=native_cleanup_utc();
   const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
   auto session=NativeFileSession::create_volume(std::move(head),volume,std::move(image),image_id,
@@ -525,7 +520,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_hoste
 }
 HostedVolumeMaintenanceResult WinFspNativeWritable::recompress_managed_hosted(
     std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) {
-  hosted();
+
   std::lock_guard guard(impl_->control);
   if(requires_offline() || dispatcher_stopped() || (impl_->deferred&&impl_->deferred->publication_pending_locked()))
     throw std::runtime_error("mounted session is unavailable for maintenance");
@@ -541,14 +536,14 @@ HostedVolumeMaintenanceResult WinFspNativeWritable::recompress_managed_hosted(
 }
 HostedIdleMaintenanceResult WinFspNativeWritable::begin_idle_recompression_hosted(
     std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) {
-  hosted();
+
   return impl_->idle([&]{
     return HostedIdleMaintenanceResult{impl_->session.begin_idle_recompression(std::move(target),next,candidate)?
         HostedIdleMaintenanceState::begun:HostedIdleMaintenanceState::suppressed};
   });
 }
 HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(HostedIdleMaintenanceAction action) {
-  hosted();
+
   return impl_->idle([&]() -> HostedIdleMaintenanceResult {
     using State=HostedIdleMaintenanceState;
     using Progress=NativeFileSession::RecompressionProgress;
@@ -568,7 +563,7 @@ HostedIdleMaintenanceResult WinFspNativeWritable::idle_recompression_hosted(Host
   });
 }
 void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOptions options){
-  hosted();std::lock_guard guard(impl_->control);
+  std::lock_guard guard(impl_->control);
   if(impl_->callbacks_bound||impl_->deferred||impl_->foreground.load(std::memory_order_acquire))
     throw std::runtime_error("deferred writes require an unbound, unconfigured adapter");
   if(!options.hint_query)options.hint_query=sdk_hint;
@@ -576,7 +571,7 @@ void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOpti
   impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,impl_->offline,std::move(options));
 }
 void WinFspNativeWritable::publish_deferred_health_hosted(const GpuHealthEvidence& health){
-  hosted();std::lock_guard guard(impl_->control);
+  std::lock_guard guard(impl_->control);
   if(!impl_->deferred)throw std::runtime_error("deferred writes are not configured");
   impl_->deferred->publish_locked(health);
 }

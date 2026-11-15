@@ -2,10 +2,11 @@
 
 This candidate combines the native transaction engine and actual WinFsp SDK
 callbacks. It is built only with the opt-in Windows SDK target. Its factory
-requires a disposable hosted environment and creates a NEW ordinary image with
+requires qualified backing/runtime/containment and creates a NEW ordinary image with
 OS-exclusive creation/writer ownership. It has no CLI, installer, service, live
 provider selection or mounted-write executable. Default product paths and the
-existing mounted probe remain read-only. No owner-PC operation follows.
+existing mounted probe remain read-only. Local execution follows AGENTS.md;
+factory admission is not mounted or physical-backend qualification.
 
 ## Current primary evidence
 
@@ -321,8 +322,9 @@ Inspect/reuse WinFsp's existing Create capture/prepare/finalize design, rather
 than reopening a process by PID. Require negotiated capability and fail-closed
 behavior with older peers; an unauthenticated flag/handle/boolean is insufficient.
 This is a pending design gate, not permission to patch/install/load a driver on
-the PC or claim a new protocol exists. All driver experiments stay on disposable
-VMs after their separate audit/resource/lifecycle gates.
+the PC or claim a new protocol exists. Driver provisioning and deliberately
+destabilizing experiments require isolation. Safe local user-mode/SDK work uses
+the current host policy and its audit/resource/lifecycle gates.
 
 New SDK regressions require same-owner, same-group, owner-only/group-only and
 mixed atomic rejection with original rights, unchanged checkpoint extent/

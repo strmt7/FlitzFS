@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile one audited hipCOMP translation unit on disposable Windows VMs only."""
+"""Compile one audited hipCOMP translation unit with qualified native Windows resources."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -146,8 +146,7 @@ def inspect_offload_targets(text,object_path,object_bytes,expected=("gfx1100",))
         set(architectures)==set(expected),"candidate offload target count")
     return targets
 def main():
-    require(os.name=="nt" and os.environ.get("GITHUB_ACTIONS")=="true" and
-        os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","disposable hosted Windows VM required; never the owner PC")
+    require(os.name=="nt","native Windows process/API support required")
     parser=argparse.ArgumentParser()
     for name in ("source","provider","sdk","output"):parser.add_argument("--"+name,type=Path,required=True)
     parser.add_argument("--native-sync",action="store_true",help="Explicit offline transformed AMD candidate; never a runtime route")

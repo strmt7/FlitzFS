@@ -16,7 +16,7 @@ NativeFilesystemWriter consumes an exclusively owned ObjectStoreWriter.
 Initialize accepts only a NEW empty generation-zero store. Resume accepts a
 writer whose custom backend has already passed identity/generation verification,
 exclusive ownership and the recovery fence. There is no new ordinary-file
-reopening factory or owner-host permission.
+reopening factory. Local execution follows the current host guide.
 
 A transaction applies 1..16 ordered operations: create file, create directory,
 write a range, truncate, rename/replace, or remove. All metadata and changed

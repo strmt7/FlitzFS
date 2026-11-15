@@ -1,7 +1,8 @@
 # Workload-driven adaptation and verified repair
 
-Owner requirements added during native-file scaling work. This is the required
-product architecture and qualification ledger, not an implemented self-learning
+Owner requirements added during native-file scaling work. See [the current release plan](RELEASE_EXECUTION_PLAN.md) and
+[benchmark protocol](BENCHMARK_PROTOCOL.md). This is the required product
+architecture and qualification ledger, not an implemented self-learning
 service, autonomous maintenance executor or universal data-safety claim.
 
 ## Automatic resource and compression stages

@@ -441,10 +441,6 @@ void faults(StoreCompressionMode compression,bool compact,Phase p) {
 }
 }
 int main(int argc,char** argv){try {
-  wchar_t action_value[16]{},environment[32]{};
-  if(GetEnvironmentVariableW(L"GITHUB_ACTIONS",action_value,16)!=4||std::wstring_view(action_value)!=L"true"||
-      GetEnvironmentVariableW(L"RUNNER_ENVIRONMENT",environment,32)!=13||std::wstring_view(environment)!=L"github-hosted")
-    throw std::runtime_error("hosted-only SDK data bridge fixture");
   if(argc!=2)throw std::runtime_error("one SDK data bridge group required");const std::string_view group=argv[1];
   if(group=="--invariants") {
     DWORD initial=0,final=0;require(GetProcessHandleCount(GetCurrentProcess(),&initial)!=FALSE,"initial handle accounting unavailable");

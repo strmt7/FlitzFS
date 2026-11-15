@@ -2,8 +2,8 @@
 
 Experimental CPU persistence primitives for the Windows filesystem engine.
 They do not implement a Windows handle table, writable callback adapter or
-helper application. Those remain required product work. All execution stays
-on disposable hosted VMs; no owner-host permission is added.
+helper application. Those remain required product work. Safe local execution
+uses the current host guide; no blanket hosted-only restriction applies.
 
 ## State transitions and data ownership
 

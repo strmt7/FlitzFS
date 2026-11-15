@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Owned hosted-only archive/provisioning safety regressions, no real tools run."""
+"""Owned archive/provisioning safety regressions, no real tools run."""
 import hashlib
 import io
 import os
@@ -20,9 +20,8 @@ class Response:
 class ProvisioningTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-            raise RuntimeError("tests require disposable hosted VM; never the owner PC")
-        cls.parent=Path(tempfile.mkdtemp(prefix="flitzfs-provision-tests-",dir=os.environ["RUNNER_TEMP"]))
+        cls.parent=Path(tempfile.mkdtemp(prefix="flitzfs-provision-tests-",
+            dir=os.environ.get("RUNNER_TEMP",tempfile.gettempdir())))
     def fresh(self):
         return Path(tempfile.mkdtemp(prefix="case-",dir=self.parent))
     def test_paths(self):

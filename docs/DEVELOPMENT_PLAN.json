@@ -9,27 +9,27 @@
   "goal_status": "active",
   "scope": "Complete Windows 11 AMD64 filesystem/helper/driver; effective AMD GPU acceleration, independent CPU recovery, high sustained throughput, exceptional lossless reduction, autonomous low-impact persistent learning and verified resilience.",
   "next": [
-    "G02",
-    "G03",
     "S01",
     "A04",
+    "G02",
+    "G03",
     "A01",
     "L01",
     "D01"
   ],
   "owner_safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
-    "owner_mounts": false,
+    "owner_mounts": "Qualified explicit memory-backed fixtures with existing runtime support only; no blanket host ban, driver installation or physical image backing",
     "driver_changes": false,
     "privileged_or_persistent_changes": false,
     "gpu": "Local resource-adaptive GPU development is authorized with source review, fresh resource/runtime/adapter admission, independent CPU comparison and confirmed retirement. No blanket hosted/VM-first gate; no stress or driver changes.",
     "staging": "Local source/build/tool/dependency/cache/corpus/report files in scoped development directories with measured free-space reserves; filesystem backing remains in memory"
   },
   "continuation": [
-    "Read AGENTS and this ledger; verify actual main and source-bound CI before selecting work.",
+    "Read AGENTS, the release execution plan and ledger; inspect current local main, user changes and source-bound validation before selecting work. Hosted CI is complementary, not a prerequisite.",
     "Take a dependency-ready product slice. Distinguish preparatory-entry dependencies from full package exits. Prioritize complete ordinary GPU I/O, scalable storage and real collective compression; preserve historical D01 uncertainty without using it to indefinitely block independent work. No disconnected probe chain or LZ4-only scope substitution.",
     "Read applicable boundary docs and current primary sources before important changes; use mandatory semantic and Crawl4AI providers.",
-    "Implement a bounded substantive change, qualify in isolated environments, retain failures and update evidence in a coherent main commit.",
+    "Implement a substantive integration slice and qualify it locally with real resource/backing/source controls; use isolation for unsafe operations or unavailable platforms. Retain failures and update one coherent checkpoint.",
     "Complete packages only when their exit criteria are met. Keep the existing full goal active; no new goal, thread, scheduled task or inferred delegation."
   ],
   "packages": [
@@ -572,7 +572,8 @@
         "Account for metadata, recovery replicas, dictionaries, temporary candidates and read amplification; stop negative-benefit work and yield promptly.",
         "Investigate and implement GPU-supported deep background compression, including a novel algorithm if justified, with shared-content modeling, bounded random access, protected decoder dependencies, independent CPU recovery and total-storage accounting. The fast write codec does not constrain cold encodings.",
         "Prioritize minimum total stored size over lowest latency; evaluate larger cross-file groups and deeper GPU-supported models rather than locking in small independent compression units.",
-        "Allow groups of one, two or thousands of files; choose membership/representation by complete stored bytes and measured practical latency. Separate membership from indexed decode units and restart spacing."
+        "Allow groups of one, two or thousands of files; choose membership/representation by complete stored bytes and measured practical latency. Separate membership from indexed decode units and restart spacing.",
+        "Persist a sparse paged local coherence/candidate index with stable content generations and resumable scans; no dense all-pairs matrix or online model dependency."
       ],
       "validation": [
         "Concurrent readers/writers, cancellation, resource pressure, interrupted handoff/reclamation, capacity failure and recovery.",
@@ -654,7 +655,8 @@
         "G03",
         "A04",
         "R01",
-        "W01"
+        "W01",
+        "U01"
       ],
       "status": "pending",
       "deliverables": [
@@ -667,6 +669,27 @@
         "Repeated alternating trials and held-out corpora; separate RAM-backed logical performance from physical-media and power-loss results. No owner raw-device or physical backing tests."
       ],
       "exit": "Claims match reproducible evidence and unresolved blockers are disclosed. No selected result establishes universal superiority over every filesystem."
+    },
+    {
+      "id": "U01",
+      "title": "Preserve multi-release readers and migrate gradually",
+      "depends": [
+        "S01",
+        "A04",
+        "R01",
+        "W01"
+      ],
+      "status": "pending",
+      "deliverables": [
+        "Keep explicit immutable format/codec semantics, independent CPU decoders and frozen supported old images; target reading at least the preceding three released software versions.",
+        "Separate software installation from mixed-format migration. Persist bounded COW upgrade progress, verify exact bytes and protect required dependencies and prior recoverable state.",
+        "Apply automatic offline contention-aware scheduling and write-amplification control to migration. Define and test backward-reading and downgrade/rollback boundaries separately."
+      ],
+      "validation": [
+        "Cross-reader historical image corpus; unknown mandatory capabilities fail before writes; GPU-absent CPU recovery; retained live dependencies remain readable.",
+        "Crash/cancellation at every migration/publication step, restart with mixed old/new units, snapshot retention and interrupted software update; exact candidate package verification."
+      ],
+      "exit": "The published multi-release compatibility contract and gradual automatic migration pass source-bound regression, recovery and real Windows integration gates."
     }
   ],
   "publication_note": "P00 is completed by the commit publishing this ledger; runtime packages remain pending. The reviewed baseline identifies evidence before this documentation/assets commit.",
@@ -817,64 +840,31 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "5101649245c644fe7b2ceb83ee836b22dc81e492",
-    "evidence": "docs/evidence/local-paged-store-2026-11-15.json",
-    "contract": "docs/PAGED_OBJECT_STORE.md",
-    "status": "Implemented and locally tested opt-in COW paged object store with CPU codecs, bounded lookup/pagination and streaming new-image rebuild; native namespace integration remains open.",
-    "raw_and_ASan_selected_suites": 3,
-    "checks_per_configuration": 48739,
-    "populated_objects_tested": 1000000,
-    "million_open_read_bytes": 16384,
-    "million_image_bytes": 434147328,
-    "million_process_peak_bytes": 1303789568,
-    "native_namespace_migrated": false,
-    "ordinary_GPU_route": false,
-    "release": false,
+    "source_base": "7c601d39c8eb5f04a02bb889840efc06eac68171",
+    "status": "Comprehensive source-based release/benchmark plan and removal of obsolete location-only checks; selected local tooling and compilation qualification recorded separately.",
     "full_goal_status": "active",
-    "previous_hardware_round": {
-      "source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
-      "status": "All 13 core jobs and 53 prescribed SDK commands passed; one matched six-request owner comparison completed with actual stored GPU advice, independent current/prior CPU readback and exact retirement. No speed or size advantage in the fixed case.",
-      "core_run": 43700315671,
-      "sdk_run": 43700330670,
-      "contract": "docs/OWNED_DEFERRED_WRITES.md",
-      "ordinary_GPU_route": false,
-      "cost_model_qualified": false,
-      "actual_GPU_through_service": true,
-      "actual_GPU_SDK_delivery": false,
-      "cross_operation_batching": false,
-      "owner_executed": true,
-      "latest_actual_GPU_source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
-      "evidence": "docs/evidence/owned-service-comparison-d384b6c.json",
-      "deferred_checks": 57,
-      "controlled_checks": 226,
-      "source_bytes": 1048576,
-      "candidate_bytes": 135344,
-      "image_bytes": 1310720,
-      "comparative_benefit_proven": false,
-      "release_gate_closed": false,
-      "matched_comparison": {
-        "CPU_median_request_ns": 24231100,
-        "GPU_median_request_ns": 513918000,
-        "CPU_min_request_ns": 20079300,
-        "CPU_max_request_ns": 28167300,
-        "GPU_min_request_ns": 505741500,
-        "GPU_max_request_ns": 713104800,
-        "image_bytes_each": 1310720,
-        "active_payload_bytes_each": 135648,
-        "GPU_candidate_bytes_each": 135344,
-        "complete_parent_ms": 1911,
-        "speed_or_size_advantage_observed": false
-      }
-    },
-    "GPU_status": "No GPU execution this CPU storage round. Preserve the prior actual service comparison and its negative small-request benefit; useful automatic GPU integration remains required."
+    "release_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+    "benchmark_protocol": "docs/BENCHMARK_PROTOCOL.md",
+    "evidence": "docs/evidence/release-plan-review-2026-11-15.json",
+    "GPU_executed_this_round": false,
+    "release": false,
+    "local_validation": {
+      "evidence": "docs/evidence/release-plan-review-2026-11-15.json",
+      "selected_raw_checks": 48739,
+      "selected_asan_checks": 48739,
+      "worker_checks": 1199,
+      "syntax_only_units": 14,
+      "full_sdk_matrix": false,
+      "mount": false,
+      "GPU": false
+    }
   },
   "next_product_slices": [
-    "Integrate the implemented paged store with native inode/name/extent tables and an atomic multi-index checkpoint. Preserve security, file lifetime, snapshots and format-7 shared references; add bounded caches, paginated directory APIs and explicit CPU-readable legacy migration. Qualify populated named files separately from the million-object storage result.",
-    "Build one protected collective group representation over immutable independently indexed units: persistent similarity candidates, versioned shared dictionary/base or predictor/residual metadata, bounded CPU decode dependencies and COW updates/deletes. Membership may be one, two or thousands of files; choose by total stored bytes and measured practical retrieval.",
-    "Integrate finite AMD work amortization and independently supervised helper/resource discovery with useful ordinary Windows write/read routing. Charge setup, validation, metadata, models and history. CPU fallback stays immediately selectable and independently decodes every admitted GPU representation; do not rerun the unchanged slower diagnostic.",
-    "Persist scan cursors and advisory model/cost evidence; make foreground pressure promptly suspend very-low-priority grouping/recompression/layout. Add streaming rebuild quanta and reader-safe automatic reclaim without volume-wide RAM state.",
-    "Evaluate varied held-out real file families and popular controlled benchmarks with complete image sizes, cold/random retrieval and equal durability; compare multiple conventional filesystems only after native integration makes the comparison meaningful.",
-    "Close defined acknowledged-write/data-dependency redundancy and repair, Windows 11 application semantics/lifecycle, secure private dependency installation/update and packaging. Retain historical failures and source-bound acceptance. No release without owner decision."
+    "Implement paged native inode/name/extent transactions through the shared native/session engine APIs, stable directory pagination and explicit legacy migration. Protect exact sharing and file lifetimes. Qualify populated named files separately from the million-object index result.",
+    "Implement the reserved versioned sparse coherence catalog and resumable candidate scans, with unchanged-content suppression, bounded cancellation and write-grant refusal. Keep learning local/offline and advisory; protect immutable decoder models/bases elsewhere.",
+    "Implement one verified collective group representation and independent CPU reader, then useful finite AMD work through ordinary Windows operations. Preserve minimum complete stored size as primary; evaluate multiple file families, group sizes and stronger models.",
+    "Connect fresh host-adaptive contention evidence, automatic learning, low-priority background execution, scalable reclamation and gradual format migration. Preserve source/reader ownership and measured write amplification.",
+    "Complete Windows capability/package/physical-provider contracts and multi-release reader tests; close D01/R01 failure obligations, security and objective DiskSpd/fio/fsbench/lzbench campaigns. Stabilize and soak; no autonomous release."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1000,5 +990,199 @@
     "evidence": "docs/evidence/local-native-shared-minimum-2026-11-15.json",
     "normal_GPU_route": false,
     "release": false
+  },
+  "storage_qualification_checkpoint": {
+    "source_base": "5101649245c644fe7b2ceb83ee836b22dc81e492",
+    "evidence": "docs/evidence/local-paged-store-2026-11-15.json",
+    "contract": "docs/PAGED_OBJECT_STORE.md",
+    "status": "Implemented and locally tested opt-in COW paged object store with CPU codecs, bounded lookup/pagination and streaming new-image rebuild; native namespace integration remains open.",
+    "raw_and_ASan_selected_suites": 3,
+    "checks_per_configuration": 48739,
+    "populated_objects_tested": 1000000,
+    "million_open_read_bytes": 16384,
+    "million_image_bytes": 434147328,
+    "million_process_peak_bytes": 1303789568,
+    "native_namespace_migrated": false,
+    "ordinary_GPU_route": false,
+    "release": false,
+    "full_goal_status": "active",
+    "previous_hardware_round": {
+      "source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
+      "status": "All 13 core jobs and 53 prescribed SDK commands passed; one matched six-request owner comparison completed with actual stored GPU advice, independent current/prior CPU readback and exact retirement. No speed or size advantage in the fixed case.",
+      "core_run": 43700315671,
+      "sdk_run": 43700330670,
+      "contract": "docs/OWNED_DEFERRED_WRITES.md",
+      "ordinary_GPU_route": false,
+      "cost_model_qualified": false,
+      "actual_GPU_through_service": true,
+      "actual_GPU_SDK_delivery": false,
+      "cross_operation_batching": false,
+      "owner_executed": true,
+      "latest_actual_GPU_source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
+      "evidence": "docs/evidence/owned-service-comparison-d384b6c.json",
+      "deferred_checks": 57,
+      "controlled_checks": 226,
+      "source_bytes": 1048576,
+      "candidate_bytes": 135344,
+      "image_bytes": 1310720,
+      "comparative_benefit_proven": false,
+      "release_gate_closed": false,
+      "matched_comparison": {
+        "CPU_median_request_ns": 24231100,
+        "GPU_median_request_ns": 513918000,
+        "CPU_min_request_ns": 20079300,
+        "CPU_max_request_ns": 28167300,
+        "GPU_min_request_ns": 505741500,
+        "GPU_max_request_ns": 713104800,
+        "image_bytes_each": 1310720,
+        "active_payload_bytes_each": 135648,
+        "GPU_candidate_bytes_each": 135344,
+        "complete_parent_ms": 1911,
+        "speed_or_size_advantage_observed": false
+      }
+    },
+    "GPU_status": "No GPU execution this CPU storage round. Preserve the prior actual service comparison and its negative small-request benefit; useful automatic GPU integration remains required."
+  },
+  "release_programme": {
+    "planning_only": true,
+    "work_packages": [
+      {
+        "id": "E01",
+        "title": "Paged native namespace and extent integration",
+        "person_weeks_low": 6,
+        "person_weeks_high": 12,
+        "package_ids": [
+          "S01"
+        ]
+      },
+      {
+        "id": "E02",
+        "title": "Allocator, reclamation and recoverable dependencies",
+        "person_weeks_low": 5,
+        "person_weeks_high": 10,
+        "package_ids": [
+          "S01",
+          "R01"
+        ]
+      },
+      {
+        "id": "E03",
+        "title": "Useful automatic AMD path and CPU fallback",
+        "person_weeks_low": 4,
+        "person_weeks_high": 9,
+        "package_ids": [
+          "G02",
+          "G03",
+          "A02"
+        ]
+      },
+      {
+        "id": "E04",
+        "title": "Persistent sparse coherence catalog",
+        "person_weeks_low": 3,
+        "person_weeks_high": 7,
+        "package_ids": [
+          "S01",
+          "A04"
+        ]
+      },
+      {
+        "id": "E05",
+        "title": "Deep compression research and candidate selection",
+        "person_weeks_low": 6,
+        "person_weeks_high": 16,
+        "package_ids": [
+          "A04"
+        ]
+      },
+      {
+        "id": "E06",
+        "title": "Production collective codec and random access",
+        "person_weeks_low": 5,
+        "person_weeks_high": 12,
+        "package_ids": [
+          "A04",
+          "R01"
+        ]
+      },
+      {
+        "id": "E07",
+        "title": "Adaptive offline learning and background control",
+        "person_weeks_low": 4,
+        "person_weeks_high": 9,
+        "package_ids": [
+          "A01",
+          "A03",
+          "L01"
+        ]
+      },
+      {
+        "id": "E08",
+        "title": "Windows semantics and end-to-end integration",
+        "person_weeks_low": 5,
+        "person_weeks_high": 10,
+        "package_ids": [
+          "W01",
+          "D01"
+        ]
+      },
+      {
+        "id": "E09",
+        "title": "Format compatibility and gradual migration",
+        "person_weeks_low": 3,
+        "person_weeks_high": 6,
+        "package_ids": [
+          "U01"
+        ]
+      },
+      {
+        "id": "E10",
+        "title": "Application, installation and secure updates",
+        "person_weeks_low": 3,
+        "person_weeks_high": 6,
+        "package_ids": [
+          "W01",
+          "U01"
+        ]
+      },
+      {
+        "id": "E11",
+        "title": "Fault campaigns, fuzzing and security",
+        "person_weeks_low": 6,
+        "person_weeks_high": 12,
+        "package_ids": [
+          "D01",
+          "R01",
+          "Q01"
+        ]
+      },
+      {
+        "id": "E12",
+        "title": "Independent benchmark campaigns",
+        "person_weeks_low": 3,
+        "person_weeks_high": 6,
+        "package_ids": [
+          "Q01"
+        ]
+      },
+      {
+        "id": "E13",
+        "title": "Stabilization and representative soak",
+        "person_weeks_low": 6,
+        "person_weeks_high": 12,
+        "package_ids": [
+          "Q01"
+        ]
+      }
+    ],
+    "total_person_weeks_low": 59,
+    "total_person_weeks_high": 127,
+    "confidence": "low; engineering planning estimate, not measured autonomous-agent velocity or a delivery promise",
+    "small_team_calendar_months": "approximately 6-15+ with 2-3 experienced engineers, conditional on research/integration success",
+    "solo_calendar_months": "approximately 14-30 full-time engineer-months",
+    "research_exit": "No calendar guarantee for record-setting compression; investigation budgets do not prove that the target is achievable.",
+    "compatibility_target": "Current release reads at least three preceding released software versions; preserve decoding support while live volumes/snapshots need it.",
+    "soak_targets": "30 days on an exact candidate plus a 90-day rolling representative stability record; counts/time do not replace defect and data-integrity exits",
+    "owner_releases_only": true
   }
 }

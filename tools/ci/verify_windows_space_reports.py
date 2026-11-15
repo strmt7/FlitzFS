@@ -1,7 +1,7 @@
 """Reconcile bounded, source-bound READ-ONLY Windows space observations.
 
 Secondary API errors are retained evidence, not a supported-compression claim.
-This executable is hosted-Windows-only. Unit tests exercise pure validators.
+Report collection requires native Windows. Unit tests exercise pure validators.
 """
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import subprocess
 import sys
 
 MAX_REPORT_BYTES = 8192
@@ -161,17 +162,20 @@ def reconcile(reports: list[dict], commit: str) -> dict:
                     for key in ("get_compressed_low", "get_compressed_high", "get_compressed_last_error")}
                    for phase in PHASES] for name in FILES
         },
-        "qualification": "hosted Server read-only observations; no writable/client/GPU qualification",
+        "qualification": "read-only observations only; no writable/client/GPU qualification",
     }
 
 
 def main() -> None:
-    require(sys.argv[1:] == ["--hosted"], "explicit hosted reporting mode required")
-    require(os.name == "nt" and os.environ.get("GITHUB_ACTIONS") == "true"
-            and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted"
-            and os.environ.get("RUNNER_OS") == "Windows"
-            and os.environ.get("GITHUB_REPOSITORY") == "strmt7/FlitzFS", "hosted Windows repository required")
-    commit = os.environ.get("GITHUB_SHA", "")
+    # Retain the old spelling for existing workflow callers.
+    require(sys.argv[1:] in (["--fixture"], ["--hosted"]), "explicit fixture reporting mode required")
+    require(os.name == "nt", "native Windows report collection required")
+    # Bind reports to their exact source without requiring a CI environment.
+    commit = os.environ.get("GITHUB_SHA")
+    if not commit:
+        commit = subprocess.run(
+            ["git", "-C", str(Path(__file__).resolve().parents[2]), "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True, timeout=10).stdout.strip()
     root = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     paths = sorted(root.glob("flitzfs-probe-*/space-*.json"))
     require(len(paths) == 3, "exactly three owned phase reports required")

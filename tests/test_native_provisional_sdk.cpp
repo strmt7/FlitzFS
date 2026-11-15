@@ -136,11 +136,6 @@ void run(Case test,StoreCompressionMode mode,bool replace) {
 }
 }
 int main(){try {
-  wchar_t action[16]{},environment[32]{};
-  if(GetEnvironmentVariableW(L"GITHUB_ACTIONS",action,16)!=4 || std::wstring_view(action)!=L"true" ||
-      GetEnvironmentVariableW(L"RUNNER_ENVIRONMENT",environment,32)!=13 ||
-      std::wstring_view(environment)!=L"github-hosted")
-    throw std::runtime_error("disposable hosted SDK fixture required");
   for(const auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic})for(bool replace:{false,true})
     for(const auto test:{Case::cancel_before,Case::invalid_clock,Case::unstamped,Case::allocation_reject,
         Case::storage_failure,Case::success_cancel,Case::success_adopt,Case::active_close_reject})run(test,mode,replace);

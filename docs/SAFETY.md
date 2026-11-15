@@ -237,8 +237,9 @@ writer terminal; outcome may already have committed, so retry is forbidden.
 One surviving root is explicitly degraded. Corrupt latest dependencies fail
 rather than silently selecting older contents. BLAKE3 is unkeyed integrity,
 not authentication or malicious-tamper protection. There is no writable mount,
-existing-store writable reopen or sole-copy safety qualification. File tests
-must run on disposable hosted VMs; owner-PC storage remains untouched.
+existing-store writable reopen or sole-copy safety qualification. Ordinary-file fixtures
+require qualified disposable backing; owner-host filesystem images remain in
+memory. There is no blanket hosting restriction on safe local testing.
 
 ## Filesystem scope
 
@@ -376,8 +377,9 @@ It cannot attest that old external/kernel contexts have retired. It retains
 cleaned contexts, keeps records on failed retirement and fences protocol/
 integrity failure rather than retrying or guessing deletion. Read optimization
 does not bypass namespace/requested-record verification or full public snapshot
-admission. See NATIVE_FILE_SESSION.md. No mounted-write/owner-host permission
-or proof of universal failure immunity is added.
+admission. See NATIVE_FILE_SESSION.md. These checks add no mounted-write
+qualification or proof of universal failure immunity. Local execution follows
+the current host guide.
 
 
 Native Flush performs a real backend barrier without changing publication or
@@ -396,8 +398,9 @@ barriers. Attribute-write authority is separate from data-write authority;
 failed updates retain contexts and fence. Existing limits, legacy encoding,
 full public verification and delayed untouched-media detection remain.
 Read-only SDK projection uses present fields exactly while independently denying
-writes. Current synthetic host-oracle/mount checks stay off the owner's PC;
-they do not qualify Windows 11 clients, writable caching, physical power cuts,
+writes. Host-oracle and mount checks require qualified fixture backing, resources
+and existing runtime support; no blanket location ban applies. These checks alone
+do not qualify Windows 11 clients, writable caching, physical power cuts,
 automatic timestamp policy, security/allocation or arbitrary-failure immunity.
 
 The separately scoped FLTXNS03 process campaign preserves every existing legacy
@@ -731,7 +734,8 @@ a new process-memory guarantee. No probe starts a worker or performs I/O. Source
 identity/range/bytes must match before advice is returned; failed probes stay
 terminal and retain CPU input. Callers still need qualified resource/quietness
 and the existing complete-candidate verification/publication gates. See
-COMPRESSION_PROBES.md. No owner-host execution is authorized by compilation.
+COMPRESSION_PROBES.md. Compilation alone does not qualify execution; the
+current local resource/backing policy governs actual tests.
 
 ## Explicit Windows physical-node metadata
 

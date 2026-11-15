@@ -149,10 +149,6 @@ void inspect_topology(std::array<std::byte,8> luid,const ProbeBudget& budget,boo
       <<",\"controller_job_peak_commit_bytes\":"<<budget.peak_commit()<<"}\n";
 }
 void inspect_warp_topology(const ProbeBudget& budget) {
-  const auto* actions=std::getenv("GITHUB_ACTIONS");
-  const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
-  require(actions && std::string_view(actions)=="true" && environment &&
-      std::string_view(environment)=="github-hosted","WARP metadata is disposable-hosted only");
   Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
   require(SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))) && factory,
       "WARP metadata factory unavailable");

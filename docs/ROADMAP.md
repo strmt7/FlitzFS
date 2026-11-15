@@ -186,7 +186,7 @@ Exclusive custom-backend resume, uncertain-tail preservation and missing-root
 repair advance the transactional persistence foundation. The new hosted process
 interruption gate must verify acknowledged history and successful continuation
 on Windows and Linux before public existing-file admission or writable namespace
-integration. The file adapter's existing-image mode remains internal, hosted-only
+integration. The file adapter's existing-image mode remains an internal owned-fixture API
 and confined to uniquely owned fixtures. See STORE_RESUME_AND_INTERRUPTION.md.
 
 ## Native file semantics connected to transactions
@@ -733,7 +733,7 @@ client/flush/self-open rejection and both affected mounted profiles. Historical
 root cause is not declared proven. Additional CPU tests cover post-acknowledgement
 cancellation/abandonment and early source exit; their new-source results are pending. Preserve the original child
 deadlines, open-handle kill case, full acknowledged-state comparison and all
-owner-PC prohibitions.
+current data, driver, backing, resource and process-ownership protections.
 
 
 ## L01 advisory-state foundation

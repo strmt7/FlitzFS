@@ -168,7 +168,7 @@ void invariants() {
   }
   std::cout<<"],\"checks\":"<<checks<<",\"complete\":true}\n";
 }
-// Hosted-only microbenchmark; neither filesystem throughput nor GPU evidence.
+// Explicit Windows microbenchmark; neither filesystem throughput nor GPU evidence.
 void stdout_probe(std::string_view mode) {
   hosted_digest_limits();
 #ifdef _WIN32
@@ -179,7 +179,7 @@ void stdout_probe(std::string_view mode) {
   std::cout.write(reinterpret_cast<const char*>(payload.data()),payload.size());
   if(!std::cout)throw std::runtime_error("stdio probe output");
 #else
-  (void)mode;throw std::runtime_error("stdio probe is hosted Windows only");
+  (void)mode;throw std::runtime_error("stdio probe requires Windows CRT modes");
 #endif
 }
 void benchmark() {

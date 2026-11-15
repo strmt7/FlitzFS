@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Disposable-hosted CocoIndex routing; no owner-PC or product-runtime use."""
+"""Resource-contained Linux CocoIndex routing; never a product-runtime dependency.
+
+Windows local routing uses tools/dev/semantic_search.py. Execution location does
+not replace source/provider identity or actual process-tree resource admission.
+"""
 import argparse
 import datetime
 import hashlib
@@ -91,9 +95,8 @@ def verify_checkout(run,repo,commit):
         "source commit differs from selected identity")
     run(["git","-C",repo,"diff","--exit-code","HEAD","--"],30)
 def cgroup():
-    require(sys.platform=="linux" and platform.machine().lower() in ("x86_64","amd64") and
-        os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted",
-        "semantic execution requires disposable hosted Linux x86-64; never the owner PC")
+    require(sys.platform=="linux" and platform.machine().lower() in ("x86_64","amd64"),
+        "this adapter requires Linux x86-64; use tools/dev/semantic_search.py on Windows")
     groups=Path("/proc/self/cgroup").read_text().splitlines()
     require(len(groups)==1 and groups[0].startswith("0::/"),"bounded cgroup-v2 execution required")
     group=Path("/sys/fs/cgroup")/groups[0].split("::",1)[1].lstrip("/")
@@ -257,8 +260,10 @@ class Provider:
             require(len(entries)<=20000 and self.wheel_entries<=100000,"wheel entry budget")
             seen=set();expanded=0
             for entry in entries:
-                name=entry.filename;pure=PurePosixPath(name)
-                require(name and not pure.is_absolute() and "\\" not in name and ":" not in name and
+                # ZipInfo normalizes Windows separators and truncates NULs in
+                # filename. Admit the original archive name, never that alias.
+                name=entry.orig_filename;pure=PurePosixPath(name)
+                require(name and name==entry.filename and not pure.is_absolute() and "\\" not in name and ":" not in name and
                     all(x not in ("",".","..") for x in pure.parts) and pure.as_posix()==name.rstrip("/") and name not in seen,
                     "unsafe or duplicate wheel path")
                 seen.add(name)

@@ -1,4 +1,4 @@
-// Hosted-only native object-store comparison. Timed backing bytes stay in RAM.
+// Explicit native object-store comparison. Timed backing bytes stay in RAM.
 #include "flitzfs/object_store.hpp"
 #ifdef FLITZFS_BOUNDED_DIGEST_COMPARISON
 #include "hosted_digest_limits.hpp"
@@ -64,11 +64,6 @@ std::vector<StoreMutation> corpus(std::string_view name) {
 }
 StoreIdentity identity(){StoreIdentity id{};id[0]=std::byte{109};id[1]=std::byte{7};return id;}
 double milliseconds(Clock::duration d){return std::chrono::duration<double,std::milli>(d).count();}
-void hosted_only() {
-  const char* a=std::getenv("GITHUB_ACTIONS"),*b=std::getenv("RUNNER_ENVIRONMENT");
-  if(!a || !b || std::strcmp(a,"true") || std::strcmp(b,"github-hosted"))
-    throw std::runtime_error("comparison requires a disposable GitHub-hosted VM");
-}
 void verify(const ObjectStoreSnapshot& s,const std::vector<StoreMutation>& data) {
   if(s.info().objects!=data.size())throw std::runtime_error("namespace parity");
   for(const auto& m:data)if(s.read(m.id)!=m.bytes)throw std::runtime_error("byte parity");
@@ -76,7 +71,6 @@ void verify(const ObjectStoreSnapshot& s,const std::vector<StoreMutation>& data)
 }
 int main(int argc,char** argv) {
   try {
-    hosted_only();
 #ifdef FLITZFS_BOUNDED_DIGEST_COMPARISON
     hosted_digest_limits();
 #endif

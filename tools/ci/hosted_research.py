@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native Crawl4AI research on bounded disposable hosted VMs only.
+"""Native Crawl4AI research on resource-contained Linux.
 
 This product includes software developed by UncleCode (https://x.com/unclecode)
 as part of Crawl4AI (https://github.com/unclecode/crawl4ai).
@@ -234,8 +234,8 @@ def source_metadata(result):
             "revision_verified": False}
 
 def guard():
-    if os.name != "posix" or os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("RUNNER_ENVIRONMENT") != "github-hosted":
-        raise RuntimeError("Requires a disposable GitHub-hosted Linux VM")
+    if sys.platform != "linux":
+        raise RuntimeError("This adapter requires Linux cgroup-v2; use a qualified local Windows provider on Windows")
     groups = Path("/proc/self/cgroup").read_text().strip().splitlines()
     if len(groups) != 1 or not groups[0].startswith("0::/"):
         raise RuntimeError("Explicit cgroup-v2 limits required")

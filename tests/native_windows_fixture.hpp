@@ -20,9 +20,8 @@ inline bool environment_is(PCWSTR name,std::wstring_view expected) {
   return n>0 && n<64 && std::wstring_view(value,n)==expected;
 }
 inline void hosted() {
-  require(environment_is(L"GITHUB_ACTIONS",L"true") &&
-      environment_is(L"RUNNER_ENVIRONMENT",L"github-hosted"),
-      "native Windows image fixture requires a disposable hosted VM");
+  require(GetEnvironmentVariableW(L"RUNNER_TEMP",nullptr,0)>1,
+      "native Windows image fixture requires an explicitly qualified fixture parent");
 }
 inline StoreIdentity identity() {
   StoreIdentity result{};result[0]=std::byte{0x4e};result[15]=std::byte{0x57};return result;

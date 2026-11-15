@@ -114,7 +114,7 @@ Three CPU CTest groups cover:
   each mode/layout and attribute policy, followed by independent CPU recovery
   and a newly prepared/adopted continuation. Older fault groups remain intact.
 
-The hosted-only Windows SDK group invokes the ACTUAL selected DLL functions
+The explicit Windows SDK group invokes the ACTUAL selected DLL functions
 FspFileSystemOpOverwrite, FspFileSystemOpClose and FspFileSystemOpCleanup. Its
 32 raw/automatic and attribute-mode cases check canceled Open, bad clock,
 unstamped inode, unsupported test allocation, first-write failure, successful

@@ -1,5 +1,5 @@
 #pragma once
-// Test/benchmark containment only; no product caller or owner-PC permission.
+// Explicit Windows test/benchmark containment; never a product runtime policy.
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
@@ -10,9 +10,6 @@
 #include <windows.h>
 #endif
 inline void hosted_digest_limits() {
-  const char* a=std::getenv("GITHUB_ACTIONS"),*b=std::getenv("RUNNER_ENVIRONMENT");
-  if(!a || !b || std::strcmp(a,"true") || std::strcmp(b,"github-hosted"))
-    throw std::runtime_error("digest comparison requires disposable hosted VM");
 #ifdef _WIN32
   const auto job=CreateJobObjectW(nullptr,nullptr);
   if(!job)throw std::runtime_error("digest job creation");
@@ -33,6 +30,6 @@ inline void hosted_digest_limits() {
   // Assigned kill-on-close handle lives until process exit, as in the owned
   // interruption probe. Never close it in an ordinary stack destructor.
 #else
-  throw std::runtime_error("timed digest comparison is Windows hosted only");
+  throw std::runtime_error("timed digest comparison requires Windows Job Objects");
 #endif
 }

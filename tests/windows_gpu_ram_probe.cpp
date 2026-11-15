@@ -34,12 +34,6 @@ namespace ram=locked_ram_fixture;
 namespace fs=std::filesystem;
 void require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 
-void hosted_only() {
-  const auto* actions=std::getenv("GITHUB_ACTIONS");
-  const auto* runner=std::getenv("RUNNER_ENVIRONMENT");
-  require(actions&&std::string_view(actions)=="true"&&runner&&
-      std::string_view(runner)=="github-hosted","disposable hosted runner required");
-}
 void local_path(const fs::path& path) {
   const auto text=path.native();
   require(text.size()>=4 && text.size()<=1024 &&
@@ -102,10 +96,6 @@ Worker options(int argc,wchar_t** argv) {
   Worker w;
   if(mode==L"--cpu-fixture") {
     require(argc==5,"CPU fixture requires NEW_REPORT TRUSTED_HELPER FIXTURE_MODE");
-    const auto* actions=std::getenv("GITHUB_ACTIONS");
-    const auto* runner=std::getenv("RUNNER_ENVIRONMENT");
-    require(actions && std::string_view(actions)=="true" && runner &&
-        std::string_view(runner)=="github-hosted","CPU fixture is disposable-hosted only");
     const std::wstring_view fixture(argv[4]);
     require(fixture==L"match" || fixture==L"match-invalid" ||
         fixture==L"match-hip-declaration" || fixture==L"match-hold","unreviewed CPU fixture mode");
@@ -313,7 +303,7 @@ int wmain(int argc,wchar_t** argv) {
   };
   try {
     if(argc>1&&std::wstring_view(argv[1])==L"--transport-accounting-ci") {
-      require(argc==4,"transport accounting requires NEW_REPORT TRUSTED_CPU_HELPER");hosted_only();
+      require(argc==4,"transport accounting requires NEW_REPORT TRUSTED_CPU_HELPER");
       Worker fixture;fixture.executable=argv[3];fixture.warmup={L"match"};
       local_path(fixture.executable);
       require(fixture.executable.filename()==L"flitzfs_worker_exchange_tests.exe","unexpected accounting helper");

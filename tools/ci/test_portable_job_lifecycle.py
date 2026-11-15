@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Actual private-job contention; hosted Windows only, no fixture files."""
+"""Actual private-job contention; native Windows, no fixture files."""
 import json
 import os
 import subprocess
@@ -24,8 +24,7 @@ def close_child(child):
         raise ExceptionGroup("private lifecycle child cleanup",failures)
 
 def main():
-    checker.require(sys.platform=="win32" and os.environ.get("GITHUB_ACTIONS")=="true" and
-        os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","disposable hosted Windows VM required")
+    checker.require(sys.platform=="win32","native Windows process/API support required")
     checker.contain()
     baseline=checker.wait_for_job_slot()
     checker.require(baseline["active"]==1 and baseline["active_limit"]==2,"private job admission")

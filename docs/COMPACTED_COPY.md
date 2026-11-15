@@ -3,7 +3,8 @@
 Experimental native storage primitive. It creates a NEW destination, never
 rewrites the source, never truncates an incomplete destination, and never
 renames/deletes a file. No CLI, mount, automatic background worker or GPU runtime
-is enabled. All execution/qualification remains on disposable hosted VMs.
+is enabled. Local execution follows AGENTS.md and HOST_RAM_TESTING.md; source,
+ownership, resource and backing requirements remain controlling.
 
 ## Ownership and identities
 

@@ -1,7 +1,9 @@
 > Current scope: native filesystem backing images only. The former archive-backed
 > probe has been removed; any archive-specific assertions below describe historical
 > runs. Current tests retain native image reads, write rejection, supervision and
-> independent CPU recovery/remount. No owner-PC testing is authorized.
+> independent CPU recovery/remount. Apply current host/backing rules in AGENTS.md.
+> This ordinary-file fixture needs qualified disposable backing and an existing
+> runtime. Do not install a driver on the owner host or use physical image backing.
 
 # Disposable real-mount integration gate
 
@@ -10,14 +12,16 @@
 The prior session and Job Object work is qualified by CI run 42380771960 at
 `41cff2eea5d77f5b9582cca16c4b3c192f1e6a7b`: all five jobs passed. This milestone
 advances from injected lifecycle operations to actual Windows filesystem I/O.
-The new probe is implemented; its live qualification is determined by the
-matching `windows-mount` CI job, not by local Linux or callback-only success.
+The probe is implemented. The historical qualification is in the matching
+`windows-mount` CI job; new qualification must execute the actual source-bound
+mounted path with the required backing/runtime/resource contracts. Linux or
+callback-only success does not prove that property, regardless of location.
 
 The optional `FLITZFS_BUILD_MOUNT_PROBE` executable accepts **no source or mount
-paths**. It is never registered with CTest. Execution requires explicit mode,
-GitHub-hosted Windows environment values and `FLITZFS_ALLOW_DISPOSABLE_MOUNT=1`.
-These checks prevent accidental invocation; spoofable environment variables are
-NOT a security boundary and do not prove that a machine is disposable.
+paths**. It is never registered with CTest. Execution requires explicit mode and `FLITZFS_ALLOW_DISPOSABLE_MOUNT=1`,
+qualified disposable backing, actual Windows/runtime support and resource limits.
+Hosting environment values are not permission checks. The opt-in prevents
+accidental invocation; it is not a security boundary or proof of safe backing.
 
 ### Resource and data boundaries
 

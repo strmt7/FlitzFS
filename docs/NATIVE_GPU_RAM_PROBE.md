@@ -68,14 +68,16 @@ No services, tasks, reboot persistence, elevation or driver changes are used.
 
 ## Explicit modes and trust
 
-- --cpu-fixture NEW_REPORT TRUSTED_HELPER FIXTURE_MODE is GitHub-hosted only.
+- --cpu-fixture NEW_REPORT TRUSTED_HELPER FIXTURE_MODE requires the audited
+  CPU memory fixture and a resource-contained process tree, not hosting flags.
   It exercises real CPU worker processes using match, match-invalid,
   match-hip-declaration and match-hold. Even a fake HIP declaration cannot
   turn those tests into GPU execution.
 - --driver-once NEW_REPORT TRUSTED_WORKER ORDINAL LUID RUNTIME_SHA256 TRUSTED_CPU_HELPER is an
   explicitly requested diagnostic, not an automatic filesystem route. The
   caller must verify source/bundle hashes, trusted containing directories,
-  current identity/headroom and prior matching VM qualification. It uses the
+  current identity/headroom and matching source/runtime qualification.
+  No mandatory VM-first gate applies to safe local GPU development. It uses the
   existing pinned installed-runtime worker, never installs a runtime/driver.
   TRUSTED_CPU_HELPER must be the separately hashed portable
   flitzfs_worker_exchange_tests.exe from the same qualified RAM package.

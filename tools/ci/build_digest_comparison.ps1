@@ -1,10 +1,10 @@
-# Disposable hosted Windows only. Same source/codecs, two CPU digest policies.
+# Qualified Windows process/backing profile. Same source/codecs, two digest policies.
 [CmdletBinding()]
 param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows') {
-    throw 'Digest qualification requires a disposable hosted Windows VM'
+if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
+    throw 'Digest qualification uses native Windows process APIs'
 }
 $pin='f8745da6ff1ad1e7bab384bd1f9d742439278e99'
 $head=git -C .ci-deps/zstd rev-parse HEAD

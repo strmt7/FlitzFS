@@ -233,7 +233,8 @@ launches and the existing repeated successful/fault cases must retain the
 zero-growth assertion. There is no increased tolerance. The synchronous adapter
 also reaps its confirmed coordinator thread-observation handle immediately;
 asynchronous ownership still persists until exact retirement. The diagnostic
-mode is hosted-only and runs in a SEPARATE process from the transport test.
+mode requires explicit resource admission and runs in a SEPARATE process from
+the transport test. Hosting flags are not admission evidence.
 Exact corrected-commit results remain required before qualification.
 
 ## Recovery policy connected to explicit requests
@@ -334,7 +335,7 @@ controls remain independent; extra memory never authorizes a longer kernel or
 more concurrent processes. Product runtime peak calibration and actual adaptive
 GPU routing remain unfinished.
 
-New hosted-only CPU fixtures transfer 3,145,765 request bytes and 2,097,223 reply
+Explicit CPU fixtures transfer 3,145,765 request bytes and 2,097,223 reply
 bytes, compare the entire reply, and reject incompatible legacy/capacity framing,
 corrupt guards, failure after publication, double publication and cancellation.
 They check the same exclusive admission, exact retirement, closed mappings and

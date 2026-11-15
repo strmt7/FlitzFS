@@ -91,7 +91,7 @@ A separate Windows Job Object runner limits trusted CPU helpers before they
 execute: default 128 MiB committed memory, maximum 20% CPU, one active process,
 below-normal priority and bounded waits. This is not a security or kernel sandbox.
 
-The optional hosted-only synthetic probe uses the real provider, a fresh
+The optional explicitly admitted synthetic probe uses the real provider, a fresh
 pinned fixture parent and create-only directory leaf. It verifies ordinary,
 random and mapped reads, enumeration, mutation rejection and orderly shutdown.
 A second child is forcibly terminated after proving working mounted I/O; a

@@ -1,4 +1,4 @@
-// Hosted-only CPU ordinary-file interruption probe. No mount, driver or GPU.
+// Explicit CPU ordinary-file interruption probe. No mount, driver or GPU.
 #include "flitzfs/object_store.hpp"
 #include "flitzfs/read_only_file.hpp"
 #include "store_file.hpp"
@@ -24,10 +24,6 @@ using namespace flitzfs;
 using Bytes=std::vector<std::byte>;
 namespace fs=std::filesystem;
 void require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
-void hosted() {
-  const char* a=std::getenv("GITHUB_ACTIONS"),*b=std::getenv("RUNNER_ENVIRONMENT");
-  require(a && b && std::string(a)=="true" && std::string(b)=="github-hosted","disposable hosted VM required");
-}
 void contain() {
 #ifdef _WIN32
   // Keep this handle until process exit. Closing an assigned kill-on-close
@@ -437,7 +433,7 @@ void recover_probe(const fs::path& path,bool repair,std::uint64_t floor,StoreCom
 }
 int main(int argc,char** argv) {
   try {
-    hosted();contain();
+    contain();
     require(argc==7 || argc==8,"probe role, parent, token, policy, phase, floor and optional source digest required");
     const std::string role(argv[1]),token(argv[3]),policy(argv[4]),phase(argv[5]),floor_text(argv[6]);
     require((role=="write"||role=="recover") && (policy=="raw"||policy=="auto") &&

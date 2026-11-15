@@ -5,9 +5,9 @@
 #include <filesystem>
 #include <memory>
 namespace flitzfs {
-// Experimental real writable adapter. Factory is restricted to disposable
-// hosted VMs until its kernel/lifecycle/backing qualification is complete.
-// Default factories create NEW images. The explicit hosted resume experiment
+// Experimental real writable adapter; qualify backing, runtime and containment.
+// Historical _hosted names remain for ABI/report compatibility, not location.
+// Default factories create NEW images. The explicit resume experiment
 // requires independently confirmed old-owner retirement; never selects a driver.
 struct HostedVolumeMaintenanceResult {
   NativeVolumeHeadInfo head;

@@ -12,6 +12,13 @@ security information and complementary checks; push at meaningful checkpoints.
 Use VMs or hosted machines for operations that cannot safely run on this host,
 including deliberate kernel/driver/power faults and driver provisioning.
 
+The owner reaffirmed full host use during this planning round. Remove obsolete
+location-only instructions and checks from safe tooling; resource, source,
+ownership and backing contracts are the admission criteria. Historical hosted
+receipts and legacy fixture names are not permission rules. A genuine OS/API or
+fixture-backing requirement must be described as such, never as a general host
+ban. Do not require hosted CI before ordinary local work.
+
 This section governs execution location. Older component pages and historical
 receipts do not reinstate a blanket owner-PC ban, mandatory CI/VM-first gate,
 source-only local-work exception or prohibition on local build/cache/log files.
@@ -142,6 +149,23 @@ from essential decoder state. Make maintenance automatically responsive to
 workload/content and fresh contention, very low priority, incremental, bounded
 and promptly yielding. Mutable learned preferences never override safety gates.
 
+The owner's coherence-catalog clarification requires a persistent sparse,
+paged similarity/candidate index in a protected internal logical area, not a
+dense all-pairs file matrix or another host partition. Final learning/inference
+and all normal operation must work offline without an online model. Minimum
+complete stored size remains primary; practical latency and drive wear receive
+secondary consideration. Background correlation, compression, defragmentation,
+repair and format migration must measure interference and write amplification,
+reuse unchanged work and defer/yield under contention. Adapt to each host and
+volume's actual data distribution; do not present fixed heuristics as full AI.
+
+Multi-release compatibility and gradual automatic migration are required product
+work. Preserve supported older readers/fixtures and immutable CPU decoding
+dependencies. Version format semantics explicitly; never reuse identifiers.
+Migrate bounded units with verified COW publication and recoverable progress,
+not destructive whole-volume upgrades. The release plan specifies the proposed
+minimum support window; it is not an implemented updater or a release grant.
+
 ## Component reading and current boundaries
 
 Read the relevant canonical contracts before changing their implementation.
@@ -190,6 +214,13 @@ under docs/, with links from the relevant index.
 Update FORMAT, SAFETY, ROADMAP and validation records when actual behavior
 changes. Keep a concise current checkpoint, separate from historical results.
 Report what changed, why, executed checks, resource cleanup and material limits.
+
+Use docs/RELEASE_EXECUTION_PLAN.md as the current release work/effort/gate plan
+and docs/BENCHMARK_PROTOCOL.md for objective comparisons. Prefer recognized
+DiskSpd/fio/fsbench and correctness/codec suites where suitable; custom tests
+cover only explicit gaps. Preserve all trial results and measure complete
+stored bytes, CPU/GPU setup, access costs and background interference. Historical
+example timings, synthetic zeros or selected best runs do not establish records.
 Do not claim release readiness, exceptional compression, GPU speedup or data-loss
 immunity without evidence covering that specific claim. Keep the full goal active
 until its required product work is actually complete; do not release autonomously.

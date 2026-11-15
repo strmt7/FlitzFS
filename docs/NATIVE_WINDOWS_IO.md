@@ -89,7 +89,7 @@ callback; no worker, thread, service, scheduled task or retry is created here.
 
 ## Configured SDK and fault gates
 
-The hosted-only fixture uses actual FspFileSystemOpWrite, SetInformation,
+The explicit SDK fixture uses actual FspFileSystemOpWrite, SetInformation,
 QueryInformation and FlushBuffers exports. It verifies all output fields,
 append/constrained/empty/clipped cases, EOF/allocation shrink, zeroed regrowth,
 real file/volume Flush, late detached paging and context retirement.

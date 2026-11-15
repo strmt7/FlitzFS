@@ -129,10 +129,6 @@ void run(StoreCompressionMode mode,Kind kind) {
 }
 }
 int main(){try {
-  wchar_t action[16]{},environment[32]{};
-  if(GetEnvironmentVariableW(L"GITHUB_ACTIONS",action,16)!=4 || std::wstring_view(action)!=L"true" ||
-      GetEnvironmentVariableW(L"RUNNER_ENVIRONMENT",environment,32)!=13 ||
-      std::wstring_view(environment)!=L"github-hosted")throw std::runtime_error("hosted-only SDK fixture");
   for(const auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic})
     for(const auto kind:{Kind::single,Kind::pair,Kind::empty_dir,Kind::nonempty_dir,Kind::nonempty_pair,
         Kind::cancel_open,Kind::cancel_create,Kind::failed,Kind::unauthorized,Kind::overwrite,Kind::supersede})run(mode,kind);

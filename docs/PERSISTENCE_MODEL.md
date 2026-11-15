@@ -91,7 +91,7 @@ remain in evidence/hosted-durability-research-740a12d.json; full native captures
 have the hosted artifact's 30-day retention.
 
 The separate OBJECT_STORE_FORMAT.md now specifies a bounded raw-object engine,
-BLAKE3 integrity, CPU parser, storage interfaces and hosted-only file adapter.
+BLAKE3 integrity, CPU parser, storage interfaces and explicit owned-file adapter.
 Its tests exercise concrete encoded records; this abstract model retains a
 separate input/acknowledgement oracle. File/name durability, full disk,
 process/power-loss tests and mounted writes remain separate gates. No sole-copy

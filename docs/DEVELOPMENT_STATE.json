@@ -109,8 +109,8 @@
     }
   ],
   "next_implementation": {
-    "contract": "docs/OWNED_DEFERRED_WRITES.md",
-    "next": "Qualify actual GPU completion through the owned callback service, then repeated keyed costs, independent helper/dependency discovery and automatic useful Windows routing with finite coalescing. Co-design scalable populated storage and one protected cross-file compression transaction; preserve the full goal."
+    "contract": "docs/RELEASE_EXECUTION_PLAN.md",
+    "next": "Implement paged native inode/name/extent transactions through the shared native/session engine APIs, stable directory pagination and explicit legacy migration. Protect exact sharing and file lifetimes. Qualify populated named files separately from the million-object index result."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
@@ -123,7 +123,10 @@
     "native_windows_application": "Experimental unmounted editor/control/tray and private memory provider; 99d5365 passed VM model/GUI and one healthy owner GUI with exact retirement. Mounted/physical/installer/authorization remain unfinished.",
     "native_workload_provenance": "Managed/session/helper integration qualified at5b58568, including one healthy owner GUI. No automatic optimizer or useful GPU gain.",
     "funded_advisory_control": "Capability 2 managed journal qualified at 5db3ae7. New failed-owner preflight only declines through cached facts or establishes checked loss baselines; positive results never authorize writes.",
-    "gpu_codec_candidate": "Uniform version-2 typed runtime, finite reused compute and FLUSP001 observations passed full SDK/all 13 core jobs at 11fbf07, then one bounded hardware/native/independent-CPU-recovery check. Cost qualification, ordinary Windows routing and collective GPU formats remain unfinished."
+    "gpu_codec_candidate": "Uniform version-2 typed runtime, finite reused compute and FLUSP001 observations passed full SDK/all 13 core jobs at 11fbf07, then one bounded hardware/native/independent-CPU-recovery check. Cost qualification, ordinary Windows routing and collective GPU formats remain unfinished.",
+    "coherence_catalog": false,
+    "automatic_format_migration": false,
+    "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending."
   },
   "safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
@@ -1071,5 +1074,169 @@
     "release": false,
     "millions_of_files": "One million object records tested; paged named-file/extent integration and scan scheduling remain incomplete.",
     "group_cardinality": "one, two or thousands; adaptive with practical retrieval cost"
+  },
+  "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "benchmark_protocol": "docs/BENCHMARK_PROTOCOL.md",
+  "release_effort_estimate": {
+    "planning_only": true,
+    "work_packages": [
+      {
+        "id": "E01",
+        "title": "Paged native namespace and extent integration",
+        "person_weeks_low": 6,
+        "person_weeks_high": 12,
+        "package_ids": [
+          "S01"
+        ]
+      },
+      {
+        "id": "E02",
+        "title": "Allocator, reclamation and recoverable dependencies",
+        "person_weeks_low": 5,
+        "person_weeks_high": 10,
+        "package_ids": [
+          "S01",
+          "R01"
+        ]
+      },
+      {
+        "id": "E03",
+        "title": "Useful automatic AMD path and CPU fallback",
+        "person_weeks_low": 4,
+        "person_weeks_high": 9,
+        "package_ids": [
+          "G02",
+          "G03",
+          "A02"
+        ]
+      },
+      {
+        "id": "E04",
+        "title": "Persistent sparse coherence catalog",
+        "person_weeks_low": 3,
+        "person_weeks_high": 7,
+        "package_ids": [
+          "S01",
+          "A04"
+        ]
+      },
+      {
+        "id": "E05",
+        "title": "Deep compression research and candidate selection",
+        "person_weeks_low": 6,
+        "person_weeks_high": 16,
+        "package_ids": [
+          "A04"
+        ]
+      },
+      {
+        "id": "E06",
+        "title": "Production collective codec and random access",
+        "person_weeks_low": 5,
+        "person_weeks_high": 12,
+        "package_ids": [
+          "A04",
+          "R01"
+        ]
+      },
+      {
+        "id": "E07",
+        "title": "Adaptive offline learning and background control",
+        "person_weeks_low": 4,
+        "person_weeks_high": 9,
+        "package_ids": [
+          "A01",
+          "A03",
+          "L01"
+        ]
+      },
+      {
+        "id": "E08",
+        "title": "Windows semantics and end-to-end integration",
+        "person_weeks_low": 5,
+        "person_weeks_high": 10,
+        "package_ids": [
+          "W01",
+          "D01"
+        ]
+      },
+      {
+        "id": "E09",
+        "title": "Format compatibility and gradual migration",
+        "person_weeks_low": 3,
+        "person_weeks_high": 6,
+        "package_ids": [
+          "U01"
+        ]
+      },
+      {
+        "id": "E10",
+        "title": "Application, installation and secure updates",
+        "person_weeks_low": 3,
+        "person_weeks_high": 6,
+        "package_ids": [
+          "W01",
+          "U01"
+        ]
+      },
+      {
+        "id": "E11",
+        "title": "Fault campaigns, fuzzing and security",
+        "person_weeks_low": 6,
+        "person_weeks_high": 12,
+        "package_ids": [
+          "D01",
+          "R01",
+          "Q01"
+        ]
+      },
+      {
+        "id": "E12",
+        "title": "Independent benchmark campaigns",
+        "person_weeks_low": 3,
+        "person_weeks_high": 6,
+        "package_ids": [
+          "Q01"
+        ]
+      },
+      {
+        "id": "E13",
+        "title": "Stabilization and representative soak",
+        "person_weeks_low": 6,
+        "person_weeks_high": 12,
+        "package_ids": [
+          "Q01"
+        ]
+      }
+    ],
+    "total_person_weeks_low": 59,
+    "total_person_weeks_high": 127,
+    "confidence": "low; engineering planning estimate, not measured autonomous-agent velocity or a delivery promise",
+    "small_team_calendar_months": "approximately 6-15+ with 2-3 experienced engineers, conditional on research/integration success",
+    "solo_calendar_months": "approximately 14-30 full-time engineer-months",
+    "research_exit": "No calendar guarantee for record-setting compression; investigation budgets do not prove that the target is achievable.",
+    "compatibility_target": "Current release reads at least three preceding released software versions; preserve decoding support while live volumes/snapshots need it.",
+    "soak_targets": "30 days on an exact candidate plus a 90-day rolling representative stability record; counts/time do not replace defect and data-integrity exits",
+    "owner_releases_only": true
+  },
+  "planning_round": {
+    "source_base": "7c601d39c8eb5f04a02bb889840efc06eac68171",
+    "status": "Comprehensive source-based release/benchmark plan and removal of obsolete location-only checks; selected local tooling and compilation qualification recorded separately.",
+    "full_goal_status": "active",
+    "release_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+    "benchmark_protocol": "docs/BENCHMARK_PROTOCOL.md",
+    "evidence": "docs/evidence/release-plan-review-2026-11-15.json",
+    "GPU_executed_this_round": false,
+    "release": false,
+    "local_validation": {
+      "evidence": "docs/evidence/release-plan-review-2026-11-15.json",
+      "selected_raw_checks": 48739,
+      "selected_asan_checks": 48739,
+      "worker_checks": 1199,
+      "syntax_only_units": 14,
+      "full_sdk_matrix": false,
+      "mount": false,
+      "GPU": false
+    }
   }
 }

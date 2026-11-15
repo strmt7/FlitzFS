@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Hosted-only relocation/dependency qualification; synthetic NEW files only."""
+"""Relocation/dependency qualification with synthetic NEW owned files only.
+
+The caller must qualify fixture backing and process-tree containment; a hosting
+environment variable is neither ownership nor resource evidence.
+"""
 import argparse
 import ctypes
 import hashlib
@@ -218,8 +222,6 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def main():
-    require(os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted",
-            "portable qualification requires a disposable GitHub-hosted VM; never the owner PC")
     require(sys.platform in ("linux","win32") and platform.machine().lower() in ("x86_64","amd64"),
             "unqualified OS/architecture")
     parser=argparse.ArgumentParser()
@@ -232,7 +234,7 @@ def main():
     original=source.read_bytes()
     audit=audit_binary(original)
     contain()
-    parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+    parent=Path(os.environ.get("RUNNER_TEMP",tempfile.gettempdir())).resolve(strict=True)
     require(shutil.disk_usage(parent).free>=2*1024**3,"qualification requires 2 GiB free headroom")
     fixture=Path(tempfile.mkdtemp(prefix="flitzfs-portable-",dir=parent))
     stage=fixture/"package staging"
@@ -326,7 +328,11 @@ def main():
         call(["catalog-list",manifest])
         call(["catalog-verify",manifest])
         call(["catalog-probe",manifest,"virtual.bin","65530","32"])
-    report={"experimental":True,"commit":os.environ["GITHUB_SHA"],"platform":sys.platform,
+    commit=os.environ.get("GITHUB_SHA") or subprocess.run(
+        ["git","-C",str(Path(__file__).resolve().parents[2]),"rev-parse","HEAD"],
+        check=True,capture_output=True,text=True,timeout=10).stdout.strip()
+    require(len(commit)==40 and all(c in "0123456789abcdef" for c in commit),"exact source commit required")
+    report={"experimental":True,"commit":commit,"platform":sys.platform,
         "codecs":args.codecs,"binary_sha256":digest(binary),"binary_bytes":len(original),
         "loader_audit":audit,"package_files":[name],"development_environment_inherited":False,
         "path_is_empty_directory":True,"relocated":True,"unicode_paths":True,

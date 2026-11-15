@@ -198,9 +198,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", choices=sorted(PROFILES | {"ram-handoff"}), required=True)
     args = parser.parse_args()
-    require(os.environ.get("GITHUB_ACTIONS") == "true"
-            and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted"
-            and os.environ.get("RUNNER_OS") == "Windows", "disposable hosted Windows only")
+    require(os.name == "nt", "native Windows support required")
     root = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     fixtures = list(root.glob("flitzfs-write-probe-*"))
     require(len(fixtures) == 1, "exactly one owned writable fixture required")

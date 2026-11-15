@@ -21,7 +21,10 @@ ctest --test-dir build -C Release -R '^bounded_native_(filesystem|shared_extents
 
 These selected CPU suites use in-memory filesystem models. The full CTest suite
 also contains ordinary-file fixtures; run those only with backing that meets
-the experiment's requirements, or on a disposable system where permitted.
+the experiment's requirements. Optional file/SDK fixture registration is
+controlled by `FLITZFS_REGISTER_INTEGRATION_FIXTURES`, which local builds may
+enable after qualifying their backing/runtime and containment. CI keeps its
+previous registration default; hosting flags are not a permission requirement.
 Use [the local host guide](../HOST_RAM_TESTING.md) and
 `tools/dev/windows_run.py` for resource-bounded Windows process-tree execution.
 Discover available tools and size build concurrency from actual headroom;

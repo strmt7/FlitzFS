@@ -362,10 +362,6 @@ unsigned __stdcall error_probe_thread(void* opaque) {
   return 0;
 }
 int native_error_resources() {
-  const auto* actions=std::getenv("GITHUB_ACTIONS");
-  const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
-  check(actions && std::string_view(actions)=="true" && environment &&
-      std::string_view(environment)=="github-hosted","error resource probe is hosted-only");
   auto count=[](const char* phase) {
     DWORD value=0;check(GetProcessHandleCount(GetCurrentProcess(),&value),"native error handle count");
     std::cout<<"native_error_handles "<<phase<<"="<<value<<'\n';

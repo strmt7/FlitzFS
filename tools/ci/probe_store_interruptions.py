@@ -380,8 +380,6 @@ def merge_reports(reports):
     return merged
 
 def main():
-    if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-        raise RuntimeError("disposable hosted VM required")
     parser=argparse.ArgumentParser()
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--build",type=Path,default=Path("build-store-crash"))
@@ -407,9 +405,9 @@ def main():
         return
     validate_partitions(args.partition,args.partitions)
     if args.campaign in ("basic","dense") and os.name!="nt":
-        raise RuntimeError("basic process campaign requires a disposable hosted Windows VM")
+        raise RuntimeError("basic process campaign requires its Windows process-tree harness")
     if args.partitions==2 and os.name!="nt":
-        raise RuntimeError("split campaign is a Windows hosted fixture only")
+        raise RuntimeError("split campaign requires its Windows process-tree harness")
     binary=(args.build/("Release" if os.name=="nt" else "")/
             ("flitzfs_store_crash_probe.exe" if os.name=="nt" else "flitzfs_store_crash_probe")).resolve()
     root=Path(__file__).resolve().parents[2]

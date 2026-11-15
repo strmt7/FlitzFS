@@ -1,6 +1,6 @@
 # Owned deferred Windows writes (experimental)
 
-The explicit hosted-only native adapter can now own one pending write. Its CPU/SDK and disposable mounted response paths passed at a4ad516.
+The explicit native adapter can own one pending write. Its CPU/SDK and disposable mounted response paths passed at a4ad516.
 Automatic ordinary GPU I/O remains unqualified. Default application/filesystem paths remain CPU-only and create no service.
 
 Source d384b6c passed all thirteen core jobs, all 53 prescribed SDK commands and
@@ -17,10 +17,14 @@ useful routing are still unqualified.
 The explicit --deferred-native-cpu-once invocation uses the same owned-service
 source, initial storage, cleanup and timing scope
 without launching a worker or querying the GPU. The original
---deferred-native-cpu-fixture remains hosted-only; the SDK gate checks rejection
-when that child's hosted flag is absent. Receipts identify hosted_cpu,
-explicit_cpu or gpu invocation. Changed source still requires exact-source
-qualification before owner use or a matched performance claim.
+--deferred-native-cpu-fixture now uses the same resource-contained memory
+fixture without requiring hosting flags. Receipts retain the historical
+hosted_cpu, explicit_cpu or gpu labels for compatibility. The revised SDK check
+requires the CPU alias to work with both hosting variables absent and preserve
+the explicit CPU storage/retirement result. That changed alias requires new
+source-bound SDK qualification; historical results below are not its execution
+evidence. The local host is authorized; matched performance claims still require
+actual new-source measurement.
 
 The first CPU-mode qualification at 94af72c passed all thirteen core jobs and all
 52 prescribed SDK commands, including both invocations and legacy-guard rejection.

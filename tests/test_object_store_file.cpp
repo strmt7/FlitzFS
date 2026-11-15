@@ -44,9 +44,6 @@ StoreIdentity id() {StoreIdentity value{};value[0]=std::byte{43};return value;}
 }
 int main() {
   try {
-    const auto* actions=std::getenv("GITHUB_ACTIONS");const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
-    require(actions && std::string(actions)=="true" && environment && std::string(environment)=="github-hosted",
-            "file-I/O tests require a disposable GitHub-hosted VM; never the owner PC");
     Fixture fixture;
     const auto backing=fixture.file("new-store.fltx");
     const auto original=content(8193),replacement=content(32769);
@@ -193,7 +190,7 @@ int main() {
     rejects([&]{(void)detail::reopen_store_file_for_hosted_test(link,{4096,true});},"reopen followed a final symlink");
     {std::ifstream in(sentinel);std::string text;std::getline(in,text);require(text=="do not replace","link target modified");}
 #endif
-    std::cout<<"PASS: hosted-only owned store, qualified resume, OS writer exclusion, snapshots and no-clobber checks; no mount/GPU.\n";
+    std::cout<<"PASS: owned store, qualified resume, OS writer exclusion, snapshots and no-clobber checks; no mount/GPU.\n";
     return 0;
   }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

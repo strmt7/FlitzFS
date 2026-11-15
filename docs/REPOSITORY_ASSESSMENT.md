@@ -1,6 +1,8 @@
 # FlitzFS repository assessment
 
-Current checkpoint: 14 November 2026; see the current section below. Historical
+Current checkpoint: 15 November 2026, local source `7c601d3`; use
+[the release execution plan](RELEASE_EXECUTION_PLAN.md) for current gaps,
+effort estimates and gates. Historical
 assessment baseline (11 November 2026):
 [8a5633b588869eb3808d089fca76937c6781991c](https://github.com/strmt7/FlitzFS/commit/8a5633b588869eb3808d089fca76937c6781991c),
 tree 01cf46b6fd34107ff53bb0f2604a2b8c1f10b8c7.
@@ -16,9 +18,9 @@ filesystem or the requested autonomous GPU-compression product**.
 The detailed execution contract is [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md);
 [DEVELOPMENT_PLAN.json](DEVELOPMENT_PLAN.json) is its compact harness ledger.
 
-## Current product checkpoint and inefficiencies
+## Historical integration checkpoint and inefficiencies (14 November)
 
-Current source a4ad5166d5063d820cfdd704a600ea20a23f1d93 passed all 13 core jobs and complete SDK
+The historical source a4ad5166d5063d820cfdd704a600ea20a23f1d93 passed all 13 core jobs and complete SDK
 qualification. Its owned deferred callback service passed 54 CPU checks and the
 real disposable CPU-only pending-response mount. Automatic GPU routing and GPU
 execution through this service remain unqualified. [Executed evidence](evidence/owned-deferred-a4ad516.json).
@@ -32,7 +34,7 @@ source digest 62d6ea6ffe24de000abc764a743c4ddbe35e9064ac57a05bf32451ebe3dc3ee3.
 Five relevant live source hashes matched. Search self-hits were not treated as
 implementation evidence.
 
-The latest qualified hardware case is 11fbf07: a finite instrumented 1-MiB GPU-native operation
+The earlier qualified hardware case was 11fbf07: a finite instrumented 1-MiB GPU-native operation
 with independent current/prior CPU recovery. It passed all 13 core jobs and full
 SDK qualification. Setup took 423 ms versus 22 ms accumulated kernel/full wait
 within the measured scope; [evidence](evidence/uniform-sweep-profile-11fbf07.json).

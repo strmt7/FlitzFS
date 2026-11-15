@@ -191,10 +191,6 @@ std::array<std::byte,8> luid_value(std::wstring_view text){
   return result;
 }
 int native_cpu_fixture(const gpu_probe_fixture::Budget& controller){
-  const auto* actions=std::getenv("GITHUB_ACTIONS");
-  const auto* runner=std::getenv("RUNNER_ENVIRONMENT");
-  require(actions && std::string_view(actions)=="true" && runner &&
-      std::string_view(runner)=="github-hosted","Native CPU composition is disposable-hosted only");
   require(store_lz4_available() && gpu_lz4_cpu_verification_available(),"Independent native CPU LZ4 required");
   const auto plain=lz4_native_fixture::source();
   detail::StoreCodecEncoder encoder({StoreCompressionMode::fast,6,false});

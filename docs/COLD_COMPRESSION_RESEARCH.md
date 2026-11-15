@@ -4,6 +4,11 @@
 compression claim. This extends A02/A03/A04 in the full product plan. Useful actual
 GPU acceleration with independent CPU recovery remains mandatory.
 
+The current [release plan](RELEASE_EXECUTION_PLAN.md) includes a persistent
+sparse coherence catalog, offline intelligence, multi-release compatibility and
+resumable, contention-aware background migration. These remain product work,
+not implemented features inferred from this research document.
+
 ## Optimization priority
 
 The owner's priority is minimum TOTAL stored bytes. Latency may increase and

@@ -282,7 +282,7 @@ samples per policy report write time, CPU reopen/full verification, complete
 read/byte verification and physical image end including roots, manifests,
 initialization and sealed padding. Active payload bytes are a separate metric.
 Full raw images are compared byte-for-byte and independently reopened by both
-readers using hosted-only new temporary files.
+readers using new temporary files in the recorded historical test environment.
 
 Timed storage is an immediately persistent RAM model, with no physical device
 or mounted filesystem. It does not measure physical flush latency, actual disk
@@ -290,7 +290,7 @@ allocation, application workloads, sustained multi-transaction steady state or
 comparative filesystem performance. Corpus selection is synthetic and not a
 compression-frontier benchmark. Per-child address space is capped at 512 MiB,
 CPU time 15 seconds, wall time 20 seconds; output streams and total run time are
-bounded. All execution stays on disposable hosted VMs. Inspect the exact
+bounded. Current local execution follows AGENTS.md; the quoted run retains its historical scope. Inspect the exact
 commit's Native compressed-store RAM comparison workflow and retained JSON;
 results are not inferred before execution.
 

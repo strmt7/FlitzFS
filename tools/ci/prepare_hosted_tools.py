@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Official checksum-pinned CMake/LLVM in fresh hosted-only directories."""
+"""Official checksum-pinned CMake/LLVM in fresh private directories."""
 import argparse
 from contextlib import contextmanager
 import hashlib
 import json
 import os
 import platform
+import re
 from pathlib import Path, PurePosixPath
 import shutil
 import stat
@@ -33,12 +34,10 @@ MAX_SELECTED=2*GIB
 MAX_MEMBER=768*MIB
 
 def hosted():
-    if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-        raise RuntimeError("tool provisioning requires a disposable hosted VM; never the owner PC")
     if sys.version_info<(3,14):
         raise RuntimeError("Python 3.14+ required for bounded native Zstandard tar streams")
     if sys.platform not in ("linux","win32") or platform.machine().lower() not in ("x86_64","amd64"):
-        raise RuntimeError("unqualified hosted OS/architecture")
+        raise RuntimeError("unqualified OS/architecture")
     if sys.platform=="linux":
         import resource
         resource.setrlimit(resource.RLIMIT_AS,(4*GIB,4*GIB))
@@ -295,13 +294,13 @@ def main():
     if key not in ARTIFACTS:
         raise RuntimeError("unsupported tool/platform combination")
     version,url,size,digest=ARTIFACTS[key]
-    temporary=Path(os.environ["RUNNER_TEMP"]).resolve()
+    temporary=Path(os.environ.get("RUNNER_TEMP",tempfile.gettempdir())).resolve(strict=True)
     required=10*GIB if args.tool=="llvm" else 5*GIB
     if shutil.disk_usage(temporary).free<required:
         raise RuntimeError("insufficient verified provisioning headroom")
     root=Path(tempfile.mkdtemp(prefix="flitzfs-tool-"+args.tool+"-",dir=temporary)).resolve()
     if not root.is_relative_to(temporary) or any(c in str(root) for c in ("\n","\r")):
-        raise RuntimeError("fresh hosted fixture scope invalid")
+        raise RuntimeError("fresh private fixture scope invalid")
     archive=root/("package.zip" if sys.platform=="win32" else "package.tar")
     receipt=download(url,archive,size,digest)
     if sys.platform=="win32":
@@ -316,18 +315,28 @@ def main():
         if not path.resolve().is_relative_to(root) or not path.is_file():
             raise RuntimeError("required staged tool missing/outside fixture")
         versions[name]=tool_version(path,version)
+    commit=os.environ.get("GITHUB_SHA") or subprocess.run(
+        ["git","-C",str(Path(__file__).resolve().parents[2]),"rev-parse","HEAD"],
+        check=True,capture_output=True,text=True,timeout=10).stdout.strip()
+    if not re.fullmatch(r"[0-9a-f]{40}",commit):
+        raise RuntimeError("exact source commit required")
     receipt.update(details);receipt.update(experimental=True,tool=args.tool,version=version,
-        platform=sys.platform,architecture=platform.machine(),python=sys.version,commit=os.environ["GITHUB_SHA"],versions=versions,
+        platform=sys.platform,architecture=platform.machine(),python=sys.version,commit=commit,versions=versions,
+        tool_root=str(tools),binary_directory=str(binary),
         scope="Official CPU build tools only; no GPU runtime/module/device execution")
     path=temporary/("flitzfs-"+args.tool+"-provision.json")
     with path.open("x",encoding="utf-8") as output:
         json.dump(receipt,output,indent=2);output.write("\n")
-    with Path(os.environ["GITHUB_PATH"]).open("a",encoding="utf-8") as output:
-        output.write(str(binary)+"\n")
-    with Path(os.environ["GITHUB_ENV"]).open("a",encoding="utf-8") as output:
-        output.write("FLITZFS_"+args.tool.upper()+"_ROOT="+str(tools)+"\n")
-        if args.tool=="llvm":
-            output.write("CC="+str(binary/"clang")+"\nCXX="+str(binary/"clang++")+"\n")
+    # CI output files are optional transport, not local installation state.
+    # Normal callers consume the returned paths without global PATH changes.
+    if os.environ.get("GITHUB_PATH"):
+        with Path(os.environ["GITHUB_PATH"]).open("a",encoding="utf-8") as output:
+            output.write(str(binary)+"\n")
+    if os.environ.get("GITHUB_ENV"):
+        with Path(os.environ["GITHUB_ENV"]).open("a",encoding="utf-8") as output:
+            output.write("FLITZFS_"+args.tool.upper()+"_ROOT="+str(tools)+"\n")
+            if args.tool=="llvm":
+                output.write("CC="+str(binary/"clang")+"\nCXX="+str(binary/"clang++")+"\n")
     print(json.dumps(receipt))
 if __name__=="__main__":
     main()

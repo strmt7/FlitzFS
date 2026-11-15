@@ -12,7 +12,7 @@ foundation and native inode advisory hook. It preserves independent CPU recovery
 
 The explicit SDK runtime fixture builds the probe with the same source, statically
 linked CPU LZ4 and native filesystem. CI first retains all existing metadata,
-refusal, compute fault and raw-reader controls. Its hosted-only
+refusal, compute fault and raw-reader controls. Its explicitly admitted
 `--native-cpu-fixture` then exercises both accepted independent block bytes and
 empty advice selecting CPU encoding. Both cases require exact public native CPU
 readback, preservation of a previously acknowledged snapshot, verified locked

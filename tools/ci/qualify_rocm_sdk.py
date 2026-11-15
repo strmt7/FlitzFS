@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Use pinned current FlitzZip SDK/bootstrap/compile mechanisms on disposable VMs."""
+"""Use pinned current FlitzZip SDK/bootstrap/compile mechanisms in qualified private fixtures."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -107,9 +107,8 @@ def inspect_private_runtime(sdk,build,bundle):
         amd_binaries_exported=False,redistribution_qualified=False)
 
 def main():
-    require(os.name=="nt" and os.environ.get("GITHUB_ACTIONS")=="true" and
-        os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted",
-        "disposable native Windows VM required; never the owner PC")
+    require(os.name=="nt",
+        "native Windows SDK/process support required")
     parser=argparse.ArgumentParser()
     parser.add_argument("--provider",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
@@ -556,16 +555,19 @@ def main():
             require(all(hosted_deferred[key]==explicit_deferred[key]
                 for key in ("source_bytes","source_digest_blake3","image_bytes","active_payload_bytes","response_count")),
                 "explicit CPU mode changed the baseline storage/request shape")
-            # Clear only the disposable child's environment. The parent guard and
-            # owner environment remain unchanged; this verifies rejection, not a bypass.
-            denied_deferred=run(bounds,[sys.executable,"-B","-c",
-                "import os,subprocess,sys;env=os.environ.copy();env.pop('GITHUB_ACTIONS',None);"
+            # Hosting flags are not resource/ownership evidence. The same CPU
+            # memory fixture must work without either flag under real limits.
+            local_deferred=run(bounds,[sys.executable,"-B","-c",
+                "import os,subprocess,sys;env=os.environ.copy();env.pop('GITHUB_ACTIONS',None);env.pop('RUNNER_ENVIRONMENT',None);"
                 "sys.exit(subprocess.run(sys.argv[1:],env=env,check=False).returncode)",
                 str(runtime_probe),"--deferred-native-cpu-fixture"],report,
-                "owned-deferred-legacy-hosted-guard-refusal",30,exit_code=1)
-            require("deferred CPU fixture is hosted-only" in denied_deferred["stderr"] and
-                deferred_prefix not in denied_deferred["stdout"],"legacy hosted-only guard weakened")
-            report["uniform_lz4_runtime_fixture"]["legacy_hosted_guard_refused"]=True
+                "owned-deferred-CPU-without-hosting-flags",30)
+            local_rows=[json.loads(line[len(deferred_prefix):])
+                for line in local_deferred["stdout"].splitlines() if line.startswith(deferred_prefix)]
+            require(len(local_rows)==1 and all(local_rows[0][key]==explicit_deferred[key]
+                for key in ("source_bytes","source_digest_blake3","image_bytes","active_payload_bytes","response_count")) and
+                local_rows[0]["locked_after_bytes"]==0,"local CPU fixture changed storage/retirement semantics")
+            report["uniform_lz4_runtime_fixture"]["local_CPU_fixture"]=local_rows[0]
             series_result=run(bounds,[str(runtime_probe),"--deferred-native-cpu-series"],report,
                 "owned-deferred-six-request-CPU-series",30)
             series_rows=[json.loads(line[len(deferred_prefix):])

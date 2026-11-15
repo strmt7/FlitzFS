@@ -51,15 +51,12 @@ std::wstring environment(const wchar_t* name) {
   return {value, n};
 }
 void require_hosted_opt_in() {
-  require(environment(L"GITHUB_ACTIONS") == L"true" &&
-      environment(L"RUNNER_ENVIRONMENT") == L"github-hosted" &&
-      environment(L"RUNNER_OS") == L"Windows" &&
-      environment(L"FLITZFS_ALLOW_DISPOSABLE_MOUNT") == L"1" &&
+  require(environment(L"FLITZFS_ALLOW_DISPOSABLE_MOUNT") == L"1" &&
       environment(L"FLITZFS_ALLOW_DISPOSABLE_WRITE") == L"1",
-      "probe requires explicit disposable hosted Windows CI opt-in");
+      "probe requires explicit qualified disposable mount/write fixture opt-in");
 }
 // Pin each existing ancestor without delete sharing and reject reparse points.
-// Only a trusted hosted-runner directory is accepted, not arbitrary user paths.
+// Only a trusted qualified fixture directory is accepted, not arbitrary paths.
 struct Fixture {
   fs::path root;
   std::vector<Handle> pins;

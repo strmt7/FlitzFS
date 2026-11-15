@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build only the bounded store interruption probe on a disposable hosted VM."""
+"""Build only the bounded store interruption probe in a private resource-qualified fixture."""
 import os
 from pathlib import Path
 import subprocess
@@ -8,8 +8,6 @@ def run(args,seconds=60):
     subprocess.run(args,check=True,timeout=seconds)
 
 def main():
-    if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-        raise RuntimeError("disposable hosted VM required")
     root=Path(__file__).resolve().parents[2]
     source=root/".ci-deps/zstd"
     dependency=root/".ci-deps/crash-zstd-build"

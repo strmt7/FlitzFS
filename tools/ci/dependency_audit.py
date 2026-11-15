@@ -81,8 +81,6 @@ def command_version(command):
     return result.stdout[:4096].splitlines()[:3]
 
 def main():
-    if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-        raise RuntimeError("disposable hosted VM required; never the owner PC")
     parser=argparse.ArgumentParser();parser.add_argument("--output",type=Path,required=True)
     args=parser.parse_args();root=args.output.resolve()
     temporary=Path(os.environ["RUNNER_TEMP"]).resolve()

@@ -1,7 +1,9 @@
 > Current scope: native filesystem backing images only. The former archive-backed
 > probe has been removed; any archive-specific assertions below describe historical
 > runs. Current tests retain native image reads, write rejection, supervision and
-> independent CPU recovery/remount. No owner-PC testing is authorized.
+> independent CPU recovery/remount. Apply current host/backing rules in AGENTS.md.
+> This ordinary-file fixture needs qualified disposable backing; it is not a
+> general prohibition on local CPU/GPU or process-lifecycle testing.
 
 # Bounded process-crash and remount qualification
 
@@ -28,7 +30,7 @@ This next test makes the latter scenario explicit without owner-PC access.
 
 ## Implemented test sequence
 
-The existing hosted-only executable now runs three **sequential** supervised
+The existing explicitly admitted executable now runs three **sequential** supervised
 children. Every child verifies the same 128 MiB committed-memory, 20% CPU,
 one-active-process Job Object before creating or reading its synthetic fixture.
 No subagents or GPU workloads are launched.

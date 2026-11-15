@@ -95,11 +95,8 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
   const bool gpu=configuration.invocation==Invocation::gpu;
   check(gpu||configuration.invocation==Invocation::hosted_cpu||
       configuration.invocation==Invocation::explicit_cpu,"invalid deferred fixture invocation");
-  if(configuration.invocation==Invocation::hosted_cpu){
-    const auto* hosted=std::getenv("GITHUB_ACTIONS");const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
-    check(hosted&&std::string_view(hosted)=="true"&&environment&&
-        std::string_view(environment)=="github-hosted","deferred CPU fixture is hosted-only");
-  }
+  // Invocation names retain historical report compatibility. All CPU modes
+  // use the same resource-contained memory fixture; location is not admission.
   check(store_lz4_available()&&gpu_lz4_cpu_verification_available(),"independent deferred CPU recovery unavailable");
   check(!GetModuleHandleW(L"winfsp-x64.dll"),"deferred fixture unexpectedly loaded WinFsp runtime");
   check(WorkerExchangeSession::available(),"deferred fixture entered occupied transport");

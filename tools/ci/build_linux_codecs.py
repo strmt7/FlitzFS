@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build exact current Zstandard/LZ4 sources in bounded hosted Linux fixtures."""
+"""Build exact Zstandard/LZ4 sources in bounded private Linux fixtures."""
 import argparse
 import json
 import os
@@ -24,8 +24,8 @@ def source_clean(source,pin):
     return head
 
 def main():
-    if sys.platform!="linux" or os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-        raise RuntimeError("native source codec build requires disposable hosted Linux")
+    if sys.platform!="linux":
+        raise RuntimeError("native source codec build uses Linux-specific tooling")
     resource.setrlimit(resource.RLIMIT_AS,(4*1024**3,4*1024**3))
     resource.setrlimit(resource.RLIMIT_CPU,(300,300))
     resource.setrlimit(resource.RLIMIT_CORE,(0,0))

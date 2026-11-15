@@ -1,7 +1,7 @@
 # Persistent advisory optimization state (experimental)
 
 11 November 2026. L01 foundation, not a learner, autonomous scheduler or native
-volume-provider integration. The implementation requires exact-source hosted
+volume-provider integration. The implementation requires exact-source
 qualification before results are claimed. Normal file operations do not call it.
 
 ## Ownership and data independence

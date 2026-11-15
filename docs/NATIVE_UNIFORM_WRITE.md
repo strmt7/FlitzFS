@@ -90,7 +90,7 @@ a later begin/destruction; borrow lifetimes and exact retirement still apply.
 
 ## Qualification boundary and next work
 
-The new hosted-only SDK fixture joins actual sized-channel CPU helpers, complete
+The explicit SDK fixture joins actual sized-channel CPU helpers, complete
 write ownership, two-extent advice, raw/fast and fixed/compact native records,
 independent CPU recovery, prior snapshots, unrelated acknowledged data, corrupt
 worker output, live-helper CPU fallback/cancellation, append, constrained and

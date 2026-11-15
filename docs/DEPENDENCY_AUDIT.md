@@ -1,8 +1,11 @@
 # Dependency and alert qualification
 
 Owner requirement: keep dependencies, packages and tools on latest compatible
-stable versions and check Dependabot alerts. Builds/tool execution stay on
-disposable hosted VMs; nothing is installed on the owner's PC.
+stable versions and check Dependabot alerts. Builds, research and safe private
+user-mode tool/dependency setup use the host under current AGENTS.md. Preserve
+system packages/drivers and other applications; no blanket off-host rule applies.
+The dated alert/dependency observations below are historical and require a fresh
+check before release acceptance.
 
 ## Verified Dependabot result
 

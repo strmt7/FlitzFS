@@ -105,7 +105,7 @@ access still uses the existing wide-character path validation and file APIs.
 POSIX paths retain their original bytes; no locale-dependent recoding is added.
 Catalog virtual-path grammar remains unchanged.
 
-The hosted-only check_portable_cpu.py reads the executable's actual PE/ELF loader
+The resource-qualified check_portable_cpu.py reads the executable's actual PE/ELF loader
 metadata before execution. Linux must have neither a dynamic interpreter nor
 dynamic segment; Windows admits only a small explicit set of OS DLL names and
 rejects delay imports, codec/GPU/SDK and VC/UCRT dependencies. It then moves a

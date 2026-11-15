@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage the qualified private compression module on a disposable Windows VM."""
+"""Stage the qualified private compression module in a qualified private Windows fixture."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -105,9 +105,8 @@ def stage(module: Path,obj: Path,proof_path: Path,output: Path,header: Path,
     return result
 
 def main():
-    require(os.name=="nt" and os.environ.get("GITHUB_ACTIONS")=="true" and
-        os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted",
-        "disposable hosted Windows build required; never the owner PC")
+    require(os.name=="nt",
+        "native Windows staging APIs required")
     parser=argparse.ArgumentParser()
     for name in ("module","object","coverage","output","header","receipt"):
         parser.add_argument("--"+name,type=Path,required=True)

@@ -72,8 +72,6 @@ def run(binary,mode,kind,action,path=None):
             streams.close()
 
 def main():
-    if os.environ.get("GITHUB_ACTIONS")!="true" or os.environ.get("RUNNER_ENVIRONMENT")!="github-hosted":
-        raise RuntimeError("disposable hosted VM required")
     parser=argparse.ArgumentParser()
     parser.add_argument("--baseline",type=Path,required=True)
     parser.add_argument("--candidate",type=Path,required=True)

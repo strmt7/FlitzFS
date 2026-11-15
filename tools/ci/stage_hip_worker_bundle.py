@@ -94,8 +94,7 @@ def stage(runtime: Path, kernel: Path, output: Path, header: Path) -> dict:
 
 
 def main() -> None:
-    require(os.name == "nt" and os.environ.get("GITHUB_ACTIONS") == "true"
-            and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted", "hosted SDK build required")
+    require(os.name == "nt", "native Windows SDK build required")
     parser = argparse.ArgumentParser()
     for name in ("runtime", "kernel", "output", "header", "receipt"):
         parser.add_argument("--" + name, type=Path, required=True)

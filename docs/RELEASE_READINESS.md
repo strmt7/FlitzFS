@@ -4,6 +4,13 @@ FlitzFS remains an experimental filesystem/storage prototype, substantially shor
 of a release candidate. The owner alone decides when to release. No release,
 tag, package publication or version change is authorized.
 
+[The current release execution plan](RELEASE_EXECUTION_PLAN.md) breaks the
+remaining work into thirteen concrete packages, about 60–130 person-weeks of
+low-confidence planning effort. It includes multi-release compatibility,
+offline coherence, genuinely background maintenance and recognized benchmarks.
+The research exit and exact release date remain unproved; no completion
+percentage follows from code size, assertion counts or a million object keys.
+
 This assessment separates implemented mechanisms, executed qualification and
 unmet product goals. A passing fixture or large assertion count is not a
 completion percentage. There is no defensible release date yet: ordinary

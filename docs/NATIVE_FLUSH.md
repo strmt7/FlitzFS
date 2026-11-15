@@ -2,7 +2,7 @@
 
 Experimental CPU durability API for the future Windows writable engine.
 It does not enable mounted writes, install a driver or start a helper/GPU.
-All execution remains on disposable hosted VMs.
+Safe local execution follows AGENTS.md and HOST_RAM_TESTING.md.
 
 ## Contract and layers
 
@@ -116,7 +116,7 @@ real ordinary-file backend. It does not simulate real storage power loss.
 Existing lifetime/context fault matrices, process interruption, CPU/raw/static
 runtime/reference/sanitizer checks and read-only mount/crash/remount regression
 remain required. Every configured check must be inspected at its exact commit;
-a test definition alone is not a passing result. No owner-host test is authorized.
+a test definition alone is not a passing result. Local tests follow current resource/backing qualification in AGENTS.md.
 
 ## Executed checkpoint
 

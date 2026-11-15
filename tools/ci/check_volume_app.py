@@ -85,9 +85,7 @@ def main():
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--notices", type=Path, required=True)
     args = parser.parse_args()
-    require(os.environ.get("GITHUB_ACTIONS") == "true" and
-            os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted" and
-            os.environ.get("RUNNER_OS") == "Windows", "Disposable hosted Windows only")
+    require(os.name == "nt", "native Windows support required")
     def capture(path, role):
         with path.open("rb") as stream:
             data = stream.read(32*1024*1024 + 1)

@@ -64,5 +64,6 @@ unchanged original bytes/write/flush counters. Aggregate image copies are capped
 at 8 MiB. The raw-only lane checks explicit unavailability; it does not execute
 the Zstandard profile matrix.
 
-No owner-host execution, live GPU, full learning/scheduling, physical power-loss
-or end-to-end performance qualification is implied by these checks.
+These CPU checks do not establish live GPU, full learning/scheduling, physical
+power-loss or end-to-end performance qualification. Local execution follows
+the current host guide.

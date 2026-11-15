@@ -118,10 +118,6 @@ void run(StoreCompressionMode mode,Kind kind) {
 }
 }
 int main(){try {
-  wchar_t action[16]{},environment[32]{};
-  if(GetEnvironmentVariableW(L"GITHUB_ACTIONS",action,16)!=4 || std::wstring_view(action)!=L"true" ||
-      GetEnvironmentVariableW(L"RUNNER_ENVIRONMENT",environment,32)!=13 ||
-      std::wstring_view(environment)!=L"github-hosted")throw std::runtime_error("hosted-only SDK fixture");
   DWORD initial=0,final=0;
   require(GetProcessHandleCount(GetCurrentProcess(),&initial)!=FALSE,"initial SDK handle accounting unavailable");
   for(unsigned round=0;round<2;++round)

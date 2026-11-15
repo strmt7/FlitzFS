@@ -6,7 +6,7 @@
 #include <mutex>
 #include <thread>
 namespace flitzfs {
-// Explicit hosted-only adapter configuration. Evidence is supplied separately;
+// Explicit resource-qualified adapter configuration. Evidence is supplied separately;
 // neither callbacks nor this service discover devices or query GPU drivers.
 // SDK functions are injected by the actual adapter. The control target uses
 // ABI headers without linking the WinFsp runtime.

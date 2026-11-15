@@ -24,9 +24,11 @@ ANCHOR = (
 CPP_MAIN = r'''
 // Diagnostic controller only. The historical entrypoint above is never invoked.
 int wmain(int argc,wchar_t** argv) {try {
-  require_hosted_opt_in();
+  require(environment(L"FLITZFS_ALLOW_DISPOSABLE_MOUNT")==L"1" &&
+      environment(L"FLITZFS_ALLOW_DISPOSABLE_WRITE")==L"1",
+      "reference requires explicit qualified disposable mount/write fixtures");
   require(environment(L"FLITZFS_ALLOW_RETIREMENT_REFERENCE")==L"1",
-      "historical reference is isolated hosted-only");
+      "historical reference requires explicit fixture opt-in");
   require(argc==2,"one fixed reference mode required");
   const std::wstring_view mode(argv[1]);
   if(mode==L"--reference-child"){restart_source(true);return 0;}
@@ -202,14 +204,13 @@ def same_git_root(reported: str, expected: Path) -> bool:
         return False
 
 def prepare(control: Path, variant: str, verify: bool = False) -> None:
-    required = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted",
-                "RUNNER_OS": "Windows", "FLITZFS_ALLOW_RETIREMENT_REFERENCE": "1"}
+    required = {"FLITZFS_ALLOW_RETIREMENT_REFERENCE": "1"}
     if os.name != "nt" or any(os.environ.get(k) != v for k, v in required.items()):
-        raise ValueError("explicit disposable hosted Windows required")
-    head = os.environ.get("GITHUB_SHA", "")
+        raise ValueError("native Windows and explicit reference fixture opt-in required")
+    head = os.environ.get("GITHUB_SHA") or git(control,"rev-parse","HEAD").decode().strip()
     if not re.fullmatch("[0-9a-f]{40}", head):
         raise ValueError("exact control SHA required")
-    if (Path(os.environ["GITHUB_WORKSPACE"]).resolve() != control.resolve() or
+    if (Path(os.environ.get("GITHUB_WORKSPACE",str(control))).resolve() != control.resolve() or
             not same_git_root(git(control, "rev-parse", "--show-toplevel").decode().strip(), control) or
             git(control, "rev-parse", "HEAD").decode().strip() != head):
         raise ValueError("control source identity differs")

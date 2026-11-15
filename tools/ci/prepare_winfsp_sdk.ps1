@@ -1,13 +1,20 @@
-# Input: a disposable GitHub-hosted Windows runner. Output: normalized SDK path
-# in GITHUB_ENV. Read MSI tables/cabinets only; never execute an installation.
+# Input: resource-qualified Windows tool process. Output: normalized SDK path
+# and provenance; optional CI environment transport. Read MSI tables/cabinets
+# only; never execute an installation or select driver files.
 [CmdletBinding()]
-param()
+param([string]$OutputRoot)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or $env:RUNNER_OS -ne 'Windows') {
-    throw 'This dependency extractor is restricted to GitHub-hosted Windows runners.'
+if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
+    throw 'This dependency extractor uses native Windows MSI table APIs.'
 }
-if (-not $env:RUNNER_TEMP -or -not $env:GITHUB_ENV) { throw 'Runner paths are missing.' }
+$taskStageParent = if ($OutputRoot) { $OutputRoot } elseif ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
+$taskSourceCommit = $env:GITHUB_SHA
+if (-not $taskSourceCommit) {
+    $taskSourceCommit = git -C (Join-Path $PSScriptRoot '../..') rev-parse HEAD
+    if ($LASTEXITCODE) { throw 'Cannot determine the source commit.' }
+}
+if ($taskSourceCommit -notmatch '^[0-9a-f]{40}$') { throw 'Exact source identity is required.' }
 
 $lockPath = Join-Path $PSScriptRoot '../winfsp-sdk-lock.json'
 if ((Get-Item -LiteralPath $lockPath).Length -gt 16384) { throw 'WinFsp lock budget.' }
@@ -21,7 +28,7 @@ if ($recipe.schema -ne 1 -or $recipe.repository -ne 'winfsp/winfsp' -or
     throw 'Invalid source-bound WinFsp SDK lock.'
 }
 
-$base = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
+$base = [IO.Path]::GetFullPath($taskStageParent)
 $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($base))
 if ($drive.AvailableFreeSpace -lt 1GB) { throw 'Insufficient temporary storage headroom.' }
 $root = Join-Path $base ('flitzfs-sdk-' + [guid]::NewGuid().ToString('N'))
@@ -116,14 +123,25 @@ try {
 }
 if ($copied.Count -ne $wanted.Count) { throw 'Required SDK headers or user-mode library are missing.' }
 # No .sys file is selected, installed or loaded; only four build/runtime files.
-Add-Content -LiteralPath $env:GITHUB_ENV -Value "FLITZFS_WINFSP_SDK=$sdk" -Encoding utf8
+if ($env:GITHUB_ENV) {
+    Add-Content -LiteralPath $env:GITHUB_ENV -Value "FLITZFS_WINFSP_SDK=$sdk" -Encoding utf8
+}
 $payloads = @()
 foreach ($relative in $wanted.Values) {
     $item = Get-Item -LiteralPath (Join-Path $sdk $relative)
     $payloads += [ordered]@{ path=$relative; bytes=$item.Length; sha256=(Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 }
-$provenance = [ordered]@{ commit=$env:GITHUB_SHA; dependency=$recipe; msi_bytes=$total; payloads=$payloads; driver_installed=$false; driver_loaded=$false }
+$provenance = [ordered]@{ commit=$taskSourceCommit; dependency=$recipe; msi_bytes=$total; payloads=$payloads; driver_installed=$false; driver_loaded=$false }
 $receipt = Join-Path $root 'sdk-provenance.json'
-[IO.File]::WriteAllText($receipt, ($provenance | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
-Add-Content -LiteralPath $env:GITHUB_ENV -Value "FLITZFS_WINFSP_PROVENANCE=$receipt" -Encoding utf8
+$receiptStream = [IO.File]::Open($receipt, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+try {
+    $receiptBytes = [Text.UTF8Encoding]::new($false).GetBytes(($provenance | ConvertTo-Json -Depth 8))
+    $receiptStream.Write($receiptBytes, 0, $receiptBytes.Length)
+} finally {
+    $receiptStream.Dispose()
+}
+if ($env:GITHUB_ENV) {
+    Add-Content -LiteralPath $env:GITHUB_ENV -Value "FLITZFS_WINFSP_PROVENANCE=$receipt" -Encoding utf8
+}
+Write-Output ([ordered]@{ sdk=$sdk; provenance=$receipt; driver_installed=$false; driver_loaded=$false } | ConvertTo-Json -Compress)
 Write-Output ("Verified source-bound WinFsp " + $recipe.tag + " candidate SDK staged; no driver/service installation.")

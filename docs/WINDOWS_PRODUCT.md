@@ -53,9 +53,11 @@ Existing non-Windows CPU and sanitizer jobs are implementation analysis only.
 They do not create or promise a second OS product. Existing Windows Server CI
 provides native build/API/lifecycle evidence only; actual latest Windows 11 client
 VM, driver signing/security, application behavior and AMD hardware qualification
-remain required. All development execution, driver installations and tests stay
-on disposable hosted VMs. Owner storage, installed apps, registry, drivers and GPU
-remain untouched.
+remain required. Local development, builds, GUI/GPU and safe tests use the host
+under AGENTS.md and HOST_RAM_TESTING.md. Preserve existing data and driver/system
+state, discover fresh resources and retire owned work. Driver provisioning and
+deliberately destabilizing fault campaigns require isolation; there is no blanket
+hosted-only or VM-first development rule.
 
 An app/driver package, working writable Windows volume, automatic resource-bounded
 learning/repair, qualified AMD execution and independently verified recovery are
