@@ -523,26 +523,46 @@ def main():
             report["uniform_lz4_runtime_fixture"]=dict(qualification=uniform_rows[0],
                 bundle=json.loads((build/"Release/hip-uniform-lz4-bundle.json").read_text(encoding="utf-8")),
                 product_linked=False,actual_gpu_execution=False)
-            deferred_result=run(bounds,[str(runtime_probe),"--deferred-native-cpu-fixture"],report,
-                "owned-deferred-native-CPU-composition",30)
             deferred_prefix="Deferred native composition: "
-            deferred_rows=[json.loads(line[len(deferred_prefix):])
-                for line in deferred_result["stdout"].splitlines() if line.startswith(deferred_prefix)]
-            require(len(deferred_rows)==1,"missing owned deferred composition receipt")
-            deferred=deferred_rows[0]
-            require(all(deferred[key] is True for key in ("complete","CPU_fallback_selected","owned_input",
-                "control_joined","current_CPU_readback","prior_CPU_readback","working_set_restored",
-                "transport_quiescent")) and deferred["gpu_executed"] is False and
-                deferred["gpu_requested"] is False and deferred["gpu_result_verified"] is False and
-                deferred["winfsp_runtime_loaded"] is False and deferred["mounted"] is False and
-                deferred["normal_io_route"] is False and deferred["cost_profile_qualified"] is False and
-                deferred["stored_advice_digest_matches"] is False and deferred["candidate_count"]==0 and
-                deferred["source_bytes"]==1024*1024 and deferred["response_count"]==1 and
-                deferred["locked_peak_bytes"]==4*1024*1024 and deferred["locked_after_bytes"]==0 and
-                0<deferred["image_bytes"]<=2*1024*1024 and
-                0<deferred["active_payload_bytes"]<=deferred["image_bytes"],
-                "owned deferred CPU composition or retirement mismatch")
-            report["uniform_lz4_runtime_fixture"]["deferred_native_storage_CPU"]=deferred
+            for invocation,flag,name,key in (
+                ("hosted_cpu","--deferred-native-cpu-fixture","owned-deferred-native-CPU-composition",
+                    "deferred_native_storage_CPU"),
+                ("explicit_cpu","--deferred-native-cpu-once","owned-deferred-native-explicit-CPU-composition",
+                    "deferred_native_explicit_CPU")):
+                deferred_result=run(bounds,[str(runtime_probe),flag],report,name,30)
+                deferred_rows=[json.loads(line[len(deferred_prefix):])
+                    for line in deferred_result["stdout"].splitlines() if line.startswith(deferred_prefix)]
+                require(len(deferred_rows)==1,"missing owned deferred composition receipt")
+                deferred=deferred_rows[0]
+                require(deferred["invocation"]==invocation and
+                    all(deferred[field] is True for field in ("complete","CPU_fallback_selected","owned_input",
+                    "control_joined","current_CPU_readback","prior_CPU_readback","working_set_restored",
+                    "transport_quiescent")) and deferred["gpu_executed"] is False and
+                    deferred["gpu_requested"] is False and deferred["gpu_result_verified"] is False and
+                    deferred["winfsp_runtime_loaded"] is False and deferred["mounted"] is False and
+                    deferred["normal_io_route"] is False and deferred["cost_profile_qualified"] is False and
+                    deferred["stored_advice_digest_matches"] is False and deferred["candidate_count"]==0 and
+                    deferred["source_bytes"]==1024*1024 and deferred["response_count"]==1 and
+                    deferred["locked_peak_bytes"]==4*1024*1024 and deferred["locked_after_bytes"]==0 and
+                    0<deferred["image_bytes"]<=2*1024*1024 and
+                    0<deferred["active_payload_bytes"]<=deferred["image_bytes"],
+                    "owned deferred CPU composition or retirement mismatch")
+                report["uniform_lz4_runtime_fixture"][key]=deferred
+            hosted_deferred=report["uniform_lz4_runtime_fixture"]["deferred_native_storage_CPU"]
+            explicit_deferred=report["uniform_lz4_runtime_fixture"]["deferred_native_explicit_CPU"]
+            require(all(hosted_deferred[key]==explicit_deferred[key]
+                for key in ("source_bytes","image_bytes","active_payload_bytes","response_count")),
+                "explicit CPU mode changed the baseline storage/request shape")
+            # Clear only the disposable child's environment. The parent guard and
+            # owner environment remain unchanged; this verifies rejection, not a bypass.
+            denied_deferred=run(bounds,[sys.executable,"-B","-c",
+                "import os,subprocess,sys;env=os.environ.copy();env.pop('GITHUB_ACTIONS',None);"
+                "sys.exit(subprocess.run(sys.argv[1:],env=env,check=False).returncode)",
+                str(runtime_probe),"--deferred-native-cpu-fixture"],report,
+                "owned-deferred-legacy-hosted-guard-refusal",30,exit_code=1)
+            require("deferred CPU fixture is hosted-only" in denied_deferred["stderr"] and
+                deferred_prefix not in denied_deferred["stdout"],"legacy hosted-only guard weakened")
+            report["uniform_lz4_runtime_fixture"]["legacy_hosted_guard_refused"]=True
             uniform_native_result=run(bounds,[str(runtime_probe),"--uniform-native-cpu-fixture"],report,
                 "uniform-native-LZ4-storage-CPU-composition",30)
             uniform_native_prefix="Uniform native CPU fixture: "
@@ -988,7 +1008,8 @@ def main():
                 uniform_sweep_profile_packaged=True,uniform_sweep_profile_envelope="FLUSP001",
                 uniform_layout_version=2,uniform_runtime_packaged=True,uniform_gpu_execution=False,
                 uniform_serial_sweep_packaged=True,uniform_sweep_cpu_source_bytes=1024*1024,
-                native_deferred_CPU_qualified=True,native_deferred_gpu_executed=False,
+                native_deferred_CPU_qualified=True,native_deferred_explicit_CPU_qualified=True,
+                native_deferred_gpu_executed=False,
                 native_control_winfsp_runtime_required=False,
                 native_storage_CPU_qualified=True,native_gpu_worker_timeout_ms=5000,
                 native_store_capacity_bytes=2*1024*1024,native_locked_peak_bytes=4*1024*1024,

@@ -478,9 +478,15 @@ int wmain(int argc,wchar_t** argv){
     gpu_probe_fixture::Budget controller;
     if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-fixture")
       return deferred_native_fixture::run({},controller);
+    if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-once"){
+      deferred_native_fixture::Configuration configuration;
+      configuration.invocation=deferred_native_fixture::Invocation::explicit_cpu;
+      return deferred_native_fixture::run(std::move(configuration),controller);
+    }
     if(argc>1&&std::wstring_view(argv[1])==L"--gpu-deferred-native-once"){
       require(argc==7,"Deferred native GPU needs trusted worker/ordinal/LUID/node/runtime digest");
-      deferred_native_fixture::Configuration configuration;configuration.gpu=true;
+      deferred_native_fixture::Configuration configuration;
+      configuration.invocation=deferred_native_fixture::Invocation::gpu;
       configuration.worker.helper=argv[2];
       require(configuration.worker.helper.is_absolute()&&
           configuration.worker.helper.filename()==L"flitzfs_hip_lz4_worker.exe","Trusted deferred worker required");

@@ -1,4 +1,4 @@
-# Release readiness checkpoint — 14 November 2026
+# Release readiness checkpoint — 15 November 2026
 
 FlitzFS remains an experimental filesystem/storage prototype, substantially short
 of a release candidate. The owner alone decides when to release. No release,
@@ -12,20 +12,21 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
-The latest qualified hardware source is 11fbf0797769f234aeab835f71afa678c5ac174a.
-Its full 13-job core matrix and complete selected ROCm SDK qualification passed.
-One explicit, finite synthetic operation GPU-encoded 1,048,576 input bytes into
-135,344 payload bytes, stored the accepted GPU representation through the native
-storage path, and recovered both current and prior data through the independent
-CPU reader. Exact worker/supervisor retirement, zero remaining locked bytes and
-restored working-set limits were checked. It was unmounted.
-[Source-bound evidence](evidence/uniform-sweep-profile-11fbf07.json)
+The latest qualified hardware source is 94aaa2a772e03689044df4c0b7504903faa9d553.
+All thirteen core jobs and the complete selected ROCm SDK gate passed. One bounded
+synthetic operation GPU-encoded 1,048,576 input bytes into 135,344 candidate bytes
+through the owned deferred write service. The stored encoded bytes matched the
+captured advice, and independent CPU recovery verified both current and prior
+data. The service sent one injected response, joined its control thread, confirmed
+transport retirement and released all locked memory.
+[Source-bound evidence](evidence/owned-deferred-gpu-94aaa2a.json)
 
-That exchange took 625,472,600 ns. The complete image occupied 1,114,112 bytes,
-including fixed metadata, alignment and retained history. This is **not** a
-demonstrated whole-image size or end-to-end speed advantage. The CPU fixture used
-a manually constructed alternate representation, not a competitive optimized CPU
-compressor. Neither payload difference nor unmatched timings prove superiority.
+The request scope took 641 ms and complete process execution took 728 ms. The
+complete image occupied 1,310,720 bytes, including metadata, alignment and retained
+history. It exceeded the input size. This is **not** a demonstrated whole-image
+size or end-to-end speed advantage. The operation was unmounted and used an
+injected response sink; real GPU SendResponse/Explorer delivery remains unproven.
+The hosted CPU fixture's timing is not a matched same-host comparison.
 
 The previous non-reusing sweep exited with 0xc0000409; CPU fallback and recovery
 passed. The successful replacement does not establish that historical failure's
@@ -40,13 +41,12 @@ compute scope; accumulated kernel/full-wait time was 21,927,100 ns. These are on
 sample's host wall measurements, not GPU-event timing or a reusable cost bound.
 The result prioritizes safe amortization and complete Windows integration over
 kernel-only tuning. Automatic qualified costs and ordinary GPU activation remain
-unimplemented. The current round implements an explicit hosted pending-write
-service; its CPU-semantic coordinator tests and real CPU-only response lifecycle
-are recorded below. They do not establish GPU execution through that service.
+unimplemented. That earlier source-11fbf07 profiling remains useful diagnosis,
+not a reusable grant or a substitute for the new service-composition evidence.
 
 ## This implementation round
 
-Source a4ad5166d5063d820cfdd704a600ea20a23f1d93 implements one owned deferred write in the actual SDK callback
+The bridge, first qualified at a4ad5166d5063d820cfdd704a600ea20a23f1d93, implements one owned deferred write in the actual SDK callback
 path. It owns immutable input and request identity, serializes coordinator access,
 orders following callbacks through CPU publication, and joins response ownership
 before filesystem destruction. All 13 core jobs, 154 native test groups and the full ROCm SDK gate passed.
@@ -55,15 +55,18 @@ fallback and concurrent shutdown. The real CPU-only pending-response mount
 passed with independent current/prior recovery and complete cleanup.
 [Executed source-bound evidence](evidence/owned-deferred-a4ad516.json)
 
-The direct callback cases use CPU semantics; the real disposable RAM-handoff mount
-uses CPU-only deferred responses. No actual GPU completion through this service,
-automatic helper/cost acquisition, cross-operation batching or owner execution is
-claimed. The first source 7ef0dd3 failed Windows compilation; its missing include
+Source 94aaa2a adds driver-independent control composition and optional encoded
+advice receipts. Its 154 native groups include 57 deferred and 226 controlled
+checks; all thirteen core jobs and all fifty prescribed SDK commands passed.
+The new owned-service CPU fixture and one actual unmounted GPU case passed.
+CPU-only callback/mounted tests and the injected GPU response are separate scopes.
+Automatic helper/cost acquisition, cross-operation batching and ordinary GPU SDK
+delivery remain unfinished. The first source 7ef0dd3 failed Windows compilation; its missing include
 and SDK variable-tail initialization errors were corrected without suppressions.
 [Failure record](evidence/owned-deferred-7ef0dd3-build-failure.json)
 
 This is useful integration progress, but does not close any of the three largest
-product exits: ordinary useful GPU I/O, scalable populated storage and measured
+product exits: ordinary useful automatic GPU I/O, scalable populated storage and measured
 collective compression. It does not justify a calendar estimate or percentage.
 [Ownership and qualification contract](OWNED_DEFERRED_WRITES.md)
 
@@ -71,7 +74,7 @@ collective compression. It does not justify a calendar estimate or percentage.
 
 | Area | Current position | Required exit |
 |---|---|---|
-| Ordinary Windows GPU I/O | Owned pending-write service and controlled native advice exist; automatic GPU activation remains absent | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
+| Ordinary Windows GPU I/O | One unmounted GPU operation through the owned service passed; real CPU-only mounted responses passed separately; automatic activation remains absent | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
 | GPU benefit | Actual bounded GPU bytes and CPU recovery demonstrated | Repeated controlled comparisons on varied real data show useful complete-operation throughput and/or net stored-size benefit |
 | Capacity | 256 objects/nodes, about 15.94 MiB populated native extents, 64 MiB image bound remain in current implementation | Paged indices, allocation and bounded reclamation handle growing file trees/data without whole-tree residency or merely larger constants |
 | Extreme collective compression | Research/design objective; no product cross-file learned codec | A lossless cross-file representation produces substantial held-out TOTAL-size gains, with practical individually addressed reads and protected dependencies |

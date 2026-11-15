@@ -1,6 +1,7 @@
 {
   "schema": 1,
-  "updated": "2026-11-14",
+  "updated": "2026-11-15",
+  "forward_work_rule": "Use current_round, next_product_slices and package exits for forward work. Older checkpoint next fields retain historical decisions, not instructions to repeat completed stages.",
   "baseline": {
     "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
     "tree": "0ab1b0f5955aaf3090f8fd5d741a6ac13dab62b4"
@@ -785,24 +786,32 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
-    "status": "All 13 core jobs, 154 native test groups and full SDK passed; real CPU-only pending-response RAM-handoff mount passed.",
-    "core_run": 43633235875,
-    "sdk_run": 43633243098,
+    "source": "94aaa2a772e03689044df4c0b7504903faa9d553",
+    "status": "All 13 core jobs, 154 native groups and full SDK passed. One actual unmounted GPU operation through the owned service matched stored advice and recovered current/prior data on CPU with exact retirement.",
+    "core_run": 43692752566,
+    "sdk_run": 43692765002,
     "contract": "docs/OWNED_DEFERRED_WRITES.md",
     "ordinary_GPU_route": false,
     "cost_model_qualified": false,
-    "actual_GPU_through_service": false,
+    "actual_GPU_through_service": true,
+    "actual_GPU_SDK_delivery": false,
     "cross_operation_batching": false,
-    "owner_executed": false,
-    "latest_actual_GPU_source": "11fbf0797769f234aeab835f71afa678c5ac174a",
-    "evidence": "docs/evidence/owned-deferred-a4ad516.json",
-    "deferred_checks": 54
+    "owner_executed": true,
+    "latest_actual_GPU_source": "94aaa2a772e03689044df4c0b7504903faa9d553",
+    "evidence": "docs/evidence/owned-deferred-gpu-94aaa2a.json",
+    "deferred_checks": 57,
+    "controlled_checks": 226,
+    "owned_request_ms": 641,
+    "source_bytes": 1048576,
+    "candidate_bytes": 135344,
+    "image_bytes": 1310720,
+    "comparative_benefit_proven": false,
+    "release_gate_closed": false
   },
   "next_product_slices": [
-    "Qualify the owned pending-write service and disposable real SendResponse path. Retain single-threaded coordinator ownership, immutable input, CPU publication and joined shutdown.",
-    "Add one unmounted actual-GPU callback-service qualification after exact-source gates; verify admitted stored bytes and independent GPU-absent readback. Do not repeat the earlier unchanged diagnostic.",
-    "Acquire repeated configuration/recovery/work-shape keyed complete costs from finite windows, qualify independent helper dependencies and connect automatic useful Windows write/read/fallback; then coalesce compatible operations under a bounded lifetime.",
+    "Qualify the implemented explicit bounded CPU-only owner mode for the same owned-service fixture, without environment guard bypass. Run finite matched alternating CPU/GPU comparisons with identical source/initial state/scopes; distinguish verified execution from stored-byte savings and charge full image overhead.",
+    "Automatically resolve and pin independently available helper/module/runtime dependencies outside the managed volume; supervise resource collection separately and deliver finite fresh evidence mailboxes with exact shutdown.",
+    "Acquire repeated configuration/recovery/work-shape keyed complete costs, derive geometry from fresh headroom/contention and connect useful automatic Windows write/read/fallback. Address cold setup and qualify finite cross-operation amortization without an indefinite resident helper.",
     "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
     "Evaluate shared dictionaries, verified delta/base and GPU-supported model/residual candidates on held-out real data; minimize complete stored bytes with practical measured cold/random retrieval.",
     "Persist advisory learning and run event/evidence-driven lowest-priority optimization, with prompt yield and negative-benefit suppression; integrate actual grouping/recompression/layout.",
@@ -821,17 +830,17 @@
     "cross_operation_batching": false
   },
   "ordinary_write_bridge": {
-    "status": "CPU/SDK and real CPU-only mounted response path qualified",
-    "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+    "status": "CPU/SDK and real CPU-only mounted response path plus one actual unmounted GPU service operation qualified; ordinary automatic GPU SDK delivery remains unqualified",
+    "source": "94aaa2a772e03689044df4c0b7504903faa9d553",
     "contract": "docs/OWNED_DEFERRED_WRITES.md",
     "research": "docs/evidence/native-async-write-research-2026-11-14.json",
-    "next": "Qualify actual GPU completion through this callback service; acquire repeated complete costs and automatic helper/dependency activation, then finite coalescing and ordinary useful routing.",
-    "evidence": "docs/evidence/owned-deferred-a4ad516.json"
+    "next": "Acquire matched complete costs and automatic independent helper/resource evidence, then useful routing and finite coalescing; preserve ordering, immediate CPU selection and exact retirement.",
+    "evidence": "docs/evidence/owned-deferred-gpu-94aaa2a.json"
   },
   "execution_round": {
-    "date": "2026-11-14",
-    "status": "Owned deferred write slice qualified; full goal active",
-    "source": "a4ad5166d5063d820cfdd704a600ea20a23f1d93",
+    "date": "2026-11-15",
+    "status": "One actual unmounted owned-service GPU case qualified; full goal active and ordinary useful GPU/scale/collective exits remain open",
+    "source": "94aaa2a772e03689044df4c0b7504903faa9d553",
     "release_assessment": "docs/RELEASE_READINESS.md",
     "principle": "Complete one product behavior and its adversarial qualification; do not substitute more probes or counts for ordinary GPU use or collective compression.",
     "work": [
@@ -841,14 +850,22 @@
         "implementation": "Own copied input and opaque Hint; one service thread/coordinator; CPU drain ordering; exact response; stop/join before filesystem destruction.",
         "acceptance": "Direct SDK owned/held/shutdown cases plus existing real RAM-handoff response path pass with exact retirement.",
         "status": "CPU/SDK and real CPU-only mounted response path qualified",
-        "evidence": "docs/evidence/owned-deferred-a4ad516.json"
+        "evidence": "docs/evidence/owned-deferred-gpu-94aaa2a.json"
       },
       {
         "id": "gpu-callback",
         "entry": "Bridge exact-source qualification",
         "implementation": "Integrate the existing finite GPU worker into an unmounted callback-service harness with independently supervised fresh evidence and helper/runtime provenance.",
         "acceptance": "Actual GPU bytes accepted/stored, current/prior CPU readback with GPU unavailable; forced fallback and cleanup; source-bound tiny experiment only.",
-        "status": "next"
+        "status": "One bounded unmounted GPU success qualified; integrated adverse GPU cases and real GPU SDK response delivery remain required",
+        "evidence": "docs/evidence/owned-deferred-gpu-94aaa2a.json"
+      },
+      {
+        "id": "matched-costs",
+        "entry": "Single owned-service GPU case source-qualified",
+        "implementation": "Explicit finite CPU-only owner mode and matched CPU/GPU operation scopes with identical initial state, varied synthetic controls and complete image/request/read/resource accounting.",
+        "acceptance": "Finite alternating exact-source trials distinguish execution, accepted advice and net storage benefit; independent CPU recovery and exact retirement pass. No reuse of one manual grant as automatic qualified costs.",
+        "status": "Explicit CPU mode implemented; exact-source qualification and matched owner trials pending"
       },
       {
         "id": "automatic-routing",

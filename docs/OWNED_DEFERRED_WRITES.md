@@ -3,6 +3,21 @@
 The explicit hosted-only native adapter can now own one pending write. Its CPU/SDK and disposable mounted response paths passed at a4ad516.
 Automatic ordinary GPU I/O remains unqualified. Default application/filesystem paths remain CPU-only and create no service.
 
+Source 94aaa2a additionally passed one actual unmounted GPU operation through
+this owned service after all thirteen core jobs and full SDK qualification.
+Sixteen verified candidates matched the stored encoded bytes; current/prior CPU
+readback, the single injected response and resource retirement passed.
+[Executed evidence](evidence/owned-deferred-gpu-94aaa2a.json). This uses an injected
+response sink, not real GPU SendResponse/Explorer delivery or automatic routing.
+
+The next comparison slice adds explicit --deferred-native-cpu-once invocation.
+It uses the same owned-service source, initial storage, cleanup and timing scope
+without launching a worker or querying the GPU. The original
+--deferred-native-cpu-fixture remains hosted-only; the SDK gate checks rejection
+when that child's hosted flag is absent. Receipts identify hosted_cpu,
+explicit_cpu or gpu invocation. This additional mode still requires its own
+exact-source qualification before owner use or a matched performance claim.
+
 ## Ownership and ordering
 
 Configuration is allowed only before callback binding. The callback validates
@@ -109,10 +124,25 @@ readback. Image and payload accounting occurs after native context cleanup/close
 Unknown hardware execution after a rejected child is null, not a fabricated
 false. CPU fallback means controller source selection; storage can independently
 choose a smaller CPU encoding. Source-specific core and full SDK qualification
-are mandatory before any owner experiment. This new composition is not yet
-hardware-qualified, an automatic GPU route or a performance comparison.
+are mandatory before any owner experiment. The narrow source-94aaa2a hardware
+case is qualified; this is neither an automatic GPU route nor a performance
+comparison.
 
 ## Qualification
+
+Source [94aaa2a](https://github.com/strmt7/FlitzFS/commit/94aaa2a772e03689044df4c0b7504903faa9d553)
+passed all thirteen [core jobs](https://github.com/strmt7/FlitzFS/actions/runs/43692752566),
+154 native groups (57 deferred and 226 controlled-write checks), and the full
+[SDK gate](https://github.com/strmt7/FlitzFS/actions/runs/43692765002).
+The new driver-free owned-service CPU fixture passed on the disposable runner.
+The one bounded owner GPU case encoded 1 MiB into 135,344 candidate bytes,
+matched their stored digests, independently recovered current/prior data, sent
+one injected response and joined the service. Locked memory returned from 4 MiB
+to zero; package inputs remained unchanged and no named FlitzFS processes remained.
+The request scope took 641 ms; the complete 1,310,720-byte image exceeded the input.
+No competitive speed or total-size advantage follows from this synthetic case.
+The [receipt](evidence/owned-deferred-gpu-94aaa2a.json) retains source, package,
+telemetry-failure, adapter-identity, retirement and postflight evidence.
 
 Source [a4ad516](https://github.com/strmt7/FlitzFS/commit/a4ad5166d5063d820cfdd704a600ea20a23f1d93)
 passed all 13 [core jobs](https://github.com/strmt7/FlitzFS/actions/runs/43633235875),
@@ -139,5 +169,6 @@ Primary API semantics and exact captures are recorded in
 The historical [bridge plan](ASYNC_NATIVE_WRITE_PLAN.md) describes the preceding
 design boundary. Finite cross-operation batching, automatic costs, actual GPU
 callback qualification, scalable metadata, collective compression, persistent
-learning and release qualification remain required. No owner execution or
-production data-safety claim follows from this qualification.
+learning and release qualification remain required. The one separately recorded
+owner GPU case does not establish production data safety or arbitrary-failure
+survival.

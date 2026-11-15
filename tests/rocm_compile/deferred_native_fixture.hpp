@@ -25,8 +25,9 @@ namespace deferred_native_fixture {
 using namespace flitzfs;
 using Bytes=std::vector<std::byte>;
 inline void check(bool ok,const char* message){if(!ok)throw std::runtime_error(message);}
+enum class Invocation {hosted_cpu,explicit_cpu,gpu};
 struct Configuration {
-  bool gpu=false;
+  Invocation invocation=Invocation::hosted_cpu;
   NativeUniformWorkerBinding worker;
   std::array<std::byte,8> luid{};
   std::uint32_t node_mask=0;
@@ -89,7 +90,10 @@ inline bool stored_advice_matches(const std::shared_ptr<StoreByteIo>& backing,
   return matched!=0;
 }
 inline int run(Configuration configuration,const gpu_probe_fixture::Budget& controller){
-  if(!configuration.gpu){
+  const bool gpu=configuration.invocation==Invocation::gpu;
+  check(gpu||configuration.invocation==Invocation::hosted_cpu||
+      configuration.invocation==Invocation::explicit_cpu,"invalid deferred fixture invocation");
+  if(configuration.invocation==Invocation::hosted_cpu){
     const auto* hosted=std::getenv("GITHUB_ACTIONS");const auto* environment=std::getenv("RUNNER_ENVIRONMENT");
     check(hosted&&std::string_view(hosted)=="true"&&environment&&
         std::string_view(environment)=="github-hosted","deferred CPU fixture is hosted-only");
@@ -120,12 +124,12 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
     const auto handle=session.open("candidate.bin",{true,true,true});const auto prior=session.snapshot();
     std::mutex control;std::atomic<bool> offline{false};FSP_FILE_SYSTEM fake{};
     Completion completion;completion.expected=&fake;ReceiverOwner receiver_owner(completion);
-    NativeDeferredWriteOptions options;options.expected=configuration.gpu?WorkerExecution::hip:WorkerExecution::cpu_semantics;
+    NativeDeferredWriteOptions options;options.expected=gpu?WorkerExecution::hip:WorkerExecution::cpu_semantics;
     options.hint_query=hint;options.response_sink=respond;
     options.binding=std::move(configuration.worker);options.budget={128,2000,5000};options.deadline_ms=5000;
     options.binding.capture_advice_receipt=true;
     GpuHealthEvidence evidence;evidence.sequence=1;evidence.supervisor_quiescent=true;
-    if(configuration.gpu){
+    if(gpu){
       const auto observed=query_windows_gpu_budget(configuration.luid,configuration.node_mask);
       admitted=observed.status==WindowsGpuBudgetStatus::success&&
           check_gpu_memory_budget(observed.snapshot,configuration.luid,configuration.node_mask,
@@ -164,7 +168,7 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
         if(now-start>7000){std::unique_lock guard(control);service.drain_locked(guard);break;}
         // Active-operation monitoring only: no device discovery or idle polling.
         // The service can select CPU independently if this diagnostic query fails/blocks.
-        if(configuration.gpu&&admitted&&now-last_observation>=50){
+        if(gpu&&admitted&&now-last_observation>=50){
           const auto observed=query_windows_gpu_budget(configuration.luid,configuration.node_mask);
           evidence.memory=observed.snapshot;evidence.compatible=observed.status==WindowsGpuBudgetStatus::success;
           ++evidence.sequence;
@@ -209,8 +213,10 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
   check(locked_ram_fixture::locked_bytes==0&&locked_ram_fixture::cleanup_ok&&WorkerExchangeSession::available(),
       "deferred fixture resource retirement");
   check(!GetModuleHandleW(L"winfsp-x64.dll"),"deferred fixture loaded WinFsp runtime");
-  const bool gpu_verified=configuration.gpu&&stats.advised!=0;
-  std::cout<<"Deferred native composition: {\"complete\":true,\"gpu_requested\":"<<(configuration.gpu?"true":"false")
+  const bool gpu_verified=gpu&&stats.advised!=0;
+  const char* invocation=gpu?"gpu":configuration.invocation==Invocation::explicit_cpu?"explicit_cpu":"hosted_cpu";
+  std::cout<<"Deferred native composition: {\"complete\":true,\"invocation\":\""<<invocation
+      <<"\",\"gpu_requested\":"<<(gpu?"true":"false")
       <<",\"gpu_result_verified\":"<<(gpu_verified?"true":"false")
       <<",\"gpu_executed\":"<<(gpu_verified?"true":stats.worker_submitted?"null":"false")
       <<",\"stored_advice_digest_matches\":"<<(stored_match?"true":"false")
@@ -224,6 +230,6 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
         "\"current_CPU_readback\":true,\"prior_CPU_readback\":true,\"working_set_restored\":true,"
         "\"transport_quiescent\":true,\"winfsp_runtime_loaded\":false,\"mounted\":false,"
         "\"normal_io_route\":false,\"cost_profile_qualified\":false}\n";
-  return configuration.gpu?((gpu_verified&&stored_match)?0:2):0;
+  return gpu?((gpu_verified&&stored_match)?0:2):0;
 }
 } // namespace deferred_native_fixture

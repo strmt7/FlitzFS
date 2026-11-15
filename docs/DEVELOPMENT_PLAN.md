@@ -6,33 +6,84 @@ The owner's background-compression direction is specified in [COLD_COMPRESSION_R
 
 [Release-readiness checkpoint](RELEASE_READINESS.md): the project is an experimental prototype. Actual useful GPU compression with CPU fallback is mandatory. Prioritize the complete Windows/GPU/native-storage/readback/failure path; isolated checks alone do not satisfy the product goal.
 
-## Current implementation round — 14 November 2026
+## Current implementation round — 15 November 2026
 
-The owned pending-write bridge is implemented at a4ad5166d5063d820cfdd704a600ea20a23f1d93; all 13 core jobs,
-154 native test groups and complete SDK qualification passed. The CPU-only real
-pending-response mount passed. [Executed evidence](evidence/owned-deferred-a4ad516.json). It copies callback input and
-request identity, serializes GPU control on one owned thread, publishes CPU
-fallback without waiting for GPU retirement, and joins completion ownership before
-filesystem deletion. The existing disposable RAM-handoff scenario exercises real
-CPU-only pending responses. Automatic GPU activation and useful acceleration
-remain separate exits. See [the ownership contract](OWNED_DEFERRED_WRITES.md).
+Source 94aaa2a772e03689044df4c0b7504903faa9d553 passed all thirteen core jobs,
+154 native groups and the complete ROCm SDK gate. One actual unmounted GPU request
+through the owned write service accepted sixteen candidates, matched their stored
+encoded bytes and independently recovered current/prior data on CPU. Its one
+injected response and resource retirement passed. The complete image exceeded
+input size; the 641-ms request is not a competitive speed result.
+[Executed evidence](evidence/owned-deferred-gpu-94aaa2a.json).
 
-Next, qualify one actual GPU operation through this service; then acquire repeated
-configuration/recovery/shape-keyed complete costs and verify independent helper
-dependencies before automatic Windows routing. Finite cross-operation coalescing
-must preserve ordering, immutable input, bounded lifetime and immediate CPU
-selection. Avoid a resident helper until equivalent containment is proven.
+The full product goal remains active. This current round and the JSON ledger's
+current_round/next_product_slices define forward work. Older dated sections and
+checkpoint next fields retain historical decisions; do not repeat their completed
+stages. The package exits below remain controlling.
 
-Begin the paged-index/allocator and protected cross-file manifest design alongside
-that integration. A bounded collective codec transaction may start before full
-learning autonomy. Specify the independent CPU decoder and immutable versioned
-bases/dictionaries/models first; evaluate shared, delta and GPU-supported deeper
-model/residual candidates with held-out total-size and random-read measurements.
-The full package exits below remain controlling.
+### Next implementation sequence
 
-Each next slice must produce implemented behavior, a precise failure model and
-source-bound qualification. Keep the full harness goal active. Do not declare a
-release from the bridge, a kernel success or a test count.
+1. **Comparable service measurements — G02/G03/A02.** The explicit bounded
+   CPU-only mode is implemented for the same owned-service fixture; exact-source
+   qualification and matched owner trials are pending. Never bypass the
+   hosted-only guard with environment changes. Compare identical source bytes,
+   initial image state, cleanup and measurement scopes. Use finite alternating
+   trials, varied synthetic controls and licensed real-data CPU runs on disposable
+   hosts. Record full image bytes, source digests, complete request/read costs,
+   peaks and retirement. Separate verified GPU execution from whether its advice
+   actually saves storage. No unchanged diagnostic repetition or routing policy
+   derived from the single successful sample.
+2. **Automatic trusted helper and resource evidence — G02/A01.** Resolve and pin
+   helper/modules outside their own filesystem dependency chain. Bind immutable
+   file identities, runtime/module digests, adapter/node and recovery generation
+   before activation. Put driver queries in a separately supervised collector;
+   callbacks and the owned control thread consume bounded mailboxes. Qualify
+   shutdown and missing/stale evidence. The host CIM timeout is retained; a valid
+   independent counter reading restored that experiment, not a fabricated idle
+   value. Product discovery must remain host/installation independent.
+3. **Useful automatic routing and amortization — G02/G03/A02.** Acquire repeated
+   configuration/recovery/shape-bound complete costs, including cold setup and
+   validation. Derive work geometry from qualified bounds and fresh contention;
+   the diagnostic's two-block quantum is not a product limit. Measure alternatives
+   to the dominant setup cost. Any finite cross-operation batching must preserve
+   per-request ordering, immutable input, immediate CPU selection, bounded lifetime
+   and confirmed retirement. Do not make an indefinite resident helper the default
+   or call manual qualified flags automatic learning.
+4. **Scalable storage and protected grouping — S01/A04.** Implement paged
+   object/namespace/extent lookup, bounded caches, allocation and reader-safe
+   reclamation. Demonstrate populated capacity beyond the flat implementation
+   without whole-tree residency or merely increasing constants. Co-design an
+   immutable group/dependency manifest with the independent CPU reader first.
+   Preserve existing format readers and reject unsupported extensions clearly.
+   Shared bases/dictionaries/models need explicit copy-on-write updates, deletion,
+   reference ownership and interruption-safe replacement; never just relax the
+   current duplicate-extent rejection.
+5. **A measured collective codec — A04.** Compare shared dictionaries, bounded
+   base/delta and GPU-supported compact predictor/residual candidates on held-out
+   file families. Charge models, indexes, restart points, redundancy and retained
+   generations. Keep larger learned or novel candidates when measured net size
+   gains justify practical access costs. Require byte-exact GPU/CPU restoration,
+   bounded dependency depth/scratch and individual random reads. The
+   [reviewed sources](COLD_COMPRESSION_RESEARCH.md#reviewed-source-findings--15-november-2026)
+   motivate experiments, not an algorithm selection or an extreme-compression claim.
+6. **Autonomous low-impact maintenance — L01/A03/A04.** Connect observed workloads
+   and rebuildable persistent advice to actual grouping/codec/layout decisions.
+   Admit tiny learning work from fresh idle/resource evidence and expected gain;
+   promptly yield at bounded units. Suppress negative-benefit candidates and
+   invalid profiles. Keep transactional advisory state distinct from immutable
+   decoder-required models/bases, which need protected publication and recovery.
+7. **Product and failure qualification — D01/R01/W01/Q01.** Close the retained
+   retirement investigations, acknowledged-write and redundancy/repair contracts,
+   Windows semantics, helper/tray/volume lifecycle and supported provisioning.
+   Qualify the latest Windows 11 client, adverse GPU/cancellation paths, malformed
+   input and reproducible filesystem comparisons under the allowed test backends.
+   Measure background interference and real workloads. A kernel pass, callback
+   fixture or RAM interruption model cannot establish these wider claims.
+
+Each slice must deliver product behavior and source-bound qualification. No
+release, tag or version change follows from this round; only the owner authorizes
+release. The [readiness assessment](RELEASE_READINESS.md) records the substantial
+remaining work without an invented percentage or calendar date.
 
 ## Revised implementation round — 14 November 2026
 
