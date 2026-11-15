@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "source": "1a38b7a9341f0080e81e856cb770cb9b4fb2f186",
+  "run": 43691882451,
+  "job": 132744074525,
+  "error": "MSVC C2466: cannot allocate an array of constant size 0",
+  "cause": "The fixture aggregate-initialized an SDK response type with a trailing zero-length array; the core native service uses explicit memset initialization.",
+  "correction": "Use the established explicit initialization pattern and copy the complete captured response. Keep all response and independent CPU recovery checks.",
+  "artifact_sha256": "cc6601035e8314f2f73009b4af5ad68b7d340b89eda3fa5f56b2f00ef97d74db",
+  "owner_executed": false,
+  "follow_up": "Requalify exact-source core and full SDK before hardware execution"
+}

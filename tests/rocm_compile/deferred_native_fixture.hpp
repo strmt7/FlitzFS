@@ -183,7 +183,8 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
         const auto receipt=service.completion_receipt_locked();check(receipt.has_value(),"deferred commit receipt absent");
         committed=*receipt;
       }
-      FSP_FSCTL_TRANSACT_RSP response{};std::memcpy(&response,completion.bytes.data(),sizeof(response));
+      FSP_FSCTL_TRANSACT_RSP response;std::memset(&response,0,sizeof(response));
+      std::memcpy(&response,completion.bytes.data(),sizeof(response));
       check(completion.count.load()==1&&completion.identity_matches&&response.Hint==request_hint&&
           response.Kind==FspFsctlTransactWriteKind&&response.IoStatus.Status==STATUS_SUCCESS&&
           response.IoStatus.Information==expected.size()&&response.Rsp.Write.FileInfo.FileSize==expected.size(),
