@@ -3,20 +3,24 @@
 The explicit hosted-only native adapter can now own one pending write. Its CPU/SDK and disposable mounted response paths passed at a4ad516.
 Automatic ordinary GPU I/O remains unqualified. Default application/filesystem paths remain CPU-only and create no service.
 
-Source 94aaa2a additionally passed one actual unmounted GPU operation through
-this owned service after all thirteen core jobs and full SDK qualification.
-Sixteen verified candidates matched the stored encoded bytes; current/prior CPU
-readback, the single injected response and resource retirement passed.
-[Executed evidence](evidence/owned-deferred-gpu-94aaa2a.json). This uses an injected
-response sink, not real GPU SendResponse/Explorer delivery or automatic routing.
+Source d384b6c passed all thirteen core jobs, all 53 prescribed SDK commands and
+one fixed six-request owner comparison through this service. All three GPU
+requests verified and stored sixteen candidates; every CPU/GPU request passed
+independent current/prior CPU readback, one injected response and retirement.
+Median request times were 24.2311 ms for CPU and 513.918 ms for GPU. Each produced
+the same 1,310,720-byte image and 135,648 active payload bytes from the same 1 MiB
+input. This case showed no speed or stored-size advantage.
+[All trials and scope](evidence/owned-service-comparison-d384b6c.json). The response
+sink remains injected; real GPU SendResponse/Explorer delivery and automatic
+useful routing are still unqualified.
 
-The next comparison slice adds explicit --deferred-native-cpu-once invocation.
-It uses the same owned-service source, initial storage, cleanup and timing scope
+The explicit --deferred-native-cpu-once invocation uses the same owned-service
+source, initial storage, cleanup and timing scope
 without launching a worker or querying the GPU. The original
 --deferred-native-cpu-fixture remains hosted-only; the SDK gate checks rejection
 when that child's hosted flag is absent. Receipts identify hosted_cpu,
-explicit_cpu or gpu invocation. This additional mode still requires its own
-exact-source qualification before owner use or a matched performance claim.
+explicit_cpu or gpu invocation. Changed source still requires exact-source
+qualification before owner use or a matched performance claim.
 
 The first CPU-mode qualification at 94af72c passed all thirteen core jobs and all
 52 prescribed SDK commands, including both invocations and legacy-guard rejection.
@@ -24,10 +28,9 @@ One bounded explicit CPU invocation on Windows 11 also passed with complete
 readback and retirement. [Evidence](evidence/owned-deferred-cpu-94af72c.json).
 Its request reports of
 0/16 ms exposed the existing GetTickCount64 granularity; they do not establish
-zero execution time. The next fixture records owned_request_ns with the existing
+zero execution time. The qualified d384b6c fixture records owned_request_ns with the existing
 steady-clock facility over the same scope. Legacy milliseconds remain for
-historical readers and timeout control is unchanged. Precise matched request
-comparisons require that new source's qualification first.
+historical readers and timeout control is unchanged.
 Both modes also report an unkeyed BLAKE3 source fingerprint, calculated before
 the request timing scope. It binds comparison inputs without requiring identical
 CPU/GPU compressed streams and does not authenticate the data. The full-process
@@ -51,7 +54,23 @@ and cannot be assigned to individual CPU/GPU requests. The CPU-only
 --deferred-native-cpu-series mode qualifies six successive ownership lifetimes
 on the disposable SDK runner without hardware execution. Its source fingerprints,
 storage accounting, response and cleanup must match the single CPU case. This
-new comparison mode is not yet owner-qualified or a reusable production cost model.
+comparison passed the bounded owner case at d384b6c. Three trials per backend on
+one fixed synthetic source do not qualify a reusable production cost model.
+
+The observed CPU range was 20.0793–28.1673 ms; the GPU range was
+505.7415–713.1048 ms. Each GPU request used a fresh worker. The request clock
+includes input copy/enqueue through service stop/join, excluding initial volume
+setup and final independent CPU readback. The complete six-request parent took
+1,911 ms. Final locked bytes were zero, every transport was quiescent, and the
+postflight found no named FlitzFS processes. Driver status was OK and the runtime
+digest was unchanged. The bounded System warning/error query found no matching
+GPU providers; this does not establish absence of every possible driver fault.
+
+The next implementation must amortize setup over finite useful work and advance
+protected collective compression. Do not repeat this unchanged comparison or
+enable this slower small-request route automatically. CPU/GPU encoders and sizes
+may differ; qualification compares independently decoded source bytes and full
+stored cost, rather than requiring identical compressed streams.
 
 ## Ownership and ordering
 
@@ -159,9 +178,9 @@ readback. Image and payload accounting occurs after native context cleanup/close
 Unknown hardware execution after a rejected child is null, not a fabricated
 false. CPU fallback means controller source selection; storage can independently
 choose a smaller CPU encoding. Source-specific core and full SDK qualification
-are mandatory before any owner experiment. The narrow source-94aaa2a hardware
-case is qualified; this is neither an automatic GPU route nor a performance
-comparison.
+are mandatory before any owner experiment. The narrow source-d384b6c hardware
+comparison is qualified; this is not an automatic GPU route or a general
+filesystem performance result.
 
 ## Qualification
 

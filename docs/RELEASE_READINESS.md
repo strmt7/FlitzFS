@@ -12,21 +12,27 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
-The latest qualified hardware source is 94aaa2a772e03689044df4c0b7504903faa9d553.
-All thirteen core jobs and the complete selected ROCm SDK gate passed. One bounded
-synthetic operation GPU-encoded 1,048,576 input bytes into 135,344 candidate bytes
-through the owned deferred write service. The stored encoded bytes matched the
-captured advice, and independent CPU recovery verified both current and prior
-data. The service sent one injected response, joined its control thread, confirmed
-transport retirement and released all locked memory.
-[Source-bound evidence](evidence/owned-deferred-gpu-94aaa2a.json)
+The latest qualified hardware source is d384b6c20cf686520e3a94c156e532307ca0fbf8.
+All thirteen core jobs and all 53 prescribed selected-SDK commands passed before
+one predeclared CPU/GPU, GPU/CPU, CPU/GPU owner comparison. Each request began
+with new identical storage and the same fingerprinted 1,048,576-byte source.
+All three GPU requests produced and stored verified candidates. All six requests
+passed independent current/prior CPU readback, exact injected response ownership,
+joined service threads, confirmed transport retirement and zero final locks.
+[Complete source-bound comparison](evidence/owned-service-comparison-d384b6c.json)
 
-The request scope took 641 ms and complete process execution took 728 ms. The
-complete image occupied 1,310,720 bytes, including metadata, alignment and retained
-history. It exceeded the input size. This is **not** a demonstrated whole-image
-size or end-to-end speed advantage. The operation was unmounted and used an
-injected response sink; real GPU SendResponse/Explorer delivery remains unproven.
-The hosted CPU fixture's timing is not a matched same-host comparison.
+Median owned request time was 24.2311 ms for CPU and 513.918 ms for GPU; ranges
+were 20.0793–28.1673 ms and 505.7415–713.1048 ms respectively. All six complete
+images occupied 1,310,720 bytes, with 135,648 active payload bytes each. The image
+exceeded input size. This fixed case showed **no speed or stored-size benefit**.
+The request scope includes enqueue/input copying through service join, excluding
+volume setup and final independent readback. Three trials per backend, one
+synthetic source and cold workers do not establish general filesystem performance
+or reusable production costs. Memory peaks are cumulative across the shared job.
+The operations were unmounted and used an injected response sink; real GPU
+SendResponse/Explorer delivery remains unproven. The postflight found no named
+FlitzFS processes, unchanged runtime bytes and GPU status OK; its bounded log
+query does not prove absence of every possible driver fault.
 
 The previous non-reusing sweep exited with 0xc0000409; CPU fallback and recovery
 passed. The successful replacement does not establish that historical failure's
@@ -59,8 +65,8 @@ The explicit CPU comparison mode at 94af72c passed all thirteen core jobs, all
 52 prescribed SDK commands and one bounded owner CPU case, with independent
 current/prior readback and complete retirement. Its coarse request clock returned
 0/16 ms, so those values are not precise speed measurements. Higher-resolution
-request timing and source fingerprints are being qualified before matched
-comparisons. [CPU-mode evidence](evidence/owned-deferred-cpu-94af72c.json).
+request timing and source fingerprints subsequently passed at d384b6c and were
+used for the comparison above. [CPU-mode evidence](evidence/owned-deferred-cpu-94af72c.json).
 
 Source 94aaa2a adds driver-independent control composition and optional encoded
 advice receipts. Its 154 native groups include 57 deferred and 226 controlled
@@ -81,7 +87,7 @@ collective compression. It does not justify a calendar estimate or percentage.
 
 | Area | Current position | Required exit |
 |---|---|---|
-| Ordinary Windows GPU I/O | One unmounted GPU operation through the owned service passed; real CPU-only mounted responses passed separately; automatic activation remains absent | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
+| Ordinary Windows GPU I/O | Three unmounted GPU requests in a matched six-request series passed; real CPU-only mounted responses passed separately; automatic activation remains absent | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
 | GPU benefit | Actual bounded GPU bytes and CPU recovery demonstrated | Repeated controlled comparisons on varied real data show useful complete-operation throughput and/or net stored-size benefit |
 | Capacity | 256 objects/nodes, about 15.94 MiB populated native extents, 64 MiB image bound remain in current implementation | Paged indices, allocation and bounded reclamation handle growing file trees/data without whole-tree residency or merely larger constants |
 | Extreme collective compression | Research/design objective; no product cross-file learned codec | A lossless cross-file representation produces substantial held-out TOTAL-size gains, with practical individually addressed reads and protected dependencies |
@@ -108,10 +114,14 @@ useful. Delivery has nevertheless accumulated many isolated stages while the
 main user-visible GPU path and the distinctive compression engine remain absent.
 Further assertion counts and documentation alone will not close that gap.
 
-The next work must deliver a complete automatic Windows/GPU/native-write/read/
-fallback slice, then a scalable store and a real collective-compression slice.
-Acquire only the measurements needed to make those decisions; avoid indefinite
-LZ4 tuning or another sequence of disconnected capability probes. Keep the
+The measured small-request route must not be enabled merely because a GPU exists.
+The next implementation must reduce setup per useful byte through a finite
+amortized lifecycle and implement protected cross-file compression with an
+independent CPU reader. Advance scalable indices and automatic Windows routing
+alongside those mechanisms. Setup amortization alone cannot create a storage
+gain when CPU and GPU choose equally sized representations. Acquire only the
+measurements needed to choose the next implementation; avoid unchanged reruns,
+indefinite LZ4 tuning or disconnected capability probes. Keep the
 [implementation plan](DEVELOPMENT_PLAN.md) and its dependency ledger current.
 
 Before a credible release estimate, demonstrate all three: useful ordinary GPU

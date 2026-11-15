@@ -786,10 +786,10 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source": "94aaa2a772e03689044df4c0b7504903faa9d553",
-    "status": "All 13 core jobs, 154 native groups and full SDK passed. One actual unmounted GPU operation through the owned service matched stored advice and recovered current/prior data on CPU with exact retirement.",
-    "core_run": 43692752566,
-    "sdk_run": 43692765002,
+    "source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
+    "status": "All 13 core jobs and 53 prescribed SDK commands passed; one matched six-request owner comparison completed with actual stored GPU advice, independent current/prior CPU readback and exact retirement. No speed or size advantage in the fixed case.",
+    "core_run": 43700315671,
+    "sdk_run": 43700330670,
     "contract": "docs/OWNED_DEFERRED_WRITES.md",
     "ordinary_GPU_route": false,
     "cost_model_qualified": false,
@@ -797,19 +797,31 @@
     "actual_GPU_SDK_delivery": false,
     "cross_operation_batching": false,
     "owner_executed": true,
-    "latest_actual_GPU_source": "94aaa2a772e03689044df4c0b7504903faa9d553",
-    "evidence": "docs/evidence/owned-deferred-gpu-94aaa2a.json",
+    "latest_actual_GPU_source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
+    "evidence": "docs/evidence/owned-service-comparison-d384b6c.json",
     "deferred_checks": 57,
     "controlled_checks": 226,
-    "owned_request_ms": 641,
     "source_bytes": 1048576,
     "candidate_bytes": 135344,
     "image_bytes": 1310720,
     "comparative_benefit_proven": false,
-    "release_gate_closed": false
+    "release_gate_closed": false,
+    "matched_comparison": {
+      "CPU_median_request_ns": 24231100,
+      "GPU_median_request_ns": 513918000,
+      "CPU_min_request_ns": 20079300,
+      "CPU_max_request_ns": 28167300,
+      "GPU_min_request_ns": 505741500,
+      "GPU_max_request_ns": 713104800,
+      "image_bytes_each": 1310720,
+      "active_payload_bytes_each": 135648,
+      "GPU_candidate_bytes_each": 135344,
+      "complete_parent_ms": 1911,
+      "speed_or_size_advantage_observed": false
+    }
   },
   "next_product_slices": [
-    "Qualify high-resolution timing, source fingerprints and the finite alternating three-pair comparison with its CPU-only six-request lifecycle check. The explicit CPU mode passed all gates and one owner case, but legacy requests rounded to 0/16 ms. Then compare identical input/state/scopes, distinguishing execution from size benefit and cumulative job peaks from per-request time.",
+    "Act on completed d384b6c matched comparison: CPU median 24.2311 ms, GPU 513.918 ms, identical complete sizes. Preserve all six rows. Do not rerun unchanged or automatically enable this slower small-request route. Implement finite setup amortization and protected collective compression, with source-bound hosted lifecycle/fault checks before new owner work.",
     "Automatically resolve and pin independently available helper/module/runtime dependencies outside the managed volume; supervise resource collection separately and deliver finite fresh evidence mailboxes with exact shutdown.",
     "Acquire repeated configuration/recovery/work-shape keyed complete costs, derive geometry from fresh headroom/contention and connect useful automatic Windows write/read/fallback. Address cold setup and qualify finite cross-operation amortization without an indefinite resident helper.",
     "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
@@ -852,8 +864,8 @@
   },
   "execution_round": {
     "date": "2026-11-15",
-    "status": "One actual unmounted owned-service GPU case qualified; full goal active and ordinary useful GPU/scale/collective exits remain open",
-    "source": "94aaa2a772e03689044df4c0b7504903faa9d553",
+    "status": "Matched owner CPU/GPU series complete, no benefit observed on fixed 1-MiB case. Full goal remains active; ordinary useful routing, scale and collective compression remain required.",
+    "source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
     "release_assessment": "docs/RELEASE_READINESS.md",
     "principle": "Complete one product behavior and its adversarial qualification; do not substitute more probes or counts for ordinary GPU use or collective compression.",
     "work": [
@@ -878,7 +890,8 @@
         "entry": "Single owned-service GPU case source-qualified",
         "implementation": "Explicit finite CPU-only owner mode and matched CPU/GPU operation scopes with identical initial state, varied synthetic controls and complete image/request/read/resource accounting.",
         "acceptance": "Finite alternating exact-source trials distinguish execution, accepted advice and net storage benefit; independent CPU recovery and exact retirement pass. No reuse of one manual grant as automatic qualified costs.",
-        "status": "CPU mode passed exact-source core/SDK and one owner case; precise timing, input fingerprints and finite comparison implemented; qualification and matched trials pending"
+        "status": "Complete for one fixed six-request comparison; three trials per backend do not qualify reusable production costs.",
+        "evidence": "docs/evidence/owned-service-comparison-d384b6c.json"
       },
       {
         "id": "automatic-routing",

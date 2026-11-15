@@ -8,13 +8,14 @@ The owner's background-compression direction is specified in [COLD_COMPRESSION_R
 
 ## Current implementation round — 15 November 2026
 
-Source 94aaa2a772e03689044df4c0b7504903faa9d553 passed all thirteen core jobs,
-154 native groups and the complete ROCm SDK gate. One actual unmounted GPU request
-through the owned write service accepted sixteen candidates, matched their stored
-encoded bytes and independently recovered current/prior data on CPU. Its one
-injected response and resource retirement passed. The complete image exceeded
-input size; the 641-ms request is not a competitive speed result.
-[Executed evidence](evidence/owned-deferred-gpu-94aaa2a.json).
+Source d384b6c20cf686520e3a94c156e532307ca0fbf8 passed all thirteen core jobs
+and all 53 prescribed ROCm SDK commands. The predeclared six-request owner series
+then completed CPU/GPU, GPU/CPU, CPU/GPU with identical fingerprinted input and
+initial storage. GPU results were verified and stored; all requests passed
+current/prior CPU readback, exact response and retirement. Median request times
+were 24.2311 ms CPU and 513.918 ms GPU. Every image was 1,310,720 bytes with
+135,648 active payload bytes. This fixed case showed no speed or size benefit.
+[All trials, qualification and limits](evidence/owned-service-comparison-d384b6c.json).
 
 The full product goal remains active. This current round and the JSON ledger's
 current_round/next_product_slices define forward work. Older dated sections and
@@ -23,20 +24,16 @@ stages. The package exits below remain controlling.
 
 ### Next implementation sequence
 
-1. **Comparable service measurements — G02/G03/A02.** The explicit bounded
-   CPU-only mode passed exact-source core/SDK gates and one bounded owner case.
-   [Evidence](evidence/owned-deferred-cpu-94af72c.json). The coarse timer reported
-   0/16 ms; high-resolution request timing, input fingerprints and a finite
-   alternating three-pair comparison are implemented but require qualification
-   before precise matched trials. Its CPU-only six-request series checks repeated
-   ownership on the disposable runner; job peaks remain cumulative. Never bypass the
-   hosted-only guard with environment changes. Compare identical source bytes,
-   initial image state, cleanup and measurement scopes. Use finite alternating
-   trials, varied synthetic controls and licensed real-data CPU runs on disposable
-   hosts. Record full image bytes, source digests, complete request/read costs,
-   peaks and retirement. Separate verified GPU execution from whether its advice
-   actually saves storage. No unchanged diagnostic repetition or routing policy
-   derived from the single successful sample.
+1. **Act on the completed comparison — G02/G03/A02.** The high-resolution clock,
+   input fingerprints, six-request CPU lifecycle and three-pair matched owner
+   series passed. Preserve all six rows and the negative benefit result. Do not
+   rerun this unchanged workload or enable its slower GPU route automatically.
+   Implement finite setup reuse over useful work, with explicit input ownership,
+   prompt CPU publication, terminal cancellation and confirmed retirement before
+   changing lifetime/transport. Compare the changed mechanism on source-bound
+   hosted CPU/fault fixtures first. Subsequent finite matched trials must charge
+   setup, validation and complete image/history bytes. Vary inputs only to resolve
+   an implementation decision; current job peaks are cumulative, not per-trial.
 2. **Automatic trusted helper and resource evidence — G02/A01.** Resolve and pin
    helper/modules outside their own filesystem dependency chain. Bind immutable
    file identities, runtime/module digests, adapter/node and recovery generation
