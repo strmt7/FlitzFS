@@ -1,5 +1,6 @@
 #include "native_uniform_write.hpp"
 #include "native_windows_boundary.hpp"
+#include "../record_digest.hpp"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -116,6 +117,7 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
     // failures never fence the healthy storage session or acknowledge a write.
     source_.swap(owned);handle_=handle;effect_=effect;mode_=mode;offset_=offset;first_extent_=first;
     append_=append;constrained_=constrained;submitted_=start.worker.decision.submitted;
+    capture_advice_=binding.capture_advice_receipt;
     pending_=true;completed_=false;result_={};return NativeWindowsIoOutcome{STATUS_SUCCESS,false};
   });
   return start;
@@ -134,7 +136,17 @@ std::optional<NativeUniformWriteResult> ControlledNativeUniformWrite::finish() n
   if(submitted_ && controller_.state()==GpuWorkerState::worker_selected){
     for(std::uint32_t i=0;i<controller_.count() && count<hints.size();++i){
       const auto candidate=controller_.candidate(i);if(candidate.empty())continue;
-      hints[count++]={first_extent_+i,candidate};result_.candidate_bytes+=static_cast<std::uint32_t>(candidate.size());
+      hints[count]={first_extent_+i,candidate};
+      if(capture_advice_){
+        const auto digest=detail::record_digest(candidate);
+        auto& receipt=result_.advice;
+        if(!receipt.captured){
+          receipt.payload_bytes=static_cast<std::uint32_t>(candidate.size());
+          receipt.payload_digest=digest;receipt.captured=true;receipt.uniform_payloads=true;
+        }else if(receipt.payload_bytes!=candidate.size()||receipt.payload_digest!=digest)
+          receipt.uniform_payloads=false;
+      }
+      ++count;result_.candidate_bytes+=static_cast<std::uint32_t>(candidate.size());
     }
   }
   result_.candidate_count=static_cast<std::uint32_t>(count);

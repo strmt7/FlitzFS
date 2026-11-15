@@ -2,6 +2,7 @@
 #include "native_file_info.hpp"
 #include "uniform_lz4_worker_controller.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
+#include <array>
 #include <optional>
 namespace flitzfs {
 // Admission and immutable copying shared with the deferred callback owner.
@@ -20,6 +21,8 @@ struct NativeUniformWorkerBinding {
   std::optional<NativeUniformSweepGrant> sweep;
   // Used ONLY with the explicitly CPU-semantic test backend.
   std::vector<std::wstring> cpu_fixture_arguments;
+  // Optional diagnostic evidence; default writes perform no extra payload hash.
+  bool capture_advice_receipt=false;
 };
 struct NativeUniformDispatch {
   std::vector<std::wstring> arguments;
@@ -38,11 +41,19 @@ struct NativeUniformWriteStart {
   std::uint64_t device_peak_bytes=0;
   bool reused=false;
 };
+// Integrity receipts describe verified advice before native publication. They
+// are diagnostic facts, not authentication or a new stored representation.
+struct NativeUniformAdviceReceipt {
+  std::uint32_t payload_bytes=0;
+  std::array<std::byte,32> payload_digest{};
+  bool captured=false,uniform_payloads=false;
+};
 struct NativeUniformWriteResult {
   NativeWindowsIoOutcome outcome;
   ULONG transferred=0;
   FSP_FSCTL_FILE_INFO info{};
   std::uint32_t candidate_count=0,candidate_bytes=0;
+  NativeUniformAdviceReceipt advice{};
 };
 // Explicit operation, not installed in ordinary callbacks. One serialized
 // control thread; the session must outlive this coordinator without moving,
@@ -76,6 +87,7 @@ class ControlledNativeUniformWrite final {
   NativeFileInfoAllocation mode_=NativeFileInfoAllocation::unavailable;
   UINT64 offset_=0,first_extent_=0;
   bool append_=false,constrained_=false,submitted_=false,pending_=false,completed_=false;
+  bool capture_advice_=false;
   NativeUniformWriteResult result_{};
 };
 }

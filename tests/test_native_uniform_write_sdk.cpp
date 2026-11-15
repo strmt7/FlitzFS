@@ -4,6 +4,7 @@
 #include "native_security_fixture.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include "store_codec.hpp"
+#include "../src/record_digest.hpp"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -97,6 +98,7 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
     expected.insert(expected.end(),payload.begin(),payload.end());}
   const auto e=health(100);const auto profile=cost(e);
   NativeUniformWorkerBinding binding;binding.helper=worker;binding.configuration=e.configuration;
+  binding.capture_advice_receipt=compression==StoreCompressionMode::fast&&compact;
   binding.cpu_fixture_arguments={fault==1?L"uniform-native2-corrupt":fault==2?L"uniform-native2-hold":
       fault==4 || fault==6?L"uniform-native1":L"uniform-native2"};
   if(sweep){
@@ -155,6 +157,19 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
   check(result->candidate_count==(!gpu_lz4_cpu_verification_available() || fault==1 || fault==2 || fault==5 || fault==8 || fault==9 || fault==10 || fault==11?0U:
       fault==4 || fault==6?1U:sweep?16U:2U),
       "controlled write supplied wrong advisory extent count");
+  const auto& receipt=result->advice;
+  if(binding.capture_advice_receipt&&result->candidate_count){
+    const std::uint64_t position=fault==4?7001:fault==6?31:0;
+    const auto gap=(kNativeExtentBytes-position%kNativeExtentBytes)%kNativeExtentBytes;
+    const auto supplied=native_lz4_fixture::alternative_block(
+        std::span<const std::byte>(payload).subspan(static_cast<std::size_t>(gap),kNativeExtentBytes));
+    check(receipt.captured&&receipt.uniform_payloads&&receipt.payload_bytes==supplied.size()&&
+        receipt.payload_digest==flitzfs::detail::record_digest(supplied)&&
+        std::uint64_t(receipt.payload_bytes)*result->candidate_count==result->candidate_bytes,
+        "controlled advice receipt did not bind independently supplied bytes");
+  }else check(!receipt.captured&&!receipt.uniform_payloads&&!receipt.payload_bytes&&
+      std::all_of(receipt.payload_digest.begin(),receipt.payload_digest.end(),[](auto v){return v==std::byte{0};}),
+      "disabled or unused advice receipt retained data");
   const auto calls=ram->calls,reads=ram->read_calls;
   const auto again=operation.finish();
   check(again && again->transferred==result->transferred && again->outcome.status==result->outcome.status &&

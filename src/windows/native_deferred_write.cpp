@@ -41,7 +41,7 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
   request->bytes=own_native_uniform_source(bytes);
   request->filesystem=fs;request->hint=hint;request->handle=handle;
   request->offset=offset;request->append=append;request->constrained=constrained;
-  request_=std::move(request);force_cpu_=false;
+  request_=std::move(request);completion_.reset();force_cpu_=false;
   stats_.native_pending=true;stats_.worker_busy=true;increment(stats_.queued);
   changed_.notify_all();return true;
 }
@@ -75,7 +75,7 @@ void NativeDeferredWriteService::run() noexcept{
       const auto started=GetTickCount64();
       auto charged=options_.cost;
       if(!uniform_lz4::add(charged.fixed_bytes,request_->bytes.size()+sizeof(Request)+
-          sizeof(FSP_FSCTL_TRANSACT_RSP),charged.fixed_bytes))charged.qualified=false;
+          sizeof(FSP_FSCTL_TRANSACT_RSP)+2*sizeof(NativeUniformWriteResult),charged.fixed_bytes))charged.qualified=false;
       const bool consent=options_.allow_gpu&&options_.helper_independent&&!force_cpu_&&!stats_.stopping;
       const auto admission=operation.begin(request_->handle,request_->bytes,request_->offset,
           request_->append,request_->constrained,{},NativeFileInfoAllocation::native_reserved_cache,
@@ -102,6 +102,7 @@ void NativeDeferredWriteService::run() noexcept{
         if(auto finished=operation.finish()){result=*finished;completed=true;}
         else changed_.wait_for(guard,std::chrono::milliseconds(5));
       }
+      completion_=result;
       if(result.outcome.offline_required)offline_.store(true,std::memory_order_release);
       if(result.candidate_count)increment(stats_.advised);
       FSP_FSCTL_TRANSACT_RSP response;std::memset(&response,0,sizeof(response));

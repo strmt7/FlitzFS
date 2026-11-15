@@ -64,6 +64,51 @@ DLL or a driver in the diagnostic process. The changed source still requires
 exact-source qualification; it is not new hardware evidence or owner-trial
 permission.
 
+## Optional advice receipts and driver-free composition
+
+NativeUniformWorkerBinding.capture_advice_receipt enables a compact integrity
+receipt for verified encoded advice before storage publication. It records the
+first payload's length and unkeyed BLAKE3 digest and whether every offered
+payload has that same representation. It neither authenticates data nor changes
+the stored format. Disabled normal writes perform no additional payload hashing.
+Nonuniform representations remain fully supported; their receipt simply cannot
+establish the repeated-source diagnostic's single-fingerprint comparison.
+
+The service retains the committed result through completion_receipt_locked().
+Callers must own its control lock. Accepting a new request clears the preceding
+result. These fixed-size advisory facts do not retain callback buffers or
+decoder dependencies. Their retained copies are included in resource accounting.
+
+The existing optional runtime probe adds --deferred-native-cpu-fixture and
+--gpu-deferred-native-once. Both exercise one owned 1-MiB synthetic request,
+overwrite the caller's original buffer after enqueue, require one commit-bound
+response, join the service, and independently recover current and prior bytes.
+The GPU mode additionally compares stored encoded payloads against the observed
+advice fingerprint. A codec identifier alone is insufficient: CPU fallback can
+also encode LZ4. These are unmounted diagnostics, not ordinary Explorer I/O.
+
+The explicit GPU fixture supplies a manually reviewed configuration-bound grant
+for the same finite two-block/64-KiB quantum and sixteen-block source shape.
+It is not a reusable measured cost model; cost_profile_qualified stays false.
+Its values cannot become automatic routing policy or authorize other workloads.
+Fresh telemetry uses the supplied verified LUID/node, never adapter-order scans.
+Only the diagnostic supervisor samples DXGI; the service can select CPU without
+waiting for that sampling code. General product collectors still require their
+own supervised lifecycle and qualified costs.
+
+The private SDK fixture stages pinned ABI headers on a disposable runner and
+links only the control target. Loader metadata must contain no WinFsp or AMD
+runtime dependency in the parent probe; the runtime presence check also refuses
+an unexpectedly loaded WinFsp DLL. No WinFsp runtime is packaged. The exact
+upstream license is retained alongside the existing dependency notices.
+
+A verified GPU result and matching stored payload are distinct report fields.
+Unknown hardware execution after a rejected child is null, not a fabricated
+false. CPU fallback means controller source selection; storage can independently
+choose a smaller CPU encoding. Source-specific core and full SDK qualification
+are mandatory before any owner experiment. This new composition is not yet
+hardware-qualified, an automatic GPU route or a performance comparison.
+
 ## Qualification
 
 Source [a4ad516](https://github.com/strmt7/FlitzFS/commit/a4ad5166d5063d820cfdd704a600ea20a23f1d93)

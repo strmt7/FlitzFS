@@ -44,6 +44,9 @@ class NativeDeferredWriteService final {
   void drain_locked(std::unique_lock<std::mutex>&);
   bool publication_pending_locked() const noexcept{return stats_.native_pending;}
   NativeDeferredWriteStats stats_locked() const noexcept{return stats_;}
+  // Explicit control-plane observation only; no callback buffer is retained.
+  // A new accepted request clears the preceding completion.
+  std::optional<NativeUniformWriteResult> completion_receipt_locked() const noexcept{return completion_;}
   void publish_locked(const GpuHealthEvidence&);
   NativeDeferredStop stop();
  private:
@@ -59,6 +62,7 @@ class NativeDeferredWriteService final {
   std::condition_variable changed_;
   std::unique_ptr<Request> request_;
   NativeDeferredWriteStats stats_;
+  std::optional<NativeUniformWriteResult> completion_;
   bool force_cpu_=false;
   std::thread thread_;
 };

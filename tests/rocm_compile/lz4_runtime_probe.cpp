@@ -12,6 +12,7 @@
 #include "flitzfs/uniform_lz4_wire.hpp"
 #include "uniform_lz4_profile.hpp"
 #include "uniform_lz4_sweep_profile.hpp"
+#include "deferred_native_fixture.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include "../native_lz4_fixture.hpp"
 #include <windows.h>
@@ -475,6 +476,27 @@ int gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller
 int wmain(int argc,wchar_t** argv){
   try{
     gpu_probe_fixture::Budget controller;
+    if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-fixture")
+      return deferred_native_fixture::run({},controller);
+    if(argc>1&&std::wstring_view(argv[1])==L"--gpu-deferred-native-once"){
+      require(argc==7,"Deferred native GPU needs trusted worker/ordinal/LUID/node/runtime digest");
+      deferred_native_fixture::Configuration configuration;configuration.gpu=true;
+      configuration.worker.helper=argv[2];
+      require(configuration.worker.helper.is_absolute()&&
+          configuration.worker.helper.filename()==L"flitzfs_hip_lz4_worker.exe","Trusted deferred worker required");
+      configuration.worker.ordinal=static_cast<int>(number(argv[3],63));
+      configuration.luid=luid_value(argv[4]);
+      configuration.node_mask=number(argv[5],(std::numeric_limits<unsigned>::max)());
+      require(configuration.node_mask&&!(configuration.node_mask&(configuration.node_mask-1)),
+          "Deferred GPU requires one corroborated node");
+      const std::wstring_view runtime(argv[6]);
+      require(runtime.size()==64&&std::all_of(runtime.begin(),runtime.end(),[](wchar_t c){
+        return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');}),"Deferred runtime digest invalid");
+      const auto digit=[](wchar_t c){return static_cast<unsigned>(c<=L'9'?c-L'0':c-L'a'+10);};
+      for(std::size_t i=0;i<configuration.worker.runtime_sha256.size();++i)
+        configuration.worker.runtime_sha256[i]=static_cast<std::byte>((digit(runtime[2*i])<<4)|digit(runtime[2*i+1]));
+      return deferred_native_fixture::run(std::move(configuration),controller);
+    }
     if(argc==4 && std::wstring_view(argv[1])==L"--uniform-admission")return uniform_admission(argv[2],argv[3]);
     if(argc==2 && std::wstring_view(argv[1])==L"--uniform-sweep-native-cpu-fixture")return uniform_native_cpu_fixture(true);
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-sweep-profile-native-once")return uniform_native_gpu_once(argc,argv,controller,true,true);

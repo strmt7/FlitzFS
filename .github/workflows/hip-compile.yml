@@ -103,6 +103,9 @@ jobs:
           check-latest: true
       - name: Prepare exact job-local CMake
         run: python tools/ci/prepare_hosted_tools.py cmake
+      - name: Stage pinned WinFsp ABI headers without installing or loading its runtime
+        if: inputs.lz4_runtime_fixture == true
+        run: ./tools/ci/prepare_winfsp_sdk.ps1
       - name: Qualify current ROCm SDK, filesystem kernel and worker admission
         env:
           FLITZFS_CODEC_CANDIDATE: ${{ inputs.codec_candidate && 'hipcomp' || 'none' }}

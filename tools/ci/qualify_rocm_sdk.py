@@ -14,6 +14,7 @@ import stat
 import time
 import sys
 import zipfile
+import urllib.request
 
 SOURCE_REF="b46acb6dd7e48e1fb2dc182210495abb6a3c013f"
 REPO=Path(__file__).resolve().parents[2]
@@ -308,8 +309,38 @@ def main():
         if cpu_lz4_source is not None:
             configure.append("-DFLITZFS_ROCM_LZ4_CPU_SOURCE="+str(root/"cpu-lz4-source"))
         if args.lz4_runtime_fixture:
+            native_sdk=Path(os.environ.get("FLITZFS_WINFSP_SDK",""))
+            require(native_sdk.is_absolute() and native_sdk.is_dir(),
+                "pinned WinFsp ABI header stage required for owned write qualification")
+            native_sdk=native_sdk.resolve(strict=True)
+            require(native_sdk.is_relative_to(Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)),
+                "native ABI headers escaped the disposable runner temporary root")
+            native_header=native_sdk/"include/winfsp/winfsp.h"
+            require(native_header.is_file() and not native_header.is_symlink() and
+                0<native_header.stat().st_size<=1024*1024,"native ABI header budget")
+            report["native_write_control_headers"]=dict(header_sha256=digest(native_header),
+                runtime_linked=False,runtime_loaded=False,driver_operation=False)
+            license_source="14d6e0280ae15e2550c44d6dbc476be51649727f"
+            license_url="https://raw.githubusercontent.com/winfsp/winfsp/"+license_source+"/License.txt"
+            request=urllib.request.Request(license_url,headers={"User-Agent":"FlitzFS-qualified-source"})
+            with urllib.request.urlopen(request,timeout=20) as response:
+                license_bytes=response.read(65536+1)
+                license_status=response.status;license_final_url=response.geturl()
+            require(0<len(license_bytes)<=65536,"WinFsp license response budget")
+            with (root/"winfsp-license.native").open("xb") as capture:
+                capture.write(license_bytes)
+            require(len(license_bytes)==36658 and hashlib.sha256(license_bytes).hexdigest()==
+                "68ae2fa9d8e6110ebdc9a236beecf118e279f8a26530daf09c9e682c231f7879",
+                "WinFsp source license digest")
+            native_license_path=root/"winfsp-License.txt"
+            with native_license_path.open("xb") as output:
+                output.write(license_bytes)
+            report["native_write_control_headers"]["license"]=dict(source=license_source,
+                url=license_url,final_url=license_final_url,status=license_status,
+                bytes=len(license_bytes),sha256=digest(native_license_path))
             configure.extend(["-DFLITZFS_ROCM_LZ4_RUNTIME_FIXTURE=ON",
-                "-DFLITZFS_ROCM_LZ4_COVERAGE="+str(private_candidate_root/"qualification.json")])
+                "-DFLITZFS_ROCM_LZ4_COVERAGE="+str(private_candidate_root/"qualification.json"),
+                "-DFLITZFS_WINFSP_SDK="+str(native_sdk)])
         run(bounds,configure,report,"current-sdk-host-api-and-link-configure")
         run(bounds,[cmake,"--build",str(build),"--config","Release","--parallel","2"],
             report,"current-sdk-host-api-and-kernel-module-link")
@@ -492,6 +523,26 @@ def main():
             report["uniform_lz4_runtime_fixture"]=dict(qualification=uniform_rows[0],
                 bundle=json.loads((build/"Release/hip-uniform-lz4-bundle.json").read_text(encoding="utf-8")),
                 product_linked=False,actual_gpu_execution=False)
+            deferred_result=run(bounds,[str(runtime_probe),"--deferred-native-cpu-fixture"],report,
+                "owned-deferred-native-CPU-composition",30)
+            deferred_prefix="Deferred native composition: "
+            deferred_rows=[json.loads(line[len(deferred_prefix):])
+                for line in deferred_result["stdout"].splitlines() if line.startswith(deferred_prefix)]
+            require(len(deferred_rows)==1,"missing owned deferred composition receipt")
+            deferred=deferred_rows[0]
+            require(all(deferred[key] is True for key in ("complete","CPU_fallback_selected","owned_input",
+                "control_joined","current_CPU_readback","prior_CPU_readback","working_set_restored",
+                "transport_quiescent")) and deferred["gpu_executed"] is False and
+                deferred["gpu_requested"] is False and deferred["gpu_result_verified"] is False and
+                deferred["winfsp_runtime_loaded"] is False and deferred["mounted"] is False and
+                deferred["normal_io_route"] is False and deferred["cost_profile_qualified"] is False and
+                deferred["stored_advice_digest_matches"] is False and deferred["candidate_count"]==0 and
+                deferred["source_bytes"]==1024*1024 and deferred["response_count"]==1 and
+                deferred["locked_peak_bytes"]==4*1024*1024 and deferred["locked_after_bytes"]==0 and
+                0<deferred["image_bytes"]<=2*1024*1024 and
+                0<deferred["active_payload_bytes"]<=deferred["image_bytes"],
+                "owned deferred CPU composition or retirement mismatch")
+            report["uniform_lz4_runtime_fixture"]["deferred_native_storage_CPU"]=deferred
             uniform_native_result=run(bounds,[str(runtime_probe),"--uniform-native-cpu-fixture"],report,
                 "uniform-native-LZ4-storage-CPU-composition",30)
             uniform_native_prefix="Uniform native CPU fixture: "
@@ -903,6 +954,7 @@ def main():
                 (candidate_copy,"hip-lz4/"+candidate_copy.name),
                 (uniform_copy,"hip-uniform-lz4/"+uniform_copy.name),
                 (REPO/"LICENSE","LICENSE"),
+                (native_license_path,"licenses/winfsp/License.txt"),
                 *((REPO/"third_party/blake3"/name,"licenses/blake3/"+name)
                     for name in ("LICENSE_A2","LICENSE_A2LLVM","LICENSE_CC0")),
                 *((root/"cpu-lz4-source"/name,"licenses/lz4/"+name)
@@ -936,6 +988,8 @@ def main():
                 uniform_sweep_profile_packaged=True,uniform_sweep_profile_envelope="FLUSP001",
                 uniform_layout_version=2,uniform_runtime_packaged=True,uniform_gpu_execution=False,
                 uniform_serial_sweep_packaged=True,uniform_sweep_cpu_source_bytes=1024*1024,
+                native_deferred_CPU_qualified=True,native_deferred_gpu_executed=False,
+                native_control_winfsp_runtime_required=False,
                 native_storage_CPU_qualified=True,native_gpu_worker_timeout_ms=5000,
                 native_store_capacity_bytes=2*1024*1024,native_locked_peak_bytes=4*1024*1024,
                 actual_gpu_execution=False,ordinary_filesystem_route=False)
