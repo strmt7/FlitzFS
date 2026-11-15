@@ -2,6 +2,11 @@
 
 ## Current local development
 
+The opt-in [mirrored-payload store](MIRRORED_PAYLOADS.md) now supplies a redundant
+foundation for native metadata/data and future decoder dependencies. CPU reads
+can use a surviving copy, and new-image rebuild restores protection. Automatic
+repair/selection, group manifests, device-fault and physical durability gates remain.
+
 The [staged paged candidate](STAGED_PAGED_REBUILD.md) now splits complete source/
 target verification, copying and post-publication checks into bounded steps.
 It preserves foreground reads and invalidates on committed source changes.

@@ -65,7 +65,9 @@ physical limits remain. Closed-context recovery can retire 255 distinct extents,
 in one 513-operation publication.
 
 Index/root pages retain paged metadata replication. Directory and inode object
-payloads are integrity checked but **not independently replicated**. Digests
+payloads on ordinary capability-1 backing are **not independently replicated**.
+The separate [mirrored backing](MIRRORED_PAYLOADS.md) now protects them without
+changing this namespace layout. Digests
 cannot reconstruct missing bytes. Explicit [native maintenance](NATIVE_PAGED_MAINTENANCE.md)
 now copies/recompresses this layout into a verified new image. Protected payloads, native repair/migration,
 incremental verification, paged inode/extent access, bounded residency and

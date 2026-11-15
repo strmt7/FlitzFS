@@ -1,5 +1,9 @@
 # Native paged compaction and recompression (experimental)
 
+Maintenance also preserves the explicit [mirrored-payload layout](MIRRORED_PAYLOADS.md)
+and can reconstruct a damaged copy into a new protected image. The single-copy
+limitations below still apply to capability-1 source images.
+
 `NativeFilesystemWriter::compact` and `recompress` now accept the native paged
 backend, including the original namespace, inode-record capability 1 and indexed-
 directory capability 2. They stream live records into a new empty backend and

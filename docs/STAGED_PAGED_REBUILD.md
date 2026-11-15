@@ -1,5 +1,9 @@
 # Bounded staged paged rebuild (experimental)
 
+The [mirrored-payload extension](MIRRORED_PAYLOADS.md) retains its protection
+during staged copying and independently verifies both new copies. A staged
+attempt can reconstruct a lost bank while the source remains CPU-readable.
+
 Paged storage now supports an explicit candidate alongside a live foreground
 writer. Copying and all full-content verification advance one object at a time;
 finishing does not hide a volume scan. Native wrappers preserve each of the

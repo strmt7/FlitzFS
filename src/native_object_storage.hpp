@@ -12,7 +12,7 @@ inline StoreCommitInfo native_paged_info(PagedStoreInfo value) noexcept {
   result.logical_bytes=value.logical_bytes;result.objects=static_cast<std::size_t>(value.objects);
   result.degraded_root=value.degraded_roots;result.stored_payload_bytes=value.stored_payload_bytes;
   result.checkpoint_generation=value.checkpoint_generation;result.replicated_checkpoint=true;
-  result.degraded_checkpoint=value.degraded_roots || value.degraded_metadata;
+  result.degraded_checkpoint=value.degraded_roots || value.degraded_metadata || value.degraded_payloads;
   return result;
 }
 class NativeObjectSnapshot final {

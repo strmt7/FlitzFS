@@ -11,10 +11,14 @@ struct PagedStoreLimits {
   std::uint64_t maximum_physical_bytes=0; // Required; capacity, not current RAM use.
 };
 struct PagedStoreInfo {
+  // Stored payload total includes both copies in capability 2. Individual
+  // StoreObjectInfo lengths still describe one encoded stream; headers/pages
+  // and padding are charged by physical_end, not this payload-only counter.
   std::uint64_t generation=0,checkpoint_generation=0,physical_end=0;
   std::uint64_t objects=0,logical_bytes=0,stored_payload_bytes=0;
   std::uint32_t height=0;
   bool degraded_roots=false,degraded_metadata=false;
+  bool mirrored_payloads=false,degraded_payloads=false;
 };
 class PagedObjectStoreWriter;
 class PagedObjectStoreSnapshot final {
@@ -44,6 +48,10 @@ class PagedObjectStoreWriter final {
  public:
   class Rewrite;
   static PagedObjectStoreWriter create(std::shared_ptr<StoreByteIo> empty,
+      StoreIdentity,PagedStoreLimits,StoreCompressionOptions={});
+  // Explicit capability-2 layout: every payload has an independently checked
+  // copy in disjoint qualified failure units. Existing create bytes are unchanged.
+  static PagedObjectStoreWriter create_mirrored(std::shared_ptr<StoreByteIo> empty,
       StoreIdentity,PagedStoreLimits,StoreCompressionOptions={});
   // Exclusive explicit recovery. Fully CPU-scrubs before further writes;
   // repairs root publication only. Damaged descendant metadata is readable via
@@ -77,6 +85,8 @@ class PagedObjectStoreWriter final {
   bool poisoned() const noexcept;
  private:
   friend class detail::NativeObjectWriter;
+  static PagedObjectStoreWriter create_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      PagedStoreLimits,StoreCompressionOptions,bool mirrored);
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode) const;
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,

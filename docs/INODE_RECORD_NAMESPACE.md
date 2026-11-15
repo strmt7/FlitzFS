@@ -69,10 +69,12 @@ actual backend barrier. Read/metadata failure or indeterminate publication fence
 the writer. No automatic replay follows. Explicit closed-context recovery retains
 the prior pending/unlinked lifecycle semantics.
 
-Paged index/root metadata has its existing replica protection. Inode object
-payloads, like the former namespace payload, are integrity checked but not
-independently replicated. Losing required inode/data bytes cannot be repaired
-by a checksum. Native-aware protected payloads and repair remain R01 work.
+Paged index/root metadata has its existing replica protection. On ordinary
+capability-1 paged backing, inode/data payloads are checked but not replicated.
+The separately selected [mirrored backing](MIRRORED_PAYLOADS.md) now protects
+those payloads and supports surviving-copy new-image reconstruction. Losing
+all required copies cannot be repaired by a checksum. Automatic repair and
+hardware durability qualification remain R01 work.
 
 ## Executed scope and accounting
 

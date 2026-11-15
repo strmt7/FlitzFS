@@ -1010,7 +1010,7 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Replace full-Model residency and whole directory objects with bounded paged inode/name/extent access. Connect fresh contention/resource admission, repeated-work suppression and reader-safe paged handoff/reclaim to staged work; use protected per-group dependencies and stable content generations rather than repeatedly rebuilding on every unrelated write.",
+    "Implement protected immutable cross-file group/dependency manifests and independent CPU decoding, with generation-safe publication and complete-size accounting. Connect low-priority repair/handoff to fresh resource evidence; continue bounded paged native residency and qualify actual AMD candidate work separately.",
     "Add one unmounted actual-GPU callback-service qualification after exact-source gates; verify admitted stored bytes and independent GPU-absent readback. Do not repeat the earlier unchanged diagnostic.",
     "Acquire repeated configuration/recovery/work-shape keyed complete costs from finite windows, qualify independent helper dependencies and connect automatic useful Windows write/read/fallback; then coalesce compatible operations under a bounded lifetime.",
     "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
@@ -1449,5 +1449,42 @@
     "driver_installed": false,
     "release": false,
     "next": "Replace full-Model residency and whole directory objects with bounded paged inode/name/extent access. Connect fresh contention/resource admission, repeated-work suppression and reader-safe paged handoff/reclaim to staged work; use protected per-group dependencies and stable content generations rather than repeatedly rebuilding on every unrelated write."
+  },
+  "mirrored_payload_checkpoint": {
+    "source_base": "47bfe3e755851ee8f1500316443e38e2c265640d",
+    "contract": "docs/MIRRORED_PAYLOADS.md",
+    "evidence": "docs/evidence/mirrored-payloads-2026-11-15.json",
+    "status": "Explicit mirrored paged capability 2 with paired record-stream banks, surviving-copy CPU reads, both-copy scrub and source-preserving synchronous/staged reconstruction",
+    "broad_raw_suites": 99,
+    "broad_ASan_suites": 99,
+    "mirrored_checks": 6136,
+    "mirrored_fault_cases": 1734,
+    "native_layouts": 3,
+    "failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "descriptor_forgery_variants": 5,
+    "long_record_single_unit_loss_cases": 38,
+    "live_native_repair_cases": 6,
+    "fresh_replica_readback_refusals": 4,
+    "default_create_capability": 1,
+    "mirrored_create_capability": 2,
+    "independent_CPU_survivor_read": true,
+    "both_copies_scrubbed": true,
+    "source_preserved_during_repair": true,
+    "known_payload_loss_refuses_writable_resume": true,
+    "repair_into_new_image": true,
+    "automatic_repair": false,
+    "device_loss_protection": false,
+    "physical_power_cut_qualified": false,
+    "shared_decoder_manifests": false,
+    "fully_paged_namespace": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Implement protected immutable cross-file group/dependency manifests and independent CPU decoding, with generation-safe publication and complete-size accounting. Connect low-priority repair/handoff to fresh resource evidence; continue bounded paged native residency and qualify actual AMD candidate work separately."
   }
 }

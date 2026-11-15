@@ -13,6 +13,9 @@ The [native paged maintenance path](NATIVE_PAGED_MAINTENANCE.md) rebinds a new
 image identity without changing any of those encodings or object generations.
 [Staged paged rebuilding](STAGED_PAGED_REBUILD.md) adds execution phases only;
 it preserves these bytes and introduces no stored progress journal or codec.
+The separate [mirrored paged capability 2](MIRRORED_PAYLOADS.md) uses 72-byte leaf
+entries and paired record-stream banks. Capability 1, native namespace bodies,
+record codecs and this chunk container retain their original encodings.
 
 The native filesystem's separate [format-7 shared-extent namespace](SHARED_EXTENTS.md)
 extends native object references with exact sharing/private updates. It does not

@@ -1,5 +1,9 @@
 # Experimental paged object storage
 
+The explicit [mirrored-payload extension](MIRRORED_PAYLOADS.md) adds capability 2
+with bank-separated payload copies and surviving-copy CPU reads. The ordinary
+capability-1 encoding described below remains unchanged and single-copy.
+
 `include/flitzfs/paged_store.hpp` provides an explicitly selected storage path
 over the existing `StoreByteIo` backend/ownership contract. It implements actual
 compressed-object writes, lookup, deletion, stable keyset pagination, retained

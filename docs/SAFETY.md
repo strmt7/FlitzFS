@@ -7,6 +7,12 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+[Mirrored paged payloads](MIRRORED_PAYLOADS.md) optionally isolate two record
+streams into separate qualified units, check both during scrub and repair only
+into a new image. Default capability-1 images still have single-copy payloads.
+Loss of both copies or the image/device is not repaired by checksums; no physical
+power-loss, mounted safety or arbitrary-failure guarantee follows.
+
 [Staged paged rebuild](STAGED_PAGED_REBUILD.md) checks source owner/generation
 before I/O, bounds each verification/copy opportunity and reserves one candidate
 per writer. Failed/stale attempts retain the selected source and partial target.
