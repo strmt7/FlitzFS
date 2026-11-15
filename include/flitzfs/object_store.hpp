@@ -45,6 +45,7 @@ class StoreByteIo {
   virtual StoreIoContract contract() const noexcept=0;
  private:
   friend class ObjectStoreWriter;
+  friend class PagedObjectStoreWriter;
   friend class NativeVolumeHeadWriter;
   friend class OptimizationStateWriter;
   bool acquire_writer() noexcept {

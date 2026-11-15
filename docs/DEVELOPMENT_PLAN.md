@@ -16,6 +16,25 @@ The owner's background-compression direction is specified in [COLD_COMPRESSION_R
 
 ## Current implementation round — 15 November 2026
 
+The local S01 round implements [paged object storage](PAGED_OBJECT_STORE.md):
+actual COW writes/deletes, bounded lookup/keyset enumeration, retained snapshots,
+replicated metadata, verified resume and streaming new-image rebuild. Three
+selected Windows suites pass in raw-only Release and AddressSanitizer, with
+48,739 checks per configuration. A separate run populated and scrubbed one
+million object records; reopening read 16 KiB. Tiny synthetic records produced
+a 434,147,328-byte image from 16,000,000 payload bytes, so this is scale evidence,
+not a compression or filesystem-throughput result.
+[Source hashes, failures and execution receipts](evidence/local-paged-store-2026-11-15.json).
+
+S01 remains in progress. Next integrate paged inode/name/extent keys, atomic
+multi-index publication, paginated directory enumeration and explicit old-format
+migration. Then persist incremental similarity scans and protected shared
+group/decode-unit manifests. Couple the collective representation to finite AMD
+work amortization, independent CPU recovery and useful ordinary Windows routing;
+follow with yielding learning/rebuild scheduling and representative comparisons.
+The JSON current_round/next_product_slices contain the ordered work. The hardware
+comparison below is historical and remains a required negative result to retain.
+
 Source d384b6c20cf686520e3a94c156e532307ca0fbf8 passed all thirteen core jobs
 and all 53 prescribed ROCm SDK commands. The predeclared six-request owner series
 then completed CPU/GPU, GPU/CPU, CPU/GPU with identical fingerprinted input and
@@ -399,6 +418,10 @@ Validation:
 Exit criterion: Measured whole-operation gains survive the safety and correctness gates; no optimization depends on omitting integrity checks or unbounded persistent processes.
 
 ### S01 — Scale the store and namespace with bounded incremental work
+
+Current status: in progress. The opt-in paged object store and streaming rebuild
+are locally tested, including one million populated records. The native namespace
+still uses its old flat representation. The full exit below remains open.
 
 Status at publication: pending. Dependencies: P00, D01.
 

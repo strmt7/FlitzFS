@@ -13,6 +13,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Managed sessions](../VOLUME_SESSION.md), [compaction](../COMPACTED_COPY.md), [recompression](../RECOMPRESSION.md)
 - [Resilient store design](../RESILIENT_STORE_DESIGN.md)
 - [Exact shared extents and private updates](../SHARED_EXTENTS.md)
+- [Paged object storage and streaming rebuild](../PAGED_OBJECT_STORE.md)
 
 ## Windows integration
 

@@ -34,9 +34,15 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--scope", choices=("documentation", "code"), required=True)
     parser.add_argument("--query", required=True)
+    parser.add_argument("--path-prefix", action="append", default=[],
+                        help="Admit selected repository-relative path prefixes")
     parser.add_argument("--reuse-cache", action="store_true",
                         help="Reuse only an exactly unchanged private source snapshot")
     args = parser.parse_args()
+    if any(not prefix or prefix.startswith(("/", ".")) or "\\" in prefix or
+           ":" in prefix or "\0" in prefix or ".." in Path(prefix).parts
+           for prefix in args.path_prefix):
+        parser.error("path prefixes must be ordinary repository-relative names")
     repo, ccc, model = (p.resolve(strict=True) for p in (args.repository, args.ccc, args.model))
     if not ccc.is_file() or not model.is_dir() or not args.output.is_absolute():
         raise RuntimeError("explicit installed provider/model and absolute new output required")
@@ -64,8 +70,13 @@ def main():
 
     def run(command, cwd=repo, timeout=60):
         started = time.monotonic()
-        result = subprocess.run([str(p) for p in command], cwd=cwd, env=environment,
-                                capture_output=True, timeout=timeout, check=False)
+        expired = None
+        try:
+            result = subprocess.run([str(p) for p in command], cwd=cwd, env=environment,
+                                    capture_output=True, timeout=timeout, check=False)
+        except subprocess.TimeoutExpired as failure:
+            expired = failure
+            result = subprocess.CompletedProcess(command, None, failure.stdout or b"", failure.stderr or b"")
         if len(result.stdout) + len(result.stderr) > 4 * 1024**2:
             raise RuntimeError("semantic output limit")
         number = offset + len(commands)
@@ -74,7 +85,9 @@ def main():
         with (root / f"command-{number}.stderr").open("xb") as file:
             file.write(result.stderr)
         commands.append(dict(arguments=[str(p) for p in command], exit=result.returncode,
-                             elapsed_seconds=time.monotonic() - started))
+                             elapsed_seconds=time.monotonic() - started, timed_out=expired is not None))
+        if expired is not None:
+            raise RuntimeError(f"semantic command {number} timed out; partial output retained") from expired
         if result.returncode:
             raise RuntimeError(f"semantic command {number} failed with {result.returncode}")
         return result.stdout
@@ -87,9 +100,11 @@ def main():
     if run([ccc, "version"]).decode().strip() != "0.2.43":
         raise RuntimeError("installed CocoIndex version differs")
     paths = run([git, "ls-files", "-z"]).decode().split("\0")
-    suffixes = {".md"} if args.scope == "documentation" else {".c", ".cpp", ".h", ".hpp", ".py", ".ps1"}
+    suffixes = {".md"} if args.scope == "documentation" else {".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".hip", ".py", ".ps1", ".rs"}
     entries, total = [], 0
     for name in sorted(p for p in paths if p and Path(p).suffix in suffixes):
+        if args.path_prefix and not any(name.startswith(prefix) for prefix in args.path_prefix):
+            continue
         source = repo / name
         if source.is_symlink() or not source.resolve().is_relative_to(repo):
             raise RuntimeError("unsafe semantic source")
@@ -128,7 +143,8 @@ def main():
     project = root / "mirror" / ".cocoindex_code"
     project.mkdir(exist_ok=args.reuse_cache)
     settings_file(project / "settings.yml", dict(include_patterns=["**/*"],
-                  exclude_patterns=[".cocoindex_code/**", ".git/**"], max_file_size=1024**2))
+                  exclude_patterns=[".cocoindex_code/**", ".git/**"],
+                  language_overrides=[dict(ext="hip", lang="cpp")], max_file_size=1024**2))
     mirror = root / "mirror"
     try:
         indexed = run([ccc, "index"], mirror, 240).decode("utf-8", "replace")
@@ -154,11 +170,15 @@ def main():
         receipt = dict(repository=str(repo), commit=head,
              dirty_patch_sha256=patch_digest, source_files=len(entries), source_bytes=total,
              inventory_sha256=digest((root / "source-inventory.json").read_bytes()),
-             provider_version="0.2.43", model=str(model), scope=args.scope, query=args.query,
+             provider_version="0.2.43", model=str(model), scope=args.scope,
+             path_prefixes=args.path_prefix, query=args.query,
              native_response_sha256=digest(response), actual_searches=1, cpu_only=True,
              offline_model=True, shared_mcp_modified=False, commands=commands)
     finally:
-        run([ccc, "daemon", "stop"], mirror, 20)
+        try:
+            run([ccc, "daemon", "stop"], mirror, 20)
+        finally:
+            save(root / f"commands-{offset}.json", commands)
     receipt_path = root / f"routing-receipt-{offset}.json"
     save(receipt_path, receipt)
     print(json.dumps(dict(repository=str(repo), commit=head, files=len(entries),

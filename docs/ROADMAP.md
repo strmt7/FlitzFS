@@ -2,6 +2,11 @@
 
 ## Current local development
 
+The [paged object-storage foundation](PAGED_OBJECT_STORE.md) now implements COW
+writes, incremental enumeration and streaming rebuild. S01 remains in progress:
+paged native namespace/extent integration, persistent similarity scans, bounded
+caches and automatic reclamation are the next scale exits.
+
 The owner's 15 November 2026 direction deletes blanket off-host/GitHub-only and
 mandatory VM-first restrictions. Use local builds, research and host-safe
 CPU/GPU/GUI tests; reserve VMs for unavailable platforms and operations that

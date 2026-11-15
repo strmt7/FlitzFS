@@ -1,5 +1,8 @@
 # `.flfs` v1 experimental chunk container
 
+The opt-in [paged object store](PAGED_OBJECT_STORE.md) has a separate root/page
+encoding and reader. It does not change this container or existing native bytes.
+
 The native filesystem's separate [format-7 shared-extent namespace](SHARED_EXTENTS.md)
 extends native object references with exact sharing/private updates. It does not
 change this chunk-container format or the object-store record codecs.

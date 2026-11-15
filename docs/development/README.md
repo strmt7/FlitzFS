@@ -9,6 +9,7 @@ affected component. [End-user documentation](../README.md) is separate.
 | Choose checks and interpret results | [Validation](../validation/README.md), [validation details](../VALIDATION.md) |
 | Plan implementation | [Development plan](../DEVELOPMENT_PLAN.md), [current state](../DEVELOPMENT_STATE.json) |
 | Change the storage format or recovery | [Storage references](../reference/README.md#storage-and-recovery) |
+| Scale object storage and enumeration | [Paged object store](../PAGED_OBJECT_STORE.md) |
 | Change Windows file operations | [Windows references](../reference/README.md#windows-integration) |
 | Change GPU compression or fallback | [GPU references](../reference/README.md#gpu-compression-and-worker-lifecycle) |
 | Change compression or maintenance | [Compression references](../reference/README.md#compression-and-learning), [research](../research/README.md) |

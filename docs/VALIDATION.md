@@ -1,5 +1,13 @@
 # Validation ledger — experimental release 0.2
 
+## Local paged storage checkpoint — 15 November 2026
+
+[Paged storage](PAGED_OBJECT_STORE.md) and its
+[source-bound evidence](evidence/local-paged-store-2026-11-15.json) distinguish
+selected Windows raw/AddressSanitizer suites and a million populated object
+records from full native filesystem, Windows mount, GPU and power-loss coverage.
+Historical results below retain their original source and scope.
+
 ## Controlled write reused-dispatch candidate
 
 [NATIVE_UNIFORM_WRITE.md](NATIVE_UNIFORM_WRITE.md) describes optional canonical

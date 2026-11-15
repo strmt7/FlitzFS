@@ -100,11 +100,19 @@ files, with separately indexed retrieval units and practical measured latency.
 The current flat-store limits still need replacement. These requirements keep
 the project substantially short of release readiness.
 
+The separate [paged storage API](PAGED_OBJECT_STORE.md) now passes three selected
+local raw/AddressSanitizer suites and a one-million-populated-object experiment.
+It has real writes, lookup, pagination, deletion and streaming rebuild; opening
+that million-object image reads 16 KiB. This closes a storage-foundation step,
+not the native namespace/Explorer scale exit. The synthetic 16-byte records
+occupy a 434,147,328-byte image, so no compression or filesystem-speed benefit is
+inferred. [Exact evidence](evidence/local-paged-store-2026-11-15.json).
+
 | Area | Current position | Required exit |
 |---|---|---|
 | Ordinary Windows GPU I/O | Three unmounted GPU requests in a matched six-request series passed; real CPU-only mounted responses passed separately; automatic activation remains absent | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
 | GPU benefit | Actual bounded GPU bytes and CPU recovery demonstrated | Repeated controlled comparisons on varied real data show useful complete-operation throughput and/or net stored-size benefit |
-| Capacity | 256 objects/nodes, about 15.94 MiB populated native extents, 64 MiB image bound remain in current implementation | Paged indices, allocation and bounded reclamation handle growing file trees/data without whole-tree residency or merely larger constants |
+| Capacity | Opt-in paged store tested with one million objects; native namespace retains 256 nodes/about 15.94 MiB populated extents/64 MiB image limits | Integrate paged inode/name/extent transactions, bounded caches, migration and reader-safe reclamation; qualify populated named files |
 | Extreme collective compression | Research/design objective; no product cross-file learned codec | A lossless cross-file representation produces substantial held-out TOTAL-size gains, with practical individually addressed reads and protected dependencies |
 | Resource adaptation | Live admission, resource-sized layouts/planner and terminal recovery exist | Automatic configuration/shape cost acquisition, contention-aware selection and finite low-priority work; no host-specific product defaults |
 | Learning and maintenance | Persistent advisory-state and explicit recompression/handoff primitives exist | Workload learning actually drives automatic grouping/codec/layout choices and resumes after restart while promptly yielding to foreground work |

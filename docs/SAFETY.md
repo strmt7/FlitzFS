@@ -1,5 +1,10 @@
 # FlitzFS safety gates and threat model
 
+The opt-in [paged storage path](PAGED_OBJECT_STORE.md) checks metadata peers and
+supports explicit streaming recovery into a new image. Its payloads are not
+replicated. Modeled fault tests do not establish arbitrary-failure survival or
+physical power-loss qualification; native mounted integration remains separate.
+
 ## Current execution policy
 
 The owner's 15 November 2026 instruction deletes blanket off-host, GitHub-only

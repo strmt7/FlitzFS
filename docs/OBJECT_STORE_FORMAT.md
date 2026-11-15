@@ -1,5 +1,8 @@
 # Experimental transactional object core
 
+For the separate scalable path, see [paged object storage](PAGED_OBJECT_STORE.md).
+The flat store described below retains its existing bytes and capacity limits.
+
 This bounded C++ library is a storage foundation, not a writable mounted
 filesystem. It has no CLI route, GPU dependency, authentication or encryption.
 It supports native raw, zero, repeated-pattern, optional Zstandard and explicit LZ4 object

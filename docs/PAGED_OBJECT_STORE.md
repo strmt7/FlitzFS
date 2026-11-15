@@ -1,0 +1,135 @@
+# Experimental paged object storage
+
+`include/flitzfs/paged_store.hpp` provides an explicitly selected storage path
+over the existing `StoreByteIo` backend/ownership contract. It implements actual
+compressed-object writes, lookup, deletion, stable keyset pagination, retained
+snapshots, recovery and streaming rebuilding. It does not change the flat native
+filesystem namespace, Explorer callbacks, default formats or GPU routing.
+
+The distinction matters: a million populated object records are now tested;
+a million named Windows files and scalable automatic compression grouping are
+still integration work. Group membership can span one, two or thousands of
+files; group discovery and independently indexed decode units remain separate
+from this object catalog. See [the execution plan](DEVELOPMENT_PLAN.md).
+
+## Memory and capacity
+
+There is no whole-inventory vector or volume-sized in-memory key map. A lookup
+visits a root-to-leaf path; pagination prunes key ranges and returns at most
+4,096 entries. Full CPU verification streams one object at a time. Tree height
+is bounded at 16 for malformed-input/depth admission. No unbounded page cache
+is introduced; a bounded cache and background scrub quanta remain future work.
+
+The caller must supply an explicit physical capacity and a backend that admits
+growth using current resources. No host capacity, drive, GPU or RAM size is
+hardcoded. The old 256-object/16-MiB live-inventory/64-MiB history limits are
+unchanged for legacy stores. Paged transactions retain their independent
+256-operation/4-MiB-new-input/1-MiB-per-object work limits. At most 8,721 new
+metadata pages can be staged per transaction, independently of inventory size.
+
+The tree has 62 entries per leaf and 35 references per branch. Mutations rewrite
+affected paths and split pages; empty subtrees disappear. Partially empty pages
+are not merged automatically. History remains append-only while readers retain
+their roots. Rebuilding copies only live objects and creates densely filled
+pages with one unfinished leaf and at most 35 references per tree level in RAM.
+It preserves object IDs/generations, rebinds the image identity and checks
+decoded CPU bytes independently before publication.
+
+Rebuild is an explicit synchronous API, not automatic background maintenance.
+It requires a new empty target and a current quiescent source. It never changes
+the source or selects/replaces a user's volume. Partial targets survive failure;
+they have no valid root until the entire output has been checked. An interrupted
+final publication may leave a complete readable output, never a partial catalog.
+
+## Separate on-image capability
+
+This is a new experimental storage encoding, not a product version bump.
+Existing `.flfs`, object-root formats 1–3 and native namespace formats 1–7 remain
+unchanged. Use `PagedObjectStoreSnapshot::open` explicitly; legacy readers do
+not interpret these bytes as their old manifests.
+
+All integers are little-endian; reserved bytes are zero. Integrity uses unkeyed
+BLAKE3, not authentication, encryption or rollback protection.
+
+Two 4-KiB roots occupy separate 64-KiB zones at offsets 0 and 65,536. Immutable
+records begin at 131,072. Root magic is `FLTXPG01`, capability field 1:
+
+| Offset | Bytes | Field |
+| ---: | ---: | --- |
+| 0 | 8 | Magic |
+| 8, 12 | 4 each | Capability, parity slot |
+| 16, 24, 32 | 8 each | Publication generation, checkpoint generation, sealed end |
+| 40 | 16 | Image identity |
+| 56, 60 | 4 each | Metadata isolation unit, page size (4,096) |
+| 64 | 112 | Root-page reference |
+| 176 | 3,888 | Zero |
+| 4,064 | 32 | Digest of preceding root bytes |
+
+A reference stores first/last key, object count, decoded/stored-byte sums,
+primary/peer offsets and page generation at relative offsets 0..63 (eight
+uint64 fields); height at 64 (uint32), zero at 68..79 and digest at 80..111.
+Parent/child height, allocation order, generation, key intervals, aggregate
+sums and checked address arithmetic are validated before traversal.
+
+Pages use `FLTXPGN1`, capability 1, height, generation, image identity and entry
+count in a 64-byte header. Their final 32 bytes contain the digest. Leaves have
+64-byte descriptors: object ID, generation and offset (uint64), logical/stored
+lengths (uint32), stored-record digest (32 bytes). Branches contain references.
+Unused bytes are zero. Object records use the existing 128-byte `FLTXDAT1`
+header and independent CPU raw/zero/pattern/optional Zstd/LZ4 codec contracts.
+
+## Publication and recovery
+
+The qualified backend failure unit must be a supported power of two in
+512..65,536 bytes with meaningful successful flushes. The persisted metadata
+isolation unit is the larger of 4,096 and that declared unit. This is an explicit
+backend assumption, not device attestation. Read [the failure model](PERSISTENCE_MODEL.md).
+
+Metadata copies occupy different isolation units. For a unit larger than a page,
+the allocator packs pages into a primary unit and their peers into the following
+unit. A transaction seals both units; later writes never reuse acknowledged
+padding. This avoids spending two entire large failure units per page during
+ordinary path updates. Streaming rebuild currently seals a pair per completed
+page; improving this packing is open work and must include complete-size costs.
+
+Publication flushes appended dependencies, publishes root G+1 and flushes,
+then publishes root G+2 in the other root zone and flushes. Both roots name the
+same object set. A failed operation permanently fences its writer; recovery may
+select complete old or new state. It never silently substitutes an older root
+when a selected intact root names damaged descendants. Old snapshots retain
+immutable references. The writer lease is shared with the flat store API.
+
+Opening checks roots and the root page, then validates descendants/payloads on
+access; unlike the legacy eager reader, it does not scan the whole inventory.
+`verify_all()` performs an explicit full CPU scrub. Single metadata-copy loss
+can recover through its bound peer and is reported as degradation. Root-only
+repair follows a fully verified, identity/generation-leased resume; orphan tails
+are fenced and retained. Damaged descendant metadata refuses in-place writable
+resume. A streaming rebuild can recover its surviving peers into a new image.
+Payloads are checked but not replicated; loss of both metadata copies or required
+payload/dependency bytes cannot be repaired by their checksums.
+
+## Executed scope and next integration
+
+[Source-bound local evidence](evidence/local-paged-store-2026-11-15.json) records
+raw-only Windows Release and AddressSanitizer checks, deterministic oracle,
+malformed-input rejection, modeled write/barrier failures, metadata-unit loss,
+streaming rebuild and a one-million-object experiment. These are memory-backed
+storage tests, not mounted Windows qualification, real power cuts, a general
+compression ratio or a filesystem/GPU speed claim. Tiny records intentionally
+make metadata/history overhead visible.
+
+Before the native namespace migrates: define paged inode/name/extent keys and
+atomic multi-index roots, preserve namespace/security/open-handle semantics,
+add explicit old-format migration, resumable scan cursors and bounded caches.
+Automatic reclaim/rebuild scheduling, concurrent reader retirement and data
+redundancy remain required. Do not relax the flat namespace limits and call
+that integration complete.
+
+Current primary-source review used SQLite's
+[12 November 2026 source revision](https://github.com/sqlite/sqlite/blob/b4b5ba2afb750999741ebd658d926af2cca3fe64/src/btreeInt.h)
+for paged ordered lookup and finite cursor depth, and Linux Btrfs's
+[9 November 2026 tree-checker revision](https://github.com/torvalds/linux/blob/a1250669825f96ecc7045ab1b10cdc3d8832339d/fs/btrfs/tree-checker.c)
+for strict structural rejection. These informed engineering checks; they do not
+prove this independent implementation correct or establish novel compression.
+Exact native API/source captures and digests are retained with the evidence.

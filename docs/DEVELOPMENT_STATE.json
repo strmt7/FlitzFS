@@ -1004,7 +1004,7 @@
     "stored_formats_changed": false
   },
   "cpu_fallback_contract": "Different encoder/format/size permitted; continued operation and independent CPU decoding of every stored GPU representation mandatory.",
-  "release_readiness": "Experimental prototype, substantially short of a release candidate. Owned deferred response lifecycle is qualified; ordinary useful GPU I/O, scalable storage and collective-compression proof remain absent. No defensible date or percentage.",
+  "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
     "Qualify the owned pending-write service and disposable real SendResponse path. Retain single-threaded coordinator ownership, immutable input, CPU publication and joined shutdown.",
@@ -1056,11 +1056,20 @@
   "local_development_checkpoint": {
     "local_is_primary": true,
     "blanket_hosted_or_VM_first_gate": false,
-    "source_base": "af161ffe2d26806f67b37d0ce7592186ac2abf7b",
-    "evidence": "docs/evidence/local-native-shared-minimum-2026-11-15.json",
-    "raw_and_ASan_selected_suites": 2,
-    "millions_of_files": "design target; paged implementation pending",
-    "group_cardinality": "one, two or thousands; adaptive with practical retrieval cost",
-    "release": false
+    "source_base": "5101649245c644fe7b2ceb83ee836b22dc81e492",
+    "evidence": "docs/evidence/local-paged-store-2026-11-15.json",
+    "contract": "docs/PAGED_OBJECT_STORE.md",
+    "status": "Implemented and locally tested opt-in COW paged object store with CPU codecs, bounded lookup/pagination and streaming new-image rebuild; native namespace integration remains open.",
+    "raw_and_ASan_selected_suites": 3,
+    "checks_per_configuration": 48739,
+    "populated_objects_tested": 1000000,
+    "million_open_read_bytes": 16384,
+    "million_image_bytes": 434147328,
+    "million_process_peak_bytes": 1303789568,
+    "native_namespace_migrated": false,
+    "ordinary_GPU_route": false,
+    "release": false,
+    "millions_of_files": "One million object records tested; paged named-file/extent integration and scan scheduling remain incomplete.",
+    "group_cardinality": "one, two or thousands; adaptive with practical retrieval cost"
   }
 }

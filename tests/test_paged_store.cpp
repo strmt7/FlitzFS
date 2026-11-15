@@ -1,0 +1,367 @@
+#include "flitzfs/paged_store.hpp"
+#include "record_digest.hpp"
+#include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <map>
+#include <stdexcept>
+#include <string_view>
+
+namespace {
+using namespace flitzfs;
+using Bytes=std::vector<std::byte>;
+std::uint64_t checks=0;
+constexpr PagedStoreLimits limits{768ULL*1024*1024};
+void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
+template<class F> void rejects(F&& f,const char* why) {
+  ++checks;try{f();}catch(const std::runtime_error&){return;}throw std::runtime_error(why);
+}
+StoreIdentity identity(){StoreIdentity id{};id[0]=std::byte{187};return id;}
+void put64(std::span<std::byte> b,std::size_t at,std::uint64_t n) {
+  for(unsigned i=0;i<8;++i)b[at+i]=static_cast<std::byte>(n>>(8*i));
+}
+std::uint64_t get64(std::span<const std::byte> b,std::size_t at) {
+  std::uint64_t n=0;for(unsigned i=0;i<8;++i)n|=std::uint64_t(std::to_integer<unsigned char>(b[at+i]))<<(8*i);return n;
+}
+void digest(Bytes& b,std::size_t at) {
+  const auto d=detail::record_digest(std::span<const std::byte>(b).subspan(at,4064));
+  std::copy(d.begin(),d.end(),b.begin()+static_cast<std::ptrdiff_t>(at+4064));
+}
+Bytes payload(std::uint64_t id) {Bytes b(16);put64(b,0,id);put64(b,8,id^0x81d4a76159bdafe3ULL);return b;}
+StoreMutation put(std::uint64_t id) {return {id,false,payload(id)};}
+StoreMutation erase(std::uint64_t id) {return {id,true,{}};}
+// Memory only. Stable state advances by dirty ranges rather than copying the
+// whole growing image on every barrier. The injected failures are deterministic
+// models, not real hardware power-loss experiments.
+class Ram final:public StoreByteIo {
+ public:
+  Bytes live,stable;
+  std::vector<std::pair<std::uint64_t,std::size_t>> dirty;
+  std::uint32_t unit=4096;
+  std::size_t calls=0,writes=0,flushes=0,fail_at=SIZE_MAX;
+  unsigned mode=0;
+  mutable std::uint64_t read_calls=0,read_bytes=0;
+  std::uint64_t write_bytes=0;
+  bool refuse=false;
+  std::array<bool,2> unreadable_roots{};
+  StoreIoContract contract() const noexcept override{return {unit,true};}
+  std::uint64_t extent() const override{return live.size();}
+  void admit_write(std::uint64_t n) override {if(refuse || n>limits.maximum_physical_bytes)throw std::runtime_error("model admission");}
+  void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
+    if(at<2*kStoreCommitUnit && at%kStoreCommitUnit==0 && out.size()==4096 && unreadable_roots[at/kStoreCommitUnit])
+      throw std::runtime_error("injected root read error");
+    if(at>live.size() || out.size()>live.size()-at)throw std::runtime_error("model read bounds");
+    ++read_calls;read_bytes+=out.size();std::copy_n(live.begin()+static_cast<std::ptrdiff_t>(at),out.size(),out.begin());
+  }
+  static void write(Bytes& out,std::uint64_t at,std::span<const std::byte> in) {
+    if(at>limits.maximum_physical_bytes || in.size()>limits.maximum_physical_bytes-at)throw std::runtime_error("model capacity");
+    if(at+in.size()>out.size())out.resize(static_cast<std::size_t>(at+in.size()));
+    std::copy(in.begin(),in.end(),out.begin()+static_cast<std::ptrdiff_t>(at));
+  }
+  void write_exact(std::uint64_t at,std::span<const std::byte> in) override {
+    const bool failed=calls++==fail_at;++writes;write_bytes+=in.size();
+    if(failed) {
+      if(mode==1) {write(live,at,in.first(in.size()/2));write(stable,at,in.first(in.size()/2));}
+      if(mode==2) {
+        const auto begin=at/unit*unit;if(stable.size()<begin+unit)stable.resize(static_cast<std::size_t>(begin+unit));
+        std::fill_n(stable.begin()+static_cast<std::ptrdiff_t>(begin),unit,std::byte{});live=stable;
+      }
+      throw std::runtime_error("injected write failure");
+    }
+    write(live,at,in);dirty.emplace_back(at,in.size());
+  }
+  void flush() override {
+    ++flushes;const bool failed=calls++==fail_at;
+    if(failed && mode==0)throw std::runtime_error("injected pre-barrier failure");
+    if(stable.size()<live.size())stable.resize(live.size());
+    for(const auto& [at,n]:dirty)std::copy_n(live.begin()+static_cast<std::ptrdiff_t>(at),n,
+        stable.begin()+static_cast<std::ptrdiff_t>(at));
+    dirty.clear();if(failed)throw std::runtime_error("injected post-barrier failure");
+  }
+};
+std::shared_ptr<Ram> image(const Bytes& bytes,std::uint32_t unit=4096) {
+  auto ram=std::make_shared<Ram>();ram->live=bytes;ram->stable=bytes;ram->unit=unit;return ram;
+}
+PagedObjectStoreWriter create(const std::shared_ptr<Ram>& ram,StoreCompressionMode mode=StoreCompressionMode::raw) {
+  return PagedObjectStoreWriter::create(ram,identity(),limits,{mode,6,false});
+}
+void apply(PagedObjectStoreWriter& writer,StoreMutation m) {writer.commit({&m,1});}
+void populate(PagedObjectStoreWriter& writer,std::uint64_t count) {
+  for(std::uint64_t first=1;first<=count;first+=256) {
+    std::vector<StoreMutation> batch;
+    for(auto id=first;id<=count && id<first+256;++id)batch.push_back(put(id));
+    writer.commit(batch);
+  }
+}
+void basic_and_oracle() {
+  auto ram=std::make_shared<Ram>();auto writer=create(ram);auto empty=writer.snapshot();
+  require(empty.info().objects==0 && empty.list_page(0,1).empty(),"empty index");
+  populate(writer,4096);auto prior=writer.snapshot();std::map<std::uint64_t,Bytes> oracle;
+  for(std::uint64_t i=1;i<=4096;++i)oracle.emplace(i,payload(i));
+  require(prior.info().height>=2 && prior.info().objects==4096,"multi-level tree did not grow");
+  // Deterministic mixed sparse keys, replacement, insertion before/after ranges,
+  // and deletes, compared against an independent ordered map.
+  std::uint64_t random=0x2468beef;
+  for(unsigned round=0;round<48;++round) {
+    std::map<std::uint64_t,StoreMutation> changes;
+    for(unsigned j=0;j<53;++j) {
+      random^=random<<13;random^=random>>7;random^=random<<17;
+      const auto id=random%6144+1;
+      changes[id]=(oracle.contains(id) && random%3==0)?erase(id):put(id);
+    }
+    std::vector<StoreMutation> batch;
+    for(auto& [id,m]:changes) {if(m.erase)oracle.erase(id);else oracle[id]=m.bytes;batch.push_back(std::move(m));}
+    writer.commit(batch);auto view=writer.snapshot();require(view.info().objects==oracle.size(),"oracle inventory count");
+    for(const auto& m:batch)require(view.stat(m.id).has_value()==oracle.contains(m.id),"oracle membership");
+  }
+  auto current=PagedObjectStoreSnapshot::open(ram,limits);std::uint64_t after=0;std::size_t seen=0;
+  auto expected=oracle.begin();
+  for(;;) {
+    const auto page=current.list_page(after,73);if(page.empty())break;
+    for(const auto& e:page) {require(expected!=oracle.end() && e.id==expected->first,"pagination order");
+      require(current.read(e.id)==expected->second,"oracle payload");after=e.id;++seen;++expected;}
+  }
+  require(seen==oracle.size() && expected==oracle.end(),"pagination omitted objects");
+  require(prior.info().objects==4096 && prior.read(17)==payload(17),"retained snapshot changed");
+  require(empty.list_page(0,4).empty(),"old empty snapshot acquired keys");
+  current.verify_all();prior.verify_all();
+  const auto calls=ram->calls;
+  rejects([&]{current.list_page(0,0);},"zero page budget admitted");
+  rejects([&]{current.list_page(0,4097);},"large page budget admitted");
+  rejects([&]{apply(writer,erase(UINT64_MAX));},"missing deletion admitted");
+  const std::array<StoreMutation,2> duplicate{put(7),put(7)};
+  rejects([&]{writer.commit(duplicate);},"duplicate keys admitted");
+  ram->refuse=true;rejects([&]{apply(writer,put(UINT64_MAX));},"refused admission wrote");ram->refuse=false;
+  require(ram->calls==calls && !writer.poisoned(),"argument/admission refusal poisoned or wrote");
+  apply(writer,put(UINT64_MAX));require(writer.snapshot().read(UINT64_MAX)==payload(UINT64_MAX),"maximum key");
+  rejects([&]{(void)create(ram);},"second live writer acquired lease");
+  rejects([&]{(void)ObjectStoreWriter::create(ram,identity());},"flat writer bypassed shared lease");
+}
+void remove_all_keys() {
+  auto ram=std::make_shared<Ram>();auto writer=create(ram);populate(writer,3000);
+  for(std::uint64_t first=1;first<=3000;first+=256) {
+    std::vector<StoreMutation> batch;
+    for(auto id=first;id<=3000 && id<first+256;++id)batch.push_back(erase(id));
+    writer.commit(batch);
+  }
+  require(writer.snapshot().info().objects==0 && writer.snapshot().info().height==0,"empty tree retained branch");
+  apply(writer,put(43));require(writer.snapshot().read(43)==payload(43),"empty tree did not regrow");
+}
+void failure_matrix(std::uint32_t unit) {
+  auto base=std::make_shared<Ram>();base->unit=unit;
+  {auto w=create(base);populate(w,130);}
+  const auto before=base->stable;
+  const std::array<StoreMutation,3> changes{{{17,false,Bytes(912,std::byte{9})},erase(71),put(150)}};
+  auto control=image(before,unit);std::size_t operations=0;std::uint64_t new_generation=0;
+  {auto s=PagedObjectStoreSnapshot::open(control,limits);auto w=PagedObjectStoreWriter::resume(control,identity(),s.info().generation,limits);
+    const auto begin=control->calls;new_generation=w.commit(changes).generation;operations=control->calls-begin;}
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t point=0;point<operations;++point) {
+    auto ram=image(before,unit);
+    {const auto generation=PagedObjectStoreSnapshot::open(ram,limits).info().generation;
+      auto w=PagedObjectStoreWriter::resume(ram,identity(),generation,limits);
+      auto old=w.snapshot();ram->mode=mode;ram->fail_at=ram->calls+point;
+      rejects([&]{w.commit(changes);},"failure not injected");require(w.poisoned(),"failed writer reusable");
+      require(old.read(17)==payload(17) && old.read(71)==payload(71),"acknowledged snapshot lost");
+      rejects([&]{apply(w,put(202));},"poisoned writer accepted retry");}
+    auto crash=image(ram->stable,unit);auto recovered=PagedObjectStoreSnapshot::open(crash,limits);
+    const auto bytes=recovered.read(17);const bool updated=bytes==changes[0].bytes;
+    require(updated || bytes==payload(17),"partial object survived recovery");
+    require(recovered.stat(71).has_value()!=updated && recovered.stat(150).has_value()==updated,"partial transaction exposed");
+    recovered.verify_all();
+    // Repair mixed/torn roots, preserve orphan tails, continue on a NEW writer.
+    auto resumed=PagedObjectStoreWriter::resume(crash,identity(),recovered.info().generation,limits);
+    apply(resumed,put(202));require(resumed.snapshot().read(202)==payload(202),"recovery could not continue");
+    require(resumed.snapshot().read(17)==bytes,"continuation lost recovered object");
+  }
+  require(new_generation>0,"control generation");
+  std::cout<<"failure_matrix unit="<<unit<<" operations="<<operations<<" modes=3\n";
+}
+void damage_and_malformed() {
+  auto ram=std::make_shared<Ram>();
+  {auto w=create(ram);populate(w,4000);}
+  const auto good=ram->stable;const auto root=get64(good,104),peer=get64(good,112);
+  // Highest root is slot zero after an even generation.
+  require(root>=2*kStoreCommitUnit && peer>root,"root reference fixture");
+  for(auto at:{root,peer}) {
+    auto broken=good;broken[static_cast<std::size_t>(at)]^=std::byte{1};auto backing=image(broken);
+    auto s=PagedObjectStoreSnapshot::open(backing,limits);require(s.info().degraded_metadata,"root replica loss hidden");
+    require(s.read(77)==payload(77),"metadata peer failed recovery");
+    const auto writes=backing->writes;
+    rejects([&]{PagedObjectStoreWriter::resume(backing,identity(),s.info().generation,limits);},"damaged metadata writable");
+    require(backing->writes==writes,"unqualified metadata repair wrote");
+  }
+  {auto broken=good;broken[static_cast<std::size_t>(root)]^=std::byte{1};broken[static_cast<std::size_t>(peer)]^=std::byte{1};
+    rejects([&]{PagedObjectStoreSnapshot::open(image(broken),limits);},"both metadata copies lost silently rolled back");}
+  for(std::size_t slot=0;slot<2;++slot) {
+    auto broken=good;broken[slot*kStoreCommitUnit]^=std::byte{1};auto backing=image(broken);
+    auto s=PagedObjectStoreSnapshot::open(backing,limits);require(s.info().degraded_roots,"root loss hidden");
+    require(s.read(77)==payload(77),"root loss changed bytes");
+    auto w=PagedObjectStoreWriter::resume(backing,identity(),s.info().generation,limits);
+    require(!w.snapshot().info().degraded_roots,"root pair not repaired");
+  }
+  // Checksums are not authentication: recomputed digests must not bypass
+  // semantic checks of root format, reserved bits, height, range or overflow.
+  for(auto offset:{8U,12U,56U,60U,132U,176U}) {
+    auto broken=good;broken[offset]^=std::byte{128};digest(broken,0);
+    rejects([&]{PagedObjectStoreSnapshot::open(image(broken),limits);},"intact malformed root admitted");
+  }
+  {auto broken=good;put64(broken,104,UINT64_MAX-4095);digest(broken,0);
+    rejects([&]{PagedObjectStoreSnapshot::open(image(broken),limits);},"overflowing page address admitted");}
+  // Lose one descendant copy while the root remains intact; reads recover,
+  // report degraded metadata and writable resume refuses without writes.
+  const auto child=get64(good,static_cast<std::size_t>(root)+64+40);
+  {auto broken=good;broken[static_cast<std::size_t>(child)]^=std::byte{1};auto backing=image(broken);
+    auto s=PagedObjectStoreSnapshot::open(backing,limits);s.verify_all();require(s.info().degraded_metadata,"descendant loss hidden");
+    const auto writes=backing->writes;
+    rejects([&]{PagedObjectStoreWriter::resume(backing,identity(),s.info().generation,limits);},"damaged descendant writable");
+    require(backing->writes==writes,"damaged descendant repair wrote");}
+  // Corrupt a payload, leaving its descriptor and both index copies intact.
+  auto view=PagedObjectStoreSnapshot::open(image(good),limits);
+  auto damaged=good;const auto wanted=payload(77);
+  auto at=std::search(damaged.begin(),damaged.end(),wanted.begin(),wanted.end());
+  require(at!=damaged.end(),"payload corruption fixture absent");*at^=std::byte{1};
+  auto s=PagedObjectStoreSnapshot::open(image(damaged),limits);
+  rejects([&]{s.read(77);},"corrupt object exposed");rejects([&]{s.verify_all();},"scrub ignored corrupt object");
+}
+StoreIdentity copy_identity(){auto id=identity();id[1]=std::byte{71};return id;}
+void rebuild_and_recovery() {
+  auto ram=std::make_shared<Ram>();
+  {auto w=create(ram);populate(w,4000);for(unsigned i=0;i<40;++i)apply(w,put(i+1));}
+  const auto before=ram->stable;auto source=PagedObjectStoreSnapshot::open(ram,limits);
+  auto target=std::make_shared<Ram>();
+  auto writer=PagedObjectStoreWriter::rebuild(source,target,copy_identity(),limits);
+  auto copy=writer.snapshot();require(copy.identity()==copy_identity(),"rebuild identity");
+  require(copy.info().objects==4000 && copy.info().physical_end<source.info().physical_end,"rebuild did not discard history");
+  for(std::uint64_t id=1;id<=4000;++id) {
+    require(copy.read(id)==source.read(id),"rebuild payload comparison");
+    require(copy.stat(id)->generation==source.stat(id)->generation,"rebuild changed object generation");
+  }
+  apply(writer,put(6000));require(writer.snapshot().read(6000)==payload(6000),"rebuilt writer cannot continue");
+  require(ram->stable==before && ram->live==before,"rebuild modified source");
+  auto untouched=std::make_shared<Ram>();
+  rejects([&]{PagedObjectStoreWriter::rebuild(source,untouched,identity(),limits);},"rebuild reused source identity");
+  require(untouched->writes==0,"identity refusal wrote target");
+  rejects([&]{PagedObjectStoreWriter::rebuild(source,target,copy_identity(),limits);},"rebuild replaced live target");
+  // A damaged descendant can be restored from its surviving peer in a NEW
+  // image. Never silently rewrite or select that new image on the caller's behalf.
+  auto damaged=before;const auto root=get64(damaged,104),child=get64(damaged,static_cast<std::size_t>(root)+104);
+  damaged[static_cast<std::size_t>(child)]^=std::byte{1};auto damaged_ram=image(damaged);
+  auto damaged_source=PagedObjectStoreSnapshot::open(damaged_ram,limits);auto repaired_ram=std::make_shared<Ram>();
+  auto repaired=PagedObjectStoreWriter::rebuild(damaged_source,repaired_ram,copy_identity(),limits);
+  repaired.snapshot().verify_all();require(!repaired.snapshot().info().degraded_metadata,"rebuilt metadata degraded");
+  require(repaired.snapshot().read(3999)==payload(3999) && damaged_ram->live==damaged,"peer rebuild failed or changed source");
+  std::cout<<"rebuild source_bytes="<<source.info().physical_end<<" output_bytes="<<copy.info().physical_end<<" objects=4000\n";
+}
+void rebuild_failures() {
+  auto source_ram=std::make_shared<Ram>();{auto w=create(source_ram);populate(w,7);}
+  const auto unchanged=source_ram->stable;auto source=PagedObjectStoreSnapshot::open(source_ram,limits);
+  auto control=std::make_shared<Ram>();std::size_t operations=0;
+  {auto copy=PagedObjectStoreWriter::rebuild(source,control,copy_identity(),limits);operations=control->calls;}
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t point=0;point<operations;++point) {
+    auto target=std::make_shared<Ram>();target->mode=mode;target->fail_at=point;
+    rejects([&]{PagedObjectStoreWriter::rebuild(source,target,copy_identity(),limits);},"rebuild fault not reached");
+    require(source_ram->live==unchanged && source_ram->stable==unchanged,"failed rebuild changed source");
+    std::optional<PagedObjectStoreSnapshot> recovered;
+    try{recovered.emplace(PagedObjectStoreSnapshot::open(image(target->stable),limits));}catch(const std::runtime_error&){}
+    if(recovered) {
+      require(recovered->info().objects==7,"partial rebuild published inventory");
+      recovered->verify_all();for(std::uint64_t id=1;id<=7;++id)require(recovered->read(id)==payload(id),"partial rebuild payload");
+    }
+  }
+  std::cout<<"rebuild_failure_matrix operations="<<operations<<" modes=3\n";
+}
+void semantic_pages_and_units() {
+  auto ram=std::make_shared<Ram>();{auto w=create(ram);populate(w,7);}
+  const auto original=ram->stable;const auto root=get64(original,104),peer=get64(original,112);
+  // Recompute every affected digest, so these exercise semantic rejection
+  // rather than stopping at the first ordinary checksum mismatch.
+  for(auto offset:{8U,12U,24U,40U,44U,64U,72U,80U,88U,92U,512U}) {
+    auto broken=original;
+    broken[static_cast<std::size_t>(root)+offset]^=std::byte{128};digest(broken,static_cast<std::size_t>(root));
+    std::copy_n(broken.begin()+static_cast<std::ptrdiff_t>(root),4096,broken.begin()+static_cast<std::ptrdiff_t>(peer));
+    const auto page_digest=std::span<const std::byte>(broken).subspan(static_cast<std::size_t>(root)+4064,32);
+    for(std::size_t slot=0;slot<2;++slot) {
+      std::copy(page_digest.begin(),page_digest.end(),broken.begin()+static_cast<std::ptrdiff_t>(slot*kStoreCommitUnit+144));
+      digest(broken,slot*kStoreCommitUnit);
+    }
+    rejects([&]{auto s=PagedObjectStoreSnapshot::open(image(broken),limits);s.verify_all();},"intact malformed page admitted");
+  }
+  for(const auto unit:{4096U,65536U}) {
+    auto backing=std::make_shared<Ram>();backing->unit=unit;{auto w=create(backing);populate(w,4000);}
+    const auto good=backing->stable;const auto top=get64(good,104),top_peer=get64(good,112);
+    for(auto locator:{top,top_peer}) {
+      auto lost=good;const auto begin=locator/unit*unit;
+      std::fill_n(lost.begin()+static_cast<std::ptrdiff_t>(begin),unit,std::byte{});
+      auto s=PagedObjectStoreSnapshot::open(image(lost,unit),limits);s.verify_all();
+      require(s.read(3333)==payload(3333) && s.info().degraded_metadata,"whole metadata failure unit not recovered");
+    }
+  }
+  auto tiny=std::make_shared<Ram>();auto w=PagedObjectStoreWriter::create(tiny,identity(),{2*kStoreCommitUnit+8192});
+  const auto calls=tiny->calls;rejects([&]{apply(w,put(1));},"capacity overflow admitted");
+  require(!w.poisoned() && tiny->calls==calls,"capacity preflight wrote or poisoned");
+  rejects([&]{PagedObjectStoreSnapshot::open(ram,{});},"unknown capacity admitted");
+  for(std::size_t slot=0;slot<2;++slot) {
+    auto unavailable=image(original);unavailable->unreadable_roots[slot]=true;
+    auto s=PagedObjectStoreSnapshot::open(unavailable,limits);
+    require(s.info().degraded_roots && s.read(7)==payload(7),"root I/O error hid surviving peer");
+    unavailable->unreadable_roots[1-slot]=true;
+    rejects([&]{PagedObjectStoreSnapshot::open(unavailable,limits);},"both unreadable roots admitted");
+  }
+}
+void codec_modes() {
+  std::vector<Bytes> inputs{{},Bytes(65536),Bytes(131071),Bytes(65537),Bytes(kStoreMaxObjectBytes)};
+  for(std::size_t i=0;i<inputs[2].size();++i)inputs[2][i]=static_cast<std::byte>(i%31);
+  std::uint64_t random=0x9de8a4ef0b19c473ULL;
+  for(auto index:{3U,4U})for(auto& byte:inputs[index]) {
+    random^=random<<13;random^=random>>7;random^=random<<17;byte=static_cast<std::byte>(random>>23);
+  }
+  for(auto mode:{StoreCompressionMode::raw,StoreCompressionMode::automatic,StoreCompressionMode::fast}) {
+    auto ram=std::make_shared<Ram>();auto writer=create(ram,mode);std::vector<StoreMutation> batch;
+    for(std::size_t i=0;i<inputs.size();++i)batch.push_back({i+1,false,inputs[i],{std::byte{255}}});
+    writer.commit(batch);auto s=PagedObjectStoreSnapshot::open(ram,limits);
+    for(std::size_t i=0;i<inputs.size();++i)require(s.read(i+1)==inputs[i],"codec mode CPU roundtrip");
+    s.verify_all();
+    if(mode!=StoreCompressionMode::raw)require(s.info().stored_payload_bytes<s.info().logical_bytes,"zero/pattern encoding absent");
+  }
+}
+void scale(std::uint64_t count) {
+  const auto started=std::chrono::steady_clock::now();auto ram=std::make_shared<Ram>();auto writer=create(ram);
+  populate(writer,count);auto snapshot=writer.snapshot();require(snapshot.info().objects==count,"scale inventory");
+  const auto begin=ram->read_bytes;
+  auto reopened=PagedObjectStoreSnapshot::open(ram,limits);
+  const auto open_bytes=ram->read_bytes-begin;
+  require(open_bytes==16384,"open scanned the inventory");
+  const auto read_begin=ram->read_bytes;
+  for(std::uint64_t i=0;i<1000;++i) {
+    const auto id=(i*104729)%count+1;require(reopened.read(id)==payload(id),"scale random read");
+  }
+  const auto lookup_bytes=ram->read_bytes-read_begin;
+  require(lookup_bytes<=1000ULL*((snapshot.info().height+1)*8192ULL+144),"lookup read amplification");
+  std::uint64_t seen=0,after=0;
+  for(;;) {
+    const auto page=reopened.list_page(after,1024);if(page.empty())break;
+    for(const auto& e:page) {require(e.id==++seen,"scale pagination gap");after=e.id;}
+  }
+  require(seen==count,"scale pagination count");reopened.verify_all();
+  // A scattered update/deletion must rewrite bounded paths, not the catalog.
+  std::vector<StoreMutation> changes;
+  for(std::uint64_t i=0;i<128;++i)changes.push_back(erase((i*104729)%count+1));
+  const auto writes=ram->write_bytes;writer.commit(changes);const auto update_bytes=ram->write_bytes-writes;
+  require(writer.snapshot().info().objects==count-128,"scale delete count");
+  require(snapshot.read(1)==payload(1),"scale old snapshot lost");
+  const auto elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();
+  std::cout<<"scale objects="<<count<<" image_bytes="<<snapshot.info().physical_end
+    <<" height="<<snapshot.info().height<<" open_read_bytes="<<open_bytes
+    <<" random_1000_read_bytes="<<lookup_bytes<<" scattered_128_delete_write_bytes="<<update_bytes
+    <<" elapsed_seconds="<<elapsed<<"\n";
+}
+} // namespace
+int main(int argc,char** argv) {
+  try {
+    if(argc==2 && std::string_view(argv[1])=="--million")scale(1000000);
+    else if(argc==1) {basic_and_oracle();remove_all_keys();failure_matrix(4096);failure_matrix(65536);
+      damage_and_malformed();semantic_pages_and_units();codec_modes();rebuild_and_recovery();rebuild_failures();scale(16384);}
+    else throw std::runtime_error("unsupported test arguments");
+    std::cout<<"paged store checks="<<checks<<"\n";return 0;
+  }catch(const std::exception& e){std::cerr<<"after "<<checks<<" checks: "<<e.what()<<"\n";return 1;}
+}
