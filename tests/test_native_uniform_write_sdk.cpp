@@ -91,6 +91,7 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
   const auto block=native_lz4_fixture::source();Bytes input=block;input.insert(input.end(),block.begin(),block.end());
   const bool sweep=fault>=7;
   if(sweep){input.clear();for(unsigned i=0;i<16;++i)input.insert(input.end(),block.begin(),block.end());}
+  if(fault==12)for(std::size_t i=kNativeExtentBytes;i<2*kNativeExtentBytes;++i)input[i]^=std::byte{0x3c};
   const auto payload=input;auto expected=input;
   if(fault==4){expected=data(7001,91);expected.insert(expected.end(),payload.begin(),payload.end());}
   if(fault==5)expected.resize(7001);
@@ -161,12 +162,24 @@ void run(const std::filesystem::path& worker,StoreCompressionMode compression,bo
   if(binding.capture_advice_receipt&&result->candidate_count){
     const std::uint64_t position=fault==4?7001:fault==6?31:0;
     const auto gap=(kNativeExtentBytes-position%kNativeExtentBytes)%kNativeExtentBytes;
-    const auto supplied=native_lz4_fixture::alternative_block(
-        std::span<const std::byte>(payload).subspan(static_cast<std::size_t>(gap),kNativeExtentBytes));
-    check(receipt.captured&&receipt.uniform_payloads&&receipt.payload_bytes==supplied.size()&&
-        receipt.payload_digest==flitzfs::detail::record_digest(supplied)&&
-        std::uint64_t(receipt.payload_bytes)*result->candidate_count==result->candidate_bytes,
-        "controlled advice receipt did not bind independently supplied bytes");
+    bool uniform=true;std::uint64_t bytes=0;Bytes first;
+    for(std::uint32_t i=0;i<result->candidate_count;++i){
+      const auto source=std::span<const std::byte>(payload).subspan(
+          static_cast<std::size_t>(gap)+std::size_t(i)*kNativeExtentBytes,kNativeExtentBytes);
+      Bytes supplied;
+      if(std::ranges::equal(source,block))supplied=native_lz4_fixture::alternative_block(source);
+      else{
+        // Independent fixed 64-KiB LZ4 literal fixture: 0xf0, 256*0xff, 0xf1.
+        supplied.assign(258,std::byte{0xff});supplied.front()=std::byte{0xf0};supplied.back()=std::byte{0xf1};
+        supplied.insert(supplied.end(),source.begin(),source.end());
+      }
+      bytes+=supplied.size();
+      if(!i)first=supplied;else uniform=uniform&&supplied==first;
+    }
+    const auto message=std::string("controlled advice receipt mismatch; fault=")+std::to_string(fault);
+    check(receipt.captured&&receipt.uniform_payloads==uniform&&receipt.payload_bytes==first.size()&&
+        receipt.payload_digest==flitzfs::detail::record_digest(first)&&bytes==result->candidate_bytes,
+        message.c_str());
   }else check(!receipt.captured&&!receipt.uniform_payloads&&!receipt.payload_bytes&&
       std::all_of(receipt.payload_digest.begin(),receipt.payload_digest.end(),[](auto v){return v==std::byte{0};}),
       "disabled or unused advice receipt retained data");
@@ -210,6 +223,7 @@ int wmain(int argc,wchar_t** argv){try{
   run(worker,StoreCompressionMode::fast,true,4);run(worker,StoreCompressionMode::fast,true,5);
   run(worker,StoreCompressionMode::fast,true,6);
   for(unsigned fault=7;fault<=11;++fault)run(worker,StoreCompressionMode::fast,true,fault);
+  run(worker,StoreCompressionMode::fast,true,12);
   std::cout<<"Controlled native uniform writes: checks="<<checks
       <<" exact_advice_storage=true CPU_fallback=true prior_and_unrelated_preserved=true reused_sweep_dispatch=true"
       <<" gpu_executed=false mounted=false\n";return 0;

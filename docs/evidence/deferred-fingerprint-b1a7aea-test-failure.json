@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "source": "b1a7aea0133c2d6298fd2dce567a956e7f0fe3d0",
+  "core_run": 43690129268,
+  "native_job": 132738853777,
+  "status": "Windows compilation passed; one controlled-write oracle failed among 154 native test groups",
+  "error": "controlled advice receipt did not bind independently supplied bytes",
+  "source_analysis": "The CPU worker emits the compact alternative block only for the exact canonical source. Shifted input uses its literal fixture. The new oracle incorrectly constructed the compact representation for every source.",
+  "correction": "Construct independent expected literal bytes for noncanonical input; add mixed-data advice coverage and preserve byte-exact current/prior recovery. No comparison is removed.",
+  "owner_executed": false,
+  "follow_up": "Exact-source core and complete SDK requalification before hardware execution",
+  "logs": "https://github.com/strmt7/FlitzFS/actions/runs/43690129268/job/132738853777"
+}

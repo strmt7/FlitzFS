@@ -103,6 +103,9 @@ an unexpectedly loaded WinFsp DLL. No WinFsp runtime is packaged. The exact
 upstream license is retained alongside the existing dependency notices.
 
 A verified GPU result and matching stored payload are distinct report fields.
+The owned_request_ms scope begins before input copying/enqueue and ends after
+confirmed control-thread exit. It excludes volume setup and the final independent
+readback. Image and payload accounting occurs after native context cleanup/close.
 Unknown hardware execution after a rejected child is null, not a fabricated
 false. CPU fallback means controller source selection; storage can independently
 choose a smaller CPU encoding. Source-specific core and full SDK qualification

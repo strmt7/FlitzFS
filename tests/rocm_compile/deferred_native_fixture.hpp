@@ -149,6 +149,7 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
     }
     {
       NativeDeferredWriteService service(session,control,offline,std::move(options));
+      const auto start=GetTickCount64();
       {
         std::lock_guard guard(control);service.publish_locked(evidence);
         check(!service.completion_receipt_locked(),"new deferred service retained a completion");
@@ -156,7 +157,7 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
         check(!service.completion_receipt_locked(),"pending deferred request exposed old completion");
       }
       std::fill(input.begin(),input.end(),std::byte{0xff});
-      const auto start=GetTickCount64();auto last_observation=start;
+      auto last_observation=start;
       while(completion.count.load(std::memory_order_acquire)==0){
         const auto now=GetTickCount64();
         if(now-start>7000){std::unique_lock guard(control);service.drain_locked(guard);break;}
@@ -190,14 +191,15 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
           stats.thread_exited&&stats.retirement_confirmed&&!stats.native_pending&&!stats.worker_busy&&!stats.disabled,
           "deferred terminal ownership differs");
     }
+    session.cleanup(handle,false);session.close(handle);
+    check(session.stats().contexts==0,"deferred context retained");
     auto objects=ObjectStoreSnapshot::open(backing);auto recovered=NativeFilesystemSnapshot::open(objects);
     recovered.verify_all();
     check(recovered.read("candidate.bin",0,static_cast<std::uint32_t>(expected.size()))==expected&&
         prior.read("candidate.bin",0,4)==sentinel,"deferred current/prior independent CPU readback");
     if(committed.candidate_count)stored_match=stored_advice_matches(backing,committed,block);
     image_bytes=backing->extent();payload_bytes=objects.info().stored_payload_bytes;
-    session.cleanup(handle,false);session.close(handle);
-    check(session.stats().contexts==0,"deferred context retained");backing->verify();
+    backing->verify();
   }
   working.restore();
   check(locked_ram_fixture::locked_bytes==0&&locked_ram_fixture::cleanup_ok&&WorkerExchangeSession::available(),
@@ -211,7 +213,7 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
       <<",\"CPU_fallback_selected\":"<<(!gpu_verified?"true":"false")
       <<",\"source_bytes\":"<<expected.size()<<",\"candidate_count\":"<<committed.candidate_count
       <<",\"candidate_bytes\":"<<committed.candidate_bytes<<",\"image_bytes\":"<<image_bytes
-      <<",\"active_payload_bytes\":"<<payload_bytes<<",\"wall_ms\":"<<elapsed_ms
+      <<",\"active_payload_bytes\":"<<payload_bytes<<",\"owned_request_ms\":"<<elapsed_ms
       <<",\"controller_job_peak_commit_bytes\":"<<controller.peak_commit()
       <<",\"locked_peak_bytes\":"<<locked_ram_fixture::peak_locked_bytes.load()
       <<",\"locked_after_bytes\":0,\"response_count\":1,\"owned_input\":true,\"control_joined\":true,"
