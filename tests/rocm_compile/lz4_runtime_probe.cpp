@@ -483,7 +483,10 @@ int wmain(int argc,wchar_t** argv){
       configuration.invocation=deferred_native_fixture::Invocation::explicit_cpu;
       return deferred_native_fixture::run(std::move(configuration),controller);
     }
-    if(argc>1&&std::wstring_view(argv[1])==L"--gpu-deferred-native-once"){
+    if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-series")
+      return deferred_native_fixture::run_comparison({},controller,deferred_native_fixture::Comparison::cpu_only);
+    if(argc>1&&(std::wstring_view(argv[1])==L"--gpu-deferred-native-once"||
+        std::wstring_view(argv[1])==L"--gpu-deferred-native-compare")){
       require(argc==7,"Deferred native GPU needs trusted worker/ordinal/LUID/node/runtime digest");
       deferred_native_fixture::Configuration configuration;
       configuration.invocation=deferred_native_fixture::Invocation::gpu;
@@ -501,6 +504,9 @@ int wmain(int argc,wchar_t** argv){
       const auto digit=[](wchar_t c){return static_cast<unsigned>(c<=L'9'?c-L'0':c-L'a'+10);};
       for(std::size_t i=0;i<configuration.worker.runtime_sha256.size();++i)
         configuration.worker.runtime_sha256[i]=static_cast<std::byte>((digit(runtime[2*i])<<4)|digit(runtime[2*i+1]));
+      if(std::wstring_view(argv[1])==L"--gpu-deferred-native-compare")
+        return deferred_native_fixture::run_comparison(std::move(configuration),controller,
+            deferred_native_fixture::Comparison::matched);
       return deferred_native_fixture::run(std::move(configuration),controller);
     }
     if(argc==4 && std::wstring_view(argv[1])==L"--uniform-admission")return uniform_admission(argv[2],argv[3]);

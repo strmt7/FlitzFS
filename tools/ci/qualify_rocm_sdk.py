@@ -542,7 +542,10 @@ def main():
                     deferred["winfsp_runtime_loaded"] is False and deferred["mounted"] is False and
                     deferred["normal_io_route"] is False and deferred["cost_profile_qualified"] is False and
                     deferred["stored_advice_digest_matches"] is False and deferred["candidate_count"]==0 and
+                    deferred["candidate_bytes"]==0 and
                     deferred["source_bytes"]==1024*1024 and deferred["response_count"]==1 and
+                    0<deferred["owned_request_ns"]<15000000000 and
+                    re.fullmatch(r"[0-9a-f]{64}",deferred["source_digest_blake3"]) is not None and
                     deferred["locked_peak_bytes"]==4*1024*1024 and deferred["locked_after_bytes"]==0 and
                     0<deferred["image_bytes"]<=2*1024*1024 and
                     0<deferred["active_payload_bytes"]<=deferred["image_bytes"],
@@ -551,7 +554,7 @@ def main():
             hosted_deferred=report["uniform_lz4_runtime_fixture"]["deferred_native_storage_CPU"]
             explicit_deferred=report["uniform_lz4_runtime_fixture"]["deferred_native_explicit_CPU"]
             require(all(hosted_deferred[key]==explicit_deferred[key]
-                for key in ("source_bytes","image_bytes","active_payload_bytes","response_count")),
+                for key in ("source_bytes","source_digest_blake3","image_bytes","active_payload_bytes","response_count")),
                 "explicit CPU mode changed the baseline storage/request shape")
             # Clear only the disposable child's environment. The parent guard and
             # owner environment remain unchanged; this verifies rejection, not a bypass.
@@ -563,6 +566,31 @@ def main():
             require("deferred CPU fixture is hosted-only" in denied_deferred["stderr"] and
                 deferred_prefix not in denied_deferred["stdout"],"legacy hosted-only guard weakened")
             report["uniform_lz4_runtime_fixture"]["legacy_hosted_guard_refused"]=True
+            series_result=run(bounds,[str(runtime_probe),"--deferred-native-cpu-series"],report,
+                "owned-deferred-six-request-CPU-series",30)
+            series_rows=[json.loads(line[len(deferred_prefix):])
+                for line in series_result["stdout"].splitlines() if line.startswith(deferred_prefix)]
+            series_prefix="Deferred native comparison: "
+            series_summaries=[json.loads(line[len(series_prefix):])
+                for line in series_result["stdout"].splitlines() if line.startswith(series_prefix)]
+            require(len(series_rows)==6 and len(series_summaries)==1,"incomplete deferred CPU series")
+            series=series_summaries[0]
+            require(series["complete"] is True and series["trials"]==6 and series["CPU_trials"]==6 and
+                series["GPU_trials"]==0 and series["source_bytes_per_trial"]==1024*1024 and
+                series["wall_admission_ms"]==5000 and
+                series["controller_peak_scope"]=="cumulative across series" and
+                all(series[key] is False for key in ("mounted","normal_io_route","cost_profile_qualified")),
+                "deferred CPU series summary mismatch")
+            for row in series_rows:
+                require(all(row[key]==explicit_deferred[key] for key in (
+                    "complete","invocation","gpu_requested","gpu_result_verified","gpu_executed",
+                    "stored_advice_digest_matches","CPU_fallback_selected","source_bytes","source_digest_blake3",
+                    "candidate_count","candidate_bytes","image_bytes","active_payload_bytes",
+                    "locked_peak_bytes","locked_after_bytes","response_count","owned_input","control_joined",
+                    "current_CPU_readback","prior_CPU_readback","working_set_restored","transport_quiescent",
+                    "winfsp_runtime_loaded","mounted","normal_io_route","cost_profile_qualified")) and
+                    0<row["owned_request_ns"]<15000000000,"deferred CPU series state or retirement mismatch")
+            report["uniform_lz4_runtime_fixture"]["deferred_CPU_series"]=dict(summary=series,trials=series_rows)
             uniform_native_result=run(bounds,[str(runtime_probe),"--uniform-native-cpu-fixture"],report,
                 "uniform-native-LZ4-storage-CPU-composition",30)
             uniform_native_prefix="Uniform native CPU fixture: "
@@ -1009,6 +1037,9 @@ def main():
                 uniform_layout_version=2,uniform_runtime_packaged=True,uniform_gpu_execution=False,
                 uniform_serial_sweep_packaged=True,uniform_sweep_cpu_source_bytes=1024*1024,
                 native_deferred_CPU_qualified=True,native_deferred_explicit_CPU_qualified=True,
+                native_deferred_CPU_series_qualified=True,native_deferred_comparison_trial_limit=6,
+                native_deferred_matched_maximum_GPU_trials=3,
+                native_deferred_request_ns_qualified=True,
                 native_deferred_gpu_executed=False,
                 native_control_winfsp_runtime_required=False,
                 native_storage_CPU_qualified=True,native_gpu_worker_timeout_ms=5000,

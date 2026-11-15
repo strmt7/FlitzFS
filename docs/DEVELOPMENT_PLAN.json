@@ -809,7 +809,7 @@
     "release_gate_closed": false
   },
   "next_product_slices": [
-    "Qualify the implemented explicit bounded CPU-only owner mode for the same owned-service fixture, without environment guard bypass. Run finite matched alternating CPU/GPU comparisons with identical source/initial state/scopes; distinguish verified execution from stored-byte savings and charge full image overhead.",
+    "Qualify high-resolution timing, source fingerprints and the finite alternating three-pair comparison with its CPU-only six-request lifecycle check. The explicit CPU mode passed all gates and one owner case, but legacy requests rounded to 0/16 ms. Then compare identical input/state/scopes, distinguishing execution from size benefit and cumulative job peaks from per-request time.",
     "Automatically resolve and pin independently available helper/module/runtime dependencies outside the managed volume; supervise resource collection separately and deliver finite fresh evidence mailboxes with exact shutdown.",
     "Acquire repeated configuration/recovery/work-shape keyed complete costs, derive geometry from fresh headroom/contention and connect useful automatic Windows write/read/fallback. Address cold setup and qualify finite cross-operation amortization without an indefinite resident helper.",
     "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
@@ -836,6 +836,19 @@
     "research": "docs/evidence/native-async-write-research-2026-11-14.json",
     "next": "Acquire matched complete costs and automatic independent helper/resource evidence, then useful routing and finite coalescing; preserve ordering, immediate CPU selection and exact retirement.",
     "evidence": "docs/evidence/owned-deferred-gpu-94aaa2a.json"
+  },
+  "matched_cpu_mode_checkpoint": {
+    "source": "94af72c3b6cd84ffb0c39392b11843fd9b41914a",
+    "core_run": 43696082153,
+    "core_jobs_passed": 13,
+    "SDK_run": 43696088659,
+    "SDK_commands": 52,
+    "legacy_hosted_guard_refused": true,
+    "owner_explicit_CPU_case_passed": true,
+    "GPU_executed_in_this_case": false,
+    "evidence": "docs/evidence/owned-deferred-cpu-94af72c.json",
+    "precise_request_comparison_complete": false,
+    "next": "Qualify implemented steady-clock timing, BLAKE3 input fingerprints and the bounded three-pair comparison before matched CPU/GPU trials; do not interpret legacy zero milliseconds as zero work or cumulative job peaks as individual request peaks."
   },
   "execution_round": {
     "date": "2026-11-15",
@@ -865,7 +878,7 @@
         "entry": "Single owned-service GPU case source-qualified",
         "implementation": "Explicit finite CPU-only owner mode and matched CPU/GPU operation scopes with identical initial state, varied synthetic controls and complete image/request/read/resource accounting.",
         "acceptance": "Finite alternating exact-source trials distinguish execution, accepted advice and net storage benefit; independent CPU recovery and exact retirement pass. No reuse of one manual grant as automatic qualified costs.",
-        "status": "Explicit CPU mode implemented; exact-source qualification and matched owner trials pending"
+        "status": "CPU mode passed exact-source core/SDK and one owner case; precise timing, input fingerprints and finite comparison implemented; qualification and matched trials pending"
       },
       {
         "id": "automatic-routing",

@@ -24,8 +24,12 @@ stages. The package exits below remain controlling.
 ### Next implementation sequence
 
 1. **Comparable service measurements — G02/G03/A02.** The explicit bounded
-   CPU-only mode is implemented for the same owned-service fixture; exact-source
-   qualification and matched owner trials are pending. Never bypass the
+   CPU-only mode passed exact-source core/SDK gates and one bounded owner case.
+   [Evidence](evidence/owned-deferred-cpu-94af72c.json). The coarse timer reported
+   0/16 ms; high-resolution request timing, input fingerprints and a finite
+   alternating three-pair comparison are implemented but require qualification
+   before precise matched trials. Its CPU-only six-request series checks repeated
+   ownership on the disposable runner; job peaks remain cumulative. Never bypass the
    hosted-only guard with environment changes. Compare identical source bytes,
    initial image state, cleanup and measurement scopes. Use finite alternating
    trials, varied synthetic controls and licensed real-data CPU runs on disposable

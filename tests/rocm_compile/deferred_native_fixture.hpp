@@ -10,17 +10,19 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
-// Explicit, finite qualification only. No SDK function, mount or driver action.
+// Explicit finite qualification only. No WinFsp call, mount or driver-management action.
 namespace deferred_native_fixture {
 using namespace flitzfs;
 using Bytes=std::vector<std::byte>;
@@ -104,8 +106,14 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
   const auto block=native_lz4_fixture::source();Bytes input;
   for(unsigned i=0;i<16;++i)input.insert(input.end(),block.begin(),block.end());
   const auto expected=input;const Bytes sentinel{std::byte{1},std::byte{0x53},std::byte{0x7a},std::byte{9}};
+  constexpr char hexadecimal[]="0123456789abcdef";
+  std::string source_digest;source_digest.reserve(64);
+  for(const auto byte:detail::record_digest(expected)){
+    const auto value=std::to_integer<unsigned>(byte);
+    source_digest.push_back(hexadecimal[value>>4]);source_digest.push_back(hexadecimal[value&15]);
+  }
   NativeDeferredWriteStats stats;NativeUniformWriteResult committed{};
-  std::uint64_t image_bytes=0,payload_bytes=0,elapsed_ms=0;
+  std::uint64_t image_bytes=0,payload_bytes=0,elapsed_ms=0,elapsed_ns=0;
   bool stored_match=false,admitted=false;
   locked_ram_fixture::WorkingSet working;
   {
@@ -154,6 +162,7 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
     }
     {
       NativeDeferredWriteService service(session,control,offline,std::move(options));
+      const auto request_started=std::chrono::steady_clock::now();
       const auto start=GetTickCount64();
       {
         std::lock_guard guard(control);service.publish_locked(evidence);
@@ -182,6 +191,10 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
       while(stopped==NativeDeferredStop::running&&GetTickCount64()-start<10000);
       check(stopped==NativeDeferredStop::quiescent,"deferred service retirement unconfirmed");
       elapsed_ms=GetTickCount64()-start;
+      const auto measured=std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::steady_clock::now()-request_started).count();
+      check(measured>0,"deferred request clock did not advance");
+      elapsed_ns=static_cast<std::uint64_t>(measured);
       {
         std::lock_guard guard(control);stats=service.stats_locked();
         const auto receipt=service.completion_receipt_locked();check(receipt.has_value(),"deferred commit receipt absent");
@@ -221,9 +234,11 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
       <<",\"gpu_executed\":"<<(gpu_verified?"true":stats.worker_submitted?"null":"false")
       <<",\"stored_advice_digest_matches\":"<<(stored_match?"true":"false")
       <<",\"CPU_fallback_selected\":"<<(!gpu_verified?"true":"false")
-      <<",\"source_bytes\":"<<expected.size()<<",\"candidate_count\":"<<committed.candidate_count
+      <<",\"source_bytes\":"<<expected.size()<<",\"source_digest_blake3\":\""<<source_digest
+      <<"\",\"candidate_count\":"<<committed.candidate_count
       <<",\"candidate_bytes\":"<<committed.candidate_bytes<<",\"image_bytes\":"<<image_bytes
       <<",\"active_payload_bytes\":"<<payload_bytes<<",\"owned_request_ms\":"<<elapsed_ms
+      <<",\"owned_request_ns\":"<<elapsed_ns
       <<",\"controller_job_peak_commit_bytes\":"<<controller.peak_commit()
       <<",\"locked_peak_bytes\":"<<locked_ram_fixture::peak_locked_bytes.load()
       <<",\"locked_after_bytes\":0,\"response_count\":1,\"owned_input\":true,\"control_joined\":true,"
@@ -231,5 +246,34 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
         "\"transport_quiescent\":true,\"winfsp_runtime_loaded\":false,\"mounted\":false,"
         "\"normal_io_route\":false,\"cost_profile_qualified\":false}\n";
   return gpu?((gpu_verified&&stored_match)?0:2):0;
+}
+enum class Comparison {cpu_only,matched};
+inline int run_comparison(Configuration configuration,const gpu_probe_fixture::Budget& controller,
+    Comparison comparison){
+  check(comparison==Comparison::cpu_only||comparison==Comparison::matched,
+      "invalid deferred comparison invocation");
+  constexpr std::array<Invocation,6> order{Invocation::explicit_cpu,Invocation::gpu,
+      Invocation::gpu,Invocation::explicit_cpu,Invocation::explicit_cpu,Invocation::gpu};
+  const auto started=std::chrono::steady_clock::now();
+  unsigned completed=0,gpu_completed=0;
+  for(const auto invocation:order){
+    // Do not start another request after the finite series admission window.
+    // Each request retains its own deadlines, process containment and retirement.
+    check(std::chrono::steady_clock::now()-started < std::chrono::seconds(5),
+        "deferred comparison wall admission exhausted");
+    const auto selected=comparison==Comparison::matched?invocation:Invocation::explicit_cpu;
+    auto trial=configuration;trial.invocation=selected;
+    if(selected!=Invocation::gpu){trial.worker={};trial.luid={};trial.node_mask=0;}
+    const auto code=run(std::move(trial),controller);
+    if(code!=0)return code; // No further work or automatic retry after any refusal.
+    ++completed;
+    if(selected==Invocation::gpu)++gpu_completed;
+  }
+  std::cout<<"Deferred native comparison: {\"complete\":true,\"trials\":"<<completed
+      <<",\"GPU_trials\":"<<gpu_completed<<",\"CPU_trials\":"<<completed-gpu_completed
+      <<",\"source_bytes_per_trial\":1048576,\"wall_admission_ms\":5000,"
+        "\"controller_peak_scope\":\"cumulative across series\",\"mounted\":false,"
+        "\"normal_io_route\":false,\"cost_profile_qualified\":false}\n";
+  return 0;
 }
 } // namespace deferred_native_fixture

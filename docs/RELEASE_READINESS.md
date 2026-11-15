@@ -55,6 +55,13 @@ fallback and concurrent shutdown. The real CPU-only pending-response mount
 passed with independent current/prior recovery and complete cleanup.
 [Executed source-bound evidence](evidence/owned-deferred-a4ad516.json)
 
+The explicit CPU comparison mode at 94af72c passed all thirteen core jobs, all
+52 prescribed SDK commands and one bounded owner CPU case, with independent
+current/prior readback and complete retirement. Its coarse request clock returned
+0/16 ms, so those values are not precise speed measurements. Higher-resolution
+request timing and source fingerprints are being qualified before matched
+comparisons. [CPU-mode evidence](evidence/owned-deferred-cpu-94af72c.json).
+
 Source 94aaa2a adds driver-independent control composition and optional encoded
 advice receipts. Its 154 native groups include 57 deferred and 226 controlled
 checks; all thirteen core jobs and all fifty prescribed SDK commands passed.

@@ -18,6 +18,41 @@ when that child's hosted flag is absent. Receipts identify hosted_cpu,
 explicit_cpu or gpu invocation. This additional mode still requires its own
 exact-source qualification before owner use or a matched performance claim.
 
+The first CPU-mode qualification at 94af72c passed all thirteen core jobs and all
+52 prescribed SDK commands, including both invocations and legacy-guard rejection.
+One bounded explicit CPU invocation on Windows 11 also passed with complete
+readback and retirement. [Evidence](evidence/owned-deferred-cpu-94af72c.json).
+Its request reports of
+0/16 ms exposed the existing GetTickCount64 granularity; they do not establish
+zero execution time. The next fixture records owned_request_ns with the existing
+steady-clock facility over the same scope. Legacy milliseconds remain for
+historical readers and timeout control is unchanged. Precise matched request
+comparisons require that new source's qualification first.
+Both modes also report an unkeyed BLAKE3 source fingerprint, calculated before
+the request timing scope. It binds comparison inputs without requiring identical
+CPU/GPU compressed streams and does not authenticate the data. The full-process
+scope includes that calculation.
+
+The explicit --gpu-deferred-native-compare mode uses the same qualified worker,
+ordinal, LUID, node and runtime-digest arguments as the single GPU invocation.
+Its fixed order is CPU/GPU, GPU/CPU, CPU/GPU: six requests in one parent process,
+each with new identical volume state. CPU trials clear GPU bindings and perform
+no GPU query or worker launch. A refusal stops the series immediately; no later
+request or automatic retry follows. Before each request, a five-second series
+admission window is checked. This is not a five-second completion guarantee: each
+request retains its deadlines, and the reviewed outer supervisor still enforces
+the complete process wall limit. Use that supervisor, not an unsupervised launch.
+
+Each row retains independent CPU readback and complete retirement checks. The
+controller's peak commit figure is cumulative over the shared process job; it
+is not a separate peak for each trial. Compare per-request owned_request_ns and
+actual image/payload sizes. The one outer-process time covers the whole series
+and cannot be assigned to individual CPU/GPU requests. The CPU-only
+--deferred-native-cpu-series mode qualifies six successive ownership lifetimes
+on the disposable SDK runner without hardware execution. Its source fingerprints,
+storage accounting, response and cleanup must match the single CPU case. This
+new comparison mode is not yet owner-qualified or a reusable production cost model.
+
 ## Ownership and ordering
 
 Configuration is allowed only before callback binding. The callback validates

@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "date": "2026-11-15",
+  "source": "94af72c3b6cd84ffb0c39392b11843fd9b41914a",
+  "tree": "55212895ecde7c765124e609e5ca98cf69afb715",
+  "scope": "Explicit unmounted CPU-only owned-service composition on Windows 11, not a matched performance comparison",
+  "core": {
+    "jobs_passed": 13,
+    "jobs_total": 13,
+    "run": 43696082153,
+    "jobs": [
+      {
+        "id": 132756790153,
+        "name": "windows-native",
+        "conclusion": "success"
+      },
+      {
+        "id": 132756790353,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132756790357,
+        "name": "sanitizers",
+        "conclusion": "success"
+      },
+      {
+        "id": 132756790376,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132756790534,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132758909753,
+        "name": "windows-mount",
+        "conclusion": "success"
+      },
+      {
+        "id": 132759706753,
+        "name": "windows-write-mount (crash)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132759706756,
+        "name": "windows-write-mount (mutations)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132759706757,
+        "name": "windows-write-mount (ram-handoff)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132759706764,
+        "name": "windows-write-mount (basic)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132759706773,
+        "name": "windows-write-mount (restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132759706791,
+        "name": "windows-write-mount (crash-restart)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132759706848,
+        "name": "windows-write-mount (delete)",
+        "conclusion": "success"
+      }
+    ],
+    "status": "success"
+  },
+  "SDK": {
+    "job": 132756813905,
+    "legacy_hosted_guard_refused": true,
+    "timeouts": 0,
+    "root_sha256": "b3804d8cd31dc3e0b6c24c834bd8d261660faf4302599591ac08f61606d6d82d",
+    "archive_id": 14154353739,
+    "archive_sha256": "808709e18060c953108a4d86b41e5ccf68dfb5123d7bdafb20f89ac2a571adc3",
+    "hosted": {
+      "complete": true,
+      "invocation": "hosted_cpu",
+      "gpu_requested": false,
+      "gpu_result_verified": false,
+      "gpu_executed": false,
+      "stored_advice_digest_matches": false,
+      "CPU_fallback_selected": true,
+      "source_bytes": 1048576,
+      "candidate_count": 0,
+      "candidate_bytes": 0,
+      "image_bytes": 1310720,
+      "active_payload_bytes": 135648,
+      "owned_request_ms": 0,
+      "controller_job_peak_commit_bytes": 14831616,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "response_count": 1,
+      "owned_input": true,
+      "control_joined": true,
+      "current_CPU_readback": true,
+      "prior_CPU_readback": true,
+      "working_set_restored": true,
+      "transport_quiescent": true,
+      "winfsp_runtime_loaded": false,
+      "mounted": false,
+      "normal_io_route": false,
+      "cost_profile_qualified": false
+    },
+    "explicit": {
+      "complete": true,
+      "invocation": "explicit_cpu",
+      "gpu_requested": false,
+      "gpu_result_verified": false,
+      "gpu_executed": false,
+      "stored_advice_digest_matches": false,
+      "CPU_fallback_selected": true,
+      "source_bytes": 1048576,
+      "candidate_count": 0,
+      "candidate_bytes": 0,
+      "image_bytes": 1310720,
+      "active_payload_bytes": 135648,
+      "owned_request_ms": 16,
+      "controller_job_peak_commit_bytes": 14794752,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "response_count": 1,
+      "owned_input": true,
+      "control_joined": true,
+      "current_CPU_readback": true,
+      "prior_CPU_readback": true,
+      "working_set_restored": true,
+      "transport_quiescent": true,
+      "winfsp_runtime_loaded": false,
+      "mounted": false,
+      "normal_io_route": false,
+      "cost_profile_qualified": false
+    },
+    "runtime_binaries": [
+      {
+        "name": "flitzfs_hip_lz4_worker.exe",
+        "bytes": 509952,
+        "sha256": "56f1b27f9ca1aaf0c7e592188378975c434779072c53936f27accd1cf1b3bcc5",
+        "imports": [
+          "bcrypt.dll",
+          "dxgi.dll",
+          "kernel32.dll",
+          "wintrust.dll"
+        ]
+      },
+      {
+        "name": "flitzfs_lz4_runtime_probe.exe",
+        "bytes": 728064,
+        "sha256": "67127faa79a9823d73e1024bb1683f8bd289bf61f3aec86b8fc5b635f63b9cd6",
+        "imports": [
+          "advapi32.dll",
+          "bcrypt.dll",
+          "dxgi.dll",
+          "kernel32.dll"
+        ]
+      }
+    ],
+    "commands": 52,
+    "run": 43696088659,
+    "complete": true
+  },
+  "package": {
+    "bytes": 2023338,
+    "inner_sha256": "c52153abcac04b82c67823e47d34c6ef38a206540bbe22a709f972932cac2e55",
+    "runtime_shipped": false,
+    "artifact_id": 14155091617,
+    "outer_sha256": "0987765ca5459dc3900b3b1b1adc496b819a8bb986f3f76f9c6e01ec341db286",
+    "WinFsp_runtime_shipped": false,
+    "files": 15
+  },
+  "owner": {
+    "result": {
+      "complete": true,
+      "invocation": "explicit_cpu",
+      "gpu_requested": false,
+      "gpu_result_verified": false,
+      "gpu_executed": false,
+      "stored_advice_digest_matches": false,
+      "CPU_fallback_selected": true,
+      "source_bytes": 1048576,
+      "candidate_count": 0,
+      "candidate_bytes": 0,
+      "image_bytes": 1310720,
+      "active_payload_bytes": 135648,
+      "owned_request_ms": 0,
+      "controller_job_peak_commit_bytes": 14864384,
+      "locked_peak_bytes": 4194304,
+      "locked_after_bytes": 0,
+      "response_count": 1,
+      "owned_input": true,
+      "control_joined": true,
+      "current_CPU_readback": true,
+      "prior_CPU_readback": true,
+      "working_set_restored": true,
+      "transport_quiescent": true,
+      "winfsp_runtime_loaded": false,
+      "mounted": false,
+      "normal_io_route": false,
+      "cost_profile_qualified": false
+    },
+    "post_named_processes": [],
+    "preflight": {
+      "observed_utc": "2026-11-15T09:10:46.8875406Z",
+      "source": "94af72c3b6cd84ffb0c39392b11843fd9b41914a",
+      "invocation": "explicit_cpu",
+      "OS": {
+        "caption": "Microsoft Windows 11 Pro",
+        "build": "26300",
+        "version": "10.0.26300"
+      },
+      "physical_total_kib": 66704480,
+      "physical_available_kib": 34826476,
+      "commit_available_kib": 81256956,
+      "CPU_load": [
+        {
+          "LoadPercentage": 3
+        }
+      ],
+      "owned_named_processes": [],
+      "GPU_requested": false,
+      "driver_change": false,
+      "mount": false
+    },
+    "trial": {
+      "exit": 0,
+      "pid": 63408,
+      "exit_confirmed": true,
+      "elapsed_ms": 78,
+      "outer_wall_ms": 15000,
+      "termination_observation_ms": 2000,
+      "stdout": "Deferred native composition: {\"complete\":true,\"invocation\":\"explicit_cpu\",\"gpu_requested\":false,\"gpu_result_verified\":false,\"gpu_executed\":false,\"stored_advice_digest_matches\":false,\"CPU_fallback_selected\":true,\"source_bytes\":1048576,\"candidate_count\":0,\"candidate_bytes\":0,\"image_bytes\":1310720,\"active_payload_bytes\":135648,\"owned_request_ms\":0,\"controller_job_peak_commit_bytes\":14864384,\"locked_peak_bytes\":4194304,\"locked_after_bytes\":0,\"response_count\":1,\"owned_input\":true,\"control_joined\":true,\"current_CPU_readback\":true,\"prior_CPU_readback\":true,\"working_set_restored\":true,\"transport_quiescent\":true,\"winfsp_runtime_loaded\":false,\"mounted\":false,\"normal_io_route\":false,\"cost_profile_qualified\":false}\r\n",
+      "stderr": "",
+      "staged_files_unchanged": true
+    }
+  },
+  "interpretation": {
+    "release": false,
+    "current_and_prior_CPU_recovery": true,
+    "worker_launched": false,
+    "no_driver_change": true,
+    "next": "Qualify steady-clock nanosecond-unit request reporting and a source fingerprint before finite matched comparisons. Legacy millisecond field remains; timeout control is unchanged.",
+    "outer_execution_ms": 78,
+    "legacy_hosted_environment_unchanged": true,
+    "response_count": 1,
+    "no_mount": true,
+    "timing_issue": "GetTickCount64 returned zero for the short request on this host, and zero/16 ms in hosted CPU runs. This is insufficient resolution for precise CPU/GPU request comparisons; zero does not mean zero work.",
+    "driver_query_requested": false,
+    "locked_peak_bytes": 4194304,
+    "competitive_advantage_proven": false,
+    "locked_after_bytes": 0,
+    "matched_benchmark_completed": false,
+    "GPU_executed": false,
+    "explicit_CPU_mode_qualified": true
+  }
+}
