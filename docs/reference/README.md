@@ -42,6 +42,8 @@ These are engineering contracts. Implementation status is tracked in
 
 ## Compression and learning
 
+- [Automatic resource-gated shared-base discovery](../AUTOMATIC_GROUP_MAINTENANCE.md)
+
 - [Compression strategy](../COMPRESSION_STRATEGY.md), [cold collective compression](../COLD_COMPRESSION_RESEARCH.md)
 - [Autonomous maintenance](../AUTONOMOUS_MAINTENANCE.md), [optimization state](../OPTIMIZATION_STATE.md), [funding budget](../OPTIMIZATION_BUDGET.md)
 - [Workload accounting](../WORKLOAD_ACCOUNTING.md), [helper integration](../WORKLOAD_HELPER.md), [advisory recovery](../ADVISORY_REBUILD.md)

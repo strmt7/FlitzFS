@@ -13,6 +13,7 @@ affected component. [End-user documentation](../README.md) is separate.
 | Protect payload copies and recover a damaged bank | [Mirrored paged payloads](../MIRRORED_PAYLOADS.md) |
 | Develop protected collective representations | [Shared-base groups](../SHARED_BASE_GROUPS.md) |
 | Integrate paged sessions, handoff and advice | [Managed paged volumes](../MANAGED_PAGED_VOLUMES.md) |
+| Develop automatic collective discovery and admission | [Automatic group maintenance](../AUTOMATIC_GROUP_MAINTENANCE.md) |
 | Scale object storage and enumeration | [Paged object store](../PAGED_OBJECT_STORE.md), [native backend integration](../NATIVE_PAGED_BACKEND.md), [inode records](../INODE_RECORD_NAMESPACE.md), [directory indices](../DIRECTORY_NAME_INDEX.md) |
 | Change Windows file operations | [Windows references](../reference/README.md#windows-integration) |
 | Change GPU compression or fallback | [GPU references](../reference/README.md#gpu-compression-and-worker-lifecycle) |

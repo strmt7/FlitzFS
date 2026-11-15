@@ -911,6 +911,9 @@ PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_staging() const {
 std::uint64_t PagedObjectStoreWriter::generation_for_staging() const noexcept {
   return poisoned()?0:impl_->state.generation;
 }
+std::uint64_t PagedObjectStoreWriter::physical_end_for_staging() const noexcept {
+  return poisoned()?0:impl_->state.end;
+}
 PagedStoreInfo PagedObjectStoreWriter::flush_checkpoint() {
   if(poisoned())fail("flush requires a healthy writer");
   auto& p=*impl_;const auto& old=p.state;bool barrier_entered=false;

@@ -144,6 +144,11 @@ struct NativeWorkloadInfo {
 };
 struct NativeSharedBaseInfo {bool enabled=false;std::size_t members=0,bases=0;};
 struct NativeExtentSelection {std::uint64_t inode=0,extent_index=0;};
+struct NativeContentToken {
+  NativeExtentSelection extent;
+  std::uint64_t object=0,revision=0,content_revision=0;
+  bool grouped=false;
+};
 struct NativeFsCommit {
   StoreCommitInfo storage;
   std::uint64_t sequence=0; // Namespace transaction sequence, distinct from root repair generation.
@@ -494,6 +499,15 @@ class NativeFilesystemWriter final {
   bool poisoned() const noexcept;
  private:
   friend class NativeFileSession;
+  friend class NativeGroupMaintenance;
+  std::optional<NativeContentToken> maintenance_next(NativeExtentSelection,bool first) const;
+  bool maintenance_matches(const NativeContentToken&) const noexcept;
+  std::vector<std::byte> maintenance_read(const NativeContentToken&);
+  std::uint64_t maintenance_sequence() const noexcept;
+  StoreIdentity maintenance_identity() const noexcept;
+  std::uint64_t maintenance_physical_end() const noexcept;
+  bool maintenance_busy() const noexcept;
+  bool maintenance_supported() const noexcept;
   using Recompression=ObjectStoreWriter::Rewrite;
   Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,StoreCheckpointOptions) const;

@@ -110,7 +110,7 @@
   ],
   "next_implementation": {
     "contract": "docs/RELEASE_EXECUTION_PLAN.md",
-    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression. Replace complete Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist sparse coherence features, stable content generations, candidate scans and restart progress."
+    "next": "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization. Replace complete native Model residency and whole directory objects with paged inode/name/extent access and bounded caches. Persist sparse content features, content generations, resumable scans and negative outcomes; qualify named files beyond current prototype limits."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
@@ -128,7 +128,8 @@
     "automatic_format_migration": false,
     "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending.",
     "cooperative_shared_base": "Owned one-extent CPU preparation, selected-object revisions and current-namespace publication preserve unrelated writes. No automatic scheduler, persistent restart or AMD collective execution.",
-    "managed_paged_volumes": "Explicit typed managed heads, grouped session control, advisory provenance and synchronous handoff/repair. App defaults, resource controller, automatic selection and physical qualification remain open."
+    "managed_paged_volumes": "Explicit typed managed heads, grouped session control, advisory provenance and synchronous handoff/repair. App defaults, resource controller, automatic selection and physical qualification remain open.",
+    "automatic_group_maintenance": "Bounded managed-paged CPU content discovery and supplied-observation gating; no live Windows priority/idle integration, persistent coherence, ordinary GPU route or automatic compaction."
   },
   "safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
@@ -1012,11 +1013,11 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression.",
-    "Replace complete Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist sparse coherence features, stable content generations, candidate scans and restart progress.",
-    "Connect staged paged copying to reader-safe managed selection/reclamation and Windows helper/application factories; preserve contexts, owned work, source images and decoder generations through interruption and gradual upgrades.",
-    "Evaluate shifted/fine-grained, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data. Minimize complete protected stored bytes with practical random/cold access; implement useful finite AMD work and normal automatic CPU-fallback routing.",
-    "Complete Windows semantics, helper/tray/provider installation/update contracts, historical retirement diagnosis, physical backend/fault qualification, compatibility, security, recognized benchmarks and soak. No release without the owner."
+    "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
+    "Replace complete native Model residency and whole directory objects with paged inode/name/extent access and bounded caches. Persist sparse content features, content generations, resumable scans and negative outcomes; qualify named files beyond current prototype limits.",
+    "Connect staged paged rebuilding to reader-safe managed selection/reclamation and automatic compaction. Preserve contexts, source generations, decoder dependencies and interruption recovery.",
+    "Evaluate shifted/fine-grained, dictionary, multi-reference and offline learned collective candidates on held-out heterogeneous data. Minimize complete protected bytes with practical access; implement useful actual AMD work and ordinary automatic CPU-fallback routing.",
+    "Complete Windows semantics, installation/update/compatibility, historical retirement diagnosis, corruption/physical backend qualification, security, recognized benchmarks and soak. No release without the owner."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1666,6 +1667,74 @@
     "driver_installed": false,
     "release": false,
     "next": "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression.",
+    "full_goal_status": "active"
+  },
+  "automatic_group_checkpoint": {
+    "source_base": "3a8cb64cead78367408642718d6aab9bc68fa50e",
+    "contract": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+    "evidence": "docs/evidence/automatic-group-maintenance-2026-11-15.json",
+    "status": "Automatic aligned-family discovery/extension through managed paged sessions; content hash reuse, outcome suppression, selected-edit reconciliation and supplied-observation resource/duty admission",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "suites": 103,
+        "automatic_group_checks": 3636,
+        "publication_fault_cases": 492
+      },
+      {
+        "configuration": "asan",
+        "suites": 103,
+        "automatic_group_checks": 3636,
+        "publication_fault_cases": 492
+      }
+    ],
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "publication_cuts": [
+      67,
+      97
+    ],
+    "automatic_candidate_selection": true,
+    "sparse_inverted_bands": true,
+    "existing_group_extension": true,
+    "separate_volatile_content_revision": true,
+    "unchanged_source_IO": false,
+    "content_features_persistent": false,
+    "resource_observations": "supplied/model",
+    "real_Windows_collector": false,
+    "live_low_priority_executor": false,
+    "duty_cost": "measured steady-clock elapsed nanoseconds, not CPU time",
+    "synthetic_extension": {
+      "initial_members": 8,
+      "final_members": 9,
+      "final_bases": 1,
+      "sampled_extents": 9,
+      "reused_features": 25,
+      "cumulative_admitted_compacted_savings": [
+        1040384,
+        1048576
+      ],
+      "these_are_current_image_savings": false
+    },
+    "prospective_complete_size_gate": true,
+    "physical_history_grows": true,
+    "automatic_compaction": false,
+    "advisory_funding_unchanged": true,
+    "data_write_budget": false,
+    "selected_edit_reconciliation": true,
+    "independent_CPU_recovery": true,
+    "publication_synchronous": true,
+    "persistent_coherence_catalog": false,
+    "fully_paged_namespace": false,
+    "Windows_app_default_changed": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
     "full_goal_status": "active"
   }
 }

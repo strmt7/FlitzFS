@@ -15,7 +15,12 @@ foreground commits; its final storage publication is still synchronous. This
 does not close E04/E06/E07 or reduce the uncalibrated effort estimate below.
 The [managed paged path](MANAGED_PAGED_VOLUMES.md) now integrates typed head
 selection, contexts, source-preserving repair/handoff and advisory funding.
-Automatic resource admission and Windows application factory integration remain.
+The [automatic group controller](AUTOMATIC_GROUP_MAINTENANCE.md) now discovers
+and extends aligned groups, reuses content hashes and suppresses repeated
+outcomes under supplied/model resource observations. It does not close E04/E07:
+live Windows observation/priority/idle scheduling, persistent paged coherence,
+wear policy and application factories remain. No remaining-effort reduction is
+claimed without measured integration velocity or held-out compression results.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,
 not competing instructions to repeat completed experiments.
@@ -31,10 +36,10 @@ application slices, bounded GPU workers and independent CPU result validation.
 | Area | Evidence available now | Remaining gap |
 | --- | --- | --- |
 | Scalable storage | The opt-in paged store has writes, deletion, paginated lookup, resume and streaming new-image rebuild. A million populated object records were tested. | The ordinary native namespace still uses a flat model: 256 nodes, 255 extents and a 64-MiB image bound. Paged objects are not yet million-file Explorer support. |
-| Local qualification | Three selected suites passed in raw-only Windows Release and AddressSanitizer: 48,739 checks per configuration, plus a separate million-object run. | This is not the full current-source suite, optional-codec qualification, a mounted Windows qualification or physical power-loss evidence. |
-| Sharing | Exact extent sharing/private updates and explicit protected shared-base patch groups with complete-size admission; related synthetic family images shrink after compaction. | No automatic scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
+| Local qualification | [103 selected Windows CPU groups](evidence/automatic-group-maintenance-2026-11-15.json) passed in raw Release and AddressSanitizer, including managed paged recovery and automatic grouping. The million-object run remains a separate earlier experiment. | This is not the full CTest/optional-codec suite, live host-telemetry/background qualification, mounted Windows qualification or physical power-loss evidence. |
+| Sharing | Exact extent sharing/private updates, protected shared-base patch groups, and automatic aligned-family discovery/extension with complete-size admission. | The controller uses the bounded native model; no persistent scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
 | GPU | Actual AMD execution and independent current/prior CPU recovery passed controlled service tests. | The last matched case was slower on GPU: CPU median 24.2311 ms, GPU 513.918 ms, identical complete image sizes. Useful automatic ordinary I/O remains absent. |
-| Learning/background work | Persistent advisory state, workload provenance, resource-admission and staged maintenance primitives exist. | No complete autonomous learner, coherence catalog, contention-aware executor, gradual migration or lifetime write-amplification governor. |
+| Learning/background work | Persistent advisory state, workload provenance, supplied-observation grouping admission, measured elapsed-work pacing and outcome reuse exist. | No live Windows idle executor, complete autonomous learner, persistent coherence catalog, gradual migration or lifetime write-amplification governor. |
 | Windows product | Read-only and writable callback experiments, disposable mounted tests, and an unmounted editor/control/tray slice exist. | Full client semantics, shared scalable engine integration, supported physical/memory providers, packaging, secure updates and broad application qualification remain incomplete. |
 | Recovery | COW checkpoints, metadata replicas, modeled failures, explicit recovery and source-preserving rebuilding exist. | General payload/dependency repair, scalable reclamation and complete backend fault qualification remain open. Historical retirement failures are not diagnosed by later successful runs. |
 

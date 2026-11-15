@@ -1,4 +1,5 @@
 #include "flitzfs/native_session.hpp"
+#include "native_maintenance_source.hpp"
 #include "flitzfs/catalog.hpp"
 #include "store_codec.hpp"
 #include <optional>
@@ -87,6 +88,7 @@ struct NativeFileSession::Impl {
   std::array<std::unique_ptr<OptimizationOwner>,max_optimization_bindings-1> prior_optimization;
   unsigned optimization_bindings=0;
   bool budget_mode=false;
+  std::shared_ptr<detail::NativeMaintenanceSource> maintenance;
   std::optional<std::uint64_t> budget_loss_input;
   // Current and prior areas remain unavailable as image/compaction targets.
   bool owns_optimization_backend(const std::shared_ptr<StoreByteIo>& io) const noexcept {
@@ -278,6 +280,15 @@ NativeWorkloadInfo NativeFileSession::enable_workload_accounting() {
 }
 NativeWorkloadInfo NativeFileSession::workload_info() const noexcept {
   return poisoned()?NativeWorkloadInfo{}:impl_->writer.workload_info();
+}
+std::weak_ptr<detail::NativeMaintenanceSource> NativeFileSession::maintenance_source() {
+  auto& self=ready();
+  if(!self.volume || !self.volume->head || self.volume->head->info().selection.storage.kind!=NativeImageKind::paged ||
+      !self.writer.maintenance_supported())
+    fail(E::invalid_options,"automatic grouping requires a managed paged volume");
+  if(!self.maintenance)self.maintenance=std::make_shared<detail::NativeMaintenanceSource>(
+      detail::NativeMaintenanceSource{&self.writer,&self.terminal});
+  return self.maintenance;
 }
 NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
   NativeOptimizationInfo out;

@@ -19,6 +19,13 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
+[Automatic shared-base discovery](AUTOMATIC_GROUP_MAINTENANCE.md) now operates
+through managed paged sessions with supplied-observation resource admission,
+content-feature reuse, outcome suppression and selected-edit reconciliation.
+This bounded CPU baseline still needs live Windows background scheduling,
+persistent scalable coherence, stronger compression and useful AMD execution.
+Its source-bound checks do not close a product release gate.
+
 [Protected shared-base groups](SHARED_BASE_GROUPS.md) add an explicit cross-file
 CPU representation with immutable mirrored dependencies and conservative complete
 compacted-image admission. This is a tested position-aligned baseline; automatic

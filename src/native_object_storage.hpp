@@ -85,6 +85,9 @@ class NativeObjectWriter final {
   std::uint64_t generation_for_staging() const noexcept {
     return std::visit([](const auto& value){return value.generation_for_staging();},value_);
   }
+  std::uint64_t physical_end_for_staging() const noexcept {
+    const auto* paged=paged_if();return paged?paged->physical_end_for_staging():0;
+  }
   StoreCommitInfo commit_replicated(std::span<const StoreMutation> changes,bool directory_indexes=false,bool shared_bases=false) {
     if(auto* flat=std::get_if<ObjectStoreWriter>(&value_))return flat->commit_replicated(changes);
     return native_paged_info(std::get<PagedObjectStoreWriter>(value_).commit_native(changes,directory_indexes,shared_bases));

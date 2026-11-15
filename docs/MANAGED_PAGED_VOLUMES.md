@@ -90,6 +90,11 @@ image selection. The journal pays for its own updates: **it does not authorize
 or pay for data-image rewrites**. Resource/foreground admission, learned grouping
 and a separate appropriate data-work/write-amplification policy remain required.
 
+The new [automatic group controller](AUTOMATIC_GROUP_MAINTENANCE.md) supplies
+aligned content discovery and resource admission from trusted supplied
+observations through this same session. Live Windows observations/scheduling,
+persistent learning and a data-work/write-amplification policy remain unfinished.
+
 ## Evidence and source scope
 
 [Source-bound validation](evidence/managed-paged-volume-2026-11-15.json) records

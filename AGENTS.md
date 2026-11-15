@@ -221,6 +221,15 @@ Do not edit upstream/other repositories or claim unexecuted runtime behavior.
 
 ## Documentation and completion claims
 
+Before changing automatic group discovery, content revision stamps or resource
+opportunities, read docs/AUTOMATIC_GROUP_MAINTENANCE.md. Ordinary data mutations
+must update physical and content revisions; representation-only shared-base
+rewrites update physical revisions alone. Preserve stale-selection rejection,
+independent CPU verification, weak session lifetime and one serialized control
+context. Supplied/model observations do not prove real host telemetry, low OS
+priority or bounded foreground interference. No helper idle scheduler or normal
+GPU route is enabled by the CPU controller.
+
 Read docs/development/documentation.md before changing documentation. Follow
 FlitzZip's end-user README/navigation logic, adapted to FlitzFS. README contains
 product information and links, never commit/test histories, internal budgets,

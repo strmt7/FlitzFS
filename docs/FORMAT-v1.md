@@ -535,3 +535,9 @@ The experimental reusable sweep changes only bounded worker resource ownership. 
 The bounded hardware observation at `d33efd6` stored existing codec-4 bytes and recovered them through the independent CPU reader; no persistent format change follows. Its [source-bound evidence](evidence/uniform-reuse-d33efd6.json) distinguishes encoded payload from complete image size.
 
 The experimental deferred callback transport does not change stored formats. Request identity and response ownership remain volatile; only native commit facts determine stored bytes. CPU encoders need not match GPU encoding/size. Every stored representation still requires independent CPU recovery. See [owned deferred writes](OWNED_DEFERRED_WRITES.md).
+
+The experimental [automatic group controller](AUTOMATIC_GROUP_MAINTENANCE.md)
+uses volatile sparse content features, physical/content revision stamps and
+outcome digests. It stores existing PNcap3 shared-base representations only.
+No new wire capability, codec, stored learner or product numbering is introduced.
+Reopening discards this advice; independent decoding never depends on it.

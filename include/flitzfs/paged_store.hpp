@@ -100,6 +100,7 @@ class PagedObjectStoreWriter final {
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode);
   PagedObjectStoreSnapshot snapshot_for_staging() const;
   std::uint64_t generation_for_staging() const noexcept;
+  std::uint64_t physical_end_for_staging() const noexcept;
   // Native inode records consume their own metadata entries. Keep public
   // transactions at 256 operations. The native adapter admits 512 operations
   // with 4 MiB input, or 768 operations and 64 KiB extra directory-index input

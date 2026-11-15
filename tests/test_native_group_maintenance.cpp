@@ -1,0 +1,153 @@
+#include "flitzfs/native_maintenance.hpp"
+#include "flitzfs/native_session.hpp"
+#include "native_fs_fixture.hpp"
+#include <iostream>
+namespace {
+using namespace flitzfs;using namespace native_fixture;
+using Phase=NativeMaintenancePhase;using Defer=NativeMaintenanceDeferral;
+unsigned checks=0,faults=0;
+void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
+template<class F>void rejects(F&& action,const char* why){++checks;try{action();}catch(const std::exception&){return;}throw std::runtime_error(why);}
+StoreIdentity id(unsigned n){auto result=identity();result[0]=static_cast<std::byte>(n);return result;}
+auto ram(std::uint32_t unit){auto result=std::make_shared<Ram>();result->failure_unit=unit;return result;}
+Bytes family(unsigned n){auto bytes=data(kNativeExtentBytes,714);if(n){bytes[n*719%bytes.size()]^=std::byte{41};bytes[(n*1409+170)%bytes.size()]^=std::byte{77};}return bytes;}
+void put(NativeFileSession& session,std::string path,const Bytes& bytes){session.create_entry(path);auto handle=session.open(path,{true,true,false});
+  session.write(handle,0,bytes);session.cleanup(handle,false);session.close(handle);}
+struct Clock {
+  std::uint64_t sequence=0,now=1000;
+  NativeMaintenanceObservation next(){NativeMaintenanceObservation o;o.sequence=++sequence;o.captured_ms=now+=1000;
+    o.physical_total=16ULL<<30;o.physical_available=12ULL<<30;o.commit_limit=32ULL<<30;o.commit_available=24ULL<<30;
+    o.cpu_total_ticks=1000;o.cpu_busy_ticks=0;o.cpu_window_ms=1000;o.valid=true;return o;}
+};
+struct Fixture {
+  std::shared_ptr<Ram> head,image;std::optional<NativeFileSession> session;Clock clock;
+  explicit Fixture(std::uint32_t unit,unsigned count=8):head(ram(unit)),image(ram(unit)) {
+    session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false}));
+    for(unsigned i=0;i<count;++i)put(*session,"f"+std::to_string(i),family(i));
+  }
+  auto step(NativeGroupMaintenance& controller){const auto observed=clock.next();return controller.advance(observed,clock.now);}
+  auto finish(NativeGroupMaintenance& controller){for(unsigned i=0;i<6000;++i){const auto result=step(controller);
+    require(result.phase!=Phase::failed,"controller failed");if(result.phase==Phase::idle)return result;}throw std::runtime_error("controller did not quiesce");}
+  void verify(unsigned count){const auto snapshot=session->snapshot();for(unsigned i=0;i<count;++i)
+    require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"automatic grouping changed bytes");snapshot.verify_all();}
+};
+void automatic_and_extension(std::uint32_t unit) {
+  Fixture f(unit);const auto workload=f.session->workload_info();NativeGroupMaintenance original(*f.session);
+  rejects([&]{NativeGroupMaintenance duplicate(*f.session);},"duplicate controller admitted");
+  auto controller=std::move(original);require(original.progress().phase==Phase::failed,"moved controller stayed live");
+  auto result=f.finish(controller);f.verify(8);
+  require(result.published_groups==1 && result.minimum_compacted_bytes_saved>0 && result.retained_history_bytes_added>0,
+      "related files not grouped as one beneficial group");
+  require(f.session->snapshot().shared_base_info().members==8 && f.session->snapshot().shared_base_info().bases==1 &&
+      f.session->workload_info()==workload,"grouping changed provenance or fragmented family");
+  const auto reads=f.image->read_calls,calls=f.image->calls,attempts=result.attempted_groups;
+  for(unsigned i=0;i<100;++i)require(f.step(controller).phase==Phase::idle,"unchanged source did not stay idle");
+  require(f.image->read_calls==reads && f.image->calls==calls,"unchanged opportunities performed backing I/O");
+  put(*f.session,"f8",family(8));const auto input=f.session->workload_info();result=f.finish(controller);f.verify(9);
+  require(result.published_groups==2 && f.session->snapshot().shared_base_info().members==9 && f.session->snapshot().shared_base_info().bases==1,
+      "new related file did not merge into protected existing group");
+  require(f.session->workload_info()==input && result.attempted_groups>attempts,"regrouping minted input");
+  std::cout<<"automatic_groups unit="<<unit<<" published="<<result.published_groups<<" sampled="<<result.sampled_extents
+      <<" reused="<<result.reused_features<<" minimum_compacted_saved="<<result.minimum_compacted_bytes_saved<<'\n';
+}
+void admission() {
+  Fixture f(4096,4);NativeGroupMaintenance controller(*f.session);
+  const auto reads=f.image->read_calls,calls=f.image->calls;
+  for(unsigned variant=0;variant<12;++variant) {
+    auto o=f.clock.next();const auto now=f.clock.now;
+    if(variant==0)o.valid=false;if(variant==1)o.captured_ms=now+1;if(variant==2)o.captured_ms=now-251;
+    if(variant==3)o.physical_total=0;if(variant==4)o.physical_available=o.physical_total+1;
+    if(variant==5)o.commit_limit=0;if(variant==6)o.commit_available=o.commit_limit+1;
+    if(variant==7)o.cpu_total_ticks=0;if(variant==8)o.cpu_busy_ticks=1001;
+    if(variant==9)o.cpu_window_ms=0;if(variant==10)o.cpu_window_ms=1001;if(variant==11)o.captured_ms=0;
+    require(controller.advance(o,now).deferral==Defer::observation,"bad observation admitted");
+  }
+  auto o=f.clock.next();o.foreground_pending=true;require(controller.advance(o,f.clock.now).deferral==Defer::foreground,"foreground queue ignored");
+  o=f.clock.next();o.cpu_busy_ticks=126;require(controller.advance(o,f.clock.now).deferral==Defer::cpu,"busy CPU admitted");
+  o=f.clock.next();o.physical_available=0;require(controller.advance(o,f.clock.now).deferral==Defer::memory,"pressure admitted");
+  require(f.image->read_calls==reads && f.image->calls==calls,"refused observations performed I/O");
+  o=f.clock.next();controller.advance(o,f.clock.now);const auto sampled=controller.progress().sampled_extents;
+  require(controller.advance(o,f.clock.now).deferral==Defer::observation && controller.progress().sampled_extents==sampled,"replayed observation admitted");
+  const auto snapshot=f.session->snapshot();std::vector<NativeExtentSelection> keys;
+  for(unsigned i=0;i<4;++i)keys.push_back({snapshot.stat("f"+std::to_string(i)).inode,0});
+  auto explicit_work=f.session->prepare_shared_base(keys.front(),keys);const auto before=f.image->read_calls;
+  require(f.step(controller).deferral==Defer::other_maintenance && f.image->read_calls==before,"competing work was not deferred");
+  explicit_work.cancel();f.finish(controller);f.verify(4);
+}
+void negative_cache_and_incompressible() {
+  Fixture f(4096,2);const auto snapshot=f.session->snapshot();
+  const std::array<NativeExtentSelection,2> keys{{{snapshot.stat("f0").inode,0},{snapshot.stat("f1").inode,0}}};
+  auto optimized=f.session->prepare_shared_base(keys.front(),keys);
+  while(!f.session->advance_shared_base(optimized)){}
+  require(f.session->finish_shared_base(optimized).applied,"negative fixture not already optimized");
+  NativeGroupMaintenance controller(*f.session);const auto state=f.finish(controller);
+  require(state.published_groups==0 && state.declined_groups>0,"unprofitable pair published");
+  const auto reads=f.image->read_calls,calls=f.image->calls;
+  for(unsigned i=0;i<50;++i)f.step(controller);
+  require(f.image->read_calls==reads && f.image->calls==calls,"negative source repeated I/O");
+  f.session->create_entry("empty");const auto before=controller.progress();const auto after=f.finish(controller);
+  require(after.sampled_extents==before.sampled_extents && after.attempted_groups==before.attempted_groups,
+      "metadata-only change repeated content sampling/failed group");
+  Fixture other(4096,0);put(*other.session,"a",data(kNativeExtentBytes,1));put(*other.session,"b",data(kNativeExtentBytes,2));
+  NativeGroupMaintenance no_match(*other.session);const auto result=other.finish(no_match);
+  require(result.published_groups==0 && result.attempted_groups==0 && result.sampled_extents==2,"unrelated data incorrectly nominated");
+}
+void ownership_and_pressure() {
+  Fixture f(4096,4);NativeGroupMaintenance controller(*f.session);
+  for(unsigned i=0;i<1000 && controller.progress().owned_payload_bytes==0;++i)f.step(controller);
+  require(controller.progress().owned_payload_bytes>0,"no private work to pressure");
+  auto observation=f.clock.next();observation.commit_available=0;const auto writes=f.image->writes;
+  const auto refused=controller.advance(observation,f.clock.now);
+  require(refused.deferral==Defer::memory && refused.owned_payload_bytes==0 && f.image->writes==writes,"pressure retained buffers or wrote data");
+  NativeFileSession moved=std::move(*f.session);f.session.reset();f.session.emplace(std::move(moved));f.finish(controller);f.verify(4);
+  const auto reads=f.image->read_calls;f.session.reset();require(f.step(controller).phase==Phase::failed && f.image->read_calls==reads,"expired session accessed data");
+  Fixture next(4096,2);NativeGroupMaintenance cancelled(*next.session);cancelled.cancel();
+  require(next.step(cancelled).phase==Phase::failed,"cancelled controller restarted");NativeGroupMaintenance replacement(*next.session);next.finish(replacement);
+}
+void foreground_change_during_preparation() {
+  Fixture f(4096,4);NativeGroupMaintenance controller(*f.session);
+  for(unsigned i=0;i<1000 && controller.progress().owned_payload_bytes==0;++i)f.step(controller);
+  require(controller.progress().owned_payload_bytes>0,"no prepared content to invalidate");
+  const auto replacement=data(kNativeExtentBytes,919);
+  auto handle=f.session->open("f0",{true,true,false});f.session->write(handle,0,replacement);
+  f.session->cleanup(handle,false);f.session->close(handle);
+  const auto sampled=controller.progress().sampled_extents;
+  const auto result=f.finish(controller);const auto snapshot=f.session->snapshot();
+  require(result.sampled_extents>sampled && result.published_groups==1,"changed content was not resampled and reconciled");
+  require(snapshot.read("f0",0,kNativeExtentBytes)==replacement,"stale prepared group overwrote foreground content");
+  for(unsigned i=1;i<4;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"reconciled group changed other data");
+  require(snapshot.shared_base_info().members==3,"unrelated replacement entered stale group");snapshot.verify_all();
+}
+void publication_faults(std::uint32_t unit) {
+  Fixture original(unit,4);const auto bytes=original.image->stable,head=original.head->stable;original.session.reset();
+  auto setup=[&](const auto& data_io,const auto& control){return NativeFileSession::resume_volume(control,id(90),1,
+      [&](const auto&)->std::shared_ptr<StoreByteIo>{return data_io;},{StoreCompressionMode::raw,1,false});};
+  auto advance_ready=[&](auto& controller,Clock& clock){for(unsigned i=0;i<1000;++i){const auto o=clock.next();const auto result=controller.advance(o,clock.now);
+    if(result.phase==Phase::publishing)return;}throw std::runtime_error("publication phase not reached");};
+  auto probe=image(bytes,unit),probe_head=image(head,unit);std::size_t cuts=0;
+  {auto session=setup(probe,probe_head);NativeGroupMaintenance controller(session);Clock clock;advance_ready(controller,clock);const auto start=probe->calls;
+    for(unsigned i=0;i<1000 && controller.progress().published_groups==0;++i){const auto o=clock.next();controller.advance(o,clock.now);}
+    require(controller.progress().published_groups==1,"probe did not publish");cuts=probe->calls-start;}
+  require(cuts>3 && cuts<256,"automatic publication fault envelope");
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
+    auto data_io=image(bytes,unit),control=image(head,unit);
+    {auto session=setup(data_io,control);NativeGroupMaintenance controller(session);Clock clock;advance_ready(controller,clock);
+      data_io->failure=mode;data_io->fail_at=data_io->calls+cut;
+      for(unsigned i=0;i<1000 && controller.progress().phase!=Phase::failed;++i){const auto o=clock.next();controller.advance(o,clock.now);}
+      const auto result=controller.progress();
+      require(result.phase==Phase::failed && result.owned_payload_bytes==0 && session.poisoned(),"failed automatic publication stayed active");
+      const auto calls=data_io->calls,reads=data_io->read_calls;
+      for(unsigned i=0;i<5;++i){const auto next=clock.next();controller.advance(next,clock.now);}
+      require(data_io->calls==calls && data_io->read_calls==reads,"failed source retried I/O");}
+    data_io->live=data_io->stable;
+    auto snapshot=NativeFilesystemSnapshot::open_image(data_io,{NativeImageKind::paged,kStoreMaxPhysicalBytes});
+    for(unsigned i=0;i<4;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"automatic fault lost file data");
+    snapshot.verify_all();++faults;
+  }
+  std::cout<<"automatic_group_faults unit="<<unit<<" cuts="<<cuts<<" modes=3\n";
+}
+}
+int main(){try{for(auto unit:{4096U,65536U}){automatic_and_extension(unit);publication_faults(unit);}
+  admission();negative_cache_and_incompressible();ownership_and_pressure();foreground_change_during_preparation();
+  std::cout<<"PASS: "<<checks<<" automatic group maintenance checks; "<<faults<<" injected publication cases; model resource observations; memory CPU only\n";return 0;
+}catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}}

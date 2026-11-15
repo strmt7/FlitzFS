@@ -946,15 +946,18 @@ struct NativeFilesystemSnapshot::Impl {
 namespace {
 struct SharedBaseOwner {
   std::array<std::uint64_t,kStoreMaxObjects+1> revisions{};
+  std::array<std::uint64_t,kStoreMaxObjects+1> content_revisions{};
   std::weak_ptr<const void> active;
 };
 }
 struct NativeFilesystemWriter::Impl {
   detail::NativeObjectWriter objects;Model model;bool poisoned=false;
   std::shared_ptr<SharedBaseOwner> shared_owner=std::make_shared<SharedBaseOwner>();
-  void remember(std::span<const StoreMutation> changes,std::uint64_t generation) noexcept {
-    for(const auto& change:changes)if(change.id>=2 && change.id<=kStoreMaxObjects)
+  void remember(std::span<const StoreMutation> changes,std::uint64_t generation,bool content_changed=true) noexcept {
+    for(const auto& change:changes)if(change.id>=2 && change.id<=kStoreMaxObjects) {
       shared_owner->revisions[change.id]=generation;
+      if(content_changed)shared_owner->content_revisions[change.id]=generation;
+    }
   }
   Impl(detail::NativeObjectWriter writer,Model state):objects(std::move(writer)),model(std::move(state)){}
 };
@@ -1033,6 +1036,37 @@ NativeWorkloadInfo NativeFilesystemSnapshot::workload_info() const noexcept {
 NativeSharedBaseInfo NativeFilesystemSnapshot::shared_base_info() const noexcept {
   return impl_?NativeSharedBaseInfo{impl_->model.shared_bases,impl_->model.members.size(),impl_->model.bases.size()}:NativeSharedBaseInfo{};
 }
+std::optional<NativeContentToken> NativeFilesystemWriter::maintenance_next(NativeExtentSelection after,bool first) const {
+  if(poisoned() || !impl_->model.shared_bases)fail(Code::invalid_operation,"content scan requires healthy shared-base storage");
+  for(auto it=first?impl_->model.nodes.begin():impl_->model.nodes.lower_bound(after.inode);it!=impl_->model.nodes.end();++it) {
+    const auto& n=it->second;if(n.directory || n.unlinked || n.delete_pending)continue;
+    auto extent=first || n.inode!=after.inode?n.extents.begin():n.extents.upper_bound(after.extent_index);
+    if(extent!=n.extents.end())return NativeContentToken{{n.inode,extent->first},extent->second,
+        impl_->shared_owner->revisions[extent->second],impl_->shared_owner->content_revisions[extent->second],
+        impl_->model.members.contains(extent->second)};
+  }
+  return {};
+}
+bool NativeFilesystemWriter::maintenance_matches(const NativeContentToken& token) const noexcept {
+  if(poisoned() || token.object<2 || token.object>kStoreMaxObjects ||
+      impl_->shared_owner->revisions[token.object]!=token.revision)return false;
+  const auto found=impl_->model.nodes.find(token.extent.inode);
+  if(found==impl_->model.nodes.end() || found->second.directory || found->second.unlinked || found->second.delete_pending)return false;
+  const auto extent=found->second.extents.find(token.extent.extent_index);
+  return extent!=found->second.extents.end() && extent->second==token.object;
+}
+std::vector<std::byte> NativeFilesystemWriter::maintenance_read(const NativeContentToken& token) {
+  if(!maintenance_matches(token))fail(Code::invalid_operation,"stale content sample");
+  try{auto source=checked_namespace();return extent_bytes(source,impl_->model,token.object);}
+  catch(const std::bad_alloc&){fail(Code::limit,"content sample allocation failure");}
+  catch(const NativeFsError& error){if(error.code()==Code::corrupt || error.code()==Code::storage_failure)impl_->poisoned=true;throw;}
+  catch(const std::exception&){impl_->poisoned=true;fail(Code::storage_failure,"content sample read failed");}
+}
+std::uint64_t NativeFilesystemWriter::maintenance_sequence() const noexcept{return poisoned()?0:impl_->model.sequence;}
+StoreIdentity NativeFilesystemWriter::maintenance_identity() const noexcept{return poisoned()?StoreIdentity{}:impl_->model.identity;}
+std::uint64_t NativeFilesystemWriter::maintenance_physical_end() const noexcept{return poisoned()?0:impl_->objects.physical_end_for_staging();}
+bool NativeFilesystemWriter::maintenance_busy() const noexcept{return !poisoned() && !impl_->shared_owner->active.expired();}
+bool NativeFilesystemWriter::maintenance_supported() const noexcept{return !poisoned() && impl_->model.shared_bases;}
 NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   return file_info(impl_->model,node(impl_->model,resolve_snapshot(impl_->objects,impl_->model,path)));
@@ -1313,7 +1347,7 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
       fail(Code::invalid_operation,"shared-base publication root changed");
     result.transaction.sequence=model.sequence;committing=true;
     result.transaction.storage=impl_->objects.commit_replicated(changes,true,true);
-    impl_->remember(changes,result.transaction.storage.generation);impl_->model=std::move(model);
+    impl_->remember(changes,result.transaction.storage.generation,false);impl_->model=std::move(model);
     result.applied=true;p->retire(NativeSharedBasePhase::completed);return result;
   }catch(const std::bad_alloc&){
     if(committing && impl_ && impl_->objects.poisoned())impl_->poisoned=true;

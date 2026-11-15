@@ -1,5 +1,14 @@
 # Validation ledger — experimental release 0.2
 
+## Automatic shared-base discovery — 15 November 2026
+
+[Contract](AUTOMATIC_GROUP_MAINTENANCE.md) and
+[source-bound receipts](evidence/automatic-group-maintenance-2026-11-15.json)
+cover automatic candidate discovery/extension, hash/outcome reuse, supplied
+observation admission, selected-edit reconciliation and modeled publication
+failures. Local CPU/AddressSanitizer and SDK syntax scope is separate from live
+Windows background load, GPU, mounts, physical faults and compression records.
+
 ## Managed paged-volume integration — 15 November 2026
 
 [Contract](MANAGED_PAGED_VOLUMES.md) and

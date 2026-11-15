@@ -8,6 +8,13 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The [automatic group controller](AUTOMATIC_GROUP_MAINTENANCE.md) requires fresh
+trusted observations before each opportunity, releases optional work under
+memory pressure, rejects changed selected content and stops on source failure.
+Its tests supply modeled telemetry. Caller-enforced Windows scheduling/I/O
+priority, real interference, persistent restart, a data-write budget and physical
+fault qualification remain open. App defaults and normal GPU routing are unchanged.
+
 [Managed paged volumes](MANAGED_PAGED_VOLUMES.md) bind the exact reader kind
 and capacity without another-format fallback. New selected images must pass
 both-copy scrubbing and post-scrub health checks. A readable degraded paged

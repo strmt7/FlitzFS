@@ -4,6 +4,8 @@
 #include <memory>
 
 namespace flitzfs {
+class NativeGroupMaintenance;
+namespace detail {struct NativeMaintenanceSource;}
 // Pure CPU ownership layer for the future Windows adapter. It never creates
 // a driver, dispatcher, mount, worker or thread. One control thread is required.
 enum class NativeSessionErrorCode {
@@ -359,6 +361,8 @@ class NativeFileSession final {
   NativeSessionStats stats() const noexcept;
   bool poisoned() const noexcept;
  private:
+  friend class NativeGroupMaintenance;
+  std::weak_ptr<detail::NativeMaintenanceSource> maintenance_source();
   struct Impl;
   std::unique_ptr<Impl> impl_;
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;

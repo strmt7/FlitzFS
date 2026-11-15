@@ -1,0 +1,875 @@
+{
+  "schema": 1,
+  "utc": "2026-11-15T20:44:02.588087+00:00",
+  "source_base": "3a8cb64cead78367408642718d6aab9bc68fa50e",
+  "source_binding": "Base plus exact working bytes and Git-filtered blobs. Twelve code/build inputs frozen before both final builds; evidence excludes itself.",
+  "source_files": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 16610,
+      "sha256": "4b3918e282a11a24ac01211b5672f5906c418a4980d6f44a18db505e5a44aba2",
+      "git_filtered_blob_sha1": "c1d8d3283dbb9896ca594ed581d3c008e7613c75"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "bytes": 73305,
+      "sha256": "98ad790ada81c18f2ef10a70251ebeb1748e6cd629fb759a38c9950276410995",
+      "git_filtered_blob_sha1": "fe3319fc8c2c11b6a0b1cd91aa5ab376e319361c"
+    },
+    {
+      "path": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+      "bytes": 6306,
+      "sha256": "1ca8a8f1c28175113df810af04380d61d396e871763956ee0227736207c77fc0",
+      "git_filtered_blob_sha1": "954bd6af73560c95eaeec4ed7506f3fca28f1896"
+    },
+    {
+      "path": "docs/DEVELOPMENT_PLAN.json",
+      "bytes": 104403,
+      "sha256": "da24e6e3d1f29769561dd95267e5f915c043959870de3fd09a70e33127087f1a",
+      "git_filtered_blob_sha1": "46a299ef9d71bbfdd10e8301082b652921593604"
+    },
+    {
+      "path": "docs/DEVELOPMENT_STATE.json",
+      "bytes": 80123,
+      "sha256": "333c55cde5688ba8bb50c825ab913b420e6278883da56864e16bf1605a44e84e",
+      "git_filtered_blob_sha1": "d3a440bc93057a65fcb6bdf36cd171d627e17157"
+    },
+    {
+      "path": "docs/FORMAT-v1.md",
+      "bytes": 33002,
+      "sha256": "0b45998988c7151a7a65bb327132c81a28b10a47334f7e5f3f7b529f82faa50c",
+      "git_filtered_blob_sha1": "75175adeb918a265d54fbaafb1979ba316697a5a"
+    },
+    {
+      "path": "docs/MANAGED_PAGED_VOLUMES.md",
+      "bytes": 6889,
+      "sha256": "d2ca197ccafbb7441c5691e9dd87c6e0a07cef7beba79b98f469421862d79929",
+      "git_filtered_blob_sha1": "a2143d16de0052912885f2b5d6695eeec8244918"
+    },
+    {
+      "path": "docs/RELEASE_EXECUTION_PLAN.md",
+      "bytes": 22409,
+      "sha256": "6d062ba2c5029e34bda4a1e2a5c57d48edbdefb2694b8acde3ed6740950bfebb",
+      "git_filtered_blob_sha1": "56b1e59c2ec18779d655790a7d9a8ad0343692b6"
+    },
+    {
+      "path": "docs/RELEASE_READINESS.md",
+      "bytes": 14100,
+      "sha256": "c9d49424d7ff29d56e7c9761240a004e6fe6fdca8a39f646100ed90dbd8e9a99",
+      "git_filtered_blob_sha1": "9f7d8de9bbf90b7585952dd106668404dfaa8699"
+    },
+    {
+      "path": "docs/ROADMAP.md",
+      "bytes": 78926,
+      "sha256": "c3cb29c54288fa8bf61532c01683df1af03c35a5a0fbe89593c24929331358e6",
+      "git_filtered_blob_sha1": "48cc561043d2e2bdee778d428dfcd1ed382adc6f"
+    },
+    {
+      "path": "docs/SAFETY.md",
+      "bytes": 89429,
+      "sha256": "8358ebed5eb02713691a7c35913a9981dcbedfe12cae1686e183e2cacffc3c8c",
+      "git_filtered_blob_sha1": "6a0adaa6310ec0a9f170e1b048313862532e69a7"
+    },
+    {
+      "path": "docs/VALIDATION.md",
+      "bytes": 42610,
+      "sha256": "9ecbfe1a06a7bd75a43424e24d979dbeaf0197056029868e951727f0ee550181",
+      "git_filtered_blob_sha1": "1a22548d73f0f790f7a7736c366ba5018fd58477"
+    },
+    {
+      "path": "docs/development/README.md",
+      "bytes": 2549,
+      "sha256": "17570ebc18b0a56f138cc603b14a0249575355632707838394ca189f358a031a",
+      "git_filtered_blob_sha1": "6a285704b40fd4d25b0d242d0f74b527c999c540"
+    },
+    {
+      "path": "docs/reference/README.md",
+      "bytes": 4311,
+      "sha256": "8f8f2eb46f7a103a6f061c420489f9b9b9da87efc3e8daa52768f73627d01cb4",
+      "git_filtered_blob_sha1": "6c1672129b3058ed7412d08cd1b34ddf13f1b0c6"
+    },
+    {
+      "path": "docs/reference/catalog.md",
+      "bytes": 7156,
+      "sha256": "30b90e06bb4501ed8846f5fa906c2120ce4ee78aaa6c2146e431d29d52c59e5e",
+      "git_filtered_blob_sha1": "bb86871729771dcd33a5e4e62bcba31dbbc117a3"
+    },
+    {
+      "path": "docs/validation/README.md",
+      "bytes": 1923,
+      "sha256": "53435e0d6dedaa66ff7ab583dedb701ab551514200c4987f5e89e2730088cc9e",
+      "git_filtered_blob_sha1": "51350a0b0e1428114988a30d0902d3e4f178bbba"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "bytes": 31680,
+      "sha256": "bc91ff52b248174f79cba19f4e1aa145d4d9b12fc5a3125aaef702bfbd7775a6",
+      "git_filtered_blob_sha1": "cc9e835d645e832c652f9088aef2d5a58c430924"
+    },
+    {
+      "path": "include/flitzfs/native_maintenance.hpp",
+      "bytes": 2182,
+      "sha256": "69a950a0e0a6650959ce161706a2a323a2bbaa5b1337d0343b43ab1ab8840cf8",
+      "git_filtered_blob_sha1": "dc8422ab21de0f3d332eaafd6f6156d87110b016"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "bytes": 25463,
+      "sha256": "411dee22d2e8ebff5880f2578447a52f2b5aceb4b1691d187263de57714b1a6b",
+      "git_filtered_blob_sha1": "37515770a583e69b85430140b08f51ebce964a2e"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "bytes": 8031,
+      "sha256": "5215ea2d5a83eb7b5acd06cb45362825697b1ef59c5099ba448153e9df4c97b5",
+      "git_filtered_blob_sha1": "dc863afa48c935844390ea2ec3e758ff60942f56"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "bytes": 120489,
+      "sha256": "4b71edc3293c214f8ed5c7b55461248fb007338356244365920da6e36ec6e4b4",
+      "git_filtered_blob_sha1": "1a442f01817b77cf6c41d36ee73e60b989683643"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "bytes": 14864,
+      "sha256": "011de574eca47d92caadaf6e3ab49a5c712ff87ae25916dbeb6ea3ebf3ac6033",
+      "git_filtered_blob_sha1": "0eca4d6802b9dc9cbba05f37fa8a7242b29885ff"
+    },
+    {
+      "path": "src/native_maintenance_source.hpp",
+      "bytes": 453,
+      "sha256": "96bef4cfc2711dab50be54a14f947abf493971ccc652a75bc6469bc2098ba3df",
+      "git_filtered_blob_sha1": "1f66e3c7083ab1e4fe8730f58683b2b37913cf21"
+    },
+    {
+      "path": "src/native_object_storage.hpp",
+      "bytes": 6431,
+      "sha256": "cc9659ca2177bffad8ff93635658e404ae6e4be1dc744fbc0ba8cbfb4b74a4e0",
+      "git_filtered_blob_sha1": "d881991235f32776bdf60a2940c3d0fc89c2e417"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "bytes": 70290,
+      "sha256": "b6576ac82c683f7b571b9635e833cd3c26b445f821861f70bc4a57d3c94776b0",
+      "git_filtered_blob_sha1": "4f178b7e058ca726b2654c738ef731d17fb53b48"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "bytes": 53465,
+      "sha256": "8ffb3562bdadaaa9ddfbe68e3ac30203f3887b50c9671b510b551957014125d3",
+      "git_filtered_blob_sha1": "374fd063d13b024c794da22963f0a655dc104fc7"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "bytes": 13347,
+      "sha256": "d3a7d723c3f8c0ac9bed5c00787010da9fabd9fe19bd9b8131c8fa6e34ca005d",
+      "git_filtered_blob_sha1": "5dbf017e1485b3177ce7681c664af9acd2e3590b"
+    }
+  ],
+  "final_build_inputs": {
+    "receipt": {
+      "path": "automatic-group-final-input.json",
+      "bytes": 1250,
+      "sha256": "6cdb67d860d9432ae7e938b5b20b39202c16dbba93d9a6fd839afe7511618120"
+    },
+    "sha256_by_path": {
+      "CMakeLists.txt": "98ad790ada81c18f2ef10a70251ebeb1748e6cd629fb759a38c9950276410995",
+      "include/flitzfs/native_filesystem.hpp": "bc91ff52b248174f79cba19f4e1aa145d4d9b12fc5a3125aaef702bfbd7775a6",
+      "include/flitzfs/native_maintenance.hpp": "69a950a0e0a6650959ce161706a2a323a2bbaa5b1337d0343b43ab1ab8840cf8",
+      "include/flitzfs/native_session.hpp": "411dee22d2e8ebff5880f2578447a52f2b5aceb4b1691d187263de57714b1a6b",
+      "include/flitzfs/paged_store.hpp": "5215ea2d5a83eb7b5acd06cb45362825697b1ef59c5099ba448153e9df4c97b5",
+      "src/native_filesystem.cpp": "4b71edc3293c214f8ed5c7b55461248fb007338356244365920da6e36ec6e4b4",
+      "src/native_maintenance.cpp": "011de574eca47d92caadaf6e3ab49a5c712ff87ae25916dbeb6ea3ebf3ac6033",
+      "src/native_maintenance_source.hpp": "96bef4cfc2711dab50be54a14f947abf493971ccc652a75bc6469bc2098ba3df",
+      "src/native_object_storage.hpp": "cc9659ca2177bffad8ff93635658e404ae6e4be1dc744fbc0ba8cbfb4b74a4e0",
+      "src/native_session.cpp": "b6576ac82c683f7b571b9635e833cd3c26b445f821861f70bc4a57d3c94776b0",
+      "src/paged_store.cpp": "8ffb3562bdadaaa9ddfbe68e3ac30203f3887b50c9671b510b551957014125d3",
+      "tests/test_native_group_maintenance.cpp": "d3a7d723c3f8c0ac9bed5c00787010da9fabd9fe19bd9b8131c8fa6e34ca005d"
+    },
+    "unchanged": true
+  },
+  "semantic": {
+    "receipt": {
+      "repository": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+      "commit": "3a8cb64cead78367408642718d6aab9bc68fa50e",
+      "dirty_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_files": 104,
+      "source_bytes": 746945,
+      "inventory_sha256": "c47c762a2c0dded35406c3b5880cf467eab9f623a3dd0214622d064bee648a6d",
+      "provider_version": "0.2.43",
+      "model": "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\huggingface\\hub\\models--Snowflake--snowflake-arctic-embed-xs\\snapshots\\d8c86521100d3556476a063fc2342036d45c106f",
+      "scope": "code",
+      "path_prefixes": [
+        "src/native_",
+        "src/windows/",
+        "include/flitzfs/"
+      ],
+      "query": "Fresh resource observation physical commit memory headroom CPU utilization foreground outstanding operations idle maintenance low priority admission helper opportunities clock observation maximum age",
+      "native_response_sha256": "71e8e7f9e1b706b8fd6704b1676bd2e504754b1a7ef668a50ea1f0c3db1ec73d",
+      "actual_searches": 1,
+      "cpu_only": true,
+      "offline_model": true,
+      "shared_mcp_modified": false,
+      "commands": [
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "rev-parse",
+            "--show-toplevel"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.029137300000002142,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "rev-parse",
+            "HEAD"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.026760000000649597,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "diff",
+            "--binary",
+            "HEAD",
+            "--"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.029360500004258938,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "version"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.23546860000351444,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Program Files\\Git\\cmd\\git.EXE",
+            "ls-files",
+            "-z"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.02418230000330368,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "index"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 75.4438086999944,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "search",
+            "--limit",
+            "5",
+            "--json",
+            "Fresh resource observation physical commit memory headroom CPU utilization foreground outstanding operations idle maintenance low priority admission helper opportunities clock observation maximum age"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.28915219999908004,
+          "timed_out": false
+        },
+        {
+          "arguments": [
+            "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+            "daemon",
+            "stop"
+          ],
+          "exit": 0,
+          "elapsed_seconds": 0.41916769999807,
+          "timed_out": false
+        }
+      ]
+    },
+    "receipt_file": {
+      "path": "semantic-maintenance-controller-3a8cb64\\routing-receipt-0.json",
+      "bytes": 3538,
+      "sha256": "a07e4da0ca19c1d329606a43d5ca0a46331189bbf543f38cd10775eeba41bb8b"
+    },
+    "native_result": {
+      "path": "semantic-maintenance-controller-3a8cb64\\search-native-0.json",
+      "bytes": 5938,
+      "sha256": "49c5a7a6512c135101c39a0d86154b6cb5f471890740eb6509505757598fbf52"
+    },
+    "supervised_run": {
+      "command": [
+        "C:\\Users\\strat\\AppData\\Local\\Python\\pythoncore-3.15-64\\python.exe",
+        "-B",
+        "tools/dev/semantic_search.py",
+        "--repository",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\repo",
+        "--ccc",
+        "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\venv\\cocoindex-code-0.2.43\\Scripts\\ccc.exe",
+        "--model",
+        "C:\\Users\\strat\\AppData\\Local\\SimpleAITrading\\agent-cocoindex-code\\huggingface\\hub\\models--Snowflake--snowflake-arctic-embed-xs\\snapshots\\d8c86521100d3556476a063fc2342036d45c106f",
+        "--output",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\semantic-maintenance-controller-3a8cb64",
+        "--scope",
+        "code",
+        "--path-prefix",
+        "src/native_",
+        "--path-prefix",
+        "src/windows/",
+        "--path-prefix",
+        "include/flitzfs/",
+        "--query",
+        "Fresh resource observation physical commit memory headroom CPU utilization foreground outstanding operations idle maintenance low priority admission helper opportunities clock observation maximum age"
+      ],
+      "timeout_seconds": 330.0,
+      "memory_bytes": 6333399040,
+      "cpu_percent": 50,
+      "maximum_processes": 12,
+      "physical_available_bytes": 29603196928,
+      "commit_available_bytes": 79164416000,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1583349760,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 37780,
+      "exit_code": 0,
+      "peak_job_bytes": 1214832640,
+      "elapsed_seconds": 77.04145289999724,
+      "error": null
+    }
+  },
+  "research_scope": "No new external API/dependency or physical durability contract. Earlier same-day primary-source context is retained in managed-paged evidence; this round supplies original deterministic controller design and model validation, not a fresh literature review.",
+  "retained_failures": [
+    {
+      "result": {
+        "command": [
+          "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw\\Release\\flitzfs_native_group_maintenance_tests.exe"
+        ],
+        "timeout_seconds": 120.0,
+        "memory_bytes": 5992611840,
+        "cpu_percent": 50,
+        "maximum_processes": 4,
+        "physical_available_bytes": 28239716352,
+        "commit_available_bytes": 76728274944,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1498152960,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 0,
+        "process_id": 41036,
+        "exit_code": 1,
+        "peak_job_bytes": 36896768,
+        "elapsed_seconds": 4.653902099998959,
+        "error": null
+      },
+      "result_file": {
+        "path": "local-run-d5246ff005404cbfb0b25b8e148abbaf\\result.json",
+        "bytes": 711,
+        "sha256": "cd826b0084fd59416b75c35bcfa6b66b7356e98021fd4d0238b669941229c975"
+      },
+      "output": {
+        "path": "local-run-d5246ff005404cbfb0b25b8e148abbaf\\output.log",
+        "bytes": 334,
+        "sha256": "a68fd060c20b16daa78e505ff62211cc3617492f99f157beb20cdcf4f4a696b6"
+      },
+      "reason": "Test falsely assumed a two-member raw pair sharing one band was unprofitable. Complete protected size admission correctly found savings. Replaced only the faulty test fixture with an already optimized pair; production admission was not weakened."
+    }
+  ],
+  "validation": [
+    {
+      "name": "raw-build",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-2c5431da949144289cd73c9363b9cc4c",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+        "--build",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+        "--config",
+        "Release",
+        "--parallel",
+        "8",
+        "--",
+        "/nr:false"
+      ],
+      "timeout_seconds": 360.0,
+      "memory_bytes": 7164919808,
+      "cpu_percent": 50,
+      "maximum_processes": 48,
+      "physical_available_bytes": 32929951744,
+      "commit_available_bytes": 77900566528,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1791229952,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "process_id": 37592,
+      "exit_code": 0,
+      "peak_job_bytes": 1977982976,
+      "elapsed_seconds": 20.47978139999759,
+      "error": null,
+      "result_file": {
+        "path": "local-run-2c5431da949144289cd73c9363b9cc4c\\result.json",
+        "bytes": 907,
+        "sha256": "54cacf0eeb2b408a453fd0c574b4d9c37a0c0492c9c1c5f0b725e10e3414379b"
+      },
+      "output_file": {
+        "path": "local-run-2c5431da949144289cd73c9363b9cc4c\\output.log",
+        "bytes": 14814,
+        "sha256": "3485941c2417f9a2b15b927e868e203ed86ec67a16377dd77d3c59d2b2dc0362"
+      }
+    },
+    {
+      "name": "raw-test-inventory",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-002290c0dd044d9291968ee39a4debba",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+        "-C",
+        "Release",
+        "--show-only=json-v1",
+        "-R",
+        "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+      ],
+      "timeout_seconds": 30.0,
+      "memory_bytes": 7158628352,
+      "cpu_percent": 50,
+      "maximum_processes": 48,
+      "physical_available_bytes": 32905277440,
+      "commit_available_bytes": 77898641408,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1789657088,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 60168,
+      "exit_code": 0,
+      "peak_job_bytes": 9441280,
+      "elapsed_seconds": 2.0589095999966958,
+      "error": null,
+      "result_file": {
+        "path": "local-run-002290c0dd044d9291968ee39a4debba\\result.json",
+        "bytes": 1151,
+        "sha256": "4caec9478ff63734bc0cfb17347e9d9ede0254e764b0acf9c54956e8a5861e68"
+      },
+      "output_file": {
+        "path": "local-run-002290c0dd044d9291968ee39a4debba\\output.log",
+        "bytes": 72977,
+        "sha256": "a52b4deab5133055b2c2cd62094874269551466aca8cbfc3e338119801c79c1e"
+      }
+    },
+    {
+      "name": "raw-native-memory-suites",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-59803adf95fb499888757ac5dd8acfb0",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-raw",
+        "-C",
+        "Release",
+        "-V",
+        "-R",
+        "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+      ],
+      "timeout_seconds": 420.0,
+      "memory_bytes": 7154434048,
+      "cpu_percent": 50,
+      "maximum_processes": 48,
+      "physical_available_bytes": 32889876480,
+      "commit_available_bytes": 77883924480,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1788608512,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 6028,
+      "exit_code": 0,
+      "peak_job_bytes": 207851520,
+      "elapsed_seconds": 125.67175690000295,
+      "error": null,
+      "result_file": {
+        "path": "local-run-59803adf95fb499888757ac5dd8acfb0\\result.json",
+        "bytes": 1136,
+        "sha256": "f0bc5747e7f0aaa01d6d7bc88311fafcd397dcc1a60940e43a7617c78df3f8b5"
+      },
+      "output_file": {
+        "path": "local-run-59803adf95fb499888757ac5dd8acfb0\\output.log",
+        "bytes": 93479,
+        "sha256": "84649bfe5009820dc05426edff03fb5cdc4384c6e3bb5ef57a3e38dad0f45004"
+      }
+    },
+    {
+      "name": "asan-build",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-d5de0d5c6eeb4eda90df19969e6fec50",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+        "--build",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan",
+        "--config",
+        "Release",
+        "--parallel",
+        "8",
+        "--",
+        "/nr:false"
+      ],
+      "timeout_seconds": 360.0,
+      "memory_bytes": 7147094016,
+      "cpu_percent": 50,
+      "maximum_processes": 48,
+      "physical_available_bytes": 32858312704,
+      "commit_available_bytes": 77887913984,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1786773504,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "process_id": 31964,
+      "exit_code": 0,
+      "peak_job_bytes": 1901735936,
+      "elapsed_seconds": 32.86777250000159,
+      "error": null,
+      "result_file": {
+        "path": "local-run-d5de0d5c6eeb4eda90df19969e6fec50\\result.json",
+        "bytes": 908,
+        "sha256": "d13ade34a32c48bc757ce2a24d9b812acd8324e0bfe6dd08cfa6666dcb0a0942"
+      },
+      "output_file": {
+        "path": "local-run-d5de0d5c6eeb4eda90df19969e6fec50\\output.log",
+        "bytes": 58878,
+        "sha256": "574ad09761ec50ec08e2e6ff26982370dfdddb6c89883875295114099b8d3046"
+      }
+    },
+    {
+      "name": "asan-test-inventory",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-db4afafb77ca416f8ffa3ba4acebfdc9",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan",
+        "-C",
+        "Release",
+        "--show-only=json-v1",
+        "-R",
+        "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+      ],
+      "timeout_seconds": 30.0,
+      "memory_bytes": 7051673600,
+      "cpu_percent": 50,
+      "maximum_processes": 48,
+      "physical_available_bytes": 32478527488,
+      "commit_available_bytes": 77478617088,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1762918400,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 23800,
+      "exit_code": 0,
+      "peak_job_bytes": 9412608,
+      "elapsed_seconds": 0.6238991999998689,
+      "error": null,
+      "result_file": {
+        "path": "local-run-db4afafb77ca416f8ffa3ba4acebfdc9\\result.json",
+        "bytes": 1152,
+        "sha256": "2eb6b772d0c56a9481bff9c839b852ae6e3c681deef3c483ff78f080336b717c"
+      },
+      "output_file": {
+        "path": "local-run-db4afafb77ca416f8ffa3ba4acebfdc9\\output.log",
+        "bytes": 73183,
+        "sha256": "0fcb01a229b89563b8c3fff78bea73ef105f9345651e363bbfb7c25c2e140187"
+      }
+    },
+    {
+      "name": "asan-native-memory-suites",
+      "success": true,
+      "run": "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\local-run-99b6d58fcc36499089944d1de79bdbfa",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\build-asan",
+        "-C",
+        "Release",
+        "-V",
+        "-R",
+        "^(native_persistent_workload|optimization_budget_crash_model|optimization_state_crash_model|bounded_commit_persistence_model|bounded_(native_|paged_|transactional_object_store|compact_checkpoint_|volume_session_|volume_head_|gpu_recovery_policy|extent_codecs))"
+      ],
+      "timeout_seconds": 420.0,
+      "memory_bytes": 7062159360,
+      "cpu_percent": 50,
+      "maximum_processes": 48,
+      "physical_available_bytes": 32518959104,
+      "commit_available_bytes": 77523664896,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1765539840,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 0,
+      "process_id": 33516,
+      "exit_code": 0,
+      "peak_job_bytes": 1157652480,
+      "elapsed_seconds": 351.63494399999763,
+      "error": null,
+      "result_file": {
+        "path": "local-run-99b6d58fcc36499089944d1de79bdbfa\\result.json",
+        "bytes": 1139,
+        "sha256": "6ab600dfcb713d02cc5d118b4a590d61db6acbdae1bd9d70d831ca5a87beb17a"
+      },
+      "output_file": {
+        "path": "local-run-99b6d58fcc36499089944d1de79bdbfa\\output.log",
+        "bytes": 93685,
+        "sha256": "c5ad909712ac172498d4d662c14ca3b4ecaf7193fa17947cffb0cc9b2809d977"
+      }
+    }
+  ],
+  "build_configurations": [
+    {
+      "configuration": "raw",
+      "suites": 103,
+      "automatic_group_checks": 3636,
+      "publication_fault_cases": 492,
+      "resource_observations": "modeled, not live host telemetry",
+      "cache": {
+        "path": "build-raw\\CMakeCache.txt",
+        "bytes": 19693,
+        "sha256": "72acadc2439a8f4261eb9f72b83dfddb85946c6dd261c3fe4033c0932a160ee1"
+      },
+      "project": {
+        "path": "build-raw\\flitzfs_native_group_maintenance_tests.vcxproj",
+        "bytes": 57836,
+        "sha256": "a6de5b23e7cb7fa12e9e7c4506afffb2c55b36ebf295511e4d4bde14e1221227"
+      },
+      "sanitizer": false,
+      "core_library": {
+        "path": "build-raw\\Release\\flitzfs_core.lib",
+        "bytes": 40005570,
+        "sha256": "b14a293cab722a60eef3188969dc210b4bf103551b7511bf64f6d09b4d0d6557"
+      },
+      "controller_object": {
+        "path": "build-raw\\flitzfs_core.dir\\Release\\native_maintenance.obj",
+        "bytes": 2298869,
+        "sha256": "fc25c8eb6e0ef8d045d7bca0ad25c89fc1e29fa1813b70e60926092d7da66b82"
+      },
+      "binary": {
+        "path": "build-raw\\Release\\flitzfs_native_group_maintenance_tests.exe",
+        "bytes": 689664,
+        "sha256": "489a19e8801d8f401e1e356eb851e9496f2898a8f6001c709a6a1999908bfebc"
+      }
+    },
+    {
+      "configuration": "asan",
+      "suites": 103,
+      "automatic_group_checks": 3636,
+      "publication_fault_cases": 492,
+      "resource_observations": "modeled, not live host telemetry",
+      "cache": {
+        "path": "build-asan\\CMakeCache.txt",
+        "bytes": 19678,
+        "sha256": "7a7b68ad736269552a31a9cdf1c6958aaf57396054969ea1c769b19b8a2dd6dd"
+      },
+      "project": {
+        "path": "build-asan\\flitzfs_native_group_maintenance_tests.vcxproj",
+        "bytes": 58211,
+        "sha256": "528c5d3664346d0cd7670ba16911bad2df95c594fd8d16b5c2ebbbc6dd959cbd"
+      },
+      "sanitizer": true,
+      "core_library": {
+        "path": "build-asan\\Release\\flitzfs_core.lib",
+        "bytes": 46394050,
+        "sha256": "b2ed62d369bc0fee3a6bbb956a78b5070e3b3716451df4fa37fce48cf7fd9c85"
+      },
+      "controller_object": {
+        "path": "build-asan\\flitzfs_core.dir\\Release\\native_maintenance.obj",
+        "bytes": 2751206,
+        "sha256": "eaf75c3654a70de860e6b9203f11a18de1aa038f28f063687a4103a8767be139"
+      },
+      "binary": {
+        "path": "build-asan\\Release\\flitzfs_native_group_maintenance_tests.exe",
+        "bytes": 1321472,
+        "sha256": "8545e9f9842f34ce84622bf55f44fd7b2460853d0f02d40e211610ed46c10013"
+      }
+    }
+  ],
+  "summary": {
+    "source_base": "3a8cb64cead78367408642718d6aab9bc68fa50e",
+    "contract": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+    "evidence": "docs/evidence/automatic-group-maintenance-2026-11-15.json",
+    "status": "Automatic aligned-family discovery/extension through managed paged sessions; content hash reuse, outcome suppression, selected-edit reconciliation and supplied-observation resource/duty admission",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "suites": 103,
+        "automatic_group_checks": 3636,
+        "publication_fault_cases": 492
+      },
+      {
+        "configuration": "asan",
+        "suites": 103,
+        "automatic_group_checks": 3636,
+        "publication_fault_cases": 492
+      }
+    ],
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "publication_cuts": [
+      67,
+      97
+    ],
+    "automatic_candidate_selection": true,
+    "sparse_inverted_bands": true,
+    "existing_group_extension": true,
+    "separate_volatile_content_revision": true,
+    "unchanged_source_IO": false,
+    "content_features_persistent": false,
+    "resource_observations": "supplied/model",
+    "real_Windows_collector": false,
+    "live_low_priority_executor": false,
+    "duty_cost": "measured steady-clock elapsed nanoseconds, not CPU time",
+    "synthetic_extension": {
+      "initial_members": 8,
+      "final_members": 9,
+      "final_bases": 1,
+      "sampled_extents": 9,
+      "reused_features": 25,
+      "cumulative_admitted_compacted_savings": [
+        1040384,
+        1048576
+      ],
+      "these_are_current_image_savings": false
+    },
+    "prospective_complete_size_gate": true,
+    "physical_history_grows": true,
+    "automatic_compaction": false,
+    "advisory_funding_unchanged": true,
+    "data_write_budget": false,
+    "selected_edit_reconciliation": true,
+    "independent_CPU_recovery": true,
+    "publication_synchronous": true,
+    "persistent_coherence_catalog": false,
+    "fully_paged_namespace": false,
+    "Windows_app_default_changed": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Integrate trusted Windows physical/commit/CPU/foreground observations and low-priority owned opportunities with managed paged application factories; measure actual interference. Add a justified data-work/write-amplification policy rather than treating advisory credit as rewrite authorization.",
+    "full_goal_status": "active"
+  },
+  "sdk_syntax_only": {
+    "result": {
+      "command": [
+        "C:\\Windows\\System32\\cmd.exe",
+        "/d",
+        "/c",
+        "E:\\FlitzFS-local-20261115-01d1b054277141929f50a39482dbdb42\\final-release-validation-9f77c073bc2e4894ace11521126dfbbe\\syntax-native-policy.cmd"
+      ],
+      "timeout_seconds": 75.0,
+      "memory_bytes": 7102005248,
+      "cpu_percent": 50,
+      "maximum_processes": 16,
+      "physical_available_bytes": 32680804352,
+      "commit_available_bytes": 77863313408,
+      "reserve_bytes": 4269086720,
+      "creation_time_job": true,
+      "exit_confirmed": true,
+      "disk_reserve_bytes": 1775501312,
+      "stop_reason": null,
+      "tree_retired": true,
+      "timed_out": false,
+      "residual_children": 1,
+      "process_id": 63232,
+      "exit_code": 0,
+      "peak_job_bytes": 269496320,
+      "elapsed_seconds": 22.462924499996006,
+      "error": null
+    },
+    "result_file": {
+      "path": "local-run-c0184b750b41442aa8e138bacf7bdf31\\result.json",
+      "bytes": 795,
+      "sha256": "9bb99216eec1121b09219e3a624a5bb2e4b080c8723381b128c4b136bad484dc"
+    },
+    "output": {
+      "path": "local-run-c0184b750b41442aa8e138bacf7bdf31\\output.log",
+      "bytes": 2566,
+      "sha256": "827744b4f13106f4d08cc8a706da5b6e962ac6e3353c3c190bed2a114da3eacb"
+    },
+    "linked": false,
+    "DLL_executed": false,
+    "driver_installed": false,
+    "known_warning": "Existing C4244 wchar_t to char conversion; no warning-free claim."
+  },
+  "assertions": {
+    "package_DAG_nodes": 15,
+    "local_markdown_links_checked": 524,
+    "README_unchanged": true
+  },
+  "scope": {
+    "platform": "Windows 11 AMD64",
+    "backing": "Synthetic memory byte-I/O; scoped source/build/cache/reports on authorized local storage",
+    "selected_CPU_suites": true,
+    "full_CTest": false,
+    "optional_Zstd_LZ4": false,
+    "Linux": false,
+    "UBSan": false,
+    "live_telemetry": false,
+    "OS_priority_integration": false,
+    "mounted": false,
+    "GPU": false,
+    "driver_install": false,
+    "physical_power_loss": false,
+    "real_corpus_benchmark": false,
+    "persistent_coherence": false,
+    "compression_record": false,
+    "release": false
+  },
+  "lifecycle": "Every reported supervised process tree retired; semantic daemon explicitly stopped. No mount, driver, service or scheduled task. No shared provider or other repository modified.",
+  "original_checkout": {
+    "path": "C:\\Users\\strat\\Documents\\ChatGPT\\FlitzFS",
+    "commit": "d6bb574afe21a3b5185c268df2eda9bdbd02f5e1",
+    "status_lines": 32,
+    "modified_by_round": false
+  },
+  "pushed": false,
+  "full_goal_status": "active"
+}
