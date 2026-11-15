@@ -1009,6 +1009,17 @@ NativeFilesystemSnapshot NativeFilesystemSnapshot::open(ObjectStoreSnapshot obje
 NativeFilesystemSnapshot NativeFilesystemSnapshot::open(PagedObjectStoreSnapshot objects) {
   return open_storage(std::move(objects));
 }
+NativeFilesystemSnapshot NativeFilesystemSnapshot::open_image(std::shared_ptr<StoreByteIo> image,NativeImageStorage storage) {
+  if(storage.kind==NativeImageKind::flat && !storage.maximum_physical_bytes)
+    return open(ObjectStoreSnapshot::open(std::move(image)));
+  if(storage.kind==NativeImageKind::paged && storage.maximum_physical_bytes)
+    return open(PagedObjectStoreSnapshot::open(std::move(image),{storage.maximum_physical_bytes}));
+  fail(Code::invalid_operation,"invalid explicit image storage descriptor");
+}
+NativeImageStorage NativeFilesystemSnapshot::image_storage() const noexcept {
+  if(impl_)if(const auto* paged=impl_->objects.paged_if())return {NativeImageKind::paged,paged->limits().maximum_physical_bytes};
+  return {};
+}
 NativeFilesystemSnapshot NativeFilesystemSnapshot::open_storage(detail::NativeObjectSnapshot objects) {
   return NativeFilesystemSnapshot(std::make_unique<Impl>(std::move(objects)));
 }
@@ -1356,8 +1367,10 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_impl(detail::NativeObjectW
   catch(const std::exception&){fail(Code::storage_failure,"native writable admission failed; recover independently");}
 }
 
-const ObjectStoreSnapshot& NativeFilesystemSnapshot::objects_for_volume_head() const {
-  if(!impl_)fail(Code::invalid_operation,"moved-from volume image");return impl_->objects.flat();
+std::shared_ptr<StoreByteIo> NativeFilesystemSnapshot::backing_for_volume_head() const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from volume image");
+  if(const auto* paged=impl_->objects.paged_if())return paged->backing_for_volume_head();
+  return impl_->objects.flat().backing_for_volume_head();
 }
 void NativeFilesystemSnapshot::verify_compacted_equivalent_for_volume_head(
     const NativeFilesystemSnapshot& target) const {
@@ -1365,10 +1378,12 @@ void NativeFilesystemSnapshot::verify_compacted_equivalent_for_volume_head(
   verify_all();target.verify_all();
   if(needs_session_recovery()||target.needs_session_recovery())
     fail(Code::invalid_operation,"handoff requires retired resolved file contexts");
-  auto expected=decode(impl_->objects);expected.identity=target.identity();
-  if(encode(expected)!=encode(decode(target.impl_->objects)))
+  auto expected=decode(impl_->objects);expected.identity=target.identity();const auto actual=decode(target.impl_->objects);
+  if(image_storage()!=target.image_storage() || impl_->objects.mirrored()!=target.impl_->objects.mirrored() ||
+      expected.inode_records!=actual.inode_records || expected.indexed_names!=actual.indexed_names || expected.shared_bases!=actual.shared_bases ||
+      encode(expected)!=encode(actual))
     fail(Code::invalid_operation,"compacted namespace differs");
-  const auto left=impl_->objects.list(),right=target.impl_->objects.list();
+  const auto left=impl_->objects.list(inventory_limit(expected)),right=target.impl_->objects.list(inventory_limit(actual));
   if(left.size()!=right.size())fail(Code::invalid_operation,"compacted object inventory differs");
   for(std::size_t i=0;i<left.size();++i) {
     if(left[i].id!=right[i].id || left[i].logical_bytes!=right[i].logical_bytes)

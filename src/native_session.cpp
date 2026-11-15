@@ -26,6 +26,9 @@ void retire(NativeFilesystemWriter& writer) noexcept {
 }
 NativeFilesystemWriter resume_image(const std::shared_ptr<StoreByteIo>& image,
     const NativeFilesystemSnapshot& view,StoreCompressionOptions compression) {
+  const auto storage=view.image_storage();
+  if(storage.kind==NativeImageKind::paged)return NativeFilesystemWriter::resume(PagedObjectStoreWriter::resume(
+      image,view.identity(),view.storage_info().generation,{storage.maximum_physical_bytes},compression));
   return NativeFilesystemWriter::resume(ObjectStoreWriter::resume(image,view.identity(),
       view.storage_info().generation,compression));
 }
@@ -183,6 +186,19 @@ NativeFileSession NativeFileSession::create_volume(std::shared_ptr<StoreByteIo> 
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,
     StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
     std::optional<NativeVolumeRootMetadata> root) {
+  return create_volume_impl(std::move(head),volume,std::move(image),image_id,{},foreground,checkpoints,policy,root);
+}
+NativeFileSession NativeFileSession::create_paged_volume(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,PagedStoreLimits limits,
+    StoreCompressionOptions foreground,NativeDispositionPolicy policy,std::optional<NativeVolumeRootMetadata> root) {
+  if(!limits.maximum_physical_bytes)fail(E::invalid_options,"explicit paged volume capacity required");
+  return create_volume_impl(std::move(head),volume,std::move(image),image_id,
+      {NativeImageKind::paged,limits.maximum_physical_bytes},foreground,{},policy,root);
+}
+NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,NativeImageStorage storage,
+    StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
+    std::optional<NativeVolumeRootMetadata> root) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
     fail(E::invalid_options,"distinct volume/image identities and backends required");
@@ -192,7 +208,10 @@ NativeFileSession NativeFileSession::create_volume(std::shared_ptr<StoreByteIo> 
   auto owner=std::make_unique<Impl::VolumeOwner>();
   owner->head_io=head;owner->active_io=image;owner->volume_id=volume;
   owner->active_id=image_id;owner->foreground=foreground;
-  auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
+  auto writer=storage.kind==NativeImageKind::paged?
+      NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter::create_mirrored(
+          image,image_id,{storage.maximum_physical_bytes},foreground)):
+      NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
   if(root) {
     const NativeBasicMutation basic{1,0,root->basic};
     const NativeSecurityMutation security{1,0,NativeSecurityDescriptor(root->security.begin(),root->security.end())};
@@ -204,6 +223,22 @@ NativeFileSession NativeFileSession::create_volume(std::shared_ptr<StoreByteIo> 
   auto session=create(resume_image(image,source,foreground),policy);
   owner->budget_new=true;
   session.impl_->volume=std::move(owner);return session;
+}
+NativeFilesystemWriter::SharedBaseWork NativeFileSession::prepare_shared_base(NativeExtentSelection base,
+    std::span<const NativeExtentSelection> members) {
+  auto& self=ready();if(self.recompression || (self.volume && self.volume->pending))
+    fail(E::invalid_options,"shared-base preparation defers active handoff");
+  return self.writer.prepare_shared_base(base,members);
+}
+bool NativeFileSession::advance_shared_base(NativeFilesystemWriter::SharedBaseWork& work) {
+  auto& self=ready();if(self.recompression || (self.volume && self.volume->pending))
+    fail(E::invalid_options,"shared-base step defers active handoff");
+  return self.writer.advance_shared_base(work);
+}
+NativeSharedBaseCommit NativeFileSession::finish_shared_base(NativeFilesystemWriter::SharedBaseWork& work) {
+  auto& self=ready();if(self.recompression || (self.volume && self.volume->pending))
+    fail(E::invalid_options,"shared-base publication defers active handoff");
+  return self.writer.finish_shared_base(work);
 }
 NativeFileSession NativeFileSession::resume_volume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
@@ -509,7 +544,7 @@ void NativeFileSession::begin_handoff(Impl& self,NativeFilesystemSnapshot baseli
 NativeVolumeHeadInfo NativeFileSession::finish_handoff(Impl& self) {
   auto& volume=*self.volume;
   const auto next=volume.candidate_id;
-  auto candidate=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(volume.candidate_io));
+  auto candidate=NativeFilesystemSnapshot::open_image(volume.candidate_io,volume.baseline->image_storage());
   const auto published=volume.head->publish_compacted(*volume.baseline,candidate);
   self.writer=resume_image(volume.candidate_io,candidate,volume.foreground);
   // Only nonthrowing ownership/scalar updates remain after adoption succeeds.
@@ -524,7 +559,10 @@ NativeVolumeHeadInfo NativeFileSession::replace_volume(std::shared_ptr<StoreByte
   admit_replacement(self,target,next);
   detail::validate_store_compression(compression);admit_empty(target);
   admit_handoff_contexts(self);
-  begin_handoff(self,self.writer.snapshot(),target,next);
+  auto baseline=self.writer.snapshot();
+  if(baseline.image_storage().kind==NativeImageKind::paged && checkpoints.compact_metadata)
+    fail(E::invalid_options,"paged isolation derives from its backend contract");
+  begin_handoff(self,std::move(baseline),target,next);
   {
     auto candidate=reencode?
         NativeFilesystemWriter::recompress(*self.volume->baseline,target,next,compression,checkpoints):
@@ -546,6 +584,10 @@ bool NativeFileSession::begin_idle_recompression(std::shared_ptr<StoreByteIo> ta
 bool NativeFileSession::stage_recompression(std::shared_ptr<StoreByteIo> target,StoreIdentity next,
     StoreCompressionOptions compression,StoreCheckpointOptions checkpoints,bool idle) {
   auto& self=ready();
+  if(self.volume && self.volume->head->info().selection.storage.kind==NativeImageKind::paged) {
+    if(idle)return false;
+    fail(E::invalid_options,"legacy staged recompression requires flat managed storage");
+  }
   const auto generation=self.writer.recompression_generation();
   if(idle && self.volume && self.evaluated_image==self.volume->active_id &&
       self.evaluated_generation==generation && !self.recompression)

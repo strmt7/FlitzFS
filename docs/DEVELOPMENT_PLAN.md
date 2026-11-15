@@ -23,6 +23,14 @@ The owner's background-compression direction is specified in [COLD_COMPRESSION_R
 
 ## Current implementation round — 15 November 2026
 
+The [managed paged integration](MANAGED_PAGED_VOLUMES.md) now removes the
+flat-only volume-head barrier: protected grouped data can use native contexts,
+verified synchronous handoff/resume and the existing input-funded journal.
+Current-source health checks include post-scrub peer status. Advisory settlement
+still pays only for advice. Next connect fresh contention/resource admission
+and a separately justified data-work policy; scalable learning, useful AMD work
+and automatic maintenance remain required.
+
 The local S01 round implements [paged object storage](PAGED_OBJECT_STORE.md):
 actual COW writes/deletes, bounded lookup/keyset enumeration, retained snapshots,
 replicated metadata, verified resume and streaming new-image rebuild. Three

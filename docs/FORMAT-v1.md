@@ -24,6 +24,10 @@ Older readers reject the new native capability rather than reinterpret it.
 Cooperative group preparation adds only volatile owner/revision/progress state;
 it publishes the same member bytes and introduces no stored journal or version.
 
+The separate [volume-head capability 2](MANAGED_PAGED_VOLUMES.md) persists
+explicit paged image kind/capacity at offsets 96 and 104. Capability 1 remains
+byte-for-byte unchanged; paged/native/codec bytes do not change in this step.
+
 The native filesystem's separate [format-7 shared-extent namespace](SHARED_EXTENTS.md)
 extends native object references with exact sharing/private updates. It does not
 change this chunk-container format or the object-store record codecs.

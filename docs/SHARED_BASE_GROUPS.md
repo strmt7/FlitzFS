@@ -153,6 +153,10 @@ work object to retire retained private resources. A completed operation cannot
 publish twice. This is a cooperative primitive, not an autonomous scheduler,
 durable restart journal, scalable coherence catalog or active-volume handoff.
 
+The [managed paged-volume path](MANAGED_PAGED_VOLUMES.md) now exposes these
+control calls through NativeFileSession with typed head selection, funded advice
+and normal file-context ownership. It supplies no automatic scheduling/grant.
+
 ## Evidence and next work
 
 [Source-bound validation](evidence/shared-base-groups-2026-11-15.json) records the

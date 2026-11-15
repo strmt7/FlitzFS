@@ -192,7 +192,7 @@ cover narrower contracts. In particular:
   docs/PERSISTENCE_MODEL.md, docs/STORE_RESUME_AND_INTERRUPTION.md.
 - Namespace/session/maintenance: docs/NATIVE_FILESYSTEM.md,
   docs/INODE_RECORD_NAMESPACE.md, docs/DIRECTORY_NAME_INDEX.md,
-  docs/NATIVE_PAGED_MAINTENANCE.md, docs/STAGED_PAGED_REBUILD.md, docs/MIRRORED_PAYLOADS.md, docs/SHARED_BASE_GROUPS.md,
+  docs/NATIVE_PAGED_MAINTENANCE.md, docs/MANAGED_PAGED_VOLUMES.md, docs/STAGED_PAGED_REBUILD.md, docs/MIRRORED_PAYLOADS.md, docs/SHARED_BASE_GROUPS.md,
   docs/NATIVE_FILE_LIFETIME.md, docs/VOLUME_SESSION.md, docs/COMPACTED_COPY.md,
   docs/RECOMPRESSION.md, docs/OPTIMIZATION_STATE.md, docs/COLD_COMPRESSION_RESEARCH.md.
 - Windows callbacks and pending ownership: docs/WINFSP_CALLBACKS.md,

@@ -31,7 +31,9 @@ publication remains synchronous and restart progress is volatile.
 The explicit [paged native backend](NATIVE_PAGED_BACKEND.md) connects native
 operations and sessions to paged object storage through the shared engine.
 Native metadata is still a complete bounded flat Model; scalable names/extents,
-native-aware migration/handoff and Windows factory integration remain open.
+migration, automatic handoff/reclamation and Windows factory integration
+remain open. Explicit [managed paged volumes](MANAGED_PAGED_VOLUMES.md) now
+support context-preserving synchronous selection, typed resume and funded advice.
 The separate [inode-record layout](INODE_RECORD_NAMESPACE.md) now provides
 incremental metadata publication without removing those remaining limits.
 Conditional owner permission for a qualified FlitzFS-related driver does not

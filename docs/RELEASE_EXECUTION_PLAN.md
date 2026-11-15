@@ -13,6 +13,9 @@ paged namespace work and release gates remain open. The full product goal remain
 Shared-base preparation now yields by decoded extent and reconciles unrelated
 foreground commits; its final storage publication is still synchronous. This
 does not close E04/E06/E07 or reduce the uncalibrated effort estimate below.
+The [managed paged path](MANAGED_PAGED_VOLUMES.md) now integrates typed head
+selection, contexts, source-preserving repair/handoff and advisory funding.
+Automatic resource admission and Windows application factory integration remain.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,
 not competing instructions to repeat completed experiments.

@@ -123,6 +123,19 @@ class NativeFileSession final {
       StoreIdentity image_identity,StoreCompressionOptions foreground={},
       StoreCheckpointOptions checkpoints={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
       std::optional<NativeVolumeRootMetadata> root={});
+  // NEW explicitly bounded paged volume: mirrored payloads, indexed names and
+  // shared-base capability. Legacy create_volume bytes/defaults are unchanged.
+  static NativeFileSession create_paged_volume(std::shared_ptr<StoreByteIo> empty_head,
+      StoreIdentity volume_identity,std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
+      PagedStoreLimits,StoreCompressionOptions foreground={},
+      NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
+      std::optional<NativeVolumeRootMetadata> root={});
+  // Trusted serialized maintenance control. No automatic resource grant,
+  // advisory-credit spending, scheduler or GPU launch is implied.
+  NativeFilesystemWriter::SharedBaseWork prepare_shared_base(NativeExtentSelection,
+      std::span<const NativeExtentSelection>);
+  bool advance_shared_base(NativeFilesystemWriter::SharedBaseWork&);
+  NativeSharedBaseCommit finish_shared_base(NativeFilesystemWriter::SharedBaseWork&);
   // Actual old controller/dispatcher/context retirement is an external
   // prerequisite. Never discards unresolved persisted file-context state.
   static NativeFileSession resume_volume(std::shared_ptr<StoreByteIo> head,
@@ -350,6 +363,9 @@ class NativeFileSession final {
   std::unique_ptr<Impl> impl_;
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
+  static NativeFileSession create_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      std::shared_ptr<StoreByteIo>,StoreIdentity,NativeImageStorage,StoreCompressionOptions,
+      StoreCheckpointOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>);
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
       std::uint64_t,unsigned,bool create,bool rebuild,bool budgeted=false);
   static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity);

@@ -1,5 +1,9 @@
 # Fixed-size native volume head (experimental)
 
+The explicit [capability-2 extension](MANAGED_PAGED_VOLUMES.md) now binds paged
+image kind/capacity and supports verified managed selection/repair. The original
+capability-1 bytes and flat-source rules described below remain unchanged.
+
 This is a CPU-only custom-backend authority for selecting an active native image
 after verified compaction. It is not physical reclamation, a file-provider,
 mounted handoff, background service, production startup, GPU execution or a

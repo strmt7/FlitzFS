@@ -135,6 +135,7 @@ class ObjectStoreSnapshot final {
   friend class ObjectStoreWriter;
   friend class NativeVolumeHeadWriter;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
+  friend class NativeFilesystemSnapshot;
   struct Impl;
   explicit ObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

@@ -7,6 +7,7 @@ inline constexpr std::uint64_t kVolumeHeadBytes=2*kStoreCommitUnit;
 struct NativeVolumeSelection {
   StoreIdentity volume_identity{},image_identity{},parent_identity{};
   std::uint64_t epoch=0,minimum_checkpoint=0,namespace_sequence=0,parent_checkpoint=0;
+  NativeImageStorage storage{}; // Head capability 1 is flat; capability 2 is paged.
   bool operator==(const NativeVolumeSelection&) const = default;
 };
 struct NativeVolumeHeadInfo {NativeVolumeSelection selection;bool degraded=false;};

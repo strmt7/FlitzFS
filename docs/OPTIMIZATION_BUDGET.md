@@ -7,6 +7,11 @@ see [funded-helper-99d5365.json](evidence/funded-helper-99d5365.json). It does n
 launch background work, qualify a durable physical provider, authorize data-image
 rewriting, or complete an autonomous learner.
 
+The [managed paged-volume integration](MANAGED_PAGED_VOLUMES.md) now uses
+this same journal with protected shared-base data, native file contexts and
+image handoff/resume. It changes no journal bytes or costs. Advisory funding
+still does not authorize or pay for data-image rewriting.
+
 ## Persisted settlement and compatibility
 
 Legacy FLTOP001/capability1 records and default writer calls remain unchanged.

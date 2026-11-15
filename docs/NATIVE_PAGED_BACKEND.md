@@ -47,10 +47,13 @@ The explicit [directory index](DIRECTORY_NAME_INDEX.md) adds ordered persisted
 names and snapshot-bound pagination. Split name pages, demand-loaded inode/extent
 metadata and bounded residency remain next scale work.
 
-Flat volume-head and staged recompression APIs reject paged input before target
-writes. The explicit [native paged maintenance](NATIVE_PAGED_MAINTENANCE.md) path
+The explicit [managed paged-volume factory](MANAGED_PAGED_VOLUMES.md) now
+connects typed head selection, writable resume, context-preserving synchronous
+handoff, shared-base control and funded advisory provenance. The legacy flat
+staged-recompression API still rejects paged input; its idle form defers before
+target I/O. The explicit [native paged maintenance](NATIVE_PAGED_MAINTENANCE.md) path
 now rebinds native identity and verifies compacted/recompressed new images.
-Legacy layout migration, handoff/reclamation, incremental background rebuilding,
+Legacy layout migration, automatic selection/reclamation, persistent restart,
 optional-codec breadth, Windows factory integration and reader retirement remain.
 
 ## Verification

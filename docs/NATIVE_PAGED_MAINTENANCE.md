@@ -14,8 +14,10 @@ workload provenance are preserved. No source bytes are written or flushed.
 This removes the backend's previous maintenance refusal. It does not select a
 new active volume, remove the source, launch background work, run a GPU or
 provide the planned collective codec. The separate [staged paged primitive](STAGED_PAGED_REBUILD.md)
-now advances copying and verification alongside a live writer. Managed flat
-volume-head/session handoff still rejects paged sources.
+now advances copying and verification alongside a live writer. The separate
+[managed paged integration](MANAGED_PAGED_VOLUMES.md) now selects synchronous
+compacted/recompressed images through typed heads while retaining file contexts.
+Automatic staged selection/reclamation remains unfinished.
 
 ## Admission and ownership
 

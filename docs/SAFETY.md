@@ -8,6 +8,12 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+[Managed paged volumes](MANAGED_PAGED_VOLUMES.md) bind the exact reader kind
+and capacity without another-format fallback. New selected images must pass
+both-copy scrubbing and post-scrub health checks. A readable degraded paged
+source may supply an explicit repaired-copy selection; its data writer still
+refuses writable resume. Advisory credit does not authorize data rewrites.
+
 [Shared-base groups](SHARED_BASE_GROUPS.md) require mirrored immutable decoder
 dependencies, exact generation/hash binding, one-level CPU decoding and atomic
 publication. Complete-size bounds include protection, headers/indexes and padding.

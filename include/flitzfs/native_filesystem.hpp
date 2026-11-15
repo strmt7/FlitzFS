@@ -12,6 +12,12 @@
 namespace flitzfs {
 class PagedObjectStoreSnapshot;
 class PagedObjectStoreWriter;
+enum class NativeImageKind:std::uint32_t {flat=0,paged=1};
+struct NativeImageStorage {
+  NativeImageKind kind=NativeImageKind::flat;
+  std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
+  bool operator==(const NativeImageStorage&) const=default;
+};
 namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;}
 // Native file/extent layer, experimental and CPU-only. Explicit Windows
 // read-only projection is available; mounted writes and live GPU remain absent.
@@ -226,12 +232,16 @@ class NativeFilesystemSnapshot final {
   // Still eagerly validates the complete bounded namespace and live extents,
   // including optional per-directory indices. Node/extent limits remain.
   static NativeFilesystemSnapshot open(PagedObjectStoreSnapshot objects);
+  // Explicit persisted/provider format descriptor; never guesses or retries a
+  // different reader after corruption. Existing open overloads are unchanged.
+  static NativeFilesystemSnapshot open_image(std::shared_ptr<StoreByteIo>,NativeImageStorage);
   NativeFilesystemSnapshot(NativeFilesystemSnapshot&&) noexcept;
   NativeFilesystemSnapshot& operator=(NativeFilesystemSnapshot&&) noexcept;
   NativeFilesystemSnapshot(const NativeFilesystemSnapshot&)=delete;
   NativeFilesystemSnapshot& operator=(const NativeFilesystemSnapshot&)=delete;
   ~NativeFilesystemSnapshot();
   StoreIdentity identity() const noexcept;
+  NativeImageStorage image_storage() const noexcept;
   StoreCommitInfo storage_info() const noexcept;
   std::uint64_t sequence() const noexcept;
   NativeWorkloadInfo workload_info() const noexcept; // Validated cached scalar; moved-from is disabled.
@@ -264,7 +274,7 @@ class NativeFilesystemSnapshot final {
   friend class NativeFilesystemWriter;
   friend class NativeVolumeHeadWriter;
   friend class NativeFileSession;
-  const ObjectStoreSnapshot& objects_for_volume_head() const;
+  std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&) const;
   struct Impl;
   static NativeFilesystemSnapshot open_storage(detail::NativeObjectSnapshot);

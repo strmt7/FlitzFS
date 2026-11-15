@@ -619,6 +619,13 @@
         "driver_installed": false,
         "release": false,
         "next": "Replace full-Model residency and whole directory objects with bounded paged inode/name/extent access. Connect fresh contention/resource admission, repeated-work suppression and reader-safe paged handoff/reclaim to staged work; use protected per-group dependencies and stable content generations rather than repeatedly rebuilding on every unrelated write."
+      },
+      "managed_paged_integration": {
+        "contract": "docs/MANAGED_PAGED_VOLUMES.md",
+        "evidence": "docs/evidence/managed-paged-volume-2026-11-15.json",
+        "scope": "Typed managed head/session/advice integration and synchronous verified handoff; bounded native Model remains",
+        "native_scaling_exit_closed": false,
+        "automatic_maintenance": false
       }
     },
     {
@@ -1046,77 +1053,67 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "9b0b9841be1dda0231a7eb17a6ba93f22c6f2464",
-    "contract": "docs/SHARED_BASE_GROUPS.md",
-    "evidence": "docs/evidence/staged-shared-base-2026-11-15.json",
-    "status": "Owned cooperative shared-base preparation: no-I/O capture, one decoded extent per advance, selected-content/owner guards and current-namespace publication preserving unrelated commits",
-    "broad_raw_suites": 101,
-    "broad_ASan_suites": 101,
-    "staged_group_checks": 7242,
-    "staged_publication_fault_cases": 492,
-    "original_group_checks": 12875,
-    "original_group_fault_cases": 492,
+    "source_base": "5cb0e8c34abdefa8a7f2f2cdca763665486245a8",
+    "contract": "docs/MANAGED_PAGED_VOLUMES.md",
+    "evidence": "docs/evidence/managed-paged-volume-2026-11-15.json",
+    "status": "Explicit managed mirrored paged volumes with typed head capability 2, shared-base session control, context-preserving synchronous handoff/resume, surviving-copy repair selection and unchanged funded advisory accounting",
+    "broad_raw_suites": 102,
+    "broad_ASan_suites": 102,
+    "managed_paged_checks": 14155,
+    "handoff_fault_cases": 1146,
     "modeled_failure_units": [
       4096,
       65536
     ],
     "failure_modes": 3,
-    "publication_cuts": [
-      67,
-      97
+    "head_mutation_cuts": [
+      4,
+      4
     ],
-    "stale_selection_cases": 15,
-    "native_members_tested": 255,
-    "step_measurements": [
-      {
-        "unit": 4096,
-        "members": 8,
-        "steps": 9,
-        "maximum_step_read_bytes": 73856
-      },
-      {
-        "unit": 65536,
-        "members": 8,
-        "steps": 9,
-        "maximum_step_read_bytes": 73856
-      },
-      {
-        "unit": 4096,
-        "members": 255,
-        "steps": 256,
-        "maximum_step_read_bytes": 82048
-      }
+    "source_mutation_cuts": [
+      0,
+      0
     ],
-    "prepare_backing_IO": false,
-    "preparation_backing_writes": false,
-    "maximum_decoded_extents_per_advance": 1,
-    "one_pending_group_per_writer": true,
-    "unrelated_commits_preserved": true,
-    "rename_preserves_work": true,
-    "selected_changes_refuse_before_IO": true,
-    "volatile_revision_guards": true,
-    "source_owner_retirement_guard": true,
-    "private_payload_release_tested": true,
-    "current_root_complete_size_admission": true,
-    "publication_synchronous": true,
-    "persistent_restart_progress": false,
+    "target_mutation_cuts": [
+      217,
+      157
+    ],
+    "malformed_head_variants": 8,
+    "populated_files_tested": 130,
+    "inventory_above_256": true,
+    "typed_reader_no_fallback": true,
+    "legacy_head_capability": 1,
+    "paged_head_capability": 2,
+    "legacy_default_unchanged": true,
+    "ordinary_contexts_preserved": true,
+    "advisory_settlement_preserved": true,
+    "spent_credit_not_reissued": true,
+    "independent_CPU_recovery": true,
+    "surviving_copy_head_repair_cases": 4,
+    "degraded_target_refusals": 4,
+    "degraded_initial_head_refusals": 4,
+    "post_scrub_health_rechecked": true,
+    "head_source_recompiled_after_restore": true,
+    "synchronous_handoff": true,
+    "advisory_credit_authorizes_data_rewrites": false,
+    "automatic_resource_controller": false,
     "automatic_scheduler": false,
-    "automatic_learning": false,
     "persistent_coherence_catalog": false,
     "fully_paged_namespace": false,
+    "Windows_app_default_changed": false,
     "ordinary_GPU_route": false,
     "GPU_executed_this_round": false,
     "driver_installed": false,
     "release": false,
-    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
+    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression.",
     "full_goal_status": "active"
   },
   "next_product_slices": [
-    "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
-    "Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist a sparse coherence catalog, stable content generations and resumable candidate/restart progress.",
-    "Integrate reader-safe paged handoff/reclamation and protected collective work with the shared Windows/session/helper engine. Preserve unrelated writes and decoder generations across interrupted selection and upgrade.",
-    "Evaluate shifted/fine-grained, dictionary, multi-reference and local learned candidates on held-out heterogeneous data; charge full protected images, dependencies, history and temporary space and measure random/cold access.",
-    "Implement useful finite AMD collective work and ordinary automatic Windows operation with qualified helper discovery, complete keyed costs, CPU recovery and confirmed retirement. Complete Windows semantics/app/tray/providers, historical retirement diagnosis, secure updates, compatibility, recognized benchmarks and soak. No autonomous release."
+    "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression.",
+    "Replace complete Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist sparse coherence features, stable content generations, candidate scans and restart progress.",
+    "Connect staged paged copying to reader-safe managed selection/reclamation and Windows helper/application factories; preserve contexts, owned work, source images and decoder generations through interruption and gradual upgrades.",
+    "Evaluate shifted/fine-grained, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data. Minimize complete protected stored bytes with practical random/cold access; implement useful finite AMD work and normal automatic CPU-fallback routing.",
+    "Complete Windows semantics, helper/tray/provider installation/update contracts, historical retirement diagnosis, physical backend/fault qualification, compatibility, security, recognized benchmarks and soak. No release without the owner."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1721,6 +1718,72 @@
     "driver_installed": false,
     "release": false,
     "next": "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes.",
+    "full_goal_status": "active"
+  },
+  "previous_staged_shared_base_round": {
+    "source_base": "9b0b9841be1dda0231a7eb17a6ba93f22c6f2464",
+    "contract": "docs/SHARED_BASE_GROUPS.md",
+    "evidence": "docs/evidence/staged-shared-base-2026-11-15.json",
+    "status": "Owned cooperative shared-base preparation: no-I/O capture, one decoded extent per advance, selected-content/owner guards and current-namespace publication preserving unrelated commits",
+    "broad_raw_suites": 101,
+    "broad_ASan_suites": 101,
+    "staged_group_checks": 7242,
+    "staged_publication_fault_cases": 492,
+    "original_group_checks": 12875,
+    "original_group_fault_cases": 492,
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "publication_cuts": [
+      67,
+      97
+    ],
+    "stale_selection_cases": 15,
+    "native_members_tested": 255,
+    "step_measurements": [
+      {
+        "unit": 4096,
+        "members": 8,
+        "steps": 9,
+        "maximum_step_read_bytes": 73856
+      },
+      {
+        "unit": 65536,
+        "members": 8,
+        "steps": 9,
+        "maximum_step_read_bytes": 73856
+      },
+      {
+        "unit": 4096,
+        "members": 255,
+        "steps": 256,
+        "maximum_step_read_bytes": 82048
+      }
+    ],
+    "prepare_backing_IO": false,
+    "preparation_backing_writes": false,
+    "maximum_decoded_extents_per_advance": 1,
+    "one_pending_group_per_writer": true,
+    "unrelated_commits_preserved": true,
+    "rename_preserves_work": true,
+    "selected_changes_refuse_before_IO": true,
+    "volatile_revision_guards": true,
+    "source_owner_retirement_guard": true,
+    "private_payload_release_tested": true,
+    "current_root_complete_size_admission": true,
+    "publication_synchronous": true,
+    "persistent_restart_progress": false,
+    "automatic_scheduler": false,
+    "automatic_learning": false,
+    "persistent_coherence_catalog": false,
+    "fully_paged_namespace": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
     "full_goal_status": "active"
   }
 }

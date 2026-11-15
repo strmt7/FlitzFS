@@ -19,6 +19,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Incremental inode-record namespace](../INODE_RECORD_NAMESPACE.md)
 - [Ordered directory names and snapshot cursors](../DIRECTORY_NAME_INDEX.md)
 - [Native paged compaction and recompression](../NATIVE_PAGED_MAINTENANCE.md)
+- [Managed paged volumes, typed heads and advisory provenance](../MANAGED_PAGED_VOLUMES.md)
 - [Bounded staged paged rebuild](../STAGED_PAGED_REBUILD.md)
 - [Mirrored payloads and surviving-copy CPU recovery](../MIRRORED_PAYLOADS.md)
 - [Protected shared-base cross-file groups](../SHARED_BASE_GROUPS.md)

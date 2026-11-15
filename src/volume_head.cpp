@@ -21,6 +21,9 @@ std::uint64_t get(std::span<const std::byte> b,std::size_t at,unsigned n=8) {
 }
 bool zero(StoreIdentity id){return id==StoreIdentity{};}
 void valid(const NativeVolumeSelection& s,Code code) {
+  if(!((s.storage.kind==NativeImageKind::flat && !s.storage.maximum_physical_bytes) ||
+      (s.storage.kind==NativeImageKind::paged && s.storage.maximum_physical_bytes)))
+    fail(code,"invalid volume image storage descriptor");
   if(!s.epoch||zero(s.volume_identity)||zero(s.image_identity)||s.volume_identity==s.image_identity||
       !s.minimum_checkpoint||!s.namespace_sequence||s.namespace_sequence>s.minimum_checkpoint)
     fail(code,"invalid volume head identity/checkpoint");
@@ -37,11 +40,12 @@ void contract(const StoreByteIo& io) {
 }
 Bytes encoded(const NativeVolumeSelection& s,unsigned slot) {
   valid(s,Code::invalid_operation);Bytes b(kStoreCommitUnit);
-  std::memcpy(b.data(),magic,8);put(b,8,1,4);put(b,12,slot,4);put(b,16,s.epoch);
+  std::memcpy(b.data(),magic,8);put(b,8,s.storage.kind==NativeImageKind::paged?2:1,4);put(b,12,slot,4);put(b,16,s.epoch);
   std::copy(s.volume_identity.begin(),s.volume_identity.end(),b.begin()+24);
   std::copy(s.image_identity.begin(),s.image_identity.end(),b.begin()+40);
   std::copy(s.parent_identity.begin(),s.parent_identity.end(),b.begin()+56);
   put(b,72,s.minimum_checkpoint);put(b,80,s.namespace_sequence);put(b,88,s.parent_checkpoint);
+  if(s.storage.kind==NativeImageKind::paged){put(b,96,1,4);put(b,104,s.storage.maximum_physical_bytes);}
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
 }
@@ -49,13 +53,16 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   const auto digest=detail::record_digest(b.first(digest_at));
   if(!std::equal(digest.begin(),digest.end(),b.begin()+digest_at))return {};
   // Intact unsupported/contradictory metadata is NEVER an excuse to roll back.
-  if(std::memcmp(b.data(),magic,8)||get(b,8,4)!=1||get(b,12,4)!=slot||
-      !std::all_of(b.begin()+96,b.begin()+digest_at,[](auto x){return x==std::byte{};}))
+  const auto capability=get(b,8,4);
+  if(std::memcmp(b.data(),magic,8)||(capability!=1 && capability!=2)||get(b,12,4)!=slot||
+      (capability==2 && (get(b,96,4)!=1 || get(b,100,4)!=0)) ||
+      !std::all_of(b.begin()+(capability==2?112:96),b.begin()+digest_at,[](auto x){return x==std::byte{};}))
     fail(Code::corrupt,"intact volume head framing unsupported");
   NativeVolumeSelection s;s.epoch=get(b,16);
   std::copy_n(b.begin()+24,16,s.volume_identity.begin());std::copy_n(b.begin()+40,16,s.image_identity.begin());
   std::copy_n(b.begin()+56,16,s.parent_identity.begin());
   s.minimum_checkpoint=get(b,72);s.namespace_sequence=get(b,80);s.parent_checkpoint=get(b,88);
+  if(capability==2)s.storage={NativeImageKind::paged,get(b,104)};
   valid(s,Code::corrupt);
   if(s.volume_identity!=expected)fail(Code::corrupt,"volume head identity mismatch");
   return s;
@@ -75,23 +82,27 @@ Loaded load(const StoreByteIo& io,StoreIdentity expected) {
   }
   const unsigned newer=slots[0]->epoch>slots[1]->epoch?0:1,older=1-newer;
   const auto& n=*slots[newer];const auto& o=*slots[older];
-  if(n.epoch-o.epoch!=1||n.parent_identity!=o.image_identity||
+  if(n.storage!=o.storage || n.epoch-o.epoch!=1||n.parent_identity!=o.image_identity||
       n.parent_checkpoint<o.minimum_checkpoint||n.namespace_sequence<o.namespace_sequence)
     fail(Code::corrupt,"volume head transition is not a bound successor");
   return {{n,true},newer};
 }
 void bind(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& image,bool writable) {
   const auto info=image.storage_info();
-  if(image.identity()!=selected.image_identity||image.sequence()<selected.namespace_sequence||
+  if(image.image_storage()!=selected.storage || image.identity()!=selected.image_identity||image.sequence()<selected.namespace_sequence||
       !info.replicated_checkpoint||info.checkpoint_generation<selected.minimum_checkpoint||
       info.generation<selected.minimum_checkpoint||image.needs_session_recovery())
     fail(Code::corrupt,"selected volume image is absent, stale or unresolved");
   if(writable&&(info.degraded_checkpoint||info.degraded_root))
     fail(Code::invalid_operation,"repair selected image metadata independently before head admission");
   image.verify_all();
+  const auto verified=image.storage_info();
+  if(writable && (verified.degraded_checkpoint || verified.degraded_root))
+    fail(Code::invalid_operation,"image scrub discovered degraded protection");
 }
 NativeVolumeSelection initial(StoreIdentity volume,const NativeFilesystemSnapshot& source) {
   NativeVolumeSelection s;s.volume_identity=volume;s.image_identity=source.identity();s.epoch=1;
+  s.storage=source.image_storage();
   s.minimum_checkpoint=source.storage_info().checkpoint_generation;s.namespace_sequence=source.sequence();
   valid(s,Code::invalid_operation);return s;
 }
@@ -113,7 +124,7 @@ NativeVolumeHeadView NativeVolumeHeadView::open(std::shared_ptr<StoreByteIo> hea
   try {
     const auto selected=load(*head,volume).info;auto image=resolve(selected.selection.image_identity);
     if(!image||image==head)fail(Code::corrupt,"missing or aliased selected image");
-    auto view=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(std::move(image)));
+    auto view=NativeFilesystemSnapshot::open_image(std::move(image),selected.selection.storage);
     bind(selected.selection,view,false);
     return NativeVolumeHeadView(std::make_unique<Impl>(selected,std::move(view)));
   }catch(const std::bad_alloc&){fail(Code::limit,"volume head reader allocation");}
@@ -136,10 +147,13 @@ struct NativeVolumeHeadWriter::Impl {
   Lease owner;NativeVolumeSelection selected{};bool poisoned=false;
   explicit Impl(std::shared_ptr<StoreByteIo> io):owner(std::move(io)){}
   static std::shared_ptr<StoreByteIo> backing(const NativeFilesystemSnapshot& image) {
-    return image.objects_for_volume_head().backing_for_volume_head();
+    return image.backing_for_volume_head();
   }
-  static NativeFilesystemSnapshot fresh(std::shared_ptr<StoreByteIo> io) {
-    return NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(std::move(io)));
+  static NativeFilesystemSnapshot fresh(std::shared_ptr<StoreByteIo> io,NativeImageStorage storage) {
+    auto view=NativeFilesystemSnapshot::open_image(std::move(io),storage);
+    // A surviving primary alone does not expose a damaged payload peer.
+    // Scrub both before comparing health or admitting a new selected image.
+    if(storage.kind==NativeImageKind::paged)view.verify_all();return view;
   }
   static void exact(const NativeFilesystemSnapshot& a,const NativeFilesystemSnapshot& b) {
     const auto x=a.storage_info(),y=b.storage_info();
@@ -174,8 +188,8 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::create(std::shared_ptr<StoreByteI
   contract(*p->owner.io);contract(*image);
   if(p->owner.io->extent())fail(Code::invalid_operation,"volume head requires a new empty backend");
   p->owner.io->admit_write(kVolumeHeadBytes);
-  bind(next,source,true);auto before=Impl::fresh(image);Impl::exact(source,before);
-  image->flush();auto after=Impl::fresh(image);Impl::exact(source,after);
+  bind(next,source,true);auto before=Impl::fresh(image,next.storage);Impl::exact(source,before);
+  image->flush();auto after=Impl::fresh(image,next.storage);Impl::exact(source,after);
   // Establish complete zero extent before the first self-contained selector.
   Bytes zeroes(kStoreCommitUnit);
   p->owner.io->write_exact(0,zeroes);p->owner.io->write_exact(kStoreCommitUnit,zeroes);
@@ -189,9 +203,13 @@ NativeVolumeHeadWriter NativeVolumeHeadWriter::resume(std::shared_ptr<StoreByteI
   if(!epoch||epoch!=current.info.selection.epoch)fail(Code::invalid_operation,"stale volume head epoch");
   auto backing=Impl::backing(image);
   if(backing==p->owner.io)fail(Code::invalid_operation,"volume head aliases image");
-  Impl::Lease image_lease(backing);contract(*backing);bind(current.info.selection,image,true);
-  auto before=Impl::fresh(backing);Impl::exact(image,before);
-  backing->flush();auto after=Impl::fresh(backing);Impl::exact(image,after);
+  Impl::Lease image_lease(backing);contract(*backing);
+  // A paged head may be resumed over independently CPU-readable degraded
+  // data solely to select a verified repaired copy. Paged writable resume
+  // still refuses lost payload replicas; no damaged source is repaired here.
+  bind(current.info.selection,image,current.info.selection.storage.kind==NativeImageKind::flat);
+  auto before=Impl::fresh(backing,current.info.selection.storage);Impl::exact(image,before);
+  backing->flush();auto after=Impl::fresh(backing,current.info.selection.storage);Impl::exact(image,after);
   p->selected=current.info.selection;p->owner.io->admit_write(kVolumeHeadBytes);
   // Repair peer FIRST, preserving the selected durable survivor.
   if(current.info.degraded)p->pair(p->selected,1-current.selected_slot);
@@ -212,20 +230,25 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
   bool mutation=false;
   try {
     p.check();contract(*source_io);contract(*target_io);p.owner.io->admit_write(kVolumeHeadBytes);
-    bind(p.selected,source,true);
+    bind(p.selected,source,p.selected.storage.kind==NativeImageKind::flat);
     const auto target_info=target.storage_info();
     if(!target_info.replicated_checkpoint||target_info.degraded_checkpoint||target_info.degraded_root)
       fail(Code::invalid_operation,"compacted target needs complete replicated metadata");
-    auto old=Impl::fresh(source_io),candidate=Impl::fresh(target_io);
+    auto old=Impl::fresh(source_io,source.image_storage()),candidate=Impl::fresh(target_io,target.image_storage());
     Impl::exact(source,old);Impl::exact(target,candidate);
+    if(candidate.storage_info().degraded_checkpoint || candidate.storage_info().degraded_root)
+      fail(Code::invalid_operation,"handoff target replicas are degraded");
     source.verify_compacted_equivalent_for_volume_head(target);
     NativeVolumeSelection next;next.volume_identity=p.selected.volume_identity;next.epoch=p.selected.epoch+1;
+    next.storage=target.image_storage();
     next.image_identity=target.identity();next.minimum_checkpoint=target.storage_info().checkpoint_generation;
     next.namespace_sequence=target.sequence();next.parent_identity=source.identity();
     next.parent_checkpoint=source.storage_info().checkpoint_generation;valid(next,Code::invalid_operation);
-    mutation=true;target_io->flush();auto checked=Impl::fresh(target_io);Impl::exact(target,checked);
+    mutation=true;target_io->flush();auto checked=Impl::fresh(target_io,next.storage);Impl::exact(target,checked);
+    if(checked.storage_info().degraded_checkpoint || checked.storage_info().degraded_root)
+      fail(Code::corrupt,"handoff target lost protection after flush");
     // Source remains unchanged and quiescent through candidate fencing.
-    auto stable_source=Impl::fresh(source_io);Impl::exact(source,stable_source);
+    auto stable_source=Impl::fresh(source_io,source.image_storage());Impl::exact(source,stable_source);
     p.pair(next);return {p.selected,false};
   }catch(const std::bad_alloc&){if(mutation)p.poisoned=true;fail(Code::limit,"volume handoff allocation failure");}
   catch(const NativeFsError& e){if(mutation||e.code()==Code::corrupt||e.code()==Code::storage_failure)p.poisoned=true;throw;}

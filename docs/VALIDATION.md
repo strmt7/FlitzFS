@@ -1,5 +1,13 @@
 # Validation ledger — experimental release 0.2
 
+## Managed paged-volume integration — 15 November 2026
+
+[Contract](MANAGED_PAGED_VOLUMES.md) and
+[source-bound receipts](evidence/managed-paged-volume-2026-11-15.json) record
+ordinary session operations, grouped data, advisory settlement, typed handoff,
+surviving-copy repair and modeled interruption recovery. This is selected local
+CPU/SDK scope, not mounted, physical, GPU or release qualification.
+
 ## Cooperative shared-base work — 15 November 2026
 
 [Contract](SHARED_BASE_GROUPS.md#cooperative-preparation-and-foreground-reconciliation)

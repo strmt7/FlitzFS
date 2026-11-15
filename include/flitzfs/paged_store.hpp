@@ -44,6 +44,8 @@ class PagedObjectStoreSnapshot final {
   void verify_all() const; // Streaming CPU scrub; potentially long, explicitly invoked.
  private:
   friend class PagedObjectStoreWriter;
+  friend class NativeFilesystemSnapshot;
+  std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   struct Impl;
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

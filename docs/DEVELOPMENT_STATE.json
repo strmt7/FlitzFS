@@ -110,7 +110,7 @@
   ],
   "next_implementation": {
     "contract": "docs/RELEASE_EXECUTION_PLAN.md",
-    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work. Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist a sparse coherence catalog, stable content generations and resumable candidate/restart progress."
+    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression. Replace complete Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist sparse coherence features, stable content generations, candidate scans and restart progress."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
@@ -127,7 +127,8 @@
     "coherence_catalog": false,
     "automatic_format_migration": false,
     "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending.",
-    "cooperative_shared_base": "Owned one-extent CPU preparation, selected-object revisions and current-namespace publication preserve unrelated writes. No automatic scheduler, persistent restart or AMD collective execution."
+    "cooperative_shared_base": "Owned one-extent CPU preparation, selected-object revisions and current-namespace publication preserve unrelated writes. No automatic scheduler, persistent restart or AMD collective execution.",
+    "managed_paged_volumes": "Explicit typed managed heads, grouped session control, advisory provenance and synchronous handoff/repair. App defaults, resource controller, automatic selection and physical qualification remain open."
   },
   "safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
@@ -1011,11 +1012,11 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
-    "Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist a sparse coherence catalog, stable content generations and resumable candidate/restart progress.",
-    "Integrate reader-safe paged handoff/reclamation and protected collective work with the shared Windows/session/helper engine. Preserve unrelated writes and decoder generations across interrupted selection and upgrade.",
-    "Evaluate shifted/fine-grained, dictionary, multi-reference and local learned candidates on held-out heterogeneous data; charge full protected images, dependencies, history and temporary space and measure random/cold access.",
-    "Implement useful finite AMD collective work and ordinary automatic Windows operation with qualified helper discovery, complete keyed costs, CPU recovery and confirmed retirement. Complete Windows semantics/app/tray/providers, historical retirement diagnosis, secure updates, compatibility, recognized benchmarks and soak. No autonomous release."
+    "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression.",
+    "Replace complete Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist sparse coherence features, stable content generations, candidate scans and restart progress.",
+    "Connect staged paged copying to reader-safe managed selection/reclamation and Windows helper/application factories; preserve contexts, owned work, source images and decoder generations through interruption and gradual upgrades.",
+    "Evaluate shifted/fine-grained, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data. Minimize complete protected stored bytes with practical random/cold access; implement useful finite AMD work and normal automatic CPU-fallback routing.",
+    "Complete Windows semantics, helper/tray/provider installation/update contracts, historical retirement diagnosis, physical backend/fault qualification, compatibility, security, recognized benchmarks and soak. No release without the owner."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1609,6 +1610,62 @@
     "driver_installed": false,
     "release": false,
     "next": "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
+    "full_goal_status": "active"
+  },
+  "managed_paged_checkpoint": {
+    "source_base": "5cb0e8c34abdefa8a7f2f2cdca763665486245a8",
+    "contract": "docs/MANAGED_PAGED_VOLUMES.md",
+    "evidence": "docs/evidence/managed-paged-volume-2026-11-15.json",
+    "status": "Explicit managed mirrored paged volumes with typed head capability 2, shared-base session control, context-preserving synchronous handoff/resume, surviving-copy repair selection and unchanged funded advisory accounting",
+    "broad_raw_suites": 102,
+    "broad_ASan_suites": 102,
+    "managed_paged_checks": 14155,
+    "handoff_fault_cases": 1146,
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "head_mutation_cuts": [
+      4,
+      4
+    ],
+    "source_mutation_cuts": [
+      0,
+      0
+    ],
+    "target_mutation_cuts": [
+      217,
+      157
+    ],
+    "malformed_head_variants": 8,
+    "populated_files_tested": 130,
+    "inventory_above_256": true,
+    "typed_reader_no_fallback": true,
+    "legacy_head_capability": 1,
+    "paged_head_capability": 2,
+    "legacy_default_unchanged": true,
+    "ordinary_contexts_preserved": true,
+    "advisory_settlement_preserved": true,
+    "spent_credit_not_reissued": true,
+    "independent_CPU_recovery": true,
+    "surviving_copy_head_repair_cases": 4,
+    "degraded_target_refusals": 4,
+    "degraded_initial_head_refusals": 4,
+    "post_scrub_health_rechecked": true,
+    "head_source_recompiled_after_restore": true,
+    "synchronous_handoff": true,
+    "advisory_credit_authorizes_data_rewrites": false,
+    "automatic_resource_controller": false,
+    "automatic_scheduler": false,
+    "persistent_coherence_catalog": false,
+    "fully_paged_namespace": false,
+    "Windows_app_default_changed": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group opportunities through managed paged sessions. The advisory journal pays only its own updates; design a separate justified data-work/write-amplification policy, prompt yield and negative-result suppression.",
     "full_goal_status": "active"
   }
 }

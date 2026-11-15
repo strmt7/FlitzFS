@@ -2,6 +2,12 @@
 
 ## Current local development
 
+[Managed paged volumes](MANAGED_PAGED_VOLUMES.md) now join protected shared-base
+data, typed volume heads, file contexts, compaction/recompression and input-funded
+advice. This removes the flat-only ownership/provenance barrier. Resource-aware
+background execution, persistent coherence/learning and ordinary useful AMD work
+remain open; helper/application defaults remain unchanged.
+
 The opt-in [mirrored-payload store](MIRRORED_PAYLOADS.md) now supplies a redundant
 foundation for native metadata/data and future decoder dependencies. CPU reads
 can use a surviving copy, and new-image rebuild restores protection. Automatic
