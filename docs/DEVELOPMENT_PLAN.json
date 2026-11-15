@@ -750,6 +750,14 @@
         "automatic": false,
         "GPU_executed": false,
         "scaling_exit_closed": false
+      },
+      "staged_shared_base_preparation": {
+        "contract": "docs/SHARED_BASE_GROUPS.md",
+        "evidence": "docs/evidence/staged-shared-base-2026-11-15.json",
+        "scope": "Cooperative CPU group preparation and foreground reconciliation; final publication remains synchronous",
+        "automatic_scheduler": false,
+        "GPU_executed": false,
+        "scaling_exit_closed": false
       }
     },
     {
@@ -1038,70 +1046,77 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "21812871786d0c68d54b60ec6bc3a44109720c66",
+    "source_base": "9b0b9841be1dda0231a7eb17a6ba93f22c6f2464",
     "contract": "docs/SHARED_BASE_GROUPS.md",
-    "evidence": "docs/evidence/shared-base-groups-2026-11-15.json",
-    "status": "Explicit native capability 3: mirrored immutable shared bases, one-level independently CPU-decoded patch members, atomic publication/private detachment and conservative complete compacted-image admission",
-    "broad_raw_suites": 100,
-    "broad_ASan_suites": 100,
-    "shared_base_checks": 12875,
-    "shared_base_fault_cases": 492,
-    "failure_units": [
+    "evidence": "docs/evidence/staged-shared-base-2026-11-15.json",
+    "status": "Owned cooperative shared-base preparation: no-I/O capture, one decoded extent per advance, selected-content/owner guards and current-namespace publication preserving unrelated commits",
+    "broad_raw_suites": 101,
+    "broad_ASan_suites": 101,
+    "staged_group_checks": 7242,
+    "staged_publication_fault_cases": 492,
+    "original_group_checks": 12875,
+    "original_group_fault_cases": 492,
+    "modeled_failure_units": [
       4096,
       65536
     ],
     "failure_modes": 3,
-    "write_barrier_cuts": [
+    "publication_cuts": [
       67,
       97
     ],
-    "malformed_stored_dependency_variants": 12,
-    "malformed_private_frame_variants": 14,
-    "layout_estimate_cases": 16,
-    "layout_estimate_maximum_records": 1926,
-    "single_base_bank_loss_repairs": 4,
-    "double_base_copy_loss_refusals": 2,
-    "live_dependency_failure_fencing_cases": 2,
-    "compacted_images": [
+    "stale_selection_cases": 15,
+    "native_members_tested": 255,
+    "step_measurements": [
       {
         "unit": 4096,
-        "before_lower": 1196032,
-        "after_upper": 286720,
-        "actual_before": 1196032,
-        "actual_after": 286720
+        "members": 8,
+        "steps": 9,
+        "maximum_step_read_bytes": 73856
       },
       {
         "unit": 65536,
-        "before_lower": 1441792,
-        "after_upper": 524288,
-        "actual_before": 1441792,
-        "actual_after": 524288
+        "members": 8,
+        "steps": 9,
+        "maximum_step_read_bytes": 73856
+      },
+      {
+        "unit": 4096,
+        "members": 255,
+        "steps": 256,
+        "maximum_step_read_bytes": 82048
       }
     ],
-    "independent_CPU_decode": true,
-    "immutable_generation_digest_binding": true,
-    "complete_size_admission": true,
-    "source_preserving_rebuild": true,
-    "synchronous_explicit_candidate": true,
-    "protected_decoder_dependencies": true,
-    "persistent_coherence_catalog": false,
+    "prepare_backing_IO": false,
+    "preparation_backing_writes": false,
+    "maximum_decoded_extents_per_advance": 1,
+    "one_pending_group_per_writer": true,
+    "unrelated_commits_preserved": true,
+    "rename_preserves_work": true,
+    "selected_changes_refuse_before_IO": true,
+    "volatile_revision_guards": true,
+    "source_owner_retirement_guard": true,
+    "private_payload_release_tested": true,
+    "current_root_complete_size_admission": true,
+    "publication_synchronous": true,
+    "persistent_restart_progress": false,
+    "automatic_scheduler": false,
     "automatic_learning": false,
-    "automatic_background_execution": false,
+    "persistent_coherence_catalog": false,
     "fully_paged_namespace": false,
-    "bounded_native_cache": false,
     "ordinary_GPU_route": false,
     "GPU_executed_this_round": false,
     "driver_installed": false,
     "release": false,
-    "next": "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes.",
+    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
     "full_goal_status": "active"
   },
   "next_product_slices": [
-    "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes.",
-    "Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist the sparse protected coherence catalog and resumable scans with unchanged-content/negative-result suppression.",
-    "Compare shifted/fine-grained, dictionary, multi-reference and learned candidates on held-out heterogeneous real data. Charge full protected images, dependencies, history and temporary space; measure random/cold retrieval and foreground interference.",
-    "Implement useful finite AMD collective work and automatic ordinary Windows operation through qualified discovery, configuration-keyed costs, CPU recovery and confirmed worker retirement. Do not repeat the unchanged negative diagnostic as product progress.",
-    "Connect offline adaptive learning, genuinely low-priority execution, repair and gradual format migration. Complete Windows semantics/helper/tray/backends, historical retirement diagnosis, security, compatibility, DiskSpd/fio/fsbench/lzbench comparisons and soak; no autonomous release."
+    "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
+    "Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist a sparse coherence catalog, stable content generations and resumable candidate/restart progress.",
+    "Integrate reader-safe paged handoff/reclamation and protected collective work with the shared Windows/session/helper engine. Preserve unrelated writes and decoder generations across interrupted selection and upgrade.",
+    "Evaluate shifted/fine-grained, dictionary, multi-reference and local learned candidates on held-out heterogeneous data; charge full protected images, dependencies, history and temporary space and measure random/cold access.",
+    "Implement useful finite AMD collective work and ordinary automatic Windows operation with qualified helper discovery, complete keyed costs, CPU recovery and confirmed retirement. Complete Windows semantics/app/tray/providers, historical retirement diagnosis, secure updates, compatibility, recognized benchmarks and soak. No autonomous release."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1647,6 +1662,65 @@
     "driver_installed": false,
     "release": false,
     "next": "Implement protected immutable cross-file group/dependency manifests and independent CPU decoding, with generation-safe publication and complete-size accounting. Connect low-priority repair/handoff to fresh resource evidence; continue bounded paged native residency and qualify actual AMD candidate work separately.",
+    "full_goal_status": "active"
+  },
+  "previous_shared_base_round": {
+    "source_base": "21812871786d0c68d54b60ec6bc3a44109720c66",
+    "contract": "docs/SHARED_BASE_GROUPS.md",
+    "evidence": "docs/evidence/shared-base-groups-2026-11-15.json",
+    "status": "Explicit native capability 3: mirrored immutable shared bases, one-level independently CPU-decoded patch members, atomic publication/private detachment and conservative complete compacted-image admission",
+    "broad_raw_suites": 100,
+    "broad_ASan_suites": 100,
+    "shared_base_checks": 12875,
+    "shared_base_fault_cases": 492,
+    "failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "write_barrier_cuts": [
+      67,
+      97
+    ],
+    "malformed_stored_dependency_variants": 12,
+    "malformed_private_frame_variants": 14,
+    "layout_estimate_cases": 16,
+    "layout_estimate_maximum_records": 1926,
+    "single_base_bank_loss_repairs": 4,
+    "double_base_copy_loss_refusals": 2,
+    "live_dependency_failure_fencing_cases": 2,
+    "compacted_images": [
+      {
+        "unit": 4096,
+        "before_lower": 1196032,
+        "after_upper": 286720,
+        "actual_before": 1196032,
+        "actual_after": 286720
+      },
+      {
+        "unit": 65536,
+        "before_lower": 1441792,
+        "after_upper": 524288,
+        "actual_before": 1441792,
+        "actual_after": 524288
+      }
+    ],
+    "independent_CPU_decode": true,
+    "immutable_generation_digest_binding": true,
+    "complete_size_admission": true,
+    "source_preserving_rebuild": true,
+    "synchronous_explicit_candidate": true,
+    "protected_decoder_dependencies": true,
+    "persistent_coherence_catalog": false,
+    "automatic_learning": false,
+    "automatic_background_execution": false,
+    "fully_paged_namespace": false,
+    "bounded_native_cache": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes.",
     "full_goal_status": "active"
   }
 }

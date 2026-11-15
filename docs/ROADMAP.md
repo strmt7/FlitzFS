@@ -12,6 +12,9 @@ protected cross-file dependencies and independently CPU-decoded patch members
 when conservative complete compacted-image bounds prove a reduction. Scalable
 candidate discovery, broader models, useful AMD work and automatic yielding
 publication/selection remain A04/S01/G02/L01 work.
+Group preparation now advances one decoded extent per opportunity and reconciles
+unrelated foreground changes at publication. Automatic contention admission,
+persistent restart and scheduling remain open; see the shared-base contract.
 
 The [staged paged candidate](STAGED_PAGED_REBUILD.md) now splits complete source/
 target verification, copying and post-publication checks into bounded steps.

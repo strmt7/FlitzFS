@@ -943,10 +943,55 @@ struct NativeFilesystemSnapshot::Impl {
   std::shared_ptr<const void> enumeration_owner=std::make_shared<const unsigned char>(0);
   explicit Impl(detail::NativeObjectSnapshot snapshot):objects(std::move(snapshot)),model(decode(objects)){}
 };
+namespace {
+struct SharedBaseOwner {
+  std::array<std::uint64_t,kStoreMaxObjects+1> revisions{};
+  std::weak_ptr<const void> active;
+};
+}
 struct NativeFilesystemWriter::Impl {
   detail::NativeObjectWriter objects;Model model;bool poisoned=false;
+  std::shared_ptr<SharedBaseOwner> shared_owner=std::make_shared<SharedBaseOwner>();
+  void remember(std::span<const StoreMutation> changes,std::uint64_t generation) noexcept {
+    for(const auto& change:changes)if(change.id>=2 && change.id<=kStoreMaxObjects)
+      shared_owner->revisions[change.id]=generation;
+  }
   Impl(detail::NativeObjectWriter writer,Model state):objects(std::move(writer)),model(std::move(state)){}
 };
+struct NativeFilesystemWriter::SharedBaseWork::Impl {
+  struct Binding {NativeExtentSelection selection;std::uint64_t object=0;};
+  std::weak_ptr<SharedBaseOwner> owner;
+  std::shared_ptr<const void> reservation;
+  std::optional<detail::NativeObjectSnapshot> source;
+  std::vector<Binding> bindings;
+  std::vector<std::uint64_t> ids;
+  std::map<std::uint64_t,std::uint64_t> revisions;
+  Model decode_model;
+  Bytes base;
+  std::vector<StoreMutation> frames;
+  std::map<std::uint64_t,detail::NativeGroupReference> references;
+  std::uint64_t base_object=0;
+  NativeSharedBaseProgress state{NativeSharedBasePhase::reading_base};
+  void retire(NativeSharedBasePhase phase) noexcept {
+    state.phase=phase;state.owned_payload_bytes=0;source.reset();reservation.reset();
+    Bytes{}.swap(base);frames.clear();references.clear();decode_model.members.clear();
+    bindings.clear();ids.clear();revisions.clear();
+  }
+};
+NativeFilesystemWriter::SharedBaseWork::SharedBaseWork(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
+NativeFilesystemWriter::SharedBaseWork::SharedBaseWork(SharedBaseWork&&) noexcept=default;
+NativeFilesystemWriter::SharedBaseWork& NativeFilesystemWriter::SharedBaseWork::operator=(SharedBaseWork&&) noexcept=default;
+NativeFilesystemWriter::SharedBaseWork::~SharedBaseWork()=default;
+NativeSharedBaseProgress NativeFilesystemWriter::SharedBaseWork::progress() const noexcept {
+  if(!impl_)return {};auto state=impl_->state;
+  if(impl_->owner.expired() && (state.phase==NativeSharedBasePhase::reading_base ||
+      state.phase==NativeSharedBasePhase::encoding_members || state.phase==NativeSharedBasePhase::ready))
+    state.phase=NativeSharedBasePhase::failed;
+  return state;
+}
+void NativeFilesystemWriter::SharedBaseWork::cancel() noexcept {
+  if(impl_ && impl_->state.phase!=NativeSharedBasePhase::completed)impl_->retire(NativeSharedBasePhase::cancelled);
+}
 void validate_native_lz4_extent_candidates(std::span<const NativeLz4ExtentCandidate> candidates) {
   admit_lz4_extent_candidates(candidates);
 }
@@ -1125,52 +1170,118 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize_storage(detail::Native
 NativeFsCommit NativeFilesystemWriter::enable_workload_accounting() {
   return transact({},InodeAction::enable_workload,0);
 }
-NativeSharedBaseCommit NativeFilesystemWriter::compress_shared_base(NativeExtentSelection base_selection,
-    std::span<const NativeExtentSelection> members) {
-  if(poisoned() || !impl_->model.shared_bases)fail(Code::invalid_operation,"shared-base work requires its explicit namespace");
+NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_base(
+    NativeExtentSelection base_selection,std::span<const NativeExtentSelection> members) {
+  if(poisoned() || !impl_->model.shared_bases || !impl_->objects.paged_if())
+    fail(Code::invalid_operation,"shared-base work requires its explicit namespace");
   if(members.size()>kNativeMaxExtents)fail(Code::limit,"shared-base selection budget");
-  auto source=checked_namespace();const auto* paged=source.paged_if();
-  if(!paged || !source.mirrored())fail(Code::invalid_operation,"shared-base dependencies require protected backing");
-  NativeSharedBaseCommit result;result.transaction.storage=source.info();result.transaction.sequence=impl_->model.sequence;
-  bool committing=false;
+  if(!impl_->shared_owner->active.expired())fail(Code::invalid_operation,"shared-base work already active");
   try {
-    auto selected_object=[&](NativeExtentSelection selected) {
-      const auto& n=selected_inode(impl_->model,selected.inode);
+    auto p=std::make_unique<SharedBaseWork::Impl>();p->owner=impl_->shared_owner;
+    p->source.emplace(impl_->objects.snapshot_for_staging());p->decode_model.shared_bases=true;
+    auto bind=[&](NativeExtentSelection selection) {
+      const auto& n=selected_inode(impl_->model,selection.inode);
       if(n.directory)fail(Code::is_directory,"shared-base selection is a directory");
-      const auto found=n.extents.find(selected.extent_index);
+      const auto found=n.extents.find(selection.extent_index);
       if(found==n.extents.end())fail(Code::not_found,"shared-base selection is a sparse/missing extent");
-      return found->second;
+      p->bindings.push_back({selection,found->second});return found->second;
     };
-    const auto base_object=selected_object(base_selection);std::set<std::uint64_t> selected{base_object};
-    for(const auto member:members)selected.insert(selected_object(member));result.members=selected.size();
-    if(selected.size()<2)return result;
+    p->base_object=bind(base_selection);std::set<std::uint64_t> ids{p->base_object};
+    for(const auto selected:members)ids.insert(bind(selected));
+    p->ids.assign(ids.begin(),ids.end());p->state.total_members=ids.size();
+    for(const auto id:ids) {
+      p->revisions.emplace(id,impl_->shared_owner->revisions[id]);
+      const auto found=impl_->model.members.find(id);
+      if(found!=impl_->model.members.end())p->decode_model.members.emplace(*found);
+    }
+    if(ids.size()<2)p->retire(NativeSharedBasePhase::declined);
+    else {
+      p->frames.reserve(ids.size());p->reservation=std::make_shared<const unsigned char>(0);
+      impl_->shared_owner->active=p->reservation;
+    }
+    return SharedBaseWork(std::move(p));
+  }catch(const std::bad_alloc&){fail(Code::limit,"shared-base preparation allocation failure");}
+}
+void NativeFilesystemWriter::check_shared_base(SharedBaseWork& work) const {
+  if(poisoned() || !work.impl_)fail(Code::invalid_operation,"invalid shared-base work/source");
+  auto& p=*work.impl_;const auto owner=p.owner.lock();
+  if(!owner || owner!=impl_->shared_owner)fail(Code::invalid_operation,"shared-base owner expired/differs");
+  if(p.state.phase==NativeSharedBasePhase::declined)return;
+  if((p.state.phase!=NativeSharedBasePhase::reading_base && p.state.phase!=NativeSharedBasePhase::encoding_members &&
+      p.state.phase!=NativeSharedBasePhase::ready) || !p.reservation || owner->active.lock()!=p.reservation)
+    fail(Code::invalid_operation,"shared-base work is terminal");
+  for(const auto& [id,revision]:p.revisions)if(owner->revisions[id]!=revision)
+    fail(Code::invalid_operation,"selected shared-base content changed");
+  for(const auto& binding:p.bindings) {
+    const auto found=impl_->model.nodes.find(binding.selection.inode);
+    if(found==impl_->model.nodes.end())fail(Code::invalid_operation,"selected shared-base inode retired");
+    const auto extent=found->second.extents.find(binding.selection.extent_index);
+    if(extent==found->second.extents.end() || extent->second!=binding.object)
+      fail(Code::invalid_operation,"selected shared-base extent changed");
+  }
+}
+bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work) {
+  auto* p=work.impl_.get();
+  try {
+    check_shared_base(work);
+    if(p->state.phase==NativeSharedBasePhase::ready || p->state.phase==NativeSharedBasePhase::declined)return true;
+    if(p->state.phase==NativeSharedBasePhase::reading_base) {
+      p->base=extent_bytes(*p->source,p->decode_model,p->base_object);
+      p->state.owned_payload_bytes=p->base.size();p->state.phase=NativeSharedBasePhase::encoding_members;return false;
+    }
+    const auto id=p->ids.at(p->state.completed_members);
+    const auto bytes=id==p->base_object?p->base:extent_bytes(*p->source,p->decode_model,id);
+    // Binding fields are private placeholders until publication against the
+    // current root. Plaintext hashes and patches do not depend on those fields.
+    auto encoded=detail::encode_native_group_member(bytes,p->base,detail::kNativeGroupBaseBit+1,1);
+    if(!encoded || p->state.owned_payload_bytes+encoded->size()+64>kStoreMaxTransactionBytes+2*kMetadataCap) {
+      p->retire(NativeSharedBasePhase::declined);return true;
+    }
+    if(detail::decode_native_group_member(*encoded,p->base)!=bytes)fail(Code::corrupt,"shared-base private CPU comparison");
+    p->references.emplace(id,group_reference(*encoded));p->state.owned_payload_bytes+=encoded->size();
+    p->frames.push_back({id,false,std::move(*encoded)});++p->state.completed_members;
+    if(p->state.completed_members==p->state.total_members)p->state.phase=NativeSharedBasePhase::ready;
+    return p->state.phase==NativeSharedBasePhase::ready;
+  }catch(const std::bad_alloc&){
+    if(p)p->retire(NativeSharedBasePhase::failed);fail(Code::limit,"shared-base step allocation failure");
+  }catch(const NativeFsError& error){
+    if(impl_ && (error.code()==Code::corrupt || error.code()==Code::storage_failure))impl_->poisoned=true;
+    if(p)p->retire(NativeSharedBasePhase::failed);throw;
+  }catch(const std::exception&){
+    if(impl_)impl_->poisoned=true;if(p)p->retire(NativeSharedBasePhase::failed);
+    fail(Code::storage_failure,"shared-base preparation read failed; recover independently");
+  }
+}
+NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork& work) {
+  auto* p=work.impl_.get();bool committing=false;
+  try {
+    check_shared_base(work);NativeSharedBaseCommit result;result.members=p->state.total_members;
+    if(p->state.phase!=NativeSharedBasePhase::ready && p->state.phase!=NativeSharedBasePhase::declined)
+      fail(Code::invalid_operation,"shared-base preparation is incomplete");
+    if(p->state.phase==NativeSharedBasePhase::declined) {
+      result.transaction.storage=impl_->objects.snapshot_for_staging().info();result.transaction.sequence=impl_->model.sequence;
+      p->retire(NativeSharedBasePhase::completed);return result;
+    }
+    auto source=checked_namespace();const auto* paged=source.paged_if();
+    if(!paged || !source.mirrored())fail(Code::invalid_operation,"shared-base dependencies require protected backing");
+    result.transaction.storage=source.info();result.transaction.sequence=impl_->model.sequence;
     if(impl_->model.sequence==(std::numeric_limits<std::uint64_t>::max)() ||
         source.info().generation>(std::numeric_limits<std::uint64_t>::max)()-2)
       fail(Code::limit,"shared-base generation exhausted");
     std::uint64_t anchor=detail::kNativeGroupBaseBit+1;
     while(impl_->model.bases.contains(anchor))++anchor;
     if(!group_base_id(anchor))fail(Code::limit,"shared-base identity exhausted");
-    const auto generation=source.info().generation+1;
-    const auto base=extent_bytes(source,impl_->model,base_object);
-    auto model=impl_->model;++model.sequence;
-    std::vector<StoreMutation> changes;changes.reserve(selected.size()+model.bases.size()+2);
-    std::uint64_t input=kNativeExtentBytes+64;
-    for(const auto id:selected) {
-      const auto bytes=extent_bytes(source,impl_->model,id);
-      auto encoded=detail::encode_native_group_member(bytes,base,anchor,generation);
-      if(!encoded)return result;
-      input+=encoded->size();if(input>kStoreMaxTransactionBytes+2*kMetadataCap)return result;
-      if(detail::decode_native_group_member(*encoded,base)!=bytes)fail(Code::corrupt,"shared-base private CPU comparison");
-      model.members[id]=group_reference(*encoded);changes.push_back({id,false,std::move(*encoded)});
+    const auto generation=source.info().generation+1;auto model=impl_->model;++model.sequence;
+    auto changes=std::move(p->frames);changes.reserve(changes.size()+model.bases.size()+2);
+    for(auto& change:changes) {
+      auto ref=p->references.at(change.id);ref.base_id=anchor;ref.base_generation=generation;
+      put(change.bytes,16,anchor,8);put(change.bytes,24,generation,8);model.members[change.id]=ref;
     }
-    refresh_group_bases(model);
-    changes.push_back({anchor,false,base});
+    refresh_group_bases(model);changes.push_back({anchor,false,std::move(p->base)});
     for(const auto old:impl_->model.bases)if(!model.bases.contains(old))changes.push_back({old,true,{}});
     changes.push_back({kNamespaceObject,false,inode_root(encode(model),true,true)});
-
-    // Source root re-encoding under a future image identity can change size.
-    // Zero root payload is a conservative BEFORE lower bound; raw changed
-    // payloads are an AFTER upper bound because the store never expands them.
+    // Compare complete compacted layouts of the CURRENT root. An unrelated
+    // foreground transaction is preserved, not overwritten by a saved Model.
     auto before=source.list(inventory_limit(model));auto after=before;
     for(auto& object:before)if(object.id==kNamespaceObject)object.stored_payload_bytes=0;
     for(const auto& change:changes) {
@@ -1183,24 +1294,34 @@ NativeSharedBaseCommit NativeFilesystemWriter::compress_shared_base(NativeExtent
     }
     result.before_compacted_lower_bound=paged->rebuilt_size(before);
     result.after_compacted_upper_bound=paged->rebuilt_size(after);
-    if(result.after_compacted_upper_bound>=result.before_compacted_lower_bound)return result;
+    if(result.after_compacted_upper_bound>=result.before_compacted_lower_bound) {
+      p->retire(NativeSharedBasePhase::completed);return result;
+    }
+    check_shared_base(work);
     if(impl_->objects.generation_for_staging()!=source.info().generation)
-      fail(Code::invalid_operation,"shared-base source generation changed");
+      fail(Code::invalid_operation,"shared-base publication root changed");
     result.transaction.sequence=model.sequence;committing=true;
     result.transaction.storage=impl_->objects.commit_replicated(changes,true,true);
-    impl_->model=std::move(model);result.applied=true;return result;
-  }catch(const std::bad_alloc&) {
-    if(committing && impl_->objects.poisoned())impl_->poisoned=true;
-    fail(Code::limit,"shared-base preparation allocation failure");
+    impl_->remember(changes,result.transaction.storage.generation);impl_->model=std::move(model);
+    result.applied=true;p->retire(NativeSharedBasePhase::completed);return result;
+  }catch(const std::bad_alloc&){
+    if(committing && impl_ && impl_->objects.poisoned())impl_->poisoned=true;
+    if(p)p->retire(NativeSharedBasePhase::failed);fail(Code::limit,"shared-base publication allocation failure");
   }catch(const NativeFsError& error){
-    if(error.code()==Code::corrupt || (error.code()==Code::storage_failure && (!committing || impl_->objects.poisoned())))
+    if(impl_ && (error.code()==Code::corrupt || (error.code()==Code::storage_failure && (!committing || impl_->objects.poisoned()))))
       impl_->poisoned=true;
-    throw;
-  }catch(const std::exception&) {
-    if(!committing || impl_->objects.poisoned())impl_->poisoned=true;
-    fail(Code::storage_failure,"shared-base transaction failed; recover independently");
+    if(p)p->retire(NativeSharedBasePhase::failed);throw;
+  }catch(const std::exception&){
+    if(impl_ && (!committing || impl_->objects.poisoned()))impl_->poisoned=true;
+    if(p)p->retire(NativeSharedBasePhase::failed);fail(Code::storage_failure,"shared-base transaction failed; recover independently");
   }
 }
+NativeSharedBaseCommit NativeFilesystemWriter::compress_shared_base(NativeExtentSelection base,
+    std::span<const NativeExtentSelection> members) {
+  auto work=prepare_shared_base(base,members);while(!advance_shared_base(work)){}
+  return finish_shared_base(work);
+}
+
 NativeFsCommit NativeFilesystemWriter::coalesce_equal_extents() {
   return transact({},InodeAction::coalesce_extents,0);
 }
@@ -1562,6 +1683,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       if(impl_->objects.poisoned())impl_->poisoned=true;
       fail(Code::storage_failure,"native transaction storage commit failed");
     }
+    impl_->remember(changes,result.storage.generation);
     impl_->model=std::move(stage.model);
     if(published)*published=info;
     if(allocation)*allocation=allocation_info;

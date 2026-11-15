@@ -149,6 +149,12 @@ struct NativeSharedBaseCommit {
   std::uint64_t before_compacted_lower_bound=0,after_compacted_upper_bound=0;
   std::size_t members=0;
 };
+enum class NativeSharedBasePhase {reading_base,encoding_members,ready,declined,completed,cancelled,failed};
+struct NativeSharedBaseProgress {
+  NativeSharedBasePhase phase=NativeSharedBasePhase::failed;
+  std::size_t completed_members=0,total_members=0;
+  std::uint64_t owned_payload_bytes=0;
+};
 
 struct NativeInodeWriteCommit {
   NativeFsCommit transaction;
@@ -268,6 +274,7 @@ class NativeFilesystemSnapshot final {
 
 class NativeFilesystemWriter final {
  public:
+  class SharedBaseWork;
   // A NEW empty generation-zero object store only. Never reinterprets existing objects.
   static NativeFilesystemWriter initialize(ObjectStoreWriter objects);
   // Explicitly opt into a NEW empty paged store (initial publication generation
@@ -290,6 +297,14 @@ class NativeFilesystemWriter final {
   // compacted-image bounds prove a reduction. Existing frontend limits remain.
   NativeSharedBaseCommit compress_shared_base(NativeExtentSelection base,
       std::span<const NativeExtentSelection> members);
+  // Cooperative CPU preparation. No backing I/O at prepare; one decoded
+  // extent per advance. Only selected-content changes invalidate the work.
+  // Finish reconciles the current bounded namespace and atomically publishes;
+  // its existing storage transaction/barriers are synchronous. No scheduler.
+  SharedBaseWork prepare_shared_base(NativeExtentSelection base,
+      std::span<const NativeExtentSelection> members);
+  bool advance_shared_base(SharedBaseWork&); // True when ready or declined.
+  NativeSharedBaseCommit finish_shared_base(SharedBaseWork&);
   // Explicit sticky namespace capability; legacy initialization is unchanged.
   // Start at zero without crediting old files. Commit through the same
   // replicated metadata transaction. Repeated enable never resets the count.
@@ -479,6 +494,7 @@ class NativeFilesystemWriter final {
   static bool advance_recompression(Recompression&,std::uint64_t,std::span<const StoreMatchProposal>);
   static void finish_recompression(Recompression&);
   struct Impl;
+  void check_shared_base(SharedBaseWork&) const;
   detail::NativeObjectSnapshot checked_namespace() const;
   enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
@@ -496,6 +512,19 @@ class NativeFilesystemWriter final {
       bool indexed_names=false,bool shared_bases=false);
   static NativeFilesystemWriter resume_impl(detail::NativeObjectWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
+  std::unique_ptr<Impl> impl_;
+};
+class NativeFilesystemWriter::SharedBaseWork final {
+ public:
+  SharedBaseWork(SharedBaseWork&&) noexcept;
+  SharedBaseWork& operator=(SharedBaseWork&&) noexcept;
+  ~SharedBaseWork();
+  NativeSharedBaseProgress progress() const noexcept;
+  void cancel() noexcept;
+ private:
+  friend class NativeFilesystemWriter;
+  struct Impl;
+  explicit SharedBaseWork(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
 }

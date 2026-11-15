@@ -22,9 +22,11 @@ mechanism still need implementation and measurement.
 [Protected shared-base groups](SHARED_BASE_GROUPS.md) add an explicit cross-file
 CPU representation with immutable mirrored dependencies and conservative complete
 compacted-image admission. This is a tested position-aligned baseline; automatic
-learning, yielding group preparation, stronger models, AMD acceleration and
+learning, contention-aware scheduling, stronger models, AMD acceleration and
 representative access/size comparisons remain open. The release effort range
 has not been recalibrated from this small implementation slice.
+Preparation now yields between decoded extents and preserves unrelated commits;
+publication remains synchronous and restart progress is volatile.
 
 The explicit [paged native backend](NATIVE_PAGED_BACKEND.md) connects native
 operations and sessions to paged object storage through the shared engine.

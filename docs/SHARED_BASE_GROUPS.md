@@ -104,9 +104,54 @@ representation; native file sizes describe plaintext. Neither is full image size
 The current native frontend still admits 256 nodes, 255 extents and 64-KiB
 normalized metadata, with complete Model residency. Shared namespaces privately
 admit at most 1,024 mutations and 4 MiB + 128 KiB input; public paged transactions
-remain 256 operations/4 MiB. Candidate work is synchronous and explicitly invoked.
-It is not yet a yielding/adaptive background task. These prototype bounds are
-not intended group or volume limits for the finished filesystem.
+remain 256 operations/4 MiB. The synchronous wrapper uses the cooperative engine
+below. These prototype bounds are not intended group or volume limits for the
+finished filesystem.
+
+## Cooperative preparation and foreground reconciliation
+
+`prepare_shared_base` creates an owned `SharedBaseWork` from cached selections
+and an immutable source root, with no backing I/O. One pending group per native
+writer is admitted; this reservation is separate from the paged-rebuild candidate.
+All calls are serialized on the existing control thread. No thread, timer,
+service or automatic GPU work is created.
+
+Each `advance_shared_base` either decodes the base or independently encodes and
+CPU-compares one member. The caller can yield between every step. Encoding an
+already grouped extent may also read its one-level dependency; this is a bound
+on decoded extents, not a promise of one backend read. Preparation writes no
+backing bytes. `progress()` reports phase, completed/total members and owned
+payload bytes; that last counter excludes allocator, index, transient decoder
+and process overhead and is not a host-memory measurement.
+
+Private member frames initially use placeholder binding fields. At finish,
+only the anchor ID and generation fields are rebound to the current transaction;
+the independently verified patch/plaintext hashes remain unchanged. Placeholder
+frames never become visible as stored members. No persisted encoding changes.
+
+A weak owner identity survives writer/work moves but cannot revive after writer
+retirement or reopening. Volatile per-data-object revision stamps and cached
+inode/extent bindings reject changed, removed or reused selections before I/O.
+Unrelated commits, selected-file renames and an exact content reversion within
+one atomic transaction need not discard prepared work. Separate committed writes
+followed by a reversion still invalidate it. Every successful native data mutation
+updates these stamps; they are preparation guards, not persistent content metadata.
+
+`finish_shared_base` reconciles the **current** bounded namespace and complete
+compacted-size bounds, then uses the existing atomic storage transaction. It
+preserves unrelated acknowledged writes, current metadata and workload accounting.
+It does not redo full member decompression, but namespace checking, bounded
+inventory/layout accounting, record encoding/readback and commit barriers remain
+synchronous. Neither bounded-work steps nor OS priority guarantee a wall-clock
+deadline or absence of foreground interference.
+
+Cancellation/destruction releases private payloads, source ownership and the group
+reservation. Stale/foreign/incomplete attempts terminate without publication;
+integrity/I/O failures fence the source writer. Duplicate work refuses before I/O.
+An expired owner reports failed work; the caller still cancels/destroys its owned
+work object to retire retained private resources. A completed operation cannot
+publish twice. This is a cooperative primitive, not an autonomous scheduler,
+durable restart journal, scalable coherence catalog or active-volume handoff.
 
 ## Evidence and next work
 
@@ -117,6 +162,12 @@ Fixtures are synthetic related aligned extents and unrelated/dense rejection
 cases. They establish neither representative compression ratios nor throughput,
 latency, GPU benefit, mounted safety or superiority over other filesystems.
 
+The subsequent [staged-work validation](evidence/staged-shared-base-2026-11-15.json)
+qualifies the cooperative API, foreground reconciliation, stale/owner/cancel
+guards, private budget refusal and interruption recovery separately from the
+original representation. The 255-member case exercises the current native
+frontend boundary; it is not a million-file or permanent group-limit result.
+
 Current primary-source review of
 [Zstandard's dictionary contract](https://github.com/meta/zstd/blob/dev/lib/zstd.h)
 confirmed the need for identical immutable decoding dependencies. The API receipt
@@ -125,7 +176,8 @@ implementation does not call a Zstandard dictionary API or claim a novel patch
 algorithm. Failed old-repository API reads and the canonical `meta/zstd` redirect
 are retained in the evidence, rather than counted as successful source review.
 
-Next: resumable candidate preparation and protected paged coherence metadata;
+Next: fresh contention/resource admission, durable restart progress and protected
+paged coherence metadata;
 evaluate shifted/fine-grained, dictionary, multi-reference and learned candidates
 on held-out heterogeneous data; implement useful finite AMD work and ordinary
 Windows routing; connect contention-aware learning, reader-safe selection and

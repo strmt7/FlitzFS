@@ -1,5 +1,12 @@
 # Validation ledger — experimental release 0.2
 
+## Cooperative shared-base work — 15 November 2026
+
+[Contract](SHARED_BASE_GROUPS.md#cooperative-preparation-and-foreground-reconciliation)
+and [source-bound receipts](evidence/staged-shared-base-2026-11-15.json) separate
+one-extent preparation, unrelated-write reconciliation and modeled publication
+recovery from automatic scheduling, GPU execution and physical durability.
+
 ## Protected shared-base checkpoint — 15 November 2026
 
 [Contract](SHARED_BASE_GROUPS.md) and

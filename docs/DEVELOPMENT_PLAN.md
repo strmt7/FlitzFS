@@ -50,7 +50,10 @@ space overhead; automatic repair and physical fault qualification remain open.
 The explicit [shared-base extension](SHARED_BASE_GROUPS.md) now supplies protected
 one-level dependencies, independent CPU decoding and complete compacted-size
 admission. It is a position-aligned baseline, not learned or GPU compression.
-Next persist sparse candidate scans, prepare groups incrementally and compare
+Group preparation now advances one decoded extent at a time and reconciles
+unrelated writes while rejecting changed selections before I/O. Automatic
+admission, scheduling and durable restart remain open. Next persist sparse
+candidate scans and compare
 stronger representations on held-out mixed data. Couple the collective
 representation to finite AMD work amortization, independent CPU recovery and
 useful ordinary Windows routing;

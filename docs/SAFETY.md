@@ -11,7 +11,11 @@ physical power-loss qualification; native mounted integration remains separate.
 [Shared-base groups](SHARED_BASE_GROUPS.md) require mirrored immutable decoder
 dependencies, exact generation/hash binding, one-level CPU decoding and atomic
 publication. Complete-size bounds include protection, headers/indexes and padding.
-The explicit synchronous candidate is not an automatic background task. Known
+The [cooperative preparation API](SHARED_BASE_GROUPS.md#cooperative-preparation-and-foreground-reconciliation)
+checks owner, selected bindings and data revisions before each step. Unrelated
+commits are reconciled into the current namespace; changed selections refuse
+before I/O. Final publication remains synchronous, not an automatic background
+task or a wall-clock bound. Known
 loss of both base copies rejects exposure; no arbitrary-failure guarantee follows.
 
 [Mirrored paged payloads](MIRRORED_PAYLOADS.md) optionally isolate two record

@@ -10,6 +10,9 @@ Assessment: 15 November 2026. Reviewed local source:
 [payload mirroring](MIRRORED_PAYLOADS.md) and
 [shared-base groups](SHARED_BASE_GROUPS.md) are traced separately; the
 paged namespace work and release gates remain open. The full product goal remains active.
+Shared-base preparation now yields by decoded extent and reconciles unrelated
+foreground commits; its final storage publication is still synchronous. This
+does not close E04/E06/E07 or reduce the uncalibrated effort estimate below.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,
 not competing instructions to repeat completed experiments.

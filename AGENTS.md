@@ -159,6 +159,11 @@ from essential decoder state. Make maintenance automatically responsive to
 workload/content and fresh contention, very low priority, incremental, bounded
 and promptly yielding. Mutable learned preferences never override safety gates.
 
+Cooperative shared-base work uses cached per-data-object revisions and immutable
+source ownership. Every native data publication/removal must update its guards;
+test selected-content invalidation before I/O and unrelated-write reconciliation.
+Preparation steps are not an automatic scheduler or a nonblocking commit.
+
 The owner's coherence-catalog clarification requires a persistent sparse,
 paged similarity/candidate index in a protected internal logical area, not a
 dense all-pairs file matrix or another host partition. Final learning/inference

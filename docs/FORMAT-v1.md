@@ -21,6 +21,8 @@ The separately selected [native capability 3](SHARED_BASE_GROUPS.md) adds
 The current reader still accepts earlier images. This leaves paged
 record codecs, earlier native encodings and this chunk container unchanged.
 Older readers reject the new native capability rather than reinterpret it.
+Cooperative group preparation adds only volatile owner/revision/progress state;
+it publishes the same member bytes and introduces no stored journal or version.
 
 The native filesystem's separate [format-7 shared-extent namespace](SHARED_EXTENTS.md)
 extends native object references with exact sharing/private updates. It does not

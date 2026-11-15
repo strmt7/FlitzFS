@@ -110,7 +110,7 @@
   ],
   "next_implementation": {
     "contract": "docs/RELEASE_EXECUTION_PLAN.md",
-    "next": "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes. Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist the sparse protected coherence catalog and resumable scans with unchanged-content/negative-result suppression."
+    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work. Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist a sparse coherence catalog, stable content generations and resumable candidate/restart progress."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
@@ -126,7 +126,8 @@
     "gpu_codec_candidate": "Uniform version-2 typed runtime, finite reused compute and FLUSP001 observations passed full SDK/all 13 core jobs at 11fbf07, then one bounded hardware/native/independent-CPU-recovery check. Cost qualification, ordinary Windows routing and collective GPU formats remain unfinished.",
     "coherence_catalog": false,
     "automatic_format_migration": false,
-    "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending."
+    "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending.",
+    "cooperative_shared_base": "Owned one-extent CPU preparation, selected-object revisions and current-namespace publication preserve unrelated writes. No automatic scheduler, persistent restart or AMD collective execution."
   },
   "safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
@@ -1010,11 +1011,11 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes.",
-    "Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist the sparse protected coherence catalog and resumable scans with unchanged-content/negative-result suppression.",
-    "Compare shifted/fine-grained, dictionary, multi-reference and learned candidates on held-out heterogeneous real data. Charge full protected images, dependencies, history and temporary space; measure random/cold retrieval and foreground interference.",
-    "Implement useful finite AMD collective work and automatic ordinary Windows operation through qualified discovery, configuration-keyed costs, CPU recovery and confirmed worker retirement. Do not repeat the unchanged negative diagnostic as product progress.",
-    "Connect offline adaptive learning, genuinely low-priority execution, repair and gradual format migration. Complete Windows semantics/helper/tray/backends, historical retirement diagnosis, security, compatibility, DiskSpd/fio/fsbench/lzbench comparisons and soak; no autonomous release."
+    "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
+    "Replace complete native Model residency and whole directory objects with split paged name/inode/extent access and bounded caches. Persist a sparse coherence catalog, stable content generations and resumable candidate/restart progress.",
+    "Integrate reader-safe paged handoff/reclamation and protected collective work with the shared Windows/session/helper engine. Preserve unrelated writes and decoder generations across interrupted selection and upgrade.",
+    "Evaluate shifted/fine-grained, dictionary, multi-reference and local learned candidates on held-out heterogeneous data; charge full protected images, dependencies, history and temporary space and measure random/cold access.",
+    "Implement useful finite AMD collective work and ordinary automatic Windows operation with qualified helper discovery, complete keyed costs, CPU recovery and confirmed retirement. Complete Windows semantics/app/tray/providers, historical retirement diagnosis, secure updates, compatibility, recognized benchmarks and soak. No autonomous release."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1542,6 +1543,72 @@
     "driver_installed": false,
     "release": false,
     "next": "Make shared-base preparation incremental and contention-admitted, with stable content-generation selection and cancellation; connect reader-safe paged handoff/reclamation instead of repeatedly rebuilding on unrelated writes.",
+    "full_goal_status": "active"
+  },
+  "staged_shared_base_checkpoint": {
+    "source_base": "9b0b9841be1dda0231a7eb17a6ba93f22c6f2464",
+    "contract": "docs/SHARED_BASE_GROUPS.md",
+    "evidence": "docs/evidence/staged-shared-base-2026-11-15.json",
+    "status": "Owned cooperative shared-base preparation: no-I/O capture, one decoded extent per advance, selected-content/owner guards and current-namespace publication preserving unrelated commits",
+    "broad_raw_suites": 101,
+    "broad_ASan_suites": 101,
+    "staged_group_checks": 7242,
+    "staged_publication_fault_cases": 492,
+    "original_group_checks": 12875,
+    "original_group_fault_cases": 492,
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "publication_cuts": [
+      67,
+      97
+    ],
+    "stale_selection_cases": 15,
+    "native_members_tested": 255,
+    "step_measurements": [
+      {
+        "unit": 4096,
+        "members": 8,
+        "steps": 9,
+        "maximum_step_read_bytes": 73856
+      },
+      {
+        "unit": 65536,
+        "members": 8,
+        "steps": 9,
+        "maximum_step_read_bytes": 73856
+      },
+      {
+        "unit": 4096,
+        "members": 255,
+        "steps": 256,
+        "maximum_step_read_bytes": 82048
+      }
+    ],
+    "prepare_backing_IO": false,
+    "preparation_backing_writes": false,
+    "maximum_decoded_extents_per_advance": 1,
+    "one_pending_group_per_writer": true,
+    "unrelated_commits_preserved": true,
+    "rename_preserves_work": true,
+    "selected_changes_refuse_before_IO": true,
+    "volatile_revision_guards": true,
+    "source_owner_retirement_guard": true,
+    "private_payload_release_tested": true,
+    "current_root_complete_size_admission": true,
+    "publication_synchronous": true,
+    "persistent_restart_progress": false,
+    "automatic_scheduler": false,
+    "automatic_learning": false,
+    "persistent_coherence_catalog": false,
+    "fully_paged_namespace": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Connect fresh host-adaptive contention/resource grants to cooperative group steps and the existing persistent advisory funding path. Measure foreground interference; keep publication barriers explicit, yield promptly and suppress repeated negative work.",
     "full_goal_status": "active"
   }
 }
