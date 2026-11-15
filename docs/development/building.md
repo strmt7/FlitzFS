@@ -2,9 +2,11 @@
 
 [Developer guide](README.md) · [Safety contract](../SAFETY.md)
 
-Use a disposable development VM for builds and testing. Read the safety and
-component contracts before enabling optional integrations. The owner's existing
-data, drivers, system configuration and running applications must remain protected.
+Develop, build and run safe tests locally. The owner deleted the blanket
+off-host and VM-first restrictions on 15 November 2026. Use disposable VMs for
+operations that could destabilize or change the host, and CI for complementary
+platform checks. Read the safety/component contracts before optional integrations;
+preserve existing data, drivers, system configuration and other applications.
 
 ## Ordinary CPU build
 
@@ -13,11 +15,26 @@ unless explicitly required. Configuration installs nothing.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release --parallel 2
-ctest --test-dir build -C Release --output-on-failure --timeout 45 --parallel 1
+cmake --build build --config Release --parallel 2 --target flitzfs_native_filesystem_tests flitzfs_native_shared_extent_tests
+ctest --test-dir build -C Release -R '^bounded_native_(filesystem|shared_extents)$' --output-on-failure --timeout 45 --parallel 1
 ```
 
-These are ordinary CPU checks. GPU and mount probes remain opt-in and are not
+These selected CPU suites use in-memory filesystem models. The full CTest suite
+also contains ordinary-file fixtures; run those only with backing that meets
+the experiment's requirements, or on a disposable system where permitted.
+Use [the local host guide](../HOST_RAM_TESTING.md) and
+`tools/dev/windows_run.py` for resource-bounded Windows process-tree execution.
+Discover available tools and size build concurrency from actual headroom;
+the example's parallelism is not a host or product assumption.
+
+MSVC C++ targets explicitly enable `/EHsc`; writer leases and rollback require
+exception unwinding. Custom `CMAKE_CXX_FLAGS`, including sanitizer flags, must
+preserve that behavior. The store fails compilation when unwinding is disabled.
+Local AddressSanitizer checks use the installed matching user-mode runtime,
+finite process-tree supervision and appropriate in-memory suites. A sanitizer
+pass is scoped to the instrumented configuration and executed checks.
+
+GPU and mount probes remain opt-in and are not
 ordinary CTest operations. A successful base build does not qualify an optional
 application, driver-backed mount or GPU runtime path.
 
@@ -33,9 +50,9 @@ application, driver-backed mount or GPU runtime path.
 | Owned deferred writes | [Ownership and completion](../OWNED_DEFERRED_WRITES.md) |
 
 SDK staging and driver provisioning described for disposable hosted runners
-are not owner-PC installation instructions. Keep process-tree budgets, fresh
+are not automatic local driver-installation instructions. Keep process-tree budgets, fresh
 headroom admission and confirmed resource retirement in every authorized live
-harness. Do not run a generic executable outside its qualified supervisor.
+harness. Safe local builds and their supervised tests need no prior hosted run.
 
 ## Verification and provenance
 

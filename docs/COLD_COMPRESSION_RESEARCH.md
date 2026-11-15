@@ -59,6 +59,27 @@ collective/learned encoders.
 
 ## Transparent cross-file grouping
 
+The owner's 15 November clarification makes millions of files a scalability
+target and allows groups of one, two or thousands of files. Group size is a
+measured optimization choice, with minimum total storage and practical latency
+as its acceptance criteria. The 64-KiB exact-deduplication unit is not a group-
+size or file-count limit.
+
+Separate group membership/model scope from retrieval units and restart points.
+A large group may share a dictionary, model or immutable bases while individually
+indexed units bound small-read work. Charge those indexes/checkpoints and the
+required protected dependencies to total storage. Choose their spacing from
+measured cold/random access, avoiding an entire-group decode for a small request
+unless its measured access cost is acceptable for that workload.
+
+Use paged namespace/content indexes and a persistent incremental scan cursor.
+Discover candidates through bounded similarity-index queries rather than an
+all-pairs search or a RAM-resident list of the whole filesystem. Track stable
+file/content generations, invalidate changed candidates, checkpoint progress and
+resume after restart. Fresh contention admission and prompt foreground yield
+apply to every scan/grouping/encoding increment, including GPU work. Current
+flat-store prototype limits need a scalable replacement, not larger constants.
+
 CPU-only degraded operation may be slower; encoder, size and performance parity
 are not requirements. Decode must be self-contained without GPU, its runtime,
 a network service or a separately fetched model, with bounded resources and

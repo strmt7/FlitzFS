@@ -26,7 +26,8 @@ shutdown; the engine cannot promise a stamp for a callback never delivered.
 These sources justify the explicit requested-effects bridge. They do not
 qualify all Windows timestamp policy. In particular, actual Windows per-open
 SetFileTime -1/-2 suppression/restoration, cached/mapped writes and delivery
-during cancellation/shutdown require an off-host writable conformance fixture.
+during cancellation/shutdown require an isolated writable conformance fixture,
+run locally when host-safe or in a disposable VM when it could destabilize Windows.
 No new kernel implementation or Windows security rollback follows.
 
 ## One durable operation

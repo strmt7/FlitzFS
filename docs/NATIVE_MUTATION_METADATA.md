@@ -98,7 +98,7 @@ Configured checks require exact-commit executed evidence before passing claims.
 The existing metadata/legacy process-kill, sanitizer, CPU/reference, relocated
 package and read-only mount lanes remain required. Modeled faults and real
 process kills are not physical power-cut proof. Windows Server tests are not
-Windows 11 client qualification. Owner-PC execution remains prohibited.
+Windows 11 client qualification. Local execution follows HOST_RAM_TESTING.md.
 
 ## Remaining product work
 

@@ -1,5 +1,9 @@
 # `.flfs` v1 experimental chunk container
 
+The native filesystem's separate [format-7 shared-extent namespace](SHARED_EXTENTS.md)
+extends native object references with exact sharing/private updates. It does not
+change this chunk-container format or the object-store record codecs.
+
 ## Controlled write reused-dispatch candidate
 
 [NATIVE_UNIFORM_WRITE.md](NATIVE_UNIFORM_WRITE.md) describes optional canonical

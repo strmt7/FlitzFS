@@ -64,7 +64,7 @@ HTML with bounded parsing/logging. Missing metadata is explicit. Every such
 metadata record keeps revision_verified=false: a publisher field alone does
 not prove a recent compatible contract. Fetch time and content revision must
 not be conflated. No results from this newly configured campaign are claimed
-here before the exact hosted job is inspected.
+here before the exact source-bound local or hosted execution record is inspected.
 
 Current-served pages with old revision dates may supply navigation/background.
 Important behavior changes must be bound to recent reputable primary source

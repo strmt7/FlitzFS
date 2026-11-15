@@ -85,6 +85,21 @@ collective compression. It does not justify a calendar estimate or percentage.
 
 ## Product gaps and release gates
 
+The local implementation round adds explicit exact shared extents with private
+updates, legacy-format rejection and independent CPU reads. The existing native
+suite and new sharing suite pass in raw-only Release and MSVC AddressSanitizer
+configurations. Two equal 64-KiB files occupy a 393,216-byte freshly compacted
+image versus 458,752 bytes for the unshared control. That complete-image saving
+is specific to this duplicate fixture; both images exceed the 131,072-byte input.
+It does not demonstrate learned/extreme compression or a GPU benefit.
+[Local scope and retained failures](evidence/local-native-shared-minimum-2026-11-15.json).
+
+The required scale is millions of files with persistent incremental scanning
+and paged metadata/content indices. Groups may contain one, two or thousands of
+files, with separately indexed retrieval units and practical measured latency.
+The current flat-store limits still need replacement. These requirements keep
+the project substantially short of release readiness.
+
 | Area | Current position | Required exit |
 |---|---|---|
 | Ordinary Windows GPU I/O | Three unmounted GPU requests in a matched six-request series passed; real CPU-only mounted responses passed separately; automatic activation remains absent | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |

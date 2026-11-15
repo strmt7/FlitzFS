@@ -10,6 +10,10 @@
 #include <string>
 #include <utility>
 
+#if defined(_MSC_VER) && !defined(_CPPUNWIND)
+#error "FlitzFS requires C++ exception unwinding (/EHsc); writer leases and rollback depend on it."
+#endif
+
 namespace flitzfs {
 bool valid_store_io_contract(StoreIoContract c) noexcept {
   const auto n=c.write_failure_unit_bytes;

@@ -2,6 +2,14 @@
 
 Compression priority: minimize total stored size, including shared models and indexes, subject to practical retrieval latency/speed. Moderate read penalties are acceptable; cold recompression need not be faster than conventional codecs. Do not confuse bounded experiment allocations with permanent compression-group limits.
 
+The owner's 15 November scale/group clarification targets millions of files,
+paged metadata and content indexes, persistent incremental scanning and bounded
+candidate queries. Compression groups may contain one, two or thousands of files.
+Optimize membership and representation for total stored bytes and practical
+observed access costs; use separately indexed decode units/checkpoints within
+large groups. Whole-volume residency and quadratic all-pairs scans cannot meet
+this target. Existing flat-store limits remain prototype constraints to replace.
+
 The owner's background-compression direction is specified in [COLD_COMPRESSION_RESEARCH.md](COLD_COMPRESSION_RESEARCH.md): GPU-supported collective/learned or experimentally justified novel compression, separate from fast ingestion, with exact CPU-readable recovery and bounded access costs.
 
 [Release-readiness checkpoint](RELEASE_READINESS.md): the project is an experimental prototype. Actual useful GPU compression with CPU fallback is mandatory. Prioritize the complete Windows/GPU/native-storage/readback/failure path; isolated checks alone do not satisfy the product goal.

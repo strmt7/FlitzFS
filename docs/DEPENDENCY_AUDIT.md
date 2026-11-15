@@ -56,7 +56,8 @@ remain open. No owner-PC tool is installed or changed.
 
 The shared CocoIndex registration belongs to another repository and must not be
 used or altered. This audit reads exact known build/workflow/dependency scopes;
-restore an isolated off-host provider before new broad/fuzzy repository searches.
+restore an isolated source-bound provider before new broad/fuzzy searches.
+Local provider execution is authorized; never change the shared registration.
 
 ## Current build-tool/source-codec upgrade
 

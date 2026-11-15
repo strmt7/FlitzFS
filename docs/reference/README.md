@@ -12,6 +12,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Persistence model](../PERSISTENCE_MODEL.md), [replicated checkpoints](../REPLICATED_CHECKPOINTS.md), [volume head](../VOLUME_HEAD.md)
 - [Managed sessions](../VOLUME_SESSION.md), [compaction](../COMPACTED_COPY.md), [recompression](../RECOMPRESSION.md)
 - [Resilient store design](../RESILIENT_STORE_DESIGN.md)
+- [Exact shared extents and private updates](../SHARED_EXTENTS.md)
 
 ## Windows integration
 

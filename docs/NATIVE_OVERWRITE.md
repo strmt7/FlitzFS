@@ -130,7 +130,7 @@ All old tests, process campaigns and the 45-second per-group ceiling remain.
 Configured groups need inspected exact-commit execution before passing claims.
 Modeled RAM failures and old termination campaigns are not new overwrite/NS04
 writer-kill proof, physical power cuts, writable mounting or Windows 11 client
-qualification. Owner-PC execution remains forbidden.
+qualification. Local execution follows HOST_RAM_TESTING.md.
 
 Production capacity/indexing/reclaim, live AMD/CPU recovery integration,
 redundant payload repair, bounded automatic learning and representative

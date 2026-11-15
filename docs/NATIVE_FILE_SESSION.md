@@ -165,7 +165,7 @@ session processes (180 seconds), within the unchanged hosted job budget.
 Actual total work is unchanged by splitting; no fault points are dropped.
 
 Native namespace, object, dirty-buffer, input/read, decoded-live and physical
-history caps remain. All builds/tests stay on disposable hosted VMs. Configured
+history caps remain. Safe builds/tests run locally under the current host policy. Configured
 checks are not passing results until exact-commit CI and complete receipts are
 inspected. Mounted writes, actual Windows handle/ACL/share/cache behavior,
 latest Windows 11 client, physical power cuts and live AMD qualification

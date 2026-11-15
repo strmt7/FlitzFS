@@ -1,5 +1,17 @@
 # Development gates and acceptance criteria
 
+## Current local development
+
+The owner's 15 November 2026 direction deletes blanket off-host/GitHub-only and
+mandatory VM-first restrictions. Use local builds, research and host-safe
+CPU/GPU/GUI tests; reserve VMs for unavailable platforms and operations that
+could destabilize or change the host. See [the host guide](HOST_RAM_TESTING.md).
+
+The explicit [shared-extent primitive](SHARED_EXTENTS.md) adds exact cross-file
+and same-file deduplication with independent CPU reading, transactional references
+and private updates. It is not automatic learned grouping, a scalable index,
+payload repair or the required deeper GPU-supported collective codec.
+
 ## Controlled write reused-dispatch candidate
 
 [NATIVE_UNIFORM_WRITE.md](NATIVE_UNIFORM_WRITE.md) describes optional canonical
@@ -132,7 +144,8 @@ PERSISTENCE_MODEL.md defines a test-only commit-persistence experiment. It
 evaluates recovery obligations separately from the bounded object engine;
 M6 remains incomplete. Ordinary-file I/O, namespace durability, integrity, independent
 recovery and fault-injected writable qualification remain required. The native
-research provider now runs in a bounded isolated hosted VM, never on the owner PC.
+research provider may run locally with reviewed isolation, source receipts and
+resource bounds, or in hosted CI when appropriate.
 
 ## Concrete transaction engine gate
 

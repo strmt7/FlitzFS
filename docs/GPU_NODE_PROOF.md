@@ -45,7 +45,7 @@ retry a runtime or establish that a failing driver has recovered. Runtime,
 worker/policy and OS evidence must stay bound in any future recovery identity.
 No topology proof is persisted or reused across workers.
 
-## Explicit diagnostics and VM-first qualification
+## Explicit diagnostics and source-bound qualification
 
 --inspect-adapter-topology LUID performs this OS-only metadata query under the
 parent resource job and outer watchdog. It never initializes HIP. Its report

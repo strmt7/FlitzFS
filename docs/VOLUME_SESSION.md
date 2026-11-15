@@ -101,8 +101,8 @@ older tests. Inspect exact-commit execution; configuration is not a pass.
 The locked-RAM Windows probe now drives public managed-session create, per-file
 writes, retained-context reads, handoff, independent CPU selection, real Flush
 and actual Cleanup/Close. It keeps the SAME 40-MiB locked/128-MiB child/20%-CPU/
-15-second caps. Do not run a changed binary on the owner PC before its own VM
-qualification. Model flushes remain volatile RAM checkpoints, not physical
+15-second caps. Changed binaries need source-bound qualification; safe local
+execution is authorized without a mandatory prior VM run. Model flushes remain volatile RAM checkpoints, not physical
 power-loss evidence. Ordinary CLI/callback defaults still select no managed
 maintenance or GPU path.
 

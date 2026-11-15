@@ -48,8 +48,9 @@ exact retirement. A compiler-only check is not GPU execution or a speed result.
 
 The current one-shot/predecoded batch remains a development correctness fixture;
 it cannot establish production GPU throughput. Runtime/device compatibility,
-worker lifecycle and actual benefit still require off-host hardware evidence.
-Normal filesystem paths stay CPU-only and owner-PC execution remains forbidden.
+worker lifecycle and actual benefit still require matching hardware evidence;
+bounded local GPU execution is authorized under the current host policy.
+Normal filesystem paths stay CPU-only and local execution follows HOST_RAM_TESTING.md.
 
 
 ## Executable complete-package qualification

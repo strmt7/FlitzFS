@@ -237,6 +237,13 @@ class NativeFilesystemWriter final {
   // Start at zero without crediting old files. Commit through the same
   // replicated metadata transaction. Repeated enable never resets the count.
   NativeFsCommit enable_workload_accounting();
+  // Explicit bounded CPU maintenance, never invoked automatically by I/O.
+  // Share exactly equal verified 64-KiB extents across files/offsets in one
+  // replicated transaction. Format 7 is emitted only if new sharing occurs;
+  // legacy formats remain readable and unchanged. Subsequent data mutations
+  // detach privately. Old records remain until a new-image compaction, so a
+  // live-payload saving is not an immediate total-image saving. No GPU work.
+  NativeFsCommit coalesce_equal_extents();
   // Cached diagnostic only; disabled after move/fencing. No I/O/allocation.
   NativeWorkloadInfo workload_info() const noexcept;
   // Object writer must already hold its qualified backend lease/recovery fence.
@@ -405,7 +412,7 @@ class NativeFilesystemWriter final {
   static void finish_recompression(Recompression&);
   struct Impl;
   ObjectStoreSnapshot checked_namespace() const;
-  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload};
+  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
       const NativeAutomaticMetadata* automatic=nullptr,bool delete_requested=false,

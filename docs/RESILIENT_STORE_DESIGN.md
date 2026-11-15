@@ -12,11 +12,13 @@ secondary. FlitzZip is a reference, not a constraint on codecs or algorithms.
 Preserve normal filesystem advantages and independent CPU recovery when AMD
 hardware or its software stack is unavailable.
 
-All further disk-based development, research tools, builds, tests, benchmarks
-and cleanup run only on disposable hosted machines/VMs. No more host processes
-or local checkout writes. RAM-only owner-host tests are not yet qualified;
-anonymous memory can be paged, and no RAM-disk driver is to be installed.
-Power cycling or inducing GPU/driver faults on the owner's PC is forbidden.
+The owner's 15 November 2026 direction deletes the former blanket off-host and
+VM-first restriction. Normal development, research, builds and safe CPU/GPU/GUI
+tests use the local host. Keep filesystem experiment backing in memory, preserve
+existing data and control resource use. Anonymous memory can be paged; do not
+claim zero OS storage activity. Driver provisioning and deliberately destabilizing
+power/kernel/GPU fault tests remain confined to disposable VMs. See
+[the current host guide](HOST_RAM_TESTING.md).
 
 No software can guarantee every hardware/firmware/media failure without defined
 assumptions and redundant copies. Define acknowledged durable writes separately
@@ -67,8 +69,9 @@ checks before the owner's later host restriction. It used robots checks,
 Native source captures/digests were retained externally. The AMD CDNA/RDNA study
 landing page returned HTTP 202 with one extracted byte; it was rejected and
 supports no AMD performance claim. Search snippets and abstracts do not substitute
-for complete papers. New research needs an admitted off-host crawler; do not
-resume the owner-host provider or bypass it with another page reader.
+for complete papers. New research needs an admitted reviewed crawler with the
+same isolation/robots/timeout/receipt controls. Local execution is authorized;
+do not bypass source admission with another page reader.
 
 These are engineering inferences, not implemented or proved durability. A
 compact source receipt manifest is retained alongside this document.

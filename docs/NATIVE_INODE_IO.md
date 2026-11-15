@@ -3,7 +3,7 @@
 Experimental CPU engine APIs; no mounted-write permission or complete Windows
 open-handle lifetime follows. The Windows product target remains latest stable
 Windows 11 AMD64, with a separate helper application and driver-backed engine.
-All builds and experiments remain on disposable hosted VMs.
+Safe builds and experiments run locally under HOST_RAM_TESTING.md.
 
 ## Why inode selection is required
 

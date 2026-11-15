@@ -1,18 +1,36 @@
-# Bounded RAM-only host qualification (experimental)
+# Local development and host testing (experimental)
 
-The owner explicitly includes their Windows11 PC in testing. Filesystem image
-backing on that PC MUST remain RAM-only, never a system/HDD/SSD/NVMe image, until
-the owner changes this instruction. Tiny qualified GPU work is authorized, but
-no driver installation/reinstallation/change, clocks/power/boot changes, stress
-or induced WDDM faults follow. No questions, elevation popups, scheduled services
-or unattended workers are needed for this workflow.
+The owner's 15 November 2026 instruction makes their Windows PC the primary
+development and testing system. The blanket off-host, GitHub-only development
+and mandatory VM-first restrictions are deleted. Edit, build, debug, run safe
+CPU/GPU and GUI tests, and research locally. Use CI/VMs as complementary tools
+for unavailable platforms or work that cannot safely run here. Existing user
+changes must be preserved; use a separate local checkout when appropriate.
+
+Filesystem experiment backing remains in memory. Normal source, build, tool,
+dependency, cache and report files may use a scoped development directory with
+fresh storage headroom. Do not install/change drivers, alter clocks/power/boot
+settings, induce driver/kernel faults, overwrite user data or leave stale
+processes, services or tasks. Host authorization does not authorize releases.
+
+The standard-library-only tools/dev/windows_run.py supports local Windows builds
+and tests with creation-time Job Object assignment, aggregate process/memory/CPU
+limits, finite deadlines, fresh physical/commit/storage reserves, exclusive logs
+and confirmed process-tree retirement. Its memory allowance scales with current
+headroom. Remaining owned tool helpers are stopped and reported at command end.
+It is resource containment, not protection against arbitrary kernel faults.
+Select appropriate tests: in-memory unit models do not create a mounted volume
+or establish that Windows performs no paging/storage activity. Local builds do
+not require a prior hosted qualification run.
 
 ## Source corpus and controlled staging
 
 Real files complement synthetic input. The owner permits a modest temporary
 corpus on the verified HDD, preserving every existing file. Keep corpus plus
-small experimental tool/report artifacts below256 MiB initially, with per-file,
-stream, network-time and free-space limits. The initial corpus download cap is
+small experimental tool/report artifacts under an explicit measured storage
+budget, with per-file, stream, network-time and free-space limits. Normal build
+and dependency caches have their own resource-adaptive development envelopes.
+The initial corpus download cap is
 8 MiB, not a target to fill. Files are CREATE_NEW inside unique owned fixtures;
 retain URL/commit, actual bytes, digest and errors. Never execute corpus content.
 Only remove verified owned files after testing; never recurse into other data.
@@ -72,13 +90,14 @@ appropriate established tools and several comparator filesystems.
 
 ## Build/provenance gate and actual host state
 
-The isolated Windows workflow builds the static-runtime executable without the
+The optional isolated Windows workflow builds the static-runtime executable without the
 WinFsp SDK or GPU dependencies, audits its actual PE imports, executes the exact
 bounded probe with real repository files and synthetic data, and promotes a
 small artifact only after complete matching source/residency/cleanup evidence.
-Preserve dependency licenses and SHA256 provenance. Before owner-PC execution,
-verify the exact archive/executable identity, limits, available headroom and
-known-input/report fixtures. Do not substitute an unqualified local build.
+Preserve dependency licenses and SHA256 provenance. Before execution, verify the
+actual source/binary identity, limits, available headroom and known-input/report
+fixtures. Safe local builds/tests are authorized directly; hosted artifact
+promotion is a separate provenance path, not a prerequisite for development.
 
 A read-only host check identified a stopped WinFsp2025/2.1.25156 driver, with no
 RAM volume present. It has NOT been loaded, changed or replaced. That is not the
@@ -96,8 +115,9 @@ HOST_RAM_SOURCES.json; current serving is not a recent-revision claim. Runtime
 qualification, not a documentation assertion, must establish actual page locks.
 
 The first exact VM-qualified owner-PC CPU run is recorded in
-HOST_RAM_VALIDATION.json. Later probe changes need their own VM qualification;
-that earlier result never qualifies a changed binary or a mounted/GPU path.
+HOST_RAM_VALIDATION.json. That earlier result never qualifies a changed binary
+or a mounted/GPU path. Validate changed behavior locally where safe; use an
+isolated VM for tests that could alter or destabilize the host.
 
 ## Managed-session probe update
 
@@ -106,5 +126,6 @@ live-handle reads across both compaction and post-compression, independent head
 selection, real Flush and actual Cleanup/Close. This changes phase scope and
 transaction history from the earlier batched primitive-only probes; do not
 compare their diagnostic timings/image extents as a controlled speedup. The
-resource caps and VM-first qualification requirement are unchanged. See
+probe-specific resource caps remain unchanged; VM-first is no longer a blanket
+host-development requirement. See
 VOLUME_SESSION.md; mounted maintenance and automatic scheduling remain absent.

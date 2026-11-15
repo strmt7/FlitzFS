@@ -18,12 +18,12 @@
     "D01"
   ],
   "owner_safety": {
-    "filesystem_backing": "locked RAM only",
+    "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
     "owner_mounts": false,
     "driver_changes": false,
     "privileged_or_persistent_changes": false,
-    "gpu": "Resource-adaptive bounded development after exact-source isolated qualification, fresh memory/contention/work-cost admission and exact retirement; no owner stress test or driver change.",
-    "staging": "small source/tool/report staging only on verified authorized HDD, never filesystem backing"
+    "gpu": "Local resource-adaptive GPU development is authorized with source review, fresh resource/runtime/adapter admission, independent CPU comparison and confirmed retirement. No blanket hosted/VM-first gate; no stress or driver changes.",
+    "staging": "Local source/build/tool/dependency/cache/corpus/report files in scoped development directories with measured free-space reserves; filesystem backing remains in memory"
   },
   "continuation": [
     "Read AGENTS and this ledger; verify actual main and source-bound CI before selecting work.",
@@ -441,11 +441,14 @@
       "status": "pending",
       "deliverables": [
         "Design scalable object/extent indexes, allocator, incremental checksums, history reclamation and reader pins. Preserve old wire compatibility or provide an explicit verified migration path.",
-        "Replace whole-state work where measurements justify it; distinguish sparse logical sizes from allocated bytes and enforce quotas/reserves."
+        "Replace whole-state work where measurements justify it; distinguish sparse logical sizes from allocated bytes and enforce quotas/reserves.",
+        "Support millions of populated namespace/content entries through paged lookup and bounded caches; use validated wide addressing and explicit legacy migration, not larger flat-array constants.",
+        "Persist incremental scan progress and stable file/content generations; use bounded similarity-index candidate retrieval, invalidate changes, resume after restart and yield to foreground work without all-pairs comparisons."
       ],
       "validation": [
         "Small-RAM sparse/mock backends exercise large logical address spaces, adversarial indexes, interrupted allocation/reclamation and reader pin races.",
-        "Legacy CPU reader, create-new output, capacity exhaustion, rollback and independent recovery tests; no giant owner images."
+        "Legacy CPU reader, create-new output, capacity exhaustion, rollback and independent recovery tests; no giant owner images.",
+        "Qualify at least one million populated metadata entries in bounded sparse/mock backends; measure resident pages, index bytes, incremental scan work and restart/recovery, separately from large sparse file sizes."
       ],
       "exit": "Explicit scaling targets and measured resource bounds pass without merely increasing constants or abandoning recovery.",
       "preparatory_entry": "Review current 256-object/node, 16-MiB live object, approximately 15.94-MiB populated native extent and 64-MiB image limits. Implement paged indices and incremental allocation/reclamation; no blind constant increases."
@@ -546,13 +549,14 @@
         "A03",
         "S01"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "deliverables": [
         "Investigate shared dictionaries, duplicate/near-duplicate representations, content transforms and layout/defragmentation against current primary research and relevant baselines.",
         "Run bounded incremental candidates, verify complete CPU readback, publish transactionally and retain source until reader pins and durability permit reclamation.",
         "Account for metadata, recovery replicas, dictionaries, temporary candidates and read amplification; stop negative-benefit work and yield promptly.",
         "Investigate and implement GPU-supported deep background compression, including a novel algorithm if justified, with shared-content modeling, bounded random access, protected decoder dependencies, independent CPU recovery and total-storage accounting. The fast write codec does not constrain cold encodings.",
-        "Prioritize minimum total stored size over lowest latency; evaluate larger cross-file groups and deeper GPU-supported models rather than locking in small independent compression units."
+        "Prioritize minimum total stored size over lowest latency; evaluate larger cross-file groups and deeper GPU-supported models rather than locking in small independent compression units.",
+        "Allow groups of one, two or thousands of files; choose membership/representation by complete stored bytes and measured practical latency. Separate membership from indexed decode units and restart spacing."
       ],
       "validation": [
         "Concurrent readers/writers, cancellation, resource pressure, interrupted handoff/reclamation, capacity failure and recovery.",
@@ -561,7 +565,15 @@
       ],
       "exit": "Unattended collective optimization minimizes total stored bytes on held-out workloads within measured practical latency/speed and resource constraints, preserving exact recovery, normal Windows behavior and promptly yielding background work. Moderate retrieval cost is acceptable; no required superiority in every metric.",
       "preparatory_entry": "A bounded cross-file codec/manifest/independent-CPU-reader transaction prototype may proceed before full A03 autonomy or S01 scale. The full automatic scalable exit still depends on A03/S01. GPU-only encoding with independent CPU decoding is permitted.",
-      "codec_contract": "Protect immutable versioned dictionaries/models/bases, exact portable decoding semantics, independently verifiable source bytes, random-access checkpoints and bounded dependency traversal. Publish new generation transactionally, preserve old generations until reader retirement, and charge every dependency/history/redundancy byte."
+      "codec_contract": "Protect immutable versioned dictionaries/models/bases, exact portable decoding semantics, independently verifiable source bytes, random-access checkpoints and bounded dependency traversal. Publish new generation transactionally, preserve old generations until reader retirement, and charge every dependency/history/redundancy byte.",
+      "exact_extent_sharing": {
+        "contract": "docs/SHARED_EXTENTS.md",
+        "evidence": "docs/evidence/local-native-shared-minimum-2026-11-15.json",
+        "scope": "Explicit format-7 exact coalescing and private mutation; local raw-only and MSVC AddressSanitizer checks; no automatic scheduler, learned codec or payload repair.",
+        "automatic": false,
+        "GPU_executed": false,
+        "scaling_exit_closed": false
+      }
     },
     {
       "id": "R01",
@@ -658,11 +670,11 @@
   },
   "release_checkpoint": "docs/RELEASE_READINESS.md",
   "critical_path_focus": [
-    "GPU acceleration is mandatory; CPU-only implementation, SDK compilation and CPU mocks never satisfy G02.",
-    "The latest bounded actual AMD GPU/native/independent CPU recovery case is 11fbf07. The owned callback bridge at a4ad516 is CPU/SDK-qualified; finish its mounted gate, then actual GPU service qualification and automatic useful routing. Preserve exact-source evidence and avoid unchanged diagnostics.",
-    "Prioritize a complete bounded Windows write, actual GPU compression, native encoding, independent CPU read and fault/fallback/retirement slice over further disconnected prerequisites.",
-    "Measure whole-operation throughput and stored size on varied data, then advance automatic optimization, scaling, durability and Windows product gates.",
-    "Use extensive recent primary-source research for concrete unresolved design questions; do not substitute research or assertion counts for product integration."
+    "Preserve the completed d384b6c matched service comparison: three actual GPU and three CPU requests passed; the fixed 1-MiB case showed no speed or size benefit. No unchanged rerun or automatic activation of this slower route.",
+    "Replace flat namespace/object residency with paged indices, allocation/reclamation and persistent incremental content scanning for millions of files.",
+    "Build on locally verified exact shared extents toward protected cross-file manifests/models and adaptive groups of one, two or thousands of files, with separately indexed CPU-readable retrieval units and complete storage accounting.",
+    "Useful AMD acceleration remains mandatory: address dominant setup through finite amortization and connect automatic resource-aware Windows I/O. CPU fallback and independent recovery remain available; new mechanisms need relevant local source-bound checks and actual measurements.",
+    "Advance persistent low-impact learning, acknowledged-write durability/repair and Windows product qualification. Use recent primary-source research for concrete unresolved questions; no release without owner."
   ],
   "cold_compression_research": "docs/COLD_COMPRESSION_RESEARCH.md",
   "compression_objective": {
@@ -671,7 +683,10 @@
     "cpu_fallback": "Continued operation and independent byte-exact decoding of every stored GPU format/dependency. CPU encoding algorithm, format and stored size may differ.",
     "gpu_encoding": "GPU-supported cross-file/learned or experimentally justified novel encoders are allowed; neither LZ4 nor the CPU encoder limits cold representations.",
     "safety": "Exact byte reconstruction, independent CPU recovery, protected decoder dependencies and bounded resources/transactional safety remain mandatory.",
-    "contract": "docs/COLD_COMPRESSION_RESEARCH.md"
+    "contract": "docs/COLD_COMPRESSION_RESEARCH.md",
+    "namespace_scale": "Millions of files; paged metadata/content indices, bounded residency and persistent incremental scans; growth follows available capacity and validated format bounds.",
+    "group_cardinality": "Adaptive: one, two or thousands of files when minimum TOTAL stored bytes and practical observed retrieval cost justify it; no fixed small group-size product limit.",
+    "retrieval_units": "Separate group/model scope from indexed decode/restart units. Charge indexes, checkpoints and protected dependencies while keeping small-read work practical."
   },
   "resource_adaptive_checkpoint": {
     "source": "38e1f080c3a3ab3c80d5a3dee31e3b6deee157a3",
@@ -824,7 +839,7 @@
     "Act on completed d384b6c matched comparison: CPU median 24.2311 ms, GPU 513.918 ms, identical complete sizes. Preserve all six rows. Do not rerun unchanged or automatically enable this slower small-request route. Implement finite setup amortization and protected collective compression, with source-bound hosted lifecycle/fault checks before new owner work.",
     "Automatically resolve and pin independently available helper/module/runtime dependencies outside the managed volume; supervise resource collection separately and deliver finite fresh evidence mailboxes with exact shutdown.",
     "Acquire repeated configuration/recovery/work-shape keyed complete costs, derive geometry from fresh headroom/contention and connect useful automatic Windows write/read/fallback. Address cold setup and qualify finite cross-operation amortization without an indefinite resident helper.",
-    "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
+    "Implement paged namespace/object/extent/content indices, incremental allocation/reclamation and persistent scanning for millions of files. Exact format-7 coalescing/private updates now form a locally tested foundation; protected broader group transactions and independent CPU retrieval remain required.",
     "Evaluate shared dictionaries, verified delta/base and GPU-supported model/residual candidates on held-out real data; minimize complete stored bytes with practical measured cold/random retrieval.",
     "Persist advisory learning and run event/evidence-driven lowest-priority optimization, with prompt yield and negative-benefit suppression; integrate actual grouping/recompression/layout.",
     "Close acknowledged-write durability/repair, historical retirement investigation, latest Windows 11 semantics/application/backends, secure lifecycle and independent comparisons. No release without owner decision."
@@ -943,5 +958,15 @@
       "latest Windows 11 product/security/independent comparative acceptance"
     ],
     "owner_alone_authorizes_release": true
+  },
+  "local_development_checkpoint": {
+    "date": "2026-11-15",
+    "local_is_primary": true,
+    "blanket_hosted_or_VM_first_gate": false,
+    "source_base": "af161ffe2d26806f67b37d0ce7592186ac2abf7b",
+    "scope": "Exact shared extents, mandatory MSVC exception unwinding, bounded local process-tree runner and local semantic source audit.",
+    "evidence": "docs/evidence/local-native-shared-minimum-2026-11-15.json",
+    "normal_GPU_route": false,
+    "release": false
   }
 }

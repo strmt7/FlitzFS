@@ -1,5 +1,6 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "flitzfs/catalog.hpp"
+#include "record_digest.hpp"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -37,8 +38,9 @@ constexpr auto kBasicMagic=[] {auto magic=kMagic;magic[7]=std::byte{'3'};return 
 constexpr auto kSecurityMagic=[] {auto magic=kMagic;magic[7]=std::byte{'4'};return magic;}();
 constexpr auto kAllocationMagic=[] {auto magic=kMagic;magic[7]=std::byte{'5'};return magic;}();
 constexpr auto kWorkloadMagic=[] {auto magic=kMagic;magic[7]=std::byte{'6'};return magic;}();
+constexpr auto kSharedMagic=[] {auto magic=kMagic;magic[7]=std::byte{'7'};return magic;}();
 const std::array<std::byte,8>& namespace_magic(std::uint32_t format) {
-  return format==1?kMagic:format==2?kLifecycleMagic:format==3?kBasicMagic:format==4?kSecurityMagic:format==5?kAllocationMagic:kWorkloadMagic;
+  return format==1?kMagic:format==2?kLifecycleMagic:format==3?kBasicMagic:format==4?kSecurityMagic:format==5?kAllocationMagic:format==6?kWorkloadMagic:kSharedMagic;
 }
 std::size_t node_header(std::uint32_t format) {return format>=5?kAllocationNodeHeader:format==4?kSecurityNodeHeader:format==3?kBasicNodeHeader:64;}
 [[noreturn]] void fail(Code code,const char* reason){throw NativeFsError(code,reason);}
@@ -169,7 +171,7 @@ void validate_basic(const NativeBasicMetadata& value,bool directory) {
 }
 void validate_structure(const Model& model,bool pending=false) {
   if(model.nodes.empty() || model.nodes.size()>kNativeMaxNodes || model.sequence==0)fail(Code::limit,"native namespace budget");
-  if(model.format<1 || model.format>6 || (model.format<6 && model.committed_input_bytes))
+  if(model.format<1 || model.format>7 || (model.format<6 && model.committed_input_bytes))
     fail(Code::corrupt,"native namespace capability/accounting");
   const auto& root=node(model,1);
   if(root.parent || !root.directory || !root.name.empty() || root.size || !root.extents.empty() ||
@@ -207,7 +209,7 @@ void validate_structure(const Model& model,bool pending=false) {
     for(const auto& [block,object]:n.extents) {
       if(block>=kNativeMaxFileBytes/kNativeExtentBytes || block*kNativeExtentBytes>=n.size ||
           (!pending && (object<2 || object>kStoreMaxObjects)) ||
-          (object && (!objects.insert(object).second || object<2 || object>kStoreMaxObjects)))
+          (object && ((model.format<7 && !objects.insert(object).second) || object<2 || object>kStoreMaxObjects)))
         fail(Code::corrupt,"native extent ownership/bounds");
     }
   }
@@ -272,7 +274,7 @@ Model decode(const ObjectStoreSnapshot& objects) {
       integer(all,32,4)!=kNativeExtentBytes)
     fail(Code::corrupt,"unsupported native namespace framing");
   const auto format=integer(all,8,4);
-  if(format<1 || format>6 || (format<6 && !zeros(all.subspan(56,8))) ||
+  if(format<1 || format>7 || (format<6 && !zeros(all.subspan(56,8))) ||
       !std::equal(namespace_magic(static_cast<std::uint32_t>(format)).begin(),
                   namespace_magic(static_cast<std::uint32_t>(format)).end(),bytes.begin()))
     fail(Code::corrupt,"unsupported native namespace capability/magic");
@@ -389,7 +391,61 @@ struct Stage {
   void finish_block(Node& n,std::uint64_t index) {
     const auto key=std::pair{n.inode,index};auto& bytes=dirty.at(key).bytes;
     if(zeros(bytes)){n.extents.erase(index);dirty.erase(key);}
+    // A shared object is immutable for every other inode/block. Detach before
+    // ID allocation, including partial writes and shrink-tail zeroing. Exact
+    // reversions are independently compared before reattaching the original.
+    else if(model.format>=7)n.extents[index]=0;
     else n.extents.try_emplace(index,0);
+  }
+  void coalesce_equal_extents() {
+    // One verified source object at a time, plus one representative. Digests
+    // propose candidates only; exact CPU byte comparison authorizes sharing.
+    // The maps are bounded by the existing live-object/extent limits. No
+    // encoded stream, GPU runtime, external dictionary or filename is a base.
+    struct Representative {std::uint64_t object;std::uint32_t stored;};
+    std::vector<Representative> groups;
+    std::map<detail::Digest,std::vector<std::size_t>> representatives;
+    std::map<std::uint64_t,std::size_t> resolved;
+    std::map<std::uint64_t,std::uint32_t> costs;
+    for(const auto& info:base.list())costs.emplace(info.id,info.stored_payload_bytes);
+    std::size_t comparisons=0;
+    for(const auto& [inode,n]:model.nodes)for(const auto& [index,object]:n.extents) {
+      (void)inode;(void)index;
+      if(resolved.contains(object))continue;
+      const auto cost=costs.find(object);
+      if(cost==costs.end())fail(Code::corrupt,"coalescing object missing from inventory");
+      const auto bytes=object_bytes(base,object);
+      if(bytes.size()!=kNativeExtentBytes || zeros(bytes))
+        fail(Code::corrupt,"invalid coalescing source extent");
+      auto& candidates=representatives[detail::record_digest(bytes)];
+      auto selected=groups.size();
+      for(const auto candidate:candidates) {
+        // Also bound adversarial hash-bucket work; no writes have occurred.
+        if(comparisons>=kNativeMaxExtents)fail(Code::limit,"coalescing comparison budget");
+        ++comparisons;
+        if(object_bytes(base,groups.at(candidate).object)==bytes){selected=candidate;break;}
+      }
+      if(selected==groups.size()) {
+        groups.push_back({object,cost->second});candidates.push_back(selected);
+      }else {
+        auto& group=groups.at(selected);
+        if(cost->second<group.stored || (cost->second==group.stored && object<group.object))
+          group={object,cost->second};
+      }
+      resolved.emplace(object,selected);
+    }
+    // Final representatives may appear late in inode order and use another
+    // CPU-readable codec. Redirect only after choosing the smallest existing
+    // payload, with ID as a deterministic tie-breaker. No new encoding is needed.
+    for(auto& [inode,n]:model.nodes)for(auto& [index,object]:n.extents) {
+      (void)inode;(void)index;
+      const auto selected=groups.at(resolved.at(object)).object;
+      if(object!=selected){object=selected;changed=true;}
+    }
+    // Leave every legacy byte unchanged when there is no new sharing. The
+    // namespace and removal of redundant live IDs publish in one replicated
+    // transaction. Old snapshots retain their immutable record references.
+    if(changed)model.format=7;
   }
   void discard(Node& n) {
     if(n.directory)for(const auto& [id,other]:model.nodes)if(id!=n.inode && other.parent==n.inode)fail(Code::not_empty,"native directory not empty");
@@ -805,6 +861,9 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize(ObjectStoreWriter obje
 NativeFsCommit NativeFilesystemWriter::enable_workload_accounting() {
   return transact({},InodeAction::enable_workload,0);
 }
+NativeFsCommit NativeFilesystemWriter::coalesce_equal_extents() {
+  return transact({},InodeAction::coalesce_extents,0);
+}
 NativeFilesystemWriter NativeFilesystemWriter::resume(ObjectStoreWriter objects) {
   return resume_impl(std::move(objects),false);
 }
@@ -881,7 +940,15 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
         std::move(target),id,kNamespaceObject,metadata,compression,checkpoints,reencode));
   }catch(const std::bad_alloc&){fail(Code::limit,"native compaction allocation failure");}
   catch(const NativeFsError&){throw;}
-  catch(const std::exception&){fail(Code::storage_failure,"native compaction failed; retain source and partial target");}
+  catch(const std::exception& error){
+    // Retain bounded backend context rather than hiding the recovery/admission
+    // reason. This changes diagnostics only, never retries or ownership.
+    std::string message="native compaction failed; retain source and partial target: ";
+    const auto* detail=error.what();std::size_t length=0;
+    if(detail)while(length<192 && detail[length])++length;
+    if(length)message.append(detail,length);
+    fail(Code::storage_failure,message.c_str());
+  }
 }
 
 NativeFilesystemWriter::Recompression NativeFilesystemWriter::prepare_recompression(
@@ -1062,6 +1129,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
       case InodeAction::enable_workload:
         if(stage.model.format<6){stage.model.format=6;stage.changed=true;}
         break;
+      case InodeAction::coalesce_extents:stage.coalesce_equal_extents();break;
       case InodeAction::cleanup_initial:
         if(!automatic)fail(Code::invalid_operation,"invalid initial-delete Cleanup metadata");
         stage.cleanup_initial(inode,delete_requested,*automatic);break;

@@ -53,8 +53,8 @@ is not execution; retain exact-commit results before claiming a pass.
 The portable locked-RAM probe adds explicit raw-to-automatic post-compression
 on real and synthetic inputs, byte-exact CPU selection and separately reported
 target payload. It retains the SAME 40-MiB locked/128-MiB child/20%-CPU/15-second
-limits. Qualify the exact changed binary in the disposable Windows VM before
-another owner-PC run. No background, mounted or GPU claim follows.
+limits. Validate the exact changed binary locally where safe; use a disposable
+VM for tests that could destabilize Windows. No background, mounted or GPU claim follows.
 
 The first owner-PC CPU result BEFORE this primitive is retained in
 HOST_RAM_VALIDATION.json. It demonstrated safe bounded unmounted RAM execution

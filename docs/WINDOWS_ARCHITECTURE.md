@@ -133,7 +133,8 @@ Use upstream Windows filesystem correctness tools and independent byte oracles
 as well as Explorer and representative application workloads. WinFsp's current
 [testing document](https://winfsp.dev/doc/WinFsp-Testing/) describes compatibility,
 stress, lifecycle and Driver Verifier work. Its test success does not qualify a
-new FlitzFS engine or its writable callbacks. All tests remain on disposable VMs.
+new FlitzFS engine or its writable callbacks. Use local host-safe tests; driver
+provisioning, Driver Verifier and destabilizing stress/fault tests use disposable VMs.
 
 Later compare native NTFS, Windows compression and relevant third-party
 filesystems under equivalent workloads, durability, cache state and resource

@@ -41,8 +41,8 @@ silent acceptance of a different/unknown binary.
 Kernel/driver and other protected OS integration require their separately
 qualified installation/consent/recovery mechanism. App-local provisioning does
 not bypass OS security or prove a driver cannot freeze a machine. Current
-development permission remains hosted-VM-only; these requirements do NOT
-authorize installing any package, compiler, SDK or driver on the owner's PC.
+development is primarily local. Private user-mode tools/dependencies may be
+provisioned safely when needed; driver/system changes remain excluded.
 
 ## Current hosted tooling implementation
 
@@ -244,6 +244,6 @@ operation, latest Windows 11 client, live GPU or writable mount was qualified.
 
 ### Latest RAM-only host permission and development hygiene
 
-The owner's later instruction permits qualified PC tests ONLY on verified, bounded RAM acting as the synthetic filesystem's virtual disk, never a system/real-storage test drive. It does not permit driver install/reinstall/change, security/boot changes or instability. No build, download, cache, temporary file, log or image may use system storage under that permission. If no safe existing compatible route or verified RAM backing/headroom is available, keep the dependent test off-host. Current unfinished writable paths remain hosted-only.
+The owner's 15 November 2026 instruction makes local development and safe CPU/GPU/GUI testing primary. Source, builds, dependencies, caches and reports may use scoped local development directories with fresh storage headroom. Filesystem experiments retain in-memory backing. Driver provisioning and deliberately destabilizing kernel/driver/power tests use disposable VMs. Preserve existing data, driver/security/boot state and other applications. The blanket hosted-only and mandatory VM-first restrictions are deleted; see HOST_RAM_TESTING.md.
 
 All development must own and retire workers and release RAM/VRAM/handles/threads/mappings on normal, failed, canceled and timed-out paths; no unintended services, scheduled tasks, persistence or wasteful background work. Verify actual retirement before replacements and retain bounded before/after resource evidence. A timed-out observation is not a stopped process. Never kill/reconfigure unrelated applications. See the latest owner clarifications in AGENTS.md; hosted infrastructure provisioning remains distinct from the product installer and qualified PC tests.

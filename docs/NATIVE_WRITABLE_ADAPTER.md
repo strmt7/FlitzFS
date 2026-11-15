@@ -170,7 +170,7 @@ The actual process-interruption campaigns ran at unchanged-source predecessor a3
 
 Final read-only mount job 129774755949 passed normal, deliberately terminated-helper and independent recovery/remount phases, exits 0/1460/0 with actual exit confirmed. Three source-bound space reports reconciled and image parity held. Peaks were 6,164,480 / 6,135,808 / 5,156,864 bytes under unchanged limits. The pinned driver's valid Microsoft hardware-publisher signature was inspected on the disposable VM; windows11_policy_qualified remained false. This is read-only regression evidence, not mounted writable, Windows 11 client, live AMD, physical power-cut or complete-product proof.
 
-Next work must qualify a separately supervised writable VM helper and actual adoption/cancellation/cache/backing/security behavior before any PC experiment. Keep native quota distinct from host preallocation/physical compressed size and plain cached WriteFile acknowledgement distinct from FlushFileBuffers durability. SetSecurity, scale/reclaim, app/installer/client, live AMD, automatic learning and payload replica self-repair remain unfinished.
+Next work must qualify the separately supervised writable helper and actual adoption/cancellation/cache/backing/security behavior. Use local tests where safe and disposable VMs for destabilizing kernel-path experiments. Keep native quota distinct from host preallocation/physical compressed size and plain cached WriteFile acknowledgement distinct from FlushFileBuffers durability. SetSecurity, scale/reclaim, app/installer/client, live AMD, automatic learning and payload replica self-repair remain unfinished.
 
 
 ## Executed first writable VM checkpoint

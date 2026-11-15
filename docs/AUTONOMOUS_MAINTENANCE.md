@@ -144,7 +144,8 @@ self-healing, in-place GC or automatic durable handoff. The next mechanisms need
 3. Bounded persistent workload observations and confidence-aware strategy choice,
    independent correctness gates and held-out workload evaluation.
 4. Qualified AMD runtime/cancellation and CPU fallback integrated with the same
-   policy, with contention/driver failures first simulated off-host.
+   policy, with contention/driver failures first simulated in bounded fixtures.
+   Local mocks are authorized; deliberately inducing host-driver faults is not.
 5. Redundant data/metadata repair and fault-domain qualification, preserving
    acknowledged bytes through interrupted repair and reclamation.
 

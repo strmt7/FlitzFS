@@ -86,4 +86,5 @@ wait is an explicit error, never proof of exit or a busy retry loop.
 The asynchronous transport uses this ownership and retains admission through
 both process and supervisor-thread exit. CPU byte selection has no dependency on
 that cleanup. It neither weakens creation-time job limits nor makes a driver
-hang safe; real GPU/driver qualification remains separate and off-host.
+hang safe; actual GPU execution needs its own audited, resource-bounded local
+qualification. Deliberate driver/kernel faults remain confined to disposable VMs.

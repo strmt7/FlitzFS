@@ -1,5 +1,22 @@
 # FlitzFS safety gates and threat model
 
+## Current execution policy
+
+The owner's 15 November 2026 instruction deletes blanket off-host, GitHub-only
+development and mandatory VM-first restrictions. Local source work, builds,
+research, CPU/GPU/GUI tests and safe benchmarks are authorized. Use the
+[host guide](HOST_RAM_TESTING.md) for resource containment and backing rules.
+Preserve existing data, driver/system state and confirmed resource retirement.
+Use disposable VMs for driver provisioning and deliberately destabilizing tests.
+Historical qualification records below describe their executed scope; they do
+not impose a new global location gate or qualify changed behavior.
+
+The explicit [shared-extent extension](SHARED_EXTENTS.md) requires independently
+verified equality, immutable live references, private detachment before writes
+and replicated publication. Legacy namespace formats still reject aliases. It
+does not add payload mirrors or repair missing/corrupted bytes; automatic
+collective publication still needs protected redundancy and recovery.
+
 ## Controlled write reused-dispatch candidate
 
 [NATIVE_UNIFORM_WRITE.md](NATIVE_UNIFORM_WRITE.md) describes optional canonical
@@ -202,7 +219,7 @@ The new commit-persistence test has no OS file/device, GPU or driver operations.
 Its modeled images are at most 40,960 bytes with two pending 128-byte writes.
 It enforces 60,000 fault executions and a checked 20-second time budget; CTest
 caps it at 30 seconds. These are model bounds, not whole-process RAM guarantees.
-Builds/logs/tests run only on disposable hosted VMs. Test-only CRC envelopes
+Builds/logs/tests may run locally under the current host policy. Test-only CRC envelopes
 are not authentication, a product format or physical power-loss qualification.
 
 ## Raw-object transaction boundary
@@ -335,8 +352,8 @@ is statically bounded below 2 MiB; transport and allocator overhead are separate
 Native inode I/O delegates to the existing CPU transactional writer and does not
 enable a mount, GPU, service or existing-file write factory. A removed inode
 fails; it never redirects to a reused path. The accepted count is returned only
-after successful publication. The same poison/recovery and hosted-only testing
-rules apply. See NATIVE_INODE_IO.md.
+after successful publication. The same poison/recovery rules apply; safe local
+testing is authorized. See NATIVE_INODE_IO.md.
 
 
 Pending deletion and detached inode retention require explicit namespace
@@ -362,8 +379,8 @@ Native Flush performs a real backend barrier without changing publication or
 releasing contexts. It validates current metadata and namespace and fences
 failed/unverifiable completion. It does not scrub every payload, repair media,
 infer retired external contexts or qualify physical hardware persistence.
-Existing source preservation, backend assumptions and off-host-only execution
-remain. See NATIVE_FLUSH.md.
+Existing source preservation and backend assumptions remain. Local execution
+uses the current host policy. See NATIVE_FLUSH.md.
 
 ### Windows basic metadata
 
@@ -535,7 +552,7 @@ kernel/client/writable/AMD qualification. Owner-PC restrictions stay unchanged.
 
 ### Native reservations are not physical-space guarantees
 
-NATIVE_ALLOCATION.md adds an opt-in format-5 per-inode live-extent reservation, capped by the unchanged shared 255-extent/16-MiB decoded budget. Pending/detached ownership retains capacity; overcommit rejects before writes. Allocation shrink and EOF/tail changes publish together through the same three barriers. Compression does not bypass reservation charge. These units do not preallocate host clusters or guarantee future append-history/RAM/disk admission. Keep Windows allocation callbacks unwired until actual backing, FileInfo, cache and helper policy are qualified. New modeled faults remain distinct from old process-kill campaigns and physical power loss. Owner-PC execution remains forbidden.
+NATIVE_ALLOCATION.md adds an opt-in format-5 per-inode live-extent reservation, capped by the unchanged shared 255-extent/16-MiB decoded budget. Pending/detached ownership retains capacity; overcommit rejects before writes. Allocation shrink and EOF/tail changes publish together through the same three barriers. Compression does not bypass reservation charge. These units do not preallocate host clusters or guarantee future append-history/RAM/disk admission. Keep Windows allocation callbacks unwired until actual backing, FileInfo, cache and helper policy are qualified. New modeled faults remain distinct from old process-kill campaigns and physical power loss. Local execution follows HOST_RAM_TESTING.md.
 
 ### Atomic allocation events and resource hygiene
 
@@ -543,7 +560,7 @@ NATIVE_ALLOCATED_EVENTS.md keeps native reservation/EOF/basic/security changes i
 
 Throughout development, all agents must leave no orphaned processes, unintended background/scheduled services/tasks, leaked memory/VRAM/handles/threads/mappings or needless resource use. Own and bound every worker, confirm exit/join, release handles/buffers, and test errors/cancellation/repeated use. Unknown retirement fails closed; an observation timeout is not process-exit proof. VM disposal contains effects but does not prove product cleanup. The new SDK fixture checks repeated backing-owner release and OS handle counts; those checks alone do not establish universal leak freedom.
 
-The latest owner instruction narrowly permits later PC testing on verified, exclusively test-owned RAM serving as the virtual filesystem disk. Never use a system drive or real-storage test volume, change/install/reinstall drivers, alter security/boot settings or create persistence. Keep builds/downloads/cache/logs/temp/images off system storage. Verify RAM backing and ample headroom; anonymous pageable memory is not proof of zero physical-storage activity. Preserve hosted-first qualification, strict caps/low priority, synthetic data and tested stop/cleanup. No unfinished writable/GPU/kernel/failure experiment moves to the PC under this permission. Current development has not accessed or tested the PC.
+The current owner direction makes local development and safe CPU/GPU/GUI testing primary. Filesystem experiment backing remains in memory; normal source/build/download/cache/temp/report files use scoped local development directories with fresh headroom. Preserve user data, driver/security/boot state and tested stop/cleanup. Do not induce kernel/driver faults or create unintended persistence. Anonymous memory is not proof of zero OS storage activity. No blanket hosted-first qualification applies.
 
 ### Windows data bridge output and fencing
 
@@ -562,11 +579,10 @@ First-operation adoption remains a trusted transition needing real-kernel proof.
 Native allocation is thin live quota, not physical preallocation or guaranteed
 future write admission; default product routes stay read-only.
 
-Latest careful GPU permission preserves qualified RAM-backed synthetic PC
-storage, ample verified headroom, strict low-priority caps, CPU verification/
-recovery, actual worker retirement and no driver/security/clock/power changes.
-No local artifacts, system-drive activity or unfinished runtime experiment is
-authorized by that permission. Current work remains on disposable hosted VMs.
+Local GPU development has standing owner authorization, with verified headroom,
+bounded work, CPU verification/recovery, actual worker retirement and no
+driver/security/clock/power changes. Local artifacts are permitted under the
+current development policy; the former off-host-only rule is deleted.
 Finite tests cannot establish immunity to every future bug or loss of all copies.
 \n
 ### Separate disposable writable VM trial

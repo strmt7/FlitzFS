@@ -1,5 +1,10 @@
 # Native directory, inode and extent layer
 
+The explicit [shared-extent extension](SHARED_EXTENTS.md) permits exactly equal
+64-KiB extents across files/offsets in namespace format 7. Legacy formats 1..6
+retain duplicate-ID rejection. Changed shared extents detach before allocation;
+CPU readback, snapshot lifetime and replicated publication remain mandatory.
+
 Experimental CPU filesystem core. Explicit Windows read-only projection now
 connects verified native images to WinFsp; writable mounts, an end-user helper
 application and live GPU remain unfinished. This is a native filesystem namespace over the compressed transactional
@@ -233,7 +238,8 @@ an existing file, and directory removal. At each reported I/O boundary a process
 is forcibly stopped. A new CPU process checks the acknowledged namespace/data,
 resumes, creates/writes another file and independently reopens it.
 
-All tests/builds run on disposable hosted VMs. Process-kill and RAM tearing are
+Safe tests/builds run locally; unavailable platforms and destabilizing tests use
+disposable VMs/CI. Process-kill and RAM tearing are
 distinct from physical power cuts. The exact commit's checks and retained reports
 must be inspected; no result is inferred merely from this test description.
 

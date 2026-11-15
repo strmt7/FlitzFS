@@ -4,7 +4,7 @@ Experimental Windows-only read path. The native inode/extent filesystem can now
 supply the existing WinFsp callback adapter and supervised read-only session.
 This joins the transactional storage engine to actual Windows file I/O; it does
 not enable mounted writes, an end-user GUI/installer, driver-fault immunity or
-HIP execution. Owner-PC work remains forbidden.
+HIP execution. Safe local development/testing follows HOST_RAM_TESTING.md.
 
 ## Admission and ownership
 

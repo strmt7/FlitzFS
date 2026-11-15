@@ -6,6 +6,13 @@ if(FLITZFS_PORTABLE_CPU)
 endif()
 project(FlitzFS LANGUAGES C CXX)
 
+# RAII writer leases and transaction rollback require real C++ unwinding.
+# Keep this explicit even when a caller replaces CMAKE_CXX_FLAGS (for example
+# to instrument a sanitizer build). Never pass C++ flags to C or MASM sources.
+if(MSVC)
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/EHsc>")
+endif()
+
 if(FLITZFS_PORTABLE_CPU)
   if(BUILD_SHARED_LIBS)
     message(FATAL_ERROR "Portable CPU qualification requires static FlitzFS libraries")
@@ -370,6 +377,11 @@ if(FLITZFS_BUILD_TESTS)
   target_link_libraries(flitzfs_native_filesystem_tests PRIVATE flitzfs_core)
   add_test(NAME bounded_native_filesystem COMMAND flitzfs_native_filesystem_tests)
   set_tests_properties(bounded_native_filesystem PROPERTIES TIMEOUT 45)
+  add_executable(flitzfs_native_shared_extent_tests tests/test_native_shared_extents.cpp)
+  target_include_directories(flitzfs_native_shared_extent_tests PRIVATE src)
+  target_link_libraries(flitzfs_native_shared_extent_tests PRIVATE flitzfs_core)
+  add_test(NAME bounded_native_shared_extents COMMAND flitzfs_native_shared_extent_tests)
+  set_tests_properties(bounded_native_shared_extents PROPERTIES TIMEOUT 45)
   add_executable(flitzfs_native_inode_io_tests tests/test_native_inode_io.cpp)
   target_include_directories(flitzfs_native_inode_io_tests PRIVATE src)
   target_link_libraries(flitzfs_native_inode_io_tests PRIVATE flitzfs_core)

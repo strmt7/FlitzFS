@@ -1,0 +1,285 @@
+{
+  "experimental": true,
+  "date": "2026-11-15",
+  "source_base": "af161ffe2d26806f67b37d0ce7592186ac2abf7b",
+  "source_scope": "Local changed source compiled before its development commit; exact tested files are bound below.",
+  "tested_source": [
+    {
+      "sha256": "6cc72cd657b8ece8f6fd3757f0418a5232dbc72ea693dbbd643de25b16d498ab",
+      "path": "CMakeLists.txt",
+      "bytes": 69102
+    },
+    {
+      "sha256": "6ed9e482eb8cfde5ad696eec1670050521d43ca97eb278822e58d2ff79b3fc8c",
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "bytes": 24735
+    },
+    {
+      "sha256": "366be6b14ba9353ef34ffa9d89374293f99eee11291a465ebe7b783d332cd593",
+      "path": "src/native_filesystem.cpp",
+      "bytes": 82022
+    },
+    {
+      "sha256": "15c7fc930ac95179a0df7e3201ae1c51c8141aaf8141a896d713b0b8ab765bd4",
+      "path": "src/object_store.cpp",
+      "bytes": 48858
+    },
+    {
+      "sha256": "964e9662943e73a58c9c203c4d16e35b68e31ffe5c41905ce2e5c4a79dc4504a",
+      "path": "tests/test_native_shared_extents.cpp",
+      "bytes": 13611
+    },
+    {
+      "sha256": "e53585a276ae227267e8a78508882be6b61f899b4aec0f17a285361a1157ebdd",
+      "path": "tests/test_native_filesystem.cpp",
+      "bytes": 41518
+    },
+    {
+      "sha256": "15de1b00688148f6140c25e7155fde24c06353217765d01ebe029a27e0d76031",
+      "path": "tools/dev/windows_run.py",
+      "bytes": 14423
+    },
+    {
+      "sha256": "8c0c3b977a6ad7a2f2ab5f56973604bfdba023b0137bf5695cab5df23f1df3bc",
+      "path": "tools/dev/semantic_search.py",
+      "bytes": 8916
+    }
+  ],
+  "toolchain": {
+    "Zstandard": false,
+    "Windows_SDK": "10.0.28000.0",
+    "cmake": "4.3.1-msvc1",
+    "OS": "Windows 11 AMD64, build 26300",
+    "portable_static_CRT": true,
+    "LZ4": false,
+    "generator": "Visual Studio 18 2026",
+    "compiler": "MSVC 19.52.37029.0",
+    "configuration": "Release",
+    "ASM_digest_runtime_dispatch": true
+  },
+  "changes": [
+    "Explicit native format-7 exact cross-file/same-file extent coalescing with independent CPU equality; legacy 1..6 alias rejection retained.",
+    "Private detachment before changed shared writes/truncate-tail updates; exact reversion before object allocation; reference-safe delete/retire and immutable old snapshots.",
+    "Mandatory MSVC /EHsc for C++ targets plus store compile-time unwinding guard; bounded underlying compaction-error context.",
+    "Local process-tree build/test supervisor and private offline source-bound semantic audit; blanket hosted-only/VM-first policy removed."
+  ],
+  "selected_suites": [
+    {
+      "log_sha256": "b58cc6532653b5e07a02319f9eb0686233729b8a378817e461049408ad9f8906",
+      "total_checks": 9280,
+      "configuration": "raw",
+      "native_checks": 5002,
+      "shared_extent_checks": 4278,
+      "selected_suites": 2
+    },
+    {
+      "log_sha256": "6bbc656b112d6394beca796ddddddf246051c425727836e1846e3302edb013c6",
+      "total_checks": 9280,
+      "configuration": "asan",
+      "native_checks": 5002,
+      "shared_extent_checks": 4278,
+      "selected_suites": 2
+    }
+  ],
+  "raw_execution": {
+    "timeout_seconds": 120.0,
+    "memory_bytes": 6855589888,
+    "cpu_percent": 50,
+    "maximum_processes": 4,
+    "physical_available_bytes": 31691456512,
+    "commit_available_bytes": 83577942016,
+    "reserve_bytes": 4269086720,
+    "creation_time_job": true,
+    "exit_confirmed": true,
+    "disk_reserve_bytes": 1713897472,
+    "stop_reason": null,
+    "tree_retired": true,
+    "timed_out": false,
+    "residual_children": 0,
+    "process_id": 39356,
+    "exit_code": 0,
+    "peak_job_bytes": 149532672,
+    "elapsed_seconds": 3.076125799998408,
+    "error": null,
+    "receipt_sha256": "0949a20baa6d954579293d5e21d11bc7b4446152e027c4c0dad2cca1dd649381",
+    "log_sha256": "99fcd8e486269960653b5f95899113acf35c399ce4066c6bf2ce927fff27746d"
+  },
+  "AddressSanitizer_execution": {
+    "timeout_seconds": 120.0,
+    "memory_bytes": 6917455872,
+    "cpu_percent": 50,
+    "maximum_processes": 4,
+    "physical_available_bytes": 31941373952,
+    "commit_available_bytes": 83813912576,
+    "reserve_bytes": 4269086720,
+    "creation_time_job": true,
+    "exit_confirmed": true,
+    "disk_reserve_bytes": 1729363968,
+    "stop_reason": null,
+    "tree_retired": true,
+    "timed_out": false,
+    "residual_children": 0,
+    "process_id": 59764,
+    "exit_code": 0,
+    "peak_job_bytes": 612802560,
+    "elapsed_seconds": 9.11873800000103,
+    "error": null,
+    "receipt_sha256": "22614fd692ccc34aff87408bae0251cf21eb511d70ca74a8eca21b42671e2810",
+    "log_sha256": "a0001d34e8e94f646c228674318cf731c154cde1cf7d276538808056e77a9359"
+  },
+  "size_measurements": [
+    {
+      "configuration": "raw",
+      "result": {
+        "mode": "raw",
+        "source_bytes": 131072,
+        "ordinary_image_bytes": 458752,
+        "shared_image_bytes": 393216,
+        "ordinary_active_payload_bytes": 131362,
+        "shared_active_payload_bytes": 65946
+      }
+    },
+    {
+      "configuration": "raw",
+      "result": {
+        "mode": "automatic",
+        "source_bytes": 131072,
+        "ordinary_image_bytes": 458752,
+        "shared_image_bytes": 393216,
+        "ordinary_active_payload_bytes": 131362,
+        "shared_active_payload_bytes": 65946
+      }
+    },
+    {
+      "configuration": "asan",
+      "result": {
+        "mode": "raw",
+        "source_bytes": 131072,
+        "ordinary_image_bytes": 458752,
+        "shared_image_bytes": 393216,
+        "ordinary_active_payload_bytes": 131362,
+        "shared_active_payload_bytes": 65946
+      }
+    },
+    {
+      "configuration": "asan",
+      "result": {
+        "mode": "automatic",
+        "source_bytes": 131072,
+        "ordinary_image_bytes": 458752,
+        "shared_image_bytes": 393216,
+        "ordinary_active_payload_bytes": 131362,
+        "shared_active_payload_bytes": 65946
+      }
+    }
+  ],
+  "interpretation": "Two identical 64-KiB files: complete freshly compacted image saves 65536 bytes versus an equivalent unshared control. Both images exceed 131072 source bytes. This is an exact-duplicate primitive result, not extreme compression, generic filesystem throughput or GPU benefit.",
+  "tested_behaviors": [
+    "Cross-file and same-file sharing, unique/empty/no-op controls.",
+    "Partial writes, multi-mutation original reattachment before allocation, shrink/regrow, deleting first/last references and detached-inode writes/retirement.",
+    "Old snapshots, independently current unshared comparator, compact/resume and public CPU readback.",
+    "Legacy/unknown format rejection, invalid dependencies and noncanonical EOF bytes.",
+    "Every modeled write/flush fault boundary before sharing and after shared private mutation; terminal fencing and independently opened recovery."
+  ],
+  "retained_failures": [
+    {
+      "reason": "The test called a private volume-head equivalence method.",
+      "correction": "Use public snapshots, identity/sequence/inode checks and independent byte oracles; no visibility change.",
+      "scope": "Initial new-test compilation"
+    },
+    {
+      "reason": "The control tried to compact an old snapshot after its backing advanced.",
+      "correction": "Use an independent current checkpoint image for the equivalent unshared control; do not weaken latest-source admission.",
+      "scope": "Initial size-comparison test"
+    },
+    {
+      "reason": "Replacing CMAKE_CXX_FLAGS with only /fsanitize=address omitted MSVC /EHsc. C4530 warnings and an unreleased source lease after rejected compaction were retained.",
+      "correction": "Require C++ unwinding explicitly in CMake and reject an MSVC store compile without _CPPUNWIND. Same selected ASan suites then pass without C4530 or relaxed budgets.",
+      "failed_run": {
+        "timeout_seconds": 120.0,
+        "memory_bytes": 6898581504,
+        "cpu_percent": 50,
+        "maximum_processes": 4,
+        "physical_available_bytes": 31867604992,
+        "commit_available_bytes": 83762257920,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1724645376,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 0,
+        "process_id": 20112,
+        "exit_code": 8,
+        "peak_job_bytes": 2701619200,
+        "elapsed_seconds": 10.19954289999805,
+        "error": null,
+        "receipt_sha256": "92ae91dfa768bdd439906f9d20d58e62afd2fae8006b44b25c9be235d8033d7b",
+        "log_sha256": "b176b26bfd8c396cb04b487e73befaa81e6de08b594b604ea00a8168ca349077"
+      },
+      "scope": "Initial local ASan configuration",
+      "diagnosed_run": {
+        "timeout_seconds": 60.0,
+        "memory_bytes": 6902775808,
+        "cpu_percent": 50,
+        "maximum_processes": 2,
+        "physical_available_bytes": 31881338880,
+        "commit_available_bytes": 83702632448,
+        "reserve_bytes": 4269086720,
+        "creation_time_job": true,
+        "exit_confirmed": true,
+        "disk_reserve_bytes": 1725693952,
+        "stop_reason": null,
+        "tree_retired": true,
+        "timed_out": false,
+        "residual_children": 0,
+        "process_id": 60476,
+        "exit_code": 1,
+        "peak_job_bytes": 2694471680,
+        "elapsed_seconds": 6.0727938000018185,
+        "error": null,
+        "receipt_sha256": "79659f9656e17f1904e93563e6c590db770e0a09511b43f8245520daaa3da0d4",
+        "log_sha256": "b42f73907d124f337378ccfdf1e3e4af42dd5f8e0e29931afae64c28ceebad58"
+      }
+    }
+  ],
+  "local_tool_lifecycle": {
+    "all_recorded_runs": 25,
+    "semantic_scope_note": "Source-bound audit preceded policy edits; not a current post-edit index claim.",
+    "no_shared_MCP_change": true,
+    "owned_build_helpers_stopped_and_reported": true,
+    "semantic_receipt_sha256": "9f0e97d0326c9e3154e4f9f32d1f00bf5a2a73f4ff4fd74d40ff63776c69c20e",
+    "all_process_exits_confirmed": true,
+    "semantic_scope": "142 Markdown source files; one native search, all five hit paths/hashes/excerpts independently confirmed",
+    "all_process_trees_retired": true,
+    "semantic_prior_reader_failures_retained": true,
+    "semantic_provider": "0.2.43"
+  },
+  "owner_policy": {
+    "normal_development_files_allowed": true,
+    "driver_changes": false,
+    "mounted": false,
+    "local_development_primary": true,
+    "original_dirty_checkout_untouched": true,
+    "release": false,
+    "blanket_off_host_and_VM_first_restrictions_deleted": true,
+    "filesystem_image_backing": "in-memory synthetic StoreByteIo models",
+    "push": false
+  },
+  "scale_and_groups": {
+    "cardinality": "One, two or thousands of files; adaptive minimum total bytes with practical access latency.",
+    "retrieval": "Indexed decode/restart units separate from group/model scope.",
+    "automatic_grouping_implemented": false,
+    "exact_dedup_extent_size_is_not_group_limit": true,
+    "paged_scale_implemented": false,
+    "target": "Millions of files with paged indices, bounded caches, persistent incremental scanning and bounded candidate lookup."
+  },
+  "limitations": [
+    "Raw-only build: requested automatic mode falls back without optional Zstandard/LZ4. Codec-enabled configurations remain separate work.",
+    "MSVC AddressSanitizer scope only; no UBSan, full CTest matrix, mounted Windows/GUI qualification, physical power-loss test, leak-proof claim or GPU execution in these suites.",
+    "No payload mirrors/general repair, scalable index, automatic learner or stronger near-duplicate/learned codec is added.",
+    "Prototype flat-store/extent limits remain; exact deduplication alone does not close the collective-compression or scale product exits."
+  ],
+  "goal_status": "active"
+}
