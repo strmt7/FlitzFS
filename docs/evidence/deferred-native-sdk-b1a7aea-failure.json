@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "source": "b1a7aea0133c2d6298fd2dce567a956e7f0fe3d0",
+  "run": 43690677134,
+  "job": 132740472469,
+  "error": "MSVC C2280: deleted ObjectStoreSnapshot copy constructor",
+  "cause": "The CPU recovery fixture passed its move-only object snapshot as an lvalue to the consuming native snapshot constructor.",
+  "correction": "Capture payload accounting before moving ownership into the native snapshot. Keep the complete independent current/prior CPU verification.",
+  "artifact_id": 14152592242,
+  "artifact_sha256": "92ac728f5c26efa38671db0b9d0385111126bbf819a795cc63fc2a2dbefe4e6d",
+  "owner_executed": false,
+  "follow_up": "Exact-source complete SDK and core qualification before owner hardware execution"
+}

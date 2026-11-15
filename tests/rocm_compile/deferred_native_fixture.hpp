@@ -17,6 +17,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Explicit, finite qualification only. No SDK function, mount or driver action.
@@ -182,7 +183,7 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
         const auto receipt=service.completion_receipt_locked();check(receipt.has_value(),"deferred commit receipt absent");
         committed=*receipt;
       }
-      FSP_FSCTL_TRANSACT_RSP response;std::memcpy(&response,completion.bytes.data(),sizeof(response));
+      FSP_FSCTL_TRANSACT_RSP response{};std::memcpy(&response,completion.bytes.data(),sizeof(response));
       check(completion.count.load()==1&&completion.identity_matches&&response.Hint==request_hint&&
           response.Kind==FspFsctlTransactWriteKind&&response.IoStatus.Status==STATUS_SUCCESS&&
           response.IoStatus.Information==expected.size()&&response.Rsp.Write.FileInfo.FileSize==expected.size(),
@@ -193,12 +194,14 @@ inline int run(Configuration configuration,const gpu_probe_fixture::Budget& cont
     }
     session.cleanup(handle,false);session.close(handle);
     check(session.stats().contexts==0,"deferred context retained");
-    auto objects=ObjectStoreSnapshot::open(backing);auto recovered=NativeFilesystemSnapshot::open(objects);
+    auto objects=ObjectStoreSnapshot::open(backing);
+    payload_bytes=objects.info().stored_payload_bytes;
+    auto recovered=NativeFilesystemSnapshot::open(std::move(objects));
     recovered.verify_all();
     check(recovered.read("candidate.bin",0,static_cast<std::uint32_t>(expected.size()))==expected&&
         prior.read("candidate.bin",0,4)==sentinel,"deferred current/prior independent CPU readback");
     if(committed.candidate_count)stored_match=stored_advice_matches(backing,committed,block);
-    image_bytes=backing->extent();payload_bytes=objects.info().stored_payload_bytes;
+    image_bytes=backing->extent();
     backing->verify();
   }
   working.restore();
