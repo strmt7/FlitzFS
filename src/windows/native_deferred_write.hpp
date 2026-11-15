@@ -8,6 +8,8 @@
 namespace flitzfs {
 // Explicit hosted-only adapter configuration. Evidence is supplied separately;
 // neither callbacks nor this service discover devices or query GPU drivers.
+// SDK functions are injected by the actual adapter. The control target uses
+// ABI headers without linking the WinFsp runtime.
 using NativeWriteHintQuery=bool(*)(UINT64&) noexcept;
 using NativeWriteResponseSink=void(*)(FSP_FILE_SYSTEM*,FSP_FSCTL_TRANSACT_RSP&) noexcept;
 struct NativeDeferredWriteOptions {
@@ -18,8 +20,8 @@ struct NativeDeferredWriteOptions {
   std::uint32_t deadline_ms=0;
   WorkerExecution expected=WorkerExecution::hip;
   bool allow_gpu=false,workload_qualified=false,helper_independent=false;
-  NativeWriteHintQuery hint_query=nullptr; // null selects the real SDK callback context
-  NativeWriteResponseSink response_sink=nullptr; // null selects the real SDK response
+  NativeWriteHintQuery hint_query=nullptr; // required by the control service
+  NativeWriteResponseSink response_sink=nullptr; // required; the adapter supplies SDK defaults
 };
 struct NativeDeferredWriteStats {
   std::uint64_t queued=0,completed=0,cpu_forced=0,worker_submitted=0,advised=0,response_attempts=0;

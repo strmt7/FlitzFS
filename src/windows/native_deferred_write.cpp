@@ -7,20 +7,15 @@
 namespace flitzfs {
 namespace {
 void increment(std::uint64_t& n) noexcept{if(n!=(std::numeric_limits<std::uint64_t>::max)())++n;}
-bool sdk_hint(UINT64& hint) noexcept{
-  const auto* context=FspFileSystemGetOperationContext();
-  if(!context||!context->Request||context->Request->Kind!=FspFsctlTransactWriteKind)return false;
-  hint=context->Request->Hint;return true; // opaque, including all 64 bits
-}
-void sdk_response(FSP_FILE_SYSTEM* fs,FSP_FSCTL_TRANSACT_RSP& response) noexcept{
-  FspFileSystemSendResponse(fs,&response);
-}
+
 }
 NativeDeferredWriteService::NativeDeferredWriteService(NativeFileSession& session,std::mutex& control,
     std::atomic<bool>& offline,NativeDeferredWriteOptions options)
     :session_(session),control_(control),offline_(offline),options_(std::move(options)){
   if(options_.expected!=WorkerExecution::hip && options_.expected!=WorkerExecution::cpu_semantics)
     throw std::invalid_argument("invalid deferred backend");
+  if(!options_.hint_query||!options_.response_sink)
+    throw std::invalid_argument("deferred transport callbacks are required");
   thread_=std::thread([this]{run();});
 }
 NativeDeferredWriteService::~NativeDeferredWriteService(){
@@ -37,7 +32,7 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
       check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,
           GetTickCount64(),0)!=GpuGateCode::admitted))return false;
   UINT64 hint=0;
-  if(!(options_.hint_query?options_.hint_query:sdk_hint)(hint))return false;
+  if(!options_.hint_query(hint))return false;
   // Authorization and complete output prerequisites precede copying/defer.
   const auto state=session_.mutation_info(handle);FSP_FSCTL_FILE_INFO info{};
   if(!encode_native_file_info(state,NativeFileInfoAllocation::native_reserved_cache,info))
@@ -117,7 +112,7 @@ void NativeDeferredWriteService::run() noexcept{
       auto* filesystem=request_->filesystem;
       stats_.native_pending=false;increment(stats_.completed);changed_.notify_all();
       guard.unlock();
-      (options_.response_sink?options_.response_sink:sdk_response)(filesystem,response);
+      options_.response_sink(filesystem,response);
       guard.lock();increment(stats_.response_attempts);guard.unlock();
       bool retired=operation.try_retire();
       const auto allowance=valid_process_budget(options_.budget)?std::uint64_t(options_.budget.timeout_ms)+4000:4000;
@@ -146,7 +141,7 @@ void NativeDeferredWriteService::run() noexcept{
       stats_.native_pending=false;stats_.retirement_confirmed=false;changed_.notify_all();
     }
     if(filesystem){
-      (options_.response_sink?options_.response_sink:sdk_response)(filesystem,response);
+      options_.response_sink(filesystem,response);
       std::lock_guard guard(control_);increment(stats_.response_attempts);
     }
   }

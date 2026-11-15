@@ -50,6 +50,20 @@ silently retry or authorize recovery. Existing isolated worker supervision may
 retain its own transport frame until actual child exit; it retains no filesystem
 reference. No perpetual service, scheduled task or driver change is added.
 
+## Driver-independent control target
+
+The owned service now builds as flitzfs_native_write_control. It consumes the
+pinned WinFsp ABI headers without linking its runtime library or calling SDK
+functions. Direct construction requires both a hint reader and a response sink
+before starting a thread. Missing either rejects before storage access.
+
+The actual adapter supplies its SDK functions when callers leave those options
+empty. Existing mounted behavior and explicit fixture injection are preserved.
+This separation prepares GPU service qualification without loading the WinFsp
+DLL or a driver in the diagnostic process. The changed source still requires
+exact-source qualification; it is not new hardware evidence or owner-trial
+permission.
+
 ## Qualification
 
 Source [a4ad516](https://github.com/strmt7/FlitzFS/commit/a4ad5166d5063d820cfdd704a600ea20a23f1d93)

@@ -21,6 +21,14 @@
 namespace flitzfs {
 namespace {
 constexpr auto cache_policy=NativeFileInfoAllocation::native_reserved_cache;
+bool sdk_hint(UINT64& hint) noexcept{
+  const auto* context=FspFileSystemGetOperationContext();
+  if(!context||!context->Request||context->Request->Kind!=FspFsctlTransactWriteKind)return false;
+  hint=context->Request->Hint;return true; // opaque, including all 64 bits
+}
+void sdk_response(FSP_FILE_SYSTEM* fs,FSP_FSCTL_TRANSACT_RSP& response) noexcept{
+  FspFileSystemSendResponse(fs,&response);
+}
 struct Handle {HANDLE value=nullptr;~Handle(){if(value)CloseHandle(value);}};
 struct Local {void* value=nullptr;~Local(){if(value)LocalFree(value);}};
 void hosted() {
@@ -563,6 +571,8 @@ void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOpti
   hosted();std::lock_guard guard(impl_->control);
   if(impl_->callbacks_bound||impl_->deferred||impl_->foreground.load(std::memory_order_acquire))
     throw std::runtime_error("deferred writes require an unbound, unconfigured adapter");
+  if(!options.hint_query)options.hint_query=sdk_hint;
+  if(!options.response_sink)options.response_sink=sdk_response;
   impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,impl_->offline,std::move(options));
 }
 void WinFspNativeWritable::publish_deferred_health_hosted(const GpuHealthEvidence& health){

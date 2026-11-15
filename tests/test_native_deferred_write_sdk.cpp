@@ -2,6 +2,8 @@
 #include "winfsp_native.hpp"
 #include "locked_ram_fixture.hpp"
 #include "native_lz4_fixture.hpp"
+#include "native_fs_fixture.hpp"
+#include "native_security_fixture.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include <array>
 #include <atomic>
@@ -46,6 +48,28 @@ NativeDeferredWriteOptions options(const std::filesystem::path& worker,unsigned 
   c.configuration=e.configuration;c.profiled_chunk_bytes=65536;c.maximum_grid_x=65535;
   c.kernel_ns_per_chunk=1000000;c.qualified_kernel_quantum_ns=200000000;c.qualified=true;
   o.window={16,100000000};return o;
+}
+void transport_required(){
+  auto ram=std::make_shared<native_fixture::Ram>();
+  auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(
+      ram,native_fixture::identity(),{StoreCompressionMode::raw,6,false}));
+  const auto seed=native_fixture::file_create("target");
+  const NativeBasicMutation basic{0,1,{11,22,33,44,2}};
+  const NativeSecurityMutation security{0,1,native_security_fixture::descriptor()};
+  writer.apply_with_metadata({&seed,1},{&basic,1},{&security,1});
+  auto session=NativeFileSession::create(std::move(writer));
+  std::mutex control;std::atomic<bool> offline{false};
+  const auto reads=ram->read_calls,writes=ram->calls;
+  for(unsigned mask=0;mask<3;++mask){
+    NativeDeferredWriteOptions options;options.expected=WorkerExecution::cpu_semantics;
+    if(mask&1)options.hint_query=hint;
+    if(mask&2)options.response_sink=send;
+    bool rejected=false;
+    try{NativeDeferredWriteService forbidden(session,control,offline,std::move(options));}
+    catch(const std::invalid_argument&){rejected=true;}
+    check(rejected&&!offline.load()&&ram->read_calls==reads&&ram->calls==writes,
+        "missing deferred transport was accepted or touched storage");
+  }
 }
 struct Harness {
   locked_ram_fixture::WorkingSet working;
@@ -156,6 +180,7 @@ void run(const std::filesystem::path& worker,unsigned kind){
 int wmain(int argc,wchar_t** argv){try{
   check(argc==2,"trusted CPU helper required");const std::filesystem::path worker(argv[1]);
   check(worker.is_absolute(),"absolute CPU helper required");
+  transport_required();
   for(unsigned kind=0;kind<4;++kind){
     run(worker,kind);
     check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load(),
