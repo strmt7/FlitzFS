@@ -16,6 +16,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Release execution and compatibility plan](../RELEASE_EXECUTION_PLAN.md), [benchmark protocol](../BENCHMARK_PROTOCOL.md)
 - [Paged object storage and streaming rebuild](../PAGED_OBJECT_STORE.md)
 - [Native operations on paged storage](../NATIVE_PAGED_BACKEND.md)
+- [Incremental inode-record namespace](../INODE_RECORD_NAMESPACE.md)
 
 ## Windows integration
 

@@ -18,6 +18,9 @@ and file-session engine. The paged selection preserves the current bounded flat
 namespace and eager CPU verification; it does not yet provide paged names,
 million-file operation or automatic Windows routing. See
 [paged storage](PAGED_OBJECT_STORE.md) for the bridge and maintenance boundaries.
+The separate [inode-record initialization](INODE_RECORD_NAMESPACE.md) opts into
+a fixed root and individually indexed inode records. It retains the same eager
+bounded Model/validation; it does not yet implement paged lookup/residency.
 Initialize accepts only a NEW empty generation-zero flat store or the initial
 generation-two empty paged store. Resume accepts a
 writer whose custom backend has already passed identity/generation verification,

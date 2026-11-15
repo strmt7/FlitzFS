@@ -3,6 +3,8 @@
 Current checkpoint: 15 November 2026. The
 [native paged-backend follow-up](NATIVE_PAGED_BACKEND.md) connects the shared
 native engine to paged storage while retaining flat namespace limits. The
+explicit [inode-record layout](INODE_RECORD_NAMESPACE.md) additionally publishes
+only changed inode metadata. Paged lookup/residency remains incomplete. The
 earlier object-index qualification is bound to `7c601d3`; use
 [the release execution plan](RELEASE_EXECUTION_PLAN.md) for current gaps,
 effort estimates and gates. Historical

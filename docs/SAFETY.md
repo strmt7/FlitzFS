@@ -7,6 +7,12 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The new [inode-record layout](INODE_RECORD_NAMESPACE.md) validates each record
+boundary and key identity before namespace exposure and publishes metadata/data
+atomically. Its payloads remain integrity checked rather than independently
+replicated. Modeled recovery does not establish physical power-loss or arbitrary-
+corruption repair. Default layouts and driver/GPU admission remain unchanged.
+
 The owner's 15 November 2026 instruction deletes blanket off-host, GitHub-only
 development and mandatory VM-first restrictions. Local source work, builds,
 research, CPU/GPU/GUI tests and safe benchmarks are authorized. Use the

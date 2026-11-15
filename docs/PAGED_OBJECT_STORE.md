@@ -5,8 +5,9 @@ over the existing `StoreByteIo` backend/ownership contract. It implements actual
 compressed-object writes, lookup, deletion, stable keyset pagination, retained
 snapshots, recovery and streaming rebuilding. Native filesystem snapshots,
 writers and file sessions can now explicitly use this backend through their
-existing operation engine. The native namespace representation, Explorer
-factories, default formats and GPU routing remain unchanged.
+existing operation engine. An explicit [inode-record namespace](INODE_RECORD_NAMESPACE.md)
+also supports incremental metadata publication. Explorer factories, default
+formats and GPU routing remain unchanged.
 
 The distinction matters: a million populated object records are now tested;
 a million named Windows files and scalable automatic compression grouping are
@@ -140,8 +141,9 @@ cannot, by itself, rebind the identity inside a native namespace. A native-aware
 migration/rebuild is still required; do not present generic rebuilding as native
 volume compaction. This bridge does not change any existing wire encoding.
 
-Before the native namespace itself migrates: define paged inode/name/extent keys and
-atomic multi-index roots, preserve namespace/security/open-handle semantics,
+The explicit inode-record layout is the first metadata persistence step. Finish
+ordered name/extent indexes, bounded native residency and atomic multi-index
+publication while preserving namespace/security/open-handle semantics;
 add explicit old-format migration, resumable scan cursors and bounded caches.
 Automatic reclaim/rebuild scheduling, concurrent reader retirement and data
 redundancy remain required. Do not relax the flat namespace limits and call

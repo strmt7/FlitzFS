@@ -23,6 +23,8 @@ The explicit [paged native backend](NATIVE_PAGED_BACKEND.md) connects native
 operations and sessions to paged object storage through the shared engine.
 Native metadata is still a complete bounded flat Model; scalable names/extents,
 native-aware migration/handoff and Windows factory integration remain open.
+The separate [inode-record layout](INODE_RECORD_NAMESPACE.md) now provides
+incremental metadata publication without removing those remaining limits.
 Conditional owner permission for a qualified FlitzFS-related driver does not
 qualify an experimental driver or authorize GPU/unrelated driver changes.
 

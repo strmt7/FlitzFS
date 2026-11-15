@@ -2,7 +2,8 @@
 
 Assessment: 15 November 2026. Reviewed local source:
 `7c601d39c8eb5f04a02bb889840efc06eac68171`. The subsequent
-[native backend bridge](NATIVE_PAGED_BACKEND.md) is traced separately; the
+[native backend bridge](NATIVE_PAGED_BACKEND.md) and
+[inode-record persistence](INODE_RECORD_NAMESPACE.md) are traced separately; the
 paged namespace work and release gates remain open. The full product goal remains active.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,

@@ -279,12 +279,13 @@ struct PreparedObject {Entry entry;std::array<std::byte,128> header{};Bytes payl
 struct Change {std::uint64_t id;bool erase;Entry entry;};
 struct Plan {
   State next;
+  std::size_t changed_keys=kStoreMaxObjects;
   std::uint64_t page_start=0;
   std::vector<PreparedPage> pages;
   Ref make_page(const Node& node,std::uint32_t height) {
     // A bounded transaction changes <=256 paths, <=17 levels plus splits.
     // This work limit is independent of the volume's object count.
-    if(pages.size()>=2*(maximum_height+1)*kStoreMaxObjects+maximum_height+1)capacity("transaction page budget");
+    if(pages.size()>=2*(maximum_height+1)*changed_keys+maximum_height+1)capacity("transaction page budget");
     PreparedPage p;auto& r=p.ref;r=summary(node,height);r.generation=next.checkpoint;
     const auto per_unit=next.unit/page_bytes;
     r.primary=add(page_start,add((pages.size()/per_unit)*2ULL*next.unit,(pages.size()%per_unit)*page_bytes));
@@ -510,9 +511,15 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSna
   return PagedObjectStoreWriter(std::move(p));
 }
 PagedStoreInfo PagedObjectStoreWriter::commit(std::span<const StoreMutation> mutations) {
+  return commit_impl(mutations,kStoreMaxObjects);
+}
+PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutation> mutations) {
+  return commit_impl(mutations,2*kStoreMaxObjects);
+}
+PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation> mutations,std::size_t maximum_operations) {
   if(!impl_ || impl_->poisoned)fail("writer unavailable/poisoned");
   auto& p=*impl_;const auto& old=p.state;
-  if(mutations.empty() || mutations.size()>kStoreMaxObjects)fail("transaction operation budget");
+  if(mutations.empty() || mutations.size()>maximum_operations)fail("transaction operation budget");
   if(old.generation>(std::numeric_limits<std::uint64_t>::max)()-2)fail("generation exhausted");
   std::vector<const StoreMutation*> sorted;sorted.reserve(mutations.size());std::uint64_t input=0;
   for(const auto& m:mutations) {
@@ -536,6 +543,7 @@ PagedStoreInfo PagedObjectStoreWriter::commit(std::span<const StoreMutation> mut
     if(!e)fail("erase missing object");
   }
   Plan plan;plan.next=old;plan.next.checkpoint=old.generation+1;plan.next.generation=old.generation+2;
+  plan.changed_keys=mutations.size();
   plan.next.degraded_roots=false;plan.next.degraded_metadata=false;
   auto cursor=p.append_floor;
   std::vector<PreparedObject> objects;objects.reserve(sorted.size());std::vector<Change> changes;changes.reserve(sorted.size());

@@ -38,8 +38,10 @@ replay an indeterminate commit; retire its writer before independent recovery.
 
 ## Remaining integration
 
-The native frontend still loads a complete Model and serializes one namespace
-object. Its 256-node, 255-extent, path, transaction and allocation bounds remain.
+Ordinary initialization still uses one namespace object. The explicit
+[inode-record layout](INODE_RECORD_NAMESPACE.md) publishes a fixed root and
+changed inode records instead. Both frontends still load a complete Model;
+their 256-node, 255-extent, path, transaction and allocation bounds remain.
 The million-object index test is not a million-file filesystem qualification.
 Paged inode/name/extent metadata, stable directory cursors and bounded residency
 are the next E01 work.

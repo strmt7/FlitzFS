@@ -15,8 +15,13 @@ template<class F> void rejects(F&& f,const char* why) {
   ++checks;try{f();}catch(const NativeFsError&){return;}throw std::runtime_error(why);
 }
 NativeFilesystemWriter fresh(const std::shared_ptr<Ram>& ram) {
+#ifdef FLITZFS_TEST_INODE_RECORDS
+  return NativeFilesystemWriter::initialize_inode_records(PagedObjectStoreWriter::create(
+      ram,identity(),limits,{StoreCompressionMode::raw,1,false}));
+#else
   return NativeFilesystemWriter::initialize(PagedObjectStoreWriter::create(
       ram,identity(),limits,{StoreCompressionMode::raw,1,false}));
+#endif
 }
 NativeFilesystemSnapshot view(const std::shared_ptr<Ram>& ram) {
   return NativeFilesystemSnapshot::open(PagedObjectStoreSnapshot::open(ram,limits));
@@ -46,7 +51,24 @@ void equivalent(const NativeFilesystemSnapshot& a,const NativeFilesystemSnapshot
 }
 void shared_engine() {
   auto a=std::make_shared<Ram>(),b=std::make_shared<Ram>();a->failure_unit=b->failure_unit=4096;
-  auto flat=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(a,identity(),{StoreCompressionMode::raw,1,false}));
+  auto reference=[&] {
+    auto flat=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(a,identity(),{StoreCompressionMode::raw,1,false}));
+#ifdef FLITZFS_TEST_INODE_RECORDS
+    // Match the new layout's initial feature state without adding a logical
+    // user transaction. Retire the writer, extend the sole legacy root frame
+    // to canonical format 7, then admit it through the independent flat reader.
+    {auto retired=std::move(flat);}
+    const auto snapshot=ObjectStoreSnapshot::open(a);auto metadata=snapshot.read(1);
+    require(metadata.size()==128,"reference initial root framing");metadata.resize(168);
+    metadata[7]=std::byte{'7'};metadata[8]=std::byte{7};
+    auto objects=ObjectStoreWriter::resume(a,identity(),snapshot.info().generation,{StoreCompressionMode::raw,1,false});
+    const StoreMutation upgraded{1,false,std::move(metadata)};objects.commit_replicated({&upgraded,1});
+    return NativeFilesystemWriter::resume(std::move(objects));
+#else
+    return flat;
+#endif
+  };
+  auto flat=reference();
   auto paged=fresh(b);
   auto both=[&](std::vector<NativeFileMutation> batch) {
     const auto x=flat.apply(batch),y=paged.apply(batch);
@@ -202,10 +224,128 @@ void paged_barrier_pressure() {
     }
   }
 }
+#ifdef FLITZFS_TEST_INODE_RECORDS
+constexpr auto inode_bit=1ULL<<63;
+void inode_records_and_incremental_writes() {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;auto writer=fresh(ram);
+  for(unsigned start=0;start<128;start+=16) {
+    std::vector<NativeFileMutation> batch;
+    for(unsigned i=start;i<start+16;++i)batch.push_back(file_create("f"+std::to_string(i)));
+    writer.apply(batch);
+  }
+  const auto prior=PagedObjectStoreSnapshot::open(ram,limits);
+  const auto records=prior.list_page(0,512);const auto whole_metadata=prior.info().logical_bytes;
+  require(prior.read(1).size()==64 && records.size()==130,"inode-record fixed-root/inventory framing");
+  const auto inode=writer.snapshot().stat("f0").inode;const auto writes=ram->write_bytes;
+  file_apply(writer,file_write("f0",0,Bytes{std::byte{99}}));
+  const auto current=PagedObjectStoreSnapshot::open(ram,limits);
+  unsigned changed=0;std::uint64_t metadata_bytes=current.stat(1)->logical_bytes;
+  for(const auto& before:records)if(before.id&inode_bit) {
+    const auto after=current.stat(before.id);
+    require(after.has_value(),"unrelated inode disappeared");
+    if(before.generation!=after->generation) {
+      require(before.id==(inode_bit|inode),"unrelated inode metadata rewritten");
+      ++changed;metadata_bytes+=after->logical_bytes;
+    }
+  }
+  require(changed==1 && metadata_bytes<whole_metadata,"single-file write republished whole namespace");
+  require(prior.read(inode_bit|inode)!=current.read(inode_bit|inode),"retained inode record did not remain distinct");
+  require(view(ram).read("f0",0,1)==Bytes{std::byte{99}},"independent inode-record file bytes");
+  std::cout<<"inode_records metadata_input_bytes="<<metadata_bytes<<" whole_namespace_bytes="<<whole_metadata
+      <<" changed_inode_records="<<changed<<" backend_write_bytes="<<ram->write_bytes-writes<<'\n';
+}
+void inode_record_capacity_and_large_delete() {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  {
+    auto writer=fresh(ram);
+    for(unsigned start=0;start<255;start+=8) {
+      std::vector<NativeFileMutation> batch;
+      for(unsigned i=start;i<(std::min)(255U,start+8);++i) {
+        const auto name="f"+std::to_string(i);
+        batch.push_back(file_create(name));batch.push_back(file_write(name,0,Bytes{std::byte{42}}));
+      }
+      writer.apply(batch);
+    }
+    auto snapshot=writer.snapshot();
+    require(snapshot.list().size()==255 && snapshot.storage_info().objects==512,
+        "inode metadata consumed the promised file/data inventory");
+    rejects([&]{file_apply(writer,file_create("over-node-limit"));},"existing node bound silently changed");
+    for(unsigned i=0;i<255;++i)require(snapshot.read("f"+std::to_string(i),0,2)==Bytes{std::byte{42}},"capacity file bytes");
+  }
+  // A different volume has the maximum 255 data extents in ONE file. Truncate
+  // requires 255 deletions plus the fixed root and changed inode in ONE commit.
+  ram=std::make_shared<Ram>();ram->failure_unit=4096;auto writer=fresh(ram);
+  file_apply(writer,file_create("large"));
+  for(unsigned start=0;start<255;start+=16) {
+    const auto extents=(std::min)(16U,255U-start);
+    file_apply(writer,file_write("large",std::uint64_t(start)*kNativeExtentBytes,
+        Bytes(std::size_t(extents)*kNativeExtentBytes,std::byte{37})));
+  }
+  auto before=writer.snapshot();require(before.storage_info().objects==258,"large extent inventory");
+  const auto baseline=ram->stable;auto probe=image(baseline,4096);std::size_t cuts=0;
+  {auto trial=resume(probe);const auto start=probe->calls;file_apply(trial,file_truncate("large",0));cuts=probe->calls-start;}
+  require(cuts>3 && cuts<128,"large deletion fault envelope");
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
+    auto failed=image(baseline,4096);
+    {
+      auto trial=resume(failed);failed->failure=mode;failed->fail_at=failed->calls+cut;
+      rejects([&]{file_apply(trial,file_truncate("large",0));},"large inode/data deletion fault acknowledged");
+      require(trial.poisoned(),"large deletion indeterminate writer not fenced");
+    }
+    failed->live=failed->stable;failed->fail_at=(std::numeric_limits<std::size_t>::max)();
+    const auto recovered=view(failed);const auto size=recovered.stat("large").logical_bytes;
+    require((size==0 && recovered.storage_info().objects==3) ||
+        (size==std::uint64_t(255)*kNativeExtentBytes && recovered.storage_info().objects==258),
+        "large deletion published a partial metadata/data set");
+    if(size)require(recovered.read("large",size-13,13)==Bytes(13,std::byte{37}),"large deletion recovery lost acknowledged tail");
+    auto continued=resume(failed);file_apply(continued,file_write("large",0,Bytes{std::byte{43}}));
+    require(view(failed).read("large",0,1)==Bytes{std::byte{43}},"large deletion recovery could not continue");
+    ++faults;
+  }
+  std::cout<<"inode_records large_delete_operations=257 fault_cuts="<<cuts<<" modes=3\n";
+  file_apply(writer,file_truncate("large",0));
+  require(writer.snapshot().storage_info().objects==3 && writer.snapshot().read("large",0,1).empty(),
+      "257-operation native metadata/data deletion was not atomic");
+  require(before.read("large",std::uint64_t(255)*kNativeExtentBytes-13,13)==Bytes(13,std::byte{37}),
+      "large deletion damaged retained bytes");
+  view(ram).verify_all();
+}
+void forged_inode_records() {
+  auto original=std::make_shared<Ram>();original->failure_unit=4096;
+  std::uint64_t inode=0;
+  {auto writer=fresh(original);writer.apply(std::array{file_create("a"),file_write("a",0,data(17,91))});
+    inode=writer.snapshot().stat("a").inode;}
+  for(unsigned variant=0;variant<9;++variant) {
+    auto ram=image(original->stable,4096);
+    {
+      auto snapshot=PagedObjectStoreSnapshot::open(ram,limits);
+      auto objects=PagedObjectStoreWriter::resume(ram,identity(),snapshot.info().generation,limits,{StoreCompressionMode::raw,1,false});
+      auto record=snapshot.read(inode_bit|inode);std::uint64_t key=inode_bit|inode;bool erase=false;
+      if(variant==0)record.push_back(std::byte{0}); // Cannot leak bytes into the next inode frame.
+      if(variant==1)record[0]^=std::byte{1}; // Logical inode must match its index key.
+      if(variant==2)record[50]=std::byte{0}; // False extent count must not reframe adjacent records.
+      if(variant==3)erase=true;
+      if(variant==4)key=inode_bit|999; // Extra metadata despite otherwise intact current records.
+      if(variant==5){key=1;record=snapshot.read(1);record[8]=std::byte{2};}
+      if(variant==6){key=1;record=snapshot.read(1);record[12]=std::byte{255};record[13]=std::byte{255};}
+      if(variant==7){key=1;record=snapshot.read(1);record[40]^=std::byte{1};}
+      if(variant==8)record[88]=std::byte{20}; // Security bytes cannot consume another frame.
+      if(erase)record.clear();const StoreMutation forged{key,erase,std::move(record)};
+      objects.commit({&forged,1});
+    }
+    const auto calls=ram->calls;const auto bytes=ram->live;
+    rejects([&]{(void)view(ram);},"intact forged inode record exposed files");
+    require(ram->calls==calls && ram->live==bytes,"malformed inode reader wrote backing bytes");
+  }
+}
+#endif
 }
 int main() {try {
   shared_engine();sharing_and_sessions();closed_session_and_foreign_objects();
   failure_matrix(4096);failure_matrix(65536);flush_failures();paged_barrier_pressure();
+#ifdef FLITZFS_TEST_INODE_RECORDS
+  inode_records_and_incremental_writes();inode_record_capacity_and_large_delete();forged_inode_records();
+#endif
   std::cout<<"PASS: "<<checks<<" native paged-backend checks; "<<faults
       <<" injected write/barrier cases; memory CPU only, namespace still bounded.\n";return 0;
 }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}}

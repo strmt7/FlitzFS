@@ -73,6 +73,11 @@ class PagedObjectStoreWriter final {
   friend class detail::NativeObjectWriter;
   PagedObjectStoreSnapshot snapshot_for_staging() const;
   std::uint64_t generation_for_staging() const noexcept;
+  // Native inode records consume their own metadata entries. Keep public
+  // transactions at 256 operations; the native adapter admits at most 512
+  // data+metadata operations with the SAME 4-MiB input bound.
+  PagedStoreInfo commit_native(std::span<const StoreMutation>);
+  PagedStoreInfo commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations);
   struct Impl;
   explicit PagedObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

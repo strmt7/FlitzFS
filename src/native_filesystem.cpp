@@ -26,6 +26,7 @@ namespace {
 using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
 constexpr std::uint64_t kNamespaceObject=1;
+constexpr std::uint64_t kInodeObjectBit=1ULL<<63;
 constexpr std::size_t kMetadataCap=kNativeExtentBytes,kDirtyCap=kNativeMaxDirtyExtents;
 constexpr std::size_t kBasicNodeHeader=88,kSecurityNodeHeader=96,kAllocationNodeHeader=104;
 static_assert(64+kNativeMaxNodes*(kBasicNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
@@ -34,6 +35,7 @@ static_assert(64+kNativeMaxNodes*(kAllocationNodeHeader+100)+16*kNativeMaxExtent
 static_assert(kDirtyCap*kNativeExtentBytes+kMetadataCap<=kStoreMaxTransactionBytes);
 static_assert(kNativeMaxExtents*kNativeExtentBytes+kMetadataCap<=kStoreMaxLogicalBytes);
 constexpr std::array<std::byte,8> kMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'N'},std::byte{'S'},std::byte{'0'},std::byte{'1'}};
+constexpr std::array<std::byte,8> kInodeRootMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'P'},std::byte{'N'},std::byte{'0'},std::byte{'1'}};
 constexpr auto kLifecycleMagic=[] {auto magic=kMagic;magic[7]=std::byte{'2'};return magic;}();
 constexpr auto kBasicMagic=[] {auto magic=kMagic;magic[7]=std::byte{'3'};return magic;}();
 constexpr auto kSecurityMagic=[] {auto magic=kMagic;magic[7]=std::byte{'4'};return magic;}();
@@ -67,6 +69,7 @@ struct Model {
   StoreIdentity identity{};
   std::uint64_t sequence=1,next_inode=2,committed_input_bytes=0;
   std::uint32_t format=1;
+  bool inode_records=false;
   std::map<std::uint64_t,Node> nodes;
 };
 static_assert(std::is_nothrow_move_assignable_v<Model>);
@@ -174,6 +177,8 @@ void validate_structure(const Model& model,bool pending=false) {
   if(model.nodes.empty() || model.nodes.size()>kNativeMaxNodes || model.sequence==0)fail(Code::limit,"native namespace budget");
   if(model.format<1 || model.format>7 || (model.format<6 && model.committed_input_bytes))
     fail(Code::corrupt,"native namespace capability/accounting");
+  if(model.inode_records && (model.format!=7 || model.next_inode>kInodeObjectBit))
+    fail(Code::corrupt,"inode-record capability/allocator");
   const auto& root=node(model,1);
   if(root.parent || !root.directory || !root.name.empty() || root.size || !root.extents.empty() ||
       root.born!=1 || root.delete_pending || root.unlinked)
@@ -182,6 +187,7 @@ void validate_structure(const Model& model,bool pending=false) {
   std::set<std::uint64_t> objects;
   std::uint64_t largest=0;
   for(const auto& [id,n]:model.nodes) {
+    if(model.inode_records && id>=kInodeObjectBit)fail(Code::limit,"inode-record identity exhausted");
     if(id!=n.inode || !id || n.born==0 || n.born>n.modified || n.modified>model.sequence ||
         n.size>kNativeMaxFileBytes || (n.directory && (n.size || !n.extents.empty())) ||
         (n.delete_pending && n.unlinked) || (model.format==1 && (n.delete_pending || n.unlinked)))
@@ -268,8 +274,68 @@ Bytes encode(const Model& model) {
   }
   return bytes;
 }
+std::size_t inventory_limit(const Model& model) {return model.inode_records?2*kStoreMaxObjects:kStoreMaxObjects;}
+Bytes inode_root(std::span<const std::byte> normalized) {
+  Bytes root(normalized.begin(),normalized.begin()+64);
+  std::copy(kInodeRootMagic.begin(),kInodeRootMagic.end(),root.begin());put(root,8,1,4);return root;
+}
+using NodeFrames=std::map<std::uint64_t,std::span<const std::byte>>;
+NodeFrames node_frames(const Model& model,std::span<const std::byte> bytes) {
+  NodeFrames frames;std::size_t cursor=64;
+  for(const auto& [id,n]:model.nodes) {
+    const auto size=node_header(model.format)+n.name.size()+(n.security?n.security->size():0)+16*n.extents.size();
+    if(cursor>bytes.size() || size>bytes.size()-cursor)fail(Code::corrupt,"encoded inode framing invariant");
+    frames.emplace(id,bytes.subspan(cursor,size));cursor+=size;
+  }
+  if(cursor!=bytes.size())fail(Code::corrupt,"encoded inode trailing invariant");return frames;
+}
+void namespace_mutations(std::vector<StoreMutation>& output,const Model& model,const Model* previous=nullptr) {
+  const auto current=encode(model);
+  if(!model.inode_records){output.push_back({kNamespaceObject,false,current});return;}
+  output.push_back({kNamespaceObject,false,inode_root(current)});
+  const auto frames=node_frames(model,current);
+  const auto old=previous?encode(*previous):Bytes{};
+  const auto prior=previous?node_frames(*previous,old):NodeFrames{};
+  if(previous && !previous->inode_records)fail(Code::invalid_operation,"inode layout conversion requires a new image");
+  for(const auto& [id,frame]:frames) {
+    const auto found=prior.find(id);
+    if(found==prior.end() || !std::equal(frame.begin(),frame.end(),found->second.begin(),found->second.end()))
+      output.push_back({kInodeObjectBit|id,false,Bytes(frame.begin(),frame.end())});
+  }
+  for(const auto& [id,frame]:prior) { (void)frame;
+    if(!frames.contains(id))output.push_back({kInodeObjectBit|id,true,{}});
+  }
+}
+bool namespace_matches(const detail::NativeObjectSnapshot& objects,const Model& model) {
+  if(!model.inode_records)return object_bytes(objects,kNamespaceObject)==encode(model);
+  std::vector<StoreMutation> expected;namespace_mutations(expected,model);
+  for(const auto& record:expected)if(object_bytes(objects,record.id)!=record.bytes)return false;
+  return true;
+}
 Model decode(const detail::NativeObjectSnapshot& objects) {
-  const auto bytes=object_bytes(objects,kNamespaceObject);
+  auto bytes=object_bytes(objects,kNamespaceObject);
+  const bool inode_records=bytes.size()>=8 && std::equal(kInodeRootMagic.begin(),kInodeRootMagic.end(),bytes.begin());
+  if(inode_records) {
+    if(!objects.paged() || bytes.size()!=64 || integer(bytes,8,4)!=1 || !integer(bytes,12,4) ||
+        integer(bytes,12,4)>kNativeMaxNodes || integer(bytes,36,4)>kNativeMaxExtents)
+      fail(Code::corrupt,"unsupported inode-record root");
+    const auto count=integer(bytes,12,4);std::size_t observed=0;
+    const auto catalog=objects.list(2*kStoreMaxObjects);
+    for(const auto& record:catalog)if(record.id&kInodeObjectBit) {
+      if(++observed>count)fail(Code::corrupt,"extra inode metadata record");
+      const auto frame=object_bytes(objects,record.id);
+      if(frame.size()<kAllocationNodeHeader || frame.size()>kMetadataCap-bytes.size() ||
+          !integer(frame,0,8) || integer(frame,0,8)!=(record.id^kInodeObjectBit))
+        fail(Code::corrupt,"inode record identity/size binding");
+      const auto name=integer(frame,48,2),extents=integer(frame,50,2),security=integer(frame,88,4);
+      if(name>100 || extents>kNativeMaxExtents || security>kNativeMaxSecurityBytes ||
+          frame.size()!=kAllocationNodeHeader+name+security+16*extents)
+        fail(Code::corrupt,"inode record boundary/count binding");
+      bytes.insert(bytes.end(),frame.begin(),frame.end());
+    }
+    if(observed!=count)fail(Code::corrupt,"missing inode metadata record");
+    std::copy(kSharedMagic.begin(),kSharedMagic.end(),bytes.begin());put(bytes,8,7,4);
+  }
   const auto all=std::span<const std::byte>(bytes);
   if(bytes.size()<64 || bytes.size()>kMetadataCap ||
       integer(all,32,4)!=kNativeExtentBytes)
@@ -283,7 +349,7 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
   if(!count || count>kNativeMaxNodes || declared_extents>kNativeMaxExtents)fail(Code::limit,"native metadata counts");
   if(format>=2 && !objects.info().replicated_checkpoint)
     fail(Code::corrupt,"native lifetime capability requires replicated current checkpoints");
-  Model model;model.format=static_cast<std::uint32_t>(format);
+  Model model;model.format=static_cast<std::uint32_t>(format);model.inode_records=inode_records;
   if(format>=6)model.committed_input_bytes=integer(all,56,8);
   model.sequence=integer(all,16,8);model.next_inode=integer(all,24,8);
   std::copy_n(bytes.begin()+40,16,model.identity.begin());
@@ -335,11 +401,12 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
   try{validate_structure(model);}
   catch(const NativeFsError&){fail(Code::corrupt,"invalid native namespace graph");}
   std::set<std::uint64_t> expected{kNamespaceObject};
-  for(const auto& [id,n]:model.nodes){(void)id;for(const auto& [block,object]:n.extents){(void)block;expected.insert(object);}}
-  const auto catalog=objects.list();
+  for(const auto& [id,n]:model.nodes){if(inode_records)expected.insert(kInodeObjectBit|id);
+    for(const auto& [block,object]:n.extents){(void)block;expected.insert(object);}}
+  const auto catalog=objects.list(inventory_limit(model));
   if(catalog.size()!=expected.size())fail(Code::corrupt,"foreign or dangling native objects");
   for(const auto& object:catalog)if(!expected.contains(object.id) ||
-      (object.id!=kNamespaceObject && object.logical_bytes!=kNativeExtentBytes))
+      (object.id!=kNamespaceObject && !(inode_records && (object.id&kInodeObjectBit)) && object.logical_bytes!=kNativeExtentBytes))
     fail(Code::corrupt,"native object extent mismatch");
   validate_data(model,[&](auto,auto,std::uint64_t object){return object_bytes(objects,object);});
   return model;
@@ -408,7 +475,7 @@ struct Stage {
     std::map<detail::Digest,std::vector<std::size_t>> representatives;
     std::map<std::uint64_t,std::size_t> resolved;
     std::map<std::uint64_t,std::uint32_t> costs;
-    for(const auto& info:base.list())costs.emplace(info.id,info.stored_payload_bytes);
+    for(const auto& info:base.list(inventory_limit(model)))costs.emplace(info.id,info.stored_payload_bytes);
     std::size_t comparisons=0;
     for(const auto& [inode,n]:model.nodes)for(const auto& [index,object]:n.extents) {
       (void)inode;(void)index;
@@ -715,7 +782,7 @@ struct Stage {
     }
     validate_structure(model);
     std::vector<StoreMutation> output;output.reserve(kStoreMaxObjects);
-    output.push_back({kNamespaceObject,false,encode(model)});
+    namespace_mutations(output,model,&original);
     for(const auto& [id,n]:model.nodes)for(const auto& [index,object]:n.extents) {
       const auto found=dirty.find({id,index});
       if(found!=dirty.end()) {
@@ -730,8 +797,10 @@ struct Stage {
         output.push_back(std::move(mutation));
       }
     }
-    for(const auto& previous:base.list())if(previous.id!=kNamespaceObject && !used.contains(previous.id))output.push_back({previous.id,true,{}});
-    if(output.size()>kStoreMaxObjects)fail(Code::limit,"native object mutation budget");
+    for(const auto& previous:base.list(inventory_limit(model)))if(previous.id!=kNamespaceObject &&
+        !(model.inode_records && (previous.id&kInodeObjectBit)) && !used.contains(previous.id))
+      output.push_back({previous.id,true,{}});
+    if(output.size()>inventory_limit(model))fail(Code::limit,"native object mutation budget");
     return output;
   }
 };
@@ -860,16 +929,20 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize(ObjectStoreWriter obje
 NativeFilesystemWriter NativeFilesystemWriter::initialize(PagedObjectStoreWriter objects) {
   return initialize_storage(std::move(objects));
 }
-NativeFilesystemWriter NativeFilesystemWriter::initialize_storage(detail::NativeObjectWriter objects) {
+NativeFilesystemWriter NativeFilesystemWriter::initialize_inode_records(PagedObjectStoreWriter objects) {
+  return initialize_storage(std::move(objects),true);
+}
+NativeFilesystemWriter NativeFilesystemWriter::initialize_storage(detail::NativeObjectWriter objects,bool inode_records) {
   auto snapshot=objects.snapshot();
   if(objects.poisoned() || snapshot.info().generation!=(objects.paged()?2U:0U) || !snapshot.list().empty())
     fail(Code::invalid_operation,"native initialization requires new empty store");
-  Model model;model.identity=snapshot.identity();
+  if(inode_records && !objects.paged())fail(Code::invalid_operation,"inode records require paged storage");
+  Model model;model.identity=snapshot.identity();model.inode_records=inode_records;if(inode_records)model.format=7;
   Node root;root.inode=1;root.directory=true;root.born=root.modified=1;
   model.nodes.emplace(1,std::move(root));
   auto p=std::make_unique<Impl>(std::move(objects),model);
-  const StoreMutation metadata{kNamespaceObject,false,encode(model)};
-  p->objects.commit_replicated({&metadata,1});
+  std::vector<StoreMutation> metadata;namespace_mutations(metadata,model);
+  p->objects.commit_replicated(metadata);
   return NativeFilesystemWriter(std::move(p));
 }
 NativeFsCommit NativeFilesystemWriter::enable_workload_accounting() {
@@ -1370,7 +1443,7 @@ detail::NativeObjectSnapshot NativeFilesystemWriter::checked_namespace() const {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   try {
     auto snapshot=impl_->objects.snapshot_for_staging();
-    if(object_bytes(snapshot,kNamespaceObject)!=encode(impl_->model))
+    if(!namespace_matches(snapshot,impl_->model))
       fail(Code::corrupt,"native cached namespace differs from backing record");
     return snapshot;
   }catch(const std::bad_alloc&){fail(Code::limit,"native namespace query allocation failure");}

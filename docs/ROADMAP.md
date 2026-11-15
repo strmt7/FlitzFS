@@ -8,6 +8,11 @@ the shared native engine can explicitly use paged object storage, while actual
 paged native namespace/extent metadata, persistent similarity scans, bounded
 caches and automatic reclamation are the next scale exits.
 
+The explicit [inode-record layout](INODE_RECORD_NAMESPACE.md) now replaces whole-
+blob namespace publication with a fixed root and changed inode records. Native
+node/data limits remain; this persistence step does not close S01 or provide a
+million-file result, ordered name index or bounded namespace cache.
+
 The owner's 15 November 2026 direction deletes blanket off-host/GitHub-only and
 mandatory VM-first restrictions. Use local builds, research and host-safe
 CPU/GPU/GUI tests; reserve VMs for unavailable platforms and operations that

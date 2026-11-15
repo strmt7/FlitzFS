@@ -245,6 +245,11 @@ class NativeFilesystemWriter final {
   // 2). Uses the same mutation/session engine and namespace bytes. Flat volume-
   // head/recompression facilities require their existing flat backend.
   static NativeFilesystemWriter initialize(PagedObjectStoreWriter objects);
+  // Explicit inode-record namespace layout on a NEW empty paged backend.
+  // Publishes a fixed root and individual inode records atomically; no format
+  // conversion of existing images. Current in-memory namespace limits remain.
+  // Workload accounting and format-7 shared references are enabled from start.
+  static NativeFilesystemWriter initialize_inode_records(PagedObjectStoreWriter objects);
   // Explicit sticky namespace capability; legacy initialization is unchanged.
   // Start at zero without crediting old files. Commit through the same
   // replicated metadata transaction. Repeated enable never resets the count.
@@ -438,7 +443,7 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter copy_image(const NativeFilesystemSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool reencode);
-  static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter);
+  static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter,bool inode_records=false);
   static NativeFilesystemWriter resume_impl(detail::NativeObjectWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
