@@ -74,10 +74,12 @@ class PagedObjectStoreWriter final {
   PagedObjectStoreSnapshot snapshot_for_staging() const;
   std::uint64_t generation_for_staging() const noexcept;
   // Native inode records consume their own metadata entries. Keep public
-  // transactions at 256 operations; the native adapter admits at most 512
-  // data+metadata operations with the SAME 4-MiB input bound.
-  PagedStoreInfo commit_native(std::span<const StoreMutation>);
-  PagedStoreInfo commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations);
+  // transactions at 256 operations. The native adapter admits 512 operations
+  // with 4 MiB input, or 768 operations and 64 KiB extra directory-index input
+  // for the explicit indexed-name layout. Public admission is unchanged.
+  PagedStoreInfo commit_native(std::span<const StoreMutation>,bool directory_indexes=false);
+  PagedStoreInfo commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations,
+      std::uint64_t maximum_input=kStoreMaxTransactionBytes);
   struct Impl;
   explicit PagedObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

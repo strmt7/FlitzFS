@@ -21,6 +21,9 @@ million-file operation or automatic Windows routing. See
 The separate [inode-record initialization](INODE_RECORD_NAMESPACE.md) opts into
 a fixed root and individually indexed inode records. It retains the same eager
 bounded Model/validation; it does not yet implement paged lookup/residency.
+The [directory-index extension](DIRECTORY_NAME_INDEX.md) adds a separate opt-in
+persisted name index and snapshot-bound cursor API. Ordinary initialization is
+unchanged; all layouts retain a complete bounded Model.
 Initialize accepts only a NEW empty generation-zero flat store or the initial
 generation-two empty paged store. Resume accepts a
 writer whose custom backend has already passed identity/generation verification,

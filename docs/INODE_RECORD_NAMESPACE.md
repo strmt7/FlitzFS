@@ -8,9 +8,11 @@ entries in the same transaction as the namespace/data changes. Old snapshots
 retain immutable prior references. No mount, worker or driver is started.
 
 This is a persistence step. The frontend still loads and validates a complete
-bounded Model, performs global lookups and keeps per-inode extent maps in RAM.
-The 256-node/255-extent/64-KiB aggregate metadata limits remain. Indexed names,
-paged extent maps, bounded caches, incremental verification, migration/rebuild
+bounded Model and keeps per-inode extent maps in RAM. An ordered in-memory name
+map now supports lookup and enumeration; the separate capability-2
+[directory-index extension](DIRECTORY_NAME_INDEX.md) also persists those names.
+The 256-node/255-extent/64-KiB aggregate metadata limits remain. Paged extent
+maps, bounded caches, incremental verification, migration/rebuild
 and Windows factory integration are still required before claiming scale.
 
 ## Encoding and CPU admission

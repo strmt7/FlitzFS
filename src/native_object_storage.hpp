@@ -30,7 +30,7 @@ class NativeObjectSnapshot final {
   std::vector<StoreObjectInfo> list(std::size_t maximum=kStoreMaxObjects) const {
     if(const auto* flat=std::get_if<ObjectStoreSnapshot>(&value_))return flat->list();
     const auto& paged=std::get<PagedObjectStoreSnapshot>(value_);
-    if(maximum>2*kStoreMaxObjects || paged.info().objects>maximum)
+    if(maximum>3*kStoreMaxObjects || paged.info().objects>maximum)
       throw NativeFsError(NativeFsErrorCode::limit,"paged inventory exceeds current native namespace bounds");
     return paged.list_page(0,maximum);
   }
@@ -65,9 +65,9 @@ class NativeObjectWriter final {
   std::uint64_t generation_for_staging() const noexcept {
     return std::visit([](const auto& value){return value.generation_for_staging();},value_);
   }
-  StoreCommitInfo commit_replicated(std::span<const StoreMutation> changes) {
+  StoreCommitInfo commit_replicated(std::span<const StoreMutation> changes,bool directory_indexes=false) {
     if(auto* flat=std::get_if<ObjectStoreWriter>(&value_))return flat->commit_replicated(changes);
-    return native_paged_info(std::get<PagedObjectStoreWriter>(value_).commit_native(changes));
+    return native_paged_info(std::get<PagedObjectStoreWriter>(value_).commit_native(changes,directory_indexes));
   }
   StoreCommitInfo flush_checkpoint() {
     if(auto* flat=std::get_if<ObjectStoreWriter>(&value_))return flat->flush_checkpoint();

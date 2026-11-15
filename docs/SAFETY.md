@@ -12,6 +12,10 @@ boundary and key identity before namespace exposure and publishes metadata/data
 atomically. Its payloads remain integrity checked rather than independently
 replicated. Modeled recovery does not establish physical power-loss or arbitrary-
 corruption repair. Default layouts and driver/GPU admission remain unchanged.
+The opt-in [directory index](DIRECTORY_NAME_INDEX.md) joins name, inode and data
+changes in one publication. Snapshot-bound cursors reject foreign/expired owners
+before I/O. Index object payloads are not independently replicated, and the full
+bounded Model is still required; this does not establish scalable or mounted safety.
 
 The owner's 15 November 2026 instruction deletes blanket off-host, GitHub-only
 development and mandatory VM-first restrictions. Local source work, builds,

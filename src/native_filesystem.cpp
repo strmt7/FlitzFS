@@ -27,15 +27,18 @@ using Bytes=std::vector<std::byte>;
 using Code=NativeFsErrorCode;
 constexpr std::uint64_t kNamespaceObject=1;
 constexpr std::uint64_t kInodeObjectBit=1ULL<<63;
+constexpr std::uint64_t kDirectoryObjectBit=1ULL<<62;
 constexpr std::size_t kMetadataCap=kNativeExtentBytes,kDirtyCap=kNativeMaxDirtyExtents;
 constexpr std::size_t kBasicNodeHeader=88,kSecurityNodeHeader=96,kAllocationNodeHeader=104;
 static_assert(64+kNativeMaxNodes*(kBasicNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
 static_assert(64+kNativeMaxNodes*(kSecurityNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
 static_assert(64+kNativeMaxNodes*(kAllocationNodeHeader+100)+16*kNativeMaxExtents<=kMetadataCap);
 static_assert(kDirtyCap*kNativeExtentBytes+kMetadataCap<=kStoreMaxTransactionBytes);
+static_assert(24*kNativeMaxNodes+112*(kNativeMaxNodes-1)<=kMetadataCap);
 static_assert(kNativeMaxExtents*kNativeExtentBytes+kMetadataCap<=kStoreMaxLogicalBytes);
 constexpr std::array<std::byte,8> kMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'N'},std::byte{'S'},std::byte{'0'},std::byte{'1'}};
 constexpr std::array<std::byte,8> kInodeRootMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'P'},std::byte{'N'},std::byte{'0'},std::byte{'1'}};
+constexpr std::array<std::byte,8> kDirectoryMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'D'},std::byte{'N'},std::byte{'0'},std::byte{'1'}};
 constexpr auto kLifecycleMagic=[] {auto magic=kMagic;magic[7]=std::byte{'2'};return magic;}();
 constexpr auto kBasicMagic=[] {auto magic=kMagic;magic[7]=std::byte{'3'};return magic;}();
 constexpr auto kSecurityMagic=[] {auto magic=kMagic;magic[7]=std::byte{'4'};return magic;}();
@@ -70,7 +73,9 @@ struct Model {
   std::uint64_t sequence=1,next_inode=2,committed_input_bytes=0;
   std::uint32_t format=1;
   bool inode_records=false;
+  bool indexed_names=false;
   std::map<std::uint64_t,Node> nodes;
+  std::map<std::pair<std::uint64_t,std::string>,std::uint64_t> names;
 };
 static_assert(std::is_nothrow_move_assignable_v<Model>);
 static_assert(std::is_trivially_copyable_v<NativeWorkloadInfo>);
@@ -125,8 +130,18 @@ Node& node(Model& model,std::uint64_t id) {
   return it->second;
 }
 const Node* child(const Model& model,std::uint64_t parent,std::string_view key) {
-  for(const auto& [id,n]:model.nodes)if(id!=1 && n.parent==parent && n.key==key)return &n;
-  return nullptr;
+  const auto found=model.names.find({parent,std::string(key)});
+  return found==model.names.end()?nullptr:&node(model,found->second);
+}
+bool has_children(const Model& model,std::uint64_t parent) {
+  const auto found=model.names.lower_bound({parent,{}});
+  return found!=model.names.end() && found->first.first==parent;
+}
+void rebuild_names(Model& model) {
+  model.names.clear();
+  for(const auto& [id,n]:model.nodes)if(id!=1 && !n.unlinked)
+    if(!model.names.emplace(std::pair{n.parent,n.key},id).second)
+      fail(Code::corrupt,"duplicate native name index entry");
 }
 std::uint64_t resolve(const Model& model,std::string_view path) {
   const auto key=canonical(path,true);
@@ -179,6 +194,8 @@ void validate_structure(const Model& model,bool pending=false) {
     fail(Code::corrupt,"native namespace capability/accounting");
   if(model.inode_records && (model.format!=7 || model.next_inode>kInodeObjectBit))
     fail(Code::corrupt,"inode-record capability/allocator");
+  if(model.indexed_names && (!model.inode_records || model.next_inode>kDirectoryObjectBit))
+    fail(Code::corrupt,"directory-index capability/allocator");
   const auto& root=node(model,1);
   if(root.parent || !root.directory || !root.name.empty() || root.size || !root.extents.empty() ||
       root.born!=1 || root.delete_pending || root.unlinked)
@@ -188,6 +205,7 @@ void validate_structure(const Model& model,bool pending=false) {
   std::uint64_t largest=0;
   for(const auto& [id,n]:model.nodes) {
     if(model.inode_records && id>=kInodeObjectBit)fail(Code::limit,"inode-record identity exhausted");
+    if(model.indexed_names && id>=kDirectoryObjectBit)fail(Code::limit,"directory-index identity exhausted");
     if(id!=n.inode || !id || n.born==0 || n.born>n.modified || n.modified>model.sequence ||
         n.size>kNativeMaxFileBytes || (n.directory && (n.size || !n.extents.empty())) ||
         (n.delete_pending && n.unlinked) || (model.format==1 && (n.delete_pending || n.unlinked)))
@@ -211,6 +229,8 @@ void validate_structure(const Model& model,bool pending=false) {
             component(n.name)!=n.key || !names.emplace(n.parent,n.key).second)
           fail(Code::corrupt,"native parent/name collision");
         (void)canonical(display_path(model,n));
+        const auto indexed=model.names.find({n.parent,n.key});
+        if(indexed==model.names.end() || indexed->second!=id)fail(Code::corrupt,"native name index differs from inode");
       }
     }
     for(const auto& [block,object]:n.extents) {
@@ -221,6 +241,7 @@ void validate_structure(const Model& model,bool pending=false) {
     }
   }
   if(model.next_inode<=largest || model.next_inode<2)fail(Code::corrupt,"native inode allocator");
+  if(names.size()!=model.names.size())fail(Code::corrupt,"foreign native name index entry");
   if(!pending && extent_count(model)>kNativeMaxExtents)fail(Code::limit,"native live extent budget");
   if(allocation_usage(model).charged_extents>kNativeMaxExtents)
     fail(Code::limit,"native reserved/live extent budget");
@@ -274,10 +295,60 @@ Bytes encode(const Model& model) {
   }
   return bytes;
 }
-std::size_t inventory_limit(const Model& model) {return model.inode_records?2*kStoreMaxObjects:kStoreMaxObjects;}
-Bytes inode_root(std::span<const std::byte> normalized) {
+std::size_t inventory_limit(const Model& model) {
+  return model.indexed_names?3*kStoreMaxObjects:model.inode_records?2*kStoreMaxObjects:kStoreMaxObjects;
+}
+Bytes inode_root(std::span<const std::byte> normalized,bool indexed_names) {
   Bytes root(normalized.begin(),normalized.begin()+64);
-  std::copy(kInodeRootMagic.begin(),kInodeRootMagic.end(),root.begin());put(root,8,1,4);return root;
+  std::copy(kInodeRootMagic.begin(),kInodeRootMagic.end(),root.begin());put(root,8,indexed_names?2:1,4);return root;
+}
+Bytes directory_bytes(const Model& model,std::uint64_t directory) {
+  Bytes bytes(24);std::copy(kDirectoryMagic.begin(),kDirectoryMagic.end(),bytes.begin());
+  put(bytes,8,1,4);put(bytes,16,directory,8);std::uint32_t count=0;
+  for(auto it=model.names.lower_bound({directory,{}});it!=model.names.end() && it->first.first==directory;++it) {
+    const auto& key=it->first.second;const auto at=bytes.size();bytes.resize(at+12+key.size());
+    put(bytes,at,it->second,8);put(bytes,at+8,key.size(),2);
+    for(std::size_t i=0;i<key.size();++i)bytes[at+12+i]=static_cast<std::byte>(static_cast<unsigned char>(key[i]));
+    ++count;
+  }
+  if(bytes.size()>kMetadataCap)fail(Code::limit,"native directory index budget");
+  put(bytes,12,count,4);return bytes;
+}
+struct DirectoryEntry {std::string key;std::uint64_t inode=0;};
+std::vector<DirectoryEntry> read_directory(const detail::NativeObjectSnapshot& objects,
+    const Model& model,std::uint64_t directory) {
+  if(!selected_inode(model,directory).directory)fail(Code::not_directory,"native enumeration of file");
+  std::vector<DirectoryEntry> result;
+  if(!model.indexed_names) {
+    for(auto it=model.names.lower_bound({directory,{}});it!=model.names.end() && it->first.first==directory;++it)
+      result.push_back({it->first.second,it->second});
+    return result;
+  }
+  const auto bytes=object_bytes(objects,kDirectoryObjectBit|directory);
+  if(bytes!=directory_bytes(model,directory))fail(Code::corrupt,"native directory index changed since admission");
+  const auto count=integer(bytes,12,4);std::size_t at=24;result.reserve(static_cast<std::size_t>(count));
+  for(std::uint64_t i=0;i<count;++i) {
+    const auto inode=integer(bytes,at,8),length=integer(bytes,at+8,2);at+=12;
+    // Exact comparison with the admitted graph/encoding already checked every
+    // length, reference, canonical key, reserved byte, order and final boundary.
+    result.push_back({std::string(reinterpret_cast<const char*>(bytes.data()+at),static_cast<std::size_t>(length)),inode});
+    at+=static_cast<std::size_t>(length);
+  }
+  return result;
+}
+std::uint64_t resolve_snapshot(const detail::NativeObjectSnapshot& objects,const Model& model,std::string_view path) {
+  if(!model.indexed_names)return resolve(model,path);
+  const auto key=canonical(path,true);std::uint64_t current=1;
+  for(std::size_t start=0;start<key.size();) {
+    const auto slash=key.find('/',start),end=slash==std::string::npos?key.size():slash;
+    const auto component=std::string_view(key).substr(start,end-start);
+    const auto entries=read_directory(objects,model,current);
+    const auto found=std::lower_bound(entries.begin(),entries.end(),component,
+        [](const auto& entry,std::string_view name){return entry.key<name;});
+    if(found==entries.end() || found->key!=component)fail(Code::not_found,"native indexed path not found");
+    current=found->inode;start=end+1;
+  }
+  return current;
 }
 using NodeFrames=std::map<std::uint64_t,std::span<const std::byte>>;
 NodeFrames node_frames(const Model& model,std::span<const std::byte> bytes) {
@@ -292,7 +363,7 @@ NodeFrames node_frames(const Model& model,std::span<const std::byte> bytes) {
 void namespace_mutations(std::vector<StoreMutation>& output,const Model& model,const Model* previous=nullptr) {
   const auto current=encode(model);
   if(!model.inode_records){output.push_back({kNamespaceObject,false,current});return;}
-  output.push_back({kNamespaceObject,false,inode_root(current)});
+  output.push_back({kNamespaceObject,false,inode_root(current,model.indexed_names)});
   const auto frames=node_frames(model,current);
   const auto old=previous?encode(*previous):Bytes{};
   const auto prior=previous?node_frames(*previous,old):NodeFrames{};
@@ -305,6 +376,16 @@ void namespace_mutations(std::vector<StoreMutation>& output,const Model& model,c
   for(const auto& [id,frame]:prior) { (void)frame;
     if(!frames.contains(id))output.push_back({kInodeObjectBit|id,true,{}});
   }
+  if(model.indexed_names) {
+    if(previous && !previous->indexed_names)fail(Code::invalid_operation,"directory index conversion requires a new image");
+    for(const auto& [id,n]:model.nodes)if(n.directory) {
+      auto bytes=directory_bytes(model,id);const auto old_node=previous?previous->nodes.find(id):model.nodes.end();
+      if(!previous || old_node==previous->nodes.end() || bytes!=directory_bytes(*previous,id))
+        output.push_back({kDirectoryObjectBit|id,false,std::move(bytes)});
+    }
+    if(previous)for(const auto& [id,n]:previous->nodes)if(n.directory && !model.nodes.contains(id))
+      output.push_back({kDirectoryObjectBit|id,true,{}});
+  }
 }
 bool namespace_matches(const detail::NativeObjectSnapshot& objects,const Model& model) {
   if(!model.inode_records)return object_bytes(objects,kNamespaceObject)==encode(model);
@@ -315,12 +396,14 @@ bool namespace_matches(const detail::NativeObjectSnapshot& objects,const Model& 
 Model decode(const detail::NativeObjectSnapshot& objects) {
   auto bytes=object_bytes(objects,kNamespaceObject);
   const bool inode_records=bytes.size()>=8 && std::equal(kInodeRootMagic.begin(),kInodeRootMagic.end(),bytes.begin());
+  bool indexed_names=false;
   if(inode_records) {
-    if(!objects.paged() || bytes.size()!=64 || integer(bytes,8,4)!=1 || !integer(bytes,12,4) ||
+    if(!objects.paged() || bytes.size()!=64 || (integer(bytes,8,4)!=1 && integer(bytes,8,4)!=2) || !integer(bytes,12,4) ||
         integer(bytes,12,4)>kNativeMaxNodes || integer(bytes,36,4)>kNativeMaxExtents)
       fail(Code::corrupt,"unsupported inode-record root");
+    indexed_names=integer(bytes,8,4)==2;
     const auto count=integer(bytes,12,4);std::size_t observed=0;
-    const auto catalog=objects.list(2*kStoreMaxObjects);
+    const auto catalog=objects.list((indexed_names?3:2)*kStoreMaxObjects);
     for(const auto& record:catalog)if(record.id&kInodeObjectBit) {
       if(++observed>count)fail(Code::corrupt,"extra inode metadata record");
       const auto frame=object_bytes(objects,record.id);
@@ -349,7 +432,7 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
   if(!count || count>kNativeMaxNodes || declared_extents>kNativeMaxExtents)fail(Code::limit,"native metadata counts");
   if(format>=2 && !objects.info().replicated_checkpoint)
     fail(Code::corrupt,"native lifetime capability requires replicated current checkpoints");
-  Model model;model.format=static_cast<std::uint32_t>(format);model.inode_records=inode_records;
+  Model model;model.format=static_cast<std::uint32_t>(format);model.inode_records=inode_records;model.indexed_names=indexed_names;
   if(format>=6)model.committed_input_bytes=integer(all,56,8);
   model.sequence=integer(all,16,8);model.next_inode=integer(all,24,8);
   std::copy_n(bytes.begin()+40,16,model.identity.begin());
@@ -398,15 +481,22 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
     previous=n.inode;model.nodes.emplace(n.inode,std::move(n));
   }
   if(cursor!=bytes.size() || extent_count(model)!=declared_extents)fail(Code::corrupt,"native metadata trailing/count mismatch");
+  rebuild_names(model);
   try{validate_structure(model);}
   catch(const NativeFsError&){fail(Code::corrupt,"invalid native namespace graph");}
   std::set<std::uint64_t> expected{kNamespaceObject};
   for(const auto& [id,n]:model.nodes){if(inode_records)expected.insert(kInodeObjectBit|id);
+    if(indexed_names && n.directory) {
+      expected.insert(kDirectoryObjectBit|id);
+      if(object_bytes(objects,kDirectoryObjectBit|id)!=directory_bytes(model,id))
+        fail(Code::corrupt,"persisted native directory index differs from inode graph");
+    }
     for(const auto& [block,object]:n.extents){(void)block;expected.insert(object);}}
   const auto catalog=objects.list(inventory_limit(model));
   if(catalog.size()!=expected.size())fail(Code::corrupt,"foreign or dangling native objects");
   for(const auto& object:catalog)if(!expected.contains(object.id) ||
-      (object.id!=kNamespaceObject && !(inode_records && (object.id&kInodeObjectBit)) && object.logical_bytes!=kNativeExtentBytes))
+      (object.id!=kNamespaceObject && !(inode_records && (object.id&kInodeObjectBit)) &&
+       !(indexed_names && (object.id&kDirectoryObjectBit)) && object.logical_bytes!=kNativeExtentBytes))
     fail(Code::corrupt,"native object extent mismatch");
   validate_data(model,[&](auto,auto,std::uint64_t object){return object_bytes(objects,object);});
   return model;
@@ -516,28 +606,27 @@ struct Stage {
     if(changed)model.format=7;
   }
   void discard(Node& n) {
-    if(n.directory)for(const auto& [id,other]:model.nodes)if(id!=n.inode && other.parent==n.inode)fail(Code::not_empty,"native directory not empty");
+    if(n.directory && has_children(model,n.inode))fail(Code::not_empty,"native directory not empty");
     for(auto it=dirty.begin();it!=dirty.end();)it=it->first.first==n.inode?dirty.erase(it):std::next(it);
     const auto parent=n.parent,id=n.inode;
     if(parent)node(model,parent).modified=model.sequence;
+    if(!n.unlinked)model.names.erase({parent,n.key});
     model.nodes.erase(id);changed=true;
   }
   void set_delete(std::uint64_t id,bool requested) {
     auto& n=node(model,selected_inode(model,id).inode);
     if(id==1 || n.unlinked)fail(Code::invalid_operation,"cannot change delete intent on root/detached inode");
     if(n.delete_pending==requested)return;
-    if(requested && n.directory)
-      for(const auto& [other_id,other]:model.nodes)
-        if(other_id!=id && other.parent==id)fail(Code::not_empty,"delete-pending directory is not empty");
+    if(requested && n.directory && has_children(model,id))fail(Code::not_empty,"delete-pending directory is not empty");
     model.format=(std::max)(model.format,2U);n.delete_pending=requested;n.modified=model.sequence;changed=true;
   }
   void unlink(std::uint64_t id) {
     auto& n=node(model,selected_inode(model,id).inode);
     if(n.unlinked)return; // Repeated cleanup never discards retained payloads.
     if(id==1 || !n.delete_pending)fail(Code::invalid_operation,"native unlink needs persistent delete intent");
-    if(n.directory)for(const auto& [other_id,other]:model.nodes)
-      if(other_id!=id && other.parent==id)fail(Code::not_empty,"native unlink directory is not empty");
+    if(n.directory && has_children(model,id))fail(Code::not_empty,"native unlink directory is not empty");
     const auto parent=n.parent;
+    model.names.erase({parent,n.key});
     n.parent=0;n.name.clear();n.key.clear();n.delete_pending=false;n.unlinked=true;
     n.modified=model.sequence;node(model,parent).modified=model.sequence;model.format=(std::max)(model.format,2U);changed=true;
   }
@@ -632,8 +721,7 @@ struct Stage {
     auto& n=node(model,selected_inode(model,id).inode);
     if(id==1)fail(Code::invalid_operation,"initial delete-on-close is forbidden on root");
     bool eligible=true;
-    if(n.directory)for(const auto& [other_id,other]:model.nodes)
-      if(other_id!=id && other.parent==id){eligible=false;break;}
+    if(n.directory && has_children(model,id))eligible=false;
     if(!eligible && n.delete_pending)
       fail(Code::corrupt,"nonempty directory has impossible durable delete intent");
     automatic_metadata(id,effect);
@@ -663,7 +751,8 @@ struct Stage {
         fail(Code::limit,"native inode budget");
       Node n;n.inode=model.next_inode++;n.parent=parent;n.name=name;n.key=key;
       n.directory=op.operation==NativeFileOperation::create_directory;n.born=n.modified=model.sequence;
-      created.push_back(n.inode);model.nodes.emplace(n.inode,std::move(n));
+      created.push_back(n.inode);model.names.emplace(std::pair{parent,key},n.inode);
+      model.nodes.emplace(n.inode,std::move(n));
       node(model,parent).modified=model.sequence;changed=true;return;
     }
     const auto id=inode?inode:resolve(model,op.path);auto& n=node(model,id);
@@ -738,6 +827,7 @@ struct Stage {
         discard(node(model,target->inode));
       }
       const auto old_parent=n.parent;
+      model.names.erase({old_parent,n.key});model.names.emplace(std::pair{parent,key},id);
       n.parent=parent;n.name=name;n.key=key;n.modified=model.sequence;
       node(model,old_parent).modified=node(model,parent).modified=model.sequence;changed=true;return;
     }
@@ -798,7 +888,8 @@ struct Stage {
       }
     }
     for(const auto& previous:base.list(inventory_limit(model)))if(previous.id!=kNamespaceObject &&
-        !(model.inode_records && (previous.id&kInodeObjectBit)) && !used.contains(previous.id))
+        !(model.inode_records && (previous.id&kInodeObjectBit)) &&
+        !(model.indexed_names && (previous.id&kDirectoryObjectBit)) && !used.contains(previous.id))
       output.push_back({previous.id,true,{}});
     if(output.size()>inventory_limit(model))fail(Code::limit,"native object mutation budget");
     return output;
@@ -808,6 +899,7 @@ struct Stage {
 
 struct NativeFilesystemSnapshot::Impl {
   detail::NativeObjectSnapshot objects;Model model;
+  std::shared_ptr<const void> enumeration_owner=std::make_shared<const unsigned char>(0);
   explicit Impl(detail::NativeObjectSnapshot snapshot):objects(std::move(snapshot)),model(decode(objects)){}
 };
 struct NativeFilesystemWriter::Impl {
@@ -843,16 +935,14 @@ NativeWorkloadInfo NativeFilesystemSnapshot::workload_info() const noexcept {
 }
 NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  return file_info(impl_->model,node(impl_->model,resolve(impl_->model,path)));
+  return file_info(impl_->model,node(impl_->model,resolve_snapshot(impl_->objects,impl_->model,path)));
 }
 namespace {
 std::vector<NativeFileInfo> list_node(const Model& model,const Node& directory) {
   if(!directory.directory)fail(Code::not_directory,"native enumeration of file");
   std::vector<NativeFileInfo> result;
-  std::vector<const Node*> children;
-  for(const auto& [inode,n]:model.nodes)if(inode!=1 && n.parent==directory.inode)children.push_back(&n);
-  std::sort(children.begin(),children.end(),[](auto a,auto b){return a->key<b->key;});
-  result.reserve(children.size());for(const auto* n:children)result.push_back(file_info(model,*n));
+  for(auto it=model.names.lower_bound({directory.inode,{}});it!=model.names.end() && it->first.first==directory.inode;++it)
+    result.push_back(file_info(model,node(model,it->second)));
   return result;
 }
 Bytes read_node(const detail::NativeObjectSnapshot& objects,const Node& n,std::uint64_t offset,std::uint32_t bytes) {
@@ -903,16 +993,50 @@ bool NativeFilesystemSnapshot::needs_session_recovery() const noexcept {
 }
 std::vector<NativeFileInfo> NativeFilesystemSnapshot::list(std::string_view directory) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  return list_node(impl_->model,node(impl_->model,resolve(impl_->model,directory)));
+  return list_inode(resolve_snapshot(impl_->objects,impl_->model,directory));
 }
 std::vector<NativeFileInfo> NativeFilesystemSnapshot::list_inode(std::uint64_t directory) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  return list_node(impl_->model,selected_inode(impl_->model,directory));
+  if(!impl_->model.indexed_names)return list_node(impl_->model,selected_inode(impl_->model,directory));
+  std::vector<NativeFileInfo> result;
+  for(const auto& entry:read_directory(impl_->objects,impl_->model,directory))
+    result.push_back(file_info(impl_->model,node(impl_->model,entry.inode)));
+  return result;
+}
+NativeDirectoryPage NativeFilesystemSnapshot::list_inode_page(std::uint64_t directory,
+    const NativeDirectoryCursor& after,std::size_t maximum) const {
+  if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(!maximum || maximum>1024)fail(Code::limit,"directory page budget");
+  if(after.initialized_ && (after.directory_!=directory || after.owner_.lock()!=impl_->enumeration_owner))
+    fail(Code::invalid_operation,"directory cursor belongs to a different snapshot/directory");
+  if(!selected_inode(impl_->model,directory).directory)fail(Code::not_directory,"native enumeration of file");
+  NativeDirectoryPage result;result.entries.reserve(maximum);std::string last;bool more=false;
+  if(impl_->model.indexed_names) {
+    const auto entries=read_directory(impl_->objects,impl_->model,directory);
+    auto it=after.initialized_?std::upper_bound(entries.begin(),entries.end(),std::string_view(after.after_),
+        [](std::string_view name,const auto& entry){return name<entry.key;}):entries.begin();
+    for(;it!=entries.end() && result.entries.size()<maximum;++it) {
+      result.entries.push_back(file_info(impl_->model,node(impl_->model,it->inode)));last=it->key;
+    }
+    more=it!=entries.end();
+  } else {
+    auto it=after.initialized_?impl_->model.names.upper_bound({directory,after.after_}):
+        impl_->model.names.lower_bound({directory,{}});
+    for(;it!=impl_->model.names.end() && it->first.first==directory && result.entries.size()<maximum;++it) {
+      result.entries.push_back(file_info(impl_->model,node(impl_->model,it->second)));last=it->first.second;
+    }
+    more=it!=impl_->model.names.end() && it->first.first==directory;
+  }
+  if(more) {
+    NativeDirectoryCursor next;next.owner_=impl_->enumeration_owner;next.directory_=directory;
+    next.after_=std::move(last);next.initialized_=true;result.next=std::move(next);
+  }
+  return result;
 }
 Bytes NativeFilesystemSnapshot::read(std::string_view path,std::uint64_t offset,std::uint32_t bytes) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
-  return read_node(impl_->objects,node(impl_->model,resolve(impl_->model,path)),offset,bytes);
+  return read_node(impl_->objects,node(impl_->model,resolve_snapshot(impl_->objects,impl_->model,path)),offset,bytes);
 }
 Bytes NativeFilesystemSnapshot::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
@@ -932,17 +1056,21 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize(PagedObjectStoreWriter
 NativeFilesystemWriter NativeFilesystemWriter::initialize_inode_records(PagedObjectStoreWriter objects) {
   return initialize_storage(std::move(objects),true);
 }
-NativeFilesystemWriter NativeFilesystemWriter::initialize_storage(detail::NativeObjectWriter objects,bool inode_records) {
+NativeFilesystemWriter NativeFilesystemWriter::initialize_indexed_names(PagedObjectStoreWriter objects) {
+  return initialize_storage(std::move(objects),true,true);
+}
+NativeFilesystemWriter NativeFilesystemWriter::initialize_storage(detail::NativeObjectWriter objects,bool inode_records,bool indexed_names) {
   auto snapshot=objects.snapshot();
   if(objects.poisoned() || snapshot.info().generation!=(objects.paged()?2U:0U) || !snapshot.list().empty())
     fail(Code::invalid_operation,"native initialization requires new empty store");
   if(inode_records && !objects.paged())fail(Code::invalid_operation,"inode records require paged storage");
-  Model model;model.identity=snapshot.identity();model.inode_records=inode_records;if(inode_records)model.format=7;
+  Model model;model.identity=snapshot.identity();model.inode_records=inode_records;model.indexed_names=indexed_names;
+  if(inode_records)model.format=7;
   Node root;root.inode=1;root.directory=true;root.born=root.modified=1;
   model.nodes.emplace(1,std::move(root));
   auto p=std::make_unique<Impl>(std::move(objects),model);
   std::vector<StoreMutation> metadata;namespace_mutations(metadata,model);
-  p->objects.commit_replicated(metadata);
+  p->objects.commit_replicated(metadata,model.indexed_names);
   return NativeFilesystemWriter(std::move(p));
 }
 NativeFsCommit NativeFilesystemWriter::enable_workload_accounting() {
@@ -1262,7 +1390,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     }
     auto changes=stage.mutations(inode,lz4_candidates);result.sequence=stage.model.sequence;
     committing=true;
-    try{result.storage=impl_->objects.commit_replicated(changes);}
+    try{result.storage=impl_->objects.commit_replicated(changes,stage.model.indexed_names);}
     catch(const std::exception&){
       if(impl_->objects.poisoned())impl_->poisoned=true;
       fail(Code::storage_failure,"native transaction storage commit failed");

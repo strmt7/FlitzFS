@@ -283,7 +283,8 @@ struct Plan {
   std::uint64_t page_start=0;
   std::vector<PreparedPage> pages;
   Ref make_page(const Node& node,std::uint32_t height) {
-    // A bounded transaction changes <=256 paths, <=17 levels plus splits.
+    // Bound staging from this admitted public/native transaction's changed
+    // paths, at most 17 levels per path plus splits.
     // This work limit is independent of the volume's object count.
     if(pages.size()>=2*(maximum_height+1)*changed_keys+maximum_height+1)capacity("transaction page budget");
     PreparedPage p;auto& r=p.ref;r=summary(node,height);r.generation=next.checkpoint;
@@ -513,10 +514,12 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSna
 PagedStoreInfo PagedObjectStoreWriter::commit(std::span<const StoreMutation> mutations) {
   return commit_impl(mutations,kStoreMaxObjects);
 }
-PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutation> mutations) {
-  return commit_impl(mutations,2*kStoreMaxObjects);
+PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutation> mutations,bool directory_indexes) {
+  return commit_impl(mutations,(directory_indexes?3:2)*kStoreMaxObjects,
+      kStoreMaxTransactionBytes+(directory_indexes?65536U:0U));
 }
-PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation> mutations,std::size_t maximum_operations) {
+PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation> mutations,std::size_t maximum_operations,
+    std::uint64_t maximum_input) {
   if(!impl_ || impl_->poisoned)fail("writer unavailable/poisoned");
   auto& p=*impl_;const auto& old=p.state;
   if(mutations.empty() || mutations.size()>maximum_operations)fail("transaction operation budget");
@@ -525,7 +528,7 @@ PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation
   for(const auto& m:mutations) {
     if(!m.id || m.bytes.size()>kStoreMaxObjectBytes || m.lz4_candidate.size()>kStoreMaxObjectBytes ||
         (m.erase && (!m.bytes.empty() || !m.lz4_candidate.empty())))fail("mutation fields");
-    input=add(input,m.bytes.size());if(input>kStoreMaxTransactionBytes)fail("transaction input budget");sorted.push_back(&m);
+    input=add(input,m.bytes.size());if(input>maximum_input)fail("transaction input budget");sorted.push_back(&m);
   }
   std::sort(sorted.begin(),sorted.end(),[](auto a,auto b){return a->id<b->id;});
   for(std::size_t i=1;i<sorted.size();++i)if(sorted[i-1]->id==sorted[i]->id)fail("duplicate mutation id");

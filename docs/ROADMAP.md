@@ -11,7 +11,10 @@ caches and automatic reclamation are the next scale exits.
 The explicit [inode-record layout](INODE_RECORD_NAMESPACE.md) now replaces whole-
 blob namespace publication with a fixed root and changed inode records. Native
 node/data limits remain; this persistence step does not close S01 or provide a
-million-file result, ordered name index or bounded namespace cache.
+million-file result or bounded namespace cache. The separate
+[directory-index extension](DIRECTORY_NAME_INDEX.md) now supplies persisted
+ordered names and immutable-snapshot cursors. Split name pages, demand-loaded
+inode/extent access and bounded caches remain scale exits.
 
 The owner's 15 November 2026 direction deletes blanket off-host/GitHub-only and
 mandatory VM-first restrictions. Use local builds, research and host-safe

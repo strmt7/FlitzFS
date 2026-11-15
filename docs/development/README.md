@@ -9,7 +9,7 @@ affected component. [End-user documentation](../README.md) is separate.
 | Choose checks and interpret results | [Validation](../validation/README.md), [validation details](../VALIDATION.md) |
 | Plan implementation | [Release execution plan](../RELEASE_EXECUTION_PLAN.md), [package contracts](../DEVELOPMENT_PLAN.md), [current state](../DEVELOPMENT_STATE.json) |
 | Change the storage format or recovery | [Storage references](../reference/README.md#storage-and-recovery) |
-| Scale object storage and enumeration | [Paged object store](../PAGED_OBJECT_STORE.md), [native backend integration](../NATIVE_PAGED_BACKEND.md), [inode records](../INODE_RECORD_NAMESPACE.md) |
+| Scale object storage and enumeration | [Paged object store](../PAGED_OBJECT_STORE.md), [native backend integration](../NATIVE_PAGED_BACKEND.md), [inode records](../INODE_RECORD_NAMESPACE.md), [directory indices](../DIRECTORY_NAME_INDEX.md) |
 | Change Windows file operations | [Windows references](../reference/README.md#windows-integration) |
 | Change GPU compression or fallback | [GPU references](../reference/README.md#gpu-compression-and-worker-lifecycle) |
 | Change compression or maintenance | [Compression references](../reference/README.md#compression-and-learning), [research](../research/README.md) |

@@ -43,8 +43,9 @@ Ordinary initialization still uses one namespace object. The explicit
 changed inode records instead. Both frontends still load a complete Model;
 their 256-node, 255-extent, path, transaction and allocation bounds remain.
 The million-object index test is not a million-file filesystem qualification.
-Paged inode/name/extent metadata, stable directory cursors and bounded residency
-are the next E01 work.
+The explicit [directory index](DIRECTORY_NAME_INDEX.md) adds ordered persisted
+names and snapshot-bound pagination. Split name pages, demand-loaded inode/extent
+metadata and bounded residency remain next scale work.
 
 Flat volume-head and staged recompression APIs reject paged input before target
 writes. Generic paged rebuilding changes identity and cannot by itself rebind

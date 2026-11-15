@@ -1010,7 +1010,7 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Replace full-Model lookup/residency with paged name/inode/extent access, stable directory cursors and bounded caches; native-aware migration/handoff and payload protection remain open. Preserve exact sharing, security, pending/open-file lifetimes and CPU recovery; qualify populated named-file scale separately from object counts.",
+    "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open.",
     "Add one unmounted actual-GPU callback-service qualification after exact-source gates; verify admitted stored bytes and independent GPU-absent readback. Do not repeat the earlier unchanged diagnostic.",
     "Acquire repeated configuration/recovery/work-shape keyed complete costs from finite windows, qualify independent helper dependencies and connect automatic useful Windows write/read/fallback; then coalesce compatible operations under a bounded lifetime.",
     "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
@@ -1342,5 +1342,32 @@
     "remaining": "Paged inode/name/extent metadata, bounded residency/cursors, native-aware migration/rebuild/volume-head handoff, reclamation and Windows factory integration",
     "local_is_primary": true,
     "blanket_hosted_or_VM_first_gate": false
+  },
+  "directory_index_checkpoint": {
+    "source_base": "367642d6420bccf2f52b08f105eb9680c01b83a4",
+    "contract": "docs/DIRECTORY_NAME_INDEX.md",
+    "evidence": "docs/evidence/directory-name-index-2026-11-15.json",
+    "status": "Explicit capability-2 persisted per-directory indices; ordered in-memory name lookup and exact-snapshot keyset cursors; name/inode/data publication is atomic",
+    "broad_raw_suites": 97,
+    "broad_ASan_suites": 97,
+    "indexed_checks": 27795,
+    "indexed_fault_cases": 429,
+    "malformed_directory_variants": 14,
+    "maximum_recovery_operations": 513,
+    "maximum_recovery_cuts": 28,
+    "maximum_recovery_modes": 3,
+    "snapshot_bound_cursors": true,
+    "persistent_directory_indices": true,
+    "frontend_still_complete_model": true,
+    "fully_paged_namespace": false,
+    "bounded_native_cache": false,
+    "native_nodes_tested": 256,
+    "data_extents_tested": 255,
+    "combined_file_data_objects_tested": 513,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open."
   }
 }

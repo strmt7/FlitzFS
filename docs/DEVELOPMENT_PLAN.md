@@ -33,9 +33,11 @@ a 434,147,328-byte image from 16,000,000 payload bytes, so this is scale evidenc
 not a compression or filesystem-throughput result.
 [Source hashes, failures and execution receipts](evidence/local-paged-store-2026-11-15.json).
 
-S01 remains in progress. Next integrate paged inode/name/extent keys, atomic
-multi-index publication, paginated directory enumeration and explicit old-format
-migration. Then persist incremental similarity scans and protected shared
+S01 remains in progress. Individual inode records and the explicit
+[directory-name index](DIRECTORY_NAME_INDEX.md) now publish name/inode/data changes
+atomically and support snapshot-bound pagination. Next replace complete-Model
+residency with split name pages, demand-loaded inode/extent access and bounded
+caches, plus native-aware migration/rebuild. Then persist similarity scans and protected shared
 group/decode-unit manifests. Couple the collective representation to finite AMD
 work amortization, independent CPU recovery and useful ordinary Windows routing;
 follow with yielding learning/rebuild scheduling and representative comparisons.

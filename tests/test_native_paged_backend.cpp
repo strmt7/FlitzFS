@@ -15,7 +15,10 @@ template<class F> void rejects(F&& f,const char* why) {
   ++checks;try{f();}catch(const NativeFsError&){return;}throw std::runtime_error(why);
 }
 NativeFilesystemWriter fresh(const std::shared_ptr<Ram>& ram) {
-#ifdef FLITZFS_TEST_INODE_RECORDS
+#ifdef FLITZFS_TEST_DIRECTORY_INDEX
+  return NativeFilesystemWriter::initialize_indexed_names(PagedObjectStoreWriter::create(
+      ram,identity(),limits,{StoreCompressionMode::raw,1,false}));
+#elif defined(FLITZFS_TEST_INODE_RECORDS)
   return NativeFilesystemWriter::initialize_inode_records(PagedObjectStoreWriter::create(
       ram,identity(),limits,{StoreCompressionMode::raw,1,false}));
 #else
@@ -224,8 +227,62 @@ void paged_barrier_pressure() {
     }
   }
 }
+void directory_pages() {
+  for(bool flat:{false,true}) {
+    auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+    auto writer=flat?NativeFilesystemWriter::initialize(ObjectStoreWriter::create(
+        ram,identity(),{StoreCompressionMode::raw,1,false})):fresh(ram);
+    writer.apply(std::array{file_create("z"),file_create("AA"),file_create("a"),
+        file_create("B"),file_create("empty",true),file_create("folder",true),file_create("folder/inside")});
+    auto snapshot=writer.snapshot();const auto expected=snapshot.list();
+    require(expected[0].path=="a" && expected[1].path=="AA" && expected[2].path=="B" && expected.back().path=="z",
+        "directory listing lost canonical-name order");
+    for(std::size_t maximum:{1U,3U,1024U}) {
+      std::optional<NativeDirectoryCursor> cursor;std::size_t at=0,pages=0;
+      do {
+        const auto page=snapshot.list_inode_page(1,cursor.value_or(NativeDirectoryCursor{}),maximum);
+        require(!page.entries.empty() && page.entries.size()<=maximum,"directory page cardinality");
+        for(const auto& entry:page.entries) {
+          require(at<expected.size() && entry.inode==expected[at].inode && entry.path==expected[at].path,
+              "directory pagination repeated or skipped an entry");++at;
+        }
+        cursor=page.next;require(++pages<=expected.size(),"directory cursor failed to advance");
+      }while(cursor);
+      require(at==expected.size(),"directory page terminated early");
+    }
+    const auto first=snapshot.list_inode_page(1,{},1);require(first.next.has_value(),"missing continuation");
+    const auto empty=snapshot.stat("empty").inode,folder=snapshot.stat("folder").inode;
+    const auto empty_page=snapshot.list_inode_page(empty);
+    require(empty_page.entries.empty() && !empty_page.next,"empty directory has a continuation");
+    const auto reads=ram->read_calls;
+    rejects([&]{snapshot.list_inode_page(folder,*first.next,1);},"cross-directory cursor accepted");
+    rejects([&]{snapshot.list_inode_page(1,{},0);},"zero directory page accepted");
+    rejects([&]{snapshot.list_inode_page(1,{},1025);},"excessive directory page accepted");
+    rejects([&]{snapshot.list_inode_page(snapshot.stat_inode(expected.front().inode).inode);},"file enumerated as directory");
+    require(ram->read_calls==reads,"invalid page/cursor reached backing I/O");
+    {auto reopened=writer.snapshot();rejects([&]{reopened.list_inode_page(1,*first.next,1);},"reopened snapshot reused cursor");}
+    writer.apply(std::array{file_rename("AA","renamed"),file_remove("B"),file_create("new")});
+    const auto old_next=snapshot.list_inode_page(1,*first.next,1);
+    require(old_next.entries.size()==1 && old_next.entries.front().path=="AA","retained cursor observed new namespace");
+    auto moved=std::move(snapshot);
+    require(moved.list_inode_page(1,*first.next,1).entries.front().path=="AA","snapshot move invalidated cursor");
+    rejects([&]{snapshot.list_inode_page(1,*first.next,1);},"moved-from snapshot accepted cursor");
+    NativeDirectoryCursor expired;
+    {auto retired=writer.snapshot();expired=*retired.list_inode_page(1,{},1).next;}
+    auto current=writer.snapshot();const auto before=ram->read_calls;
+    rejects([&]{current.list_inode_page(1,expired,1);},"expired snapshot cursor accepted");
+    auto other_ram=std::make_shared<Ram>();other_ram->failure_unit=4096;auto other=fresh(other_ram);
+    rejects([&]{other.snapshot().list_inode_page(1,*first.next,1);},"different volume reused cursor");
+    require(ram->read_calls==before,"expired cursor reached backing I/O");
+  }
+}
 #ifdef FLITZFS_TEST_INODE_RECORDS
 constexpr auto inode_bit=1ULL<<63;
+#ifdef FLITZFS_TEST_DIRECTORY_INDEX
+constexpr unsigned root_index_records=1;
+#else
+constexpr unsigned root_index_records=0;
+#endif
 void inode_records_and_incremental_writes() {
   auto ram=std::make_shared<Ram>();ram->failure_unit=4096;auto writer=fresh(ram);
   for(unsigned start=0;start<128;start+=16) {
@@ -235,7 +292,7 @@ void inode_records_and_incremental_writes() {
   }
   const auto prior=PagedObjectStoreSnapshot::open(ram,limits);
   const auto records=prior.list_page(0,512);const auto whole_metadata=prior.info().logical_bytes;
-  require(prior.read(1).size()==64 && records.size()==130,"inode-record fixed-root/inventory framing");
+  require(prior.read(1).size()==64 && records.size()==130+root_index_records,"inode-record fixed-root/inventory framing");
   const auto inode=writer.snapshot().stat("f0").inode;const auto writes=ram->write_bytes;
   file_apply(writer,file_write("f0",0,Bytes{std::byte{99}}));
   const auto current=PagedObjectStoreSnapshot::open(ram,limits);
@@ -267,7 +324,7 @@ void inode_record_capacity_and_large_delete() {
       writer.apply(batch);
     }
     auto snapshot=writer.snapshot();
-    require(snapshot.list().size()==255 && snapshot.storage_info().objects==512,
+    require(snapshot.list().size()==255 && snapshot.storage_info().objects==512+root_index_records,
         "inode metadata consumed the promised file/data inventory");
     rejects([&]{file_apply(writer,file_create("over-node-limit"));},"existing node bound silently changed");
     for(unsigned i=0;i<255;++i)require(snapshot.read("f"+std::to_string(i),0,2)==Bytes{std::byte{42}},"capacity file bytes");
@@ -281,7 +338,7 @@ void inode_record_capacity_and_large_delete() {
     file_apply(writer,file_write("large",std::uint64_t(start)*kNativeExtentBytes,
         Bytes(std::size_t(extents)*kNativeExtentBytes,std::byte{37})));
   }
-  auto before=writer.snapshot();require(before.storage_info().objects==258,"large extent inventory");
+  auto before=writer.snapshot();require(before.storage_info().objects==258+root_index_records,"large extent inventory");
   const auto baseline=ram->stable;auto probe=image(baseline,4096);std::size_t cuts=0;
   {auto trial=resume(probe);const auto start=probe->calls;file_apply(trial,file_truncate("large",0));cuts=probe->calls-start;}
   require(cuts>3 && cuts<128,"large deletion fault envelope");
@@ -294,8 +351,8 @@ void inode_record_capacity_and_large_delete() {
     }
     failed->live=failed->stable;failed->fail_at=(std::numeric_limits<std::size_t>::max)();
     const auto recovered=view(failed);const auto size=recovered.stat("large").logical_bytes;
-    require((size==0 && recovered.storage_info().objects==3) ||
-        (size==std::uint64_t(255)*kNativeExtentBytes && recovered.storage_info().objects==258),
+    require((size==0 && recovered.storage_info().objects==3+root_index_records) ||
+        (size==std::uint64_t(255)*kNativeExtentBytes && recovered.storage_info().objects==258+root_index_records),
         "large deletion published a partial metadata/data set");
     if(size)require(recovered.read("large",size-13,13)==Bytes(13,std::byte{37}),"large deletion recovery lost acknowledged tail");
     auto continued=resume(failed);file_apply(continued,file_write("large",0,Bytes{std::byte{43}}));
@@ -304,7 +361,7 @@ void inode_record_capacity_and_large_delete() {
   }
   std::cout<<"inode_records large_delete_operations=257 fault_cuts="<<cuts<<" modes=3\n";
   file_apply(writer,file_truncate("large",0));
-  require(writer.snapshot().storage_info().objects==3 && writer.snapshot().read("large",0,1).empty(),
+  require(writer.snapshot().storage_info().objects==3+root_index_records && writer.snapshot().read("large",0,1).empty(),
       "257-operation native metadata/data deletion was not atomic");
   require(before.read("large",std::uint64_t(255)*kNativeExtentBytes-13,13)==Bytes(13,std::byte{37}),
       "large deletion damaged retained bytes");
@@ -326,7 +383,7 @@ void forged_inode_records() {
       if(variant==2)record[50]=std::byte{0}; // False extent count must not reframe adjacent records.
       if(variant==3)erase=true;
       if(variant==4)key=inode_bit|999; // Extra metadata despite otherwise intact current records.
-      if(variant==5){key=1;record=snapshot.read(1);record[8]=std::byte{2};}
+      if(variant==5){key=1;record=snapshot.read(1);record[8]=std::byte{255};}
       if(variant==6){key=1;record=snapshot.read(1);record[12]=std::byte{255};record[13]=std::byte{255};}
       if(variant==7){key=1;record=snapshot.read(1);record[40]^=std::byte{1};}
       if(variant==8)record[88]=std::byte{20}; // Security bytes cannot consume another frame.
@@ -338,13 +395,124 @@ void forged_inode_records() {
     require(ram->calls==calls && ram->live==bytes,"malformed inode reader wrote backing bytes");
   }
 }
+#ifdef FLITZFS_TEST_DIRECTORY_INDEX
+constexpr auto directory_bit=1ULL<<62;
+void directory_record_updates() {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;auto writer=fresh(ram);
+  writer.apply(std::array{file_create("A",true),file_create("B",true),file_create("A/sub",true),
+      file_create("A/sub/p"),file_create("A/X.txt"),file_write("A/X.txt",0,data(17,5)),file_create("B/victim")});
+  auto old=writer.snapshot();const auto a=old.stat("A").inode,b=old.stat("B").inode,
+      sub=old.stat("A/sub").inode,p=old.stat("A/sub/p").inode;
+  auto before=PagedObjectStoreSnapshot::open(ram,limits);
+  file_apply(writer,file_rename("A/X.txt","A/x.TXT"));
+  auto cased=PagedObjectStoreSnapshot::open(ram,limits);
+  require(before.stat(directory_bit|a)->generation==cased.stat(directory_bit|a)->generation,
+      "case-only rename rewrote unchanged canonical index");
+  file_apply(writer,file_rename("A/sub","B/moved"));
+  auto moved=PagedObjectStoreSnapshot::open(ram,limits);
+  for(auto parent:{a,b})require(cased.stat(directory_bit|parent)->generation!=moved.stat(directory_bit|parent)->generation,
+      "cross-parent move failed to update parent index");
+  for(auto key:{directory_bit|1,directory_bit|sub,inode_bit|p})
+    require(cased.stat(key)->generation==moved.stat(key)->generation,"folder move rewrote unaffected descendants/index");
+  require(writer.snapshot().stat("B/moved/p").inode==p && old.stat("A/sub/p").inode==p,
+      "folder move changed stable descendant identity or old snapshot");
+  file_apply(writer,file_rename("A/x.TXT","B/victim",true));
+  require(view(ram).read("B/victim",0,99)==data(17,5) && view(ram).list("A").empty(),
+      "indexed replacement lost data or retained old name");
+  auto current=writer.snapshot();const auto reads=ram->read_calls;
+  require(current.stat("b/MOVED/P").inode==p && ram->read_calls>reads,"indexed path did not consult persisted names");
+  current.verify_all();
+}
+void forged_directory_records() {
+  auto original=std::make_shared<Ram>();original->failure_unit=4096;
+  {auto writer=fresh(original);writer.apply(std::array{file_create("a"),file_create("b"),file_create("d",true)});}
+  for(unsigned variant=0;variant<14;++variant) {
+    auto ram=image(original->stable,4096);
+    {
+      auto snapshot=PagedObjectStoreSnapshot::open(ram,limits);
+      auto objects=PagedObjectStoreWriter::resume(ram,identity(),snapshot.info().generation,limits,{StoreCompressionMode::raw,1,false});
+      auto bytes=snapshot.read(directory_bit|1);auto key=directory_bit|1;bool erase=false;
+      if(variant==0)bytes[0]^=std::byte{1};
+      if(variant==1)bytes[8]=std::byte{2};
+      if(variant==2)bytes[12]=std::byte{255};
+      if(variant==3)bytes[16]=std::byte{2};
+      if(variant==4)bytes[24]=std::byte{99};
+      if(variant==5)bytes[32]=std::byte{255};
+      if(variant==6)bytes[34]=std::byte{1};
+      if(variant==7)bytes[36]=std::byte{'A'}; // Canonical keys are lowercase.
+      if(variant==8)bytes[49]=std::byte{'a'}; // Duplicate key.
+      if(variant==9)std::swap(bytes[36],bytes[49]); // Unsorted valid keys.
+      if(variant==10)bytes.push_back(std::byte{0});
+      if(variant==11)bytes.pop_back();
+      if(variant==12)erase=true;
+      if(variant==13)key=directory_bit|999;
+      if(erase)bytes.clear();const StoreMutation mutation{key,erase,std::move(bytes)};objects.commit({&mutation,1});
+    }
+    const auto calls=ram->calls;const auto before=ram->live;
+    rejects([&]{view(ram);},"intact malformed/foreign directory index exposed files");
+    require(ram->calls==calls && ram->live==before,"directory-index rejection modified backing");
+  }
+}
+void directory_maximum_recovery() {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  {
+    auto writer=fresh(ram);
+    for(unsigned i=0;i<255;i+=8) {
+      std::vector<NativeFileMutation> batch;
+      for(unsigned n=i;n<(std::min)(i+8,255U);++n) {
+        const auto name="f"+std::to_string(n);
+        batch.push_back(file_create(name));batch.push_back(file_write(name,0,Bytes{std::byte{42},static_cast<std::byte>(n)}));
+      }
+      writer.apply(batch);
+    }
+  }
+  // Serialize valid durable delete intents as a fixture, after all contexts
+  // have retired. This avoids 255 unrelated transactions in this recovery test.
+  {
+    const auto snapshot=PagedObjectStoreSnapshot::open(ram,limits);
+    auto objects=PagedObjectStoreWriter::resume(ram,identity(),snapshot.info().generation,limits,{StoreCompressionMode::raw,1,false});
+    std::vector<StoreMutation> pending;
+    for(const auto& record:snapshot.list_page(inode_bit,256))if(record.id!=(inode_bit|1)) {
+      auto bytes=snapshot.read(record.id);bytes[20]=std::byte{1};pending.push_back({record.id,false,std::move(bytes)});
+    }
+    require(pending.size()==255,"maximum recovery fixture inode count");objects.commit(pending);
+  }
+  require(view(ram).needs_session_recovery(),"durable delete intents not detected");
+  const auto baseline=ram->stable;auto probe=image(baseline,4096);std::size_t cuts=0;
+  {const auto generation=PagedObjectStoreSnapshot::open(probe,limits).info().generation;
+    auto objects=PagedObjectStoreWriter::resume(probe,identity(),generation,limits,{StoreCompressionMode::raw,1,false});
+    const auto start=probe->calls;auto writer=NativeFilesystemWriter::resume_closed_session(std::move(objects));cuts=probe->calls-start;
+    require(writer.snapshot().list().empty() && writer.snapshot().storage_info().objects==3,"maximum recovery partial index");}
+  require(cuts>3 && cuts<128,"maximum recovery fault envelope");
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
+    auto failed=image(baseline,4096);
+    const auto generation=PagedObjectStoreSnapshot::open(failed,limits).info().generation;
+    auto objects=PagedObjectStoreWriter::resume(failed,identity(),generation,limits,{StoreCompressionMode::raw,1,false});
+    failed->failure=mode;failed->fail_at=failed->calls+cut;
+    rejects([&]{NativeFilesystemWriter::resume_closed_session(std::move(objects));},"faulted 513-operation recovery acknowledged");
+    failed->live=failed->stable;failed->fail_at=(std::numeric_limits<std::size_t>::max)();
+    auto recovered=view(failed);const auto count=recovered.list().size();
+    require((count==255 && recovered.storage_info().objects==513) ||
+        (!count && recovered.storage_info().objects==3),"recovery published partial inode/name/data state");
+    if(count)for(unsigned i=0;i<255;++i)
+      require(recovered.read("f"+std::to_string(i),0,2)==Bytes{std::byte{42},static_cast<std::byte>(i)},
+          "failed recovery damaged acknowledged bytes");
+    auto continued=resume(failed,true);file_apply(continued,file_create("continue"));
+    require(view(failed).list().size()==1,"maximum recovery could not resume");++faults;
+  }
+  std::cout<<"directory_index recovery_operations=513 fault_cuts="<<cuts<<" modes=3\n";
+}
+#endif
 #endif
 }
 int main() {try {
   shared_engine();sharing_and_sessions();closed_session_and_foreign_objects();
-  failure_matrix(4096);failure_matrix(65536);flush_failures();paged_barrier_pressure();
+  failure_matrix(4096);failure_matrix(65536);flush_failures();paged_barrier_pressure();directory_pages();
 #ifdef FLITZFS_TEST_INODE_RECORDS
   inode_records_and_incremental_writes();inode_record_capacity_and_large_delete();forged_inode_records();
+#endif
+#ifdef FLITZFS_TEST_DIRECTORY_INDEX
+  directory_record_updates();forged_directory_records();directory_maximum_recovery();
 #endif
   std::cout<<"PASS: "<<checks<<" native paged-backend checks; "<<faults
       <<" injected write/barrier cases; memory CPU only, namespace still bounded.\n";return 0;

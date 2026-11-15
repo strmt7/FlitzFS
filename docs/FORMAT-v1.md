@@ -7,6 +7,8 @@ operations to it without changing namespace formats 1..7 or these chunk bytes.
 The separately opted-in [inode-record layout](INODE_RECORD_NAMESPACE.md) uses
 `FLTXPN01` and unchanged format-7 node bodies. Existing layouts remain readable;
 old readers reject the new root magic. It does not alter this chunk container.
+Its explicit [directory-index capability 2](DIRECTORY_NAME_INDEX.md) adds
+`FLTXDN01` objects; capability 1 and all earlier encodings remain readable.
 
 The native filesystem's separate [format-7 shared-extent namespace](SHARED_EXTENTS.md)
 extends native object references with exact sharing/private updates. It does not

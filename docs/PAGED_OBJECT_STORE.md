@@ -6,7 +6,9 @@ compressed-object writes, lookup, deletion, stable keyset pagination, retained
 snapshots, recovery and streaming rebuilding. Native filesystem snapshots,
 writers and file sessions can now explicitly use this backend through their
 existing operation engine. An explicit [inode-record namespace](INODE_RECORD_NAMESPACE.md)
-also supports incremental metadata publication. Explorer factories, default
+also supports incremental metadata publication. The explicit
+[directory-name index](DIRECTORY_NAME_INDEX.md) publishes parent indices in the
+same transaction and adds native snapshot cursors. Explorer factories, default
 formats and GPU routing remain unchanged.
 
 The distinction matters: a million populated object records are now tested;

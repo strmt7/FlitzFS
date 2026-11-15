@@ -189,13 +189,27 @@ struct NativeAllocationUsage {
   std::size_t charged_extents=0,live_extents=0;
 };
 
+class NativeDirectoryCursor final {
+ public:
+  NativeDirectoryCursor() noexcept=default;
+ private:
+  friend class NativeFilesystemSnapshot;
+  std::weak_ptr<const void> owner_;
+  std::uint64_t directory_=0;
+  std::string after_;
+  bool initialized_=false;
+};
+struct NativeDirectoryPage {
+  std::vector<NativeFileInfo> entries;
+  std::optional<NativeDirectoryCursor> next;
+};
 class NativeFilesystemSnapshot final {
  public:
   // Consumes a fully verified object snapshot; validates native namespace and all references.
   static NativeFilesystemSnapshot open(ObjectStoreSnapshot objects);
   // Explicit paged storage backend, same native namespace/operation semantics.
-  // Still eagerly validates the bounded flat namespace and all live extents.
-  // This does not remove native node/extent limits or implement paged names.
+  // Still eagerly validates the complete bounded namespace and live extents,
+  // including optional per-directory indices. Node/extent limits remain.
   static NativeFilesystemSnapshot open(PagedObjectStoreSnapshot objects);
   NativeFilesystemSnapshot(NativeFilesystemSnapshot&&) noexcept;
   NativeFilesystemSnapshot& operator=(NativeFilesystemSnapshot&&) noexcept;
@@ -219,6 +233,11 @@ class NativeFilesystemSnapshot final {
   bool needs_session_recovery() const noexcept;
   std::vector<NativeFileInfo> list(std::string_view directory="") const;
   std::vector<NativeFileInfo> list_inode(std::uint64_t directory) const;
+  // Canonical-name keyset order, 1..1024 results. Continuation belongs to this
+  // exact immutable snapshot/directory; move preserves it, reopening does not.
+  // It does not pin a mutable writer or make a live directory scan atomic.
+  NativeDirectoryPage list_inode_page(std::uint64_t directory,
+      const NativeDirectoryCursor& after={},std::size_t maximum=128) const;
   // Root-relative '/' paths, conservative ASCII/case-insensitive components.
   // Short reads at EOF; holes are zeros; full extent integrity precedes exposure.
   std::vector<std::byte> read(std::string_view path,std::uint64_t offset,std::uint32_t bytes) const;
@@ -250,6 +269,9 @@ class NativeFilesystemWriter final {
   // conversion of existing images. Current in-memory namespace limits remain.
   // Workload accounting and format-7 shared references are enabled from start.
   static NativeFilesystemWriter initialize_inode_records(PagedObjectStoreWriter objects);
+  // New empty layout with separately indexed canonical directory names.
+  // Existing layouts are never converted in place. Current frontend limits remain.
+  static NativeFilesystemWriter initialize_indexed_names(PagedObjectStoreWriter objects);
   // Explicit sticky namespace capability; legacy initialization is unchanged.
   // Start at zero without crediting old files. Commit through the same
   // replicated metadata transaction. Repeated enable never resets the count.
@@ -443,7 +465,8 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter copy_image(const NativeFilesystemSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool reencode);
-  static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter,bool inode_records=false);
+  static NativeFilesystemWriter initialize_storage(detail::NativeObjectWriter,bool inode_records=false,
+      bool indexed_names=false);
   static NativeFilesystemWriter resume_impl(detail::NativeObjectWriter,bool closed_session);
   explicit NativeFilesystemWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
