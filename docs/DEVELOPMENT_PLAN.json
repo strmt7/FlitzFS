@@ -585,6 +585,40 @@
         "driver_installed": false,
         "release": false,
         "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection."
+      },
+      "staged_paged_checkpoint": {
+        "source_base": "b64143678e9c8a50887f0883b22b06b5943c4f4f",
+        "contract": "docs/STAGED_PAGED_REBUILD.md",
+        "evidence": "docs/evidence/staged-paged-rebuild-2026-11-15.json",
+        "status": "Explicit generic/native staged paged rebuild with incremental source/copy/target/post-publication verification and no backing I/O at finish",
+        "broad_raw_suites": 98,
+        "broad_ASan_suites": 98,
+        "staged_checks": 5830,
+        "staged_fault_cases": 1449,
+        "native_layouts": 3,
+        "failure_units": [
+          4096,
+          65536
+        ],
+        "failure_modes": 3,
+        "stale_phases_tested": 6,
+        "one_candidate_per_writer": true,
+        "foreground_reads_between_steps": true,
+        "generation_changes_refuse_before_IO": true,
+        "finish_backing_IO": false,
+        "complete_content_verification_incremental": true,
+        "global_commit_invalidation": true,
+        "persistent_restart_progress": false,
+        "automatic_scheduling": false,
+        "paged_volume_head_handoff": false,
+        "bounded_native_cache": false,
+        "fully_paged_namespace": false,
+        "payload_redundancy": false,
+        "ordinary_GPU_route": false,
+        "GPU_executed_this_round": false,
+        "driver_installed": false,
+        "release": false,
+        "next": "Replace full-Model residency and whole directory objects with bounded paged inode/name/extent access. Connect fresh contention/resource admission, repeated-work suppression and reader-safe paged handoff/reclaim to staged work; use protected per-group dependencies and stable content generations rather than repeatedly rebuilding on every unrelated write."
       }
     },
     {
@@ -958,54 +992,42 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "b9774aeac7dec8a49dcf900f07c534524a18da62",
-    "contract": "docs/NATIVE_PAGED_MAINTENANCE.md",
-    "evidence": "docs/evidence/native-paged-maintenance-2026-11-15.json",
-    "status": "Explicit native compaction/recompression over all three paged namespace layouts; identity-only root rebinding, preserved object generations, source retention and independent publication verification",
-    "broad_raw_suites": 97,
-    "broad_ASan_suites": 97,
-    "layout_results": {
-      "legacy_paged": {
-        "checks": 9875,
-        "fault_cases": 1101
-      },
-      "inode_records": {
-        "checks": 12397,
-        "fault_cases": 1323
-      },
-      "directory_index": {
-        "checks": 32256,
-        "fault_cases": 1467
-      }
-    },
-    "modeled_failure_units": [
+    "source_base": "b64143678e9c8a50887f0883b22b06b5943c4f4f",
+    "contract": "docs/STAGED_PAGED_REBUILD.md",
+    "evidence": "docs/evidence/staged-paged-rebuild-2026-11-15.json",
+    "status": "Explicit generic/native staged paged rebuild with incremental source/copy/target/post-publication verification and no backing I/O at finish",
+    "broad_raw_suites": 98,
+    "broad_ASan_suites": 98,
+    "staged_checks": 5830,
+    "staged_fault_cases": 1449,
+    "native_layouts": 3,
+    "failure_units": [
       4096,
       65536
     ],
     "failure_modes": 3,
-    "controlled_source_image_bytes": 1642496,
-    "controlled_compact_image_bytes": 339968,
-    "controlled_recompressed_image_bytes": 208896,
-    "controlled_size_fixture": "Repeated-byte source with metadata/history; not representative real data or a speed/record claim",
-    "native_compaction": true,
-    "native_recompression": true,
-    "source_unchanged": true,
-    "published_roots_independently_reparsed": true,
-    "new_degraded_metadata_rejected": true,
-    "fully_paged_namespace": false,
-    "bounded_native_cache": false,
-    "automatic_maintenance": false,
+    "stale_phases_tested": 6,
+    "one_candidate_per_writer": true,
+    "foreground_reads_between_steps": true,
+    "generation_changes_refuse_before_IO": true,
+    "finish_backing_IO": false,
+    "complete_content_verification_incremental": true,
+    "global_commit_invalidation": true,
+    "persistent_restart_progress": false,
+    "automatic_scheduling": false,
     "paged_volume_head_handoff": false,
+    "bounded_native_cache": false,
+    "fully_paged_namespace": false,
     "payload_redundancy": false,
     "ordinary_GPU_route": false,
     "GPU_executed_this_round": false,
     "driver_installed": false,
     "release": false,
-    "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection.",
+    "next": "Replace full-Model residency and whole directory objects with bounded paged inode/name/extent access. Connect fresh contention/resource admission, repeated-work suppression and reader-safe paged handoff/reclaim to staged work; use protected per-group dependencies and stable content generations rather than repeatedly rebuilding on every unrelated write.",
     "full_goal_status": "active"
   },
   "next_product_slices": [
-    "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection.",
+    "Replace full-Model residency and whole directory objects with bounded paged inode/name/extent access. Connect fresh contention/resource admission, repeated-work suppression and reader-safe paged handoff/reclaim to staged work; use protected per-group dependencies and stable content generations rather than repeatedly rebuilding on every unrelated write.",
     "Implement the reserved versioned sparse coherence catalog and resumable candidate scans, with unchanged-content suppression, bounded cancellation and write-grant refusal. Keep learning local/offline and advisory; protect immutable decoder models/bases elsewhere.",
     "Implement one verified collective group representation and independent CPU reader, then useful finite AMD work through ordinary Windows operations. Preserve minimum complete stored size as primary; evaluate multiple file families, group sizes and stronger models.",
     "Connect fresh host-adaptive contention evidence, automatic learning, low-priority background execution, scalable reclamation and gradual format migration. Preserve source/reader ownership and measured write amplification.",
@@ -1435,6 +1457,53 @@
     "driver_installed": false,
     "release": false,
     "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open.",
+    "full_goal_status": "active"
+  },
+  "previous_native_maintenance_round": {
+    "source_base": "b9774aeac7dec8a49dcf900f07c534524a18da62",
+    "contract": "docs/NATIVE_PAGED_MAINTENANCE.md",
+    "evidence": "docs/evidence/native-paged-maintenance-2026-11-15.json",
+    "status": "Explicit native compaction/recompression over all three paged namespace layouts; identity-only root rebinding, preserved object generations, source retention and independent publication verification",
+    "broad_raw_suites": 97,
+    "broad_ASan_suites": 97,
+    "layout_results": {
+      "legacy_paged": {
+        "checks": 9875,
+        "fault_cases": 1101
+      },
+      "inode_records": {
+        "checks": 12397,
+        "fault_cases": 1323
+      },
+      "directory_index": {
+        "checks": 32256,
+        "fault_cases": 1467
+      }
+    },
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "controlled_source_image_bytes": 1642496,
+    "controlled_compact_image_bytes": 339968,
+    "controlled_recompressed_image_bytes": 208896,
+    "controlled_size_fixture": "Repeated-byte source with metadata/history; not representative real data or a speed/record claim",
+    "native_compaction": true,
+    "native_recompression": true,
+    "source_unchanged": true,
+    "published_roots_independently_reparsed": true,
+    "new_degraded_metadata_rejected": true,
+    "fully_paged_namespace": false,
+    "bounded_native_cache": false,
+    "automatic_maintenance": false,
+    "paged_volume_head_handoff": false,
+    "payload_redundancy": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection.",
     "full_goal_status": "active"
   }
 }

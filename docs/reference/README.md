@@ -19,6 +19,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Incremental inode-record namespace](../INODE_RECORD_NAMESPACE.md)
 - [Ordered directory names and snapshot cursors](../DIRECTORY_NAME_INDEX.md)
 - [Native paged compaction and recompression](../NATIVE_PAGED_MAINTENANCE.md)
+- [Bounded staged paged rebuild](../STAGED_PAGED_REBUILD.md)
 
 ## Windows integration
 

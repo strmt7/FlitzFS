@@ -1010,7 +1010,7 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection.",
+    "Replace full-Model residency and whole directory objects with bounded paged inode/name/extent access. Connect fresh contention/resource admission, repeated-work suppression and reader-safe paged handoff/reclaim to staged work; use protected per-group dependencies and stable content generations rather than repeatedly rebuilding on every unrelated write.",
     "Add one unmounted actual-GPU callback-service qualification after exact-source gates; verify admitted stored bytes and independent GPU-absent readback. Do not repeat the earlier unchanged diagnostic.",
     "Acquire repeated configuration/recovery/work-shape keyed complete costs from finite windows, qualify independent helper dependencies and connect automatic useful Windows write/read/fallback; then coalesce compatible operations under a bounded lifetime.",
     "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
@@ -1415,5 +1415,39 @@
     "driver_installed": false,
     "release": false,
     "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection."
+  },
+  "staged_paged_checkpoint": {
+    "source_base": "b64143678e9c8a50887f0883b22b06b5943c4f4f",
+    "contract": "docs/STAGED_PAGED_REBUILD.md",
+    "evidence": "docs/evidence/staged-paged-rebuild-2026-11-15.json",
+    "status": "Explicit generic/native staged paged rebuild with incremental source/copy/target/post-publication verification and no backing I/O at finish",
+    "broad_raw_suites": 98,
+    "broad_ASan_suites": 98,
+    "staged_checks": 5830,
+    "staged_fault_cases": 1449,
+    "native_layouts": 3,
+    "failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "stale_phases_tested": 6,
+    "one_candidate_per_writer": true,
+    "foreground_reads_between_steps": true,
+    "generation_changes_refuse_before_IO": true,
+    "finish_backing_IO": false,
+    "complete_content_verification_incremental": true,
+    "global_commit_invalidation": true,
+    "persistent_restart_progress": false,
+    "automatic_scheduling": false,
+    "paged_volume_head_handoff": false,
+    "bounded_native_cache": false,
+    "fully_paged_namespace": false,
+    "payload_redundancy": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Replace full-Model residency and whole directory objects with bounded paged inode/name/extent access. Connect fresh contention/resource admission, repeated-work suppression and reader-safe paged handoff/reclaim to staged work; use protected per-group dependencies and stable content generations rather than repeatedly rebuilding on every unrelated write."
   }
 }

@@ -45,6 +45,9 @@ It preserves object IDs/generations, rebinds the image identity and checks
 decoded CPU bytes independently before publication.
 
 Rebuild is an explicit synchronous API, not automatic background maintenance.
+The separate [staged API](STAGED_PAGED_REBUILD.md) now splits copying and complete
+CPU verification into one-object opportunities without retiring the source writer.
+It does not automatically schedule work or select/reclaim a volume.
 It requires a new empty target and a current quiescent source. It never changes
 the source or selects/replaces a user's volume. Partial targets survive failure;
 they have no valid root until the entire output has been checked. An interrupted

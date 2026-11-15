@@ -407,6 +407,36 @@ struct Rebuild {
     next.root=write_node(Node{},0);next.end=cursor;
   }
 };
+void copy_rebuild_object(Rebuild& build,const State& original,const Entry& source_entry,
+    detail::StoreCodecEncoder& encoder,std::uint64_t replacement_id,
+    std::span<const std::byte> replacement,bool reencode) {
+  auto source_record=read_record(original,source_entry);auto bytes=decode_record(original,source_entry,source_record);
+  if(source_entry.id==replacement_id)bytes.assign(replacement.begin(),replacement.end());
+  auto encoded=[&] {
+    if(reencode || source_entry.id==replacement_id)return encoder.encode(bytes);
+    return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
+        field<32>(source_record.header,56)};
+  }();
+  Entry entry{source_entry.id,source_entry.generation,build.cursor,static_cast<std::uint32_t>(bytes.size()),
+              static_cast<std::uint32_t>(encoded.payload.size()),{}};
+  std::array<std::byte,128> header{};set_magic(header,data_magic);put32(header,8,1);put32(header,12,encoded.codec);
+  put64(header,16,entry.id);put64(header,24,entry.generation);put32(header,32,entry.logical);
+  put32(header,36,entry.stored);copy(header,40,build.next.id);
+  if(encoded.codec!=detail::kStoreRaw)copy(header,56,encoded.decoded_digest);
+  entry.digest=detail::record_digest(std::span<const std::byte>(header).first(96),encoded.payload);copy(header,96,entry.digest);
+  const auto end=add(build.cursor,128ULL+entry.stored);
+  if(end>build.next.limits.maximum_physical_bytes)capacity("rebuild capacity");
+  build.next.image->admit_write(end);build.next.image->write_exact(build.cursor,header);
+  if(!encoded.payload.empty())build.next.image->write_exact(build.cursor+128,encoded.payload);
+  build.cursor=end;
+  if(read_object(build.next,entry)!=bytes)fail("rebuild CPU comparison");
+  build.entry(entry);
+}
+std::optional<Entry> next_entry(const State& state,std::uint64_t after) {
+  std::optional<Entry> entry;bool done=false;
+  auto visitor=[&](const Entry& value){entry=value;return false;};
+  walk(state,state.root,after,visitor,done);return entry;
+}
 } // namespace
 
 struct PagedObjectStoreSnapshot::Impl {State state;};
@@ -423,8 +453,143 @@ struct PagedObjectStoreWriter::Impl {
   detail::StoreCodecEncoder encoder;
   std::uint64_t append_floor=0;
   bool poisoned=false;
+  std::shared_ptr<const void> owner=std::make_shared<const unsigned char>(0);
+  mutable std::weak_ptr<const void> pending_rebuild;
   Impl(std::shared_ptr<StoreByteIo> image,StoreCompressionOptions options):lease(std::move(image)),encoder(options){}
 };
+struct PagedObjectStoreWriter::Rewrite::Impl {
+  State original;
+  std::weak_ptr<const void> owner;
+  std::shared_ptr<const void> reservation=std::make_shared<const unsigned char>(0);
+  std::unique_ptr<PagedObjectStoreWriter::Impl> target;
+  Rebuild build;
+  Bytes replacement;
+  std::uint64_t source_extent=0,target_extent=0,after=0,completed=0,logical=0,stored=0;
+  PagedRewritePhase phase=PagedRewritePhase::verifying_source;
+  bool reencode=true,replacement_seen=false;
+
+  Impl(const PagedObjectStoreWriter::Impl& writer,std::shared_ptr<StoreByteIo> output,
+      StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> root,bool encode)
+      :original(writer.state),owner(writer.owner),reencode(encode) {
+    if(zero(id) || id==original.id)fail("staged rebuild needs a new identity");
+    if(root.size()>kStoreMaxObjectBytes)fail("staged replacement budget");
+    replacement.assign(root.begin(),root.end());
+    if(!same(original,load(original.image,original.limits)))fail("staged rebuild source changed");
+    source_extent=original.image->extent();
+    target=std::make_unique<PagedObjectStoreWriter::Impl>(std::move(output),compression);
+    auto image=target->lease.image;admit_contract(image->contract());
+    if(image->extent())fail("staged rebuild requires an empty target");
+    build.next.image=image;build.next.limits=original.limits;build.next.id=id;
+    build.next.generation=add(original.generation,2);build.next.checkpoint=original.generation+1;
+    build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),image->contract().write_failure_unit_bytes);
+  }
+  void source_check() const {
+    admit_contract(original.image->contract());
+    if(original.image->contract().write_failure_unit_bytes>original.unit ||
+        original.image->extent()!=source_extent || !same(original,load(original.image,original.limits)))
+      fail("staged rebuild source checkpoint/contract changed");
+  }
+  void reset(PagedRewritePhase next) noexcept {phase=next;after=completed=logical=stored=0;}
+  void count(const Entry& entry) {
+    after=entry.id;completed=add(completed,1);logical=add(logical,entry.logical);stored=add(stored,entry.stored);
+  }
+  void totals(const State& state) const {
+    if(completed!=state.root.count || logical!=state.root.logical || stored!=state.root.stored)
+      fail("staged verification inventory differs");
+  }
+  void compare(const Entry& entry) {
+    const auto source=lookup(original,entry.id);
+    if(!source || source->generation!=entry.generation || source->logical!=entry.logical)
+      fail("staged target object differs");
+    auto expected=read_object(original,*source);
+    if(entry.id==1 && !replacement.empty())expected=replacement;
+    if(read_object(build.next,entry)!=expected)fail("staged target CPU comparison");
+  }
+  void step() {
+    auto image=build.next.image;
+    if(image->extent()!=target_extent)fail("staged target extent changed");
+    admit_contract(image->contract());
+    if(image->contract().write_failure_unit_bytes>build.next.unit)fail("staged target contract changed");
+    if(phase==PagedRewritePhase::verifying_source) {
+      if(const auto entry=next_entry(original,after)) {
+        auto bytes=read_object(original,*entry);
+        if(entry->id==1 && !replacement.empty()) {
+          if(bytes.size()<56 || bytes.size()!=replacement.size())fail("staged native root length");
+          copy(bytes,40,build.next.id);
+          if(bytes!=replacement)fail("staged replacement differs beyond identity");
+          replacement_seen=true;
+        }
+        count(*entry);
+      } else {
+        totals(original);
+        if(!replacement.empty() && !replacement_seen)fail("staged native root missing");
+        source_check();image->admit_write(start+2*build.next.unit);zeros(*image,0,start);
+        reset(PagedRewritePhase::copying);
+      }
+    } else if(phase==PagedRewritePhase::copying) {
+      if(const auto entry=next_entry(original,after)) {
+        copy_rebuild_object(build,original,*entry,target->encoder,replacement.empty()?0:1,replacement,reencode);count(*entry);
+      } else {
+        totals(original);build.finish();
+        if(build.next.root.count!=original.root.count || build.next.root.logical!=original.root.logical)
+          fail("staged copy inventory differs");
+        reset(PagedRewritePhase::verifying_target);
+      }
+    } else if(phase==PagedRewritePhase::verifying_target || phase==PagedRewritePhase::verifying_publication) {
+      if(const auto entry=next_entry(build.next,after)) {compare(*entry);count(*entry);}
+      else {
+        totals(build.next);
+        if(phase==PagedRewritePhase::verifying_target)reset(PagedRewritePhase::publishing);
+        else {
+          source_check();target->state=build.next;target->append_floor=build.next.end;
+          phase=PagedRewritePhase::ready;
+        }
+      }
+      if(build.next.degraded_metadata)fail("staged target metadata is degraded");
+    } else if(phase==PagedRewritePhase::publishing) {
+      source_check();image->admit_write(build.next.end);publish(build.next);
+      auto published=load(image,build.next.limits);
+      if(!same(build.next,published) || published.degraded_roots || published.degraded_metadata)
+        fail("staged published checkpoint differs/degraded");
+      build.next=std::move(published);reset(PagedRewritePhase::verifying_publication);
+    }
+    target_extent=image->extent();
+  }
+};
+PagedObjectStoreWriter::Rewrite::Rewrite(std::unique_ptr<Impl> value) noexcept:impl_(std::move(value)){}
+PagedObjectStoreWriter::Rewrite::Rewrite(Rewrite&&) noexcept=default;
+PagedObjectStoreWriter::Rewrite& PagedObjectStoreWriter::Rewrite::operator=(Rewrite&&) noexcept=default;
+PagedObjectStoreWriter::Rewrite::~Rewrite()=default;
+bool PagedObjectStoreWriter::Rewrite::matches(const PagedObjectStoreWriter& writer) const noexcept {
+  return impl_ && !writer.poisoned() && impl_->owner.lock()==writer.impl_->owner && same(impl_->original,writer.impl_->state);
+}
+StoreIdentity PagedObjectStoreWriter::Rewrite::identity() const noexcept {return impl_?impl_->build.next.id:StoreIdentity{};}
+bool PagedObjectStoreWriter::Rewrite::replaces_native_root() const noexcept {return impl_ && !impl_->replacement.empty();}
+PagedRewriteProgress PagedObjectStoreWriter::Rewrite::progress() const noexcept {
+  return impl_?PagedRewriteProgress{impl_->phase,impl_->original.root.count,impl_->completed}:PagedRewriteProgress{};
+}
+bool PagedObjectStoreWriter::Rewrite::advance(const PagedObjectStoreWriter& writer) {
+  if(!matches(writer)) {impl_.reset();fail("staged rebuild source owner/generation is stale");}
+  if(impl_->phase==PagedRewritePhase::ready)return true;
+  try{impl_->step();return impl_->phase==PagedRewritePhase::ready;}
+  catch(...){impl_.reset();throw;}
+}
+PagedObjectStoreWriter PagedObjectStoreWriter::Rewrite::finish(const PagedObjectStoreWriter& writer) {
+  if(!matches(writer)) {impl_.reset();fail("staged rebuild source owner/generation is stale");}
+  if(impl_->phase!=PagedRewritePhase::ready)fail("staged rebuild is incomplete");
+  auto candidate=std::move(impl_);return PagedObjectStoreWriter(std::move(candidate->target));
+}
+PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity id,StoreCompressionOptions compression,bool reencode) const {
+  return prepare_rebuild_replacing(std::move(target),id,compression,{},reencode);
+}
+PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_replacing(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode) const {
+  if(poisoned())fail("staged rebuild requires a healthy source writer");
+  if(!impl_->pending_rebuild.expired())fail("source already has a staged rebuild");
+  auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,replacement,reencode);
+  impl_->pending_rebuild=candidate->reservation;return Rewrite(std::move(candidate));
+}
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(PagedObjectStoreSnapshot&&) noexcept=default;
 PagedObjectStoreSnapshot& PagedObjectStoreSnapshot::operator=(PagedObjectStoreSnapshot&&) noexcept=default;
@@ -513,27 +678,7 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
   build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),target->contract().write_failure_unit_bytes);
   target->admit_write(start+2*build.next.unit);zeros(*target,0,start);
   auto visitor=[&](const Entry& source_entry) {
-    auto source_record=read_record(original,source_entry);auto bytes=decode_record(original,source_entry,source_record);
-    if(source_entry.id==replacement_id)bytes.assign(replacement.begin(),replacement.end());
-    auto encoded=[&] {
-      if(reencode || source_entry.id==replacement_id)return p->encoder.encode(bytes);
-      return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
-          field<32>(source_record.header,56)};
-    }();
-    Entry entry{source_entry.id,source_entry.generation,build.cursor,static_cast<std::uint32_t>(bytes.size()),
-                static_cast<std::uint32_t>(encoded.payload.size()),{}};
-    std::array<std::byte,128> header{};set_magic(header,data_magic);put32(header,8,1);put32(header,12,encoded.codec);
-    put64(header,16,entry.id);put64(header,24,entry.generation);put32(header,32,entry.logical);
-    put32(header,36,entry.stored);copy(header,40,id);
-    if(encoded.codec!=detail::kStoreRaw)copy(header,56,encoded.decoded_digest);
-    entry.digest=detail::record_digest(std::span<const std::byte>(header).first(96),encoded.payload);copy(header,96,entry.digest);
-    const auto end=add(build.cursor,128ULL+entry.stored);
-    if(end>limits.maximum_physical_bytes)capacity("rebuild capacity");
-    target->admit_write(end);target->write_exact(build.cursor,header);
-    if(!encoded.payload.empty())target->write_exact(build.cursor+128,encoded.payload);
-    build.cursor=end;
-    if(read_object(build.next,entry)!=bytes)fail("rebuild CPU comparison");
-    build.entry(entry);return true;
+    copy_rebuild_object(build,original,source_entry,p->encoder,replacement_id,replacement,reencode);return true;
   };
   bool done=false;(void)read_node(original,original.root);walk(original,original.root,0,visitor,done);build.finish();
   if(build.next.root.count!=original.root.count || build.next.root.logical!=original.root.logical)

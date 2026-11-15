@@ -42,6 +42,7 @@ class PagedObjectStoreSnapshot final {
 };
 class PagedObjectStoreWriter final {
  public:
+  class Rewrite;
   static PagedObjectStoreWriter create(std::shared_ptr<StoreByteIo> empty,
       StoreIdentity,PagedStoreLimits,StoreCompressionOptions={});
   // Exclusive explicit recovery. Fully CPU-scrubs before further writes;
@@ -57,6 +58,10 @@ class PagedObjectStoreWriter final {
   static PagedObjectStoreWriter rebuild(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       PagedStoreLimits,StoreCompressionOptions={});
+  // One explicit candidate while this foreground writer remains alive. No
+  // target writes during preparation or initial incremental source validation.
+  Rewrite prepare_rebuild(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity,
+      StoreCompressionOptions={},bool reencode=true) const;
   PagedObjectStoreWriter(PagedObjectStoreWriter&&) noexcept;
   PagedObjectStoreWriter& operator=(PagedObjectStoreWriter&&) noexcept;
   ~PagedObjectStoreWriter();
@@ -72,6 +77,8 @@ class PagedObjectStoreWriter final {
   bool poisoned() const noexcept;
  private:
   friend class detail::NativeObjectWriter;
+  Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode) const;
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode);
@@ -86,6 +93,33 @@ class PagedObjectStoreWriter final {
       std::uint64_t maximum_input=kStoreMaxTransactionBytes);
   struct Impl;
   explicit PagedObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
+  std::unique_ptr<Impl> impl_;
+};
+enum class PagedRewritePhase {verifying_source,copying,verifying_target,publishing,
+    verifying_publication,ready,failed};
+struct PagedRewriteProgress {
+  PagedRewritePhase phase=PagedRewritePhase::failed;
+  std::uint64_t objects=0,completed_in_phase=0;
+};
+// One control thread. Every operation takes the current writer and checks its
+// owner/generation before I/O. At most one object is processed per advance;
+// metadata finishing and root publication are separate bounded transitions.
+// Destruction cancels, releases only the target lease and retains partial bytes.
+class PagedObjectStoreWriter::Rewrite final {
+ public:
+  Rewrite(Rewrite&&) noexcept;
+  Rewrite& operator=(Rewrite&&) noexcept;
+  ~Rewrite();
+  bool matches(const PagedObjectStoreWriter&) const noexcept;
+  StoreIdentity identity() const noexcept;
+  bool replaces_native_root() const noexcept;
+  PagedRewriteProgress progress() const noexcept;
+  bool advance(const PagedObjectStoreWriter&);
+  PagedObjectStoreWriter finish(const PagedObjectStoreWriter&);
+ private:
+  friend class PagedObjectStoreWriter;
+  struct Impl;
+  explicit Rewrite(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };
 } // namespace flitzfs

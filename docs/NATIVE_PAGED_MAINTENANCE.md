@@ -9,8 +9,9 @@ workload provenance are preserved. No source bytes are written or flushed.
 
 This removes the backend's previous maintenance refusal. It does not select a
 new active volume, remove the source, launch background work, run a GPU or
-provide the planned collective codec. Flat volume-head handoff and staged
-recompression still reject paged sources.
+provide the planned collective codec. The separate [staged paged primitive](STAGED_PAGED_REBUILD.md)
+now advances copying and verification alongside a live writer. Managed flat
+volume-head/session handoff still rejects paged sources.
 
 ## Admission and ownership
 

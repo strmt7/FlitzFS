@@ -28,7 +28,10 @@ Initialize accepts only a NEW empty generation-zero flat store or the initial
 generation-two empty paged store. Explicit
 [paged maintenance](NATIVE_PAGED_MAINTENANCE.md) now preserves these layouts while
 copying or recompressing into a new image; volume selection and background
-scheduling remain separate. Resume accepts a writer whose custom backend has
+scheduling remain separate.
+[Staged paged rebuilding](STAGED_PAGED_REBUILD.md) exposes bounded candidate
+work alongside the active writer; it does not publish a new active volume.
+Resume accepts a writer whose custom backend has
 already passed identity/generation verification,
 exclusive ownership and the recovery fence. There is no new ordinary-file
 reopening factory. Local execution follows the current host guide.

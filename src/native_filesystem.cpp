@@ -1197,6 +1197,42 @@ NativeFilesystemWriter::Recompression NativeFilesystemWriter::prepare_recompress
   catch(const std::exception&){fail(Code::storage_failure,"staged recompression preparation failed");}
 }
 
+PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompression(
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode) const {
+  if(poisoned() || !impl_->objects.paged_if())fail(Code::invalid_operation,"staged paged rebuild needs a healthy paged writer");
+  for(const auto& [inode,entry]:impl_->model.nodes) {
+    (void)inode;if(entry.delete_pending || entry.unlinked)
+      fail(Code::invalid_operation,"staged paged rebuild needs resolved file contexts");
+  }
+  try {
+    auto model=impl_->model;model.identity=id;const auto metadata=encode(model);
+    const auto root=model.inode_records?inode_root(metadata,model.indexed_names):metadata;
+    return impl_->objects.prepare_paged_rebuild(std::move(target),id,root,compression,reencode);
+  }catch(const std::bad_alloc&){fail(Code::limit,"staged paged preparation allocation failure");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"staged paged preparation failed");}
+}
+bool NativeFilesystemWriter::advance_paged_recompression(PagedObjectStoreWriter::Rewrite& candidate) const {
+  if(poisoned() || !impl_->objects.paged_if() || !candidate.replaces_native_root())
+    fail(Code::invalid_operation,"invalid native paged candidate/source");
+  try{return candidate.advance(*impl_->objects.paged_if());}
+  catch(const std::bad_alloc&){fail(Code::limit,"staged paged allocation failure");}
+  catch(const std::exception&){fail(Code::storage_failure,"staged paged candidate failed; source selection unchanged");}
+}
+NativeFilesystemWriter NativeFilesystemWriter::finish_paged_recompression(PagedObjectStoreWriter::Rewrite& candidate) const {
+  if(poisoned() || !impl_->objects.paged_if() || !candidate.replaces_native_root())
+    fail(Code::invalid_operation,"invalid native paged candidate/source");
+  try {
+    // Each target object already passed independent pre/post-publication CPU
+    // comparison. Preserve the exact acknowledged graph without a hidden full
+    // backing scan at handoff. This Model copy retains today's bounded frontend.
+    auto model=impl_->model;model.identity=candidate.identity();
+    auto objects=candidate.finish(*impl_->objects.paged_if());
+    return NativeFilesystemWriter(std::make_unique<Impl>(std::move(objects),std::move(model)));
+  }catch(const std::bad_alloc&){fail(Code::limit,"staged paged finish allocation failure");}
+  catch(const std::exception&){fail(Code::storage_failure,"staged paged finish failed; source selection unchanged");}
+}
+
 bool NativeFilesystemWriter::matches_recompression(const Recompression& candidate) const noexcept {
   return !poisoned() && impl_->objects.flat_if() && candidate.matches(*impl_->objects.flat_if());
 }

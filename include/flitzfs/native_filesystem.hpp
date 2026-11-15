@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
+#include "flitzfs/paged_store.hpp"
 #include <memory>
 #include <optional>
 #include <span>
@@ -312,6 +313,13 @@ class NativeFilesystemWriter final {
   static NativeFilesystemWriter recompress(const NativeFilesystemSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
+  // Explicit staged candidate, no scheduler or active-volume handoff. Source
+  // foreground reads continue; a committed mutation invalidates the candidate.
+  // Copy and pre/post-publication verification advance one object at a time.
+  PagedObjectStoreWriter::Rewrite prepare_paged_recompression(std::shared_ptr<StoreByteIo>,
+      StoreIdentity,StoreCompressionOptions={},bool reencode=true) const;
+  bool advance_paged_recompression(PagedObjectStoreWriter::Rewrite&) const;
+  NativeFilesystemWriter finish_paged_recompression(PagedObjectStoreWriter::Rewrite&) const;
   NativeFilesystemWriter(NativeFilesystemWriter&&) noexcept;
   NativeFilesystemWriter& operator=(NativeFilesystemWriter&&) noexcept;
   NativeFilesystemWriter(const NativeFilesystemWriter&)=delete;

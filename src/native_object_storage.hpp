@@ -59,6 +59,13 @@ class NativeObjectWriter final {
   NativeObjectWriter(ObjectStoreWriter value):value_(std::move(value)){}
   NativeObjectWriter(PagedObjectStoreWriter value):value_(std::move(value)){}
   bool paged() const noexcept {return std::holds_alternative<PagedObjectStoreWriter>(value_);}
+  const PagedObjectStoreWriter* paged_if() const noexcept {return std::get_if<PagedObjectStoreWriter>(&value_);}
+  PagedObjectStoreWriter::Rewrite prepare_paged_rebuild(std::shared_ptr<StoreByteIo> target,
+      StoreIdentity id,std::span<const std::byte> root,StoreCompressionOptions compression,bool reencode) const {
+    const auto* source=paged_if();
+    if(!source)throw NativeFsError(NativeFsErrorCode::invalid_operation,"staged paged rebuild needs paged storage");
+    return source->prepare_rebuild_replacing(std::move(target),id,compression,root,reencode);
+  }
   const ObjectStoreWriter* flat_if() const noexcept {return std::get_if<ObjectStoreWriter>(&value_);}
   bool poisoned() const noexcept {
     return std::visit([](const auto& value){return value.poisoned();},value_);

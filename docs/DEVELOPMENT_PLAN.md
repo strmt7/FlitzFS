@@ -41,6 +41,9 @@ caches, plus legacy migration and reader-safe handoff. Explicit
 [native paged compaction/recompression](NATIVE_PAGED_MAINTENANCE.md) now copies
 live records into verified new images while preserving layout and logical state.
 This removes a maintenance blocker; automatic low-priority scheduling remains open.
+The explicit [staged paged API](STAGED_PAGED_REBUILD.md) now splits source/target
+verification and copying into bounded opportunities, without a full backing scan
+at finish. It still needs automatic admission and paged active-volume handoff.
 Then persist similarity scans and protected shared
 group/decode-unit manifests. Couple the collective representation to finite AMD
 work amortization, independent CPU recovery and useful ordinary Windows routing;

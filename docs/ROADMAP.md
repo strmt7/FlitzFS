@@ -2,6 +2,11 @@
 
 ## Current local development
 
+The [staged paged candidate](STAGED_PAGED_REBUILD.md) now splits complete source/
+target verification, copying and post-publication checks into bounded steps.
+It preserves foreground reads and invalidates on committed source changes.
+Automatic resource-aware scheduling and paged selection/reclamation remain open.
+
 [Native paged compaction/recompression](NATIVE_PAGED_MAINTENANCE.md) now preserves
 all three native layouts while streaming live objects into a verified new identity.
 Automatic background scheduling, paged native residency, protected payloads and

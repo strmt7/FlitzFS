@@ -11,6 +11,8 @@ Its explicit [directory-index capability 2](DIRECTORY_NAME_INDEX.md) adds
 `FLTXDN01` objects; capability 1 and all earlier encodings remain readable.
 The [native paged maintenance path](NATIVE_PAGED_MAINTENANCE.md) rebinds a new
 image identity without changing any of those encodings or object generations.
+[Staged paged rebuilding](STAGED_PAGED_REBUILD.md) adds execution phases only;
+it preserves these bytes and introduces no stored progress journal or codec.
 
 The native filesystem's separate [format-7 shared-extent namespace](SHARED_EXTENTS.md)
 extends native object references with exact sharing/private updates. It does not

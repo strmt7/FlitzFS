@@ -7,6 +7,12 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+[Staged paged rebuild](STAGED_PAGED_REBUILD.md) checks source owner/generation
+before I/O, bounds each verification/copy opportunity and reserves one candidate
+per writer. Failed/stale attempts retain the selected source and partial target.
+Finalizing performs no backing scan; automatic scheduling, physical durability,
+payload repair and active-volume handoff remain unqualified by this primitive.
+
 [Native paged maintenance](NATIVE_PAGED_MAINTENANCE.md) requires a current
 quiescent source and new empty target. It independently checks source/target
 bytes and both published roots; failures retain the unchanged source and partial
