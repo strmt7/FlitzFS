@@ -118,6 +118,12 @@ resume. A streaming rebuild can recover its surviving peers into a new image.
 Payloads are checked but not replicated; loss of both metadata copies or required
 payload/dependency bytes cannot be repaired by their checksums.
 
+Rebuild now refuses newly written degraded metadata before publication and
+independently reparses/scrubs the completed root pair before returning success.
+The [native maintenance regression](NATIVE_PAGED_MAINTENANCE.md) exercises both
+root-slot and metadata-primary readback corruption. This is a verification fix,
+not new payload redundancy or physical durability evidence.
+
 ## Executed scope and next integration
 
 [Source-bound local evidence](evidence/local-paged-store-2026-11-15.json) records
@@ -138,10 +144,11 @@ and after the barrier without publishing or rewriting records. Native Flush
 retains its own pre/post namespace verification.
 
 Flat volume-head and staged recompression APIs explicitly reject paged sources
-before target writes. Generic paged rebuilding changes the store identity and
-cannot, by itself, rebind the identity inside a native namespace. A native-aware
-migration/rebuild is still required; do not present generic rebuilding as native
-volume compaction. This bridge does not change any existing wire encoding.
+before target writes. Generic paged rebuilding changes only store identity.
+The separate [native maintenance path](NATIVE_PAGED_MAINTENANCE.md) now rebinds
+the native root as well and retains layout/object generations during verified
+compaction or recompression. It does not change any existing wire encoding or
+implement active-volume handoff, legacy migration or an automatic scheduler.
 
 The explicit inode-record layout is the first metadata persistence step. Finish
 ordered name/extent indexes, bounded native residency and atomic multi-index

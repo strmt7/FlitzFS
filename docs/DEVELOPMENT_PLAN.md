@@ -37,7 +37,11 @@ S01 remains in progress. Individual inode records and the explicit
 [directory-name index](DIRECTORY_NAME_INDEX.md) now publish name/inode/data changes
 atomically and support snapshot-bound pagination. Next replace complete-Model
 residency with split name pages, demand-loaded inode/extent access and bounded
-caches, plus native-aware migration/rebuild. Then persist similarity scans and protected shared
+caches, plus legacy migration and reader-safe handoff. Explicit
+[native paged compaction/recompression](NATIVE_PAGED_MAINTENANCE.md) now copies
+live records into verified new images while preserving layout and logical state.
+This removes a maintenance blocker; automatic low-priority scheduling remains open.
+Then persist similarity scans and protected shared
 group/decode-unit manifests. Couple the collective representation to finite AMD
 work amortization, independent CPU recovery and useful ordinary Windows routing;
 follow with yielding learning/rebuild scheduling and representative comparisons.

@@ -1,5 +1,9 @@
 # Verified compaction into a new volume
 
+For paged native sources, read [native paged maintenance](NATIVE_PAGED_MAINTENANCE.md).
+It preserves their layout and rebinds root identity through a streaming copy.
+The flat format and managed-volume handoff below retain their own contracts.
+
 Experimental native storage primitive. It creates a NEW destination, never
 rewrites the source, never truncates an incomplete destination, and never
 renames/deletes a file. No CLI, mount, automatic background worker or GPU runtime

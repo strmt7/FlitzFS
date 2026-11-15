@@ -195,19 +195,29 @@ std::optional<Entry> lookup(const State& s,std::uint64_t id) {
   }
   fail("lookup depth");
 }
-Bytes read_object(const State& s,const Entry& e) {
-  std::array<std::byte,128> h{};s.image->read_exact(e.offset,h);const auto codec=get32(h,12);
+struct ObjectRecord {std::array<std::byte,128> header{};Bytes payload;};
+ObjectRecord read_record(const State& s,const Entry& e) {
+  ObjectRecord record;auto& h=record.header;s.image->read_exact(e.offset,h);const auto codec=get32(h,12);
   if(!magic(h,data_magic) || get32(h,8)!=1 || get64(h,16)!=e.id || get64(h,24)!=e.generation ||
       get32(h,32)!=e.logical || get32(h,36)!=e.stored || field<16>(h,40)!=s.id ||
       !detail::store_codec_framing(codec,e.logical,e.stored) ||
       !zero(std::span<const std::byte>(h).subspan(codec==detail::kStoreRaw?56:88,codec==detail::kStoreRaw?40:8)) ||
       field<32>(h,96)!=e.digest)fail("object identity/codec/framing");
-  Bytes payload(e.stored);if(!payload.empty())s.image->read_exact(e.offset+128,payload);
+  auto& payload=record.payload;payload.resize(e.stored);if(!payload.empty())s.image->read_exact(e.offset+128,payload);
   if(detail::record_digest(std::span<const std::byte>(h).first(96),payload)!=e.digest)fail("object stored digest");
+  return record;
+}
+Bytes decode_record(const State& s,const Entry& e,const ObjectRecord& record) {
+  const auto& h=record.header;const auto& payload=record.payload;const auto codec=get32(h,12);
   if(codec==detail::kStoreRaw)return payload;
   auto decoded=s.decoder->decode(codec,payload,e.logical);
   if(detail::record_digest(decoded)!=field<32>(h,56))fail("object decoded digest");
   return decoded;
+}
+Bytes read_object(const State& s,const Entry& e) {
+  auto record=read_record(s,e);
+  if(get32(record.header,12)==detail::kStoreRaw)return std::move(record.payload);
+  return decode_record(s,e,record);
 }
 template<class Visitor> void walk(const State& s,const Ref& r,std::uint64_t after,Visitor& visitor,bool& done) {
   if(done || !r.count || r.last<=after)return;
@@ -423,6 +433,7 @@ PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open(std::shared_ptr<StoreByt
   auto p=std::make_unique<Impl>();p->state=load(std::move(image),limits);return PagedObjectStoreSnapshot(std::move(p));
 }
 StoreIdentity PagedObjectStoreSnapshot::identity() const noexcept {return impl_?impl_->state.id:StoreIdentity{};}
+PagedStoreLimits PagedObjectStoreSnapshot::limits() const noexcept {return impl_?impl_->state.limits:PagedStoreLimits{};}
 PagedStoreInfo PagedObjectStoreSnapshot::info() const noexcept {return impl_?flitzfs::info(impl_->state):PagedStoreInfo{};}
 std::optional<StoreObjectInfo> PagedObjectStoreSnapshot::stat(std::uint64_t id) const {
   if(!impl_)fail("moved-from snapshot");auto e=lookup(impl_->state,id);
@@ -473,12 +484,28 @@ PagedObjectStoreWriter PagedObjectStoreWriter::resume(std::shared_ptr<StoreByteI
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,StoreCompressionOptions options) {
+  return rebuild_replacing(source,std::move(target),id,limits,options,0,{},true);
+}
+PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObjectStoreSnapshot& source,
+    std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,StoreCompressionOptions options,
+    std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode) {
   if(!source.impl_)fail("moved-from rebuild source");admit_limits(limits);
   const auto& original=source.impl_->state;
   if(zero(id) || id==original.id)fail("rebuild requires a new nonzero identity");
   Impl::Lease source_lease(original.image);auto observed=load(original.image,original.limits);
   if(!same(original,observed))fail("rebuild source is not the current checkpoint");
   const auto source_extent=original.image->extent();
+  if(replacement_id) {
+    const auto entry=lookup(original,replacement_id);
+    if(!entry || replacement.size()!=entry->logical)fail("rebuild replacement identity/length");
+    // Native rebinding changes only the fixed identity field; reject a stale
+    // caller's metadata before creating any target records.
+    auto expected=read_object(original,*entry);
+    if(expected.size()<56)fail("rebuild replacement framing");
+    copy(expected,40,id);if(!std::equal(expected.begin(),expected.end(),replacement.begin()))
+      fail("rebuild replacement differs beyond image identity");
+    verify(original);
+  }
   auto p=std::make_unique<Impl>(target,options);admit_contract(target->contract());
   if(target->extent())fail("rebuild requires an empty target");
   Rebuild build;build.next.image=target;build.next.limits=limits;build.next.id=id;
@@ -486,7 +513,13 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSna
   build.next.unit=(std::max)(static_cast<std::uint32_t>(page_bytes),target->contract().write_failure_unit_bytes);
   target->admit_write(start+2*build.next.unit);zeros(*target,0,start);
   auto visitor=[&](const Entry& source_entry) {
-    auto bytes=read_object(original,source_entry);auto encoded=p->encoder.encode(bytes);
+    auto source_record=read_record(original,source_entry);auto bytes=decode_record(original,source_entry,source_record);
+    if(source_entry.id==replacement_id)bytes.assign(replacement.begin(),replacement.end());
+    auto encoded=[&] {
+      if(reencode || source_entry.id==replacement_id)return p->encoder.encode(bytes);
+      return detail::EncodedStoreObject{get32(source_record.header,12),std::move(source_record.payload),
+          field<32>(source_record.header,56)};
+    }();
     Entry entry{source_entry.id,source_entry.generation,build.cursor,static_cast<std::uint32_t>(bytes.size()),
                 static_cast<std::uint32_t>(encoded.payload.size()),{}};
     std::array<std::byte,128> header{};set_magic(header,data_magic);put32(header,8,1);put32(header,12,encoded.codec);
@@ -506,9 +539,15 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSna
   if(build.next.root.count!=original.root.count || build.next.root.logical!=original.root.logical)
     fail("rebuild inventory mismatch");
   target->flush();verify(build.next);
+  if(build.next.degraded_metadata)fail("rebuild produced degraded target metadata");
+  if(replacement_id)verify(original);
   if(!same(original,load(original.image,original.limits)) || original.image->extent()!=source_extent)
     fail("rebuild source changed before publication");
-  publish_roots(build.next);p->state=std::move(build.next);p->append_floor=p->state.end;
+  publish_roots(build.next);
+  auto published=load(target,limits);verify(published);
+  if(!same(build.next,published) || published.degraded_roots || published.degraded_metadata)
+    fail("rebuild published checkpoint failed independent verification");
+  p->state=std::move(published);p->append_floor=p->state.end;
   return PagedObjectStoreWriter(std::move(p));
 }
 PagedStoreInfo PagedObjectStoreWriter::commit(std::span<const StoreMutation> mutations) {

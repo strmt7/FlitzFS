@@ -7,6 +7,11 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+[Native paged maintenance](NATIVE_PAGED_MAINTENANCE.md) requires a current
+quiescent source and new empty target. It independently checks source/target
+bytes and both published roots; failures retain the unchanged source and partial
+candidate. It does not install a driver, select a volume or qualify physical power loss.
+
 The new [inode-record layout](INODE_RECORD_NAMESPACE.md) validates each record
 boundary and key identity before namespace exposure and publishes metadata/data
 atomically. Its payloads remain integrity checked rather than independently

@@ -2,6 +2,11 @@
 
 ## Current local development
 
+[Native paged compaction/recompression](NATIVE_PAGED_MAINTENANCE.md) now preserves
+all three native layouts while streaming live objects into a verified new identity.
+Automatic background scheduling, paged native residency, protected payloads and
+reader-safe selection/reclamation remain required.
+
 The [paged object-storage foundation](PAGED_OBJECT_STORE.md) now implements COW
 writes, incremental enumeration and streaming rebuild. S01 remains in progress:
 the shared native engine can explicitly use paged object storage, while actual

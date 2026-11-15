@@ -25,8 +25,11 @@ The [directory-index extension](DIRECTORY_NAME_INDEX.md) adds a separate opt-in
 persisted name index and snapshot-bound cursor API. Ordinary initialization is
 unchanged; all layouts retain a complete bounded Model.
 Initialize accepts only a NEW empty generation-zero flat store or the initial
-generation-two empty paged store. Resume accepts a
-writer whose custom backend has already passed identity/generation verification,
+generation-two empty paged store. Explicit
+[paged maintenance](NATIVE_PAGED_MAINTENANCE.md) now preserves these layouts while
+copying or recompressing into a new image; volume selection and background
+scheduling remain separate. Resume accepts a writer whose custom backend has
+already passed identity/generation verification,
 exclusive ownership and the recovery fence. There is no new ordinary-file
 reopening factory. Local execution follows the current host guide.
 

@@ -1010,7 +1010,7 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open.",
+    "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection.",
     "Add one unmounted actual-GPU callback-service qualification after exact-source gates; verify admitted stored bytes and independent GPU-absent readback. Do not repeat the earlier unchanged diagnostic.",
     "Acquire repeated configuration/recovery/work-shape keyed complete costs from finite windows, qualify independent helper dependencies and connect automatic useful Windows write/read/fallback; then coalesce compatible operations under a bounded lifetime.",
     "Co-design paged indices/allocation/reclamation and a protected cross-file group transaction. Begin the bounded collective codec prototype before full learning autonomy; implement its independent CPU reader first.",
@@ -1369,5 +1369,51 @@
     "driver_installed": false,
     "release": false,
     "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open."
+  },
+  "native_paged_maintenance_checkpoint": {
+    "source_base": "b9774aeac7dec8a49dcf900f07c534524a18da62",
+    "contract": "docs/NATIVE_PAGED_MAINTENANCE.md",
+    "evidence": "docs/evidence/native-paged-maintenance-2026-11-15.json",
+    "status": "Explicit native compaction/recompression over all three paged namespace layouts; identity-only root rebinding, preserved object generations, source retention and independent publication verification",
+    "broad_raw_suites": 97,
+    "broad_ASan_suites": 97,
+    "layout_results": {
+      "legacy_paged": {
+        "checks": 9875,
+        "fault_cases": 1101
+      },
+      "inode_records": {
+        "checks": 12397,
+        "fault_cases": 1323
+      },
+      "directory_index": {
+        "checks": 32256,
+        "fault_cases": 1467
+      }
+    },
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "controlled_source_image_bytes": 1642496,
+    "controlled_compact_image_bytes": 339968,
+    "controlled_recompressed_image_bytes": 208896,
+    "controlled_size_fixture": "Repeated-byte source with metadata/history; not representative real data or a speed/record claim",
+    "native_compaction": true,
+    "native_recompression": true,
+    "source_unchanged": true,
+    "published_roots_independently_reparsed": true,
+    "new_degraded_metadata_rejected": true,
+    "fully_paged_namespace": false,
+    "bounded_native_cache": false,
+    "automatic_maintenance": false,
+    "paged_volume_head_handoff": false,
+    "payload_redundancy": false,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection."
   }
 }

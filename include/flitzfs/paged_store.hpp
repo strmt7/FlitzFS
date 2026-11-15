@@ -26,6 +26,7 @@ class PagedObjectStoreSnapshot final {
   PagedObjectStoreSnapshot& operator=(PagedObjectStoreSnapshot&&) noexcept;
   ~PagedObjectStoreSnapshot();
   StoreIdentity identity() const noexcept;
+  PagedStoreLimits limits() const noexcept;
   PagedStoreInfo info() const noexcept;
   std::optional<StoreObjectInfo> stat(std::uint64_t id) const;
   std::vector<std::byte> read(std::uint64_t id) const;
@@ -71,6 +72,9 @@ class PagedObjectStoreWriter final {
   bool poisoned() const noexcept;
  private:
   friend class detail::NativeObjectWriter;
+  static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
+      std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
+      std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode);
   PagedObjectStoreSnapshot snapshot_for_staging() const;
   std::uint64_t generation_for_staging() const noexcept;
   // Native inode records consume their own metadata entries. Keep public

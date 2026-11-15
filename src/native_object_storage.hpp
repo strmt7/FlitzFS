@@ -23,6 +23,7 @@ class NativeObjectSnapshot final {
     return std::visit([](const auto& value){return value.identity();},value_);
   }
   bool paged() const noexcept {return std::holds_alternative<PagedObjectStoreSnapshot>(value_);}
+  const PagedObjectStoreSnapshot* paged_if() const noexcept {return std::get_if<PagedObjectStoreSnapshot>(&value_);}
   StoreCommitInfo info() const noexcept {
     if(const auto* flat=std::get_if<ObjectStoreSnapshot>(&value_))return flat->info();
     return native_paged_info(std::get<PagedObjectStoreSnapshot>(value_).info());
@@ -49,6 +50,12 @@ class NativeObjectSnapshot final {
 };
 class NativeObjectWriter final {
  public:
+  static PagedObjectStoreWriter rebuild(const PagedObjectStoreSnapshot& source,
+      std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::span<const std::byte> root,
+      StoreCompressionOptions compression,bool reencode) {
+    return PagedObjectStoreWriter::rebuild_replacing(source,std::move(target),id,source.limits(),
+        compression,1,root,reencode);
+  }
   NativeObjectWriter(ObjectStoreWriter value):value_(std::move(value)){}
   NativeObjectWriter(PagedObjectStoreWriter value):value_(std::move(value)){}
   bool paged() const noexcept {return std::holds_alternative<PagedObjectStoreWriter>(value_);}

@@ -1,5 +1,9 @@
 # Verified native post-compression (experimental)
 
+The explicit [paged native path](NATIVE_PAGED_MAINTENANCE.md) now supports
+new-image compaction and re-encoding, including inode and directory-index layouts.
+Its flat-only staged candidate and volume-head handoff remain separate work.
+
 The explicit CPU recompress() primitive decodes and re-encodes every live
 object into a NEW image under the supplied bounded compression policy. It does
 not run in callbacks, launch a worker, schedule itself, reclaim the source,

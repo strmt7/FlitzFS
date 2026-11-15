@@ -539,6 +539,52 @@
         "driver_installed": false,
         "release": false,
         "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open."
+      },
+      "native_maintenance_checkpoint": {
+        "source_base": "b9774aeac7dec8a49dcf900f07c534524a18da62",
+        "contract": "docs/NATIVE_PAGED_MAINTENANCE.md",
+        "evidence": "docs/evidence/native-paged-maintenance-2026-11-15.json",
+        "status": "Explicit native compaction/recompression over all three paged namespace layouts; identity-only root rebinding, preserved object generations, source retention and independent publication verification",
+        "broad_raw_suites": 97,
+        "broad_ASan_suites": 97,
+        "layout_results": {
+          "legacy_paged": {
+            "checks": 9875,
+            "fault_cases": 1101
+          },
+          "inode_records": {
+            "checks": 12397,
+            "fault_cases": 1323
+          },
+          "directory_index": {
+            "checks": 32256,
+            "fault_cases": 1467
+          }
+        },
+        "modeled_failure_units": [
+          4096,
+          65536
+        ],
+        "failure_modes": 3,
+        "controlled_source_image_bytes": 1642496,
+        "controlled_compact_image_bytes": 339968,
+        "controlled_recompressed_image_bytes": 208896,
+        "controlled_size_fixture": "Repeated-byte source with metadata/history; not representative real data or a speed/record claim",
+        "native_compaction": true,
+        "native_recompression": true,
+        "source_unchanged": true,
+        "published_roots_independently_reparsed": true,
+        "new_degraded_metadata_rejected": true,
+        "fully_paged_namespace": false,
+        "bounded_native_cache": false,
+        "automatic_maintenance": false,
+        "paged_volume_head_handoff": false,
+        "payload_redundancy": false,
+        "ordinary_GPU_route": false,
+        "GPU_executed_this_round": false,
+        "driver_installed": false,
+        "release": false,
+        "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection."
       }
     },
     {
@@ -912,35 +958,54 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "367642d6420bccf2f52b08f105eb9680c01b83a4",
-    "contract": "docs/DIRECTORY_NAME_INDEX.md",
-    "evidence": "docs/evidence/directory-name-index-2026-11-15.json",
-    "status": "Explicit capability-2 persisted per-directory indices; ordered in-memory name lookup and exact-snapshot keyset cursors; name/inode/data publication is atomic",
+    "source_base": "b9774aeac7dec8a49dcf900f07c534524a18da62",
+    "contract": "docs/NATIVE_PAGED_MAINTENANCE.md",
+    "evidence": "docs/evidence/native-paged-maintenance-2026-11-15.json",
+    "status": "Explicit native compaction/recompression over all three paged namespace layouts; identity-only root rebinding, preserved object generations, source retention and independent publication verification",
     "broad_raw_suites": 97,
     "broad_ASan_suites": 97,
-    "indexed_checks": 27795,
-    "indexed_fault_cases": 429,
-    "malformed_directory_variants": 14,
-    "maximum_recovery_operations": 513,
-    "maximum_recovery_cuts": 28,
-    "maximum_recovery_modes": 3,
-    "snapshot_bound_cursors": true,
-    "persistent_directory_indices": true,
-    "frontend_still_complete_model": true,
+    "layout_results": {
+      "legacy_paged": {
+        "checks": 9875,
+        "fault_cases": 1101
+      },
+      "inode_records": {
+        "checks": 12397,
+        "fault_cases": 1323
+      },
+      "directory_index": {
+        "checks": 32256,
+        "fault_cases": 1467
+      }
+    },
+    "modeled_failure_units": [
+      4096,
+      65536
+    ],
+    "failure_modes": 3,
+    "controlled_source_image_bytes": 1642496,
+    "controlled_compact_image_bytes": 339968,
+    "controlled_recompressed_image_bytes": 208896,
+    "controlled_size_fixture": "Repeated-byte source with metadata/history; not representative real data or a speed/record claim",
+    "native_compaction": true,
+    "native_recompression": true,
+    "source_unchanged": true,
+    "published_roots_independently_reparsed": true,
+    "new_degraded_metadata_rejected": true,
     "fully_paged_namespace": false,
     "bounded_native_cache": false,
-    "native_nodes_tested": 256,
-    "data_extents_tested": 255,
-    "combined_file_data_objects_tested": 513,
+    "automatic_maintenance": false,
+    "paged_volume_head_handoff": false,
+    "payload_redundancy": false,
     "ordinary_GPU_route": false,
     "GPU_executed_this_round": false,
     "driver_installed": false,
     "release": false,
-    "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open.",
+    "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection.",
     "full_goal_status": "active"
   },
   "next_product_slices": [
-    "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open.",
+    "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches. Connect resumable background copying, reader-safe paged handoff/reclaim and protected collective dependencies without changing acknowledged source selection.",
     "Implement the reserved versioned sparse coherence catalog and resumable candidate scans, with unchanged-content suppression, bounded cancellation and write-grant refusal. Keep learning local/offline and advisory; protect immutable decoder models/bases elsewhere.",
     "Implement one verified collective group representation and independent CPU reader, then useful finite AMD work through ordinary Windows operations. Preserve minimum complete stored size as primary; evaluate multiple file families, group sizes and stronger models.",
     "Connect fresh host-adaptive contention evidence, automatic learning, low-priority background execution, scalable reclamation and gradual format migration. Preserve source/reader ownership and measured write amplification.",
@@ -1343,5 +1408,33 @@
     "next": "Replace full-Model lookup/residency with paged name/inode/extent access, stable directory cursors and bounded caches; native-aware migration/handoff and payload protection remain open",
     "full_goal_status": "active",
     "GPU_executed_this_round": false
+  },
+  "previous_directory_index_round": {
+    "source_base": "367642d6420bccf2f52b08f105eb9680c01b83a4",
+    "contract": "docs/DIRECTORY_NAME_INDEX.md",
+    "evidence": "docs/evidence/directory-name-index-2026-11-15.json",
+    "status": "Explicit capability-2 persisted per-directory indices; ordered in-memory name lookup and exact-snapshot keyset cursors; name/inode/data publication is atomic",
+    "broad_raw_suites": 97,
+    "broad_ASan_suites": 97,
+    "indexed_checks": 27795,
+    "indexed_fault_cases": 429,
+    "malformed_directory_variants": 14,
+    "maximum_recovery_operations": 513,
+    "maximum_recovery_cuts": 28,
+    "maximum_recovery_modes": 3,
+    "snapshot_bound_cursors": true,
+    "persistent_directory_indices": true,
+    "frontend_still_complete_model": true,
+    "fully_paged_namespace": false,
+    "bounded_native_cache": false,
+    "native_nodes_tested": 256,
+    "data_extents_tested": 255,
+    "combined_file_data_objects_tested": 513,
+    "ordinary_GPU_route": false,
+    "GPU_executed_this_round": false,
+    "driver_installed": false,
+    "release": false,
+    "next": "Replace whole directory objects and complete-Model residency with split name pages, demand-loaded inode/extent access and bounded caches; preserve admitted atomic mutations, snapshots, lifetimes and independent CPU recovery. Native-aware migration/handoff and payload protection remain open.",
+    "full_goal_status": "active"
   }
 }

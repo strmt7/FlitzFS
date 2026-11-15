@@ -35,8 +35,8 @@ NativeFilesystemWriter resume(const std::shared_ptr<Ram>& ram,bool closed=false)
   return closed?NativeFilesystemWriter::resume_closed_session(std::move(objects)):
       NativeFilesystemWriter::resume(std::move(objects));
 }
-void equivalent(const NativeFilesystemSnapshot& a,const NativeFilesystemSnapshot& b,std::string_view dir="") {
-  require(a.sequence()==b.sequence() && a.identity()==b.identity(),"native sequence/identity parity");
+void equivalent(const NativeFilesystemSnapshot& a,const NativeFilesystemSnapshot& b,std::string_view dir="",bool same_identity=true) {
+  require(a.sequence()==b.sequence() && (!same_identity || a.identity()==b.identity()),"native sequence/identity parity");
   require(a.workload_info()==b.workload_info(),"workload parity");
   const auto left=a.list(dir),right=b.list(dir);
   require(left.size()==right.size(),"directory size parity");
@@ -48,7 +48,7 @@ void equivalent(const NativeFilesystemSnapshot& a,const NativeFilesystemSnapshot
     require(a.basic_metadata(x.inode)==b.basic_metadata(y.inode),"basic metadata parity");
     require(a.security_descriptor(x.inode)==b.security_descriptor(y.inode),"security metadata parity");
     require(a.allocation_info(x.inode).reserved_bytes==b.allocation_info(y.inode).reserved_bytes,"allocation parity");
-    if(x.directory)equivalent(a,b,x.path);
+    if(x.directory)equivalent(a,b,x.path,same_identity);
     else require(a.read_inode(x.inode,0,kNativeMaxReadBytes)==b.read_inode(y.inode,0,kNativeMaxReadBytes),"file bytes parity");
   }
 }
@@ -102,8 +102,8 @@ void shared_engine() {
   paged.flush();require(b->writes==writes && b->flushes==flushes+1 &&
       paged.snapshot().storage_info().generation==generation,"paged native Flush published/wrote or missed barrier");
   auto target=std::make_shared<Ram>();auto new_id=identity();new_id[1]=std::byte{77};
-  rejects([&]{(void)NativeFilesystemWriter::compact(paged.snapshot(),target,new_id);},"flat compactor accepted paged source");
-  require(target->extent()==0 && !paged.poisoned(),"unsupported compaction touched target/source");
+  rejects([&]{(void)NativeFilesystemWriter::compact(paged.snapshot(),target,new_id);},"live writer compaction accepted");
+  require(target->extent()==0 && !paged.poisoned(),"live-source refusal touched target/source");
   view(b).verify_all();
 }
 void sharing_and_sessions() {
@@ -137,6 +137,9 @@ void closed_session_and_foreign_objects() {
     writer.set_delete_pending(writer.snapshot().stat("pending").inode,true);
   }
   require(view(ram).needs_session_recovery(),"paged pending intent not persisted");
+  auto candidate=std::make_shared<Ram>();auto candidate_id=identity();candidate_id[7]=std::byte{17};
+  rejects([&]{NativeFilesystemWriter::compact(view(ram),candidate,candidate_id);},"pending native contexts copied");
+  require(candidate->extent()==0,"pending context copy touched target");
   const auto before=ram->live;
   rejects([&]{auto writer=resume(ram);},"ordinary paged resume accepted unretired contexts");
   require(ram->live==before,"refused native resume changed paged bytes");
@@ -226,6 +229,132 @@ void paged_barrier_pressure() {
           "preflight allocation refusal prevented healthy continuation");
     }
   }
+}
+StoreIdentity next_identity(unsigned value=71) {auto id=identity();id[7]=static_cast<std::byte>(value);return id;}
+void maintenance_success_and_admission() {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  std::optional<NativeFilesystemSnapshot> stale;
+  {
+    auto writer=fresh(ram);
+    writer.apply(std::array{file_create("d",true),file_create("d/a"),
+        file_write("d/a",0,Bytes(2*kNativeExtentBytes,std::byte{42})),file_create("b"),file_write("b",0,data(19,8))});
+    NativeBasicMetadata basic;basic.attributes=0x20;basic.creation_time=1234;basic.last_write_time=5678;
+    auto a=writer.snapshot().stat("d/a").inode;
+    writer.set_basic_metadata(a,basic);
+    Bytes descriptor(20);descriptor[0]=std::byte{1};descriptor[3]=std::byte{0x80};
+    const auto secure=writer.create_inode_result("secure",false,basic,descriptor).info.inode;
+    writer.reserve_inode_result(secure,kNativeExtentBytes);
+    stale=writer.snapshot();
+    for(unsigned i=0;i<16;++i)file_apply(writer,file_write("b",0,data(19,i)));
+    auto target=std::make_shared<Ram>();target->failure_unit=4096;
+    rejects([&]{NativeFilesystemWriter::compact(writer.snapshot(),target,next_identity());},"live source writer copied");
+    require(target->extent()==0,"live source refusal wrote target");
+  }
+  auto source=view(ram);const auto original=ram->live;const auto source_calls=ram->calls;
+  auto refused=std::make_shared<Ram>();refused->failure_unit=4096;
+  rejects([&]{NativeFilesystemWriter::compact(*stale,refused,next_identity());},"stale native snapshot copied");
+  require(refused->extent()==0,"stale source wrote target");
+  rejects([&]{NativeFilesystemWriter::compact(source,refused,source.identity());},"same identity clone admitted");
+  rejects([&]{NativeFilesystemWriter::compact(source,ram,next_identity());},"aliased source target admitted");
+  rejects([&]{NativeFilesystemWriter::compact(source,refused,next_identity(),{}, {true});},"flat metadata option admitted for paged output");
+  require(refused->extent()==0 && ram->live==original && ram->calls==source_calls,"maintenance admission modified source/target");
+  auto compacted=std::make_shared<Ram>(),compressed=std::make_shared<Ram>();
+  compacted->failure_unit=compressed->failure_unit=4096;
+  std::uint64_t compact_size=0,compressed_size=0;
+  {
+    auto copy=NativeFilesystemWriter::compact(source,compacted,next_identity(),{StoreCompressionMode::automatic,1,false});
+    auto encoded=NativeFilesystemWriter::recompress(source,compressed,next_identity(),{StoreCompressionMode::automatic,1,false});
+    equivalent(source,copy.snapshot(),"",false);equivalent(source,encoded.snapshot(),"",false);
+    require(copy.snapshot().identity()==next_identity() && encoded.snapshot().identity()==next_identity(),"namespace identity not rebound");
+    require(copy.snapshot().storage_info().generation==source.storage_info().generation+2,"copy generation did not advance by two");
+    require(compacted->extent()<ram->extent(),"history was not reclaimed by copy");
+    require(encoded.snapshot().storage_info().stored_payload_bytes<copy.snapshot().storage_info().stored_payload_bytes &&
+        compressed->extent()<compacted->extent(),"pattern recompression did not reduce complete new image");
+    compact_size=compacted->extent();compressed_size=compressed->extent();
+    const auto old=PagedObjectStoreSnapshot::open(ram,limits),fresh_copy=PagedObjectStoreSnapshot::open(compacted,limits);
+    for(const auto& entry:old.list_page(0,768)) {
+      const auto copied=fresh_copy.stat(entry.id);require(copied && copied->generation==entry.generation,"object generation changed on maintenance");
+      if(entry.id!=1)require(copied->stored_payload_bytes==entry.stored_payload_bytes &&
+          fresh_copy.read(entry.id)==old.read(entry.id),"compact re-encoded a non-root object");
+    }
+    file_apply(copy,file_write("d/a",0,Bytes{std::byte{99}}));
+    require(source.read("d/a",0,1)==Bytes{std::byte{42}} && encoded.snapshot().read("d/a",0,1)==Bytes{std::byte{42}},
+        "new volume write damaged source/other candidate");
+  }
+  auto encoded_source=NativeFilesystemSnapshot::open(PagedObjectStoreSnapshot::open(compressed,limits));
+  auto preserved=std::make_shared<Ram>(),restored=std::make_shared<Ram>();preserved->failure_unit=restored->failure_unit=4096;
+  {
+    auto copy=NativeFilesystemWriter::compact(encoded_source,preserved,next_identity(72),{StoreCompressionMode::raw,1,false});
+    equivalent(encoded_source,copy.snapshot(),"",false);
+    const auto left=PagedObjectStoreSnapshot::open(compressed,limits),right=PagedObjectStoreSnapshot::open(preserved,limits);
+    for(const auto& entry:left.list_page(0,768))if(entry.id!=1)
+      require(right.stat(entry.id)->stored_payload_bytes==entry.stored_payload_bytes,"raw future policy expanded compacted encoded payload");
+    auto raw=NativeFilesystemWriter::recompress(encoded_source,restored,next_identity(73),{StoreCompressionMode::raw,1,false});
+    equivalent(encoded_source,raw.snapshot(),"",false);
+    require(raw.snapshot().storage_info().stored_payload_bytes>encoded_source.storage_info().stored_payload_bytes,
+        "raw restoration did not replace compressed payload encoding");
+  }
+  require(ram->live==original && ram->calls==source_calls,"maintenance changed source bytes or flushed source");
+  std::cout<<"native_paged_maintenance source_image_bytes="<<ram->extent()<<" compact_image_bytes="<<compact_size
+      <<" recompressed_image_bytes="<<compressed_size<<'\n';
+}
+void maintenance_faults(std::uint32_t unit) {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=unit;
+  {auto writer=fresh(ram);writer.apply(baseline());}
+  auto source=view(ram);const auto original=ram->live;const auto original_calls=ram->calls;
+  for(bool reencode:{false,true}) {
+    auto invoke=[&](const std::shared_ptr<Ram>& target) {
+      return reencode?NativeFilesystemWriter::recompress(source,target,next_identity(),{StoreCompressionMode::automatic,1,false}):
+          NativeFilesystemWriter::compact(source,target,next_identity(),{StoreCompressionMode::raw,1,false});
+    };
+    auto probe=std::make_shared<Ram>();probe->failure_unit=unit;
+    {auto copy=invoke(probe);equivalent(source,copy.snapshot(),"",false);}
+    const auto cuts=probe->calls;require(cuts>3 && cuts<160,"maintenance fault envelope");
+    if(!reencode) {
+      std::uint64_t primary=0;for(unsigned i=0;i<8;++i)
+        primary|=std::uint64_t(std::to_integer<unsigned char>(probe->stable[104+i]))<<(8*i);
+      require(primary && primary<probe->extent(),"copy root-page fixture bounds");
+      for(const auto offset:{std::uint64_t{0},primary}) {
+        auto unreadable=std::make_shared<Ram>();unreadable->failure_unit=unit;
+        unreadable->corrupt_read_offset=offset;unreadable->corrupt_read_number=1;
+        rejects([&]{invoke(unreadable);},"unverified/degraded new root acknowledged");
+        require(ram->live==original && ram->calls==original_calls,"new-root corruption modified source");
+      }
+    }
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
+      auto failed=std::make_shared<Ram>();failed->failure_unit=unit;failed->failure=mode;failed->fail_at=cut;
+      rejects([&]{invoke(failed);},"faulted new-image copy acknowledged");
+      require(ram->live==original && ram->calls==original_calls,"failed copy changed/flushed source");
+      failed->live=failed->stable;failed->fail_at=(std::numeric_limits<std::size_t>::max)();
+      std::optional<PagedObjectStoreSnapshot> exposed;
+      try{exposed=PagedObjectStoreSnapshot::open(failed,limits);}catch(const std::runtime_error&){}
+      if(exposed) {
+        auto recovered=NativeFilesystemSnapshot::open(std::move(*exposed));equivalent(source,recovered,"",false);
+        const auto generation=recovered.storage_info().generation;
+        auto objects=PagedObjectStoreWriter::resume(failed,next_identity(),generation,limits);
+        auto writer=NativeFilesystemWriter::resume(std::move(objects));file_apply(writer,file_create("continued"));
+        require(writer.snapshot().stat("continued").inode!=0,"published failed candidate cannot recover");
+      }
+      ++faults;
+    }
+    std::cout<<"native_paged_maintenance unit="<<unit<<" reencode="<<reencode<<" fault_cuts="<<cuts<<" modes=3\n";
+  }
+  auto corrupt=std::make_shared<Ram>();corrupt->failure_unit=unit;
+  corrupt->corrupt_read_offset=2*kStoreCommitUnit+128;corrupt->corrupt_read_number=1;
+  rejects([&]{NativeFilesystemWriter::compact(source,corrupt,next_identity());},"corrupted copy readback published");
+  require(std::all_of(corrupt->live.begin(),corrupt->live.begin()+2*kStoreCommitUnit,
+      [](auto byte){return byte==std::byte{0};}),"bad target had a published root");
+  require(ram->live==original && ram->calls==original_calls,"corrupt candidate touched source");
+  Bytes known(kNativeExtentBytes);const auto prefix=data(31,18);std::copy(prefix.begin(),prefix.end(),known.begin());
+  const auto where=std::search(ram->live.begin(),ram->live.end(),known.begin(),known.end());
+  require(where!=ram->live.end() && std::search(std::next(where),ram->live.end(),known.begin(),known.end())==ram->live.end(),
+      "source corruption fixture did not find unique stored payload");
+  ram->corrupt_read_offset=static_cast<std::uint64_t>(std::distance(ram->live.begin(),where));
+  ram->corrupt_read_number=1;ram->matching_reads=0;
+  auto refused=std::make_shared<Ram>();refused->failure_unit=unit;
+  rejects([&]{NativeFilesystemWriter::recompress(source,refused,next_identity());},"corrupt source copied");
+  require(refused->extent()==0 && ram->live==original && ram->calls==original_calls,"corrupt-source refusal touched output/source");
+  ram->corrupt_read_offset=(std::numeric_limits<std::uint64_t>::max)();
 }
 void directory_pages() {
   for(bool flat:{false,true}) {
@@ -328,6 +457,12 @@ void inode_record_capacity_and_large_delete() {
         "inode metadata consumed the promised file/data inventory");
     rejects([&]{file_apply(writer,file_create("over-node-limit"));},"existing node bound silently changed");
     for(unsigned i=0;i<255;++i)require(snapshot.read("f"+std::to_string(i),0,2)==Bytes{std::byte{42}},"capacity file bytes");
+  }
+  {
+    auto source=view(ram);auto target=std::make_shared<Ram>();target->failure_unit=4096;
+    auto copy=NativeFilesystemWriter::compact(source,target,next_identity(),{StoreCompressionMode::raw,1,false});
+    equivalent(source,copy.snapshot(),"",false);
+    require(copy.snapshot().storage_info().objects==512+root_index_records,"maximum native inventory changed on copy");
   }
   // A different volume has the maximum 255 data extents in ONE file. Truncate
   // requires 255 deletions plus the fixed root and changed inode in ONE commit.
@@ -508,6 +643,7 @@ void directory_maximum_recovery() {
 int main() {try {
   shared_engine();sharing_and_sessions();closed_session_and_foreign_objects();
   failure_matrix(4096);failure_matrix(65536);flush_failures();paged_barrier_pressure();directory_pages();
+  maintenance_success_and_admission();maintenance_faults(4096);maintenance_faults(65536);
 #ifdef FLITZFS_TEST_INODE_RECORDS
   inode_records_and_incremental_writes();inode_record_capacity_and_large_delete();forged_inode_records();
 #endif

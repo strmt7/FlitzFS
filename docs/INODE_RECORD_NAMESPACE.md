@@ -12,7 +12,7 @@ bounded Model and keeps per-inode extent maps in RAM. An ordered in-memory name
 map now supports lookup and enumeration; the separate capability-2
 [directory-index extension](DIRECTORY_NAME_INDEX.md) also persists those names.
 The 256-node/255-extent/64-KiB aggregate metadata limits remain. Paged extent
-maps, bounded caches, incremental verification, migration/rebuild
+maps, bounded caches, incremental verification, legacy layout migration
 and Windows factory integration are still required before claiming scale.
 
 ## Encoding and CPU admission
@@ -51,6 +51,10 @@ accept both layouts; old readers explicitly reject this new magic. There is no
 in-place conversion or claim that an old reader understands the new layout.
 
 ## Atomic publication and bounds
+
+Explicit [paged native maintenance](NATIVE_PAGED_MAINTENANCE.md) can now copy or
+recompress this layout into a new identity without converting its node encoding.
+Background scheduling and reader-safe active selection/reclamation remain open.
 
 Fixed root, changed/removed inode records and data mutations publish through one
 existing three-barrier paged transaction. Node metadata does not take away the

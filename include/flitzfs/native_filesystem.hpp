@@ -299,6 +299,8 @@ class NativeFilesystemWriter final {
   // Copy a quiescent latest snapshot into an empty NEW volume identity.
   // Preserve inode IDs/sequences/contents, rebind namespace identity, and
   // retain the original source. No in-place reclaim, filename swap or deletion.
+  // Paged sources preserve their layout and use the source's configured capacity
+  // bound for the target. compact_metadata is a flat-only option and rejects.
   static NativeFilesystemWriter compact(const NativeFilesystemSnapshot& source,
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_identity,
       StoreCompressionOptions compression={});

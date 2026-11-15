@@ -66,7 +66,8 @@ in one 513-operation publication.
 
 Index/root pages retain paged metadata replication. Directory and inode object
 payloads are integrity checked but **not independently replicated**. Digests
-cannot reconstruct missing bytes. Protected payloads, native repair/migration,
+cannot reconstruct missing bytes. Explicit [native maintenance](NATIVE_PAGED_MAINTENANCE.md)
+now copies/recompresses this layout into a verified new image. Protected payloads, native repair/migration,
 incremental verification, paged inode/extent access, bounded residency and
 automatic Windows factory selection remain separate work.
 

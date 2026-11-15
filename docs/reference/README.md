@@ -18,6 +18,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Native operations on paged storage](../NATIVE_PAGED_BACKEND.md)
 - [Incremental inode-record namespace](../INODE_RECORD_NAMESPACE.md)
 - [Ordered directory names and snapshot cursors](../DIRECTORY_NAME_INDEX.md)
+- [Native paged compaction and recompression](../NATIVE_PAGED_MAINTENANCE.md)
 
 ## Windows integration
 

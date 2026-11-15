@@ -1157,6 +1157,12 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
   try {
     auto model=decode(source.impl_->objects);model.identity=id;
     const auto metadata=encode(model);
+    if(const auto* paged=source.impl_->objects.paged_if()) {
+      if(checkpoints.compact_metadata)
+        fail(Code::invalid_operation,"paged rebuild isolation already derives from the backend contract");
+      const auto root=model.inode_records?inode_root(metadata,model.indexed_names):metadata;
+      return resume(detail::NativeObjectWriter::rebuild(*paged,std::move(target),id,root,compression,reencode));
+    }
     return resume(ObjectStoreWriter::compact_replacing(source.impl_->objects.flat(),
         std::move(target),id,kNamespaceObject,metadata,compression,checkpoints,reencode));
   }catch(const std::bad_alloc&){fail(Code::limit,"native compaction allocation failure");}

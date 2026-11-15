@@ -48,8 +48,9 @@ names and snapshot-bound pagination. Split name pages, demand-loaded inode/exten
 metadata and bounded residency remain next scale work.
 
 Flat volume-head and staged recompression APIs reject paged input before target
-writes. Generic paged rebuilding changes identity and cannot by itself rebind
-the native namespace. Native-aware migration/rebuild/handoff, reclamation,
+writes. The explicit [native paged maintenance](NATIVE_PAGED_MAINTENANCE.md) path
+now rebinds native identity and verifies compacted/recompressed new images.
+Legacy layout migration, handoff/reclamation, incremental background rebuilding,
 optional-codec breadth, Windows factory integration and reader retirement remain.
 
 ## Verification
