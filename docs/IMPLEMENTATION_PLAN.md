@@ -218,11 +218,12 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 
 ### Next steps for the writable Windows path
 
-1. Route stable-inode operations through the same indexed transaction. An open
-   handle must retain access to the same inode across a rename, overwrite or
-   unlink. Implement append and constrained writes against the current inode
-   and return committed size, allocation, timestamps and status from the
-   transaction result.
+1. Connect indexed stable-inode writes and truncation to the Windows session.
+   The native core now verifies append, constrained writes, stable identity
+   through a rename and committed metadata. Carry that contract into open
+   handles, including overwrite and detached handles after name replacement
+   or unlink. Test the committed status and byte count through the SDK.
+   [Indexed inode I/O evidence](evidence/native-indexed-inode-io-2026-11-18.json)
 2. Persist the delete lifecycle. Atomically move detached, referenced inodes
    into a typed orphan index. Retain their data through the final close and
    recover deferred work after restart. Test last-cleanup and last-close

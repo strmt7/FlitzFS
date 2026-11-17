@@ -84,6 +84,17 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "indexed_inode_io": {
+    "source_base": "4396fbd74fc791b61acc66efb2fb13441d4d2881",
+    "evidence": "docs/evidence/native-indexed-inode-io-2026-11-18.json",
+    "windows_group_counts": {
+      "raw": 10,
+      "winfsp_codec": 4,
+      "address_sanitizer": 5
+    },
+    "scope": "Stable indexed file writes, append, constrained writes and truncation publish committed size and basic metadata. Tested through rename and old-name reuse.",
+    "next": "Add indexed detached inode lifetimes, range retirement, and checked session/head integration."
+  },
   "indexed_native_writes": {
     "source_base": "e962d973301e0e34bd7d7ef7db4af42fefd41826",
     "evidence": "docs/evidence/native-indexed-writer-2026-11-18.json",

@@ -375,6 +375,60 @@ void indexed_capacity_and_metadata() {
   writer.snapshot().verify_all();
 }
 
+void indexed_stable_inode_io() {
+  using Error=NativeFsErrorCode;
+  auto ram=empty();
+  auto writer=new_writer(ram);
+  auto expected=payload(77);
+  const auto unrelated=payload(78);
+  const NativeBasicMutation basic{0,1,{11,22,33,44,2}};
+  const std::array create{file_create("original"),file_write("original",0,expected)};
+  const auto id=writer.apply_with_basic(create,{&basic,1}).created_inodes.front();
+  const auto before=writer.snapshot();
+  writer.apply(std::array{file_rename("original","renamed"),file_create("original"),
+      file_write("original",0,unrelated)});
+
+  const auto extra=data(9,546);
+  const auto append=writer.write_inode_storage_result(id,(std::numeric_limits<std::uint64_t>::max)(),extra,
+      {true,false},{501,true,false,true,true});
+  require(append.offset==expected.size() && append.bytes==extra.size() &&
+      append.state.info.inode==id && append.state.info.logical_bytes==expected.size()+extra.size() &&
+      append.state.info.basic==NativeBasicMetadata{11,22,501,501,0x22},
+      "indexed append did not return selected EOF and committed metadata");
+  expected.insert(expected.end(),extra.begin(),extra.end());
+
+  const auto replacement=data(5,999);
+  const auto constrained=writer.write_inode_storage_result(id,expected.size()-2,replacement,{false,true});
+  std::copy_n(replacement.begin(),2,expected.end()-2);
+  require(constrained.bytes==2 && constrained.state.info.logical_bytes==expected.size() &&
+      writer.read_inode(id,0,100)==expected && writer.snapshot().read("original",0,100)==unrelated,
+      "indexed constrained write extended EOF or changed a reused name");
+  const auto stable=ram->calls;
+  const auto no_op=writer.write_inode_storage_result(id,(std::numeric_limits<std::uint64_t>::max)(),
+      replacement,{false,true},{502,true,false,true,true});
+  require(no_op.bytes==0 && no_op.transaction.sequence==constrained.transaction.sequence &&
+      no_op.state.info.basic==constrained.state.info.basic && ram->calls==stable,
+      "indexed constrained no-op committed data or metadata");
+
+  constexpr auto high=(std::numeric_limits<std::uint64_t>::max)()-7;
+  const auto truncate=writer.truncate_inode_storage_result(id,high,{503,false,true,false,false});
+  require(truncate.state.info.logical_bytes==high && truncate.state.info.basic->last_access_time==503 &&
+      writer.read_inode(id,high-5,25)==Bytes(5),"indexed truncate did not publish sparse EOF and metadata");
+  writer.truncate_inode(id,5);
+  writer.truncate_inode(id,expected.size());
+  expected.resize(5);
+  expected.resize(append.state.info.logical_bytes);
+  require(writer.read_inode(id,0,100)==expected && before.read_inode(id,0,100)==payload(77),
+      "indexed stable inode writes exposed discarded tails or altered pinned bytes");
+
+  file_apply(writer,file_remove("renamed"));
+  const auto call_count=ram->calls;
+  refuses(Error::not_found,[&]{(void)writer.write_inode_storage_result(id,0,replacement);});
+  require(ram->calls==call_count && !writer.poisoned() && writer.snapshot().read("original",0,100)==unrelated,
+      "stale indexed inode wrote to a different file");
+  writer.snapshot().verify_all();
+}
+
 void verify_recovered_batch(const NativeFilesystemSnapshot& snapshot,bool committed) {
   using Error=NativeFsErrorCode;
   require(snapshot.sequence()==(committed?3U:2U) &&
@@ -438,6 +492,6 @@ void indexed_transaction_recovery() {
 }
 
 int main() {
-  try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_transaction_recovery(); }
+  try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_transaction_recovery(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

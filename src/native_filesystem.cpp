@@ -792,17 +792,8 @@ struct Stage {
   }
   void automatic_metadata(std::uint64_t id,const NativeAutomaticMetadata& effect) {
     auto& n=node(model,selected_inode(model,id).inode);
-    const bool times=effect.set_access_time || effect.set_write_time || effect.set_change_time;
-    const bool archive=effect.set_archive && !n.directory;
-    if(times || archive) {
-      if(!n.basic)fail(Code::invalid_operation,"automatic metadata needs existing basic metadata");
-      auto value=*n.basic;
-      if(archive)value.attributes|=0x20U;
-      if(effect.set_access_time)value.last_access_time=effect.utc_time;
-      if(effect.set_write_time)value.last_write_time=effect.utc_time;
-      if(effect.set_change_time)value.change_time=effect.utc_time;
-      set_basic(NativeBasicMutation{id,0,value});
-    }
+    if(const auto value=detail::updated_automatic_basic(n.basic,n.directory,effect))
+      set_basic(NativeBasicMutation{id,0,*value});
   }
   void overwrite_inode(std::uint64_t id,const NativeOverwriteMetadata& effect) {
     auto& n=node(model,selected_inode(model,id).inode);
@@ -1112,6 +1103,17 @@ struct NativeFilesystemWriter::Impl {
       if(error.code()==Code::corrupt || error.code()==Code::storage_failure)poisoned=true;
       throw;
     }catch(const std::exception&){poisoned=true;fail(Code::storage_failure,"indexed namespace query failed");}
+  }
+  template<class Commit>
+  auto mutate_indexed(Commit&& commit) {
+    try {
+      const auto source=objects.snapshot_for_staging(true);
+      return std::forward<Commit>(commit)(*objects.paged_if(),*source.paged_if(),*indexed);
+    }catch(const std::bad_alloc&){fail(Code::limit,"indexed transaction allocation failure");}
+    catch(const NativeFsError& error) {
+      if(error.code()==Code::corrupt || error.code()==Code::storage_failure)poisoned=true;
+      throw;
+    }catch(const std::exception&){poisoned=true;fail(Code::storage_failure,"indexed transaction failed");}
   }
   void accept(Model&& state) noexcept {
     model=std::move(state);
@@ -1944,15 +1946,10 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
   if(impl_->indexed) {
     if(action!=InodeAction::path_mutations && action!=InodeAction::enable_workload)
       fail(Code::invalid_operation,"operation requires an indexed handle transaction");
-    try {
-      const auto source=impl_->objects.snapshot_for_staging(true);
-      return detail::commit_indexed_volume(*impl_->objects.paged_if(),*source.paged_if(),
-          *impl_->indexed,operations,basic,security,action==InodeAction::enable_workload);
-    }catch(const std::bad_alloc&){fail(Code::limit,"indexed transaction allocation failure");}
-    catch(const NativeFsError& error) {
-      if(error.code()==Code::corrupt || error.code()==Code::storage_failure)impl_->poisoned=true;
-      throw;
-    }catch(const std::exception&){impl_->poisoned=true;fail(Code::storage_failure,"indexed transaction failed");}
+    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
+      return detail::commit_indexed_volume(writer,source,root,operations,basic,security,
+          action==InodeAction::enable_workload);
+    });
   }
   admit_lz4_extent_candidates(lz4_candidates);
   if(!lz4_candidates.empty() && action!=InodeAction::mutate)
@@ -2084,9 +2081,18 @@ NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_wit
     std::span<const NativeLz4ExtentCandidate> candidates,NativeInodeWriteOptions options,
     const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
-  if(impl_->indexed)fail(Code::invalid_operation,"indexed inode writes require handle integration");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic write time/unused clock");
+  if(impl_->indexed) {
+    const auto maximum=std::size_t(kStoreMaxTransactionBytes);
+    if(bytes.size()>maximum)fail(Code::limit,"indexed inode input budget");
+    // Existing hints describe plaintext extents. Indexed data frames include
+    // owner and block fields, so their encoder uses independent CPU encoding.
+    admit_lz4_extent_candidates(candidates);
+    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
+      return detail::write_indexed_inode(writer,source,root,inode,offset,bytes,options,effect);
+    });
+  }
   if(bytes.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");
   try {
     const auto& n=selected_inode(impl_->model,inode);
@@ -2130,9 +2136,11 @@ NativeInodeMutationCommit NativeFilesystemWriter::truncate_inode_result(std::uin
 NativeInodeStorageMutationCommit NativeFilesystemWriter::truncate_inode_storage_result(std::uint64_t inode,
     std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
-  if(impl_->indexed)fail(Code::invalid_operation,"indexed inode truncation requires handle integration");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic truncate time/unused clock");
+  if(impl_->indexed)return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
+    return detail::truncate_indexed_inode(writer,source,root,inode,bytes,effect);
+  });
   if(bytes>kNativeMaxFileBytes)fail(Code::limit,"native truncate bounds");
   try {
     const auto& n=selected_inode(impl_->model,inode);
@@ -2212,8 +2220,7 @@ NativeInodeAllocationCommit NativeFilesystemWriter::reserve_inode_result(std::ui
 NativeInodeAllocationInfo NativeFilesystemWriter::inspect_allocation(std::uint64_t inode) const {
   auto& state=checked_impl();
   if(state.indexed)return state.read_indexed([&](const auto& view) {
-    const auto n=view.inode(inode);
-    return NativeInodeAllocationInfo{{n.inode,n.size,n.modified,n.basic,n.directory,false,false},n.allocation};
+    return detail::indexed_inode_allocation(view.inode(inode));
   });
   return state.read_checked_inode(inode,[](const auto&,const Node& n) {
     return NativeInodeAllocationInfo{commit_info(n),n.allocation};

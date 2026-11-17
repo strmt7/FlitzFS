@@ -172,6 +172,36 @@ class IndexedVolumeTransaction final {
     if(n.security!=op.value)edit(n.inode).security=op.value;
   }
 
+  NativeInodeStorageMutationCommit write_inode(PagedObjectStoreWriter& writer,IndexedVolumeRoot& current,
+      std::uint64_t id,std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
+      const NativeAutomaticMetadata& effect) {
+    const auto inode=linked_file(id);
+    NativeInodeStorageMutationCommit result;
+    result.offset=options.append?inode.size:offset;
+    auto count=bytes.size();
+    if(options.constrained) {
+      const auto remaining=result.offset>=inode.size?0:inode.size-result.offset;
+      count=static_cast<std::size_t>((std::min)(std::uint64_t(count),remaining));
+    }
+    write_file(inode,result.offset,bytes.first(count));
+    if(count)apply_automatic(inode,effect);
+    result.bytes=static_cast<std::uint32_t>(count);
+    result.state=staged_allocation(inode);
+    result.transaction=finish(writer,current);
+    return result;
+  }
+
+  NativeInodeStorageMutationCommit truncate_inode(PagedObjectStoreWriter& writer,IndexedVolumeRoot& current,
+      std::uint64_t id,std::uint64_t size,const NativeAutomaticMetadata& effect) {
+    const auto inode=linked_file(id);
+    truncate_file(inode,size);
+    apply_automatic(inode,effect);
+    NativeInodeStorageMutationCommit result;
+    result.state=staged_allocation(inode);
+    result.transaction=finish(writer,current);
+    return result;
+  }
+
   void enable_workload() noexcept {next_.workload.enabled=true;}
 
   NativeFsCommit finish(PagedObjectStoreWriter& writer,IndexedVolumeRoot& current) {
@@ -283,6 +313,24 @@ class IndexedVolumeTransaction final {
     if(staged==nodes_.end())return load_inode(source_,before_,id);
     if(!staged->second.value)fail(Code::not_found,"indexed inode was removed in this transaction");
     return *staged->second.value;
+  }
+
+  IndexedInodeInput linked_file(std::uint64_t id) const {
+    auto n=node(id);
+    if(n.directory)fail(Code::is_directory,"indexed inode data mutation needs a regular file");
+    if(binding({n.parent,name_key(n.name)})!=id)
+      fail(Code::corrupt,"indexed inode lost its live binding");
+    return n;
+  }
+
+  void apply_automatic(const IndexedInodeInput& inode,const NativeAutomaticMetadata& effect) {
+    if(const auto basic=updated_automatic_basic(inode.basic,inode.directory,effect))
+      if(inode.basic!=*basic)edit(inode.inode).basic=*basic;
+  }
+
+  NativeInodeAllocationInfo staged_allocation(const IndexedInodeInput& before) const noexcept {
+    const auto pending=nodes_.find(before.inode);
+    return indexed_inode_allocation(pending==nodes_.end()?before:*pending->second.value);
   }
 
   IndexedInodeInput linked_inode(const NativeNameKey& key,std::uint64_t id) const {
@@ -578,6 +626,36 @@ NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter& writer,const PagedO
   for(const auto& op:basic)transaction.apply(op);
   for(const auto& op:security)transaction.apply(op);
   return transaction.finish(writer,current);
+}
+
+NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter& writer,
+    const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t id,
+    std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
+    const NativeAutomaticMetadata& effect) {
+  IndexedVolumeTransaction transaction(source,current);
+  return transaction.write_inode(writer,current,id,offset,bytes,options,effect);
+}
+NativeInodeStorageMutationCommit truncate_indexed_inode(PagedObjectStoreWriter& writer,
+    const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t id,
+    std::uint64_t size,const NativeAutomaticMetadata& effect) {
+  IndexedVolumeTransaction transaction(source,current);
+  return transaction.truncate_inode(writer,current,id,size,effect);
+}
+NativeInodeAllocationInfo indexed_inode_allocation(const IndexedInodeInput& n) noexcept {
+  return {{n.inode,n.size,n.modified,n.basic,n.directory,false,false},n.allocation};
+}
+std::optional<NativeBasicMetadata> updated_automatic_basic(const std::optional<NativeBasicMetadata>& previous,
+    bool directory,const NativeAutomaticMetadata& effect) {
+  const bool times=effect.set_access_time || effect.set_write_time || effect.set_change_time;
+  const bool archive=effect.set_archive && !directory;
+  if(!times && !archive)return {};
+  if(!previous)fail(Code::invalid_operation,"automatic metadata needs existing basic metadata");
+  auto value=*previous;
+  if(archive)value.attributes|=0x20U;
+  if(effect.set_access_time)value.last_access_time=effect.utc_time;
+  if(effect.set_write_time)value.last_write_time=effect.utc_time;
+  if(effect.set_change_time)value.change_time=effect.utc_time;
+  return value;
 }
 
 bool indexed_volume_root(std::span<const std::byte> bytes) noexcept {return magic(bytes,root_magic);}

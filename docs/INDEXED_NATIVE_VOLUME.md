@@ -65,14 +65,22 @@ publication. A resource or capacity refusal during preparation leaves the
 checkpoint and writer usable. An ambiguous publication fences the writer until
 independent recovery.
 
-The old namespace-wide file and extent counts and 16-operation path batch
-limit no longer govern this layout. The paged transaction still has a finite
-working budget for its owned input and affected records. Truncation and removal
+The indexed layout uses 61-bit inode and extent IDs and admits path batches
+against the paged transaction's working budget for owned input and affected
+records. Truncation and removal
 that exceed this budget fail before writing. Large range retirement needs a
 durable cursor and reclamation that respects earlier snapshots. Expanding
 directory moves currently scan the subtree in pages. Per-directory summary
 metadata or revised path representation must remove that foreground cost before
 large production mounts.
+
+Stable-inode writes and truncation also use this transaction. Append chooses
+the current EOF under the writer's control. A constrained write clips its
+count to that EOF and preserves metadata when it writes zero bytes. The
+transaction returns the selected offset, committed count, allocation, EOF
+and metadata. File identity survives a rename and reuse of the old name.
+Detached open-file state remains part of Windows session integration.
+[Executed indexed inode I/O evidence](evidence/native-indexed-inode-io-2026-11-18.json)
 
 The raw fixture created, paged and byte-checked 1,024 nonempty files. The
 latest checkpoint occupied 3,792,896 bytes. The selected 17-byte replacement

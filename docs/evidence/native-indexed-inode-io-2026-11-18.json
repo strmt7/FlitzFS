@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "time_zone": "Europe/Berlin",
+  "source_base": "4396fbd74fc791b61acc66efb2fb13441d4d2881",
+  "source_binding": [
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "1fcbe64f96f3d25886dfd8f112ca000f1b94e5fe",
+      "worktree_sha256": "b91e1644a389e0c6443e475e9393202770752b31eaaefa4d897f1296aaff64cd"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "64ef1e5d1c96e826b3f6916b4984e7c685c497a4",
+      "worktree_sha256": "55fe59d02b8e4cb1b8b6b1253dc6a005661ce33e615aba859073a20483307b11"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "ef6bb661894b29a64ce228f3757acf9e9df5087c",
+      "worktree_sha256": "0009024829507b5111ce4e2f0c9e00678836942d57c98b2e938e30344d44a579"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "7ee7c60a98d0836b07a6765ba15bb5f459925585",
+      "worktree_sha256": "2e84ebe0f36636b37df380dced506e5c71f43669ec26ed7d4575bf0f09b04a9b"
+    }
+  ],
+  "scope": "Indexed mutation by a linked stable file identifier using the native writer API and the protected paged transaction.",
+  "asserted_behavior": [
+    "Append selects current EOF after rename and reuse of the old name.",
+    "Constrained writes report the committed byte count and preserve EOF.",
+    "An out-of-range constrained no-op publishes no metadata, payload or sequence.",
+    "Inode truncation publishes sparse EOF and trusted metadata in one result.",
+    "Shrink and re-extension leave no stale bytes visible and preserve the preceding snapshot.",
+    "A removed file ID cannot write to a file that reused its name."
+  ],
+  "checks": {
+    "raw": {
+      "build": {
+        "run": "local-run-14173799fe2f4242a2ab1b310cb0255f",
+        "result_sha256": "1d0337d2772c94bdd9321ee8d3ae75dce97f3eb8a7888661c28ee95e8e89b7bf",
+        "log_sha256": "71db93dd15bfd5f2e93968df1436be47221105dc5cc6ca915f137a441cc3d1fe",
+        "peak_job_bytes": 382046208,
+        "residual_children": 0
+      },
+      "execution": {
+        "run": "local-run-01a1a54ebde4455a9a715303708a4ac7",
+        "result_sha256": "d7c779602827781b3ac42846f9bb30c5679ac782803bd6f714bb99f4ec0d103b",
+        "log_sha256": "6f91ac2e7d94a4aa1b2d628e4b0263bfb5dcf8ec601627fa31ae48e7c3658cc6",
+        "peak_job_bytes": 72282112,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_native_managed_paged_volume",
+        "bounded_native_inode_io_test",
+        "bounded_native_allocation_invariants",
+        "bounded_native_mutation_result_test",
+        "bounded_native_mutation_metadata_invariants",
+        "bounded_native_mutation_metadata_append_faults",
+        "bounded_native_mutation_metadata_constrained_faults",
+        "bounded_native_mutation_metadata_truncate_faults",
+        "bounded_native_cleanup_invariants"
+      ]
+    },
+    "winfsp_codec": {
+      "build": {
+        "run": "local-run-17264d88a8164e31bbf2672cfc67920b",
+        "result_sha256": "a9569ccc3457604aca21c3de3a6620379ae3e4842e3df5ba821ab2b1d783b295",
+        "log_sha256": "ab8d0be537630d54ce74b3a3693d9cce491d36e77f824f34c7e86215a3b780c2",
+        "peak_job_bytes": 382476288,
+        "residual_children": 0
+      },
+      "execution": {
+        "run": "local-run-a770ede70d8849068f849648325e6708",
+        "result_sha256": "9d5a56d5d775c49761d3a512f3beee7838c45d9b16ce29494ec66af1af793705",
+        "log_sha256": "184faf083e87a3ad4f2424e81fd1c97a5697d6309d5aba3f0f53c8bd38f24153",
+        "peak_job_bytes": 35610624,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_winfsp_session_test"
+      ]
+    },
+    "windows_address_sanitizer": {
+      "build": {
+        "run": "local-run-cddddd6492c44885857e1d5de14f934f",
+        "result_sha256": "1933dc4bdd80132df03ccf9b75a651c679f0a73414d0b60a82cd692b57337116",
+        "log_sha256": "71f7d2b06107746ff6e8e612617269dba74d8b8bee6cace3a43c68c243a6c1a8",
+        "peak_job_bytes": 380997632,
+        "residual_children": 0
+      },
+      "execution": {
+        "run": "local-run-e925564a3c274e78803ebab54fac8449",
+        "result_sha256": "a8eab12bd9a3e9ec3e71275e3e074ebdcca5c9e855f077d463853aef939cc499",
+        "log_sha256": "5dd8aa0376f08035d420c7b856dce6ade1ae58c5d7f2197f2bad8bbf60ce1969",
+        "peak_job_bytes": 963710976,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_native_mutation_metadata_invariants",
+        "bounded_native_mutation_metadata_append_faults",
+        "bounded_native_mutation_metadata_constrained_faults",
+        "bounded_native_mutation_metadata_truncate_faults"
+      ]
+    }
+  },
+  "mounted": false,
+  "actual_gpu": false,
+  "windows_contract": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/"
+}

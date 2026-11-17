@@ -25,10 +25,18 @@ std::vector<std::byte> encode_indexed_inode(const IndexedInodeInput&,const Index
 IndexedInodeInput decode_indexed_inode(std::span<const std::byte>,std::uint64_t,
     const IndexedVolumeRoot&);
 bool indexed_volume_root(std::span<const std::byte>) noexcept;
+NativeInodeAllocationInfo indexed_inode_allocation(const IndexedInodeInput&) noexcept;
+std::optional<NativeBasicMetadata> updated_automatic_basic(const std::optional<NativeBasicMetadata>&,
+    bool directory,const NativeAutomaticMetadata&);
 IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter&);
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::span<const NativeFileMutation>,std::span<const NativeBasicMutation>,
     std::span<const NativeSecurityMutation>,bool enable_workload);
+NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
+    IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t offset,std::span<const std::byte>,
+    NativeInodeWriteOptions,const NativeAutomaticMetadata&);
+NativeInodeStorageMutationCommit truncate_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
+    IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t bytes,const NativeAutomaticMetadata&);
 struct IndexedDirectoryPage {
   std::vector<NativeFileInfo> entries;
   std::optional<std::string> after;
