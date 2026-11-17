@@ -1,5 +1,6 @@
 #include "flitzfs/native_session.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_security_fixture.hpp"
 #include <iostream>
 #include <optional>
 #include <string_view>
@@ -227,11 +228,35 @@ void efficient_verified_reads() {
   for(std::size_t at=0;at<content.size();at+=kStoreMaxObjectBytes)
     file_apply(writer,file_write("f",at,Bytes(content.begin()+static_cast<std::ptrdiff_t>(at),
         content.begin()+static_cast<std::ptrdiff_t>(at+kStoreMaxObjectBytes))));
+  const auto inode=writer.inspect_path("f").info.inode;
+  const NativeBasicMetadata basic{17,18,19,20,0x20};
+  const auto security=native_security_fixture::descriptor();
+  writer.set_basic_metadata(inode,basic);
+  writer.set_security_descriptor(inode,security);
+  writer.reserve_inode_result(inode,content.size());
   auto session=NativeFileSession::create(std::move(writer));
   auto start=ram->read_bytes;auto handle=session.open("f",all);auto state=session.info(handle);
   const auto metadata_reads=ram->read_bytes-start;
   require(state.info.logical_bytes==content.size() && metadata_reads<65536,
       "context metadata/open rescanned all file payloads");
+  start=ram->read_bytes;
+  (void)session.info(handle);
+  const auto inode_query_bytes=ram->read_bytes-start;
+  start=ram->read_bytes;
+  const auto lookup=session.lookup("f");
+  const auto path_query_bytes=ram->read_bytes-start;
+  std::cout<<"Native path lookup evidence: {\"inode_query_bytes\":"<<inode_query_bytes
+      <<",\"path_query_bytes\":"<<path_query_bytes<<"}\n";
+  require(inode_query_bytes>0 && path_query_bytes==inode_query_bytes,
+      "one path query repeated namespace verification");
+  require(lookup.state.info.inode==inode && lookup.state.info.logical_bytes==content.size() &&
+      lookup.state.reserved_bytes==content.size() && lookup.state.info.basic==basic &&
+      lookup.security==security && !lookup.state.info.delete_pending,
+      "combined path query changed metadata");
+  session.set_delete(handle,true);
+  require(session.lookup("f").state.info.delete_pending,"path query lost durable delete intent");
+  session.set_delete(handle,false);
+  require(!session.lookup("f").state.info.delete_pending,"path query retained cancelled delete intent");
   start=ram->read_bytes;const auto result=session.read(handle,65530,128);
   const auto range_reads=ram->read_bytes-start;
   require(result==Bytes(content.begin()+65530,content.begin()+65658) &&
@@ -263,6 +288,12 @@ void efficient_verified_reads() {
   metadata_ram->live.at(static_cast<std::size_t>(metadata_at+128))^=std::byte{1};
   rejects_fs([&]{(void)another.info(opened);},NativeFsErrorCode::storage_failure,"cached metadata skipped backing integrity");
   require(another.poisoned(),"metadata verification failure did not fence session");
+  auto path_ram=std::make_shared<Ram>();auto paths=seeded(path_ram,StoreCompressionMode::raw);
+  const auto path_metadata=record_offset(*path_ram,1);
+  path_ram->live.at(static_cast<std::size_t>(path_metadata+128))^=std::byte{1};
+  rejects_fs([&]{(void)paths.lookup("f");},NativeFsErrorCode::storage_failure,
+      "path metadata skipped backing integrity");
+  require(paths.poisoned(),"path verification failure did not fence session");
 }
 void latest_acknowledgement_repair(StoreCompressionMode mode) {
   auto ram=std::make_shared<Ram>();std::optional<NativeFilesystemSnapshot> acknowledged;

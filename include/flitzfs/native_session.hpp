@@ -23,10 +23,6 @@ enum class NativeOpenKind {any,file,directory};
 // Explicit runtime policy; stored bytes are identical. The default preserves
 // historical per-open aggregation. Windows cancellation clears global intent.
 enum class NativeDispositionPolicy {aggregate,windows_global};
-struct NativePathLookup {
-  NativeInodeAllocationInfo state;
-  std::optional<NativeSecurityDescriptor> security;
-};
 struct NativeFileAccess {
   bool read=true,write=false,erase=false; // Already authorized by the future OS adapter.
 };

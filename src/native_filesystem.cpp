@@ -1931,6 +1931,11 @@ NativeInodeState NativeFilesystemWriter::inspect_path(std::string_view path) con
   const auto& n=node(impl_->model,resolve(impl_->model,path));
   return {file_info(impl_->model,n),n.delete_pending,n.unlinked};
 }
+NativePathLookup NativeFilesystemWriter::inspect_path_lookup(std::string_view path) const {
+  (void)checked_namespace();
+  const auto& n = node(impl_->model, resolve(impl_->model, path));
+  return {{commit_info(n), n.allocation}, n.security};
+}
 NativeInodeState NativeFilesystemWriter::inspect_inode(std::uint64_t inode) const {
   auto objects=checked_namespace();(void)objects;
   const auto& n=selected_inode(impl_->model,inode);

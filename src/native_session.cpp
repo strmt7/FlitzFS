@@ -156,13 +156,18 @@ struct NativeFileSession::Impl {
   void clear_latch(std::uint64_t inode) noexcept {
     for(std::size_t i=0;i<latched.size();++i)if(latched[i]==inode){latched[i]=0;latch_flags[i]=0;}
   }
+  bool visible_delete_pending(std::uint64_t inode, bool unlinked, bool persisted) {
+    if (unlinked) return persisted;
+    if (persisted != intent(inode)) {
+      terminal = true;
+      fail(E::terminal, "native context/delete-intent ownership diverged");
+    }
+    return persisted || volatile_initial(inode);
+  }
   NativeInodeState state(const Slot& slot) {
     try {
       auto result=writer.inspect_inode(slot.inode);
-      if(!result.unlinked && result.delete_pending!=intent(slot.inode)) {
-        terminal=true;fail(E::terminal,"native context/delete-intent ownership diverged");
-      }
-      if(!result.unlinked && volatile_initial(slot.inode))result.delete_pending=true;
+      result.delete_pending = visible_delete_pending(slot.inode, result.unlinked, result.delete_pending);
       return result;
     }catch(const NativeFsError& error) {
       if(error.code()==NativeFsErrorCode::not_found) {
@@ -840,13 +845,11 @@ NativeSessionStorageCreateCommit NativeFileSession::create_impl(std::string_view
   return result;
 }
 NativePathLookup NativeFileSession::lookup(std::string_view path) const {
-  auto& self=ready();admit_path(path,true);
-  const auto selected=self.writer.inspect_path(path);
-  Impl::Slot selector;selector.inode=selected.info.inode;
-  const auto state=self.state(selector);
-  NativePathLookup result;result.state=self.writer.inspect_allocation(selected.info.inode);
-  result.state.info.delete_pending=state.delete_pending;
-  result.security=self.writer.inspect_security_descriptor(selected.info.inode);
+  auto& self = ready();
+  admit_path(path, true);
+  auto result = self.writer.inspect_path_lookup(path);
+  auto& info = result.state.info;
+  info.delete_pending = self.visible_delete_pending(info.inode, info.unlinked, info.delete_pending);
   return result;
 }
 NativeInodeState NativeFileSession::info(const NativeFileHandle& handle) const {

@@ -201,6 +201,10 @@ struct NativeInodeAllocationInfo {
   NativeInodeCommitInfo info;
   std::optional<std::uint64_t> reserved_bytes;
 };
+struct NativePathLookup {
+  NativeInodeAllocationInfo state;
+  std::optional<NativeSecurityDescriptor> security;
+};
 struct NativeInodeAllocationCommit {
   NativeFsCommit transaction;
   NativeInodeAllocationInfo state;
@@ -520,6 +524,7 @@ class NativeFilesystemWriter final {
   struct Impl;
   void check_shared_base(SharedBaseWork&) const;
   detail::NativeObjectSnapshot checked_namespace() const;
+  NativePathLookup inspect_path_lookup(std::string_view path) const;
   enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},

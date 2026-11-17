@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
+  "source_binding": {
+    "include/flitzfs/native_filesystem.hpp": {
+      "git_blob": "df6deaba63fbc110575e7e7825204815a7e0bf9a",
+      "working_bytes_sha256": "a5449656b3f68da7fc4d14df788e909650c000441735ccf9052e6cb38e684758"
+    },
+    "include/flitzfs/native_session.hpp": {
+      "git_blob": "232ae570020611d057f5b34928f8e0b476f655b2",
+      "working_bytes_sha256": "25bad883d04245fceb13732afec73b12189bb11cc0b755a2c427c6bb9e87ba5f"
+    },
+    "src/native_filesystem.cpp": {
+      "git_blob": "227b81885beb2cf37b9d79754a38c253a401300b",
+      "working_bytes_sha256": "ae59d183a334f0d6383f392af2cc56cc8b7af1fc7e43265c479753ed1baf4b12"
+    },
+    "src/native_session.cpp": {
+      "git_blob": "1e955458db06005d73a0a2475eb4bfa62c6dbefe",
+      "working_bytes_sha256": "7bd862ff7fdcfd7203eda3499620f2fb9ed4dbdcac3904c16b039746df6ad65b"
+    },
+    "tests/test_native_session.cpp": {
+      "git_blob": "8ecfa23e268aca70cc4424f4bf28a0320479a2b8",
+      "working_bytes_sha256": "80f75a39bc071e17dbaf65f9a60893678bd8970449ac63c73e6e60076d878cbc"
+    },
+    "tests/test_paged_volume.cpp": {
+      "git_blob": "ef4d63d66407968e91ca8536f39c6698b4dc5856",
+      "working_bytes_sha256": "14d665e2040fad32993c6bcf80c60eb718bed40986faf46636d5cbcfcc02d194"
+    }
+  },
+  "matched_flat_fixture": {
+    "before": {
+      "inode_query_bytes": 985,
+      "path_query_bytes": 3940
+    },
+    "after": {
+      "inode_query_bytes": 985,
+      "path_query_bytes": 985
+    },
+    "baseline_run": {
+      "run": "local-run-ce24cbbe93a04ca1af2784c9d478fc5e",
+      "receipt_sha256": "ff758cd056e21bcf23fbbd50d10a405aaeff581417a8b8873c39f8e99c9fa8ee",
+      "output_sha256": "ea5d004fcd9978602a47675e0d15073f1674cd070925fd36d25b514ea0a6774d",
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_build_or_test_children": 0
+    }
+  },
+  "paged_fixtures": [
+    {
+      "failure_unit": 4096,
+      "verified_inode_query_bytes": 58976,
+      "path_query_bytes": 58976
+    },
+    {
+      "failure_unit": 65536,
+      "verified_inode_query_bytes": 58976,
+      "path_query_bytes": 58976
+    }
+  ],
+  "qualification": {
+    "tests": {
+      "core_ctest": 8,
+      "winfsp_paged_callbacks_ctest": 1,
+      "independent_memory_sdk_groups": 2
+    },
+    "scope": "Windows x64 MSVC, raw core and WinFsp 2.1 with pinned Zstandard/LZ4. Memory-backed test data.",
+    "sdk_admission": "Ordinary CTest registered one callback group. Two memory SDK groups ran explicitly. The file-backed security callback executable was compiled and remains reserved for its isolated fixture.",
+    "sdk_data_bridge": {
+      "schema": 1,
+      "checks": 631,
+      "sealed_cases": 28,
+      "sdk_calls": 189,
+      "backend_retired": 4,
+      "handles_initial": 115,
+      "handles_final": 115,
+      "advice_cases": 4,
+      "advice_sealed_cases": 4,
+      "complete": true,
+      "mount": false
+    },
+    "sdk_initial_delete": {
+      "schema": 1,
+      "cases": 22,
+      "checks": 177,
+      "complete": true,
+      "mount": false,
+      "scope": "actual user-mode SDK Cleanup/Close; not initial-option kernel/client qualification"
+    },
+    "runs": {
+      "compile": {
+        "run": "local-run-7b9cb9b3886f43569a6d6b85448e3a8e",
+        "receipt_sha256": "3f7d339e4f4047a2294bca2770b682469ce2e03e5f646b80e38090650f63ce35",
+        "output_sha256": "e93ab0bfb9f1c6cca7194db77b88cdd5b7abaf099b0c54217fd3d19d4c4434ff",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_build_or_test_children": 1
+      },
+      "ctest": {
+        "run": "local-run-2bbb28e395f243fd86876ca024ce4735",
+        "receipt_sha256": "5f51d06a6a8b3ecb33ac53db38c4a1af15b9ddfa58432b0b9a32ec08f20d8fd5",
+        "output_sha256": "17ba1b85b2dd8bf1023ca4096bba5f8051a840e0cc1c17d71fba4535a4c5d16d",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_build_or_test_children": 0
+      },
+      "sdk-compile": {
+        "run": "local-run-da2c4db853f24625b0ecc1d98695b870",
+        "receipt_sha256": "59cbb6626497084a370063c5710c5c2a40059a5860bcf768bc7b3507764156a4",
+        "output_sha256": "de5c9a67b7a4c7a1e71f6e06e0ba811166de6f44ff567969ffe3df82ad78712e",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_build_or_test_children": 1
+      },
+      "sdk-ctest": {
+        "run": "local-run-45df977ba2fe45d384a6080e4d232909",
+        "receipt_sha256": "fa3834f4768f94fb4b47784a13693f55aab42bbd3f5d39d6707dd48797645dca",
+        "output_sha256": "4fba72de546d85f2bd7b9ebe0f33bc964a158b40cc959318cb8c5d4e158bb02d",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_build_or_test_children": 0
+      },
+      "sdk-memory-data": {
+        "run": "local-run-ff7e27959f494f8ca43636ae8f3111f8",
+        "receipt_sha256": "1e0a6deb9a8747ea9c99bf12f10d46eec284b8e4f47d5eb397605030bc283b0b",
+        "output_sha256": "82ca7c923fc0ee4cb5ba2b9eed75cffe907f505a0a264af92229ba793cc4f58a",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_build_or_test_children": 0
+      },
+      "sdk-memory-initial-delete": {
+        "run": "local-run-e3ec7dcdd98548e68a9e571ab222bbfd",
+        "receipt_sha256": "ecc0d7ffa1cfb0f20cd4c65933493ca9cd5443915680ba0db4c5602b09cfb583",
+        "output_sha256": "e6930afe7017e9d74b65b71d1abe3b551d719ed72f80e8fe86d249b8c3c1b8b7",
+        "exit_code": 0,
+        "tree_retired": true,
+        "residual_build_or_test_children": 0
+      }
+    }
+  },
+  "limits": {
+    "complete_namespace_passes_per_path_lookup": 1,
+    "scalable_point_lookup_implemented": false,
+    "end_to_end_filesystem_speed_qualified": false,
+    "mounted": false,
+    "release": false
+  }
+}

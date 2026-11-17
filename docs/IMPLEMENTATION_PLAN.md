@@ -156,6 +156,12 @@ inode/name serialization experience, snapshots and malformed-input tests.
 data IDs restricted to the flat object's 256-ID space and whole-namespace checks
 on unrelated reads. **Planning effort:** 6–12 person-weeks; confidence low.
 
+The normal Windows session path lookup now obtains allocation, basic metadata
+and security from a single verified namespace read. The matched flat fixture
+read 985 backing bytes, down from 3,940. The paged fixtures matched one verified
+inode query at both tested failure units. Step 11 still includes replacing the
+remaining whole-namespace pass with bounded page lookup. [Lookup evidence](evidence/native-path-lookup-2026-11-17.json)
+
 ### Implementation steps
 
 1. Specify native catalog roots for inode lookup, `(parent,name)` lookup,

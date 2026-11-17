@@ -39,6 +39,16 @@ void lifecycle(std::uint32_t unit) {
   Fixture f(unit);const auto format=f.session->volume_info().selection;
   require(format.storage==storage && f.head->live[8]==std::byte{2} && f.head->live[96]==std::byte{1},"paged head descriptor missing");
   require(f.session->snapshot().shared_base_info().enabled && f.session->workload_info().enabled,"paged features not active");
+  const auto before_info=f.source->read_bytes;
+  const auto inode=f.session->info(f.handle).info.inode;
+  const auto inode_bytes=f.source->read_bytes-before_info;
+  const auto before_lookup=f.source->read_bytes;
+  const auto found=f.session->lookup("f0");
+  const auto lookup_bytes=f.source->read_bytes-before_lookup;
+  require(found.state.info.inode==inode && found.state.info.logical_bytes==kNativeExtentBytes &&
+      inode_bytes>0 && lookup_bytes==inode_bytes,"paged lookup repeated namespace reads or lost inode metadata");
+  std::cout<<"paged_volume_lookup unit="<<unit<<" inode_query_bytes="<<inode_bytes
+      <<" path_query_bytes="<<lookup_bytes<<'\n';
   f.session->create_budgeted_optimization_area(f.area,4);const auto before=f.session->workload_info();
   const auto settled=f.session->optimization_snapshot().state.settled_input_bytes;
   group(*f.session,4);require(f.session->read(f.handle,0,kNativeExtentBytes)==family(0),"open context lost after grouping");
