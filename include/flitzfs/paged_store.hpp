@@ -38,6 +38,8 @@ class PagedObjectStoreSnapshot final {
   PagedStoreInfo info() const noexcept;
   std::optional<StoreObjectInfo> stat(std::uint64_t id) const;
   std::vector<std::byte> read(std::uint64_t id) const;
+  // Check the verified logical length before opening or decoding a typed object.
+  std::vector<std::byte> read(std::uint64_t id,std::size_t maximum_decoded_bytes) const;
   // Stable keyset pagination: strictly after id, at most limit (1..4096).
   // Uses this immutable snapshot root; no whole-volume list or keyset in RAM.
   std::vector<StoreObjectInfo> list_page(std::uint64_t after,std::size_t limit) const;

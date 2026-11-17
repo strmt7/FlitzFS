@@ -46,6 +46,17 @@
     },
     "next": "Introduce checked indexed metadata without the legacy aggregate ceiling, with capability negotiation and migration."
   },
+  "native_ordered_name_index": {
+    "source_base": "b2da48de1c885cdaaee146978f35bc6213f32d8a",
+    "evidence": "docs/evidence/native-name-index-2026-11-17.json",
+    "scope": "Internal name pages on protected paged storage. Bounded point lookup, keyset enumeration and atomic name edits with accompanying records.",
+    "raw_test_groups_passed": 5,
+    "windows_address_sanitizer_test_groups_passed": 4,
+    "name_bindings_checked": 1511,
+    "modeled_rename_interruptions_checked": 63,
+    "native_session_integration": false,
+    "next": "Compare the measured object-backed read amplification and footprint with typed pages, select a volume capability and wire bounded inode and extent access into sessions."
+  },
   "readonly_memory_checkpoint": {
     "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
     "changed_source_binding": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
@@ -85,6 +96,12 @@
     "later_exact_source": "8ee6cd1eca26d7314372d94a6e6cc8fbbe08e2a7",
     "later_run": 44168194155,
     "later_jobs_passed": 13,
+    "direct_inode_read_recheck": {
+      "source": "b2da48de1c885cdaaee146978f35bc6213f32d8a",
+      "run": 44174642146,
+      "jobs_passed": 13,
+      "writable_profiles_passed": 7
+    },
     "windows_11_client": false,
     "physical_power_loss_qualified": false,
     "release": false

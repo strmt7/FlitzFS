@@ -173,6 +173,16 @@ The Btrfs developer documentation provides a current reference for grouping
 metadata by stable inode IDs and indexing directory entries separately.
 [Serializer evidence](evidence/native-inode-serialization-2026-11-17.json), [Btrfs trees](https://btrfs.readthedocs.io/en/latest/dev/dev-btrees.html)
 
+The object-backed [ordered name index](NATIVE_PAGED_BACKEND.md#ordered-name-pages-for-the-scalable-namespace)
+implements checked name lookup, keyset enumeration and atomic edits for E01.
+The Windows fixture exercised 1,511 name bindings, and 63 interrupted renames
+retained complete old or new checkpoints. The compacted fixture occupied
+655,360 bytes after rebuilding from 6,004,736 bytes. These measurements give the
+typed-page comparison a baseline for footprint and read amplification. The
+new namespace still needs its own volume capability and normal session access
+before it can replace the existing limits.
+[Name-index evidence](evidence/native-name-index-2026-11-17.json)
+
 ### Implementation steps
 
 1. Specify native catalog roots for inode lookup, `(parent,name)` lookup,

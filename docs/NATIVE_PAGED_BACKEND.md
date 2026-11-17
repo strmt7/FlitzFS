@@ -45,7 +45,7 @@ their 256-node, 255-extent, path, transaction and allocation bounds remain.
 The million-object index test is not a million-file filesystem qualification.
 The explicit [directory index](DIRECTORY_NAME_INDEX.md) adds ordered persisted
 names and snapshot-bound pagination. Split name pages, demand-loaded inode/extent
-metadata and bounded residency remain next scale work.
+metadata and bounded residency are being developed for the scalable namespace.
 
 The explicit [managed paged-volume factory](MANAGED_PAGED_VOLUMES.md) now
 connects typed head selection, writable resume, context-preserving synchronous
@@ -55,6 +55,42 @@ target I/O. The explicit [native paged maintenance](NATIVE_PAGED_MAINTENANCE.md)
 now rebinds native identity and verifies compacted/recompressed new images.
 Legacy layout migration, automatic selection/reclamation, persistent restart,
 optional-codec breadth, Windows factory integration and reader retirement remain.
+
+## Ordered name pages for the scalable namespace
+
+The internal name index uses 4 KiB slotted pages keyed by
+`(parent inode ID, canonical name bytes)`. A leaf binds a key to a stable
+inode ID. A branch binds each child to its greatest key and subtree item
+count. Lookup follows one path. Enumeration resumes strictly after the given
+name in the same immutable snapshot and stops at the requested parent
+boundary. The caller applies Windows name policy before using the index and
+preserves the snapshot identity with each cursor.
+
+The 40-byte `FLTXNT01` record holds the version, height, root page ID, next
+page ordinal and item count. Its object ID is `0x6000000000000000`. Name
+page IDs add a nonzero ordinal from the same reserved object domain. The
+reader checks ordinals against the root allocator and the writer never reuses
+them. A `FLTXNP01` page starts with a 40-byte header containing the version,
+height, row count, reserved field, page ID and subtree item count. Each
+little-endian 16-bit slot points to a row with a parent ID and an inode or
+child page ID. A branch row also stores the child's count. The remaining bytes
+of the row are the nonempty canonical name. The decoder checks the slot
+boundaries, strict ordering, page identity, height, counts and parent key bounds.
+
+A name edit supplies its expected current binding and replacement. The editor
+splits by encoded page size, merges fitting neighbors and retires empty pages.
+It stages only touched pages and publishes them with any accompanying inode or
+data records in one protected paged-store commit. A known degraded checkpoint
+requires recovery before publication. Retained snapshots still read the previous
+pages. Scrub checks the tree and streams the reserved object domain to detect
+unreachable records. The index requires mirrored payloads and participates in the
+existing checked object-store rebuild.
+
+This is the object-backed layout under evaluation for E01. Its reserved object
+domain needs explicit capability negotiation before native volumes use it. The
+existing reader, writer, mount format and limits still apply to current volumes.
+Demand-loaded inode and extent lookup, coordinated allocation, migration and the
+comparison with typed pages remain part of that integration.
 
 ## Verification
 

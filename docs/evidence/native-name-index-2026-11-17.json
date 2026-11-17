@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "b2da48de1c885cdaaee146978f35bc6213f32d8a",
+  "source_base_tree": "e25ef927a2dd8326f01faed45ba544b4fd9291c5",
+  "change_source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "worktree_sha256": "28f2ea1b5b695761932458ac09a264da3d0ea7f54e077d33da1fd70dcd060cdc",
+      "git_blob": "811ac9bbbb6b92f87401b15792ef9e5a99019b20"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "worktree_sha256": "ef0671fa178fbe8cb5eb2e79497c3399a4b3ce0c1e04d4135e865dcd3018549c",
+      "git_blob": "9ffdc2db0333968bf9d73fafbe5e560697d31591"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "worktree_sha256": "bea941818ef2afe330cf665e143e6d52c4f68caa9bf7e42c081d7ef30aed7b35",
+      "git_blob": "9afcf6b560d4b86d76a2571569167c29fb1e42c8"
+    },
+    {
+      "path": "src/native_name_index.cpp",
+      "worktree_sha256": "b5d3e5aa8397408fd74e729e1a7f0003c0ea0ecd82e8d7fd6e0f9bad91bb8d20",
+      "git_blob": "7e3abfb4cf32ac7e9c57a453a5581c90006d137f"
+    },
+    {
+      "path": "src/native_name_index.hpp",
+      "worktree_sha256": "bc0390dd3a32f0377cbc0df27f248a9a5398ef1116345dd01d3257696015369e",
+      "git_blob": "4b8fcb341af63a66fa1f04a448bd23d8f8d7e7cb"
+    },
+    {
+      "path": "tests/test_native_name_index.cpp",
+      "worktree_sha256": "1f0454270fa48b22f84261a1434a37b677c4eb9d99817e26e143d144f1cc2519",
+      "git_blob": "701ecac216c6f813db68edf56fc2a513b92b8c0a"
+    }
+  ],
+  "scope": "Windows x64 MSVC CPU-only tests. New object-backed ordered names in disposable memory fixtures. Existing native namespace and WinFsp use legacy layouts.",
+  "semantic_navigation": {
+    "provider": "CocoIndex Code 0.2.43",
+    "base": "b2da48de1c885cdaaee146978f35bc6213f32d8a",
+    "actual_searches": 1,
+    "source_files": 13,
+    "receipt_sha256": "59e071b1dfa5a6b38db6cb1c9b1fc77203b6e8c20a65e1f39e906f895b97c9ce",
+    "native_response_sha256": "72f83ca66919f47ab9aea341808c2220a8b6ddd4657c802b36cc8d01a1961926"
+  },
+  "primary_source": {
+    "provider": "Crawl4AI 0.9.5+flitzzip.portable2",
+    "receipt_sha256": "7cea32f30653fa68df7cf51208d4fdbe57906c010652c729e80fa37d260cb714",
+    "url": "https://btrfs.readthedocs.io/en/latest/dev/dev-btrees.html",
+    "status": 200,
+    "native_capture_sha256": "14b27cf919adeb6d7b7f9306e685a8a05f0a7953925ab81708f1d559b5979f92"
+  },
+  "fixture": {
+    "failure_unit_bytes": 4096,
+    "compression": "raw mirrored records",
+    "names": 1511,
+    "name_index_height": 3,
+    "live_object_count": 86,
+    "point_query_backing_read_bytes": 78866,
+    "two_directory_enumeration_backing_read_bytes": 4784473,
+    "pre_rename_occupied_bytes": 5914624,
+    "pre_rename_mirrored_payload_bytes": 465282,
+    "post_rename_occupied_bytes": 6004736,
+    "rebuilt_occupied_bytes": 655360,
+    "rename_write_and_flush_failure_cases": 63,
+    "old_checkpoint_cases": 55,
+    "new_checkpoint_cases": 8,
+    "notes": "Includes 1024-byte keys, ordered enumeration, protected peer fallback, malformed slot rejection, pruning, retained snapshots and independent checked rebuild. Name bindings share one representative owned record in the fixture. Published byte counts cover the image, including roots, padding, both copies and obsolete pages where present."
+  },
+  "test_groups": {
+    "dropped_codec_raw": [
+      "bounded_native_name_index",
+      "bounded_native_inode_records",
+      "bounded_native_directory_index",
+      "bounded_paged_object_store",
+      "bounded_paged_mirrored_payloads"
+    ],
+    "windows_address_sanitizer": [
+      "bounded_native_name_index",
+      "bounded_native_directory_index",
+      "bounded_paged_object_store",
+      "bounded_paged_mirrored_payloads"
+    ]
+  },
+  "first_attempt": "The rename oracle treated the first durable checkpoint generation as the only new root generation. The retry compares checkpoint identities and checks exact name and data outcomes. The original receipt is retained.",
+  "prior_exact_source_ci": {
+    "head_sha": "b2da48de1c885cdaaee146978f35bc6213f32d8a",
+    "run": 44174642146,
+    "status": "completed",
+    "conclusion": "success",
+    "total_passed": 13,
+    "writable_profiles_passed": 7
+  },
+  "local_runs": {
+    "raw_build": {
+      "run": "local-run-5ace52593b1d4ded85f0316f3fca6973",
+      "native_receipt_sha256": "3bffc50ed0ea393899380691396300f4d6b4b8c94102f754c380315b92db0b6a",
+      "output_sha256": "8fddc154f89234d6d1ff410e4853392a62d0e67ebe85d9ee3e95bbddcbbb8fc5",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 372023296
+    },
+    "raw_ctest": {
+      "run": "local-run-996f937f892f4052b23a0ef59346bd30",
+      "native_receipt_sha256": "2aeed98f5b7268a78fa6cd6a910d93798e66fe652428ccc35b5fdfe1c8cb50ca",
+      "output_sha256": "138cd9139b6af6acfa0dfdef74ad45d668841c3949800382178d6e13dc552f9e",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 204759040
+    },
+    "windows_asan_build": {
+      "run": "local-run-328701b759eb412eb4c02e30b6429c94",
+      "native_receipt_sha256": "a65473a9c45f02aa2734e02534d1be1c257172c76886774631c236b61520f088",
+      "output_sha256": "b476be1dd02fa58ad58be03e79dfbf0bc96f1e823cfa3bac2780ba08bb77b3c6",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 392826880
+    },
+    "windows_asan_ctest": {
+      "run": "local-run-dcecc14e4789428bac14d7a198c434e4",
+      "native_receipt_sha256": "7248a6ba26c83518e4e0b269bb67e7aa594e4edb851158ca1afd82c76904231f",
+      "output_sha256": "0e166063ab78bc314332f4354e8ec4cf287490b78c75a15600f4953800e1f909",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 1016287232
+    },
+    "initial_raw_build": {
+      "run": "local-run-5c8bca3c64dc40e0864229fdecb93a15",
+      "native_receipt_sha256": "8380c446d579b08641c49ac7fd4bbd536782668594ed4e5b824931dd3207e6da",
+      "output_sha256": "a2196381d46b92b9cca91bccdd3a0e5b4636701fed250adb40f75583bbc01404",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 390205440
+    },
+    "initial_raw_ctest": {
+      "run": "local-run-46aaf3ce347f41dda7ef7e61f83fe5fd",
+      "native_receipt_sha256": "5e9f5619ffad485bcaacdef928566eb5bfe68e2632c0b8c5d3073bd08b16b4b2",
+      "output_sha256": "3d9de5372c284df7a74725b07a9cbd8a14618d0a7096e4bd8028fa8b10f283ae",
+      "exit_code": 8,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 204828672
+    }
+  }
+}

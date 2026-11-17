@@ -737,7 +737,11 @@ std::optional<StoreObjectInfo> PagedObjectStoreSnapshot::stat(std::uint64_t id) 
   if(!e)return {};return StoreObjectInfo{e->id,e->generation,e->logical,e->stored};
 }
 Bytes PagedObjectStoreSnapshot::read(std::uint64_t id) const {
+  return read(id,kStoreMaxObjectBytes);
+}
+Bytes PagedObjectStoreSnapshot::read(std::uint64_t id,std::size_t maximum_decoded_bytes) const {
   if(!impl_)fail("moved-from snapshot");auto e=lookup(impl_->state,id);if(!e)fail("missing object");
+  if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
   return read_object(impl_->state,*e);
 }
 std::vector<StoreObjectInfo> PagedObjectStoreSnapshot::list_page(std::uint64_t after,std::size_t limit) const {
