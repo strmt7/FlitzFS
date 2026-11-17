@@ -144,5 +144,29 @@
     "end_to_end_filesystem_speed_qualified": false,
     "mounted": false,
     "release": false
+  },
+  "ordinary_sdk_registration": {
+    "source_base": "2a8714f258bf62d163ecf23ffb0bce848b22a55d",
+    "cmake_working_bytes_sha256": "e1ab7b8a42cce985a3b123835dcded257758a2c6ffcfe73a4a69c40b97612365",
+    "cmake_git_blob": "5520dfaa664249fabca0342cb54fe229731e8774",
+    "integration_fixtures": false,
+    "ctest_groups_passed": 9,
+    "scope": "WinFsp v2.1 user-mode SDK, pinned Zstandard and LZ4, synthetic RAM tests.",
+    "runs": {
+      "compile": {
+        "run": "local-run-38287d2004054b9d99dc8f788320c025",
+        "receipt_sha256": "9b3d98cae2475326cc0291f342ec9740c1db80e9c63831d9020b4bc479804280",
+        "log_sha256": "ee6fcae0ab32202c8ae1d94c9834757fb06d6c67d5cc58ccd4eb969b1e50e64b",
+        "tree_retired": true,
+        "residual_children": 1
+      },
+      "ctest": {
+        "run": "local-run-0e0652590b3e4f4cbdfdc224195ad18f",
+        "receipt_sha256": "3f63aefc7e8b198fb3c8e5504964d62a6995c66034523b25f63a6a580bf05d48",
+        "log_sha256": "9b678459dc4a23973ee450a89f016bc4959b1466f3d40fb885ef9d09fc272dd9",
+        "tree_retired": true,
+        "residual_children": 0
+      }
+    }
   }
 }

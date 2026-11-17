@@ -78,6 +78,11 @@ staging extracts the two headers, import library and user-mode DLL. An explicit
 evidence request also selects the AMD64 driver payload as a file. The separate
 disposable mount lane owns installation. [Mounted probe contract](LIVE_MOUNT_PROBE.md)
 
+The ordinary WinFsp test build registers the memory-backed native data,
+allocation, initial-delete and provisional SDK groups. The integration
+fixture switch covers file-backed and separately owned worker tests.
+[Local SDK test evidence](evidence/native-path-lookup-2026-11-17.json)
+
 ## Research rounds and decisions — 7 November 2026
 
 **Round 1: ABI and lifetimes.** Read the official WinFsp native API and v2.1
