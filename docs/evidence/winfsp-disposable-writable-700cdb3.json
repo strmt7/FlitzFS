@@ -142,5 +142,50 @@
   "windows_11_client_qualified": false,
   "physical_power_loss_qualified": false,
   "automatic_gpu": false,
-  "release": false
+  "release": false,
+  "current_source_requalification": {
+    "source": "8ee6cd1eca26d7314372d94a6e6cc8fbbe08e2a7",
+    "run": 44168194155,
+    "jobs_passed": 13,
+    "root_jobs_receipt_sha256": "eecccce297bfaecb0d09b21599a40b6d08c98401dc22c03a3fb1a5e604a4ee3f",
+    "mounted_read_only": {
+      "job": 134347368945,
+      "log_sha256": "3d488be8f8c90e042d4ea9beb45107d0ed443b3d304e229548a231c7b848806d",
+      "log_bytes": 135947,
+      "tested_mount_passed": true
+    },
+    "mounted_ram_handoff": {
+      "job": 134350082040,
+      "log_sha256": "f2be1e6cbdb1c0ee1c934e1a844d23229f5f96d5f7728252ec1f442b5daa9cfc",
+      "log_bytes": 126103,
+      "reconciled": {
+        "client_flush_callback_observed": true,
+        "client_process": 500,
+        "commit": "8ee6cd1eca26d7314372d94a6e6cc8fbbe08e2a7",
+        "complete": true,
+        "compressed_payload": 219,
+        "contexts": 0,
+        "cpu_verified": true,
+        "epoch": 2,
+        "generation": 18,
+        "gpu": false,
+        "host_self_io_rejected": true,
+        "idle_copy_steps": 2,
+        "locked_after": 0,
+        "locked_peak": 17301504,
+        "mounted": true,
+        "phase": "ram-handoff",
+        "raw_payload": 66062,
+        "recovered_capacity_failure": true,
+        "repeat_suppressed": true,
+        "schema": 1,
+        "source_process": 1740,
+        "source_protocol": "external-client",
+        "stale_candidate_rejected": true,
+        "unmounted": true,
+        "user_bytes": 65609,
+        "volume_serial": 1476416087
+      }
+    }
+  }
 }

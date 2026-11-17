@@ -37,7 +37,14 @@
     "raw_and_sdk_groups_passed": 13,
     "matching_complete_image_observations": 6,
     "scope": "Direct inode frames and namespace roots on paged commits, group publication and compaction.",
-    "next": "Extract the existing per-record decoder, then introduce checked indexed metadata without the legacy aggregate ceiling."
+    "read_side_followup": {
+      "source_base": "b205feca2714b546363beadbc3989dbc90721b9e",
+      "selected_raw_and_sdk_groups_passed": 15,
+      "selected_windows_address_sanitizer_groups_passed": 5,
+      "matching_complete_image_observations": 6,
+      "scope": "Direct decoding of one paged inode record at a time and one object inventory for verification."
+    },
+    "next": "Introduce checked indexed metadata without the legacy aggregate ceiling, with capability negotiation and migration."
   },
   "readonly_memory_checkpoint": {
     "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
@@ -75,6 +82,9 @@
     "writable_profiles_passed": 7,
     "scope": "Mounted Windows Server 2025 I/O, deletion, restart/crash and externally flushed memory handoff with signed WinFsp v2.2B5.",
     "evidence": "docs/evidence/winfsp-disposable-writable-700cdb3.json",
+    "later_exact_source": "8ee6cd1eca26d7314372d94a6e6cc8fbbe08e2a7",
+    "later_run": 44168194155,
+    "later_jobs_passed": 13,
     "windows_11_client": false,
     "physical_power_loss_qualified": false,
     "release": false

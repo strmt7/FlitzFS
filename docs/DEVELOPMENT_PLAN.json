@@ -1173,10 +1173,10 @@
     "ordinary_gpu_route": false,
     "release": false,
     "full_goal_status": "active",
-    "next": "Qualify the disposable Windows mount after the portable prerequisite fix. Prototype bounded AMD work windows to amortize observed initialization cost and retain immediate CPU completion."
+    "next": "Prototype bounded AMD work windows to amortize observed initialization cost and retain immediate CPU completion. Introduce the checked indexed metadata layout after the per-inode codec split."
   },
   "next_product_slices": [
-    "Verify the corrected portable test lanes and disposable external-client mount. Continue independent checked paged namespace and automatic AMD performance qualification.",
+    "Carry the passed disposable external-client mount scenarios to an actual Windows 11 client VM. Continue checked indexed metadata and automatic AMD performance qualification.",
     "First indexed inode/name/extent transaction with reusable-allocation authority and legacy reader parity.",
     "Account for packed protected bytes and qualify bounded handoff plus incremental reclamation under unrelated commits.",
     "Acquire complete-cost AMD observations and compare stronger collective representations independently.",

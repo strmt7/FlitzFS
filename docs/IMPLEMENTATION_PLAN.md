@@ -162,14 +162,13 @@ read 985 backing bytes, down from 3,940. The paged fixtures matched one verified
 inode query at both tested failure units. Step 11 still includes replacing the
 remaining whole-namespace pass with bounded page lookup. [Lookup evidence](evidence/native-path-lookup-2026-11-17.json)
 
-Paged publication now writes each changed inode frame directly. Compaction
-and grouped writes generate the namespace root independently. The legacy
-format uses the same frame encoder with its contiguous layout. The current
-paged decoder still joins inode frames into one buffer, and the existing
-format still caps the namespace at 256 inodes. The next implementation
-step is a shared per-record decoder for those existing bytes, followed
-by a separately negotiated indexed layout. Bind inode, directory and
-extent keys to its committed roots before removing the old format's limits.
+Paged publication writes each changed inode frame directly. Compaction
+and grouped writes generate the namespace root independently. Paged reads
+decode one inode frame at a time and reuse one inventory for validation.
+The legacy contiguous layout shares the canonical inode codec. The existing
+format caps the namespace at 256 inodes. The next layout needs separate
+capability negotiation, independently checked inode, directory and extent
+lookup pages, and an explicit migration from existing images.
 The Btrfs developer documentation provides a current reference for grouping
 metadata by stable inode IDs and indexing directory entries separately.
 [Serializer evidence](evidence/native-inode-serialization-2026-11-17.json), [Btrfs trees](https://btrfs.readthedocs.io/en/latest/dev/dev-btrees.html)

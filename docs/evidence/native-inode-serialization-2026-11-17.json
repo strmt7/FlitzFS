@@ -129,5 +129,93 @@
     "mount_of_this_changed_source": false,
     "comparative_throughput_measured": false,
     "release": false
+  },
+  "read_side_followup": {
+    "source_base": "b205feca2714b546363beadbc3989dbc90721b9e",
+    "source_binding": {
+      "src/native_filesystem.cpp": {
+        "git_blob": "c492a5bb3e4ca1170b10d1f2b340ea5874243a49",
+        "working_bytes_sha256": "d84950e41f74ea7c20884b8eb306e0b44e0a7db8e344f31bb667775fc92479be"
+      },
+      "tests/test_paged_volume.cpp": {
+        "git_blob": "c803a28a2e0fc08119ac5ed8d7b37e4d1da4e0ee",
+        "working_bytes_sha256": "5df2360bc33205dd4eba9f72c2fc38f9fcf0bec3272d9ffec292b7467a343888"
+      }
+    },
+    "runs": {
+      "raw-build": {
+        "run": "local-run-540dca53343a4e16a03677c307674ada",
+        "result_sha256": "5c7d504dcb38905e442da5fcd52a73acca6555d766a36e27cdbb6cb601ca2f5d",
+        "output_sha256": "4c88a511ca8ebe8485fa62c60f460406e27497e5d365988d5d67d5f8f06f3008",
+        "residual_children": 0,
+        "tree_retired": true
+      },
+      "raw-ctest": {
+        "run": "local-run-222229de90704696a40649a69d11ac7e",
+        "result_sha256": "21df3f2e4aa7c8cfa47df6a197333c0059a0c49c8d8741c6445f9d118297fd6e",
+        "output_sha256": "cd4fc78e2ca0d8fa26eb48e1daf3dd8113b079757206704d4b40353c8f6ffcec",
+        "residual_children": 0,
+        "tree_retired": true
+      },
+      "sdk-build": {
+        "run": "local-run-382e652396734912a2172e551db92ab4",
+        "result_sha256": "103356a9770d71417210a0186ce3fc23b2724f12e16191aef947cf31c0d6151a",
+        "output_sha256": "326441112bc29e9fc4ea4b2070d476fafa49bd17e146efa05860dae150f2d0fc",
+        "residual_children": 0,
+        "tree_retired": true
+      },
+      "sdk-ctest": {
+        "run": "local-run-361efa290aee4c30bbb21fbf57a5a110",
+        "result_sha256": "62a7d89a3411956a50ee0f576ef061e0988b5895442ddc5c337b69f8117405ef",
+        "output_sha256": "79d28045d52a1febed476c613ba9985f28cce70baaffc865c65cb8d9de0e8e18",
+        "residual_children": 0,
+        "tree_retired": true
+      }
+    },
+    "mechanism": "Decode each paged inode record directly and reuse the object inventory for full validation.",
+    "selected_raw_ctest_passed": 10,
+    "selected_winfsp_2_1_codec_ctest_passed": 5,
+    "matching_baseline_complete_image_observations": 6,
+    "legacy_format_budgets_preserved": true,
+    "indexed_namespace_added": false,
+    "windows_address_sanitizer": {
+      "selected_ctest_groups_passed": 5,
+      "matching_baseline_complete_image_observations": 6,
+      "scope": "MSVC AddressSanitizer and signed WinFsp v2.2B5 SDK, raw memory-backed fixtures",
+      "runtime": {
+        "dll": "clang_rt.asan_dynamic-x86_64.dll",
+        "sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+        "bytes": 1731408,
+        "signature": "Valid",
+        "stage_only": true
+      },
+      "runs": {
+        "asan-build": {
+          "run": "local-run-6decd3a6ff774e4bb4a363d19de6e289",
+          "native_receipt_sha256": "58e65101595a5be5c57a4ca1358f1a9925f9e12b924eb4cefd651977fadf26d1",
+          "output_sha256": "983a5f1764d759a5dc1651cbf8c67d5123c0c6b5ef8833fbf9716a00dc9a4794",
+          "exit_code": 0,
+          "residual_children": 0,
+          "tree_retired": true
+        },
+        "asan-ctest": {
+          "run": "local-run-be66bc0592174978b786dcfd4afa3f42",
+          "native_receipt_sha256": "14c4c59266d38fa6fe0fdb18b4b21224819155c190ac77bbc6aa7cbaa50abe8d",
+          "output_sha256": "b188087271d3f946f784ff2053881dc8213656e8a486a69ecfaa3a3f14a99d0f",
+          "exit_code": 4294967295,
+          "residual_children": 0,
+          "tree_retired": true
+        },
+        "asan-verified-ctest": {
+          "run": "local-run-520604f97cda4b9ebc6414e0544ea9c2",
+          "native_receipt_sha256": "732997dbb98eeb625c84e6dce0feff4f1dc49881758da31affe9905ee51df014",
+          "output_sha256": "ee4483b1315ed97d6c99f92e553b67934498b99434e0ee52bfc10790b8fa1b37",
+          "exit_code": 0,
+          "residual_children": 0,
+          "tree_retired": true
+        }
+      },
+      "first_attempt": "Missing the ASan DLL imported by the executable. Stopped the owned CTest after silent timeout and confirmed tree retirement. Retried with the signature-checked runtime from the compiler recorded by CMake in the private build directory."
+    }
   }
 }

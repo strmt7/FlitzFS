@@ -448,95 +448,118 @@ bool namespace_matches(const detail::NativeObjectSnapshot& objects,const Model& 
   for(const auto& record:expected)if(object_bytes(objects,record.id)!=record.bytes)return false;
   return true;
 }
+Node decode_inode(std::span<const std::byte> bytes, std::uint32_t format,
+    std::size_t& cursor, std::uint64_t previous) {
+  const auto header=node_header(format);
+  if(cursor>bytes.size() || bytes.size()-cursor<header)fail(Code::corrupt,"truncated native inode");
+  const auto h=bytes.subspan(cursor,header);cursor+=header;
+  Node n;n.inode=integer(h,0,8);n.parent=integer(h,8,8);const auto kind=integer(h,16,4);
+  const auto flags=integer(h,20,4);
+  n.directory=kind==1;n.delete_pending=(flags&1)!=0;n.unlinked=(flags&2)!=0;
+  n.size=integer(h,24,8);n.born=integer(h,32,8);n.modified=integer(h,40,8);
+  const auto name_bytes=integer(h,48,2),extents=integer(h,50,2);
+  if((kind!=1 && kind!=2) || n.inode<=previous || name_bytes>100 || extents>kNativeMaxExtents ||
+      (flags&~std::uint64_t{31}) || (format==1 && flags) || (flags&3)==3 ||
+      (format<3 && (flags&4)) || (format<4 && (flags&8)) || (format<5 && (flags&16)) ||
+      (format>=5 && !(flags&16) && integer(h,96,8)) ||
+      (!(flags&4) && !zeros(h.subspan(52,(std::min)(header,std::size_t{88})-52))) ||
+      (format>=4 && (integer(h,92,4) || bool(flags&8)!=(integer(h,88,4)!=0))) ||
+      name_bytes>bytes.size()-cursor)fail(Code::corrupt,"invalid native inode fields");
+  if(flags&16)n.allocation=integer(h,96,8);
+  if(flags&4) {
+    n.basic=NativeBasicMetadata{integer(h,56,8),integer(h,64,8),integer(h,72,8),integer(h,80,8),
+        static_cast<std::uint32_t>(integer(h,52,4))};
+  }
+  n.name.assign(reinterpret_cast<const char*>(bytes.data()+cursor),static_cast<std::size_t>(name_bytes));
+  cursor+=static_cast<std::size_t>(name_bytes);
+  if(flags&8) {
+    const auto length=integer(h,88,4);
+    if(length>kNativeMaxSecurityBytes || length>bytes.size()-cursor ||
+        !native_security_descriptor_framed(bytes.subspan(cursor,static_cast<std::size_t>(length))))
+      fail(Code::corrupt,"invalid native stored security descriptor");
+    n.security=NativeSecurityDescriptor(bytes.begin()+static_cast<std::ptrdiff_t>(cursor),
+        bytes.begin()+static_cast<std::ptrdiff_t>(cursor+length));cursor+=static_cast<std::size_t>(length);
+  }
+  try{n.key=n.inode==1 || n.unlinked?"":component(n.name);}
+  catch(const NativeFsError&){fail(Code::corrupt,"invalid native stored component");}
+  std::uint64_t prior_block=0;
+  for(std::uint64_t e=0;e<extents;++e) {
+    if(bytes.size()-cursor<16)fail(Code::corrupt,"truncated native extent");
+    const auto block=integer(bytes,cursor,8),object=integer(bytes,cursor+8,8);cursor+=16;
+    if(e && block<=prior_block)fail(Code::corrupt,"native extent ordering");
+    n.extents.emplace(block,object);prior_block=block;
+  }
+  return n;
+}
 Model decode(const detail::NativeObjectSnapshot& objects) {
-  auto bytes=object_bytes(objects,kNamespaceObject);
-  const bool inode_records=bytes.size()>=8 && std::equal(kInodeRootMagic.begin(),kInodeRootMagic.end(),bytes.begin());
-  bool indexed_names=false,shared_bases=false;
-  if(inode_records) {
-    if(!objects.paged() || bytes.size()!=64 || integer(bytes,8,4)<1 || integer(bytes,8,4)>3 || !integer(bytes,12,4) ||
-        integer(bytes,12,4)>kNativeMaxNodes || integer(bytes,36,4)>kNativeMaxExtents)
-      fail(Code::corrupt,"unsupported inode-record root");
-    indexed_names=integer(bytes,8,4)>=2;shared_bases=integer(bytes,8,4)==3;
-    if(shared_bases && !objects.mirrored())fail(Code::corrupt,"shared bases require protected payloads");
-    const auto count=integer(bytes,12,4);std::size_t observed=0;
-    const auto catalog=objects.list((shared_bases?4:indexed_names?3:2)*kStoreMaxObjects);
-    for(const auto& record:catalog)if(record.id&kInodeObjectBit) {
-      if(++observed>count)fail(Code::corrupt,"extra inode metadata record");
-      const auto frame=object_bytes(objects,record.id);
-      if(frame.size()<kAllocationNodeHeader || frame.size()>kMetadataCap-bytes.size() ||
-          !integer(frame,0,8) || integer(frame,0,8)!=(record.id^kInodeObjectBit))
-        fail(Code::corrupt,"inode record identity/size binding");
-      const auto name=integer(frame,48,2),extents=integer(frame,50,2),security=integer(frame,88,4);
-      if(name>100 || extents>kNativeMaxExtents || security>kNativeMaxSecurityBytes ||
-          frame.size()!=kAllocationNodeHeader+name+security+16*extents)
-        fail(Code::corrupt,"inode record boundary/count binding");
-      bytes.insert(bytes.end(),frame.begin(),frame.end());
-    }
-    if(observed!=count)fail(Code::corrupt,"missing inode metadata record");
-    std::copy(kSharedMagic.begin(),kSharedMagic.end(),bytes.begin());put(bytes,8,7,4);
-  }
-  const auto all=std::span<const std::byte>(bytes);
-  if(bytes.size()<64 || bytes.size()>kMetadataCap ||
-      integer(all,32,4)!=kNativeExtentBytes)
+  const auto bytes = object_bytes(objects,kNamespaceObject);
+  const auto header = std::span<const std::byte>(bytes);
+  if (header.size()<64 || header.size()>kMetadataCap || integer(header,32,4)!=kNativeExtentBytes)
     fail(Code::corrupt,"unsupported native namespace framing");
-  const auto format=integer(all,8,4);
-  if(format<1 || format>7 || (format<6 && !zeros(all.subspan(56,8))) ||
-      !std::equal(namespace_magic(static_cast<std::uint32_t>(format)).begin(),
-                  namespace_magic(static_cast<std::uint32_t>(format)).end(),bytes.begin()))
-    fail(Code::corrupt,"unsupported native namespace capability/magic");
-  const auto count=integer(all,12,4),declared_extents=integer(all,36,4);
-  if(!count || count>kNativeMaxNodes || declared_extents>kNativeMaxExtents)fail(Code::limit,"native metadata counts");
-  if(format>=2 && !objects.info().replicated_checkpoint)
-    fail(Code::corrupt,"native lifetime capability requires replicated current checkpoints");
-  Model model;model.format=static_cast<std::uint32_t>(format);model.inode_records=inode_records;model.indexed_names=indexed_names;model.shared_bases=shared_bases;
-  if(format>=6)model.committed_input_bytes=integer(all,56,8);
-  model.sequence=integer(all,16,8);model.next_inode=integer(all,24,8);
-  std::copy_n(bytes.begin()+40,16,model.identity.begin());
-  if(model.identity!=objects.identity() || model.sequence>objects.info().generation)fail(Code::corrupt,"native identity/sequence binding");
-  std::size_t cursor=64;std::uint64_t previous=0;
-  for(std::uint64_t i=0;i<count;++i) {
-    const auto header=node_header(model.format);
-    if(cursor>bytes.size() || bytes.size()-cursor<header)fail(Code::corrupt,"truncated native inode");
-    const auto h=all.subspan(cursor,header);cursor+=header;
-    Node n;n.inode=integer(h,0,8);n.parent=integer(h,8,8);const auto kind=integer(h,16,4);
-    const auto flags=integer(h,20,4);
-    n.directory=kind==1;n.delete_pending=(flags&1)!=0;n.unlinked=(flags&2)!=0;
-    n.size=integer(h,24,8);n.born=integer(h,32,8);n.modified=integer(h,40,8);
-    const auto name_bytes=integer(h,48,2),extents=integer(h,50,2);
-    if((kind!=1 && kind!=2) || n.inode<=previous || name_bytes>100 || extents>kNativeMaxExtents ||
-        (flags&~std::uint64_t{31}) || (format==1 && flags) || (flags&3)==3 ||
-        (format<3 && (flags&4)) || (format<4 && (flags&8)) || (format<5 && (flags&16)) ||
-        (format>=5 && !(flags&16) && integer(h,96,8)) ||
-        (!(flags&4) && !zeros(h.subspan(52,(std::min)(header,std::size_t{88})-52))) ||
-        (format>=4 && (integer(h,92,4) || bool(flags&8)!=(integer(h,88,4)!=0))) ||
-        name_bytes>bytes.size()-cursor)fail(Code::corrupt,"invalid native inode fields");
-    if(flags&16)n.allocation=integer(h,96,8);
-    if(flags&4) {
-      n.basic=NativeBasicMetadata{integer(h,56,8),integer(h,64,8),integer(h,72,8),integer(h,80,8),
-          static_cast<std::uint32_t>(integer(h,52,4))};
-    }
-    n.name.assign(reinterpret_cast<const char*>(bytes.data()+cursor),static_cast<std::size_t>(name_bytes));
-    cursor+=static_cast<std::size_t>(name_bytes);
-    if(flags&8) {
-      const auto length=integer(h,88,4);
-      if(length>kNativeMaxSecurityBytes || length>bytes.size()-cursor ||
-          !native_security_descriptor_framed(all.subspan(cursor,static_cast<std::size_t>(length))))
-        fail(Code::corrupt,"invalid native stored security descriptor");
-      n.security=NativeSecurityDescriptor(bytes.begin()+static_cast<std::ptrdiff_t>(cursor),
-          bytes.begin()+static_cast<std::ptrdiff_t>(cursor+length));cursor+=static_cast<std::size_t>(length);
-    }
-    try{n.key=n.inode==1 || n.unlinked?"":component(n.name);}
-    catch(const NativeFsError&){fail(Code::corrupt,"invalid native stored component");}
-    std::uint64_t prior_block=0;
-    for(std::uint64_t e=0;e<extents;++e) {
-      if(bytes.size()-cursor<16)fail(Code::corrupt,"truncated native extent");
-      const auto block=integer(all,cursor,8),object=integer(all,cursor+8,8);cursor+=16;
-      if(e && block<=prior_block)fail(Code::corrupt,"native extent ordering");
-      n.extents.emplace(block,object);prior_block=block;
-    }
-    previous=n.inode;model.nodes.emplace(n.inode,std::move(n));
+  const bool inode_records = std::equal(kInodeRootMagic.begin(),kInodeRootMagic.end(),header.begin());
+  const auto wire_version = integer(header,8,4);
+  const auto count = integer(header,12,4);
+  const auto declared_extents = integer(header,36,4);
+  const bool indexed_names = inode_records && wire_version>=2;
+  const bool shared_bases = inode_records && wire_version==3;
+  const auto format = inode_records ? 7U : static_cast<std::uint32_t>(wire_version);
+  if (inode_records) {
+    if (!objects.paged() || header.size()!=64 || wire_version<1 || wire_version>3 ||
+        !count || count>kNativeMaxNodes || declared_extents>kNativeMaxExtents)
+      fail(Code::corrupt,"unsupported inode-record root");
+    if (shared_bases && !objects.mirrored())
+      fail(Code::corrupt,"shared bases require protected payloads");
+  } else {
+    if (wire_version<1 || wire_version>7 || (format<6 && !zeros(header.subspan(56,8))) ||
+        !std::equal(namespace_magic(format).begin(),namespace_magic(format).end(),header.begin()))
+      fail(Code::corrupt,"unsupported native namespace capability/magic");
+    if (!count || count>kNativeMaxNodes || declared_extents>kNativeMaxExtents)
+      fail(Code::limit,"native metadata counts");
   }
-  if(cursor!=bytes.size() || extent_count(model)!=declared_extents)fail(Code::corrupt,"native metadata trailing/count mismatch");
+  if (format>=2 && !objects.info().replicated_checkpoint)
+    fail(Code::corrupt,"native lifetime capability requires replicated current checkpoints");
+
+  Model model;
+  model.format=format;
+  model.inode_records=inode_records;
+  model.indexed_names=indexed_names;
+  model.shared_bases=shared_bases;
+  if (format>=6) model.committed_input_bytes=integer(header,56,8);
+  model.sequence=integer(header,16,8);
+  model.next_inode=integer(header,24,8);
+  std::copy_n(header.begin()+40,16,model.identity.begin());
+  if (model.identity!=objects.identity() || model.sequence>objects.info().generation)
+    fail(Code::corrupt,"native identity/sequence binding");
+  std::uint64_t previous=0;
+  const auto insert = [&](Node n) {
+    previous=n.inode;
+    model.nodes.emplace(previous,std::move(n));
+  };
+  std::vector<StoreObjectInfo> catalog;
+  if (inode_records) {
+    std::size_t observed=0, metadata_bytes=header.size();
+    catalog=objects.list(inventory_limit(model));
+    for (const auto& record : catalog) {
+      if (!(record.id&kInodeObjectBit)) continue;
+      if (++observed>count) fail(Code::corrupt,"extra inode metadata record");
+      const auto frame=object_bytes(objects,record.id);
+      if (frame.size()>kMetadataCap-metadata_bytes)
+        fail(Code::corrupt,"inode record aggregate size");
+      metadata_bytes+=frame.size();
+      std::size_t cursor=0;
+      auto inode=decode_inode(frame,format,cursor,previous);
+      if (inode.inode!=(record.id^kInodeObjectBit) || cursor!=frame.size())
+        fail(Code::corrupt,"inode record identity/size binding");
+      insert(std::move(inode));
+    }
+    if (observed!=count) fail(Code::corrupt,"missing inode metadata record");
+  } else {
+    std::size_t cursor=64;
+    for (std::uint64_t i=0;i<count;++i) insert(decode_inode(header,format,cursor,previous));
+    if (cursor!=header.size()) fail(Code::corrupt,"native metadata trailing/count mismatch");
+  }
+  if (extent_count(model)!=declared_extents)
+    fail(Code::corrupt,"native metadata trailing/count mismatch");
   rebuild_names(model);
   try{validate_structure(model);}
   catch(const NativeFsError&){fail(Code::corrupt,"invalid native namespace graph");}
@@ -548,7 +571,7 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
         fail(Code::corrupt,"persisted native directory index differs from inode graph");
     }
     for(const auto& [block,object]:n.extents){(void)block;expected.insert(object);}}
-  const auto catalog=objects.list(inventory_limit(model));
+  if (!inode_records) catalog=objects.list(inventory_limit(model));
   if(shared_bases) {
     for(const auto& object:catalog)if(object.id>=2 && object.id<=kStoreMaxObjects && expected.contains(object.id) && object.logical_bytes!=kNativeExtentBytes) {
       const auto ref=group_reference(object_bytes(objects,object.id));model.members.emplace(object.id,ref);model.bases.insert(ref.base_id);
