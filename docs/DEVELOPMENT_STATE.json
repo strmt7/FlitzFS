@@ -49,7 +49,27 @@
       "outcome": "Portable, sanitizer and native Windows prerequisites passed. Driver provisioning stopped before installation because the SDK stage had selected only user-mode files.",
       "staging_fix_evidence": "docs/evidence/winfsp-driver-staging-2026-11-17.json",
       "actual_mount": false
+    },
+    "completed_disposable_readonly_mount": {
+      "source": "700cdb31de32b847497b02cc0e113d27482e6c85",
+      "run": 44163998196,
+      "job": 134332189624,
+      "scope": "Windows Server 2025, pinned WinFsp v2.2B5, external read-only sealed memory volume and file-fixture termination/remount recovery.",
+      "evidence": "docs/evidence/winfsp-disposable-readonly-700cdb3.json",
+      "actual_mount": true,
+      "windows_11_client": false
     }
+  },
+  "disposable_writable_qualification": {
+    "source": "700cdb31de32b847497b02cc0e113d27482e6c85",
+    "run": 44163998196,
+    "workflow_jobs_passed": 13,
+    "writable_profiles_passed": 7,
+    "scope": "Mounted Windows Server 2025 I/O, deletion, restart/crash and externally flushed memory handoff with signed WinFsp v2.2B5.",
+    "evidence": "docs/evidence/winfsp-disposable-writable-700cdb3.json",
+    "windows_11_client": false,
+    "physical_power_loss_qualified": false,
+    "release": false
   },
   "owner_gpu_observation": {
     "source_commit": "11fbf0797769f234aeab835f71afa678c5ac174a",

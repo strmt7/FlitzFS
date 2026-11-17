@@ -56,8 +56,14 @@ child runs under the existing 128 MiB, 20% CPU and 30-second process envelope.
 The surrounding disposable job gives this mode a 40-second controller deadline.
 
 Local validation covers SDK callbacks, read-only startup rollback, retained
-ownership, sealing and existing paged behavior. The owner system driver remains
-outside this mounted test. The separately provisioned disposable VM workflow
-runs the real mode with signed pinned WinFsp on an isolated system.
+ownership, sealing and existing paged behavior.
+
+On 17 November 2026, the disposable Windows Server 2025 job ran the external
+read-only client against the signed WinFsp v2.2B5 driver. The sealed memory
+volume passed mapped reads, enumeration, mutation refusal, byte parity and
+joined shutdown. The separate native-image fixture passed forced termination,
+independent CPU recovery and remount. This qualifies the tested Windows
+Server/driver pair and source commit. Windows 11 client driver qualification
+remains a separate release gate. [Mounted results](evidence/winfsp-disposable-readonly-700cdb3.json)
 
 [Source-bound evidence](evidence/winfsp-readonly-memory-2026-11-17.json)

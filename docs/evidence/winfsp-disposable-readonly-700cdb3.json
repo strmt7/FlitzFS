@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "scope": "Disposable Windows Server 2025 live external-client read-only and host-isolated remount qualification.",
+  "recorded_on": "35d035b672d282b5b802d133087e2b28d852d325",
+  "run": 44163998196,
+  "job": 134332189624,
+  "commit": "700cdb31de32b847497b02cc0e113d27482e6c85",
+  "log_sha256": "b15226572f097d7262bf2f70a0b34b4d67d1fc17f539b6897d727504824b0ce1",
+  "log_bytes": 135940,
+  "mount_proof": [
+    "real mounted native transactional image reads, sparse tails, persistent inode IDs, mapped I/O, enumeration, write rejection and backing parity.",
+    "native-image mount termination, automatic removal, unchanged source, independent native CPU recovery and same-path remount.",
+    "sealed paged RAM, external mounted reads and mutation refusal, byte parity and joined retirement."
+  ],
+  "driver": {
+    "name": "winfsp-x64.sys",
+    "bytes": 169664,
+    "sha256": "0a91fc3429fd5adf8b9c65976ac0c4ae924702be2cfbed856d90d2a7d99b0390",
+    "file_version": "2.2.26286.14d6e02",
+    "signature_status": "Valid",
+    "signature_type": "Authenticode",
+    "signer_subject": "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+    "signer_issuer": "CN=Microsoft Windows Third Party Component CA 2014, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+    "signer_thumbprint": "6022340C9F4CB00307DF8DB036D392ADAC766212"
+  },
+  "dependency": {
+    "schema": 1,
+    "repository": "winfsp/winfsp",
+    "tag": "v2.2B5",
+    "prerelease": true,
+    "source_commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
+    "msi_name": "winfsp-2.2.26286.msi",
+    "url": "https://github.com/winfsp/winfsp/releases/download/v2.2B5/winfsp-2.2.26286.msi",
+    "bytes": 2207744,
+    "sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+    "release_url": "https://github.com/winfsp/winfsp/releases/tag/v2.2B5",
+    "policy": "Hosted development candidate: upstream security/deadlock fixes beyond latest-stable v2.1. Not owner-PC installation or production qualification."
+  },
+  "os_description": "Microsoft Windows 10.0.26100",
+  "installation_completed_in_disposable_vm": true,
+  "verified_actors": [
+    {
+      "source_pid": 1984,
+      "client_pid": 1524,
+      "recovery_source_pid": 0,
+      "exit_confirmed": true,
+      "supervisor_retired": true
+    },
+    {
+      "source_pid": 5756,
+      "client_pid": 1524,
+      "recovery_source_pid": 0,
+      "exit_confirmed": true,
+      "supervisor_retired": true
+    },
+    {
+      "source_pid": 1492,
+      "client_pid": 1524,
+      "recovery_source_pid": 5756,
+      "exit_confirmed": true,
+      "supervisor_retired": true
+    },
+    {
+      "source_pid": 4136,
+      "client_pid": 4988,
+      "recovery_source_pid": 0,
+      "exit_confirmed": true,
+      "supervisor_retired": true
+    }
+  ],
+  "verified_mount_fixture": {
+    "sealed_paged_memory": true,
+    "separate_client": true,
+    "mapping_and_enumeration": true,
+    "mutation_refused": true,
+    "cpu_reopen_and_backing_parity": true,
+    "read_only_file_fixture_termination_remount": true,
+    "joined_dispatcher_removed_mount": true
+  },
+  "later_local_lookup_changes_covered": false,
+  "windows_11_client_qualification": false,
+  "owner_mount": false,
+  "release": false
+}

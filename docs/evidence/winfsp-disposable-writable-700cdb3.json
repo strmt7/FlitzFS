@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "run": 44163998196,
+  "source": "700cdb31de32b847497b02cc0e113d27482e6c85",
+  "scope": "Disposable Windows Server 2025 and signed WinFsp v2.2B5, source-bound mounted writable fixtures.",
+  "workflow_jobs_passed": 13,
+  "writable_profiles_passed": 7,
+  "profiles": [
+    {
+      "profile": "basic",
+      "job": 134335234298,
+      "reconciled": {
+        "commit": "700cdb31de32b847497b02cc0e113d27482e6c85",
+        "complete": true,
+        "generation": 16,
+        "image_bytes": 1769472,
+        "namespace_sequence": 8,
+        "profile": "basic",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      "log_bytes": 126034,
+      "log_sha256": "5700a241eeda6a0f37ae8803baf77531f02d3f9b4b39b73e1dd13ec9c5fd1923"
+    },
+    {
+      "profile": "delete",
+      "job": 134335234338,
+      "reconciled": {
+        "commit": "700cdb31de32b847497b02cc0e113d27482e6c85",
+        "complete": true,
+        "generation": 32,
+        "image_bytes": 3342336,
+        "namespace_sequence": 16,
+        "profile": "delete",
+        "schema": 1,
+        "user_bytes": 37
+      },
+      "log_bytes": 127009,
+      "log_sha256": "d7c3a04dd3c426f94ded7d19ac4fab812036be6bf852e6b4892ca6f9adb4b8ad"
+    },
+    {
+      "profile": "restart",
+      "job": 134335234358,
+      "reconciled": {
+        "commit": "700cdb31de32b847497b02cc0e113d27482e6c85",
+        "complete": true,
+        "generation": 30,
+        "image_bytes": 3145728,
+        "namespace_sequence": 15,
+        "profile": "restart",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      "log_bytes": 127382,
+      "log_sha256": "c346b0427a090bd4b4950d59a51b5ae6c2061c3837517b21b88d965394b9fbc9"
+    },
+    {
+      "profile": "crash",
+      "job": 134335234387,
+      "reconciled": {
+        "commit": "700cdb31de32b847497b02cc0e113d27482e6c85",
+        "complete": true,
+        "generation": 14,
+        "image_bytes": 1572864,
+        "namespace_sequence": 7,
+        "profile": "crash",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      "log_bytes": 126997,
+      "log_sha256": "d81fdd38895a551a480e4ca2c3a891a90baa382cfe45c37d4c5b7235311c1a35"
+    },
+    {
+      "profile": "mutations",
+      "job": 134335234454,
+      "reconciled": {
+        "commit": "700cdb31de32b847497b02cc0e113d27482e6c85",
+        "complete": true,
+        "generation": 36,
+        "image_bytes": 3735552,
+        "namespace_sequence": 18,
+        "profile": "mutations",
+        "schema": 1,
+        "user_bytes": 89
+      },
+      "log_bytes": 127076,
+      "log_sha256": "b401269a145da86ebf57bf1f6ba97058d2688489f748a7a550f0bf6447c6504a"
+    },
+    {
+      "profile": "crash-restart",
+      "job": 134335234473,
+      "reconciled": {
+        "commit": "700cdb31de32b847497b02cc0e113d27482e6c85",
+        "complete": true,
+        "generation": 28,
+        "image_bytes": 2949120,
+        "namespace_sequence": 14,
+        "profile": "crash-restart",
+        "schema": 1,
+        "user_bytes": 7001
+      },
+      "log_bytes": 127528,
+      "log_sha256": "40e6a79adf358f68ff3eac0fef7ea70b1bba2e733476fdcae0ebfcbcba5f729d"
+    },
+    {
+      "profile": "ram-handoff",
+      "job": 134335234612,
+      "reconciled": {
+        "client_flush_callback_observed": true,
+        "client_process": 7632,
+        "commit": "700cdb31de32b847497b02cc0e113d27482e6c85",
+        "complete": true,
+        "compressed_payload": 219,
+        "contexts": 0,
+        "cpu_verified": true,
+        "epoch": 2,
+        "generation": 24,
+        "gpu": false,
+        "host_self_io_rejected": true,
+        "idle_copy_steps": 2,
+        "locked_after": 0,
+        "locked_peak": 17301504,
+        "mounted": true,
+        "phase": "ram-handoff",
+        "raw_payload": 66062,
+        "recovered_capacity_failure": true,
+        "repeat_suppressed": true,
+        "schema": 1,
+        "source_process": 1252,
+        "source_protocol": "external-client",
+        "stale_candidate_rejected": true,
+        "unmounted": true,
+        "user_bytes": 65609,
+        "volume_serial": 1476416087
+      },
+      "log_bytes": 126105,
+      "log_sha256": "c5aede1bf225f11dfd8e75a01d106a0363597a326e6fcc2a9841f735af425bc4"
+    }
+  ],
+  "host_installation": false,
+  "windows_11_client_qualified": false,
+  "physical_power_loss_qualified": false,
+  "automatic_gpu": false,
+  "release": false
+}

@@ -1,11 +1,15 @@
 # Disposable writable Windows mount trial (experimental)
 
-This is the first deliberately small real writable integration trial, not a
-product mount command. It runs ONLY in the separate windows-write-mount job on
-a freshly provisioned disposable GitHub-hosted Windows VM, after same-commit
-CPU/raw/sanitizer/native checks AND the old read-only mount job pass. Default
-builds and CTest never mount. No owner-PC permission, driver change, existing
-image writer, writable crash-recovery claim or product qualification follows.
+The writable integration fixtures run in the separate windows-write-mount
+jobs on disposable Windows VMs. The matching Windows callback and read-only
+mount jobs precede them. Default builds and CTest use fixture-only paths.
+
+On 17 November 2026, basic I/O, deletion, restart, crash, mutations,
+crash-and-restart and memory handoff passed on Windows Server 2025 with
+the signed WinFsp v2.2B5 driver. The independent memory client exercised
+Flush, compacted-image handoff and CPU readback. Teardown released every
+locked byte. The mounted evidence is scoped to the tested server, driver
+and exact source commit. [Reconciled writable profiles](evidence/winfsp-disposable-writable-700cdb3.json)
 
 ## Source and protocol review
 
@@ -20,7 +24,7 @@ source was captured through GitHub APIs; a guessed dispatcher.c path returned
 404, then exact-symbol native search found fs.c and it was verified at the
 selected immutable pin. No page reader/search snippet supplied source evidence.
 
-The existing provisional-peer guard stays. This first trial excludes deletion,
+The original basic trial used the provisional-peer guard and excluded deletion,
 cancellation/overwrite races, mapped writes and forced helper termination.
 Those remain required writable qualification work; read-only kill/recovery
 results do not cover them. Unverified callbacks still fence and signal external
