@@ -83,11 +83,11 @@ jobs:
           persist-credentials: false
       - name: Configure minimal build
         if: matrix.zstd == 'OFF'
-        run: cmake -S . -B build -DFLITZFS_PORTABLE_CPU=ON -DFLITZFS_WITH_ZSTD=${{ matrix.zstd }} -DFLITZFS_REQUIRE_ZSTD=${{ matrix.zstd }} -DFLITZFS_WITH_LZ4=${{ matrix.zstd }} -DFLITZFS_REQUIRE_LZ4=${{ matrix.zstd }} -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -DFLITZFS_REGISTER_INTEGRATION_FIXTURES=ON -DFLITZFS_PORTABLE_CPU=ON -DFLITZFS_WITH_ZSTD=${{ matrix.zstd }} -DFLITZFS_REQUIRE_ZSTD=${{ matrix.zstd }} -DFLITZFS_WITH_LZ4=${{ matrix.zstd }} -DFLITZFS_REQUIRE_LZ4=${{ matrix.zstd }} -DCMAKE_BUILD_TYPE=Release
       - name: Configure codec-enabled build
         if: runner.os == 'Linux' && matrix.zstd == 'ON'
         run: >-
-          cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build -DFLITZFS_REGISTER_INTEGRATION_FIXTURES=ON -DCMAKE_BUILD_TYPE=Release
           -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
       - name: Build
         run: cmake --build build --config Release --parallel 2
@@ -211,7 +211,7 @@ jobs:
       - name: Configure ASan/UBSan
         run: >-
           cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build-asan -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_BUILD_TYPE=Debug -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
+          -DCMAKE_BUILD_TYPE=Debug -DFLITZFS_REGISTER_INTEGRATION_FIXTURES=ON -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
           -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -O1 -g"
           -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -O1 -g"
           -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
@@ -300,7 +300,7 @@ jobs:
         run: python tools/ci/test_windows_space_reports.py
       - name: Build pinned CPU codec and native callbacks
         shell: pwsh
-        run: ./tools/ci/build_windows_native.ps1
+        run: ./tools/ci/build_windows_native.ps1 -FileBackedFixtures
       - name: Independently inspect native error runtime handle initialization
         run: ./build-native/Release/flitzfs_worker_exchange_tests.exe --native-error-resource-probe
       - name: Exercise actual callbacks without a mounted filesystem

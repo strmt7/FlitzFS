@@ -1,11 +1,11 @@
-# Indexed native volume snapshots
+# Indexed native volumes
 
 An indexed native image uses mirrored paged storage and reads inode, name and
-extent records on demand. The existing native snapshot API provides lookup,
-directory pages, metadata and file reads. The current format accepts explicit
-read-only images and supports export from a checked legacy snapshot. A separate
-volume-head capability and writable transaction engine are required to select
-this layout for a Windows mount.
+extent records on demand. The native snapshot API provides lookup, directory
+pages, metadata and file reads. The native writer can initialize a new mirrored
+image and resume a fully verified indexed image. Its path transactions update
+the checked index and changed records together. Windows mount selection still
+requires a verified volume head and indexed file-handle lifecycle.
 
 ## Root and keys
 
@@ -46,6 +46,43 @@ omitted. Readers check the owner, range and frame before copying. Missing
 extents and omitted tails read as zeros. Data objects retain the paged store's
 independent CPU decoders and mirrored-payload verification.
 
+## Writable transactions
+
+`NativeFilesystemWriter::initialize_indexed` creates the empty root, root
+inode and index in one commit. `resume` checks the reachable inode and extent
+inventory and both copies before admitting writes. The namespace sequence and
+allocators advance only through a selected transaction. Existing readers keep
+their immutable checkpoint.
+
+`apply` and `apply_with_metadata` support creation, sparse writes, truncation,
+rename with optional replacement, removal, and basic and security metadata.
+An edit reads the names, inodes and extent ranges it needs. Missing blocks read
+as zeros. Shrinking a file clears deleted mappings and the unused tail, so
+re-extension cannot expose previous bytes. Directory moves check cycles and
+validate descendant paths when the new prefix grows. The root, affected inode
+records, data frames and index edits share one mirrored copy-on-write
+publication. A resource or capacity refusal during preparation leaves the
+checkpoint and writer usable. An ambiguous publication fences the writer until
+independent recovery.
+
+The old namespace-wide file and extent counts and 16-operation path batch
+limit no longer govern this layout. The paged transaction still has a finite
+working budget for its owned input and affected records. Truncation and removal
+that exceed this budget fail before writing. Large range retirement needs a
+durable cursor and reclamation that respects earlier snapshots. Expanding
+directory moves currently scan the subtree in pages. Per-directory summary
+metadata or revised path representation must remove that foreground cost before
+large production mounts.
+
+The raw fixture created, paged and byte-checked 1,024 nonempty files. The
+latest checkpoint occupied 3,792,896 bytes. The selected 17-byte replacement
+read 202,372 backing bytes and full scrub read 291,765,432. The three failure
+modes at 77 write or barrier positions recovered 223 previous and eight fully
+committed checkpoints. The same fixture verified retained snapshots, resumed
+writing, a sparse offset near the 64-bit boundary, capacity rejection and
+continued writes. These are measurements of the development fixtures.
+[Executed writer evidence](evidence/native-indexed-writer-2026-11-18.json)
+
 ## Export and validation
 
 `create_indexed_copy` takes a legacy snapshot with resolved file lifetimes and
@@ -66,9 +103,9 @@ charged extents without building an inventory-sized map. The public
 Legacy shared-base members are decoded through the existing CPU path and
 re-encoded as individual extent records. The export preserves decoded bytes,
 file IDs, timestamps, descriptors and reservations in the exercised fixtures.
-The next transaction engine needs recoverable live mutations, collective
-representations and verified volume-head handoff before automatic adoption.
-The handoff must bind the source and destination checkpoints independently
+Automatic adoption needs indexed handle lifetime transactions, collective
+representations and verified volume-head handoff. The handoff must bind the
+source and destination checkpoints independently
 of the preserved namespace sequence. It also needs independently verified
 layout equivalence and enough retained source state for immediate rollback.
 

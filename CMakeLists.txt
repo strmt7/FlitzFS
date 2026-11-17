@@ -57,14 +57,9 @@ endif()
 # implementations are separate translation units, never global /arch or -march.
 option(FLITZFS_CPU_SIMD "Use source-verified runtime-dispatched CPU digest acceleration" ON)
 option(FLITZFS_BOUNDED_DIGEST_COMPARISON "Build Windows digest/memory comparison containment" OFF)
-# Integration fixtures have backing/runtime requirements, not a hosting rule.
-# Preserve existing CI defaults; local callers can select the same fixtures
-# once their owned backing, SDK/runtime and containment have been qualified.
-set(flitzfs_integration_default OFF)
-if("$ENV{GITHUB_ACTIONS}" STREQUAL "true" AND "$ENV{RUNNER_ENVIRONMENT}" STREQUAL "github-hosted")
-  set(flitzfs_integration_default ON)
-endif()
-option(FLITZFS_REGISTER_INTEGRATION_FIXTURES "Register qualified file-backed and owned-worker integration fixtures" ${flitzfs_integration_default})
+# File-backed fixtures use explicitly selected backing. In-memory SDK fixtures
+# are part of their ordinary Windows build.
+option(FLITZFS_REGISTER_INTEGRATION_FIXTURES "Register file-backed integration fixtures" OFF)
 set(flitzfs_blake3_disabled BLAKE3_USE_NEON=0)
 set(flitzfs_blake3_backend "portable")
 set(flitzfs_blake3_simd_sources)
@@ -852,22 +847,18 @@ if(FLITZFS_BUILD_WINFSP)
     target_link_libraries(flitzfs_native_deferred_write_sdk_tests PRIVATE flitzfs_winfsp Threads::Threads)
     add_custom_command(TARGET flitzfs_native_deferred_write_sdk_tests POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_native_deferred_write_sdk_tests>")
-    if(FLITZFS_REGISTER_INTEGRATION_FIXTURES)
-      add_test(NAME owned_native_deferred_write_sdk COMMAND flitzfs_native_deferred_write_sdk_tests
-        "$<TARGET_FILE:flitzfs_worker_exchange_tests>")
-      set_tests_properties(owned_native_deferred_write_sdk PROPERTIES TIMEOUT 45)
-    endif()
+    add_test(NAME owned_native_deferred_write_sdk COMMAND flitzfs_native_deferred_write_sdk_tests
+      "$<TARGET_FILE:flitzfs_worker_exchange_tests>")
+    set_tests_properties(owned_native_deferred_write_sdk PROPERTIES TIMEOUT 45)
 
     add_executable(flitzfs_native_uniform_write_sdk_tests tests/test_native_uniform_write_sdk.cpp)
     target_include_directories(flitzfs_native_uniform_write_sdk_tests PRIVATE src)
     target_link_libraries(flitzfs_native_uniform_write_sdk_tests PRIVATE flitzfs_winfsp)
     add_custom_command(TARGET flitzfs_native_uniform_write_sdk_tests POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_native_uniform_write_sdk_tests>")
-    if(FLITZFS_REGISTER_INTEGRATION_FIXTURES)
-      add_test(NAME controlled_native_uniform_write_sdk COMMAND flitzfs_native_uniform_write_sdk_tests
-        "$<TARGET_FILE:flitzfs_worker_exchange_tests>")
-      set_tests_properties(controlled_native_uniform_write_sdk PROPERTIES TIMEOUT 45)
-    endif()
+    add_test(NAME controlled_native_uniform_write_sdk COMMAND flitzfs_native_uniform_write_sdk_tests
+      "$<TARGET_FILE:flitzfs_worker_exchange_tests>")
+    set_tests_properties(controlled_native_uniform_write_sdk PROPERTIES TIMEOUT 45)
 
     add_executable(flitzfs_native_file_info_sdk_tests tests/test_native_file_info_sdk.cpp)
     target_include_directories(flitzfs_native_file_info_sdk_tests PRIVATE src)

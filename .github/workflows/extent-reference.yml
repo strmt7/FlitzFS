@@ -60,7 +60,7 @@ jobs:
         run: python tools/ci/build_linux_codecs.py
       - name: Configure test-only extent decoder reference
         run: >-
-          cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build-oracle -DCMAKE_BUILD_TYPE=Release
+          cmake -C .ci-deps/linux-codecs/codec-cache.cmake -S . -B build-oracle -DFLITZFS_REGISTER_INTEGRATION_FIXTURES=ON -DCMAKE_BUILD_TYPE=Release
           -DFLITZFS_REQUIRE_ZSTD=ON -DFLITZFS_REQUIRE_LZ4=ON
           -DFLITZFS_EXTENT_REFERENCE_SOURCE=${{ github.workspace }}/.ci-deps/flitzzip
       - name: Build with at most two workers

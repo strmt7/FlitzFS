@@ -1,14 +1,18 @@
 #pragma once
 #include "flitzfs/object_store.hpp"
+#include <stdexcept>
 
 namespace flitzfs {
-// Experimental scalable object-storage path. Explicitly opted in; the flat
-// native filesystem can explicitly use this backend; namespace metadata is
-// still flat/bounded. No file/driver/GPU I/O
-// factories. Caller supplies an exclusively owned, resource-admitted backend.
+// Scalable object storage for native volumes. The caller supplies an
+// exclusively owned, resource-admitted backend.
 // One control thread; do not race writers, snapshots or backing mutations.
 struct PagedStoreLimits {
   std::uint64_t maximum_physical_bytes=0; // Required; capacity, not current RAM use.
+};
+// Resource or capacity rejection during nonmutating transaction preparation.
+class PagedStoreCapacityError final:public std::runtime_error {
+ public:
+  using std::runtime_error::runtime_error;
 };
 struct PagedStoreInfo {
   // Stored payload total includes both copies in capability 2. Individual

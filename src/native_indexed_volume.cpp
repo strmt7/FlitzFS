@@ -1,6 +1,8 @@
 #include "native_indexed_volume.hpp"
+#include "native_object_storage.hpp"
 #include "flitzfs/catalog.hpp"
 #include <algorithm>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <new>
@@ -116,6 +118,468 @@ std::uint64_t reserved_extents(const IndexedInodeInput& inode) {
 }
 } // namespace
 
+
+namespace {
+
+void decrement(std::uint64_t& count) {
+  if(!count)fail(Code::corrupt,"indexed volume count underflow");
+  --count;
+}
+
+class IndexedVolumeTransaction final {
+ public:
+  IndexedVolumeTransaction(const PagedObjectStoreSnapshot& source,const IndexedVolumeRoot& expected)
+      :source_(source),before_(expected),next_(expected),index_(source) {
+    if(decode_root(required(source_,namespace_object,root_size))!=before_ ||
+        index_.kind()!=NativeIndexKind::names_and_extents ||
+        index_.size()!=add(before_.inodes-1,before_.extents))
+      fail(Code::corrupt,"indexed transaction source changed");
+    if(next_.sequence==(std::numeric_limits<std::uint64_t>::max)())
+      fail(Code::limit,"indexed sequence exhausted");
+    ++next_.sequence;
+  }
+
+  void apply(const NativeFileMutation& op) {
+    const auto key=name_key(op.path);
+    const auto write=op.operation==NativeFileOperation::write;
+    const auto truncate=op.operation==NativeFileOperation::truncate;
+    const auto rename=op.operation==NativeFileOperation::rename;
+    if((!write && (op.offset || !op.data.empty())) || (!truncate && op.size) ||
+        (!rename && (!op.target.empty() || op.replace)))
+      fail(Code::invalid_operation,"unused indexed mutation fields");
+    switch(op.operation) {
+      case NativeFileOperation::create_file:
+      case NativeFileOperation::create_directory:
+        create(op.path,op.operation==NativeFileOperation::create_directory);
+        return;
+      case NativeFileOperation::write: write_file(resolve(key),op.offset,op.data);return;
+      case NativeFileOperation::truncate: truncate_file(resolve(key),op.size);return;
+      case NativeFileOperation::rename: move(resolve(key),op);return;
+      case NativeFileOperation::remove: discard(resolve(key));return;
+    }
+    fail(Code::invalid_operation,"unknown indexed mutation");
+  }
+
+  void apply(const NativeBasicMutation& op) {
+    const auto n=metadata_inode(op.inode,op.created_ordinal);
+    if(bool(op.value.attributes&0x10U)!=n.directory)
+      fail(Code::invalid_operation,"indexed basic metadata type mismatch");
+    if(n.basic!=op.value)edit(n.inode).basic=op.value;
+  }
+
+  void apply(const NativeSecurityMutation& op) {
+    const auto n=metadata_inode(op.inode,op.created_ordinal);
+    if(n.security!=op.value)edit(n.inode).security=op.value;
+  }
+
+  void enable_workload() noexcept {next_.workload.enabled=true;}
+
+  NativeFsCommit finish(PagedObjectStoreWriter& writer,IndexedVolumeRoot& current) {
+    NativeFsCommit result;
+    result.created_inodes=std::move(created_);
+    if(nodes_.empty() && next_.workload==before_.workload) {
+      result.storage=native_paged_info(healthy_checkpoint());result.sequence=before_.sequence;
+      return result;
+    }
+
+    std::vector<StoreMutation> records;
+    std::vector<NativeNameEdit> edits;
+    for(const auto& [key,replacement]:names_) {
+      const auto expected=index_.find(key);
+      if(expected!=replacement)edits.push_back({key,expected,replacement});
+    }
+    for(auto& [key,extent]:extents_) {
+      if(!extent.dirty)continue;
+      const auto [id,block]=key;
+      const auto& changed=nodes_.at(id);
+      if(extent.payload.empty()) {
+        if(!extent.original)continue;
+        records.push_back({*extent.original,true,{}});
+        edits.push_back({native_extent_key(id,block),extent.original,{}});
+        decrement(next_.extents);
+        if(!changed.original_allocation)decrement(next_.charged_extents);
+      } else {
+        const auto& n=*changed.value;
+        auto object=extent.original;
+        if(!object) {
+          if(next_.next_extent==kNativeIndexedInodeLimit)fail(Code::limit,"indexed extent identity exhausted");
+          object=kNativeIndexedDataObject|next_.next_extent++;
+          edits.push_back({native_extent_key(id,block),{},object});
+          ++next_.extents;
+          if(!n.allocation)next_.charged_extents=add(next_.charged_extents,1);
+        }
+        records.push_back({*object,false,encode_extent(n,{id,block,extent.payload})});
+      }
+    }
+    for(const auto& [id,changed]:nodes_) {
+      if(changed.value) {
+        records.push_back({inode_domain|id,false,encode_indexed_inode(*changed.value,next_)});
+        if(!changed.original_size)++next_.inodes;
+        const auto reserved=reserved_extents(*changed.value);
+        if(reserved<changed.original_reserved)fail(Code::corrupt,"indexed reservation shrank");
+        next_.charged_extents=add(next_.charged_extents,reserved-changed.original_reserved);
+      } else if(changed.original_size) {
+        records.push_back({inode_domain|id,true,{}});
+        decrement(next_.inodes);
+        if(next_.charged_extents<changed.original_reserved)
+          fail(Code::corrupt,"indexed reservation underflow");
+        next_.charged_extents-=changed.original_reserved;
+      }
+    }
+    records.push_back({namespace_object,false,encode_root(next_)});
+    if(records.size()>kStoreMaxObjects)fail(Code::limit,"indexed record transaction budget");
+    std::size_t input=0;
+    for(const auto& record:records) {
+      if(record.bytes.size()>kStoreMaxTransactionBytes-input)
+        fail(Code::limit,"indexed record transaction input budget");
+      input+=record.bytes.size();
+    }
+    (void)healthy_checkpoint();
+    try {
+      result.storage=native_paged_info(edits.empty()?writer.commit(records):
+          NativeNameIndex::commit(writer,edits,std::move(records)));
+    }catch(const NativeFsError&){throw;}
+    catch(const PagedStoreCapacityError& error) {
+      if(writer.poisoned())fail(Code::storage_failure,"indexed publication failed after admission");
+      fail(Code::limit,error.what());
+    }catch(const std::bad_alloc&) {
+      if(writer.poisoned())fail(Code::storage_failure,"indexed publication failed after admission");
+      throw;
+    }catch(const std::exception&){fail(Code::storage_failure,"indexed storage commit failed");}
+    result.sequence=next_.sequence;
+    current=next_;
+    return result;
+  }
+
+ private:
+  struct InodeEdit {
+    std::optional<IndexedInodeInput> value;
+    std::optional<std::uint64_t> original_size,original_allocation;
+    std::uint64_t original_reserved=0;
+  };
+  struct ExtentEdit {
+    std::optional<std::uint64_t> original;
+    Bytes payload;
+    bool dirty=false;
+  };
+  const PagedObjectStoreSnapshot& source_;
+  IndexedVolumeRoot before_,next_;
+  NativeNameIndex index_;
+  std::map<std::uint64_t,InodeEdit> nodes_;
+  std::map<NativeNameKey,std::optional<std::uint64_t>> names_;
+  std::map<std::pair<std::uint64_t,std::uint64_t>,ExtentEdit> extents_;
+  std::vector<std::uint64_t> created_;
+  std::size_t payload_bytes_=0;
+
+  PagedStoreInfo healthy_checkpoint() const {
+    const auto info=source_.info();
+    if(info.degraded_roots || info.degraded_metadata || info.degraded_payloads)
+      fail(Code::storage_failure,"indexed transaction encountered degraded storage");
+    return info;
+  }
+
+  IndexedInodeInput node(std::uint64_t id) const {
+    const auto staged=nodes_.find(id);
+    if(staged==nodes_.end())return load_inode(source_,before_,id);
+    if(!staged->second.value)fail(Code::not_found,"indexed inode was removed in this transaction");
+    return *staged->second.value;
+  }
+
+  IndexedInodeInput linked_inode(const NativeNameKey& key,std::uint64_t id) const {
+    try {
+      auto n=node(id);
+      if(n.parent!=key.parent || name_key(n.name)!=key.name)
+        fail(Code::corrupt,"indexed transaction name and inode disagree");
+      return n;
+    }catch(const NativeFsError& error) {
+      if(error.code()==Code::not_found)fail(Code::corrupt,"indexed transaction name has no inode");
+      throw;
+    }
+  }
+
+  IndexedInodeInput resolve(std::string_view key) const {
+    auto n=node(1);
+    for(std::size_t begin=0;begin<key.size();) {
+      if(!n.directory)fail(Code::not_directory,"indexed path ancestor is a file");
+      const auto separator=key.find('/',begin);
+      const auto end=separator==std::string_view::npos?key.size():separator;
+      n=child({n.inode,std::string(key.substr(begin,end-begin))});
+      begin=end+1;
+    }
+    return n;
+  }
+
+  std::optional<std::uint64_t> binding(const NativeNameKey& key) const {
+    const auto staged=names_.find(key);
+    return staged==names_.end()?index_.find(key):staged->second;
+  }
+
+  IndexedInodeInput child(const NativeNameKey& key) const {
+    const auto id=binding(key);
+    if(!id)fail(Code::not_found,"indexed path not found");
+    return linked_inode(key,*id);
+  }
+
+  NativeNameKey destination(std::string_view path,std::string& spelling) const {
+    const auto key=name_key(path);
+    const auto slash=key.rfind('/');
+    const auto start=slash==std::string::npos?0:slash+1;
+    auto parent=resolve(start?std::string_view(key).substr(0,slash):std::string_view{});
+    if(!parent.directory)fail(Code::not_directory,"indexed destination parent is a file");
+    spelling=path.substr(start);
+    return {parent.inode,key.substr(start)};
+  }
+
+  IndexedInodeInput& edit(std::uint64_t id) {
+    auto it=nodes_.find(id);
+    if(it==nodes_.end()) {
+      if(nodes_.size()==kStoreMaxObjects)fail(Code::limit,"indexed inode transaction budget");
+      auto n=load_inode(source_,before_,id);
+      const auto original_size=n.size;
+      const auto original_allocation=n.allocation;
+      const auto reserved=reserved_extents(n);
+      it=nodes_.emplace(id,InodeEdit{std::move(n),original_size,original_allocation,reserved}).first;
+    }
+    if(!it->second.value)fail(Code::not_found,"indexed inode was removed in this transaction");
+    it->second.value->modified=next_.sequence;
+    return *it->second.value;
+  }
+
+  IndexedInodeInput metadata_inode(std::uint64_t id,std::uint32_t ordinal) const {
+    if(ordinal) {
+      if(ordinal>created_.size())fail(Code::invalid_operation,"indexed creation selector out of range");
+      id=created_[ordinal-1];
+    }
+    return node(id);
+  }
+
+  void create(std::string_view path,bool directory) {
+    std::string spelling;
+    auto key=destination(path,spelling);
+    if(const auto id=binding(key)) {
+      (void)linked_inode(key,*id);
+      fail(Code::already_exists,"indexed destination exists");
+    }
+    if(next_.next_inode==kNativeIndexedInodeLimit || nodes_.size()==kStoreMaxObjects)
+      fail(Code::limit,"indexed inode allocation budget");
+    const auto id=next_.next_inode++;
+    IndexedInodeInput n{id,key.parent,0,next_.sequence,next_.sequence,directory,std::move(spelling),{},{},{}};
+    (void)edit(key.parent);
+    nodes_.emplace(id,InodeEdit{std::move(n),{},{},0});
+    names_[std::move(key)]=id;
+    created_.push_back(id);
+  }
+
+  template<class Visitor>
+  bool visit_children(std::uint64_t id,Visitor&& visitor) const {
+    for(auto it=names_.lower_bound({id,{}});it!=names_.end() && it->first.parent==id;++it)
+      if(it->second && !visitor(linked_inode(it->first,*it->second)))return false;
+    std::string after;
+    for(;;) {
+      const auto page=index_.list(id,after,64);
+      if(page.empty())return true;
+      for(const auto& row:page)
+        if(!names_.contains(row.key) && !visitor(linked_inode(row.key,row.value)))return false;
+      after=page.back().key.name;
+    }
+  }
+
+  void verify_descendant_paths(std::uint64_t id,std::size_t bytes,unsigned depth) const {
+    visit_children(id,[&](const IndexedInodeInput& child) {
+      const auto length=bytes+1+child.name.size();
+      if(length>240 || depth==16)fail(Code::invalid_path,"indexed rename exceeds descendant path bounds");
+      if(child.directory)verify_descendant_paths(child.inode,length,depth+1);
+      return true;
+    });
+  }
+
+  void move(const IndexedInodeInput& n,const NativeFileMutation& op) {
+    std::string spelling;
+    auto key=destination(op.target,spelling);
+    for(auto id=key.parent;id;) {
+      if(id==n.inode)fail(Code::invalid_operation,"indexed rename would create a cycle");
+      id=node(id).parent;
+    }
+    if(const auto target=binding(key)) {
+      if(*target==n.inode) {
+        if(n.name==spelling)return;
+      } else {
+        if(!op.replace)fail(Code::already_exists,"indexed rename destination exists");
+        const auto victim=linked_inode(key,*target);
+        if(victim.directory!=n.directory)fail(Code::invalid_operation,"indexed rename type mismatch");
+        discard(victim);
+      }
+    }
+    if(n.directory) {
+      const auto source_depth=std::count(op.path.begin(),op.path.end(),'/');
+      const auto target_depth=std::count(op.target.begin(),op.target.end(),'/');
+      if(op.target.size()>op.path.size() || target_depth>source_depth)
+        verify_descendant_paths(n.inode,op.target.size(),static_cast<unsigned>(target_depth+1));
+    }
+    names_[{n.parent,name_key(n.name)}]={};
+    auto& entry=edit(n.inode);
+    entry.parent=key.parent;entry.name=std::move(spelling);
+    (void)edit(n.parent);
+    (void)edit(key.parent);
+    names_[std::move(key)]=n.inode;
+  }
+
+  void discard(const IndexedInodeInput& n) {
+    if(n.directory && !visit_children(n.inode,[](const auto&){return false;}))
+      fail(Code::not_empty,"indexed directory is not empty");
+    (void)edit(n.inode);
+    if(!n.directory)clear_extents(n.inode,0);
+    nodes_.at(n.inode).value.reset();
+    names_[{n.parent,name_key(n.name)}]={};
+    (void)edit(n.parent);
+  }
+
+  void resize(ExtentEdit& extent,std::size_t size) {
+    const auto rest=payload_bytes_-extent.payload.capacity();
+    if(size>kStoreMaxTransactionBytes-rest)fail(Code::limit,"indexed staging payload budget");
+    extent.payload.resize(size);
+    if(extent.payload.capacity()>kStoreMaxTransactionBytes-rest)fail(Code::limit,"indexed staging payload budget");
+    payload_bytes_=rest+extent.payload.capacity();
+  }
+
+  ExtentEdit& load_extent(std::uint64_t id,std::uint64_t block) {
+    auto it=extents_.find({id,block});
+    if(it!=extents_.end())return it->second;
+    if(extents_.size()==kStoreMaxObjects)fail(Code::limit,"indexed extent transaction budget");
+    ExtentEdit value;
+    const auto& n=nodes_.at(id);
+    if(n.original_size) {
+      value.original=index_.find(native_extent_key(id,block));
+      if(value.original) {
+        if(domain(*value.original)!=kNativeIndexedDataObject || !(*value.original&ordinal_mask) ||
+            (*value.original&ordinal_mask)>=before_.next_extent)
+          fail(Code::corrupt,"indexed data identity outside allocator");
+        auto bytes=required(source_,*value.original,kNativeExtentBytes+extent_header);
+        IndexedInodeInput original;original.inode=id;original.size=*n.original_size;
+        verify_extent(bytes,original,block);
+        bytes.erase(bytes.begin(),bytes.begin()+extent_header);
+        if(bytes.capacity()>kStoreMaxTransactionBytes-payload_bytes_)
+          fail(Code::limit,"indexed staging payload budget");
+        payload_bytes_+=bytes.capacity();
+        value.payload=std::move(bytes);
+      }
+    }
+    return extents_.emplace(std::pair{id,block},std::move(value)).first->second;
+  }
+
+  void clear_extent(ExtentEdit& extent) {
+    extent.dirty=extent.dirty || extent.original.has_value();
+    payload_bytes_-=extent.payload.capacity();
+    Bytes{}.swap(extent.payload);
+  }
+
+  void clear_extents(std::uint64_t id,std::uint64_t first) {
+    const auto start=native_extent_key(id,first?first-1:0);
+    auto after=first?start.name:std::string{};
+    if(nodes_.at(id).original_size)for(;;) {
+      const auto page=index_.list(start.parent,after,64);
+      if(page.empty())break;
+      for(const auto& row:page)clear_extent(load_extent(id,native_extent_block(row.key.name)));
+      after=page.back().key.name;
+    }
+    for(auto it=extents_.lower_bound({id,first});it!=extents_.end() && it->first.first==id;++it)
+      clear_extent(it->second);
+  }
+
+  void trim(ExtentEdit& extent) {
+    while(!extent.payload.empty() && extent.payload.back()==std::byte{})extent.payload.pop_back();
+    if(extent.payload.empty())clear_extent(extent);
+  }
+
+  void set_size(IndexedInodeInput& n,std::uint64_t size) {
+    if(n.allocation && size>*n.allocation) {
+      const auto remainder=size%kNativeAllocationUnit;
+      const auto padding=remainder?kNativeAllocationUnit-remainder:0;
+      if(padding>(std::numeric_limits<std::uint64_t>::max)()-size)
+        fail(Code::limit,"indexed reservation alignment overflow");
+      n.allocation=size+padding;
+    }
+    n.size=size;
+  }
+
+  void write_file(const IndexedInodeInput& n,std::uint64_t offset,std::span<const std::byte> bytes) {
+    if(n.directory)fail(Code::is_directory,"cannot write indexed directory");
+    if(bytes.size()>(std::numeric_limits<std::uint64_t>::max)()-offset)
+      fail(Code::limit,"indexed write range overflow");
+    if(bytes.empty())return;
+    auto& updated=edit(n.inode);
+    for(std::size_t done=0;done<bytes.size();) {
+      const auto position=offset+done;
+      const auto within=static_cast<std::size_t>(position%kNativeExtentBytes);
+      const auto count=(std::min)(bytes.size()-done,kNativeExtentBytes-within);
+      const auto input=bytes.subspan(done,count);
+      auto& extent=load_extent(n.inode,position/kNativeExtentBytes);
+      const auto overlap=extent.payload.size()>within?(std::min)(count,extent.payload.size()-within):0;
+      if((overlap && !std::ranges::equal(input.first(overlap),
+              std::span<const std::byte>(extent.payload).subspan(within,overlap))) ||
+          std::ranges::any_of(input.subspan(overlap),[](std::byte b){return b!=std::byte{};})) {
+        if(extent.payload.size()<within+count)resize(extent,within+count);
+        std::ranges::copy(input,extent.payload.begin()+static_cast<std::ptrdiff_t>(within));
+        extent.dirty=true;
+        trim(extent);
+      }
+      done+=count;
+    }
+    set_size(updated,(std::max)(n.size,offset+bytes.size()));
+    if(next_.workload.enabled) {
+      const auto room=(std::numeric_limits<std::uint64_t>::max)()-next_.workload.committed_input_bytes;
+      next_.workload.committed_input_bytes+=(std::min)(room,static_cast<std::uint64_t>(bytes.size()));
+    }
+  }
+
+  void truncate_file(const IndexedInodeInput& n,std::uint64_t size) {
+    if(n.directory)fail(Code::is_directory,"cannot truncate indexed directory");
+    if(size==n.size)return;
+    auto& updated=edit(n.inode);
+    if(size<n.size) {
+      const auto block=size/kNativeExtentBytes;
+      const auto tail=static_cast<std::size_t>(size%kNativeExtentBytes);
+      clear_extents(n.inode,block+(tail?1U:0U));
+      if(tail) {
+        auto& extent=load_extent(n.inode,block);
+        if(extent.payload.size()>tail) {
+          resize(extent,tail);trim(extent);extent.dirty=true;
+        }
+      }
+    }
+    set_size(updated,size);
+  }
+};
+
+} // namespace
+
+IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer) {
+  const auto snapshot=writer.snapshot();
+  if(writer.poisoned() || snapshot.info().generation!=2 || !snapshot.info().mirrored_payloads ||
+      snapshot.info().objects)
+    fail(Code::invalid_operation,"indexed initialization requires a new mirrored store");
+  IndexedVolumeRoot root;
+  root.identity=snapshot.identity();root.sequence=1;root.inodes=1;root.workload.enabled=true;
+  IndexedInodeInput directory;
+  directory.inode=1;directory.born=1;directory.modified=1;directory.directory=true;
+  std::vector<StoreMutation> initial;
+  initial.push_back({namespace_object,false,encode_root(root)});
+  initial.push_back({inode_domain|1,false,encode_indexed_inode(directory,root)});
+  NativeNameIndex::initialize(writer,std::move(initial),NativeIndexKind::names_and_extents);
+  return root;
+}
+
+NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter& writer,const PagedObjectStoreSnapshot& source,
+    IndexedVolumeRoot& current,std::span<const NativeFileMutation> operations,
+    std::span<const NativeBasicMutation> basic,std::span<const NativeSecurityMutation> security,bool enable_workload) {
+  IndexedVolumeTransaction transaction(source,current);
+  if(enable_workload)transaction.enable_workload();
+  for(const auto& op:operations)transaction.apply(op);
+  for(const auto& op:basic)transaction.apply(op);
+  for(const auto& op:security)transaction.apply(op);
+  return transaction.finish(writer,current);
+}
+
 bool indexed_volume_root(std::span<const std::byte> bytes) noexcept {return magic(bytes,root_magic);}
 IndexedVolumeView::IndexedVolumeView(const PagedObjectStoreSnapshot& store,std::span<const std::byte> root)
     :IndexedVolumeView(store,decode_root(root)) {}
@@ -173,6 +637,11 @@ std::string IndexedVolumeView::path(const IndexedInodeInput& input) const {
   }
   return result;
 }
+NativeFileInfo IndexedVolumeView::stat(std::string_view path_value) const {
+  std::string spelling;
+  const auto selected=resolve(path_value,&spelling);
+  return file_info(selected,std::move(spelling));
+}
 NativeFileInfo IndexedVolumeView::stat_inode(std::uint64_t id) const {
   const auto selected=inode(id);
   return file_info(selected,path(selected));
@@ -196,6 +665,17 @@ IndexedDirectoryPage IndexedVolumeView::list(std::uint64_t directory,std::string
   if(records.size()==maximum && !index_.list(directory,records.back().key.name,1).empty())
     result.after=records.back().key.name;
   return result;
+}
+std::vector<NativeFileInfo> IndexedVolumeView::list_all(std::uint64_t directory) const {
+  std::vector<NativeFileInfo> entries;
+  std::optional<std::string> after;
+  do {
+    auto page=list(directory,after.value_or(std::string{}),128);
+    entries.insert(entries.end(),std::make_move_iterator(page.entries.begin()),
+        std::make_move_iterator(page.entries.end()));
+    after=std::move(page.after);
+  }while(after);
+  return entries;
 }
 Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t offset,std::uint32_t bytes) const {
   if(selected.directory)fail(Code::is_directory,"cannot read indexed directory");

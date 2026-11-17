@@ -1087,6 +1087,7 @@ struct NativeFilesystemWriter::Impl {
   detail::NativeObjectWriter objects;Model model;bool poisoned=false;
   // An allocation-free copy of the canonical root of this committed Model.
   InodeRootBytes inode_root{};
+  std::optional<detail::IndexedVolumeRoot> indexed;
   std::shared_ptr<SharedBaseOwner> shared_owner=std::make_shared<SharedBaseOwner>();
   void remember(std::span<const StoreMutation> changes,std::uint64_t generation,bool content_changed=true) noexcept {
     for(const auto& change:changes)if(change.id>=2 && change.id<=kStoreMaxObjects) {
@@ -1097,12 +1098,28 @@ struct NativeFilesystemWriter::Impl {
   Impl(detail::NativeObjectWriter writer,Model state):objects(std::move(writer)),model(std::move(state)) {
     if(model.inode_records)inode_root=inode_root_bytes(model);
   }
+  explicit Impl(detail::NativeObjectWriter writer):objects(std::move(writer)) {}
+  template<class Read>
+  auto read_indexed(Read&& read) {
+    try {
+      const auto snapshot=objects.snapshot_for_staging(true);
+      const auto bytes=object_bytes(snapshot,kNamespaceObject,kMetadataCap);
+      const detail::IndexedVolumeView view(*snapshot.paged_if(),bytes);
+      if(view.root()!=*indexed)fail(Code::corrupt,"indexed writer root differs from backing");
+      return std::forward<Read>(read)(view);
+    }catch(const std::bad_alloc&){fail(Code::limit,"indexed namespace query allocation failure");}
+    catch(const NativeFsError& error) {
+      if(error.code()==Code::corrupt || error.code()==Code::storage_failure)poisoned=true;
+      throw;
+    }catch(const std::exception&){poisoned=true;fail(Code::storage_failure,"indexed namespace query failed");}
+  }
   void accept(Model&& state) noexcept {
     model=std::move(state);
     if(model.inode_records)inode_root=inode_root_bytes(model);
   }
   template<class Read>
   auto read_checked(bool complete,Read&& read) {
+    if(indexed)fail(Code::invalid_operation,"operation requires an indexed namespace implementation");
     try {
       const bool scoped=!complete && model.inode_records;
       auto snapshot=objects.snapshot_for_staging(scoped);
@@ -1250,11 +1267,7 @@ bool NativeFilesystemWriter::maintenance_busy() const noexcept{return !poisoned(
 bool NativeFilesystemWriter::maintenance_supported() const noexcept{return !poisoned() && impl_->model.shared_bases;}
 NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  if(impl_->indexed) {
-    std::string spelling;
-    const auto n=impl_->indexed->resolve(path,&spelling);
-    return {n.inode,n.parent,n.size,n.born,n.modified,n.directory,std::move(spelling)};
-  }
+  if(impl_->indexed)return impl_->indexed->stat(path);
   return file_info(impl_->model,resolve_snapshot(impl_->objects,impl_->model,path));
 }
 namespace {
@@ -1344,16 +1357,7 @@ std::vector<NativeFileInfo> NativeFilesystemSnapshot::list(std::string_view dire
 }
 std::vector<NativeFileInfo> NativeFilesystemSnapshot::list_inode(std::uint64_t directory) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  if(impl_->indexed) {
-    std::vector<NativeFileInfo> files;
-    std::optional<std::string> after;
-    do {
-      auto page=impl_->indexed->list(directory,after.value_or(std::string{}),128);
-      files.insert(files.end(),std::make_move_iterator(page.entries.begin()),std::make_move_iterator(page.entries.end()));
-      after=std::move(page.after);
-    }while(after);
-    return files;
-  }
+  if(impl_->indexed)return impl_->indexed->list_all(directory);
   const auto& entry=selected_inode(impl_->model,directory);
   if(impl_->model.indexed_names)verify_directory(impl_->objects,impl_->model,entry);
   return list_node(impl_->model,entry);
@@ -1451,6 +1455,20 @@ NativeFilesystemWriter NativeFilesystemWriter::initialize_inode_records(PagedObj
 }
 NativeFilesystemWriter NativeFilesystemWriter::initialize_indexed_names(PagedObjectStoreWriter objects) {
   return initialize_storage(std::move(objects),true,true);
+}
+NativeFilesystemWriter NativeFilesystemWriter::initialize_indexed(PagedObjectStoreWriter objects) {
+  try {
+    auto p=std::make_unique<Impl>(detail::NativeObjectWriter(std::move(objects)));
+    p->indexed=detail::initialize_indexed_volume(*p->objects.paged_if());
+    return NativeFilesystemWriter(std::move(p));
+  }catch(const std::bad_alloc&){fail(Code::limit,"indexed writer initialization allocation failure");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"indexed writer initialization failed");}
+}
+NativeImageKind NativeFilesystemWriter::image_kind() const {
+  const auto& state=checked_impl();
+  if(state.indexed)return NativeImageKind::indexed_paged;
+  return state.objects.paged()?NativeImageKind::paged:NativeImageKind::flat;
 }
 NativeFilesystemWriter NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter objects) {
   return initialize_storage(std::move(objects),true,true,true);
@@ -1644,7 +1662,21 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_closed_session(PagedObject
 NativeFilesystemWriter NativeFilesystemWriter::resume_impl(detail::NativeObjectWriter objects,bool closed_session) {
   if(objects.poisoned())fail(Code::invalid_operation,"native admission requires a healthy recovered writer");
   try {
-    auto snapshot=objects.snapshot();auto model=decode(snapshot);bool needs=false;
+    auto snapshot=objects.snapshot();
+    const auto root=object_bytes(snapshot,kNamespaceObject,kMetadataCap);
+    if(detail::indexed_volume_root(root)) {
+      const auto* paged=snapshot.paged_if();
+      if(!paged)fail(Code::corrupt,"indexed admission requires mirrored paged storage");
+      const detail::IndexedVolumeView view(*paged,root);
+      view.verify_all();
+      const auto info=paged->info();
+      if(info.degraded_roots || info.degraded_metadata || info.degraded_payloads)
+        fail(Code::storage_failure,"indexed writable admission requires healthy copies");
+      auto p=std::make_unique<Impl>(std::move(objects));
+      p->indexed=view.root();
+      return NativeFilesystemWriter(std::move(p));
+    }
+    auto model=decode(snapshot,root);bool needs=false;
     for(const auto& [id,n]:model.nodes){(void)id;needs=needs || n.delete_pending || n.unlinked;}
     if(needs && !closed_session)
       fail(Code::invalid_operation,"native admission needs explicit retired-file-context recovery");
@@ -1757,7 +1789,8 @@ NativeFilesystemWriter::Recompression NativeFilesystemWriter::prepare_recompress
 
 PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompression(
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode) const {
-  if(poisoned() || !impl_->objects.paged_if())fail(Code::invalid_operation,"staged paged rebuild needs a healthy paged writer");
+  if(poisoned() || !impl_->objects.paged_if() || impl_->indexed)
+    fail(Code::invalid_operation,"staged paged rebuild needs a supported writer layout");
   for(const auto& [inode,entry]:impl_->model.nodes) {
     (void)inode;if(entry.delete_pending || entry.unlinked)
       fail(Code::invalid_operation,"staged paged rebuild needs resolved file contexts");
@@ -1835,16 +1868,17 @@ NativeFsCommit NativeFilesystemWriter::apply_with_basic(std::span<const NativeFi
 NativeFsCommit NativeFilesystemWriter::apply_with_metadata(std::span<const NativeFileMutation> operations,
     std::span<const NativeBasicMutation> basic,std::span<const NativeSecurityMutation> security) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
-  if(operations.size()>16 || basic.size()>16 || security.size()>16 ||
+  const auto maximum=impl_->indexed?kStoreMaxObjects:std::size_t{16};
+  if(operations.size()>maximum || basic.size()>maximum || security.size()>maximum ||
       operations.size()+basic.size()+security.size()==0 ||
-      operations.size()+basic.size()+security.size()>16)fail(Code::limit,"native combined operation count");
+      operations.size()+basic.size()+security.size()>maximum)fail(Code::limit,"native combined operation count");
   for(const auto& op:security) {
-    if((!op.inode)==(!op.created_ordinal) || op.created_ordinal>16 ||
+    if((!op.inode)==(!op.created_ordinal) || op.created_ordinal>maximum ||
         !native_security_descriptor_framed(op.value))
       fail(Code::invalid_operation,"invalid native security descriptor/selector");
   }
   for(const auto& op:basic) {
-    if((!op.inode)==(!op.created_ordinal) || op.created_ordinal>16)
+    if((!op.inode)==(!op.created_ordinal) || op.created_ordinal>maximum)
       fail(Code::invalid_operation,"basic metadata requires exactly one valid selector");
     // Reject request sentinels/unsupported bits before backing I/O. Node-kind
     // consistency is checked against the staged selected inode.
@@ -1854,8 +1888,9 @@ NativeFsCommit NativeFilesystemWriter::apply_with_metadata(std::span<const Nativ
   for(const auto& op:operations) {
     if(static_cast<int>(op.operation)<0 || static_cast<int>(op.operation)>static_cast<int>(NativeFileOperation::remove))
       fail(Code::invalid_operation,"unknown native operation");
-    if(op.data.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");
-    input+=op.data.size();if(input>kStoreMaxTransactionBytes)fail(Code::limit,"native input budget");
+    if(!impl_->indexed && op.data.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");
+    if(op.data.size()>kStoreMaxTransactionBytes-input)fail(Code::limit,"native input budget");
+    input+=op.data.size();
   }
   return transact(operations,InodeAction::path_mutations,0,basic,nullptr,false,nullptr,security);
 }
@@ -1906,6 +1941,19 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
     const std::uint64_t* reservation,NativeInodeAllocationInfo* allocation,bool trim_allocation,
     std::span<const NativeLz4ExtentCandidate> lz4_candidates) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(impl_->indexed) {
+    if(action!=InodeAction::path_mutations && action!=InodeAction::enable_workload)
+      fail(Code::invalid_operation,"operation requires an indexed handle transaction");
+    try {
+      const auto source=impl_->objects.snapshot_for_staging(true);
+      return detail::commit_indexed_volume(*impl_->objects.paged_if(),*source.paged_if(),
+          *impl_->indexed,operations,basic,security,action==InodeAction::enable_workload);
+    }catch(const std::bad_alloc&){fail(Code::limit,"indexed transaction allocation failure");}
+    catch(const NativeFsError& error) {
+      if(error.code()==Code::corrupt || error.code()==Code::storage_failure)impl_->poisoned=true;
+      throw;
+    }catch(const std::exception&){impl_->poisoned=true;fail(Code::storage_failure,"indexed transaction failed");}
+  }
   admit_lz4_extent_candidates(lz4_candidates);
   if(!lz4_candidates.empty() && action!=InodeAction::mutate)
     fail(Code::invalid_operation,"native advice requires a selected inode mutation");
@@ -2036,6 +2084,7 @@ NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_wit
     std::span<const NativeLz4ExtentCandidate> candidates,NativeInodeWriteOptions options,
     const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(impl_->indexed)fail(Code::invalid_operation,"indexed inode writes require handle integration");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic write time/unused clock");
   if(bytes.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");
@@ -2081,6 +2130,7 @@ NativeInodeMutationCommit NativeFilesystemWriter::truncate_inode_result(std::uin
 NativeInodeStorageMutationCommit NativeFilesystemWriter::truncate_inode_storage_result(std::uint64_t inode,
     std::uint64_t bytes,const NativeAutomaticMetadata& effect) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(impl_->indexed)fail(Code::invalid_operation,"indexed inode truncation requires handle integration");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic truncate time/unused clock");
   if(bytes>kNativeMaxFileBytes)fail(Code::limit,"native truncate bounds");
@@ -2104,6 +2154,7 @@ NativeInodeMutationCommit NativeFilesystemWriter::overwrite_inode_result(std::ui
 NativeInodeAllocationCommit NativeFilesystemWriter::overwrite_inode_storage_result(std::uint64_t inode,
     const NativeOverwriteMetadata& effect,std::optional<std::uint64_t> reservation) {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
+  if(impl_->indexed)fail(Code::invalid_operation,"indexed overwrite requires handle integration");
   if(!native_overwrite_metadata_valid(effect) ||
       (reservation && (*reservation%kNativeAllocationUnit || *reservation>kNativeAllocationCapacity)))
     fail(Code::invalid_operation,"invalid canonical native overwrite metadata/reservation");
@@ -2159,11 +2210,21 @@ NativeInodeAllocationCommit NativeFilesystemWriter::reserve_inode_result(std::ui
   return result;
 }
 NativeInodeAllocationInfo NativeFilesystemWriter::inspect_allocation(std::uint64_t inode) const {
-  return checked_impl().read_checked_inode(inode,[](const auto&,const Node& n) {
+  auto& state=checked_impl();
+  if(state.indexed)return state.read_indexed([&](const auto& view) {
+    const auto n=view.inode(inode);
+    return NativeInodeAllocationInfo{{n.inode,n.size,n.modified,n.basic,n.directory,false,false},n.allocation};
+  });
+  return state.read_checked_inode(inode,[](const auto&,const Node& n) {
     return NativeInodeAllocationInfo{commit_info(n),n.allocation};
   });
 }
 NativeAllocationUsage NativeFilesystemWriter::inspect_allocation_usage() const {
+  auto& state=checked_impl();
+  if(state.indexed)return state.read_indexed([](const auto& view) {
+    return NativeAllocationUsage{static_cast<std::size_t>(view.root().charged_extents),
+        static_cast<std::size_t>(view.root().extents)};
+  });
   auto objects=checked_namespace();(void)objects;return allocation_usage(impl_->model);
 }
 NativeFsCommit NativeFilesystemWriter::retire_inode(std::uint64_t inode) {
@@ -2177,13 +2238,20 @@ detail::NativeObjectSnapshot NativeFilesystemWriter::checked_namespace() const {
   return checked_impl().read_checked(true,[](detail::NativeObjectSnapshot snapshot){return snapshot;});
 }
 std::optional<NativeBasicMetadata> NativeFilesystemWriter::inspect_basic_metadata(std::uint64_t inode) const {
-  return checked_impl().read_checked_inode(inode,[](const auto&,const Node& n){return n.basic;});
+  auto& state=checked_impl();
+  if(state.indexed)return state.read_indexed([&](const auto& view){return view.inode(inode).basic;});
+  return state.read_checked_inode(inode,[](const auto&,const Node& n){return n.basic;});
 }
 std::optional<NativeSecurityDescriptor> NativeFilesystemWriter::inspect_security_descriptor(std::uint64_t inode) const {
-  return checked_impl().read_checked_inode(inode,[](const auto&,const Node& n){return n.security;});
+  auto& state=checked_impl();
+  if(state.indexed)return state.read_indexed([&](const auto& view){return view.inode(inode).security;});
+  return state.read_checked_inode(inode,[](const auto&,const Node& n){return n.security;});
 }
 NativeInodeState NativeFilesystemWriter::inspect_path(std::string_view path) const {
   auto& state=checked_impl();
+  if(state.indexed)return state.read_indexed([&](const auto& view) {
+    return NativeInodeState{view.stat(path),false,false};
+  });
   return state.read_checked(false,[&](const auto& snapshot) {
     const auto& n=resolve_snapshot(snapshot,state.model,path,true);
     return NativeInodeState{file_info(state.model,n),n.delete_pending,n.unlinked};
@@ -2198,6 +2266,9 @@ NativePathLookup NativeFilesystemWriter::inspect_path_lookup(std::string_view pa
 }
 NativeInodeState NativeFilesystemWriter::inspect_inode(std::uint64_t inode) const {
   auto& state=checked_impl();
+  if(state.indexed)return state.read_indexed([&](const auto& view) {
+    return NativeInodeState{view.stat_inode(inode),false,false};
+  });
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     verify_path_ancestors(snapshot,state.model,n);
     return NativeInodeState{file_info(state.model,n),n.delete_pending,n.unlinked};
@@ -2205,6 +2276,7 @@ NativeInodeState NativeFilesystemWriter::inspect_inode(std::uint64_t inode) cons
 }
 std::vector<NativeFileInfo> NativeFilesystemWriter::inspect_directory(std::uint64_t inode) const {
   auto& state=checked_impl();
+  if(state.indexed)return state.read_indexed([&](const auto& view){return view.list_all(inode);});
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     verify_directory(snapshot,state.model,n);
     verify_path_ancestors(snapshot,state.model,n);
@@ -2238,6 +2310,9 @@ NativeDirectoryRecordPage NativeFilesystemWriter::inspect_directory_page(std::ui
 Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {
   auto& state=checked_impl();
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
+  if(state.indexed)return state.read_indexed([&](const auto& view) {
+    return view.read(view.inode(inode),offset,bytes);
+  });
   return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& n) {
     return read_node(snapshot,state.model,n,offset,bytes);
   });
@@ -2246,10 +2321,15 @@ NativeFsCommit NativeFilesystemWriter::flush() {
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   bool completed=false;
   try {
-    (void)checked_namespace();
-    NativeFsCommit result;result.sequence=impl_->model.sequence;
+    const auto verify=[&] {
+      if(impl_->indexed)impl_->read_indexed([](const auto&) {});
+      else (void)checked_namespace();
+    };
+    verify();
+    NativeFsCommit result;
+    result.sequence=impl_->indexed?impl_->indexed->sequence:impl_->model.sequence;
     result.storage=impl_->objects.flush_checkpoint();completed=true;
-    (void)checked_namespace();
+    verify();
     return result;
   }catch(const std::bad_alloc&) {
     if(completed || impl_->objects.poisoned()) {
@@ -2281,7 +2361,9 @@ NativeFilesystemSnapshot NativeFilesystemWriter::snapshot() const {
   }
 }
 NativeWorkloadInfo NativeFilesystemWriter::workload_info() const noexcept {
-  if(poisoned()||impl_->model.format<6)return {};
+  if(poisoned())return {};
+  if(impl_->indexed)return impl_->indexed->workload;
+  if(impl_->model.format<6)return {};
   return {true,impl_->model.committed_input_bytes};
 }
 bool NativeFilesystemWriter::poisoned() const noexcept{return !impl_ || impl_->poisoned || impl_->objects.poisoned();}

@@ -20,11 +20,11 @@ ctest --test-dir build -C Release -R '^bounded_native_(filesystem|shared_extents
 ```
 
 These selected CPU suites use in-memory filesystem models. The full CTest suite
-also contains ordinary-file fixtures; run those only with backing that meets
-the experiment's requirements. Optional file/SDK fixture registration is
-controlled by `FLITZFS_REGISTER_INTEGRATION_FIXTURES`, which local builds may
-enable after qualifying their backing/runtime and containment. CI keeps its
-previous registration default; hosting flags are not a permission requirement.
+also contains ordinary-file fixtures. Select the optional file-backed suites
+with `FLITZFS_REGISTER_INTEGRATION_FIXTURES=ON` when the test backing meets the
+experiment's requirements. The Windows SDK build automatically registers the
+in-memory deferred and uniform write tests with their owned CPU workers.
+File-backed CI jobs explicitly select their backing fixtures.
 Use [the local host guide](../HOST_RAM_TESTING.md) and
 `tools/dev/windows_run.py` for resource-bounded Windows process-tree execution.
 Discover available tools and size build concurrency from actual headroom;

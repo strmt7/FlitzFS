@@ -206,8 +206,53 @@ the ordered index and sparse extents to the existing snapshot API. The
 1,024-file fixture checked every named nonempty file and exercised high
 logical offsets. Explicit legacy export verifies the destination before
 publishing its root and leaves the source selected. The first scale rung
-now has native reader evidence. The mounted writer, head handoff, larger
-scale runs and preservation of collective encodings remain open.
+now has native reader evidence.
+
+The native path writer now uses that layout for creation, sparse writes,
+truncation, rename, deletion and metadata updates. Direct initialization and
+verified resume use the same on-demand index. The 1,024-file write fixture
+verified byte readback and a retained checkpoint. A 231-case simulated storage
+interruption sweep reopened complete old or new checkpoints. The test build
+also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
+[Indexed writer evidence](evidence/native-indexed-writer-2026-11-18.json)
+
+### Next steps for the writable Windows path
+
+1. Route stable-inode operations through the same indexed transaction. An open
+   handle must retain access to the same inode across a rename, overwrite or
+   unlink. Implement append and constrained writes against the current inode
+   and return committed size, allocation, timestamps and status from the
+   transaction result.
+2. Persist the delete lifecycle. Atomically move detached, referenced inodes
+   into a typed orphan index. Retain their data through the final close and
+   recover deferred work after restart. Test last-cleanup and last-close
+   separately, including pending I/O and replacement of open destinations.
+   Check granted delete access and WinFsp Cleanup flags at the existing
+   session boundary.
+   [Windows disposition rules](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/4c26c8cb-5a8f-4339-a372-b315c4974131) ·
+   [Windows disposition flags](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/2e860264-018a-47b3-8555-565a13b35a45) ·
+   [WinFsp interface contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
+3. Decouple maximum file size from the amount retired in a checkpoint. Publish
+   the new visibility boundary or detached inode first, in the same transaction
+   as a protected retirement record. Process physical extent work in interruptible
+   batches while retaining the roots and dependencies of earlier snapshots.
+   Test shrink-then-grow, write-after-truncate, repeated unlink/recreate, and
+   interruption during each retirement cursor advance.
+4. Bind the indexed image to a separately negotiated volume-head capability.
+   Check source and target sequence, storage checkpoint, identities and
+   equivalence before selecting a validated target. Keep rollback reachable
+   until selection survives independent reopen. Preserve or re-encode shared
+   dependencies with complete-size checks before automatic format migration.
+5. Use real checked page ranges in WinFsp callbacks, including large directory
+   enumeration, allocation and ACL queries. Add long-path and Unicode behavior
+   against the selected Windows contract. Replace foreground subtree scans with
+   bounded validation. Run SDK, mounted Windows and recovery suites separately.
+6. Feed verified writes and readback into the normal AMD dispatch and CPU
+   recovery path. Compare end-to-end costs and occupied bytes on the same
+   inputs, including startup, transfer, cancellation, verification and retained
+   storage. Cover driver-unavailable operation, ordinary foreground work and
+   low-priority collective dispatch. Complete the scale ladder and measure
+   read/write amplification before changing the release estimate.
 
 ### Implementation steps
 

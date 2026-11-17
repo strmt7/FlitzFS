@@ -65,6 +65,7 @@ class NativeObjectWriter final {
   NativeObjectWriter(ObjectStoreWriter value):value_(std::move(value)){}
   NativeObjectWriter(PagedObjectStoreWriter value):value_(std::move(value)){}
   bool paged() const noexcept {return std::holds_alternative<PagedObjectStoreWriter>(value_);}
+  PagedObjectStoreWriter* paged_if() noexcept {return std::get_if<PagedObjectStoreWriter>(&value_);}
   const PagedObjectStoreWriter* paged_if() const noexcept {return std::get_if<PagedObjectStoreWriter>(&value_);}
   PagedObjectStoreWriter::Rewrite prepare_paged_rebuild(std::shared_ptr<StoreByteIo> target,
       StoreIdentity id,std::span<const std::byte> root,StoreCompressionOptions compression,bool reencode) const {

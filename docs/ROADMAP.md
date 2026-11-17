@@ -7,6 +7,12 @@ decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.m
 defines the current work packages, dependencies and release gates. The snapshots
 below retain the behavior qualified at their exact source.
 
+The [indexed native writer](INDEXED_NATIVE_VOLUME.md) now creates and mutates
+paged names, inodes and extents through the existing path transaction API.
+The 1,024-file Windows fixture verified byte readback, restart and simulated
+interrupted publication. Indexed file handles, large data retirement and
+volume-head selection remain open.
+
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now supplies both
 the helper and owned WinFsp composition. Stop retains backing and requires
 explicit join before independent CPU inspection. Connect the explicit native

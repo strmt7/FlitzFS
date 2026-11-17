@@ -320,6 +320,11 @@ class NativeFilesystemWriter final {
   // New empty layout with separately indexed canonical directory names.
   // Existing layouts are never converted in place. Current frontend limits remain.
   static NativeFilesystemWriter initialize_indexed_names(PagedObjectStoreWriter objects);
+  // New mirrored volume with on-demand indexed metadata and path transactions.
+  // Existing images keep their original layout. Handle lifetime and volume-head
+  // adoption require the indexed Windows session implementation.
+  static NativeFilesystemWriter initialize_indexed(PagedObjectStoreWriter objects);
+  NativeImageKind image_kind() const;
   // Capability-3 namespace on a NEW empty mirrored paged store. Ordinary
   // writes stay independent; explicit shared-base work is separately selected.
   static NativeFilesystemWriter initialize_shared_bases(PagedObjectStoreWriter objects);

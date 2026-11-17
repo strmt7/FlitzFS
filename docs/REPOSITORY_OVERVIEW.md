@@ -104,8 +104,8 @@ capacity and failure evidence before replacing it.
 | Component | Implemented and supported by evidence | Material remaining gap |
 | --- | --- | --- |
 | Object storage | Flat and paged stores, checked records, COW transactions, replicated metadata, resume and streaming rebuild | Production allocation/free-space policy, reader-safe automatic reclamation and backend qualification |
-| Native namespace | Stable inode IDs, metadata and checked enumeration. The indexed snapshot opened and byte-checked 1,024 nonempty files with on-demand names and extents. Explicit legacy export publishes a verified new image. | Current mounts still reconstruct a bounded whole `Model`. The new layout needs a writable transaction engine, collective representation support and verified volume-head selection. |
-| Populated capacity | The paged object layer has a million-object result | The native layer still caps 256 nodes and 255 populated/reserved extent references; sparse logical size is not populated capacity |
+| Native namespace | Indexed native reads and path transactions use checked name, inode and extent records. A 1,024-file write fixture verified byte readback and old or new checkpoint recovery. Explicit legacy export publishes a verified new image. | The Windows mount still uses the earlier whole-namespace writer. Indexed handle lifetimes, large range retirement, collective representations and volume-head selection remain open. |
+| Populated capacity | The paged object layer has a million-object result. The indexed path writer created 1,024 named nonempty files. | Mounted native volumes retain the 256-node and 255-extent limits. Larger populated native runs still need verification. |
 | Compression | Optional CPU Zstd/LZ4, exact sharing and protected shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
 | Background work | Automatic aligned-family discovery, feature reuse, negative-outcome suppression, real Windows observations and low-priority paced opportunities | Persistent scalable features, restartable learning, workload-driven codec selection, automatic compaction and a lifetime write governor |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
@@ -118,17 +118,19 @@ capacity and failure evidence before replacing it.
 
 ### The important namespace bottleneck
 
-`Model` owns maps for all nodes, names and per-node extents. Inode-record decode
-enumerates records and assembles an aggregate namespace frame. Staging copies
-the model. `checked_namespace()` compares the cached namespace against backing;
-for inode-record layouts, `namespace_matches()` regenerates and reads the
-expected namespace records. Even an inode read follows that check.
+The Windows session's legacy writer keeps all nodes, names and per-file extents
+in `Model`. Its scoped inode-record queries verify the touched path and records.
+Mutation staging still copies the model and compares namespace records against
+the backing. The indexed writer stages affected inodes and ranges against the
+paged object tree and publishes names, extents and counters together.
 
-This protects the current bounded prototype, but it is the wrong scaling path
-for millions of files. Raising constants would retain the full-residency and
-repeated whole-namespace work. The existing paged object tree is reusable;
-native inode/name/extent access must actually become paged, with checked paths,
-bounded caches and atomic multi-index updates.
+A 17-byte replacement in the indexed 1,024-file fixture read 202,372 backing
+bytes. Full scrub read 291,765,432. The multipage format removes whole-namespace
+work from that mutation and leaves considerable overhead in the nested indexes.
+The next work is to connect indexed lifetimes, retirement and head publication
+to the Windows path, then reduce metadata read and write amplification while
+retaining independent verification.
+[Indexed writer evidence](evidence/native-indexed-writer-2026-11-18.json)
 
 Authoritative source: [native limits and interfaces](../include/flitzfs/native_filesystem.hpp),
 [`Model`, namespace decode/matching and staging](../src/native_filesystem.cpp),

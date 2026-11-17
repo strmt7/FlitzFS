@@ -186,6 +186,9 @@ NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer) {
 }
 NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer,NativeDispositionPolicy policy) {
   admit_policy(policy);
+  if(writer.poisoned())fail(E::terminal,"cannot own a terminal native writer");
+  if(writer.image_kind()==NativeImageKind::indexed_paged)
+    fail(E::invalid_options,"indexed volume needs its writable session implementation");
   static_assert(sizeof(Impl)<=16*1024);
   static_assert(std::is_nothrow_move_constructible_v<NativeFileHandle>);
   return NativeFileSession(std::make_unique<Impl>(std::move(writer),policy));

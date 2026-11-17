@@ -22,10 +22,7 @@ constexpr std::size_t branch_capacity=(digest_at-header_bytes)/ref_bytes;
 constexpr std::uint32_t maximum_height=16;
 constexpr char root_magic[]="FLTXPG01",page_magic[]="FLTXPGN1",data_magic[]="FLTXDAT1";
 [[noreturn]] void fail(const char* why) {throw std::runtime_error(std::string("FlitzFS paged store: ")+why);}
-class CapacityError final:public std::runtime_error {
- public: explicit CapacityError(const char* why):std::runtime_error(why){}
-};
-[[noreturn]] void capacity(const char* why) {throw CapacityError(why);}
+[[noreturn]] void capacity(const char* why) {throw PagedStoreCapacityError(why);}
 std::uint64_t add(std::uint64_t a,std::uint64_t b) {
   if(b>(std::numeric_limits<std::uint64_t>::max)()-a)fail("integer overflow");
   return a+b;
@@ -880,13 +877,14 @@ PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation
   if(!impl_ || impl_->poisoned)fail("writer unavailable/poisoned");
   auto& p=*impl_;const auto& old=p.state;
   if(old.degraded_payloads){p.poisoned=true;fail("payload rebuild required before further writes");}
-  if(mutations.empty() || mutations.size()>maximum_operations)fail("transaction operation budget");
-  if(old.generation>(std::numeric_limits<std::uint64_t>::max)()-2)fail("generation exhausted");
+  if(mutations.empty())fail("empty transaction");
+  if(mutations.size()>maximum_operations)capacity("transaction operation budget");
+  if(old.generation>(std::numeric_limits<std::uint64_t>::max)()-2)capacity("generation exhausted");
   std::vector<const StoreMutation*> sorted;sorted.reserve(mutations.size());std::uint64_t input=0;
   for(const auto& m:mutations) {
     if(!m.id || m.bytes.size()>kStoreMaxObjectBytes || m.lz4_candidate.size()>kStoreMaxObjectBytes ||
         (m.erase && (!m.bytes.empty() || !m.lz4_candidate.empty())))fail("mutation fields");
-    input=add(input,m.bytes.size());if(input>maximum_input)fail("transaction input budget");sorted.push_back(&m);
+    input=add(input,m.bytes.size());if(input>maximum_input)capacity("transaction input budget");sorted.push_back(&m);
   }
   std::sort(sorted.begin(),sorted.end(),[](auto a,auto b){return a->id<b->id;});
   for(std::size_t i=1;i<sorted.size();++i)if(sorted[i-1]->id==sorted[i]->id)fail("duplicate mutation id");
@@ -919,17 +917,19 @@ PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation
     if(encoded.codec!=detail::kStoreRaw)copy(h,56,encoded.decoded_digest);
     e.digest=detail::record_digest(std::span<const std::byte>(h).first(96),encoded.payload);copy(h,96,e.digest);
     record.payload=std::move(encoded.payload);allocation.place(old,e,128ULL+e.stored,cursor);
-    if(cursor>old.limits.maximum_physical_bytes)fail("physical capacity");
+    if(cursor>old.limits.maximum_physical_bytes)capacity("physical capacity");
     changes.push_back({m->id,false,e});objects.push_back(std::move(record));
   }
   allocation.seal();plan.page_start=align(cursor,old.unit);
   std::vector<Ref> roots;
   try{roots=plan.rewrite(old,old.root,changes);}
-  catch(const CapacityError&){throw;}
+  catch(const PagedStoreCapacityError&){throw;}
   catch(const std::bad_alloc&){throw;}
   catch(...){p.poisoned=true;throw;}
   if(old.degraded_metadata) {p.poisoned=true;fail("metadata replica lost during staging");}
-  plan.finish(std::move(roots));old.image->admit_write(plan.next.end);
+  plan.finish(std::move(roots));
+  try{old.image->admit_write(plan.next.end);}
+  catch(const std::runtime_error& error){capacity(error.what());}
   try {
     for(const auto& record:objects) {
       write_object_record(*old.image,record.entry,record.header,record.payload,old.unit);

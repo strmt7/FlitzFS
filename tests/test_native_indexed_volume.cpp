@@ -200,6 +200,23 @@ void migration(bool paged) {
           "indexed migration lost CPU-decoded shared contents");
     }
   }
+  {
+    const auto published=copy.storage_info().generation;
+    auto candidate=image(target->stable,4096);
+    auto resumed=NativeFilesystemWriter::resume(
+        PagedObjectStoreWriter::resume(candidate,copy.identity(),published,limits,compression));
+    const auto amount=2*kNativeExtentBytes+6U;
+    file_apply(resumed,file_truncate("target.bin",amount));
+    const auto info=resumed.inspect_allocation(target_inode);
+    require(info.info.logical_bytes==amount && info.reserved_bytes==2*kNativeExtentBytes+kNativeAllocationUnit &&
+        info.info.basic==copy.basic_metadata(target_inode) &&
+        resumed.inspect_security_descriptor(target_inode)==copy.security_descriptor(target_inode),
+        "first indexed transaction lost imported allocation or metadata");
+    require(resumed.read_inode(target_inode,0,31)==copy.read_inode(target_inode,0,31) &&
+        resumed.read_inode(target_inode,amount-6,6)==Bytes(6) && copy.stat("target.bin").logical_bytes==31,
+        "first indexed transaction lost migrated input or changed its source");
+    resumed.snapshot().verify_all();
+  }
   // Faults in the synthetic backend cover every write and flush. The only
   // native namespace this image may expose is the complete verified copy.
   if(paged)return;
@@ -221,9 +238,206 @@ void migration(bool paged) {
   std::cout<<"indexed_import_faults="<<complete+incomplete<<" unpublished="<<incomplete
       <<" verified_published="<<complete<<'\n';
 }
+
+NativeFilesystemWriter new_writer(const std::shared_ptr<Ram>& ram,PagedStoreLimits capacity=limits) {
+  return NativeFilesystemWriter::initialize_indexed(
+      PagedObjectStoreWriter::create_mirrored(ram,identity(),capacity,raw));
+}
+
+NativeFilesystemWriter resume_writer(const std::shared_ptr<Ram>& ram,std::uint64_t generation) {
+  return NativeFilesystemWriter::resume(
+      PagedObjectStoreWriter::resume(ram,identity(),generation,limits,raw));
+}
+
+void growing_native_writer() {
+  using Error=NativeFsErrorCode;
+  constexpr unsigned files=1024,batch=32;
+  auto ram=empty();
+  auto writer=new_writer(ram);
+  require(writer.image_kind()==NativeImageKind::indexed_paged&&writer.snapshot().sequence()==1,
+      "indexed writer did not initialize a clean empty volume");
+  file_apply(writer,file_create("Data",true));
+  const auto before=writer.snapshot();
+  for(unsigned first=0;first<files;first+=batch) {
+    std::vector<NativeFileMutation> operations;
+    operations.reserve(batch*2);
+    for(unsigned i=first;i<first+batch;++i) {
+      const auto path="Data/"+file(i);
+      operations.push_back(file_create(path));
+      operations.push_back(file_write(path,0,payload(i)));
+    }
+    require(writer.apply(operations).created_inodes.size()==batch,"indexed writer lost a batch creation");
+  }
+  require(before.list_inode_page(2).entries.empty(),"indexed writer changed a retained empty directory");
+  const auto written=writer.snapshot();
+  const auto scrub_start=ram->read_bytes;
+  written.verify_all();
+  const auto scrub_bytes=ram->read_bytes-scrub_start;
+  const auto update_start=ram->read_bytes;
+  const auto update=file_write("data/"+file(files-1),0,payload(3000));
+  const auto append=writer.apply({&update,1});
+  const auto update_bytes=ram->read_bytes-update_start;
+  require(update_bytes<scrub_bytes/16,"single path write read the complete indexed volume");
+  require(written.read_inode(2+files,0,17)==payload(files-1) &&
+      writer.read_inode(2+files,0,17)==payload(3000),"indexed update changed preceding snapshot bytes");
+  auto current=writer.snapshot();
+  unsigned seen=0;
+  std::optional<NativeDirectoryCursor> cursor;
+  do {
+    const auto page=current.list_inode_page(2,cursor.value_or(NativeDirectoryCursor{}),41);
+    for(const auto& entry:page.entries) {
+      const auto expected_index=seen+1==files?3000:seen;
+      require(entry.path=="Data/"+file(seen) && entry.inode==3+seen &&
+          current.read_inode(entry.inode,0,100)==payload(expected_index),"indexed writer enumeration or byte readback");
+      ++seen;
+    }
+    cursor=page.next;
+  }while(cursor);
+  require(seen==files && current.allocation_usage().live_extents==files &&
+      writer.workload_info().committed_input_bytes==(files+1)*17 &&
+      writer.flush().sequence==append.sequence,"scaled indexed writer accounting or flush");
+  const auto stable=ram->stable;
+  auto isolated=image(stable,4096);
+  auto reopened=resume_writer(isolated,append.storage.generation);
+  const auto fresh=file_apply(reopened,file_create("resumed"));
+  require(fresh.created_inodes==std::vector<std::uint64_t>{3+files} &&
+      reopened.inspect_path("DATA/"+file(files-1)).info.inode==2+files,
+      "resumed indexed writer lost the allocator or prior names");
+
+  constexpr auto high=(std::numeric_limits<std::uint64_t>::max)()-7;
+  const auto high_data=payload(444);
+  const auto sequence=
+      reopened.apply(std::array{file_write("resumed",high-high_data.size(),high_data)}).sequence;
+  require(reopened.read_inode(fresh.created_inodes.front(),high-high_data.size(),100)==high_data &&
+      reopened.inspect_allocation(fresh.created_inodes.front()).info.logical_bytes==high,
+      "indexed write at high offset did not preserve sparse EOF");
+  const auto calls=isolated->calls;
+  refuses(Error::limit,[&] {
+    file_apply(reopened,file_write("resumed",high,high_data));
+  });
+  refuses(Error::not_empty,[&]{file_apply(reopened,file_remove("Data"));});
+  refuses(Error::invalid_operation,[&] {
+    file_apply(reopened,file_rename("Data","Data/cycle"));
+  });
+  const std::array rollback{file_create("rollback"),file_write("missing",0,payload(123))};
+  refuses(Error::not_found,[&]{reopened.apply(rollback);});
+  require(isolated->calls==calls && reopened.snapshot().sequence()==sequence && !reopened.poisoned(),
+      "rejected indexed transaction reached backing or fenced healthy writer");
+  refuses(Error::not_found,[&]{(void)reopened.inspect_path("rollback");});
+  const std::array reset{file_truncate("resumed",high-8),file_truncate("resumed",high),
+      file_truncate("resumed",3),file_truncate("resumed",high),
+      file_rename("Data","Longer-Directory")};
+  reopened.apply(reset);
+  require(reopened.read_inode(fresh.created_inodes.front(),high-high_data.size(),100)==Bytes(high_data.size()) &&
+      reopened.inspect_path("longer-directory/"+file(0)).info.inode==3,
+      "indexed shrink/re-extension leaked bytes or directory rename lost descendants");
+  reopened.snapshot().verify_all();
+  require(ram->stable==stable,"isolated resume changed the original backing");
+  std::cout<<"indexed_writer files="<<files<<" image_bytes="<<current.storage_info().physical_end
+      <<" single_write_read_bytes="<<update_bytes<<" full_scrub_read_bytes="<<scrub_bytes<<'\n';
+}
+
+void indexed_capacity_and_metadata() {
+  using Error=NativeFsErrorCode;
+  auto ram=empty();
+  auto limited=new_writer(ram,{512U*1024});
+  const auto created=file_apply(limited,file_create("large"));
+  const auto calls=ram->calls;
+  refuses(Error::limit,[&]{file_apply(limited,file_write("large",0,data(8*kNativeExtentBytes,13)));});
+  require(ram->calls==calls && !limited.poisoned() && limited.snapshot().sequence()==created.sequence,
+      "indexed capacity refusal crossed publication or fenced a healthy writer");
+  file_apply(limited,file_write("large",0,payload(3)));
+  require(limited.snapshot().read("large",0,17)==payload(3),"indexed writer did not continue after capacity refusal");
+
+  auto roomy=empty();
+  auto writer=new_writer(roomy);
+  const auto contents=data(2*kStoreMaxObjectBytes+17,47);
+  auto write=file_write("wide",0,contents);
+  const NativeBasicMutation basic{0,1,{11,22,33,44,0x20}};
+  const NativeSecurityMutation security{0,1,native_security_fixture::descriptor()};
+  const std::array create{file_create("wide"),std::move(write)};
+  const auto result=writer.apply_with_metadata(create,{&basic,1},{&security,1});
+  const auto id=result.created_inodes.front();
+  require(writer.read_inode(id,0,kNativeMaxReadBytes)==contents &&
+      writer.inspect_basic_metadata(id)==basic.value && writer.inspect_security_descriptor(id)==security.value,
+      "indexed writer did not publish a multimegabyte input and metadata together");
+  const auto no_op=writer.enable_workload_accounting();
+  require(no_op.sequence==result.sequence && no_op.storage.generation==result.storage.generation,
+      "indexed accounting enable published an unchanged root");
+
+  const std::string long_dir(99,'d'),long_leaf(99,'f');
+  const std::string old="p/"+long_dir;
+  writer.apply(std::array{file_create("p",true),file_create(old,true),file_create(old+"/"+long_leaf)});
+  const auto stable=roomy->calls;
+  refuses(Error::invalid_path,[&]{file_apply(writer,file_rename("p",std::string(99,'q')));});
+  require(roomy->calls==stable && writer.inspect_path(old+"/"+long_leaf).info.logical_bytes==0,
+      "invalid directory growth changed the indexed graph");
+  writer.snapshot().verify_all();
+}
+
+void verify_recovered_batch(const NativeFilesystemSnapshot& snapshot,bool committed) {
+  using Error=NativeFsErrorCode;
+  require(snapshot.sequence()==(committed?3U:2U) &&
+      snapshot.read("stable.bin",0,100)==data(31,18),"indexed recovery lost acknowledged stable data");
+  const auto entries=snapshot.list_inode_page(1).entries;
+  if(committed) {
+    require(entries.size()==2 && snapshot.read("target.bin",0,100000)==final_bytes() &&
+        snapshot.stat("target.bin").inode==3 && snapshot.allocation_usage().live_extents==3,
+        "indexed recovery published a partial replacement");
+    refuses(Error::not_found,[&]{(void)snapshot.stat("A");});
+    refuses(Error::not_found,[&]{(void)snapshot.stat("B");});
+  } else {
+    require(entries.size()==3 && snapshot.read("target.bin",0,100)==data(31,2) &&
+        snapshot.read("A/file.bin",0,100)==data(17,1) && snapshot.stat("target.bin").inode==4 &&
+        snapshot.allocation_usage().live_extents==3,"indexed recovery mixed checkpoint metadata and bytes");
+  }
+  snapshot.verify_all();
+}
+
+void indexed_transaction_recovery() {
+  using Error=NativeFsErrorCode;
+  auto original=empty();
+  auto writer=new_writer(original);
+  const auto baseline_commit=writer.apply(baseline());
+  const auto original_snapshot=writer.snapshot();
+  const auto stable=original->stable;
+  const auto operations=update();
+  auto success=image(stable,4096);
+  std::size_t boundaries=0;
+  {
+    auto candidate=resume_writer(success,baseline_commit.storage.generation);
+    const auto calls=success->calls;
+    candidate.apply(operations);
+    boundaries=success->calls-calls;
+    verify_recovered_batch(candidate.snapshot(),true);
+  }
+
+  unsigned old=0,complete=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut) {
+    auto backing=image(stable,4096);
+    auto candidate=resume_writer(backing,baseline_commit.storage.generation);
+    const auto retained=candidate.snapshot();
+    backing->failure=mode;
+    backing->fail_at=backing->calls+cut;
+    refuses(Error::storage_failure,[&]{candidate.apply(operations);});
+    require(candidate.poisoned(),"ambiguous indexed publication did not fence writer");
+    const auto calls=backing->calls;
+    refuses(Error::storage_failure,[&]{candidate.apply(operations);});
+    require(backing->calls==calls,"indexed writer retried after failed publication");
+    verify_recovered_batch(retained,false);
+    const auto recovered=NativeFilesystemSnapshot::open_image(image(backing->stable,4096),indexed);
+    const auto committed=recovered.sequence()==3;
+    verify_recovered_batch(recovered,committed);
+    if(committed)++complete;
+    else ++old;
+  }
+  verify_recovered_batch(original_snapshot,false);
+  require(original->stable==stable && old && complete,"indexed recovery did not exercise both valid checkpoints");
+  std::cout<<"indexed_writer_faults="<<old+complete<<" previous="<<old<<" committed="<<complete<<'\n';
+}
 }
 
 int main() {
-  try { populated_native_snapshot();migration(false);migration(true); }
+  try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_transaction_recovery(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

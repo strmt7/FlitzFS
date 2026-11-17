@@ -1,7 +1,7 @@
 # Input: staged SDK and pinned .ci-deps/zstd and .ci-deps/lz4 on Windows.
 # Output: native build; no downloads, driver installation or mount operations.
 [CmdletBinding()]
-param([switch]$BuildMountProbe, [switch]$BuildWriteProbe, [switch]$PortableCpu, [switch]$RamHostProbe, [switch]$VolumeApp)
+param([switch]$BuildMountProbe, [switch]$BuildWriteProbe, [switch]$PortableCpu, [switch]$RamHostProbe, [switch]$VolumeApp, [switch]$FileBackedFixtures)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
@@ -50,6 +50,7 @@ $native = if ($PortableCpu) { 'OFF' } else { 'ON' }
 $portable = if ($PortableCpu) { 'ON' } else { 'OFF' }
 $buildDirectory = if ($PortableCpu) { 'build-portable' } else { 'build-native' }
 $rootOptions = @("-DFLITZFS_BUILD_VOLUME_APP=$(if ($VolumeApp) { 'ON' } else { 'OFF' })")
+$rootOptions += "-DFLITZFS_REGISTER_INTEGRATION_FIXTURES=$(if ($FileBackedFixtures) { 'ON' } else { 'OFF' })"
 if (-not $PortableCpu) { $rootOptions += "-DFLITZFS_WINFSP_SDK=$env:FLITZFS_WINFSP_SDK" }
 $hipRouteProbe = if (-not $PortableCpu -and -not $BuildMountProbe -and -not $BuildWriteProbe) { 'ON' } else { 'OFF' }
 $rootOptions += "-DFLITZFS_BUILD_HIP_ROUTE_PROBE=$hipRouteProbe"

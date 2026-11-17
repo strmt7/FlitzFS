@@ -9,6 +9,7 @@ struct IndexedVolumeRoot {
   std::uint64_t sequence=0,next_inode=2,next_extent=1;
   std::uint64_t inodes=0,extents=0,charged_extents=0;
   NativeWorkloadInfo workload;
+  bool operator==(const IndexedVolumeRoot&) const = default;
 };
 struct IndexedInodeInput {
   std::uint64_t inode=0,parent=0,size=0,born=0,modified=0;
@@ -24,6 +25,10 @@ std::vector<std::byte> encode_indexed_inode(const IndexedInodeInput&,const Index
 IndexedInodeInput decode_indexed_inode(std::span<const std::byte>,std::uint64_t,
     const IndexedVolumeRoot&);
 bool indexed_volume_root(std::span<const std::byte>) noexcept;
+IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter&);
+NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
+    IndexedVolumeRoot&,std::span<const NativeFileMutation>,std::span<const NativeBasicMutation>,
+    std::span<const NativeSecurityMutation>,bool enable_workload);
 struct IndexedDirectoryPage {
   std::vector<NativeFileInfo> entries;
   std::optional<std::string> after;
@@ -35,8 +40,10 @@ class IndexedVolumeView final {
   const IndexedVolumeRoot& root() const noexcept {return root_;}
   IndexedInodeInput inode(std::uint64_t id) const;
   IndexedInodeInput resolve(std::string_view path,std::string* spelling=nullptr) const;
+  NativeFileInfo stat(std::string_view path) const;
   NativeFileInfo stat_inode(std::uint64_t id) const;
   IndexedDirectoryPage list(std::uint64_t directory,std::string_view after,std::size_t maximum) const;
+  std::vector<NativeFileInfo> list_all(std::uint64_t directory) const;
   std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes) const;
   void verify_all() const;
 
