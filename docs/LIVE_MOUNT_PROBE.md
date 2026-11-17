@@ -67,11 +67,14 @@ compatibility and long-term reliability remain independent gates.
 
 ## Explicit provisioning boundary
 
-`prepare_winfsp_sdk.ps1` remains unchanged and extraction-only. A **separate**
-script reuses the checksum-pinned MSI in that staging directory only in the live hosted
-CI lane, after the CPU, sanitizer and native-callback lanes succeed. It checks
-the same pinned official MSI SHA-256, requires valid Authenticode, rejects an
-existing WinFsp installation and refuses to elevate an unelevated process.
+`prepare_winfsp_sdk.ps1` is extraction-only. The disposable mount jobs ask it
+to stage the exact AMD64 driver from the same MSI File and Media tables as
+the SDK. Its receipt binds the driver path, byte size and SHA-256 to the
+verified MSI and current commit. Ordinary SDK staging selects four user-mode
+files. A separate installer rechecks the receipt, MSI digest and signature
+before use. The mount jobs follow Windows native checks. The portable and
+sanitizer lanes provide independent qualification evidence. The installer
+rejects an existing WinFsp installation and requires administrator context.
 The official installer uses quiet/no-restart options and a 90-second wait.
 A timeout or restart-required result fails the job; there is no reboot/retry.
 Only this disposable VM receives driver/service installation. Never run this

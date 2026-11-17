@@ -1,9 +1,10 @@
 # Input: resource-qualified Windows tool process. Output: normalized SDK path
 # and provenance; optional CI environment transport. Read MSI tables/cabinets
-# only; never execute an installation or select driver files.
+# only; an explicit driver evidence request stages bytes without installing them.
 [CmdletBinding()]
 param([string]$OutputRoot,
-    [ValidateSet('Candidate','Stable')][string]$Profile = 'Candidate')
+    [ValidateSet('Candidate','Stable')][string]$Profile = 'Candidate',
+    [switch]$IncludeDriverEvidence)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
@@ -25,7 +26,7 @@ if ($recipe.schema -ne 1 -or $recipe.repository -ne 'winfsp/winfsp' -or
     $recipe.tag -notmatch '^v[0-9]+(?:\.[0-9]+){1,3}(?:B[0-9]+)?$' -or
     $recipe.msi_name -notmatch '^winfsp-[0-9]+\.[0-9]+\.[0-9]+\.msi$' -or
     $recipe.sha256 -notmatch '^[0-9a-f]{64}$' -or $recipe.source_commit -notmatch '^[0-9a-f]{40}$' -or
-    $recipe.bytes -le 0 -or $recipe.bytes -gt 4MB -or
+    $recipe.bytes -le 0 -or
     $recipe.url -cne ("https://github.com/winfsp/winfsp/releases/download/" + $recipe.tag + "/" + $recipe.msi_name)) {
     throw 'Invalid source-bound WinFsp SDK lock.'
 }
@@ -45,14 +46,14 @@ function Get-SdkSha256([string]$Path) {
 }
 $base = [IO.Path]::GetFullPath($taskStageParent)
 $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($base))
-if ($drive.AvailableFreeSpace -lt 1GB) { throw 'Insufficient temporary storage headroom.' }
+if ($drive.AvailableFreeSpace - 1GB -lt 2 * $recipe.bytes) { throw 'Insufficient temporary storage headroom for MSI and cabinet.' }
 $root = Join-Path $base ('flitzfs-sdk-' + [guid]::NewGuid().ToString('N'))
 if (Test-Path -LiteralPath $root) { throw 'Fresh SDK staging directory already exists.' }
 [IO.Directory]::CreateDirectory($root) | Out-Null
 $msi = Join-Path $root 'winfsp.msi'
 $url = $recipe.url
 $expected = $recipe.sha256
-# Limit the entire response to 4 MiB and 60 seconds, including streaming.
+# Limit the entire response to the pinned asset length and 60 seconds.
 $cancel = [Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(60))
 $client = [Net.Http.HttpClient]::new()
 $response = $null; $inputStream = $null; $outputStream = $null
@@ -66,7 +67,7 @@ try {
     $total = 0L
     while (($n = $inputStream.ReadAsync($buffer, 0, $buffer.Length, $cancel.Token).GetAwaiter().GetResult()) -gt 0) {
         $total += $n
-        if ($total -gt 4MB) { throw 'SDK download exceeds cap.' }
+        if ($total -gt $recipe.bytes) { throw 'SDK download exceeds pinned size.' }
         $outputStream.Write($buffer, 0, $n)
     }
 } finally {
@@ -95,6 +96,10 @@ $components = @{
     'fsctl.h' = 'C.fsctl.h'
     'winfsp-x64.lib' = 'C.winfsp_x64.lib'
     'winfsp-x64.dll' = 'C.winfsp_x64.dll.x64'
+}
+if ($IncludeDriverEvidence) {
+    $wanted['winfsp-x64.sys'] = 'driver/winfsp-x64.sys'
+    $components['winfsp-x64.sys'] = 'C.winfsp_x64.sys'
 }
 $sdk = Join-Path $root 'sdk'
 $copied = @{}
@@ -156,7 +161,8 @@ try {
         if ($copied.ContainsKey($filename)) { throw "Ambiguous SDK table entry: $filename" }
         $sequence = $record.IntegerData(4); $fileBytes = $record.IntegerData(5)
         if ($key -cnotmatch '^[A-Za-z0-9_][A-Za-z0-9_.-]{0,159}$' -or $key.Contains('..') -or
-            $sequence -le 0 -or $fileBytes -le 0 -or $fileBytes -gt 8MB) { throw 'Unexpected SDK payload descriptor.' }
+            $sequence -le 0 -or $fileBytes -le 0) { throw 'Unexpected SDK payload descriptor.' }
+        if ($drive.AvailableFreeSpace - 1GB -lt 2 * [long]$fileBytes) { throw 'Insufficient headroom for SDK payload and normalized copy.' }
         $cabinet = @($cabinets | Where-Object { $_.LastSequence -ge $sequence } | Select-Object -First 1)
         if ($cabinet.Count -ne 1) { throw 'SDK payload has no cabinet.' }
         $source = Join-Path $destination $key
@@ -176,7 +182,7 @@ try {
     [Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) | Out-Null
 }
 if ($copied.Count -ne $wanted.Count) { throw 'Required SDK headers or user-mode library are missing.' }
-# No .sys file is selected, installed or loaded; only four build/runtime files.
+# All selected files are read-only build/evidence inputs.
 if ($env:GITHUB_ENV) {
     Add-Content -LiteralPath $env:GITHUB_ENV -Value "FLITZFS_WINFSP_SDK=$sdk" -Encoding utf8
 }
@@ -185,7 +191,7 @@ foreach ($relative in $wanted.Values) {
     $item = Get-Item -LiteralPath (Join-Path $sdk $relative)
     $payloads += [ordered]@{ path=$relative; bytes=$item.Length; sha256=(Get-SdkSha256 $item.FullName) }
 }
-$provenance = [ordered]@{ commit=$taskSourceCommit; profile=$Profile; dependency=$recipe; msi_bytes=$total; payloads=$payloads; driver_installed=$false; driver_loaded=$false }
+$provenance = [ordered]@{ commit=$taskSourceCommit; profile=$Profile; dependency=$recipe; msi_bytes=$total; payloads=$payloads; driver_evidence=[bool]$IncludeDriverEvidence; driver_installed=$false; driver_loaded=$false }
 $receipt = Join-Path $root 'sdk-provenance.json'
 $receiptStream = [IO.File]::Open($receipt, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
 try {

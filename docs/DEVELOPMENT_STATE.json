@@ -32,7 +32,15 @@
     "actual_gpu": false,
     "release": false,
     "disposable_run": 44153921283,
-    "disposable_mount_status": "Skipped after a portable mirror-test compile failure in Linux and sanitizer prerequisites."
+    "disposable_mount_status": "Skipped after a portable mirror-test compile failure in Linux and sanitizer prerequisites.",
+    "disposable_mount_retry": {
+      "source": "317098b7d26bee2103856113f3d2fe62c193c864",
+      "run": 44158862087,
+      "job": 134315571586,
+      "outcome": "Portable, sanitizer and native Windows prerequisites passed. Driver provisioning stopped before installation because the SDK stage had selected only user-mode files.",
+      "staging_fix_evidence": "docs/evidence/winfsp-driver-staging-2026-11-17.json",
+      "actual_mount": false
+    }
   },
   "owner_gpu_observation": {
     "source_commit": "11fbf0797769f234aeab835f71afa678c5ac174a",

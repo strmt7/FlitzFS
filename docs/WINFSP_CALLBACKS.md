@@ -71,11 +71,12 @@ unique temporary directory, and remove only their own enumerated fixture files.
 silently qualifying a raw-only build. The Windows native CI lane also asserts
 that its compressible fixture actually produced Zstandard chunks.
 
-The SDK staging script refuses non-GitHub-hosted/non-Windows execution. It
-limits the download to 4 MiB/60 seconds, checks the pinned release SHA-256, reads
-MSI tables in read-only mode, and extracts files without executing the installer.
-It selects only the two headers, import library and user-mode DLL. No driver
-or service is installed or started. Extracted packages are not redistributed.
+SDK staging works in a scoped Windows development directory. It bounds the
+download by the pinned asset's size and a 60-second deadline, checks the
+SHA-256, and reads MSI tables through the native read-only API. Ordinary
+staging extracts the two headers, import library and user-mode DLL. An explicit
+evidence request also selects the AMD64 driver payload as a file. The separate
+disposable mount lane owns installation. [Mounted probe contract](LIVE_MOUNT_PROBE.md)
 
 ## Research rounds and decisions — 7 November 2026
 

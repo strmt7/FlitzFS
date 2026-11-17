@@ -17,7 +17,7 @@ if ($recipe.schema -ne 1 -or $recipe.repository -ne 'winfsp/winfsp' -or
     $recipe.tag -notmatch '^v[0-9]+(?:\.[0-9]+){1,3}(?:B[0-9]+)?$' -or
     $recipe.msi_name -notmatch '^winfsp-[0-9]+\.[0-9]+\.[0-9]+\.msi$' -or
     $recipe.sha256 -notmatch '^[0-9a-f]{64}$' -or $recipe.source_commit -notmatch '^[0-9a-f]{40}$' -or
-    $recipe.bytes -le 0 -or $recipe.bytes -gt 4MB -or
+    $recipe.bytes -le 0 -or
     $recipe.url -cne ("https://github.com/winfsp/winfsp/releases/download/" + $recipe.tag + "/" + $recipe.msi_name)) {
     throw 'Invalid source-bound WinFsp SDK lock.'
 }
@@ -32,35 +32,28 @@ if ((Get-AuthenticodeSignature -LiteralPath $msi).Status -ne 'Valid') { throw 'M
 # Inspect the exact AMD64 driver from the already verified, bounded MSI payload.
 # This is evidence only: Authenticode does not establish Windows 11 policy/HVCI.
 $stage = Split-Path -Parent $msi
-$payloads = @(Get-ChildItem -LiteralPath $stage -Recurse -File)
-if ($payloads.Count -gt 2048 -or ($payloads | Measure-Object Length -Sum).Sum -gt 64MB) {
-    throw 'Driver evidence payload budget.'
+$receipt = Get-Item -LiteralPath (Join-Path $stage 'sdk-provenance.json')
+if ($receipt.PSIsContainer -or ($receipt.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $receipt.Length -gt 16384) {
+    throw 'Invalid SDK provenance file.'
 }
-$driver = $null
-$installer = New-Object -ComObject WindowsInstaller.Installer
-$database = $installer.OpenDatabase($msi, 0)
-$view = $database.OpenView('SELECT `File`, `FileName`, `Component_` FROM `File`')
-$view.Execute()
-try {
-    while ($record = $view.Fetch()) {
-        if ($record.StringData(3) -ne 'C.winfsp_x64.sys') { continue }
-        if (($record.StringData(2) -split '\|')[-1] -ne 'winfsp-x64.sys' -or $driver) {
-            throw 'Ambiguous AMD64 driver MSI identity.'
-        }
-        $key = $record.StringData(1)
-        $matches = @($payloads | Where-Object { $_.Name -eq $key })
-        if ($matches.Count -eq 0) { $matches = @($payloads | Where-Object { $_.Name -eq 'winfsp-x64.sys' }) }
-        if ($matches.Count -ne 1) { throw 'Exactly one verified AMD64 driver payload required.' }
-        $driver = $matches[0]
-    }
-} finally {
-    $view.Close()
-    [Runtime.InteropServices.Marshal]::FinalReleaseComObject($view) | Out-Null
-    [Runtime.InteropServices.Marshal]::FinalReleaseComObject($database) | Out-Null
-    [Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) | Out-Null
+$provenance = Get-Content -LiteralPath $receipt.FullName -Raw | ConvertFrom-Json
+if ($provenance.commit -cne $env:GITHUB_SHA -or $provenance.dependency.sha256 -cne $expected -or
+    $provenance.msi_bytes -ne $recipe.bytes -or -not $provenance.driver_evidence) {
+    throw 'Driver evidence is not bound to this commit and pinned MSI.'
 }
-if (-not $driver -or ($driver.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-    throw 'Verified regular AMD64 driver payload missing.'
+$driverPath = 'driver/winfsp-x64.sys'
+$records = @($provenance.payloads | Where-Object { $_.path -ceq $driverPath })
+if ($records.Count -ne 1 -or $records[0].sha256 -cnotmatch '^[0-9a-f]{64}$') {
+    throw 'Missing or ambiguous staged AMD64 driver identity.'
+}
+$driver = Get-Item -LiteralPath (Join-Path (Join-Path $stage 'sdk') $driverPath)
+if ($driver.PSIsContainer -or ($driver.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+    $driver.Length -ne $records[0].bytes -or $driver.Length -le 0) {
+    throw 'Staged AMD64 driver size or file type differs.'
+}
+$driverHash = (Get-FileHash -LiteralPath $driver.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($driverHash -cne $records[0].sha256) {
+    throw 'Staged AMD64 driver hash differs.'
 }
 $signature = Get-AuthenticodeSignature -LiteralPath $driver.FullName
 $signer = $signature.SignerCertificate
@@ -69,7 +62,7 @@ $evidence = [ordered]@{
     os_description=[Runtime.InteropServices.RuntimeInformation]::OSDescription
     driver=[ordered]@{
         name='winfsp-x64.sys'; bytes=$driver.Length
-        sha256=(Get-FileHash -LiteralPath $driver.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        sha256=$driverHash
         file_version=$driver.VersionInfo.FileVersion
         signature_status=[string]$signature.Status; signature_type=[string]$signature.SignatureType
         signer_subject=if ($signer) { $signer.Subject } else { $null }

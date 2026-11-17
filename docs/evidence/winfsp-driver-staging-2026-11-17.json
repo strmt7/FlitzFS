@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "4e294e7eeed29914ccf1b8a1ea9efef240ab5e5f",
+  "contract": "docs/LIVE_MOUNT_PROBE.md",
+  "source_binding": {
+    ".github/workflows/ci.yml": {
+      "git_blob": "067942f11544d1a91d3f02dc938ef9e29dd9694f",
+      "working_bytes_sha256": "b9f503ce5df41c699e1b20c027c210e6e9a4eb0445d213bdf881fd9f6f2fd595"
+    },
+    ".github/workflows/retirement-reference.yml": {
+      "git_blob": "df68c37bfb3bbe44e4a4406efa9e2d8197aef17a",
+      "working_bytes_sha256": "86f4c6df065abc866530ddccc4998764e36e514fa0f613b307359cfb5be9db03"
+    },
+    "tools/ci/prepare_winfsp_sdk.ps1": {
+      "git_blob": "aed6f08fa26b6600eb44f8caade73349979306fa",
+      "working_bytes_sha256": "5d341eccec765fd76b5eee7b842f0f09ce623ec8bb0a33ae2149c903dd05db84"
+    },
+    "tools/ci/provision_disposable_winfsp.ps1": {
+      "git_blob": "15da64bd4ee830055919d40cd4b0e620dc027484",
+      "working_bytes_sha256": "bce674cabf518d1a96f884e29a3ff39470b6a0f236abcf0d0fbe010062b7fbfa"
+    }
+  },
+  "prior_failure": {
+    "run": 44158862087,
+    "job": 134315571586,
+    "commit": "317098b7d26bee2103856113f3d2fe62c193c864",
+    "stage": "Provision driver on this disposable hosted VM only",
+    "error": "Exactly one verified AMD64 driver payload required.",
+    "cause": "SDK extraction selects only user-mode files by default. The previous installer scanned staged files for an absent extracted driver."
+  },
+  "local_extraction_qualified": {
+    "ordinary-powershell": {
+      "observed": {
+        "scope": "ordinary-powershell",
+        "msi_status": "Valid",
+        "msi_sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+        "payload_count": 4,
+        "driver_evidence": null,
+        "driver_installed": false,
+        "driver_loaded": false,
+        "receipt_sha256": "e518681d1b166df85966a481eeedc2e23a6a078e88ce3051534ac462e674e1a3"
+      },
+      "run": "local-run-2d83079396f7405ea785444185da7068",
+      "receipt_sha256": "299099993dda867cf7fe94a52e5585717dd03299f1f3185050328176077070c0",
+      "output_sha256": "7753df0ee511f630386c18363318f3065686b09113d9f955b66854abe58fe25d"
+    },
+    "disposable-payload": {
+      "observed": {
+        "scope": "disposable-payload",
+        "msi_status": "Valid",
+        "msi_sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+        "payload_count": 5,
+        "driver_evidence": {
+          "bytes": 169664,
+          "sha256": "0a91fc3429fd5adf8b9c65976ac0c4ae924702be2cfbed856d90d2a7d99b0390",
+          "file_version": "2.2.26286.14d6e02",
+          "signature": "Valid"
+        },
+        "driver_installed": false,
+        "driver_loaded": false,
+        "receipt_sha256": "28541ac3694870f9d142aa61641948aa7b320951713ea61e25c3e9d201178dd9"
+      },
+      "run": "local-run-0ac54ad3a8e64d9b997d2abba540e48e",
+      "receipt_sha256": "da4a8de5880c5614c1a467bac3c791e4fc95256ce89d8dcc5375d56f6d28ac04",
+      "output_sha256": "6d5e32e2e80690dfa773f0793ab7825aaec4c000aae6f186d123a58cc5dbff8d"
+    }
+  },
+  "workflow_wiring_verified": [
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "windows-mount",
+      "needs": [
+        "windows-native"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/ci.yml",
+      "job": "windows-write-mount",
+      "needs": [
+        "windows-native",
+        "windows-mount"
+      ]
+    },
+    {
+      "workflow": ".github/workflows/retirement-reference.yml",
+      "job": "windows-mount",
+      "needs": "source"
+    }
+  ],
+  "owner_driver_state_observed": "WinFsp+20260516T182719Z Stopped",
+  "owner_installation_executed": false,
+  "actual_mounted_qualification": false,
+  "release": false
+}
