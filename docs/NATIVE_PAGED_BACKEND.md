@@ -1,9 +1,9 @@
 # Native operations over paged object storage
 
-Experimental CPU integration. The existing native filesystem and file-session
-engine can explicitly consume a paged object store. This connects a backend;
-paged namespace metadata and a Windows factory remain separate work. No driver,
-mount, worker or GPU runtime is started by this code.
+Experimental CPU integration. The native filesystem and file-session engine
+can explicitly consume a paged object store. The
+[writable Windows adapter](WINFSP_PAGED_VOLUMES.md) uses this backend for
+managed volumes. Demand-paged native namespace metadata remains part of E01.
 
 ## Shared engine and compatibility
 
@@ -53,8 +53,8 @@ handoff, shared-base control and funded advisory provenance. The legacy flat
 staged-recompression API still rejects paged input; its idle form defers before
 target I/O. The explicit [native paged maintenance](NATIVE_PAGED_MAINTENANCE.md) path
 now rebinds native identity and verifies compacted/recompressed new images.
-Legacy layout migration, automatic selection/reclamation, persistent restart,
-optional-codec breadth, Windows factory integration and reader retirement remain.
+Legacy layout migration, automatic reclamation, wider codec support, product
+installation and full restart/retirement qualification remain open.
 
 ## Ordered name pages for the scalable namespace
 
@@ -93,6 +93,11 @@ Demand-loaded inode and extent lookup, coordinated allocation, migration and the
 comparison with typed pages remain part of that integration.
 
 ## Verification
+
+Standard WinFsp lifecycle tests use sealed managed memory and an injected
+provider. The file-backed lifecycle test remains in the integration fixtures
+and requires its qualified fixture parent before creating files.
+[Directory and session results](evidence/native-directory-verification-2026-11-17.json)
 
 The memory test compares bytes, IDs, sequences, metadata, reservations and
 workload counts against the flat engine through mixed native operations. It

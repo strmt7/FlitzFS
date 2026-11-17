@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "9b60f72e5c8c16871920000026d52244ece1a754",
+  "source_base_tree": "ba0143720397006f91ffedb7e6c9a9439e90dbed",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "worktree_sha256": "70f6b166aaeb1da5c3c240c50c7d97a56db848e3e1c9590078898a3ce6e89fbb",
+      "git_blob": "f2014f390c276a98d3b73c5bdc1d22999e620e50"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "worktree_sha256": "88b205bc53b04543add4a4e597c064827ee7112acd4ceec85b0ab08c788254f6",
+      "git_blob": "e1ce6fabfae908cb8702669f94850a92aec99fc8"
+    },
+    {
+      "path": "tests/test_winfsp_session.cpp",
+      "worktree_sha256": "71891dfad78ce9250a97f0a82b0d20436256b62b75a7e9c10e14cc30b6806b0d",
+      "git_blob": "302c6a8fc39152a8248e3e8597dcf3d4c2e64b74"
+    }
+  ],
+  "scope": "In-place verification of stored canonical directories and incremental inode-record comparison in current native open, lookup, list and session revalidation. The read-only WinFsp lifecycle fixture uses an owned sealed memory volume by default.",
+  "validation": {
+    "raw_native_groups_passed": 8,
+    "codec_and_winfsp_2_1_groups_passed": 7,
+    "windows_address_sanitizer_groups_passed": 3,
+    "retains_existing_volume_format": true,
+    "named_file_scale_limit_removed": false,
+    "actual_mount": false,
+    "actual_gpu": false,
+    "file_mode_local_execution": false
+  },
+  "original_sdk_session_failure": {
+    "reason": "The selected legacy combined lifecycle fixture made an 8192-byte synthetic input and a packed container in the private temporary directory, then refused the native image phase because it had no qualified file-fixture parent.",
+    "temporary_artifacts_remaining": 0,
+    "correction": "The default registration now exercises lifecycle and byte-exact readback from a sealed managed memory volume. Existing file-backed coverage requires the integration-fixtures option, and file admission precedes fixture creation."
+  },
+  "source_binding_for_checks_before_fixture_split": {
+    "src/native_filesystem.cpp": "e1ce6fabfae908cb8702669f94850a92aec99fc8",
+    "CMakeLists.txt": "811ac9bbbb6b92f87401b15792ef9e5a99019b20",
+    "note": "The raw and native sanitizer checks and six SDK CTest passes predate the test registration split. Native production source stayed identical. The split session test was rebuilt and run separately in both SDK build lanes."
+  },
+  "initial_memory_fixture_build": "The compile failed because the shared application budget type was referenced without the flitzfs namespace. The corrected source passed both stable SDK and Windows AddressSanitizer tests.",
+  "temporary_fixture_audit": [
+    {
+      "run": "local-run-2e36b239fe0547e99b867ea582cfcf98",
+      "fixture_artifacts": 0
+    },
+    {
+      "run": "local-run-0aeef222e7714afba1c8775cc56c268f",
+      "fixture_artifacts": 0
+    },
+    {
+      "run": "local-run-cbb4c8700ae7403fa222be3418fe5d47",
+      "fixture_artifacts": 0
+    }
+  ],
+  "local_runs": {
+    "raw_build": {
+      "run": "local-run-5d208e5cbb5a4fd99c174924c8c83fef",
+      "receipt_sha256": "53993320eaf2f607a75fddcfb67b00c942554e0399e298b4896f47bbfa8ec6eb",
+      "output_sha256": "8f8cdd52612dfea68d3274c0ac0881fc9a3a3415b3dfe6260c2333d69090b0d0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 367882240
+    },
+    "raw_ctest": {
+      "run": "local-run-2c8fac70830949a8a1a780a9b398d060",
+      "receipt_sha256": "346c4f7a5ea0e24a25a5606a67b11cb5128a3440235b4272f92db2b65812caf7",
+      "output_sha256": "664c692f80d016e24e9399d6c84ca9a5176ea78f28d3672c57f33d5568d0f77c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 204644352
+    },
+    "stable_sdk_build": {
+      "run": "local-run-d873500c63684f2ab939594db4a95882",
+      "receipt_sha256": "26d1154bab4e63279f754898d970a0c4dfa075410574d182840a09799b2ef662",
+      "output_sha256": "5c9c3a8c14d9adc93c878c29856558972944d4b3cc8a960d7fd9d784cae3ccaf",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 729382912
+    },
+    "stable_sdk_initial_ctest": {
+      "run": "local-run-2e36b239fe0547e99b867ea582cfcf98",
+      "receipt_sha256": "353aa47a1a08051a31c6dd201a35c306722818be5668848d31efa406e360b7f1",
+      "output_sha256": "f6a6bd7a78a406a065e2729ae76c40472eac1e12a68473a20a8836a7cadf6888",
+      "exit_code": 8,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 204615680
+    },
+    "asan_native_build": {
+      "run": "local-run-7bcb82b1e59443cca975a76786205e28",
+      "receipt_sha256": "d66fe3355d97740e0f93777a922094e31cae55fa5ff261c63242aac06511ae99",
+      "output_sha256": "c268d1b485bd92ab31010731485034f7e03868345d82529de511fae0455d7498",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 373936128
+    },
+    "asan_native_ctest": {
+      "run": "local-run-6a05047855b04ff1a0656f603af6523e",
+      "receipt_sha256": "9673c8d5d0f84b17a5d56fe431f0e1c8ab746e70581f7f46859537d649d1ed30",
+      "output_sha256": "19cc267807542cb93b27dc6bd4d1075286abc6f6c2ddad53c8b8e863b7a2d760",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 1038487552
+    },
+    "initial_memory_session_compile": {
+      "run": "local-run-20509d2401b14c1bb49a8065e38cfa4e",
+      "receipt_sha256": "bc9a12704eb4c4a92d282b21711feb1a7192870f6d6ed5baa7c5451d71c96bd9",
+      "output_sha256": "170649ba941e0bff260bb9e12d564a25450bae916af4f6a80561d686766bff43",
+      "exit_code": 1,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 350822400
+    },
+    "stable_memory_session_build": {
+      "run": "local-run-2836d5af91fa4a6f8df173c7a8d74df5",
+      "receipt_sha256": "91e2b40cefd0098ae1c6c25154659a123ea3e3383fa6e7b5ae740863613942f1",
+      "output_sha256": "0cc80d78cc722353e137e80a588d7ca93d6378c960c2bd345f49003824a8a5cd",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 354684928
+    },
+    "stable_memory_session_ctest": {
+      "run": "local-run-0aeef222e7714afba1c8775cc56c268f",
+      "receipt_sha256": "59604db6207a7d9b2e501d49f2ece1140c5ff3e2e5ff3ef5dea5411d18e19f66",
+      "output_sha256": "e38f6ebcc62bf6bc683bfedf68fb952c7f8082e539775b1064ade5e301546841",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 30949376
+    },
+    "asan_memory_session_build": {
+      "run": "local-run-4f926154df1a4184847587828a65d22e",
+      "receipt_sha256": "b5910736717c220bf408919532dd48c234ed81eb7b46ab747741815c0c006e4b",
+      "output_sha256": "8dda37da8f0d9d7274a1a11e324222f61b4c84d7c503358075b617ebe5b00faa",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 726024192
+    },
+    "asan_memory_session_ctest": {
+      "run": "local-run-cbb4c8700ae7403fa222be3418fe5d47",
+      "receipt_sha256": "572a07951240d128543f59b5d5c6c478cbb830b3fbc2a6dc2c7d62ac7f06c5f1",
+      "output_sha256": "bf01e5c76af5fc7776499d571f5f1a6b5ab58e2d64d868ad09a369219126ac91",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 142917632
+    }
+  }
+}

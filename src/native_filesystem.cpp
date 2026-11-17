@@ -40,6 +40,7 @@ static_assert(kNativeMaxExtents*kNativeExtentBytes+kMetadataCap<=kStoreMaxLogica
 constexpr std::array<std::byte,8> kMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'N'},std::byte{'S'},std::byte{'0'},std::byte{'1'}};
 constexpr std::array<std::byte,8> kInodeRootMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'P'},std::byte{'N'},std::byte{'0'},std::byte{'1'}};
 constexpr std::array<std::byte,8> kDirectoryMagic{std::byte{'F'},std::byte{'L'},std::byte{'T'},std::byte{'X'},std::byte{'D'},std::byte{'N'},std::byte{'0'},std::byte{'1'}};
+constexpr std::size_t kDirectoryHeaderBytes=24,kDirectoryEntryHeaderBytes=12;
 constexpr auto kLifecycleMagic=[] {auto magic=kMagic;magic[7]=std::byte{'2'};return magic;}();
 constexpr auto kBasicMagic=[] {auto magic=kMagic;magic[7]=std::byte{'3'};return magic;}();
 constexpr auto kSecurityMagic=[] {auto magic=kMagic;magic[7]=std::byte{'4'};return magic;}();
@@ -340,6 +341,11 @@ void encode_inode(std::span<std::byte> bytes, const Node& n, std::uint32_t forma
     cursor += 16;
   }
 }
+Bytes inode_frame(const Node& n, std::uint32_t format) {
+  Bytes frame(inode_frame_size(n,format));
+  encode_inode(frame,n,format);
+  return frame;
+}
 Bytes encode(const Model& model) {
   Bytes bytes(checked_namespace_size(model));
   encode_namespace_header(bytes, model);
@@ -365,38 +371,41 @@ Bytes namespace_record(const Model& model) {
   return root;
 }
 Bytes directory_bytes(const Model& model,std::uint64_t directory) {
-  Bytes bytes(24);std::copy(kDirectoryMagic.begin(),kDirectoryMagic.end(),bytes.begin());
+  Bytes bytes(kDirectoryHeaderBytes);std::copy(kDirectoryMagic.begin(),kDirectoryMagic.end(),bytes.begin());
   put(bytes,8,1,4);put(bytes,16,directory,8);std::uint32_t count=0;
   for(auto it=model.names.lower_bound({directory,{}});it!=model.names.end() && it->first.first==directory;++it) {
-    const auto& key=it->first.second;const auto at=bytes.size();bytes.resize(at+12+key.size());
+    const auto& key=it->first.second;const auto at=bytes.size();
+    bytes.resize(at+kDirectoryEntryHeaderBytes+key.size());
     put(bytes,at,it->second,8);put(bytes,at+8,key.size(),2);
-    for(std::size_t i=0;i<key.size();++i)bytes[at+12+i]=static_cast<std::byte>(static_cast<unsigned char>(key[i]));
+    for(std::size_t i=0;i<key.size();++i)
+      bytes[at+kDirectoryEntryHeaderBytes+i]=static_cast<std::byte>(static_cast<unsigned char>(key[i]));
     ++count;
   }
   if(bytes.size()>kMetadataCap)fail(Code::limit,"native directory index budget");
   put(bytes,12,count,4);return bytes;
 }
-struct DirectoryEntry {std::string key;std::uint64_t inode=0;};
-std::vector<DirectoryEntry> read_directory(const detail::NativeObjectSnapshot& objects,
-    const Model& model,std::uint64_t directory) {
-  if(!selected_inode(model,directory).directory)fail(Code::not_directory,"native enumeration of file");
-  std::vector<DirectoryEntry> result;
-  if(!model.indexed_names) {
-    for(auto it=model.names.lower_bound({directory,{}});it!=model.names.end() && it->first.first==directory;++it)
-      result.push_back({it->first.second,it->second});
-    return result;
+bool directory_matches(std::span<const std::byte> bytes,const Model& model,std::uint64_t directory) {
+  if(bytes.size()<kDirectoryHeaderBytes || bytes.size()>kMetadataCap ||
+      !std::equal(kDirectoryMagic.begin(),kDirectoryMagic.end(),bytes.begin()) ||
+      integer(bytes,8,4)!=1 || integer(bytes,16,8)!=directory)
+    return false;
+  std::size_t at=kDirectoryHeaderBytes,count=0;
+  for(auto it=model.names.lower_bound({directory,{}});it!=model.names.end() && it->first.first==directory;++it) {
+    const auto& key=it->first.second;
+    const auto size=kDirectoryEntryHeaderBytes+key.size();
+    if(bytes.size()-at<size || integer(bytes,at,8)!=it->second ||
+        integer(bytes,at+8,2)!=key.size() || integer(bytes,at+10,2)!=0)
+      return false;
+    const std::string_view stored(reinterpret_cast<const char*>(bytes.data()+at+kDirectoryEntryHeaderBytes),key.size());
+    if(stored!=key)return false;
+    at+=size;++count;
   }
-  const auto bytes=object_bytes(objects,kDirectoryObjectBit|directory);
-  if(bytes!=directory_bytes(model,directory))fail(Code::corrupt,"native directory index changed since admission");
-  const auto count=integer(bytes,12,4);std::size_t at=24;result.reserve(static_cast<std::size_t>(count));
-  for(std::uint64_t i=0;i<count;++i) {
-    const auto inode=integer(bytes,at,8),length=integer(bytes,at+8,2);at+=12;
-    // Exact comparison with the admitted graph/encoding already checked every
-    // length, reference, canonical key, reserved byte, order and final boundary.
-    result.push_back({std::string(reinterpret_cast<const char*>(bytes.data()+at),static_cast<std::size_t>(length)),inode});
-    at+=static_cast<std::size_t>(length);
-  }
-  return result;
+  return at==bytes.size() && integer(bytes,12,4)==count;
+}
+void verify_directory(const detail::NativeObjectSnapshot& objects,const Model& model,const Node& directory) {
+  if(!directory.directory)fail(Code::not_directory,"native enumeration of file");
+  if(model.indexed_names && !directory_matches(object_bytes(objects,kDirectoryObjectBit|directory.inode),model,directory.inode))
+    fail(Code::corrupt,"native directory index changed since admission");
 }
 std::uint64_t resolve_snapshot(const detail::NativeObjectSnapshot& objects,const Model& model,std::string_view path) {
   if(!model.indexed_names)return resolve(model,path);
@@ -404,10 +413,9 @@ std::uint64_t resolve_snapshot(const detail::NativeObjectSnapshot& objects,const
   for(std::size_t start=0;start<key.size();) {
     const auto slash=key.find('/',start),end=slash==std::string::npos?key.size():slash;
     const auto component=std::string_view(key).substr(start,end-start);
-    const auto entries=read_directory(objects,model,current);
-    const auto found=std::lower_bound(entries.begin(),entries.end(),component,
-        [](const auto& entry,std::string_view name){return entry.key<name;});
-    if(found==entries.end() || found->key!=component)fail(Code::not_found,"native indexed path not found");
+    verify_directory(objects,model,selected_inode(model,current));
+    const auto* found=child(model,current,component);
+    if(!found)fail(Code::not_found,"native indexed path not found");
     current=found->inode;start=end+1;
   }
   return current;
@@ -423,9 +431,7 @@ void namespace_mutations(std::vector<StoreMutation>& output,const Model& model,c
       const auto old = previous->nodes.find(id);
       if (old!=previous->nodes.end() && n==old->second) continue;
     }
-    Bytes frame(inode_frame_size(n, model.format));
-    encode_inode(frame, n, model.format);
-    output.push_back({kInodeObjectBit|id,false,std::move(frame)});
+    output.push_back({kInodeObjectBit|id,false,inode_frame(n,model.format)});
   }
   if (previous) for (const auto& [id,n] : previous->nodes) {
     (void)n;
@@ -444,8 +450,11 @@ void namespace_mutations(std::vector<StoreMutation>& output,const Model& model,c
 }
 bool namespace_matches(const detail::NativeObjectSnapshot& objects,const Model& model) {
   if(!model.inode_records)return object_bytes(objects,kNamespaceObject)==encode(model);
-  std::vector<StoreMutation> expected;namespace_mutations(expected,model);
-  for(const auto& record:expected)if(object_bytes(objects,record.id)!=record.bytes)return false;
+  if(object_bytes(objects,kNamespaceObject)!=namespace_record(model))return false;
+  for(const auto& [id,n]:model.nodes)
+    if(object_bytes(objects,kInodeObjectBit|id)!=inode_frame(n,model.format))return false;
+  if(model.indexed_names)for(const auto& [id,n]:model.nodes)
+    if(n.directory && !directory_matches(object_bytes(objects,kDirectoryObjectBit|id),model,id))return false;
   return true;
 }
 Node decode_inode(std::span<const std::byte> bytes, std::uint32_t format,
@@ -567,7 +576,7 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
   for(const auto& [id,n]:model.nodes){if(inode_records)expected.insert(kInodeObjectBit|id);
     if(indexed_names && n.directory) {
       expected.insert(kDirectoryObjectBit|id);
-      if(object_bytes(objects,kDirectoryObjectBit|id)!=directory_bytes(model,id))
+      if(!directory_matches(object_bytes(objects,kDirectoryObjectBit|id),model,id))
         fail(Code::corrupt,"persisted native directory index differs from inode graph");
     }
     for(const auto& [block,object]:n.extents){(void)block;expected.insert(object);}}
@@ -1180,11 +1189,9 @@ std::vector<NativeFileInfo> NativeFilesystemSnapshot::list(std::string_view dire
 }
 std::vector<NativeFileInfo> NativeFilesystemSnapshot::list_inode(std::uint64_t directory) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
-  if(!impl_->model.indexed_names)return list_node(impl_->model,selected_inode(impl_->model,directory));
-  std::vector<NativeFileInfo> result;
-  for(const auto& entry:read_directory(impl_->objects,impl_->model,directory))
-    result.push_back(file_info(impl_->model,node(impl_->model,entry.inode)));
-  return result;
+  const auto& entry=selected_inode(impl_->model,directory);
+  if(impl_->model.indexed_names)verify_directory(impl_->objects,impl_->model,entry);
+  return list_node(impl_->model,entry);
 }
 NativeDirectoryPage NativeFilesystemSnapshot::list_inode_page(std::uint64_t directory,
     const NativeDirectoryCursor& after,std::size_t maximum) const {
@@ -1192,27 +1199,18 @@ NativeDirectoryPage NativeFilesystemSnapshot::list_inode_page(std::uint64_t dire
   if(!maximum || maximum>1024)fail(Code::limit,"directory page budget");
   if(after.initialized_ && (after.directory_!=directory || after.owner_.lock()!=impl_->enumeration_owner))
     fail(Code::invalid_operation,"directory cursor belongs to a different snapshot/directory");
-  if(!selected_inode(impl_->model,directory).directory)fail(Code::not_directory,"native enumeration of file");
-  NativeDirectoryPage result;result.entries.reserve(maximum);std::string last;bool more=false;
-  if(impl_->model.indexed_names) {
-    const auto entries=read_directory(impl_->objects,impl_->model,directory);
-    auto it=after.initialized_?std::upper_bound(entries.begin(),entries.end(),std::string_view(after.after_),
-        [](std::string_view name,const auto& entry){return name<entry.key;}):entries.begin();
-    for(;it!=entries.end() && result.entries.size()<maximum;++it) {
-      result.entries.push_back(file_info(impl_->model,node(impl_->model,it->inode)));last=it->key;
-    }
-    more=it!=entries.end();
-  } else {
-    auto it=after.initialized_?impl_->model.names.upper_bound({directory,after.after_}):
-        impl_->model.names.lower_bound({directory,{}});
-    for(;it!=impl_->model.names.end() && it->first.first==directory && result.entries.size()<maximum;++it) {
-      result.entries.push_back(file_info(impl_->model,node(impl_->model,it->second)));last=it->first.second;
-    }
-    more=it!=impl_->model.names.end() && it->first.first==directory;
+  verify_directory(impl_->objects,impl_->model,selected_inode(impl_->model,directory));
+  NativeDirectoryPage result;result.entries.reserve(maximum);
+  auto it=after.initialized_?impl_->model.names.upper_bound({directory,after.after_}):
+      impl_->model.names.lower_bound({directory,{}});
+  auto last=it;
+  for(;it!=impl_->model.names.end() && it->first.first==directory && result.entries.size()<maximum;++it) {
+    result.entries.push_back(file_info(impl_->model,node(impl_->model,it->second)));
+    last=it;
   }
-  if(more) {
+  if(it!=impl_->model.names.end() && it->first.first==directory) {
     NativeDirectoryCursor next;next.owner_=impl_->enumeration_owner;next.directory_=directory;
-    next.after_=std::move(last);next.initialized_=true;result.next=std::move(next);
+    next.after_=last->first.second;next.initialized_=true;result.next=std::move(next);
   }
   return result;
 }

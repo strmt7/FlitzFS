@@ -162,6 +162,12 @@ read 985 backing bytes, down from 3,940. The paged fixtures matched one verified
 inode query at both tested failure units. Step 11 still includes replacing the
 remaining whole-namespace pass with bounded page lookup. [Lookup evidence](evidence/native-path-lookup-2026-11-17.json)
 
+Current indexed reads now verify the persisted directory against the checked
+name map in place. Pagination emits the requested range directly, and native
+session revalidation compares each inode record individually. The standard
+WinFsp lifecycle test uses sealed managed memory and verifies the committed
+bytes through callbacks. [Directory verification evidence](evidence/native-directory-verification-2026-11-17.json)
+
 Paged publication writes each changed inode frame directly. Compaction
 and grouped writes generate the namespace root independently. Paged reads
 decode one inode frame at a time and reuse one inventory for validation.
