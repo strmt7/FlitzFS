@@ -2,6 +2,12 @@
 
 ## Current local development
 
+The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now supplies both
+the helper and owned WinFsp composition. Stop retains backing and requires
+explicit join before independent CPU inspection. Connect the explicit native
+provider and external Windows clients next; current-source mounted qualification,
+staged reclamation, scalable coherence and useful ordinary AMD work remain open.
+
 The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) now ties callback events,
 live Windows telemetry/priority and pacing to one start/maintenance/stop owner.
 Its actual SDK tests use injected lifecycle providers. Connect the shared memory

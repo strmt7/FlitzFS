@@ -1,5 +1,6 @@
 #include "winfsp_controller.hpp"
 #include "winfsp_native.hpp"
+#include "memory_volume.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -25,8 +26,10 @@ struct WinFspVolumeController::Impl {
   std::unique_ptr<WinFspNativeSession> session;
   WinFspNativeWritable* adapter=nullptr; // Valid only until session.stop().
   NativeWriteMountPlan plan;
+  MemoryVolumeDomain* residency=nullptr;
   std::thread worker;
-  Impl(std::unique_ptr<WinFspNativeWritable> source,WinFspSessionApi api,NativeWriteMountPlan p):plan(std::move(p)) {
+  Impl(std::unique_ptr<WinFspNativeWritable> source,WinFspSessionApi api,NativeWriteMountPlan p,
+      MemoryVolumeDomain* memory=nullptr):plan(std::move(p)),residency(memory) {
     if(!source || !valid_native_write_plan(plan))throw std::invalid_argument("Invalid controller source or mount plan");
     source->set_maintenance_event(activity.value);adapter=source.get();
     session=std::make_unique<WinFspNativeSession>(std::move(source),api);
@@ -69,6 +72,7 @@ struct WinFspVolumeController::Impl {
           else try {
             const auto observed=host.observe(stop_requested.load(std::memory_order_acquire));
             if(!stop_requested.load(std::memory_order_acquire) && host.status()!=MaintenanceHostStatus::waiting) {
+              if(residency && observed.valid)residency->verify_resident();
               result=session->advance_group_maintenance(observed,GetTickCount64());
               if(result.state==WinFspGroupMaintenanceState::unavailable ||
                   result.progress.phase==NativeMaintenancePhase::failed)disabled=true;
@@ -107,6 +111,9 @@ struct WinFspVolumeController::Impl {
 WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
     WinFspSessionApi api,NativeWriteMountPlan plan):impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan))){}
 WinFspVolumeController::~WinFspVolumeController()=default;
+WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
+    WinFspSessionApi api,NativeWriteMountPlan plan,MemoryVolumeDomain& memory):
+    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),&memory)){}
 void WinFspVolumeController::request_stop() noexcept {impl_->request_stop();}
 void WinFspVolumeController::stop_and_join() noexcept {
   impl_->request_stop();if(impl_->worker.joinable())impl_->worker.join();

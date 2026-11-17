@@ -28,8 +28,9 @@ close them. The [WinFsp paged bridge](WINFSP_PAGED_VOLUMES.md) now adds the
 writable factory, compatible restart and cooperative groups through actual SDK
 callbacks. The [owned controller](WINFSP_OWNED_CONTROLLER.md) now connects callback
 events, live observations/priority, pacing and joined lifecycle ownership through
-injected providers. Connect a shared memory factory and explicit native provider
-next, then qualify external Windows clients, alongside staged reclamation,
+injected providers. The [shared adaptive factory](WINDOWS_MEMORY_VOLUME_FACTORY.md)
+now composes retained locked backing and post-join CPU inspection. Connect the
+explicit native provider next, then qualify external Windows clients, alongside staged reclamation,
 scalable access and useful ordinary GPU work. The helper editor does not replace Explorer.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,
@@ -50,7 +51,7 @@ application slices, bounded GPU workers and independent CPU result validation.
 | Sharing | Exact extent sharing/private updates, protected shared-base patch groups, and automatic aligned-family discovery/extension with complete-size admission. | The controller uses the bounded native model; no persistent scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
 | GPU | Actual AMD execution and independent current/prior CPU recovery passed controlled service tests. | The last matched case was slower on GPU: CPU median 24.2311 ms, GPU 513.918 ms, identical complete image sizes. Useful automatic ordinary I/O remains absent. |
 | Learning/background work | Persistent advice/provenance, automatic grouping, live Windows observations/resource background mode, measured complete-quantum pacing and outcome reuse exist. The owned WinFsp scheduler receives real callback events. | No complete autonomous learner, persistent scalable coherence, qualified current-source mounted executor, gradual migration or lifetime write-amplification governor. |
-| Windows product | The WinFsp adapter supports paged creation/resume and cooperative groups. Its owned controller passes real SDK callback/live telemetry and injected lifecycle tests; earlier mount results remain historical. | Connect the shared memory factory and explicit native provider, then qualify disposable mounts and staged reclamation; complete client semantics, scalable access, providers, deployment and broad qualification. |
+| Windows product | The WinFsp adapter supports paged creation/resume and cooperative groups. Its owned controller and shared memory factory pass real SDK callback/live telemetry and injected lifecycle tests; earlier mount results remain historical. | Connect the explicit native provider, then qualify disposable mounts and staged reclamation; complete client semantics, scalable access, providers, deployment and broad qualification. |
 | Recovery | COW checkpoints, metadata replicas, modeled failures, explicit recovery and source-preserving rebuilding exist. | General payload/dependency repair, scalable reclamation and complete backend fault qualification remain open. Historical retirement failures are not diagnosed by later successful runs. |
 
 The million-object experiment used 16,000,000 bytes of tiny raw payloads in a

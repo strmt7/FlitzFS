@@ -1,5 +1,15 @@
 # Validation ledger — experimental release 0.2
 
+## Shared adaptive memory-volume factory — 17 November 2026
+
+[Contract](WINDOWS_MEMORY_VOLUME_FACTORY.md) and
+[source-bound evidence](evidence/memory-volume-factory-2026-11-17.json) record
+fresh adaptive admission, shared provider/accounting, retained backing, startup
+refusal, explicit post-join CPU inspection and unchanged helper workflows.
+Direct native RNG initialization is separated from strict FlitzFS handle balance;
+the failed cold-baseline test remains available. Actual live outcomes are recorded
+without turning resource deferral into fabricated idle/grouping evidence.
+
 ## Owned WinFsp background controller — 16 November 2026
 
 [Contract](WINFSP_OWNED_CONTROLLER.md) and

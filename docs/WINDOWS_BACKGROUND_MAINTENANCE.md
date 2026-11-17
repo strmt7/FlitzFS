@@ -22,6 +22,10 @@ be required for ordinary file reads/writes. See [the Windows product contract](W
 
 ## Allocation and retained ownership
 
+The helper and WinFsp controller composition now use the same
+[adaptive backing factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). Backing lifetime,
+fresh admission and independent post-join inspection have a common contract.
+
 The helper queries physical and commit headroom before creation. Within the
 memory provider's existing 40-MiB qualification envelope, it admits at most
 1/256 of the smaller available headroom after reserving the larger of 768 MiB

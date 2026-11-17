@@ -1,5 +1,8 @@
 # `.flfs` v1 experimental chunk container
 
+The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) changes only backing
+creation/ownership; head, namespace, advice and payload encodings are unchanged.
+
 The [owned Windows controller](WINFSP_OWNED_CONTROLLER.md) adds volatile activity,
 observation and lifecycle state only; it changes no stored encoding or version.
 

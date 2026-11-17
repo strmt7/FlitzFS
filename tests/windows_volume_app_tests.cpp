@@ -5,6 +5,7 @@
 #include <bcrypt.h>
 #include <pdh.h>
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstring>
 #include <cstdlib>
@@ -527,15 +528,27 @@ void maintenance_tests() {
       std::string a(8192,'K'),b=a,c=a;b[1]='L';c[5]='M';
       command({VolumeCommandKind::create_text,"one",a});command({VolumeCommandKind::create_text,"two",b});
       command({VolumeCommandKind::create_text,"three",c});
-      until([&]{const auto p=controller.view().volume.maintenance;
-        return p.phase==NativeMaintenancePhase::preparing && p.owned_payload_bytes>0;},deadline);
-      command({VolumeCommandKind::read_text,"one",{}});require(controller.view().text==a,"Foreground read during group preparation");
+      const auto resource_deferred=[](const VolumeControllerView& v) {
+        const auto& p=v.volume.maintenance;
+        return v.maintenance_host==MaintenanceHostStatus::ready && v.volume.maintenance_pending &&
+            p.phase==NativeMaintenancePhase::deferred &&
+            (p.deferral==NativeMaintenanceDeferral::cpu || p.deferral==NativeMaintenanceDeferral::memory);
+      };
+      until([&]{const auto v=controller.view();require(!v.maintenance_disabled,"Native background scheduling disabled");
+        const auto& p=v.volume.maintenance;
+        return (p.phase==NativeMaintenancePhase::preparing && p.owned_payload_bytes>0) || resource_deferred(v);},deadline);
+      const auto selected=controller.view();
+      const bool interleaved=selected.volume.maintenance.phase==NativeMaintenancePhase::preparing &&
+          selected.volume.maintenance.owned_payload_bytes>0;
+      command({VolumeCommandKind::read_text,"one",{}});require(controller.view().text==a,"Foreground read during pending maintenance");
       const auto content_generation=controller.view().content_generation;
       until([&]{const auto v=controller.view();require(!v.maintenance_disabled,"Native background scheduling disabled");
-        return !v.volume.maintenance_pending;},deadline);
+        return !v.volume.maintenance_pending || resource_deferred(v);},deadline);
       const auto completed=controller.view();
-      require(completed.volume.maintenance.published_groups==1 && completed.content_generation==content_generation,
-          "Live idle grouping did not publish or changed foreground content generation");
+      const bool published=!completed.volume.maintenance_pending;
+      if(published)require(completed.volume.maintenance.published_groups==1,"Live idle grouping did not publish");
+      else require(resource_deferred(completed),"Pending live maintenance lacks a qualified resource deferral");
+      require(completed.content_generation==content_generation,"Background work changed foreground content generation");
       command({VolumeCommandKind::read_text,"one",{}});require(controller.view().text==a,"Live grouped readback");
       command({VolumeCommandKind::read_text,"two",{}});require(controller.view().text==b,"Live grouped second readback");
       command({VolumeCommandKind::read_text,"three",{}});require(controller.view().text==c,"Live grouped third readback");
@@ -544,6 +557,9 @@ void maintenance_tests() {
           <<" control_generation="<<completed.content_generation<<" notifications="<<completed.generation
           <<" quanta="<<completed.maintenance_quanta<<" elapsed_ns="<<completed.maintenance_elapsed_ns
           <<" maximum_quantum_ns="<<completed.maintenance_maximum_quantum_ns<<"\n";
+      std::cout<<"Live maintenance outcome="<<(published?"published":"resource-deferred")
+          <<" preparation_interleave="<<interleaved<<" publication_exercised="<<published
+          <<" deferral="<<static_cast<unsigned>(completed.volume.maintenance.deferral)<<"\n";
     }
     require(DestroyWindow(window)!=FALSE && MemoryVolumeDomain::cleanup_healthy(),"Live maintenance controller retirement");
   }
@@ -580,17 +596,19 @@ std::wstring text(HWND window) {
   require(actual>=0 && actual<=count,"GUI text read");
   result.resize(static_cast<std::size_t>(actual));return result;
 }
-void gui_tests(const std::filesystem::path& app) {
+void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget) {
   auto observer=std::make_shared<ProcessObserver>();ProcessResult result;
   std::exception_ptr failure;
-  const auto child_memory_mib=app_fixture::memory_allowance()/2/(1024*1024);
-  std::thread supervisor([&]{try{result=run_bounded_process(app,{},ProcessBudget{child_memory_mib,2000,25000,32},observer);}
-      catch(...){failure=std::current_exception();}});
+  std::atomic<bool> supervisor_failed{false};
+  const auto child_memory_mib=budget.child_memory_mib();
+  std::thread supervisor([&]{try{result=run_bounded_process(app,{},ProcessBudget{child_memory_mib,2000,25000,16},observer);}
+      catch(...){failure=std::current_exception();supervisor_failed.store(true,std::memory_order_release);}});
   std::exception_ptr test_failure;
   try {
     const auto deadline=GetTickCount64()+20000;
     HWND window=nullptr;
-    until([&]{window=find_window(observer->process_id());return window!=nullptr;},deadline);
+    until([&]{if(supervisor_failed.load(std::memory_order_acquire))throw std::runtime_error("GUI child launch failed");
+      window=find_window(observer->process_id());return window!=nullptr;},deadline);
     auto button=[&](int id){std::cout<<"GUI command: "<<id<<"\n";auto h=GetDlgItem(window,id);require(h!=nullptr,"Missing native button");send(h,BM_CLICK);};
     HWND status=nullptr;
     auto wait_status=[&](std::wstring_view expected){
@@ -657,7 +675,7 @@ int wmain(int argc,wchar_t** argv) {
       for(unsigned cycle=0;cycle<3;++cycle)model_tests();
     }
     else if(argc==2 && std::wstring_view(argv[1])==L"--maintenance")maintenance_tests();
-    else if(argc==3 && std::wstring_view(argv[1])==L"--gui")gui_tests(std::filesystem::path(argv[2]));
+    else if(argc==3 && std::wstring_view(argv[1])==L"--gui")gui_tests(std::filesystem::path(argv[2]),budget);
     else throw std::runtime_error("Explicit --model, --maintenance or --gui absolute-app-path required");
     std::cout<<"Windows volume application checks: "<<checks
         <<"; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\n";return 0;

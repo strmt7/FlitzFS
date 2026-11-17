@@ -78,8 +78,9 @@ a valid Microsoft signature alone does not prove that combination qualified.
 
 ## Next integration
 
-Connect a shared resource-adaptive memory-volume factory and explicit native
-provider to this owned lifecycle, then exercise a disposable mounted paged volume
+The [shared adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now
+composes this controller with retained locked backing and post-join CPU inspection.
+Connect the explicit native provider next, then exercise a disposable mounted paged volume
 through external Windows clients. Preserve controller/dispatcher/backing lifetime,
 stop ownership, resource envelopes and the owner's driver-stability condition.
 Staged reclamation, scalable persistent coherence, complete Windows semantics

@@ -8,6 +8,12 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now admits and
+retains backing for both the helper and WinFsp composition. Explicit controller
+join precedes CPU inspection; a surviving reader/store retains the provider
+lease and prevents reuse. Stop does not discard backing. Memory contents remain
+process-lifetime only, and native providers are still explicitly selected.
+
 The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) connects actual callback
 events, low-priority live observations, pacing and joined session ownership.
 Its tests inject lifecycle providers; they never start the installed driver.

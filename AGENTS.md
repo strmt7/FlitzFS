@@ -251,6 +251,12 @@ the owned WinFsp scheduler or its start/stop lifecycle. Keep signal/wait handle
 ownership, deferred-publication change detection, unchanged-volume quiescence,
 full-quantum pacing and one joined controlling thread. An explicit native
 provider and current-source mounted qualification remain required.
+Read docs/WINDOWS_MEMORY_VOLUME_FACTORY.md before changing shared allocation,
+WinFspMemoryVolume composition or retained CPU inspection. Keep actual fresh
+headroom collection, one compiled provider/accounting domain, fixed registry
+during callbacks, backing lifetime through joined shutdown and explicit join
+before CPU inspection. Separate native RNG/PDH initialization from owned handle
+balance; preserve failed cold-baseline evidence and stable ownership checks.
 Background scheduling is not GPU qualification or
 permission to install a driver. Preserve exact resource retirement checks;
 separate native PDH cold initialization from leaks in product-owned lifecycles.

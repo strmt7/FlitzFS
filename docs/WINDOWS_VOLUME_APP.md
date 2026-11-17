@@ -6,6 +6,10 @@ live CPU/memory observations and owned low-priority group opportunities. See
 contract and source-bound validation. Explorer access remains required; this
 unmounted editor is an intermediate control surface.
 
+Current backing creation is shared with the WinFsp composition through the
+[adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). The fixed capacity
+and staged Optimize descriptions below apply to the labeled historical build.
+
 The following f4928c2 qualification and fixed allocation/staging profile are
 historical evidence for the earlier flat-volume application. They do not
 override the current paged factory, dynamic capacity or idle-work contract.

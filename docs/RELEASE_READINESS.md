@@ -19,6 +19,13 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
+The [shared adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now serves
+both helper and WinFsp composition. It retains backing through controller stop
+and admits independent CPU inspection only after an explicit join. Its tests
+separate native RNG initialization and loaded-host deferral from owned-resource
+leaks and actual idle publication. Native-provider/mounted qualification remains
+open; this is not a release-package exit.
+
 The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) now connects callback
 events, live Windows resource observations/priority, pacing and serialized
 start/stop ownership. Normal/ASan tests formed a two-file shared-base group and

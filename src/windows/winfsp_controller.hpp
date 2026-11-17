@@ -2,6 +2,7 @@
 #include "winfsp_session.hpp"
 #include "maintenance_host.hpp"
 namespace flitzfs {
+class MemoryVolumeDomain;
 struct WinFspControllerView {
   SessionState state=SessionState::ready;
   NTSTATUS start_status=STATUS_PENDING;
@@ -19,6 +20,9 @@ struct WinFspControllerView {
 class WinFspVolumeController final {
  public:
   WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan);
+  // Qualified memory composition: domain must outlive the controller's joined
+  // worker. Its store registry remains fixed while callbacks run.
+  WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,MemoryVolumeDomain&);
   ~WinFspVolumeController();
   WinFspVolumeController(const WinFspVolumeController&)=delete;
   WinFspVolumeController& operator=(const WinFspVolumeController&)=delete;

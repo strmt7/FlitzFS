@@ -1,15 +1,29 @@
 #include "winfsp_controller.hpp"
 #include "winfsp_native.hpp"
+#include "winfsp_memory_volume.hpp"
 #include "native_fs_fixture.hpp"
 #include "windows_app_budget.hpp"
+#include <bcrypt.h>
 #include <atomic>
 #include <cstring>
 #include <iostream>
+#include <optional>
 #include <thread>
 namespace {
 using namespace flitzfs;using namespace native_fixture;
 unsigned checks=0;
+DWORD handle_count() {DWORD count=0;if(!GetProcessHandleCount(GetCurrentProcess(),&count))throw std::runtime_error("handle telemetry");return count;}
 void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
+void native_rng_initialization() {
+  std::array<DWORD,3> observed{};const auto cold=handle_count();
+  for(unsigned i=0;i<observed.size();++i) {
+    std::array<UCHAR,16> bytes{};
+    require(BCryptGenRandom(nullptr,bytes.data(),static_cast<ULONG>(bytes.size()),BCRYPT_USE_SYSTEM_PREFERRED_RNG)>=0,
+        "native system RNG initialization failed");observed[i]=handle_count();
+  }
+  std::cout<<"native_rng_handles cold="<<cold<<" first="<<observed[0]<<" second="<<observed[1]<<" third="<<observed[2]<<'\n';
+  require(observed[1]==observed[2],"native RNG handle initialization did not stabilize");
+}
 template<class F>void await(F predicate,std::uint64_t milliseconds,const char* why) {
   const auto until=GetTickCount64()+milliseconds;
   while(!predicate()){if(GetTickCount64()>=until)throw std::runtime_error(why);Sleep(10);}
@@ -171,14 +185,121 @@ void live_opportunities() {
       <<" quanta="<<observed.maintenance_quanta<<" groups="<<observed.maintenance.published_groups
       <<" maximum_quantum_ns="<<observed.maximum_quantum_ns<<'\n';
 }
+void memory_planning() {
+  constexpr std::uint64_t mib=1024ULL*1024;
+  for(const auto& host:std::array<MemoryVolumeObservation,4>{{
+      {4*1024*mib,3072*mib,8*1024*mib,6*1024*mib},
+      {16*1024*mib,12*1024*mib,32*1024*mib,24*1024*mib},
+      {64*1024*mib,56*1024*mib,128*1024*mib,11*1024*mib},
+      {UINT64_MAX,UINT64_MAX,UINT64_MAX,UINT64_MAX}}}) {
+    const auto layout=plan_memory_volume(host);
+    require(layout.domain_capacity>=9*mib && layout.domain_capacity<=MemoryVolumeDomain::maximum_capacity &&
+        layout.domain_capacity%65536==0 && layout.image_capacity%65536==0,"adaptive factory plan bounds");
+    require(2*layout.image_capacity+(NativeFileSession::max_optimization_bindings+1)*layout.area_capacity<=layout.domain_capacity,
+        "factory omitted candidate/advisory reservations");
+  }
+  const auto roomy=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,24*1024*mib});
+  const auto tight=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,5*1024*mib});
+  require(tight.domain_capacity<roomy.domain_capacity,"commit headroom did not reduce factory sizing");
+  for(const auto& host:std::array<MemoryVolumeObservation,5>{{{}, {1024*mib,512*mib,2048*mib,1024*mib},
+      {1024,1025,4096,4096},{4096,4096,1024,1025},{4*1024*mib,3072*mib,8*1024*mib,768*mib}}}) {
+    bool refused=false;try{(void)plan_memory_volume(host);}catch(const std::exception&){refused=true;}
+    require(refused,"invalid/low headroom admitted a factory plan");
+  }
 }
-int main(){try {
+void memory_backing_ownership() {
+  SIZE_T old_min=0,old_max=0;DWORD old_flags=0;
+  require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&old_min,&old_max,&old_flags)!=FALSE,"factory old working set");
+  std::shared_ptr<StoreByteIo> retained;
+  const std::array<std::byte,4> marker{std::byte{1},std::byte{3},std::byte{7},std::byte{9}};
+  {
+    auto backing=MemoryVolumeBacking::create();const auto usage=backing.domain->usage();
+    require(usage.capacity==backing.layout.domain_capacity && usage.stores==3 &&
+        usage.allocated==backing.layout.image_capacity+2*backing.layout.area_capacity,"factory backing accounting");
+    require(backing.head!=backing.image && backing.head!=backing.advice && backing.image!=backing.advice &&
+        backing.volume_identity!=backing.image_identity,"factory aliases new identities/backends");
+    require(backing.head->extent()==0 && backing.image->extent()==0 && backing.advice->extent()==0,"factory did not create empty backing");
+    backing.image->write_exact(0,marker);backing.image->flush();backing.domain->verify_resident();retained=backing.image;
+  }
+  bool refused=false;try{(void)MemoryVolumeBacking::create();}catch(const std::exception&){refused=true;}
+  require(refused,"factory lost the surviving store's domain lease");
+  std::array<std::byte,4> read{};retained->read_exact(0,read);require(read==marker,"factory wrapper retirement lost retained bytes");
+  retained.reset();
+  SIZE_T restored_min=0,restored_max=0;DWORD restored_flags=0;
+  require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&restored_min,&restored_max,&restored_flags)!=FALSE &&
+      restored_min==old_min && restored_max==old_max && restored_flags==old_flags && MemoryVolumeDomain::cleanup_healthy(),
+      "factory did not restore working set after last backing reference");
+  {auto next=MemoryVolumeBacking::create();next.domain->verify_resident();}
+}
+void memory_composition() {
+  Provider p;Provider::active=&p;
+  // Startup rollback retires the dispatcher, but retains the newly initialized
+  // volume for independent inspection until the owner discards its wrapper.
+  {
+    p.fail_mount=true;WinFspMemoryVolume failed(p.api(),plan());
+    await([&]{return failed.view().retired;},5000,"memory mount refusal retirement");
+    bool refused=false;try{(void)failed.inspect_retired();}catch(const std::exception&){refused=true;}
+    require(refused,"memory inspection accepted status without explicit join");
+    failed.stop_and_join();auto cpu=failed.inspect_retired();cpu.filesystem().verify_all();
+    require(failed.view().start_status==STATUS_OBJECT_NAME_COLLISION && cpu.filesystem().list().empty(),
+        "memory mount rollback discarded the new valid volume");
+  }
+}
+void live_memory_composition() {
+  Provider p;Provider::active=&p;std::optional<NativeVolumeHeadView> surviving;
+  const auto first=data(kNativeExtentBytes,889);auto second=first;second[999]^=std::byte{7};
+  {
+    WinFspMemoryVolume volume(p.api(),plan());
+    await([&]{const auto v=volume.view();return v.state==SessionState::running || v.retired;},5000,"memory controller start deadline");
+    require(volume.view().state==SessionState::running,"memory provider startup failed");
+    const auto layout=volume.layout();require(layout.domain_capacity<=MemoryVolumeDomain::maximum_capacity &&
+        layout.image_capacity>=4*1024*1024,"memory controller used wrong backing envelope");
+    callback_file(p,0,first);callback_file(p,1,second);
+    const auto until=GetTickCount64()+18000;
+    while(GetTickCount64()<until) {
+      const auto v=volume.view();if(v.maintenance.published_groups || v.maintenance_disabled || v.retired)break;Sleep(25);
+    }
+    const auto observed=volume.view();volume.stop_and_join();
+    require(volume.view().retired && !volume.view().offline,"memory controller did not retire cleanly");
+    auto cpu=volume.inspect_retired();cpu.filesystem().verify_all();
+    require(cpu.filesystem().image_storage().kind==NativeImageKind::paged && cpu.filesystem().shared_base_info().enabled,
+        "memory controller did not create managed paged storage");
+    require(cpu.filesystem().read("f0",0,first.size())==first && cpu.filesystem().read("f1",0,second.size())==second,
+        "memory controller lost accepted data after stop");
+    require(cpu.filesystem().workload_info()==NativeWorkloadInfo{true,2*kNativeExtentBytes},"memory controller input provenance");
+    if(observed.maintenance.published_groups)require(cpu.filesystem().shared_base_info().members==2,"memory group not retained");
+    std::cout<<"live_memory domain="<<layout.domain_capacity<<" image="<<layout.image_capacity<<" groups="
+        <<observed.maintenance.published_groups<<" quanta="<<observed.maintenance_quanta<<" maximum_quantum_ns="
+        <<observed.maximum_quantum_ns<<" disabled="<<observed.maintenance_disabled<<'\n';
+    surviving.emplace(std::move(cpu));
+  }
+  surviving->filesystem().verify_all();require(surviving->filesystem().read("f0",0,first.size())==first,
+      "retained CPU view lost backing after memory controller destruction");
+  bool refused=false;try{(void)MemoryVolumeBacking::create();}catch(const std::exception&){refused=true;}
+  require(refused,"retained CPU reader did not hold the provider lease");
+  surviving.reset();{auto next=MemoryVolumeBacking::create();next.domain->verify_resident();}
+  require(MemoryVolumeDomain::cleanup_healthy(),"memory composition cleanup failed");
+}
+}
+int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
   // PDH may initialize process-wide native caches. Warm that same native path
   // before checking ownership balance; never count its caches as our handles.
   {WindowsMaintenanceHost warm;warm.observe(false);}
+  // The system-preferred RNG initializes process-wide native handles on first
+  // use. Prove native-only stabilization before measuring factory ownership.
+  if(argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles"))
+    native_rng_initialization();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
-  event_ownership();lifecycle();expiration();invalid_and_unexpected();live_opportunities();
+  if(argc==1){event_ownership();lifecycle();expiration();invalid_and_unexpected();live_opportunities();}
+  else if(argc==2 && std::string_view(argv[1])=="--memory") {
+    memory_planning();std::cout<<"memory_handles start="<<handle_count()<<'\n';
+    memory_backing_ownership();std::cout<<"memory_handles backing="<<handle_count()<<'\n';
+    memory_composition();std::cout<<"memory_handles rollback="<<handle_count()<<'\n';
+    live_memory_composition();std::cout<<"memory_handles live="<<handle_count()<<'\n';
+  }else if(argc==2 && std::string_view(argv[1])=="--memory-handles") {
+    for(unsigned i=0;i<3;++i){memory_backing_ownership();std::cout<<"backing_handles cycle="<<i<<" count="<<handle_count()<<'\n';}
+  }else throw std::invalid_argument("Unknown owned controller qualification mode");
   require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE && before==after,"controller handle leak");
   std::cout<<"PASS: "<<checks<<" owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU\n";
   return 0;

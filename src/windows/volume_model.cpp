@@ -1,6 +1,6 @@
 #include "volume_model.hpp"
+#include "memory_volume_factory.hpp"
 #include <windows.h>
-#include <bcrypt.h>
 #include <algorithm>
 #include <cstring>
 #include <stdexcept>
@@ -9,51 +9,26 @@
 
 namespace flitzfs {
 namespace {
-constexpr std::uint64_t mib=1024ULL*1024;
-constexpr std::uint64_t area_capacity=131072,unit=65536;
-StoreIdentity fresh_identity() {
-  StoreIdentity id{};
-  if(BCryptGenRandom(nullptr,reinterpret_cast<PUCHAR>(id.data()),
-      static_cast<ULONG>(id.size()),BCRYPT_USE_SYSTEM_PREFERRED_RNG)<0 ||
-      std::all_of(id.begin(),id.end(),[](std::byte b){return b==std::byte{};}))
-    throw std::runtime_error("Volume identity generation failed");
-  return id;
-}
+constexpr auto area_capacity=MemoryVolumeLayout::area_capacity;
 void require(bool value,const char* message) {if(!value)throw std::runtime_error(message);}
-std::uint64_t domain_capacity() {
-  MEMORYSTATUSEX m{};m.dwLength=sizeof(m);
-  require(GlobalMemoryStatusEx(&m)!=FALSE,"Memory headroom unavailable");
-  require(m.ullTotalPhys && m.ullAvailPhys<=m.ullTotalPhys && m.ullTotalPageFile &&
-      m.ullAvailPageFile<=m.ullTotalPageFile,"Inconsistent memory headroom");
-  const auto reserve=(std::max)(768*mib,m.ullTotalPhys/8);
-  require(m.ullAvailPhys>reserve && m.ullAvailPageFile>reserve,"Insufficient volume headroom");
-  // Keep the existing provider qualification envelope. Two image reservations
-  // and every possible advisory binding fit, with no assumption about host RAM.
-  const auto cap=(std::min)(MemoryVolumeDomain::maximum_capacity,
-      (std::min)(m.ullAvailPhys-reserve,m.ullAvailPageFile-reserve)/256)/unit*unit;
-  require(cap>=9*mib,"Insufficient admitted paged-volume capacity");return cap;
-}
 }
 VolumeModel::~VolumeModel()=default;
 void VolumeModel::create() {
   require(!domain_ && !session_,"Volume already owned; discard explicitly before creating another");
   // Fresh local owners provide exception-safe retirement before publication.
-  const auto capacity=domain_capacity();
-  const auto image_capacity=(capacity-area_capacity*(NativeFileSession::max_optimization_bindings+1))/2/unit*unit;
-  auto domain=std::make_unique<MemoryVolumeDomain>(MemoryVolumeDomain::create(capacity));
-  auto head=domain->create_store(area_capacity),image=domain->create_store(image_capacity);
-  auto advice=domain->create_store(area_capacity);
+  auto backing=MemoryVolumeBacking::create();
   auto session=std::make_unique<NativeFileSession>(NativeFileSession::create_paged_volume(
-      head,fresh_identity(),image,fresh_identity(),{image_capacity},{StoreCompressionMode::automatic,3,false}));
+      backing.head,backing.volume_identity,backing.image,backing.image_identity,
+      {backing.layout.image_capacity},{StoreCompressionMode::automatic,3,false}));
   const auto workload=session->enable_workload_accounting();
   require(workload.enabled&&!workload.committed_input_bytes,"New workload accounting failed");
-  const auto advisory=session->create_budgeted_optimization_area(advice,1);
+  const auto advisory=session->create_budgeted_optimization_area(backing.advice,1);
   require(advisory.phase==NativeOptimizationPhase::ready,"Optimization area creation failed");
   auto maintenance=std::make_unique<NativeGroupMaintenance>(*session);
-  domain->verify_resident();
-  domain_=std::move(domain);head_=std::move(head);image_=std::move(image);
-  advice_[0]=std::move(advice);session_=std::move(session);
-  maintenance_=std::move(maintenance);maintenance_pending_=true;image_capacity_=image_capacity;last_optimized_sequence_=0;
+  backing.domain->verify_resident();
+  domain_=std::move(backing.domain);head_=std::move(backing.head);image_=std::move(backing.image);
+  advice_[0]=std::move(backing.advice);session_=std::move(session);
+  maintenance_=std::move(maintenance);maintenance_pending_=true;image_capacity_=backing.layout.image_capacity;last_optimized_sequence_=0;
 }
 void VolumeModel::create_text(std::string_view name,std::string_view text) {
   require(ready(),"No volume");
@@ -142,7 +117,7 @@ bool VolumeModel::optimize() {
   auto target=domain_->create_store(image_capacity_);
   // Explicit user maintenance only. Managed paged handoff independently checks
   // both copies and preserves contexts/advice; autonomous staging is separate.
-  session_->recompress_volume(target,fresh_identity(),{StoreCompressionMode::automatic,9,false});
+  session_->recompress_volume(target,fresh_volume_identity(),{StoreCompressionMode::automatic,9,false});
   image_=std::move(target);last_optimized_sequence_=sequence;maintenance_pending_=true;return true;
 }
 bool VolumeModel::maintenance_pending() const noexcept {
