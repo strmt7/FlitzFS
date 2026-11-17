@@ -147,6 +147,33 @@ void remove_all_keys() {
   require(writer.snapshot().info().objects==0 && writer.snapshot().info().height==0,"empty tree retained branch");
   apply(writer,put(43));require(writer.snapshot().read(43)==payload(43),"empty tree did not regrow");
 }
+void append_write_accounting() {
+  for(const auto unit:{4096U,65536U}) {
+    auto ram=std::make_shared<Ram>();ram->unit=unit;
+    auto writer=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,{StoreCompressionMode::raw,6,false});
+    auto check_append=[&](std::span<const StoreMutation> changes) {
+      constexpr std::uint64_t root_write_bytes=2*4096;
+      const auto before_extent=ram->extent(),before_writes=ram->write_bytes;
+      const auto committed=writer.commit(changes);
+      const auto growth=committed.physical_end-before_extent;
+      const auto written=ram->write_bytes-before_writes;
+      std::cout<<"append_write_accounting unit="<<unit<<" records="<<changes.size()
+          <<" growth="<<growth<<" written="<<written<<std::endl;
+      require(committed.physical_end==ram->extent(),"paged image extent changed unexpectedly");
+      require(written==growth+root_write_bytes,"paged commit rewrote bytes in fresh append space");
+      auto recovered=PagedObjectStoreSnapshot::open(image(ram->stable,unit),limits);
+      require(recovered.info().generation==committed.generation,"append root generation");
+      for(const auto& change:changes)require(recovered.read(change.id)==change.bytes,"append readback");
+      recovered.verify_all();
+    };
+    const auto small=put(1);check_append(std::span(&small,1));
+    populate(writer,1024);
+    std::vector<StoreMutation> scattered;
+    for(std::uint64_t id=1;id<=1024;id+=4)scattered.push_back({id,false,Bytes(21,std::byte{0x62})});
+    check_append(scattered);
+  }
+}
+
 void failure_matrix(std::uint32_t unit) {
   auto base=std::make_shared<Ram>();base->unit=unit;
   {auto w=create(base);populate(w,130);}
@@ -359,7 +386,8 @@ void scale(std::uint64_t count) {
 int main(int argc,char** argv) {
   try {
     if(argc==2 && std::string_view(argv[1])=="--million")scale(1000000);
-    else if(argc==1) {basic_and_oracle();remove_all_keys();failure_matrix(4096);failure_matrix(65536);
+    else if(argc==1) {append_write_accounting();basic_and_oracle();remove_all_keys();
+      failure_matrix(4096);failure_matrix(65536);
       damage_and_malformed();semantic_pages_and_units();codec_modes();rebuild_and_recovery();rebuild_failures();scale(16384);}
     else throw std::runtime_error("unsupported test arguments");
     std::cout<<"paged store checks="<<checks<<"\n";return 0;

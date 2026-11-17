@@ -18,6 +18,9 @@ AMD GPU acceleration and independent CPU operation. Choose the guide for your ta
 ## Development
 
 Start with the [developer guide](development/README.md).
+The [current overview](REPOSITORY_OVERVIEW.md) and
+[detailed implementation plan](IMPLEMENTATION_PLAN.md) describe the development
+state and remaining work.
 The [reference index](reference/README.md) links all existing component contracts.
 The [research index](research/README.md) distinguishes design investigations from
 implemented behavior.

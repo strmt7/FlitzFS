@@ -4,6 +4,11 @@ FlitzFS remains an experimental filesystem/storage prototype, substantially shor
 of a release candidate. The owner alone decides when to release. No release,
 tag, package publication or version change is authorized.
 
+The fresh [repository overview](REPOSITORY_OVERVIEW.md) and
+[154-step implementation plan](IMPLEMENTATION_PLAN.md) are the current
+17 November review at `38a4a48`. They distinguish reusable foundations from
+missing product components; the full product goal remains active.
+
 [The current release execution plan](RELEASE_EXECUTION_PLAN.md) breaks the
 remaining work into thirteen concrete packages, about 60–130 person-weeks of
 low-confidence planning effort. It includes multi-release compatibility,
@@ -174,10 +179,10 @@ inferred. [Exact evidence](evidence/local-paged-store-2026-11-15.json).
 |---|---|---|
 | Ordinary Windows GPU I/O | Three unmounted GPU requests in a matched six-request series passed; real CPU-only mounted responses passed separately; automatic activation remains absent | Explorer/Win32 writes use admitted GPU work automatically when useful; reads and fallback work with GPU absent; cancellation and shutdown retire exactly |
 | GPU benefit | Actual bounded GPU bytes and CPU recovery demonstrated | Repeated controlled comparisons on varied real data show useful complete-operation throughput and/or net stored-size benefit |
-| Capacity | Opt-in paged store tested with one million objects; native namespace retains 256 nodes/about 15.94 MiB populated extents/64 MiB image limits | Integrate paged inode/name/extent transactions, bounded caches, migration and reader-safe reclamation; qualify populated named files |
-| Extreme collective compression | Research/design objective; no product cross-file learned codec | A lossless cross-file representation produces substantial held-out TOTAL-size gains, with practical individually addressed reads and protected dependencies |
+| Capacity | Opt-in paged store tested with one million objects; native namespace retains 256 nodes/about 15.94 MiB populated extent references. The flat profile has a 64-MiB image bound; paged capacity is explicit. | Integrate paged inode/name/extent transactions, bounded caches, migration and reader-safe reclamation; qualify populated named files |
+| Extreme collective compression | Protected shared-base literal-patch groups and automatic aligned discovery exist; stronger learned/multi-reference methods remain research | A lossless cross-file representation produces substantial held-out TOTAL-size gains after automatic reclamation, with practical individually addressed reads and protected dependencies |
 | Resource adaptation | Live admission, resource-sized layouts/planner and terminal recovery exist | Automatic configuration/shape cost acquisition, contention-aware selection and finite low-priority work; no host-specific product defaults |
-| Learning and maintenance | Persistent advisory-state and explicit recompression/handoff primitives exist | Workload learning actually drives automatic grouping/codec/layout choices and resumes after restart while promptly yielding to foreground work |
+| Learning and maintenance | Persistent advisory-state, automatic volatile grouping, live Windows opportunities and explicit recompression/handoff primitives exist | Persistent scalable workload learning drives grouping/codec/layout choices and resumes after restart while promptly yielding to foreground work |
 | Durability and repair | Copy-on-write checkpoints, redundancy for selected metadata and process/fault fixtures exist | Explicit acknowledged-write contract, data/dependency redundancy, recovery/repair and fault campaigns cover the promised backend failure model |
 | Windows product | Native callbacks, helper/app/tray and disposable-VM writable probes exist | Complete promised Win32 semantics, Windows 11 client qualification, lifecycle, packaging, secure installation/update and supported volume-creation workflows |
 | Security and comparisons | Source/dependency inventories and bounded-input checks exist | Independent review, malformed-input/fuzz campaigns, reproducible filesystem comparisons, supply-chain/installer review and exact-build acceptance |

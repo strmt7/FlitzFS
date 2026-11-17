@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "updated": "2026-11-17",
-  "forward_work_rule": "Use current_round, next_product_slices and package exits for forward work. Older checkpoint next fields retain historical decisions, not instructions to repeat completed stages.",
+  "forward_work_rule": "Use execution_programme and the implementation plan for current tasks and exits. Historical checkpoints describe completed or partial evidence.",
   "baseline": {
     "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
     "tree": "0ab1b0f5955aaf3090f8fd5d741a6ac13dab62b4"
@@ -696,7 +696,7 @@
         "G01",
         "L01"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "deliverables": [
         "Discover supported CPU features, processor availability, live CPU/GPU pressure, physical/commit/VRAM headroom and storage characteristics without installation-path or owner-hardware assumptions.",
         "Use a bounded event/evidence-driven governor with low-priority CPU/I/O/GPU work, small admitted units, cooperative yield, fairness and bounded debt. Timers may bound operations but cannot substitute for a retry or idle decision policy.",
@@ -911,7 +911,7 @@
         "S01",
         "R01"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "deliverables": [
         "Complete request-bound authority, owner/group, ACL/inheritance, sharing/locking, notifications, cancellation, mapped I/O and unresolved-session recovery matrices.",
         "Build the helper/app and installation/update/uninstall lifecycle with independent CPU recovery and host-agnostic dependency discovery.",
@@ -1162,65 +1162,28 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "c536bef91068c92562cf1f1dfcd71ab458f5dad1",
-    "contract": "docs/WINDOWS_MEMORY_VOLUME_FACTORY.md",
-    "evidence": "docs/evidence/memory-volume-factory-2026-11-17.json",
-    "status": "Shared adaptive locked backing for helper/WinFsp, retained volume through owned stop, explicit-join CPU inspection, surviving reader/provider lease, residency opportunities and consistent qualification accounting",
-    "configurations": [
-      {
-        "configuration": "raw",
-        "memory_composition_checks": 55,
-        "controller_checks": 49,
-        "callback_checks": 4290,
-        "publication_fault_cases": 492,
-        "actual_memory_live_groups": 1,
-        "app_live_outcome": "resource-deferred"
-      },
-      {
-        "configuration": "asan",
-        "memory_composition_checks": 54,
-        "controller_checks": 48,
-        "callback_checks": 4290,
-        "publication_fault_cases": 492,
-        "actual_memory_live_groups": 0,
-        "app_live_outcome": "resource-deferred"
-      }
-    ],
-    "shared_backing_factory": true,
-    "fresh_OS_admission": true,
-    "automatic_host_sizing": true,
-    "retained_backing_on_stop": true,
-    "post_join_CPU_reader": true,
-    "surviving_reader_lease": true,
-    "actual_SDK_callbacks": true,
-    "real_OS_observations": true,
-    "lifecycle_functions_injected": true,
-    "native_RNG_initialization_separated": true,
-    "handle_balance": true,
-    "working_set_restoration": true,
-    "app_only_build_without_WinFsp": true,
-    "sanitizer_settings_unchanged": true,
-    "live_busy_deferral_distinguished": true,
+    "source_base": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+    "contract": "docs/PAGED_OBJECT_STORE.md",
+    "evidence": "docs/evidence/paged-write-accounting-2026-11-17.json",
+    "status": "Paged commits initialize only unwritten alignment and bank padding. The helper fixture proves profitable grouping and correct refusal after foreground Zstandard.",
+    "review": "docs/evidence/repository-review-2026-11-17.json",
+    "selected_ctest_passed": 24,
+    "helper_maintenance_cases_passed": 3,
+    "no_format_change": true,
+    "real_host_helper_outcome": "resource-deferred",
     "native_mount": false,
-    "driver_install": false,
-    "driver_load": false,
-    "GPU": false,
-    "ordinary_GPU_route": false,
-    "fully_paged_namespace": false,
-    "persistent_coherence": false,
-    "automatic_reclamation": false,
+    "gpu": false,
     "physical_power_loss": false,
-    "compression_record": false,
     "release": false,
-    "next": "Complete the owner-requested full repository overview and extremely detailed current-source implementation plan; then connect the explicit native provider and qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data.",
+    "next": "Matched native provider and independently checked read-only external-client fixture, including retirement.",
     "full_goal_status": "active"
   },
   "next_product_slices": [
-    "Complete the owner-requested full repository overview and extremely detailed current-source implementation plan; then connect the explicit native provider and qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data.",
-    "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures.",
-    "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, content generations, continuation/outcome state and qualify large populated named-file workloads.",
-    "Implement required useful actual AMD collective/ingestion work with complete-cost measurement and automatic CPU fallback. Compare shifted, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data.",
-    "Complete Windows client semantics, physical providers, secure installation/update/rollback, multi-release compatibility, historical retirement diagnosis, security, recognized benchmarks and soak. No release without the owner."
+    "Matched native provider and independently checked read-only external-client fixture, including retirement.",
+    "First indexed inode/name/extent transaction with reusable-allocation authority and legacy reader parity.",
+    "Account for packed protected bytes and qualify bounded handoff plus incremental reclamation under unrelated commits.",
+    "Acquire complete-cost AMD observations and compare stronger collective representations independently.",
+    "Complete Windows semantics, physical-provider durability, backward reading and gradual upgrades, secure packaging, recognized comparisons and release-candidate soak."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -2101,5 +2064,374 @@
     "contract": "docs/WINFSP_OWNED_CONTROLLER.md",
     "evidence": "docs/evidence/owned-winfsp-controller-2026-11-16.json",
     "status": "Owned WinFsp callback events, real local Windows observations/background resource mode, full-quantum pacing and serialized start/maintenance/stop ownership; actual SDK callbacks with injected lifecycle"
+  },
+  "execution_programme": {
+    "date": "2026-11-17",
+    "source": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+    "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
+    "overview": "docs/REPOSITORY_OVERVIEW.md",
+    "contract": "docs/IMPLEMENTATION_PLAN.md",
+    "evidence": "docs/evidence/repository-review-2026-11-17.json",
+    "status": "Repository-wide architectural and delivery review. Active implementation continues.",
+    "last_shared_factory_evidence": "docs/evidence/memory-volume-factory-2026-11-17.json",
+    "release": false,
+    "step_count": 154,
+    "release_gates": [
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6",
+      "S7",
+      "S8",
+      "S9",
+      "S10",
+      "S11",
+      "S12"
+    ],
+    "packages": [
+      {
+        "id": "E01",
+        "title": "Scalable native inode, name and extent storage",
+        "steps": 12,
+        "completion_dependencies": [],
+        "existing_packages": [
+          "S01"
+        ],
+        "person_weeks": [
+          6,
+          12
+        ]
+      },
+      {
+        "id": "E02",
+        "title": "Allocation, dependency ownership and automatic reclamation",
+        "steps": 12,
+        "completion_dependencies": [
+          "E01"
+        ],
+        "existing_packages": [
+          "S01",
+          "R01"
+        ],
+        "person_weeks": [
+          5,
+          10
+        ]
+      },
+      {
+        "id": "E03",
+        "title": "Useful automatic AMD execution and CPU continuity",
+        "steps": 12,
+        "completion_dependencies": [],
+        "existing_packages": [
+          "G02",
+          "G03",
+          "A02",
+          "D01"
+        ],
+        "person_weeks": [
+          4,
+          9
+        ]
+      },
+      {
+        "id": "E04",
+        "title": "Persistent sparse coherence and candidate discovery",
+        "steps": 11,
+        "completion_dependencies": [
+          "E01"
+        ],
+        "existing_packages": [
+          "A03",
+          "L01",
+          "S01"
+        ],
+        "person_weeks": [
+          3,
+          7
+        ]
+      },
+      {
+        "id": "E05",
+        "title": "Stronger collective-compression research and selection",
+        "steps": 12,
+        "completion_dependencies": [],
+        "existing_packages": [
+          "A04",
+          "G03",
+          "Q01"
+        ],
+        "person_weeks": [
+          6,
+          16
+        ]
+      },
+      {
+        "id": "E06",
+        "title": "Protected collective representation in ordinary storage",
+        "steps": 12,
+        "completion_dependencies": [
+          "E01",
+          "E02",
+          "E04",
+          "E05"
+        ],
+        "existing_packages": [
+          "A04",
+          "S01",
+          "R01"
+        ],
+        "person_weeks": [
+          5,
+          12
+        ]
+      },
+      {
+        "id": "E07",
+        "title": "Autonomous learning, resource control and background policy",
+        "steps": 13,
+        "completion_dependencies": [
+          "E02",
+          "E03",
+          "E04",
+          "E06"
+        ],
+        "existing_packages": [
+          "A01",
+          "A03",
+          "L01"
+        ],
+        "person_weeks": [
+          4,
+          9
+        ]
+      },
+      {
+        "id": "E08",
+        "title": "Windows semantics, Explorer and owned volume lifecycle",
+        "steps": 15,
+        "completion_dependencies": [
+          "E01"
+        ],
+        "existing_packages": [
+          "W01",
+          "D01"
+        ],
+        "person_weeks": [
+          5,
+          10
+        ]
+      },
+      {
+        "id": "E09",
+        "title": "Multi-release readers and gradual format migration",
+        "steps": 10,
+        "completion_dependencies": [
+          "E01",
+          "E02",
+          "E06"
+        ],
+        "existing_packages": [
+          "U01",
+          "R01"
+        ],
+        "person_weeks": [
+          3,
+          6
+        ]
+      },
+      {
+        "id": "E10",
+        "title": "Safe dependency setup, packaging and supported volume workflows",
+        "steps": 11,
+        "completion_dependencies": [
+          "E08",
+          "E09"
+        ],
+        "existing_packages": [
+          "P00",
+          "W01",
+          "U01"
+        ],
+        "person_weeks": [
+          3,
+          6
+        ]
+      },
+      {
+        "id": "E11",
+        "title": "Durability, repair, security and independent failure qualification",
+        "steps": 14,
+        "completion_dependencies": [
+          "E01",
+          "E02",
+          "E03",
+          "E04",
+          "E05",
+          "E06",
+          "E07",
+          "E08",
+          "E09",
+          "E10"
+        ],
+        "existing_packages": [
+          "R01",
+          "D01",
+          "Q01"
+        ],
+        "person_weeks": [
+          6,
+          12
+        ]
+      },
+      {
+        "id": "E12",
+        "title": "Recognized, unbiased size and performance qualification",
+        "steps": 12,
+        "completion_dependencies": [
+          "E03",
+          "E06",
+          "E07",
+          "E08",
+          "E11"
+        ],
+        "existing_packages": [
+          "Q01",
+          "G03",
+          "A04"
+        ],
+        "person_weeks": [
+          3,
+          6
+        ]
+      },
+      {
+        "id": "E13",
+        "title": "Stabilization and the owner's release decision",
+        "steps": 8,
+        "completion_dependencies": [
+          "E02",
+          "E03",
+          "E06",
+          "E07",
+          "E08",
+          "E09",
+          "E10",
+          "E11",
+          "E12"
+        ],
+        "existing_packages": [
+          "Q01",
+          "W01",
+          "U01"
+        ],
+        "person_weeks": [
+          6,
+          12
+        ]
+      }
+    ],
+    "first_slices": [
+      {
+        "steps": [
+          "E08.1",
+          "E08.2",
+          "E08.3",
+          "E08.4"
+        ],
+        "result": "Matched native provider and independently checked read-only external-client fixture, including retirement."
+      },
+      {
+        "steps": [
+          "E01.2",
+          "E01.3",
+          "E01.4",
+          "E02.2"
+        ],
+        "result": "First indexed inode/name/extent transaction with reusable-allocation authority and legacy reader parity."
+      },
+      {
+        "steps": [
+          "E02.1",
+          "E02.5",
+          "E02.6",
+          "E02.10"
+        ],
+        "result": "Account for packed protected bytes and qualify bounded handoff plus incremental reclamation under unrelated commits."
+      },
+      {
+        "steps": [
+          "E03.1",
+          "E03.4",
+          "E03.5",
+          "E05.1",
+          "E05.2"
+        ],
+        "result": "Acquire complete-cost AMD observations and compare stronger collective representations independently."
+      }
+    ],
+    "dependency_note": "Dependencies govern package completion. Independent early tasks can proceed. E03 ordinary dispatch integrates with E08.5. E11 qualification runs incrementally.",
+    "person_weeks": [
+      59,
+      127
+    ],
+    "research_risk": "The compression target remains an open research question until held-out measured results.",
+    "current_runtime_evidence": "docs/evidence/paged-write-accounting-2026-11-17.json"
+  },
+  "previous_shared_factory_round": {
+    "source_base": "c536bef91068c92562cf1f1dfcd71ab458f5dad1",
+    "contract": "docs/WINDOWS_MEMORY_VOLUME_FACTORY.md",
+    "evidence": "docs/evidence/memory-volume-factory-2026-11-17.json",
+    "status": "Shared adaptive locked backing for helper/WinFsp, retained volume through owned stop, explicit-join CPU inspection, surviving reader/provider lease, residency opportunities and consistent qualification accounting",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "memory_composition_checks": 55,
+        "controller_checks": 49,
+        "callback_checks": 4290,
+        "publication_fault_cases": 492,
+        "actual_memory_live_groups": 1,
+        "app_live_outcome": "resource-deferred"
+      },
+      {
+        "configuration": "asan",
+        "memory_composition_checks": 54,
+        "controller_checks": 48,
+        "callback_checks": 4290,
+        "publication_fault_cases": 492,
+        "actual_memory_live_groups": 0,
+        "app_live_outcome": "resource-deferred"
+      }
+    ],
+    "shared_backing_factory": true,
+    "fresh_OS_admission": true,
+    "automatic_host_sizing": true,
+    "retained_backing_on_stop": true,
+    "post_join_CPU_reader": true,
+    "surviving_reader_lease": true,
+    "actual_SDK_callbacks": true,
+    "real_OS_observations": true,
+    "lifecycle_functions_injected": true,
+    "native_RNG_initialization_separated": true,
+    "handle_balance": true,
+    "working_set_restoration": true,
+    "app_only_build_without_WinFsp": true,
+    "sanitizer_settings_unchanged": true,
+    "live_busy_deferral_distinguished": true,
+    "native_mount": false,
+    "driver_install": false,
+    "driver_load": false,
+    "GPU": false,
+    "ordinary_GPU_route": false,
+    "fully_paged_namespace": false,
+    "persistent_coherence": false,
+    "automatic_reclamation": false,
+    "physical_power_loss": false,
+    "compression_record": false,
+    "release": false,
+    "next": "Matched native provider and independently checked read-only external-client fixture, including retirement.",
+    "full_goal_status": "active"
   }
 }

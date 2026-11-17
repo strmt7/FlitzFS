@@ -1,0 +1,326 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+  "source_binding": {
+    "src/paged_store.cpp": {
+      "git_blob": "609e13d626f89146b70ebde58aee8a8e4a9db992",
+      "working_bytes_sha256": "51658250102ce2fdbe135a09841041767f7bab0aaa3f81eeea1eff75c6e7d0c0"
+    },
+    "tests/test_paged_store.cpp": {
+      "git_blob": "155513e14699e39eb789683558bc502dace2b7a8",
+      "working_bytes_sha256": "13b1ca3081d8797a0b17083aa5934ebc1887b47343ca19c2496ab2ce3bc0d2e5"
+    },
+    "tests/windows_volume_app_tests.cpp": {
+      "git_blob": "62e9747c2bf6c206c24e859e4e4253b2754f52c8",
+      "working_bytes_sha256": "09d25e69528314a0a46983e2e9c13749bd7bd87f6e68c73def21ccd0e6217c27"
+    },
+    "tools/ci/build_digest_comparison.ps1": {
+      "git_blob": "ab14e82173ee2124bc731a880cb84050caacc26c",
+      "working_bytes_sha256": "95ce2149a26766f89363a2cc37b21de489a1b97a5542f23bd54691464ef0a38a"
+    },
+    "tools/ci/build_windows_native.ps1": {
+      "git_blob": "e2078e08dcbe60186524abb013ab9cc4d7aa91ad",
+      "working_bytes_sha256": "9c4287bf3a8906e4cac8e43800cd54bb9f562e0943252e3d93f1a533a76eff3e"
+    }
+  },
+  "frozen_runtime_inputs": {
+    "path": "paged-write-after-0cb83ecf2356404e81bcfa454fe1b6ee/input.json",
+    "sha256": "2ecab59fc87e78e546c47fb9f7e02ff5dd2ab723f26da64651a719fd48448418",
+    "files": 310
+  },
+  "scope": "Paged metadata write accounting and codec-aware Windows helper maintenance. CPU-only memory-backed fixtures.",
+  "before": [
+    {
+      "name": "baseline-duplicate-write",
+      "success": false,
+      "exit_code": 1,
+      "elapsed_seconds": 0.052,
+      "aggregate_peak_commit_bytes": 2859008,
+      "verified_tree_retirement": true,
+      "result": {
+        "path": "local-run-cfb18a86f43f4210be5470dbebede8f3/result.json",
+        "sha256": "4642a61986e8c68e9e83e4aa4c01cc9c926ed2b2e33f10c351a9f094909778e4"
+      },
+      "log": {
+        "path": "local-run-cfb18a86f43f4210be5470dbebede8f3/output.log",
+        "sha256": "2f435a948df4ec7183d586225032b0ac2277dbc398193fd8ddd025a0490d1782"
+      },
+      "reason": "Expected regression failure: duplicate zero and page write",
+      "growth_bytes": 16384,
+      "written_bytes": 32768
+    },
+    {
+      "name": "qualified-helper-maintenance",
+      "success": false,
+      "exit_code": 1,
+      "elapsed_seconds": 1.237,
+      "aggregate_peak_commit_bytes": 29663232,
+      "verified_tree_retirement": true,
+      "result": {
+        "path": "local-run-467f32bd280d44c3baf5b90122ea7880/result.json",
+        "sha256": "b36bbb8f5c2f95fe74ce005c3e38bb18b925160b4114c45c2bb7daefba843a7d"
+      },
+      "log": {
+        "path": "local-run-467f32bd280d44c3baf5b90122ea7880/output.log",
+        "sha256": "8d51defbe8316edb2d0d6f54cba8315f0a01cdef0508554f859d3aee71271639"
+      },
+      "reason": "Former helper fixture required publication for already compact files"
+    },
+    {
+      "name": "codec-helper-maintenance",
+      "success": false,
+      "exit_code": 1,
+      "elapsed_seconds": 1.311,
+      "aggregate_peak_commit_bytes": 9216000,
+      "verified_tree_retirement": true,
+      "result": {
+        "path": "local-run-b5022068679d4ff4a423d2fc82f8ab4d/result.json",
+        "sha256": "e4196fb80dfe6645d1581fa4489ebd0f5102acf430f2457a753c04fa00e07013"
+      },
+      "log": {
+        "path": "local-run-b5022068679d4ff4a423d2fc82f8ab4d/output.log",
+        "sha256": "030d3e095f6105295e28e83d96d26cb0337d5840f1959c5337357d582e9be476"
+      },
+      "reason": "A draft fixture run was correctly refused at measured low memory headroom"
+    }
+  ],
+  "after": {
+    "process_jobs": 10,
+    "ctest_invocations_passed": 24,
+    "helper_cases_passed": 3,
+    "append_write_counters": [
+      {
+        "isolation_unit": 4096,
+        "records": 1,
+        "growth": 16384,
+        "written": 24576
+      },
+      {
+        "isolation_unit": 4096,
+        "records": 256,
+        "growth": 253952,
+        "written": 262144
+      },
+      {
+        "isolation_unit": 65536,
+        "records": 1,
+        "growth": 262144,
+        "written": 270336
+      },
+      {
+        "isolation_unit": 65536,
+        "records": 256,
+        "growth": 393216,
+        "written": 401408
+      }
+    ],
+    "helper": {
+      "codec-helper-final": {
+        "modeled_groups": 1,
+        "modeled_compacted_savings_lower_bound": 131072,
+        "compact_group_declines": 1,
+        "real_host_outcome": "resource-deferred",
+        "real_host_preparation_interleave": false,
+        "real_host_publication": false,
+        "deferral_code": 3
+      },
+      "raw-helper-final": {
+        "modeled_groups": 1,
+        "modeled_compacted_savings_lower_bound": 262144,
+        "compact_group_declines": null,
+        "real_host_outcome": "resource-deferred",
+        "real_host_preparation_interleave": false,
+        "real_host_publication": false,
+        "deferral_code": 3
+      },
+      "asan-helper-final": {
+        "modeled_groups": 1,
+        "modeled_compacted_savings_lower_bound": 262144,
+        "compact_group_declines": null,
+        "real_host_outcome": "resource-deferred",
+        "real_host_preparation_interleave": false,
+        "real_host_publication": false,
+        "deferral_code": 3
+      }
+    },
+    "jobs": [
+      {
+        "name": "codec-final-build",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 22.762,
+        "aggregate_peak_commit_bytes": 496873472,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-8b8dcfe9c36e4b7696e9f7c6f60bbc14/result.json",
+          "sha256": "e7e67c2963b6d1cc5fad434b4bf4b992293fb4bb4b04779383d4d5314aa0a1e4"
+        },
+        "log": {
+          "path": "local-run-8b8dcfe9c36e4b7696e9f7c6f60bbc14/output.log",
+          "sha256": "1c845898ba284ef5336ed4f0d4992aef0b001d8261b8bf7202c684418bd39682"
+        }
+      },
+      {
+        "name": "codec-storage",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 57.314,
+        "aggregate_peak_commit_bytes": 204931072,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-6835c8c1a5b8468b84edcab0816387cc/result.json",
+          "sha256": "2be4d184c2cc31b6a6a88db3ce09522fe9fe0aaf492e8c94d8badd079102b690"
+        },
+        "log": {
+          "path": "local-run-6835c8c1a5b8468b84edcab0816387cc/output.log",
+          "sha256": "d42dbe1bfe5551b6d003cf5251263639aae6ba41750c2c5889058e7867d97a91"
+        },
+        "passed_ctest": 10
+      },
+      {
+        "name": "codec-sdk",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 44.577,
+        "aggregate_peak_commit_bytes": 38084608,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-eab1d4c82d77439cbec2e63720b28a1f/result.json",
+          "sha256": "956b93d22f3f6597d60decd03e0682c0771e9ef9f05d8c2dc39ed8e50334f0f7"
+        },
+        "log": {
+          "path": "local-run-eab1d4c82d77439cbec2e63720b28a1f/output.log",
+          "sha256": "29ddf80314110c6bbca5474d4828b521d8f17361b2b175cce6762bc6d3400d57"
+        },
+        "passed_ctest": 5
+      },
+      {
+        "name": "codec-helper-final",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 2.652,
+        "aggregate_peak_commit_bytes": 25960448,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-00a562e375464d4e9d14b4ea0cdcdc20/result.json",
+          "sha256": "174cb23dd14eef0eab88ab6f73b7051bcdd2d23dbb5238e232eec8fd86da6f1a"
+        },
+        "log": {
+          "path": "local-run-00a562e375464d4e9d14b4ea0cdcdc20/output.log",
+          "sha256": "80b8a35d2c81a9b677164f42d7318c330de753c4fc92614bc8423ccddae9eff2"
+        }
+      },
+      {
+        "name": "raw-final-build",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 15.65,
+        "aggregate_peak_commit_bytes": 492011520,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-1dd5f5da5e3548f1aa999731968d39dc/result.json",
+          "sha256": "9e749c3746c5faafc67f95f2b955d0bc491b14fe58ab282bef19c3d72907d2a0"
+        },
+        "log": {
+          "path": "local-run-1dd5f5da5e3548f1aa999731968d39dc/output.log",
+          "sha256": "2e4e65de208297542af9ccd1bf28170b9447079d6ef9e3a69cb077002c991e25"
+        }
+      },
+      {
+        "name": "raw-storage",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.829,
+        "aggregate_peak_commit_bytes": 58535936,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-6576de90123a44a4869efa9e6c006a4d/result.json",
+          "sha256": "7916fd6ad7ffaf5d6712c4a7e32ade84e9b23837dd188ecead5c71e97ba0499c"
+        },
+        "log": {
+          "path": "local-run-6576de90123a44a4869efa9e6c006a4d/output.log",
+          "sha256": "7b854c6519e9f0deb2432c9c631b376de4b03b22068ce5e7cf371650d2c9a24d"
+        },
+        "passed_ctest": 3
+      },
+      {
+        "name": "raw-helper-final",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 2.571,
+        "aggregate_peak_commit_bytes": 27181056,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-3a38762e54e14c86aeaf2073186c1bfc/result.json",
+          "sha256": "6dda9a90c72f1752176b24c0932cd4f9e26d0984ff832e568322cff0c1f5e42e"
+        },
+        "log": {
+          "path": "local-run-3a38762e54e14c86aeaf2073186c1bfc/output.log",
+          "sha256": "713789675d9d4d15d28d5fe117afeed73093b3b78b37add7d2fc1d378590cb6c"
+        }
+      },
+      {
+        "name": "asan-final-build",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 16.171,
+        "aggregate_peak_commit_bytes": 492527616,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-182ec3057b004525b03a7f98fb23f179/result.json",
+          "sha256": "c4096c6c593b920835a037aa06579da1a7b5d04ac3286f5a707a68d8a48251aa"
+        },
+        "log": {
+          "path": "local-run-182ec3057b004525b03a7f98fb23f179/output.log",
+          "sha256": "304bc85f7d41730ba3a56fa502823ef1a2efb0f86542bcdb38dad3ae09e61336"
+        }
+      },
+      {
+        "name": "asan-storage-sdk",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 36.382,
+        "aggregate_peak_commit_bytes": 613322752,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-453a048f537042de9e55db15de693bef/result.json",
+          "sha256": "8ebff930f6f94c2c5c07d5ca92daae6f5b7d6f555df297e3aa3a906614bad157"
+        },
+        "log": {
+          "path": "local-run-453a048f537042de9e55db15de693bef/output.log",
+          "sha256": "f17e7d94afffecd6508db4e19719c522a47fc1bfaf316cc25afd324e815b1962"
+        },
+        "passed_ctest": 6
+      },
+      {
+        "name": "asan-helper-final",
+        "success": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.882,
+        "aggregate_peak_commit_bytes": 424898560,
+        "verified_tree_retirement": true,
+        "result": {
+          "path": "local-run-6757ef54d2ce4edba36122cfc0f059ca/result.json",
+          "sha256": "a3f75f7698acf1f788620be273f096bbaeaf69736520b5c4adee47020e635b3b"
+        },
+        "log": {
+          "path": "local-run-6757ef54d2ce4edba36122cfc0f059ca/output.log",
+          "sha256": "06c4b247061c8c3016b7fb95d779df2a5569b4b9c9109c7bf9cea19dd43b3bab"
+        }
+      }
+    ],
+    "codecs": "CMake 4.5.0, pinned static Zstandard and LZ4 in the codec lane. Raw and MSVC AddressSanitizer are separate.",
+    "comparison_note": "Backing write counts include two 4 KiB root updates. Counts are not physical drive writes or a change in occupied bytes."
+  },
+  "placement_changed": false,
+  "format_changed": false,
+  "flush_order_changed": false,
+  "actual_native_mount": false,
+  "driver_install": false,
+  "actual_gpu": false,
+  "physical_power_loss_test": false,
+  "full_suite": false,
+  "release": false,
+  "review": "docs/evidence/repository-review-2026-11-17.json"
+}

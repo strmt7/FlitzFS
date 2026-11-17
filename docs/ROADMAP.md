@@ -2,6 +2,11 @@
 
 ## Current local development
 
+The [repository overview](REPOSITORY_OVERVIEW.md) records the architecture
+decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.md)
+defines the current work packages, dependencies and release gates. The snapshots
+below retain the behavior qualified at their exact source.
+
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now supplies both
 the helper and owned WinFsp composition. Stop retains backing and requires
 explicit join before independent CPU inspection. Connect the explicit native

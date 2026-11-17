@@ -28,9 +28,10 @@ foreach ($codec in @('zstd', 'lz4')) {
     git -C ".ci-deps/$codec" diff --quiet HEAD --
     if ($LASTEXITCODE) { throw 'Native codec source has tracked modifications' }
 }
-cmake -S .ci-deps/zstd/build/cmake -B .ci-deps/zstd-build -A x64 -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_TESTS=OFF -DZSTD_BUILD_SHARED=OFF -DZSTD_BUILD_STATIC=ON -DZSTD_MULTITHREAD_SUPPORT=OFF "-DZSTD_USE_STATIC_RUNTIME=$zstdRuntime" @runtimeFlags
+# Keep the pinned Zstandard project within the outer build process budget.
+cmake -S .ci-deps/zstd/build/cmake -B .ci-deps/zstd-build -A x64 -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_TESTS=OFF -DZSTD_BUILD_SHARED=OFF -DZSTD_BUILD_STATIC=ON -DZSTD_MULTITHREAD_SUPPORT=OFF -DACTIVATE_MULTITHREADED_COMPILATION=OFF "-DZSTD_USE_STATIC_RUNTIME=$zstdRuntime" @runtimeFlags
 if ($LASTEXITCODE) { throw 'Zstandard configure failed' }
-cmake --build .ci-deps/zstd-build --config Release --parallel 2
+cmake --build .ci-deps/zstd-build --config Release --parallel 2 -- /nr:false
 if ($LASTEXITCODE) { throw 'Zstandard build failed' }
 $libraries = @(Get-ChildItem .ci-deps/zstd-build -Filter zstd_static.lib -Recurse -File)
 if ($libraries.Count -ne 1) { throw 'Expected one pinned static Zstandard library' }
@@ -38,7 +39,7 @@ $headers = (Resolve-Path .ci-deps/zstd/lib).Path
 # LZ4 is a bounded block decoder; no CLI or multithreaded runtime is needed.
 cmake -S .ci-deps/lz4/build/cmake -B .ci-deps/lz4-build -A x64 -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DLZ4_BUILD_CLI=OFF -DLZ4_BUILD_LEGACY_LZ4C=OFF -DLZ4_BUILD_MULTITHREAD=OFF -DLZ4_STATIC_MULTITHREAD=OFF -DLZ4_BUNDLED_MODE=ON @runtimeFlags
 if ($LASTEXITCODE) { throw 'LZ4 configure failed' }
-cmake --build .ci-deps/lz4-build --config Release --target lz4_static --parallel 2
+cmake --build .ci-deps/lz4-build --config Release --target lz4_static --parallel 2 -- /nr:false
 if ($LASTEXITCODE) { throw 'LZ4 build failed' }
 $lz4Libraries = @(Get-ChildItem .ci-deps/lz4-build -Filter lz4.lib -Recurse -File)
 if ($lz4Libraries.Count -ne 1) { throw 'Expected one pinned static LZ4 library' }
@@ -60,14 +61,14 @@ if ($LASTEXITCODE) { throw 'Native configure failed' }
 # The gated mount job launches only this executable and its own children.
 # Ordinary/native qualification still builds/tests ALL targets separately.
 if ($VolumeApp) {
-    cmake --build $buildDirectory --config Release --target flitzfs_volume_app flitzfs_volume_app_tests --parallel 2
+    cmake --build $buildDirectory --config Release --target flitzfs_volume_app flitzfs_volume_app_tests --parallel 2 -- /nr:false
 } elseif ($RamHostProbe) {
-    cmake --build $buildDirectory --config Release --target flitzfs_ram_host_probe flitzfs_gpu_ram_probe flitzfs_worker_exchange_tests --parallel 2
+    cmake --build $buildDirectory --config Release --target flitzfs_ram_host_probe flitzfs_gpu_ram_probe flitzfs_worker_exchange_tests --parallel 2 -- /nr:false
 } elseif ($BuildMountProbe) {
-    cmake --build $buildDirectory --config Release --target flitzfs_mount_probe --parallel 2
+    cmake --build $buildDirectory --config Release --target flitzfs_mount_probe --parallel 2 -- /nr:false
 } elseif ($BuildWriteProbe) {
-    cmake --build $buildDirectory --config Release --target flitzfs_write_probe --parallel 2
+    cmake --build $buildDirectory --config Release --target flitzfs_write_probe --parallel 2 -- /nr:false
 } else {
-    cmake --build $buildDirectory --config Release --parallel 2
+    cmake --build $buildDirectory --config Release --parallel 2 -- /nr:false
 }
 if ($LASTEXITCODE) { throw 'Native build failed' }

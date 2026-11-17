@@ -9,6 +9,17 @@ check before release acceptance.
 
 ## Verified Dependabot result
 
+**Fresh check, 17 November 2026:** the authenticated GitHub REST endpoint
+successfully returned HTTP 200 with zero open alerts and complete cursor
+pagination. The review's initial unsupported `page` query returned HTTP 400;
+the corrected first-page/cursor request is retained in
+[the review receipt](evidence/repository-review-2026-11-17.json).
+The [current overview](REPOSITORY_OVERVIEW.md#fresh-dependency-and-alert-check)
+records fresh upstream release metadata and distinguishes selected pins from
+the older VS-bundled CMake actually used locally. Zero alerts is not a complete
+C++ dependency, runtime or security audit. The following UI/API observations
+are dated historical evidence.
+
 The owner's authenticated GitHub Security page was inspected directly on
 9 November 2026 at https://github.com/strmt7/FlitzFS/security/dependabot.
 It showed the default is:open filter, Open (0), Closed (0), and:

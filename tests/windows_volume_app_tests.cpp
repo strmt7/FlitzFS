@@ -5,11 +5,13 @@
 #include <bcrypt.h>
 #include <pdh.h>
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstring>
 #include <cstdlib>
 #include <new>
+#include <string>
 #include <exception>
 #include <iostream>
 #include <thread>
@@ -88,6 +90,20 @@ struct VolumeModelQualification {
     return m.session_->read(f,0,32);
   }
   static void close(VolumeModel& m,const NativeFileHandle& f){m.session_->close(f);}
+  // Exercise the normal mounted-session-sized write on the same helper
+  // backing without requiring a larger limit in the experimental text editor.
+  static void create_extent(VolumeModel& model,std::string_view name,std::string_view contents) {
+    model.create_text(name,{});
+    const auto handle=model.session_->open(name,{true,true,false},NativeOpenKind::file);
+    model.session_->write(handle,0,std::as_bytes(std::span(contents.data(),contents.size())));
+    model.session_->flush(handle);
+    model.session_->cleanup(handle,false);model.session_->close(handle);
+  }
+  static std::string read_extent(VolumeModel& model,std::string_view name) {
+    const auto data=model.session_->snapshot().read(name,0,kNativeExtentBytes);
+    if(data.empty())return {};
+    return {reinterpret_cast<const char*>(data.data()),data.size()};
+  }
   static NativeSessionStats stats(const VolumeModel& m){return m.session_->stats();}
   static NativeWorkloadInfo workload(const VolumeModel& m){return m.session_->workload_info();}
   // Actual accepted engine writes, never a forged counter or product bypass.
@@ -466,6 +482,29 @@ void model_tests() {
   std::cout<<"Application handle balance: "<<before<<" -> "<<after<<"\n";
   require(after==before,"Controller handle leak");
 }
+std::array<std::string,3> related_extent_family() {
+  // Large enough to cross an isolation-bank boundary even after Zstandard.
+  // Keep the input valid text and each member distinct, with a shared block.
+  std::string base(kNativeExtentBytes,'!');
+  std::uint32_t state=0x8934cb57;
+  for(auto& c:base) {
+    state^=state<<13;state^=state>>17;state^=state<<5;
+    c=static_cast<char>('!'+state%94);
+  }
+  std::array<std::string,3> files{base,base,base};
+  for(std::size_t i=1;i<files.size();++i) {
+    auto& c=files[i][i*911];
+    c=c=='!'?'"':'!';
+  }
+  return files;
+}
+std::string family_name(std::size_t index) {return "family-"+std::to_string(index);}
+void drive_quiet_maintenance(VolumeModel& model,NativeMaintenanceObservation& observation) {
+  for(unsigned i=0;i<500 && model.maintenance_pending();++i) {
+    ++observation.sequence;observation.captured_ms+=1000;
+    model.maintain_groups(observation,observation.captured_ms);
+  }
+}
 void maintenance_tests() {
   // Real OS collector and current-thread priority, without a provider, file,
   // process worker or remote counter. Failed collection is a test failure.
@@ -489,33 +528,57 @@ void maintenance_tests() {
     std::cout<<"Live maintenance telemetry: busy_ppm="<<observation.cpu_busy_ticks<<" window_ms="<<observation.cpu_window_ms
         <<" physical_available="<<observation.physical_available<<" commit_available="<<observation.commit_available<<"\n";
   }
-  // Grouping in the actual locked Windows provider, with explicitly modeled
-  // quiet observations. This is not a claim of live host contention admission.
-  {
-    VolumeModel model;model.create();std::string a(VolumeModel::text_limit,'A');
-    for(std::size_t i=0;i<a.size();++i)a[i]=static_cast<char>('!'+((i*31+i/7)%90));
-    auto b=a,c=a;b[13]='z';c[47]='y';model.create_text("a",a);model.create_text("b",b);model.create_text("c",c);
-    auto o=NativeMaintenanceObservation{};o.valid=true;o.physical_total=16ULL<<30;o.physical_available=12ULL<<30;
-    o.commit_limit=32ULL<<30;o.commit_available=24ULL<<30;o.cpu_total_ticks=1000;o.cpu_window_ms=1000;
-    for(unsigned i=0;i<500 && model.maintenance_pending();++i){++o.sequence;o.captured_ms+=1000;model.maintain_groups(o,o.captured_ms);}
+  auto observation=NativeMaintenanceObservation{};observation.valid=true;
+  observation.physical_total=16ULL<<30;observation.physical_available=12ULL<<30;
+  observation.commit_limit=32ULL<<30;observation.commit_available=24ULL<<30;
+  observation.cpu_total_ticks=1000;observation.cpu_window_ms=1000;
+  // Even a strong similarity match can be unprofitable after foreground Zstd.
+  if(store_zstd_available()) {
+    VolumeModel model;model.create();std::string a(8192,'K'),b=a,c=a;b[1]='L';c[5]='M';
+    model.create_text("a",a);model.create_text("b",b);model.create_text("c",c);
+    const auto before=model.view().physical_bytes;
+    drive_quiet_maintenance(model,observation);
     const auto progress=model.maintenance_progress();
-    require(!model.maintenance_pending() && progress.phase==NativeMaintenancePhase::idle && progress.published_groups==1,
-        "Windows provider did not automatically group related files");
-    require(model.read_text("a")==a && model.read_text("b")==b && model.read_text("c")==c,"Windows background grouping changed file bytes");
-    require(model.optimize() && model.read_text("a")==a && model.read_text("b")==b && model.read_text("c")==c,
-        "Paged application maintenance changed grouped bytes");
-    model.create_text("d",a);
+    require(!model.maintenance_pending() && progress.phase==NativeMaintenancePhase::idle &&
+        progress.declined_groups>0 && progress.published_groups==0,"Already compact files should decline grouping");
+    require(model.view().physical_bytes==before,"Declined group wrote to backing");
+    require(model.read_text("a")==a && model.read_text("b")==b && model.read_text("c")==c,"Declined group changed file bytes");
+    model.discard();require(MemoryVolumeDomain::cleanup_healthy(),"Declined group model did not retire");
+    std::cout<<"Already compact groups declined="<<progress.declined_groups<<"\n";
+  }
+  const auto family=related_extent_family();
+  // The real locked provider uses modeled quiet observations for this case.
+  {
+    VolumeModel model;model.create();
+    for(std::size_t i=0;i<family.size();++i)
+      VolumeModelQualification::create_extent(model,family_name(i),family[i]);
+    drive_quiet_maintenance(model,observation);
+    const auto progress=model.maintenance_progress();
+    require(!model.maintenance_pending() && progress.phase==NativeMaintenancePhase::idle &&
+        progress.published_groups==1 && progress.minimum_compacted_bytes_saved>0,
+        "Windows provider did not automatically group a profitable file family");
+    for(std::size_t i=0;i<family.size();++i)
+      require(VolumeModelQualification::read_extent(model,family_name(i))==family[i],"Windows background grouping changed file bytes");
+    require(model.optimize(),"Paged application maintenance failed");
+    for(std::size_t i=0;i<family.size();++i)
+      require(VolumeModelQualification::read_extent(model,family_name(i))==family[i],"Paged application maintenance changed grouped bytes");
+    VolumeModelQualification::create_extent(model,"later",family.front());
     for(unsigned i=0;i<500 && model.maintenance_progress().owned_payload_bytes==0;++i) {
-      ++o.sequence;o.captured_ms+=1000;model.maintain_groups(o,o.captured_ms);
+      ++observation.sequence;observation.captured_ms+=1000;
+      model.maintain_groups(observation,observation.captured_ms);
     }
     require(model.maintenance_progress().owned_payload_bytes>0,"No helper private work to retire");
     model.stop_maintenance();
     require(!model.maintenance_pending() && model.maintenance_progress().owned_payload_bytes==0 &&
-        model.read_text("a")==a && model.read_text("d")==a,"Stopping optional work retained buffers or changed data");
+        VolumeModelQualification::read_extent(model,family_name(0))==family.front() &&
+        VolumeModelQualification::read_extent(model,"later")==family.front(),
+        "Stopping optional work retained buffers or changed data");
     model.discard();require(MemoryVolumeDomain::cleanup_healthy(),"Grouped model did not retire");
+    std::cout<<"Profitable family groups="<<progress.published_groups
+        <<" compacted_savings_lower_bound="<<progress.minimum_compacted_bytes_saved<<"\n";
   }
-  // Existing controller thread + real telemetry automatically drive three related
-  // files. Foreground remains admitted while background work is pending.
+  // Real telemetry can admit or defer maintenance while foreground work proceeds.
+  // Small text files may already be compact enough to decline grouping.
   {
     auto window=CreateWindowExW(0,L"STATIC",L"FlitzFS idle integration qualification",0,
         0,0,0,0,HWND_MESSAGE,nullptr,GetModuleHandleW(nullptr),nullptr);
@@ -525,9 +588,9 @@ void maintenance_tests() {
       auto command=[&](VolumeCommand c){require(controller.submit(std::move(c)),"Foreground refused during background maintenance");
         until([&]{return !controller.view().busy;},deadline);require(!controller.view().volume.fenced,"Maintenance fenced volume");};
       command({VolumeCommandKind::create,{},{}});
-      std::string a(8192,'K'),b=a,c=a;b[1]='L';c[5]='M';
-      command({VolumeCommandKind::create_text,"one",a});command({VolumeCommandKind::create_text,"two",b});
-      command({VolumeCommandKind::create_text,"three",c});
+      std::array<std::string,3> texts;
+      texts.fill(std::string(8192,'K'));texts[1][1]='L';texts[2][5]='M';
+      for(std::size_t i=0;i<texts.size();++i)command({VolumeCommandKind::create_text,family_name(i),texts[i]});
       const auto resource_deferred=[](const VolumeControllerView& v) {
         const auto& p=v.volume.maintenance;
         return v.maintenance_host==MaintenanceHostStatus::ready && v.volume.maintenance_pending &&
@@ -536,28 +599,35 @@ void maintenance_tests() {
       };
       until([&]{const auto v=controller.view();require(!v.maintenance_disabled,"Native background scheduling disabled");
         const auto& p=v.volume.maintenance;
-        return (p.phase==NativeMaintenancePhase::preparing && p.owned_payload_bytes>0) || resource_deferred(v);},deadline);
+        return !v.volume.maintenance_pending ||
+            (p.phase==NativeMaintenancePhase::preparing && p.owned_payload_bytes>0) || resource_deferred(v);},deadline);
       const auto selected=controller.view();
       const bool interleaved=selected.volume.maintenance.phase==NativeMaintenancePhase::preparing &&
           selected.volume.maintenance.owned_payload_bytes>0;
-      command({VolumeCommandKind::read_text,"one",{}});require(controller.view().text==a,"Foreground read during pending maintenance");
+      command({VolumeCommandKind::read_text,family_name(0),{}});
+      require(controller.view().text==texts.front(),"Foreground read during maintenance");
       const auto content_generation=controller.view().content_generation;
       until([&]{const auto v=controller.view();require(!v.maintenance_disabled,"Native background scheduling disabled");
         return !v.volume.maintenance_pending || resource_deferred(v);},deadline);
       const auto completed=controller.view();
-      const bool published=!completed.volume.maintenance_pending;
-      if(published)require(completed.volume.maintenance.published_groups==1,"Live idle grouping did not publish");
-      else require(resource_deferred(completed),"Pending live maintenance lacks a qualified resource deferral");
+      const bool settled=!completed.volume.maintenance_pending;
+      const bool published=completed.volume.maintenance.published_groups>0;
+      if(settled) {
+        if(store_zstd_available())
+          require(!published && completed.volume.maintenance.declined_groups>0,"Live compact files should decline grouping");
+        else require(published,"Live idle grouping did not publish");
+      } else require(resource_deferred(completed),"Pending live maintenance lacks a qualified resource deferral");
       require(completed.content_generation==content_generation,"Background work changed foreground content generation");
-      command({VolumeCommandKind::read_text,"one",{}});require(controller.view().text==a,"Live grouped readback");
-      command({VolumeCommandKind::read_text,"two",{}});require(controller.view().text==b,"Live grouped second readback");
-      command({VolumeCommandKind::read_text,"three",{}});require(controller.view().text==c,"Live grouped third readback");
+      for(std::size_t i=0;i<texts.size();++i) {
+        command({VolumeCommandKind::read_text,family_name(i),{}});
+        require(controller.view().text==texts[i],"Live family readback");
+      }
       require(controller.stop(true),"Maintenance controller stop refused");until([&]{return controller.view().stopped;},deadline);
       std::cout<<"Live idle groups="<<completed.volume.maintenance.published_groups<<" samples="<<completed.volume.maintenance.sampled_extents
           <<" control_generation="<<completed.content_generation<<" notifications="<<completed.generation
           <<" quanta="<<completed.maintenance_quanta<<" elapsed_ns="<<completed.maintenance_elapsed_ns
           <<" maximum_quantum_ns="<<completed.maintenance_maximum_quantum_ns<<"\n";
-      std::cout<<"Live maintenance outcome="<<(published?"published":"resource-deferred")
+      std::cout<<"Live maintenance outcome="<<(settled?"settled":"resource-deferred")
           <<" preparation_interleave="<<interleaved<<" publication_exercised="<<published
           <<" deferral="<<static_cast<unsigned>(completed.volume.maintenance.deferral)<<"\n";
     }

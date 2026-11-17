@@ -1,5 +1,11 @@
 # Path to a stable FlitzFS release
 
+**Current detailed plan:** [17 November implementation plan](IMPLEMENTATION_PLAN.md)
+and [repository overview](REPOSITORY_OVERVIEW.md). They expand E01–E13 into
+154 concrete steps and current acceptance/failure gates at `38a4a48`.
+The earlier assessment below retains its source/estimate history; use the new
+plan and current ledger for forward work.
+
 Assessment: 15 November 2026. Reviewed local source:
 `7c601d39c8eb5f04a02bb889840efc06eac68171`. The subsequent
 [native backend bridge](NATIVE_PAGED_BACKEND.md) and
@@ -46,7 +52,7 @@ application slices, bounded GPU workers and independent CPU result validation.
 
 | Area | Evidence available now | Remaining gap |
 | --- | --- | --- |
-| Scalable storage | The opt-in paged store has writes, deletion, paginated lookup, resume and streaming new-image rebuild. A million populated object records were tested. | The ordinary native namespace still uses a flat model: 256 nodes, 255 extents and a 64-MiB image bound. Paged objects are not yet million-file Explorer support. |
+| Scalable storage | The opt-in paged store has writes, deletion, paginated lookup, resume and streaming new-image rebuild. A million populated object records were tested. | The native namespace still materializes a bounded model: 256 nodes and 255 extent references. The flat profile has a 64-MiB image bound; paged image capacity is explicit. Paged objects are not yet million-file Explorer support. |
 | Local qualification | [Current paged SDK callbacks and relevant core checks](evidence/paged-winfsp-2026-11-15.json) pass in raw Release and AddressSanitizer. The earlier 103-group helper/core and million-object results retain their separate exact-source evidence. | This is not full CTest/optional-codec qualification, a new real mount, current GPU execution or physical power-loss evidence. |
 | Sharing | Exact extent sharing/private updates, protected shared-base patch groups, and automatic aligned-family discovery/extension with complete-size admission. | The controller uses the bounded native model; no persistent scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
 | GPU | Actual AMD execution and independent current/prior CPU recovery passed controlled service tests. | The last matched case was slower on GPU: CPU median 24.2311 ms, GPU 513.918 ms, identical complete image sizes. Useful automatic ordinary I/O remains absent. |

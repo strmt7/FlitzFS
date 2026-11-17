@@ -9,6 +9,11 @@ Start with [release readiness](../RELEASE_READINESS.md) for implemented behavior
 major gaps and claim boundaries. No release date or completion percentage is
 established.
 
+The [current repository overview](../REPOSITORY_OVERVIEW.md) and
+[detailed implementation plan](../IMPLEMENTATION_PLAN.md) connect actual
+mechanisms/evidence to the remaining release gates. The plan is not a release
+date or a claim that its steps have already been implemented.
+
 ## What evidence means
 
 CPU tests, SDK compilation, real GPU execution, Windows mounted integration and

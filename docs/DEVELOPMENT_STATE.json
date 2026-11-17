@@ -3,31 +3,25 @@
   "updated": "2026-11-17",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
-  "assessment": "docs/REPOSITORY_ASSESSMENT.md",
+  "assessment": "docs/REPOSITORY_OVERVIEW.md",
   "plan": "docs/DEVELOPMENT_PLAN.json",
   "reviewed_baseline": {
-    "commit": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
-    "tree": "6f3b85242d616d2b0f4331f3c83856b963a6775f",
-    "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
+    "commit": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+    "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
+    "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
   "current_qualification": {
-    "source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
-    "tree": "0a005fc42dc06baa920d299d275bb88b08e9e8e4",
-    "core_run": 43700315671,
-    "core_jobs_passed": 13,
-    "core_jobs_total": 13,
-    "native_test_groups": 154,
-    "deferred_write_checks": 57,
-    "controlled_native_write_checks": 226,
-    "evidence": "docs/evidence/owned-service-comparison-d384b6c.json",
-    "sdk_run": 43700330670,
-    "sdk_complete": true,
-    "real_CPU_deferred_response_mount": true,
-    "actual_GPU_through_service": true,
-    "owner_current_source_GPU_executed": true,
-    "normal_GPU_routing": false,
-    "comparative_benefit_proven": false,
-    "scope_note": "Last complete published-source qualification; local changed-source raw/sanitizer evidence is separate. Three matched unmounted GPU requests passed; no automatic route or benefit in that fixed case."
+    "source_base": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+    "changed_source_binding": "docs/evidence/paged-write-accounting-2026-11-17.json",
+    "prechange_factory": "docs/evidence/memory-volume-factory-2026-11-17.json",
+    "baseline_codec_windows_review": "docs/evidence/repository-review-2026-11-17.json",
+    "selected_ctest_passed": 24,
+    "helper_maintenance_cases_passed": 3,
+    "scope": "Windows codec, raw and AddressSanitizer memory-backed checks. Helper live runs recorded resource deferral.",
+    "native_mount": false,
+    "gpu": false,
+    "physical_power_loss": false,
+    "release": false
   },
   "owner_gpu_observation": {
     "source_commit": "11fbf0797769f234aeab835f71afa678c5ac174a",
@@ -109,8 +103,14 @@
     }
   ],
   "next_implementation": {
-    "contract": "docs/RELEASE_EXECUTION_PLAN.md",
-    "next": "Complete the owner-requested full repository overview and extremely detailed current-source implementation plan; then connect the explicit native provider and qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data. Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures."
+    "contract": "docs/IMPLEMENTATION_PLAN.md",
+    "next": "Matched native provider and independently checked read-only external-client fixture, including retirement.",
+    "steps": [
+      "E08.1",
+      "E08.2",
+      "E08.3",
+      "E08.4"
+    ]
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
@@ -129,7 +129,7 @@
     "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending.",
     "cooperative_shared_base": "Owned one-extent CPU preparation, selected-object revisions and current-namespace publication preserve unrelated writes. No automatic scheduler, persistent restart or AMD collective execution.",
     "managed_paged_volumes": "Typed managed mirrored paged sessions, contexts, advice and verified handoff are integrated into the helper. Explorer-facing factories, paged native access, persistent coherence and physical qualification remain open.",
-    "automatic_group_maintenance": "Bounded managed-paged CPU content discovery and supplied-observation gating; no live Windows priority/idle integration, persistent coherence, ordinary GPU route or automatic compaction.",
+    "automatic_group_maintenance": "Automatic bounded CPU groups in managed paged helper and SDK paths with live resource gating. Persistent coherence, steady-state reclamation and useful automatic GPU execution remain open.",
     "Windows_background_helper": "Live all-processor/memory collection, current-thread resource background mode, measured pacing and auto groups in the unmounted paged helper. Explorer-facing paged factories, persistent scalable coherence and useful ordinary GPU operation remain open.",
     "paged_WinFsp_bridge": "Actual user-mode SDK callbacks support mirrored managed paged creation/resume and cooperative groups with Windows profile/ownership gates. Real mounted scheduling, staged reclamation and kernel/client qualification remain open.",
     "owned_WinFsp_controller": "One owned start/maintenance/stop thread, callback events, live PDH/resource priority and complete-quantum pacing; real SDK callbacks and injected lifecycle pass normal/ASan. Shared memory factory/native provider/actual mounted qualification remain.",
@@ -147,11 +147,14 @@
     "cleanup": "Hard process-tree budgets, time bounds, live headroom and confirmed exit/resource retirement required."
   },
   "dependabot": {
-    "checked_utc": "2026-11-14T19:24:08.628653Z",
-    "transport": "Authenticated paginated native GitHub API",
+    "checked_utc": "2026-11-17T17:13:23.051978Z",
+    "transport": "Owner-authenticated native GitHub REST cursor pagination",
+    "status": 200,
     "pages": 1,
+    "complete": true,
     "open_alerts": 0,
-    "scope": "OPEN alerts only; not a security audit"
+    "scope": "Open alerts at capture time",
+    "evidence": "docs/evidence/repository-review-2026-11-17.json"
   },
   "source_routing": {
     "indexed_source": "1d9d0e067787a824df8d3e0d8a84b5c4e1356714",
@@ -1017,11 +1020,11 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Complete the owner-requested full repository overview and extremely detailed current-source implementation plan; then connect the explicit native provider and qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data.",
-    "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures.",
-    "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, content generations, continuation/outcome state and qualify large populated named-file workloads.",
-    "Implement required useful actual AMD collective/ingestion work with complete-cost measurement and automatic CPU fallback. Compare shifted, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data.",
-    "Complete Windows client semantics, physical providers, secure installation/update/rollback, multi-release compatibility, historical retirement diagnosis, security, recognized benchmarks and soak. No release without the owner."
+    "Matched native provider and independently checked read-only external-client fixture, including retirement.",
+    "First indexed inode/name/extent transaction with reusable-allocation authority and legacy reader parity.",
+    "Account for packed protected bytes and qualify bounded handoff plus incremental reclamation under unrelated commits.",
+    "Acquire complete-cost AMD observations and compare stronger collective representations independently.",
+    "Complete Windows semantics, physical-provider durability, backward reading and gradual upgrades, secure packaging, recognized comparisons and release-candidate soak."
   ],
   "controlled_reused_dispatch": {
     "source": "3b7a6c90a41535789854341da804bc48b2454951",
@@ -1091,7 +1094,7 @@
     "local_is_primary": true,
     "blanket_hosted_or_VM_first_gate": false
   },
-  "release_execution_plan": "docs/RELEASE_EXECUTION_PLAN.md",
+  "release_execution_plan": "docs/IMPLEMENTATION_PLAN.md",
   "benchmark_protocol": "docs/BENCHMARK_PROTOCOL.md",
   "release_effort_estimate": {
     "planning_only": true,
@@ -1976,5 +1979,41 @@
     "release": false,
     "next": "Complete the owner-requested full repository overview and extremely detailed current-source implementation plan; then connect the explicit native provider and qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data.",
     "full_goal_status": "active"
+  },
+  "historical_assessment_baseline": {
+    "commit": "66c86a1bfe199e36f61eacfd547b3847b46b6802",
+    "tree": "6f3b85242d616d2b0f4331f3c83856b963a6775f",
+    "note": "Historical assessment baseline retained; current executed qualification is recorded separately."
+  },
+  "historical_matched_gpu_qualification": {
+    "source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
+    "tree": "0a005fc42dc06baa920d299d275bb88b08e9e8e4",
+    "core_run": 43700315671,
+    "core_jobs_passed": 13,
+    "core_jobs_total": 13,
+    "native_test_groups": 154,
+    "deferred_write_checks": 57,
+    "controlled_native_write_checks": 226,
+    "evidence": "docs/evidence/owned-service-comparison-d384b6c.json",
+    "sdk_run": 43700330670,
+    "sdk_complete": true,
+    "real_CPU_deferred_response_mount": true,
+    "actual_GPU_through_service": true,
+    "owner_current_source_GPU_executed": true,
+    "normal_GPU_routing": false,
+    "comparative_benefit_proven": false,
+    "scope_note": "Last complete published-source qualification; local changed-source raw/sanitizer evidence is separate. Three matched unmounted GPU requests passed; no automatic route or benefit in that fixed case."
+  },
+  "repository_review": {
+    "date": "2026-11-17",
+    "source": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+    "tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
+    "overview": "docs/REPOSITORY_OVERVIEW.md",
+    "contract": "docs/IMPLEMENTATION_PLAN.md",
+    "evidence": "docs/evidence/repository-review-2026-11-17.json",
+    "status": "Repository-wide architectural and delivery review. Active implementation continues.",
+    "last_shared_factory_evidence": "docs/evidence/memory-volume-factory-2026-11-17.json",
+    "release": false,
+    "current_runtime_evidence": "docs/evidence/paged-write-accounting-2026-11-17.json"
   }
 }

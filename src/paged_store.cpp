@@ -459,8 +459,21 @@ struct Plan {
     if(next.end>next.limits.maximum_physical_bytes)capacity("physical capacity");
   }
   void write_pages(std::uint64_t data_end) {
-    zeros(*next.image,data_end,next.end);
-    for(const auto& p:pages) {next.image->write_exact(p.ref.primary,p.bytes);next.image->write_exact(p.ref.peer,p.bytes);}
+    // Initialize only padding. Each complete metadata page initializes its
+    // own range, and all page banks except the last are fully occupied.
+    zeros(*next.image,data_end,page_start);
+    const auto pages_per_unit=next.unit/page_bytes;
+    const auto used_tail_bytes=(pages.size()%pages_per_unit)*page_bytes;
+    if(used_tail_bytes) {
+      const auto peer_start=next.end-next.unit;
+      const auto primary_start=peer_start-next.unit;
+      zeros(*next.image,primary_start+used_tail_bytes,peer_start);
+      zeros(*next.image,peer_start+used_tail_bytes,next.end);
+    }
+    for(const auto& page:pages) {
+      next.image->write_exact(page.ref.primary,page.bytes);
+      next.image->write_exact(page.ref.peer,page.bytes);
+    }
   }
 };
 // Bulk construction keeps one unfinished leaf plus <=35 child references per

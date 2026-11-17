@@ -1,0 +1,863 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "scope": "Repository-wide architecture, delivery and dependency review. Evidence is scoped to the noted inventory, searches, builds and selected tests.",
+  "reviewed_source": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+  "git_tree": "936409737d1c4a5d4aeb37fe5af48f55ba9accff",
+  "inventory": {
+    "tracked_files": 697,
+    "working_capture_bytes": 9649450,
+    "areas": {
+      ".github": {
+        "files": 19,
+        "bytes": 130511
+      },
+      "(root)": {
+        "files": 6,
+        "bytes": 135136
+      },
+      "docs": {
+        "files": 297,
+        "bytes": 4176158
+      },
+      "evidence": {
+        "files": 2,
+        "bytes": 16673
+      },
+      "include": {
+        "files": 36,
+        "bytes": 152130
+      },
+      "resources": {
+        "files": 7,
+        "bytes": 974786
+      },
+      "src": {
+        "files": 117,
+        "bytes": 978488
+      },
+      "tests": {
+        "files": 138,
+        "bytes": 1934850
+      },
+      "third_party": {
+        "files": 18,
+        "bytes": 539631
+      },
+      "tools": {
+        "files": 57,
+        "bytes": 611087
+      }
+    },
+    "native": {
+      "artifact": "overview-source-inventory-38a4a48.json",
+      "sha256": "cc388687d678a44a5e444622f4eefe24dee71f706958396ee014a67255303d89"
+    }
+  },
+  "inspected_git_blob_sha256": {
+    "CMakeLists.txt": "c83160b9f3591988a4559dffd1b96c1ce3c282563e8b6dfc414c38695d5d5215",
+    "include/flitzfs/native_filesystem.hpp": "bc91ff52b248174f79cba19f4e1aa145d4d9b12fc5a3125aaef702bfbd7775a6",
+    "include/flitzfs/paged_store.hpp": "5215ea2d5a83eb7b5acd06cb45362825697b1ef59c5099ba448153e9df4c97b5",
+    "include/flitzfs/object_store.hpp": "87196a486dc9e11f1495b724533993c0996d6fb40f1def996cc2923e01e664af",
+    "include/flitzfs/optimization_state.hpp": "d4af59b82d90fdf6b7aa78a9c9bfc4d5310042cb878564f4412dec6381b6f8c8",
+    "src/native_filesystem.cpp": "4b71edc3293c214f8ed5c7b55461248fb007338356244365920da6e36ec6e4b4",
+    "src/paged_store.cpp": "8ffb3562bdadaaa9ddfbe68e3ac30203f3887b50c9671b510b551957014125d3",
+    "src/volume_head.cpp": "a196ac18aa0d5d77fe1fa13042ba80d7f674738bebc3ff821eb1b10aceba61cf",
+    "src/native_session.cpp": "01d09c572a5dff3cad4b4f75fff785dcfe064e3effc2fde7a1930b4e45f59815",
+    "src/native_maintenance.cpp": "75f4208c59d9267892e0b9d0755662c25d61dc5c01e45b694f33283c9720c4dd",
+    "src/native_group_codec.cpp": "7b9b95ba109237b59bfeb02fdf3146c131acb46fb759c6d25fdbe3ee1d793cfa",
+    "src/store_file.cpp": "2e270b8344a980845faae84afcbad2abc875666c9facc4f729c63e3030656c4f",
+    "src/store_codec.cpp": "f99046c0a746c846cbea66946a5cf74ff6b08387304b7df4d1fdc86a263f1f1a",
+    "src/windows/memory_volume.cpp": "463bec9af327fe0c1073374d5cb4e06996bf40d311330294f8ed4cbc6d3e2ae1",
+    "src/windows/memory_volume_factory.cpp": "b33e7fbfb8477003bada9e8e9c3f34c3ca4ad37501ed6e1f3f8e4d45aeb5df42",
+    "src/windows/volume_model.cpp": "0164b1e710c60dac77c4176759aa24282f593131918eb8e037e4d38c499b2f85",
+    "src/windows/winfsp_native.cpp": "4bfedcbf84dbb54a4b02d3d0f8b74483870326bb2041a368647382b9151a02a8",
+    "src/windows/winfsp_controller.cpp": "7fa427b480eee1c5265441ac94cc7caa38ced2e64b690345ce45120b39df6080",
+    "src/windows/winfsp_memory_volume.cpp": "771962c9cdeeb0e2bc47c94be5e826d00b238043dace94b97aff76bd36644d53",
+    "src/windows/winfsp_session.cpp": "b0517b83b689290abca7183966b3afc033776ca17fe7af4000aa3c4ab7911754",
+    "src/windows/native_deferred_write.cpp": "8c04ea72d2d52d96279de9e64fb40bc8bd28c53bff5b7f6e1afec44af4d755b4",
+    "src/windows/native_uniform_write.cpp": "a9cd793d39a288e5ce499f57b0da022dc2244d121d858cb4ffa6e6eae5210cc8",
+    "tools/rocm-sdk-lock.json": "efd3669a182f97759f7513045b6674f5b1a1d2e152c8677903f21914d0c4c532",
+    "tools/winfsp-sdk-lock.json": "0ce9229e05cc2685cda86342c92c52f8d862547d712901b215433e6ab58d9262",
+    "tools/ci/prepare_hosted_tools.py": "e3907e1f4f97be8d5b0b3a435b31359381ee66fc062f93dade9d70bcc53eb117"
+  },
+  "semantic": {
+    "provider": "CocoIndex Code",
+    "provider_version": "0.2.43",
+    "scoped_code_files": 152,
+    "scoped_bytes": 1129696,
+    "searches": [
+      {
+        "query": "native filesystem architecture paged namespace transaction durability recovery image head Windows driver application GPU compression",
+        "routing": {
+          "artifact": "semantic-review-38a4a48-code/routing-receipt-0.json",
+          "sha256": "407975bae1232d4fc4be5cc70dca70e6349ad8f5566c6fe8e06beac0bfd52590"
+        },
+        "parsed_native": {
+          "artifact": "semantic-review-38a4a48-code/search-native-0.json",
+          "sha256": "0bb01d60d74d0c8edf01e0b88661a2b708d16652d4e23895b32cc2c7c0a4ba7b"
+        },
+        "adapter_recorded_stdout_sha256": "70216f6421f05870a3a52dfcc61eaa7d4eeaaae2abbcd72d7fad2ed2cd7c331c"
+      },
+      {
+        "query": "GPU normal filesystem write routing calibration measured benefit native deferred service CPU fallback HIP runtime persistent worker",
+        "routing": {
+          "artifact": "semantic-review-38a4a48-code/routing-receipt-8.json",
+          "sha256": "e1d4ebd6e30442d542715d92a0dc517a567baffeab7b90d0259d44070bb2731f"
+        },
+        "parsed_native": {
+          "artifact": "semantic-review-38a4a48-code/search-native-8.json",
+          "sha256": "68dae5d6366e031bedcf20d4c50acd771fe7fc75c2b36d7e6ef0a962e3b96702"
+        },
+        "adapter_recorded_stdout_sha256": "46a402a0023f73a7d3eeaf3c7a2428628978ad3162bf4432b0eac7411920a63c"
+      },
+      {
+        "query": "namespace model whole map load inode record directory indexes extents scaling maximum nodes and files",
+        "routing": {
+          "artifact": "semantic-review-38a4a48-code/routing-receipt-16.json",
+          "sha256": "ffccdde59ef9d10085210f048f943aa364002d5f0f914638ea2d09696ba16fd3"
+        },
+        "parsed_native": {
+          "artifact": "semantic-review-38a4a48-code/search-native-16.json",
+          "sha256": "ae7e682c05ea8089a6f0fa008fb443f6dd183d9d8057489908ff2ace02bce471"
+        },
+        "adapter_recorded_stdout_sha256": "1089177321735838e8325e601090683141b05538c5254df5a8c4fc447efeb470"
+      },
+      {
+        "query": "cross file shared base group codec similarity features persistent learning compression candidate minimum total stored bytes",
+        "routing": {
+          "artifact": "semantic-review-38a4a48-code/routing-receipt-24.json",
+          "sha256": "459f33e5811f7ebc2500136cdf86c9d0924a880e7723157f587b13cfeade50b2"
+        },
+        "parsed_native": {
+          "artifact": "semantic-review-38a4a48-code/search-native-24.json",
+          "sha256": "1dc8ef5bab8412f69de73a64a504169e269c438ec3450bc5707fea6bc5bd92ee"
+        },
+        "adapter_recorded_stdout_sha256": "100743ae9bdc8e408b8fd09ae1361ced5ac37feb9425a06723e634f415ff9d03"
+      },
+      {
+        "query": "crash power failure flush durable commit checkpoint mirrored metadata payload recovery and compaction automatic reclamation",
+        "routing": {
+          "artifact": "semantic-review-38a4a48-code/routing-receipt-32.json",
+          "sha256": "03f28314fdaa6c4ede9c2514654c32c231585738056d6104780cbf59dfaf6d3e"
+        },
+        "parsed_native": {
+          "artifact": "semantic-review-38a4a48-code/search-native-32.json",
+          "sha256": "9919f9c322bb83de2e55964ea572c9d6dccecb6c0549dcfe7a9eed1736a3e573"
+        },
+        "adapter_recorded_stdout_sha256": "b0e06760ffe1775f599f2494f61388e143b803ca05b8d1af1a94483aac7e3a74"
+      }
+    ]
+  },
+  "research": {
+    "provider": "reviewed isolated Crawl4AI",
+    "robots": true,
+    "external_llm": false,
+    "groups": [
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt": {
+          "artifact": "overview-platform-research-a97619922d674c78aa90289ade823d36/receipt.json",
+          "sha256": "2c22abe8e8a5116d4b657231119fcf3aeb52b0fb56142ad6c2184923ce20ecbb"
+        },
+        "pages": [
+          {
+            "url": "https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 241145,
+            "text_sha256": "af015257b48fa38ad9bd3cfe60fcb4f301c05054e65bd661ad872012f4479528",
+            "error": null,
+            "native": {
+              "artifact": "overview-platform-research-a97619922d674c78aa90289ade823d36/rocm-core.native.json",
+              "sha256": "b671ac1447a2161646441524adc2939b69fd30ea65cb96a78d87a4d3bc1fe014"
+            }
+          },
+          {
+            "url": "https://rocm.docs.amd.com/en/docs-10.1.0/install/rocm.html",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 215227,
+            "text_sha256": "fcd51f8e7f42acecc417950d903c67ec4a28931c927a20f41ba9226f7018b75f",
+            "error": null,
+            "native": {
+              "artifact": "overview-platform-research-a97619922d674c78aa90289ade823d36/rocm-install.native.json",
+              "sha256": "bedc7e547553fec9634b4a0b34c9c6df910e57536992cecbf033223635d0200b"
+            }
+          },
+          {
+            "url": "https://winfsp.dev/doc/WinFsp-Design/",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 15982,
+            "text_sha256": "155b76c1f41a65d63558341f8ccf135549ef8d5de8eb786e043c6e7726590dc8",
+            "error": null,
+            "native": {
+              "artifact": "overview-platform-research-a97619922d674c78aa90289ade823d36/winfsp-design.native.json",
+              "sha256": "7b8e34af6cfa9f6c1f1efead3f56ca43778a95fe7b46c2f7d0ef15f7abcade53"
+            }
+          },
+          {
+            "url": "https://winfsp.dev/doc/WinFsp-Testing/",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 12685,
+            "text_sha256": "d436b0610c79b2f8adccdf85dc05484e078f60c879f5be72e73053e46ec8b7c9",
+            "error": null,
+            "native": {
+              "artifact": "overview-platform-research-a97619922d674c78aa90289ade823d36/winfsp-testing.native.json",
+              "sha256": "c92297ba60c3b608e087b52cb9710f071e405ef60aac7e45286963e36d44073d"
+            }
+          },
+          {
+            "url": "https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 29843,
+            "text_sha256": "69a15cb5ce5efb397f3397a7494826965fd00b5837423906dacf8ad460a63670",
+            "error": null,
+            "native": {
+              "artifact": "overview-platform-research-a97619922d674c78aa90289ade823d36/directstorage.native.json",
+              "sha256": "2bfa66db9b61bde505e3ef3bffdc59ca006e25312ee45fbddcf9debeccb6b928"
+            }
+          },
+          {
+            "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 36379,
+            "text_sha256": "b793b9f1525a2fe72db87fb401792ca4e7c5ffce8b4b5899d46772ed0cda8205",
+            "error": null,
+            "native": {
+              "artifact": "overview-platform-research-a97619922d674c78aa90289ade823d36/flush.native.json",
+              "sha256": "46d12fee29af87459fe67e22dbafd1407e767ce3ac4dc4374586d50e113d3fe1"
+            }
+          },
+          {
+            "url": "https://github.com/microsoft/diskspd",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 24296,
+            "text_sha256": "832650549109252bfbf358eb2bd9f5fc05a0e971a599ebb4f04e0b37ee07fd0b",
+            "error": null,
+            "native": {
+              "artifact": "overview-platform-research-a97619922d674c78aa90289ade823d36/diskspd.native.json",
+              "sha256": "d316a0b15a8121bcb707ce88437c4274029937d70038fa69b6a83994bb15367d"
+            }
+          }
+        ]
+      },
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt": {
+          "artifact": "overview-compression-research-1e9b2a7c3ab540b49dd2cc2c7dd80914/receipt.json",
+          "sha256": "e770361c33dc28500b45e91b3e80fa13b963deeb8c171e800d282d9c65d486e5"
+        },
+        "pages": [
+          {
+            "url": "https://arxiv.org/html/2611.05871v1",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 151136,
+            "text_sha256": "ffdade137f8bf1a1c6054315d7c47b393fddf41ca91fb3b6d61105b6064c4367",
+            "error": null,
+            "native": {
+              "artifact": "overview-compression-research-1e9b2a7c3ab540b49dd2cc2c7dd80914/invocation.native.json",
+              "sha256": "563c956b26a95652621ab5e3c7e13f00608da52724e22f732c86e7e257608b65"
+            }
+          },
+          {
+            "url": "https://arxiv.org/html/2610.09916v1",
+            "status": 404,
+            "admitted": false,
+            "text_bytes": 1438,
+            "text_sha256": "3ca205b7f204ac9b885ae66973479ce0d2ebb476fe5688b108787dd505fa4939",
+            "error": "http_error",
+            "native": {
+              "artifact": "overview-compression-research-1e9b2a7c3ab540b49dd2cc2c7dd80914/neuralzip.native.json",
+              "sha256": "9af3c6d96e5cbbf2947e78ed991500e6e3e8b482a78dee8382490f03e7129862"
+            }
+          },
+          {
+            "url": "https://arxiv.org/html/2608.02162v1",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 77290,
+            "text_sha256": "6ffb7bc08982e3d027697c0f28f2649e4afb74f626d6da03e2e28ca388e1e398",
+            "error": null,
+            "native": {
+              "artifact": "overview-compression-research-1e9b2a7c3ab540b49dd2cc2c7dd80914/tensor-synthesis.native.json",
+              "sha256": "249c62b2516579ec879f45a2f192ab68902fcd2dcaf7f877fb86358fc565164a"
+            }
+          },
+          {
+            "url": "https://arxiv.org/html/2606.17712v1",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 113315,
+            "text_sha256": "c5159f500cf4ee43e6e370237eb8d791554e04559833f23738667840ba27ac77",
+            "error": null,
+            "native": {
+              "artifact": "overview-compression-research-1e9b2a7c3ab540b49dd2cc2c7dd80914/challenge.native.json",
+              "sha256": "7b6b866eddf929d085067b309d73932403b64ddc79536761675ba1e0f2ecaa29"
+            }
+          },
+          {
+            "url": "https://mattmahoney.net/dc/text.html",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 705049,
+            "text_sha256": "e254705f21ed15ff50b9205bf9a15bc92b12297a4ffc826c37c7c94f502056db",
+            "error": null,
+            "native": {
+              "artifact": "overview-compression-research-1e9b2a7c3ab540b49dd2cc2c7dd80914/text-benchmark.native.json",
+              "sha256": "6879eb5bd5b51d4701f980c75bcb904b61808a61c7e94b3424950e24381276de"
+            }
+          }
+        ]
+      },
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt": {
+          "artifact": "overview-storage-research-8e1832b03d2d4fb0afd6ed66d01a991b/receipt.json",
+          "sha256": "840d44a865cab2d28d2c9b14bd246cd72e8859df98ad3dd3796ede5738b52e82"
+        },
+        "pages": [
+          {
+            "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 10395,
+            "text_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+            "error": null,
+            "native": {
+              "artifact": "overview-storage-research-8e1832b03d2d4fb0afd6ed66d01a991b/rubikfs.native.json",
+              "sha256": "5e5ef86f98567b55c1c5f1db2b5dc661a67ecfba720b6d24f18983a68b2e904b"
+            }
+          },
+          {
+            "url": "https://www.usenix.org/conference/nsdi26/presentation/wang-zirui",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 9804,
+            "text_sha256": "130eb91378604ebacf1d676184608e3efff8b2f5b0dc03b971bfd011678b2906",
+            "error": null,
+            "native": {
+              "artifact": "overview-storage-research-8e1832b03d2d4fb0afd6ed66d01a991b/zipllm.native.json",
+              "sha256": "9f08273ceabac25a5ae6d241172220ad391f686fa81687af6a533d69b48a5c3c"
+            }
+          },
+          {
+            "url": "https://arxiv.org/html/2605.30728v1",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 152870,
+            "text_sha256": "7e4b4d4006c12718882bb6e0d8227cfe8b4f093e78ac1aa902e5a7d3b2929d72",
+            "error": null,
+            "native": {
+              "artifact": "overview-storage-research-8e1832b03d2d4fb0afd6ed66d01a991b/invariant-bits.native.json",
+              "sha256": "36a3fb3e5aca440a878d2b34d797279c2b5a3b71ff2a93c8c3cf6b7324e1d15e"
+            }
+          },
+          {
+            "url": "https://arxiv.org/abs/2610.09916",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 8366,
+            "text_sha256": "a321875a87af6ffbca8dd1af9d7ab9917c331381b09b36b5becec6ca462d4f8c",
+            "error": null,
+            "native": {
+              "artifact": "overview-storage-research-8e1832b03d2d4fb0afd6ed66d01a991b/neuralzip-abstract.native.json",
+              "sha256": "4511f308881a6dabec1c2f5d99df925469c8e23d7b0c80b85d30262ca7b919b1"
+            }
+          },
+          {
+            "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/refsutil-compression",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 45870,
+            "text_sha256": "b27c37750b8f82f4dda9e7dbc478a6245b543d5d823cf01419c38116aa3f7533",
+            "error": null,
+            "native": {
+              "artifact": "overview-storage-research-8e1832b03d2d4fb0afd6ed66d01a991b/refs-compression.native.json",
+              "sha256": "3f74e88b1037e6afcd01c5fb3c607a217ee9614030c01a46a901c959cdff9cf2"
+            }
+          }
+        ]
+      },
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt": {
+          "artifact": "overview-compatibility-research-48f444931b9941e3a33107dc28e1b41c/receipt.json",
+          "sha256": "12e09372dfecce1d3f05cc17f4bba7c9703d004c15dd71398ee3e6e566dd8075"
+        },
+        "pages": [
+          {
+            "url": "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 78321,
+            "text_sha256": "4f19ce22f47e4df30c11c964841becfd4f55efe2df4a6107a11fcc259e9deeeb",
+            "error": null,
+            "native": {
+              "artifact": "overview-compatibility-research-48f444931b9941e3a33107dc28e1b41c/windows-release.native.json",
+              "sha256": "154801cf3e3f1642f92b5a2a1db74fa75e5e914c27920f0e333120ad31981f0c"
+            }
+          },
+          {
+            "url": "https://rocm.docs.amd.com/en/docs-10.1.0/compatibility/compatibility-matrix.html",
+            "status": 200,
+            "admitted": true,
+            "text_bytes": 52544,
+            "text_sha256": "14ff8d59efdc80f9fbc2460acfa9be358b2cb31d535022a412648f4b670c3242",
+            "error": null,
+            "native": {
+              "artifact": "overview-compatibility-research-48f444931b9941e3a33107dc28e1b41c/rocm-compatibility.native.json",
+              "sha256": "c59763ba4a7dfd17329899706f611a29e6cb19bbf0de9de728f969a4dfd95170"
+            }
+          }
+        ]
+      }
+    ],
+    "restored_page": "The unavailable NeuralZip HTML page is retained as a 404. A separate abstract URL was extracted; no full text is claimed."
+  },
+  "dependencies": {
+    "official_stable_releases": [
+      {
+        "repository": "meta/zstd",
+        "status": 200,
+        "tag": "v1.5.7",
+        "published_at": "2025-02-19T21:50:11Z",
+        "prerelease": false
+      },
+      {
+        "repository": "lz4/lz4",
+        "status": 200,
+        "tag": "v1.11.1",
+        "published_at": "2026-11-10T05:49:08Z",
+        "prerelease": false
+      },
+      {
+        "repository": "BLAKE3-team/BLAKE3",
+        "status": 200,
+        "tag": "1.8.7",
+        "published_at": "2026-08-20T09:06:20Z",
+        "prerelease": false
+      },
+      {
+        "repository": "winfsp/winfsp",
+        "status": 200,
+        "tag": "v2.1",
+        "published_at": "2025-06-05T15:28:51Z",
+        "prerelease": false
+      },
+      {
+        "repository": "Kitware/CMake",
+        "status": 200,
+        "tag": "v4.5.0",
+        "published_at": "2026-11-12T18:53:08Z",
+        "prerelease": false
+      },
+      {
+        "repository": "actions/checkout",
+        "status": 200,
+        "tag": "v7.0.1",
+        "published_at": "2026-07-20T15:10:05Z",
+        "prerelease": false
+      },
+      {
+        "repository": "actions/setup-python",
+        "status": 200,
+        "tag": "v7.1.0",
+        "published_at": "2026-10-22T02:56:04Z",
+        "prerelease": false
+      },
+      {
+        "repository": "actions/upload-artifact",
+        "status": 200,
+        "tag": "v7.0.2",
+        "published_at": "2026-10-07T10:08:14Z",
+        "prerelease": false
+      },
+      {
+        "repository": "cocoindex-io/cocoindex-code",
+        "status": 200,
+        "tag": "v0.2.43",
+        "published_at": "2026-11-05T23:36:18Z",
+        "prerelease": false
+      },
+      {
+        "repository": "microsoft/diskspd",
+        "status": 200,
+        "tag": "v2.3",
+        "published_at": "2026-09-04T00:05:38Z",
+        "prerelease": false
+      }
+    ],
+    "winfsp_latest_prerelease": {
+      "tag": "v2.2B5",
+      "published_at": "2026-10-13T14:17:29Z",
+      "prerelease": true
+    },
+    "native_api": [
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100&page=1",
+        "status": 400,
+        "utc": "2026-11-17T17:11:58.846655+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/dependabot-open-1.http",
+          "sha256": "0264afe926f85105e773b8fe46cd5b6934960fcfa385925d342f78e58849c129"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/meta/zstd/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:11:59.207286+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-meta-zstd.http",
+          "sha256": "ebcaae97712fdf37fb39cd9dc903bfd189845a7de649a5c4c1d4030499b483f5"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/lz4/lz4/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:11:59.541967+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-lz4-lz4.http",
+          "sha256": "988ae4048289bf1be988be033741ce8c44a03df9020e6bb4cb358fb3dee548a8"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/BLAKE3-team/BLAKE3/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:11:59.890585+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-BLAKE3-team-BLAKE3.http",
+          "sha256": "70352864a812ea189e2e3fcee9ef66bef6be19ac1d6fdc79792d9d9509702f09"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/winfsp/winfsp/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:12:00.208425+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-winfsp-winfsp.http",
+          "sha256": "eca615c5aeeee17757460999d18f33bd02f725104bc444581264c6f000ef9bd8"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/Kitware/CMake/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:12:00.573499+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-Kitware-CMake.http",
+          "sha256": "385fba5befc13728e4cd6b32f4b100f09be452c1c4c11c616fd0d1088718c3c1"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/actions/checkout/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:12:00.933455+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-actions-checkout.http",
+          "sha256": "2398c814f55310a3380d96b2b908f1d5d12a205789f103209353074d17ebdf82"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/actions/setup-python/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:12:01.365930+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-actions-setup-python.http",
+          "sha256": "eed0e817e515edb14c529fa3e889a1bbd647269c4a97710924c9d45229c44f8f"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/actions/upload-artifact/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:12:02.015558+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-actions-upload-artifact.http",
+          "sha256": "239b8c8ccfec46fb8c391464f02fca62146a69a1a224dd0abb7d2d2c1eef7584"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/cocoindex-io/cocoindex-code/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:12:02.374078+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-cocoindex-io-cocoindex-code.http",
+          "sha256": "73c65a963af0e9e724ebbddc9b2d0ef0bfd277bc2016faeec6254e01c8562a8e"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/microsoft/diskspd/releases/latest",
+        "status": 200,
+        "utc": "2026-11-17T17:12:02.854420+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/release-microsoft-diskspd.http",
+          "sha256": "0ac143bb10f51c8e57678b8875428fc5446da1f1baa203395539e52c8d8c8c13"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/winfsp/winfsp/releases?per_page=10",
+        "status": 200,
+        "utc": "2026-11-17T17:12:03.872032+00:00",
+        "native": {
+          "artifact": "overview-api-a5caee099de1409cabb7bb10f1a59374/winfsp-development.http",
+          "sha256": "fce8d07006806fecc141a349d60553707c7dc75f27e41faa57c2fc4b6b0a846f"
+        }
+      },
+      {
+        "method": "GET",
+        "url": "https://api.github.com/repos/strmt7/FlitzFS/dependabot/alerts?state=open&per_page=100",
+        "status": 200,
+        "utc": "2026-11-17T17:13:23.051978+00:00",
+        "native": {
+          "artifact": "overview-api-3ddc1ed539874145a020856c92d276e5/dependabot-cursor-1.http",
+          "sha256": "fd91b779373a2a4d940297ee390b4f3452d5dbd1b355847905cd3ad48c50d372"
+        }
+      }
+    ],
+    "dependabot": {
+      "http_status": 200,
+      "pages": 1,
+      "open_alerts": 0,
+      "complete": true,
+      "checked_utc": "2026-11-17T17:13:23.051978+00:00",
+      "scope": "Open alerts at capture time. Prior review call with the unsupported page parameter returned 400."
+    }
+  },
+  "raw_asan_ctest_inventory": [
+    {
+      "profile": "raw-inventory",
+      "registered": 153,
+      "executed": 0,
+      "native": {
+        "artifact": "local-run-86bad45fb0f8499db4636d0e36d316ab/output.log",
+        "sha256": "9b561fd35046c1e0a32ff5b128081cb828c864572c2337fcf8a965a537352443"
+      }
+    },
+    {
+      "profile": "asan-inventory",
+      "registered": 153,
+      "executed": 0,
+      "native": {
+        "artifact": "local-run-110f296cb3d240beb5d6fe31fc427f1f/output.log",
+        "sha256": "95d19c3e8a52bd4210566e3041954eed1b659beeb4a81d7ecf76cea36b40b272"
+      }
+    }
+  ],
+  "codec_enabled_windows_baseline": {
+    "source": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+    "windows_observed_build": 26300,
+    "generator": "Visual Studio 18 2026",
+    "msvc": "19.52.37029.0",
+    "cmake": {
+      "version": "4.5.0",
+      "archive_sha256": "301b1728317ccd84e984b02e366a8293735bc5ac618757d3d8f58b578f062411",
+      "native": {
+        "artifact": "review-codec-lane-c019fc2938834f728bb12d51d258f2c8/flitzfs-cmake-provision.json",
+        "sha256": "526ec5e0d55b06ab710c24746fd74b2cd1f2e7702193f782dfd91944b8bfebd8"
+      }
+    },
+    "codecs": {
+      "zstd": {
+        "commit": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+        "built_library_sha256": "86894e01a34f156d2ec7f5adb9870eb4aa873ed5e68159c82d71ff1e627a9891"
+      },
+      "lz4": {
+        "commit": "aa4647fad575d01a874aaaadcdbe8e6a40e072f5",
+        "built_library_sha256": "0fbf6537afdb5765bc2e08a9a64a1d04e5c4e2edbad319a8800592f533b18a7d"
+      }
+    },
+    "required_codecs": [
+      "Zstandard",
+      "LZ4"
+    ],
+    "scope": "CPU store and SDK callbacks with injected lifecycle. Current helper baseline recorded one failed maintenance check.",
+    "configuration_jobs": [
+      {
+        "name": "flitzfs-codec-configure",
+        "summary": {
+          "pass": true
+        },
+        "elapsed_seconds": 9.753,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-685ffc3abc7348b980e1551b81ac232f/result.json",
+          "sha256": "4ef86b1012bef24b9307b3d8e1dfaae4b40b66cd8265f8eda0fb04a92baaded8"
+        },
+        "native_log": {
+          "artifact": "local-run-685ffc3abc7348b980e1551b81ac232f/output.log",
+          "sha256": "dab6fd5bb104eb27d1d8e818cedc5a0e5021f909a713cf4d1c83af666b1c95f5"
+        }
+      },
+      {
+        "name": "flitzfs-codec-build",
+        "summary": {
+          "pass": true
+        },
+        "elapsed_seconds": 127.644,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-a0d8031c16f44b60882182eed2a8f0c9/result.json",
+          "sha256": "e52b5bc5281572851547f203b3049c6be632a038f23716f65f76b13d695c2dc4"
+        },
+        "native_log": {
+          "artifact": "local-run-a0d8031c16f44b60882182eed2a8f0c9/output.log",
+          "sha256": "5a413e96e62e8556b772b9d4638edf5f8ea228b93f7214badfb2209f2ab5f1aa"
+        }
+      }
+    ],
+    "staging_failure_and_repair": [
+      {
+        "name": "zstd-build",
+        "summary": {
+          "pass": false,
+          "failure": "MSVC D8040 with the pinned upstream default /MP fan-out in a bounded job"
+        },
+        "elapsed_seconds": 0.684,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-40e264513164421ab3efcda450138e98/result.json",
+          "sha256": "c13d0e9c5eb4b02ba43f6bc9043e21474ce7c46055eace093fa89e783de1b9b0"
+        },
+        "native_log": {
+          "artifact": "local-run-40e264513164421ab3efcda450138e98/output.log",
+          "sha256": "c3b075dec520d5154b36ab11fd004828f95b10dd3a2258023d4ceb46afb9ea8a"
+        }
+      },
+      {
+        "name": "zstd-bounded-build",
+        "summary": {
+          "pass": true,
+          "change": "Set ACTIVATE_MULTITHREADED_COMPILATION=OFF without changing the upstream source"
+        },
+        "elapsed_seconds": 9.388,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-0c311ab0d54b418787e2c48b6ebe4f65/result.json",
+          "sha256": "e83d7f56dedfb612f50e62663657cfc594dd4abef7fcd84d294cb0477ce847e1"
+        },
+        "native_log": {
+          "artifact": "local-run-0c311ab0d54b418787e2c48b6ebe4f65/output.log",
+          "sha256": "b040dd1cac88146759dc2f93a8af8380e578cb97427f9af07c8a23d9179d4503"
+        }
+      }
+    ],
+    "jobs": [
+      {
+        "name": "qualified-paged-storage",
+        "summary": {
+          "pass": true,
+          "ctest": 9
+        },
+        "elapsed_seconds": 59.548,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-c4f983c520e7496eb0b911947a8b8941/result.json",
+          "sha256": "8d763ba93c2e14da4c68cf5573d45684bbf605c7942ccaaab415fd58b74c2db5"
+        },
+        "native_log": {
+          "artifact": "local-run-c4f983c520e7496eb0b911947a8b8941/output.log",
+          "sha256": "49ded261b3e4bb59d4bcb661274566bfd295e6cce6ea9e3a9004d0383e3e52b8"
+        }
+      },
+      {
+        "name": "qualified-compression",
+        "summary": {
+          "pass": true,
+          "ctest": 3
+        },
+        "elapsed_seconds": 0.616,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-8ccf1ce6df69491d9781e315f3fed6da/result.json",
+          "sha256": "a495390990f3677df88cb44bbe8b6d14588a9acbd961392adbdc15342037bc34"
+        },
+        "native_log": {
+          "artifact": "local-run-8ccf1ce6df69491d9781e315f3fed6da/output.log",
+          "sha256": "5f0a354051e693c2cdb42f787456b216e5f39b3fafc727a5e1efcd0d6d240a2a"
+        }
+      },
+      {
+        "name": "qualified-win-sdk",
+        "summary": {
+          "pass": true,
+          "ctest": 5,
+          "callback_checks": 4290,
+          "modeled_group_faults": 492
+        },
+        "elapsed_seconds": 44.78,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-f47c94c3309345ccaebd29c4d3c53f43/result.json",
+          "sha256": "4230848edb60daf58c340fc4954d754b3892047d7673d795207cf0ca22dd3b55"
+        },
+        "native_log": {
+          "artifact": "local-run-f47c94c3309345ccaebd29c4d3c53f43/output.log",
+          "sha256": "bb2ac102e6feeca525593db876315f837e74223ae8186e21e9d410211f68f894"
+        }
+      },
+      {
+        "name": "qualified-helper-model",
+        "summary": {
+          "pass": true,
+          "fixture": "owned locked provider and advice/model"
+        },
+        "elapsed_seconds": 1.336,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-37a27f656b4c4b67a28e5d2f3bac2706/result.json",
+          "sha256": "c0fdc01ea8284b405c3600767e0e5faedb4d76e6114b3c330b26fdd2c1f54410"
+        },
+        "native_log": {
+          "artifact": "local-run-37a27f656b4c4b67a28e5d2f3bac2706/output.log",
+          "sha256": "d5dd7dd50950654a2d93722ab3bd92efc4ffcc4a5f6e5991dbe9eb6d42a50785"
+        }
+      },
+      {
+        "name": "qualified-helper-maintenance",
+        "summary": {
+          "pass": false,
+          "failure": "The former three-file publication expectation failed with Zstandard enabled."
+        },
+        "elapsed_seconds": 1.237,
+        "job_tree_retired": true,
+        "native_result": {
+          "artifact": "local-run-467f32bd280d44c3baf5b90122ea7880/result.json",
+          "sha256": "b36bbb8f5c2f95fe74ce005c3e38bb18b925160b4114c45c2bb7daefba843a7d"
+        },
+        "native_log": {
+          "artifact": "local-run-467f32bd280d44c3baf5b90122ea7880/output.log",
+          "sha256": "8d51defbe8316edb2d0d6f54cba8315f0a01cdef0508554f859d3aee71271639"
+        }
+      }
+    ]
+  },
+  "last_shared_factory_evidence": "docs/evidence/memory-volume-factory-2026-11-17.json",
+  "forward_contract": "docs/IMPLEMENTATION_PLAN.md",
+  "overview": "docs/REPOSITORY_OVERVIEW.md",
+  "not_qualified": [
+    "Full current suite",
+    "Security audit",
+    "Native mounted product",
+    "This round actual GPU",
+    "Physical power-loss behavior",
+    "Release"
+  ],
+  "release": false
+}

@@ -1,5 +1,10 @@
 # FlitzFS repository assessment
 
+**Current review:** [17 November repository overview](REPOSITORY_OVERVIEW.md)
+and [detailed implementation plan](IMPLEMENTATION_PLAN.md), bound to `38a4a48`.
+The dated checkpoints below retain historical evidence; they are not a competing
+current implementation plan or qualification of later source.
+
 Current checkpoint: 15 November 2026. The
 [native paged-backend follow-up](NATIVE_PAGED_BACKEND.md) connects the shared
 native engine to paged storage while retaining flat namespace limits. The

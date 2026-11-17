@@ -107,6 +107,14 @@ unrelated drivers; qualified FlitzFS driver deployment follows the condition abo
 
 ## Local source and Git workflow
 
+For forward product work, use docs/REPOSITORY_OVERVIEW.md and the scoped steps
+in docs/IMPLEMENTATION_PLAN.md. The execution_programme in
+docs/DEVELOPMENT_PLAN.json indexes the 154 steps and their completion dependencies;
+read the relevant step/component, not every historical checkpoint on every turn.
+Do not mistake a completed foundation/fixture for a closed product requirement.
+Prioritize complete native Windows paths, scalable native metadata, automatic
+reclamation and useful ordinary GPU/collective operation. Keep the full goal active.
+
 1. Inspect Git history/status and preserve existing changes before editing.
    Prefer an appropriate existing checkout; use a separate local checkout if
    needed to protect another dirty working tree. Develop on main only. No

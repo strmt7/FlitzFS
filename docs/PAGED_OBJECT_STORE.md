@@ -114,6 +114,14 @@ unit. A transaction seals both units; later writes never reuse acknowledged
 padding. This avoids spending two entire large failure units per page during
 ordinary path updates. Streaming rebuild currently seals a pair per completed
 page; improving this packing is open work and must include complete-size costs.
+Page writes initialize only alignment gaps and the unused suffix of the final
+replica banks with zeros. Complete page buffers initialize their own ranges.
+This avoids duplicate backing writes without changing page placement, the on-image
+format, occupied bytes or the flush and root publication protocol.
+In the focused mirrored 4 KiB-unit fixture, backing writes fell from 32 KiB to
+24 KiB for the same 16 KiB append and two 4 KiB root updates. Tests also covered
+64 KiB units, multi-bank updates, exact recovery and modeled interruption.
+[Source-bound checks](evidence/paged-write-accounting-2026-11-17.json).
 
 Publication flushes appended dependencies, publishes root G+1 and flushes,
 then publishes root G+2 in the other root zone and flushes. Both roots name the
