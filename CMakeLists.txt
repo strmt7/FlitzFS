@@ -805,7 +805,9 @@ if(FLITZFS_BUILD_WINFSP)
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_winfsp_controller_tests>")
     add_test(NAME bounded_winfsp_controller COMMAND flitzfs_winfsp_controller_tests)
     add_test(NAME bounded_winfsp_memory_volume COMMAND flitzfs_winfsp_controller_tests --memory)
-    set_tests_properties(bounded_winfsp_controller bounded_winfsp_memory_volume PROPERTIES TIMEOUT 90)
+    add_test(NAME bounded_winfsp_readonly_memory COMMAND flitzfs_winfsp_controller_tests --read-only-memory)
+    set_tests_properties(bounded_winfsp_controller bounded_winfsp_memory_volume bounded_winfsp_readonly_memory
+      PROPERTIES TIMEOUT 90)
     add_executable(flitzfs_winfsp_paged_tests tests/test_winfsp_paged.cpp)
     target_link_libraries(flitzfs_winfsp_paged_tests PRIVATE flitzfs_winfsp Threads::Threads)
     add_custom_command(TARGET flitzfs_winfsp_paged_tests POST_BUILD

@@ -21,6 +21,8 @@ Start with the [developer guide](development/README.md).
 The [current overview](REPOSITORY_OVERVIEW.md) and
 [detailed implementation plan](IMPLEMENTATION_PLAN.md) describe the development
 state and remaining work.
+The [sealed memory integration](WINFSP_READONLY_MEMORY.md) covers the first
+read-only WinFsp path and how it is qualified.
 The [reference index](reference/README.md) links all existing component contracts.
 The [research index](research/README.md) distinguishes design investigations from
 implemented behavior.

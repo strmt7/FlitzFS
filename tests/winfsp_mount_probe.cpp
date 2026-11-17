@@ -1,5 +1,6 @@
-// Disposable hosted-CI integration probe, NOT a general-purpose mount command.
+// Supervised disposable integration probe with fixed synthetic inputs.
 #include "winfsp_session.hpp"
+#include "memory_volume_factory.hpp"
 #include "bounded_process.hpp"
 #include "supervised_source_fixture.hpp"
 #include "flitzfs/container.hpp"
@@ -54,7 +55,7 @@ std::wstring environment(const wchar_t* name) {
   require(n > 0 && n < 512, "missing or oversized probe environment value");
   return {value, n};
 }
-void require_hosted_opt_in() {
+void require_disposable_opt_in() {
   require(environment(L"FLITZFS_ALLOW_DISPOSABLE_MOUNT") == L"1",
       "probe requires explicit qualified disposable mount fixture opt-in");
 }
@@ -153,11 +154,6 @@ void check_mapping(const fs::path& path, const std::vector<std::byte>& expected)
   checked(view != nullptr, "read-only view creation");
   struct Unmap { const void* p; ~Unmap() { UnmapViewOfFile(p); } } unmap{view};
   require(std::memcmp(view, expected.data(), expected.size()) == 0, "mapped byte parity");
-}
-flitzfs::WinFspSessionApi live_api() {
-  return {FspFileSystemPreflight, FspFileSystemCreate, FspFileSystemStartDispatcher,
-      FspFileSystemSetMountPoint, FspFileSystemStopDispatcher,
-      FspFileSystemRemoveMountPoint, FspFileSystemDelete,FspFileSystemOperationProcessId};
 }
 void require_probe_job() {
   stage = 2;
@@ -434,13 +430,13 @@ void probe(bool abandon_mount,std::wstring_view token) {
   const std::vector<std::byte> sentinel_data{std::byte{11}, std::byte{29}};
   write_new(sentinel, sentinel_data);
   {
-    flitzfs::WinFspReadOnlySession refused(projection(), live_api());
+    flitzfs::WinFspReadOnlySession refused(projection(), flitzfs::linked_winfsp_session_api());
     require(!NT_SUCCESS(refused.start({occupied.native(), 15, true})), "existing directory adopted as mount");
   }
   require(read_all(sentinel, sentinel_data.size()) == sentinel_data, "collision fixture changed");
   const auto mount = fixture.root / L"mount";
   stage = 5;
-  flitzfs::WinFspReadOnlySession session(projection(), live_api());
+  flitzfs::WinFspReadOnlySession session(projection(), flitzfs::linked_winfsp_session_api());
   const auto status = session.start({mount.native(), 30, true});
   if (!NT_SUCCESS(status)) throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
       std::system_category(), "live session startup");
@@ -533,7 +529,7 @@ void recover(std::uint32_t previous_process,std::wstring_view token) {
       "collision sentinel changed after forced termination");
   stage=16;
   flitzfs::WinFspReadOnlySession session(flitzfs::ReadOnlyProjection::open_native_file(
-      image,native_windows_fixture::identity()),live_api());
+      image,native_windows_fixture::identity()),flitzfs::linked_winfsp_session_api());
   const auto status=session.start({mount.native(),30,true});
   if(!NT_SUCCESS(status))throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
       std::system_category(),"native remount after terminated helper");
@@ -546,13 +542,81 @@ void recover(std::uint32_t previous_process,std::wstring_view token) {
   require(read_all(image,n)==read_all(fixture.root/L"baseline.fltx",n),"remount altered native backing");
   protocol.signal(source_fixture::Phase::ack);
 }
+void memory_source(std::wstring_view token) {
+  require_probe_job();source_fixture::Events protocol(false,std::wstring(token));
+  stage=19;
+  Fixture fixture;
+  auto backing=flitzfs::MemoryVolumeBacking::create();
+  const auto expected=synthetic_data();
+  {
+    auto writer=flitzfs::NativeFileSession::create_paged_volume(backing.head,backing.volume_identity,
+        backing.image,backing.image_identity,{backing.layout.image_capacity},
+        {flitzfs::StoreCompressionMode::automatic,3,true});
+    writer.create_entry("Data",true);writer.create_entry("Data/sample.bin");writer.create_entry("empty.bin");
+    const auto handle=writer.open("Data/sample.bin",{true,true,false},flitzfs::NativeOpenKind::file);
+    writer.write(handle,0,expected);writer.flush(handle);writer.cleanup(handle,false);writer.close(handle);
+  }
+  auto projection=backing.open_read_only();
+  const auto info=projection.native_info();
+  require(info && info->storage.stored_payload_bytes<info->storage.logical_bytes,"sealed fixture did not compress");
+  require(info->image_bytes<=4*1024*1024,"sealed fixture image byte budget");
+  std::vector<std::byte> original(static_cast<std::size_t>(info->image_bytes));
+  backing.image->read_exact(0,original);
+  const auto mount=fixture.root/L"mount";
+  stage=20;
+  flitzfs::WinFspReadOnlySession session(std::move(projection),flitzfs::linked_winfsp_session_api());
+  const auto status=session.start({mount.native(),30,true});
+  if(!NT_SUCCESS(status))throw std::system_error(static_cast<int>(FspWin32FromNtStatus(status)),
+      std::system_category(),"sealed RAM mount startup");
+  reject_host_self_open(session,mount);
+  protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
+  stage=21;
+  session.stop();
+  require(session.dispatcher_stopped() && !session.dispatcher_stopped_unexpectedly(),"sealed RAM dispatcher retirement");
+  require(GetFileAttributesW(mount.c_str())==INVALID_FILE_ATTRIBUTES &&
+      (GetLastError()==ERROR_FILE_NOT_FOUND || GetLastError()==ERROR_PATH_NOT_FOUND),"sealed RAM mount remained");
+  auto cpu=backing.open_read_only();
+  require(cpu.read(L"\\Data\\sample.bin",0,static_cast<std::uint32_t>(expected.size()))==expected,
+      "sealed RAM independent CPU view after stop");
+  std::vector<std::byte> after(original.size());backing.image->read_exact(0,after);
+  require(backing.image->extent()==original.size() && after==original,"mounted access changed sealed backing");
+  protocol.signal(source_fixture::Phase::ack);
+}
+void memory_client(const Fixture& fixture) {
+  stage=22;
+  const auto mount=fixture.root/L"mount";
+  const auto file=mount/L"data"/L"SAMPLE.bin";
+  const auto expected=synthetic_data();
+  require(read_all(file,expected.size())==expected && read_all(mount/L"empty.bin",0).empty(),
+      "external sealed RAM read parity");
+  check_mapping(file,expected);
+  require(enumerate(mount/L"*")==std::set<std::wstring>{L"Data",L"empty.bin"} &&
+      enumerate(mount/L"Data"/L"*.bin")==std::set<std::wstring>{L"sample.bin"},
+      "external sealed RAM directory view");
+  const auto root=mount.native()+L"\\";
+  DWORD flags=0;wchar_t name[64]{};
+  checked(GetVolumeInformationW(root.c_str(),nullptr,0,nullptr,nullptr,&flags,name,64),"sealed RAM volume flags");
+  const auto name_end=std::find(std::begin(name),std::end(name),L'\0');
+  require((flags&FILE_READ_ONLY_VOLUME) && name_end!=std::end(name) &&
+      std::wstring_view(name,static_cast<std::size_t>(name_end-std::begin(name)))==L"FlitzFS",
+      "unexpected exposed RAM volume");
+  Handle denied(CreateFileW(file.c_str(),GENERIC_WRITE,0,nullptr,OPEN_EXISTING,0,nullptr));
+  require(denied.value==INVALID_HANDLE_VALUE,"sealed RAM authorized external writes");
+  require(!DeleteFileW(file.c_str()),"sealed RAM authorized external deletion");
+  Handle created(CreateFileW((mount/L"new.bin").c_str(),GENERIC_WRITE,0,nullptr,CREATE_NEW,0,nullptr));
+  require(created.value==INVALID_HANDLE_VALUE,"sealed RAM authorized external creation");
+}
+enum class ReadonlySource {file,memory};
 struct ExternalReadonly {
   source_fixture::Events protocol{true};
   std::unique_ptr<source_fixture::Child> child;
   flitzfs::ProcessResult result;
-  ExternalReadonly(const fs::path& executable,bool crash,std::uint32_t recover_source=0) {
-    require(!crash||recover_source==0,"readonly recovery/crash selector");
-    std::vector<std::wstring> arguments{recover_source?L"--probe-recover-child":
+  ExternalReadonly(const fs::path& executable,bool crash,std::uint32_t recover_source=0,
+      ReadonlySource source=ReadonlySource::file) {
+    const bool memory=source==ReadonlySource::memory;
+    require((!crash || recover_source==0) && (!memory || (!crash && recover_source==0)),
+        "readonly source/recovery selector");
+    std::vector<std::wstring> arguments{memory?L"--probe-memory-child":recover_source?L"--probe-recover-child":
         crash?L"--probe-crash-child":L"--probe-child"};
     if(recover_source)arguments.push_back(std::to_wstring(recover_source));
     arguments.push_back(protocol.token());
@@ -562,7 +626,9 @@ struct ExternalReadonly {
     require(child->process_id()&&child->process_id()!=GetCurrentProcessId()&&
         (!recover_source||child->process_id()!=recover_source),"readonly actor alias");
     Fixture fixture(recover_source?recover_source:child->process_id());
-    if(recover_source)recovered_client(fixture);else mounted_client(fixture,crash);
+    if(memory)memory_client(fixture);
+    else if(recover_source)recovered_client(fixture);
+    else mounted_client(fixture,crash);
     protocol.signal(source_fixture::Phase::written);child->await(protocol,source_fixture::Phase::ack);
     result=child->result();
     require(result.process_id==child->process_id()&&result.exit_confirmed&&!result.cancelled&&
@@ -577,9 +643,12 @@ struct ExternalReadonly {
 } // namespace
 int wmain(int argc, wchar_t** argv) {
   try {
-    require_hosted_opt_in();
+    require_disposable_opt_in();
     require(argc >= 2 && argc <= 4, "explicit probe mode required");
     const std::wstring_view mode(argv[1]);
+    if(mode==L"--probe-memory-child") {
+      require(argc==3,"sealed RAM protocol missing");memory_source(argv[2]);return 0;
+    }
     if (mode == L"--probe-recover-child") {
       require(argc == 4, "recovery identity/protocol missing");
       recover(process_number(argv[2]),argv[3]); return 0;
@@ -588,12 +657,17 @@ int wmain(int argc, wchar_t** argv) {
       require(argc==3,"missing readonly client protocol");probe(mode==L"--probe-crash-child",argv[2]);return 0;
     }
     require(argc==2,"unexpected controller argument");
-    require(mode == L"--run-disposable-ci", "unknown probe mode");
+    require(mode==L"--run-disposable-ci" || mode==L"--run-disposable-memory","unknown probe mode");
     const source_fixture::ControllerBudget controller_budget;
     wchar_t path[512]{};
     const auto n = GetModuleFileNameW(nullptr, path, 512);
     require(n && n < 512, "probe executable path unavailable");
     const fs::path executable(std::wstring(path,n));
+    if(mode==L"--run-disposable-memory") {
+      const ExternalReadonly memory(executable,false,0,ReadonlySource::memory);
+      std::cout<<"PASS: sealed paged RAM, external mounted reads and mutation refusal, byte parity and joined retirement.\n";
+      return 0;
+    }
     const ExternalReadonly normal(executable,false);const auto result=normal.result;
     std::cout << "mount_probe exit=" << result.exit_code << " stage=" << (result.exit_code >> 16U)
         << " detail=" << (result.exit_code & 0xffffU) << " timed_out=" << result.timed_out

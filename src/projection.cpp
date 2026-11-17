@@ -1,6 +1,7 @@
 #include "flitzfs/projection.hpp"
 #include "flitzfs/catalog_error.hpp"
 #include "flitzfs/native_filesystem.hpp"
+#include "flitzfs/volume_head.hpp"
 #include <mutex>
 #include <variant>
 
@@ -34,11 +35,16 @@ std::string virtual_path(std::wstring_view name) {
 } // namespace
 
 struct ReadOnlyProjection::Impl {
-  std::variant<ReadOnlyCatalog,NativeFilesystemSnapshot> source;
+  std::variant<ReadOnlyCatalog,NativeFilesystemSnapshot,NativeVolumeHeadView> source;
   mutable std::mutex native_guard;
   std::uint64_t image_bytes=0;
   explicit Impl(ReadOnlyCatalog catalog):source(std::move(catalog)){}
   Impl(NativeFilesystemSnapshot snapshot,std::uint64_t bytes):source(std::move(snapshot)),image_bytes(bytes){}
+  Impl(NativeVolumeHeadView volume,std::uint64_t bytes):source(std::move(volume)),image_bytes(bytes){}
+  const NativeFilesystemSnapshot* native_snapshot() const {
+    if(const auto* volume=std::get_if<NativeVolumeHeadView>(&source))return &volume->filesystem();
+    return std::get_if<NativeFilesystemSnapshot>(&source);
+  }
 };
 ReadOnlyProjection::ReadOnlyProjection(std::unique_ptr<Impl> impl) noexcept:impl_(std::move(impl)){}
 ReadOnlyProjection::~ReadOnlyProjection()=default;
@@ -64,10 +70,13 @@ ReadOnlyProjection ReadOnlyProjection::open_native_file(const std::filesystem::p
   throw std::invalid_argument("native image projection is qualified on Windows only");
 #endif
 }
+ReadOnlyProjection ReadOnlyProjection::from_owned_volume(NativeVolumeHeadView volume,std::uint64_t bytes) {
+  return ReadOnlyProjection(std::make_unique<Impl>(std::move(volume),bytes));
+}
 CatalogEntry ReadOnlyProjection::stat(std::wstring_view path) const {
   if(!impl_)throw std::logic_error("moved-from read-only projection");
   const auto relative=virtual_path(path);
-  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+  if(const auto* native=impl_->native_snapshot()) {
     std::lock_guard lock(impl_->native_guard);
     const auto entry=native->stat(relative);
     return {entry.path,entry.directory,entry.logical_bytes,entry.inode};
@@ -77,7 +86,7 @@ CatalogEntry ReadOnlyProjection::stat(std::wstring_view path) const {
 std::vector<CatalogEntry> ReadOnlyProjection::list(std::wstring_view path) const {
   if(!impl_)throw std::logic_error("moved-from read-only projection");
   const auto relative=virtual_path(path);
-  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+  if(const auto* native=impl_->native_snapshot()) {
     std::lock_guard lock(impl_->native_guard);
     const auto entries=native->list(relative);
     std::vector<CatalogEntry> result;result.reserve(entries.size());
@@ -93,7 +102,7 @@ std::vector<std::byte> ReadOnlyProjection::read(std::wstring_view path,
   if(length>kMaxSingleReadBytes)
     throw CatalogError(CatalogErrorCode::limit,"FlitzFS: virtual read exceeds 4 MiB budget");
   const auto relative=virtual_path(path);
-  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+  if(const auto* native=impl_->native_snapshot()) {
     std::lock_guard lock(impl_->native_guard);
     return native->read(relative,offset,length);
   }
@@ -108,7 +117,7 @@ std::vector<std::byte> ReadOnlyProjection::read(std::wstring_view path,
 }
 void ReadOnlyProjection::verify_all(std::uint64_t maximum) {
   if(!impl_)throw std::logic_error("moved-from read-only projection");
-  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+  if(const auto* native=impl_->native_snapshot()) {
     std::lock_guard lock(impl_->native_guard);
     if(maximum>kMaxCatalogVerificationBytes || native->storage_info().logical_bytes>maximum)
       throw CatalogError(CatalogErrorCode::limit,"native live decoded verification budget");
@@ -119,7 +128,7 @@ void ReadOnlyProjection::verify_all(std::uint64_t maximum) {
 std::optional<NativeBasicMetadata> ReadOnlyProjection::basic_metadata(std::wstring_view path) const {
   if(!impl_)throw std::logic_error("moved-from read-only projection");
   const auto relative=virtual_path(path);
-  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+  if(const auto* native=impl_->native_snapshot()) {
     std::lock_guard lock(impl_->native_guard);
     return native->basic_metadata(native->stat(relative).inode);
   }
@@ -128,7 +137,7 @@ std::optional<NativeBasicMetadata> ReadOnlyProjection::basic_metadata(std::wstri
 std::optional<NativeSecurityDescriptor> ReadOnlyProjection::security_descriptor(std::wstring_view path) const {
   if(!impl_)throw std::logic_error("moved-from read-only projection");
   const auto relative=virtual_path(path);
-  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+  if(const auto* native=impl_->native_snapshot()) {
     std::lock_guard lock(impl_->native_guard);
     return native->security_descriptor(native->stat(relative).inode);
   }
@@ -136,9 +145,11 @@ std::optional<NativeSecurityDescriptor> ReadOnlyProjection::security_descriptor(
 }
 std::optional<NativeProjectionInfo> ReadOnlyProjection::native_info() const {
   if(!impl_)throw std::logic_error("moved-from read-only projection");
-  if(const auto* native=std::get_if<NativeFilesystemSnapshot>(&impl_->source)) {
+  if(const auto* native=impl_->native_snapshot()) {
     std::lock_guard lock(impl_->native_guard);
-    return NativeProjectionInfo{native->identity(),native->storage_info(),native->sequence(),impl_->image_bytes};
+    const auto* volume=std::get_if<NativeVolumeHeadView>(&impl_->source);
+    const auto id=volume?volume->info().selection.volume_identity:native->identity();
+    return NativeProjectionInfo{id,native->storage_info(),native->sequence(),impl_->image_bytes};
   }
   return {};
 }

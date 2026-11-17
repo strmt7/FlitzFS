@@ -8,6 +8,8 @@
 #include <vector>
 
 namespace flitzfs {
+struct MemoryVolumeBacking;
+class NativeVolumeHeadView;
 struct NativeProjectionInfo {
   StoreIdentity identity{};
   StoreCommitInfo storage;
@@ -23,7 +25,7 @@ class ReadOnlyProjection final {
   // pinned handle, exact nonzero identity, full CPU namespace/content checks.
   // Deny write/delete sharing on ordinary handles for this lifetime. Integrity
   // checks still guard every read; this is not a freeze of pre-existing mappings.
-  // No caller-owned mutable backend/snapshot can enter the callback route.
+  // No unsealed caller-owned mutable backend can enter the callback route.
   static ReadOnlyProjection open_native_file(const std::filesystem::path& image,
       StoreIdentity expected_identity);
   ~ReadOnlyProjection();
@@ -50,6 +52,8 @@ class ReadOnlyProjection final {
   // have no such tuple; paths are still validated/resolved in either case.
   std::optional<NativeBasicMetadata> basic_metadata(std::wstring_view path) const;
  private:
+  friend struct MemoryVolumeBacking;
+  static ReadOnlyProjection from_owned_volume(NativeVolumeHeadView,std::uint64_t image_bytes);
   struct Impl;
   explicit ReadOnlyProjection(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

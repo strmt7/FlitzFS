@@ -1,9 +1,12 @@
 #include "winfsp_controller.hpp"
 #include "winfsp_native.hpp"
 #include "winfsp_memory_volume.hpp"
+#include "flitzfs/paged_store.hpp"
 #include "native_fs_fixture.hpp"
 #include "windows_app_budget.hpp"
 #include <bcrypt.h>
+#include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstring>
 #include <iostream>
@@ -39,11 +42,13 @@ struct Provider {
   FSP_FILE_SYSTEM fs{};
   std::atomic<unsigned> calls{0};std::array<char,16> order{};
   std::atomic<bool> stopping{false},release_stop{true};
-  bool fail_mount=false,callback_alive=false;
+  bool fail_mount=false,callback_alive=false,read_only=false;
   static Provider* active;
   void record(char c){const auto n=calls.load();if(n<order.size())order[n]=c;calls.store(n+1);}
   static NTSTATUS preflight(PWSTR,PWSTR){active->record('p');return STATUS_SUCCESS;}
-  static NTSTATUS create(PWSTR,const FSP_FSCTL_VOLUME_PARAMS*,const FSP_FILE_SYSTEM_INTERFACE* table,FSP_FILE_SYSTEM** out) {
+  static NTSTATUS create(PWSTR,const FSP_FSCTL_VOLUME_PARAMS* params,const FSP_FILE_SYSTEM_INTERFACE* table,
+      FSP_FILE_SYSTEM** out) {
+    active->read_only=params->ReadOnlyVolume!=0;
     active->record('c');active->fs.Version=static_cast<UINT16>(sizeof(FSP_FILE_SYSTEM));
     active->fs.UmFileContextIsUserContext2=TRUE;active->fs.Interface=table;*out=&active->fs;return STATUS_SUCCESS;
   }
@@ -240,10 +245,98 @@ void memory_composition() {
     await([&]{return failed.view().retired;},5000,"memory mount refusal retirement");
     bool refused=false;try{(void)failed.inspect_retired();}catch(const std::exception&){refused=true;}
     require(refused,"memory inspection accepted status without explicit join");
+    refused=false;try{(void)failed.open_read_only();}catch(const std::exception&){refused=true;}
+    require(refused,"read-only projection accepted status without explicit join");
     failed.stop_and_join();auto cpu=failed.inspect_retired();cpu.filesystem().verify_all();
     require(failed.view().start_status==STATUS_OBJECT_NAME_COLLISION && cpu.filesystem().list().empty(),
         "memory mount rollback discarded the new valid volume");
+    auto projected=failed.open_read_only();
+    require(projected.list(L"\\").empty(),"read-only conversion lost the retired namespace");
   }
+}
+void read_only_memory() {
+  const auto expected=data(kNativeExtentBytes+29,919);
+  std::optional<ReadOnlyProjection> surviving;
+  auto rejected=[](auto&& run,const char* why) {
+    bool refused=false;try{run();}catch(const std::exception&){refused=true;}
+    require(refused,why);
+  };
+  {
+    auto backing=MemoryVolumeBacking::create();
+    auto aliased=backing.image;
+    auto unrelated=std::make_shared<Ram>();
+    backing.image=unrelated;
+    rejected([&]{(void)backing.open_read_only();},"unowned backing was admitted");
+    backing.image=aliased;
+    {
+      auto writer=NativeFileSession::create_paged_volume(backing.head,backing.volume_identity,backing.image,
+          backing.image_identity,{backing.layout.image_capacity},{StoreCompressionMode::automatic,3,false});
+      writer.create_entry("Data",true);writer.create_entry("Data/sample.bin");
+      const auto file=writer.open("Data/sample.bin",{true,true,false},NativeOpenKind::file);
+      writer.write(file,0,expected);writer.flush(file);writer.cleanup(file,false);writer.close(file);
+      rejected([&]{(void)backing.open_read_only();},"projection accepted an active writer");
+      writer.create_entry("empty.bin");
+    }
+    auto projection=backing.open_read_only();
+    const auto info=projection.native_info();
+    require(info && info->identity==backing.volume_identity && info->image_bytes==backing.image->extent() &&
+        projection.list(L"\\").size()==2,"selected read-only managed volume identity");
+    require(projection.read(L"\\data\\SAMPLE.bin",0,static_cast<std::uint32_t>(expected.size()))==expected,
+        "sealed CPU projection byte parity");
+    const auto original_extent=aliased->extent();
+    rejected([&]{aliased->write_exact(0,expected);},"raw alias wrote a sealed image");
+    rejected([&]{aliased->admit_write(original_extent);},"sealed image admitted a write");
+    rejected([&]{aliased->flush();},"sealed image accepted a mutable barrier");
+    rejected([&]{(void)backing.domain->create_store(65536);},"sealed domain created another store");
+    rejected([&]{(void)PagedObjectStoreWriter::resume(aliased,backing.image_identity,
+        info->storage.generation,{backing.layout.image_capacity});},"sealed image acquired a writer");
+    const auto api=linked_winfsp_session_api();
+    require(api.create==FspFileSystemCreate && api.preflight==FspFileSystemPreflight &&
+        api.stop_dispatcher==FspFileSystemStopDispatcher && api.remove_mount_point==FspFileSystemRemoveMountPoint,
+        "incomplete SDK-linked native provider");
+    const ReadOnlyMountPlan fixture{plan().directory,30,true};
+    {
+      Provider denied;Provider::active=&denied;denied.fail_mount=true;
+      WinFspReadOnlySession session(backing.open_read_only(),denied.api());
+      require(session.start(fixture)==STATUS_OBJECT_NAME_COLLISION && denied.read_only &&
+          denied.callback_alive && denied.calls==6 && std::string_view(denied.order.data(),6)=="pcsmtd",
+          "failed mount did not retire its owned callback state");
+    }
+    {
+      Provider p;Provider::active=&p;
+      WinFspReadOnlySession session(backing.open_read_only(),p.api());
+      require(session.start(fixture)==STATUS_SUCCESS && p.read_only,"read-only lifecycle parameters");
+      auto* fs=&p.fs;const auto* callbacks=fs->Interface;
+      auto name=std::wstring(L"\\data\\SAMPLE.bin");
+      auto other=std::wstring(L"\\mutated.bin");
+      PVOID handle=nullptr;FSP_FSCTL_FILE_INFO metadata{};
+      require(callbacks->Open(fs,name.data(),FILE_NON_DIRECTORY_FILE,FILE_WRITE_DATA,&handle,&metadata)==
+          STATUS_MEDIA_WRITE_PROTECTED && !handle,"read-only SDK authorized write access");
+      require(callbacks->Open(fs,name.data(),FILE_NON_DIRECTORY_FILE,FILE_READ_DATA,&handle,&metadata)==STATUS_SUCCESS &&
+          metadata.FileSize==expected.size(),"read-only SDK Open");
+      ULONG wrote=99;
+      require(callbacks->Write(fs,handle,const_cast<std::byte*>(expected.data()),0,1,FALSE,FALSE,&wrote,&metadata)==
+          STATUS_MEDIA_WRITE_PROTECTED && wrote==0,"read-only SDK Write");
+      require(callbacks->Rename(fs,handle,name.data(),other.data(),TRUE)==STATUS_MEDIA_WRITE_PROTECTED &&
+          callbacks->SetDelete(fs,handle,name.data(),TRUE)==STATUS_MEDIA_WRITE_PROTECTED,"read-only SDK mutation");
+      callbacks->Cleanup(fs,handle,name.data(),FspCleanupDelete);
+      std::array<std::byte,64> out{};ULONG count=0;
+      constexpr auto offset=kNativeExtentBytes-35;
+      require(callbacks->Read(fs,handle,out.data(),offset,static_cast<ULONG>(out.size()),&count)==STATUS_SUCCESS &&
+          count==out.size() && std::equal(out.begin(),out.end(),expected.begin()+offset),"post-Cleanup extent-crossing SDK read");
+      callbacks->Close(fs,handle);session.stop();session.stop();
+      require(p.callback_alive && session.dispatcher_stopped() && !session.dispatcher_stopped_unexpectedly() &&
+          p.calls==7 && std::string_view(p.order.data(),7)=="pcsmtrd","read-only joined retirement");
+    }
+    require(aliased->extent()==original_extent,"read-only lifecycle changed image length");
+    surviving.emplace(std::move(projection));
+  }
+  require(surviving->read(L"\\Data\\sample.bin",0,static_cast<std::uint32_t>(expected.size()))==expected,
+      "projection lost the sealed backing after owner destruction");
+  rejected([&]{(void)MemoryVolumeBacking::create();},"sealed reader lost the provider lease");
+  surviving.reset();
+  {auto backing=MemoryVolumeBacking::create();backing.domain->verify_resident();}
+  require(MemoryVolumeDomain::cleanup_healthy(),"sealed reader did not retire the provider");
 }
 void live_memory_composition() {
   Provider p;Provider::active=&p;std::optional<NativeVolumeHeadView> surviving;
@@ -288,7 +381,8 @@ int main(int argc,char** argv){try {
   {WindowsMaintenanceHost warm;warm.observe(false);}
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
-  if(argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles"))
+  if(argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
+      std::string_view(argv[1])=="--read-only-memory"))
     native_rng_initialization();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
   if(argc==1){event_ownership();lifecycle();expiration();invalid_and_unexpected();live_opportunities();}
@@ -297,6 +391,8 @@ int main(int argc,char** argv){try {
     memory_backing_ownership();std::cout<<"memory_handles backing="<<handle_count()<<'\n';
     memory_composition();std::cout<<"memory_handles rollback="<<handle_count()<<'\n';
     live_memory_composition();std::cout<<"memory_handles live="<<handle_count()<<'\n';
+  }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
+    read_only_memory();
   }else if(argc==2 && std::string_view(argv[1])=="--memory-handles") {
     for(unsigned i=0;i<3;++i){memory_backing_ownership();std::cout<<"backing_handles cycle="<<i<<" count="<<handle_count()<<'\n';}
   }else throw std::invalid_argument("Unknown owned controller qualification mode");

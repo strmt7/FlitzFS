@@ -582,6 +582,11 @@ is an advisory primitive, not the production coherence database or a learner.
 
 ## 11. E08 — Windows semantics, Explorer and owned volume lifecycle
 
+The [sealed memory path](WINFSP_READONLY_MEMORY.md) implements the user-mode
+assembly for steps 1–3 and the executable external-client fixture for step 4.
+The staged stable SDK matches the installed user-mode DLL. Evidence of a real
+read-only mount still requires the disposable driver-backed run.
+
 **Reuse:** actual native SDK callbacks, Windows-global disposition, ACL/time
 validation, deferred responses, owned controller, shared memory factory and tray.
 **Planning effort:** 5–10 person-weeks; confidence low.

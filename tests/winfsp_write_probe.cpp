@@ -124,11 +124,6 @@ std::vector<std::byte> read_all(const fs::path& path, std::size_t expected) {
   result.resize(expected);
   return result;
 }
-flitzfs::WinFspSessionApi live_api() {
-  return {FspFileSystemPreflight, FspFileSystemCreate, FspFileSystemStartDispatcher,
-      FspFileSystemSetMountPoint, FspFileSystemStopDispatcher,
-      FspFileSystemRemoveMountPoint, FspFileSystemDelete,FspFileSystemOperationProcessId};
-}
 // This guard is specific to the forced-termination source, not a replacement
 // for the native callback authorization/adoption/rollback checks.
 struct SourceGuard {
@@ -178,7 +173,7 @@ NTSTATUS create_source_filesystem(PWSTR device,const FSP_FSCTL_VOLUME_PARAMS* pa
   return FspFileSystemCreate(device,params,&source_guard.callbacks,output);
 }
 flitzfs::WinFspSessionApi source_api() {
-  auto api=live_api();api.create=create_source_filesystem;return api;
+  auto api=flitzfs::linked_winfsp_session_api();api.create=create_source_filesystem;return api;
 }
 void require_probe_job() {
   stage = 2;

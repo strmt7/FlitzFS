@@ -13,6 +13,11 @@ WinFspSessionApi checked(WinFspSessionApi api) {
   return api;
 }
 }
+WinFspSessionApi linked_winfsp_session_api() noexcept {
+  return {FspFileSystemPreflight,FspFileSystemCreate,FspFileSystemStartDispatcher,
+      FspFileSystemSetMountPoint,FspFileSystemStopDispatcher,
+      FspFileSystemRemoveMountPoint,FspFileSystemDelete,FspFileSystemOperationProcessId};
+}
 WinFspReadOnlySession::WinFspReadOnlySession(const std::vector<CatalogSource>& sources,
     WinFspSessionApi api) : api_(checked(api)), adapter_(sources) {}
 WinFspReadOnlySession::WinFspReadOnlySession(ReadOnlyProjection projection,

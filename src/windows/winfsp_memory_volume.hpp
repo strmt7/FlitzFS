@@ -19,6 +19,8 @@ class WinFspMemoryVolume final {
   // Requires this owner's explicit confirmed join, even if view says retired.
   // The returned CPU view retains its own stores/lease and verifies references.
   NativeVolumeHeadView inspect_retired() const;
+  // Can only be called after the writable dispatcher has been joined.
+  ReadOnlyProjection open_read_only();
  private:
   MemoryVolumeBacking backing_;
   std::unique_ptr<WinFspVolumeController> controller_;

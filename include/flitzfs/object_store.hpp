@@ -44,12 +44,18 @@ class StoreByteIo {
   // Read-only resource preflight; throws before writes on unknown/low headroom.
   virtual void admit_write(std::uint64_t projected_extent)=0;
   virtual StoreIoContract contract() const noexcept=0;
+ protected:
+  // A provider may permanently close writer admission after its last writer
+  // retires. The provider's ordinary control-thread rule also governs closure.
+  virtual bool allows_writer() const noexcept {return true;}
+  bool has_writer() const noexcept {return writer_owned_.load(std::memory_order_acquire);}
  private:
   friend class ObjectStoreWriter;
   friend class PagedObjectStoreWriter;
   friend class NativeVolumeHeadWriter;
   friend class OptimizationStateWriter;
   bool acquire_writer() noexcept {
+    if(!allows_writer())return false;
     bool expected=false;
     return writer_owned_.compare_exchange_strong(expected,true,std::memory_order_acquire,std::memory_order_relaxed);
   }

@@ -95,9 +95,10 @@ out-of-memory, busy-host timeout and rejected child-budget runs remain evidence.
 
 These tests use real SDK callbacks and injected lifecycle operations; they do
 not invoke native mount/dispatcher creation, load/install a driver or execute
-HIP. Connect the explicit native provider and external Windows clients next.
-Current-source mounted interference, useful ordinary GPU work, reclamation,
-scalable coherence and full Windows semantics remain unqualified.
+HIP. The follow-up [sealed memory integration](WINFSP_READONLY_MEMORY.md)
+uses this backing for the read-only adapter and a disposable external-client
+probe. Mounted Windows qualification, useful ordinary GPU work, reclamation,
+scalable coherence and full Windows semantics remain open.
 
 Current official API captures support the design: [memory observations are
 volatile](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex),

@@ -15,6 +15,10 @@ class MemoryVolumeDomain final {
   std::shared_ptr<StoreByteIo> create_store(std::uint64_t capacity);
   MemoryVolumeUsage usage() const noexcept;
   void verify_resident() const; // Verify the lease and every currently owned store.
+  bool owns(const StoreByteIo&) const noexcept;
+  // One control thread, after all writers and mutation work have retired.
+  // Success permanently denies writes and new stores across every alias.
+  void seal_read_only();
   static bool cleanup_healthy() noexcept;
   ~MemoryVolumeDomain();
   MemoryVolumeDomain(MemoryVolumeDomain&&) noexcept;

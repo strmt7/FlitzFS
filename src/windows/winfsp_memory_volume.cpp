@@ -23,4 +23,8 @@ NativeVolumeHeadView WinFspMemoryVolume::inspect_retired() const {
     if(id!=backing_.image_identity)throw std::runtime_error("Unknown retained image identity");return backing_.image;
   });
 }
+ReadOnlyProjection WinFspMemoryVolume::open_read_only() {
+  if(!joined_)throw std::runtime_error("Read-only mount requires explicit writable controller join");
+  return backing_.open_read_only();
+}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "memory_volume.hpp"
+#include "flitzfs/projection.hpp"
 namespace flitzfs {
 struct MemoryVolumeObservation {
   std::uint64_t physical_total=0,physical_available=0,commit_total=0,commit_available=0;
@@ -20,5 +21,9 @@ struct MemoryVolumeBacking {
   StoreIdentity volume_identity{},image_identity{};
   MemoryVolumeLayout layout;
   static MemoryVolumeBacking create();
+  // Independently checks the current selected image, closes writer admission,
+  // and returns a CPU projection that retains the backing lease. The owner
+  // keeps its original data even if a later read-only mount fails.
+  ReadOnlyProjection open_read_only();
 };
 }

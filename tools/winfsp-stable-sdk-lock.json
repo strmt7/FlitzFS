@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "repository": "winfsp/winfsp",
+  "tag": "v2.1",
+  "prerelease": false,
+  "source_commit": "ddca7bd5481857a65ba552f643b8776fd070836f",
+  "msi_name": "winfsp-2.1.25156.msi",
+  "url": "https://github.com/winfsp/winfsp/releases/download/v2.1/winfsp-2.1.25156.msi",
+  "bytes": 2191360,
+  "sha256": "073a70e00f77423e34bed98b86e600def93393ba5822204fac57a29324db9f7a",
+  "release_url": "https://github.com/winfsp/winfsp/releases/tag/v2.1",
+  "policy": "Exact stable user-mode SDK for compatibility and installed-runtime comparison. Selection does not qualify a driver installation or a mounted volume."
+}

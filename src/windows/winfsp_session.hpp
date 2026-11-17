@@ -20,6 +20,10 @@ struct WinFspSessionApi {
   decltype(&FspFileSystemDelete) delete_filesystem = nullptr;
   WinFspOriginQuery originating_process_id = nullptr;
 };
+// Explicit table for the SDK linked into this process. Selecting the table
+// does not invoke WinFsp. The live caller qualifies the installed pair, mount
+// parent and process supervision before entering start().
+WinFspSessionApi linked_winfsp_session_api() noexcept;
 enum class SessionState { ready, starting, running, stopped, failed };
 
 // Single controlling thread; callbacks may run concurrently. Destruction

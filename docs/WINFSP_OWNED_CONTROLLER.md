@@ -80,7 +80,9 @@ a valid Microsoft signature alone does not prove that combination qualified.
 
 The [shared adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now
 composes this controller with retained locked backing and post-join CPU inspection.
-Connect the explicit native provider next, then exercise a disposable mounted paged volume
+The [sealed read-only path](WINFSP_READONLY_MEMORY.md) now connects the linked
+provider and the shared memory factory. Its external client probe uses a
+separately provisioned runtime. Exercise a disposable mounted paged volume
 through external Windows clients. Preserve controller/dispatcher/backing lifetime,
 stop ownership, resource envelopes and the owner's driver-stability condition.
 Staged reclamation, scalable persistent coherence, complete Windows semantics

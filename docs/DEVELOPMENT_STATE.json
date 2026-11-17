@@ -11,16 +11,13 @@
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
   "current_qualification": {
-    "source_base": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
-    "changed_source_binding": "docs/evidence/paged-write-accounting-2026-11-17.json",
-    "prechange_factory": "docs/evidence/memory-volume-factory-2026-11-17.json",
-    "baseline_codec_windows_review": "docs/evidence/repository-review-2026-11-17.json",
-    "selected_ctest_passed": 24,
-    "helper_maintenance_cases_passed": 3,
-    "scope": "Windows codec, raw and AddressSanitizer memory-backed checks. Helper live runs recorded resource deferral.",
-    "native_mount": false,
-    "gpu": false,
-    "physical_power_loss": false,
+    "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
+    "changed_source_binding": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
+    "selected_ctest_passed": 14,
+    "helper_model_passed": true,
+    "scope": "WinFsp v2.1 codec and v2.2 beta raw AddressSanitizer Windows checks.",
+    "local_mount": false,
+    "actual_gpu": false,
     "release": false
   },
   "owner_gpu_observation": {
@@ -104,12 +101,13 @@
   ],
   "next_implementation": {
     "contract": "docs/IMPLEMENTATION_PLAN.md",
-    "next": "Matched native provider and independently checked read-only external-client fixture, including retirement.",
+    "next": "Execute the exact disposable external-client mount. Continue the checked paged namespace and useful automatic AMD cost/route work independently.",
     "steps": [
-      "E08.1",
-      "E08.2",
-      "E08.3",
-      "E08.4"
+      "E08.4",
+      "E01.2",
+      "E01.3",
+      "E03.1",
+      "E03.4"
     ]
   },
   "implementation_boundary": {
@@ -1020,7 +1018,7 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Matched native provider and independently checked read-only external-client fixture, including retirement.",
+    "Execute the exact disposable external-client mount. Continue the checked paged namespace and useful automatic AMD cost/route work independently.",
     "First indexed inode/name/extent transaction with reusable-allocation authority and legacy reader parity.",
     "Account for packed protected bytes and qualify bounded handoff plus incremental reclamation under unrelated commits.",
     "Acquire complete-cost AMD observations and compare stronger collective representations independently.",
@@ -2015,5 +2013,25 @@
     "last_shared_factory_evidence": "docs/evidence/memory-volume-factory-2026-11-17.json",
     "release": false,
     "current_runtime_evidence": "docs/evidence/paged-write-accounting-2026-11-17.json"
+  },
+  "paged_write_checkpoint": {
+    "source_base": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+    "changed_source_binding": "docs/evidence/paged-write-accounting-2026-11-17.json",
+    "prechange_factory": "docs/evidence/memory-volume-factory-2026-11-17.json",
+    "baseline_codec_windows_review": "docs/evidence/repository-review-2026-11-17.json",
+    "selected_ctest_passed": 24,
+    "helper_maintenance_cases_passed": 3,
+    "scope": "Windows codec, raw and AddressSanitizer memory-backed checks. Helper live runs recorded resource deferral.",
+    "native_mount": false,
+    "gpu": false,
+    "physical_power_loss": false,
+    "release": false
+  },
+  "sealed_read_only_memory": {
+    "contract": "docs/WINFSP_READONLY_MEMORY.md",
+    "evidence": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
+    "stable_sdk_staged": true,
+    "kernel_trial_required": true,
+    "release": false
   }
 }

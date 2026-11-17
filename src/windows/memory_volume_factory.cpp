@@ -1,5 +1,6 @@
 #include "memory_volume_factory.hpp"
 #include "flitzfs/native_session.hpp"
+#include "flitzfs/volume_head.hpp"
 #include <windows.h>
 #include <bcrypt.h>
 #include <algorithm>
@@ -39,5 +40,16 @@ MemoryVolumeBacking MemoryVolumeBacking::create() {
   out.image=out.domain->create_store(out.layout.image_capacity);
   out.advice=out.domain->create_store(MemoryVolumeLayout::area_capacity);
   out.domain->verify_resident();return out;
+}
+ReadOnlyProjection MemoryVolumeBacking::open_read_only() {
+  require(domain && head && image && head!=image && domain->owns(*head) && domain->owns(*image),
+      "Read-only volume requires its original owned backing");
+  domain->verify_resident();
+  auto checked=NativeVolumeHeadView::open(head,volume_identity,[&](const StoreIdentity& selected) {
+    require(selected==image_identity,"Unknown selected memory image");return image;
+  });
+  auto projection=ReadOnlyProjection::from_owned_volume(std::move(checked),image->extent());
+  domain->seal_read_only();
+  return projection;
 }
 }

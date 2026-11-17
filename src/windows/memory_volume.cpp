@@ -29,7 +29,7 @@ struct MemoryVolumeDomain::State {
   std::uint64_t capacity=0,allocated=0,peak=0,stores=0;
   std::array<Store*,64> registry{};
   SIZE_T old_min=0,old_max=0;DWORD old_flags=0;std::size_t page=0;
-  bool working_set_changed=false;
+  bool working_set_changed=false,read_only=false;
   explicit State(std::uint64_t cap):capacity(cap) {
     headroom(cap);
     SYSTEM_INFO info{};GetSystemInfo(&info);page=info.dwPageSize;
@@ -76,7 +76,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   // owns the domain. It promises NO survival of process exit or power loss.
   StoreIoContract contract() const noexcept override {return {65536,true};}
   void admit_write(std::uint64_t projected) override {
-    require(cleanup_ok.load() && projected<=capacity_,"Memory write admission denied");
+    require(allows_writer() && cleanup_ok.load() && projected<=capacity_,"Memory write admission denied");
     headroom(0);
   }
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
@@ -84,14 +84,17 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     if(!out.empty())std::memcpy(out.data(),data_+at,out.size());
   }
   void write_exact(std::uint64_t at,std::span<const std::byte> in) override {
+    require(allows_writer(),"Memory store is sealed read-only");
     require(at<=capacity_ && in.size()<=capacity_-at,"Memory write bounds");
     if(in.empty())return; // A zero-byte operation must never extend the image.
     std::memcpy(data_+at,in.data(),in.size());extent_=(std::max)(extent_,at+in.size());
   }
   void flush() override {
+    require(allows_writer(),"Memory store is sealed read-only");
     // No stable mirror and no O(image-size) copy on every transaction.
     std::atomic_thread_fence(std::memory_order_seq_cst);
   }
+  bool writer_in_use() const noexcept {return has_writer();}
   void verify() const {
     const auto count=static_cast<std::size_t>(capacity_/state_->page);
     require(count*sizeof(PSAPI_WORKING_SET_EX_INFORMATION)<=1024*1024,"Residency query cap");
@@ -103,6 +106,7 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
         !p.VirtualAttributes.Bad,"Locked residency not established");
   }
  private:
+  bool allows_writer() const noexcept override {return !state_->read_only;}
   void release() noexcept {
     if(!data_)return;
     SecureZeroMemory(data_,static_cast<SIZE_T>(capacity_));
@@ -127,7 +131,7 @@ MemoryVolumeDomain MemoryVolumeDomain::create(std::uint64_t cap) {
   catch(...){domain_claimed=false;throw;}
 }
 std::shared_ptr<StoreByteIo> MemoryVolumeDomain::create_store(std::uint64_t cap) {
-  require(state_ && cleanup_ok.load(),"Memory domain unavailable");
+  require(state_ && !state_->read_only && cleanup_ok.load(),"Memory domain unavailable for allocation");
   return std::make_shared<Store>(state_,cap);
 }
 MemoryVolumeUsage MemoryVolumeDomain::usage() const noexcept {
@@ -144,6 +148,15 @@ void MemoryVolumeDomain::verify_resident() const {
   std::uint64_t observed=0;
   for(const auto* store:state_->registry)if(store){store->verify();++observed;}
   require(observed==state_->stores,"Memory store ownership accounting differs");
+}
+bool MemoryVolumeDomain::owns(const StoreByteIo& candidate) const noexcept {
+  return state_ && std::find(state_->registry.begin(),state_->registry.end(),&candidate)!=state_->registry.end();
+}
+void MemoryVolumeDomain::seal_read_only() {
+  verify_resident();
+  for(const auto* store:state_->registry)
+    require(!store || !store->writer_in_use(),"Memory domain still has a writer");
+  state_->read_only=true;
 }
 bool MemoryVolumeDomain::cleanup_healthy() noexcept {return cleanup_ok.load();}
 } // namespace flitzfs

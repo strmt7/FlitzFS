@@ -2,7 +2,8 @@
 # and provenance; optional CI environment transport. Read MSI tables/cabinets
 # only; never execute an installation or select driver files.
 [CmdletBinding()]
-param([string]$OutputRoot)
+param([string]$OutputRoot,
+    [ValidateSet('Candidate','Stable')][string]$Profile = 'Candidate')
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
@@ -16,7 +17,8 @@ if (-not $taskSourceCommit) {
 }
 if ($taskSourceCommit -notmatch '^[0-9a-f]{40}$') { throw 'Exact source identity is required.' }
 
-$lockPath = Join-Path $PSScriptRoot '../winfsp-sdk-lock.json'
+$lockName = if ($Profile -eq 'Stable') { 'winfsp-stable-sdk-lock.json' } else { 'winfsp-sdk-lock.json' }
+$lockPath = Join-Path (Split-Path -Parent $PSScriptRoot) $lockName
 if ((Get-Item -LiteralPath $lockPath).Length -gt 16384) { throw 'WinFsp lock budget.' }
 $recipe = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
 if ($recipe.schema -ne 1 -or $recipe.repository -ne 'winfsp/winfsp' -or
@@ -28,6 +30,19 @@ if ($recipe.schema -ne 1 -or $recipe.repository -ne 'winfsp/winfsp' -or
     throw 'Invalid source-bound WinFsp SDK lock.'
 }
 
+# Windows PowerShell may not have loaded the system HTTP assembly.
+Add-Type -AssemblyName System.Net.Http
+function Get-SdkSha256([string]$Path) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $stream = $null
+    try {
+        $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+        return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '').ToLowerInvariant()
+    } finally {
+        if ($stream) { $stream.Dispose() }
+        $sha.Dispose()
+    }
+}
 $base = [IO.Path]::GetFullPath($taskStageParent)
 $drive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($base))
 if ($drive.AvailableFreeSpace -lt 1GB) { throw 'Insufficient temporary storage headroom.' }
@@ -60,7 +75,7 @@ try {
     if ($response) { $response.Dispose() }
     $client.Dispose(); $cancel.Dispose()
 }
-if ($total -ne $recipe.bytes -or (Get-FileHash -LiteralPath $msi -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
+if ($total -ne $recipe.bytes -or (Get-SdkSha256 $msi) -ne $expected) {
     throw 'WinFsp SDK hash does not match the pinned official release.'
 }
 # Windows Installer database mode 0 is read-only. No install/custom actions run.
@@ -168,9 +183,9 @@ if ($env:GITHUB_ENV) {
 $payloads = @()
 foreach ($relative in $wanted.Values) {
     $item = Get-Item -LiteralPath (Join-Path $sdk $relative)
-    $payloads += [ordered]@{ path=$relative; bytes=$item.Length; sha256=(Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
+    $payloads += [ordered]@{ path=$relative; bytes=$item.Length; sha256=(Get-SdkSha256 $item.FullName) }
 }
-$provenance = [ordered]@{ commit=$taskSourceCommit; dependency=$recipe; msi_bytes=$total; payloads=$payloads; driver_installed=$false; driver_loaded=$false }
+$provenance = [ordered]@{ commit=$taskSourceCommit; profile=$Profile; dependency=$recipe; msi_bytes=$total; payloads=$payloads; driver_installed=$false; driver_loaded=$false }
 $receipt = Join-Path $root 'sdk-provenance.json'
 $receiptStream = [IO.File]::Open($receipt, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
 try {
@@ -183,4 +198,4 @@ if ($env:GITHUB_ENV) {
     Add-Content -LiteralPath $env:GITHUB_ENV -Value "FLITZFS_WINFSP_PROVENANCE=$receipt" -Encoding utf8
 }
 Write-Output ([ordered]@{ sdk=$sdk; provenance=$receipt; driver_installed=$false; driver_loaded=$false } | ConvertTo-Json -Compress)
-Write-Output ("Verified source-bound WinFsp " + $recipe.tag + " candidate SDK staged; no driver/service installation.")
+Write-Output ("Verified source-bound WinFsp " + $recipe.tag + " SDK staged; no driver/service installation.")

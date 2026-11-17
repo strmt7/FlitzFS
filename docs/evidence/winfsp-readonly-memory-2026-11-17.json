@@ -1,0 +1,418 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
+  "contract": "docs/WINFSP_READONLY_MEMORY.md",
+  "source_binding": {
+    ".github/workflows/ci.yml": {
+      "git_blob": "fa42f8ffe6f6338bd92fddfb04883d87d1b64b50",
+      "working_bytes_sha256": "a0077c92d2530d435a869ea9be9e09109aa6e126c3fa4eceab3afc06aee5f905"
+    },
+    "CMakeLists.txt": {
+      "git_blob": "b6cae1abbc0fd69100c38ec4b517b764ca3ee78d",
+      "working_bytes_sha256": "ee77e57f3048e0787ae46c1f8f39e85e51abb83386932394fce5db31d105f28b"
+    },
+    "include/flitzfs/object_store.hpp": {
+      "git_blob": "ac3cbde502d948192385e5116385800bcc50db88",
+      "working_bytes_sha256": "b3ffebc2f50cf2fdc25cab70600c5a2080ff6fce2b3f2864b1d3cf80a705fff1"
+    },
+    "include/flitzfs/projection.hpp": {
+      "git_blob": "3dab748bdcfd2c1ed353c173cc4380d68501565d",
+      "working_bytes_sha256": "783ec11fc0c71e3a68712582923225a1eb967da3b0ce29c64edbf9fdf5334de7"
+    },
+    "src/projection.cpp": {
+      "git_blob": "10a01a764ab0353f61b2d981e61ffee49ea3cf06",
+      "working_bytes_sha256": "1872292a04bc6ed5b8b07f055b9dd13effe319b325d75c35d155e5bc628c47bb"
+    },
+    "src/windows/memory_volume.cpp": {
+      "git_blob": "f6e4abb000a39cdf2e2c949249f193a46796d682",
+      "working_bytes_sha256": "f2e327d29a24ce05a26f3449f3e2158ec99f43b3bee132216fc9e69ed8bc1b5a"
+    },
+    "src/windows/memory_volume.hpp": {
+      "git_blob": "9193433ebedfd7c1af578566918ac4eacc48a823",
+      "working_bytes_sha256": "ea1b9bb340a94f5408df3d9210a5d240bd6f4ab3a07fec829d63341a09af65dd"
+    },
+    "src/windows/memory_volume_factory.cpp": {
+      "git_blob": "bec2757a38d612528c32055f7b4c2be0d3845bfb",
+      "working_bytes_sha256": "0ce0e5d0cc10b1388e8d1cbffc9b4b494fa996ed747f7ba65dea68547e8a063e"
+    },
+    "src/windows/memory_volume_factory.hpp": {
+      "git_blob": "45fe1af791551e5a6789dd74806a467f1bd8ae37",
+      "working_bytes_sha256": "eab9442a5a750dda4cdaa1e07ed534c8737f33ed54f41db487f494ffd66d74dd"
+    },
+    "src/windows/winfsp_memory_volume.cpp": {
+      "git_blob": "0ca20dadbbbf34d1f951414f9fc6c7a1e513c2ad",
+      "working_bytes_sha256": "7408501a8a729b72bf13482c4c80017578a029ede6652340aeb1053142ee53c2"
+    },
+    "src/windows/winfsp_memory_volume.hpp": {
+      "git_blob": "441ebc2cb9d47d6269f96a7804b093153f3099dd",
+      "working_bytes_sha256": "261f49de7687e18430e3abd50c23112897b77aaa94c4f434b9c797a305796b01"
+    },
+    "src/windows/winfsp_session.cpp": {
+      "git_blob": "5f09abc285414a68d29ed03e7ac208ef8bbb10bc",
+      "working_bytes_sha256": "3b5691559c7e210540045ddc19276e56c4cbdd4025d0ceec6003651485d0e22b"
+    },
+    "src/windows/winfsp_session.hpp": {
+      "git_blob": "fbb4c419ef47100ae651b70f640903fda5671577",
+      "working_bytes_sha256": "0d3914a137b474a75909d8a58dac003b82fd23f3654420cdbd258a563b25beaf"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "75ba75ffc41204b6b3cefad6f74bf18b8da8d7cf",
+      "working_bytes_sha256": "b487367af70f2ac04337b4fe3d82906feed8c4ac38be25387c7435b129e20dc1"
+    },
+    "tests/winfsp_mount_probe.cpp": {
+      "git_blob": "ac231d10849acc225d724faae05c40a708eebce4",
+      "working_bytes_sha256": "c6d25f7fd03e2f0d9766de8cbe86486e121e43ac5744cf5862a59643edc943e7"
+    },
+    "tests/winfsp_write_probe.cpp": {
+      "git_blob": "507641b95c34470b1b8897b7e8503dca361276f5",
+      "working_bytes_sha256": "46779d8c8ceca495a5ca70f0e49de3e887f0c00902086ab5223afb0a063cb352"
+    },
+    "tools/ci/prepare_winfsp_sdk.ps1": {
+      "git_blob": "63514e31fd850ebe482b4b34a44060f17c98fd7f",
+      "working_bytes_sha256": "b38f515a501cdcf0846e5fecb130efd7a752f95a21209bbf8eac3868890021fd"
+    },
+    "tools/winfsp-stable-sdk-lock.json": {
+      "git_blob": "0394b2b13540d4801cdb8c4b462919163f59742a",
+      "working_bytes_sha256": "b3dc2e74087c42aa6cd9fd09afe4e83af4c9bf59d7886a283c5f57ce0170db5a"
+    }
+  },
+  "frozen_compile_inputs": {
+    "files": 312,
+    "receipt": {
+      "path": "sealed-readonly-validation-658a62c453b94947a7978b0e0d509b0f/input.json",
+      "sha256": "ca3b365553d15b7e846f2207346af6ca4cf6a21d2bdd6c65f7920878c1efa0c9"
+    }
+  },
+  "scope": "Sealed paged memory projection, actual SDK callbacks with injected lifecycle, and a compiled disposable external-client mode.",
+  "semantic": {
+    "provider": "CocoIndex Code 0.2.43",
+    "files": 71,
+    "query": "read only native mount dispatcher WinFsp session lifecycle provider runtime binding DLL driver read-only volume snapshot external client",
+    "receipt": {
+      "path": "native-provider-semantic-4815a734e2334664978b3af5eb5ec998/routing-receipt-0.json",
+      "sha256": "f3821f59a15c73d9e3b5a8ed45a86007f0d6234e5a0326054d404840ab1953ac"
+    },
+    "parsed_response": {
+      "path": "native-provider-semantic-4815a734e2334664978b3af5eb5ec998/search-native-0.json",
+      "sha256": "49d5fb5eee4dc7b8635af715e78ce75d4a0c656a091c93220b3ba29eb4d2979b"
+    }
+  },
+  "sdk": {
+    "stable": {
+      "profile": "v2.1",
+      "official_asset_lock": "tools/winfsp-stable-sdk-lock.json",
+      "source": "ddca7bd5481857a65ba552f643b8776fd070836f",
+      "snapshot": {
+        "path": "flitzfs-sdk-f37b9378f10448d09b72501700f36cc3/sdk-provenance.json",
+        "sha256": "d604aec96d95cdc337cd8d8a7e77a60bdeeea99b879de7bd0b3b49363d59085a"
+      },
+      "built_dll_sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+      "required_cpu_codecs": [
+        "zstd",
+        "lz4"
+      ]
+    },
+    "candidate": {
+      "profile": "v2.2B5",
+      "snapshot": {
+        "path": "flitzfs-sdk-a9e38f59cc9a4485ba048c89cb7c9d7f/sdk-provenance.json",
+        "sha256": "23d95d0abeacf8f508bb8b1197b27fe61e9205cba216c1bec88b2ea132df4163"
+      },
+      "built_dll_sha256": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3",
+      "instrumentation": "MSVC C++ AddressSanitizer, raw-only"
+    }
+  },
+  "runtime_observation": {
+    "receipt": {
+      "path": "readonly-runtime-observation-6c073075613e41de8c8578c1ed603417.json",
+      "sha256": "483b8d14dd88ac8fcc109062755ec928c6c8e4bd44f73e82b8c23d0fc3c89cc3"
+    },
+    "windows_build": "26300",
+    "driver_before": "Stopped",
+    "driver_after": "Stopped",
+    "driver": {
+      "file": "winfsp-x64.sys",
+      "version": "2.1.25156.ddca7bd",
+      "byte_length": 168600,
+      "sha256": "03553fffacd362f4a9a08c00b4f236a82354a183bc6028494fb32055386e13c9",
+      "signature": "Valid",
+      "signer": "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    "installed_dll_matches_staged_stable": true,
+    "installed_dll": {
+      "file": "winfsp-x64.dll",
+      "version": "2.1.25156.ddca7bd",
+      "byte_length": 198376,
+      "sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+      "signature": "Valid",
+      "signer": "CN=NAVIMATICS LLC, O=NAVIMATICS LLC, L=KIRKLAND, S=Washington, C=US, SERIALNUMBER=604 419 559, OID.2.5.4.15=Private Organization, OID.1.3.6.1.4.1.311.60.2.1.2=Washington, OID.1.3.6.1.4.1.311.60.2.1.3=US"
+    },
+    "vm_inventory": {
+      "inventory": "unavailable",
+      "reason": "Microsoft.HyperV.PowerShell.VirtualizationException"
+    },
+    "gpu": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32015.16001"
+      }
+    ],
+    "amdhip_file_observation": [
+      {
+        "basename": "amdhip64_7.dll",
+        "file_version": "10.0.3683.0",
+        "sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+        "signature": "Valid"
+      },
+      {
+        "basename": "amdhip64_6.dll",
+        "file_version": "10.0.3652.0",
+        "sha256": "66aaa14e4ef58449f1e29fb9ad99e985390e90be6af6921781fa1b3d5b3d4843",
+        "signature": "Valid"
+      }
+    ],
+    "limit": "Read-only host observations. No AMD runtime API or device call and no kernel ABI qualification."
+  },
+  "sdk_staging_jobs": [
+    {
+      "run": "local-run-5fa524e4e40e4131a1e97cae4baa4db9",
+      "disposition": "Windows PowerShell system HTTP assembly unavailable until explicitly imported",
+      "exit": 1,
+      "elapsed_seconds": 0.6974,
+      "peak_job_bytes": 75759616,
+      "retired": true,
+      "result": {
+        "path": "local-run-5fa524e4e40e4131a1e97cae4baa4db9/result.json",
+        "sha256": "481e4e3be19018668aaeb9fb6b790a1af788482e754fa2043eeebbda28c7793d"
+      },
+      "log": {
+        "path": "local-run-5fa524e4e40e4131a1e97cae4baa4db9/output.log",
+        "sha256": "5b7e07fa7b85bddac55594d1087d72d74dee78122ddab2fc746922771ee6ba0c"
+      }
+    },
+    {
+      "run": "local-run-0d277cc657fb4981965a6ecc9ca657bf",
+      "disposition": "Windows PowerShell hash command unavailable in the inherited tool environment",
+      "exit": 1,
+      "elapsed_seconds": 1.1589,
+      "peak_job_bytes": 80338944,
+      "retired": true,
+      "result": {
+        "path": "local-run-0d277cc657fb4981965a6ecc9ca657bf/result.json",
+        "sha256": "0e8cedc7b02652827c445dab6b5fb364420283b3ac23d8f2191b8b0823988697"
+      },
+      "log": {
+        "path": "local-run-0d277cc657fb4981965a6ecc9ca657bf/output.log",
+        "sha256": "29b4787a4c081d439dbc26de6f5d79f56f341cfd65b542e4cbb00a0e70962b1c"
+      }
+    },
+    {
+      "run": "local-run-cdd2b36eee4a401fb7d5adc0b058166b",
+      "disposition": "Stable four-file SDK staging passed",
+      "exit": 0,
+      "elapsed_seconds": 1.4723,
+      "peak_job_bytes": 116703232,
+      "retired": true,
+      "result": {
+        "path": "local-run-cdd2b36eee4a401fb7d5adc0b058166b/result.json",
+        "sha256": "47286d9540d4d23129245597d68023af6d5fd8e4f649587fd03539a311377df9"
+      },
+      "log": {
+        "path": "local-run-cdd2b36eee4a401fb7d5adc0b058166b/output.log",
+        "sha256": "0b2ba1c67060f1b64b22a76498077a67da85a8dd12f2488f501ffe3d26bca1e1"
+      }
+    }
+  ],
+  "qualification_jobs": [
+    {
+      "name": "stable-configure",
+      "run": "local-run-999f3fdc8cde41b29b3f958260b269be",
+      "disposition": "Passed",
+      "exit": 0,
+      "elapsed_seconds": 9.9286,
+      "peak_job_bytes": 303149056,
+      "retired": true,
+      "result": {
+        "path": "local-run-999f3fdc8cde41b29b3f958260b269be/result.json",
+        "sha256": "44d702512fbac935c15fab5fce3cfe7c844c0c24d79c3b6fb1c4f16d4326986d"
+      },
+      "log": {
+        "path": "local-run-999f3fdc8cde41b29b3f958260b269be/output.log",
+        "sha256": "923700e8548c3bf01706fafa53b46c75058ddf5e81575bd3a299150cf8e03a73"
+      }
+    },
+    {
+      "name": "stable-codec-build",
+      "run": "local-run-86fb027ec41f4267a33c87d6f9ddba8d",
+      "disposition": "Passed",
+      "exit": 0,
+      "elapsed_seconds": 85.2541,
+      "peak_job_bytes": 826187776,
+      "retired": true,
+      "result": {
+        "path": "local-run-86fb027ec41f4267a33c87d6f9ddba8d/result.json",
+        "sha256": "b8e629dbb9fe0244c541bfa78b5e809a47f1184096dc85ebd41cfba9a1bff203"
+      },
+      "log": {
+        "path": "local-run-86fb027ec41f4267a33c87d6f9ddba8d/output.log",
+        "sha256": "46409c474cdd8712da54af04088b2ffcd955d9219e711d0a688cacb3346ab141"
+      }
+    },
+    {
+      "name": "stable-readonly",
+      "run": "local-run-531451a947c24cebb5932e92f6fe56f3",
+      "disposition": "Passed",
+      "exit": 0,
+      "elapsed_seconds": 0.3463,
+      "peak_job_bytes": 35389440,
+      "retired": true,
+      "result": {
+        "path": "local-run-531451a947c24cebb5932e92f6fe56f3/result.json",
+        "sha256": "ecf0b99efae41a739d7d2cabe8ef9b4002641279ab14f3a6e0fe395ed332320a"
+      },
+      "log": {
+        "path": "local-run-531451a947c24cebb5932e92f6fe56f3/output.log",
+        "sha256": "db520939e23958a7bf250c4c07e176cd42cd924635f80f32476b515f1d97d09f"
+      },
+      "selected_ctest_passed": 1
+    },
+    {
+      "name": "stable-mount-opt-in-refusal",
+      "run": "local-run-0dc196a055e247aa9f22c4031451c9ba",
+      "disposition": "Expected stage-1 refusal before mount admission. The initial wrapper expected an unencoded exit code.",
+      "exit": 65537,
+      "elapsed_seconds": 0.0575,
+      "peak_job_bytes": 3006464,
+      "retired": true,
+      "result": {
+        "path": "local-run-0dc196a055e247aa9f22c4031451c9ba/result.json",
+        "sha256": "01823ef9fd1122edb8e8e5c2a96231ed5af3c0b75321624e2cf1abd07377b1c5"
+      },
+      "log": {
+        "path": "local-run-0dc196a055e247aa9f22c4031451c9ba/output.log",
+        "sha256": "fe3dd6116a86f085fbca993612d3cb1882234c3d174a0f83608ddd1ecb3ede15"
+      }
+    },
+    {
+      "name": "stable-existing-paths",
+      "run": "local-run-0d4a5f44cffc43108bdfb68f2a3bf3c9",
+      "disposition": "Passed",
+      "exit": 0,
+      "elapsed_seconds": 68.4666,
+      "peak_job_bytes": 71946240,
+      "retired": true,
+      "result": {
+        "path": "local-run-0d4a5f44cffc43108bdfb68f2a3bf3c9/result.json",
+        "sha256": "353b45099e794ddb6a7ab14934034cd7fcc89cc5ef9e174ed13ba8058cbeb75b"
+      },
+      "log": {
+        "path": "local-run-0d4a5f44cffc43108bdfb68f2a3bf3c9/output.log",
+        "sha256": "ee7e98213e99fd53fb9b5f4341ff9325f10077e600308bce0595508b03bf0285"
+      },
+      "selected_ctest_passed": 7
+    },
+    {
+      "name": "candidate-asan-build",
+      "run": "local-run-52bb4f4e71b94270b4bda49d459fc4a8",
+      "disposition": "Old build cache mixed CMake 4.3 and 4.5 during regeneration. Replaced with a fresh 4.5 profile.",
+      "exit": 4294967295,
+      "elapsed_seconds": 0.6952,
+      "peak_job_bytes": 73424896,
+      "retired": true,
+      "result": {
+        "path": "local-run-52bb4f4e71b94270b4bda49d459fc4a8/result.json",
+        "sha256": "26599cf5413bf56d95ab9943ec7b8aaa80040dad399070b87fed9b02d3671cb8"
+      },
+      "log": {
+        "path": "local-run-52bb4f4e71b94270b4bda49d459fc4a8/output.log",
+        "sha256": "90505307bdf1e16fd5aa744fc2a0a6989ebd7a1581473f8053f670990056d2d3"
+      }
+    },
+    {
+      "name": "candidate-asan-configure",
+      "run": "local-run-6fff97e1a03a4f59b4a29633f8d1d8c7",
+      "disposition": "Passed",
+      "exit": 0,
+      "elapsed_seconds": 8.4155,
+      "peak_job_bytes": 438910976,
+      "retired": true,
+      "result": {
+        "path": "local-run-6fff97e1a03a4f59b4a29633f8d1d8c7/result.json",
+        "sha256": "03519a7befd8bd6ff6ad2291527844601bd2b8cdf360593aab8a38925de8a4f0"
+      },
+      "log": {
+        "path": "local-run-6fff97e1a03a4f59b4a29633f8d1d8c7/output.log",
+        "sha256": "87597fbe07cd859d4cac3ce49a1d7d9619cbcd2eadd5f740b93d095e1a6634f9"
+      }
+    },
+    {
+      "name": "candidate-asan-build",
+      "run": "local-run-20ca1630f8634fbba6b37eb2498fd653",
+      "disposition": "Passed",
+      "exit": 0,
+      "elapsed_seconds": 86.7306,
+      "peak_job_bytes": 838537216,
+      "retired": true,
+      "result": {
+        "path": "local-run-20ca1630f8634fbba6b37eb2498fd653/result.json",
+        "sha256": "1db6d8f2923da3a45acd3c924b9eae22cde3a82ae2186e2f42f1e39cb57dbb5f"
+      },
+      "log": {
+        "path": "local-run-20ca1630f8634fbba6b37eb2498fd653/output.log",
+        "sha256": "ee781ed7d277e7f9e868407a7fca1b7b5f4814d24f7640f030c4054930b8fd13"
+      }
+    },
+    {
+      "name": "candidate-asan-checks",
+      "run": "local-run-98d8671b5fa24d88ac44513df81556f8",
+      "disposition": "Passed",
+      "exit": 0,
+      "elapsed_seconds": 38.7625,
+      "peak_job_bytes": 542724096,
+      "retired": true,
+      "result": {
+        "path": "local-run-98d8671b5fa24d88ac44513df81556f8/result.json",
+        "sha256": "b6a77bf5f1f49bf83927d549f653c30fa2ecdfdcddf53804144ebf187b488e49"
+      },
+      "log": {
+        "path": "local-run-98d8671b5fa24d88ac44513df81556f8/output.log",
+        "sha256": "d4917ff98cba24ebe8572b154bed27476aa9c935585d9b0a7067f83c0081e5fa"
+      },
+      "selected_ctest_passed": 6
+    },
+    {
+      "name": "candidate-asan-helper",
+      "run": "local-run-d6097825d07b42c39928873ee528520f",
+      "disposition": "Passed",
+      "exit": 0,
+      "elapsed_seconds": 3.216,
+      "peak_job_bytes": 560128000,
+      "retired": true,
+      "result": {
+        "path": "local-run-d6097825d07b42c39928873ee528520f/result.json",
+        "sha256": "b58eea914c0d401b12e4c002365773cf688a417d7e03a44da79edb11c2951fef"
+      },
+      "log": {
+        "path": "local-run-d6097825d07b42c39928873ee528520f/output.log",
+        "sha256": "33ef8a43cdeebc48d5dbdd2a3f193c3bb129c36f46c68b0e901bd389748dac26"
+      }
+    }
+  ],
+  "selected_ctest_passed": 14,
+  "helper_model_passed": true,
+  "sealed_memory_callback_checks_per_sdk": 28,
+  "native_provider_table": true,
+  "native_mount_probe_compiled": true,
+  "external_client_probe_executed": false,
+  "mount_gate": {
+    "workflow": ".github/workflows/ci.yml",
+    "job": "windows-mount",
+    "mode": "--run-disposable-memory",
+    "awaits_exact_disposable_run": true
+  },
+  "owner_driver_started": false,
+  "owner_driver_install": false,
+  "actual_gpu": false,
+  "release": false
+}

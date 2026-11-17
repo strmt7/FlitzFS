@@ -1162,24 +1162,21 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
-    "contract": "docs/PAGED_OBJECT_STORE.md",
-    "evidence": "docs/evidence/paged-write-accounting-2026-11-17.json",
-    "status": "Paged commits initialize only unwritten alignment and bank padding. The helper fixture proves profitable grouping and correct refusal after foreground Zstandard.",
-    "review": "docs/evidence/repository-review-2026-11-17.json",
-    "selected_ctest_passed": 24,
-    "helper_maintenance_cases_passed": 3,
-    "no_format_change": true,
-    "real_host_helper_outcome": "resource-deferred",
-    "native_mount": false,
-    "gpu": false,
-    "physical_power_loss": false,
+    "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
+    "contract": "docs/WINFSP_READONLY_MEMORY.md",
+    "evidence": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
+    "status": "Independent verified managed RAM projection, permanent provider write refusal, explicit SDK-linked lifecycle table and a bounded external-client mounted fixture.",
+    "selected_ctest_passed": 14,
+    "helper_model_passed": true,
+    "stable_sdk_equals_installed_dll": true,
+    "local_mount": false,
+    "actual_gpu": false,
     "release": false,
-    "next": "Matched native provider and independently checked read-only external-client fixture, including retirement.",
-    "full_goal_status": "active"
+    "full_goal_status": "active",
+    "next": "Execute the exact disposable external-client mount. Continue the checked paged namespace and useful automatic AMD cost/route work independently."
   },
   "next_product_slices": [
-    "Matched native provider and independently checked read-only external-client fixture, including retirement.",
+    "Execute the exact disposable external-client mount. Continue the checked paged namespace and useful automatic AMD cost/route work independently.",
     "First indexed inode/name/extent transaction with reusable-allocation authority and legacy reader parity.",
     "Account for packed protected bytes and qualify bounded handoff plus incremental reclamation under unrelated commits.",
     "Acquire complete-cost AMD observations and compare stronger collective representations independently.",
@@ -2378,7 +2375,17 @@
       127
     ],
     "research_risk": "The compression target remains an open research question until held-out measured results.",
-    "current_runtime_evidence": "docs/evidence/paged-write-accounting-2026-11-17.json"
+    "current_runtime_evidence": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
+    "windows_read_only_progress": {
+      "steps": [
+        "E08.1",
+        "E08.2",
+        "E08.3",
+        "E08.4"
+      ],
+      "evidence": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
+      "status": "User-mode assembly and compiled external fixture. Mounted result still open."
+    }
   },
   "previous_shared_factory_round": {
     "source_base": "c536bef91068c92562cf1f1dfcd71ab458f5dad1",
@@ -2430,6 +2437,23 @@
     "automatic_reclamation": false,
     "physical_power_loss": false,
     "compression_record": false,
+    "release": false,
+    "next": "Matched native provider and independently checked read-only external-client fixture, including retirement.",
+    "full_goal_status": "active"
+  },
+  "previous_paged_write_round": {
+    "source_base": "38a4a48f005c2ea6c9a7f8cbd9d7ee07df044d70",
+    "contract": "docs/PAGED_OBJECT_STORE.md",
+    "evidence": "docs/evidence/paged-write-accounting-2026-11-17.json",
+    "status": "Paged commits initialize only unwritten alignment and bank padding. The helper fixture proves profitable grouping and correct refusal after foreground Zstandard.",
+    "review": "docs/evidence/repository-review-2026-11-17.json",
+    "selected_ctest_passed": 24,
+    "helper_maintenance_cases_passed": 3,
+    "no_format_change": true,
+    "real_host_helper_outcome": "resource-deferred",
+    "native_mount": false,
+    "gpu": false,
+    "physical_power_loss": false,
     "release": false,
     "next": "Matched native provider and independently checked read-only external-client fixture, including retirement.",
     "full_goal_status": "active"
