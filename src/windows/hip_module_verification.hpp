@@ -4,6 +4,8 @@
 #include <windows.h>
 #include <wincrypt.h>
 #include <wintrust.h>
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -38,6 +40,8 @@ struct DirectoryPin {
 // typed callback also permits CPU tests of every trust/close status.
 bool verify_cached_signature(const std::filesystem::path& path,
     decltype(&WinVerifyTrust) verify) noexcept;
+using ModuleDigest=std::array<std::byte,32>;
+ModuleDigest sha256_file(const ReadOnlyFile&);
 bool valid_sha256(std::string_view expected) noexcept;
 bool matches_sha256(const ReadOnlyFile& file, std::string_view expected);
 
@@ -46,14 +50,20 @@ bool matches_sha256(const ReadOnlyFile& file, std::string_view expected);
 class VerifiedSystemModule final {
  public:
   VerifiedSystemModule(std::wstring_view basename, std::string_view expected_sha256);
+  // Fingerprint the currently installed signed file without loading it.
+  // Observation alone grants no runtime or hardware execution authority.
+  explicit VerifiedSystemModule(std::wstring_view basename);
   VerifiedSystemModule(const VerifiedSystemModule&) = delete;
   VerifiedSystemModule& operator=(const VerifiedSystemModule&) = delete;
   VerifiedSystemModule(VerifiedSystemModule&&) = delete;
   VerifiedSystemModule& operator=(VerifiedSystemModule&&) = delete;
   const std::filesystem::path& path() const noexcept { return path_; }
   std::uint64_t size() const noexcept { return file_ ? file_->size() : 0; }
+  const ModuleDigest& digest() const noexcept { return digest_; }
  private:
+  VerifiedSystemModule(std::wstring_view,std::string_view,bool compare_digest);
   std::filesystem::path path_;
+  ModuleDigest digest_{};
   std::vector<DirectoryPin> directories_;
   std::optional<ReadOnlyFile> file_;
 };

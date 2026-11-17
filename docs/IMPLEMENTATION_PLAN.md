@@ -291,6 +291,15 @@ bounded workers, recovery state machine, CPU validation, uniform LZ4 controller,
 native deferred responses and retirement accounting.
 **Planning effort:** 4–9 person-weeks, with hardware/research variance.
 
+The 17 November runtime acquisition checkpoint exercised the System32 and
+single-AMD-adapter scope of steps 1–3. The hardware phase fixture addressed a
+subset of step 4. It measured 1.19 s of device initialization in a 1.37 s
+exchange, with 2.57 ms of kernel wait and identical occupied image size in the
+GPU and CPU fixtures. For step 7, test sharing setup across an admitted finite
+queue before pursuing fast-ingest throughput from this kernel. Evaluate
+collective workload and complete occupied-byte benefits independently.
+[Runtime and hardware evidence](AMD_RUNTIME_DISCOVERY.md)
+
 ### Implementation steps
 
 1. Build a trusted configuration identity from OS/architecture, adapter LUID/node,

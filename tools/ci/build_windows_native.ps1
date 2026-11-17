@@ -51,6 +51,8 @@ $portable = if ($PortableCpu) { 'ON' } else { 'OFF' }
 $buildDirectory = if ($PortableCpu) { 'build-portable' } else { 'build-native' }
 $rootOptions = @("-DFLITZFS_BUILD_VOLUME_APP=$(if ($VolumeApp) { 'ON' } else { 'OFF' })")
 if (-not $PortableCpu) { $rootOptions += "-DFLITZFS_WINFSP_SDK=$env:FLITZFS_WINFSP_SDK" }
+$hipRouteProbe = if (-not $PortableCpu -and -not $BuildMountProbe -and -not $BuildWriteProbe) { 'ON' } else { 'OFF' }
+$rootOptions += "-DFLITZFS_BUILD_HIP_ROUTE_PROBE=$hipRouteProbe"
 if ($RamHostProbe) {
     $rootOptions += '-DFLITZFS_BUILD_RAM_HOST_PROBE=ON'
     $rootOptions += '-DFLITZFS_BUILD_GPU_RAM_PROBE=ON'

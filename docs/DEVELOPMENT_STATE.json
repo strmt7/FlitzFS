@@ -11,6 +11,18 @@
     "note": "Architectural review baseline. Layer and runtime evidence have separate source bindings."
   },
   "current_qualification": {
+    "source_base": "a513e0dc9ae35ed0b9c27e52da2df0d4d40bbb02",
+    "changed_source_binding": "docs/evidence/amd-route-2026-11-17.json",
+    "selected_ctest_passed": 8,
+    "scope": "Windows x64 raw build, CPU recovery and retirement tests, installed runtime fingerprint and supervised AMD identity acquisition.",
+    "compatible_system_runtime_observed": true,
+    "hardware_observation": "Prior exact d384b6c fixture compressed 128 KiB on the detected adapter with independent CPU readback.",
+    "automatic_gpu_routing": false,
+    "gpu_benefit_qualified": false,
+    "local_mount": false,
+    "release": false
+  },
+  "readonly_memory_checkpoint": {
     "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
     "changed_source_binding": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
     "selected_ctest_passed": 14,
@@ -18,7 +30,9 @@
     "scope": "WinFsp v2.1 codec and v2.2 beta raw AddressSanitizer Windows checks.",
     "local_mount": false,
     "actual_gpu": false,
-    "release": false
+    "release": false,
+    "disposable_run": 44153921283,
+    "disposable_mount_status": "Skipped after a portable mirror-test compile failure in Linux and sanitizer prerequisites."
   },
   "owner_gpu_observation": {
     "source_commit": "11fbf0797769f234aeab835f71afa678c5ac174a",

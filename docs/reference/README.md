@@ -41,6 +41,7 @@ These are engineering contracts. Implementation status is tracked in
 - [Reusable work scope](../UNIFORM_LZ4_REUSE.md), [finite sweep](../UNIFORM_LZ4_SWEEP.md), [observations](../UNIFORM_LZ4_SWEEP_PROFILE.md)
 - [Resources](../GPU_RESOURCE_ENVELOPE.md), [adaptive execution](../ADAPTIVE_LZ4_EXECUTION.md), [recovery](../GPU_RECOVERY.md)
 - [Worker channel](../WORKER_CHANNEL.md), [driver worker](../GPU_DRIVER_WORKER.md), [runtime binding](../HIP_API_BINDING.md)
+- [AMD runtime and adapter acquisition](../AMD_RUNTIME_DISCOVERY.md)
 - [Independent CPU verification](../GPU_LZ4_CPU_VERIFY.md)
 
 ## Compression and learning

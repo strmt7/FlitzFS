@@ -57,8 +57,7 @@ struct Hash {
   ~Hash() { if (handle) BCryptDestroyHash(handle); }
 };
 
-bool matches_sha256(const ReadOnlyFile& file, std::string_view expected) {
-  if (!valid_sha256(expected)) return false;
+ModuleDigest sha256_file(const ReadOnlyFile& file) {
   Algorithm algorithm;
   require(BCryptOpenAlgorithmProvider(&algorithm.handle, BCRYPT_SHA256_ALGORITHM, nullptr, 0) >= 0,
       Exit::runtime_unavailable, "SHA256 provider unavailable");
@@ -80,21 +79,33 @@ bool matches_sha256(const ReadOnlyFile& file, std::string_view expected) {
         Exit::runtime_unavailable, "SHA256 input");
     offset += count;
   }
-  std::array<UCHAR,32> digest{};
-  require(BCryptFinishHash(hash.handle, digest.data(), static_cast<ULONG>(digest.size()), 0) >= 0,
-      Exit::runtime_unavailable, "SHA256 final");
-  constexpr std::string_view hex = "0123456789abcdef";
-  if (expected.size() != 2 * digest.size()) return false;
-  for (std::size_t i = 0; i < digest.size(); ++i) {
-    if (expected[2*i] != hex[digest[i] >> 4] || expected[2*i+1] != hex[digest[i] & 15])
-      return false;
+  ModuleDigest digest{};
+  require(BCryptFinishHash(hash.handle, reinterpret_cast<PUCHAR>(digest.data()),
+      static_cast<ULONG>(digest.size()), 0) >= 0, Exit::runtime_unavailable, "SHA256 final");
+  return digest;
+}
+namespace {
+bool digest_matches(const ModuleDigest& digest,std::string_view expected) noexcept {
+  constexpr std::string_view hex="0123456789abcdef";
+  if(!valid_sha256(expected))return false;
+  for(std::size_t i=0;i<digest.size();++i) {
+    const auto value=std::to_integer<unsigned>(digest[i]);
+    if(expected[2*i]!=hex[value>>4] || expected[2*i+1]!=hex[value&15])return false;
   }
   return true;
 }
+}
+bool matches_sha256(const ReadOnlyFile& file, std::string_view expected) {
+  return valid_sha256(expected) && digest_matches(sha256_file(file),expected);
+}
 
-VerifiedSystemModule::VerifiedSystemModule(std::wstring_view basename, std::string_view expected) {
+VerifiedSystemModule::VerifiedSystemModule(std::wstring_view name,std::string_view expected)
+    :VerifiedSystemModule(name,expected,true) {}
+VerifiedSystemModule::VerifiedSystemModule(std::wstring_view name)
+    :VerifiedSystemModule(name,{},false) {}
+VerifiedSystemModule::VerifiedSystemModule(std::wstring_view basename,std::string_view expected,bool compare_digest) {
   try {
-    require(valid_basename(basename) && valid_sha256(expected), Exit::invalid_request,
+    require(valid_basename(basename) && (!compare_digest || valid_sha256(expected)), Exit::invalid_request,
         "invalid system module identity");
     std::array<wchar_t,32768> value{};
     const auto length = GetSystemDirectoryW(value.data(), static_cast<UINT>(value.size()));
@@ -115,7 +126,8 @@ VerifiedSystemModule::VerifiedSystemModule(std::wstring_view basename, std::stri
     file_.emplace(ReadOnlyFile::open(path_));
     require(file_->size() && file_->size() <= 32ULL * 1024 * 1024,
         Exit::runtime_unavailable, "system module size budget");
-    require(matches_sha256(*file_, expected), Exit::integrity_failure, "system module byte identity");
+    digest_=sha256_file(*file_);
+    require(!compare_digest || digest_matches(digest_,expected), Exit::integrity_failure, "system module byte identity");
     require(verify_cached_signature(path_, &WinVerifyTrust), Exit::runtime_unavailable, "system module trust unavailable");
   } catch (const HipWorkerFailure&) { throw; }
     catch (const std::bad_alloc&) { throw; }

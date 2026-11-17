@@ -63,6 +63,9 @@ value. The existing six bounded refusal/admission cases remain mandatory.
 This change retains the private authenticated bundle; it does not add a
 System32 runtime selection route, automatic loading, retries or a host launch.
 
+The subsequent [AMD runtime discovery](AMD_RUNTIME_DISCOVERY.md) checkpoint
+adds a verified System32 fingerprint and a supervised adapter identity query.
+
 ## Executed SDK checkpoint
 
 At bed5f061dd13990aa442a9ab1ed781bdf49baa4c, complete-SDK run 42951471885

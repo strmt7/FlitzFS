@@ -149,7 +149,7 @@ void forged_descriptors() {
     const auto hash=detail::record_digest(std::span<const std::byte>(ram->live).subspan(page,4064));
     std::copy(hash.begin(),hash.end(),ram->live.begin()+page+4064);
     std::copy_n(ram->live.begin()+page,4096,ram->live.begin()+peer);
-    for(auto root:{0ULL,kStoreCommitUnit}) {
+    for(const auto root:{std::uint64_t{0},kStoreCommitUnit}) {
       std::copy(hash.begin(),hash.end(),ram->live.begin()+root+144);
       const auto digest=detail::record_digest(std::span<const std::byte>(ram->live).subspan(root,4064));
       std::copy(digest.begin(),digest.end(),ram->live.begin()+root+4064);
