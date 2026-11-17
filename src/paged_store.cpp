@@ -762,9 +762,14 @@ Bytes PagedObjectStoreSnapshot::read(std::uint64_t id) const {
   return read(id,kStoreMaxObjectBytes);
 }
 Bytes PagedObjectStoreSnapshot::read(std::uint64_t id,std::size_t maximum_decoded_bytes) const {
+  auto bytes=read_if_present(id,maximum_decoded_bytes);
+  if(!bytes)fail("missing object");
+  return std::move(*bytes);
+}
+std::optional<Bytes> PagedObjectStoreSnapshot::read_if_present(std::uint64_t id,std::size_t maximum_decoded_bytes) const {
   if(!impl_)fail("moved-from snapshot");
   auto e=lookup(impl_->state,id,impl_->lookup_pages?&*impl_->lookup_pages:nullptr);
-  if(!e)fail("missing object");
+  if(!e)return {};
   if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
   return read_object(impl_->state,*e);
 }

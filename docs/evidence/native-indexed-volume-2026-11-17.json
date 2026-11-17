@@ -1,0 +1,265 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "57a601367760b26a88897b747e440814eebbb12a",
+  "source_base_tree": "13a8e29c80dc5182da54601fa9f5e93380b7853a",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "worktree_sha256": "f71bb6679fbac3e7922a70642c2e3bbd647e8a325c6934e1659f69e1b6eebb61",
+      "git_blob": "93bc0c26f76af84ac2bb8153e34346918ed83c5d"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "worktree_sha256": "81129d0faa9c1f63cbdede48b82a6c41fd6f83e8e3937edfd5dc094b905379b7",
+      "git_blob": "6a2bde4e7b21c480bb1508634eaf99c95a1cedf7"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "worktree_sha256": "6521b2dfefd04e9400e9d08ac92cc6100b89faa74093e17f59f0083609c6a9e5",
+      "git_blob": "3e2bd2ea3b9e8bf1647d461819d68e8062820ac3"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "worktree_sha256": "d532c5032d4b170cdabddb401a9e76180b48bc5f6ca366cd75a58ca97f5f365c",
+      "git_blob": "c7984ceae04b88c65e227f5415619da093906f0d"
+    },
+    {
+      "path": "src/native_name_index.cpp",
+      "worktree_sha256": "98510f0d11f383a99d677d36ce8f0e7c57f05d0f51e29d5ab7666a3892475e93",
+      "git_blob": "ca2817735090a7696359a9a748c0c97bb488e3aa"
+    },
+    {
+      "path": "src/native_name_index.hpp",
+      "worktree_sha256": "fa3aab600599823268c41a8865e483e5200836cd28f89c13961f2005f1eab5d4",
+      "git_blob": "d02c457ea0644cdcbb4d24589fe666c68c5c0a67"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "worktree_sha256": "dba949314fcb98d55fa4541e9c908c038ef69915a54d6936ca38430eb4372244",
+      "git_blob": "dccfd4521deccb22dc740dc68b8c3b70c7962ea2"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "worktree_sha256": "df6a7d4f3076b4020442b5b00c19d7611211f2761323901f825692587b1d3d7a",
+      "git_blob": "813e360fc463575d12d491b7069f74094bc53a5b"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "worktree_sha256": "79301d67e404ad31bb07e1bf88ccb4f9b30f9c2ab850e1545cc5fb09007d223f",
+      "git_blob": "393b6689bb01e290e8bb4e9cd7a4dfaecaebe5ca"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "worktree_sha256": "84a8bf782f619b4a685c2124b2ae18bb408aab8cc08d4204740defb1c6be8d5d",
+      "git_blob": "2ee0e677236dba86eea9c3aea115794867527d99"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "worktree_sha256": "a6bc455ef701f595f0e7f134f9d6c744034e3adc42f0669c69aa30ccc4d442ba",
+      "git_blob": "d592b7c275f87670b2406d758fe6617ab1722a91"
+    },
+    {
+      "path": "tests/test_paged_volume.cpp",
+      "worktree_sha256": "3f51f0a10ed2eed7974419ca0843aab6df416a78b4bebe566a1cefa33c2a35e0",
+      "git_blob": "090a9c00502998da8371adfc4f4401ac079eb460"
+    }
+  ],
+  "scope": "Indexed read-only native snapshots on mirrored paged storage. Explicit legacy copy and Windows x64 synthetic fixtures, with native snapshot byte verification and WinFsp user-mode regression checks.",
+  "layout": "FLTXPV01 capability 1 on protected FLTXPG01, ordered names and extents in index capability 2",
+  "scale": {
+    "populated_named_files": 1024,
+    "sparse_test_file_logical_bytes": "18446744073709551608",
+    "occupied_image_bytes": 3588096,
+    "open_read_bytes": 90736,
+    "single_path_lookup_read_bytes": 179292,
+    "full_scrub_read_bytes": 292261348,
+    "scope": "Raw synthetic fixture. Actual backing bytes include metadata mirrors and append history. Counts do not establish mounted throughput or compression leadership."
+  },
+  "export": {
+    "source_layouts": [
+      "legacy flat",
+      "mirrored inode/name layout with six shared-base members"
+    ],
+    "selected_image_writes": 0,
+    "destination_fault_cases": 501,
+    "destinations_remaining_unpublished": 493,
+    "complete_recovered_destinations": 8,
+    "scope": "One reusable legacy flat fixture for all modeled destination write and barrier interruption modes. Compare new names, IDs, security, allocation, metadata, sequence and CPU-decoded data. Shared-base migration preserves contents through independent extent encoding."
+  },
+  "checks": {
+    "raw_windows_ctest_groups": 12,
+    "winfsp_codec_ctest_groups": 3,
+    "windows_address_sanitizer_ctest_groups": 2,
+    "actual_gpu": false,
+    "mounted_indexed_volume": false,
+    "automatic_live_migration": false
+  },
+  "prior_exact_source_ci": {
+    "source": "55675312d5a09b4971b485d89523ac1401e8edf3",
+    "run": 44186549928,
+    "conclusion": "failure",
+    "common_failed_test": "bounded_native_managed_paged_volume",
+    "failed_jobs": [
+      {
+        "job": 134404494316,
+        "name": "windows-native",
+        "failed_steps": [
+          "Exercise actual callbacks without a mounted filesystem"
+        ],
+        "log_sha256": "ee3966148a31e880a2e69ef939cfd876c37a2b8049596f2b54ecd0cb53c6d52e"
+      },
+      {
+        "job": 134404494750,
+        "name": "sanitizers",
+        "failed_steps": [
+          "Check with sanitizers"
+        ],
+        "log_sha256": "138913a6b5481c4b16cea932463f845f000dc56e1afbb96ba21a8c2928974130"
+      },
+      {
+        "job": 134404494765,
+        "name": "cpu (ubuntu-24.04, OFF)",
+        "failed_steps": [
+          "Test"
+        ],
+        "log_sha256": "ad1ac836703e3afbc2d9bdde66d865a5afd173ca826376d28f54becbc02d3534"
+      },
+      {
+        "job": 134404494869,
+        "name": "cpu (ubuntu-24.04, ON)",
+        "failed_steps": [
+          "Test"
+        ],
+        "log_sha256": "9c70174c1753f21cf8f614d7a6a5aed3b64708753dd46a7fcc659e477797e3ce"
+      },
+      {
+        "job": 134404495100,
+        "name": "cpu (windows-2025-vs2026, OFF)",
+        "failed_steps": [
+          "Test"
+        ],
+        "log_sha256": "dd09dc9b56c326abb2532572bf04b697e5b8bd315834e48439a172e7a2c9c625"
+      }
+    ],
+    "cause": "Previous path lookup stopped rereading the whole namespace and verified the selected persisted directory record. The managed-volume test still expected equal I/O for path lookup and inode lookup.",
+    "fix": "57a601367760b26a88897b747e440814eebbb12a",
+    "local_measurement": {
+      "failure_units": [
+        4096,
+        65536
+      ],
+      "inode_read_bytes": 8866,
+      "path_read_bytes": 9074,
+      "selected_directory_record_bytes": 208
+    },
+    "mounted_jobs": "skipped"
+  },
+  "navigation": {
+    "commit": "55675312d5a09b4971b485d89523ac1401e8edf3",
+    "provider": "CocoIndex Code 0.2.43",
+    "actual_searches": 1,
+    "source_files": 17,
+    "receipt_sha256": "cca7af4a3805cdbea6ed94e838d32f18c853d6925a3997eeb86251c0557e6ba3",
+    "native_response_sha256": "49cc0e16465413633f58148c5292d176f248d7327c89d67d64a9af5bfea342fb"
+  },
+  "research": {
+    "provider": "Crawl4AI 0.9.5+flitzzip.portable2",
+    "receipt_sha256": "7cea32f30653fa68df7cf51208d4fdbe57906c010652c729e80fa37d260cb714",
+    "primary": [
+      {
+        "url": "https://btrfs.readthedocs.io/en/latest/dev/dev-btrees.html",
+        "status": 200,
+        "capture_sha256": "14b27cf919adeb6d7b7f9306e685a8a05f0a7953925ab81708f1d559b5979f92"
+      },
+      {
+        "url": "https://btrfs.readthedocs.io/en/latest/dev/On-disk-format.html",
+        "status": 200,
+        "capture_sha256": "f7ea39df80000449540313a9f4f5cfc6461506053d59fbddb0915a3592bb9506"
+      }
+    ]
+  },
+  "local_runs": {
+    "raw_build": {
+      "run": "local-run-b18c87371ce84ff6a386d3f162d28a88",
+      "result_sha256": "51c904191a9a3eb77cf3d1c1efaa98c35a65f20c79ce45cfe04dc22aba366c87",
+      "output_sha256": "81882499c87b2478691b0dbb5217e67895d359dc342510c45e023a78a54486da",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 380178432
+    },
+    "raw_ctest": {
+      "run": "local-run-a545686c7ee044d29eb14f10c29ee7b9",
+      "result_sha256": "f859079e7893e6b10e3e8377457353d0486603075a1c28c02416ebcbf5864b9c",
+      "output_sha256": "9a933fbd92ad7a11d6110a0d97f3dd8fe12bcad0536a2ed6dbc2eff66eb0fb84",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 204398592
+    },
+    "sdk_build": {
+      "run": "local-run-0e75facbb9d24054aafad2edd3604c42",
+      "result_sha256": "7e3979d146c649bf4ec1fe1f332a1ed6a24a7be1be261bfffd8d545757947ccf",
+      "output_sha256": "8131b53a5211e4772fd03ef26545e9d520d7360d27cd31589d02fc2e22800111",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 719720448
+    },
+    "sdk_ctest": {
+      "run": "local-run-99fdc45882ed4b6e88211dec33064d1a",
+      "result_sha256": "0cbc8d594d93ba686d8e576f438477826bef093e6db52efb01ae550a012b7b0b",
+      "output_sha256": "65b2e84a5928d02514ef4fbf904458d825e106ac8392ef32611bc29218397f09",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 25260032
+    },
+    "asan_build": {
+      "run": "local-run-a9a7fd30b89a4a33bca234c791ef98a6",
+      "result_sha256": "9161901e945636aba02fdd85d9bc17b2ab56053a834e6a549ed0b618bd840a77",
+      "output_sha256": "9e023a6c2ac46d1765f5dde58f67be0e228f03616e1316b0087927d683116443",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 382828544
+    },
+    "asan_ctest": {
+      "run": "local-run-522a478d2e6847c8a5e79b32345fe778",
+      "result_sha256": "e30b7acf6d89f2ba8de0b0f4116df23c82e8f70e49b8ca5edfd9a315da9d7927",
+      "output_sha256": "67aa08f1c3d8f248615ca19d1a98cf74807555781ebce89324ab742175537e89",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 826662912
+    },
+    "managed_red_build": {
+      "run": "local-run-27c62ac76718439b963e22aea8094a38",
+      "result_sha256": "03a1ab332ec72f303a7c70afb5dbba058ebfba1ccac24d747dc7e38798555631",
+      "output_sha256": "f35a0332322e420f6c760b5f39b9a3ed9fdb64e4c4beb34dc59d1e54a1edfe89",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 380801024
+    },
+    "managed_red_ctest": {
+      "run": "local-run-a7abdbbb53214fb6abedf15dcb9d6b44",
+      "result_sha256": "f471ec44a5775c94aefc27976c71550825954f74cf2e438dc4fbd32483174c71",
+      "output_sha256": "fae87385556a1e2486888bd9355141bd5e4d0fc40aa486df7567715a7e806bab",
+      "exit_code": 8,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 10588160
+    },
+    "semantic": {
+      "run": "local-run-e64e1ec2e56b434f9ed443536088c362",
+      "result_sha256": "51bf3b5d05ab2ee6536503f18b878920177ddba92a7dab92c9c67e0f754a96a6",
+      "output_sha256": "e64012dbcb666ac5cf8ca2bc57b2e6d5e22ad4399f356947891936f9744f4dbd",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 1184358400
+    }
+  }
+}

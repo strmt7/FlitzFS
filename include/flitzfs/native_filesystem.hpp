@@ -12,7 +12,7 @@
 namespace flitzfs {
 class PagedObjectStoreSnapshot;
 class PagedObjectStoreWriter;
-enum class NativeImageKind:std::uint32_t {flat=0,paged=1};
+enum class NativeImageKind:std::uint32_t {flat=0,paged=1,indexed_paged=2};
 struct NativeImageStorage {
   NativeImageKind kind=NativeImageKind::flat;
   std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
@@ -245,13 +245,17 @@ class NativeFilesystemSnapshot final {
  public:
   // Consumes a fully verified object snapshot; validates native namespace and all references.
   static NativeFilesystemSnapshot open(ObjectStoreSnapshot objects);
-  // Explicit paged storage backend, same native namespace/operation semantics.
-  // Still eagerly validates the complete bounded namespace and live extents,
-  // including optional per-directory indices. Node/extent limits remain.
+  // Legacy paged layouts verify their full bounded namespace on open.
+  // Indexed layout open verifies the roots and root inode. Its reads verify
+  // touched records, and verify_all streams the complete inventory.
   static NativeFilesystemSnapshot open(PagedObjectStoreSnapshot objects);
   // Explicit persisted/provider format descriptor; never guesses or retries a
   // different reader after corruption. Existing open overloads are unchanged.
   static NativeFilesystemSnapshot open_image(std::shared_ptr<StoreByteIo>,NativeImageStorage);
+  // Export a legacy snapshot with resolved lifetimes to a new, independently
+  // checked indexed image. The source remains selected by any volume head.
+  NativeFilesystemSnapshot create_indexed_copy(std::shared_ptr<StoreByteIo> empty_target,
+      StoreIdentity,PagedStoreLimits,StoreCompressionOptions={}) const;
   NativeFilesystemSnapshot(NativeFilesystemSnapshot&&) noexcept;
   NativeFilesystemSnapshot& operator=(NativeFilesystemSnapshot&&) noexcept;
   NativeFilesystemSnapshot(const NativeFilesystemSnapshot&)=delete;

@@ -17,6 +17,7 @@ constexpr std::size_t root_bytes = 40, header_bytes = 40, page_bytes = 4096;
 constexpr std::size_t maximum_name_bytes = 1024;
 constexpr std::uint64_t last_ordinal = (1ULL << 61) - 1;
 constexpr std::uint32_t maximum_height = 61;
+constexpr auto maximum_block=(std::numeric_limits<std::uint64_t>::max)()/kNativeExtentBytes;
 
 [[noreturn]] void fail(Error code, const char* message) {
   throw NativeFsError(code, message);
@@ -46,9 +47,24 @@ bool page_object(std::uint64_t id, std::uint64_t next_page) noexcept {
   return index_object(id) && (id & last_ordinal) && (id & last_ordinal) < next_page;
 }
 bool inode_id(std::uint64_t id) noexcept { return id && id < (1ULL << 62); }
-bool key_valid(const NativeNameKey& key) {
-  return inode_id(key.parent) && !key.name.empty() && key.name.size() <= maximum_name_bytes &&
+bool valid_kind(NativeIndexKind kind) noexcept {
+  return kind==NativeIndexKind::names || kind==NativeIndexKind::names_and_extents;
+}
+bool extent_key(NativeIndexKind kind,std::uint64_t parent) noexcept {
+  return kind==NativeIndexKind::names_and_extents && parent>=kNativeIndexedInodeLimit;
+}
+bool key_valid(NativeIndexKind kind,const NativeNameKey& key) {
+  if (!inode_id(key.parent))return false;
+  if (extent_key(kind,key.parent))
+    return key.parent>kNativeIndexedInodeLimit && key.name.size()==8 &&
+        native_extent_block(key.name)<=maximum_block;
+  return !key.name.empty() && key.name.size() <= maximum_name_bytes &&
       key.name.find_first_of("/\\") == std::string::npos && key.name.find('\0') == std::string::npos;
+}
+bool value_valid(NativeIndexKind kind,const NativeNameKey& key,std::uint64_t value) noexcept {
+  if(kind==NativeIndexKind::names)return inode_id(value);
+  if(extent_key(kind,key.parent))return value>kNativeIndexedDataObject && value<(kNativeIndexedDataObject<<1);
+  return value && value<kNativeIndexedInodeLimit;
 }
 std::uint64_t add_count(std::uint64_t a, std::uint64_t b) {
   if (b > (std::numeric_limits<std::uint64_t>::max)() - a)
@@ -72,11 +88,11 @@ void require_healthy_checkpoint(const PagedObjectStoreSnapshot& store) {
 NativeNameIndexRoot read_root(const PagedObjectStoreSnapshot& store) {
   protected_store(store);
   const auto bytes = fetch(store, kNativeNameIndexObject, root_bytes);
-  if (bytes.size() != root_bytes || !magic(bytes, root_magic) || get(bytes,8,4) != 1)
+  if (bytes.size() != root_bytes || !magic(bytes, root_magic))
     fail(Error::corrupt, "unsupported name index root");
   NativeNameIndexRoot root{get(bytes,16,8), get(bytes,24,8), get(bytes,32,8),
-      static_cast<std::uint32_t>(get(bytes,12,4))};
-  if (!root.next_page || root.next_page > last_ordinal + 1 || root.height > maximum_height ||
+      static_cast<std::uint32_t>(get(bytes,12,4)),static_cast<NativeIndexKind>(get(bytes,8,4))};
+  if (!valid_kind(root.kind) || !root.next_page || root.next_page > last_ordinal + 1 || root.height > maximum_height ||
       bool(root.page) != bool(root.entries) || (!root.page && root.height) ||
       (root.page && !page_object(root.page, root.next_page)))
     fail(Error::corrupt, "invalid name index root");
@@ -85,7 +101,7 @@ NativeNameIndexRoot read_root(const PagedObjectStoreSnapshot& store) {
 Bytes encode_root(const NativeNameIndexRoot& root) {
   Bytes bytes(root_bytes);
   set_magic(bytes, root_magic);
-  put(bytes,8,1,4);
+  put(bytes,8,static_cast<std::uint32_t>(root.kind),4);
   put(bytes,12,root.height,4);
   put(bytes,16,root.page,8);
   put(bytes,24,root.next_page,8);
@@ -158,8 +174,9 @@ Page read_page(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot&
     Row row{{get(bytes,at,8),
         std::string(reinterpret_cast<const char*>(bytes.data()+at+fixed),end-at-fixed)},
         get(bytes,at+8,8), reference.height ? get(bytes,at+16,8) : 1};
-    if (!key_valid(row.key) || (!page.rows.empty() && row.key <= page.rows.back().key) ||
-        (reference.height ? (!page_object(row.value,root.next_page) || !row.entries) : !inode_id(row.value)))
+    if (!key_valid(root.kind,row.key) || (!page.rows.empty() && row.key <= page.rows.back().key) ||
+        (reference.height ? (!page_object(row.value,root.next_page) || !row.entries) :
+         !value_valid(root.kind,row.key,row.value)))
       fail(Error::corrupt, "invalid name index row");
     page.rows.push_back(std::move(row));
     at = static_cast<std::size_t>(end);
@@ -385,11 +402,26 @@ void validate_accompanying(std::span<const StoreMutation> records) {
 }
 } // namespace
 
+NativeNameKey native_extent_key(std::uint64_t inode,std::uint64_t block) {
+  if (!inode || inode>=kNativeIndexedInodeLimit || block>maximum_block)
+    fail(Error::invalid_operation,"invalid indexed extent coordinate");
+  std::string key(8,'\0');
+  for (std::size_t i=0;i<key.size();++i)
+    key[i]=static_cast<char>(static_cast<unsigned char>(block>>(8*(key.size()-i-1))));
+  return {kNativeIndexedInodeLimit|inode,std::move(key)};
+}
+std::uint64_t native_extent_block(std::string_view key) {
+  if (key.size()!=8)fail(Error::corrupt,"indexed extent key length");
+  std::uint64_t block=0;
+  for (const auto byte:key)block=(block<<8)|static_cast<unsigned char>(byte);
+  return block;
+}
+
 NativeNameIndex::NativeNameIndex(const PagedObjectStoreSnapshot& store)
     : store_(store), root_(read_root(store)) {}
 
 std::optional<std::uint64_t> NativeNameIndex::find(const NativeNameKey& key) const {
-  if (!key_valid(key)) fail(Error::invalid_path, "invalid name index lookup key");
+  if (!key_valid(root_.kind,key)) fail(Error::invalid_path, "invalid name index lookup key");
   auto reference=root_reference(root_);
   while (reference.id) {
     const auto page=read_page(store_,root_,reference);
@@ -403,10 +435,11 @@ std::optional<std::uint64_t> NativeNameIndex::find(const NativeNameKey& key) con
 
 std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::string_view after,
     std::size_t maximum) const {
-  if (!inode_id(parent) || after.size()>maximum_name_bytes)
+  if (!inode_id(parent) || after.size()>maximum_name_bytes ||
+      (root_.kind==NativeIndexKind::names_and_extents && parent==kNativeIndexedInodeLimit))
     fail(Error::invalid_path, "invalid name index enumeration key");
   const NativeNameKey key{parent,std::string(after)};
-  if (!after.empty() && !key_valid(key)) fail(Error::invalid_path, "invalid name index enumeration key");
+  if (!after.empty() && !key_valid(root_.kind,key)) fail(Error::invalid_path, "invalid name index enumeration key");
   if (!maximum || maximum>1024) fail(Error::limit, "name index enumeration page budget");
   std::vector<NativeNameEntry> output;
   if (root_.page) {
@@ -437,13 +470,16 @@ void NativeNameIndex::verify_all() const {
 }
 
 PagedStoreInfo NativeNameIndex::initialize(PagedObjectStoreWriter& writer,
-    std::vector<StoreMutation> accompanying) {
+    std::vector<StoreMutation> accompanying,NativeIndexKind kind) {
+  if (!valid_kind(kind))fail(Error::invalid_operation,"unsupported name index kind");
   validate_accompanying(accompanying);
   const auto snapshot=writer.snapshot();
   protected_store(snapshot);
   require_healthy_checkpoint(snapshot);
   if (snapshot.info().objects) fail(Error::already_exists,"name index requires a new namespace");
-  accompanying.push_back({kNativeNameIndexObject,false,encode_root({})});
+  NativeNameIndexRoot root;
+  root.kind=kind;
+  accompanying.push_back({kNativeNameIndexObject,false,encode_root(root)});
   return writer.commit(accompanying);
 }
 
@@ -453,14 +489,16 @@ PagedStoreInfo NativeNameIndex::commit(PagedObjectStoreWriter& writer, std::span
   if (edits.size()>kStoreMaxObjects)
     fail(Error::limit,"name index transaction operation budget");
   validate_accompanying(accompanying);
+  const auto snapshot=writer.snapshot();
+  const auto root=read_root(snapshot);
   for (const auto& edit : edits) {
-    if (!key_valid(edit.key)) fail(Error::invalid_path,"invalid name index edit key");
-    if ((edit.expected && !inode_id(*edit.expected)) || (edit.replacement && !inode_id(*edit.replacement)) ||
+    if (!key_valid(root.kind,edit.key)) fail(Error::invalid_path,"invalid name index edit key");
+    if ((edit.expected && !value_valid(root.kind,edit.key,*edit.expected)) ||
+        (edit.replacement && !value_valid(root.kind,edit.key,*edit.replacement)) ||
         edit.expected==edit.replacement)
       fail(Error::invalid_operation,"invalid name index binding edit");
   }
-  const auto snapshot=writer.snapshot();
-  Editor editor(snapshot,read_root(snapshot),kStoreMaxObjects-accompanying.size()-1);
+  Editor editor(snapshot,root,kStoreMaxObjects-accompanying.size()-1);
   for (const auto& edit : edits) editor.apply(edit);
   require_healthy_checkpoint(snapshot);
   editor.append_to(accompanying);

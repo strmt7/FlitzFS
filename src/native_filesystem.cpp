@@ -1,5 +1,7 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "native_object_storage.hpp"
+#include "native_indexed_volume.hpp"
+#include "native_name_index.hpp"
 #include "flitzfs/catalog.hpp"
 #include "flitzfs/directory_order.hpp"
 #include "record_digest.hpp"
@@ -523,9 +525,7 @@ Node decode_inode(std::span<const std::byte> bytes, std::uint32_t format,
   }
   return n;
 }
-Model decode(const detail::NativeObjectSnapshot& objects) {
-  const auto bytes = object_bytes(objects,kNamespaceObject);
-  const auto header = std::span<const std::byte>(bytes);
+Model decode(const detail::NativeObjectSnapshot& objects,std::span<const std::byte> header) {
   if (header.size()<64 || header.size()>kMetadataCap || integer(header,32,4)!=kNativeExtentBytes)
     fail(Code::corrupt,"unsupported native namespace framing");
   const bool inode_records = std::equal(kInodeRootMagic.begin(),kInodeRootMagic.end(),header.begin());
@@ -618,6 +618,9 @@ Model decode(const detail::NativeObjectSnapshot& objects) {
     fail(Code::corrupt,"native object extent mismatch");
   validate_data(model,[&](auto,auto,std::uint64_t object){return extent_bytes(objects,model,object);});
   return model;
+}
+Model decode(const detail::NativeObjectSnapshot& objects) {
+  return decode(objects,object_bytes(objects,kNamespaceObject));
 }
 struct DirtyExtent {
   Bytes bytes;
@@ -1019,10 +1022,59 @@ struct Stage {
 };
 }
 
+namespace detail {
+namespace {
+void validate_indexed_inode(const Node& n,const IndexedVolumeRoot& root) {
+  if(!n.inode || n.inode>=root.next_inode || !n.born || n.born>n.modified ||
+      n.modified>root.sequence || !n.extents.empty() || n.delete_pending || n.unlinked ||
+      (n.directory && (n.allocation || n.size)) ||
+      (n.allocation && (*n.allocation<n.size || *n.allocation%kNativeAllocationUnit)))
+    fail(Code::corrupt,"invalid indexed inode state");
+  if(n.inode==1) {
+    if(!n.directory || n.parent || !n.name.empty() || n.born!=1)fail(Code::corrupt,"invalid indexed root inode");
+  } else {
+    if(!n.parent || n.parent>=root.next_inode || n.parent==n.inode)
+      fail(Code::corrupt,"invalid indexed inode parent");
+    (void)component(n.name);
+  }
+  if(n.basic)validate_basic(*n.basic,n.directory);
+  if(n.security && (n.security->size()>kNativeMaxSecurityBytes || !native_security_descriptor_framed(*n.security)))
+    fail(Code::corrupt,"invalid indexed inode security");
+}
+}
+Bytes encode_indexed_inode(const IndexedInodeInput& input,const IndexedVolumeRoot& root) {
+  Node n;
+  n.inode=input.inode;n.parent=input.parent;n.size=input.size;n.born=input.born;n.modified=input.modified;
+  n.directory=input.directory;n.name=input.name;n.basic=input.basic;n.security=input.security;n.allocation=input.allocation;
+  validate_indexed_inode(n,root);
+  return inode_frame(n,7);
+}
+IndexedInodeInput decode_indexed_inode(std::span<const std::byte> bytes,std::uint64_t inode,
+    const IndexedVolumeRoot& root) {
+  if(bytes.size()<node_header(7) || integer(bytes,50,2) || (integer(bytes,20,4)&3))
+    fail(Code::corrupt,"indexed inode has inline extents or unresolved lifetime state");
+  std::size_t cursor=0;
+  auto node=decode_inode(bytes,7,cursor,0);
+  if(cursor!=bytes.size() || node.inode!=inode)fail(Code::corrupt,"indexed inode identity or length mismatch");
+  try { validate_indexed_inode(node,root); }
+  catch(const NativeFsError&) { fail(Code::corrupt,"invalid indexed inode fields"); }
+  return {node.inode,node.parent,node.size,node.born,node.modified,node.directory,std::move(node.name),
+      node.basic,std::move(node.security),node.allocation};
+}
+}
+
 struct NativeFilesystemSnapshot::Impl {
   detail::NativeObjectSnapshot objects;Model model;
+  std::optional<detail::IndexedVolumeView> indexed;
   std::shared_ptr<const void> enumeration_owner=std::make_shared<const unsigned char>(0);
-  explicit Impl(detail::NativeObjectSnapshot snapshot):objects(std::move(snapshot)),model(decode(objects)){}
+  explicit Impl(detail::NativeObjectSnapshot snapshot):objects(std::move(snapshot)) {
+    const auto root=object_bytes(objects,kNamespaceObject,kMetadataCap);
+    if(detail::indexed_volume_root(root)) {
+      const auto* paged=objects.paged_if();
+      if(!paged)fail(Code::corrupt,"indexed volume requires protected paged storage");
+      indexed.emplace(*paged,root);
+    }else model=decode(objects,root);
+  }
 };
 namespace {
 struct SharedBaseOwner {
@@ -1135,21 +1187,30 @@ NativeFilesystemSnapshot NativeFilesystemSnapshot::open(PagedObjectStoreSnapshot
 NativeFilesystemSnapshot NativeFilesystemSnapshot::open_image(std::shared_ptr<StoreByteIo> image,NativeImageStorage storage) {
   if(storage.kind==NativeImageKind::flat && !storage.maximum_physical_bytes)
     return open(ObjectStoreSnapshot::open(std::move(image)));
-  if(storage.kind==NativeImageKind::paged && storage.maximum_physical_bytes)
-    return open(PagedObjectStoreSnapshot::open(std::move(image),{storage.maximum_physical_bytes}));
+  if((storage.kind==NativeImageKind::paged || storage.kind==NativeImageKind::indexed_paged) &&
+      storage.maximum_physical_bytes) {
+    auto view=open(PagedObjectStoreSnapshot::open(std::move(image),{storage.maximum_physical_bytes}));
+    if(view.image_storage().kind!=storage.kind)fail(Code::corrupt,"native image capability does not match descriptor");
+    return view;
+  }
   fail(Code::invalid_operation,"invalid explicit image storage descriptor");
 }
 NativeImageStorage NativeFilesystemSnapshot::image_storage() const noexcept {
-  if(impl_)if(const auto* paged=impl_->objects.paged_if())return {NativeImageKind::paged,paged->limits().maximum_physical_bytes};
+  if(impl_)if(const auto* paged=impl_->objects.paged_if())
+    return {impl_->indexed?NativeImageKind::indexed_paged:NativeImageKind::paged,paged->limits().maximum_physical_bytes};
   return {};
 }
 NativeFilesystemSnapshot NativeFilesystemSnapshot::open_storage(detail::NativeObjectSnapshot objects) {
   return NativeFilesystemSnapshot(std::make_unique<Impl>(std::move(objects)));
 }
-StoreIdentity NativeFilesystemSnapshot::identity() const noexcept{return impl_?impl_->model.identity:StoreIdentity{};}
+StoreIdentity NativeFilesystemSnapshot::identity() const noexcept{return impl_?impl_->objects.identity():StoreIdentity{};}
 StoreCommitInfo NativeFilesystemSnapshot::storage_info() const noexcept{return impl_?impl_->objects.info():StoreCommitInfo{};}
-std::uint64_t NativeFilesystemSnapshot::sequence() const noexcept{return impl_?impl_->model.sequence:0;}
+std::uint64_t NativeFilesystemSnapshot::sequence() const noexcept {
+  if(!impl_)return 0;
+  return impl_->indexed?impl_->indexed->root().sequence:impl_->model.sequence;
+}
 NativeWorkloadInfo NativeFilesystemSnapshot::workload_info() const noexcept {
+  if(impl_ && impl_->indexed)return impl_->indexed->root().workload;
   if(!impl_||impl_->model.format<6)return {};
   return {true,impl_->model.committed_input_bytes};
 }
@@ -1189,6 +1250,11 @@ bool NativeFilesystemWriter::maintenance_busy() const noexcept{return !poisoned(
 bool NativeFilesystemWriter::maintenance_supported() const noexcept{return !poisoned() && impl_->model.shared_bases;}
 NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed) {
+    std::string spelling;
+    const auto n=impl_->indexed->resolve(path,&spelling);
+    return {n.inode,n.parent,n.size,n.born,n.modified,n.directory,std::move(spelling)};
+  }
   return file_info(impl_->model,resolve_snapshot(impl_->objects,impl_->model,path));
 }
 namespace {
@@ -1231,27 +1297,39 @@ Bytes read_node(const detail::NativeObjectSnapshot& objects,const Model& model,c
 }
 NativeFileInfo NativeFilesystemSnapshot::stat_inode(std::uint64_t inode) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed)return impl_->indexed->stat_inode(inode);
   return file_info(impl_->model,selected_inode(impl_->model,inode));
 }
 NativeInodeState NativeFilesystemSnapshot::inode_state(std::uint64_t inode) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed)return {impl_->indexed->stat_inode(inode),false,false};
   const auto& n=selected_inode(impl_->model,inode);
   return {file_info(impl_->model,n),n.delete_pending,n.unlinked};
 }
 std::optional<NativeBasicMetadata> NativeFilesystemSnapshot::basic_metadata(std::uint64_t inode) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed)return impl_->indexed->inode(inode).basic;
   return selected_inode(impl_->model,inode).basic;
 }
 std::optional<NativeSecurityDescriptor> NativeFilesystemSnapshot::security_descriptor(std::uint64_t inode) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed)return impl_->indexed->inode(inode).security;
   return selected_inode(impl_->model,inode).security;
 }
 NativeInodeAllocationInfo NativeFilesystemSnapshot::allocation_info(std::uint64_t inode) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed) {
+    const auto n=impl_->indexed->inode(inode);
+    return {{n.inode,n.size,n.modified,n.basic,n.directory,false,false},n.allocation};
+  }
   const auto& n=selected_inode(impl_->model,inode);return {commit_info(n),n.allocation};
 }
 NativeAllocationUsage NativeFilesystemSnapshot::allocation_usage() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed) {
+    const auto& root=impl_->indexed->root();
+    return {static_cast<std::size_t>(root.charged_extents),static_cast<std::size_t>(root.extents)};
+  }
   return flitzfs::allocation_usage(impl_->model);
 }
 bool NativeFilesystemSnapshot::needs_session_recovery() const noexcept {
@@ -1261,10 +1339,21 @@ bool NativeFilesystemSnapshot::needs_session_recovery() const noexcept {
 }
 std::vector<NativeFileInfo> NativeFilesystemSnapshot::list(std::string_view directory) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed)return list_inode(impl_->indexed->resolve(directory).inode);
   return list_inode(resolve_snapshot(impl_->objects,impl_->model,directory).inode);
 }
 std::vector<NativeFileInfo> NativeFilesystemSnapshot::list_inode(std::uint64_t directory) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed) {
+    std::vector<NativeFileInfo> files;
+    std::optional<std::string> after;
+    do {
+      auto page=impl_->indexed->list(directory,after.value_or(std::string{}),128);
+      files.insert(files.end(),std::make_move_iterator(page.entries.begin()),std::make_move_iterator(page.entries.end()));
+      after=std::move(page.after);
+    }while(after);
+    return files;
+  }
   const auto& entry=selected_inode(impl_->model,directory);
   if(impl_->model.indexed_names)verify_directory(impl_->objects,impl_->model,entry);
   return list_node(impl_->model,entry);
@@ -1275,6 +1364,15 @@ NativeDirectoryPage NativeFilesystemSnapshot::list_inode_page(std::uint64_t dire
   if(!maximum || maximum>1024)fail(Code::limit,"directory page budget");
   if(after.initialized_ && (after.directory_!=directory || after.owner_.lock()!=impl_->enumeration_owner))
     fail(Code::invalid_operation,"directory cursor belongs to a different snapshot/directory");
+  if(impl_->indexed) {
+    auto page=impl_->indexed->list(directory,after.after_,maximum);
+    NativeDirectoryPage result{std::move(page.entries),{}};
+    if(page.after) {
+      NativeDirectoryCursor next;next.owner_=impl_->enumeration_owner;next.directory_=directory;
+      next.after_=std::move(*page.after);next.initialized_=true;result.next=std::move(next);
+    }
+    return result;
+  }
   verify_directory(impl_->objects,impl_->model,selected_inode(impl_->model,directory));
   NativeDirectoryPage result;result.entries.reserve(maximum);
   auto it=after.initialized_?impl_->model.names.upper_bound({directory,after.after_}):
@@ -1293,16 +1391,54 @@ NativeDirectoryPage NativeFilesystemSnapshot::list_inode_page(std::uint64_t dire
 Bytes NativeFilesystemSnapshot::read(std::string_view path,std::uint64_t offset,std::uint32_t bytes) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
+  if(impl_->indexed)return impl_->indexed->read(impl_->indexed->resolve(path),offset,bytes);
   return read_node(impl_->objects,impl_->model,resolve_snapshot(impl_->objects,impl_->model,path),offset,bytes);
 }
 Bytes NativeFilesystemSnapshot::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   if(bytes>kNativeMaxReadBytes)fail(Code::limit,"native read request budget");
+  if(impl_->indexed)return impl_->indexed->read(impl_->indexed->inode(inode),offset,bytes);
   return read_node(impl_->objects,impl_->model,selected_inode(impl_->model,inode),offset,bytes);
 }
 void NativeFilesystemSnapshot::verify_all() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
+  if(impl_->indexed){impl_->indexed->verify_all();return;}
   impl_->objects.verify_all();(void)decode(impl_->objects);
+}
+NativeFilesystemSnapshot NativeFilesystemSnapshot::create_indexed_copy(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity identity,PagedStoreLimits limits,StoreCompressionOptions compression) const {
+  if(!impl_ || impl_->indexed || !target || identity==this->identity() || identity==StoreIdentity{})
+    fail(Code::invalid_operation,"indexed export requires a legacy source and new target identity");
+  try {
+    impl_->objects.verify_all();
+    const auto model=decode(impl_->objects);
+    for(const auto& entry:model.nodes)if(entry.second.delete_pending || entry.second.unlinked)
+      fail(Code::invalid_operation,"indexed export requires retired file contexts");
+    detail::IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(std::move(target),identity,limits,compression),
+        model.sequence,model.next_inode,{model.format>=6,model.committed_input_bytes});
+    constexpr std::size_t inode_batch=64,extent_batch=16;
+    std::vector<detail::IndexedInodeInput> inodes;inodes.reserve(inode_batch);
+    for(const auto& [id,n]:model.nodes) {
+      inodes.push_back({id,n.parent,n.size,n.born,n.modified,n.directory,n.name,n.basic,n.security,n.allocation});
+      if(inodes.size()==inode_batch){builder.append(inodes);inodes.clear();}
+    }
+    if(!inodes.empty())builder.append(inodes);
+    std::vector<detail::IndexedExtentInput> extents;extents.reserve(extent_batch);
+    std::vector<Bytes> data;data.reserve(extent_batch);
+    for(const auto& [id,n]:model.nodes)for(const auto& [block,object]:n.extents) {
+      auto bytes=extent_bytes(impl_->objects,model,object);
+      const auto length=(std::min)(std::uint64_t(kNativeExtentBytes),n.size-block*kNativeExtentBytes);
+      bytes.resize(static_cast<std::size_t>(length));
+      while(!bytes.empty() && bytes.back()==std::byte{0})bytes.pop_back();
+      if(bytes.empty())continue;
+      data.push_back(std::move(bytes));extents.push_back({id,block,data.back()});
+      if(extents.size()==extent_batch){builder.append({},extents);extents.clear();data.clear();}
+    }
+    if(!extents.empty())builder.append({},extents);
+    return builder.finish();
+  }catch(const std::bad_alloc&){fail(Code::limit,"indexed export allocation failure");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"indexed export failed; source remains intact");}
 }
 NativeFilesystemWriter NativeFilesystemWriter::initialize(ObjectStoreWriter objects) {
   return initialize_storage(std::move(objects));
@@ -1526,12 +1662,15 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_impl(detail::NativeObjectW
 
 std::shared_ptr<StoreByteIo> NativeFilesystemSnapshot::backing_for_volume_head() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from volume image");
+  if(impl_->indexed)fail(Code::invalid_operation,"indexed image requires its matching volume head capability");
   if(const auto* paged=impl_->objects.paged_if())return paged->backing_for_volume_head();
   return impl_->objects.flat().backing_for_volume_head();
 }
 void NativeFilesystemSnapshot::verify_compacted_equivalent_for_volume_head(
     const NativeFilesystemSnapshot& target) const {
   if(!impl_||!target.impl_)fail(Code::invalid_operation,"moved-from handoff image");
+  if(impl_->indexed || target.impl_->indexed)
+    fail(Code::invalid_operation,"indexed image requires its matching handoff verifier");
   verify_all();target.verify_all();
   if(needs_session_recovery()||target.needs_session_recovery())
     fail(Code::invalid_operation,"handoff requires retired resolved file contexts");
@@ -1568,6 +1707,7 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,
     StoreCheckpointOptions checkpoints,bool reencode) {
   if(!source.impl_)fail(Code::invalid_operation,"moved-from native compaction source");
+  if(source.impl_->indexed)fail(Code::invalid_operation,"indexed image requires its matching compaction codec");
   if(source.needs_session_recovery())
     fail(Code::invalid_operation,"native compaction needs completed file-context recovery");
   if(id==source.identity() || id==StoreIdentity{} || !target)

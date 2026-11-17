@@ -102,11 +102,11 @@ pages. Scrub checks the tree and streams the reserved object domain to detect
 unreachable records. The index requires mirrored payloads and participates in the
 existing checked object-store rebuild.
 
-This is the object-backed layout under evaluation for E01. Its reserved object
-domain needs explicit capability negotiation before native volumes use it. The
-existing reader, writer, mount format and limits still apply to current volumes.
-Demand-loaded inode and extent lookup, coordinated allocation, migration and the
-comparison with typed pages remain part of that integration.
+The [indexed native snapshot](INDEXED_NATIVE_VOLUME.md) uses this layout with
+an explicit root capability and typed extent keys. Its inode and extent
+records load on demand. Current writable volumes retain their existing
+engines. Coordinated allocation, live transactions, verified adoption and
+the comparison with typed pages remain part of scale integration.
 
 ## Verification
 

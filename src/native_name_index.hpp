@@ -10,6 +10,9 @@ namespace flitzfs::detail {
 // Reserved in the new indexed namespace. Existing namespace layouts have
 // separate object-domain rules and do not admit this index.
 inline constexpr std::uint64_t kNativeNameIndexObject = 3ULL << 61;
+inline constexpr std::uint64_t kNativeIndexedInodeLimit = 1ULL << 61;
+inline constexpr std::uint64_t kNativeIndexedDataObject = 1ULL << 61;
+enum class NativeIndexKind : std::uint32_t { names=1, names_and_extents=2 };
 
 struct NativeNameKey {
   std::uint64_t parent = 0;
@@ -18,7 +21,7 @@ struct NativeNameKey {
 };
 struct NativeNameEntry {
   NativeNameKey key;
-  std::uint64_t inode = 0;
+  std::uint64_t value = 0;
   bool operator==(const NativeNameEntry&) const = default;
 };
 struct NativeNameEdit {
@@ -29,7 +32,10 @@ struct NativeNameEdit {
 struct NativeNameIndexRoot {
   std::uint64_t page = 0, next_page = 1, entries = 0;
   std::uint32_t height = 0;
+  NativeIndexKind kind=NativeIndexKind::names;
 };
+NativeNameKey native_extent_key(std::uint64_t inode,std::uint64_t block);
+std::uint64_t native_extent_block(std::string_view key);
 
 // Checked ordered names in one immutable paged-store snapshot. Borrow the
 // snapshot on its control thread. Names supplied here are already canonical;
@@ -42,11 +48,12 @@ class NativeNameIndex final {
   std::vector<NativeNameEntry> list(std::uint64_t parent, std::string_view after,
       std::size_t maximum) const;
   std::uint64_t size() const noexcept { return root_.entries; }
+  NativeIndexKind kind() const noexcept { return root_.kind; }
   void verify_all() const;
 
   // Initialize the reserved object domain in a new namespace.
   static PagedStoreInfo initialize(PagedObjectStoreWriter&,
-      std::vector<StoreMutation> accompanying = {});
+      std::vector<StoreMutation> accompanying = {},NativeIndexKind kind=NativeIndexKind::names);
   // Compare each name with its expected binding, then publish the name edits
   // and the caller's owned inode/data records together. An absent expected
   // binding requires an unused name. An absent replacement erases a name.

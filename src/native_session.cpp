@@ -30,6 +30,7 @@ NativeFilesystemWriter resume_image(const std::shared_ptr<StoreByteIo>& image,
   const auto storage=view.image_storage();
   if(storage.kind==NativeImageKind::paged)return NativeFilesystemWriter::resume(PagedObjectStoreWriter::resume(
       image,view.identity(),view.storage_info().generation,{storage.maximum_physical_bytes},compression));
+  if(storage.kind!=NativeImageKind::flat)fail(E::invalid_options,"unsupported writable image capability");
   return NativeFilesystemWriter::resume(ObjectStoreWriter::resume(image,view.identity(),
       view.storage_info().generation,compression));
 }
@@ -207,6 +208,8 @@ NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByt
     StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
     std::optional<NativeVolumeRootMetadata> root) {
   admit_policy(policy);detail::validate_store_compression(foreground);
+  if(storage.kind!=NativeImageKind::paged && storage.kind!=NativeImageKind::flat)
+    fail(E::invalid_options,"unsupported writable image capability");
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
     fail(E::invalid_options,"distinct volume/image identities and backends required");
   if(root && (root->security.empty() || !native_security_descriptor_framed(root->security)))

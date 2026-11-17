@@ -201,6 +201,14 @@ new namespace still needs its own volume capability and normal session access
 before it can replace the existing limits.
 [Name-index evidence](evidence/native-name-index-2026-11-17.json)
 
+The [indexed native snapshot format](INDEXED_NATIVE_VOLUME.md) now connects
+the ordered index and sparse extents to the existing snapshot API. The
+1,024-file fixture checked every named nonempty file and exercised high
+logical offsets. Explicit legacy export verifies the destination before
+publishing its root and leaves the source selected. The first scale rung
+now has native reader evidence. The mounted writer, head handoff, larger
+scale runs and preservation of collective encodings remain open.
+
 ### Implementation steps
 
 1. Specify native catalog roots for inode lookup, `(parent,name)` lookup,
