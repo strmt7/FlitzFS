@@ -19,6 +19,14 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
+The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) now connects callback
+events, live Windows resource observations/priority, pacing and serialized
+start/stop ownership. Normal/ASan tests formed a two-file shared-base group and
+verified independent CPU recovery. Its lifecycle provider is injected; a real
+current-source mounted product, useful ordinary GPU path and release readiness
+remain unqualified. This advances integration without closing a release package
+or reducing the uncalibrated effort estimate above.
+
 The [WinFsp paged bridge](WINFSP_PAGED_VOLUMES.md) now connects the shared managed
 engine to writable SDK callbacks, compatible retired-owner resume and cooperative
 grouping. Source-bound raw/ASan tests use the real user-mode DLL and injected

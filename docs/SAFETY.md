@@ -8,6 +8,13 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) connects actual callback
+events, low-priority live observations, pacing and joined session ownership.
+Its tests inject lifecycle providers; they never start the installed driver.
+Wait handles outlive the worker/dispatcher, event failures disable optional work,
+and explicit stop/lifetime/unexpected termination retire owners before reporting
+retirement. A real native stop can block and still needs process containment.
+
 The [WinFsp paged bridge](WINFSP_PAGED_VOLUMES.md) admits Windows metadata/ACLs
 before resume repair, pins the image mapping and serializes group opportunities
 with callbacks and response ownership. Its real user-mode SDK callback tests

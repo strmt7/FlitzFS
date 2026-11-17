@@ -56,10 +56,11 @@ Explicit cancellation releases the private controller. Destruction remains
 serialized with the owning lifecycle; the dispatcher and deferred completion
 owner retire before the adapter/native writer are destroyed.
 
-The caller still provides OS resource priority, telemetry and opportunities.
-The unmounted helper's live collector/scheduler is separately qualified in
-[Windows background maintenance](WINDOWS_BACKGROUND_MAINTENANCE.md). This bridge
-does not yet connect that scheduler to a real running Explorer volume. A quantum
+The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) now supplies callback
+events, real OS observations, resource priority, pacing and joined ownership.
+Its lifecycle has been tested through injected providers, alongside the
+unmounted helper's collector in [Windows background maintenance](WINDOWS_BACKGROUND_MAINTENANCE.md).
+This is not yet qualified on a real running Explorer volume. A quantum
 and final commit remain synchronous while the control lock is held; mounted
 interference and practical foreground stalls must be measured before promotion.
 
@@ -86,7 +87,7 @@ installs or loads a kernel driver, formats a disk, runs HIP or writes a backing
 image to physical storage. This is not a live mount, physical power-loss test,
 recognized benchmark, useful GPU result or release readiness claim.
 
-Next connect actual controller events, low-priority opportunities and staged
-reclamation to the owned mounted lifecycle, then qualify it through a disposable
+Next connect the owned controller to a shared memory-volume factory and explicit
+native provider, then qualify it through a disposable
 memory-backed mount. Scalable persistent namespace/coherence, full Windows
 client semantics, useful ordinary AMD operation and deployment remain required.

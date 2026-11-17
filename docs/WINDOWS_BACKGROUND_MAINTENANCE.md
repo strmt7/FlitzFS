@@ -14,8 +14,9 @@ This helper is an integration stage, not the final file browser. **Normal Window
 Explorer/Win32 access remains a required product feature.** The existing WinFsp
 writable callback layer already owns `NativeFileSession` and now has an explicit
 [paged factory and cooperative group entry point](WINFSP_PAGED_VOLUMES.md).
-Connecting actual controller events, resource priority and its synchronized
-mounted lifecycle remains next work.
+The separate [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) now connects
+callback activity, this collector/priority implementation and serialized
+lifecycle ownership. Current-source mounted qualification remains next work.
 The tray controls lifecycle/status; it must not become a separate filesystem or
 be required for ordinary file reads/writes. See [the Windows product contract](WINDOWS_PRODUCT.md).
 

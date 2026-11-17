@@ -54,6 +54,10 @@ class WinFspNativeWritable final {
   WinFspGroupMaintenanceResult advance_group_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
   bool group_maintenance_pending() const;
   void cancel_group_maintenance();
+  // Before callback binding only. Duplicate a same-process event with signal
+  // rights, without inheritance. The caller retains its own wait handle.
+  void set_maintenance_event(HANDLE);
+  bool maintenance_event_failed() const noexcept;
   HostedVolumeMaintenanceResult recompress_managed_hosted(
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
       StoreCompressionOptions candidate={});

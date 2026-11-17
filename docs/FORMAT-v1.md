@@ -1,5 +1,8 @@
 # `.flfs` v1 experimental chunk container
 
+The [owned Windows controller](WINFSP_OWNED_CONTROLLER.md) adds volatile activity,
+observation and lifecycle state only; it changes no stored encoding or version.
+
 The opt-in [paged object store](PAGED_OBJECT_STORE.md) has a separate root/page
 encoding and reader. It does not change this container or existing native bytes.
 The [native backend bridge](NATIVE_PAGED_BACKEND.md) explicitly connects native

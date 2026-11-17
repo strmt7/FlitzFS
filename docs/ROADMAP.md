@@ -2,11 +2,18 @@
 
 ## Current local development
 
+The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) now ties callback events,
+live Windows telemetry/priority and pacing to one start/maintenance/stop owner.
+Its actual SDK tests use injected lifecycle providers. Connect the shared memory
+factory and explicit native provider next, then qualify external Windows clients
+and interference on a disposable paged mount. Staged reclamation, scalable
+persistent coherence and useful ordinary GPU work remain required.
+
 The [WinFsp writable paged bridge](WINFSP_PAGED_VOLUMES.md) now exposes the same
 managed engine, groups and supported-format resume through real SDK callbacks.
 It gates cooperative opportunities against foreground calls, deferred responses
-and retirement. Actual controller event/scheduling integration, disposable
-memory-backed mounted qualification and automatic staged reclamation are next.
+and retirement. Disposable memory-backed mounted qualification and automatic
+staged reclamation remain next.
 There is no new mounted/GPU/physical or release claim.
 
 The [Windows background integration](WINDOWS_BACKGROUND_MAINTENANCE.md) now drives

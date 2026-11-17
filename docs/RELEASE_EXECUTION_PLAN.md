@@ -26,9 +26,11 @@ CPU/memory observations, background resource mode, full-quantum pacing and
 automatic groups on managed paged volumes. This advances E07/E08 but does not
 close them. The [WinFsp paged bridge](WINFSP_PAGED_VOLUMES.md) now adds the
 writable factory, compatible restart and cooperative groups through actual SDK
-callbacks. Connect actual controller events/priority to that synchronized mounted
-lifecycle next, alongside staged reclamation, scalable access and useful ordinary
-GPU work. The helper editor does not replace Explorer.
+callbacks. The [owned controller](WINFSP_OWNED_CONTROLLER.md) now connects callback
+events, live observations/priority, pacing and joined lifecycle ownership through
+injected providers. Connect a shared memory factory and explicit native provider
+next, then qualify external Windows clients, alongside staged reclamation,
+scalable access and useful ordinary GPU work. The helper editor does not replace Explorer.
 This plan authorizes no release, tag, package publication or product version bump.
 It is the current forward plan; older dated checkpoints retain their evidence,
 not competing instructions to repeat completed experiments.
@@ -47,8 +49,8 @@ application slices, bounded GPU workers and independent CPU result validation.
 | Local qualification | [Current paged SDK callbacks and relevant core checks](evidence/paged-winfsp-2026-11-15.json) pass in raw Release and AddressSanitizer. The earlier 103-group helper/core and million-object results retain their separate exact-source evidence. | This is not full CTest/optional-codec qualification, a new real mount, current GPU execution or physical power-loss evidence. |
 | Sharing | Exact extent sharing/private updates, protected shared-base patch groups, and automatic aligned-family discovery/extension with complete-size admission. | The controller uses the bounded native model; no persistent scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
 | GPU | Actual AMD execution and independent current/prior CPU recovery passed controlled service tests. | The last matched case was slower on GPU: CPU median 24.2311 ms, GPU 513.918 ms, identical complete image sizes. Useful automatic ordinary I/O remains absent. |
-| Learning/background work | Persistent advice/provenance, automatic grouping, live Windows helper observations/resource background mode, measured complete-quantum pacing and outcome reuse exist. | The helper is unmounted; no complete autonomous learner, persistent scalable coherence, mounted executor, gradual migration or lifetime write-amplification governor. |
-| Windows product | The WinFsp adapter now supports paged creation/resume and cooperative groups; real SDK callback and injected lifecycle tests pass. The unmounted helper has live idle grouping; earlier mount results remain historical. | Connect actual controller scheduling and staged reclamation to the mounted lifecycle, then qualify disposable memory-backed mounts; complete client semantics, scalable access, providers, deployment and broad qualification. |
+| Learning/background work | Persistent advice/provenance, automatic grouping, live Windows observations/resource background mode, measured complete-quantum pacing and outcome reuse exist. The owned WinFsp scheduler receives real callback events. | No complete autonomous learner, persistent scalable coherence, qualified current-source mounted executor, gradual migration or lifetime write-amplification governor. |
+| Windows product | The WinFsp adapter supports paged creation/resume and cooperative groups. Its owned controller passes real SDK callback/live telemetry and injected lifecycle tests; earlier mount results remain historical. | Connect the shared memory factory and explicit native provider, then qualify disposable mounts and staged reclamation; complete client semantics, scalable access, providers, deployment and broad qualification. |
 | Recovery | COW checkpoints, metadata replicas, modeled failures, explicit recovery and source-preserving rebuilding exist. | General payload/dependency repair, scalable reclamation and complete backend fault qualification remain open. Historical retirement failures are not diagnosed by later successful runs. |
 
 The million-object experiment used 16,000,000 bytes of tiny raw payloads in a

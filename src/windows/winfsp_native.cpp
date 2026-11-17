@@ -134,6 +134,8 @@ struct WinFspNativeWritable::Impl {
   std::unique_ptr<NativeDeferredWriteService> deferred;
   std::unique_ptr<NativeGroupMaintenance> groups;
   std::uint64_t groups_completed_sequence=0;
+  Handle maintenance_event;
+  std::atomic<bool> maintenance_signal_failed{false};
   bool callbacks_bound=false;
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
   Impl(NativeFileSession s,StoreIdentity id,UINT64 stamp):session(std::move(s)),identity(id),created(stamp) {
@@ -142,12 +144,16 @@ struct WinFspNativeWritable::Impl {
     if(!serial)serial=1;
   }
   struct ForegroundCall {
-    std::atomic<unsigned>& count;
-    explicit ForegroundCall(std::atomic<unsigned>& active) noexcept:count(active) {
-      count.fetch_add(1,std::memory_order_acq_rel);
+    Impl& owner;
+    explicit ForegroundCall(Impl& active) noexcept:owner(active) {
+      owner.foreground.fetch_add(1,std::memory_order_acq_rel);
     }
-    ~ForegroundCall(){count.fetch_sub(1,std::memory_order_acq_rel);}
+    ~ForegroundCall(){owner.foreground.fetch_sub(1,std::memory_order_acq_rel);owner.signal_maintenance();}
   };
+  void signal_maintenance() noexcept {
+    if(maintenance_event.value && !SetEvent(maintenance_event.value))
+      maintenance_signal_failed.store(true,std::memory_order_release);
+  }
   template<class F>HostedIdleMaintenanceResult idle(F&& fn) {
     std::unique_lock guard(control,std::try_to_lock);
     if(!guard || foreground.load(std::memory_order_acquire)!=0 || (deferred&&deferred->publication_pending_locked()))
@@ -162,7 +168,7 @@ struct WinFspNativeWritable::Impl {
     }
   }
   template<class F>NTSTATUS invoke(F&& fn,bool void_call=false) noexcept {
-    const ForegroundCall active(foreground);
+    const ForegroundCall active(*this);
     NativeWindowsIoOutcome result{STATUS_IO_DEVICE_ERROR,true};
     try {
       std::unique_lock guard(control);
@@ -559,7 +565,18 @@ bool WinFspNativeWritable::group_maintenance_pending() const {
   // A busy control is not proof of quiescence. This cached query performs no
   // storage I/O and also sees publications by the deferred service thread.
   return !guard || (impl_->groups && !requires_offline() && !dispatcher_stopped() &&
-      !impl_->session.poisoned() && impl_->session.namespace_sequence()!=impl_->groups_completed_sequence);
+      !impl_->session.poisoned() && (impl_->session.namespace_sequence()!=impl_->groups_completed_sequence ||
+      (impl_->deferred && (impl_->deferred->publication_pending_locked() || impl_->deferred->stats_locked().worker_busy))));
+}
+void WinFspNativeWritable::set_maintenance_event(HANDLE event) {
+  std::lock_guard guard(impl_->control);
+  if(!event || impl_->callbacks_bound || impl_->maintenance_event.value)
+    throw std::invalid_argument("Maintenance event requires an unbound adapter and one valid event");
+  if(!DuplicateHandle(GetCurrentProcess(),event,GetCurrentProcess(),&impl_->maintenance_event.value,
+      EVENT_MODIFY_STATE,FALSE,0))throw std::runtime_error("Maintenance event duplication failed");
+}
+bool WinFspNativeWritable::maintenance_event_failed() const noexcept {
+  return impl_->maintenance_signal_failed.load(std::memory_order_acquire);
 }
 void WinFspNativeWritable::cancel_group_maintenance() {
   std::lock_guard guard(impl_->control);impl_->groups.reset();
@@ -678,8 +695,8 @@ const FSP_FILE_SYSTEM_INTERFACE& WinFspNativeWritable::callbacks() noexcept {
     t.SetDelete=Impl::set_delete;t.SetBasicInfo=Impl::basic;t.Rename=Impl::rename;t.GetSecurity=Impl::get_security;
     t.ReadDirectory=Impl::directory;
     t.DispatcherStopped=[](FSP_FILE_SYSTEM* fs,BOOLEAN normal) {
-      if(fs&&fs->UserContext){unsigned expected=0;static_cast<Impl*>(fs->UserContext)->stopped.compare_exchange_strong(
-          expected,normal?1U:2U,std::memory_order_acq_rel);}
+      if(fs&&fs->UserContext){auto& self=*static_cast<Impl*>(fs->UserContext);unsigned expected=0;
+        self.stopped.compare_exchange_strong(expected,normal?1U:2U,std::memory_order_acq_rel);self.signal_maintenance();}
     };
     t.SetVolumeLabel=[](FSP_FILE_SYSTEM*,PWSTR,FSP_FSCTL_VOLUME_INFO*)->NTSTATUS{return STATUS_INVALID_DEVICE_REQUEST;};
     t.SetSecurity=Impl::set_security;

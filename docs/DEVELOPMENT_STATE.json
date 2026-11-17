@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "updated": "2026-11-15",
+  "updated": "2026-11-17",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_ASSESSMENT.md",
@@ -110,7 +110,7 @@
   ],
   "next_implementation": {
     "contract": "docs/RELEASE_EXECUTION_PLAN.md",
-    "next": "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization. Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures."
+    "next": "Connect the shared adaptive memory-volume factory and explicit native provider to the owned WinFsp controller. Qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data. Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures."
   },
   "implementation_boundary": {
     "normal_filesystem_operations": "Default CPU-only; explicit hosted owned service qualified for CPU-semantic advice and real CPU-only pending responses. No automatic GPU launch.",
@@ -131,7 +131,8 @@
     "managed_paged_volumes": "Typed managed mirrored paged sessions, contexts, advice and verified handoff are integrated into the helper. Explorer-facing factories, paged native access, persistent coherence and physical qualification remain open.",
     "automatic_group_maintenance": "Bounded managed-paged CPU content discovery and supplied-observation gating; no live Windows priority/idle integration, persistent coherence, ordinary GPU route or automatic compaction.",
     "Windows_background_helper": "Live all-processor/memory collection, current-thread resource background mode, measured pacing and auto groups in the unmounted paged helper. Explorer-facing paged factories, persistent scalable coherence and useful ordinary GPU operation remain open.",
-    "paged_WinFsp_bridge": "Actual user-mode SDK callbacks support mirrored managed paged creation/resume and cooperative groups with Windows profile/ownership gates. Real mounted scheduling, staged reclamation and kernel/client qualification remain open."
+    "paged_WinFsp_bridge": "Actual user-mode SDK callbacks support mirrored managed paged creation/resume and cooperative groups with Windows profile/ownership gates. Real mounted scheduling, staged reclamation and kernel/client qualification remain open.",
+    "owned_WinFsp_controller": "One owned start/maintenance/stop thread, callback events, live PDH/resource priority and complete-quantum pacing; real SDK callbacks and injected lifecycle pass normal/ASan. Shared memory factory/native provider/actual mounted qualification remain."
   },
   "safety": {
     "filesystem_backing": "in-memory host filesystem fixtures; normal local development files are authorized",
@@ -1015,7 +1016,7 @@
   "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
-    "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
+    "Connect the shared adaptive memory-volume factory and explicit native provider to the owned WinFsp controller. Qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data.",
     "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures.",
     "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, content generations, continuation/outcome state and qualify large populated named-file workloads.",
     "Implement required useful actual AMD collective/ingestion work with complete-cost measurement and automatic CPU fallback. Compare shifted, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data.",
@@ -1865,6 +1866,60 @@
     "compression_record": false,
     "release": false,
     "next": "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
+    "full_goal_status": "active"
+  },
+  "owned_WinFsp_checkpoint": {
+    "source_base": "2ebd77abf9c9ea449dfba8a1207a8f1030a89dc0",
+    "contract": "docs/WINFSP_OWNED_CONTROLLER.md",
+    "evidence": "docs/evidence/owned-winfsp-controller-2026-11-16.json",
+    "tested": "2026-11-16",
+    "status": "Owned WinFsp callback events, real local Windows observations/background resource mode, full-quantum pacing and serialized start/maintenance/stop ownership; actual SDK callbacks with injected lifecycle",
+    "configurations": [
+      {
+        "configuration": "raw",
+        "controller_checks": 49,
+        "callback_checks": 4290,
+        "publication_fault_cases": 492,
+        "actual_live_groups": 1,
+        "actual_live_quanta": 12,
+        "maximum_quantum_ns": 1296500,
+        "controller_peak_job_bytes": 16871424
+      },
+      {
+        "configuration": "asan",
+        "controller_checks": 49,
+        "callback_checks": 4290,
+        "publication_fault_cases": 492,
+        "actual_live_groups": 1,
+        "actual_live_quanta": 12,
+        "maximum_quantum_ns": 2557300,
+        "controller_peak_job_bytes": 413827072
+      }
+    ],
+    "actual_user_mode_SDK_DLL": true,
+    "real_OS_telemetry": true,
+    "lifecycle_functions_injected": true,
+    "activity_events": true,
+    "unchanged_volume_quiet": true,
+    "signal_handle_owned": true,
+    "deferred_pending_wakeup": true,
+    "joined_controller": true,
+    "unexpected_dispatcher_stop_checked": true,
+    "lifetime_enforced": true,
+    "independent_CPU_readback": true,
+    "app_model_live_and_GUI_regressions": true,
+    "current_source_mounted": false,
+    "driver_install": false,
+    "driver_load": false,
+    "GPU": false,
+    "ordinary_GPU_route": false,
+    "physical_power_loss": false,
+    "persistent_coherence": false,
+    "fully_paged_namespace": false,
+    "automatic_reclamation": false,
+    "compression_record": false,
+    "release": false,
+    "next": "Connect the shared adaptive memory-volume factory and explicit native provider to the owned WinFsp controller. Qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data.",
     "full_goal_status": "active"
   }
 }

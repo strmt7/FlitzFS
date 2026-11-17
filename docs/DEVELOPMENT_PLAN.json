@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-11-15",
+  "updated": "2026-11-17",
   "forward_work_rule": "Use current_round, next_product_slices and package exits for forward work. Older checkpoint next fields retain historical decisions, not instructions to repeat completed stages.",
   "baseline": {
     "commit": "f4928c2d2510cacb55da664a0338c8592194d9a0",
@@ -634,6 +634,13 @@
         "cooperative_groups": true,
         "mounted_scheduler": false,
         "package_exit_closed": false
+      },
+      "owned_WinFsp_controller": {
+        "contract": "docs/WINFSP_OWNED_CONTROLLER.md",
+        "evidence": "docs/evidence/owned-winfsp-controller-2026-11-16.json",
+        "actual_events_and_telemetry": true,
+        "native_mount_qualified": false,
+        "package_exit_closed": false
       }
     },
     {
@@ -815,6 +822,13 @@
         "cooperative_groups": true,
         "mounted_scheduler": false,
         "package_exit_closed": false
+      },
+      "owned_WinFsp_controller": {
+        "contract": "docs/WINFSP_OWNED_CONTROLLER.md",
+        "evidence": "docs/evidence/owned-winfsp-controller-2026-11-16.json",
+        "actual_events_and_telemetry": true,
+        "native_mount_qualified": false,
+        "package_exit_closed": false
       }
     },
     {
@@ -925,6 +939,13 @@
         "creation_resume_callbacks": true,
         "cooperative_groups": true,
         "mounted_scheduler": false,
+        "package_exit_closed": false
+      },
+      "owned_WinFsp_controller": {
+        "contract": "docs/WINFSP_OWNED_CONTROLLER.md",
+        "evidence": "docs/evidence/owned-winfsp-controller-2026-11-16.json",
+        "actual_events_and_telemetry": true,
+        "native_mount_qualified": false,
         "package_exit_closed": false
       }
     },
@@ -1120,49 +1141,48 @@
     "next": "Do not repeat the unchanged case. Implement configuration/recovery keyed complete-cost acquisition and useful comparisons for automatic Windows integration; continue independent CPU recovery, minimum-total-size collective learning and full product gates."
   },
   "current_round": {
-    "source_base": "a3f5530fb350a56ebebc7c5f55ca14db2e29cfed",
-    "contract": "docs/WINFSP_PAGED_VOLUMES.md",
-    "evidence": "docs/evidence/paged-winfsp-2026-11-15.json",
-    "status": "Writable WinFsp managed paged factory, compatible retired-owner resume, pre-repair Windows profile validation, pinned image mapping, input/advice provenance and cooperative grouping serialized with callbacks/responses/lifecycle",
+    "source_base": "2ebd77abf9c9ea449dfba8a1207a8f1030a89dc0",
+    "contract": "docs/WINFSP_OWNED_CONTROLLER.md",
+    "evidence": "docs/evidence/owned-winfsp-controller-2026-11-16.json",
+    "tested": "2026-11-16",
+    "status": "Owned WinFsp callback events, real local Windows observations/background resource mode, full-quantum pacing and serialized start/maintenance/stop ownership; actual SDK callbacks with injected lifecycle",
     "configurations": [
       {
         "configuration": "raw",
-        "selected_CTest_groups": 6,
-        "direct_SDK_regression_executables": 2,
-        "new_SDK_checks": 4290,
+        "controller_checks": 49,
+        "callback_checks": 4290,
         "publication_fault_cases": 492,
-        "callback_checks": 296
+        "actual_live_groups": 1,
+        "actual_live_quanta": 12,
+        "maximum_quantum_ns": 1296500,
+        "controller_peak_job_bytes": 16871424
       },
       {
         "configuration": "asan",
-        "selected_CTest_groups": 6,
-        "direct_SDK_regression_executables": 2,
-        "new_SDK_checks": 4290,
+        "controller_checks": 49,
+        "callback_checks": 4290,
         "publication_fault_cases": 492,
-        "callback_checks": 296
+        "actual_live_groups": 1,
+        "actual_live_quanta": 12,
+        "maximum_quantum_ns": 2557300,
+        "controller_peak_job_bytes": 413827072
       }
     ],
     "actual_user_mode_SDK_DLL": true,
-    "SDK_tag": "v2.2B5",
-    "SDK_prerelease": true,
-    "SDK_latest_development_candidate_checked": true,
-    "native_staging_without_7zip": true,
-    "Windows_global_disposition": true,
-    "root_ACL_and_times_preserved": true,
-    "retired_flat_and_paged_resume": true,
-    "pre_repair_Windows_profile_admission": true,
-    "image_resolver_pinned_once": true,
-    "callback_active_context_group_readback": true,
-    "selected_callback_write_preserved": true,
-    "foreground_and_response_busy_gates": true,
-    "canceled_and_stopped_owner_gates": true,
-    "injected_lifecycle_stop_order": true,
-    "CPU_recovery": true,
-    "source_unchanged_after_refused_root_profile": true,
-    "supplied_observations": "modeled",
-    "actual_mounted_background_controller": false,
-    "mounted": false,
+    "real_OS_telemetry": true,
+    "lifecycle_functions_injected": true,
+    "activity_events": true,
+    "unchanged_volume_quiet": true,
+    "signal_handle_owned": true,
+    "deferred_pending_wakeup": true,
+    "joined_controller": true,
+    "unexpected_dispatcher_stop_checked": true,
+    "lifetime_enforced": true,
+    "independent_CPU_readback": true,
+    "app_model_live_and_GUI_regressions": true,
+    "current_source_mounted": false,
     "driver_install": false,
+    "driver_load": false,
     "GPU": false,
     "ordinary_GPU_route": false,
     "physical_power_loss": false,
@@ -1171,11 +1191,11 @@
     "automatic_reclamation": false,
     "compression_record": false,
     "release": false,
-    "next": "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
+    "next": "Connect the shared adaptive memory-volume factory and explicit native provider to the owned WinFsp controller. Qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data.",
     "full_goal_status": "active"
   },
   "next_product_slices": [
-    "Connect actual helper/controller events, fresh Windows telemetry and resource priority to WinFsp group opportunities and owned mounted shutdown. Qualify a disposable memory-backed mount of this paged path; handle any required setup autonomously under the owner authorization.",
+    "Connect the shared adaptive memory-volume factory and explicit native provider to the owned WinFsp controller. Qualify external Windows clients, real mounted paged grouping/interference and retirement without altering unrelated drivers or existing data.",
     "Connect staged paged rebuilding to automatic reader-safe handoff/reclamation and measured data-work/write-amplification policy; preserve acknowledged bytes and immutable decode dependencies through failures.",
     "Replace whole native Model/directory residency with paged inode/name/extent access and bounded caches. Persist sparse coherence features, content generations, continuation/outcome state and qualify large populated named-file workloads.",
     "Implement required useful actual AMD collective/ingestion work with complete-cost measurement and automatic CPU fallback. Compare shifted, dictionary, multi-reference and offline learned candidates on held-out heterogeneous data.",
@@ -2048,5 +2068,11 @@
     "release": false,
     "next": "Connect the Explorer-facing WinFsp managed writable factory to the same paged session and protected groups. Serialize mounted idle opportunities with actual callbacks/deferred responses, stop/join and source retention; qualify callbacks before any new mount/driver deployment.",
     "full_goal_status": "active"
+  },
+  "previous_paged_WinFsp_round": {
+    "source_base": "a3f5530fb350a56ebebc7c5f55ca14db2e29cfed",
+    "contract": "docs/WINFSP_PAGED_VOLUMES.md",
+    "evidence": "docs/evidence/paged-winfsp-2026-11-15.json",
+    "status": "Writable WinFsp managed paged factory, compatible retired-owner resume, pre-repair Windows profile validation, pinned image mapping, input/advice provenance and cooperative grouping serialized with callbacks/responses/lifecycle"
   }
 }

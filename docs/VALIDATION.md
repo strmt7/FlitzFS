@@ -1,5 +1,14 @@
 # Validation ledger — experimental release 0.2
 
+## Owned WinFsp background controller — 16 November 2026
+
+[Contract](WINFSP_OWNED_CONTROLLER.md) and
+[source-bound receipts](evidence/owned-winfsp-controller-2026-11-16.json) separate
+actual SDK callbacks, live local telemetry and injected lifecycle ownership.
+Normal/ASan checks cover activity/stop events, CPU readback, quiet unchanged
+volumes, failure cleanup and joined retirement, plus callback and helper/GUI
+regressions. This adds no actual mount, driver-install or GPU execution claim.
+
 ## WinFsp paged-volume callbacks — 15 November 2026
 
 [Contract](WINFSP_PAGED_VOLUMES.md) and
