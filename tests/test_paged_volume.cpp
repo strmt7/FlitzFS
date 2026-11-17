@@ -12,6 +12,16 @@ void require(bool value,const char* reason){++checks;if(!value)throw std::runtim
 template<class F>void rejects(F&& action,const char* reason){++checks;try{action();}catch(const std::exception&){return;}throw std::runtime_error(reason);}
 StoreIdentity id(unsigned n){auto value=identity();value[0]=static_cast<std::byte>(n);return value;}
 auto ram(std::uint32_t unit){auto result=std::make_shared<Ram>();result->failure_unit=unit;return result;}
+std::string image_digest(std::span<const std::byte> bytes) {
+  constexpr char hex[]="0123456789abcdef";
+  std::string result;
+  for (const auto byte : detail::record_digest(bytes)) {
+    const auto value=std::to_integer<unsigned>(byte);
+    result.push_back(hex[value>>4]);
+    result.push_back(hex[value&15]);
+  }
+  return result;
+}
 Bytes family(unsigned n){auto bytes=data(kNativeExtentBytes,714);if(n){bytes[n*719%bytes.size()]^=std::byte{41};bytes[(n*1409+170)%bytes.size()]^=std::byte{77};}return bytes;}
 NativeFilesystemSnapshot view(const std::shared_ptr<Ram>& image){return NativeFilesystemSnapshot::open_image(image,storage);}
 void verify(const NativeFilesystemSnapshot& snapshot,unsigned count){for(unsigned i=0;i<count;++i)
@@ -81,6 +91,8 @@ void lifecycle(std::uint32_t unit) {
   proposal=f.session->optimization_snapshot().state;++proposal.profiles[0].cpu_ns;
   require(f.session->publish_budgeted_optimization_state(proposal).progress==NativeOptimizationBudgetProgress::deferred,"resume reissued spent credit");
   f.retire();std::cout<<"paged_volume_lifecycle unit="<<unit<<" selected_epoch=2\n";
+  std::cout<<"paged_volume_wire unit="<<unit<<" head="<<image_digest(f.head->live)
+      <<" source="<<image_digest(f.source->live)<<" target="<<image_digest(f.target->live)<<'\n';
 }
 void namespace_inventory() {
   Fixture f(4096,130);group(*f.session,130);require(f.session->snapshot().storage_info().objects>256,"large inventory did not cross old bound");

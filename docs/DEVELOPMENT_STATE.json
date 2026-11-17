@@ -31,6 +31,14 @@
     "scope": "Path lookup assembles allocation, metadata and descriptor from one verified namespace pass. Paged results also match one verified inode query.",
     "scalable_page_lookup": false
   },
+  "native_inode_serialization": {
+    "source_base": "8ee6cd1eca26d7314372d94a6e6cc8fbbe08e2a7",
+    "evidence": "docs/evidence/native-inode-serialization-2026-11-17.json",
+    "raw_and_sdk_groups_passed": 13,
+    "matching_complete_image_observations": 6,
+    "scope": "Direct inode frames and namespace roots on paged commits, group publication and compaction.",
+    "next": "Extract the existing per-record decoder, then introduce checked indexed metadata without the legacy aggregate ceiling."
+  },
   "readonly_memory_checkpoint": {
     "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
     "changed_source_binding": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",

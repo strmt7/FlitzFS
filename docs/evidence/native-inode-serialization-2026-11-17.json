@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "8ee6cd1eca26d7314372d94a6e6cc8fbbe08e2a7",
+  "source_binding": {
+    "src/native_filesystem.cpp": {
+      "git_blob": "657dcdc8a98de520f0398b132af3e95e713c8fd1",
+      "working_bytes_sha256": "480e43459f0f31a41a6214ad90b767574441d6ad637a33fb935dd01912b18ca7"
+    },
+    "tests/test_paged_volume.cpp": {
+      "git_blob": "c803a28a2e0fc08119ac5ed8d7b37e4d1da4e0ee",
+      "working_bytes_sha256": "5df2360bc33205dd4eba9f72c2fc38f9fcf0bec3272d9ffec292b7467a343888"
+    }
+  },
+  "mechanism": "Encode the root independently and serialize changed inode frames directly. Legacy aggregate uses the same canonical encoder. Root-only group and compaction operations generate only the selected namespace record.",
+  "fixture": "Identical deterministic managed volume inputs, both failure-unit models. Fixture includes writes, group publication, compaction, reopened handles and independent CPU verification.",
+  "baseline_runs": {
+    "compile": {
+      "run": "local-run-269e2e3fe15847b7b8398346620d8a12",
+      "receipt_sha256": "2c56bef7179cbd7db0879ab4dfce8b303088bf010dc25628cc8fed3b7bce9a05",
+      "output_sha256": "53ccf33022bf7e9586bca0dc688a0f48ee78758490251cd9b287b2c52f960fe7",
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    "baseline-wire": {
+      "run": "local-run-f95c3499e4114ca0a55adf0df2655533",
+      "receipt_sha256": "3caf1d7772fd5a0280dcfca917f6d3c8df5ee2810bb4fbadb87157e25bd20707",
+      "output_sha256": "51df67afab0bdc980d250e8f50d2cb5927fb7581457f65a362ded412350acdda",
+      "tree_retired": true,
+      "residual_children": 0
+    }
+  },
+  "final_runs": {
+    "raw-compile": {
+      "run": "local-run-81f3aed759b94d158729efab7a1fccb4",
+      "receipt_sha256": "c857e97b1133dbcad2a43b32262efe5658fa81b77a76121d472b672b23794e40",
+      "output_sha256": "0bb40c623068080b3d3c899e911adaeb6699a45273a11a272246b0a6584831a5",
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    "raw-ctest": {
+      "run": "local-run-c7d64c19c15d4916bbce81bba7ab55a4",
+      "receipt_sha256": "ef27b07cbdd5aaf2f67bfce8c554a0ee9d8979ec57228e634e3fedd7ef8e1c44",
+      "output_sha256": "7e997659765f2d209c38678d5baefc66dd7284982f729a0ac85ca35499ed7524",
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    "sdk-compile": {
+      "run": "local-run-a39480ef6a024d1eb87c350f56c5a822",
+      "receipt_sha256": "81304f1cc89cde3729422541f1dd75cb2fdbb3ec2728b87d2316fec3bde84467",
+      "output_sha256": "23e465a4608fd4def4d91cba89d15252297b0ab0d7129c35dd4c594b6ad2af55",
+      "tree_retired": true,
+      "residual_children": 0
+    },
+    "sdk-ctest": {
+      "run": "local-run-82b58d36e02a4eddbbc8fcab69e89fd4",
+      "receipt_sha256": "9915cfe61983ce4af786eeebbe6b31b3c202480d7a430ce99b757cf3b3b4873d",
+      "output_sha256": "1856a07b1c12544471d837c7937ccf6f4a9296652d1d0ddb38c4865070b3a752",
+      "tree_retired": true,
+      "residual_children": 0
+    }
+  },
+  "selected_raw_ctest_passed": 8,
+  "selected_winfsp_2_1_codec_ctest_passed": 5,
+  "matching_complete_image_observations": 6,
+  "matched_images": [
+    {
+      "failure_unit_bytes": 4096,
+      "head_blake3": "6f86e93e809ea9e3edd8733329f9e587e85ff496f9480b38b3617d83a4199aba",
+      "source_blake3": "2c92694d7b8fa6580e6eb72f450adc802f312cb8bbbf0752f62f33b83617c6b2",
+      "target_blake3": "4a96ea8ae61eed9501d7ad756ab73626b2d7be451f4a370efeaee25526f3f0ba"
+    },
+    {
+      "failure_unit_bytes": 65536,
+      "head_blake3": "6f86e93e809ea9e3edd8733329f9e587e85ff496f9480b38b3617d83a4199aba",
+      "source_blake3": "026b206703567a54096b4d0b7941d1e44c6137a911f467a155d7737338d1650e",
+      "target_blake3": "a59fd2df44f623794d17e5273a423e11fadce81c51a45725dfbf94e5c5d474ba"
+    }
+  ],
+  "next_layout_research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "7cea32f30653fa68df7cf51208d4fdbe57906c010652c729e80fa37d260cb714",
+    "sources_used": [
+      {
+        "url": "https://btrfs.readthedocs.io/en/latest/dev/dev-btrees.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 12241,
+        "markdown_sha256": "fc740c946eb83ae414b4a6b82a96e641538063aa6aa2ee21e288fd96b9aa15c8",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.462,
+        "capture": "btrfs-key-layout.native.json",
+        "capture_sha256": "14b27cf919adeb6d7b7f9306e685a8a05f0a7953925ab81708f1d559b5979f92",
+        "name": "btrfs-key-layout"
+      },
+      {
+        "url": "https://btrfs.readthedocs.io/en/latest/dev/On-disk-format.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 49808,
+        "markdown_sha256": "54cb7d74d311194bb1fa9445664ef19f5bf69242a7a5d4cc9dafbf8ad9e6859c",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.763,
+        "capture": "btrfs-format.native.json",
+        "capture_sha256": "f7ea39df80000449540313a9f4f5cfc6461506053d59fbddb0915a3592bb9506",
+        "name": "btrfs-format"
+      }
+    ],
+    "excluded_older_page": {
+      "name": "refs-integrity",
+      "published_update_observed": "2024-01-11",
+      "reason": "Older than the current research selection."
+    },
+    "semantic_query_source": "2a8714f258bf62d163ecf23ffb0bce848b22a55d",
+    "semantic_receipt_sha256": "ecfd8677779b1f78fad206b9de8a08afb987d0fe7bd145d1f02c28508dd386d6",
+    "semantic_native_capture_sha256": "d334a28021d8831a685e7c084524fea6de9aeb1a1f5b0830c4f30aa5064f9414"
+  },
+  "scope": {
+    "existing_namespace_inode_limit": 256,
+    "new_format_enabled": false,
+    "mount_of_this_changed_source": false,
+    "comparative_throughput_measured": false,
+    "release": false
+  }
+}

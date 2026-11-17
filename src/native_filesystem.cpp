@@ -68,6 +68,7 @@ struct Node {
   std::optional<std::uint64_t> allocation;
   std::string name,key;
   std::map<std::uint64_t,std::uint64_t> extents; // Logical block -> object ID.
+  bool operator==(const Node&) const = default;
 };
 struct Model {
   StoreIdentity identity{};
@@ -290,46 +291,78 @@ template<class Read> void validate_data(const Model& model,Read read) {
       fail(Code::corrupt,"native bytes beyond EOF");
   }
 }
-Bytes encode(const Model& model) {
+std::size_t inode_frame_size(const Node& n, std::uint32_t format) noexcept {
+  return node_header(format) + n.name.size() + 16*n.extents.size() +
+      (n.security ? n.security->size() : 0);
+}
+std::size_t checked_namespace_size(const Model& model) {
   validate_structure(model);
-  std::size_t size=64;
-  for(const auto& [id,n]:model.nodes){(void)id;size+=node_header(model.format)+n.name.size()+16*n.extents.size()+(n.security?n.security->size():0);}
-  if(size>kMetadataCap)fail(Code::limit,"native metadata budget");
-  Bytes bytes(size);const auto& magic=namespace_magic(model.format);
+  std::size_t size = 64;
+  for (const auto& [id,n] : model.nodes) {
+    (void)id;
+    const auto inode_bytes = inode_frame_size(n, model.format);
+    if (inode_bytes > kMetadataCap - size) fail(Code::limit, "native metadata budget");
+    size += inode_bytes;
+  }
+  return size;
+}
+void encode_namespace_header(std::span<std::byte> bytes, const Model& model) {
+  const auto& magic=namespace_magic(model.format);
   std::copy(magic.begin(),magic.end(),bytes.begin());
   put(bytes,8,model.format,4);put(bytes,12,model.nodes.size(),4);put(bytes,16,model.sequence,8);
   put(bytes,24,model.next_inode,8);put(bytes,32,kNativeExtentBytes,4);put(bytes,36,extent_count(model),4);
   std::copy(model.identity.begin(),model.identity.end(),bytes.begin()+40);
   if(model.format>=6)put(bytes,56,model.committed_input_bytes,8);
-  std::size_t cursor=64;
-  for(const auto& [id,n]:model.nodes) {
-    put(bytes,cursor,id,8);put(bytes,cursor+8,n.parent,8);put(bytes,cursor+16,n.directory?1:2,4);
-    put(bytes,cursor+20,(n.delete_pending?1U:0U)|(n.unlinked?2U:0U)|(n.basic?4U:0U)|(n.security?8U:0U)|(n.allocation?16U:0U),4);
-    put(bytes,cursor+24,n.size,8);put(bytes,cursor+32,n.born,8);put(bytes,cursor+40,n.modified,8);
-    put(bytes,cursor+48,n.name.size(),2);put(bytes,cursor+50,n.extents.size(),2);
-    if(n.basic) {
-      put(bytes,cursor+52,n.basic->attributes,4);put(bytes,cursor+56,n.basic->creation_time,8);
-      put(bytes,cursor+64,n.basic->last_access_time,8);put(bytes,cursor+72,n.basic->last_write_time,8);
-      put(bytes,cursor+80,n.basic->change_time,8);
-    }
-    if(model.format>=4)put(bytes,cursor+88,n.security?n.security->size():0,4);
-    if(model.format>=5)put(bytes,cursor+96,n.allocation.value_or(0),8);
-    cursor+=node_header(model.format);
-    for(char c:n.name)bytes[cursor++]=static_cast<std::byte>(static_cast<unsigned char>(c));
-    if(n.security) {
-      std::copy(n.security->begin(),n.security->end(),bytes.begin()+static_cast<std::ptrdiff_t>(cursor));
-      cursor+=n.security->size();
-    }
-    for(const auto& [block,object]:n.extents){put(bytes,cursor,block,8);put(bytes,cursor+8,object,8);cursor+=16;}
+}
+void encode_inode(std::span<std::byte> bytes, const Node& n, std::uint32_t format) {
+  put(bytes,0,n.inode,8);put(bytes,8,n.parent,8);put(bytes,16,n.directory?1:2,4);
+  const auto flags=(n.delete_pending?1U:0U)|(n.unlinked?2U:0U)|(n.basic?4U:0U)|
+      (n.security?8U:0U)|(n.allocation?16U:0U);
+  put(bytes,20,flags,4);
+  put(bytes,24,n.size,8);put(bytes,32,n.born,8);put(bytes,40,n.modified,8);
+  put(bytes,48,n.name.size(),2);put(bytes,50,n.extents.size(),2);
+  if (n.basic) {
+    put(bytes,52,n.basic->attributes,4);put(bytes,56,n.basic->creation_time,8);
+    put(bytes,64,n.basic->last_access_time,8);put(bytes,72,n.basic->last_write_time,8);
+    put(bytes,80,n.basic->change_time,8);
+  }
+  if (format>=4) put(bytes,88,n.security?n.security->size():0,4);
+  if (format>=5) put(bytes,96,n.allocation.value_or(0),8);
+  auto cursor = node_header(format);
+  for (const auto c : n.name) bytes[cursor++]=static_cast<std::byte>(static_cast<unsigned char>(c));
+  if (n.security) {
+    std::copy(n.security->begin(),n.security->end(),bytes.begin()+static_cast<std::ptrdiff_t>(cursor));
+    cursor += n.security->size();
+  }
+  for (const auto& [block,object] : n.extents) {
+    put(bytes,cursor,block,8);
+    put(bytes,cursor+8,object,8);
+    cursor += 16;
+  }
+}
+Bytes encode(const Model& model) {
+  Bytes bytes(checked_namespace_size(model));
+  encode_namespace_header(bytes, model);
+  std::size_t cursor = 64;
+  for (const auto& [id,n] : model.nodes) {
+    (void)id;
+    const auto size = inode_frame_size(n, model.format);
+    encode_inode(std::span<std::byte>(bytes).subspan(cursor,size), n, model.format);
+    cursor += size;
   }
   return bytes;
 }
 std::size_t inventory_limit(const Model& model) {
   return model.shared_bases?4*kStoreMaxObjects:model.indexed_names?3*kStoreMaxObjects:model.inode_records?2*kStoreMaxObjects:kStoreMaxObjects;
 }
-Bytes inode_root(std::span<const std::byte> normalized,bool indexed_names,bool shared_bases=false) {
-  Bytes root(normalized.begin(),normalized.begin()+64);
-  std::copy(kInodeRootMagic.begin(),kInodeRootMagic.end(),root.begin());put(root,8,shared_bases?3:indexed_names?2:1,4);return root;
+Bytes namespace_record(const Model& model) {
+  if (!model.inode_records) return encode(model);
+  (void)checked_namespace_size(model);
+  Bytes root(64);
+  encode_namespace_header(root, model);
+  std::copy(kInodeRootMagic.begin(),kInodeRootMagic.end(),root.begin());
+  put(root,8,model.shared_bases?3:model.indexed_names?2:1,4);
+  return root;
 }
 Bytes directory_bytes(const Model& model,std::uint64_t directory) {
   Bytes bytes(24);std::copy(kDirectoryMagic.begin(),kDirectoryMagic.end(),bytes.begin());
@@ -379,31 +412,24 @@ std::uint64_t resolve_snapshot(const detail::NativeObjectSnapshot& objects,const
   }
   return current;
 }
-using NodeFrames=std::map<std::uint64_t,std::span<const std::byte>>;
-NodeFrames node_frames(const Model& model,std::span<const std::byte> bytes) {
-  NodeFrames frames;std::size_t cursor=64;
-  for(const auto& [id,n]:model.nodes) {
-    const auto size=node_header(model.format)+n.name.size()+(n.security?n.security->size():0)+16*n.extents.size();
-    if(cursor>bytes.size() || size>bytes.size()-cursor)fail(Code::corrupt,"encoded inode framing invariant");
-    frames.emplace(id,bytes.subspan(cursor,size));cursor+=size;
-  }
-  if(cursor!=bytes.size())fail(Code::corrupt,"encoded inode trailing invariant");return frames;
-}
 void namespace_mutations(std::vector<StoreMutation>& output,const Model& model,const Model* previous=nullptr) {
-  const auto current=encode(model);
-  if(!model.inode_records){output.push_back({kNamespaceObject,false,current});return;}
-  output.push_back({kNamespaceObject,false,inode_root(current,model.indexed_names,model.shared_bases)});
-  const auto frames=node_frames(model,current);
-  const auto old=previous?encode(*previous):Bytes{};
-  const auto prior=previous?node_frames(*previous,old):NodeFrames{};
-  if(previous && !previous->inode_records)fail(Code::invalid_operation,"inode layout conversion requires a new image");
-  for(const auto& [id,frame]:frames) {
-    const auto found=prior.find(id);
-    if(found==prior.end() || !std::equal(frame.begin(),frame.end(),found->second.begin(),found->second.end()))
-      output.push_back({kInodeObjectBit|id,false,Bytes(frame.begin(),frame.end())});
+  if (model.inode_records && previous && !previous->inode_records)
+    fail(Code::invalid_operation,"inode layout conversion requires a new image");
+  output.push_back({kNamespaceObject,false,namespace_record(model)});
+  if (!model.inode_records) return;
+  if (previous) (void)checked_namespace_size(*previous);
+  for (const auto& [id,n] : model.nodes) {
+    if (previous && previous->format==model.format) {
+      const auto old = previous->nodes.find(id);
+      if (old!=previous->nodes.end() && n==old->second) continue;
+    }
+    Bytes frame(inode_frame_size(n, model.format));
+    encode_inode(frame, n, model.format);
+    output.push_back({kInodeObjectBit|id,false,std::move(frame)});
   }
-  for(const auto& [id,frame]:prior) { (void)frame;
-    if(!frames.contains(id))output.push_back({kInodeObjectBit|id,true,{}});
+  if (previous) for (const auto& [id,n] : previous->nodes) {
+    (void)n;
+    if (!model.nodes.contains(id)) output.push_back({kInodeObjectBit|id,true,{}});
   }
   if(model.indexed_names) {
     if(previous && !previous->indexed_names)fail(Code::invalid_operation,"directory index conversion requires a new image");
@@ -1324,7 +1350,7 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
     }
     refresh_group_bases(model);changes.push_back({anchor,false,std::move(p->base)});
     for(const auto old:impl_->model.bases)if(!model.bases.contains(old))changes.push_back({old,true,{}});
-    changes.push_back({kNamespaceObject,false,inode_root(encode(model),true,true)});
+    changes.push_back({kNamespaceObject,false,namespace_record(model)});
     // Compare complete compacted layouts of the CURRENT root. An unrelated
     // foreground transaction is preserved, not overwritten by a saved Model.
     auto before=source.list(inventory_limit(model));auto after=before;
@@ -1451,13 +1477,13 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
     fail(Code::invalid_operation,"native compaction requires a new target identity");
   try {
     auto model=decode(source.impl_->objects);model.identity=id;
-    const auto metadata=encode(model);
     if(const auto* paged=source.impl_->objects.paged_if()) {
       if(checkpoints.compact_metadata)
         fail(Code::invalid_operation,"paged rebuild isolation already derives from the backend contract");
-      const auto root=model.inode_records?inode_root(metadata,model.indexed_names,model.shared_bases):metadata;
+      const auto root=namespace_record(model);
       return resume(detail::NativeObjectWriter::rebuild(*paged,std::move(target),id,root,compression,reencode));
     }
+    const auto metadata=encode(model);
     return resume(ObjectStoreWriter::compact_replacing(source.impl_->objects.flat(),
         std::move(target),id,kNamespaceObject,metadata,compression,checkpoints,reencode));
   }catch(const std::bad_alloc&){fail(Code::limit,"native compaction allocation failure");}
@@ -1500,8 +1526,8 @@ PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompress
       fail(Code::invalid_operation,"staged paged rebuild needs resolved file contexts");
   }
   try {
-    auto model=impl_->model;model.identity=id;const auto metadata=encode(model);
-    const auto root=model.inode_records?inode_root(metadata,model.indexed_names,model.shared_bases):metadata;
+    auto model=impl_->model;model.identity=id;
+    const auto root=namespace_record(model);
     return impl_->objects.prepare_paged_rebuild(std::move(target),id,root,compression,reencode);
   }catch(const std::bad_alloc&){fail(Code::limit,"staged paged preparation allocation failure");}
   catch(const NativeFsError&){throw;}
