@@ -1,0 +1,162 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "f90216a9b32c59c26ad5301b5919e37b19ef1649",
+  "source_base_tree": "d9ed5f41ebbf8f870e93417bcf4feaa3f1156938",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "worktree_sha256": "58ee4e4f88a3f1d37bef1fbd423f980735d9afc1bfc8e98c87236d62390750a0",
+      "git_blob": "4533790a3caece8c61cd3f74c51f3bad2d2f0b40"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "worktree_sha256": "2bcabe1228361d830c28f6001bf17ecf064e8a533ba3b7115c344133a1fc6706",
+      "git_blob": "de4a362a05fbc3c3dfc81a2ffd0634b608c091c5"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "worktree_sha256": "08c33a6e27d5df157f86d7b751bdfd17691bacd4b007fc5256f218e97fd31e29",
+      "git_blob": "8fdf63f89b07bf9e1ca671cfc9937283f96cfa6c"
+    },
+    {
+      "path": "src/native_object_storage.hpp",
+      "worktree_sha256": "99beed7cda571dbb27474d5082bf61a68c2fa9760fba4106e25f19ae74f1e35c",
+      "git_blob": "01c2c801782b429ec19254afee50caa3a00d0ceb"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "worktree_sha256": "1d5b5f7f1ae5888d752af44dcdd7df0d5e81486c342457ea2594da3b0a7af155",
+      "git_blob": "45d25c055184fd03e4ee73a2e6203b6cce28df6f"
+    },
+    {
+      "path": "tests/test_native_paged_backend.cpp",
+      "worktree_sha256": "5ad24de0acca15b5c08fde03b17776210f9e6955eb551608be9bf43a1cb4acf4",
+      "git_blob": "2be3bdd1b9c389451c8d943ab316da3bdd7130f7"
+    }
+  ],
+  "scope": "Native writer reads under existing inode-record namespace capabilities on Windows x64. Raw and WinFsp 2.1 codec builds, AddressSanitizer and injected callbacks on synthetic memory backings.",
+  "change": "Live point queries verify the committed root and returned records. A query may reuse up to four verified object metadata pages. Mutations, flush, snapshot admission and recovery retain full namespace verification.",
+  "measurements": [
+    {
+      "layout": "FLTXPN01 capability 1",
+      "inodes": 132,
+      "full_namespace_bytes": 2210834,
+      "pre_cache_lookup_bytes": 66451,
+      "query_cache_lookup_bytes": 17299,
+      "pre_cache_file_read_bytes": 115263,
+      "query_cache_file_read_bytes": 82495
+    },
+    {
+      "layout": "FLTXPN01 capability 2",
+      "inodes": 132,
+      "full_namespace_bytes": 2262944,
+      "pre_cache_lookup_bytes": 99575,
+      "query_cache_lookup_bytes": 17655,
+      "pre_cache_file_read_bytes": 115263,
+      "query_cache_file_read_bytes": 82495
+    }
+  ],
+  "measurement_scope": "Fixture backing reads, including checked metadata replicas and requested data. Pre-cache observations are from the earlier dirty-tree implementation of this change. Full namespace bytes are the same-fixture complete verification used by accounting, not a mounted-latency benchmark.",
+  "checks": {
+    "raw_windows_groups_passed": 11,
+    "windows_address_sanitizer_groups_passed": 3,
+    "codec_winfsp_sdk_groups_passed": 6,
+    "older_wire_unchanged": true,
+    "actual_gpu": false,
+    "actual_mount": false
+  },
+  "failure_checks": [
+    "Root, selected inode, ancestor and persisted directory record corruption fail closed.",
+    "Healthy file access avoids an unrelated inode fault. Full verification catches that fault before the flush barrier.",
+    "Corrupting both referenced metadata pages after a successful lookup fails the next lookup. The last stable image remains byte-identical."
+  ],
+  "semantic_route": {
+    "provider": "CocoIndex Code 0.2.43",
+    "actual_searches": 1,
+    "source_files": 19,
+    "receipt_sha256": "07c84f58a50a28dcf1a39593c5828e766f1d38ff8a451ba3e0e2a08cb3b837c8",
+    "native_response_sha256": "385b44959ecdd81adc5f0554280bfdaebe5e3c50efcf804d2a9c54582a39d15e"
+  },
+  "prior_exact_source_ci": {
+    "head_sha": "f90216a9b32c59c26ad5301b5919e37b19ef1649",
+    "run": 44181359494,
+    "conclusion": "success",
+    "jobs_passed": 13,
+    "writable_profiles_passed": 7
+  },
+  "local_runs": {
+    "pre_cache_build": {
+      "run": "local-run-5e6bcf95a51b4fa89863e7f28caefb3b",
+      "receipt_sha256": "34d5f693adcb7a3b87d87a23b698dc940d4ea2a34c347f1ab6016b3e92765e33",
+      "output_sha256": "8243c74b3d059352992b5e6407ed899b0a08ea4a8635a8ee64baef688fb4a285",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 383377408
+    },
+    "pre_cache_ctest": {
+      "run": "local-run-3cfc0a52be394becb8b0e8c19d2fbc77",
+      "receipt_sha256": "9b7430171795b32c5723307cdc9419fa9e920fce86891631f8b7964414cfff11",
+      "output_sha256": "b4912c8d85d37aa45830497e39c6ae13777093dbe2241a423b70b53a3c07bf97",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 204750848
+    },
+    "raw_build": {
+      "run": "local-run-9e858681067c4e73bf07202de9dab52c",
+      "receipt_sha256": "7583190c5f168eef214a744c3fe7b83aa6a51cebf04d558f27332988d76c3ac7",
+      "output_sha256": "a5e57a2100f1fda287b46b694e66c0b048a5049fa736e87159c6da40f028b52c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 373116928
+    },
+    "raw_ctest": {
+      "run": "local-run-296d567ffd304decbcb337ee2edefd28",
+      "receipt_sha256": "73d5d536b6c1c69ec0f7519a47929ea193dc034a5f9eb8f65aebcd3e13f98a3e",
+      "output_sha256": "8c423b5ef624105960754f165a83036671f2907b43dfa39c69b22130acee7790",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 204980224
+    },
+    "asan_build": {
+      "run": "local-run-336a5025f862443183b5e8e9f1a29eb5",
+      "receipt_sha256": "f30a02e9508d8b4d00e5ed287c0a25c068c686140f7c8bd1c5c0154607eb9b11",
+      "output_sha256": "b9041a3c6b70c05005b6e930c812c171268f4baa510b47dfb0a35c24715d7c4c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 374415360
+    },
+    "asan_ctest": {
+      "run": "local-run-4e6b521be275480297ebac7cfc9803e8",
+      "receipt_sha256": "4a9a98c3222742bdb2c05e7e2ce1a9e5da167fc05780dd202673461830aa6512",
+      "output_sha256": "64c77b6329e422b4f428f57abac98b71cf344d1e2ccfedf297e79af255a153c4",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 1015255040
+    },
+    "sdk_build": {
+      "run": "local-run-371bced4908443518a02486be025cccc",
+      "receipt_sha256": "739c60b7795cd600c93fb1deb3b408b7180896576a0154528b2a0dc2ae8fa670",
+      "output_sha256": "b8c4a413af9e7a6481a1d5ff62aabd907744ad70148b34ce8634a3f3a1864708",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 715526144
+    },
+    "sdk_ctest": {
+      "run": "local-run-6f217ab98c5a4f2aaa2eb5de1d5ddf39",
+      "receipt_sha256": "73586c187b6d8158e99f52ba8e4d63286a3d8d9a91650b562849dae1beba72f8",
+      "output_sha256": "33812c02173f62f3e4f67762b46fe3376b96c55057920a4030f5cb531d326466",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 38240256
+    }
+  }
+}

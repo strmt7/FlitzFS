@@ -65,6 +65,17 @@
     "windows_address_sanitizer_test_groups_passed": 3,
     "scope": "Current lookup and enumeration verify persisted names in place. Revalidation walks inode frames individually. The standard WinFsp lifecycle fixture opens sealed memory and checks committed bytes through injected callbacks."
   },
+  "native_scoped_reads": {
+    "source_base": "f90216a9b32c59c26ad5301b5919e37b19ef1649",
+    "evidence": "docs/evidence/native-scoped-read-2026-11-17.json",
+    "raw_test_groups_passed": 11,
+    "codec_and_sdk_test_groups_passed": 6,
+    "windows_address_sanitizer_test_groups_passed": 3,
+    "fixture_inodes": 132,
+    "indexed_full_namespace_read_bytes": 2262944,
+    "indexed_live_lookup_read_bytes": 17655,
+    "scope": "Checked live reads, inode and path results under existing inode-record capabilities. Object-index page reuse ends with the query. Full validation remains for mutations, flush and recovery."
+  },
   "readonly_memory_checkpoint": {
     "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
     "changed_source_binding": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
@@ -107,6 +118,12 @@
     "direct_inode_read_recheck": {
       "source": "b2da48de1c885cdaaee146978f35bc6213f32d8a",
       "run": 44174642146,
+      "jobs_passed": 13,
+      "writable_profiles_passed": 7
+    },
+    "directory_verification_recheck": {
+      "source": "f90216a9b32c59c26ad5301b5919e37b19ef1649",
+      "run": 44181359494,
       "jobs_passed": 13,
       "writable_profiles_passed": 7
     },

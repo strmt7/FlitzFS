@@ -79,8 +79,9 @@ class NativeObjectWriter final {
   NativeObjectSnapshot snapshot() const {
     return std::visit([](const auto& value)->NativeObjectSnapshot{return value.snapshot();},value_);
   }
-  NativeObjectSnapshot snapshot_for_staging() const {
-    return std::visit([](const auto& value)->NativeObjectSnapshot{return value.snapshot_for_staging();},value_);
+  NativeObjectSnapshot snapshot_for_staging(bool query_cache=false) const {
+    if(const auto* flat=flat_if())return flat->snapshot_for_staging();
+    return std::get<PagedObjectStoreWriter>(value_).snapshot_for_staging(query_cache);
   }
   std::uint64_t generation_for_staging() const noexcept {
     return std::visit([](const auto& value){return value.generation_for_staging();},value_);

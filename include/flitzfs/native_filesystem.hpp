@@ -523,6 +523,7 @@ class NativeFilesystemWriter final {
   static void finish_recompression(Recompression&);
   struct Impl;
   void check_shared_base(SharedBaseWork&) const;
+  Impl& checked_impl() const;
   detail::NativeObjectSnapshot checked_namespace() const;
   NativePathLookup inspect_path_lookup(std::string_view path) const;
   enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};

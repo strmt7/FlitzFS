@@ -440,6 +440,100 @@ void inode_records_and_incremental_writes() {
   std::cout<<"inode_records metadata_input_bytes="<<metadata_bytes<<" whole_namespace_bytes="<<whole_metadata
       <<" changed_inode_records="<<changed<<" backend_write_bytes="<<ram->write_bytes-writes<<'\n';
 }
+void checked_live_reads() {
+  constexpr unsigned unrelated_files=128;
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  auto writer=fresh(ram);
+  const auto payload=data(23,701);
+  const auto created=writer.apply(std::array{file_create("Data",true),file_create("Data/target"),
+      file_write("Data/target",0,payload),file_create("Other",true)});
+  const auto directory=created.created_inodes.at(0), target=created.created_inodes.at(1);
+  for(unsigned first=0;first<unrelated_files;first+=16) {
+    std::vector<NativeFileMutation> batch;
+    for(unsigned i=first;i<first+16;++i)batch.push_back(file_create("Other/item-"+std::to_string(i)));
+    writer.apply(batch);
+  }
+  file_apply(writer,file_rename("Data/target","Data/renamed"));
+  const auto start=ram->read_bytes;
+  require(writer.inspect_allocation_usage().live_extents==1,"complete namespace comparison fixture");
+  const auto complete_bytes=ram->read_bytes-start;
+  const auto image_bytes=ram->stable;
+  const auto objects=PagedObjectStoreSnapshot::open(ram,limits);
+  const auto offset_of=[&](std::uint64_t id) {
+    const auto record=objects.read(id);
+    const auto where=std::search(image_bytes.begin(),image_bytes.end(),record.begin(),record.end());
+    require(!record.empty() && where!=image_bytes.end(),"owned raw record missing");
+    require(std::search(std::next(where),image_bytes.end(),record.begin(),record.end())==image_bytes.end(),
+        "owned raw record not unique");
+    return static_cast<std::uint64_t>(std::distance(image_bytes.begin(),where));
+  };
+  const auto unrelated_id=writer.inspect_path("Other/item-99").info.inode;
+  const auto unrelated_at=offset_of(inode_bit|unrelated_id);
+  const auto selected_write_count=ram->writes;
+  {
+    auto session=NativeFileSession::create(std::move(writer));
+    const auto handle=session.open("data/RENAMED",{true,true,false});
+    const auto before_lookup=ram->read_bytes;
+    const auto state=session.lookup("data/RENAMED");
+    const auto lookup_bytes=ram->read_bytes-before_lookup;
+    require(state.state.info.inode==target && state.state.info.logical_bytes==payload.size(),
+        "live lookup changed inode or size");
+    const auto before_data=ram->read_bytes;
+    require(session.read(handle,0,128)==payload,"live scoped read changed bytes");
+    const auto read_bytes=ram->read_bytes-before_data;
+    require(lookup_bytes>0 && lookup_bytes<kNativeExtentBytes/2 &&
+        read_bytes<kNativeExtentBytes+kNativeExtentBytes/2,
+        "live query loaded duplicate or unrelated paged metadata");
+    require(ram->writes==selected_write_count,"live query changed backing bytes");
+    ram->corrupt_read_offset=unrelated_at;ram->corrupt_read_number=1;
+    require(session.lookup("Data/renamed").state.info.inode==target &&
+        session.read(handle,0,128)==payload && ram->matching_reads==0 && !session.poisoned(),
+        "healthy scoped read touched another directory's inode");
+    const auto flushes=ram->flushes;
+    rejects([&]{(void)session.flush();},"explicit barrier stopped checking the full namespace");
+    require(session.poisoned() && ram->matching_reads==1 && ram->flushes==flushes &&
+        ram->stable==image_bytes,"full revalidation failure reached the barrier");
+    std::cout<<"live_query_io inodes="<<1+created.created_inodes.size()+unrelated_files
+        <<" namespace_read_bytes="<<complete_bytes
+        <<" lookup_read_bytes="<<lookup_bytes<<" file_read_bytes="<<read_bytes<<'\n';
+  }
+  std::vector<std::uint64_t> checked{offset_of(1),offset_of(inode_bit|directory),offset_of(inode_bit|target)};
+#ifdef FLITZFS_TEST_DIRECTORY_INDEX
+  checked.push_back(offset_of((1ULL<<62)|directory));
+#endif
+  for(const auto offset:checked) {
+    auto faulted=image(image_bytes,4096);
+    auto trial=resume(faulted);
+    auto session=NativeFileSession::create(std::move(trial));
+    faulted->corrupt_read_offset=offset;faulted->corrupt_read_number=1;
+    const auto writes=faulted->writes;
+    rejects([&]{(void)session.lookup("Data/renamed");},"live lookup exposed corrupted metadata");
+    require(session.poisoned() && faulted->matching_reads==1 && faulted->writes==writes,
+        "selected metadata corruption did not fence before writes");
+  }
+  {
+    auto faulted=image(image_bytes,4096);
+    auto session=NativeFileSession::create(resume(faulted));
+    require(session.lookup("Data/renamed").state.info.inode==target,"cached query fixture did not open");
+    const auto root=static_cast<std::size_t>(objects.info().generation%2*kStoreCommitUnit);
+    // Root reference primary and peer offsets, inside this owned fixture.
+    for(auto field:{104U,112U}) {
+      std::uint64_t page=0;
+      for(unsigned i=0;i<8;++i)
+        page|=std::uint64_t(std::to_integer<unsigned char>(image_bytes.at(root+field+i)))<<(8*i);
+      require(page>=2*kStoreCommitUnit && page<image_bytes.size(),"fixture page reference outside image");
+      faulted->live.at(static_cast<std::size_t>(page))^=std::byte{1};
+    }
+    const auto writes=faulted->writes;
+    rejects([&]{(void)session.lookup("Data/renamed");},"query reused a metadata page from a previous operation");
+    require(session.poisoned() && faulted->writes==writes && faulted->stable==image_bytes,
+        "damaged metadata replicas were exposed or overwritten");
+  }
+  auto recovered=image(image_bytes,4096);
+  const auto clean=view(recovered);
+  require(clean.read("Data/renamed",0,128)==payload && clean.list("Other").size()==unrelated_files,
+        "acknowledged checkpoint changed after failed reads");
+}
 void inode_record_capacity_and_large_delete() {
   auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
   {
@@ -645,7 +739,7 @@ int main() {try {
   failure_matrix(4096);failure_matrix(65536);flush_failures();paged_barrier_pressure();directory_pages();
   maintenance_success_and_admission();maintenance_faults(4096);maintenance_faults(65536);
 #ifdef FLITZFS_TEST_INODE_RECORDS
-  inode_records_and_incremental_writes();inode_record_capacity_and_large_delete();forged_inode_records();
+  inode_records_and_incremental_writes();checked_live_reads();inode_record_capacity_and_large_delete();forged_inode_records();
 #endif
 #ifdef FLITZFS_TEST_DIRECTORY_INDEX
   directory_record_updates();forged_directory_records();directory_maximum_recovery();

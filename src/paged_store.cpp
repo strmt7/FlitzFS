@@ -217,11 +217,29 @@ Node read_node(const State& s,const Ref& r) {
       total.logical!=r.logical || total.stored!=r.stored)fail("page summary mismatch");
   return n;
 }
-std::optional<Entry> lookup(const State& s,std::uint64_t id) {
+// Lives only in a single native query, with the immutable State that admitted
+// these exact references. Record payloads are still checked on every read.
+class LookupPages {
+ public:
+  const Node& get(const State& state,const Ref& reference) {
+    for(const auto& page:pages_)
+      if(page && page->reference==reference)return page->node;
+    auto& slot=pages_[next_];
+    slot=Page{reference,read_node(state,reference)};
+    next_=(next_+1)%pages_.size();
+    return slot->node;
+  }
+ private:
+  struct Page {Ref reference;Node node;};
+  std::array<std::optional<Page>,4> pages_{};
+  std::size_t next_=0;
+};
+std::optional<Entry> lookup(const State& s,std::uint64_t id,LookupPages* scoped=nullptr) {
   if(!id || !s.root.count || id<s.root.first || id>s.root.last)return {};
   auto r=s.root;
   for(std::uint32_t depth=0;depth<=maximum_height;++depth) {
-    auto n=read_node(s,r);
+    Node temporary;
+    const auto& n=scoped?scoped->get(s,r):(temporary=read_node(s,r));
     if(!r.height) {
       const auto i=std::lower_bound(n.entries.begin(),n.entries.end(),id,[](const auto& e,auto key){return e.id<key;});
       if(i!=n.entries.end() && i->id==id)return *i;
@@ -554,7 +572,10 @@ std::optional<Entry> next_entry(const State& state,std::uint64_t after) {
 }
 } // namespace
 
-struct PagedObjectStoreSnapshot::Impl {State state;};
+struct PagedObjectStoreSnapshot::Impl {
+  State state;
+  std::optional<LookupPages> lookup_pages;
+};
 struct PagedObjectStoreWriter::Impl {
   // Nested lease shares the parent's friendship, as in the flat writer.
   struct Lease {
@@ -733,14 +754,17 @@ std::uint64_t PagedObjectStoreSnapshot::rebuilt_size(std::span<const StoreObject
 }
 PagedStoreInfo PagedObjectStoreSnapshot::info() const noexcept {return impl_?flitzfs::info(impl_->state):PagedStoreInfo{};}
 std::optional<StoreObjectInfo> PagedObjectStoreSnapshot::stat(std::uint64_t id) const {
-  if(!impl_)fail("moved-from snapshot");auto e=lookup(impl_->state,id);
+  if(!impl_)fail("moved-from snapshot");
+  auto e=lookup(impl_->state,id,impl_->lookup_pages?&*impl_->lookup_pages:nullptr);
   if(!e)return {};return StoreObjectInfo{e->id,e->generation,e->logical,e->stored};
 }
 Bytes PagedObjectStoreSnapshot::read(std::uint64_t id) const {
   return read(id,kStoreMaxObjectBytes);
 }
 Bytes PagedObjectStoreSnapshot::read(std::uint64_t id,std::size_t maximum_decoded_bytes) const {
-  if(!impl_)fail("moved-from snapshot");auto e=lookup(impl_->state,id);if(!e)fail("missing object");
+  if(!impl_)fail("moved-from snapshot");
+  auto e=lookup(impl_->state,id,impl_->lookup_pages?&*impl_->lookup_pages:nullptr);
+  if(!e)fail("missing object");
   if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
   return read_object(impl_->state,*e);
 }
@@ -920,9 +944,10 @@ PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot() const {
   p->state=impl_->state;if(impl_->poisoned)p->state.degraded_roots=true;
   (void)read_node(p->state,p->state.root);return PagedObjectStoreSnapshot(std::move(p));
 }
-PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_staging() const {
+PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_staging(bool query_cache) const {
   if(!impl_ || impl_->poisoned)fail("staging requires a healthy writer");
   auto p=std::make_unique<PagedObjectStoreSnapshot::Impl>();p->state=impl_->state;
+  if(query_cache)p->lookup_pages.emplace();
   return PagedObjectStoreSnapshot(std::move(p));
 }
 std::uint64_t PagedObjectStoreWriter::generation_for_staging() const noexcept {

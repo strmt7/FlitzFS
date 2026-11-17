@@ -100,7 +100,7 @@ class PagedObjectStoreWriter final {
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode);
-  PagedObjectStoreSnapshot snapshot_for_staging() const;
+  PagedObjectStoreSnapshot snapshot_for_staging(bool query_cache=false) const;
   std::uint64_t generation_for_staging() const noexcept;
   std::uint64_t physical_end_for_staging() const noexcept;
   // Native inode records consume their own metadata entries. Keep public

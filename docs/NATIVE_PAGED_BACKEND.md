@@ -23,6 +23,22 @@ and payload bytes before exposing files. Generic paged open's lazy contract
 does not replace native verification. Pending/unlinked state requires explicit
 retired-context recovery. Reading needs no GPU or worker.
 
+## Checked live queries
+
+For inode-record volumes, live reads and metadata queries compare the committed
+root and verify the inode records they use. A path query also verifies its
+ancestors and any persisted directory records it crosses. A range read verifies
+its selected extents and any decode dependencies before returning bytes. A
+bounded cache can reuse four verified object-index pages within that query.
+The next query opens a new check scope. Corruption in a selected record fences
+the writer and leaves the acknowledged checkpoint untouched.
+
+Mutation, flush and recovery continue to check the full required namespace.
+Legacy monolithic namespaces use their original verification path. In the
+132-inode directory-index fixture, a live name lookup read 17,655 backing
+bytes and complete namespace validation read 2,262,944 bytes.
+[Checked read evidence](evidence/native-scoped-read-2026-11-17.json)
+
 ## Flush and ownership
 
 Paged commits retain their three barriers and shared backend writer lease.

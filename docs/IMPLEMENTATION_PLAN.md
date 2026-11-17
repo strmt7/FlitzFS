@@ -168,6 +168,15 @@ session revalidation compares each inode record individually. The standard
 WinFsp lifecycle test uses sealed managed memory and verifies the committed
 bytes through callbacks. [Directory verification evidence](evidence/native-directory-verification-2026-11-17.json)
 
+Live inode-record queries now verify the bound root and selected path, inode
+and extent records. The cache ends with each query. The indexed 132-inode
+fixture read 17,655 backing bytes for a name lookup. Complete namespace
+validation read 2,262,944 bytes. Full mutation and recovery checks remain in
+place. The writable directory callback still collects the whole directory
+and resolves each result by path. Replace that loop with checked name and
+metadata pages through the normal session before enabling the scalable layout.
+[Scoped read evidence](evidence/native-scoped-read-2026-11-17.json)
+
 Paged publication writes each changed inode frame directly. Compaction
 and grouped writes generate the namespace root independently. Paged reads
 decode one inode frame at a time and reuse one inventory for validation.
