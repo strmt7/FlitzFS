@@ -33,6 +33,7 @@ not establish speed or size superiority over other filesystems.
 | Which source is currently qualified? | [Current development state](../DEVELOPMENT_STATE.json) |
 | What remains? | [Release readiness](../RELEASE_READINESS.md), [implementation plan](../DEVELOPMENT_PLAN.md) |
 | Where are immutable receipts? | [Evidence directory](../evidence/) |
+| What verifies a source ZIP? | [Git-derived archive verification](../evidence/source-archive-2026-11-17.json) |
 | What qualifies automatic group discovery? | [Controller contract](../AUTOMATIC_GROUP_MAINTENANCE.md), [source-bound CPU/model evidence](../evidence/automatic-group-maintenance-2026-11-15.json) |
 | What qualifies live helper idle work? | [Windows background contract](../WINDOWS_BACKGROUND_MAINTENANCE.md), [source-bound live/GUI evidence](../evidence/windows-background-maintenance-2026-11-15.json) |
 | What qualifies paged writable SDK callbacks? | [Paged adapter contract](../WINFSP_PAGED_VOLUMES.md), [runtime/model evidence](../evidence/paged-winfsp-2026-11-15.json) |

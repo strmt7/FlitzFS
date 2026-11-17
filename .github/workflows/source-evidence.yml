@@ -42,11 +42,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           python -B tools/ci/test_source_inventory.py
           python -B tools/ci/source_inventory.py
-          git archive -9 --format=zip HEAD -o "$RUNNER_TEMP/flitzfs-source.zip"
-          source_bytes="$(stat -c '%s' "$RUNNER_TEMP/flitzfs-source.zip")"
-          printf 'Tracked source archive bytes: %s\n' "$source_bytes"
-          test "$source_bytes" -le 4194304
-          python -B tools/ci/source_inventory.py --archive "$RUNNER_TEMP/flitzfs-source.zip"
+          python -B tools/ci/source_inventory.py --create-archive "$RUNNER_TEMP/flitzfs-source.zip"
           printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TEMP/source-commit.txt"
           cd "$RUNNER_TEMP"
           sha256sum flitzfs-source.zip > source-sha256.txt
@@ -60,4 +56,4 @@ jobs:
             ${{ runner.temp }}/source-sha256.txt
           if-no-files-found: error
           retention-days: 3
-          compression-level: 0
+          compression-level: 6

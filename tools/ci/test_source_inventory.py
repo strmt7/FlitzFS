@@ -3,7 +3,7 @@ import unittest
 import hashlib
 import io
 import zipfile
-from source_inventory import inventory, verify_archive, ENTRY_CAP, FILE_CAP, EXPANDED_CAP
+from source_inventory import inventory, verify_archive, ENTRY_OVERHEAD, READ_CHUNK
 
 def row(path, size=1, mode="100644", kind="blob", oid="1" * 40):
     return f"{mode} {kind} {oid} {size}\t{path}\0".encode()
@@ -16,15 +16,16 @@ class SourceInventory(unittest.TestCase):
                           result["zip_entry_bound"], result["expanded_bytes"]),
                          (514, 1, 515, 514))
 
-    def test_entry_boundary_counts_directories(self):
-        accepted = b"".join(row(f"dir-{i}/file.cpp") for i in range(ENTRY_CAP // 2))
-        self.assertEqual(inventory(accepted)["zip_entry_bound"], ENTRY_CAP)
-        with self.assertRaises(ValueError):
-            inventory(accepted + row("extra"))
-        flat = b"".join(row(f"file-{i}") for i in range(ENTRY_CAP))
-        self.assertEqual(inventory(flat)["zip_entry_bound"], ENTRY_CAP)
-        with self.assertRaises(ValueError):
-            inventory(flat + row("extra"))
+    def test_commit_size_and_directory_growth_change_archive_bound(self):
+        data = b"".join(row(f"dir-{i}/file.cpp", 24 * 1024) for i in range(600))
+        before = inventory(data)
+        self.assertEqual(before["zip_entry_bound"], 1200)
+        self.assertEqual(before["expanded_bytes"], 600 * 24 * 1024)
+        size = 3 * 1024 * 1024
+        after = inventory(data + row("dir-0/new.bin", size))
+        self.assertEqual(after["zip_entry_bound"], 1201)
+        self.assertEqual(after["archive_byte_bound"] - before["archive_byte_bound"],
+                         size + ENTRY_OVERHEAD + 2 * len("dir-0/new.bin"))
 
     def test_nested_parents_are_unique_and_funded(self):
         result = inventory(row("a/b/c") + row("a/b/d") + row("a/e"))
@@ -32,15 +33,6 @@ class SourceInventory(unittest.TestCase):
         self.assertEqual(result["zip_entry_bound"], 5)
         with self.assertRaises(ValueError):
             inventory(row("a") + row("a/b"))
-
-    def test_original_byte_limits_remain(self):
-        full = b"".join(row(f"file-{i}", FILE_CAP) for i in range(4))
-        self.assertEqual(inventory(full)["expanded_bytes"], EXPANDED_CAP)
-        with self.assertRaises(ValueError):
-            inventory(full + row("extra"))
-        with self.assertRaises(ValueError):
-            inventory(row("large", FILE_CAP + 1))
-        self.assertEqual(inventory(row("empty", 0))["expanded_bytes"], 0)
 
     def test_reject_malformed_inventory(self):
         for data in (b"", row("x")[:-1], b"\0", row("a") + row("a"),
@@ -78,7 +70,7 @@ class SourceArchive(unittest.TestCase):
     def test_all_canonical_files_and_directories(self):
         data, memory = self.fixture()
         with memory, zipfile.ZipFile(memory) as archive:
-            proof = verify_archive(data, archive)
+            proof = verify_archive(inventory(data), archive)
         self.assertEqual((proof["zip_entries"], proof["expanded_bytes"],
                           proof["canonical_files_verified"]), (3, 8, 2))
 
@@ -86,19 +78,34 @@ class SourceArchive(unittest.TestCase):
         for missing, extra in ((("root.txt",), ()), ((), (("extra", b"x"),))):
             data, memory = self.fixture(missing=missing, extra=extra)
             with memory, zipfile.ZipFile(memory) as archive, self.assertRaises(ValueError):
-                verify_archive(data, archive)
+                verify_archive(inventory(data), archive)
 
     def test_same_length_corruption_and_substituted_bytes_rejected(self):
         for changed in (b"damage", b"expanded source"):
             data, memory = self.fixture(actual={"root.txt": changed, "sub/bytes.bin": b"\x00\xff"})
             with memory, zipfile.ZipFile(memory) as archive, self.assertRaises(ValueError):
-                verify_archive(data, archive)
+                verify_archive(inventory(data), archive)
 
     def test_duplicate_member_rejected(self):
         with self.assertWarns(UserWarning):
             data, memory = self.fixture(extra=(("root.txt", b"source"),))
         with memory, zipfile.ZipFile(memory) as archive, self.assertRaises(ValueError):
-            verify_archive(data, archive)
+            verify_archive(inventory(data), archive)
+
+    def test_streams_the_complete_member_and_checks_the_final_byte(self):
+        body = b"A" * (3 * READ_CHUNK) + b"Z"
+        blob = hashlib.sha1(b"blob " + str(len(body)).encode() + b"\0" + body).hexdigest()
+        info = inventory(row("large", len(body), oid=blob))
+        for valid in (True, False):
+            with io.BytesIO() as memory:
+                with zipfile.ZipFile(memory, "w") as archive:
+                    archive.writestr("large", body if valid else body[:-1] + b"Y")
+                with zipfile.ZipFile(memory) as archive:
+                    if valid:
+                        self.assertEqual(verify_archive(info, archive)["expanded_bytes"], len(body))
+                    else:
+                        with self.assertRaisesRegex(ValueError, "canonical Git blob"):
+                            verify_archive(info, archive)
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "317098b7d26bee2103856113f3d2fe62c193c864",
+  "source_binding": {
+    ".github/workflows/source-evidence.yml": {
+      "git_blob": "0d6e6df1d003a37101d3a1536f2d51285d035f6f",
+      "working_bytes_sha256": "9b24f4561661a9936d2881fabae73b796942f09a610c771ce36ac2a358c85441"
+    },
+    "tools/ci/source_inventory.py": {
+      "git_blob": "4894ce54a501e3aaf909dbffb14685430f91cd6a",
+      "working_bytes_sha256": "85d01b1b89111bb288b9b783467615b3b0c73d7a103b87f441563d2c766afd60"
+    },
+    "tools/ci/test_source_inventory.py": {
+      "git_blob": "e94ca39c9d17f830b58854ae5fc9062eeaea9ae2",
+      "working_bytes_sha256": "d615480b0e759879b5770e45bc9376670029f9b487cd391b577947e695f495c7"
+    }
+  },
+  "hosted_failure": {
+    "run": 44158861874,
+    "former_expanded_cap_bytes": 8388608,
+    "actual_tracked_expanded_bytes": 9779285
+  },
+  "source_reference": {
+    "source": "https://github.com/git/git/blob/v2.56.0/archive-zip.c",
+    "git_blob": "6f73ca6d588e8365ad4dd86691171e99e5789e90",
+    "method": "Native GitHub file capture, v2.56.0. Reviewed stored data, extras, data descriptors and trailer bounds."
+  },
+  "local_qualification": {
+    "git": "2.56.0.windows.4",
+    "tests_passed": 10,
+    "inventory": {
+      "tracked_files": 709,
+      "directory_entries": 28,
+      "zip_entry_bound": 737,
+      "expanded_bytes": 9779285,
+      "archive_byte_bound": 9950135,
+      "inventory_sha256": "b84c367ac215e09f837fe5f99a7c6a26c4bdeece5a35881ed825ad201adc3df4"
+    },
+    "archive_verification": {
+      "zip_entries": 737,
+      "expanded_bytes": 9779285,
+      "inventory_sha256": "b84c367ac215e09f837fe5f99a7c6a26c4bdeece5a35881ed825ad201adc3df4",
+      "canonical_files_verified": 709,
+      "archive_bytes": 9896971
+    },
+    "commit": "317098b7d26bee2103856113f3d2fe62c193c864",
+    "archive_sha256": "f046e14ea164f73281a3cd83dfcbbbf5aa6edcbcdfe959bcf32917199bc105dc",
+    "source_unchanged": true,
+    "archive_untouched_by_refusal": true,
+    "runs": {
+      "tests": {
+        "run": "local-run-6cc9c8336a4842e0a152ae7aaccc6f35",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "3b17e6448f1a3fd4ff12eb85bbc232de3e75aff32201e92a7111e938dc173aed",
+        "output_sha256": "036f2bf0bda30a99db5194319cbc65bf6a85974f529cd1cd0feeb0dc1cea79d3"
+      },
+      "inventory": {
+        "run": "local-run-f5ee40f38f9647b0a2464a21daa0a8f3",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "8121758f505b56c8ef4faf791b361bdf25fc41c75fe76dc10abb219ef3ca4d58",
+        "output_sha256": "40f50273f13242f4e1bac01ffbc804d5e6d1d753221f8b21a1bbe0e43ecd7ff3"
+      },
+      "created": {
+        "run": "local-run-0ae162b2ed97494ca7b0f3e0214201ec",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "33919fe85f5eb14b7c97ec2790920a3eab443d86dce673d82f7314152bd7cc0f",
+        "output_sha256": "d7c0ba21245375c37473d4f160e59778d54e5a3e982f988b2babebe55bbb9975"
+      },
+      "exclusive-destination": {
+        "run": "local-run-d01e2e1d30d4483a81e60d7ee1057b08",
+        "exit_code": 1,
+        "tree_retired": true,
+        "receipt_sha256": "5be903782b593346b3941cae9b0f56fb076336d55e82edcfa14bfd758d17f5ac",
+        "output_sha256": "932df5efc5e0557d57ca030ed8476478fec11be0948486d556a08b9642c9d042"
+      },
+      "verified": {
+        "run": "local-run-55eb02578fbb4fbe905f0cbc77ce7989",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "81a24d6200e4114014de997b9468ce4363f627a35d4f1da38879ac49b5e75a30",
+        "output_sha256": "d7c0ba21245375c37473d4f160e59778d54e5a3e982f988b2babebe55bbb9975"
+      }
+    },
+    "windows_line_endings": {
+      "first_create_run": "local-run-ec59f4763f2046b49e004f62e532d72e",
+      "observed_archive_bytes": 10061666,
+      "observed_expanded_bytes": 9943980,
+      "cause": "Git archive applied Windows checkout line endings. New command-scoped LF settings preserved the canonical bytes."
+    }
+  },
+  "released": false
+}
