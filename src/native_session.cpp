@@ -887,6 +887,18 @@ std::vector<NativeFileInfo> NativeFileSession::list(const NativeFileHandle& hand
   if(!slot.access.read)fail(E::access_denied,"native context has no list access");
   (void)self.state(slot);return self.writer.inspect_directory(slot.inode);
 }
+NativeDirectoryRecordPage NativeFileSession::list_page(const NativeFileHandle& handle,
+    std::string_view after,std::size_t maximum) const {
+  const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];
+  if(!slot.access.read)fail(E::access_denied,"native context has no list access");
+  (void)self.state(slot);
+  auto page=self.writer.inspect_directory_page(slot.inode,after,maximum);
+  for(auto& entry:page.entries) {
+    auto& info=entry.state.info;
+    info.delete_pending=self.visible_delete_pending(info.inode,info.unlinked,info.delete_pending);
+  }
+  return page;
+}
 std::vector<std::byte> NativeFileSession::read(const NativeFileHandle& handle,
     std::uint64_t offset,std::uint32_t bytes) const {
   const auto index=slot_for(handle);auto& self=ready();const auto& slot=self.slots[index];

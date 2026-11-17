@@ -289,6 +289,10 @@ class NativeFileSession final {
   std::optional<NativeBasicMetadata> basic_metadata(const NativeFileHandle&) const;
   NativeFsCommit set_basic_metadata(const NativeFileHandle&,const NativeBasicMetadata&);
   std::vector<NativeFileInfo> list(const NativeFileHandle&) const;
+  // Names and committed metadata in canonical directory order. The marker is
+  // exclusive in the current generation, so a later call may observe edits.
+  NativeDirectoryRecordPage list_page(const NativeFileHandle&,std::string_view after,
+      std::size_t maximum) const;
   std::vector<std::byte> read(const NativeFileHandle&,std::uint64_t offset,std::uint32_t bytes) const;
   NativeInodeWriteCommit write(const NativeFileHandle&,std::uint64_t offset,
       std::span<const std::byte>,NativeInodeWriteOptions options={});

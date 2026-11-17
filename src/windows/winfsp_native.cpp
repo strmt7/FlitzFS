@@ -438,7 +438,6 @@ struct WinFspNativeWritable::Impl {
         after.push_back(static_cast<char>(c));
       }
       auto append=[&](const NativeInodeAllocationInfo& state,std::string_view name) {
-        if(marker&&!directory_name_after(name,after))return true;
         alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,sizeof(FSP_FSCTL_DIR_INFO)+200> raw{};
         auto* item=reinterpret_cast<FSP_FSCTL_DIR_INFO*>(raw.data());
         item->Size=static_cast<UINT16>(sizeof(FSP_FSCTL_DIR_INFO)+name.size()*sizeof(wchar_t));
@@ -449,15 +448,21 @@ struct WinFspNativeWritable::Impl {
       };
       const auto full=[&]{return win_detail::failure(s.session,*count?STATUS_SUCCESS:STATUS_BUFFER_OVERFLOW);};
       if(current.info.inode!=1) {
-        const auto self=s.session.allocation_info(slot.handle);
-        const auto slash=current.info.path.rfind('/');
-        const auto parent=s.session.lookup(slash==std::string::npos?std::string_view{}:std::string_view(current.info.path).substr(0,slash));
-        if(!append(self,".")||!append(parent.state,".."))return full();
+        if((!marker || directory_name_after(".",after)) && !append(s.session.allocation_info(slot.handle),"."))return full();
+        if(!marker || directory_name_after("..",after)) {
+          const auto slash=current.info.path.rfind('/');
+          const auto parent=s.session.lookup(slash==std::string::npos?
+              std::string_view{}:std::string_view(current.info.path).substr(0,slash));
+          if(!append(parent.state,".."))return full();
+        }
       }
-      for(const auto& entry:s.session.list(slot.handle)) {
-        const auto found=s.session.lookup(entry.path);const auto slash=entry.path.rfind('/');
-        const auto name=std::string_view(entry.path).substr(slash==std::string::npos?0:slash+1);
-        if(!append(found.state,name))return full();
+      for(;;) {
+        const auto remaining=static_cast<std::size_t>(length-*count);
+        const auto maximum=(std::min)(std::size_t{32},remaining/sizeof(FSP_FSCTL_DIR_INFO)+1);
+        auto page=s.session.list_page(slot.handle,after,maximum);
+        for(const auto& entry:page.entries)if(!append(entry.state,entry.name))return full();
+        if(!page.more)break;
+        after=std::move(page.entries.back().name);
       }
       if(!FspFileSystemAddDirInfo(nullptr,buffer,length,count))return full();return success();
     });

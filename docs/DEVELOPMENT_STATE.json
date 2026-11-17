@@ -76,6 +76,14 @@
     "indexed_live_lookup_read_bytes": 17655,
     "scope": "Checked live reads, inode and path results under existing inode-record capabilities. Object-index page reuse ends with the query. Full validation remains for mutations, flush and recovery."
   },
+  "writable_directory_pages": {
+    "source_base": "bd51e08d82e73e83d749ecccf96ba73f01e7009c",
+    "evidence": "docs/evidence/native-directory-pages-2026-11-17.json",
+    "raw_test_groups_passed": 6,
+    "codec_and_sdk_test_groups_passed": 4,
+    "windows_sdk_address_sanitizer_test_groups_passed": 1,
+    "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
+  },
   "readonly_memory_checkpoint": {
     "source_base": "aeef696d87c3d87dd1c6a4e83d031e1917c84f6f",
     "changed_source_binding": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",

@@ -1,6 +1,7 @@
 #include "flitzfs/native_filesystem.hpp"
 #include "native_object_storage.hpp"
 #include "flitzfs/catalog.hpp"
+#include "flitzfs/directory_order.hpp"
 #include "record_digest.hpp"
 #include "native_group_codec.hpp"
 #include <algorithm>
@@ -2068,6 +2069,30 @@ std::vector<NativeFileInfo> NativeFilesystemWriter::inspect_directory(std::uint6
     verify_directory(snapshot,state.model,n);
     verify_path_ancestors(snapshot,state.model,n);
     return list_node(state.model,n,state.model.inode_records?&snapshot:nullptr);
+  });
+}
+NativeDirectoryRecordPage NativeFilesystemWriter::inspect_directory_page(std::uint64_t inode,
+    std::string_view after,std::size_t maximum) const {
+  auto& state=checked_impl();
+  if(!maximum || maximum>1024)fail(Code::limit,"directory page budget");
+  if(after.size()>100 || std::ranges::any_of(after,[](char c) {
+      return c<0x20 || c>0x7e || c=='/' || c=='\\';
+    }))fail(Code::invalid_path,"invalid native directory marker");
+  // Both special entries sort before every real name.
+  std::string key=after=="." || after==".."?std::string{}:std::string(after);
+  std::ranges::transform(key,key.begin(),directory_ascii_lower);
+  return state.read_checked_inode(inode,[&](const auto& snapshot,const Node& directory) {
+    verify_directory(snapshot,state.model,directory);
+    NativeDirectoryRecordPage result;
+    result.entries.reserve(maximum);
+    auto it=state.model.names.upper_bound({inode,key});
+    for(;it!=state.model.names.end() && it->first.first==inode && result.entries.size()<maximum;++it) {
+      const auto& entry=node(state.model,it->second);
+      verify_inode(snapshot,state.model,entry);
+      result.entries.push_back({entry.name,{commit_info(entry),entry.allocation}});
+    }
+    result.more=it!=state.model.names.end() && it->first.first==inode;
+    return result;
   });
 }
 Bytes NativeFilesystemWriter::read_inode(std::uint64_t inode,std::uint64_t offset,std::uint32_t bytes) const {

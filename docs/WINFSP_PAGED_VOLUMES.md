@@ -17,6 +17,14 @@ filesystem is introduced. Legacy flat creation remains available and unchanged.
 This bridge is required groundwork for normal Explorer/Win32 access; it is not
 a mounted-product qualification or an installer.
 
+Writable directory enumeration passes checked names and committed inode metadata
+from the session directly to the SDK packing helper. The callback chooses a
+bounded result batch from the remaining Windows buffer and continues after the
+name it just consumed. Markers are exclusive and case-insensitive. The special
+dot entries precede ordinary names. Separate calls can observe intervening
+namespace changes.
+[Directory pagination evidence](evidence/native-directory-pages-2026-11-17.json)
+
 ## Resume and compatibility
 
 `resume_managed_retired` requires exact volume identity/head epoch, a qualified

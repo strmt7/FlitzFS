@@ -63,11 +63,18 @@ struct Harness {
         "paged root ACL bytes");
   }
   ~Harness(){fs.UserContext=nullptr;adapter.reset();}
-  PVOID create(unsigned n) {
-    auto name=L"\\f"+std::to_wstring(n);PVOID context=nullptr;FSP_FSCTL_FILE_INFO info{};
-    require(fs.Interface->Create(&fs,name.data(),FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
-        security.data(),0,&context,&info)==STATUS_SUCCESS && context,"paged SDK Create");return context;
+  PVOID create(std::wstring name,bool directory) {
+    PVOID context=nullptr;
+    FSP_FSCTL_FILE_INFO info{};
+    const auto options=directory?FILE_DIRECTORY_FILE:FILE_NON_DIRECTORY_FILE;
+    const auto attributes=directory?FILE_ATTRIBUTE_DIRECTORY:FILE_ATTRIBUTE_NORMAL;
+    const auto status=fs.Interface->Create(&fs,name.data(),options,FILE_ALL_ACCESS,attributes,
+        security.data(),0,&context,&info);
+    require(status==STATUS_SUCCESS && context,
+        ("paged SDK Create status "+std::to_string(static_cast<std::uint32_t>(status))).c_str());
+    return context;
   }
+  PVOID create(unsigned n) {return create(L"\\f"+std::to_wstring(n),false);}
   void write(PVOID context,const Bytes& bytes){ULONG count=0;FSP_FSCTL_FILE_INFO info{};
     require(fs.Interface->Write(&fs,context,const_cast<std::byte*>(bytes.data()),0,static_cast<ULONG>(bytes.size()),
         FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==bytes.size(),"paged SDK Write");}
@@ -113,6 +120,72 @@ void callbacks(unsigned unit) {
       h.image->read_calls==before,"stopped callback owner accessed storage");
   std::cout<<"paged_callbacks unit="<<unit<<" members=5 groups="<<result.progress.published_groups<<" input="
       <<snapshot.workload_info().committed_input_bytes<<"\n";
+}
+void directory_pages() {
+  Harness h(4096);
+  const auto folder=h.create(L"\\Folder",true);
+  const auto early=h.create(L"\\Folder\\(first)",false);
+  const auto payload=data(23,719);
+  h.write(early,payload);
+  h.close(early);
+  for(unsigned i=100;i<138;++i)
+    h.close(h.create(L"\\Folder\\Item-"+std::to_wstring(i),false));
+  const auto reference=h.adapter->snapshot().list("Folder");
+  require(reference.size()==39,"owned directory test fixture");
+  const auto writes=h.image->writes;
+
+  struct Row {std::wstring name;std::uint64_t inode,size;};
+  struct Page {std::vector<Row> rows;std::uint64_t backing_bytes=0;bool eof=false;};
+  const auto page=[&](PWSTR marker,ULONG capacity) {
+    alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,8192> output{};
+    require(capacity<=output.size(),"owned directory output capacity");
+    ULONG count=0;
+    const auto before=h.image->read_bytes;
+    require(h.fs.Interface->ReadDirectory(&h.fs,folder,nullptr,marker,output.data(),capacity,&count)==STATUS_SUCCESS &&
+        count<=capacity,"paged SDK directory read");
+    Page result;
+    result.backing_bytes=h.image->read_bytes-before;
+    for(std::size_t offset=0;offset+sizeof(UINT16)<=count;) {
+      UINT16 size=0;
+      std::memcpy(&size,output.data()+offset,sizeof(size));
+      if(!size){result.eof=true;break;}
+      require(size>=sizeof(FSP_FSCTL_DIR_INFO) && offset+size<=count &&
+          (size-sizeof(FSP_FSCTL_DIR_INFO))%sizeof(wchar_t)==0,"paged SDK directory record bounds");
+      const auto* row=reinterpret_cast<const FSP_FSCTL_DIR_INFO*>(output.data()+offset);
+      result.rows.push_back({{row->FileNameBuf,(size-sizeof(FSP_FSCTL_DIR_INFO))/sizeof(wchar_t)},
+          row->FileInfo.IndexNumber,row->FileInfo.FileSize});
+      offset+=(size+7U)&~std::size_t(7);
+    }
+    return result;
+  };
+  const auto all=page(nullptr,8192);
+  require(all.eof && all.rows.size()==reference.size()+2 && all.rows[0].name==L"." && all.rows[1].name==L"..",
+      "multi-page enumeration lost dot entries or completion");
+  for(std::size_t i=0;i<reference.size();++i) {
+    const auto& expected=reference[i];
+    const auto name=expected.path.substr(std::string_view("Folder/").size());
+    const auto& row=all.rows[i+2];
+    require(row.name==std::wstring(name.begin(),name.end()) &&
+        row.inode==expected.inode && row.size==expected.logical_bytes,
+        "checked directory pages changed spelling, inode or size");
+  }
+  std::wstring dotdot=L"..";
+  const auto one=page(dotdot.data(),static_cast<ULONG>(sizeof(FSP_FSCTL_DIR_INFO)+24));
+  require(one.rows.size()==1 && one.rows[0].name==L"(first)" &&
+      one.rows[0].size==payload.size() && !one.eof,"exclusive dot-dot continuation");
+  auto marker=one.rows[0].name;
+  const auto remainder=page(marker.data(),8192);
+  require(remainder.eof && remainder.rows.size()==38 && remainder.rows.front().name==L"Item-100",
+      "short output continuation repeated or skipped a child");
+  std::wstring folded=L"iTeM-115";
+  const auto after=page(folded.data(),8192);
+  require(after.eof && after.rows.size()==22 && after.rows.front().name==L"Item-116",
+      "case-insensitive marker is not exclusive");
+  require(one.backing_bytes<all.backing_bytes && h.image->writes==writes,
+      "short enumeration scanned all entries or changed backing");
+  h.close(folder);
+  std::cout<<"directory_read entries="<<reference.size()<<" short_result_bytes="<<one.backing_bytes
+      <<" complete_result_bytes="<<all.backing_bytes<<'\n';
 }
 void selected_change() {
   Harness h(4096);h.populate();
@@ -272,7 +345,7 @@ int main(int argc,char** argv){try {
   app_fixture::Budget budget;
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");
   const std::string_view mode=argv[1];
-  if(mode=="--callbacks"){callbacks(4096);callbacks(65536);selected_change();foreground_busy();deferred_response_busy();resume_formats();lifecycle();}
+  if(mode=="--callbacks"){callbacks(4096);callbacks(65536);directory_pages();selected_change();foreground_busy();deferred_response_busy();resume_formats();lifecycle();}
   else if(mode=="--faults-4096")publication_faults(4096);
   else if(mode=="--faults-65536")publication_faults(65536);
   else throw std::runtime_error("Unknown callback qualification mode");

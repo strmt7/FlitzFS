@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "date": "2026-11-17",
+  "source_base": "bd51e08d82e73e83d749ecccf96ba73f01e7009c",
+  "source_base_tree": "8235574de27b0f5f0a8904affdfc150d018a4645",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/directory_order.hpp",
+      "worktree_sha256": "16b3738260131f7f04c5c5a42c53df4bc01b95d8f12c7d722340ffd771fcfd1f",
+      "git_blob": "f852e36e36663cdae549e76da0c452482b22039b"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "worktree_sha256": "aaaac2a81677a7ecf1310daacb7e730d7ebbdfb5ab7a7fa047ef9bca49cd49e9",
+      "git_blob": "7bbc267e91fc2bc84cf5f47edd7cfd0a225a9476"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "worktree_sha256": "3772b349a68615956ff448709f633c28607d19d07a7717ee8e8ab117f1e0e2f8",
+      "git_blob": "391f050b41d07e5ab627a7c8b6819d742b58c006"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "worktree_sha256": "43a2da0805f24b3332eb0676b30f0d9383431fcd15ccb7b832ea696e28d7865a",
+      "git_blob": "f22f2ff2f662e6363b4f5c7a7432a796fe04accb"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "worktree_sha256": "1383c2f5defc4095d0060cd5b20573a7f325015ddd4f278efe0d1339ac50f3ec",
+      "git_blob": "1c7ec01961ae5ff9ba5218ba9140970c97fe0866"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "worktree_sha256": "52de3e88f221582e42dfa156484799e56f928ec3f7055a39021e1b1488dbc4a1",
+      "git_blob": "c574ab87d1d97a4d8091f19f77705b62caaa89c7"
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "worktree_sha256": "faa50d3a0e2c450d53484db887f4fd6ef88ce3f0c35836144927113dbcf2807e",
+      "git_blob": "1771f6b12917c14f1736b4b6314b6f290189b1ff"
+    }
+  ],
+  "scope": "Writable WinFsp ReadDirectory callback through a managed paged NativeFileSession. Synthetic fresh memory volume, actual SDK record packing and injected lifecycle.",
+  "sdk_contract": {
+    "artifact": "Qualified WinFsp 2.1 SDK header winfsp/winfsp.h",
+    "sha256": "163332ebe058dd6e49d038edefef273454912c2ec44e8430a18ed73112e5678c",
+    "scope": "ReadDirectory uses an exclusive marker in filesystem order, and the FSD performs its own pattern matching. FspFileSystemAddDirInfo packs entries and the end marker."
+  },
+  "mechanism": "Consume checked live name and inode metadata pages. Submit only rows fitting the caller's buffer. Emit dot entries in the existing order. Each page observes current committed state through the serialized session.",
+  "fixture": {
+    "named_children": 39,
+    "emits_dot_entries": 2,
+    "single_result_read_bytes": 28596,
+    "full_directory_read_bytes": 87255,
+    "scope": "Same-image counts in both stable WinFsp and AddressSanitizer CTest runs. Measures backing bytes for different result sizes, not elapsed throughput or comparisons with other filesystems.",
+    "validation": [
+      "Stable inode IDs, display spelling and file sizes match an independent CPU snapshot.",
+      "An exclusive dot-dot marker resumes before an ordinary name beginning with a lower ASCII character.",
+      "A short Windows output buffer resumes at the next row. A mixed-case marker is exclusive."
+    ]
+  },
+  "checks": {
+    "raw_windows_groups_passed": 6,
+    "codec_winfsp_sdk_groups_passed": 4,
+    "windows_sdk_address_sanitizer_groups_passed": 1,
+    "actual_mount": false,
+    "actual_gpu": false,
+    "volume_format_added": false
+  },
+  "first_sdk_attempt": "The new fixture used a name with an exclamation point, which the current conservative path policy rejects. A supported parenthesized name exercises the same marker-order requirement. The retry changed only the fixture. Native source is bound to the successful and initial runs.",
+  "local_runs": {
+    "raw_build": {
+      "run": "local-run-9bb86fe5e9674c56ad53d2da09e3fe91",
+      "receipt_sha256": "dbe5838dfd3f6e7a5b4b4eed53153d1ff6e4f69749746042c9cb411cc31b65de",
+      "output_sha256": "b0cd08f13936c4ca1f8bc58467db9d9b3fadeb7b9c183279848e256150b1369b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 377061376
+    },
+    "raw_ctest": {
+      "run": "local-run-44f910cef5ab49d8bf012c66b865c7ca",
+      "receipt_sha256": "47a1896cc6d40c76a3825222cdf2b7ee315c81c618b4eb20a98dccd18bf7c31d",
+      "output_sha256": "a216f1ed42655c2b5177dd76c567ec05ccadce431bf8ebe7e2574c6c799c022d",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 204423168
+    },
+    "sdk_initial_build": {
+      "run": "local-run-d365db2be08944d4868ece204c3079b3",
+      "receipt_sha256": "6f9a0b1a20c3082b2173220e6ae226e489f39dd5853a2baa0e285fd3de6b2501",
+      "output_sha256": "6845c2b201819671741b86323482582967b9565605378826bdfbba7f9772144e",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 720064512
+    },
+    "sdk_initial_ctest": {
+      "run": "local-run-561a32c1157b48be9fc4bc6107e14b48",
+      "receipt_sha256": "1f64808b5ecf308cfa466df8fede136359cbad810e7d9bdbf6fb8a6940e0f8c3",
+      "output_sha256": "cac7587c8ed8f487d468855d77c997e18f9bdd58de92cb27f2d97cdc30dc1346",
+      "exit_code": 8,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 38232064
+    },
+    "sdk_final_build": {
+      "run": "local-run-5f58bfc20feb4992b1bafb42141bd069",
+      "receipt_sha256": "d5436d8832d8c8c966dd7b894a4b19f5a3e737704024c494a8302b259f856e90",
+      "output_sha256": "fd1f8906eb62e13b79a225efe86c81b66c62f9412603a466e9824578c558f3ea",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 358535168
+    },
+    "sdk_final_ctest": {
+      "run": "local-run-abb26cde8a7c4190ad231d0b6a733b65",
+      "receipt_sha256": "082a294e52f6351d148858d25791a1a0d518650c1afe79fb129f292ea1b434d0",
+      "output_sha256": "75cd739f90bbbbc69d427cc18b60fad52fd2d2729c00994cca1b0fc302c57741",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 21299200
+    },
+    "asan_build": {
+      "run": "local-run-00e9662ca1d74df1b491f783f101152d",
+      "receipt_sha256": "1fbd0c7964bd5d950877808186901c783d288f3c460766a04ec84ab0ea759bee",
+      "output_sha256": "4ba25336dd4fd0ba25e0ce0e01353212f9cb6b0ce6ee3510a5a772734f277d38",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 721408000
+    },
+    "asan_ctest": {
+      "run": "local-run-4e083bc3f1bf451b94eb2119a90f0fef",
+      "receipt_sha256": "df863027bab0545ebd32d0a862fc7619dd149d2595e1ab197ce9c81463a5772a",
+      "output_sha256": "a727c8f6e0daf3febed0f6db2697f65ca5e937d6ddb72f58930382d7638a97c3",
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "peak_job_bytes": 227332096
+    }
+  }
+}

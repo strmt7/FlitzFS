@@ -233,6 +233,14 @@ struct NativeDirectoryPage {
   std::vector<NativeFileInfo> entries;
   std::optional<NativeDirectoryCursor> next;
 };
+struct NativeDirectoryRecord {
+  std::string name;
+  NativeInodeAllocationInfo state;
+};
+struct NativeDirectoryRecordPage {
+  std::vector<NativeDirectoryRecord> entries;
+  bool more=false;
+};
 class NativeFilesystemSnapshot final {
  public:
   // Consumes a fully verified object snapshot; validates native namespace and all references.
@@ -526,6 +534,8 @@ class NativeFilesystemWriter final {
   Impl& checked_impl() const;
   detail::NativeObjectSnapshot checked_namespace() const;
   NativePathLookup inspect_path_lookup(std::string_view path) const;
+  NativeDirectoryRecordPage inspect_directory_page(std::uint64_t directory,
+      std::string_view after,std::size_t maximum) const;
   enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},

@@ -172,10 +172,13 @@ Live inode-record queries now verify the bound root and selected path, inode
 and extent records. The cache ends with each query. The indexed 132-inode
 fixture read 17,655 backing bytes for a name lookup. Complete namespace
 validation read 2,262,944 bytes. Full mutation and recovery checks remain in
-place. The writable directory callback still collects the whole directory
-and resolves each result by path. Replace that loop with checked name and
-metadata pages through the normal session before enabling the scalable layout.
-[Scoped read evidence](evidence/native-scoped-read-2026-11-17.json)
+place. The writable directory callback now consumes checked name and metadata
+pages sized to the Windows output buffer. The 39-child fixture verified stable
+identity and exclusive continuation through the real SDK packing helper. The
+new namespace can use this session interface for demand-loaded name and inode
+records. Existing mounted layout limits still apply.
+[Scoped read evidence](evidence/native-scoped-read-2026-11-17.json) ·
+[Directory page evidence](evidence/native-directory-pages-2026-11-17.json)
 
 Paged publication writes each changed inode frame directly. Compaction
 and grouped writes generate the namespace root independently. Paged reads
