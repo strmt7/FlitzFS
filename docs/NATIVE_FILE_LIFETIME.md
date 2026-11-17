@@ -5,6 +5,12 @@ They do not implement a Windows handle table, writable callback adapter or
 helper application. Those remain required product work. Safe local execution
 uses the current host guide; no blanket hosted-only restriction applies.
 
+Indexed native capability 2 uses the same owning session and records lifetime
+state directly in the paged store. Large already-closed files enter a durable
+retirement queue. The indexed format page specifies its wire fields, restart
+semantics and bounded reclamation. The legacy layout retains the transactions
+described below. [Indexed file lifetimes](INDEXED_NATIVE_VOLUME.md#indexed-file-lifetimes)
+
 ## State transitions and data ownership
 
 A linked inode normally has a nonzero parent and a visible name. The following

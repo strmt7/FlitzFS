@@ -84,6 +84,21 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "indexed_file_lifetimes": {
+    "source_base": "911dce6818d7d422ca66276c52b8b6bca0dc2f13",
+    "evidence": "docs/evidence/native-indexed-lifetimes-2026-11-18.json",
+    "format": "FLTXPV01 capability 2",
+    "faults": 180,
+    "large_extent_fixture": 273,
+    "reclamation_commits": 5,
+    "windows_executions": {
+      "raw": 12,
+      "winfsp_codec": 5,
+      "windows_address_sanitizer": 6
+    },
+    "scope": "Indexed native file sessions preserve the identity and bytes of detached live files and advance durable retirement after context closure.",
+    "next": "Add indexed volume-head admission, WinFsp size and capacity callbacks, idle reaping, live-tail retirement and scaled GPU data paths."
+  },
   "indexed_inode_io": {
     "source_base": "4396fbd74fc791b61acc66efb2fb13441d4d2881",
     "evidence": "docs/evidence/native-indexed-inode-io-2026-11-18.json",

@@ -47,6 +47,7 @@ class NativeNameIndex final {
   std::optional<std::uint64_t> find(const NativeNameKey&) const;
   std::vector<NativeNameEntry> list(std::uint64_t parent, std::string_view after,
       std::size_t maximum) const;
+  std::uint64_t extent_count(std::uint64_t inode) const;
   std::uint64_t size() const noexcept { return root_.entries; }
   NativeIndexKind kind() const noexcept { return root_.kind; }
   void verify_all() const;

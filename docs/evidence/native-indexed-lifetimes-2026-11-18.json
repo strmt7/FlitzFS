@@ -1,0 +1,235 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "time_zone": "Europe/Berlin",
+  "source_base": "911dce6818d7d422ca66276c52b8b6bca0dc2f13",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "f0aa07da4c3f0148807d0da02b858ceea3c0e057",
+      "worktree_sha256": "f2130aff7493a8254c51d29ed30a4eedf6199308692c55b6b3f539e74d31cf9b"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "0228bc2e58a33afcb8c50f65613a334e882ba6c8",
+      "worktree_sha256": "924bca8468ffc14d368e6bef4b27669da7f7af861cbcfd197ba7d5adb061bc28"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "aeab31b4530868f8c491408cd707c681edb21bdf",
+      "worktree_sha256": "ec795dfd73fa2071d5307d8f0ec88d1ffba4377ecb864397c0e42968059017d5"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "eead03832810a5fe52d416c62b3af958b5679244",
+      "worktree_sha256": "36f69a4267e747537d602ad00b80ba318faf882b37bb303391de5dc96d69b39a"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "945083c5e37d74d8a27e0c69a5e38cfc201e6182",
+      "worktree_sha256": "0d6d7bebfabbf196162df684656f4fae98b73eb0a20c7a748f303873737208fc"
+    },
+    {
+      "path": "src/native_name_index.cpp",
+      "git_blob": "b7f9239f06aff9de8659d07367b966e4669fc76a",
+      "worktree_sha256": "77752c0432c02ffeabe39b27e507598b3d637ec32ab2e848a788d7b147cd0c8c"
+    },
+    {
+      "path": "src/native_name_index.hpp",
+      "git_blob": "21416bbfd92a71969e3316214685657f334fd1ea",
+      "worktree_sha256": "f1226b2f12213ce189cd87a6a7b3e1790405c45f3bf7facead7e31eacd90310d"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "ac02fba8c1f969ef594da5171d5ac91e3d90d8f7",
+      "worktree_sha256": "90c2f193fe19e6532ab0d8959ebb1ac6e47672d8cf08ce3b895911da410a346a"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "6e806f2a736e6bc7bf180e56795c9398fa2b2d38",
+      "worktree_sha256": "0c41fe74f79e376a493e47997ee1648af4dd4a0f2eeecc925da7f6f54ebac6e7"
+    }
+  ],
+  "scope": "Windows x64 native indexed session lifetime and reclamation. Real SDK regression cases use the existing mounted-layout adapter without loading a driver.",
+  "capability": "FLTXPV01 capability 2, with capability-1 reader and path writer retained",
+  "session_evidence": [
+    "pending intent, global delete cancellation and blocked new opens",
+    "detached post-Cleanup reads and append while a new inode owns the old name",
+    "last Close, retained old snapshots, descriptor and metadata readback",
+    "reservation charge verified above the legacy aggregate ceiling",
+    "native closed-session admission required for pending or detached states"
+  ],
+  "retirement": {
+    "populated_extents": 273,
+    "reclamation_commits": 5,
+    "intervening_reopen": true,
+    "physically_reused_bytes_measured": false,
+    "closed_session": {
+      "modes": 3,
+      "positions": 25,
+      "cases": 75,
+      "previous": 67,
+      "complete": 8
+    },
+    "first_extent_quantum": {
+      "modes": 3,
+      "positions": 35,
+      "cases": 105,
+      "previous": 97,
+      "advanced": 8
+    }
+  },
+  "checks": {
+    "raw": {
+      "build": {
+        "run": "local-run-f23fddae0a504e4087ec15f71833dff4",
+        "result_sha256": "fdcaafe6ef3b058511fbfa526d8556713d5ef8388f61d7eeaa5f983ce47b0a17",
+        "log_sha256": "1ba3fdfc59c11d45fae185b7a63e8746d63221b5f0dccc4a05dfedd1b61338d2",
+        "seconds": 9.793,
+        "peak_job_bytes": 351391744,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-895cae7f8220436e82be0a56b2bb6926",
+        "result_sha256": "9aabc624518d099501120422177616d2ecc592332c82bd2f4cb858322880dd8d",
+        "log_sha256": "14da30aca0036f8a03b0780123078d05e96d5bd0a56125ff36d44d90b1ac21ed",
+        "seconds": 36.714,
+        "peak_job_bytes": 72122368,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_name_index",
+        "bounded_native_indexed_volume",
+        "bounded_native_managed_paged_volume",
+        "bounded_native_lifetime_invariants",
+        "bounded_native_lifetime_detach_faults",
+        "bounded_native_lifetime_retire_faults",
+        "bounded_native_lifetime_finish_faults",
+        "bounded_native_session_invariants",
+        "bounded_native_session_cleanup_faults",
+        "bounded_native_session_close_faults",
+        "bounded_native_global_disposition_invariants",
+        "bounded_native_allocation_invariants"
+      ]
+    },
+    "winfsp_codec": {
+      "build": {
+        "run": "local-run-ca44913048bc434980489273f252408e",
+        "result_sha256": "4dcaf037096ac55afc577402f94ff3b2482fdfcfa2b39a94169ac5d8a38b08f1",
+        "log_sha256": "18e56d1582fc40bfef188047bcb48baa3fd3f06c89b3d4069a3e27dc4916cf3f",
+        "seconds": 48.733,
+        "peak_job_bytes": 721039360,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-beced16d036243609b8e8affb410c4cb",
+        "result_sha256": "68537e8f31cfaf8a9502dd58cb7e1b85785e2aab43599e8c0529a985c6173f51",
+        "log_sha256": "e6c1f0a3ecabac9b855588fbdc32d6e818d47eac515c1b6e8ed080593d6e8f06",
+        "seconds": 9.979,
+        "peak_job_bytes": 36081664,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_winfsp_paged_callbacks",
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_winfsp_session_test"
+      ]
+    },
+    "windows_address_sanitizer": {
+      "build": {
+        "run": "local-run-30121e4db6c943e89b68e2f86e5e80db",
+        "result_sha256": "1e7c491988ab2d413078acb711d1c97a8196935ff9d1b0ebe1b5e97ad485cfee",
+        "log_sha256": "4f14df62324b25eda35c6d3a882ddbee1adb2bfac4da595435a6c3f5dd6be2b9",
+        "seconds": 22.558,
+        "peak_job_bytes": 383885312,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-35c29faf37ca43bbbb924e058d60d9f3",
+        "result_sha256": "537ac9b0960355e6d8f07012909213a65a497969c1959ba0ff77d795b1610d85",
+        "log_sha256": "e3c728ad99ba1b53da4d284c8516c67173ccbf1e9e4be4caf79a19843298b910",
+        "seconds": 103.716,
+        "peak_job_bytes": 1098227712,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_native_managed_paged_volume",
+        "bounded_native_lifetime_invariants",
+        "bounded_native_lifetime_detach_faults",
+        "bounded_native_lifetime_retire_faults",
+        "bounded_native_lifetime_finish_faults"
+      ]
+    }
+  },
+  "failed_fixture_attempts": [
+    {
+      "receipt": {
+        "run": "local-run-e0417b7c511940a89a1e675d900b89ba",
+        "result_sha256": "f9e6d70b7bf6f7b13a0232d69a86ce0e20dc24415025783d247d15ebf112a4ef",
+        "log_sha256": "a1289d3a3bc755c8d530066a21eabe6ac0f21277f9324edcee2f04f84bc03190",
+        "seconds": 21.654,
+        "peak_job_bytes": 71221248,
+        "residual_children": 0
+      },
+      "reason": "The interruption fixture faulted the lower paged writer's admission flush before the intended native recovery transaction."
+    },
+    {
+      "receipt": {
+        "run": "local-run-84e766154fec45a1b370e9c81701031f",
+        "result_sha256": "5b486d82435e805aba229c261b792215c3a9e9a879343cb42f596580ba2caca1",
+        "log_sha256": "440edb6e4f1c3733be79ec7dc06f4359d8218792f7b9121a13e9a32c5dd340ee",
+        "seconds": 30.252,
+        "peak_job_bytes": 71499776,
+        "residual_children": 0
+      },
+      "reason": "The ordinary native resume check counted the lower paged writer's admission flush as a lifetime mutation; final tests isolate each layer."
+    }
+  ],
+  "prior_published_ci": {
+    "source": "4396fbd74fc791b61acc66efb2fb13441d4d2881",
+    "run": 44196322653,
+    "conclusion": "success"
+  },
+  "navigation": {
+    "receipt_sha256": "35c1e2a9d6da801798722877a62172adf41508a111840b0dbd8473dde1bfec77",
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "57e6591c3a9c24bc88a83643f871c554b3efe48f6174c4d6eddd5320fe6f9797",
+    "stored_search_sha256": "594ef925bc114ad883ef92ca46495c482939bf0c94b134a8bc2c8cb478928069"
+  },
+  "research": {
+    "receipt_sha256": "528218e76d53d941bdae36444e91a21396e49916e4c287cb7dc28849b5c60918",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "native_pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/2e860264-018a-47b3-8555-565a13b35a45",
+        "http_status": 200,
+        "markdown_sha256": "0553774b643caa3416625c690edb906f54cbabb3ff3eca3de565365861ccc39a",
+        "capture_sha256": "d7a6a311158de4d0c0a439106549ed3307156237c452c7dcf22bc607958a4572"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/4c26c8cb-5a8f-4339-a372-b315c4974131",
+        "http_status": 200,
+        "markdown_sha256": "b46dece8aa52cd327cdf2346ec8d100aad29f5713a4e872e1e681125e26526da",
+        "capture_sha256": "9f791008b71c281547fdf61a59121f18e587edbdc433fe81d07580ddf03fee7f"
+      },
+      {
+        "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+        "http_status": 200,
+        "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+        "capture_sha256": "ab036f39778782ace6b3fc97a8d12ad201a607621e16057db26818c2739ddf1a"
+      }
+    ]
+  },
+  "unqualified": [
+    "mounted indexed image",
+    "idle-worker integration for indexed reclamation",
+    "large live truncate",
+    "backing reuse",
+    "physical power-loss durability",
+    "AMD acceleration on the indexed path"
+  ]
+}

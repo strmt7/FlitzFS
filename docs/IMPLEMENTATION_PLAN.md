@@ -218,32 +218,36 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 
 ### Next steps for the writable Windows path
 
-1. Connect indexed stable-inode writes and truncation to the Windows session.
-   The native core now verifies append, constrained writes, stable identity
-   through a rename and committed metadata. Carry that contract into open
-   handles, including overwrite and detached handles after name replacement
-   or unlink. Test the committed status and byte count through the SDK.
+1. Carry the indexed session's committed I/O metadata into the WinFsp adapter.
+   Select file-size, allocation and free-space rules from the indexed layout
+   and its backing capacity. Check ordinary and constrained writes, status
+   mapping, large file information, sparse range behavior and SDK packing.
    [Indexed inode I/O evidence](evidence/native-indexed-inode-io-2026-11-18.json)
-2. Persist the delete lifecycle. Atomically move detached, referenced inodes
-   into a typed orphan index. Retain their data through the final close and
-   recover deferred work after restart. Test last-cleanup and last-close
-   separately, including pending I/O and replacement of open destinations.
-   Check granted delete access and WinFsp Cleanup flags at the existing
-   session boundary.
+2. Exercise the indexed session's delete intent, detached I/O, final Close
+   and closed-session restart through the SDK and an isolated mounted client.
+   The indexed session now preserves a detached file while its name is reused.
+   Add adapter qualification for replacement of open destinations and
+   verify grants and lifetime transitions against current Windows behavior.
+   [Indexed lifetime evidence](evidence/native-indexed-lifetimes-2026-11-18.json) ·
    [Windows disposition rules](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/4c26c8cb-5a8f-4339-a372-b315c4974131) ·
-   [Windows disposition flags](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/2e860264-018a-47b3-8555-565a13b35a45) ·
    [WinFsp interface contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
-3. Decouple maximum file size from the amount retired in a checkpoint. Publish
-   the new visibility boundary or detached inode first, in the same transaction
-   as a protected retirement record. Process physical extent work in interruptible
-   batches while retaining the roots and dependencies of earlier snapshots.
-   Test shrink-then-grow, write-after-truncate, repeated unlink/recreate, and
-   interruption during each retirement cursor advance.
+3. Feed durable retirement work to the owned low-priority controller. A large
+   closed file now becomes inaccessible before its extent mappings are removed
+   in restartable transactions. Add durable visibility boundaries for shrinking
+   a live file without scanning or deleting its whole tail on the foreground
+   path. Check shrink-then-grow, write-after-truncate, queue fairness and
+   survival of earlier snapshot roots. Account for reclaimable references
+   separately from bytes reusable on the backing.
 4. Bind the indexed image to a separately negotiated volume-head capability.
-   Check source and target sequence, storage checkpoint, identities and
-   equivalence before selecting a validated target. Keep rollback reachable
-   until selection survives independent reopen. Preserve or re-encode shared
-   dependencies with complete-size checks before automatic format migration.
+   Store the indexed backing kind and capacity explicitly. Validate native
+   sequence and storage checkpoint as separate values, including imported
+   images whose native sequence started before the new backing. Check source
+   and target identities, durable checkpoint floors and semantic equivalence
+   before selecting a target. Keep rollback reachable through independent
+   reopen. Admit direct indexed creation and restart through the managed
+   session. Assemble head corruption, failed switch and retained snapshot
+   cases before enabling the indexed mount factory. Preserve or re-encode
+   shared dependencies with complete-size checks before automatic migration.
 5. Use real checked page ranges in WinFsp callbacks, including large directory
    enumeration, allocation and ACL queries. Add long-path and Unicode behavior
    against the selected Windows contract. Replace foreground subtree scans with

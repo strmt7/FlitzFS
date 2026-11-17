@@ -187,8 +187,8 @@ NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer) {
 NativeFileSession NativeFileSession::create(NativeFilesystemWriter writer,NativeDispositionPolicy policy) {
   admit_policy(policy);
   if(writer.poisoned())fail(E::terminal,"cannot own a terminal native writer");
-  if(writer.image_kind()==NativeImageKind::indexed_paged)
-    fail(E::invalid_options,"indexed volume needs its writable session implementation");
+  if(!writer.supports_file_contexts())
+    fail(E::invalid_options,"native image lacks its file-context capability");
   static_assert(sizeof(Impl)<=16*1024);
   static_assert(std::is_nothrow_move_constructible_v<NativeFileHandle>);
   return NativeFileSession(std::make_unique<Impl>(std::move(writer),policy));
@@ -1192,6 +1192,9 @@ NativeFsCommit NativeFileSession::flush(const NativeFileHandle& handle) {
   const auto index=slot_for(handle);auto& self=ready();
   (void)self.state(self.slots[index]);
   return self.writer.flush();
+}
+bool NativeFileSession::reclaim_retired_inode() {
+  return ready().writer.reclaim_retired_inode();
 }
 NativeFilesystemSnapshot NativeFileSession::snapshot() const {
   return ready().writer.snapshot();

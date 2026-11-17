@@ -9,8 +9,14 @@ struct IndexedVolumeRoot {
   std::uint64_t sequence=0,next_inode=2,next_extent=1;
   std::uint64_t inodes=0,extents=0,charged_extents=0;
   NativeWorkloadInfo workload;
+  std::uint32_t format=1;
+  std::uint64_t active_lifetimes=0,detached_inodes=0,retiring_inodes=0;
   bool operator==(const IndexedVolumeRoot&) const = default;
 };
+enum class IndexedLifetime : std::uint8_t { linked, pending, detached, retiring };
+constexpr bool indexed_detached(IndexedLifetime state) noexcept {
+  return state==IndexedLifetime::detached || state==IndexedLifetime::retiring;
+}
 struct IndexedInodeInput {
   std::uint64_t inode=0,parent=0,size=0,born=0,modified=0;
   bool directory=false;
@@ -18,6 +24,7 @@ struct IndexedInodeInput {
   std::optional<NativeBasicMetadata> basic;
   std::optional<NativeSecurityDescriptor> security;
   std::optional<std::uint64_t> allocation;
+  IndexedLifetime lifetime=IndexedLifetime::linked;
 };
 // The indexed format uses the existing canonical inode frame with zero
 // inline extents. Extent locations live in the ordered index.
@@ -29,9 +36,23 @@ NativeInodeAllocationInfo indexed_inode_allocation(const IndexedInodeInput&) noe
 std::optional<NativeBasicMetadata> updated_automatic_basic(const std::optional<NativeBasicMetadata>&,
     bool directory,const NativeAutomaticMetadata&);
 IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter&);
+enum class NativeInodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,
+    retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};
+struct IndexedVolumeEdit {
+  NativeInodeAction action;
+  std::uint64_t inode;
+  std::span<const NativeFileMutation> paths;
+  std::span<const NativeBasicMutation> basic;
+  std::span<const NativeSecurityMutation> security;
+  const NativeAutomaticMetadata* automatic;
+  const NativeOverwriteMetadata* overwrite;
+  const std::uint64_t* reservation;
+  bool deleting,trim_allocation;
+};
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
-    IndexedVolumeRoot&,std::span<const NativeFileMutation>,std::span<const NativeBasicMutation>,
-    std::span<const NativeSecurityMutation>,bool enable_workload);
+    IndexedVolumeRoot&,const IndexedVolumeEdit&,NativeInodeCommitInfo*,NativeInodeAllocationInfo*);
+void advance_indexed_retirement(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
+    IndexedVolumeRoot&,bool closed_session);
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t offset,std::span<const std::byte>,
     NativeInodeWriteOptions,const NativeAutomaticMetadata&);
@@ -48,8 +69,10 @@ class IndexedVolumeView final {
   const IndexedVolumeRoot& root() const noexcept {return root_;}
   IndexedInodeInput inode(std::uint64_t id) const;
   IndexedInodeInput resolve(std::string_view path,std::string* spelling=nullptr) const;
-  NativeFileInfo stat(std::string_view path) const;
-  NativeFileInfo stat_inode(std::uint64_t id) const;
+  NativeInodeState state(std::string_view path) const;
+  NativeInodeState state_inode(std::uint64_t id) const;
+  NativeDirectoryRecordPage directory_records(std::uint64_t directory,std::string_view after,
+      std::size_t maximum) const;
   IndexedDirectoryPage list(std::uint64_t directory,std::string_view after,std::size_t maximum) const;
   std::vector<NativeFileInfo> list_all(std::uint64_t directory) const;
   std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes) const;
@@ -58,7 +81,7 @@ class IndexedVolumeView final {
  private:
   friend class IndexedVolumeBuilder;
   IndexedVolumeView(const PagedObjectStoreSnapshot&,IndexedVolumeRoot root);
-  IndexedInodeInput referenced_inode(std::uint64_t id) const;
+  IndexedInodeInput referenced_inode(std::uint64_t id,bool allow_retiring=false) const;
   void verify_inventory(bool published) const;
   std::string path(const IndexedInodeInput&) const;
   const PagedObjectStoreSnapshot& store_;
@@ -76,7 +99,7 @@ struct IndexedExtentInput {
 class IndexedVolumeBuilder final {
  public:
   IndexedVolumeBuilder(PagedObjectStoreWriter,std::uint64_t sequence,
-      std::uint64_t next_inode,NativeWorkloadInfo);
+      std::uint64_t next_inode,NativeWorkloadInfo,std::uint32_t format=1);
   IndexedVolumeBuilder(const IndexedVolumeBuilder&)=delete;
   IndexedVolumeBuilder& operator=(const IndexedVolumeBuilder&)=delete;
   void append(std::span<const IndexedInodeInput> inodes,std::span<const IndexedExtentInput> extents={});

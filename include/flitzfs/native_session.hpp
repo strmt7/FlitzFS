@@ -357,6 +357,8 @@ class NativeFileSession final {
   // its still-owned context and remains valid after Cleanup until Close.
   NativeFsCommit flush();
   NativeFsCommit flush(const NativeFileHandle&);
+  // One bounded reclaim operation for an already closed indexed inode.
+  bool reclaim_retired_inode();
   NativeFilesystemSnapshot snapshot() const;
   NativeSessionStats stats() const noexcept;
   // Cached advisory change detection only: zero for terminal/moved state.

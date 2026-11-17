@@ -18,7 +18,7 @@ struct NativeImageStorage {
   std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
   bool operator==(const NativeImageStorage&) const=default;
 };
-namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;}
+namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;enum class NativeInodeAction;}
 // Native file/extent layer, experimental and CPU-only. Explicit Windows
 // read-only projection is available; mounted writes and live GPU remain absent.
 inline constexpr std::uint32_t kNativeExtentBytes=65536;
@@ -506,6 +506,9 @@ class NativeFilesystemWriter final {
   NativeInodeAllocationInfo inspect_allocation(std::uint64_t inode) const;
   NativeAllocationUsage inspect_allocation_usage() const;
   NativeFsCommit retire_inode(std::uint64_t inode);
+  // Advance one indexed reclamation transaction for an already retired inode.
+  // Returns false when there is no queued work. Old snapshots remain readable.
+  bool reclaim_retired_inode();
   // Single-control-thread committed view for the owning Windows engine.
   // Verify namespace against the last acknowledged model; reads privately
   // verify every touched record. These do not expose an unchecked snapshot.
@@ -545,7 +548,8 @@ class NativeFilesystemWriter final {
   NativePathLookup inspect_path_lookup(std::string_view path) const;
   NativeDirectoryRecordPage inspect_directory_page(std::uint64_t directory,
       std::string_view after,std::size_t maximum) const;
-  enum class InodeAction {path_mutations,create,overwrite,mutate,set_delete,clear_delete,unlink,retire,finish_session,cleanup,cleanup_initial,reserve,enable_workload,coalesce_extents};
+  bool supports_file_contexts() const noexcept;
+  using InodeAction=detail::NativeInodeAction;
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},
       const NativeAutomaticMetadata* automatic=nullptr,bool delete_requested=false,

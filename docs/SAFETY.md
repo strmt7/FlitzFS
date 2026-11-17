@@ -447,14 +447,14 @@ after successful publication. The same poison/recovery rules apply; safe local
 testing is authorized. See NATIVE_INODE_IO.md.
 
 
-Pending deletion and detached inode retention require explicit namespace
-capability FLTXNS02 with replicated current checkpoints. Ordinary native
-resume, read-only projection and compaction reject unresolved state.
-Closed-session completion and detached retirement require independently
-established context retirement by the owning caller; no timer or declared
-boolean proves it. All old snapshots and unrelated committed data must remain
-intact. These CPU primitives do not authorize writable mounts or owner-PC tests.
-See NATIVE_FILE_LIFETIME.md.
+The legacy namespace uses replicated FLTXNS02 checkpoints for pending deletion
+and detached inode retention. Indexed capability 2 binds the same lifecycle
+to typed markers and protected counters. Ordinary resume rejects unresolved
+live contexts. The owning caller must establish context retirement before
+closed-session completion and detached retirement. A retired indexed inode
+can then be reclaimed one checkpoint at a time while older snapshots retain
+their mappings. [Legacy file lifetime](NATIVE_FILE_LIFETIME.md) ·
+[Indexed file lifetime](INDEXED_NATIVE_VOLUME.md#indexed-file-lifetimes)
 
 
 The native context owner provides only its own descriptor-count evidence.

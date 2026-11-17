@@ -449,6 +449,29 @@ std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::st
   return output;
 }
 
+std::uint64_t NativeNameIndex::extent_count(std::uint64_t inode) const {
+  if(root_.kind!=NativeIndexKind::names_and_extents)
+    fail(Error::invalid_operation,"extent count requires the mixed index");
+  const auto parent=native_extent_key(inode,0).parent;
+  const auto preceding=[&](std::uint64_t scope) {
+    const NativeNameKey key{scope,{}};
+    auto ref=root_reference(root_);
+    std::uint64_t count=0;
+    while(ref.id) {
+      const auto page=read_page(store_,root_,ref);
+      const auto slot=lower_slot(page,key);
+      if(!page.height)return add_count(count,slot);
+      for(std::size_t i=0;i<slot;++i)count=add_count(count,page.rows[i].entries);
+      if(slot==page.rows.size())break;
+      ref=child_reference(page,ref,slot);
+    }
+    return count;
+  };
+  const auto first=preceding(parent),last=preceding(parent+1);
+  if(last<first || last>root_.entries)fail(Error::corrupt,"indexed extent rank mismatch");
+  return last-first;
+}
+
 void NativeNameIndex::verify_all() const {
   const auto reachable=root_.page ? check_pages(store_,root_,root_reference(root_)) : 0;
   std::uint64_t cursor=kNativeNameIndexObject, stored=0;

@@ -1,6 +1,7 @@
 #include "native_indexed_volume.hpp"
 #include "native_fs_fixture.hpp"
 #include "native_security_fixture.hpp"
+#include "flitzfs/native_session.hpp"
 #include "flitzfs/volume_head.hpp"
 #include <iostream>
 
@@ -429,6 +430,233 @@ void indexed_stable_inode_io() {
   writer.snapshot().verify_all();
 }
 
+void indexed_session_lifetimes() {
+  using Error=NativeFsErrorCode;
+  using SessionError=NativeSessionErrorCode;
+  auto ram=empty();
+  auto session=NativeFileSession::create(new_writer(ram),NativeDispositionPolicy::windows_global);
+  const NativeFileAccess access{true,true,true};
+  const auto security=native_security_fixture::descriptor();
+  const NativeBasicMetadata file_basic{11,22,33,44,0x20},directory_basic{11,22,33,44,0x10};
+  const auto made=session.create_open("target",false,file_basic,security,{access,{true},{true,true},false});
+  const auto id=made.info.inode;
+  const auto peer=session.open("TARGET",access,NativeOpenKind::file,{true},{true,true});
+  const auto initial=payload(518),extra=payload(529);
+  session.write(made.handle,0,initial);
+  const auto unreserved=session.allocation_usage();
+  require(unreserved.live_extents==1 && unreserved.charged_extents==1,
+      "indexed unreserved file accounting");
+  constexpr std::uint64_t reserved=32U*1024*1024;
+  session.reserve_result(made.handle,reserved);
+  require(session.allocation_usage().charged_extents==reserved/kNativeExtentBytes &&
+      session.allocation_info(peer).reserved_bytes==reserved,"indexed reservation count for a populated file");
+  session.reserve_result(made.handle,8192);
+  require(session.allocation_usage().charged_extents==1,"indexed shrink left stale reservation charges");
+
+  session.set_delete(made.handle,true);
+  const auto marked=session.snapshot();
+  require(marked.needs_session_recovery() && marked.inode_state(id).delete_pending &&
+      session.lookup("target").state.info.delete_pending,"indexed pending intent not visible to the owning session");
+  try {
+    (void)session.open("target",access);
+    throw std::runtime_error("indexed delete-pending file reopened");
+  }catch(const NativeSessionError& error){if(error.code()!=SessionError::delete_pending)throw;}
+  session.set_delete(peer,false);
+  require(!session.snapshot().needs_session_recovery(),"indexed WinFsp-global cancellation retained old intent");
+  session.set_delete(made.handle,true);
+  session.cleanup(made.handle,true,{88,false,true,false,false});
+  const auto detached=session.snapshot();
+  require(detached.needs_session_recovery() && detached.inode_state(id).unlinked &&
+      detached.inode_state(id).info.path.empty() && detached.basic_metadata(id)->last_access_time==88,
+      "indexed Cleanup did not publish detach and metadata together");
+  refuses(Error::not_found,[&]{(void)session.lookup("target");});
+
+  const auto replacement=session.create_open("target",false,file_basic,security,{access,{},{},false});
+  const auto other=payload(1000);
+  session.write(replacement.handle,0,other);
+  session.write(peer,0,extra,{true,false});
+  auto combined=initial;
+  combined.insert(combined.end(),extra.begin(),extra.end());
+  session.close(made.handle);
+  require(session.read(peer,0,100)==combined && session.read(replacement.handle,0,100)==other &&
+      session.security_descriptor(peer)==security,"indexed detach lost peer I/O or changed the replacement");
+  const auto root=session.open("",{},NativeOpenKind::directory);
+  const auto page=session.list_page(root,{},1);
+  require(page.entries.size()==1 && page.entries.front().name=="target" &&
+      page.entries.front().state.info.inode==replacement.info.inode && !page.more,
+      "indexed session directory exposed a detached inode");
+  const auto still_owned=session.snapshot();
+  session.cleanup(peer,false);
+  session.close(peer);
+  const auto closed=session.snapshot();
+  require(!closed.needs_session_recovery() && !session.reclaim_retired_inode(),
+      "small indexed inode retirement left residual references");
+  refuses(Error::not_found,[&]{(void)closed.read_inode(id,0,100);});
+  require(still_owned.read_inode(id,0,100)==combined && marked.read_inode(id,0,100)==initial &&
+      detached.read_inode(id,0,100)==initial,"retirement changed older indexed snapshots");
+
+  const auto directory=session.create_open("temp",true,directory_basic,security,{access,{},{},false});
+  session.set_delete(directory.handle,true);
+  refuses(Error::invalid_operation,[&]{(void)session.create_entry("temp/child");});
+  session.set_delete(directory.handle,false);
+  session.create_entry("temp/child");
+  refuses(Error::not_empty,[&]{session.set_delete(directory.handle,true);});
+  session.cleanup(directory.handle,false);
+  session.close(directory.handle);
+  session.cleanup(root,false);
+  session.close(root);
+  session.cleanup(replacement.handle,false);
+  session.close(replacement.handle);
+  require(session.stats().contexts==0 && !session.poisoned(),"indexed session did not retire all contexts");
+  session.snapshot().verify_all();
+}
+
+void indexed_detach_recovery() {
+  using Error=NativeFsErrorCode;
+  auto original=empty();
+  auto writer=new_writer(original);
+  const auto seed=writer.apply(std::array{file_create("target"),file_write("target",0,payload(995)),
+      file_create("keep"),file_write("keep",0,payload(996))});
+  const auto id=seed.created_inodes.front();
+  const auto marked=writer.set_delete_pending(id,true);
+  const auto stable=original->stable;
+  auto successful=image(stable,4096);
+  std::size_t boundaries=0;
+  {
+    auto paged=PagedObjectStoreWriter::resume(successful,identity(),marked.storage.generation,limits,raw);
+    const auto start=successful->calls;
+    auto recovered=NativeFilesystemWriter::resume_closed_session(std::move(paged));
+    boundaries=successful->calls-start;
+    require(!recovered.snapshot().needs_session_recovery(),"indexed closed-session recovery retained old intent");
+  }
+  unsigned old=0,complete=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut) {
+    auto failed=image(stable,4096);
+    auto paged=PagedObjectStoreWriter::resume(failed,identity(),marked.storage.generation,limits,raw);
+    failed->failure=mode;failed->fail_at=failed->calls+cut;
+    refuses(Error::storage_failure,[&] {
+      (void)NativeFilesystemWriter::resume_closed_session(std::move(paged));
+    });
+    auto selected=image(failed->stable,4096);
+    const auto prior=NativeFilesystemSnapshot::open_image(selected,indexed);
+    prior.verify_all();
+    require(prior.read("keep",0,100)==payload(996),"indexed interrupted recovery lost an unrelated file");
+    if(prior.needs_session_recovery()) {
+      ++old;
+      require(prior.sequence()==marked.sequence && prior.inode_state(id).delete_pending &&
+          prior.read("target",0,100)==payload(995),"indexed recovery exposed mixed pending state");
+    } else {
+      ++complete;
+      require(prior.sequence()==marked.sequence+1,"indexed recovery published an unexpected sequence");
+      refuses(Error::not_found,[&]{(void)prior.stat("target");});
+    }
+    auto reopened=NativeFilesystemWriter::resume_closed_session(PagedObjectStoreWriter::resume(
+        selected,identity(),prior.storage_info().generation,limits,raw));
+    const auto final=reopened.snapshot();
+    final.verify_all();
+    require(!final.needs_session_recovery() && final.read("keep",0,100)==payload(996),
+        "indexed recovery could not finish after an interrupted attempt");
+    refuses(Error::not_found,[&]{(void)final.read_inode(id,0,100);});
+  }
+  require(old && complete && original->stable==stable,"indexed closed recovery missed a checkpoint or changed its source");
+  std::cout<<"indexed_closed_recovery_faults="<<old+complete<<" previous="<<old<<" complete="<<complete<<'\n';
+}
+
+void check_retirement_cuts(const Bytes& stable,std::uint64_t generation,std::size_t boundaries,
+    std::uint64_t inode,std::size_t before,std::size_t after) {
+  using Error=NativeFsErrorCode;
+  unsigned previous=0,advanced=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<boundaries;++cut) {
+    auto failed=image(stable,4096);
+    auto writer=resume_writer(failed,generation);
+    failed->failure=mode;failed->fail_at=failed->calls+cut;
+    refuses(Error::storage_failure,[&]{(void)writer.reclaim_retired_inode();});
+    require(writer.poisoned(),"interrupted indexed reclamation did not fence writer");
+    const auto recovered=NativeFilesystemSnapshot::open_image(image(failed->stable,4096),indexed);
+    const auto mapped=recovered.allocation_usage().live_extents;
+    if(mapped==before)++previous;
+    else if(mapped==after)++advanced;
+    else throw std::runtime_error("indexed interruption exposed partially reclaimed extent references");
+    require(!recovered.needs_session_recovery() && recovered.read("keep",0,100)==payload(888),
+        "indexed reclamation affected a live name or unrelated file bytes");
+    refuses(Error::not_found,[&]{(void)recovered.read_inode(inode,0,17);});
+    recovered.verify_all();
+  }
+  require(previous && advanced,"indexed reclamation did not exercise both durability outcomes");
+  std::cout<<"indexed_reclamation_faults="<<previous+advanced<<" previous="<<previous
+      <<" advanced="<<advanced<<'\n';
+}
+
+void indexed_large_retirement() {
+  using Error=NativeFsErrorCode;
+  auto ram=empty();
+  constexpr unsigned blocks=273,write_batch=48;
+  Bytes stable;
+  std::uint64_t generation=0;
+  {
+    auto writer=new_writer(ram);
+    const auto created=writer.apply(std::array{file_create("spanned"),file_create("keep"),
+        file_write("keep",0,payload(888))});
+    const auto id=created.created_inodes.front();
+    for(unsigned first=0;first<blocks;first+=write_batch) {
+      std::vector<NativeFileMutation> operations;
+      for(unsigned i=first;i<(std::min)(first+write_batch,blocks);++i)
+        operations.push_back(file_write("spanned",std::uint64_t(i)*kNativeExtentBytes,payload(i)));
+      writer.apply(operations);
+    }
+    auto session=NativeFileSession::create(std::move(writer));
+    const auto handle=session.open("spanned",{true,true,true});
+    session.reserve_result(handle,64U*1024*1024);
+    session.set_delete(handle,true);
+    session.cleanup(handle,true);
+    const auto detached=session.snapshot();
+    const auto read_offset=std::uint64_t(blocks-1)*kNativeExtentBytes;
+    require(detached.read_inode(id,read_offset,17)==payload(blocks-1) &&
+        detached.allocation_usage().live_extents==blocks+1,"indexed large detach lost data");
+    auto pending=image(ram->stable,4096);
+    auto prior_objects=PagedObjectStoreWriter::resume(pending,identity(),detached.storage_info().generation,limits,raw);
+    const auto calls=pending->calls;
+    refuses(Error::invalid_operation,[&] {
+      (void)NativeFilesystemWriter::resume(std::move(prior_objects));
+    });
+    require(pending->calls==calls,"ordinary indexed native admission tried to retire old contexts");
+    auto recovered=NativeFilesystemWriter::resume_closed_session(PagedObjectStoreWriter::resume(
+        pending,identity(),detached.storage_info().generation,limits,raw));
+    require(!recovered.snapshot().needs_session_recovery() && recovered.reclaim_retired_inode(),
+        "closed-session admission did not queue large detached recovery");
+    session.close(handle);
+    const auto retiring=session.snapshot();
+    require(!retiring.needs_session_recovery() && retiring.allocation_usage().live_extents==blocks+1 &&
+        retiring.read("keep",0,100)==payload(888),
+        "first large retirement touched extent data or recovery predicate");
+    refuses(Error::not_found,[&]{(void)retiring.read_inode(id,read_offset,17);});
+    retiring.verify_all();
+    const auto retiring_bytes=ram->stable;
+    const auto before=ram->calls;
+    require(session.reclaim_retired_inode(),"large indexed file did not enqueue reaping");
+    const auto after=session.snapshot();
+    require(after.allocation_usage().live_extents>1 && after.allocation_usage().live_extents<blocks+1 &&
+        ram->calls>before && detached.read_inode(id,read_offset,17)==payload(blocks-1),
+        "indexed reaping exceeded one bounded quantum or invalidated an earlier root");
+    check_retirement_cuts(retiring_bytes,retiring.storage_info().generation,ram->calls-before,id,
+        blocks+1,after.allocation_usage().live_extents);
+    generation=after.storage_info().generation;
+    stable=ram->stable;
+  }
+  auto reopened=resume_writer(ram,generation);
+  unsigned remaining=0;
+  while(reopened.reclaim_retired_inode()) {
+    ++remaining;
+    require(remaining<=blocks,"indexed retirement did not make progress");
+  }
+  const auto clean=reopened.snapshot();
+  clean.verify_all();
+  require(remaining>1 && clean.allocation_usage().live_extents==1 && clean.allocation_usage().charged_extents==1 &&
+      clean.read("keep",0,100)==payload(888) && ram->stable!=stable,
+      "indexed reopened reaping did not release extents and reservation exactly");
+  std::cout<<"indexed_large_retirement_blocks="<<blocks<<" quanta="<<remaining+1<<'\n';
+}
+
 void verify_recovered_batch(const NativeFilesystemSnapshot& snapshot,bool committed) {
   using Error=NativeFsErrorCode;
   require(snapshot.sequence()==(committed?3U:2U) &&
@@ -492,6 +720,7 @@ void indexed_transaction_recovery() {
 }
 
 int main() {
-  try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_transaction_recovery(); }
+  try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
+    indexed_large_retirement();indexed_transaction_recovery(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }
