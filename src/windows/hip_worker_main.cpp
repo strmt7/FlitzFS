@@ -228,7 +228,8 @@ std::string runtime_digest(std::wstring_view wide) {
 
 int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
-  const bool anchor_batch=mode==L"--driver-anchor-batch";
+  const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch";
+  const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
   require_hip_worker_job(anchor_batch || anchor_sweep);
@@ -446,7 +447,7 @@ int worker(int argc, wchar_t** argv) {
   const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" ||
       memory_observation || phase_observation || anchoring || anchor_batch;
   const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter" || phase_observation;
-  const auto channel_argument=anchor_batch?11:anchor_sweep?10:driver?6:5;
+  const auto channel_argument=anchor_transfer?12:anchor_batch?11:anchor_sweep?10:driver?6:5;
   require(argc==channel_argument+2 &&
       (driver || mode == L"--adapter" || mode == L"--match-adapter") &&
       std::wstring_view(argv[channel_argument]) == L"--worker-channel",
@@ -482,16 +483,21 @@ int worker(int argc, wchar_t** argv) {
   std::optional<MatchWorkerRequest> match;
   std::optional<detail::AnchorMatchRequest> anchor;
   std::optional<detail::AnchorMatchBatchRequest> anchors;
+  std::uint32_t transfer_grant=0;
   std::uint64_t allocation=0;
   if(anchor_batch) {
     try {
       anchors.emplace(detail::decode_anchor_match_batch_request(channel.request(),
           static_cast<std::uint32_t>(sized_capacity->request_bytes),static_cast<std::uint32_t>(sized_capacity->reply_bytes),
           decimal(argv[8],anchor_match::max_members),wide_decimal(argv[9]),decimal(argv[10],max_uint)));
+      allocation=anchors->plan.device_bytes;
+      if(anchor_transfer) {
+        transfer_grant=decimal(argv[11],max_uint);
+        allocation=detail::plan_anchor_match_transfers(anchors->plan,transfer_grant).device_bytes;
+      }
     } catch(const std::invalid_argument&) {
       throw HipWorkerFailure(Exit::invalid_request,"invalid shared base batch",HipWorkerStage::worker_request);
     }
-    allocation=anchors->plan.device_bytes;
   } else if(anchoring) {
     const auto admitted=anchor_plan?std::optional{anchor_plan->whole}:std::nullopt;
     try {anchor.emplace(detail::decode_anchor_match_request(channel.request(),admitted));}
@@ -563,12 +569,21 @@ int worker(int argc, wchar_t** argv) {
     const auto* api=entry();
     require(api && anchor_match::compatible_kernel_api(*api),Exit::unsupported_configuration,
         "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
+    const anchor_match::WindowSearchApi* window=nullptr;
+    if(anchor_transfer) {
+      const auto window_address=GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_window_api_v2");
+      require(window_address!=nullptr,Exit::unsupported_configuration,"HIP anchor window entry unavailable",
+          HipWorkerStage::kernel_entry);
+      window=std::bit_cast<anchor_match::WindowSearchApiEntry>(window_address)();
+      require(window && anchor_match::compatible_window_search_api(*window),Exit::unsupported_configuration,
+          "incompatible HIP anchor window table",HipWorkerStage::kernel_table);
+    }
     phase_clock.end(HipPhase::entry_bind);
     try {
       // Encoding includes independent comparison with the original bytes.
       if(anchors) {
         const auto records=run_hip_anchor_batch_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node_mask,*anchors,phase_clock);
+            luid,node_mask,*anchors,phase_clock,window,transfer_grant);
         phase_clock.begin(HipPhase::reply_encode);
         frame=detail::encode_anchor_match_batch_reply(*anchors,records);
       } else {

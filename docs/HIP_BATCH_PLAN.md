@@ -37,9 +37,31 @@ for CPU matching and verification. A deliberately mismatched runtime digest
 rejected the GPU batch and retained the independent CPU result.
 [Batch trial evidence](evidence/amd-anchor-batch-2026-11-18.json)
 
+The transfer mode stages several member windows in one pageable upload and
+downloads their results together. The base and its index stay resident for
+the group. A live device grant determines the staging size. All transfers
+before the tail stop at a search-dispatch boundary, and the worker checks headroom
+after each dispatch. The authenticated module exposes a separate typed kernel
+entry for the resident member window. [HIP synchronous transfers and streams](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/asynchronous.html)
+
+At 288 member extents, the full grant reduced 97 upload/download pairs to
+three. Four paired trials gave medians of 0.76 seconds for staged transfers,
+0.94 seconds for one transfer per dispatch and 0.21 seconds for CPU matching.
+The smaller grant used nine transfer pairs with byte-exact results. At 641
+member extents, staged transfers reduced 215 pairs to five and took 0.72–1.02
+seconds. The corresponding CPU trials took 0.46–0.47 seconds. Run order
+affected the GPU timings. At 1,272 member extents, transfers fell from 426
+pairs to six. The staged path took 1.24–1.38 seconds, the original AMD path
+took 1.79–2.35 seconds and CPU matching took 0.90 seconds in both trials.
+[Transfer trial evidence](evidence/amd-anchor-transfers-2026-11-18.json)
+
 ## SDK-only compression compute candidate
 
-Read [HIP_LZ4_COMPUTE.md](HIP_LZ4_COMPUTE.md) before changing the new typed compute implementation or CPU probe. It remains outside normal operations and the distributable worker; source-bound SDK qualification is pending. Keep authenticated coverage, CPU-first refusal, the complete slab cap and exact retirement requirements.
+The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)
+have a separate SDK worker. Its offline object was requalified, the worker
+rebuilt and the CPU decoder probe passed. Keep authenticated coverage,
+CPU-first refusal, device admission and exact retirement requirements.
+[SDK build and CPU decoder evidence](evidence/amd-anchor-transfers-2026-11-18.json)
 
 
 ## Current resource-envelope candidate

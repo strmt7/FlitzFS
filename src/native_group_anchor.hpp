@@ -37,6 +37,11 @@ struct AnchorMatchBatchRequest {
   std::vector<AnchorMatchRequest> groups;
 };
 
+struct AnchorMatchTransferPlan {
+  std::uint32_t members_per_transfer,device_bytes,transfers;
+  bool operator==(const AnchorMatchTransferPlan&) const = default;
+};
+
 std::uint32_t anchor_match_members(std::span<const std::byte> source);
 AnchorMatchLayout anchor_match_layout(std::uint32_t members);
 // The caller independently admits the whole host request and its transport.
@@ -56,6 +61,9 @@ AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,con
 // The grant counts the index build and all search launches for each group.
 AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> members,
     std::uint32_t maximum_quantum,std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches);
+// Transfers can span several launches. The last transfer of each group may
+// be partial, while every earlier transfer ends at a dispatch boundary.
+AnchorMatchTransferPlan plan_anchor_match_transfers(const AnchorMatchBatchPlan&,std::uint64_t maximum_device_bytes);
 std::vector<std::byte> encode_anchor_match_batch_request(std::span<const AnchorMatchRequest> groups,
     std::uint64_t id,const AnchorMatchBatchPlan&);
 AnchorMatchBatchRequest decode_anchor_match_batch_request(std::span<const std::byte> frame,

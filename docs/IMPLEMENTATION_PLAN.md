@@ -698,13 +698,18 @@ hit the nonlocal-memory gate during the seven-member smoke test, while the
 synchronous control verified that workload. Reusing one authenticated runtime,
 stream and slab across three independent bases cut the median GPU exchange
 from 1.72 to 0.75 seconds at 144 member extents. The CPU reference took
-0.10 seconds. Next, coalesce pageable transfers for multiple search windows
-under a live device grant. Measure the complete cost and preserve prompt
-yielding and independent CPU progress before opening ordinary routing.
+0.10 seconds. Coalescing pageable transfers cut the number of transfer pairs
+from 426 to six at 1,272 extents. The shared AMD exchange took 1.24–1.38
+seconds, compared with 1.79–2.35 seconds using one transfer per dispatch.
+CPU matching and verification took 0.90 seconds. Reduce retained
+host copies so larger work fits the live resource envelope. Measure the
+complete cost and preserve prompt yielding and independent CPU progress
+before opening ordinary routing.
 [Sized shared-base sweep](evidence/amd-anchor-sweep-2026-11-18.json)
 [Phase measurements](evidence/amd-anchor-phases-2026-11-18.json)
 [Pinned transfer trial](evidence/amd-anchor-pinned-trial-2026-11-18.json)
 [Independent-group batch comparison](evidence/amd-anchor-batch-2026-11-18.json)
+[Coalesced transfer comparison](evidence/amd-anchor-transfers-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

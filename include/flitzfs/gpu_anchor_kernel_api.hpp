@@ -18,4 +18,16 @@ inline bool compatible_kernel_api(const KernelApi& api) noexcept {
       api.index && api.search;
 }
 using KernelApiEntry=const KernelApi* (*)() noexcept;
+
+inline constexpr u32 window_abi_version=2;
+using WindowSearchKernel=void (*)(const u8* base,const u8* members,u32 member_count,const Bucket*,u32*,u32);
+struct WindowSearchApi {
+  u32 size_bytes,version;
+  WindowSearchKernel search;
+};
+static_assert(std::is_standard_layout_v<WindowSearchApi> && std::is_trivially_copyable_v<WindowSearchApi>);
+inline bool compatible_window_search_api(const WindowSearchApi& api) noexcept {
+  return api.size_bytes==sizeof(WindowSearchApi) && api.version==window_abi_version && api.search;
+}
+using WindowSearchApiEntry=const WindowSearchApi* (*)() noexcept;
 }

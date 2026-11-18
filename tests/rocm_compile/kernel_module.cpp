@@ -36,6 +36,7 @@ const flitzfs::match_detail::KernelApi* flitzfs_rocm_match_api_v1() noexcept {
 #include "flitzfs/gpu_anchor_kernel_api.hpp"
 namespace flitzfs::anchor_match {
 void bind_anchor_kernels(KernelApi&) noexcept;
+void bind_anchor_window_search(WindowSearchApi&) noexcept;
 }
 extern "C" __declspec(dllexport)
 const flitzfs::anchor_match::KernelApi* flitzfs_rocm_anchor_match_api_v1() noexcept {
@@ -43,6 +44,17 @@ const flitzfs::anchor_match::KernelApi* flitzfs_rocm_anchor_match_api_v1() noexc
   static const auto api=[]() noexcept {
     KernelApi value{sizeof(KernelApi),abi_version,extent_bytes,max_members,index_bytes,threads,nullptr,nullptr};
     bind_anchor_kernels(value);
+    return value;
+  }();
+  return &api;
+}
+
+extern "C" __declspec(dllexport)
+const flitzfs::anchor_match::WindowSearchApi* flitzfs_rocm_anchor_window_api_v2() noexcept {
+  using namespace flitzfs::anchor_match;
+  static const auto api=[]() noexcept {
+    WindowSearchApi value{sizeof(WindowSearchApi),window_abi_version,nullptr};
+    bind_anchor_window_search(value);
     return value;
   }();
   return &api;

@@ -26,6 +26,8 @@ static_assert(match::extent_bytes==kNativeExtentBytes);
 static_assert(header_size+(match::max_members+1)*match::extent_bytes<=kWorkerRequestLimit);
 static_assert(header_size+match::max_members*match::tiles*sizeof(match::u32)<=kWorkerReplyLimit);
 static_assert(maximum_members*match::tiles<=(maximum_channel_bytes-header_size)/record_bytes);
+static_assert(std::uint64_t(maximum_members+1)*match::extent_bytes+match::index_bytes+
+    std::uint64_t(maximum_members)*match::tiles*record_bytes<=(std::numeric_limits<std::uint32_t>::max)());
 
 void require(bool valid,const char* message) {
   if (!valid) throw std::invalid_argument(message);
@@ -234,6 +236,34 @@ AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> memb
     plan.groups.push_back(group);
   }
   return plan;
+}
+
+AnchorMatchTransferPlan plan_anchor_match_transfers(const AnchorMatchBatchPlan& batch,
+    std::uint64_t maximum_device_bytes) {
+  const auto quantum=batch.quantum_members;
+  require(!batch.groups.empty() && quantum && quantum<=match::max_members &&
+      batch.device_bytes==match::device_bytes(quantum) && maximum_device_bytes>=batch.device_bytes,
+      "invalid anchor transfer allocation grant");
+  std::uint32_t largest=0;
+  for(const auto& group:batch.groups) {
+    const auto members=group.whole.members;
+    require(members && members<=maximum_members && group.quantum_members==(std::min)(members,quantum),
+        "invalid anchor transfer group geometry");
+    largest=(std::max)(largest,members);
+  }
+  require(largest>=quantum,"anchor transfer does not contain its declared quantum");
+
+  constexpr auto fixed_bytes=match::extent_bytes+match::index_bytes;
+  constexpr auto per_member_bytes=match::extent_bytes+match::tiles*record_bytes;
+  const auto fit=(maximum_device_bytes-fixed_bytes)/per_member_bytes;
+  auto members=static_cast<std::uint32_t>((std::min)(fit,std::uint64_t(largest)));
+  if(members<largest)members-=members%quantum;
+  require(members>=quantum,"anchor transfer cannot fit one search dispatch");
+  std::uint64_t transfers=0;
+  for(const auto& group:batch.groups)transfers+=1+(group.whole.members-1)/members;
+  require(batch.launches>=batch.groups.size() && transfers<=batch.launches-batch.groups.size(),
+      "anchor transfer work exceeds batch launch grant");
+  return {members,match::device_bytes(members),static_cast<std::uint32_t>(transfers)};
 }
 
 Bytes encode_anchor_match_batch_request(std::span<const AnchorMatchRequest> groups,std::uint64_t id,

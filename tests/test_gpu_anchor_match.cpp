@@ -144,6 +144,20 @@ void independent_batch() {
       "batch did not reuse one slab for mixed group shapes");
   rejects([&]{(void)plan_anchor_match_batch(counts,3,device,8);});
   rejects([&]{(void)plan_anchor_match_batch(counts,3,device-1,9);});
+  const auto original=plan_anchor_match_transfers(plan,device);
+  check(original==AnchorMatchTransferPlan{3,device,6},"one dispatch per transfer");
+  check(plan_anchor_match_transfers(plan,match::device_bytes(5))==original,
+      "transfer grant must round down to a dispatch boundary");
+  check(plan_anchor_match_transfers(plan,match::device_bytes(6))==
+      AnchorMatchTransferPlan{6,match::device_bytes(6),4},"funded transfers must preserve a final partial dispatch");
+  check(plan_anchor_match_transfers(plan,match::device_bytes(7))==
+      AnchorMatchTransferPlan{7,match::device_bytes(7),3},"entire groups fit separate transfers");
+  check(plan_anchor_match_transfers(plan,(std::numeric_limits<std::uint64_t>::max)())==
+      plan_anchor_match_transfers(plan,match::device_bytes(7)),"device allocation must clamp to data size");
+  rejects([&]{(void)plan_anchor_match_transfers(plan,device-1);});
+  auto inconsistent=plan;
+  inconsistent.groups.front().quantum_members=2;
+  rejects([&]{(void)plan_anchor_match_transfers(inconsistent,device);});
   constexpr auto largest=(std::numeric_limits<std::int32_t>::max)()/match::extent_bytes-1;
   const std::array<std::uint32_t,2> oversized{largest,1};
   rejects([&]{(void)plan_anchor_match_batch(oversized,3,device,20000);});

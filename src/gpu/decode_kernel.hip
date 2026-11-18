@@ -65,9 +65,23 @@ void flitzfs_anchor_search_v1(const unsigned char* source,unsigned int members,
   output[lane]=search(source,member,table,lane%tiles);
 }
 
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_search_window_v2(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket* table,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  const auto lane=blockIdx.x*threads+threadIdx.x;
+  if (version!=window_abi_version || !members || members>max_members || lane>=members*tiles ||
+      !base || !window || !table || !output) return;
+  const auto* member=window+(lane/tiles)*extent_bytes;
+  output[lane]=search(base,member,table,lane%tiles);
+}
+
 namespace flitzfs::anchor_match {
 void bind_anchor_kernels(KernelApi& api) noexcept {
   api.index=flitzfs_anchor_index_v1;
   api.search=flitzfs_anchor_search_v1;
+}
+void bind_anchor_window_search(WindowSearchApi& api) noexcept {
+  api.search=flitzfs_anchor_search_window_v2;
 }
 }

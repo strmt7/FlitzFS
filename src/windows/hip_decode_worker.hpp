@@ -20,7 +20,8 @@ std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
     HipPhaseRecorder&,bool resource_sized);
 std::vector<std::vector<anchor_match::u32>> run_hip_anchor_batch_in_worker(HMODULE runtime,
     const anchor_match::KernelApi&,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const detail::AnchorMatchBatchRequest&,HipPhaseRecorder&);
+    std::uint32_t node_mask,const detail::AnchorMatchBatchRequest&,HipPhaseRecorder&,
+    const anchor_match::WindowSearchApi* window=nullptr,std::uint32_t transfer_grant=0);
 // The caller owns the verified runtime and kernel module for the whole call.
 // This is the compute stage of a supervised worker, with no module discovery.
 GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,

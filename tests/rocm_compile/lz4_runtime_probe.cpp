@@ -553,8 +553,10 @@ bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::ws
   return result->response==expected;
 }
 
-int direct_anchor_batch_compare(int argc,wchar_t** argv) {
-  require(argc==10 || argc==11,"Anchor batch comparison needs group count, member count, order and optional public extent");
+int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
+  const auto corpus_argument=transfers?11:10;
+  require(argc==corpus_argument || argc==corpus_argument+1,
+      "Anchor comparison needs group count, member count, order, transfer grant when selected and optional public extent");
   const fs::path worker(argv[2]);
   require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_worker.exe","Trusted anchor batch worker required");
   constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
@@ -565,7 +567,7 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv) {
       std::all_of(digest.begin(),digest.end(),[](wchar_t c){
         return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');
       }),"Anchor batch adapter/runtime binding invalid");
-  require(order==L"batch-first" || order==L"fresh-first","Invalid anchor comparison order");
+  require(order==L"batch-first" || order==(transfers?L"transfer-first":L"fresh-first"),"Invalid anchor comparison order");
   const auto group_count=number(argv[7],(std::numeric_limits<LONG>::max)()/detail::anchor_match_layout(1).request_bytes);
   const auto members=detail::anchor_match_layout(number(argv[8],max_uint)).members;
   require(group_count>=2,"Anchor comparison requires independent groups");
@@ -578,25 +580,44 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv) {
           anchor_match::device_bytes(quantum))!=GpuGateCode::admitted)) --quantum;
   require(quantum!=0,"Anchor comparison lacks an admitted AMD device window");
   const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),max_uint);
+  std::optional<detail::AnchorMatchTransferPlan> transfer;
+  if(transfers) {
+    auto limit=std::wstring_view(argv[10])==L"auto"?members:number(argv[10],members);
+    require(limit>=quantum,"Transfer grant must cover one search dispatch");
+    auto admitted=quantum;
+    const auto sample_time=GetTickCount64();
+    while(admitted<limit) {
+      const auto candidate=admitted+(limit-admitted+1)/2;
+      if(check_gpu_memory_budget(observed.snapshot,luid,mask,sample_time,
+          anchor_match::device_bytes(candidate))==GpuGateCode::admitted)admitted=candidate;
+      else limit=candidate-1;
+    }
+    transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(admitted));
+  }
   constexpr std::uint64_t mib=1024*1024;
   MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
   require(GlobalMemoryStatusEx(&memory)!=0,"Anchor comparison cannot sample host headroom");
-  const auto child_budget=[&](WorkerChannelCapacity capacity) {
+  const auto child_budget=[&](WorkerChannelCapacity capacity,std::uint32_t device_bytes) {
     // The measured authenticated fixture fits the 128 MiB baseline envelope.
     // Add owned frame/result copies before admitting a larger working set.
-    const auto baseline=128*mib+plan.device_bytes+2ULL*capacity.request_bytes+2ULL*capacity.reply_bytes;
+    const auto baseline=128*mib+device_bytes+2ULL*capacity.request_bytes+2ULL*capacity.reply_bytes;
     const auto transport=6ULL*capacity.request_bytes+4ULL*capacity.reply_bytes+mib;
     const auto result=plan_resource_process_budget((std::max)(baseline,transport),
         memory.ullAvailPhys,memory.ullAvailPageFile,16,budget.cpu_rate,budget.timeout_ms);
     require(valid_worker_channel_capacity(capacity,result),"Anchor comparison lacks current worker headroom");
     return result;
   };
-  const auto batch_budget=child_budget({plan.request_bytes,plan.reply_bytes});
+  const WorkerChannelCapacity capacity{plan.request_bytes,plan.reply_bytes};
+  const auto batch_budget=child_budget(capacity,plan.device_bytes);
+  const auto transfer_budget=transfer?child_budget(capacity,transfer->device_bytes):batch_budget;
   std::vector<ProcessBudget> individual_budgets;
-  individual_budgets.reserve(plan.groups.size());
-  for(const auto& group:plan.groups)individual_budgets.push_back(child_budget({group.whole.request_bytes,group.whole.reply_bytes}));
+  if(!transfer) {
+    individual_budgets.reserve(plan.groups.size());
+    for(const auto& group:plan.groups)individual_budgets.push_back(
+        child_budget({group.whole.request_bytes,group.whole.reply_bytes},group.device_bytes));
+  }
   const auto parent_bytes=128*mib+4ULL*plan.request_bytes+4ULL*plan.reply_bytes;
-  const auto child_bytes=batch_budget.memory_mib*mib;
+  const auto child_bytes=transfer_budget.memory_mib*mib;
   require(valid_process_budget(plan_resource_process_budget(parent_bytes+child_bytes,memory.ullAvailPhys,
       memory.ullAvailPageFile,16,budget.cpu_rate,budget.timeout_ms)),"Anchor comparison lacks current host headroom");
   const gpu_probe_fixture::Budget controller(parent_bytes,child_bytes);
@@ -604,7 +625,7 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv) {
   std::vector<detail::AnchorMatchRequest> groups;
   groups.reserve(group_count);
   for(unsigned i=0;i<group_count;++i) {
-    const auto input=anchor_fixture(counts[i],argc==11?argv[10]:nullptr,i);
+    const auto input=anchor_fixture(counts[i],argc>corpus_argument?argv[corpus_argument]:nullptr,i);
     const auto layout=plan.groups[i].whole;
     groups.push_back(detail::decode_anchor_match_request(
         detail::encode_anchor_match_request(input.base,input.members,i+1,layout),layout));
@@ -621,17 +642,22 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv) {
   const auto expected=detail::encode_anchor_match_batch_reply(batch,cpu);
   const auto cpu_ns=nanos_since(cpu_start);
   std::vector<Bytes> individual_replies;
-  individual_replies.reserve(groups.size());
-  for(std::size_t i=0;i<groups.size();++i)individual_replies.push_back(detail::encode_anchor_match_reply(groups[i],cpu[i]));
+  if(!transfer) {
+    individual_replies.reserve(groups.size());
+    for(std::size_t i=0;i<groups.size();++i)individual_replies.push_back(detail::encode_anchor_match_reply(groups[i],cpu[i]));
+  }
 
-  std::uint64_t batch_ns=0,fresh_ns=0;
-  const auto run_batch=[&] {
+  std::uint64_t batch_ns=0,comparison_ns=0;
+  const auto run_batch=[&](bool coalesce,std::uint64_t& elapsed) {
     const auto start=std::chrono::steady_clock::now();
-    const auto verified=anchor_comparison_exchange(worker,{L"--driver-anchor-batch",std::to_wstring(ordinal),
+    std::vector<std::wstring> arguments{coalesce?L"--driver-anchor-transfer-batch":L"--driver-anchor-batch",
+        std::to_wstring(ordinal),
         argv[4],std::to_wstring(mask),std::wstring(digest),std::to_wstring(plan.request_bytes),
         std::to_wstring(plan.reply_bytes),std::to_wstring(plan.quantum_members),
-        std::to_wstring(plan.device_bytes),std::to_wstring(plan.launches)},frame,expected,batch_budget);
-    batch_ns=prepare_ns+nanos_since(start);
+        std::to_wstring(plan.device_bytes),std::to_wstring(plan.launches)};
+    if(coalesce)arguments.push_back(std::to_wstring(transfer->device_bytes));
+    const auto verified=anchor_comparison_exchange(worker,arguments,frame,expected,coalesce?transfer_budget:batch_budget);
+    elapsed=prepare_ns+nanos_since(start);
     return verified;
   };
   const auto run_fresh=[&] {
@@ -647,16 +673,24 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv) {
           std::to_wstring(group.quantum_members),std::to_wstring(group.device_bytes),std::to_wstring(group.windows)},
           separate,individual_replies[i],individual_budgets[i]);
     }
-    fresh_ns=nanos_since(start);
+    comparison_ns=nanos_since(start);
     return verified;
   };
+  const auto compare=[&]{return transfer?run_batch(true,comparison_ns):run_fresh();};
   const auto batch_first=order==L"batch-first";
-  const auto verified=batch_first?(run_batch() && run_fresh()):(run_fresh() && run_batch());
-  std::cout<<std::boolalpha<<"Direct AMD shared base batch: {\"gpu_verified\":"<<verified
+  const auto verified=batch_first?(run_batch(false,batch_ns) && compare()):(compare() && run_batch(false,batch_ns));
+  std::cout<<std::boolalpha<<(transfer?"Direct AMD shared base transfer: {":"Direct AMD shared base batch: {")
+      <<"\"gpu_verified\":"<<verified
       <<",\"cpu_fallback\":"<<!verified<<",\"batch_first\":"<<batch_first
       <<",\"groups\":"<<counts.size()<<",\"maximum_members\":"<<members<<",\"launches\":"<<plan.launches
       <<",\"request_bytes\":"<<plan.request_bytes<<",\"reply_bytes\":"<<plan.reply_bytes
-      <<",\"slab_bytes\":"<<plan.device_bytes<<",\"batch_ns\":"<<batch_ns<<",\"fresh_ns\":"<<fresh_ns
+      <<",\"slab_bytes\":"<<plan.device_bytes<<",\"batch_ns\":"<<batch_ns;
+  if(transfer){
+    std::cout<<",\"transfer_ns\":"<<comparison_ns<<",\"transfer_members\":"<<transfer->members_per_transfer
+        <<",\"transfer_slab_bytes\":"<<transfer->device_bytes<<",\"transfer_count\":"<<transfer->transfers
+        <<",\"original_transfer_count\":"<<plan.launches-plan.groups.size();
+  } else std::cout<<",\"fresh_ns\":"<<comparison_ns;
+  std::cout
       <<",\"cpu_search_and_verify_ns\":"<<cpu_ns<<",\"job_peak_bytes\":"<<controller.peak_commit()
       <<",\"transport_quiescent\":true}\n";
   return verified?0:2;
@@ -934,8 +968,9 @@ int gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller
 }
 int wmain(int argc,wchar_t** argv){
   try{
-    if(argc>1 && std::wstring_view(argv[1])==L"--gpu-direct-anchor-batch-compare-once")
-      return direct_anchor_batch_compare(argc,argv);
+    const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
+    if(mode==L"--gpu-direct-anchor-batch-compare-once" || mode==L"--gpu-direct-anchor-transfer-compare-once")
+      return direct_anchor_batch_compare(argc,argv,mode==L"--gpu-direct-anchor-transfer-compare-once");
     gpu_probe_fixture::Budget controller;
     if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-fixture")
       return deferred_native_fixture::run({},controller);
@@ -972,7 +1007,6 @@ int wmain(int argc,wchar_t** argv){
     }
     if(argc==4 && std::wstring_view(argv[1])==L"--uniform-admission")return uniform_admission(argv[2],argv[3]);
     if(argc==2 && std::wstring_view(argv[1])==L"--uniform-sweep-native-cpu-fixture")return uniform_native_cpu_fixture(true);
-    const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
     if(mode==L"--gpu-direct-anchor-sweep-once" || mode==L"--gpu-direct-anchor-sweep-profile-once")
       return direct_anchor_sweep_once(argc,argv,controller,mode==L"--gpu-direct-anchor-sweep-profile-once");
     if(mode==L"--gpu-indexed-anchor-once" || mode==L"--gpu-indexed-direct-anchor-once" ||
