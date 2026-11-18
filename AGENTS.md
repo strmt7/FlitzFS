@@ -118,7 +118,8 @@ reclamation and useful ordinary GPU/collective operation. Keep the full goal act
    non-interactive CTest mode for direct and `cmake -E env` launches. For a
    direct CTest command outside the supervisor, pass `--interactive-debug-mode 0`.
    MSVC AddressSanitizer builds stage the selected toolset's runtime alongside
-   the test binaries. Rebuild an older sanitizer fixture before running it.
+   the test binaries. CTest verifies that runtime before starting tests.
+   Reconfigure and rebuild an older sanitizer fixture before running it.
 4. Review lifecycle/resource cleanup and retain failures as well as successes.
    Repeat checks only after a change or unresolved failure justifies them.
 5. Do not add/bump product numbering, tags/releases, publish packages or call a

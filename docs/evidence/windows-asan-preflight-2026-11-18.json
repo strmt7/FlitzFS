@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "source_base": "02b3b7e462a620f1bd98b58dcff8833312a8c5ea",
+  "source_tree": "6ee4a8ca9349f285f3bab9a15180d75553b3d8e4",
+  "tested_sources": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "ef9e595c090174ae6f05e40e4b72c7bce63c949b",
+      "worktree_sha256": "19d22b334f1065d3d7797585de09cb96cf59aefce1cd3ad9a3ffe5c858d6fb83"
+    },
+    {
+      "path": "cmake/StageWindowsAsanRuntime.cmake",
+      "git_blob": "6f76fa46c0c08d5f836322ad2db737780dda6d88",
+      "worktree_sha256": "e368081f4c8db839eaef64cc5215229e4dfb161ab479a1d612d827958e867ed7"
+    },
+    {
+      "path": "cmake/WindowsAsanRuntime.cmake",
+      "git_blob": "57f18cb4e3e0ebfd3f6b5bcb1a40513789e76d83",
+      "worktree_sha256": "a533f5fd5556d9d0fca72f9b4de714791e4295892c76566ef8b24e05d029797e"
+    },
+    {
+      "path": "tools/dev/windows_run.py",
+      "git_blob": "4842d21e0747dc9cf2e9261f1ac7e5c1e5783f4f",
+      "worktree_sha256": "d47b5a9a224b564d77f5582572aac76566319c5b4cc6f174ec040c29cd3f2b6a"
+    },
+    {
+      "path": "tools/dev/test_windows_run.py",
+      "git_blob": "7b68df115610134bea2b03c66a3eae2fb2cea49f",
+      "worktree_sha256": "e3071a2e09841ad7bfedc15725327787038df4fec9171402755eed1d0b16a631"
+    }
+  ],
+  "environment": {
+    "windows": "Windows 11 Pro build 26300 x64",
+    "msvc": "19.52.37029.0",
+    "ctest": "4.5.0",
+    "staged_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "runtime": "clang_rt.asan_dynamic-x86_64.dll",
+    "instrumented_configuration": "RelWithDebInfo",
+    "raw_configuration": "Release",
+    "test_path": "Windows and System32 only",
+    "optional_codecs": "disabled"
+  },
+  "original_incident_builds": [
+    {
+      "run": "be66bc0592174978b786dcfd4afa3f42",
+      "config": "Release",
+      "runtime_now_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "tree_retired": true
+    },
+    {
+      "run": "7d2204a6263d482e91d103c3adc532cb",
+      "config": "RelWithDebInfo",
+      "runtime_now_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+      "tree_retired": true
+    }
+  ],
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "bbca3bbf0d8ee2ed67f26563204a51202be68409046b1d10fe8ea1c5c917b43b",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/cpp/sanitizers/asan-runtime?view=msvc-170",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "c11e682894c7d6bff37c6d5f02f7d38daa93bf363072899df7f0b1f71f4e6935",
+        "capture_sha256": "15546a88b549a19a561eefa2256416f5c3180fc7edd75bf6b32360ddf2a7ec63"
+      },
+      {
+        "url": "https://cmake.org/cmake/help/latest/prop_test/FIXTURES_REQUIRED.html",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "71d432e560371e428cb242a43a5f5478a9745903a1913261f40c56ac7b823480",
+        "capture_sha256": "4b9cdb6a3fb8291700b841e80f57f348b294fd23063aabf0dec28c5cb169f23f"
+      },
+      {
+        "url": "https://cmake.org/cmake/help/latest/prop_dir/CMAKE_CONFIGURE_DEPENDS.html",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "0c4dde03839f766866a2ea90f685272344ce7257bb5beedd9898522c6ea2b2ec",
+        "capture_sha256": "ce7600c3502a0c37c6cbb0e3ed3cbd1753b7424872fd9aad9e3a1d11a05da354"
+      },
+      {
+        "url": "https://cmake.org/cmake/help/latest/command/set_tests_properties.html",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "378e1c3474cb92d3578e5b27cad742ccedb95c7dc8f216eeb01701438187173e",
+        "capture_sha256": "f6f5fe47449cd908b58ce47af98f7f8719b2b87a1329f8dc9db2bada25fb5562"
+      }
+    ]
+  },
+  "semantic_search": {
+    "provider": "0.2.43",
+    "commit": "02b3b7e462a620f1bd98b58dcff8833312a8c5ea",
+    "dirty_patch_sha256": "79edd5281e3646f2eb17eab9620fb232423878f1ff89725f43820591dccf63b4",
+    "receipt_sha256": "9237016a09dfdf15a024d0b3385ada5393c04675f5d97e76e02afe0c6077ecc7",
+    "native_sha256": "1c655932a0243eeaf3e52141cda8afa854136b55b2c504643dc4e44d44718e1f"
+  },
+  "runs": [
+    {
+      "description": "Configure MSVC x64 with AddressSanitizer in RelWithDebInfo only",
+      "run": "local-run-955b0e7199cc4e56ab55a07ce4206113",
+      "receipt_sha256": "b2f91ea17ebae57413480454c6fe487b5843aea50a588045bf5924e91beff924",
+      "output_sha256": "84258909f7c3481716752c4a56e37336387181ec7ee4bf94a2defdec4f1a9859",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 7.400916,
+      "active_children_at_retirement_deadline": 0,
+      "loader_error": null
+    },
+    {
+      "description": "Plain filtered CTest with missing runtime",
+      "run": "local-run-9b2d5c35788e484aaa73a0a8395c4cee",
+      "receipt_sha256": "392191e066e5336d98d0186f1d5f08c039ff92e6ad5f8ae922b6921787f70824",
+      "output_sha256": "65f36b1a13353f45d68201039cc930686abff2ecc4eab03072a4c9d4584444e3",
+      "exit_code": 8,
+      "tree_retired": true,
+      "elapsed_seconds": 0.21858,
+      "active_children_at_retirement_deadline": 0,
+      "loader_error": null
+    },
+    {
+      "description": "Plain filtered CTest with mismatched runtime",
+      "run": "local-run-f682518bd4bc4264b85fe7aff03ba936",
+      "receipt_sha256": "e0bde8ce1ec2be7f5ecd268db6f5011888546c5a9b5ad349df4f1f2987ae6082",
+      "output_sha256": "739ab343d1f9c712963efdad36f115422cbf7cf40d53499e470db4497be51f46",
+      "exit_code": 8,
+      "tree_retired": true,
+      "elapsed_seconds": 0.127927,
+      "active_children_at_retirement_deadline": 0,
+      "loader_error": null
+    },
+    {
+      "description": "Build all five affected AddressSanitizer test executables and replace mismatched DLL",
+      "run": "local-run-3d1b7b5c904644e3bc59cc9032a632e6",
+      "receipt_sha256": "f14b9bf0df1e7dadb88d5b0c0d41d6e9ed0d0ca4b08003eb6cffa2c99da54f1e",
+      "output_sha256": "8819428f6c0cc20c2c158fa2fc3711fcc912a2496e214ebd3daa8b8aae86af11",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 62.312583,
+      "active_children_at_retirement_deadline": 0,
+      "loader_error": null
+    },
+    {
+      "description": "Run the five affected instrumented suites, preflight and launcher regressions",
+      "run": "local-run-8820eceed0034ad7b173b56a37d7a58e",
+      "receipt_sha256": "c2f32f9cbffa6327e447b2694959ad2c6472ff68bd6045369cc4ae14820dbfc6",
+      "output_sha256": "e5eaaf0f8aa60f94e01007fe18dcf8b0acf1c1375644d1374a69b83fe496c02a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 85.861804,
+      "active_children_at_retirement_deadline": 0,
+      "loader_error": null
+    },
+    {
+      "description": "Run an affected instrumented executable directly",
+      "run": "local-run-35663f1cfa7a4075b44781a17f060a69",
+      "receipt_sha256": "3454f1e0eadbdc47b61fc15cc9b9a25682002c3bbb7bc0e89649c7da81f8dda8",
+      "output_sha256": "e23d564bf2cbe3a915a59decf3b81ca732844f1a1dd0490e0d326a795616b0ee",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 7.094576,
+      "active_children_at_retirement_deadline": 0,
+      "loader_error": null
+    },
+    {
+      "description": "Run a disposable copy of that executable without the DLL under the supervisor",
+      "run": "local-run-14f9996f9d714fbfaeaac3a8f36e23f0",
+      "receipt_sha256": "61a5ae71b627e478cc72ff84a303bb98535c46b2a6507078dd34dbb79a82e6b8",
+      "output_sha256": "2d936fa9a68b2ee8ae77d0dc0fc102e087388ce6510ac70f4291e886aa7f7f0f",
+      "exit_code": 3221225781,
+      "tree_retired": true,
+      "elapsed_seconds": 0.096199,
+      "active_children_at_retirement_deadline": 0,
+      "loader_error": "Windows loader failure (0xC0000135): required DLL not found"
+    },
+    {
+      "description": "Build the non-instrumented Release control",
+      "run": "local-run-2d38565deb3b422295ff1d719c91a463",
+      "receipt_sha256": "7d72a00d88ff4e3e97922e3900db7c756441408c76d516308de4d09fee638f0d",
+      "output_sha256": "b9d9792ae958c66ed0b52cde2118abcca1cec0bc56a1305785cd8f5b32084656",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 49.29675,
+      "active_children_at_retirement_deadline": 1,
+      "loader_error": null
+    },
+    {
+      "description": "Run the non-instrumented Release control and launcher regressions",
+      "run": "local-run-115b3c86af834dc6be138363a5c8ff11",
+      "receipt_sha256": "bf2595d17c5f0be71822d3825854787cba161cd0dab6ac0102bda8ad7f06e8d3",
+      "output_sha256": "1ba865d04dc17e94296eda9f8f643ef171efc79ed5c87bd44443109750781b5a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 6.05098,
+      "active_children_at_retirement_deadline": 0,
+      "loader_error": null
+    }
+  ],
+  "instrumented_junit_sha256": "c88bfea9ffa29bfe6443e8e4638c85c2d2655d1a896aaaf86ac3d5eb71385d41",
+  "instrumented_ctest_names": [
+    "bounded_native_filesystem",
+    "bounded_paged_object_store",
+    "bounded_native_inode_records",
+    "bounded_native_directory_index",
+    "bounded_native_indexed_volume",
+    "unattended_windows_launcher",
+    "windows_asan_runtime_preflight"
+  ],
+  "raw_junit_sha256": "5a2e8526b13e0b79913a24ea66ec95da6c5f3f728295772dd7845dccb9c9d016",
+  "raw_ctest_names": [
+    "bounded_native_inode_records",
+    "unattended_windows_launcher"
+  ],
+  "failure_witness": "Each negative plain CTest run selected the existing Python launcher unit suite. CTest reported Not Run after the runtime fixture failed, so the negative check could run safely even if test ordering regressed.",
+  "qualification": "Fresh configuration and builds, in-memory filesystem fixtures, no mounts or driver or GPU operations. The Release build supervisor stopped one owned helper after parent exit and confirmed the empty tree."
+}

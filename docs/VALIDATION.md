@@ -45,6 +45,19 @@ direct and nested CTest launches reported `0xC0000135` and retired in under
 one second. The raw-build control and five launcher argument tests passed.
 [Source and execution evidence](evidence/windows-unattended-asan-2026-11-18.json)
 
+The follow-up build verifies the staged DLL against the configured compiler's
+runtime. CTest checks it once per run before starting any instrumented tests,
+including filtered runs. Plain CTest refused to launch a selected test when the
+DLL was missing or mismatched. It reported both failures in under a second.
+[CTest fixture requirements](https://cmake.org/cmake/help/latest/prop_test/FIXTURES_REQUIRED.html)
+
+After rebuilding, all five affected suites passed in the instrumented build
+with only Windows directories on `PATH`. One affected executable also passed
+when launched directly. Without its DLL in a separate fixture, the supervisor
+logged `0xC0000135` and confirmed process exit. The uninstrumented Release
+control ran two tests without staging a DLL or running the runtime check.
+[Follow-up source and execution evidence](evidence/windows-asan-preflight-2026-11-18.json)
+
 ## Cooperative indexed group preparation — 18 November 2026
 
 The 64-member indexed fixture took 65 preparation steps. The largest step

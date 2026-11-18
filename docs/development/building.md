@@ -33,9 +33,12 @@ the example's parallelism is not a host or product assumption.
 MSVC C++ targets explicitly enable `/EHsc`; writer leases and rollback require
 exception unwinding. Custom `CMAKE_CXX_FLAGS`, including sanitizer flags, must
 preserve that behavior. The store fails compilation when unwinding is disabled.
-Local AddressSanitizer checks use the installed matching user-mode runtime,
-finite process-tree supervision and appropriate in-memory suites. A sanitizer
-pass is scoped to the instrumented configuration and executed checks.
+Windows MSVC AddressSanitizer builds stage the selected compiler's runtime next
+to the executables. CTest checks the staged DLL against the configured toolset
+before starting any instrumented test, including filtered runs. A missing or
+mismatched DLL fails the setup check with a rebuild diagnostic. Reconfigure and
+rebuild older sanitizer directories before using them. Keep the Windows
+supervisor for unattended launches and the applicable in-memory test fixtures.
 
 GPU and mount probes remain opt-in and are not
 ordinary CTest operations. A successful base build does not qualify an optional
