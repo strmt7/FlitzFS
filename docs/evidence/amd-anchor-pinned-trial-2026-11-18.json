@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "source_base": "6247543ccc3065d5144478a399e3bfd581d4a846",
+  "candidate_patch_sha256": "9ad28dbc32a42b17fb72edb04699484fee2accecce683940f0f4bd17e0da791c",
+  "tested_candidate_sources": [
+    {
+      "path": "src/windows/anchor_sweep_profile.hpp",
+      "git_blob": "12f9de82748e22e810410239f28d0f64d616536e",
+      "sha256": "4786117f48d7364aa1a9c1be130a260a795a0a69fe40d1c1a7b30bffb1ece595"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.cpp",
+      "git_blob": "d2a7d44a9ba239deee0f23be2fb2355450f698c6",
+      "sha256": "ee48e15e4a64052db3845ead39d7ce3f1157411af72dedaae51d95fbeb286e0e"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.hpp",
+      "git_blob": "06584d341ea2bc13d5ce1eebdf6a1d5565bd7024",
+      "sha256": "a114ac4e87dafd4d3d7adf0368293897e151b7c29f4d1d232e82877ceaf5df85"
+    },
+    {
+      "path": "src/windows/hip_worker_main.cpp",
+      "git_blob": "e073ac14d8860fe68ce14cd3e029491a627af8cb",
+      "sha256": "f4dc92c7af0491ad836dfe530e7413feae31d542a8213bd7970f6ce490b09ffe"
+    },
+    {
+      "path": "tests/rocm_compile/lz4_runtime_probe.cpp",
+      "git_blob": "266b23fd732824ebce06db2aa2b7868da89ece48",
+      "sha256": "11625c8eb4d2b2ae8a0e2646dd28163cec7e015f0fa8e8096b2f9a495b3d6f75"
+    },
+    {
+      "path": "tests/test_hip_phase_profile.cpp",
+      "git_blob": "6d13fe3d32f3272b64c7f8364aca6440a498e78b",
+      "sha256": "8a58c6187b0896e4c9d6eaa32c99c1bd6c332fa88135a853c6ea0721f9ff4779"
+    }
+  ],
+  "artifacts": {
+    "rocm_sdk": "10.1.0",
+    "target": "gfx1201",
+    "worker_sha256": "bfa349dc7f0b2be6fc0edc01b734e11c330aa2f7a8cd4c6a3a3b3c80ef6a607d",
+    "probe_sha256": "8b9013face66100b14dcd01ae370f8bfe27a0ef402020d2dc2c962c5c94d5a07",
+    "device_object_sha256": "28a8c5c755c637e01914707fe67da6204993fc9c66e38b93610ec6570ff226e2",
+    "kernel_module_sha256": "c354531133436d3658c8ff485a7df6d1873fe70542810adf2282d05675fa24f2",
+    "installed_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+  },
+  "source_navigation": {
+    "commit": "070d168e38705d262e07242e06a1fffda7b3b0c9",
+    "provider": "0.2.43",
+    "actual_searches": 1,
+    "receipt_sha256": "b1c9be628c61595afc3bda22fc007addab22887efa8ed209bc85d3210264e5d9"
+  },
+  "source_research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "3dc7f7664e4aba5a9f68ba6272aee04dec48488d276cd77afb9dcba010b6d0d0",
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/memory_management/host_memory.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "61d86598ffc5ebe9c6c5cfc6a07cd13c7058bd380b6eb98e8be0b16e4ea15149",
+        "capture_sha256": "dccad7376198335dcd7be719ed68c5f32db75e77986d188a78d5c14697776732"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/asynchronous.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "0ee393001c09c399bd21e9b5b343203f021901ee958ecab8761b2cb0d2ed8886",
+        "capture_sha256": "ba75b1b33764eca4cfff5f70767c324286a3f6d4081aa72b5d5d7292a75f8e74"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "5115d5ef576e3d2bb695f473bfb46c158b453738a8adb192185e9124f443fe4b",
+        "capture_sha256": "331874d49f80d5460d106f37f49e6afecca2fb176a15f88d6072ff651685d938"
+      }
+    ],
+    "flitzzip_reference_commit": "11396b5123505a4a1959173e1db2d0858c10dd6d",
+    "flitzzip_reference_file": "src/gpu/hip_device.cpp"
+  },
+  "validation": [
+    {
+      "check": "raw_ctest",
+      "run": "local-run-1c7c68a0c5ed436986b88f742b5fedac",
+      "retired": true,
+      "receipt_sha256": "da67c68172219d17a5dad905c3514fa7c68233d61b25c59cca8cc33cb7503d26",
+      "log_sha256": "09d5c0ca852d4cd61ccf2db78d35d060e33987359be064c04481ed5453bc1c57"
+    },
+    {
+      "check": "asan_ctest",
+      "run": "local-run-2a09cd3dce3645d2841927101cced422",
+      "retired": true,
+      "receipt_sha256": "a6fd43de1efdb1116d64d622d67a2ebff463b7b8942f6c8fb36a7d349bb49da8",
+      "log_sha256": "2a2e2bab25ccaa08582aea543508249efe5635a64cdd63bf871629465cddb67e"
+    },
+    {
+      "check": "sdk_build",
+      "run": "local-run-da588c819f7546c7a0527d70debc4231",
+      "retired": true,
+      "receipt_sha256": "7eeab3f9c9799b606783514ff2bee0b0d9e51a8d9abd334b43b281dd9806c0f4",
+      "log_sha256": "00a01d1966c4900431e4d8a4a371746e6cee6ddfb36d56697491e3d77636e9c2"
+    }
+  ],
+  "paired_smoke_trials": [
+    {
+      "case": "pinned-smoke-seven",
+      "run": "local-run-a068e7a1ea3b4e88a153f3877bb5073b",
+      "live_identity": "local-run-88c4a84a248c470c9e7fe8b054b1aefb",
+      "exit": 2,
+      "retired": true,
+      "physical_available_bytes": 8587624448,
+      "peak_job_bytes": 135086080,
+      "result": {
+        "gpu_verified": false,
+        "cpu_fallback": true,
+        "worker_started": true,
+        "members": 7,
+        "source_bytes": 524288,
+        "record_bytes": 114688,
+        "reply_bytes": 0,
+        "search_windows": 3,
+        "device_allocation_bytes": 835584,
+        "exchange_ns": 953948800,
+        "cpu_search_and_verify_ns": 5806700,
+        "worker_exit": 1179852548,
+        "job_peak_bytes": 133873664,
+        "transport_quiescent": true,
+        "pinned_async": true,
+        "planned_pinned_host_bytes": 311296,
+        "profile_verified": false,
+        "worker_wall_ns": 0,
+        "phase_times_ns": null
+      },
+      "receipt_sha256": "cb414183c6809bfa43cc4e7a4df9a5ba3f765ced0ee4f97599a15db9f2fde5a3",
+      "log_sha256": "d17f1753281a4a495bbe990d12e835c3b6715e4ea80370a89f6cf62c098be706"
+    },
+    {
+      "case": "synchronous-smoke-seven",
+      "run": "local-run-73310cf8b6944904ac79bc20c311ce17",
+      "live_identity": "local-run-4d0e4fcca67d4765a2f3a274289d6990",
+      "exit": 0,
+      "retired": true,
+      "physical_available_bytes": 8563593216,
+      "peak_job_bytes": 88600576,
+      "result": {
+        "gpu_verified": true,
+        "cpu_fallback": false,
+        "worker_started": true,
+        "members": 7,
+        "source_bytes": 524288,
+        "record_bytes": 114688,
+        "reply_bytes": 115008,
+        "search_windows": 3,
+        "device_allocation_bytes": 835584,
+        "exchange_ns": 1253486500,
+        "cpu_search_and_verify_ns": 6330600,
+        "worker_exit": 0,
+        "job_peak_bytes": 87388160,
+        "transport_quiescent": true,
+        "pinned_async": false,
+        "planned_pinned_host_bytes": 0,
+        "profile_verified": true,
+        "worker_wall_ns": 1194915800,
+        "phase_times_ns": {
+          "request_decode": 329400,
+          "bundle_verify": 55486500,
+          "adapter_admit": 11704200,
+          "modules_load": 2086800,
+          "entry_bind": 1200,
+          "device_initialize": 84427000,
+          "stream_allocate": 618458200,
+          "host_to_device": 12936800,
+          "kernel_wait": 935600,
+          "device_to_host": 963700,
+          "cpu_verification": 5200,
+          "post_admission": 22900,
+          "resources_release": 403417200,
+          "reply_encode": 257400,
+          "modules_release": 3811300
+        }
+      },
+      "receipt_sha256": "7291430dfe47cc01ed6eac53079f487a0156345f300135ad2e1a3ac5fc161ad8",
+      "log_sha256": "8eef725913993aa71d94f16d7f2168e5df06668bd4db7871787c82f2592e9708"
+    }
+  ],
+  "observation": "The pinned candidate returned 0x46531F04, temporary pressure at completed_nonlocal_growth. It returned zero GPU reply bytes and selected CPU. The synchronous control verified the same seven-member workload and produced phase data.",
+  "decision": "Retain the private experimental patch and exact evidence. The active source retains the verified synchronous phase path."
+}

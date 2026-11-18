@@ -693,11 +693,15 @@ members. It retained the 816 KiB device allocation and matched the CPU exactly.
 The 1.01 second exchange still exceeded the 144 ms CPU search and verification
 time. The profiled 193-member run spent 330 ms in stream and slab setup and
 438 ms in host-to-device calls. Launch and stream wait took 8.2 ms. Fresh-worker
-timings also vary across repeated runs. Compare ordered asynchronous transfer
-with the existing path, then measure bounded device reuse with prompt yielding
-and independent CPU progress before opening ordinary routing.
+timings also vary across repeated runs. The pinned asynchronous candidate
+hit the nonlocal-memory gate during the seven-member smoke test, while the
+synchronous control verified that workload. Qualify reuse of one authenticated
+runtime, stream and slab across independent base groups. Measure the complete
+cost at a bounded lifetime and preserve prompt yielding and independent CPU
+progress before opening ordinary routing.
 [Sized shared-base sweep](evidence/amd-anchor-sweep-2026-11-18.json)
 [Phase measurements](evidence/amd-anchor-phases-2026-11-18.json)
+[Pinned transfer trial](evidence/amd-anchor-pinned-trial-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

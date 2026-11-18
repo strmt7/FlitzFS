@@ -22,6 +22,15 @@ used CPU and returned zero GPU timings. The ordinary sweep and all seven
 selected raw and AddressSanitizer entries passed. All process trees exited.
 [Source and phase measurements](evidence/amd-anchor-phases-2026-11-18.json)
 
+An experimental pinned-copy path requested 304 KiB of host staging for one
+window. The seven-member trial hit the nonlocal-memory gate, returned zero
+GPU records or timings, and completed through CPU fallback. The synchronous
+control verified the same workload under similar available host memory.
+The measured process-tree peaks were 129 MiB for the rejected trial and
+84.5 MiB for the control. Both trees exited. The experimental patch is
+retained in the private validation fixture.
+[Pinned transfer trial](evidence/amd-anchor-pinned-trial-2026-11-18.json)
+
 ## Resource-sized AMD shared-base sweep — 18 November 2026
 
 One authenticated worker kept the same 64 KiB base and its index for the
