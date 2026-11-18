@@ -737,6 +737,9 @@ if(FLITZFS_BUILD_TESTS)
     add_test(NAME bounded_lz4_runtime_bundle_staging COMMAND "${Python3_EXECUTABLE}" -B
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/test_lz4_runtime_bundle.py")
     set_tests_properties(bounded_lz4_runtime_bundle_staging PROPERTIES TIMEOUT 30)
+    add_test(NAME bounded_installed_amd_package_binding COMMAND "${Python3_EXECUTABLE}" -B
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/test_bind_installed_amd_package.py")
+    set_tests_properties(bounded_installed_amd_package_binding PROPERTIES TIMEOUT 20)
     add_test(NAME filesystem_product_scope COMMAND "${Python3_EXECUTABLE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/verify_filesystem_scope.py" "$<TARGET_FILE:flitzfs>")
     set_tests_properties(filesystem_product_scope PROPERTIES TIMEOUT 30)
@@ -1161,20 +1164,30 @@ if(FLITZFS_BUILD_HIP_ROUTE_PROBE OR FLITZFS_INSTALLED_AMD_PACKAGE_DIR)
   if(FLITZFS_INSTALLED_AMD_PACKAGE_DIR)
     find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
     set(package_header "${CMAKE_CURRENT_BINARY_DIR}/hip_installed_package_config.hpp")
+    set(package_plan "${CMAKE_CURRENT_BINARY_DIR}/hip_installed_package_files.cmake")
     execute_process(COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/bind_installed_amd_package.py"
       --package "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}"
-      --manifest-sha256 "${FLITZFS_INSTALLED_AMD_MANIFEST_SHA256}" --header "${package_header}"
+      --manifest-sha256 "${FLITZFS_INSTALLED_AMD_MANIFEST_SHA256}" --header "${package_header}" --cmake-plan "${package_plan}"
       RESULT_VARIABLE package_result ERROR_VARIABLE package_error TIMEOUT 20)
     if(NOT package_result STREQUAL "0")
       message(FATAL_ERROR "AMD package verification failed: ${package_error}")
     endif()
     target_include_directories(flitzfs_hip_route_discovery PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
     target_compile_definitions(flitzfs_hip_route_discovery PRIVATE FLITZFS_BIND_INSTALLED_AMD_PACKAGE=1)
+    if(FLITZFS_BUILD_WINFSP)
+      target_link_libraries(flitzfs_winfsp PRIVATE flitzfs_hip_route_discovery)
+      target_compile_definitions(flitzfs_winfsp PRIVATE FLITZFS_ACQUIRE_INSTALLED_AMD=1)
+    endif()
+    include("${package_plan}")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/bind_installed_amd_package.py"
-      "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}/qualification-manifest.json"
-      "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}/flitzfs_hip_lz4_worker.exe"
-      "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll")
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/check_portable_cpu.py")
+    foreach(package_file IN LISTS FLITZFS_APPROVED_AMD_FILES)
+      set(package_source "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}/${package_file}")
+      set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${package_source}")
+      get_filename_component(package_parent "${package_file}" DIRECTORY)
+      install(FILES "${package_source}" DESTINATION "amd/${package_parent}" COMPONENT FlitzFSAMD)
+    endforeach()
   endif()
   if(FLITZFS_BUILD_HIP_ROUTE_PROBE)
     add_executable(flitzfs_hip_route_probe tests/win_hip_route_probe.cpp)

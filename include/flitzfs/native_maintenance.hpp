@@ -48,6 +48,7 @@ class NativeGroupMaintenance final {
   NativeMaintenanceProgress progress() const noexcept;
   bool pending() const noexcept;
   bool active_group() const noexcept;
+  std::size_t active_group_members() const noexcept;
   void cancel() noexcept;
  private:
   struct Impl;

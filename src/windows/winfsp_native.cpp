@@ -187,6 +187,7 @@ struct WinFspNativeWritable::Impl {
     if(!groups->pending())return {State::unchanged,groups->progress()};
     const auto progress=groups->advance(observed,now,search);
     WinFspMaintenanceResult result{State::advanced,progress};
+    result.group_members=groups->active_group_members();
     if(progress.search_window_ready || search.reply)result.search_window=groups->search_window();
     if(progress.phase==NativeMaintenancePhase::failed) {
       if(session.poisoned())offline.store(true,std::memory_order_release);
@@ -740,6 +741,9 @@ void WinFspNativeWritable::signal_foreground_for_anchor(bool pending) noexcept {
 }
 NativeMaintenancePolicy WinFspNativeWritable::group_maintenance_policy() const noexcept {
   return impl_->group_policy;
+}
+bool WinFspNativeWritable::supports_anchor_search() const noexcept {
+  return impl_->info_policy==indexed_file_info;
 }
 void WinFspNativeWritable::cancel_background_maintenance() {
   std::lock_guard guard(impl_->control);

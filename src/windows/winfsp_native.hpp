@@ -27,6 +27,7 @@ struct WinFspMaintenanceResult {
   NativeMaintenanceProgress progress;
   bool reclaimed=false,compacted=false,compaction_failed=false;
   NativeSharedBaseSearchWindow search_window;
+  std::size_t group_members=0;
 };
 class WinFspNativeWritable final {
  public:
@@ -76,6 +77,7 @@ class WinFspNativeWritable final {
   bool foreground_pending() const noexcept;
   void signal_foreground_for_anchor(bool) noexcept;
   NativeMaintenancePolicy group_maintenance_policy() const noexcept;
+  bool supports_anchor_search() const noexcept;
   // One controller reads the demand, observes resources outside the callback
   // lock and returns a sample for exactly that still-current demand.
   std::optional<NativeGpuBudgetTask> gpu_budget_task() const;

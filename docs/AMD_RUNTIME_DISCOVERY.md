@@ -1,18 +1,62 @@
 # AMD runtime and adapter acquisition
 
-FlitzFS acquires the AMD route from its Windows control plane, outside
-filesystem I/O. A package-enabled build verifies an approved AMD manifest,
-the worker and the uniform compute module. The running executable locates
-both artifacts relative to its own directory. The caller supplies the
-process budget and the discovery work limit.
+FlitzFS acquires AMD routes from its Windows control plane, outside filesystem
+I/O. A package-enabled build verifies an approved AMD manifest, the selected
+workers and their compute modules. The running executable resolves the package
+relative to its own directory. An approved profile supplies the limits for
+automatic shared-base acquisition and execution.
 
 The build accepts `FLITZFS_INSTALLED_AMD_PACKAGE_DIR` and an independently
 approved `FLITZFS_INSTALLED_AMD_MANIFEST_SHA256`. The package layout places
 `flitzfs_hip_lz4_worker.exe` and its `hip-uniform-lz4` directory in the
 `amd` directory beside the executable. The compiled header binds file
-digests and the exact HIP ABI basename. Missing or altered package artifacts
-return before launching a worker. The explicit helper path API remains
-available for diagnostics.
+digests and the exact HIP ABI basename. For shared-base work it binds
+`flitzfs_hip_worker.exe` and `hip/flitzfs_rocm_kernels.dll` under the same
+`amd` directory. The package can contain one route or both. Missing or
+altered artifacts return before launching a worker. The explicit helper path
+API supports diagnostics. [Executable path lookup](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew)
+
+### Shared-base package profile
+
+The manifest's `shared_base_profile` binds an approved qualification receipt
+to the signed runtime SHA-256 and the adapter's vendor, device, subsystem and
+revision identifiers. The approval covers a specific measured member range
+and launch budget. Acquisition checks the runtime and adapter fields before
+the first HIP identity query. The separately observed LUID and node govern live
+allocation and release. [DXGI adapter identifiers](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ns-dxgi-dxgi_adapter_desc1)
+
+| Fields | Qualification |
+| --- | --- |
+| `qualification_sha256` | Exact `shared-base-qualification.json` receipt included in the verified inventory |
+| `runtime_sha256`, `vendor_id`, `device_id`, `subsystem_id`, `revision` | Runtime and hardware used for the approved measurement |
+| `minimum_members`, `maximum_members` | Non-base extents covered by the measured work range |
+| `worker_memory_mib`, `memory_share_divisor`, `worker_cpu_rate`, `worker_timeout_ms` | Measured fixed child allowance and resource limits. Current geometry adds actual staging and transport charges. |
+| `maximum_identity_queries`, `duty_ppm` | Input-work and worker pacing limits |
+
+The pinned manifest authenticates the approval and its exact artifacts.
+Qualification must establish useful size or throughput benefit for the
+recorded workload and exact CPU readback. After configuring the approved
+package, the optional component stages its verified workers, modules and
+receipts plus listed licenses at a new application directory.
+[CMake install component](https://cmake.org/cmake/help/v4.5/command/install.html)
+
+```text
+cmake --install <build> --config Release --prefix <application-directory> --component FlitzFSAMD
+```
+
+The indexed Windows owner starts one low-priority acquisition when live
+telemetry admits a group that can supply a window covered by the profile. CPU work can
+continue while the acquisition runs. Stop cancels the scoped attempt and
+joins it. The same controller composes the verified result with the measured
+worker grant for subsequent admitted group steps.
+[Owned controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)
+
+The relocated SDK fixture made one installed metadata query and then used
+AMD advice for four extents. Separate missing- and altered-module fixtures
+published through CPU without a metadata or compute launch. The runtime
+digest and adapter mismatch checks refused before runtime initialization.
+The qualification profile and artifacts are bound to the tested hardware and
+workload. [Installed shared-base evidence](evidence/installed-amd-shared-base-2026-11-18.json)
 
 1. Validate the request and pin ordinary local directories. For an
    installed package, verify and pin both the worker and the compute module

@@ -68,9 +68,11 @@ volume with no pending retirement or compaction sleeps until an event.
 A configured indexed controller can supply a qualified shared-base worker
 route and workload profile. The route binds the exact worker, anchor module,
 system runtime, adapter and node. The worker supervisor owns a reference to
-the file leases. The current installed-package binding covers the foreground
-LZ4 worker. Acquisition of a packaged shared-base profile still requires
-qualification.
+the file leases. A package-enabled indexed controller can acquire its route
+automatically when a freshly admitted group reaches the approved work range.
+One scoped control task checks the installed runtime and device while ordinary
+CPU work continues. Stop cancels acquisition and joins that task.
+[Installed AMD package](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile)
 
 The owner stages a verified group window under the same CPU and memory
 admission used for group preparation. It receives each completed window once.

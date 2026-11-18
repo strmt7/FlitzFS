@@ -186,6 +186,9 @@ explicit admission/status checks. Thus repeated completions cannot accumulate
 a tail of retired-but-still-running supervisor threads. There is no queue.
 
 The synchronous run_worker_exchange API is an adapter over this same mechanism.
+An optional stop token lets an owning metadata task cancel its exact child
+through the existing process observer. A request stopped before admission
+returns without a worker.
 It preserves exception reporting and allows at most two additional seconds for
 its already-retired supervisor to exit before returning ordinary completed
 results. Missing supervisor-thread confirmation produces the explicit

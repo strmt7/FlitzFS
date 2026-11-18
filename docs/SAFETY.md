@@ -29,6 +29,12 @@ retirement, independent byte validation and the existing packed-size and
 transaction checks. The owner tracks unconfirmed retirement as a lifecycle
 failure. [AMD search ownership](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)
 
+The automatic installed path starts acquisition on qualified indexed work.
+Missing files, changed artifact bytes, a different signed runtime or a
+different adapter leave group preparation on CPU. The optional metadata
+task is owned by the controller and is joined during stop.
+[Package and runtime verification](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile)
+
 The owned indexed memory path keeps a checked CPU view after dispatcher join.
 The sealing operation resolves old indexed context records only after the
 controller and writer retire. Routine retirement uses serialized bounded

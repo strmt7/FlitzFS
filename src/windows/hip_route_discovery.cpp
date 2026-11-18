@@ -52,6 +52,7 @@ std::vector<hip_detail::DirectoryPin> pin_worker_parent(const std::filesystem::p
 struct DxgiAmdAdapter {
   std::array<std::byte,8> luid;
   std::uint64_t dedicated_bytes;
+  HipAdapterHardware hardware;
 };
 
 Status enumerate_amd_adapters(std::vector<DxgiAmdAdapter>& adapters,std::uint64_t deadline) {
@@ -67,7 +68,8 @@ Status enumerate_amd_adapters(std::vector<DxgiAmdAdapter>& adapters,std::uint64_
     if(FAILED(adapter->GetDesc1(&desc)))return Status::topology_unavailable;
     if(desc.VendorId!=0x1002 || (desc.Flags&DXGI_ADAPTER_FLAG_SOFTWARE))continue;
     const auto luid=std::bit_cast<std::array<std::byte,8>>(desc.AdapterLuid);
-    if(nonzero(luid))adapters.push_back({luid,desc.DedicatedVideoMemory});
+    if(nonzero(luid))adapters.push_back({luid,desc.DedicatedVideoMemory,
+        {desc.VendorId,desc.DeviceId,desc.SubSysId,desc.Revision}});
   }
   return Status::resource_deferred;
 }
@@ -99,7 +101,7 @@ struct HipRouteResources {
 };
 } // namespace
 
-HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest& request) {
+HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest& request,std::stop_token stop) {
   HipRouteDiscoveryResult result;
   const bool anchor=nonzero(request.anchor_module_sha256);
   const auto* helper_name=anchor?L"flitzfs_hip_worker.exe":L"flitzfs_hip_lz4_worker.exe";
@@ -107,9 +109,12 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
   if(!request.helper.is_absolute() || !ordinary_windows_file_path(request.helper.native()) ||
       request.helper.filename()!=helper_name || (anchor && nonzero(request.uniform_module_sha256)) ||
       !nonzero(request.helper_sha256) ||
+      (request.anchor_device && (!anchor || request.anchor_device->hardware.vendor_id!=0x1002 ||
+          !request.anchor_device->hardware.device_id || !nonzero(request.anchor_device->runtime_sha256))) ||
       !hip_runtime_name(request.runtime_basename) || !valid_process_budget(request.worker) ||
       !request.maximum_identity_queries || request.maximum_identity_queries>64)
     return result;
+  if(stop.stop_requested())return {Status::cancelled};
   if(!WorkerExchangeSession::available()){result.status=Status::transport_busy;return result;}
   std::shared_ptr<HipRouteResources> pinned;
   try {
@@ -136,12 +141,19 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
   } catch(const HipWorkerFailure&) {result.status=Status::runtime_unavailable;return result;}
     catch(const std::bad_alloc&) {result.status=Status::resource_deferred;return result;}
     catch(const std::exception&) {result.status=Status::worker_untrusted;return result;}
+  if(stop.stop_requested())return {Status::cancelled};
+  if(request.anchor_device && pinned->runtime.digest()!=request.anchor_device->runtime_sha256)
+    return {Status::profile_mismatch};
 
   const auto deadline=GetTickCount64()+request.worker.timeout_ms;
   std::vector<DxgiAmdAdapter> adapters;
   try {
     result.status=enumerate_amd_adapters(adapters,deadline);
     if(result.status!=Status::ready)return result;
+    if(request.anchor_device) {
+      std::erase_if(adapters,[&](const auto& adapter){return adapter.hardware!=request.anchor_device->hardware;});
+      if(adapters.empty())return {Status::profile_mismatch};
+    }
     std::stable_sort(adapters.begin(),adapters.end(),[](const auto& a,const auto& b){
       return a.dedicated_bytes>b.dedicated_bytes;
     });
@@ -156,6 +168,7 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
   if(bootstrap==adapters.end()){result.status=Status::topology_unavailable;return result;}
   constexpr std::uint32_t node=1; // Verified single D3D node.
   for(std::uint32_t ordinal=0;ordinal<request.maximum_identity_queries;++ordinal) {
+    if(stop.stop_requested())return {Status::cancelled,0,result.identity_queries};
     const auto& luid=bootstrap->luid;
     const auto observation=query_windows_gpu_budget(luid,node);
     const auto now=GetTickCount64();
@@ -169,11 +182,14 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       ++result.identity_queries;
       const auto exchange=run_worker_exchange(request.helper,
           {L"--inspect-system-adapter",std::to_wstring(ordinal),hex(luid),hex(pinned->runtime.digest())},
-          encode_hip_identity_request(identity),remaining);
+          encode_hip_identity_request(identity),remaining,stop,pinned);
       result.worker_exit=exchange.process.exit_code;
       if(exchange.code==WorkerExchangeCode::exit_unconfirmed ||
           exchange.code==WorkerExchangeCode::supervisor_exit_unconfirmed) {
         result.status=Status::retirement_unconfirmed;return result;
+      }
+      if(stop.stop_requested() || exchange.code==WorkerExchangeCode::cancelled) {
+        result.status=Status::cancelled;return result;
       }
       if(exchange.code!=WorkerExchangeCode::completed || !exchange.process.exit_confirmed ||
           exchange.process.timed_out || exchange.process.cancelled || exchange.process.exit_code) {
@@ -181,11 +197,11 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       }
       const auto match=decode_hip_identity_reply(exchange.response,identity);
       if(match.node_mask && match.node_mask!=node)continue;
+      const auto matching=std::find_if(adapters.begin(),adapters.end(),[&](const auto& candidate){
+        return candidate.luid==match.luid;
+      });
+      if(matching==adapters.end())continue;
       if(match.luid!=luid) {
-        const auto matching=std::find_if(adapters.begin(),adapters.end(),[&](const auto& candidate){
-          return candidate.luid==match.luid;
-        });
-        if(matching==adapters.end())continue;
         if(GetTickCount64()>=deadline){result.status=Status::resource_deferred;return result;}
         if(!verified_single_gpu_node(query_windows_gpu_topology(match.luid),match.luid))continue;
       }
@@ -200,7 +216,7 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       auto binding=std::shared_ptr<const HipRoutePins>(new HipRoutePins(request.helper,configuration,
           runtime,ordinal,fresh.snapshot,module_pinned && !anchor,module_pinned && anchor,std::move(pinned)));
       result.route.emplace(HipDiscoveredRoute{configuration,runtime,fresh.snapshot,ordinal,
-          std::move(binding),request.helper,request.runtime_basename});
+          std::move(binding),request.helper,request.runtime_basename,matching->hardware});
       result.status=Status::ready;return result;
     } catch(const std::bad_alloc&) {
       result.status=Status::resource_deferred;return result;
@@ -211,32 +227,73 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
   result.status=Status::identity_mismatch;return result;
 }
 
-HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::uint32_t maximum_identity_queries) {
 #ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
-  if(!valid_process_budget(budget) || !maximum_identity_queries || maximum_identity_queries>64)return {};
+namespace {
+HipRouteDiscoveryResult discover_application_package(HipRouteDiscoveryRequest request,bool anchor,std::stop_token stop) {
+  if(stop.stop_requested())return {Status::cancelled};
   try {
     std::array<wchar_t,32768> path{};
     const auto length=GetModuleFileNameW(nullptr,path.data(),static_cast<DWORD>(path.size()));
     if(!length || length>=path.size())return {Status::package_unavailable};
     const auto directory=std::filesystem::path(std::wstring_view(path.data(),length)).parent_path()/L"amd";
-    HipRouteDiscoveryRequest request;
-    request.helper=directory/L"flitzfs_hip_lz4_worker.exe";
-    if(GetFileAttributesW(request.helper.c_str())==INVALID_FILE_ATTRIBUTES) {
-      const auto error=GetLastError();
-      return {error==ERROR_FILE_NOT_FOUND || error==ERROR_PATH_NOT_FOUND?
-          Status::package_unavailable:Status::worker_untrusted};
+    request.helper=directory/(anchor?L"flitzfs_hip_worker.exe":L"flitzfs_hip_lz4_worker.exe");
+    const auto module=directory/(anchor?L"hip/flitzfs_rocm_kernels.dll":L"hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll");
+    const std::filesystem::path* files[]{&request.helper,&module};
+    for(const auto* path:files) {
+      if(GetFileAttributesW(path->c_str())==INVALID_FILE_ATTRIBUTES) {
+        const auto error=GetLastError();
+        return {error==ERROR_FILE_NOT_FOUND || error==ERROR_PATH_NOT_FOUND?
+            Status::package_unavailable:Status::worker_untrusted};
+      }
     }
-    request.helper_sha256=installed_amd_package::worker_sha256;
-    request.uniform_module_sha256=installed_amd_package::uniform_module_sha256;
     request.runtime_basename=installed_amd_package::runtime_basename;
-    request.worker=budget;
-    request.maximum_identity_queries=maximum_identity_queries;
-    return discover_system_hip_route(request);
+    return discover_system_hip_route(request,stop);
   }catch(const std::bad_alloc&){return {Status::resource_deferred};}
   catch(const std::exception&){return {Status::worker_untrusted};}
+}
+}
+#endif
+
+HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::uint32_t maximum_identity_queries) {
+#ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
+  if(!valid_process_budget(budget) || !maximum_identity_queries || maximum_identity_queries>64)return {};
+  if(!installed_amd_package::has_uniform)return {Status::package_unavailable};
+  HipRouteDiscoveryRequest request;
+  request.helper_sha256=installed_amd_package::worker_sha256;
+  request.uniform_module_sha256=installed_amd_package::uniform_module_sha256;
+  request.worker=budget;
+  request.maximum_identity_queries=maximum_identity_queries;
+  return discover_application_package(std::move(request),false,{});
 #else
   (void)budget;
   (void)maximum_identity_queries;
+  return {Status::package_unavailable};
+#endif
+}
+
+std::optional<InstalledAnchorProfile> installed_anchor_profile() noexcept {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
+  using namespace installed_amd_package;
+  return InstalledAnchorProfile{{anchor_worker_memory_mib,anchor_worker_cpu_rate,anchor_worker_timeout_ms,
+      anchor_memory_share_divisor},anchor_minimum_members,anchor_maximum_members,anchor_duty_ppm};
+#else
+  return {};
+#endif
+}
+
+HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token stop) {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
+  using namespace installed_amd_package;
+  HipRouteDiscoveryRequest request;
+  request.worker=installed_anchor_profile()->worker;
+  request.maximum_identity_queries=anchor_maximum_identity_queries;
+  request.helper_sha256=anchor_worker_sha256;
+  request.anchor_module_sha256=anchor_module_sha256;
+  request.anchor_device=HipAnchorDeviceBinding{{anchor_vendor_id,anchor_device_id,anchor_subsystem_id,anchor_revision},
+      anchor_runtime_sha256};
+  return discover_application_package(std::move(request),true,stop);
+#else
+  (void)stop;
   return {Status::package_unavailable};
 #endif
 }

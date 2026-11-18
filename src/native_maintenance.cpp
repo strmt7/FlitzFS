@@ -403,6 +403,9 @@ NativeMaintenanceProgress NativeGroupMaintenance::progress() const noexcept {
 bool NativeGroupMaintenance::active_group() const noexcept {
   return impl_ && impl_->work.has_value();
 }
+std::size_t NativeGroupMaintenance::active_group_members() const noexcept {
+  return active_group()?impl_->work_members:0;
+}
 bool NativeGroupMaintenance::pending() const noexcept {
   if(!impl_ || impl_->stopped)return false;
   const auto source=impl_->source.lock();

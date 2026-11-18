@@ -2,6 +2,7 @@
 #include "flitzfs/gpu_recovery.hpp"
 #include <filesystem>
 #include <memory>
+#include <stop_token>
 #include <utility>
 
 namespace flitzfs {
@@ -22,7 +23,7 @@ class HipRoutePins final {
         memory.luid==luid_ && memory.node_mask==node_mask_;
   }
  private:
-  friend HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest&);
+  friend HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest&,std::stop_token);
   HipRoutePins(std::filesystem::path helper,GpuConfigurationId configuration,
       std::array<std::byte,32> runtime_sha256,std::uint32_t ordinal,const GpuMemorySnapshot& memory,
       bool uniform_module_pinned,bool anchor_module_pinned,std::shared_ptr<const void> resources)

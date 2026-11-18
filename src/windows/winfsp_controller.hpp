@@ -13,6 +13,8 @@ struct WinFspControllerView {
   std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0;
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
   NativeAnchorSearchStats anchor_search;
+  std::optional<HipDiscoveryStatus> installed_anchor_status;
+  std::uint32_t installed_anchor_attempts=0,installed_anchor_queries=0;
   bool maintenance_disabled=false,retired=false,offline=false,controller_failed=false;
 };
 // Explicit provider and plan only. One owned thread performs start, cooperative

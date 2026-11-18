@@ -113,7 +113,8 @@ std::array<std::byte,32> artifact_digest(std::string_view input) {
   for(std::size_t i=0;i<result.size();++i)result[i]=static_cast<std::byte>(16*digit(input[2*i])+digit(input[2*i+1]));
   return result;
 }
-int run_live_anchor_owner(std::string_view mode,const HipDiscoveredRoute& route,ProcessBudget profile) {
+int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearchOptions> options) {
+  const bool installed=!options;
   constexpr unsigned count=5;
   const auto before=handle_count();
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
@@ -133,8 +134,7 @@ int run_live_anchor_owner(std::string_view mode,const HipDiscoveredRoute& route,
   std::array<unsigned,7> deferrals{};
   std::uint64_t last_quantum=0;
   {
-    WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),
-        NativeAnchorSearchOptions{route,profile,count-1,count-1});
+    WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),std::move(options));
     await([&]{return controller.view().state==SessionState::running;},5000,"AMD controller startup deadline");
     for(unsigned i=0;i<count;++i)callback_file(provider,i,originals[i]);
     const auto deadline=GetTickCount64()+57000;
@@ -144,7 +144,8 @@ int run_live_anchor_owner(std::string_view mode,const HipDiscoveredRoute& route,
         last_quantum=result.maintenance_quanta;
         ++deferrals.at(static_cast<std::size_t>(result.maintenance.deferral));
       }
-      if(result.maintenance.published_groups || result.retired || result.maintenance_disabled)break;
+      if(result.maintenance.published_groups || result.retired || result.maintenance_disabled ||
+          (mode=="stop" && result.installed_anchor_attempts))break;
       if(mode=="yield" && result.anchor_search.submitted && !signalled) {
         FSP_FSCTL_VOLUME_INFO info{};
         require(provider.fs.Interface->GetVolumeInfo(&provider.fs,&info)==STATUS_SUCCESS,
@@ -172,10 +173,29 @@ int run_live_anchor_owner(std::string_view mode,const HipDiscoveredRoute& route,
       <<" submitted="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
       <<" declined="<<result.anchor_search.declined<<" yielded="<<result.anchor_search.yielded
       <<" advised_members="<<result.maintenance.advised_members_published
+      <<" installed_attempts="<<result.installed_anchor_attempts
+      <<" metadata_queries="<<result.installed_anchor_queries
+      <<" installed_status="<<(result.installed_anchor_status?static_cast<int>(*result.installed_anchor_status):-1)
       <<" handles_before="<<before<<" handles_after="<<handle_count()
       <<" retired=true cpu_readback_verified=true deferrals=";
   for(const auto occurrences:deferrals)std::cout<<occurrences<<',';
   std::cout<<'\n';
+  if(installed) {
+    require(result.installed_anchor_attempts==1 && result.installed_anchor_status &&
+        result.installed_anchor_queries<=64,"Installed route did not make the expected bounded attempt");
+    if(mode=="stop") {
+      require(result.anchor_search.submitted==0,"Stop allowed a post-acquisition compute launch");
+      return result.installed_anchor_status==HipDiscoveryStatus::cancelled ||
+          result.installed_anchor_status==HipDiscoveryStatus::ready?0:2;
+    }
+    if(mode=="missing" || mode=="changed") {
+      const auto status=mode=="missing"?HipDiscoveryStatus::package_unavailable:HipDiscoveryStatus::worker_untrusted;
+      return result.installed_anchor_status==status && !result.installed_anchor_queries && !result.anchor_search.submitted &&
+          result.maintenance.published_groups==1?0:2;
+    }
+    require(result.installed_anchor_status==HipDiscoveryStatus::ready && result.installed_anchor_queries!=0,
+        "Installed package did not acquire a verified route");
+  }
   if(mode=="yield")return signalled && result.anchor_search.yielded==1 &&
       result.maintenance.published_groups==1 && result.maintenance.advised_members_published==0?0:2;
   return result.anchor_search.verified==1 && result.maintenance.advised_members_published==count-1?0:2;
@@ -191,11 +211,12 @@ int live_anchor_owner(char** argv) {
   const auto binding=discover_system_hip_route(request);
   require(binding.status==HipDiscoveryStatus::ready && binding.route && binding.route->pins->anchor_module_pinned() &&
       !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
-  if(mode!="both")return run_live_anchor_owner(mode,*binding.route,profile);
-  const auto accepted=run_live_anchor_owner("accept",*binding.route,profile);
+  const NativeAnchorSearchOptions execution{*binding.route,profile,4,4};
+  if(mode!="both")return run_live_anchor_owner(mode,execution);
+  const auto accepted=run_live_anchor_owner("accept",execution);
   if(accepted)return accepted;
   const auto warmed=handle_count();
-  const auto yielded=run_live_anchor_owner("yield",*binding.route,profile);
+  const auto yielded=run_live_anchor_owner("yield",execution);
   const auto retired=handle_count();
   std::cout<<"anchor_owner_repeated handles_between="<<warmed<<" handles_after="<<retired<<'\n';
   require(warmed==retired,"Repeated AMD controllers retained handles");
@@ -827,6 +848,21 @@ int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(argc==7 && std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argv);
+  if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
+    const std::string_view mode(argv[2]);
+    require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat","Unknown installed route trial");
+    if(mode=="repeat") {
+      const auto accepted=run_live_anchor_owner("accept",std::nullopt);
+      if(accepted)return accepted;
+      const auto first=handle_count();
+      const auto stopped=run_live_anchor_owner("stop",std::nullopt);
+      const auto second=handle_count();
+      std::cout<<"installed_owner_repeated handles_between="<<first<<" handles_after="<<second<<'\n';
+      require(first==second,"Repeated installed-route acquisition retained handles");
+      return stopped;
+    }
+    return run_live_anchor_owner(mode,std::nullopt);
+  }
 #endif
   // PDH may initialize process-wide native caches. Warm that same native path
   // before checking ownership balance; never count its caches as our handles.

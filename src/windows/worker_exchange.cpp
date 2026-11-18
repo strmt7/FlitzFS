@@ -423,8 +423,17 @@ WorkerExchangeResult WorkerExchangeSession::wait_result() {
   return state.result;
 }
 WorkerExchangeResult run_worker_exchange(const std::filesystem::path& helper,
-    const std::vector<std::wstring>& arguments,std::span<const std::byte> request,ProcessBudget budget) {
-  auto session=WorkerExchangeSession::start(helper,arguments,request,budget);
+    const std::vector<std::wstring>& arguments,std::span<const std::byte> request,ProcessBudget budget,
+    std::stop_token stop,std::shared_ptr<const void> pinned_route) {
+  if(stop.stop_requested()){
+    WorkerExchangeResult refused;
+    refused.code=WorkerExchangeCode::cancelled;
+    refused.process.cancelled=true;
+    return refused;
+  }
+  auto session=WorkerExchangeSession::start_impl(helper,arguments,request,
+      {kWorkerRequestLimit,kWorkerReplyLimit},budget,false,{},std::move(pinned_route));
+  std::stop_callback cancel(stop,[&]() noexcept {(void)session.request_cancel();});
   return session.wait_result();
 }
 

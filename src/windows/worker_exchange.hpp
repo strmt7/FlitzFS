@@ -4,6 +4,7 @@
 #include <memory>
 #include <exception>
 #include <span>
+#include <stop_token>
 #include <string_view>
 
 namespace flitzfs {
@@ -32,7 +33,7 @@ struct WorkerExchangeResult {
 // current-user DACL. This is not a sandbox against other same-user processes.
 WorkerExchangeResult run_worker_exchange(const std::filesystem::path& helper,
     const std::vector<std::wstring>& arguments, std::span<const std::byte> request,
-    ProcessBudget budget = {});
+    ProcessBudget budget = {},std::stop_token stop={},std::shared_ptr<const void> pinned_route={});
 
 // Explicit asynchronous transport for a supervisor/controller, never an
 // automatic filesystem/driver route. Polling results and selecting a separate
@@ -81,7 +82,7 @@ class WorkerExchangeSession final {
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
   WorkerExchangeResult wait_result(); // Legacy synchronous adapter only.
   friend WorkerExchangeResult run_worker_exchange(const std::filesystem::path&,
-      const std::vector<std::wstring>&, std::span<const std::byte>, ProcessBudget);
+      const std::vector<std::wstring>&, std::span<const std::byte>, ProcessBudget,std::stop_token,std::shared_ptr<const void>);
   std::unique_ptr<Impl> impl_;
 };
 

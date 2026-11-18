@@ -467,11 +467,14 @@ does not pay for its setup.
    frame. The configured native controller now collects live start and
    post-verification budget evidence outside the filesystem lock. It retains
    qualified route pins and coalesces acquisition demand. Installed package
-   verification and alternating matched decision logic are implemented. Wire
-   route acquisition to the ordinary launcher, key calibration by workload
-   and device, and verify the path on hosts with multiple AMD devices. Treat
-   the observed CPU choice as specific to the tested request class.
-   [Installed route evidence](evidence/installed-amd-routing-2026-11-18.json)
+   verification and alternating matched decision logic are implemented. The
+   indexed Windows owner now acquires a relocatable approved shared-base route
+   on eligible background demand. Produce package profiles from representative
+   measurements, connect packaging to the mounted launcher and verify routing
+   on hosts with multiple AMD devices. Treat the observed foreground CPU
+   choice as specific to the tested request class.
+   [Foreground route evidence](evidence/installed-amd-routing-2026-11-18.json) ·
+   [Installed shared-base evidence](evidence/installed-amd-shared-base-2026-11-18.json)
 7. Amortize setup over finite admitted work windows. The native indexed
    path can now cover several independently bounded launches in one worker
    exchange and charges the complete host footprint. Extend finite exchanges
@@ -738,9 +741,10 @@ revision before consuming any result. One retained window per writer bounds
 the optional plaintext cache. The configured Windows owner now submits each
 complete window outside the serialized filesystem call through the existing
 single-exchange supervisor. Foreground activity or lost headroom returns the
-group to CPU preparation. Package acquisition and measured device selection
-still need end-to-end qualification against complete compacted size, read cost
-and total background cost.
+group to CPU preparation. The relocatable package now supplies a qualified
+runtime, device and work range to this owner automatically. Broader device
+and workload coverage needs end-to-end qualification against complete
+compacted size, read cost and total background cost.
 [Group maintenance interface](AUTOMATIC_GROUP_MAINTENANCE.md) ·
 [Live discovery and fallback evidence](evidence/amd-discovered-anchor-2026-11-18.json) ·
 [Owned Windows controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)

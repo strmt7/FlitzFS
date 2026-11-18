@@ -2,6 +2,9 @@
 #include "winfsp_native.hpp"
 #include "gpu_budget.hpp"
 #include "memory_volume.hpp"
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+#include "worker_exchange.hpp"
+#endif
 #include "../native_maintenance_source.hpp"
 #include <algorithm>
 #include <atomic>
@@ -30,6 +33,13 @@ struct WinFspVolumeController::Impl {
   NativeWriteMountPlan plan;
   MemoryVolumeDomain* residency=nullptr;
   std::unique_ptr<NativeAnchorSearchController> anchor;
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+  std::optional<InstalledAnchorProfile> installed;
+  HipRouteDiscoveryResult acquisition;
+  std::atomic<bool> acquisition_finished{false};
+  bool acquisition_started=false,acquisition_retired=true;
+  std::jthread acquisition_thread;
+#endif
   std::thread worker;
   Impl(std::unique_ptr<WinFspNativeWritable> source,WinFspSessionApi api,NativeWriteMountPlan p,
       MemoryVolumeDomain* memory,std::optional<NativeAnchorSearchOptions> acceleration):
@@ -38,6 +48,9 @@ struct WinFspVolumeController::Impl {
     source->set_maintenance_event(activity.value);adapter=source.get();
     session=std::make_unique<WinFspNativeSession>(std::move(source),api);
     if(acceleration)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*acceleration));
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+    else if(adapter->supports_anchor_search())installed=installed_anchor_profile();
+#endif
     worker=std::thread([this]{run();});
   }
   ~Impl(){request_stop();if(worker.joinable())worker.join();}
@@ -60,6 +73,9 @@ struct WinFspVolumeController::Impl {
             disabled=true;session->cancel_background_maintenance();
           }
           const auto now=GetTickCount64();
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+          settle_acquisition(true);
+#endif
           if(anchor) {
             if(disabled || adapter->foreground_pending())anchor->cancel();
             anchor->observe(adapter->foreground_activity(),now);
@@ -137,8 +153,14 @@ struct WinFspVolumeController::Impl {
     // Normal priority, no view lock, and no independent maintenance thread while
     // the deferred service/dispatcher are joined. Never publish retirement early.
     if(anchor)anchor->cancel();
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+    settle_acquisition(false);
+#endif
     session->stop();adapter=nullptr;
-    const bool anchor_retired=!anchor || anchor->stop();
+    bool anchor_retired=!anchor || anchor->stop();
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+    anchor_retired=anchor_retired && acquisition_retired;
+#endif
     std::lock_guard lock(mutex);current.state=session->state();current.start_status=started;
     current.offline=session->requires_offline();
     current.controller_failed=failed || !anchor_retired;
@@ -147,7 +169,13 @@ struct WinFspVolumeController::Impl {
   }
   WinFspMaintenanceResult advance(const NativeMaintenanceObservation& observed) {
     const auto now=GetTickCount64();
-    if(!anchor)return session->advance_background_maintenance(observed,now);
+    if(!anchor) {
+      auto result=session->advance_background_maintenance(observed,now);
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+      begin_acquisition(result,observed);
+#endif
+      return result;
+    }
     const auto epoch=adapter->foreground_activity();
     const auto resources=detail::maintenance_resources(observed,now,adapter->group_maintenance_policy());
     const bool idle=resources && !resources->cpu_busy && !adapter->foreground_pending() &&
@@ -171,6 +199,54 @@ struct WinFspVolumeController::Impl {
     }
     return result;
   }
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+  void begin_acquisition(const WinFspMaintenanceResult& result,const NativeMaintenanceObservation& observed) {
+    if(!installed || acquisition_started || result.progress.phase!=NativeMaintenancePhase::preparing ||
+        result.progress.deferral!=NativeMaintenanceDeferral::none ||
+        result.group_members<=installed->minimum_members ||
+        stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
+        !WorkerExchangeSession::available())return;
+    constexpr std::uint64_t mib=1024*1024;
+    const auto& budget=installed->worker;
+    if(!valid_process_budget(plan_resource_process_budget(budget.memory_mib*mib,observed.physical_available,
+        observed.commit_available,budget.memory_share_divisor,budget.cpu_rate,budget.timeout_ms)))return;
+    acquisition_started=true;
+    try {
+      acquisition_thread=std::jthread([this](std::stop_token stop) noexcept {
+        try {
+          MaintenanceThreadScope priority;
+          acquisition=priority.active()?discover_installed_hip_anchor_route(stop):
+              HipRouteDiscoveryResult{HipDiscoveryStatus::resource_deferred};
+        }catch(...) {acquisition={HipDiscoveryStatus::resource_deferred};}
+        acquisition_finished.store(true,std::memory_order_release);
+        SetEvent(activity.value);
+      });
+    }catch(...) {
+      std::lock_guard lock(mutex);
+      current.installed_anchor_status=HipDiscoveryStatus::resource_deferred;
+    }
+    std::lock_guard lock(mutex);
+    ++current.installed_anchor_attempts;
+  }
+  void settle_acquisition(bool use_route) {
+    if(!acquisition_thread.joinable())return;
+    if(use_route && !acquisition_finished.load(std::memory_order_acquire))return;
+    if(!use_route)acquisition_thread.request_stop();
+    acquisition_thread.join();
+    acquisition_retired=acquisition.status!=HipDiscoveryStatus::retirement_unconfirmed;
+    if(use_route && acquisition.status==HipDiscoveryStatus::ready && acquisition.route &&
+        !stop_requested.load(std::memory_order_acquire)) {
+      try {
+        anchor=std::make_unique<NativeAnchorSearchController>(NativeAnchorSearchOptions{
+            std::move(*acquisition.route),installed->worker,installed->minimum_members,installed->maximum_members,installed->duty_ppm});
+      }catch(...) {acquisition.status=HipDiscoveryStatus::resource_deferred;}
+    }
+    acquisition.route.reset();
+    std::lock_guard lock(mutex);
+    current.installed_anchor_status=acquisition.status;
+    current.installed_anchor_queries=acquisition.identity_queries;
+  }
+#endif
 };
 WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
     WinFspSessionApi api,NativeWriteMountPlan plan,std::optional<NativeAnchorSearchOptions> anchor):

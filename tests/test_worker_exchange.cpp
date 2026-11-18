@@ -1252,6 +1252,11 @@ void sized_transactions(const std::filesystem::path& executable) {
   check(retired_route.expired(),"retired sized worker retained its package");
   rejects([&]{(void)WorkerExchangeSession::start_sized(executable,{L"sized-ok"},source,{32,32},budget);});
   check(WorkerExchangeSession::available(),"invalid sized admission held supervisor");
+  std::stop_source stopped;
+  stopped.request_stop();
+  const auto refused=run_worker_exchange(executable,{L"hold"},source,budget,stopped.get_token());
+  check(refused.code==WorkerExchangeCode::cancelled && refused.process.cancelled && !refused.process.process_id &&
+      WorkerExchangeSession::available(),"pre-cancelled exchange consumed a worker lease");
   std::cout<<"Sized channel: request="<<sized_capacity.request_bytes<<" reply="
       <<sized_capacity.reply_bytes<<" cpu_semantics_only=true gpu_executed=false\n";
 }
