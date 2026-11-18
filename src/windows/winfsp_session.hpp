@@ -20,6 +20,10 @@ struct WinFspSessionApi {
   decltype(&FspFileSystemRemoveMountPoint) remove_mount_point = nullptr;
   decltype(&FspFileSystemDelete) delete_filesystem = nullptr;
   WinFspOriginQuery originating_process_id = nullptr;
+  bool complete() const noexcept {
+    return preflight && create && start_dispatcher && set_mount_point &&
+        stop_dispatcher && remove_mount_point && delete_filesystem && originating_process_id;
+  }
 };
 // Explicit table for the SDK linked into this process. Selecting the table
 // does not invoke WinFsp. The live caller qualifies the installed pair, mount
@@ -99,6 +103,7 @@ class WinFspNativeSession final {
   bool self_origin_rejected() const noexcept;
   bool dispatcher_stopped_unexpectedly() const noexcept;
   NativeSessionStats stats() const;
+  bool write_restart_ready() const noexcept;
  private:
   void release() noexcept;
   void retire_adapter() noexcept;
@@ -107,7 +112,7 @@ class WinFspNativeSession final {
   FSP_FILE_SYSTEM* filesystem_=nullptr;
   SessionState state_=SessionState::ready;
   bool dispatcher_attempted_=false,mount_owned_=false,unexpected_stop_=false,offline_=false,stopped_=false;
-  bool self_rejected_=false;
+  bool self_rejected_=false,retirement_unconfirmed_=false;
   NativeSessionStats retired_stats_{};
   NativeDeferredWriteStats retired_deferred_{};
 };

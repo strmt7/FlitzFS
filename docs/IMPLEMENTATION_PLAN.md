@@ -229,9 +229,12 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 
 1. Carry the indexed path through Explorer and helper lifecycle. The owned
    memory provider now supports indexed creation, startup rollback,
-   independent CPU inspection and closed-session sealing. It accepts an
-   explicit provider and plan. Qualify current-source mounting and sign-off
-   for the Windows 11 driver/runtime pair before enabling normal Explorer
+   independent CPU inspection, closed-session sealing and writable remount of
+   the verified retained image. It accepts an explicit provider and plan.
+   Carry this owner through the tray's attach and detach commands. Measure
+   the full CPU verification cost on large retained volumes. Qualify
+   current-source mounting and sign-off for the Windows 11 driver/runtime
+   pair before enabling normal Explorer
    provisioning. Connect the helper lifecycle to that same owner. Keep
    earlier writable images readable and test their actual reopening.
    [Indexed owned path](evidence/indexed-owned-windows-2026-11-18.json) ·

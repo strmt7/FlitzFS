@@ -18,15 +18,23 @@ class WinFspMemoryVolume final {
   MemoryVolumeLayout layout() const noexcept;
   void request_stop() noexcept;
   void stop_and_join() noexcept;
+  // Restart the selected image after the previous provider and all owned
+  // workers have retired. Release all inspection views before reattaching.
+  // Mount failure leaves this owner and its data available after another join.
+  void remount(WinFspSessionApi,NativeWriteMountPlan,
+      std::optional<NativeDeferredWriteOptions> acceleration=std::nullopt,
+      std::optional<NativeAnchorSearchOptions> anchor=std::nullopt);
   // Requires this owner's explicit confirmed join, even if view says retired.
   // This const view can also inspect retained indexed file lifetimes.
   NativeVolumeHeadView inspect_retired() const;
   // After dispatcher join, finish any old indexed lifetimes before sealing.
   ReadOnlyProjection open_read_only();
  private:
+  void start_controller(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,
+      std::optional<NativeDeferredWriteOptions>,std::optional<NativeAnchorSearchOptions>);
   MemoryVolumeBacking backing_;
   std::unique_ptr<WinFspVolumeController> controller_;
   const NativeImageKind kind_;
-  bool joined_=false;
+  bool joined_=false,sealed_=false;
 };
 }

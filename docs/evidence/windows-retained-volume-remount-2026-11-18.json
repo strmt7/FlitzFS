@@ -1,0 +1,352 @@
+{
+  "recorded_on": "2026-11-18",
+  "base_commit": "5cc4bda2665d530e609078648d84b8dd91ed6ce1",
+  "build_source_sha256": {
+    "CMakeLists.txt": "b1c37ee05ff356d15e9ede261c50a34b56bc20140d55b798d4b6d1048e5d9f3d",
+    "src/windows/memory_volume_factory.cpp": "a94ac68aef121ee4e32eb6de0dbf92483f6acf38de5c2470e5868c2647035ab9",
+    "src/windows/memory_volume_factory.hpp": "738c3349a14697cf868f2ea15c3b12bc90f839ed88a56a6ddd589535a9098bb8",
+    "src/windows/winfsp_controller.cpp": "bbabbaca1d023175c33bd2ad68839365af9b0d1f58ba46419ed64b74367ca9fe",
+    "src/windows/winfsp_controller.hpp": "0c4294a089016d3c230d22fa69bd2b67e374d060f1a82e978501a9fe5f8f88bc",
+    "src/windows/winfsp_memory_volume.cpp": "4a743a933b0320fcd6f6b58ab767e1001b51c2e4cbfcdfd2d9eb2a15b023c5f7",
+    "src/windows/winfsp_memory_volume.hpp": "b60b40ea3a5f1db0fe024ce9d64951eb1bb36ef18ea156536c1ca1a15da8e2af",
+    "src/windows/winfsp_native.cpp": "a7b27c70e4ad0d0993e58a04b9993bda0869924e5c4f43f68d8e1813b157af4b",
+    "src/windows/winfsp_native.hpp": "881ac05cd34e8dd859650572ba4a12f715e2012e3d61a9de9b3b881a9f010948",
+    "src/windows/winfsp_session.cpp": "1b805797c41e5148843ade95d219855107c63b4e73b0613078d1a33560b06686",
+    "src/windows/winfsp_session.hpp": "363054cdc9ca114285e8b8c819935863bf68557b49d5f2617351e2c3b8e13644",
+    "tests/test_winfsp_controller.cpp": "6fe79b3831ac942fe1ec425e102ec034ae01b45c0ec663f5ac30bd49ec4da8c4",
+    "tests/test_winfsp_paged.cpp": "34a4181713289ed08ab88f7a2694311ead35e6fcf43328a9b12e8b5fa0e4bead"
+  },
+  "sdk": {
+    "upstream_tag": "v2.2B5",
+    "source_commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
+    "upstream_msi_sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+    "provenance_sha256": "e518681d1b166df85966a481eeedc2e23a6a078e88ce3051534ac462e674e1a3",
+    "dll_sha256": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3",
+    "header_sha256": "b8e5c3320bfb58d086ee622dd13370eb38a49e1142877c9d8af827515f916540"
+  },
+  "runs": {
+    "semantic_search": {
+      "run": "local-run-d77d0dc759144d43a301bdaa4d4dbd8d",
+      "receipt_sha256": "dca14231fa08aab7bbf2dadd13a3731f104343f01d879eb912127fd943dda32f",
+      "log_sha256": "1dedd5d20b53c459b4a2389593fac19dea199b4d5669fedc10768054d60a2a97",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 1194459136,
+      "memory_bytes": 1437597696,
+      "elapsed_seconds": 49.569161699997494,
+      "physical_available_bytes": 14339600384,
+      "stop_reason": null
+    },
+    "read_lifecycle_api": {
+      "run": "local-run-6c1a2555950a45e0939008e35a81db0c",
+      "receipt_sha256": "39eaf6899f10beb7af0c6e27bd0d5946785093fc9db6e5e83fbed9c34f643fb8",
+      "log_sha256": "06d62c0d7ed9078745156bb8c04cf4e3280eeffb24781c5fb2bb0b6e0307c40d",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 1072160768,
+      "memory_bytes": 1537212416,
+      "elapsed_seconds": 7.160283499993966,
+      "physical_available_bytes": 13497233408,
+      "stop_reason": null
+    },
+    "configure_pinned_sdk": {
+      "run": "local-run-9929976ab08146018efb8d312b1b8593",
+      "receipt_sha256": "8e2365db37a009f265e56177cdbe558333386333fbd9aff634b76005eeaa7a75",
+      "log_sha256": "18bf7f1a557d60986830022f746c9c8fdb2e6f6c118fde623504c315e811e523",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 163274752,
+      "memory_bytes": 372244480,
+      "elapsed_seconds": 12.742437500011874,
+      "physical_available_bytes": 24413966336,
+      "stop_reason": null
+    },
+    "release_build": {
+      "run": "local-run-61fbb0d27e264aaab6d70b89ef767d6d",
+      "receipt_sha256": "ba3e8c770b01b67cf68ba42fed60a4f120b76f469d1b444b02db3e3e43b1f385",
+      "log_sha256": "502ad77b10a474b21067c7d3bf4352b6d71634ffec9d38636b82282f0be8010b",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 350523392,
+      "memory_bytes": 541065216,
+      "elapsed_seconds": 6.650550599995768,
+      "physical_available_bytes": 25378414592,
+      "stop_reason": null
+    },
+    "release_ctest": {
+      "run": "local-run-fbf5a92709324748a1029246695e7571",
+      "receipt_sha256": "02f9422cc9548051ad04716a5c61b55161201d04750cb7d1adb2f7705f56681a",
+      "log_sha256": "00b3526dfb4320e5bb966458f47d6f9d89b3040f079d6a72e135ed9a65d930bc",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 33890304,
+      "memory_bytes": 318767104,
+      "elapsed_seconds": 30.369062999991,
+      "physical_available_bytes": 24717873152,
+      "stop_reason": null,
+      "passed_tests": [
+        "bounded_winfsp_controller",
+        "bounded_winfsp_readonly_memory",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_memory_remount",
+        "bounded_winfsp_paged_callbacks"
+      ],
+      "outcomes": [
+        "153: controller_handles before=151 after=151",
+        "155: controller_handles before=155 after=155",
+        "156: controller_handles before=155 after=155",
+        "157: memory_remount indexed=0 epoch=1 collision_retired=1 detached_recovery=0 cpu_readback=1 sealed=1",
+        "157: memory_remount indexed=1 epoch=1 collision_retired=1 detached_recovery=1 cpu_readback=1 sealed=1",
+        "157: controller_handles before=155 after=155",
+        "158: indexed_sdk_reclamation extents=129 transactions=3 refused_observations=5"
+      ]
+    },
+    "asan_build": {
+      "run": "local-run-26cc2fadd0614f0ba471e8c3c58c02ec",
+      "receipt_sha256": "3501ca69c019fd17899cffc9c609376987049c6e906eabc50b95bb661bacc133",
+      "log_sha256": "caadbb14a6777efa0cd38ca29ad8a6c0d9a588f8cf7b0a9138133a9343e2d0ea",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 369508352,
+      "memory_bytes": 609222656,
+      "elapsed_seconds": 34.114067300004535,
+      "physical_available_bytes": 15246602240,
+      "stop_reason": null
+    },
+    "asan_ctest_before_paged_retry": {
+      "run": "local-run-3c564b771b9d47d8ab7fe31213d7bce6",
+      "receipt_sha256": "45d0f156a53d8614c827167470c5454bd9bd5eb8b28e6a5e0828812cc4bfe04f",
+      "log_sha256": "479a9e6e53b42051d78849ddb5db80607cf3be9883aa6ee8b2dc1d6dc4beb083",
+      "exit_code": 8,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 477167616,
+      "memory_bytes": 477102080,
+      "elapsed_seconds": 33.302828200001386,
+      "physical_available_bytes": 15250370560,
+      "stop_reason": null,
+      "passed_tests": [
+        "windows_asan_runtime_preflight",
+        "windows_asan_staging_regression",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_readonly_memory",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_memory_remount"
+      ],
+      "outcomes": [
+        "153: controller_handles before=155 after=155",
+        "155: controller_handles before=159 after=159",
+        "156: controller_handles before=159 after=159",
+        "157: memory_remount indexed=0 epoch=1 collision_retired=1 detached_recovery=0 cpu_readback=1 sealed=1",
+        "157: memory_remount indexed=1 epoch=1 collision_retired=1 detached_recovery=1 cpu_readback=1 sealed=1",
+        "157: controller_handles before=159 after=159",
+        "158: ==42408==Failed to commit shadow memory at '0x04a117f4a000'. VirtualAlloc failed with 0x5af"
+      ]
+    },
+    "asan_paged_retry": {
+      "run": "local-run-53a84479e987452ab5712bcc446cd3ae",
+      "receipt_sha256": "5d84f32d8e20a920a397b2b1b563ff570fd89bfa31ee7a8c1973fc7c9cdb96f3",
+      "log_sha256": "364fac78d8fff60641a47ac7958e86dbe21aa0cf0984add53e866284094be659",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 544169984,
+      "memory_bytes": 1193279488,
+      "elapsed_seconds": 0.9704429999983404,
+      "physical_available_bytes": 16204099584,
+      "stop_reason": null,
+      "passed_tests": [
+        "windows_asan_runtime_preflight",
+        "bounded_winfsp_paged_callbacks"
+      ],
+      "outcomes": [
+        "158: indexed_sdk_reclamation extents=129 transactions=3 refused_observations=5"
+      ]
+    },
+    "file_backed_fixture_refused": {
+      "run": "local-run-9d1b5a0d309045cfac987249b0a4ecdc",
+      "receipt_sha256": "cf264ffb8aa6a3e37861e87a015db2b9143c3656053e9fc035ec1162a97f97aa",
+      "log_sha256": "5e3277082bb066d04b19489f5678e9b35ac7611d3dacce63b3b4340e7112041c",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 2846720,
+      "memory_bytes": 305135616,
+      "elapsed_seconds": 0.07639009998820256,
+      "physical_available_bytes": 23811284992,
+      "stop_reason": null,
+      "outcomes": [
+        "Writable lifecycle failure: native Windows image fixture requires an explicitly qualified fixture parent"
+      ]
+    },
+    "stage_existing_amd_package": {
+      "run": "local-run-a8366a0386184bfcb7481c183e17b8bf",
+      "receipt_sha256": "a924bc00f7c9528fb54938eef739f2fb700d4984e3933e0433736ba227cbbef4",
+      "log_sha256": "32f8cf27704298f0c7785cbf113a8ee3ac499f1473ac3d432af59343a523dacc",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 5042176,
+      "memory_bytes": 185597952,
+      "elapsed_seconds": 0.082642900000792,
+      "physical_available_bytes": 16174882816,
+      "stop_reason": null
+    },
+    "live_installed_amd_initial": {
+      "run": "local-run-a59c0c7c1b5042f29e57a35cd0e961d0",
+      "receipt_sha256": "c8db03e2724723d216e4226f165da322f39fbdde380b81f5960d7ce58d0052d6",
+      "log_sha256": "a2a54b880c8d8cadd2a2b869cbd8471c124b0dff29f2a58d2b8d94a9bbbddffb",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 106373120,
+      "memory_bytes": 184549376,
+      "elapsed_seconds": 47.31317299998773,
+      "physical_available_bytes": 16145158144,
+      "stop_reason": null,
+      "outcomes": [
+        "anchor_owner mode=accept host=1 quanta=22 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=1 declined=0 yielded=0 advised_members=4 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=135 handles_after=328 retired=true cpu_readback_verified=true deferrals=20,2,0,0,0,0,0,",
+        "anchor_owner mode=stop host=1 quanta=9 groups=0 phase=3 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=0 verified=0 declined=0 yielded=0 advised_members=0 installed_attempts=1 metadata_queries=0 installed_status=14 handles_before=328 handles_after=329 retired=true cpu_readback_verified=true deferrals=9,0,0,0,0,0,0,",
+        "installed_owner_repeated handles_between=328 handles_after=329"
+      ]
+    },
+    "handle_snapshot_api": {
+      "run": "local-run-143beed000b74ec1a87fef2033d18f54",
+      "receipt_sha256": "07e240e66225ce821fbcfe00baf19179df81d258038e31d63660f7a7375d8964",
+      "log_sha256": "f6f165efcce19611f3f449a552dbe6ae63f419560871a5dbb9dec04affe59fb3",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 1225265152,
+      "memory_bytes": 1349517312,
+      "elapsed_seconds": 7.527434899995569,
+      "physical_available_bytes": 15065407488,
+      "stop_reason": null
+    },
+    "live_handle_snapshot_diagnostic": {
+      "run": "local-run-ab104d2496b448ebb87e4c3f0f047567",
+      "receipt_sha256": "bb5e77befc808bc794860b97c38a7b63f7fc3b8feeed06011e90fc14aab052b1",
+      "log_sha256": "dfb14ca8648efc3b2911a989c92f0612b9bd7925c751be209b10f133d946a1c3",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 105418752,
+      "memory_bytes": 181403648,
+      "elapsed_seconds": 53.52099960000487,
+      "physical_available_bytes": 12799598592,
+      "stop_reason": null,
+      "outcomes": [
+        "anchor_owner mode=accept host=1 quanta=22 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=1 declined=0 yielded=0 advised_members=4 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=135 handles_after=329 retired=true cpu_readback_verified=true deferrals=20,2,0,0,0,0,0,",
+        "anchor_owner mode=stop host=1 quanta=9 groups=0 phase=3 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=0 verified=0 declined=0 yielded=0 advised_members=0 installed_attempts=1 metadata_queries=0 installed_status=14 handles_before=329 handles_after=329 retired=true cpu_readback_verified=true deferrals=9,0,0,0,0,0,0,",
+        "installed_owner_repeated handles_between=329 handles_after=329"
+      ]
+    },
+    "live_installed_amd": {
+      "run": "local-run-deceabd64e87473fa2b6dff4410066bf",
+      "receipt_sha256": "0cbecad365e9c987155800944bdfe6c8031f451382b69f8bb79cca03ca57da82",
+      "log_sha256": "3bcc6b61645b9fc39dd9b082423c775129232e679687bce072962db2283f85dc",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 106037248,
+      "memory_bytes": 177209344,
+      "elapsed_seconds": 49.584596900007455,
+      "physical_available_bytes": 12280852480,
+      "stop_reason": null,
+      "outcomes": [
+        "anchor_owner mode=accept host=1 quanta=22 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=1 declined=0 yielded=0 advised_members=4 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=129 handles_after=322 retired=true cpu_readback_verified=true deferrals=20,2,0,0,0,0,0,",
+        "anchor_owner mode=stop host=1 quanta=9 groups=0 phase=3 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=0 verified=0 declined=0 yielded=0 advised_members=0 installed_attempts=1 metadata_queries=0 installed_status=14 handles_before=322 handles_after=323 retired=true cpu_readback_verified=true deferrals=9,0,0,0,0,0,0,",
+        "installed_owner_repeated handles_between=322 handles_after=323"
+      ]
+    },
+    "live_handle_stop_series_diagnostic": {
+      "run": "local-run-d109cd0f22a04a11814e2fa08bccfbdf",
+      "receipt_sha256": "576762691b5014d01ac218cdc135a2e318d797f31436343611cdd995d8f93004",
+      "log_sha256": "b7cd722e3bf0f2fc6923e1d1e6d1f7016f2baf59c4db145e8d74993153d13146",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 117964800,
+      "memory_bytes": 180355072,
+      "elapsed_seconds": 52.062170499993954,
+      "physical_available_bytes": 12950204416,
+      "stop_reason": null,
+      "outcomes": [
+        "anchor_owner mode=accept host=1 quanta=22 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=1 declined=0 yielded=0 advised_members=4 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=135 handles_after=329 retired=true cpu_readback_verified=true deferrals=20,2,0,0,0,0,0,",
+        "anchor_owner mode=stop host=1 quanta=9 groups=0 phase=3 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=0 verified=0 declined=0 yielded=0 advised_members=0 installed_attempts=1 metadata_queries=0 installed_status=14 handles_before=329 handles_after=329 retired=true cpu_readback_verified=true deferrals=9,0,0,0,0,0,0,",
+        "installed_owner_repeated handles_between=329 handles_after=329"
+      ]
+    }
+  },
+  "test_artifacts": {
+    "release_controller_sha256": "d8dc24568192cf6fd5a325974f7b5b3f64cc4068bd4348eb83802c019aac7cf8",
+    "asan_controller_sha256": "df269e6a601addd0c9ace5c8cb6641591caa203b07ef4945fe405027f4a3fa95",
+    "release_paged_sha256": "538374213aa9e09e12739574512ca667698ad7bc2f1d991f2b70dda97cd79f9e",
+    "asan_paged_sha256": "6a245b558ebb8cdac6e7c6cc4e948af28d0d1e2fe4ce2095ac3ce27ce5a9de92",
+    "asan_dll_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "amd_manifest_sha256": "73817fe8f2aa70b1b3923abc72e2b948de9b4dffd5079146d9a1348d7ca20c19",
+    "amd_controller_sha256": "d8dc24568192cf6fd5a325974f7b5b3f64cc4068bd4348eb83802c019aac7cf8"
+  },
+  "navigation": {
+    "receipt_sha256": "89908a640cac73f37097f279531f83b64ce02f800fc7f17ead9f2040506e463d",
+    "provider_version": "0.2.43",
+    "inventory_sha256": "9a642f57310aeb40afae05e7d84c017231cdc0e917f0a21d3429e949b3d71284",
+    "native_sha256": "d3f1b6d2076100503861eee5aa7adb9074e3a546dd339b8bd53f2053e07df79f",
+    "actual_searches": 1
+  },
+  "research": {
+    "receipt_sha256": "ee714c82730989a933a114811e4ee5b205c794e4872d9cb03a3d650d64c8c4d9",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_LLM": false,
+    "capture": {
+      "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+      "success": true,
+      "http_status": 200,
+      "markdown_bytes": 73095,
+      "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+      "capture_sha256": "0b0a74f3da77ffc74c7941560da398830e81dd5c1edee52941c654bc9c6f795c"
+    }
+  },
+  "handle_diagnostics": {
+    "source_sha256": "bfdc51074a0812fbc559e6022fab0fca324129221e88d6f9441ae7c1c411ecac",
+    "binary_sha256": "9adfa288fbcfe3a35b29a5e99537153e7f2d1d84eec41629c9eb57add2d9da73",
+    "stop_series_source_sha256": "3e16e7b39b4ebae64619cb96a123edcc70d07cb90ad2019005adcb61137cd5be",
+    "stop_series_binary_sha256": "a32944aa3c9a263d72017f081deef34070b6ea1da918d1255151f6b2b9b65e5b",
+    "research_receipt_sha256": "f9ea77958a8e9a6d8657420ce740906968a41d90c606d569cec2f592ddbb2b26",
+    "research_pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psscapturesnapshot",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 24120,
+        "markdown_sha256": "e5fc640fd2f727bcd82fb5f8389f7e1bf0b24eee8105ec295499e82480d881dc",
+        "capture_sha256": "b805d7138becfa68a7889a4ffe793fdcea5e86070ad8025c93343b02c318be39"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/ns-processsnapshot-pss_handle_entry",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 34547,
+        "markdown_sha256": "a0621ece4d5d1b63d08b3ed69dfce0d6c91b9ee52e861754d5091b550d2e7ed8",
+        "capture_sha256": "3e4d29fe33d4b7b16d2b93de099fb08888535c8db95fb89c93ae5de2ab5e6154"
+      }
+    ]
+  },
+  "scope": [
+    "Filesystem backing was process-owned memory. WinFsp lifecycle calls were injected and real user-mode SDK callbacks were used.",
+    "Both layouts retained their original volume and image selection through a failed mount followed by a fresh writable attachment. The independent CPU reader verified original and new bytes.",
+    "The remount fixture also refused concurrent inspection, reopening after sealing and reopening after unconfirmed dispatcher stop.",
+    "An early unrelated file-backed suite refused startup before allocating a test image. The final local test selection contains the memory cases.",
+    "The initial broader sanitizer suite reached its job limit in the paged callback case. Only that case was retried with the allowance derived from the previous paging measurements.",
+    "The separate installed AMD trial used the actual GPU and the existing approved four-member profile. It exercised controller lifetime and termination for two synthetic sessions with a 50 percent CPU admission threshold.",
+    "Two trials of the same Release binary reported one additional handle in the current process after the stop session. Two separate diagnostic builds observed equal counts on both sides of stop. The snapshot diagnostic also found matching handle entries. The conditional extra stop series did not run because its initial counts matched. All supervised process trees exited. The Release handle difference remains unattributed.",
+    "Explorer mounting, tray integration, large retained-volume restart costs and power-loss durability require separate evidence."
+  ]
+}

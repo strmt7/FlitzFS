@@ -118,8 +118,12 @@ prior verified checkpoint. [Executed checks](evidence/owned-writable-lifetime-20
 Stop interrupts waits, then the same owner joins deferred work and the provider
 dispatcher, removes only its owned mount, deletes its filesystem object and
 retires the adapter. [WinFsp lifecycle API](https://winfsp.dev/doc/WinFsp-API-winfsp.h/) Retirement status is exposed after those owners retire;
-`stop_and_join` additionally confirms the controller thread has exited. Destruction
-also joins, never detaches. A native provider stop can block inside WinFsp, so
+`stop_and_join` additionally confirms the controller thread has exited. A
+retained owner can reopen for writes only after confirmed dispatcher and worker
+retirement and release of inspection views.
+[Retained volume remount](WINDOWS_MEMORY_VOLUME_FACTORY.md#remounting-a-retained-volume)
+
+Destruction also joins. A native provider stop can block inside WinFsp, so
 live experiments still require an independent bounded process supervisor.
 
 [Source-bound validation](evidence/owned-winfsp-controller-2026-11-16.json) separates

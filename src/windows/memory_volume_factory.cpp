@@ -124,6 +124,16 @@ void MemoryVolumeBacking::release_unselected_after_join() noexcept {
   alternate_identity_={};
   phase_=CompactionPhase::idle;
 }
+void MemoryVolumeBacking::settle_retained_selection(const StoreIdentity& selected) noexcept {
+  if(phase_!=CompactionPhase::uncertain)return;
+  if(selected==alternate_identity_) {
+    image.swap(alternate_);
+    std::swap(image_identity,alternate_identity_);
+    attempted_obsolete_=0;
+    abandoned_bytes_=0;
+  }
+  phase_=CompactionPhase::retiring;
+}
 NativeVolumeHeadView MemoryVolumeBacking::open_owned_head(bool indexed_recovery) const {
   require(domain && head && image && head!=image && domain->owns(*head) && domain->owns(*image),
       "Volume inspection requires its original owned backing");

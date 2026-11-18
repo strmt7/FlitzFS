@@ -18,6 +18,11 @@ using namespace flitzfs;using namespace native_fixture;
 unsigned checks=0;
 DWORD handle_count() {DWORD count=0;if(!GetProcessHandleCount(GetCurrentProcess(),&count))throw std::runtime_error("handle telemetry");return count;}
 void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
+template<class F>void rejected(F&& run,const char* why) {
+  bool refused=false;
+  try{run();}catch(const std::exception&){refused=true;}
+  require(refused,why);
+}
 void native_rng_initialization() {
   std::array<DWORD,3> observed{};const auto cold=handle_count();
   for(unsigned i=0;i<observed.size();++i) {
@@ -54,7 +59,7 @@ struct Provider {
   FSP_FILE_SYSTEM fs{};
   std::atomic<unsigned> calls{0};std::array<char,16> order{};
   std::atomic<bool> stopping{false},release_stop{true};
-  bool fail_mount=false,callback_alive=false,read_only=false;
+  bool fail_mount=false,callback_alive=false,read_only=false,report_stop=true;
   static Provider* active;
   void record(char c){const auto n=calls.load();if(n<order.size())order[n]=c;calls.store(n+1);}
   static NTSTATUS preflight(PWSTR,PWSTR){active->record('p');return STATUS_SUCCESS;}
@@ -71,7 +76,7 @@ struct Provider {
     const auto until=GetTickCount64()+5000;
     while(!active->release_stop.load() && GetTickCount64()<until)Sleep(1);
     FSP_FSCTL_VOLUME_INFO info{};active->callback_alive=fs->Interface->GetVolumeInfo(fs,&info)==STATUS_SUCCESS;
-    fs->Interface->DispatcherStopped(fs,TRUE);
+    if(active->report_stop)fs->Interface->DispatcherStopped(fs,TRUE);
   }
   static VOID unmount(FSP_FILE_SYSTEM*){active->record('r');}
   static VOID destroy(FSP_FILE_SYSTEM* fs){active->record('d');fs->UserContext=nullptr;}
@@ -81,6 +86,18 @@ struct Provider {
 Provider* Provider::active=nullptr;
 struct StopRelease {Provider& provider;~StopRelease(){provider.release_stop=true;}};
 NativeWriteMountPlan plan(){return {L"R:\\FlitzFS-model\\unused",true,true};}
+void callback_cleanup_close(Provider& p,PVOID context) {
+  FSP_FSCTL_TRANSACT_REQ request;
+  FSP_FSCTL_TRANSACT_RSP response;
+  std::memset(&request,0,sizeof(request));
+  std::memset(&response,0,sizeof(response));
+  request.Kind=FspFsctlTransactCleanupKind;
+  request.Req.Cleanup.UserContext2=reinterpret_cast<UINT64>(context);
+  require(FspFileSystemOpCleanup(&p.fs,&request,&response)==STATUS_SUCCESS,"controller SDK Cleanup");
+  request.Kind=FspFsctlTransactCloseKind;
+  request.Req.Close.UserContext2=reinterpret_cast<UINT64>(context);
+  require(FspFileSystemOpClose(&p.fs,&request,&response)==STATUS_SUCCESS,"controller SDK Close");
+}
 void callback_file(Provider& p,unsigned n,const Bytes& bytes) {
   const auto* table=p.fs.Interface;SIZE_T security_size=0;UINT32 attributes=0;
   require(table->GetSecurityByName(&p.fs,const_cast<PWSTR>(L"\\"),&attributes,nullptr,&security_size)==STATUS_BUFFER_OVERFLOW,
@@ -94,12 +111,7 @@ void callback_file(Provider& p,unsigned n,const Bytes& bytes) {
       FALSE,FALSE,&count,&info)==STATUS_SUCCESS && count==bytes.size(),"controller SDK Write");
   Bytes out(bytes.size());count=0;require(table->Read(&p.fs,context,out.data(),0,static_cast<ULONG>(out.size()),&count)==STATUS_SUCCESS &&
       count==out.size() && out==bytes,"controller SDK byte readback");
-  FSP_FSCTL_TRANSACT_REQ request;FSP_FSCTL_TRANSACT_RSP response;
-  std::memset(&request,0,sizeof(request));std::memset(&response,0,sizeof(response));request.Kind=FspFsctlTransactCleanupKind;
-  request.Req.Cleanup.UserContext2=reinterpret_cast<UINT64>(context);
-  require(FspFileSystemOpCleanup(&p.fs,&request,&response)==STATUS_SUCCESS,"controller SDK Cleanup");
-  request.Kind=FspFsctlTransactCloseKind;request.Req.Close.UserContext2=reinterpret_cast<UINT64>(context);
-  require(FspFileSystemOpClose(&p.fs,&request,&response)==STATUS_SUCCESS,"controller SDK Close");
+  callback_cleanup_close(p,context);
 }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 std::array<std::byte,32> artifact_digest(std::string_view input) {
@@ -574,10 +586,6 @@ void memory_composition(NativeImageKind kind=NativeImageKind::paged) {
 void read_only_memory() {
   const auto expected=data(kNativeExtentBytes+29,919);
   std::optional<ReadOnlyProjection> surviving;
-  auto rejected=[](auto&& run,const char* why) {
-    bool refused=false;try{run();}catch(const std::exception&){refused=true;}
-    require(refused,why);
-  };
   {
     auto backing=MemoryVolumeBacking::create();
     auto aliased=backing.image;
@@ -805,6 +813,108 @@ void indexed_memory_composition() {
   require(MemoryVolumeDomain::cleanup_healthy(),"indexed memory lease did not retire");
 }
 
+void retained_memory_remount(NativeImageKind kind) {
+  const auto original=data(4097,271),added=data(2049,379),deleted=data(127,283);
+  const bool indexed=kind==NativeImageKind::indexed_paged;
+  constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
+  Provider initial,collision,reopened;
+  collision.fail_mount=true;
+  Provider::active=&initial;
+  WinFspMemoryVolume volume(initial.api(),plan(),kind);
+  await([&]{return volume.view().state==SessionState::running;},5000,"initial remount fixture startup");
+  rejected([&]{volume.remount(initial.api(),plan());},"active volume acquired a second dispatcher");
+  callback_file(initial,0,original);
+  std::uint64_t detached_inode=0;
+  if(indexed) {
+    callback_file(initial,1,deleted);
+    auto* fs=&initial.fs;
+    wchar_t name[]=L"\\f1";
+    PVOID handle=nullptr;
+    FSP_FSCTL_FILE_INFO metadata{};
+    require(fs->Interface->Open(fs,name,open_file,DELETE,&handle,&metadata)==STATUS_SUCCESS &&
+        handle,"could not open indexed remount delete fixture");
+    detached_inode=metadata.IndexNumber;
+    require(fs->Interface->SetDelete(fs,handle,name,TRUE)==STATUS_SUCCESS,"indexed remount delete intent");
+    fs->Interface->Cleanup(fs,handle,name,FspCleanupDelete);
+  }
+  volume.stop_and_join();
+  require(volume.view().write_restart_ready && initial.fs.UserContext==nullptr,"initial provider did not retire");
+  Provider::active=&collision;
+  NativeVolumeSelection selected;
+  {
+    auto retained=volume.inspect_retired();
+    selected=retained.info().selection;
+    require(retained.filesystem().read("f0",0,original.size())==original &&
+        retained.filesystem().needs_session_recovery()==indexed,"retained bytes or recovery state differ");
+    if(indexed)require(retained.filesystem().read_inode(detached_inode,0,deleted.size())==deleted,
+        "retired indexed fixture lost unresolved deletion bytes");
+    rejected([&]{volume.remount(collision.api(),plan());},"pinned inspection allowed a concurrent writer");
+  }
+  auto incomplete=collision.api();incomplete.preflight=nullptr;
+  rejected([&]{volume.remount(incomplete,plan());},"remount accepted incomplete provider");
+  rejected([&]{volume.remount(collision.api(),{});},"remount accepted invalid plan");
+  require(collision.calls==0,"remount refusal called the provider");
+  volume.remount(collision.api(),plan());
+  await([&]{return volume.view().retired;},5000,"mount collision did not release its provider");
+  volume.stop_and_join();
+  require(volume.view().start_status==STATUS_OBJECT_NAME_COLLISION && volume.view().write_restart_ready &&
+      collision.calls==6 && std::string_view(collision.order.data(),6)=="pcsmtd",
+      "remount collision concealed provider failure or retained a dispatcher");
+  {
+    auto retained=volume.inspect_retired();
+    const auto selection=retained.info().selection;
+    require(selection==selected && retained.filesystem().read("f0",0,original.size())==original &&
+        !retained.filesystem().needs_session_recovery(),"failed remount changed retained selection or bytes");
+  }
+  Provider::active=&reopened;
+  volume.remount(reopened.api(),{L"R:\\FlitzFS-model\\next",true,true});
+  await([&]{return volume.view().state==SessionState::running;},5000,"retained volume did not remount");
+  auto* fs=&reopened.fs;
+  wchar_t name[]=L"\\f0";
+  PVOID handle=nullptr;
+  FSP_FSCTL_FILE_INFO metadata{};
+  require(fs->Interface->Open(fs,name,open_file,FILE_READ_DATA,&handle,&metadata)==STATUS_SUCCESS &&
+      handle && metadata.FileSize==original.size(),"remounted provider did not expose original file");
+  Bytes out(original.size());
+  ULONG count=0;
+  require(fs->Interface->Read(fs,handle,out.data(),0,static_cast<ULONG>(out.size()),&count)==STATUS_SUCCESS &&
+      count==out.size() && out==original,"remounted provider changed original bytes");
+  callback_cleanup_close(reopened,handle);
+  callback_file(reopened,2,added);
+  volume.stop_and_join();
+  {
+    auto retained=volume.inspect_retired();
+    retained.filesystem().verify_all();
+    require(volume.view().write_restart_ready && !volume.view().offline && retained.info().selection==selected &&
+        retained.filesystem().read("f0",0,original.size())==original &&
+        retained.filesystem().read("f2",0,added.size())==added,"independent CPU reopen changed remounted data");
+  }
+  require(volume.open_read_only().read(L"\\f2",0,static_cast<std::uint32_t>(added.size()))==added,
+      "remounted data could not be sealed");
+  rejected([&]{volume.remount(reopened.api(),plan());},"sealed backing reacquired writable mount");
+  require(reopened.calls==7 && reopened.fs.UserContext==nullptr,
+      "remount or seal retained the second provider");
+  std::cout<<"memory_remount indexed="<<indexed<<" epoch="<<selected.epoch
+      <<" collision_retired=1 detached_recovery="<<indexed<<" cpu_readback=1 sealed=1\n";
+}
+
+void unconfirmed_remount_refusal() {
+  Provider silent,other;
+  silent.report_stop=false;
+  silent.fail_mount=true;
+  Provider::active=&silent;
+  WinFspMemoryVolume volume(silent.api(),plan(),NativeImageKind::indexed_paged);
+  await([&]{return volume.view().retired;},5000,"unconfirmed startup fixture did not retire its wrapper");
+  volume.stop_and_join();
+  const auto status=volume.view();
+  require(status.start_status==STATUS_OBJECT_NAME_COLLISION && status.offline &&
+      !status.write_restart_ready && silent.fs.UserContext==nullptr,"missing dispatcher evidence admitted restart");
+  Provider::active=&other;
+  rejected([&]{volume.remount(other.api(),plan());},"unconfirmed dispatcher retirement allowed remount");
+  rejected([&]{(void)volume.open_read_only();},"unconfirmed dispatcher retirement allowed sealing");
+  require(other.calls==0,"unconfirmed remount reached the provider");
+}
+
 void indexed_group_callback_contract() {
   Provider provider;Provider::active=&provider;
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
@@ -872,7 +982,8 @@ int main(int argc,char** argv){try {
   {WindowsMaintenanceHost warm;warm.observe(false);}
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
-  if(lifetime_only || shifted_grouping || checkpoint || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
+  const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
+  if(lifetime_only || shifted_grouping || checkpoint || remount || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-compaction" || std::string_view(argv[1])=="--live-indexed-grouping")))
     native_rng_initialization();
@@ -895,6 +1006,11 @@ int main(int argc,char** argv){try {
     indexed_group_callback_contract();
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
+  }else if(remount) {
+    retained_memory_remount(NativeImageKind::paged);
+    retained_memory_remount(NativeImageKind::indexed_paged);
+    unconfirmed_remount_refusal();
+    require(MemoryVolumeDomain::cleanup_healthy(),"remount fixture did not retire memory");
   }else if(argc==2 && std::string_view(argv[1])=="--live-indexed-compaction") {
     live_indexed_compaction();
   }else if(argc==2 && std::string_view(argv[1])=="--live-indexed-grouping") {

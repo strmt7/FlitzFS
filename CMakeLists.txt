@@ -850,6 +850,8 @@ if(FLITZFS_BUILD_WINFSP)
     add_test(NAME bounded_winfsp_memory_volume COMMAND flitzfs_winfsp_controller_tests --memory)
     add_test(NAME bounded_winfsp_readonly_memory COMMAND flitzfs_winfsp_controller_tests --read-only-memory)
     add_test(NAME bounded_winfsp_indexed_memory COMMAND flitzfs_winfsp_controller_tests --indexed-memory)
+    add_test(NAME bounded_winfsp_memory_remount COMMAND flitzfs_winfsp_controller_tests --memory-remount)
+    set_tests_properties(bounded_winfsp_memory_remount PROPERTIES TIMEOUT 45)
     set_tests_properties(bounded_winfsp_controller bounded_winfsp_memory_volume bounded_winfsp_readonly_memory
       bounded_winfsp_indexed_memory
       PROPERTIES TIMEOUT 90)

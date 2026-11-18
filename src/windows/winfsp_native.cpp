@@ -668,7 +668,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_retir
   return resume_managed_impl(std::move(head),volume,epoch,resolver,foreground,std::move(advice),advice_sequence,false);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
-    std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
+    std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::optional<std::uint64_t> expected_epoch,
     const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground,
     std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence,bool closed_indexed) {
   if(bool(advice)!=bool(advice_sequence))throw std::invalid_argument("exact advisory sequence required");
@@ -680,7 +680,8 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
   };
   const auto view=closed_indexed?NativeVolumeHeadView::open_indexed_recovery(head,volume,pinned):
       NativeVolumeHeadView::open(head,volume,pinned);
-  if(view.info().selection.epoch!=epoch)throw std::invalid_argument("exact head epoch required");
+  const auto epoch=view.info().selection.epoch;
+  if(expected_epoch && *expected_epoch!=epoch)throw std::invalid_argument("exact head epoch required");
   const auto created=admit_windows_snapshot(view.filesystem(),closed_indexed);
   const auto kind=view.filesystem().image_storage().kind;
   const bool grouped=kind==NativeImageKind::indexed_paged || (kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled);

@@ -35,6 +35,7 @@ struct MemoryVolumeBacking {
   friend class WinFspMemoryVolume;
   std::shared_ptr<StoreByteIo> resolve_image(const StoreIdentity&) const;
   NativeVolumeHeadView open_owned_head(bool indexed_recovery=false) const;
+  void settle_retained_selection(const StoreIdentity&) noexcept;
   ReadOnlyProjection seal_checked(NativeVolumeHeadView);
   enum class CompactionPhase {idle,copying,ready,uncertain,retiring};
   CompactionPhase phase_=CompactionPhase::idle;

@@ -7,8 +7,7 @@
 namespace flitzfs {
 namespace {
 WinFspSessionApi checked(WinFspSessionApi api) {
-  if (!api.preflight || !api.create || !api.start_dispatcher || !api.set_mount_point ||
-      !api.stop_dispatcher || !api.remove_mount_point || !api.delete_filesystem || !api.originating_process_id)
+  if (!api.complete())
     throw std::invalid_argument("incomplete filesystem lifecycle provider");
   return api;
 }
@@ -155,16 +154,23 @@ void WinFspNativeSession::cancel_background_maintenance() {
   if(adapter_)adapter_->cancel_background_maintenance();
 }
 void WinFspNativeSession::release() noexcept {
-  if(!filesystem_)return;
   if(adapter_){
     auto deferred=adapter_->stop_deferred_writes_hosted();
     while(deferred==NativeDeferredStop::running){Sleep(1);deferred=adapter_->stop_deferred_writes_hosted();}
-    if(deferred==NativeDeferredStop::retirement_unconfirmed)offline_=true;
+    if(deferred==NativeDeferredStop::retirement_unconfirmed)retirement_unconfirmed_=true;
   }
-  if(dispatcher_attempted_)api_.stop_dispatcher(filesystem_);
+  if(!filesystem_){
+    offline_=offline_||retirement_unconfirmed_;
+    return;
+  }
+  if(dispatcher_attempted_){
+    api_.stop_dispatcher(filesystem_);
+    if(!adapter_ || !adapter_->dispatcher_stopped())retirement_unconfirmed_=true;
+  }
   if(mount_owned_)api_.remove_mount_point(filesystem_);
   api_.delete_filesystem(filesystem_);filesystem_=nullptr;
   dispatcher_attempted_=false;mount_owned_=false;
+  offline_=offline_||retirement_unconfirmed_;
 }
 void WinFspNativeSession::retire_adapter() noexcept {
   if(adapter_) {
@@ -178,11 +184,12 @@ void WinFspNativeSession::retire_adapter() noexcept {
   }
 }
 void WinFspNativeSession::stop() noexcept {
-  const bool attempted=dispatcher_attempted_;
   release();retire_adapter();
-  if(attempted&&!stopped_)offline_=true;
   if(offline_||unexpected_stop_)state_=SessionState::failed;
   else if(state_!=SessionState::failed)state_=SessionState::stopped;
+}
+bool WinFspNativeSession::write_restart_ready() const noexcept {
+  return !filesystem_ && !adapter_ && !retirement_unconfirmed_;
 }
 bool WinFspNativeSession::self_origin_rejected() const noexcept{return self_rejected_||(adapter_&&adapter_->self_origin_rejected());}
 bool WinFspNativeSession::dispatcher_stopped() const noexcept {

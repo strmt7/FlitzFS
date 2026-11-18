@@ -72,6 +72,29 @@ before sealing. Earlier snapshots retain their original view. A reader can
 outlive the wrapper because its stores retain the provider lease.
 [Indexed checks](evidence/indexed-owned-windows-2026-11-18.json)
 
+### Remounting a retained volume
+
+After an explicit join, the owner can supply a fresh provider and mount plan
+to `remount`. The previous dispatcher and optional workers must have confirmed
+retirement. Release outstanding inspection views before reopening the writable
+backing. Sealing remains permanent.
+
+The owner verifies the existing image selection and resumes the same volume
+identity, capacity and layout. Indexed restart resolves acknowledged old-session
+deletion state and uses the committed selector after an interrupted compaction.
+A readable advisory checkpoint can resume group discovery. If a new attachment
+fails, the backing remains owned and byte-readable after join, and a confirmed
+retirement allows another attempt. The replacement runs the same maintenance
+controller and installed AMD acquisition path. [WinFsp lifecycle API](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
+
+The Windows SDK fixture exercised a collision followed by successful remount
+for both paged layouts. It verified the original and subsequent files through
+the independent CPU reader. The indexed case also resolved an old open-file
+lifetime after acknowledged deletion. The fixture refused writable reopening
+while a reader held the backing, after sealing, and after a provider omitted
+the dispatcher stop notification.
+[Remount validation](evidence/windows-retained-volume-remount-2026-11-18.json)
+
 Destruction stops and joins before releasing backing references. The domain's
 working-set settings restore after the last store owner retires, with existing
 fail-closed cleanup accounting. Temporary memory contents do not survive process

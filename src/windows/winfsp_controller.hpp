@@ -15,7 +15,7 @@ struct WinFspControllerView {
   NativeAnchorSearchStats anchor_search;
   std::optional<HipDiscoveryStatus> installed_anchor_status;
   std::uint32_t installed_anchor_attempts=0,installed_anchor_queries=0;
-  bool maintenance_disabled=false,retired=false,offline=false,controller_failed=false;
+  bool maintenance_disabled=false,retired=false,offline=false,controller_failed=false,write_restart_ready=false;
 };
 // Explicit provider and plan only. One owned thread performs start, cooperative
 // maintenance and stop; callbacks still run on the provider's dispatcher.

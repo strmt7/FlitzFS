@@ -472,8 +472,8 @@ void indexed_callbacks(unsigned unit) {
     expect_deferral(observation,clock.now,NativeMaintenanceDeferral::memory);
     unsigned transactions=0;
     auto previous=keep_extents+blocks;
-    while(adapter->background_maintenance_pending()) {
-      require(transactions<4,"indexed reaper did not drain");
+    while(previous>keep_extents) {
+      require(transactions<4 && adapter->background_maintenance_pending(),"indexed reaper did not drain");
       observation=clock.next();
       const auto status=adapter->advance_background_maintenance(observation,clock.now);
       require(status.reclaimed,"admitted indexed reclamation did not publish");
@@ -488,7 +488,12 @@ void indexed_callbacks(unsigned unit) {
         "indexed reaper changed a pinned snapshot or unrelated live data");
     const auto settled_reads=backing->read_calls,settled_writes=backing->calls;
     observation=clock.next();
-    require(adapter->advance_background_maintenance(observation,clock.now).state==WinFspMaintenanceState::unchanged &&
+    // A completed reaper can hand the next opportunity to pending group work.
+    // Refuse that work independently so the retired queue's I/O can be checked.
+    observation.cpu_busy_ticks=observation.cpu_total_ticks;
+    const auto settled=adapter->advance_background_maintenance(observation,clock.now);
+    require(!settled.reclaimed && (settled.state==WinFspMaintenanceState::unchanged ||
+        settled.progress.deferral==NativeMaintenanceDeferral::cpu) &&
         backing->read_calls==settled_reads && backing->calls==settled_writes,"settled indexed reaper polled backing");
     std::cout<<"indexed_sdk_reclamation extents="<<blocks<<" transactions="<<transactions<<" refused_observations=5\n";
   }

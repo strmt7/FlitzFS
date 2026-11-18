@@ -163,6 +163,7 @@ struct WinFspVolumeController::Impl {
 #endif
     std::lock_guard lock(mutex);current.state=session->state();current.start_status=started;
     current.offline=session->requires_offline();
+    current.write_restart_ready=anchor_retired && session->write_restart_ready();
     current.controller_failed=failed || !anchor_retired;
     if(anchor)current.anchor_search=anchor->stats();
     current.maintenance_disabled=disabled;current.retired=anchor_retired;
