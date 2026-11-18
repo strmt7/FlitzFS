@@ -685,10 +685,16 @@ The direct AMD matcher now builds one base index per request and returns packed
 copy suggestions. In paired three-member trials it cut input transfer by two
 thirds and reduced the seeded whole image from 520 KiB with tiled AMD search
 to 360 KiB. CPU search produced the same complete image in the direct mode and
-remained faster. Use resource-sized transport to measure larger admitted
-windows. Bound the lifetime of reusable device state and preserve CPU progress
-and prompt yielding before enabling ordinary routing.
+remained faster.
 [Direct shared-base search](evidence/direct-amd-anchor-2026-11-18.json)
+
+The sized worker reused one base index across 65 search launches for 193
+members. It retained the 816 KiB device allocation and matched the CPU exactly.
+The 1.01 second exchange still exceeded the 144 ms CPU search and verification
+time. Profile the source-bound runtime and transport setup, then test a bounded
+reuse lifetime with prompt yielding and independent CPU progress before
+opening ordinary routing.
+[Sized shared-base sweep](evidence/amd-anchor-sweep-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

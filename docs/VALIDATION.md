@@ -1,5 +1,32 @@
 # Validation ledger
 
+## Resource-sized AMD shared-base sweep — 18 November 2026
+
+One authenticated worker kept the same 64 KiB base and its index for the
+entire request. It completed a fresh adapter-budget check after each window
+and returned a single reply after device resources and modules had retired.
+The CPU generated and verified the expected records independently.
+
+| Member extents | Corpus | Search windows | GPU exchange | CPU search and verification |
+|---:|---|---:|---:|---:|
+| 7 | Seeded | 3 | 892 ms | 6.0 ms |
+| 25 | Seeded | 9 | 807 ms | 19.2 ms |
+| 97 | Public source | 33 | 891 ms | 67.8 ms |
+| 193 | Seeded | 65 | 1,010 ms | 143.8 ms |
+
+All replies matched the CPU byte for byte. Each GPU trial used one 816 KiB
+device slab. The largest request carried 12.125 MiB of source bytes. The
+fixed three-member control also reopened and verified the 360 KiB compacted
+image through the CPU reader. The larger cases verified search records.
+
+A seven-member request funded for two windows stayed on CPU without starting
+a worker. A rejected runtime identity returned no GPU reply and also completed
+CPU matching. The selected raw and AddressSanitizer suites passed. Every
+owned trial retired. The GPU exchange still took longer than the equivalent
+CPU work at each measured size. A separate intra-extent phase probe hit the
+nonlocal-memory gate and returned no phase measurements.
+[Source and execution evidence](evidence/amd-anchor-sweep-2026-11-18.json)
+
 ## Direct AMD shared-base search — 18 November 2026
 
 The installed AMD runtime built one device index from a 64 KiB base and searched

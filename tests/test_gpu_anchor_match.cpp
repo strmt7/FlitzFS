@@ -2,6 +2,7 @@
 #include "anchor_search_fixture.hpp"
 #include <algorithm>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 
 namespace {
@@ -83,12 +84,63 @@ void unrelated() {
   records.back()=(match::maximum_match<<20)|65535;
   rejects([&]{(void)verify_anchor_match_records(identical,records);});
 }
+
+void sized_sweep() {
+  constexpr std::uint32_t count=7;
+  const auto plan=plan_anchor_match_sweep(count,match::max_members,match::device_bytes(3),3);
+  check(plan.quantum_members==3 && plan.windows==3 && plan.device_bytes==match::device_bytes(3),
+      "whole request did not retain its final partial device window");
+  const auto smaller=plan_anchor_match_sweep(count,3,match::device_bytes(2),4);
+  check(smaller.quantum_members==2 && smaller.windows==4,"live device budget did not reduce the quantum");
+  rejects([&]{(void)plan_anchor_match_sweep(count,3,match::device_bytes(2),3);});
+  rejects([&]{(void)plan_anchor_match_sweep(count,3,match::device_bytes(1)-1,7);});
+  rejects([&]{(void)plan_anchor_match_sweep(count,0,match::device_bytes(3),7);});
+  rejects([&]{(void)anchor_match_layout((std::numeric_limits<std::uint32_t>::max)());});
+
+  Bytes base(match::extent_bytes),members;
+  std::uint64_t state=0xc71199403c8bfb63ULL;
+  for (auto& byte:base) {
+    state^=state<<13;
+    state^=state>>7;
+    state^=state<<17;
+    byte=static_cast<std::byte>(state>>21);
+  }
+  for (unsigned index=1;index<=count;++index) {
+    const auto member=anchor_search_fixture::fragmented(base,index);
+    members.insert(members.end(),member.begin(),member.end());
+  }
+  rejects([&]{(void)encode_anchor_match_request(base,members,21);});
+  const auto frame=encode_anchor_match_request(base,members,21,plan.whole);
+  check(frame.size()==plan.whole.request_bytes,"sized anchor frame bounds");
+  rejects([&]{(void)decode_anchor_match_request(frame);});
+  auto wrong=plan.whole;
+  --wrong.reply_bytes;
+  rejects([&]{(void)decode_anchor_match_request(frame,wrong);});
+
+  const auto request=decode_anchor_match_request(frame,plan.whole);
+  auto records=cpu_anchor_match_records(request);
+  for (std::uint32_t first=0;first<count;) {
+    const auto n=(std::min)(plan.quantum_members,count-first);
+    const auto part=std::span(members).subspan(first*match::extent_bytes,n*match::extent_bytes);
+    const auto subrequest=decode_anchor_match_request(encode_anchor_match_request(base,part,22));
+    const auto response=cpu_anchor_match_records(subrequest);
+    check(std::ranges::equal(response,std::span(records).subspan(first*match::tiles,n*match::tiles)),
+        "window changed canonical records");
+    first+=n;
+  }
+  const auto reply=encode_anchor_match_reply(request,records);
+  check(reply.size()==plan.whole.reply_bytes && accept_anchor_match_reply(reply,request).size()==count,
+      "sized anchor reply did not cover the whole request");
+  records.back()=match::empty;
+  rejects([&]{(void)encode_anchor_match_reply(request,records);});
+}
 }
 
 int main() {
   try {
     fragmented();
     unrelated();
+    sized_sweep();
     std::cout<<"Direct shared base match CPU semantics and reply verification passed\n";
     return 0;
   } catch (const std::exception& error) {

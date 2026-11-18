@@ -243,6 +243,24 @@ int uniform_native_cpu_fixture(bool sweep=false){
   return 0;
 }
 struct AnchorSearchInput {Bytes base,members;};
+AnchorSearchInput anchor_fixture(unsigned count,const wchar_t* public_extent) {
+  AnchorSearchInput input;
+  if(public_extent) {
+    const fs::path corpus(public_extent);
+    require(corpus.is_absolute() && fs::file_size(corpus)==kNativeExtentBytes,"public anchor extent size");
+    input.base=read(corpus);
+  } else {
+    input.base.resize(kNativeExtentBytes);
+    std::uint64_t state=0x679a210fed44c3abULL;
+    for(auto& value:input.base){state^=state<<13;state^=state>>7;state^=state<<17;value=static_cast<std::byte>(state>>21);}
+  }
+  input.members.reserve(static_cast<std::size_t>(count)*kNativeExtentBytes);
+  for(unsigned i=1;i<=count;++i) {
+    const auto member=anchor_search_fixture::fragmented(input.base,i);
+    input.members.insert(input.members.end(),member.begin(),member.end());
+  }
+  return input;
+}
 struct AnchorNativeResult {
   std::uint64_t compacted_bytes=0,work_ns=0;
   std::size_t selected_members=0;
@@ -400,7 +418,7 @@ UniformLz4Candidates cpu_anchor_candidates(const PreparedUniformLz4& batch) {
   verify_uniform_lz4_candidates(batch,result);
   return result;
 }
-bool retire_uniform_exchange(const std::optional<WorkerExchangeSession>& session) {
+bool retire_gpu_exchange(const std::optional<WorkerExchangeSession>& session) {
   if(!session)return true;
   const auto started=GetTickCount64();
   do {
@@ -409,6 +427,77 @@ bool retire_uniform_exchange(const std::optional<WorkerExchangeSession>& session
   }while(GetTickCount64()-started<2000);
   return false;
 }
+
+int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller) {
+  require(argc==9 || argc==10,"Direct anchor sweep needs members, search window grant and an optional public extent");
+  const fs::path worker(argv[2]);
+  require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_worker.exe","Trusted anchor sweep worker required");
+  constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
+  const auto ordinal=number(argv[3],63),mask=number(argv[5],max_uint);
+  const auto luid=luid_value(argv[4]);
+  const std::wstring_view digest(argv[6]);
+  require(mask && !(mask&(mask-1)) && digest.size()==64 &&
+      std::all_of(digest.begin(),digest.end(),[](wchar_t c){
+        return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');}),"Anchor sweep adapter/runtime binding invalid");
+  const auto members=number(argv[7],max_uint),maximum_windows=number(argv[8],max_uint);
+  const auto layout=detail::anchor_match_layout(members);
+  const WorkerChannelCapacity capacity{layout.request_bytes,layout.reply_bytes};
+  require(valid_worker_channel_capacity(capacity,budget),"Anchor sweep exceeds its transport allowance");
+  MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
+  // Charge the retained fixture, canonical request, transport, expected CPU
+  // reply and admitted helper before generating proportional input.
+  const auto charged=(budget.memory_mib+4ULL)*1024*1024+6ULL*layout.request_bytes+4ULL*layout.reply_bytes;
+  require(GlobalMemoryStatusEx(&memory) &&
+      valid_process_budget(plan_resource_process_budget(charged,memory.ullAvailPhys,memory.ullAvailPageFile,
+          16,budget.cpu_rate,budget.timeout_ms)),"Anchor sweep lacks current physical or commit headroom");
+  const auto input=anchor_fixture(members,argc==10?argv[9]:nullptr);
+  const auto frame=detail::encode_anchor_match_request(input.base,input.members,2,layout);
+  const auto request=detail::decode_anchor_match_request(frame,layout);
+  const auto observed=query_windows_gpu_budget(luid,mask);
+  std::optional<detail::AnchorMatchSweepPlan> plan;
+  auto quantum=(std::min)(members,anchor_match::max_members);
+  while(quantum && (observed.status!=WindowsGpuBudgetStatus::success ||
+      check_gpu_memory_budget(observed.snapshot,luid,mask,GetTickCount64(),
+          anchor_match::device_bytes(quantum))!=GpuGateCode::admitted)) --quantum;
+  if(quantum && 1+(members-1)/quantum<=maximum_windows)
+    plan=detail::plan_anchor_match_sweep(members,quantum,anchor_match::device_bytes(quantum),maximum_windows);
+
+  std::optional<WorkerExchangeSession> session;
+  const WorkerExchangeResult* result=nullptr;
+  const auto start=std::chrono::steady_clock::now();
+  if(plan) {
+    try {
+      session.emplace(WorkerExchangeSession::start_sized(worker,{L"--driver-anchor-sweep",
+          std::to_wstring(ordinal),argv[4],std::to_wstring(mask),std::wstring(digest),
+          std::to_wstring(members),std::to_wstring(plan->quantum_members),
+          std::to_wstring(plan->device_bytes),std::to_wstring(maximum_windows)},frame,capacity,budget));
+      const auto wait_started=GetTickCount64();
+      while(!(result=session->try_result()) && !session->failure() &&
+          GetTickCount64()-wait_started<budget.timeout_ms)Sleep(1);
+    } catch(const std::exception&) {} // Continue using the immutable CPU input.
+  }
+  const auto exchange_ns=nanos_since(start);
+  const bool completed=result && result->code==WorkerExchangeCode::completed &&
+      result->process.exit_confirmed && result->process.exit_code==0 &&
+      !result->process.timed_out && !result->process.cancelled;
+  if(session && !completed)(void)session->request_cancel();
+  const auto cpu_start=std::chrono::steady_clock::now();
+  const auto records=detail::cpu_anchor_match_records(request);
+  const auto cpu_reply=detail::encode_anchor_match_reply(request,records);
+  const auto cpu_ns=nanos_since(cpu_start);
+  const bool parity=completed && result->response==cpu_reply;
+  require(retire_gpu_exchange(session),"Anchor sweep child or supervisor retirement unconfirmed");
+  std::cout<<std::boolalpha<<"Direct AMD shared base sweep: {\"gpu_verified\":"<<parity
+      <<",\"cpu_fallback\":"<<!parity<<",\"worker_started\":"<<(session && session->process_id()!=0)
+      <<",\"members\":"<<members<<",\"source_bytes\":"<<request.source.size()
+      <<",\"record_bytes\":"<<records.size()*sizeof(records[0])<<",\"reply_bytes\":"<<(result?result->response.size():0)
+      <<",\"search_windows\":"<<(plan?plan->windows:0)<<",\"device_allocation_bytes\":"<<(plan?plan->device_bytes:0)
+      <<",\"exchange_ns\":"<<exchange_ns<<",\"cpu_search_and_verify_ns\":"<<cpu_ns
+      <<",\"worker_exit\":"<<(result?result->process.exit_code:0)
+      <<",\"job_peak_bytes\":"<<controller.peak_commit()<<",\"transport_quiescent\":true}\n";
+  return parity?0:2;
+}
+
 int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller,
     bool sweep=false,bool sweep_profile=false,const AnchorSearchInput* anchor=nullptr){
   require(argc==7 || (anchor && argc==8),"Uniform calibration needs explicit trusted worker/ordinal/LUID/node/runtime digest");
@@ -474,7 +563,7 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
     if(!verified && session)(void)session->request_cancel();
   }
   if(anchor) {
-    const auto retired=retire_uniform_exchange(session);
+    const auto retired=retire_gpu_exchange(session);
     require(retired,"Anchor transport retirement unconfirmed");
     if(session)result=session->try_result();
     const auto gpu_before_storage_ns=nanos_since(prepare_start);
@@ -522,7 +611,7 @@ int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bud
   const auto stored=volume->publish_uniform(plain,hints);
   require(std::equal(plain.begin(),plain.end(),batch.plaintext().begin()),"Uniform retained source changed");
   const auto image=volume->image_bytes,payload=volume->active_payload_bytes;volume->close();
-  const auto retired=retire_uniform_exchange(session);
+  const auto retired=retire_gpu_exchange(session);
   if(session)result=session->try_result(); // Report late exit status, never accept late output.
   require(locked_ram_fixture::locked_bytes==0 && locked_ram_fixture::cleanup_ok,"Uniform native lock retirement");
   const auto kernel=accepted.trace.wall_ns[static_cast<unsigned>(HipPhase::kernel_wait)];
@@ -718,24 +807,12 @@ int wmain(int argc,wchar_t** argv){
     if(argc==4 && std::wstring_view(argv[1])==L"--uniform-admission")return uniform_admission(argv[2],argv[3]);
     if(argc==2 && std::wstring_view(argv[1])==L"--uniform-sweep-native-cpu-fixture")return uniform_native_cpu_fixture(true);
     const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
+    if(mode==L"--gpu-direct-anchor-sweep-once")return direct_anchor_sweep_once(argc,argv,controller);
     if(mode==L"--gpu-indexed-anchor-once" || mode==L"--gpu-indexed-direct-anchor-once" ||
         mode==L"--gpu-indexed-tiled-anchor-once") {
       require(argc==7 || argc==8,"Anchor search needs the exact worker binding and optional public extent");
-      AnchorSearchInput input;
-      if(argc==8) {
-        const fs::path corpus(argv[7]);
-        require(corpus.is_absolute() && fs::file_size(corpus)==kNativeExtentBytes,"public anchor extent size");
-        input.base=read(corpus);
-      } else {
-        input.base.resize(kNativeExtentBytes);
-        std::uint64_t state=0x679a210fed44c3abULL;
-        for(auto& value:input.base){state^=state<<13;state^=state>>7;state^=state<<17;value=static_cast<std::byte>(state>>21);}
-      }
       const auto members=mode==L"--gpu-indexed-anchor-once"?4:anchor_match::max_members;
-      for(unsigned i=1;i<=members;++i) {
-        const auto member=anchor_search_fixture::fragmented(input.base,i);
-        input.members.insert(input.members.end(),member.begin(),member.end());
-      }
+      const auto input=anchor_fixture(members,argc==8?argv[7]:nullptr);
       if(mode==L"--gpu-indexed-direct-anchor-once")return direct_anchor_gpu_once(argv,input);
       return uniform_native_gpu_once(argc,argv,controller,true,true,&input);
     }

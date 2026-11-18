@@ -438,13 +438,15 @@ int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
   const bool memory_observation=mode==L"--driver-memory-adapter";
   const bool phase_observation=mode==L"--driver-match-profile";
-  const bool anchoring=mode==L"--driver-anchor-match";
+  const bool anchor_sweep=mode==L"--driver-anchor-sweep";
+  const bool anchoring=mode==L"--driver-anchor-match" || anchor_sweep;
   const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" ||
       memory_observation || phase_observation || anchoring;
   const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter" || phase_observation;
-  require((driver ? argc == 8 : argc == 7) &&
+  const auto channel_argument=anchor_sweep?10:driver?6:5;
+  require(argc==channel_argument+2 &&
       (driver || mode == L"--adapter" || mode == L"--match-adapter") &&
-      std::wstring_view(argv[driver ? 6 : 5]) == L"--worker-channel",
+      std::wstring_view(argv[channel_argument]) == L"--worker-channel",
       Exit::invalid_request, "explicit HIP adapter and channel required");
   const auto expected_runtime = driver ? runtime_digest(argv[5]) : std::string{};
   const auto ordinal = decimal(argv[2], 63);
@@ -454,17 +456,34 @@ int worker(int argc, wchar_t** argv) {
   HipPhaseProfile phase_value;
   HipPhaseRecorder phase_clock(phase_observation?&phase_value.trace:nullptr);
   phase_clock.begin(HipPhase::request_decode);
-  auto channel = WorkerChannel::open(argv[driver ? 7 : 6]);
+  std::optional<detail::AnchorMatchSweepPlan> anchor_plan;
+  if (anchor_sweep) {
+    constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
+    try {
+      anchor_plan=detail::plan_anchor_match_sweep(decimal(argv[6],max_uint),
+          decimal(argv[7],anchor_match::max_members),wide_decimal(argv[8]),decimal(argv[9],max_uint));
+    } catch(const std::invalid_argument&) {
+      throw HipWorkerFailure(Exit::invalid_request,"invalid shared base work grant",HipWorkerStage::worker_request);
+    }
+  }
+  const auto token=argv[channel_argument+1];
+  auto channel=anchor_plan?WorkerChannel::open_sized(token,{anchor_plan->whole.request_bytes,anchor_plan->whole.reply_bytes}):
+      WorkerChannel::open(token);
   std::optional<WorkerBatchRequest> decode;
   std::optional<MatchWorkerRequest> match;
   std::optional<detail::AnchorMatchRequest> anchor;
   std::uint64_t allocation=0;
   if(anchoring) {
-    try {anchor.emplace(detail::decode_anchor_match_request(channel.request()));}
+    const auto admitted=anchor_plan?std::optional{anchor_plan->whole}:std::nullopt;
+    try {anchor.emplace(detail::decode_anchor_match_request(channel.request(),admitted));}
     catch(const std::invalid_argument&) {
       throw HipWorkerFailure(Exit::invalid_request,"invalid shared base match request",HipWorkerStage::worker_request);
     }
-    allocation=anchor_match::device_bytes(detail::anchor_match_members(anchor->source));
+    if(!anchor_plan) {
+      const auto members=detail::anchor_match_members(anchor->source);
+      anchor_plan=detail::plan_anchor_match_sweep(members,members,anchor_match::device_bytes(members),1);
+    }
+    allocation=anchor_plan->device_bytes;
   } else if(matching) {
     match.emplace(read_match_request(channel.request()));
     allocation=match->search.device_buffer_bytes();
@@ -524,7 +543,7 @@ int worker(int argc, wchar_t** argv) {
     const auto* api=entry();
     require(api && anchor_match::compatible_kernel_api(*api),Exit::unsupported_configuration,
         "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
-    const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*anchor);
+    const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*anchor,*anchor_plan);
     try {frame=detail::encode_anchor_match_reply(*anchor,records);}
     catch(const std::invalid_argument&) {
       throw HipWorkerFailure(Exit::integrity_failure,"HIP shared base suggestion failed independent byte verification");

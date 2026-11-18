@@ -2,17 +2,24 @@
 
 ## Direct shared-base search
 
-The supervised driver worker accepts one base and its members through the
-existing fixed-size channel. The SDK module builds a two-position index with
-device-scope integer atomics and searches all three member extents against it.
-The two kernels execute in order on the least-priority nonblocking stream.
-The experiment uses an 816 KiB device slab at the full fixture shape.
+The fixed-size driver worker accepts one base and up to three member extents.
+The SDK module builds a two-position index with device-scope integer atomics.
+The index build and member searches execute in order on the least-priority
+nonblocking stream.
 The worker and parent verify source identity, coordinates and original bytes.
 The existing indexed writer independently compares the native representation and
 its complete storage cost.
 [HIP atomics](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html#atomic-functions) ·
 [HIP asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/asynchronous.html) ·
 [Matched trials](evidence/direct-amd-anchor-2026-11-18.json)
+
+The sized driver mode takes an explicit member count, window grant and device
+allocation envelope. Both endpoints derive exact mapping capacities from
+the same checked extent geometry. The child uploads the base and builds
+its index once, then reuses the slab for each funded member window. It samples
+current adapter budgets after each window. The child publishes one complete
+reply, and the parent accepts it after confirmed exit.
+[Sized sweep evidence](evidence/amd-anchor-sweep-2026-11-18.json)
 
 ## SDK-only compression compute candidate
 
