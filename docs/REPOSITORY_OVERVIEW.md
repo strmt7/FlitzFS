@@ -273,14 +273,21 @@ driver to make a probe fit a document.
 
 ## Recent executed evidence
 
+Indexed shared-base preparation now yields before each member and follows live
+extent identity at publication. A 64-member fixture completed in 65 steps with
+foreground edits interleaved and verified. The 528 modeled indexed publication
+interruptions reopened complete checkpoints. Automatic discovery and useful
+collective AMD execution remain open.
+[Cooperative indexed grouping](evidence/cooperative-indexed-shared-base-2026-11-18.json)
+
 Packed compaction now separates payload and index space. In a 1,926-object
 mirrored fixture, three changed records needed 40 KiB of sizing metadata
 reads, down from 328 KiB. Packing reduced complete compacted size by 15.5%
 at 4 KiB isolation and 86.8% at 64 KiB. The indexed grouping path also
 reopened and checked all 1,032 populated files around an eight-member
 publication. Actual Windows resource scheduling completed staged compaction
-and retired with balanced handles. The next step is cooperative preparation
-and automatic discovery. [Packed compaction evidence](evidence/packed-rebuild-accounting-2026-11-18.json)
+and retired with balanced handles.
+[Packed compaction evidence](evidence/packed-rebuild-accounting-2026-11-18.json)
 
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.

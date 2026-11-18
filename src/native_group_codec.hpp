@@ -18,4 +18,6 @@ std::vector<std::byte> decode_native_group_member(std::span<const std::byte> mem
     std::span<const std::byte> base);
 std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation);
+// Bind a private, already CPU-verified frame to its final protected object.
+void bind_native_group_member(std::span<std::byte>,std::uint64_t base_id,std::uint64_t base_generation);
 } // namespace flitzfs::detail

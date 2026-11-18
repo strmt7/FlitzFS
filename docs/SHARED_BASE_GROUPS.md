@@ -114,9 +114,9 @@ finished filesystem.
 
 ## Cooperative preparation and foreground reconciliation
 
-`prepare_shared_base` creates an owned `SharedBaseWork` from cached selections
-and an immutable source root, with no backing I/O. One pending group per native
-writer is admitted; this reservation is separate from the paged-rebuild candidate.
+`prepare_shared_base` creates an owned `SharedBaseWork` from selected extent
+coordinates and an immutable source root, with no backing I/O. One pending group per native
+writer is admitted. This reservation is separate from the paged-rebuild candidate.
 All calls are serialized on the existing control thread. No thread, timer,
 service or automatic GPU work is created.
 
@@ -134,28 +134,29 @@ the independently verified patch/plaintext hashes remain unchanged. Placeholder
 frames never become visible as stored members. No persisted encoding changes.
 
 A weak owner identity survives writer/work moves but cannot revive after writer
-retirement or reopening. Volatile per-data-object revision stamps and cached
-inode/extent bindings reject changed, removed or reused selections before I/O.
-Unrelated commits, selected-file renames and an exact content reversion within
-one atomic transaction need not discard prepared work. Separate committed writes
-followed by a reversion still invalidate it. Every successful native data mutation
-updates these stamps; they are preparation guards, not persistent content metadata.
+retirement or reopening. The bounded legacy layout uses volatile per-object
+revision stamps and cached inode/extent bindings. The indexed layout watches
+only selected extent coordinates. A successful transaction that changes one
+of those mappings or changes a selected inode's lifetime invalidates the work
+before its next preparation read. Unrelated commits, selected-file renames and
+writes to unselected extents of a selected file preserve the preparation.
+Indexed finalization checks the live object identity and generation of every
+member before publishing and verifies any reused anchor again.
 
 `finish_shared_base` reconciles the **current** bounded namespace and complete
 compacted-size bounds, then uses the existing atomic storage transaction. It
 preserves unrelated acknowledged writes, current metadata and workload accounting.
-It does not redo full member decompression, but namespace checking, bounded
-inventory/layout accounting, record encoding/readback and commit barriers remain
-synchronous. Neither bounded-work steps nor OS priority guarantee a wall-clock
-deadline or absence of foreground interference.
+Finalization keeps the independently checked member encoding. Live mapping
+checks, layout accounting, record readback and commit barriers remain
+synchronous. The finalization cost still needs measurement under contention.
 
 Cancellation/destruction releases private payloads, source ownership and the group
 reservation. Stale/foreign/incomplete attempts terminate without publication;
 integrity/I/O failures fence the source writer. Duplicate work refuses before I/O.
-An expired owner reports failed work; the caller still cancels/destroys its owned
-work object to retire retained private resources. A completed operation cannot
-publish twice. This is a cooperative primitive, not an autonomous scheduler,
-durable restart journal, scalable coherence catalog or active-volume handoff.
+An expired owner reports failed work. The caller can cancel or destroy it to
+retire retained private resources. Cleanup and repeated control calls preserve
+the first completed, cancelled or failed outcome. The next integration step is
+to feed this primitive from durable indexed candidate discovery.
 
 The [managed paged-volume path](MANAGED_PAGED_VOLUMES.md) now exposes these
 control calls through NativeFileSession with typed head selection, funded advice
@@ -166,6 +167,9 @@ and normal file-context ownership. It supplies no automatic scheduling/grant.
 [Source-bound validation](evidence/shared-base-groups-2026-11-15.json) records the
 selected Windows raw/AddressSanitizer suites, modeled interruptions, malformed
 dependencies, retained snapshots, bank loss and complete-image measurements.
+[Indexed preparation evidence](evidence/cooperative-indexed-shared-base-2026-11-18.json)
+records selected-extent invalidation, interleaved foreground edits, scoped
+memory I/O measurements and interruptions at publication.
 Fixtures are synthetic related aligned extents and unrelated/dense rejection
 cases. They establish neither representative compression ratios nor throughput,
 latency, GPU benefit, mounted safety or superiority over other filesystems.

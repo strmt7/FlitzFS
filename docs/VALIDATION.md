@@ -1,5 +1,24 @@
 # Validation ledger
 
+## Cooperative indexed group preparation — 18 November 2026
+
+The 64-member indexed fixture took 65 preparation steps. The largest step
+read 102,295 backing bytes. Foreground renames and unrelated writes continued
+between steps, including a write to a different extent of a selected file.
+The resulting volume and its pinned predecessor passed byte-for-byte checks.
+Changed selections failed before further backing I/O in 27 cases.
+
+Fourteen selected Windows test executions passed across codec/SDK, raw and
+AddressSanitizer builds. Each lane ran 528 indexed publication interruption
+cases at 4 KiB and 64 KiB modeled isolation. Reopening found the complete
+old or new group and preserved the acknowledged unrelated write.
+
+Three paired 1 MiB overwrites used the installed AMD runtime and user-mode
+WinFsp callbacks. Both paths produced identical image sizes and recovered
+independently on CPU. CPU completed faster in this fixture. Group preparation
+used CPU throughout these runs.
+[Source, FlitzZip review and run evidence](evidence/cooperative-indexed-shared-base-2026-11-18.json)
+
 ## Packed compaction and indexed size accounting — 18 November 2026
 
 In the matched 1,926-object mirrored fixtures, a three-record size proposal

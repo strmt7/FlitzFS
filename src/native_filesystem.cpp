@@ -1079,6 +1079,7 @@ struct SharedBaseOwner {
   std::array<std::uint64_t,kStoreMaxObjects+1> revisions{};
   std::array<std::uint64_t,kStoreMaxObjects+1> content_revisions{};
   std::weak_ptr<const void> active;
+  std::weak_ptr<detail::IndexedSharedBasePreparation> indexed_work;
 };
 }
 struct NativeFilesystemWriter::Impl {
@@ -1115,7 +1116,8 @@ struct NativeFilesystemWriter::Impl {
   auto mutate_indexed(Commit&& commit) {
     try {
       const auto source=objects.snapshot_for_staging(true);
-      return std::forward<Commit>(commit)(*objects.paged_if(),*source.paged_if(),*indexed);
+      const auto watched=shared_owner->indexed_work.lock();
+      return std::forward<Commit>(commit)(*objects.paged_if(),*source.paged_if(),*indexed,watched.get());
     }catch(const std::bad_alloc&){fail(Code::limit,"indexed transaction allocation failure");}
     catch(const NativeFsError& error) {
       if(error.code()==Code::corrupt || error.code()==Code::storage_failure)poisoned=true;
@@ -1164,6 +1166,7 @@ struct NativeFilesystemWriter::SharedBaseWork::Impl {
   std::weak_ptr<SharedBaseOwner> owner;
   std::shared_ptr<const void> reservation;
   std::optional<detail::NativeObjectSnapshot> source;
+  std::shared_ptr<detail::IndexedSharedBasePreparation> indexed;
   std::vector<Binding> bindings;
   std::vector<std::uint64_t> ids;
   std::map<std::uint64_t,std::uint64_t> revisions;
@@ -1174,7 +1177,10 @@ struct NativeFilesystemWriter::SharedBaseWork::Impl {
   std::uint64_t base_object=0;
   NativeSharedBaseProgress state{NativeSharedBasePhase::reading_base};
   void retire(NativeSharedBasePhase phase) noexcept {
-    state.phase=phase;state.owned_payload_bytes=0;source.reset();reservation.reset();
+    if(state.phase==NativeSharedBasePhase::completed || state.phase==NativeSharedBasePhase::cancelled ||
+        state.phase==NativeSharedBasePhase::failed)return;
+    state.phase=phase;state.owned_payload_bytes=0;
+    indexed.reset();source.reset();reservation.reset();
     Bytes{}.swap(base);frames.clear();references.clear();decode_model.members.clear();
     bindings.clear();ids.clear();revisions.clear();
   }
@@ -1185,13 +1191,16 @@ NativeFilesystemWriter::SharedBaseWork& NativeFilesystemWriter::SharedBaseWork::
 NativeFilesystemWriter::SharedBaseWork::~SharedBaseWork()=default;
 NativeSharedBaseProgress NativeFilesystemWriter::SharedBaseWork::progress() const noexcept {
   if(!impl_)return {};auto state=impl_->state;
-  if(impl_->owner.expired() && (state.phase==NativeSharedBasePhase::reading_base ||
+  if((impl_->owner.expired() || (impl_->indexed && impl_->indexed->invalidated())) &&
+      (state.phase==NativeSharedBasePhase::reading_base ||
       state.phase==NativeSharedBasePhase::encoding_members || state.phase==NativeSharedBasePhase::ready))
     state.phase=NativeSharedBasePhase::failed;
   return state;
 }
 void NativeFilesystemWriter::SharedBaseWork::cancel() noexcept {
-  if(impl_ && impl_->state.phase!=NativeSharedBasePhase::completed)impl_->retire(NativeSharedBasePhase::cancelled);
+  if(!impl_)return;
+  impl_->retire(progress().phase==NativeSharedBasePhase::failed ?
+      NativeSharedBasePhase::failed : NativeSharedBasePhase::cancelled);
 }
 void validate_native_lz4_extent_candidates(std::span<const NativeLz4ExtentCandidate> candidates) {
   admit_lz4_extent_candidates(candidates);
@@ -1511,31 +1520,40 @@ NativeFsCommit NativeFilesystemWriter::enable_workload_accounting() {
 }
 NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_base(
     NativeExtentSelection base_selection,std::span<const NativeExtentSelection> members) {
-  if(poisoned() || !impl_->model.shared_bases || !impl_->objects.paged_if())
+  if(poisoned() || (!impl_->indexed && !impl_->model.shared_bases) || !impl_->objects.paged_if())
     fail(Code::invalid_operation,"shared-base work requires its explicit namespace");
   if(members.size()>kNativeMaxExtents)fail(Code::limit,"shared-base selection budget");
   if(!impl_->shared_owner->active.expired())fail(Code::invalid_operation,"shared-base work already active");
   try {
     auto p=std::make_unique<SharedBaseWork::Impl>();p->owner=impl_->shared_owner;
-    p->source.emplace(impl_->objects.snapshot_for_staging());p->decode_model.shared_bases=true;
-    auto bind=[&](NativeExtentSelection selection) {
-      const auto& n=selected_inode(impl_->model,selection.inode);
-      if(n.directory)fail(Code::is_directory,"shared-base selection is a directory");
-      const auto found=n.extents.find(selection.extent_index);
-      if(found==n.extents.end())fail(Code::not_found,"shared-base selection is a sparse/missing extent");
-      p->bindings.push_back({selection,found->second});return found->second;
-    };
-    p->base_object=bind(base_selection);std::set<std::uint64_t> ids{p->base_object};
-    for(const auto selected:members)ids.insert(bind(selected));
-    p->ids.assign(ids.begin(),ids.end());p->state.total_members=ids.size();
-    for(const auto id:ids) {
-      p->revisions.emplace(id,impl_->shared_owner->revisions[id]);
-      const auto found=impl_->model.members.find(id);
-      if(found!=impl_->model.members.end())p->decode_model.members.emplace(*found);
+    p->source.emplace(impl_->objects.snapshot_for_staging(impl_->indexed.has_value()));
+    if(impl_->indexed) {
+      p->indexed=std::make_shared<detail::IndexedSharedBasePreparation>(
+          *p->source->paged_if(),*impl_->indexed,base_selection,members);
+      p->state=p->indexed->progress();
+    } else {
+      p->decode_model.shared_bases=true;
+      const auto bind=[&](NativeExtentSelection selection) {
+        const auto& n=selected_inode(impl_->model,selection.inode);
+        if(n.directory)fail(Code::is_directory,"shared-base selection is a directory");
+        const auto found=n.extents.find(selection.extent_index);
+        if(found==n.extents.end())fail(Code::not_found,"shared-base selection is a sparse/missing extent");
+        p->bindings.push_back({selection,found->second});return found->second;
+      };
+      p->base_object=bind(base_selection);std::set<std::uint64_t> ids{p->base_object};
+      for(const auto selected:members)ids.insert(bind(selected));
+      p->ids.assign(ids.begin(),ids.end());p->state.total_members=ids.size();
+      for(const auto id:ids) {
+        p->revisions.emplace(id,impl_->shared_owner->revisions[id]);
+        const auto found=impl_->model.members.find(id);
+        if(found!=impl_->model.members.end())p->decode_model.members.emplace(*found);
+      }
+      p->frames.reserve(ids.size());
     }
-    if(ids.size()<2)p->retire(NativeSharedBasePhase::declined);
+    if(p->state.total_members<2)p->retire(NativeSharedBasePhase::declined);
     else {
-      p->frames.reserve(ids.size());p->reservation=std::make_shared<const unsigned char>(0);
+      p->reservation=std::make_shared<const unsigned char>(0);
+      impl_->shared_owner->indexed_work=p->indexed;
       impl_->shared_owner->active=p->reservation;
     }
     return SharedBaseWork(std::move(p));
@@ -1549,6 +1567,10 @@ void NativeFilesystemWriter::check_shared_base(SharedBaseWork& work) const {
   if((p.state.phase!=NativeSharedBasePhase::reading_base && p.state.phase!=NativeSharedBasePhase::encoding_members &&
       p.state.phase!=NativeSharedBasePhase::ready) || !p.reservation || owner->active.lock()!=p.reservation)
     fail(Code::invalid_operation,"shared-base work is terminal");
+  if(p.indexed) {
+    if(p.indexed->invalidated())fail(Code::invalid_operation,"selected indexed shared-base content changed");
+    return;
+  }
   for(const auto& [id,revision]:p.revisions)if(owner->revisions[id]!=revision)
     fail(Code::invalid_operation,"selected shared-base content changed");
   for(const auto& binding:p.bindings) {
@@ -1564,6 +1586,12 @@ bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work) {
   try {
     check_shared_base(work);
     if(p->state.phase==NativeSharedBasePhase::ready || p->state.phase==NativeSharedBasePhase::declined)return true;
+    if(p->indexed) {
+      const auto done=p->indexed->advance();
+      p->state=p->indexed->progress();
+      if(p->state.phase==NativeSharedBasePhase::declined)p->retire(NativeSharedBasePhase::declined);
+      return done;
+    }
     if(p->state.phase==NativeSharedBasePhase::reading_base) {
       p->base=extent_bytes(*p->source,p->decode_model,p->base_object);
       p->state.owned_payload_bytes=p->base.size();p->state.phase=NativeSharedBasePhase::encoding_members;return false;
@@ -1598,8 +1626,16 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
     if(p->state.phase!=NativeSharedBasePhase::ready && p->state.phase!=NativeSharedBasePhase::declined)
       fail(Code::invalid_operation,"shared-base preparation is incomplete");
     if(p->state.phase==NativeSharedBasePhase::declined) {
-      result.transaction.storage=impl_->objects.snapshot_for_staging().info();result.transaction.sequence=impl_->model.sequence;
+      result.transaction.storage=impl_->objects.snapshot_for_staging().info();
+      result.transaction.sequence=maintenance_sequence();
       p->retire(NativeSharedBasePhase::completed);return result;
+    }
+    if(p->indexed) {
+      result=impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto*) {
+        return p->indexed->finish(writer,source,root);
+      });
+      p->retire(NativeSharedBasePhase::completed);
+      return result;
     }
     auto source=checked_namespace();const auto* paged=source.paged_if();
     if(!paged || !source.mirrored())fail(Code::invalid_operation,"shared-base dependencies require protected backing");
@@ -1614,7 +1650,8 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
     auto changes=std::move(p->frames);changes.reserve(changes.size()+model.bases.size()+2);
     for(auto& change:changes) {
       auto ref=p->references.at(change.id);ref.base_id=anchor;ref.base_generation=generation;
-      put(change.bytes,16,anchor,8);put(change.bytes,24,generation,8);model.members[change.id]=ref;
+      detail::bind_native_group_member(change.bytes,anchor,generation);
+      model.members[change.id]=ref;
     }
     refresh_group_bases(model);changes.push_back({anchor,false,std::move(p->base)});
     for(const auto old:impl_->model.bases)if(!model.bases.contains(old))changes.push_back({old,true,{}});
@@ -1657,10 +1694,6 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
 }
 NativeSharedBaseCommit NativeFilesystemWriter::compress_shared_base(NativeExtentSelection base,
     std::span<const NativeExtentSelection> members) {
-  if(!poisoned() && impl_->indexed)
-    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
-      return detail::compress_indexed_shared_base(writer,source,root,base,members);
-    });
   auto work=prepare_shared_base(base,members);while(!advance_shared_base(work)){}
   return finish_shared_base(work);
 }
@@ -1698,8 +1731,8 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_impl(detail::NativeObjectW
       auto p=std::make_unique<Impl>(std::move(objects));
       p->indexed=view.root();
       while(p->indexed->active_lifetimes) {
-        p->mutate_indexed([](auto& writer,const auto& source,auto& current) {
-          detail::advance_indexed_retirement(writer,source,current,true);
+        p->mutate_indexed([](auto& writer,const auto& source,auto& current,auto* watched) {
+          detail::advance_indexed_retirement(writer,source,current,true,watched);
         });
       }
       return NativeFilesystemWriter(std::move(p));
@@ -2017,8 +2050,8 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
   if(impl_->indexed) {
     const detail::IndexedVolumeEdit request{action,inode,operations,basic,security,automatic,overwrite,
         reservation,delete_requested,trim_allocation};
-    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
-      return detail::commit_indexed_volume(writer,source,root,request,published,allocation);
+    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto* watched) {
+      return detail::commit_indexed_volume(writer,source,root,request,published,allocation,watched);
     });
   }
   admit_lz4_extent_candidates(lz4_candidates);
@@ -2157,8 +2190,8 @@ NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_wit
     const auto maximum=std::size_t(kStoreMaxTransactionBytes);
     if(bytes.size()>maximum)fail(Code::limit,"indexed inode input budget");
     admit_lz4_extent_candidates(candidates);
-    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
-      return detail::write_indexed_inode(writer,source,root,inode,offset,bytes,options,effect,candidates);
+    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto* watched) {
+      return detail::write_indexed_inode(writer,source,root,inode,offset,bytes,options,effect,candidates,watched);
     });
   }
   if(bytes.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");
@@ -2206,8 +2239,8 @@ NativeInodeStorageMutationCommit NativeFilesystemWriter::truncate_inode_storage_
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic truncate time/unused clock");
-  if(impl_->indexed)return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
-    return detail::truncate_indexed_inode(writer,source,root,inode,bytes,effect);
+  if(impl_->indexed)return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto* watched) {
+    return detail::truncate_indexed_inode(writer,source,root,inode,bytes,effect,watched);
   });
   if(bytes>kNativeMaxFileBytes)fail(Code::limit,"native truncate bounds");
   try {
@@ -2314,8 +2347,8 @@ bool NativeFilesystemWriter::retirement_pending() const noexcept {
 bool NativeFilesystemWriter::reclaim_retired_inode() {
   auto& state=checked_impl();
   if(!state.indexed || !state.indexed->retiring_inodes)return false;
-  state.mutate_indexed([](auto& writer,const auto& source,auto& root) {
-    detail::advance_indexed_retirement(writer,source,root,false);
+  state.mutate_indexed([](auto& writer,const auto& source,auto& root,auto* watched) {
+    detail::advance_indexed_retirement(writer,source,root,false,watched);
   });
   return true;
 }

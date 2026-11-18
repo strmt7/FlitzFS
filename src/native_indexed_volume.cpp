@@ -9,7 +9,6 @@
 #include <limits>
 #include <map>
 #include <new>
-#include <set>
 #include <utility>
 
 namespace flitzfs::detail {
@@ -187,7 +186,7 @@ void apply_extent_candidate(StoreMutation& mutation,std::span<const std::byte> c
 struct DecodedIndexedExtent {
   Bytes data;
   std::size_t payload_offset=0;
-  std::uint64_t base=0;
+  std::uint64_t base=0,reusable_anchor_generation=0;
   std::span<const std::byte> payload() const {return std::span(data).subspan(payload_offset);}
 };
 void verify_base_frame(const Bytes& bytes) {
@@ -196,7 +195,7 @@ void verify_base_frame(const Bytes& bytes) {
 }
 DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const NativeNameIndex& index,
     const IndexedVolumeRoot& root,std::uint64_t object,Bytes bytes,const IndexedInodeInput& inode,
-    std::uint64_t block) {
+    std::uint64_t block,bool compare_anchor=false) {
   if(bytes.size()<=extent_header || get(bytes,8)!=inode.inode || get(bytes,16)!=block)
     fail(Code::corrupt,"indexed extent owner or logical offset mismatch");
   if(magic(bytes,extent_magic)) {
@@ -215,10 +214,12 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
       fail(Code::corrupt,"indexed shared-base generation mismatch");
     const auto base=required(source,reference.base_id,base_size);
     verify_base_frame(base);
-    auto decoded=decode_native_group_member(member,std::span(base).subspan(base_magic.size()));
+    const auto anchor_payload=std::span(base).subspan(base_magic.size());
+    auto decoded=decode_native_group_member(member,anchor_payload);
+    const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor->generation:0;
     while(!decoded.empty() && decoded.back()==std::byte{})decoded.pop_back();
     validate_payload(inode,block,decoded);
-    return {std::move(decoded),0,reference.base_id};
+    return {std::move(decoded),0,reference.base_id,reusable};
   }catch(const std::bad_alloc&){throw;}
   catch(const NativeFsError&){throw;}
   catch(const std::exception&){fail(Code::corrupt,"indexed shared-base proof failed");}
@@ -267,8 +268,9 @@ constexpr std::size_t retirement_quantum=kStoreMaxObjects/4;
 
 class IndexedVolumeTransaction final {
  public:
-  IndexedVolumeTransaction(const PagedObjectStoreSnapshot& source,const IndexedVolumeRoot& expected)
-      :source_(source),before_(expected),next_(expected),index_(source) {
+  IndexedVolumeTransaction(const PagedObjectStoreSnapshot& source,const IndexedVolumeRoot& expected,
+      IndexedSharedBasePreparation* watched)
+      :source_(source),before_(expected),next_(expected),index_(source),watched_(watched) {
     if(decode_root(required(source_,namespace_object,root_size))!=before_ ||
         index_.kind()!=index_kind(before_) || index_.size()!=index_entries(before_))
       fail(Code::corrupt,"indexed transaction source changed");
@@ -463,6 +465,7 @@ class IndexedVolumeTransaction final {
     std::vector<NativeNameEdit> edits;
     RetiredGroupReferences retired;
     std::unique_ptr<std::byte[]> candidate_scratch;
+    bool selection_changed=false;
     for(const auto& [key,replacement]:names_) {
       const auto expected=index_.find(key);
       if(expected!=replacement)edits.push_back({key,expected,replacement});
@@ -470,6 +473,8 @@ class IndexedVolumeTransaction final {
     for(auto& [key,extent]:extents_) {
       if(!extent.dirty)continue;
       const auto [id,block]=key;
+      if(watched_ && !selection_changed && (extent.original || !extent.payload.empty()))
+        selection_changed=watched_->watches_extent(id,block);
       auto& changed=nodes_.at(id);
       if(extent.base)retire_group_reference(extent.base,*extent.original,next_,retired,edits);
       if(extent.payload.empty()) {
@@ -504,6 +509,8 @@ class IndexedVolumeTransaction final {
       }
       update_charge(id,changed);
       const auto phase=changed.value?changed.value->lifetime:IndexedLifetime::linked;
+      if(watched_ && !selection_changed && (!changed.value || phase!=changed.original_lifetime))
+        selection_changed=watched_->watches_inode(id);
       if(phase!=changed.original_lifetime) {
         const auto original=marker_id(id,changed.original_lifetime);
         const auto current_marker=marker_id(id,phase);
@@ -544,6 +551,7 @@ class IndexedVolumeTransaction final {
     }catch(const std::exception&){fail(Code::storage_failure,"indexed storage commit failed");}
     result.sequence=next_.sequence;
     current=next_;
+    if(selection_changed)watched_->invalidate();
     return result;
   }
 
@@ -564,6 +572,7 @@ class IndexedVolumeTransaction final {
   const PagedObjectStoreSnapshot& source_;
   IndexedVolumeRoot before_,next_;
   NativeNameIndex index_;
+  IndexedSharedBasePreparation* watched_;
   std::map<std::uint64_t,InodeEdit> nodes_;
   std::map<NativeNameKey,std::optional<std::uint64_t>> names_;
   std::map<std::pair<std::uint64_t,std::uint64_t>,ExtentEdit> extents_;
@@ -968,8 +977,8 @@ IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer) {
 
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter& writer,const PagedObjectStoreSnapshot& source,
     IndexedVolumeRoot& current,const IndexedVolumeEdit& request,NativeInodeCommitInfo* published,
-    NativeInodeAllocationInfo* allocation) {
-  IndexedVolumeTransaction transaction(source,current);
+    NativeInodeAllocationInfo* allocation,IndexedSharedBasePreparation* watched) {
+  IndexedVolumeTransaction transaction(source,current,watched);
   auto id=request.inode;
   switch(request.action) {
     case NativeInodeAction::path_mutations:
@@ -1020,8 +1029,8 @@ NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter& writer,const PagedO
 }
 
 void advance_indexed_retirement(PagedObjectStoreWriter& writer,const PagedObjectStoreSnapshot& source,
-    IndexedVolumeRoot& current,bool closed_session) {
-  IndexedVolumeTransaction transaction(source,current);
+    IndexedVolumeRoot& current,bool closed_session,IndexedSharedBasePreparation* watched) {
+  IndexedVolumeTransaction transaction(source,current,watched);
   const auto marker_domain=closed_session?lifetime_domain:retirement_domain;
   const auto page=source.list_page(marker_domain,1);
   if(page.empty() || domain(page.front().id)!=marker_domain)
@@ -1032,64 +1041,143 @@ void advance_indexed_retirement(PagedObjectStoreWriter& writer,const PagedObject
   (void)transaction.finish(writer,current);
 }
 
-NativeSharedBaseCommit compress_indexed_shared_base(PagedObjectStoreWriter& writer,
-    const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,NativeExtentSelection base_selection,
-    std::span<const NativeExtentSelection> members) {
-  if(members.size()>=kStoreMaxObjects)fail(Code::limit,"indexed shared-base selection budget");
-  const auto before=source.info();
-  if(!before.mirrored_payloads || before.degraded_roots || before.degraded_metadata || before.degraded_payloads)
-    fail(Code::storage_failure,"indexed shared-base publication requires healthy mirrored storage");
-  const NativeNameIndex index(source);
-  if(decode_root(required(source,namespace_object,root_size))!=current ||
-      index.kind()!=index_kind(current) || index.size()!=index_entries(current))
-    fail(Code::corrupt,"indexed shared-base checkpoint changed");
+namespace {
+auto extent_coordinate(NativeExtentSelection selection) noexcept {
+  return std::pair{selection.inode,selection.extent_index};
+}
+PagedStoreInfo check_group_storage(const PagedObjectStoreSnapshot& source) {
+  const auto info=source.info();
+  if(!info.mirrored_payloads || info.degraded_roots || info.degraded_metadata || info.degraded_payloads)
+    fail(Code::storage_failure,"indexed shared-base work requires healthy mirrored storage");
+  return info;
+}
+void check_group_root(const PagedObjectStoreSnapshot& source,const NativeNameIndex& index,
+    const IndexedVolumeRoot& root) {
+  if(decode_root(required(source,namespace_object,root_size))!=root ||
+      index.kind()!=index_kind(root) || index.size()!=index_entries(root))
+    fail(Code::corrupt,"indexed shared-base checkpoint differs");
+}
+}
 
-  // Deduplicate selected file coordinates without reading unrelated payloads.
-  std::set<std::pair<std::uint64_t,std::uint64_t>> coordinates;
-  coordinates.emplace(base_selection.inode,base_selection.extent_index);
-  for(const auto& member:members)coordinates.emplace(member.inode,member.extent_index);
+IndexedSharedBasePreparation::IndexedSharedBasePreparation(const PagedObjectStoreSnapshot& source,
+    IndexedVolumeRoot root,NativeExtentSelection base,std::span<const NativeExtentSelection> members)
+    :source_(source),original_(root) {
+  if(members.size()>=kStoreMaxObjects)fail(Code::limit,"indexed shared-base selection budget");
+  members_.reserve(members.size()+1);
+  members_.push_back(Member{base});
+  for(const auto selected:members)members_.push_back(Member{selected});
+  const auto coordinate=[](const Member& member){return extent_coordinate(member.selected);};
+  std::ranges::sort(members_,{},coordinate);
+  const auto duplicates=std::ranges::unique(members_,{},coordinate);
+  members_.erase(duplicates.begin(),duplicates.end());
+  const auto base_position=std::ranges::lower_bound(members_,extent_coordinate(base),{},coordinate);
+  base_index_=static_cast<std::size_t>(base_position-members_.begin());
+  progress_.total_members=members_.size();
+  if(members_.size()<2)progress_.phase=NativeSharedBasePhase::declined;
+}
+
+bool IndexedSharedBasePreparation::watches_extent(std::uint64_t inode,std::uint64_t block) const noexcept {
+  if(invalidated_)return false;
+  const auto key=std::pair{inode,block};
+  const auto member=std::ranges::lower_bound(members_,key,{},[](const Member& item){return extent_coordinate(item.selected);});
+  return member!=members_.end() && extent_coordinate(member->selected)==key;
+}
+bool IndexedSharedBasePreparation::watches_inode(std::uint64_t inode) const noexcept {
+  if(invalidated_)return false;
+  const auto member=std::ranges::lower_bound(members_,inode,{},[](const Member& item){return item.selected.inode;});
+  return member!=members_.end() && member->selected.inode==inode;
+}
+
+std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,bool find_reusable_anchor) {
+  const auto [id,block]=member.selected;
+  const auto inode=load_inode(source_,original_,id);
+  if(inode.directory || inode.lifetime!=IndexedLifetime::linked)
+    fail(Code::invalid_operation,"indexed shared-base selection requires a linked file");
+  const auto object=index_->find(native_extent_key(id,block));
+  if(!object)fail(Code::not_found,"indexed shared-base selection is a sparse extent");
+  if((*object&ordinal_mask)>=original_.next_extent)fail(Code::corrupt,"invalid selected extent ordinal");
+  const auto metadata=source_.stat(*object);
+  if(!metadata)fail(Code::corrupt,"indexed selected extent record is missing");
+  auto extent=decode_extent(source_,*index_,original_,*object,
+      required(source_,*object,kNativeExtentBytes+extent_header),inode,block,find_reusable_anchor);
+  member.object=*object;
+  member.generation=metadata->generation;
+  member.previous_base=extent.base;
+  if(extent.reusable_anchor_generation) {
+    reusable_anchor_=extent.base;
+    reusable_generation_=extent.reusable_anchor_generation;
+  }
+  auto bytes=std::move(extent.data);
+  bytes.erase(bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(extent.payload_offset));
+  bytes.resize(kNativeExtentBytes);
+  return bytes;
+}
+
+bool IndexedSharedBasePreparation::advance() {
+  using Phase=NativeSharedBasePhase;
+  if(invalidated_)fail(Code::invalid_operation,"selected indexed shared-base content changed");
+  if(progress_.phase==Phase::ready || progress_.phase==Phase::declined)return true;
+  (void)check_group_storage(source_);
+  if(progress_.phase==Phase::reading_base) {
+    index_.emplace(source_);
+    check_group_root(source_,*index_,original_);
+    base_=read_member(members_[base_index_],true);
+    (void)check_group_storage(source_);
+    progress_.owned_payload_bytes=base_.size();
+    progress_.phase=Phase::encoding_members;
+    return false;
+  }
+
+  auto& member=members_[progress_.completed_members];
+  const auto is_base=progress_.completed_members==base_index_;
+  const auto selected=is_base?Bytes{}:read_member(member,false);
+  (void)check_group_storage(source_);
+  if(!reusable_anchor_ || member.previous_base!=reusable_anchor_) {
+    const auto bytes=is_base?std::span<const std::byte>(base_):std::span<const std::byte>(selected);
+    // The private placeholder binds no stored dependency. The final anchor
+    // identity and generation come from the live transaction at finish.
+    const auto encoded=encode_native_group_member(bytes,base_,kNativeGroupBaseBit+1,1);
+    if(!encoded) {
+      progress_.phase=Phase::declined;
+      return true;
+    }
+    if(!std::ranges::equal(decode_native_group_member(*encoded,base_),bytes))
+      fail(Code::corrupt,"indexed shared-base private CPU comparison failed");
+    const auto frame_bytes=extent_header+encoded->size();
+    const auto committed_input=root_size+(reusable_anchor_?0:base_size)+progress_.owned_payload_bytes-base_.size();
+    if(frame_bytes>kStoreMaxTransactionBytes-committed_input)
+      fail(Code::limit,"indexed shared-base staging input budget");
+    member.frame.resize(frame_bytes);
+    set_magic(member.frame,member_magic);
+    put(member.frame,8,member.selected.inode);
+    put(member.frame,16,member.selected.extent_index);
+    std::copy(encoded->begin(),encoded->end(),member.frame.begin()+extent_header);
+    progress_.owned_payload_bytes+=frame_bytes;
+  }
+  ++progress_.completed_members;
+  if(progress_.completed_members==members_.size())progress_.phase=Phase::ready;
+  return progress_.phase==Phase::ready;
+}
+
+NativeSharedBaseCommit IndexedSharedBasePreparation::finish(PagedObjectStoreWriter& writer,
+    const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current) {
+  if(invalidated_ || progress_.phase!=NativeSharedBasePhase::ready)
+    fail(Code::invalid_operation,"indexed shared-base preparation is stale or incomplete");
+  const auto before=check_group_storage(source);
+  const NativeNameIndex index(source);
+  check_group_root(source,index,current);
+
   NativeSharedBaseCommit result;
   result.transaction.storage=native_paged_info(before);
   result.transaction.sequence=current.sequence;
-  result.members=coordinates.size();
-  if(coordinates.size()<2)return result;
+  result.members=members_.size();
   if(current.sequence==(std::numeric_limits<std::uint64_t>::max)() ||
       before.generation>(std::numeric_limits<std::uint64_t>::max)()-2)
     fail(Code::limit,"indexed shared-base generation exhausted");
-
-  struct Input {
-    std::uint64_t object=0,previous_base=0;
-    Bytes bytes;
-  };
-  const auto load_selection=[&](std::uint64_t inode_id,std::uint64_t block) {
-    const auto inode=load_inode(source,current,inode_id);
-    if(inode.directory || inode.lifetime!=IndexedLifetime::linked)
-      fail(Code::invalid_operation,"indexed shared-base selection requires a linked file");
-    const auto object=index.find(native_extent_key(inode_id,block));
-    if(!object)fail(Code::not_found,"indexed shared-base selection is a sparse extent");
-    if((*object&ordinal_mask)>=current.next_extent)fail(Code::corrupt,"invalid selected extent ordinal");
-    auto extent=decode_extent(source,index,current,*object,
-        required(source,*object,kNativeExtentBytes+extent_header),inode,block);
-    auto bytes=std::move(extent.data);
-    bytes.erase(bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(extent.payload_offset));
-    bytes.resize(kNativeExtentBytes);
-    return Input{*object,extent.base,std::move(bytes)};
-  };
-  const auto base=load_selection(base_selection.inode,base_selection.extent_index);
-  std::uint64_t anchor=0,generation=0;
-  if(base.previous_base) {
-    const auto existing=required(source,base.previous_base,base_size);
-    verify_base_frame(existing);
-    if(std::equal(base.bytes.begin(),base.bytes.end(),existing.begin()+static_cast<std::ptrdiff_t>(base_magic.size()))) {
-      const auto info=source.stat(base.previous_base);
-      if(!info)fail(Code::corrupt,"missing indexed shared base");
-      anchor=info->id;
-      generation=info->generation;
-    }
-  }
   auto next=current;
   next.format=3;
   ++next.sequence;
+  auto anchor=reusable_anchor_,generation=reusable_generation_;
   const bool new_anchor=!anchor;
   if(new_anchor) {
     if(next.next_extent==kNativeIndexedInodeLimit)fail(Code::limit,"indexed shared-base identity exhausted");
@@ -1097,38 +1185,40 @@ NativeSharedBaseCommit compress_indexed_shared_base(PagedObjectStoreWriter& writ
     if(source.stat(anchor))fail(Code::corrupt,"indexed shared-base identity already exists");
     generation=before.generation+1;
     ++next.shared_bases;
+  } else {
+    const auto metadata=source.stat(anchor);
+    if(!metadata || metadata->generation!=generation)
+      fail(Code::corrupt,"selected indexed shared base changed");
+    const auto existing=required(source,anchor,base_size);
+    verify_base_frame(existing);
+    if(!std::ranges::equal(base_,std::span(existing).subspan(base_magic.size())))
+      fail(Code::corrupt,"selected indexed shared base bytes differ");
   }
+
   std::vector<StoreMutation> records;
   std::vector<NativeNameEdit> edits;
   RetiredGroupReferences retired;
-  std::size_t input_bytes=root_size+(new_anchor?base_size:0);
-  for(const auto& [inode,block]:coordinates) {
-    const bool is_base=inode==base_selection.inode && block==base_selection.extent_index;
-    const auto selected=is_base?Input{}:load_selection(inode,block);
-    const auto& input=is_base?base:selected;
-    if(input.previous_base==anchor)continue;
-    const auto member=encode_native_group_member(input.bytes,base.bytes,anchor,generation);
-    if(!member)return result;
-    if(decode_native_group_member(*member,base.bytes)!=input.bytes)
-      fail(Code::corrupt,"indexed shared-base readback failed before publication");
-    const auto encoded_size=extent_header+member->size();
-    if(encoded_size>kStoreMaxTransactionBytes-input_bytes)
-      fail(Code::limit,"indexed shared-base staging input budget");
-    input_bytes+=encoded_size;
-    Bytes frame(encoded_size);
-    set_magic(frame,member_magic);put(frame,8,inode);put(frame,16,block);
-    std::copy(member->begin(),member->end(),frame.begin()+extent_header);
-    records.push_back({input.object,false,std::move(frame)});
-    if(input.previous_base)retire_group_reference(input.previous_base,input.object,next,retired,edits);
-    edits.push_back({native_group_reference_key(anchor,input.object),{},input.object});
+  for(auto& member:members_) {
+    const auto [id,block]=member.selected;
+    const auto inode=load_inode(source,current,id);
+    const auto metadata=source.stat(member.object);
+    if(inode.directory || inode.lifetime!=IndexedLifetime::linked ||
+        index.find(native_extent_key(id,block))!=member.object || !metadata || metadata->generation!=member.generation)
+      fail(Code::invalid_operation,"selected indexed shared-base binding changed");
+    if(member.frame.empty())continue;
+    bind_native_group_member(std::span(member.frame).subspan(extent_header),anchor,generation);
+    records.push_back({member.object,false,std::move(member.frame)});
+    if(member.previous_base)retire_group_reference(member.previous_base,member.object,next,retired,edits);
+    edits.push_back({native_group_reference_key(anchor,member.object),{},member.object});
     ++next.shared_members;
   }
+  (void)check_group_storage(source);
   if(records.empty())return result;
   if(new_anchor) {
-    Bytes anchor_frame(base_size);
-    set_magic(anchor_frame,base_magic);
-    std::copy(base.bytes.begin(),base.bytes.end(),anchor_frame.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
-    records.push_back({anchor,false,std::move(anchor_frame)});
+    Bytes frame(base_size);
+    set_magic(frame,base_magic);
+    std::copy(base_.begin(),base_.end(),frame.begin()+static_cast<std::ptrdiff_t>(base_magic.size()));
+    records.push_back({anchor,false,std::move(frame)});
   }
   remove_unreferenced_bases(index,retired,next,records);
   validate_header_fields(next);
@@ -1137,11 +1227,8 @@ NativeSharedBaseCommit compress_indexed_shared_base(PagedObjectStoreWriter& writ
   const auto size=source.rebuilt_size_after(proposed,namespace_object);
   result.before_compacted_lower_bound=size.before;
   result.after_compacted_upper_bound=size.after_upper;
+  (void)check_group_storage(source);
   if(size.after_upper>=size.before)return result;
-
-  const auto checked=source.info();
-  if(checked.degraded_roots || checked.degraded_metadata || checked.degraded_payloads)
-    fail(Code::storage_failure,"indexed shared-base verification encountered degraded storage");
   try {
     result.transaction.storage=native_paged_info(writer.commit(proposed));
   }catch(const PagedStoreCapacityError& error) {
@@ -1157,14 +1244,15 @@ NativeSharedBaseCommit compress_indexed_shared_base(PagedObjectStoreWriter& writ
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter& writer,
     const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t id,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
-    const NativeAutomaticMetadata& effect,std::span<const NativeLz4ExtentCandidate> candidates) {
-  IndexedVolumeTransaction transaction(source,current);
+    const NativeAutomaticMetadata& effect,std::span<const NativeLz4ExtentCandidate> candidates,
+    IndexedSharedBasePreparation* watched) {
+  IndexedVolumeTransaction transaction(source,current,watched);
   return transaction.write_inode(writer,current,id,offset,bytes,options,effect,candidates);
 }
 NativeInodeStorageMutationCommit truncate_indexed_inode(PagedObjectStoreWriter& writer,
     const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t id,
-    std::uint64_t size,const NativeAutomaticMetadata& effect) {
-  IndexedVolumeTransaction transaction(source,current);
+    std::uint64_t size,const NativeAutomaticMetadata& effect,IndexedSharedBasePreparation* watched) {
+  IndexedVolumeTransaction transaction(source,current,watched);
   return transaction.truncate_inode(writer,current,id,size,effect);
 }
 NativeInodeAllocationInfo indexed_inode_allocation(const IndexedInodeInput& n) noexcept {

@@ -52,17 +52,50 @@ struct IndexedVolumeEdit {
   const std::uint64_t* reservation;
   bool deleting,trim_allocation;
 };
+// One selected group on the serialized native writer. Coordinates are the
+// foreground mutation guard. Decoded object generations are checked again
+// against the live index before the candidate can publish.
+class IndexedSharedBasePreparation final {
+ public:
+  IndexedSharedBasePreparation(const PagedObjectStoreSnapshot&,IndexedVolumeRoot,
+      NativeExtentSelection,std::span<const NativeExtentSelection>);
+  bool watches_extent(std::uint64_t inode,std::uint64_t block) const noexcept;
+  bool watches_inode(std::uint64_t inode) const noexcept;
+  void invalidate() noexcept{invalidated_=true;}
+  bool invalidated() const noexcept{return invalidated_;}
+  NativeSharedBaseProgress progress() const noexcept{return progress_;}
+  bool advance();
+  NativeSharedBaseCommit finish(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,IndexedVolumeRoot&);
+
+ private:
+  struct Member {
+    NativeExtentSelection selected;
+    std::uint64_t object=0,generation=0,previous_base=0;
+    std::vector<std::byte> frame;
+  };
+  std::vector<std::byte> read_member(Member&,bool find_reusable_anchor);
+  const PagedObjectStoreSnapshot& source_;
+  IndexedVolumeRoot original_;
+  std::optional<NativeNameIndex> index_;
+  std::vector<Member> members_;
+  std::vector<std::byte> base_;
+  std::size_t base_index_=0;
+  std::uint64_t reusable_anchor_=0,reusable_generation_=0;
+  NativeSharedBaseProgress progress_{NativeSharedBasePhase::reading_base};
+  bool invalidated_=false;
+};
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
-    IndexedVolumeRoot&,const IndexedVolumeEdit&,NativeInodeCommitInfo*,NativeInodeAllocationInfo*);
+    IndexedVolumeRoot&,const IndexedVolumeEdit&,NativeInodeCommitInfo*,NativeInodeAllocationInfo*,
+    IndexedSharedBasePreparation*);
 void advance_indexed_retirement(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
-    IndexedVolumeRoot&,bool closed_session);
-NativeSharedBaseCommit compress_indexed_shared_base(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
-    IndexedVolumeRoot&,NativeExtentSelection,std::span<const NativeExtentSelection>);
+    IndexedVolumeRoot&,bool closed_session,IndexedSharedBasePreparation*);
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t offset,std::span<const std::byte>,
-    NativeInodeWriteOptions,const NativeAutomaticMetadata&,std::span<const NativeLz4ExtentCandidate>);
+    NativeInodeWriteOptions,const NativeAutomaticMetadata&,std::span<const NativeLz4ExtentCandidate>,
+    IndexedSharedBasePreparation*);
 NativeInodeStorageMutationCommit truncate_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
-    IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t bytes,const NativeAutomaticMetadata&);
+    IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t bytes,const NativeAutomaticMetadata&,
+    IndexedSharedBasePreparation*);
 struct IndexedDirectoryPage {
   std::vector<NativeFileInfo> entries;
   std::optional<std::string> after;

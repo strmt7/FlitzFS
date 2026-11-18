@@ -96,7 +96,20 @@
     "populated_indexed_group_compacted_bytes_after": 1589248,
     "live_controller_quanta": 34,
     "matched_grouped_cpu_amd_overwrites": 3,
-    "next": "Stage indexed group preparation across unrelated edits and add persistent sparse candidate discovery."
+    "next": "Use complete-size accounting for candidates from persistent sparse indexed discovery."
+  },
+  "cooperative_indexed_shared_base": {
+    "source_base": "bd2b95d78397d1e328d7b08982002f76c6e44aa7",
+    "evidence": "docs/evidence/cooperative-indexed-shared-base-2026-11-18.json",
+    "selected_windows_ctest_passed": 14,
+    "indexed_modeled_interruptions_per_lane": 528,
+    "selected_mutation_cases": 27,
+    "indexed_members_tested": 64,
+    "indexed_preparation_steps": 65,
+    "maximum_preparation_step_backing_bytes": 102295,
+    "matched_grouped_cpu_amd_overwrites": 3,
+    "flitzzip_reference_commit": "11396b5123505a4a1959173e1db2d0858c10dd6d",
+    "next": "Feed the cooperative path from a paged sparse candidate index and existing resource controller. Measure finalization interference and qualify a collective AMD transform."
   },
   "owned_writable_lifetime": {
     "source_base": "ad6085754dfa85d483a13607ec22b279b677accb",
@@ -442,11 +455,12 @@
   ],
   "next_implementation": {
     "contract": "docs/IMPLEMENTATION_PLAN.md",
-    "next": "Execute the exact disposable external-client mount. Continue the checked paged namespace and useful automatic AMD cost/route work independently.",
+    "next": "Qualify the disposable external-client mount. Feed indexed group preparation from durable sparse discovery and qualify useful automatic AMD routing in matched trials.",
     "steps": [
       "E08.4",
       "E01.2",
       "E01.3",
+      "E04",
       "E03.1",
       "E03.4"
     ]
@@ -466,7 +480,7 @@
     "coherence_catalog": false,
     "automatic_format_migration": false,
     "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending.",
-    "cooperative_shared_base": "Owned one-extent CPU preparation, selected-object revisions and current-namespace publication preserve unrelated writes. No automatic scheduler, persistent restart or AMD collective execution.",
+    "cooperative_shared_base": "Owned one-extent CPU preparation covers legacy and indexed volumes. Live mapping validation preserves unrelated writes. Persistent indexed discovery, automatic scheduling for indexed groups and collective AMD execution remain open.",
     "managed_paged_volumes": "Typed managed mirrored paged sessions, contexts, advice and verified handoff are integrated into the helper. Explorer-facing factories, paged native access, persistent coherence and physical qualification remain open.",
     "automatic_group_maintenance": "Automatic bounded CPU groups in managed paged helper and SDK paths with live resource gating. Persistent coherence, steady-state reclamation and useful automatic GPU execution remain open.",
     "Windows_background_helper": "Live all-processor/memory collection, current-thread resource background mode, measured pacing and auto groups in the unmounted paged helper. Explorer-facing paged factories, persistent scalable coherence and useful ordinary GPU operation remain open.",

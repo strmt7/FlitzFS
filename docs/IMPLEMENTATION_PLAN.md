@@ -642,12 +642,23 @@ changed lookup paths. This removes the full metadata scan from each indexed
 proposal. Actual compaction still needs separate copying, indexing and CPU
 verification opportunities. [Packed rebuild accounting](PAGED_OBJECT_STORE.md#packed-rebuild-accounting)
 
-Stage member selection and encoding so unrelated edits can proceed between
-opportunities. Preserve prepared encodings while each selected extent's
-generation still matches. Revalidate the final root and packed-size proof
-before publication. Feed durable sparse candidate batches from E04 through
-this path, then measure GPU matching and encoding against a CPU baseline
-and retained space on held-out families.
+Indexed preparation now stages and independently verifies one extent at a time.
+The writer invalidates changed selections at transaction commit. Finalization
+checks live extent generations and the packed-size proof while preserving
+unrelated edits. The current Btrfs comparison contract illustrates the
+importance of proving source bytes before sharing and excluding concurrent
+changes at publication. [Indexed preparation evidence](evidence/cooperative-indexed-shared-base-2026-11-18.json) ·
+[Btrfs deduplication](https://btrfs.readthedocs.io/en/latest/Deduplication.html#safety-of-block-comparison)
+
+Feed durable sparse candidate batches from E04 through this path. For each
+candidate method, charge bounded windows, retained state and worker scratch
+before admission, and cache statistics by immutable content and model
+parameters. FlitzZip's current pipeline demonstrates these techniques and
+preserves a terminal HIP statistics failure through parent cleanup. FlitzFS
+already has an owned worker and independent CPU verification. Extend that path when a
+collective prototype shows a useful result in matched CPU and AMD trials
+with full occupied-space accounting.
+[FlitzZip source review](evidence/cooperative-indexed-shared-base-2026-11-18.json)
 
 ### Implementation steps
 

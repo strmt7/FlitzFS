@@ -44,6 +44,12 @@ std::vector<std::byte> decode_native_group_member(std::span<const std::byte> byt
   patches(bytes,[&](std::size_t offset,auto literal){std::copy(literal.begin(),literal.end(),result.begin()+offset);});
   if(record_digest(result)!=ref.decoded_digest)fail();return result;
 }
+void bind_native_group_member(std::span<std::byte> member,std::uint64_t base_id,std::uint64_t generation) {
+  if(member.size()<header || member.size()>=extent || !base_id_valid(base_id) || !generation ||
+      !std::equal(magic.begin(),magic.end(),member.begin()))fail();
+  put(member,16,base_id,8);
+  put(member,24,generation,8);
+}
 std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation) {
   if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation)fail();

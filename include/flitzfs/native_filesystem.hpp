@@ -334,10 +334,10 @@ class NativeFilesystemWriter final {
   // compacted-image bounds prove a reduction. Existing frontend limits remain.
   NativeSharedBaseCommit compress_shared_base(NativeExtentSelection base,
       std::span<const NativeExtentSelection> members);
-  // Cooperative CPU preparation. No backing I/O at prepare; one decoded
-  // extent per advance. Only selected-content changes invalidate the work.
-  // Finish reconciles the current bounded namespace and atomically publishes;
-  // its existing storage transaction/barriers are synchronous. No scheduler.
+  // Cooperative CPU preparation for both shared-base namespace layouts.
+  // Prepare performs no backing I/O. Advance checks one extent and its
+  // decode dependency at a time. Selected mutations invalidate the work.
+  // Finish reconciles the live mappings and uses the synchronous transaction.
   SharedBaseWork prepare_shared_base(NativeExtentSelection base,
       std::span<const NativeExtentSelection> members);
   bool advance_shared_base(SharedBaseWork&); // True when ready or declined.
