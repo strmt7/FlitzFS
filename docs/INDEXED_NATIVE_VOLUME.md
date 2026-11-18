@@ -111,6 +111,13 @@ member frames and remains raised for subsequent writes and copies. Capability 4
 volumes may contain version 1 members. Earlier capabilities reject version 2
 members, and readers limited to capability 3 refuse a capability 4 root.
 
+Indexed preparation also accepts borrowed base-copy suggestions for its next
+member. It checks bounds, order and each proposed byte range against the
+selected decoded extent and immutable base. Valid hints compete with the two
+CPU encodings. The chosen frame passes complete CPU decoding and the existing
+packed-size and live-generation checks. An admitted frame uses capability 4
+and can be read independently on CPU.
+
 An edit or removal detaches its old reference in the same COW transaction
 as the file change. Ordered index ranks determine whether an anchor has
 surviving references without scanning its members. The last removal

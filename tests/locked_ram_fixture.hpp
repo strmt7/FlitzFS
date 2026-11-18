@@ -88,10 +88,14 @@ class Block final {
 // live/stable image bytes are locked before input is copied into either buffer.
 class Store final:public flitzfs::StoreByteIo {
  public:
-  static std::size_t admitted(std::size_t n){check(n&&n<=8U*1024*1024,"single RAM store cap");return n;}
-  explicit Store(std::size_t capacity):live_(admitted(capacity)),stable_(capacity),capacity_(capacity) {}
+  static std::size_t admitted(std::size_t n,std::uint32_t unit) {
+    check(n&&n<=8U*1024*1024&&flitzfs::valid_store_io_contract({unit,true}),"locked RAM store shape");
+    return n;
+  }
+  explicit Store(std::size_t capacity,std::uint32_t failure_unit=65536)
+      :live_(admitted(capacity,failure_unit)),stable_(capacity),capacity_(capacity),failure_unit_(failure_unit) {}
   std::uint64_t extent() const override{return extent_;}
-  flitzfs::StoreIoContract contract() const noexcept override{return {65536,true};}
+  flitzfs::StoreIoContract contract() const noexcept override{return {failure_unit_,true};}
   void admit_write(std::uint64_t projected) override{headroom();check(projected<=capacity_,"RAM image capacity");}
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
     check(at<=extent_&&out.size()<=extent_-at,"RAM read bounds");
@@ -113,6 +117,6 @@ class Store final:public flitzfs::StoreByteIo {
     extent_=stable_extent_;
   }
  private:
-  Block live_,stable_;std::size_t capacity_=0;std::uint64_t extent_=0,stable_extent_=0;
+  Block live_,stable_;std::size_t capacity_=0;std::uint32_t failure_unit_=0;std::uint64_t extent_=0,stable_extent_=0;
 };
 }

@@ -145,7 +145,7 @@ else()
   set(FLITZFS_WITH_LZ4 OFF CACHE BOOL "" FORCE)
   set(FLITZFS_REQUIRE_LZ4 OFF CACHE BOOL "" FORCE)
 endif()
-set(FLITZFS_WITH_ZSTD OFF CACHE BOOL "" FORCE)
+option(FLITZFS_WITH_ZSTD "Use Zstandard for the native storage comparisons" OFF)
 add_subdirectory("${flitzfs_root}" "${CMAKE_CURRENT_BINARY_DIR}/core" EXCLUDE_FROM_ALL)
 
 set(worker_output "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>")

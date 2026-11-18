@@ -77,6 +77,13 @@ mounted operation and useful collective AMD work remain required.
 [Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json) ·
 [Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json)
 
+The indexed writer accepted smaller frames derived from a finite AMD
+cross-file search in an explicit comparison. The seeded fixture gained space.
+Zstandard alone won the source-derived size comparison, and worker setup
+dominated both AMD runs. Larger useful AMD batches and direct copy hints
+remain product work.
+[AMD collective comparison](evidence/amd-anchor-collective-2026-11-18.json)
+
 [Managed paged volumes](MANAGED_PAGED_VOLUMES.md) now join protected shared-base
 data, typed volume heads, file contexts, compaction/recompression and input-funded
 advice. This removes the flat-only ownership/provenance barrier. The helper now

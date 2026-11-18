@@ -1,4 +1,5 @@
 #pragma once
+#include "flitzfs/native_filesystem.hpp"
 #include "record_digest.hpp"
 #include <array>
 #include <cstddef>
@@ -32,6 +33,9 @@ std::array<std::uint64_t,kNativeGroupShiftFeatures> native_group_shift_features(
 
 inline constexpr std::size_t kNativeGroupCopyMinimumBytes=136;
 inline constexpr std::size_t kNativeGroupAnchorIndexBytes=65536;
+std::optional<std::vector<std::byte>> encode_native_group_copies(std::span<const std::byte> member,
+    std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation,
+    std::span<const NativeSharedBaseCopyRange>,std::size_t exclusive_limit);
 class NativeGroupAnchorIndex final {
  public:
   explicit NativeGroupAnchorIndex(std::span<const std::byte> base);

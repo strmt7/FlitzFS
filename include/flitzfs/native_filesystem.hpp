@@ -144,6 +144,9 @@ struct NativeWorkloadInfo {
 };
 struct NativeSharedBaseInfo {bool enabled=false;std::size_t members=0,bases=0;};
 struct NativeExtentSelection {std::uint64_t inode=0,extent_index=0;};
+struct NativeSharedBaseCopyRange {
+  std::uint32_t member_offset=0,base_offset=0,length=0;
+};
 struct NativeContentToken {
   NativeExtentSelection extent;
   // An unlinked or pending inode advances the indexed cursor with object zero.
@@ -166,6 +169,7 @@ struct NativeSharedBaseProgress {
   NativeSharedBasePhase phase=NativeSharedBasePhase::failed;
   std::size_t completed_members=0,total_members=0;
   std::uint64_t owned_payload_bytes=0;
+  std::size_t selected_advice_members=0;
 };
 
 struct NativeInodeWriteCommit {
@@ -341,7 +345,9 @@ class NativeFilesystemWriter final {
   // Finish reconciles the live mappings and uses the synchronous transaction.
   SharedBaseWork prepare_shared_base(NativeExtentSelection base,
       std::span<const NativeExtentSelection> members);
-  bool advance_shared_base(SharedBaseWork&); // True when ready or declined.
+  // Advisory copies describe the next indexed member. Invalid or larger hints
+  // leave the independent CPU encoder eligible for that member.
+  bool advance_shared_base(SharedBaseWork&,std::span<const NativeSharedBaseCopyRange> advice={});
   NativeSharedBaseCommit finish_shared_base(SharedBaseWork&);
   // Explicit sticky namespace capability; legacy initialization is unchanged.
   // Start at zero without crediting old files. Commit through the same

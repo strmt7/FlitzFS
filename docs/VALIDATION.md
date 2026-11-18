@@ -1,5 +1,29 @@
 # Validation ledger
 
+## AMD-assisted shared-base search — 18 November 2026
+
+The existing supervised uniform HIP worker searched tiles from one base and
+four related extents. Its verified LZ4 output supplied base-copy positions to
+indexed preparation. Every selected copy and the resulting stored frame passed
+independent CPU checks. The CPU tiled control used the same input tiles.
+Each fixture permuted short fragments from a synthetic or public-source base.
+
+| Foreground storage configuration | Fixture | CPU native | CPU tiled | AMD tiled |
+|---|---|---:|---:|---:|
+| LZ4 available | Seeded | 784 KiB | 776 KiB | 752 KiB |
+| LZ4 available | Public source | 784 KiB | 776 KiB | 768 KiB |
+| Zstandard level 6 available | Seeded | 784 KiB | 752 KiB | 600 KiB |
+| Zstandard level 6 available | Public source | 416 KiB | 416 KiB | 416 KiB |
+
+Sizes cover the complete compacted native image. The two Zstandard AMD trials
+took 1.79 and 2.20 seconds including transport and storage verification. The
+matched CPU tiled trials took 31 and 36 ms. The AMD result passed exact CPU
+readback in all four live runs. The forced adapter-refusal case reopened
+the CPU image and started zero workers. Raw and AddressSanitizer suites each
+passed 1,599 modeled store interruptions and the invalid-copy fallback checks.
+Ordinary routing continues to use the verified CPU path for this operation.
+[Source and live execution evidence](evidence/amd-anchor-collective-2026-11-18.json)
+
 ## Resumable indexed discovery — 18 November 2026
 
 The second owner of a 72-extent Windows fixture sampled 10 extents after

@@ -154,6 +154,20 @@
     "live_windows_sdk_maximum_quantum_ns": 791400,
     "next": "Measure collective AMD matching on held-out data and extend persistent sparse postings for long-range discovery."
   },
+  "amd_anchor_collective": {
+    "source_base": "9b4429341aae639c912bc844c315e2882e62d1aa",
+    "evidence": "docs/evidence/amd-anchor-collective-2026-11-18.json",
+    "live_amd_exchanges_verified": 4,
+    "seeded_zstd_native_bytes": 802816,
+    "seeded_zstd_cpu_tiled_bytes": 770048,
+    "seeded_zstd_amd_tiled_bytes": 614400,
+    "public_zstd_bytes_all_methods": 425984,
+    "seeded_zstd_amd_total_ns": 1790631900,
+    "seeded_zstd_cpu_tiled_total_ns": 30833300,
+    "independent_cpu_readback_verified": true,
+    "adapter_refusal_used_cpu": true,
+    "next": "Implement direct bounded anchor matching on the GPU and measure amortized full costs across many groups and held-out workloads."
+  },
   "owned_writable_lifetime": {
     "source_base": "ad6085754dfa85d483a13607ec22b279b677accb",
     "evidence": "docs/evidence/owned-writable-lifetime-2026-11-18.json",

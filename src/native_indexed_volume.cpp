@@ -1140,7 +1140,7 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
   return full_extent(std::move(extent));
 }
 
-bool IndexedSharedBasePreparation::advance() {
+bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyRange> advice) {
   using Phase=NativeSharedBasePhase;
   if(invalidated_)fail(Code::invalid_operation,"selected indexed shared-base content changed");
   if(progress_.phase==Phase::ready || progress_.phase==Phase::declined)return true;
@@ -1164,12 +1164,20 @@ bool IndexedSharedBasePreparation::advance() {
     // The private placeholder binds no stored dependency. The final anchor
     // identity and generation come from the live transaction at finish.
     auto encoded=encode_native_group_member(bytes,base_,kNativeGroupBaseBit+1,1);
+    bool selected_advice=false;
+    if(!is_base && !advice.empty()) {
+      if(auto candidate=encode_native_group_copies(bytes,base_,kNativeGroupBaseBit+1,1,advice,
+          encoded?encoded->size():kNativeExtentBytes)) {
+        encoded=std::move(candidate);selected_advice=true;
+      }
+    }
     const auto limit=encoded?encoded->size():kNativeExtentBytes;
     if(limit>kNativeGroupCopyMinimumBytes) {
       if(!anchor_index_)anchor_index_.emplace(base_);
       if(auto shifted=anchor_index_->encode(bytes,base_,kNativeGroupBaseBit+1,1,limit)) {
         encoded=std::move(shifted);
         uses_anchor_copies_=true;
+        selected_advice=false;
       }
     }
     if(!encoded) {
@@ -1179,6 +1187,7 @@ bool IndexedSharedBasePreparation::advance() {
     }
     if(!std::ranges::equal(decode_native_group_member(*encoded,base_,true),bytes))
       fail(Code::corrupt,"indexed shared-base private CPU comparison failed");
+    if(selected_advice){uses_anchor_copies_=true;++progress_.selected_advice_members;}
     const auto frame_bytes=extent_header+encoded->size();
     const auto committed_input=root_size+(reusable_anchor_?0:base_size)+progress_.owned_payload_bytes-base_.size();
     if(frame_bytes>kStoreMaxTransactionBytes-committed_input)

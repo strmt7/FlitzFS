@@ -56,6 +56,9 @@ charges a transient 64 KiB anchor index to the maintenance scratch budget.
 Indexed discovery checkpoints spend input credit in a distinct reserved advice
 area. Its failure can discard scan progress while protected file data remains
 readable. Reopened advice is validated before candidate preparation.
+Collective copy suggestions are checked against the writer's selected bytes.
+The complete private frame must decode on CPU before the indexed transaction
+can publish it.
 [Indexed group contract](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
 
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now admits and

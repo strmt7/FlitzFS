@@ -65,7 +65,7 @@ class IndexedSharedBasePreparation final {
   void invalidate() noexcept{invalidated_=true;}
   bool invalidated() const noexcept{return invalidated_;}
   NativeSharedBaseProgress progress() const noexcept{return progress_;}
-  bool advance();
+  bool advance(std::span<const NativeSharedBaseCopyRange>);
   NativeSharedBaseCommit finish(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,IndexedVolumeRoot&);
 
  private:

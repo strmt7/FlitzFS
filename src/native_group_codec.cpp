@@ -48,6 +48,37 @@ void write_header(std::span<std::byte> bytes,NativeGroupMethod method,std::span<
   std::copy(member_hash.begin(),member_hash.end(),bytes.begin()+64);
   put(bytes,96,count,4);put(bytes,100,bytes.size()-header,4);
 }
+class AnchorCopyFrame {
+ public:
+  AnchorCopyFrame(std::span<const std::byte> member,std::size_t limit):member_(member),limit_(limit),bytes_(header){}
+  bool append_copy(std::size_t offset,std::size_t source,std::size_t length) {
+    if(!literal_until(offset) || 8>=limit_-bytes_.size())return false;
+    const auto next=bytes_.size();bytes_.resize(next+8);
+    put(bytes_,next,copy_flag|length,4);put(bytes_,next+4,source,4);
+    ++count_;end_=offset+length;
+    return true;
+  }
+  std::optional<std::vector<std::byte>> finish(std::span<const std::byte> base,std::uint64_t id,std::uint64_t generation) {
+    if(!literal_until(extent))return {};
+    write_header(bytes_,NativeGroupMethod::anchor_copies,member_,base,id,generation,count_);
+    return std::move(bytes_);
+  }
+ private:
+  bool literal_until(std::size_t end) {
+    const auto length=end-end_;
+    if(!length)return true;
+    if(length+4>=limit_-bytes_.size())return false;
+    const auto next=bytes_.size();bytes_.resize(next+4+length);
+    put(bytes_,next,length,4);
+    std::copy_n(member_.begin()+end_,length,bytes_.begin()+next+4);
+    ++count_;end_=end;
+    return true;
+  }
+  std::span<const std::byte> member_;
+  std::size_t limit_,end_=0;
+  std::vector<std::byte> bytes_;
+  std::uint32_t count_=0;
+};
 template<class Apply>void patches(std::span<const std::byte> bytes,Apply apply) {
   std::size_t at=header,end=0;const auto count=get(bytes,96,4);
   if(count>(bytes.size()-header)/9)fail();
@@ -195,26 +226,32 @@ NativeGroupAnchorIndex::NativeGroupAnchorIndex(std::span<const std::byte> base) 
   std::ranges::sort(entries_);
 }
 
+std::optional<std::vector<std::byte>> encode_native_group_copies(std::span<const std::byte> member,
+    std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation,
+    std::span<const NativeSharedBaseCopyRange> copies,std::size_t exclusive_limit) {
+  if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
+      exclusive_limit>extent)fail();
+  if(copies.empty() || exclusive_limit<=kNativeGroupCopyMinimumBytes ||
+      copies.size()>(exclusive_limit-header)/8)return {};
+  AnchorCopyFrame frame(member,exclusive_limit);
+  std::size_t end=0;
+  for(const auto& copy:copies) {
+    const auto offset=copy.member_offset,source=copy.base_offset,length=copy.length;
+    if(offset<end || offset>=extent || source>=extent || !length || length>extent-offset ||
+        length>extent-source || !std::ranges::equal(member.subspan(offset,length),base.subspan(source,length)) ||
+        !frame.append_copy(offset,source,length))return {};
+    end=offset+length;
+  }
+  return frame.finish(base,base_id,generation);
+}
+
 std::optional<std::vector<std::byte>> NativeGroupAnchorIndex::encode(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation,
     std::size_t exclusive_limit) const {
   if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
       exclusive_limit>extent)fail();
   if(exclusive_limit<=kNativeGroupCopyMinimumBytes)return {};
-  std::vector<std::byte> result(header);
-  std::size_t literal_start=0;
-  std::uint32_t count=0;
-  const auto flush_literal=[&](std::size_t end) {
-    const auto length=end-literal_start;
-    if(!length)return true;
-    if(length+4>=exclusive_limit-result.size())return false;
-    const auto output=result.size();
-    result.resize(output+4+length);
-    put(result,output,length,4);
-    std::copy_n(member.begin()+literal_start,length,result.begin()+output+4);
-    ++count;
-    return true;
-  };
+  AnchorCopyFrame frame(member,exclusive_limit);
 
   const auto last=extent-window_bytes;
   auto rolling=fingerprint(member.first(window_bytes));
@@ -240,17 +277,10 @@ std::optional<std::vector<std::byte>> NativeGroupAnchorIndex::encode(std::span<c
       ++offset;
       continue;
     }
-    if(!flush_literal(offset) || 8>=exclusive_limit-result.size())return {};
-    const auto output=result.size();
-    result.resize(output+8);
-    put(result,output,copy_flag|length,4);put(result,output+4,source,4);
-    ++count;
+    if(!frame.append_copy(offset,source,length))return {};
     offset+=length;
-    literal_start=offset;
     if(offset<=last)rolling=fingerprint(member.subspan(offset,window_bytes));
   }
-  if(!flush_literal(extent))return {};
-  write_header(result,NativeGroupMethod::anchor_copies,member,base,base_id,generation,count);
-  return result;
+  return frame.finish(base,base_id,generation);
 }
 } // namespace flitzfs::detail

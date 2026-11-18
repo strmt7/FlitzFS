@@ -1601,13 +1601,13 @@ void NativeFilesystemWriter::check_shared_base(SharedBaseWork& work) const {
       fail(Code::invalid_operation,"selected shared-base extent changed");
   }
 }
-bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work) {
+bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice) {
   auto* p=work.impl_.get();
   try {
     check_shared_base(work);
     if(p->state.phase==NativeSharedBasePhase::ready || p->state.phase==NativeSharedBasePhase::declined)return true;
     if(p->indexed) {
-      const auto done=p->indexed->advance();
+      const auto done=p->indexed->advance(advice);
       p->state=p->indexed->progress();
       if(p->state.phase==NativeSharedBasePhase::declined)p->retire(NativeSharedBasePhase::declined);
       return done;

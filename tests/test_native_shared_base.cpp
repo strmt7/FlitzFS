@@ -1,5 +1,6 @@
 #include "native_fs_fixture.hpp"
 #include "native_group_codec.hpp"
+#include "anchor_search_fixture.hpp"
 #include <iostream>
 #include <set>
 namespace {
@@ -71,6 +72,84 @@ void anchor_copy_codec() {
     if(variant==7)corrupt.pop_back();
     rejects([&]{(void)detail::decode_native_group_member(corrupt,base,true);},"malformed anchor copy decoded");
   }
+}
+void anchor_copy_advice() {
+  const auto base=family(0);
+  auto member=anchor_search_fixture::fragmented(base,1);
+  const auto ranges=anchor_search_fixture::fragment_ranges(1);
+  const auto id=detail::kNativeGroupBaseBit+1;
+  const auto frame=detail::encode_native_group_copies(member,base,id,1,ranges,kNativeExtentBytes);
+  require(frame && detail::decode_native_group_member(*frame,base,true)==member,
+      "advisory short copies failed independent readback");
+  auto invalid=ranges;
+  invalid.front().length=kNativeExtentBytes;
+  require(!detail::encode_native_group_copies(member,base,id,1,invalid,kNativeExtentBytes),"overlong advice accepted");
+  invalid=ranges;invalid[1].member_offset=0;
+  require(!detail::encode_native_group_copies(member,base,id,1,invalid,kNativeExtentBytes),"overlapping advice accepted");
+  invalid=ranges;invalid.front().base_offset++;
+  require(!detail::encode_native_group_copies(member,base,id,1,invalid,kNativeExtentBytes),"wrong advice accepted");
+
+  uniform_lz4::Layout layout{};
+  const auto total=detail::kAnchorLz4BlocksPerMember*kNativeExtentBytes;
+  require(uniform_lz4::make_layout(total,kNativeExtentBytes,layout),"current anchor search layout");
+  const auto prepared=detail::prepare_native_anchor_search(base,member,uniform_lz4_limits(layout));
+  constexpr auto half=kNativeExtentBytes/2;
+  for(unsigned i=0;i<4;++i) {
+    require(std::ranges::equal(prepared.input(i).first(half),std::span(base).subspan((i%2)*half,half)) &&
+        std::ranges::equal(prepared.input(i).last(half),std::span(member).subspan((i/2)*half,half)),
+        "anchor window and target projection disagreed");
+  }
+  require(uniform_lz4::make_layout(total-1,kNativeExtentBytes,layout),"partial transport control layout");
+  rejects([&]{(void)detail::prepare_native_anchor_search(base,member,uniform_lz4_limits(layout));},
+      "partial anchor block accepted");
+  const auto extension=[](Bytes& out,unsigned n) {
+    while(n>=255){out.push_back(std::byte{255});n-=255;}
+    out.push_back(static_cast<std::byte>(n));
+  };
+  Bytes repeated{std::byte{255}};
+  extension(repeated,half-15);
+  repeated.insert(repeated.end(),base.begin(),base.begin()+half);
+  repeated.insert(repeated.end(),{std::byte{0},std::byte{128}});
+  extension(repeated,half-5-4-15);
+  repeated.push_back(std::byte{80});
+  repeated.insert(repeated.end(),base.begin()+half-5,base.begin()+half);
+  std::array<UniformLz4Bytes,4> replies{repeated,{},{},{}};
+  const auto extracted=detail::native_anchor_copy_ranges(replies);
+  require(extracted.size()==1 && extracted.front().member_offset==0 && extracted.front().base_offset==0 &&
+      extracted.front().length==half-5,"could not project contiguous prefix matches");
+  replies[0]=std::span(repeated).first(repeated.size()-1);
+  require(detail::native_anchor_copy_ranges(replies).empty(),"truncated block supplied partial advice");
+
+  auto input=std::make_shared<Ram>();input->failure_unit=4096;
+  auto writer=fresh(input,true);
+  for(unsigned i=0;i<5;++i) {
+    const auto path="f"+std::to_string(i);
+    writer.apply(std::array{file_create(path),file_write(path,0,i?anchor_search_fixture::fragmented(base,i):base)});
+  }
+  const auto before=writer.snapshot();
+  const auto selected=selections(before,5);
+  auto work=writer.prepare_shared_base(selected.front(),selected);
+  while(!writer.advance_shared_base(work,work.progress().completed_members?
+      anchor_search_fixture::fragment_ranges(static_cast<unsigned>(work.progress().completed_members)):
+      std::vector<NativeSharedBaseCopyRange>{})) {}
+  require(work.progress().selected_advice_members==4,"shared-base preparation did not select smaller verified advice");
+  require(writer.finish_shared_base(work).applied,"verified advisory frames did not pass packed size accounting");
+  const auto after=view(input);after.verify_all();
+  for(unsigned i=0;i<5;++i) {
+    const auto path="f"+std::to_string(i);
+    require(after.read(path,0,kNativeExtentBytes)==before.read(path,0,kNativeExtentBytes),
+        "advisory group changed a file");
+  }
+  auto fallback=std::make_shared<Ram>();fallback->failure_unit=4096;
+  auto independent=fresh(fallback,true);
+  populate(independent,4,shifted_family);
+  const auto fallback_extents=selections(independent.snapshot(),4);
+  auto fallback_work=independent.prepare_shared_base(fallback_extents.front(),fallback_extents);
+  const std::array<NativeSharedBaseCopyRange,1> rejected{{{0,kNativeExtentBytes-2,8}}};
+  while(!independent.advance_shared_base(fallback_work,rejected)) {}
+  require(fallback_work.progress().selected_advice_members==0 &&
+      independent.finish_shared_base(fallback_work).applied,"bad advice blocked CPU shifted grouping");
+  verify_family(view(fallback),4,shifted_family);
 }
 void codec() {
   const auto base=family(0),member=family(1);const auto id=detail::kNativeGroupBaseBit+1;
@@ -454,7 +533,7 @@ int main(int argc,char** argv){try {
     return 0;
   }
   require(argc==1,"unknown shared-base test mode");
-  codec();anchor_copy_codec();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
+  codec();anchor_copy_codec();anchor_copy_advice();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
   indexed_group_on_populated_volume();
   for(auto unit:{4096U,65536U}){
     for(const auto indexed_layout:{false,true}) {
