@@ -30,8 +30,8 @@ the native lifecycle events.
 
 The SDK fixture uses injected lifecycle operations and verifies file bytes
 after attach, detach and reattach. GUI tests exercise the actual executable
-with absent and altered dependencies. The signed driver, real Explorer
-mounting, and persistent-volume provisioning require separate qualification.
+with absent and altered dependencies. Interactive File Explorer integration
+and persistent-volume provisioning require separate qualification.
 [Current attachment evidence](evidence/windows-tray-attachment-2026-11-18.json)
 
 ### Initial Windows 11 driver trial
@@ -51,6 +51,21 @@ app mounted. The physical host retains its installed 2.1 driver.
 The host's editor regression and disposable-guest admission check passed.
 [Initial driver evidence](evidence/windows11-sandbox-mounted-tray-2026-11-18.json) ·
 [Windows Sandbox CLI](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli)
+
+Using WinFsp's development registration and app-local Microsoft runtime
+DLLs, the follow-up guest accepted the exact signed driver and matched DLL.
+The sealed and writable memory mounts passed external Win32 byte checks.
+The mounted app retained a flushed file across window close, detach and
+reattach, preserved the volume serial, and removed both junctions before
+discard and exit. The guest check drives the enabled controls on its
+headless desktop. The regular GUI test still requires a visible window and
+passed on a private desktop on the physical host.
+[Windows 11 mounted evidence](evidence/windows11-sandbox-memory-mount-2026-11-18.json)
+
+Service Control Manager refused the in-guest driver stop. The owned Sandbox
+shut down, and the installed host driver stayed stopped. Supported installer
+rollback, in-place driver retirement and interactive Explorer qualification
+remain open.
 
 Disposable guests are used for driver and recovery correctness. Performance
 and compression comparisons run on the physical Windows host.

@@ -900,10 +900,12 @@ is an advisory primitive, not the production coherence database or a learner.
 
 ## 11. E08 — Windows semantics, Explorer and owned volume lifecycle
 
-The [sealed memory path](WINFSP_READONLY_MEMORY.md) implements the user-mode
-assembly for steps 1–3 and the executable external-client fixture for step 4.
-The staged stable SDK matches the installed user-mode DLL. Evidence of a real
-read-only mount still requires the disposable driver-backed run.
+The sealed memory path implements the user-mode assembly and external-client
+fixture. The exact WinFsp v2.2B5 pair passed sealed reads, writable mounts and
+the helper's attach, detach and reattach workflow in Windows 11 Sandbox.
+Supported install and rollback, driver retirement and interactive Explorer
+qualification remain open. [Sealed memory path](WINFSP_READONLY_MEMORY.md) ·
+[Windows 11 mounted evidence](evidence/windows11-sandbox-memory-mount-2026-11-18.json)
 
 **Reuse:** actual native SDK callbacks, Windows-global disposition, ACL/time
 validation, deferred responses, owned controller, shared memory factory and tray.

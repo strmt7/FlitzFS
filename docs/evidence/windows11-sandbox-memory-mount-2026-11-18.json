@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "recorded_on": "2026-11-18",
+  "application_source": "a661e5e093420a5f75ac9ac366ce383fafbac129",
+  "mounted_gui_fixture_source": {
+    "path": "tests/windows_volume_app_tests.cpp",
+    "sha256": "ad5ed8bad842134e5e28b5258911d4a18c9c0380fa9f1d3c849f90908d2a0c44"
+  },
+  "guest": {
+    "platform": "Windows 11 Enterprise build 26100",
+    "isolation": "Headless Windows Sandbox, System session 0",
+    "backing": "Fresh synthetic data in memory volumes",
+    "provisioning": "Vendor development registration of exact adjacent signed binaries and explicit SCM start inside the guest",
+    "vendor_source": "https://github.com/winfsp/winfsp/blob/14d6e0280ae15e2550c44d6dbc476be51649727f/tools/deploy.bat#L15-L31",
+    "runtime": "WinFsp v2.2B5 and app-local Microsoft MSVC v145 14.52.37029.0",
+    "authenticode": "Valid in the guest for the driver, WinFsp DLL and four MSVC DLLs",
+    "performance_measurements": false
+  },
+  "artifact_sha256": {
+    "vcruntime140.dll": "eb1ee979bf02324712346e5bdbfc59c785388bc50d18cc2688aae4b0734915a0",
+    "flitzfs_volume_app.exe": "796f5612dd0e10d0ed1934f2f18534e0c1c1469d34a41f10879aed22eb36f857",
+    "vcruntime140_1.dll": "a14b4a42a2c6df04d6d53a8340816023d953406f7f3d94996c7cab30c414ff63",
+    "msvcp140_atomic_wait.dll": "8b10c6bd4c3c427ce7c8be96ef0fef0f8187bc236962be62a03caef834b37dcd",
+    "winfsp-x64.dll": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3",
+    "flitzfs_volume_app_tests.exe": "70199cf517a6f3a60208eba6cf47b04ffe0ad0e83f7b0dba9ab736e79c502745",
+    "msvcp140.dll": "59d325227321d52b9a523ea401ce6787a5d59f78229a0ff3a6f124e5d3445685",
+    "flitzfs_mount_probe.exe": "030e7fa1976d62d44b0372342ceb4c62e69b454e4a3ec2844d06965e017d7277",
+    "winfsp-x64.sys": "0a91fc3429fd5adf8b9c65976ac0c4ae924702be2cfbed856d90d2a7d99b0390"
+  },
+  "sealed_and_indexed": {
+    "scope": "registered-winfsp-sandbox-595c834397094351874a0161ce5ef570",
+    "guest_report_sha256": "22e9b03abc269935ebc31103028c394da5addbe3d6ee1a5247d6abff7fcd4abf",
+    "sandbox_report_sha256": "009c0c6e2b55c88b81e99b71ce3cb74cce4878ca922a0181fd180609d7b600c0",
+    "verified": [
+      "External sealed read, mapped access, enumeration, mutation refusal and CPU byte parity after joined retirement",
+      "Indexed sparse writes, flush, rename, delete and independent CPU reopen after joined retirement"
+    ]
+  },
+  "mounted_application": {
+    "scope": "registered-winfsp-sandbox-a0889be748a04e64bd81bffc12c00b8c",
+    "guest_report_sha256": "c8b5319e773fc5592fac814a18a35a67d5314154f7f259b0e18fc59480afbcf8",
+    "sandbox_report_sha256": "be0e681e1ba8a3caac92d48fe2272aa1f0e5e1c78db1f9dec27ef4f1f505c480",
+    "preceding_fixture_failure": "Headless window reported invisible while editors, status and Attach control were present and enabled",
+    "verified": [
+      "Real Attach control and external write, flush and CPU readback",
+      "Window close retained the live volume",
+      "Detach and reattach exposed the same serial and exact bytes at a new junction",
+      "Both junctions removed, explicit discard and normal application exit"
+    ]
+  },
+  "host_validation": {
+    "volume_model": {
+      "run": "local-run-b3f5875a4d364faa97262ff995ae2d06",
+      "result_sha256": "bcf1c474597a5a15da88796eb3701f1d33104531ca49beb05035fe0ce6cba67b",
+      "exit_code": 0,
+      "tree_retired": true
+    },
+    "attachment_fixture": {
+      "run": "local-run-2748a878ae3e42a0925f98f78296d83e",
+      "result_sha256": "d14b5d2fac412b9264c2e41af28e269aeaec214558bc8651713ecf46c25f5f2e",
+      "exit_code": 0,
+      "tree_retired": true
+    },
+    "ordinary_gui": {
+      "run": "local-run-cddf457433094ea88e50f2b33c7fb41f",
+      "result_sha256": "c640b56bafc4ed8c5e31b08e2c876ee58864fec30519e48cd124e6c9bd6b0451",
+      "exit_code": 0,
+      "tree_retired": true,
+      "desktop": "Owned private desktop closed after the GUI regression"
+    },
+    "winfsp": "Installed v2.1 service stayed stopped and unchanged"
+  },
+  "scope_limits": {
+    "installer": "Production MSI provisioning and rollback remain open",
+    "guest_driver_stop": "SCM returned access denied. Unregistration left the driver running but disabled until VM disposal.",
+    "sandbox_shutdown": "Both exact owned guests stopped and were absent from their subsequent inventories",
+    "unqualified": [
+      "Interactive File Explorer and taskbar integration",
+      "Driver servicing and in-place unload",
+      "Kernel-fault or power-loss recovery",
+      "Host driver installation and mounted benchmarking"
+    ]
+  }
+}

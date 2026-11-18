@@ -2375,7 +2375,7 @@
       127
     ],
     "research_risk": "The compression target remains an open research question until held-out measured results.",
-    "current_runtime_evidence": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
+    "current_runtime_evidence": "docs/evidence/windows11-sandbox-memory-mount-2026-11-18.json",
     "windows_read_only_progress": {
       "steps": [
         "E08.1",
@@ -2383,8 +2383,8 @@
         "E08.3",
         "E08.4"
       ],
-      "evidence": "docs/evidence/winfsp-readonly-memory-2026-11-17.json",
-      "status": "User-mode assembly and compiled external fixture. Mounted result still open."
+      "evidence": "docs/evidence/windows11-sandbox-memory-mount-2026-11-18.json",
+      "status": "Sealed and writable WinFsp v2.2B5 mounts and mounted helper retention passed in Windows 11 Sandbox. Supported installation, in-place driver retirement and interactive Explorer qualification remain open."
     }
   },
   "previous_shared_factory_round": {

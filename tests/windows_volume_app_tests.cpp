@@ -137,9 +137,10 @@ void require(bool value,const char* why){++checks;if(!value)throw std::runtime_e
 template<class F>void rejects(F&& f,const char* why) {
   ++checks;try{f();}catch(const std::exception&){return;}throw std::runtime_error(why);
 }
-template<class F>void until(F&& predicate,std::uint64_t deadline) {
+template<class F>void until(F&& predicate,std::uint64_t deadline,
+    const char* timeout_message="Application qualification deadline exceeded") {
   while(!predicate()) {
-    if(GetTickCount64()>=deadline)throw std::runtime_error("Application qualification deadline exceeded");
+    if(GetTickCount64()>=deadline)throw std::runtime_error(timeout_message);
     MSG m{};while(PeekMessageW(&m,nullptr,0,0,PM_REMOVE)){TranslateMessage(&m);DispatchMessageW(&m);}
     Sleep(5);
   }
@@ -807,8 +808,13 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   try {
     const auto deadline=GetTickCount64()+(mounted?34000:20000);
     HWND window=nullptr;
-    until([&]{if(supervisor_failed.load(std::memory_order_acquire))throw std::runtime_error("GUI child launch failed");
-      window=find_window(observer->process_id());return window!=nullptr;},deadline);
+    until([&]{
+      if(supervisor_failed.load(std::memory_order_acquire))throw std::runtime_error("GUI child launch failed");
+      const auto observation=observer->wait_for_exit();
+      if(observation==ProcessObservation::exited || observation==ProcessObservation::wait_failed)
+        throw std::runtime_error("GUI exited or became unobservable before its window was found");
+      window=find_window(observer->process_id());return window!=nullptr;
+    },deadline,"Application window was not found on the test desktop");
     auto button=[&](int id){std::cout<<"GUI command: "<<id<<"\n";auto h=GetDlgItem(window,id);require(h!=nullptr,"Missing native button");send(h,BM_CLICK);};
     HWND status=nullptr;
     auto wait_status=[&](std::wstring_view expected){
@@ -827,10 +833,18 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
       const auto observation=observer->wait_for_exit();
       require(observation!=ProcessObservation::exited && observation!=ProcessObservation::wait_failed,
           "GUI exited or became unobservable before readiness");
-      return IsWindowVisible(window)!=FALSE && GetDlgItem(window,111) &&
-          GetDlgItem(window,112) && GetDlgItem(window,113) &&
-          IsWindowEnabled(GetDlgItem(window,101))!=FALSE;
-    },deadline);
+      const bool visible=IsWindowVisible(window)!=FALSE;
+      const bool editors=GetDlgItem(window,111) && GetDlgItem(window,112);
+      const bool status_control=GetDlgItem(window,113)!=nullptr;
+      const auto action=GetDlgItem(window,mounted?107:101);
+      const bool enabled=action && IsWindowEnabled(action)!=FALSE;
+      // The disposable guest exercises the controls on a headless desktop.
+      const bool ready=(mounted || visible) && editors && status_control && enabled;
+      if(!ready && GetTickCount64()>=deadline)
+        std::cerr<<"GUI readiness visible="<<visible<<" editors="<<editors<<" status="<<status_control
+            <<" action="<<(action!=nullptr)<<" enabled="<<enabled<<'\n';
+      return ready;
+    },deadline,"Application window did not expose enabled controls");
     status=GetDlgItem(window,113);require(status!=nullptr,"Ready status control missing");
     if(mounted) {
       mounted_gui_workflow(window,mount_parent,*observer,button,wait_status,deadline);
@@ -886,7 +900,11 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   supervisor.join();
   if(failure)std::rethrow_exception(failure);
   require(result.exit_confirmed,"GUI child exit unconfirmed");
-  if(test_failure)std::rethrow_exception(test_failure);
+  if(test_failure) {
+    std::cerr<<"Bounded GUI child exit="<<result.exit_code<<" cancelled="<<result.cancelled
+        <<" timed_out="<<result.timed_out<<'\n';
+    std::rethrow_exception(test_failure);
+  }
   require(!result.timed_out && !result.cancelled && result.exit_code==0,"GUI child did not retire cleanly");
   if(!mounted)std::cout<<"GUI child peak commit: "<<result.peak_committed_bytes<<" bytes\n";
 }
