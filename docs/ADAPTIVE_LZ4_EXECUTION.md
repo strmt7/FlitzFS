@@ -48,10 +48,20 @@ CPU/GPU contention, foreground demand, observed costs and persistent workload
 learning. One owner's measurements must never become universal defaults.
 A mutable learned policy cannot override integrity, resource or ownership gates.
 
-The planner is allocation-free and uses at most 32 binary-search trials.
-Its output is not a memory reservation or permission to launch. The allocating
-worker must repeat fresh resource admission and original-baseline transition
-checks, preserve independent CPU comparison and confirm exact retirement.
+The single-launch planner uses one allocation-free binary search. A finite
+sweep adds a separate search for the reusable device buffer. The whole request
+is charged for its input, output, metadata and CPU workspaces. It also
+respects the channel's representable request and reply lengths. Grid size, local video-memory headroom and the qualified kernel
+quantum apply to each launch. The aggregate kernel estimate must fit within
+the operation deadline. The supervisor measures and enforces elapsed time
+across initialization, transfers, verification and retirement.
+
+The parent binds both the request capacities and the admitted launch geometry
+to the worker command. Recovery and the next fresh memory check account for the
+actual peak device slab. Each launch still needs fresh admission, synchronization
+and independent CPU verification. Low stream priority cannot interrupt
+thread blocks already executing, so keeping each launch bounded matters.
+[AMD HIP execution contexts](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/execution_context.html)
 
 ## Implementation/qualification state
 

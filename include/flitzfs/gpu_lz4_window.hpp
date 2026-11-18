@@ -19,10 +19,15 @@ struct GpuLz4WindowPolicy {
   std::uint32_t memory_share_divisor=0;
   std::uint64_t kernel_quantum_ns=0;
 };
+struct GpuLz4SweepGrant {
+  std::uint32_t maximum_chunks=0;
+  std::uint64_t maximum_device_bytes=0;
+};
 struct GpuLz4WindowPlan {
   GpuGateCode code=GpuGateCode::invalid_budget;
   uniform_lz4::Layout layout{};
   std::uint64_t host_peak_bytes=0,remaining_input_bytes=0,estimated_kernel_ns=0;
+  uniform_lz4::Layout quantum{};
 };
 // Derive the largest window from CURRENT GPU, physical and process-constrained
 // commit headroom. No fixed KiB/MiB allocation cap or hardware model lookup.
@@ -34,4 +39,11 @@ struct GpuLz4WindowPlan {
 // Unknown or differently keyed cost/configuration evidence fails to CPU.
 GpuLz4WindowPlan plan_gpu_lz4_window(std::uint64_t input_bytes,std::uint32_t chunk_bytes,
     const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,GpuLz4WindowPolicy) noexcept;
+
+// Admit one finite exchange with a reusable device slab. Host accounting
+// covers the whole exchange. Grid, device memory and kernel quantum bounds
+// apply to the largest launch. The supervisor enforces the elapsed deadline.
+GpuLz4WindowPlan plan_gpu_lz4_sweep_window(std::uint64_t input_bytes,std::uint32_t chunk_bytes,
+    const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,GpuLz4WindowPolicy,
+    GpuLz4SweepGrant,std::uint32_t deadline_ms) noexcept;
 }

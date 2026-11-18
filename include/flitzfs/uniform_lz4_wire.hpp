@@ -15,6 +15,7 @@ struct UniformLz4Limits {
   bool operator==(const UniformLz4Limits&) const=default;
 };
 UniformLz4Limits uniform_lz4_limits(const uniform_lz4::Layout&);
+bool try_uniform_lz4_limits(const uniform_lz4::Layout&,UniformLz4Limits&) noexcept;
 bool valid_uniform_lz4_limits(const UniformLz4Limits&) noexcept;
 class PreparedUniformLz4 final {
  public:

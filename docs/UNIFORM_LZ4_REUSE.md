@@ -10,6 +10,12 @@ The single-window and phase-profile entry points retain their existing initializ
 
 The caller still admits the complete immutable source, dense worst-case result, one prepared quantum, workspaces, runtime and transport costs. A small slab does not authorize an unbounded host input. Existing process jobs, five-second experiment observation, complete host/resource gates and the 128 MiB worker limit remain unchanged.
 
+The owned native write path now uses separate whole-request and per-launch
+sizing. A write may use several serial launches through one bounded worker
+when the complete source and reply fit the host budget. The original
+single-launch path keeps its existing capacity and behavior.
+[Adaptive admission](ADAPTIVE_LZ4_EXECUTION.md#automatic-memory-window)
+
 ## Quantum completion and protected reuse
 
 Each quantum receives fresh host/GPU memory admission against the operation's original baseline. Its active upload is fully initialized in the reusable CPU workspace; the remaining physical slab is filled with a distinct 0xd3 canary. The kernel receives the canonical ACTIVE extent, which may be smaller than its owned backing allocation.
@@ -35,6 +41,27 @@ A successful new trial would establish only this bounded implementation on the o
 ## First SDK fixture correction
 
 At `92d326e`, SDK compilation reached the CPU matrix and failed with `Copy slab extent`. The fake allocator admitted the quantum slab while its copy predicate still expected the whole request's slab. The correction records the successful allocation extent, requires both full copies to equal that exact extent and bounds each active kernel layout within it. It adds no size tolerance and changes no production execution. [The failed result](evidence/uniform-reuse-92d326e-fixture-failure.json) is retained; the corrected source requires new qualification.
+
+## Finite Windows write comparison — 18 November 2026
+
+The native indexed test admitted 1 MiB per worker while limiting each
+launch to 128 KiB of input and a 328,288-byte peak device slab. Each AMD
+trial verified all 16 extents, recovered the image independently on CPU
+and confirmed worker retirement. The synthetic trials also verified all
+32 mirrored records per write against the GPU payload.
+
+| Input | CPU callback | AMD callback | CPU occupied image | AMD occupied image |
+| --- | ---: | ---: | ---: | ---: |
+| Synthetic repeated extents | 2.12–2.60 ms | 1,051–1,411 ms | 2,097,152 bytes | 2,097,152 bytes |
+| Public FlitzFS source text | 4.12–4.70 ms | 1,564–1,695 ms | 3,145,728 bytes | 3,276,800 bytes |
+
+Each row contains three alternating CPU/AMD pairs. The public sample
+contains bytes from 128 tracked files. The comparison measures the
+complete callback and resulting image in an injected WinFsp fixture.
+Both request classes select CPU. Larger admitted GPU batches improve
+the amount of work per initialization. The measured LZ4 route still
+adds latency and provides no size savings on these inputs.
+[Source-bound comparison](evidence/finite-amd-exchange-2026-11-18.json)
 
 ## Executed qualification and bounded hardware result
 

@@ -154,7 +154,60 @@ void automatic(){
       <<" large_input="<<b.layout.input_bytes<<" background_input="<<background.layout.input_bytes
       <<" gpu_executed=false\n";
 }
+void finite_sweeps(){
+  constexpr std::uint32_t chunk_bytes=65536;
+  const auto health=evidence(64ULL<<30,16ULL<<30);
+  auto measured=cost(health);
+  measured.maximum_grid_x=2;
+  measured.kernel_ns_per_chunk=1000000;
+  constexpr GpuLz4WindowPolicy policy{16,2000000};
+  Layout maximum;
+  require(make_layout(2*chunk_bytes,chunk_bytes,maximum),"invalid quantum fixture");
+  const GpuLz4SweepGrant grant{maximum.chunks,maximum.total_bytes};
+  const auto input=std::uint64_t{8}*chunk_bytes;
+  const auto single=plan_gpu_lz4_window(input,chunk_bytes,health,100,measured,policy);
+  const auto sweep=plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,measured,policy,grant,20);
+  require(single.layout.input_bytes==2*chunk_bytes && sweep.code==GpuGateCode::admitted &&
+      sweep.layout.input_bytes==input && sweep.quantum.input_bytes==single.layout.input_bytes &&
+      sweep.quantum.total_bytes==maximum.total_bytes && sweep.estimated_kernel_ns==8000000,
+      "per-launch cap truncated the finite exchange or undercharged its compute");
+  const auto short_deadline=plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,measured,policy,grant,5);
+  require(short_deadline.code==GpuGateCode::admitted && short_deadline.layout.chunks==5 &&
+      short_deadline.quantum.chunks==2 && short_deadline.remaining_input_bytes==3*chunk_bytes,
+      "finite exchange ignored its complete compute budget");
+  Layout one;
+  require(make_layout(chunk_bytes,chunk_bytes,one),"invalid one-chunk fixture");
+  const GpuLz4SweepGrant smaller_slab{2,one.total_bytes};
+  const auto narrower=plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,measured,policy,smaller_slab,20);
+  require(narrower.code==GpuGateCode::admitted && narrower.layout.chunks==8 &&
+      narrower.quantum.chunks==1 && narrower.quantum.total_bytes==one.total_bytes &&
+      narrower.host_peak_bytes<sweep.host_peak_bytes,
+      "device cap did not shrink only the reused slab and quantum workspaces");
+  const auto tail=plan_gpu_lz4_sweep_window(input+7,chunk_bytes,health,100,measured,policy,grant,20);
+  require(tail.code==GpuGateCode::admitted && tail.layout.input_bytes==input+7 &&
+      tail.layout.chunks==9 && tail.quantum.total_bytes==maximum.total_bytes,
+      "finite exchange discarded a partial final input");
+  auto pressured=health;
+  pressured.memory.physical_available=5ULL<<30;
+  const auto enough=plan_gpu_lz4_sweep_window(256ULL<<20,chunk_bytes,health,100,measured,policy,grant,6000);
+  const auto fewer=plan_gpu_lz4_sweep_window(256ULL<<20,chunk_bytes,pressured,100,measured,policy,grant,6000);
+  require(enough.code==GpuGateCode::admitted && fewer.code==GpuGateCode::admitted &&
+      fewer.layout.input_bytes<enough.layout.input_bytes && fewer.host_peak_bytes<enough.host_peak_bytes &&
+      fewer.quantum.total_bytes==enough.quantum.total_bytes,
+      "host pressure did not reduce the independently charged whole request");
+  require(plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,measured,policy,grant,0).code!=GpuGateCode::admitted &&
+      plan_gpu_lz4_sweep_window(input,chunk_bytes,health,100,measured,policy,{2,one.total_bytes-1},20).code!=
+          GpuGateCode::admitted,"no deadline or undersized slab admitted");
+  require(plan_gpu_lz4_sweep_window(input,chunk_bytes,health,151,measured,policy,grant,20).code==
+      GpuGateCode::stale_budget,"finite exchange accepted stale headroom");
+  const auto large=evidence(1ULL<<40,64ULL<<30);
+  measured.configuration=large.configuration;
+  const auto framed=plan_gpu_lz4_sweep_window(8ULL<<30,chunk_bytes,large,100,measured,policy,grant,200000);
+  require(framed.code==GpuGateCode::admitted && framed.remaining_input_bytes &&
+      framed.quantum.total_bytes==maximum.total_bytes && framed.layout.input_bytes<(2ULL<<30),
+      "large host allowed an unrepresentable worker frame");
 }
-int main(){try{canonical();automatic();std::cout<<"PASS: "<<checks
+}
+int main(){try{canonical();automatic();finite_sweeps();std::cout<<"PASS: "<<checks
     <<" scalable layout/resource window checks; no payload allocation or GPU execution\n";return 0;}
 catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

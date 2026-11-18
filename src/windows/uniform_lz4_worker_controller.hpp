@@ -21,7 +21,8 @@ class UniformLz4WorkerController final {
   UniformLz4WorkerStart begin(PreparedUniformLz4&&,const std::filesystem::path&,
       const std::vector<std::wstring>&,bool consent,bool worthwhile,
       const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,
-      GpuLz4WindowPolicy,ProcessBudget,std::uint32_t deadline_ms);
+      GpuLz4WindowPolicy,ProcessBudget,std::uint32_t deadline_ms,
+      std::optional<GpuLz4SweepGrant> sweep=std::nullopt);
   // Verification and acceptance are separate polls. The acceptance poll MUST
   // bring a newer time/snapshot after potentially substantial CPU validation.
   GpuWorkerState poll(const GpuMemorySnapshot&,std::uint64_t now_ms) noexcept;
@@ -55,7 +56,7 @@ class UniformLz4WorkerController final {
   UniformLz4Candidates selected_;
   std::vector<std::uint64_t> offsets_;
   GpuMemorySnapshot baseline_{};
-  std::uint64_t ticket_=0,generation_=0,started_=0,deadline_=0,verified_poll_=0;
+  std::uint64_t ticket_=0,generation_=0,started_=0,deadline_=0,verified_poll_=0,device_peak_bytes_=0;
   bool verified_=false,reported_=false,disabled_=false;
 };
 }

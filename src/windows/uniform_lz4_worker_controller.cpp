@@ -42,7 +42,8 @@ void UniformLz4WorkerController::select_cpu(GpuRecoveryOutcome outcome,GpuGateCo
 UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& input,
     const std::filesystem::path& helper,const std::vector<std::wstring>& arguments,
     bool consent,bool worthwhile,const GpuHealthEvidence& evidence,std::uint64_t now,
-    const GpuLz4ResidentCost& cost,GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline){
+    const GpuLz4ResidentCost& cost,GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,
+    std::optional<GpuLz4SweepGrant> sweep){
   if(state_==GpuWorkerState::waiting || (ticket_ && pending_ &&
       input.plaintext().size()>pending_->plaintext().size()))
     return {{{GpuRouteReason::worker_busy},GpuGateCode::wrong_state,false},false};
@@ -59,17 +60,21 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& inp
       now>(std::numeric_limits<std::uint64_t>::max)()-deadline){
     last_gate_=GpuGateCode::invalid_budget;return {{{GpuRouteReason::bad_evidence},last_gate_,false},true};
   }
-  const auto plan=plan_gpu_lz4_window(current_->plaintext().size(),current_->layout().chunk_bytes,
-      evidence,now,cost,window);
-  if(plan.code!=GpuGateCode::admitted || plan.layout.input_bytes!=current_->plaintext().size() ||
+  const auto input_bytes=current_->plaintext().size();
+  const auto chunk_bytes=current_->layout().chunk_bytes;
+  const auto plan=sweep?plan_gpu_lz4_sweep_window(input_bytes,chunk_bytes,evidence,now,cost,window,*sweep,deadline):
+      plan_gpu_lz4_window(input_bytes,chunk_bytes,evidence,now,cost,window);
+  if(plan.code!=GpuGateCode::admitted || plan.layout.input_bytes!=input_bytes ||
       plan.layout.total_bytes!=current_->layout().total_bytes ||
+      (sweep && (plan.quantum.chunks!=sweep->maximum_chunks ||
+          plan.quantum.total_bytes!=sweep->maximum_device_bytes)) ||
       !complete_host_accounting(*current_,budget,plan.host_peak_bytes)){
     last_gate_=plan.code==GpuGateCode::admitted?GpuGateCode::invalid_budget:plan.code;
     return {{{GpuRouteReason::unqualified},last_gate_,false},true};
   }
   auto checked=evidence;
   checked.supervisor_quiescent=evidence.supervisor_quiescent && !session_ && WorkerExchangeSession::available();
-  const auto route=policy_.consider(consent,worthwhile,checked,*current_,now);
+  const auto route=policy_.consider(consent,worthwhile,checked,*current_,plan.quantum,now);
   if(!route.try_gpu())return {{route,last_gate_,false},true};
   ticket_=route.ticket;reported_=false;
   try{
@@ -80,8 +85,18 @@ UniformLz4WorkerStart UniformLz4WorkerController::begin(PreparedUniformLz4&& inp
       return {{route,last_gate_,false},true};
     }
     started_=now;deadline_=now+deadline;baseline_=checked.memory;
-    const auto frame=encode_uniform_lz4_request(*pending_,generation_);
+    device_peak_bytes_=plan.quantum.total_bytes;
     const auto& l=pending_->limits();
+    if(sweep && expected_==WorkerExecution::hip &&
+        (arguments.size()!=10 || arguments[0]!=L"--driver-uniform-lz4-sweep-adapter" ||
+         arguments[5]!=std::to_wstring(l.request_bytes) || arguments[6]!=std::to_wstring(l.reply_bytes) ||
+         arguments[7]!=std::to_wstring(sweep->maximum_chunks) ||
+         arguments[8]!=std::to_wstring(sweep->maximum_device_bytes) ||
+         arguments[9]!=std::to_wstring(l.chunk_bytes))) {
+      select_cpu(GpuRecoveryOutcome::unsupported_configuration,GpuGateCode::invalid_budget);
+      return {{route,last_gate_,false},true};
+    }
+    const auto frame=encode_uniform_lz4_request(*pending_,generation_);
     session_.emplace(WorkerExchangeSession::start_sized(helper,arguments,frame,
         {static_cast<std::size_t>(l.request_bytes),static_cast<std::size_t>(l.reply_bytes)},budget));
     state_=GpuWorkerState::waiting;last_gate_=GpuGateCode::admitted;
@@ -103,7 +118,7 @@ GpuWorkerState UniformLz4WorkerController::poll(const GpuMemorySnapshot& after,s
       select_cpu(GpuRecoveryOutcome::temporary_pressure,GpuGateCode::stale_budget);return state_;
     }
     const auto code=check_gpu_memory_transition(baseline_,after,baseline_.luid,baseline_.node_mask,
-        now,pending_->layout().total_bytes);
+        now,device_peak_bytes_);
     if(code!=GpuGateCode::admitted)select_cpu(worker_gate_failure(code),code);
     else{state_=GpuWorkerState::worker_selected;last_gate_=GpuGateCode::accepted;report(GpuRecoveryOutcome::accepted);}
     return state_;
@@ -146,7 +161,7 @@ bool UniformLz4WorkerController::try_retire() noexcept{
   const auto confirmed=session_?session_->retirement_confirmed():WorkerExchangeSession::available();
   if(!confirmed)return false;
   if(!policy_.confirm_quiescent(ticket_)){disabled_=true;return false;}
-  session_.reset();ticket_=0;reported_=false;generation_=0;
+  session_.reset();ticket_=0;reported_=false;generation_=0;device_peak_bytes_=0;
   if(current_)pending_.reset();
   return true;
 }

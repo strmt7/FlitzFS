@@ -22,8 +22,10 @@ extent and the final inode/block frame. The writable callback uses the same
 resource and ownership checks for legacy and indexed deferred requests. A
 worker never owns publication. Installed AMD routing pins the approved
 worker, compute module and installed runtime. It binds controller telemetry
-to the matched adapter. Live resource checks and independent CPU verification
-remain part of every admitted route.
+to the matched adapter. Finite GPU exchanges separately check complete host
+storage, channel capacities and the peak device buffer. The supervisor retains
+its operation deadline, and independent CPU verification covers the entire
+source before a result can reach storage.
 [Indexed advice](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents) · [Installed route and evidence](AMD_RUNTIME_DISCOVERY.md)
 
 The [indexed managed head](MANAGED_PAGED_VOLUMES.md) binds the selected image

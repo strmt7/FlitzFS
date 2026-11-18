@@ -1,5 +1,16 @@
 # Validation ledger
 
+## Finite AMD exchanges — 18 November 2026
+
+The native indexed fixture admitted 1 MiB per worker with a 128 KiB
+per-launch input limit. Six matched CPU/AMD pairs covered repeated
+synthetic extents and public source text. All AMD work retired with
+independent CPU readback. The corpus occupied 128 KiB less on CPU,
+and both inputs selected CPU under the measured foreground policy.
+Eighteen selected Windows executions passed across codec, raw and
+AddressSanitizer builds.
+[Limits, measurements and test receipts](evidence/finite-amd-exchange-2026-11-18.json)
+
 ## Installed AMD acquisition and matched writes — 18 November 2026
 
 The relocated executable acquired its packaged worker and compute module.

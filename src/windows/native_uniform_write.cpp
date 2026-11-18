@@ -33,15 +33,19 @@ std::vector<std::byte> own_native_uniform_source(std::span<const std::byte> byte
   return bytes.empty()?std::vector<std::byte>{}:std::vector<std::byte>(bytes.begin(),bytes.end());
 }
 NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding& binding,
-    const GpuHealthEvidence& evidence,const PreparedUniformLz4& batch,WorkerExecution expected){
+    const GpuHealthEvidence& evidence,const PreparedUniformLz4& batch,WorkerExecution expected,
+    const GpuLz4SweepGrant* admitted_sweep){
   if(!batch.ready() || binding.configuration!=evidence.configuration ||
-      (expected!=WorkerExecution::hip && expected!=WorkerExecution::cpu_semantics))
+      (expected!=WorkerExecution::hip && expected!=WorkerExecution::cpu_semantics) ||
+      (admitted_sweep && (!binding.sweep || admitted_sweep->maximum_chunks>binding.sweep->maximum_chunks ||
+          admitted_sweep->maximum_device_bytes>binding.sweep->maximum_device_bytes)))
     throw std::invalid_argument("native uniform dispatch binding mismatch");
   const auto& l=batch.limits();
   NativeUniformDispatch result;result.quantum_chunks=l.chunks;result.windows=1;
   result.device_peak_bytes=l.device_bytes;
   if(binding.sweep){
-    const auto plan=plan_uniform_lz4_sweep(batch,binding.sweep->maximum_chunks,binding.sweep->maximum_device_bytes);
+    const auto& grant=admitted_sweep?*admitted_sweep:*binding.sweep;
+    const auto plan=plan_uniform_lz4_sweep(batch,grant.maximum_chunks,grant.maximum_device_bytes);
     result.reused=true;result.quantum_chunks=plan.quantum_chunks;result.windows=plan.windows;
     result.device_peak_bytes=plan.device_peak_bytes;
   }
@@ -101,14 +105,23 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
             if(!uniform_lz4::add(charged.fixed_bytes,owned.size()+sizeof(NativeUniformWriteResult)+
                   63*sizeof(NativeLz4ExtentCandidate),charged.fixed_bytes))
               throw std::invalid_argument("native uniform source accounting overflow");
-            const auto plan=plan_gpu_lz4_window(eligible,kNativeExtentBytes,evidence,now,charged,window);
+            const auto plan=binding.sweep?plan_gpu_lz4_sweep_window(eligible,kNativeExtentBytes,evidence,now,
+                charged,window,*binding.sweep,deadline):
+                plan_gpu_lz4_window(eligible,kNativeExtentBytes,evidence,now,charged,window);
+            if(binding.sweep && plan.code==GpuGateCode::invalid_budget){
+              start.worker.decision.route.reason=GpuRouteReason::bad_evidence;
+              start.worker.decision.gate=plan.code;
+            }
             if(plan.code==GpuGateCode::admitted && plan.layout.input_bytes%kNativeExtentBytes==0){
               const auto l=uniform_lz4_limits(plan.layout);
               auto batch=PreparedUniformLz4::prepare(std::span<const std::byte>(owned).subspan(
                   static_cast<std::size_t>(gap),static_cast<std::size_t>(l.input_bytes)),l);
-              const auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,expected_);
+              std::optional<GpuLz4SweepGrant> sweep;
+              if(binding.sweep)sweep=GpuLz4SweepGrant{plan.quantum.chunks,plan.quantum.total_bytes};
+              const auto dispatch=prepare_native_uniform_dispatch(binding,evidence,batch,expected_,
+                  sweep?&*sweep:nullptr);
               start.worker=controller_.begin(std::move(batch),binding.helper,dispatch.arguments,consent,worthwhile,
-                  evidence,now,charged,window,budget,deadline);
+                  evidence,now,charged,window,budget,deadline,sweep);
               first=(position+gap)/kNativeExtentBytes;
               start.eligible_bytes=static_cast<std::uint32_t>(plan.layout.input_bytes);
               start.quantum_chunks=dispatch.quantum_chunks;start.planned_windows=dispatch.windows;

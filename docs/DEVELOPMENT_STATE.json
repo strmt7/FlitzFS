@@ -84,6 +84,18 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "finite_amd_exchange": {
+    "source_base": "ac1547aca7cf1cd7071b43393ca61ca61848b34c",
+    "evidence": "docs/evidence/finite-amd-exchange-2026-11-18.json",
+    "input_bytes_per_exchange": 1048576,
+    "max_input_bytes_per_launch": 131072,
+    "device_peak_bytes": 328288,
+    "matched_trial_pairs": 6,
+    "source_corpus_cpu_image_bytes": 3145728,
+    "source_corpus_amd_image_bytes": 3276800,
+    "selected_foreground_backend": "cpu",
+    "next": "Use finite admitted GPU work for cross-file candidate selection and compare protected delta representations."
+  },
   "installed_amd_route": {
     "source_base": "d60b07c17442a864066efe1f92089247254c31c9",
     "evidence": "docs/evidence/installed-amd-routing-2026-11-18.json",

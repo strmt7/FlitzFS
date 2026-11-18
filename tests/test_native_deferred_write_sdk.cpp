@@ -13,6 +13,7 @@
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 #include "hip_route_discovery.hpp"
 #include "native_name_index.hpp"
+#include "flitzfs/read_only_file.hpp"
 #endif
 #include <array>
 #include <atomic>
@@ -477,11 +478,13 @@ void check_indexed_retirement() {
   check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load() &&
       WorkerExchangeSession::available(),"indexed backing or worker did not retire");
 }
+constexpr std::uint32_t fixture_quantum_chunks=2,fixture_sweep_chunks=16;
 NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
+    const std::vector<std::byte>& expected,bool expect_uniform_advice,
     bool prove_owned_input=false,NativeAmdWriteShape* shape=nullptr) {
-  constexpr std::uint32_t quantum_chunks=2;
-  const auto chunks=sweep?8U:quantum_chunks;
-  const auto expected=indexed_source(chunks);
+  constexpr auto quantum_chunks=fixture_quantum_chunks;
+  check(!expected.empty() && expected.size()%kNativeExtentBytes==0,"incomplete comparison extent");
+  const auto chunks=static_cast<std::uint32_t>(expected.size()/kNativeExtentBytes);
   auto source=expected;
   if(!route) {
     NativeAmdWriteSample sample;
@@ -521,8 +524,10 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
   cost.configuration=route->identity;cost.fixed_bytes=256ULL<<20;
   cost.input_copies=6;cost.slab_copies=2;cost.output_copies=3;cost.per_chunk_bytes=64;
   cost.profiled_chunk_bytes=kNativeExtentBytes;cost.kernel_ns_per_chunk=10000000;
-  cost.maximum_grid_x=chunks;cost.qualified_kernel_quantum_ns=200000000;cost.qualified=true;
-  options.window={16,100000000};
+  cost.maximum_grid_x=quantum_chunks;
+  cost.qualified_kernel_quantum_ns=quantum_chunks*cost.kernel_ns_per_chunk;
+  cost.qualified=true;
+  options.window={16,cost.qualified_kernel_quantum_ns};
   if(sweep) {
     uniform_lz4::Layout quantum{};
     check(uniform_lz4::make_layout(quantum_chunks*kNativeExtentBytes,kNativeExtentBytes,quantum),
@@ -540,12 +545,16 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
         "initial probe should expire before testing on-demand collection");
     if(shape)check(shape->matches_storage(fixture_compression,h.image->contract().write_failure_unit_bytes) &&
         shape->input_bytes==expected.size(),"CPU and AMD write geometry differs");
-    const auto planned=plan_gpu_lz4_window(expected.size(),kNativeExtentBytes,observed,observed.memory.captured_ms,
+    const auto single=plan_gpu_lz4_window(expected.size(),kNativeExtentBytes,observed,observed.memory.captured_ms,
         cost,options.window);
+    const auto planned=options.binding.sweep?plan_gpu_lz4_sweep_window(expected.size(),kNativeExtentBytes,
+        observed,observed.memory.captured_ms,cost,options.window,*options.binding.sweep,options.deadline_ms):single;
     std::cout<<"indexed_gpu_plan gate="<<static_cast<unsigned>(planned.code)
-        <<" input_bytes="<<planned.layout.input_bytes<<" host_peak="<<planned.host_peak_bytes<<'\n';
-    check(planned.code==GpuGateCode::admitted && planned.layout.input_bytes==expected.size(),
-        "indexed HIP work window not admitted");
+        <<" input_bytes="<<planned.layout.input_bytes<<" single_launch_bytes="<<single.layout.input_bytes
+        <<" device_peak_bytes="<<planned.quantum.total_bytes<<" host_peak="<<planned.host_peak_bytes<<'\n';
+    check(planned.code==GpuGateCode::admitted && planned.layout.input_bytes==expected.size() &&
+        planned.quantum.chunks==quantum_chunks && (!sweep || single.layout.input_bytes<expected.size()),
+        "indexed HIP finite work window not admitted");
     ULONG count=0;FSP_FSCTL_FILE_INFO info{};
     check(h.fs.Interface->Write(&h.fs,target,source.data(),0,static_cast<ULONG>(source.size()),FALSE,FALSE,
         &count,&info)==STATUS_SUCCESS && count==expected.size(),"absent fresh GPU budget delayed CPU write");
@@ -579,15 +588,17 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
         <<" candidates="<<(receipt?receipt->candidate_count:0)<<'\n';
     check(stopped==NativeDeferredStop::quiescent && stats.retirement_confirmed && stats.thread_exited &&
         stats.worker_submitted==1 && stats.advised==1 && stats.response_attempts==1 && receipt &&
-        receipt->candidate_count==chunks && receipt->advice.captured && receipt->advice.uniform_payloads,
+        receipt->candidate_count==chunks && receipt->advice.captured &&
+        (!expect_uniform_advice || receipt->advice.uniform_payloads),
         "indexed HIP verified candidacy or retirement");
     h.close(target);
     indexed_oracle(h,prior,expected);
-    const auto copies=verified_image_records(h,*receipt,measured_offset);
     std::cout<<"indexed_gpu_write sweep="<<sweep<<" quantum_chunks="<<quantum_chunks
         <<" source_bytes="<<expected.size()<<" offset="<<measured_offset
-        <<" worker_payload_bytes="<<receipt->candidate_bytes<<" matched_copies="<<copies
-        <<" image_bytes="<<h.image->extent()<<" response_ns="<<ns<<'\n';
+        <<" worker_payload_bytes="<<receipt->candidate_bytes;
+    if(expect_uniform_advice)
+      std::cout<<" matched_copies="<<verified_image_records(h,*receipt,measured_offset);
+    std::cout<<" image_bytes="<<h.image->extent()<<" response_ns="<<ns<<'\n';
     sample={static_cast<std::uint64_t>(ns),h.image->extent(),detail::record_digest(expected),true,false,true};
   }
   check_indexed_retirement();
@@ -615,12 +626,23 @@ int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,con
   for(std::size_t i=0;i<request.helper_sha256.size();++i)
     request.helper_sha256[i]=static_cast<std::byte>(16*hex_digest_digit(digest[2*i])+hex_digest_digit(digest[2*i+1]));
   const auto discovery=discover_system_hip_route(request);
-  (void)indexed_trial(&require_indexed_route(discovery),sweep,true);
+  const auto input=indexed_source(sweep?fixture_sweep_chunks:fixture_quantum_chunks);
+  (void)indexed_trial(&require_indexed_route(discovery),sweep,input,true,true);
   std::cout<<"parent_peak_commit="<<controller_budget.peak_commit()<<'\n';
   return 0;
 }
-int compare_installed_amd() {
+int compare_installed_amd(const std::filesystem::path& corpus={}) {
   gpu_probe_fixture::Budget controller_budget;
+  std::vector<std::byte> input;
+  if(corpus.empty())input=indexed_source(fixture_sweep_chunks);
+  else {
+    check(corpus.is_absolute(),"corpus path must be absolute");
+    const auto file=ReadOnlyFile::open(corpus);
+    constexpr auto fixture_bytes=fixture_sweep_chunks*kNativeExtentBytes;
+    check(file.size()==fixture_bytes,"comparison corpus must fill the declared fixture exactly");
+    input.resize(fixture_bytes);file.read_exact_at(0,input.data(),input.size());
+  }
+  std::cout<<"indexed_corpus="<<(!corpus.empty())<<" input_bytes="<<input.size()<<'\n';
   const auto discovery=discover_installed_hip_route(diagnostic_worker_budget,4);
   const auto& route=require_indexed_route(discovery);
   check(route.pins->uniform_module_pinned(),"installed route did not pin its compute module");
@@ -629,9 +651,9 @@ int compare_installed_amd() {
   for(std::size_t i=0;i<pairs.size();++i) {
     auto& pair=pairs[i];
     pair.amd_first=i%2!=0;
-    if(pair.amd_first)pair.amd=indexed_trial(&route,true,false,&shape);
-    pair.cpu=indexed_trial(nullptr,true,false,&shape);
-    if(!pair.amd_first)pair.amd=indexed_trial(&route,true,false,&shape);
+    if(pair.amd_first)pair.amd=indexed_trial(&route,true,input,corpus.empty(),false,&shape);
+    pair.cpu=indexed_trial(nullptr,true,input,false,false,&shape);
+    if(!pair.amd_first)pair.amd=indexed_trial(&route,true,input,corpus.empty(),false,&shape);
     std::cout<<"indexed_pair="<<i+1<<" amd_first="<<pair.amd_first<<" cpu_ns="<<pair.cpu.elapsed_ns
         <<" amd_ns="<<pair.amd.elapsed_ns<<" cpu_image_bytes="<<pair.cpu.occupied_bytes
         <<" amd_image_bytes="<<pair.amd.occupied_bytes<<'\n';
@@ -651,6 +673,8 @@ int compare_installed_amd() {
 int wmain(int argc,wchar_t** argv){try{
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
+  if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-corpus")
+    return compare_installed_amd(argv[2]);
   if(argc==2) {
     const std::wstring_view mode(argv[1]);
     if(mode==L"--verify-installed-amd-absent" || mode==L"--verify-installed-amd-untrusted") {

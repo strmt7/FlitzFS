@@ -12,25 +12,30 @@ struct UniformLz4SweepPlan {
   std::uint64_t device_peak_bytes=0;
   bool operator==(const UniformLz4SweepPlan&) const=default;
 };
-inline UniformLz4SweepPlan plan_uniform_lz4_sweep(const PreparedUniformLz4& source,
-    std::uint32_t maximum_chunks,std::uint64_t maximum_device_bytes){
-  if(!source.ready() || !maximum_chunks || !maximum_device_bytes)
-    throw std::invalid_argument("invalid uniform sweep grant");
-  const auto& shape=source.layout();
-  std::uint32_t low=1,high=(std::min)(shape.chunks,maximum_chunks),selected=0;
-  std::uint64_t peak=0;
+inline uniform_lz4::Layout uniform_lz4_sweep_quantum(const uniform_lz4::Layout& shape,
+    std::uint32_t maximum_chunks,std::uint64_t maximum_device_bytes) noexcept {
+  if(!uniform_lz4::valid_layout(shape,shape.total_bytes))return {};
+  std::uint32_t low=1,high=(std::min)(shape.chunks,maximum_chunks);
+  uniform_lz4::Layout quantum{};
   while(low<=high){
     const auto count=low+(high-low)/2;
     const auto bytes=(std::min)(shape.input_bytes,std::uint64_t(count)*shape.chunk_bytes);
     uniform_lz4::Layout part{};
     if(uniform_lz4::make_layout(bytes,shape.chunk_bytes,part) && part.total_bytes<=maximum_device_bytes){
-      selected=count;peak=part.total_bytes;
+      quantum=part;
       if(count==high)break;
       low=count+1;
     }else high=count-1;
   }
-  if(!selected)throw std::invalid_argument("uniform sweep cannot admit one quantum");
-  return {source.limits(),selected,1+(shape.chunks-1)/selected,peak};
+  return quantum;
+}
+inline UniformLz4SweepPlan plan_uniform_lz4_sweep(const PreparedUniformLz4& source,
+    std::uint32_t maximum_chunks,std::uint64_t maximum_device_bytes){
+  if(!source.ready() || !maximum_chunks || !maximum_device_bytes)
+    throw std::invalid_argument("invalid uniform sweep grant");
+  const auto quantum=uniform_lz4_sweep_quantum(source.layout(),maximum_chunks,maximum_device_bytes);
+  if(!quantum.chunks)throw std::invalid_argument("uniform sweep cannot admit one quantum");
+  return {source.limits(),quantum.chunks,1+(source.layout().chunks-1)/quantum.chunks,quantum.total_bytes};
 }
 // Callback completes ONE quantum before another begins, returning independently
 // verifiable candidates. It must synchronize device work before returning. A

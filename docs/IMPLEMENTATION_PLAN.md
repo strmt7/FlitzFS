@@ -427,9 +427,12 @@ Three alternating 512 KiB AMD/CPU trials produced the same occupied image
 size. CPU completed in 1.21–1.60 ms and the one-shot AMD route in
 703–1,331 ms. The earlier phase fixture measured 1.19 s of initialization
 in a 1.37 s worker exchange, with 2.57 ms of kernel wait. These results keep
-the tested foreground request class on CPU and prioritize finite reuse and
-stronger collective compression for GPU work.
-[Runtime and hardware evidence](AMD_RUNTIME_DISCOVERY.md)
+the tested foreground request class on CPU. Finite reuse subsequently
+processed 1 MiB per worker under a 128 KiB launch limit. The public source
+sample still favored CPU for both time and occupied bytes. Use the finite
+worker to explore cross-file similarity and stronger representations while
+keeping foreground selection tied to workload measurements.
+[Runtime acquisition](AMD_RUNTIME_DISCOVERY.md) · [Finite exchange evidence](evidence/finite-amd-exchange-2026-11-18.json)
 
 ### Implementation steps
 
@@ -460,12 +463,20 @@ stronger collective compression for GPU work.
    and device, and verify the path on hosts with multiple AMD devices. Treat
    the observed CPU choice as specific to the tested request class.
    [Installed route evidence](evidence/installed-amd-routing-2026-11-18.json)
-7. Amortize setup over finite admitted work windows. Measure one launch cost
-   across multiple independent extents or grouped-compression jobs. Bind each
-   job to a source revision, independently verify bytes before publication,
-   and retire the helper when admitted work drains or foreground work needs
-   its resources. Compare complete occupied bytes and foreground interference
-   with a matched CPU baseline, including unsuccessful or cancelled batches.
+7. Amortize setup over finite admitted work windows. The native indexed
+   path can now cover several independently bounded launches in one worker
+   exchange and charges the complete host footprint. Extend finite exchanges
+   to collective work across files. Bind each job to a source revision,
+   verify every decoded byte before publication, and retire the helper when
+   admitted work drains or foreground demand rises. Compare complete occupied
+   bytes and foreground interference with a matched CPU baseline, including
+   unsuccessful or cancelled batches. For reference selection, compare
+   bounded candidate retrieval and actual delta cost. Include held-out data
+   that lacks a natural base. Use protected, independently readable references
+   and record search cost as part of the complete comparison.
+   [Finite exchange evidence](evidence/finite-amd-exchange-2026-11-18.json) ·
+   [Sonic similarity study](https://www.mdpi.com/2073-431X/15/9/607) ·
+   [ZipLLM delta study](https://www.usenix.org/conference/nsdi26/presentation/wang-zirui)
 8. Preserve immutable owned input and independent CPU selection. CPU completion
    must not wait solely for optional GPU teardown; late GPU completion must not
    publish a second result or touch a newer file version.

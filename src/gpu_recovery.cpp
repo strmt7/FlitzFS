@@ -45,6 +45,14 @@ GpuRouteDecision GpuRecoveryPolicy::consider(bool consent,bool worthwhile,
     const GpuHealthEvidence& e,const PreparedUniformLz4& batch,std::uint64_t now) noexcept {
   return consider_work(consent,worthwhile,e,batch.ready(),batch.ready()?batch.layout().total_bytes:0,now);
 }
+GpuRouteDecision GpuRecoveryPolicy::consider(bool consent,bool worthwhile,const GpuHealthEvidence& e,
+    const PreparedUniformLz4& batch,const uniform_lz4::Layout& quantum,std::uint64_t now) noexcept {
+  const auto& whole=batch.layout();
+  const bool valid=batch.ready() && uniform_lz4::valid_layout(quantum,quantum.total_bytes) &&
+      quantum.chunk_bytes==whole.chunk_bytes && quantum.chunks<=whole.chunks &&
+      quantum.input_bytes==(std::min)(whole.input_bytes,std::uint64_t(quantum.chunks)*whole.chunk_bytes);
+  return consider_work(consent,worthwhile,e,valid,quantum.total_bytes,now);
+}
 GpuRouteDecision GpuRecoveryPolicy::consider_work(bool consent,bool worthwhile,
     const GpuHealthEvidence& e,bool has_work,std::uint64_t device_bytes,std::uint64_t now) noexcept {
   if(!consent) return {GpuRouteReason::disabled};

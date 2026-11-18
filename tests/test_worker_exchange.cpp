@@ -1090,6 +1090,22 @@ void coordinated_uniform_requests(const std::filesystem::path& executable){
     return;
   }
   {
+    auto input=uniform_owned(7);
+    const auto bytes=input.plaintext().size();
+    auto bounded=cost;
+    bounded.maximum_grid_x=2;
+    uniform_lz4::Layout quantum;
+    check(uniform_lz4::make_layout(2*65536,65536,quantum),"uniform sweep quantum fixture");
+    const GpuLz4SweepGrant grant{quantum.chunks,quantum.total_bytes};
+    UniformLz4WorkerController controller;
+    const auto refused=controller.begin(std::move(input),executable,{L"uniform-ok"},true,true,e,
+        e.memory.captured_ms,bounded,window,budget,3000,grant);
+    check(refused.source_adopted && refused.decision.route.try_gpu() && !refused.decision.submitted &&
+        refused.decision.gate==GpuGateCode::invalid_budget && !controller.process_id() &&
+        controller.use_cpu_fallback().size()==bytes && controller.try_retire() &&
+        WorkerExchangeSession::available(),"sweep admitted an unbound command or lost CPU input");
+  }
+  {
     UniformLz4WorkerController controller(WorkerExecution::cpu_semantics);
     auto input=uniform_owned(7);const auto r=begin(controller,std::move(input),L"uniform-ok",e,cost);
     check(r.source_adopted && r.decision.submitted && !input.ready(),"uniform controller source ownership");

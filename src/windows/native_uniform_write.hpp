@@ -7,10 +7,7 @@
 namespace flitzfs {
 // Admission and immutable copying shared with the deferred callback owner.
 std::vector<std::byte> own_native_uniform_source(std::span<const std::byte>,NativeFileInfoAllocation);
-struct NativeUniformSweepGrant {
-  std::uint32_t maximum_chunks=0;
-  std::uint64_t maximum_device_bytes=0;
-};
+using NativeUniformSweepGrant=GpuLz4SweepGrant;
 struct NativeUniformWorkerBinding {
   std::filesystem::path helper;
   GpuConfigurationId configuration{};
@@ -33,7 +30,8 @@ struct NativeUniformDispatch {
 // Pure command/geometry preparation; no runtime, process, backing or GPU calls.
 // Validates optional sweep grants for BOTH real and CPU-semantic callers.
 NativeUniformDispatch prepare_native_uniform_dispatch(const NativeUniformWorkerBinding&,
-    const GpuHealthEvidence&,const PreparedUniformLz4&,WorkerExecution);
+    const GpuHealthEvidence&,const PreparedUniformLz4&,WorkerExecution,
+    const GpuLz4SweepGrant* admitted_sweep=nullptr);
 struct NativeUniformWriteStart {
   NativeWindowsIoOutcome admission;
   UniformLz4WorkerStart worker;

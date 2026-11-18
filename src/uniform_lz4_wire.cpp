@@ -80,12 +80,20 @@ bool valid_uniform_lz4_limits(const UniformLz4Limits& l) noexcept{
   return l.request_bytes==request && l.reply_bytes==reply && request<=maximum && reply<=maximum &&
       p.total_bytes<=(std::numeric_limits<std::size_t>::max)();
 }
-UniformLz4Limits uniform_lz4_limits(const uniform_lz4::Layout& p){
-  if(!uniform_lz4::valid_layout(p,p.total_bytes))invalid("invalid uniform LZ4 layout");
-  UniformLz4Limits l{p.input_bytes,p.total_bytes,kUniformLz4HeaderBytes+p.input_bytes,
+bool try_uniform_lz4_limits(const uniform_lz4::Layout& p,UniformLz4Limits& limits) noexcept {
+  limits={};
+  if(!uniform_lz4::valid_layout(p,p.total_bytes))return false;
+  const UniformLz4Limits candidate{p.input_bytes,p.total_bytes,kUniformLz4HeaderBytes+p.input_bytes,
       kUniformLz4HeaderBytes+std::uint64_t(p.chunks)*(8+p.output_stride-uniform_lz4::guard_bytes),
       p.chunk_bytes,p.chunks};
-  if(!valid_uniform_lz4_limits(l))invalid("uniform LZ4 transport representation exceeded");return l;
+  if(!valid_uniform_lz4_limits(candidate))return false;
+  limits=candidate;
+  return true;
+}
+UniformLz4Limits uniform_lz4_limits(const uniform_lz4::Layout& p){
+  UniformLz4Limits limits;
+  if(!try_uniform_lz4_limits(p,limits))invalid("invalid uniform LZ4 layout or transport extent");
+  return limits;
 }
 void PreparedUniformLz4::swap(PreparedUniformLz4& other) noexcept{
   std::swap(layout_,other.layout_);std::swap(limits_,other.limits_);
