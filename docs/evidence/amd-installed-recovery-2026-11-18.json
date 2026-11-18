@@ -1,0 +1,173 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "recorded_local": "2026-11-18T22:51:10+01:00",
+  "source_base": "a231b4fd5d4ca1c9fc068c97d5061714dc5b17aa",
+  "source_binding": [
+    {
+      "path": "src/windows/hip_route_discovery.cpp",
+      "git_blob": "36e447aaa4dfece71130ed7068b26b1106cccc56",
+      "sha256": "3c99d18c1c4b066a00fa6a62c78e488c834cd93df837d771615eb51a8a5c8b37"
+    },
+    {
+      "path": "src/windows/hip_route_discovery.hpp",
+      "git_blob": "9f47198fdff6ae6396fb001dc139922c3209b938",
+      "sha256": "ff07a2da50613698668617192598c7e20036960334615c9db9d7e8054655211c"
+    },
+    {
+      "path": "src/windows/native_anchor_search.cpp",
+      "git_blob": "8bcf55b3798d3108153423f0b626f4b66e261b7e",
+      "sha256": "12864d1bfb3866111579487a409dfa3cedda56fd15f710feae239c16236c4e68"
+    },
+    {
+      "path": "src/windows/native_anchor_search.hpp",
+      "git_blob": "74961c0d3e7404039d02b03b2901427f45d2b126",
+      "sha256": "294decdf6b2fe1df26dc12e57aacf8eea725db8a572ad3111196bdd324371547"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "1eac7baa8984bd38f04df1d7a2c432a4ed295201",
+      "sha256": "c1200c0a78a3cfed9813419a9f1854c35cdb8e667c372000d199a649ee2adac5"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "11a89928d6ca425bc5b63a939973a9bf2f27d4d5",
+      "sha256": "b2e2a29b468b952f656ef1a123291134ec9c8d931cecaf95d00cd080a0ebe29a"
+    }
+  ],
+  "semantic_search": {
+    "commit": "a231b4fd5d4ca1c9fc068c97d5061714dc5b17aa",
+    "source_files": 11,
+    "provider_version": "0.2.43",
+    "inventory_sha256": "91030bec2badcb070156920baf20b8d9e604b0c696051c6f055c87b175fbaaff",
+    "native_response_sha256": "614fbc79404911d7bab614032c451ec09b97ae181b1537da53f062e9bbd4e6f6",
+    "actual_searches": 1,
+    "receipt_sha256": "3124795ae09b5e7648817cfa7d9696ae68a597a79881f718f6c33fb6baae5d11"
+  },
+  "research": {
+    "provider": "Crawl4AI 0.9.5+flitzzip.portable2",
+    "topology_receipt_sha256": "41d77e35cd338feca6aba4503c922951b740cfe68c6e2671bf99b0d7d5b3cafc",
+    "file_receipt_sha256": "54cc12cb72a6d54b0bc145d025affcbb5fd4018d9e6728512b3c28dcdd71b563",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent",
+        "http_status": 200,
+        "capture_sha256": "f123f1cd489441b101d73f7cce22ccc8e5d54b7720e07617ced9a6717dde4bda"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info",
+        "http_status": 200,
+        "capture_sha256": "8a766edfcd8c60e3e384877b81ab18fcdeb497a132119123d9feccc4ff82e56f"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex",
+        "http_status": 200,
+        "capture_sha256": "d15ac73054872c4c508d9e768f628105e89dcae1ff2aac6418b21064af4860e7"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew",
+        "http_status": 200,
+        "capture_sha256": "c8fabeee6b4329c8da614df2e49e83558e7ef210b1784374a6ee307a0e813667"
+      }
+    ],
+    "unused_failed_capture": "The HIP device page did not contain the requested Windows LUID entry and was excluded from the source basis."
+  },
+  "platform": {
+    "windows_version": "10.0.26300",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "approved_manifest_sha256": "73817fe8f2aa70b1b3923abc72e2b948de9b4dffd5079146d9a1348d7ca20c19"
+  },
+  "artifacts": [
+    {
+      "path": "flitzfs_winfsp_controller_tests.exe",
+      "sha256": "ab454d6444b0b6458c34a5abceb391aecfa20a8f9c819d78f59fe41cb83e323b"
+    },
+    {
+      "path": "amd/flitzfs_hip_worker.exe",
+      "sha256": "54e86cbfbc03e436013a6f56476c43cac9acc1108d9346d1d390ddcaf5e4b678"
+    },
+    {
+      "path": "amd/hip/flitzfs_rocm_kernels.dll",
+      "sha256": "c1891af07f325c57a05455ceea9f782a62752b346f5e3d11e177470953b37511"
+    }
+  ],
+  "validation": {
+    "release": {
+      "run": "local-run-9966abe099344d5ca3b25b908233cede",
+      "exit_code": 0,
+      "tree_retired": true,
+      "active_children": 0,
+      "host_available_bytes": 26328969216,
+      "memory_grant_bytes": 667942912,
+      "peak_job_commit_bytes": 29802496,
+      "report": [
+        "100% tests passed out of 3"
+      ],
+      "receipt_sha256": "b15c67ab9ebb69c50c1abd96210e7de8468eb7aad6fdb7c3189a646425e2776c",
+      "output_sha256": "5620fbaee2618e694c9f89f77a3d15f9fe038dd649d2f633959d1085df0a3e3c"
+    },
+    "asan": {
+      "run": "local-run-4c00995f3c94468e91c7c00d81a09f81",
+      "exit_code": 0,
+      "tree_retired": true,
+      "active_children": 0,
+      "host_available_bytes": 26118479872,
+      "memory_grant_bytes": 910163968,
+      "peak_job_commit_bytes": 402472960,
+      "report": [
+        "100% tests passed out of 5"
+      ],
+      "receipt_sha256": "1ca54a40e2ed5c5db5f6b9a6ac9270cf810f2e5b71afc3cd2c4ec765d2131012",
+      "output_sha256": "52cdbb32c5bc2cfe6012c268a876670846860231f8f92b424cb90dd75b774118"
+    },
+    "live_restoration": {
+      "run": "local-run-99eff120214a4f4e97916ead5f808f35",
+      "exit_code": 0,
+      "tree_retired": true,
+      "active_children": 0,
+      "host_available_bytes": 26402275328,
+      "memory_grant_bytes": 344981504,
+      "peak_job_commit_bytes": 121708544,
+      "report": [
+        "Unchanged missing package: two CPU groups, one discovery attempt",
+        "anchor_owner mode=restored host=1 quanta=59 groups=3 declined_groups=1 phase=0 sampled=19 attempted=4 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_groups=2 verified_groups=2 declined=0 yielded=0 advised_members=2 installed_attempts=2 metadata_queries=1 installed_status=0 handles_before=135 handles_after=337 retired=true cpu_readback_verified=true deferrals=57,2,0,0,0,0,0,"
+      ],
+      "receipt_sha256": "f351cffad71c7baaff28e5060012b72c95cb4f7ee5e5a3f64650051ff003548f",
+      "output_sha256": "050b8d7f978db33da16a97d5588c24c9844ef94909d059fbfb882fe5ea3dafcf"
+    },
+    "initial_fixture": {
+      "run": "local-run-b6d6d52c2a88487e9d7166208ce7b7f3",
+      "exit_code": 1,
+      "tree_retired": true,
+      "active_children": 0,
+      "host_available_bytes": 25497755648,
+      "memory_grant_bytes": 331350016,
+      "peak_job_commit_bytes": 22581248,
+      "report": [],
+      "receipt_sha256": "907966741846d47f763e8e7663d55aef48693bbf1e7111014233372f718536c5",
+      "output_sha256": "1f502b478f19ddc559e632142baf6fc6d92faf137ff1840a6794b02de71ead76"
+    },
+    "strict_publication_fixture": {
+      "run": "local-run-b068e53bf5b84438abdb6ed535143ca9",
+      "exit_code": 2,
+      "tree_retired": true,
+      "active_children": 0,
+      "host_available_bytes": 25329725440,
+      "memory_grant_bytes": 328204288,
+      "peak_job_commit_bytes": 122458112,
+      "report": [
+        "Unchanged missing package: two CPU groups, one discovery attempt",
+        "anchor_owner mode=restored host=1 quanta=59 groups=3 phase=0 sampled=19 attempted=4 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_groups=2 verified_groups=2 declined=0 yielded=0 advised_members=2 installed_attempts=2 metadata_queries=1 installed_status=0 handles_before=135 handles_after=329 retired=true cpu_readback_verified=true deferrals=57,2,0,0,0,0,0,"
+      ],
+      "receipt_sha256": "54309c9a00f8eb18da2cc13046fcb5c8c013dc8601b4136bb9fe958da26ffaf0",
+      "output_sha256": "d92e56478454c9694ddc61478cdd5d379fc52f000f9a7a481fc8f42cade86e13"
+    },
+    "test_notes": [
+      "The first live fixture did not complete both CPU publications before the test deadline. It exited and retired its process tree.",
+      "The second fixture recovered AMD and verified both groups. It required both groups to publish and exited 2 after one group was declined.",
+      "The final fixture requires an actual restored route and byte-exact readback while preserving the storage publication checks. It passed."
+    ]
+  },
+  "scope": "Live application-package restoration in one Windows SDK callback session with independently verified CPU reads. Topology changes, unchanged-identity device reset recovery and a mounted Explorer workload require separate qualification."
+}

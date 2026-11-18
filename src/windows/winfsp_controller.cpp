@@ -42,6 +42,8 @@ struct WinFspVolumeController::Impl {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
   std::optional<InstalledAnchorProfile> installed;
   HipRouteDiscoveryResult acquisition;
+  std::unique_ptr<InstalledAnchorInputWitness> acquisition_inputs;
+  std::uint64_t last_acquisition_candidate=0;
   std::atomic<bool> acquisition_finished{false};
   bool acquisition_started=false,acquisition_retired=true;
   std::jthread acquisition_thread;
@@ -167,6 +169,7 @@ struct WinFspVolumeController::Impl {
     bool anchor_retired=!anchor || anchor->stop();
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
     anchor_retired=anchor_retired && acquisition_retired;
+    acquisition_inputs.reset();
 #endif
     std::lock_guard lock(mutex);current.state=session->state();current.start_status=started;
     current.offline=session->requires_offline();
@@ -180,7 +183,7 @@ struct WinFspVolumeController::Impl {
     const auto now=GetTickCount64();
     if(!anchor) {
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
-      const bool may_acquire=installed && (!acquisition_started || acquisition_thread.joinable());
+      const bool may_acquire=installed && acquisition_retired;
       auto result=session->advance_background_maintenance(observed,now,{0,nullptr,may_acquire});
       begin_acquisition(result,observed);
       return result;
@@ -214,11 +217,15 @@ struct WinFspVolumeController::Impl {
         adapter->signal_foreground_for_anchor(anchor->waiting());
       }
     }
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+    begin_acquisition(result,observed);
+#endif
     return result;
   }
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
   void begin_acquisition(const WinFspMaintenanceResult& result,const NativeMaintenanceObservation& observed) {
-    if(!installed || acquisition_started || result.progress.phase!=NativeMaintenancePhase::preparing ||
+    if(!installed || !acquisition_retired || acquisition_thread.joinable() ||
+        (anchor && !anchor->can_reacquire()) || result.progress.phase!=NativeMaintenancePhase::preparing ||
         result.progress.deferral!=NativeMaintenanceDeferral::none ||
         result.group_members<2 ||
         stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
@@ -227,7 +234,21 @@ struct WinFspVolumeController::Impl {
     const auto& budget=installed->worker;
     if(!valid_process_budget(plan_resource_process_budget(budget.memory_mib*mib,observed.physical_available,
         observed.commit_available,budget.memory_share_divisor,budget.cpu_rate,budget.timeout_ms)))return;
+    const auto candidate=result.progress.attempted_groups;
+    if(acquisition_started) {
+      if(candidate==last_acquisition_candidate)return;
+      last_acquisition_candidate=candidate;
+      if(acquisition.status!=HipDiscoveryStatus::transport_busy &&
+          (!acquisition_inputs || !acquisition_inputs->changed()))return;
+    }
+    last_acquisition_candidate=candidate;
     acquisition_started=true;
+    acquisition_inputs.reset();
+    // Keep the DXGI factory and its observations on the Windows volume owner.
+    try {acquisition_inputs=std::make_unique<InstalledAnchorInputWitness>();}
+    catch(...) {}
+    acquisition={};
+    acquisition_finished.store(false,std::memory_order_relaxed);
     try {
       acquisition_thread=std::jthread([this](std::stop_token stop) noexcept {
         try {
@@ -239,8 +260,9 @@ struct WinFspVolumeController::Impl {
         SetEvent(activity.value);
       });
     }catch(...) {
+      acquisition.status=HipDiscoveryStatus::resource_deferred;
       std::lock_guard lock(mutex);
-      current.installed_anchor_status=HipDiscoveryStatus::resource_deferred;
+      current.installed_anchor_status=acquisition.status;
     }
     std::lock_guard lock(mutex);
     ++current.installed_anchor_attempts;
@@ -254,8 +276,13 @@ struct WinFspVolumeController::Impl {
     if(use_route && acquisition.status==HipDiscoveryStatus::ready && acquisition.route &&
         !stop_requested.load(std::memory_order_acquire)) {
       try {
-        anchor=std::make_unique<NativeAnchorSearchController>(NativeAnchorSearchOptions{
-            std::move(*acquisition.route),installed->worker,installed->minimum_members,installed->maximum_members,installed->duty_ppm});
+        if(anchor) {
+          if(!anchor->rebind(std::move(*acquisition.route)))
+            acquisition.status=HipDiscoveryStatus::configuration_quarantined;
+        } else {
+          anchor=std::make_unique<NativeAnchorSearchController>(NativeAnchorSearchOptions{
+              std::move(*acquisition.route),installed->worker,installed->minimum_members,installed->maximum_members,installed->duty_ppm});
+        }
       }catch(...) {acquisition.status=HipDiscoveryStatus::resource_deferred;}
     }
     acquisition.route.reset();

@@ -229,15 +229,27 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
 
 #ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE
 namespace {
+std::filesystem::path application_amd_directory() {
+  std::array<wchar_t,32768> path{};
+  const auto length=GetModuleFileNameW(nullptr,path.data(),static_cast<DWORD>(path.size()));
+  if(!length || length>=path.size())return {};
+  return std::filesystem::path(std::wstring_view(path.data(),length)).parent_path()/L"amd";
+}
+
+std::filesystem::path package_worker(const std::filesystem::path& directory,bool anchor) {
+  return directory/(anchor?L"flitzfs_hip_worker.exe":L"flitzfs_hip_lz4_worker.exe");
+}
+std::filesystem::path package_module(const std::filesystem::path& directory,bool anchor) {
+  return directory/(anchor?L"hip/flitzfs_rocm_kernels.dll":L"hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll");
+}
+
 HipRouteDiscoveryResult discover_application_package(HipRouteDiscoveryRequest request,bool anchor,std::stop_token stop) {
   if(stop.stop_requested())return {Status::cancelled};
   try {
-    std::array<wchar_t,32768> path{};
-    const auto length=GetModuleFileNameW(nullptr,path.data(),static_cast<DWORD>(path.size()));
-    if(!length || length>=path.size())return {Status::package_unavailable};
-    const auto directory=std::filesystem::path(std::wstring_view(path.data(),length)).parent_path()/L"amd";
-    request.helper=directory/(anchor?L"flitzfs_hip_worker.exe":L"flitzfs_hip_lz4_worker.exe");
-    const auto module=directory/(anchor?L"hip/flitzfs_rocm_kernels.dll":L"hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll");
+    const auto directory=application_amd_directory();
+    if(directory.empty())return {Status::package_unavailable};
+    request.helper=package_worker(directory,anchor);
+    const auto module=package_module(directory,anchor);
     const std::filesystem::path* files[]{&request.helper,&module};
     for(const auto* path:files) {
       if(GetFileAttributesW(path->c_str())==INVALID_FILE_ATTRIBUTES) {
@@ -253,6 +265,69 @@ HipRouteDiscoveryResult discover_application_package(HipRouteDiscoveryRequest re
 }
 }
 #endif
+
+namespace {
+struct AnchorInputObservation {
+  bool present=false;
+  std::uint64_t volume=0;
+  std::array<unsigned char,16> file_id{};
+  std::int64_t bytes=0,write_time=0,change_time=0;
+  bool operator==(const AnchorInputObservation&) const noexcept=default;
+};
+
+std::optional<AnchorInputObservation> observe_anchor_input(const std::filesystem::path& path) noexcept {
+  if(path.empty() || !ordinary_windows_file_path(path.native()))return {};
+  const auto file=CreateFileW(path.c_str(),FILE_READ_ATTRIBUTES,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+      nullptr,OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
+  if(file==INVALID_HANDLE_VALUE) {
+    const auto error=GetLastError();
+    if(error==ERROR_FILE_NOT_FOUND || error==ERROR_PATH_NOT_FOUND)return AnchorInputObservation{};
+    return {};
+  }
+  FILE_ID_INFO id{};
+  FILE_BASIC_INFO basic{};
+  FILE_STANDARD_INFO standard{};
+  const bool valid=GetFileType(file)==FILE_TYPE_DISK &&
+      GetFileInformationByHandleEx(file,FileBasicInfo,&basic,sizeof(basic)) &&
+      !(basic.FileAttributes&(FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_REPARSE_POINT)) &&
+      GetFileInformationByHandleEx(file,FileIdInfo,&id,sizeof(id)) &&
+      GetFileInformationByHandleEx(file,FileStandardInfo,&standard,sizeof(standard));
+  CloseHandle(file);
+  if(!valid)return {};
+  return AnchorInputObservation{true,id.VolumeSerialNumber,std::bit_cast<std::array<unsigned char,16>>(id.FileId),
+      standard.EndOfFile.QuadPart,basic.LastWriteTime.QuadPart,basic.ChangeTime.QuadPart};
+}
+} // namespace
+
+struct InstalledAnchorInputWitness::Impl {
+  std::array<std::filesystem::path,3> paths;
+  std::array<std::optional<AnchorInputObservation>,3> before;
+  Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
+};
+InstalledAnchorInputWitness::InstalledAnchorInputWitness():impl_(std::make_unique<Impl>()) {
+#if defined(FLITZFS_BIND_INSTALLED_AMD_PACKAGE) && FLITZFS_INSTALLED_AMD_HAS_ANCHOR
+  const auto directory=application_amd_directory();
+  if(!directory.empty()) {
+    impl_->paths[0]=package_worker(directory,true);
+    impl_->paths[1]=package_module(directory,true);
+  }
+  std::array<wchar_t,32768> system{};
+  const auto length=GetSystemDirectoryW(system.data(),static_cast<UINT>(system.size()));
+  if(length && length<system.size())
+    impl_->paths[2]=std::filesystem::path(std::wstring_view(system.data(),length))/installed_amd_package::runtime_basename;
+  for(std::size_t i=0;i<impl_->paths.size();++i)impl_->before[i]=observe_anchor_input(impl_->paths[i]);
+  if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(impl_->factory.GetAddressOf()))))impl_->factory.Reset();
+#endif
+}
+InstalledAnchorInputWitness::~InstalledAnchorInputWitness()=default;
+bool InstalledAnchorInputWitness::changed() const noexcept {
+  if(impl_->factory && !impl_->factory->IsCurrent())return true;
+  for(std::size_t i=0;i<impl_->paths.size();++i) {
+    const auto current=observe_anchor_input(impl_->paths[i]);
+    if(current && impl_->before[i] && *current!=*impl_->before[i])return true;
+  }
+  return false;
+}
 
 HipRouteDiscoveryResult discover_installed_hip_route(ProcessBudget budget,std::uint32_t maximum_identity_queries) {
 #ifdef FLITZFS_BIND_INSTALLED_AMD_PACKAGE

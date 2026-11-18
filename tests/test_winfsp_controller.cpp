@@ -125,11 +125,31 @@ std::array<std::byte,32> artifact_digest(std::string_view input) {
   for(std::size_t i=0;i<result.size();++i)result[i]=static_cast<std::byte>(16*digit(input[2*i])+digit(input[2*i+1]));
   return result;
 }
+void restore_private_anchor_package() {
+  std::array<wchar_t,32768> executable{};
+  const auto length=GetModuleFileNameW(nullptr,executable.data(),static_cast<DWORD>(executable.size()));
+  require(length && length<executable.size(),"Restoration fixture executable path");
+  const auto root=std::filesystem::canonical(std::filesystem::path(std::wstring_view(executable.data(),length)).parent_path());
+  require(root.filename().native().starts_with(L"anchor-input-restore-"),"Restoration requires its private fixture directory");
+  const auto staged=root/L"prepared"/L"amd";
+  require(std::filesystem::canonical(staged)==staged,"Restoration inputs leave the fixture directory");
+  const auto destination=root/L"amd";
+  require(std::filesystem::create_directory(destination) &&
+      std::filesystem::create_directory(destination/L"hip"),"Restoration destination already exists");
+  for(const auto& relative:{L"flitzfs_hip_worker.exe",L"hip/flitzfs_rocm_kernels.dll"}) {
+    const auto input=staged/relative;
+    require(std::filesystem::canonical(input)==input &&
+        CopyFileW(input.c_str(),(destination/relative).c_str(),TRUE),"Could not restore approved fixture input");
+  }
+}
+
 int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearchOptions> options) {
   const bool installed=!options;
+  const bool restoring=mode=="restored";
   const bool packed=mode=="batch" || mode=="batch-yield";
-  const unsigned files_per_group=installed && packed?3:5;
-  const unsigned groups=packed?2:1;
+  const unsigned files_per_group=installed && (packed || restoring)?3:5;
+  const unsigned groups=restoring?4:packed?2:1;
+  const unsigned initial_files=restoring?2*files_per_group:groups*files_per_group;
   const bool yield=mode=="yield" || mode=="batch-yield";
   const auto count=groups*files_per_group;
   const auto before=handle_count();
@@ -142,21 +162,25 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   std::vector<Bytes> originals;
   originals.reserve(count);
   for(unsigned group=0;group<groups;++group) {
-    const auto base=data(kNativeExtentBytes,714+group*5731);
+    const auto variant=restoring && group>=2?group-2:group;
+    const auto seed=714+variant*5731+(restoring && group<2?99991:0);
+    const auto base=data(kNativeExtentBytes,seed);
     for(unsigned i=0;i<files_per_group;++i) {
-      auto derived=i?anchor_search_fixture::fragmented(base,i):base;
+      auto derived=base;
+      if(i && restoring && group<2)derived[kNativeExtentBytes/8+(i+1)*719]^=std::byte{0x67};
+      else if(i)derived=anchor_search_fixture::fragmented(base,i);
       std::copy_n(base.begin(),kNativeExtentBytes/8,derived.begin());
       originals.push_back(std::move(derived));
     }
   }
   WinFspControllerView result;
-  bool signalled=false;
+  bool signalled=false,restored=false;
   std::array<unsigned,7> deferrals{};
   std::uint64_t last_quantum=0;
   {
     WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),std::move(options));
     await([&]{return controller.view().state==SessionState::running;},5000,"AMD controller startup deadline");
-    for(unsigned i=0;i<count;++i)callback_file(provider,i,originals[i]);
+    for(unsigned i=0;i<initial_files;++i)callback_file(provider,i,originals[i]);
     // Each group is staged and published across admitted idle observations.
     const auto deadline=GetTickCount64()+57000ULL*groups;
     do {
@@ -167,6 +191,19 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       }
       if(result.maintenance.published_groups>=groups || result.retired || result.maintenance_disabled ||
           (mode=="stop" && result.installed_anchor_attempts))break;
+      if(restored && result.anchor_search.verified &&
+          result.maintenance.phase==NativeMaintenancePhase::idle)break;
+      if(restoring && !restored && result.maintenance.phase==NativeMaintenancePhase::idle &&
+          result.maintenance.sampled_extents>=initial_files && result.maintenance.published_groups<2)break;
+      if(restoring && !restored && result.maintenance.published_groups==2) {
+        require(result.installed_anchor_attempts==1 && result.installed_anchor_queries==0 &&
+            result.installed_anchor_status==HipDiscoveryStatus::package_unavailable && !result.anchor_search.submitted,
+            "Unchanged missing inputs triggered a repeated attempt or compute");
+        std::cout<<"Unchanged missing package: two CPU groups, one discovery attempt"<<std::endl;
+        restore_private_anchor_package();
+        restored=true;
+        for(unsigned i=initial_files;i<count;++i)callback_file(provider,i,originals[i]);
+      }
       if(yield && result.anchor_search.submitted && !signalled) {
         FSP_FSCTL_VOLUME_INFO info{};
         require(provider.fs.Interface->GetVolumeInfo(&provider.fs,&info)==STATUS_SUCCESS,
@@ -185,11 +222,12 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     return image;
   });
   const auto& snapshot=proved.filesystem();snapshot.verify_all();
-  for(unsigned i=0;i<count;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],
+  const auto accepted_files=restored?count:initial_files;
+  for(unsigned i=0;i<accepted_files;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],
       "AMD controller changed accepted file bytes");
   std::cout<<"anchor_owner mode="<<mode<<" host="<<static_cast<int>(result.host)
       <<" quanta="<<result.maintenance_quanta<<" groups="<<result.maintenance.published_groups
-      <<" phase="<<static_cast<int>(result.maintenance.phase)<<" sampled="<<result.maintenance.sampled_extents
+      <<" declined_groups="<<result.maintenance.declined_groups<<" phase="<<static_cast<int>(result.maintenance.phase)<<" sampled="<<result.maintenance.sampled_extents
       <<" attempted="<<result.maintenance.attempted_groups<<" cpu_limit_ppm="<<qualification.maximum_cpu_busy_ppm
       <<" submitted="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
       <<" submitted_groups="<<result.anchor_search.submitted_groups<<" verified_groups="<<result.anchor_search.verified_groups
@@ -203,7 +241,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   for(const auto occurrences:deferrals)std::cout<<occurrences<<',';
   std::cout<<'\n';
   if(installed) {
-    require(result.installed_anchor_attempts==1 && result.installed_anchor_status &&
+    require(result.installed_anchor_attempts==(restoring?2U:1U) && result.installed_anchor_status &&
         result.installed_anchor_queries<=64,"Installed route did not make the expected bounded attempt");
     if(mode=="stop") {
       require(result.anchor_search.submitted==0,"Stop allowed a post-acquisition compute launch");
@@ -218,6 +256,9 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     require(result.installed_anchor_status==HipDiscoveryStatus::ready && result.installed_anchor_queries!=0,
         "Installed package did not acquire a verified route");
   }
+  if(restoring)return restored && result.anchor_search.submitted==1 && result.anchor_search.verified==1 &&
+      result.anchor_search.verified_groups==2 && result.maintenance.published_groups>2 &&
+      result.maintenance.advised_members_published>0?0:2;
   if(yield)return signalled && result.anchor_search.yielded==1 && result.anchor_search.submitted_groups==groups &&
       result.maintenance.published_groups==groups && result.maintenance.advised_members_published==0?0:2;
   return result.anchor_search.submitted==1 && result.anchor_search.verified==1 && result.anchor_search.verified_groups==groups &&
@@ -973,7 +1014,7 @@ int main(int argc,char** argv){try {
   if(argc==7 && std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argv);
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
     const std::string_view mode(argv[2]);
-    require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch",
+    require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch" || mode=="restored",
         "Unknown installed route trial");
     if(mode=="repeat") {
       const auto accepted=run_live_anchor_owner("accept",std::nullopt);

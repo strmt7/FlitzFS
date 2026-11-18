@@ -72,7 +72,9 @@ the file leases. A package-enabled indexed controller starts its route
 acquisition once live observations admit a real group candidate. The qualified
 work range governs the combined member count at compute admission. One scoped
 control task checks the installed runtime and device while CPU work continues.
-Stop cancels acquisition and joins that task.
+A later admitted group can trigger a fresh attempt after a relevant input
+changes or a previously busy transport retires. Stop cancels acquisition
+and joins the task.
 [Installed AMD package](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile)
 
 The owner can stage several independent group windows within the same CPU

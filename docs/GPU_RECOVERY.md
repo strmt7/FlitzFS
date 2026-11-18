@@ -1,6 +1,7 @@
 # Evidence-aware GPU recovery and CPU selection
 
-Development date: 9 November 2026. Experimental; not a live HIP runtime.
+The portable policy governs GPU admission and independent CPU fallback. The
+Windows shared-base controller uses it across installed-route attempts.
 
 ## Implemented mechanisms
 
@@ -41,7 +42,8 @@ runtime/module/compiler contract and discovery state. A retry loop cannot
 invent identities to escape quarantine. Recovery generations come from
 independent successful qualification, not a timer, notification, memory query
 or worker exit alone. These are trusted API inputs; this component does not
-authenticate them. Their production collector is not yet implemented.
+authenticate them. The installed-route collector supplies fresh binding inputs.
+A same-identity device fault still requires separate compute qualification.
 
 Discovery belongs off callbacks, driven by relevant device/installation changes,
 with bounded processes and coalesced events. It must not repeat for every read.
@@ -62,6 +64,31 @@ Runtime loading, driver recovery evidence, hardware tests, production routing
 and measured GPU benefit remain absent. Default CLI/callback paths stay CPU-only.
 No driver cleanup can be called from CPU-fallback selection.
 
+## Installed Windows routes
+
+The owner captures read-only observations of the exact worker, compute module
+and system runtime. Each ordinary file observation includes its volume and file
+identity, length and write/change times. A known missing file becoming present
+is also a change. DXGI can report that the factory used for the observation no
+longer represents the current adapter topology. Observations only authorize
+another authenticated discovery attempt.
+
+The owner checks for changed inputs when a new group reaches an admitted idle
+opportunity. A confirmed release of a previously busy worker transport can
+also permit another attempt. CPU work continues during discovery. Recovery
+retains the original policy and its quarantine history across route replacement.
+An exact faulted configuration stays fenced. Unconfirmed worker retirement
+prevents further attempts.
+[Windows file identity](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info) ·
+[DXGI topology invalidation](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent)
+
+The live Windows SDK fixture published two CPU groups during one missing-package
+attempt. Restoring the approved inputs inside that fixture permitted one more
+attempt and one HIP identity query. The same volume then verified two groups
+in one AMD exchange. It published one additional group and declined the other.
+All twelve files passed CPU readback. The worker and controller retired.
+[Source-bound recovery evidence](evidence/amd-installed-recovery-2026-11-18.json)
+
 ## Failure-classification research
 
 AMD distinguishes missing devices, insufficient drivers, resource exhaustion
@@ -71,7 +98,7 @@ Sources: [HIP error codes](https://rocm.docs.amd.com/projects/HIP/en/latest/refe
 and [HIP error handling](https://rocmdocs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/error_handling.html).
 The runtime-error mapping still needs source review and implementation.
 
-## Executed checks and latest host restriction
+## Initial checks and historical host restriction
 
 Before the later remote-only restriction, a Windows raw-only build and 19
 sequential CPU CTest entries passed, including 947 new recovery/fallback checks,
@@ -90,10 +117,9 @@ was reported; no build errors occurred. Process-supervisor and worker-exchange
 tests were excluded locally and remain hosted checks.
 
 That run used a NEW temporary disk fixture before the owner imposed the hard
-host boundary. It was not RAM-only. No cleanup or additional host execution
-will be performed under the current restriction. All further disk-based builds,
-research tools and tests run remotely. Host RAM-only operation is not qualified:
-Windows may page anonymous memory, and no RAM-disk/driver workaround is allowed.
+host boundary. It was not RAM-only. The host restriction at that checkpoint moved remaining builds, research and
+tests to remote runners. Current Windows development and test-volume admission
+follow the owner's later direction in AGENTS.md.
 
 Remote implementation commit f3ab1c5e8b55a5628010db31cd437d2b526d99a1 passed
 all four workflows: [six-job CPU/native/mount matrix](https://github.com/strmt7/FlitzFS/actions/runs/42596551385),

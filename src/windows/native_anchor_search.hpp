@@ -37,6 +37,8 @@ class NativeAnchorSearchController final {
   std::uint64_t deadline() const noexcept;
   void* wake_handle() const noexcept;
   std::span<const NativeSharedBaseSearchReply> replies() const noexcept;
+  bool can_reacquire() const noexcept;
+  bool rebind(HipDiscoveredRoute) noexcept;
   void discard_reply() noexcept;
   void cancel() noexcept;
   bool stop() noexcept;

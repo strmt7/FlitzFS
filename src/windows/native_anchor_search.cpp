@@ -3,6 +3,7 @@
 #include "gpu_worker_common.hpp"
 #include "../native_group_anchor.hpp"
 #include <algorithm>
+#include <dxgi.h>
 #include <limits>
 
 namespace flitzfs {
@@ -20,6 +21,10 @@ template<std::size_t N>std::wstring hex(const std::array<std::byte,N>& bytes) {
 }
 constexpr std::uint64_t mib=1024*1024,million=1000000;
 constexpr DWORD retirement_grace_ms=2000;
+bool valid_anchor_route(const HipDiscoveredRoute& route) noexcept {
+  return route.ordinal<64 && route.pins && route.pins->anchor_module_pinned() &&
+      route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory);
+}
 }
 struct NativeAnchorSearchController::Impl {
   enum class Disposition {pending,yielded,expired};
@@ -30,7 +35,7 @@ struct NativeAnchorSearchController::Impl {
     Disposition disposition=Disposition::pending;
     bool supervisor_exited=false;
   };
-  const NativeAnchorSearchOptions options;
+  NativeAnchorSearchOptions options;
   GpuRecoveryPolicy recovery;
   std::optional<Flight> flight;
   std::vector<NativeSharedBaseSearchWindow> windows;
@@ -38,12 +43,12 @@ struct NativeAnchorSearchController::Impl {
   std::vector<NativeSharedBaseSearchReply> replies;
   NativeAnchorSearchStats stats;
   std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0;
-  bool enabled=false;
+  bool enabled=false,configuration_blocked=false;
   explicit Impl(NativeAnchorSearchOptions configured):options(std::move(configured)) {
-    const auto& route=options.route;
-    enabled=route.ordinal<64 && route.pins && route.pins->anchor_module_pinned() &&
-        route.pins->matches(route.helper,route.identity,route.runtime_sha256,static_cast<int>(route.ordinal),route.memory) &&
-        options.minimum_members && options.minimum_members<=options.maximum_members &&
+    enabled=valid_anchor_route(options.route) && valid_profile();
+  }
+  bool valid_profile() const noexcept {
+    return options.minimum_members && options.minimum_members<=options.maximum_members &&
         options.maximum_members<kNativeMaxExtents && options.duty_ppm && options.duty_ppm<=100000 &&
         options.worker.memory_share_divisor && valid_process_budget(options.worker);
   }
@@ -66,9 +71,14 @@ struct NativeAnchorSearchController::Impl {
     const auto delay=(std::min)(used,maximum/million)*million/options.duty_ppm;
     next_launch=delay<=maximum-now?now+delay:maximum;
   }
+  void suspend(bool blocked,bool retired=true) noexcept {
+    enabled=false;
+    configuration_blocked=blocked;
+    if(retired)options.route.pins.reset();
+  }
   void fail(std::uint64_t ticket,GpuRecoveryOutcome outcome,bool retired) noexcept {
     (void)recovery.finish(ticket,outcome,retired);
-    if(outcome!=GpuRecoveryOutcome::temporary_pressure)enabled=false;
+    if(outcome!=GpuRecoveryOutcome::temporary_pressure)suspend(true,retired);
   }
 };
 NativeAnchorSearchController::NativeAnchorSearchController(NativeAnchorSearchOptions options)
@@ -106,7 +116,17 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
     const auto& route=options.route;
     const auto observed=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
     const auto now=GetTickCount64();
-    if(observed.status!=WindowsGpuBudgetStatus::success){++self.stats.declined;return;}
+    const auto defer=[&] {
+      (void)self.recovery.consider_anchor(true,{},anchor_match::device_bytes(1),now);
+      ++self.stats.declined;
+    };
+    if(observed.status!=WindowsGpuBudgetStatus::success) {
+      defer();
+      if(observed.status==WindowsGpuBudgetStatus::wrong_adapter ||
+          (observed.phase==WindowsGpuBudgetPhase::adapter && observed.native_status==DXGI_ERROR_NOT_FOUND))
+        self.suspend(false);
+      return;
+    }
     std::uint32_t fit=0,limit=largest;
     while(fit<limit) {
       const auto test=fit+(limit-fit+1)/2;
@@ -114,7 +134,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
           anchor_match::device_bytes(test))==GpuGateCode::admitted)fit=test;
       else limit=test-1;
     }
-    if(!fit){++self.stats.declined;return;}
+    if(!fit){defer();return;}
     const auto quantum=(std::min)(fit,anchor_match::max_members);
     std::vector<std::uint32_t> counts;
     counts.reserve(windows.size());
@@ -132,11 +152,17 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
         observed.snapshot.commit_available,options.worker.memory_share_divisor,options.worker.cpu_rate,options.worker.timeout_ms);
     const auto required=required_sized_worker_headroom(capacity,budget);
     if(!required || required>(std::min)(observed.snapshot.physical_available,observed.snapshot.commit_available)) {
-      ++self.stats.declined;return;
+      defer();return;
     }
     const GpuHealthEvidence health{route.identity,++self.sequence,0,true,true,observed.snapshot};
     const auto route_decision=self.recovery.consider_anchor(true,health,transfer.device_bytes,now);
-    if(!route_decision.try_gpu()){++self.stats.declined;return;}
+    if(!route_decision.try_gpu()) {
+      if(route_decision.reason==GpuRouteReason::configuration_blocked ||
+          route_decision.reason==GpuRouteReason::device_quarantined || route_decision.reason==GpuRouteReason::exhausted)
+        self.suspend(true);
+      ++self.stats.declined;
+      return;
+    }
     ticket=route_decision.ticket;
     detail::AnchorMatchBatchBuilder builder(ticket,plan);
     for(std::size_t i=0;i<windows.size();++i)builder.append(i+1,windows[i]);
@@ -232,6 +258,20 @@ void* NativeAnchorSearchController::wake_handle() const noexcept {
 }
 std::span<const NativeSharedBaseSearchReply> NativeAnchorSearchController::replies() const noexcept {
   return impl_->replies;
+}
+bool NativeAnchorSearchController::can_reacquire() const noexcept {
+  const auto& self=*impl_;
+  return !self.enabled && !self.flight && !self.unobserved_ticket && self.windows.empty() &&
+      self.stats.retirement_confirmed;
+}
+bool NativeAnchorSearchController::rebind(HipDiscoveredRoute route) noexcept {
+  auto& self=*impl_;
+  if(!can_reacquire() || !self.valid_profile() || !valid_anchor_route(route) ||
+      (self.configuration_blocked && route.identity==self.options.route.identity))return false;
+  self.options.route=std::move(route);
+  self.configuration_blocked=false;
+  self.enabled=true;
+  return true;
 }
 void NativeAnchorSearchController::discard_reply() noexcept {impl_->discard();}
 void NativeAnchorSearchController::cancel() noexcept {impl_->yield(Impl::Disposition::yielded);}

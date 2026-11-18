@@ -10,7 +10,7 @@ enum class HipDiscoveryStatus {
   ready, invalid_request, runtime_unavailable, worker_untrusted,
   no_amd_adapter, ambiguous_adapter, topology_unavailable, resource_deferred,
   transport_busy, identity_unavailable, identity_mismatch, retirement_unconfirmed,
-  package_unavailable, profile_mismatch, cancelled
+  package_unavailable, profile_mismatch, cancelled, configuration_quarantined
 };
 struct HipAdapterHardware {
   std::uint32_t vendor_id=0,device_id=0,subsystem_id=0,revision=0;
@@ -63,4 +63,18 @@ struct InstalledAnchorProfile {
 // Pure access to the approved profile embedded by the verifier at build time.
 std::optional<InstalledAnchorProfile> installed_anchor_profile() noexcept;
 HipRouteDiscoveryResult discover_installed_hip_anchor_route(std::stop_token={});
+
+// A demand-sampled observation from immediately before an installed route
+// attempt. A change permits verification of the inputs, not GPU execution.
+class InstalledAnchorInputWitness final {
+ public:
+  InstalledAnchorInputWitness();
+  ~InstalledAnchorInputWitness();
+  InstalledAnchorInputWitness(const InstalledAnchorInputWitness&)=delete;
+  InstalledAnchorInputWitness& operator=(const InstalledAnchorInputWitness&)=delete;
+  bool changed() const noexcept;
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+};
 }

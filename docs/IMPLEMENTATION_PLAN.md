@@ -495,10 +495,13 @@ does not pay for its setup.
 8. Preserve immutable owned input and independent CPU selection. CPU completion
    must not wait solely for optional GPU teardown; late GPU completion must not
    publish a second result or touch a newer file version.
-9. Implement the evidence-keyed recovery ladder: healthy, resource-deferred,
-   probing, temporarily unavailable and quarantined. New hardware/runtime/health
-   evidence and confirmed quiescence govern retries, with backoff only as an
-   additional restraint. Integrity failures require stronger requalification.
+9. The installed shared-base owner now rechecks discovery after a changed
+   native file identity, adapter topology or released transport on new group
+   demand. CPU work continues during the attempt. The compute policy retains
+   quarantine history across replacement. Add independent same-device
+   recovery qualification and broader multi-adapter fault evidence before
+   claiming the full evidence-keyed recovery ladder.
+   [Recovery policy and native inputs](GPU_RECOVERY.md#installed-windows-routes)
 10. Qualify data reads with GPU/runtime missing, inaccessible or disabled. GPU
     encoder choice may differ from CPU choice; decoder availability is mandatory.
 11. Integrate the selected collective backend from E06, not only fast ingestion.

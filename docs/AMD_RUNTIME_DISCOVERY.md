@@ -44,10 +44,13 @@ receipts plus listed licenses at a new application directory.
 cmake --install <build> --config Release --prefix <application-directory> --component FlitzFSAMD
 ```
 
-The indexed Windows owner starts one low-priority acquisition when live
-telemetry admits a group candidate. CPU work can continue during acquisition.
-Stop cancels and joins the scoped attempt. The verified route starts compute
-only when an owned group batch meets the approved aggregate work range.
+The indexed Windows owner starts a low-priority acquisition when live telemetry
+admits a group candidate. A later candidate can trigger another attempt after
+a relevant package or topology change, or the confirmed release of an
+unavailable worker transport. CPU work continues during acquisition. Stop cancels
+and joins the scoped attempt. The verified route starts compute only when an
+owned group batch meets the approved aggregate work range.
+[Windows recovery evidence policy](GPU_RECOVERY.md#installed-windows-routes)
 [Owned controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)
 
 The relocated SDK fixture made one installed metadata query and then used
