@@ -91,14 +91,39 @@ as the file change. Ordered index ranks determine whether an anchor has
 surviving references without scanning its members. The last removal
 retires the base from the current root while old snapshots keep their
 previous records. Actual occupied space is reclaimed by compaction.
-The packed layout removes the inventory walk from proposal sizing. Automatic
-background selection still needs persistent sparse candidate discovery and
-integration with the resource controller. A grouped volume passed six paired
+The packed layout removes the inventory walk from proposal sizing. The owned
+maintenance controller now discovers indexed candidates and advances group
+preparation in admitted opportunities. A grouped volume passed six paired
 SDK overwrites and exact CPU recovery with the other three member files intact.
 The AMD worker compressed the incoming overwrite.
 [Shared-base evidence](evidence/indexed-shared-base-2026-11-18.json) ·
 [Packed layout evidence](evidence/packed-rebuild-accounting-2026-11-18.json) ·
 [Cooperative preparation evidence](evidence/cooperative-indexed-shared-base-2026-11-18.json)
+
+### Automatic candidate discovery
+
+The scanner seeks the next allocated extent in the ordered index. It advances
+past sparse address ranges and unlinked or pending inodes without a full
+directory or object inventory. Each sampling opportunity reads at most one
+extent and its dependency. The controller keeps fingerprints for one scan
+window and a bounded set of representatives from older windows. Eight aligned
+bands nominate candidates. Zero-filled bands contribute no similarity signal.
+
+A candidate carries the sampled object identity and generation into group
+preparation. An intervening selected change invalidates the candidate before
+its payload is decoded. Unrelated edits preserve the cursor and the prepared
+work. The cursor reaches the end of its current pass before revisiting earlier
+positions affected by foreground writes. Rename and other metadata-only
+updates leave an idle scanner idle. Reusable anchors let later windows extend
+an existing group through independently verified commits.
+
+Detached-inode reclamation and managed compaction share the controller's
+serialized opportunities. An active group releases its source before the
+controller begins a compaction handoff. The controller admits work using
+fresh resource observations, foreground readiness and measured duty. Current
+representatives and scan progress live in memory. Durable advisory pages,
+cross-restart continuation and measured collective AMD benefit remain open.
+[Automatic indexed discovery evidence](evidence/automatic-indexed-discovery-2026-11-18.json)
 
 ## Writable transactions
 

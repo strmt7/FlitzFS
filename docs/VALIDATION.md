@@ -1,5 +1,30 @@
 # Validation ledger
 
+## Automatic indexed group discovery — 18 November 2026
+
+An indexed fixture grouped 129 related extents around one protected base in
+five publications. It progressed with 12 writes interleaved at an earlier
+cursor coordinate. The largest measured scan or candidate step read 189,477
+backing bytes. The sum of conservative compacted-size reductions was
+16,728,064 bytes. A stale sampled generation failed before payload decoding.
+Unrelated tiny files did not match based on zero padding. Rename and empty
+file creation left the settled scanner idle.
+
+Seventeen selected Windows test groups passed across the SDK, raw and
+AddressSanitizer builds. The real WinFsp SDK callback test refused a busy
+observation without backing I/O, then published and independently reopened
+the group. A live Windows run with injected dispatcher lifecycle published
+the group in 13 opportunities and retired with 147 handles before and
+after. Earlier live runs hit the test deadline with the files intact.
+One recorded CPU deferral after a candidate was staged.
+
+In the installed AMD overwrite fixture, a stale completion budget rejected
+one worker result after two successful pairs. CPU fallback completed the
+write and passed independent verification. A later run completed all three
+matched pairs, with identical occupied bytes and faster CPU response. The
+AMD work compressed incoming writes to an already grouped volume.
+[Source and execution evidence](evidence/automatic-indexed-discovery-2026-11-18.json)
+
 ## Unattended Windows AddressSanitizer launch — 18 November 2026
 
 Five test executables reached the Windows loader without the required

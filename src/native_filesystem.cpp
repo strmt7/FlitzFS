@@ -1087,6 +1087,7 @@ struct NativeFilesystemWriter::Impl {
   // An allocation-free copy of the canonical root of this committed Model.
   InodeRootBytes inode_root{};
   std::optional<detail::IndexedVolumeRoot> indexed;
+  std::uint64_t indexed_content_sequence=1;
   std::shared_ptr<SharedBaseOwner> shared_owner=std::make_shared<SharedBaseOwner>();
   void remember(std::span<const StoreMutation> changes,std::uint64_t generation,bool content_changed=true) noexcept {
     for(const auto& change:changes)if(change.id>=2 && change.id<=kStoreMaxObjects) {
@@ -1117,7 +1118,8 @@ struct NativeFilesystemWriter::Impl {
     try {
       const auto source=objects.snapshot_for_staging(true);
       const auto watched=shared_owner->indexed_work.lock();
-      return std::forward<Commit>(commit)(*objects.paged_if(),*source.paged_if(),*indexed,watched.get());
+      return std::forward<Commit>(commit)(*objects.paged_if(),*source.paged_if(),*indexed,
+          detail::IndexedContentWatch{indexed_content_sequence,watched.get()});
     }catch(const std::bad_alloc&){fail(Code::limit,"indexed transaction allocation failure");}
     catch(const NativeFsError& error) {
       if(error.code()==Code::corrupt || error.code()==Code::storage_failure)poisoned=true;
@@ -1257,7 +1259,8 @@ NativeSharedBaseInfo NativeFilesystemSnapshot::shared_base_info() const noexcept
   return impl_?NativeSharedBaseInfo{impl_->model.shared_bases,impl_->model.members.size(),impl_->model.bases.size()}:NativeSharedBaseInfo{};
 }
 std::optional<NativeContentToken> NativeFilesystemWriter::maintenance_next(NativeExtentSelection after,bool first) const {
-  if(poisoned() || !impl_->model.shared_bases)fail(Code::invalid_operation,"content scan requires healthy shared-base storage");
+  if(!maintenance_supported())fail(Code::invalid_operation,"content scan requires healthy shared-base storage");
+  if(impl_->indexed)return impl_->read_indexed([&](const auto& view){return view.next_content(after,first);});
   for(auto it=first?impl_->model.nodes.begin():impl_->model.nodes.lower_bound(after.inode);it!=impl_->model.nodes.end();++it) {
     const auto& n=it->second;if(n.directory || n.unlinked || n.delete_pending)continue;
     auto extent=first || n.inode!=after.inode?n.extents.begin():n.extents.upper_bound(after.extent_index);
@@ -1267,20 +1270,33 @@ std::optional<NativeContentToken> NativeFilesystemWriter::maintenance_next(Nativ
   }
   return {};
 }
+std::optional<NativeContentToken> NativeFilesystemWriter::maintenance_token(NativeExtentSelection extent) {
+  if(!maintenance_indexed())fail(Code::invalid_operation,"content lookup requires indexed storage");
+  return impl_->read_indexed([&](const auto& view){return view.content_at(extent);});
+}
 bool NativeFilesystemWriter::maintenance_matches(const NativeContentToken& token) const noexcept {
-  if(poisoned() || token.object<2 || token.object>kStoreMaxObjects ||
+  if(poisoned() || impl_->indexed || token.object<2 || token.object>kStoreMaxObjects ||
       impl_->shared_owner->revisions[token.object]!=token.revision)return false;
   const auto found=impl_->model.nodes.find(token.extent.inode);
   if(found==impl_->model.nodes.end() || found->second.directory || found->second.unlinked || found->second.delete_pending)return false;
   const auto extent=found->second.extents.find(token.extent.extent_index);
   return extent!=found->second.extents.end() && extent->second==token.object;
 }
-std::vector<std::byte> NativeFilesystemWriter::maintenance_read(const NativeContentToken& token) {
+std::vector<std::byte> NativeFilesystemWriter::maintenance_read(NativeContentToken& token) {
+  if(maintenance_indexed())return impl_->read_indexed([&](const auto& view){return view.read_content(token);});
   if(!maintenance_matches(token))fail(Code::invalid_operation,"stale content sample");
   try{auto source=checked_namespace();return extent_bytes(source,impl_->model,token.object);}
   catch(const std::bad_alloc&){fail(Code::limit,"content sample allocation failure");}
   catch(const NativeFsError& error){if(error.code()==Code::corrupt || error.code()==Code::storage_failure)impl_->poisoned=true;throw;}
   catch(const std::exception&){impl_->poisoned=true;fail(Code::storage_failure,"content sample read failed");}
+}
+std::uint64_t NativeFilesystemWriter::maintenance_content_sequence() const noexcept {
+  if(poisoned())return 0;
+  return impl_->indexed?impl_->indexed_content_sequence:impl_->model.sequence;
+}
+bool NativeFilesystemWriter::maintenance_indexed() const noexcept{return !poisoned() && impl_->indexed.has_value();}
+bool NativeFilesystemWriter::maintenance_has_candidates() const noexcept {
+  return !poisoned() && (!impl_->indexed || impl_->indexed->extents>=2);
 }
 std::uint64_t NativeFilesystemWriter::maintenance_sequence() const noexcept {
   if(poisoned())return 0;
@@ -1292,7 +1308,7 @@ StoreIdentity NativeFilesystemWriter::maintenance_identity() const noexcept {
 }
 std::uint64_t NativeFilesystemWriter::maintenance_physical_end() const noexcept{return poisoned()?0:impl_->objects.physical_end_for_staging();}
 bool NativeFilesystemWriter::maintenance_busy() const noexcept{return !poisoned() && !impl_->shared_owner->active.expired();}
-bool NativeFilesystemWriter::maintenance_supported() const noexcept{return !poisoned() && impl_->model.shared_bases;}
+bool NativeFilesystemWriter::maintenance_supported() const noexcept{return !poisoned() && (impl_->indexed || impl_->model.shared_bases);}
 NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
   if(impl_->indexed)return impl_->indexed->state(path).info;
@@ -1520,6 +1536,10 @@ NativeFsCommit NativeFilesystemWriter::enable_workload_accounting() {
 }
 NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_base(
     NativeExtentSelection base_selection,std::span<const NativeExtentSelection> members) {
+  return prepare_shared_base(base_selection,members,{});
+}
+NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_base(
+    NativeExtentSelection base_selection,std::span<const NativeExtentSelection> members,std::span<const NativeContentToken> expected) {
   if(poisoned() || (!impl_->indexed && !impl_->model.shared_bases) || !impl_->objects.paged_if())
     fail(Code::invalid_operation,"shared-base work requires its explicit namespace");
   if(members.size()>kNativeMaxExtents)fail(Code::limit,"shared-base selection budget");
@@ -1529,7 +1549,7 @@ NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_ba
     p->source.emplace(impl_->objects.snapshot_for_staging(impl_->indexed.has_value()));
     if(impl_->indexed) {
       p->indexed=std::make_shared<detail::IndexedSharedBasePreparation>(
-          *p->source->paged_if(),*impl_->indexed,base_selection,members);
+          *p->source->paged_if(),*impl_->indexed,base_selection,members,expected);
       p->state=p->indexed->progress();
     } else {
       p->decode_model.shared_bases=true;
@@ -1631,7 +1651,7 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
       p->retire(NativeSharedBasePhase::completed);return result;
     }
     if(p->indexed) {
-      result=impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto*) {
+      result=impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto) {
         return p->indexed->finish(writer,source,root);
       });
       p->retire(NativeSharedBasePhase::completed);
@@ -1731,7 +1751,7 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_impl(detail::NativeObjectW
       auto p=std::make_unique<Impl>(std::move(objects));
       p->indexed=view.root();
       while(p->indexed->active_lifetimes) {
-        p->mutate_indexed([](auto& writer,const auto& source,auto& current,auto* watched) {
+        p->mutate_indexed([](auto& writer,const auto& source,auto& current,auto watched) {
           detail::advance_indexed_retirement(writer,source,current,true,watched);
         });
       }
@@ -2050,7 +2070,7 @@ NativeFsCommit NativeFilesystemWriter::transact(std::span<const NativeFileMutati
   if(impl_->indexed) {
     const detail::IndexedVolumeEdit request{action,inode,operations,basic,security,automatic,overwrite,
         reservation,delete_requested,trim_allocation};
-    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto* watched) {
+    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto watched) {
       return detail::commit_indexed_volume(writer,source,root,request,published,allocation,watched);
     });
   }
@@ -2190,7 +2210,7 @@ NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_wit
     const auto maximum=std::size_t(kStoreMaxTransactionBytes);
     if(bytes.size()>maximum)fail(Code::limit,"indexed inode input budget");
     admit_lz4_extent_candidates(candidates);
-    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto* watched) {
+    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto watched) {
       return detail::write_indexed_inode(writer,source,root,inode,offset,bytes,options,effect,candidates,watched);
     });
   }
@@ -2239,7 +2259,7 @@ NativeInodeStorageMutationCommit NativeFilesystemWriter::truncate_inode_storage_
   if(poisoned())fail(Code::storage_failure,"native writer is terminal");
   if(!native_cleanup_metadata_valid(effect))
     fail(Code::invalid_operation,"invalid automatic truncate time/unused clock");
-  if(impl_->indexed)return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto* watched) {
+  if(impl_->indexed)return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root,auto watched) {
     return detail::truncate_indexed_inode(writer,source,root,inode,bytes,effect,watched);
   });
   if(bytes>kNativeMaxFileBytes)fail(Code::limit,"native truncate bounds");
@@ -2347,7 +2367,7 @@ bool NativeFilesystemWriter::retirement_pending() const noexcept {
 bool NativeFilesystemWriter::reclaim_retired_inode() {
   auto& state=checked_impl();
   if(!state.indexed || !state.indexed->retiring_inodes)return false;
-  state.mutate_indexed([](auto& writer,const auto& source,auto& root,auto* watched) {
+  state.mutate_indexed([](auto& writer,const auto& source,auto& root,auto watched) {
     detail::advance_indexed_retirement(writer,source,root,false,watched);
   });
   return true;

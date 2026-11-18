@@ -224,6 +224,12 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
   catch(const NativeFsError&){throw;}
   catch(const std::exception&){fail(Code::corrupt,"indexed shared-base proof failed");}
 }
+Bytes full_extent(DecodedIndexedExtent extent) {
+  auto bytes=std::move(extent.data);
+  bytes.erase(bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(extent.payload_offset));
+  bytes.resize(kNativeExtentBytes);
+  return bytes;
+}
 using RetiredGroupReferences=std::map<std::uint64_t,std::uint64_t>;
 
 void retire_group_reference(std::uint64_t base,std::uint64_t member,IndexedVolumeRoot& root,
@@ -269,7 +275,7 @@ constexpr std::size_t retirement_quantum=kStoreMaxObjects/4;
 class IndexedVolumeTransaction final {
  public:
   IndexedVolumeTransaction(const PagedObjectStoreSnapshot& source,const IndexedVolumeRoot& expected,
-      IndexedSharedBasePreparation* watched)
+      IndexedContentWatch watched)
       :source_(source),before_(expected),next_(expected),index_(source),watched_(watched) {
     if(decode_root(required(source_,namespace_object,root_size))!=before_ ||
         index_.kind()!=index_kind(before_) || index_.size()!=index_entries(before_))
@@ -465,7 +471,7 @@ class IndexedVolumeTransaction final {
     std::vector<NativeNameEdit> edits;
     RetiredGroupReferences retired;
     std::unique_ptr<std::byte[]> candidate_scratch;
-    bool selection_changed=false;
+    bool selection_changed=false,content_changed=false;
     for(const auto& [key,replacement]:names_) {
       const auto expected=index_.find(key);
       if(expected!=replacement)edits.push_back({key,expected,replacement});
@@ -473,8 +479,11 @@ class IndexedVolumeTransaction final {
     for(auto& [key,extent]:extents_) {
       if(!extent.dirty)continue;
       const auto [id,block]=key;
-      if(watched_ && !selection_changed && (extent.original || !extent.payload.empty()))
-        selection_changed=watched_->watches_extent(id,block);
+      if(extent.original || !extent.payload.empty()) {
+        content_changed=true;
+        if(watched_.preparation && !selection_changed)
+          selection_changed=watched_.preparation->watches_extent(id,block);
+      }
       auto& changed=nodes_.at(id);
       if(extent.base)retire_group_reference(extent.base,*extent.original,next_,retired,edits);
       if(extent.payload.empty()) {
@@ -509,8 +518,11 @@ class IndexedVolumeTransaction final {
       }
       update_charge(id,changed);
       const auto phase=changed.value?changed.value->lifetime:IndexedLifetime::linked;
-      if(watched_ && !selection_changed && (!changed.value || phase!=changed.original_lifetime))
-        selection_changed=watched_->watches_inode(id);
+      if(!changed.value || phase!=changed.original_lifetime) {
+        content_changed=true;
+        if(watched_.preparation && !selection_changed)
+          selection_changed=watched_.preparation->watches_inode(id);
+      }
       if(phase!=changed.original_lifetime) {
         const auto original=marker_id(id,changed.original_lifetime);
         const auto current_marker=marker_id(id,phase);
@@ -551,7 +563,8 @@ class IndexedVolumeTransaction final {
     }catch(const std::exception&){fail(Code::storage_failure,"indexed storage commit failed");}
     result.sequence=next_.sequence;
     current=next_;
-    if(selection_changed)watched_->invalidate();
+    if(content_changed)watched_.sequence=result.sequence;
+    if(selection_changed)watched_.preparation->invalidate();
     return result;
   }
 
@@ -572,7 +585,7 @@ class IndexedVolumeTransaction final {
   const PagedObjectStoreSnapshot& source_;
   IndexedVolumeRoot before_,next_;
   NativeNameIndex index_;
-  IndexedSharedBasePreparation* watched_;
+  IndexedContentWatch watched_;
   std::map<std::uint64_t,InodeEdit> nodes_;
   std::map<NativeNameKey,std::optional<std::uint64_t>> names_;
   std::map<std::pair<std::uint64_t,std::uint64_t>,ExtentEdit> extents_;
@@ -977,7 +990,7 @@ IndexedVolumeRoot initialize_indexed_volume(PagedObjectStoreWriter& writer) {
 
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter& writer,const PagedObjectStoreSnapshot& source,
     IndexedVolumeRoot& current,const IndexedVolumeEdit& request,NativeInodeCommitInfo* published,
-    NativeInodeAllocationInfo* allocation,IndexedSharedBasePreparation* watched) {
+    NativeInodeAllocationInfo* allocation,IndexedContentWatch watched) {
   IndexedVolumeTransaction transaction(source,current,watched);
   auto id=request.inode;
   switch(request.action) {
@@ -1029,7 +1042,7 @@ NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter& writer,const PagedO
 }
 
 void advance_indexed_retirement(PagedObjectStoreWriter& writer,const PagedObjectStoreSnapshot& source,
-    IndexedVolumeRoot& current,bool closed_session,IndexedSharedBasePreparation* watched) {
+    IndexedVolumeRoot& current,bool closed_session,IndexedContentWatch watched) {
   IndexedVolumeTransaction transaction(source,current,watched);
   const auto marker_domain=closed_session?lifetime_domain:retirement_domain;
   const auto page=source.list_page(marker_domain,1);
@@ -1060,7 +1073,8 @@ void check_group_root(const PagedObjectStoreSnapshot& source,const NativeNameInd
 }
 
 IndexedSharedBasePreparation::IndexedSharedBasePreparation(const PagedObjectStoreSnapshot& source,
-    IndexedVolumeRoot root,NativeExtentSelection base,std::span<const NativeExtentSelection> members)
+    IndexedVolumeRoot root,NativeExtentSelection base,std::span<const NativeExtentSelection> members,
+    std::span<const NativeContentToken> expected)
     :source_(source),original_(root) {
   if(members.size()>=kStoreMaxObjects)fail(Code::limit,"indexed shared-base selection budget");
   members_.reserve(members.size()+1);
@@ -1072,6 +1086,16 @@ IndexedSharedBasePreparation::IndexedSharedBasePreparation(const PagedObjectStor
   members_.erase(duplicates.begin(),duplicates.end());
   const auto base_position=std::ranges::lower_bound(members_,extent_coordinate(base),{},coordinate);
   base_index_=static_cast<std::size_t>(base_position-members_.begin());
+  if(!expected.empty()) {
+    if(expected.size()!=members_.size())fail(Code::invalid_operation,"incomplete indexed candidate bindings");
+    for(const auto& binding:expected) {
+      const auto key=extent_coordinate(binding.extent);
+      const auto found=std::ranges::lower_bound(members_,key,{},coordinate);
+      if(found==members_.end() || coordinate(*found)!=key || found->object || !binding.object || !binding.revision)
+        fail(Code::invalid_operation,"invalid indexed candidate binding");
+      found->object=binding.object;found->generation=binding.revision;
+    }
+  }
   progress_.total_members=members_.size();
   if(members_.size()<2)progress_.phase=NativeSharedBasePhase::declined;
 }
@@ -1094,10 +1118,13 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
   if(inode.directory || inode.lifetime!=IndexedLifetime::linked)
     fail(Code::invalid_operation,"indexed shared-base selection requires a linked file");
   const auto object=index_->find(native_extent_key(id,block));
+  if(member.object && object!=member.object)fail(Code::invalid_operation,"indexed candidate object changed");
   if(!object)fail(Code::not_found,"indexed shared-base selection is a sparse extent");
   if((*object&ordinal_mask)>=original_.next_extent)fail(Code::corrupt,"invalid selected extent ordinal");
   const auto metadata=source_.stat(*object);
   if(!metadata)fail(Code::corrupt,"indexed selected extent record is missing");
+  if(member.generation && metadata->generation!=member.generation)
+    fail(Code::invalid_operation,"indexed candidate generation changed");
   auto extent=decode_extent(source_,*index_,original_,*object,
       required(source_,*object,kNativeExtentBytes+extent_header),inode,block,find_reusable_anchor);
   member.object=*object;
@@ -1107,10 +1134,7 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
     reusable_anchor_=extent.base;
     reusable_generation_=extent.reusable_anchor_generation;
   }
-  auto bytes=std::move(extent.data);
-  bytes.erase(bytes.begin(),bytes.begin()+static_cast<std::ptrdiff_t>(extent.payload_offset));
-  bytes.resize(kNativeExtentBytes);
-  return bytes;
+  return full_extent(std::move(extent));
 }
 
 bool IndexedSharedBasePreparation::advance() {
@@ -1245,13 +1269,13 @@ NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter& wri
     const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t id,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
     const NativeAutomaticMetadata& effect,std::span<const NativeLz4ExtentCandidate> candidates,
-    IndexedSharedBasePreparation* watched) {
+    IndexedContentWatch watched) {
   IndexedVolumeTransaction transaction(source,current,watched);
   return transaction.write_inode(writer,current,id,offset,bytes,options,effect,candidates);
 }
 NativeInodeStorageMutationCommit truncate_indexed_inode(PagedObjectStoreWriter& writer,
     const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t id,
-    std::uint64_t size,const NativeAutomaticMetadata& effect,IndexedSharedBasePreparation* watched) {
+    std::uint64_t size,const NativeAutomaticMetadata& effect,IndexedContentWatch watched) {
   IndexedVolumeTransaction transaction(source,current,watched);
   return transaction.truncate_inode(writer,current,id,size,effect);
 }
@@ -1426,6 +1450,46 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
         static_cast<std::size_t>(to-from),output.begin()+static_cast<std::ptrdiff_t>(from-offset));
   }
   return output;
+}
+NativeContentToken IndexedVolumeView::content_token(NativeExtentSelection extent,std::uint64_t object) const {
+  const auto selected=referenced_inode(extent.inode,true);
+  if(selected.lifetime!=IndexedLifetime::linked)return {extent};
+  if(selected.directory || !selected.size || extent.extent_index>(selected.size-1)/kNativeExtentBytes ||
+      (object&ordinal_mask)>=root_.next_extent)
+    fail(Code::corrupt,"invalid indexed content selection");
+  const auto metadata=store_.stat(object);
+  if(!metadata)fail(Code::corrupt,"indexed content record is missing");
+  return {extent,object,metadata->generation,metadata->generation};
+}
+std::optional<NativeContentToken> IndexedVolumeView::next_content(NativeExtentSelection after,bool first) const {
+  (void)check_group_storage(store_);
+  const auto entry=index_.next_extent(first?std::nullopt:std::optional(native_extent_key(after.inode,after.extent_index)));
+  (void)check_group_storage(store_);
+  if(!entry)return {};
+  auto token=content_token({entry->key.parent-kNativeIndexedInodeLimit,native_extent_block(entry->key.name)},entry->value);
+  (void)check_group_storage(store_);
+  return token;
+}
+std::optional<NativeContentToken> IndexedVolumeView::content_at(NativeExtentSelection extent) const {
+  (void)check_group_storage(store_);
+  const auto object=index_.find(native_extent_key(extent.inode,extent.extent_index));
+  (void)check_group_storage(store_);
+  if(!object)return {};
+  auto token=content_token(extent,*object);
+  (void)check_group_storage(store_);
+  return token;
+}
+Bytes IndexedVolumeView::read_content(NativeContentToken& token) const {
+  const auto current=content_at(token.extent);
+  if(!token.object || !current || current->object!=token.object || current->revision!=token.revision)
+    fail(Code::invalid_operation,"stale indexed content sample");
+  auto extent=decode_extent(store_,index_,root_,token.object,
+      required(store_,token.object,extent_header+kNativeExtentBytes),
+      referenced_inode(token.extent.inode),token.extent.extent_index,true);
+  (void)check_group_storage(store_);
+  token.grouped=extent.base!=0;
+  token.exact_base=extent.reusable_anchor_generation!=0;
+  return full_extent(std::move(extent));
 }
 void IndexedVolumeView::verify_inventory(bool published) const {
   store_.verify_all();

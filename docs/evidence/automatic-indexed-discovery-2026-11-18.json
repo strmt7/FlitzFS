@@ -1,0 +1,290 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "released": false,
+  "source_base": "c99b07992585fb411077fe03e41b0ae8436b2e19",
+  "source_tree": "a1dd7405ee944c3c24af2c36c1dc064903d22317",
+  "tested_changed_sources": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "2b17e098b0f2561c3783b032a8fbb9ae3dbb2907",
+      "worktree_sha256": "d8fcdec7ccb7fdc99e282e6ebd562be1ace9d7c02b043a75f60127b86546a596"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "4836d1997525e67373523b01bfa01619eb6fb299",
+      "worktree_sha256": "dc2ddc1b90d2acbce25352b44e63475d4063763f737d005cd1bb5196f07c246b"
+    },
+    {
+      "path": "include/flitzfs/native_maintenance.hpp",
+      "git_blob": "f7e04a4907ce0ea255742a9db27b0edb4f914654",
+      "worktree_sha256": "32110173bc6b524b6d7c4036b9c0af5fa96c5f8e52b76e5169278ae62a3b4fbb"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "879f5a689cb1b477ebb443924c2e7185e102009e",
+      "worktree_sha256": "76c1436d092be8b354d7464d2e891f172d4ec70e27905f4a312e2357d4e1691a"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "0b1d74a1184e917e2f6ea579a8ad69d646a4f7d4",
+      "worktree_sha256": "cbe6d3ba781abd44a4c3ee3da474fe76da6fd2d0dd10dd25c3ea7a0ac63f940e"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "fdde4f50e212f988e10fe1f4b6c5f55ca89b28c4",
+      "worktree_sha256": "6f77564a1e0cfde60d4f45fa68218dca3e286ee8e370e46c9ff4a60c534b0088"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "666492d49e0d029d8a7bbe38d78c4764d37c822f",
+      "worktree_sha256": "151ae55bcb7407da827cc6beb5ae7ac5f6acb493135886d61586bee193a5e14b"
+    },
+    {
+      "path": "src/native_name_index.cpp",
+      "git_blob": "2c3e2f245e1ae2d3530cc4bee2ed6008142c43e8",
+      "worktree_sha256": "0795118a64fb0f5d32f4862ecb2b9f723f9c8924de82989840848b885b251df3"
+    },
+    {
+      "path": "src/native_name_index.hpp",
+      "git_blob": "4a1dcbc1894c29cc29244c79a7496100316fb853",
+      "worktree_sha256": "ee540a1474dcd9a6facd511dd6a613eec98c8b0714f9d6e28f0a4e05d1b5c27d"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "8264d4c1faaea6c4aa0ec57e64ee21d61d1844d3",
+      "worktree_sha256": "73f1ae789e8fe7df2381d26b685c5a96d24f5c17350683ce65de282e1579a027"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "24bdf95c9edbf3faf9362b2e981ec224178fbd1e",
+      "worktree_sha256": "bcde9254eb222f6dbcf6c388cc72d353ecb50418c1cebfabf9e5c20dfa5bfff8"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "c22e8227350509dc2104654aab89527e5e967637",
+      "worktree_sha256": "d8b71114bfe75d7523152cf51b4ccdebbb10101154e03aeb574865d7313887cf"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "99c3fe0f67808a834f35354d161330622db9171d",
+      "worktree_sha256": "650688585135303c8c0b9661a3ff2037de12520f85b8fd8b1483bda781adabac"
+    }
+  ],
+  "semantic_search": {
+    "receipt": "indexed-controller-coherence-semantic-5426d2b675a440109d14afac9729e41e",
+    "receipt_sha256": "a4d4cd44235209692aeb8782fbce5adf76ae502f83e6226198cd41bbacb90bf2",
+    "provider_version": "0.2.43",
+    "native_response_sha256": "2bf943a4b7681acd9920207d7c52d761d74fc46271cbe3d38acfcec35823191a",
+    "actual_searches": 1
+  },
+  "research": {
+    "receipt": "indexed-candidate-discovery-research-1bab4df0bd3b400c88955cfac5156fea",
+    "receipt_sha256": "d25974119e17b0a675080267835787fdbae0389e8c54d78ecc3e605ec0faa6d0",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "name": "rubikfs",
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d",
+        "capture_sha256": "4cbe1a8abcfa79217d6af4ad1731d7af531d8467be954ce30a2d4e47333d25e1"
+      },
+      {
+        "name": "medfs",
+        "url": "https://www.usenix.org/conference/fast25/presentation/wu",
+        "success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_sha256": "eccac3054eae2930a74adc32e13bfad7a579f34e7a649c37d7dd451acedf84f9",
+        "capture_sha256": "82e92f4fc043d48536a5a0a255a23b302278e3617c60d0798506d5c38d72a373"
+      },
+      {
+        "name": "resemblance-learning",
+        "url": "https://link.springer.com/article/10.1007/s44443-026-01042-5",
+        "success": true,
+        "http_status": 303,
+        "final_http_status": 200,
+        "markdown_sha256": "aec258dce33c2af92cf7be4b0058a157ec442bb25a48a516f121ad72223cf103",
+        "capture_sha256": "7346c2b1d2376665d95ce46db68264e10cffbcc07e1b579cbdf921e789bdb464"
+      }
+    ]
+  },
+  "indexed_model": {
+    "members": 129,
+    "protected_bases": 1,
+    "publications": 5,
+    "earlier_coordinate_rewrites": 12,
+    "maximum_scan_step_read_bytes": 189477,
+    "minimum_compacted_savings_sum_bytes": 16728064,
+    "checks": [
+      "metadata-only changes stay idle",
+      "changed sampled binding rejected before payload decoding",
+      "zero-padded bands ignored",
+      "old data independently checked"
+    ]
+  },
+  "validation": [
+    {
+      "label": "Earlier SDK pass. Indexed group test fixture failed for missing rename access, other five groups passed.",
+      "run": "local-run-6c8c8c73953e440db8603f1945cdde51",
+      "receipt_sha256": "788ed31e82d5bd7c8c7e7df6ccb1f58b253bb184c33d19001bba308d98a1ab23",
+      "log_sha256": "139c835fc708460cfa1e95cd344ba6a768e51487d28e75557b7e66bd25a18412",
+      "exit_code": 8,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 23.428648,
+      "peak_job_bytes": 171765760,
+      "maximum_processes": 14
+    },
+    {
+      "label": "Selected SDK/core group tests after fixing test access.",
+      "run": "local-run-68efaefefeeb4ee78553ef6c890f1117",
+      "receipt_sha256": "e27bb5da8cc65e9475d3446f947291801d582edb4c27e6050fc8195d70946443",
+      "log_sha256": "c41589f85fd474c2f9206ec0891ca8eedb6c9f50d203eb4d083ac4c3bc0bdfd2",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 5.872983,
+      "peak_job_bytes": 106065920,
+      "maximum_processes": 14
+    },
+    {
+      "label": "Five raw Release core groups.",
+      "run": "local-run-d30c21c8ef9f4c9cb60de1145861047b",
+      "receipt_sha256": "583cfdd7fc3dde5f21ce5c52f37359ec3959805e3d2ea79035909bb2d49d6545",
+      "log_sha256": "3433f7428b3df1bdfec839c9ed4290d443e601b831218251eee8394cecb07dbe",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 21.911164,
+      "peak_job_bytes": 171675648,
+      "maximum_processes": 14
+    },
+    {
+      "label": "Five MSVC AddressSanitizer core groups.",
+      "run": "local-run-f6672913beec49d0877632c7076b86eb",
+      "receipt_sha256": "ca505360aed18d912e68e09af8deb74003aadc2dc436aed68812613b823cdd2d",
+      "log_sha256": "8a721a73236d7f5134cf04db5c6408678ca8325b38cef4a128c6ef96fa2ed8ca",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 75.475432,
+      "peak_job_bytes": 1134624768,
+      "maximum_processes": 14
+    },
+    {
+      "label": "Controller and indexed SDK lifecycle. Controlled busy observation refused before I/O, then group independently reopened.",
+      "run": "local-run-6bd8845ba76f4ec9a1221d6b676fa1aa",
+      "receipt_sha256": "9814a7307c1c38525f32712257e2286ffd546ebeeaedb7aed77483d8355e4ab0",
+      "log_sha256": "187340c3fa189029f209aa8b069dc83d8569e60ee9b6fe6ef13a2bab347e0e6f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 16.324185,
+      "peak_job_bytes": 22089728,
+      "maximum_processes": 14
+    },
+    {
+      "label": "Earlier live window did not finish a group, with exact CPU readback.",
+      "run": "local-run-52af9102cbfa410cb53d3abad7f33111",
+      "receipt_sha256": "b07561f89edae2bba039310990ff579caca69ebc7ca496c63ee35a1c1df24d7d",
+      "log_sha256": "662016d2f8024393af9fd19bc8a1a237288387f176746e342a88e8f572ed0ce8",
+      "exit_code": 1,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 18.314026,
+      "peak_job_bytes": 11268096,
+      "maximum_processes": 7
+    },
+    {
+      "label": "Earlier live window observed CPU deferral after one attempt, with exact CPU readback.",
+      "run": "local-run-95f7b66c600e41c381b7705160c92cdd",
+      "receipt_sha256": "da99c209a56a7205fa5c15ef010e712aec2417eb1ab16568289f1b2b30c826c9",
+      "log_sha256": "5f2ee51a954c2ae288857aaa52f760f49ecda4a0dddc9978100f4b8f5e6f1cba",
+      "exit_code": 1,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 18.364489,
+      "peak_job_bytes": 11272192,
+      "maximum_processes": 7
+    },
+    {
+      "label": "Live Windows telemetry, injected SDK lifecycle, one group in 13 opportunities, balanced handles and exact CPU readback.",
+      "run": "local-run-4e3678310d2b40f78fb19b8be4bf35f8",
+      "receipt_sha256": "4907e0d8b16caacccdd451a0e167af5326855690318af3a8d57e1980f2e8f2f6",
+      "log_sha256": "5e78641cb5d96c903ac37e3dd3a91f364794b2358f9756aa9f85a1a91f20a26e",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 12.369312,
+      "peak_job_bytes": 13234176,
+      "maximum_processes": 7
+    }
+  ],
+  "selected_windows_ctest_groups": 17,
+  "amd": {
+    "scope": "Installed AMD foreground overwrite into already grouped indexed data. Discovery and group preparation used CPU.",
+    "refused_attempt": {
+      "label": "Two paired successes, then worker reported temporary pressure / completed stale budget. CPU write and independent byte verification succeeded before strict HIP test rejected the missing candidate.",
+      "run": "local-run-6c2d1604d71a44f4aea10a3cdea7d595",
+      "receipt_sha256": "0341f077d1f137a30c632faaeafa953627abefb60fcf603cd63fa0afa78f706f",
+      "log_sha256": "3ef05feeb4cc0f0e8b9c058e36421f84cf349a240a1dffd149a74d0e846c4a30",
+      "exit_code": 1,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 5.010726,
+      "peak_job_bytes": 141410304,
+      "maximum_processes": 7
+    },
+    "verified_attempt": {
+      "label": "Three paired GPU and CPU writes. Exact CPU recovery and matched retained footprint.",
+      "run": "local-run-4a98feb5e4ed4e78835d2080276d6a6f",
+      "receipt_sha256": "6570b38bb55fc4c1e16379d0f00838149441ad8001c8e9bddf4600dec6ec4a05",
+      "log_sha256": "41ac24fe35e8160bd3549099cac49e38e1b691ed32cab1187e732f70c3e33214",
+      "exit_code": 0,
+      "tree_retired": true,
+      "children_at_parent_exit": 0,
+      "elapsed_seconds": 4.066037,
+      "peak_job_bytes": 141471744,
+      "maximum_processes": 7
+    },
+    "fixture_sha256": "f88a3d349bdfbe1930019ee3b528172b05252e92f502cae87a632c623d5a8916",
+    "sdk_sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+    "worker_sha256": "d22a19b5409d9c899dda652198a5a943a623967ed361c5f792715c80fe56a707",
+    "module_sha256": "774129467f778a71a78f40486ef4bba3eb7f49ae5885fd89ca6a24ca18ac7994",
+    "pairs": [
+      {
+        "pair": 1,
+        "amd_first": false,
+        "cpu_ns": 2417200,
+        "amd_ns": 1035296900,
+        "image_bytes": 5111808
+      },
+      {
+        "pair": 2,
+        "amd_first": true,
+        "cpu_ns": 2443200,
+        "amd_ns": 953193500,
+        "image_bytes": 5111808
+      },
+      {
+        "pair": 3,
+        "amd_first": false,
+        "cpu_ns": 2256900,
+        "amd_ns": 1013075900,
+        "image_bytes": 5111808
+      }
+    ],
+    "preferred_backend": "cpu",
+    "gpu_written_copies_per_case": 32
+  },
+  "outstanding": [
+    "Durable and rebuildable sparse postings, scan continuation and outcomes.",
+    "Broader content features and useful collective AMD throughput.",
+    "Mounted client and physical durability qualification."
+  ]
+}

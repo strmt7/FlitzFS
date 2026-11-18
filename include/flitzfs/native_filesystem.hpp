@@ -146,8 +146,9 @@ struct NativeSharedBaseInfo {bool enabled=false;std::size_t members=0,bases=0;};
 struct NativeExtentSelection {std::uint64_t inode=0,extent_index=0;};
 struct NativeContentToken {
   NativeExtentSelection extent;
+  // An unlinked or pending inode advances the indexed cursor with object zero.
   std::uint64_t object=0,revision=0,content_revision=0;
-  bool grouped=false;
+  bool grouped=false,exact_base=false;
 };
 struct NativeFsCommit {
   StoreCommitInfo storage;
@@ -527,13 +528,19 @@ class NativeFilesystemWriter final {
   friend class NativeFileSession;
   friend class NativeGroupMaintenance;
   std::optional<NativeContentToken> maintenance_next(NativeExtentSelection,bool first) const;
+  std::optional<NativeContentToken> maintenance_token(NativeExtentSelection);
   bool maintenance_matches(const NativeContentToken&) const noexcept;
-  std::vector<std::byte> maintenance_read(const NativeContentToken&);
+  std::vector<std::byte> maintenance_read(NativeContentToken&);
+  std::uint64_t maintenance_content_sequence() const noexcept;
+  bool maintenance_indexed() const noexcept;
+  bool maintenance_has_candidates() const noexcept;
   std::uint64_t maintenance_sequence() const noexcept;
   StoreIdentity maintenance_identity() const noexcept;
   std::uint64_t maintenance_physical_end() const noexcept;
   bool maintenance_busy() const noexcept;
   bool maintenance_supported() const noexcept;
+  SharedBaseWork prepare_shared_base(NativeExtentSelection,std::span<const NativeExtentSelection>,
+      std::span<const NativeContentToken>);
   using Recompression=ObjectStoreWriter::Rewrite;
   Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,StoreCheckpointOptions) const;

@@ -273,10 +273,18 @@ driver to make a probe fit a document.
 
 ## Recent executed evidence
 
+The indexed background controller now discovers related extents through checked
+ordered lookups. One 129-member group grew through five publications while
+foreground writes continued. A live Windows run used the SDK callbacks and
+actual resource observations to publish and independently reopen a group.
+Durable scan progress, broader similarity methods and useful collective
+AMD throughput remain open.
+[Automatic indexed discovery evidence](evidence/automatic-indexed-discovery-2026-11-18.json)
+
 Indexed shared-base preparation now yields before each member and follows live
 extent identity at publication. A 64-member fixture completed in 65 steps with
 foreground edits interleaved and verified. The 528 modeled indexed publication
-interruptions reopened complete checkpoints. Automatic discovery and useful
+interruptions reopened complete checkpoints. Persistent discovery and useful
 collective AMD execution remain open.
 [Cooperative indexed grouping](evidence/cooperative-indexed-shared-base-2026-11-18.json)
 

@@ -21,8 +21,10 @@ struct Clock {
 };
 struct Fixture {
   std::shared_ptr<Ram> head,image;std::optional<NativeFileSession> session;Clock clock;
-  explicit Fixture(std::uint32_t unit,unsigned count=8):head(ram(unit)),image(ram(unit)) {
-    session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false}));
+  explicit Fixture(std::uint32_t unit,unsigned count=8,bool indexed=false):head(ram(unit)),image(ram(unit)) {
+    const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+    if(indexed)session.emplace(NativeFileSession::create_indexed_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},raw));
+    else session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},raw));
     for(unsigned i=0;i<count;++i)put(*session,"f"+std::to_string(i),family(i));
   }
   auto step(NativeGroupMaintenance& controller){const auto observed=clock.next();return controller.advance(observed,clock.now);}
@@ -31,8 +33,8 @@ struct Fixture {
   void verify(unsigned count){const auto snapshot=session->snapshot();for(unsigned i=0;i<count;++i)
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"automatic grouping changed bytes");snapshot.verify_all();}
 };
-void automatic_and_extension(std::uint32_t unit) {
-  Fixture f(unit);const auto workload=f.session->workload_info();NativeGroupMaintenance original(*f.session);
+void automatic_and_extension(std::uint32_t unit,bool indexed=false) {
+  Fixture f(unit,8,indexed);const auto workload=f.session->workload_info();NativeGroupMaintenance original(*f.session);
   rejects([&]{NativeGroupMaintenance duplicate(*f.session);},"duplicate controller admitted");
   auto controller=std::move(original);require(original.progress().phase==Phase::failed,"moved controller stayed live");
   auto result=f.finish(controller);f.verify(8);
@@ -47,7 +49,7 @@ void automatic_and_extension(std::uint32_t unit) {
   require(result.published_groups==2 && f.session->snapshot().shared_base_info().members==9 && f.session->snapshot().shared_base_info().bases==1,
       "new related file did not merge into protected existing group");
   require(f.session->workload_info()==input && result.attempted_groups>attempts,"regrouping minted input");
-  std::cout<<"automatic_groups unit="<<unit<<" published="<<result.published_groups<<" sampled="<<result.sampled_extents
+  std::cout<<"automatic_groups indexed="<<indexed<<" unit="<<unit<<" published="<<result.published_groups<<" sampled="<<result.sampled_extents
       <<" reused="<<result.reused_features<<" minimum_compacted_saved="<<result.minimum_compacted_bytes_saved<<'\n';
 }
 void admission() {
@@ -118,6 +120,70 @@ void foreground_change_during_preparation() {
   for(unsigned i=1;i<4;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"reconciled group changed other data");
   require(snapshot.shared_base_info().members==3,"unrelated replacement entered stale group");snapshot.verify_all();
 }
+void indexed_scan_windows() {
+  Fixture f(4096,0,true);NativeGroupMaintenance controller(*f.session);
+  require(!controller.pending(),"empty indexed volume requested discovery");
+  constexpr unsigned count=2*kNativeMaxDirtyExtents+3;
+  constexpr std::uint64_t sparse_offset=1ULL<<38;
+  f.session->create_entry("churn");
+  auto churn=f.session->open("churn",{true,true,true});
+  Bytes expected{std::byte{0x40}};
+  f.session->write(churn,sparse_offset,expected);
+  require(!controller.pending(),"one sparse extent requested a group");
+  for(unsigned i=0;i<count;++i)put(*f.session,"f"+std::to_string(i),family(i));
+  require(controller.pending(),"indexed volume did not request discovery");
+  std::uint64_t max_scan_bytes=0;unsigned rewrites=0;
+  for(unsigned i=0;i<1000 && controller.progress().published_groups==0;++i) {
+    if(i%11==0) {
+      expected[0]^=std::byte{1};f.session->write(churn,sparse_offset,expected);++rewrites;
+    }
+    const auto reads=f.image->read_bytes;const auto prior=controller.progress();
+    const auto state=f.step(controller);
+    require(state.phase!=Phase::failed,"indexed discovery failed while advancing a live cursor");
+    if(prior.phase==Phase::scanning || prior.phase==Phase::candidates)
+      max_scan_bytes=(std::max)(max_scan_bytes,f.image->read_bytes-reads);
+  }
+  require(controller.progress().published_groups!=0 && rewrites>1,"indexed cursor did not reach a family under foreground writes");
+  const auto final=f.finish(controller);
+  require(final.published_groups>=3 && final.minimum_compacted_bytes_saved>0 && max_scan_bytes<1024*1024,
+      "indexed batching, sizing or one-extent scan bound failed");
+  auto snapshot=f.session->snapshot();
+  require(snapshot.shared_base_info().members==count && snapshot.shared_base_info().bases==1,
+      "indexed windows failed to extend one immutable base");
+  require(snapshot.read("churn",sparse_offset,1)==expected,"background scan changed sparse foreground bytes");
+  f.verify(count);
+  f.session->rename(churn,"renamed");
+  f.session->cleanup(churn,false);f.session->close(churn);
+  f.session->create_entry("empty");
+  const auto reads=f.image->read_calls,calls=f.image->calls;
+  require(!controller.pending() && f.step(controller).phase==Phase::idle &&
+      f.image->read_calls==reads && f.image->calls==calls,"indexed metadata changes restarted payload discovery");
+  std::cout<<"indexed_scan members="<<count<<" published_groups="<<final.published_groups<<" foreground_rewrites="<<rewrites
+      <<" max_scan_read_bytes="<<max_scan_bytes<<" lower_bound_savings="<<final.minimum_compacted_bytes_saved<<'\n';
+}
+void indexed_stale_binding_and_padding() {
+  Fixture f(4096,4,true);NativeGroupMaintenance controller(*f.session);
+  for(unsigned i=0;i<1000 && controller.progress().phase!=Phase::candidates;++i)f.step(controller);
+  require(controller.progress().phase==Phase::candidates,"indexed sample window was not ready");
+  auto handle=f.session->open("f0",{true,true,false});
+  const auto changed=data(kNativeExtentBytes,449);
+  f.session->write(handle,0,changed);f.session->cleanup(handle,false);f.session->close(handle);
+  for(unsigned i=0;i<1000 && !controller.active_group();++i)f.step(controller);
+  require(controller.active_group(),"saved candidate did not reach its generation check");
+  const auto reads=f.image->read_bytes,calls=f.image->calls;
+  for(unsigned i=0;i<1000 && controller.active_group();++i)f.step(controller);
+  require(!controller.active_group() && f.image->read_bytes-reads<kNativeExtentBytes && f.image->calls==calls &&
+      !f.session->poisoned(),"a changed sampled base was decoded or published");
+  (void)f.finish(controller);
+  auto view=f.session->snapshot();
+  require(view.shared_base_info().members==3 && view.read("f0",0,kNativeExtentBytes)==changed,
+      "stale sample caused incomplete recovery or changed the acknowledged bytes");
+  view.verify_all();
+  Fixture small(4096,0,true);
+  put(*small.session,"first",data(128,1));put(*small.session,"second",data(192,2));
+  NativeGroupMaintenance padding(*small.session);const auto result=small.finish(padding);
+  require(result.sampled_extents==2 && result.attempted_groups==0,"zero-padded bands nominated unrelated small files");
+}
 void publication_faults(std::uint32_t unit) {
   Fixture original(unit,4);const auto bytes=original.image->stable,head=original.head->stable;original.session.reset();
   auto setup=[&](const auto& data_io,const auto& control){return NativeFileSession::resume_volume(control,id(90),1,
@@ -147,7 +213,13 @@ void publication_faults(std::uint32_t unit) {
   std::cout<<"automatic_group_faults unit="<<unit<<" cuts="<<cuts<<" modes=3\n";
 }
 }
-int main(){try{for(auto unit:{4096U,65536U}){automatic_and_extension(unit);publication_faults(unit);}
-  admission();negative_cache_and_incompressible();ownership_and_pressure();foreground_change_during_preparation();
+int main(int argc,char** argv){try{
+  if(argc==2 && std::string_view(argv[1])=="--indexed") {
+    for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
+    indexed_scan_windows();indexed_stale_binding_and_padding();
+  } else if(argc==1) {
+    for(auto unit:{4096U,65536U}){automatic_and_extension(unit);publication_faults(unit);}
+    admission();negative_cache_and_incompressible();ownership_and_pressure();foreground_change_during_preparation();
+  } else throw std::invalid_argument("unknown group maintenance test mode");
   std::cout<<"PASS: "<<checks<<" automatic group maintenance checks; "<<faults<<" injected publication cases; model resource observations; memory CPU only\n";return 0;
 }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}}

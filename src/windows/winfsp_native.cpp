@@ -152,7 +152,7 @@ struct WinFspNativeWritable::Impl {
   std::unique_ptr<NativeDeferredWriteService> deferred;
   std::unique_ptr<NativeGroupMaintenance> groups;
   MemoryVolumeBacking* compaction=nullptr;
-  std::uint64_t groups_completed_sequence=0,last_retirement_observation=0,last_retirement_capture=0;
+  std::uint64_t last_retirement_observation=0,last_retirement_capture=0;
   bool maintenance_cancelled=false;
   std::atomic<bool> maintenance_signal_failed{false};
   bool callbacks_bound=false;
@@ -174,6 +174,17 @@ struct WinFspNativeWritable::Impl {
   void signal_maintenance() noexcept {
     if(maintenance_event.value && !SetEvent(maintenance_event.value))
       maintenance_signal_failed.store(true,std::memory_order_release);
+  }
+  WinFspMaintenanceResult advance_groups(const NativeMaintenanceObservation& observed,std::uint64_t now) {
+    using State=WinFspMaintenanceState;
+    if(!groups)return {State::unchanged};
+    if(!groups->pending())return {State::unchanged,groups->progress()};
+    const auto progress=groups->advance(observed,now);
+    if(progress.phase==NativeMaintenancePhase::failed) {
+      if(session.poisoned())offline.store(true,std::memory_order_release);
+      groups.reset();
+    }
+    return {State::advanced,progress};
   }
   WinFspMaintenanceResult advance_indexed_maintenance(const NativeMaintenanceObservation& observed,std::uint64_t now) {
     using State=WinFspMaintenanceState;
@@ -628,8 +639,9 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_index
   const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
   auto session=NativeFileSession::create_indexed_volume(std::move(head),volume,std::move(image),image_id,
       limits,foreground,NativeDispositionPolicy::windows_global,root);
-  return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(
-      std::make_unique<Impl>(std::move(session),volume,stamp,indexed_file_info)));
+  auto impl=std::make_unique<Impl>(std::move(session),volume,stamp,indexed_file_info);
+  impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
+  return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_indexed_retired(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
@@ -658,7 +670,7 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
   if(view.info().selection.epoch!=epoch)throw std::invalid_argument("exact head epoch required");
   const auto created=admit_windows_snapshot(view.filesystem(),closed_indexed);
   const auto kind=view.filesystem().image_storage().kind;
-  const bool grouped=kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled;
+  const bool grouped=kind==NativeImageKind::indexed_paged || (kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled);
   constexpr auto disposition=NativeDispositionPolicy::windows_global;
   auto session=closed_indexed?
       NativeFileSession::resume_closed_indexed_volume(std::move(head),volume,epoch,pinned,foreground,disposition):
@@ -681,7 +693,7 @@ bool WinFspNativeWritable::background_maintenance_pending() const {
     return false;
   return impl_->session.retirement_pending() ||
       (impl_->compaction && impl_->compaction->compaction_pending(impl_->session)) ||
-      (impl_->groups && (impl_->session.namespace_sequence()!=impl_->groups_completed_sequence ||
+      (impl_->groups && (impl_->groups->pending() ||
       (impl_->deferred && (impl_->deferred->publication_pending_locked() || impl_->deferred->stats_locked().worker_busy))));
 }
 void WinFspNativeWritable::set_maintenance_event(HANDLE event) {
@@ -723,18 +735,24 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     impl_->groups.reset();
     return {WinFspMaintenanceState::unavailable};
   }
-  if(impl_->info_policy==indexed_file_info)
-    return impl_->advance_indexed_maintenance(observed,now);
-  if(!impl_->groups)return {WinFspMaintenanceState::unavailable};
-  if(impl_->session.namespace_sequence()==impl_->groups_completed_sequence)
-    return {WinFspMaintenanceState::unchanged,impl_->groups->progress()};
-  auto progress=impl_->groups->advance(observed,now);
-  if(progress.phase==NativeMaintenancePhase::idle)impl_->groups_completed_sequence=impl_->session.namespace_sequence();
-  if(progress.phase==NativeMaintenancePhase::failed) {
-    if(impl_->session.poisoned())impl_->offline.store(true,std::memory_order_release);
-    impl_->groups.reset();
+  if(impl_->info_policy==indexed_file_info) {
+    // An admitted group pins its source image. Complete or retire it before
+    // a compaction handoff. Detached-inode reclamation can still invalidate it.
+    if(!impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
+      return impl_->advance_groups(observed,now);
+    auto storage=impl_->advance_indexed_maintenance(observed,now);
+    if(storage.state!=WinFspMaintenanceState::unchanged &&
+        (storage.progress.deferral!=NativeMaintenanceDeferral::other_maintenance || !impl_->groups || !impl_->groups->pending())) {
+      if(impl_->groups) {
+        auto progress=impl_->groups->progress();
+        progress.phase=storage.progress.phase;progress.deferral=storage.progress.deferral;
+        progress.next_opportunity_delay_ms=storage.progress.next_opportunity_delay_ms;
+        storage.progress=progress;
+      }
+      return storage;
+    }
   }
-  return {WinFspMaintenanceState::advanced,progress};
+  return impl_->advance_groups(observed,now);
 }
 HostedVolumeMaintenanceResult WinFspNativeWritable::recompress_managed_hosted(
     std::shared_ptr<StoreByteIo> target,StoreIdentity next,StoreCompressionOptions candidate) {

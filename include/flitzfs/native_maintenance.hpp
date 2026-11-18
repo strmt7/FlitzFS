@@ -35,6 +35,8 @@ class NativeGroupMaintenance final {
   ~NativeGroupMaintenance();
   NativeMaintenanceProgress advance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
   NativeMaintenanceProgress progress() const noexcept;
+  bool pending() const noexcept;
+  bool active_group() const noexcept;
   void cancel() noexcept;
  private:
   struct Impl;

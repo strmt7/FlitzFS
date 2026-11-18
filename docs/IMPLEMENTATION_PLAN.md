@@ -513,6 +513,21 @@ backend and failure evidence. **Existing ledger:** G02, G03, A02, D01.
 internal advisory ownership and the emerging paged engine.
 **Planning effort:** 3–7 person-weeks; confidence low.
 
+The indexed controller now streams allocated extent coordinates into bounded
+fingerprint windows. It retains a limited set of earlier representatives and
+extends reusable immutable anchors. Selected generations are checked during
+cooperative preparation. The next step is to persist scan continuation and
+sparse postings in rebuildable advisory storage, with their cost charged to
+the observed compression benefit.
+[Indexed discovery](INDEXED_NATIVE_VOLUME.md#automatic-candidate-discovery)
+
+RubikFS provides evidence for evaluating similarity and access hotness
+together. MedFS shows why selective delta maintenance should account for write
+traffic as well as the stored representation. FlitzFS uses its own live
+generation checks and packed-size proof when selecting a candidate.
+[RubikFS](https://www.usenix.org/conference/fast26/presentation/huang) ·
+[MedFS](https://www.usenix.org/conference/fast25/presentation/wu)
+
 ### Implementation steps
 
 1. Define stable content identities and feature versions independent of path,
@@ -650,7 +665,8 @@ importance of proving source bytes before sharing and excluding concurrent
 changes at publication. [Indexed preparation evidence](evidence/cooperative-indexed-shared-base-2026-11-18.json) ·
 [Btrfs deduplication](https://btrfs.readthedocs.io/en/latest/Deduplication.html#safety-of-block-comparison)
 
-Feed durable sparse candidate batches from E04 through this path. For each
+The background controller now feeds bounded indexed candidates through this
+path. Persist the candidate state in E04. For each
 candidate method, charge bounded windows, retained state and worker scratch
 before admission, and cache statistics by immutable content and model
 parameters. FlitzZip's current pipeline demonstrates these techniques and

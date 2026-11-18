@@ -233,8 +233,8 @@ std::size_t lower_slot(const Page& page, const NativeNameKey& key) {
       [](const Row& row,const NativeNameKey& value){ return row.key < value; });
   return static_cast<std::size_t>(found-page.rows.begin());
 }
-bool list_names(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot& root,
-    const Reference& reference, const NativeNameKey& after, std::size_t maximum,
+bool list_range(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot& root,
+    const Reference& reference, const NativeNameKey& after, std::uint64_t last_parent,std::size_t maximum,
     std::vector<NativeNameEntry>& output) {
   const auto page = read_page(store, root, reference);
   const auto first = std::upper_bound(page.rows.begin(),page.rows.end(),after,
@@ -242,13 +242,13 @@ bool list_names(const PagedObjectStoreSnapshot& store, const NativeNameIndexRoot
   for (auto it = first; it != page.rows.end(); ++it) {
     if (page.height) {
       const auto child = child_reference(page,reference,static_cast<std::size_t>(it-page.rows.begin()));
-      if (!list_names(store,root,child,after,maximum,output)) return false;
+      if (!list_range(store,root,child,after,last_parent,maximum,output)) return false;
     } else {
-      if (it->key.parent != after.parent) return false;
+      if (it->key.parent > last_parent) return false;
       output.push_back({it->key,it->value});
       if (output.size() == maximum) return false;
     }
-    if (it->key.parent > after.parent) return false;
+    if (it->key.parent > last_parent) return false;
   }
   return true;
 }
@@ -467,9 +467,21 @@ std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::st
   std::vector<NativeNameEntry> output;
   if (root_.page) {
     output.reserve(maximum);
-    (void)list_names(store_,root_,root_reference(root_),key,maximum,output);
+    (void)list_range(store_,root_,root_reference(root_),key,parent,maximum,output);
   }
   return output;
+}
+
+std::optional<NativeNameEntry> NativeNameIndex::next_extent(const std::optional<NativeNameKey>& after) const {
+  if(root_.kind==NativeIndexKind::names ||
+      (after && (!extent_key(root_.kind,after->parent) || !key_valid(root_.kind,*after))))
+    fail(Error::invalid_operation,"invalid mixed-index extent cursor");
+  if(!root_.page)return {};
+  std::vector<NativeNameEntry> result;
+  const auto first=after.value_or(NativeNameKey{kNativeIndexedInodeLimit,{}});
+  (void)list_range(store_,root_,root_reference(root_),first,reference_domain-1,1,result);
+  if(result.empty())return {};
+  return std::move(result.front());
 }
 
 std::uint64_t NativeNameIndex::extent_count(std::uint64_t inode) const {

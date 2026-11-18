@@ -337,8 +337,7 @@ NativeWorkloadInfo NativeFileSession::workload_info() const noexcept {
 }
 std::weak_ptr<detail::NativeMaintenanceSource> NativeFileSession::maintenance_source() {
   auto& self=ready();
-  if(!self.volume || !self.volume->head || self.volume->head->info().selection.storage.kind!=NativeImageKind::paged ||
-      !self.writer.maintenance_supported())
+  if(!self.volume || !self.volume->head || !self.writer.maintenance_supported())
     fail(E::invalid_options,"automatic grouping requires a managed paged volume");
   if(!self.maintenance)self.maintenance=std::make_shared<detail::NativeMaintenanceSource>(
       detail::NativeMaintenanceSource{&self.writer,&self.terminal});

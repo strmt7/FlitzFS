@@ -58,7 +58,7 @@ struct IndexedVolumeEdit {
 class IndexedSharedBasePreparation final {
  public:
   IndexedSharedBasePreparation(const PagedObjectStoreSnapshot&,IndexedVolumeRoot,
-      NativeExtentSelection,std::span<const NativeExtentSelection>);
+      NativeExtentSelection,std::span<const NativeExtentSelection>,std::span<const NativeContentToken>);
   bool watches_extent(std::uint64_t inode,std::uint64_t block) const noexcept;
   bool watches_inode(std::uint64_t inode) const noexcept;
   void invalidate() noexcept{invalidated_=true;}
@@ -84,18 +84,22 @@ class IndexedSharedBasePreparation final {
   NativeSharedBaseProgress progress_{NativeSharedBasePhase::reading_base};
   bool invalidated_=false;
 };
+struct IndexedContentWatch {
+  std::uint64_t& sequence;
+  IndexedSharedBasePreparation* preparation;
+};
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,const IndexedVolumeEdit&,NativeInodeCommitInfo*,NativeInodeAllocationInfo*,
-    IndexedSharedBasePreparation*);
+    IndexedContentWatch);
 void advance_indexed_retirement(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
-    IndexedVolumeRoot&,bool closed_session,IndexedSharedBasePreparation*);
+    IndexedVolumeRoot&,bool closed_session,IndexedContentWatch);
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t offset,std::span<const std::byte>,
     NativeInodeWriteOptions,const NativeAutomaticMetadata&,std::span<const NativeLz4ExtentCandidate>,
-    IndexedSharedBasePreparation*);
+    IndexedContentWatch);
 NativeInodeStorageMutationCommit truncate_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t bytes,const NativeAutomaticMetadata&,
-    IndexedSharedBasePreparation*);
+    IndexedContentWatch);
 struct IndexedDirectoryPage {
   std::vector<NativeFileInfo> entries;
   std::optional<std::string> after;
@@ -114,6 +118,9 @@ class IndexedVolumeView final {
   IndexedDirectoryPage list(std::uint64_t directory,std::string_view after,std::size_t maximum) const;
   std::vector<NativeFileInfo> list_all(std::uint64_t directory) const;
   std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes) const;
+  std::optional<NativeContentToken> next_content(NativeExtentSelection after,bool first) const;
+  std::optional<NativeContentToken> content_at(NativeExtentSelection) const;
+  std::vector<std::byte> read_content(NativeContentToken&) const;
   void verify_all() const;
   void verify_equivalent(const IndexedVolumeView& target) const;
 
@@ -121,6 +128,7 @@ class IndexedVolumeView final {
   friend class IndexedVolumeBuilder;
   IndexedVolumeView(const PagedObjectStoreSnapshot&,IndexedVolumeRoot root);
   IndexedInodeInput referenced_inode(std::uint64_t id,bool allow_retiring=false) const;
+  NativeContentToken content_token(NativeExtentSelection,std::uint64_t object) const;
   void verify_inventory(bool published) const;
   std::string path(const IndexedInodeInput&) const;
   const PagedObjectStoreSnapshot& store_;

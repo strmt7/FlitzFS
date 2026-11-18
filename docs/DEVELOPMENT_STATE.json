@@ -111,6 +111,23 @@
     "flitzzip_reference_commit": "11396b5123505a4a1959173e1db2d0858c10dd6d",
     "next": "Feed the cooperative path from a paged sparse candidate index and existing resource controller. Measure finalization interference and qualify a collective AMD transform."
   },
+  "automatic_indexed_discovery": {
+    "source_base": "c99b07992585fb411077fe03e41b0ae8436b2e19",
+    "evidence": "docs/evidence/automatic-indexed-discovery-2026-11-18.json",
+    "selected_windows_ctest_passed": 17,
+    "indexed_members_verified": 129,
+    "protected_bases": 1,
+    "group_publications": 5,
+    "interleaved_foreground_rewrites": 12,
+    "maximum_scan_step_read_bytes": 189477,
+    "summed_compacted_savings_lower_bound": 16728064,
+    "live_windows_sdk_group_opportunities": 13,
+    "matched_installed_amd_overwrites": 3,
+    "worker_pressure_fallback_verified": true,
+    "persistent_candidate_catalog": false,
+    "collective_gpu_execution": false,
+    "next": "Persist sparse feature postings and a resumable cursor in an independently recoverable advisory area. Qualify useful GPU feature and delta work on representative data."
+  },
   "owned_writable_lifetime": {
     "source_base": "ad6085754dfa85d483a13607ec22b279b677accb",
     "evidence": "docs/evidence/owned-writable-lifetime-2026-11-18.json",
@@ -455,7 +472,7 @@
   ],
   "next_implementation": {
     "contract": "docs/IMPLEMENTATION_PLAN.md",
-    "next": "Qualify the disposable external-client mount. Feed indexed group preparation from durable sparse discovery and qualify useful automatic AMD routing in matched trials.",
+    "next": "Qualify the disposable external-client mount. Persist sparse candidate discovery. Measure AMD setup and accounting overhead before admitting a collective codec.",
     "steps": [
       "E08.4",
       "E01.2",
@@ -480,9 +497,9 @@
     "coherence_catalog": false,
     "automatic_format_migration": false,
     "compatibility_programme": "Required U01 work; policy/frozen-reader and gradual-upgrade implementation remain pending.",
-    "cooperative_shared_base": "Owned one-extent CPU preparation covers legacy and indexed volumes. Live mapping validation preserves unrelated writes. Persistent indexed discovery, automatic scheduling for indexed groups and collective AMD execution remain open.",
+    "cooperative_shared_base": "Owned one-extent CPU preparation covers legacy and indexed volumes. Live mapping validation preserves unrelated writes. The indexed scheduler now feeds prepared groups from a bounded ordered cursor. Durable discovery state and collective AMD execution remain open.",
     "managed_paged_volumes": "Typed managed mirrored paged sessions, contexts, advice and verified handoff are integrated into the helper. Explorer-facing factories, paged native access, persistent coherence and physical qualification remain open.",
-    "automatic_group_maintenance": "Automatic bounded CPU groups in managed paged helper and SDK paths with live resource gating. Persistent coherence, steady-state reclamation and useful automatic GPU execution remain open.",
+    "automatic_group_maintenance": "Automatic bounded CPU groups in managed paged helper and indexed WinFsp paths with live resource gating. Indexed windows can extend an immutable base. Persistent coherence and useful automatic GPU execution remain open.",
     "Windows_background_helper": "Live all-processor/memory collection, current-thread resource background mode, measured pacing and auto groups in the unmounted paged helper. Explorer-facing paged factories, persistent scalable coherence and useful ordinary GPU operation remain open.",
     "paged_WinFsp_bridge": "Actual user-mode SDK callbacks support mirrored managed paged creation/resume and cooperative groups with Windows profile/ownership gates. Real mounted scheduling, staged reclamation and kernel/client qualification remain open.",
     "owned_WinFsp_controller": "One owned start/maintenance/stop thread, callback events, live PDH/resource priority and complete-quantum pacing; real SDK callbacks and injected lifecycle pass normal/ASan. Shared memory factory/native provider/actual mounted qualification remain.",

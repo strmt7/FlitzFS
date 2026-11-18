@@ -532,32 +532,39 @@ void read_only_memory() {
   {auto backing=MemoryVolumeBacking::create();backing.domain->verify_resident();}
   require(MemoryVolumeDomain::cleanup_healthy(),"sealed reader did not retire the provider");
 }
-void live_memory_composition() {
+void live_memory_composition(NativeImageKind kind=NativeImageKind::paged) {
   Provider p;Provider::active=&p;std::optional<NativeVolumeHeadView> surviving;
   const auto first=data(kNativeExtentBytes,889);auto second=first;second[999]^=std::byte{7};
   {
-    WinFspMemoryVolume volume(p.api(),plan());
+    WinFspMemoryVolume volume(p.api(),plan(),kind);
     await([&]{const auto v=volume.view();return v.state==SessionState::running || v.retired;},5000,"memory controller start deadline");
     require(volume.view().state==SessionState::running,"memory provider startup failed");
     const auto layout=volume.layout();require(layout.domain_capacity>=2*layout.image_capacity &&
         layout.image_capacity>=3*kStoreCommitUnit,"memory controller used wrong backing envelope");
     callback_file(p,0,first);callback_file(p,1,second);
-    const auto until=GetTickCount64()+18000;
+    const auto until=GetTickCount64()+(kind==NativeImageKind::indexed_paged?28000:18000);
     while(GetTickCount64()<until) {
       const auto v=volume.view();if(v.maintenance.published_groups || v.maintenance_disabled || v.retired)break;Sleep(25);
     }
     const auto observed=volume.view();volume.stop_and_join();
     require(volume.view().retired && !volume.view().offline,"memory controller did not retire cleanly");
     auto cpu=volume.inspect_retired();cpu.filesystem().verify_all();
-    require(cpu.filesystem().image_storage().kind==NativeImageKind::paged && cpu.filesystem().shared_base_info().enabled,
+    require(cpu.filesystem().image_storage().kind==kind,
         "memory controller did not create managed paged storage");
     require(cpu.filesystem().read("f0",0,first.size())==first && cpu.filesystem().read("f1",0,second.size())==second,
         "memory controller lost accepted data after stop");
-    require(cpu.filesystem().workload_info()==NativeWorkloadInfo{true,2*kNativeExtentBytes},"memory controller input provenance");
+    std::cout<<"live_memory indexed="<<(kind==NativeImageKind::indexed_paged)<<" domain="<<layout.domain_capacity
+        <<" image="<<layout.image_capacity<<" groups="<<observed.maintenance.published_groups
+        <<" sampled="<<observed.maintenance.sampled_extents<<" attempts="<<observed.maintenance.attempted_groups
+        <<" phase="<<static_cast<unsigned>(observed.maintenance.phase)<<" deferral="<<static_cast<unsigned>(observed.maintenance.deferral)
+        <<" compactions="<<observed.compactions<<" quanta="<<observed.maintenance_quanta
+        <<" maximum_quantum_ns="<<observed.maximum_quantum_ns<<" disabled="<<observed.maintenance_disabled<<'\n';
+    if(kind==NativeImageKind::paged) {
+      require(cpu.filesystem().shared_base_info().enabled &&
+          cpu.filesystem().workload_info()==NativeWorkloadInfo{true,2*kNativeExtentBytes},"memory controller input provenance");
+    } else require(observed.maintenance.published_groups==1 && !observed.maintenance_disabled,
+        "live indexed group did not complete within admitted opportunities");
     if(observed.maintenance.published_groups)require(cpu.filesystem().shared_base_info().members==2,"memory group not retained");
-    std::cout<<"live_memory domain="<<layout.domain_capacity<<" image="<<layout.image_capacity<<" groups="
-        <<observed.maintenance.published_groups<<" quanta="<<observed.maintenance_quanta<<" maximum_quantum_ns="
-        <<observed.maximum_quantum_ns<<" disabled="<<observed.maintenance_disabled<<'\n';
     surviving.emplace(std::move(cpu));
   }
   surviving->filesystem().verify_all();require(surviving->filesystem().read("f0",0,first.size())==first,
@@ -661,6 +668,45 @@ void indexed_memory_composition() {
   sealed.reset();
   require(MemoryVolumeDomain::cleanup_healthy(),"indexed memory lease did not retire");
 }
+
+void indexed_group_callback_contract() {
+  Provider provider;Provider::active=&provider;
+  auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
+  head->failure_unit=image->failure_unit=4096;
+  auto adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),
+      {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false});
+  WinFspNativeSession session(std::move(adapter),provider.api());
+  require(session.start(plan())==STATUS_SUCCESS && !session.background_maintenance_pending(),
+      "empty indexed adapter requested a group");
+  const auto first=data(kNativeExtentBytes,739);auto second=first;second[101]^=std::byte{13};
+  callback_file(provider,0,first);callback_file(provider,1,second);
+  NativeMaintenanceObservation observed;
+  observed.valid=true;observed.physical_total=16ULL<<30;observed.physical_available=12ULL<<30;
+  observed.commit_limit=32ULL<<30;observed.commit_available=24ULL<<30;
+  observed.cpu_total_ticks=1000;observed.cpu_busy_ticks=126;
+  observed.cpu_window_ms=1000;observed.sequence=1;observed.captured_ms=1000;
+  const auto reads=image->read_calls,calls=image->calls;
+  const auto deferred=session.advance_background_maintenance(observed,observed.captured_ms);
+  require(deferred.progress.deferral==NativeMaintenanceDeferral::cpu &&
+      image->read_calls==reads && image->calls==calls,"busy indexed adapter did backing work");
+  observed.cpu_busy_ticks=0;
+  WinFspMaintenanceResult state;
+  for(unsigned i=0;session.background_maintenance_pending() && i<1000;++i) {
+    ++observed.sequence;observed.captured_ms+=observed.cpu_window_ms;
+    state=session.advance_background_maintenance(observed,observed.captured_ms);
+    require(state.progress.phase!=NativeMaintenancePhase::failed,"indexed adapter grouping failed");
+  }
+  require(state.progress.published_groups==1 && state.progress.minimum_compacted_bytes_saved>0 &&
+      !session.background_maintenance_pending(),"indexed adapter did not settle one beneficial group");
+  session.stop();
+  const auto recovered=NativeVolumeHeadView::open(head,id(90),[&](const auto&){return image;});
+  const auto& volume=recovered.filesystem();
+  require(volume.shared_base_info().members==2 && volume.read("f0",0,kNativeExtentBytes)==first &&
+      volume.read("f1",0,kNativeExtentBytes)==second,"CPU reopen changed indexed callback content");
+  volume.verify_all();
+  std::cout<<"indexed_callback_group published="<<state.progress.published_groups
+      <<" lower_bound_savings="<<state.progress.minimum_compacted_bytes_saved<<'\n';
+}
 }
 int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
@@ -672,7 +718,7 @@ int main(int argc,char** argv){try {
   // use. Prove native-only stabilization before measuring factory ownership.
   if(lifetime_only || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
-      std::string_view(argv[1])=="--live-indexed-compaction")))
+      std::string_view(argv[1])=="--live-indexed-compaction" || std::string_view(argv[1])=="--live-indexed-grouping")))
     native_rng_initialization();
   // A long native PDH-only control initializes process-wide OS handles
   // before the explicit long-volume mode measures controller ownership.
@@ -690,10 +736,13 @@ int main(int argc,char** argv){try {
   }else if(argc==2 && std::string_view(argv[1])=="--indexed-memory") {
     memory_composition(NativeImageKind::indexed_paged);
     indexed_memory_composition();
+    indexed_group_callback_contract();
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
   }else if(argc==2 && std::string_view(argv[1])=="--live-indexed-compaction") {
     live_indexed_compaction();
+  }else if(argc==2 && std::string_view(argv[1])=="--live-indexed-grouping") {
+    live_memory_composition(NativeImageKind::indexed_paged);
   }else if(argc==2 && std::string_view(argv[1])=="--memory-handles") {
     for(unsigned i=0;i<3;++i){memory_backing_ownership();std::cout<<"backing_handles cycle="<<i<<" count="<<handle_count()<<'\n';}
   }else throw std::invalid_argument("Unknown owned controller qualification mode");
