@@ -1,5 +1,19 @@
 # Bounded HIP kernel candidate and qualification boundary
 
+## Direct shared-base search
+
+The supervised driver worker accepts one base and its members through the
+existing fixed-size channel. The SDK module builds a two-position index with
+device-scope integer atomics and searches all three member extents against it.
+The two kernels execute in order on the least-priority nonblocking stream.
+The experiment uses an 816 KiB device slab at the full fixture shape.
+The worker and parent verify source identity, coordinates and original bytes.
+The existing indexed writer independently compares the native representation and
+its complete storage cost.
+[HIP atomics](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html#atomic-functions) ·
+[HIP asynchronous execution](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/asynchronous.html) ·
+[Matched trials](evidence/direct-amd-anchor-2026-11-18.json)
+
 ## SDK-only compression compute candidate
 
 Read [HIP_LZ4_COMPUTE.md](HIP_LZ4_COMPUTE.md) before changing the new typed compute implementation or CPU probe. It remains outside normal operations and the distributable worker; source-bound SDK qualification is pending. Keep authenticated coverage, CPU-first refusal, the complete slab cap and exact retirement requirements.

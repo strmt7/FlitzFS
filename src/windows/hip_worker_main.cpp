@@ -438,7 +438,9 @@ int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
   const bool memory_observation=mode==L"--driver-memory-adapter";
   const bool phase_observation=mode==L"--driver-match-profile";
-  const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" || memory_observation || phase_observation;
+  const bool anchoring=mode==L"--driver-anchor-match";
+  const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" ||
+      memory_observation || phase_observation || anchoring;
   const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter" || phase_observation;
   require((driver ? argc == 8 : argc == 7) &&
       (driver || mode == L"--adapter" || mode == L"--match-adapter") &&
@@ -455,8 +457,21 @@ int worker(int argc, wchar_t** argv) {
   auto channel = WorkerChannel::open(argv[driver ? 7 : 6]);
   std::optional<WorkerBatchRequest> decode;
   std::optional<MatchWorkerRequest> match;
-  if(matching)match.emplace(read_match_request(channel.request()));
-  else decode.emplace(read_request(channel.request()));
+  std::optional<detail::AnchorMatchRequest> anchor;
+  std::uint64_t allocation=0;
+  if(anchoring) {
+    try {anchor.emplace(detail::decode_anchor_match_request(channel.request()));}
+    catch(const std::invalid_argument&) {
+      throw HipWorkerFailure(Exit::invalid_request,"invalid shared base match request",HipWorkerStage::worker_request);
+    }
+    allocation=anchor_match::device_bytes(detail::anchor_match_members(anchor->source));
+  } else if(matching) {
+    match.emplace(read_match_request(channel.request()));
+    allocation=match->search.device_buffer_bytes();
+  } else {
+    decode.emplace(read_request(channel.request()));
+    allocation=decode->batch.device_buffer_bytes();
+  }
   phase_clock.end(HipPhase::request_decode);
   if(phase_observation) {
     phase_value.execution=WorkerExecution::hip;
@@ -465,7 +480,6 @@ int worker(int argc, wchar_t** argv) {
     // The canonical request digest was verified during decode above.
     std::copy_n(channel.request().begin()+32,32,phase_value.binding.source_digest.begin());
   }
-  const auto allocation=matching?match->search.device_buffer_bytes():decode->batch.device_buffer_bytes();
   std::optional<HipMemoryBinding> diagnostic_binding;
   if(memory_observation){
     diagnostic_binding=HipMemoryBinding{decode->request_id,ordinal,node_mask,luid,
@@ -503,7 +517,19 @@ int worker(int argc, wchar_t** argv) {
       Exit::integrity_failure, "different installed HIP runtime loaded");
   phase_clock.end(HipPhase::modules_load);
   std::vector<std::byte> frame;
-  if(matching) {
+  if(anchor) {
+    const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_match_api_v1");
+    require(address!=nullptr,Exit::unsupported_configuration,"HIP anchor match entry unavailable",HipWorkerStage::kernel_entry);
+    const auto entry=std::bit_cast<anchor_match::KernelApiEntry>(address);
+    const auto* api=entry();
+    require(api && anchor_match::compatible_kernel_api(*api),Exit::unsupported_configuration,
+        "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
+    const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*anchor);
+    try {frame=detail::encode_anchor_match_reply(*anchor,records);}
+    catch(const std::invalid_argument&) {
+      throw HipWorkerFailure(Exit::integrity_failure,"HIP shared base suggestion failed independent byte verification");
+    }
+  } else if(matching) {
     phase_clock.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_match_api_v1");
     require(address!=nullptr,Exit::unsupported_configuration,"HIP match entry unavailable",HipWorkerStage::kernel_entry);

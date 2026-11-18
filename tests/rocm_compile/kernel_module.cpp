@@ -32,3 +32,18 @@ const flitzfs::match_detail::KernelApi* flitzfs_rocm_match_api_v1() noexcept {
   }();
   return &api;
 }
+
+#include "flitzfs/gpu_anchor_kernel_api.hpp"
+namespace flitzfs::anchor_match {
+void bind_anchor_kernels(KernelApi&) noexcept;
+}
+extern "C" __declspec(dllexport)
+const flitzfs::anchor_match::KernelApi* flitzfs_rocm_anchor_match_api_v1() noexcept {
+  using namespace flitzfs::anchor_match;
+  static const auto api=[]() noexcept {
+    KernelApi value{sizeof(KernelApi),abi_version,extent_bytes,max_members,index_bytes,threads,nullptr,nullptr};
+    bind_anchor_kernels(value);
+    return value;
+  }();
+  return &api;
+}

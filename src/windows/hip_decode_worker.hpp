@@ -3,6 +3,8 @@
 #include "flitzfs/worker_wire.hpp"
 #include "flitzfs/match_worker_wire.hpp"
 #include "flitzfs/gpu_match_kernel_api.hpp"
+#include "flitzfs/gpu_anchor_kernel_api.hpp"
+#include "../native_group_anchor.hpp"
 #include <windows.h>
 #include "hip_memory_wire.hpp"
 #include "hip_phase_profile.hpp"
@@ -12,6 +14,9 @@ void require_hip_worker_job();
 std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
     const match_detail::KernelApi&,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const MatchWorkerRequest&,HipPhaseRecorder* profile=nullptr);
+std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
+    const anchor_match::KernelApi&,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,const detail::AnchorMatchRequest&);
 // The caller owns the verified runtime and kernel module for the whole call.
 // This is the compute stage of a supervised worker, with no module discovery.
 GpuBatchReply run_hip_decode_in_worker(HMODULE runtime,

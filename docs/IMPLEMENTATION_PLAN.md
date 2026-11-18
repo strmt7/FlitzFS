@@ -678,11 +678,17 @@ Copies from tiles that contain the same base produced a 600 KiB complete
 image on the seeded fragmented fixture, compared with 752 KiB for the same
 tiled search on CPU with Zstandard available. Zstandard alone reached 416 KiB
 on the source-derived fixture and the group was declined. Full AMD costs were
-1.79–2.20 seconds in those trials. The next candidate should keep one base
-index on the device across regions and return bounded copy ranges directly.
-Measure setup, transfer, rejected work, occupied bytes and foreground load
-before enabling ordinary routing.
+1.79–2.20 seconds in those trials.
 [Collective comparison](evidence/amd-anchor-collective-2026-11-18.json)
+
+The direct AMD matcher now builds one base index per request and returns packed
+copy suggestions. In paired three-member trials it cut input transfer by two
+thirds and reduced the seeded whole image from 520 KiB with tiled AMD search
+to 360 KiB. CPU search produced the same complete image in the direct mode and
+remained faster. Use resource-sized transport to measure larger admitted
+windows. Bound the lifetime of reusable device state and preserve CPU progress
+and prompt yielding before enabling ordinary routing.
+[Direct shared-base search](evidence/direct-amd-anchor-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

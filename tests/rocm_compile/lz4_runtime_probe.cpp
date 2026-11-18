@@ -16,6 +16,7 @@
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include "../native_lz4_fixture.hpp"
 #include "../anchor_search_fixture.hpp"
+#include "../../src/native_group_anchor.hpp"
 #include <windows.h>
 #include <array>
 #include <algorithm>
@@ -251,13 +252,15 @@ std::uint64_t nanos_since(std::chrono::steady_clock::time_point start) {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now()-start).count());
 }
-AnchorNativeResult anchor_native_trial(const AnchorSearchInput& input,const UniformLz4Candidates* candidates) {
+AnchorNativeResult anchor_native_trial(const AnchorSearchInput& input,const UniformLz4Candidates* candidates,
+    const detail::AnchorMatchAdvice& direct={}) {
   const auto start=std::chrono::steady_clock::now();
   locked_ram_fixture::WorkingSet working;
   constexpr std::size_t capacity=4U*1024*1024;
   SYSTEM_INFO system{};GetSystemInfo(&system);
   const StoreCompressionOptions compression{StoreCompressionMode::automatic,6,false};
   const auto count=input.members.size()/kNativeExtentBytes;
+  require(direct.empty() || (!candidates && direct.size()==count),"anchor advice extent count");
   const auto make_id=[](unsigned value){StoreIdentity id{};id[0]=static_cast<std::byte>(value);return id;};
   auto image=std::make_shared<locked_ram_fixture::Store>(capacity,system.dwPageSize);
   auto packed=std::make_shared<locked_ram_fixture::Store>(capacity,system.dwPageSize);
@@ -294,7 +297,9 @@ AnchorNativeResult anchor_native_trial(const AnchorSearchInput& input,const Unif
         }
         advice=detail::native_anchor_copy_ranges(blocks);
       }
-      if(writer.advance_shared_base(work,advice))break;
+      const auto ranges=index && !direct.empty()?std::span<const NativeSharedBaseCopyRange>(direct.at(index-1)):
+          std::span<const NativeSharedBaseCopyRange>(advice);
+      if(writer.advance_shared_base(work,ranges))break;
     }
     outcome.selected_members=work.progress().selected_advice_members;
     outcome.applied=writer.finish_shared_base(work).applied;
@@ -313,6 +318,74 @@ AnchorNativeResult anchor_native_trial(const AnchorSearchInput& input,const Unif
   outcome.compacted_bytes=packed->extent();
   outcome.work_ns=nanos_since(start);
   return outcome;
+}
+int direct_anchor_gpu_once(wchar_t** argv,const AnchorSearchInput& input) {
+  const fs::path worker(argv[2]);
+  require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_worker.exe","Trusted direct anchor worker required");
+  const auto mask=number(argv[5],(std::numeric_limits<unsigned>::max)());
+  (void)number(argv[3],63);
+  const auto luid=luid_value(argv[4]);
+  const std::wstring_view digest(argv[6]);
+  require(mask && !(mask&(mask-1)) && digest.size()==64 &&
+      std::all_of(digest.begin(),digest.end(),[](wchar_t c){
+        return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');}),"Direct anchor adapter/runtime binding invalid");
+
+  const auto frame=detail::encode_anchor_match_request(input.base,input.members,1);
+  const auto request=detail::decode_anchor_match_request(frame);
+  const auto device_bytes=anchor_match::device_bytes(detail::anchor_match_members(request.source));
+  const auto observed=query_windows_gpu_budget(luid,mask);
+  const auto admitted=observed.status==WindowsGpuBudgetStatus::success &&
+      check_gpu_memory_budget(observed.snapshot,luid,mask,GetTickCount64(),device_bytes)==GpuGateCode::admitted;
+  const auto start=std::chrono::steady_clock::now();
+  std::optional<WorkerExchangeResult> result;
+  detail::AnchorMatchAdvice gpu_advice;
+  bool verified=false;
+  if(admitted) {
+    result=run_worker_exchange(worker,{L"--driver-anchor-match",argv[3],argv[4],argv[5],argv[6]},frame,budget);
+    require(result->process.exit_confirmed && WorkerExchangeSession::available(),
+        "Direct anchor worker retirement unconfirmed");
+    if(result->code==WorkerExchangeCode::completed && result->process.exit_code==0 &&
+        !result->process.timed_out && !result->process.cancelled) {
+      try {
+        gpu_advice=detail::accept_anchor_match_reply(result->response,request);
+        verified=true;
+      } catch(const std::invalid_argument&) {
+        gpu_advice.clear();
+      }
+    }
+  }
+  const auto exchange_ns=nanos_since(start);
+  const auto cpu_start=std::chrono::steady_clock::now();
+  const auto cpu_records=detail::cpu_anchor_match_records(request);
+  const auto cpu_advice=detail::verify_anchor_match_records(request,cpu_records);
+  const auto cpu_ns=nanos_since(cpu_start);
+  const auto exact=verified && result->response==detail::encode_anchor_match_reply(request,cpu_records);
+  const auto baseline=anchor_native_trial(input,nullptr);
+  const auto cpu=anchor_native_trial(input,nullptr,cpu_advice);
+  std::optional<AnchorNativeResult> gpu;
+  if(exact)gpu=anchor_native_trial(input,nullptr,gpu_advice);
+  const auto& selected=gpu?*gpu:cpu;
+  require(locked_ram_fixture::locked_bytes==0 && locked_ram_fixture::cleanup_ok,
+      "Direct anchor fixture leaked locked memory");
+  std::cout<<std::boolalpha<<"Direct AMD shared base search: {\"gpu_executed\":"<<verified
+      <<",\"admitted\":"<<admitted<<",\"cpu_fallback\":"<<!gpu
+      <<",\"cpu_record_parity\":"<<exact
+      <<",\"source_bytes\":"<<request.source.size()<<",\"worker_request_bytes\":"<<frame.size()
+      <<",\"worker_reply_bytes\":"<<(result?result->response.size():0)<<",\"device_allocation_bytes\":"<<device_bytes
+      <<",\"host_to_device_bytes\":"<<(verified?request.source.size():0)
+      <<",\"device_to_host_bytes\":"<<(verified?cpu_records.size()*sizeof(cpu_records[0]):0)
+      <<",\"cpu_search_ns\":"<<cpu_ns<<",\"exchange_ns\":"<<exchange_ns
+      <<",\"cpu_baseline_compacted_bytes\":"<<baseline.compacted_bytes
+      <<",\"cpu_direct_compacted_bytes\":"<<cpu.compacted_bytes
+      <<",\"amd_direct_compacted_bytes\":"<<(gpu?std::to_string(gpu->compacted_bytes):"null")
+      <<",\"amd_direct_applied\":"<<(gpu&&gpu->applied)<<",\"amd_prepared_members\":"<<(gpu?gpu->selected_members:0)
+      <<",\"selected_compacted_bytes\":"<<selected.compacted_bytes
+      <<",\"zstd_available\":"<<store_zstd_available()
+      <<",\"worker_exit\":"<<(result?result->process.exit_code:0)
+      <<",\"worker_stage\":\""<<(result?hip_worker_stage_name(hip_worker_exit_stage(result->process.exit_code)):"none")<<'"'
+      <<",\"retirement_confirmed\":"<<(!result||result->process.exit_confirmed)
+      <<",\"cpu_readback_verified\":true,\"locked_after_bytes\":0}\n";
+  return verified&&exact?0:2;
 }
 UniformLz4Candidates cpu_anchor_candidates(const PreparedUniformLz4& batch) {
   detail::StoreCodecEncoder encoder({StoreCompressionMode::fast,1,false});
@@ -644,7 +717,9 @@ int wmain(int argc,wchar_t** argv){
     }
     if(argc==4 && std::wstring_view(argv[1])==L"--uniform-admission")return uniform_admission(argv[2],argv[3]);
     if(argc==2 && std::wstring_view(argv[1])==L"--uniform-sweep-native-cpu-fixture")return uniform_native_cpu_fixture(true);
-    if(argc>1 && std::wstring_view(argv[1])==L"--gpu-indexed-anchor-once") {
+    const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
+    if(mode==L"--gpu-indexed-anchor-once" || mode==L"--gpu-indexed-direct-anchor-once" ||
+        mode==L"--gpu-indexed-tiled-anchor-once") {
       require(argc==7 || argc==8,"Anchor search needs the exact worker binding and optional public extent");
       AnchorSearchInput input;
       if(argc==8) {
@@ -656,10 +731,12 @@ int wmain(int argc,wchar_t** argv){
         std::uint64_t state=0x679a210fed44c3abULL;
         for(auto& value:input.base){state^=state<<13;state^=state>>7;state^=state<<17;value=static_cast<std::byte>(state>>21);}
       }
-      for(unsigned i=1;i<=4;++i) {
+      const auto members=mode==L"--gpu-indexed-anchor-once"?4:anchor_match::max_members;
+      for(unsigned i=1;i<=members;++i) {
         const auto member=anchor_search_fixture::fragmented(input.base,i);
         input.members.insert(input.members.end(),member.begin(),member.end());
       }
+      if(mode==L"--gpu-indexed-direct-anchor-once")return direct_anchor_gpu_once(argv,input);
       return uniform_native_gpu_once(argc,argv,controller,true,true,&input);
     }
     if(argc>1 && std::wstring_view(argv[1])==L"--gpu-uniform-sweep-profile-native-once")return uniform_native_gpu_once(argc,argv,controller,true,true);

@@ -38,3 +38,36 @@ void flitzfs_match_v1(const unsigned char* input,unsigned int size,
 namespace flitzfs::match_detail {
 void bind_match_kernel(KernelApi& api) noexcept {api.search=flitzfs_match_v1;}
 }
+
+#include "flitzfs/gpu_anchor_kernel_api.hpp"
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_index_v1(const unsigned char* base,flitzfs::anchor_match::Bucket* table,
+    unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  const auto at=blockIdx.x*threads+threadIdx.x;
+  u32 slot=0;
+  if (version!=abi_version || !base || !table || !index_position(base,at,slot)) return;
+  auto& entry=table[slot];
+  const auto old=atomicMin(&entry.first,at);
+  // Every position displaced from, or refused by, the first slot competes
+  // for the second. The two lowest positions survive in any execution order.
+  if (old!=empty) atomicMin(&entry.second,old>at?old:at);
+}
+
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_search_v1(const unsigned char* source,unsigned int members,
+    const flitzfs::anchor_match::Bucket* table,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  const auto lane=blockIdx.x*threads+threadIdx.x;
+  if (version!=abi_version || !members || members>max_members || lane>=members*tiles ||
+      !source || !table || !output) return;
+  const auto* member=source+(1+lane/tiles)*extent_bytes;
+  output[lane]=search(source,member,table,lane%tiles);
+}
+
+namespace flitzfs::anchor_match {
+void bind_anchor_kernels(KernelApi& api) noexcept {
+  api.index=flitzfs_anchor_index_v1;
+  api.search=flitzfs_anchor_search_v1;
+}
+}

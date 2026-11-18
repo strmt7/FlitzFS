@@ -1,0 +1,519 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "source_base": "5b8fb98c209fdc2064d6d13785f128c100eb818c",
+  "tested_sources": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "660cc57bd33f9a29dbc82eea3cd2db263d87bfdf",
+      "sha256": "4bfb389777812126be2db3825ee53e911f33ec6f6f2ca4471a839664d1bb7516"
+    },
+    {
+      "path": "include/flitzfs/gpu_anchor_match.hpp",
+      "git_blob": "80863fe49764844c2ad47c818da119d90d1fb357",
+      "sha256": "0a7888e50f9c332b4ff5d41dc5325f0c2fc8db8ef21027969cc04a1a860c262f"
+    },
+    {
+      "path": "include/flitzfs/gpu_anchor_kernel_api.hpp",
+      "git_blob": "5b8908bba8c3ad31f5980f98f8e4245eb7060b39",
+      "sha256": "232feedea7cc2f85cf071599d2da48b30ae48b25f01b8fc9efeb35a52e882a57"
+    },
+    {
+      "path": "src/gpu/decode_kernel.hip",
+      "git_blob": "08c906608928db0ad6163e35dc7debb41d8f97be",
+      "sha256": "6558b7edfeeeccee3a37c63549164045ec32afd32e64028cf98d4f4affd585c0"
+    },
+    {
+      "path": "src/native_group_anchor.hpp",
+      "git_blob": "f67f963572516e0ea090edc408e0704151ad340a",
+      "sha256": "0b2981b9da8a292eb14ec77fd61adee4d2ad22862e005028cb262b143b2f53f6"
+    },
+    {
+      "path": "src/native_group_anchor.cpp",
+      "git_blob": "7150b9e1cbe9e66b223a3cf3874d2f0c5858e549",
+      "sha256": "1d6be1912878202fc7f993290b7a9ac834b81300341a66a49de0c706aa55d724"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.hpp",
+      "git_blob": "4a7b5a4d0fb99685c5fba8849da1a16492e3035b",
+      "sha256": "b5c49cf271c236b48276505c4811490f3cc6755b0c40d46cde9b4ccf92dc4510"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.cpp",
+      "git_blob": "5cc5d2897d80bd3e6c6008a4ce9a24a15d23ded4",
+      "sha256": "5e38a7c13e129e02667858368adf4ea801c483af9ee2a3fea775fb2228ba7564"
+    },
+    {
+      "path": "src/windows/hip_worker_main.cpp",
+      "git_blob": "553dca82faba38eb1b48de93037716bed523fc41",
+      "sha256": "73b23596202642283ccaaba0efcebd2bce50e3d934e4a9b8b6914976014a5a09"
+    },
+    {
+      "path": "tests/rocm_compile/kernel_module.cpp",
+      "git_blob": "b9ca748e193b77bbec513a3b67f72a5436a08d71",
+      "sha256": "ffb2c72ca7f7409428103105f9add50e5a6e1fdc2db61396ced8783a9e86a7b0"
+    },
+    {
+      "path": "tests/rocm_compile/lz4_runtime_probe.cpp",
+      "git_blob": "8fb507528f135c708d17978ca60a66b340e9897d",
+      "sha256": "ded571c45095c0596f65886d793d252f277c0191586cdbdc93343d207e04469b"
+    },
+    {
+      "path": "tests/anchor_search_fixture.hpp",
+      "git_blob": "ba2f030344ab76d40e4d2354ba54c7313b36daa8",
+      "sha256": "453599871a805920209966782d917c25ab61c8642d9a3d6d60b0f26084e4a281"
+    },
+    {
+      "path": "tests/test_gpu_anchor_match.cpp",
+      "git_blob": "50a5e469a87590ccc5d96d4a957b386c81312f42",
+      "sha256": "bb359412988620401a2058faf52ed53d5a969c777fda2d32bfeb8b2b4867e2fe"
+    },
+    {
+      "path": "tools/ci/qualify_rocm_sdk.py",
+      "git_blob": "c636d28795d650bd8cb40e0b6bd8b075d4808ea9",
+      "sha256": "10eea3e88e15a267c26790e28a2cc377500edabacd4f9bb9dcb12d436224103e"
+    }
+  ],
+  "fixture": {
+    "base_bytes": 65536,
+    "members": 3,
+    "member_bytes": 65536,
+    "store_compression": "automatic, Zstandard 1.5.7 level 6 available",
+    "public_source_extent_sha256": "aaf45ea2d8bb996d559478d0ea28002e819306e56ab5d1c46fce92b4607d51af",
+    "public_source_basis": "Same controlled fragment permutation of a tracked FlitzFS source extent as the prior qualifying trial",
+    "local_memory_backing": true,
+    "matched_inputs": true,
+    "ordered": "direct/tiled, tiled/direct, direct/tiled, two CPU fallback controls"
+  },
+  "environment": {
+    "windows_build": 26300,
+    "compile_target": "gfx1201",
+    "rocm_sdk": "10.1.0",
+    "installed_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848",
+    "accelerator_identity_query_count": 1
+  },
+  "artifacts": {
+    "object_sha256": "28a8c5c755c637e01914707fe67da6204993fc9c66e38b93610ec6570ff226e2",
+    "object_bytes": 26216,
+    "worker_sha256": "6aa3e10c4e078fe4dd0187de7dd21663e6f5778a41d20210e7a5fdc9f22976c4",
+    "kernel_module_sha256": "c354531133436d3658c8ff485a7df6d1873fe70542810adf2282d05675fa24f2",
+    "probe_sha256": "ca8c7a464c32d16ffba4a385b5a50aaae10b2313348b16fe415254f221d477f7"
+  },
+  "navigation": {
+    "commit": "5b8fb98c209fdc2064d6d13785f128c100eb818c",
+    "provider": "0.2.43",
+    "actual_searches": 1,
+    "receipt_sha256": "460e9f77a0902c21ba92846403d249c3103fa870e46c54ffdc4a9d9520b1c247",
+    "response_sha256": "fc055da327460d4292d856733766e623a3b868dc331586d06ff0e8f4ef67b694"
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "ab12f030da596675a2e24a02bba64719daea0ee6545ec81b92ed2c527b12563c",
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_cpp_language_extensions.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "2b2ae6fd028e30ba7f9ebe43cb49ba81f58fc1243faa9da35a0bae096dce2ba2",
+        "capture_sha256": "bc01bf90b5ed41eef74a01a4d20032ffc80a0a1b286819711a5940b44baf38ac"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/how-to/hip_runtime_api/asynchronous.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "0ee393001c09c399bd21e9b5b343203f021901ee958ecab8761b2cb0d2ed8886",
+        "capture_sha256": "fefeb93fdfb639feaea01f081e02734c4dae1629a674a540ddba0519d07083ab"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/launch_api.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "7c301b7626b2a6668ecd052b6f4b6509988c82a68c031bacc89f90398b88e14d",
+        "capture_sha256": "c977ffdeb4b09f6246f0be5dca5f1c7011978e6b09fee70e973682a8293412b1"
+      }
+    ]
+  },
+  "validation": [
+    {
+      "check": "offline_hip_compile",
+      "run": "local-run-49bf016d665a4373b23e53ec8069537e",
+      "exit_code": 0,
+      "seconds": 13.204,
+      "peak_bytes": 205012992,
+      "receipt_sha256": "df4a2f5afe1110f94b3d03d7949ccdfd796533acaec0ed0536b2c2a7161f607c",
+      "log_sha256": "17796c7de7eb54049d09fafc69a88f2ff19934324ac0748e4aeb75c06c7a36be"
+    },
+    {
+      "check": "windows_cpu_grouped_6_passed",
+      "run": "local-run-58bc771b91b34b69a15998426fe6fafa",
+      "exit_code": 0,
+      "seconds": 5.953,
+      "peak_bytes": 109387776,
+      "receipt_sha256": "70e325490b9754b152ff4824d78dded362ea0d774d797a31da01652f72343b02",
+      "log_sha256": "1fd1296f6dbde2f05957bb6df713d93563cfa7f69ce2161000974d57b2c64487"
+    },
+    {
+      "check": "windows_asan_grouped_7_passed",
+      "run": "local-run-9bd17acfb0ac444cbaa4d5afd7e8e388",
+      "exit_code": 0,
+      "seconds": 15.439,
+      "peak_bytes": 694902784,
+      "receipt_sha256": "8f2d3c6bbf8efb1a0ec810ec30e345fe26cb2b809172a76b7d604e2d764e526d",
+      "log_sha256": "cc61077cdd51607d3b84bbe4db52066b5eed2358198f6a78f83c167248071bc3"
+    },
+    {
+      "check": "sdk_worker_module_and_probe_build",
+      "run": "local-run-7860fb1f66304d9491e6d1c781a0e8c7",
+      "exit_code": 0,
+      "seconds": 81.616,
+      "peak_bytes": 558366720,
+      "receipt_sha256": "9d62ab5e1c044d3f24c12bf0fc915b035183c89c1c7ffb0287118a2ffef4027b",
+      "log_sha256": "bda0cfb4bdb06dc7211619a4e70fda580db129b888a6527a58d24303acb7f813"
+    },
+    {
+      "check": "sdk_probe_final_rebuild",
+      "run": "local-run-fc27547bd81a4a38a621a730738796e1",
+      "exit_code": 0,
+      "seconds": 5.839,
+      "peak_bytes": 340426752,
+      "receipt_sha256": "11135bca177c8723e046cecb23c594f0fa99f76d12ae0683c4946aa0ab88dc95",
+      "log_sha256": "37d70e3ded63df3396a7d9dad502b20e0be0c0ba5ae5586900091127db5826a0"
+    },
+    {
+      "check": "kernel_compatibility_exports",
+      "run": "local-run-8c4994d4fe184fa3bf7a661867023ff0",
+      "exit_code": 0,
+      "seconds": 0.044,
+      "peak_bytes": 10612736,
+      "receipt_sha256": "a24e0b54cf032595c4f4a3e45421f03672ef97c2af412deb82efb8dd3db130aa",
+      "log_sha256": "691332cff154eb24f1b287e951e34ec9205a6656eed9db9fff0647bb84211a95"
+    },
+    {
+      "check": "local_runtime_binding",
+      "run": "local-run-c06d12168cc648dc8fbee1fd44045a8a",
+      "exit_code": 0,
+      "seconds": 0.325,
+      "peak_bytes": 50053120,
+      "receipt_sha256": "cfa57d36bd03fe10f939cea95dcae82aae63663d8483759dc5e2a921d70596ab",
+      "log_sha256": "3521782116f200949e74cec519fed4599c1af34de5c903b68bd8a31562bbc984"
+    },
+    {
+      "check": "initial_sdk_configuration_rejected_invalid_option_values",
+      "run": "local-run-f093ace78c0646adb033cb86f789fbc8",
+      "exit_code": 1,
+      "seconds": 7.266,
+      "peak_bytes": 126832640,
+      "receipt_sha256": "24739c3c6099e7d2a766c3597513a329e9bbab0d62c6139be1581c6ef61e0e51",
+      "log_sha256": "ba81c0f1686a552ca8d9712bb67c0753062b04358e4acbbb463be17724f8b88c"
+    }
+  ],
+  "trials": [
+    {
+      "case": "synthetic-1",
+      "method": "direct",
+      "run": "local-run-b82fddb7b6a04e08a00c20ae13504573",
+      "exit": 0,
+      "retired": true,
+      "wall_seconds": 0.9702667999954429,
+      "peak_job_bytes": 85454848,
+      "result": {
+        "gpu_executed": true,
+        "admitted": true,
+        "cpu_fallback": false,
+        "cpu_record_parity": true,
+        "source_bytes": 262144,
+        "worker_request_bytes": 262208,
+        "worker_reply_bytes": 49216,
+        "device_allocation_bytes": 835584,
+        "host_to_device_bytes": 262144,
+        "device_to_host_bytes": 49152,
+        "cpu_search_ns": 2948500,
+        "exchange_ns": 814319600,
+        "cpu_baseline_compacted_bytes": 671744,
+        "cpu_direct_compacted_bytes": 368640,
+        "amd_direct_compacted_bytes": 368640,
+        "amd_direct_applied": true,
+        "amd_prepared_members": 3,
+        "selected_compacted_bytes": 368640,
+        "zstd_available": true,
+        "worker_exit": 0,
+        "worker_stage": "none",
+        "retirement_confirmed": true,
+        "cpu_readback_verified": true,
+        "locked_after_bytes": 0
+      },
+      "output_sha256": "a4bf006e811dc7531d5edff1441286cc99d6464e8488c4b7d6affe91e3a686c6",
+      "receipt_sha256": "0586564b4205fdd96e2d371136e959e7ab5d3039e7c056ce6c1dc88159e66659"
+    },
+    {
+      "case": "synthetic-1",
+      "method": "tiled",
+      "run": "local-run-213302d248ff40e3b450a1f202729b5e",
+      "exit": 0,
+      "retired": true,
+      "wall_seconds": 2.0861977000022307,
+      "peak_job_bytes": 98910208,
+      "result": {
+        "gpu_verified": true,
+        "worker_started": true,
+        "native_members": 3,
+        "logical_shared_input_bytes": 262144,
+        "transport_input_bytes": 786432,
+        "reply_payload_bytes": 697035,
+        "cpu_native_bytes": 671744,
+        "cpu_tiled_bytes": 647168,
+        "gpu_tiled_bytes": 532480,
+        "cpu_tiled_selected_members": 3,
+        "gpu_tiled_selected_members": 3,
+        "gpu_group_applied": true,
+        "prepare_ns": 291800,
+        "exchange_ns": 1963619600,
+        "cpu_native_ns": 11456700,
+        "cpu_tiled_search_ns": 1035200,
+        "cpu_tiled_total_ns": 22851700,
+        "gpu_tiled_total_ns": 2001807000,
+        "gpu_setup_ns": 802800800,
+        "gpu_maximum_kernel_quantum_ns": 27055800,
+        "gpu_completed_windows": 6,
+        "worker_exit": 0,
+        "job_peak_bytes": 97697792,
+        "locked_peak_bytes": 16777216,
+        "zstandard_available": true,
+        "independent_native_readback": true,
+        "transport_quiescent": true
+      },
+      "output_sha256": "c6e09904ef2de5c7d42a7f5fb1fb7e710942bc86fa145afb9e55f1e82b0bd6e2",
+      "receipt_sha256": "d59d33401c59186e9f1ed2955d88b77c32fd5ae1a5fbe1bb816db779541759dd"
+    },
+    {
+      "case": "public-source",
+      "method": "tiled",
+      "run": "local-run-3571fa17b6654dd4bea5bd69c9e4af96",
+      "exit": 0,
+      "retired": true,
+      "wall_seconds": 1.741387100002612,
+      "peak_job_bytes": 98664448,
+      "result": {
+        "gpu_verified": true,
+        "worker_started": true,
+        "native_members": 3,
+        "logical_shared_input_bytes": 262144,
+        "transport_input_bytes": 786432,
+        "reply_payload_bytes": 431090,
+        "cpu_native_bytes": 360448,
+        "cpu_tiled_bytes": 360448,
+        "gpu_tiled_bytes": 360448,
+        "cpu_tiled_selected_members": 3,
+        "gpu_tiled_selected_members": 3,
+        "gpu_group_applied": false,
+        "prepare_ns": 273200,
+        "exchange_ns": 1606297000,
+        "cpu_native_ns": 19064500,
+        "cpu_tiled_search_ns": 2249100,
+        "cpu_tiled_total_ns": 28018200,
+        "gpu_tiled_total_ns": 1647158100,
+        "gpu_setup_ns": 422692800,
+        "gpu_maximum_kernel_quantum_ns": 460785700,
+        "gpu_completed_windows": 6,
+        "worker_exit": 0,
+        "job_peak_bytes": 97456128,
+        "locked_peak_bytes": 16777216,
+        "zstandard_available": true,
+        "independent_native_readback": true,
+        "transport_quiescent": true
+      },
+      "output_sha256": "1959e59591f92a6e54eee4816dfb923e7c466357028cbe64e59fc1cb4a4640e6",
+      "receipt_sha256": "1d091749069030a3cf5cfdf3619cb2f191fac7f1c700365653d3f4ad8e0c18ec"
+    },
+    {
+      "case": "public-source",
+      "method": "direct",
+      "run": "local-run-07919baa4c8c4366894d7e9cce0ac2a4",
+      "exit": 0,
+      "retired": true,
+      "wall_seconds": 0.6342081000038888,
+      "peak_job_bytes": 85753856,
+      "result": {
+        "gpu_executed": true,
+        "admitted": true,
+        "cpu_fallback": false,
+        "cpu_record_parity": true,
+        "source_bytes": 262144,
+        "worker_request_bytes": 262208,
+        "worker_reply_bytes": 49216,
+        "device_allocation_bytes": 835584,
+        "host_to_device_bytes": 262144,
+        "device_to_host_bytes": 49152,
+        "cpu_search_ns": 2728400,
+        "exchange_ns": 499908600,
+        "cpu_baseline_compacted_bytes": 360448,
+        "cpu_direct_compacted_bytes": 360448,
+        "amd_direct_compacted_bytes": 360448,
+        "amd_direct_applied": false,
+        "amd_prepared_members": 3,
+        "selected_compacted_bytes": 360448,
+        "zstd_available": true,
+        "worker_exit": 0,
+        "worker_stage": "none",
+        "retirement_confirmed": true,
+        "cpu_readback_verified": true,
+        "locked_after_bytes": 0
+      },
+      "output_sha256": "c5fcaa226154e6d59dc2778fffaf87174a7ccb49ef6cbe19eab9bb5b7f4b2292",
+      "receipt_sha256": "cf6215bfc4229aa2fc19990b58bd2dbf733a1d8e92ccb5691e60ff6599b4814d"
+    },
+    {
+      "case": "synthetic-2",
+      "method": "direct",
+      "run": "local-run-739bf47a8e5d4a47a7b9f5826753fbdf",
+      "exit": 0,
+      "retired": true,
+      "wall_seconds": 0.9636389999941457,
+      "peak_job_bytes": 86450176,
+      "result": {
+        "gpu_executed": true,
+        "admitted": true,
+        "cpu_fallback": false,
+        "cpu_record_parity": true,
+        "source_bytes": 262144,
+        "worker_request_bytes": 262208,
+        "worker_reply_bytes": 49216,
+        "device_allocation_bytes": 835584,
+        "host_to_device_bytes": 262144,
+        "device_to_host_bytes": 49152,
+        "cpu_search_ns": 2938600,
+        "exchange_ns": 830892000,
+        "cpu_baseline_compacted_bytes": 671744,
+        "cpu_direct_compacted_bytes": 368640,
+        "amd_direct_compacted_bytes": 368640,
+        "amd_direct_applied": true,
+        "amd_prepared_members": 3,
+        "selected_compacted_bytes": 368640,
+        "zstd_available": true,
+        "worker_exit": 0,
+        "worker_stage": "none",
+        "retirement_confirmed": true,
+        "cpu_readback_verified": true,
+        "locked_after_bytes": 0
+      },
+      "output_sha256": "a2fa51cdeea3ace9084e90f79e522be25ac11bc837ccfabf1994d73e93d51573",
+      "receipt_sha256": "95955a59f13e56620b6c4c52c54447c7587671d4bbc2fee9b14982ea8fc5311a"
+    },
+    {
+      "case": "synthetic-2",
+      "method": "tiled",
+      "run": "local-run-6ba016df7abf4284b2a5344b41f596b4",
+      "exit": 0,
+      "retired": true,
+      "wall_seconds": 1.638523499990697,
+      "peak_job_bytes": 99172352,
+      "result": {
+        "gpu_verified": true,
+        "worker_started": true,
+        "native_members": 3,
+        "logical_shared_input_bytes": 262144,
+        "transport_input_bytes": 786432,
+        "reply_payload_bytes": 697035,
+        "cpu_native_bytes": 671744,
+        "cpu_tiled_bytes": 647168,
+        "gpu_tiled_bytes": 532480,
+        "cpu_tiled_selected_members": 3,
+        "gpu_tiled_selected_members": 3,
+        "gpu_group_applied": true,
+        "prepare_ns": 281000,
+        "exchange_ns": 1521372100,
+        "cpu_native_ns": 11457200,
+        "cpu_tiled_search_ns": 1054300,
+        "cpu_tiled_total_ns": 23420700,
+        "gpu_tiled_total_ns": 1557547700,
+        "gpu_setup_ns": 373526800,
+        "gpu_maximum_kernel_quantum_ns": 409661600,
+        "gpu_completed_windows": 6,
+        "worker_exit": 0,
+        "job_peak_bytes": 97951744,
+        "locked_peak_bytes": 16777216,
+        "zstandard_available": true,
+        "independent_native_readback": true,
+        "transport_quiescent": true
+      },
+      "output_sha256": "6e7c9c28e99252d3c56eeae86151d2c835a31ec1494384ae34f908eb97f77107",
+      "receipt_sha256": "2b0d6d39aff8e1148a2b2f4e6d265343419f00e818d05e9092e55a1a95a96d8c"
+    },
+    {
+      "case": "unavailable-adapter",
+      "method": "direct",
+      "run": "local-run-57440e97a069491eac22df350bb407ae",
+      "exit": 2,
+      "retired": true,
+      "wall_seconds": 0.09833639999851584,
+      "peak_job_bytes": 23392256,
+      "result": {
+        "gpu_executed": false,
+        "admitted": false,
+        "cpu_fallback": true,
+        "cpu_record_parity": false,
+        "source_bytes": 262144,
+        "worker_request_bytes": 262208,
+        "worker_reply_bytes": 0,
+        "device_allocation_bytes": 835584,
+        "host_to_device_bytes": 0,
+        "device_to_host_bytes": 0,
+        "cpu_search_ns": 2853200,
+        "exchange_ns": 400,
+        "cpu_baseline_compacted_bytes": 671744,
+        "cpu_direct_compacted_bytes": 368640,
+        "amd_direct_compacted_bytes": null,
+        "amd_direct_applied": false,
+        "amd_prepared_members": 0,
+        "selected_compacted_bytes": 368640,
+        "zstd_available": true,
+        "worker_exit": 0,
+        "worker_stage": "none",
+        "retirement_confirmed": true,
+        "cpu_readback_verified": true,
+        "locked_after_bytes": 0
+      },
+      "output_sha256": "8c2d45f6a85c6501aa0a279bd2cb43658bde46e190ba744999bfd144e7a700ed",
+      "receipt_sha256": "275c5f0342ea6bd64555e486f75503c2a8dce12b6ace1867596e3c6f7e990602"
+    },
+    {
+      "case": "untrusted-runtime",
+      "method": "direct",
+      "run": "local-run-c977ac018b364b6db262912d2026a303",
+      "exit": 2,
+      "retired": true,
+      "wall_seconds": 0.1265201999922283,
+      "peak_job_bytes": 23408640,
+      "result": {
+        "gpu_executed": false,
+        "admitted": true,
+        "cpu_fallback": true,
+        "cpu_record_parity": false,
+        "source_bytes": 262144,
+        "worker_request_bytes": 262208,
+        "worker_reply_bytes": 0,
+        "device_allocation_bytes": 835584,
+        "host_to_device_bytes": 0,
+        "device_to_host_bytes": 0,
+        "cpu_search_ns": 3088500,
+        "exchange_ns": 33162300,
+        "cpu_baseline_compacted_bytes": 671744,
+        "cpu_direct_compacted_bytes": 368640,
+        "amd_direct_compacted_bytes": null,
+        "amd_direct_applied": false,
+        "amd_prepared_members": 0,
+        "selected_compacted_bytes": 368640,
+        "zstd_available": true,
+        "worker_exit": 1179844614,
+        "worker_stage": "none",
+        "retirement_confirmed": true,
+        "cpu_readback_verified": true,
+        "locked_after_bytes": 0
+      },
+      "output_sha256": "aae1abc51f2fff9d916ac484bf4a9c540b2db3bad51057a33dc5cfd61f4ba7e9",
+      "receipt_sha256": "7bff8e9b23845546e6201b7e0baf1cfa9f32ae1c2076edcf36c4a20939cd0057"
+    }
+  ],
+  "scope": "Source-bound candidate executed in the supervised SDK fixture. Compacted image sizes include complete native accounting. CPU calibration excludes worker startup. All ordinary routing remains on its existing policy."
+}

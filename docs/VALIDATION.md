@@ -1,5 +1,31 @@
 # Validation ledger
 
+## Direct AMD shared-base search — 18 November 2026
+
+The installed AMD runtime built one device index from a 64 KiB base and searched
+three member extents. The CPU verified every suggestion against the original
+bytes. All three successful direct trials returned records identical to the CPU
+implementation. The indexed writer compared whole compacted images and
+independently reopened and read back every member.
+
+| Three-member fixture | Existing CPU | Tiled AMD | Direct AMD and direct CPU |
+|---|---:|---:|---:|
+| Seeded fragment permutation | 656 KiB | 520 KiB | 360 KiB |
+| Public-source fragment permutation | 352 KiB | 352 KiB | 352 KiB |
+
+The paired trials sent 256 KiB of direct input versus 768 KiB of tiled input.
+The direct results occupied 48 KiB of payload. Tiled result payloads occupied
+421–681 KiB. Direct exchanges took 0.50–0.83 seconds, and tiled exchanges took
+1.52–1.96 seconds. Both exchange measurements include worker setup. The
+equivalent direct CPU search took 2.7–3.0 ms including byte verification. The
+public-source candidate was declined by the whole-image comparison.
+
+The unavailable adapter and runtime identity refusal each produced a verified
+360 KiB CPU image. Six raw CTest entries and seven AddressSanitizer entries
+passed. All owned process trees exited. The direct AMD mode remains an explicit
+calibration path.
+[Source and live execution evidence](evidence/direct-amd-anchor-2026-11-18.json)
+
 ## AMD-assisted shared-base search — 18 November 2026
 
 The existing supervised uniform HIP worker searched tiles from one base and

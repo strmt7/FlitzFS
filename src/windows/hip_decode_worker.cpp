@@ -210,4 +210,61 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
   return matches;
 }
 
+std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
+    const anchor_match::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
+    std::uint32_t node_mask,const detail::AnchorMatchRequest& request) {
+  require_hip_worker_job();
+  namespace match=anchor_match;
+  require(runtime && match::compatible_kernel_api(kernel) && ordinal>=0 && ordinal<64 && request.id,
+      "invalid HIP anchor match configuration");
+  auto members=detail::anchor_match_members(request.source);
+  const auto allocation=match::device_bytes(members);
+  const auto before_init=query_windows_gpu_budget(luid,node_mask).snapshot;
+  require_hip_memory(before_init,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::pre_initialize);
+
+  const auto api=bind_api(runtime);
+  const auto memset_address=GetProcAddress(runtime,"hipMemsetAsync");
+  if (!memset_address) throw HipWorkerFailure(HipWorkerExit::runtime_unavailable,
+      "hipMemsetAsync",HipWorkerStage::runtime_api);
+  const auto clear=std::bit_cast<decltype(&hipMemsetAsync)>(memset_address);
+  const auto least=initialize_device(api,ordinal,luid,node_mask,[](auto identity) {
+    return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
+  });
+  const auto before=query_windows_gpu_budget(luid,node_mask).snapshot;
+  require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::initialized,&before_init);
+
+  DeviceResources resources(api);
+  hip_detail::check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),
+      "create anchor match stream",HipWorkerStage::stream_create);
+  check_hip(api.allocate(&resources.buffers[0],allocation),"allocate anchor match slab");
+  const auto address=reinterpret_cast<std::uintptr_t>(resources.buffers[0]);
+  require(address && address%8==0 && address<=(std::numeric_limits<std::uintptr_t>::max)()-allocation,
+      "invalid anchor match slab address",HipWorkerStage::execution);
+  void* source=resources.buffers[0];
+  void* table=reinterpret_cast<void*>(address+request.source.size());
+  void* output=reinterpret_cast<void*>(address+request.source.size()+match::index_bytes);
+  check_hip(api.copy(source,request.source.data(),request.source.size(),hipMemcpyHostToDevice),
+      "upload one shared base and its members");
+  check_hip(clear(table,255,allocation-request.source.size(),resources.stream),"clear anchor match slab");
+
+  auto version=match::abi_version;
+  void* index_arguments[]{&source,&table,&version};
+  check_hip(api.launch(reinterpret_cast<const void*>(kernel.index),
+      dim3(match::extent_bytes/match::threads),dim3(match::threads),index_arguments,0,resources.stream),
+      "launch shared base index");
+  void* search_arguments[]{&source,&members,&table,&output,&version};
+  const auto count=members*match::tiles;
+  check_hip(api.launch(reinterpret_cast<const void*>(kernel.search),
+      dim3(count/match::threads),dim3(match::threads),search_arguments,0,resources.stream),
+      "launch shared base searches");
+  check_hip(api.synchronize(resources.stream),"complete shared base search");
+  std::vector<match::u32> records(count);
+  check_hip(api.copy(records.data(),output,records.size()*sizeof(records[0]),hipMemcpyDeviceToHost),
+      "read shared base suggestions");
+  const auto after=query_windows_gpu_budget(luid,node_mask).snapshot;
+  require_hip_memory(after,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::completed,&before_init);
+  check_hip(resources.release_all(),"release anchor match slab");
+  return records;
+}
+
 }

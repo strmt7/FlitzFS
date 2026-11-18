@@ -281,7 +281,9 @@ def main():
                 ("include/flitzfs/gpu_protocol.hpp","src/flitzfs/gpu_protocol.hpp"),
                 ("include/flitzfs/gpu_kernel_api.hpp","src/flitzfs/gpu_kernel_api.hpp"),
                 ("include/flitzfs/gpu_match_protocol.hpp","src/flitzfs/gpu_match_protocol.hpp"),
-                ("include/flitzfs/gpu_match_kernel_api.hpp","src/flitzfs/gpu_match_kernel_api.hpp"))
+                ("include/flitzfs/gpu_match_kernel_api.hpp","src/flitzfs/gpu_match_kernel_api.hpp"),
+                ("include/flitzfs/gpu_anchor_match.hpp","src/flitzfs/gpu_anchor_match.hpp"),
+                ("include/flitzfs/gpu_anchor_kernel_api.hpp","src/flitzfs/gpu_anchor_kernel_api.hpp"))
         report["kernel_inputs"]=[]
         for original,relative in copies:
             source=REPO/original;target=inputs/relative;target.parent.mkdir(parents=True,exist_ok=True)
