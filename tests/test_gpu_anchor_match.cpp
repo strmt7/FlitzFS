@@ -134,6 +134,72 @@ void sized_sweep() {
   records.back()=match::empty;
   rejects([&]{(void)encode_anchor_match_reply(request,records);});
 }
+
+void independent_batch() {
+  constexpr std::array<std::uint32_t,3> counts{7,1,4};
+  constexpr auto device=match::device_bytes(3);
+  const auto plan=plan_anchor_match_batch(counts,3,device,9);
+  check(plan.groups.size()==counts.size() && plan.launches==9 && plan.device_bytes==device &&
+      plan.groups[1].quantum_members==1 && plan.groups[2].windows==2,
+      "batch did not reuse one slab for mixed group shapes");
+  rejects([&]{(void)plan_anchor_match_batch(counts,3,device,8);});
+  rejects([&]{(void)plan_anchor_match_batch(counts,3,device-1,9);});
+  constexpr auto largest=(std::numeric_limits<std::int32_t>::max)()/match::extent_bytes-1;
+  const std::array<std::uint32_t,2> oversized{largest,1};
+  rejects([&]{(void)plan_anchor_match_batch(oversized,3,device,20000);});
+
+  std::vector<AnchorMatchRequest> groups;
+  for(std::size_t i=0;i<counts.size();++i) {
+    Bytes base(match::extent_bytes),members;
+    std::uint64_t state=0x7febc654bd02c2c5ULL+i;
+    for(auto& byte:base) {
+      state^=state<<13;
+      state^=state>>7;
+      state^=state<<17;
+      byte=static_cast<std::byte>(state>>21);
+    }
+    for(std::uint32_t j=0;j<counts[i];++j) {
+      const auto member=anchor_search_fixture::fragmented(base,j+1);
+      members.insert(members.end(),member.begin(),member.end());
+    }
+    const auto layout=plan.groups[i].whole;
+    groups.push_back(decode_anchor_match_request(encode_anchor_match_request(base,members,17+i,layout),layout));
+  }
+  const auto frame=encode_anchor_match_batch_request(groups,500,plan);
+  const auto decode=[&](std::span<const std::byte> bytes) {
+    return decode_anchor_match_batch_request(bytes,plan.request_bytes,plan.reply_bytes,3,device,plan.launches);
+  };
+  const auto batch=decode(frame);
+  check(batch.id==500 && batch.plan==plan && frame.size()==plan.request_bytes,"batch identity or geometry changed");
+  auto corrupt=frame;
+  corrupt.back()^=std::byte{1};
+  rejects([&]{(void)decode(corrupt);});
+  rejects([&]{(void)decode(std::span(frame).first(frame.size()-1));});
+  rejects([&]{(void)decode_anchor_match_batch_request(frame,plan.request_bytes,plan.reply_bytes-1,3,device,9);});
+  rejects([&]{(void)decode_anchor_match_batch_request(frame,plan.request_bytes,plan.reply_bytes,3,device,8);});
+  groups.back().id=groups.front().id;
+  rejects([&]{(void)encode_anchor_match_batch_request(groups,500,plan);});
+
+  std::vector<std::vector<match::u32>> records;
+  for(std::size_t i=0;i<groups.size();++i) {
+    check(batch.groups[i].source==groups[i].source && batch.groups[i].source_digest==groups[i].source_digest,
+        "batch did not preserve independent source bytes");
+    records.push_back(cpu_anchor_match_records(batch.groups[i]));
+  }
+  const auto reply=encode_anchor_match_batch_reply(batch,records);
+  const auto advice=accept_anchor_match_batch_reply(reply,batch);
+  check(advice.size()==counts.size() && reply.size()==plan.reply_bytes,"batch did not return all results");
+  for(std::size_t i=0;i<counts.size();++i) {
+    check(advice[i].size()==counts[i] && std::ranges::all_of(advice[i],[](const auto& ranges){return !ranges.empty();}),
+        "batch did not bind coverage to each independent group");
+  }
+  corrupt=reply;
+  std::fill_n(corrupt.end()-sizeof(match::u32),sizeof(match::u32),std::byte{0xff});
+  rejects([&]{(void)accept_anchor_match_batch_reply(corrupt,batch);});
+  rejects([&]{(void)accept_anchor_match_batch_reply(std::span(reply).first(reply.size()-1),batch);});
+  records.back().front()=match::empty;
+  rejects([&]{(void)encode_anchor_match_batch_reply(batch,records);});
+}
 }
 
 int main() {
@@ -141,6 +207,7 @@ int main() {
     fragmented();
     unrelated();
     sized_sweep();
+    independent_batch();
     std::cout<<"Direct shared base match CPU semantics and reply verification passed\n";
     return 0;
   } catch (const std::exception& error) {

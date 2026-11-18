@@ -227,7 +227,11 @@ std::string runtime_digest(std::wstring_view wide) {
 }
 
 int worker(int argc, wchar_t** argv) {
-  require_hip_worker_job();
+  const std::wstring_view mode = argc > 1 ? argv[1] : L"";
+  const bool anchor_batch=mode==L"--driver-anchor-batch";
+  const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
+  const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
+  require_hip_worker_job(anchor_batch || anchor_sweep);
   // Compiler discovery must not leak into an application runtime. This changes
   // only this disposable child; the launching process remains untouched.
   require(_wputenv_s(L"LLVM_PATH", L"") == 0,
@@ -436,16 +440,13 @@ int worker(int argc, wchar_t** argv) {
     const auto verified = verify_bundle(std::wstring_view(argv[1]) == L"--verify-kernel-bundle");
     return 0;
   }
-  const std::wstring_view mode = argc > 1 ? argv[1] : L"";
   const bool memory_observation=mode==L"--driver-memory-adapter";
   const bool phase_observation=mode==L"--driver-match-profile";
-  const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
-  const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
   const bool anchoring=mode==L"--driver-anchor-match" || anchor_sweep;
   const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" ||
-      memory_observation || phase_observation || anchoring;
+      memory_observation || phase_observation || anchoring || anchor_batch;
   const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter" || phase_observation;
-  const auto channel_argument=anchor_sweep?10:driver?6:5;
+  const auto channel_argument=anchor_batch?11:anchor_sweep?10:driver?6:5;
   require(argc==channel_argument+2 &&
       (driver || mode == L"--adapter" || mode == L"--match-adapter") &&
       std::wstring_view(argv[channel_argument]) == L"--worker-channel",
@@ -461,8 +462,8 @@ int worker(int argc, wchar_t** argv) {
       anchor_profile?kAnchorSweepProfileLimitNs:hip_profile_limit_ns);
   phase_clock.begin(HipPhase::request_decode);
   std::optional<detail::AnchorMatchSweepPlan> anchor_plan;
+  constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
   if (anchor_sweep) {
-    constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
     try {
       anchor_plan=detail::plan_anchor_match_sweep(decimal(argv[6],max_uint),
           decimal(argv[7],anchor_match::max_members),wide_decimal(argv[8]),decimal(argv[9],max_uint));
@@ -472,14 +473,26 @@ int worker(int argc, wchar_t** argv) {
   }
   const auto token=argv[channel_argument+1];
   const auto profile_bytes=anchor_profile?kAnchorSweepProfileBytes:0;
-  auto channel=anchor_plan?WorkerChannel::open_sized(token,{anchor_plan->whole.request_bytes,
-      anchor_plan->whole.reply_bytes+profile_bytes}):
-      WorkerChannel::open(token);
+  std::optional<WorkerChannelCapacity> sized_capacity;
+  if(anchor_batch) sized_capacity=WorkerChannelCapacity{decimal(argv[6],max_uint),decimal(argv[7],max_uint)};
+  else if(anchor_plan) sized_capacity=WorkerChannelCapacity{anchor_plan->whole.request_bytes,
+      anchor_plan->whole.reply_bytes+profile_bytes};
+  auto channel=sized_capacity?WorkerChannel::open_sized(token,*sized_capacity):WorkerChannel::open(token);
   std::optional<WorkerBatchRequest> decode;
   std::optional<MatchWorkerRequest> match;
   std::optional<detail::AnchorMatchRequest> anchor;
+  std::optional<detail::AnchorMatchBatchRequest> anchors;
   std::uint64_t allocation=0;
-  if(anchoring) {
+  if(anchor_batch) {
+    try {
+      anchors.emplace(detail::decode_anchor_match_batch_request(channel.request(),
+          static_cast<std::uint32_t>(sized_capacity->request_bytes),static_cast<std::uint32_t>(sized_capacity->reply_bytes),
+          decimal(argv[8],anchor_match::max_members),wide_decimal(argv[9]),decimal(argv[10],max_uint)));
+    } catch(const std::invalid_argument&) {
+      throw HipWorkerFailure(Exit::invalid_request,"invalid shared base batch",HipWorkerStage::worker_request);
+    }
+    allocation=anchors->plan.device_bytes;
+  } else if(anchoring) {
     const auto admitted=anchor_plan?std::optional{anchor_plan->whole}:std::nullopt;
     try {anchor.emplace(detail::decode_anchor_match_request(channel.request(),admitted));}
     catch(const std::invalid_argument&) {
@@ -542,7 +555,7 @@ int worker(int argc, wchar_t** argv) {
       Exit::integrity_failure, "different installed HIP runtime loaded");
   phase_clock.end(HipPhase::modules_load);
   std::vector<std::byte> frame;
-  if(anchor) {
+  if(anchor || anchors) {
     phase_clock.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_match_api_v1");
     require(address!=nullptr,Exit::unsupported_configuration,"HIP anchor match entry unavailable",HipWorkerStage::kernel_entry);
@@ -551,12 +564,20 @@ int worker(int argc, wchar_t** argv) {
     require(api && anchor_match::compatible_kernel_api(*api),Exit::unsupported_configuration,
         "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
     phase_clock.end(HipPhase::entry_bind);
-    const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,
-        *anchor,*anchor_plan,phase_clock);
-    // This phase includes independent comparison with the original bytes.
-    phase_clock.begin(HipPhase::reply_encode);
-    try {frame=detail::encode_anchor_match_reply(*anchor,records,profile_bytes);}
-    catch(const std::invalid_argument&) {
+    try {
+      // Encoding includes independent comparison with the original bytes.
+      if(anchors) {
+        const auto records=run_hip_anchor_batch_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
+            luid,node_mask,*anchors,phase_clock);
+        phase_clock.begin(HipPhase::reply_encode);
+        frame=detail::encode_anchor_match_batch_reply(*anchors,records);
+      } else {
+        const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
+            luid,node_mask,*anchor,*anchor_plan,phase_clock,anchor_sweep);
+        phase_clock.begin(HipPhase::reply_encode);
+        frame=detail::encode_anchor_match_reply(*anchor,records,profile_bytes);
+      }
+    } catch(const std::invalid_argument&) {
       throw HipWorkerFailure(Exit::integrity_failure,"HIP shared base suggestion failed independent byte verification");
     }
     phase_clock.end(HipPhase::reply_encode);

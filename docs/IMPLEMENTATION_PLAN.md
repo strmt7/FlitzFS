@@ -695,13 +695,16 @@ time. The profiled 193-member run spent 330 ms in stream and slab setup and
 438 ms in host-to-device calls. Launch and stream wait took 8.2 ms. Fresh-worker
 timings also vary across repeated runs. The pinned asynchronous candidate
 hit the nonlocal-memory gate during the seven-member smoke test, while the
-synchronous control verified that workload. Qualify reuse of one authenticated
-runtime, stream and slab across independent base groups. Measure the complete
-cost at a bounded lifetime and preserve prompt yielding and independent CPU
-progress before opening ordinary routing.
+synchronous control verified that workload. Reusing one authenticated runtime,
+stream and slab across three independent bases cut the median GPU exchange
+from 1.72 to 0.75 seconds at 144 member extents. The CPU reference took
+0.10 seconds. Next, coalesce pageable transfers for multiple search windows
+under a live device grant. Measure the complete cost and preserve prompt
+yielding and independent CPU progress before opening ordinary routing.
 [Sized shared-base sweep](evidence/amd-anchor-sweep-2026-11-18.json)
 [Phase measurements](evidence/amd-anchor-phases-2026-11-18.json)
 [Pinned transfer trial](evidence/amd-anchor-pinned-trial-2026-11-18.json)
+[Independent-group batch comparison](evidence/amd-anchor-batch-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

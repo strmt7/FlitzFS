@@ -21,6 +21,22 @@ current adapter budgets after each window. The child publishes one complete
 reply, and the parent accepts it after confirmed exit.
 [Sized sweep evidence](evidence/amd-anchor-sweep-2026-11-18.json)
 
+The multi-group worker retains one authenticated runtime, a least-priority
+stream and a single device slab. It clears the index and rebuilds it from the
+next independent base after the preceding group's work has synchronized. The
+sized transport binds each group to its source digest and admits the aggregate
+launch count before copying group data. Its Job Object commitment comes from
+current physical and commit headroom. A batch returns advice only after every
+group passes independent byte checks and the worker retires.
+
+On the public-derived fixture with 144 member extents, four paired trials gave
+median times of 0.75 seconds for the shared worker, 1.72 seconds for fresh workers
+and 0.10 seconds for CPU matching and verification. At 288 member extents, two
+paired trials took 0.69–0.89 seconds for the shared worker and 0.22–0.27 seconds
+for CPU matching and verification. A deliberately mismatched runtime digest
+rejected the GPU batch and retained the independent CPU result.
+[Batch trial evidence](evidence/amd-anchor-batch-2026-11-18.json)
+
 ## SDK-only compression compute candidate
 
 Read [HIP_LZ4_COMPUTE.md](HIP_LZ4_COMPUTE.md) before changing the new typed compute implementation or CPU probe. It remains outside normal operations and the distributable worker; source-bound SDK qualification is pending. Keep authenticated coverage, CPU-first refusal, the complete slab cap and exact retirement requirements.

@@ -6,6 +6,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
 
 namespace flitzfs::detail {
 namespace {
@@ -17,6 +18,9 @@ constexpr auto maximum_source_bytes=maximum_channel_bytes-header_size;
 constexpr auto maximum_members=maximum_source_bytes/match::extent_bytes-1;
 constexpr auto record_bytes=static_cast<std::uint32_t>(sizeof(match::u32));
 constexpr std::string_view request_magic="FLFSAMQ\1",reply_magic="FLFSAMP\1";
+constexpr std::string_view batch_request_magic="FLFSABQ\1",batch_reply_magic="FLFSABP\1";
+constexpr std::uint32_t group_prefix_bytes=4;
+constexpr auto minimum_group_request=group_prefix_bytes+header_size+2*match::extent_bytes;
 constexpr auto execution=static_cast<std::uint32_t>(WorkerExecution::hip);
 static_assert(match::extent_bytes==kNativeExtentBytes);
 static_assert(header_size+(match::max_members+1)*match::extent_bytes<=kWorkerRequestLimit);
@@ -36,18 +40,23 @@ std::uint64_t get(std::span<const std::byte> frame,std::size_t at,unsigned width
   return value;
 }
 
-Bytes header(std::string_view magic,std::uint64_t id,std::uint32_t count,
-    std::uint32_t backend,const Digest& digest,std::size_t payload_size) {
+void append_header(Bytes& frame,std::string_view magic,std::uint64_t id,std::uint32_t count,std::uint32_t work,
+    std::uint32_t backend,const Digest& digest) {
   require(id!=0,"missing anchor match request identity");
-  Bytes frame;
-  frame.reserve(header_size+payload_size);
   for (const auto byte:magic) frame.push_back(static_cast<std::byte>(byte));
   put(frame,id,8);
   put(frame,count,4);
-  put(frame,count*match::tiles,4);
+  put(frame,work,4);
   put(frame,backend,4);
   put(frame,0,4);
   frame.insert(frame.end(),digest.begin(),digest.end());
+}
+
+Bytes header(std::string_view magic,std::uint64_t id,std::uint32_t count,std::uint32_t work,
+    std::uint32_t backend,const Digest& digest,std::size_t payload_size) {
+  Bytes frame;
+  frame.reserve(header_size+payload_size);
+  append_header(frame,magic,id,count,work,backend,digest);
   return frame;
 }
 
@@ -93,7 +102,7 @@ Bytes encode_anchor_match_request(std::span<const std::byte> base,std::span<cons
       "invalid anchor match extent inputs");
   const auto count=static_cast<std::uint32_t>(members.size()/match::extent_bytes);
   require_admitted_layout(anchor_match_layout(count),admitted);
-  auto frame=header(request_magic,id,count,0,record_digest(base,members),base.size()+members.size());
+  auto frame=header(request_magic,id,count,count*match::tiles,0,record_digest(base,members),base.size()+members.size());
   frame.insert(frame.end(),base.begin(),base.end());
   frame.insert(frame.end(),members.begin(),members.end());
   return frame;
@@ -183,7 +192,8 @@ Bytes encode_anchor_match_reply(const AnchorMatchRequest& request,std::span<cons
     std::size_t reserve_tail_bytes) {
   check_records(request,records,nullptr);
   require(reserve_tail_bytes<=maximum_channel_bytes-header_size-records.size_bytes(),"anchor reply tail capacity");
-  auto frame=header(reply_magic,request.id,anchor_match_members(request.source),execution,
+  const auto members=anchor_match_members(request.source);
+  auto frame=header(reply_magic,request.id,members,members*match::tiles,execution,
       record_digest(request.source),records.size_bytes()+reserve_tail_bytes);
   for (const auto word:records) put(frame,word,sizeof(word));
   return frame;
@@ -201,6 +211,138 @@ AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,con
   for (std::size_t i=0;i<records.size();++i)
     records[i]=static_cast<match::u32>(get(frame,header_size+i*sizeof(match::u32),sizeof(match::u32)));
   return verify_anchor_match_records(request,records);
+}
+
+AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> members,
+    std::uint32_t maximum_quantum,std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches) {
+  require(!members.empty() && members.size()<=(maximum_channel_bytes-header_size)/minimum_group_request,
+      "invalid anchor batch group count");
+  AnchorMatchBatchPlan plan{};
+  plan.request_bytes=plan.reply_bytes=header_size;
+  plan.groups.reserve(members.size());
+  for(const auto count:members) {
+    const auto group=plan_anchor_match_sweep(count,maximum_quantum,maximum_device_bytes,maximum_launches);
+    require(std::uint64_t(plan.request_bytes)+group_prefix_bytes+group.whole.request_bytes<=maximum_channel_bytes &&
+        std::uint64_t(plan.reply_bytes)+group_prefix_bytes+group.whole.reply_bytes<=maximum_channel_bytes,
+        "anchor batch channel capacity");
+    require(std::uint64_t(plan.launches)+1+group.windows<=maximum_launches,"anchor batch exceeds its launch grant");
+    plan.request_bytes+=group_prefix_bytes+group.whole.request_bytes;
+    plan.reply_bytes+=group_prefix_bytes+group.whole.reply_bytes;
+    plan.launches+=1+group.windows;
+    plan.quantum_members=(std::max)(plan.quantum_members,group.quantum_members);
+    plan.device_bytes=(std::max)(plan.device_bytes,group.device_bytes);
+    plan.groups.push_back(group);
+  }
+  return plan;
+}
+
+Bytes encode_anchor_match_batch_request(std::span<const AnchorMatchRequest> groups,std::uint64_t id,
+    const AnchorMatchBatchPlan& plan) {
+  require(id && groups.size()==plan.groups.size(),"anchor batch source count");
+  std::vector<std::uint32_t> counts;
+  counts.reserve(groups.size());
+  for(const auto& group:groups)counts.push_back(anchor_match_members(group.source));
+  require(plan==plan_anchor_match_batch(counts,plan.quantum_members,plan.device_bytes,plan.launches),
+      "anchor batch source differs from its plan");
+  Digest digest{};
+  auto frame=header(batch_request_magic,id,static_cast<std::uint32_t>(groups.size()),plan.launches,0,
+      digest,plan.request_bytes-header_size);
+  std::uint64_t previous_id=0;
+  for(std::size_t i=0;i<groups.size();++i) {
+    const auto& group=groups[i];
+    require(group.id>previous_id,"unordered anchor batch group identity");
+    const auto source=std::span<const std::byte>(group.source);
+    const auto count=counts[i];
+    put(frame,count,group_prefix_bytes);
+    append_header(frame,request_magic,group.id,count,count*match::tiles,0,record_digest(source));
+    frame.insert(frame.end(),source.begin(),source.end());
+    previous_id=group.id;
+  }
+  digest=record_digest(std::span<const std::byte>(frame).subspan(header_size));
+  std::copy(digest.begin(),digest.end(),frame.begin()+32);
+  return frame;
+}
+
+AnchorMatchBatchRequest decode_anchor_match_batch_request(std::span<const std::byte> frame,
+    std::uint32_t request_capacity,std::uint32_t reply_capacity,std::uint32_t maximum_quantum,
+    std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches) {
+  check_header(frame,batch_request_magic,0);
+  const auto groups=get(frame,16,4);
+  require(frame.size()==request_capacity && request_capacity<=maximum_channel_bytes &&
+      groups && groups<=(frame.size()-header_size)/minimum_group_request,"anchor batch request capacity");
+  // Inspect geometry and the total launch grant before copying any group.
+  std::vector<std::uint32_t> counts;
+  counts.reserve(static_cast<std::size_t>(groups));
+  std::size_t at=header_size;
+  for(std::uint64_t group=0;group<groups;++group) {
+    require(frame.size()-at>=group_prefix_bytes,"truncated anchor batch group prefix");
+    const auto members=static_cast<std::uint32_t>(get(frame,at,group_prefix_bytes));
+    const auto layout=anchor_match_layout(members);
+    at+=group_prefix_bytes;
+    require(frame.size()-at>=layout.request_bytes,"truncated anchor batch group");
+    counts.push_back(members);
+    at+=layout.request_bytes;
+  }
+  auto plan=plan_anchor_match_batch(counts,maximum_quantum,maximum_device_bytes,maximum_launches);
+  require(at==frame.size() && plan.request_bytes==request_capacity && plan.reply_bytes==reply_capacity &&
+      get(frame,20,4)==plan.launches,"anchor batch plan or trailing data differs");
+  const auto digest=record_digest(frame.subspan(header_size));
+  require(std::equal(digest.begin(),digest.end(),frame.begin()+32),"anchor batch request digest");
+  AnchorMatchBatchRequest request{get(frame,8,8),digest,std::move(plan),{}};
+  request.groups.reserve(counts.size());
+  at=header_size;
+  std::uint64_t previous_id=0;
+  for(const auto& group:request.plan.groups) {
+    at+=group_prefix_bytes;
+    auto decoded=decode_anchor_match_request(frame.subspan(at,group.whole.request_bytes),group.whole);
+    require(decoded.id>previous_id,"unordered anchor batch reply binding");
+    previous_id=decoded.id;
+    request.groups.push_back(std::move(decoded));
+    at+=group.whole.request_bytes;
+  }
+  return request;
+}
+
+Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
+    std::span<const std::vector<match::u32>> records) {
+  require(!records.empty() && records.size()==request.groups.size() &&
+      records.size()==request.plan.groups.size() && request.plan.reply_bytes>=header_size &&
+      request.plan.reply_bytes<=maximum_channel_bytes,
+      "anchor batch result count");
+  auto frame=header(batch_reply_magic,request.id,static_cast<std::uint32_t>(records.size()),
+      request.plan.launches,execution,request.digest,request.plan.reply_bytes-header_size);
+  for(std::size_t i=0;i<records.size();++i) {
+    const auto part=encode_anchor_match_reply(request.groups[i],records[i]);
+    const auto layout=request.plan.groups[i].whole;
+    require(part.size()==layout.reply_bytes,"anchor batch reply group length");
+    put(frame,layout.members,group_prefix_bytes);
+    frame.insert(frame.end(),part.begin(),part.end());
+  }
+  require(frame.size()==request.plan.reply_bytes,"anchor batch reply length");
+  return frame;
+}
+
+std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
+    std::span<const std::byte> frame,const AnchorMatchBatchRequest& request) {
+  check_header(frame,batch_reply_magic,execution);
+  require(frame.size()==request.plan.reply_bytes && get(frame,8,8)==request.id &&
+      get(frame,16,4)==request.groups.size() && request.groups.size()==request.plan.groups.size() &&
+      get(frame,20,4)==request.plan.launches &&
+      std::equal(request.digest.begin(),request.digest.end(),frame.begin()+32),"anchor batch reply binding");
+  std::vector<AnchorMatchAdvice> result;
+  result.reserve(request.groups.size());
+  std::size_t at=header_size;
+  for(std::size_t i=0;i<request.groups.size();++i) {
+    const auto layout=request.plan.groups[i].whole;
+    require(frame.size()-at>=group_prefix_bytes && get(frame,at,group_prefix_bytes)==layout.members,
+        "anchor batch reply group prefix");
+    at+=group_prefix_bytes;
+    require(frame.size()-at>=layout.reply_bytes,"truncated anchor batch reply group");
+    result.push_back(accept_anchor_match_reply(frame.subspan(at,layout.reply_bytes),request.groups[i]));
+    at+=layout.reply_bytes;
+  }
+  require(at==frame.size(),"anchor batch reply trailing bytes");
+  return result;
 }
 
 } // namespace flitzfs::detail

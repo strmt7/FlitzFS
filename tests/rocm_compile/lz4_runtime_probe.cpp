@@ -244,15 +244,17 @@ int uniform_native_cpu_fixture(bool sweep=false){
   return 0;
 }
 struct AnchorSearchInput {Bytes base,members;};
-AnchorSearchInput anchor_fixture(unsigned count,const wchar_t* public_extent) {
+AnchorSearchInput anchor_fixture(unsigned count,const wchar_t* public_extent,unsigned group=0) {
   AnchorSearchInput input;
   if(public_extent) {
     const fs::path corpus(public_extent);
     require(corpus.is_absolute() && fs::file_size(corpus)==kNativeExtentBytes,"public anchor extent size");
     input.base=read(corpus);
+    require(input.base.size()==kNativeExtentBytes,"public anchor extent changed");
+    std::ranges::rotate(input.base,input.base.begin()+((std::uint64_t(group)*1427)%input.base.size()));
   } else {
     input.base.resize(kNativeExtentBytes);
-    std::uint64_t state=0x679a210fed44c3abULL;
+    std::uint64_t state=0x679a210fed44c3abULL+group;
     for(auto& value:input.base){state^=state<<13;state^=state>>7;state^=state<<17;value=static_cast<std::byte>(state>>21);}
   }
   input.members.reserve(static_cast<std::size_t>(count)*kNativeExtentBytes);
@@ -527,6 +529,139 @@ int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bu
   return parity?0:2;
 }
 
+bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::wstring>& args,
+    std::span<const std::byte> frame,const Bytes& expected,ProcessBudget process_budget) {
+  std::optional<WorkerExchangeSession> session;
+  const WorkerExchangeResult* result=nullptr;
+  try {
+    session.emplace(WorkerExchangeSession::start_sized(worker,args,frame,{frame.size(),expected.size()},process_budget));
+    const auto start=GetTickCount64();
+    while(!(result=session->try_result()) && !session->failure() &&
+        GetTickCount64()-start<process_budget.timeout_ms)Sleep(1);
+  } catch(const std::exception& error) {
+    std::cerr<<"Anchor worker admission failed: "<<error.what()<<'\n';
+  }
+  const bool completed=result && result->code==WorkerExchangeCode::completed &&
+      result->process.exit_confirmed && result->process.exit_code==0 &&
+      !result->process.timed_out && !result->process.cancelled;
+  if(session && !completed)(void)session->request_cancel();
+  require(retire_gpu_exchange(session),"Anchor comparison retirement unconfirmed");
+  if(!completed) {
+    if(result)std::cerr<<"Anchor worker did not complete: "<<result->process.exit_code<<'\n';
+    return false;
+  }
+  return result->response==expected;
+}
+
+int direct_anchor_batch_compare(int argc,wchar_t** argv) {
+  require(argc==10 || argc==11,"Anchor batch comparison needs group count, member count, order and optional public extent");
+  const fs::path worker(argv[2]);
+  require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_worker.exe","Trusted anchor batch worker required");
+  constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
+  const auto ordinal=number(argv[3],63),mask=number(argv[5],max_uint);
+  const auto luid=luid_value(argv[4]);
+  const std::wstring_view digest(argv[6]),order(argv[9]);
+  require(mask && !(mask&(mask-1)) && digest.size()==64 &&
+      std::all_of(digest.begin(),digest.end(),[](wchar_t c){
+        return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');
+      }),"Anchor batch adapter/runtime binding invalid");
+  require(order==L"batch-first" || order==L"fresh-first","Invalid anchor comparison order");
+  const auto group_count=number(argv[7],(std::numeric_limits<LONG>::max)()/detail::anchor_match_layout(1).request_bytes);
+  const auto members=detail::anchor_match_layout(number(argv[8],max_uint)).members;
+  require(group_count>=2,"Anchor comparison requires independent groups");
+  std::vector<std::uint32_t> counts(group_count);
+  for(unsigned i=0;i<group_count;++i)counts[i]=members-(std::min)(i%3,members-1);
+  const auto observed=query_windows_gpu_budget(luid,mask);
+  auto quantum=(std::min)(members,anchor_match::max_members);
+  while(quantum && (observed.status!=WindowsGpuBudgetStatus::success ||
+      check_gpu_memory_budget(observed.snapshot,luid,mask,GetTickCount64(),
+          anchor_match::device_bytes(quantum))!=GpuGateCode::admitted)) --quantum;
+  require(quantum!=0,"Anchor comparison lacks an admitted AMD device window");
+  const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),max_uint);
+  constexpr std::uint64_t mib=1024*1024;
+  MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
+  require(GlobalMemoryStatusEx(&memory)!=0,"Anchor comparison cannot sample host headroom");
+  const auto child_budget=[&](WorkerChannelCapacity capacity) {
+    // The measured authenticated fixture fits the 128 MiB baseline envelope.
+    // Add owned frame/result copies before admitting a larger working set.
+    const auto baseline=128*mib+plan.device_bytes+2ULL*capacity.request_bytes+2ULL*capacity.reply_bytes;
+    const auto transport=6ULL*capacity.request_bytes+4ULL*capacity.reply_bytes+mib;
+    const auto result=plan_resource_process_budget((std::max)(baseline,transport),
+        memory.ullAvailPhys,memory.ullAvailPageFile,16,budget.cpu_rate,budget.timeout_ms);
+    require(valid_worker_channel_capacity(capacity,result),"Anchor comparison lacks current worker headroom");
+    return result;
+  };
+  const auto batch_budget=child_budget({plan.request_bytes,plan.reply_bytes});
+  std::vector<ProcessBudget> individual_budgets;
+  individual_budgets.reserve(plan.groups.size());
+  for(const auto& group:plan.groups)individual_budgets.push_back(child_budget({group.whole.request_bytes,group.whole.reply_bytes}));
+  const auto parent_bytes=128*mib+4ULL*plan.request_bytes+4ULL*plan.reply_bytes;
+  const auto child_bytes=batch_budget.memory_mib*mib;
+  require(valid_process_budget(plan_resource_process_budget(parent_bytes+child_bytes,memory.ullAvailPhys,
+      memory.ullAvailPageFile,16,budget.cpu_rate,budget.timeout_ms)),"Anchor comparison lacks current host headroom");
+  const gpu_probe_fixture::Budget controller(parent_bytes,child_bytes);
+
+  std::vector<detail::AnchorMatchRequest> groups;
+  groups.reserve(group_count);
+  for(unsigned i=0;i<group_count;++i) {
+    const auto input=anchor_fixture(counts[i],argc==11?argv[10]:nullptr,i);
+    const auto layout=plan.groups[i].whole;
+    groups.push_back(detail::decode_anchor_match_request(
+        detail::encode_anchor_match_request(input.base,input.members,i+1,layout),layout));
+  }
+  const auto prepare=std::chrono::steady_clock::now();
+  const auto frame=detail::encode_anchor_match_batch_request(groups,1,plan);
+  const auto prepare_ns=nanos_since(prepare);
+  const auto batch=detail::decode_anchor_match_batch_request(frame,plan.request_bytes,plan.reply_bytes,
+      plan.quantum_members,plan.device_bytes,plan.launches);
+  const auto cpu_start=std::chrono::steady_clock::now();
+  std::vector<std::vector<anchor_match::u32>> cpu;
+  cpu.reserve(groups.size());
+  for(const auto& group:groups)cpu.push_back(detail::cpu_anchor_match_records(group));
+  const auto expected=detail::encode_anchor_match_batch_reply(batch,cpu);
+  const auto cpu_ns=nanos_since(cpu_start);
+  std::vector<Bytes> individual_replies;
+  individual_replies.reserve(groups.size());
+  for(std::size_t i=0;i<groups.size();++i)individual_replies.push_back(detail::encode_anchor_match_reply(groups[i],cpu[i]));
+
+  std::uint64_t batch_ns=0,fresh_ns=0;
+  const auto run_batch=[&] {
+    const auto start=std::chrono::steady_clock::now();
+    const auto verified=anchor_comparison_exchange(worker,{L"--driver-anchor-batch",std::to_wstring(ordinal),
+        argv[4],std::to_wstring(mask),std::wstring(digest),std::to_wstring(plan.request_bytes),
+        std::to_wstring(plan.reply_bytes),std::to_wstring(plan.quantum_members),
+        std::to_wstring(plan.device_bytes),std::to_wstring(plan.launches)},frame,expected,batch_budget);
+    batch_ns=prepare_ns+nanos_since(start);
+    return verified;
+  };
+  const auto run_fresh=[&] {
+    const auto start=std::chrono::steady_clock::now();
+    bool verified=true;
+    for(std::size_t i=0;i<groups.size() && verified;++i) {
+      const auto& group=plan.groups[i];
+      const auto source=std::span<const std::byte>(groups[i].source);
+      const auto separate=detail::encode_anchor_match_request(source.first(anchor_match::extent_bytes),
+          source.subspan(anchor_match::extent_bytes),groups[i].id,group.whole);
+      verified=anchor_comparison_exchange(worker,{L"--driver-anchor-sweep",std::to_wstring(ordinal),argv[4],
+          std::to_wstring(mask),std::wstring(digest),std::to_wstring(group.whole.members),
+          std::to_wstring(group.quantum_members),std::to_wstring(group.device_bytes),std::to_wstring(group.windows)},
+          separate,individual_replies[i],individual_budgets[i]);
+    }
+    fresh_ns=nanos_since(start);
+    return verified;
+  };
+  const auto batch_first=order==L"batch-first";
+  const auto verified=batch_first?(run_batch() && run_fresh()):(run_fresh() && run_batch());
+  std::cout<<std::boolalpha<<"Direct AMD shared base batch: {\"gpu_verified\":"<<verified
+      <<",\"cpu_fallback\":"<<!verified<<",\"batch_first\":"<<batch_first
+      <<",\"groups\":"<<counts.size()<<",\"maximum_members\":"<<members<<",\"launches\":"<<plan.launches
+      <<",\"request_bytes\":"<<plan.request_bytes<<",\"reply_bytes\":"<<plan.reply_bytes
+      <<",\"slab_bytes\":"<<plan.device_bytes<<",\"batch_ns\":"<<batch_ns<<",\"fresh_ns\":"<<fresh_ns
+      <<",\"cpu_search_and_verify_ns\":"<<cpu_ns<<",\"job_peak_bytes\":"<<controller.peak_commit()
+      <<",\"transport_quiescent\":true}\n";
+  return verified?0:2;
+}
+
 int uniform_native_gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller,
     bool sweep=false,bool sweep_profile=false,const AnchorSearchInput* anchor=nullptr){
   require(argc==7 || (anchor && argc==8),"Uniform calibration needs explicit trusted worker/ordinal/LUID/node/runtime digest");
@@ -799,6 +934,8 @@ int gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller
 }
 int wmain(int argc,wchar_t** argv){
   try{
+    if(argc>1 && std::wstring_view(argv[1])==L"--gpu-direct-anchor-batch-compare-once")
+      return direct_anchor_batch_compare(argc,argv);
     gpu_probe_fixture::Budget controller;
     if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-fixture")
       return deferred_native_fixture::run({},controller);

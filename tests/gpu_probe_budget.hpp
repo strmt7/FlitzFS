@@ -1,6 +1,8 @@
 #pragma once
 #include <windows.h>
+#include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 namespace gpu_probe_fixture {
 inline void check(bool value,const char* message) {
@@ -8,12 +10,17 @@ inline void check(bool value,const char* message) {
 }
 // Shared diagnostic-only budget. No filesystem operation constructs this.
 class Budget {
+  static constexpr std::uint64_t mib=1024*1024;
  public:
-  Budget() {
-    constexpr std::uint64_t mib = 1024ULL*1024;
+  Budget():Budget(128*mib,128*mib) {}
+  Budget(std::uint64_t parent_bytes,std::uint64_t child_bytes) {
+    constexpr auto maximum=(std::numeric_limits<SIZE_T>::max)()-512*mib;
+    check(parent_bytes && child_bytes && child_bytes<=maximum && parent_bytes<=maximum-child_bytes,
+        "invalid probe job commitment");
+    const auto job_bytes=parent_bytes+child_bytes;
     MEMORYSTATUSEX memory{}; memory.dwLength = sizeof(memory);
-    check(GlobalMemoryStatusEx(&memory) && memory.ullAvailPhys >= 768*mib &&
-        memory.ullAvailPageFile >= 768*mib, "probe physical/commit headroom unavailable");
+    check(GlobalMemoryStatusEx(&memory) && memory.ullAvailPhys>=job_bytes+512*mib &&
+        memory.ullAvailPageFile>=job_bytes+512*mib,"probe physical/commit headroom unavailable");
     job_ = CreateJobObjectW(nullptr, nullptr);
     check(job_ != nullptr, "probe job unavailable");
     try {
@@ -26,8 +33,8 @@ class Budget {
       limits.BasicLimitInformation.ActiveProcessLimit = 2;
       limits.BasicLimitInformation.PriorityClass = BELOW_NORMAL_PRIORITY_CLASS;
       limits.BasicLimitInformation.PerProcessUserTimeLimit.QuadPart = 10LL*10000000;
-      limits.ProcessMemoryLimit = 128*mib;
-      limits.JobMemoryLimit = 256*mib;
+      limits.ProcessMemoryLimit = static_cast<SIZE_T>((std::max)(parent_bytes,child_bytes));
+      limits.JobMemoryLimit = static_cast<SIZE_T>(job_bytes);
       check(SetInformationJobObject(job_, JobObjectExtendedLimitInformation, &limits, sizeof(limits)),
           "probe memory/process budget unavailable");
       JOBOBJECT_CPU_RATE_CONTROL_INFORMATION cpu{};
