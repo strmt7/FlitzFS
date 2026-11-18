@@ -105,7 +105,7 @@ capacity and failure evidence before replacing it.
 | Component | Implemented and supported by evidence | Material remaining gap |
 | --- | --- | --- |
 | Object storage | Flat and paged stores, checked records, COW transactions, replicated metadata, resume and streaming rebuild | Production allocation/free-space policy, reader-safe automatic reclamation and backend qualification |
-| Native namespace | Indexed path and handle transactions, checked managed-head selection, compaction, durable deletion and closed-session SDK restart. | The default mounted provider still selects the earlier writer. Indexed mounted qualification, scheduled reclamation, large live truncation and collective representations remain open. |
+| Native namespace | Indexed path and handle transactions, checked head selection, owned Windows provider, scheduled retirement and closed-session sealed inspection | Full mounted qualification, physical reclamation, large live truncation and indexed collective representations |
 | Populated capacity | The paged object layer has a million-object result. The indexed path writer created 1,024 named nonempty files. | Mounted native volumes retain the 256-node and 255-extent limits. Larger populated native runs still need verification. |
 | Compression | Optional CPU Zstd/LZ4, exact sharing and protected shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
 | Background work | Automatic aligned-family discovery, feature reuse, negative-outcome suppression, real Windows observations and low-priority paced opportunities | Persistent scalable features, restartable learning, workload-driven codec selection, automatic compaction and a lifetime write governor |
@@ -128,9 +128,10 @@ paged object tree and publishes names, extents and counters together.
 A 17-byte replacement in the indexed 1,024-file fixture read 202,372 backing
 bytes. Full scrub read 291,765,432. The multipage format removes whole-namespace
 work from that mutation and leaves considerable overhead in the nested indexes.
-The indexed head and lifetimes now reach the Windows SDK callbacks. Carry
-them into the owned provider, schedule retirement and reduce metadata read
-and write amplification while retaining independent verification.
+The indexed head and lifetimes now reach the owned Windows provider.
+The controller consumes closed-file retirement in bounded transactions.
+The next effort is physical reuse, bounded live truncation and lower
+metadata read/write amplification with independent verification.
 [Indexed writer evidence](evidence/native-indexed-writer-2026-11-18.json)
 
 Authoritative source: [native limits and interfaces](../include/flitzfs/native_filesystem.hpp),
@@ -270,6 +271,13 @@ driver to make a probe fit a document.
 [dependency policy/history](DEPENDENCY_AUDIT.md).
 
 ## Recent executed evidence
+
+The owned indexed provider passed local Windows lifecycle and CPU recovery
+checks with injected WinFsp operations. The real host scheduler retired
+65 mappings in two transactions. The SDK phase fixture retired 129 in
+three transactions and verified five resource refusals without backing I/O.
+The linked mounted external-client fixture built and has its own
+qualification scope. [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
 
 The controlled indexed WinFsp callback sent 128 KiB to the actual AMD device.
 Both mirrored copies of each of the two stored extents matched verified

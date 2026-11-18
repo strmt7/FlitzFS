@@ -404,12 +404,16 @@ jobs:
         run: |
           $profiles = @(
             @{ mode = '--run-disposable-ci'; outer_ms = 100000 },
-            @{ mode = '--run-disposable-memory'; outer_ms = 40000 }
+            @{ mode = '--run-disposable-memory'; outer_ms = 40000 },
+            @{ mode = '--run-disposable-indexed-memory'; outer_ms = 40000 }
           )
           foreach ($profile in $profiles) {
             $start = [Diagnostics.ProcessStartInfo]::new()
             $start.FileName = (Resolve-Path './build-native/Release/flitzfs_mount_probe.exe').Path
             $start.ArgumentList.Add($profile.mode)
+            if ($profile.mode -eq '--run-disposable-indexed-memory') {
+              $start.Environment['FLITZFS_ALLOW_DISPOSABLE_WRITE'] = '1'
+            }
             $start.UseShellExecute = $false
             $start.CreateNoWindow = $true
             $start.RedirectStandardOutput = $true

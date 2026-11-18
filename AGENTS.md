@@ -244,8 +244,9 @@ The helper and writable WinFsp factory now select managed mirrored paged storage
 Read docs/WINFSP_OWNED_CONTROLLER.md before changing callback activity events,
 the owned WinFsp scheduler or its start/stop lifecycle. Keep signal/wait handle
 ownership, deferred-publication change detection, unchanged-volume quiescence,
-full-quantum pacing and one joined controlling thread. An explicit native
-provider and current-source mounted qualification remain required.
+full-quantum pacing and one joined controlling thread. Indexed volumes also
+consume the durable retirement queue. Preserve shutdown ownership and the
+separate current-source mounted qualification for the linked provider.
 Read docs/WINDOWS_MEMORY_VOLUME_FACTORY.md before changing shared allocation,
 WinFspMemoryVolume composition or retained CPU inspection. Keep actual fresh
 headroom collection, on-demand locking, distinct reserved and resident

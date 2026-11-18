@@ -53,11 +53,11 @@ struct WinFspVolumeController::Impl {
         while(!stop_requested.load(std::memory_order_acquire)) {
           if(session->requires_offline() || session->dispatcher_stopped())break;
           if(!disabled && adapter->maintenance_event_failed()) {
-            disabled=true;session->cancel_group_maintenance();
+            disabled=true;session->cancel_background_maintenance();
           }
           const auto now=GetTickCount64();
           if(now>=deadline){expired=true;break;}
-          const bool pending=!disabled && session->group_maintenance_pending();
+          const bool pending=!disabled && session->background_maintenance_pending();
           if(!pending || now<next) {
             const auto delay=(std::min)(deadline-now,pending?next-now:deadline-now);
             const auto waited=WaitForMultipleObjects(2,events,FALSE,static_cast<DWORD>(delay));
@@ -66,22 +66,22 @@ struct WinFspVolumeController::Impl {
             continue;
           }
           const auto begin=std::chrono::steady_clock::now();
-          WinFspGroupMaintenanceResult result;
+          WinFspMaintenanceResult result;
           MaintenanceThreadScope priority;
           if(!priority.active())disabled=true;
           else try {
             const auto observed=host.observe(stop_requested.load(std::memory_order_acquire));
             if(!stop_requested.load(std::memory_order_acquire) && host.status()!=MaintenanceHostStatus::waiting) {
               if(residency && observed.valid)residency->verify_working_set();
-              result=session->advance_group_maintenance(observed,GetTickCount64());
-              if(result.state==WinFspGroupMaintenanceState::unavailable ||
+              result=session->advance_background_maintenance(observed,GetTickCount64());
+              if(result.state==WinFspMaintenanceState::unavailable ||
                   result.progress.phase==NativeMaintenancePhase::failed)disabled=true;
             }
             if(host.status()==MaintenanceHostStatus::unavailable)
               disabled=true;
           }catch(...){disabled=true;}
           if(!priority.finish())disabled=true;
-          if(disabled)session->cancel_group_maintenance();
+          if(disabled)session->cancel_background_maintenance();
           const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-begin).count();
           const auto used=elapsed>0?static_cast<std::uint64_t>(elapsed):1;
           // 1% elapsed-work share charges telemetry and wrapper work too. File
@@ -91,9 +91,11 @@ struct WinFspVolumeController::Impl {
           const auto after=GetTickCount64();next=after+(std::min)(delay,after<deadline?deadline-after:0);
           {
             std::lock_guard lock(mutex);current.host=host.status();current.maintenance_disabled=disabled;
-            if(result.state==WinFspGroupMaintenanceState::advanced || result.state==WinFspGroupMaintenanceState::unchanged)
+            if(result.state==WinFspMaintenanceState::advanced || result.state==WinFspMaintenanceState::unchanged)
               current.maintenance=result.progress;
-            ++current.maintenance_quanta;current.maintenance_elapsed_ns+=used;
+            ++current.maintenance_quanta;
+            if(result.reclaimed)++current.reclamation_quanta;
+            current.maintenance_elapsed_ns+=used;
             current.maximum_quantum_ns=(std::max)(current.maximum_quantum_ns,used);
           }
         }

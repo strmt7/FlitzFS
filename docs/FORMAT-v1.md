@@ -6,6 +6,8 @@ floor and the namespace sequence are independent. Earlier head capabilities
 and this chunk container retain their existing encodings.
 The [indexed LZ4 path](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents)
 encodes the existing indexed extent frame in the existing store codec.
+The [owned indexed memory path](WINDOWS_MEMORY_VOLUME_FACTORY.md) selects
+that layout and uses the existing retirement records without a format change.
 
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) changes only backing
 creation/ownership; head, namespace, advice and payload encodings are unchanged.

@@ -20,10 +20,11 @@ struct HostedIdleMaintenanceResult {
   HostedIdleMaintenanceState state;
   NativeVolumeHeadInfo head{};
 };
-enum class WinFspGroupMaintenanceState {busy,unavailable,unchanged,advanced};
-struct WinFspGroupMaintenanceResult {
-  WinFspGroupMaintenanceState state=WinFspGroupMaintenanceState::unavailable;
+enum class WinFspMaintenanceState {busy,unavailable,unchanged,advanced};
+struct WinFspMaintenanceResult {
+  WinFspMaintenanceState state=WinFspMaintenanceState::unavailable;
   NativeMaintenanceProgress progress;
+  bool reclaimed=false;
 };
 class WinFspNativeWritable final {
  public:
@@ -59,9 +60,9 @@ class WinFspNativeWritable final {
   // Trusted low-priority controller opportunity, not a filesystem callback.
   // Try-lock/refuse foreground or deferred publication before backing access.
   // Caller supplies fresh observations and owns serialization with stop.
-  WinFspGroupMaintenanceResult advance_group_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
-  bool group_maintenance_pending() const;
-  void cancel_group_maintenance();
+  WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
+  bool background_maintenance_pending() const;
+  void cancel_background_maintenance();
   // Before callback binding only. Duplicate a same-process event with signal
   // rights, without inheritance. The caller retains its own wait handle.
   void set_maintenance_event(HANDLE);

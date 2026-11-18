@@ -13,8 +13,10 @@ The 1,024-file Windows fixture verified byte readback, restart and simulated
 interrupted publication. The indexed file session now preserves detached data
 through final Close and reclaims large closed files in restartable batches.
 Indexed managed-head selection now supports verified compaction and the
-WinFsp SDK callbacks. The mount provider and idle retirement controller
-still need to be connected.
+WinFsp SDK callbacks. The owned provider now selects indexed volumes,
+processes the durable retirement queue on admitted background opportunities
+and seals retained data after dispatcher join.
+[Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
 [Managed indexed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
 
 The indexed SDK adapter now supports controlled deferred AMD encoding.

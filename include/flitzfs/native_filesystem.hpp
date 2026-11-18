@@ -509,6 +509,7 @@ class NativeFilesystemWriter final {
   NativeFsCommit retire_inode(std::uint64_t inode);
   // Advance one indexed reclamation transaction for an already retired inode.
   // Returns false when there is no queued work. Old snapshots remain readable.
+  bool retirement_pending() const noexcept; // Cached, with no backing I/O.
   bool reclaim_retired_inode();
   // Single-control-thread committed view for the owning Windows engine.
   // Verify namespace against the last acknowledged model; reads privately

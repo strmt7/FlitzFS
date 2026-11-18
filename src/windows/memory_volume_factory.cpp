@@ -37,15 +37,24 @@ MemoryVolumeBacking MemoryVolumeBacking::create() {
   out.advice=out.domain->create_store(MemoryVolumeLayout::area_capacity);
   out.domain->verify_resident();return out;
 }
-ReadOnlyProjection MemoryVolumeBacking::open_read_only() {
+std::shared_ptr<StoreByteIo> MemoryVolumeBacking::resolve_image(const StoreIdentity& selected) const {
+  require(selected==image_identity,"Unknown selected memory image");
+  return image;
+}
+NativeVolumeHeadView MemoryVolumeBacking::open_owned_head(bool indexed_recovery) const {
   require(domain && head && image && head!=image && domain->owns(*head) && domain->owns(*image),
-      "Read-only volume requires its original owned backing");
+      "Volume inspection requires its original owned backing");
   domain->verify_resident();
-  auto checked=NativeVolumeHeadView::open(head,volume_identity,[&](const StoreIdentity& selected) {
-    require(selected==image_identity,"Unknown selected memory image");return image;
-  });
+  const auto resolve=[&](const StoreIdentity& selected){return resolve_image(selected);};
+  return indexed_recovery?NativeVolumeHeadView::open_indexed_recovery(head,volume_identity,resolve):
+      NativeVolumeHeadView::open(head,volume_identity,resolve);
+}
+ReadOnlyProjection MemoryVolumeBacking::seal_checked(NativeVolumeHeadView checked) {
   auto projection=ReadOnlyProjection::from_owned_volume(std::move(checked),image->extent());
   domain->seal_read_only();
   return projection;
+}
+ReadOnlyProjection MemoryVolumeBacking::open_read_only() {
+  return seal_checked(open_owned_head());
 }
 }

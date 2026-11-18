@@ -2,12 +2,21 @@
 #include "winfsp_native.hpp"
 #include <stdexcept>
 namespace flitzfs {
-WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan plan) {
+namespace {
+constexpr StoreCompressionOptions memory_compression{StoreCompressionMode::automatic,3,false};
+}
+WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan plan,NativeImageKind kind)
+    :kind_(kind) {
   if(!valid_native_write_plan(plan))throw std::invalid_argument("Invalid memory-volume mount plan");
+  if(kind_!=NativeImageKind::paged && kind_!=NativeImageKind::indexed_paged)
+    throw std::invalid_argument("Memory volume needs a supported paged layout");
   backing_=MemoryVolumeBacking::create();
-  auto adapter=WinFspNativeWritable::create_managed_paged(backing_.head,backing_.volume_identity,
-      backing_.image,backing_.image_identity,{backing_.layout.image_capacity},
-      {StoreCompressionMode::automatic,3,false},backing_.advice);
+  const PagedStoreLimits limits{backing_.layout.image_capacity};
+  auto adapter=kind_==NativeImageKind::indexed_paged?
+      WinFspNativeWritable::create_managed_indexed(backing_.head,backing_.volume_identity,
+          backing_.image,backing_.image_identity,limits,memory_compression):
+      WinFspNativeWritable::create_managed_paged(backing_.head,backing_.volume_identity,
+          backing_.image,backing_.image_identity,limits,memory_compression,backing_.advice);
   backing_.domain->verify_resident();
   controller_=std::make_unique<WinFspVolumeController>(std::move(adapter),api,std::move(plan),*backing_.domain);
 }
@@ -18,13 +27,21 @@ void WinFspMemoryVolume::request_stop() noexcept{controller_->request_stop();}
 void WinFspMemoryVolume::stop_and_join() noexcept{controller_->stop_and_join();joined_=true;}
 NativeVolumeHeadView WinFspMemoryVolume::inspect_retired() const {
   if(!joined_)throw std::runtime_error("Memory-volume inspection requires explicit controller join");
-  backing_.domain->verify_resident();
-  return NativeVolumeHeadView::open(backing_.head,backing_.volume_identity,[&](const StoreIdentity& id) {
-    if(id!=backing_.image_identity)throw std::runtime_error("Unknown retained image identity");return backing_.image;
-  });
+  return backing_.open_owned_head(kind_==NativeImageKind::indexed_paged);
 }
 ReadOnlyProjection WinFspMemoryVolume::open_read_only() {
-  if(!joined_)throw std::runtime_error("Read-only mount requires explicit writable controller join");
-  return backing_.open_read_only();
+  auto checked=inspect_retired();
+  if(checked.filesystem().needs_session_recovery()) {
+    // The dispatcher and its contexts have retired. Reuse the normal indexed
+    // recovery transaction against the exact checked epoch and image mapping.
+    {
+      auto recovered=NativeFileSession::resume_closed_indexed_volume(backing_.head,
+          backing_.volume_identity,checked.info().selection.epoch,
+          [&](const StoreIdentity& id){return backing_.resolve_image(id);},
+          memory_compression,NativeDispositionPolicy::windows_global);
+    }
+    checked=backing_.open_owned_head();
+  }
+  return backing_.seal_checked(std::move(checked));
 }
 }

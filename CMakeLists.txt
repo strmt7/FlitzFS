@@ -812,7 +812,9 @@ if(FLITZFS_BUILD_WINFSP)
     add_test(NAME bounded_winfsp_controller COMMAND flitzfs_winfsp_controller_tests)
     add_test(NAME bounded_winfsp_memory_volume COMMAND flitzfs_winfsp_controller_tests --memory)
     add_test(NAME bounded_winfsp_readonly_memory COMMAND flitzfs_winfsp_controller_tests --read-only-memory)
+    add_test(NAME bounded_winfsp_indexed_memory COMMAND flitzfs_winfsp_controller_tests --indexed-memory)
     set_tests_properties(bounded_winfsp_controller bounded_winfsp_memory_volume bounded_winfsp_readonly_memory
+      bounded_winfsp_indexed_memory
       PROPERTIES TIMEOUT 90)
     add_executable(flitzfs_winfsp_paged_tests tests/test_winfsp_paged.cpp)
     target_link_libraries(flitzfs_winfsp_paged_tests PRIVATE flitzfs_winfsp Threads::Threads)

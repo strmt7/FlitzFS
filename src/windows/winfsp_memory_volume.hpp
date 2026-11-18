@@ -8,7 +8,7 @@ namespace flitzfs {
 // Single external owner, exactly as WinFspVolumeController. No implicit driver.
 class WinFspMemoryVolume final {
  public:
-  WinFspMemoryVolume(WinFspSessionApi,NativeWriteMountPlan);
+  WinFspMemoryVolume(WinFspSessionApi,NativeWriteMountPlan,NativeImageKind=NativeImageKind::paged);
   ~WinFspMemoryVolume();
   WinFspMemoryVolume(const WinFspMemoryVolume&)=delete;
   WinFspMemoryVolume& operator=(const WinFspMemoryVolume&)=delete;
@@ -17,13 +17,14 @@ class WinFspMemoryVolume final {
   void request_stop() noexcept;
   void stop_and_join() noexcept;
   // Requires this owner's explicit confirmed join, even if view says retired.
-  // The returned CPU view retains its own stores/lease and verifies references.
+  // This const view can also inspect retained indexed file lifetimes.
   NativeVolumeHeadView inspect_retired() const;
-  // Can only be called after the writable dispatcher has been joined.
+  // After dispatcher join, finish any old indexed lifetimes before sealing.
   ReadOnlyProjection open_read_only();
  private:
   MemoryVolumeBacking backing_;
   std::unique_ptr<WinFspVolumeController> controller_;
+  const NativeImageKind kind_;
   bool joined_=false;
 };
 }

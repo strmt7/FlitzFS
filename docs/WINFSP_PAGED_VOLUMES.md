@@ -67,7 +67,7 @@ Cleanup/Close and explicit restart on both tested failure units.
 
 The adapter owns the core `NativeGroupMaintenance`; no callback starts a
 maintenance thread or performs device discovery. A trusted controller calls
-`advance_group_maintenance` with fresh observations on its low-priority context.
+`advance_background_maintenance` with fresh observations on its low-priority context.
 `WinFspNativeSession` forwards this only while running.
 
 Each opportunity tries the callback control lock and refuses queued/active

@@ -223,16 +223,14 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 
 ### Next steps for the writable Windows path
 
-1. Carry the indexed SDK path into the owned mount provider and helper.
-   The indexed callbacks now encode large FileInfo values, commit ordinary
-   writes and use the append boundary for physical free-space reporting.
-   Add indexed creation, selection and sealed CPU inspection to the memory
-   provider. Verify that failed start retains the selected image and that
-   the dispatcher's last context and request retire before indexed recovery.
-   Keep earlier writable images readable and test their actual reopening.
-   The shared provider now locks pages as images grow. Use live limits and
-   reserved candidate accounting when selecting the starting capacity.
-   [Indexed SDK evidence](evidence/indexed-managed-winfsp-2026-11-18.json) ·
+1. Carry the indexed path through Explorer and helper lifecycle. The owned
+   memory provider now supports indexed creation, startup rollback,
+   independent CPU inspection and closed-session sealing. It accepts an
+   explicit provider and plan. Qualify current-source mounting and sign-off
+   for the Windows 11 driver/runtime pair before enabling normal Explorer
+   provisioning. Connect the helper lifecycle to that same owner. Keep
+   earlier writable images readable and test their actual reopening.
+   [Indexed owned path](evidence/indexed-owned-windows-2026-11-18.json) ·
    [Memory backing evidence](evidence/demand-locked-memory-2026-11-18.json)
 2. Qualify mounted delete intent, detached I/O, final Close and restart through
    an isolated external Windows client. The indexed SDK fixture now proves
@@ -242,13 +240,13 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    [Indexed lifetime evidence](evidence/native-indexed-lifetimes-2026-11-18.json) ·
    [Windows disposition rules](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/4c26c8cb-5a8f-4339-a372-b315c4974131) ·
    [WinFsp interface contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
-3. Feed durable retirement work to the owned low-priority controller. A large
-   closed file now becomes inaccessible before its extent mappings are removed
-   in restartable transactions. Add durable visibility boundaries for shrinking
-   a live file without scanning or deleting its whole tail on the foreground
-   path. Check shrink-then-grow, write-after-truncate, queue fairness and
-   survival of earlier snapshot roots. Account for reclaimable references
-   separately from bytes reusable on the backing.
+3. Extend indexed retirement to live truncation and physical reuse. The owned
+   low-priority controller now consumes closed-file retirement in bounded
+   transactions admitted by fresh CPU and memory observations. Add durable
+   visibility boundaries for shrinking a live file without scanning its whole
+   tail on the foreground path. Verify shrink-then-grow, write-after-truncate,
+   queue fairness and survival of earlier roots. Track retired mappings and
+   physically reusable bytes.
 4. Drive staged indexed copies from the low-priority owner and admit qualified
    physical reuse. Capability-3 head selection now binds the indexed capacity,
    independent native sequence and durable checkpoint floor. Managed compaction

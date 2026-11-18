@@ -157,11 +157,11 @@ void live_opportunities() {
   NativeMaintenanceObservation model;model.valid=true;model.physical_total=16ULL<<30;
   model.physical_available=12ULL<<30;model.commit_limit=32ULL<<30;model.commit_available=24ULL<<30;
   model.cpu_total_ticks=1000;model.cpu_window_ms=1000;
-  for(unsigned i=0;i<1000 && f.adapter->group_maintenance_pending();++i) {
+  for(unsigned i=0;i<1000 && f.adapter->background_maintenance_pending();++i) {
     model.sequence=i+1;model.captured_ms=(i+1)*1000;
-    f.adapter->advance_group_maintenance(model,model.captured_ms);
+    f.adapter->advance_background_maintenance(model,model.captured_ms);
   }
-  require(!f.adapter->group_maintenance_pending(),"empty modeled setup did not settle");
+  require(!f.adapter->background_maintenance_pending(),"empty modeled setup did not settle");
   WinFspVolumeController controller(std::move(f.adapter),p.api(),plan());
   await([&]{return controller.view().state==SessionState::running;},5000,"live controller start deadline");
   auto before=controller.view();Sleep(1150);auto after=controller.view();
@@ -260,19 +260,20 @@ void memory_backing_ownership() {
       "factory did not restore working set after last backing reference");
   {auto next=MemoryVolumeBacking::create();next.domain->verify_resident();}
 }
-void memory_composition() {
+void memory_composition(NativeImageKind kind=NativeImageKind::paged) {
   Provider p;Provider::active=&p;
   // Startup rollback retires the dispatcher, but retains the newly initialized
   // volume for independent inspection until the owner discards its wrapper.
   {
-    p.fail_mount=true;WinFspMemoryVolume failed(p.api(),plan());
+    p.fail_mount=true;WinFspMemoryVolume failed(p.api(),plan(),kind);
     await([&]{return failed.view().retired;},5000,"memory mount refusal retirement");
     bool refused=false;try{(void)failed.inspect_retired();}catch(const std::exception&){refused=true;}
     require(refused,"memory inspection accepted status without explicit join");
     refused=false;try{(void)failed.open_read_only();}catch(const std::exception&){refused=true;}
     require(refused,"read-only projection accepted status without explicit join");
     failed.stop_and_join();auto cpu=failed.inspect_retired();cpu.filesystem().verify_all();
-    require(failed.view().start_status==STATUS_OBJECT_NAME_COLLISION && cpu.filesystem().list().empty(),
+    require(failed.view().start_status==STATUS_OBJECT_NAME_COLLISION && cpu.filesystem().list().empty() &&
+        cpu.filesystem().image_storage().kind==kind,
         "memory mount rollback discarded the new valid volume");
     auto projected=failed.open_read_only();
     require(projected.list(L"\\").empty(),"read-only conversion lost the retired namespace");
@@ -397,6 +398,100 @@ void live_memory_composition() {
   surviving.reset();{auto next=MemoryVolumeBacking::create();next.domain->verify_resident();}
   require(MemoryVolumeDomain::cleanup_healthy(),"memory composition cleanup failed");
 }
+
+void indexed_memory_composition() {
+  Provider p;Provider::active=&p;
+  std::optional<ReadOnlyProjection> sealed;
+  const auto keep=data(128,719),orphan=data(19,827);
+  constexpr unsigned blocks=65;
+  {
+    WinFspMemoryVolume volume(p.api(),plan(),NativeImageKind::indexed_paged);
+    await([&]{const auto v=volume.view();return v.state==SessionState::running || v.retired;},5000,
+        "indexed memory controller start deadline");
+    require(volume.view().state==SessionState::running,"indexed memory controller start");
+    callback_file(p,0,keep);
+    const auto* table=p.fs.Interface;
+    SIZE_T length=0;UINT32 attributes=0;wchar_t root[]=L"\\";
+    require(table->GetSecurityByName(&p.fs,root,&attributes,nullptr,&length)==STATUS_BUFFER_OVERFLOW,
+        "indexed memory security size");
+    Bytes security(length);
+    require(table->GetSecurityByName(&p.fs,root,&attributes,security.data(),&length)==STATUS_SUCCESS,
+        "indexed memory security");
+    FSP_FSCTL_FILE_INFO file{};
+    const auto create=[&](PWSTR name) {
+      PVOID handle=nullptr;
+      require(table->Create(&p.fs,name,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
+          security.data(),0,&handle,&file)==STATUS_SUCCESS && handle,"indexed memory Create");
+      return handle;
+    };
+    const auto write=[&](PVOID handle,std::uint64_t offset,const Bytes& data) {
+      ULONG count=0;
+      require(table->Write(&p.fs,handle,const_cast<std::byte*>(data.data()),offset,
+          static_cast<ULONG>(data.size()),FALSE,FALSE,&count,&file)==STATUS_SUCCESS && count==data.size(),
+          "indexed memory Write");
+    };
+    const auto delete_intent=[&](PVOID handle,PWSTR name) {
+      require(table->SetDelete(&p.fs,handle,name,TRUE)==STATUS_SUCCESS,"indexed memory delete intent");
+      table->Cleanup(&p.fs,handle,nullptr,FspCleanupDelete);
+    };
+    wchar_t retired_name[]=L"\\retire";
+    auto* retired=create(retired_name);
+    for(unsigned first=0;first<blocks;first+=32) {
+      const auto span=(std::min)(32U,blocks-first);
+      Bytes sparse(span*kNativeExtentBytes);
+      for(unsigned i=0;i<span;++i)sparse[i*kNativeExtentBytes]=std::byte{0xa5};
+      write(retired,std::uint64_t(first)*kNativeExtentBytes,sparse);
+    }
+    delete_intent(retired,retired_name);
+    FSP_FSCTL_TRANSACT_REQ request;
+    FSP_FSCTL_TRANSACT_RSP response;
+    std::memset(&request,0,sizeof(request));std::memset(&response,0,sizeof(response));
+    request.Kind=FspFsctlTransactCloseKind;
+    request.Req.Close.UserContext2=reinterpret_cast<std::uintptr_t>(retired);
+    require(FspFileSystemOpClose(&p.fs,&request,&response)==STATUS_SUCCESS,"indexed memory Close");
+    const auto until=GetTickCount64()+9000;
+    while(GetTickCount64()<until) {
+      const auto view=volume.view();
+      if(view.reclamation_quanta>=2 || view.retired || view.maintenance_disabled)break;
+      Sleep(20);
+    }
+    const auto maintenance=volume.view();
+    require(!maintenance.retired && !maintenance.maintenance_disabled && maintenance.maintenance_quanta &&
+        (maintenance.reclamation_quanta==2 || maintenance.maintenance.phase==NativeMaintenancePhase::deferred ||
+          (maintenance.reclamation_quanta==1 && maintenance.maintenance.phase==NativeMaintenancePhase::publishing)),
+        "indexed memory reclamation neither advanced nor reported a live deferral");
+
+    // Deliberately retire the synthetic dispatcher with one detached context.
+    // Inspection still owns the bytes. Sealing finishes the old lifetime only
+    // after the controller has joined and dropped its writer.
+    wchar_t orphan_name[]=L"\\orphan";
+    const auto detached=create(orphan_name);
+    write(detached,0,orphan);
+    const auto inode=file.IndexNumber;
+    delete_intent(detached,orphan_name);
+    volume.stop_and_join();
+    auto retained=volume.inspect_retired();
+    const auto& snapshot=retained.filesystem();
+    require(volume.view().retired && snapshot.image_storage().kind==NativeImageKind::indexed_paged &&
+        snapshot.needs_session_recovery() && snapshot.read_inode(inode,0,100)==orphan,
+        "indexed retired inspection lost detached bytes");
+    const auto extent_count=snapshot.allocation_usage().live_extents;
+    const auto quanta=volume.view().reclamation_quanta;
+    require((quanta<=2 && extent_count==(quanta==0?67:quanta==1?3:2)) &&
+        snapshot.read("f0",0,256)==keep,"indexed reaper extent accounting or retained file bytes");
+    sealed.emplace(volume.open_read_only());
+    const auto recovered=volume.inspect_retired();
+    require(!recovered.filesystem().needs_session_recovery() &&
+        sealed->list(L"\\").size()==1 && sealed->read(L"\\f0",0,256)==keep &&
+        snapshot.read_inode(inode,0,100)==orphan,"indexed sealing lost immutable or recovered files");
+    std::cout<<"live_indexed_reclamation extents="<<blocks<<" quanta="<<quanta
+        <<" deferral="<<static_cast<unsigned>(maintenance.maintenance.deferral)
+        <<" max_quantum_ns="<<maintenance.maximum_quantum_ns<<" closed_session_recovered=1\n";
+  }
+  require(sealed->read(L"\\f0",0,256)==keep,"sealed indexed projection lost its retained backing");
+  sealed.reset();
+  require(MemoryVolumeDomain::cleanup_healthy(),"indexed memory lease did not retire");
+}
 }
 int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
@@ -406,7 +501,7 @@ int main(int argc,char** argv){try {
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
   if(argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
-      std::string_view(argv[1])=="--read-only-memory"))
+      std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory"))
     native_rng_initialization();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
   if(argc==1){event_ownership();lifecycle();expiration();invalid_and_unexpected();live_opportunities();}
@@ -415,6 +510,9 @@ int main(int argc,char** argv){try {
     memory_backing_ownership();std::cout<<"memory_handles backing="<<handle_count()<<'\n';
     memory_composition();std::cout<<"memory_handles rollback="<<handle_count()<<'\n';
     live_memory_composition();std::cout<<"memory_handles live="<<handle_count()<<'\n';
+  }else if(argc==2 && std::string_view(argv[1])=="--indexed-memory") {
+    memory_composition(NativeImageKind::indexed_paged);
+    indexed_memory_composition();
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
   }else if(argc==2 && std::string_view(argv[1])=="--memory-handles") {

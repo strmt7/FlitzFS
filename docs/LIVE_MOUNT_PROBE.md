@@ -46,6 +46,19 @@ fixture files. The hosted VM disposes of them. Normal teardown removes only
 its own WinFsp mount. A deliberately occupied directory and sentinel must remain
 untouched. At least 1 GiB plus 4 MiB free storage is required before fixture work.
 
+### Indexed writable memory fixture
+
+The separate `--run-disposable-indexed-memory` invocation requires explicit
+disposable mount and write admission. It uses the same owned Windows memory
+volume and linked WinFsp provider as the application path. The external client
+creates a directory and synthetic file, writes at a 32 MiB offset, flushes,
+renames, deletes another fixture file, enumerates entries and verifies sparse
+and populated reads. The owner joins the dispatcher, checks mount removal and
+verifies the retained image through the independent CPU and sealed readers.
+The storage image uses the shared locked-memory backing throughout. The
+optional fixture runs under the existing disposable process and driver scope.
+[Validation scope](evidence/indexed-owned-windows-2026-11-18.json)
+
 ### Live assertions
 
 1. Refuse an existing mount directory without changing its sentinel.

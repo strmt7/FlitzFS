@@ -1,6 +1,7 @@
 // Supervised disposable integration probe with fixed synthetic inputs.
 #include "winfsp_session.hpp"
 #include "memory_volume_factory.hpp"
+#include "winfsp_memory_volume.hpp"
 #include "bounded_process.hpp"
 #include "supervised_source_fixture.hpp"
 #include "flitzfs/container.hpp"
@@ -606,18 +607,101 @@ void memory_client(const Fixture& fixture) {
   Handle created(CreateFileW((mount/L"new.bin").c_str(),GENERIC_WRITE,0,nullptr,CREATE_NEW,0,nullptr));
   require(created.value==INVALID_HANDLE_VALUE,"sealed RAM authorized external creation");
 }
-enum class ReadonlySource {file,memory};
-struct ExternalReadonly {
+constexpr std::uint64_t indexed_write_offset=32ULL*1024*1024;
+void indexed_memory_source(std::wstring_view token) {
+  require_probe_job();
+  source_fixture::Events protocol(false,std::wstring(token));
+  stage=23;
+  Fixture fixture;
+  const auto mount=fixture.root/L"mount";
+  flitzfs::WinFspMemoryVolume volume(flitzfs::linked_winfsp_session_api(),
+      {mount.native(),29,true,true},flitzfs::NativeImageKind::indexed_paged);
+  const auto deadline=GetTickCount64()+5000;
+  while(volume.view().state!=flitzfs::SessionState::running && !volume.view().retired &&
+      GetTickCount64()<deadline)Sleep(10);
+  const auto started=volume.view();
+  if(started.state!=flitzfs::SessionState::running)
+    throw std::system_error(static_cast<int>(FspWin32FromNtStatus(started.start_status)),
+        std::system_category(),"indexed writable RAM mount startup");
+  protocol.signal(source_fixture::Phase::ready);
+  protocol.wait_written();
+  stage=24;
+  volume.stop_and_join();
+  const auto stopped=volume.view();
+  require(stopped.retired && !stopped.offline && !stopped.controller_failed && !stopped.expired,
+      "indexed writable RAM volume did not retire cleanly");
+  require(GetFileAttributesW(mount.c_str())==INVALID_FILE_ATTRIBUTES &&
+      (GetLastError()==ERROR_FILE_NOT_FOUND || GetLastError()==ERROR_PATH_NOT_FOUND),
+      "indexed writable RAM mount remained");
+  const auto expected=synthetic_data();
+  const auto cpu=volume.inspect_retired();
+  const auto& filesystem=cpu.filesystem();
+  require(filesystem.image_storage().kind==flitzfs::NativeImageKind::indexed_paged &&
+      !filesystem.needs_session_recovery() && filesystem.list("Data").size()==1 &&
+      filesystem.stat("Data/ready.bin").logical_bytes==indexed_write_offset+expected.size() &&
+      filesystem.read("Data/ready.bin",indexed_write_offset,static_cast<std::uint32_t>(expected.size()))==expected,
+      "indexed writable RAM CPU reopen");
+  auto sealed=volume.open_read_only();
+  require(sealed.read(L"\\Data\\ready.bin",indexed_write_offset,static_cast<std::uint32_t>(expected.size()))==expected,
+      "indexed writable RAM sealed CPU readback");
+  std::cout<<"mounted_indexed_memory write_bytes="<<expected.size()<<" offset="<<indexed_write_offset
+      <<" selected_image_bytes="<<filesystem.storage_info().physical_end<<" cpu_reopen=1 joined=1\n";
+  protocol.signal(source_fixture::Phase::ack);
+}
+void indexed_memory_client(const Fixture& fixture) {
+  stage=25;
+  const auto mount=fixture.root/L"mount",directory=mount/L"Data";
+  checked(CreateDirectoryW(directory.c_str(),nullptr),"indexed mounted directory creation");
+  const auto source=directory/L"pending.bin",target=directory/L"ready.bin";
+  const auto expected=synthetic_data();
+  {
+    Handle file(CreateFileW(source.c_str(),GENERIC_READ|GENERIC_WRITE,0,nullptr,CREATE_NEW,
+        FILE_ATTRIBUTE_NORMAL,nullptr));
+    checked(file.value!=INVALID_HANDLE_VALUE,"indexed mounted new file");
+    LARGE_INTEGER offset{};offset.QuadPart=static_cast<LONGLONG>(indexed_write_offset);
+    checked(SetFilePointerEx(file.value,offset,nullptr,FILE_BEGIN),"indexed mounted seek");
+    DWORD written=0;
+    checked(WriteFile(file.value,expected.data(),static_cast<DWORD>(expected.size()),&written,nullptr),
+        "indexed mounted sparse write");
+    require(written==expected.size(),"indexed mounted short write");
+    checked(FlushFileBuffers(file.value),"indexed mounted flush");
+  }
+  checked(MoveFileExW(source.c_str(),target.c_str(),0),"indexed mounted rename");
+  const auto temporary=directory/L"temporary.bin";
+  write_new(temporary,expected);
+  checked(DeleteFileW(temporary.c_str()),"indexed mounted owned file deletion");
+  require(enumerate(directory/L"*")==std::set<std::wstring>{L"ready.bin"},"indexed mounted directory enumeration");
+  Handle reopened(CreateFileW((mount/L"data"/L"READY.BIN").c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,
+      OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr));
+  checked(reopened.value!=INVALID_HANDLE_VALUE,"indexed mounted case-insensitive reopen");
+  LARGE_INTEGER offset{},size{};offset.QuadPart=static_cast<LONGLONG>(indexed_write_offset);
+  checked(GetFileSizeEx(reopened.value,&size),"indexed mounted EOF");
+  require(static_cast<std::uint64_t>(size.QuadPart)==indexed_write_offset+expected.size(),"indexed mounted EOF mismatch");
+  std::array<std::byte,4096> hole{};
+  std::fill(hole.begin(),hole.end(),std::byte{0xff});DWORD count=0;
+  checked(ReadFile(reopened.value,hole.data(),static_cast<DWORD>(hole.size()),&count,nullptr),
+      "indexed mounted sparse hole read");
+  require(count==hole.size() && std::all_of(hole.begin(),hole.end(),[](auto b){return b==std::byte{};}),
+      "indexed mounted sparse hole is not zero");
+  checked(SetFilePointerEx(reopened.value,offset,nullptr,FILE_BEGIN),"indexed mounted read seek");
+  std::vector<std::byte> actual(expected.size());
+  checked(ReadFile(reopened.value,actual.data(),static_cast<DWORD>(actual.size()),&count,nullptr),
+      "indexed mounted readback");
+  require(count==actual.size() && actual==expected,"indexed mounted byte parity");
+}
+enum class MountFixtureSource {file,sealed_memory,indexed_memory};
+struct ExternalMount {
   source_fixture::Events protocol{true};
   std::unique_ptr<source_fixture::Child> child;
   flitzfs::ProcessResult result;
-  ExternalReadonly(const fs::path& executable,bool crash,std::uint32_t recover_source=0,
-      ReadonlySource source=ReadonlySource::file) {
-    const bool memory=source==ReadonlySource::memory;
-    require((!crash || recover_source==0) && (!memory || (!crash && recover_source==0)),
-        "readonly source/recovery selector");
-    std::vector<std::wstring> arguments{memory?L"--probe-memory-child":recover_source?L"--probe-recover-child":
-        crash?L"--probe-crash-child":L"--probe-child"};
+  ExternalMount(const fs::path& executable,bool crash,std::uint32_t recover_source=0,
+      MountFixtureSource source=MountFixtureSource::file) {
+    require((!crash || recover_source==0) && (source==MountFixtureSource::file || (!crash && recover_source==0)),
+        "mounted source/recovery selector");
+    const auto memory=source==MountFixtureSource::sealed_memory;
+    const auto indexed=source==MountFixtureSource::indexed_memory;
+    std::vector<std::wstring> arguments{indexed?L"--probe-indexed-memory-child":memory?L"--probe-memory-child":
+        recover_source?L"--probe-recover-child":crash?L"--probe-crash-child":L"--probe-child"};
     if(recover_source)arguments.push_back(std::to_wstring(recover_source));
     arguments.push_back(protocol.token());
     child=std::make_unique<source_fixture::Child>(executable,arguments,
@@ -626,7 +710,8 @@ struct ExternalReadonly {
     require(child->process_id()&&child->process_id()!=GetCurrentProcessId()&&
         (!recover_source||child->process_id()!=recover_source),"readonly actor alias");
     Fixture fixture(recover_source?recover_source:child->process_id());
-    if(memory)memory_client(fixture);
+    if(indexed)indexed_memory_client(fixture);
+    else if(memory)memory_client(fixture);
     else if(recover_source)recovered_client(fixture);
     else mounted_client(fixture,crash);
     protocol.signal(source_fixture::Phase::written);child->await(protocol,source_fixture::Phase::ack);
@@ -635,7 +720,7 @@ struct ExternalReadonly {
         (crash?(result.timed_out&&result.exit_code==ERROR_TIMEOUT):(!result.timed_out&&result.exit_code==0))&&
         child->retirement_confirmed(),"readonly exact child/supervisor retirement");
     require(source_fixture::cleanup_ok.load(),"readonly protocol cleanup");
-    std::cout<<"readonly_actors source="<<child->process_id()<<" client="<<GetCurrentProcessId()
+    std::cout<<(indexed?"indexed_actors source=":"readonly_actors source=")<<child->process_id()<<" client="<<GetCurrentProcessId()
         <<" recovery_source="<<recover_source<<" exit_confirmed="<<result.exit_confirmed
         <<" supervisor_retired="<<child->retirement_confirmed()<<"\n";
   }
@@ -646,6 +731,11 @@ int wmain(int argc, wchar_t** argv) {
     require_disposable_opt_in();
     require(argc >= 2 && argc <= 4, "explicit probe mode required");
     const std::wstring_view mode(argv[1]);
+    if(mode==L"--probe-indexed-memory-child") {
+      require(argc==3 && environment(L"FLITZFS_ALLOW_DISPOSABLE_WRITE")==L"1",
+          "indexed writable RAM protocol or explicit opt-in missing");
+      indexed_memory_source(argv[2]);return 0;
+    }
     if(mode==L"--probe-memory-child") {
       require(argc==3,"sealed RAM protocol missing");memory_source(argv[2]);return 0;
     }
@@ -657,31 +747,38 @@ int wmain(int argc, wchar_t** argv) {
       require(argc==3,"missing readonly client protocol");probe(mode==L"--probe-crash-child",argv[2]);return 0;
     }
     require(argc==2,"unexpected controller argument");
-    require(mode==L"--run-disposable-ci" || mode==L"--run-disposable-memory","unknown probe mode");
+    require(mode==L"--run-disposable-ci" || mode==L"--run-disposable-memory" ||
+        mode==L"--run-disposable-indexed-memory","unknown probe mode");
     const source_fixture::ControllerBudget controller_budget;
     wchar_t path[512]{};
     const auto n = GetModuleFileNameW(nullptr, path, 512);
     require(n && n < 512, "probe executable path unavailable");
     const fs::path executable(std::wstring(path,n));
+    if(mode==L"--run-disposable-indexed-memory") {
+      require(environment(L"FLITZFS_ALLOW_DISPOSABLE_WRITE")==L"1","indexed writable RAM fixture opt-in missing");
+      const ExternalMount indexed(executable,false,0,MountFixtureSource::indexed_memory);
+      std::cout<<"PASS: mounted indexed sparse writes, flush, rename/delete, CPU reopen and joined retirement.\n";
+      return 0;
+    }
     if(mode==L"--run-disposable-memory") {
-      const ExternalReadonly memory(executable,false,0,ReadonlySource::memory);
+      const ExternalMount memory(executable,false,0,MountFixtureSource::sealed_memory);
       std::cout<<"PASS: sealed paged RAM, external mounted reads and mutation refusal, byte parity and joined retirement.\n";
       return 0;
     }
-    const ExternalReadonly normal(executable,false);const auto result=normal.result;
+    const ExternalMount normal(executable,false);const auto result=normal.result;
     std::cout << "mount_probe exit=" << result.exit_code << " stage=" << (result.exit_code >> 16U)
         << " detail=" << (result.exit_code & 0xffffU) << " timed_out=" << result.timed_out
         << " exit_confirmed=" << result.exit_confirmed << " peak_commit_bytes=" << result.peak_committed_bytes << '\n';
     require(result.exit_confirmed && !result.timed_out && result.exit_code == 0, "supervised mount probe failed");
     emit_space_report(result.process_id,"normal");
     std::cout << "PASS: real mounted native transactional image reads, sparse tails, persistent inode IDs, mapped I/O, enumeration, write rejection and backing parity.\n";
-    const ExternalReadonly crash(executable,true);const auto killed=crash.result;
+    const ExternalMount crash(executable,true);const auto killed=crash.result;
     std::cout << "crash_probe exit=" << killed.exit_code << " timed_out=" << killed.timed_out
         << " exit_confirmed=" << killed.exit_confirmed << " peak_commit_bytes=" << killed.peak_committed_bytes << '\n';
     require(killed.process_id != 0 && killed.timed_out && killed.exit_confirmed &&
         killed.exit_code == ERROR_TIMEOUT, "mounted helper was not forcibly terminated");
     emit_space_report(killed.process_id,"crash");
-    const ExternalReadonly resumed(executable,false,killed.process_id);const auto recovered=resumed.result;
+    const ExternalMount resumed(executable,false,killed.process_id);const auto recovered=resumed.result;
     std::cout << "recovery_probe exit=" << recovered.exit_code << " stage=" << (recovered.exit_code >> 16U)
         << " detail=" << (recovered.exit_code & 0xffffU) << " timed_out=" << recovered.timed_out
         << " exit_confirmed=" << recovered.exit_confirmed << " peak_commit_bytes=" << recovered.peak_committed_bytes << '\n';

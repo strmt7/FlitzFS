@@ -8,7 +8,7 @@ struct WinFspControllerView {
   NTSTATUS start_status=STATUS_PENDING;
   MaintenanceHostStatus host=MaintenanceHostStatus::warming;
   NativeMaintenanceProgress maintenance;
-  std::uint64_t maintenance_quanta=0,maintenance_elapsed_ns=0,maximum_quantum_ns=0;
+  std::uint64_t maintenance_quanta=0,reclamation_quanta=0,maintenance_elapsed_ns=0,maximum_quantum_ns=0;
   bool maintenance_disabled=false,retired=false,expired=false,offline=false,controller_failed=false;
 };
 // Explicit provider and plan only. One owned thread performs start, cooperative

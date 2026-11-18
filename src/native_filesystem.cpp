@@ -2290,6 +2290,9 @@ NativeAllocationUsage NativeFilesystemWriter::inspect_allocation_usage() const {
 NativeFsCommit NativeFilesystemWriter::retire_inode(std::uint64_t inode) {
   return transact({},InodeAction::retire,inode);
 }
+bool NativeFilesystemWriter::retirement_pending() const noexcept {
+  return !poisoned() && impl_->indexed && impl_->indexed->retiring_inodes!=0;
+}
 bool NativeFilesystemWriter::reclaim_retired_inode() {
   auto& state=checked_impl();
   if(!state.indexed || !state.indexed->retiring_inodes)return false;

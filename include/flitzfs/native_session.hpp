@@ -375,6 +375,7 @@ class NativeFileSession final {
   NativeFsCommit flush();
   NativeFsCommit flush(const NativeFileHandle&);
   // One bounded reclaim operation for an already closed indexed inode.
+  bool retirement_pending() const noexcept;
   bool reclaim_retired_inode();
   NativeFilesystemSnapshot snapshot() const;
   NativeSessionStats stats() const noexcept;

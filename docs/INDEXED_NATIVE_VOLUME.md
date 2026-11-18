@@ -147,6 +147,11 @@ first-reclamation fault sweeps covered 180 simulated storage interruptions.
 Each recovered a complete checkpoint and preserved the unrelated file.
 [Indexed lifetime and retirement evidence](evidence/native-indexed-lifetimes-2026-11-18.json)
 
+The owned Windows controller processes the retirement queue using fresh resource
+observations and one transaction at a time. Post-join CPU inspection can access
+checked detached bytes before sealing resolves the old lifetime records.
+[Owned Windows path](WINDOWS_MEMORY_VOLUME_FACTORY.md)
+
 ## Export and validation
 
 `create_indexed_copy` takes a legacy snapshot with resolved file lifetimes and

@@ -26,6 +26,20 @@ void append(std::vector<std::byte>& bytes,std::uint64_t value) {
   for(unsigned i=0;i<8;++i)bytes.push_back(static_cast<std::byte>(value>>(8*i)));
 }
 }
+std::optional<detail::MaintenanceResources> detail::maintenance_resources(
+    const NativeMaintenanceObservation& observed,std::uint64_t now_ms,const NativeMaintenancePolicy& policy) noexcept {
+  if(!observed.valid || observed.captured_ms>now_ms || now_ms-observed.captured_ms>policy.maximum_age_ms ||
+      !observed.physical_total || observed.physical_available>observed.physical_total ||
+      !observed.commit_limit || observed.commit_available>observed.commit_limit || !observed.cpu_total_ticks ||
+      observed.cpu_busy_ticks>observed.cpu_total_ticks || !observed.cpu_window_ms ||
+      observed.cpu_window_ms>policy.maximum_cpu_window_ms || observed.cpu_window_ms>observed.captured_ms ||
+      !policy.memory_share_divisor)return {};
+  const auto physical_reserve=observed.physical_total/16,commit_reserve=observed.commit_limit/16;
+  const auto physical=observed.physical_available>physical_reserve?observed.physical_available-physical_reserve:0;
+  const auto commit=observed.commit_available>commit_reserve?observed.commit_available-commit_reserve:0;
+  return MaintenanceResources{(std::min)(physical,commit)/policy.memory_share_divisor,
+      observed.cpu_busy_ticks>fraction(observed.cpu_total_ticks,policy.maximum_cpu_busy_ppm)};
+}
 struct NativeGroupMaintenance::Impl {
   struct Feature {NativeContentToken token;Digest content{};std::array<std::uint64_t,8> bands{};};
   using Band=std::pair<unsigned,std::uint64_t>;
@@ -181,24 +195,18 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(p.image!=image){p.reset_index();p.image=image;}
   if(!observed.sequence || observed.sequence<=p.last_observation)return p.defer(Defer::observation);
   p.last_observation=observed.sequence;
-  if(!observed.valid || observed.captured_ms>now_ms || now_ms-observed.captured_ms>p.policy.maximum_age_ms ||
-      observed.captured_ms<p.last_capture || !observed.physical_total || observed.physical_available>observed.physical_total ||
-      !observed.commit_limit || observed.commit_available>observed.commit_limit || !observed.cpu_total_ticks ||
-      observed.cpu_busy_ticks>observed.cpu_total_ticks || !observed.cpu_window_ms || observed.cpu_window_ms>p.policy.maximum_cpu_window_ms ||
-      observed.cpu_window_ms>observed.captured_ms)return p.defer(Defer::observation,true);
+  const auto resources=detail::maintenance_resources(observed,now_ms,p.policy);
+  if(!resources || observed.captured_ms<p.last_capture)return p.defer(Defer::observation,true);
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
   p.last_capture=observed.captured_ms;
-  const auto physical_reserve=observed.physical_total/16,commit_reserve=observed.commit_limit/16;
-  const auto physical=observed.physical_available>physical_reserve?observed.physical_available-physical_reserve:0;
-  const auto commit=observed.commit_available>commit_reserve?observed.commit_available-commit_reserve:0;
-  const auto allowance=(std::min)(physical,commit)/p.policy.memory_share_divisor;
+  const auto allowance=resources->memory_allowance;
   const auto maximum_members=allowance>fixed_scratch?(std::min)(std::uint64_t(kNativeMaxExtents),(allowance-fixed_scratch)/member_scratch):0;
   if(maximum_members<2 || (p.work && p.work_members>maximum_members))return p.defer(Defer::memory,true);
   if(!p.work && p.phase==Phase::idle && p.completed_sequence==writer.maintenance_sequence()) {
     p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.state;
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
-  if(observed.cpu_busy_ticks>fraction(observed.cpu_total_ticks,p.policy.maximum_cpu_busy_ppm))return p.defer(Defer::cpu);
+  if(resources->cpu_busy)return p.defer(Defer::cpu);
   if(!p.work && writer.maintenance_busy())return p.defer(Defer::other_maintenance);
   // Credit only fresh idle observation intervals. Time paces pending work; it
   // never discovers a candidate or overrides contention/integrity evidence.

@@ -48,9 +48,9 @@ while internal reservation accounting protects the future compaction image.
 
 ## Retention and inspection
 
-`WinFspMemoryVolume` composes that backing with the paged writable adapter and
-`WinFspVolumeController`. It requires an explicit valid plan and provider table;
-no native provider, driver installation or driver start is selected implicitly.
+`WinFspMemoryVolume` composes that backing with a legacy or indexed paged
+adapter and `WinFspVolumeController`. Callers select the indexed layout
+explicitly. They supply a valid plan and provider table.
 The backing outlives the controller. The background owner checks the
 working-set lease before an opportunity with valid resource observations.
 Full page checks use the serialized owner after writes have retired.
@@ -59,9 +59,13 @@ Full page checks use the serialized owner after writes have retired.
 while preserving the backing. CPU inspection is refused until this owner has
 explicitly joined, even if asynchronous status already says retired. The
 independent volume-head reader then validates the retained image mapping and
-native contents. A returned reader can outlive the wrapper because its stores
-retain their provider lease. A surviving reader/store prevents a second domain
-from being created until its last reference retires.
+native contents. For an indexed volume this inspection can read retained
+detached bytes from the checked old checkpoint. When the owner requests a
+sealed projection after join, it closes the old lifetime records using the
+existing indexed recovery transaction and reopens the checked successor
+before sealing. Earlier snapshots retain their original view. A reader can
+outlive the wrapper because its stores retain the provider lease.
+[Indexed checks](evidence/indexed-owned-windows-2026-11-18.json)
 
 Destruction stops and joins before releasing backing references. The domain's
 working-set settings restore after the last store owner retires, with existing

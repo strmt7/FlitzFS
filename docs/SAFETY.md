@@ -8,6 +8,11 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The owned indexed memory path keeps a checked CPU view after dispatcher join.
+The sealing operation resolves old indexed context records only after the
+controller and writer retire. Routine retirement uses serialized bounded
+transactions and live resource admission. [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
+
 Indexed GPU advice is private until CPU verification agrees with the staged
 extent and the final inode/block frame. The writable callback uses the same
 resource and ownership checks for legacy and indexed deferred requests. A

@@ -84,6 +84,25 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "owned_indexed_windows": {
+    "source_base": "e66c2e0ee128ad98bc5085534a3279e0f942e3e3",
+    "evidence": "docs/evidence/indexed-owned-windows-2026-11-18.json",
+    "windows_test_groups": {
+      "codec": 10,
+      "raw": 3,
+      "asan_lz4": 5
+    },
+    "live_reclaimer": {
+      "extents": 65,
+      "completed_quanta": 2,
+      "deferral_code": 0,
+      "max_quantum_ns": 2315500,
+      "closed_session_recovered": 1
+    },
+    "modeled_retirement_extents": 129,
+    "scope": "Owned indexed Windows lifecycle, retained CPU read and sealed closed-session recovery.",
+    "next": "Qualify disposable mounted indexed I/O, connect and verify physical reuse, then wire adaptive AMD and collective work into the owned provider."
+  },
   "indexed_deferred_amd": {
     "source_base": "fd838f676d6cf7634754137c384e6c5021cbdfae",
     "evidence": "docs/evidence/indexed-lz4-deferred-2026-11-18.json",

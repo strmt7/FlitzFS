@@ -95,9 +95,9 @@ struct Harness {
     require(FspFileSystemOpClose(&fs,&request,&response)==STATUS_SUCCESS,"paged SDK Close");
     require(!adapter->requires_offline(),"paged callback retirement fenced source");
   }
-  auto step(){const auto observed=clock.next();return adapter->advance_group_maintenance(observed,clock.now);}
-  auto finish(){for(unsigned i=0;i<1000;++i){const auto r=step();require(r.state!=WinFspGroupMaintenanceState::unavailable,
-      "paged opportunity unavailable");if(r.progress.phase==NativeMaintenancePhase::idle && !adapter->group_maintenance_pending())return r;}
+  auto step(){const auto observed=clock.next();return adapter->advance_background_maintenance(observed,clock.now);}
+  auto finish(){for(unsigned i=0;i<1000;++i){const auto r=step();require(r.state!=WinFspMaintenanceState::unavailable,
+      "paged opportunity unavailable");if(r.progress.phase==NativeMaintenancePhase::idle && !adapter->background_maintenance_pending())return r;}
     throw std::runtime_error("paged group did not quiesce");}
   void populate(){for(unsigned i=0;i<4;++i){const auto context=create(i);write(context,family(i));read(context,family(i));close(context);}}
 };
@@ -109,14 +109,14 @@ void callbacks(unsigned unit) {
       "SDK-created data not automatically grouped");h.read(context,family(4));h.close(context);
   // Closing a context can update namespace metadata; reuse content hashes.
   result=h.finish();const auto reads=h.image->read_calls,calls=h.image->calls;
-  for(unsigned i=0;i<20;++i)require(h.step().state==WinFspGroupMaintenanceState::unchanged,"unchanged callback volume not idle");
+  for(unsigned i=0;i<20;++i)require(h.step().state==WinFspMaintenanceState::unchanged,"unchanged callback volume not idle");
   require(h.image->read_calls==reads && h.image->calls==calls,"unchanged callback opportunity accessed backing");
   require(h.adapter->snapshot().workload_info()==NativeWorkloadInfo{true,workload.committed_input_bytes+kNativeExtentBytes},
       "callback groups minted accepted input");
   auto snapshot=h.adapter->snapshot();snapshot.verify_all();
   require(snapshot.image_storage().kind==NativeImageKind::paged && snapshot.shared_base_info().enabled,"wrong callback storage format");
   h.fs.Interface->DispatcherStopped(&h.fs,TRUE);const auto before=h.image->read_calls;
-  require(h.step().state==WinFspGroupMaintenanceState::unavailable && !h.adapter->group_maintenance_pending() &&
+  require(h.step().state==WinFspMaintenanceState::unavailable && !h.adapter->background_maintenance_pending() &&
       h.image->read_calls==before,"stopped callback owner accessed storage");
   std::cout<<"paged_callbacks unit="<<unit<<" members=5 groups="<<result.progress.published_groups<<" input="
       <<snapshot.workload_info().committed_input_bytes<<"\n";
@@ -196,8 +196,8 @@ void selected_change() {
   h.finish();const auto snapshot=h.adapter->snapshot();
   require(snapshot.read("f0",0,kNativeExtentBytes)==replacement,"stale grouped work overwrote callback write");
   for(unsigned i=1;i<4;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"callback reconciliation lost another file");
-  h.adapter->cancel_group_maintenance();const auto before=h.image->calls;
-  require(!h.adapter->group_maintenance_pending() && h.step().state==WinFspGroupMaintenanceState::unavailable &&
+  h.adapter->cancel_background_maintenance();const auto before=h.image->calls;
+  require(!h.adapter->background_maintenance_pending() && h.step().state==WinFspMaintenanceState::unavailable &&
       h.image->calls==before,"cancelled adapter restarted private work");
 }
 void foreground_busy() {
@@ -211,7 +211,7 @@ void foreground_busy() {
   {std::unique_lock lock(h.image_io->mutex);
     require(h.image_io->changed.wait_for(lock,std::chrono::seconds(5),[&]{return h.image_io->entered;}),"foreground callback did not enter backing");}
   const auto reads=h.image->read_calls,calls=h.image->calls;
-  require(h.step().state==WinFspGroupMaintenanceState::busy && h.image->read_calls==reads && h.image->calls==calls,
+  require(h.step().state==WinFspMaintenanceState::busy && h.image->read_calls==reads && h.image->calls==calls,
       "background bypassed foreground control or accessed backing");
   h.image_io->release();running.thread.join();
   require(status==STATUS_SUCCESS && count==buffer.size() && buffer==family(0),"foreground callback lost bytes");h.close(context);
@@ -241,7 +241,7 @@ void deferred_response_busy() {
     {std::unique_lock lock(gate.mutex);
       require(gate.changed.wait_for(lock,std::chrono::seconds(5),[&]{return gate.entered;}),"paged CPU response absent");}
     const auto stats=h.adapter->deferred_write_stats();const auto reads=h.image->read_calls,calls=h.image->calls;
-    require(!stats.native_pending && stats.worker_busy && h.step().state==WinFspGroupMaintenanceState::busy &&
+    require(!stats.native_pending && stats.worker_busy && h.step().state==WinFspMaintenanceState::busy &&
         h.image->read_calls==reads && h.image->calls==calls,"background bypassed outstanding response/retirement");
     gate.release();const auto deadline=GetTickCount64()+5000;
     while(h.adapter->stop_deferred_writes_hosted()==NativeDeferredStop::running){if(GetTickCount64()>deadline)
@@ -267,7 +267,7 @@ void resume_formats() {
         after.image_storage().kind==(paged?NativeImageKind::paged:NativeImageKind::flat) &&
         adapter->parameters().VolumeCreationTime==parameters.VolumeCreationTime &&
         adapter->parameters().VolumeSerialNumber==parameters.VolumeSerialNumber,"resume replaced Windows root identity/ACL/time or format");
-    require(adapter->group_maintenance_pending()==paged,"resume silently promoted legacy format or lost grouping");
+    require(adapter->background_maintenance_pending()==paged,"resume silently promoted legacy format or lost grouping");
     require(resolutions==1,"resume resolved mutable image mapping more than once");
   }
   auto head=ram(4096),image=ram(4096);
@@ -301,17 +301,17 @@ void lifecycle() {
     auto head=ram(4096),image=ram(4096);auto adapter=WinFspNativeWritable::create_managed_paged(head,id(90),image,id(1),{kStoreMaxPhysicalBytes});
     WinFspNativeSession session(std::move(adapter),{Lifecycle::preflight,Lifecycle::create,Lifecycle::start,Lifecycle::mount,
         Lifecycle::stop,Lifecycle::unmount,Lifecycle::destroy,Lifecycle::origin});
-    require(!session.group_maintenance_pending(),"ready injected session admitted group work");
+    require(!session.background_maintenance_pending(),"ready injected session admitted group work");
     // The path is inert data passed ONLY to the injected functions above.
     // No native preflight/create/dispatcher/mount function is in this provider.
     const auto started=session.start({L"R:\\FlitzFS-model\\unused",15,true,true});
-    if(!fail){require(started==STATUS_SUCCESS && session.group_maintenance_pending(),"paged injected lifecycle start");
-      Clock clock;const auto o=clock.next();require(session.advance_group_maintenance(o,clock.now).state==WinFspGroupMaintenanceState::advanced,
+    if(!fail){require(started==STATUS_SUCCESS && session.background_maintenance_pending(),"paged injected lifecycle start");
+      Clock clock;const auto o=clock.next();require(session.advance_background_maintenance(o,clock.now).state==WinFspMaintenanceState::advanced,
           "session did not forward group opportunity");session.stop();}
     else require(started==STATUS_OBJECT_NAME_COLLISION && session.state()==SessionState::failed,"injected mount refusal lost ownership");
-    require(!session.group_maintenance_pending() && provider.callback_alive && !provider.fs.UserContext &&
+    require(!session.background_maintenance_pending() && provider.callback_alive && !provider.fs.UserContext &&
         std::string(provider.calls.data(),provider.count)==(fail?"pcsmtd":"pcsmtrd"),"paged lifecycle did not retire in order");
-    session.cancel_group_maintenance();
+    session.cancel_background_maintenance();
   }
   Lifecycle::active=nullptr;
 }
@@ -435,6 +435,63 @@ void indexed_callbacks(unsigned unit) {
       fs.Interface->GetVolumeInfo(&fs,&volume_info)==STATUS_SUCCESS &&
       volume_info.FreeSize==capacity.maximum_physical_bytes-append_floor,
       "indexed SDK free-space recovery ignored an unselected append tail");
+  if(unit==4096) {
+    constexpr unsigned blocks=129,per_write=32;
+    wchar_t retired_name[]=L"\\retire";
+    auto* retired=create(retired_name);
+    for(unsigned first=0;first<blocks;first+=per_write) {
+      const auto count=(std::min)(per_write,blocks-first);
+      Bytes input(count*kNativeExtentBytes);
+      for(unsigned i=0;i<count;++i)input[i*kNativeExtentBytes]=std::byte{0x29};
+      require(fs.Interface->Write(&fs,retired,input.data(),std::uint64_t(first)*kNativeExtentBytes,
+          static_cast<ULONG>(input.size()),FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==input.size(),
+          "indexed retirement extent write");
+    }
+    const auto before_retirement=adapter->snapshot();
+    const auto keep_extents=before_retirement.allocation_usage().live_extents-blocks;
+    require(fs.Interface->SetDelete(&fs,retired,retired_name,TRUE)==STATUS_SUCCESS,"indexed retirement delete intent");
+    cleanup(retired,FspCleanupDelete);close(retired);
+    const auto reads=backing->read_calls,writes=backing->calls;
+    require(adapter->background_maintenance_pending() && backing->read_calls==reads && backing->calls==writes,
+        "indexed reaper pending discovery did backing I/O");
+    Clock clock;
+    const auto expect_deferral=[&](const NativeMaintenanceObservation& observed,std::uint64_t now,
+        NativeMaintenanceDeferral reason) {
+      const auto status=adapter->advance_background_maintenance(observed,now);
+      require(!status.reclaimed && status.progress.deferral==reason &&
+          backing->read_calls==reads && backing->calls==writes,"refused indexed reclamation touched backing");
+    };
+    auto observation=clock.next();
+    expect_deferral(observation,clock.now+1000,NativeMaintenanceDeferral::observation);
+    expect_deferral(observation,clock.now,NativeMaintenanceDeferral::observation);
+    observation=clock.next();observation.foreground_pending=true;
+    expect_deferral(observation,clock.now,NativeMaintenanceDeferral::foreground);
+    observation=clock.next();observation.cpu_busy_ticks=900;
+    expect_deferral(observation,clock.now,NativeMaintenanceDeferral::cpu);
+    observation=clock.next();observation.physical_available=1;
+    expect_deferral(observation,clock.now,NativeMaintenanceDeferral::memory);
+    unsigned transactions=0;
+    auto previous=keep_extents+blocks;
+    while(adapter->background_maintenance_pending()) {
+      require(transactions<4,"indexed reaper did not drain");
+      observation=clock.next();
+      const auto status=adapter->advance_background_maintenance(observation,clock.now);
+      require(status.reclaimed,"admitted indexed reclamation did not publish");
+      const auto left=adapter->snapshot().allocation_usage().live_extents;
+      require(left>=keep_extents && left<previous && previous-left<=64,"indexed reaper exceeded its transaction");
+      previous=left;++transactions;
+    }
+    const auto finished=adapter->snapshot();finished.verify_all();
+    require(transactions==3 && previous==keep_extents &&
+        before_retirement.read("retire",(blocks-1)*kNativeExtentBytes,1)==Bytes{std::byte{0x29}} &&
+        finished.read("keep",eof,static_cast<std::uint32_t>(tail.size()))==tail,
+        "indexed reaper changed a pinned snapshot or unrelated live data");
+    const auto settled_reads=backing->read_calls,settled_writes=backing->calls;
+    observation=clock.next();
+    require(adapter->advance_background_maintenance(observation,clock.now).state==WinFspMaintenanceState::unchanged &&
+        backing->read_calls==settled_reads && backing->calls==settled_writes,"settled indexed reaper polled backing");
+    std::cout<<"indexed_sdk_reclamation extents="<<blocks<<" transactions="<<transactions<<" refused_observations=5\n";
+  }
   fs.UserContext=nullptr;
   std::cout<<"indexed_winfsp_callbacks unit="<<unit<<" large_write_bytes="<<initial.size()
       <<" reopened_eof="<<eof+tail.size()<<" occupied_bytes="<<occupied<<'\n';
@@ -449,15 +506,15 @@ void publication_faults(unsigned unit) {
     throw std::runtime_error("SDK publication phase absent");};
   std::size_t cuts=0;
   {Harness probe(unit,&bytes,&head,&advice);ready(probe);const auto start=probe.image->calls;
-    for(unsigned i=0;i<1000 && probe.adapter->group_maintenance_pending();++i)probe.step();cuts=probe.image->calls-start;}
+    for(unsigned i=0;i<1000 && probe.adapter->background_maintenance_pending();++i)probe.step();cuts=probe.image->calls-start;}
   require(cuts>3 && cuts<256,"callback publication fault envelope");
   for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
     Harness h(unit,&bytes,&head,&advice);ready(h);h.image->failure=mode;h.image->fail_at=h.image->calls+cut;
-    WinFspGroupMaintenanceResult result;
+    WinFspMaintenanceResult result;
     for(unsigned i=0;i<1000;++i){result=h.step();if(h.adapter->requires_offline())break;}
-    require(h.adapter->requires_offline() && !h.adapter->group_maintenance_pending(),"failed callback group did not fence owner");
+    require(h.adapter->requires_offline() && !h.adapter->background_maintenance_pending(),"failed callback group did not fence owner");
     const auto reads=h.image->read_calls,calls=h.image->calls;
-    require(h.step().state==WinFspGroupMaintenanceState::unavailable && h.image->read_calls==reads && h.image->calls==calls,
+    require(h.step().state==WinFspMaintenanceState::unavailable && h.image->read_calls==reads && h.image->calls==calls,
         "offline group retried backing");
     auto stable=image(h.image->stable,unit);auto snapshot=NativeFilesystemSnapshot::open_image(stable,{NativeImageKind::paged,kStoreMaxPhysicalBytes});
     for(unsigned i=0;i<4;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"callback interruption lost acknowledged bytes");

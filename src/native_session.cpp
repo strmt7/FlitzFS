@@ -1228,6 +1228,9 @@ NativeFsCommit NativeFileSession::flush(const NativeFileHandle& handle) {
   (void)self.state(self.slots[index]);
   return self.writer.flush();
 }
+bool NativeFileSession::retirement_pending() const noexcept {
+  return !poisoned() && impl_->writer.retirement_pending();
+}
 bool NativeFileSession::reclaim_retired_inode() {
   return ready().writer.reclaim_retired_inode();
 }

@@ -1,5 +1,12 @@
 # Validation ledger
 
+## Owned indexed Windows volume — 18 November 2026
+
+Local Windows checks exercise indexed startup rollback, live background
+retirement and sealed CPU recovery after dispatcher join. The new external
+client fixture built with the linked provider. The local checks use
+injected WinFsp lifecycle operations. [Source and execution evidence](evidence/indexed-owned-windows-2026-11-18.json)
+
 ## Indexed deferred write and AMD output — 18 November 2026
 
 Twelve selected Windows executions cover raw fallback, independent codec

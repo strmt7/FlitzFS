@@ -22,5 +22,10 @@ struct MemoryVolumeBacking {
   // and returns a CPU projection that retains the backing lease. The owner
   // keeps its original data even if a later read-only mount fails.
   ReadOnlyProjection open_read_only();
+ private:
+  friend class WinFspMemoryVolume;
+  std::shared_ptr<StoreByteIo> resolve_image(const StoreIdentity&) const;
+  NativeVolumeHeadView open_owned_head(bool indexed_recovery=false) const;
+  ReadOnlyProjection seal_checked(NativeVolumeHeadView);
 };
 }
