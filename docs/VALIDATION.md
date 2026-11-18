@@ -3,9 +3,11 @@
 ## Owned indexed Windows volume — 18 November 2026
 
 Local Windows checks exercise indexed startup rollback, live background
-retirement and sealed CPU recovery after dispatcher join. The new external
-client fixture built with the linked provider. The local checks use
-injected WinFsp lifecycle operations. [Source and execution evidence](evidence/indexed-owned-windows-2026-11-18.json)
+retirement and sealed CPU recovery after dispatcher join. On disposable
+Windows Server 2025 with WinFsp v2.2B5, the linked provider also passed actual
+external writes, flush, rename/delete, readback, unmount and CPU reopen at
+source `4523ce5`. Windows 11 client qualification remains separate.
+[Source and execution evidence](evidence/indexed-owned-windows-2026-11-18.json)
 
 ## Indexed deferred write and AMD output — 18 November 2026
 

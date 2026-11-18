@@ -276,8 +276,9 @@ The owned indexed provider passed local Windows lifecycle and CPU recovery
 checks with injected WinFsp operations. The real host scheduler retired
 65 mappings in two transactions. The SDK phase fixture retired 129 in
 three transactions and verified five resource refusals without backing I/O.
-The linked mounted external-client fixture built and has its own
-qualification scope. [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
+The linked provider passed the external indexed write/flush/rename/delete
+fixture on disposable Windows Server 2025. It reopened the retained volume
+on the CPU after unmount. [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
 
 The controlled indexed WinFsp callback sent 128 KiB to the actual AMD device.
 Both mirrored copies of each of the two stored extents matched verified

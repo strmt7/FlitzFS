@@ -57,7 +57,8 @@ and populated reads. The owner joins the dispatcher, checks mount removal and
 verifies the retained image through the independent CPU and sealed readers.
 The storage image uses the shared locked-memory backing throughout. The
 optional fixture runs under the existing disposable process and driver scope.
-[Validation scope](evidence/indexed-owned-windows-2026-11-18.json)
+Run 44217384564 passed this profile on Windows Server 2025 with WinFsp
+v2.2B5 at source `4523ce5`. [Validation scope](evidence/indexed-owned-windows-2026-11-18.json)
 
 ### Live assertions
 

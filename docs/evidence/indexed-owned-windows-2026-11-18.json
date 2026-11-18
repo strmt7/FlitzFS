@@ -333,5 +333,76 @@
     "Windows 11 driver/client qualification",
     "automatic useful AMD routing on the owned provider",
     "persistent crash and power-loss durability"
-  ]
+  ],
+  "mounted_external_client": {
+    "job_id": 134514652006,
+    "run_id": 44217384564,
+    "job_name": "windows-mount",
+    "conclusion": "success",
+    "source": "4523ce52dfa0cf056aa5408d7d306eac0365cded",
+    "candidate": {
+      "schema": 1,
+      "repository": "winfsp/winfsp",
+      "tag": "v2.2B5",
+      "prerelease": true,
+      "source_commit": "14d6e0280ae15e2550c44d6dbc476be51649727f",
+      "msi_name": "winfsp-2.2.26286.msi",
+      "url": "https://github.com/winfsp/winfsp/releases/download/v2.2B5/winfsp-2.2.26286.msi",
+      "bytes": 2207744,
+      "sha256": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+      "release_url": "https://github.com/winfsp/winfsp/releases/tag/v2.2B5",
+      "policy": "Hosted development candidate: upstream security/deadlock fixes beyond latest-stable v2.1. Not owner-PC installation or production qualification."
+    },
+    "staged_driver": {
+      "name": "winfsp-x64.sys",
+      "bytes": 169664,
+      "sha256": "0a91fc3429fd5adf8b9c65976ac0c4ae924702be2cfbed856d90d2a7d99b0390",
+      "file_version": "2.2.26286.14d6e02",
+      "signature_status": "Valid",
+      "signature_type": "Authenticode",
+      "signer_subject": "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "signer_issuer": "CN=Microsoft Windows Third Party Component CA 2014, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+      "signer_thumbprint": "6022340C9F4CB00307DF8DB036D392ADAC766212"
+    },
+    "source_phase": "before-installer",
+    "windows11_policy_qualified": false,
+    "log_excerpt": [
+      "2026-11-18T01:48:46.3389386Z Microsoft Windows Server 2025",
+      "2026-11-18T01:48:46.3391856Z Image: windows-2025-vs2026",
+      "2026-11-18T01:48:46.3392303Z Version: 20261103.298.1",
+      "2026-11-18T01:52:05.3344125Z Pinned WinFsp v2.2B5 development candidate provisioned on disposable hosted CI only; Windows 11 production qualification remains separate.",
+      "2026-11-18T01:52:23.4006895Z indexed_actors source=9404 client=4904 recovery_source=0 exit_confirmed=1 supervisor_retired=1",
+      "2026-11-18T01:52:23.4007543Z PASS: mounted indexed sparse writes, flush, rename/delete, CPU reopen and joined retirement."
+    ],
+    "steps": [
+      [
+        "Build synthetic mount probe",
+        "success"
+      ],
+      [
+        "Exercise actual mounted I/O under process limits",
+        "success"
+      ]
+    ],
+    "log_excerpt_sha256": "c3b12ad452919aa2a489d5ec13cad830f6e96b043f39ca5703a7ab6b81398bf6",
+    "job_url": "https://github.com/strmt7/FlitzFS/actions/runs/44217384564/job/134514652006",
+    "profile": "--run-disposable-indexed-memory",
+    "platform": "Windows Server 2025 on a disposable runner",
+    "external_write_bytes": 196625,
+    "external_write_offset": 33554432,
+    "validated_operations": [
+      "creation",
+      "sparse write",
+      "FlushFileBuffers",
+      "rename",
+      "delete of fixture data",
+      "directory enumeration",
+      "case-insensitive reopen",
+      "sparse-zero and populated reads",
+      "dispatcher join",
+      "mount removal",
+      "independent CPU and sealed readback"
+    ],
+    "scope": "Exact mounted indexed RAM fixture. Separate from owner-host SDK checks, automatic GPU benefit and Windows 11 qualification."
+  }
 }

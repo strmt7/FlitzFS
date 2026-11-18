@@ -101,7 +101,9 @@
     },
     "modeled_retirement_extents": 129,
     "scope": "Owned indexed Windows lifecycle, retained CPU read and sealed closed-session recovery.",
-    "next": "Qualify disposable mounted indexed I/O, connect and verify physical reuse, then wire adaptive AMD and collective work into the owned provider."
+    "disposable_mounted_commit": "4523ce52dfa0cf056aa5408d7d306eac0365cded",
+    "disposable_mounted_job": 134514652006,
+    "next": "Qualify Windows 11 mounting, connect and verify physical reuse, then wire adaptive AMD and collective work into the owned provider."
   },
   "indexed_deferred_amd": {
     "source_base": "fd838f676d6cf7634754137c384e6c5021cbdfae",
