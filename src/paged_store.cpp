@@ -597,13 +597,15 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   std::unique_ptr<PagedObjectStoreWriter::Impl> target;
   Rebuild build;
   Bytes replacement;
+  std::size_t replacement_identity_offset;
   std::uint64_t source_extent=0,target_extent=0,after=0,completed=0,logical=0,stored=0;
   PagedRewritePhase phase=PagedRewritePhase::verifying_source;
   bool reencode=true,replacement_seen=false;
 
   Impl(const PagedObjectStoreWriter::Impl& writer,std::shared_ptr<StoreByteIo> output,
-      StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> root,bool encode)
-      :original(writer.state),owner(writer.owner),reencode(encode) {
+      StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> root,bool encode,
+      std::size_t identity_offset)
+      :original(writer.state),owner(writer.owner),replacement_identity_offset(identity_offset),reencode(encode) {
     if(zero(id) || id==original.id)fail("staged rebuild needs a new identity");
     if(root.size()>kStoreMaxObjectBytes)fail("staged replacement budget");
     replacement.assign(root.begin(),root.end());
@@ -648,8 +650,10 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
       if(const auto entry=next_entry(original,after)) {
         auto bytes=read_object(original,*entry);if(original.mirrored)verify_object(original,*entry);
         if(entry->id==1 && !replacement.empty()) {
-          if(bytes.size()<56 || bytes.size()!=replacement.size())fail("staged native root length");
-          copy(bytes,40,build.next.id);
+          if(bytes.size()!=replacement.size() || replacement_identity_offset>bytes.size() ||
+              build.next.id.size()>bytes.size()-replacement_identity_offset)
+            fail("staged native root length");
+          copy(bytes,replacement_identity_offset,build.next.id);
           if(bytes!=replacement)fail("staged replacement differs beyond identity");
           replacement_seen=true;
         }
@@ -718,10 +722,12 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::sha
   return prepare_rebuild_replacing(std::move(target),id,compression,{},reencode);
 }
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_replacing(std::shared_ptr<StoreByteIo> target,
-    StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode) const {
+    StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
+    std::size_t identity_offset) const {
   if(poisoned())fail("staged rebuild requires a healthy source writer");
   if(!impl_->pending_rebuild.expired())fail("source already has a staged rebuild");
-  auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,replacement,reencode);
+  auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,
+      replacement,reencode,identity_offset);
   impl_->pending_rebuild=candidate->reservation;return Rewrite(std::move(candidate));
 }
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}
@@ -734,6 +740,9 @@ PagedObjectStoreSnapshot PagedObjectStoreSnapshot::open(std::shared_ptr<StoreByt
 StoreIdentity PagedObjectStoreSnapshot::identity() const noexcept {return impl_?impl_->state.id:StoreIdentity{};}
 std::shared_ptr<StoreByteIo> PagedObjectStoreSnapshot::backing_for_volume_head() const {
   if(!impl_)fail("moved-from paged snapshot");return impl_->state.image;
+}
+bool PagedObjectStoreSnapshot::same_checkpoint(const PagedObjectStoreSnapshot& other) const noexcept {
+  return impl_ && other.impl_ && same(impl_->state,other.impl_->state);
 }
 PagedStoreLimits PagedObjectStoreSnapshot::limits() const noexcept {return impl_?impl_->state.limits:PagedStoreLimits{};}
 std::uint32_t PagedObjectStoreSnapshot::isolation_unit() const noexcept {return impl_?impl_->state.unit:0;}
@@ -823,7 +832,7 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild(const PagedObjectStoreSna
 }
 PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObjectStoreSnapshot& source,
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,PagedStoreLimits limits,StoreCompressionOptions options,
-    std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode) {
+    std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,std::size_t identity_offset) {
   if(!source.impl_)fail("moved-from rebuild source");admit_limits(limits);
   const auto& original=source.impl_->state;
   if(zero(id) || id==original.id)fail("rebuild requires a new nonzero identity");
@@ -836,8 +845,10 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
     // Native rebinding changes only the fixed identity field; reject a stale
     // caller's metadata before creating any target records.
     auto expected=read_object(original,*entry);
-    if(expected.size()<56)fail("rebuild replacement framing");
-    copy(expected,40,id);if(!std::equal(expected.begin(),expected.end(),replacement.begin()))
+    if(identity_offset>expected.size() || id.size()>expected.size()-identity_offset)
+      fail("rebuild replacement framing");
+    copy(expected,identity_offset,id);
+    if(!std::equal(expected.begin(),expected.end(),replacement.begin()))
       fail("rebuild replacement differs beyond image identity");
     verify(original);
   }
@@ -960,6 +971,9 @@ std::uint64_t PagedObjectStoreWriter::generation_for_staging() const noexcept {
 }
 std::uint64_t PagedObjectStoreWriter::physical_end_for_staging() const noexcept {
   return poisoned()?0:impl_->state.end;
+}
+std::uint64_t PagedObjectStoreWriter::append_floor_for_staging() const noexcept {
+  return poisoned()?0:impl_->append_floor;
 }
 PagedStoreInfo PagedObjectStoreWriter::flush_checkpoint() {
   if(poisoned())fail("flush requires a healthy writer");

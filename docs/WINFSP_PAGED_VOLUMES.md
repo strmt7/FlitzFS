@@ -41,6 +41,28 @@ sequence and preserves funding; grouping never mints accepted input. Provider
 authentication, globally nonaliased backing and previous-owner retirement remain
 caller responsibilities, not properties proved by a per-instance lease.
 
+## Indexed volumes
+
+`create_managed_indexed` creates a capability-3 head and indexed image. The
+same callback table supplies Windows owner ACLs, signed file-size checks and
+tracked allocation. Indexed callbacks use the indexed input budget and enforce
+an EOF that leaves room for the required aligned reservation. Volume
+information uses the admitted physical capacity and the writer's aligned
+append boundary. An unselected trailing write still occupies space after
+restart.
+
+`resume_indexed_retired` pins the exact selected backing and checks the
+namespace profile before any writable recovery. It walks directory pages
+without retaining the full set of names. Caller-confirmed retirement of the
+previous dispatcher permits completion of persisted old delete intent before
+reopening. Ordinary resume retains its resolved-lifetime requirement.
+The SDK fixtures check byte readback around sparse EOF, stable allocation,
+Cleanup/Close and explicit restart on both tested failure units.
+[Windows file information](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_standard_information) ·
+[Windows EOF information](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_end_of_file_information) ·
+[Windows volume space](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespaceexw) ·
+[Executed indexed SDK checks](evidence/indexed-managed-winfsp-2026-11-18.json)
+
 ## Cooperative controller opportunities
 
 The adapter owns the core `NativeGroupMaintenance`; no callback starts a

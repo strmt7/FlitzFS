@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "updated": "2026-11-17",
+  "updated": "2026-11-18",
   "goal_status": "active",
   "product": "Windows 11 AMD64 filesystem/helper/driver integration; AMD acceleration with independent CPU recovery",
   "assessment": "docs/REPOSITORY_OVERVIEW.md",
@@ -83,6 +83,21 @@
     "codec_and_sdk_test_groups_passed": 4,
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
+  },
+  "indexed_managed_winfsp": {
+    "source_base": "c288d2df94d59071c811a2761800a1d84bf18cab",
+    "evidence": "docs/evidence/indexed-managed-winfsp-2026-11-18.json",
+    "format": "FLTVH001 capability 3",
+    "windows_executions": {
+      "raw": 8,
+      "winfsp_codec": 11,
+      "windows_address_sanitizer": 3
+    },
+    "indexed_head_fault_cases": 12,
+    "compaction_before_bytes": 385024,
+    "compaction_after_bytes": 147456,
+    "scope": "Managed indexed image selection, source-retaining compaction, explicit closed-session recovery and SDK sparse I/O and space accounting.",
+    "next": "Connect indexed storage to the owned provider, integrate low-priority retirement and extend eligible indexed writes to AMD execution."
   },
   "indexed_file_lifetimes": {
     "source_base": "911dce6818d7d422ca66276c52b8b6bca0dc2f13",

@@ -81,6 +81,9 @@ struct NativeSessionStats {
   bool fenced=true; // Table diagnostics, not an independent storage/driver verdict.
 };
 // Trusted startup metadata for a NEW root, published together before its head.
+struct NativeVolumeSpace {
+  std::uint64_t total_bytes=0,free_bytes=0;
+};
 struct NativeVolumeRootMetadata {
   NativeBasicMetadata basic;
   std::span<const std::byte> security;
@@ -120,6 +123,12 @@ class NativeFileSession final {
       StoreIdentity volume_identity,std::shared_ptr<StoreByteIo> empty_image,
       StoreIdentity image_identity,StoreCompressionOptions foreground={},
       StoreCheckpointOptions checkpoints={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
+      std::optional<NativeVolumeRootMetadata> root={});
+  // NEW indexed native volume and capability-3 head on qualified backing.
+  static NativeFileSession create_indexed_volume(std::shared_ptr<StoreByteIo> empty_head,
+      StoreIdentity volume_identity,std::shared_ptr<StoreByteIo> empty_image,
+      StoreIdentity image_identity,PagedStoreLimits,StoreCompressionOptions foreground={},
+      NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
       std::optional<NativeVolumeRootMetadata> root={});
   // NEW explicitly bounded paged volume: mirrored payloads, indexed names and
   // shared-base capability. Legacy create_volume bytes/defaults are unchanged.
@@ -179,7 +188,15 @@ class NativeFileSession final {
   // metadata and resume the SAME context table. No failed-target retry/fallback.
   // Failure remains terminal with images/contexts retained and no second attempt.
   NativeVolumeHeadInfo recover_volume();
+  // Caller proves exclusive ownership and that all previous dispatcher and
+  // file contexts have retired. Finish durable indexed lifetimes before admission.
+  static NativeFileSession resume_closed_indexed_volume(std::shared_ptr<StoreByteIo> head,
+      StoreIdentity volume_identity,std::uint64_t expected_epoch,const NativeVolumeImageResolver&,
+      StoreCompressionOptions foreground={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate);
   NativeVolumeHeadInfo volume_info() const;
+  // Uses the selected writer's aligned append boundary, including
+  // trailing bytes left outside the selected checkpoint after recovery.
+  NativeVolumeSpace indexed_volume_space() const;
   // Explicit managed-volume control; reject pending/staged maintenance.
   // Preserve live contexts and return cached scalars without post-commit I/O.
   NativeWorkloadInfo enable_workload_accounting();
@@ -372,6 +389,8 @@ class NativeFileSession final {
   std::unique_ptr<Impl> impl_;
   explicit NativeFileSession(std::unique_ptr<Impl>) noexcept;
   Impl& ready() const;
+  static NativeFileSession resume_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,std::uint64_t,
+      const NativeVolumeImageResolver&,StoreCompressionOptions,NativeDispositionPolicy,bool closed_indexed);
   static NativeFileSession create_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::shared_ptr<StoreByteIo>,StoreIdentity,NativeImageStorage,StoreCompressionOptions,
       StoreCheckpointOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>);

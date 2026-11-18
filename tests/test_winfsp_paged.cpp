@@ -315,6 +315,131 @@ void lifecycle() {
   }
   Lifecycle::active=nullptr;
 }
+void indexed_callbacks(unsigned unit) {
+  auto head=ram(unit),backing=ram(unit);
+  constexpr PagedStoreLimits capacity{kStoreMaxPhysicalBytes};
+  const auto volume=id(70),image_id=id(71);
+  const auto resolver=[&](const StoreIdentity& key)->std::shared_ptr<StoreByteIo> {
+    require(key==image_id,"indexed SDK restart resolved another image");
+    return backing;
+  };
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto adapter=WinFspNativeWritable::create_managed_indexed(head,volume,backing,image_id,capacity,raw);
+  FSP_FILE_SYSTEM fs{};
+  const auto bind=[&] {
+    fs={};
+    fs.Version=static_cast<UINT16>(sizeof(fs));
+    fs.UmFileContextIsUserContext2=TRUE;
+    fs.Interface=&WinFspNativeWritable::callbacks();
+    adapter->bind_callbacks(fs,[]()->UINT32{return 0;});
+  };
+  bind();
+  SIZE_T security_bytes=0;
+  UINT32 attributes=0;
+  wchar_t root[]=L"\\";
+  require(fs.Interface->GetSecurityByName(&fs,root,&attributes,nullptr,&security_bytes)==STATUS_BUFFER_OVERFLOW,
+      "indexed SDK root descriptor length");
+  Bytes security(security_bytes);
+  require(fs.Interface->GetSecurityByName(&fs,root,&attributes,security.data(),&security_bytes)==STATUS_SUCCESS,
+      "indexed SDK root descriptor");
+  const auto create=[&](PWSTR path) {
+    void* context=nullptr;
+    FSP_FSCTL_FILE_INFO output{};
+    require(fs.Interface->Create(&fs,path,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
+        security.data(),0,&context,&output)==STATUS_SUCCESS && context && output.IndexNumber,
+        "indexed SDK creation");
+    return context;
+  };
+  const auto cleanup=[&](void* context,ULONG flags) {
+    fs.Interface->Cleanup(&fs,context,nullptr,flags);
+    require(!adapter->requires_offline(),"indexed SDK Cleanup fenced ownership");
+  };
+  const auto close=[&](void* context) {
+    FSP_FSCTL_TRANSACT_REQ request;
+    FSP_FSCTL_TRANSACT_RSP response;
+    std::memset(&request,0,sizeof(request));std::memset(&response,0,sizeof(response));
+    request.Kind=FspFsctlTransactCloseKind;
+    request.Req.Close.UserContext2=reinterpret_cast<std::uintptr_t>(context);
+    require(FspFileSystemOpClose(&fs,&request,&response)==STATUS_SUCCESS && !adapter->requires_offline(),
+        "indexed SDK Close");
+  };
+  wchar_t keep[]=L"\\keep",gone[]=L"\\gone";
+  auto handle=create(keep);
+  auto initial=data(2U*1024*1024+17,917);
+  ULONG bytes=0;
+  FSP_FSCTL_FILE_INFO info{};
+  require(fs.Interface->Write(&fs,handle,initial.data(),0,static_cast<ULONG>(initial.size()),
+      FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==initial.size() &&
+      info.FileSize==initial.size(),"indexed SDK multi-megabyte write");
+  constexpr std::uint64_t eof=96ULL*1024*1024+19;
+  require(fs.Interface->SetFileSize(&fs,handle,eof,FALSE,&info)==STATUS_SUCCESS &&
+      info.FileSize==eof && info.AllocationSize==eof-19+kNativeAllocationUnit,
+      "indexed SDK sparse EOF inherited the legacy quota");
+  auto tail=data(8,991);
+  require(fs.Interface->Write(&fs,handle,tail.data(),UINT64_MAX,static_cast<ULONG>(tail.size()),
+      TRUE,FALSE,&bytes,&info)==STATUS_SUCCESS && bytes==tail.size() && info.FileSize==eof+tail.size(),
+      "indexed SDK append chose the wrong EOF");
+  const auto calls=backing->calls;
+  require(fs.Interface->SetFileSize(&fs,handle,UINT64_MAX,FALSE,&info)==STATUS_INVALID_PARAMETER &&
+      !info.FileSize && backing->calls==calls,"indexed SDK accepted an unrepresentable EOF");
+  FSP_FSCTL_VOLUME_INFO volume_info{};
+  const auto occupied=adapter->snapshot().storage_info().physical_end;
+  require(fs.Interface->GetVolumeInfo(&fs,&volume_info)==STATUS_SUCCESS &&
+      volume_info.TotalSize==capacity.maximum_physical_bytes &&
+      volume_info.FreeSize==capacity.maximum_physical_bytes-occupied,
+      "indexed SDK free-space observation mixed logical reservations with physical occupancy");
+  cleanup(handle,0);close(handle);
+
+  const auto detached=create(gone);
+  auto doomed=data(7,932);
+  require(fs.Interface->Write(&fs,detached,doomed.data(),0,static_cast<ULONG>(doomed.size()),
+      FALSE,FALSE,&bytes,&info)==STATUS_SUCCESS,"indexed SDK detached fixture write");
+  const auto gone_id=info.IndexNumber;
+  require(fs.Interface->SetDelete(&fs,detached,gone,TRUE)==STATUS_SUCCESS,"indexed SDK SetDelete");
+  cleanup(detached,FspCleanupDelete);
+  const auto pinned=adapter->snapshot();
+  require(pinned.needs_session_recovery() && pinned.inode_state(gone_id).unlinked &&
+      pinned.read_inode(gone_id,0,100)==doomed,"indexed SDK Cleanup lost detached bytes");
+  fs.UserContext=nullptr;
+  adapter.reset(); // The old synthetic owner and all its contexts have ended.
+  adapter=WinFspNativeWritable::resume_indexed_retired(head,volume,1,resolver,raw);
+  bind();
+  require(!adapter->snapshot().needs_session_recovery() && pinned.read_inode(gone_id,0,100)==doomed,
+      "indexed SDK restart lost immutable snapshot data or retained a dead context");
+  void* removed=nullptr;
+  constexpr UINT32 open_file=(1U<<24)|FILE_NON_DIRECTORY_FILE;
+  require(fs.Interface->Open(&fs,gone,open_file,FILE_ALL_ACCESS,&removed,&info)==STATUS_OBJECT_NAME_NOT_FOUND && !removed,
+      "indexed SDK recovery exposed the detached name");
+  handle=nullptr;
+  require(fs.Interface->Open(&fs,keep,open_file,FILE_ALL_ACCESS,&handle,&info)==STATUS_SUCCESS &&
+      handle && info.FileSize==eof+tail.size(),"indexed SDK reopen lost sparse EOF");
+  Bytes actual(initial.size());
+  require(fs.Interface->Read(&fs,handle,actual.data(),0,static_cast<ULONG>(actual.size()),&bytes)==STATUS_SUCCESS &&
+      bytes==actual.size() && actual==initial,"indexed SDK reopened data was not byte exact");
+  actual.resize(tail.size());
+  require(fs.Interface->Read(&fs,handle,actual.data(),eof,static_cast<ULONG>(actual.size()),&bytes)==STATUS_SUCCESS &&
+      bytes==actual.size() && actual==tail,"indexed SDK reopened sparse tail was not byte exact");
+  cleanup(handle,0);close(handle);
+  require(adapter->stats().contexts==0,"indexed SDK left open contexts");
+  adapter->snapshot().verify_all();
+  const auto selected_end=adapter->snapshot().storage_info().physical_end;
+  fs.UserContext=nullptr;
+  adapter.reset();
+  const std::array unselected{std::byte{0x5b}};
+  Ram::copy(backing->live,selected_end,unselected);
+  backing->stable=backing->live;
+  adapter=WinFspNativeWritable::resume_indexed_retired(head,volume,1,resolver,raw);
+  bind();
+  const auto append_floor=(selected_end/unit+1)*unit;
+  require(adapter->snapshot().storage_info().physical_end==selected_end &&
+      fs.Interface->GetVolumeInfo(&fs,&volume_info)==STATUS_SUCCESS &&
+      volume_info.FreeSize==capacity.maximum_physical_bytes-append_floor,
+      "indexed SDK free-space recovery ignored an unselected append tail");
+  fs.UserContext=nullptr;
+  std::cout<<"indexed_winfsp_callbacks unit="<<unit<<" large_write_bytes="<<initial.size()
+      <<" reopened_eof="<<eof+tail.size()<<" occupied_bytes="<<occupied<<'\n';
+}
+
 void publication_faults(unsigned unit) {
   Harness original(unit);original.populate();const auto bytes=original.image->stable,head=original.head->stable,
       advice=original.advice->stable;original.fs.UserContext=nullptr;original.adapter.reset();
@@ -345,7 +470,10 @@ int main(int argc,char** argv){try {
   app_fixture::Budget budget;
   if(argc!=2)throw std::runtime_error("Explicit callback/fault mode required");
   const std::string_view mode=argv[1];
-  if(mode=="--callbacks"){callbacks(4096);callbacks(65536);directory_pages();selected_change();foreground_busy();deferred_response_busy();resume_formats();lifecycle();}
+  if(mode=="--callbacks"){
+    callbacks(4096);callbacks(65536);directory_pages();selected_change();foreground_busy();
+    deferred_response_busy();resume_formats();lifecycle();indexed_callbacks(4096);indexed_callbacks(65536);
+  }
   else if(mode=="--faults-4096")publication_faults(4096);
   else if(mode=="--faults-65536")publication_faults(65536);
   else throw std::runtime_error("Unknown callback qualification mode");

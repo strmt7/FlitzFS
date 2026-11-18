@@ -20,7 +20,11 @@
 #include <utility>
 namespace flitzfs {
 namespace {
-constexpr auto cache_policy=NativeFileInfoAllocation::native_reserved_cache;
+constexpr auto legacy_file_info=NativeFileInfoAllocation::native_reserved_cache;
+constexpr auto indexed_file_info=NativeFileInfoAllocation::indexed_reserved_cache;
+NativeFileInfoAllocation file_info_policy(NativeImageKind kind) noexcept {
+  return kind==NativeImageKind::indexed_paged?indexed_file_info:legacy_file_info;
+}
 bool sdk_hint(UINT64& hint) noexcept{
   const auto* context=FspFileSystemGetOperationContext();
   if(!context||!context->Request||context->Request->Kind!=FspFsctlTransactWriteKind)return false;
@@ -81,19 +85,30 @@ std::vector<std::byte> owner_security() {
     throw std::runtime_error("owner descriptor");
   return descriptor(result.value);
 }
-UINT64 admit_windows_snapshot(const NativeFilesystemSnapshot& view) {
-  if(view.needs_session_recovery())throw std::runtime_error("restart requires resolved old-session state");
-  UINT64 created=0;std::vector<std::uint64_t> pending{1};
-  for(std::size_t at=0;at<pending.size();++at) {
-    if(pending.size()>kNativeMaxNodes)throw std::runtime_error("restart namespace bound");
-    const auto inode=pending[at];const auto state=view.allocation_info(inode);FSP_FSCTL_FILE_INFO info{};
-    if(!encode_native_file_info(state,cache_policy,info))throw std::runtime_error("unqualified restart FileInfo/reservation");
+UINT64 admit_windows_snapshot(const NativeFilesystemSnapshot& view,bool closed_indexed=false) {
+  if(!closed_indexed && view.needs_session_recovery())
+    throw std::runtime_error("restart requires resolved old-session state");
+  const auto mode=file_info_policy(view.image_storage().kind);
+  UINT64 created=0;
+  const auto inspect=[&](auto&& self,std::uint64_t inode,unsigned depth)->void {
+    if(depth>16)throw std::runtime_error("restart namespace depth");
+    const auto state=view.allocation_info(inode);
+    FSP_FSCTL_FILE_INFO info{};
+    if(!encode_native_file_info(state,mode,info))throw std::runtime_error("unqualified restart FileInfo/reservation");
     const auto security=view.security_descriptor(inode);
     if(!security)throw std::runtime_error("missing restart descriptor");
     (void)descriptor(const_cast<std::byte*>(security->data()));
-    if(inode==1){created=state.info.basic->creation_time;if(!created)throw std::runtime_error("missing original volume creation time");}
-    if(state.info.directory)for(const auto& child:view.list_inode(inode))pending.push_back(child.inode);
-  }
+    if(inode==1)created=info.CreationTime;
+    if(!state.info.directory)return;
+    std::optional<NativeDirectoryCursor> cursor;
+    do {
+      const auto page=view.list_inode_page(inode,cursor.value_or(NativeDirectoryCursor{}),64);
+      for(const auto& child:page.entries)self(self,child.inode,depth+1);
+      cursor=page.next;
+    }while(cursor);
+  };
+  inspect(inspect,1,0);
+  if(!created)throw std::runtime_error("missing original volume creation time");
   return created;
 }
 std::wstring_view bounded(PCWSTR value,std::size_t maximum=241) {
@@ -138,7 +153,9 @@ struct WinFspNativeWritable::Impl {
   std::atomic<bool> maintenance_signal_failed{false};
   bool callbacks_bound=false;
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
-  Impl(NativeFileSession s,StoreIdentity id,UINT64 stamp):session(std::move(s)),identity(id),created(stamp) {
+  const NativeFileInfoAllocation info_policy;
+  Impl(NativeFileSession s,StoreIdentity id,UINT64 stamp,NativeFileInfoAllocation mode=legacy_file_info)
+      :session(std::move(s)),identity(id),created(stamp),info_policy(mode) {
     static_assert(std::is_nothrow_copy_assignable_v<NativeFileHandle>);
     for(std::size_t i=0;i<id.size();++i)serial^=UINT32(std::to_integer<unsigned>(id[i]))<<((i%4)*8);
     if(!serial)serial=1;
@@ -216,12 +233,22 @@ struct WinFspNativeWritable::Impl {
   static NTSTATUS volume(FSP_FILE_SYSTEM* fs,FSP_FSCTL_VOLUME_INFO* info) noexcept {
     if(info)*info={};if(!info)return STATUS_INVALID_PARAMETER;
     return run(fs,[&](Impl& s) {
-      const auto usage=s.session.allocation_usage();
-      if(usage.charged_extents>kNativeMaxExtents)return win_detail::failure(s.session,STATUS_FILE_CORRUPT_ERROR,true);
-      info->TotalSize=kNativeAllocationCapacity;
-      info->FreeSize=(kNativeMaxExtents-usage.charged_extents)*std::uint64_t(kNativeExtentBytes);
-      constexpr wchar_t label[]=L"FlitzFS native quota";
-      info->VolumeLabelLength=sizeof(label)-sizeof(wchar_t);std::memcpy(info->VolumeLabel,label,sizeof(label));
+      std::wstring_view label;
+      if(s.info_policy==indexed_file_info) {
+        const auto space=s.session.indexed_volume_space();
+        info->TotalSize=space.total_bytes;info->FreeSize=space.free_bytes;
+        label=L"FlitzFS";
+      }else {
+        const auto usage=s.session.allocation_usage();
+        if(usage.charged_extents>kNativeMaxExtents)
+          return win_detail::failure(s.session,STATUS_FILE_CORRUPT_ERROR,true);
+        info->TotalSize=kNativeAllocationCapacity;
+        info->FreeSize=(kNativeMaxExtents-usage.charged_extents)*std::uint64_t(kNativeExtentBytes);
+        label=L"FlitzFS native quota";
+      }
+      const auto label_bytes=label.size()*sizeof(wchar_t);
+      info->VolumeLabelLength=static_cast<UINT16>(label_bytes);
+      std::memcpy(info->VolumeLabel,label.data(),label_bytes);
       return success();
     });
   }
@@ -251,6 +278,8 @@ struct WinFspNativeWritable::Impl {
     return run(fs,[&](Impl& s) {
       auto& slot=s.available();const bool directory=(options&FILE_DIRECTORY_FILE)!=0;
       if((options&FILE_DIRECTORY_FILE)&&(options&FILE_NON_DIRECTORY_FILE))return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
+      if(!directory && (allocation%kNativeAllocationUnit || allocation>native_windows_allocation_limit(s.info_policy)))
+        return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
       const auto stamp=native_cleanup_utc();const auto data=descriptor(security);
       const NativeBasicMetadata basic{stamp,stamp,stamp,stamp,attributes(attrs,directory)|(directory?0U:FILE_ATTRIBUTE_ARCHIVE)};
       NativePreparedCreateOptions initial;initial.access=grants(access);initial.basic_access=basic_grant(access);
@@ -258,7 +287,7 @@ struct WinFspNativeWritable::Impl {
       auto made=s.session.create_prepared_storage(path(name),directory,basic,data,
           directory?std::optional<std::uint64_t>{}:std::optional<std::uint64_t>{allocation},initial);
       s.install(slot,made.handle,false,access);
-      if(!encode_native_file_info(made.state,cache_policy,*info))return win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
+      if(!encode_native_file_info(made.state,s.info_policy,*info))return win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
       *context=reinterpret_cast<PVOID>(slot.token);return success();
     });
   }
@@ -270,7 +299,7 @@ struct WinFspNativeWritable::Impl {
       if((options&FILE_DIRECTORY_FILE)&&!found.state.info.directory)return win_detail::failure(s.session,STATUS_NOT_A_DIRECTORY);
       if((options&FILE_NON_DIRECTORY_FILE)&&found.state.info.directory)return win_detail::failure(s.session,STATUS_FILE_IS_A_DIRECTORY);
       FSP_FSCTL_FILE_INFO prepared{};
-      if(!encode_native_file_info(found.state,cache_policy,prepared)||!found.security)
+      if(!encode_native_file_info(found.state,s.info_policy,prepared)||!found.security)
         return win_detail::failure(s.session,STATUS_FILE_CORRUPT_ERROR,true);
       const auto disposition=options>>24;
       const bool overwrite=!found.state.info.directory&&(disposition==0||disposition==4||disposition==5);
@@ -288,10 +317,12 @@ struct WinFspNativeWritable::Impl {
     return run(fs,[&](Impl& s) {
       auto& slot=s.resolve(context);
       if(!slot.provisional||!slot.awaiting_overwrite)return win_detail::failure(s.session,STATUS_INVALID_DEVICE_STATE);
+      if(allocation%kNativeAllocationUnit || allocation>native_windows_allocation_limit(s.info_policy))
+        return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
       const NativeOverwriteMetadata effect{native_cleanup_utc(),attributes(attrs,false),replace!=FALSE};
       auto made=s.session.overwrite_prepared_storage_result(slot.handle,effect,allocation);
       slot.awaiting_overwrite=false;
-      if(!encode_native_file_info(made.state,cache_policy,*info))return win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
+      if(!encode_native_file_info(made.state,s.info_policy,*info))return win_detail::failure(s.session,STATUS_IO_DEVICE_ERROR,true);
       return success();
     });
   }
@@ -312,7 +343,7 @@ struct WinFspNativeWritable::Impl {
   }
   static NTSTATUS get_info(FSP_FILE_SYSTEM* fs,PVOID context,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(info)*info={};if(!info)return STATUS_INVALID_PARAMETER;
-    return run(fs,[&](Impl& s){return dispatch_native_file_info(s.session,s.resolve(context).handle,cache_policy,info);});
+    return run(fs,[&](Impl& s){return dispatch_native_file_info(s.session,s.resolve(context).handle,s.info_policy,info);});
   }
   static NTSTATUS read(FSP_FILE_SYSTEM* fs,PVOID context,PVOID buffer,UINT64 offset,ULONG length,PULONG count) noexcept {
     if(count)*count=0;if(!count||(!buffer&&length)||length>kNativeMaxReadBytes)return STATUS_INVALID_PARAMETER;
@@ -325,26 +356,27 @@ struct WinFspNativeWritable::Impl {
   static NTSTATUS write(FSP_FILE_SYSTEM* fs,PVOID context,PVOID buffer,UINT64 offset,ULONG length,
       BOOLEAN append,BOOLEAN constrained,PULONG count,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(count)*count=0;if(info)*info={};
-    if(!count||!info||(!buffer&&length)||length>kStoreMaxObjectBytes)return STATUS_INVALID_PARAMETER;
+    if(!count||!info||(!buffer&&length)||length>kStoreMaxTransactionBytes)return STATUS_INVALID_PARAMETER;
     return run(fs,[&](Impl& s) {
+      if(length>native_windows_write_limit(s.info_policy))return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
       auto& slot=s.adopt(context);
       if(s.deferred && s.deferred->enqueue_locked(fs,slot.handle,
           {static_cast<const std::byte*>(buffer),length},offset,append!=FALSE,constrained!=FALSE))
         return NativeWindowsIoOutcome{STATUS_PENDING,false};
-      return dispatch_native_write(s.session,slot.handle,buffer,offset,length,append!=FALSE,constrained!=FALSE,{},cache_policy,count,info);
+      return dispatch_native_write(s.session,slot.handle,buffer,offset,length,append!=FALSE,constrained!=FALSE,{},s.info_policy,count,info);
     });
   }
   static NTSTATUS size(FSP_FILE_SYSTEM* fs,PVOID context,UINT64 bytes,BOOLEAN allocation,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(info)*info={};if(!info)return STATUS_INVALID_PARAMETER;
     return run(fs,[&](Impl& s) {
-      auto& slot=s.adopt(context);return dispatch_native_set_size(s.session,slot.handle,bytes,allocation!=FALSE,{},cache_policy,info);
+      auto& slot=s.adopt(context);return dispatch_native_set_size(s.session,slot.handle,bytes,allocation!=FALSE,{},s.info_policy,info);
     });
   }
   static NTSTATUS flush(FSP_FILE_SYSTEM* fs,PVOID context,FSP_FSCTL_FILE_INFO* info) noexcept {
     if(info)*info={};if(!info)return STATUS_INVALID_PARAMETER;
     return run(fs,[&](Impl& s) {
-      if(!context)return dispatch_native_flush(s.session,nullptr,cache_policy,info);
-      auto& slot=s.adopt(context);return dispatch_native_flush(s.session,&slot.handle,cache_policy,info);
+      if(!context)return dispatch_native_flush(s.session,nullptr,s.info_policy,info);
+      auto& slot=s.adopt(context);return dispatch_native_flush(s.session,&slot.handle,s.info_policy,info);
     });
   }
   static NTSTATUS set_delete(FSP_FILE_SYSTEM* fs,PVOID context,PWSTR,BOOLEAN deleting) noexcept {
@@ -361,7 +393,7 @@ struct WinFspNativeWritable::Impl {
       if(creation)value.creation_time=creation;if(access)value.last_access_time=access;
       if(write_time)value.last_write_time=write_time;if(change)value.change_time=change;
       state.info.basic=value;FSP_FSCTL_FILE_INFO prepared{};
-      if(!encode_native_file_info(state,cache_policy,prepared))return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
+      if(!encode_native_file_info(state,s.info_policy,prepared))return win_detail::failure(s.session,STATUS_INVALID_PARAMETER);
       s.session.set_basic_metadata(slot.handle,value);*info=prepared;return success();
     });
   }
@@ -441,7 +473,7 @@ struct WinFspNativeWritable::Impl {
         alignas(FSP_FSCTL_DIR_INFO) std::array<std::byte,sizeof(FSP_FSCTL_DIR_INFO)+200> raw{};
         auto* item=reinterpret_cast<FSP_FSCTL_DIR_INFO*>(raw.data());
         item->Size=static_cast<UINT16>(sizeof(FSP_FSCTL_DIR_INFO)+name.size()*sizeof(wchar_t));
-        if(!encode_native_file_info(state,cache_policy,item->FileInfo))
+        if(!encode_native_file_info(state,s.info_policy,item->FileInfo))
           throw NativeFsError(NativeFsErrorCode::corrupt,"directory FileInfo prerequisites");
         for(std::size_t i=0;i<name.size();++i)item->FileNameBuf[i]=static_cast<wchar_t>(name[i]);
         return FspFileSystemAddDirInfo(item,buffer,length,count)!=FALSE;
@@ -543,10 +575,31 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_paged
   impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
 }
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_indexed(
+    std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::shared_ptr<StoreByteIo> image,
+    StoreIdentity image_id,PagedStoreLimits limits,StoreCompressionOptions foreground) {
+  const auto security=owner_security();const auto stamp=native_cleanup_utc();
+  const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
+  auto session=NativeFileSession::create_indexed_volume(std::move(head),volume,std::move(image),image_id,
+      limits,foreground,NativeDispositionPolicy::windows_global,root);
+  return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(
+      std::make_unique<Impl>(std::move(session),volume,stamp,indexed_file_info)));
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_indexed_retired(
+    std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
+    const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground) {
+  return resume_managed_impl(std::move(head),volume,epoch,resolver,foreground,{},0,true);
+}
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_retired(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
     const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground,
     std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence) {
+  return resume_managed_impl(std::move(head),volume,epoch,resolver,foreground,std::move(advice),advice_sequence,false);
+}
+std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
+    std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
+    const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground,
+    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence,bool closed_indexed) {
   if(bool(advice)!=bool(advice_sequence))throw std::invalid_argument("exact advisory sequence required");
   std::shared_ptr<StoreByteIo> selected;StoreIdentity selected_id{};
   const NativeVolumeImageResolver pinned=[&](const StoreIdentity& id){
@@ -554,13 +607,18 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_retir
     else if(id!=selected_id)throw std::invalid_argument("restart image mapping changed");
     return selected;
   };
-  const auto view=NativeVolumeHeadView::open(head,volume,pinned);
+  const auto view=closed_indexed?NativeVolumeHeadView::open_indexed_recovery(head,volume,pinned):
+      NativeVolumeHeadView::open(head,volume,pinned);
   if(view.info().selection.epoch!=epoch)throw std::invalid_argument("exact head epoch required");
-  const auto created=admit_windows_snapshot(view.filesystem());
-  const bool grouped=view.filesystem().image_storage().kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled;
-  auto session=NativeFileSession::resume_volume(std::move(head),volume,epoch,pinned,foreground,NativeDispositionPolicy::windows_global);
+  const auto created=admit_windows_snapshot(view.filesystem(),closed_indexed);
+  const auto kind=view.filesystem().image_storage().kind;
+  const bool grouped=kind==NativeImageKind::paged && view.filesystem().shared_base_info().enabled;
+  constexpr auto disposition=NativeDispositionPolicy::windows_global;
+  auto session=closed_indexed?
+      NativeFileSession::resume_closed_indexed_volume(std::move(head),volume,epoch,pinned,foreground,disposition):
+      NativeFileSession::resume_volume(std::move(head),volume,epoch,pinned,foreground,disposition);
   if(advice)session.resume_budgeted_optimization_area(std::move(advice),advice_sequence,1);
-  auto impl=std::make_unique<Impl>(std::move(session),volume,created);
+  auto impl=std::make_unique<Impl>(std::move(session),volume,created,file_info_policy(kind));
   if(grouped)
     impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
@@ -658,6 +716,8 @@ void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOpti
   std::lock_guard guard(impl_->control);
   if(impl_->callbacks_bound||impl_->deferred||impl_->foreground.load(std::memory_order_acquire))
     throw std::runtime_error("deferred writes require an unbound, unconfigured adapter");
+  if(impl_->info_policy==indexed_file_info)
+    throw std::invalid_argument("deferred compression requires indexed record support");
   if(!options.hint_query)options.hint_query=sdk_hint;
   if(!options.response_sink)options.response_sink=sdk_response;
   impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,impl_->offline,std::move(options));

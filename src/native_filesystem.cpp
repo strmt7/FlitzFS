@@ -1714,18 +1714,26 @@ NativeFilesystemWriter NativeFilesystemWriter::resume_impl(detail::NativeObjectW
 
 std::shared_ptr<StoreByteIo> NativeFilesystemSnapshot::backing_for_volume_head() const {
   if(!impl_)fail(Code::invalid_operation,"moved-from volume image");
-  if(impl_->indexed)fail(Code::invalid_operation,"indexed image requires its matching volume head capability");
   if(const auto* paged=impl_->objects.paged_if())return paged->backing_for_volume_head();
   return impl_->objects.flat().backing_for_volume_head();
+}
+bool NativeFilesystemSnapshot::matches_indexed_checkpoint(const NativeFilesystemSnapshot& other) const noexcept {
+  return impl_ && other.impl_ && impl_->indexed && other.impl_->indexed &&
+      impl_->indexed->root()==other.impl_->indexed->root() && image_storage()==other.image_storage() &&
+      impl_->objects.paged_if()->same_checkpoint(*other.impl_->objects.paged_if());
 }
 void NativeFilesystemSnapshot::verify_compacted_equivalent_for_volume_head(
     const NativeFilesystemSnapshot& target) const {
   if(!impl_||!target.impl_)fail(Code::invalid_operation,"moved-from handoff image");
-  if(impl_->indexed || target.impl_->indexed)
-    fail(Code::invalid_operation,"indexed image requires its matching handoff verifier");
   verify_all();target.verify_all();
   if(needs_session_recovery()||target.needs_session_recovery())
     fail(Code::invalid_operation,"handoff requires retired resolved file contexts");
+  if(impl_->indexed || target.impl_->indexed) {
+    if(!impl_->indexed || !target.impl_->indexed || image_storage()!=target.image_storage())
+      fail(Code::invalid_operation,"indexed handoff requires the same layout and capacity");
+    impl_->indexed->verify_equivalent(*target.impl_->indexed);
+    return;
+  }
   auto expected=decode(impl_->objects);expected.identity=target.identity();const auto actual=decode(target.impl_->objects);
   if(image_storage()!=target.image_storage() || impl_->objects.mirrored()!=target.impl_->objects.mirrored() ||
       expected.inode_records!=actual.inode_records || expected.indexed_names!=actual.indexed_names || expected.shared_bases!=actual.shared_bases ||
@@ -1759,12 +1767,19 @@ NativeFilesystemWriter NativeFilesystemWriter::copy_image(const NativeFilesystem
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,
     StoreCheckpointOptions checkpoints,bool reencode) {
   if(!source.impl_)fail(Code::invalid_operation,"moved-from native compaction source");
-  if(source.impl_->indexed)fail(Code::invalid_operation,"indexed image requires its matching compaction codec");
   if(source.needs_session_recovery())
     fail(Code::invalid_operation,"native compaction needs completed file-context recovery");
   if(id==source.identity() || id==StoreIdentity{} || !target)
     fail(Code::invalid_operation,"native compaction requires a new target identity");
   try {
+    if(source.impl_->indexed) {
+      if(checkpoints.compact_metadata)
+        fail(Code::invalid_operation,"indexed isolation derives from its backing contract");
+      source.verify_all();
+      const auto root=detail::rebind_indexed_volume_root(source.impl_->indexed->root(),id);
+      return resume(detail::NativeObjectWriter::rebuild(*source.impl_->objects.paged_if(),std::move(target),
+          id,root,compression,reencode,detail::kIndexedVolumeIdentityOffset));
+    }
     auto model=decode(source.impl_->objects);model.identity=id;
     if(const auto* paged=source.impl_->objects.paged_if()) {
       if(checkpoints.compact_metadata)
@@ -1809,8 +1824,19 @@ NativeFilesystemWriter::Recompression NativeFilesystemWriter::prepare_recompress
 
 PagedObjectStoreWriter::Rewrite NativeFilesystemWriter::prepare_paged_recompression(
     std::shared_ptr<StoreByteIo> target,StoreIdentity id,StoreCompressionOptions compression,bool reencode) const {
-  if(poisoned() || !impl_->objects.paged_if() || impl_->indexed)
-    fail(Code::invalid_operation,"staged paged rebuild needs a supported writer layout");
+  if(poisoned() || !impl_->objects.paged_if())
+    fail(Code::invalid_operation,"staged paged rebuild needs a healthy paged writer");
+  if(impl_->indexed) {
+    if(impl_->indexed->active_lifetimes)
+      fail(Code::invalid_operation,"staged indexed rebuild needs resolved file contexts");
+    try {
+      const auto root=detail::rebind_indexed_volume_root(*impl_->indexed,id);
+      return impl_->objects.prepare_paged_rebuild(std::move(target),id,root,compression,reencode,
+          detail::kIndexedVolumeIdentityOffset);
+    }catch(const std::bad_alloc&){fail(Code::limit,"staged indexed preparation allocation failure");}
+    catch(const NativeFsError&){throw;}
+    catch(const std::exception&){fail(Code::storage_failure,"staged indexed preparation failed");}
+  }
   for(const auto& [inode,entry]:impl_->model.nodes) {
     (void)inode;if(entry.delete_pending || entry.unlinked)
       fail(Code::invalid_operation,"staged paged rebuild needs resolved file contexts");
@@ -1834,6 +1860,14 @@ NativeFilesystemWriter NativeFilesystemWriter::finish_paged_recompression(PagedO
   if(poisoned() || !impl_->objects.paged_if() || !candidate.replaces_native_root())
     fail(Code::invalid_operation,"invalid native paged candidate/source");
   try {
+    if(impl_->indexed) {
+      auto root=*impl_->indexed;
+      root.identity=candidate.identity();
+      auto objects=candidate.finish(*impl_->objects.paged_if());
+      auto state=std::make_unique<Impl>(detail::NativeObjectWriter(std::move(objects)));
+      state->indexed=root;
+      return NativeFilesystemWriter(std::move(state));
+    }
     // Each target object already passed independent pre/post-publication CPU
     // comparison. Preserve the exact acknowledged graph without a hidden full
     // backing scan at handoff. This Model copy retains today's bounded frontend.
@@ -2265,6 +2299,10 @@ bool NativeFilesystemWriter::reclaim_retired_inode() {
     detail::advance_indexed_retirement(writer,source,root,false);
   });
   return true;
+}
+std::uint64_t NativeFilesystemWriter::indexed_append_floor() const noexcept {
+  if(poisoned() || !impl_->indexed)return 0;
+  return impl_->objects.paged_append_floor_for_staging();
 }
 bool NativeFilesystemWriter::supports_file_contexts() const noexcept {
   return !poisoned() && (!impl_->indexed || impl_->indexed->format>=2);

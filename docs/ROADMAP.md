@@ -12,8 +12,10 @@ paged names, inodes and extents through the existing path transaction API.
 The 1,024-file Windows fixture verified byte readback, restart and simulated
 interrupted publication. The indexed file session now preserves detached data
 through final Close and reclaims large closed files in restartable batches.
-Indexed volume-head selection, WinFsp integration and the idle controller
-still need to be connected.
+Indexed managed-head selection now supports verified compaction and the
+WinFsp SDK callbacks. The mount provider, idle controller and indexed AMD
+compression still need to be connected.
+[Managed indexed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
 
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now supplies both
 the helper and owned WinFsp composition. Stop retains backing and requires

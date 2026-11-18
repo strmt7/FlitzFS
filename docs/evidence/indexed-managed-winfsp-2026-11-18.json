@@ -1,0 +1,299 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "time_zone": "Europe/Berlin",
+  "source_base": "c288d2df94d59071c811a2761800a1d84bf18cab",
+  "base_tree": "e0ab43f3e7e65d200d8d50ddc2f231811155f31f",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "f0d1f737b6afbbbd3534aa956697079e21874dec",
+      "worktree_sha256": "607352e9ca97b9c6a71b55253b1dce26d6d8dc4d831111f0ba39968da183d097"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "fefbbadb1963c66f706b56656c5543d308db3f5a",
+      "worktree_sha256": "57793e0d694cc227899610977926a5027f4ec2a998f243864bd5546ec805c57d"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "88fe65db59bc9cc7c90308e1bbe07a373fcc4822",
+      "worktree_sha256": "59b2e9f5819fc23ceff5b264b02e5669f6d33bba34d97b8f7e154b21d085526e"
+    },
+    {
+      "path": "include/flitzfs/volume_head.hpp",
+      "git_blob": "6b774115299decec506e4edcc28529f1bb2bc105",
+      "worktree_sha256": "a287995167912ace20cba489d31473b257643006ab8d8236821821801d8a57c8"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "9ca53c642735c2b33b39153459a4023810f494aa",
+      "worktree_sha256": "3a1b12b438aab5078c1b3a5fcf97af9c73deff258edfc0d769b154d41ff9ff2c"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "18e8a73dd4a2d35a54ead8a82e4254abaed9428d",
+      "worktree_sha256": "af203b2a16ae008be224bb62cf62e15bd41d2e8c8baba63c24d9302a8da3fa63"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "f7b4fb73cac96ebdc5669c5e63c81b4cd9a41c07",
+      "worktree_sha256": "7efd3a1bd9e26677cfcdd1a7c08059d8f38be518ec58ca00a6107f7fd26a084d"
+    },
+    {
+      "path": "src/native_object_storage.hpp",
+      "git_blob": "e1e41fa0234beb0c4fc84b5c173fc08900bda2d7",
+      "worktree_sha256": "a78cb2eb453779385b7653176e794c86232484b53c2c3fa6e99d0157d71c94ec"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "2f0449958100d820d831c0f4a3b0af5026f26fe5",
+      "worktree_sha256": "7563f6f37327a39315a0cddc83d1c940b26b23094fce7d8c186db68947d30804"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "e84934714ae29c9e85c7104ff5698613fb4e8052",
+      "worktree_sha256": "c431ed61ec2914c30ed0ab07f7b7546d581286f3af46903240e87c5f5cb797d5"
+    },
+    {
+      "path": "src/volume_head.cpp",
+      "git_blob": "ef2e68f05e85da56c0ce191b6a6a7020a73c9cdb",
+      "worktree_sha256": "d13c660d217f082ac84458238ed483e2a57e014a16b4443cd30c69e7f9fd7f83"
+    },
+    {
+      "path": "src/windows/native_file_info.cpp",
+      "git_blob": "806a9fc35a3090e8ae4f298dce06663ff10f8960",
+      "worktree_sha256": "3b9cfa8866f2ef4533de200fd3140a06ed6bdace9d71499648c5e0d3b577e546"
+    },
+    {
+      "path": "src/windows/native_file_info.hpp",
+      "git_blob": "94ca6f4d425c6d269c4f8cdc4a07298bd150e13a",
+      "worktree_sha256": "81b6acc8f87fd3f1ee72fac8c279c4ee8019f0cc8625ac852f2bd63748c9dff5"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "d4c97e5b2b7f23da415764f698b2eeaad9bc42a2",
+      "worktree_sha256": "b5753c5a42ac5a47d87a24c2abf4d3c5e07f7a95bac845141b3085bba3d2a15d"
+    },
+    {
+      "path": "src/windows/winfsp_native.hpp",
+      "git_blob": "7fa9ee907a0f82172a36706417f0d0825cd532dd",
+      "worktree_sha256": "7754b1153b7055dc14e9978f20063ded0d27d952e6bf70a83b20dcea7ea81219"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "e6919e8b0832ef92f49c39475f8a693e13a00dd7",
+      "worktree_sha256": "ea18b5061ee2690b98259b967a10c63e438bc38f5335121d186cb5ecf79e1e4b"
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "git_blob": "7e6a88b049fe8df995e95a7bd530182453b068f8",
+      "worktree_sha256": "6a4e0dbcf81501a1a67989959196a6c09dd88978de8cd92a8e31a8264989da04"
+    }
+  ],
+  "scope": "Windows x64 indexed managed storage and WinFsp SDK callbacks with memory test backing and injected dispatcher ownership.",
+  "format": "FLTVH001 capability 3 and indexed paged image kind; preserves capability-1/2 head encoding.",
+  "compaction": {
+    "source_bytes": 385024,
+    "selected_bytes": 147456,
+    "head_publication_faults": 12,
+    "previous_image": 4,
+    "advanced_image": 8,
+    "independent_reopen": true,
+    "held_source_verified": true
+  },
+  "indexed_windows_callbacks": [
+    {
+      "failure_unit": 4096,
+      "large_write_bytes": 2097169,
+      "reopened_eof": 100663323,
+      "occupied_bytes": 4440064
+    },
+    {
+      "failure_unit": 65536,
+      "large_write_bytes": 2097169,
+      "reopened_eof": 100663323,
+      "occupied_bytes": 6029312
+    }
+  ],
+  "checks": {
+    "raw": {
+      "build": {
+        "run": "local-run-1a63ba1cf679448494f72f97bd4fa651",
+        "result_sha256": "44afde3104c3b0ab0af6d5a3e5a0064f8eb001ffa78575a0706b61279f7530d5",
+        "log_sha256": "08a8ba09a26354daab96bcbbf84e54ce0f0c2fb6daa010e346d38815f00069ba",
+        "seconds": 31.015,
+        "peak_job_bytes": 382185472,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-6883e317146f4668a672d3c3fc6f52fa",
+        "result_sha256": "e255c13dd624e5243386057b7ba3785557e6ff41d520c261d5104ac65c22205a",
+        "log_sha256": "60eb23e22f6ca863bcb4102c2d64a3dc350ab589d4e34411599566ac0fa35226",
+        "seconds": 34.78,
+        "peak_job_bytes": 71954432,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_staged_paged_rebuild",
+        "bounded_native_managed_paged_volume",
+        "bounded_volume_head_invariants",
+        "bounded_volume_head_create",
+        "bounded_volume_head_publish",
+        "bounded_volume_head_repair"
+      ]
+    },
+    "winfsp_codec": {
+      "build": {
+        "run": "local-run-b77b656ff26b469380152226b1a81ac3",
+        "result_sha256": "27012ee740a33ceb743f5d55bbca2168201d8ad1c0b7194c07d4937eb953f01d",
+        "log_sha256": "90664fe4ddfee1d6dfc816e9f98b694b5b9fece7c868fb828d49f5cffc83df3f",
+        "seconds": 52.47,
+        "peak_job_bytes": 722276352,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-d138397e56984812974809bc816d1fdb",
+        "result_sha256": "600c450937f1dd6971860a7ff28969b581cea4235f4657727b6ccee4a6b6e078",
+        "log_sha256": "7092f1f6f319354fa055cd414a74d6f482cad49a94facb1f16276a12b0abff7f",
+        "seconds": 14.809,
+        "peak_job_bytes": 35684352,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_winfsp_paged_callbacks",
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_winfsp_native_data_invariants",
+        "bounded_winfsp_native_data_write_faults",
+        "bounded_winfsp_native_data_eof_faults",
+        "bounded_winfsp_native_data_reserve_faults",
+        "bounded_winfsp_native_data_flush_faults",
+        "bounded_winfsp_native_data_lz4_faults",
+        "bounded_winfsp_session_test"
+      ]
+    },
+    "windows_address_sanitizer": {
+      "build": {
+        "run": "local-run-5d7bdc4466174ad5b34d438ed9ba1ffa",
+        "result_sha256": "2d95aa7cdd8d5144f88025423d38d2775df03cef88e51114dc9d032578e28ab8",
+        "log_sha256": "d446000d35bb31bed50fbb8641d8a42bfc5759ce7a410a1cf1794461366b74c0",
+        "seconds": 45.71,
+        "peak_job_bytes": 722325504,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-4f799130fce04e088516e385ffc0e9f4",
+        "result_sha256": "16f6842a5d1f12d216bf9746865dc173bd087b5706194f2875691e8e2ab57abc",
+        "log_sha256": "0dc96975218bf3a853159ef6317e4ab1005b8a371b3359e7c7d2b194fa8c49f9",
+        "seconds": 89.742,
+        "peak_job_bytes": 1100464128,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_native_managed_paged_volume",
+        "bounded_winfsp_paged_callbacks"
+      ]
+    }
+  },
+  "earlier_attempts": [
+    {
+      "receipt": {
+        "run": "local-run-2ed8dfc529084b2d8e8a8d751b034376",
+        "result_sha256": "bc74006a3856dd722ea9b4a6da732c1ed29b2c379b39fcfee1ba76842bcfa3c8",
+        "log_sha256": "dc7df0a338d3b1874c8537fe50878da2a50237f6aafcd1251a2662c85f19407e",
+        "seconds": 25.755,
+        "peak_job_bytes": 382976000,
+        "exit_code": 1,
+        "residual_children": 0
+      },
+      "observation": "Incorrect CMake target name."
+    },
+    {
+      "receipt": {
+        "run": "local-run-25a840fc89b941338fa2b29c833196e7",
+        "result_sha256": "d4ca60e6efae72f7a6a33ebdbbdca7d9c9de966090e4419a883626218f00cad9",
+        "log_sha256": "20736cc0cebfb9adb6c98223ab1d91727d211997c77e7bc2621d266b07afac11",
+        "seconds": 44.602,
+        "peak_job_bytes": 721027072,
+        "exit_code": 1,
+        "residual_children": 0
+      },
+      "observation": "MSVC refused value initialization of the SDK trailing zero-size transaction arrays."
+    },
+    {
+      "receipt": {
+        "run": "local-run-9e23e6d5f90d4f4089f8bdec9afdcef6",
+        "result_sha256": "7c17c6fdbf7263646defd3993f0afdbfe495c258faad63ae7fe319852208b4f9",
+        "log_sha256": "8bf6f938506d866f9c9e7cc3b7c35590a5da8c2313080bd5f6c75f7debc86749",
+        "seconds": 15.005,
+        "peak_job_bytes": 35930112,
+        "exit_code": 8,
+        "residual_children": 0
+      },
+      "observation": "First indexed Windows callback rerun rejected the root security descriptor."
+    },
+    {
+      "receipt": {
+        "run": "local-run-52ef993613d1488baa969944074b8372",
+        "result_sha256": "2b78f82fcf5372d62401e436ae901a9075a37cd85aeaf52c8f74465388a1df62",
+        "log_sha256": "65926d703912e7b67a958ef96379f38b9889b51a93f6325dfce4135d1da7153c",
+        "seconds": 84.189,
+        "peak_job_bytes": 1100345344,
+        "exit_code": 8,
+        "residual_children": 0
+      },
+      "observation": "ASan confirmed a dangling span over the root ACL. The final factory owns descriptor bytes through creation."
+    }
+  ],
+  "navigation": {
+    "receipt_sha256": "825344708b922359446c83cbdf08ca1a1fda7ef15b64938e5f3373c22a4998ad",
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "b85303f993ecc88cacc285db3373a275e0c49db36aeb80a4ae9f638988dfb71c",
+    "stored_search_sha256": "1fc1a54acead530227d6410aca84f2bf69bf4b6d0244fbf7a47f9ac6dcc326ce"
+  },
+  "research": {
+    "receipt_sha256": "1fc11f5dde81c95bae85e88276b795602873d9855bbb7617bcd5c81af8d3794b",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "native_pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-getdiskfreespaceexw",
+        "http_status": 301,
+        "final_http_status": 200,
+        "markdown_sha256": "8d8a480f86855c498dc028b26558ddc8dfcf3b096d7baa83a3a98a8c23fdb061",
+        "capture_sha256": "354415eeec1859d77b9425ec9b080fc7030f936a8cb76d972ade4f7c15aef686"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_standard_information",
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_sha256": "4b093f6b6f07966b4bc575c2f1493d7add52441696ebcfe7ee4ff6b3609ad3c9",
+        "capture_sha256": "12a678635d1b5bd58a58915dddb88dc5e803d4863f97cde7d21e6ca2c8bf7be6"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_end_of_file_information",
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_sha256": "5073b98d622a4ac469b38250411088b98c4213d9f90eff5a52363548fc012442",
+        "capture_sha256": "fecccc2a58d072846a76aa8d1c66a22f20fa995c1cca5e4344ea3302eb6fa284"
+      }
+    ]
+  },
+  "unqualified": [
+    "mounted indexed Windows volume",
+    "repeating compaction from the background provider",
+    "persistent backing and physical power loss",
+    "indexed AMD dispatch or benefit"
+  ]
+}

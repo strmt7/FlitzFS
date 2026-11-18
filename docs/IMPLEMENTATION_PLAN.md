@@ -218,16 +218,17 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 
 ### Next steps for the writable Windows path
 
-1. Carry the indexed session's committed I/O metadata into the WinFsp adapter.
-   Select file-size, allocation and free-space rules from the indexed layout
-   and its backing capacity. Check ordinary and constrained writes, status
-   mapping, large file information, sparse range behavior and SDK packing.
-   [Indexed inode I/O evidence](evidence/native-indexed-inode-io-2026-11-18.json)
-2. Exercise the indexed session's delete intent, detached I/O, final Close
-   and closed-session restart through the SDK and an isolated mounted client.
-   The indexed session now preserves a detached file while its name is reused.
-   Add adapter qualification for replacement of open destinations and
-   verify grants and lifetime transitions against current Windows behavior.
+1. Carry the indexed SDK path into the owned mount provider and helper.
+   The indexed callbacks now encode large FileInfo values, commit ordinary
+   writes and use the append boundary for physical free-space reporting.
+   Verify the provider's storage-kind selection, independent CPU inspection
+   after join, backing ownership and restart before enabling indexed mounting.
+   [Indexed managed and SDK evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
+2. Qualify mounted delete intent, detached I/O, final Close and restart through
+   an isolated external Windows client. The indexed SDK fixture now proves
+   preservation of detached data and closed-session recovery with its
+   synthetic owner. Measure behavior with multiple handles and mappings,
+   replacement of open destinations and actual FSD-granted access.
    [Indexed lifetime evidence](evidence/native-indexed-lifetimes-2026-11-18.json) ·
    [Windows disposition rules](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/4c26c8cb-5a8f-4339-a372-b315c4974131) ·
    [WinFsp interface contract](https://winfsp.dev/doc/WinFsp-API-winfsp.h/)
@@ -238,16 +239,13 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    path. Check shrink-then-grow, write-after-truncate, queue fairness and
    survival of earlier snapshot roots. Account for reclaimable references
    separately from bytes reusable on the backing.
-4. Bind the indexed image to a separately negotiated volume-head capability.
-   Store the indexed backing kind and capacity explicitly. Validate native
-   sequence and storage checkpoint as separate values, including imported
-   images whose native sequence started before the new backing. Check source
-   and target identities, durable checkpoint floors and semantic equivalence
-   before selecting a target. Keep rollback reachable through independent
-   reopen. Admit direct indexed creation and restart through the managed
-   session. Assemble head corruption, failed switch and retained snapshot
-   cases before enabling the indexed mount factory. Preserve or re-encode
-   shared dependencies with complete-size checks before automatic migration.
+4. Drive staged indexed copies from the low-priority owner and admit qualified
+   physical reuse. Capability-3 head selection now binds the indexed capacity,
+   independent native sequence and durable checkpoint floor. Managed compaction
+   preserves pinned roots and open file identities in the tested fixture.
+   Measure copying and final selection interference at scale. Preserve
+   collective dependencies through an explicit versioned migration with
+   verified rollback and matched complete-size comparisons.
 5. Use real checked page ranges in WinFsp callbacks, including large directory
    enumeration, allocation and ACL queries. Add long-path and Unicode behavior
    against the selected Windows contract. Replace foreground subtree scans with

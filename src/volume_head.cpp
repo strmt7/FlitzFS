@@ -21,16 +21,18 @@ std::uint64_t get(std::span<const std::byte> b,std::size_t at,unsigned n=8) {
 }
 bool zero(StoreIdentity id){return id==StoreIdentity{};}
 void valid(const NativeVolumeSelection& s,Code code) {
+  const bool indexed=s.storage.kind==NativeImageKind::indexed_paged;
   if(!((s.storage.kind==NativeImageKind::flat && !s.storage.maximum_physical_bytes) ||
-      (s.storage.kind==NativeImageKind::paged && s.storage.maximum_physical_bytes)))
+      ((s.storage.kind==NativeImageKind::paged || indexed) && s.storage.maximum_physical_bytes)))
     fail(code,"invalid volume image storage descriptor");
   if(!s.epoch||zero(s.volume_identity)||zero(s.image_identity)||s.volume_identity==s.image_identity||
-      !s.minimum_checkpoint||!s.namespace_sequence||s.namespace_sequence>s.minimum_checkpoint)
+      !s.minimum_checkpoint||!s.namespace_sequence||(!indexed && s.namespace_sequence>s.minimum_checkpoint))
     fail(code,"invalid volume head identity/checkpoint");
   if(s.epoch==1) {
     if(!zero(s.parent_identity)||s.parent_checkpoint)fail(code,"initial volume head has parent");
   }else if(zero(s.parent_identity)||s.parent_identity==s.image_identity||
-      s.parent_identity==s.volume_identity||!s.parent_checkpoint||s.parent_checkpoint>=s.minimum_checkpoint)
+      s.parent_identity==s.volume_identity||!s.parent_checkpoint||
+      (!indexed && s.parent_checkpoint>=s.minimum_checkpoint))
     fail(code,"invalid compacted volume head parent");
 }
 void contract(const StoreByteIo& io) {
@@ -40,12 +42,13 @@ void contract(const StoreByteIo& io) {
 }
 Bytes encoded(const NativeVolumeSelection& s,unsigned slot) {
   valid(s,Code::invalid_operation);Bytes b(kStoreCommitUnit);
-  std::memcpy(b.data(),magic,8);put(b,8,s.storage.kind==NativeImageKind::paged?2:1,4);put(b,12,slot,4);put(b,16,s.epoch);
+  const auto kind=static_cast<std::uint32_t>(s.storage.kind);
+  std::memcpy(b.data(),magic,8);put(b,8,kind+1,4);put(b,12,slot,4);put(b,16,s.epoch);
   std::copy(s.volume_identity.begin(),s.volume_identity.end(),b.begin()+24);
   std::copy(s.image_identity.begin(),s.image_identity.end(),b.begin()+40);
   std::copy(s.parent_identity.begin(),s.parent_identity.end(),b.begin()+56);
   put(b,72,s.minimum_checkpoint);put(b,80,s.namespace_sequence);put(b,88,s.parent_checkpoint);
-  if(s.storage.kind==NativeImageKind::paged){put(b,96,1,4);put(b,104,s.storage.maximum_physical_bytes);}
+  if(kind){put(b,96,kind,4);put(b,104,s.storage.maximum_physical_bytes);}
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
 }
@@ -54,15 +57,15 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   if(!std::equal(digest.begin(),digest.end(),b.begin()+digest_at))return {};
   // Intact unsupported/contradictory metadata is NEVER an excuse to roll back.
   const auto capability=get(b,8,4);
-  if(std::memcmp(b.data(),magic,8)||(capability!=1 && capability!=2)||get(b,12,4)!=slot||
-      (capability==2 && (get(b,96,4)!=1 || get(b,100,4)!=0)) ||
-      !std::all_of(b.begin()+(capability==2?112:96),b.begin()+digest_at,[](auto x){return x==std::byte{};}))
+  if(std::memcmp(b.data(),magic,8)||capability<1||capability>3||get(b,12,4)!=slot||
+      (capability>1 && (get(b,96,4)!=capability-1 || get(b,100,4)!=0)) ||
+      !std::all_of(b.begin()+(capability>1?112:96),b.begin()+digest_at,[](auto x){return x==std::byte{};}))
     fail(Code::corrupt,"intact volume head framing unsupported");
   NativeVolumeSelection s;s.epoch=get(b,16);
   std::copy_n(b.begin()+24,16,s.volume_identity.begin());std::copy_n(b.begin()+40,16,s.image_identity.begin());
   std::copy_n(b.begin()+56,16,s.parent_identity.begin());
   s.minimum_checkpoint=get(b,72);s.namespace_sequence=get(b,80);s.parent_checkpoint=get(b,88);
-  if(capability==2)s.storage={NativeImageKind::paged,get(b,104)};
+  if(capability>1)s.storage={static_cast<NativeImageKind>(capability-1),get(b,104)};
   valid(s,Code::corrupt);
   if(s.volume_identity!=expected)fail(Code::corrupt,"volume head identity mismatch");
   return s;
@@ -87,11 +90,12 @@ Loaded load(const StoreByteIo& io,StoreIdentity expected) {
     fail(Code::corrupt,"volume head transition is not a bound successor");
   return {{n,true},newer};
 }
-void bind(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& image,bool writable) {
+void bind(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& image,bool writable,
+    bool indexed_recovery=false) {
   const auto info=image.storage_info();
   if(image.image_storage()!=selected.storage || image.identity()!=selected.image_identity||image.sequence()<selected.namespace_sequence||
       !info.replicated_checkpoint||info.checkpoint_generation<selected.minimum_checkpoint||
-      info.generation<selected.minimum_checkpoint||image.needs_session_recovery())
+      info.generation<selected.minimum_checkpoint||(!indexed_recovery && image.needs_session_recovery()))
     fail(Code::corrupt,"selected volume image is absent, stale or unresolved");
   if(writable&&(info.degraded_checkpoint||info.degraded_root))
     fail(Code::invalid_operation,"repair selected image metadata independently before head admission");
@@ -120,12 +124,23 @@ NativeVolumeHeadView& NativeVolumeHeadView::operator=(NativeVolumeHeadView&&) no
 NativeVolumeHeadView::~NativeVolumeHeadView()=default;
 NativeVolumeHeadView NativeVolumeHeadView::open(std::shared_ptr<StoreByteIo> head,StoreIdentity volume,
     const NativeVolumeImageResolver& resolve) {
+  return open_impl(std::move(head),volume,resolve,false);
+}
+NativeVolumeHeadView NativeVolumeHeadView::open_indexed_recovery(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,const NativeVolumeImageResolver& resolve) {
+  return open_impl(std::move(head),volume,resolve,true);
+}
+NativeVolumeHeadView NativeVolumeHeadView::open_impl(std::shared_ptr<StoreByteIo> head,StoreIdentity volume,
+    const NativeVolumeImageResolver& resolve,bool indexed_recovery) {
   if(!head||!resolve)fail(Code::invalid_operation,"missing volume head/image resolver");
   try {
-    const auto selected=load(*head,volume).info;auto image=resolve(selected.selection.image_identity);
+    const auto selected=load(*head,volume).info;
+    if(indexed_recovery && selected.selection.storage.kind!=NativeImageKind::indexed_paged)
+      fail(Code::invalid_operation,"indexed recovery requires the indexed volume head kind");
+    auto image=resolve(selected.selection.image_identity);
     if(!image||image==head)fail(Code::corrupt,"missing or aliased selected image");
     auto view=NativeFilesystemSnapshot::open_image(std::move(image),selected.selection.storage);
-    bind(selected.selection,view,false);
+    bind(selected.selection,view,false,indexed_recovery);
     return NativeVolumeHeadView(std::make_unique<Impl>(selected,std::move(view)));
   }catch(const std::bad_alloc&){fail(Code::limit,"volume head reader allocation");}
   catch(const NativeFsError&){throw;}
@@ -153,7 +168,8 @@ struct NativeVolumeHeadWriter::Impl {
     auto view=NativeFilesystemSnapshot::open_image(std::move(io),storage);
     // A surviving primary alone does not expose a damaged payload peer.
     // Scrub both before comparing health or admitting a new selected image.
-    if(storage.kind==NativeImageKind::paged)view.verify_all();return view;
+    if(storage.kind!=NativeImageKind::flat)view.verify_all();
+    return view;
   }
   static void exact(const NativeFilesystemSnapshot& a,const NativeFilesystemSnapshot& b) {
     const auto x=a.storage_info(),y=b.storage_info();
@@ -161,7 +177,10 @@ struct NativeVolumeHeadWriter::Impl {
         x.checkpoint_generation!=y.checkpoint_generation||x.physical_end!=y.physical_end||
         x.degraded_root!=y.degraded_root||x.degraded_checkpoint!=y.degraded_checkpoint)
       fail(Code::invalid_operation,"handoff snapshot is not latest");
-    a.verify_compacted_equivalent_for_volume_head(b);
+    if(a.image_storage().kind==NativeImageKind::indexed_paged) {
+      if(!a.matches_indexed_checkpoint(b))
+        fail(Code::invalid_operation,"indexed handoff snapshot root differs");
+    }else a.verify_compacted_equivalent_for_volume_head(b);
   }
   void check() const {
     if(poisoned)fail(Code::storage_failure,"volume head writer is terminal");
@@ -221,6 +240,7 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
   if(!impl_||impl_->poisoned)fail(Code::storage_failure,"volume head writer is terminal");
   auto& p=*impl_;const auto source_io=Impl::backing(source),target_io=Impl::backing(target);
   if(source_io==target_io||source_io==p.owner.io||target_io==p.owner.io||
+      source.image_storage()!=p.selected.storage||target.image_storage()!=p.selected.storage||
       source.identity()!=p.selected.image_identity||target.identity()==source.identity()||
       target.identity()==p.selected.volume_identity||target.identity()==p.selected.parent_identity)
     fail(Code::invalid_operation,"invalid volume handoff identities/backends");

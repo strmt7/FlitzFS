@@ -55,6 +55,7 @@ class PagedObjectStoreSnapshot final {
   friend class PagedObjectStoreWriter;
   friend class NativeFilesystemSnapshot;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
+  bool same_checkpoint(const PagedObjectStoreSnapshot&) const noexcept;
   struct Impl;
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
@@ -103,13 +104,16 @@ class PagedObjectStoreWriter final {
   static PagedObjectStoreWriter create_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       PagedStoreLimits,StoreCompressionOptions,bool mirrored);
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
-      StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode) const;
+      StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
+      std::size_t identity_offset=40) const;
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
-      std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode);
+      std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,
+      std::size_t identity_offset=40);
   PagedObjectStoreSnapshot snapshot_for_staging(bool query_cache=false) const;
   std::uint64_t generation_for_staging() const noexcept;
   std::uint64_t physical_end_for_staging() const noexcept;
+  std::uint64_t append_floor_for_staging() const noexcept;
   // Native inode records consume their own metadata entries. Keep public
   // transactions at 256 operations. The native adapter admits 512 operations
   // with 4 MiB input, or 768 operations and 64 KiB extra directory-index input

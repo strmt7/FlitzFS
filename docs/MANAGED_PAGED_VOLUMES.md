@@ -47,10 +47,34 @@ adjacent-epoch descriptor changes reject selection. A head is not authentication
 or an anti-rollback device. Providers still qualify global ownership, durable
 nonaliasing identity mappings and distinct failure domains.
 
-New readers accept capability 1 and 2. Earlier head readers reject capability 2.
-No in-place format conversion, automatic migration, capacity expansion or
-product version bump is implemented by this extension. A future migration must
-preserve supported readers and publish explicit recoverable state.
+Current readers accept capabilities 1, 2 and 3. Each typed checkpoint selects
+one declared image kind and capacity. Older readers reject a valid newer head
+whose capability they cannot interpret.
+
+### Indexed images
+
+Head capability 3 stores image kind 2 at offset 96 and the same capacity field
+at offset 104. It treats the native sequence and storage checkpoint floor
+independently. The named parent checkpoint belongs to its source image.
+The initial selection and each transition retain exact identities and scope.
+Flat and paged capability-1 and capability-2 encoding remains unchanged.
+
+`NativeFileSession::create_indexed_volume` binds a new indexed image to its own
+head. `open_indexed_recovery` provides a checked CPU view of the selected indexed
+image including unresolved file lifetimes. Explicit closed-session resume
+requires qualified retirement of the previous owner before finishing those
+lifetimes. Ordinary head open and resume continue to enforce resolved state.
+
+Indexed compaction and recompression rebuild into fresh backing with a
+different identity. The head checks that the candidate retains the native
+root fields, object identities and generations, and every decoded logical
+object except the root identity field. A staged copy advances one object at
+a time. The final head switch compares the complete source and destination.
+The prior backing and its pinned snapshots remain available through
+publication and recovery. This flow preserves the selected layout and capacity.
+Automatic migration and background selection still require independent
+qualification.
+[Indexed managed-volume evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
 
 ## Handoff, surviving-copy repair and recovery
 

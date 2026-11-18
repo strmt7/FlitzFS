@@ -26,10 +26,14 @@ void retire(NativeFilesystemWriter& writer) noexcept {
   auto retired=std::move(writer); // Its destructor really releases the writer lease.
 }
 NativeFilesystemWriter resume_image(const std::shared_ptr<StoreByteIo>& image,
-    const NativeFilesystemSnapshot& view,StoreCompressionOptions compression) {
+    const NativeFilesystemSnapshot& view,StoreCompressionOptions compression,bool closed_indexed=false) {
   const auto storage=view.image_storage();
-  if(storage.kind==NativeImageKind::paged)return NativeFilesystemWriter::resume(PagedObjectStoreWriter::resume(
-      image,view.identity(),view.storage_info().generation,{storage.maximum_physical_bytes},compression));
+  if(storage.kind==NativeImageKind::paged || storage.kind==NativeImageKind::indexed_paged) {
+    auto objects=PagedObjectStoreWriter::resume(image,view.identity(),view.storage_info().generation,
+        {storage.maximum_physical_bytes},compression);
+    if(closed_indexed)return NativeFilesystemWriter::resume_closed_session(std::move(objects));
+    return NativeFilesystemWriter::resume(std::move(objects));
+  }
   if(storage.kind!=NativeImageKind::flat)fail(E::invalid_options,"unsupported writable image capability");
   return NativeFilesystemWriter::resume(ObjectStoreWriter::resume(image,view.identity(),
       view.storage_info().generation,compression));
@@ -206,13 +210,18 @@ NativeFileSession NativeFileSession::create_paged_volume(std::shared_ptr<StoreBy
   return create_volume_impl(std::move(head),volume,std::move(image),image_id,
       {NativeImageKind::paged,limits.maximum_physical_bytes},foreground,{},policy,root);
 }
+NativeFileSession NativeFileSession::create_indexed_volume(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,PagedStoreLimits limits,
+    StoreCompressionOptions foreground,NativeDispositionPolicy policy,std::optional<NativeVolumeRootMetadata> root) {
+  if(!limits.maximum_physical_bytes)fail(E::invalid_options,"explicit indexed volume capacity required");
+  return create_volume_impl(std::move(head),volume,std::move(image),image_id,
+      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root);
+}
 NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,NativeImageStorage storage,
     StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
     std::optional<NativeVolumeRootMetadata> root) {
   admit_policy(policy);detail::validate_store_compression(foreground);
-  if(storage.kind!=NativeImageKind::paged && storage.kind!=NativeImageKind::flat)
-    fail(E::invalid_options,"unsupported writable image capability");
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
     fail(E::invalid_options,"distinct volume/image identities and backends required");
   if(root && (root->security.empty() || !native_security_descriptor_framed(root->security)))
@@ -221,10 +230,14 @@ NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByt
   auto owner=std::make_unique<Impl::VolumeOwner>();
   owner->head_io=head;owner->active_io=image;owner->volume_id=volume;
   owner->active_id=image_id;owner->foreground=foreground;
-  auto writer=storage.kind==NativeImageKind::paged?
-      NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter::create_mirrored(
-          image,image_id,{storage.maximum_physical_bytes},foreground)):
-      NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
+  auto writer=[&] {
+    if(storage.kind==NativeImageKind::flat)
+      return NativeFilesystemWriter::initialize(ObjectStoreWriter::create(image,image_id,foreground,checkpoints));
+    auto objects=PagedObjectStoreWriter::create_mirrored(image,image_id,{storage.maximum_physical_bytes},foreground);
+    if(storage.kind==NativeImageKind::indexed_paged)
+      return NativeFilesystemWriter::initialize_indexed(std::move(objects));
+    return NativeFilesystemWriter::initialize_shared_bases(std::move(objects));
+  }();
   if(root) {
     const NativeBasicMutation basic{1,0,root->basic};
     const NativeSecurityMutation security{1,0,NativeSecurityDescriptor(root->security.begin(),root->security.end())};
@@ -256,22 +269,34 @@ NativeSharedBaseCommit NativeFileSession::finish_shared_base(NativeFilesystemWri
 NativeFileSession NativeFileSession::resume_volume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
     StoreCompressionOptions foreground,NativeDispositionPolicy policy) {
+  return resume_volume_impl(std::move(head),volume,epoch,resolver,foreground,policy,false);
+}
+NativeFileSession NativeFileSession::resume_closed_indexed_volume(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
+    StoreCompressionOptions foreground,NativeDispositionPolicy policy) {
+  return resume_volume_impl(std::move(head),volume,epoch,resolver,foreground,policy,true);
+}
+NativeFileSession NativeFileSession::resume_volume_impl(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::uint64_t epoch,const NativeVolumeImageResolver& resolver,
+    StoreCompressionOptions foreground,NativeDispositionPolicy policy,bool closed_indexed) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(!epoch || volume==StoreIdentity{} || !head || !resolver)
     fail(E::invalid_options,"explicit volume/epoch/provider required");
   auto owner=std::make_unique<Impl::VolumeOwner>();
   owner->head_io=head;owner->volume_id=volume;owner->foreground=foreground;
-  auto selected=NativeVolumeHeadView::open(head,volume,[&](const auto& id) {
+  const NativeVolumeImageResolver select=[&](const auto& id) {
     owner->active_io=resolver(id);return owner->active_io;
-  });
+  };
+  auto selected=closed_indexed?NativeVolumeHeadView::open_indexed_recovery(head,volume,select):
+      NativeVolumeHeadView::open(head,volume,select);
   if(selected.info().selection.epoch!=epoch)
     fail(E::invalid_options,"stale volume session epoch");
-  if(selected.filesystem().needs_session_recovery())
+  if(!closed_indexed && selected.filesystem().needs_session_recovery())
     fail(E::delete_pending,"old file-context state requires qualified recovery");
   owner->active_id=selected.filesystem().identity();owner->epoch=epoch;
   // The qualified global provider excludes other controllers during startup.
   // Repair selected image metadata first, then acquire/repair its head owner.
-  auto repaired=resume_image(owner->active_io,selected.filesystem(),foreground);
+  auto repaired=resume_image(owner->active_io,selected.filesystem(),foreground,closed_indexed);
   auto checked=repaired.snapshot();retire(repaired);
   owner->head.emplace(NativeVolumeHeadWriter::resume(head,volume,epoch,checked));
   auto session=create(resume_image(owner->active_io,checked,foreground),policy);
@@ -281,6 +306,16 @@ NativeVolumeHeadInfo NativeFileSession::volume_info() const {
   auto& self=ready();
   if(!self.volume || !self.volume->head)fail(E::invalid_options,"session has no volume authority");
   return self.volume->head->info();
+}
+NativeVolumeSpace NativeFileSession::indexed_volume_space() const {
+  auto& self=ready();
+  const auto storage=volume_info().selection.storage;
+  if(storage.kind!=NativeImageKind::indexed_paged)
+    fail(E::invalid_options,"indexed space query requires a managed indexed image");
+  const auto occupied=self.writer.indexed_append_floor();
+  if(!occupied)fail(E::terminal,"indexed writer has no append boundary");
+  return {storage.maximum_physical_bytes,
+      storage.maximum_physical_bytes-(std::min)(occupied,storage.maximum_physical_bytes)};
 }
 NativeWorkloadInfo NativeFileSession::enable_workload_accounting() {
   auto& self=ready();
@@ -582,7 +617,7 @@ NativeVolumeHeadInfo NativeFileSession::replace_volume(std::shared_ptr<StoreByte
   detail::validate_store_compression(compression);admit_empty(target);
   admit_handoff_contexts(self);
   auto baseline=self.writer.snapshot();
-  if(baseline.image_storage().kind==NativeImageKind::paged && checkpoints.compact_metadata)
+  if(baseline.image_storage().kind!=NativeImageKind::flat && checkpoints.compact_metadata)
     fail(E::invalid_options,"paged isolation derives from its backend contract");
   begin_handoff(self,std::move(baseline),target,next);
   {
@@ -606,7 +641,7 @@ bool NativeFileSession::begin_idle_recompression(std::shared_ptr<StoreByteIo> ta
 bool NativeFileSession::stage_recompression(std::shared_ptr<StoreByteIo> target,StoreIdentity next,
     StoreCompressionOptions compression,StoreCheckpointOptions checkpoints,bool idle) {
   auto& self=ready();
-  if(self.volume && self.volume->head->info().selection.storage.kind==NativeImageKind::paged) {
+  if(self.volume && self.volume->head->info().selection.storage.kind!=NativeImageKind::flat) {
     if(idle)return false;
     fail(E::invalid_options,"legacy staged recompression requires flat managed storage");
   }

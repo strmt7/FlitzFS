@@ -1,5 +1,10 @@
 # `.flfs` v1 experimental chunk container
 
+The separately versioned [managed volume head](MANAGED_PAGED_VOLUMES.md) uses
+capability 3 for the indexed native paged image kind. Its selected checkpoint
+floor and the namespace sequence are independent. Earlier head capabilities
+and this chunk container retain their existing encodings.
+
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) changes only backing
 creation/ownership; head, namespace, advice and payload encodings are unchanged.
 

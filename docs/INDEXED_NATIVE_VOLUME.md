@@ -5,8 +5,11 @@ extent records on demand. The native snapshot API provides lookup, directory
 pages, metadata and file reads. The native writer can initialize a new mirrored
 image and resume a fully verified indexed image. Its path transactions update
 the checked index and changed records together. New volumes use capability 2,
-which supports file lifetimes through `NativeFileSession`. Mount selection still
-requires a matching volume head and WinFsp I/O integration.
+which supports file lifetimes through `NativeFileSession`. The managed head and
+writable WinFsp SDK adapter can explicitly select indexed images. The mounted
+provider and application still need indexed lifecycle qualification.
+[Managed indexed head](MANAGED_PAGED_VOLUMES.md#indexed-images) ·
+[WinFsp indexed adapter](WINFSP_PAGED_VOLUMES.md#indexed-volumes)
 
 ## Root and keys
 
@@ -156,8 +159,8 @@ charged extents without building an inventory-sized map. The public
 Legacy shared-base members are decoded through the existing CPU path and
 re-encoded as individual extent records. The export preserves decoded bytes,
 file IDs, timestamps, descriptors and reservations in the exercised fixtures.
-Automatic adoption needs indexed WinFsp integration, collective
-representations and verified volume-head handoff. The handoff must bind the
+Automatic adoption needs the indexed mount/provider lifecycle and preservation
+of collective representations across a qualified migration. The handoff must bind the
 source and destination checkpoints independently
 of the preserved namespace sequence. It also needs independently verified
 layout equivalence and enough retained source state for immediate rollback.

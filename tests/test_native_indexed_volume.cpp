@@ -104,9 +104,6 @@ void populated_native_snapshot() {
   refuses(NativeFsErrorCode::corrupt,[&] {
     (void)NativeFilesystemSnapshot::open_image(ram,{NativeImageKind::paged,limits.maximum_physical_bytes});
   });
-  auto head=empty();
-  refuses(NativeFsErrorCode::invalid_operation,[&]{(void)NativeVolumeHeadWriter::create(head,identity_for(92),view);});
-  require(head->extent()==0,"draft capability wrote an incompatible volume head");
   require(view.read_inode(sparse,127ULL*kNativeExtentBytes,17)==a &&
       view.read_inode(sparse,128ULL*kNativeExtentBytes,17)==b &&
       view.read_inode(sparse,last_block*kNativeExtentBytes,17)==c &&
@@ -657,6 +654,123 @@ void indexed_large_retirement() {
   std::cout<<"indexed_large_retirement_blocks="<<blocks<<" quanta="<<remaining+1<<'\n';
 }
 
+void indexed_head_independent_sequence() {
+  constexpr auto native_sequence=std::uint64_t{1}<<40;
+  const auto volume_id=identity_for(76);
+  auto head=empty();
+  auto backing=empty();
+  IndexedVolumeBuilder builder(PagedObjectStoreWriter::create_mirrored(backing,identity(),limits,raw),
+      native_sequence,3,{true,0},2);
+  const auto contents=payload(763);
+  const std::array<IndexedInodeInput,2> inodes{{{1,0,0,1,1,true,""},
+      {2,1,contents.size(),native_sequence,native_sequence,false,"picked"}}};
+  const IndexedExtentInput extent{2,0,contents};
+  builder.append(inodes,{&extent,1});
+  const auto source=builder.finish();
+  auto owner=NativeVolumeHeadWriter::create(head,volume_id,source);
+  const auto select=[&](const auto& id)->std::shared_ptr<StoreByteIo> {
+    require(id==identity(),"indexed head called the wrong image resolver");
+    return backing;
+  };
+  const auto view=NativeVolumeHeadView::open(head,volume_id,select);
+  const auto selected=view.info().selection;
+  require(selected.storage==indexed && selected.namespace_sequence==native_sequence &&
+      selected.minimum_checkpoint<native_sequence && view.filesystem().read("picked",0,100)==contents,
+      "indexed head confused checkpoint and imported namespace sequence");
+  require(head->stable.at(8)==std::byte{3} && head->stable.at(96)==std::byte{2},
+      "indexed head did not publish distinct wire kind");
+  refuses(NativeFsErrorCode::corrupt,[&] {
+    (void)NativeVolumeHeadView::open(head,volume_id,[&](const auto&){return head;});
+  });
+}
+
+void indexed_staged_rebuild() {
+  auto backing=empty(),target=empty();
+  auto writer=new_writer(backing);
+  const auto contents=payload(672);
+  writer.apply(std::array{file_create("data"),file_write("data",0,contents)});
+  const auto source=writer.snapshot();
+  const auto source_bytes=backing->stable;
+  const auto image_id=identity_for(48);
+  auto candidate=writer.prepare_paged_recompression(target,image_id,raw,false);
+  unsigned steps=0;
+  while(!writer.advance_paged_recompression(candidate))
+    require(++steps<1000,"indexed staged rebuild did not finish");
+  auto copied=writer.finish_paged_recompression(candidate);
+  const auto result=copied.snapshot();
+  result.verify_all();
+  require(result.identity()==image_id && result.sequence()==source.sequence() &&
+      result.read("data",0,100)==contents && backing->stable==source_bytes,
+      "indexed staged rebuild did not rebind its own root exactly");
+  file_apply(copied,file_write("data",0,payload(673)));
+  require(source.read("data",0,100)==contents,"new indexed writer changed its source snapshot");
+}
+
+void indexed_managed_handoff() {
+  using Error=NativeFsErrorCode;
+  const auto volume=identity_for(60),source_id=identity_for(61),candidate_id=identity_for(62);
+  auto head=empty(),backing=empty(),candidate=empty();
+  const auto contents=payload(1914);
+  Bytes old_head;
+  std::uint64_t before_size=0,after_size=0;
+  {
+    auto session=NativeFileSession::create_indexed_volume(head,volume,backing,source_id,limits,raw);
+    session.create_entry("data");
+    const auto handle=session.open("data",{true,true,true});
+    for(unsigned i=0;i<12;++i)session.write(handle,0,payload(i));
+    session.write(handle,0,contents);
+    const auto pinned=session.snapshot();
+    const auto before=backing->stable;
+    before_size=pinned.storage_info().physical_end;
+    old_head=head->stable;
+    const auto selected=session.compact_volume(candidate,candidate_id,raw);
+    after_size=session.snapshot().storage_info().physical_end;
+    require(selected.selection.epoch==2 && selected.selection.storage==indexed &&
+        selected.selection.image_identity==candidate_id && selected.selection.parent_identity==source_id &&
+        session.read(handle,0,100)==contents && pinned.read("data",0,100)==contents &&
+        backing->stable==before && after_size<before_size,
+        "indexed compacted selection lost an owned handle or altered its source");
+    session.cleanup(handle,false);
+    session.close(handle);
+  }
+
+  const NativeVolumeImageResolver resolve=[&](const auto& id)->std::shared_ptr<StoreByteIo> {
+    if(id==source_id)return backing;
+    if(id==candidate_id)return candidate;
+    throw std::runtime_error("unexpected indexed resolver identity");
+  };
+  auto reopened=NativeFileSession::resume_volume(head,volume,2,resolve,raw);
+  require(reopened.snapshot().read("data",0,100)==contents &&
+      reopened.volume_info().selection.image_identity==candidate_id,
+      "indexed managed reopen did not select the durable compacted image");
+  auto old=NativeFilesystemSnapshot::open_image(backing,indexed);
+  auto newer=NativeFilesystemSnapshot::open_image(candidate,indexed);
+  // The live reopened writer must retire before the candidate can be leased
+  // again. Move it into a short scope and retain only immutable snapshots.
+  {auto closing=std::move(reopened);}
+  unsigned previous=0,advanced=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<4;++cut) {
+    auto torn=image(old_head,4096);
+    auto owner=NativeVolumeHeadWriter::resume(torn,volume,1,old);
+    torn->failure=mode;torn->fail_at=torn->calls+cut;
+    refuses(Error::storage_failure,[&]{(void)owner.publish_compacted(old,newer);});
+    require(owner.poisoned(),"failed indexed head publication retained write authority");
+    unsigned resolutions=0;
+    const auto observed=NativeVolumeHeadView::open(image(torn->stable,4096),volume,[&](const auto& id) {
+      ++resolutions;return resolve(id);
+    });
+    require(resolutions==1 && observed.filesystem().read("data",0,100)==contents,
+        "indexed interrupted head selected fallback or wrong bytes");
+    const auto selection=observed.info().selection;
+    if(selection.epoch==1 && selection.image_identity==source_id)++previous;
+    else if(selection.epoch==2 && selection.image_identity==candidate_id)++advanced;
+    else throw std::runtime_error("indexed interrupted head used a partial selection");
+  }
+  require(previous && advanced,"indexed head fault sweep missed a selection");
+  std::cout<<"indexed_managed_compaction source_bytes="<<before_size<<" target_bytes="<<after_size
+      <<" head_faults="<<previous+advanced<<" previous="<<previous<<" advanced="<<advanced<<'\n';
+}
+
 void verify_recovered_batch(const NativeFilesystemSnapshot& snapshot,bool committed) {
   using Error=NativeFsErrorCode;
   require(snapshot.sequence()==(committed?3U:2U) &&
@@ -721,6 +835,7 @@ void indexed_transaction_recovery() {
 
 int main() {
   try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
-    indexed_large_retirement();indexed_transaction_recovery(); }
+    indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();
+    indexed_managed_handoff();indexed_transaction_recovery(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

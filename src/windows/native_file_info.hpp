@@ -4,7 +4,9 @@
 namespace flitzfs {
 // Explicit cache/reservation presentation, NEVER measured compressed or host
 // allocation. A declaration is not backing/cache/client qualification.
-enum class NativeFileInfoAllocation {unavailable,native_reserved_cache};
+enum class NativeFileInfoAllocation {unavailable,native_reserved_cache,indexed_reserved_cache};
+std::uint64_t native_windows_allocation_limit(NativeFileInfoAllocation) noexcept;
+std::uint32_t native_windows_write_limit(NativeFileInfoAllocation) noexcept;
 struct NativeWindowsIoOutcome {
   NTSTATUS status=STATUS_INVALID_DEVICE_STATE;
   bool offline_required=false;

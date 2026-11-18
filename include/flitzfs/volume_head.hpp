@@ -7,7 +7,7 @@ inline constexpr std::uint64_t kVolumeHeadBytes=2*kStoreCommitUnit;
 struct NativeVolumeSelection {
   StoreIdentity volume_identity{},image_identity{},parent_identity{};
   std::uint64_t epoch=0,minimum_checkpoint=0,namespace_sequence=0,parent_checkpoint=0;
-  NativeImageStorage storage{}; // Head capability 1 is flat; capability 2 is paged.
+  NativeImageStorage storage{}; // Head capabilities 1, 2 and 3 select the three storage kinds.
   bool operator==(const NativeVolumeSelection&) const = default;
 };
 struct NativeVolumeHeadInfo {NativeVolumeSelection selection;bool degraded=false;};
@@ -18,12 +18,18 @@ class NativeVolumeHeadView final {
   // The view owns its independently verified native image; never falls back.
   static NativeVolumeHeadView open(std::shared_ptr<StoreByteIo> head,StoreIdentity expected_volume,
       const NativeVolumeImageResolver&);
+  // Read and scrub the selected indexed image, including unresolved lifetimes.
+  // This grants no permission to discard old contexts or modify the backing.
+  static NativeVolumeHeadView open_indexed_recovery(std::shared_ptr<StoreByteIo> head,
+      StoreIdentity expected_volume,const NativeVolumeImageResolver&);
   NativeVolumeHeadView(NativeVolumeHeadView&&) noexcept;
   NativeVolumeHeadView& operator=(NativeVolumeHeadView&&) noexcept;
   ~NativeVolumeHeadView();
   NativeVolumeHeadInfo info() const noexcept;
   const NativeFilesystemSnapshot& filesystem() const;
  private:
+  static NativeVolumeHeadView open_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      const NativeVolumeImageResolver&,bool indexed_recovery);
   struct Impl;explicit NativeVolumeHeadView(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };

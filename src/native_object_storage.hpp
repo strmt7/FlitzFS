@@ -58,9 +58,9 @@ class NativeObjectWriter final {
  public:
   static PagedObjectStoreWriter rebuild(const PagedObjectStoreSnapshot& source,
       std::shared_ptr<StoreByteIo> target,StoreIdentity id,std::span<const std::byte> root,
-      StoreCompressionOptions compression,bool reencode) {
+      StoreCompressionOptions compression,bool reencode,std::size_t identity_offset=40) {
     return PagedObjectStoreWriter::rebuild_replacing(source,std::move(target),id,source.limits(),
-        compression,1,root,reencode);
+        compression,1,root,reencode,identity_offset);
   }
   NativeObjectWriter(ObjectStoreWriter value):value_(std::move(value)){}
   NativeObjectWriter(PagedObjectStoreWriter value):value_(std::move(value)){}
@@ -68,10 +68,11 @@ class NativeObjectWriter final {
   PagedObjectStoreWriter* paged_if() noexcept {return std::get_if<PagedObjectStoreWriter>(&value_);}
   const PagedObjectStoreWriter* paged_if() const noexcept {return std::get_if<PagedObjectStoreWriter>(&value_);}
   PagedObjectStoreWriter::Rewrite prepare_paged_rebuild(std::shared_ptr<StoreByteIo> target,
-      StoreIdentity id,std::span<const std::byte> root,StoreCompressionOptions compression,bool reencode) const {
+      StoreIdentity id,std::span<const std::byte> root,StoreCompressionOptions compression,bool reencode,
+      std::size_t identity_offset=40) const {
     const auto* source=paged_if();
     if(!source)throw NativeFsError(NativeFsErrorCode::invalid_operation,"staged paged rebuild needs paged storage");
-    return source->prepare_rebuild_replacing(std::move(target),id,compression,root,reencode);
+    return source->prepare_rebuild_replacing(std::move(target),id,compression,root,reencode,identity_offset);
   }
   const ObjectStoreWriter* flat_if() const noexcept {return std::get_if<ObjectStoreWriter>(&value_);}
   bool poisoned() const noexcept {
@@ -89,6 +90,9 @@ class NativeObjectWriter final {
   }
   std::uint64_t physical_end_for_staging() const noexcept {
     const auto* paged=paged_if();return paged?paged->physical_end_for_staging():0;
+  }
+  std::uint64_t paged_append_floor_for_staging() const noexcept {
+    const auto* paged=paged_if();return paged?paged->append_floor_for_staging():0;
   }
   StoreCommitInfo commit_replicated(std::span<const StoreMutation> changes,bool directory_indexes=false,bool shared_bases=false) {
     if(auto* flat=std::get_if<ObjectStoreWriter>(&value_))return flat->commit_replicated(changes);

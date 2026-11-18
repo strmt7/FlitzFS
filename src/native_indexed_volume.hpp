@@ -4,6 +4,7 @@
 
 namespace flitzfs::detail {
 
+inline constexpr std::size_t kIndexedVolumeIdentityOffset=72;
 struct IndexedVolumeRoot {
   StoreIdentity identity{};
   std::uint64_t sequence=0,next_inode=2,next_extent=1;
@@ -32,6 +33,7 @@ std::vector<std::byte> encode_indexed_inode(const IndexedInodeInput&,const Index
 IndexedInodeInput decode_indexed_inode(std::span<const std::byte>,std::uint64_t,
     const IndexedVolumeRoot&);
 bool indexed_volume_root(std::span<const std::byte>) noexcept;
+std::vector<std::byte> rebind_indexed_volume_root(IndexedVolumeRoot,StoreIdentity);
 NativeInodeAllocationInfo indexed_inode_allocation(const IndexedInodeInput&) noexcept;
 std::optional<NativeBasicMetadata> updated_automatic_basic(const std::optional<NativeBasicMetadata>&,
     bool directory,const NativeAutomaticMetadata&);
@@ -77,6 +79,7 @@ class IndexedVolumeView final {
   std::vector<NativeFileInfo> list_all(std::uint64_t directory) const;
   std::vector<std::byte> read(const IndexedInodeInput&,std::uint64_t offset,std::uint32_t bytes) const;
   void verify_all() const;
+  void verify_equivalent(const IndexedVolumeView& target) const;
 
  private:
   friend class IndexedVolumeBuilder;

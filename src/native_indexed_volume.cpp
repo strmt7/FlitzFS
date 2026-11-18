@@ -89,7 +89,7 @@ IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   if(root.format==2) {
     root.active_lifetimes=get(bytes,96);root.detached_inodes=get(bytes,104);root.retiring_inodes=get(bytes,112);
   }
-  std::copy_n(bytes.begin()+72,16,root.identity.begin());
+  std::copy_n(bytes.begin()+kIndexedVolumeIdentityOffset,16,root.identity.begin());
   root.sequence=get(bytes,16);root.next_inode=get(bytes,24);root.next_extent=get(bytes,32);
   root.inodes=get(bytes,40);root.extents=get(bytes,48);root.charged_extents=get(bytes,56);
   root.workload={get(bytes,12,4)==1,get(bytes,64)};
@@ -104,7 +104,7 @@ Bytes encode_root(const IndexedVolumeRoot& root) {
   put(bytes,16,root.sequence);put(bytes,24,root.next_inode);put(bytes,32,root.next_extent);
   put(bytes,40,root.inodes);put(bytes,48,root.extents);put(bytes,56,root.charged_extents);
   put(bytes,64,root.workload.committed_input_bytes);
-  std::copy(root.identity.begin(),root.identity.end(),bytes.begin()+72);
+  std::copy(root.identity.begin(),root.identity.end(),bytes.begin()+kIndexedVolumeIdentityOffset);
   put(bytes,88,kNativeExtentBytes,4);
   return bytes;
 }
@@ -959,6 +959,11 @@ std::optional<NativeBasicMetadata> updated_automatic_basic(const std::optional<N
 }
 
 bool indexed_volume_root(std::span<const std::byte> bytes) noexcept {return magic(bytes,root_magic);}
+Bytes rebind_indexed_volume_root(IndexedVolumeRoot root,StoreIdentity identity) {
+  root.identity=identity;
+  validate_header_fields(root);
+  return encode_root(root);
+}
 IndexedVolumeView::IndexedVolumeView(const PagedObjectStoreSnapshot& store,std::span<const std::byte> root)
     :IndexedVolumeView(store,decode_root(root)) {}
 IndexedVolumeView::IndexedVolumeView(const PagedObjectStoreSnapshot& store,IndexedVolumeRoot root)
@@ -1153,6 +1158,27 @@ void IndexedVolumeView::verify_inventory(bool published) const {
     fail(Code::corrupt,"indexed volume inventory mismatch");
 }
 void IndexedVolumeView::verify_all() const {verify_inventory(true);}
+
+void IndexedVolumeView::verify_equivalent(const IndexedVolumeView& target) const {
+  auto rebound=root_;
+  rebound.identity=target.root_.identity;
+  if(rebound!=target.root_)fail(Code::invalid_operation,"indexed handoff changes the native root");
+  std::uint64_t after=0;
+  for(;;) {
+    const auto left=store_.list_page(after,64);
+    const auto right=target.store_.list_page(after,64);
+    if(left.size()!=right.size())fail(Code::invalid_operation,"indexed handoff changes the inventory");
+    if(left.empty())return;
+    for(std::size_t i=0;i<left.size();++i) {
+      const auto& a=left[i];const auto& b=right[i];
+      if(a.id!=b.id || a.generation!=b.generation || a.logical_bytes!=b.logical_bytes)
+        fail(Code::invalid_operation,"indexed handoff changes object identity or length");
+      if(a.id!=namespace_object && store_.read(a.id)!=target.store_.read(b.id))
+        fail(Code::invalid_operation,"indexed handoff changes logical object bytes");
+    }
+    after=left.back().id;
+  }
+}
 
 IndexedVolumeBuilder::IndexedVolumeBuilder(PagedObjectStoreWriter output,std::uint64_t sequence,
     std::uint64_t next_inode,NativeWorkloadInfo workload,std::uint32_t format):writer_(std::move(output)) {

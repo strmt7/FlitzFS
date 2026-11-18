@@ -8,6 +8,13 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The [indexed managed head](MANAGED_PAGED_VOLUMES.md) binds the selected image
+kind and validates the checkpoint and namespace sequence independently.
+Compaction keeps the original image available to its existing readers. The
+indexed WinFsp restart that retires stale lifetimes requires prior dispatcher
+and context closure. Its free-space report accounts for occupied append tails
+left beyond the selected checkpoint.
+
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now admits and
 retains backing for both the helper and WinFsp composition. Explicit controller
 join precedes CPU inspection; a surviving reader/store retains the provider

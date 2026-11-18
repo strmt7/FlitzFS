@@ -297,6 +297,7 @@ class NativeFilesystemSnapshot final {
   friend class NativeFileSession;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&) const;
+  bool matches_indexed_checkpoint(const NativeFilesystemSnapshot&) const noexcept;
   struct Impl;
   static NativeFilesystemSnapshot open_storage(detail::NativeObjectSnapshot);
   explicit NativeFilesystemSnapshot(std::unique_ptr<Impl>) noexcept;
@@ -549,6 +550,7 @@ class NativeFilesystemWriter final {
   NativeDirectoryRecordPage inspect_directory_page(std::uint64_t directory,
       std::string_view after,std::size_t maximum) const;
   bool supports_file_contexts() const noexcept;
+  std::uint64_t indexed_append_floor() const noexcept;
   using InodeAction=detail::NativeInodeAction;
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},

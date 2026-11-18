@@ -42,6 +42,14 @@ class WinFspNativeWritable final {
       std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
       PagedStoreLimits,StoreCompressionOptions foreground={},
       std::shared_ptr<StoreByteIo> empty_advice={});
+  // Capability-3 indexed head with ordinary Windows SDK callbacks.
+  static std::unique_ptr<WinFspNativeWritable> create_managed_indexed(
+      std::shared_ptr<StoreByteIo> empty_head,StoreIdentity volume_identity,
+      std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
+      PagedStoreLimits,StoreCompressionOptions foreground={});
+  static std::unique_ptr<WinFspNativeWritable> resume_indexed_retired(
+      std::shared_ptr<StoreByteIo> head,StoreIdentity volume_identity,std::uint64_t expected_epoch,
+      const NativeVolumeImageResolver&,StoreCompressionOptions foreground={});
   // Qualified exact head epoch/resolver after actual previous-owner retirement.
   // Retains supported flat/paged representations and stored root metadata/ACLs.
   static std::unique_ptr<WinFspNativeWritable> resume_managed_retired(
@@ -96,6 +104,9 @@ class WinFspNativeWritable final {
   NativeSessionStats stats() const;
   NativeFilesystemSnapshot snapshot() const;
  private:
+  static std::unique_ptr<WinFspNativeWritable> resume_managed_impl(std::shared_ptr<StoreByteIo>,
+      StoreIdentity,std::uint64_t,const NativeVolumeImageResolver&,StoreCompressionOptions,
+      std::shared_ptr<StoreByteIo>,std::uint64_t,bool closed_indexed);
   struct Impl;
   std::unique_ptr<Impl> impl_;
   explicit WinFspNativeWritable(std::unique_ptr<Impl>) noexcept;
