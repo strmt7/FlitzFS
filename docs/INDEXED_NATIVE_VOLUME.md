@@ -5,8 +5,9 @@ extent records on demand. The native snapshot API provides lookup, directory
 pages, metadata and file reads. The native writer can initialize a new mirrored
 image and resume a fully verified indexed image. Its path transactions update
 the checked index and changed records together. New volumes use capability 2,
-which supports file lifetimes through `NativeFileSession`. The first useful
-shared-base publication promotes the volume to capability 3. The managed head and
+which supports file lifetimes through `NativeFileSession`. Useful shared-base
+publication selects capability 3 for aligned patches or capability 4 when a
+member copies ranges from its base. The managed head and
 writable WinFsp SDK adapter can select indexed images. The owned mounted
 provider passed an earlier indexed external-client fixture on disposable
 Windows Server 2025. Current Windows 11 client and mounted shared-base
@@ -18,13 +19,14 @@ qualification remain open.
 
 Object 1 is the little-endian native root. Capability 1 has 96 bytes.
 Capability 2 has 120 bytes and appends three lifetime counts. Capability 3
-has 136 bytes and adds the shared-base and member counts. Readers accept
-all three root capabilities and check each against its exact length.
+has 136 bytes and adds the shared-base and member counts. Capability 4 preserves
+the 136-byte root layout and permits anchor-copy members. Readers accept all four
+capabilities and check each against its exact length.
 
 | Offset | Bytes | Value |
 | --- | --- | --- |
 | 0 | 8 | `FLTXPV01` |
-| 8 | 4 | Indexed native capability, 1, 2 or 3 |
+| 8 | 4 | Indexed native capability, 1 through 4 |
 | 12 | 4 | Workload accounting flag, 0 or 1 |
 | 16 | 8 | Native namespace sequence |
 | 24, 32 | 8 each | Next inode ID and next extent ordinal |
@@ -32,8 +34,8 @@ all three root capabilities and check each against its exact length.
 | 64 | 8 | Committed input bytes |
 | 72 | 16 | Exact paged store identity |
 | 88, 92 | 4 each | Extent length 65,536 and zero reserved field |
-| 96, 104, 112 | 8 each | Capability 2 and 3 counts for active lifetime records, detached inodes and retired inodes |
-| 120, 128 | 8 each | Capability 3 shared-base and member counts |
+| 96, 104, 112 | 8 each | Capability 2 and later counts for active lifetime records, detached inodes and retired inodes |
+| 120, 128 | 8 each | Capability 3 and later shared-base and member counts |
 
 The native namespace sequence preserves file provenance through a copy.
 It is independent of the new object's publication generation. A reader
@@ -63,7 +65,7 @@ independent CPU decoders and mirrored-payload verification.
 
 ## Shared-base extents
 
-Capability 3 leaves the ordinary extent frame intact. A grouped member has
+Capabilities 3 and 4 keep the ordinary extent frame. A grouped member has
 the same 24-byte owner and logical-block header with magic `FLTXPD01`,
 followed by the existing checked [shared-base delta](SHARED_BASE_GROUPS.md#exact-member-bytes).
 A base object uses the data-object allocator and starts with `FLTXPA01`,
@@ -86,6 +88,29 @@ reduction. A declined candidate performs no storage writes. An existing
 immutable anchor can accept more members in bounded transactions without
 rewriting the group.
 
+### Anchor-copy members
+
+Capability 4 supports `FLTXGM02` after the ordinary 24-byte grouped extent
+header. The 128-byte member header uses version 2 and the same decoded length,
+base ID, generation and digest fields as version 1. Offset 96 holds the
+instruction count. Offset 100 holds the exact instruction payload length.
+Offsets 104–127 are zero.
+
+Instructions append bytes in output order. Each starts with a little-endian
+32-bit field. The low 31 bits give the positive byte count. A clear high bit
+is followed by that many literal bytes. A set high bit is followed by a
+little-endian 32-bit offset into the immutable base. A copy must fit wholly
+within the base extent. All instructions together produce exactly 65,536 bytes
+and consume the entire payload. The CPU reader checks both decoded digests.
+
+The optimizer compares the copy representation with aligned patches and uses
+the smaller private frame to bound the complete packed image. It builds one
+bounded index for the selected base and compares candidate matches against its
+actual bytes. The root capability is raised in the same transaction as the new
+member frames and remains raised for subsequent writes and copies. Capability 4
+volumes may contain version 1 members. Earlier capabilities reject version 2
+members, and readers limited to capability 3 refuse a capability 4 root.
+
 An edit or removal detaches its old reference in the same COW transaction
 as the file change. Ordered index ranks determine whether an anchor has
 surviving references without scanning its members. The last removal
@@ -107,7 +132,11 @@ past sparse address ranges and unlinked or pending inodes without a full
 directory or object inventory. Each sampling opportunity reads at most one
 extent and its dependency. The controller keeps fingerprints for one scan
 window and a bounded set of representatives from older windows. Eight aligned
-bands nominate candidates. Zero-filled bands contribute no similarity signal.
+bands and up to four offset-independent features nominate candidates.
+Offset-independent features pair minima from distinct fingerprint buckets
+over 16-byte windows. The feature scan excludes trailing zero padding and
+zero window fingerprints. Candidate features guide selection. Exact readback
+and the full packed-image bound govern publication.
 
 A candidate carries the sampled object identity and generation into group
 preparation. An intervening selected change invalidates the candidate before

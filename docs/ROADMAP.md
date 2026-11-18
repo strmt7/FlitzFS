@@ -67,12 +67,13 @@ owned worker. Connecting this same path to the Explorer-facing WinFsp adapter,
 scalable persistent coherence, useful GPU work and automatic reclamation remain.
 
 [Automatic group maintenance](AUTOMATIC_GROUP_MAINTENANCE.md) now discovers
-aligned content families, extends existing groups, reuses unchanged features
+aligned and shifted content families, extends existing groups, reuses unchanged features
 and suppresses repeated outcomes under supplied resource/foreground observations.
 Measured elapsed work paces later opportunities; selected edits are reconciled.
-This bounded CPU controller now has the separate Windows helper integration
-above. Persistent scalable learning, stronger representations, mounted
-opportunities and useful actual AMD work remain required.
+The indexed controller verified protected anchor-copy members through Windows
+SDK callbacks. Persistent sparse discovery, mounted operation and useful
+collective AMD work remain required.
+[Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json)
 
 [Managed paged volumes](MANAGED_PAGED_VOLUMES.md) now join protected shared-base
 data, typed volume heads, file contexts, compaction/recompression and input-funded

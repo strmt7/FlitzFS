@@ -1,5 +1,6 @@
 #pragma once
 #include "flitzfs/native_filesystem.hpp"
+#include "native_group_codec.hpp"
 #include "native_name_index.hpp"
 
 namespace flitzfs::detail {
@@ -79,10 +80,11 @@ class IndexedSharedBasePreparation final {
   std::optional<NativeNameIndex> index_;
   std::vector<Member> members_;
   std::vector<std::byte> base_;
+    std::optional<NativeGroupAnchorIndex> anchor_index_;
   std::size_t base_index_=0;
   std::uint64_t reusable_anchor_=0,reusable_generation_=0;
   NativeSharedBaseProgress progress_{NativeSharedBasePhase::reading_base};
-  bool invalidated_=false;
+    bool invalidated_=false,uses_anchor_copies_=false;
 };
 struct IndexedContentWatch {
   std::uint64_t& sequence;

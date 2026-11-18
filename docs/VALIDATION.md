@@ -1,5 +1,21 @@
 # Validation ledger
 
+## Shifted cross-file compression — 18 November 2026
+
+The indexed optimizer now finds common data after insertions and stores changed
+members as checked copy ranges and literals relative to a protected base. Twelve
+variants of a public 64 KiB source sample with controlled prefix edits occupied
+592 KiB before grouping and 192 KiB afterward. Both figures include the complete
+compacted image with the same Zstandard level 6 settings. An independent CPU
+reader verified every version before and after grouping.
+
+The raw and AddressSanitizer lanes each recovered from 528 modeled interruptions
+of the format promotion. They verified the surrounding files and subsequent
+writes. The Windows SDK controller published a shifted group under live resource
+observations. It used 12 opportunities, with a largest measured quantum of
+0.753 ms, and returned to its starting count of 147 handles after shutdown.
+[Source, fixture and execution evidence](evidence/shifted-indexed-groups-2026-11-18.json)
+
 ## AMD topology lifetime during worker setup — 18 November 2026
 
 The uniform LZ4 worker now keeps one D3D12 device across the two HIP identity

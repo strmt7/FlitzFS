@@ -532,9 +532,10 @@ void read_only_memory() {
   {auto backing=MemoryVolumeBacking::create();backing.domain->verify_resident();}
   require(MemoryVolumeDomain::cleanup_healthy(),"sealed reader did not retire the provider");
 }
-void live_memory_composition(NativeImageKind kind=NativeImageKind::paged) {
+void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool shifted=false) {
   Provider p;Provider::active=&p;std::optional<NativeVolumeHeadView> surviving;
   const auto first=data(kNativeExtentBytes,889);auto second=first;second[999]^=std::byte{7};
+  if(shifted)std::rotate(second.begin(),second.begin()+201,second.end());
   {
     WinFspMemoryVolume volume(p.api(),plan(),kind);
     await([&]{const auto v=volume.view();return v.state==SessionState::running || v.retired;},5000,"memory controller start deadline");
@@ -553,7 +554,7 @@ void live_memory_composition(NativeImageKind kind=NativeImageKind::paged) {
         "memory controller did not create managed paged storage");
     require(cpu.filesystem().read("f0",0,first.size())==first && cpu.filesystem().read("f1",0,second.size())==second,
         "memory controller lost accepted data after stop");
-    std::cout<<"live_memory indexed="<<(kind==NativeImageKind::indexed_paged)<<" domain="<<layout.domain_capacity
+    std::cout<<"live_memory indexed="<<(kind==NativeImageKind::indexed_paged)<<" shifted="<<shifted<<" domain="<<layout.domain_capacity
         <<" image="<<layout.image_capacity<<" groups="<<observed.maintenance.published_groups
         <<" sampled="<<observed.maintenance.sampled_extents<<" attempts="<<observed.maintenance.attempted_groups
         <<" phase="<<static_cast<unsigned>(observed.maintenance.phase)<<" deferral="<<static_cast<unsigned>(observed.maintenance.deferral)
@@ -713,10 +714,11 @@ int main(int argc,char** argv){try {
   // PDH may initialize process-wide native caches. Warm that same native path
   // before checking ownership balance; never count its caches as our handles.
   const bool lifetime_only=argc==2 && std::string_view(argv[1])=="--owned-lifetime";
+  const bool shifted_grouping=argc==2 && std::string_view(argv[1])=="--live-indexed-shifted-grouping";
   {WindowsMaintenanceHost warm;warm.observe(false);}
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
-  if(lifetime_only || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
+  if(lifetime_only || shifted_grouping || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-compaction" || std::string_view(argv[1])=="--live-indexed-grouping")))
     native_rng_initialization();
@@ -743,6 +745,8 @@ int main(int argc,char** argv){try {
     live_indexed_compaction();
   }else if(argc==2 && std::string_view(argv[1])=="--live-indexed-grouping") {
     live_memory_composition(NativeImageKind::indexed_paged);
+  }else if(shifted_grouping) {
+    live_memory_composition(NativeImageKind::indexed_paged,true);
   }else if(argc==2 && std::string_view(argv[1])=="--memory-handles") {
     for(unsigned i=0;i<3;++i){memory_backing_ownership();std::cout<<"backing_handles cycle="<<i<<" count="<<handle_count()<<'\n';}
   }else throw std::invalid_argument("Unknown owned controller qualification mode");

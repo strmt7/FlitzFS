@@ -20,16 +20,18 @@ work. Weak ownership does not make destruction concurrent with callbacks safe.
 
 Each scan advances over one cached native extent at a time. A changed extent is
 CPU-decoded and checked before its full digest and eight positional 8-KiB band
-digests are recorded. A sparse inverted index maps matching bands to candidates;
-there is no dense all-pairs similarity matrix. Larger buckets are considered
-first, with deterministically ordered, memory-admitted member windows.
+digests are recorded. Indexed volumes also record up to four offset-independent
+features for matching content after insertions and removals. The sparse inverted
+index maps matching features to candidates. Larger buckets are considered first,
+with deterministically ordered, memory-admitted member windows.
 
 Band matches are advice only. The existing shared-base encoder independently
 checks content and accepts a publication only when its complete prospective
 compacted upper size is smaller than the old lower size. This includes shared
-anchors, both payload copies, indexes, padding and roots. Hash collisions cannot
-authorize incorrect decoding. Aligned bands miss shifted or weakly related
-content; this baseline is not an optimal clustering or compression algorithm.
+anchors, both payload copies, indexes, padding and roots. The indexed writer
+can store source-copy instructions for shifted matches and independently
+decodes each new member before publication.
+[Indexed anchor-copy format](INDEXED_NATIVE_VOLUME.md#anchor-copy-members)
 
 Physical revisions protect selected work against edits. Separate volatile
 content revisions allow feature reuse across representation-only rewrites.
@@ -50,8 +52,9 @@ buffers and indexes. Resource totals are supplied by the host; no machine's
 installed RAM is a product assumption.
 
 The default policy reserves 1/16 of reported physical and commit totals, then
-admits at most 1/64 of their smaller remaining headroom for the conservative
-scratch estimate: sixteen 64-KiB extents plus eight extents per group member.
+admits at most 1/64 of their smaller remaining headroom. The conservative
+scratch estimate includes sixteen 64-KiB extents plus eight extents per group
+member and a 64-KiB base index for indexed volumes.
 Fewer than two admitted members defers work. Current native limits still bound
 the index and group size; these are prototype limits, not intended product caps.
 These estimates and observations are not an OS memory reservation.

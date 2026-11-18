@@ -1,5 +1,6 @@
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/native_session.hpp"
+#include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
 #include <iostream>
 namespace {
@@ -21,10 +22,10 @@ struct Clock {
 };
 struct Fixture {
   std::shared_ptr<Ram> head,image;std::optional<NativeFileSession> session;Clock clock;
-  explicit Fixture(std::uint32_t unit,unsigned count=8,bool indexed=false):head(ram(unit)),image(ram(unit)) {
-    const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
-    if(indexed)session.emplace(NativeFileSession::create_indexed_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},raw));
-    else session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},raw));
+  explicit Fixture(std::uint32_t unit,unsigned count=8,bool indexed=false,
+      StoreCompressionOptions compression={StoreCompressionMode::raw,1,false}):head(ram(unit)),image(ram(unit)) {
+    if(indexed)session.emplace(NativeFileSession::create_indexed_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
+    else session.emplace(NativeFileSession::create_paged_volume(head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
     for(unsigned i=0;i<count;++i)put(*session,"f"+std::to_string(i),family(i));
   }
   auto step(NativeGroupMaintenance& controller){const auto observed=clock.next();return controller.advance(observed,clock.now);}
@@ -33,6 +34,51 @@ struct Fixture {
   void verify(unsigned count){const auto snapshot=session->snapshot();for(unsigned i=0;i<count;++i)
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"automatic grouping changed bytes");snapshot.verify_all();}
 };
+void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool corpus) {
+  constexpr unsigned count=12;
+  constexpr std::uint32_t unit=4096;
+  Fixture f(unit,0,true,compression);
+  std::vector<Bytes> originals;
+  for(unsigned i=0;i<count;++i) {
+    auto input=base;
+    if(i) {
+      const auto prefix=7*i+1;
+      std::copy_n(base.begin(),base.size()-prefix,input.begin()+prefix);
+      std::fill_n(input.begin(),prefix,static_cast<std::byte>(i));
+    }
+    put(*f.session,"shifted"+std::to_string(i),input);
+    originals.push_back(std::move(input));
+  }
+  const auto before=f.session->snapshot();
+  const auto workload=f.session->workload_info();
+  const NativeImageStorage indexed{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  const auto baseline_source=image(f.image->stable,unit);
+  auto baseline=ram(unit);
+  auto copied=NativeFilesystemWriter::compact(NativeFilesystemSnapshot::open_image(baseline_source,indexed),
+      baseline,id(2),compression);
+  copied.snapshot().verify_all();
+  NativeGroupMaintenance controller(*f.session);
+  const auto result=f.finish(controller);
+  const auto after=f.session->snapshot();
+  require(result.published_groups==1 && after.shared_base_info().members==count &&
+      after.shared_base_info().bases==1 && f.session->workload_info()==workload,"shifted extents were not grouped");
+  const auto root=PagedObjectStoreSnapshot::open(f.image,{kStoreMaxPhysicalBytes}).read(1);
+  require(root[8]==std::byte{4},"shifted group did not promote the indexed capability");
+  controller.cancel();
+  f.session.reset();
+  auto compacted=ram(unit);
+  (void)NativeFilesystemWriter::compact(after,compacted,id(3),compression);
+  const auto reopened=NativeFilesystemSnapshot::open_image(compacted,indexed);
+  reopened.verify_all();
+  for(unsigned i=0;i<count;++i) {
+    const auto path="shifted"+std::to_string(i);
+    require(reopened.read(path,0,kNativeExtentBytes)==originals[i] &&
+        before.read(path,0,kNativeExtentBytes)==originals[i],"shifted group changed current or prior bytes");
+  }
+  require(compacted->extent()<baseline->extent(),"complete shifted image did not shrink");
+  std::cout<<"shifted_indexed corpus="<<corpus<<" members="<<count<<" before_bytes="<<baseline->extent()
+      <<" after_bytes="<<compacted->extent()<<" minimum_compacted_saved="<<result.minimum_compacted_bytes_saved<<'\n';
+}
 void automatic_and_extension(std::uint32_t unit,bool indexed=false) {
   Fixture f(unit,8,indexed);const auto workload=f.session->workload_info();NativeGroupMaintenance original(*f.session);
   rejects([&]{NativeGroupMaintenance duplicate(*f.session);},"duplicate controller admitted");
@@ -217,6 +263,13 @@ int main(int argc,char** argv){try{
   if(argc==2 && std::string_view(argv[1])=="--indexed") {
     for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
     indexed_scan_windows();indexed_stale_binding_and_padding();
+    shifted_indexed_family(data(kNativeExtentBytes,714),{StoreCompressionMode::raw,1,false},false);
+  } else if(argc==3 && std::string_view(argv[1])=="--shifted-corpus") {
+    auto input=ReadOnlyFile::open(argv[2]);
+    require(input.size()==kNativeExtentBytes,"expected one extent of public source data");
+    Bytes bytes(kNativeExtentBytes);
+    input.read_exact_at(0,bytes.data(),bytes.size());
+    shifted_indexed_family(bytes,{StoreCompressionMode::automatic,6,true},true);
   } else if(argc==1) {
     for(auto unit:{4096U,65536U}){automatic_and_extension(unit);publication_faults(unit);}
     admission();negative_cache_and_incompressible();ownership_and_pressure();foreground_change_during_preparation();

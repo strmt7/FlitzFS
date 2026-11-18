@@ -1,0 +1,267 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "source_base": "daeeac39f350acfccddbba93e2f13aba276f4f9a",
+  "source_tree": "8c6a00da221579ed00aa2917641b7e23de7e9f1a",
+  "tested_sources": [
+    {
+      "path": "src/native_group_codec.cpp",
+      "git_blob": "f21a47066fa8404812845f123a116c547399e92e",
+      "sha256": "4bfa7dc5a308e829d0a946c19da18da4ce72c64cfaf35d9ec889cc42fe4dbe85"
+    },
+    {
+      "path": "src/native_group_codec.hpp",
+      "git_blob": "0e3e39317cce2abd3d694be88852ed7e7e1da759",
+      "sha256": "aec0620444cfc961ac191ef77d05b16dde4256ecef4d3b74af6b99d1294ebefa"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "c9f42fece472465a472393bc1858655526e603a1",
+      "sha256": "bc1676805315d361bc0597841e14d83b870f926c4ddd717901056d48adf384b3"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "6a7821c4a917196f86676f097fc8dd8af0195f9b",
+      "sha256": "4421705b3bc753fe4fddd0496921ad37127594bbf8399f502a600c4babbebce5"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "348b02912f0562cda43766fe416a806aa1d9b201",
+      "sha256": "98a63c9d28008e237bda1367aae184d3d8a07a0dfd5f1887ab7b77ae8821916a"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "33b10d010a59baf19c2152ea2ea4cb76b889be83",
+      "sha256": "bcd2bcbb037cceccfd27f7741dbb035bef5667b93bff4e9fd0448bd8e04871fb"
+    },
+    {
+      "path": "tests/test_native_shared_base.cpp",
+      "git_blob": "12eabe13875abedc1915583ff195e3ec17a7d9f9",
+      "sha256": "1f9583640d16fee367ad36d0bd85be3b715fcb7475ce13c206fcc5970b316992"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "869bf6c9f24cf127b0cbcd4001fcb7fa32e5e69c",
+      "sha256": "099948991407065b9b89ad840b238448f35ec91cfe3e5f98571b1dd0260b4d07"
+    }
+  ],
+  "navigation": {
+    "provider": "0.2.43",
+    "git_commit": "daeeac39f350acfccddbba93e2f13aba276f4f9a",
+    "receipt_sha256": "0c31a9dfdbae81a8ba5f78f491b5c9bcf52ad49efdcc4a2726ef27f67e7ede27",
+    "native_search_sha256": "51816fd6a17d2c57e5145a48d6d287389ce3dce70dd29370ba32c819e9fa79a0"
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "cf59ba93945e43cf7b1db73cb34c3133cb0f68bb8592fc5563e85eb979d39324",
+    "sources": [
+      {
+        "url": "https://www.mdpi.com/2073-431X/15/9/607",
+        "http_status": 200,
+        "capture_sha256": "a42abfa4fc40374fc875b30c3fdadd45740f2514a5a93438c90cb629d42eef21",
+        "markdown_sha256": "a1d136fb3ce89f619895c3a6f3867c608c3f9b10964b8040fd338f77e8d9e146"
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/huang",
+        "http_status": 200,
+        "capture_sha256": "724d3527865965c3d89678431c98cfe18bcfdf3d4edc94b20d8b7980b3509d4e",
+        "markdown_sha256": "b271b38f1feb88acd780ae11d756c7f3723fecb288cfe5e7803fed9c5d93767d"
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast25/presentation/wu",
+        "http_status": 200,
+        "capture_sha256": "aa07409bb102bd88673d7d745a9b5f4bde15ff05194591c37b95505460a64b72",
+        "markdown_sha256": "eccac3054eae2930a74adc32e13bfad7a579f34e7a649c37d7dd451acedf84f9"
+      }
+    ]
+  },
+  "corrected_fixtures": {
+    "initial_raw_build": {
+      "run": "c786f44069b14cd5a35df5ebf101f5c2",
+      "exit": 1,
+      "seconds": 22.742195,
+      "retired": true,
+      "peak_job_commit_bytes": 423718912,
+      "receipt_sha256": "a1a4ea935bfb5c34cf8516ef55a7a5dd5b973891fcab9bd23657eae6876fe832",
+      "stdout_sha256": "dd727e6541614a5054965657d68022221840977cd8871ad69947034e8e61bbc3"
+    },
+    "initial_asan_build": {
+      "run": "e6c4016a441c4ed59a21907746d21db2",
+      "exit": 1,
+      "seconds": 22.471339,
+      "retired": true,
+      "peak_job_commit_bytes": 417218560,
+      "receipt_sha256": "a2b5786da035e5f8a859c0a0f00e30eb3ea8b594bfa9e25ed85e429632a388bb",
+      "stdout_sha256": "c59f33c0156f9dbca813ef01b1e0835ed2023203956c5a1f2c4dac1eccfccd7e"
+    },
+    "build_failure": "The new test used an incorrect image-kind enumerator. It was corrected to indexed_paged.",
+    "initial_public_corpus": {
+      "run": "d3bfd399b47b460ba952de76d7b399b8",
+      "exit": 1,
+      "seconds": 0.067535,
+      "retired": true,
+      "peak_job_commit_bytes": 8593408,
+      "receipt_sha256": "d909d9dee44fb69cc0cb7798d752c0e0fa799f9af8b8b606d312841bb0819f1f",
+      "stdout_sha256": "3c3c7a5f0d0f4d8d1330f80c56c3d63086e806592cafe5293c772f502737d47e"
+    },
+    "compact_failure": "The native compactor refused the still-owned source. The fixture now copies a baseline and closes the source writer before compacting the final checkpoint."
+  },
+  "shifted_publication_faults": [
+    {
+      "execution": {
+        "run": "7dc7e8ca2d9b47fab6707373689a2ffb",
+        "exit": 8,
+        "seconds": 24.80743,
+        "retired": true,
+        "peak_job_commit_bytes": 106438656,
+        "receipt_sha256": "304bc2a84ab20e51aa68276ffcaed4b22e60748fcc0d9b50fcb52a1bc307d81a",
+        "stdout_sha256": "177e19b22508ea572ae50f49e05d2df78f08bd0c0a2258f59a5a871563579888"
+      },
+      "passed_selected_checks": [
+        "1/4 Test #35: bounded_native_indexed_volume ................   Passed    9.82 sec",
+        "38: shared_base_faults indexed=1 shifted=1 unit=4096 cuts=73 modes=3 prior=211 complete=8",
+        "38: shared_base_faults indexed=1 shifted=1 unit=65536 cuts=103 modes=3 prior=301 complete=8",
+        "38: PASS: 23998 native shared-base checks; 1599 injected write/barrier cases; memory CPU only",
+        "2/4 Test #38: bounded_native_shared_bases ..................   Passed    9.96 sec"
+      ],
+      "new_cases": 528,
+      "later_corrected_failure": "The size comparison fixture attempted a compaction while the original session held the writer lease."
+    },
+    {
+      "execution": {
+        "run": "c507a6be00b24a7ca5028fda2b79b94e",
+        "exit": 8,
+        "seconds": 81.525589,
+        "retired": true,
+        "peak_job_commit_bytes": 1164730368,
+        "receipt_sha256": "6234bc4e4cc2c91e7d09b11aeeba5f0b3e6154d25c1822bddb5fbfff406fcf0d",
+        "stdout_sha256": "84ea3358a1050ba51cc105967e53e9ff7bc1610bffbf8cf5cad2c771c356f0e8"
+      },
+      "passed_selected_checks": [
+        "2/5 Test  #35: bounded_native_indexed_volume ................   Passed   33.81 sec",
+        "38: shared_base_faults indexed=1 shifted=1 unit=4096 cuts=73 modes=3 prior=211 complete=8",
+        "38: shared_base_faults indexed=1 shifted=1 unit=65536 cuts=103 modes=3 prior=301 complete=8",
+        "38: PASS: 23998 native shared-base checks; 1599 injected write/barrier cases; memory CPU only",
+        "3/5 Test  #38: bounded_native_shared_bases ..................   Passed   35.12 sec"
+      ],
+      "new_cases": 528,
+      "later_corrected_failure": "The size comparison fixture attempted a compaction while the original session held the writer lease."
+    }
+  ],
+  "synthetic_compacted": {
+    "input_bytes_per_extent": 65536,
+    "groups": 1,
+    "members": 12,
+    "backing_unit_bytes": 4096,
+    "before_bytes": 1728512,
+    "after_bytes": 294912,
+    "raw": {
+      "run": "6deef46b3f134c45971e302acf48cb67",
+      "exit": 0,
+      "seconds": 4.901969,
+      "retired": true,
+      "peak_job_commit_bytes": 106430464,
+      "receipt_sha256": "d805db8da0e67de733cc28554f89649a115f34f47c5dbcd729a7275c798ab25e",
+      "stdout_sha256": "aeb93c96414a973ec5ee10c7a9531b5515dfb2d50ddc0e21c1a017743ef3f687"
+    },
+    "raw_output": [
+      "42: shifted_indexed corpus=0 members=12 before_bytes=1728512 after_bytes=294912 minimum_compacted_saved=1433600",
+      "100% tests passed out of 2"
+    ],
+    "asan": {
+      "run": "700a5e76c1e64343b15a2d97adc8e6ad",
+      "exit": 0,
+      "seconds": 12.811786,
+      "retired": true,
+      "peak_job_commit_bytes": 574476288,
+      "receipt_sha256": "6d95b9e4543914076f7706391f49954cbf7074a602da88c48870ce654d280f2b",
+      "stdout_sha256": "6feac9a9b6fecd4ef5c4b866e4928fdf259994613cdb67ea1bb2749816e854ec"
+    },
+    "asan_output": [
+      "1/3 Test #171: windows_asan_runtime_preflight ...............   Passed    0.03 sec",
+      "42: shifted_indexed corpus=0 members=12 before_bytes=1728512 after_bytes=294912 minimum_compacted_saved=1433600",
+      "100% tests passed out of 3"
+    ],
+    "format_before": 2,
+    "format_after": 4,
+    "independent_reopened_and_prior_bytes_verified": true
+  },
+  "public_source_compacted": {
+    "input_provenance": {
+      "git_commit": "ac1547aca7cf1cd7071b43393ca61ca61848b34c",
+      "bytes": 1048576,
+      "sha256": "5efc5c798295069e2151fdd2eaf06366dc0aa2e92a93ccf178ae3f5cfb309792",
+      "files_used": 128,
+      "receipt_sha256": "ad301ebd4cef1267af3457ab2635af0f5b6665c720f29652c956ce220f62f836",
+      "construction": "First 1 MiB formed by concatenating nonempty tracked .cpp and .hpp Git blobs from include and src in git ls-tree order."
+    },
+    "test_extent_bytes": 65536,
+    "test_extent_sha256": "aaf45ea2d8bb996d559478d0ea28002e819306e56ab5d1c46fce92b4607d51af",
+    "variants": 12,
+    "construction": "Use the first extent of the previous exact public-source corpus. Each variant after the first inserts a controlled byte prefix and trims its final bytes to one extent.",
+    "compression": "The same automatic policy requiring Zstandard at level 6 for both images.",
+    "before_bytes": 606208,
+    "after_bytes": 196608,
+    "whole_image_reduction_percent": 67.567568,
+    "conservative_minimum_saved_bytes": 319488,
+    "independent_readback": true,
+    "execution": {
+      "run": "271f1ae3dfd64ff1bf70c8a678c1b4ea",
+      "exit": 0,
+      "seconds": 0.112657,
+      "retired": true,
+      "peak_job_commit_bytes": 11030528,
+      "receipt_sha256": "6da6fb55be2e768e295e11cbf169dbca87aa86872dc61252b945550ae19da250",
+      "stdout_sha256": "0c47c44a695410100177a4fabdf8ec6af6288a25e33a23877c9c30b035e010ff"
+    },
+    "output": [
+      "shifted_indexed corpus=1 members=12 before_bytes=606208 after_bytes=196608 minimum_compacted_saved=319488",
+      "PASS: 47 automatic group maintenance checks; 0 injected publication cases; model resource observations; memory CPU only"
+    ]
+  },
+  "installed_windows_callbacks": {
+    "deferred_cpu_recovery": {
+      "run": "752ff46385a54b9f8f5c861977bfbfe0",
+      "exit": 0,
+      "seconds": 0.672593,
+      "retired": true,
+      "peak_job_commit_bytes": 37965824,
+      "receipt_sha256": "1e56b9072ad5d63f579b82068d37c36f700e935f273570c6640b23642b465519",
+      "stdout_sha256": "38b6e154322e7599076ef16fe31b94c3e48dbca8ecc3d6dbfa77f4bc6aadfc9b"
+    },
+    "indexed_control": {
+      "run": "e1765566e1b24c06bfe329961d45ac46",
+      "exit": 0,
+      "seconds": 5.365242,
+      "retired": true,
+      "peak_job_commit_bytes": 12898304,
+      "receipt_sha256": "60885cac9c8c04f185970c4a028f2a8f5588e03410ab5942ab4b399bdf2aa81c",
+      "stdout_sha256": "08143cdb15d8ae3d8b0d64f7d97a07b842b75a8fa42ef76cb6acc27af739eef7"
+    },
+    "live_shifted_group": {
+      "run": "25fe4452509f4a6195dbde98ab90c951",
+      "exit": 0,
+      "seconds": 11.415563,
+      "retired": true,
+      "peak_job_commit_bytes": 11603968,
+      "receipt_sha256": "80b89bb86882c8c7231d44ab55ca114406992ae45bc85ef75f324bdd5c9e0d72",
+      "stdout_sha256": "1460205b8ae70369934784400b07b96c1cfe641e636249f5488a538a55b01e0a"
+    },
+    "output": [
+      "live_memory indexed=1 shifted=1 domain=23240245248 image=11619794944 groups=1 sampled=2 attempts=1 phase=2 deferral=0 compactions=0 quanta=12 maximum_quantum_ns=752900 disabled=0",
+      "controller_handles before=147 after=147",
+      "PASS: 32 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU",
+      "Application fixture peak commit: 10321920 bytes"
+    ],
+    "complete_quanta": 12,
+    "largest_measured_quantum_ns": 752900,
+    "process_handles_before": 147,
+    "process_handles_after": 147,
+    "live_telemetry": true,
+    "injected_dispatcher_lifecycle": true,
+    "mounted": false,
+    "gpu_executed": false
+  },
+  "scope": "Bounded CPU storage transform and automatic Windows group publication. Compacted copies include roots, alignment, anchors, and mirror copies. Injected write and barrier faults are a memory-model result. The corpus result uses controlled prefix edits and is not a general filesystem benchmark."
+}

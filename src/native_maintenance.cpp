@@ -1,5 +1,6 @@
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/native_session.hpp"
+#include "native_group_codec.hpp"
 #include "native_maintenance_source.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
@@ -13,6 +14,7 @@ namespace flitzfs {
 namespace {
 using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=NativeMaintenanceDeferral;
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
+constexpr unsigned positional_bands=8;
 std::uint64_t fraction(std::uint64_t total,std::uint64_t ppm) noexcept {
   return total/million*ppm+total%million*ppm/million;
 }
@@ -41,7 +43,11 @@ std::optional<detail::MaintenanceResources> detail::maintenance_resources(
       observed.cpu_busy_ticks>fraction(observed.cpu_total_ticks,policy.maximum_cpu_busy_ppm)};
 }
 struct NativeGroupMaintenance::Impl {
-  struct Feature {NativeContentToken token;Digest content{};std::array<std::uint64_t,8> bands{};};
+  struct Feature {
+    NativeContentToken token;
+    Digest content{};
+    std::array<std::uint64_t,positional_bands+detail::kNativeGroupShiftFeatures> bands{};
+  };
   using Band=std::pair<unsigned,std::uint64_t>;
   std::weak_ptr<detail::NativeMaintenanceSource> source;
   std::shared_ptr<const void> reservation;
@@ -98,22 +104,30 @@ struct NativeGroupMaintenance::Impl {
     const auto bytes=writer.maintenance_read(token);
     Feature feature;
     feature.token=token;feature.content=detail::record_digest(bytes);
-    constexpr auto width=kNativeExtentBytes/8;
-    for(unsigned i=0;i<8;++i)feature.bands[i]=word(detail::record_digest(std::span<const std::byte>(bytes).subspan(i*width,width)));
+    constexpr auto width=kNativeExtentBytes/positional_bands;
+    for(unsigned i=0;i<positional_bands;++i)
+      feature.bands[i]=word(detail::record_digest(std::span<const std::byte>(bytes).subspan(i*width,width)));
+    if(writer.maintenance_indexed()) {
+      const auto shifted=detail::native_group_shift_features(bytes);
+      std::copy(shifted.begin(),shifted.end(),feature.bands.begin()+positional_bands);
+    }
     ++state.sampled_extents;
     return feature;
   }
   void rank_buckets(bool indexed) {
-    static const auto zero_band=word(detail::record_digest(std::array<std::byte,kNativeExtentBytes/8>{}));
+    static const auto zero_band=word(detail::record_digest(std::array<std::byte,kNativeExtentBytes/positional_bands>{}));
     buckets.clear();
     for(const auto& [id,feature]:features) {
       if(indexed && feature.token.grouped && !feature.token.exact_base)continue;
-      for(unsigned i=0;i<8;++i)
-        if(!indexed || feature.bands[i]!=zero_band)buckets[{i,feature.bands[i]}].push_back(id);
+      const auto count=indexed?feature.bands.size():positional_bands;
+      for(unsigned i=0;i<count;++i) {
+        const auto empty=i<positional_bands?zero_band:0;
+        if(!indexed || feature.bands[i]!=empty)buckets[{i,feature.bands[i]}].push_back(id);
+      }
     }
     if(indexed)for(const auto& [id,feature]:representatives) {
       if(features.contains(id))continue;
-      for(unsigned i=0;i<8;++i) {
+      for(unsigned i=0;i<feature.bands.size();++i) {
         const auto bucket=buckets.find({i,feature.bands[i]});
         if(bucket!=buckets.end())bucket->second.push_back(id);
       }
@@ -335,7 +349,9 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
   p.last_capture=observed.captured_ms;
   const auto allowance=resources->memory_allowance;
-  const auto maximum_members=allowance>fixed_scratch?(std::min)(std::uint64_t(kNativeMaxExtents),(allowance-fixed_scratch)/member_scratch):0;
+  const auto scratch=fixed_scratch+(writer.maintenance_indexed()?detail::kNativeGroupAnchorIndexBytes:0);
+  const auto maximum_members=allowance>scratch?
+      (std::min)(std::uint64_t(kNativeMaxExtents),(allowance-scratch)/member_scratch):0;
   if(maximum_members<2 || (p.work && p.work_members>maximum_members))return p.defer(Defer::memory,true);
   if(!writer.maintenance_has_candidates())p.reset_index();
   if(!writer.maintenance_has_candidates() ||

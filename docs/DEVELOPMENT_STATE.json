@@ -128,6 +128,19 @@
     "collective_gpu_execution": false,
     "next": "Persist sparse feature postings and a resumable cursor in an independently recoverable advisory area. Qualify useful GPU feature and delta work on representative data."
   },
+  "shifted_indexed_groups": {
+    "source_base": "daeeac39f350acfccddbba93e2f13aba276f4f9a",
+    "evidence": "docs/evidence/shifted-indexed-groups-2026-11-18.json",
+    "indexed_root_capability": 4,
+    "controlled_source_versions": 12,
+    "compacted_zstd_baseline_bytes": 606208,
+    "compacted_grouped_bytes": 196608,
+    "promotion_interruption_cases_per_lane": 528,
+    "live_windows_sdk_group_opportunities": 12,
+    "live_windows_sdk_maximum_quantum_ns": 752900,
+    "independent_cpu_readback_verified": true,
+    "next": "Persist bounded discovery state and measure batched AMD matching against complete image size and independent CPU read cost."
+  },
   "owned_writable_lifetime": {
     "source_base": "ad6085754dfa85d483a13607ec22b279b677accb",
     "evidence": "docs/evidence/owned-writable-lifetime-2026-11-18.json",

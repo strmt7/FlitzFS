@@ -518,13 +518,14 @@ backend and failure evidence. **Existing ledger:** G02, G03, A02, D01.
 
 ## 7. E04 — Persistent sparse coherence and candidate discovery
 
-**Reuse:** content/physical revisions, current aligned features/outcome keys,
+**Reuse:** content/physical revisions, aligned and offset-independent features, outcome keys,
 internal advisory ownership and the emerging paged engine.
 **Planning effort:** 3–7 person-weeks; confidence low.
 
 The indexed controller now streams allocated extent coordinates into bounded
 fingerprint windows. It retains a limited set of earlier representatives and
-extends reusable immutable anchors. Selected generations are checked during
+extends reusable immutable anchors. Rolling samples retain similarity signals
+after an insertion shifts matching content. Selected generations are checked during
 cooperative preparation. The next step is to persist scan continuation and
 sparse postings in rebuildable advisory storage, with their cost charged to
 the observed compression benefit.
@@ -660,6 +661,14 @@ compaction, modeled interruption recovery and overwrite through the AMD
 SDK callback have executed. Keep comparison against complete compacted
 size and measure reads under normal Windows workloads.
 [Indexed group format and evidence](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
+
+Indexed capability 4 supports anchor-copy members alongside aligned members.
+A controlled Zstandard-enabled source fixture compacted from 592 KiB to 192 KiB
+with byte-exact CPU readback, and the format promotion passed 528 modeled
+interruptions per lane. Compare CPU and AMD matching on many related regions
+and on mixed corpora. Count index bytes, transfer costs and CPU readback when
+selecting a method for the ordinary optimizer.
+[Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

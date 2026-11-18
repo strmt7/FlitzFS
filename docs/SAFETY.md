@@ -50,6 +50,9 @@ and context closure. Its free-space report accounts for occupied append tails
 left beyond the selected checkpoint. Indexed group transactions bind each
 delta to a mirrored immutable base and update the backreferences with the
 file mappings. Group reads and recovery verify all dependencies on CPU.
+The first anchor-copy member advances indexed format capability with the
+same transaction. Older capabilities reject anchor-copy frames. Preparation
+charges a transient 64 KiB anchor index to the maintenance scratch budget.
 [Indexed group contract](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
 
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now admits and

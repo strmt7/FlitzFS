@@ -19,17 +19,58 @@ Bytes family(unsigned member) {
   if(member){bytes[(member*719)%bytes.size()]^=std::byte{41};bytes[(member*1409+170)%bytes.size()]^=std::byte{77};}
   return bytes;
 }
-void populate(NativeFilesystemWriter& writer,unsigned count) {
-  for(unsigned i=0;i<count;++i)writer.apply(std::array{file_create("f"+std::to_string(i)),file_write("f"+std::to_string(i),0,family(i))});
+Bytes shifted_family(unsigned member) {
+  auto bytes=family(0);
+  std::rotate(bytes.begin(),bytes.begin()+member*37,bytes.end());
+  return bytes;
+}
+void populate(NativeFilesystemWriter& writer,unsigned count,Bytes(*content)(unsigned)=family) {
+  for(unsigned i=0;i<count;++i)writer.apply(std::array{file_create("f"+std::to_string(i)),file_write("f"+std::to_string(i),0,content(i))});
 }
 std::vector<NativeExtentSelection> selections(const NativeFilesystemSnapshot& snapshot,unsigned count) {
   std::vector<NativeExtentSelection> result;
   for(unsigned i=0;i<count;++i)result.push_back({snapshot.stat("f"+std::to_string(i)).inode,0});return result;
 }
 NativeFilesystemSnapshot view(const std::shared_ptr<Ram>& ram){return NativeFilesystemSnapshot::open(PagedObjectStoreSnapshot::open(ram,limits));}
-void verify_family(const NativeFilesystemSnapshot& snapshot,unsigned count) {
-  for(unsigned i=0;i<count;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"shared-base file bytes differ");
+void verify_family(const NativeFilesystemSnapshot& snapshot,unsigned count,Bytes(*content)(unsigned)=family) {
+  for(unsigned i=0;i<count;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==content(i),"shared-base file bytes differ");
   snapshot.verify_all();
+}
+void anchor_copy_codec() {
+  const auto base=shifted_family(0);const auto id=detail::kNativeGroupBaseBit+1;
+  const detail::NativeGroupAnchorIndex index(base);
+  for(unsigned shift:{1U,16U,37U,71U,1000U}) {
+    auto member=base;
+    std::rotate(member.begin(),member.begin()+shift,member.end());
+    require(!detail::encode_native_group_member(member,base,id,17),"aligned patches accepted a shifted control");
+    const auto encoded=index.encode(member,base,id,17,kNativeExtentBytes);
+    require(encoded && encoded->size()<512 && detail::decode_native_group_member(*encoded,base,true)==member,
+        "shifted member did not round trip in a bounded frame");
+    rejects([&]{(void)detail::decode_native_group_member(*encoded,base);},"legacy capability accepted anchor copies");
+    require(!index.encode(member,base,id,17,encoded->size()),"anchor copy exceeded the competing size limit");
+    auto rebound=*encoded;
+    detail::bind_native_group_member(rebound,id+1,19,true);
+    const auto reference=detail::parse_native_group_member(rebound,true);
+    require(reference.method==detail::NativeGroupMethod::anchor_copies && reference.base_id==id+1 &&
+        reference.base_generation==19 && detail::decode_native_group_member(rebound,base,true)==member,
+        "rebinding affected the copy frame");
+  }
+  auto member=base;
+  std::rotate(member.begin(),member.begin()+32,member.end());
+  const auto encoded=index.encode(member,base,id,17,kNativeExtentBytes);
+  require(encoded && ((*encoded)[131]&std::byte{128})!=std::byte{},"copy control fixture did not start with a copy");
+  for(unsigned variant=0;variant<8;++variant) {
+    auto corrupt=*encoded;
+    if(variant==0)std::fill_n(corrupt.begin()+132,4,std::byte{255});
+    if(variant==1){std::fill_n(corrupt.begin()+128,3,std::byte{});corrupt[131]=std::byte{128};}
+    if(variant==2)corrupt[131]=std::byte{};
+    if(variant==3)corrupt[96]=std::byte{};
+    if(variant==4)corrupt[128]^=std::byte{1};
+    if(variant==5)corrupt[32]^=std::byte{1};
+    if(variant==6)corrupt[64]^=std::byte{1};
+    if(variant==7)corrupt.pop_back();
+    rejects([&]{(void)detail::decode_native_group_member(corrupt,base,true);},"malformed anchor copy decoded");
+  }
 }
 void codec() {
   const auto base=family(0),member=family(1);const auto id=detail::kNativeGroupBaseBit+1;
@@ -115,9 +156,10 @@ void independent_and_decline() {
   rejects([&]{NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter::create(legacy,identity(),limits));},"unprotected shared-base namespace admitted");
   require(legacy->calls>start,"legacy fixture did not create standalone empty storage");
 }
-void fault_matrix(std::uint32_t unit,bool indexed_layout=false) {
+void fault_matrix(std::uint32_t unit,bool indexed_layout=false,bool shifted=false) {
   auto original=std::make_shared<Ram>();original->failure_unit=unit;
-  {auto writer=fresh(original,indexed_layout);populate(writer,4);}
+  const auto content=shifted?shifted_family:family;
+  {auto writer=fresh(original,indexed_layout);populate(writer,4,content);}
   const auto keys=selections(view(original),4);
   auto resume=[&](const std::shared_ptr<Ram>& ram) {
     const auto info=PagedObjectStoreSnapshot::open(ram,limits).info();
@@ -132,14 +174,18 @@ void fault_matrix(std::uint32_t unit,bool indexed_layout=false) {
     {auto writer=resume(ram);ram->failure=mode;ram->fail_at=ram->calls+cut;
       rejects([&]{writer.compress_shared_base(keys.front(),keys);},"faulted shared-base operation acknowledged");require(writer.poisoned(),"indeterminate group writer active");}
     ram->live=ram->stable;ram->fail_at=(std::numeric_limits<std::size_t>::max)();
-    const auto recovered=view(ram);verify_family(recovered,4);const auto info=recovered.shared_base_info();
+    const auto recovered=view(ram);verify_family(recovered,4,content);const auto info=recovered.shared_base_info();
     require((info.members==0 && info.bases==0) || (info.members==4 && info.bases==1),"partial shared group published");
+    if(shifted) {
+      const auto root=PagedObjectStoreSnapshot::open(ram,limits).read(1);
+      require(root[8]==(info.members?std::byte{4}:std::byte{2}),"anchor copy capability changed outside the group transaction");
+    }
     if(info.members)++complete;else ++prior;
     auto continued=resume(ram);file_apply(continued,file_write("f1",0,Bytes{std::byte{79}}));
-    auto expected=family(1);expected[0]=std::byte{79};require(continued.snapshot().read("f1",0,kNativeExtentBytes)==expected,"recovered group could not continue");++faults;
+    auto expected=content(1);expected[0]=std::byte{79};require(continued.snapshot().read("f1",0,kNativeExtentBytes)==expected,"recovered group could not continue");++faults;
   }
   require(prior && complete,"shared-base faults did not recover both roots");
-  std::cout<<"shared_base_faults indexed="<<indexed_layout<<" unit="<<unit<<" cuts="<<cuts
+  std::cout<<"shared_base_faults indexed="<<indexed_layout<<" shifted="<<shifted<<" unit="<<unit<<" cuts="<<cuts
       <<" modes=3 prior="<<prior<<" complete="<<complete<<'\n';
 }
 void indexed_extension_and_reclamation() {
@@ -408,7 +454,7 @@ int main(int argc,char** argv){try {
     return 0;
   }
   require(argc==1,"unknown shared-base test mode");
-  codec();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
+  codec();anchor_copy_codec();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
   indexed_group_on_populated_volume();
   for(auto unit:{4096U,65536U}){
     for(const auto indexed_layout:{false,true}) {
@@ -416,6 +462,7 @@ int main(int argc,char** argv){try {
       lost_base_bank(unit,indexed_layout);
       for(bool reencode:{false,true})staged_group(unit,reencode,indexed_layout);
     }
+    fault_matrix(unit,true,true);
     layouts(unit);
   }
   std::cout<<"PASS: "<<checks<<" native shared-base checks; "<<faults<<" injected write/barrier cases; memory CPU only\n";return 0;
