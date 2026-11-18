@@ -258,9 +258,113 @@ void publication_faults(std::uint32_t unit) {
   }
   std::cout<<"automatic_group_faults unit="<<unit<<" cuts="<<cuts<<" modes=3\n";
 }
+void reopen_indexed(Fixture& fixture,const std::shared_ptr<Ram>& advice,std::uint64_t sequence) {
+  fixture.session.reset();
+  fixture.session.emplace(NativeFileSession::resume_closed_indexed_volume(fixture.head,id(90),1,
+      [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?fixture.image:nullptr;},
+      {StoreCompressionMode::raw,1,false}));
+  require(fixture.session->resume_budgeted_optimization_area(advice,sequence).phase==NativeOptimizationPhase::ready,
+      "indexed scan advice could not be rebound after closing");
+}
+void finish_pending(Fixture& fixture,NativeGroupMaintenance& controller) {
+  for(unsigned i=0;i<6000&&controller.pending();++i)
+    require(fixture.step(controller).phase!=Phase::failed,"indexed scan stopped");
+  require(!controller.pending(),"indexed scan did not finish");
+}
+void persistent_indexed_scan() {
+  constexpr unsigned count=static_cast<unsigned>(kNativeMaxDirtyExtents)+9;
+  Fixture f(4096,0,true);
+  auto advice=ram(4096);
+  require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "reserved indexed scan advice unavailable");
+  for(unsigned i=0;i<count;++i)put(*f.session,"f"+std::to_string(i),family(i));
+  // Sparse all-zero data supplies genuine accepted input without changing the
+  // similarity window. Each operation is below the native transaction limit.
+  put(*f.session,"sparse-a",Bytes(kOptimizationGroupScanInputBytes/2));
+  put(*f.session,"sparse-b",Bytes(kOptimizationGroupScanInputBytes/2));
+  {
+    NativeGroupMaintenance controller(*f.session);
+    for(unsigned i=0;i<3500&&controller.progress().checkpoints_published==0;++i)
+      require(f.step(controller).phase!=Phase::failed,"initial indexed scan failed");
+    require(controller.progress().checkpoints_published==1 && controller.pending(),
+        "indexed scan did not durably checkpoint its first window");
+  }
+  const auto partial=read_optimization_state(*advice,id(90));
+  require(partial.code==OptimizationReadCode::available && !partial.degraded && partial.state.group_scan &&
+      !partial.state.group_scan->complete && !partial.state.group_scan->revisit &&
+      partial.state.settled_input_bytes==kOptimizationGroupScanInputBytes &&
+      std::ranges::any_of(partial.state.group_scan->representatives,[](const auto& item){return item.exact_base;}),
+      "first scan checkpoint lacks a checked reusable representation");
+  auto old_checkpoint=image(advice->stable,4096);
+  reopen_indexed(f,advice,partial.sequence);
+  std::uint64_t resumed_samples=0;
+  {
+    NativeGroupMaintenance controller(*f.session);
+    finish_pending(f,controller);
+    const auto state=controller.progress();resumed_samples=state.sampled_extents;
+    require(state.checkpoints_restored==1 && state.checkpoints_published==1 &&
+        state.published_groups==1 && resumed_samples<count-kNativeMaxDirtyExtents+3,
+        "reopened discovery repeated the old window or lost its shared base");
+    const auto actual=f.session->snapshot().shared_base_info();
+    require(actual.bases==1&&actual.members==count,"reopened discovery did not extend the existing group");
+  }
+  f.verify(count);
+  const auto completed=read_optimization_state(*advice,id(90));
+  require(completed.state.group_scan && completed.state.group_scan->complete &&
+      completed.state.settled_input_bytes==2*kOptimizationGroupScanInputBytes &&
+      completed.sequence==partial.sequence+1,"completion or durable write charge is missing");
+  reopen_indexed(f,advice,completed.sequence);
+  {
+    NativeGroupMaintenance controller(*f.session);
+    const auto writes=advice->writes;finish_pending(f,controller);
+    require(controller.progress().checkpoints_restored==1 && controller.progress().sampled_extents==0 &&
+        advice->writes==writes,"completed unchanged scan repeated sampling or wrote state");
+  }
+  const auto replacement=data(kNativeExtentBytes,809);
+  auto handle=f.session->open("f0",{true,true,false});f.session->write(handle,0,replacement);
+  f.session->cleanup(handle,false);f.session->close(handle);
+  reopen_indexed(f,old_checkpoint,partial.sequence);
+  {
+    NativeGroupMaintenance controller(*f.session);finish_pending(f,controller);
+    require(controller.progress().checkpoints_restored==1 && controller.progress().sampled_extents>=count,
+        "changed prefix was skipped after resuming an older cursor");
+    const auto snapshot=f.session->snapshot();
+    require(snapshot.read("f0",0,kNativeExtentBytes)==replacement,"older checkpoint changed replacement bytes");
+    for(unsigned i=1;i<count;++i)
+      require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"older checkpoint changed a peer");
+    snapshot.verify_all();
+  }
+  std::cout<<"persistent_indexed_scan total="<<count<<" resumed_samples="<<resumed_samples
+      <<" checkpoint_store_bytes="<<advice->extent()<<" write_cost="<<kOptimizationAreaBytes<<'\n';
+}
+void indexed_scan_checkpoint_faults() {
+  for(const auto unit:{4096U,65536U})for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<4;++cut) {
+    Fixture f(4096,0,true);auto advice=ram(unit);
+    require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+        "checkpoint fault fixture advice ownership");
+    put(*f.session,"f0",family(0));put(*f.session,"f1",family(1));
+    put(*f.session,"funding",Bytes(kOptimizationGroupScanInputBytes-2*kNativeExtentBytes));
+    advice->fail_at=advice->calls+cut;advice->failure=mode;
+    NativeGroupMaintenance controller(*f.session);finish_pending(f,controller);
+    require(!f.session->poisoned() && controller.progress().published_groups==1 &&
+        controller.progress().checkpoints_published==0 &&
+        f.session->optimization_info().phase==NativeOptimizationPhase::terminal,
+        "optional checkpoint failure fenced data or acknowledged an incomplete write");
+    const auto writes=advice->writes;
+    f.step(controller);require(advice->writes==writes,"failed checkpoint retried");
+    const auto recovered=read_optimization_state(*image(advice->stable,unit),id(90));
+    require(recovered.code==OptimizationReadCode::available && (recovered.sequence==1 || recovered.sequence==2) &&
+        (recovered.sequence==1?!recovered.state.group_scan:
+         recovered.state.group_scan && recovered.state.group_scan->complete),
+        "power cut exposed a partial scan checkpoint");
+    f.verify(2);++faults;
+  }
+}
 }
 int main(int argc,char** argv){try{
-  if(argc==2 && std::string_view(argv[1])=="--indexed") {
+  if(argc==2 && std::string_view(argv[1])=="--indexed-resume") {
+    persistent_indexed_scan();indexed_scan_checkpoint_faults();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed") {
     for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
     indexed_scan_windows();indexed_stale_binding_and_padding();
     shifted_indexed_family(data(kNativeExtentBytes,714),{StoreCompressionMode::raw,1,false},false);

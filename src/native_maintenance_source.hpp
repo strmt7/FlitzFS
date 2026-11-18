@@ -1,5 +1,7 @@
 #pragma once
 #include "flitzfs/native_maintenance.hpp"
+#include "flitzfs/optimization_state.hpp"
+#include <functional>
 namespace flitzfs::detail {
 struct MaintenanceResources {
   std::uint64_t memory_allowance=0;
@@ -15,5 +17,8 @@ struct NativeMaintenanceSource {
   NativeFilesystemWriter* writer=nullptr;
   const bool* terminal=nullptr;
   std::weak_ptr<const void> active;
+  std::function<std::optional<OptimizationGroupScan>()> restore_scan;
+  std::function<bool()> scan_funded;
+  std::function<bool(OptimizationGroupScan)> publish_scan;
 };
 }

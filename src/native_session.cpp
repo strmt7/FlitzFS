@@ -108,6 +108,38 @@ struct NativeFileSession::Impl {
     for(const auto& prior:prior_optimization)if(prior&&prior->backing==io)return true;
     return false;
   }
+  OptimizationStateWriter* ready_scan_advice() const noexcept {
+    if(!volume || volume->pending || recompression || !optimization || !optimization->budgeted ||
+        optimization->phase!=NativeOptimizationPhase::ready || !optimization->writer ||
+        optimization->writer->poisoned() || optimization->writer->budget_repair_pending())return nullptr;
+    return &*optimization->writer;
+  }
+  bool scan_advice_funded() const noexcept {
+    const auto* advice=ready_scan_advice();
+    if(!advice)return false;
+    const auto settled=advice->budget_settlement();
+    const auto input=writer.workload_info();
+    return settled && input.enabled && input.committed_input_bytes>=*settled &&
+        input.committed_input_bytes-*settled>=kOptimizationGroupScanInputBytes;
+  }
+  bool publish_scan_advice(OptimizationGroupScan scan) {
+    if(!scan_advice_funded())return false;
+    auto& advice=*ready_scan_advice();
+    const auto actual=writer.snapshot().workload_info();
+    if(!actual.enabled)return false;
+    auto state=advice.snapshot().state;
+    state.group_scan=std::move(scan);
+    try {
+      return advice.publish_budgeted(state,actual.committed_input_bytes,true)==OptimizationStateWriter::BudgetResult::published;
+    }catch(...) {
+      if(advice.poisoned()) {
+        optimization->phase=NativeOptimizationPhase::terminal;
+        optimization->read_code=OptimizationReadCode::io_failure;
+        budget_loss_input=actual.committed_input_bytes;
+      }
+      throw;
+    }
+  }
   NativeFilesystemWriter writer;
   std::shared_ptr<const void> owner=std::make_shared<const int>(0);
   std::array<Slot,max_contexts> slots{};
@@ -339,8 +371,18 @@ std::weak_ptr<detail::NativeMaintenanceSource> NativeFileSession::maintenance_so
   auto& self=ready();
   if(!self.volume || !self.volume->head || !self.writer.maintenance_supported())
     fail(E::invalid_options,"automatic grouping requires a managed paged volume");
-  if(!self.maintenance)self.maintenance=std::make_shared<detail::NativeMaintenanceSource>(
-      detail::NativeMaintenanceSource{&self.writer,&self.terminal});
+  if(!self.maintenance) {
+    auto source=std::make_shared<detail::NativeMaintenanceSource>();
+    source->writer=&self.writer;source->terminal=&self.terminal;
+    source->restore_scan=[owner=&self]()->std::optional<OptimizationGroupScan> {
+      const auto* advice=owner->ready_scan_advice();
+      if(!advice)return {};
+      return advice->snapshot().state.group_scan;
+    };
+    source->scan_funded=[owner=&self]{return owner->scan_advice_funded();};
+    source->publish_scan=[owner=&self](OptimizationGroupScan scan){return owner->publish_scan_advice(std::move(scan));};
+    self.maintenance=std::move(source);
+  }
   return self.maintenance;
 }
 NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {

@@ -141,6 +141,19 @@
     "independent_cpu_readback_verified": true,
     "next": "Persist bounded discovery state and measure batched AMD matching against complete image size and independent CPU read cost."
   },
+  "persistent_indexed_discovery": {
+    "source_base": "1e37f300592da1c45adeb2a7ceb0a21fe6565833",
+    "evidence": "docs/evidence/persistent-indexed-discovery-2026-11-18.json",
+    "advisory_capability": 3,
+    "reserved_bytes": 131072,
+    "funding_bytes_per_checkpoint": 4194304,
+    "restart_fixture_extents": 72,
+    "resumed_samples": 10,
+    "modeled_advisory_interruptions_per_lane": 24,
+    "live_windows_sdk_opportunities": 23,
+    "live_windows_sdk_maximum_quantum_ns": 791400,
+    "next": "Measure collective AMD matching on held-out data and extend persistent sparse postings for long-range discovery."
+  },
   "owned_writable_lifetime": {
     "source_base": "ad6085754dfa85d483a13607ec22b279b677accb",
     "evidence": "docs/evidence/owned-writable-lifetime-2026-11-18.json",

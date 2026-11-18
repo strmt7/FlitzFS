@@ -53,6 +53,9 @@ file mappings. Group reads and recovery verify all dependencies on CPU.
 The first anchor-copy member advances indexed format capability with the
 same transaction. Older capabilities reject anchor-copy frames. Preparation
 charges a transient 64 KiB anchor index to the maintenance scratch budget.
+Indexed discovery checkpoints spend input credit in a distinct reserved advice
+area. Its failure can discard scan progress while protected file data remains
+readable. Reopened advice is validated before candidate preparation.
 [Indexed group contract](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
 
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now admits and

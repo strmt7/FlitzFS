@@ -1,4 +1,6 @@
 #include "flitzfs/optimization_state.hpp"
+#include "flitzfs/native_filesystem.hpp"
+#include "native_name_index.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
 #include <cstring>
@@ -11,7 +13,9 @@ namespace flitzfs {
 namespace {
 using Bytes=std::vector<std::byte>;
 constexpr std::size_t digest_at=kStoreCommitUnit-32,profile_at=64,benchmark_at=64+32*64;
-constexpr char magic[]="FLTOP001",budget_magic[]="FLTOP002";
+constexpr std::size_t scan_at=benchmark_at+kOptimizationMaxBenchmarks*32,feature_at=scan_at+64,feature_size=168;
+constexpr char magic[]="FLTOP001",budget_magic[]="FLTOP002",scan_magic[]="FLTOP003";
+static_assert(feature_at+kOptimizationGroupRepresentatives*feature_size<digest_at);
 [[noreturn]] void fail(const char* text){throw std::runtime_error(text);}
 void require(bool value,const char* text){if(!value)fail(text);}
 void put(Bytes& b,std::size_t at,std::uint64_t value,unsigned count=8) {
@@ -23,8 +27,62 @@ std::uint64_t get(std::span<const std::byte> b,std::size_t at,unsigned count=8) 
   return value;
 }
 bool zeros(std::span<const std::byte> b){return std::all_of(b.begin(),b.end(),[](auto x){return x==std::byte{};});}
+bool extent_coordinate(std::uint64_t inode,std::uint64_t block) noexcept {
+  return inode>1 && inode<detail::kNativeIndexedInodeLimit && block<kNativeMaxFileBytes/kNativeExtentBytes;
+}
+bool valid_scan(const OptimizationGroupScan& scan) noexcept {
+  if(scan.image==StoreIdentity{} || !scan.namespace_sequence || !extent_coordinate(scan.inode,scan.extent_index) ||
+      (scan.complete&&scan.revisit) || scan.representatives.size()>kOptimizationGroupRepresentatives)return false;
+  auto previous=detail::kNativeIndexedDataObject;
+  for(const auto& item:scan.representatives) {
+    if(item.object<=previous || item.object>=2*detail::kNativeIndexedDataObject ||
+        !item.revision || !extent_coordinate(item.inode,item.extent_index))return false;
+    previous=item.object;
+  }
+  return true;
+}
+void encode_scan(Bytes& b,const OptimizationGroupScan& scan) {
+  std::copy(scan.image.begin(),scan.image.end(),b.begin()+scan_at);
+  put(b,scan_at+16,scan.namespace_sequence);
+  put(b,scan_at+24,scan.inode);
+  put(b,scan_at+32,scan.extent_index);
+  put(b,scan_at+40,(scan.complete?1U:0U)|(scan.revisit?2U:0U),4);
+  put(b,scan_at+44,1,4); // Aligned and shifted feature schema.
+  put(b,scan_at+48,scan.representatives.size(),4);
+  for(std::size_t i=0;i<scan.representatives.size();++i) {
+    const auto& item=scan.representatives[i];const auto at=feature_at+i*feature_size;
+    put(b,at,item.inode);put(b,at+8,item.extent_index);put(b,at+16,item.object);put(b,at+24,item.revision);
+    std::copy(item.content.begin(),item.content.end(),b.begin()+at+32);
+    for(std::size_t j=0;j<item.bands.size();++j)put(b,at+64+j*8,item.bands[j]);
+    put(b,at+160,item.exact_base);
+  }
+}
+std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b) {
+  const auto flags=get(b,scan_at+40,4),count=get(b,scan_at+48,4);
+  if(flags>2 || get(b,scan_at+44,4)!=1 || count>kOptimizationGroupRepresentatives ||
+      !zeros(b.subspan(scan_at+52,12)))return {};
+  const auto end=feature_at+static_cast<std::size_t>(count)*feature_size;
+  if(!zeros(b.subspan(end,digest_at-end)))return {};
+  OptimizationGroupScan scan;
+  std::copy_n(b.begin()+scan_at,16,scan.image.begin());
+  scan.namespace_sequence=get(b,scan_at+16);scan.inode=get(b,scan_at+24);scan.extent_index=get(b,scan_at+32);
+  scan.complete=flags==1;scan.revisit=flags==2;
+  scan.representatives.reserve(static_cast<std::size_t>(count));
+  for(std::size_t i=0;i<count;++i) {
+    const auto at=feature_at+i*feature_size;
+    const auto base=get(b,at+160);if(base>1)return {};
+    OptimizationGroupFeature item;
+    item.inode=get(b,at);item.extent_index=get(b,at+8);item.object=get(b,at+16);item.revision=get(b,at+24);
+    std::copy_n(b.begin()+at+32,32,item.content.begin());
+    for(std::size_t j=0;j<item.bands.size();++j)item.bands[j]=get(b,at+64+j*8);
+    item.exact_base=base==1;scan.representatives.push_back(item);
+  }
+  if(!valid_scan(scan))return {};
+  return scan;
+}
 bool valid(const OptimizationState& state) {
   if(state.profiles.size()>kOptimizationMaxProfiles||state.benchmarks.size()>kOptimizationMaxBenchmarks)return false;
+  if(state.group_scan && (!state.settled_input_bytes || !valid_scan(*state.group_scan)))return false;
   std::pair<std::uint64_t,std::uint32_t> previous{};
   for(const auto& p:state.profiles) {
     const auto key=std::pair{p.workload_key,p.strategy};
@@ -43,7 +101,9 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
       "invalid optimization state");
   Bytes b(kStoreCommitUnit);
   const bool budgeted=snapshot.state.settled_input_bytes.has_value();
-  std::memcpy(b.data(),budgeted?budget_magic:magic,8);put(b,8,budgeted?2:1,4);put(b,12,slot,4);put(b,16,snapshot.sequence);
+  const bool scan=snapshot.state.group_scan.has_value();
+  std::memcpy(b.data(),scan?scan_magic:budgeted?budget_magic:magic,8);
+  put(b,8,scan?3:budgeted?2:1,4);put(b,12,slot,4);put(b,16,snapshot.sequence);
   if(budgeted){put(b,52,1,4);put(b,56,*snapshot.state.settled_input_bytes);}
   std::copy(snapshot.volume.begin(),snapshot.volume.end(),b.begin()+24);
   put(b,40,1,4);put(b,44,snapshot.state.profiles.size(),4);put(b,48,snapshot.state.benchmarks.size(),4);
@@ -58,6 +118,7 @@ Bytes encode(const OptimizationSnapshot& snapshot,unsigned slot) {
     put(b,at,v.workload_key);put(b,at+8,v.strategy,4);put(b,at+12,v.logical_bytes,4);
     put(b,at+16,v.stored_bytes,4);put(b,at+20,v.backend,4);put(b,at+24,v.elapsed_ns);
   }
+  if(scan)encode_scan(b,*snapshot.state.group_scan);
   const auto digest=detail::record_digest(std::span<const std::byte>(b).first(digest_at));
   std::copy(digest.begin(),digest.end(),b.begin()+digest_at);return b;
 }
@@ -67,7 +128,7 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
   const auto digest=detail::record_digest(b.first(digest_at));
   if(!std::equal(digest.begin(),digest.end(),b.begin()+digest_at))return {};
   const auto version=get(b,8,4);
-  if((version!=1&&version!=2)||std::memcmp(b.data(),version==2?budget_magic:magic,8)||
+  if((version<1||version>3)||std::memcmp(b.data(),version==3?scan_magic:version==2?budget_magic:magic,8)||
       get(b,40,4)!=1)return {SlotCode::unsupported,{}};
   OptimizationSnapshot out;out.code=OptimizationReadCode::available;out.sequence=get(b,16);
   std::copy_n(b.begin()+24,16,out.volume.begin());
@@ -76,7 +137,7 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
   if(get(b,12,4)!=slot||!out.sequence||profiles>kOptimizationMaxProfiles||
       benchmarks>kOptimizationMaxBenchmarks||
       (version==1?!zeros(b.subspan(52,12)):get(b,52,4)!=1))return {SlotCode::invalid,{}};
-  if(version==2)out.state.settled_input_bytes=get(b,56);
+  if(version>=2)out.state.settled_input_bytes=get(b,56);
   out.state.profiles.reserve(static_cast<std::size_t>(profiles));
   out.state.benchmarks.reserve(static_cast<std::size_t>(benchmarks));
   for(std::size_t i=0;i<kOptimizationMaxProfiles;++i) {
@@ -96,8 +157,11 @@ Slot decode(std::span<const std::byte> b,unsigned slot,StoreIdentity volume) {
     v.logical_bytes=static_cast<std::uint32_t>(get(b,at+12,4));v.stored_bytes=static_cast<std::uint32_t>(get(b,at+16,4));
     v.backend=static_cast<std::uint32_t>(get(b,at+20,4));v.elapsed_ns=get(b,at+24);out.state.benchmarks.push_back(v);
   }
-  if(!zeros(b.subspan(benchmark_at+kOptimizationMaxBenchmarks*32,
-        digest_at-benchmark_at-kOptimizationMaxBenchmarks*32))||!valid(out.state))return {SlotCode::invalid,{}};
+  if(version==3) {
+    out.state.group_scan=decode_scan(b);
+    if(!out.state.group_scan)return {SlotCode::invalid,{}};
+  } else if(!zeros(b.subspan(scan_at,digest_at-scan_at)))return {SlotCode::invalid,{}};
+  if(!valid(out.state))return {SlotCode::invalid,{}};
   return {SlotCode::valid,std::move(out)};
 }
 OptimizationSnapshot no_state(OptimizationReadCode code) {OptimizationSnapshot out;out.code=code;return out;}
@@ -161,11 +225,12 @@ struct OptimizationStateWriter::Impl {
     require(current.code==OptimizationReadCode::available&&!current.degraded&&
         current.sequence==selected.sequence&&current.state==selected.state,"optimization state changed outside owner");
   }
-  void pair(const OptimizationSnapshot& next,unsigned first=0) {
-    require(remaining,"optimization publication allowance exhausted");
+  void pair(const OptimizationSnapshot& next,unsigned first=0,bool automatic_scan=false) {
+    require(automatic_scan||remaining,"optimization publication allowance exhausted");
     // Prepare both bounded records and complete admission BEFORE mutation.
     const auto a=encode(next,first),b=encode(next,1-first);
-    io->admit_write(kOptimizationAreaBytes);--remaining;
+    io->admit_write(kOptimizationAreaBytes);
+    if(!automatic_scan)--remaining;
     io->write_exact(first*kStoreCommitUnit,a);io->flush();
     io->write_exact((1-first)*kStoreCommitUnit,b);io->flush();
     auto observed=load(*io,next.volume).snapshot;
@@ -276,24 +341,26 @@ OptimizationStateWriter::BudgetResult OptimizationStateWriter::repair_budgeted(s
   return BudgetResult::published;
 }
 OptimizationStateWriter::BudgetResult OptimizationStateWriter::publish_budgeted(
-    const OptimizationState& state,std::uint64_t input) {
+    const OptimizationState& state,std::uint64_t input,bool automatic_scan) {
   require(impl_&&!impl_->poisoned&&!impl_->repair_pending&&impl_->selected.state.settled_input_bytes,
       "no ready budgeted writer");
   auto& p=*impl_;
   require(valid(state)&&state.settled_input_bytes==p.selected.state.settled_input_bytes,
       "caller cannot change budget settlement");
+  require(!automatic_scan||state.group_scan.has_value(),"automatic publication needs a scan checkpoint");
   if(state==p.selected.state) {
     try{p.check();}catch(...){p.poisoned=true;throw;}
     return BudgetResult::unchanged;
   }
   const auto settled=*p.selected.state.settled_input_bytes;
-  if(!p.remaining||input<settled||input-settled<kOptimizationAreaBytes)return BudgetResult::deferred;
+  const auto cost=automatic_scan?kOptimizationGroupScanInputBytes:kOptimizationAreaBytes;
+  if((!automatic_scan&&!p.remaining)||input<settled||input-settled<cost)return BudgetResult::deferred;
   require(p.selected.sequence!=(std::numeric_limits<std::uint64_t>::max)(),"optimization sequence exhausted");
   OptimizationSnapshot next;next.code=OptimizationReadCode::available;next.volume=p.selected.volume;
   next.sequence=p.selected.sequence+1;next.state=state;
-  next.state.settled_input_bytes=settled+kOptimizationAreaBytes;
+  next.state.settled_input_bytes=settled+cost;
   p.io->admit_write(kOptimizationAreaBytes);
-  try{p.check();p.pair(next);}catch(...){p.poisoned=true;throw;}
+  try{p.check();p.pair(next,0,automatic_scan);}catch(...){p.poisoned=true;throw;}
   return BudgetResult::published;
 }
 bool OptimizationStateWriter::budget_repair_pending() const noexcept {

@@ -526,9 +526,12 @@ The indexed controller now streams allocated extent coordinates into bounded
 fingerprint windows. It retains a limited set of earlier representatives and
 extends reusable immutable anchors. Rolling samples retain similarity signals
 after an insertion shifts matching content. Selected generations are checked during
-cooperative preparation. The next step is to persist scan continuation and
-sparse postings in rebuildable advisory storage, with their cost charged to
-the observed compression benefit.
+cooperative preparation. Funded advisory checkpoints now preserve scan
+continuation and the bounded representative window. In the 72-extent restart
+fixture the second owner sampled 10 extents and extended the same base. The
+next step is to extend the persistent sparse postings for long-range discovery
+and charge their occupied bytes and write traffic to the compression benefit.
+[Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json)
 [Indexed discovery](INDEXED_NATIVE_VOLUME.md#automatic-candidate-discovery)
 
 RubikFS provides evidence for evaluating similarity and access hotness

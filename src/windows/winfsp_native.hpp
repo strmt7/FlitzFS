@@ -48,10 +48,12 @@ class WinFspNativeWritable final {
   static std::unique_ptr<WinFspNativeWritable> create_managed_indexed(
       std::shared_ptr<StoreByteIo> empty_head,StoreIdentity volume_identity,
       std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
-      PagedStoreLimits,StoreCompressionOptions foreground={});
+      PagedStoreLimits,StoreCompressionOptions foreground={},
+      std::shared_ptr<StoreByteIo> empty_advice={});
   static std::unique_ptr<WinFspNativeWritable> resume_indexed_retired(
       std::shared_ptr<StoreByteIo> head,StoreIdentity volume_identity,std::uint64_t expected_epoch,
-      const NativeVolumeImageResolver&,StoreCompressionOptions foreground={});
+      const NativeVolumeImageResolver&,StoreCompressionOptions foreground={},
+      std::shared_ptr<StoreByteIo> advice={},std::uint64_t expected_advice_sequence=0);
   // Qualified exact head epoch/resolver after actual previous-owner retirement.
   // Retains supported flat/paged representations and stored root metadata/ACLs.
   static std::unique_ptr<WinFspNativeWritable> resume_managed_retired(

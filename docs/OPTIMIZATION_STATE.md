@@ -244,3 +244,36 @@ resume withholds policy and requires new input before charged peer-first repair.
 Unavailable state forfeits historical entitlement before new-area admission.
 The new-source suite must qualify this protocol; it does not provide a physical
 mapping, authenticated authority or autonomous learner.
+
+## Indexed discovery checkpoints
+
+Funded capability 3 uses magic `FLTOP003` and version 3. It preserves the
+profile and benchmark fields, budget marker and settled-input counter of
+capability 2. Each of the two 64 KiB slots has a digest covering bytes 0–65503.
+The following fields occupy the previous reserved region.
+
+| Offset | Bytes | Meaning |
+|---:|---:|---|
+| 2624 | 16 | Selected image identity |
+| 2640 | 8 | Observed durable namespace sequence |
+| 2648, 2656 | 8 each | Last visited inode and extent index |
+| 2664 | 4 | 0 for a continuing pass, 1 for complete, 2 for revisit after the pass |
+| 2668 | 4 | Similarity feature schema 1 |
+| 2672 | 4 | Up to 63 retained representatives |
+| 2676 | 12 | Reserved zero |
+| 2688 | 168 per representative | Sparse feature records in strict data-object order |
+
+Each representative stores inode, extent index, data-object ID and physical
+revision in four 8-byte fields. Its full 32-byte digest follows at offset 32,
+then twelve 8-byte band values at offset 64 and an exact-base bit at offset 160
+in an 8-byte field. All remaining bytes before the slot digest are zero.
+Readers validate the count, coordinates, flags, object domain and ordering
+before exposing the checkpoint. Capability 1 and 2 records remain readable.
+An older advisory reader can fall back to ordinary discovery.
+
+The indexed controller checkpoints at settled window boundaries during an
+admitted opportunity. Each publication costs 128 KiB and consumes 4 MiB of
+durably accounted write input. Accepted input renews this budget across a
+long-running session. Explicit profile publications and repairs use their
+caller-provided allowance. Optional advice and its backing
+remain outside file-data recovery. [Discovery validation](evidence/persistent-indexed-discovery-2026-11-18.json)

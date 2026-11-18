@@ -149,9 +149,12 @@ an existing group through independently verified commits.
 Detached-inode reclamation and managed compaction share the controller's
 serialized opportunities. An active group releases its source before the
 controller begins a compaction handoff. The controller admits work using
-fresh resource observations, foreground readiness and measured duty. Current
-representatives and scan progress live in memory. Durable advisory pages,
-cross-restart continuation and measured collective AMD benefit remain open.
+fresh resource observations, foreground readiness and measured duty. A funded
+advisory pair retains the scan cursor and bounded representatives across owner
+restart. The stored feature window follows the selected image identity and
+durable namespace sequence. A larger persistent sparse index and measured
+collective AMD benefit remain open.
+[Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json)
 [Automatic indexed discovery evidence](evidence/automatic-indexed-discovery-2026-11-18.json)
 
 ## Writable transactions

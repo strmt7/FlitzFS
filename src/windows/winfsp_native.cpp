@@ -634,19 +634,22 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_paged
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::create_managed_indexed(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::shared_ptr<StoreByteIo> image,
-    StoreIdentity image_id,PagedStoreLimits limits,StoreCompressionOptions foreground) {
+    StoreIdentity image_id,PagedStoreLimits limits,StoreCompressionOptions foreground,
+    std::shared_ptr<StoreByteIo> advice) {
   const auto security=owner_security();const auto stamp=native_cleanup_utc();
   const NativeVolumeRootMetadata root{{stamp,stamp,stamp,stamp,FILE_ATTRIBUTE_DIRECTORY},security};
   auto session=NativeFileSession::create_indexed_volume(std::move(head),volume,std::move(image),image_id,
       limits,foreground,NativeDispositionPolicy::windows_global,root);
+  if(advice)session.create_budgeted_optimization_area(std::move(advice),1);
   auto impl=std::make_unique<Impl>(std::move(session),volume,stamp,indexed_file_info);
   impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_indexed_retired(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,
-    const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground) {
-  return resume_managed_impl(std::move(head),volume,epoch,resolver,foreground,{},0,true);
+    const NativeVolumeImageResolver& resolver,StoreCompressionOptions foreground,
+    std::shared_ptr<StoreByteIo> advice,std::uint64_t advice_sequence) {
+  return resume_managed_impl(std::move(head),volume,epoch,resolver,foreground,std::move(advice),advice_sequence,true);
 }
 std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_retired(
     std::shared_ptr<StoreByteIo> head,StoreIdentity volume,std::uint64_t epoch,

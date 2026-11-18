@@ -14,7 +14,7 @@ WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan
   const PagedStoreLimits limits{backing_.layout.image_capacity};
   auto adapter=kind_==NativeImageKind::indexed_paged?
       WinFspNativeWritable::create_managed_indexed(backing_.head,backing_.volume_identity,
-          backing_.image,backing_.image_identity,limits,memory_compression):
+          backing_.image,backing_.image_identity,limits,memory_compression,backing_.advice):
       WinFspNativeWritable::create_managed_paged(backing_.head,backing_.volume_identity,
           backing_.image,backing_.image_identity,limits,memory_compression,backing_.advice);
   backing_.domain->verify_resident();

@@ -22,6 +22,7 @@ struct NativeMaintenanceProgress {
   std::uint64_t sampled_extents=0,reused_features=0,attempted_groups=0,published_groups=0,declined_groups=0;
   std::uint64_t minimum_compacted_bytes_saved=0,retained_history_bytes_added=0,elapsed_work_ns=0;
   std::uint64_t next_opportunity_delay_ms=0,owned_payload_bytes=0;
+  std::uint64_t checkpoints_restored=0,checkpoints_published=0;
 };
 // Event/opportunity-driven CPU baseline. Automatically discovers aligned
 // content groups; no caller-supplied file list, online model or thread/timer.

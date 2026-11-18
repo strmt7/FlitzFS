@@ -15,6 +15,9 @@ namespace {
 using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=NativeMaintenanceDeferral;
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
 constexpr unsigned positional_bands=8;
+static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShiftFeatures);
+static_assert(kOptimizationGroupRepresentatives==kNativeMaxDirtyExtents);
+constexpr auto checkpoint_window_samples=kOptimizationGroupScanInputBytes/(2*kNativeExtentBytes);
 std::uint64_t fraction(std::uint64_t total,std::uint64_t ppm) noexcept {
   return total/million*ppm+total%million*ppm/million;
 }
@@ -56,6 +59,8 @@ struct NativeGroupMaintenance::Impl {
   NativeExtentSelection indexed_work_base{};
   bool first=true,stopped=false;unsigned pending_history=0;
   std::uint64_t scan_sequence=0,completed_sequence=0;
+  std::uint64_t checkpoint_samples=0;
+  bool checkpoint_loaded=false,checkpoint_due=false,checkpoint_unavailable=false,scan_revisit=false;
   std::array<bool,kStoreMaxObjects+1> seen{};
   std::map<std::uint64_t,Feature> features;
   // Indexed discovery retains only a window and a bounded set of prior
@@ -77,6 +82,7 @@ struct NativeGroupMaintenance::Impl {
     work.reset();features.clear();buckets.clear();attempted.clear();attempted_order.clear();candidate_order.clear();
     candidate_index=band_offset=0;completed_sequence=0;phase=Phase::idle;state.owned_payload_bytes=0;pending_history=0;work_ids.clear();
     representatives.clear();refresh_base.reset();extent_scan_exhausted=false;
+    checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
   }
   void remember(const Digest& key) {
     const auto inserted=attempted.insert(key);
@@ -94,11 +100,62 @@ struct NativeGroupMaintenance::Impl {
   }
   void begin_scan(NativeFilesystemWriter& writer) noexcept {
     scan_sequence=writer.maintenance_content_sequence();cursor={};first=true;seen.fill(false);phase=Phase::scanning;
-    extent_scan_exhausted=false;
+    extent_scan_exhausted=false;scan_revisit=false;
   }
   void complete_scan(NativeFilesystemWriter& writer) noexcept {
-    if(writer.maintenance_content_sequence()!=scan_sequence)begin_scan(writer);
+    if(scan_revisit || writer.maintenance_content_sequence()!=scan_sequence)begin_scan(writer);
     else {completed_sequence=scan_sequence;phase=Phase::idle;}
+  }
+  bool restore_scan(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner) {
+    checkpoint_loaded=true;
+    const auto saved=owner.restore_scan();
+    if(!saved || saved->image!=image || saved->namespace_sequence>writer.maintenance_sequence())return false;
+    const bool same=saved->namespace_sequence==writer.maintenance_sequence();
+    if(saved->complete && !same)return false;
+    scan_sequence=writer.maintenance_content_sequence();
+    scan_revisit=saved->revisit || !same;
+    cursor={saved->inode,saved->extent_index};first=false;
+    if(same && !saved->revisit)for(const auto& item:saved->representatives) {
+      const NativeContentToken token{{item.inode,item.extent_index},item.object,item.revision,item.revision,
+          item.exact_base,item.exact_base};
+      representatives.emplace(item.object,Feature{token,item.content,item.bands});
+    }
+    if(saved->complete){completed_sequence=scan_sequence;phase=Phase::idle;}
+    else phase=Phase::scanning;
+    ++state.checkpoints_restored;
+    return true;
+  }
+  bool checkpoint_step(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner) {
+    if(checkpoint_unavailable)return false;
+    try {
+      if(!checkpoint_loaded && restore_scan(writer,owner))return true;
+      if(!checkpoint_due)return false;
+      checkpoint_due=false;
+      if(!owner.scan_funded())return false;
+      OptimizationGroupScan scan;
+      scan.image=image;scan.namespace_sequence=writer.maintenance_sequence();
+      scan.inode=cursor.inode;scan.extent_index=cursor.extent_index;
+      scan.revisit=scan_revisit || scan_sequence!=writer.maintenance_content_sequence();
+      scan.complete=phase==Phase::idle&&!scan.revisit;
+      if(!scan.revisit) {
+        scan.representatives.reserve(representatives.size());
+        for(const auto& [id,feature]:representatives) {
+          const auto& token=feature.token;
+          scan.representatives.push_back({token.extent.inode,token.extent.extent_index,
+              id,token.revision,feature.content,feature.bands,token.exact_base});
+        }
+      }
+      if(owner.publish_scan(std::move(scan))) {
+        ++state.checkpoints_published;
+        checkpoint_samples=state.sampled_extents;
+      }
+      return true;
+    }catch(const std::exception&) {
+      // Advisory refusal is independent of the indexed writer and file access.
+      checkpoint_due=false;checkpoint_unavailable=true;
+      if(writer.poisoned())throw NativeFsError(NativeFsErrorCode::storage_failure,"checkpoint source is no longer readable");
+      return false;
+    }
   }
   Feature measure(NativeFilesystemWriter& writer,NativeContentToken token) {
     const auto bytes=writer.maintenance_read(token);
@@ -166,6 +223,15 @@ struct NativeGroupMaintenance::Impl {
     const auto reusable=std::ranges::find_if(ids,[&](auto id){return indexed_feature(id).token.exact_base;});
     const auto prior=std::ranges::find_if(ids,[&](auto id){return !features.contains(id);});
     const auto representative=reusable!=ids.end()?*reusable:prior!=ids.end()?*prior:ids.front();
+    if(!features.contains(representative)) {
+      const auto& token=representatives.at(representative).token;
+      const auto live=writer.maintenance_token(token.extent);
+      if(!live || live->object!=token.object || live->revision!=token.revision) {
+        representatives.erase(representative);
+        rank_buckets(true);
+        return;
+      }
+    }
     std::vector<NativeContentToken> expected{indexed_feature(representative).token};
     expected.reserve(maximum_members);
     for(const auto id:ids) {
@@ -227,6 +293,9 @@ struct NativeGroupMaintenance::Impl {
     retain_indexed_window(maximum);
     if(extent_scan_exhausted)complete_scan(writer);
     else phase=Phase::scanning;
+    const auto samples=state.sampled_extents-checkpoint_samples;
+    checkpoint_due=!checkpoint_unavailable && !first && samples &&
+        (phase==Phase::idle || samples>=checkpoint_window_samples);
   }
   void step(NativeFilesystemWriter& writer,std::size_t maximum_members) {
     if(work) {
@@ -328,7 +397,7 @@ bool NativeGroupMaintenance::pending() const noexcept {
   const auto source=impl_->source.lock();
   if(!source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned())return false;
   const auto& writer=*source->writer;
-  return impl_->phase!=Phase::idle || (writer.maintenance_has_candidates() &&
+  return impl_->checkpoint_due || impl_->phase!=Phase::idle || (writer.maintenance_has_candidates() &&
       (impl_->image!=writer.maintenance_identity() || impl_->completed_sequence!=writer.maintenance_content_sequence()));
 }
 void NativeGroupMaintenance::cancel() noexcept {
@@ -355,7 +424,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(maximum_members<2 || (p.work && p.work_members>maximum_members))return p.defer(Defer::memory,true);
   if(!writer.maintenance_has_candidates())p.reset_index();
   if(!writer.maintenance_has_candidates() ||
-      (!p.work && p.phase==Phase::idle && p.completed_sequence==writer.maintenance_content_sequence())) {
+      (!p.work && !p.checkpoint_due && p.phase==Phase::idle && p.completed_sequence==writer.maintenance_content_sequence())) {
     p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.state;
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
@@ -376,7 +445,9 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   const auto before=std::chrono::steady_clock::now();
   try {
-    p.step(writer,static_cast<std::size_t>(maximum_members));
+    if(!writer.maintenance_indexed() || !p.checkpoint_step(writer,*source))
+      p.step(writer,static_cast<std::size_t>(maximum_members));
+    if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
     p.state.phase=p.phase;p.state.deferral=Defer::none;
   }catch(const std::bad_alloc&){p.reset_index();p.state.phase=Phase::deferred;p.state.deferral=Defer::memory;}
   catch(const NativeFsError& error) {

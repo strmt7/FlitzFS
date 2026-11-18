@@ -39,8 +39,12 @@ Changed content is resampled; unchanged content survives metadata changes and
 regrouping. Existing members can be merged with newly related files. Bounded
 outcome digests suppress identical successful or declined groups, including the
 new physical revisions of a just-published group. An unchanged completed scan
-performs no backing I/O. Advice, cursors and outcomes are currently rebuilt on
-reopen or resource-driven cancellation, not persisted.
+performs no backing I/O. The indexed path can restore a cursor and its bounded
+sparse representatives from the [funded advisory area](OPTIMIZATION_STATE.md#indexed-discovery-checkpoints).
+An exact completed checkpoint skips resampling. An older incomplete checkpoint
+continues to the end before revisiting the prefix. Changed images rebuild
+discovery from their current index. Each selected prior representative must
+still match its live object and revision.
 
 ## Resource and foreground admission
 
@@ -76,8 +80,10 @@ establish universal background interference or a hard maximum foreground stall.
 
 ## Writes, accounting and failures
 
-Ordinary accepted input funding is unchanged. Grouping cannot mint journal
-credit. A publication appends protected history; actual space reclamation still
+Accepted file writes earn advisory checkpoint credit. Each checkpoint consumes
+4 MiB of measured durable input for a 128 KiB pair of records. The resource
+admission and measured duty budget also cover that publication. A group
+publication appends protected history, and actual space reclamation still
 needs separately admitted compaction. `minimum_compacted_bytes_saved` sums each
 accepted publication's conservative size difference; repeated regrouping means
 it is not current image savings or a compression ratio.
@@ -102,9 +108,10 @@ Independent CPU readback checks every original file after each injected case.
 This is correctness evidence, not a recognized benchmark or real-data size record.
 
 The Windows helper now integrates observations and low-priority opportunities.
-Connect that path to the synchronized Explorer-facing adapter. Replace whole-model residency with paged
-inode/name/extent access and persistent sparse features/restart cursors. Add a
-measured data-work/write-amplification policy and reader-safe staged reclamation.
+The owned indexed Windows controller uses the reserved advice area for
+checkpoints. Grow the persistent sparse postings beyond the current window to
+support useful long-range matching, and qualify mounted operation. Measure
+write amplification and reader-side cost on varied workloads.
 Compare stronger collective representations on held-out heterogeneous data,
 including useful actual AMD work and independent CPU decoding. These remain
 required product work.

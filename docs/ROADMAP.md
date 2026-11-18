@@ -70,10 +70,12 @@ scalable persistent coherence, useful GPU work and automatic reclamation remain.
 aligned and shifted content families, extends existing groups, reuses unchanged features
 and suppresses repeated outcomes under supplied resource/foreground observations.
 Measured elapsed work paces later opportunities; selected edits are reconciled.
-The indexed controller verified protected anchor-copy members through Windows
-SDK callbacks. Persistent sparse discovery, mounted operation and useful
-collective AMD work remain required.
-[Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json)
+The indexed controller verified protected anchor-copy members and published a
+funded scan checkpoint through Windows SDK callbacks. A reopened controller
+can extend a group from the saved window. Larger persistent sparse discovery,
+mounted operation and useful collective AMD work remain required.
+[Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json) ·
+[Restart validation](evidence/persistent-indexed-discovery-2026-11-18.json)
 
 [Managed paged volumes](MANAGED_PAGED_VOLUMES.md) now join protected shared-base
 data, typed volume heads, file contexts, compaction/recompression and input-funded

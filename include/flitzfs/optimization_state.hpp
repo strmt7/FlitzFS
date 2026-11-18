@@ -5,6 +5,23 @@ namespace flitzfs {
 // Experimental advisory state only. Never a decoding dependency or data authority.
 inline constexpr std::uint64_t kOptimizationAreaBytes=2*kStoreCommitUnit;
 inline constexpr std::size_t kOptimizationMaxProfiles=32,kOptimizationMaxBenchmarks=16;
+inline constexpr std::size_t kOptimizationGroupBands=12;
+inline constexpr std::size_t kOptimizationGroupRepresentatives=kStoreMaxTransactionBytes/kStoreCommitUnit-1;
+inline constexpr std::uint64_t kOptimizationGroupScanInputBytes=32*kOptimizationAreaBytes;
+struct OptimizationGroupFeature {
+  std::uint64_t inode=0,extent_index=0,object=0,revision=0;
+  std::array<std::byte,32> content{};
+  std::array<std::uint64_t,kOptimizationGroupBands> bands{};
+  bool exact_base=false;
+  bool operator==(const OptimizationGroupFeature&) const = default;
+};
+struct OptimizationGroupScan {
+  StoreIdentity image{};
+  std::uint64_t namespace_sequence=0,inode=0,extent_index=0;
+  std::vector<OptimizationGroupFeature> representatives; // Strict object order.
+  bool complete=false,revisit=false;
+  bool operator==(const OptimizationGroupScan&) const = default;
+};
 struct OptimizationProfile {
   std::uint64_t workload_key=0,logical_bytes=0,stored_bytes=0,cpu_ns=0,gpu_ns=0;
   std::uint32_t strategy=0,observations=0,confidence_millionths=0;
@@ -18,8 +35,9 @@ struct OptimizationBenchmark {
 struct OptimizationState {
   std::vector<OptimizationProfile> profiles; // Strict (workload_key,strategy) order.
   std::vector<OptimizationBenchmark> benchmarks; // Bounded chronological history.
-  // Capability2 only; controlled settled logical-input position, never a model statistic.
+  // Controlled settled logical-input position in the funded capabilities.
   std::optional<std::uint64_t> settled_input_bytes;
+  std::optional<OptimizationGroupScan> group_scan;
   bool operator==(const OptimizationState&) const = default;
 };
 enum class OptimizationReadCode { available,absent,invalid,unsupported,foreign_volume,io_failure };
@@ -65,7 +83,7 @@ class OptimizationStateWriter final {
       std::uint64_t settled_input,unsigned limit);
   static OptimizationStateWriter resume_budgeted(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::uint64_t sequence,std::uint64_t current_input,unsigned limit);
-  BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input);
+  BudgetResult publish_budgeted(const OptimizationState&,std::uint64_t current_input,bool automatic_scan=false);
   BudgetResult repair_budgeted(std::uint64_t current_input);
   bool budget_repair_pending() const noexcept;
   std::optional<std::uint64_t> budget_settlement() const noexcept;

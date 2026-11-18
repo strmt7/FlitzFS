@@ -532,7 +532,7 @@ void read_only_memory() {
   {auto backing=MemoryVolumeBacking::create();backing.domain->verify_resident();}
   require(MemoryVolumeDomain::cleanup_healthy(),"sealed reader did not retire the provider");
 }
-void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool shifted=false) {
+void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool shifted=false,bool checkpoint=false) {
   Provider p;Provider::active=&p;std::optional<NativeVolumeHeadView> surviving;
   const auto first=data(kNativeExtentBytes,889);auto second=first;second[999]^=std::byte{7};
   if(shifted)std::rotate(second.begin(),second.begin()+201,second.end());
@@ -543,9 +543,17 @@ void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool sh
     const auto layout=volume.layout();require(layout.domain_capacity>=2*layout.image_capacity &&
         layout.image_capacity>=3*kStoreCommitUnit,"memory controller used wrong backing envelope");
     callback_file(p,0,first);callback_file(p,1,second);
+    if(checkpoint) {
+      const Bytes sparse((kOptimizationGroupScanInputBytes-2*kNativeExtentBytes)/2);
+      callback_file(p,2,sparse);
+      callback_file(p,3,sparse);
+    }
     const auto until=GetTickCount64()+(kind==NativeImageKind::indexed_paged?28000:18000);
     while(GetTickCount64()<until) {
-      const auto v=volume.view();if(v.maintenance.published_groups || v.maintenance_disabled || v.retired)break;Sleep(25);
+      const auto v=volume.view();
+      if((v.maintenance.published_groups && (!checkpoint || v.maintenance.checkpoints_published)) ||
+          v.maintenance_disabled || v.retired)break;
+      Sleep(25);
     }
     const auto observed=volume.view();volume.stop_and_join();
     require(volume.view().retired && !volume.view().offline,"memory controller did not retire cleanly");
@@ -554,9 +562,13 @@ void live_memory_composition(NativeImageKind kind=NativeImageKind::paged,bool sh
         "memory controller did not create managed paged storage");
     require(cpu.filesystem().read("f0",0,first.size())==first && cpu.filesystem().read("f1",0,second.size())==second,
         "memory controller lost accepted data after stop");
+    if(checkpoint)require(observed.maintenance.checkpoints_published==1 &&
+        cpu.filesystem().workload_info()==NativeWorkloadInfo{true,kOptimizationGroupScanInputBytes},
+        "live controller did not publish funded scan progress");
     std::cout<<"live_memory indexed="<<(kind==NativeImageKind::indexed_paged)<<" shifted="<<shifted<<" domain="<<layout.domain_capacity
         <<" image="<<layout.image_capacity<<" groups="<<observed.maintenance.published_groups
         <<" sampled="<<observed.maintenance.sampled_extents<<" attempts="<<observed.maintenance.attempted_groups
+        <<" checkpoints="<<observed.maintenance.checkpoints_published
         <<" phase="<<static_cast<unsigned>(observed.maintenance.phase)<<" deferral="<<static_cast<unsigned>(observed.maintenance.deferral)
         <<" compactions="<<observed.compactions<<" quanta="<<observed.maintenance_quanta
         <<" maximum_quantum_ns="<<observed.maximum_quantum_ns<<" disabled="<<observed.maintenance_disabled<<'\n';
@@ -715,10 +727,11 @@ int main(int argc,char** argv){try {
   // before checking ownership balance; never count its caches as our handles.
   const bool lifetime_only=argc==2 && std::string_view(argv[1])=="--owned-lifetime";
   const bool shifted_grouping=argc==2 && std::string_view(argv[1])=="--live-indexed-shifted-grouping";
+  const bool checkpoint=argc==2 && std::string_view(argv[1])=="--live-indexed-checkpoint";
   {WindowsMaintenanceHost warm;warm.observe(false);}
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
-  if(lifetime_only || shifted_grouping || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
+  if(lifetime_only || shifted_grouping || checkpoint || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-compaction" || std::string_view(argv[1])=="--live-indexed-grouping")))
     native_rng_initialization();
@@ -747,6 +760,8 @@ int main(int argc,char** argv){try {
     live_memory_composition(NativeImageKind::indexed_paged);
   }else if(shifted_grouping) {
     live_memory_composition(NativeImageKind::indexed_paged,true);
+  }else if(checkpoint) {
+    live_memory_composition(NativeImageKind::indexed_paged,true,true);
   }else if(argc==2 && std::string_view(argv[1])=="--memory-handles") {
     for(unsigned i=0;i<3;++i){memory_backing_ownership();std::cout<<"backing_handles cycle="<<i<<" count="<<handle_count()<<'\n';}
   }else throw std::invalid_argument("Unknown owned controller qualification mode");

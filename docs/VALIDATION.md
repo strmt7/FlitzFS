@@ -1,5 +1,21 @@
 # Validation ledger
 
+## Resumable indexed discovery — 18 November 2026
+
+The second owner of a 72-extent Windows fixture sampled 10 extents after
+reopening and extended the same protected base. A completed unchanged scan
+restored its checkpoint with zero new samples or writes. An older checkpoint
+also resumed after a foreground edit, revisited the changed prefix and
+verified every file. Each checkpoint reserved 128 KiB in the optional area
+and consumed 4 MiB of durably counted accepted input.
+
+The raw and AddressSanitizer lanes each passed 24 modeled advisory
+interruptions across 4 KiB and 64 KiB failure units. CPU readback preserved
+the files after each failure. The live Windows SDK controller published a
+group and its checkpoint in 23 opportunities. The largest measured quantum
+was 0.792 ms, and 147 handles remained at shutdown, matching the starting
+count. [Source and execution evidence](evidence/persistent-indexed-discovery-2026-11-18.json)
+
 ## Shifted cross-file compression — 18 November 2026
 
 The indexed optimizer now finds common data after insertions and stores changed
