@@ -126,7 +126,14 @@ int sized_child(std::wstring_view mode,std::wstring_view token) {
     rejects([&]{(void)WorkerChannel::open(token);});return 0;
   }
   auto channel=WorkerChannel::open_sized(token,sized_capacity);
-  const auto input=channel.request();
+  auto input=channel.request();
+  SharedWorkerRequest snapshot;
+  if(mode==L"sized-snapshot"){
+    snapshot=channel.take_request_snapshot();
+    check(snapshot->bytes().data()==input.data() && channel.request().empty(),"sized snapshot did not take the private allocation");
+    rejects([&]{(void)channel.take_request_snapshot();});
+    input=snapshot->bytes();
+  }
   check(input.size()==sized_capacity.request_bytes,"sized source extent lost");
   bool exact=true;
   for(std::size_t i=0;i<input.size();++i)
@@ -1192,13 +1199,16 @@ void sized_transactions(const std::filesystem::path& executable) {
     check(!valid_worker_channel_capacity(capacity,budget),"invalid sized capacity admitted");
   Bytes source(sized_capacity.request_bytes);
   for(std::size_t i=0;i<source.size();++i)source[i]=static_cast<std::byte>((i*13+i/251)%256);
-  for(const auto* mode:{L"sized-ok",L"sized-fail-after",L"sized-guard",L"sized-wrong-capacity",L"sized-legacy"}) {
-    auto session=WorkerExchangeSession::start_sized(executable,{mode},source,sized_capacity,budget);
+  for(const auto* mode:{L"sized-ok",L"sized-snapshot",L"sized-fail-after",L"sized-guard",L"sized-wrong-capacity",L"sized-legacy"}) {
+    const bool shared=std::wstring_view(mode)==L"sized-snapshot";
+    auto session=shared?WorkerExchangeSession::start_sized(executable,{mode},
+        std::make_shared<const WorkerRequestSnapshot>(std::span<const std::byte>(source)),sized_capacity,budget):
+        WorkerExchangeSession::start_sized(executable,{mode},source,sized_capacity,budget);
     eventually([&]{return session.try_result()!=nullptr;},5000,"sized exchange did not finish");
     const auto* result=session.try_result();
     check(result && !session.failure() && result->process.exit_confirmed &&
         !result->process.timed_out,"sized exchange supervisor failed");
-    if(std::wstring_view(mode)==L"sized-ok") {
+    if(shared || std::wstring_view(mode)==L"sized-ok") {
       check(result->code==WorkerExchangeCode::completed &&
           result->response.size()==sized_capacity.reply_bytes,"large sized response rejected");
       check(std::equal(result->response.begin(),result->response.end(),source.rbegin()),
@@ -1209,6 +1219,7 @@ void sized_transactions(const std::filesystem::path& executable) {
         2000,"sized worker failed exact retirement");
     check_closed(*result);
   }
+  rejects([&]{(void)WorkerExchangeSession::start_sized(executable,{L"sized-ok"},SharedWorkerRequest{},sized_capacity,budget);});
   {
     auto session=WorkerExchangeSession::start_sized(executable,{L"sized-hold"},source,sized_capacity,budget);
     eventually([&]{return session.process_id()!=0 || session.try_result();},2000,"sized child did not start");

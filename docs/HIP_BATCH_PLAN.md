@@ -55,12 +55,24 @@ pairs to six. The staged path took 1.24–1.38 seconds, the original AMD path
 took 1.79–2.35 seconds and CPU matching took 0.90 seconds in both trials.
 [Transfer trial evidence](evidence/amd-anchor-transfers-2026-11-18.json)
 
+The shared-base path now retains one private request allocation at each
+endpoint. All groups within an endpoint use verified views into its snapshot.
+In four matched 1,272-extent pairs, median peak process-tree commitment
+fell from 725 MiB to 302 MiB. Median AMD exchange time fell from 1.22 to
+1.07 seconds, with mixed per-pair timing changes. Two 1,824-extent trials
+completed with 397 MiB peak commitment. Their AMD exchange times were 1.07
+and 1.29 seconds and their paired CPU times were 1.25 and 1.31 seconds.
+These larger trials support further calibration across cold-start and
+mixed-content workloads. [Snapshot and scale evidence](evidence/amd-anchor-snapshot-2026-11-18.json)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)
 have a separate SDK worker. Its offline object was requalified, the worker
 rebuilt and the CPU decoder probe passed. Keep authenticated coverage,
 CPU-first refusal, device admission and exact retirement requirements.
+Use a fresh SDK build directory after requalification. Bundle staging
+creates a new set of outputs and preserves earlier qualification artifacts.
 [SDK build and CPU decoder evidence](evidence/amd-anchor-transfers-2026-11-18.json)
 
 

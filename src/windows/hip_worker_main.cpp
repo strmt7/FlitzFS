@@ -487,13 +487,13 @@ int worker(int argc, wchar_t** argv) {
   std::uint64_t allocation=0;
   if(anchor_batch) {
     try {
-      anchors.emplace(detail::decode_anchor_match_batch_request(channel.request(),
+      anchors.emplace(detail::decode_anchor_match_batch_request(channel.take_request_snapshot(),
           static_cast<std::uint32_t>(sized_capacity->request_bytes),static_cast<std::uint32_t>(sized_capacity->reply_bytes),
           decimal(argv[8],anchor_match::max_members),wide_decimal(argv[9]),decimal(argv[10],max_uint)));
-      allocation=anchors->plan.device_bytes;
+      allocation=anchors->plan().device_bytes;
       if(anchor_transfer) {
         transfer_grant=decimal(argv[11],max_uint);
-        allocation=detail::plan_anchor_match_transfers(anchors->plan,transfer_grant).device_bytes;
+        allocation=detail::plan_anchor_match_transfers(anchors->plan(),transfer_grant).device_bytes;
       }
     } catch(const std::invalid_argument&) {
       throw HipWorkerFailure(Exit::invalid_request,"invalid shared base batch",HipWorkerStage::worker_request);
@@ -590,7 +590,7 @@ int worker(int argc, wchar_t** argv) {
         const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
             luid,node_mask,*anchor,*anchor_plan,phase_clock,anchor_sweep);
         phase_clock.begin(HipPhase::reply_encode);
-        frame=detail::encode_anchor_match_reply(*anchor,records,profile_bytes);
+        frame=detail::encode_anchor_match_reply(anchor->view(),records,profile_bytes);
       }
     } catch(const std::invalid_argument&) {
       throw HipWorkerFailure(Exit::integrity_failure,"HIP shared base suggestion failed independent byte verification");

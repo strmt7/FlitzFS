@@ -229,7 +229,7 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
 namespace {
 std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtime,
     const anchor_match::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,std::span<const detail::AnchorMatchRequest> requests,
+    std::uint32_t node_mask,std::span<const detail::AnchorMatchSource> requests,
     std::span<const detail::AnchorMatchSweepPlan> plans,anchor_match::u32 quantum,HipPhaseRecorder& profile,
     anchor_match::u32 transfer_members,anchor_match::WindowSearchKernel window_search=nullptr) {
   namespace match=anchor_match;
@@ -362,8 +362,9 @@ std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
     std::uint32_t node_mask,const detail::AnchorMatchRequest& request,const detail::AnchorMatchSweepPlan& plan,
     HipPhaseRecorder& profile,bool resource_sized) {
   require_hip_worker_job(resource_sized);
+  const auto source=request.view();
   auto records=run_hip_anchor_groups(runtime,kernel,ordinal,luid,node_mask,
-      std::span(&request,1),std::span(&plan,1),plan.quantum_members,profile,plan.quantum_members);
+      std::span(&source,1),std::span(&plan,1),plan.quantum_members,profile,plan.quantum_members);
   return std::move(records.front());
 }
 
@@ -374,10 +375,11 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_batch_in_worker(HMODU
   require_hip_worker_job(true);
   require(window?anchor_match::compatible_window_search_api(*window):!transfer_grant,
       "invalid anchor transfer kernel API");
-  const auto members=window?detail::plan_anchor_match_transfers(request.plan,transfer_grant).members_per_transfer:
-      request.plan.quantum_members;
+  const auto& plan=request.plan();
+  const auto members=window?detail::plan_anchor_match_transfers(plan,transfer_grant).members_per_transfer:
+      plan.quantum_members;
   return run_hip_anchor_groups(runtime,kernel,ordinal,luid,node_mask,
-      request.groups,request.plan.groups,request.plan.quantum_members,profile,members,window?window->search:nullptr);
+      request.groups(),plan.groups,plan.quantum_members,profile,members,window?window->search:nullptr);
 }
 
 }

@@ -45,6 +45,9 @@ class WorkerExchangeSession final {
   static WorkerExchangeSession start_sized(const std::filesystem::path& helper,
       const std::vector<std::wstring>& arguments, std::span<const std::byte> request,
       WorkerChannelCapacity capacity, ProcessBudget budget);
+  static WorkerExchangeSession start_sized(const std::filesystem::path& helper,
+      const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
+      WorkerChannelCapacity capacity, ProcessBudget budget);
   ~WorkerExchangeSession();
   WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
   WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;
@@ -65,7 +68,7 @@ class WorkerExchangeSession final {
  private:
   static WorkerExchangeSession start_impl(const std::filesystem::path&,
       const std::vector<std::wstring>&,std::span<const std::byte>,
-      WorkerChannelCapacity,ProcessBudget,bool sized);
+      WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={});
   struct Impl;
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
   WorkerExchangeResult wait_result(); // Legacy synchronous adapter only.
@@ -92,6 +95,9 @@ class WorkerChannel final {
   WorkerChannel(const WorkerChannel&) = delete;
   WorkerChannel& operator=(const WorkerChannel&) = delete;
   std::span<const std::byte> request() const noexcept;
+  // Transfer the verified-length private allocation. Future request() calls
+  // are empty, and the channel still owns its reply publication endpoint.
+  SharedWorkerRequest take_request_snapshot();
   void publish(std::span<const std::byte> response);
  private:
   struct Impl;

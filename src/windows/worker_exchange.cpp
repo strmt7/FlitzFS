@@ -156,13 +156,12 @@ bool valid_worker_channel_capacity(WorkerChannelCapacity capacity,ProcessBudget 
 }
 namespace {
 WorkerExchangeResult exchange_unclaimed(const std::filesystem::path& helper,
-    const std::vector<std::wstring>& arguments,std::span<const std::byte> request,ProcessBudget budget,
+    const std::vector<std::wstring>& arguments,const WorkerRequestSnapshot& snapshot,ProcessBudget budget,
     const std::shared_ptr<ProcessObserver>& observer,ChannelProfile profile) {
+  const auto request=snapshot.bytes();
   require(request.size()>=kWorkerHeaderBytes && request.size()<=profile.capacity.request_bytes &&
       arguments.size()<=14,"invalid worker request or argument bound");
   headroom(budget,profile);
-  const std::vector<std::byte> owned_request(request.begin(),request.end());
-  request=owned_request;
   const auto token=random_token();auto command=arguments;
   command.push_back(L"--worker-channel");command.push_back(token);
   (void)windows_child_command(helper.native(),command); // Validate before mappings or launch.
@@ -221,7 +220,7 @@ struct ExchangeState {
   const std::shared_ptr<ProcessObserver> observer=std::make_shared<ProcessObserver>();
   const std::filesystem::path helper;
   const std::vector<std::wstring> arguments;
-  const std::vector<std::byte> request;
+  const SharedWorkerRequest request;
   const ProcessBudget budget;
   const ChannelProfile profile;
   WorkerExchangeResult result;
@@ -230,8 +229,8 @@ struct ExchangeState {
   std::mutex mutex;
   std::condition_variable ready;
   ExchangeState(std::shared_ptr<ExchangeControl> c,const std::filesystem::path& h,
-      const std::vector<std::wstring>& a,std::span<const std::byte> r,ProcessBudget b,ChannelProfile p):
-      control(std::move(c)),helper(h),arguments(a),request(r.begin(),r.end()),budget(b),profile(p) {}
+      const std::vector<std::wstring>& a,SharedWorkerRequest r,ProcessBudget b,ChannelProfile p):
+      control(std::move(c)),helper(h),arguments(a),request(std::move(r)),budget(b),profile(p) {}
 };
 void record_retirement(const std::shared_ptr<ExchangeState>& state,ProcessObservation observation) noexcept {
   if(observation==ProcessObservation::exited || observation==ProcessObservation::not_started)
@@ -252,7 +251,7 @@ unsigned __stdcall supervise_exchange(void* opaque) noexcept {
   try {
     if(!SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_LOWEST))
       failed("worker supervisor priority");
-    state->result=exchange_unclaimed(state->helper,state->arguments,state->request,state->budget,state->observer,state->profile);
+    state->result=exchange_unclaimed(state->helper,state->arguments,*state->request,state->budget,state->observer,state->profile);
   } catch(...) {
     state->error=std::current_exception();
     state->result=WorkerExchangeResult{};
@@ -295,9 +294,16 @@ WorkerExchangeSession WorkerExchangeSession::start_sized(const std::filesystem::
   require(valid_worker_channel_capacity(capacity,budget),"invalid sized worker admission");
   return start_impl(helper,arguments,request,capacity,budget,true);
 }
+WorkerExchangeSession WorkerExchangeSession::start_sized(const std::filesystem::path& helper,
+    const std::vector<std::wstring>& arguments,SharedWorkerRequest request,
+    WorkerChannelCapacity capacity,ProcessBudget budget) {
+  require(request && valid_worker_channel_capacity(capacity,budget),"invalid sized worker snapshot admission");
+  const auto bytes=request->bytes();
+  return start_impl(helper,arguments,bytes,capacity,budget,true,std::move(request));
+}
 WorkerExchangeSession WorkerExchangeSession::start_impl(const std::filesystem::path& helper,
     const std::vector<std::wstring>& arguments,std::span<const std::byte> request,
-    WorkerChannelCapacity capacity,ProcessBudget budget,bool sized) {
+    WorkerChannelCapacity capacity,ProcessBudget budget,bool sized,SharedWorkerRequest snapshot) {
   const ChannelProfile profile{capacity,sized};
   require(valid_process_budget(budget) && request.size()>=kWorkerHeaderBytes &&
       request.size()<=capacity.request_bytes && arguments.size()<=14,"invalid asynchronous worker admission");
@@ -322,8 +328,8 @@ WorkerExchangeSession WorkerExchangeSession::start_impl(const std::filesystem::p
     }
   } reservation{control};
   headroom(budget,profile); // Refuse before proportional copies or supervisor creation.
-  // All proportional storage is bounded and allocated before a thread exists.
-  auto state=std::make_shared<ExchangeState>(control,helper,arguments,request,budget,profile);
+  if(!snapshot)snapshot=std::make_shared<const WorkerRequestSnapshot>(request);
+  auto state=std::make_shared<ExchangeState>(control,helper,arguments,std::move(snapshot),budget,profile);
   auto impl=std::make_unique<Impl>(state);
   auto* context=new std::shared_ptr<ExchangeState>(state);
   const auto thread=_beginthreadex(nullptr,0,supervise_exchange,context,0,nullptr);
@@ -443,6 +449,12 @@ WorkerChannel WorkerChannel::open_sized(std::wstring_view token,WorkerChannelCap
 }
 std::span<const std::byte> WorkerChannel::request() const noexcept {
   return impl_?std::span<const std::byte>(impl_->owned):std::span<const std::byte>{};
+}
+SharedWorkerRequest WorkerChannel::take_request_snapshot() {
+  require(impl_ && !impl_->owned.empty(),"worker request snapshot already transferred");
+  auto snapshot=std::make_shared<const WorkerRequestSnapshot>(std::move(impl_->owned));
+  impl_->owned.clear();
+  return snapshot;
 }
 void WorkerChannel::publish(std::span<const std::byte> response) {
   require(impl_ && response.size()>=kWorkerHeaderBytes && response.size()<=impl_->profile.capacity.reply_bytes,

@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/gpu_anchor_match.hpp"
 #include "flitzfs/native_filesystem.hpp"
+#include "flitzfs/worker_wire.hpp"
 #include <array>
 #include <optional>
 
@@ -17,10 +18,18 @@ struct AnchorMatchSweepPlan {
   bool operator==(const AnchorMatchSweepPlan&) const = default;
 };
 
+struct AnchorMatchSource {
+  std::uint64_t id;
+  std::span<const std::byte> source;
+  std::array<std::byte,32> source_digest{};
+};
+
 struct AnchorMatchRequest {
   std::uint64_t id;
   std::vector<std::byte> source;
   std::array<std::byte,32> source_digest{};
+  AnchorMatchSource view() const & noexcept {return {id,source,source_digest};}
+  AnchorMatchSource view() const && = delete;
 };
 using AnchorMatchAdvice=std::vector<std::vector<NativeSharedBaseCopyRange>>;
 
@@ -30,11 +39,31 @@ struct AnchorMatchBatchPlan {
   bool operator==(const AnchorMatchBatchPlan&) const = default;
 };
 
-struct AnchorMatchBatchRequest {
-  std::uint64_t id;
-  std::array<std::byte,32> digest;
-  AnchorMatchBatchPlan plan;
-  std::vector<AnchorMatchRequest> groups;
+class AnchorMatchBatchRequest final {
+ public:
+  AnchorMatchBatchRequest(AnchorMatchBatchRequest&&) noexcept = default;
+  AnchorMatchBatchRequest& operator=(AnchorMatchBatchRequest&&) noexcept = default;
+  std::uint64_t id() const noexcept {return id_;}
+  const std::array<std::byte,32>& digest() const & noexcept {return digest_;}
+  const AnchorMatchBatchPlan& plan() const & noexcept {return plan_;}
+  std::span<const AnchorMatchSource> groups() const & noexcept {
+    if(!snapshot_)return {};
+    return groups_;
+  }
+  const std::array<std::byte,32>& digest() const && = delete;
+  const AnchorMatchBatchPlan& plan() const && = delete;
+  std::span<const AnchorMatchSource> groups() const && = delete;
+  SharedWorkerRequest snapshot() const noexcept {return snapshot_;}
+ private:
+  AnchorMatchBatchRequest()=default;
+  friend AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest,
+      std::uint32_t,std::uint32_t,std::uint32_t,std::uint64_t,std::uint32_t);
+  // Every group view is validated against this one private allocation.
+  SharedWorkerRequest snapshot_;
+  std::uint64_t id_=0;
+  std::array<std::byte,32> digest_{};
+  AnchorMatchBatchPlan plan_{};
+  std::vector<AnchorMatchSource> groups_;
 };
 
 struct AnchorMatchTransferPlan {
@@ -52,11 +81,11 @@ std::vector<std::byte> encode_anchor_match_request(std::span<const std::byte> ba
     std::span<const std::byte> members,std::uint64_t id,std::optional<AnchorMatchLayout> admitted={});
 AnchorMatchRequest decode_anchor_match_request(std::span<const std::byte> frame,
     std::optional<AnchorMatchLayout> admitted={});
-std::vector<anchor_match::u32> cpu_anchor_match_records(const AnchorMatchRequest&);
-AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchRequest&,std::span<const anchor_match::u32>);
-std::vector<std::byte> encode_anchor_match_reply(const AnchorMatchRequest&,
+std::vector<anchor_match::u32> cpu_anchor_match_records(const AnchorMatchSource&);
+AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchSource&,std::span<const anchor_match::u32>);
+std::vector<std::byte> encode_anchor_match_reply(const AnchorMatchSource&,
     std::span<const anchor_match::u32>,std::size_t reserve_tail_bytes=0);
-AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,const AnchorMatchRequest&);
+AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,const AnchorMatchSource&);
 
 // The grant counts the index build and all search launches for each group.
 AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> members,
@@ -66,7 +95,7 @@ AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> memb
 AnchorMatchTransferPlan plan_anchor_match_transfers(const AnchorMatchBatchPlan&,std::uint64_t maximum_device_bytes);
 std::vector<std::byte> encode_anchor_match_batch_request(std::span<const AnchorMatchRequest> groups,
     std::uint64_t id,const AnchorMatchBatchPlan&);
-AnchorMatchBatchRequest decode_anchor_match_batch_request(std::span<const std::byte> frame,
+AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest snapshot,
     std::uint32_t request_capacity,std::uint32_t reply_capacity,std::uint32_t maximum_quantum,
     std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches);
 std::vector<std::byte> encode_anchor_match_batch_reply(const AnchorMatchBatchRequest&,

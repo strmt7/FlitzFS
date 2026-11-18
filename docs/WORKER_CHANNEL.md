@@ -306,6 +306,15 @@ immutable input comparison and successful exact-child-exit rule. They create no
 queue or persistent service. Legacy entry points, fixed payload frames and their
 wire bytes remain unchanged.
 
+The supervisor owns one immutable request snapshot before its thread starts.
+Sized callers can share an existing snapshot. A producer that moves a private
+allocation into a snapshot relinquishes all writable aliases. The child copies
+its read-only mapping once and can move that private allocation to its parser.
+The shared-base batch validates each group and keeps views into that allocation.
+The supervisor compares the original request with the mapping after confirmed
+child exit and before returning the reply.
+[Windows mapping access and coherency](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-mapviewoffile)
+
 The sized transport uses distinct request/reply magic and control version 2.
 Capacities must fit the signed publication-length representation and their
 complete accounting (three request copies, two reply copies and guards) must

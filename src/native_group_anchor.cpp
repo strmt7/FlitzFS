@@ -110,21 +110,30 @@ Bytes encode_anchor_match_request(std::span<const std::byte> base,std::span<cons
   return frame;
 }
 
-AnchorMatchRequest decode_anchor_match_request(std::span<const std::byte> frame,
+namespace {
+AnchorMatchSource inspect_anchor_match_request(std::span<const std::byte> frame,
     std::optional<AnchorMatchLayout> admitted) {
   check_header(frame,request_magic,0);
   const auto source=frame.subspan(header_size);
   const auto count=anchor_match_members(source);
   require_admitted_layout(anchor_match_layout(count),admitted);
   require(get(frame,16,4)==count && get(frame,20,4)==count*match::tiles,"anchor match request extent count");
-  AnchorMatchRequest request{get(frame,8,8),Bytes(source.begin(),source.end())};
+  AnchorMatchSource request{get(frame,8,8),source};
+  std::copy_n(frame.begin()+32,request.source_digest.size(),request.source_digest.begin());
+  return request;
+}
+}
+
+AnchorMatchRequest decode_anchor_match_request(std::span<const std::byte> frame,
+    std::optional<AnchorMatchLayout> admitted) {
+  const auto inspected=inspect_anchor_match_request(frame,admitted);
+  AnchorMatchRequest request{inspected.id,Bytes(inspected.source.begin(),inspected.source.end())};
   request.source_digest=record_digest(request.source);
-  require(std::equal(request.source_digest.begin(),request.source_digest.end(),frame.begin()+32),
-      "anchor match request digest");
+  require(request.source_digest==inspected.source_digest,"anchor match request digest");
   return request;
 }
 
-std::vector<match::u32> cpu_anchor_match_records(const AnchorMatchRequest& request) {
+std::vector<match::u32> cpu_anchor_match_records(const AnchorMatchSource& request) {
   const auto members=anchor_match_members(request.source);
   const auto* base=reinterpret_cast<const match::u8*>(request.source.data());
   std::vector<match::Bucket> table(match::buckets,{match::empty,match::empty});
@@ -147,7 +156,7 @@ std::vector<match::u32> cpu_anchor_match_records(const AnchorMatchRequest& reque
 }
 
 namespace {
-void check_records(const AnchorMatchRequest& request,std::span<const match::u32> records,
+void check_records(const AnchorMatchSource& request,std::span<const match::u32> records,
     AnchorMatchAdvice* advice) {
   const auto members=anchor_match_members(request.source);
   require(records.size()==members*match::tiles,"anchor match record count");
@@ -183,14 +192,14 @@ void check_records(const AnchorMatchRequest& request,std::span<const match::u32>
 }
 } // namespace
 
-AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchRequest& request,
+AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchSource& request,
     std::span<const match::u32> records) {
   AnchorMatchAdvice advice;
   check_records(request,records,&advice);
   return advice;
 }
 
-Bytes encode_anchor_match_reply(const AnchorMatchRequest& request,std::span<const match::u32> records,
+Bytes encode_anchor_match_reply(const AnchorMatchSource& request,std::span<const match::u32> records,
     std::size_t reserve_tail_bytes) {
   check_records(request,records,nullptr);
   require(reserve_tail_bytes<=maximum_channel_bytes-header_size-records.size_bytes(),"anchor reply tail capacity");
@@ -201,7 +210,7 @@ Bytes encode_anchor_match_reply(const AnchorMatchRequest& request,std::span<cons
   return frame;
 }
 
-AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,const AnchorMatchRequest& request) {
+AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,const AnchorMatchSource& request) {
   check_header(frame,reply_magic,execution);
   const auto members=anchor_match_members(request.source);
   const auto count=members*match::tiles;
@@ -293,14 +302,16 @@ Bytes encode_anchor_match_batch_request(std::span<const AnchorMatchRequest> grou
   return frame;
 }
 
-AnchorMatchBatchRequest decode_anchor_match_batch_request(std::span<const std::byte> frame,
+AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest snapshot,
     std::uint32_t request_capacity,std::uint32_t reply_capacity,std::uint32_t maximum_quantum,
     std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches) {
+  require(snapshot!=nullptr,"missing anchor batch snapshot");
+  const auto frame=snapshot->bytes();
   check_header(frame,batch_request_magic,0);
   const auto groups=get(frame,16,4);
   require(frame.size()==request_capacity && request_capacity<=maximum_channel_bytes &&
       groups && groups<=(frame.size()-header_size)/minimum_group_request,"anchor batch request capacity");
-  // Inspect geometry and the total launch grant before copying any group.
+  // Inspect geometry and the total launch grant before binding group views.
   std::vector<std::uint32_t> counts;
   counts.reserve(static_cast<std::size_t>(groups));
   std::size_t at=header_size;
@@ -318,16 +329,21 @@ AnchorMatchBatchRequest decode_anchor_match_batch_request(std::span<const std::b
       get(frame,20,4)==plan.launches,"anchor batch plan or trailing data differs");
   const auto digest=record_digest(frame.subspan(header_size));
   require(std::equal(digest.begin(),digest.end(),frame.begin()+32),"anchor batch request digest");
-  AnchorMatchBatchRequest request{get(frame,8,8),digest,std::move(plan),{}};
-  request.groups.reserve(counts.size());
+  AnchorMatchBatchRequest request;
+  request.snapshot_=std::move(snapshot);
+  request.id_=get(frame,8,8);
+  request.digest_=digest;
+  request.plan_=std::move(plan);
+  request.groups_.reserve(counts.size());
   at=header_size;
   std::uint64_t previous_id=0;
-  for(const auto& group:request.plan.groups) {
+  for(const auto& group:request.plan_.groups) {
     at+=group_prefix_bytes;
-    auto decoded=decode_anchor_match_request(frame.subspan(at,group.whole.request_bytes),group.whole);
-    require(decoded.id>previous_id,"unordered anchor batch reply binding");
+    const auto decoded=inspect_anchor_match_request(frame.subspan(at,group.whole.request_bytes),group.whole);
+    require(decoded.id>previous_id,"unordered anchor batch group identity");
+    require(record_digest(decoded.source)==decoded.source_digest,"anchor match request digest");
     previous_id=decoded.id;
-    request.groups.push_back(std::move(decoded));
+    request.groups_.push_back(decoded);
     at+=group.whole.request_bytes;
   }
   return request;
@@ -335,40 +351,42 @@ AnchorMatchBatchRequest decode_anchor_match_batch_request(std::span<const std::b
 
 Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
     std::span<const std::vector<match::u32>> records) {
-  require(!records.empty() && records.size()==request.groups.size() &&
-      records.size()==request.plan.groups.size() && request.plan.reply_bytes>=header_size &&
-      request.plan.reply_bytes<=maximum_channel_bytes,
-      "anchor batch result count");
-  auto frame=header(batch_reply_magic,request.id,static_cast<std::uint32_t>(records.size()),
-      request.plan.launches,execution,request.digest,request.plan.reply_bytes-header_size);
+  const auto groups=request.groups();
+  const auto& plan=request.plan();
+  require(!records.empty() && records.size()==groups.size(),"anchor batch result count");
+  auto frame=header(batch_reply_magic,request.id(),static_cast<std::uint32_t>(records.size()),
+      plan.launches,execution,request.digest(),plan.reply_bytes-header_size);
   for(std::size_t i=0;i<records.size();++i) {
-    const auto part=encode_anchor_match_reply(request.groups[i],records[i]);
-    const auto layout=request.plan.groups[i].whole;
-    require(part.size()==layout.reply_bytes,"anchor batch reply group length");
-    put(frame,layout.members,group_prefix_bytes);
-    frame.insert(frame.end(),part.begin(),part.end());
+    const auto& group=groups[i];
+    const auto members=plan.groups[i].whole.members;
+    check_records(group,records[i],nullptr);
+    put(frame,members,group_prefix_bytes);
+    append_header(frame,reply_magic,group.id,members,members*match::tiles,execution,group.source_digest);
+    for(const auto word:records[i])put(frame,word,sizeof(word));
   }
-  require(frame.size()==request.plan.reply_bytes,"anchor batch reply length");
+  require(frame.size()==plan.reply_bytes,"anchor batch reply length");
   return frame;
 }
 
 std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest& request) {
   check_header(frame,batch_reply_magic,execution);
-  require(frame.size()==request.plan.reply_bytes && get(frame,8,8)==request.id &&
-      get(frame,16,4)==request.groups.size() && request.groups.size()==request.plan.groups.size() &&
-      get(frame,20,4)==request.plan.launches &&
-      std::equal(request.digest.begin(),request.digest.end(),frame.begin()+32),"anchor batch reply binding");
+  const auto groups=request.groups();
+  const auto& plan=request.plan();
+  const auto& digest=request.digest();
+  require(!groups.empty() && frame.size()==plan.reply_bytes && get(frame,8,8)==request.id() &&
+      get(frame,16,4)==groups.size() && get(frame,20,4)==plan.launches &&
+      std::equal(digest.begin(),digest.end(),frame.begin()+32),"anchor batch reply binding");
   std::vector<AnchorMatchAdvice> result;
-  result.reserve(request.groups.size());
+  result.reserve(groups.size());
   std::size_t at=header_size;
-  for(std::size_t i=0;i<request.groups.size();++i) {
-    const auto layout=request.plan.groups[i].whole;
+  for(std::size_t i=0;i<groups.size();++i) {
+    const auto layout=plan.groups[i].whole;
     require(frame.size()-at>=group_prefix_bytes && get(frame,at,group_prefix_bytes)==layout.members,
         "anchor batch reply group prefix");
     at+=group_prefix_bytes;
     require(frame.size()-at>=layout.reply_bytes,"truncated anchor batch reply group");
-    result.push_back(accept_anchor_match_reply(frame.subspan(at,layout.reply_bytes),request.groups[i]));
+    result.push_back(accept_anchor_match_reply(frame.subspan(at,layout.reply_bytes),groups[i]));
     at+=layout.reply_bytes;
   }
   require(at==frame.size(),"anchor batch reply trailing bytes");

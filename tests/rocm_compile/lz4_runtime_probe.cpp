@@ -368,7 +368,7 @@ int direct_anchor_gpu_once(wchar_t** argv,const AnchorSearchInput& input) {
     if(result->code==WorkerExchangeCode::completed && result->process.exit_code==0 &&
         !result->process.timed_out && !result->process.cancelled) {
       try {
-        gpu_advice=detail::accept_anchor_match_reply(result->response,request);
+        gpu_advice=detail::accept_anchor_match_reply(result->response,request.view());
         verified=true;
       } catch(const std::invalid_argument&) {
         gpu_advice.clear();
@@ -377,10 +377,10 @@ int direct_anchor_gpu_once(wchar_t** argv,const AnchorSearchInput& input) {
   }
   const auto exchange_ns=nanos_since(start);
   const auto cpu_start=std::chrono::steady_clock::now();
-  const auto cpu_records=detail::cpu_anchor_match_records(request);
-  const auto cpu_advice=detail::verify_anchor_match_records(request,cpu_records);
+  const auto cpu_records=detail::cpu_anchor_match_records(request.view());
+  const auto cpu_advice=detail::verify_anchor_match_records(request.view(),cpu_records);
   const auto cpu_ns=nanos_since(cpu_start);
-  const auto exact=verified && result->response==detail::encode_anchor_match_reply(request,cpu_records);
+  const auto exact=verified && result->response==detail::encode_anchor_match_reply(request.view(),cpu_records);
   const auto baseline=anchor_native_trial(input,nullptr);
   const auto cpu=anchor_native_trial(input,nullptr,cpu_advice);
   std::optional<AnchorNativeResult> gpu;
@@ -486,8 +486,8 @@ int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bu
       !result->process.timed_out && !result->process.cancelled;
   if(session && !completed)(void)session->request_cancel();
   const auto cpu_start=std::chrono::steady_clock::now();
-  const auto records=detail::cpu_anchor_match_records(request);
-  const auto cpu_reply=detail::encode_anchor_match_reply(request,records);
+  const auto records=detail::cpu_anchor_match_records(request.view());
+  const auto cpu_reply=detail::encode_anchor_match_reply(request.view(),records);
   const auto cpu_ns=nanos_since(cpu_start);
   std::optional<HipPhaseTrace> trace;
   bool parity=false;
@@ -530,11 +530,12 @@ int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bu
 }
 
 bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::wstring>& args,
-    std::span<const std::byte> frame,const Bytes& expected,ProcessBudget process_budget) {
+    SharedWorkerRequest frame,const Bytes& expected,ProcessBudget process_budget) {
   std::optional<WorkerExchangeSession> session;
   const WorkerExchangeResult* result=nullptr;
   try {
-    session.emplace(WorkerExchangeSession::start_sized(worker,args,frame,{frame.size(),expected.size()},process_budget));
+    const WorkerChannelCapacity capacity{frame->bytes().size(),expected.size()};
+    session.emplace(WorkerExchangeSession::start_sized(worker,args,std::move(frame),capacity,process_budget));
     const auto start=GetTickCount64();
     while(!(result=session->try_result()) && !session->failure() &&
         GetTickCount64()-start<process_budget.timeout_ms)Sleep(1);
@@ -616,36 +617,49 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
     for(const auto& group:plan.groups)individual_budgets.push_back(
         child_budget({group.whole.request_bytes,group.whole.reply_bytes},group.device_bytes));
   }
-  const auto parent_bytes=128*mib+4ULL*plan.request_bytes+4ULL*plan.reply_bytes;
+  const auto largest_request=std::ranges::max(plan.groups,{},[](const auto& group){return group.whole.request_bytes;})
+      .whole.request_bytes;
+  // Charge the largest source-building phase or the completed frame and its
+  // source builders, then the comparison records and serialized replies.
+  const auto prepare_bytes=(std::max)(2ULL*plan.request_bytes,plan.request_bytes+3ULL*largest_request);
+  const auto parent_bytes=128*mib+prepare_bytes+3ULL*plan.reply_bytes;
   const auto child_bytes=transfer_budget.memory_mib*mib;
   require(valid_process_budget(plan_resource_process_budget(parent_bytes+child_bytes,memory.ullAvailPhys,
       memory.ullAvailPageFile,16,budget.cpu_rate,budget.timeout_ms)),"Anchor comparison lacks current host headroom");
   const gpu_probe_fixture::Budget controller(parent_bytes,child_bytes);
 
-  std::vector<detail::AnchorMatchRequest> groups;
-  groups.reserve(group_count);
-  for(unsigned i=0;i<group_count;++i) {
-    const auto input=anchor_fixture(counts[i],argc>corpus_argument?argv[corpus_argument]:nullptr,i);
-    const auto layout=plan.groups[i].whole;
-    groups.push_back(detail::decode_anchor_match_request(
-        detail::encode_anchor_match_request(input.base,input.members,i+1,layout),layout));
-  }
-  const auto prepare=std::chrono::steady_clock::now();
-  const auto frame=detail::encode_anchor_match_batch_request(groups,1,plan);
-  const auto prepare_ns=nanos_since(prepare);
-  const auto batch=detail::decode_anchor_match_batch_request(frame,plan.request_bytes,plan.reply_bytes,
-      plan.quantum_members,plan.device_bytes,plan.launches);
-  const auto cpu_start=std::chrono::steady_clock::now();
-  std::vector<std::vector<anchor_match::u32>> cpu;
-  cpu.reserve(groups.size());
-  for(const auto& group:groups)cpu.push_back(detail::cpu_anchor_match_records(group));
-  const auto expected=detail::encode_anchor_match_batch_reply(batch,cpu);
-  const auto cpu_ns=nanos_since(cpu_start);
+  std::uint64_t prepare_ns=0;
+  const auto batch=[&] {
+    std::vector<detail::AnchorMatchRequest> sources;
+    sources.reserve(group_count);
+    for(unsigned i=0;i<group_count;++i) {
+      const auto input=anchor_fixture(counts[i],argc>corpus_argument?argv[corpus_argument]:nullptr,i);
+      const auto layout=plan.groups[i].whole;
+      sources.push_back(detail::decode_anchor_match_request(
+          detail::encode_anchor_match_request(input.base,input.members,i+1,layout),layout));
+    }
+    const auto prepare=std::chrono::steady_clock::now();
+    auto snapshot=std::make_shared<const WorkerRequestSnapshot>(detail::encode_anchor_match_batch_request(sources,1,plan));
+    prepare_ns=nanos_since(prepare);
+    return detail::decode_anchor_match_batch_request(std::move(snapshot),plan.request_bytes,plan.reply_bytes,
+        plan.quantum_members,plan.device_bytes,plan.launches);
+  }();
+  const auto groups=batch.groups();
   std::vector<Bytes> individual_replies;
-  if(!transfer) {
-    individual_replies.reserve(groups.size());
-    for(std::size_t i=0;i<groups.size();++i)individual_replies.push_back(detail::encode_anchor_match_reply(groups[i],cpu[i]));
-  }
+  std::uint64_t cpu_ns=0;
+  const auto expected=[&] {
+    const auto cpu_start=std::chrono::steady_clock::now();
+    std::vector<std::vector<anchor_match::u32>> cpu;
+    cpu.reserve(groups.size());
+    for(const auto& group:groups)cpu.push_back(detail::cpu_anchor_match_records(group));
+    auto reply=detail::encode_anchor_match_batch_reply(batch,cpu);
+    cpu_ns=nanos_since(cpu_start);
+    if(!transfer) {
+      individual_replies.reserve(groups.size());
+      for(std::size_t i=0;i<groups.size();++i)individual_replies.push_back(detail::encode_anchor_match_reply(groups[i],cpu[i]));
+    }
+    return reply;
+  }();
 
   std::uint64_t batch_ns=0,comparison_ns=0;
   const auto run_batch=[&](bool coalesce,std::uint64_t& elapsed) {
@@ -656,7 +670,8 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
         std::to_wstring(plan.reply_bytes),std::to_wstring(plan.quantum_members),
         std::to_wstring(plan.device_bytes),std::to_wstring(plan.launches)};
     if(coalesce)arguments.push_back(std::to_wstring(transfer->device_bytes));
-    const auto verified=anchor_comparison_exchange(worker,arguments,frame,expected,coalesce?transfer_budget:batch_budget);
+    const auto verified=anchor_comparison_exchange(worker,arguments,batch.snapshot(),expected,
+        coalesce?transfer_budget:batch_budget);
     elapsed=prepare_ns+nanos_since(start);
     return verified;
   };
@@ -665,9 +680,9 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
     bool verified=true;
     for(std::size_t i=0;i<groups.size() && verified;++i) {
       const auto& group=plan.groups[i];
-      const auto source=std::span<const std::byte>(groups[i].source);
-      const auto separate=detail::encode_anchor_match_request(source.first(anchor_match::extent_bytes),
-          source.subspan(anchor_match::extent_bytes),groups[i].id,group.whole);
+      const auto source=groups[i].source;
+      const auto separate=std::make_shared<const WorkerRequestSnapshot>(detail::encode_anchor_match_request(
+          source.first(anchor_match::extent_bytes),source.subspan(anchor_match::extent_bytes),groups[i].id,group.whole));
       verified=anchor_comparison_exchange(worker,{L"--driver-anchor-sweep",std::to_wstring(ordinal),argv[4],
           std::to_wstring(mask),std::wstring(digest),std::to_wstring(group.whole.members),
           std::to_wstring(group.quantum_members),std::to_wstring(group.device_bytes),std::to_wstring(group.windows)},
