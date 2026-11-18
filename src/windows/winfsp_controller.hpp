@@ -31,7 +31,7 @@ class WinFspVolumeController final {
   // Qualified memory composition: domain must outlive the controller's joined
   // worker. Allocation and retirement share the callback's control lock.
   WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,MemoryVolumeDomain&,
-      std::optional<NativeAnchorSearchOptions> anchor={});
+      std::optional<NativeAnchorSearchOptions> anchor={},HANDLE state_changed=nullptr);
   ~WinFspVolumeController();
   WinFspVolumeController(const WinFspVolumeController&)=delete;
   WinFspVolumeController& operator=(const WinFspVolumeController&)=delete;

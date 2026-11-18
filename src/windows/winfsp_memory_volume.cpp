@@ -7,7 +7,8 @@ namespace {
 constexpr StoreCompressionOptions memory_compression{StoreCompressionMode::automatic,3,false};
 }
 WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan plan,NativeImageKind kind,
-    std::optional<NativeDeferredWriteOptions> acceleration,std::optional<NativeAnchorSearchOptions> anchor):kind_(kind) {
+    std::optional<NativeDeferredWriteOptions> acceleration,std::optional<NativeAnchorSearchOptions> anchor,
+    HANDLE state_changed):kind_(kind),state_changed_(state_changed) {
   if(!valid_native_write_plan(plan))throw std::invalid_argument("Invalid memory-volume mount plan");
   if(kind_!=NativeImageKind::paged && kind_!=NativeImageKind::indexed_paged)
     throw std::invalid_argument("Memory volume needs a supported paged layout");
@@ -29,7 +30,8 @@ void WinFspMemoryVolume::start_controller(std::unique_ptr<WinFspNativeWritable> 
       (!acceleration->measured_shape || acceleration->measured_shape->matches_storage(
           memory_compression,backing_.image->contract().write_failure_unit_bytes)))
     adapter->enable_deferred_writes_hosted(std::move(*acceleration));
-  controller_=std::make_unique<WinFspVolumeController>(std::move(adapter),api,std::move(plan),*backing_.domain,std::move(anchor));
+  controller_=std::make_unique<WinFspVolumeController>(std::move(adapter),api,std::move(plan),*backing_.domain,
+      std::move(anchor),state_changed_);
   joined_=false;
 }
 WinFspMemoryVolume::~WinFspMemoryVolume()=default;

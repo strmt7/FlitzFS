@@ -1,8 +1,12 @@
 #include "volume_controller.hpp"
+#ifdef FLITZFS_BUILD_EXPLORER_APP
+#include "volume_app_winfsp.hpp"
+#endif
 #include <shellapi.h>
 #include <algorithm>
 #include <array>
 #include <cwchar>
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -11,6 +15,7 @@ namespace {
 using namespace flitzfs;
 constexpr UINT tray_message=WM_APP+42;
 constexpr int create_id=101,save_id=102,read_id=103,optimize_id=104,discard_id=105,exit_id=106;
+constexpr int attach_id=107,detach_id=108,explorer_id=109;
 constexpr int files_id=110,name_id=111,text_id=112,status_id=113,show_id=114;
 std::wstring wide(std::string_view text) {
   if(text.empty())return {};
@@ -38,7 +43,7 @@ std::string utf8(HWND control,std::size_t limit) {
 }
 struct App {
   HWND window=nullptr,heading=nullptr,summary=nullptr,status=nullptr,files=nullptr,name=nullptr,text=nullptr;
-  std::array<HWND,6> buttons{};
+  std::array<HWND,9> buttons{};
   std::unique_ptr<VolumeController> controller;
   NOTIFYICONDATAW tray{};bool tray_added=false,quitting=false;
   UINT taskbar_created=0;
@@ -82,6 +87,13 @@ struct App {
     buttons[3]=control(L"BUTTON",L"Optimize",WS_TABSTOP,optimize_id);
     buttons[4]=control(L"BUTTON",L"Discard temporary volume",WS_TABSTOP,discard_id);
     buttons[5]=control(L"BUTTON",L"Exit",WS_TABSTOP,exit_id);
+    std::unique_ptr<VolumeAttachment> attachment;
+#ifdef FLITZFS_BUILD_EXPLORER_APP
+    buttons[6]=control(L"BUTTON",L"Attach memory volume",WS_TABSTOP,attach_id);
+    buttons[7]=control(L"BUTTON",L"Detach and retain",WS_TABSTOP,detach_id);
+    buttons[8]=control(L"BUTTON",L"Open in Explorer",WS_TABSTOP,explorer_id);
+    attachment=make_volume_app_attachment();
+#endif
     files=control(L"LISTBOX",L"Volume files",WS_TABSTOP|WS_BORDER|LBS_NOTIFY|WS_VSCROLL,files_id);
     name=control(L"EDIT",L"note.txt",WS_TABSTOP|WS_BORDER|ES_AUTOHSCROLL,name_id);
     text=control(L"EDIT",L"",WS_TABSTOP|WS_BORDER|ES_MULTILINE|ES_AUTOVSCROLL|WS_VSCROLL,text_id);
@@ -90,7 +102,7 @@ struct App {
     status=control(L"STATIC",L"No volume. Create a memory volume to begin.",SS_LEFT,status_id);
     taskbar_created=RegisterWindowMessageW(L"TaskbarCreated");
     if(!taskbar_created)throw std::runtime_error("Tray restart notification unavailable");
-    add_tray();controller=std::make_unique<VolumeController>(window);layout();refresh();
+    add_tray();controller=std::make_unique<VolumeController>(window,std::move(attachment));layout();refresh();
   }
   void layout() noexcept {
     RECT r{};GetClientRect(window,&r);
@@ -101,9 +113,9 @@ struct App {
     MoveWindow(heading,p,p,usable,d(28),TRUE);
     MoveWindow(summary,p,p+d(30),usable,d(44),TRUE);
     const int button_width=(std::max)(1,(usable-2*gap)/3);
-    for(int i=0;i<6;++i)MoveWindow(buttons[static_cast<std::size_t>(i)],
-        p+(i%3)*(button_width+gap),d(94)+(i/3)*(row+gap),button_width,row,TRUE);
-    const int top=d(184),body=(std::max)(d(60),h-top-d(88));
+    for(int i=0;i<static_cast<int>(buttons.size());++i)if(const auto button=buttons[static_cast<std::size_t>(i)])
+      MoveWindow(button,p+(i%3)*(button_width+gap),d(94)+(i/3)*(row+gap),button_width,row,TRUE);
+    const int top=d(buttons[6]?224:184),body=(std::max)(d(60),h-top-d(88));
     MoveWindow(files,p,top,left,body,TRUE);
     MoveWindow(name,p+left+gap,top,(std::max)(1,usable-left-gap),row,TRUE);
     MoveWindow(text,p+left+gap,top+row+gap,(std::max)(1,usable-left-gap),
@@ -113,11 +125,19 @@ struct App {
   void refresh() {
     if(!controller)return;
     const auto v=controller->view();
-    const bool idle=!v.busy&&!v.stopping&&!v.stopped;
-    EnableWindow(buttons[0],idle&&!v.volume.ready);
+    const auto state=v.attachment.state;
+    const bool idle=v.idle();
+    EnableWindow(buttons[0],idle&&!v.has_volume());
     for(std::size_t i=1;i<4;++i)EnableWindow(buttons[i],idle&&v.volume.ready&&!v.volume.fenced);
-    EnableWindow(buttons[4],idle&&v.volume.ready);
-    EnableWindow(buttons[5],(idle&&!v.volume.ready)||v.stopped);
+    EnableWindow(buttons[4],idle&&(v.volume.ready || state==VolumeAttachmentState::detached));
+    EnableWindow(buttons[5],!v.has_volume()&&(idle||v.stopped));
+    if(buttons[6]) {
+      EnableWindow(buttons[6],idle&&!v.volume.ready &&
+          (state==VolumeAttachmentState::empty || state==VolumeAttachmentState::detached));
+      EnableWindow(buttons[7],idle&&state==VolumeAttachmentState::attached);
+      EnableWindow(buttons[8],idle&&state==VolumeAttachmentState::attached);
+      for(const auto editor:{files,name,text})ShowWindow(editor,v.attachment.retained()?SW_HIDE:SW_SHOW);
+    }
     if(v.content_generation!=rendered) {
       rendered=v.content_generation;paths.clear();SendMessageW(files,LB_RESETCONTENT,0,0);
       for(const auto& f:v.volume.files) {
@@ -126,15 +146,17 @@ struct App {
       }
       if(v.text)SetWindowTextW(text,wide(*v.text).c_str());
     }
-    std::wstring state=L"Experimental | CPU engine | Not mounted";
-    if(v.volume.ready)state+=v.volume.optimization.phase==NativeOptimizationPhase::ready?
+    std::wstring summary_text=L"Experimental memory workspace";
+    if(state==VolumeAttachmentState::attached)summary_text=L"Attached temporary volume\r\n"+v.attachment.location;
+    else if(v.attachment.retained())summary_text=L"Temporary volume retained in memory";
+    if(v.volume.ready)summary_text+=v.volume.optimization.phase==NativeOptimizationPhase::ready?
         L" | Optimization state: ready":L" | Optimization state: unavailable";
-    if(v.volume.ready)state+=v.maintenance_disabled?L" | Background optimization unavailable":
+    if(v.volume.ready)summary_text+=v.maintenance_disabled?L" | Background optimization unavailable":
         v.volume.maintenance_pending?L" | Background optimization pending":L" | Background optimization idle";
-    if(v.volume.ready)state+=L"\r\nFile bytes: "+std::to_wstring(v.volume.logical_bytes)+
+    if(v.volume.ready)summary_text+=L"\r\nFile bytes: "+std::to_wstring(v.volume.logical_bytes)+
         L" | Image/head/advice bytes: "+std::to_wstring(v.volume.physical_bytes)+
         L" | Locked RAM: "+std::to_wstring(v.volume.resident)+L"/"+std::to_wstring(v.volume.capacity);
-    SetWindowTextW(summary,state.c_str());
+    SetWindowTextW(summary,summary_text.c_str());
     const auto message=wide(v.message)+(v.busy?L"\r\nWorking...":L"");
     SetWindowTextW(status,message.c_str());
     if(v.stopped && quitting) {remove_tray();DestroyWindow(window);}
@@ -142,8 +164,22 @@ struct App {
   void command(int id) {
     if(!controller)return;
     if(id==show_id){ShowWindow(window,SW_RESTORE);SetForegroundWindow(window);return;}
+    if(id==explorer_id) {
+      const auto v=controller->view();
+      if(!v.idle() || v.attachment.state!=VolumeAttachmentState::attached)return;
+      wchar_t directory[MAX_PATH]{};
+      const auto length=GetWindowsDirectoryW(directory,static_cast<UINT>(std::size(directory)));
+      if(!length || length>=std::size(directory))throw std::runtime_error("Windows directory unavailable");
+      const auto explorer=std::filesystem::path(directory)/L"explorer.exe";
+      const auto argument=L"\""+v.attachment.location+L"\"";
+      if(reinterpret_cast<INT_PTR>(ShellExecuteW(window,L"open",explorer.c_str(),argument.c_str(),nullptr,SW_SHOWNORMAL))<=32)
+        SetWindowTextW(status,L"Explorer could not open the attachment.");
+      return;
+    }
     if(id==exit_id) {
-      if(controller->view().stopped){quitting=true;remove_tray();DestroyWindow(window);return;}
+      const auto v=controller->view();
+      if(v.has_volume())return;
+      if(v.stopped){quitting=true;remove_tray();DestroyWindow(window);return;}
       if(controller->stop(false)){quitting=true;refresh();}
       return;
     }
@@ -159,6 +195,8 @@ struct App {
       }
       case optimize_id:cmd.kind=VolumeCommandKind::optimize;break;
       case discard_id:cmd.kind=VolumeCommandKind::discard;break;
+      case attach_id:cmd.kind=VolumeCommandKind::attach;break;
+      case detach_id:cmd.kind=VolumeCommandKind::detach;break;
       default:return;
     }
     if(controller->submit(std::move(cmd)))refresh();
@@ -170,7 +208,12 @@ struct App {
       HMENU menu=CreatePopupMenu();if(!menu)return;
       AppendMenuW(menu,MF_STRING,show_id,L"Show FlitzFS");
       const auto v=controller->view();
-      AppendMenuW(menu,MF_STRING|((v.volume.ready||v.busy)?MF_GRAYED:0),exit_id,L"Exit");
+      if(buttons[6]) {
+        AppendMenuW(menu,MF_STRING|(IsWindowEnabled(buttons[6])?0:MF_GRAYED),attach_id,L"Attach memory volume");
+        AppendMenuW(menu,MF_STRING|(IsWindowEnabled(buttons[8])?0:MF_GRAYED),explorer_id,L"Open in Explorer");
+        AppendMenuW(menu,MF_STRING|(IsWindowEnabled(buttons[7])?0:MF_GRAYED),detach_id,L"Detach and retain");
+      }
+      AppendMenuW(menu,MF_STRING|((v.has_volume()||v.busy)?MF_GRAYED:0),exit_id,L"Exit");
       POINT p{};GetCursorPos(&p);SetForegroundWindow(window);
       const auto selected=TrackPopupMenu(menu,TPM_RETURNCMD|TPM_RIGHTBUTTON,p.x,p.y,0,window,nullptr);
       DestroyMenu(menu);if(selected)command(static_cast<int>(selected));
@@ -207,13 +250,14 @@ LRESULT CALLBACK procedure(HWND window,UINT message,WPARAM w,LPARAM l) {
         if(app->controller)app->controller->acknowledge_notification();app->refresh();return 0;
       case tray_message:app->tray_event(l);return 0;
       case WM_CLOSE:
-        if(app->controller && app->controller->view().volume.ready) {
+        if(app->controller && app->controller->view().has_volume()) {
           if(app->tray_added)ShowWindow(window,SW_HIDE);
           else SetWindowTextW(app->status,L"A temporary volume is active. Discard it explicitly before exit.");
         } else app->command(exit_id);
         return 0;
       case WM_QUERYENDSESSION:
-        return !(app->controller && (app->controller->view().volume.ready||app->controller->view().busy));
+        if(!app->controller)return TRUE;
+        {const auto v=app->controller->view();return !(v.has_volume()||v.busy);}
       case WM_DESTROY:PostQuitMessage(0);return 0;
       case WM_NCDESTROY:SetWindowLongPtrW(window,GWLP_USERDATA,0);break;
     }

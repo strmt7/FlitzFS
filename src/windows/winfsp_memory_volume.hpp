@@ -10,7 +10,7 @@ class WinFspMemoryVolume final {
  public:
   WinFspMemoryVolume(WinFspSessionApi,NativeWriteMountPlan,NativeImageKind=NativeImageKind::paged,
       std::optional<NativeDeferredWriteOptions> acceleration=std::nullopt,
-      std::optional<NativeAnchorSearchOptions> anchor=std::nullopt);
+      std::optional<NativeAnchorSearchOptions> anchor=std::nullopt,HANDLE state_changed=nullptr);
   ~WinFspMemoryVolume();
   WinFspMemoryVolume(const WinFspMemoryVolume&)=delete;
   WinFspMemoryVolume& operator=(const WinFspMemoryVolume&)=delete;
@@ -35,6 +35,7 @@ class WinFspMemoryVolume final {
   MemoryVolumeBacking backing_;
   std::unique_ptr<WinFspVolumeController> controller_;
   const NativeImageKind kind_;
+  const HANDLE state_changed_;
   bool joined_=false,sealed_=false;
 };
 }

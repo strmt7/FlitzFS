@@ -39,7 +39,8 @@ option(FLITZFS_BUILD_TESTS "Build bounded unit tests" ON)
 option(FLITZFS_BUILD_STORE_COMPARISON "Build optional native memory comparison" OFF)
 option(FLITZFS_BUILD_STORE_CRASH_PROBE "Build optional native writer interruption probe" OFF)
 option(FLITZFS_REQUIRE_ZSTD "Fail instead of silently using raw-only mode" OFF)
-option(FLITZFS_BUILD_VOLUME_APP "Build experimental Windows memory-volume application (no mount or GPU runtime)" OFF)
+option(FLITZFS_BUILD_VOLUME_APP "Build the experimental Windows memory-volume application" OFF)
+option(FLITZFS_BUILD_EXPLORER_APP "Enable experimental Explorer attachment in the Windows volume application" OFF)
 option(FLITZFS_BUILD_WINFSP "Build experimental Windows callbacks (no mount executable)" OFF)
 option(FLITZFS_BUILD_NATIVE_WRITE_CONTROL "Build native write control using ABI headers without WinFsp runtime" OFF)
 option(FLITZFS_BUILD_MOUNT_PROBE "Build isolated synthetic mount probe (never default CTest)" OFF)
@@ -49,6 +50,11 @@ option(FLITZFS_BUILD_GPU_RAM_PROBE "Build explicit native locked-RAM match-worke
 option(FLITZFS_BUILD_HIP_ROUTE_PROBE "Build explicit AMD runtime and adapter acquisition probe" OFF)
 set(FLITZFS_INSTALLED_AMD_PACKAGE_DIR "" CACHE PATH "Build-trusted AMD package containing its qualification manifest")
 set(FLITZFS_INSTALLED_AMD_MANIFEST_SHA256 "" CACHE STRING "Independently pinned digest of the approved AMD manifest")
+
+if(FLITZFS_BUILD_EXPLORER_APP)
+  set(FLITZFS_BUILD_VOLUME_APP ON)
+  set(FLITZFS_BUILD_WINFSP ON)
+endif()
 set(FLITZFS_RAM_SOURCE_COMMIT "" CACHE STRING "Exact experimental RAM probe source commit")
 set(FLITZFS_WINFSP_SDK "" CACHE PATH "Explicit WinFsp SDK root: include, lib and bin")
 if(FLITZFS_REQUIRE_ZSTD AND NOT FLITZFS_WITH_ZSTD)
@@ -1203,7 +1209,7 @@ if(FLITZFS_BUILD_HIP_ROUTE_PROBE OR FLITZFS_INSTALLED_AMD_PACKAGE_DIR)
   endif()
 endif()
 
-# Explicit application slice; never enables the SDK, a driver or a mount probe.
+# The preview needs no SDK. Explorer attachment is an explicit build variant.
 if(FLITZFS_BUILD_VOLUME_APP)
   if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Experimental volume application requires native Windows x64/MSVC")
@@ -1220,11 +1226,36 @@ if(FLITZFS_BUILD_VOLUME_APP)
   target_compile_options(flitzfs_volume_app PRIVATE /W4 /permissive- /utf-8)
   target_link_options(flitzfs_volume_app PRIVATE /MANIFEST:EMBED
       "/MANIFESTINPUT:${CMAKE_CURRENT_SOURCE_DIR}/src/windows/volume_app.manifest")
+  if(FLITZFS_BUILD_EXPLORER_APP)
+    file(SHA256 "${FLITZFS_WINFSP_DLL}" flitzfs_explorer_runtime_sha256)
+    file(SIZE "${FLITZFS_WINFSP_DLL}" flitzfs_explorer_runtime_bytes)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${FLITZFS_WINFSP_DLL}")
+    add_library(flitzfs_volume_app_mount STATIC src/windows/volume_app_winfsp.cpp
+      src/windows/winfsp_volume_attachment.cpp)
+    target_link_libraries(flitzfs_volume_app_mount PUBLIC flitzfs_winfsp PRIVATE delayimp bcrypt)
+    target_compile_options(flitzfs_volume_app_mount PRIVATE /W4 /permissive- /utf-8)
+    target_link_options(flitzfs_volume_app_mount INTERFACE "/DELAYLOAD:winfsp-x64.dll")
+    target_compile_definitions(flitzfs_volume_app_mount PUBLIC FLITZFS_BUILD_EXPLORER_APP=1 PRIVATE
+      FLITZFS_VOLUME_APP_WINFSP_SHA256="${flitzfs_explorer_runtime_sha256}"
+      FLITZFS_VOLUME_APP_WINFSP_BYTES=${flitzfs_explorer_runtime_bytes})
+    target_link_libraries(flitzfs_volume_app PRIVATE flitzfs_volume_app_mount)
+    add_custom_command(TARGET flitzfs_volume_app POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_volume_app>")
+  endif()
   if(FLITZFS_BUILD_TESTS)
     add_executable(flitzfs_volume_app_tests tests/windows_volume_app_tests.cpp)
     target_link_libraries(flitzfs_volume_app_tests PRIVATE flitzfs_volume_app_core flitzfs_process user32)
     target_compile_options(flitzfs_volume_app_tests PRIVATE /W4 /permissive- /utf-8)
     # GUI qualification is explicit and separate from normal CTest.
+    if(FLITZFS_BUILD_EXPLORER_APP)
+      add_executable(flitzfs_volume_attachment_tests tests/windows_volume_attachment_tests.cpp)
+      target_link_libraries(flitzfs_volume_attachment_tests PRIVATE flitzfs_volume_app_core flitzfs_volume_app_mount user32)
+      target_compile_options(flitzfs_volume_attachment_tests PRIVATE /W4 /permissive- /utf-8)
+      add_custom_command(TARGET flitzfs_volume_attachment_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_volume_attachment_tests>")
+      add_test(NAME bounded_windows_volume_attachment COMMAND flitzfs_volume_attachment_tests)
+      set_tests_properties(bounded_windows_volume_attachment PROPERTIES TIMEOUT 60)
+    endif()
   endif()
 endif()
 

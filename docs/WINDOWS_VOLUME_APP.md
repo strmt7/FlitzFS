@@ -1,10 +1,38 @@
 # Experimental Windows volume application
 
-The current helper uses managed mirrored paged volumes, host-admitted capacity,
-live CPU/memory observations and owned low-priority group opportunities. See
-[Windows background maintenance](WINDOWS_BACKGROUND_MAINTENANCE.md) for its current
-contract and source-bound validation. Explorer access remains required; this
-unmounted editor is an intermediate control surface.
+The helper supports the temporary editor and an experimental Explorer
+attachment. Both use the adaptive RAM factory. The Explorer variant opens
+an indexed writable volume with the shared WinFsp controller, CPU recovery,
+and installed AMD acquisition when a qualified package admits the work.
+[Memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) ·
+[Windows background maintenance](WINDOWS_BACKGROUND_MAINTENANCE.md)
+
+## Explorer attachment
+
+Configure `FLITZFS_BUILD_EXPLORER_APP=ON` and provide the reviewed
+`FLITZFS_WINFSP_SDK` directory when building the attachment variant. This
+build stages the matching user-mode DLL beside the executable. It resolves
+the DLL on Attach, verifies its build-bound size and SHA-256, and resolves
+its dependencies from System32. A missing or altered DLL produces an inline
+status message while the temporary editor stays available.
+[Microsoft delay-load API](https://learn.microsoft.com/en-us/cpp/build/reference/understanding-the-helper-function?view=msvc-170)
+
+Attach opens a new indexed volume or reopens the retained volume. It chooses
+a fresh child name in the Windows temporary directory and holds its local
+ancestor directories through retirement. WinFsp uses exclusive creation for
+the junction. Open in Explorer uses the current attachment path. Detach joins
+the dispatcher and workers while keeping the data in RAM. Another Attach
+verifies that retained volume before opening it at a new path. Discard is
+available after confirmed detachment. Window and tray notifications follow
+the native lifecycle events.
+[WinFsp directory creation](https://github.com/winfsp/winfsp/blob/14d6e0280ae15e2550c44d6dbc476be51649727f/src/dll/util.c) ·
+[Windows temporary directory API](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-gettemppath2w)
+
+The SDK fixture uses injected lifecycle operations and verifies file bytes
+after attach, detach and reattach. GUI tests exercise the actual executable
+with absent and altered dependencies. The signed driver, real Explorer
+mounting, and persistent-volume provisioning require separate qualification.
+[Current attachment evidence](evidence/windows-tray-attachment-2026-11-18.json)
 
 Current backing creation is shared with the WinFsp composition through the
 [adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). The fixed capacity
@@ -18,13 +46,11 @@ At source **f4928c2d2510cacb55da664a0338c8592194d9a0**, the isolated Windows
 application job and exact-binary owner-host model/GUI checks passed. All 13 existing core jobs also passed at that source.
 [Source, hashes, limits, measurements and limitations](evidence/volume-app-f4928c2.json).
 
-This is a functional, unmounted application slice using the real CPU filesystem
-engine. It creates a temporary volume, reserves its optimization area, saves NEW
-root-level text files, lists and reads them, verifies saved bytes, performs
-explicit staged recompression and retires the volume. It does not yet provide
-an Explorer drive, physical provisioning, a complete helper/installer or a GPU
-route. The final app must manage both memory and physical backends through the
-[same engine](WINDOWS_VOLUME_BACKENDS.md).
+That build qualified the unmounted editor using the real CPU filesystem engine.
+It created a temporary volume, reserved its optimization area, saved and
+verified new root-level text files, performed staged recompression and retired
+the volume. The physical and temporary backends share the
+[filesystem engine](WINDOWS_VOLUME_BACKENDS.md).
 
 ## Provider ownership and accounting
 

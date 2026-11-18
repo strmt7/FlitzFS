@@ -231,14 +231,14 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    memory provider now supports indexed creation, startup rollback,
    independent CPU inspection, closed-session sealing and writable remount of
    the verified retained image. It accepts an explicit provider and plan.
-   Carry this owner through the tray's attach and detach commands. Measure
-   the full CPU verification cost on large retained volumes. Qualify
-   current-source mounting and sign-off for the Windows 11 driver/runtime
-   pair before enabling normal Explorer
-   provisioning. Connect the helper lifecycle to that same owner. Keep
+   The experimental tray now invokes that owner for attach, detach and
+   reattach. Verify real Explorer operations and the signed Windows 11
+   driver/runtime pair before enabling ordinary provisioning. Measure the
+   full CPU verification cost on large retained volumes. Keep
    earlier writable images readable and test their actual reopening.
    [Indexed owned path](evidence/indexed-owned-windows-2026-11-18.json) ·
-   [Memory backing evidence](evidence/demand-locked-memory-2026-11-18.json)
+   [Memory backing evidence](evidence/demand-locked-memory-2026-11-18.json) ·
+   [Tray attachment](WINDOWS_VOLUME_APP.md#explorer-attachment)
 2. Qualify mounted delete intent, detached I/O, final Close and restart through
    an isolated external Windows client. The indexed SDK fixture now proves
    preservation of detached data and closed-session recovery with its

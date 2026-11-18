@@ -1,6 +1,7 @@
 #include "volume_controller.hpp"
 #include "bounded_process.hpp"
 #include "windows_app_budget.hpp"
+#include "flitzfs/read_only_file.hpp"
 #include <windows.h>
 #include <bcrypt.h>
 #include <pdh.h>
@@ -669,7 +670,21 @@ std::wstring text(HWND window) {
   require(actual>=0 && actual<=count,"GUI text read");
   result.resize(static_cast<std::size_t>(actual));return result;
 }
-void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget) {
+enum class GuiRuntime { ordinary,missing,altered };
+void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,GuiRuntime runtime) {
+  auto sdk=app.parent_path()/L"winfsp-x64.dll";
+  std::optional<ReadOnlyFile> fixture_pin;
+  if(runtime==GuiRuntime::missing) {
+    require(GetFileAttributesW(sdk.c_str())==INVALID_FILE_ATTRIBUTES &&
+        GetLastError()==ERROR_FILE_NOT_FOUND,"Missing-runtime test requires its own relocated fixture");
+  } else if(runtime==GuiRuntime::altered) {
+    constexpr std::string_view marker="FlitzFS deliberately invalid WinFsp fixture\n";
+    fixture_pin.emplace(ReadOnlyFile::open(sdk));
+    require(fixture_pin->size()>=marker.size(),"Altered-runtime fixture size differs");
+    std::string bytes(marker.size(),'\0');
+    fixture_pin->read_exact_at(0,bytes.data(),bytes.size());
+    require(bytes==marker,"Altered-runtime fixture identity differs");
+  }
   auto observer=std::make_shared<ProcessObserver>();ProcessResult result;
   std::exception_ptr failure;
   std::atomic<bool> supervisor_failed{false};
@@ -696,6 +711,17 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
           IsWindowEnabled(GetDlgItem(window,101))!=FALSE;
     },deadline);
     status=GetDlgItem(window,113);require(status!=nullptr,"Ready status control missing");
+    if(runtime!=GuiRuntime::ordinary) {
+      require(IsWindowEnabled(GetDlgItem(window,107))!=FALSE,"Attach control unavailable");
+      button(107);
+      wait_status(runtime==GuiRuntime::missing?L"WinFsp runtime is unavailable beside FlitzFS":
+          L"WinFsp runtime differs from this FlitzFS build");
+      require(observer->wait_for_exit()==ProcessObservation::running &&
+          IsWindowEnabled(GetDlgItem(window,101))!=FALSE &&
+          IsWindowEnabled(GetDlgItem(window,108))==FALSE,"Rejected SDK stranded the application");
+      std::cout<<"gui_runtime_refusal kind="<<(runtime==GuiRuntime::missing?"missing":"altered")
+          <<" preview_available=1\n";
+    }
     button(101);wait_status(L"Memory volume created");
     const auto summary=GetDlgItem(window,121);
     require(summary&&text(summary).find(L"Optimization state: ready")!=std::wstring::npos,
@@ -748,8 +774,14 @@ int wmain(int argc,wchar_t** argv) {
       for(unsigned cycle=0;cycle<3;++cycle)model_tests();
     }
     else if(argc==2 && std::wstring_view(argv[1])==L"--maintenance")maintenance_tests();
-    else if(argc==3 && std::wstring_view(argv[1])==L"--gui")gui_tests(std::filesystem::path(argv[2]),budget);
-    else throw std::runtime_error("Explicit --model, --maintenance or --gui absolute-app-path required");
+    else if(argc==3) {
+      const std::wstring_view mode=argv[1];
+      const auto app=std::filesystem::path(argv[2]);
+      if(mode==L"--gui")gui_tests(app,budget,GuiRuntime::ordinary);
+      else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
+      else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
+      else throw std::runtime_error("Unknown GUI qualification mode");
+    } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");
     std::cout<<"Windows volume application checks: "<<checks
         <<"; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\n";return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}

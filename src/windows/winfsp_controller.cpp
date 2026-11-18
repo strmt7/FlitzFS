@@ -19,12 +19,18 @@ struct Event {
   explicit Event(bool manual):value(CreateEventW(nullptr,manual,FALSE,nullptr)) {
     if(!value)throw std::runtime_error("Controller event creation failed");
   }
-  ~Event(){CloseHandle(value);}
+  explicit Event(HANDLE notification) {
+    if(notification && !DuplicateHandle(GetCurrentProcess(),notification,GetCurrentProcess(),
+        &value,EVENT_MODIFY_STATE,FALSE,0))
+      throw std::runtime_error("Lifecycle event duplication failed");
+  }
+  ~Event(){if(value)CloseHandle(value);}
 };
 }
 struct WinFspVolumeController::Impl {
   // Wait handles outlive the worker, session, callbacks and adapter duplicate.
   Event stop{true},activity{false};
+  Event status_changed;
   std::atomic<bool> stop_requested{false};
   mutable std::mutex mutex;
   WinFspControllerView current;
@@ -42,8 +48,8 @@ struct WinFspVolumeController::Impl {
 #endif
   std::thread worker;
   Impl(std::unique_ptr<WinFspNativeWritable> source,WinFspSessionApi api,NativeWriteMountPlan p,
-      MemoryVolumeDomain* memory,std::optional<NativeAnchorSearchOptions> acceleration):
-      plan(std::move(p)),residency(memory) {
+      MemoryVolumeDomain* memory,std::optional<NativeAnchorSearchOptions> acceleration,HANDLE notification):
+      status_changed(notification),plan(std::move(p)),residency(memory) {
     if(!source || !valid_native_write_plan(plan))throw std::invalid_argument("Invalid controller source or mount plan");
     source->set_maintenance_event(activity.value);adapter=source.get();
     session=std::make_unique<WinFspNativeSession>(std::move(source),api);
@@ -62,6 +68,7 @@ struct WinFspVolumeController::Impl {
       {
         std::lock_guard lock(mutex);current.start_status=started;current.state=session->state();
       }
+      if(NT_SUCCESS(started) && status_changed.value)SetEvent(status_changed.value);
       if(NT_SUCCESS(started)) {
         // No query is opened until changed content actually needs an opportunity.
         WindowsMaintenanceHost host;
@@ -167,6 +174,7 @@ struct WinFspVolumeController::Impl {
     current.controller_failed=failed || !anchor_retired;
     if(anchor)current.anchor_search=anchor->stats();
     current.maintenance_disabled=disabled;current.retired=anchor_retired;
+    if(status_changed.value)SetEvent(status_changed.value);
   }
   WinFspMaintenanceResult advance(const NativeMaintenanceObservation& observed) {
     const auto now=GetTickCount64();
@@ -251,12 +259,12 @@ struct WinFspVolumeController::Impl {
 };
 WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
     WinFspSessionApi api,NativeWriteMountPlan plan,std::optional<NativeAnchorSearchOptions> anchor):
-    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),nullptr,std::move(anchor))){}
+    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),nullptr,std::move(anchor),nullptr)){}
 WinFspVolumeController::~WinFspVolumeController()=default;
 WinFspVolumeController::WinFspVolumeController(std::unique_ptr<WinFspNativeWritable> adapter,
     WinFspSessionApi api,NativeWriteMountPlan plan,MemoryVolumeDomain& memory,
-    std::optional<NativeAnchorSearchOptions> anchor):
-    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),&memory,std::move(anchor))){}
+    std::optional<NativeAnchorSearchOptions> anchor,HANDLE state_changed):
+    impl_(std::make_unique<Impl>(std::move(adapter),api,std::move(plan),&memory,std::move(anchor),state_changed)){}
 void WinFspVolumeController::request_stop() noexcept {impl_->request_stop();}
 void WinFspVolumeController::stop_and_join() noexcept {
   impl_->request_stop();if(impl_->worker.joinable())impl_->worker.join();

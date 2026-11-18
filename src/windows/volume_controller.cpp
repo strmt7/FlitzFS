@@ -3,15 +3,37 @@
 #include <algorithm>
 #include <chrono>
 namespace flitzfs {
-VolumeController::VolumeController(HWND window):window_(window) {
+namespace {
+std::string attachment_message(const VolumeAttachmentView& attachment) {
+  switch(attachment.state) {
+    case VolumeAttachmentState::unavailable:
+    case VolumeAttachmentState::empty:return "No attachment. Create or attach a memory volume.";
+    case VolumeAttachmentState::starting:return "Attaching the memory volume.";
+    case VolumeAttachmentState::attached:return "Memory volume attached.";
+    case VolumeAttachmentState::detached:
+      if(attachment.status<0)return "Attachment failed. The memory volume is retained. Windows status "+
+          std::to_string(attachment.status)+".";
+      return "Memory volume detached and retained.";
+    case VolumeAttachmentState::blocked:return "Attachment retirement could not be confirmed. The memory volume is retained.";
+  }
+  return {};
+}
+}
+VolumeController::WakeEvent::WakeEvent():value(CreateEventW(nullptr,FALSE,FALSE,nullptr)) {
+  if(!value)throw std::runtime_error("Volume controller event creation failed");
+}
+VolumeController::WakeEvent::~WakeEvent(){CloseHandle(value);}
+VolumeController::VolumeController(HWND window,std::unique_ptr<VolumeAttachment> attachment):
+    window_(window),attachment_(std::move(attachment)) {
   if(!window)throw std::runtime_error("Controller requires an owned window");
+  if(attachment_)view_.attachment.state=VolumeAttachmentState::empty;
   worker_=std::thread([this]{run();});
 }
 VolumeController::~VolumeController() {
   // Normal GUI teardown first obtains an explicit stop and observes retirement.
   // Exceptional owner teardown still must join; never detach a stale worker.
   {
-    std::lock_guard lock(mutex_);stop_requested_=true;discard_on_stop_=true;foreground_pending_=true;wake_.notify_one();
+    std::lock_guard lock(mutex_);stop_requested_=true;discard_on_stop_=true;foreground_pending_=true;SetEvent(wake_.value);
   }
   if(worker_.joinable())worker_.join();
 }
@@ -20,13 +42,23 @@ bool VolumeController::submit(VolumeCommand command) {
       command.text.size()>VolumeModel::text_limit)return false;
   std::lock_guard lock(mutex_);
   if(view_.busy || stop_requested_ || view_.stopped || command_)return false;
-  command_=std::move(command);view_.busy=true;view_.text.reset();foreground_pending_=true;wake_.notify_one();return true;
+  const auto state=view_.attachment.state;
+  if(command.kind==VolumeCommandKind::attach &&
+      (view_.volume.ready || (state!=VolumeAttachmentState::empty && state!=VolumeAttachmentState::detached)))return false;
+  if(command.kind==VolumeCommandKind::detach && state!=VolumeAttachmentState::attached)return false;
+  if(view_.attachment.retained() && command.kind!=VolumeCommandKind::attach &&
+      command.kind!=VolumeCommandKind::detach &&
+      (command.kind!=VolumeCommandKind::discard || state!=VolumeAttachmentState::detached))return false;
+  if(!SetEvent(wake_.value))return false;
+  command_=std::move(command);view_.busy=true;view_.text.reset();foreground_pending_=true;return true;
 }
 bool VolumeController::stop(bool discard) {
   std::lock_guard lock(mutex_);
   if(view_.busy || command_ || stop_requested_)return false;
-  if(view_.volume.ready && !discard)return false;
-  stop_requested_=true;discard_on_stop_=discard;view_.stopping=true;foreground_pending_=true;wake_.notify_one();return true;
+  if(view_.has_volume() && !discard)return false;
+  if(view_.attachment.retained() && view_.attachment.state!=VolumeAttachmentState::detached)return false;
+  if(!SetEvent(wake_.value))return false;
+  stop_requested_=true;discard_on_stop_=discard;view_.stopping=true;foreground_pending_=true;return true;
 }
 VolumeControllerView VolumeController::view() const {
   std::lock_guard lock(mutex_);return view_;
@@ -41,6 +73,18 @@ void VolumeController::notify() noexcept {
     if(!notified_)view_.notification_failed=true;
   }
 }
+void VolumeController::refresh_attachment() {
+  if(!attachment_)return;
+  auto attachment=attachment_->refresh();
+  std::lock_guard lock(mutex_);
+  if(attachment!=view_.attachment) {
+    auto message=attachment_message(attachment);
+    view_.attachment=std::move(attachment);
+    view_.message=std::move(message);
+    ++view_.generation;
+    notify();
+  }
+}
 void VolumeController::run() noexcept {
   try {
     {
@@ -50,22 +94,23 @@ void VolumeController::run() noexcept {
         std::optional<VolumeCommand> command;
         {
           std::unique_lock lock(mutex_);
-          const auto ready=[this]{return stop_requested_||command_.has_value();};
-          if(!ready()) {
-            if(!maintenance_disabled && model.maintenance_pending()) {
-              const auto now=GetTickCount64();
-              if(next_opportunity>now)wake_.wait_for(lock,
-                  std::chrono::milliseconds((std::min)(next_opportunity-now,std::uint64_t(60000))),ready);
-              if(!ready() && GetTickCount64()<next_opportunity)continue;
-            } else wake_.wait(lock,ready);
-          }
           if(stop_requested_) {
-            if(model.ready() && !discard_on_stop_)throw std::runtime_error("Unapproved temporary volume discard");
+            if((model.ready() || (attachment_ && attachment_->retains_volume())) && !discard_on_stop_)
+              throw std::runtime_error("Unapproved temporary volume discard");
             break;
           }
           if(command_){command=std::move(command_);command_.reset();foreground_pending_=false;}
         }
         if(!command) {
+          refresh_attachment();
+          const auto now=GetTickCount64();
+          const bool pending=!maintenance_disabled && model.maintenance_pending();
+          if(!pending || next_opportunity>now) {
+            const auto delay=pending?static_cast<DWORD>((std::min)(next_opportunity-now,std::uint64_t(INFINITE-1))):INFINITE;
+            const auto result=WaitForSingleObject(wake_.value,delay);
+            if(result!=WAIT_OBJECT_0 && result!=WAIT_TIMEOUT)throw std::runtime_error("Volume controller wait failed");
+            continue;
+          }
           const auto started=std::chrono::steady_clock::now();
           const auto old=model.maintenance_progress();auto progress=old;
           // No shared queue/UI lock is held while this thread has reduced
@@ -102,6 +147,7 @@ void VolumeController::run() noexcept {
           continue;
         }
         std::string message;std::optional<std::string> text;VolumeView volume;
+        VolumeAttachmentView attachment;
         try {
           switch(command->kind) {
             case VolumeCommandKind::create:model.create();message="Memory volume created. Not mounted.";break;
@@ -114,10 +160,25 @@ void VolumeController::run() noexcept {
               if(model.optimization_info().phase!=NativeOptimizationPhase::ready)
                 message="Optimization deferred; optional state unavailable. File access remains available.";
               break;
-            case VolumeCommandKind::discard:model.discard();message="Temporary volume explicitly discarded.";break;
+            case VolumeCommandKind::attach:
+              if(model.ready())throw std::runtime_error("Close the preview volume before attaching");
+              attachment_->attach(wake_.value);
+              break;
+            case VolumeCommandKind::detach:
+              attachment_->detach();
+              break;
+            case VolumeCommandKind::discard:
+              if(attachment_ && attachment_->retains_volume())attachment_->discard();
+              else model.discard();
+              message="Temporary volume explicitly discarded.";
+              break;
             case VolumeCommandKind::stop:throw std::runtime_error("Invalid queued stop");
           }
         } catch(const std::exception& e){message=std::string("Operation failed: ")+e.what();}
+        if(attachment_) {
+          attachment=attachment_->refresh();
+          if(message.empty())message=attachment_message(attachment);
+        }
         try{volume=model.view();}
         catch(const std::exception& e){
           volume.ready=model.ready();volume.fenced=true;
@@ -125,17 +186,23 @@ void VolumeController::run() noexcept {
         }
         {
           std::lock_guard lock(mutex_);view_.volume=std::move(volume);
+          view_.attachment=std::move(attachment);
           view_.message=std::move(message);view_.text=std::move(text);
           view_.busy=false;++view_.generation;++view_.content_generation;notify();
         }
       }
     } // All engine owners and allocations retire before stopped is exposed.
+    if(attachment_) {
+      if(attachment_->refresh().state==VolumeAttachmentState::detached)attachment_->discard();
+      attachment_.reset();
+    }
     std::lock_guard lock(mutex_);
-    view_.volume={};view_.stopped=true;view_.busy=false;++view_.generation;++view_.content_generation;
+    view_.volume={};view_.attachment={};view_.stopped=true;view_.busy=false;++view_.generation;++view_.content_generation;
     view_.message=MemoryVolumeDomain::cleanup_healthy()?"Controller retired.":"Controller retired; memory cleanup failed.";
     notify();
   } catch(...) {
     std::lock_guard lock(mutex_);view_.volume={};view_.stopped=true;view_.busy=false;
+    if(attachment_ && attachment_->retains_volume())view_.attachment={VolumeAttachmentState::blocked};
     view_.message="Controller terminated after an internal failure.";notify();
   }
 }
