@@ -398,7 +398,7 @@ struct Change {std::uint64_t id;bool erase;Entry entry;};
 struct Plan {
   State next;
   std::size_t changed_keys=kStoreMaxObjects;
-  std::uint64_t page_start=0;
+  std::uint64_t page_start=0,obsolete_bytes=0;
   std::vector<PreparedPage> pages;
   Ref make_page(const Node& node,std::uint32_t height) {
     // Bound staging from this admitted public/native transaction's changed
@@ -444,13 +444,19 @@ struct Plan {
   std::vector<Ref> rewrite(const State& old,const Ref& ref,std::span<const Change> changes) {
     if(changes.empty())return {ref};
     auto node=read_node(old,ref);
+    obsolete_bytes=add(obsolete_bytes,2*page_bytes);
     if(!ref.height) {
       auto entries=std::move(node.entries);
       for(const auto& c:changes) {
         auto at=std::lower_bound(entries.begin(),entries.end(),c.id,[](const auto& e,auto id){return e.id<id;});
-        if(c.erase) {if(at==entries.end() || at->id!=c.id)fail("erase missing object");entries.erase(at);}
-        else if(at!=entries.end() && at->id==c.id)*at=c.entry;
-        else entries.insert(at,c.entry);
+        if(at!=entries.end() && at->id==c.id) {
+          obsolete_bytes=add(obsolete_bytes,(128ULL+at->stored)*(old.mirrored?2:1));
+          if(c.erase)entries.erase(at);
+          else *at=c.entry;
+        }else {
+          if(c.erase)fail("erase missing object");
+          entries.insert(at,c.entry);
+        }
       }
       return leaves(entries);
     }
@@ -584,7 +590,7 @@ struct PagedObjectStoreWriter::Impl {
   } lease;
   State state;
   detail::StoreCodecEncoder encoder;
-  std::uint64_t append_floor=0;
+  std::uint64_t append_floor=0,obsolete_bytes=0;
   bool poisoned=false;
   std::shared_ptr<const void> owner=std::make_shared<const unsigned char>(0);
   mutable std::weak_ptr<const void> pending_rebuild;
@@ -939,6 +945,8 @@ PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation
   catch(...){p.poisoned=true;throw;}
   if(old.degraded_metadata) {p.poisoned=true;fail("metadata replica lost during staging");}
   plan.finish(std::move(roots));
+  const auto obsolete=add(p.obsolete_bytes,plan.obsolete_bytes);
+  if(obsolete>plan.next.end-start)fail("obsolete byte accounting exceeds committed history");
   try{old.image->admit_write(plan.next.end);}
   catch(const std::runtime_error& error){capacity(error.what());}
   try {
@@ -953,7 +961,8 @@ PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation
     }
     publish(plan.next);
   } catch(...) {p.poisoned=true;throw;}
-  p.state=std::move(plan.next);p.append_floor=p.state.end;return flitzfs::info(p.state);
+  p.state=std::move(plan.next);p.append_floor=p.state.end;p.obsolete_bytes=obsolete;
+  return flitzfs::info(p.state);
 }
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot() const {
   if(!impl_)fail("moved-from writer");auto p=std::make_unique<PagedObjectStoreSnapshot::Impl>();
@@ -971,6 +980,9 @@ std::uint64_t PagedObjectStoreWriter::generation_for_staging() const noexcept {
 }
 std::uint64_t PagedObjectStoreWriter::physical_end_for_staging() const noexcept {
   return poisoned()?0:impl_->state.end;
+}
+std::uint64_t PagedObjectStoreWriter::obsolete_bytes() const noexcept {
+  return poisoned()?0:impl_->obsolete_bytes;
 }
 std::uint64_t PagedObjectStoreWriter::append_floor_for_staging() const noexcept {
   return poisoned()?0:impl_->append_floor;

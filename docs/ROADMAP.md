@@ -15,7 +15,11 @@ through final Close and reclaims large closed files in restartable batches.
 Indexed managed-head selection now supports verified compaction and the
 WinFsp SDK callbacks. The owned provider now selects indexed volumes,
 processes the durable retirement queue on admitted background opportunities
-and seals retained data after dispatcher join.
+and seals retained data after dispatcher join. Indexed memory volumes now
+stage compaction from measured obsolete bytes, switch verified roots without
+rescanning the data and reclaim resident pages after their last reader retires.
+Persistent segment reclamation under concurrent edits remains a release gate.
+[Compaction evidence](evidence/indexed-background-compaction-2026-11-18.json)
 [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
 [Managed indexed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
 
@@ -29,8 +33,9 @@ compression policy and end-to-end performance remain open.
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now supplies both
 the helper and owned WinFsp composition. It sizes capacity from live headroom
 and locks pages as image writes require them. Stop retains backing and requires
-explicit join before independent CPU inspection. Connect the indexed path to
-the owned provider, scheduler and external Windows clients next.
+explicit join before independent CPU inspection. The owned provider's mounted
+Windows Server 2025 fixture verified external writes and CPU reopen. Broader
+Windows 11 client coverage and mounted maintenance measurements remain open.
 [Memory provider evidence](evidence/demand-locked-memory-2026-11-18.json)
 
 The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) now ties callback events,

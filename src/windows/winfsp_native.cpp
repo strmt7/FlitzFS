@@ -1,4 +1,5 @@
 #include "winfsp_native.hpp"
+#include "memory_volume_factory.hpp"
 #include "../native_maintenance_source.hpp"
 #include "../store_file.hpp"
 #include "../store_codec.hpp"
@@ -149,6 +150,7 @@ struct WinFspNativeWritable::Impl {
   // Declared after session/control/offline so the service retires first.
   std::unique_ptr<NativeDeferredWriteService> deferred;
   std::unique_ptr<NativeGroupMaintenance> groups;
+  MemoryVolumeBacking* compaction=nullptr;
   std::uint64_t groups_completed_sequence=0,last_retirement_observation=0,last_retirement_capture=0;
   bool maintenance_cancelled=false;
   Handle maintenance_event;
@@ -173,14 +175,15 @@ struct WinFspNativeWritable::Impl {
     if(maintenance_event.value && !SetEvent(maintenance_event.value))
       maintenance_signal_failed.store(true,std::memory_order_release);
   }
-  WinFspMaintenanceResult advance_retirement(const NativeMaintenanceObservation& observed,std::uint64_t now) {
+  WinFspMaintenanceResult advance_indexed_maintenance(const NativeMaintenanceObservation& observed,std::uint64_t now) {
     using State=WinFspMaintenanceState;
     using Phase=NativeMaintenancePhase;
     using Deferral=NativeMaintenanceDeferral;
     const auto defer=[](Deferral reason) {
       return WinFspMaintenanceResult{State::advanced,{Phase::deferred,reason}};
     };
-    if(!session.retirement_pending())return {State::unchanged};
+    const bool reap=session.retirement_pending();
+    if(!reap && (!compaction || !compaction->compaction_pending(session)))return {State::unchanged};
     if(!observed.sequence || observed.sequence<=last_retirement_observation)
       return defer(Deferral::observation);
     last_retirement_observation=observed.sequence;
@@ -194,12 +197,25 @@ struct WinFspNativeWritable::Impl {
     constexpr auto transaction_scratch=8ULL*kStoreMaxTransactionBytes;
     if(resources->memory_allowance<transaction_scratch)return defer(Deferral::memory);
     try {
-      if(!session.reclaim_retired_inode())return {State::unchanged};
+      if(reap) {
+        if(!session.reclaim_retired_inode())return {State::unchanged};
+        return {State::advanced,{session.retirement_pending()?Phase::publishing:Phase::idle},true};
+      }
+      using Step=MemoryCompactionStep;
+      switch(compaction->advance_compaction(session)) {
+        case Step::idle:return {State::unchanged};
+        case Step::copying:return {State::advanced,{Phase::preparing}};
+        case Step::ready:return {State::advanced,{Phase::publishing}};
+        case Step::published:return {State::advanced,{Phase::idle},false,true};
+        case Step::retiring:return {State::advanced,{Phase::preparing}};
+        case Step::pinned:return defer(Deferral::other_maintenance);
+        case Step::failed:return {State::advanced,{Phase::idle},false,false,true};
+      }
     }catch(...) {
       if(session.poisoned())offline.store(true,std::memory_order_release);
       throw;
     }
-    return {State::advanced,{session.retirement_pending()?Phase::publishing:Phase::idle},true};
+    return {State::unchanged};
   }
   template<class F>HostedIdleMaintenanceResult idle(F&& fn) {
     std::unique_lock guard(control,std::try_to_lock);
@@ -653,6 +669,9 @@ std::unique_ptr<WinFspNativeWritable> WinFspNativeWritable::resume_managed_impl(
     impl->groups=std::make_unique<NativeGroupMaintenance>(impl->session);
   return std::unique_ptr<WinFspNativeWritable>(new WinFspNativeWritable(std::move(impl)));
 }
+void WinFspNativeWritable::configure_memory_compaction(MemoryVolumeBacking& backing) noexcept {
+  impl_->compaction=&backing;
+}
 bool WinFspNativeWritable::background_maintenance_pending() const {
   std::unique_lock guard(impl_->control,std::try_to_lock);
   // A busy control is not proof of quiescence. This cached query performs no
@@ -661,6 +680,7 @@ bool WinFspNativeWritable::background_maintenance_pending() const {
   if(impl_->maintenance_cancelled || requires_offline() || dispatcher_stopped() || impl_->session.poisoned())
     return false;
   return impl_->session.retirement_pending() ||
+      (impl_->compaction && impl_->compaction->compaction_pending(impl_->session)) ||
       (impl_->groups && (impl_->session.namespace_sequence()!=impl_->groups_completed_sequence ||
       (impl_->deferred && (impl_->deferred->publication_pending_locked() || impl_->deferred->stats_locked().worker_busy))));
 }
@@ -678,6 +698,7 @@ void WinFspNativeWritable::cancel_background_maintenance() {
   std::lock_guard guard(impl_->control);
   impl_->maintenance_cancelled=true;
   impl_->groups.reset();
+  if(impl_->compaction)impl_->compaction->cancel_compaction(impl_->session);
 }
 WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     const NativeMaintenanceObservation& observed,std::uint64_t now) {
@@ -692,7 +713,7 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     return {WinFspMaintenanceState::unavailable};
   }
   if(impl_->info_policy==indexed_file_info)
-    return impl_->advance_retirement(observed,now);
+    return impl_->advance_indexed_maintenance(observed,now);
   if(!impl_->groups)return {WinFspMaintenanceState::unavailable};
   if(impl_->session.namespace_sequence()==impl_->groups_completed_sequence)
     return {WinFspMaintenanceState::unchanged,impl_->groups->progress()};

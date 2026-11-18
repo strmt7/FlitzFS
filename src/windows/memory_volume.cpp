@@ -41,20 +41,23 @@ struct MemoryVolumeDomain::State {
   std::atomic<SIZE_T> minimum{0}; // The WinFsp controller checks this outside the callback lock.
   bool working_set_changed=false,read_only=false;
   explicit State(std::uint64_t cap):capacity(cap) {
-    check_headroom(cap);
+    check_headroom(0);
     SYSTEM_INFO info{};GetSystemInfo(&info);page=info.dwPageSize;
-    require(page && !(page&(page-1)) && cap%page==0,"Memory capacity alignment");
+    require(valid_store_io_contract({static_cast<std::uint32_t>(page),true}) && cap%page==0,
+        "Unsupported memory page size or capacity alignment");
     require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&old_min,&old_max,&old_flags)!=FALSE,
         "Working-set query failed");
     minimum.store(old_min, std::memory_order_relaxed);
   }
   void admit_lock_growth(std::uint64_t added) {
-    check_headroom(added);
-    const auto required = resident + added; // All committed pages fit within reserved store capacity.
-    if (required <= lock_budget) return;
-    // Amortize quota changes while charging physical pages only when they are used.
-    const auto doubled = lock_budget + (std::min)(lock_budget, capacity-lock_budget);
-    const auto budget = (std::max)(required, doubled);
+    const auto available=usable_memory_volume_headroom(observe_memory_volume_headroom());
+    require(added<=available,"Insufficient physical/commit headroom");
+    const auto required=resident+added;
+    if(required<=lock_budget)return;
+    // Quota grows in steps within current headroom. Reserve pages only on use.
+    const auto doubled=lock_budget+(std::min)(lock_budget,capacity-lock_budget);
+    const auto maximum=resident+(std::min)(available,capacity-resident);
+    const auto budget=(std::max)(required,(std::min)(doubled,maximum));
     const auto next_min = static_cast<SIZE_T>(budget + lock_overhead);
     if (next_min > minimum.load(std::memory_order_relaxed)) {
       const auto next_max = (std::max)(old_max, next_min + static_cast<SIZE_T>(working_set_slack));
@@ -87,10 +90,12 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   }
   ~Store() override {release();}
   std::uint64_t extent() const override {return extent_;}
-  // Writes are aligned-independent byte copies in one serial control thread.
-  // Successful flush preserves bytes through later calls while this process
-  // owns the domain. It promises NO survival of process exit or power loss.
-  StoreIoContract contract() const noexcept override {return {65536,true};}
+  // Admission is checked before copying, and each copy targets only its
+  // supplied byte span. Size the isolation units from the actual Windows
+  // pages. A flush preserves bytes for this live, serialized memory provider.
+  StoreIoContract contract() const noexcept override {
+    return {static_cast<std::uint32_t>(state_->page),true};
+  }
   void admit_write(std::uint64_t projected) override {
     require(allows_writer() && projected<=capacity_,"Memory write admission denied");
     if (projected <= committed_) check_headroom(0);
@@ -114,6 +119,20 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
     std::atomic_thread_fence(std::memory_order_seq_cst);
   }
   bool writer_in_use() const noexcept {return has_writer();}
+  bool retire_step() {
+    const auto bytes=(std::min)(committed_,std::uint64_t{kStoreMaxObjectBytes});
+    if(!bytes)return true;
+    auto* const start=data_+committed_-bytes;
+    SecureZeroMemory(start,static_cast<SIZE_T>(bytes));
+    if(!VirtualUnlock(start,static_cast<SIZE_T>(bytes)) || !VirtualFree(start,static_cast<SIZE_T>(bytes),MEM_DECOMMIT)) {
+      cleanup_ok=false;
+      throw std::runtime_error("Memory image decommit failed");
+    }
+    committed_-=bytes;
+    extent_=(std::min)(extent_,committed_);
+    state_->resident-=bytes;
+    return !committed_;
+  }
   std::uint64_t verify() const {
     std::array<PSAPI_WORKING_SET_EX_INFORMATION,256> pages{};
     const auto count = static_cast<std::size_t>(committed_/state_->page);
@@ -176,6 +195,15 @@ MemoryVolumeDomain MemoryVolumeDomain::create(std::uint64_t cap) {
 std::shared_ptr<StoreByteIo> MemoryVolumeDomain::create_store(std::uint64_t cap) {
   require(state_ && !state_->read_only && cleanup_ok.load(),"Memory domain unavailable for allocation");
   return std::make_shared<Store>(state_,cap);
+}
+MemoryStoreRetirement MemoryVolumeDomain::retire_store(std::shared_ptr<StoreByteIo>& backing) {
+  require(backing && owns(*backing) && !state_->read_only && cleanup_ok.load(),
+      "Memory retirement requires a writable domain and its own store");
+  auto& store=static_cast<Store&>(*backing);
+  if(backing.use_count()!=1 || store.writer_in_use())return MemoryStoreRetirement::pinned;
+  if(!store.retire_step())return MemoryStoreRetirement::advanced;
+  backing.reset();
+  return MemoryStoreRetirement::released;
 }
 MemoryVolumeUsage MemoryVolumeDomain::usage() const noexcept {
   if(!state_)return {};

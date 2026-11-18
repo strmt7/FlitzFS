@@ -18,13 +18,18 @@ WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan
       WinFspNativeWritable::create_managed_paged(backing_.head,backing_.volume_identity,
           backing_.image,backing_.image_identity,limits,memory_compression,backing_.advice);
   backing_.domain->verify_resident();
+  if(kind_==NativeImageKind::indexed_paged)adapter->configure_memory_compaction(backing_);
   controller_=std::make_unique<WinFspVolumeController>(std::move(adapter),api,std::move(plan),*backing_.domain);
 }
 WinFspMemoryVolume::~WinFspMemoryVolume()=default;
 WinFspControllerView WinFspMemoryVolume::view() const{return controller_->view();}
 MemoryVolumeLayout WinFspMemoryVolume::layout() const noexcept{return backing_.layout;}
 void WinFspMemoryVolume::request_stop() noexcept{controller_->request_stop();}
-void WinFspMemoryVolume::stop_and_join() noexcept{controller_->stop_and_join();joined_=true;}
+void WinFspMemoryVolume::stop_and_join() noexcept {
+  controller_->stop_and_join();
+  backing_.release_unselected_after_join();
+  joined_=true;
+}
 NativeVolumeHeadView WinFspMemoryVolume::inspect_retired() const {
   if(!joined_)throw std::runtime_error("Memory-volume inspection requires explicit controller join");
   return backing_.open_owned_head(kind_==NativeImageKind::indexed_paged);

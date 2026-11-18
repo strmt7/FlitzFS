@@ -83,6 +83,7 @@ struct NativeSessionStats {
 // Trusted startup metadata for a NEW root, published together before its head.
 struct NativeVolumeSpace {
   std::uint64_t total_bytes=0,free_bytes=0;
+  std::uint64_t obsolete_bytes=0; // Writer-lifetime lower bound, before reader pins.
 };
 struct NativeVolumeRootMetadata {
   NativeBasicMetadata basic;
@@ -180,6 +181,10 @@ class NativeFileSession final {
   // fresh target. Suppress repeated attempts on the same acknowledged image.
   bool begin_idle_recompression(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image,
       StoreCompressionOptions compression={},StoreCheckpointOptions checkpoints={});
+  // Repack the selected indexed image, preserving existing object encodings.
+  // Use the same serialized advance, publish and cancel calls as idle recompression.
+  bool begin_idle_compaction(std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image);
+  bool idle_compaction_context_ready() const noexcept;
   // Requires a ready idle candidate and a separate quiet publication window.
   // An empty result indicates measured savings did not justify a handoff.
   std::optional<NativeVolumeHeadInfo> publish_idle_recompression();
@@ -398,9 +403,11 @@ class NativeFileSession final {
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
       std::uint64_t,unsigned,bool create,bool rebuild,bool budgeted=false);
   static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity);
+  static bool handoff_contexts_resolved(const Impl&) noexcept;
   static void admit_handoff_contexts(const Impl&);
   static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);
   static NativeVolumeHeadInfo finish_handoff(Impl&);
+  static void adopt_handoff(Impl&,const NativeVolumeHeadInfo&) noexcept;
   bool stage_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool idle);
   std::optional<NativeVolumeHeadInfo> publish_staged_recompression(bool idle);

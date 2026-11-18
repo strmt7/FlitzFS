@@ -19,14 +19,22 @@ writers and file sessions can now explicitly use this backend through their
 existing operation engine. An explicit [inode-record namespace](INODE_RECORD_NAMESPACE.md)
 also supports incremental metadata publication. The explicit
 [directory-name index](DIRECTORY_NAME_INDEX.md) publishes parent indices in the
-same transaction and adds native snapshot cursors. Explorer factories, default
-formats and GPU routing remain unchanged.
+same transaction and adds native snapshot cursors. The
+[indexed WinFsp composition](WINFSP_OWNED_CONTROLLER.md) connects the paged
+store to writable SDK callbacks and background opportunities.
 
 The distinction matters: a million populated object records are now tested;
 a million named Windows files and scalable automatic compression grouping are
 still integration work. Group membership can span one, two or thousands of
 files; group discovery and independently indexed decode units remain separate
 from this object catalog. See [the execution plan](DEVELOPMENT_PLAN.md).
+
+The owned indexed memory provider selects the isolation unit from the Windows
+page size. This uses the existing paged wire fields and aligns with the live
+provider's bounds checked byte copies. Other backends retain their own qualified
+write-failure unit. The two 64-KiB root zones and independent CPU decoding
+semantics remain stable. Obsolete-record accounting is a cached scheduling
+signal, with no new wire fields. [Provider contract](WINDOWS_MEMORY_VOLUME_FACTORY.md)
 
 ## Memory and capacity
 
@@ -36,9 +44,9 @@ visits a root-to-leaf path; pagination prunes key ranges and returns at most
 is bounded at 16 for malformed-input/depth admission. No unbounded page cache
 is introduced; a bounded cache and background scrub quanta remain future work.
 
-This describes the paged object catalog. The current native frontend still loads
-and validates its complete bounded namespace/extent model; selecting the paged
-backend does not remove that frontend's 256-node/255-extent limits.
+The original native paged frontend uses the bounded namespace/extent model
+with 256 nodes and 255 extents. The [indexed native frontend](INDEXED_NATIVE_VOLUME.md)
+stores names, inodes and extent mappings in pages and bypasses that model.
 
 The caller must supply an explicit physical capacity and a backend that admits
 growth using current resources. No host capacity, drive, GPU or RAM size is

@@ -11,6 +11,7 @@ struct MemoryVolumeObservation {
 MemoryVolumeObservation observe_memory_volume_headroom();
 std::uint64_t usable_memory_volume_headroom(const MemoryVolumeObservation&);
 
+enum class MemoryStoreRetirement {pinned,advanced,released};
 struct MemoryVolumeUsage {
   std::uint64_t capacity=0,reserved=0,resident=0,stores=0;
 };
@@ -18,6 +19,9 @@ class MemoryVolumeDomain final {
  public:
   static MemoryVolumeDomain create(std::uint64_t capacity);
   std::shared_ptr<StoreByteIo> create_store(std::uint64_t capacity);
+  // Only an unselected store with no live reader or writer may be discarded.
+  // Release at most one object-sized span per call in the owning control context.
+  MemoryStoreRetirement retire_store(std::shared_ptr<StoreByteIo>&);
   MemoryVolumeUsage usage() const noexcept;
   // Safe while the serialized writer grows the working-set allowance.
   void verify_working_set() const;

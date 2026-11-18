@@ -761,6 +761,116 @@ void indexed_staged_rebuild() {
   require(source.read("data",0,100)==contents,"new indexed writer changed its source snapshot");
 }
 
+void advance_to_compaction_ready(NativeFileSession& session) {
+  using Progress=NativeFileSession::RecompressionProgress;
+  for(unsigned step=0;step<2000;++step) {
+    const auto result=session.advance_recompression();
+    if(result==Progress::ready)return;
+    require(result==Progress::copying,"unchanged staged compaction became stale");
+  }
+  throw std::runtime_error("staged compaction did not finish");
+}
+
+void indexed_managed_staged_compaction() {
+  using Progress=NativeFileSession::RecompressionProgress;
+  const auto volume_id=identity_for(63),source_id=identity_for(64),target_id=identity_for(65);
+  auto head=empty(),source=empty(),stale=empty(),target=empty();
+  auto session=NativeFileSession::create_indexed_volume(head,volume_id,source,source_id,limits,raw);
+  session.create_entry("retain");
+  const auto handle=session.open("retain",{true,true,true});
+  auto expected=data(16*kNativeExtentBytes,735);
+  session.write(handle,0,expected);
+  const auto pinned=session.snapshot();
+  session.write(handle,0,payload(159));
+  auto overwrite=payload(160);
+  require(session.begin_idle_compaction(stale,identity_for(66)),"could not start initial indexed compaction");
+  advance_to_compaction_ready(session);
+  session.write(handle,0,overwrite);
+  std::copy(overwrite.begin(),overwrite.end(),expected.begin());
+  const auto stale_reads=stale->read_bytes;
+  const auto stale_calls=head->calls;
+  const auto source_reads=source->read_bytes;
+  require(session.advance_recompression()==Progress::stale && head->calls==stale_calls &&
+      stale->read_bytes==stale_reads && source->read_bytes==source_reads,
+      "stale staged compaction touched its image or selector");
+  const auto prior=source->stable;
+  const auto previous_free=session.indexed_volume_space().free_bytes;
+  require(session.begin_idle_compaction(target,target_id),"could not start fresh indexed compaction");
+  advance_to_compaction_ready(session);
+  const auto reads=source->read_bytes+target->read_bytes;
+  const auto old_calls=source->calls,new_calls=target->calls,head_calls=head->calls;
+  const auto selected=session.publish_idle_recompression();
+  const auto switch_reads=source->read_bytes+target->read_bytes-reads;
+  require(source->calls==old_calls && target->calls==new_calls && head->calls==head_calls+4 &&
+      switch_reads<expected.size()/2,"indexed staged selection repeated a body scan or write");
+  require(selected && selected->selection.epoch==2 && selected->selection.image_identity==target_id &&
+      selected->selection.parent_identity==source_id && source->stable==prior &&
+      session.indexed_volume_space().free_bytes>previous_free &&
+      session.read(handle,0,static_cast<std::uint32_t>(expected.size()))==expected,
+      "staged selection lost a context or failed to reclaim committed space");
+  require(!session.begin_idle_compaction({},identity_for(67)),"unchanged compacted image retried");
+  overwrite=payload(161);
+  session.write(handle,0,overwrite);
+  std::copy(overwrite.begin(),overwrite.end(),expected.begin());
+  require(session.read(handle,0,static_cast<std::uint32_t>(expected.size()))==expected &&
+      pinned.read("retain",0,static_cast<std::uint32_t>(expected.size()))==data(expected.size(),735),
+      "old CPU reader or new writer lost acknowledged data");
+  session.cleanup(handle,false);
+  session.close(handle);
+  std::cout<<"indexed_compaction_switch_image_read_bytes="<<switch_reads
+           <<" selected_live_file_bytes="<<expected.size()<<'\n';
+}
+
+void indexed_managed_staged_faults() {
+  using Error=NativeFsErrorCode;
+  constexpr unsigned head_boundaries=4;
+  unsigned previous=0,advanced=0;
+  for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<head_boundaries;++cut) {
+    const auto volume_id=identity_for(68),source_id=identity_for(69),target_id=identity_for(70);
+    auto head=empty(),source=empty(),target=empty();
+    auto session=NativeFileSession::create_indexed_volume(head,volume_id,source,source_id,limits,raw);
+    session.create_entry("data");
+    const auto handle=session.open("data",{true,true,true});
+    for(unsigned i=0;i<6;++i)session.write(handle,0,payload(i));
+    const auto expected=payload(185);
+    session.write(handle,0,expected);
+    require(session.begin_idle_compaction(target,target_id),"could not begin head-fault fixture");
+    advance_to_compaction_ready(session);
+    const auto source_before=source->stable;
+    head->failure=mode;head->fail_at=head->calls+cut;
+    refuses(Error::storage_failure,[&]{(void)session.publish_idle_recompression();});
+    require(session.poisoned() && source->stable==source_before,"ambiguous staged selection modified the source");
+    const auto recovered=session.recover_volume();
+    if(recovered.selection.epoch==1 && recovered.selection.image_identity==source_id)++previous;
+    else if(recovered.selection.epoch==2 && recovered.selection.image_identity==target_id)++advanced;
+    else throw std::runtime_error("staged recovery selected an unrelated image");
+    require(session.read(handle,0,100)==expected,"staged selector recovery lost acknowledged bytes");
+    session.cleanup(handle,false);
+    session.close(handle);
+  }
+  require(previous && advanced,"staged selector faults did not exercise both owned images");
+
+  auto head=empty(),source=empty(),target=empty();
+  auto session=NativeFileSession::create_indexed_volume(
+      head,identity_for(71),source,identity_for(72),limits,raw);
+  session.create_entry("data");
+  const auto handle=session.open("data",{true,true,true});
+  const auto expected=payload(186);
+  session.write(handle,0,expected);
+  require(session.begin_idle_compaction(target,identity_for(73)),"could not begin anchor fixture");
+  advance_to_compaction_ready(session);
+  target->live.at(0)^=std::byte{1};
+  const auto head_calls=head->calls;
+  refuses(Error::invalid_operation,[&]{(void)session.publish_idle_recompression();});
+  require(!session.poisoned() && head->calls==head_calls &&
+      session.volume_info().selection.epoch==1 && session.read(handle,0,100)==expected,
+      "rejected private anchor affected the live original selection");
+  session.cleanup(handle,false);
+  session.close(handle);
+  std::cout<<"indexed_compaction_head_cuts="<<previous+advanced
+           <<" original="<<previous<<" candidate="<<advanced<<'\n';
+}
+
 void indexed_managed_handoff() {
   using Error=NativeFsErrorCode;
   const auto volume=identity_for(60),source_id=identity_for(61),candidate_id=identity_for(62);
@@ -891,6 +1001,7 @@ void indexed_transaction_recovery() {
 int main() {
   try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();
-    indexed_managed_handoff();indexed_transaction_recovery();indexed_extent_advice(); }
+    indexed_managed_handoff();indexed_managed_staged_compaction();indexed_managed_staged_faults();
+    indexed_transaction_recovery();indexed_extent_advice(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

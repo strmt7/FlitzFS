@@ -90,8 +90,8 @@ Loaded load(const StoreByteIo& io,StoreIdentity expected) {
     fail(Code::corrupt,"volume head transition is not a bound successor");
   return {{n,true},newer};
 }
-void bind(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& image,bool writable,
-    bool indexed_recovery=false) {
+void admit_binding(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& image,
+    bool writable,bool indexed_recovery) {
   const auto info=image.storage_info();
   if(image.image_storage()!=selected.storage || image.identity()!=selected.image_identity||image.sequence()<selected.namespace_sequence||
       !info.replicated_checkpoint||info.checkpoint_generation<selected.minimum_checkpoint||
@@ -99,6 +99,10 @@ void bind(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& 
     fail(Code::corrupt,"selected volume image is absent, stale or unresolved");
   if(writable&&(info.degraded_checkpoint||info.degraded_root))
     fail(Code::invalid_operation,"repair selected image metadata independently before head admission");
+}
+void bind(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& image,bool writable,
+    bool indexed_recovery=false) {
+  admit_binding(selected,image,writable,indexed_recovery);
   image.verify_all();
   const auto verified=image.storage_info();
   if(writable && (verified.degraded_checkpoint || verified.degraded_root))
@@ -182,6 +186,26 @@ struct NativeVolumeHeadWriter::Impl {
         fail(Code::invalid_operation,"indexed handoff snapshot root differs");
     }else a.verify_compacted_equivalent_for_volume_head(b);
   }
+  NativeVolumeSelection successor(const NativeFilesystemSnapshot& source,
+      const NativeFilesystemSnapshot& target) const {
+    const auto source_io=backing(source),target_io=backing(target);
+    if(source_io==target_io || source_io==owner.io || target_io==owner.io ||
+        source.image_storage()!=selected.storage || target.image_storage()!=selected.storage ||
+        source.identity()!=selected.image_identity || target.identity()==source.identity() ||
+        target.identity()==selected.volume_identity || target.identity()==selected.parent_identity)
+      fail(Code::invalid_operation,"invalid volume handoff identities/backends");
+    if(selected.epoch==(std::numeric_limits<std::uint64_t>::max)())
+      fail(Code::limit,"volume head epoch exhausted");
+    NativeVolumeSelection next=selected;
+    next.epoch++;
+    next.image_identity=target.identity();
+    next.minimum_checkpoint=target.storage_info().checkpoint_generation;
+    next.namespace_sequence=target.sequence();
+    next.parent_identity=source.identity();
+    next.parent_checkpoint=source.storage_info().checkpoint_generation;
+    valid(next,Code::invalid_operation);
+    return next;
+  }
   void check() const {
     if(poisoned)fail(Code::storage_failure,"volume head writer is terminal");
     const auto now=load(*owner.io,selected.volume_identity);
@@ -189,6 +213,9 @@ struct NativeVolumeHeadWriter::Impl {
   }
   void pair(const NativeVolumeSelection& next,unsigned first=0) {
     owner.io->admit_write(kVolumeHeadBytes);
+    publish_pair(next,first);
+  }
+  void publish_pair(const NativeVolumeSelection& next,unsigned first=0) {
     write_slot(*owner.io,next,first);write_slot(*owner.io,next,1-first);
     const auto observed=load(*owner.io,next.volume_identity);
     if(observed.info.degraded||observed.info.selection!=next)fail(Code::corrupt,"volume head publication readback");
@@ -239,13 +266,7 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
     const NativeFilesystemSnapshot& source,const NativeFilesystemSnapshot& target) {
   if(!impl_||impl_->poisoned)fail(Code::storage_failure,"volume head writer is terminal");
   auto& p=*impl_;const auto source_io=Impl::backing(source),target_io=Impl::backing(target);
-  if(source_io==target_io||source_io==p.owner.io||target_io==p.owner.io||
-      source.image_storage()!=p.selected.storage||target.image_storage()!=p.selected.storage||
-      source.identity()!=p.selected.image_identity||target.identity()==source.identity()||
-      target.identity()==p.selected.volume_identity||target.identity()==p.selected.parent_identity)
-    fail(Code::invalid_operation,"invalid volume handoff identities/backends");
-  if(p.selected.epoch==(std::numeric_limits<std::uint64_t>::max)())
-    fail(Code::limit,"volume head epoch exhausted");
+  const auto next=p.successor(source,target);
   Impl::Lease source_lease(source_io),target_lease(target_io);
   bool mutation=false;
   try {
@@ -259,11 +280,6 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
     if(candidate.storage_info().degraded_checkpoint || candidate.storage_info().degraded_root)
       fail(Code::invalid_operation,"handoff target replicas are degraded");
     source.verify_compacted_equivalent_for_volume_head(target);
-    NativeVolumeSelection next;next.volume_identity=p.selected.volume_identity;next.epoch=p.selected.epoch+1;
-    next.storage=target.image_storage();
-    next.image_identity=target.identity();next.minimum_checkpoint=target.storage_info().checkpoint_generation;
-    next.namespace_sequence=target.sequence();next.parent_identity=source.identity();
-    next.parent_checkpoint=source.storage_info().checkpoint_generation;valid(next,Code::invalid_operation);
     mutation=true;target_io->flush();auto checked=Impl::fresh(target_io,next.storage);Impl::exact(target,checked);
     if(checked.storage_info().degraded_checkpoint || checked.storage_info().degraded_root)
       fail(Code::corrupt,"handoff target lost protection after flush");
@@ -273,6 +289,41 @@ NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_compacted(
   }catch(const std::bad_alloc&){if(mutation)p.poisoned=true;fail(Code::limit,"volume handoff allocation failure");}
   catch(const NativeFsError& e){if(mutation||e.code()==Code::corrupt||e.code()==Code::storage_failure)p.poisoned=true;throw;}
   catch(const std::exception&){p.poisoned=true;fail(Code::storage_failure,"volume handoff failed; retain all images");}
+}
+NativeVolumeHeadInfo NativeVolumeHeadWriter::publish_indexed_rebuild(
+    const NativeFilesystemSnapshot& source,const NativeFilesystemSnapshot& target) {
+  if(!impl_ || impl_->poisoned)fail(Code::storage_failure,"volume head writer is terminal");
+  auto& p=*impl_;
+  if(p.selected.storage.kind!=NativeImageKind::indexed_paged || source.sequence()!=target.sequence())
+    fail(Code::invalid_operation,"staged selection requires an equivalent indexed image");
+  const auto next=p.successor(source,target);
+  const auto source_io=Impl::backing(source),target_io=Impl::backing(target);
+  // Rewrite already flushed and independently compared every selected object
+  // and replica after publishing the private target. Recheck the exact durable
+  // checkpoints before the selector writes while both owners are still held.
+  try {
+    p.check();
+    contract(*source_io);
+    auto old=NativeFilesystemSnapshot::open_image(source_io,p.selected.storage);
+    Impl::exact(source,old);
+    admit_binding(p.selected,old,true,false);
+  }catch(const std::bad_alloc&){fail(Code::limit,"volume handoff allocation failure");}
+  catch(const NativeFsError&){p.poisoned=true;throw;}
+  catch(const std::exception&){p.poisoned=true;fail(Code::storage_failure,"indexed handoff source check failed");}
+  try {
+    contract(*target_io);
+    auto candidate=NativeFilesystemSnapshot::open_image(target_io,next.storage);
+    Impl::exact(target,candidate);
+    admit_binding(next,candidate,true,false);
+    p.owner.io->admit_write(kVolumeHeadBytes);
+  }catch(const std::bad_alloc&){fail(Code::limit,"volume handoff allocation failure");}
+  catch(const NativeFsError&){throw;}
+  catch(const std::exception&){fail(Code::storage_failure,"indexed handoff target or resource check failed");}
+  try {
+    p.publish_pair(next);
+    return {p.selected,false};
+  }catch(const NativeFsError&){p.poisoned=true;throw;}
+  catch(const std::exception&){p.poisoned=true;fail(Code::storage_failure,"staged volume head failed; retain both images");}
 }
 NativeVolumeHeadInfo NativeVolumeHeadWriter::info() const noexcept {
   return impl_&&!impl_->poisoned?NativeVolumeHeadInfo{impl_->selected,false}:NativeVolumeHeadInfo{{},true};

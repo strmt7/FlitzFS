@@ -60,7 +60,8 @@ struct WinFspVolumeController::Impl {
           const bool pending=!disabled && session->background_maintenance_pending();
           if(!pending || now<next) {
             const auto delay=(std::min)(deadline-now,pending?next-now:deadline-now);
-            const auto waited=WaitForMultipleObjects(2,events,FALSE,static_cast<DWORD>(delay));
+            const auto wait_ms=(std::min)(delay,std::uint64_t{INFINITE-1});
+            const auto waited=WaitForMultipleObjects(2,events,FALSE,static_cast<DWORD>(wait_ms));
             if(waited==WAIT_OBJECT_0)break;
             if(waited!=WAIT_TIMEOUT && waited!=WAIT_OBJECT_0+1)throw std::runtime_error("Controller event wait failed");
             continue;
@@ -95,6 +96,8 @@ struct WinFspVolumeController::Impl {
               current.maintenance=result.progress;
             ++current.maintenance_quanta;
             if(result.reclaimed)++current.reclamation_quanta;
+            if(result.compacted)++current.compactions;
+            if(result.compaction_failed)++current.compaction_failures;
             current.maintenance_elapsed_ns+=used;
             current.maximum_quantum_ns=(std::max)(current.maximum_quantum_ns,used);
           }

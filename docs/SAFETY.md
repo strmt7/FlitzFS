@@ -11,7 +11,11 @@ physical power-loss qualification; native mounted integration remains separate.
 The owned indexed memory path keeps a checked CPU view after dispatcher join.
 The sealing operation resolves old indexed context records only after the
 controller and writer retire. Routine retirement uses serialized bounded
-transactions and live resource admission. [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
+transactions and live resource admission. Staged compaction selects a new
+image only after independent verification. It keeps both backings through an
+ambiguous selector failure. A private candidate rejected before selection leaves
+the live source writable. Decommit requires a known unselected image and retired
+reader and writer ownership. [Compaction evidence](evidence/indexed-background-compaction-2026-11-18.json) · [Owned indexed evidence](evidence/indexed-owned-windows-2026-11-18.json)
 
 Indexed GPU advice is private until CPU verification agrees with the staged
 extent and the final inode/block frame. The writable callback uses the same

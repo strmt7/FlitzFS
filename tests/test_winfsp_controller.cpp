@@ -27,6 +27,17 @@ void native_rng_initialization() {
   std::cout<<"native_rng_handles cold="<<cold<<" first="<<observed[0]<<" second="<<observed[1]<<" third="<<observed[2]<<'\n';
   require(observed[1]==observed[2],"native RNG handle initialization did not stabilize");
 }
+void initialize_long_pdh_window() {
+  const auto initial=handle_count();
+  std::thread([] {
+    WindowsMaintenanceHost host;
+    for(unsigned sample=0;sample<35;++sample) {
+      {MaintenanceThreadScope scope;host.observe(false);}
+      Sleep(1010);
+    }
+  }).join();
+  std::cout<<"long_native_pdh_handles before="<<initial<<" after="<<handle_count()<<'\n';
+}
 template<class F>void await(F predicate,std::uint64_t milliseconds,const char* why) {
   const auto until=GetTickCount64()+milliseconds;
   while(!predicate()){if(GetTickCount64()>=until)throw std::runtime_error(why);Sleep(10);}
@@ -198,22 +209,161 @@ void memory_planning() {
       {64*1024*mib,56*1024*mib,128*1024*mib,11*1024*mib},
       {UINT64_MAX,UINT64_MAX,UINT64_MAX,UINT64_MAX}}}) {
     const auto layout=plan_memory_volume(host);
-    require(layout.domain_capacity==usable_memory_volume_headroom(host)/256/65536*65536 &&
-        layout.image_capacity>=4*mib && layout.image_capacity%65536==0,"adaptive factory plan bounds");
+    const auto addressable=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
+    require(layout.domain_capacity==(std::min)(usable_memory_volume_headroom(host),addressable)/65536*65536 &&
+        layout.image_capacity>=3*kStoreCommitUnit && layout.image_capacity%65536==0,"adaptive factory plan bounds");
     require(2*layout.image_capacity+(NativeFileSession::max_optimization_bindings+1)*layout.area_capacity<=layout.domain_capacity,
         "factory omitted candidate/advisory reservations");
   }
   const auto roomy=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,24*1024*mib});
   const auto tight=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,5*1024*mib});
   const auto larger=plan_memory_volume({64*1024*mib,56*1024*mib,128*1024*mib,96*1024*mib});
+  const auto minimal=plan_memory_volume({4*1024*mib,3072*mib,8*1024*mib,769*mib});
   require(tight.domain_capacity<roomy.domain_capacity && larger.domain_capacity>40*mib &&
-      larger.image_capacity>roomy.image_capacity,"factory sizing did not track headroom beyond the old ceiling");
+      larger.image_capacity>roomy.image_capacity && minimal.image_capacity==3*kStoreCommitUnit,
+      "factory sizing did not use available address space and format minima");
   for(const auto& host:std::array<MemoryVolumeObservation,5>{{{}, {1024*mib,512*mib,2048*mib,1024*mib},
       {1024,1025,4096,4096},{4096,4096,1024,1025},{4*1024*mib,3072*mib,8*1024*mib,768*mib}}}) {
     bool refused=false;try{(void)plan_memory_volume(host);}catch(const std::exception&){refused=true;}
     require(refused,"invalid/low headroom admitted a factory plan");
   }
 }
+void memory_paged_footprint() {
+  auto backing=MemoryVolumeBacking::create();
+  const auto run=[&](const std::shared_ptr<StoreByteIo>& head,const std::shared_ptr<StoreByteIo>& image) {
+    auto session=NativeFileSession::create_indexed_volume(head,backing.volume_identity,image,
+        backing.image_identity,{backing.layout.image_capacity},{StoreCompressionMode::raw,1,false});
+    session.create_entry("tiny");
+    const auto file=session.open("tiny",{true,true,true});
+    Bytes expected;
+    for(unsigned i=0;i<12;++i) {
+      expected=data(37,i);
+      session.write(file,0,expected);
+    }
+    session.cleanup(file,false);
+    session.close(file);
+    const auto checked=NativeVolumeHeadView::open(head,backing.volume_identity,
+        [&](const auto& id) {
+          require(id==backing.image_identity,"indexed head resolved a different native memory store");
+          return image;
+        });
+    require(checked.filesystem().read("tiny",0,100)==expected,
+        "compared memory layout changed acknowledged bytes");
+    return checked.filesystem().storage_info().physical_end;
+  };
+  const auto old_layout=run(std::make_shared<Ram>(),std::make_shared<Ram>());
+  const auto selected=run(backing.head,backing.image);
+  const auto page=backing.image->contract().write_failure_unit_bytes;
+  require(page>=kStoreCommitUnit?selected==old_layout:selected<old_layout,
+      "live page isolation did not reduce the selected physical extent");
+  backing.domain->verify_resident();
+  std::cout<<"memory_metadata_fixture page_bytes="<<page<<" prior_extent="<<old_layout
+           <<" selected_extent="<<selected<<" resident="<<backing.domain->usage().resident<<'\n';
+}
+
+void memory_compaction_retirement() {
+  auto backing=MemoryVolumeBacking::create();
+  auto session=NativeFileSession::create_indexed_volume(backing.head,backing.volume_identity,
+      backing.image,backing.image_identity,{backing.layout.image_capacity},{StoreCompressionMode::raw,1,false});
+  require(!backing.compaction_pending(session),"fresh volume queued compaction");
+  session.create_entry("visible");
+  const auto file=session.open("visible",{true,true,true});
+  auto bytes=data(4*kNativeExtentBytes,298);
+  session.write(file,0,bytes);
+  std::optional<NativeFilesystemSnapshot> earlier(session.snapshot());
+  const auto first=bytes;
+  for(unsigned i=0;i<7;++i) {
+    bytes[i]^=std::byte{1};
+    session.write(file,0,bytes);
+  }
+  const auto original=backing.image_identity;
+  const auto before=backing.domain->usage();
+  require(backing.compaction_pending(session),"committed obsolete history did not fund compaction");
+  bool published=false;
+  for(unsigned i=0;i<2000 && !published;++i) {
+    const auto step=backing.advance_compaction(session);
+    published=step==MemoryCompactionStep::published;
+    require(published || step==MemoryCompactionStep::copying || step==MemoryCompactionStep::ready,
+        "healthy memory compaction did not make progress");
+  }
+  require(published && backing.image_identity!=original &&
+      session.volume_info().selection.image_identity==backing.image_identity &&
+      session.read(file,0,static_cast<std::uint32_t>(bytes.size()))==bytes,
+      "selected memory rewrite did not preserve the live open handle");
+  const auto pinned=backing.domain->usage();
+  require(pinned.stores==before.stores+1 && pinned.resident>before.resident &&
+      backing.advance_compaction(session)==MemoryCompactionStep::pinned &&
+      backing.domain->usage().resident==pinned.resident &&
+      earlier->read("visible",0,static_cast<std::uint32_t>(first.size()))==first,
+      "memory compaction released pages pinned by an older snapshot");
+  earlier.reset();
+  unsigned retirement_steps=0;
+  while(backing.compaction_pending(session)) {
+    const auto resident=backing.domain->usage().resident;
+    require(backing.advance_compaction(session)==MemoryCompactionStep::retiring &&
+        resident-backing.domain->usage().resident<=kStoreMaxObjectBytes && ++retirement_steps<100,
+        "memory retirement exceeded one bounded opportunity");
+  }
+  const auto after=backing.domain->usage();
+  require(retirement_steps>1 && after.stores==before.stores && after.resident<before.resident &&
+      session.snapshot().read("visible",0,static_cast<std::uint32_t>(bytes.size()))==bytes,
+      "retiring an unpinned image did not recover resident space");
+  backing.domain->verify_resident();
+  session.cleanup(file,false);
+  session.close(file);
+  std::cout<<"memory_compaction resident_before="<<before.resident<<" resident_after="<<after.resident
+           <<" retirement_steps="<<retirement_steps<<'\n';
+}
+
+void live_indexed_compaction() {
+  Provider p;Provider::active=&p;
+  WinFspMemoryVolume volume(p.api(),plan(100),NativeImageKind::indexed_paged);
+  await([&]{return volume.view().state==SessionState::running || volume.view().retired;},5000,
+      "live compaction controller start deadline");
+  require(volume.view().state==SessionState::running,"live compaction controller start");
+  const auto* table=p.fs.Interface;
+  SIZE_T security_size=0;UINT32 attributes=0;wchar_t root[]=L"\\";
+  require(table->GetSecurityByName(&p.fs,root,&attributes,nullptr,&security_size)==STATUS_BUFFER_OVERFLOW,
+      "live compaction root security size");
+  Bytes security(security_size);
+  require(table->GetSecurityByName(&p.fs,root,&attributes,security.data(),&security_size)==STATUS_SUCCESS,
+      "live compaction root security");
+  wchar_t path[]=L"\\compacted";
+  PVOID file=nullptr;FSP_FSCTL_FILE_INFO file_info{};
+  require(table->Create(&p.fs,path,FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,FILE_ATTRIBUTE_NORMAL,
+      security.data(),0,&file,&file_info)==STATUS_SUCCESS && file,"live compaction SDK Create");
+  auto expected=data(kNativeExtentBytes,519);
+  for(unsigned i=0;i<7;++i) {
+    expected[i]^=std::byte{1};ULONG count=0;
+    require(table->Write(&p.fs,file,expected.data(),0,static_cast<ULONG>(expected.size()),
+        FALSE,FALSE,&count,&file_info)==STATUS_SUCCESS && count==expected.size(),"live compaction SDK Write");
+  }
+  const auto begin=GetTickCount64(),deadline=begin+82000;
+  while(GetTickCount64()<deadline) {
+    const auto status=volume.view();
+    if(status.compactions || status.compaction_failures || status.maintenance_disabled || status.retired)break;
+    Sleep(50);
+  }
+  const auto status=volume.view();
+  require(status.compactions==1 && status.compaction_failures==0 && !status.maintenance_disabled,
+      "live host observations did not complete staged compaction");
+  Bytes readback(expected.size());ULONG count=0;
+  require(table->Read(&p.fs,file,readback.data(),0,static_cast<ULONG>(readback.size()),&count)==STATUS_SUCCESS &&
+      count==readback.size() && readback==expected,"SDK open handle read changed after automatic selection");
+  table->Cleanup(&p.fs,file,nullptr,0);
+  table->Close(&p.fs,file);
+  volume.stop_and_join();
+  require(volume.view().retired && !volume.view().offline && volume.view().state==SessionState::stopped,
+      "live compaction controller did not retire cleanly");
+  const auto recovered=volume.inspect_retired();
+  require(recovered.info().selection.epoch==2 &&
+      recovered.filesystem().read("compacted",0,static_cast<std::uint32_t>(expected.size()))==expected,
+      "CPU inspection did not resolve automatic selection");
+  std::cout<<"live_indexed_compaction elapsed_ms="<<GetTickCount64()-begin
+           <<" quanta="<<status.maintenance_quanta<<" max_quantum_ns="<<status.maximum_quantum_ns
+           <<" selected_epoch="<<recovered.info().selection.epoch<<'\n';
+}
+
 void memory_backing_ownership() {
   SIZE_T old_min=0,old_max=0;DWORD old_flags=0;
   require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&old_min,&old_max,&old_flags)!=FALSE,"factory old working set");
@@ -231,6 +381,8 @@ void memory_backing_ownership() {
         empty_min==old_min && empty_max==old_max && empty_flags==old_flags,
         "empty backing raised the working-set quota");
     SYSTEM_INFO system{};GetSystemInfo(&system);
+    require(backing.image->contract().write_failure_unit_bytes==system.dwPageSize,
+        "memory provider did not use the live Windows page size");
     const auto page=std::uint64_t(system.dwPageSize);
     backing.image->admit_write(3*page+1);
     require(backing.image->extent()==0 && backing.domain->usage().resident==4*page,
@@ -371,7 +523,7 @@ void live_memory_composition() {
     await([&]{const auto v=volume.view();return v.state==SessionState::running || v.retired;},5000,"memory controller start deadline");
     require(volume.view().state==SessionState::running,"memory provider startup failed");
     const auto layout=volume.layout();require(layout.domain_capacity>=2*layout.image_capacity &&
-        layout.image_capacity>=4*1024*1024,"memory controller used wrong backing envelope");
+        layout.image_capacity>=3*kStoreCommitUnit,"memory controller used wrong backing envelope");
     callback_file(p,0,first);callback_file(p,1,second);
     const auto until=GetTickCount64()+18000;
     while(GetTickCount64()<until) {
@@ -501,12 +653,17 @@ int main(int argc,char** argv){try {
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
   if(argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
-      std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory"))
+      std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
+      std::string_view(argv[1])=="--live-indexed-compaction"))
     native_rng_initialization();
+  // A long native PDH-only control initializes process-wide OS handles
+  // before the explicit long-volume mode measures controller ownership.
+  if(argc==2 && std::string_view(argv[1])=="--live-indexed-compaction")initialize_long_pdh_window();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
   if(argc==1){event_ownership();lifecycle();expiration();invalid_and_unexpected();live_opportunities();}
   else if(argc==2 && std::string_view(argv[1])=="--memory") {
-    memory_planning();std::cout<<"memory_handles start="<<handle_count()<<'\n';
+    memory_planning();memory_paged_footprint();memory_compaction_retirement();
+    std::cout<<"memory_handles start="<<handle_count()<<'\n';
     memory_backing_ownership();std::cout<<"memory_handles backing="<<handle_count()<<'\n';
     memory_composition();std::cout<<"memory_handles rollback="<<handle_count()<<'\n';
     live_memory_composition();std::cout<<"memory_handles live="<<handle_count()<<'\n';
@@ -515,10 +672,14 @@ int main(int argc,char** argv){try {
     indexed_memory_composition();
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
+  }else if(argc==2 && std::string_view(argv[1])=="--live-indexed-compaction") {
+    live_indexed_compaction();
   }else if(argc==2 && std::string_view(argv[1])=="--memory-handles") {
     for(unsigned i=0;i<3;++i){memory_backing_ownership();std::cout<<"backing_handles cycle="<<i<<" count="<<handle_count()<<'\n';}
   }else throw std::invalid_argument("Unknown owned controller qualification mode");
-  require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE && before==after,"controller handle leak");
+  require(GetProcessHandleCount(GetCurrentProcess(),&after)!=FALSE,"final handle count");
+  std::cout<<"controller_handles before="<<before<<" after="<<after<<'\n';
+  require(before==after,"controller handle leak");
   std::cout<<"PASS: "<<checks<<" owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU\n";
   return 0;
 }catch(const std::exception& e){std::cerr<<"after "<<checks<<" checks: "<<e.what()<<'\n';return 1;}}

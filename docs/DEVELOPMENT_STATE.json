@@ -84,6 +84,20 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "indexed_background_compaction": {
+    "source_base": "5a394e844a18280221fe9128773e3eb76fe5a38a",
+    "evidence": "docs/evidence/indexed-background-compaction-2026-11-18.json",
+    "scope": "Automatic staged indexed memory compaction, bounded selector checks, pin-aware decommit, current-headroom reservations and page-size isolation.",
+    "selector_cut_cases": 12,
+    "selector_image_read_bytes": 150048,
+    "small_write_prior_extent": 3932160,
+    "small_write_current_extent": 368640,
+    "windows_memory_compaction_resident_before": 1875968,
+    "windows_memory_compaction_resident_after": 802816,
+    "live_controller_quanta": 34,
+    "live_controller_maximum_quantum_ns": 1402300,
+    "next": "Prove mounted Windows 11 operation and low interference, implement persistent segment allocation and resume, and measure useful automatic AMD and collective compression."
+  },
   "owned_indexed_windows": {
     "source_base": "e66c2e0ee128ad98bc5085534a3279e0f942e3e3",
     "evidence": "docs/evidence/indexed-owned-windows-2026-11-18.json",
@@ -1270,7 +1284,7 @@
     "stored_formats_changed": false
   },
   "cpu_fallback_contract": "Different encoder/format/size permitted; continued operation and independent CPU decoding of every stored GPU representation mandatory.",
-  "release_readiness": "Experimental prototype, substantially short of a release candidate. Million-object paged storage is tested; paged native namespace, ordinary useful GPU I/O and collective-compression proof remain incomplete. No defensible date or percentage.",
+  "release_readiness": "Experimental prototype, substantially short of a release candidate. Indexed native I/O and memory compaction work. Mounted Windows 11 qualification, useful automatic GPU I/O, persistent allocation and repair, and representative collective-compression results remain open.",
   "release_assessment": "docs/RELEASE_READINESS.md",
   "next_product_slices": [
     "Execute the exact disposable external-client mount. Continue the checked paged namespace and useful automatic AMD cost/route work independently.",

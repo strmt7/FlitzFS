@@ -8,6 +8,7 @@
 #include <limits>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 namespace flitzfs {
 namespace {
@@ -80,8 +81,14 @@ struct NativeFileSession::Impl {
   struct StagedRecompression {
     std::shared_ptr<StoreByteIo> target;
     StoreIdentity id;
-    NativeFilesystemWriter::Recompression rewrite;
+    std::variant<NativeFilesystemWriter::Recompression,PagedObjectStoreWriter::Rewrite> work;
     bool idle;
+
+    bool matches(const NativeFilesystemWriter& writer) const noexcept {
+      if(const auto* paged=std::get_if<PagedObjectStoreWriter::Rewrite>(&work))
+        return writer.matches_paged_recompression(*paged);
+      return writer.matches_recompression(std::get<NativeFilesystemWriter::Recompression>(work));
+    }
   };
   std::unique_ptr<StagedRecompression> recompression;
   StoreIdentity evaluated_image{};
@@ -315,7 +322,8 @@ NativeVolumeSpace NativeFileSession::indexed_volume_space() const {
   const auto occupied=self.writer.indexed_append_floor();
   if(!occupied)fail(E::terminal,"indexed writer has no append boundary");
   return {storage.maximum_physical_bytes,
-      storage.maximum_physical_bytes-(std::min)(occupied,storage.maximum_physical_bytes)};
+      storage.maximum_physical_bytes-(std::min)(occupied,storage.maximum_physical_bytes),
+      self.writer.indexed_obsolete_bytes()};
 }
 NativeWorkloadInfo NativeFileSession::enable_workload_accounting() {
   auto& self=ready();
@@ -580,12 +588,19 @@ void NativeFileSession::admit_replacement(const Impl& self,
     fail(E::invalid_options,"new distinct maintenance image required");
 }
 
-void NativeFileSession::admit_handoff_contexts(const Impl& self) {
+bool NativeFileSession::handoff_contexts_resolved(const Impl& self) noexcept {
   for(const auto& slot:self.slots)if(slot.token &&
-      (slot.phase!=Impl::Phase::active || slot.requested || slot.cleanup_delete))
-    fail(E::delete_pending,"maintenance defers unresolved file contexts");
-  for(const auto latch:self.latched)if(latch)
-    fail(E::delete_pending,"maintenance defers latched delete state");
+      (slot.phase!=Impl::Phase::active || slot.requested || slot.cleanup_delete))return false;
+  for(const auto latch:self.latched)if(latch)return false;
+  return true;
+}
+void NativeFileSession::admit_handoff_contexts(const Impl& self) {
+  if(!handoff_contexts_resolved(self))fail(E::delete_pending,"maintenance defers unresolved file contexts");
+}
+bool NativeFileSession::idle_compaction_context_ready() const noexcept {
+  return !poisoned() && impl_->volume && impl_->volume->head &&
+      impl_->volume->head->info().selection.storage.kind==NativeImageKind::indexed_paged &&
+      handoff_contexts_resolved(*impl_);
 }
 
 void NativeFileSession::begin_handoff(Impl& self,NativeFilesystemSnapshot baseline,
@@ -595,19 +610,27 @@ void NativeFileSession::begin_handoff(Impl& self,NativeFilesystemSnapshot baseli
   // Recovery owns both backings and the exact snapshot before retirement.
   volume.baseline.emplace(std::move(baseline));volume.candidate_io=std::move(target);
   volume.candidate_id=next;volume.pending=true;volume.recovery_attempted=false;
-  self.terminal=true;retire(self.writer);
+  self.terminal=true;
 }
 
 NativeVolumeHeadInfo NativeFileSession::finish_handoff(Impl& self) {
   auto& volume=*self.volume;
-  const auto next=volume.candidate_id;
   auto candidate=NativeFilesystemSnapshot::open_image(volume.candidate_io,volume.baseline->image_storage());
   const auto published=volume.head->publish_compacted(*volume.baseline,candidate);
   self.writer=resume_image(volume.candidate_io,candidate,volume.foreground);
-  // Only nonthrowing ownership/scalar updates remain after adoption succeeds.
-  volume.active_io=std::move(volume.candidate_io);volume.active_id=next;
-  volume.epoch=published.selection.epoch;volume.candidate_id={};volume.baseline.reset();
-  volume.pending=false;self.terminal=false;return published;
+  adopt_handoff(self,published);
+  return published;
+}
+
+void NativeFileSession::adopt_handoff(Impl& self,const NativeVolumeHeadInfo& published) noexcept {
+  auto& volume=*self.volume;
+  volume.active_io=std::move(volume.candidate_io);
+  volume.active_id=published.selection.image_identity;
+  volume.epoch=published.selection.epoch;
+  volume.candidate_id={};
+  volume.baseline.reset();
+  volume.pending=false;
+  self.terminal=false;
 }
 
 NativeVolumeHeadInfo NativeFileSession::replace_volume(std::shared_ptr<StoreByteIo> target,
@@ -620,6 +643,7 @@ NativeVolumeHeadInfo NativeFileSession::replace_volume(std::shared_ptr<StoreByte
   if(baseline.image_storage().kind!=NativeImageKind::flat && checkpoints.compact_metadata)
     fail(E::invalid_options,"paged isolation derives from its backend contract");
   begin_handoff(self,std::move(baseline),target,next);
+  retire(self.writer);
   {
     auto candidate=reencode?
         NativeFilesystemWriter::recompress(*self.volume->baseline,target,next,compression,checkpoints):
@@ -662,11 +686,30 @@ bool NativeFileSession::stage_recompression(std::shared_ptr<StoreByteIo> target,
   return true;
 }
 
+bool NativeFileSession::begin_idle_compaction(std::shared_ptr<StoreByteIo> target,StoreIdentity next) {
+  auto& self=ready();
+  if(!self.volume || self.volume->head->info().selection.storage.kind!=NativeImageKind::indexed_paged)
+    fail(E::invalid_options,"idle compaction requires a managed indexed image");
+  const auto generation=self.writer.recompression_generation();
+  if(!self.recompression && self.evaluated_image==self.volume->active_id &&
+      self.evaluated_generation==generation)return false;
+  admit_replacement(self,target,next);
+  admit_handoff_contexts(self);
+  admit_empty(target);
+  auto rebuild=self.writer.prepare_paged_recompression(target,next,self.volume->foreground,false);
+  self.recompression=std::make_unique<Impl::StagedRecompression>(
+      Impl::StagedRecompression{std::move(target),next,std::move(rebuild),true});
+  self.evaluated_image=self.volume->active_id;
+  self.evaluated_generation=generation;
+  return true;
+}
+
 std::optional<StoreRecompressionInput> NativeFileSession::next_recompression_input() const {
   auto& self=ready();
-  if(!self.recompression || !self.writer.matches_recompression(self.recompression->rewrite))
-    return std::nullopt;
-  return NativeFilesystemWriter::next_recompression_input(self.recompression->rewrite);
+  if(!self.recompression)return std::nullopt;
+  const auto* flat=std::get_if<NativeFilesystemWriter::Recompression>(&self.recompression->work);
+  if(!flat || !self.writer.matches_recompression(*flat))return std::nullopt;
+  return NativeFilesystemWriter::next_recompression_input(*flat);
 }
 
 NativeFileSession::RecompressionProgress NativeFileSession::advance_recompression() {
@@ -677,20 +720,27 @@ NativeFileSession::RecompressionProgress NativeFileSession::advance_recompressio
     std::uint64_t object_id,std::span<const StoreMatchProposal> matches) {
   auto& self=ready();
   if(!self.recompression)fail(E::invalid_options,"no staged recompression");
-  if(!self.writer.matches_recompression(self.recompression->rewrite)) {
+  if(!self.recompression->matches(self.writer)) {
     self.recompression.reset();
     return RecompressionProgress::stale;
   }
   try {
-    return NativeFilesystemWriter::advance_recompression(self.recompression->rewrite,object_id,matches)?
+    auto& work=self.recompression->work;
+    if(auto* paged=std::get_if<PagedObjectStoreWriter::Rewrite>(&work)) {
+      if(object_id || !matches.empty())fail(E::invalid_options,"indexed compaction preserves object encodings");
+      return self.writer.advance_paged_recompression(*paged)?RecompressionProgress::ready:RecompressionProgress::copying;
+    }
+    auto& flat=std::get<NativeFilesystemWriter::Recompression>(work);
+    return NativeFilesystemWriter::advance_recompression(flat,object_id,matches)?
         RecompressionProgress::ready:RecompressionProgress::copying;
   }catch(...){self.recompression.reset();throw;}
 }
 
 std::optional<StoreRecompressionFeedback> NativeFileSession::recompression_feedback() const noexcept {
-  if(poisoned() || !impl_->recompression ||
-      !impl_->writer.matches_recompression(impl_->recompression->rewrite))return std::nullopt;
-  return NativeFilesystemWriter::recompression_feedback(impl_->recompression->rewrite);
+  if(poisoned() || !impl_->recompression)return std::nullopt;
+  const auto* flat=std::get_if<NativeFilesystemWriter::Recompression>(&impl_->recompression->work);
+  if(!flat || !impl_->writer.matches_recompression(*flat))return std::nullopt;
+  return NativeFilesystemWriter::recompression_feedback(*flat);
 }
 
 NativeVolumeHeadInfo NativeFileSession::publish_recompression() {
@@ -705,18 +755,49 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompress
   auto& self=ready();
   if(!self.recompression || self.recompression->idle!=idle)
     fail(E::invalid_options,"no matching staged recompression");
-  if(!self.writer.matches_recompression(self.recompression->rewrite)) {
+  if(!self.recompression->matches(self.writer)) {
     self.recompression.reset();
     fail(E::invalid_options,"staged recompression is stale");
   }
-  if(!self.recompression->rewrite.ready())fail(E::invalid_options,"staged recompression is incomplete");
   admit_handoff_contexts(self);
+  if(auto* paged=std::get_if<PagedObjectStoreWriter::Rewrite>(&self.recompression->work)) {
+    if(paged->progress().phase!=PagedRewritePhase::ready)
+      fail(E::invalid_options,"staged indexed compaction is incomplete");
+    auto staged=std::move(self.recompression);
+    auto candidate=self.writer.finish_paged_recompression(*paged);
+    auto verified=candidate.snapshot();
+    if(verified.storage_info().physical_end>=self.writer.indexed_append_floor())return std::nullopt;
+    auto baseline=self.writer.snapshot();
+    begin_handoff(self,std::move(baseline),std::move(staged->target),staged->id);
+    auto& volume=*self.volume;
+    NativeVolumeHeadInfo published;
+    try {
+      published=volume.head->publish_indexed_rebuild(*volume.baseline,verified);
+    }catch(...) {
+      if(!volume.head->poisoned()) {
+        volume.baseline.reset();
+        volume.candidate_io.reset();
+        volume.candidate_id={};
+        volume.pending=false;
+        self.terminal=false;
+      }
+      throw;
+    }
+    self.writer=std::move(candidate);
+    adopt_handoff(self,published);
+    self.evaluated_image=volume.active_id;
+    self.evaluated_generation=self.writer.recompression_generation();
+    return published;
+  }
+  auto& flat=std::get<NativeFilesystemWriter::Recompression>(self.recompression->work);
+  if(!flat.ready())fail(E::invalid_options,"staged recompression is incomplete");
   auto staged=std::move(self.recompression);
-  if(idle && !staged->rewrite.saves_space())return std::nullopt;
+  if(idle && !flat.saves_space())return std::nullopt;
   auto baseline=self.writer.snapshot();
   // Seal and verify the candidate before fencing the foreground writer.
-  NativeFilesystemWriter::finish_recompression(staged->rewrite);
+  NativeFilesystemWriter::finish_recompression(flat);
   begin_handoff(self,std::move(baseline),std::move(staged->target),staged->id);
+  retire(self.writer);
   const auto published=finish_handoff(self);
   if(idle) {
     self.evaluated_image=self.volume->active_id;

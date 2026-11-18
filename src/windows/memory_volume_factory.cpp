@@ -4,20 +4,22 @@
 #include <windows.h>
 #include <bcrypt.h>
 #include <algorithm>
+#include <limits>
 #include <stdexcept>
 namespace flitzfs {
 namespace {
-constexpr std::uint64_t mib=1024ULL*1024,unit=65536;
+constexpr auto unit=kStoreCommitUnit;
+constexpr auto minimum_image=3*unit; // Two root slots and the aligned first object pages.
 void require(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 }
 MemoryVolumeLayout plan_memory_volume(const MemoryVolumeObservation& m) {
-  // Keep automatic lock admission within a small share of measured headroom.
-  const auto capacity = usable_memory_volume_headroom(m) / 256 / unit * unit;
-  constexpr auto areas = MemoryVolumeLayout::area_capacity * (NativeFileSession::max_optimization_bindings + 1);
-  require(capacity >= areas, "Insufficient head and advisory space");
-  const auto image = (capacity - areas) / 2 / unit * unit;
-  require(image >= 4*mib, "Insufficient admitted paged-volume capacity");
-  return {capacity,image};
+  // This is a virtual reservation budget. Every committed page separately
+  // consumes measured physical and commit headroom at the point of use.
+  constexpr auto maximum_addressable=static_cast<std::uint64_t>((std::numeric_limits<std::int64_t>::max)());
+  const auto capacity=(std::min)(usable_memory_volume_headroom(m),maximum_addressable)/unit*unit;
+  constexpr auto areas=MemoryVolumeLayout::area_capacity*(NativeFileSession::max_optimization_bindings+1);
+  require(capacity>=areas+2*minimum_image,"Insufficient headroom for image roots and advisory space");
+  return {capacity,(capacity-areas)/2/unit*unit};
 }
 StoreIdentity fresh_volume_identity() {
   StoreIdentity id{};
@@ -38,8 +40,89 @@ MemoryVolumeBacking MemoryVolumeBacking::create() {
   out.domain->verify_resident();return out;
 }
 std::shared_ptr<StoreByteIo> MemoryVolumeBacking::resolve_image(const StoreIdentity& selected) const {
-  require(selected==image_identity,"Unknown selected memory image");
-  return image;
+  if(selected==image_identity)return image;
+  require(phase_==CompactionPhase::uncertain && selected==alternate_identity_ &&
+      alternate_ && domain->owns(*alternate_),"Unknown selected memory image");
+  return alternate_;
+}
+bool MemoryVolumeBacking::compaction_pending(const NativeFileSession& session) const {
+  if(phase_==CompactionPhase::retiring)return true;
+  if(phase_==CompactionPhase::uncertain || session.poisoned())return false;
+  if(phase_!=CompactionPhase::idle)return session.idle_compaction_context_ready();
+  const auto space=session.indexed_volume_space();
+  const auto used=space.total_bytes-space.free_bytes;
+  const auto obsolete=space.obsolete_bytes;
+  if(obsolete>used || obsolete<=attempted_obsolete_ || obsolete-attempted_obsolete_<abandoned_bytes_)return false;
+  // Consider a copy when known obsolete history dominates the footprint or
+  // could free more space than the remaining append budget.
+  return (obsolete>=used-obsolete || obsolete>space.free_bytes) &&
+      session.idle_compaction_context_ready();
+}
+void MemoryVolumeBacking::retire_alternate(bool charge_attempt) {
+  if(charge_attempt && alternate_)abandoned_bytes_=alternate_->extent();
+  phase_=alternate_?CompactionPhase::retiring:CompactionPhase::idle;
+}
+MemoryCompactionStep MemoryVolumeBacking::advance_compaction(NativeFileSession& session) {
+  if(!compaction_pending(session))return MemoryCompactionStep::idle;
+  if(phase_==CompactionPhase::retiring) {
+    switch(domain->retire_store(alternate_)) {
+      case MemoryStoreRetirement::pinned:return MemoryCompactionStep::pinned;
+      case MemoryStoreRetirement::advanced:return MemoryCompactionStep::retiring;
+      case MemoryStoreRetirement::released:
+        alternate_identity_={};phase_=CompactionPhase::idle;return MemoryCompactionStep::retiring;
+    }
+  }
+  try {
+    if(phase_==CompactionPhase::idle) {
+      attempted_obsolete_=session.indexed_volume_space().obsolete_bytes;
+      abandoned_bytes_=0;
+      alternate_identity_=fresh_volume_identity();
+      alternate_=domain->create_store(layout.image_capacity);
+      if(!session.begin_idle_compaction(alternate_,alternate_identity_)) {
+        retire_alternate(false);
+        return MemoryCompactionStep::retiring;
+      }
+      phase_=CompactionPhase::copying;
+      return MemoryCompactionStep::copying;
+    }
+    if(phase_==CompactionPhase::copying) {
+      switch(session.advance_recompression()) {
+        case NativeFileSession::RecompressionProgress::copying:return MemoryCompactionStep::copying;
+        case NativeFileSession::RecompressionProgress::ready:
+          phase_=CompactionPhase::ready;return MemoryCompactionStep::ready;
+        case NativeFileSession::RecompressionProgress::stale:
+          retire_alternate(true);return MemoryCompactionStep::retiring;
+      }
+    }
+    phase_=CompactionPhase::uncertain;
+    if(!session.publish_idle_recompression()) {
+      retire_alternate(true);
+      return MemoryCompactionStep::retiring;
+    }
+    image.swap(alternate_);
+    std::swap(image_identity,alternate_identity_);
+    attempted_obsolete_=0;
+    abandoned_bytes_=0;
+    retire_alternate(false);
+    return MemoryCompactionStep::published;
+  }catch(const std::exception&) {
+    if(phase_==CompactionPhase::uncertain && session.poisoned())throw;
+    session.cancel_recompression();
+    retire_alternate(true);
+    if(session.poisoned())throw;
+    return MemoryCompactionStep::failed;
+  }
+}
+void MemoryVolumeBacking::cancel_compaction(NativeFileSession& session) noexcept {
+  session.cancel_recompression();
+  if(phase_==CompactionPhase::copying || phase_==CompactionPhase::ready)
+    phase_=CompactionPhase::retiring;
+}
+void MemoryVolumeBacking::release_unselected_after_join() noexcept {
+  if(phase_==CompactionPhase::uncertain)return;
+  alternate_.reset();
+  alternate_identity_={};
+  phase_=CompactionPhase::idle;
 }
 NativeVolumeHeadView MemoryVolumeBacking::open_owned_head(bool indexed_recovery) const {
   require(domain && head && image && head!=image && domain->owns(*head) && domain->owns(*image),
@@ -50,7 +133,8 @@ NativeVolumeHeadView MemoryVolumeBacking::open_owned_head(bool indexed_recovery)
       NativeVolumeHeadView::open(head,volume_identity,resolve);
 }
 ReadOnlyProjection MemoryVolumeBacking::seal_checked(NativeVolumeHeadView checked) {
-  auto projection=ReadOnlyProjection::from_owned_volume(std::move(checked),image->extent());
+  const auto extent=resolve_image(checked.info().selection.image_identity)->extent();
+  auto projection=ReadOnlyProjection::from_owned_volume(std::move(checked),extent);
   domain->seal_read_only();
   return projection;
 }

@@ -71,10 +71,12 @@ flowchart TD
   H --> P
 ```
 
-The WinFsp composition now owns real backing and a real controller; its current
-qualification uses actual SDK callbacks with injected lifecycle operations.
-This is distinct from invoking the native mounted provider. The ordinary helper
-and the new composition still do not automatically use GPU compression.
+The indexed WinFsp composition owns its memory backing and one controller
+through creation, callback service, retirement, compaction and CPU inspection.
+Local SDK tests exercise lifecycle and resource decisions. An earlier linked
+provider checkpoint also passed external mounted I/O on Windows Server 2025.
+GPU-enabled indexed writes have used the AMD device in a controlled callback
+fixture. Automatic dispatch and mounted performance remain open.
 
 The diagnostic CLI operates on experimental image/container formats. It is not
 the final user-facing mount, creation or management interface. Historical ZIP
@@ -104,11 +106,11 @@ capacity and failure evidence before replacing it.
 
 | Component | Implemented and supported by evidence | Material remaining gap |
 | --- | --- | --- |
-| Object storage | Flat and paged stores, checked records, COW transactions, replicated metadata, resume and streaming rebuild | Production allocation/free-space policy, reader-safe automatic reclamation and backend qualification |
-| Native namespace | Indexed path and handle transactions, checked head selection, owned Windows provider, scheduled retirement and closed-session sealed inspection | Full mounted qualification, physical reclamation, large live truncation and indexed collective representations |
-| Populated capacity | The paged object layer has a million-object result. The indexed path writer created 1,024 named nonempty files. | Mounted native volumes retain the 256-node and 255-extent limits. Larger populated native runs still need verification. |
+| Object storage | Flat and paged stores, checked COW transactions, replicated metadata, streaming rebuild and bounded indexed selector publication | Durable segment allocation, reclamation under concurrent writes and backend qualification |
+| Native namespace | Indexed path and handle transactions, typed head selection, mounted Server 2025 fixture, scheduled retirement and staged memory compaction | Windows 11 client semantics, large live truncation and indexed collective representations |
+| Populated capacity | Million-object paged inventory and 1,024 named nonempty indexed files. The indexed writer bypasses the older fixed namespace and extent model. | Larger populated external-client runs, root/open recovery budgets and scalable collective indexing |
 | Compression | Optional CPU Zstd/LZ4, exact sharing and protected shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
-| Background work | Automatic aligned-family discovery, feature reuse, negative-outcome suppression, real Windows observations and low-priority paced opportunities | Persistent scalable features, restartable learning, workload-driven codec selection, automatic compaction and a lifetime write governor |
+| Background work | Aligned-family discovery in the legacy engine, live Windows admission and bounded automatic indexed memory reclamation | Scalable persistent features, restartable learning, workload-driven codec selection and a lifetime write governor |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
 | GPU | Bounded AMD execution through the indexed WinFsp SDK callback, exact mirrored output and independent CPU reopen | Automatic selection and measurable benefit in mounted workloads, plus stronger collective GPU work |
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
@@ -271,6 +273,13 @@ driver to make a probe fit a document.
 [dependency policy/history](DEPENDENCY_AUDIT.md).
 
 ## Recent executed evidence
+
+Indexed memory compaction now uses the staged CPU verification to select a
+new image without re-reading its full contents at the switch. The current
+provider uses the actual Windows page size and reserves virtual image capacity
+from available headroom. In a controlled small-write fixture the image fell
+from 3.75 MiB to 360 KiB with identical readback. An old CPU snapshot kept its
+image pinned until release. [Compaction and sizing evidence](evidence/indexed-background-compaction-2026-11-18.json)
 
 The owned indexed provider passed local Windows lifecycle and CPU recovery
 checks with injected WinFsp operations. The real host scheduler retired

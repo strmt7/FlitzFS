@@ -15,8 +15,12 @@ package publication or product-version change.
 
 The 18 November checkpoints extend the baseline with indexed head selection,
 WinFsp SDK access, and on-demand locking in the shared memory provider.
-The next integration sequence uses those paths and replacement criteria for
-prototype constraints. [Current state](DEVELOPMENT_STATE.json)
+The owned indexed memory path now measures obsolete records, stages compaction
+automatically and releases unpinned backing in bounded quanta. The fixed
+reservation fraction and 4 MiB image floor were replaced with measured
+headroom and storage geometry. Follow E02 for reclaiming segments under
+foreground writes and E03 for useful automatic AMD routing.
+[Current state](DEVELOPMENT_STATE.json)
 
 ## 1. Decisions that govern implementation
 
@@ -328,7 +332,10 @@ for production-scale completion, but their bounded design/experiments can start 
 
 **Reuse:** mirrored payloads, COW records, protected anchors, staged rebuild,
 context-preserving head handoff and source-preserving recovery.
-**Missing:** a complete allocator/reclaimer and automatic live-volume orchestration.
+**Available:** bounded indexed handoff and automatic staged compaction on the
+owned Windows memory provider, using measured obsolete history and CPU
+verification. **Missing:** resumable segment evacuation under foreground
+commits, durable liveness/progress, and persistent-provider qualification.
 **Planning effort:** 5–10 person-weeks; confidence low.
 
 ### Implementation steps
@@ -347,8 +354,10 @@ context-preserving head handoff and source-preserving recovery.
    staging. Full-volume failure must not require deleting existing user files.
 5. Connect staged rebuild and verified handoff for bounded, quiescent migration
    or repair. Preflight peak space and use the existing exact-generation guard.
-   Persist an owned candidate identity and continuation checkpoint where the
-   provider can durably reopen it. Suppress repeatedly invalidated full copies.
+   The memory path now keeps one private candidate, charges abandoned image
+   writes and validates both anchors at selection. Persist candidate identity
+   and continuation where a provider can durably reopen it. Measure foreground
+   interference and verify selection during mounted Windows 11 activity.
 6. Implement steady-state segment evacuation with bounded units and a persistent
    liveness index or equivalent reverse mapping. Select a victim using its live
    bytes, pins and expected write cost. Copy verified live objects, recheck each
@@ -361,9 +370,11 @@ context-preserving head handoff and source-preserving recovery.
    dependency and progress roots. Exercise crashes before the copy, after copy
    but before publication, after publication while a reader pins the old copy,
    and during retirement or reuse. Count orphaned output against staging space.
-9. Add actual background compaction triggers based on reclaimable bytes,
-   expected gain and available resources. Repeated unchanged opportunities must
-   neither append records nor allocate another candidate.
+9. Extend the memory provider's observed-obsolete-byte trigger to durable
+   segment liveness. Keep measured gain and resource admission in the decision.
+   Repeated unchanged opportunities must neither append records nor allocate
+   another candidate. Charge failed attempts and retained readers against
+   capacity and write-amplification budgets.
 10. Measure padding, metadata write amplification and protection cost for tiny,
     packed and bulk writes. Compare time- and size-bounded batching, packed banks
     and smaller backend-qualified failure units. Evaluate mirroring and parity
@@ -390,6 +401,14 @@ context-preserving head handoff and source-preserving recovery.
   or recycle an uncertain free. Stop leaves no stale worker or lease.
 - Corrupt each protected copy independently. Repair into new verified state;
   failure of all available copies is detected, not hidden by invented data.
+
+Current storage research separates reclaimed bytes, data movement and write
+amplification. FlitzFS uses this distinction to qualify a smaller selected
+image and a later unpinned release independently. Segment selection should
+measure the surviving bytes it must copy and use liveness rather than time
+alone. [FAST '26 discard and compaction](https://www.usenix.org/conference/fast26/presentation/bian) ·
+[FAST '26 data placement](https://www.usenix.org/conference/fast26/presentation/kim-jeeyun) ·
+[Tidehunter preprint](https://arxiv.org/abs/2602.01873)
 
 **Output:** allocator and pin protocol, automatic segment reclamation,
 bounded staged handoff, recovery and write amplification evidence. **Dependencies:** E01 for scalable completion.

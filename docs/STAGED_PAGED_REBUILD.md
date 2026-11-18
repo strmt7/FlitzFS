@@ -40,8 +40,9 @@ All calls remain serialized on one control thread. The backend must qualify
 exclusive, nonaliasing storage and stable successful-write/flush semantics;
 per-instance leases do not stop another facade or hostile provider. Native
 preparation rejects pending/detached file contexts, an invalid source/backend
-or invalid identity. [Managed paged sessions](MANAGED_PAGED_VOLUMES.md) now
-support synchronous head handoff; staged automatic selection remains separate.
+or invalid identity. [Managed paged sessions](MANAGED_PAGED_VOLUMES.md) support synchronous handoff.
+The indexed memory policy also uses the staged path with a bounded selector
+switch and separate reader-safe retirement.
 
 ## Work phases
 

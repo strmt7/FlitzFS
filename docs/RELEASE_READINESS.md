@@ -24,6 +24,15 @@ mechanism still need implementation and measurement.
 
 ## Demonstrated progress
 
+The indexed memory controller automatically compacts measured obsolete history,
+preserves open handles during the verified switch and retires unpinned backing.
+The provider derives virtual capacity and page isolation from the host. A
+separate Server 2025 fixture exercised mounted indexed I/O on an earlier
+source revision. Windows 11 client qualification, persistent fault resilience,
+automatic AMD benefit and extreme comparative compression remain release gates.
+[Current compaction evidence](evidence/indexed-background-compaction-2026-11-18.json) ·
+[Mounted indexed Windows evidence](evidence/indexed-owned-windows-2026-11-18.json)
+
 The [shared adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now serves
 both helper and WinFsp composition. It retains backing through controller stop
 and admits independent CPU inspection only after an explicit join. Its tests

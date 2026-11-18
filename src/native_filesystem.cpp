@@ -1882,6 +1882,16 @@ bool NativeFilesystemWriter::matches_recompression(const Recompression& candidat
   return !poisoned() && impl_->objects.flat_if() && candidate.matches(*impl_->objects.flat_if());
 }
 
+std::uint64_t NativeFilesystemWriter::indexed_obsolete_bytes() const noexcept {
+  if(poisoned() || !impl_->indexed)return 0;
+  return impl_->objects.paged_if()->obsolete_bytes();
+}
+
+bool NativeFilesystemWriter::matches_paged_recompression(
+    const PagedObjectStoreWriter::Rewrite& candidate) const noexcept {
+  return !poisoned() && impl_->objects.paged_if() && candidate.matches(*impl_->objects.paged_if());
+}
+
 std::uint64_t NativeFilesystemWriter::recompression_generation() const noexcept {
   return poisoned()?0:impl_->objects.generation_for_staging();
 }

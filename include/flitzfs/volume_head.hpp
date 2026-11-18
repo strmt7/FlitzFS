@@ -55,6 +55,11 @@ class NativeVolumeHeadWriter final {
   NativeVolumeHeadInfo info() const noexcept;
   bool poisoned() const noexcept;
  private:
+  friend class NativeFileSession;
+  // Only an owned, completed indexed rewrite can reach this path. Both image
+  // writer leases remain held by the session until selection is known.
+  NativeVolumeHeadInfo publish_indexed_rebuild(const NativeFilesystemSnapshot& source,
+      const NativeFilesystemSnapshot& verified_target);
   struct Impl;explicit NativeVolumeHeadWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;
 };

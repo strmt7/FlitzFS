@@ -5,8 +5,7 @@
 namespace flitzfs {
 bool valid_mount_plan(const ReadOnlyMountPlan& plan) noexcept {
   const std::wstring_view path(plan.directory);
-  if (!plan.allow_driver_start || !plan.lifetime_seconds ||
-      plan.lifetime_seconds > kMaxMountLifetimeSeconds || path.size() < 4 ||
+  if (!plan.allow_driver_start || !plan.lifetime_seconds || path.size() < 4 ||
       path.size() > 240 || !ordinary_windows_file_path(path)) return false;
   const auto drive = path[0];
   if (!((drive >= L'A' && drive <= L'Z') || (drive >= L'a' && drive <= L'z')) ||

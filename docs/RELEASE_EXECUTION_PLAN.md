@@ -6,16 +6,18 @@ The [detailed implementation plan](IMPLEMENTATION_PLAN.md),
 The detailed plan expands E01–E13 into implementation steps and acceptance
 gates. The earlier assessment below retains its original source and estimates.
 
-Indexed managed storage now supports checked head selection, compaction,
-independent recovery and large SDK writes. The shared memory backing locks
-pages on demand and admits capacity from current host headroom. The owned
-mounted path remains the immediate Windows integration priority. Automatic
-useful AMD work with CPU recovery, held-out compression comparisons,
-persistent repair and format migration remain on the release path. A stable
+Indexed managed storage now supports checked head selection, automatic
+staged compaction on owned memory, independent recovery and large SDK writes.
+The memory backing uses current headroom for virtual reservations and locks
+pages on demand. Disposable Windows Server 2025 runs have exercised mounted
+indexed I/O. The next Windows gates are client qualification, mounted
+interference and deployment lifecycle. Automatic useful AMD work with CPU
+recovery, held-out compression comparisons, scalable persistent reclamation
+and repair, and format migration remain on the release path. A stable
 release candidate is still substantial work. The existing low-confidence
 estimate remains 60–130 person-weeks, plus unresolved compression research.
 [Indexed SDK evidence](evidence/indexed-managed-winfsp-2026-11-18.json) ·
-[Memory provider evidence](evidence/demand-locked-memory-2026-11-18.json)
+[Current memory and compaction evidence](evidence/indexed-background-compaction-2026-11-18.json)
 
 Assessment: 15 November 2026. Reviewed local source:
 `7c601d39c8eb5f04a02bb889840efc06eac68171`. The subsequent
@@ -63,12 +65,12 @@ application slices, bounded GPU workers and independent CPU result validation.
 
 | Area | Evidence available now | Remaining gap |
 | --- | --- | --- |
-| Scalable storage | The opt-in paged store has writes, deletion, paginated lookup, resume and streaming new-image rebuild. A million populated object records were tested. | The native namespace still materializes a bounded model: 256 nodes and 255 extent references. The flat profile has a 64-MiB image bound; paged image capacity is explicit. Paged objects are not yet million-file Explorer support. |
+| Scalable storage | A million populated paged objects and 1,024 named nonempty indexed files have been tested. The indexed namespace uses paged inode, name and extent lookups. | Larger populated volumes, million-file Explorer validation, persistent segment reuse and scalable indexed representation dependencies. |
 | Local qualification | [Current paged SDK callbacks and relevant core checks](evidence/paged-winfsp-2026-11-15.json) pass in raw Release and AddressSanitizer. The earlier 103-group helper/core and million-object results retain their separate exact-source evidence. | This is not full CTest/optional-codec qualification, a new real mount, current GPU execution or physical power-loss evidence. |
 | Sharing | Exact extent sharing/private updates, protected shared-base patch groups, and automatic aligned-family discovery/extension with complete-size admission. | The controller uses the bounded native model; no persistent scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
 | GPU | Actual AMD execution and independent current/prior CPU recovery passed controlled service tests. | The last matched case was slower on GPU: CPU median 24.2311 ms, GPU 513.918 ms, identical complete image sizes. Useful automatic ordinary I/O remains absent. |
 | Learning/background work | Persistent advice/provenance, automatic grouping, live Windows observations/resource background mode, measured complete-quantum pacing and outcome reuse exist. The owned WinFsp scheduler receives real callback events. | No complete autonomous learner, persistent scalable coherence, qualified current-source mounted executor, gradual migration or lifetime write-amplification governor. |
-| Windows product | The WinFsp adapter supports paged creation/resume and cooperative groups. Its owned controller and shared memory factory pass real SDK callback/live telemetry and injected lifecycle tests; earlier mount results remain historical. | Connect the explicit native provider, then qualify disposable mounts and staged reclamation; complete client semantics, scalable access, providers, deployment and broad qualification. |
+| Windows product | The owned indexed provider passed an external Windows Server 2025 mount fixture. Local SDK and memory checks cover the owned lifecycle and scoped reclamation. | Windows 11 client deployment, long-running mounted maintenance, full client semantics, persistent providers and qualification. |
 | Recovery | COW checkpoints, metadata replicas, modeled failures, explicit recovery and source-preserving rebuilding exist. | General payload/dependency repair, scalable reclamation and complete backend fault qualification remain open. Historical retirement failures are not diagnosed by later successful runs. |
 
 The million-object experiment used 16,000,000 bytes of tiny raw payloads in a

@@ -8,7 +8,8 @@ struct WinFspControllerView {
   NTSTATUS start_status=STATUS_PENDING;
   MaintenanceHostStatus host=MaintenanceHostStatus::warming;
   NativeMaintenanceProgress maintenance;
-  std::uint64_t maintenance_quanta=0,reclamation_quanta=0,maintenance_elapsed_ns=0,maximum_quantum_ns=0;
+  std::uint64_t maintenance_quanta=0,reclamation_quanta=0,compactions=0,compaction_failures=0;
+  std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0;
   bool maintenance_disabled=false,retired=false,expired=false,offline=false,controller_failed=false;
 };
 // Explicit provider and plan only. One owned thread performs start, cooperative
@@ -21,7 +22,7 @@ class WinFspVolumeController final {
  public:
   WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan);
   // Qualified memory composition: domain must outlive the controller's joined
-  // worker. Its store registry remains fixed while callbacks run.
+  // worker. Allocation and retirement share the callback's control lock.
   WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,MemoryVolumeDomain&);
   ~WinFspVolumeController();
   WinFspVolumeController(const WinFspVolumeController&)=delete;

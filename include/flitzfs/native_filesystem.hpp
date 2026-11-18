@@ -538,6 +538,7 @@ class NativeFilesystemWriter final {
   Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,StoreCheckpointOptions) const;
   bool matches_recompression(const Recompression&) const noexcept;
+  bool matches_paged_recompression(const PagedObjectStoreWriter::Rewrite&) const noexcept;
   std::uint64_t recompression_generation() const noexcept;
   static std::optional<StoreRecompressionInput> next_recompression_input(const Recompression&);
   static std::optional<StoreRecompressionFeedback> recompression_feedback(const Recompression&) noexcept;
@@ -552,6 +553,7 @@ class NativeFilesystemWriter final {
       std::string_view after,std::size_t maximum) const;
   bool supports_file_contexts() const noexcept;
   std::uint64_t indexed_append_floor() const noexcept;
+  std::uint64_t indexed_obsolete_bytes() const noexcept;
   using InodeAction=detail::NativeInodeAction;
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},

@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <memory>
 namespace flitzfs {
+struct MemoryVolumeBacking;
 // Experimental real writable adapter; qualify backing, runtime and containment.
 // Historical _hosted names remain for ABI/report compatibility, not location.
 // Default factories create NEW images. The explicit resume experiment
@@ -24,7 +25,7 @@ enum class WinFspMaintenanceState {busy,unavailable,unchanged,advanced};
 struct WinFspMaintenanceResult {
   WinFspMaintenanceState state=WinFspMaintenanceState::unavailable;
   NativeMaintenanceProgress progress;
-  bool reclaimed=false;
+  bool reclaimed=false,compacted=false,compaction_failed=false;
 };
 class WinFspNativeWritable final {
  public:
@@ -106,6 +107,8 @@ class WinFspNativeWritable final {
   NativeSessionStats stats() const;
   NativeFilesystemSnapshot snapshot() const;
  private:
+  friend class WinFspMemoryVolume;
+  void configure_memory_compaction(MemoryVolumeBacking&) noexcept;
   static std::unique_ptr<WinFspNativeWritable> resume_managed_impl(std::shared_ptr<StoreByteIo>,
       StoreIdentity,std::uint64_t,const NativeVolumeImageResolver&,StoreCompressionOptions,
       std::shared_ptr<StoreByteIo>,std::uint64_t,bool closed_indexed);

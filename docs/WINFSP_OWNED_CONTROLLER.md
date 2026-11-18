@@ -8,12 +8,14 @@
 requires an explicit adapter, provider operation table and valid mount plan;
 there is no default native provider or automatic driver selection. That thread
 alone starts the session, supplies background opportunities and stops it. The
-existing experimental plan lifetime is enforced, including while idle.
+caller supplies a finite lifetime, which the controller enforces while idle
+and active. Native waits remain interruptible by stop and activity events.
+Independently supervised mount trials retain their own shorter deadlines.
 
 The controller uses the same writable callbacks, paged engine and independent
 CPU reader for either supported layout. Legacy paged volumes run shared-base
-maintenance. An indexed volume advances queued file retirement using the same
-owner thread and resource admission. The tray can observe the synchronized
+maintenance. An indexed volume advances queued file retirement and, with owned memory
+backing, automatic staged compaction through the same owner and admission. The tray can observe the synchronized
 view and request stop while the owner performs storage work.
 External owner calls must be serialized, and joining from dispatcher/callback
 threads is forbidden.
@@ -50,9 +52,11 @@ retirement and signals the controller. The controller checks the cached queue
 state and requires new, recent CPU and memory observations for each transaction.
 A reaper transaction removes at most 64 mappings. The controller checks
 foreground activity, deferred response ownership and worker retirement before
-entering the transaction. When the queue drains, routine reads require no
-further polling. Physical space reuse still requires compaction or segment
-retirement. [Indexed checks](evidence/indexed-owned-windows-2026-11-18.json)
+entering the transaction. The owned memory controller can then advance one justified compaction
+opportunity, including bounded work to release an unpinned old image. A quiet
+volume with no pending retirement or compaction sleeps until an event.
+[Indexed checks](evidence/indexed-owned-windows-2026-11-18.json) ·
+[Memory reclamation](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-indexed-compaction)
 
 ## Retirement and qualification
 

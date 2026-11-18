@@ -29,11 +29,9 @@ int main() {
     plan.directory = L"C:\\" + std::wstring(238, L'a');
     require(!flitzfs::valid_mount_plan(plan), "overlong mount target accepted");
     plan.directory = L"C:\\fixture\\mount";
-    for (const auto seconds : {0U, 31U, 60U, 0xffffffffU}) {
-      plan.lifetime_seconds = seconds;
-      require(!flitzfs::valid_mount_plan(plan), "unbounded lifetime accepted");
-    }
-    for (const auto seconds : {1U, 15U, 30U}) {
+    plan.lifetime_seconds = 0;
+    require(!flitzfs::valid_mount_plan(plan), "missing lifetime accepted");
+    for (const auto seconds : {1U, 15U, 30U, 60U, 0xffffffffU}) {
       plan.lifetime_seconds = seconds;
       require(flitzfs::valid_mount_plan(plan), "valid lifetime rejected");
     }

@@ -68,12 +68,15 @@ lifetimes. Ordinary head open and resume continue to enforce resolved state.
 Indexed compaction and recompression rebuild into fresh backing with a
 different identity. The head checks that the candidate retains the native
 root fields, object identities and generations, and every decoded logical
-object except the root identity field. A staged copy advances one object at
-a time. The final head switch compares the complete source and destination.
-The prior backing and its pinned snapshots remain available through
-publication and recovery. This flow preserves the selected layout and capacity.
-Automatic migration and background selection still require independent
-qualification.
+object except the root identity field. An explicit synchronous handoff compares complete source and destination
+images. The managed indexed idle path advances verification and copying one
+object at a time. Its final switch reparses the exact selected and verified
+candidate checkpoints, checks both anchors and publishes the two head slots.
+The previously verified target writer transfers to the session without a new
+inventory scan. Both backings stay owned until selection is known, and old
+snapshots keep their backing pinned. The indexed memory controller can stage,
+select and retire images automatically. Layout and capacity remain stable.
+[Automatic compaction evidence](evidence/indexed-background-compaction-2026-11-18.json)
 [Indexed managed-volume evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
 
 ## Handoff, surviving-copy repair and recovery

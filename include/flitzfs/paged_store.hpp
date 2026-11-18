@@ -98,6 +98,9 @@ class PagedObjectStoreWriter final {
   // barrier entry fences the writer; preflight allocation pressure does not.
   PagedStoreInfo flush_checkpoint();
   PagedObjectStoreSnapshot snapshot() const;
+  // Lower bound within this writer's lifetime. Includes superseded pages
+  // and encoded records. Readers can still pin every one of these bytes.
+  std::uint64_t obsolete_bytes() const noexcept;
   bool poisoned() const noexcept;
  private:
   friend class detail::NativeObjectWriter;

@@ -25,25 +25,29 @@ insufficient observations; it does not allocate or authorize a provider. Actual
 creation always collects the OS observation itself and the provider rechecks
 headroom during allocation. A past observation is not a memory reservation.
 
-Automatic admission uses 1/256 of the smaller available physical and commit
-headroom after setting aside the larger of 768 MiB and one eighth of detected
-physical memory. The resulting budget scales with the host. The layout funds
-two equal 64-KiB-aligned image reservations, a 128-KiB head and four possible
-128-KiB advisory bindings. The helper requires at least 4 MiB per image.
-It reserves address space for the current image, head and initial advice.
+Automatic sizing uses the smaller available physical and commit headroom after
+setting aside the larger of 768 MiB and one eighth of detected physical memory.
+The remaining budget can reserve address space for two equal images, a 128-KiB
+head and four possible 128-KiB advisory bindings. The factory initially reserves
+the first image, head and initial advice. Image reservations align to the
+64-KiB head slots. A minimum image has room for those slots and aligned object
+pages. An address reservation commits zero data pages.
 
 Preflight rechecks current headroom and locks the required pages before
 publication. Reservation and page commitment leave image bytes and its
 visible extent unchanged. Direct writes that grow the image enforce the
-same check. Working-set allowance grows with use, and the last owner
-restores the original allowance. After a failed lock the provider discards
+same check. The quota grows within freshly observed headroom and restores
+to its original value when the last owner retires. Paged records use the
+Windows page size as the live memory provider's isolation unit. The head
+still uses its existing fixed slots. After a failed lock the provider discards
 the attempted commit. If cleanup cannot be confirmed, it refuses new
 writers and retains readable data.
 
 The controller checks working-set allowance in constant space and time per
 opportunity. Creation, sealing and explicit retired inspection can verify
 every committed page in fixed-size batches. The UI reports locked bytes,
-while internal reservation accounting protects the future compaction image.
+while internal reservation accounting protects the staging image used by
+automatic indexed compaction.
 [Local checks](evidence/demand-locked-memory-2026-11-18.json)
 
 ## Retention and inspection
@@ -74,7 +78,36 @@ termination or power loss. Stopping a volume does not itself discard those bytes
 destroying its last owner does. UI discard confirmation and persistent volume
 durability remain separate product responsibilities.
 
+## Automatic indexed compaction
+
+The owning WinFsp controller can open a second memory image when observed
+obsolete history dominates the current extent or exceeds the remaining append
+space. The counter counts superseded page pairs and encoded records within
+the current writer's lifetime. It is a lower bound and does not authorize
+reusing any part of a selected or pinned image. A failed or superseded attempt
+requires new obsolete history at least as large as its written candidate bytes
+before staging again. The copy preserves existing object encodings and requires
+a strictly smaller verified image before switching.
+
+The old mapping stays live while any CPU snapshot holds it. Its retirement
+checks pins first and securely clears and decommits at most one object-sized
+span per resource-admitted opportunity. This work shares the control lock
+with callbacks. A failed selector keeps both mappings for independent
+post-join inspection. Join releases any known unselected image that was still
+staging or retiring. [Managed handoff contract](MANAGED_PAGED_VOLUMES.md#indexed-images)
+
 ## Executed scope and remaining work
+
+[Indexed compaction and allocation evidence](evidence/indexed-background-compaction-2026-11-18.json)
+records the controlled workload, matched CPU readback, selector interruptions,
+reserved and resident bytes and exact retirement. The page-layout fixture
+compares the same twelve small overwrites on a 64-KiB model and the real
+Windows memory provider using 4-KiB pages. The compaction fixture checks actual
+locked-page release and snapshot retention through explicit opportunities.
+The extended SDK test drives the actual owned scheduler with live Windows
+observations and injected lifecycle functions. It verifies open-handle access,
+CPU inspection of epoch 2 and exact handle balance after native PDH setup.
+Standalone mount supervisors retain separate short process deadlines.
 
 [Source-bound checks](evidence/memory-volume-factory-2026-11-17.json) cover modeled
 small/large/tight-commit observations, real locked allocation and retained store

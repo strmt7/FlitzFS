@@ -1,0 +1,484 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-18T04:17:14+01:00",
+  "source_base": "5a394e844a18280221fe9128773e3eb76fe5a38a",
+  "base_tree": "3f39003c3214319afc29d587a3547832324b5bf7",
+  "code_patch_sha256": "26173f0259a6fc4494297324c3279f19db6c29d1bd58b6049b7b108a97bc44a0",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/mount_plan.hpp",
+      "git_blob": "1c02b79738ce5c9a80cc2841fe4f44a7c62c7208",
+      "worktree_sha256": "032a3b017c47ca10178eb5ca6038a395d76b4e9cff1f57584ac94d847e29231e"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "6dff3fddc24f2c8a66599a8eb36589796b9e97b2",
+      "worktree_sha256": "bd1003e8d87bc0e86a3454c8044057c77936620cf87c6e1c689969413e025a6b"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "e69cc8567df63113d40b03ad2816caa0863db035",
+      "worktree_sha256": "0bca3edfc64f74f96e0644e4d4051827eb3227e99f0c8147318ffe6b67a6d371"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "5547010f71a5a246387787f3a9b9b627e69222a4",
+      "worktree_sha256": "81bfe17019ecbf9e4beb335fc81abc508c6a15d2329929399e12b4fd34dd5831"
+    },
+    {
+      "path": "include/flitzfs/volume_head.hpp",
+      "git_blob": "1159a29acabf34d7c3c8265908ee3693befaf5e2",
+      "worktree_sha256": "624179252d22c473c7c5e2acf5d6ee0a8f7c337bcdaed6f43ac3c1e13562c052"
+    },
+    {
+      "path": "src/mount_plan.cpp",
+      "git_blob": "b9995aaa8d7fe9296b4b7d9460ebfcc32e5b9068",
+      "worktree_sha256": "04e5785536b1ec8e9cb2354928579b3b24004e63c9791990cc2aaaf94999e04c"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "0f5f481d39c8750dd2fec96de927752e9e224354",
+      "worktree_sha256": "a8f51f55b19b3676ce0147e7d8f8927624a95a5288ed1cc38a429498c63efa59"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "d0dedc77b76068e28bdc7a329aefcbd971aaa646",
+      "worktree_sha256": "2b2dc92297290a813e8520c73074a12d325dbf35acf2bab046ac08689dff3a88"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "0c538cecb565f71872ab2c8c3720dc0e6d09df1d",
+      "worktree_sha256": "8b1c3ad6cf5d000726cb50960c974f62e5d98e24bc3f97a0f3a543ba9ded7b77"
+    },
+    {
+      "path": "src/volume_head.cpp",
+      "git_blob": "82bf34b9ac3c67c381e82ae4fe97e19d35d52ad7",
+      "worktree_sha256": "a6b7904c549400d450216864acd7c93b45e2bb99d43dc4f7239f82d5e07a9aba"
+    },
+    {
+      "path": "src/windows/memory_volume.cpp",
+      "git_blob": "405aa951d91a457dbb3e789309f42f7ee83ca6df",
+      "worktree_sha256": "b39563967455cc5f128021b713588fae738d1f89cf99b07d0d22cc1d525481ed"
+    },
+    {
+      "path": "src/windows/memory_volume.hpp",
+      "git_blob": "b10ce425a090b3212911eccf5d82c6269acd48dd",
+      "worktree_sha256": "72250e6a1ff65ba841c56b8b77acb74aa3e2ed62e183cf5d12fe0a060110e84e"
+    },
+    {
+      "path": "src/windows/memory_volume_factory.cpp",
+      "git_blob": "15445552a44d82e6fa685b2e469b0902e7cfa606",
+      "worktree_sha256": "57f829a321d54341d2857fa74340a94a934e4a21f248ed4051125683d4f14fd8"
+    },
+    {
+      "path": "src/windows/memory_volume_factory.hpp",
+      "git_blob": "34bf8006bf66dbc321cce70be437fe00b078f119",
+      "worktree_sha256": "34c668bf182634d4d9c868f07c3d56804671c89497191265778c152145821547"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "04e86b3f56e99a53a34e24ecfc7ece248186c042",
+      "worktree_sha256": "4b0f5e2c9b5273b9fc7ce13a6b7ecb10314a8113064b93abda3bdc5ef8cba4e8"
+    },
+    {
+      "path": "src/windows/winfsp_controller.hpp",
+      "git_blob": "1664cfafccc44c04de6580b073e9092c8a297caa",
+      "worktree_sha256": "84ea0c5e39e1b28d1b898a7e2ecc5a9fa081fd27848ac081a70ea0c91c9b5181"
+    },
+    {
+      "path": "src/windows/winfsp_memory_volume.cpp",
+      "git_blob": "e2bdfd54168cfa14cd53e4226b2d359fab98962c",
+      "worktree_sha256": "595438e7e5ce30eefd9cc47bc8fdea997dc7cba5335acf86cfca6f78d1ad56ae"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "eeabb95b894e7656ec27c5b0fa46af2559dc745f",
+      "worktree_sha256": "531a4b42411dbc9c3f23bc59c1a13d5c978f91ed2f0d44c8eb1a716eb5a12188"
+    },
+    {
+      "path": "src/windows/winfsp_native.hpp",
+      "git_blob": "c7bc396eca392ccd844436ea9272926c2b5fc194",
+      "worktree_sha256": "6811397392ca740f5468766b76f78a50606005002089698aee553f1d0492876f"
+    },
+    {
+      "path": "tests/test_mount_plan.cpp",
+      "git_blob": "fd26531721d42c8c277184cfc80107d523d04041",
+      "worktree_sha256": "70fc71eacaea7b82446cb18156c42d87e293c7f2e6d302b7f7d13a99d6070aaf"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "d92b0fe909bc38806cd3ac4a1acb2f2c34344b0c",
+      "worktree_sha256": "8b29ac8846388ede9d0a81b2fd35034e051b252233491d60ad534ea71956086e"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "2dc98f9517e180561e7ab0d4889f7738c4f94321",
+      "worktree_sha256": "34b1b848eeac2cb99910ce64d417db99fc6fe21e77bd1dbc1ddcd937409bba5d"
+    }
+  ],
+  "scope": "Windows AMD64 local storage and SDK checks, the native helper, and controlled AMD execution in an existing user-mode fixture. The lifecycle provider is injected in the automatic compaction fixture.",
+  "checks": [
+    {
+      "label": "raw Windows build",
+      "directory": "local-run-577e70808e814caba1d528e0e61145b2",
+      "result_sha256": "b92cde1d2f1db51d0cd15f8fe7ecdcd9c73b5f362f57578b3049c5db4274fe20",
+      "output_sha256": "3088c3209069717de01a23d1fb47e0846d89f4b05d815cf5d5263c621819068b",
+      "elapsed_seconds": 9.12,
+      "cpu_percent": 24,
+      "peak_job_bytes": 368951296,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 1,
+      "exit_code": 0
+    },
+    {
+      "label": "raw Windows regression suite",
+      "directory": "local-run-6d291080584147ba88ab0f61208baa01",
+      "result_sha256": "299b4c126705aa10ce2956e15a1c99ec6888896d996c7a364a02dcb7ea5598f3",
+      "output_sha256": "03324035e4ef8f1998e94a3ceb804a5688fd78ce70bf9d60f62ef179e23ed41f",
+      "elapsed_seconds": 24.048,
+      "cpu_percent": 22,
+      "peak_job_bytes": 59183104,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0,
+      "ctest_passed": 13
+    },
+    {
+      "label": "WinFsp SDK, LZ4 and Zstandard regression suite",
+      "directory": "local-run-bb8234d0a3914568be5836a4e92ff656",
+      "result_sha256": "bc9b7e9e001daa0a07457752760c6877ea81455bfe4928690cbf3c561db89a6e",
+      "output_sha256": "8c3e2a914d8f1bef4ec00b41a648335631a3adb70e56bf60bcd87d5606289b10",
+      "elapsed_seconds": 55.761,
+      "cpu_percent": 23,
+      "peak_job_bytes": 60248064,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0,
+      "ctest_passed": 20
+    },
+    {
+      "label": "cooperative compaction with real local CPU telemetry and SDK callbacks",
+      "directory": "local-run-a31f1133727c4d1383d2a138cdc0eb52",
+      "result_sha256": "857b2dd075446ce635e0b64ffb2766f5d9970d6811061cd405fc41de08c14800",
+      "output_sha256": "5be12c1d0e0e99bca59a161df6e4081c3fca92da239478e6da2464fe9140f14b",
+      "elapsed_seconds": 69.083,
+      "cpu_percent": 18,
+      "peak_job_bytes": 11788288,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0
+    },
+    {
+      "label": "indexed deferred write on actual AMD device",
+      "directory": "local-run-139c928a549c4ccc8355d3d6c5f66c4c",
+      "result_sha256": "41694c1489d44e6f30bcac23adebee54117b2a878f9ec0302eef4d2359c48808",
+      "output_sha256": "7084700892e2fbafbb38bf19287e79d129d73b104fc38bdafe8d33b7eb5ce3c3",
+      "elapsed_seconds": 1.814,
+      "cpu_percent": 25,
+      "peak_job_bytes": 127586304,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0
+    },
+    {
+      "label": "AddressSanitizer compiler lane",
+      "directory": "local-run-6246227ebed14a7782dbd8ed293ed8dc",
+      "result_sha256": "28083c3cb8cbc67200118aa193c66f0af668b698e497247242c0e4a9bdfbb71b",
+      "output_sha256": "562e625b3aa480e71fb18fddf40ab432d04bb4beb1b13f470a4765fc94080bd0",
+      "elapsed_seconds": 13.387,
+      "cpu_percent": 24,
+      "peak_job_bytes": 594464768,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0
+    },
+    {
+      "label": "AddressSanitizer with the configured compiler runtime",
+      "directory": "local-run-85a0a726e4924389b21c566cf0f48f7a",
+      "result_sha256": "b9e008d55319fff75e13efdac6669f4fe5a84ca70ef4427923ddac0cccf6a227",
+      "output_sha256": "3c3e45814f386667a84d09535070250fa01dcc7f97c3fe900b3fd4ab4b99ebb8",
+      "elapsed_seconds": 64.417,
+      "cpu_percent": 23,
+      "peak_job_bytes": 1102934016,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0,
+      "ctest_passed": 8
+    },
+    {
+      "label": "raw app-only configure",
+      "directory": "local-run-51334774151c4bc6b0a7b69b14f0430d",
+      "result_sha256": "d833950e5290d75599ae393a1490b6aad640678405cf148ebaf0a2c7023167a2",
+      "output_sha256": "1c83da4fc4c556a2b511cbc5f7049b05b678ac8925e039cb89c5175f0c97bba3",
+      "elapsed_seconds": 8.978,
+      "cpu_percent": 18,
+      "peak_job_bytes": 285507584,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 1,
+      "exit_code": 0
+    },
+    {
+      "label": "raw app-only build",
+      "directory": "local-run-06f512fec25f4c3ab7ac8bf06b8c5648",
+      "result_sha256": "f722e62aee2d43b28c14dc35a340ae4b97e6b6cc8ba281571d01d27720965309",
+      "output_sha256": "9920ecfe925689d04c9deda4a48327254ed146a82447261611507b8771a982af",
+      "elapsed_seconds": 60.877,
+      "cpu_percent": 23,
+      "peak_job_bytes": 543395840,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 1,
+      "exit_code": 0
+    },
+    {
+      "label": "helper application model",
+      "directory": "local-run-d81e77d1c86a4252a491eda958503d67",
+      "result_sha256": "4b5debc4bcda326551044f5e3b0fb49ee727ab492258caab25dfb19a421e36a0",
+      "output_sha256": "21f84ac325e5430f45dbb057ca4da501ef5504876579a7b51fa7a1fb29858ca5",
+      "elapsed_seconds": 0.855,
+      "cpu_percent": 22,
+      "peak_job_bytes": 10797056,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0
+    },
+    {
+      "label": "helper application live maintenance",
+      "directory": "local-run-5300353caeb148b1b3aef861ed5a0e41",
+      "result_sha256": "a4b12faea812a4789c924e34563ae53866752a637d8ea9e19a02bf275746be16",
+      "output_sha256": "ac76b3e366baf218ac92eb7f6132e58333a383466e8b2d47718670c43a96b119",
+      "elapsed_seconds": 31.791,
+      "cpu_percent": 18,
+      "peak_job_bytes": 10018816,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0
+    },
+    {
+      "label": "native helper GUI",
+      "directory": "local-run-6ddf0937c5fa4261bad327d34d56c94e",
+      "result_sha256": "65182ba6d21356f98fb2fbd768aa2802a8cedd5d3487e71af30e55753f05aa8b",
+      "output_sha256": "c2d86fe5b128dc824a2b51bde18652bb16e41bdc97f70743a46b58886c0b6d66",
+      "elapsed_seconds": 3.512,
+      "cpu_percent": 20,
+      "peak_job_bytes": 16224256,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0
+    }
+  ],
+  "measurements": {
+    "small_write_extent_bytes": {
+      "failure_unit_65536_model": 3932160,
+      "windows_page_4096": 368640
+    },
+    "pinned_retirement": {
+      "resident_before": 1875968,
+      "resident_after": 802816,
+      "release_quanta": 2
+    },
+    "staged_head": {
+      "live_file_bytes": 1048576,
+      "image_bytes_read": 150048,
+      "selection_faults": 12,
+      "original": 3,
+      "candidate": 9
+    },
+    "live_controller": {
+      "epoch": 2,
+      "elapsed_ms": 33297,
+      "quanta": 34,
+      "max_quantum_ns": 1402300,
+      "handles_before": 145,
+      "handles_after": 145
+    },
+    "amd": {
+      "input_bytes": 131072,
+      "submissions": 1,
+      "accepted_extents": 2,
+      "matched_mirrored_copies": 4,
+      "worker_output_bytes": 16918,
+      "response_ns": 1392928000,
+      "independent_cpu_reopen": true
+    }
+  },
+  "diagnostics": [
+    {
+      "label": "first live extent and handle accounting check",
+      "directory": "local-run-1dbcae4eb84e4dd7821ad180bc249e5a",
+      "result_sha256": "db2b782994e00b588cd6dd6db450ef3e7a54fe343fbd5489012a3ceb43307d52",
+      "output_sha256": "77513cba3874e77e12bc02bd1bbc5eee8d5d8b9862121ebae2b2a6186878ab6d",
+      "elapsed_seconds": 42.607,
+      "cpu_percent": 18,
+      "peak_job_bytes": 12021760,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 1
+    },
+    {
+      "label": "live handle object inspection",
+      "directory": "local-run-9f2bcde6cc874249840483df4593f844",
+      "result_sha256": "b5bbedeabd550fee732c05e553e8045478ae7cf44845f125fea6c149522de905",
+      "output_sha256": "85dc56f7237733e38d31d9fa87fc8781ac2547d1d97d601427f8ac22775a1426",
+      "elapsed_seconds": 35.63,
+      "cpu_percent": 17,
+      "peak_job_bytes": 14876672,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 1
+    },
+    {
+      "label": "matched native-only long observation",
+      "directory": "local-run-d54a3e01356148548fbdc88a26ff4ae0",
+      "result_sha256": "424bbd9f09e9c30d79a50259c52a6969f91ee7e30ce40ae11622705d462f6af1",
+      "output_sha256": "75fc1790db62561e67c03734102f9ddd4111bef700abc24cf68f052f8ca14b05",
+      "elapsed_seconds": 37.919,
+      "cpu_percent": 17,
+      "peak_job_bytes": 10436608,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 0
+    },
+    {
+      "label": "stale app cache refused mixed CMake regeneration",
+      "directory": "local-run-8de2454d97bf45e68cb57a655cde2314",
+      "result_sha256": "84cfea2f4b0ad255ce80fd8a63cd24b52190ffdc9095489877e646e3310d08b6",
+      "output_sha256": "0f6cbd5ded56fee27d0f1448cd50156ed72e8ebc886734e3a21788d97cecd7d3",
+      "elapsed_seconds": 0.805,
+      "cpu_percent": 20,
+      "peak_job_bytes": 74252288,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 4294967295
+    },
+    {
+      "label": "sanitizer attempt without its runtime on the child path",
+      "directory": "local-run-7d2204a6263d482e91d103c3adc532cb",
+      "result_sha256": "0a41b127f05a3192b3ef4382eea2e2ed7b845607f5a3978908cf2dfe98d8a36d",
+      "output_sha256": "e5e584ace297638593ae48464fcab9945a60cba732a1c191c55ee25798c80ff7",
+      "elapsed_seconds": 198.137,
+      "cpu_percent": 22,
+      "peak_job_bytes": 7868416,
+      "timed_out": false,
+      "tree_retired": true,
+      "residual_count_at_process_exit": 0,
+      "exit_code": 4294967295
+    }
+  ],
+  "diagnoses": {
+    "handles": "A native-only long PDH control reproduced the net one-handle change and the ntdll worker/thread event. The standalone live regression establishes a native baseline and requires exact post-join balance. Short ordinary tests keep exact balance without the long control.",
+    "app_configure": "A new owned toolchain build directory eliminated compiler-module mixing from the old cache.",
+    "asan_setup": "The recovered test environment prepended the actual CMake compiler's runtime directory to the test process path.",
+    "asan_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+  },
+  "github_dependency_check": {
+    "repository": "strmt7/FlitzFS",
+    "api": "GET /repos/strmt7/FlitzFS/dependabot/alerts",
+    "state": "open",
+    "paginate": true,
+    "open_alerts": 0,
+    "exit_code": 0,
+    "observed_date": "2026-11-18"
+  },
+  "navigation": {
+    "commit": "5a394e844a18280221fe9128773e3eb76fe5a38a",
+    "bound_files": 12,
+    "actual_searches": 1,
+    "provider_version": "0.2.43",
+    "native_sha256": "e14b74136bb31ad2ab4f43ff2703c61331d60f58ee09f9ff94a66b549c2f67f7"
+  },
+  "research": [
+    {
+      "receipt_sha256": "319f80dcce2e1649ab32011b26ccfc9708f855acada2f23643ba460e0c922585",
+      "pages": [
+        {
+          "url": "https://www.usenix.org/conference/fast26/presentation/bian",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 10640,
+          "markdown_sha256": "a6c829e9ea85521b0c10477e058e38d8377753aa4e8875c24a9f658b0dbf43ef",
+          "capture_sha256": "5bef3002d5d481fe3c28ff4943d2089f9b5e20222f5e923f601a807e9a7d76e0"
+        },
+        {
+          "url": "https://www.usenix.org/conference/fast26/presentation/kim-jeeyun",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 10653,
+          "markdown_sha256": "595183d73b6f7b3cb31203621a98abbcf33189d12809233883cf3c6ed64870f9",
+          "capture_sha256": "c9e71e09af885fc165b5e59c3a801d4098c6d0a454b3478fccca6bff5aa017c0"
+        },
+        {
+          "url": "https://arxiv.org/abs/2602.01873",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 8697,
+          "markdown_sha256": "e88abc588a40abd92f9205a7089f66715954e333b5abad4ca1fc573eadf66ee6",
+          "capture_sha256": "e9a8d2c999b9767d107a218d6857932dc7889ca13561896c398c2c946b0b3aeb"
+        }
+      ],
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true
+    },
+    {
+      "receipt_sha256": "1e4dfce00898cbd813dd425eee1a258901047637e077606d3ad6133e51d6b150",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 39853,
+          "markdown_sha256": "a77765c7a2ba71a2e0de7f9d70fbcaf1d837187b5886414c64083950e1ad48ea",
+          "capture_sha256": "de423d1919d97bc260875cb6c89af62dde2b22e8e3eaf971a53aacfb19ad1985"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 30522,
+          "markdown_sha256": "bf273a538f1003833c2191d34fce5c0c7288d84117b9dff63cdf5fe2194587c4",
+          "capture_sha256": "cbee5056ffb158d0b1f34f5cfdaf4dbc82a86f90fcbb4da1974e2765c916c208"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 35668,
+          "markdown_sha256": "7d421457c48fb4b019a7a04602f28e87e8dfe00764e77cd5f491f3cbdeab0261",
+          "capture_sha256": "7c4ea3296b1e9d594cfd90780f826200a3f2467eb44e8bf6f312bdb9d803cb1a"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-system_info",
+          "http_status": 200,
+          "success": true,
+          "markdown_bytes": 29749,
+          "markdown_sha256": "c327fad2f9f5c8ac0554593e63831a5b7f39fe3c2593b85290f609bd55df51bf",
+          "capture_sha256": "08b1f2e10842af6ffb1d193bb690fb9597aa77efccea45d81ff6cd496390fe12"
+        }
+      ],
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true
+    }
+  ],
+  "release_gates_remaining": [
+    "Actual attached Windows 11 provider, deployment and broad client semantics",
+    "Persistent segment reuse, repair and physical power-cut qualification",
+    "Useful automatic AMD routing in ordinary I/O",
+    "Held-out complete-storage and latency comparisons for stronger collective compression",
+    "Gradual compatible upgrades and release soak"
+  ]
+}

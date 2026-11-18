@@ -1,5 +1,20 @@
 # Validation ledger
 
+## Automatic indexed compaction and page allocation — 18 November 2026
+
+The staged switch read 150,048 image bytes with a 1 MiB live file and wrote
+only the replicated selector during publication. All 12 modeled selector
+interruptions recovered either the verified original or the verified candidate,
+with active handles intact. The locked Windows provider reduced the small
+overwrite fixture from 3.75 MiB to 360 KiB. A separate snapshot pin and
+retirement fixture returned resident space in bounded steps.
+The live controller completed automatic selection in 34 admitted opportunities
+and reopened the selected file independently after join. The maximum observed
+controller quantum was 1.4 ms in that fixture. A native-only telemetry control
+reproduced the process-wide handle initialization that initially affected the
+test. The final controller run retained exact post-join handle balance.
+[Exact source and test results](evidence/indexed-background-compaction-2026-11-18.json)
+
 ## Owned indexed Windows volume — 18 November 2026
 
 Local Windows checks exercise indexed startup rollback, live background
