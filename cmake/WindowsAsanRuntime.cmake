@@ -1,4 +1,4 @@
-function(flitzfs_stage_msvc_asan_runtime)
+function(flitzfs_stage_msvc_asan_runtime staging_target)
   if(NOT WIN32 OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     return()
   endif()
@@ -56,11 +56,11 @@ function(flitzfs_stage_msvc_asan_runtime)
   set(runtime_script "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/StageWindowsAsanRuntime.cmake")
   set(runtime_command "${CMAKE_COMMAND}" "-Druntime=${runtime}"
     "-Dmanifest=${manifest}" "-Dexpected_sha256=${runtime_sha256}")
-  add_custom_target(flitzfs_msvc_asan_runtime
+  add_custom_target("${staging_target}"
     COMMAND ${runtime_command} -P "${runtime_script}"
     VERBATIM)
   foreach(target IN LISTS executables)
-    add_dependencies("${target}" flitzfs_msvc_asan_runtime)
+    add_dependencies("${target}" "${staging_target}")
   endforeach()
 
   get_property(registered_tests DIRECTORY PROPERTY TESTS)
@@ -69,10 +69,10 @@ function(flitzfs_stage_msvc_asan_runtime)
     if(asan_configs)
       set(fixture_configurations CONFIGURATIONS ${asan_configs})
     endif()
-    # Plain CTest and filtered runs both check the app-local runtime before
-    # invoking any test. A setup failure keeps test binaries out of the loader.
+    # A filtered CTest run also verifies or restores the app-local runtime
+    # before invoking a test. A setup failure keeps binaries out of the loader.
     add_test(NAME windows_asan_runtime_preflight ${fixture_configurations}
-      COMMAND ${runtime_command} -Dverify_only=ON -P "${runtime_script}")
+      COMMAND ${runtime_command} -Dpreflight=ON -P "${runtime_script}")
     set_tests_properties(windows_asan_runtime_preflight PROPERTIES
       FIXTURES_SETUP flitzfs_asan_runtime TIMEOUT 10)
     set_property(TEST ${registered_tests} APPEND PROPERTY FIXTURES_REQUIRED

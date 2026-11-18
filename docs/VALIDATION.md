@@ -182,6 +182,16 @@ and exited in 0.31 seconds. The ClangCL comparison exposed a separate
 exception-unwinding crash after loading its runtime.
 [Regression and live-host execution evidence](evidence/windows-asan-launch-regressions-2026-11-18.json)
 
+The AMD SDK build now stages the same compiler-owned runtime for its own
+executables. The native CTest preflight restored the missing DLL and ran the
+inode suite in a disposable copy. It skipped the test when the compiler
+copy was absent or the staged copy had a different checksum. Both refusal
+cases finished in under one second. The five affected suites passed again
+under MSVC AddressSanitizer and in the standard Release configuration. The
+CPU-only ROCm header probe passed in both configurations with a Windows-only
+`PATH`. All owned process trees exited.
+[Restoration and SDK execution evidence](evidence/windows-asan-restoration-2026-11-18.json)
+
 ## Cooperative indexed group preparation — 18 November 2026
 
 The 64-member indexed fixture took 65 preparation steps. The largest step

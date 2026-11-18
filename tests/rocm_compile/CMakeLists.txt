@@ -287,3 +287,5 @@ if(FLITZFS_ROCM_LZ4_RUNTIME_FIXTURE)
   target_compile_options(flitzfs_lz4_runtime_probe PRIVATE /W4 /permissive-)
 endif()
 
+include("${flitzfs_root}/cmake/WindowsAsanRuntime.cmake")
+flitzfs_stage_msvc_asan_runtime(flitzfs_sdk_msvc_asan_runtime)

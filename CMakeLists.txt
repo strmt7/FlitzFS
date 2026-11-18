@@ -1199,5 +1199,5 @@ if(FLITZFS_BUILD_VOLUME_APP)
 endif()
 
 include(cmake/WindowsAsanRuntime.cmake)
-flitzfs_stage_msvc_asan_runtime()
+flitzfs_stage_msvc_asan_runtime(flitzfs_msvc_asan_runtime)
 

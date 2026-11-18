@@ -16,7 +16,7 @@ unless explicitly required. Configuration installs nothing.
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel 2 --target flitzfs_native_filesystem_tests flitzfs_native_shared_extent_tests
-ctest --test-dir build -C Release -R '^bounded_native_(filesystem|shared_extents)$' --output-on-failure --timeout 45 --parallel 1
+ctest --test-dir build -C Release -R '^bounded_native_(filesystem|shared_extents)$' --interactive-debug-mode 0 --output-on-failure --timeout 45 --parallel 1
 ```
 
 These selected CPU suites use in-memory filesystem models. The full CTest suite
@@ -33,15 +33,17 @@ the example's parallelism is not a host or product assumption.
 MSVC C++ targets explicitly enable `/EHsc`; writer leases and rollback require
 exception unwinding. Custom `CMAKE_CXX_FLAGS`, including sanitizer flags, must
 preserve that behavior. The store fails compilation when unwinding is disabled.
-Windows MSVC AddressSanitizer builds stage the selected compiler's runtime next
-to the executables. CTest checks the staged DLL against the configured toolset
-before starting any instrumented test, including filtered runs. A missing or
-mismatched DLL fails the setup check with a rebuild diagnostic. Reconfigure and
-rebuild older sanitizer directories before using them. Keep the Windows
-supervisor for unattended launches and the applicable in-memory test fixtures.
+The main and AMD SDK Windows MSVC AddressSanitizer builds stage the selected
+compiler's runtime next to their executables. CTest checks the staged DLL
+before starting instrumented tests, including filtered runs. It restores a
+missing copy when the configured compiler runtime has the expected checksum.
+An unverifiable runtime fails the setup check with a rebuild diagnostic.
+Reconfigure and rebuild older sanitizer directories before using them. Keep
+the Windows supervisor for unattended launches and the applicable in-memory
+test fixtures.
 The supervisor keeps CTest in non-interactive mode through nested CMake
-`env`, `time`, and `chdir` commands. The Windows staging regression checks
-missing, mismatched and replaced runtime files with an isolated inert fixture.
+`env`, `time`, and `chdir` commands. The Windows staging regression exercises
+restoration and rejection of runtime files with an isolated inert fixture.
 
 GPU and mount probes remain opt-in and are not
 ordinary CTest operations. A successful base build does not qualify an optional

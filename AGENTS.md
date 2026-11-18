@@ -119,7 +119,9 @@ reclamation and useful ordinary GPU/collective operation. Keep the full goal act
    `time`, and `chdir` commands. Pass `--interactive-debug-mode 0` when running
    CTest directly outside the supervisor.
    MSVC AddressSanitizer builds stage the selected toolset's runtime alongside
-   the test binaries. CTest verifies that runtime before starting tests.
+   binaries in both the main and AMD SDK builds. Before starting tests, CTest
+   verifies the staged runtime and can restore a missing copy from the exact
+   configured toolset.
    Reconfigure and rebuild an older sanitizer fixture before running it.
 4. Review lifecycle/resource cleanup and retain failures as well as successes.
    Repeat checks only after a change or unresolved failure justifies them.

@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "source_base": "49f5094b8aaccc86603aa617cbed8118a7941000",
+  "tested_sources": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "bb134483a8a8e75c8f29a2a01062b3238954f29a",
+      "sha256": "5c2ef7cd07943175f171c8cef4846dd3dd220b8f1bbe87614876918c735cc315"
+    },
+    {
+      "path": "cmake/StageWindowsAsanRuntime.cmake",
+      "git_blob": "ed312a539358fdbca2a2a1fdd1f4f8a5c4ba4d38",
+      "sha256": "e23c3ae96ba022c4d92fac7dd58c76e38ffe42671e08fec3771a04c9d1bf8c38"
+    },
+    {
+      "path": "cmake/WindowsAsanRuntime.cmake",
+      "git_blob": "9d44b0a1bcb21618245861127a5ae9647ac59012",
+      "sha256": "dbe4777503cdc4ceab21405a524a878ab85aa5a035ab4a9f0efc9daa72ebf70f"
+    },
+    {
+      "path": "tests/rocm_compile/CMakeLists.txt",
+      "git_blob": "4895225ed600118b75590b49a70ba56baba55a61",
+      "sha256": "500887848a7e6e7f20cc5ca26390e0768f341d7c835af64e295c402c980fc899"
+    },
+    {
+      "path": "tools/dev/test_windows_asan_staging.py",
+      "git_blob": "7423194e7fbbd869249b3a35cf11a1a7ca61a66c",
+      "sha256": "6c23636b3f3ef5274231016393a5edae03edfec166bd42bfb3e40f68667ef97e"
+    },
+    {
+      "path": "tools/dev/windows_run.py",
+      "git_blob": "f68e8d7ba04a39bb80406b31e798472c8a725a1f",
+      "sha256": "e4e258b315c6d40c3d1c948b5fe3608098cda5cd2142738d01b98b5ce5340f1e"
+    }
+  ],
+  "environment": {
+    "windows_build": 26300,
+    "architecture": "x64",
+    "msvc": "19.52.37029.0",
+    "cmake": "4.5.0",
+    "rocm_sdk": "10.1.0",
+    "test_path": "Windows System32 and Windows only"
+  },
+  "runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+  "fault_scope": "Generated native CTest registration and inode test executable copied into a disposable fixture with a private compiler DLL copy. Expected dependency refusal was confirmed in the CTest log.",
+  "sdk_scope": "CPU header probe. The instrumented executable imports the expected ASan DLL, whose staged bytes match the selected compiler runtime. The Release configuration stages no sanitizer DLL.",
+  "adaptation": "The first restored inode invocation reached AddressSanitizer and exceeded its Job Object memory budget. The retry used measured peak usage and current headroom, restored the DLL and passed the inode test.",
+  "navigation": {
+    "commit": "49f5094b8aaccc86603aa617cbed8118a7941000",
+    "actual_searches": 1,
+    "provider": "0.2.43",
+    "receipt_sha256": "d216a6195f80052183a3e278c971a870c5bed7501a27cfad63a6628c37213156",
+    "response_sha256": "3cfdef2586b5372db254d524f1b2dbee2241270e72ffb510525804e764400bae"
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "a00fc596bdb21099f063553e168fbe9e941b4e691ddd2c9de9770315d8c25a12",
+    "pages": [
+      {
+        "url": "https://cmake.org/cmake/help/v4.5/command/file.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "167fa68779bceaf9daf5a3615e6dc72603afe790cf7f8bb473ea793c1805f2ea",
+        "capture_sha256": "3bd26bd64fd6ed0a2bd9c6c8227a5530e49b0c5330865e6b5686155183d270fa"
+      },
+      {
+        "url": "https://cmake.org/cmake/help/v4.5/command/add_custom_target.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "772edd06e1465701f65761a6dcac6602f1772831077f4c239122f95d0ab782c1",
+        "capture_sha256": "6ff8fbe49633a63d19dfa0722bee350b414fb539643599880a5be23576e3ca95"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/cpp/sanitizers/asan-known-issues?view=msvc-170",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "c6671f1466ddb5ce46c66577e93b702f62e3945dcc6cdf3db7d5c79bb3e1e0df",
+        "capture_sha256": "23ac2bea3ea432e48a3f6c26a433962329a4b81abf2135125d11952fa124275f"
+      }
+    ]
+  },
+  "runs": [
+    {
+      "check": "msvc_asan_configure",
+      "run": "local-run-cb0e43e0fee34139be46d05244526a86",
+      "exit_code": 0,
+      "elapsed_seconds": 5.633,
+      "memory_limit_bytes": 943718400,
+      "peak_job_bytes": 22966272,
+      "tree_retired": true,
+      "receipt_sha256": "d5fddc7417fb21a851ed191a96236f8ac455d78f11603304c89fae7c680b8834",
+      "log_sha256": "425cd59bbc4b77177648d08ff8d985f3ce3458c84142daf063c02d1f4be87bfd"
+    },
+    {
+      "check": "msvc_asan_build",
+      "run": "local-run-362c58190fb14f0b98d1cda371bfe0b8",
+      "exit_code": 0,
+      "elapsed_seconds": 15.304,
+      "memory_limit_bytes": 1197473792,
+      "peak_job_bytes": 362061824,
+      "tree_retired": true,
+      "receipt_sha256": "a63701b2d6dd9a33df9436764e5c9f85c957b476a0f400db514410005a2c09c7",
+      "log_sha256": "cd8815051ef7d96242818853fee477296c0299f5ff25b8cfd6ede1e919de85b4"
+    },
+    {
+      "check": "msvc_asan_ctest_8_passed",
+      "run": "local-run-60ecb88df1c548c8ad8444aab693ca04",
+      "exit_code": 0,
+      "elapsed_seconds": 74.249,
+      "memory_limit_bytes": 2639265792,
+      "peak_job_bytes": 1103228928,
+      "tree_retired": true,
+      "receipt_sha256": "e009a8dee29e0be855174412ca7ff48c828cf7a4b3a53bc4f15d1ba646d1da0f",
+      "log_sha256": "250d9a21f3afccc061e1d4738bc97d845a192a281ae4d58f9f4c875ab653d619"
+    },
+    {
+      "check": "msvc_release_build",
+      "run": "local-run-31661906d509427281aeb95f75429486",
+      "exit_code": 0,
+      "elapsed_seconds": 19.094,
+      "memory_limit_bytes": 1840250880,
+      "peak_job_bytes": 400429056,
+      "tree_retired": true,
+      "receipt_sha256": "b7a44485f507330c32f64e35b43e0ec7496d280f884e00d14baed3aed40b3aa8",
+      "log_sha256": "5da76092535f2a852662073e99b44699f20417fc92ac08e024c586a93de60141"
+    },
+    {
+      "check": "msvc_release_ctest_7_passed",
+      "run": "local-run-c7f7bf369828480a81dcd568e5e7fc45",
+      "exit_code": 0,
+      "elapsed_seconds": 35.769,
+      "memory_limit_bytes": 1156579328,
+      "peak_job_bytes": 207630336,
+      "tree_retired": true,
+      "receipt_sha256": "6b0041c97dba4aee81c05ed694c0cb89c232353c9133c9ff5218cdbae21fbf19",
+      "log_sha256": "7f045fce70e8b48cdbafbc6eced4d88762ff7db8ae3bb6363fe8e6d9a5f086dd"
+    },
+    {
+      "check": "filtered_ctest_restored_and_ran_inode_test",
+      "run": "local-run-1005366a8b2e4ea9a574c10118e8a46c",
+      "exit_code": 0,
+      "elapsed_seconds": 12.879,
+      "memory_limit_bytes": 2181038080,
+      "peak_job_bytes": 992784384,
+      "tree_retired": true,
+      "receipt_sha256": "bc5421480a0bd1f36dbe29883a2d0c8f922133f24b7dc232b4872279015f384b",
+      "log_sha256": "d3176d6d38492174cbb08de0f8edb8544a30c822fad3ae0d0555c4e7b01d5252"
+    },
+    {
+      "check": "filtered_ctest_refused_missing_toolset_and_staged_runtime",
+      "run": "local-run-8284f61f3d1e47a6b6a7b576c44a301e",
+      "exit_code": 8,
+      "elapsed_seconds": 0.137,
+      "memory_limit_bytes": 2193620992,
+      "peak_job_bytes": 10211328,
+      "tree_retired": true,
+      "receipt_sha256": "a6efffd5749567083618ee62eb132a0ffb464c3b7d75c58bb4a27c4137017239",
+      "log_sha256": "720fae8313a1fe66e4ed87456c5d31c4777768acfb3154f78065e30b2971b483"
+    },
+    {
+      "check": "filtered_ctest_refused_mismatched_staged_runtime",
+      "run": "local-run-96fe91b08dc1478eb660ce178c7296c9",
+      "exit_code": 8,
+      "elapsed_seconds": 0.111,
+      "memory_limit_bytes": 2236612608,
+      "peak_job_bytes": 9732096,
+      "tree_retired": true,
+      "receipt_sha256": "dd0c34e1b0c3e1f67ce4a527690afde6a94766b401d15913fd2b6d1b4c91453e",
+      "log_sha256": "0d1b06baae019f6502e9792b4ca33d7603a358d4829776625d09eb2cf76face7"
+    },
+    {
+      "check": "direct_supervised_loader_failure",
+      "run": "local-run-db57fdb1a04143a1a9b5c4478ead95d2",
+      "exit_code": 3221225781,
+      "elapsed_seconds": 0.083,
+      "memory_limit_bytes": 2196766720,
+      "peak_job_bytes": 1970176,
+      "tree_retired": true,
+      "receipt_sha256": "67878df47b6752c145fbfc8b9329c01224960b70f9c4ec123b8820388d680360",
+      "log_sha256": "2d936fa9a68b2ee8ae77d0dc0fc102e087388ce6510ac70f4291e886aa7f7f0f"
+    },
+    {
+      "check": "rocm_sdk_asan_build",
+      "run": "local-run-9d36e8a1b2dd4e70a35846d29c5593e9",
+      "exit_code": 0,
+      "elapsed_seconds": 4.317,
+      "memory_limit_bytes": 1484783616,
+      "peak_job_bytes": 213225472,
+      "tree_retired": true,
+      "receipt_sha256": "e8b8e2e294b3875d09efe9e4d61dfbe6c5e9a7e8b34fe47c4f84ee1d343479c2",
+      "log_sha256": "42094c986d82d79a2f446984f357d57ed245ace209bdeb81de9353e556ffe7e1"
+    },
+    {
+      "check": "rocm_sdk_asan_imports",
+      "run": "local-run-8a192412931b446082364dd60b83c040",
+      "exit_code": 0,
+      "elapsed_seconds": 0.067,
+      "memory_limit_bytes": 1007681536,
+      "peak_job_bytes": 10551296,
+      "tree_retired": true,
+      "receipt_sha256": "a9d935d51f35215abe4cdc8d170cd10c7e0210cb45d52c37337975e7e9c831f2",
+      "log_sha256": "0f76be665913583ed4920a7ad023111d8569bc6fe666266b99087cf892017b88"
+    },
+    {
+      "check": "rocm_sdk_asan_header_probe",
+      "run": "local-run-542acbf5ed0a457891eed6640454cd6a",
+      "exit_code": 0,
+      "elapsed_seconds": 0.112,
+      "memory_limit_bytes": 1293942784,
+      "peak_job_bytes": 59412480,
+      "tree_retired": true,
+      "receipt_sha256": "a5a4e7e1f30b5164ac3346620e9c761e4ddcd494d07b87b6e3597391c921eb9a",
+      "log_sha256": "725a60a63d53b6413c9c2257304fefa41b505e0f750e4b2eef0cd51eceeeb5f6"
+    },
+    {
+      "check": "rocm_sdk_release_header_probe",
+      "run": "local-run-88939716cfdf4eb8af1d5eba85fa7238",
+      "exit_code": 0,
+      "elapsed_seconds": 0.093,
+      "memory_limit_bytes": 1307574272,
+      "peak_job_bytes": 4984832,
+      "tree_retired": true,
+      "receipt_sha256": "11f05e47ecc8b3461a40135bcf6cff60fab1dbc486fba2ab7ecbae7c604ce48b",
+      "log_sha256": "725a60a63d53b6413c9c2257304fefa41b505e0f750e4b2eef0cd51eceeeb5f6"
+    },
+    {
+      "check": "initial_restoration_test_job_memory_exhausted",
+      "run": "local-run-320fc3b14975490aa1d45ee0817c833e",
+      "exit_code": 8,
+      "elapsed_seconds": 9.357,
+      "memory_limit_bytes": 944766976,
+      "peak_job_bytes": 941957120,
+      "tree_retired": true,
+      "receipt_sha256": "7dc8cd57ba3db8e271ab6554d0d98573a491612980242aa9870f69e7cdb3365d",
+      "log_sha256": "c310160969943569b7b74db6871675ca636c66874f7915482efd874210b7a663"
+    },
+    {
+      "check": "initial_cocoindex_job_memory_exhausted",
+      "run": "local-run-9616163d557a46fdafb61530e017ba89",
+      "exit_code": 1,
+      "elapsed_seconds": 13.195,
+      "memory_limit_bytes": 622854144,
+      "peak_job_bytes": 642703360,
+      "tree_retired": true,
+      "receipt_sha256": "81ade86c6a00bba04f655d24a4018cb771b23a67ed67d194b4941d3a4d81b841",
+      "log_sha256": "79b5aea2efcad325ec52a786a2b5fb74318c9c0ff22cb9d53fe68fd284f50b3a"
+    },
+    {
+      "check": "initial_research_job_memory_exhausted",
+      "run": "local-run-3683eff4c76b4c378d609d4db959c044",
+      "exit_code": 1,
+      "elapsed_seconds": 5.452,
+      "memory_limit_bytes": 619708416,
+      "peak_job_bytes": 604106752,
+      "tree_retired": true,
+      "receipt_sha256": "d2251b837995ad7e5b6e6fed57036178eaa0842f848128e2e67f36e9716e675d",
+      "log_sha256": "51c3943d271af944e7ef5770c9f49281ee7b1d7582cd346a5e30b11726c8076d"
+    }
+  ]
+}
