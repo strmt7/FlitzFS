@@ -103,8 +103,11 @@ class AnchorMatchBatchBuilder final {
   AnchorMatchBatchBuilder(const AnchorMatchBatchBuilder&)=delete;
   AnchorMatchBatchBuilder& operator=(const AnchorMatchBatchBuilder&)=delete;
   void append(std::uint64_t id,std::span<const std::byte> base,std::span<const std::byte> members);
+  void append(std::uint64_t id,const NativeSharedBaseSearchWindow&);
   AnchorMatchBatchRequest finish();
  private:
+  std::size_t begin_group(std::uint64_t id,std::span<const std::byte> base,std::size_t count);
+  void complete_group(std::uint64_t id,std::size_t source_offset);
   AnchorMatchBatchRequest request_;
   std::vector<std::byte> frame_;
 };

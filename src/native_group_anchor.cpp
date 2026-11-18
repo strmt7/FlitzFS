@@ -291,21 +291,40 @@ AnchorMatchBatchBuilder::AnchorMatchBatchBuilder(std::uint64_t id,const AnchorMa
 
 void AnchorMatchBatchBuilder::append(std::uint64_t id,std::span<const std::byte> base,
     std::span<const std::byte> members) {
-  auto& groups=request_.groups_;
+  require(members.size()%match::extent_bytes==0,"unaligned anchor batch members");
+  const auto source_offset=begin_group(id,base,members.size()/match::extent_bytes);
+  frame_.insert(frame_.end(),members.begin(),members.end());
+  complete_group(id,source_offset);
+}
+
+void AnchorMatchBatchBuilder::append(std::uint64_t id,const NativeSharedBaseSearchWindow& window) {
+  const auto members=window.members();
+  require(std::ranges::all_of(members,[](const auto& member){return member.size()==match::extent_bytes;}),
+      "invalid staged anchor batch member");
+  const auto source_offset=begin_group(id,window.base(),members.size());
+  for(const auto& member:members)frame_.insert(frame_.end(),member.begin(),member.end());
+  complete_group(id,source_offset);
+}
+
+std::size_t AnchorMatchBatchBuilder::begin_group(std::uint64_t id,std::span<const std::byte> base,
+    std::size_t member_count) {
+  const auto& groups=request_.groups_;
   require(!frame_.empty() && groups.size()<request_.plan_.groups.size(),"anchor batch has no remaining group");
   require(id && (groups.empty() || id>groups.back().id),"unordered anchor batch group identity");
   const auto count=request_.plan_.groups[groups.size()].whole.members;
-  require(base.size()==match::extent_bytes && members.size()==std::size_t(count)*match::extent_bytes,
+  require(base.size()==match::extent_bytes && member_count==count,
       "anchor batch source differs from its plan");
   put(frame_,count,group_prefix_bytes);
-  const auto nested_header=frame_.size();
   append_header(frame_,request_magic,id,count,count*match::tiles,0,Digest{});
   const auto source_offset=frame_.size();
   frame_.insert(frame_.end(),base.begin(),base.end());
-  frame_.insert(frame_.end(),members.begin(),members.end());
+  return source_offset;
+}
+
+void AnchorMatchBatchBuilder::complete_group(std::uint64_t id,std::size_t source_offset) {
   const auto digest=record_digest(std::span<const std::byte>(frame_).subspan(source_offset));
-  std::copy(digest.begin(),digest.end(),frame_.begin()+nested_header+32);
-  groups.push_back({id,{},digest});
+  std::copy(digest.begin(),digest.end(),frame_.begin()+source_offset-header_size+32);
+  request_.groups_.push_back({id,{},digest});
 }
 
 AnchorMatchBatchRequest AnchorMatchBatchBuilder::finish() {

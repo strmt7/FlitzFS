@@ -297,15 +297,19 @@ struct NativeGroupMaintenance::Impl {
     checkpoint_due=!checkpoint_unavailable && !first && samples &&
         (phase==Phase::idle || samples>=checkpoint_window_samples);
   }
-  void step(NativeFilesystemWriter& writer,std::size_t maximum_members) {
+  void step(NativeFilesystemWriter& writer,std::size_t maximum_members,NativeGroupSearchOpportunity search) {
     if(work) {
       if(phase==Phase::preparing) {
-        if(writer.advance_shared_base(*work))phase=Phase::publishing;
+        const auto grant=(std::min)(search.maximum_members,maximum_members);
+        if((search.reply || !writer.stage_shared_base_search(*work,grant)) &&
+            writer.advance_shared_base(*work,{},search.reply))
+          phase=Phase::publishing;
       } else if(writer.maintenance_indexed()) {
         const auto previous_end=writer.maintenance_physical_end();
         const auto result=writer.finish_shared_base(*work);
         if(result.applied) {
           account_group(result,previous_end);
+          state.advised_members_published=add(state.advised_members_published,work->progress().selected_advice_members);
           for(const auto id:work_ids){features.erase(id);representatives.erase(id);}
           refresh_base=indexed_work_base;
         } else ++state.declined_groups;
@@ -403,7 +407,14 @@ bool NativeGroupMaintenance::pending() const noexcept {
 void NativeGroupMaintenance::cancel() noexcept {
   if(impl_){impl_->reset_index();impl_->stopped=true;impl_->state.phase=Phase::failed;impl_->source.reset();impl_->reservation.reset();}
 }
-NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanceObservation& observed,std::uint64_t now_ms) {
+NativeSharedBaseSearchWindow NativeGroupMaintenance::search_window() const noexcept {
+  if(!impl_ || !impl_->work || impl_->state.phase!=Phase::preparing)return {};
+  const auto source=impl_->source.lock();
+  if(!source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned())return {};
+  return impl_->work->search_window();
+}
+NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanceObservation& observed,std::uint64_t now_ms,
+    NativeGroupSearchOpportunity search) {
   if(!impl_)return {Phase::failed};auto& p=*impl_;
   const auto source=p.source.lock();
   if(p.stopped || !source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned()) {
@@ -446,7 +457,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   const auto before=std::chrono::steady_clock::now();
   try {
     if(!writer.maintenance_indexed() || !p.checkpoint_step(writer,*source))
-      p.step(writer,static_cast<std::size_t>(maximum_members));
+      p.step(writer,static_cast<std::size_t>(maximum_members),search);
     if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
     p.state.phase=p.phase;p.state.deferral=Defer::none;
   }catch(const std::bad_alloc&){p.reset_index();p.state.phase=Phase::deferred;p.state.deferral=Defer::memory;}

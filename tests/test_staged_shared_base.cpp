@@ -1,3 +1,5 @@
+#include "../src/native_group_anchor.hpp"
+#include "anchor_search_fixture.hpp"
 #include "native_fs_fixture.hpp"
 #include <iostream>
 namespace {
@@ -21,6 +23,98 @@ std::uint64_t io(const Ram& ram){return ram.read_calls+ram.calls;}
 void ready(NativeFilesystemWriter& writer,Work& work){unsigned steps=0;while(!writer.advance_shared_base(work))require(++steps<512,"group preparation stalled");}
 void verify(const NativeFilesystemSnapshot& snapshot,unsigned count){for(unsigned i=0;i<count;++i)
   require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"family readback differs");snapshot.verify_all();}
+void staged_search_fallback() {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  auto writer=fresh(ram,true);populate(writer,4);
+  const auto keys=selections(writer.snapshot(),4);
+  auto work=writer.prepare_shared_base(keys.back(),keys);
+  require(!writer.stage_shared_base_search(work,2),"staging skipped private base verification");
+  writer.advance_shared_base(work);
+  require(writer.stage_shared_base_search(work,2) && !work.search_window(),"partial window became visible");
+  const auto after_stage=io(*ram);
+  require(!writer.stage_shared_base_search(work,1) && io(*ram)==after_stage,"reduced grant staged another member");
+  writer.advance_shared_base(work);
+  require(io(*ram)==after_stage && work.progress().completed_members==1 && !work.search_window(),
+      "CPU fallback reread a staged member or exposed a partial window");
+  require(!writer.stage_shared_base_search(work,0),"zero grant allocated search input");
+  ready(writer,work);
+  require(writer.finish_shared_base(work).applied,"abandoned advice blocked CPU publication");
+  verify(writer.snapshot(),4);
+}
+void staged_search_binding() {
+  constexpr unsigned count=5,base_index=2;
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  auto writer=fresh(ram,true);
+  const auto base=family(0);
+  std::vector<Bytes> original;
+  for(unsigned i=0;i<count;++i) {
+    original.push_back(i==base_index?base:anchor_search_fixture::fragmented(base,i+1));
+    const auto path="f"+std::to_string(i);
+    writer.apply(std::array{file_create(path),file_write(path,0,original.back())});
+  }
+  const auto before=writer.snapshot();
+  const auto keys=selections(before,count);
+  const auto prepare=[&] {
+    auto work=writer.prepare_shared_base(keys[base_index],keys);
+    writer.advance_shared_base(work);
+    const auto calls=ram->calls;
+    for(unsigned i=1;i<count;++i) {
+      require(writer.stage_shared_base_search(work,count-1),"admitted search failed to stage");
+      require(work.progress().completed_members==0 && ram->calls==calls &&
+          bool(work.search_window())==(i==count-1),"search staged outside a private member step");
+    }
+    return work;
+  };
+  std::vector<std::vector<NativeSharedBaseCopyRange>> copies;
+  Bytes contiguous;
+  for(unsigned i=0;i<count;++i)if(i!=base_index) {
+    copies.push_back(anchor_search_fixture::fragment_ranges(i+1));
+    contiguous.insert(contiguous.end(),original[i].begin(),original[i].end());
+  }
+  auto old=prepare();
+  NativeSharedBaseSearchReply prior{old.search_window(),copies};
+  old.cancel();
+  require(!old.search_window() && std::ranges::equal(prior.window.base(),base),"cancel changed leased source bytes");
+  auto wrong=writer.prepare_shared_base(keys[base_index],keys);
+  writer.advance_shared_base(wrong);
+  const auto retained=io(*ram);
+  require(!writer.stage_shared_base_search(wrong,count-1) && io(*ram)==retained,
+      "the writer staged a second window while the consumer retained the first");
+  require(writer.advance_shared_base(wrong,{},&prior) && wrong.progress().phase==Phase::declined &&
+      wrong.progress().selected_advice_members==0,"reply from retired work influenced a new group");
+  prior.window={};
+  auto work=prepare();
+  NativeSharedBaseSearchReply reply{work.search_window(),copies};
+  const std::array<std::uint32_t,1> counts{count-1};
+  const auto quantum=anchor_match::max_members;
+  const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),count+1);
+  detail::AnchorMatchBatchBuilder staged(1,plan),flat(1,plan);
+  staged.append(1,reply.window);flat.append(1,base,contiguous);
+  const auto staged_request=staged.finish(),flat_request=flat.finish();
+  require(std::ranges::equal(staged_request.snapshot()->bytes(),flat_request.snapshot()->bytes()),
+      "staged member ordering changed worker bytes");
+  const auto no_io=io(*ram);
+  while(!writer.advance_shared_base(work,{},&reply)) {}
+  require(io(*ram)==no_io && work.progress().selected_advice_members==count-1 && !work.search_window(),
+      "consumption reread staged data or used advice at the wrong position");
+  require(writer.finish_shared_base(work).applied,"verified staged advice did not publish");
+  const auto after=writer.snapshot();
+  after.verify_all();
+  for(unsigned i=0;i<count;++i) {
+    const auto path="f"+std::to_string(i);
+    require(before.read(path,0,kNativeExtentBytes)==original[i] &&
+        after.read(path,0,kNativeExtentBytes)==original[i],"staged advice changed acknowledged bytes");
+  }
+  reply.window={};
+  auto invalid=prepare();
+  const NativeSharedBaseSearchReply obsolete{invalid.search_window(),copies};
+  file_apply(writer,file_write("f1",0,Bytes{original[1][0]^std::byte{1}}));
+  const auto edited=io(*ram);
+  require(!invalid.search_window(),"selected write left a searchable window");
+  rejects([&]{writer.advance_shared_base(invalid,{},&obsolete);},"selected write accepted an obsolete window");
+  require(io(*ram)==edited && !writer.poisoned() && invalid.progress().owned_payload_bytes==0,
+      "rejection touched the image or retained its prepared payload");
+}
 void foreground(std::uint32_t unit,unsigned count,bool indexed) {
   auto ram=std::make_shared<Ram>();ram->failure_unit=unit;auto writer=fresh(ram,indexed);populate(writer,count);
   // The maximum-node legacy fixture has no space for an unrelated extra inode.
@@ -180,7 +274,14 @@ void publication_faults(std::uint32_t unit,bool indexed) {
   std::cout<<"staged_group_faults indexed="<<indexed<<" unit="<<unit<<" cuts="<<cuts<<" modes=3\n";
 }
 }
-int main(){try {
+int main(int argc,char** argv){try {
+  if(argc==2 && std::string_view(argv[1])=="--search-window") {
+    staged_search_fallback();
+    staged_search_binding();
+    std::cout<<"PASS: "<<checks<<" staged search window checks\n";
+    return 0;
+  }
+  if(argc!=1)throw std::invalid_argument("unknown staged shared-base test mode");
   for(const bool indexed:{false,true}) {
     for(auto unit:{4096U,65536U}) {
       foreground(unit,8,indexed);

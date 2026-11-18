@@ -18,7 +18,7 @@ struct NativeImageStorage {
   std::uint64_t maximum_physical_bytes=0; // Required only for paged images.
   bool operator==(const NativeImageStorage&) const=default;
 };
-namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;enum class NativeInodeAction;}
+namespace detail {class NativeObjectSnapshot;class NativeObjectWriter;class IndexedSharedBasePreparation;enum class NativeInodeAction;}
 // Native file/extent layer, experimental and CPU-only. Explicit Windows
 // read-only projection is available; mounted writes and live GPU remain absent.
 inline constexpr std::uint32_t kNativeExtentBytes=65536;
@@ -146,6 +146,33 @@ struct NativeSharedBaseInfo {bool enabled=false;std::size_t members=0,bases=0;};
 struct NativeExtentSelection {std::uint64_t inode=0,extent_index=0;};
 struct NativeSharedBaseCopyRange {
   std::uint32_t member_offset=0,base_offset=0,length=0;
+};
+// A verified window owns only CPU-decoded bytes. It can outlive the source
+// writer, but its identity is useful for advice only while that work is active.
+class NativeSharedBaseSearchWindow final {
+ public:
+  NativeSharedBaseSearchWindow() noexcept=default;
+  explicit operator bool() const noexcept{return bool(payload_);}
+  std::span<const std::byte> base() const & noexcept {
+    return payload_?std::span<const std::byte>(payload_->base):std::span<const std::byte>{};
+  }
+  std::span<const std::vector<std::byte>> members() const & noexcept {
+    return payload_?std::span<const std::vector<std::byte>>(payload_->members):std::span<const std::vector<std::byte>>{};
+  }
+  std::span<const std::byte> base() const && = delete;
+  std::span<const std::vector<std::byte>> members() const && = delete;
+ private:
+  friend class detail::IndexedSharedBasePreparation;
+  struct Payload {
+    std::vector<std::byte> base;
+    std::vector<std::vector<std::byte>> members;
+  };
+  std::shared_ptr<const Payload> payload_;
+};
+struct NativeSharedBaseSearchReply {
+  NativeSharedBaseSearchWindow window;
+  // Consumed synchronously. The caller keeps the range lists alive for the step.
+  std::span<const std::vector<NativeSharedBaseCopyRange>> copies;
 };
 struct NativeContentToken {
   NativeExtentSelection extent;
@@ -345,9 +372,13 @@ class NativeFilesystemWriter final {
   // Finish reconciles the live mappings and uses the synchronous transaction.
   SharedBaseWork prepare_shared_base(NativeExtentSelection base,
       std::span<const NativeExtentSelection> members);
+  // Stage at most one member from the private indexed snapshot. The grant
+  // counts non-base members. False leaves the ordinary CPU step available.
+  bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members);
   // Advisory copies describe the next indexed member. Invalid or larger hints
   // leave the independent CPU encoder eligible for that member.
-  bool advance_shared_base(SharedBaseWork&,std::span<const NativeSharedBaseCopyRange> advice={});
+  bool advance_shared_base(SharedBaseWork&,std::span<const NativeSharedBaseCopyRange> advice={},
+      const NativeSharedBaseSearchReply* reply=nullptr);
   NativeSharedBaseCommit finish_shared_base(SharedBaseWork&);
   // Explicit sticky namespace capability; legacy initialization is unchanged.
   // Start at zero without crediting old files. Commit through the same
@@ -559,6 +590,8 @@ class NativeFilesystemWriter final {
   static void finish_recompression(Recompression&);
   struct Impl;
   void check_shared_base(SharedBaseWork&) const;
+  bool shared_base_step(SharedBaseWork&,std::span<const NativeSharedBaseCopyRange>,
+      const NativeSharedBaseSearchReply*,std::size_t search_members);
   Impl& checked_impl() const;
   detail::NativeObjectSnapshot checked_namespace() const;
   NativePathLookup inspect_path_lookup(std::string_view path) const;
@@ -591,6 +624,7 @@ class NativeFilesystemWriter::SharedBaseWork final {
   SharedBaseWork& operator=(SharedBaseWork&&) noexcept;
   ~SharedBaseWork();
   NativeSharedBaseProgress progress() const noexcept;
+  NativeSharedBaseSearchWindow search_window() const noexcept;
   void cancel() noexcept;
  private:
   friend class NativeFilesystemWriter;

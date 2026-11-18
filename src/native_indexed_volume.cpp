@@ -1140,7 +1140,56 @@ std::vector<std::byte> IndexedSharedBasePreparation::read_member(Member& member,
   return full_extent(std::move(extent));
 }
 
-bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyRange> advice) {
+NativeSharedBaseProgress IndexedSharedBasePreparation::progress() const noexcept {
+  auto result=progress_;
+  if(search_)result.owned_payload_bytes+=search_->bytes->base.size()+
+      search_->bytes->members.size()*std::uint64_t(kNativeExtentBytes);
+  return result;
+}
+
+std::size_t IndexedSharedBasePreparation::search_slot(std::size_t position) const noexcept {
+  return position-search_->first-(base_index_>=search_->first && base_index_<position);
+}
+
+bool IndexedSharedBasePreparation::stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window) {
+  if(progress_.phase!=NativeSharedBasePhase::encoding_members || search_storage_unavailable_)return false;
+  const auto first=progress_.completed_members;
+  if(!search_) {
+    const auto available=members_.size()-first-(base_index_>=first);
+    const auto count=(std::min)(available,maximum_members);
+    if(!count || !owner_window.expired())return false;
+    try {
+      auto bytes=std::make_shared<NativeSharedBaseSearchWindow::Payload>();
+      bytes->members.reserve(count);
+      bytes->base=base_;
+      owner_window=bytes;
+      search_.emplace(SearchWindow{std::move(bytes),first,count});
+    }catch(const std::bad_alloc&){
+      search_storage_unavailable_=true;
+      return false;
+    }
+  }
+  auto& window=*search_;
+  auto& staged=window.bytes->members;
+  if(window.first!=first || maximum_members<window.member_count || staged.size()==window.member_count)return false;
+  auto next=first+staged.size();
+  if(base_index_>=first && base_index_<=next)++next;
+  (void)check_group_storage(source_);
+  auto bytes=read_member(members_[next],false);
+  (void)check_group_storage(source_);
+  staged.push_back(std::move(bytes));
+  return true;
+}
+
+NativeSharedBaseSearchWindow IndexedSharedBasePreparation::search_window() const noexcept {
+  NativeSharedBaseSearchWindow window;
+  if(!invalidated_ && search_ && search_->bytes->members.size()==search_->member_count)
+    window.payload_=search_->bytes;
+  return window;
+}
+
+bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyRange> advice,
+    const NativeSharedBaseSearchReply* reply) {
   using Phase=NativeSharedBasePhase;
   if(invalidated_)fail(Code::invalid_operation,"selected indexed shared-base content changed");
   if(progress_.phase==Phase::ready || progress_.phase==Phase::declined)return true;
@@ -1155,12 +1204,24 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     return false;
   }
 
-  auto& member=members_[progress_.completed_members];
-  const auto is_base=progress_.completed_members==base_index_;
-  const auto selected=is_base?Bytes{}:read_member(member,false);
+  const auto position=progress_.completed_members;
+  auto& member=members_[position];
+  const auto is_base=position==base_index_;
+  Bytes owned;
+  std::span<const std::byte> bytes=base_;
+  if(!is_base) {
+    const auto slot=search_?search_slot(position):0;
+    if(search_ && slot<search_->bytes->members.size()) {
+      bytes=search_->bytes->members[slot];
+      if(reply && reply->window.payload_==search_->bytes && reply->copies.size()==search_->member_count)
+        advice=reply->copies[slot];
+    } else {
+      owned=read_member(member,false);
+      bytes=owned;
+    }
+  }
   (void)check_group_storage(source_);
   if(!reusable_anchor_ || member.previous_base!=reusable_anchor_) {
-    const auto bytes=is_base?std::span<const std::byte>(base_):std::span<const std::byte>(selected);
     // The private placeholder binds no stored dependency. The final anchor
     // identity and generation come from the live transaction at finish.
     auto encoded=encode_native_group_member(bytes,base_,kNativeGroupBaseBit+1,1);
@@ -1182,6 +1243,7 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     }
     if(!encoded) {
       anchor_index_.reset();
+      search_.reset();
       progress_.phase=Phase::declined;
       return true;
     }
@@ -1200,6 +1262,7 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     progress_.owned_payload_bytes+=frame_bytes;
   }
   ++progress_.completed_members;
+  if(search_ && search_slot(progress_.completed_members)>=search_->bytes->members.size())search_.reset();
   if(progress_.completed_members==members_.size()) {
     anchor_index_.reset();
     progress_.phase=Phase::ready;

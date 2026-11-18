@@ -23,8 +23,15 @@ struct NativeMaintenanceProgress {
   std::uint64_t minimum_compacted_bytes_saved=0,retained_history_bytes_added=0,elapsed_work_ns=0;
   std::uint64_t next_opportunity_delay_ms=0,owned_payload_bytes=0;
   std::uint64_t checkpoints_restored=0,checkpoints_published=0;
+  std::uint64_t advised_members_published=0;
 };
-// Event/opportunity-driven CPU baseline. Automatically discovers aligned
+// An optional, separately admitted adviser can stage source incrementally
+// and supply a completed result. The maintenance step never waits for it.
+struct NativeGroupSearchOpportunity {
+  std::size_t maximum_members=0;
+  const NativeSharedBaseSearchReply* reply=nullptr;
+};
+// Event/opportunity-driven CPU baseline. Automatically discovers related
 // content groups; no caller-supplied file list, online model or thread/timer.
 // Invoke on the qualified low-priority serialized control context. Polling
 // never proves OS priority, physical durability or complete host interference.
@@ -34,7 +41,9 @@ class NativeGroupMaintenance final {
   NativeGroupMaintenance(NativeGroupMaintenance&&) noexcept;
   NativeGroupMaintenance& operator=(NativeGroupMaintenance&&) noexcept;
   ~NativeGroupMaintenance();
-  NativeMaintenanceProgress advance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
+  NativeMaintenanceProgress advance(const NativeMaintenanceObservation&,std::uint64_t now_ms,
+      NativeGroupSearchOpportunity={});
+  NativeSharedBaseSearchWindow search_window() const noexcept;
   NativeMaintenanceProgress progress() const noexcept;
   bool pending() const noexcept;
   bool active_group() const noexcept;

@@ -128,6 +128,20 @@ backing bytes. `progress()` reports phase, completed/total members and owned
 payload bytes; that last counter excludes allocator, index, transient decoder
 and process overhead and is not a host-memory measurement.
 
+An indexed writer can also stage members for an admitted search. Each
+`stage_shared_base_search` call checks and takes ownership of one decoded
+non-base extent. The completed window exposes the verified base and members
+in selection order, excluding the base itself. The batch builder copies those
+members directly into its request snapshot. A reply carries the same window
+identity and one range list per member. During encoding the writer reuses the
+staged bytes for CPU fallback, independently checks suggested copies, and
+selects the smallest verified encoding it finds.
+
+One window may be retained per writer, including across group cancellation.
+A released work item drops its share of the payload. A consumer holding a
+window retains only its bytes and must release them before the writer can
+stage another. Revision checks precede staging and consumption.
+
 Private member frames initially use placeholder binding fields. At finish,
 only the anchor ID and generation fields are rebound to the current transaction;
 the independently verified patch/plaintext hashes remain unchanged. Placeholder

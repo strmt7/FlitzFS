@@ -64,8 +64,10 @@ class IndexedSharedBasePreparation final {
   bool watches_inode(std::uint64_t inode) const noexcept;
   void invalidate() noexcept{invalidated_=true;}
   bool invalidated() const noexcept{return invalidated_;}
-  NativeSharedBaseProgress progress() const noexcept{return progress_;}
-  bool advance(std::span<const NativeSharedBaseCopyRange>);
+  NativeSharedBaseProgress progress() const noexcept;
+  bool stage_search(std::size_t maximum_members,std::weak_ptr<const void>& owner_window);
+  NativeSharedBaseSearchWindow search_window() const noexcept;
+  bool advance(std::span<const NativeSharedBaseCopyRange>,const NativeSharedBaseSearchReply*);
   NativeSharedBaseCommit finish(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,IndexedVolumeRoot&);
 
  private:
@@ -74,17 +76,23 @@ class IndexedSharedBasePreparation final {
     std::uint64_t object=0,generation=0,previous_base=0;
     std::vector<std::byte> frame;
   };
+  struct SearchWindow {
+    std::shared_ptr<NativeSharedBaseSearchWindow::Payload> bytes;
+    std::size_t first,member_count;
+  };
   std::vector<std::byte> read_member(Member&,bool find_reusable_anchor);
+  std::size_t search_slot(std::size_t position) const noexcept;
   const PagedObjectStoreSnapshot& source_;
   IndexedVolumeRoot original_;
   std::optional<NativeNameIndex> index_;
   std::vector<Member> members_;
   std::vector<std::byte> base_;
-    std::optional<NativeGroupAnchorIndex> anchor_index_;
+  std::optional<NativeGroupAnchorIndex> anchor_index_;
+  std::optional<SearchWindow> search_;
   std::size_t base_index_=0;
   std::uint64_t reusable_anchor_=0,reusable_generation_=0;
   NativeSharedBaseProgress progress_{NativeSharedBasePhase::reading_base};
-    bool invalidated_=false,uses_anchor_copies_=false;
+  bool invalidated_=false,uses_anchor_copies_=false,search_storage_unavailable_=false;
 };
 struct IndexedContentWatch {
   std::uint64_t& sequence;

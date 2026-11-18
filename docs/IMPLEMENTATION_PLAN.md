@@ -731,6 +731,18 @@ automatic selection.
 [Mixed-content and SDK evidence](evidence/amd-anchor-cohorts-2026-11-18.json) ·
 [Wait and admission evidence](evidence/amd-anchor-queue-phases-2026-11-18.json)
 
+Indexed maintenance can now provide a verified source window from its own
+automatically discovered group. The writer stages one member per admitted
+opportunity, reuses the staged bytes on CPU fallback, and checks the group
+revision before consuming any result. One retained window per writer bounds
+the optional plaintext cache. The next Windows integration should submit
+complete windows outside the serialized filesystem call through the existing
+single-exchange supervisor. It should cancel stale work on foreground activity
+or lost headroom and measure complete compacted size, read cost and total
+background cost before automatic device selection.
+[Group maintenance interface](AUTOMATIC_GROUP_MAINTENANCE.md) ·
+[Live discovery and fallback evidence](evidence/amd-discovered-anchor-2026-11-18.json)
+
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed
 proposal. Actual compaction still needs separate copying, indexing and CPU

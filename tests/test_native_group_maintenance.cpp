@@ -1,6 +1,8 @@
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/read_only_file.hpp"
+#include "../src/native_group_anchor.hpp"
+#include "anchor_search_fixture.hpp"
 #include "native_fs_fixture.hpp"
 #include <iostream>
 namespace {
@@ -34,6 +36,56 @@ struct Fixture {
   void verify(unsigned count){const auto snapshot=session->snapshot();for(unsigned i=0;i<count;++i)
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==family(i),"automatic grouping changed bytes");snapshot.verify_all();}
 };
+void advised_indexed_maintenance() {
+  constexpr unsigned count=5,band_bytes=kNativeExtentBytes/8;
+  Fixture f(4096,0,true);
+  const auto base=family(0);
+  std::vector<Bytes> original;
+  for(unsigned i=0;i<count;++i) {
+    auto bytes=i?anchor_search_fixture::fragmented(base,i):base;
+    std::copy_n(base.begin(),band_bytes,bytes.begin());
+    put(*f.session,"f"+std::to_string(i),bytes);
+    original.push_back(std::move(bytes));
+  }
+  NativeGroupMaintenance controller(*f.session);
+  detail::AnchorMatchAdvice hints;
+  std::optional<NativeSharedBaseSearchReply> reply;
+  for(unsigned tick=0;tick<1000;++tick) {
+    const auto observed=f.clock.next();
+    const auto progress=controller.advance(observed,f.clock.now,{
+        count-1,reply?&*reply:nullptr});
+    require(progress.phase!=Phase::failed,"advised maintenance failed");
+    if(progress.published_groups)break;
+    auto window=controller.search_window();
+    if(!window || reply)continue;
+    require(window.members().size()==count-1 && std::ranges::equal(window.base(),base),
+        "automatic candidate was not staged for search");
+    const std::array<std::uint32_t,1> counts{count-1};
+    const auto quantum=anchor_match::max_members;
+    const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),count+1);
+    detail::AnchorMatchBatchBuilder builder(1,plan);
+    builder.append(1,window);
+    const auto request=builder.finish();
+    const auto& group=request.groups().front();
+    hints=detail::verify_anchor_match_records(group,detail::cpu_anchor_match_records(group));
+    reply.emplace(NativeSharedBaseSearchReply{std::move(window),hints});
+
+    auto busy=f.clock.next();
+    busy.foreground_pending=true;
+    const auto writes=f.image->calls,reads=f.image->read_calls;
+    const auto deferred=controller.advance(busy,f.clock.now,{0,&*reply});
+    require(deferred.deferral==Defer::foreground && f.image->calls==writes && f.image->read_calls==reads,
+        "completed search bypassed foreground admission");
+  }
+  const auto result=f.finish(controller);
+  require(reply && result.published_groups==1 && result.advised_members_published>0 &&
+      result.owned_payload_bytes==0 && !controller.search_window(),"advised automatic group did not publish and retire");
+  const auto snapshot=f.session->snapshot();
+  snapshot.verify_all();
+  for(unsigned i=0;i<count;++i)
+    require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==original[i],
+        "automatic search advice changed committed bytes");
+}
 void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool corpus) {
   constexpr unsigned count=12;
   constexpr std::uint32_t unit=4096;
@@ -364,6 +416,8 @@ void indexed_scan_checkpoint_faults() {
 int main(int argc,char** argv){try{
   if(argc==2 && std::string_view(argv[1])=="--indexed-resume") {
     persistent_indexed_scan();indexed_scan_checkpoint_faults();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
+    advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed") {
     for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
     indexed_scan_windows();indexed_stale_binding_and_padding();

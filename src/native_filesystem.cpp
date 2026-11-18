@@ -1079,6 +1079,7 @@ struct SharedBaseOwner {
   std::array<std::uint64_t,kStoreMaxObjects+1> revisions{};
   std::array<std::uint64_t,kStoreMaxObjects+1> content_revisions{};
   std::weak_ptr<const void> active;
+  std::weak_ptr<const void> search_window;
   std::weak_ptr<detail::IndexedSharedBasePreparation> indexed_work;
 };
 }
@@ -1198,6 +1199,10 @@ NativeSharedBaseProgress NativeFilesystemWriter::SharedBaseWork::progress() cons
       state.phase==NativeSharedBasePhase::encoding_members || state.phase==NativeSharedBasePhase::ready))
     state.phase=NativeSharedBasePhase::failed;
   return state;
+}
+NativeSharedBaseSearchWindow NativeFilesystemWriter::SharedBaseWork::search_window() const noexcept {
+  if(!impl_ || !impl_->indexed || impl_->owner.expired())return {};
+  return impl_->indexed->search_window();
 }
 void NativeFilesystemWriter::SharedBaseWork::cancel() noexcept {
   if(!impl_)return;
@@ -1601,13 +1606,26 @@ void NativeFilesystemWriter::check_shared_base(SharedBaseWork& work) const {
       fail(Code::invalid_operation,"selected shared-base extent changed");
   }
 }
-bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice) {
+bool NativeFilesystemWriter::stage_shared_base_search(SharedBaseWork& work,std::size_t maximum_members) {
+  return maximum_members && shared_base_step(work,{},nullptr,maximum_members);
+}
+bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice,
+    const NativeSharedBaseSearchReply* reply) {
+  return shared_base_step(work,advice,reply,0);
+}
+bool NativeFilesystemWriter::shared_base_step(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice,
+    const NativeSharedBaseSearchReply* reply,std::size_t search_members) {
   auto* p=work.impl_.get();
   try {
     check_shared_base(work);
+    if(search_members) {
+      const auto staged=p->indexed && p->indexed->stage_search(search_members,impl_->shared_owner->search_window);
+      if(staged)p->state=p->indexed->progress();
+      return staged;
+    }
     if(p->state.phase==NativeSharedBasePhase::ready || p->state.phase==NativeSharedBasePhase::declined)return true;
     if(p->indexed) {
-      const auto done=p->indexed->advance(advice);
+      const auto done=p->indexed->advance(advice,reply);
       p->state=p->indexed->progress();
       if(p->state.phase==NativeSharedBasePhase::declined)p->retire(NativeSharedBasePhase::declined);
       return done;

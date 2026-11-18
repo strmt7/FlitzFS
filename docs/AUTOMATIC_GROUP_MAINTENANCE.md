@@ -11,6 +11,24 @@ and opportunities, rather than file lists. The implementation is a deterministic
 CPU baseline for collective optimization, not a completed AI learner or GPU path.
 No thread, timer, online model, driver, mount or service starts implicitly.
 
+An explicit adviser can supply a member grant on an idle opportunity. The
+controller stages one decoded member per opportunity and exposes a completed
+window of the selected bytes. A completed reply is considered on a subsequent
+admitted opportunity. Calls without a reply can continue CPU preparation
+using the staged bytes. Device, transport, and retained consumer memory
+admission belong to the adviser. The default Windows scheduling path uses
+CPU preparation.
+
+The Windows diagnostic used the same discovery controller and coalesced AMD
+worker to publish five-file groups for synthetic and public-derived inputs.
+Its AMD records matched the CPU reference. All files matched byte for byte
+after reopening the compacted images. The matched synthetic input occupied
+385,024 bytes with accepted GPU advice and 737,280 bytes after CPU fallback.
+A live shared-memory budget refusal and a deliberately rejected runtime both
+completed with independently verified CPU output. The two successful AMD
+trials each peaked below 102 MiB of host process-tree commitment.
+[Source-bound discovery and fallback evidence](evidence/amd-discovered-anchor-2026-11-18.json)
+
 One controller owns a weak reservation on the session. Invoke it only on the
 session's serialized control context. Session moves preserve that context;
 retirement, poisoning, cancellation and image replacement invalidate private
