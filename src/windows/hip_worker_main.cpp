@@ -1,4 +1,5 @@
 #include "hip_decode_worker.hpp"
+#include "anchor_sweep_profile.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include "gpu_budget.hpp"
 #include "hip_worker_exit.hpp"
@@ -438,7 +439,8 @@ int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
   const bool memory_observation=mode==L"--driver-memory-adapter";
   const bool phase_observation=mode==L"--driver-match-profile";
-  const bool anchor_sweep=mode==L"--driver-anchor-sweep";
+  const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
+  const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
   const bool anchoring=mode==L"--driver-anchor-match" || anchor_sweep;
   const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" ||
       memory_observation || phase_observation || anchoring;
@@ -454,7 +456,9 @@ int worker(int argc, wchar_t** argv) {
   const auto node_mask = decimal(argv[4], (std::numeric_limits<unsigned>::max)());
   require(node_mask && !(node_mask & (node_mask - 1)), Exit::invalid_request, "adapter node mask");
   HipPhaseProfile phase_value;
-  HipPhaseRecorder phase_clock(phase_observation?&phase_value.trace:nullptr);
+  HipPhaseRecorder phase_clock(phase_observation || anchor_profile?&phase_value.trace:nullptr,
+      hip_phase_detail::clock_ns,anchor_profile?HipPhaseOrder::accumulate:HipPhaseOrder::ordered,
+      anchor_profile?kAnchorSweepProfileLimitNs:hip_profile_limit_ns);
   phase_clock.begin(HipPhase::request_decode);
   std::optional<detail::AnchorMatchSweepPlan> anchor_plan;
   if (anchor_sweep) {
@@ -467,7 +471,9 @@ int worker(int argc, wchar_t** argv) {
     }
   }
   const auto token=argv[channel_argument+1];
-  auto channel=anchor_plan?WorkerChannel::open_sized(token,{anchor_plan->whole.request_bytes,anchor_plan->whole.reply_bytes}):
+  const auto profile_bytes=anchor_profile?kAnchorSweepProfileBytes:0;
+  auto channel=anchor_plan?WorkerChannel::open_sized(token,{anchor_plan->whole.request_bytes,
+      anchor_plan->whole.reply_bytes+profile_bytes}):
       WorkerChannel::open(token);
   std::optional<WorkerBatchRequest> decode;
   std::optional<MatchWorkerRequest> match;
@@ -537,17 +543,23 @@ int worker(int argc, wchar_t** argv) {
   phase_clock.end(HipPhase::modules_load);
   std::vector<std::byte> frame;
   if(anchor) {
+    phase_clock.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_anchor_match_api_v1");
     require(address!=nullptr,Exit::unsupported_configuration,"HIP anchor match entry unavailable",HipWorkerStage::kernel_entry);
     const auto entry=std::bit_cast<anchor_match::KernelApiEntry>(address);
     const auto* api=entry();
     require(api && anchor_match::compatible_kernel_api(*api),Exit::unsupported_configuration,
         "incompatible HIP anchor match table",HipWorkerStage::kernel_table);
-    const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,*anchor,*anchor_plan);
-    try {frame=detail::encode_anchor_match_reply(*anchor,records);}
+    phase_clock.end(HipPhase::entry_bind);
+    const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),luid,node_mask,
+        *anchor,*anchor_plan,phase_clock);
+    // This phase includes independent comparison with the original bytes.
+    phase_clock.begin(HipPhase::reply_encode);
+    try {frame=detail::encode_anchor_match_reply(*anchor,records,profile_bytes);}
     catch(const std::invalid_argument&) {
       throw HipWorkerFailure(Exit::integrity_failure,"HIP shared base suggestion failed independent byte verification");
     }
+    phase_clock.end(HipPhase::reply_encode);
   } else if(matching) {
     phase_clock.begin(HipPhase::entry_bind);
     const auto address=GetProcAddress(kernels.get(),"flitzfs_rocm_match_api_v1");
@@ -594,6 +606,12 @@ int worker(int argc, wchar_t** argv) {
     phase_clock.finish();
     const auto metadata=encode_hip_phase_profile(phase_value);
     channel.publish(metadata);return 0;
+  }
+  if(anchor_profile) {
+    phase_clock.finish();
+    const auto binding=anchor_sweep_profile_binding(*anchor,*anchor_plan,ordinal,luid,node_mask);
+    const auto metadata=encode_anchor_sweep_profile(binding,phase_value.trace);
+    frame.insert(frame.end(),metadata.begin(),metadata.end());
   }
   channel.publish(frame);
   return 0;

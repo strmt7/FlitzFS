@@ -1,0 +1,331 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "source_base": "070d168e38705d262e07242e06a1fffda7b3b0c9",
+  "tested_sources": [
+    {
+      "path": "src/native_group_anchor.cpp",
+      "git_blob": "22dcc7cc49142e77d4f61da044a1cc399d753c3e",
+      "sha256": "57e41f52f1d01e7d79ae1e58f8266e35d0b5aee7e57978106727ba79af592ccc"
+    },
+    {
+      "path": "src/native_group_anchor.hpp",
+      "git_blob": "591aa5714f6be360eda7580dcda67038282246dc",
+      "sha256": "11faa8cd867a6100a3cc3635b48b5d9e118e0e5562ca62ac47500122896dc425"
+    },
+    {
+      "path": "src/windows/hip_phase_profile.hpp",
+      "git_blob": "c71751d6033dd108a64577761d9dc0c53b365440",
+      "sha256": "3538da452bb2aa4db78df2147c6c2fe981dc02ad43b852ad725285e29adbcc1d"
+    },
+    {
+      "path": "src/windows/anchor_sweep_profile.hpp",
+      "git_blob": "38c7896c4920c076cfa808af88d439d5cb3f7720",
+      "sha256": "fb8db413fdf424128a2ccfe59c1e4f12c039ab90b51bf96410aea534be4704be"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.cpp",
+      "git_blob": "d7c386e990716a778980e0f70b1efff742860b09",
+      "sha256": "f49c89610e6df7353293eee823261f525957df8e25e33c3f11f7b2a2088aa3df"
+    },
+    {
+      "path": "src/windows/hip_decode_worker.hpp",
+      "git_blob": "bc289be1b6b6535a4336043adf0d7327fead1069",
+      "sha256": "51f5ed3afb7538983ae6b92ef796a05d5a4ea4b4e7331e3c617a2ad1cd8a1b90"
+    },
+    {
+      "path": "src/windows/hip_worker_main.cpp",
+      "git_blob": "55d57f0cb01d990a66c85d48f10da86d3a466c66",
+      "sha256": "8e9c637b4f6b68d4d6f223302c7eaf6ca62c3b6508482916b6e3c42118eba1b7"
+    },
+    {
+      "path": "tests/rocm_compile/lz4_runtime_probe.cpp",
+      "git_blob": "f13c0663e3c13cdaccd81d4c126f9b425abb725a",
+      "sha256": "dd30917d82a58619218ed86266bf3f8dcc34d9671aba39b53d12e9825f42cdbe"
+    },
+    {
+      "path": "tests/test_hip_phase_profile.cpp",
+      "git_blob": "177b508a8672354b87a92fa4da64785c9a8b2154",
+      "sha256": "629f73cad73194c8ea0220a624a44218c68bf7a2b22f63e6eb185f9252edb3d2"
+    }
+  ],
+  "artifacts": {
+    "rocm_sdk": "10.1.0",
+    "target": "gfx1201",
+    "worker_sha256": "5612aa44cce69e0b2a362974b103717a221779382e4e5752bdfaf1c60ce80de1",
+    "probe_sha256": "e018c74f1dc1a57fbbb19e87779198248586db981376c9153a8835e6ebda61da",
+    "device_object_sha256": "28a8c5c755c637e01914707fe67da6204993fc9c66e38b93610ec6570ff226e2",
+    "kernel_module_sha256": "c354531133436d3658c8ff485a7df6d1873fe70542810adf2282d05675fa24f2",
+    "runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+  },
+  "public_source_extent_sha256": "aaf45ea2d8bb996d559478d0ea28002e819306e56ab5d1c46fce92b4607d51af",
+  "evidence_scope": "Actual AMD direct matcher on fresh worker processes. Durations are grouped host wall time. Measurements include all verified records. Earlier phases and the standalone controls retain their exact source scope.",
+  "validation": [
+    {
+      "check": "raw_3_ctest",
+      "run": "local-run-821bb8af69aa431f98936d1c0f4341d5",
+      "tree_retired": true,
+      "receipt_sha256": "0e1daf74680c0178d2675d1d10546f1e544337eedb7ab010f5bba5b3da1dc0b3",
+      "log_sha256": "92affc3d556c638abce65c04cf27e42401f8f3ddd6bc275ea36fab6cc011cc63"
+    },
+    {
+      "check": "asan_4_ctest",
+      "run": "local-run-241aaa0929cb4ea08dbb0ffa0341e52e",
+      "tree_retired": true,
+      "receipt_sha256": "49f10a52fd9a7558ce8b0eb9abf2cf926e3022b96b1189fb193756165750f788",
+      "log_sha256": "d9b35d186e0daf3b8e51f56d50ba526094be11c73d63a5033003f83ca93f03e2"
+    },
+    {
+      "check": "sdk_build",
+      "run": "local-run-168d6e6fbfe34d67bc2d3c7cb9d96105",
+      "tree_retired": true,
+      "receipt_sha256": "005bed8437548660a652df5cc79e893708db68252ec24bd1a3d2911f61577963",
+      "log_sha256": "cfa6a810df70e21c483acac41d0f9a24b7ee2d893b8acd96b63cf632c3b19f23"
+    },
+    {
+      "check": "live_identity",
+      "run": "local-run-079173f956f84fb18a9f6fdb409f4059",
+      "tree_retired": true,
+      "receipt_sha256": "0c38cb86fdaa937bd147d6cc194cc9be40b04ab5ce0ce3588c4526683b138461",
+      "log_sha256": "3521782116f200949e74cec519fed4599c1af34de5c903b68bd8a31562bbc984"
+    }
+  ],
+  "trials": [
+    {
+      "case": "profiled-seeded-seven-first",
+      "run": "local-run-92c9e0eee63a4603a446677d9f9651d1",
+      "exit": 0,
+      "profile": true,
+      "retired": true,
+      "peak_job_bytes": 88473600,
+      "result": {
+        "gpu_verified": true,
+        "cpu_fallback": false,
+        "worker_started": true,
+        "members": 7,
+        "source_bytes": 524288,
+        "record_bytes": 114688,
+        "reply_bytes": 115008,
+        "search_windows": 3,
+        "device_allocation_bytes": 835584,
+        "exchange_ns": 1212965600,
+        "cpu_search_and_verify_ns": 5875300,
+        "worker_exit": 0,
+        "job_peak_bytes": 87281664,
+        "transport_quiescent": true,
+        "profile_verified": true,
+        "worker_wall_ns": 1129217900,
+        "phase_times_ns": {
+          "request_decode": 336800,
+          "bundle_verify": 53346800,
+          "adapter_admit": 7759200,
+          "modules_load": 1958000,
+          "entry_bind": 700,
+          "device_initialize": 109302500,
+          "stream_allocate": 533010000,
+          "host_to_device": 12353300,
+          "kernel_wait": 956600,
+          "device_to_host": 889400,
+          "cpu_verification": 5000,
+          "post_admission": 20100,
+          "resources_release": 3554900,
+          "reply_encode": 253300,
+          "modules_release": 405398100
+        }
+      },
+      "receipt_sha256": "a8985a9ce8fb3a368a867c057165dce100195697f4bafb1a8527a57b0a6da640",
+      "log_sha256": "e4e8e2959ace45ff8b0ddccf2ae7012fc19bb07b988a288a9f117a76c02f8dda"
+    },
+    {
+      "case": "ordinary-seeded-seven",
+      "run": "local-run-777cc66cac1041f18b9621e58ce86b06",
+      "exit": 0,
+      "profile": false,
+      "retired": true,
+      "peak_job_bytes": 88457216,
+      "result": {
+        "gpu_verified": true,
+        "cpu_fallback": false,
+        "worker_started": true,
+        "members": 7,
+        "source_bytes": 524288,
+        "record_bytes": 114688,
+        "reply_bytes": 114752,
+        "search_windows": 3,
+        "device_allocation_bytes": 835584,
+        "exchange_ns": 598347400,
+        "cpu_search_and_verify_ns": 6709700,
+        "worker_exit": 0,
+        "job_peak_bytes": 87265280,
+        "transport_quiescent": true
+      },
+      "receipt_sha256": "b67a8999ae6f9c6092e7819cb90f2a9d3c65c72b964b0279b0cd201e2646290e",
+      "log_sha256": "fc8573e3eb742f05390bfac230e8d1469a39642358c5039f1abb7abc41f6f0a7"
+    },
+    {
+      "case": "profiled-seeded-seven-second",
+      "run": "local-run-7e4424c4f1b0470d8a625587b6b87ae1",
+      "exit": 0,
+      "profile": true,
+      "retired": true,
+      "peak_job_bytes": 88649728,
+      "result": {
+        "gpu_verified": true,
+        "cpu_fallback": false,
+        "worker_started": true,
+        "members": 7,
+        "source_bytes": 524288,
+        "record_bytes": 114688,
+        "reply_bytes": 115008,
+        "search_windows": 3,
+        "device_allocation_bytes": 835584,
+        "exchange_ns": 475670400,
+        "cpu_search_and_verify_ns": 5945900,
+        "worker_exit": 0,
+        "job_peak_bytes": 87445504,
+        "transport_quiescent": true,
+        "profile_verified": true,
+        "worker_wall_ns": 423169800,
+        "phase_times_ns": {
+          "request_decode": 344700,
+          "bundle_verify": 50918400,
+          "adapter_admit": 6642100,
+          "modules_load": 1705300,
+          "entry_bind": 900,
+          "device_initialize": 82128800,
+          "stream_allocate": 261467000,
+          "host_to_device": 12070800,
+          "kernel_wait": 892900,
+          "device_to_host": 803800,
+          "cpu_verification": 5100,
+          "post_admission": 15200,
+          "resources_release": 2911400,
+          "reply_encode": 231300,
+          "modules_release": 2978100
+        }
+      },
+      "receipt_sha256": "87f3383e7a5e4167c530ab4942b291f1a95cea0214dc0ca8cd0aa2ddb5f07ec0",
+      "log_sha256": "fdfdeec45bd6032cef2d9fdd50c13e0bd6a19119251e4d99b33ef163d2c3cadc"
+    },
+    {
+      "case": "profiled-public-ninety-seven",
+      "run": "local-run-d8db3b65a39f4fe9bdbc31763957fd34",
+      "exit": 0,
+      "profile": true,
+      "retired": true,
+      "peak_job_bytes": 132804608,
+      "result": {
+        "gpu_verified": true,
+        "cpu_fallback": false,
+        "worker_started": true,
+        "members": 97,
+        "source_bytes": 6422528,
+        "record_bytes": 1589248,
+        "reply_bytes": 1589568,
+        "search_windows": 33,
+        "device_allocation_bytes": 835584,
+        "exchange_ns": 865853100,
+        "cpu_search_and_verify_ns": 68074300,
+        "worker_exit": 0,
+        "job_peak_bytes": 131596288,
+        "transport_quiescent": true,
+        "profile_verified": true,
+        "worker_wall_ns": 811973100,
+        "phase_times_ns": {
+          "request_decode": 3202100,
+          "bundle_verify": 51619600,
+          "adapter_admit": 7885900,
+          "modules_load": 2338800,
+          "entry_bind": 1100,
+          "device_initialize": 72598200,
+          "stream_allocate": 225019400,
+          "host_to_device": 17611900,
+          "kernel_wait": 5203700,
+          "device_to_host": 416965300,
+          "cpu_verification": 75500,
+          "post_admission": 104000,
+          "resources_release": 2934900,
+          "reply_encode": 2769800,
+          "modules_release": 3361900
+        }
+      },
+      "receipt_sha256": "764a5a94d4aca94f75152a096442f729078c146857411038346764685b4e835b",
+      "log_sha256": "3c3c7e78ea920507bf8d7b7506b4ea53e64554255b413d5e8914dab1834b9d6a"
+    },
+    {
+      "case": "profiled-seeded-one-ninety-three",
+      "run": "local-run-46cf986165c1434495441e8b24015a57",
+      "exit": 0,
+      "profile": true,
+      "retired": true,
+      "peak_job_bytes": 180498432,
+      "result": {
+        "gpu_verified": true,
+        "cpu_fallback": false,
+        "worker_started": true,
+        "members": 193,
+        "source_bytes": 12713984,
+        "record_bytes": 3162112,
+        "reply_bytes": 3162432,
+        "search_windows": 65,
+        "device_allocation_bytes": 835584,
+        "exchange_ns": 997307500,
+        "cpu_search_and_verify_ns": 143637600,
+        "worker_exit": 0,
+        "job_peak_bytes": 179294208,
+        "transport_quiescent": true,
+        "profile_verified": true,
+        "worker_wall_ns": 935802000,
+        "phase_times_ns": {
+          "request_decode": 5977700,
+          "bundle_verify": 54105900,
+          "adapter_admit": 8228800,
+          "modules_load": 1695300,
+          "entry_bind": 900,
+          "device_initialize": 67530500,
+          "stream_allocate": 329977500,
+          "host_to_device": 438311500,
+          "kernel_wait": 8222800,
+          "device_to_host": 8189600,
+          "cpu_verification": 147700,
+          "post_admission": 236300,
+          "resources_release": 2834600,
+          "reply_encode": 5917500,
+          "modules_release": 3850500
+        }
+      },
+      "receipt_sha256": "576089b370d48a500388ca48dcc5edae84ce03e8dd688d110bd23f51cf99988c",
+      "log_sha256": "1f058e0dc4a8f3ce1a1f52caa03a0b0b51d5a54de189eb3ae45f761476ad8d6b"
+    },
+    {
+      "case": "profiled-rejected-runtime",
+      "run": "local-run-686746f2156540b18e04438d01845412",
+      "exit": 2,
+      "profile": true,
+      "retired": true,
+      "peak_job_bytes": 9478144,
+      "result": {
+        "gpu_verified": false,
+        "cpu_fallback": true,
+        "worker_started": true,
+        "members": 7,
+        "source_bytes": 524288,
+        "record_bytes": 114688,
+        "reply_bytes": 0,
+        "search_windows": 3,
+        "device_allocation_bytes": 835584,
+        "exchange_ns": 34715000,
+        "cpu_search_and_verify_ns": 6822000,
+        "worker_exit": 1179844614,
+        "job_peak_bytes": 8269824,
+        "transport_quiescent": true,
+        "profile_verified": false,
+        "worker_wall_ns": 0,
+        "phase_times_ns": null
+      },
+      "receipt_sha256": "7c95ccfb3a2ed4f49e86c0c22bfaa3af5aab32f73abfdd58f0ddc557e0fe6922",
+      "log_sha256": "ecb90ce0c1a604201aa0741e2b651eef1c6cc04c6bd4ee99446dc15938985e79"
+    }
+  ]
+}

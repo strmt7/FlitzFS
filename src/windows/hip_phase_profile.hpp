@@ -36,15 +36,18 @@ inline std::uint64_t clock_ns() {
   require(value>=0);return static_cast<std::uint64_t>(value);
 }
 }
-// One serial recorder. Disabled observation performs ZERO clock calls.
+enum class HipPhaseOrder { ordered, accumulate };
+
+// One serial recorder. Disabled observation performs zero clock calls.
 // A failed/open phase cannot be reused or emitted as a complete measurement.
 class HipPhaseRecorder final {
  public:
   using Clock=std::uint64_t(*)();
-  explicit HipPhaseRecorder(HipPhaseTrace* output=nullptr,Clock clock=hip_phase_detail::clock_ns)
-      :output_(output),clock_(clock) {
+  explicit HipPhaseRecorder(HipPhaseTrace* output=nullptr,Clock clock=hip_phase_detail::clock_ns,
+      HipPhaseOrder order=HipPhaseOrder::ordered,std::uint64_t maximum_ns=hip_profile_limit_ns)
+      :output_(output),clock_(clock),order_(order),maximum_ns_(maximum_ns) {
     if(!output_)return;
-    hip_phase_detail::require(clock_ && output_->completed==0 && !output_->finished && output_->total_wall_ns==0 &&
+    hip_phase_detail::require(clock_ && maximum_ns_ && output_->completed==0 && !output_->finished && output_->total_wall_ns==0 &&
         std::all_of(output_->wall_ns.begin(),output_->wall_ns.end(),[](auto n){return n==0;}));
     origin_=last_=clock_();
   }
@@ -56,7 +59,7 @@ class HipPhaseRecorder final {
     if(!output_)return;
     const auto n=static_cast<unsigned>(phase);
     check(!finished_ && !failed_ && n<hip_phase_count && active_==hip_phase_count &&
-        output_->completed==((1U<<n)-1));
+        (order_==HipPhaseOrder::accumulate || output_->completed==((1U<<n)-1)));
     // Poison before querying a fallible clock; no reuse after incomplete work.
     active_=n;started_=read();
   }
@@ -65,7 +68,7 @@ class HipPhaseRecorder final {
     const auto n=static_cast<unsigned>(phase);
     check(!finished_ && !failed_ && n<hip_phase_count && active_==n);
     const auto now=read();
-    output_->wall_ns[n]=now-started_;output_->completed|=1U<<n;active_=hip_phase_count;
+    output_->wall_ns[n]+=now-started_;output_->completed|=1U<<n;active_=hip_phase_count;
   }
   void finish() {
     if(!output_)return;
@@ -80,10 +83,11 @@ class HipPhaseRecorder final {
   std::uint64_t read() {
     std::uint64_t now=0;
     try{now=clock_();}catch(...){failed_=true;throw;}
-    check(now>=last_ && now>=origin_ && now-origin_<=hip_profile_limit_ns);
+    check(now>=last_ && now>=origin_ && now-origin_<=maximum_ns_);
     last_=now;return now;
   }
-  HipPhaseTrace* output_;Clock clock_;std::uint64_t origin_=0,last_=0,started_=0;
+  HipPhaseTrace* output_;Clock clock_;HipPhaseOrder order_;std::uint64_t maximum_ns_;
+  std::uint64_t origin_=0,last_=0,started_=0;
   unsigned active_=hip_phase_count;bool finished_=false,failed_=false;
 };
 struct HipProfileBinding {
@@ -110,24 +114,27 @@ inline std::uint64_t get(std::span<const std::byte> f,std::size_t at,unsigned wi
   std::uint64_t n=0;for(unsigned i=0;i<width;++i)n|=std::uint64_t(std::to_integer<unsigned>(f[at+i]))<<(8*i);
   return n;
 }
-inline void binding_valid(const HipProfileBinding& b) {
+inline void identity_valid(const HipProfileBinding& b) {
   require(b.request_id && b.ordinal<64 && b.node_mask && !(b.node_mask&(b.node_mask-1)) &&
-      b.input_bytes>=4 && b.input_bytes<=match_detail::input_limit &&
-      b.lanes==match_detail::lanes(b.input_bytes) &&
       std::any_of(b.luid.begin(),b.luid.end(),[](auto x){return x!=std::byte{};}));
 }
-inline void valid(const HipPhaseProfile& p) {
-  binding_valid(p.binding);
-  require(p.execution==WorkerExecution::cpu_semantics || p.execution==WorkerExecution::hip);
-  require(p.trace.finished && p.trace.completed==hip_phase_complete && p.trace.total_wall_ns<=hip_profile_limit_ns);
+inline void binding_valid(const HipProfileBinding& b) {
+  identity_valid(b);
+  require(b.input_bytes>=4 && b.input_bytes<=match_detail::input_limit && b.lanes==match_detail::lanes(b.input_bytes));
+}
+inline void trace_valid(const HipPhaseTrace& trace,std::uint64_t maximum_ns) {
+  require(trace.finished && trace.completed==hip_phase_complete && trace.total_wall_ns<=maximum_ns);
   std::uint64_t sum=0;
-  for(const auto ns:p.trace.wall_ns) {
-    require(ns<=p.trace.total_wall_ns && sum<=p.trace.total_wall_ns-ns);sum+=ns;
+  for(const auto ns:trace.wall_ns) {
+    require(ns<=trace.total_wall_ns && sum<=trace.total_wall_ns-ns);sum+=ns;
   }
 }
-}
-inline hip_phase_detail::Frame encode_hip_phase_profile(const HipPhaseProfile& p) {
-  using namespace hip_phase_detail;valid(p);Frame f{};std::copy(magic.begin(),magic.end(),f.begin());
+inline constexpr std::size_t common_bytes=88+8*hip_phase_count;
+inline Frame encode_common(const HipPhaseProfile& p,const std::array<std::byte,8>& marker,
+    std::uint64_t maximum_ns) {
+  require(p.execution==WorkerExecution::cpu_semantics || p.execution==WorkerExecution::hip);
+  trace_valid(p.trace,maximum_ns);
+  Frame f{};std::copy(marker.begin(),marker.end(),f.begin());
   put(f,8,p.binding.request_id);put(f,16,p.binding.ordinal,4);put(f,20,p.binding.node_mask,4);
   std::copy(p.binding.luid.begin(),p.binding.luid.end(),f.begin()+24);
   put(f,32,p.binding.input_bytes,4);put(f,36,p.binding.lanes,4);
@@ -137,11 +144,10 @@ inline hip_phase_detail::Frame encode_hip_phase_profile(const HipPhaseProfile& p
   for(unsigned i=0;i<hip_phase_count;++i)put(f,88+8*i,p.trace.wall_ns[i]);
   return f;
 }
-inline HipPhaseProfile decode_hip_phase_profile(std::span<const std::byte> f,
-    const HipProfileBinding& expected,WorkerExecution execution) {
-  using namespace hip_phase_detail;binding_valid(expected);
-  require(f.size()==256 && std::equal(magic.begin(),magic.end(),f.begin()) &&
-      std::all_of(f.begin()+88+8*hip_phase_count,f.end(),[](auto x){return x==std::byte{};}));
+inline HipPhaseProfile decode_common(std::span<const std::byte> f,const HipProfileBinding& expected,
+    WorkerExecution execution,const std::array<std::byte,8>& marker,std::uint64_t maximum_ns) {
+  require((execution==WorkerExecution::cpu_semantics || execution==WorkerExecution::hip) &&
+      f.size()==sizeof(Frame) && std::equal(marker.begin(),marker.end(),f.begin()));
   HipPhaseProfile p;p.binding=expected;
   require(get(f,8)==expected.request_id && get(f,16,4)==expected.ordinal &&
       get(f,20,4)==expected.node_mask &&
@@ -153,7 +159,21 @@ inline HipPhaseProfile decode_hip_phase_profile(std::span<const std::byte> f,
   require(get(f,80,4)==(hip_phase_complete|0x80000000U));
   p.trace.completed=hip_phase_complete;p.trace.finished=true;
   for(unsigned i=0;i<hip_phase_count;++i)p.trace.wall_ns[i]=get(f,88+8*i);
-  valid(p);return p;
+  trace_valid(p.trace,maximum_ns);return p;
+}
+}
+inline hip_phase_detail::Frame encode_hip_phase_profile(const HipPhaseProfile& p) {
+  using namespace hip_phase_detail;
+  binding_valid(p.binding);
+  return encode_common(p,magic,hip_profile_limit_ns);
+}
+inline HipPhaseProfile decode_hip_phase_profile(std::span<const std::byte> f,
+    const HipProfileBinding& expected,WorkerExecution execution) {
+  using namespace hip_phase_detail;
+  binding_valid(expected);
+  const auto p=decode_common(f,expected,execution,magic,hip_profile_limit_ns);
+  require(std::all_of(f.begin()+common_bytes,f.end(),[](auto x){return x==std::byte{};}));
+  return p;
 }
 static_assert(sizeof(hip_phase_detail::Frame)<=kWorkerReplyLimit);
 } // namespace flitzfs

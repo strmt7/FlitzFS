@@ -1,5 +1,27 @@
 # Validation ledger
 
+## AMD shared-base phase measurements — 18 November 2026
+
+The direct sweep now reports accumulated wall times with its verified records.
+The parent checked the exact request digest, adapter identity and window plan,
+and compared every record with the CPU. The worker returned a trace after
+finishing all windows and releasing the device resources and modules.
+
+| Member extents | Exchange | Stream and slab setup | Host to device | Launch and stream wait | Device to host | Module release |
+|---:|---:|---:|---:|---:|---:|---:|
+| 7 | 1,213 ms | 533 ms | 12.4 ms | 1.0 ms | 0.9 ms | 405 ms |
+| 7 | 476 ms | 261 ms | 12.1 ms | 0.9 ms | 0.8 ms | 3.0 ms |
+| 97 (public source) | 866 ms | 225 ms | 17.6 ms | 5.2 ms | 417 ms | 3.4 ms |
+| 193 | 997 ms | 330 ms | 438 ms | 8.2 ms | 8.2 ms | 3.9 ms |
+
+These are host-visible phase durations. The launch and wait measurement
+includes submission and synchronization. Independent CPU byte checks and
+serialization are counted in reply encoding. The two seven-member repetitions
+show substantial setup and retirement variance. The runtime-refusal control
+used CPU and returned zero GPU timings. The ordinary sweep and all seven
+selected raw and AddressSanitizer entries passed. All process trees exited.
+[Source and phase measurements](evidence/amd-anchor-phases-2026-11-18.json)
+
 ## Resource-sized AMD shared-base sweep — 18 November 2026
 
 One authenticated worker kept the same 64 KiB base and its index for the

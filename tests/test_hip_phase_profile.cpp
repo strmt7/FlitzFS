@@ -1,4 +1,5 @@
 #include "hip_phase_profile.hpp"
+#include "anchor_sweep_profile.hpp"
 #include <iostream>
 #include <limits>
 using namespace flitzfs;
@@ -120,9 +121,53 @@ void wire_cases() {
   const auto search=PreparedGpuMatchSearch::prepare(std::vector<std::byte>(4096,std::byte{41}));
   rejects([&]{accept_match_worker_reply(frame,search,p.binding.request_id,WorkerExecution::cpu_semantics);});
 }
+
+void anchor_profile_cases() {
+  time_value=0;calls=0;throwing=false;constant=false;
+  HipPhaseTrace trace;
+  HipPhaseRecorder recorder(&trace,clock_value,HipPhaseOrder::accumulate,kAnchorSweepProfileLimitNs);
+  // The repeated phases can interleave with each other across search windows.
+  for(unsigned window=0;window<3;++window) {
+    recorder.begin(HipPhase::kernel_wait);recorder.end(HipPhase::kernel_wait);
+    recorder.begin(HipPhase::post_admission);recorder.end(HipPhase::post_admission);
+  }
+  for(unsigned i=0;i<hip_phase_count;++i) {
+    const auto phase=static_cast<HipPhase>(i);
+    if(phase==HipPhase::kernel_wait || phase==HipPhase::post_admission)continue;
+    recorder.begin(phase);recorder.end(phase);
+  }
+  recorder.finish();
+  require(trace.wall_ns[static_cast<unsigned>(HipPhase::kernel_wait)]==3 &&
+      trace.wall_ns[static_cast<unsigned>(HipPhase::post_admission)]==3 &&
+      trace.total_wall_ns==39,"Accumulated phases lost time or overlapped");
+  HipPhaseTrace incomplete;
+  HipPhaseRecorder partial(&incomplete,clock_value,HipPhaseOrder::accumulate,kAnchorSweepProfileLimitNs);
+  partial.begin(HipPhase::kernel_wait);partial.end(HipPhase::kernel_wait);
+  rejects([&]{partial.finish();});
+
+  const auto plan=detail::plan_anchor_match_sweep(7,3,anchor_match::device_bytes(3),3);
+  const std::vector<std::byte> base(anchor_match::extent_bytes),members(7*anchor_match::extent_bytes);
+  const auto request=detail::decode_anchor_match_request(
+      detail::encode_anchor_match_request(base,members,89,plan.whole),plan.whole);
+  auto expected=anchor_sweep_profile_binding(request,plan,2,binding().luid,1);
+  const auto frame=encode_anchor_sweep_profile(expected,trace);
+  const auto decoded=decode_anchor_sweep_profile(frame,expected);
+  require(decoded.total_wall_ns==trace.total_wall_ns && decoded.wall_ns==trace.wall_ns,
+      "Anchor profile did not round-trip");
+  for(const auto index:{0,8,16,20,24,32,36,40,80,84,208,212,216,220,255}) {
+    auto wrong=frame;wrong[index]^=std::byte{1};
+    rejects([&]{(void)decode_anchor_sweep_profile(wrong,expected);});
+  }
+  auto too_much=frame;
+  hip_phase_detail::put(too_much,88,trace.total_wall_ns);
+  rejects([&]{(void)decode_anchor_sweep_profile(too_much,expected);});
+  rejects([&]{(void)decode_anchor_sweep_profile(std::span(frame).first(frame.size()-1),expected);});
+  expected.identity.source_digest[0]^=std::byte{1};
+  rejects([&]{(void)decode_anchor_sweep_profile(frame,expected);});
+}
 }
 int main(){try{
-  recorder_cases();wire_cases();
+  recorder_cases();wire_cases();anchor_profile_cases();
   std::cout<<"HIP phase profile checks: "<<checks<<"; CPU clock/wire semantics only, gpu_executed=false\n";
   return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}

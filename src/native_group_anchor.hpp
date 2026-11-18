@@ -1,6 +1,7 @@
 #pragma once
 #include "flitzfs/gpu_anchor_match.hpp"
 #include "flitzfs/native_filesystem.hpp"
+#include <array>
 #include <optional>
 
 namespace flitzfs::detail {
@@ -19,6 +20,7 @@ struct AnchorMatchSweepPlan {
 struct AnchorMatchRequest {
   std::uint64_t id;
   std::vector<std::byte> source;
+  std::array<std::byte,32> source_digest{};
 };
 using AnchorMatchAdvice=std::vector<std::vector<NativeSharedBaseCopyRange>>;
 
@@ -35,7 +37,7 @@ AnchorMatchRequest decode_anchor_match_request(std::span<const std::byte> frame,
 std::vector<anchor_match::u32> cpu_anchor_match_records(const AnchorMatchRequest&);
 AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchRequest&,std::span<const anchor_match::u32>);
 std::vector<std::byte> encode_anchor_match_reply(const AnchorMatchRequest&,
-    std::span<const anchor_match::u32>);
+    std::span<const anchor_match::u32>,std::size_t reserve_tail_bytes=0);
 AnchorMatchAdvice accept_anchor_match_reply(std::span<const std::byte> frame,const AnchorMatchRequest&);
 
 } // namespace flitzfs::detail

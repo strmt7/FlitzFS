@@ -17,6 +17,7 @@
 #include "../native_lz4_fixture.hpp"
 #include "../anchor_search_fixture.hpp"
 #include "../../src/native_group_anchor.hpp"
+#include "anchor_sweep_profile.hpp"
 #include <windows.h>
 #include <array>
 #include <algorithm>
@@ -428,7 +429,7 @@ bool retire_gpu_exchange(const std::optional<WorkerExchangeSession>& session) {
   return false;
 }
 
-int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller) {
+int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller,bool profiling) {
   require(argc==9 || argc==10,"Direct anchor sweep needs members, search window grant and an optional public extent");
   const fs::path worker(argv[2]);
   require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_worker.exe","Trusted anchor sweep worker required");
@@ -441,12 +442,12 @@ int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bu
         return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');}),"Anchor sweep adapter/runtime binding invalid");
   const auto members=number(argv[7],max_uint),maximum_windows=number(argv[8],max_uint);
   const auto layout=detail::anchor_match_layout(members);
-  const WorkerChannelCapacity capacity{layout.request_bytes,layout.reply_bytes};
+  const WorkerChannelCapacity capacity{layout.request_bytes,layout.reply_bytes+(profiling?kAnchorSweepProfileBytes:0)};
   require(valid_worker_channel_capacity(capacity,budget),"Anchor sweep exceeds its transport allowance");
   MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
   // Charge the retained fixture, canonical request, transport, expected CPU
   // reply and admitted helper before generating proportional input.
-  const auto charged=(budget.memory_mib+4ULL)*1024*1024+6ULL*layout.request_bytes+4ULL*layout.reply_bytes;
+  const auto charged=(budget.memory_mib+4ULL)*1024*1024+6ULL*capacity.request_bytes+4ULL*capacity.reply_bytes;
   require(GlobalMemoryStatusEx(&memory) &&
       valid_process_budget(plan_resource_process_budget(charged,memory.ullAvailPhys,memory.ullAvailPageFile,
           16,budget.cpu_rate,budget.timeout_ms)),"Anchor sweep lacks current physical or commit headroom");
@@ -467,7 +468,8 @@ int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bu
   const auto start=std::chrono::steady_clock::now();
   if(plan) {
     try {
-      session.emplace(WorkerExchangeSession::start_sized(worker,{L"--driver-anchor-sweep",
+      session.emplace(WorkerExchangeSession::start_sized(worker,
+          {profiling?L"--driver-anchor-sweep-profile":L"--driver-anchor-sweep",
           std::to_wstring(ordinal),argv[4],std::to_wstring(mask),std::wstring(digest),
           std::to_wstring(members),std::to_wstring(plan->quantum_members),
           std::to_wstring(plan->device_bytes),std::to_wstring(maximum_windows)},frame,capacity,budget));
@@ -485,7 +487,21 @@ int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bu
   const auto records=detail::cpu_anchor_match_records(request);
   const auto cpu_reply=detail::encode_anchor_match_reply(request,records);
   const auto cpu_ns=nanos_since(cpu_start);
-  const bool parity=completed && result->response==cpu_reply;
+  std::optional<HipPhaseTrace> trace;
+  bool parity=false;
+  if(completed && result->response.size()==capacity.reply_bytes) {
+    const auto response=std::span<const std::byte>(result->response);
+    if(std::ranges::equal(response.first(layout.reply_bytes),cpu_reply)) {
+      if(profiling) {
+        try {
+          const auto binding=anchor_sweep_profile_binding(request,*plan,ordinal,luid,mask);
+          const auto observed_trace=decode_anchor_sweep_profile(response.subspan(layout.reply_bytes),binding);
+          if(observed_trace.total_wall_ns<=exchange_ns)trace=observed_trace;
+        } catch(const std::invalid_argument&) {} // Unusable evidence selects CPU.
+      }
+      parity=!profiling || trace.has_value();
+    }
+  }
   require(retire_gpu_exchange(session),"Anchor sweep child or supervisor retirement unconfirmed");
   std::cout<<std::boolalpha<<"Direct AMD shared base sweep: {\"gpu_verified\":"<<parity
       <<",\"cpu_fallback\":"<<!parity<<",\"worker_started\":"<<(session && session->process_id()!=0)
@@ -494,7 +510,20 @@ int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bu
       <<",\"search_windows\":"<<(plan?plan->windows:0)<<",\"device_allocation_bytes\":"<<(plan?plan->device_bytes:0)
       <<",\"exchange_ns\":"<<exchange_ns<<",\"cpu_search_and_verify_ns\":"<<cpu_ns
       <<",\"worker_exit\":"<<(result?result->process.exit_code:0)
-      <<",\"job_peak_bytes\":"<<controller.peak_commit()<<",\"transport_quiescent\":true}\n";
+      <<",\"job_peak_bytes\":"<<controller.peak_commit()<<",\"transport_quiescent\":true";
+  if(profiling) {
+    std::cout<<",\"profile_verified\":"<<trace.has_value()<<",\"worker_wall_ns\":"
+        <<(trace?trace->total_wall_ns:0)<<",\"phase_times_ns\":";
+    if(trace) {
+      std::cout<<'{';
+      for(unsigned i=0;i<hip_phase_count;++i) {
+        if(i)std::cout<<',';
+        std::cout<<'"'<<hip_phase_names[i]<<"\":"<<trace->wall_ns[i];
+      }
+      std::cout<<'}';
+    } else std::cout<<"null";
+  }
+  std::cout<<"}\n";
   return parity?0:2;
 }
 
@@ -807,7 +836,8 @@ int wmain(int argc,wchar_t** argv){
     if(argc==4 && std::wstring_view(argv[1])==L"--uniform-admission")return uniform_admission(argv[2],argv[3]);
     if(argc==2 && std::wstring_view(argv[1])==L"--uniform-sweep-native-cpu-fixture")return uniform_native_cpu_fixture(true);
     const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
-    if(mode==L"--gpu-direct-anchor-sweep-once")return direct_anchor_sweep_once(argc,argv,controller);
+    if(mode==L"--gpu-direct-anchor-sweep-once" || mode==L"--gpu-direct-anchor-sweep-profile-once")
+      return direct_anchor_sweep_once(argc,argv,controller,mode==L"--gpu-direct-anchor-sweep-profile-once");
     if(mode==L"--gpu-indexed-anchor-once" || mode==L"--gpu-indexed-direct-anchor-once" ||
         mode==L"--gpu-indexed-tiled-anchor-once") {
       require(argc==7 || argc==8,"Anchor search needs the exact worker binding and optional public extent");

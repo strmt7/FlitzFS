@@ -212,7 +212,8 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
 
 std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
     const anchor_match::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
-    std::uint32_t node_mask,const detail::AnchorMatchRequest& request,const detail::AnchorMatchSweepPlan& plan) {
+    std::uint32_t node_mask,const detail::AnchorMatchRequest& request,const detail::AnchorMatchSweepPlan& plan,
+    HipPhaseRecorder& profile) {
   require_hip_worker_job();
   namespace match=anchor_match;
   require(runtime && match::compatible_kernel_api(kernel) && ordinal>=0 && ordinal<64 && request.id,
@@ -221,6 +222,7 @@ std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
   require(plan==detail::plan_anchor_match_sweep(whole_members,plan.quantum_members,plan.device_bytes,plan.windows),
       "anchor match sweep differs from its admitted plan");
   const auto allocation=plan.device_bytes;
+  profile.begin(HipPhase::device_initialize);
   WindowsGpuBudgetSampler sampler(luid,node_mask);
   const auto before_init=sampler.sample().snapshot;
   require_hip_memory(before_init,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::pre_initialize);
@@ -235,7 +237,9 @@ std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
   });
   const auto before=sampler.sample().snapshot;
   require_hip_memory(before,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::initialized,&before_init);
+  profile.end(HipPhase::device_initialize);
 
+  profile.begin(HipPhase::stream_allocate);
   DeviceResources resources(api);
   hip_detail::check_hip(api.create_stream(&resources.stream,hipStreamNonBlocking,least),
       "create anchor match stream",HipWorkerStage::stream_create);
@@ -248,39 +252,57 @@ std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
   void* member_input=reinterpret_cast<void*>(address+match::extent_bytes);
   void* table=reinterpret_cast<void*>(address+window_input);
   void* output=reinterpret_cast<void*>(address+window_input+match::index_bytes);
+  profile.end(HipPhase::stream_allocate);
+
+  profile.begin(HipPhase::host_to_device);
   check_hip(api.copy(source,request.source.data(),window_input,hipMemcpyHostToDevice),
       "upload shared base and first match window");
   check_hip(clear(table,255,allocation-window_input,resources.stream),"clear anchor match slab");
+  profile.end(HipPhase::host_to_device);
 
   auto version=match::abi_version;
   void* index_arguments[]{&source,&table,&version};
+  profile.begin(HipPhase::kernel_wait);
   check_hip(api.launch(reinterpret_cast<const void*>(kernel.index),
       dim3(match::extent_bytes/match::threads),dim3(match::threads),index_arguments,0,resources.stream),
       "launch shared base index");
+  profile.end(HipPhase::kernel_wait);
   std::vector<match::u32> records(whole_members*match::tiles);
   for (match::u32 first=0;first<whole_members;) {
     auto members=(std::min)(whole_members-first,plan.quantum_members);
     auto window=std::span(records).subspan(first*match::tiles,members*match::tiles);
     if (first) {
+      profile.begin(HipPhase::host_to_device);
       const auto* input=request.source.data()+(first+1)*match::extent_bytes;
       check_hip(api.copy(member_input,input,members*match::extent_bytes,hipMemcpyHostToDevice),
           "upload next anchor match window");
       check_hip(clear(output,255,window.size_bytes(),resources.stream),"clear next anchor match result");
+      profile.end(HipPhase::host_to_device);
     }
     void* search_arguments[]{&source,&members,&table,&output,&version};
+    profile.begin(HipPhase::kernel_wait);
     check_hip(api.launch(reinterpret_cast<const void*>(kernel.search),
         dim3(static_cast<unsigned>(window.size())/match::threads),dim3(match::threads),search_arguments,0,resources.stream),
         "launch anchor match window");
     check_hip(api.synchronize(resources.stream),"complete anchor match window");
+    profile.end(HipPhase::kernel_wait);
+    profile.begin(HipPhase::device_to_host);
     check_hip(api.copy(window.data(),output,window.size_bytes(),hipMemcpyDeviceToHost),
         "read anchor match window");
+    profile.end(HipPhase::device_to_host);
+    profile.begin(HipPhase::cpu_verification);
     require(std::none_of(window.begin(),window.end(),[](auto record){return record==match::empty;}),
         "incomplete anchor match window",HipWorkerStage::execution);
+    profile.end(HipPhase::cpu_verification);
+    profile.begin(HipPhase::post_admission);
     const auto after=sampler.sample().snapshot;
     require_hip_memory(after,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::completed,&before_init);
+    profile.end(HipPhase::post_admission);
     first+=members;
   }
+  profile.begin(HipPhase::resources_release);
   check_hip(resources.release_all(),"release anchor match slab");
+  profile.end(HipPhase::resources_release);
   return records;
 }
 

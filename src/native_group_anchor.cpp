@@ -107,8 +107,9 @@ AnchorMatchRequest decode_anchor_match_request(std::span<const std::byte> frame,
   require_admitted_layout(anchor_match_layout(count),admitted);
   require(get(frame,16,4)==count && get(frame,20,4)==count*match::tiles,"anchor match request extent count");
   AnchorMatchRequest request{get(frame,8,8),Bytes(source.begin(),source.end())};
-  const auto digest=record_digest(request.source);
-  require(std::equal(digest.begin(),digest.end(),frame.begin()+32),"anchor match request digest");
+  request.source_digest=record_digest(request.source);
+  require(std::equal(request.source_digest.begin(),request.source_digest.end(),frame.begin()+32),
+      "anchor match request digest");
   return request;
 }
 
@@ -178,10 +179,12 @@ AnchorMatchAdvice verify_anchor_match_records(const AnchorMatchRequest& request,
   return advice;
 }
 
-Bytes encode_anchor_match_reply(const AnchorMatchRequest& request,std::span<const match::u32> records) {
+Bytes encode_anchor_match_reply(const AnchorMatchRequest& request,std::span<const match::u32> records,
+    std::size_t reserve_tail_bytes) {
   check_records(request,records,nullptr);
+  require(reserve_tail_bytes<=maximum_channel_bytes-header_size-records.size_bytes(),"anchor reply tail capacity");
   auto frame=header(reply_magic,request.id,anchor_match_members(request.source),execution,
-      record_digest(request.source),records.size_bytes());
+      record_digest(request.source),records.size_bytes()+reserve_tail_bytes);
   for (const auto word:records) put(frame,word,sizeof(word));
   return frame;
 }
