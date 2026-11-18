@@ -377,12 +377,13 @@ AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest sn
 }
 
 Bytes encode_anchor_match_batch_reply(const AnchorMatchBatchRequest& request,
-    std::span<const std::vector<match::u32>> records) {
+    std::span<const std::vector<match::u32>> records,std::size_t reserve_tail_bytes) {
   const auto groups=request.groups();
   const auto& plan=request.plan();
   require(!records.empty() && records.size()==groups.size(),"anchor batch result count");
+  require(reserve_tail_bytes<=maximum_channel_bytes-plan.reply_bytes,"anchor batch reply tail capacity");
   auto frame=header(batch_reply_magic,request.id(),static_cast<std::uint32_t>(records.size()),
-      plan.launches,execution,request.digest(),plan.reply_bytes-header_size);
+      plan.launches,execution,request.digest(),plan.reply_bytes-header_size+reserve_tail_bytes);
   for(std::size_t i=0;i<records.size();++i) {
     const auto& group=groups[i];
     const auto members=plan.groups[i].whole.members;

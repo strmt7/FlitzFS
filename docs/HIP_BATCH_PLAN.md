@@ -98,6 +98,33 @@ exchanges took 2.05 and 1.79 seconds, against CPU references of 1.59 and
 workloads still lack consistent evidence for automatic AMD preference.
 [Live calibration and qualification](evidence/amd-anchor-cohorts-2026-11-18.json)
 
+The coalesced worker can attach a diagnostic phase profile to its reply.
+The probe checks the profile against the request digest, adapter, transfer
+plan and allowed number of dispatches between stream waits. It verifies all
+matching records against the independent CPU reply before accepting the
+observation.
+
+At 1,824 extents the first profiles measured about 430 ms in launch and
+stream waits, 21 ms in uploads and 1 ms in the repeated budget checks.
+Device initialization plus stream and slab setup varied from 314 to
+620 ms in those two runs. In four alternating pairs, queuing up to four
+existing dispatches reduced median launch and wait time from 432.34 to
+395.83 ms. The complete AMD exchange median moved from 1.91 to 1.42
+seconds in the same trials. Other phases varied and CPU references
+finished sooner in each pair.
+
+The queue keeps a fresh memory check before each dispatch and waits for
+completion before reusing arguments or reading output. The larger queue
+grant is exercised through the profiled comparison mode. The probe also
+checks the transport's exact host-memory requirement before preparing its
+input. Windows Release, AddressSanitizer and the SDK build passed. The
+final live controls covered the original reply, runtime refusal, and both
+queue settings at 1,686 extents. The largest GPU test peaked at about
+397 MiB of host commitment.
+[Phase, queue and admission evidence](evidence/amd-anchor-queue-phases-2026-11-18.json) ·
+[AMD stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html) ·
+[Windows video memory budgets](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)

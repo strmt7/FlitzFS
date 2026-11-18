@@ -1195,8 +1195,17 @@ void sized_transactions(const std::filesystem::path& executable) {
   check(valid_worker_channel_capacity(sized_capacity,budget),"valid sized capacity rejected");
   for(const auto capacity:{WorkerChannelCapacity{},WorkerChannelCapacity{31,32},
       WorkerChannelCapacity{32,31},WorkerChannelCapacity{~std::size_t{0},32},
-      WorkerChannelCapacity{32,~std::size_t{0}},WorkerChannelCapacity{128U*1024*1024,32}})
+      WorkerChannelCapacity{32,~std::size_t{0}},WorkerChannelCapacity{128U*1024*1024,32}}) {
     check(!valid_worker_channel_capacity(capacity,budget),"invalid sized capacity admitted");
+    check(!required_sized_worker_headroom(capacity,budget),"invalid capacity estimated as admissible");
+  }
+  const auto minimum=required_sized_worker_headroom(sized_capacity,budget);
+  constexpr std::uint64_t reserve=512ULL*1024*1024;
+  check(minimum>reserve+16ULL*budget.memory_mib*1024*1024,"sized headroom omits the channel");
+  auto smaller_share=budget;
+  smaller_share.memory_share_divisor=32;
+  check(required_sized_worker_headroom(sized_capacity,smaller_share)==reserve+2*(minimum-reserve),
+      "sized headroom did not apply the current share");
   Bytes source(sized_capacity.request_bytes);
   for(std::size_t i=0;i<source.size();++i)source[i]=static_cast<std::byte>((i*13+i/251)%256);
   for(const auto* mode:{L"sized-ok",L"sized-snapshot",L"sized-fail-after",L"sized-guard",L"sized-wrong-capacity",L"sized-legacy"}) {

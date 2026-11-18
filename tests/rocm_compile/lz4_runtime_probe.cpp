@@ -18,6 +18,7 @@
 #include "../anchor_search_fixture.hpp"
 #include "../../src/native_group_anchor.hpp"
 #include "anchor_sweep_profile.hpp"
+#include "anchor_batch_profile.hpp"
 #include <windows.h>
 #include <array>
 #include <algorithm>
@@ -445,6 +446,19 @@ bool retire_gpu_exchange(const std::optional<WorkerExchangeSession>& session) {
   return false;
 }
 
+void write_phase_profile(const std::optional<HipPhaseTrace>& trace) {
+  std::cout<<",\"profile_verified\":"<<trace.has_value()<<",\"worker_wall_ns\":"
+      <<(trace?trace->total_wall_ns:0)<<",\"phase_times_ns\":";
+  if(trace) {
+    std::cout<<'{';
+    for(unsigned i=0;i<hip_phase_count;++i) {
+      if(i)std::cout<<',';
+      std::cout<<'"'<<hip_phase_names[i]<<"\":"<<trace->wall_ns[i];
+    }
+    std::cout<<'}';
+  } else std::cout<<"null";
+}
+
 int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller,bool profiling) {
   require(argc==9 || argc==10,"Direct anchor sweep needs members, search window grant and an optional public extent");
   const fs::path worker(argv[2]);
@@ -527,28 +541,24 @@ int direct_anchor_sweep_once(int argc,wchar_t** argv,const gpu_probe_fixture::Bu
       <<",\"exchange_ns\":"<<exchange_ns<<",\"cpu_search_and_verify_ns\":"<<cpu_ns
       <<",\"worker_exit\":"<<(result?result->process.exit_code:0)
       <<",\"job_peak_bytes\":"<<controller.peak_commit()<<",\"transport_quiescent\":true";
-  if(profiling) {
-    std::cout<<",\"profile_verified\":"<<trace.has_value()<<",\"worker_wall_ns\":"
-        <<(trace?trace->total_wall_ns:0)<<",\"phase_times_ns\":";
-    if(trace) {
-      std::cout<<'{';
-      for(unsigned i=0;i<hip_phase_count;++i) {
-        if(i)std::cout<<',';
-        std::cout<<'"'<<hip_phase_names[i]<<"\":"<<trace->wall_ns[i];
-      }
-      std::cout<<'}';
-    } else std::cout<<"null";
-  }
+  if(profiling)write_phase_profile(trace);
   std::cout<<"}\n";
   return parity?0:2;
 }
 
+struct AnchorBatchProfileObservation {
+  AnchorBatchProfileBinding binding;
+  std::optional<HipPhaseTrace> trace;
+};
+
 bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::wstring>& args,
-    SharedWorkerRequest frame,const Bytes& expected,ProcessBudget process_budget) {
+    SharedWorkerRequest frame,const Bytes& expected,ProcessBudget process_budget,
+    AnchorBatchProfileObservation* profile=nullptr) {
   std::optional<WorkerExchangeSession> session;
   const WorkerExchangeResult* result=nullptr;
   try {
-    const WorkerChannelCapacity capacity{frame->bytes().size(),expected.size()};
+    const WorkerChannelCapacity capacity{frame->bytes().size(),
+        expected.size()+(profile?kAnchorBatchProfileBytes:0)};
     session.emplace(WorkerExchangeSession::start_sized(worker,args,std::move(frame),capacity,process_budget));
     const auto start=GetTickCount64();
     while(!(result=session->try_result()) && !session->failure() &&
@@ -565,17 +575,30 @@ bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::ws
     if(result)std::cerr<<"Anchor worker did not complete: "<<result->process.exit_code<<'\n';
     return false;
   }
-  return result->response==expected;
+  if(!profile)return result->response==expected;
+  const auto response=std::span<const std::byte>(result->response);
+  if(response.size()!=expected.size()+kAnchorBatchProfileBytes ||
+      !std::ranges::equal(response.first(expected.size()),expected))return false;
+  try {
+    profile->trace=decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),profile->binding);
+    return true;
+  } catch(const std::invalid_argument&) {
+    return false;
+  }
 }
 
-enum class AnchorBatchMode {separate,transfers,calibration};
+enum class AnchorBatchMode {separate,transfers,calibration,profile};
 
 int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
-  const auto calibration=mode==AnchorBatchMode::calibration;
+  const auto profiling=mode==AnchorBatchMode::profile;
+  const auto calibration=mode==AnchorBatchMode::calibration || profiling;
   const auto transfers=mode!=AnchorBatchMode::separate;
   const auto corpus_argument=transfers?11:10;
-  require(calibration?argc==corpus_argument+1:(argc==corpus_argument || argc==corpus_argument+1),
+  const auto explicit_wait=profiling && argc==corpus_argument+2;
+  require(calibration?(argc==corpus_argument+1 || explicit_wait):(argc==corpus_argument || argc==corpus_argument+1),
       "Anchor comparison needs geometry, order or cohort, transfer grant when selected and input sample(s)");
+  const auto dispatches_per_wait=explicit_wait?number(argv[corpus_argument+1],kAnchorProfileMaxQueuedDispatches):1;
+  require(dispatches_per_wait!=0,"Anchor batch wait grant");
   const fs::path worker(argv[2]);
   require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_worker.exe","Trusted anchor batch worker required");
   constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
@@ -628,7 +651,7 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
     require(valid_worker_channel_capacity(capacity,result),"Anchor comparison lacks current worker headroom");
     return result;
   };
-  const WorkerChannelCapacity capacity{plan.request_bytes,plan.reply_bytes};
+  const WorkerChannelCapacity capacity{plan.request_bytes,plan.reply_bytes+(profiling?kAnchorBatchProfileBytes:0)};
   const auto batch_budget=child_budget(capacity,plan.device_bytes);
   const auto transfer_budget=transfer?child_budget(capacity,transfer->device_bytes):batch_budget;
   std::vector<ProcessBudget> individual_budgets;
@@ -651,8 +674,12 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
         bank_bytes/kNativeExtentBytes>=group_count,"Public corpus bank must provide one extent per base");
   }
   const auto prepare_bytes=std::uint64_t(plan.request_bytes)+largest_request+kNativeExtentBytes+bank_bytes;
-  const auto parent_bytes=128*mib+prepare_bytes+3ULL*plan.reply_bytes;
+  const auto parent_bytes=128*mib+prepare_bytes+3ULL*capacity.reply_bytes;
   const auto child_bytes=transfer_budget.memory_mib*mib;
+  const auto available=(std::min)(memory.ullAvailPhys,memory.ullAvailPageFile);
+  const auto required=required_sized_worker_headroom(capacity,transfer_budget);
+  require(required && available>=parent_bytes && available-parent_bytes>=required,
+      "Anchor comparison cannot fund the worker channel and request preparation");
   require(valid_process_budget(plan_resource_process_budget(parent_bytes+child_bytes,memory.ullAvailPhys,
       memory.ullAvailPageFile,16,budget.cpu_rate,budget.timeout_ms)),"Anchor comparison lacks current host headroom");
   const gpu_probe_fixture::Budget controller(parent_bytes,child_bytes);
@@ -678,13 +705,15 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
   }();
   const auto groups=batch.groups();
   std::vector<Bytes> individual_replies;
-  std::uint64_t cpu_ns=0,matched_tiles=0,total_tiles=0;
+  std::uint64_t cpu_ns=0,cpu_reply_encode_ns=0,matched_tiles=0,total_tiles=0;
   const auto expected=[&] {
     const auto cpu_start=std::chrono::steady_clock::now();
     std::vector<std::vector<anchor_match::u32>> cpu;
     cpu.reserve(groups.size());
     for(const auto& group:groups)cpu.push_back(detail::cpu_anchor_match_records(group));
+    const auto encode_start=profiling?std::chrono::steady_clock::now():cpu_start;
     auto reply=detail::encode_anchor_match_batch_reply(batch,cpu);
+    if(profiling)cpu_reply_encode_ns=nanos_since(encode_start);
     cpu_ns=nanos_since(cpu_start);
     if(calibration)for(const auto& records:cpu) {
       matched_tiles+=static_cast<std::uint64_t>(std::ranges::count_if(records,[](auto word){return word!=0;}));
@@ -697,18 +726,27 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
     return reply;
   }();
 
+  std::optional<AnchorBatchProfileObservation> profile;
+  if(profiling)profile.emplace(AnchorBatchProfileObservation{
+      anchor_batch_profile_binding(batch,*transfer,ordinal,luid,mask,dispatches_per_wait),{}});
   std::uint64_t batch_ns=0,comparison_ns=0;
   const auto run_batch=[&](bool coalesce,std::uint64_t& elapsed) {
     const auto start=std::chrono::steady_clock::now();
-    std::vector<std::wstring> arguments{coalesce?L"--driver-anchor-transfer-batch":L"--driver-anchor-batch",
+    std::vector<std::wstring> arguments{profiling?L"--driver-anchor-transfer-batch-profile":
+        (coalesce?L"--driver-anchor-transfer-batch":L"--driver-anchor-batch"),
         std::to_wstring(ordinal),
         argv[4],std::to_wstring(mask),std::wstring(digest),std::to_wstring(plan.request_bytes),
-        std::to_wstring(plan.reply_bytes),std::to_wstring(plan.quantum_members),
+        std::to_wstring(capacity.reply_bytes),std::to_wstring(plan.quantum_members),
         std::to_wstring(plan.device_bytes),std::to_wstring(plan.launches)};
     if(coalesce)arguments.push_back(std::to_wstring(transfer->device_bytes));
+    if(profiling)arguments.push_back(std::to_wstring(dispatches_per_wait));
     const auto verified=anchor_comparison_exchange(worker,arguments,batch.snapshot(),expected,
-        coalesce?transfer_budget:batch_budget);
+        coalesce?transfer_budget:batch_budget,profile?&*profile:nullptr);
     elapsed=prepare_ns+nanos_since(start);
+    if(profile && profile->trace && profile->trace->total_wall_ns>elapsed-prepare_ns) {
+      profile->trace.reset();
+      return false;
+    }
     return verified;
   };
   const auto run_fresh=[&] {
@@ -749,7 +787,12 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
   } else std::cout<<",\"fresh_ns\":"<<comparison_ns;
   std::cout
       <<",\"cpu_search_and_verify_ns\":"<<cpu_ns<<",\"job_peak_bytes\":"<<controller.peak_commit()
-      <<",\"transport_quiescent\":true}\n";
+      <<",\"transport_quiescent\":true";
+  if(profile) {
+    std::cout<<",\"dispatches_per_wait\":"<<dispatches_per_wait<<",\"cpu_reply_encode_ns\":"<<cpu_reply_encode_ns;
+    write_phase_profile(profile->trace);
+  }
+  std::cout<<"}\n";
   return verified?0:2;
 }
 
@@ -1032,6 +1075,8 @@ int wmain(int argc,wchar_t** argv){
       return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::transfers);
     if(mode==L"--gpu-direct-anchor-calibrate-once")
       return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::calibration);
+    if(mode==L"--gpu-direct-anchor-calibrate-profile-once")
+      return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::profile);
     gpu_probe_fixture::Budget controller;
     if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-fixture")
       return deferred_native_fixture::run({},controller);

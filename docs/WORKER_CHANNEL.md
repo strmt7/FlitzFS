@@ -323,6 +323,11 @@ receiving worker independently checks geometry, the enclosing digest and
 the nested request digests using the existing format.
 
 The sized transport uses distinct request/reply magic and control version 2.
+The channel exposes its checked physical and commit requirement before
+construction. The shared-base probe includes its own pending preparation
+footprint when using this estimate. Both channel endpoints still sample
+live memory during admission.
+
 Capacities must fit the signed publication-length representation and their
 complete accounting (three request copies, two reply copies and guards) must
 fit half the enforced child's committed-memory allowance. Mapping sizes are

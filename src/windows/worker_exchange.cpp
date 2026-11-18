@@ -118,29 +118,39 @@ struct Mapping {
     return Mapping(std::move(h),access,count);
   }
 };
+constexpr std::uint64_t channel_reserve=512ULL*1024*1024;
+
+std::uint64_t channel_resident_bytes(WorkerChannelCapacity capacity,ProcessBudget budget) noexcept {
+  // Both fixed and admitted sized capacities fit the signed wire lengths.
+  const auto overhead=3ULL*capacity.request_bytes+2ULL*capacity.reply_bytes+
+      2*(sizeof(Control)+guard_bytes)+4ULL*1024*1024;
+  if(budget.memory_mib>((std::numeric_limits<std::uint64_t>::max)()-overhead)/(1024*1024))return 0;
+  return static_cast<std::uint64_t>(budget.memory_mib)*1024*1024+overhead;
+}
+
+std::uint64_t channel_headroom_bytes(std::uint64_t resident,std::uint32_t divisor) noexcept {
+  if(!resident || resident>((std::numeric_limits<std::uint64_t>::max)()-channel_reserve)/divisor)return 0;
+  return channel_reserve+resident*divisor;
+}
+
 void headroom(ProcessBudget budget,ChannelProfile profile={}) {
   require(valid_process_budget(budget),"invalid worker process budget");
   if(profile.sized)require(valid_worker_channel_capacity(profile.capacity,budget),
       "invalid sized worker capacity");
   MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
   if(!GlobalMemoryStatusEx(&memory))failed("worker memory headroom");
-  // A valid adaptive budget can exceed the legacy fixture's MiB range. Check
-  // the complete sum before adding transport copies and reserves.
-  const auto overhead=512ULL*1024*1024+3ULL*profile.capacity.request_bytes+
-      2ULL*profile.capacity.reply_bytes+2*(sizeof(Control)+guard_bytes)+4ULL*1024*1024;
-  require(budget.memory_mib<=((std::numeric_limits<ULONGLONG>::max)()-overhead)/(1024*1024),
-      "worker resident accounting overflow");
-  const auto needed=static_cast<ULONGLONG>(budget.memory_mib)*1024*1024+
-      512ULL*1024*1024+3ULL*profile.capacity.request_bytes+2ULL*profile.capacity.reply_bytes+
-      2*(sizeof(Control)+guard_bytes)+4ULL*1024*1024;
-  if(memory.ullAvailPhys<needed || memory.ullAvailPageFile<needed)
+  const auto resident=channel_resident_bytes(profile.capacity,budget);
+  const auto minimum=channel_headroom_bytes(resident,1);
+  require(minimum!=0,"worker resident accounting overflow");
+  const auto available=(std::min)(memory.ullAvailPhys,memory.ullAvailPageFile);
+  if(available<minimum)
     throw std::runtime_error("insufficient worker channel memory headroom");
   // The optional large-window route yields at least 15/16 of CURRENT spare
   // physical/commit headroom, including runtime allowance and all parent copies.
-  const auto resident=needed-512ULL*1024*1024;
-  if(profile.sized && (resident>(memory.ullAvailPhys-512ULL*1024*1024)/(std::max)(16U,budget.memory_share_divisor) ||
-      resident>(memory.ullAvailPageFile-512ULL*1024*1024)/(std::max)(16U,budget.memory_share_divisor)))
-    throw std::runtime_error("sized worker would consume excessive live headroom");
+  if(profile.sized) {
+    const auto required=channel_headroom_bytes(resident,(std::max)(16U,budget.memory_share_divisor));
+    if(!required || available<required)throw std::runtime_error("sized worker would consume excessive live headroom");
+  }
 }
 }
 bool valid_worker_channel_capacity(WorkerChannelCapacity capacity,ProcessBudget budget) noexcept {
@@ -153,6 +163,10 @@ bool valid_worker_channel_capacity(WorkerChannelCapacity capacity,ProcessBudget 
   const auto charged=3ULL*capacity.request_bytes+2ULL*capacity.reply_bytes+
       2*(sizeof(Control)+guard_bytes);
   return charged<=std::uint64_t(budget.memory_mib)*1024*1024/2;
+}
+std::uint64_t required_sized_worker_headroom(WorkerChannelCapacity capacity,ProcessBudget budget) noexcept {
+  if(!valid_worker_channel_capacity(capacity,budget))return 0;
+  return channel_headroom_bytes(channel_resident_bytes(capacity,budget),(std::max)(16U,budget.memory_share_divisor));
 }
 namespace {
 WorkerExchangeResult exchange_unclaimed(const std::filesystem::path& helper,

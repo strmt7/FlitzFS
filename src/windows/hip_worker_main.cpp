@@ -1,5 +1,6 @@
 #include "hip_decode_worker.hpp"
 #include "anchor_sweep_profile.hpp"
+#include "anchor_batch_profile.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include "gpu_budget.hpp"
 #include "hip_worker_exit.hpp"
@@ -228,7 +229,8 @@ std::string runtime_digest(std::wstring_view wide) {
 
 int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
-  const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch";
+  const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile";
+  const bool anchor_transfer=mode==L"--driver-anchor-transfer-batch" || anchor_batch_profile;
   const bool anchor_batch=mode==L"--driver-anchor-batch" || anchor_transfer;
   const bool anchor_profile=mode==L"--driver-anchor-sweep-profile";
   const bool anchor_sweep=mode==L"--driver-anchor-sweep" || anchor_profile;
@@ -447,7 +449,7 @@ int worker(int argc, wchar_t** argv) {
   const bool driver = mode == L"--driver-adapter" || mode == L"--driver-match-adapter" ||
       memory_observation || phase_observation || anchoring || anchor_batch;
   const bool matching = mode == L"--match-adapter" || mode == L"--driver-match-adapter" || phase_observation;
-  const auto channel_argument=anchor_transfer?12:anchor_batch?11:anchor_sweep?10:driver?6:5;
+  const auto channel_argument=anchor_batch_profile?13:anchor_transfer?12:anchor_batch?11:anchor_sweep?10:driver?6:5;
   require(argc==channel_argument+2 &&
       (driver || mode == L"--adapter" || mode == L"--match-adapter") &&
       std::wstring_view(argv[channel_argument]) == L"--worker-channel",
@@ -457,10 +459,13 @@ int worker(int argc, wchar_t** argv) {
   const auto luid = parse_luid(argv[3]);
   const auto node_mask = decimal(argv[4], (std::numeric_limits<unsigned>::max)());
   require(node_mask && !(node_mask & (node_mask - 1)), Exit::invalid_request, "adapter node mask");
+  const auto dispatches_per_wait=anchor_batch_profile?decimal(argv[12],kAnchorProfileMaxQueuedDispatches):1;
+  require(dispatches_per_wait!=0,Exit::invalid_request,"anchor batch wait grant");
   HipPhaseProfile phase_value;
-  HipPhaseRecorder phase_clock(phase_observation || anchor_profile?&phase_value.trace:nullptr,
-      hip_phase_detail::clock_ns,anchor_profile?HipPhaseOrder::accumulate:HipPhaseOrder::ordered,
-      anchor_profile?kAnchorSweepProfileLimitNs:hip_profile_limit_ns);
+  const bool profile_anchor=anchor_profile || anchor_batch_profile;
+  HipPhaseRecorder phase_clock(phase_observation || profile_anchor?&phase_value.trace:nullptr,
+      hip_phase_detail::clock_ns,profile_anchor?HipPhaseOrder::accumulate:HipPhaseOrder::ordered,
+      profile_anchor?kAnchorSweepProfileLimitNs:hip_profile_limit_ns);
   phase_clock.begin(HipPhase::request_decode);
   std::optional<detail::AnchorMatchSweepPlan> anchor_plan;
   constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
@@ -473,7 +478,7 @@ int worker(int argc, wchar_t** argv) {
     }
   }
   const auto token=argv[channel_argument+1];
-  const auto profile_bytes=anchor_profile?kAnchorSweepProfileBytes:0;
+  const auto profile_bytes=profile_anchor?kAnchorSweepProfileBytes:0;
   std::optional<WorkerChannelCapacity> sized_capacity;
   if(anchor_batch) sized_capacity=WorkerChannelCapacity{decimal(argv[6],max_uint),decimal(argv[7],max_uint)};
   else if(anchor_plan) sized_capacity=WorkerChannelCapacity{anchor_plan->whole.request_bytes,
@@ -486,9 +491,11 @@ int worker(int argc, wchar_t** argv) {
   std::uint32_t transfer_grant=0;
   std::uint64_t allocation=0;
   if(anchor_batch) {
+    require(sized_capacity->reply_bytes>profile_bytes,Exit::invalid_request,"anchor batch reply capacity");
     try {
       anchors.emplace(detail::decode_anchor_match_batch_request(channel.take_request_snapshot(),
-          static_cast<std::uint32_t>(sized_capacity->request_bytes),static_cast<std::uint32_t>(sized_capacity->reply_bytes),
+          static_cast<std::uint32_t>(sized_capacity->request_bytes),
+          static_cast<std::uint32_t>(sized_capacity->reply_bytes-profile_bytes),
           decimal(argv[8],anchor_match::max_members),wide_decimal(argv[9]),decimal(argv[10],max_uint)));
       allocation=anchors->plan().device_bytes;
       if(anchor_transfer) {
@@ -583,9 +590,9 @@ int worker(int argc, wchar_t** argv) {
       // Encoding includes independent comparison with the original bytes.
       if(anchors) {
         const auto records=run_hip_anchor_batch_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
-            luid,node_mask,*anchors,phase_clock,window,transfer_grant);
+            luid,node_mask,*anchors,phase_clock,window,transfer_grant,dispatches_per_wait);
         phase_clock.begin(HipPhase::reply_encode);
-        frame=detail::encode_anchor_match_batch_reply(*anchors,records);
+        frame=detail::encode_anchor_match_batch_reply(*anchors,records,profile_bytes);
       } else {
         const auto records=run_hip_anchor_match_in_worker(runtime.get(),*api,static_cast<int>(ordinal),
             luid,node_mask,*anchor,*anchor_plan,phase_clock,anchor_sweep);
@@ -643,7 +650,13 @@ int worker(int argc, wchar_t** argv) {
     const auto metadata=encode_hip_phase_profile(phase_value);
     channel.publish(metadata);return 0;
   }
-  if(anchor_profile) {
+  if(anchor_batch_profile) {
+    phase_clock.finish();
+    const auto transfer=detail::plan_anchor_match_transfers(anchors->plan(),transfer_grant);
+    const auto binding=anchor_batch_profile_binding(*anchors,transfer,ordinal,luid,node_mask,dispatches_per_wait);
+    const auto metadata=encode_anchor_batch_profile(binding,phase_value.trace);
+    frame.insert(frame.end(),metadata.begin(),metadata.end());
+  } else if(anchor_profile) {
     phase_clock.finish();
     const auto binding=anchor_sweep_profile_binding(*anchor,*anchor_plan,ordinal,luid,node_mask);
     const auto metadata=encode_anchor_sweep_profile(binding,phase_value.trace);

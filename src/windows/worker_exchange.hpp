@@ -13,6 +13,9 @@ struct WorkerChannelCapacity {
   std::size_t request_bytes=0,reply_bytes=0;
 };
 bool valid_worker_channel_capacity(WorkerChannelCapacity,ProcessBudget) noexcept;
+// Minimum available physical and commit bytes at sized channel admission.
+// A caller can check this before allocating its input. Zero means invalid.
+std::uint64_t required_sized_worker_headroom(WorkerChannelCapacity,ProcessBudget) noexcept;
 enum class WorkerExchangeCode { completed, worker_failed, timed_out, cancelled, exit_unconfirmed, invalid_response, supervisor_failed, supervisor_exit_unconfirmed };
 struct WorkerExchangeResult {
   WorkerExchangeCode code = WorkerExchangeCode::invalid_response;

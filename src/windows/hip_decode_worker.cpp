@@ -1,4 +1,5 @@
 #include "hip_decode_worker.hpp"
+#include "anchor_batch_profile.hpp"
 #include "flitzfs/gpu_match_layout.hpp"
 #include "flitzfs/process_budget.hpp"
 #include "gpu_budget.hpp"
@@ -227,15 +228,29 @@ std::vector<match_detail::Match> run_hip_match_in_worker(HMODULE runtime,
 }
 
 namespace {
+// Keep the launch arguments and slab alive through the last ordered command.
+// A pressure or launch error after submission still drains the owned stream.
+struct AnchorStreamWork {
+  const DeviceResources& resources;
+  bool pending=false;
+  hipError_t wait() noexcept {
+    pending=false;
+    return resources.api.synchronize(resources.stream);
+  }
+  ~AnchorStreamWork() {if(pending)(void)wait();}
+};
+
 std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtime,
     const anchor_match::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,std::span<const detail::AnchorMatchSource> requests,
     std::span<const detail::AnchorMatchSweepPlan> plans,anchor_match::u32 quantum,HipPhaseRecorder& profile,
-    anchor_match::u32 transfer_members,anchor_match::WindowSearchKernel window_search=nullptr) {
+    anchor_match::u32 transfer_members,anchor_match::WindowSearchKernel window_search=nullptr,
+    std::uint32_t dispatches_per_wait=1) {
   namespace match=anchor_match;
   require(runtime && match::compatible_kernel_api(kernel) && ordinal>=0 && ordinal<64 &&
       !requests.empty() && requests.size()==plans.size() && quantum && quantum<=match::max_members &&
-      transfer_members>=quantum && (window_search || transfer_members==quantum),
+      transfer_members>=quantum && dispatches_per_wait && dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches &&
+      (window_search || (transfer_members==quantum && dispatches_per_wait==1)),
       "invalid HIP anchor match configuration");
   for(std::size_t i=0;i<requests.size();++i) {
     const auto& plan=plans[i];
@@ -280,7 +295,16 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
   auto version=match::abi_version;
   auto window_version=match::window_abi_version;
   void* index_arguments[]{&source,&table,&version};
-  const auto check_completed=[&] {
+  struct Dispatch {
+    void* input=nullptr;
+    void* result=nullptr;
+    match::u32 members=0;
+    std::array<void*,6> arguments{};
+  };
+  std::array<Dispatch,kAnchorProfileMaxQueuedDispatches> dispatches{};
+  for(auto& command:dispatches)command.arguments={&source,&command.input,&command.members,&table,&command.result,&window_version};
+  AnchorStreamWork submitted{resources};
+  const auto check_admitted_slab=[&] {
     profile.begin(HipPhase::post_admission);
     const auto after=sampler.sample().snapshot;
     require_hip_memory(after,luid,node_mask,GetTickCount64(),allocation,HipMemoryPoint::completed,&before_init);
@@ -301,14 +325,16 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
         const auto* input=request.source.data()+(first+1)*match::extent_bytes;
         check_hip(api.copy(member_input,input,staged*match::extent_bytes,hipMemcpyHostToDevice),
             "upload next anchor match window");
+        submitted.pending=true;
         check_hip(clear(output,255,window.size_bytes(),resources.stream),"clear next anchor match result");
       } else {
         check_hip(api.copy(source,request.source.data(),(1+staged)*match::extent_bytes,hipMemcpyHostToDevice),
             "upload shared base and first match window");
+        submitted.pending=true;
         check_hip(clear(table,255,allocation-window_input,resources.stream),"clear anchor match slab");
       }
       profile.end(HipPhase::host_to_device);
-      if(window_search)check_completed();
+      if(window_search)check_admitted_slab();
       if(!first) {
         profile.begin(HipPhase::kernel_wait);
         check_hip(api.launch(reinterpret_cast<const void*>(kernel.index),
@@ -318,25 +344,30 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
       }
       // Each dispatch retains the original work quantum. Its output stays in
       // a disjoint slab slice until the entire transfer is ready to download.
+      std::uint32_t queued=0;
       for(match::u32 at=0;at<staged;) {
-        auto members=(std::min)(staged-at,plan.quantum_members);
-        const auto blocks=dim3(members*match::tiles/match::threads);
+        auto& command=dispatches[queued];
+        command.members=(std::min)(staged-at,plan.quantum_members);
+        const auto blocks=dim3(command.members*match::tiles/match::threads);
         profile.begin(HipPhase::kernel_wait);
+        submitted.pending=true;
         if(window_search) {
-          auto input=reinterpret_cast<void*>(address+(1+at)*match::extent_bytes);
-          auto result=reinterpret_cast<void*>(address+window_input+match::index_bytes+at*match::tiles*sizeof(match::u32));
-          void* arguments[]{&source,&input,&members,&table,&result,&window_version};
+          command.input=reinterpret_cast<void*>(address+(1+at)*match::extent_bytes);
+          command.result=reinterpret_cast<void*>(address+window_input+match::index_bytes+at*match::tiles*sizeof(match::u32));
           check_hip(api.launch(reinterpret_cast<const void*>(window_search),blocks,dim3(match::threads),
-              arguments,0,resources.stream),"launch resident anchor match window");
+              command.arguments.data(),0,resources.stream),"launch resident anchor match window");
         } else {
-          void* arguments[]{&source,&members,&table,&output,&version};
+          void* arguments[]{&source,&command.members,&table,&output,&version};
           check_hip(api.launch(reinterpret_cast<const void*>(kernel.search),blocks,dim3(match::threads),
               arguments,0,resources.stream),"launch anchor match window");
         }
-        check_hip(api.synchronize(resources.stream),"complete anchor match window");
+        at+=command.members;
+        if(++queued==dispatches_per_wait || at==staged) {
+          check_hip(submitted.wait(),"complete anchor match windows");
+          queued=0;
+        }
         profile.end(HipPhase::kernel_wait);
-        at+=members;
-        if(at<staged)check_completed();
+        if(at<staged)check_admitted_slab();
       }
       profile.begin(HipPhase::device_to_host);
       check_hip(api.copy(window.data(),output,window.size_bytes(),hipMemcpyDeviceToHost),
@@ -346,7 +377,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
       require(std::none_of(window.begin(),window.end(),[](auto record){return record==match::empty;}),
           "incomplete anchor match window",HipWorkerStage::execution);
       profile.end(HipPhase::cpu_verification);
-      check_completed();
+      check_admitted_slab();
       first+=staged;
     }
   }
@@ -371,7 +402,7 @@ std::vector<anchor_match::u32> run_hip_anchor_match_in_worker(HMODULE runtime,
 std::vector<std::vector<anchor_match::u32>> run_hip_anchor_batch_in_worker(HMODULE runtime,
     const anchor_match::KernelApi& kernel,int ordinal,std::array<std::byte,8> luid,
     std::uint32_t node_mask,const detail::AnchorMatchBatchRequest& request,HipPhaseRecorder& profile,
-    const anchor_match::WindowSearchApi* window,std::uint32_t transfer_grant) {
+    const anchor_match::WindowSearchApi* window,std::uint32_t transfer_grant,std::uint32_t dispatches_per_wait) {
   require_hip_worker_job(true);
   require(window?anchor_match::compatible_window_search_api(*window):!transfer_grant,
       "invalid anchor transfer kernel API");
@@ -379,7 +410,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_batch_in_worker(HMODU
   const auto members=window?detail::plan_anchor_match_transfers(plan,transfer_grant).members_per_transfer:
       plan.quantum_members;
   return run_hip_anchor_groups(runtime,kernel,ordinal,luid,node_mask,
-      request.groups(),plan.groups,plan.quantum_members,profile,members,window?window->search:nullptr);
+      request.groups(),plan.groups,plan.quantum_members,profile,members,window?window->search:nullptr,dispatches_per_wait);
 }
 
 }

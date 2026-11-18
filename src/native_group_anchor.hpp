@@ -113,7 +113,7 @@ AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest sn
     std::uint32_t request_capacity,std::uint32_t reply_capacity,std::uint32_t maximum_quantum,
     std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches);
 std::vector<std::byte> encode_anchor_match_batch_reply(const AnchorMatchBatchRequest&,
-    std::span<const std::vector<anchor_match::u32>> records);
+    std::span<const std::vector<anchor_match::u32>> records,std::size_t reserve_tail_bytes=0);
 std::vector<AnchorMatchAdvice> accept_anchor_match_batch_reply(
     std::span<const std::byte> frame,const AnchorMatchBatchRequest&);
 

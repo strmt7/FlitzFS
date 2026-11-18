@@ -720,11 +720,16 @@ AddressSanitizer fixtures compared the views with independent wire parsing.
 Three alternating 1,824-extent pairs reduced median preparation from
 57.37 to 35.22 milliseconds. Live related and mixed public-derived
 workloads through 2,304 extents matched the CPU replies, with overlapping
-or worse complete AMD exchange times. The next qualification must isolate
-startup and transfer costs, amortize setup across admitted work, and
-establish a repeatable benefit before selecting AMD automatically.
+or worse complete AMD exchange times. Coalesced phase profiles measured
+roughly 430 milliseconds for dispatches and stream waits at 1,824
+extents. An experimental queue cut the median of that phase by 8.4%
+across four matched pairs, with CPU still faster in the complete
+comparison. Use these observations to prioritize bounded reuse of setup
+across admitted work and further reduce search cost before enabling
+automatic selection.
 [Streaming construction and corpus evidence](evidence/amd-anchor-streamed-prep-2026-11-18.json) ·
-[Mixed-content and SDK evidence](evidence/amd-anchor-cohorts-2026-11-18.json)
+[Mixed-content and SDK evidence](evidence/amd-anchor-cohorts-2026-11-18.json) ·
+[Wait and admission evidence](evidence/amd-anchor-queue-phases-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

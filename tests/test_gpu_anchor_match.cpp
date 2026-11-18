@@ -241,6 +241,11 @@ void independent_batch() {
     records.push_back(cpu_anchor_match_records(batch.groups()[i]));
   }
   const auto reply=encode_anchor_match_batch_reply(batch,records);
+  constexpr std::size_t profile_capacity=256;
+  const auto with_reserve=encode_anchor_match_batch_reply(batch,records,profile_capacity);
+  check(with_reserve==reply && with_reserve.capacity()>=reply.size()+profile_capacity,
+      "profile reserve changed the reply or requires a second allocation");
+  rejects([&]{(void)encode_anchor_match_batch_reply(batch,records,(std::numeric_limits<std::size_t>::max)());});
   const auto last_reply=encode_anchor_match_reply(batch.groups().back(),records.back());
   check(std::ranges::equal(std::span(reply).last(last_reply.size()),last_reply),
       "batch serialization changed the nested reply bytes");

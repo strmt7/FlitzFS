@@ -1,5 +1,6 @@
 #include "hip_phase_profile.hpp"
 #include "anchor_sweep_profile.hpp"
+#include "anchor_batch_profile.hpp"
 #include <iostream>
 #include <limits>
 using namespace flitzfs;
@@ -165,9 +166,39 @@ void anchor_profile_cases() {
   expected.identity.source_digest[0]^=std::byte{1};
   rejects([&]{(void)decode_anchor_sweep_profile(frame,expected);});
 }
+
+void anchor_batch_profile_cases() {
+  const std::array<std::uint32_t,2> counts{4,7};
+  const auto plan=detail::plan_anchor_match_batch(counts,3,anchor_match::device_bytes(3),7);
+  const auto transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(6));
+  detail::AnchorMatchBatchBuilder builder(93,plan);
+  const std::vector<std::byte> base(anchor_match::extent_bytes),members(7*anchor_match::extent_bytes);
+  builder.append(14,base,std::span(members).first(4*anchor_match::extent_bytes));
+  builder.append(15,base,members);
+  const auto request=builder.finish();
+  const auto expected=anchor_batch_profile_binding(request,transfer,2,binding().luid,1,4);
+  const auto trace=complete();
+  const auto frame=encode_anchor_batch_profile(expected,trace);
+  const auto decoded=decode_anchor_batch_profile(frame,expected);
+  require(decoded.wall_ns==trace.wall_ns && decoded.total_wall_ns==trace.total_wall_ns,
+      "Anchor batch phase profile did not round-trip");
+  for(const auto index:{0,8,16,20,24,32,36,40,80,84,208,212,216,220,224,228,232,236,255}) {
+    auto wrong=frame;wrong[index]^=std::byte{1};
+    rejects([&]{(void)decode_anchor_batch_profile(wrong,expected);});
+  }
+  const auto smaller=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(3));
+  const auto different=anchor_batch_profile_binding(request,smaller,2,binding().luid,1,4);
+  rejects([&]{(void)decode_anchor_batch_profile(frame,different);});
+  const auto serial=anchor_batch_profile_binding(request,transfer,2,binding().luid,1,1);
+  rejects([&]{(void)decode_anchor_batch_profile(frame,serial);});
+  for(const auto invalid:{0U,kAnchorProfileMaxQueuedDispatches+1})
+    rejects([&]{(void)anchor_batch_profile_binding(request,transfer,2,binding().luid,1,invalid);});
+  rejects([&]{(void)decode_anchor_batch_profile(std::span(frame).first(frame.size()-1),expected);});
+  rejects([&]{(void)encode_anchor_batch_profile(expected,{});});
+}
 }
 int main(){try{
-  recorder_cases();wire_cases();anchor_profile_cases();
+  recorder_cases();wire_cases();anchor_profile_cases();anchor_batch_profile_cases();
   std::cout<<"HIP phase profile checks: "<<checks<<"; CPU clock/wire semantics only, gpu_executed=false\n";
   return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}
