@@ -451,10 +451,13 @@ collective workload and complete occupied-byte benefits independently.
 6. Connect qualified discovery and cost profiles to the owned production
    provider. The explicit SDK adapter now accepts deferred indexed writes and
    forwards independently verified candidates into the existing CPU-readable
-   frame. Move discovery and profile decisions outside callbacks, retain
-   validated configuration pins through launch, and admit work from measured
-   gains and fresh resource observations. Test the normal workflow without
-   fixture-supplied cost and workload inputs.
+   frame. The configured native controller now collects live start and
+   post-verification budget evidence outside the filesystem lock. It retains
+   qualified route pins and coalesces acquisition demand. Finish integrating
+   trusted package discovery and matched workload cost acquisition into the
+   ordinary mount workflow. Keep slower small-request profiles on CPU and
+   prove useful automatically selected AMD work with independent readback.
+   [Controller budget evidence](evidence/native-gpu-budget-controller-2026-11-18.json)
 7. Amortize setup with bounded owned work windows or reuse where measured useful.
    Keep bounded queues, finite kernels, fresh budgets and explicit retirement;
    never leave an unused helper running indefinitely to hide startup cost.

@@ -68,6 +68,10 @@ class WinFspNativeWritable final {
   // rights, without inheritance. The caller retains its own wait handle.
   void set_maintenance_event(HANDLE);
   bool maintenance_event_failed() const noexcept;
+  // One controller reads the demand, observes resources outside the callback
+  // lock and returns a sample for exactly that still-current demand.
+  std::optional<NativeGpuBudgetTask> gpu_budget_task() const;
+  bool complete_gpu_budget_task(const NativeGpuBudgetTask&,const GpuMemorySnapshot&,std::uint64_t now);
   HostedVolumeMaintenanceResult recompress_managed_hosted(
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
       StoreCompressionOptions candidate={});

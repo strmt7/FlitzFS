@@ -87,9 +87,15 @@ stored cost, rather than requiring identical compressed streams.
 Configuration is allowed only before callback binding. The callback validates
 the handle and complete metadata prerequisites, copies immutable input, and
 captures the opaque WinFsp request Hint while its operation context is valid.
-It retains no callback buffer, byte-count, FileInfo or thread-local request
-pointer. An accepted request returns STATUS_PENDING. One owned control thread
-alone accesses the persistent GPU coordinator.
+An accepted request returns STATUS_PENDING and transfers its already owned
+input vector into the coordinator. If admission fails, the request retains
+its bytes for the synchronous CPU path. Publication uses the stable owned
+bytes and captures only scalar completion facts. After verified worker
+retirement the owner releases its source, worker frames and candidate
+buffers. That retirement is scoped to the write's own worker. An unrelated
+active exchange can prevent a new GPU launch while CPU-only completion and
+buffer release continue. One owned control thread accesses the persistent
+GPU coordinator.
 
 Following native callbacks request CPU fallback and drain pending publication
 before accessing the session. An already terminal verified result may complete
@@ -99,6 +105,13 @@ publication, never worker/driver retirement. The shared session lock protects
 begin/finish and native mutation; worker polling/verification and retirement run
 outside it. One outstanding request bounds the queue. A retiring worker owns
 bytes only and cannot mutate the session after publication.
+
+The [configured volume controller](AMD_RUNTIME_DISCOVERY.md#controller-owned-budget-observations)
+collects GPU budgets on demand outside that lock. A fresh completion snapshot
+must follow independent CPU validation and match the active request and
+adapter. Resource unavailability selects CPU while the optional worker
+retires. A blocked Windows telemetry call can still delay controller join.
+The deferred write has its own finite result deadline and CPU path.
 
 Each completion carries the original Hint, committed status/count and FileInfo.
 Publication, response submission and worker retirement are separate facts.

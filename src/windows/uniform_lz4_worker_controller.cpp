@@ -130,7 +130,7 @@ std::span<const std::byte> UniformLz4WorkerController::use_cpu_fallback() noexce
   return source();
 }
 bool UniformLz4WorkerController::try_retire() noexcept{
-  if(!ticket_)return !session_ && WorkerExchangeSession::available();
+  if(!ticket_)return !session_;
   if(!reported_){
     if(state_==GpuWorkerState::waiting || !session_)return false;
     const auto* late=session_->try_result();if(!late)return false;
@@ -148,7 +148,14 @@ bool UniformLz4WorkerController::try_retire() noexcept{
   if(!policy_.confirm_quiescent(ticket_)){disabled_=true;return false;}
   session_.reset();ticket_=0;reported_=false;generation_=0;
   if(current_)pending_.reset();
-  return WorkerExchangeSession::available();
+  return true;
+}
+void UniformLz4WorkerController::release_retired_buffers() noexcept {
+  if(ticket_ || session_ || state_==GpuWorkerState::waiting)return;
+  pending_.reset();
+  current_.reset();
+  selected_=UniformLz4Candidates{};
+  std::vector<std::uint64_t>().swap(offsets_);
 }
 bool UniformLz4WorkerController::request_cancel() const noexcept{return session_ && session_->request_cancel();}
 std::uint32_t UniformLz4WorkerController::process_id() const noexcept{return session_?session_->process_id():0;}

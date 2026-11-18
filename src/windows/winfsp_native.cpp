@@ -147,13 +147,13 @@ struct WinFspNativeWritable::Impl {
   std::atomic<unsigned> foreground{0};
   std::atomic<bool> offline{false};
   std::atomic<unsigned> stopped{0};
-  // Declared after session/control/offline so the service retires first.
+  Handle maintenance_event;
+  // The service joins before the control lock, session and signal handle retire.
   std::unique_ptr<NativeDeferredWriteService> deferred;
   std::unique_ptr<NativeGroupMaintenance> groups;
   MemoryVolumeBacking* compaction=nullptr;
   std::uint64_t groups_completed_sequence=0,last_retirement_observation=0,last_retirement_capture=0;
   bool maintenance_cancelled=false;
-  Handle maintenance_event;
   std::atomic<bool> maintenance_signal_failed{false};
   bool callbacks_bound=false;
   StoreIdentity identity{};UINT64 created=0;UINT32 serial=0;
@@ -690,6 +690,17 @@ void WinFspNativeWritable::set_maintenance_event(HANDLE event) {
     throw std::invalid_argument("Maintenance event requires an unbound adapter and one valid event");
   if(!DuplicateHandle(GetCurrentProcess(),event,GetCurrentProcess(),&impl_->maintenance_event.value,
       EVENT_MODIFY_STATE,FALSE,0))throw std::runtime_error("Maintenance event duplication failed");
+  if(impl_->deferred)impl_->deferred->bind_budget_event_locked(impl_->maintenance_event.value);
+}
+std::optional<NativeGpuBudgetTask> WinFspNativeWritable::gpu_budget_task() const {
+  if(!impl_->deferred || !impl_->deferred->budget_demand_pending())return {};
+  std::lock_guard guard(impl_->control);
+  return impl_->deferred->budget_task_locked();
+}
+bool WinFspNativeWritable::complete_gpu_budget_task(const NativeGpuBudgetTask& task,
+    const GpuMemorySnapshot& snapshot,std::uint64_t now) {
+  std::lock_guard guard(impl_->control);
+  return impl_->deferred && impl_->deferred->accept_budget_locked(task,snapshot,now);
 }
 bool WinFspNativeWritable::maintenance_event_failed() const noexcept {
   return impl_->maintenance_signal_failed.load(std::memory_order_acquire);
@@ -777,6 +788,7 @@ void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOpti
   if(!options.response_sink)options.response_sink=sdk_response;
   impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,
       impl_->offline,std::move(options),impl_->info_policy);
+  impl_->deferred->bind_budget_event_locked(impl_->maintenance_event.value);
 }
 void WinFspNativeWritable::publish_deferred_health_hosted(const GpuHealthEvidence& health){
   std::lock_guard guard(impl_->control);

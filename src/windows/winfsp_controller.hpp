@@ -10,6 +10,7 @@ struct WinFspControllerView {
   NativeMaintenanceProgress maintenance;
   std::uint64_t maintenance_quanta=0,reclamation_quanta=0,compactions=0,compaction_failures=0;
   std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0;
+  std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
   bool maintenance_disabled=false,retired=false,expired=false,offline=false,controller_failed=false;
 };
 // Explicit provider and plan only. One owned thread performs start, cooperative

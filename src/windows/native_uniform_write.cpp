@@ -66,19 +66,23 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
     const NativeAutomaticMetadata& effect,NativeFileInfoAllocation mode,
     const NativeUniformWorkerBinding& binding,bool consent,bool worthwhile,
     const GpuHealthEvidence& evidence,std::uint64_t now,const GpuLz4ResidentCost& cost,
-    GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline) noexcept{
+    GpuLz4WindowPolicy window,ProcessBudget budget,std::uint32_t deadline,
+    std::vector<std::byte>* transferable_source) noexcept{
   NativeUniformWriteStart start;
   if(pending_){start.admission=win_detail::failure(session_,STATUS_INVALID_DEVICE_STATE);return start;}
   completed_=false;result_={};
   const auto write_limit=native_windows_write_limit(mode);
   if(!write_limit || bytes.size()>write_limit || (!bytes.empty() && !bytes.data()) ||
-      append!=(offset==UINT64_MAX) || !native_cleanup_metadata_valid(effect)){
+      append!=(offset==UINT64_MAX) || !native_cleanup_metadata_valid(effect) ||
+      (transferable_source && (transferable_source->size()!=bytes.size() ||
+          transferable_source->data()!=bytes.data()))){
     start.admission=win_detail::failure(session_,STATUS_INVALID_PARAMETER);return start;
   }
   start.admission=win_detail::boundary(session_,[&]{
     const auto before=session_.mutation_info(handle);FSP_FSCTL_FILE_INFO prepared{};
     if(!encode_native_file_info(before,mode,prepared))return win_detail::failure(session_,STATUS_INVALID_DEVICE_STATE);
-    auto owned=own_native_uniform_source(bytes,mode);
+    auto copied=transferable_source?std::vector<std::byte>{}:own_native_uniform_source(bytes,mode);
+    auto& owned=transferable_source?*transferable_source:copied;
     const auto position=append?before.info.logical_bytes:offset;
     auto accepted=std::uint64_t(owned.size());
     if(constrained)accepted=position>=before.info.logical_bytes?0:(std::min)(accepted,before.info.logical_bytes-position);
@@ -123,6 +127,14 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
     pending_=true;completed_=false;result_={};return NativeWindowsIoOutcome{STATUS_SUCCESS,false};
   });
   return start;
+}
+bool ControlledNativeUniformWrite::try_retire() noexcept {
+  if(!controller_.try_retire())return false;
+  if(completed_) {
+    std::vector<std::byte>().swap(source_);
+    controller_.release_retired_buffers();
+  }
+  return true;
 }
 GpuWorkerState ControlledNativeUniformWrite::poll(const GpuMemorySnapshot& after,std::uint64_t now) noexcept{
   return pending_ && submitted_?controller_.poll(after,now):GpuWorkerState::cpu_selected;

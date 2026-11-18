@@ -8,7 +8,8 @@ namespace flitzfs {
 // Single external owner, exactly as WinFspVolumeController. No implicit driver.
 class WinFspMemoryVolume final {
  public:
-  WinFspMemoryVolume(WinFspSessionApi,NativeWriteMountPlan,NativeImageKind=NativeImageKind::paged);
+  WinFspMemoryVolume(WinFspSessionApi,NativeWriteMountPlan,NativeImageKind=NativeImageKind::paged,
+      std::optional<NativeDeferredWriteOptions> acceleration=std::nullopt);
   ~WinFspMemoryVolume();
   WinFspMemoryVolume(const WinFspMemoryVolume&)=delete;
   WinFspMemoryVolume& operator=(const WinFspMemoryVolume&)=delete;

@@ -1,5 +1,15 @@
 # Validation ledger
 
+## Controller-owned GPU budget sampling — 18 November 2026
+
+The configured native Windows controller handled two GPU budget queries for
+one indexed AMD write. The first write used CPU with stale initial telemetry.
+The 512 KiB write used verified GPU advice for eight extents, and all sixteen
+mirrored records passed independent CPU readback. Modeled callbacks exercise
+coalescing and CPU continuation after unavailable completion telemetry.
+The hardware fixture used injected filesystem lifecycle and response functions.
+[Source and execution evidence](evidence/native-gpu-budget-controller-2026-11-18.json)
+
 ## Automatic indexed compaction and page allocation — 18 November 2026
 
 The staged switch read 150,048 image bytes with a 1 MiB live file and wrote
@@ -8,7 +18,7 @@ interruptions recovered either the verified original or the verified candidate,
 with active handles intact. The locked Windows provider reduced the small
 overwrite fixture from 3.75 MiB to 360 KiB. A separate snapshot pin and
 retirement fixture returned resident space in bounded steps.
-The live controller completed automatic selection in 34 admitted opportunities
+The live controller completed automatic selection in 34 maintenance opportunities
 and reopened the selected file independently after join. The maximum observed
 controller quantum was 1.4 ms in that fixture. A native-only telemetry control
 reproduced the process-wide handle initialization that initially affected the

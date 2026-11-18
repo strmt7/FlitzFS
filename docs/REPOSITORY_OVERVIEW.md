@@ -274,6 +274,14 @@ driver to make a probe fit a document.
 
 ## Recent executed evidence
 
+A configured Windows controller now collects GPU memory observations on
+demand. The SDK fixture wrote a CPU prefix while observations were stale
+and then used an actual AMD worker for a 512 KiB sweep, with two controller
+observations and sixteen verified mirrored records. It reopened independently on CPU. Discovery
+from the product package, qualifying actual workload gains and real mounted
+response delivery remain release work.
+[Controller-backed AMD evidence](evidence/native-gpu-budget-controller-2026-11-18.json)
+
 Indexed memory compaction now uses the staged CPU verification to select a
 new image without re-reading its full contents at the switch. The current
 provider uses the actual Windows page size and reserves virtual image capacity

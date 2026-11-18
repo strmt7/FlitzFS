@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-18T04:50:33+01:00",
+  "source_base": "d447c7113fa0b60b2c9c5fbb74eb515d74d72ceb",
+  "source_tree": "173af2c8ad7e8c50f2823d7e7bccae741e2f1174",
+  "code_patch_sha256": "f1caae90ccc9d6ced24bd6aec29a48a11a6b0e23652e13694ba567cdeb5f1b6b",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "bec9feb497d771aee3201d9e16bc4a58b3312f0a",
+      "worktree_sha256": "ebf87a17c197f8e936da33536c714d14522435acb7cf6168ff813d749bc0b7ed"
+    },
+    {
+      "path": "src/windows/native_deferred_write.cpp",
+      "git_blob": "2b7bb7a61b269a1e9e7ae563faef60e46edfe5d1",
+      "worktree_sha256": "471f45184c2dc9eb72bdf23097d6f4e1807c8e54a469f737ab8f6e2048092740"
+    },
+    {
+      "path": "src/windows/native_deferred_write.hpp",
+      "git_blob": "25e177cf2bf3ecbaf8161bb7783b17d6ff8c6b88",
+      "worktree_sha256": "ea3ee755cf9450757d0f074ca7a5f278cde4f443960ec0edde188f5b29d6b7c1"
+    },
+    {
+      "path": "src/windows/native_uniform_write.cpp",
+      "git_blob": "2e15a37886e60c0ea4b328ba44efb40cbddf2a16",
+      "worktree_sha256": "3e9b60665d159994c1acaff6eaec99afa602a805e2e33ead92735cd77d744105"
+    },
+    {
+      "path": "src/windows/native_uniform_write.hpp",
+      "git_blob": "84b867e9d95bd2bbd6ecc674c823739feb57dde6",
+      "worktree_sha256": "4909b4fe81b8e06d795932815eedbe2c42f7f44ba5cc7e4ab1fec1716fb45744"
+    },
+    {
+      "path": "src/windows/uniform_lz4_worker_controller.cpp",
+      "git_blob": "4c5c396a835031c47cd70736bc43b96360e936b7",
+      "worktree_sha256": "5b784e7bc5dcd30c0ac66fbca8296553b6a55e0821fe160bed0f1c4cf15fe0e3"
+    },
+    {
+      "path": "src/windows/uniform_lz4_worker_controller.hpp",
+      "git_blob": "0f7936b52c42b280df36878ca692169de490a46a",
+      "worktree_sha256": "056c2c20b4e04c2198cd152f527f0fbb46e51fb70cf9e64152328e75b8bb5212"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "d10151b09198fe7a3ab4b77ac4c33863b3b5977b",
+      "worktree_sha256": "5e08f9e21ed38da9d0341c877e2103a593e94a743113652447f514b6e418fb41"
+    },
+    {
+      "path": "src/windows/winfsp_controller.hpp",
+      "git_blob": "eba0627c8bc5ad36b39bdad925af1e5d4be29c22",
+      "worktree_sha256": "5ac525681ff3a03e7c372b0a49717d9186ff592888332d13658f67546923f67f"
+    },
+    {
+      "path": "src/windows/winfsp_memory_volume.cpp",
+      "git_blob": "805aeb888ba8ab2df395bb361a6033734855953c",
+      "worktree_sha256": "33fd6d62212d7e63baa234331120e4ff2c4696120cfd9b6834679c0db1840c70"
+    },
+    {
+      "path": "src/windows/winfsp_memory_volume.hpp",
+      "git_blob": "db59138b871af42a8980846a2718477eea782634",
+      "worktree_sha256": "d8d421c6352120f48138961b9437caab70acb72f964a1e2dd918dcaefa674247"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "e766f1634bef4d41bd0b52ae3f55d11a5465dde1",
+      "worktree_sha256": "cb79ff12fe2eb80487d51aa636ba2f9481bd400c14a29d7856afea32583f35fa"
+    },
+    {
+      "path": "src/windows/winfsp_native.hpp",
+      "git_blob": "c217f9162080bd1db3e5e056e45617ade3935564",
+      "worktree_sha256": "2e02d667ec491e1520a658bafea6738ccb4f42f29ff761e361ef87da98b3ef39"
+    },
+    {
+      "path": "tests/test_native_deferred_write_sdk.cpp",
+      "git_blob": "35213871bb2954655192e20fd366ff5563c937e8",
+      "worktree_sha256": "8edd5c8507e4604b74c04d2c3daaf75c4058e00bc9c19ea02223abf350337c49"
+    }
+  ],
+  "checks": [
+    {
+      "scope": "Windows codec and WinFsp SDK build",
+      "directory": "local-run-efd9fc3901b9493392d12dd448655ed5",
+      "log_sha256": "58a386e7e1c54966ba3337ba0baa298bdee2f5aee31e0eb957c65a41f8393de6",
+      "result_sha256": "5d2d8f77780be8676285d9df3b60471f701d54f3864134c03e418665db8bc61c",
+      "exit_code": 0,
+      "elapsed_seconds": 8.106,
+      "peak_job_bytes": 373772288,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_at_primary_exit": 0
+    },
+    {
+      "scope": "Windows codec and WinFsp SDK callbacks, faults, budgets and controller",
+      "directory": "local-run-28402f77e460429685874a9daf7c8300",
+      "log_sha256": "e729e0eb29eb77f240521edc775895294ade28273951fe027cb95c94b1c6b9c5",
+      "result_sha256": "5932cdb83b9f0553bf3342a806928caca3b01e3d069acf74c47d6441b426f117",
+      "exit_code": 0,
+      "elapsed_seconds": 40.865,
+      "peak_job_bytes": 38330368,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_at_primary_exit": 0,
+      "selected_ctest_passed": 10
+    },
+    {
+      "scope": "Windows raw-only WinFsp SDK",
+      "directory": "local-run-fae9a206dfe940deaf795e5dee0a5ed4",
+      "log_sha256": "8a4055fab7ed33f519ec550a0067ab9b24274b7629f998313d8d7e5d316fbcd5",
+      "result_sha256": "db0d7d2131958abef9c1bad36cfd4fe6194c132b957cde44d753ea8a06a0549a",
+      "exit_code": 0,
+      "elapsed_seconds": 0.412,
+      "peak_job_bytes": 33443840,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_at_primary_exit": 0,
+      "selected_ctest_passed": 2
+    },
+    {
+      "scope": "Windows AddressSanitizer with matching compiler runtime",
+      "directory": "local-run-91b2529a6a2347b9be9f644e451274ad",
+      "log_sha256": "3aa4df88ba504c8a32b1c1b538f464cd39cdc8f12cb9574a0530774f0ac87155",
+      "result_sha256": "cece65006995d50211cc9c68a26315101084273058a8633c9ae8d536366e4abc",
+      "exit_code": 0,
+      "elapsed_seconds": 18.307,
+      "peak_job_bytes": 456953856,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_at_primary_exit": 0,
+      "selected_ctest_passed": 4
+    },
+    {
+      "scope": "Live indexed AMD sweep with native budget owner",
+      "directory": "local-run-95d982b1b3bd430383aa6509c8d64ecf",
+      "log_sha256": "3614258b80f8849a426314aa11cd31dbf4af22e62ac13606bb0447233de78063",
+      "result_sha256": "6967e22edf63a8f56fdd3847a29f6d74a4b0105cc78f8aa63596e7122c23bd11",
+      "exit_code": 0,
+      "elapsed_seconds": 1.917,
+      "peak_job_bytes": 134938624,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_at_primary_exit": 0
+    }
+  ],
+  "hardware_sweep": {
+    "source_bytes": 524288,
+    "offset": 33554432,
+    "worker_payload_bytes": 67672,
+    "matched_copies": 16,
+    "image_bytes": 1835008,
+    "response_ns": 1376113700,
+    "parent_peak_commit": 133652480,
+    "budget_queries": 2,
+    "identity_queries": 1,
+    "worker_submissions": 1,
+    "accepted_extents": 8,
+    "quantum_chunks": 2,
+    "cpu_initial_write": true,
+    "independent_cpu_reopen": true,
+    "parent_hip_loaded": false,
+    "controller_sha256": "295b2c84f4662718c84490f106357828beb0380cfcb24fd88f6e96f78f3bdfe1",
+    "worker_sha256": "d22a19b5409d9c899dda652198a5a943a623967ed361c5f792715c80fe56a707"
+  },
+  "scope": "Bounded local Windows SDK callbacks with explicitly qualified activation fixture inputs, live DXGI observations, actual AMD output and independent CPU reopen. Lifecycle and response sink were injected.",
+  "cpu_regressions": [
+    "Coalesces stale eligible demand and ignores unrelated replies.",
+    "Wrong device disables budget refresh and leaves the synchronous CPU path active.",
+    "Unavailable completion budget after verified worker output forces one byte-exact CPU response and confirmed worker retirement.",
+    "The CPU-only owner retires independently of a live exchange.",
+    "Raw build does not require optional compressed-block verification."
+  ],
+  "retained_diagnostics": [
+    {
+      "scope": "Initial SDK invocation omitted a required helper build target",
+      "directory": "local-run-42e7ffec0af642eeafc99a86754404d3",
+      "log_sha256": "d38d7d7f320634a87ca9ccac70cac0fec9593276ed77eedf969b8dfab2dd895e",
+      "result_sha256": "6092e654a037a32eab2102cb808d5192e365299b8ba6bc23e983518718eec5c6",
+      "exit_code": 8,
+      "elapsed_seconds": 30.289,
+      "peak_job_bytes": 38404096,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_at_primary_exit": 0
+    },
+    {
+      "scope": "First real write completed; fixture checked the CPU prefix by ordinal",
+      "directory": "local-run-b35bd597f5c64e47bed27873d458bd80",
+      "log_sha256": "227e6d9fa6340cc4d37c1f5719dbe6eae5011bb51b43d49bbecdfae2bb22eed3",
+      "result_sha256": "33b421595aa31cc05c0d3a76321a8b4e514fa367e1f236f32eeb18019ad70dfb",
+      "exit_code": 1,
+      "elapsed_seconds": 1.619,
+      "peak_job_bytes": 131858432,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_at_primary_exit": 0
+    },
+    {
+      "scope": "Indexed extent oracle correction with one two-extent AMD request",
+      "directory": "local-run-541bf7ccaca64ec58190d0e499bac7d9",
+      "log_sha256": "3a8fbda1bfb118b74a44e3cdfdcbd5787549fa89b1d3544e939769b28dc2a69f",
+      "result_sha256": "7ab16e3a6aea57e7fca4cd3c68cb150d277950a54dd4ec858d9dbcfdfe0ef2b4",
+      "exit_code": 0,
+      "elapsed_seconds": 1.806,
+      "peak_job_bytes": 132280320,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_at_primary_exit": 0
+    }
+  ],
+  "navigation": {
+    "commit": "d447c7113fa0b60b2c9c5fbb74eb515d74d72ceb",
+    "actual_searches": 1,
+    "provider_version": "0.2.43",
+    "files": 11,
+    "native_sha256": "da572240661bd098a329e1cfb2380a7cf8fe4756eceb8c7ed8a173806f02b8e9"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "receipt_sha256": "2b0be3d27efa16e3b94f9affabc3f1824c9b723731f4caf1129d7646c4b91239",
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/en/latest/about/release-notes.html",
+        "markdown_bytes": 237532,
+        "markdown_sha256": "1d1db2a2f5f4228eb57b7d5882c6f467e9998f070c2df96bcee644c42212f204",
+        "http_status": 200,
+        "capture_sha256": "711e2d4b5e75df99e99847aa07ac66ebe7e773a7dccd5c737e74841cba721565"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html",
+        "markdown_bytes": 13151,
+        "markdown_sha256": "9b511f41211cba3d2f9f35f45b3eeb96c5bf4346f74702efd7e8193864fa79bb",
+        "http_status": 200,
+        "capture_sha256": "e7eaf786dd419ee0da8b1cb010f4ea982e21a457d077f294d675963b2e60cd9e"
+      },
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/memory_management/host_memory.html",
+        "markdown_bytes": 27677,
+        "markdown_sha256": "5d5abd4d282b0de621b8f8b55410018bb751582b8b7abf4e186d012b8c859516",
+        "http_status": 200,
+        "capture_sha256": "afd6989f9aa0f3877d9dc70c208b6a6a76b44bfd9b896e212ef987e76085ffa5"
+      }
+    ]
+  },
+  "remaining": [
+    "Product package acquisition and matched workload cost and benefit qualification.",
+    "Useful accelerated collective or foreground work at real scale under representative inputs.",
+    "Windows 11 mounted GPU response delivery and host fault supervision."
+  ]
+}

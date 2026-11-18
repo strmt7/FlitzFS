@@ -5,8 +5,8 @@ namespace flitzfs {
 namespace {
 constexpr StoreCompressionOptions memory_compression{StoreCompressionMode::automatic,3,false};
 }
-WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan plan,NativeImageKind kind)
-    :kind_(kind) {
+WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan plan,NativeImageKind kind,
+    std::optional<NativeDeferredWriteOptions> acceleration):kind_(kind) {
   if(!valid_native_write_plan(plan))throw std::invalid_argument("Invalid memory-volume mount plan");
   if(kind_!=NativeImageKind::paged && kind_!=NativeImageKind::indexed_paged)
     throw std::invalid_argument("Memory volume needs a supported paged layout");
@@ -19,6 +19,8 @@ WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan
           backing_.image,backing_.image_identity,limits,memory_compression,backing_.advice);
   backing_.domain->verify_resident();
   if(kind_==NativeImageKind::indexed_paged)adapter->configure_memory_compaction(backing_);
+  if(acceleration && acceleration->controller_health)
+    adapter->enable_deferred_writes_hosted(std::move(*acceleration));
   controller_=std::make_unique<WinFspVolumeController>(std::move(adapter),api,std::move(plan),*backing_.domain);
 }
 WinFspMemoryVolume::~WinFspMemoryVolume()=default;

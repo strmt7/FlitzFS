@@ -6,8 +6,9 @@
 #include <mutex>
 #include <thread>
 namespace flitzfs {
-// Explicit resource-qualified adapter configuration. Evidence is supplied separately;
-// neither callbacks nor this service discover devices or query GPU drivers.
+class HipRoutePins;
+// Explicit resource-qualified adapter configuration. GPU driver calls belong
+// to the separate volume controller, outside the filesystem control lock.
 // SDK functions are injected by the actual adapter. The control target uses
 // ABI headers without linking the WinFsp runtime.
 using NativeWriteHintQuery=bool(*)(UINT64&) noexcept;
@@ -20,6 +21,10 @@ struct NativeDeferredWriteOptions {
   std::uint32_t deadline_ms=0;
   WorkerExecution expected=WorkerExecution::hip;
   bool allow_gpu=false,workload_qualified=false,helper_independent=false;
+  // Automatic observations use only this qualified, already acquired adapter.
+  // The installed helper and runtime pins must outlive the mounted service.
+  std::optional<GpuHealthEvidence> controller_health;
+  std::shared_ptr<const HipRoutePins> controller_route_pins;
   NativeWriteHintQuery hint_query=nullptr; // required by the control service
   NativeWriteResponseSink response_sink=nullptr; // required; the adapter supplies SDK defaults
 };
@@ -27,6 +32,11 @@ struct NativeDeferredWriteStats {
   std::uint64_t queued=0,completed=0,cpu_forced=0,worker_submitted=0,advised=0,response_attempts=0;
   bool native_pending=false,worker_busy=false,stopping=false,thread_exited=false;
   bool retirement_confirmed=true,disabled=false;
+};
+struct NativeGpuBudgetTask {
+  std::uint64_t sequence=0,after_ms=0;
+  std::array<std::byte,8> luid{};
+  std::uint32_t node_mask=0;
 };
 enum class NativeDeferredStop {running,quiescent,retirement_unconfirmed};
 // Caller owns the session/control lock for this entire service lifetime.
@@ -48,8 +58,16 @@ class NativeDeferredWriteService final {
   // A new accepted request clears the preceding completion.
   std::optional<NativeUniformWriteResult> completion_receipt_locked() const noexcept{return completion_;}
   void publish_locked(const GpuHealthEvidence&);
+  bool controller_collects_budget() const noexcept{return options_.controller_health.has_value();}
+  bool budget_demand_pending() const noexcept{return budget_work_.load(std::memory_order_acquire);}
+  // The adapter owns this noninheritable signal handle until this service joins.
+  void bind_budget_event_locked(HANDLE event) noexcept{budget_event_=event;}
+  std::optional<NativeGpuBudgetTask> budget_task_locked() const noexcept;
+  bool accept_budget_locked(const NativeGpuBudgetTask&,const GpuMemorySnapshot&,std::uint64_t now) noexcept;
   NativeDeferredStop stop();
  private:
+  void request_budget_locked(std::uint64_t after_ms,bool completion) noexcept;
+  void disable_gpu_budget_locked() noexcept;
   struct Request {
     FSP_FILE_SYSTEM* filesystem=nullptr;UINT64 hint=0;
     NativeFileHandle handle;std::vector<std::byte> bytes;
@@ -60,6 +78,11 @@ class NativeDeferredWriteService final {
   const NativeDeferredWriteOptions options_;
   const NativeFileInfoAllocation info_policy_;
   GpuHealthEvidence health_{};
+  HANDLE budget_event_=nullptr;
+  std::optional<NativeGpuBudgetTask> budget_task_;
+  std::atomic<bool> budget_work_{false};
+  std::uint64_t budget_sequence_=0,last_budget_probe_=0;
+  bool budget_for_completion_=false,budget_disabled_=false;
   std::condition_variable changed_;
   std::unique_ptr<Request> request_;
   NativeDeferredWriteStats stats_;

@@ -32,6 +32,9 @@ class UniformLz4WorkerController final {
   // Explicit maintenance, not called by begin/CPU selection: may validate a
   // late response with one-block scratch. Never replaces terminal CPU bytes.
   bool try_retire() noexcept;
+  // An owning write calls this when publication and worker retirement finish.
+  // Standalone controllers may keep their result views until the next begin.
+  void release_retired_buffers() noexcept;
   std::span<const std::byte> source() const noexcept;
   std::span<const std::byte> candidate(std::uint32_t index) const noexcept;
   std::uint32_t count() const noexcept;

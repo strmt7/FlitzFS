@@ -34,8 +34,11 @@ requiring AMD hardware. The metadata worker initializes the HIP runtime for
 identity lookup. It loads no FlitzFS kernel.
 
 AMD documents HIP 7.16.0 as the component shipped with ROCm Core 10.1.0.
-The observed Windows runtime DLL had file version 10.0.3683.0. Package,
-component and installed-file versions are distinct. [AMD release notes](https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html#hip-7-16-0)
+The observed Windows runtime DLL had file version 10.0.3683.0. AMD's public Windows SDK guide identifies its package as HIP SDK for Windows
+7.2.0. Use the installed runtime's exact identity for qualification, with the
+Core and Windows release notes for supported combinations.
+[AMD Core release notes](https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html#hip-7-16-0) ·
+[AMD Windows SDK release notes](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html)
 
 ## Indexed write on 18 November 2026
 
@@ -48,6 +51,31 @@ The selected image occupied 1,310,720 bytes. Callback completion took
 1,017.5 ms in this one sample, which had no matched CPU timing. The parent
 kept HIP unloaded and all owned processes retired.
 [Current-source evidence](evidence/indexed-lz4-deferred-2026-11-18.json)
+
+## Controller-owned budget observations
+
+A configured Windows volume can pass qualified accelerator options to its
+WinFsp controller. They bind the adapter and node, the initial acquired
+observation, and the helper and runtime pins retained by the service. The
+configuration still requires a qualified workload and cost envelope.
+
+An eligible write with stale resources commits through the synchronous CPU
+path and posts one coalesced budget request. The controller queries DXGI
+outside the filesystem lock. A later eligible request can use the fresh
+sample. Small writes, idle volumes and reads create no GPU sampling demand.
+After verified worker output, the service asks for exactly one sample newer
+than its independent CPU comparison. The controller binds that sample to
+the same demand, adapter and node before publication can select GPU advice.
+An unavailable or wrong adapter disables that binding and selects the owned
+CPU input. Later recovery requires newly qualified evidence and ownership.
+
+The configured indexed SDK hardware fixture produced a normal CPU write and
+then one GPU-assisted write with two controller budget queries and exact
+independent CPU reopen. The 512 KiB sweep used one bounded worker with two
+extents per quantum. Eight accepted extents matched sixteen mirrored records. It used a pinned helper, an explicit
+fixture cost envelope and injected lifecycle/response functions. Product
+package discovery and measured automatic workload qualification remain open.
+[Controller and hardware evidence](evidence/native-gpu-budget-controller-2026-11-18.json)
 
 ## Host qualification on 17 November 2026
 

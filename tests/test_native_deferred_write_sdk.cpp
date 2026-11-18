@@ -1,5 +1,6 @@
 // Disposable hosted CPU callback qualification. No filesystem/dispatcher creation.
 #include "winfsp_native.hpp"
+#include "winfsp_controller.hpp"
 #include "locked_ram_fixture.hpp"
 #include "native_lz4_fixture.hpp"
 #include "native_fs_fixture.hpp"
@@ -83,18 +84,56 @@ struct Harness {
   std::shared_ptr<StoreByteIo> head=std::make_shared<locked_ram_fixture::Store>(kVolumeHeadBytes);
   std::uint64_t capacity;
   std::shared_ptr<StoreByteIo> image;
-  Collector collector;FSP_FILE_SYSTEM fs{};std::unique_ptr<WinFspNativeWritable> adapter;
+  Collector collector;
+  FSP_FILE_SYSTEM fs{};
+  std::unique_ptr<WinFspNativeWritable> standalone;
+  WinFspNativeWritable* adapter=nullptr;
+  std::unique_ptr<WinFspVolumeController> controller;
   std::vector<std::byte> security;
-  explicit Harness(const NativeDeferredWriteOptions& options,bool indexed=false)
+  static Harness* provider;
+  static NTSTATUS preflight(PWSTR,PWSTR){return STATUS_SUCCESS;}
+  static NTSTATUS create_filesystem(PWSTR,const FSP_FSCTL_VOLUME_PARAMS*,const FSP_FILE_SYSTEM_INTERFACE* table,
+      FSP_FILE_SYSTEM** out){
+    provider->fs.Interface=table;
+    *out=&provider->fs;
+    return STATUS_SUCCESS;
+  }
+  static NTSTATUS start(FSP_FILE_SYSTEM*,ULONG){return STATUS_SUCCESS;}
+  static NTSTATUS mount(FSP_FILE_SYSTEM*,PWSTR){return STATUS_SUCCESS;}
+  static VOID stop(FSP_FILE_SYSTEM* fs){fs->Interface->DispatcherStopped(fs,TRUE);}
+  static VOID unmount(FSP_FILE_SYSTEM*){}
+  static VOID destroy(FSP_FILE_SYSTEM* fs){fs->UserContext=nullptr;}
+  static UINT32 origin(){return 0;}
+  explicit Harness(const NativeDeferredWriteOptions& options,bool indexed=false,bool observe_budget=false)
       :capacity(indexed?8U*1024*1024:4U*1024*1024),
        image(std::make_shared<locked_ram_fixture::Store>(static_cast<std::size_t>(capacity))){
     StoreIdentity volume{},id{};volume[0]=std::byte{5};id[0]=std::byte{6};
     constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,6,false};
-    adapter=indexed?WinFspNativeWritable::create_managed_indexed(head,volume,image,id,{capacity},fast):
+    auto source=indexed?WinFspNativeWritable::create_managed_indexed(head,volume,image,id,{capacity},fast):
         WinFspNativeWritable::create_managed_hosted(head,volume,image,id,fast);
+    adapter=source.get();
     adapter->enable_deferred_writes_hosted(options);
     fs.Version=static_cast<UINT16>(sizeof(fs));fs.UmFileContextIsUserContext2=TRUE;
-    fs.Interface=&WinFspNativeWritable::callbacks();adapter->bind_callbacks(fs,[]()->UINT32{return 0;});
+    if(observe_budget) {
+      provider=this;
+      const WinFspSessionApi api{preflight,create_filesystem,start,mount,stop,unmount,destroy,origin};
+      const NativeWriteMountPlan plan{L"R:\\FlitzFS-model\\unused",30,true,true};
+      controller=std::make_unique<WinFspVolumeController>(std::move(source),api,plan);
+      eventually([&]{return controller->view().state==SessionState::running || controller->view().retired;},
+          "owned deferred controller start");
+      check(controller->view().state==SessionState::running,"owned deferred controller failed startup");
+    } else {
+      standalone=std::move(source);
+      if(options.controller_health) {
+        const auto event=CreateEventW(nullptr,FALSE,FALSE,nullptr);
+        check(event!=nullptr,"owned GPU budget event fixture");
+        try{adapter->set_maintenance_event(event);}
+        catch(...){CloseHandle(event);throw;}
+        CloseHandle(event);
+      }
+      fs.Interface=&WinFspNativeWritable::callbacks();
+      adapter->bind_callbacks(fs,origin);
+    }
     SIZE_T bytes=0;UINT32 attrs=0;
     check(fs.Interface->GetSecurityByName(&fs,const_cast<PWSTR>(L"\\"),&attrs,nullptr,&bytes)==STATUS_BUFFER_OVERFLOW,
         "deferred root descriptor size");
@@ -104,10 +143,12 @@ struct Harness {
     receiver=&collector;
   }
   ~Harness(){
-    if(adapter){
+    if(controller)controller->stop_and_join();
+    if(standalone){
       while(adapter->stop_deferred_writes_hosted()==NativeDeferredStop::running)Sleep(1);
-      adapter.reset();
+      standalone.reset();
     }
+    provider=nullptr;
     receiver=nullptr;
   }
   PVOID create(PCWSTR path){
@@ -136,6 +177,94 @@ struct Harness {
     check(FspFileSystemOpClose(&fs,&request,&response)==STATUS_SUCCESS,"deferred SDK close");
   }
 };
+Harness* Harness::provider=nullptr;
+void budget_demand(const std::filesystem::path& worker) {
+  if(!gpu_lz4_cpu_verification_available())return;
+  auto settings=options(worker,1);
+  settings.controller_health=health();
+  auto& initial=*settings.controller_health;
+  initial.memory.captured_ms-=kGpuMaxBudgetAgeMs+1;
+  Harness h(settings,true);
+  const auto target=h.create(L"\\target");
+  auto bytes=native_lz4_fixture::source();
+  const auto write=[&](ULONG size) {
+    ULONG count=0;
+    FSP_FSCTL_FILE_INFO info{};
+    check(h.fs.Interface->Write(&h.fs,target,bytes.data(),0,size,FALSE,FALSE,&count,&info)==STATUS_SUCCESS &&
+        count==size,"unready budget did not select synchronous CPU");
+  };
+  write(4096);
+  check(!h.adapter->gpu_budget_task(),"small write triggered GPU telemetry");
+  write(static_cast<ULONG>(bytes.size()));
+  const auto demand=h.adapter->gpu_budget_task();
+  check(demand && demand->luid==initial.memory.luid && demand->after_ms==initial.memory.captured_ms,
+      "eligible stale write missed its GPU budget request");
+  for(unsigned i=0;i<3;++i)write(static_cast<ULONG>(bytes.size()));
+  check(h.adapter->gpu_budget_task()->sequence==demand->sequence,"stale writes did not coalesce budget work");
+  auto different=*demand;
+  ++different.sequence;
+  auto observed=health().memory;
+  check(!h.adapter->complete_gpu_budget_task(different,observed,GetTickCount64()) &&
+      h.adapter->gpu_budget_task()->sequence==demand->sequence,"unowned budget result moved the demand");
+  observed.luid[0]=std::byte{2};
+  check(!h.adapter->complete_gpu_budget_task(*demand,observed,GetTickCount64()) &&
+      !h.adapter->gpu_budget_task(),"wrong adapter retained budget authority");
+  h.adapter->publish_deferred_health_hosted(health());
+  write(static_cast<ULONG>(bytes.size()));
+  check(!h.adapter->gpu_budget_task() && !h.adapter->deferred_write_stats().queued &&
+      h.adapter->snapshot().read("target",0,static_cast<ULONG>(bytes.size()))==bytes,
+      "unavailable adapter retried or did not preserve CPU bytes");
+  h.close(target);
+}
+void completion_budget_refusal(const std::filesystem::path& worker) {
+  if(!gpu_lz4_cpu_verification_available())return;
+  auto settings=options(worker,1);
+  settings.controller_health=health();
+  settings.controller_health->memory.captured_ms-=kGpuMaxBudgetAgeMs+1;
+  Harness h(settings,true);
+  const auto target=h.create(L"\\target");
+  const auto block=native_lz4_fixture::source();
+  std::vector<std::byte> bytes;
+  for(unsigned i=0;i<16;++i)bytes.insert(bytes.end(),block.begin(),block.end());
+  const auto write=[&](UINT64 offset) {
+    ULONG count=0;
+    FSP_FSCTL_FILE_INFO info{};
+    const auto status=h.fs.Interface->Write(&h.fs,target,bytes.data(),offset,static_cast<ULONG>(bytes.size()),
+        FALSE,FALSE,&count,&info);
+    check((status==STATUS_PENDING && !count) || (status==STATUS_SUCCESS && count==bytes.size()),
+        "budget completion fixture write");
+    return status;
+  };
+  check(write(0)==STATUS_SUCCESS,"stale completion fixture did not start on CPU");
+  const auto demand=h.adapter->gpu_budget_task();
+  check(demand.has_value(),"CPU write did not request a fresh budget");
+  auto current=health().memory;
+  check(h.adapter->complete_gpu_budget_task(*demand,current,GetTickCount64()),"valid initial budget refused");
+  const auto expected_hint=hints.load();
+  const auto offset=static_cast<UINT64>(bytes.size());
+  check(write(offset)==STATUS_PENDING,"fresh evidence did not admit owned worker");
+  std::optional<NativeGpuBudgetTask> completion;
+  eventually([&]{completion=h.adapter->gpu_budget_task();return completion.has_value();},
+      "independent reply validation did not request a newer budget");
+  check(completion->sequence>demand->sequence && completion->after_ms>=current.captured_ms,
+      "worker completion did not bind its newer budget");
+  check(!h.adapter->complete_gpu_budget_task(*completion,{},GetTickCount64()),
+      "unavailable budget accepted a worker result");
+  const auto response=h.reply(0,[]{});
+  const auto stats=h.adapter->deferred_write_stats();
+  check(response.Hint==expected_hint && response.IoStatus.Status==STATUS_SUCCESS &&
+      response.IoStatus.Information==bytes.size() && stats.cpu_forced==1 &&
+      stats.worker_submitted==1 && !stats.advised,"completion resource loss failed to select CPU exactly once");
+  check(h.adapter->snapshot().read("target",offset,static_cast<ULONG>(bytes.size()))==bytes,
+      "CPU fallback after completion resource loss changed bytes");
+  h.close(target);
+  NativeDeferredStop stopped=NativeDeferredStop::running;
+  eventually([&]{stopped=h.adapter->stop_deferred_writes_hosted();return stopped!=NativeDeferredStop::running;},
+      "budget completion fixture did not retire");
+  check(stopped==NativeDeferredStop::quiescent && h.adapter->deferred_write_stats().response_attempts==1 &&
+      !h.adapter->gpu_budget_task() && !h.adapter->requires_offline(),
+      "unavailable completion budget retained ownership");
+}
 void run(const std::filesystem::path& worker,unsigned kind,bool indexed){
   Harness h(options(worker,kind),indexed);const auto target=h.create(L"\\target");
   const auto prior=h.adapter->snapshot();
@@ -152,6 +281,9 @@ void run(const std::filesystem::path& worker,unsigned kind,bool indexed){
   if(kind==2 && gpu_lz4_cpu_verification_available()){
     eventually([&]{h.adapter->publish_deferred_health_hosted(health());
       return h.adapter->deferred_write_stats().worker_submitted==1;},"held callback child not submitted");
+    UniformLz4WorkerController unrelated(WorkerExecution::cpu_semantics);
+    check(!WorkerExchangeSession::available() && unrelated.try_retire(),
+        "CPU-only ownership depended on unrelated live worker retirement");
     // A subsequent read forces CPU publication without waiting for the held child.
     std::vector<std::byte> actual(expected.size());ULONG got=0;
     check(h.fs.Interface->Read(&h.fs,target,actual.data(),offset,static_cast<ULONG>(actual.size()),&got)==STATUS_SUCCESS &&
@@ -228,17 +360,20 @@ std::vector<std::byte> extent_lz4_body(std::span<const std::byte> payload) {
   result.insert(result.end(),payload.begin()+static_cast<std::ptrdiff_t>(at+prefix),payload.end());
   return result;
 }
-unsigned verified_image_records(const Harness& h,const NativeUniformWriteResult& receipt) {
+unsigned verified_image_records(const Harness& h,const NativeUniformWriteResult& receipt,std::uint64_t offset) {
   const auto paged=PagedObjectStoreSnapshot::open(h.image,{h.capacity});
+  const detail::NativeNameIndex index(paged);
   constexpr std::size_t header_size=128;
-  constexpr std::uint64_t first_extent=detail::kNativeIndexedDataObject|1;
+  const auto first_block=offset/kNativeExtentBytes;
   const std::string_view magic="FLTXDAT1";
   const auto before=paged.info();
   std::vector<std::byte> image(static_cast<std::size_t>(before.physical_end));
   h.image->read_exact(0,image);
   unsigned matched=0;
-  for(std::uint64_t id=first_extent;id<first_extent+2;++id) {
-    const auto object=paged.stat(id);
+  for(std::uint64_t i=0;i<receipt.candidate_count;++i) {
+    const auto object_id=index.find(detail::native_extent_key(receipt.info.IndexNumber,first_block+i));
+    check(object_id.has_value(),"indexed device extent mapping missing");
+    const auto object=paged.stat(*object_id);
     check(object && object->logical_bytes==kNativeExtentBytes+24,"indexed device extent missing");
     unsigned copies=0;
     auto cursor=image.begin();
@@ -280,7 +415,7 @@ unsigned hex_digest_digit(wchar_t c) {
   if(c>=L'a' && c<=L'f')return 10U+static_cast<unsigned>(c-L'a');
   throw std::invalid_argument("expected lowercase SHA256");
 }
-int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,const wchar_t* runtime) {
+int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,const wchar_t* runtime,bool sweep) {
   check(store_lz4_available()&&gpu_lz4_cpu_verification_available(),"independent indexed CPU decoder unavailable");
   check(digest.size()==64,"verified worker SHA256 required");
   gpu_probe_fixture::Budget controller_budget;
@@ -307,27 +442,35 @@ int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,con
   cost.configuration=route.identity;cost.fixed_bytes=256ULL<<20;
   cost.input_copies=6;cost.slab_copies=2;cost.output_copies=3;cost.per_chunk_bytes=64;
   cost.profiled_chunk_bytes=kNativeExtentBytes;cost.kernel_ns_per_chunk=10000000;
-  cost.maximum_grid_x=2;cost.qualified_kernel_quantum_ns=200000000;cost.qualified=true;
+  constexpr std::uint32_t quantum_chunks=2;
+  const auto chunks=sweep?8U:quantum_chunks;
+  cost.maximum_grid_x=chunks;cost.qualified_kernel_quantum_ns=200000000;cost.qualified=true;
   options.window={16,100000000};
+  if(sweep) {
+    uniform_lz4::Layout quantum{};
+    check(uniform_lz4::make_layout(quantum_chunks*kNativeExtentBytes,kNativeExtentBytes,quantum),
+        "AMD sweep quantum layout");
+    options.binding.sweep=NativeUniformSweepGrant{quantum_chunks,quantum.total_bytes};
+  }
+  GpuHealthEvidence observed;
+  observed.configuration=route.identity;
+  observed.sequence=1;
+  observed.compatible=true;
+  observed.supervisor_quiescent=true;
+  observed.memory=route.memory;
+  options.controller_health=observed;
+  options.controller_route_pins=route.pins;
 
   {
-    Harness h(options,true);
+    Harness h(options,true,true);
     const auto target=h.create(L"\\target");const auto prior=h.adapter->snapshot();
-    GpuHealthEvidence observed;
-    observed.configuration=route.identity;observed.sequence=1;observed.compatible=true;
-    observed.supervisor_quiescent=true;observed.memory=route.memory;
-    auto last_observation=GetTickCount64();
-    const auto publish=[&] {
-      const auto now=GetTickCount64();
-      if(now-last_observation<50)return;
-      const auto current=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
-      observed.memory=current.snapshot;observed.compatible=current.status==WindowsGpuBudgetStatus::success;
-      ++observed.sequence;last_observation=now;
-      h.adapter->publish_deferred_health_hosted(observed);
-    };
+    eventually([&]{return GetTickCount64()-route.memory.captured_ms>kGpuMaxBudgetAgeMs;},
+        "initial probe should expire before testing on-demand collection");
     const auto block=native_lz4_fixture::source();
-    auto expected=block;expected.insert(expected.end(),block.begin(),block.end());
-    const auto planned=plan_gpu_lz4_window(expected.size(),kNativeExtentBytes,observed,GetTickCount64(),
+    std::vector<std::byte> expected;
+    expected.reserve(chunks*block.size());
+    for(unsigned i=0;i<chunks;++i)expected.insert(expected.end(),block.begin(),block.end());
+    const auto planned=plan_gpu_lz4_window(expected.size(),kNativeExtentBytes,observed,observed.memory.captured_ms,
         cost,options.window);
     std::cout<<"indexed_gpu_plan gate="<<static_cast<unsigned>(planned.code)
         <<" input_bytes="<<planned.layout.input_bytes<<" host_peak="<<planned.host_peak_bytes<<'\n';
@@ -336,13 +479,20 @@ int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,con
     auto source=expected;
     constexpr std::uint64_t offset=32ULL*1024*1024;
     ULONG count=0;FSP_FSCTL_FILE_INFO info{};
+    check(h.fs.Interface->Write(&h.fs,target,source.data(),0,static_cast<ULONG>(source.size()),FALSE,FALSE,
+        &count,&info)==STATUS_SUCCESS && count==expected.size(),"absent fresh GPU budget delayed CPU write");
+    eventually([&]{return h.controller->view().gpu_budget_queries==1;},
+        "ordinary write did not trigger GPU budget observation");
     const auto expected_hint=hints.load();
     const auto started=std::chrono::steady_clock::now();
-    h.adapter->publish_deferred_health_hosted(observed);
     check(h.fs.Interface->Write(&h.fs,target,source.data(),offset,static_cast<ULONG>(source.size()),FALSE,FALSE,
         &count,&info)==STATUS_PENDING && count==0 && info.FileSize==0,"indexed HIP callback did not defer");
     std::fill(source.begin(),source.end(),std::byte{0xff});
-    const auto response=h.reply(0,publish);
+    const auto response=h.reply(0,[]{});
+    eventually([&]{return h.controller->view().gpu_budget_queries==2;},
+        "verified GPU completion did not request a fresh budget");
+    const auto observations=h.controller->view();
+    check(observations.gpu_budget_refusals==0,"AMD budget observer rejected its trusted adapter");
     const auto ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now()-started).count();
     check(response.Kind==FspFsctlTransactWriteKind && response.Hint==expected_hint &&
@@ -353,20 +503,24 @@ int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,con
         "indexed HIP worker retirement deadline");
     const auto stats=h.adapter->deferred_write_stats();
     const auto receipt=h.adapter->deferred_write_receipt();
+    std::cout<<"indexed_gpu_budget_queries="<<observations.gpu_budget_queries
+        <<" refused="<<observations.gpu_budget_refusals<<'\n';
     std::cout<<"indexed_gpu_outcome submitted="<<stats.worker_submitted<<" advised="<<stats.advised
         <<" forced="<<stats.cpu_forced<<" retired="<<stats.retirement_confirmed
         <<" candidates="<<(receipt?receipt->candidate_count:0)<<'\n';
     check(stopped==NativeDeferredStop::quiescent && stats.retirement_confirmed && stats.thread_exited &&
         stats.worker_submitted==1 && stats.advised==1 && stats.response_attempts==1 && receipt &&
-        receipt->candidate_count==2 && receipt->advice.captured && receipt->advice.uniform_payloads,
+        receipt->candidate_count==chunks && receipt->advice.captured && receipt->advice.uniform_payloads,
         "indexed HIP verified candidacy or retirement");
     h.close(target);
     const auto reopened=NativeFilesystemSnapshot::open_image(h.image,{NativeImageKind::indexed_paged,h.capacity});
     reopened.verify_all();
     check(reopened.read("target",offset,static_cast<std::uint32_t>(expected.size()))==expected &&
+        reopened.read("target",0,static_cast<std::uint32_t>(expected.size()))==expected &&
         prior.read("target",offset,1).empty(),"indexed HIP image failed CPU readback");
-    const auto copies=verified_image_records(h,*receipt);
-    std::cout<<"indexed_gpu_write source_bytes="<<expected.size()<<" offset="<<offset
+    const auto copies=verified_image_records(h,*receipt,offset);
+    std::cout<<"indexed_gpu_write sweep="<<sweep<<" quantum_chunks="<<quantum_chunks
+        <<" source_bytes="<<expected.size()<<" offset="<<offset
         <<" worker_payload_bytes="<<receipt->candidate_bytes<<" matched_copies="<<copies
         <<" image_bytes="<<h.image->extent()<<" response_ns="<<ns<<" parent_peak_commit="
         <<controller_budget.peak_commit()<<'\n';
@@ -380,11 +534,17 @@ int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,con
 }
 int wmain(int argc,wchar_t** argv){try{
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-  if(argc==5 && std::wstring_view(argv[1])==L"--gpu-indexed-once")return gpu_indexed(argv[2],argv[3],argv[4]);
+  if(argc==5) {
+    const std::wstring_view mode(argv[1]);
+    if(mode==L"--gpu-indexed-once" || mode==L"--gpu-indexed-sweep")
+      return gpu_indexed(argv[2],argv[3],argv[4],mode==L"--gpu-indexed-sweep");
+  }
 #endif
   check(argc==2,"trusted CPU helper required");const std::filesystem::path worker(argv[1]);
   check(worker.is_absolute(),"absolute CPU helper required");
   transport_required();
+  budget_demand(worker);
+  completion_budget_refusal(worker);
   for(const auto indexed : {false,true})for(unsigned kind=0;kind<4;++kind){
     run(worker,kind,indexed);
     check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load(),

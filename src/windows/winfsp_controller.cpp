@@ -1,5 +1,6 @@
 #include "winfsp_controller.hpp"
 #include "winfsp_native.hpp"
+#include "gpu_budget.hpp"
 #include "memory_volume.hpp"
 #include <algorithm>
 #include <atomic>
@@ -57,9 +58,22 @@ struct WinFspVolumeController::Impl {
           }
           const auto now=GetTickCount64();
           if(now>=deadline){expired=true;break;}
+          const auto gpu=adapter->gpu_budget_task();
+          if(gpu && now>gpu->after_ms) {
+            // CPU completion uses a different owner and can proceed while the
+            // operating system supplies telemetry. Never query under the lock.
+            const auto observation=query_windows_gpu_budget(gpu->luid,gpu->node_mask);
+            if(stop_requested.load(std::memory_order_acquire))break;
+            const auto applied=adapter->complete_gpu_budget_task(*gpu,observation.snapshot,GetTickCount64());
+            std::lock_guard lock(mutex);
+            ++current.gpu_budget_queries;
+            if(!applied)++current.gpu_budget_refusals;
+            continue;
+          }
           const bool pending=!disabled && session->background_maintenance_pending();
           if(!pending || now<next) {
-            const auto delay=(std::min)(deadline-now,pending?next-now:deadline-now);
+            auto delay=(std::min)(deadline-now,pending?next-now:deadline-now);
+            if(gpu)delay=(std::min)(delay,gpu->after_ms-now+1);
             const auto wait_ms=(std::min)(delay,std::uint64_t{INFINITE-1});
             const auto waited=WaitForMultipleObjects(2,events,FALSE,static_cast<DWORD>(wait_ms));
             if(waited==WAIT_OBJECT_0)break;

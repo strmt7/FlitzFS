@@ -65,17 +65,20 @@ class ControlledNativeUniformWrite final {
   ControlledNativeUniformWrite& operator=(const ControlledNativeUniformWrite&)=delete;
   ControlledNativeUniformWrite(ControlledNativeUniformWrite&&)=delete;
   ControlledNativeUniformWrite& operator=(ControlledNativeUniformWrite&&)=delete;
+  // A transferable source must be the exact supplied span and already have
+  // an owning resource admission. Success transfers it with no second copy.
   NativeUniformWriteStart begin(const NativeFileHandle&,std::span<const std::byte>,
       UINT64 offset,bool append,bool constrained,const NativeAutomaticMetadata&,
       NativeFileInfoAllocation,const NativeUniformWorkerBinding&,bool consent,bool worthwhile,
       const GpuHealthEvidence&,std::uint64_t now_ms,const GpuLz4ResidentCost&,
-      GpuLz4WindowPolicy,ProcessBudget,std::uint32_t deadline_ms) noexcept;
+      GpuLz4WindowPolicy,ProcessBudget,std::uint32_t deadline_ms,
+      std::vector<std::byte>* transferable_source=nullptr) noexcept;
   GpuWorkerState poll(const GpuMemorySnapshot&,std::uint64_t now_ms) noexcept;
   std::span<const std::byte> use_cpu_fallback() noexcept;
   std::optional<NativeUniformWriteResult> finish() noexcept;
   bool awaiting_fresh_observation() const noexcept{return pending_ && submitted_ && controller_.awaiting_fresh_observation();}
   bool request_cancel() const noexcept{return controller_.request_cancel();}
-  bool try_retire() noexcept{return controller_.try_retire();}
+  bool try_retire() noexcept;
   std::uint32_t process_id() const noexcept{return controller_.process_id();}
  private:
   NativeFileSession& session_;

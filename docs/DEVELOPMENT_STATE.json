@@ -84,6 +84,15 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "native_gpu_budget_controller": {
+    "source_base": "d447c7113fa0b60b2c9c5fbb74eb515d74d72ceb",
+    "evidence": "docs/evidence/native-gpu-budget-controller-2026-11-18.json",
+    "scope": "Configured owned controller, coalesced start and completion observations, ordinary indexed SDK writes, immediate CPU selection on unavailable budget, copy transfer and exact retirement.",
+    "amd_budget_queries": 2,
+    "amd_accepted_extents": 8,
+    "amd_mirrored_records": 16,
+    "next": "Integrate trusted installed package acquisition and measured workload qualification, then amortize startup over useful finite Windows or collective work."
+  },
   "indexed_background_compaction": {
     "source_base": "5a394e844a18280221fe9128773e3eb76fe5a38a",
     "evidence": "docs/evidence/indexed-background-compaction-2026-11-18.json",
