@@ -53,6 +53,16 @@ The new build must prove its gfx1201 image rather than assuming compatibility.
 
 ## Qualification and artifacts
 
+For local qualification, place the verified ROCm SDK and the new output
+directories under an owned workspace. Pass `--scratch-root` when qualifying the
+offline hipCOMP object and `FLITZFS_ROCM_SCRATCH_ROOT` when configuring
+`tests/rocm_compile` in CMake. Use a discoverable CMake for the CPU index oracle.
+Pinned dependency checkouts can live beside the FlitzFS checkout. The qualifiers
+verify their roots, revisions and source bytes. The LZ4 bundler binds the
+offline object and module receipts to the current FlitzFS commit and creates
+new outputs exclusively.
+[Local qualification evidence](evidence/amd-budget-sampler-2026-11-18.json)
+
 Twelve CPU staging cases check source/object leases, target inventory, import and
 getter closure, source links, immutable copies and exclusive new outputs. Native
 metadata cases additionally reject missing, foreign, duplicate and overlapping

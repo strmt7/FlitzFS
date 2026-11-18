@@ -1,5 +1,34 @@
 # Validation ledger
 
+## AMD worker budget sampling — 18 November 2026
+
+The uniform AMD worker binds the exact DXGI adapter once for budget sampling
+in each attempt. It reads fresh GPU and host counters at every resource
+checkpoint and refuses the attempt if the factory reports a topology change.
+In five alternating pairs,
+ten budget reads took 1.42–1.82 ms when rebinding and 0.16–0.19 ms when
+retaining the binding, with all snapshots fresh.
+[DXGI topology guidance](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgifactory1-iscurrent)
+
+The locally built ROCm 10.1.0 worker completed three matched AMD trials. The
+earlier worker completed the three controls. Each stored 135,344 encoded bytes
+from 1 MiB, preserved the prior data and passed independent CPU readback.
+Across eight launches, admission and completion checks took 46–56 µs with the
+new worker and 2.78–3.68 ms with the earlier worker. End-to-end times overlapped.
+Setup for the new worker took 1.06–1.20 s.
+
+HIP reported the expected LUID with a zero node mask. The independent D3D12
+probe verified one physical node in 248–293 ms including process overhead.
+The current setup can request that proof twice. The metadata probes bound the
+cost of a standalone verification and guide further measurement inside the
+worker. All processes and locked fixture memory retired.
+[D3D12 node reference](https://learn.microsoft.com/en-us/windows/win32/direct3d12/multi-engine)
+
+The local build qualified six offline AMD targets. The SDK CPU matrix passed
+3,485 checks across 83 scenarios. The raw, AddressSanitizer and SDK callback
+lanes passed nine selected CTest entries. Seventeen source-staging tests passed.
+[Source, artifacts and execution evidence](evidence/amd-budget-sampler-2026-11-18.json)
+
 ## Automatic indexed group discovery — 18 November 2026
 
 An indexed fixture grouped 129 related extents around one protected base in

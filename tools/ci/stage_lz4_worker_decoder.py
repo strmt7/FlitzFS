@@ -27,7 +27,7 @@ def source_assets(source: Path, control: Path):
     source = source.absolute()
     control = control.resolve(strict=True)
     info = source.lstat()
-    if (not source.is_relative_to(control) or source == control or
+    if (control.is_relative_to(source) or
             not stat.S_ISDIR(info.st_mode) or source.is_symlink() or
             (getattr(info, "st_file_attributes", 0) & 0x400) or
             source.resolve(strict=True) != source):

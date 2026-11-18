@@ -130,8 +130,8 @@ class PrivateStaging(unittest.TestCase):
 
 class NativeGitBinding(unittest.TestCase):
     def setUp(self):
-        self.fixture=tempfile.TemporaryDirectory(prefix="flitzfs-codec-git-",dir=os.environ["RUNNER_TEMP"])
-        self.root=Path(self.fixture.name);self.workspace=self.root/"workspace";self.workspace.mkdir()
+        self.root=Path(tempfile.mkdtemp(prefix="flitzfs-codec-git-",dir=os.environ.get("RUNNER_TEMP")))
+        self.workspace=self.root/"workspace";self.workspace.mkdir()
         self.repo=self.workspace/"candidate";self.repo.mkdir()
         config=self.root/"empty.gitconfig";config.write_bytes(b"")
         self.env=os.environ.copy();self.env.update(GIT_CONFIG_NOSYSTEM="1",GIT_CONFIG_GLOBAL=str(config))
@@ -141,8 +141,6 @@ class NativeGitBinding(unittest.TestCase):
         self.git_cmd("-c","user.name=FlitzFS fixture","-c","user.email=qualification@example.invalid",
                      "commit","-m","Private codec qualification fixture")
         self.commit=self.git_cmd("rev-parse","HEAD").decode().strip()
-    def tearDown(self):
-        self.fixture.cleanup() # Only this fresh disposable-VM fixture.
     def git_cmd(self,*args):
         result=subprocess.run(["git","-C",str(self.repo),"-c","gc.auto=0","-c","maintenance.auto=false",*args],capture_output=True,timeout=15,
                               env=self.env,check=False)
@@ -151,6 +149,12 @@ class NativeGitBinding(unittest.TestCase):
     def test_exact_root_revision_and_clean_checkout(self):
         with patch.object(subject,"REPO",self.workspace):
             self.assertEqual(subject.verify_checkout(self.repo,self.commit),self.repo)
+        sibling=self.workspace/"control";sibling.mkdir()
+        with patch.object(subject,"REPO",sibling):
+            self.assertEqual(subject.verify_checkout(self.repo,self.commit),self.repo)
+        with patch.object(subject,"REPO",self.repo):
+            with self.assertRaisesRegex(RuntimeError,"checkout boundary"):
+                subject.verify_checkout(self.repo,self.commit)
     def test_wrong_revision_and_nested_git_root_reject(self):
         nested=self.repo/"nested";nested.mkdir()
         with patch.object(subject,"REPO",self.workspace):

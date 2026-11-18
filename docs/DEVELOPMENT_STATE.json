@@ -177,6 +177,17 @@
     "preference": "cpu",
     "next": "Measure finite AMD worker reuse and collective compression, then integrate workload calibration into the Windows launcher."
   },
+  "retained_amd_budget_sampling": {
+    "source_base": "86f859ebda876d98de1f5eebf82647a4054f7d21",
+    "evidence": "docs/evidence/amd-budget-sampler-2026-11-18.json",
+    "locally_verified_rocm_distribution": "10.1.0",
+    "matched_trial_pairs": 3,
+    "local_worker_budget_check_microseconds": [46, 56],
+    "local_worker_setup_milliseconds": [1058, 1204],
+    "independent_cpu_readback_pairs": 3,
+    "gpu_speedup_qualified": false,
+    "next": "Measure topology proof inside setup, retain fresh health validation, and amortize the verified setup over finite cross-file compression work."
+  },
   "native_gpu_budget_controller": {
     "source_base": "d447c7113fa0b60b2c9c5fbb74eb515d74d72ceb",
     "evidence": "docs/evidence/native-gpu-budget-controller-2026-11-18.json",

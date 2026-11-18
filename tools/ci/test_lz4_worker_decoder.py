@@ -12,9 +12,7 @@ import stage_lz4_worker_decoder as decoder
 
 class DecoderStaging(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="flitzfs-decoder-source-")
-        self.addCleanup(self.temporary.cleanup)
-        self.control = Path(self.temporary.name).resolve()
+        self.control = Path(tempfile.mkdtemp(prefix="flitzfs-decoder-source-")).resolve()
         config = mock.patch.dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
         config.start()
         self.addCleanup(config.stop)
@@ -73,13 +71,15 @@ class DecoderStaging(unittest.TestCase):
             decoder.stage(self.source, self.control, self.control / "other")
         self.assertFalse((self.control / "other").exists())
 
+    def test_sibling_checkout(self):
+        sibling = self.control / "control"
+        sibling.mkdir()
+        records = decoder.stage(self.source, sibling, self.output)
+        decoder.unchanged(self.source, sibling, self.output, records)
+
     def test_wrong_root_and_revision(self):
         with self.assertRaises(ValueError):
             decoder.source_assets(self.source, self.source)
-        outside = self.control / "outside"
-        outside.mkdir()
-        with self.assertRaises(ValueError):
-            decoder.source_assets(self.source, outside)
         with mock.patch.object(decoder, "SOURCE_COMMIT", "0" * 40):
             with self.assertRaises(ValueError):
                 decoder.source_assets(self.source, self.control)

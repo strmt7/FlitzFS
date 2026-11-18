@@ -70,9 +70,10 @@ def git(source,*arguments):
     require(result.returncode==0 and len(result.stdout)<=MIB and len(result.stderr)<=16384,"candidate native Git command")
     return result.stdout
 def verify_checkout(source,expected):
+    source=source.absolute()
     require(not source.is_symlink() and not source.is_junction(),"candidate checkout link")
-    source=source.resolve(strict=True)
-    require(source!=REPO and source.is_relative_to(REPO),"candidate checkout boundary")
+    require(source.is_dir() and source.resolve(strict=True)==source and
+        not REPO.is_relative_to(source),"candidate checkout boundary")
     require(Path(git(source,"rev-parse","--show-toplevel").decode().strip()).resolve(strict=True)==source and
         git(source,"rev-parse","HEAD").decode().strip()==expected,"candidate checkout identity")
     require(not git(source,"status","--porcelain","--untracked-files=all").strip(),"candidate checkout changed")
@@ -149,6 +150,8 @@ def main():
     require(os.name=="nt","native Windows process/API support required")
     parser=argparse.ArgumentParser()
     for name in ("source","provider","sdk","output"):parser.add_argument("--"+name,type=Path,required=True)
+    parser.add_argument("--scratch-root",type=Path,default=os.environ.get("RUNNER_TEMP"),
+        help="Existing workspace for SDK and new qualification output")
     parser.add_argument("--native-sync",action="store_true",help="Explicit offline transformed AMD candidate; never a runtime route")
     parser.add_argument("--bounded-entry",action="store_true",help="Private checked byte entry; requires native-sync")
     parser.add_argument("--runtime-targets",action="store_true",help="Compile the pinned provider target set; requires bounded entry")
@@ -156,12 +159,18 @@ def main():
     require(not args.runtime_targets or args.bounded_entry,"runtime target set requires bounded entry")
     require(not args.bounded_entry or args.native_sync,"bounded entry requires native synchronization")
     source=verify_checkout(args.source,SOURCE_COMMIT);provider=verify_checkout(args.provider,MECHANISM_COMMIT)
-    temporary=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+    require(args.scratch_root is not None,"provide --scratch-root or RUNNER_TEMP")
+    temporary=args.scratch_root.resolve(strict=True)
     require(not args.output.is_symlink() and not args.output.is_junction() and
         not args.sdk.is_symlink() and not args.sdk.is_junction(),"candidate SDK/output link")
     output=args.output.resolve();sdk=args.sdk.resolve(strict=True)
-    require(output!=temporary and output.is_relative_to(temporary) and not output.exists() and
-        sdk!=temporary and sdk.is_relative_to(temporary),"candidate SDK/output boundary")
+    require(temporary.is_dir() and output!=temporary and output.is_relative_to(temporary) and
+        not output.exists() and sdk!=temporary and sdk.is_relative_to(temporary) and
+        all(not output.is_relative_to(path) for path in (sdk,source,provider)),
+        "candidate SDK/output boundary")
+    control_commit=git(REPO,"rev-parse","HEAD").decode().strip()
+    require(re.fullmatch(r"[0-9a-f]{40}",control_commit) and
+        os.environ.get("GITHUB_SHA",control_commit)==control_commit,"control checkout identity")
     manifest=REPO/"tests/rocm_compile/hipcomp_lz4_source.json"
     require(manifest.stat().st_size<=256*1024,"candidate manifest byte cap")
     value=json.loads(manifest.read_text(encoding="utf-8"))
@@ -173,7 +182,7 @@ def main():
     bootstrap=load_source("flitzfs_candidate_bootstrap",provider/"tools/bootstrap_rocm_sdk.py")
     bounds=load_source("flitzfs_candidate_bounds",provider/"mcp/flitzzip_mcp.py")
     lock=bootstrap.read_lock(own_lock);identity=bootstrap.sdk_identity(sdk,lock["version"])
-    report=dict(experimental=True,control_commit=os.environ["GITHUB_SHA"],source_repository=SOURCE_REPOSITORY,
+    report=dict(experimental=True,control_commit=control_commit,source_repository=SOURCE_REPOSITORY,
         source_commit=SOURCE_COMMIT,source_inventory_sha256=SOURCE_DIGEST,distribution=lock["version"],
         synthetic_compile_target="gfx1100",commands=[],complete=False,gpu_executed=False,
         module_loaded=False,linked_into_product=False,upstream_build_scripts_executed=False,object_inspected=False)

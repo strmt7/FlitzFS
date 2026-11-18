@@ -110,17 +110,24 @@ def main():
     parser=argparse.ArgumentParser()
     for name in ("module","object","coverage","output","header","receipt"):
         parser.add_argument("--"+name,type=Path,required=True)
+    parser.add_argument("--scratch-root",type=Path,default=os.environ.get("RUNNER_TEMP"))
     parser.add_argument("--runtime",required=True)
     parser.add_argument("--uniform",action="store_true")
     args=parser.parse_args()
-    root=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+    require(args.scratch_root is not None,"provide --scratch-root or RUNNER_TEMP")
+    root=args.scratch_root.resolve(strict=True)
+    require(root.is_dir(),"existing qualification workspace required")
     for path in (args.module,args.object,args.coverage):
         require(path.resolve(strict=True).is_relative_to(root),"private compression input boundary")
     for path in (args.output,args.header,args.receipt):
         require(path.parent.resolve(strict=True)==path.parent and path.is_relative_to(root) and
             path!=root,"private compression output boundary")
+    from qualify_rocm_sdk import native_git
+    control=Path(__file__).resolve().parents[2]
+    commit=native_git(control,"rev-parse","HEAD")
+    require(os.environ.get("GITHUB_SHA",commit)==commit,"control checkout identity")
     result=stage(args.module,args.object,args.coverage,args.output,args.header,args.receipt,
-        args.runtime,os.environ["GITHUB_SHA"],uniform=args.uniform)
+        args.runtime,commit,uniform=args.uniform)
     print("Private LZ4 runtime bundle: "+json.dumps(result),flush=True)
 
 if __name__=="__main__":

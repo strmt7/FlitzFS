@@ -5,6 +5,11 @@ if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif()
 set(FLITZFS_ROCM_SDK "" CACHE PATH "Explicit complete verified ROCm distribution")
 set(FLITZFS_ROCM_KERNEL_OBJECT "" CACHE FILEPATH "Current SDK-compiled native kernel object")
+set(FLITZFS_ROCM_SCRATCH_ROOT "$ENV{RUNNER_TEMP}" CACHE PATH "Existing private qualification workspace")
+set(worker_workspace_argument)
+if(FLITZFS_ROCM_SCRATCH_ROOT)
+  set(worker_workspace_argument --scratch-root "${FLITZFS_ROCM_SCRATCH_ROOT}")
+endif()
 foreach(input IN ITEMS
     "share/therock/therock_manifest.json" "include/hip/hip_version.h"
     "include/hip/hip_runtime_api.h" "lib/amdhip64.lib")
@@ -148,6 +153,7 @@ set(bundle_header "${worker_output}/hip_worker_bundle.hpp")
 set(bundle_receipt "${worker_output}/hip-bundle.json")
 add_custom_command(OUTPUT "${bundle_header}" "${bundle_receipt}"
   COMMAND "${Python3_EXECUTABLE}" -B "${flitzfs_root}/tools/ci/stage_hip_worker_bundle.py"
+    ${worker_workspace_argument}
     --runtime "${runtime_file}" --kernel "$<TARGET_FILE:flitzfs_rocm_kernels>"
     --output "${worker_output}/hip" --header "${bundle_header}" --receipt "${bundle_receipt}"
   DEPENDS flitzfs_rocm_kernels "${runtime_file}"
@@ -242,6 +248,7 @@ if(FLITZFS_ROCM_LZ4_RUNTIME_FIXTURE)
   set(lz4_bundle_receipt "${worker_output}/hip-lz4-bundle.json")
   add_custom_command(OUTPUT "${lz4_bundle_header}" "${lz4_bundle_receipt}"
     COMMAND "${Python3_EXECUTABLE}" -B "${flitzfs_root}/tools/ci/stage_lz4_runtime_bundle.py"
+      ${worker_workspace_argument}
       --module "$<TARGET_FILE:flitzfs_rocm_lz4_candidate>"
       --object "${FLITZFS_ROCM_LZ4_OBJECT}" --coverage "${FLITZFS_ROCM_LZ4_COVERAGE}"
       --runtime "${runtime_name}" --output "${worker_output}/hip-lz4"
@@ -254,6 +261,7 @@ if(FLITZFS_ROCM_LZ4_RUNTIME_FIXTURE)
   set(uniform_bundle_receipt "${worker_output}/hip-uniform-lz4-bundle.json")
   add_custom_command(OUTPUT "${uniform_bundle_header}" "${uniform_bundle_receipt}"
     COMMAND "${Python3_EXECUTABLE}" -B "${flitzfs_root}/tools/ci/stage_lz4_runtime_bundle.py"
+      ${worker_workspace_argument}
       --uniform --module "$<TARGET_FILE:flitzfs_rocm_uniform_lz4_candidate>"
       --object "${FLITZFS_ROCM_LZ4_OBJECT}" --coverage "${FLITZFS_ROCM_LZ4_COVERAGE}"
       --runtime "${runtime_name}" --output "${worker_output}/hip-uniform-lz4"

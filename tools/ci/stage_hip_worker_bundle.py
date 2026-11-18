@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage the selected SDK's PE import closure in a new hosted build directory."""
+"""Stage the selected SDK's PE import closure in a new qualification directory."""
 from __future__ import annotations
 
 import argparse
@@ -98,10 +98,14 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     for name in ("runtime", "kernel", "output", "header", "receipt"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--scratch-root", type=Path, default=os.environ.get("RUNNER_TEMP"))
     args = parser.parse_args()
-    root = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+    require(args.scratch_root is not None, "provide --scratch-root or RUNNER_TEMP")
+    root = args.scratch_root.resolve(strict=True)
+    require(root.is_dir(), "existing qualification workspace required")
     for path in (args.output, args.header, args.receipt):
-        require(path.resolve().is_relative_to(root) and not path.exists(), "new runner fixture required")
+        require(path.parent.resolve(strict=True) == path.parent and path.is_relative_to(root)
+                and path != root and not path.exists(), "new qualification output required")
     result = stage(args.runtime, args.kernel, args.output, args.header)
     with args.receipt.open("x", encoding="utf-8") as report:
         json.dump(result, report, indent=2)

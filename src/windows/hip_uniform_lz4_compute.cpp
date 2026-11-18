@@ -57,9 +57,10 @@ UniformLz4Candidates with_uniform_device(HMODULE runtime,int ordinal,std::array<
   hip_detail::lz4_require(entry!=nullptr,HipWorkerExit::runtime_unavailable,
       "uniform function metadata unavailable",HipWorkerStage::runtime_api);
   const auto attributes=std::bit_cast<hip_detail::Lz4Attributes>(entry);
+  WindowsGpuBudgetSampler sampler(luid,node_mask);
   GpuMemorySnapshot baseline{};const auto bytes=device_bytes;
   const auto memory=[&](HipMemoryPoint point){
-    const auto current=query_windows_gpu_budget(luid,node_mask).snapshot;
+    const auto current=sampler.sample().snapshot;
     if(point==HipMemoryPoint::pre_initialize){
       require_hip_memory(current,luid,node_mask,GetTickCount64(),bytes,point);baseline=current;
     }else require_hip_memory(current,luid,node_mask,GetTickCount64(),bytes,point,&baseline);

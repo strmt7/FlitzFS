@@ -18,6 +18,14 @@ single-launch path keeps its existing capacity and behavior.
 
 ## Quantum completion and protected reuse
 
+The Windows worker retains one verified DXGI adapter binding for the attempt.
+It samples local and nonlocal video memory and host physical and commit memory
+at each checkpoint. It checks that the factory still describes the current
+topology before and after sampling. Query or topology failure retires the
+binding and refuses the attempt. The normal recovery policy decides whether a
+later request can start a new attempt.
+[DXGI memory query contract](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
+
 Each quantum receives fresh host/GPU memory admission against the operation's original baseline. Its active upload is fully initialized in the reusable CPU workspace; the remaining physical slab is filled with a distinct 0xd3 canary. The kernel receives the canonical ACTIVE extent, which may be smaller than its owned backing allocation.
 
 The same stream executes one quantum at a time. Full stream synchronization precedes complete peak-slab readback. All active source/alignment/output guards, candidate sizes, independent CPU bytes and the entire unused tail must pass. A fresh completion-memory check follows. Only then may the next upload replace the workspace. The maximum launch geometry was qualified for the largest admitted quantum; a shorter tail cannot increase it.
