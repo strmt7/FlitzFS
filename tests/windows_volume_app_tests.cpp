@@ -80,7 +80,7 @@ struct VolumeModelQualification {
     area->flush();
   }
   static std::shared_ptr<StoreByteIo> fill_remaining(VolumeModel& m) {
-    const auto use=m.domain_->usage();return m.domain_->create_store(use.capacity-use.allocated);
+    const auto use=m.domain_->usage();return m.domain_->create_store(use.capacity-use.reserved);
   }
   static NativeFileHandle open_cleaned(VolumeModel& m) {
     auto file=m.session_->open("keep.txt",{true,false,false},NativeOpenKind::file);
@@ -220,7 +220,7 @@ void advice_application_tests() {
           model.maintain_optimization_state()==Result::ready&&Q::bytes(area)==bytes&&
           model.optimization_info().binding_attempts==1&&
           !model.optimization_info().remaining_publications&&model.optimization_info().budgeted&&
-          model.optimization_info().settled_input_bytes==0&&model.view().allocated==baseline.allocated,
+          model.optimization_info().settled_input_bytes==0&&model.view().reserved==baseline.reserved,
           "healthy audit rewrote/rebound exhausted advice");
     }
     for(unsigned rebuilt=1;rebuilt<NativeFileSession::max_optimization_bindings;++rebuilt) {
@@ -229,7 +229,7 @@ void advice_application_tests() {
       const auto unfunded=model.view();
       for(unsigned repeat=0;repeat<8;++repeat)
         require(model.maintain_optimization_state()==Result::unavailable&&
-            model.view().allocated==unfunded.allocated&&model.view().physical_bytes==unfunded.physical_bytes&&
+            model.view().reserved==unfunded.reserved&&model.view().physical_bytes==unfunded.physical_bytes&&
             model.optimization_info().binding_attempts==rebuilt&&Q::current(model)==old,
             "unfunded helper allocated/admitted advice or retried historical input");
       Q::earn(model,2*kOptimizationAreaBytes);const auto funded=model.view();
@@ -239,7 +239,7 @@ void advice_application_tests() {
           info.binding_attempts==rebuilt+1&&info.owned_area_bytes==(rebuilt+1)*kOptimizationAreaBytes&&
           !info.remaining_publications&&info.budgeted&&
           info.settled_input_bytes==Q::workload(model).committed_input_bytes&&!view.fenced&&
-          view.allocated==baseline.allocated+rebuilt*kOptimizationAreaBytes&&
+          view.reserved==baseline.reserved+rebuilt*kOptimizationAreaBytes&&
           view.physical_bytes==funded.physical_bytes+kOptimizationAreaBytes,
           "helper replacement mapping/accounting");
       require(Q::current(model)!=old&&Q::bytes(old)==damaged&&model.read_text("keep.txt")==text&&
@@ -247,14 +247,14 @@ void advice_application_tests() {
           "helper replaced source bytes, lost a live cleaned handle or reused an area");
     }
     Q::damage(model);
-    const auto allocated=model.view().allocated;
+    const auto allocated=model.view().reserved;
     for(unsigned repeat=0;repeat<8;++repeat)
       require(model.maintain_optimization_state()==Result::unavailable&&
-          model.view().allocated==allocated&&model.optimization_info().binding_attempts==
+          model.view().reserved==allocated&&model.optimization_info().binding_attempts==
             NativeFileSession::max_optimization_bindings,"exhausted helper retried/leaked a new area");
     const auto funded_input=text.size()+(NativeFileSession::max_optimization_bindings-1)*2*kOptimizationAreaBytes;
     require(Q::workload(model)==NativeWorkloadInfo{true,funded_input},"advice loss or maintenance minted input");
-    require(!model.optimize()&&model.view().allocated==allocated&&!model.view().fenced,
+    require(!model.optimize()&&model.view().reserved==allocated&&!model.view().fenced,
         "unavailable advice started image work or fenced data");
     model.create_text("after.txt","still writable");
     require(Q::workload(model)==NativeWorkloadInfo{true,funded_input+std::string_view("still writable").size()},
@@ -272,11 +272,11 @@ void advice_application_tests() {
     {
       auto filler=Q::fill_remaining(model);
       const auto use=model.view();
-      require(use.allocated==use.capacity,"bounded pressure fixture did not fill its own domain");
+      require(use.reserved==use.capacity,"bounded pressure fixture did not fill its own domain");
       for(unsigned repeat=0;repeat<3;++repeat)
         rejects([&]{model.maintain_optimization_state();},"provider capacity refusal hidden");
       require(model.optimization_info().binding_attempts==before&&!model.view().fenced&&
-          model.view().allocated==use.allocated&&model.read_text("keep.txt")==text&&
+          model.view().reserved==use.reserved&&model.read_text("keep.txt")==text&&
           Q::read(model,handle)==expected,"pressure changed mapping, leaked or blocked file access");
     }
     // New independently available capacity permits a distinct attempt, without
@@ -332,7 +332,7 @@ void advice_application_tests() {
     require(area!=old&&area->extent()==written&&info.binding_attempts==2&&
         info.owned_area_bytes==2*kOptimizationAreaBytes&&info.sequence==0&&
         info.phase==NativeOptimizationPhase::unavailable&&info.session_ready&&
-        !failed_view.fenced&&failed_view.allocated==baseline.allocated+kOptimizationAreaBytes&&
+        !failed_view.fenced&&failed_view.reserved==baseline.reserved+kOptimizationAreaBytes&&
         failed_view.physical_bytes==baseline.physical_bytes+written,
         "throwing admitted area lost helper ownership/accounting or exposed authority");
     const auto partial=cut?Q::bytes(area):std::vector<std::byte>{};
@@ -345,7 +345,7 @@ void advice_application_tests() {
     const auto insufficient=model.view();
     for(unsigned repeat=0;repeat<4;++repeat)
       require(model.maintain_optimization_state()==Result::unavailable&&
-          model.view().allocated==insufficient.allocated&&model.optimization_info().binding_attempts==2,
+          model.view().reserved==insufficient.reserved&&model.optimization_info().binding_attempts==2,
           "failed creation reused already admitted input or leaked a replacement");
     Q::earn(model,2*kOptimizationAreaBytes);
     const auto recovery=model.view();
@@ -354,7 +354,7 @@ void advice_application_tests() {
         model.optimization_info().owned_area_bytes==3*kOptimizationAreaBytes&&
         Q::current(model)!=area&&area->extent()==written&&Q::bytes(old)==damaged&&
         (!cut||Q::bytes(area)==partial)&&
-        model.view().allocated==baseline.allocated+2*kOptimizationAreaBytes&&
+        model.view().reserved==baseline.reserved+2*kOptimizationAreaBytes&&
         model.view().physical_bytes==recovery.physical_bytes+kOptimizationAreaBytes,
         "later repair reused/mutated a failed area or lost retained reservations");
     Q::close(model,handle);model.discard();
@@ -386,10 +386,12 @@ void model_tests() {
     rejects([&]{(void)domain.create_store(1);},"Unaligned memory store accepted");
     rejects([&]{(void)domain.create_store(5*1024*1024);},"Oversized store accepted");
     auto store=domain.create_store(65536);
-    require(store->extent()==0 && domain.usage().allocated==65536,"New store/accounting");
+    require(store->extent()==0 && domain.usage().reserved==65536 && domain.usage().resident==0,
+        "New store accounting and lazy memory");
     std::array<std::byte,3> bytes{std::byte{1},std::byte{2},std::byte{3}},out{};
     store->write_exact(7,bytes);store->flush();store->read_exact(7,out);domain.verify_resident();
-    require(out==bytes && store->extent()==10,"Exact memory I/O");
+    require(out==bytes && store->extent()==10 && domain.usage().resident>0 &&
+        domain.usage().resident<=65536,"Exact memory I/O and resident page accounting");
     store->write_exact(65536,{});require(store->extent()==10,"Empty write extended image");
     rejects([&]{store->write_exact(UINT64_MAX,bytes);},"Overflow write accepted");
     rejects([&]{store->read_exact(UINT64_MAX,out);},"Overflow read accepted");
@@ -404,8 +406,9 @@ void model_tests() {
     require(domain.usage().stores==1,"Peer allocation retirement");
     // Domain wrapper retirement must not restore its lease while a store lives.
     auto survivor=store;
-    store.reset();require(domain.usage().allocated==65536,"Shared store accounting");
-    survivor.reset();domain.verify_resident();require(domain.usage().allocated==0 && domain.usage().stores==0,"Store cleanup");
+    store.reset();require(domain.usage().reserved==65536,"Shared store accounting");
+    survivor.reset();domain.verify_resident();require(domain.usage().reserved==0 && domain.usage().resident==0 &&
+        domain.usage().stores==0,"Store cleanup");
   }
   handles("provider-retired");
   {
@@ -417,9 +420,9 @@ void model_tests() {
   {
     VolumeModel model;require(!model.ready(),"Unexpected initial volume");
     model.create();const auto initial=model.view();
-    const auto image_capacity=initial.allocated-262144;
+    const auto image_capacity=initial.reserved-262144;
     require(initial.ready && image_capacity>=4*1024*1024 && image_capacity%65536==0 &&
-        initial.capacity<=MemoryVolumeDomain::maximum_capacity &&
+        initial.resident>0 && initial.resident<initial.reserved &&
         2*image_capacity+(NativeFileSession::max_optimization_bindings+1)*131072<=initial.capacity &&
         initial.files.empty(),"Initial admitted paged volume and maintenance reserve");
     rejects([&]{model.create();},"Duplicate create replaced volume");
@@ -435,8 +438,8 @@ void model_tests() {
     rejects([&]{model.create_text("large",std::string(VolumeModel::text_limit+1,'x'));},"Editor cap accepted");
     (void)model.optimize();
     require(model.read_text("first.txt")==data && !model.view().fenced,"Optimization changed file");
-    const auto allocated=model.view().allocated;
-    require(!model.optimize() && model.view().allocated==allocated,"Unchanged optimization repeated or leaked");
+    const auto allocated=model.view().reserved;
+    require(!model.optimize() && model.view().reserved==allocated,"Unchanged optimization repeated or leaked");
     require(VolumeModelQualification::workload(model)==written,"helper optimization minted/reset input");
     model.create_text("empty.txt","");require(model.read_text("empty.txt").empty(),"Empty file readback");
     require(VolumeModelQualification::workload(model)==written,"helper empty file minted input");

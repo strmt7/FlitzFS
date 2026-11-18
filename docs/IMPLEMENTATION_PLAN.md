@@ -13,6 +13,11 @@ collective lossless compression and autonomous low-impact learning/maintenance.
 The owner alone decides when to release. This plan creates no release, tag,
 package publication or product-version change.
 
+The 18 November checkpoints extend the baseline with indexed head selection,
+WinFsp SDK access, and on-demand locking in the shared memory provider.
+The next integration sequence uses those paths and replacement criteria for
+prototype constraints. [Current state](DEVELOPMENT_STATE.json)
+
 ## 1. Decisions that govern implementation
 
 1. **Keep the shared engine and WinFsp direction.** WinFsp supplies the Windows
@@ -221,9 +226,14 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
 1. Carry the indexed SDK path into the owned mount provider and helper.
    The indexed callbacks now encode large FileInfo values, commit ordinary
    writes and use the append boundary for physical free-space reporting.
-   Verify the provider's storage-kind selection, independent CPU inspection
-   after join, backing ownership and restart before enabling indexed mounting.
-   [Indexed managed and SDK evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
+   Add indexed creation, selection and sealed CPU inspection to the memory
+   provider. Verify that failed start retains the selected image and that
+   the dispatcher's last context and request retire before indexed recovery.
+   Keep earlier writable images readable and test their actual reopening.
+   The shared provider now locks pages as images grow. Use live limits and
+   reserved candidate accounting when selecting the starting capacity.
+   [Indexed SDK evidence](evidence/indexed-managed-winfsp-2026-11-18.json) ·
+   [Memory backing evidence](evidence/demand-locked-memory-2026-11-18.json)
 2. Qualify mounted delete intent, detached I/O, final Close and restart through
    an isolated external Windows client. The indexed SDK fixture now proves
    preservation of detached data and closed-session recovery with its
@@ -251,11 +261,14 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    against the selected Windows contract. Replace foreground subtree scans with
    bounded validation. Run SDK, mounted Windows and recovery suites separately.
 6. Feed verified writes and readback into the normal AMD dispatch and CPU
-   recovery path. Compare end-to-end costs and occupied bytes on the same
-   inputs, including startup, transfer, cancellation, verification and retained
-   storage. Cover driver-unavailable operation, ordinary foreground work and
-   low-priority collective dispatch. Complete the scale ladder and measure
-   read/write amplification before changing the release estimate.
+   recovery path. Bind each accelerated result to the selected inode, block
+   and content revision and encode the full indexed extent frame. Verify that
+   the CPU reader recovers it after restart with HIP unavailable. Compare
+   end-to-end costs and occupied bytes on the same inputs, including startup,
+   transfer, cancellation, verification and retained storage. Cover ordinary
+   foreground work, device loss and low-priority collective dispatch.
+   Complete the scale ladder and measure read/write amplification before
+   changing the release estimate.
 
 ### Implementation steps
 

@@ -4,46 +4,69 @@
 #include <algorithm>
 #include <atomic>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
-#include <vector>
 
 namespace flitzfs {
 namespace {
 std::atomic<bool> domain_claimed{false},cleanup_ok{true};
 constexpr std::uint64_t mib=1024ULL*1024;
+constexpr std::uint64_t lock_overhead=8*mib, working_set_slack=48*mib;
 void require(bool value,const char* message) {
   if(!value)throw std::runtime_error(message);
 }
-void headroom(std::uint64_t requested) {
-  MEMORYSTATUSEX m{};m.dwLength=sizeof(m);
-  require(GlobalMemoryStatusEx(&m)!=FALSE,"Memory headroom unavailable");
-  // Proportional admission plus an explicit experimental reserve. These are
-  // provider qualification limits, never inferred host specifications.
-  const auto reserve=(std::max)(768*mib,m.ullTotalPhys/8);
-  require(requested<=m.ullAvailPhys && m.ullAvailPhys-requested>=reserve &&
-      requested<=m.ullAvailPageFile && m.ullAvailPageFile-requested>=reserve,
+void check_headroom(std::uint64_t requested) {
+  require(requested <= usable_memory_volume_headroom(observe_memory_volume_headroom()),
       "Insufficient physical/commit headroom");
 }
 }
+MemoryVolumeObservation observe_memory_volume_headroom() {
+  MEMORYSTATUSEX m{};
+  m.dwLength = sizeof(m);
+  require(GlobalMemoryStatusEx(&m) != FALSE, "Memory headroom unavailable");
+  return {m.ullTotalPhys,m.ullAvailPhys,m.ullTotalPageFile,m.ullAvailPageFile};
+}
+std::uint64_t usable_memory_volume_headroom(const MemoryVolumeObservation& m) {
+  require(m.physical_total && m.physical_available <= m.physical_total && m.commit_total &&
+      m.commit_available <= m.commit_total, "Inconsistent memory headroom");
+  const auto reserve = (std::max)(768*mib, m.physical_total/8);
+  const auto available = (std::min)(m.physical_available, m.commit_available);
+  require(available >= reserve, "Insufficient physical/commit headroom");
+  return available - reserve;
+}
 struct MemoryVolumeDomain::State {
-  std::uint64_t capacity=0,allocated=0,peak=0,stores=0;
+  std::uint64_t capacity=0,reserved=0,resident=0,stores=0,lock_budget=0;
   std::array<Store*,64> registry{};
   SIZE_T old_min=0,old_max=0;DWORD old_flags=0;std::size_t page=0;
+  std::atomic<SIZE_T> minimum{0}; // The WinFsp controller checks this outside the callback lock.
   bool working_set_changed=false,read_only=false;
   explicit State(std::uint64_t cap):capacity(cap) {
-    headroom(cap);
+    check_headroom(cap);
     SYSTEM_INFO info{};GetSystemInfo(&info);page=info.dwPageSize;
     require(page && !(page&(page-1)) && cap%page==0,"Memory capacity alignment");
     require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&old_min,&old_max,&old_flags)!=FALSE,
         "Working-set query failed");
-    const auto minimum=(std::max)(old_min,static_cast<SIZE_T>(cap+8*mib));
-    const auto maximum=(std::max)(old_max,minimum+48*mib);
-    require(SetProcessWorkingSetSizeEx(GetCurrentProcess(),minimum,maximum,old_flags)!=FALSE,
-        "Memory locking admission denied");
-    working_set_changed=true;
+    minimum.store(old_min, std::memory_order_relaxed);
+  }
+  void admit_lock_growth(std::uint64_t added) {
+    check_headroom(added);
+    const auto required = resident + added; // All committed pages fit within reserved store capacity.
+    if (required <= lock_budget) return;
+    // Amortize quota changes while charging physical pages only when they are used.
+    const auto doubled = lock_budget + (std::min)(lock_budget, capacity-lock_budget);
+    const auto budget = (std::max)(required, doubled);
+    const auto next_min = static_cast<SIZE_T>(budget + lock_overhead);
+    if (next_min > minimum.load(std::memory_order_relaxed)) {
+      const auto next_max = (std::max)(old_max, next_min + static_cast<SIZE_T>(working_set_slack));
+      require(SetProcessWorkingSetSizeEx(GetCurrentProcess(), next_min, next_max, old_flags) != FALSE,
+          "Memory locking admission denied");
+      working_set_changed = true;
+      minimum.store(next_min, std::memory_order_release);
+    }
+    lock_budget = budget;
   }
   ~State() {
-    if(allocated||stores)cleanup_ok=false;
+    if(reserved||resident||stores)cleanup_ok=false;
     if(working_set_changed &&
         !SetProcessWorkingSetSizeEx(GetCurrentProcess(),old_min,old_max,old_flags))cleanup_ok=false;
     // A failed cleanup permanently refuses a new provider in this process.
@@ -55,19 +78,12 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   Store(std::shared_ptr<State> state,std::uint64_t capacity):state_(std::move(state)),capacity_(capacity) {
     require(state_->stores<state_->registry.size(),"Memory store count cap");
     require(capacity && capacity%state_->page==0 && capacity<=state_->capacity &&
-        state_->allocated<=state_->capacity-capacity,"Memory allocation capacity exceeded");
-    headroom(capacity);
-    data_=static_cast<std::byte*>(VirtualAlloc(nullptr,static_cast<SIZE_T>(capacity),
-        MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE));
+        state_->reserved<=state_->capacity-capacity,"Memory allocation capacity exceeded");
+    data_=static_cast<std::byte*>(VirtualAlloc(nullptr,static_cast<SIZE_T>(capacity),MEM_RESERVE,PAGE_NOACCESS));
     if(!data_)throw std::runtime_error("Memory reservation failed; Windows status "+std::to_string(GetLastError()));
-    state_->allocated+=capacity;state_->peak=(std::max)(state_->peak,state_->allocated);
+    state_->reserved+=capacity;
     ++state_->stores;
     for(auto& entry:state_->registry)if(!entry){entry=this;break;}
-    if(!VirtualLock(data_,static_cast<SIZE_T>(capacity))) {
-      release();throw std::runtime_error("Memory locking failed; no pageable fallback");
-    }
-    locked_=true;
-    try{verify();}catch(...){release();throw;}
   }
   ~Store() override {release();}
   std::uint64_t extent() const override {return extent_;}
@@ -76,54 +92,81 @@ class MemoryVolumeDomain::Store final:public StoreByteIo {
   // owns the domain. It promises NO survival of process exit or power loss.
   StoreIoContract contract() const noexcept override {return {65536,true};}
   void admit_write(std::uint64_t projected) override {
-    require(allows_writer() && cleanup_ok.load() && projected<=capacity_,"Memory write admission denied");
-    headroom(0);
+    require(allows_writer() && projected<=capacity_,"Memory write admission denied");
+    if (projected <= committed_) check_headroom(0);
+    else grow(projected);
   }
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
     require(at<=extent_ && out.size()<=extent_-at,"Memory read bounds");
     if(!out.empty())std::memcpy(out.data(),data_+at,out.size());
   }
   void write_exact(std::uint64_t at,std::span<const std::byte> in) override {
-    require(allows_writer(),"Memory store is sealed read-only");
+    require(allows_writer(),"Memory store is not writable");
     require(at<=capacity_ && in.size()<=capacity_-at,"Memory write bounds");
     if(in.empty())return; // A zero-byte operation must never extend the image.
-    std::memcpy(data_+at,in.data(),in.size());extent_=(std::max)(extent_,at+in.size());
+    const auto end = at + in.size();
+    if (end > committed_) grow(end);
+    std::memcpy(data_+at,in.data(),in.size());extent_=(std::max)(extent_,end);
   }
   void flush() override {
-    require(allows_writer(),"Memory store is sealed read-only");
+    require(allows_writer(),"Memory store is not writable");
     // No stable mirror and no O(image-size) copy on every transaction.
     std::atomic_thread_fence(std::memory_order_seq_cst);
   }
   bool writer_in_use() const noexcept {return has_writer();}
-  void verify() const {
-    const auto count=static_cast<std::size_t>(capacity_/state_->page);
-    require(count*sizeof(PSAPI_WORKING_SET_EX_INFORMATION)<=1024*1024,"Residency query cap");
-    std::vector<PSAPI_WORKING_SET_EX_INFORMATION> pages(count);
-    for(std::size_t i=0;i<count;++i)pages[i].VirtualAddress=data_+i*state_->page;
-    require(QueryWorkingSetEx(GetCurrentProcess(),pages.data(),
-        static_cast<DWORD>(pages.size()*sizeof(pages[0])))!=FALSE,"Residency query failed");
-    for(const auto& p:pages)require(p.VirtualAttributes.Valid && p.VirtualAttributes.Locked &&
-        !p.VirtualAttributes.Bad,"Locked residency not established");
+  std::uint64_t verify() const {
+    std::array<PSAPI_WORKING_SET_EX_INFORMATION,256> pages{};
+    const auto count = static_cast<std::size_t>(committed_/state_->page);
+    for (std::size_t first=0; first<count;) {
+      const auto batch = (std::min)(pages.size(), count-first);
+      for (std::size_t i=0; i<batch; ++i) pages[i].VirtualAddress=data_+(first+i)*state_->page;
+      require(QueryWorkingSetEx(GetCurrentProcess(),pages.data(),
+          static_cast<DWORD>(batch*sizeof(pages[0])))!=FALSE,"Residency query failed");
+      for (const auto& p : std::span(pages).first(batch))
+        require(p.VirtualAttributes.Valid && p.VirtualAttributes.Locked &&
+            !p.VirtualAttributes.Bad,"Locked residency not established");
+      first += batch;
+    }
+    return committed_;
   }
  private:
-  bool allows_writer() const noexcept override {return !state_->read_only;}
+  bool allows_writer() const noexcept override {return !state_->read_only && cleanup_ok.load();}
+  void grow(std::uint64_t end) {
+    const auto page = state_->page;
+    const auto next = ((end-1)/page+1)*page;
+    const auto added = static_cast<SIZE_T>(next-committed_);
+    auto* const start = data_+committed_;
+    state_->admit_lock_growth(added);
+    if (!VirtualAlloc(start, added, MEM_COMMIT, PAGE_READWRITE))
+      throw std::runtime_error("Memory commit failed; Windows status "+std::to_string(GetLastError()));
+    if (!VirtualLock(start, added)) {
+      const auto error = GetLastError();
+      if (!VirtualFree(start, added, MEM_DECOMMIT)) cleanup_ok=false;
+      throw std::runtime_error("Memory locking failed; Windows status "+std::to_string(error));
+    }
+    committed_ = next;
+    state_->resident += added;
+  }
   void release() noexcept {
     if(!data_)return;
-    SecureZeroMemory(data_,static_cast<SIZE_T>(capacity_));
-    if(locked_ && !VirtualUnlock(data_,static_cast<SIZE_T>(capacity_)))cleanup_ok=false;
-    if(VirtualFree(data_,0,MEM_RELEASE))state_->allocated-=capacity_;
-    else cleanup_ok=false; // Retain accounting; never recycle unconfirmed bytes.
+    if(extent_)SecureZeroMemory(data_,static_cast<SIZE_T>(extent_));
+    if(committed_ && !VirtualUnlock(data_,static_cast<SIZE_T>(committed_)))cleanup_ok=false;
+    if(VirtualFree(data_,0,MEM_RELEASE)) {
+      state_->reserved-=capacity_;
+      state_->resident-=committed_;
+    } else cleanup_ok=false; // Retain accounting until release is confirmed.
     for(auto& entry:state_->registry)if(entry==this){entry=nullptr;break;}
-    --state_->stores;data_=nullptr;locked_=false;
+    --state_->stores;data_=nullptr;
   }
   std::shared_ptr<State> state_;std::byte* data_=nullptr;
-  std::uint64_t capacity_=0,extent_=0;bool locked_=false;
+  std::uint64_t capacity_=0,extent_=0,committed_=0;
 };
 MemoryVolumeDomain::MemoryVolumeDomain(std::shared_ptr<State> state) noexcept:state_(std::move(state)) {}
 MemoryVolumeDomain::~MemoryVolumeDomain()=default;
 MemoryVolumeDomain::MemoryVolumeDomain(MemoryVolumeDomain&&) noexcept=default;
 MemoryVolumeDomain MemoryVolumeDomain::create(std::uint64_t cap) {
-  require(cap && cap<=maximum_capacity,"Experimental domain capacity exceeded");
+  require(cap && cap <= (std::numeric_limits<SIZE_T>::max)()-lock_overhead-working_set_slack,
+      "Invalid memory domain capacity");
   require(cleanup_ok.load(),"Prior memory cleanup failed");
   bool expected=false;
   require(domain_claimed.compare_exchange_strong(expected,true),"Memory domain already owned");
@@ -136,18 +179,24 @@ std::shared_ptr<StoreByteIo> MemoryVolumeDomain::create_store(std::uint64_t cap)
 }
 MemoryVolumeUsage MemoryVolumeDomain::usage() const noexcept {
   if(!state_)return {};
-  return {state_->capacity,state_->allocated,state_->peak,state_->stores};
+  return {state_->capacity,state_->reserved,state_->resident,state_->stores};
 }
-void MemoryVolumeDomain::verify_resident() const {
+void MemoryVolumeDomain::verify_working_set() const {
   require(state_ && cleanup_ok.load(),"Memory domain unavailable");
-  // Retain a bounded registry, not a second image or a dangling owner. Queries
-  // are explicit controller checks, never a full-image copy on every flush.
+  const auto expected = state_->minimum.load(std::memory_order_acquire);
   SIZE_T minimum=0,maximum=0;DWORD flags=0;
   require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&minimum,&maximum,&flags)!=FALSE &&
-      minimum>=state_->capacity+8*mib,"Working-set reservation changed");
-  std::uint64_t observed=0;
-  for(const auto* store:state_->registry)if(store){store->verify();++observed;}
-  require(observed==state_->stores,"Memory store ownership accounting differs");
+      minimum>=expected,"Working-set reservation changed");
+}
+void MemoryVolumeDomain::verify_resident() const {
+  verify_working_set();
+  std::uint64_t observed=0,resident=0;
+  for (const auto* store : state_->registry) if (store) {
+    resident += store->verify();
+    ++observed;
+  }
+  require(observed==state_->stores && resident==state_->resident && resident<=state_->reserved,
+      "Memory store ownership accounting differs");
 }
 bool MemoryVolumeDomain::owns(const StoreByteIo& candidate) const noexcept {
   return state_ && std::find(state_->registry.begin(),state_->registry.end(),&candidate)!=state_->registry.end();

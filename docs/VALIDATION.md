@@ -1,4 +1,13 @@
-# Validation ledger — experimental release 0.2
+# Validation ledger
+
+## Indexed managed storage and on-demand memory locking — 18 November 2026
+
+The [indexed managed checkpoint](evidence/indexed-managed-winfsp-2026-11-18.json)
+covers verified image selection, interrupted compaction, independent CPU reopen
+and Windows SDK callbacks. The [memory backing checkpoint](evidence/demand-locked-memory-2026-11-18.json)
+covers adaptive admission, locked page growth, exact retirement, helper
+behavior and injected WinFsp lifecycle. The receipts record test configurations,
+process cleanup and the limits of each result.
 
 ## Shared adaptive memory-volume factory — 17 November 2026
 

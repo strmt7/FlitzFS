@@ -11,14 +11,12 @@ constexpr std::uint64_t mib=1024ULL*1024,unit=65536;
 void require(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
 }
 MemoryVolumeLayout plan_memory_volume(const MemoryVolumeObservation& m) {
-  require(m.physical_total && m.physical_available<=m.physical_total && m.commit_total &&
-      m.commit_available<=m.commit_total,"Inconsistent memory headroom");
-  const auto reserve=(std::max)(768*mib,m.physical_total/8);
-  require(m.physical_available>reserve && m.commit_available>reserve,"Insufficient volume headroom");
-  const auto capacity=(std::min)(MemoryVolumeDomain::maximum_capacity,
-      (std::min)(m.physical_available-reserve,m.commit_available-reserve)/256)/unit*unit;
-  require(capacity>=9*mib,"Insufficient admitted paged-volume capacity");
-  const auto image=(capacity-MemoryVolumeLayout::area_capacity*(NativeFileSession::max_optimization_bindings+1))/2/unit*unit;
+  // Keep automatic lock admission within a small share of measured headroom.
+  const auto capacity = usable_memory_volume_headroom(m) / 256 / unit * unit;
+  constexpr auto areas = MemoryVolumeLayout::area_capacity * (NativeFileSession::max_optimization_bindings + 1);
+  require(capacity >= areas, "Insufficient head and advisory space");
+  const auto image = (capacity - areas) / 2 / unit * unit;
+  require(image >= 4*mib, "Insufficient admitted paged-volume capacity");
   return {capacity,image};
 }
 StoreIdentity fresh_volume_identity() {
@@ -29,10 +27,8 @@ StoreIdentity fresh_volume_identity() {
   return id;
 }
 MemoryVolumeBacking MemoryVolumeBacking::create() {
-  MEMORYSTATUSEX m{};m.dwLength=sizeof(m);
-  require(GlobalMemoryStatusEx(&m)!=FALSE,"Memory headroom unavailable");
   MemoryVolumeBacking out;
-  out.layout=plan_memory_volume({m.ullTotalPhys,m.ullAvailPhys,m.ullTotalPageFile,m.ullAvailPageFile});
+  out.layout=plan_memory_volume(observe_memory_volume_headroom());
   out.volume_identity=fresh_volume_identity();out.image_identity=fresh_volume_identity();
   require(out.volume_identity!=out.image_identity,"Volume identity collision");
   out.domain=std::make_unique<MemoryVolumeDomain>(MemoryVolumeDomain::create(out.layout.domain_capacity));

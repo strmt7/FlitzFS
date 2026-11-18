@@ -2,8 +2,9 @@
 > probe has been removed; any archive-specific assertions below describe historical
 > runs. Current tests retain native image reads, write rejection, supervision and
 > independent CPU recovery/remount. Apply current host/backing rules in AGENTS.md.
-> This ordinary-file fixture needs qualified disposable backing and an existing
-> runtime. Do not install a driver on the owner host or use physical image backing.
+> This ordinary-file fixture requires disposable storage and an installed
+> runtime. Host tests use the memory-backed provider. Driver provisioning
+> follows the artifact qualification in [AGENTS.md](../AGENTS.md).
 
 # Disposable real-mount integration gate
 

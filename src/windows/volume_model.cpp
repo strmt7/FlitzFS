@@ -130,7 +130,7 @@ void VolumeModel::stop_maintenance() noexcept {maintenance_.reset();maintenance_
 NativeMaintenanceProgress VolumeModel::maintain_groups(const NativeMaintenanceObservation& observation,std::uint64_t now) {
   require(ready(),"No volume");
   if(!maintenance_pending())return maintenance_progress();
-  if(observation.valid && !observation.foreground_pending)domain_->verify_resident();
+  if(observation.valid && !observation.foreground_pending)domain_->verify_working_set();
   const auto result=maintenance_->advance(observation,now);
   if(result.phase==NativeMaintenancePhase::idle || result.phase==NativeMaintenancePhase::failed)maintenance_pending_=false;
   return result;
@@ -138,10 +138,10 @@ NativeMaintenanceProgress VolumeModel::maintain_groups(const NativeMaintenanceOb
 VolumeView VolumeModel::view() const {
   VolumeView out;
   if(!session_)return out;
-  domain_->verify_resident();
+  domain_->verify_working_set();
   out.ready=true;out.fenced=session_->poisoned();out.optimization=optimization_info();
   out.maintenance=maintenance_progress();out.maintenance_pending=maintenance_pending();
-  const auto use=domain_->usage();out.allocated=use.allocated;out.capacity=use.capacity;
+  const auto use=domain_->usage();out.reserved=use.reserved;out.resident=use.resident;out.capacity=use.capacity;
   if(out.fenced)return out; // Preserve ownership without trying a poisoned reader.
   auto snapshot=session_->snapshot();const auto info=snapshot.storage_info();
   out.payload_bytes=info.stored_payload_bytes;

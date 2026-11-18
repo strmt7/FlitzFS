@@ -41,7 +41,7 @@ class StoreByteIo {
   virtual void read_exact(std::uint64_t offset,std::span<std::byte> output) const=0;
   virtual void write_exact(std::uint64_t offset,std::span<const std::byte> input)=0;
   virtual void flush()=0;
-  // Read-only resource preflight; throws before writes on unknown/low headroom.
+  // Preflight resources without changing stream bytes or extent.
   virtual void admit_write(std::uint64_t projected_extent)=0;
   virtual StoreIoContract contract() const noexcept=0;
  protected:

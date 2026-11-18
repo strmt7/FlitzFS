@@ -1,42 +1,29 @@
 # Agent instructions for FlitzFS development
 
-## Current owner direction: local development is primary
+## Local development
 
-On 15 November 2026 the owner explicitly deleted the blanket off-host,
-GitHub-only development and mandatory VM-first restrictions. Use the owner's
-Windows PC for normal source editing, builds, debugging, research tools,
-CPU/GPU testing, GUI work and benchmarks that can safely run there. Do not use
-GitHub APIs as a substitute for a local checkout or require hosted CI before
-ordinary local development or tests. Use GitHub for source synchronization,
-security information and complementary checks; push at meaningful checkpoints.
-Use VMs or hosted machines for operations that cannot safely run on this host,
-including deliberate kernel/driver/power faults and unqualified driver provisioning.
+Use the owner's Windows PC for routine editing, builds, debugging, research,
+GUI tests, bounded GPU work and benchmarks. Run work locally when the host
+can safely provide the required backing, devices and containment. Use a
+disposable environment for destructive fault injection and unqualified driver
+provisioning. Historical test locations and fixture names do not control
+where new work can run.
 
-The owner reaffirmed full host use during this planning round. Remove obsolete
-location-only instructions and checks from safe tooling; resource, source,
-ownership and backing contracts are the admission criteria. Historical hosted
-receipts and legacy fixture names are not permission rules. A genuine OS/API or
-fixture-backing requirement must be described as such, never as a general host
-ban. Do not require hosted CI before ordinary local work.
+Evaluate a restriction against its technical purpose. Remove obsolete
+location checks, duplicated qualification rules and fixed prototype ceilings.
+Use live capability and resource checks when the restriction covers a real
+dependency. Keep specific protection and ownership requirements below.
 
-This section governs execution location. Older component pages and historical
-receipts do not reinstate a blanket owner-PC ban, mandatory CI/VM-first gate,
-source-only local-work exception or prohibition on local build/cache/log files.
-Preserve their technical format, ownership, integrity and resource contracts.
-Do not treat a past successful fixture as qualification of changed behavior.
+Use GitHub for synchronization, repository security information and checks
+that complement local validation. Push at meaningful checkpoints. Reuse
+valid unchanged evidence and prioritize product integration over another
+isolated probe.
 
-The owner expects autonomous, token-efficient progress. Inspect actual state,
-choose useful implementation work, fix failures at their cause, and reuse valid
-unchanged evidence. Do not repeat an unchanged diagnostic or add more isolated
-probes in place of product integration. Do not ask for permission already given.
-
-The owner subsequently authorized necessary 7-Zip/filesystem-driver setup
-silently and reaffirmed full permission to continue development. Handle required
-setup autonomously; do not make it or future deployment qualification a blocker
-for independent development. Prefer the current read-only MSI/native cabinet
-extractor when staging the WinFsp SDK; it needs no 7-Zip or driver installation.
-Keep actual artifact/host-stability evidence and data protection in scope, and
-leave GPU/unrelated drivers untouched. Do not infer approval to release.
+The owner authorized unattended 7-Zip and FlitzFS driver setup where needed.
+The WinFsp SDK can be staged with the read-only MSI and cabinet extractor.
+Driver installation remains conditional on the exact artifact meeting the
+stability requirement below. Continue independent development during setup
+or qualification work.
 
 ## Data and host protection
 
@@ -261,10 +248,12 @@ full-quantum pacing and one joined controlling thread. An explicit native
 provider and current-source mounted qualification remain required.
 Read docs/WINDOWS_MEMORY_VOLUME_FACTORY.md before changing shared allocation,
 WinFspMemoryVolume composition or retained CPU inspection. Keep actual fresh
-headroom collection, one compiled provider/accounting domain, fixed registry
-during callbacks, backing lifetime through joined shutdown and explicit join
-before CPU inspection. Separate native RNG/PDH initialization from owned handle
-balance; preserve failed cold-baseline evidence and stable ownership checks.
+headroom collection, on-demand locking, distinct reserved and resident
+accounting, backing lifetime through joined shutdown and explicit join before
+CPU inspection. Routine maintenance checks the working-set lease without
+scanning locked pages. Full page checks run in the owning control context.
+Preserve exact cleanup accounting and distinguish native RNG/PDH initialization
+from product-owned handles.
 Background scheduling is not GPU qualification or
 permission to install a driver. Preserve exact resource retirement checks;
 separate native PDH cold initialization from leaks in product-owned lifecycles.

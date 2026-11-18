@@ -133,7 +133,7 @@ struct App {
         v.volume.maintenance_pending?L" | Background optimization pending":L" | Background optimization idle";
     if(v.volume.ready)state+=L"\r\nFile bytes: "+std::to_wstring(v.volume.logical_bytes)+
         L" | Image/head/advice bytes: "+std::to_wstring(v.volume.physical_bytes)+
-        L" | Locked allocation: "+std::to_wstring(v.volume.allocated)+L"/"+std::to_wstring(v.volume.capacity);
+        L" | Locked RAM: "+std::to_wstring(v.volume.resident)+L"/"+std::to_wstring(v.volume.capacity);
     SetWindowTextW(summary,state.c_str());
     const auto message=wide(v.message)+(v.busy?L"\r\nWorking...":L"");
     SetWindowTextW(status,message.c_str());

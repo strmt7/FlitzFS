@@ -2,9 +2,6 @@
 #include "memory_volume.hpp"
 #include "flitzfs/projection.hpp"
 namespace flitzfs {
-struct MemoryVolumeObservation {
-  std::uint64_t physical_total=0,physical_available=0,commit_total=0,commit_available=0;
-};
 struct MemoryVolumeLayout {
   std::uint64_t domain_capacity=0,image_capacity=0;
   static constexpr std::uint64_t area_capacity=131072;

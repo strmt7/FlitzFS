@@ -6,9 +6,10 @@
 
 `MemoryVolumeBacking::create` collects fresh Windows physical and commit
 headroom, computes an admitted layout, generates separate volume/image identities
-with the system RNG and creates three new locked stores: head, image and reserved
-advice. It verifies residency before returning. Failure retires local owners;
-there is no source path, existing-volume overwrite or pageable fallback.
+with the system RNG and reserves address space for three new stores: head,
+image and advice. Pages are committed and locked as each store grows.
+Failure retires local owners and keeps existing data available. The provider
+uses private Windows memory and requires each populated page to be locked.
 
 Both `VolumeModel` and `WinFspMemoryVolume` now use this factory. They retain
 their existing native engine and Windows callback semantics. The helper's
@@ -24,26 +25,35 @@ insufficient observations; it does not allocate or authorize a provider. Actual
 creation always collects the OS observation itself and the provider rechecks
 headroom during allocation. A past observation is not a memory reservation.
 
-Within the provider's existing 40-MiB experimental envelope, admission uses at
-most 1/256 of the smaller available physical/commit headroom after reserving the
-larger of 768 MiB and one eighth of detected physical memory. Domain and image
-capacities are rounded down to 64 KiB; creation refuses below a 9-MiB domain.
-The layout funds two equal image reservations, one 128-KiB head and all four
-possible 128-KiB advisory bindings. Only the current image/head/initial advice
-are initially allocated. The same formula formerly lived inside the helper.
+Automatic admission uses 1/256 of the smaller available physical and commit
+headroom after setting aside the larger of 768 MiB and one eighth of detected
+physical memory. The resulting budget scales with the host. The layout funds
+two equal 64-KiB-aligned image reservations, a 128-KiB head and four possible
+128-KiB advisory bindings. The helper requires at least 4 MiB per image.
+It reserves address space for the current image, head and initial advice.
 
-These are current provider qualification limits, not final product capacity,
-assumptions about installed RAM or automatic large allocations. Scaling this
-provider and persistent namespace remains separate required development.
+Preflight rechecks current headroom and locks the required pages before
+publication. Reservation and page commitment leave image bytes and its
+visible extent unchanged. Direct writes that grow the image enforce the
+same check. Working-set allowance grows with use, and the last owner
+restores the original allowance. After a failed lock the provider discards
+the attempted commit. If cleanup cannot be confirmed, it refuses new
+writers and retains readable data.
+
+The controller checks working-set allowance in constant space and time per
+opportunity. Creation, sealing and explicit retired inspection can verify
+every committed page in fixed-size batches. The UI reports locked bytes,
+while internal reservation accounting protects the future compaction image.
+[Local checks](evidence/demand-locked-memory-2026-11-18.json)
 
 ## Retention and inspection
 
 `WinFspMemoryVolume` composes that backing with the paged writable adapter and
 `WinFspVolumeController`. It requires an explicit valid plan and provider table;
 no native provider, driver installation or driver start is selected implicitly.
-The backing outlives the controller. Its registry remains fixed while callbacks
-run, allowing the background owner to verify working-set/locked residency before
-an opportunity with valid resource observations.
+The backing outlives the controller. The background owner checks the
+working-set lease before an opportunity with valid resource observations.
+Full page checks use the serialized owner after writes have retired.
 
 `request_stop` wakes the owner. `stop_and_join` retires the dispatcher/controller
 while preserving the backing. CPU inspection is refused until this owner has
@@ -100,9 +110,10 @@ uses this backing for the read-only adapter and a disposable external-client
 probe. Mounted Windows qualification, useful ordinary GPU work, reclamation,
 scalable coherence and full Windows semantics remain open.
 
-Current official API captures support the design: [memory observations are
-volatile](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex),
-[locked pages retain physical residency](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock)
-and [the system RNG accepts a null algorithm handle](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptgenrandom).
-Older API publication dates are background, not new 2026 research or a physical
-power-loss qualification.
+Windows documents the differences between reserving, committing and locking
+pages and the working-set allowance used by page locking. The evidence binds
+the current source to the live Windows measurements.
+[VirtualAlloc](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc) ·
+[VirtualLock](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock) ·
+[Working-set allowance](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-setprocessworkingsetsizeex) ·
+[Headroom observation](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex)

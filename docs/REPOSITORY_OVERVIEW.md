@@ -7,6 +7,7 @@ security audit or a new full-suite, mounted-filesystem or GPU qualification.
 The [detailed implementation plan](IMPLEMENTATION_PLAN.md) is the forward plan.
 [Review receipts](evidence/repository-review-2026-11-17.json) bind inventories,
 semantic searches, inspected sources, current research and API captures.
+The 18 November follow-up is recorded under recent executed evidence.
 
 ## Assessment
 
@@ -112,7 +113,7 @@ capacity and failure evidence before replacing it.
 | GPU | Actual bounded AMD work, independent comparison, protected worker exchange, recovery policy and explicit native write service | Automatic discovery/cost acquisition and a useful ordinary Windows I/O path; stronger collective GPU work |
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
 | Application | Native helper/tray, create/save/read/optimize/discard, owned worker and GUI qualification | Explorer-facing mounted lifecycle, complete volume-management workflows and a supported installer |
-| Memory composition | Fresh adaptive admission, retained backing through stop, explicit-join CPU inspection and surviving-reader lease | Larger qualified volumes, multiple-volume aggregate policy and broker/process-failure behavior |
+| Memory composition | Live adaptive admission beyond the old ceiling, on-demand page locking, retained backing through stop and explicit-join CPU inspection | Larger populated volumes, multiple-volume aggregate policy and broker/process-failure behavior |
 | Learning state | Protected bounded advisory profiles/benchmarks and funding/repair primitives | An autonomous persisted learner and a paged coherence catalog; these records do not implement either by themselves |
 | Compatibility | Several historical native encodings and explicit capabilities remain readable | A published support window, mixed-version migration program, rollback boundaries and exact released-reader matrix |
 
@@ -127,9 +128,9 @@ paged object tree and publishes names, extents and counters together.
 A 17-byte replacement in the indexed 1,024-file fixture read 202,372 backing
 bytes. Full scrub read 291,765,432. The multipage format removes whole-namespace
 work from that mutation and leaves considerable overhead in the nested indexes.
-The next work is to connect indexed lifetimes, retirement and head publication
-to the Windows path, then reduce metadata read and write amplification while
-retaining independent verification.
+The indexed head and lifetimes now reach the Windows SDK callbacks. Carry
+them into the owned provider, schedule retirement and reduce metadata read
+and write amplification while retaining independent verification.
 [Indexed writer evidence](evidence/native-indexed-writer-2026-11-18.json)
 
 Authoritative source: [native limits and interfaces](../include/flitzfs/native_filesystem.hpp),
@@ -269,6 +270,19 @@ driver to make a probe fit a document.
 [dependency policy/history](DEPENDENCY_AUDIT.md).
 
 ## Recent executed evidence
+
+Managed indexed selection and the SDK passed 22 selected Windows executions
+across raw, codec and AddressSanitizer configurations. The compaction fixture
+reduced occupied bytes from 385,024 to 147,456 and selected a complete old
+or new image through 12 modeled interruptions. SDK checks covered sparse
+writes, detach/reopen, independent reads and append-tail space reporting.
+[Indexed managed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
+
+The common memory provider uses headroom instead of a 40 MiB capacity ceiling.
+On the Release run it admitted 91,881,472 bytes of domain capacity, locked zero
+bytes for empty stores and locked 20,480 bytes for the growth fixture.
+Routine status and background maintenance no longer scan all committed pages.
+[Memory provider evidence](evidence/demand-locked-memory-2026-11-18.json)
 
 At the reviewed commit, [the factory checkpoint](evidence/memory-volume-factory-2026-11-17.json)
 binds 18 successful bounded local runs: raw and ASan builds, memory composition,

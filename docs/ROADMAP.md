@@ -18,10 +18,11 @@ compression still need to be connected.
 [Managed indexed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
 
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now supplies both
-the helper and owned WinFsp composition. Stop retains backing and requires
-explicit join before independent CPU inspection. Connect the explicit native
-provider and external Windows clients next; current-source mounted qualification,
-staged reclamation, scalable coherence and useful ordinary AMD work remain open.
+the helper and owned WinFsp composition. It sizes capacity from live headroom
+and locks pages as image writes require them. Stop retains backing and requires
+explicit join before independent CPU inspection. Connect the indexed path to
+the owned provider, scheduler and external Windows clients next.
+[Memory provider evidence](evidence/demand-locked-memory-2026-11-18.json)
 
 The [owned WinFsp controller](WINFSP_OWNED_CONTROLLER.md) now ties callback events,
 live Windows telemetry/priority and pacing to one start/maintenance/stop owner.

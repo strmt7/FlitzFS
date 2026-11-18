@@ -198,14 +198,16 @@ void memory_planning() {
       {64*1024*mib,56*1024*mib,128*1024*mib,11*1024*mib},
       {UINT64_MAX,UINT64_MAX,UINT64_MAX,UINT64_MAX}}}) {
     const auto layout=plan_memory_volume(host);
-    require(layout.domain_capacity>=9*mib && layout.domain_capacity<=MemoryVolumeDomain::maximum_capacity &&
-        layout.domain_capacity%65536==0 && layout.image_capacity%65536==0,"adaptive factory plan bounds");
+    require(layout.domain_capacity==usable_memory_volume_headroom(host)/256/65536*65536 &&
+        layout.image_capacity>=4*mib && layout.image_capacity%65536==0,"adaptive factory plan bounds");
     require(2*layout.image_capacity+(NativeFileSession::max_optimization_bindings+1)*layout.area_capacity<=layout.domain_capacity,
         "factory omitted candidate/advisory reservations");
   }
   const auto roomy=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,24*1024*mib});
   const auto tight=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,5*1024*mib});
-  require(tight.domain_capacity<roomy.domain_capacity,"commit headroom did not reduce factory sizing");
+  const auto larger=plan_memory_volume({64*1024*mib,56*1024*mib,128*1024*mib,96*1024*mib});
+  require(tight.domain_capacity<roomy.domain_capacity && larger.domain_capacity>40*mib &&
+      larger.image_capacity>roomy.image_capacity,"factory sizing did not track headroom beyond the old ceiling");
   for(const auto& host:std::array<MemoryVolumeObservation,5>{{{}, {1024*mib,512*mib,2048*mib,1024*mib},
       {1024,1025,4096,4096},{4096,4096,1024,1025},{4*1024*mib,3072*mib,8*1024*mib,768*mib}}}) {
     bool refused=false;try{(void)plan_memory_volume(host);}catch(const std::exception&){refused=true;}
@@ -219,16 +221,38 @@ void memory_backing_ownership() {
   const std::array<std::byte,4> marker{std::byte{1},std::byte{3},std::byte{7},std::byte{9}};
   {
     auto backing=MemoryVolumeBacking::create();const auto usage=backing.domain->usage();
-    require(usage.capacity==backing.layout.domain_capacity && usage.stores==3 &&
-        usage.allocated==backing.layout.image_capacity+2*backing.layout.area_capacity,"factory backing accounting");
+    require(usage.capacity==backing.layout.domain_capacity && usage.stores==3 && usage.resident==0 &&
+        usage.reserved==backing.layout.image_capacity+2*backing.layout.area_capacity,"factory reservation accounting");
     require(backing.head!=backing.image && backing.head!=backing.advice && backing.image!=backing.advice &&
         backing.volume_identity!=backing.image_identity,"factory aliases new identities/backends");
     require(backing.head->extent()==0 && backing.image->extent()==0 && backing.advice->extent()==0,"factory did not create empty backing");
-    backing.image->write_exact(0,marker);backing.image->flush();backing.domain->verify_resident();retained=backing.image;
+    SIZE_T empty_min=0,empty_max=0;DWORD empty_flags=0;
+    require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&empty_min,&empty_max,&empty_flags)!=FALSE &&
+        empty_min==old_min && empty_max==old_max && empty_flags==old_flags,
+        "empty backing raised the working-set quota");
+    SYSTEM_INFO system{};GetSystemInfo(&system);
+    const auto page=std::uint64_t(system.dwPageSize);
+    backing.image->admit_write(3*page+1);
+    require(backing.image->extent()==0 && backing.domain->usage().resident==4*page,
+        "preflight did not lock just the required pages or changed the stream extent");
+    backing.image->write_exact(4*page,marker);
+    backing.image->flush();backing.domain->verify_resident();
+    std::array<std::byte,4> zero{};
+    std::array<std::byte,4> untouched{std::byte{9},std::byte{9},std::byte{9},std::byte{9}};
+    backing.image->read_exact(2*page,untouched);
+    require(untouched==zero && backing.domain->usage().resident==5*page &&
+        backing.domain->usage().reserved==usage.reserved,"write growth or zero-filled gap changed");
+    std::cout<<"memory_demand_lock domain="<<usage.capacity<<" image="<<backing.layout.image_capacity
+        <<" initially_reserved="<<usage.reserved<<" initially_locked="<<usage.resident
+        <<" after_write_locked="<<backing.domain->usage().resident<<" page_bytes="<<page<<'\n';
+    retained=backing.image;
   }
   bool refused=false;try{(void)MemoryVolumeBacking::create();}catch(const std::exception&){refused=true;}
   require(refused,"factory lost the surviving store's domain lease");
-  std::array<std::byte,4> read{};retained->read_exact(0,read);require(read==marker,"factory wrapper retirement lost retained bytes");
+  SYSTEM_INFO system{};GetSystemInfo(&system);
+  std::array<std::byte,4> read{};
+  retained->read_exact(4ULL*system.dwPageSize,read);
+  require(read==marker,"factory wrapper retirement lost retained bytes");
   retained.reset();
   SIZE_T restored_min=0,restored_max=0;DWORD restored_flags=0;
   require(GetProcessWorkingSetSizeEx(GetCurrentProcess(),&restored_min,&restored_max,&restored_flags)!=FALSE &&
@@ -345,7 +369,7 @@ void live_memory_composition() {
     WinFspMemoryVolume volume(p.api(),plan());
     await([&]{const auto v=volume.view();return v.state==SessionState::running || v.retired;},5000,"memory controller start deadline");
     require(volume.view().state==SessionState::running,"memory provider startup failed");
-    const auto layout=volume.layout();require(layout.domain_capacity<=MemoryVolumeDomain::maximum_capacity &&
+    const auto layout=volume.layout();require(layout.domain_capacity>=2*layout.image_capacity &&
         layout.image_capacity>=4*1024*1024,"memory controller used wrong backing envelope");
     callback_file(p,0,first);callback_file(p,1,second);
     const auto until=GetTickCount64()+18000;

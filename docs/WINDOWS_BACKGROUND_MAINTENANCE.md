@@ -26,19 +26,12 @@ The helper and WinFsp controller composition now use the same
 [adaptive backing factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). Backing lifetime,
 fresh admission and independent post-join inspection have a common contract.
 
-The helper queries physical and commit headroom before creation. Within the
-memory provider's existing 40-MiB qualification envelope, it admits at most
-1/256 of the smaller available headroom after reserving the larger of 768 MiB
-and 1/8 of detected physical memory. Capacity is rounded down to 64 KiB and
-creation refuses below 9 MiB. These are current experimental provider limits,
-not final product sizing or assumptions about installed RAM.
-
-The admitted domain funds two equally sized image reservations, one 128-KiB
-head and all four possible 128-KiB advisory bindings. Image capacity is derived
-from that domain, not a fixed 4-MiB image. Existing lock/residency checks, actual
-allocation accounting, ownership through surviving references and working-set
-lease restoration remain enforced. No file/device backing or driver operation
-is introduced. Temporary contents still do not survive process exit or power loss.
+The admitted capacity comes from live physical and commit headroom. The
+factory reserves future image and advisory space and locks actual pages
+as the volume uses them. Routine background opportunities check the
+working-set lease without walking the entire image. Surviving references
+retain the lease through final owner retirement. These volumes have
+process-lifetime durability. [Backing contract](WINDOWS_MEMORY_VOLUME_FACTORY.md)
 
 Explicit Optimize now uses verified managed paged recompression/handoff and
 suppresses an unchanged namespace sequence. It may compact retained history;

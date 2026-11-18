@@ -9,7 +9,7 @@ namespace flitzfs {
 // Call only from its controller thread; snapshots never escape that thread.
 struct VolumeView {
   bool ready=false,fenced=false;
-  std::uint64_t allocated=0,capacity=0,physical_bytes=0,logical_bytes=0,payload_bytes=0,epoch=0;
+  std::uint64_t reserved=0,resident=0,capacity=0,physical_bytes=0,logical_bytes=0,payload_bytes=0,epoch=0;
   NativeOptimizationInfo optimization;
   NativeMaintenanceProgress maintenance;
   bool maintenance_pending=false;

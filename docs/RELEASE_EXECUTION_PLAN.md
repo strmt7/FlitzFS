@@ -1,10 +1,21 @@
 # Path to a stable FlitzFS release
 
-**Current detailed plan:** [17 November implementation plan](IMPLEMENTATION_PLAN.md)
-and [repository overview](REPOSITORY_OVERVIEW.md). They expand E01–E13 into
-154 concrete steps and current acceptance/failure gates at `38a4a48`.
-The earlier assessment below retains its source/estimate history; use the new
-plan and current ledger for forward work.
+The [detailed implementation plan](IMPLEMENTATION_PLAN.md),
+[repository overview](REPOSITORY_OVERVIEW.md) and
+[current state](DEVELOPMENT_STATE.json) track the 18 November checkpoint.
+The detailed plan expands E01–E13 into implementation steps and acceptance
+gates. The earlier assessment below retains its original source and estimates.
+
+Indexed managed storage now supports checked head selection, compaction,
+independent recovery and large SDK writes. The shared memory backing locks
+pages on demand and admits capacity from current host headroom. The owned
+mounted path remains the immediate Windows integration priority. Automatic
+useful AMD work with CPU recovery, held-out compression comparisons,
+persistent repair and format migration remain on the release path. A stable
+release candidate is still substantial work. The existing low-confidence
+estimate remains 60–130 person-weeks, plus unresolved compression research.
+[Indexed SDK evidence](evidence/indexed-managed-winfsp-2026-11-18.json) ·
+[Memory provider evidence](evidence/demand-locked-memory-2026-11-18.json)
 
 Assessment: 15 November 2026. Reviewed local source:
 `7c601d39c8eb5f04a02bb889840efc06eac68171`. The subsequent

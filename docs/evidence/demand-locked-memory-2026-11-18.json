@@ -1,0 +1,380 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "time_zone": "Europe/Berlin",
+  "source_base": "5ccc36a45c50cdbe46285d9058808331723f5ec1",
+  "base_tree": "34407568bdef96b5010008cd1576efc69ea2f7bc",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/object_store.hpp",
+      "git_blob": "7df0a8faad64ddf3ead8ae7ebab23e6c30ca3390",
+      "worktree_sha256": "423f139f49c9ab32d5131ec8dbfa6598fe372be599505dd93c0d0672009775b2"
+    },
+    {
+      "path": "src/windows/memory_volume.cpp",
+      "git_blob": "c010adce1fea5f53cbb2f9a65fc6a75c29c97548",
+      "worktree_sha256": "5834f596680261e24b7f06fc38e1924e0e1758410b4708efc2828191515338c5"
+    },
+    {
+      "path": "src/windows/memory_volume.hpp",
+      "git_blob": "cc3cfb9ba0ba744194a31ddb3b644433dd20982c",
+      "worktree_sha256": "ae5cd5d58289943d5740ac33dd5a4547b6d13bdf7927577aa68b0f3afbb0d9be"
+    },
+    {
+      "path": "src/windows/memory_volume_factory.cpp",
+      "git_blob": "fd20393dfa83042fc53d8b5de50cc12c791d6f93",
+      "worktree_sha256": "1f4860c92c72b0480b8538d3f91c7d125a5519b880f331463da6deb9d3fa17e9"
+    },
+    {
+      "path": "src/windows/memory_volume_factory.hpp",
+      "git_blob": "6a5e989eec4ded69cdce698b99fa39b21d7d27b6",
+      "worktree_sha256": "951a81c9276e8e99d224cf507b131f40cd4cefdc614d4a56852e55d4a8b704e4"
+    },
+    {
+      "path": "src/windows/volume_app.cpp",
+      "git_blob": "3dc99bb03fef04f7c167483349679d3c2b6b6162",
+      "worktree_sha256": "3bbc48b059f59c061e5a4a2979356f4e50ea8818a2cf9e9b075c165cbf794e6d"
+    },
+    {
+      "path": "src/windows/volume_model.cpp",
+      "git_blob": "ef9548d3d0caf4f3db3590237f365747ae7a31b8",
+      "worktree_sha256": "41d6ba24addee7810f1e8c57da8ad2077e50aa1acb59e1617d01c72aac1d684c"
+    },
+    {
+      "path": "src/windows/volume_model.hpp",
+      "git_blob": "f64fb8f8b139ab01116274e822a16a850a7c05ca",
+      "worktree_sha256": "f97faa7e82f5e123472ea6b611a9f214ca0ecf8dcef211bc74dec35a9501df46"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "76a6402d85afe117217fb68d89645d206967bfd2",
+      "worktree_sha256": "806ff8a9597ff3c812afc9e1c8087f5b0427c98f4ac240d36279945aa92b6212"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "2b2ccbde572ec35f24244e35d025078f1096e3b4",
+      "worktree_sha256": "3b38ff7a2a5237e89522b640309494fbf436a73649a4a126436f49ea76935a3a"
+    },
+    {
+      "path": "tests/windows_volume_app_tests.cpp",
+      "git_blob": "55e768e1467ac30cea95803df8cac4fc2cd57b8c",
+      "worktree_sha256": "0259fdc1e0b213a72492d703d5b99c24f75d0af4400cf2355279c116ff559919"
+    }
+  ],
+  "scope": "Windows x64 live memory backing, helper UI and SDK callbacks with injected lifecycle. No mount, driver operation, HIP execution, physical persistence qualification or release.",
+  "checks": {
+    "release_raw": {
+      "build": {
+        "run": "local-run-5e83e2dd31094d3fab00cc113d4f958a",
+        "result_sha256": "c8d87a4744bd7db9682fa3d59cf4548944389a869a401c50999721376daaf824",
+        "log_sha256": "2c966c3f6b2f56ab323ac71e19c3af8a7811292f4f2d3f1c593e011e2621a10f",
+        "seconds": 85.861,
+        "peak_job_bytes": 693252096,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "ctest": {
+        "run": "local-run-08fd0e732bf24195a17ac3d7550bedb4",
+        "result_sha256": "a4193e281e10e286681c8173c032a03f04471e03d5db45a102cf02297848c36d",
+        "log_sha256": "b84b0f4c4aa4add6fb2960081a1606207dc912b0a8b0703ffbc2cddff50b0652",
+        "seconds": 24.411,
+        "peak_job_bytes": 31313920,
+        "exit_code": 0,
+        "residual_children": 0,
+        "passed": [
+          "bounded_winfsp_controller",
+          "bounded_winfsp_memory_volume",
+          "bounded_winfsp_readonly_memory",
+          "bounded_winfsp_paged_callbacks"
+        ]
+      },
+      "model": {
+        "run": "local-run-cab908f9aa6940f2a891ec3ea9946ab9",
+        "result_sha256": "6fa14b6d8c48126276f6301bc2841a8008447fcd44bbfe525b8cc1f5700e089f",
+        "log_sha256": "100ba1a30c0c23747db5a543e2a23f597b1de4a99b4f64775c396869eea959b3",
+        "seconds": 0.805,
+        "peak_job_bytes": 12849152,
+        "exit_code": 0,
+        "residual_children": 0,
+        "assertions": 841
+      },
+      "maintenance": {
+        "run": "local-run-c7bbfd0c15f64812b8942128670e1927",
+        "result_sha256": "c7fa4d499cd6686d27c76d601344d75a4cc21baf8121524bd8baaf6e3ed5ad70",
+        "log_sha256": "750dda878bc7d06a7d1aaea6a9b23b797ed5d26312191b62c9f44443fba21634",
+        "seconds": 31.659,
+        "peak_job_bytes": 11583488,
+        "exit_code": 0,
+        "residual_children": 0,
+        "assertions": 1972,
+        "outcome": "settled",
+        "preparation_interleaved": true,
+        "publication_exercised": true,
+        "deferral_code": 0
+      },
+      "gui": {
+        "run": "local-run-071849ea450d4bbbbc97434ac4399256",
+        "result_sha256": "279b219c6f2e20ca673c8aa12581d99a91d1b340c3da5d2a5da56019e092e9f0",
+        "log_sha256": "490f242cd69c798a8242bc93b91da3526dcc6bb2bdfe70c4e652c8610612a0c3",
+        "seconds": 3.635,
+        "peak_job_bytes": 13963264,
+        "exit_code": 0,
+        "residual_children": 0,
+        "assertions": 56,
+        "child_peak_commit_bytes": 11313152
+      },
+      "backing": {
+        "domain_bytes": 91881472,
+        "image_bytes": 45613056,
+        "initially_reserved_bytes": 45875200,
+        "initially_locked_bytes": 0,
+        "growth_locked_bytes": 20480,
+        "page_bytes": 4096,
+        "handle_counts": [
+          145,
+          145,
+          145,
+          145
+        ]
+      },
+      "background_sdk": {
+        "groups": 1,
+        "quanta": 11,
+        "max_quantum_ns": 771000,
+        "disabled": false
+      },
+      "configuration": {
+        "cache_sha256": "6880274bbeaf434ffc14063316ae06b0391159fcd7b6e82e9acf29e3a1120ac2",
+        "lz4": false,
+        "zstd": false,
+        "asan": false
+      },
+      "binaries": {
+        "flitzfs_winfsp_controller_tests.exe": "b056ed1ae2b6dd7f56731ddf9b84580b086f79ef1b5c45ade79987b5f7c09320",
+        "flitzfs_winfsp_paged_tests.exe": "8e2f563a8096cda3e4a1a85abd71df615931d28217688d4aeccb8e74c30a86c0",
+        "flitzfs_volume_app_tests.exe": "deecc1d30772e70d6661d95ea0839d2eb94ced0a473c99a7f29865502d507d44",
+        "flitzfs_volume_app.exe": "eda313f4e0635d35edfa493d2dd634465d0f4989a19f7fd64ead51df4466a63f"
+      }
+    },
+    "address_sanitizer_raw": {
+      "build": {
+        "run": "local-run-3b896dbef00f476883d3a2df53542da3",
+        "result_sha256": "1fac9a0b93bb1765dd0fa5cf941982952720e8615a68646fc951aba60bb9bd12",
+        "log_sha256": "d086104027d5577752293f11ff3f3d127a2efe15977f28e6f692623e34365f8c",
+        "seconds": 71.134,
+        "peak_job_bytes": 670539776,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "ctest": {
+        "run": "local-run-fc24390696d547f99e9bf72bf1f7be96",
+        "result_sha256": "89f37be7357174b481baa3d1e2b70e625797ff93d288883ab5c0b67c6db5b6f4",
+        "log_sha256": "8f6a7d142a14a8dccf8ac204ce844a3b7c58cf89f6d8919f55898c5981bff3a0",
+        "seconds": 24.426,
+        "peak_job_bytes": 487968768,
+        "exit_code": 0,
+        "residual_children": 0,
+        "passed": [
+          "bounded_winfsp_controller",
+          "bounded_winfsp_memory_volume",
+          "bounded_winfsp_readonly_memory",
+          "bounded_winfsp_paged_callbacks"
+        ]
+      },
+      "model": {
+        "run": "local-run-3630108dc05b41e183d0f0a8635db88f",
+        "result_sha256": "4dab93b3025cd42a5e7166d55918d036df8dbaf8ca86993320ea4007cf1a72f6",
+        "log_sha256": "d1b17f82201d2e97db70768cef12804fc8464d36e72998a5a0bc70dd4c0f4b91",
+        "seconds": 1.671,
+        "peak_job_bytes": 508317696,
+        "exit_code": 0,
+        "residual_children": 0,
+        "assertions": 841
+      },
+      "maintenance": {
+        "run": "local-run-484c265c984e4152a28445382d04c2e9",
+        "result_sha256": "e617d0221c4524820d75da284b834772f37120aa98143db66100d949c0a57f84",
+        "log_sha256": "13fa00bf1a306596b7550081a1de7b972262dfea2b7e9a34ac551bb77ecf5a56",
+        "seconds": 3.701,
+        "peak_job_bytes": 408932352,
+        "exit_code": 0,
+        "residual_children": 0,
+        "assertions": 170,
+        "outcome": "resource-deferred",
+        "preparation_interleaved": false,
+        "publication_exercised": false,
+        "deferral_code": 3
+      },
+      "gui": {
+        "run": "local-run-6e667d1dd7534496a3c15fc1d828a291",
+        "result_sha256": "447ec7ca3891b897fea944fbc9da8b6f4daf66548847349d0b2032cc2bd82e19",
+        "log_sha256": "7bd4e9116fe7d02a91d90b727d02e44af9e8ed83432f6f17cdda6dacbbd9b5c4",
+        "seconds": 4.392,
+        "peak_job_bytes": 448471040,
+        "exit_code": 0,
+        "residual_children": 0,
+        "assertions": 78,
+        "child_peak_commit_bytes": 388718592
+      },
+      "backing": {
+        "domain_bytes": 91553792,
+        "image_bytes": 45416448,
+        "initially_reserved_bytes": 45678592,
+        "initially_locked_bytes": 0,
+        "growth_locked_bytes": 20480,
+        "page_bytes": 4096,
+        "handle_counts": [
+          149,
+          149,
+          149,
+          149
+        ]
+      },
+      "background_sdk": {
+        "groups": 1,
+        "quanta": 10,
+        "max_quantum_ns": 1461400,
+        "disabled": false
+      },
+      "configuration": {
+        "cache_sha256": "85bf9a19cb21b09624719dc668f8bbdf8dbb0c5e1a2c1226bc5ce461908d6771",
+        "lz4": false,
+        "zstd": false,
+        "asan": true
+      },
+      "binaries": {
+        "flitzfs_winfsp_controller_tests.exe": "ff63dd0dd44f29fc5fc98873c154827f352ff9dca115be976ef3c4e3a429705e",
+        "flitzfs_winfsp_paged_tests.exe": "0779e98941db45a608bfc73a2c711d210b6af0ed96d22f41691599268ac33d5c",
+        "flitzfs_volume_app_tests.exe": "e4af11641020b32d953af770a5e35bacfdd758f63bc2d83491291c4bbc13ee33",
+        "flitzfs_volume_app.exe": "16fd3f2bd061cbd96dc58881f652276a11f41b9fd91029345a83731b158bfdd0"
+      }
+    }
+  },
+  "release_configuration": {
+    "run": "local-run-94e05b7d45504b66be711d4a98ba6de6",
+    "result_sha256": "c23e8c9b12faaa171f1822bfca5e789525456bd9fc0c38ff6db2fc1e47998c77",
+    "log_sha256": "9f577fdbe0bee9a74dd5e2d1cc55cbc69678d5e6ae0957f1bce1d54ea9bfe2b5",
+    "seconds": 6.084,
+    "peak_job_bytes": 262811648,
+    "exit_code": 0,
+    "residual_children": 0
+  },
+  "observed_invariants": [
+    "no working-set quota increase for empty backing",
+    "write preflight preserves visible extent",
+    "growing writes preserve zero-filled gaps",
+    "model detects larger automatic capacity and tighter commit headroom",
+    "balanced SDK and helper handles and exact working-set restoration",
+    "retired CPU snapshots and sealed projections preserve all accepted bytes"
+  ],
+  "earlier_failures": [
+    {
+      "job": {
+        "run": "local-run-9981d22faa19454daf8d55fa2c5da9d8",
+        "result_sha256": "2cc416e7de9c2daa989c5e6f7decee52bbde58faadbd0adf805ac22389b420e9",
+        "log_sha256": "4f8f956034f6de44575ba6b46e35f477c3e765eac74f3c569f6e9c583cf7408c",
+        "seconds": 1.498,
+        "peak_job_bytes": 26480640,
+        "exit_code": 1,
+        "residual_children": 0
+      },
+      "observation": "An older Crawl4AI environment failed dependency admission. The alternate pinned environment passed without package changes."
+    },
+    {
+      "job": {
+        "run": "local-run-80ba0cfd9c0044879eb27217a963ba14",
+        "result_sha256": "905f00dc3799816a300706dfce5dbc8701194814237ee2a327e1ca635c25f93f",
+        "log_sha256": "a1d25e011ecd8dd1ac295762dd9aaf80afe39dd2c040e41d26c8976bd25e2eaf",
+        "seconds": 0.742,
+        "peak_job_bytes": 74399744,
+        "exit_code": 4294967295,
+        "residual_children": 0
+      },
+      "observation": "A Visual Studio bundled CMake cache cannot mix 4.3 compiler detection modules with the staged 4.5 command. A fresh scoped 4.5 build passed."
+    }
+  ],
+  "navigation": {
+    "job": {
+      "run": "local-run-8bbac9611d044f97afca6e248330fd56",
+      "result_sha256": "f02e65f3353b061e15701b95432e06c9e1a8a1087948414b9159c0883c0b6247",
+      "log_sha256": "d79cdc53f017705ad4a18308eae776901e026560977d725fbc0938cf643eedcd",
+      "seconds": 20.588,
+      "peak_job_bytes": 1077698560,
+      "exit_code": 0,
+      "residual_children": 0
+    },
+    "receipt_sha256": "a2b054f56c8a3281cd9850a48f8ec344f30f4cf68dd7dc7dcf50d0b6358eb600",
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_response_sha256": "f324ee211be22395e8ef57eef1253df795a846ee3914f61654ee9917e3d6b33b",
+    "stored_search_sha256": "4bb039c99d96cd3326074b57d0b5f1c3cf4fa17972c36de861322921f915cdb1"
+  },
+  "research": [
+    {
+      "job": {
+        "run": "local-run-6fef97135e824a4e83a9720bbc7beb14",
+        "result_sha256": "55b47ae918c556ad1c74dfebd4d234eab7efcab7ed71d63af316b469036315c3",
+        "log_sha256": "b1504a04eec600c09507e56862bd67722a12965b3b637daf64d37d1e0a351fb4",
+        "seconds": 10.117,
+        "peak_job_bytes": 1246502912,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "receipt_sha256": "eb4c1640db961f07d45973bd9563a978f449798d4a1c378fdf19ddd7a09b9610",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "native_pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtuallock",
+          "final_http_status": 200,
+          "markdown_sha256": "bf273a538f1003833c2191d34fce5c0c7288d84117b9dff63cdf5fe2194587c4",
+          "capture_sha256": "fcb3c0aa6336e740ef6e95449ecbb80339f217838020645041526b430ba77bcf"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc",
+          "final_http_status": 200,
+          "markdown_sha256": "a77765c7a2ba71a2e0de7f9d70fbcaf1d837187b5886414c64083950e1ad48ea",
+          "capture_sha256": "4f30cb9d7e44a35449032730d16a77cf347ad5368bd946e1965388eb49651f38"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-queryworkingsetex",
+          "final_http_status": 200,
+          "markdown_sha256": "09483109eba6cfb96919695f2d93cb46b7318c1e1281a78eac86442c46d626d8",
+          "capture_sha256": "fe2ee5419c3dede093b071990cfa2ac78fb14e358a4d6419ccc227f1b24ed145"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-setprocessworkingsetsizeex",
+          "final_http_status": 200,
+          "markdown_sha256": "f964e6cd5a2507897e8932a0b5464ad0c16a498e6366de08fcf69e713014f455",
+          "capture_sha256": "dacc36a7ba01df0ef467ec669328b55ced9bdd0b8f9ee7b026eb6ce8b9dbe757"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex",
+          "final_http_status": 200,
+          "markdown_sha256": "e90ec5dee4d19686e8e54f99de37a7353cb66e9f3e476dbf9bc0a5b9c33bdedd",
+          "capture_sha256": "b3661cc7552a119902be34cf6d02ea198e40e8af7e55fa165049266bb66099db"
+        }
+      ]
+    },
+    {
+      "job": {
+        "run": "local-run-5ea30d9a3ac54b42bf0178618753bfdc",
+        "result_sha256": "17b333b786bfe4bbd6672645c7a4f1379fb30f3a2b0282236bb18a21f45f572d",
+        "log_sha256": "05ab36296bb9d6a93f4425ca68cca10481f2c17bcec88cd1cf2c47e1f1c7d9d2",
+        "seconds": 6.549,
+        "peak_job_bytes": 1134743552,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "receipt_sha256": "ab54a8af449da803474e17a4ed927aeebeaf417b6002870acf59cba96404b600",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "native_pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualfree",
+          "final_http_status": 200,
+          "markdown_sha256": "7d421457c48fb4b019a7a04602f28e87e8dfe00764e77cd5f491f3cbdeab0261",
+          "capture_sha256": "b4f6b9174a9b97c9ee25aa7b6f4e4a44fa47ea83272ce305c8434738f15b01c4"
+        }
+      ]
+    }
+  ]
+}

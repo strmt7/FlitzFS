@@ -261,27 +261,22 @@ advertise arbitrary attacker-controlled paths as safe.
 - Passing native callbacks does not qualify mounted I/O, actual authorization,
   memory mapping, kernel cancellation/shutdown, Windows 11, or arbitrary apps.
 
-## Prohibitions for later work
+## Protecting data and the host
 
-Never format, repartition, alter boot state or write raw disks. Never install a
-driver, mount over existing data, change GPU tuning, run stress tests, register
-services or schedule persistence automatically on the owner's machine. Keep
-backing stores, recovery tools and binaries outside any eventual virtual volume.
-Never enable writes on important data before isolated recovery tests and
-independent backups. GPU output must match an independent CPU reference.
-
-Current evidence is recorded in [VALIDATION.md](VALIDATION.md). Linux tests and
-GitHub-hosted Windows tests are distinct from tests on the owner's PC; none of
-the latter have been performed. No production-safety guarantee is made.
+Preserve existing volumes, mountpoints, drivers and boot state. Keep
+recovery tools outside the volume being recovered. The driver and
+host-execution conditions are in [AGENTS.md](../AGENTS.md).
+GPU-produced data must decode to the source bytes with an independent CPU
+reader. Use [validation evidence](VALIDATION.md) to distinguish executed
+local, hosted and modeled checks.
 
 ## Disposable live integration boundary
 
-The normal core, callback and injected-session tests remain no-mount/no-driver.
-The optional live integration probe and its explicit hosted-CI-only installer
-are governed by `LIVE_MOUNT_PROBE.md`. Only a fresh disposable hosted Windows VM
-may receive the pinned driver. The probe creates synthetic files, pins ordinary
-ancestors, rejects an occupied mountpoint and retains originals. No owner-PC
-operation is authorized. Job limits are not a driver-memory or kernel sandbox.
+Core and callback tests run independently of native mounting. The
+[ordinary-file mount fixture](LIVE_MOUNT_PROBE.md) requires disposable
+storage and an installed runtime. Host mounting requires the dedicated
+memory-backed provider and artifact-specific qualification. An external
+client or process budget cannot contain a kernel fault.
 
 Manifest loading is read-only, bounded before allocation and restricted to
 lexical sibling filenames. Final link rejection does not authenticate metadata
@@ -960,12 +955,10 @@ the GUI workflow verified UTF-8 bytes, explicit discard and clean process exit.
 Postflight found no remaining FlitzFS processes. WinFsp stayed Stopped/Manual.
 [Exact limits, hashes, evidence and exclusions](evidence/volume-app-f4928c2.json).
 
-All stores remain locked under a process-wide lease until their final owners
-retire. The 64-store registry and explicit residency checks cover active stores;
-unconfirmed frees retain accounting and failed cleanup blocks another domain.
-The app's 12-MiB aggregate and provider's 40-MiB maximum are experimental limits.
-Flush preserves process-lifetime bytes without a whole-image copy; it makes no
-physical persistence or process-crash survival promise.
+Current stores lock committed pages on demand under a process-wide lease.
+Unconfirmed frees retain accounting and failed cleanup blocks another domain.
+Flush preserves process-lifetime bytes without a whole-image copy.
+[Backing and accounting](WINDOWS_MEMORY_VOLUME_FACTORY.md)
 
 Close retains a temporary volume. Explicit Discard retires it. NEW-only Save
 cannot overwrite an existing file, although a failed later write may leave its

@@ -84,6 +84,28 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "demand_locked_memory": {
+    "source_base": "5ccc36a45c50cdbe46285d9058808331723f5ec1",
+    "evidence": "docs/evidence/demand-locked-memory-2026-11-18.json",
+    "scope": "Shared Windows helper and WinFsp memory backing sized from actual headroom, on-demand locking and bounded working-set checks.",
+    "selected_sdk_executions": 8,
+    "selected_helper_executions": 6,
+    "live_release_backing": {
+      "domain_bytes": 91881472,
+      "image_bytes": 45613056,
+      "initially_reserved_bytes": 45875200,
+      "initially_locked_bytes": 0,
+      "growth_locked_bytes": 20480,
+      "page_bytes": 4096,
+      "handle_counts": [
+        145,
+        145,
+        145,
+        145
+      ]
+    },
+    "next": "Connect indexed provider, schedule reclamation and measure useful AMD work with independent CPU recovery."
+  },
   "indexed_managed_winfsp": {
     "source_base": "c288d2df94d59071c811a2761800a1d84bf18cab",
     "evidence": "docs/evidence/indexed-managed-winfsp-2026-11-18.json",

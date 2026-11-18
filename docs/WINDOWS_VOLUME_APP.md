@@ -28,25 +28,15 @@ route. The final app must manage both memory and physical backends through the
 
 ## Provider ownership and accounting
 
-The private Windows provider uses VirtualAlloc and VirtualLock, verifies initial
-residency and keeps one domain lease per process until the last store retires.
-A bounded registry tracks at most 64 stores. Status/discard checks verify every
-current store's pages and the working-set reservation. No pageable fallback is
-accepted. Allocation failure or unknown/low headroom refuses admission.
+The shared Windows memory provider computes the volume budget from current
+host headroom. It uses VirtualAlloc and VirtualLock to commit and lock pages
+as the stored image grows. Candidate images and retained readers use the
+same domain. Final owner retirement restores the original working-set
+settings. Discard checks every committed page before retiring the backing.
+[Backing and reservation contract](WINDOWS_MEMORY_VOLUME_FACTORY.md)
 
-The provider ceiling is 40 MiB; this app reserves a 12 MiB experimental domain,
-with a 4 MiB image, 128 KiB head and separately allocated 128 KiB advisory area.
-Candidate images share that same aggregate limit. Capacity remains reserved
-through backing-store ownership, including references surviving a wrapper.
-Unconfirmed frees do not recycle their accounted bytes. Failed cleanup blocks
-a new domain in that process. Prior working-set settings restore after the last
-owner retires; no other process's settings are changed.
-
-The physical/commit reserve is the greater of 768 MiB and one eighth of detected
-physical memory. These are qualification limits, not final host sizing policy.
-The app reports file bytes, combined current image/head/advice extent and all
-provider allocations separately. It does not present active payload reduction
-as total-space savings.
+The app reports file bytes, combined current image/head/advice extent and
+the backing's locked RAM separately.
 
 Flush is a serial ordering barrier without a full-image stable mirror or a copy
 of the entire extent on every transaction. Prior bytes remain available within

@@ -72,7 +72,7 @@ struct WinFspVolumeController::Impl {
           else try {
             const auto observed=host.observe(stop_requested.load(std::memory_order_acquire));
             if(!stop_requested.load(std::memory_order_acquire) && host.status()!=MaintenanceHostStatus::waiting) {
-              if(residency && observed.valid)residency->verify_resident();
+              if(residency && observed.valid)residency->verify_working_set();
               result=session->advance_group_maintenance(observed,GetTickCount64());
               if(result.state==WinFspGroupMaintenanceState::unavailable ||
                   result.progress.phase==NativeMaintenancePhase::failed)disabled=true;
