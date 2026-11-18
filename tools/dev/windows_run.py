@@ -34,9 +34,19 @@ _LOADER_ERRORS = {
 def _unattended_ctest(command: list[str]) -> None:
     """Apply CTest's own non-interactive mode to supported launch forms."""
     index = 0
-    if (PureWindowsPath(command[0]).name.casefold() == "cmake.exe"
-            and command[1:3] == ["-E", "env"]):
-        index = 3
+    while (index + 2 < len(command)
+           and PureWindowsPath(command[index]).name.casefold() in {"cmake", "cmake.exe"}
+           and command[index + 1] == "-E"):
+        subcommand = command[index + 2]
+        if subcommand == "time":
+            index += 3
+            continue
+        if subcommand == "chdir":
+            index += 4
+            continue
+        if subcommand != "env":
+            break
+        index += 3
         while index < len(command):
             argument = command[index]
             if argument == "--":

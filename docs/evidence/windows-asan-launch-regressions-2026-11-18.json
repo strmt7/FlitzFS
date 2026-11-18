@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "source_base": "e5101d85762e050a1e8f1b7ddf700e0e0c1f7093",
+  "tested_sources": [
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "229b5705a8180983c2aafe0f40ed3df655d134a7bc64af6e3b6325f814dfc3bc",
+      "git_blob": "2a943d2bb2e25a3841d0e0db8cfb1d848850bd55"
+    },
+    {
+      "path": "cmake/WindowsAsanRuntime.cmake",
+      "sha256": "a533f5fd5556d9d0fca72f9b4de714791e4295892c76566ef8b24e05d029797e",
+      "git_blob": "57f18cb4e3e0ebfd3f6b5bcb1a40513789e76d83"
+    },
+    {
+      "path": "cmake/StageWindowsAsanRuntime.cmake",
+      "sha256": "e368081f4c8db839eaef64cc5215229e4dfb161ab479a1d612d827958e867ed7",
+      "git_blob": "6f76fa46c0c08d5f836322ad2db737780dda6d88"
+    },
+    {
+      "path": "tools/dev/windows_run.py",
+      "sha256": "e4e258b315c6d40c3d1c948b5fe3608098cda5cd2142738d01b98b5ce5340f1e",
+      "git_blob": "f68e8d7ba04a39bb80406b31e798472c8a725a1f"
+    },
+    {
+      "path": "tools/dev/test_windows_run.py",
+      "sha256": "f59069d00322eef5b5fba5f1ee8a16c6fb7cfb64a478f349f37a25efb92b4e30",
+      "git_blob": "443d5c435d48b98419ca9385c468133425848643"
+    },
+    {
+      "path": "tools/dev/test_windows_asan_staging.py",
+      "sha256": "f4ede9a56c1e28d6bf48779e3d78bc2b7dd58848e3611b6b146a8d825e2ee4f0",
+      "git_blob": "75324c1d2a3da92b8ad14582644d4447c9340df8"
+    }
+  ],
+  "platform": {
+    "windows": "Windows 11 x64 build 26300",
+    "msvc": "19.52.37029.0",
+    "ctest": "4.5.0",
+    "codecs": "raw CPU fixtures",
+    "path_scope": "Windows directories only",
+    "staged_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+  },
+  "original_build_runtime_sha256": {
+    "Release": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "RelWithDebInfo": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed"
+  },
+  "generated_run_tests": {
+    "noninteractive_configurations": 4
+  },
+  "navigation": {
+    "provider_version": "0.2.43",
+    "source_base": "daeeac39f350acfccddbba93e2f13aba276f4f9a",
+    "dirty_patch_sha256": "e74bd52b04f4ffa102626ea9a109e7e5da7dcb3670d860217db553a1bf33c9dc",
+    "receipt_sha256": "dc6f0f7975abb6499fcd1f05fc27338198d2aea27cf6709477e6b1a38170c7b6",
+    "native_sha256": "ee78427d278c4fb2778adc80ae1130e07e2e36b50eada3e6215be50eff2a931f"
+  },
+  "research": {
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "24494defcab521be73851b612220cdb7932ac33412619bfe3316182fb9bcba8d",
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-seterrormode",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "f546c13491b1fb1b942fb471c2c47df5b9630ceb4cf27c613c957d6efda9df73",
+        "capture_sha256": "41513f0ff35c46348a56a5cea934427e18d333623f7af92b9826cbce9eb42e37"
+      },
+      {
+        "url": "https://cmake.org/cmake/help/v4.5/variable/CMAKE_CTEST_ARGUMENTS.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "e78abd68419e8c87a074214c4782b7b93b09c9105a04a24ba9b0ff9cd59ff2ba",
+        "capture_sha256": "0edf7c5c1cf39c1114d11f3adec5f87e5d79b65215979375d201aa1d5b690fd9"
+      },
+      {
+        "url": "https://cmake.org/cmake/help/v4.5/prop_tgt/TEST_LAUNCHER.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "d35fb1a16371e4a99457a82b638a3f5d2f716aaa9527e2734dd103495664afa9",
+        "capture_sha256": "fa956413d4618ed39ceeed93e4121e9d19ebf0876b55852cce4085e20e9b584b"
+      },
+      {
+        "url": "https://clang.llvm.org/docs/UsersManual.html",
+        "final_http_status": 200,
+        "success": true,
+        "markdown_sha256": "d3d361b4d5b5112b4a87f0a9a0260321bbfc14b74be3a94027fe5a2cca08cd5c",
+        "capture_sha256": "fd033b3089abaae19994e4984f11aebd5ce47522a9b2e105687f530415701090"
+      }
+    ]
+  },
+  "runs": [
+    {
+      "description": "Final MSVC AddressSanitizer suite and launch and staging regressions",
+      "run": "ff24c9eaedbf4227ab3f3dc4d77be93e",
+      "exit_code": 0,
+      "tree_retired": true,
+      "seconds": 92.753317,
+      "memory_limit_bytes": 1525678080,
+      "peak_job_bytes": 1108676608,
+      "receipt_sha256": "3aae9d46f7e5600bf83a37a37e91faacd33a0d6f57594e91aee383202b07c495",
+      "output_sha256": "6b9fa23f058364b318f6779506ccac7e105e7e590ad521a58f8455a8d58203d4"
+    },
+    {
+      "description": "Final uninstrumented Release control",
+      "run": "5254bbf52fce4ad9836792ad7ad533a3",
+      "exit_code": 0,
+      "tree_retired": true,
+      "seconds": 5.103703,
+      "memory_limit_bytes": 538968064,
+      "peak_job_bytes": 194101248,
+      "receipt_sha256": "7db54d29b194c943aecc3b7261a49c17fa38da1ac3b8c8d31a567f314481e7fa",
+      "output_sha256": "6a552713e017f56ec45c65759ffec36fee89b7c1f0cfd1c7fe59e209e8272f10"
+    },
+    {
+      "description": "Filtered CTest refused missing MSVC DLL before test entry",
+      "run": "9484312d736746ba92db17baaeed8a14",
+      "exit_code": 8,
+      "tree_retired": true,
+      "seconds": 0.163411,
+      "memory_limit_bytes": 2472542208,
+      "peak_job_bytes": 17989632,
+      "receipt_sha256": "f3c6be49b6aff4d1506d19dfc454ea8a74bd3f67d38fbe85a1594b5364b7bda4",
+      "output_sha256": "72a92cb1221b8ffacae3b5c4d9840a91656927beb43912c7b11ce5f410f67c2c"
+    },
+    {
+      "description": "Filtered CTest refused mismatched MSVC DLL before test entry",
+      "run": "fd3468e9421f4b00a2e388a6a0bdb532",
+      "exit_code": 8,
+      "tree_retired": true,
+      "seconds": 0.193562,
+      "memory_limit_bytes": 2508193792,
+      "peak_job_bytes": 19374080,
+      "receipt_sha256": "41e2e5bd51c1adddb12d9feadf85ba44eaf5c20a12cad5d6a68c077430534f21",
+      "output_sha256": "c058bad01ec5e23683a97de9885465b16367e1484a9494ac694a6c90e66ccd96"
+    },
+    {
+      "description": "Supervised direct copy with missing DLL returned the loader diagnostic",
+      "run": "88b14b2ba2be4e5d8f6077eb4912f2e1",
+      "exit_code": 3221225781,
+      "tree_retired": true,
+      "seconds": 0.313846,
+      "memory_limit_bytes": 2279604224,
+      "peak_job_bytes": 1937408,
+      "receipt_sha256": "4df7e2ccea9a30978a1ffd282570e18cbb5a9bb560b9ae411e3411949416c5b9",
+      "output_sha256": "2d936fa9a68b2ee8ae77d0dc0fc102e087388ce6510ac70f4291e886aa7f7f0f"
+    },
+    {
+      "description": "Earlier five MSVC AddressSanitizer suites passed after staging",
+      "run": "5f01af133e4c47ad9a0b7f6bd07337b5",
+      "exit_code": 0,
+      "tree_retired": true,
+      "seconds": 88.973645,
+      "memory_limit_bytes": 2791309312,
+      "peak_job_bytes": 1108975616,
+      "receipt_sha256": "fbf8609b7f24604237908746767a5b2c53025d99d1ca38c927a1a54a622525b6",
+      "output_sha256": "c2d9f7b0bbef56621e992f51a73631d4f2aad7934a58137ea47e4e41c002aac0"
+    },
+    {
+      "description": "Direct instrumented inode test passed with system-only PATH",
+      "run": "783f83a16c7f4bebada763f8328b43e6",
+      "exit_code": 0,
+      "tree_retired": true,
+      "seconds": 11.709953,
+      "memory_limit_bytes": 2532311040,
+      "peak_job_bytes": 991277056,
+      "receipt_sha256": "15fa8feb41a29b8b57a52fe3b60ac7219b804be23502f6b768dfd2f9c1bc889e",
+      "output_sha256": "41493e0a4f5f82aaf335bd56d4795fd97d2bbfd6ae413a86ddb08340c28d10b2"
+    },
+    {
+      "description": "Tighter live budget limited an intermediate AddressSanitizer retry",
+      "run": "995f3d5bf7074559ba8cb1c0cfdbdbbb",
+      "exit_code": 8,
+      "tree_retired": true,
+      "seconds": 25.848917,
+      "memory_limit_bytes": 751828992,
+      "peak_job_bytes": 759574528,
+      "receipt_sha256": "f8793ae2b621f23cd5e405f4e779fc623053e2075ac183ca9749b6531e9a33ce",
+      "output_sha256": "68c8603f2ce32a1249b6424adcce814cc0c7306ded8e108915f6d8bc32b13b92"
+    }
+  ],
+  "clang_experiment": {
+    "compiler": "ClangCL 22.1.3",
+    "finding": "The raw control and minimal exception test passed. The staged AddressSanitizer filesystem tests reached execution and failed during C++ exception unwinding with either CRT mode. The Windows sanitizer qualification here uses MSVC.",
+    "raw": {
+      "description": "ClangCL raw controlled inode tests",
+      "run": "8b7707a061334f63ac12226c4e219dec",
+      "exit_code": 0,
+      "tree_retired": true,
+      "seconds": 4.378175,
+      "memory_limit_bytes": 2705326080,
+      "peak_job_bytes": 191246336,
+      "receipt_sha256": "80ea7d3d20539c799932e55f36dbd74845edf3eb172f0fe8212da877b6510f5a",
+      "output_sha256": "413e01efcca5ea4be12477820f0f03a26e2e667988f41a41259c94ba6d5975b4"
+    },
+    "dynamic": {
+      "description": "ClangCL dynamic CRT AddressSanitizer comparison",
+      "run": "c45503efe1fd4860a8e595ef25b858d2",
+      "exit_code": 8,
+      "tree_retired": true,
+      "seconds": 4.298437,
+      "memory_limit_bytes": 2718957568,
+      "peak_job_bytes": 552284160,
+      "receipt_sha256": "e3137a61e2e8165b2cecf09f6f41a6fee2644aa8d95cf5c4d47b40a90d209a0e",
+      "output_sha256": "068b3a17942a60267f322386f5f881172e38a49a490f4986ae7a7cd0464c3a7f"
+    },
+    "static": {
+      "description": "ClangCL static CRT AddressSanitizer comparison",
+      "run": "c1246d50e4214761b2a337d7f10f0a4a",
+      "exit_code": 8,
+      "tree_retired": true,
+      "seconds": 1.104994,
+      "memory_limit_bytes": 2778726400,
+      "peak_job_bytes": 540930048,
+      "receipt_sha256": "d96027a18522ba81e63ce7b4434681e84fcecfc84a031e441937b7d3f9423744",
+      "output_sha256": "d1ec49dafd6d8a5d1a0d319b46e74c83ec33ea046ae2bf0edc93f42b4a04f99d"
+    }
+  },
+  "regression_cases": [
+    "missing staged runtime",
+    "wrong staged runtime",
+    "staging exact toolset bytes",
+    "valid local runtime after toolset DLL removal",
+    "missing source refusal",
+    "changed source refusal preserving staged bytes",
+    "nested env, time, and chdir CTest wrapper"
+  ]
+}

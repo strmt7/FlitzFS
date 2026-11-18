@@ -29,6 +29,14 @@ class CTestArguments(unittest.TestCase):
                                        "--interactive-debug-mode", "0", "--",
                                        "--interactive-debug-mode", "1"])
 
+    def test_nested_cmake_wrappers(self):
+        command = [r"C:\Tools\cmake.exe", "-E", "env", "EXTRA=1", "--",
+                   "cmake", "-E", "time", "cmake.exe", "-E", "chdir", r"E:\Build Files",
+                   "ctest", "-R", "^bounded_native_"]
+        original = command.copy()
+        _unattended_ctest(command)
+        self.assertEqual(command, original + ["--interactive-debug-mode", "0"])
+
     def test_build_tool_arguments_remain_unchanged(self):
         command = [r"C:\Tools\ctest.exe", "--build-and-test", "source", "build",
                    "--build-options", "-Dfoo=bar", "--test-command", "tool", "-V"]
@@ -41,6 +49,8 @@ class CTestArguments(unittest.TestCase):
             [r"C:\Tools\other.exe", r"C:\Tools\ctest.exe"],
             [r"C:\Tools\cmake.exe", "-E", "env", "--", "other.exe", "ctest.exe"],
             [r"C:\Tools\cmake.exe", "-E", "env", "--modify"],
+            [r"C:\Tools\cmake.exe", "-E", "chdir"],
+            [r"C:\Tools\cmake.exe", "-E", "time"],
         ):
             with self.subTest(command=command):
                 original = command.copy()

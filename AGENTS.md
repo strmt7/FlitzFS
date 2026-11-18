@@ -115,8 +115,9 @@ reclamation and useful ordinary GPU/collective operation. Keep the full goal act
    environment for unavailable configurations or unsafe fault scenarios.
    Report the tested platform and scope.
    Use `tools/dev/windows_run.py` for unattended Windows launches. It selects
-   non-interactive CTest mode for direct and `cmake -E env` launches. For a
-   direct CTest command outside the supervisor, pass `--interactive-debug-mode 0`.
+   non-interactive CTest mode for direct launches and nested CMake `env`,
+   `time`, and `chdir` commands. Pass `--interactive-debug-mode 0` when running
+   CTest directly outside the supervisor.
    MSVC AddressSanitizer builds stage the selected toolset's runtime alongside
    the test binaries. CTest verifies that runtime before starting tests.
    Reconfigure and rebuild an older sanitizer fixture before running it.

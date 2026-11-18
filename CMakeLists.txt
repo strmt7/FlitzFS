@@ -713,6 +713,10 @@ if(FLITZFS_BUILD_TESTS)
       add_test(NAME unattended_windows_launcher COMMAND "${Python3_EXECUTABLE}" -B
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/dev/test_windows_run.py")
       set_tests_properties(unattended_windows_launcher PROPERTIES TIMEOUT 10)
+      add_test(NAME windows_asan_staging_regression COMMAND "${Python3_EXECUTABLE}" -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/dev/test_windows_asan_staging.py"
+        "${CMAKE_COMMAND}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake/StageWindowsAsanRuntime.cmake")
+      set_tests_properties(windows_asan_staging_regression PROPERTIES TIMEOUT 20)
     endif()
     add_test(NAME bounded_lz4_worker_decoder_staging COMMAND "${Python3_EXECUTABLE}" -B
       "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/test_lz4_worker_decoder.py")

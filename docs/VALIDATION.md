@@ -127,6 +127,21 @@ logged `0xC0000135` and confirmed process exit. The uninstrumented Release
 control ran two tests without staging a DLL or running the runtime check.
 [Follow-up source and execution evidence](evidence/windows-asan-preflight-2026-11-18.json)
 
+The Windows supervisor now keeps CTest non-interactive through nested CMake
+`env`, `time` and `chdir` commands. Ordinary Windows validation includes
+an inert fixture that tests the staging and verification script. The fixture
+checks missing and mismatched copies, exact replacement, and verification
+after the original toolset file is absent. It also checks that a changed
+toolset file cannot replace a verified copy.
+
+The final MSVC AddressSanitizer run passed all five affected suites, the
+preflight and both launch and staging regressions. The uninstrumented
+Release control passed three selected entries. The complete test trees
+exited. A direct supervised launch lacking the DLL logged `0xC0000135`
+and exited in 0.31 seconds. The ClangCL comparison exposed a separate
+exception-unwinding crash after loading its runtime.
+[Regression and live-host execution evidence](evidence/windows-asan-launch-regressions-2026-11-18.json)
+
 ## Cooperative indexed group preparation — 18 November 2026
 
 The 64-member indexed fixture took 65 preparation steps. The largest step

@@ -39,6 +39,9 @@ before starting any instrumented test, including filtered runs. A missing or
 mismatched DLL fails the setup check with a rebuild diagnostic. Reconfigure and
 rebuild older sanitizer directories before using them. Keep the Windows
 supervisor for unattended launches and the applicable in-memory test fixtures.
+The supervisor keeps CTest in non-interactive mode through nested CMake
+`env`, `time`, and `chdir` commands. The Windows staging regression checks
+missing, mismatched and replaced runtime files with an isolated inert fixture.
 
 GPU and mount probes remain opt-in and are not
 ordinary CTest operations. A successful base build does not qualify an optional
