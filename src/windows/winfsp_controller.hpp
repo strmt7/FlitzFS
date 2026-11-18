@@ -11,11 +11,12 @@ struct WinFspControllerView {
   std::uint64_t maintenance_quanta=0,reclamation_quanta=0,compactions=0,compaction_failures=0;
   std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0;
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
-  bool maintenance_disabled=false,retired=false,expired=false,offline=false,controller_failed=false;
+  bool maintenance_disabled=false,retired=false,offline=false,controller_failed=false;
 };
 // Explicit provider and plan only. One owned thread performs start, cooperative
 // maintenance and stop; callbacks still run on the provider's dispatcher.
-// The existing experimental plan lifetime is enforced. No thread is detached.
+// The volume lives until owner stop, a fenced session or dispatcher termination.
+// Destruction stops and joins the owner thread.
 // External owner calls are serialized. stop_and_join must not run on a
 // callback/dispatcher thread. A real provider's
 // stop may block in native code: live trials still require a process supervisor.

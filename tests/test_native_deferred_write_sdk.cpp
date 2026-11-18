@@ -89,6 +89,63 @@ void transport_required(){
         "missing deferred transport was accepted or touched storage");
   }
 }
+void deferred_activity_notification(bool inject_failure) {
+  auto ram=std::make_shared<native_fixture::Ram>();
+  auto writer=NativeFilesystemWriter::initialize(ObjectStoreWriter::create(
+      ram,native_fixture::identity(),{StoreCompressionMode::raw,6,false}));
+  const auto security=native_security_fixture::descriptor();
+  writer.create_inode_storage_result("target",false,{11,22,33,44,FILE_ATTRIBUTE_ARCHIVE},security,0);
+  const auto before=ram->stable;
+  auto session=NativeFileSession::create(std::move(writer));
+  const auto target=session.open("target",{true,true,false},NativeOpenKind::file);
+  FSP_FILE_SYSTEM filesystem{};
+  Collector received;
+  receiver=&received;
+  const std::unique_ptr<void,decltype(&CloseHandle)> event(CreateEventW(nullptr,FALSE,FALSE,nullptr),CloseHandle);
+  check(event!=nullptr,"deferred owner event");
+  std::mutex control;
+  std::atomic<bool> offline=false;
+  NativeDeferredWriteOptions options;
+  options.expected=WorkerExecution::cpu_semantics;
+  options.hint_query=hint;
+  options.response_sink=send;
+  const auto bytes=native_fixture::data(471,17);
+  NativeDeferredWriteService service(session,control,offline,std::move(options));
+  {
+    std::lock_guard guard(control);
+    service.bind_activity_event_locked(event.get());
+    if(inject_failure)ram->fail_at=ram->calls;
+    check(service.enqueue_locked(&filesystem,target,bytes,0,false,false),"deferred notification admission");
+  }
+  // There is no foreground callback and no GPU budget subscription to wake
+  // this owner. Observe the signal before asking the worker to stop.
+  check(WaitForSingleObject(event.get(),3000)==WAIT_OBJECT_0 &&
+      offline.load(std::memory_order_acquire)==inject_failure,"deferred owner missed completion or fence");
+  auto stop=NativeDeferredStop::running;
+  eventually([&]{stop=service.stop();return stop!=NativeDeferredStop::running;},
+      "deferred notification worker did not join");
+  const auto stats=service.stats_locked();
+  check(stop==NativeDeferredStop::quiescent && stats.response_attempts==1 && stats.worker_submitted==0,
+      "deferred notification did not retire with one CPU response");
+  receiver=nullptr;
+  FSP_FSCTL_TRANSACT_RSP response;
+  check(received.count==1,"deferred notification response count");
+  std::memcpy(&response,received.replies[0].data(),sizeof(response));
+  const auto recovered=NativeFilesystemSnapshot::open(ObjectStoreSnapshot::open(
+      native_fixture::image(ram->stable)));
+  recovered.verify_all();
+  if(inject_failure) {
+    check(!NT_SUCCESS(static_cast<NTSTATUS>(response.IoStatus.Status)) && !response.IoStatus.Information &&
+        ram->stable==before && !recovered.stat("target").logical_bytes,
+        "deferred fence altered the acknowledged checkpoint");
+  } else {
+    check(response.IoStatus.Status==STATUS_SUCCESS && response.IoStatus.Information==bytes.size() &&
+        recovered.read("target",0,static_cast<std::uint32_t>(bytes.size()))==bytes,
+        "deferred publication notification lost committed bytes");
+    session.cleanup(target,false);
+    session.close(target);
+  }
+}
 constexpr StoreCompressionOptions fixture_compression{StoreCompressionMode::fast,6,false};
 constexpr std::uint64_t measured_offset=32ULL*1024*1024;
 constexpr unsigned grouped_files=4;
@@ -168,7 +225,7 @@ struct Harness {
     if(observe_budget) {
       provider=this;
       const WinFspSessionApi api{preflight,create_filesystem,start,mount,stop,unmount,destroy,origin};
-      const NativeWriteMountPlan plan{L"R:\\FlitzFS-model\\unused",30,true,true};
+      const NativeWriteMountPlan plan{L"R:\\FlitzFS-model\\unused",true,true};
       controller=std::make_unique<WinFspVolumeController>(std::move(source),api,plan);
       eventually([&]{return controller->view().state==SessionState::running || controller->view().retired;},
           "owned deferred controller start");
@@ -778,6 +835,7 @@ int wmain(int argc,wchar_t** argv){try{
   check(argc==2,"trusted CPU helper required");const std::filesystem::path worker(argv[1]);
   check(worker.is_absolute(),"absolute CPU helper required");
   transport_required();
+  for(bool fault:{false,true})deferred_activity_notification(fault);
   native_amd_write_preference();
   budget_demand(worker);
   completion_budget_refusal(worker);

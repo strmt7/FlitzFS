@@ -84,6 +84,19 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "owned_writable_lifetime": {
+    "source_base": "ad6085754dfa85d483a13607ec22b279b677accb",
+    "evidence": "docs/evidence/owned-writable-lifetime-2026-11-18.json",
+    "selected_windows_ctest_passed": 13,
+    "idle_held_ms": 31000,
+    "idle_maintenance_quanta": 0,
+    "idle_gpu_budget_queries": 0,
+    "handles_retired": true,
+    "injected_deferred_failure_prior_checkpoint_verified": true,
+    "matched_grouped_cpu_amd_overwrites": 3,
+    "mounted_client_qualification": false,
+    "next": "Qualify the owner-driven lifecycle through Windows 11 clients with the exact driver and helper combination."
+  },
   "indexed_shared_bases": {
     "source_base": "46abe3ab92006c9082f8721b83b2b572008b1506",
     "evidence": "docs/evidence/indexed-shared-base-2026-11-18.json",

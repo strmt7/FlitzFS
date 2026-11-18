@@ -7,10 +7,11 @@
 `WinFspVolumeController` owns one thread and a `WinFspNativeSession`. Construction
 requires an explicit adapter, provider operation table and valid mount plan;
 there is no default native provider or automatic driver selection. That thread
-alone starts the session, supplies background opportunities and stops it. The
-caller supplies a finite lifetime, which the controller enforces while idle
-and active. Native waits remain interruptible by stop and activity events.
-Independently supervised mount trials retain their own shorter deadlines.
+alone starts the session, supplies background opportunities and stops it.
+The writable volume stays owned until explicit stop, dispatcher termination
+or a session fence. A quiet controller blocks on the owner stop and activity
+events. Independent test supervisors enforce the deadlines for mount trials.
+[Windows wait contract](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
 
 The controller uses the same writable callbacks, paged engine and independent
 CPU reader for either supported layout. Legacy paged volumes run shared-base
@@ -30,8 +31,12 @@ late event binding is refused. An auto-reset activity event collapses callback
 notifications without a queue; a separate manual-reset stop event takes priority.
 
 Callbacks signal after releasing the engine control lock and dropping their
-foreground count. Dispatcher termination also signals. The owner checks the
-cached namespace sequence before collecting telemetry. Read-only activity on a
+foreground count. Dispatcher termination, deferred write retirement and a
+deferred publication failure also signal. The owner rechecks the terminal
+state and queued work after waking. This covers asynchronous storage failures
+even if a foreground callback has already returned. The owner checks the
+cached namespace sequence before collecting telemetry.
+[Windows event behavior](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent) Read-only activity on a
 completed unchanged volume does not sample or scan. A deferred service's pending
 publication or outstanding response remains pending even before its content
 sequence changes, preventing a delayed CPU commit from being missed.
@@ -46,8 +51,8 @@ they never enable a GPU path or reinterpret unknown headroom as idle capacity.
 
 Complete quantum elapsed time, including wrapper/collector overhead, is charged
 against a 1% elapsed-work pacing target. Activity cannot erase the next due time.
-Timed waits pace pending work or enforce the lifecycle deadline. The
-synchronous quantum yields after its transaction. Indexed final Close records
+Timed waits pace pending maintenance and GPU budget observations. The
+synchronous maintenance quantum yields after its transaction. Indexed final Close records
 retirement and signals the controller. The controller checks the cached queue
 state and requires new, recent CPU and memory observations for each transaction.
 A reaper transaction removes at most 64 mappings. The controller checks
@@ -60,9 +65,16 @@ volume with no pending retirement or compaction sleeps until an event.
 
 ## Retirement and qualification
 
+The 18 November SDK fixture held the quiet indexed controller for 31 seconds,
+then stopped and joined it. The owner issued no maintenance quanta or budget
+queries during the wait. The post-join handle count matched the native baseline.
+A separate direct service test verified one CPU response and an owner wake for
+both a successful commit and a storage fence. The fenced write preserved the
+prior verified checkpoint. [Executed checks](evidence/owned-writable-lifetime-2026-11-18.json)
+
 Stop interrupts waits, then the same owner joins deferred work and the provider
 dispatcher, removes only its owned mount, deletes its filesystem object and
-retires the adapter. Retirement status is exposed after those owners retire;
+retires the adapter. [WinFsp lifecycle API](https://winfsp.dev/doc/WinFsp-API-winfsp.h/) Retirement status is exposed after those owners retire;
 `stop_and_join` additionally confirms the controller thread has exited. Destruction
 also joins, never detaches. A native provider stop can block inside WinFsp, so
 live experiments still require an independent bounded process supervisor.

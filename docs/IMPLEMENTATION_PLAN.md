@@ -787,9 +787,12 @@ validation, deferred responses, owned controller, shared memory factory and tray
 5. Qualify a new writable memory fixture through external clients: create/open,
    read/write/append/overwrite, flush, rename, delete, metadata, security and directories.
    Preserve each partial failure and exact retirement evidence.
-6. Separate finite experimental mount plans from product lifetime. A normal
-   mounted volume must not expire after a probe's 30-second limit. Keep test
-   process deadlines and individual operation/worker containment separate.
+6. The owned writable controller now uses explicit stop, dispatcher events
+   and session fencing for its lifetime. Test and worker supervisors enforce
+   their own deadlines. Qualify the new lifetime through mounted Windows 11
+   clients, including a sustained idle hold, resume of I/O, orderly dismount
+   and independent recovery after stop.
+   [Controller contract](WINFSP_OWNED_CONTROLLER.md)
 7. Specify Windows name/case semantics, UTF-16/UTF-8 representation, long paths,
    reserved names, case preservation and normalization policy. Implement them in
    native indexes and adapters with collision/security tests.

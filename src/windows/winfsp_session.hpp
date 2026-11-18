@@ -63,7 +63,6 @@ struct WinFspMaintenanceResult;
 struct NativeMaintenanceObservation;
 struct NativeWriteMountPlan {
   std::wstring directory;
-  std::uint32_t lifetime_seconds=15;
   bool allow_driver_start=false,allow_native_writes=false;
 };
 bool valid_native_write_plan(const NativeWriteMountPlan&) noexcept;

@@ -304,7 +304,7 @@ void lifecycle() {
     require(!session.background_maintenance_pending(),"ready injected session admitted group work");
     // The path is inert data passed ONLY to the injected functions above.
     // No native preflight/create/dispatcher/mount function is in this provider.
-    const auto started=session.start({L"R:\\FlitzFS-model\\unused",15,true,true});
+    const auto started=session.start({L"R:\\FlitzFS-model\\unused",true,true});
     if(!fail){require(started==STATUS_SUCCESS && session.background_maintenance_pending(),"paged injected lifecycle start");
       Clock clock;const auto o=clock.next();require(session.advance_background_maintenance(o,clock.now).state==WinFspMaintenanceState::advanced,
           "session did not forward group opportunity");session.stop();}

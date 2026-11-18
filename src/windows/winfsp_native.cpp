@@ -690,7 +690,7 @@ void WinFspNativeWritable::set_maintenance_event(HANDLE event) {
     throw std::invalid_argument("Maintenance event requires an unbound adapter and one valid event");
   if(!DuplicateHandle(GetCurrentProcess(),event,GetCurrentProcess(),&impl_->maintenance_event.value,
       EVENT_MODIFY_STATE,FALSE,0))throw std::runtime_error("Maintenance event duplication failed");
-  if(impl_->deferred)impl_->deferred->bind_budget_event_locked(impl_->maintenance_event.value);
+  if(impl_->deferred)impl_->deferred->bind_activity_event_locked(impl_->maintenance_event.value);
 }
 std::optional<NativeGpuBudgetTask> WinFspNativeWritable::gpu_budget_task() const {
   if(!impl_->deferred || !impl_->deferred->budget_demand_pending())return {};
@@ -788,7 +788,7 @@ void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOpti
   if(!options.response_sink)options.response_sink=sdk_response;
   impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,
       impl_->offline,std::move(options),impl_->info_policy);
-  impl_->deferred->bind_budget_event_locked(impl_->maintenance_event.value);
+  impl_->deferred->bind_activity_event_locked(impl_->maintenance_event.value);
 }
 void WinFspNativeWritable::publish_deferred_health_hosted(const GpuHealthEvidence& health){
   std::lock_guard guard(impl_->control);

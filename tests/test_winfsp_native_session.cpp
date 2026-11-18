@@ -107,7 +107,7 @@ class PausedReadStore final:public flitzfs::StoreByteIo {
   mutable std::future<void> release_;
 };
 flitzfs::WinFspSessionApi api() { return {preflight, create, start, mount, stop, unmount, destroy,cpu_origin}; }
-flitzfs::NativeWriteMountPlan plan() { return {L"C:\\FlitzFS-fixture\\mount", 15, true, true}; }
+flitzfs::NativeWriteMountPlan plan() { return {L"C:\\FlitzFS-fixture\\mount", true, true}; }
 }
 int main(){try {
   using namespace flitzfs;nw::hosted();Provider provider;active=&provider;

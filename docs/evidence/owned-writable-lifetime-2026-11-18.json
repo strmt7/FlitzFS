@@ -1,0 +1,499 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "released": false,
+  "source_base": "ad6085754dfa85d483a13607ec22b279b677accb",
+  "source_tree": "f01d99084ac033b7fd227ed361073e8b0f29d4f6",
+  "tested_changed_sources": [
+    {
+      "path": "include/flitzfs/mount_plan.hpp",
+      "git_blob": "3bf401c84bba1c24d24dd0b58d83395e18f9fbf6",
+      "worktree_sha256": "cacdd3fed3ec02efbd00f7a986f7d2dabf05465b09009caf04d5f75d5ea0e914"
+    },
+    {
+      "path": "src/mount_plan.cpp",
+      "git_blob": "4f9c7e5840828a2eeb46f98cdd27d290b66bcacc",
+      "worktree_sha256": "4bb85c878ecca328510e7b8fd7d0988528a62d486bb480f8deb5e211561d741a"
+    },
+    {
+      "path": "src/windows/native_deferred_write.cpp",
+      "git_blob": "1e7d68dd7bd5e494e551c1cb10fc2c16f331b8fa",
+      "worktree_sha256": "72ccae4949509d3e5652b55ac0e29b7cfe09faa433be6ed502c8dfb76638e82e"
+    },
+    {
+      "path": "src/windows/native_deferred_write.hpp",
+      "git_blob": "c113701a0d6d1323d23b1b969bee086400614d85",
+      "worktree_sha256": "5ef1d7ae89ada0b18f970bcf08783c66bcd825c25707546a94b2faaad3731fe4"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "c2e2eeb764ffc109e5f8ed061b440eccedea3b49",
+      "worktree_sha256": "2fbee4f1a4bfd0264f9e0f0902a11c4fb1ca7f064c857b120ee0fcac62d3f498"
+    },
+    {
+      "path": "src/windows/winfsp_controller.hpp",
+      "git_blob": "85917d9023fc57e87000487e659490ae788686ee",
+      "worktree_sha256": "9560839f59ee1008a32799bc08f7e7ce16449ada2055a96b3ee855f53bd536bc"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "b91c63a970f25366a6db826e930bb82f8c3ce4c7",
+      "worktree_sha256": "6e3e68bb3972beeaa80c26849484ae4ab0c4770b673b50f60f569a99f472d45a"
+    },
+    {
+      "path": "src/windows/winfsp_session.cpp",
+      "git_blob": "42aa31889e606310903e7f657baa931180828983",
+      "worktree_sha256": "8dc7b009b853254212915f48b73f45e5c6811ae694fd9d54a093a8c7e686f646"
+    },
+    {
+      "path": "src/windows/winfsp_session.hpp",
+      "git_blob": "84e50e11c715a5d14a5b0cb8a185bb90c428f98e",
+      "worktree_sha256": "a1411e5342cdb842e8558dc61c72672b91062b6fe6b035680219971320a07743"
+    },
+    {
+      "path": "tests/test_native_deferred_write_sdk.cpp",
+      "git_blob": "afd39475a7e1d0d8e48242b83cabf2cfa6f85f10",
+      "worktree_sha256": "b668dfb55ff106375c36342037592e65243fa76a5f30f694ead95cae83f8da88"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "7a27585ca989110f95934383c2092fd7d5ae08c7",
+      "worktree_sha256": "33a8a32c322e71c699aa5c90d43e0e471f6fb91cf208def28c1a2494e6108f17"
+    },
+    {
+      "path": "tests/test_winfsp_native_session.cpp",
+      "git_blob": "077a47bea270abd87694b13edf659948c88f05a8",
+      "worktree_sha256": "978e34908857e90e452846989331c0fdaf4d4f723342a69310c1f9e274dfa972"
+    },
+    {
+      "path": "tests/test_winfsp_paged.cpp",
+      "git_blob": "5a2618cbc9842d130ec847326006d892f0241713",
+      "worktree_sha256": "3de5a326dcc581686e2f2a33676f1dc4150b1565afbcaf2f5d6afc6aed63ffef"
+    },
+    {
+      "path": "tests/winfsp_mount_probe.cpp",
+      "git_blob": "3049bc59dd2af32e0b091c38cabeba8c5b33dd82",
+      "worktree_sha256": "3453c816c6d8158593ce70d3b10f622ae3ad1ad8baea60e8a4e50de743310d84"
+    },
+    {
+      "path": "tests/winfsp_write_probe.cpp",
+      "git_blob": "8dc28a771ad3f0544ec1916794b00b4cd2cb5832",
+      "worktree_sha256": "0d30ef125be37500eccdd75a78161cbe6be43090454b2e4adddb3c22a1678ae7"
+    }
+  ],
+  "reference_checks": {
+    "initial": {
+      "capture_directory": "winfsp-lifecycle-research-743419b29fcc45b881a644a9d6071e32",
+      "capture_sha256": "72f62e0eb16db685c47005d5bd809d80dafb0f91d188cfb8c8cc09fa9df3916f",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 36384,
+          "markdown_sha256": "7a194fedd060c100bdf06148e5fbaf3e58f3bc7c1d1423cd90b7ae0267a9de84",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 2.171,
+          "capture": "windows-wait.native.json",
+          "capture_sha256": "51a0a576516ac3e5038929983212ddf1f39ffa7d75b8623bce7fd0e453ada1ba",
+          "name": "windows-wait"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 30653,
+          "markdown_sha256": "03ca08a77206adaf03f297723747f52544a6e60a74042dda7baafe55df642685",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 0.648,
+          "capture": "windows-event.native.json",
+          "capture_sha256": "a4957da01393daa6752e48e5d8d6e26ff1962aad4ad5c7733366ac502ab5b273",
+          "name": "windows-event"
+        },
+        {
+          "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+          "success": false,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "expected_content": false,
+          "failure_category": "unexpected_content",
+          "error": "",
+          "seconds": 0.504,
+          "capture": "winfsp-api.native.json",
+          "capture_sha256": "12a43fa11609e6d4e8fe806a93ccfd7dc894220c3f44fcaa192838cf4bc86d21",
+          "name": "winfsp-api"
+        }
+      ],
+      "launcher": {
+        "run": "local-run-59326e719d4e493aa219f33b7d9b15ca",
+        "receipt_sha256": "d4e94f23809f29f8dffd59fbcfd16760954344ae05956ca0c4ef1b7ae9583403",
+        "log_sha256": "067cd279e8690ab5f13c01379167c44329932dc797edb0e43b7a78ad99660bda",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 0,
+        "elapsed_seconds": 8.290178700000979,
+        "timeout_seconds": 170.0,
+        "peak_job_bytes": 1232551936
+      }
+    },
+    "corrected_markers": {
+      "capture_directory": "winfsp-lifecycle-research-c0ddfc5b0fea4b6d9c0967c1109653b3",
+      "capture_sha256": "9fe14a4f5b0cc5008df2dd27dc64776b51edcb692f9c704f68fa95437a16cc8a",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 30653,
+          "markdown_sha256": "03ca08a77206adaf03f297723747f52544a6e60a74042dda7baafe55df642685",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 1.598,
+          "capture": "windows-event.native.json",
+          "capture_sha256": "0c8f931f7557bb6976c88af53b678aa511b9983ab5443ff5433a650794104171",
+          "name": "windows-event"
+        },
+        {
+          "url": "https://winfsp.dev/doc/WinFsp-API-winfsp.h/",
+          "success": true,
+          "native_success": true,
+          "http_status": 200,
+          "final_http_status": 200,
+          "markdown_bytes": 73095,
+          "markdown_sha256": "23f2e7b26b2297a12d6e98acb7b612010c44361803cc72c3563f82571cce5837",
+          "expected_content": true,
+          "failure_category": "",
+          "error": "",
+          "seconds": 0.481,
+          "capture": "winfsp-api.native.json",
+          "capture_sha256": "da9d64ab8d663e272a6a7feb48ccc45ab93f083f9d58530f722809af4d4dd262",
+          "name": "winfsp-api"
+        }
+      ],
+      "launcher": {
+        "run": "local-run-3bd4c6b7e7d346158d069f682cc4fe15",
+        "receipt_sha256": "29f6bd86c004d927591304bea5a154cfa5185145df735664983f9487e315167e",
+        "log_sha256": "04655297f81c1c409edf5436bb05eeae7c45dac33ceb12e366362f862fbfe42f",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 0,
+        "elapsed_seconds": 7.270801299993764,
+        "timeout_seconds": 125.0,
+        "peak_job_bytes": 1177747456
+      }
+    }
+  },
+  "scope": "Owner-controlled native writable WinFsp SDK lifecycle with injected provider and private memory-backed fixtures.",
+  "codec": {
+    "build": {
+      "run": "local-run-a17ce7e3b81242c09780096aa6273626",
+      "receipt_sha256": "0383bccfbd8ea7866d1a6a65ffd365b61d22fffd9ebd187159c7f0f217aea8aa",
+      "log_sha256": "89823c6b94e00e591e94cc83bfa22474b63e64b9ccbf7190d282c7955dd8117b",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 5.203979099998833,
+      "timeout_seconds": 130.0,
+      "peak_job_bytes": 155189248
+    },
+    "final_controller_build": {
+      "run": "local-run-dff96d4eaa1c4cbe8571c14e5e321457",
+      "receipt_sha256": "cd2fc72682b0e0ae156ea2400c4dbcfd51d754658ba439a5519c3480f887c00a",
+      "log_sha256": "889682c744dbc8260ff9377b640833f37e239b48d189fb9dbb2e77f5c3fb14b5",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 1,
+      "elapsed_seconds": 5.197458800001186,
+      "timeout_seconds": 130.0,
+      "peak_job_bytes": 467546112
+    },
+    "ctest": {
+      "run": "local-run-ea894ba200414926844bbee3d34c0a30",
+      "receipt_sha256": "ae83c125ed3f13b272e26ccd8ec6d807fdc2b8f9c1d8de1a75d5286b89eeed7b",
+      "log_sha256": "5605d781672c336c769655c4296f4bf69de5a455030c12880291fe5cdf6255ff",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 30.329913999987184,
+      "timeout_seconds": 150.0,
+      "peak_job_bytes": 37769216,
+      "passed": [
+        "bounded_mount_plan_test",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_readonly_memory",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_paged_callbacks",
+        "owned_native_deferred_write_sdk",
+        "bounded_winfsp_session_test"
+      ]
+    },
+    "note": "The controller test branch that prepares the native baseline for the standalone long mode changed after this CTest execution. All selected normal-mode code and production sources were unchanged."
+  },
+  "raw": {
+    "build": {
+      "run": "local-run-f49ddf1ac3794e16a89d2fa27a2f0c9a",
+      "receipt_sha256": "13ed93309fdd066c1de722d7ca1ef1183396f1f77db4bba228845a36f770d844",
+      "log_sha256": "728e9c967677aca0306d7c4fc325c86ae14fb8b65e526c6566454f7fa64c9261",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 1.901508200011449,
+      "timeout_seconds": 70.0,
+      "peak_job_bytes": 153509888
+    },
+    "ctest": {
+      "run": "local-run-6c67cfdb46304520846ee4b04f450ea2",
+      "receipt_sha256": "34660ce3bebad28782a5ef4542d6f09600ca3b4f6723ba10d1267cb10293f1c4",
+      "log_sha256": "01cfe72172ff466383d2ce855e294d8b3fe477f0e36fb902c0216b2475add6e0",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 0.12425170000642538,
+      "timeout_seconds": 25.0,
+      "peak_job_bytes": 7749632,
+      "passed": [
+        "bounded_mount_plan_test"
+      ]
+    }
+  },
+  "address_sanitizer": {
+    "build": {
+      "run": "local-run-2d84291c7ead43aa9f51a9545ed097ec",
+      "receipt_sha256": "d1bc96bcf5b0571e3fb9498b7cf21348072311f6ec9d3df829fd7024f7fef0d6",
+      "log_sha256": "0a17c6ab3a8e369dfe41c246861f586ec442cb12d71297354795d51cadc78d19",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 1,
+      "elapsed_seconds": 8.81396020000102,
+      "timeout_seconds": 195.0,
+      "peak_job_bytes": 469622784
+    },
+    "ctest": {
+      "run": "local-run-0fdf6af2375a4944ab522b477bf81ef7",
+      "receipt_sha256": "6a94dbb3904c435b55c4a1909f29afc0c333d69cb14410a2b07cb52c52f4e15d",
+      "log_sha256": "0626f726c899172773055afdafa5e32dac4b3d4b85d9f427e5094be8326e4cbc",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 26.36016280000331,
+      "timeout_seconds": 150.0,
+      "peak_job_bytes": 509661184,
+      "passed": [
+        "bounded_mount_plan_test",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_paged_callbacks",
+        "owned_native_deferred_write_sdk"
+      ]
+    },
+    "note": "The final standalone native-baseline fixture change does not run in these five tests."
+  },
+  "compiled_mount_probes": {
+    "configure": {
+      "run": "local-run-a1779301ecfc4ec5802830fb9010a498",
+      "receipt_sha256": "f37a0bff703212e939ef5b9ac54a08937fe397754d31eab99f1d348e956f8e13",
+      "log_sha256": "5f376e137645e9db33a566c29f848f2cb33239828f252a9d0c9297705c6878f9",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 1,
+      "elapsed_seconds": 8.442044099996565,
+      "timeout_seconds": 110.0,
+      "peak_job_bytes": 312643584
+    },
+    "build": {
+      "run": "local-run-54034c6bb0c447648adfcab0f44951dd",
+      "receipt_sha256": "bd74af29352d6b6621a6c822d58c0560b92c98b8cea40e1c40cca771dc8beee7",
+      "log_sha256": "1d0addcd36fa7f91c411705ae4b7c08be6e447eddcda7c39335bf8dce24537b0",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 1,
+      "elapsed_seconds": 83.2100907999993,
+      "timeout_seconds": 270.0,
+      "peak_job_bytes": 726650880
+    },
+    "executed": false
+  },
+  "idle_fixture": {
+    "run": "local-run-cad4d70dc76d496ba42074ae851f571e",
+    "receipt_sha256": "13089c9fd6a93d98ae211507730d3e29c9425bfb1e484f141ee4d27a81089407",
+    "log_sha256": "aa143b37eb5272b52732e798d2210b07162a80e2f264fb45a1650f3da475f2c3",
+    "exit_code": 0,
+    "exit_confirmed": true,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 66.87464069999987,
+    "timeout_seconds": 86.0,
+    "peak_job_bytes": 11452416,
+    "held_ms": 31000,
+    "maintenance_quanta": 0,
+    "gpu_budget_queries": 0,
+    "handles_before": 148,
+    "handles_after": 148,
+    "owner_stop": true,
+    "sdk_lifecycle": "injected"
+  },
+  "deferred_event_checks": {
+    "cpu_success": true,
+    "fault_fenced": true,
+    "prior_checkpoint_verified_on_fault": true,
+    "one_response_each": true,
+    "owner_signal_without_gpu_or_callback": true
+  },
+  "hardware_callback_regression": {
+    "run": "local-run-d0a6cc7fe90b41e491359c209f729b5d",
+    "receipt_sha256": "82db941fe6b796653eeab5bd680e91a651ac43e3195a3d355507521d9ea4d013",
+    "log_sha256": "8e6a8134209c062815c1f1eae6efd5c37ecc32fac1f03ae5d0c316bb24853b49",
+    "exit_code": 0,
+    "exit_confirmed": true,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 4.202940200004377,
+    "timeout_seconds": 35.0,
+    "peak_job_bytes": 142528512,
+    "fixture_sha256": "312b780aed602f3300413661970236325852b2b93c1e08803438e93cc4a8ac93",
+    "input_bytes": 1048576,
+    "verified_extents_each": 16,
+    "verified_mirrored_records_each": 32,
+    "unchanged_peers_each": 3,
+    "foreground_backend_selected": "cpu",
+    "trials": [
+      {
+        "pair": 1,
+        "amd_first": 0,
+        "cpu_ns": 2595600,
+        "amd_ns": 1101594900,
+        "cpu_image_bytes": 5111808,
+        "amd_image_bytes": 5111808
+      },
+      {
+        "pair": 2,
+        "amd_first": 1,
+        "cpu_ns": 2424500,
+        "amd_ns": 968767100,
+        "cpu_image_bytes": 5111808,
+        "amd_image_bytes": 5111808
+      },
+      {
+        "pair": 3,
+        "amd_first": 0,
+        "cpu_ns": 2477800,
+        "amd_ns": 990343000,
+        "cpu_image_bytes": 5111808,
+        "amd_image_bytes": 5111808
+      }
+    ]
+  },
+  "setup_and_fixture_history": [
+    {
+      "run": "local-run-174359a9d7f245d9bbc2a4529a945106",
+      "receipt_sha256": "1a303cd14a32b33accea7d6046c5684e225a78ac47b774ab91b41f2ccb395655",
+      "log_sha256": "29c89221743941e901e35bb2c35bb73c6b77e96880c1e60b0a7188a3429df7cd",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 1,
+      "elapsed_seconds": 29.844842300008168,
+      "timeout_seconds": 130.0,
+      "peak_job_bytes": 485691392,
+      "reason": "Use the SDK flexible-array response through a copied fixed-size frame instead of value initialization."
+    },
+    {
+      "run": "local-run-f51fc6490721436293999f04b2313eb8",
+      "receipt_sha256": "bad0bd7c71303f469d57ba3f6f5f0d2599cb723334b1b2d62890b8993a03c3be",
+      "log_sha256": "2477387b4523e364a50e0dffb7a8576c49afe0bb340857cfbbd170f4e054b7d7",
+      "exit_code": 8,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 19.82628960000875,
+      "timeout_seconds": 150.0,
+      "peak_job_bytes": 31481856,
+      "reason": "Direct fixture lacked a persisted file allocation reservation."
+    },
+    {
+      "run": "local-run-4f02f2d986ec412cb75e97e12793d64c",
+      "receipt_sha256": "53048891f32d3988fafcfbf3e1ba2f6f919537582557fb52bec08e2ec3f517ad",
+      "log_sha256": "7b13e5279f594fdeadcc85888ecfcab479c6f27d2e7034ce5466e847d624c415",
+      "exit_code": 8,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 15.634627399995225,
+      "timeout_seconds": 150.0,
+      "peak_job_bytes": 31461376,
+      "reason": "The test had called native Close without Cleanup."
+    },
+    {
+      "run": "local-run-cb085de26a254ad19bd38f4c6f4ecfc4",
+      "receipt_sha256": "069261f6b7a5a974553976fae117c08133dcfb4e148578443c0ac2f3667d99a5",
+      "log_sha256": "84fc2634dffebd88c8afb9177624fa1b9c36d8bc76ea4c1226dfee15168c3816",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 31.238514500000747,
+      "timeout_seconds": 48.0,
+      "peak_job_bytes": 9990144,
+      "reason": "The cold standalone fixture passed idle ownership and stop, but process-wide handle count rose by one."
+    },
+    {
+      "run": "local-run-13420726af9a47f8bb96334d3e0dd9a4",
+      "receipt_sha256": "f9397f7cf122d7b7297770a54a37d939af6ebdf07a5562e0235cdb3544c0d065",
+      "log_sha256": "d4922176a3ece0a4a4ae64b0106e076e003e064e82016e811787172f03e0d96f",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 31.077287899999646,
+      "timeout_seconds": 48.0,
+      "peak_job_bytes": 6696960,
+      "reason": "Removing native PDH preparation also removed native handle initialization from the baseline. The test retained its strict equality check."
+    }
+  ],
+  "dependabot": {
+    "run": "local-run-626a8a53b23b4d3787ba6f54b4fafed6",
+    "receipt_sha256": "d54cef5cf28417a410d196fd1d33f85c4293ce3305d3dcef250ac936986bd5d3",
+    "log_sha256": "cf1cbb66a638b4860a516671fb74850e6ccf787fe6c4c8d29e9c04efe880bd05",
+    "exit_code": 0,
+    "exit_confirmed": true,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 0.5572504000010667,
+    "timeout_seconds": 20.0,
+    "peak_job_bytes": 70029312,
+    "pages": 1,
+    "open_alerts": 0
+  },
+  "limitations": [
+    "No driver installation or mounted lifetime qualification in this checkpoint.",
+    "The complete release still needs current Windows 11 client, persistent recovery and useful automatic GPU/collective qualification."
+  ]
+}

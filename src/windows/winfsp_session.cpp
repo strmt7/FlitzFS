@@ -81,7 +81,7 @@ bool WinFspReadOnlySession::dispatcher_stopped_unexpectedly() const noexcept {
 }
 
 bool valid_native_write_plan(const NativeWriteMountPlan& p) noexcept {
-  return p.allow_native_writes&&valid_mount_plan({p.directory,p.lifetime_seconds,p.allow_driver_start});
+  return p.allow_native_writes && p.allow_driver_start && valid_mount_directory(p.directory);
 }
 WinFspNativeSession::WinFspNativeSession(std::unique_ptr<WinFspNativeWritable> adapter,WinFspSessionApi api)
     :api_(checked(api)),adapter_(std::move(adapter)) {

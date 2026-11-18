@@ -47,7 +47,7 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
         !health_.compatible || health_.configuration!=options_.binding.configuration ||
         !valid_process_budget(options_.budget) || !options_.deadline_ms ||
         options_.deadline_ms>options_.budget.timeout_ms || bytes.size()<kNativeExtentBytes ||
-        (controller_collects_budget() && (!budget_event_ || budget_disabled_)))return false;
+        (controller_collects_budget() && (!activity_event_ || budget_disabled_)))return false;
     if(const auto& shape=options_.measured_shape) {
       if(append || constrained || offset%kNativeExtentBytes || bytes.size()!=shape->input_bytes)return false;
     }
@@ -95,8 +95,11 @@ void NativeDeferredWriteService::disable_gpu_budget_locked() noexcept {
   force_cpu_=force_cpu_ || stats_.native_pending;
   changed_.notify_all();
 }
+void NativeDeferredWriteService::signal_activity_locked() noexcept {
+  if(activity_event_ && !SetEvent(activity_event_))disable_gpu_budget_locked();
+}
 void NativeDeferredWriteService::request_budget_locked(std::uint64_t after_ms,bool completion) noexcept {
-  if(!controller_collects_budget() || !budget_event_ || budget_disabled_ || stats_.stopping ||
+  if(!controller_collects_budget() || !activity_event_ || budget_disabled_ || stats_.stopping ||
       (budget_task_ && budget_task_->after_ms>=after_ms))return;
   if(budget_sequence_==(std::numeric_limits<std::uint64_t>::max)()) {
     disable_gpu_budget_locked();
@@ -105,7 +108,7 @@ void NativeDeferredWriteService::request_budget_locked(std::uint64_t after_ms,bo
   budget_for_completion_=completion;
   budget_task_=NativeGpuBudgetTask{++budget_sequence_,after_ms,health_.memory.luid,health_.memory.node_mask};
   budget_work_.store(true,std::memory_order_release);
-  if(!SetEvent(budget_event_))disable_gpu_budget_locked();
+  signal_activity_locked();
 }
 std::optional<NativeGpuBudgetTask> NativeDeferredWriteService::budget_task_locked() const noexcept {
   return stats_.stopping || budget_disabled_?std::nullopt:budget_task_;
@@ -207,7 +210,10 @@ void NativeDeferredWriteService::run() noexcept{
         budget_work_.store(false,std::memory_order_release);
       }
       completion_=result;
-      if(result.outcome.offline_required)offline_.store(true,std::memory_order_release);
+      if(result.outcome.offline_required) {
+        offline_.store(true,std::memory_order_release);
+        signal_activity_locked();
+      }
       if(result.candidate_count)increment(stats_.advised);
       FSP_FSCTL_TRANSACT_RSP response;std::memset(&response,0,sizeof(response));
       static_assert(sizeof(response)<=(std::numeric_limits<UINT16>::max)());
@@ -229,6 +235,7 @@ void NativeDeferredWriteService::run() noexcept{
       }
       guard.lock();stats_.retirement_confirmed=retired;stats_.worker_busy=false;
       request_.reset();changed_.notify_all();
+      signal_activity_locked();
       if(!retired){stats_.disabled=true;break;} // no retry, restart or discovery
       if(stats_.stopping)break;
     }
@@ -244,6 +251,7 @@ void NativeDeferredWriteService::run() noexcept{
       }
       offline_.store(true,std::memory_order_release);stats_.disabled=true;
       stats_.native_pending=false;stats_.retirement_confirmed=false;changed_.notify_all();
+      signal_activity_locked();
     }
     if(filesystem){
       options_.response_sink(filesystem,response);

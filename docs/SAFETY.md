@@ -8,6 +8,12 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+The writable controller owns its session until an explicit stop, dispatcher
+termination or storage fence. Quiet volumes wait on owned events. Publication
+and retirement by the deferred service wake that owner. Separately supervised
+driver-backed fixtures keep their own operation and process limits.
+[Controller contract](WINFSP_OWNED_CONTROLLER.md)
+
 The owned indexed memory path keeps a checked CPU view after dispatcher join.
 The sealing operation resolves old indexed context records only after the
 controller and writer retire. Routine retirement uses serialized bounded

@@ -54,7 +54,8 @@ automatic indexed compaction.
 
 `WinFspMemoryVolume` composes that backing with a legacy or indexed paged
 adapter and `WinFspVolumeController`. Callers select the indexed layout
-explicitly. They supply a valid plan and provider table.
+explicitly. They supply a valid plan and provider table. A live volume follows
+the owning controller's [event-driven lifecycle](WINFSP_OWNED_CONTROLLER.md).
 The backing outlives the controller. The background owner checks the
 working-set lease before an opportunity with valid resource observations.
 Full page checks use the serialized owner after writes have retired.

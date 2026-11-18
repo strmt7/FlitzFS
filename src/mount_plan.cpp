@@ -1,11 +1,9 @@
 #include "flitzfs/mount_plan.hpp"
 #include "flitzfs/windows_path.hpp"
-#include <string_view>
 
 namespace flitzfs {
-bool valid_mount_plan(const ReadOnlyMountPlan& plan) noexcept {
-  const std::wstring_view path(plan.directory);
-  if (!plan.allow_driver_start || !plan.lifetime_seconds || path.size() < 4 ||
+bool valid_mount_directory(std::wstring_view path) noexcept {
+  if (path.size() < 4 ||
       path.size() > 240 || !ordinary_windows_file_path(path)) return false;
   const auto drive = path[0];
   if (!((drive >= L'A' && drive <= L'Z') || (drive >= L'a' && drive <= L'z')) ||
@@ -20,5 +18,8 @@ bool valid_mount_plan(const ReadOnlyMountPlan& plan) noexcept {
     start = stop + 1;
   }
   return true;
+}
+bool valid_mount_plan(const ReadOnlyMountPlan& plan) noexcept {
+  return plan.allow_driver_start && plan.lifetime_seconds && valid_mount_directory(plan.directory);
 }
 } // namespace flitzfs

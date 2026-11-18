@@ -79,7 +79,7 @@ struct Provider {
 };
 Provider* Provider::active=nullptr;
 struct StopRelease {Provider& provider;~StopRelease(){provider.release_stop=true;}};
-NativeWriteMountPlan plan(unsigned seconds=30){return {L"R:\\FlitzFS-model\\unused",seconds,true,true};}
+NativeWriteMountPlan plan(){return {L"R:\\FlitzFS-model\\unused",true,true};}
 void callback_file(Provider& p,unsigned n,const Bytes& bytes) {
   const auto* table=p.fs.Interface;SIZE_T security_size=0;UINT32 attributes=0;
   require(table->GetSecurityByName(&p.fs,const_cast<PWSTR>(L"\\"),&attributes,nullptr,&security_size)==STATUS_BUFFER_OVERFLOW,
@@ -142,11 +142,28 @@ void lifecycle() {
   }
   require(p.callback_alive && p.fs.UserContext==nullptr && p.order[p.calls.load()-1]=='d',"destructor left an owner worker");
 }
-void expiration() {
-  Provider p;Provider::active=&p;Fixture f;WinFspVolumeController controller(std::move(f.adapter),p.api(),plan(1));
-  await([&]{return controller.view().retired;},5000,"lifetime did not retire controller");
-  const auto v=controller.view();controller.stop_and_join();
-  require(v.expired && v.state==SessionState::stopped && !v.offline,"lifetime retirement result");
+void idle_until_owner_stop(DWORD idle_ms) {
+  Provider p;Provider::active=&p;
+  auto head=std::make_shared<Ram>();
+  auto image=std::make_shared<Ram>();
+  auto adapter=WinFspNativeWritable::create_managed_indexed(head,id(90),image,id(1),
+      {kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false});
+  WinFspVolumeController controller(std::move(adapter),p.api(),plan());
+  await([&]{return controller.view().state==SessionState::running;},5000,"idle controller start deadline");
+  const auto start=GetTickCount64();
+  Sleep(idle_ms);
+  const auto elapsed=GetTickCount64()-start;
+  const auto live=controller.view();
+  require(live.state==SessionState::running && !live.retired && !p.stopping.load() && p.calls.load()==4,
+      "idle controller stopped without its owner");
+  require(live.maintenance_quanta==0 && live.gpu_budget_queries==0,"idle controller consumed resource work");
+  controller.stop_and_join();
+  const auto retired=controller.view();
+  require(retired.state==SessionState::stopped && retired.retired && !retired.offline &&
+      !retired.controller_failed && p.calls.load()==7 && p.fs.UserContext==nullptr,
+      "idle controller failed to retire on the owner signal");
+  std::cout<<"idle_owner_hold_ms="<<elapsed<<" maintenance_quanta="<<live.maintenance_quanta
+      <<" gpu_budget_queries="<<live.gpu_budget_queries<<" stopped_and_joined=true\n";
 }
 void invalid_and_unexpected() {
   Provider p;Provider::active=&p;Fixture invalid;bool rejected=false;auto bad=plan();bad.allow_native_writes=false;
@@ -158,7 +175,7 @@ void invalid_and_unexpected() {
   p.fs.Interface->DispatcherStopped(&p.fs,FALSE);
   await([&]{return controller.view().retired;},5000,"unexpected dispatcher stop did not wake controller");
   const auto v=controller.view();controller.stop_and_join();
-  require(v.state==SessionState::failed && !v.expired && !v.controller_failed && p.fs.UserContext==nullptr,
+  require(v.state==SessionState::failed && !v.controller_failed && p.fs.UserContext==nullptr,
       "unexpected stop was concealed or did not release ownership");
 }
 void live_opportunities() {
@@ -317,7 +334,7 @@ void memory_compaction_retirement() {
 
 void live_indexed_compaction() {
   Provider p;Provider::active=&p;
-  WinFspMemoryVolume volume(p.api(),plan(100),NativeImageKind::indexed_paged);
+  WinFspMemoryVolume volume(p.api(),plan(),NativeImageKind::indexed_paged);
   await([&]{return volume.view().state==SessionState::running || volume.view().retired;},5000,
       "live compaction controller start deadline");
   require(volume.view().state==SessionState::running,"live compaction controller start");
@@ -649,18 +666,21 @@ int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
   // PDH may initialize process-wide native caches. Warm that same native path
   // before checking ownership balance; never count its caches as our handles.
+  const bool lifetime_only=argc==2 && std::string_view(argv[1])=="--owned-lifetime";
   {WindowsMaintenanceHost warm;warm.observe(false);}
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
-  if(argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
+  if(lifetime_only || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
-      std::string_view(argv[1])=="--live-indexed-compaction"))
+      std::string_view(argv[1])=="--live-indexed-compaction")))
     native_rng_initialization();
   // A long native PDH-only control initializes process-wide OS handles
   // before the explicit long-volume mode measures controller ownership.
-  if(argc==2 && std::string_view(argv[1])=="--live-indexed-compaction")initialize_long_pdh_window();
+  if(lifetime_only || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction"))
+    initialize_long_pdh_window();
   require(GetProcessHandleCount(GetCurrentProcess(),&before)!=FALSE,"initial handle count");
-  if(argc==1){event_ownership();lifecycle();expiration();invalid_and_unexpected();live_opportunities();}
+  if(argc==1){event_ownership();lifecycle();idle_until_owner_stop(100);invalid_and_unexpected();live_opportunities();}
+  else if(lifetime_only)idle_until_owner_stop(31000);
   else if(argc==2 && std::string_view(argv[1])=="--memory") {
     memory_planning();memory_paged_footprint();memory_compaction_retirement();
     std::cout<<"memory_handles start="<<handle_count()<<'\n';

@@ -1,5 +1,21 @@
 # Validation ledger
 
+## Owner-controlled writable lifetime — 18 November 2026
+
+An indexed writable controller with injected WinFsp lifecycle stayed active
+through 31 seconds of idle time. It performed zero maintenance quanta and
+zero GPU budget queries, then stopped on the owner's event. The native handle
+baseline stayed balanced after join. The deferred-write control produced one
+response and signaled completion for both an accepted CPU write and an
+injected write failure. The failed case recovered the prior checkpoint.
+
+Thirteen selected Windows runs passed across SDK, raw and AddressSanitizer
+builds. Both optional driver-backed probes compiled. Three paired AMD/CPU
+callback overwrites preserved the grouped image and verified 32 GPU-produced
+mirrored records per AMD request on CPU. CPU remained faster in this fixture.
+The authenticated GitHub snapshot returned zero open Dependabot alerts.
+[Source, test and cleanup evidence](evidence/owned-writable-lifetime-2026-11-18.json)
+
 ## Indexed shared-base compression — 18 November 2026
 
 Eight related 64 KiB files occupied 1,204,224 bytes before grouping and

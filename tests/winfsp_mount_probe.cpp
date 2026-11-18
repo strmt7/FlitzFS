@@ -615,7 +615,7 @@ void indexed_memory_source(std::wstring_view token) {
   Fixture fixture;
   const auto mount=fixture.root/L"mount";
   flitzfs::WinFspMemoryVolume volume(flitzfs::linked_winfsp_session_api(),
-      {mount.native(),29,true,true},flitzfs::NativeImageKind::indexed_paged);
+      {mount.native(),true,true},flitzfs::NativeImageKind::indexed_paged);
   const auto deadline=GetTickCount64()+5000;
   while(volume.view().state!=flitzfs::SessionState::running && !volume.view().retired &&
       GetTickCount64()<deadline)Sleep(10);
@@ -628,7 +628,7 @@ void indexed_memory_source(std::wstring_view token) {
   stage=24;
   volume.stop_and_join();
   const auto stopped=volume.view();
-  require(stopped.retired && !stopped.offline && !stopped.controller_failed && !stopped.expired,
+  require(stopped.retired && !stopped.offline && !stopped.controller_failed,
       "indexed writable RAM volume did not retire cleanly");
   require(GetFileAttributesW(mount.c_str())==INVALID_FILE_ATTRIBUTES &&
       (GetLastError()==ERROR_FILE_NOT_FOUND || GetLastError()==ERROR_PATH_NOT_FOUND),

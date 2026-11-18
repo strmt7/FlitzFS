@@ -70,13 +70,14 @@ class NativeDeferredWriteService final {
   bool controller_collects_budget() const noexcept{return options_.controller_health.has_value();}
   bool budget_demand_pending() const noexcept{return budget_work_.load(std::memory_order_acquire);}
   // The adapter owns this noninheritable signal handle until this service joins.
-  void bind_budget_event_locked(HANDLE event) noexcept{budget_event_=event;}
+  void bind_activity_event_locked(HANDLE event) noexcept{activity_event_=event;}
   std::optional<NativeGpuBudgetTask> budget_task_locked() const noexcept;
   bool accept_budget_locked(const NativeGpuBudgetTask&,const GpuMemorySnapshot&,std::uint64_t now) noexcept;
   NativeDeferredStop stop();
  private:
   void request_budget_locked(std::uint64_t after_ms,bool completion) noexcept;
   void disable_gpu_budget_locked() noexcept;
+  void signal_activity_locked() noexcept;
   struct Request {
     FSP_FILE_SYSTEM* filesystem=nullptr;UINT64 hint=0;
     NativeFileHandle handle;std::vector<std::byte> bytes;
@@ -87,7 +88,7 @@ class NativeDeferredWriteService final {
   const NativeDeferredWriteOptions options_;
   const NativeFileInfoAllocation info_policy_;
   GpuHealthEvidence health_{};
-  HANDLE budget_event_=nullptr;
+  HANDLE activity_event_=nullptr;
   std::optional<NativeGpuBudgetTask> budget_task_;
   std::atomic<bool> budget_work_{false};
   std::uint64_t budget_sequence_=0,last_budget_probe_=0;

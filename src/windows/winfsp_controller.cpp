@@ -39,7 +39,7 @@ struct WinFspVolumeController::Impl {
   ~Impl(){request_stop();if(worker.joinable())worker.join();}
   void request_stop() noexcept {stop_requested.store(true,std::memory_order_release);SetEvent(stop.value);}
   void run() noexcept {
-    bool disabled=false,expired=false,failed=false;NTSTATUS started=STATUS_CANCELLED;
+    bool disabled=false,failed=false;NTSTATUS started=STATUS_CANCELLED;
     try {
       if(!stop_requested.load(std::memory_order_acquire))started=session->start(plan);
       {
@@ -48,7 +48,7 @@ struct WinFspVolumeController::Impl {
       if(NT_SUCCESS(started)) {
         // No query is opened until changed content actually needs an opportunity.
         WindowsMaintenanceHost host;
-        const auto deadline=GetTickCount64()+std::uint64_t(plan.lifetime_seconds)*1000;
+        constexpr auto maximum_finite_wait=std::uint64_t{INFINITE-1};
         std::uint64_t next=0;
         HANDLE events[]={stop.value,activity.value};
         while(!stop_requested.load(std::memory_order_acquire)) {
@@ -57,7 +57,6 @@ struct WinFspVolumeController::Impl {
             disabled=true;session->cancel_background_maintenance();
           }
           const auto now=GetTickCount64();
-          if(now>=deadline){expired=true;break;}
           const auto gpu=adapter->gpu_budget_task();
           if(gpu && now>gpu->after_ms) {
             // CPU completion uses a different owner and can proceed while the
@@ -72,10 +71,9 @@ struct WinFspVolumeController::Impl {
           }
           const bool pending=!disabled && session->background_maintenance_pending();
           if(!pending || now<next) {
-            auto delay=(std::min)(deadline-now,pending?next-now:deadline-now);
-            if(gpu)delay=(std::min)(delay,gpu->after_ms-now+1);
-            const auto wait_ms=(std::min)(delay,std::uint64_t{INFINITE-1});
-            const auto waited=WaitForMultipleObjects(2,events,FALSE,static_cast<DWORD>(wait_ms));
+            auto delay=pending?(std::min)(next-now,maximum_finite_wait):std::uint64_t{INFINITE};
+            if(gpu)delay=(std::min)({delay,gpu->after_ms-now+1,maximum_finite_wait});
+            const auto waited=WaitForMultipleObjects(2,events,FALSE,static_cast<DWORD>(delay));
             if(waited==WAIT_OBJECT_0)break;
             if(waited!=WAIT_TIMEOUT && waited!=WAIT_OBJECT_0+1)throw std::runtime_error("Controller event wait failed");
             continue;
@@ -103,7 +101,7 @@ struct WinFspVolumeController::Impl {
           // activity wakes the owner but never erases accumulated pacing debt.
           const auto duty_ms=used/10000+(used%10000!=0);
           const auto delay=(std::max)({std::uint64_t(1),host.next_delay_ms(),result.progress.next_opportunity_delay_ms,duty_ms});
-          const auto after=GetTickCount64();next=after+(std::min)(delay,after<deadline?deadline-after:0);
+          next=GetTickCount64()+(std::min)(delay,maximum_finite_wait);
           {
             std::lock_guard lock(mutex);current.host=host.status();current.maintenance_disabled=disabled;
             if(result.state==WinFspMaintenanceState::advanced || result.state==WinFspMaintenanceState::unchanged)
@@ -122,7 +120,7 @@ struct WinFspVolumeController::Impl {
     // the deferred service/dispatcher are joined. Never publish retirement early.
     session->stop();adapter=nullptr;
     std::lock_guard lock(mutex);current.state=session->state();current.start_status=started;
-    current.offline=session->requires_offline();current.expired=expired;
+    current.offline=session->requires_offline();
     current.controller_failed=failed;
     current.maintenance_disabled=disabled;current.retired=true;
   }

@@ -322,7 +322,7 @@ void write_probe(std::wstring_view token,std::uint32_t client) {
   const auto* observer=adapter.get();
   flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
   stage=4;
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"writable mount startup");
+  require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"writable mount startup");
   self_open_probe(session,observer,mount);
   stage=5;protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
   external_origin_proof(session);
@@ -583,7 +583,7 @@ void ram_handoff_probe(std::wstring_view token,std::uint32_t client) {
       const auto* observer=adapter.get();
       serial=observer->parameters().VolumeSerialNumber;
       flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
-      require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"locked-RAM mount startup");
+      require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"locked-RAM mount startup");
       self_open_probe(session,observer,mount);
       stage=71;channel.request(Step::initial);external_origin_proof(session);
       const std::vector<std::byte> original(65536,std::byte{81});
@@ -726,7 +726,7 @@ void namespace_probe(bool deleting,std::wstring_view token,std::uint32_t client)
       image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
   const auto* observer=adapter.get();
   flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"extended namespace mount");
+  require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"extended namespace mount");
   self_open_probe(session,observer,mount);
   stage=21;protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
   external_origin_proof(session);
@@ -774,7 +774,7 @@ void restart_source(std::wstring_view token,std::uint32_t client) {
       image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
   const auto* observer=adapter.get();
   flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"restart source mount");
+  require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"restart source mount");
   self_open_probe(session,observer,mount);
   protocol.signal(source_fixture::Phase::ready);protocol.wait_written();external_origin_proof(session);
   finish_session(session,mount);
@@ -835,7 +835,7 @@ void restart_resume(std::uint32_t source_process,bool killed,std::wstring_view t
   stage=53;const auto mount=fixture.root/L"remount";
   const auto* observer=adapter.get();
   flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"persisted writable remount");
+  require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"persisted writable remount");
   self_open_probe(session,observer,mount,false);
   protocol.signal(source_fixture::Phase::ready);protocol.wait_written();external_origin_proof(session);
   stage=54;finish_session(session,mount);
@@ -854,7 +854,7 @@ void crash_source(std::wstring_view token,std::uint32_t client_process,std::stri
       image,identity(),{flitzfs::StoreCompressionMode::automatic,6,true},image_cap);
   auto* observer=adapter.get();
   flitzfs::WinFspNativeSession session(std::move(adapter),source_api());
-  require(session.start({mount.native(),15,true,true})==STATUS_SUCCESS,"external source mount");
+  require(session.start({mount.native(),true,true})==STATUS_SUCCESS,"external source mount");
   self_open_probe(session,observer,mount);
   stage=31;protocol.signal(source_fixture::Phase::ready);protocol.wait_written();
   require(source_guard.observed.load(std::memory_order_acquire)==client_process&&

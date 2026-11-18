@@ -212,7 +212,6 @@ security vulnerabilities.
 | High | Global callback serialization and synchronous publication | Foreground requests can wait for an in-flight quantum/commit. Add immutable read views, bounded concurrency and measured interference. |
 | High | Full namespace validation and full-image opening/scrubbing costs | Startup/read/maintenance work will not scale by carrying today's checks unchanged. Replace them with checked tree paths and scheduled scrubbing, without removing integrity validation. |
 | High | Current Windows name profile is ASCII and short | Many normal Windows workloads are unsupported. Implement a specified Unicode/case/path model and test ordinary clients. |
-| High | Product lifecycle still inherits experimental mount plans | A finite probe lifetime is not a normal mounted-volume lifetime. Separate qualification limits from product ownership and cancellation. |
 | High | No complete persistent coherence/learner | Restart loses feature/outcome progress; no autonomous learned strategy currently closes the loop. |
 | High | Quiet-work policy remains an initial fixed policy | A 12.5% busy threshold and 1% elapsed pacing are mechanisms, not proof of optimal host adaptation or low interference. |
 | High | Driver/runtime qualification and historical retirement faults remain open | A valid signature or later clean fake-lifecycle test does not explain earlier failures or qualify a new native combination. |
@@ -273,6 +272,14 @@ driver to make a probe fit a document.
 [dependency policy/history](DEPENDENCY_AUDIT.md).
 
 ## Recent executed evidence
+
+The writable controller now stays available for the owner-controlled
+lifetime. Probe time budgets belong to the external test supervisor.
+The controller wakes on a stop, dispatcher termination, deferred write
+retirement or a storage fence. A 31-second injected SDK idle test passed
+with no maintenance or GPU budget queries and balanced handles after stop.
+Current mounted Windows 11 lifetime qualification remains open.
+[Controller evidence](evidence/owned-writable-lifetime-2026-11-18.json)
 
 Indexed volumes now publish protected cross-file shared bases. Eight related
 synthetic files occupied 76.2% less after compaction in the 4 KiB model,
