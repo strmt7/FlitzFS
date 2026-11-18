@@ -9,6 +9,9 @@ disposable environment for destructive fault injection and unqualified driver
 provisioning. Historical test locations and fixture names do not control
 where new work can run.
 
+Use disposable Windows guests for driver, mount and recovery correctness
+checks. Run performance and compression benchmarks on the real Windows host.
+
 Evaluate a restriction against its technical purpose. Remove obsolete
 location checks, duplicated qualification rules and fixed prototype ceilings.
 Use live capability and resource checks when the restriction covers a real

@@ -670,8 +670,119 @@ std::wstring text(HWND window) {
   require(actual>=0 && actual<=count,"GUI text read");
   result.resize(static_cast<std::size_t>(actual));return result;
 }
-enum class GuiRuntime { ordinary,missing,altered };
+std::wstring disposable_mount_parent() {
+  wchar_t nonce[64]{};
+  const auto size=GetEnvironmentVariableW(L"FLITZFS_DISPOSABLE_GUEST_MOUNT",nonce,64);
+  require(size==32 && std::all_of(nonce,nonce+size,[](wchar_t c) {
+    return (c>=L'0' && c<=L'9') || (c>=L'a' && c<=L'f');
+  }),"Mounted GUI trial requires disposable guest admission");
+  wchar_t account[64]{};
+  DWORD account_size=64;
+  require(GetUserNameW(account,&account_size) && std::wstring_view(account)==L"SYSTEM",
+      "Mounted GUI trial requires the isolated guest system identity");
+  wchar_t model[128]{};
+  DWORD model_size=sizeof(model);
+  require(RegGetValueW(HKEY_LOCAL_MACHINE,L"HARDWARE\\DESCRIPTION\\System\\BIOS",L"SystemProductName",
+      RRF_RT_REG_SZ,nullptr,model,&model_size)==ERROR_SUCCESS && std::wstring_view(model)==L"Virtual Machine",
+      "Mounted GUI trial requires a virtual guest");
+  const auto parent=L"C:\\FlitzFS-guest-"+std::wstring(nonce,size)+L"\\mount-parent";
+  wchar_t temporary[MAX_PATH]{};
+  const auto length=GetTempPath2W(static_cast<DWORD>(std::size(temporary)),temporary);
+  require(length<std::size(temporary) && std::wstring_view(temporary,length)==parent+L"\\",
+      "Mounted GUI trial requires a private temporary mount parent");
+  return parent;
+}
+
+struct MountedTrialFile {
+  HANDLE file;
+  MountedTrialFile(const std::filesystem::path& name,DWORD access,DWORD disposition):
+      file(CreateFileW(name.c_str(),access,FILE_SHARE_READ,nullptr,disposition,FILE_ATTRIBUTE_NORMAL,nullptr)) {
+    if(file==INVALID_HANDLE_VALUE)
+      throw std::runtime_error("Mounted test file open failed with Windows status "+std::to_string(GetLastError()));
+  }
+  ~MountedTrialFile(){CloseHandle(file);}
+  MountedTrialFile(const MountedTrialFile&)=delete;
+  MountedTrialFile& operator=(const MountedTrialFile&)=delete;
+};
+
+template<class Button,class Status>
+void mounted_gui_workflow(HWND window,std::wstring_view parent,ProcessObserver& observer,
+    Button button,Status wait_status,std::uint64_t deadline) {
+  const auto location=[&] {
+    const auto display=text(GetDlgItem(window,121));
+    constexpr std::wstring_view heading=L"Attached temporary volume\r\n";
+    require(display.starts_with(heading),"Attached GUI did not publish a mount location");
+    auto target=display.substr(heading.size());
+    const auto prefix=std::wstring(parent)+L"\\FlitzFS-";
+    require(target.starts_with(prefix) && target.size()==prefix.size()+32 &&
+        std::all_of(target.begin()+static_cast<std::ptrdiff_t>(prefix.size()),target.end(),[](wchar_t c) {
+          return (c>=L'0' && c<=L'9') || (c>=L'a' && c<=L'f');
+        }),"Mounted location is outside the private guest fixture");
+    const auto attributes=GetFileAttributesW(target.c_str());
+    require(attributes!=INVALID_FILE_ATTRIBUTES && (attributes&FILE_ATTRIBUTE_REPARSE_POINT),
+        "Attached path lacks its mount junction");
+    return target;
+  };
+  const auto serial=[](const std::wstring& mount) {
+    wchar_t label[64]{};
+    DWORD serial_number=0,flags=0;
+    const auto root=mount+L"\\";
+    require(GetVolumeInformationW(root.c_str(),label,64,&serial_number,nullptr,&flags,nullptr,0) &&
+        std::wstring_view(label)==L"FlitzFS" && !(flags&FILE_READ_ONLY_VOLUME),"Mounted volume identity or access differs");
+    return serial_number;
+  };
+  const auto await_detach=[&](const std::wstring& mount) {
+    wait_status(L"Memory volume detached and retained.");
+    until([&]{return GetFileAttributesW(mount.c_str())==INVALID_FILE_ATTRIBUTES &&
+        GetLastError()==ERROR_FILE_NOT_FOUND;},deadline);
+    require(IsWindowEnabled(GetDlgItem(window,106))==FALSE,"Detached memory lost its exit protection");
+  };
+  std::vector<std::byte> expected(2*kNativeExtentBytes+137);
+  for(std::size_t i=0;i<expected.size();++i)expected[i]=static_cast<std::byte>((i/64+i%29)&255U);
+  const auto verify=[&](const std::wstring& mount) {
+    MountedTrialFile file(std::filesystem::path(mount)/L"retained.bin",GENERIC_READ,OPEN_EXISTING);
+    LARGE_INTEGER size{};
+    require(GetFileSizeEx(file.file,&size) && size.QuadPart==static_cast<LONGLONG>(expected.size()),
+        "Mounted readback length differs");
+    std::vector<std::byte> bytes(expected.size());
+    DWORD read=0;
+    require(ReadFile(file.file,bytes.data(),static_cast<DWORD>(bytes.size()),&read,nullptr) &&
+        read==bytes.size() && bytes==expected,"Mounted file bytes differ");
+  };
+
+  button(107);
+  wait_status(L"Memory volume attached.");
+  const auto first=location();
+  const auto initial_serial=serial(first);
+  {
+    MountedTrialFile file(std::filesystem::path(first)/L"retained.bin",GENERIC_WRITE,CREATE_NEW);
+    DWORD written=0;
+    require(WriteFile(file.file,expected.data(),static_cast<DWORD>(expected.size()),&written,nullptr) &&
+        written==expected.size() && FlushFileBuffers(file.file),"Mounted write or flush failed");
+  }
+  verify(first);
+  send(window,WM_CLOSE);
+  require(IsWindow(window) && observer.wait_for_exit()==ProcessObservation::running,
+      "Window close ended ownership of the mounted volume");
+  verify(first);
+  ShowWindow(window,SW_RESTORE);
+  button(108);await_detach(first);
+
+  button(107);
+  wait_status(L"Memory volume attached.");
+  const auto second=location();
+  require(second!=first && serial(second)==initial_serial,"Reattachment changed the volume identity or reused its path");
+  verify(second);
+  button(108);await_detach(second);
+  button(105);wait_status(L"Temporary volume explicitly discarded.");
+  std::cout<<"mounted_gui_roundtrip reattached=1 junction_cleanup_verified=1 "
+      <<"serial_preserved=1 window_close_retained=1 external_cpu_readback=1\n";
+}
+
+enum class GuiRuntime { ordinary,missing,altered,mounted };
 void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budget,GuiRuntime runtime) {
+  const bool mounted=runtime==GuiRuntime::mounted;
+  const auto mount_parent=mounted?disposable_mount_parent():std::wstring{};
   auto sdk=app.parent_path()/L"winfsp-x64.dll";
   std::optional<ReadOnlyFile> fixture_pin;
   if(runtime==GuiRuntime::missing) {
@@ -688,19 +799,29 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   auto observer=std::make_shared<ProcessObserver>();ProcessResult result;
   std::exception_ptr failure;
   std::atomic<bool> supervisor_failed{false};
-  const auto child_memory_mib=budget.child_memory_mib();
-  std::thread supervisor([&]{try{result=run_bounded_process(app,{},ProcessBudget{child_memory_mib,2000,25000,16},observer);}
+  const auto child_memory_mib=budget.child_memory_mib(mounted?64:128);
+  const std::uint32_t timeout_ms=mounted?39000:25000;
+  std::thread supervisor([&]{try{result=run_bounded_process(app,{},ProcessBudget{child_memory_mib,2000,timeout_ms,16},observer);}
       catch(...){failure=std::current_exception();supervisor_failed.store(true,std::memory_order_release);}});
   std::exception_ptr test_failure;
   try {
-    const auto deadline=GetTickCount64()+20000;
+    const auto deadline=GetTickCount64()+(mounted?34000:20000);
     HWND window=nullptr;
     until([&]{if(supervisor_failed.load(std::memory_order_acquire))throw std::runtime_error("GUI child launch failed");
       window=find_window(observer->process_id());return window!=nullptr;},deadline);
     auto button=[&](int id){std::cout<<"GUI command: "<<id<<"\n";auto h=GetDlgItem(window,id);require(h!=nullptr,"Missing native button");send(h,BM_CLICK);};
     HWND status=nullptr;
     auto wait_status=[&](std::wstring_view expected){
-      until([&]{return text(status).find(expected)!=std::wstring::npos;},deadline);
+      until([&]{
+        const auto current=text(status);
+        if(current.find(expected)!=std::wstring::npos)return true;
+        if(mounted && (current.starts_with(L"Operation failed:") || current.starts_with(L"Attachment failed.") ||
+            current.starts_with(L"Attachment retirement could not be confirmed."))){
+          std::wcerr<<current<<L'\n';
+          throw std::runtime_error("Mounted application reported a lifecycle failure");
+        }
+        return false;
+      },deadline);
     };
     until([&]{
       const auto observation=observer->wait_for_exit();
@@ -711,45 +832,49 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
           IsWindowEnabled(GetDlgItem(window,101))!=FALSE;
     },deadline);
     status=GetDlgItem(window,113);require(status!=nullptr,"Ready status control missing");
-    if(runtime!=GuiRuntime::ordinary) {
-      require(IsWindowEnabled(GetDlgItem(window,107))!=FALSE,"Attach control unavailable");
-      button(107);
-      wait_status(runtime==GuiRuntime::missing?L"WinFsp runtime is unavailable beside FlitzFS":
-          L"WinFsp runtime differs from this FlitzFS build");
-      require(observer->wait_for_exit()==ProcessObservation::running &&
-          IsWindowEnabled(GetDlgItem(window,101))!=FALSE &&
-          IsWindowEnabled(GetDlgItem(window,108))==FALSE,"Rejected SDK stranded the application");
-      std::cout<<"gui_runtime_refusal kind="<<(runtime==GuiRuntime::missing?"missing":"altered")
-          <<" preview_available=1\n";
+    if(mounted) {
+      mounted_gui_workflow(window,mount_parent,*observer,button,wait_status,deadline);
+    } else {
+      if(runtime!=GuiRuntime::ordinary) {
+        require(IsWindowEnabled(GetDlgItem(window,107))!=FALSE,"Attach control unavailable");
+        button(107);
+        wait_status(runtime==GuiRuntime::missing?L"WinFsp runtime is unavailable beside FlitzFS":
+            L"WinFsp runtime differs from this FlitzFS build");
+        require(observer->wait_for_exit()==ProcessObservation::running &&
+            IsWindowEnabled(GetDlgItem(window,101))!=FALSE &&
+            IsWindowEnabled(GetDlgItem(window,108))==FALSE,"Rejected SDK stranded the application");
+        std::cout<<"gui_runtime_refusal kind="<<(runtime==GuiRuntime::missing?"missing":"altered")
+            <<" preview_available=1\n";
+      }
+      button(101);wait_status(L"Memory volume created");
+      const auto summary=GetDlgItem(window,121);
+      require(summary&&text(summary).find(L"Optimization state: ready")!=std::wstring::npos,
+          "GUI optimization-state diagnostic missing");
+      send(GetDlgItem(window,111),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L"qualification.txt"));
+      const std::wstring payload=L"FlitzFS native GUI byte verification. 1234567890 \u03B1\u03B2 \U0001F680";
+      send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(payload.c_str()));
+      button(102);wait_status(L"New file saved and byte-verified.");
+      require(send(GetDlgItem(window,110),LB_GETCOUNT)==1,"GUI file list");
+      send(GetDlgItem(window,110),LB_SETCURSEL,0);
+      send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L""));
+      button(103);wait_status(L"File read and integrity-checked.");
+      require(text(GetDlgItem(window,112))==payload,"GUI content readback");
+      const std::wstring draft=L"Unsaved editor changes must survive background notifications.";
+      send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(draft.c_str()));
+      const auto edit_deadline=GetTickCount64()+3000;
+      until([&]{send(window,VolumeController::completion_message);return GetTickCount64()>=edit_deadline;},deadline);
+      require(text(GetDlgItem(window,112))==draft,"Background status replaced unsaved editor contents");
+      send(window,WM_CLOSE);
+      // Shell presence is not guaranteed on a hosted runner. Either a live tray
+      // hides the window, or the application keeps the owner visible.
+      require(IsWindow(window)!=FALSE && observer->wait_for_exit()==ProcessObservation::running,
+          "Close destroyed a live temporary volume");
+      ShowWindow(window,SW_RESTORE);
+      button(104);
+      until([&]{return IsWindowEnabled(GetDlgItem(window,105))!=FALSE;},deadline);
+      require(text(status).find(L"Operation failed:")==std::wstring::npos,"GUI optimization failure");
+      button(105);wait_status(L"Temporary volume explicitly discarded.");
     }
-    button(101);wait_status(L"Memory volume created");
-    const auto summary=GetDlgItem(window,121);
-    require(summary&&text(summary).find(L"Optimization state: ready")!=std::wstring::npos,
-        "GUI optimization-state diagnostic missing");
-    send(GetDlgItem(window,111),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L"qualification.txt"));
-    const std::wstring payload=L"FlitzFS native GUI byte verification. 1234567890 \u03B1\u03B2 \U0001F680";
-    send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(payload.c_str()));
-    button(102);wait_status(L"New file saved and byte-verified.");
-    require(send(GetDlgItem(window,110),LB_GETCOUNT)==1,"GUI file list");
-    send(GetDlgItem(window,110),LB_SETCURSEL,0);
-    send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(L""));
-    button(103);wait_status(L"File read and integrity-checked.");
-    require(text(GetDlgItem(window,112))==payload,"GUI content readback");
-    const std::wstring draft=L"Unsaved editor changes must survive background notifications.";
-    send(GetDlgItem(window,112),WM_SETTEXT,0,reinterpret_cast<LPARAM>(draft.c_str()));
-    const auto edit_deadline=GetTickCount64()+3000;
-    until([&]{send(window,VolumeController::completion_message);return GetTickCount64()>=edit_deadline;},deadline);
-    require(text(GetDlgItem(window,112))==draft,"Background status replaced unsaved editor contents");
-    send(window,WM_CLOSE);
-    // Shell presence is not guaranteed on a hosted runner. Either a live tray
-    // hides the window, or the application keeps the owner visible.
-    require(IsWindow(window)!=FALSE && observer->wait_for_exit()==ProcessObservation::running,
-        "Close destroyed a live temporary volume");
-    ShowWindow(window,SW_RESTORE);
-    button(104);
-    until([&]{return IsWindowEnabled(GetDlgItem(window,105))!=FALSE;},deadline);
-    require(text(status).find(L"Operation failed:")==std::wstring::npos,"GUI optimization failure");
-    button(105);wait_status(L"Temporary volume explicitly discarded.");
     // Exit may destroy the button/window before a synchronous BM_CLICK reply.
     // Admit the click to its actual queue, then require exact process retirement.
     std::cout<<"GUI command: 106 (asynchronous exit)\n";
@@ -763,12 +888,13 @@ void gui_tests(const std::filesystem::path& app,const app_fixture::Budget& budge
   require(result.exit_confirmed,"GUI child exit unconfirmed");
   if(test_failure)std::rethrow_exception(test_failure);
   require(!result.timed_out && !result.cancelled && result.exit_code==0,"GUI child did not retire cleanly");
-  std::cout<<"GUI child peak commit: "<<result.peak_committed_bytes<<" bytes\n";
+  if(!mounted)std::cout<<"GUI child peak commit: "<<result.peak_committed_bytes<<" bytes\n";
 }
 }
 int wmain(int argc,wchar_t** argv) {
   try {
-    app_fixture::Budget budget;
+    const bool mounted=argc==3 && std::wstring_view(argv[1])==L"--gui-mounted-sandbox";
+    app_fixture::Budget budget(!mounted);
     if(argc==2 && std::wstring_view(argv[1])==L"--model") {
       native_initialization();
       for(unsigned cycle=0;cycle<3;++cycle)model_tests();
@@ -780,9 +906,11 @@ int wmain(int argc,wchar_t** argv) {
       if(mode==L"--gui")gui_tests(app,budget,GuiRuntime::ordinary);
       else if(mode==L"--gui-missing-winfsp")gui_tests(app,budget,GuiRuntime::missing);
       else if(mode==L"--gui-altered-winfsp")gui_tests(app,budget,GuiRuntime::altered);
+      else if(mode==L"--gui-mounted-sandbox")gui_tests(app,budget,GuiRuntime::mounted);
       else throw std::runtime_error("Unknown GUI qualification mode");
     } else throw std::runtime_error("Explicit model, maintenance or GUI qualification mode required");
     std::cout<<"Windows volume application checks: "<<checks
-        <<"; real CPU engine, bounded process-lifetime memory, no mount/GPU/driver.\n";return 0;
+        <<(mounted?". Disposable mounted workflow.\n":". Real CPU engine and bounded process-lifetime memory.\n");
+    return 0;
   }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}
 }

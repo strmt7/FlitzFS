@@ -32,15 +32,15 @@ inline std::uint64_t current_private_bytes() {
 }
 class Budget final {
  public:
-  Budget() {
+  explicit Budget(bool report_memory=true):report_memory_(report_memory) {
     // Available headroom already excludes this running process's CRT/sanitizer
     // commit. A total-process quota must include that measured baseline too.
     const auto baseline=current_private_bytes(),additional=additional_memory_allowance();
     if(baseline>(std::numeric_limits<SIZE_T>::max)()-additional)
       throw std::runtime_error("Application process commit budget overflow");
     memory_=baseline+additional;job_=CreateJobObjectW(nullptr,nullptr);
-    std::cout<<"Application fixture memory allowance: "<<memory_<<" bytes; existing_private="<<baseline
-        <<" additional_headroom="<<additional<<std::endl;
+    if(report_memory_)std::cout<<"Application fixture memory allowance: "<<memory_<<" bytes; existing_private="
+        <<baseline<<" additional_headroom="<<additional<<std::endl;
     if(!job_)throw std::runtime_error("Application test job unavailable");
     try {
       JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
@@ -59,12 +59,12 @@ class Budget final {
     }catch(...){CloseHandle(job_);job_=nullptr;throw;}
   }
   ~Budget(){if(job_){JOBOBJECT_EXTENDED_LIMIT_INFORMATION measured{};
-    if(QueryInformationJobObject(job_,JobObjectExtendedLimitInformation,&measured,sizeof(measured),nullptr))
+    if(report_memory_ && QueryInformationJobObject(job_,JobObjectExtendedLimitInformation,&measured,sizeof(measured),nullptr))
       std::cout<<"Application fixture peak commit: "<<measured.PeakJobMemoryUsed<<" bytes\n";
     CloseHandle(job_);}}
   Budget(const Budget&)=delete;
   Budget& operator=(const Budget&)=delete;
-  std::uint64_t child_memory_mib() const {
+  std::uint64_t child_memory_mib(std::uint64_t minimum=128) const {
     constexpr std::uint64_t mib=1024ULL*1024;
     const auto current=current_private_bytes();
     if(current>=memory_)throw std::runtime_error("No aggregate application budget for GUI child");
@@ -72,11 +72,12 @@ class Budget final {
     // Fresh headroom separately governs the newly created child's whole budget.
     const auto remaining=memory_-current;
     const auto allowed=(std::min)(remaining/2,additional_memory_allowance()/2)/mib;
-    if(allowed<128)throw std::runtime_error("Insufficient aggregate budget for GUI child");
+    if(allowed<minimum)throw std::runtime_error("Insufficient aggregate budget for GUI child");
     return allowed;
   }
  private:
   HANDLE job_=nullptr;
   std::uint64_t memory_=0;
+  bool report_memory_;
 };
 }

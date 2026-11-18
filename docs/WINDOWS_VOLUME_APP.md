@@ -34,6 +34,27 @@ with absent and altered dependencies. The signed driver, real Explorer
 mounting, and persistent-volume provisioning require separate qualification.
 [Current attachment evidence](evidence/windows-tray-attachment-2026-11-18.json)
 
+### Initial Windows 11 driver trial
+
+The mounted GUI fixture drives the real app through Attach, external Win32
+write and flush, window close, Detach, and reattachment. It checks that the new
+junction exposes the same volume identity and original bytes. It then verifies
+removal of both junctions and exits through the app's normal controls. The
+`--gui-mounted-sandbox` mode requires an admitted disposable system session and
+an exclusively scoped guest mount parent.
+
+Windows Sandbox supplied a headless Windows 11 Enterprise guest with a
+read-only input mapping and a dedicated evidence output. Authenticode
+verification of the pinned 2.2B5 package succeeded. Windows Installer stalled
+at package policy verification in the offline and networked trials, before the
+app mounted. The physical host retains its installed 2.1 driver.
+The host's editor regression and disposable-guest admission check passed.
+[Initial driver evidence](evidence/windows11-sandbox-mounted-tray-2026-11-18.json) ·
+[Windows Sandbox CLI](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli)
+
+Disposable guests are used for driver and recovery correctness. Performance
+and compression comparisons run on the physical Windows host.
+
 Current backing creation is shared with the WinFsp composition through the
 [adaptive memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md). The fixed capacity
 and staged Optimize descriptions below apply to the labeled historical build.

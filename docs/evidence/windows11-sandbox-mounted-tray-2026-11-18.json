@@ -1,0 +1,250 @@
+{
+  "recorded_on": "2026-11-18",
+  "source_base": "727497f4550491f46d5c963263fb0ef344d3121c",
+  "development_source_sha256": {
+    "AGENTS.md": "ae30f6333e4b21c15db01d3e8f97378d3dffeff97d5ccfceb1a7bce4d2484f7c",
+    "tests/windows_app_budget.hpp": "913cab49b1a807892649b2c7415b440538ebd2849377b900e60d9362674aaefc",
+    "tests/windows_volume_app_tests.cpp": "c7fd23d1bc101e3fe4d11d33502854d4fb1ea25d8ecd6fbfe0b44787cae655ed"
+  },
+  "host_checks": {
+    "release_build": {
+      "run": "local-run-02fc444eeec045e996625eb338492091",
+      "result_sha256": "3f459045bf4ab19874e7ff402124164f0c31455f50b59fe1356e25d7871cf680",
+      "log_sha256": "31805b77b0cd42dc776f5ab5d8635b1645754281a860468f98152aeef236677a",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true
+    },
+    "cpu_model": {
+      "run": "local-run-2d40c4375de94b67a292b677c998bf74",
+      "result_sha256": "7b6e410d332d02f716c07d8f2e687d2139ccfe9a4d320b3ff4d060681314b237",
+      "log_sha256": "1c704be73aa0e67a37065d70f06ef6903ed3ba972c30a70fc0daa991e6893b2a",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true
+    },
+    "actual_editor_gui": {
+      "run": "local-run-e69227d4671e40a7ba80736ef8ebb0fa",
+      "result_sha256": "2a1c416fb0173a37a24ee2635ee008a4a92688b5dcf9280b45b6302c9e4aeba4",
+      "log_sha256": "0fecf1e5098b22c912e23e06e95c33c031d4df15e271f83b2c832b42e0b1d857",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true
+    },
+    "guest_mode_refusal": {
+      "run": "local-run-7163a6ef42d24879ac4dd198d87d5216",
+      "result_sha256": "4808bc0e5cdee328dd44b74fd6eb18c9fbf0ce8c4ef9f1bd31c6f3933016d8b9",
+      "log_sha256": "0ac86785c2734f809a4f87f4ec32f7d2a610cad1f77318e26413bdef3cf3d87a",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true
+    },
+    "editor_application_sha256": "1be71a633f60700a7255f4c7778002f170110f08f4a4472dedf73b7e42f05d2d",
+    "gui_fixture_sha256": "65237f00d159f42e6c6fa7db8892c49f6085d8a26daaf5e1859f5d69ba749771",
+    "guard_message": "Mounted GUI trial requires disposable guest admission"
+  },
+  "host": {
+    "windows_build": "26300",
+    "driver_states": [
+      {
+        "Name": "WinFsp+20260516T182719Z",
+        "State": "Stopped",
+        "StartMode": "Manual"
+      }
+    ],
+    "installed_artifacts": [
+      {
+        "file": "winfsp-x64.sys",
+        "version": "2.1.25156.ddca7bd",
+        "sha256": "03553fffacd362f4a9a08c00b4f236a82354a183bc6028494fb32055386e13c9"
+      },
+      {
+        "file": "winfsp-x64.dll",
+        "version": "2.1.25156.ddca7bd",
+        "sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437"
+      }
+    ],
+    "installation_performed": false
+  },
+  "sandbox_attempts": [
+    {
+      "attempt": "first_access_probe",
+      "session_id": "1e15fbeb-108d-43ab-b104-0d06c8cc951d",
+      "host_receipt_sha256": "e54f351eb8cac1815e3271f9fd11d36eea56d9a350aafdea1f8cb8813e4ac656",
+      "intent_sha256": "778ff2233a96ac05d20b8334e0256d11f0ad1ac556298dc50806b487c39b4964",
+      "guest_exit_code": 1,
+      "retired": true,
+      "networking_enabled": false,
+      "read_only_input_mapping": true,
+      "dedicated_report_mapping": true
+    },
+    {
+      "attempt": "headless_access_confirmed",
+      "session_id": "591130d6-1c6a-4f04-9441-ef4972e25a55",
+      "host_receipt_sha256": "b0b63fee2aa1667200d219e3d41a6999ca9192fc9a77c7064357a8507bf885df",
+      "intent_sha256": "5998c3706412f3756503b408ca90dc65e5df3fd7dbbd7da0e7c5af0ee93ad96d",
+      "guest_exit_code": 0,
+      "retired": true,
+      "networking_enabled": false,
+      "read_only_input_mapping": true,
+      "dedicated_report_mapping": true,
+      "guest_receipt_sha256": "39f52b50fb718824b2ba4bc752d41196b30350cb21708d773372c353a430191e",
+      "windows": {
+        "caption": "Microsoft Windows 11 Enterprise",
+        "build": "26100",
+        "session": 0,
+        "validated_input": true,
+        "explorer_present": false
+      }
+    },
+    {
+      "attempt": "offline_install",
+      "session_id": "68eaf700-b94e-4743-a6eb-4308df6a524f",
+      "host_receipt_sha256": "58c67663791ab64e74ffa164c8bfa225b62011e1d4022337a88b3d23df912eb4",
+      "intent_sha256": "85eb170e2f151860f64f339a07c0527ffb11bc07025fd7926e60f4d1bd03159c",
+      "guest_exit_code": 1,
+      "retired": true,
+      "networking_enabled": false,
+      "read_only_input_mapping": true,
+      "dedicated_report_mapping": true,
+      "guest_receipt_sha256": "d1b505060201d14871f0656630d853508d7f51fe1127516a00a2b24a535c69a1",
+      "windows": {
+        "caption": "Microsoft Windows 11 Enterprise",
+        "build": "26100",
+        "session": 0
+      },
+      "package_source": "727497f4550491f46d5c963263fb0ef344d3121c",
+      "staged_files": {
+        "winfsp.msi": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+        "flitzfs_volume_app.exe": "1be71a633f60700a7255f4c7778002f170110f08f4a4472dedf73b7e42f05d2d",
+        "flitzfs_volume_app_tests.exe": "d794e54837cf0a81f0b4d9e89a182b833234322ffd38104843b58c858b197eff",
+        "winfsp-x64.dll": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3"
+      },
+      "terminal_phase": "install",
+      "error": "Guest command timed out",
+      "installer_log_present": false
+    },
+    {
+      "attempt": "offline_install_with_msi_log",
+      "session_id": "51509586-e29d-4304-b6ea-f3bf8608f993",
+      "host_receipt_sha256": "61b1bf0948cecc76372e4e3524d480a121029d5254903256a4a7fc1d0ae27280",
+      "intent_sha256": "8974aee43427fc0e2c852635220fff5a7a24524562a319da17782e04d9724dbd",
+      "guest_exit_code": 1,
+      "retired": true,
+      "networking_enabled": false,
+      "read_only_input_mapping": true,
+      "dedicated_report_mapping": true,
+      "guest_receipt_sha256": "c7a71ed75bc5371711f7aa9e4fb5ef0ecca4d67edc58ca124bf2aeebe3d5e2a1",
+      "windows": {
+        "caption": "Microsoft Windows 11 Enterprise",
+        "build": "26100",
+        "session": 0
+      },
+      "package_source": "727497f4550491f46d5c963263fb0ef344d3121c",
+      "staged_files": {
+        "winfsp.msi": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+        "flitzfs_volume_app.exe": "1be71a633f60700a7255f4c7778002f170110f08f4a4472dedf73b7e42f05d2d",
+        "flitzfs_volume_app_tests.exe": "d794e54837cf0a81f0b4d9e89a182b833234322ffd38104843b58c858b197eff",
+        "winfsp-x64.dll": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3"
+      },
+      "terminal_phase": "install",
+      "error": "Guest command timed out",
+      "installer_log_present": true,
+      "package_policy_verification_reached": true
+    },
+    {
+      "attempt": "normal_guest_network_and_signed_package",
+      "session_id": "200a2466-1f56-4b09-a9b1-b6ca216fb784",
+      "host_receipt_sha256": "2786ddd03259f58b39b81dfa5b54f0700825774ceb36ed75afcb3273da49a448",
+      "intent_sha256": "37e1e2f20a9f3b01eaed5cc9f87d5bc121bf6b6d800503f4a17f9778e5915f60",
+      "guest_exit_code": 1,
+      "retired": true,
+      "networking_enabled": true,
+      "read_only_input_mapping": true,
+      "dedicated_report_mapping": true,
+      "guest_receipt_sha256": "625897fec7feae8ab992c8461f057601e8359448f23dc03432341222eec52800",
+      "windows": {
+        "caption": "Microsoft Windows 11 Enterprise",
+        "build": "26100",
+        "session": 0
+      },
+      "package_source": "727497f4550491f46d5c963263fb0ef344d3121c",
+      "staged_files": {
+        "winfsp.msi": "293ffb9bcc0b625c85079fe85fa77f8fe98170aba51a02ac9c83d58f6c3b0e2f",
+        "flitzfs_volume_app.exe": "1be71a633f60700a7255f4c7778002f170110f08f4a4472dedf73b7e42f05d2d",
+        "flitzfs_volume_app_tests.exe": "d794e54837cf0a81f0b4d9e89a182b833234322ffd38104843b58c858b197eff",
+        "winfsp-x64.dll": "94323b3de265c66a9b5428ee054313b9b14f179571201dfbaf5e7f15ba4918e3"
+      },
+      "terminal_phase": "install",
+      "error": "Guest command timed out",
+      "installer_log_present": true,
+      "package_policy_verification_reached": true,
+      "package_signature": "Valid"
+    }
+  ],
+  "navigation": {
+    "receipt_sha256": "627a4c9f33841d355ae699084211b8cc2ba1326b8b23ba0c1d5d37a258a85331",
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "native_sha256": "364a595a2a2084317a97a6afd9442c7dab4bf7913209156e3d2378a9fa519b1f"
+  },
+  "documentation": [
+    {
+      "receipt_sha256": "d6ea421de3bdaaf8d614b9878717b119dddafa544c5b21b3c5e3373ac4a41e29",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_LLM": false,
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli",
+          "success": true,
+          "http_status": 200,
+          "markdown_sha256": "c4f40a306a09645d1fee0983b96fff61b0dde21910c7efd33d30b0b788e87f74",
+          "capture_sha256": "6a17aca3410a347c15e56513720da21c5e13c793c02e67914e2664b03a1c7a80"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file",
+          "success": true,
+          "http_status": 200,
+          "markdown_sha256": "b993e91ff149527ebd9f42523b846a2b9b4b82d0c0101a2dfeea22005497e5b6",
+          "capture_sha256": "6b07f8cb5d8dc2737abe8329c38630bf79b7aa59955da4774c0ad5272c8399fc"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/",
+          "success": true,
+          "http_status": 200,
+          "markdown_sha256": "6268292fba53150279c3be3eedba4321dc61566fd295a32f85c6f95177c616a8",
+          "capture_sha256": "cc42c556001a8434917f07c2964a57230e9eec76c5d600334e423e40c20910a8"
+        }
+      ]
+    },
+    {
+      "receipt_sha256": "5dde359b93a2d12990cd9a9839ce8207157e09ddb70249473df1d10a798d2b07",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "robots": true,
+      "external_LLM": false,
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/msi/digital-signatures-and-windows-installer",
+          "success": true,
+          "http_status": 200,
+          "markdown_sha256": "874452e8c4beacd7b963d6d0793a6b0150b2b7d6f0d32f6894b427e699746845",
+          "capture_sha256": "aeabca5ed072b7510c2d7143fb88cdaedc0c1e3786915c06ac67b042fcd09f27"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/wintrust/ns-wintrust-wintrust_data",
+          "success": true,
+          "http_status": 200,
+          "markdown_sha256": "d5a37f17132892cee86b2f91a8f142dc25285891605e6c704da362ef410a8130",
+          "capture_sha256": "4a8c8e3e2159350ab923c4e7f2ee807acac93c371f82e9707f253cd3f692d8c7"
+        }
+      ]
+    }
+  ],
+  "scope": [
+    "The new mounted GUI fixture exercises the actual application controls, external Win32 file operations, flush, window-close retention, junction retirement and byte-exact reattachment.",
+    "Windows Sandbox ran headless on a Windows 11 Enterprise guest. The host-side admission denied the mounted test before invoking the app, and the existing host driver remained stopped.",
+    "Windows Installer stopped progressing during software restriction policy verification. The same stage was observed after the signed package validated in a normally networked guest. The mounted workflow was therefore unexecuted.",
+    "These were correctness attempts. Performance and compression comparisons are reserved for the real Windows host."
+  ]
+}
