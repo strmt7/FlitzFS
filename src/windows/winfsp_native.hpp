@@ -91,6 +91,7 @@ class WinFspNativeWritable final {
   void enable_deferred_writes_hosted(NativeDeferredWriteOptions);
   void publish_deferred_health_hosted(const GpuHealthEvidence&);
   NativeDeferredWriteStats deferred_write_stats() const;
+  std::optional<NativeUniformWriteResult> deferred_write_receipt() const;
   NativeDeferredStop stop_deferred_writes_hosted();
   void bind_callbacks(FSP_FILE_SYSTEM&,WinFspOriginQuery) noexcept;
   bool self_origin_rejected() const noexcept;

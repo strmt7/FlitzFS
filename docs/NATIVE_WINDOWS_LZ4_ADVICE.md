@@ -5,7 +5,28 @@ writes and the synchronous Windows SDK data bridge. It starts no worker, loads
 no GPU runtime, mounts nothing and changes no stored format. Ordinary callbacks
 retain their existing CPU behavior until a qualified caller supplies advice.
 
-## Current source contract
+## Indexed native extents
+
+The indexed writer verifies the original candidate against the staged extent
+body before changing its encoded representation. The frame adds the
+authoritative inode and block numbers. Extending the first LZ4 literal run
+preserves relative match offsets. The existing store encoder then decodes the
+complete frame and accepts it only when it saves space under the selected
+policy. Both mirrored records use the same verified encoding. Raw mode and
+CPU operation without the optional codec retain their existing behavior.
+[Upstream LZ4 block specification](https://github.com/lz4/lz4/blob/v1.11.1/doc/lz4_Block_format.md)
+
+The deferred Windows service uses the active file-info policy for input size,
+offset, metadata and the final response. The adapter can now configure that
+service on indexed volumes. An unaffordable optional request copy leaves the
+synchronous CPU path available. A resource refusal while preparing an already
+owned request can still write from those owned bytes. Worker failures keep
+their existing terminal-selection and retirement rules. The explicit callback
+fixture covers indexed writes above the old offset and input-size limits,
+verified advice, forced CPU publication and independent reopen.
+[Source-bound results](evidence/indexed-lz4-deferred-2026-11-18.json)
+
+## Original source contract
 
 The native GitHub release inventory was checked on 14 November 2026. The newest
 WinFsp prerelease remains v2.2B5, published 13 October 2026, with the already

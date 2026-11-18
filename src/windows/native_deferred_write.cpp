@@ -10,8 +10,10 @@ void increment(std::uint64_t& n) noexcept{if(n!=(std::numeric_limits<std::uint64
 
 }
 NativeDeferredWriteService::NativeDeferredWriteService(NativeFileSession& session,std::mutex& control,
-    std::atomic<bool>& offline,NativeDeferredWriteOptions options)
-    :session_(session),control_(control),offline_(offline),options_(std::move(options)){
+    std::atomic<bool>& offline,NativeDeferredWriteOptions options,NativeFileInfoAllocation info_policy)
+    :session_(session),control_(control),offline_(offline),options_(std::move(options)),info_policy_(info_policy){
+  if(!native_windows_write_limit(info_policy_))
+    throw std::invalid_argument("deferred write allocation policy is unavailable");
   if(options_.expected!=WorkerExecution::hip && options_.expected!=WorkerExecution::cpu_semantics)
     throw std::invalid_argument("invalid deferred backend");
   if(!options_.hint_query||!options_.response_sink)
@@ -24,7 +26,8 @@ NativeDeferredWriteService::~NativeDeferredWriteService(){
 }
 bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const NativeFileHandle& handle,
     std::span<const std::byte> bytes,UINT64 offset,bool append,bool constrained){
-  if(!fs||stats_.stopping||stats_.disabled||stats_.worker_busy||stats_.native_pending||bytes.empty())return false;
+  if(!fs||stats_.stopping||stats_.disabled||stats_.worker_busy||stats_.native_pending||bytes.empty()||
+      bytes.size()>native_windows_write_limit(info_policy_) || append!=(offset==UINT64_MAX))return false;
   if(options_.allow_gpu && (!options_.helper_independent||!options_.workload_qualified||
       !options_.cost.qualified||!health_.compatible||health_.configuration!=options_.binding.configuration||
       !valid_process_budget(options_.budget)||!options_.deadline_ms||
@@ -35,10 +38,15 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
   if(!options_.hint_query(hint))return false;
   // Authorization and complete output prerequisites precede copying/defer.
   const auto state=session_.mutation_info(handle);FSP_FSCTL_FILE_INFO info{};
-  if(!encode_native_file_info(state,NativeFileInfoAllocation::native_reserved_cache,info))
+  if(!encode_native_file_info(state,info_policy_,info))
     throw std::invalid_argument("deferred write metadata unavailable");
-  auto request=std::make_unique<Request>();
-  request->bytes=own_native_uniform_source(bytes);
+  std::unique_ptr<Request> request;
+  try {
+    request=std::make_unique<Request>();
+    request->bytes=own_native_uniform_source(bytes,info_policy_);
+  }catch(const std::bad_alloc&) {
+    return false; // The synchronous CPU path can still use the caller's live buffer.
+  }
   request->filesystem=fs;request->hint=hint;request->handle=handle;
   request->offset=offset;request->append=append;request->constrained=constrained;
   request_=std::move(request);completion_.reset();force_cpu_=false;
@@ -78,12 +86,19 @@ void NativeDeferredWriteService::run() noexcept{
           sizeof(FSP_FSCTL_TRANSACT_RSP)+2*sizeof(NativeUniformWriteResult),charged.fixed_bytes))charged.qualified=false;
       const bool consent=options_.allow_gpu&&options_.helper_independent&&!force_cpu_&&!stats_.stopping;
       const auto admission=operation.begin(request_->handle,request_->bytes,request_->offset,
-          request_->append,request_->constrained,{},NativeFileInfoAllocation::native_reserved_cache,
+          request_->append,request_->constrained,{},info_policy_,
           options_.binding,consent,options_.workload_qualified,health_,started,charged,options_.window,
           options_.budget,options_.deadline_ms);
       if(admission.worker.decision.submitted)increment(stats_.worker_submitted);
       NativeUniformWriteResult result{};bool completed=false;
-      if(!NT_SUCCESS(admission.admission.status)){result.outcome=admission.admission;completed=true;}
+      if(!NT_SUCCESS(admission.admission.status)){
+        result.outcome=admission.admission;
+        if(result.outcome.status==STATUS_INSUFFICIENT_RESOURCES && !result.outcome.offline_required)
+          result.outcome=dispatch_native_write(session_,request_->handle,request_->bytes.data(),
+              request_->offset,static_cast<ULONG>(request_->bytes.size()),request_->append,
+              request_->constrained,{},info_policy_,&result.transferred,&result.info);
+        completed=true;
+      }
       std::uint64_t validation_finished=0;bool validation_seen=false;
       while(!completed){
         const bool force=force_cpu_||stats_.stopping||offline_.load(std::memory_order_acquire);

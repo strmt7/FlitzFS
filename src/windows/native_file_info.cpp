@@ -19,10 +19,6 @@ constexpr auto signed_max=static_cast<std::uint64_t>((std::numeric_limits<std::i
 bool policy(NativeFileInfoAllocation value) noexcept {
   return native_windows_allocation_limit(value)!=0;
 }
-std::uint64_t maximum_eof(NativeFileInfoAllocation value) noexcept {
-  return value==NativeFileInfoAllocation::indexed_reserved_cache
-      ? native_windows_allocation_limit(value) : kNativeMaxFileBytes;
-}
 using win_detail::failure;
 using win_detail::boundary;
 bool preflight(const NativeInodeAllocationInfo& state,NativeFileInfoAllocation mode) noexcept {
@@ -36,14 +32,25 @@ std::uint64_t native_windows_allocation_limit(NativeFileInfoAllocation mode) noe
     default:return 0;
   }
 }
+std::uint64_t native_windows_eof_limit(NativeFileInfoAllocation mode) noexcept {
+  switch(mode) {
+    case NativeFileInfoAllocation::native_reserved_cache:return kNativeMaxFileBytes;
+    case NativeFileInfoAllocation::indexed_reserved_cache:return native_windows_allocation_limit(mode);
+    default:return 0;
+  }
+}
 std::uint32_t native_windows_write_limit(NativeFileInfoAllocation mode) noexcept {
-  return mode==NativeFileInfoAllocation::indexed_reserved_cache?kStoreMaxTransactionBytes:kStoreMaxObjectBytes;
+  switch(mode) {
+    case NativeFileInfoAllocation::native_reserved_cache:return kStoreMaxObjectBytes;
+    case NativeFileInfoAllocation::indexed_reserved_cache:return kStoreMaxTransactionBytes;
+    default:return 0;
+  }
 }
 bool encode_native_file_info(const NativeInodeAllocationInfo& state,NativeFileInfoAllocation mode,
     FSP_FSCTL_FILE_INFO& output) noexcept {
   output={};const auto& n=state.info;
   if(!policy(mode) || !n.inode || !n.modified_sequence || !n.basic ||
-      n.logical_bytes>maximum_eof(mode) || (n.unlinked && n.delete_pending))return false;
+      n.logical_bytes>native_windows_eof_limit(mode) || (n.unlinked && n.delete_pending))return false;
   const auto& b=*n.basic;
   if(b.creation_time>signed_max || b.last_access_time>signed_max || b.last_write_time>signed_max ||
       b.change_time>signed_max || (b.attributes&~kNativeBasicAttributeMask) ||
@@ -98,7 +105,7 @@ NativeWindowsIoOutcome dispatch_native_write_with_lz4(NativeFileSession& session
     if(!preflight(before,mode))return failure(session,STATUS_INVALID_DEVICE_STATE);
     if(indexed && !constrained) {
       const auto start=append?before.info.logical_bytes:offset;
-      const auto maximum=maximum_eof(mode);
+      const auto maximum=native_windows_eof_limit(mode);
       if(start>maximum || length>maximum-start)return failure(session,STATUS_INVALID_PARAMETER);
     }
     const auto bytes=std::span<const std::byte>(static_cast<const std::byte*>(buffer),length);
@@ -116,7 +123,7 @@ NativeWindowsIoOutcome dispatch_native_set_size(NativeFileSession& session,const
   if(output)*output={};
   if(!output || !policy(mode) || !native_cleanup_metadata_valid(effect) ||
       (allocation && (bytes%kNativeAllocationUnit || bytes>native_windows_allocation_limit(mode))) ||
-      (!allocation && bytes>maximum_eof(mode)))return failure(session,STATUS_INVALID_PARAMETER);
+      (!allocation && bytes>native_windows_eof_limit(mode)))return failure(session,STATUS_INVALID_PARAMETER);
   return boundary(session,[&] {
     const auto before=session.mutation_info(handle);
     if(!preflight(before,mode))return failure(session,STATUS_INVALID_DEVICE_STATE);

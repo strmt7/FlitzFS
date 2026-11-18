@@ -2138,11 +2138,9 @@ NativeInodeStorageMutationCommit NativeFilesystemWriter::write_inode_storage_wit
   if(impl_->indexed) {
     const auto maximum=std::size_t(kStoreMaxTransactionBytes);
     if(bytes.size()>maximum)fail(Code::limit,"indexed inode input budget");
-    // Existing hints describe plaintext extents. Indexed data frames include
-    // owner and block fields, so their encoder uses independent CPU encoding.
     admit_lz4_extent_candidates(candidates);
     return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
-      return detail::write_indexed_inode(writer,source,root,inode,offset,bytes,options,effect);
+      return detail::write_indexed_inode(writer,source,root,inode,offset,bytes,options,effect,candidates);
     });
   }
   if(bytes.size()>kStoreMaxObjectBytes)fail(Code::limit,"native write size budget");

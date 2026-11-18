@@ -110,7 +110,7 @@ capacity and failure evidence before replacing it.
 | Compression | Optional CPU Zstd/LZ4, exact sharing and protected shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
 | Background work | Automatic aligned-family discovery, feature reuse, negative-outcome suppression, real Windows observations and low-priority paced opportunities | Persistent scalable features, restartable learning, workload-driven codec selection, automatic compaction and a lifetime write governor |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
-| GPU | Actual bounded AMD work, independent comparison, protected worker exchange, recovery policy and explicit native write service | Automatic discovery/cost acquisition and a useful ordinary Windows I/O path; stronger collective GPU work |
+| GPU | Bounded AMD execution through the indexed WinFsp SDK callback, exact mirrored output and independent CPU reopen | Automatic selection and measurable benefit in mounted workloads, plus stronger collective GPU work |
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
 | Application | Native helper/tray, create/save/read/optimize/discard, owned worker and GUI qualification | Explorer-facing mounted lifecycle, complete volume-management workflows and a supported installer |
 | Memory composition | Live adaptive admission beyond the old ceiling, on-demand page locking, retained backing through stop and explicit-join CPU inspection | Larger populated volumes, multiple-volume aggregate policy and broker/process-failure behavior |
@@ -270,6 +270,13 @@ driver to make a probe fit a document.
 [dependency policy/history](DEPENDENCY_AUDIT.md).
 
 ## Recent executed evidence
+
+The controlled indexed WinFsp callback sent 128 KiB to the actual AMD device.
+Both mirrored copies of each of the two stored extents matched verified
+worker output. CPU reopen recovered the bytes with HIP unloaded from the
+reader. The callback took 1.02 s in this single trial. Representative speed,
+storage benefit and mounted behavior remain open.
+[Indexed AMD evidence](evidence/indexed-lz4-deferred-2026-11-18.json)
 
 Managed indexed selection and the SDK passed 22 selected Windows executions
 across raw, codec and AddressSanitizer configurations. The compaction fixture

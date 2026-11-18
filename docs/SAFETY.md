@@ -8,6 +8,11 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+Indexed GPU advice is private until CPU verification agrees with the staged
+extent and the final inode/block frame. The writable callback uses the same
+resource and ownership checks for legacy and indexed deferred requests. A
+worker never owns publication. [Indexed advice and qualification scope](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents)
+
 The [indexed managed head](MANAGED_PAGED_VOLUMES.md) binds the selected image
 kind and validates the checkpoint and namespace sequence independently.
 Compaction keeps the original image available to its existing readers. The

@@ -1,7 +1,13 @@
 # Owned deferred Windows writes (experimental)
 
-The explicit native adapter can own one pending write. Its CPU/SDK and disposable mounted response paths passed at a4ad516.
-Automatic ordinary GPU I/O remains unqualified. Default application/filesystem paths remain CPU-only and create no service.
+The explicit native adapter can own one pending write on either a legacy or an
+indexed volume. The indexed path uses its normal limits for the write, EOF
+and allocation. It publishes verified LZ4 advice with the existing inode and
+block header in the encoded record. Default application routes still select
+CPU. [Indexed path and evidence](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents)
+
+The earlier CPU/SDK and disposable mounted response paths passed at a4ad516.
+Automatic useful GPU operation remains product work.
 
 Source d384b6c passed all thirteen core jobs, all 53 prescribed SDK commands and
 one fixed six-request owner comparison through this service. All three GPU

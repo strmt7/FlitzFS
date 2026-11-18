@@ -57,7 +57,7 @@ void advance_indexed_retirement(PagedObjectStoreWriter&,const PagedObjectStoreSn
     IndexedVolumeRoot&,bool closed_session);
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t offset,std::span<const std::byte>,
-    NativeInodeWriteOptions,const NativeAutomaticMetadata&);
+    NativeInodeWriteOptions,const NativeAutomaticMetadata&,std::span<const NativeLz4ExtentCandidate>);
 NativeInodeStorageMutationCommit truncate_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t bytes,const NativeAutomaticMetadata&);
 struct IndexedDirectoryPage {

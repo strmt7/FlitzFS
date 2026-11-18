@@ -84,6 +84,23 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "indexed_deferred_amd": {
+    "source_base": "fd838f676d6cf7634754137c384e6c5021cbdfae",
+    "evidence": "docs/evidence/indexed-lz4-deferred-2026-11-18.json",
+    "scope": "Indexed verified LZ4 records, deferred Windows callback and exact actual AMD output.",
+    "selected_windows_executions": {
+      "raw": 3,
+      "codec": 7,
+      "asan_lz4": 2
+    },
+    "actual_amd": {
+      "source_bytes": 131072,
+      "matched_mirrored_records": 4,
+      "response_ns": 1017498700,
+      "independent_cpu_reopen": true
+    },
+    "next": "Connect indexed provider and automatic device/workload selection; qualify useful full-operation performance and collective compression."
+  },
   "demand_locked_memory": {
     "source_base": "5ccc36a45c50cdbe46285d9058808331723f5ec1",
     "evidence": "docs/evidence/demand-locked-memory-2026-11-18.json",

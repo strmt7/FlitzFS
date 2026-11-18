@@ -35,7 +35,7 @@ enum class NativeDeferredStop {running,quiescent,retirement_unconfirmed};
 class NativeDeferredWriteService final {
  public:
   NativeDeferredWriteService(NativeFileSession&,std::mutex&,std::atomic<bool>& offline,
-      NativeDeferredWriteOptions);
+      NativeDeferredWriteOptions,NativeFileInfoAllocation=NativeFileInfoAllocation::native_reserved_cache);
   ~NativeDeferredWriteService();
   NativeDeferredWriteService(const NativeDeferredWriteService&)=delete;
   NativeDeferredWriteService& operator=(const NativeDeferredWriteService&)=delete;
@@ -58,6 +58,7 @@ class NativeDeferredWriteService final {
   void run() noexcept;
   NativeFileSession& session_;std::mutex& control_;std::atomic<bool>& offline_;
   const NativeDeferredWriteOptions options_;
+  const NativeFileInfoAllocation info_policy_;
   GpuHealthEvidence health_{};
   std::condition_variable changed_;
   std::unique_ptr<Request> request_;

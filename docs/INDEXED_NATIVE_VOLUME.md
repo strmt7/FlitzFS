@@ -88,6 +88,14 @@ transaction returns the selected offset, committed count, allocation, EOF
 and metadata. File identity survives a rename and reuse of the old name.
 [Executed indexed inode I/O evidence](evidence/native-indexed-inode-io-2026-11-18.json)
 
+An owned write can also supply LZ4 advice for an extent. The writer verifies
+the candidate against the final stored body, including canonical sparse
+trimming. It adds the existing 24-byte inode and block header as leading LZ4
+literals and verifies the resulting frame before publication. The data codec,
+extent format and recovery reader are unchanged. Invalid, stale, ambiguous or
+unavailable advice leaves the ordinary CPU encoding path available.
+[Indexed advice and deferred writes](NATIVE_WINDOWS_LZ4_ADVICE.md)
+
 The raw fixture created, paged and byte-checked 1,024 nonempty files. The
 latest checkpoint occupied 3,792,896 bytes. The selected 17-byte replacement
 read 202,372 backing bytes and full scrub read 291,765,432. The three failure

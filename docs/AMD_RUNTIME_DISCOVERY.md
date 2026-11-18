@@ -37,6 +37,18 @@ AMD documents HIP 7.16.0 as the component shipped with ROCm Core 10.1.0.
 The observed Windows runtime DLL had file version 10.0.3683.0. Package,
 component and installed-file versions are distinct. [AMD release notes](https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html#hip-7-16-0)
 
+## Indexed write on 18 November 2026
+
+The controlled indexed WinFsp SDK callback used one fresh AMD adapter
+identity acquisition, one 128 KiB HIP request and one write response.
+The two verified LZ4 bodies totaled 16,918 encoded bytes. All four mirrored
+records contained the exact worker bodies with the indexed prefixes.
+Independent CPU reopen recovered the source and the retained prior snapshot.
+The selected image occupied 1,310,720 bytes. Callback completion took
+1,017.5 ms in this one sample, which had no matched CPU timing. The parent
+kept HIP unloaded and all owned processes retired.
+[Current-source evidence](evidence/indexed-lz4-deferred-2026-11-18.json)
+
 ## Host qualification on 17 November 2026
 
 The installed RX 9070 XT and signed runtime produced a matching identity in

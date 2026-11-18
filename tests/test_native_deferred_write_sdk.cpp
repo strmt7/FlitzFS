@@ -8,6 +8,10 @@
 // Type-check the driver-independent composition fixture in the ordinary SDK
 // build too. Its execution remains in the separate runtime qualification gate.
 #include "rocm_compile/deferred_native_fixture.hpp"
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+#include "hip_route_discovery.hpp"
+#include "native_name_index.hpp"
+#endif
 #include <array>
 #include <atomic>
 #include <cstring>
@@ -77,14 +81,18 @@ void transport_required(){
 struct Harness {
   locked_ram_fixture::WorkingSet working;
   std::shared_ptr<StoreByteIo> head=std::make_shared<locked_ram_fixture::Store>(kVolumeHeadBytes);
-  std::shared_ptr<StoreByteIo> image=std::make_shared<locked_ram_fixture::Store>(4U*1024*1024);
+  std::uint64_t capacity;
+  std::shared_ptr<StoreByteIo> image;
   Collector collector;FSP_FILE_SYSTEM fs{};std::unique_ptr<WinFspNativeWritable> adapter;
   std::vector<std::byte> security;
-  explicit Harness(const NativeDeferredWriteOptions& options){
+  explicit Harness(const NativeDeferredWriteOptions& options,bool indexed=false)
+      :capacity(indexed?8U*1024*1024:4U*1024*1024),
+       image(std::make_shared<locked_ram_fixture::Store>(static_cast<std::size_t>(capacity))){
     StoreIdentity volume{},id{};volume[0]=std::byte{5};id[0]=std::byte{6};
-    adapter=WinFspNativeWritable::create_managed_hosted(head,volume,image,id,{StoreCompressionMode::fast,6,false});
-    receiver=&collector;adapter->enable_deferred_writes_hosted(options);
-    adapter->publish_deferred_health_hosted(health());
+    constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,6,false};
+    adapter=indexed?WinFspNativeWritable::create_managed_indexed(head,volume,image,id,{capacity},fast):
+        WinFspNativeWritable::create_managed_hosted(head,volume,image,id,fast);
+    adapter->enable_deferred_writes_hosted(options);
     fs.Version=static_cast<UINT16>(sizeof(fs));fs.UmFileContextIsUserContext2=TRUE;
     fs.Interface=&WinFspNativeWritable::callbacks();adapter->bind_callbacks(fs,[]()->UINT32{return 0;});
     SIZE_T bytes=0;UINT32 attrs=0;
@@ -93,6 +101,7 @@ struct Harness {
     security.resize(bytes);
     check(fs.Interface->GetSecurityByName(&fs,const_cast<PWSTR>(L"\\"),&attrs,security.data(),&bytes)==STATUS_SUCCESS,
         "deferred root descriptor");
+    receiver=&collector;
   }
   ~Harness(){
     if(adapter){
@@ -107,10 +116,11 @@ struct Harness {
         FILE_ATTRIBUTE_NORMAL,security.data(),0,&context,&info)==STATUS_SUCCESS&&context,
         "deferred callback create");return context;
   }
-  FSP_FSCTL_TRANSACT_RSP reply(unsigned index){
+  template<class Refresh>
+  FSP_FSCTL_TRANSACT_RSP reply(unsigned index,Refresh refresh){
     FSP_FSCTL_TRANSACT_RSP response;std::memset(&response,0,sizeof(response));
     eventually([&]{
-      adapter->publish_deferred_health_hosted(health());
+      refresh();
       std::lock_guard guard(collector.mutex);
       if(collector.count<=index)return false;std::memcpy(&response,collector.replies[index].data(),sizeof(response));return true;
     },"deferred callback completion absent");
@@ -126,15 +136,17 @@ struct Harness {
     check(FspFileSystemOpClose(&fs,&request,&response)==STATUS_SUCCESS,"deferred SDK close");
   }
 };
-void run(const std::filesystem::path& worker,unsigned kind){
-  Harness h(options(worker,kind));const auto target=h.create(L"\\target");
+void run(const std::filesystem::path& worker,unsigned kind,bool indexed){
+  Harness h(options(worker,kind),indexed);const auto target=h.create(L"\\target");
   const auto prior=h.adapter->snapshot();
   const auto block=native_lz4_fixture::source();std::vector<std::byte> bytes;
-  for(unsigned i=0;i<16;++i)bytes.insert(bytes.end(),block.begin(),block.end());
+  const unsigned blocks=indexed && kind==0?17:16;
+  for(unsigned i=0;i<blocks;++i)bytes.insert(bytes.end(),block.begin(),block.end());
+  const auto offset=indexed?32ULL*1024*1024:0;
   const auto expected=bytes;ULONG count=999;FSP_FSCTL_FILE_INFO info{};info.FileSize=999;
   h.adapter->publish_deferred_health_hosted(health());
   const auto expected_hint=hints.load();
-  check(h.fs.Interface->Write(&h.fs,target,bytes.data(),0,static_cast<ULONG>(bytes.size()),FALSE,FALSE,
+  check(h.fs.Interface->Write(&h.fs,target,bytes.data(),offset,static_cast<ULONG>(bytes.size()),FALSE,FALSE,
       &count,&info)==STATUS_PENDING && count==0 && info.FileSize==0,"callback did not own/defer write");
   std::fill(bytes.begin(),bytes.end(),std::byte{0xff});
   if(kind==2 && gpu_lz4_cpu_verification_available()){
@@ -142,7 +154,7 @@ void run(const std::filesystem::path& worker,unsigned kind){
       return h.adapter->deferred_write_stats().worker_submitted==1;},"held callback child not submitted");
     // A subsequent read forces CPU publication without waiting for the held child.
     std::vector<std::byte> actual(expected.size());ULONG got=0;
-    check(h.fs.Interface->Read(&h.fs,target,actual.data(),0,static_cast<ULONG>(actual.size()),&got)==STATUS_SUCCESS &&
+    check(h.fs.Interface->Read(&h.fs,target,actual.data(),offset,static_cast<ULONG>(actual.size()),&got)==STATUS_SUCCESS &&
         got==expected.size()&&actual==expected,"read did not resolve pending CPU bytes");
   }
   if(kind==3){
@@ -159,12 +171,12 @@ void run(const std::filesystem::path& worker,unsigned kind){
     check(ok.load()&&states[0]==NativeDeferredStop::quiescent&&states[1]==NativeDeferredStop::quiescent,
         "concurrent queued shutdown retirement unconfirmed");
   }
-  const auto response=h.reply(0);
+  const auto response=h.reply(0,[&]{h.adapter->publish_deferred_health_hosted(health());});
   check(response.Kind==FspFsctlTransactWriteKind && response.Hint==expected_hint &&
       response.IoStatus.Status==STATUS_SUCCESS && response.IoStatus.Information==expected.size() &&
-      response.Rsp.Write.FileInfo.FileSize==expected.size(),"deferred response lost committed facts");
-  check(h.adapter->snapshot().read("target",0,static_cast<std::uint32_t>(expected.size()))==expected &&
-      prior.read("target",0,1).empty(),"deferred CPU current/prior readback");
+      response.Rsp.Write.FileInfo.FileSize==offset+expected.size(),"deferred response lost committed facts");
+  check(h.adapter->snapshot().read("target",offset,static_cast<std::uint32_t>(expected.size()))==expected &&
+      prior.read("target",offset,1).empty(),"deferred CPU current/prior readback");
   h.close(target);
   NativeDeferredStop stopped;
   eventually([&]{stopped=h.adapter->stop_deferred_writes_hosted();return stopped!=NativeDeferredStop::running;},
@@ -178,14 +190,203 @@ void run(const std::filesystem::path& worker,unsigned kind){
       "deferred controller omitted verified sweep advice");
   if(kind==2 && gpu_lz4_cpu_verification_available())check(stats.cpu_forced==1,"held write did not select CPU");
   check(!h.adapter->requires_offline()&&WorkerExchangeSession::available(),"deferred controller left failed state");
+  if(indexed) {
+    const auto reopened=NativeFilesystemSnapshot::open_image(h.image,{NativeImageKind::indexed_paged,h.capacity});
+    reopened.verify_all();
+    check(reopened.read("target",offset,static_cast<std::uint32_t>(expected.size()))==expected,
+        "indexed deferred data did not reopen independently");
+    std::cout<<"indexed_deferred mode="<<kind<<" offset="<<offset<<" write_bytes="<<expected.size()
+        <<" submitted="<<stats.worker_submitted<<" advised="<<stats.advised<<" forced="<<stats.cpu_forced<<'\n';
+  }
 }
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+// The diagnostic independently removes the first literal prefix from the on-image
+// stream to compare its body with the verified worker receipt.
+std::vector<std::byte> extent_lz4_body(std::span<const std::byte> payload) {
+  check(!payload.empty(),"indexed device record payload");
+  const auto token=std::to_integer<unsigned>(payload.front());
+  std::size_t literals=token>>4,at=1;
+  if(literals==15) {
+    unsigned extra=255;
+    while(extra==255) {
+      check(at<payload.size(),"indexed device literal extension absent");
+      extra=std::to_integer<unsigned>(payload[at++]);literals+=extra;
+    }
+  }
+  const std::string_view magic="FLTXPE01";
+  constexpr std::size_t prefix=24;
+  check(literals>=prefix && literals<=payload.size()-at &&
+      std::memcmp(payload.data()+at,magic.data(),magic.size())==0,"indexed device literal prefix");
+  literals-=prefix;
+  std::vector<std::byte> result{static_cast<std::byte>(
+      (((std::min)(literals,std::size_t{15}))<<4)|(token&15U))};
+  if(literals>=15) {
+    literals-=15;
+    while(literals>=255){result.push_back(std::byte{255});literals-=255;}
+    result.push_back(static_cast<std::byte>(literals));
+  }
+  result.insert(result.end(),payload.begin()+static_cast<std::ptrdiff_t>(at+prefix),payload.end());
+  return result;
+}
+unsigned verified_image_records(const Harness& h,const NativeUniformWriteResult& receipt) {
+  const auto paged=PagedObjectStoreSnapshot::open(h.image,{h.capacity});
+  constexpr std::size_t header_size=128;
+  constexpr std::uint64_t first_extent=detail::kNativeIndexedDataObject|1;
+  const std::string_view magic="FLTXDAT1";
+  const auto before=paged.info();
+  std::vector<std::byte> image(static_cast<std::size_t>(before.physical_end));
+  h.image->read_exact(0,image);
+  unsigned matched=0;
+  for(std::uint64_t id=first_extent;id<first_extent+2;++id) {
+    const auto object=paged.stat(id);
+    check(object && object->logical_bytes==kNativeExtentBytes+24,"indexed device extent missing");
+    unsigned copies=0;
+    auto cursor=image.begin();
+    while(cursor!=image.end()) {
+      cursor=std::search(cursor,image.end(),magic.begin(),magic.end(),
+          [](std::byte a,char b){return a==static_cast<std::byte>(b);});
+      if(cursor==image.end())break;
+      const auto offset=static_cast<std::size_t>(cursor-image.begin());
+      ++cursor;
+      if(image.size()-offset<header_size)break;
+      const auto header=std::span<const std::byte>(image).subspan(offset,header_size);
+      using deferred_native_fixture::integer;
+      if(integer(header,16,8)!=object->id || integer(header,24,8)!=object->generation)continue;
+      check(integer(header,12,4)==detail::kStoreLz4 && integer(header,32,4)==object->logical_bytes &&
+          integer(header,36,4)==object->stored_payload_bytes,"indexed device record codec or framing");
+      const auto unit=paged.isolation_unit();
+      std::vector<std::byte> payload(object->stored_payload_bytes);
+      for(std::size_t done=0;done<payload.size();) {
+        const auto relative=offset%unit+header_size+done;
+        const auto start=offset-offset%unit+2*(relative/unit)*unit+relative%unit;
+        const auto count=(std::min)(payload.size()-done,static_cast<std::size_t>(unit-relative%unit));
+        check(start<=image.size() && count<=image.size()-start,"indexed device payload bounds");
+        std::copy_n(image.begin()+static_cast<std::ptrdiff_t>(start),count,
+            payload.begin()+static_cast<std::ptrdiff_t>(done));
+        done+=count;
+      }
+      const auto body=extent_lz4_body(payload);
+      check(body.size()==receipt.advice.payload_bytes && detail::record_digest(body)==receipt.advice.payload_digest,
+          "indexed stored body differs from verified HIP output");
+      ++copies;
+    }
+    check(copies==2,"indexed device extent must have two matching copies");
+    matched+=copies;
+  }
+  return matched;
+}
+unsigned hex_digest_digit(wchar_t c) {
+  if(c>=L'0' && c<=L'9')return static_cast<unsigned>(c-L'0');
+  if(c>=L'a' && c<=L'f')return 10U+static_cast<unsigned>(c-L'a');
+  throw std::invalid_argument("expected lowercase SHA256");
+}
+int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,const wchar_t* runtime) {
+  check(store_lz4_available()&&gpu_lz4_cpu_verification_available(),"independent indexed CPU decoder unavailable");
+  check(digest.size()==64,"verified worker SHA256 required");
+  gpu_probe_fixture::Budget controller_budget;
+  HipRouteDiscoveryRequest request;
+  request.helper=worker;request.runtime_basename=runtime;request.worker={128,2000,5000};
+  request.maximum_identity_queries=4;
+  for(std::size_t i=0;i<request.helper_sha256.size();++i)
+    request.helper_sha256[i]=static_cast<std::byte>(16*hex_digest_digit(digest[2*i])+hex_digest_digit(digest[2*i+1]));
+  const auto discovery=discover_system_hip_route(request);
+  std::cout<<"indexed_gpu_discovery status="<<static_cast<unsigned>(discovery.status)
+      <<" queries="<<discovery.identity_queries<<" worker_exit="<<discovery.worker_exit<<'\n';
+  check(discovery.status==HipDiscoveryStatus::ready && discovery.route && discovery.route->pins,
+      "indexed AMD route not admitted");
+  const auto& route=*discovery.route;
+  NativeDeferredWriteOptions options;
+  options.hint_query=hint;options.response_sink=send;
+  options.allow_gpu=true;options.workload_qualified=true;options.helper_independent=true;
+  options.binding.helper=worker;options.binding.configuration=route.identity;
+  options.binding.ordinal=static_cast<int>(route.ordinal);
+  options.binding.runtime_sha256=route.runtime_sha256;
+  options.binding.capture_advice_receipt=true;
+  options.budget=request.worker;options.deadline_ms=options.budget.timeout_ms;
+  auto& cost=options.cost;
+  cost.configuration=route.identity;cost.fixed_bytes=256ULL<<20;
+  cost.input_copies=6;cost.slab_copies=2;cost.output_copies=3;cost.per_chunk_bytes=64;
+  cost.profiled_chunk_bytes=kNativeExtentBytes;cost.kernel_ns_per_chunk=10000000;
+  cost.maximum_grid_x=2;cost.qualified_kernel_quantum_ns=200000000;cost.qualified=true;
+  options.window={16,100000000};
+
+  {
+    Harness h(options,true);
+    const auto target=h.create(L"\\target");const auto prior=h.adapter->snapshot();
+    GpuHealthEvidence observed;
+    observed.configuration=route.identity;observed.sequence=1;observed.compatible=true;
+    observed.supervisor_quiescent=true;observed.memory=route.memory;
+    auto last_observation=GetTickCount64();
+    const auto publish=[&] {
+      const auto now=GetTickCount64();
+      if(now-last_observation<50)return;
+      const auto current=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
+      observed.memory=current.snapshot;observed.compatible=current.status==WindowsGpuBudgetStatus::success;
+      ++observed.sequence;last_observation=now;
+      h.adapter->publish_deferred_health_hosted(observed);
+    };
+    const auto block=native_lz4_fixture::source();
+    auto expected=block;expected.insert(expected.end(),block.begin(),block.end());
+    const auto planned=plan_gpu_lz4_window(expected.size(),kNativeExtentBytes,observed,GetTickCount64(),
+        cost,options.window);
+    std::cout<<"indexed_gpu_plan gate="<<static_cast<unsigned>(planned.code)
+        <<" input_bytes="<<planned.layout.input_bytes<<" host_peak="<<planned.host_peak_bytes<<'\n';
+    check(planned.code==GpuGateCode::admitted && planned.layout.input_bytes==expected.size(),
+        "indexed HIP work window not admitted");
+    auto source=expected;
+    constexpr std::uint64_t offset=32ULL*1024*1024;
+    ULONG count=0;FSP_FSCTL_FILE_INFO info{};
+    const auto expected_hint=hints.load();
+    const auto started=std::chrono::steady_clock::now();
+    h.adapter->publish_deferred_health_hosted(observed);
+    check(h.fs.Interface->Write(&h.fs,target,source.data(),offset,static_cast<ULONG>(source.size()),FALSE,FALSE,
+        &count,&info)==STATUS_PENDING && count==0 && info.FileSize==0,"indexed HIP callback did not defer");
+    std::fill(source.begin(),source.end(),std::byte{0xff});
+    const auto response=h.reply(0,publish);
+    const auto ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now()-started).count();
+    check(response.Kind==FspFsctlTransactWriteKind && response.Hint==expected_hint &&
+        response.IoStatus.Status==STATUS_SUCCESS && response.IoStatus.Information==expected.size() &&
+        response.Rsp.Write.FileInfo.FileSize==offset+expected.size(),"indexed HIP completion facts");
+    auto stopped=NativeDeferredStop::running;
+    eventually([&]{stopped=h.adapter->stop_deferred_writes_hosted();return stopped!=NativeDeferredStop::running;},
+        "indexed HIP worker retirement deadline");
+    const auto stats=h.adapter->deferred_write_stats();
+    const auto receipt=h.adapter->deferred_write_receipt();
+    std::cout<<"indexed_gpu_outcome submitted="<<stats.worker_submitted<<" advised="<<stats.advised
+        <<" forced="<<stats.cpu_forced<<" retired="<<stats.retirement_confirmed
+        <<" candidates="<<(receipt?receipt->candidate_count:0)<<'\n';
+    check(stopped==NativeDeferredStop::quiescent && stats.retirement_confirmed && stats.thread_exited &&
+        stats.worker_submitted==1 && stats.advised==1 && stats.response_attempts==1 && receipt &&
+        receipt->candidate_count==2 && receipt->advice.captured && receipt->advice.uniform_payloads,
+        "indexed HIP verified candidacy or retirement");
+    h.close(target);
+    const auto reopened=NativeFilesystemSnapshot::open_image(h.image,{NativeImageKind::indexed_paged,h.capacity});
+    reopened.verify_all();
+    check(reopened.read("target",offset,static_cast<std::uint32_t>(expected.size()))==expected &&
+        prior.read("target",offset,1).empty(),"indexed HIP image failed CPU readback");
+    const auto copies=verified_image_records(h,*receipt);
+    std::cout<<"indexed_gpu_write source_bytes="<<expected.size()<<" offset="<<offset
+        <<" worker_payload_bytes="<<receipt->candidate_bytes<<" matched_copies="<<copies
+        <<" image_bytes="<<h.image->extent()<<" response_ns="<<ns<<" parent_peak_commit="
+        <<controller_budget.peak_commit()<<'\n';
+  }
+  check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load() &&
+      WorkerExchangeSession::available() && !GetModuleHandleW(request.runtime_basename.c_str()),
+      "indexed HIP backing/worker retirement or parent runtime ownership");
+  return 0;
+}
+#endif
 }
 int wmain(int argc,wchar_t** argv){try{
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  if(argc==5 && std::wstring_view(argv[1])==L"--gpu-indexed-once")return gpu_indexed(argv[2],argv[3],argv[4]);
+#endif
   check(argc==2,"trusted CPU helper required");const std::filesystem::path worker(argv[1]);
   check(worker.is_absolute(),"absolute CPU helper required");
   transport_required();
-  for(unsigned kind=0;kind<4;++kind){
-    run(worker,kind);
+  for(const auto indexed : {false,true})for(unsigned kind=0;kind<4;++kind){
+    run(worker,kind,indexed);
     check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load(),
         "deferred fixture locked/working-set leak");
   }

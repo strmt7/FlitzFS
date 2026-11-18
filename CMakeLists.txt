@@ -845,6 +845,10 @@ if(FLITZFS_BUILD_WINFSP)
     add_executable(flitzfs_native_deferred_write_sdk_tests tests/test_native_deferred_write_sdk.cpp)
     target_include_directories(flitzfs_native_deferred_write_sdk_tests PRIVATE src)
     target_link_libraries(flitzfs_native_deferred_write_sdk_tests PRIVATE flitzfs_winfsp Threads::Threads)
+    if(FLITZFS_BUILD_HIP_ROUTE_PROBE)
+      target_compile_definitions(flitzfs_native_deferred_write_sdk_tests PRIVATE FLITZFS_INDEXED_HIP_FIXTURE=1)
+      target_link_libraries(flitzfs_native_deferred_write_sdk_tests PRIVATE flitzfs_hip_route_discovery)
+    endif()
     add_custom_command(TARGET flitzfs_native_deferred_write_sdk_tests POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLITZFS_WINFSP_DLL}" "$<TARGET_FILE_DIR:flitzfs_native_deferred_write_sdk_tests>")
     add_test(NAME owned_native_deferred_write_sdk COMMAND flitzfs_native_deferred_write_sdk_tests

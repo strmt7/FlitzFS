@@ -1,5 +1,14 @@
 # Validation ledger
 
+## Indexed deferred write and AMD output — 18 November 2026
+
+Twelve selected Windows executions cover raw fallback, independent codec
+validation, SDK callback ownership and AddressSanitizer with LZ4 enabled.
+The actual AMD fixture published two indexed extents and verified the GPU
+output in all four mirrored records. A separate CPU path reopened the image.
+The response sink was injected, and the fixture used private memory backing.
+[Exact source, binaries and measurements](evidence/indexed-lz4-deferred-2026-11-18.json)
+
 ## Indexed managed storage and on-demand memory locking — 18 November 2026
 
 The [indexed managed checkpoint](evidence/indexed-managed-winfsp-2026-11-18.json)

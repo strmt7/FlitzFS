@@ -1,0 +1,385 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "time_zone": "Europe/Berlin",
+  "source_base": "fd838f676d6cf7634754137c384e6c5021cbdfae",
+  "base_tree": "b2d545ebdef6b817109cc8e08d069584078e1a68",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "570d8e238caf36b6925ad9002ca252b0440420d0",
+      "worktree_sha256": "7005fe4bcce232b8f5e2470aecd625fee9b747eefe51aa46f36ffabe4e572db0"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "5e12b3493189647df2f45f70717ffcc9ab6b0ea3",
+      "worktree_sha256": "bf2fa79b51502f60d6b916d96b64f047fcae3c5f2ab29ff32423a818faa4290b"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "23b828c8263f8c1e70b21a6ed4ce14f25575abd6",
+      "worktree_sha256": "282d983e7f82170e590c7247ab3dc97fbd510e1668b6f6d2ab03ba57a70675b0"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "521369729be9cae5edc6a24b35564d0bec6e87a5",
+      "worktree_sha256": "e29ed6710537afbfb3c8996f297281dd6fb8b93ce8aaaddaa7d86a8d12297246"
+    },
+    {
+      "path": "src/store_codec.cpp",
+      "git_blob": "e28872abb6b8e80a3e3002c421089414451afd77",
+      "worktree_sha256": "0805c61dab87660991fdb1ab4410064c25baa5c09a26ca2114174ae6d07baa86"
+    },
+    {
+      "path": "src/store_codec.hpp",
+      "git_blob": "af08dae71dc3912fb5fd3525384b212321f005a8",
+      "worktree_sha256": "fff7f1928293746502cdfc44bd3559119f5a87a5f85aea9426b390bc0759dde7"
+    },
+    {
+      "path": "src/windows/native_deferred_write.cpp",
+      "git_blob": "33325003bd1c954cf1440fb5ca017ef1f7d581b1",
+      "worktree_sha256": "77c2a61a9cd862124eb932b58e7feee0eef38f4621142ea3c2547bb08a35d5f5"
+    },
+    {
+      "path": "src/windows/native_deferred_write.hpp",
+      "git_blob": "e724a0ea1f246b4ef85ff74f6b28f37a422efe50",
+      "worktree_sha256": "ebdcc36f91a61d7ba68e129d9fe6364dbefb5c72e50fdfe80417f7dac06ee13b"
+    },
+    {
+      "path": "src/windows/native_file_info.cpp",
+      "git_blob": "9f55cbb8de02399b234fa957e368ea0a359f9301",
+      "worktree_sha256": "0c959ed91b194296a13052c7dd42bad889d33319083de63b5bb75d13da41bd5c"
+    },
+    {
+      "path": "src/windows/native_file_info.hpp",
+      "git_blob": "8272d6a1bba3edec3b0607812f2b467b66a685d0",
+      "worktree_sha256": "6e5914f57c022335035aef69fcf4b04d8aecd58fd35d8f1240f6f751a5843c26"
+    },
+    {
+      "path": "src/windows/native_uniform_write.cpp",
+      "git_blob": "6589c6d44c0a5197abf66b0a3fae17eb95cfde70",
+      "worktree_sha256": "c0b0c4d7572f3ebfaf3d2d77eba360e69541d1d6855902daf1780055b1f692c3"
+    },
+    {
+      "path": "src/windows/native_uniform_write.hpp",
+      "git_blob": "13811948a43fcccebc92b8ccafc54280edce6161",
+      "worktree_sha256": "c691006000052c5b554b92ba03bf7a26132a06df16494bd7674c13f29e4b1576"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "d7d3df752a52175ae34e3aaa70a01f600388e32b",
+      "worktree_sha256": "86decf3084a36f535e3cbf6b045126647fb6c1b3b76856fff32e24049c716e6a"
+    },
+    {
+      "path": "src/windows/winfsp_native.hpp",
+      "git_blob": "a601925f518f19564ee01a2a5ac1ca6b2b87448f",
+      "worktree_sha256": "fea3e366ff920c76377fb157a597096256a07d9807fa3ca5adf1b9d5fec743a4"
+    },
+    {
+      "path": "tests/test_native_deferred_write_sdk.cpp",
+      "git_blob": "6d1c032046071764734f937f575c4fe52f5b3668",
+      "worktree_sha256": "1b84358e01db5f815600336e661163330ab0c13aff6bd7396346ce28b72b792f"
+    },
+    {
+      "path": "tests/test_native_indexed_volume.cpp",
+      "git_blob": "d4a023fd4aa1a77a8bf81799451ae2d3edd37ab1",
+      "worktree_sha256": "e42129a1708f771787d6f061516f7edf5f019c24fa7bb89dafddfcce0e7cf6ca"
+    }
+  ],
+  "scope": "Windows indexed and legacy storage, actual user-mode SDK callbacks, CPU-semantic worker controls and one real AMD indexed write on locked memory. Response sink injected and no driver install, mount or physical backing.",
+  "checks": {
+    "raw": {
+      "build": {
+        "run": "local-run-38b4c51de97b45e5af828efcb1e48706",
+        "result_sha256": "4a5209ae1bf8fac569b9ccf85a8dcddfcad7cf59f0668a4b1e3bd5643b81a84b",
+        "log_sha256": "d926565ccc97dbaf2da836df1def3ded74ba31c4e1a26bac8475f5f378d63553",
+        "seconds": 7.125,
+        "peak_job_bytes": 347906048,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-59970c37a9f34689847e307498ad554d",
+        "result_sha256": "b5daeb16db28f7d42dc706a2bdbaf4ae9e0b28e0c967f839b0344ddd640edd09",
+        "log_sha256": "7a656420fe8c12235c59bb0601977eac94b721d4f92526f1a7b9c905a8e0ba89",
+        "seconds": 31.42,
+        "peak_job_bytes": 71053312,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_managed_paged_volume"
+      ],
+      "advice_fixture": {
+        "decoder": false,
+        "offset": 68719476736,
+        "cpu_payload": 65560,
+        "advised_payload": 65560
+      },
+      "cache_sha256": "e941fdd9cdc99ed2be4d5fb2a9ce6ee3265695be715d6b8f766af8e9bf581d27",
+      "indexed_test_sha256": "272d5c6ef08713a094c105dbc63fc9932dbea78e08b2549bb6e3631822e1188b"
+    },
+    "codec": {
+      "configure": {
+        "run": "local-run-23137406962a444a8a33e0425ed96bc2",
+        "result_sha256": "cb06aa2d032554d1c4063b9c7f1dc33df41e9229488c03573f997f3f0373b2c0",
+        "log_sha256": "ca5e5bdc43ce1df446e53da638b5befb53a067111e7ec71ebd2cd524b4f00812",
+        "seconds": 1.873,
+        "peak_job_bytes": 26873856,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "build": {
+        "run": "local-run-dd2cf28dec6a454682cd0df79b68a6ca",
+        "result_sha256": "e3d1f875e8af5409986364b817ec9dd0739052f9ef4808b1f49a4c7112fc65f4",
+        "log_sha256": "0bfcc363c6403d33297993c128670cbcab23fab28ee58703c3b225829d88359a",
+        "seconds": 11.657,
+        "peak_job_bytes": 348119040,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-8cee7a74c11445f0bd07a96d174cf3e1",
+        "result_sha256": "a1869c0028db18bb32d1a55aedfa01d502c9e168a150d88d1d58c575cc43715d",
+        "log_sha256": "0e0d2a0f7885f57e1efad0e60c78c7bb3434273763425ca3ff22def503ff606b",
+        "seconds": 11.955,
+        "peak_job_bytes": 39018496,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_winfsp_paged_callbacks",
+        "owned_native_deferred_write_sdk",
+        "controlled_native_uniform_write_sdk",
+        "bounded_winfsp_native_data_invariants",
+        "bounded_winfsp_native_data_lz4_faults",
+        "bounded_hip_route_request_refusals"
+      ],
+      "advice_fixture": {
+        "decoder": true,
+        "offset": 68719476736,
+        "cpu_payload": 8476,
+        "advised_payload": 8487
+      },
+      "cache_sha256": "683663ca6f930a79538734a3142255c5828beacc06a948d281d7b971f17e5748",
+      "indexed_test_sha256": "47ef458173f4c1cb432afcf41d1fbe1244574a9a709a739873f18ea79e5beee5"
+    },
+    "asan_lz4": {
+      "configure": {
+        "run": "local-run-7de12108633c43baab1b321669ce96a9",
+        "result_sha256": "f4c0f7bb1a2934e131c5f09b6c45931286cda89e0f0fe9903c1f67beae8d3a16",
+        "log_sha256": "de1d4e52a9b3c23c07560743c2a25767cc58aada02dc3ba11aad3dff0d6b64f6",
+        "seconds": 1.466,
+        "peak_job_bytes": 26263552,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "build": {
+        "run": "local-run-90b9b4cb682e416bae7976c72441db3a",
+        "result_sha256": "026d83d45de1a34f498eb24def718fc9c8a7c724aa1a092f62cd73c51a46a0d4",
+        "log_sha256": "0ff2647a39f744e37cb687c8801de04d3c4f8c626f47fcae4f89153ce3d23ba0",
+        "seconds": 59.619,
+        "peak_job_bytes": 528883712,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "test": {
+        "run": "local-run-f17c479269784db99a4cceb4f373a6ad",
+        "result_sha256": "3974e10d050bb8ba203d6028dff22558db533ad9f0f219abeb35fc95273f1070",
+        "log_sha256": "a2d141851de1846164d7d197ad9fa5d3ae35015dfeb9f1f02860cede0371fa46",
+        "seconds": 31.787,
+        "peak_job_bytes": 1135067136,
+        "exit_code": 0,
+        "residual_children": 0
+      },
+      "passed": [
+        "bounded_native_indexed_volume",
+        "bounded_winfsp_paged_callbacks"
+      ],
+      "advice_fixture": {
+        "decoder": true,
+        "offset": 68719476736,
+        "cpu_payload": 8476,
+        "advised_payload": 8487
+      },
+      "cache_sha256": "8bb40236a34b625c9f738c63a564959ddfcae9854bb1c851210634a5ea295333",
+      "indexed_test_sha256": "bdae0e690c56309d440389c131ace65634a323e6558aa3158cc51446083699ac"
+    }
+  },
+  "sdk_exact_after_hardware_fixture_correction": {
+    "build": {
+      "run": "local-run-e0276319b5a6417ab34015843e6cbf53",
+      "result_sha256": "ec5b6979aa03990072d93cc0d9ed369e7eb0d943edc5cd132adea60cd8c85e4d",
+      "log_sha256": "5352aa697a4e40f7d1c51d5a348e099520481a99a97af10422c1bc821bb88be4",
+      "seconds": 3.233,
+      "peak_job_bytes": 363876352,
+      "exit_code": 0,
+      "residual_children": 0
+    },
+    "test": {
+      "run": "local-run-20e31e39152f4a5dab8b625af2348283",
+      "result_sha256": "07f9d6c1b814a20700ebbcc714ce45be38ab6d44547657bb3c05dd0b687b303b",
+      "log_sha256": "3a034a474ecd236a34a238cbc96de19f3df1f8c52b18da1169ac1f6851ceb87c",
+      "seconds": 0.494,
+      "peak_job_bytes": 38662144,
+      "exit_code": 0,
+      "residual_children": 0
+    },
+    "assertions": 113,
+    "indexed_cases": [
+      {
+        "mode": 0,
+        "offset": 33554432,
+        "bytes": 1114112,
+        "submitted": 0,
+        "advised": 0,
+        "forced": 0
+      },
+      {
+        "mode": 1,
+        "offset": 33554432,
+        "bytes": 1048576,
+        "submitted": 1,
+        "advised": 1,
+        "forced": 0
+      },
+      {
+        "mode": 2,
+        "offset": 33554432,
+        "bytes": 1048576,
+        "submitted": 1,
+        "advised": 0,
+        "forced": 1
+      },
+      {
+        "mode": 3,
+        "offset": 33554432,
+        "bytes": 1048576,
+        "submitted": 1,
+        "advised": 0,
+        "forced": 1
+      }
+    ]
+  },
+  "actual_amd": {
+    "job": {
+      "run": "local-run-07f3c2c8af2b4143bc62099c14b78a65",
+      "result_sha256": "9401b5c4ea82a25e33c88e96ed742813d9daee4ad683d3af0eefe651b9f369d9",
+      "log_sha256": "0710836ff3c2a08b2d4a864e6408af2b1995dabf6ee7c461d3324f259e834bbc",
+      "seconds": 1.33,
+      "peak_job_bytes": 128159744,
+      "exit_code": 0,
+      "residual_children": 0
+    },
+    "controller_sha256": "ade1ef5d0c727e98f37cca8c77ba40ffb7e74c3cf9ff630392e9e0fed3185753",
+    "worker_sha256": "d22a19b5409d9c899dda652198a5a943a623967ed361c5f792715c80fe56a707",
+    "worker_qualification_manifest_sha256": "682b6abd8e31e60832a9a05b941d10e357eb3212f65ddbd0be3957d31f45897a",
+    "worker_source": "d384b6c20cf686520e3a94c156e532307ca0fbf8",
+    "winfsp_user_mode_sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+    "runtime_basename_requested": "amdhip64_7.dll",
+    "identity_queries": 1,
+    "worker_submissions": 1,
+    "accepted_extents": 2,
+    "same_process_independent_cpu_reopen": true,
+    "hip_loaded_by_cpu_parent": false,
+    "retained_prior_snapshot_verified": true,
+    "matched_cpu_performance": false,
+    "source_bytes": 131072,
+    "offset": 33554432,
+    "worker_payload_bytes": 16918,
+    "matched_copies": 4,
+    "image_bytes": 1310720,
+    "response_ns": 1017498700,
+    "parent_peak_commit": 126885888
+  },
+  "retained_failures": [
+    {
+      "job": {
+        "run": "local-run-cba5fe3a93c946eba2abe524496582ae",
+        "result_sha256": "f5783b61ae2a9b6f06b019782cbf40eca347f467fcbc37646287d12189d0fadb",
+        "log_sha256": "8f79e883281afe92d987143e92ae8b67191c79529c87a8ffcf556f7d26b3e442",
+        "seconds": 30.953,
+        "peak_job_bytes": 71233536,
+        "exit_code": 8,
+        "residual_children": 0
+      },
+      "reason": "The new core fixture skipped Cleanup before Close. Production correctly refused it."
+    },
+    {
+      "job": {
+        "run": "local-run-47c4f85a00c04313b3674067d504e9a5",
+        "result_sha256": "c32f0b89dfb69593a2256e072ec06d3e2ee4b54873cc276c2784cdec2d8c2f00",
+        "log_sha256": "c06843f5a38540ed4a8f904669820e987d86fae8e78ad60846ca24baafb23c21",
+        "seconds": 11.431,
+        "peak_job_bytes": 39239680,
+        "exit_code": 8,
+        "residual_children": 0
+      },
+      "reason": "The codec matrix encountered the same fixture Close refusal. Remaining SDK tests passed."
+    },
+    {
+      "job": {
+        "run": "local-run-9008a218c3b04e13bd24babed5506090",
+        "result_sha256": "e51afa43c8aeaa0ee783c9b1c29912fc1fe3487d3ebd88c71dd67908292eca6d",
+        "log_sha256": "15882b529fed7200d45e532b9fd7042cdec03bb9d67c210e79908db491e87832",
+        "seconds": 0.567,
+        "peak_job_bytes": 56102912,
+        "exit_code": 1,
+        "residual_children": 0
+      },
+      "reason": "The explicit hardware fixture set memory-share divisor 2, below the planner minimum 16. Adapter acquisition and CPU response succeeded. The corrected fixture preflights its window before enqueue."
+    }
+  ],
+  "navigation": {
+    "job": {
+      "run": "local-run-91afdbfec97143e3a02bffbcb61e1373",
+      "result_sha256": "be53664cbbd36e725785da01389c7021a9b8b531def867b12bfb992e325f9a69",
+      "log_sha256": "d32fb6d078005337906fe2a0eeb5679d08e00f4f49a177877fc7b52b9bf36177",
+      "seconds": 49.463,
+      "peak_job_bytes": 1161490432,
+      "exit_code": 0,
+      "residual_children": 0
+    },
+    "provider_version": "0.2.43",
+    "receipt_sha256": "f18791d1ace43c009eca905f0663132bc16ce08d0705513c45ed43287b2e2f52",
+    "actual_searches": 1,
+    "native_response_sha256": "fafbb45fff8327bad9ec4eb97c130b45ba9a455859871db22093853f8d3ca27a",
+    "stored_search_sha256": "4d0ad39bd82782fcd01c9d1f22124ad225b11a553dcac34703e9e39b1bab413d"
+  },
+  "research": {
+    "job": {
+      "run": "local-run-506cec58145b49b096205fe6d58f6534",
+      "result_sha256": "39fd2c699e2214b85c3f8a34428f462c76d515c93ad32f13704b9a7e2505b62f",
+      "log_sha256": "5e91f3c97bec1fc0e8eb8fe22e7faa1372f8853fae2bc70771206b7944965d97",
+      "seconds": 9.504,
+      "peak_job_bytes": 1445134336,
+      "exit_code": 0,
+      "residual_children": 0
+    },
+    "receipt_sha256": "30f4daad25f2b63216def54794e15df75b2ff87c809f0d554d881851eeca2401",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "native_pages": [
+      {
+        "url": "https://github.com/lz4/lz4/blob/v1.11.1/doc/lz4_Block_format.md",
+        "final_http_status": 200,
+        "markdown_sha256": "b8200bacbbb5d56ab70abbfe65b5ae0decb4b93f800f9089c4b0fa34312ffd3b",
+        "capture_sha256": "325696bcd1121ac7af49c0cbd216f24acf786b68046bee7112c1dbc9d750be0c"
+      },
+      {
+        "url": "https://github.com/lz4/lz4/blob/v1.11.1/lib/lz4.h",
+        "final_http_status": 200,
+        "markdown_sha256": "6e23ccf0d13810b448fb720792da97c3b673ab56deb05f7feccf31df5f20fd4b",
+        "capture_sha256": "3fbbbc468391ef204d2a862e77653961f442747d71b55ff5f34d9a2bc61a4398"
+      }
+    ]
+  },
+  "unqualified": [
+    "ordinary automatic GPU routing",
+    "representative throughput or net compression advantage",
+    "mounted indexed Explorer I/O and response delivery",
+    "persistent repair and physical power-loss durability"
+  ]
+}

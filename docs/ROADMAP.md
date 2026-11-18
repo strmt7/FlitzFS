@@ -13,9 +13,16 @@ The 1,024-file Windows fixture verified byte readback, restart and simulated
 interrupted publication. The indexed file session now preserves detached data
 through final Close and reclaims large closed files in restartable batches.
 Indexed managed-head selection now supports verified compaction and the
-WinFsp SDK callbacks. The mount provider, idle controller and indexed AMD
-compression still need to be connected.
+WinFsp SDK callbacks. The mount provider and idle retirement controller
+still need to be connected.
 [Managed indexed evidence](evidence/indexed-managed-winfsp-2026-11-18.json)
+
+The indexed SDK adapter now supports controlled deferred AMD encoding.
+In the live 128 KiB fixture, both mirrored copies of each accepted extent
+matched the verified GPU stream after removing the indexed prefix. CPU reopen
+recovered the file independently. Automatic workload selection, persistent
+compression policy and end-to-end performance remain open.
+[Indexed AMD evidence](evidence/indexed-lz4-deferred-2026-11-18.json)
 
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now supplies both
 the helper and owned WinFsp composition. It sizes capacity from live headroom

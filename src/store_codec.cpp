@@ -288,6 +288,44 @@ EncodedStoreObject StoreCodecEncoder::encode_impl(Bytes input,bool cpu_fast) {
   result.decoded_digest=record_digest(input);
   return result;
 }
+Bytes prepend_lz4_literals(std::span<const std::byte> prefix,std::span<const std::byte> block,
+    std::size_t decoded_body_bytes) {
+  if(prefix.empty() || block.empty() || block.size()>=decoded_body_bytes ||
+      decoded_body_bytes>kStoreMaxObjectBytes || prefix.size()>kStoreMaxObjectBytes-decoded_body_bytes)
+    return {};
+  const auto token=std::to_integer<unsigned>(block.front());
+  std::size_t literals=token>>4,header=1;
+  if(literals==15) {
+    unsigned extension;
+    do {
+      if(header==block.size())return {};
+      extension=std::to_integer<unsigned>(block[header++]);
+      literals+=extension;
+      if(literals>decoded_body_bytes)return {};
+    }while(extension==255);
+  }
+  if(literals>decoded_body_bytes || literals>block.size()-header)return {};
+  const auto combined=prefix.size()+literals;
+  const auto extended=combined>=15;
+  const auto token_bytes=extended?2+(combined-15)/255:1;
+  const auto remaining=block.subspan(header);
+  const auto size=token_bytes+prefix.size()+remaining.size();
+  if(size>=prefix.size()+decoded_body_bytes)return {};
+
+  Bytes result;
+  result.reserve(size);
+  result.push_back(static_cast<std::byte>(((std::min)(combined,std::size_t{15})<<4)|(token&15U)));
+  if(extended) {
+    auto extra=combined-15;
+    while(extra>=255){result.push_back(std::byte{255});extra-=255;}
+    result.push_back(static_cast<std::byte>(extra));
+  }
+  // Inserting bytes before the first literal shifts both ends of each match.
+  // The existing offsets, match-length extensions and final literals remain valid.
+  result.insert(result.end(),prefix.begin(),prefix.end());
+  result.insert(result.end(),remaining.begin(),remaining.end());
+  return result;
+}
 EncodedStoreObject StoreCodecEncoder::encode_with_lz4(Bytes input,std::span<const std::byte> candidate) {
   if(input.size()>kStoreMaxObjectBytes)fail("object exceeds codec limit");
   if(impl_->options.mode==StoreCompressionMode::raw || input.empty() ||

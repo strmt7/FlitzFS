@@ -14,6 +14,10 @@ inline constexpr std::size_t kStoreEncoderMemoryCap=16U*1024U*1024U;
 inline constexpr std::size_t kStoreDecoderMemoryCap=2U*1024U*1024U;
 void validate_store_compression(StoreCompressionOptions options);
 bool store_codec_framing(std::uint32_t codec,std::uint32_t logical,std::uint32_t stored) noexcept;
+// Extend the first literal run of an already independently verified raw block.
+// The result is still private and must pass complete-frame decode validation.
+std::vector<std::byte> prepend_lz4_literals(std::span<const std::byte> prefix,
+    std::span<const std::byte> block,std::size_t decoded_body_bytes);
 struct EncodedStoreObject {
   std::uint32_t codec=kStoreRaw;
   std::vector<std::byte> payload;

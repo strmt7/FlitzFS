@@ -1,6 +1,8 @@
 #include "native_indexed_volume.hpp"
 #include "native_object_storage.hpp"
+#include "store_codec.hpp"
 #include "flitzfs/catalog.hpp"
+#include "flitzfs/gpu_lz4_verify.hpp"
 #include <algorithm>
 #include <iterator>
 #include <limits>
@@ -145,6 +147,28 @@ Bytes encode_extent(const IndexedInodeInput& inode,const IndexedExtentInput& ext
   std::copy(extent.bytes.begin(),extent.bytes.end(),bytes.begin()+extent_header);
   return bytes;
 }
+std::span<const std::byte> unique_extent_candidate(std::span<const NativeLz4ExtentCandidate> candidates,
+    std::uint64_t block) noexcept {
+  const NativeLz4ExtentCandidate* found=nullptr;
+  for(const auto& candidate:candidates)if(candidate.extent_index==block) {
+    if(found)return {};
+    found=&candidate;
+  }
+  return found?found->payload:std::span<const std::byte>{};
+}
+void apply_extent_candidate(StoreMutation& mutation,std::span<const std::byte> candidate,
+    std::unique_ptr<std::byte[]>& scratch) {
+  const auto frame=std::span<const std::byte>(mutation.bytes);
+  const auto body=frame.subspan(extent_header);
+  if(candidate.empty() || candidate.size()>=body.size() || !store_lz4_available())return;
+  try {
+    if(!scratch)scratch=std::make_unique<std::byte[]>(kNativeExtentBytes);
+    if(verify_gpu_lz4_candidate(body,candidate,{scratch.get(),body.size()})==GpuLz4Verification::verified)
+      mutation.lz4_candidate=prepend_lz4_literals(frame.first(extent_header),candidate,body.size());
+  }catch(const std::bad_alloc&) {
+    // Optional acceleration must leave the authoritative CPU frame available.
+  }
+}
 void verify_extent(const Bytes& bytes,const IndexedInodeInput& inode,std::uint64_t block) {
   if(bytes.size()<=extent_header || !magic(bytes,extent_magic) || get(bytes,8)!=inode.inode || get(bytes,16)!=block)
     fail(Code::corrupt,"indexed extent owner or logical offset mismatch");
@@ -224,7 +248,7 @@ class IndexedVolumeTransaction final {
 
   NativeInodeStorageMutationCommit write_inode(PagedObjectStoreWriter& writer,IndexedVolumeRoot& current,
       std::uint64_t id,std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
-      const NativeAutomaticMetadata& effect) {
+      const NativeAutomaticMetadata& effect,std::span<const NativeLz4ExtentCandidate> candidates) {
     const auto inode=data_inode(id);
     NativeInodeStorageMutationCommit result;
     result.offset=options.append?inode.size:offset;
@@ -237,7 +261,7 @@ class IndexedVolumeTransaction final {
     if(count)apply_automatic(inode,effect);
     result.bytes=static_cast<std::uint32_t>(count);
     result.state=staged_allocation(inode);
-    result.transaction=finish(writer,current);
+    result.transaction=finish(writer,current,id,candidates);
     return result;
   }
 
@@ -356,7 +380,8 @@ class IndexedVolumeTransaction final {
 
   void enable_workload() noexcept {next_.workload.enabled=true;}
 
-  NativeFsCommit finish(PagedObjectStoreWriter& writer,IndexedVolumeRoot& current) {
+  NativeFsCommit finish(PagedObjectStoreWriter& writer,IndexedVolumeRoot& current,
+      std::uint64_t advised_inode=0,std::span<const NativeLz4ExtentCandidate> candidates={}) {
     NativeFsCommit result;
     result.created_inodes=std::move(created_);
     if(nodes_.empty() && next_.workload==before_.workload) {
@@ -366,6 +391,7 @@ class IndexedVolumeTransaction final {
 
     std::vector<StoreMutation> records;
     std::vector<NativeNameEdit> edits;
+    std::unique_ptr<std::byte[]> candidate_scratch;
     for(const auto& [key,replacement]:names_) {
       const auto expected=index_.find(key);
       if(expected!=replacement)edits.push_back({key,expected,replacement});
@@ -390,7 +416,10 @@ class IndexedVolumeTransaction final {
           ++next_.extents;
           ++changed.added_extents;
         }
-        records.push_back({*object,false,encode_extent(n,{id,block,extent.payload})});
+        StoreMutation mutation{*object,false,encode_extent(n,{id,block,extent.payload})};
+        if(id==advised_inode)
+          apply_extent_candidate(mutation,unique_extent_candidate(candidates,block),candidate_scratch);
+        records.push_back(std::move(mutation));
       }
     }
     for(const auto& [id,changed]:nodes_) {
@@ -405,9 +434,9 @@ class IndexedVolumeTransaction final {
       const auto phase=changed.value?changed.value->lifetime:IndexedLifetime::linked;
       if(phase!=changed.original_lifetime) {
         const auto original=marker_id(id,changed.original_lifetime);
-        const auto current=marker_id(id,phase);
-        if(original && original!=current)records.push_back({original,true,{}});
-        if(current)records.push_back({current,false,Bytes{static_cast<std::byte>(phase)}});
+        const auto current_marker=marker_id(id,phase);
+        if(original && original!=current_marker)records.push_back({original,true,{}});
+        if(current_marker)records.push_back({current_marker,false,Bytes{static_cast<std::byte>(phase)}});
         remove_lifetime(changed.original_lifetime);
         add_lifetime(phase);
       }
@@ -930,9 +959,9 @@ void advance_indexed_retirement(PagedObjectStoreWriter& writer,const PagedObject
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter& writer,
     const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t id,
     std::uint64_t offset,std::span<const std::byte> bytes,NativeInodeWriteOptions options,
-    const NativeAutomaticMetadata& effect) {
+    const NativeAutomaticMetadata& effect,std::span<const NativeLz4ExtentCandidate> candidates) {
   IndexedVolumeTransaction transaction(source,current);
-  return transaction.write_inode(writer,current,id,offset,bytes,options,effect);
+  return transaction.write_inode(writer,current,id,offset,bytes,options,effect,candidates);
 }
 NativeInodeStorageMutationCommit truncate_indexed_inode(PagedObjectStoreWriter& writer,
     const PagedObjectStoreSnapshot& source,IndexedVolumeRoot& current,std::uint64_t id,

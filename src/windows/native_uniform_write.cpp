@@ -25,8 +25,9 @@ template<std::size_t N>std::wstring hex(const std::array<std::byte,N>& bytes){
   return result;
 }
 }
-std::vector<std::byte> own_native_uniform_source(std::span<const std::byte> bytes){
-  if(bytes.size()>kStoreMaxObjectBytes || (!bytes.empty()&&!bytes.data()))
+std::vector<std::byte> own_native_uniform_source(std::span<const std::byte> bytes,NativeFileInfoAllocation mode){
+  const auto limit=native_windows_write_limit(mode);
+  if(!limit || bytes.size()>limit || (!bytes.empty()&&!bytes.data()))
     throw std::invalid_argument("native write source bound");
   admit_source_copy(bytes.size());
   return bytes.empty()?std::vector<std::byte>{}:std::vector<std::byte>(bytes.begin(),bytes.end());
@@ -69,15 +70,15 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
   NativeUniformWriteStart start;
   if(pending_){start.admission=win_detail::failure(session_,STATUS_INVALID_DEVICE_STATE);return start;}
   completed_=false;result_={};
-  if(bytes.size()>kStoreMaxObjectBytes || (!bytes.empty() && !bytes.data()) ||
-      append!=(offset==UINT64_MAX) || !native_cleanup_metadata_valid(effect) ||
-      mode!=NativeFileInfoAllocation::native_reserved_cache){
+  const auto write_limit=native_windows_write_limit(mode);
+  if(!write_limit || bytes.size()>write_limit || (!bytes.empty() && !bytes.data()) ||
+      append!=(offset==UINT64_MAX) || !native_cleanup_metadata_valid(effect)){
     start.admission=win_detail::failure(session_,STATUS_INVALID_PARAMETER);return start;
   }
   start.admission=win_detail::boundary(session_,[&]{
     const auto before=session_.mutation_info(handle);FSP_FSCTL_FILE_INFO prepared{};
     if(!encode_native_file_info(before,mode,prepared))return win_detail::failure(session_,STATUS_INVALID_DEVICE_STATE);
-    auto owned=own_native_uniform_source(bytes);
+    auto owned=own_native_uniform_source(bytes,mode);
     const auto position=append?before.info.logical_bytes:offset;
     auto accepted=std::uint64_t(owned.size());
     if(constrained)accepted=position>=before.info.logical_bytes?0:(std::min)(accepted,before.info.logical_bytes-position);
@@ -85,7 +86,8 @@ NativeUniformWriteStart ControlledNativeUniformWrite::begin(const NativeFileHand
     std::uint64_t first=0;
     // GPU advice covers every complete interior extent that the CURRENT
     // resource/time plan admits. Prefix/tail and other bytes retain CPU encoding.
-    if(consent && worthwhile && position<=kNativeMaxFileBytes && accepted<=kNativeMaxFileBytes-position){
+    const auto maximum=native_windows_eof_limit(mode);
+    if(consent && worthwhile && position<=maximum && accepted<=maximum-position){
       const auto gap=(kNativeExtentBytes-position%kNativeExtentBytes)%kNativeExtentBytes;
       if(gap<=accepted){
         const auto eligible=(accepted-gap)/kNativeExtentBytes*kNativeExtentBytes;

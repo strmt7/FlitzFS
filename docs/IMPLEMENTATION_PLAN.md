@@ -260,15 +260,14 @@ also runs the in-memory WinFsp worker cases on ordinary local SDK builds.
    enumeration, allocation and ACL queries. Add long-path and Unicode behavior
    against the selected Windows contract. Replace foreground subtree scans with
    bounded validation. Run SDK, mounted Windows and recovery suites separately.
-6. Feed verified writes and readback into the normal AMD dispatch and CPU
-   recovery path. Bind each accelerated result to the selected inode, block
-   and content revision and encode the full indexed extent frame. Verify that
-   the CPU reader recovers it after restart with HIP unavailable. Compare
-   end-to-end costs and occupied bytes on the same inputs, including startup,
-   transfer, cancellation, verification and retained storage. Cover ordinary
-   foreground work, device loss and low-priority collective dispatch.
-   Complete the scale ladder and measure read/write amplification before
-   changing the release estimate.
+6. Connect the controlled indexed deferred write path to normal mounted
+   workload selection. The indexed writer checks candidate content against
+   the staged extent and publishes the inode and block in the verified LZ4
+   frame. The independent CPU reader can reopen it. Measure end-to-end
+   costs and occupied bytes on matched inputs, including setup, transfer,
+   verification and retained storage. Cover foreground contention, device
+   loss and low-priority collective dispatch before choosing automatic
+   selection rules. [Indexed callback and codec evidence](evidence/indexed-lz4-deferred-2026-11-18.json)
 
 ### Implementation steps
 
@@ -432,9 +431,13 @@ collective workload and complete occupied-byte benefits independently.
 5. Use ordinary workload observations plus small admitted experiments to decide
    whether foreground GPU work helps. Background compression may justify a GPU
    through stronger reduction even when minimum latency is not improved.
-6. Connect qualified discovery/profiles to the actual WinFsp/native write path.
-   Remove the need for a caller to manufacture static `consent`, `worthwhile`
-   and cost inputs as the normal product workflow.
+6. Connect qualified discovery and cost profiles to the owned production
+   provider. The explicit SDK adapter now accepts deferred indexed writes and
+   forwards independently verified candidates into the existing CPU-readable
+   frame. Move discovery and profile decisions outside callbacks, retain
+   validated configuration pins through launch, and admit work from measured
+   gains and fresh resource observations. Test the normal workflow without
+   fixture-supplied cost and workload inputs.
 7. Amortize setup with bounded owned work windows or reuse where measured useful.
    Keep bounded queues, finite kernels, fresh budgets and explicit retirement;
    never leave an unused helper running indefinitely to hide startup cost.

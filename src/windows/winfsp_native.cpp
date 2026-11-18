@@ -716,11 +716,10 @@ void WinFspNativeWritable::enable_deferred_writes_hosted(NativeDeferredWriteOpti
   std::lock_guard guard(impl_->control);
   if(impl_->callbacks_bound||impl_->deferred||impl_->foreground.load(std::memory_order_acquire))
     throw std::runtime_error("deferred writes require an unbound, unconfigured adapter");
-  if(impl_->info_policy==indexed_file_info)
-    throw std::invalid_argument("deferred compression requires indexed record support");
   if(!options.hint_query)options.hint_query=sdk_hint;
   if(!options.response_sink)options.response_sink=sdk_response;
-  impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,impl_->offline,std::move(options));
+  impl_->deferred=std::make_unique<NativeDeferredWriteService>(impl_->session,impl_->control,
+      impl_->offline,std::move(options),impl_->info_policy);
 }
 void WinFspNativeWritable::publish_deferred_health_hosted(const GpuHealthEvidence& health){
   std::lock_guard guard(impl_->control);
@@ -730,6 +729,10 @@ void WinFspNativeWritable::publish_deferred_health_hosted(const GpuHealthEvidenc
 NativeDeferredWriteStats WinFspNativeWritable::deferred_write_stats() const{
   std::lock_guard guard(impl_->control);
   return impl_->deferred?impl_->deferred->stats_locked():NativeDeferredWriteStats{};
+}
+std::optional<NativeUniformWriteResult> WinFspNativeWritable::deferred_write_receipt() const {
+  std::lock_guard guard(impl_->control);
+  return impl_->deferred?impl_->deferred->completion_receipt_locked():std::nullopt;
 }
 NativeDeferredStop WinFspNativeWritable::stop_deferred_writes_hosted(){
   // Owned-resource cleanup must not depend on mutable environment flags.

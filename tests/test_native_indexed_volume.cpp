@@ -1,5 +1,6 @@
 #include "native_indexed_volume.hpp"
 #include "native_fs_fixture.hpp"
+#include "native_lz4_fixture.hpp"
 #include "native_security_fixture.hpp"
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/volume_head.hpp"
@@ -247,6 +248,60 @@ NativeFilesystemWriter resume_writer(const std::shared_ptr<Ram>& ram,std::uint64
       PagedObjectStoreWriter::resume(ram,identity(),generation,limits,raw));
 }
 
+void indexed_extent_advice() {
+  constexpr std::uint64_t block=1ULL<<20,offset=block*kNativeExtentBytes;
+  constexpr std::uint32_t header_bytes=24;
+  constexpr StoreCompressionOptions fast{StoreCompressionMode::fast,1,false};
+  const auto plain=native_lz4_fixture::source();
+  require(plain.back()!=std::byte{},"indexed advice fixture must retain a complete extent");
+  const auto alternative=native_lz4_fixture::alternative_block(plain);
+  const NativeLz4ExtentCandidate valid{block,alternative};
+  const auto run=[&](std::span<const std::byte> bytes,std::span<const NativeLz4ExtentCandidate> candidates,
+      StoreCompressionOptions compression) {
+    auto ram=empty();
+    auto writer=NativeFilesystemWriter::initialize_indexed(
+        PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,compression));
+    const auto created=file_create("target");
+    writer.apply({&created,1});
+    auto session=NativeFileSession::create(std::move(writer));
+    const auto handle=session.open("target",{true,true,true});
+    const auto prior=session.snapshot();
+    const auto written=session.write_storage_with_lz4_result(handle,offset,bytes,candidates);
+    require(written.offset==offset && written.bytes==bytes.size() &&
+        written.state.info.logical_bytes==offset+bytes.size(),"indexed advice changed committed write facts");
+    session.cleanup(handle,false);
+    session.close(handle);
+    const auto reopened=NativeFilesystemSnapshot::open_image(ram,indexed);
+    reopened.verify_all();
+    require(reopened.read("target",offset,static_cast<std::uint32_t>(bytes.size()))==Bytes(bytes.begin(),bytes.end()) &&
+        prior.read("target",offset,1).empty(),"indexed advice changed current or retained bytes");
+    const auto objects=PagedObjectStoreSnapshot::open(ram,limits);
+    const auto extent=objects.stat(kNativeIndexedDataObject|1);
+    require(extent && extent->logical_bytes==header_bytes+bytes.size(),"indexed advice changed data framing");
+    return std::pair{extent->stored_payload_bytes,std::move(ram->stable)};
+  };
+
+  const auto baseline=run(plain,{},fast);
+  const auto advised=run(plain,{&valid,1},fast);
+  if(store_lz4_available()) {
+    require(advised.first==alternative.size()+header_bytes && advised.first!=baseline.first,
+        "indexed store did not select the independently supplied LZ4 representation");
+  }else require(advised==baseline,"missing LZ4 changed CPU fallback");
+  const auto malformed=std::array{std::byte{0xf0},std::byte{0xff}};
+  const NativeLz4ExtentCandidate invalid{block,malformed},unrelated{block+1,alternative};
+  const std::array duplicate{valid,NativeLz4ExtentCandidate{block,{}}};
+  require(run(plain,{&invalid,1},fast)==baseline && run(plain,{&unrelated,1},fast)==baseline &&
+      run(plain,duplicate,fast)==baseline,"invalid, misaddressed or ambiguous indexed advice changed CPU bytes");
+  auto changed=plain;
+  changed[8193]^=std::byte{0x21};
+  require(run(changed,{&valid,1},fast)==run(changed,{},fast) &&
+      run(plain,{&valid,1},raw)==run(plain,{},raw),
+      "stale indexed advice or raw mode changed the accepted CPU representation");
+  const auto partial=std::span<const std::byte>(plain).first(plain.size()-3);
+  require(run(partial,{&valid,1},fast)==run(partial,{},fast),"full extent advice overrode a partial indexed extent");
+  std::cout<<"indexed_lz4_advice decoder="<<store_lz4_available()<<" offset="<<offset
+      <<" CPU_payload="<<baseline.first<<" advised_payload="<<advised.first<<'\n';
+}
 void growing_native_writer() {
   using Error=NativeFsErrorCode;
   constexpr unsigned files=1024,batch=32;
@@ -836,6 +891,6 @@ void indexed_transaction_recovery() {
 int main() {
   try { populated_native_snapshot();migration(false);migration(true);growing_native_writer();indexed_capacity_and_metadata();indexed_stable_inode_io();indexed_session_lifetimes();indexed_detach_recovery();
     indexed_large_retirement();indexed_head_independent_sequence();indexed_staged_rebuild();
-    indexed_managed_handoff();indexed_transaction_recovery(); }
+    indexed_managed_handoff();indexed_transaction_recovery();indexed_extent_advice(); }
   catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }
