@@ -60,10 +60,15 @@ class GpuRecoveryPolicy final {
   GpuRouteDecision consider(bool explicit_consent,bool workload_qualified,
       const GpuHealthEvidence&,const PreparedUniformLz4&,const uniform_lz4::Layout& quantum,
       std::uint64_t now_ms) noexcept;
+  // The supervisor supplies the exact allocation from its admitted anchor plan.
+  GpuRouteDecision consider_anchor(bool workload_qualified,const GpuHealthEvidence&,
+      std::uint64_t device_bytes,std::uint64_t now_ms) noexcept;
   // Report once. A failure can be recorded before teardown; an unconfirmed
   // worker continues to block EVERY new GPU attempt, including changed configs.
   bool finish(std::uint64_t ticket, GpuRecoveryOutcome outcome,
       bool supervisor_confirmed_quiescent) noexcept;
+  // A foreground yield does not say anything about device health.
+  bool abandon(std::uint64_t ticket,bool supervisor_confirmed_quiescent) noexcept;
   // Separate supervisor confirmation after a previously reported outcome.
   bool confirm_quiescent(std::uint64_t ticket) noexcept;
   unsigned consecutive_failures() const noexcept { return failures_; }

@@ -53,6 +53,10 @@ GpuRouteDecision GpuRecoveryPolicy::consider(bool consent,bool worthwhile,const 
       quantum.input_bytes==(std::min)(whole.input_bytes,std::uint64_t(quantum.chunks)*whole.chunk_bytes);
   return consider_work(consent,worthwhile,e,valid,quantum.total_bytes,now);
 }
+GpuRouteDecision GpuRecoveryPolicy::consider_anchor(bool worthwhile,const GpuHealthEvidence& evidence,
+    std::uint64_t device_bytes,std::uint64_t now) noexcept {
+  return consider_work(true,worthwhile,evidence,device_bytes!=0,device_bytes,now);
+}
 GpuRouteDecision GpuRecoveryPolicy::consider_work(bool consent,bool worthwhile,
     const GpuHealthEvidence& e,bool has_work,std::uint64_t device_bytes,std::uint64_t now) noexcept {
   if(!consent) return {GpuRouteReason::disabled};
@@ -140,6 +144,13 @@ bool GpuRecoveryPolicy::finish(std::uint64_t ticket, GpuRecoveryOutcome outcome,
   return true;
 }
 
+bool GpuRecoveryPolicy::abandon(std::uint64_t ticket,bool quiescent) noexcept {
+  if(!ticket || ticket!=active_ticket_ || reported_)return false;
+  reported_=true;
+  healthy_=0;
+  if(quiescent)active_ticket_=0;
+  return true;
+}
 bool GpuRecoveryPolicy::confirm_quiescent(std::uint64_t ticket) noexcept {
   if(!ticket || ticket != active_ticket_ || !reported_) return false;
   active_ticket_ = 0;

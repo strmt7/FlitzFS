@@ -1,6 +1,7 @@
 #include "winfsp_controller.hpp"
 #include "winfsp_native.hpp"
 #include "winfsp_memory_volume.hpp"
+#include "anchor_search_fixture.hpp"
 #include "flitzfs/paged_store.hpp"
 #include "native_fs_fixture.hpp"
 #include "windows_app_budget.hpp"
@@ -100,6 +101,107 @@ void callback_file(Provider& p,unsigned n,const Bytes& bytes) {
   request.Kind=FspFsctlTransactCloseKind;request.Req.Close.UserContext2=reinterpret_cast<UINT64>(context);
   require(FspFileSystemOpClose(&p.fs,&request,&response)==STATUS_SUCCESS,"controller SDK Close");
 }
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+std::array<std::byte,32> artifact_digest(std::string_view input) {
+  require(input.size()==64,"Expected exact artifact digest");
+  const auto digit=[](char c)->unsigned {
+    if(c>='0'&&c<='9')return c-'0';
+    if(c>='a'&&c<='f')return c-'a'+10;
+    throw std::invalid_argument("Expected lowercase digest");
+  };
+  std::array<std::byte,32> result{};
+  for(std::size_t i=0;i<result.size();++i)result[i]=static_cast<std::byte>(16*digit(input[2*i])+digit(input[2*i+1]));
+  return result;
+}
+int run_live_anchor_owner(std::string_view mode,const HipDiscoveredRoute& route,ProcessBudget profile) {
+  constexpr unsigned count=5;
+  const auto before=handle_count();
+  auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
+  Provider provider;Provider::active=&provider;
+  NativeMaintenancePolicy qualification;
+  qualification.maximum_cpu_busy_ppm=500000;
+  auto adapter=WinFspNativeWritable::create_managed_indexed(
+      head,id(90),image,id(1),{kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},{},qualification);
+  std::vector<Bytes> originals{data(kNativeExtentBytes,714)};
+  for(unsigned i=1;i<count;++i) {
+    auto derived=anchor_search_fixture::fragmented(originals.front(),i);
+    std::copy_n(originals.front().begin(),kNativeExtentBytes/8,derived.begin());
+    originals.push_back(std::move(derived));
+  }
+  WinFspControllerView result;
+  bool signalled=false;
+  std::array<unsigned,7> deferrals{};
+  std::uint64_t last_quantum=0;
+  {
+    WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),
+        NativeAnchorSearchOptions{route,profile,count-1,count-1});
+    await([&]{return controller.view().state==SessionState::running;},5000,"AMD controller startup deadline");
+    for(unsigned i=0;i<count;++i)callback_file(provider,i,originals[i]);
+    const auto deadline=GetTickCount64()+57000;
+    do {
+      result=controller.view();
+      if(result.maintenance_quanta!=last_quantum) {
+        last_quantum=result.maintenance_quanta;
+        ++deferrals.at(static_cast<std::size_t>(result.maintenance.deferral));
+      }
+      if(result.maintenance.published_groups || result.retired || result.maintenance_disabled)break;
+      if(mode=="yield" && result.anchor_search.submitted && !signalled) {
+        FSP_FSCTL_VOLUME_INFO info{};
+        require(provider.fs.Interface->GetVolumeInfo(&provider.fs,&info)==STATUS_SUCCESS,
+            "foreground callback could not run while AMD work was outstanding");
+        signalled=true;
+      }
+      Sleep(10);
+    }while(GetTickCount64()<deadline);
+    controller.stop_and_join();
+    result=controller.view();
+    require(result.retired && result.anchor_search.retirement_confirmed && !result.controller_failed &&
+        WorkerExchangeSession::available(),"AMD controller or worker did not retire");
+  }
+  const auto proved=NativeVolumeHeadView::open(head,id(90),[&](const auto& key)->std::shared_ptr<StoreByteIo>{
+    if(key!=id(1))throw std::runtime_error("AMD controller image identity");
+    return image;
+  });
+  const auto& snapshot=proved.filesystem();snapshot.verify_all();
+  for(unsigned i=0;i<count;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],
+      "AMD controller changed accepted file bytes");
+  std::cout<<"anchor_owner mode="<<mode<<" host="<<static_cast<int>(result.host)
+      <<" quanta="<<result.maintenance_quanta<<" groups="<<result.maintenance.published_groups
+      <<" phase="<<static_cast<int>(result.maintenance.phase)<<" sampled="<<result.maintenance.sampled_extents
+      <<" attempted="<<result.maintenance.attempted_groups<<" cpu_limit_ppm="<<qualification.maximum_cpu_busy_ppm
+      <<" submitted="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
+      <<" declined="<<result.anchor_search.declined<<" yielded="<<result.anchor_search.yielded
+      <<" advised_members="<<result.maintenance.advised_members_published
+      <<" handles_before="<<before<<" handles_after="<<handle_count()
+      <<" retired=true cpu_readback_verified=true deferrals=";
+  for(const auto occurrences:deferrals)std::cout<<occurrences<<',';
+  std::cout<<'\n';
+  if(mode=="yield")return signalled && result.anchor_search.yielded==1 &&
+      result.maintenance.published_groups==1 && result.maintenance.advised_members_published==0?0:2;
+  return result.anchor_search.verified==1 && result.maintenance.advised_members_published==count-1?0:2;
+}
+int live_anchor_owner(char** argv) {
+  const std::string_view mode(argv[6]);
+  require(mode=="accept" || mode=="yield" || mode=="both","Expected an AMD ownership trial");
+  const ProcessBudget profile{128,2000,5000,16};
+  HipRouteDiscoveryRequest request;
+  request.helper=argv[2];request.helper_sha256=artifact_digest(argv[3]);
+  request.anchor_module_sha256=artifact_digest(argv[4]);request.runtime_basename=std::filesystem::path(argv[5]).wstring();
+  request.worker=profile;request.maximum_identity_queries=4;
+  const auto binding=discover_system_hip_route(request);
+  require(binding.status==HipDiscoveryStatus::ready && binding.route && binding.route->pins->anchor_module_pinned() &&
+      !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
+  if(mode!="both")return run_live_anchor_owner(mode,*binding.route,profile);
+  const auto accepted=run_live_anchor_owner("accept",*binding.route,profile);
+  if(accepted)return accepted;
+  const auto warmed=handle_count();
+  const auto yielded=run_live_anchor_owner("yield",*binding.route,profile);
+  const auto retired=handle_count();
+  std::cout<<"anchor_owner_repeated handles_between="<<warmed<<" handles_after="<<retired<<'\n';
+  require(warmed==retired,"Repeated AMD controllers retained handles");
+  return yielded;
+}
+#endif
 void event_ownership() {
   Fixture f;Provider p;Provider::active=&p;
   HANDLE event=CreateEventW(nullptr,FALSE,FALSE,nullptr);require(event!=nullptr,"test event");
@@ -723,6 +825,9 @@ void indexed_group_callback_contract() {
 }
 int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+  if(argc==7 && std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argv);
+#endif
   // PDH may initialize process-wide native caches. Warm that same native path
   // before checking ownership balance; never count its caches as our handles.
   const bool lifetime_only=argc==2 && std::string_view(argv[1])=="--owned-lifetime";

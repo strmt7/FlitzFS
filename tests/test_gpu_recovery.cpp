@@ -74,6 +74,25 @@ int main() {
           "plaintext-only compression headroom admitted");
     }
     auto e = evidence();
+    {
+      GpuRecoveryPolicy anchor;
+      auto health=evidence();
+      const auto now=health.memory.captured_ms;
+      require(!anchor.consider_anchor(false,health,1024*1024,now).try_gpu(),"Unqualified anchor launched");
+      require(!anchor.consider_anchor(true,health,0,now).try_gpu(),"Empty anchor launch admitted");
+      require(!anchor.consider_anchor(true,health,1024ULL*1024*1024,now).try_gpu(),
+          "Anchor allocation bypassed the memory envelope");
+      advance(health);
+      const auto decision=anchor.consider_anchor(true,health,1024*1024,health.memory.captured_ms);
+      require(decision.try_gpu() && anchor.abandon(decision.ticket,false) &&
+          !anchor.finish(decision.ticket,GpuRecoveryOutcome::accepted,true),"Abandoned anchor accepted a late result");
+      advance(health);
+      require(anchor.consider_anchor(true,health,1024*1024,health.memory.captured_ms).reason==GpuRouteReason::worker_busy,
+          "Anchor relaunched before retirement");
+      require(anchor.confirm_quiescent(decision.ticket) && anchor.consecutive_failures()==0 &&
+          anchor.consider_anchor(true,health,1024*1024,health.memory.captured_ms).try_gpu(),
+          "Foreground yield quarantined a healthy adapter");
+    }
     GpuRecoveryPolicy policy;
     require(!policy.consider(false,true,e,batch(),100).try_gpu(), "consent bypass");
     require(!policy.consider(true,false,e,batch(),100).try_gpu(), "workload qualification bypass");

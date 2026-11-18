@@ -315,6 +315,12 @@ The supervisor compares the original request with the mapping after confirmed
 child exit and before returning the reply.
 [Windows mapping access and coherency](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-mapviewoffile)
 
+The shared-base caller can pass the verified package lease with its immutable
+snapshot. The supervisor owns that lease while it runs. The serialized volume
+owner can also borrow the exact supervisor wait handle while retaining its
+session. It separately checks child retirement after the supervisor wakes it.
+[Owned Windows controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)
+
 Shared-base producers validate the complete plan before starting the batch
 builder. Each append copies one base and its member extents directly into
 the final frame and digests the copied bytes. The builder moves the frame

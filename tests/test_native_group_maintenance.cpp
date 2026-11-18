@@ -58,7 +58,7 @@ void advised_indexed_maintenance() {
     if(progress.published_groups)break;
     auto window=controller.search_window();
     if(!window || reply)continue;
-    require(window.members().size()==count-1 && std::ranges::equal(window.base(),base),
+    require(progress.search_window_ready && window.members().size()==count-1 && std::ranges::equal(window.base(),base),
         "automatic candidate was not staged for search");
     const std::array<std::uint32_t,1> counts{count-1};
     const auto quantum=anchor_match::max_members;

@@ -63,6 +63,47 @@ volume with no pending retirement or compaction sleeps until an event.
 [Indexed checks](evidence/indexed-owned-windows-2026-11-18.json) ·
 [Memory reclamation](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-indexed-compaction)
 
+## AMD shared-base search
+
+A configured indexed controller can supply a qualified shared-base worker
+route and workload profile. The route binds the exact worker, anchor module,
+system runtime, adapter and node. The worker supervisor owns a reference to
+the file leases. The current installed-package binding covers the foreground
+LZ4 worker. Acquisition of a packaged shared-base profile still requires
+qualification.
+
+The owner stages a verified group window under the same CPU and memory
+admission used for group preparation. It receives each completed window once.
+It checks device headroom, sizes the complete immutable request and launches
+the existing coalesced worker outside the callback lock. CPU telemetry
+continues while storage preparation waits for the optional reply. The owner
+waits on the exact supervisor handle alongside the stop and activity events.
+It holds the session that owns the handle for the duration of the wait.
+[Windows wait contract](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
+
+A foreground callback can wake the owner at entry while a GPU request is
+outstanding. Activity or lost group headroom discards the optional result and
+signals cancellation. CPU work resumes on admitted opportunities while the
+supervisor retains the worker and its resources until retirement. A foreground
+yield carries no device-fault conclusion. Late results cannot reenter group
+preparation. Runtime and integrity failures retain their recovery
+classification, and transient pressure retries require fresh qualified
+observations and exact retirement. Elapsed worker time separately paces later
+GPU launches. Reply verification runs during a fresh idle opportunity, and
+publication goes through the same CPU comparison and packed-size checks.
+[Windows thread priorities](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
+[Worker ownership](WORKER_CHANNEL.md#asynchronous-sessions-and-independent-cpu-completion)
+
+The live SDK fixture exercised two controller lifetimes with five files each.
+The first published four AMD-advised members. A foreground callback in the
+second cancelled its outstanding advice, then CPU preparation published the
+group. Both reopened snapshots matched the input. The process had 328 handles
+between the two lifetimes and after the second, and the supervised process
+tree peaked at 105,611,264 bytes of commitment. The fixture supplied a 50%
+CPU-load admission profile after the standard profile deferred on measured
+load. Both trials used actual host observations and a real AMD worker with
+injected WinFsp lifecycle operations. [Source-bound owner evidence](evidence/amd-owned-group-search-2026-11-18.json)
+
 ## Retirement and qualification
 
 The 18 November SDK fixture held the quiet indexed controller for 31 seconds,

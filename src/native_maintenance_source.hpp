@@ -10,6 +10,7 @@ struct MaintenanceResources {
 // Sequence/capture ordering belongs to the serialized opportunity consumer.
 std::optional<MaintenanceResources> maintenance_resources(const NativeMaintenanceObservation&,
     std::uint64_t now_ms,const NativeMaintenancePolicy&) noexcept;
+std::size_t maintenance_group_member_limit(const MaintenanceResources&,bool indexed) noexcept;
 // Borrowed only under the session's existing serialized control contract.
 // The session owns this token; controllers retain weak references, never the
 // session or its writer. Impl addresses survive outer-session moves.

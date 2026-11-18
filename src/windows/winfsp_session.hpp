@@ -3,6 +3,7 @@
 #include "native_deferred_write.hpp"
 #include <memory>
 #include "flitzfs/native_session.hpp"
+#include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/mount_plan.hpp"
 
 namespace flitzfs {
@@ -87,7 +88,8 @@ class WinFspNativeSession final {
       std::shared_ptr<StoreByteIo> empty_target,StoreIdentity new_image_identity,
       StoreCompressionOptions candidate={});
   HostedIdleMaintenanceResult idle_recompression_hosted(HostedIdleMaintenanceAction);
-  WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
+  WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms,
+      NativeGroupSearchOpportunity={});
   bool background_maintenance_pending() const;
   void cancel_background_maintenance();
   void stop() noexcept;

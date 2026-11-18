@@ -1,0 +1,271 @@
+{
+  "baseline": "3611fa9a2213991989466a8bf4836ea218b174de",
+  "platform": "Windows 11 AMD64 build 26300",
+  "scope": "The real Windows volume controller used the linked SDK callbacks with injected WinFsp lifecycle operations and memory-backed indexed volumes. It automatically selected groups and submitted an authenticated AMD shared-base worker. The trial qualifies this owned integration under the recorded workload and profile.",
+  "foreground_admission": {
+    "standard_profile_maximum_cpu_busy_ppm": 125000,
+    "qualification_profile_maximum_cpu_busy_ppm": 500000,
+    "controller_elapsed_group_duty_ppm": 10000,
+    "controller_elapsed_gpu_duty_ppm": 10000,
+    "acceptance": "Live host telemetry and a bound worker produced advice for four extents. The CPU reader matched all five original files from the retired volume.",
+    "foreground_yield": "An SDK callback interrupted an outstanding request. CPU preparation published the group and the retired image matched all five inputs.",
+    "repeated_lifetime": "Handle count was 328 between lifetimes and 328 after the second. The first lifetime increased the cold-process count from 322 to 328."
+  },
+  "artifacts": {
+    "owner_executable_sha256": "12097a4993adbf3d7e5a647966fb1907116dd51647b1e6d5db95272e5502996f",
+    "winfsp_sdk_dll_sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+    "worker_sha256": "54e86cbfbc03e436013a6f56476c43cac9acc1108d9346d1d390ddcaf5e4b678",
+    "anchor_module_sha256": "c1891af07f325c57a05455ceea9f782a62752b346f5e3d11e177470953b37511",
+    "runtime_basename": "amdhip64_7.dll",
+    "changed_source_sha256": {
+      "CMakeLists.txt": "7ca21fec02a712825c068f5dea8cfcccf48a72dc94af7057739d85c9318834bf",
+      "include/flitzfs/gpu_recovery.hpp": "5c1415d359d51ef8e2e628007e4acec64778cd087ed4034f8fa90100d200677a",
+      "include/flitzfs/native_maintenance.hpp": "5d44d40888f7f6e839641519396f592bef1f2c2c84aed5e57b1ef62b51a89f3f",
+      "src/gpu_recovery.cpp": "3e59d43a2dd0e8f4a2dd4aaec0748238fff18b566785e6836b17a9ffd50ee3d7",
+      "src/native_maintenance.cpp": "c9c30beae1f7457cf4b6e1b2a561889a672ab552ab56fe6a310a510667caecb5",
+      "src/native_maintenance_source.hpp": "d619be1136158bf5cf1eccef00215049b06c1cf17346ec7fa89084e4a11abb04",
+      "src/windows/hip_route_binding.hpp": "9dbdd4f95e557ea04858f55010b13b9fb2d9e26a7bc3e682d0c5097037a0afe4",
+      "src/windows/hip_route_discovery.cpp": "b3805f6f179f325511ad0f2f59a2f494fa35b1e7d256e645c72f93d336f92d76",
+      "src/windows/hip_route_discovery.hpp": "fcf90c5df7dace98e25e8821b1df8f9cdeb100f1f0d53f715f33fcb8f6593c30",
+      "src/windows/winfsp_controller.cpp": "7a55d0fa1536f2448c88e1a5283a831b16fb5dd4fa4bfaf4f904e5755985c611",
+      "src/windows/winfsp_controller.hpp": "47b772fe5b2257ecac21f7fac3fdbea5246814c1a998d5f6eed8019f6842491c",
+      "src/windows/winfsp_memory_volume.cpp": "fc40f1da4d6ed4abd7710a113fe850619e60a20ce1d58651491d5d0c2d603d2a",
+      "src/windows/winfsp_memory_volume.hpp": "fddd3f9f65c958f4a8c8a1ff79a0f028a05e5f7abd299924b3d16efd242c768e",
+      "src/windows/winfsp_native.cpp": "2acc30d9d72536bdccc1b368b10feaadab0dfe0b23568509b002d54571b87244",
+      "src/windows/winfsp_native.hpp": "7ee3942e0c2fdc3d60e3a92ffc14750ecd0c87d6962ec55773bac9970d396bfa",
+      "src/windows/winfsp_session.cpp": "bd2125b4dcdaa73c3cdd6e88827fdb3715a6cdc3046bee50e77a8a29c1b18b0d",
+      "src/windows/winfsp_session.hpp": "9d2219b299d02ca93182766b77aec23b5ff93db27a09aa1b48c51dcb0819dfb1",
+      "src/windows/worker_exchange.cpp": "737dc1de5286286227ed3195c90b8df87469178970b3922ec63db0fad9f7c942",
+      "src/windows/worker_exchange.hpp": "4391132a67eb9711b360431721dc336ec64ffdbd76bcdeff08a0840c64d50ab3",
+      "tests/test_gpu_recovery.cpp": "71beb9fc45f43f4bc2e4073d26d15abf265961e049a20e440c263fbe16c2fec3",
+      "tests/test_native_group_maintenance.cpp": "537a19b509d3138738ee73198df9aa7607e2547f1ddcdd3b347349cf63c7a220",
+      "tests/test_winfsp_controller.cpp": "490b783c0c1bd00888b425824b7b763110cf55243219ec76c0afb8dc36b6f4b8",
+      "tests/test_worker_exchange.cpp": "116572b8ee4ae103ff2510a5adc277d36064a589c8a5e9720a7bfbf7e45e756a",
+      "src/windows/native_anchor_search.cpp": "2a5c42578bb3668b01001f4429185e23850a7bd1cf32be1db766fb945daf6f7c",
+      "src/windows/native_anchor_search.hpp": "bc45f782386ef8e12595e8114f87bf755b5ec38d56292ef1003541c8f2c88935"
+    }
+  },
+  "routing": {
+    "receipt_sha256": "8d2882744684b03482280de553eb0fa42f17eb4217b1e6f72c0e4931fb5c3e45",
+    "native_sha256": "d62e05470d1275e88dd999fe78b2b11c230de9ed8c5c7a8ee9232489ad03da4f",
+    "provider_version": "0.2.43",
+    "actual_searches": 1,
+    "baseline": "3611fa9a2213991989466a8bf4836ea218b174de"
+  },
+  "research": {
+    "receipt_sha256": "7b0487e8b8b60817da42c36da03ec48f9400547a5e37f16617bba894305cabdf",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "robots": true,
+    "external_LLM": false,
+    "pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 45880,
+        "markdown_sha256": "c8e546b6f82fc95c0b29298e5fe916e2e975c803c601da97f9e23e33e7556491",
+        "capture_sha256": "3b44de759b143f3416de13e388045321752294e0029b59a0f17c8445e2802205",
+        "failure_category": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects",
+        "success": true,
+        "http_status": 200,
+        "markdown_bytes": 36384,
+        "markdown_sha256": "7a194fedd060c100bdf06148e5fbaf3e58f3bc7c1d1423cd90b7ae0267a9de84",
+        "capture_sha256": "3613aac00ffd16efe03e3b83b1e8402c8f4f6e5880361fca9f95271fbf8477b9",
+        "failure_category": ""
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setevent",
+        "success": false,
+        "http_status": 200,
+        "markdown_bytes": 30653,
+        "markdown_sha256": "03ca08a77206adaf03f297723747f52544a6e60a74042dda7baafe55df642685",
+        "capture_sha256": "cdff1bb36153802c34bb73c1af8f010f24336f2e278b9bd8e73624170d60c888",
+        "failure_category": "unexpected_content"
+      }
+    ],
+    "scope": "The WaitForMultipleObjects and SetThreadPriority captures passed scope verification and support the wait and priority changes. The separate SetEvent content-marker failure is retained."
+  },
+  "final_checks": {
+    "release_build": {
+      "run": "local-run-755228de2f524d6394c5c97ebf0f852d",
+      "receipt_sha256": "02c022ffa1033ff08f8da54b2dc84324bb3e2f6c8624701dd5376281ba5a837e",
+      "log_sha256": "01a8c544b598a30e5c7ae486cb2310a42ab9d6f4a2133f7cd54543b47dfa8ac0",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 294481920,
+      "memory_bytes": 529530880,
+      "elapsed_seconds": 7.827892100001918,
+      "physical_available_bytes": 12221128704,
+      "stop_reason": null
+    },
+    "release": {
+      "run": "local-run-236c9cd5e92c4f3581d13936fbca3ea0",
+      "receipt_sha256": "3df37f0b99a5a058aaba15138cbb97266a5fdc353c3756f5e15fecae9232c7d5",
+      "log_sha256": "d8bc437d453e6085badf685017e7a6debb6761b5be96437f4cce8dbda5f02518",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 25841664,
+      "memory_bytes": 139460608,
+      "elapsed_seconds": 31.273016100007226,
+      "physical_available_bytes": 12228935680,
+      "stop_reason": null,
+      "passed_tests": [
+        "bounded_native_indexed_group_advice",
+        "bounded_gpu_recovery_policy",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory",
+        "bounded_windows_worker_exchange",
+        "bounded_hip_route_request_refusals"
+      ]
+    },
+    "asan_configuration": {
+      "run": "local-run-9a09ca6fada049eba67b8199f25314b4",
+      "receipt_sha256": "1138d16972476be6d17e51609e037644a157a845a02d2e7fba2de21f15ecf387",
+      "log_sha256": "7e2c1b06fa1d4d3046a54defdc41642c6134138d5044dc78e68e4651889b3795",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 293896192,
+      "memory_bytes": 390070272,
+      "elapsed_seconds": 16.885352299999795,
+      "physical_available_bytes": 11693936640,
+      "stop_reason": null
+    },
+    "asan_build": {
+      "run": "local-run-b63c2c84ad0b4bf2b7cb57cd435fb28b",
+      "receipt_sha256": "3c57d78cbd7e1a4dc23f1b1a0a02106ef82768bdb7662647d7e2347e75dd8a4d",
+      "log_sha256": "4049531ef50dd7452b9022380f7b66937bd4c709e788a51c1cb3ec331c1b6724",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 528338944,
+      "memory_bytes": 573571072,
+      "elapsed_seconds": 97.64075019999291,
+      "physical_available_bytes": 11160465408,
+      "stop_reason": null
+    },
+    "asan": {
+      "run": "local-run-f53532a2a93e403da7e5a4e3c693eb86",
+      "receipt_sha256": "6b2d93f3cca195d5d17c2b19dfb271247700c84c2a3f9658d7ccb3babc4fa49d",
+      "log_sha256": "ed9a0ed0ad63715977863e77f236970e2f92db9c3091a43a80abbff503fa35ca",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 436948992,
+      "memory_bytes": 440401920,
+      "elapsed_seconds": 34.115043400001014,
+      "physical_available_bytes": 12209078272,
+      "stop_reason": null,
+      "passed_tests": [
+        "windows_asan_runtime_preflight",
+        "bounded_native_indexed_group_advice",
+        "bounded_gpu_recovery_policy",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory",
+        "bounded_windows_worker_exchange",
+        "bounded_hip_route_request_refusals"
+      ]
+    },
+    "live_owner_build": {
+      "run": "local-run-0cb299bcfd694293a24cca885e5e916a",
+      "receipt_sha256": "61a38cc6a14389648cbf0e6a016ae3e89a0067296b4d7650a09aa417aeacd416",
+      "log_sha256": "dfc5c8130be32e2410fc1d283506fa9689dbe476a76e07e8d4650c7f8e1ad067",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 338821120,
+      "memory_bytes": 559939584,
+      "elapsed_seconds": 5.38528000000224,
+      "physical_available_bytes": 11560919040,
+      "stop_reason": null
+    },
+    "repeated_live_owner": {
+      "run": "local-run-9d87cd55051549da98e5a73eaef4073a",
+      "receipt_sha256": "278d89f9254de8a6877f409a335d02e6e1072e70e4fd422754b75e69b41864c1",
+      "log_sha256": "27082dcc753142735dfe42a71c7defa26cdf9695f1bd92899ca1a1d47acbf8c2",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 105611264,
+      "memory_bytes": 199229440,
+      "elapsed_seconds": 57.127285499998834,
+      "physical_available_bytes": 11470262272,
+      "stop_reason": null,
+      "outcomes": [
+        "anchor_owner mode=accept host=1 quanta=21 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=1 declined=0 yielded=0 advised_members=4 handles_before=322 handles_after=328 retired=true cpu_readback_verified=true deferrals=19,2,0,0,0,0,0,",
+        "anchor_owner mode=yield host=1 quanta=20 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=0 declined=0 yielded=1 advised_members=0 handles_before=328 handles_after=328 retired=true cpu_readback_verified=true deferrals=20,0,0,0,0,0,0,",
+        "anchor_owner_repeated handles_between=328 handles_after=328"
+      ]
+    }
+  },
+  "retained_followup": {
+    "initial_sdk_compile": {
+      "run": "local-run-87b064c5ed6f4355a5f12cc4b3bd9935",
+      "receipt_sha256": "421856ca015abf56cbb018d38ff52525c6e7ada761eb8bb7ea2b24ddccf32c10",
+      "log_sha256": "0d065f7d34d675760a1120f00f8b64cef504804c4de599afba3f7b9bc3ef4cc6",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 443850752,
+      "memory_bytes": 564133888,
+      "elapsed_seconds": 67.98968790000072,
+      "physical_available_bytes": 12177473536,
+      "stop_reason": null
+    },
+    "restoration": "Included the definition of the new native maintenance opportunity in the SDK session header and rebuilt successfully.",
+    "observed_standard_profile_deferral": {
+      "run": "local-run-2c07c3840cf745b28e8d14a047366205",
+      "receipt_sha256": "c73f6bbe37981dfc6a645fa3c26e9a91cfb98bfc9b9da8446a6bc2118d501e99",
+      "log_sha256": "9008dbc5e7442da768dda3ecf493462781e7e3fde583aedb34eda87d825930e4",
+      "exit_code": 2,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 49799168,
+      "memory_bytes": 203423744,
+      "elapsed_seconds": 57.59322009999596,
+      "physical_available_bytes": 12018143232,
+      "stop_reason": null,
+      "outcomes": [
+        "anchor_owner mode=accept host=1 quanta=39 groups=0 phase=5 sampled=0 attempted=0 submitted=0 verified=0 declined=0 yielded=0 advised_members=0 handles_before=322 handles_after=327 retired=true cpu_readback_verified=true deferrals=0,2,0,37,0,0,0,"
+      ]
+    },
+    "first_live_acceptance": {
+      "run": "local-run-29a964e2817442a998a2901860982d5e",
+      "receipt_sha256": "0dc8d966035fa5e57767f10b09655492efa1ea51da630f89bf3780fabeaff1d1",
+      "log_sha256": "8767a58698796059d862028978655e7707e4f2bf3e05fbc4ac86ad40ca134b61",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 105332736,
+      "memory_bytes": 199229440,
+      "elapsed_seconds": 38.42147549999936,
+      "physical_available_bytes": 11470532608,
+      "stop_reason": null,
+      "outcomes": [
+        "anchor_owner mode=accept host=1 quanta=21 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=1 declined=0 yielded=0 advised_members=4 handles_before=322 handles_after=328 retired=true cpu_readback_verified=true deferrals=19,2,0,0,0,0,0,"
+      ]
+    },
+    "first_live_yield": {
+      "run": "local-run-2e68d58b6ffa40f49d1c11ff58b15106",
+      "receipt_sha256": "edfd21a13b9a099ea00c0305617765dd45f85ab451d68102e8add06b409a6294",
+      "log_sha256": "04036f0fbf89b07f663931d04a01c4eaf5c25f1cf748346a01f7e5c10b00ccf7",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "peak_job_bytes": 50012160,
+      "memory_bytes": 199229440,
+      "elapsed_seconds": 40.09007960000599,
+      "physical_available_bytes": 11469373440,
+      "stop_reason": null,
+      "outcomes": [
+        "anchor_owner mode=yield host=1 quanta=21 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=0 declined=0 yielded=1 advised_members=0 handles_before=322 handles_after=328 retired=true cpu_readback_verified=true deferrals=19,2,0,0,0,0,0,"
+      ]
+    }
+  },
+  "next_qualification": "Source-bound packaged route and measured workload selection, representative full-image and system-interference measurements, and real mounted qualification in an appropriate isolated environment."
+}

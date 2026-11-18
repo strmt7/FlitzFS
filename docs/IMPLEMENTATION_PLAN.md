@@ -735,13 +735,15 @@ Indexed maintenance can now provide a verified source window from its own
 automatically discovered group. The writer stages one member per admitted
 opportunity, reuses the staged bytes on CPU fallback, and checks the group
 revision before consuming any result. One retained window per writer bounds
-the optional plaintext cache. The next Windows integration should submit
-complete windows outside the serialized filesystem call through the existing
-single-exchange supervisor. It should cancel stale work on foreground activity
-or lost headroom and measure complete compacted size, read cost and total
-background cost before automatic device selection.
+the optional plaintext cache. The configured Windows owner now submits each
+complete window outside the serialized filesystem call through the existing
+single-exchange supervisor. Foreground activity or lost headroom returns the
+group to CPU preparation. Package acquisition and measured device selection
+still need end-to-end qualification against complete compacted size, read cost
+and total background cost.
 [Group maintenance interface](AUTOMATIC_GROUP_MAINTENANCE.md) ·
-[Live discovery and fallback evidence](evidence/amd-discovered-anchor-2026-11-18.json)
+[Live discovery and fallback evidence](evidence/amd-discovered-anchor-2026-11-18.json) ·
+[Owned Windows controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

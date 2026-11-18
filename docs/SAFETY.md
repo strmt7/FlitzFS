@@ -22,6 +22,13 @@ and retirement by the deferred service wake that owner. Separately supervised
 driver-backed fixtures keep their own operation and process limits.
 [Controller contract](WINFSP_OWNED_CONTROLLER.md)
 
+The indexed owner treats AMD shared-base search as optional advice. Its worker
+runs outside the callback lock, and foreground activity switches group
+preparation back to the verified CPU bytes. Publication requires exact worker
+retirement, independent byte validation and the existing packed-size and
+transaction checks. The owner tracks unconfirmed retirement as a lifecycle
+failure. [AMD search ownership](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)
+
 The owned indexed memory path keeps a checked CPU view after dispatcher join.
 The sealing operation resolves old indexed context records only after the
 controller and writer retire. Routine retirement uses serialized bounded

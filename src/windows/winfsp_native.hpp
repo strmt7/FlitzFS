@@ -26,6 +26,7 @@ struct WinFspMaintenanceResult {
   WinFspMaintenanceState state=WinFspMaintenanceState::unavailable;
   NativeMaintenanceProgress progress;
   bool reclaimed=false,compacted=false,compaction_failed=false;
+  NativeSharedBaseSearchWindow search_window;
 };
 class WinFspNativeWritable final {
  public:
@@ -49,7 +50,7 @@ class WinFspNativeWritable final {
       std::shared_ptr<StoreByteIo> empty_head,StoreIdentity volume_identity,
       std::shared_ptr<StoreByteIo> empty_image,StoreIdentity image_identity,
       PagedStoreLimits,StoreCompressionOptions foreground={},
-      std::shared_ptr<StoreByteIo> empty_advice={});
+      std::shared_ptr<StoreByteIo> empty_advice={},NativeMaintenancePolicy group_policy={});
   static std::unique_ptr<WinFspNativeWritable> resume_indexed_retired(
       std::shared_ptr<StoreByteIo> head,StoreIdentity volume_identity,std::uint64_t expected_epoch,
       const NativeVolumeImageResolver&,StoreCompressionOptions foreground={},
@@ -63,13 +64,18 @@ class WinFspNativeWritable final {
   // Trusted low-priority controller opportunity, not a filesystem callback.
   // Try-lock/refuse foreground or deferred publication before backing access.
   // Caller supplies fresh observations and owns serialization with stop.
-  WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms);
+  WinFspMaintenanceResult advance_background_maintenance(const NativeMaintenanceObservation&,std::uint64_t now_ms,
+      NativeGroupSearchOpportunity={});
   bool background_maintenance_pending() const;
   void cancel_background_maintenance();
   // Before callback binding only. Duplicate a same-process event with signal
   // rights, without inheritance. The caller retains its own wait handle.
   void set_maintenance_event(HANDLE);
   bool maintenance_event_failed() const noexcept;
+  std::uint64_t foreground_activity() const noexcept;
+  bool foreground_pending() const noexcept;
+  void signal_foreground_for_anchor(bool) noexcept;
+  NativeMaintenancePolicy group_maintenance_policy() const noexcept;
   // One controller reads the demand, observes resources outside the callback
   // lock and returns a sample for exactly that still-current demand.
   std::optional<NativeGpuBudgetTask> gpu_budget_task() const;

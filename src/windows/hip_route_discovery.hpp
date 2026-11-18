@@ -21,6 +21,7 @@ struct HipRouteDiscoveryRequest {
   ProcessBudget worker;
   std::uint32_t maximum_identity_queries=0;
   std::array<std::byte,32> uniform_module_sha256{}; // Set by the installed package.
+  std::array<std::byte,32> anchor_module_sha256{}; // Shared-base worker package, exclusive of uniform.
 };
 struct HipDiscoveredRoute {
   GpuConfigurationId identity{};

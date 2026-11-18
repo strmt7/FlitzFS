@@ -1229,20 +1229,27 @@ void sized_transactions(const std::filesystem::path& executable) {
     check_closed(*result);
   }
   rejects([&]{(void)WorkerExchangeSession::start_sized(executable,{L"sized-ok"},SharedWorkerRequest{},sized_capacity,budget);});
+  std::weak_ptr<const int> retired_route;
   {
-    auto session=WorkerExchangeSession::start_sized(executable,{L"sized-hold"},source,sized_capacity,budget);
+    auto pins=std::make_shared<const int>(1);
+    retired_route=pins;
+    auto session=WorkerExchangeSession::start_sized(executable,{L"sized-hold"},
+        std::make_shared<const WorkerRequestSnapshot>(source),sized_capacity,budget,std::move(pins));
     eventually([&]{return session.process_id()!=0 || session.try_result();},2000,"sized child did not start");
     check(session.process_id()!=0 && !session.try_result(),"sized hold did not stay active");
+    check(!retired_route.expired() && WaitForSingleObject(session.supervisor_wait_handle(),0)==WAIT_TIMEOUT,
+        "live supervisor lost its route or prematurely signalled");
     rejects([&]{(void)WorkerExchangeSession::start(executable,{L"ok"},source);});
     rejects([&]{(void)WorkerExchangeSession::start_sized(executable,{L"sized-ok"},source,sized_capacity,budget);});
     check(session.request_cancel(),"sized cancel signal failed");
     eventually([&]{return session.try_result()!=nullptr;},4000,"sized cancel failed");
     check(session.try_result()->code==WorkerExchangeCode::cancelled &&
         session.try_result()->response.empty(),"cancelled sized output escaped");
-    eventually([&]{return session.retirement_confirmed() && WorkerExchangeSession::available();},
-        2000,"cancelled sized supervisor retained admission");
+    check(WaitForSingleObject(session.supervisor_wait_handle(),2000)==WAIT_OBJECT_0 &&
+        session.retirement_confirmed() && WorkerExchangeSession::available(),"cancelled sized supervisor retained admission");
     check_closed(*session.try_result());
   }
+  check(retired_route.expired(),"retired sized worker retained its package");
   rejects([&]{(void)WorkerExchangeSession::start_sized(executable,{L"sized-ok"},source,{32,32},budget);});
   check(WorkerExchangeSession::available(),"invalid sized admission held supervisor");
   std::cout<<"Sized channel: request="<<sized_capacity.request_bytes<<" reply="

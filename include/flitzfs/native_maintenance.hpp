@@ -24,6 +24,7 @@ struct NativeMaintenanceProgress {
   std::uint64_t next_opportunity_delay_ms=0,owned_payload_bytes=0;
   std::uint64_t checkpoints_restored=0,checkpoints_published=0;
   std::uint64_t advised_members_published=0;
+  bool search_window_ready=false; // Newly staged by this opportunity.
 };
 // An optional, separately admitted adviser can stage source incrementally
 // and supply a completed result. The maintenance step never waits for it.

@@ -1,4 +1,5 @@
 #pragma once
+#include "native_anchor_search.hpp"
 #include "winfsp_session.hpp"
 #include "maintenance_host.hpp"
 namespace flitzfs {
@@ -11,6 +12,7 @@ struct WinFspControllerView {
   std::uint64_t maintenance_quanta=0,reclamation_quanta=0,compactions=0,compaction_failures=0;
   std::uint64_t maintenance_elapsed_ns=0,maximum_quantum_ns=0;
   std::uint64_t gpu_budget_queries=0,gpu_budget_refusals=0;
+  NativeAnchorSearchStats anchor_search;
   bool maintenance_disabled=false,retired=false,offline=false,controller_failed=false;
 };
 // Explicit provider and plan only. One owned thread performs start, cooperative
@@ -22,10 +24,12 @@ struct WinFspControllerView {
 // stop may block in native code: live trials still require a process supervisor.
 class WinFspVolumeController final {
  public:
-  WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan);
+  WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,
+      std::optional<NativeAnchorSearchOptions> anchor={});
   // Qualified memory composition: domain must outlive the controller's joined
   // worker. Allocation and retirement share the callback's control lock.
-  WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,MemoryVolumeDomain&);
+  WinFspVolumeController(std::unique_ptr<WinFspNativeWritable>,WinFspSessionApi,NativeWriteMountPlan,MemoryVolumeDomain&,
+      std::optional<NativeAnchorSearchOptions> anchor={});
   ~WinFspVolumeController();
   WinFspVolumeController(const WinFspVolumeController&)=delete;
   WinFspVolumeController& operator=(const WinFspVolumeController&)=delete;

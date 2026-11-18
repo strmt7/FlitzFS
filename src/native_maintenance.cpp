@@ -45,6 +45,12 @@ std::optional<detail::MaintenanceResources> detail::maintenance_resources(
   return MaintenanceResources{(std::min)(physical,commit)/policy.memory_share_divisor,
       observed.cpu_busy_ticks>fraction(observed.cpu_total_ticks,policy.maximum_cpu_busy_ppm)};
 }
+std::size_t detail::maintenance_group_member_limit(const MaintenanceResources& resources,bool indexed) noexcept {
+  const auto scratch=fixed_scratch+(indexed?detail::kNativeGroupAnchorIndexBytes:0);
+  if(resources.memory_allowance<=scratch)return 0;
+  return static_cast<std::size_t>((std::min)(std::uint64_t(kNativeMaxExtents),
+      (resources.memory_allowance-scratch)/member_scratch));
+}
 struct NativeGroupMaintenance::Impl {
   struct Feature {
     NativeContentToken token;
@@ -301,8 +307,9 @@ struct NativeGroupMaintenance::Impl {
     if(work) {
       if(phase==Phase::preparing) {
         const auto grant=(std::min)(search.maximum_members,maximum_members);
-        if((search.reply || !writer.stage_shared_base_search(*work,grant)) &&
-            writer.advance_shared_base(*work,{},search.reply))
+        if(!search.reply && writer.stage_shared_base_search(*work,grant))
+          state.search_window_ready=static_cast<bool>(work->search_window());
+        else if(writer.advance_shared_base(*work,{},search.reply))
           phase=Phase::publishing;
       } else if(writer.maintenance_indexed()) {
         const auto previous_end=writer.maintenance_physical_end();
@@ -416,6 +423,7 @@ NativeSharedBaseSearchWindow NativeGroupMaintenance::search_window() const noexc
 NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanceObservation& observed,std::uint64_t now_ms,
     NativeGroupSearchOpportunity search) {
   if(!impl_)return {Phase::failed};auto& p=*impl_;
+  p.state.search_window_ready=false;
   const auto source=p.source.lock();
   if(p.stopped || !source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned()) {
     p.reset_index();p.state.phase=Phase::failed;return p.state;
@@ -428,10 +436,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(!resources || observed.captured_ms<p.last_capture)return p.defer(Defer::observation,true);
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
   p.last_capture=observed.captured_ms;
-  const auto allowance=resources->memory_allowance;
-  const auto scratch=fixed_scratch+(writer.maintenance_indexed()?detail::kNativeGroupAnchorIndexBytes:0);
-  const auto maximum_members=allowance>scratch?
-      (std::min)(std::uint64_t(kNativeMaxExtents),(allowance-scratch)/member_scratch):0;
+  const auto maximum_members=detail::maintenance_group_member_limit(*resources,writer.maintenance_indexed());
   if(maximum_members<2 || (p.work && p.work_members>maximum_members))return p.defer(Defer::memory,true);
   if(!writer.maintenance_has_candidates())p.reset_index();
   if(!writer.maintenance_has_candidates() ||
@@ -457,7 +462,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   const auto before=std::chrono::steady_clock::now();
   try {
     if(!writer.maintenance_indexed() || !p.checkpoint_step(writer,*source))
-      p.step(writer,static_cast<std::size_t>(maximum_members),search);
+      p.step(writer,maximum_members,search);
     if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
     p.state.phase=p.phase;p.state.deferral=Defer::none;
   }catch(const std::bad_alloc&){p.reset_index();p.state.phase=Phase::deferred;p.state.deferral=Defer::memory;}

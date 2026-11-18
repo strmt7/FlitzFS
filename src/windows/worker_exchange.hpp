@@ -50,7 +50,8 @@ class WorkerExchangeSession final {
       WorkerChannelCapacity capacity, ProcessBudget budget);
   static WorkerExchangeSession start_sized(const std::filesystem::path& helper,
       const std::vector<std::wstring>& arguments, SharedWorkerRequest request,
-      WorkerChannelCapacity capacity, ProcessBudget budget);
+      WorkerChannelCapacity capacity, ProcessBudget budget,
+      std::shared_ptr<const void> pinned_route={});
   ~WorkerExchangeSession();
   WorkerExchangeSession(WorkerExchangeSession&&) noexcept;
   WorkerExchangeSession& operator=(WorkerExchangeSession&&) noexcept;
@@ -62,6 +63,9 @@ class WorkerExchangeSession final {
   std::exception_ptr failure() const noexcept;
   // Confirm BOTH exact child and supervisor-thread exit; zero-time observation.
   bool retirement_confirmed() const noexcept;
+  // Borrow the exact supervisor handle while this serialized owner keeps the
+  // session alive. A signalled handle still requires retirement_confirmed().
+  void* supervisor_wait_handle() const noexcept;
   std::uint32_t process_id() const noexcept;
   // Signals only. TerminateJobObject and exit waits run on the supervisor.
   bool request_cancel() const noexcept;
@@ -71,7 +75,8 @@ class WorkerExchangeSession final {
  private:
   static WorkerExchangeSession start_impl(const std::filesystem::path&,
       const std::vector<std::wstring>&,std::span<const std::byte>,
-      WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={});
+      WorkerChannelCapacity,ProcessBudget,bool sized,SharedWorkerRequest snapshot={},
+      std::shared_ptr<const void> pinned_route={});
   struct Impl;
   explicit WorkerExchangeSession(std::unique_ptr<Impl>) noexcept;
   WorkerExchangeResult wait_result(); // Legacy synchronous adapter only.

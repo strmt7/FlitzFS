@@ -101,8 +101,12 @@ struct HipRouteResources {
 
 HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest& request) {
   HipRouteDiscoveryResult result;
+  const bool anchor=nonzero(request.anchor_module_sha256);
+  const auto* helper_name=anchor?L"flitzfs_hip_worker.exe":L"flitzfs_hip_lz4_worker.exe";
+  const auto& module_digest=anchor?request.anchor_module_sha256:request.uniform_module_sha256;
   if(!request.helper.is_absolute() || !ordinary_windows_file_path(request.helper.native()) ||
-      request.helper.filename()!=L"flitzfs_hip_lz4_worker.exe" || !nonzero(request.helper_sha256) ||
+      request.helper.filename()!=helper_name || (anchor && nonzero(request.uniform_module_sha256)) ||
+      !nonzero(request.helper_sha256) ||
       !hip_runtime_name(request.runtime_basename) || !valid_process_budget(request.worker) ||
       !request.maximum_identity_queries || request.maximum_identity_queries>64)
     return result;
@@ -117,12 +121,12 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
       return result;
     }
     std::optional<ReadOnlyFile> module;
-    if(nonzero(request.uniform_module_sha256)) {
-      const auto directory=request.helper.parent_path()/L"hip-uniform-lz4";
+    if(nonzero(module_digest)) {
+      const auto directory=request.helper.parent_path()/(anchor?L"hip":L"hip-uniform-lz4");
       parents.emplace_back(directory);
-      module.emplace(ReadOnlyFile::open(directory/L"flitzfs_rocm_uniform_lz4_candidate.dll"));
+      module.emplace(ReadOnlyFile::open(directory/(anchor?L"flitzfs_rocm_kernels.dll":L"flitzfs_rocm_uniform_lz4_candidate.dll")));
       if(!module->size() || module->size()>128ULL*1024*1024 ||
-          hip_detail::sha256_file(*module)!=request.uniform_module_sha256) {
+          hip_detail::sha256_file(*module)!=module_digest) {
         result.status=Status::worker_untrusted;
         return result;
       }
@@ -191,10 +195,10 @@ HipRouteDiscoveryResult discover_system_hip_route(const HipRouteDiscoveryRequest
         result.status=Status::resource_deferred;return result;
       }
       const auto runtime=pinned->runtime.digest();
-      const auto configuration=route_key(request.helper_sha256,runtime,request.uniform_module_sha256,match,node);
+      const auto configuration=route_key(request.helper_sha256,runtime,module_digest,match,node);
       const auto module_pinned=pinned->module.has_value();
       auto binding=std::shared_ptr<const HipRoutePins>(new HipRoutePins(request.helper,configuration,
-          runtime,ordinal,fresh.snapshot,module_pinned,std::move(pinned)));
+          runtime,ordinal,fresh.snapshot,module_pinned && !anchor,module_pinned && anchor,std::move(pinned)));
       result.route.emplace(HipDiscoveredRoute{configuration,runtime,fresh.snapshot,ordinal,
           std::move(binding),request.helper,request.runtime_basename});
       result.status=Status::ready;return result;

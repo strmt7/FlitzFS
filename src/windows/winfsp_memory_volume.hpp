@@ -9,7 +9,8 @@ namespace flitzfs {
 class WinFspMemoryVolume final {
  public:
   WinFspMemoryVolume(WinFspSessionApi,NativeWriteMountPlan,NativeImageKind=NativeImageKind::paged,
-      std::optional<NativeDeferredWriteOptions> acceleration=std::nullopt);
+      std::optional<NativeDeferredWriteOptions> acceleration=std::nullopt,
+      std::optional<NativeAnchorSearchOptions> anchor=std::nullopt);
   ~WinFspMemoryVolume();
   WinFspMemoryVolume(const WinFspMemoryVolume&)=delete;
   WinFspMemoryVolume& operator=(const WinFspMemoryVolume&)=delete;
