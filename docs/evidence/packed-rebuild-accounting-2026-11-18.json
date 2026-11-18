@@ -1,0 +1,597 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "released": false,
+  "source_base": "0a16ecc6203eb479bb4cb44242630083ec3dca35",
+  "source_tree": "f8c402f0c529c264d9da91708f6c4ede67f58681",
+  "tested_changed_sources": [
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "6ccad4c466685afe6f46b1a7e0b61361bd49c83b",
+      "worktree_sha256": "256d50136215d33f5c51031774af7e8b6fa467631b3d74d9b4a6424aa6ffe6c2"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "4cbf8790c5178b380b4bd84362fa93f0ecb9e763",
+      "worktree_sha256": "cbe59c317667afc5f422b0db13fb696f9f730f0a8e8f7cb180fde9acc3ed5374"
+    },
+    {
+      "path": "tests/test_native_shared_base.cpp",
+      "git_blob": "55030ced750eb0f73bf45b2b8fe64981181bd2db",
+      "worktree_sha256": "5294c7a2097b82ffacad6f205c7b65a3a972ab8d4f4f20d0862ba3d14b26ba64"
+    },
+    {
+      "path": "tests/test_staged_paged_rebuild.cpp",
+      "git_blob": "389adc9abc8d1ff8a97ea8e435a5e749c487a2a8",
+      "worktree_sha256": "4470e362d8fc03caa92de29e8ed5197a96cfc8a44003b672939f7f002bc658d7"
+    }
+  ],
+  "semantic_search": {
+    "receipt": "packed-compression-semantic-3e0ba79bfc2a4bed9f3d111a5aea857c",
+    "receipt_sha256": "79aa9fd7cb6d703a63ad035f96806e7cc26cb0d86832ad05493ac212407422e2",
+    "input_inventory_sha256": "a8f7d68bafeea7918da54e9cef0976bcb2db8cba796f37b2332312ad5bafc7c8",
+    "native_response_sha256": "0eb7fa7afa76584502fc3351ca445868f7987eea1cb7a80f15a548365d426d91",
+    "provider_version": "0.2.43",
+    "launcher": {
+      "run": "local-run-145608cbcb6d41e78cf54d54a39ea3d0",
+      "receipt_sha256": "1a84c8f0f52616b646ddcaa30c5ba0292eaa4410efe53677a6953409f5cdcc1e",
+      "log_sha256": "67d5b3782a37394bf6021978cd46c1d1339af7edfa5c10ca5784c8ce2fe153ea",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 40.19650890000048,
+      "timeout_seconds": 150.0,
+      "peak_job_bytes": 1150844928
+    }
+  },
+  "research": {
+    "directory": "packed-compression-research-3946244ded38411cb0b1ec3eb420b84d",
+    "receipt_sha256": "7a3e76568d7504a2ae94719922947abff2fcaaa7c2046e5611a377b6e1287a7e",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://parquet.apache.org/docs/file-format/",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 8943,
+        "markdown_sha256": "6c637a0d79b7ae1d8c90c3c03fdfc83b966534b9eadde0f1f7961601a4fe2f0d",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.487,
+        "capture": "parquet-format.native.json",
+        "capture_sha256": "a1e46aa4749b1e7046d33d6484d21c8736a7f8c02699a020c6df8ab26bc60afd",
+        "name": "parquet-format"
+      },
+      {
+        "url": "https://github.com/facebook/rocksdb/wiki/Rocksdb-BlockBasedTable-Format",
+        "success": true,
+        "native_success": true,
+        "http_status": 301,
+        "final_http_status": 200,
+        "markdown_bytes": 70734,
+        "markdown_sha256": "263d5c48fba685ec9c0740487c535fdce91abf4aa1793c5bd23226c9ba149814",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.437,
+        "capture": "rocksdb-table.native.json",
+        "capture_sha256": "cec6e36eed32d49e8bd4e0c275e4e90ebbcc758065cf5732701436c3e1f1d4d5",
+        "name": "rocksdb-table"
+      },
+      {
+        "url": "https://www.usenix.org/conference/fast26/presentation/zhang-kai",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 11210,
+        "markdown_sha256": "c87c5faa42cdd90e9cab5744c3e65355121ed5be9580ddb652c3dd504e4d256a",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 1.159,
+        "capture": "fast26-cloudts.native.json",
+        "capture_sha256": "e2ec7d89c964cd54bfcc8e104fd795761b287df78a0102a11d2932cf53cc308a",
+        "name": "fast26-cloudts"
+      }
+    ],
+    "launcher": {
+      "run": "local-run-36f8ffd052b545eeae2d65000985f9df",
+      "receipt_sha256": "cfdb1772f25f0593f0c6b23390209751f6ba5df2bed3fecbf4c9b1c4555087fe",
+      "log_sha256": "1407301bbcf6e10706d8b097f7ed3cc4b38e6f048182221735b9423160c0f0e1",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 7.647544799998286,
+      "timeout_seconds": 163.0,
+      "peak_job_bytes": 1257357312
+    }
+  },
+  "windows_validation": {
+    "raw": {
+      "build": {
+        "run": "local-run-d9ac497737204f9e826579dd8ce836d7",
+        "receipt_sha256": "7dbc2274b25e81ed1e8b8921f9994b3bffd8b89f447a1db71674a8c28a311f84",
+        "log_sha256": "92e1d212dbf6ec37b95c41be505bef6510c7422f5bbcd53df197e40a19dd2026",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 1,
+        "elapsed_seconds": 34.96448340000643,
+        "timeout_seconds": 125.0,
+        "peak_job_bytes": 414167040
+      },
+      "ctest": {
+        "run": "local-run-074558bdac814141aac04251019c60b3",
+        "receipt_sha256": "873e315a27d9447348946cef010ebfd141a961b214f36ea892efde92c6736e48",
+        "log_sha256": "3e79f23d0ba6dca233eb919e0676560e9c5e53780324cc6d99c9008a884eee3d",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 0,
+        "elapsed_seconds": 22.67437940000673,
+        "timeout_seconds": 190.0,
+        "peak_job_bytes": 58695680
+      },
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_staged_paged_rebuild",
+        "bounded_paged_mirrored_payloads",
+        "bounded_native_shared_bases"
+      ]
+    },
+    "codec_and_sdk": {
+      "build": {
+        "run": "local-run-a55bce7fb6234476b103c44ce48dde36",
+        "receipt_sha256": "a62265a0dbab6652e26dc391ca0ece9edf2db8c376eeb966b0a3946ec8ce90e8",
+        "log_sha256": "e54f9d01cb15672537909c0c7555adeb7adb11a1ccf55f104619243adca3b4bb",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 1,
+        "elapsed_seconds": 70.75979969999753,
+        "timeout_seconds": 125.0,
+        "peak_job_bytes": 742400000
+      },
+      "ctest": {
+        "run": "local-run-91e3bbae34af4c00ad39ea0a6e9e6e2b",
+        "receipt_sha256": "361564ad2a23953637c61e042c194bcb44eda925c8321733df15a0cda5a54154",
+        "log_sha256": "8b16d7c92fc5e7ff0b84abdf34876e7cffda11c9ab267f9f3d4e336d3d5e191e",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 0,
+        "elapsed_seconds": 52.91044289999991,
+        "timeout_seconds": 190.0,
+        "peak_job_bytes": 171339776
+      },
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_staged_paged_rebuild",
+        "bounded_paged_mirrored_payloads",
+        "bounded_native_shared_bases",
+        "bounded_native_staged_shared_bases",
+        "bounded_native_managed_paged_volume",
+        "bounded_winfsp_indexed_memory",
+        "bounded_winfsp_paged_callbacks",
+        "owned_native_deferred_write_sdk"
+      ]
+    },
+    "address_sanitizer": {
+      "build": {
+        "run": "local-run-c56e6eaf9d8941aaaf2221d72dbdbde4",
+        "receipt_sha256": "fe399b41ffa9f3edac04fe9be39ea66e65a36f372a6525ac2c5301899093511c",
+        "log_sha256": "539bb29db5ab5ffcc48a2aae9a232fd137f111aa172a39c661202e10ee3aafda",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 1,
+        "elapsed_seconds": 58.177773299990804,
+        "timeout_seconds": 175.0,
+        "peak_job_bytes": 782737408
+      },
+      "ctest": {
+        "run": "local-run-a30a9cc43ee94cfdb37f411e5aa96dc3",
+        "receipt_sha256": "5a094706cb608d189936ccbecde2294da272e87035082a0849006f9f458629cd",
+        "log_sha256": "eb0490d61286e919c0b0750d9571a6bf293ca382ff581aadf85f320206cdc17d",
+        "exit_code": 0,
+        "exit_confirmed": true,
+        "tree_retired": true,
+        "residual_children": 0,
+        "elapsed_seconds": 80.1081303999963,
+        "timeout_seconds": 190.0,
+        "peak_job_bytes": 1128378368
+      },
+      "passed": [
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_staged_paged_rebuild",
+        "bounded_paged_mirrored_payloads",
+        "bounded_native_shared_bases",
+        "bounded_winfsp_indexed_memory"
+      ]
+    }
+  },
+  "layout_comparison": {
+    "baseline_build": {
+      "run": "local-run-c089d76a4b744352a96910581fc43633",
+      "receipt_sha256": "9abc826480e42fb3da29999e84b07e8e3665f4888cc683366c0e1df14f1bc9a3",
+      "log_sha256": "68ce49d90f48a2b17185dddaea954382c5674a25c3309045dcadfaa2e360441e",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 1,
+      "elapsed_seconds": 4.603064299997641,
+      "timeout_seconds": 125.0,
+      "peak_job_bytes": 416575488
+    },
+    "baseline": {
+      "run": "local-run-2e5dea9954154f0f9f7ccb03f3cab128",
+      "receipt_sha256": "37b85bddedce7e15052f083b6c66d564ad6251a7290cdf13e3d0e51070e5cbf1",
+      "log_sha256": "3bb59fce18a5321afacdee294f3be6beaf1c64423f6773f2ce412b2f1c17b161",
+      "exit_code": 0,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 0.4962010999879567,
+      "timeout_seconds": 65.0,
+      "peak_job_bytes": 31064064
+    },
+    "scope": "Matched modeled raw record identities, input bytes and candidate inserts, replacements and erases. Both sides checked independent payload readback. New exact-size assertions also compare actual before and after compactions. The reported metadata bytes cover only the proposal size function.",
+    "cases": [
+      {
+        "failure_unit_bytes": 4096,
+        "mirrored": false,
+        "objects": 0,
+        "prior": {
+          "compacted_bytes": 139264,
+          "proposal_upper": 143360,
+          "proposal_read_bytes": 0
+        },
+        "packed": {
+          "compacted_bytes": 139264,
+          "proposal_upper": 143360,
+          "proposal_read_bytes": 0
+        }
+      },
+      {
+        "failure_unit_bytes": 4096,
+        "mirrored": false,
+        "objects": 55,
+        "prior": {
+          "compacted_bytes": 151552,
+          "proposal_upper": 155648,
+          "proposal_read_bytes": 8192
+        },
+        "packed": {
+          "compacted_bytes": 151552,
+          "proposal_upper": 155648,
+          "proposal_read_bytes": 8192
+        }
+      },
+      {
+        "failure_unit_bytes": 4096,
+        "mirrored": false,
+        "objects": 56,
+        "prior": {
+          "compacted_bytes": 151552,
+          "proposal_upper": 155648,
+          "proposal_read_bytes": 8192
+        },
+        "packed": {
+          "compacted_bytes": 151552,
+          "proposal_upper": 155648,
+          "proposal_read_bytes": 8192
+        }
+      },
+      {
+        "failure_unit_bytes": 4096,
+        "mirrored": false,
+        "objects": 1926,
+        "prior": {
+          "compacted_bytes": 786432,
+          "proposal_upper": 790528,
+          "proposal_read_bytes": 286720
+        },
+        "packed": {
+          "compacted_bytes": 733184,
+          "proposal_upper": 737280,
+          "proposal_read_bytes": 24576
+        }
+      },
+      {
+        "failure_unit_bytes": 4096,
+        "mirrored": true,
+        "objects": 0,
+        "prior": {
+          "compacted_bytes": 139264,
+          "proposal_upper": 147456,
+          "proposal_read_bytes": 0
+        },
+        "packed": {
+          "compacted_bytes": 139264,
+          "proposal_upper": 147456,
+          "proposal_read_bytes": 0
+        }
+      },
+      {
+        "failure_unit_bytes": 4096,
+        "mirrored": true,
+        "objects": 55,
+        "prior": {
+          "compacted_bytes": 163840,
+          "proposal_upper": 172032,
+          "proposal_read_bytes": 8192
+        },
+        "packed": {
+          "compacted_bytes": 163840,
+          "proposal_upper": 172032,
+          "proposal_read_bytes": 8192
+        }
+      },
+      {
+        "failure_unit_bytes": 4096,
+        "mirrored": true,
+        "objects": 56,
+        "prior": {
+          "compacted_bytes": 188416,
+          "proposal_upper": 196608,
+          "proposal_read_bytes": 24576
+        },
+        "packed": {
+          "compacted_bytes": 180224,
+          "proposal_upper": 188416,
+          "proposal_read_bytes": 24576
+        }
+      },
+      {
+        "failure_unit_bytes": 4096,
+        "mirrored": true,
+        "objects": 1926,
+        "prior": {
+          "compacted_bytes": 1318912,
+          "proposal_upper": 1327104,
+          "proposal_read_bytes": 335872
+        },
+        "packed": {
+          "compacted_bytes": 1114112,
+          "proposal_upper": 1122304,
+          "proposal_read_bytes": 40960
+        }
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "mirrored": false,
+        "objects": 0,
+        "prior": {
+          "compacted_bytes": 262144,
+          "proposal_upper": 327680,
+          "proposal_read_bytes": 0
+        },
+        "packed": {
+          "compacted_bytes": 262144,
+          "proposal_upper": 327680,
+          "proposal_read_bytes": 0
+        }
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "mirrored": false,
+        "objects": 55,
+        "prior": {
+          "compacted_bytes": 327680,
+          "proposal_upper": 393216,
+          "proposal_read_bytes": 8192
+        },
+        "packed": {
+          "compacted_bytes": 327680,
+          "proposal_upper": 393216,
+          "proposal_read_bytes": 8192
+        }
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "mirrored": false,
+        "objects": 56,
+        "prior": {
+          "compacted_bytes": 327680,
+          "proposal_upper": 393216,
+          "proposal_read_bytes": 8192
+        },
+        "packed": {
+          "compacted_bytes": 327680,
+          "proposal_upper": 393216,
+          "proposal_read_bytes": 8192
+        }
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "mirrored": false,
+        "objects": 1926,
+        "prior": {
+          "compacted_bytes": 6553600,
+          "proposal_upper": 6619136,
+          "proposal_read_bytes": 286720
+        },
+        "packed": {
+          "compacted_bytes": 917504,
+          "proposal_upper": 983040,
+          "proposal_read_bytes": 24576
+        }
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "mirrored": true,
+        "objects": 0,
+        "prior": {
+          "compacted_bytes": 262144,
+          "proposal_upper": 393216,
+          "proposal_read_bytes": 0
+        },
+        "packed": {
+          "compacted_bytes": 262144,
+          "proposal_upper": 393216,
+          "proposal_read_bytes": 0
+        }
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "mirrored": true,
+        "objects": 55,
+        "prior": {
+          "compacted_bytes": 393216,
+          "proposal_upper": 524288,
+          "proposal_read_bytes": 8192
+        },
+        "packed": {
+          "compacted_bytes": 393216,
+          "proposal_upper": 524288,
+          "proposal_read_bytes": 8192
+        }
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "mirrored": true,
+        "objects": 56,
+        "prior": {
+          "compacted_bytes": 786432,
+          "proposal_upper": 917504,
+          "proposal_read_bytes": 24576
+        },
+        "packed": {
+          "compacted_bytes": 393216,
+          "proposal_upper": 524288,
+          "proposal_read_bytes": 24576
+        }
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "mirrored": true,
+        "objects": 1926,
+        "prior": {
+          "compacted_bytes": 9961472,
+          "proposal_upper": 10092544,
+          "proposal_read_bytes": 335872
+        },
+        "packed": {
+          "compacted_bytes": 1310720,
+          "proposal_upper": 1441792,
+          "proposal_read_bytes": 40960
+        }
+      }
+    ]
+  },
+  "populated_native_group": {
+    "scope": "One explicit nine-coordinate request with the repeated base deduplicated into eight members. Every file in both compacted images independently matched its submitted bytes.",
+    "files": 1032,
+    "related_files": 8,
+    "unrelated_files": 1024,
+    "proposal_total_read_bytes": 1306422,
+    "occupied_before_bytes": 2506752,
+    "occupied_after_bytes": 1589248,
+    "failure_unit_bytes": 4096
+  },
+  "modeled_interruptions": {
+    "staged_rebuild": 1413,
+    "shared_base": 1071,
+    "changed_copied_descriptor_refused_before_publication": true,
+    "invalidation_during_index_phase": true
+  },
+  "live_controller": {
+    "run": "local-run-5ddde8ff905444e19737230522b31130",
+    "receipt_sha256": "576cca5866e546b3e94e54dd271a26aacf03faf362311ee1ddd065d712801213",
+    "log_sha256": "3cd3dbf0bef5260ca3b29e3db328fa763debf93b47625285adb6b1fc203bbdd4",
+    "exit_code": 0,
+    "exit_confirmed": true,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 69.15802139999869,
+    "timeout_seconds": 135.0,
+    "peak_job_bytes": 12091392,
+    "scope": "Actual resource observations and native SDK callbacks with injected lifecycle.",
+    "elapsed_ms": 33329,
+    "quanta": 34,
+    "max_quantum_ns": 662700,
+    "selected_epoch": 2,
+    "handles_before": 148,
+    "handles_after": 148
+  },
+  "amd_overwrite_regression": {
+    "run": "local-run-47040120dc1e49b182cabf4d73e40eae",
+    "receipt_sha256": "2759029fbe17bc182f050a5ef20b125ac4c6f303fe1f8fdd832ba6d3382c63c8",
+    "log_sha256": "307103069624983c8df5a04c6e38ba3984afd7329d099cc7b515814ee25877c8",
+    "exit_code": 0,
+    "exit_confirmed": true,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 4.189321099998779,
+    "timeout_seconds": 35.0,
+    "peak_job_bytes": 142028800,
+    "scope": "Installed AMD route in the grouped SDK callback fixture with injection.",
+    "worker_retired": true,
+    "verified_mirrored_records_each": 32,
+    "candidate_extents_each": 16,
+    "selected_foreground_backend": "cpu",
+    "binary_sha256": {
+      "flitzfs_native_deferred_write_sdk_tests.exe": "fb01a1c654089ccbe49716778824f1f6860ab91ffb4f5a68a0d5664b2e1aca3d",
+      "winfsp-x64.dll": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437",
+      "amd/flitzfs_hip_lz4_worker.exe": "d22a19b5409d9c899dda652198a5a943a623967ed361c5f792715c80fe56a707",
+      "amd/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll": "774129467f778a71a78f40486ef4bba3eb7f49ae5885fd89ca6a24ca18ac7994"
+    },
+    "trials": [
+      {
+        "pair": 1,
+        "amd_first": 0,
+        "cpu_ns": 2131700,
+        "amd_ns": 1258061600,
+        "cpu_image_bytes": 5111808,
+        "amd_image_bytes": 5111808
+      },
+      {
+        "pair": 2,
+        "amd_first": 1,
+        "cpu_ns": 2311500,
+        "amd_ns": 952640200,
+        "cpu_image_bytes": 5111808,
+        "amd_image_bytes": 5111808
+      },
+      {
+        "pair": 3,
+        "amd_first": 0,
+        "cpu_ns": 2961500,
+        "amd_ns": 987448200,
+        "cpu_image_bytes": 5111808,
+        "amd_image_bytes": 5111808
+      }
+    ]
+  },
+  "setup_failures": [
+    {
+      "run": "local-run-2e6b17541eee4fa3b1e970bbe35b2c71",
+      "receipt_sha256": "257902683cae40912c896b50bc0ae95d34751338b44f9fdf4eb906d54d54a859",
+      "log_sha256": "f2d9c204edd5f89dacb5617339a0b8bf8060e9877d6b392d0734b2ab1d31fd91",
+      "exit_code": 1,
+      "exit_confirmed": true,
+      "tree_retired": true,
+      "residual_children": 1,
+      "elapsed_seconds": 31.235849699995015,
+      "timeout_seconds": 125.0,
+      "peak_job_bytes": 414064640,
+      "reason": "The raw build invocation initially misspelled the mirrored payload test target. The corrected build and tests passed."
+    }
+  ],
+  "limitations": [
+    "Occupied bytes are specific to the matched fixtures and failure units.",
+    "Groups still need cooperative extent preparation and scalable persistent candidate discovery.",
+    "The AMD test exercised overwrites of existing grouped members. Collective GPU compression remains open.",
+    "The current durability evidence covers modeled interruptions and SDK lifecycle. Mounted Windows 11 and physical power-loss qualification remain open."
+  ]
+}

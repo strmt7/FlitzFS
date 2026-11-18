@@ -39,13 +39,13 @@ class PagedObjectStoreSnapshot final {
   StoreIdentity identity() const noexcept;
   PagedStoreLimits limits() const noexcept;
   std::uint32_t isolation_unit() const noexcept;
-  // Pure layout accounting for sorted hypothetical encoded records, using this
+  // Packed layout accounting for sorted hypothetical encoded records, using this
   // image's capability/isolation. No backend I/O, root publication or encoding.
   std::uint64_t rebuilt_size(std::span<const StoreObjectInfo> records) const;
-  // Stream the verified inventory once. Preserve the encoded sizes of
-  // untouched objects and charge replacement records at their raw upper bound.
-  // When a record changes identity on copy, omit its prior encoded payload
-  // from the lower bound. Its envelope and structural costs remain charged.
+  // Compare packed compaction at this image's isolation unit, preserving the
+  // encoding of untouched records. Use checked totals and changed lookup paths.
+  // Charge replacements at their raw upper bound. A rebound object's payload
+  // ranges from zero to its decoded length when the copy re-encodes it.
   PagedCompactedSizes rebuilt_size_after(std::span<const StoreMutation> changes,
       std::uint64_t rebound_object=0) const;
   PagedStoreInfo info() const noexcept;
@@ -139,14 +139,14 @@ class PagedObjectStoreWriter final {
   std::unique_ptr<Impl> impl_;
 };
 enum class PagedRewritePhase {verifying_source,copying,verifying_target,publishing,
-    verifying_publication,ready,failed};
+    verifying_publication,ready,failed,building_index};
 struct PagedRewriteProgress {
   PagedRewritePhase phase=PagedRewritePhase::failed;
   std::uint64_t objects=0,completed_in_phase=0;
 };
 // One control thread. Every operation takes the current writer and checks its
-// owner/generation before I/O. At most one object is processed per advance;
-// metadata finishing and root publication are separate bounded transitions.
+// owner/generation before I/O. Each advance handles one payload or up to a
+// leaf of descriptors. Tree finishing and root publication are separate steps.
 // Destruction cancels, releases only the target lease and retains partial bytes.
 class PagedObjectStoreWriter::Rewrite final {
  public:

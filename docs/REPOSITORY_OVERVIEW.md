@@ -273,6 +273,15 @@ driver to make a probe fit a document.
 
 ## Recent executed evidence
 
+Packed compaction now separates payload and index space. In a 1,926-object
+mirrored fixture, three changed records needed 40 KiB of sizing metadata
+reads, down from 328 KiB. Packing reduced complete compacted size by 15.5%
+at 4 KiB isolation and 86.8% at 64 KiB. The indexed grouping path also
+reopened and checked all 1,032 populated files around an eight-member
+publication. Actual Windows resource scheduling completed staged compaction
+and retired with balanced handles. The next step is cooperative preparation
+and automatic discovery. [Packed compaction evidence](evidence/packed-rebuild-accounting-2026-11-18.json)
+
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.
 The controller wakes on a stop, dispatcher termination, deferred write
@@ -287,8 +296,8 @@ and 63.6% less in the 64 KiB model. All 591 modeled indexed interruptions
 recovered a complete checkpoint. Six paired SDK overwrites on the CPU and
 AMD device preserved the other group members, with exact CPU reopen and
 equal occupied bytes. The current foreground comparison selects CPU.
-Scalable automatic candidate selection and cooperative size accounting
-remain open. [Indexed shared-base evidence](evidence/indexed-shared-base-2026-11-18.json)
+Scalable automatic candidate selection and preparation remain open.
+[Indexed shared-base evidence](evidence/indexed-shared-base-2026-11-18.json)
 
 The Windows controller collects GPU memory observations on demand. A
 relocated executable acquired the installed AMD package, and three 512 KiB

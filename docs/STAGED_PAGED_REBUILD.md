@@ -5,9 +5,9 @@ during staged copying and independently verifies both new copies. A staged
 attempt can reconstruct a lost bank while the source remains CPU-readable.
 
 Paged storage now supports an explicit candidate alongside a live foreground
-writer. Copying and all full-content verification advance one object at a time;
-finishing does not hide a volume scan. Native wrappers preserve each of the
-three existing namespace layouts and rebind only the new image identity.
+writer. Copying and full-content verification advance one object at a time.
+A separate index phase reads up to one leaf of record headers per opportunity.
+Native wrappers preserve their namespace format and rebind the image identity.
 This is a maintenance primitive, not an automatic scheduler, active-volume
 handoff, persistent restart journal or collective compression algorithm.
 
@@ -49,19 +49,26 @@ switch and separate reader-safe retirement.
 | Phase | Work per advance | Target roots |
 | --- | --- | --- |
 | Verify source | One complete independently decoded record | Absent |
-| Copy | One record encoded/preserved and independently compared | Absent |
+| Copy | One record encoded or preserved and independently compared | Absent |
+| Build index | Up to one leaf of checked candidate headers and the resulting index pages | Absent |
 | Verify target | One record compared to its source and generation | Absent |
 | Publish | Dependency barrier, two root writes/barriers, independent root reparse | Private complete candidate |
 | Verify publication | One record selected through the reparsed target tree | Private complete candidate |
 | Ready | Finish transfers the verified writer; no backing I/O | Complete candidate |
 
-Phase transitions process no extra record. They check aggregate inventory,
-finish bounded tree levels or initialize the fixed 128-KiB root area. Initial
-source verification completes before any target write. Each root replacement
-must match the independently read source root except its 16-byte identity.
-Data/metadata generations remain unchanged; image publication advances by two.
-Compaction preserves non-root encoded payloads; recompression uses the supplied
-bounded CPU policy. Existing synchronous copy APIs share the record-copy body.
+Phase transitions check totals, seal padding, finish bounded tree levels or
+initialize the fixed 128-KiB root area. Initial source verification completes
+before any target write. The copy builds a rolling BLAKE3 digest of the exact
+headers it writes and verifies. Index construction reparses bounded headers
+from the private packed payload stream and must reproduce that digest before
+publication. The subsequent independent CPU pass checks the data and both
+mirrors.
+
+Each root replacement must match the independently read source root except
+its 16-byte identity. Data-object generations remain stable and image
+publication advances by two. Compaction preserves non-root encoded payloads.
+Recompression uses the supplied CPU policy. Synchronous and staged copies
+use the same packed layout and checks.
 
 Target extent/contract drift, integrity failures and indeterminate publication
 terminally discard the attempt. Newly degraded metadata refuses publication;
@@ -73,10 +80,10 @@ backing reads, writes or flushes. API return/exception establishes the outcome;
 an absent/moved/finished candidate has no usable progress and reports the
 current API's `failed` phase.
 
-The engine retains one unfinished leaf and bounded references per tree level,
-not a volume-sized inventory. Object work is bounded by the existing 1-MiB
-object cap; tree finishing by the admitted depth of 16. The native frontend
-still has its complete 256-node/255-extent Model. No million-file claim follows.
+The engine retains one unfinished leaf and bounded references per tree level.
+Each payload step admits at most one 1-MiB object. Index work follows one
+leaf's capacity, and tree finishing follows the admitted depth of 16. The
+indexed native path uses the same staged layout with its paged namespace.
 Resource admission remains the provider/controller's responsibility. There is
 no thread, service, timer, online model or GPU launch. An OS flush can still
 block; this is a bounded-work contract, not a wall-clock or zero-interference

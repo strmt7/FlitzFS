@@ -36,18 +36,22 @@ void staged_native(unsigned layout,std::uint32_t unit,bool reencode) {
     const auto read_bytes=source->read_bytes+target->read_bytes,write_bytes=target->write_bytes;
     writer.advance_paged_recompression(candidate);
     const auto after=candidate.progress();
-    if(before.phase==after.phase)require(after.completed_in_phase-before.completed_in_phase<=1,"step processed more than one object");
+    if(before.phase==after.phase) {
+      const auto budget=before.phase==PagedRewritePhase::building_index?62U:1U;
+      require(after.completed_in_phase-before.completed_in_phase<=budget,"step exceeded its payload or index budget");
+    }
     const auto bytes=source->read_bytes+target->read_bytes-read_bytes+target->write_bytes-write_bytes;
     maximum_bytes=(std::max)(maximum_bytes,bytes);
     require(bytes<=8ULL*1024*1024,"bounded step exceeded fixture I/O envelope");
     if(after.phase==PagedRewritePhase::verifying_source)require(target->extent()==0,"source verification wrote target");
-    if(after.phase==PagedRewritePhase::copying || after.phase==PagedRewritePhase::verifying_target)
+    if(after.phase==PagedRewritePhase::copying || after.phase==PagedRewritePhase::building_index ||
+        after.phase==PagedRewritePhase::verifying_target)
       require(std::all_of(target->live.begin(),target->live.begin()+2*kStoreCommitUnit,
           [](auto byte){return byte==std::byte{0};}),"roots published before candidate verification");
     require(writer.read_inode(writer.inspect_path("stable.bin").info.inode,0,100)==data(31,18),"foreground read failed between steps");
     require(++steps<256,"staged copy made no forward progress");
   }
-  require(phases.size()==5,"candidate skipped a verification/publication phase");
+  require(phases.size()==6 && phases.contains(PagedRewritePhase::building_index),"candidate skipped a rebuild phase");
   const auto before_finish=io(*source,*target);auto copied=writer.finish_paged_recompression(candidate);
   require(io(*source,*target)==before_finish,"finish hid a full backing scan or barrier");
   require(candidate.progress().phase==PagedRewritePhase::failed,"finished candidate remained usable");
@@ -60,7 +64,7 @@ void staged_native(unsigned layout,std::uint32_t unit,bool reencode) {
       <<" maximum_step_io_bytes="<<maximum_bytes<<'\n';
 }
 void stale_phases(unsigned layout) {
-  for(const auto phase:{PagedRewritePhase::verifying_source,PagedRewritePhase::copying,
+  for(const auto phase:{PagedRewritePhase::verifying_source,PagedRewritePhase::copying,PagedRewritePhase::building_index,
       PagedRewritePhase::verifying_target,PagedRewritePhase::publishing,PagedRewritePhase::verifying_publication,PagedRewritePhase::ready}) {
     auto source=std::make_shared<Ram>(),target=std::make_shared<Ram>();source->failure_unit=target->failure_unit=4096;
     auto writer=fresh(source,layout);writer.apply(baseline());auto candidate=writer.prepare_paged_recompression(target,next_id());
@@ -142,6 +146,31 @@ void admission_and_read_failures() {
   auto reused=PagedObjectStoreWriter::resume(target,next_id(),objects.info().generation,limits);
   require(source->live==original && source->calls==calls,"admission/read failure altered source");
 }
+void changed_copied_descriptor(bool mirrored) {
+  auto source=std::make_shared<Ram>(),target=std::make_shared<Ram>();
+  source->failure_unit=target->failure_unit=4096;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto writer=mirrored?PagedObjectStoreWriter::create_mirrored(source,identity(),limits,raw):
+      PagedObjectStoreWriter::create(source,identity(),limits,raw);
+  const StoreMutation first{1,false,data(512,33)};
+  writer.commit({&first,1});
+  const auto unchanged=source->live;
+  auto work=writer.prepare_rebuild(target,next_id(),raw,false);
+  unsigned steps=0;
+  while(work.progress().phase!=PagedRewritePhase::building_index) {
+    work.advance(writer);
+    require(++steps<32,"packed index phase unreachable");
+  }
+  // Change only a private candidate's stored-digest field after copy verification.
+  // Descriptor framing still matches the stream. The copy transcript must refuse it.
+  target->live[2*kStoreCommitUnit+96]^=std::byte{1};
+  require(!work.advance(writer) && work.progress().completed_in_phase==1,
+      "descriptor test did not reach packed index finalization");
+  rejects([&]{work.advance(writer);},"index trusted a changed copied descriptor");
+  require(work.progress().phase==PagedRewritePhase::failed && !writer.poisoned() && source->live==unchanged,
+      "candidate descriptor failure affected the source");
+  rejects([&]{PagedObjectStoreSnapshot::open(target,limits);},"changed descriptor exposed a root");
+}
 void failures(unsigned layout,std::uint32_t unit) {
   auto source=std::make_shared<Ram>();source->failure_unit=unit;auto writer=fresh(source,layout);writer.apply(baseline());
   const auto original=source->live;const auto source_calls=source->calls;
@@ -184,6 +213,7 @@ void failures(unsigned layout,std::uint32_t unit) {
 }
 int main(){try {
   generic_maximum_and_empty();cancellation_and_owner();admission_and_read_failures();
+  for(bool mirrored:{false,true})changed_copied_descriptor(mirrored);
   for(unsigned layout=0;layout<3;++layout) {
     stale_phases(layout);
     for(auto unit:{4096U,65536U}) {

@@ -1,5 +1,24 @@
 # Validation ledger
 
+## Packed compaction and indexed size accounting — 18 November 2026
+
+In the matched 1,926-object mirrored fixtures, a three-record size proposal
+read 40 KiB of metadata instead of 328 KiB. Complete compacted size fell from
+1,318,912 to 1,114,112 bytes at 4 KiB isolation, and from 9,961,472 to 1,310,720
+bytes at 64 KiB isolation. Grouping eight members on a 1,032-file indexed
+volume reduced its compacted image from 2,506,752 to 1,589,248 bytes. Both
+images passed independent readback of every file.
+
+Twenty-one selected Windows test executions passed across codec, raw and
+AddressSanitizer builds. The staged rebuild suite exercised 1,413 modeled
+write and barrier interruptions and checked rejection of changed candidate
+headers and a stale source during indexing. The actual Windows resource
+controller advanced compaction in 34 opportunities with injected WinFsp
+lifecycle, independent CPU readback and exact handle balance after join.
+Three live AMD/CPU pairs reverified grouped overwrites. CPU remained faster
+for the measured foreground request.
+[Size, recovery and execution evidence](evidence/packed-rebuild-accounting-2026-11-18.json)
+
 ## Owner-controlled writable lifetime — 18 November 2026
 
 An indexed writable controller with injected WinFsp lifecycle stayed active

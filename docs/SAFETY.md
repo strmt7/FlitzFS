@@ -8,6 +8,14 @@ physical power-loss qualification; native mounted integration remains separate.
 
 ## Current execution policy
 
+Packed compaction keeps protected payload and index regions in disjoint
+failure units. Candidate index descriptors must reproduce the digest of the
+headers written and checked during copy. The independent CPU pass verifies
+payload and index replicas before publication. Proposal sizing starts from
+checked root totals and changed paths. Full scrubbing verifies unrelated
+records as a separate operation.
+[Packed layout and validation](evidence/packed-rebuild-accounting-2026-11-18.json)
+
 The writable controller owns its session until an explicit stop, dispatcher
 termination or storage fence. Quiet volumes wait on owned events. Publication
 and retirement by the deferred service wake that owner. Separately supervised

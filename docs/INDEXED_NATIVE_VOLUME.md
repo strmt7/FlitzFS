@@ -78,9 +78,9 @@ anchors and the index and volume totals. Bases are separate from visible
 files, so removing the file used as the base leaves other files readable.
 
 Explicit grouping prepares checked member frames and index changes before
-publication. It compares the complete compacted layouts using a single
-streamed walk of the object metadata. The bound charges replacement data
-and index pages at raw size and requires a strict reduction. A declined
+publication. It compares the complete packed layouts from the checked object
+totals and changed lookup paths. The bound charges replacement data and index
+pages at raw size and requires a strict reduction. A declined
 candidate performs no storage writes. An existing immutable anchor can
 accept more members in bounded transactions without rewriting the group.
 
@@ -89,12 +89,13 @@ as the file change. Ordered index ranks determine whether an anchor has
 surviving references without scanning its members. The last removal
 retires the base from the current root while old snapshots keep their
 previous records. Actual occupied space is reclaimed by compaction.
-The explicit comparison walks the full metadata inventory, so background
-publication on large volumes still needs cooperative size accounting.
-A grouped volume passed six paired SDK overwrites and exact CPU recovery
+The packed layout removes the inventory walk from proposal sizing. Background
+selection and extent preparation still need a scalable scheduler and persistent
+coherence index. A grouped volume passed six paired SDK overwrites and exact CPU recovery
 with the other three member files unchanged. The AMD worker compressed
 the incoming overwrite. Group discovery and encoding remained on CPU.
-[Shared-base evidence](evidence/indexed-shared-base-2026-11-18.json)
+[Shared-base evidence](evidence/indexed-shared-base-2026-11-18.json) ·
+[Packed layout evidence](evidence/packed-rebuild-accounting-2026-11-18.json)
 
 ## Writable transactions
 

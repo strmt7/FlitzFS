@@ -4,12 +4,11 @@ The explicit [mirrored-payload extension](MIRRORED_PAYLOADS.md) adds capability 
 with bank-separated payload copies and surviving-copy CPU reads. The ordinary
 capability-1 encoding described below remains unchanged and single-copy.
 
-Native [shared-base groups](SHARED_BASE_GROUPS.md) explicitly require capability-2
-backing. `rebuilt_size` provides pure streaming-layout accounting for sorted
-hypothetical encoded records, including payload replicas, headers, tree levels
-and isolation padding. It performs no backend I/O or encoding. Native group
-admission uses bounded inventories and conservative complete-image bounds; this
-does not add a volume-sized catalog to the paged storage engine.
+Native [shared-base groups](SHARED_BASE_GROUPS.md) require capability-2
+backing. Both paged capabilities use separate packed payload and index
+regions during compaction. The checked root summaries and changed object
+paths are enough to compare the full compacted sizes before a group commits.
+[Packed layout and accounting](#packed-rebuild-accounting)
 
 `include/flitzfs/paged_store.hpp` provides an explicitly selected storage path
 over the existing `StoreByteIo` backend/ownership contract. It implements actual
@@ -71,6 +70,42 @@ It requires a new empty target and a current quiescent source. It never changes
 the source or selects/replaces a user's volume. Partial targets survive failure;
 they have no valid root until the entire output has been checked. An interrupted
 final publication may leave a complete readable output, never a partial catalog.
+
+## Packed rebuild accounting
+
+A rebuild writes one contiguous payload stream, then packed index pages.
+Capability 2 stores each payload bank alongside its independently checkable
+peer. The index always has separate mirrored banks. Padding seals the end of
+each region. Both payload copies still precede the index, and every child
+index page precedes its parent in the respective copy. The existing object,
+index and checkpoint frames carry all the required offsets and digests.
+[Packed staged rebuild](STAGED_PAGED_REBUILD.md#work-phases)
+
+At the same isolation unit `U`, let `N` be the checked object count and
+`S` the sum of stored bytes in one copy. Payload space is the aligned
+size of `S + 128*N`, doubled for mirrored payloads. The number of index
+pages comes from the leaf capacity and each branch level rounded up to the
+branch capacity. The index occupies twice the aligned sum of its 4,096-byte
+pages. The two fixed root zones complete the occupied size.
+
+`rebuilt_size` accepts a hypothetical sorted inventory and performs no
+backing I/O. `rebuilt_size_after` reads changed paths and starts from the
+checked root's count and stored-byte total. It preserves untouched encodings,
+subtracts replaced or removed records, and charges additions at their
+raw lengths. An identity-rebound object contributes zero encoded bytes to
+the lower bound and up to its decoded length to the upper bound. These
+bounds apply to preserving compaction at the same failure unit. Recompression
+with a different codec policy requires measurement.
+
+Separating even/odd mirror pairs from the breadth of the packed index removes
+leaf-boundary padding as a dependency between unrelated records. The
+application of separate data and metadata regions is local to FlitzFS's
+copy-on-write rebuild and failure-unit geometry. Current format references
+also place metadata after leading data, and the 2026 CloudTS work explores
+separate metadata management in a different workload.
+[Apache Parquet format](https://parquet.apache.org/docs/file-format/) ·
+[RocksDB table format](https://github.com/facebook/rocksdb/wiki/Rocksdb-BlockBasedTable-Format) ·
+[USENIX FAST 2026 CloudTS](https://www.usenix.org/conference/fast26/presentation/zhang-kai)
 
 ## Separate on-image capability
 

@@ -637,15 +637,17 @@ SDK callback have executed. Keep comparison against complete compacted
 size and measure reads under normal Windows workloads.
 [Indexed group format and evidence](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
 
-The next slice should measure per-candidate metadata I/O at the populated
-file-count steps. Give complete-size comparison a resumable phase before
-automatic scheduling. Preserve prepared encodings across unrelated edits
-where their selected extent generations still match, and revalidate the
-size proof before publication. Compare a more localized accounting layout
-against the present packed streams before changing their format.
-Feed durable sparse candidate batches from E04 through this path, then
-measure the total cost of GPU candidate matching or encoding against the
-CPU baseline and retained space on held-out families.
+Packed compaction now bases total-size comparison on checked totals and
+changed lookup paths. This removes the full metadata scan from each indexed
+proposal. Actual compaction still needs separate copying, indexing and CPU
+verification opportunities. [Packed rebuild accounting](PAGED_OBJECT_STORE.md#packed-rebuild-accounting)
+
+Stage member selection and encoding so unrelated edits can proceed between
+opportunities. Preserve prepared encodings while each selected extent's
+generation still matches. Revalidate the final root and packed-size proof
+before publication. Feed durable sparse candidate batches from E04 through
+this path, then measure GPU matching and encoding against a CPU baseline
+and retained space on held-out families.
 
 ### Implementation steps
 

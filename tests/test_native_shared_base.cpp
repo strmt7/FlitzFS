@@ -305,21 +305,118 @@ void layout_accounting(std::uint32_t unit,bool mirrored,unsigned count) {
   const auto reads=source->read_calls,calls=source->calls;
   const auto expected=objects.rebuilt_size(records);
   require(source->read_calls==reads && source->calls==calls,"pure layout estimate performed I/O");
+  std::vector<StoreMutation> changes{{count+100,false,data(197,91)}};
+  if(count)changes.push_back({1,false,data(unit-128,533)});
+  if(count>1)changes.push_back({count,true,{}});
+  const auto estimate_start=source->read_bytes;
+  const auto estimated=objects.rebuilt_size_after(changes);
+  const auto estimate_bytes=source->read_bytes-estimate_start;
+  require(estimated.before==expected && source->calls==calls,"size estimate baseline or source differs");
+  require(estimate_bytes<=changes.size()*(objects.info().height+1)*8192ULL,
+      "size estimate read unrelated metadata");
   auto rebuilt=PagedObjectStoreWriter::rebuild(objects,target,next_id(82),limits,{StoreCompressionMode::raw,1,false});rebuilt.snapshot().verify_all();
   require(target->extent()==expected && rebuilt.snapshot().info().objects==count,"layout estimate differs at tree boundary");
   for(const auto& record:records)require(rebuilt.snapshot().read(record.id)==objects.read(record.id),"generic rebuild changed bytes");
+  for(const auto& change:changes) {
+    const auto at=std::lower_bound(records.begin(),records.end(),change.id,
+        [](const StoreObjectInfo& object,std::uint64_t id){return object.id<id;});
+    if(change.erase)records.erase(at);
+    else {
+      const auto length=static_cast<std::uint32_t>(change.bytes.size());
+      const StoreObjectInfo record{change.id,0,length,length};
+      if(at!=records.end() && at->id==change.id)*at=record;
+      else records.insert(at,record);
+    }
+  }
+  require(estimated.after_upper==objects.rebuilt_size(records),"affected object size proof differs from complete layout");
+  if(count==1926) {
+    {
+      auto writer=PagedObjectStoreWriter::resume(source,identity(),objects.info().generation,limits,
+          {StoreCompressionMode::raw,1,false});
+      writer.commit(changes);
+    }
+    auto changed=PagedObjectStoreSnapshot::open(source,limits);
+    auto revised=std::make_shared<Ram>();revised->failure_unit=unit;
+    auto compacted=PagedObjectStoreWriter::rebuild(changed,revised,next_id(85),limits,{StoreCompressionMode::raw,1,false});
+    compacted.snapshot().verify_all();
+    require(revised->extent()==estimated.after_upper && compacted.snapshot().info().objects==records.size(),
+        "affected object size proof differs from actual compacted image");
+  }
   if(records.size()>1){std::swap(records[0],records[1]);rejects([&]{objects.rebuilt_size(records);},"unordered hypothetical inventory accepted");}
+  std::cout<<"layout_accounting unit="<<unit<<" mirrored="<<mirrored<<" objects="<<count
+      <<" before="<<expected<<" after="<<estimated.after_upper<<" proposal_read_bytes="<<estimate_bytes<<'\n';
+}
+void indexed_group_on_populated_volume() {
+  constexpr unsigned unrelated=1024,group_size=8,batch=32;
+  constexpr StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  auto ram=std::make_shared<Ram>();
+  ram->failure_unit=4096;
+  const auto name=[](unsigned file){return "separate-"+std::to_string(file);};
+  Bytes original;
+  std::uint64_t proposal_reads=0;
+  NativeSharedBaseCommit result;
+  {
+    auto writer=fresh(ram,true);
+    for(unsigned first=0;first<unrelated;first+=batch) {
+      std::vector<NativeFileMutation> operations;
+      operations.reserve(batch*2);
+      for(unsigned file=first;file<first+batch;++file) {
+        const auto path=name(file);
+        operations.push_back(file_create(path));
+        operations.push_back(file_write(path,0,data(17,file)));
+      }
+      require(writer.apply(operations).created_inodes.size()==batch,"populated grouping fixture creation");
+    }
+    populate(writer,group_size);
+    auto prior=writer.snapshot();
+    auto keys=selections(prior,group_size);
+    original=ram->stable;
+    const auto begin=ram->read_bytes;
+    result=writer.compress_shared_base(keys.front(),keys);
+    proposal_reads=ram->read_bytes-begin;
+    require(result.applied && result.members==group_size &&
+        writer.snapshot().shared_base_info().members==group_size && !prior.shared_base_info().enabled,
+        "populated indexed volume rejected a related family or changed the prior root");
+  }
+  auto baseline=image(std::move(original),4096);
+  auto before=std::make_shared<Ram>(),after=std::make_shared<Ram>();
+  before->failure_unit=after->failure_unit=4096;
+  auto a=NativeFilesystemWriter::compact(view(baseline),before,next_id(86),raw);
+  auto b=NativeFilesystemWriter::compact(view(ram),after,next_id(87),raw);
+  const auto prior=a.snapshot();
+  const auto current=b.snapshot();
+  require(after->extent()<=result.after_compacted_upper_bound &&
+      result.before_compacted_lower_bound<=before->extent() && after->extent()<before->extent(),
+      "populated indexed compacted image did not shrink within proven bounds");
+  verify_family(prior,group_size);
+  verify_family(current,group_size);
+  for(unsigned file=0;file<unrelated;++file) {
+    const auto expected=data(17,file);
+    require(prior.read(name(file),0,17)==expected && current.read(name(file),0,17)==expected,
+        "grouped compaction changed an unrelated populated file");
+  }
+  std::cout<<"indexed_group_accounting files="<<unrelated+group_size<<" members="<<group_size
+      <<" proposal_read_bytes="<<proposal_reads<<" before="<<before->extent()<<" after="<<after->extent()<<'\n';
+}
+void layouts(std::uint32_t unit) {
+  for(bool mirrored:{false,true})for(unsigned count:{0U,55U,56U,1926U})layout_accounting(unit,mirrored,count);
 }
 }
-int main(){try {
+int main(int argc,char** argv){try {
+  if(argc==2 && std::string_view(argv[1])=="--layout") {
+    for(auto unit:{4096U,65536U})layouts(unit);
+    return 0;
+  }
+  require(argc==1,"unknown shared-base test mode");
   codec();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
+  indexed_group_on_populated_volume();
   for(auto unit:{4096U,65536U}){
     for(const auto indexed_layout:{false,true}) {
       lifecycle_and_sizes(unit,indexed_layout);fault_matrix(unit,indexed_layout);
       lost_base_bank(unit,indexed_layout);
       for(bool reencode:{false,true})staged_group(unit,reencode,indexed_layout);
     }
-    for(bool mirrored:{false,true})for(unsigned count:{0U,55U,56U,1926U})layout_accounting(unit,mirrored,count);
+    layouts(unit);
   }
   std::cout<<"PASS: "<<checks<<" native shared-base checks; "<<faults<<" injected write/barrier cases; memory CPU only\n";return 0;
 }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}}

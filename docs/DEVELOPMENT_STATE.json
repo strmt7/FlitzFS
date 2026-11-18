@@ -84,6 +84,20 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "packed_rebuild_accounting": {
+    "source_base": "0a16ecc6203eb479bb4cb44242630083ec3dca35",
+    "evidence": "docs/evidence/packed-rebuild-accounting-2026-11-18.json",
+    "selected_windows_ctest_passed": 21,
+    "matched_layout_cases": 16,
+    "mirrored_1926_object_proposal_metadata_read_bytes_before": 335872,
+    "mirrored_1926_object_proposal_metadata_read_bytes_after": 40960,
+    "populated_indexed_group_files": 1032,
+    "populated_indexed_group_compacted_bytes_before": 2506752,
+    "populated_indexed_group_compacted_bytes_after": 1589248,
+    "live_controller_quanta": 34,
+    "matched_grouped_cpu_amd_overwrites": 3,
+    "next": "Stage indexed group preparation across unrelated edits and add persistent sparse candidate discovery."
+  },
   "owned_writable_lifetime": {
     "source_base": "ad6085754dfa85d483a13607ec22b279b677accb",
     "evidence": "docs/evidence/owned-writable-lifetime-2026-11-18.json",
@@ -108,7 +122,7 @@
     "synthetic_64k_compacted_bytes_after": 524288,
     "matched_grouped_cpu_amd_overwrites": 6,
     "selected_foreground_backend": "cpu",
-    "next": "Introduce cooperative size accounting, automatic scalable candidate discovery and GPU collective processing."
+    "next": "Packed compaction now supplies bounded size accounting. Automatic candidate discovery and GPU collective processing remain open."
   },
   "finite_amd_exchange": {
     "source_base": "ac1547aca7cf1cd7071b43393ca61ca61848b34c",
