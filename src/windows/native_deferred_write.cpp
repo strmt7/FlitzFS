@@ -1,4 +1,5 @@
 #include "native_deferred_write.hpp"
+#include "hip_route_binding.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
 #include <algorithm>
 #include <chrono>
@@ -23,10 +24,12 @@ NativeDeferredWriteService::NativeDeferredWriteService(NativeFileSession& sessio
     health_=*options_.controller_health;
     const auto& memory=health_.memory;
     const auto gate=check_gpu_memory_budget(memory,memory.luid,memory.node_mask,memory.captured_ms,0);
-    budget_disabled_=!health_.compatible || !health_.sequence ||
-        health_.configuration!=options_.binding.configuration ||
-        gate==GpuGateCode::invalid_budget ||
-        (options_.expected==WorkerExecution::hip && !options_.controller_route_pins);
+    const auto& binding=options_.binding;
+    const auto& pins=options_.controller_route_pins;
+    budget_disabled_=!health_.compatible || !health_.sequence || health_.configuration!=binding.configuration ||
+        gate==GpuGateCode::invalid_budget || (options_.expected==WorkerExecution::hip &&
+        (!pins || (options_.measured_shape && !pins->uniform_module_pinned()) ||
+        !pins->matches(binding.helper,binding.configuration,binding.runtime_sha256,binding.ordinal,memory)));
   }
   thread_=std::thread([this]{run();});
 }
@@ -45,6 +48,9 @@ bool NativeDeferredWriteService::enqueue_locked(FSP_FILE_SYSTEM* fs,const Native
         !valid_process_budget(options_.budget) || !options_.deadline_ms ||
         options_.deadline_ms>options_.budget.timeout_ms || bytes.size()<kNativeExtentBytes ||
         (controller_collects_budget() && (!budget_event_ || budget_disabled_)))return false;
+    if(const auto& shape=options_.measured_shape) {
+      if(append || constrained || offset%kNativeExtentBytes || bytes.size()!=shape->input_bytes)return false;
+    }
     const auto now=GetTickCount64();
     const auto gate=check_gpu_memory_budget(health_.memory,health_.memory.luid,health_.memory.node_mask,now,0);
     if(gate!=GpuGateCode::admitted) {

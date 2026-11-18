@@ -421,13 +421,14 @@ bounded workers, recovery state machine, CPU validation, uniform LZ4 controller,
 native deferred responses and retirement accounting.
 **Planning effort:** 4–9 person-weeks, with hardware/research variance.
 
-The 17 November runtime acquisition checkpoint exercised the System32 and
-single-AMD-adapter scope of steps 1–3. The hardware phase fixture addressed a
-subset of step 4. It measured 1.19 s of device initialization in a 1.37 s
-exchange, with 2.57 ms of kernel wait and identical occupied image size in the
-GPU and CPU fixtures. For step 7, test sharing setup across an admitted finite
-queue before pursuing fast-ingest throughput from this kernel. Evaluate
-collective workload and complete occupied-byte benefits independently.
+The installed-package checkpoint verifies relocatable worker and module
+acquisition and matches the actual HIP LUID against eligible DXGI candidates.
+Three alternating 512 KiB AMD/CPU trials produced the same occupied image
+size. CPU completed in 1.21–1.60 ms and the one-shot AMD route in
+703–1,331 ms. The earlier phase fixture measured 1.19 s of initialization
+in a 1.37 s worker exchange, with 2.57 ms of kernel wait. These results keep
+the tested foreground request class on CPU and prioritize finite reuse and
+stronger collective compression for GPU work.
 [Runtime and hardware evidence](AMD_RUNTIME_DISCOVERY.md)
 
 ### Implementation steps
@@ -453,14 +454,18 @@ collective workload and complete occupied-byte benefits independently.
    forwards independently verified candidates into the existing CPU-readable
    frame. The configured native controller now collects live start and
    post-verification budget evidence outside the filesystem lock. It retains
-   qualified route pins and coalesces acquisition demand. Finish integrating
-   trusted package discovery and matched workload cost acquisition into the
-   ordinary mount workflow. Keep slower small-request profiles on CPU and
-   prove useful automatically selected AMD work with independent readback.
-   [Controller budget evidence](evidence/native-gpu-budget-controller-2026-11-18.json)
-7. Amortize setup with bounded owned work windows or reuse where measured useful.
-   Keep bounded queues, finite kernels, fresh budgets and explicit retirement;
-   never leave an unused helper running indefinitely to hide startup cost.
+   qualified route pins and coalesces acquisition demand. Installed package
+   verification and alternating matched decision logic are implemented. Wire
+   route acquisition to the ordinary launcher, key calibration by workload
+   and device, and verify the path on hosts with multiple AMD devices. Treat
+   the observed CPU choice as specific to the tested request class.
+   [Installed route evidence](evidence/installed-amd-routing-2026-11-18.json)
+7. Amortize setup over finite admitted work windows. Measure one launch cost
+   across multiple independent extents or grouped-compression jobs. Bind each
+   job to a source revision, independently verify bytes before publication,
+   and retire the helper when admitted work drains or foreground work needs
+   its resources. Compare complete occupied bytes and foreground interference
+   with a matched CPU baseline, including unsuccessful or cancelled batches.
 8. Preserve immutable owned input and independent CPU selection. CPU completion
    must not wait solely for optional GPU teardown; late GPU completion must not
    publish a second result or touch a newer file version.

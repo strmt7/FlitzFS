@@ -1,5 +1,15 @@
 # Validation ledger
 
+## Installed AMD acquisition and matched writes — 18 November 2026
+
+The relocated executable acquired its packaged worker and compute module.
+Missing and altered-package controls returned with zero device queries.
+The approved route completed three alternating 512 KiB AMD/CPU pairs with
+identical occupied image bytes and independent CPU readback. AMD had no
+foreground benefit in those trials. The Windows SDK fixture exercised
+injected lifecycle and response functions.
+[Exact source, outcomes and process retirement](evidence/installed-amd-routing-2026-11-18.json)
+
 ## Controller-owned GPU budget sampling — 18 November 2026
 
 The configured native Windows controller handled two GPU budget queries for

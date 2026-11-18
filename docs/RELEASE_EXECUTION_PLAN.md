@@ -13,7 +13,10 @@ pages on demand. Disposable Windows Server 2025 runs have exercised mounted
 indexed I/O. The next Windows gates are client qualification, mounted
 interference and deployment lifecycle. Automatic useful AMD work with CPU
 recovery, held-out compression comparisons, scalable persistent reclamation
-and repair, and format migration remain on the release path. A stable
+and repair, and format migration remain on the release path. The current
+installed AMD package runs real work and passes CPU recovery. Its one-shot
+launch loses the matched small-write comparison, so useful acceleration now
+depends on finite worker reuse and stronger collective methods. A stable
 release candidate is still substantial work. The existing low-confidence
 estimate remains 60–130 person-weeks, plus unresolved compression research.
 [Indexed SDK evidence](evidence/indexed-managed-winfsp-2026-11-18.json) ·
@@ -68,7 +71,7 @@ application slices, bounded GPU workers and independent CPU result validation.
 | Scalable storage | A million populated paged objects and 1,024 named nonempty indexed files have been tested. The indexed namespace uses paged inode, name and extent lookups. | Larger populated volumes, million-file Explorer validation, persistent segment reuse and scalable indexed representation dependencies. |
 | Local qualification | [Current paged SDK callbacks and relevant core checks](evidence/paged-winfsp-2026-11-15.json) pass in raw Release and AddressSanitizer. The earlier 103-group helper/core and million-object results retain their separate exact-source evidence. | This is not full CTest/optional-codec qualification, a new real mount, current GPU execution or physical power-loss evidence. |
 | Sharing | Exact extent sharing/private updates, protected shared-base patch groups, and automatic aligned-family discovery/extension with complete-size admission. | The controller uses the bounded native model; no persistent scalable grouping, learned model, useful AMD collective path or representative size/access comparison. |
-| GPU | Actual AMD execution and independent current/prior CPU recovery passed controlled service tests. | The last matched case was slower on GPU: CPU median 24.2311 ms, GPU 513.918 ms, identical complete image sizes. Useful automatic ordinary I/O remains absent. |
+| GPU | Relocatable installed-package acquisition and three verified AMD writes on Windows. All pairs occupied 1,835,008 bytes. | CPU took 1.21–1.60 ms and one-shot AMD took 703–1,331 ms. Finite setup reuse, useful collective compression and mounted routing remain open. |
 | Learning/background work | Persistent advice/provenance, automatic grouping, live Windows observations/resource background mode, measured complete-quantum pacing and outcome reuse exist. The owned WinFsp scheduler receives real callback events. | No complete autonomous learner, persistent scalable coherence, qualified current-source mounted executor, gradual migration or lifetime write-amplification governor. |
 | Windows product | The owned indexed provider passed an external Windows Server 2025 mount fixture. Local SDK and memory checks cover the owned lifecycle and scoped reclamation. | Windows 11 client deployment, long-running mounted maintenance, full client semantics, persistent providers and qualification. |
 | Recovery | COW checkpoints, metadata replicas, modeled failures, explicit recovery and source-preserving rebuilding exist. | General payload/dependency repair, scalable reclamation and complete backend fault qualification remain open. Historical retirement failures are not diagnosed by later successful runs. |

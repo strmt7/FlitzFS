@@ -47,6 +47,8 @@ option(FLITZFS_BUILD_WRITE_PROBE "Build isolated writable mount probe (never def
 option(FLITZFS_BUILD_RAM_HOST_PROBE "Build explicit bounded locked-RAM CPU qualification probe" OFF)
 option(FLITZFS_BUILD_GPU_RAM_PROBE "Build explicit native locked-RAM match-worker integration probe" OFF)
 option(FLITZFS_BUILD_HIP_ROUTE_PROBE "Build explicit AMD runtime and adapter acquisition probe" OFF)
+set(FLITZFS_INSTALLED_AMD_PACKAGE_DIR "" CACHE PATH "Build-trusted AMD package containing its qualification manifest")
+set(FLITZFS_INSTALLED_AMD_MANIFEST_SHA256 "" CACHE STRING "Independently pinned digest of the approved AMD manifest")
 set(FLITZFS_RAM_SOURCE_COMMIT "" CACHE STRING "Exact experimental RAM probe source commit")
 set(FLITZFS_WINFSP_SDK "" CACHE PATH "Explicit WinFsp SDK root: include, lib and bin")
 if(FLITZFS_REQUIRE_ZSTD AND NOT FLITZFS_WITH_ZSTD)
@@ -768,7 +770,8 @@ if(FLITZFS_BUILD_WINFSP OR FLITZFS_BUILD_NATIVE_WRITE_CONTROL)
   find_package(Threads REQUIRED)
   # Headers describe the ABI; this target has no WinFsp runtime dependency.
   add_library(flitzfs_native_write_control src/windows/native_file_info.cpp
-      src/windows/native_uniform_write.cpp src/windows/native_deferred_write.cpp)
+      src/windows/native_uniform_write.cpp src/windows/native_deferred_write.cpp
+      src/windows/native_amd_write_policy.cpp)
   target_include_directories(flitzfs_native_write_control PUBLIC src/windows "${FLITZFS_WINFSP_INCLUDE}")
   target_compile_definitions(flitzfs_native_write_control PUBLIC NOMINMAX UNICODE _UNICODE)
   target_link_libraries(flitzfs_native_write_control PUBLIC flitzfs_core flitzfs_worker_exchange Threads::Threads)
@@ -847,7 +850,7 @@ if(FLITZFS_BUILD_WINFSP)
     add_executable(flitzfs_native_deferred_write_sdk_tests tests/test_native_deferred_write_sdk.cpp)
     target_include_directories(flitzfs_native_deferred_write_sdk_tests PRIVATE src)
     target_link_libraries(flitzfs_native_deferred_write_sdk_tests PRIVATE flitzfs_winfsp Threads::Threads)
-    if(FLITZFS_BUILD_HIP_ROUTE_PROBE)
+    if(FLITZFS_BUILD_HIP_ROUTE_PROBE OR FLITZFS_INSTALLED_AMD_PACKAGE_DIR)
       target_compile_definitions(flitzfs_native_deferred_write_sdk_tests PRIVATE FLITZFS_INDEXED_HIP_FIXTURE=1)
       target_link_libraries(flitzfs_native_deferred_write_sdk_tests PRIVATE flitzfs_hip_route_discovery)
     endif()
@@ -1107,7 +1110,11 @@ if(FLITZFS_BUILD_GPU_RAM_PROBE)
   endif()
 endif()
 
-if(FLITZFS_BUILD_HIP_ROUTE_PROBE)
+if((FLITZFS_INSTALLED_AMD_PACKAGE_DIR AND NOT FLITZFS_INSTALLED_AMD_MANIFEST_SHA256) OR
+    (FLITZFS_INSTALLED_AMD_MANIFEST_SHA256 AND NOT FLITZFS_INSTALLED_AMD_PACKAGE_DIR))
+  message(FATAL_ERROR "The AMD package directory and its independently pinned manifest digest are required together")
+endif()
+if(FLITZFS_BUILD_HIP_ROUTE_PROBE OR FLITZFS_INSTALLED_AMD_PACKAGE_DIR)
   if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "HIP route acquisition requires native Windows x64/MSVC")
   endif()
@@ -1118,13 +1125,33 @@ if(FLITZFS_BUILD_HIP_ROUTE_PROBE)
   target_compile_options(flitzfs_hip_route_discovery PRIVATE /W4 /permissive-)
   target_link_libraries(flitzfs_hip_route_discovery PUBLIC flitzfs_core flitzfs_worker_exchange flitzfs_gpu_topology
     PRIVATE bcrypt wintrust dxgi)
-  add_executable(flitzfs_hip_route_probe tests/win_hip_route_probe.cpp)
-  target_link_libraries(flitzfs_hip_route_probe PRIVATE flitzfs_hip_route_discovery)
-  target_compile_options(flitzfs_hip_route_probe PRIVATE /W4 /permissive-)
-  if(FLITZFS_BUILD_TESTS)
-    add_test(NAME bounded_hip_route_request_refusals
-      COMMAND flitzfs_hip_route_probe --verify-request-refusals)
-    set_tests_properties(bounded_hip_route_request_refusals PROPERTIES TIMEOUT 10)
+  if(FLITZFS_INSTALLED_AMD_PACKAGE_DIR)
+    find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+    set(package_header "${CMAKE_CURRENT_BINARY_DIR}/hip_installed_package_config.hpp")
+    execute_process(COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/bind_installed_amd_package.py"
+      --package "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}"
+      --manifest-sha256 "${FLITZFS_INSTALLED_AMD_MANIFEST_SHA256}" --header "${package_header}"
+      RESULT_VARIABLE package_result ERROR_VARIABLE package_error TIMEOUT 20)
+    if(NOT package_result STREQUAL "0")
+      message(FATAL_ERROR "AMD package verification failed: ${package_error}")
+    endif()
+    target_include_directories(flitzfs_hip_route_discovery PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+    target_compile_definitions(flitzfs_hip_route_discovery PRIVATE FLITZFS_BIND_INSTALLED_AMD_PACKAGE=1)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/ci/bind_installed_amd_package.py"
+      "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}/qualification-manifest.json"
+      "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}/flitzfs_hip_lz4_worker.exe"
+      "${FLITZFS_INSTALLED_AMD_PACKAGE_DIR}/hip-uniform-lz4/flitzfs_rocm_uniform_lz4_candidate.dll")
+  endif()
+  if(FLITZFS_BUILD_HIP_ROUTE_PROBE)
+    add_executable(flitzfs_hip_route_probe tests/win_hip_route_probe.cpp)
+    target_link_libraries(flitzfs_hip_route_probe PRIVATE flitzfs_hip_route_discovery)
+    target_compile_options(flitzfs_hip_route_probe PRIVATE /W4 /permissive-)
+    if(FLITZFS_BUILD_TESTS)
+      add_test(NAME bounded_hip_route_request_refusals
+        COMMAND flitzfs_hip_route_probe --verify-request-refusals)
+      set_tests_properties(bounded_hip_route_request_refusals PROPERTIES TIMEOUT 10)
+    endif()
   endif()
 endif()
 

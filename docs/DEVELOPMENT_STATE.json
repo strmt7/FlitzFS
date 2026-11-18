@@ -84,6 +84,17 @@
     "windows_sdk_address_sanitizer_test_groups_passed": 1,
     "scope": "Normal WinFsp ReadDirectory callback consumes checked name and metadata pages. Measures partial output and continuation on the current layout. New volume capability and scaled extent access are open."
   },
+  "installed_amd_route": {
+    "source_base": "d60b07c17442a864066efe1f92089247254c31c9",
+    "evidence": "docs/evidence/installed-amd-routing-2026-11-18.json",
+    "scope": "Relocatable package verification, exact hardware route binding and native indexed SDK fixture.",
+    "startup_identity_queries": 1,
+    "matched_write_pairs": 3,
+    "input_bytes_per_write": 524288,
+    "occupied_bytes_each_path": 1835008,
+    "preference": "cpu",
+    "next": "Measure finite AMD worker reuse and collective compression, then integrate workload calibration into the Windows launcher."
+  },
   "native_gpu_budget_controller": {
     "source_base": "d447c7113fa0b60b2c9c5fbb74eb515d74d72ceb",
     "evidence": "docs/evidence/native-gpu-budget-controller-2026-11-18.json",

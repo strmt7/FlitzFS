@@ -20,7 +20,11 @@ reader and writer ownership. [Compaction evidence](evidence/indexed-background-c
 Indexed GPU advice is private until CPU verification agrees with the staged
 extent and the final inode/block frame. The writable callback uses the same
 resource and ownership checks for legacy and indexed deferred requests. A
-worker never owns publication. [Indexed advice and qualification scope](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents)
+worker never owns publication. Installed AMD routing pins the approved
+worker, compute module and installed runtime. It binds controller telemetry
+to the matched adapter. Live resource checks and independent CPU verification
+remain part of every admitted route.
+[Indexed advice](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents) · [Installed route and evidence](AMD_RUNTIME_DISCOVERY.md)
 
 The [indexed managed head](MANAGED_PAGED_VOLUMES.md) binds the selected image
 kind and validates the checkpoint and namespace sequence independently.
@@ -159,12 +163,22 @@ The [fast-ingestion storage foundation](NATIVE_FAST_INGESTION.md) passed all 13 
 
 ## Qualified isolated compression runtime diagnostic
 
-[HIP_LZ4_RUNTIME.md](HIP_LZ4_RUNTIME.md) defines a separate opt-in SDK worker and private-module artifact. The old worker/default filesystem remains unchanged. All target images and source-bound module hashes must qualify; malformed requests, unknown coverage and unconfirmed retirement cannot publish data. CPU/refusal tests do not prove GPU execution or authorize an automatic owner trial. One actual synthetic 4-KiB trial passed at 979cd512 with CPU readback, exact retirement, unchanged inputs/runtime and no remaining owned processes; see [the evidence](evidence/hip-lz4-runtime-979cd512.json). This does not authorize an unchanged rerun, mounted/normal routing or relaxed resources. Keep the existing host/driver constraints and historical retirement uncertainty.
+Worker requests and private modules follow the verified artifact,
+resource and retirement contracts. The historical 4 KiB diagnostic at
+`979cd512` passed with exact CPU readback and confirmed worker retirement.
+Current local GPU admission follows the host execution rules in
+[AGENTS.md](../AGENTS.md) and the [installed route contract](AMD_RUNTIME_DISCOVERY.md).
+[Historical diagnostic evidence](evidence/hip-lz4-runtime-979cd512.json)
 
 
 ## SDK-only compute boundaries
 
-[HIP_LZ4_COMPUTE.md](HIP_LZ4_COMPUTE.md) defines the new typed compute contract. It is compiled only in the optional private SDK fixture and has no normal caller. CPU fake tests do not authorize owner-device execution, module loading or mounting. Retain exact process/supervisor retirement and independent CPU verification; a failed resource release overrides acceptance. Original memory caps and historical unresolved retirement failures remain controlling. No stored bytes or format change.
+The private typed compute module is available to the acquisition and
+execution paths described above. Admission sizes each operation against
+the live host and device budgets and the verified worker contract. Require
+exact process/supervisor retirement and independent CPU verification.
+A failed resource release prevents acceptance.
+[Typed compute contract](HIP_LZ4_COMPUTE.md)
 
 
 The owner's primary constraints are **no formatting, no lost data, no system
@@ -819,7 +833,11 @@ Installed-runtime metadata must use the discovered system directory, strict base
 
 The explicit installed-driver route must retain exact runtime hash/trust pins, strict own-kernel inventory, restricted loading and confirmed cleanup/exit. Its diagnostic enforces 128 MiB per process, 256 MiB aggregate, two processes and 20 percent CPU; the worker retains its five-second bound. No driver change, device search or retry is added. Its artifact contains no AMD runtime and cannot authorize a host launch by itself. See GPU_DRIVER_WORKER.md.
 
-Adapter discovery is metadata-only, explicit and capped at64 DXGI entries under the existing diagnostic process budget. Reject incomplete enumeration and invalid/duplicate selected LUIDs. Do not reinterpret DXGI ordinal as HIP ordinal or dedicated capacity as current memory headroom; worker identity and fresh-budget checks remain mandatory. See ADAPTER_IDENTITY.md.
+Adapter discovery matches actual HIP LUIDs to physical DXGI adapters.
+The installed route uses a shared acquisition deadline and separately bounds
+the worker ordinal probes. The standalone adapter diagnostic retains its
+own enumerator budget. Both use independent device-identity and live resource
+checks. [Installed acquisition](AMD_RUNTIME_DISCOVERY.md) · [Standalone diagnostic](ADAPTER_IDENTITY.md)
 
 Worker diagnostics may encode a known failure stage in the process exit code.
 Only the six original categories and fifteen defined stages are recognized;

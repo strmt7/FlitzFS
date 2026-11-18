@@ -109,11 +109,11 @@ reclamation and useful ordinary GPU/collective operation. Keep the full goal act
 2. Edit, review diffs, build and test locally. Validate the actual changed source;
    bind reports to commit plus dirty-diff/source digests when not yet committed.
    Use small validated local commits and less frequent normal pushes.
-3. Keep builds/tests CPU-only by default; invoke authorized GPU work explicitly.
-   Run relevant deterministic byte-exact and malformed-input tests, raw-only
-   controls and appropriate sanitizer/Windows checks. Use hosted/VM checks where
-   the required OS or unsafe fault scenario is unavailable locally. Do not claim
-   a platform pass from a different platform or a subset as a full suite pass.
+3. Run deterministic byte-exact and malformed-input tests, raw-only controls
+   and appropriate sanitizer/Windows checks. Run hardware-specific tests on the
+   owner's PC within their resource and ownership envelope. Use a disposable
+   environment for unavailable configurations or unsafe fault scenarios.
+   Report the tested platform and scope.
 4. Review lifecycle/resource cleanup and retain failures as well as successes.
    Repeat checks only after a change or unresolved failure justifies them.
 5. Do not add/bump product numbering, tags/releases, publish packages or call a
@@ -217,11 +217,11 @@ completion ownership before destruction. Never replay a committed write after
 response delivery fails. Owned immutable inputs and exact worker exit/transport
 quiescence remain mandatory. CPU semantic/device-body tests are not GPU execution.
 
-Current GPU diagnostic behavior must not be promoted to ordinary automatic
-routing without implementation and measured benefit. Preserve old readers/wire
-compatibility or add an explicit verified extension; never silently reinterpret
-old bytes. Keep compile-only/reference oracles test-only and exact-source pinned.
-Do not edit upstream/other repositories or claim unexecuted runtime behavior.
+Production GPU routing acquires the installed package automatically, uses
+local runtime, device and workload evidence, and keeps independent CPU operation.
+Diagnostic controls belong in their fixtures. Preserve old readers and wire
+compatibility through verified extensions. Keep compile-only/reference oracles
+test-only and exact-source pinned. Use read-only source from upstream repositories.
 
 ## Documentation and completion claims
 

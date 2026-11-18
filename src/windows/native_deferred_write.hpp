@@ -13,6 +13,14 @@ class HipRoutePins;
 // ABI headers without linking the WinFsp runtime.
 using NativeWriteHintQuery=bool(*)(UINT64&) noexcept;
 using NativeWriteResponseSink=void(*)(FSP_FILE_SYSTEM*,FSP_FSCTL_TRANSACT_RSP&) noexcept;
+struct NativeAmdWriteShape {
+  std::uint32_t input_bytes=0,isolation_unit=0;
+  StoreCompressionOptions foreground;
+  bool matches_storage(StoreCompressionOptions selected,std::uint32_t unit) const noexcept {
+    return isolation_unit==unit && foreground.mode==selected.mode &&
+        foreground.zstd_level==selected.zstd_level && foreground.require_zstd==selected.require_zstd;
+  }
+};
 struct NativeDeferredWriteOptions {
   NativeUniformWorkerBinding binding;
   GpuLz4ResidentCost cost;
@@ -25,6 +33,7 @@ struct NativeDeferredWriteOptions {
   // The installed helper and runtime pins must outlive the mounted service.
   std::optional<GpuHealthEvidence> controller_health;
   std::shared_ptr<const HipRoutePins> controller_route_pins;
+  std::optional<NativeAmdWriteShape> measured_shape;
   NativeWriteHintQuery hint_query=nullptr; // required by the control service
   NativeWriteResponseSink response_sink=nullptr; // required; the adapter supplies SDK defaults
 };

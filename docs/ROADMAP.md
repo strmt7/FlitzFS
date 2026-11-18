@@ -7,6 +7,14 @@ decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.m
 defines the current work packages, dependencies and release gates. The snapshots
 below retain the behavior qualified at their exact source.
 
+The installed AMD route resolves its worker and compute module relative to
+the application and accepts independently matched adapter identities on
+multi-adapter systems. Three matched live GPU writes kept their source bytes
+and occupied size intact. Work of this shape stays on CPU under the measured
+policy. The next GPU gate is improved end-to-end cost or stored size across
+finite work windows, followed by ordinary mounted integration.
+[Installed AMD evidence](evidence/installed-amd-routing-2026-11-18.json)
+
 The [indexed native writer](INDEXED_NATIVE_VOLUME.md) now creates and mutates
 paged names, inodes and extents through the existing path transaction API.
 The 1,024-file Windows fixture verified byte readback, restart and simulated

@@ -1,4 +1,4 @@
-name: Isolated source research (no owner-PC execution)
+name: On-demand hosted source research
 on:
   workflow_dispatch:
     inputs:
@@ -26,11 +26,6 @@ on:
           - process
           - windows-process-retirement
           - windows-helper-dependencies
-  push:
-    branches: [main]
-    paths:
-      - 'tools/ci/hosted_research.py'
-      - '.github/workflows/hosted-research.yml'
 permissions:
   contents: read
 jobs:

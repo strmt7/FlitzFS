@@ -19,7 +19,9 @@ WinFspMemoryVolume::WinFspMemoryVolume(WinFspSessionApi api,NativeWriteMountPlan
           backing_.image,backing_.image_identity,limits,memory_compression,backing_.advice);
   backing_.domain->verify_resident();
   if(kind_==NativeImageKind::indexed_paged)adapter->configure_memory_compaction(backing_);
-  if(acceleration && acceleration->controller_health)
+  if(acceleration && acceleration->controller_health &&
+      (!acceleration->measured_shape || acceleration->measured_shape->matches_storage(
+          memory_compression,backing_.image->contract().write_failure_unit_bytes)))
     adapter->enable_deferred_writes_hosted(std::move(*acceleration));
   controller_=std::make_unique<WinFspVolumeController>(std::move(adapter),api,std::move(plan),*backing_.domain);
 }

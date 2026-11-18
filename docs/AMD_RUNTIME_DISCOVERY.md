@@ -1,31 +1,50 @@
 # AMD runtime and adapter acquisition
 
-FlitzFS has a Windows x64 control-plane API for acquiring a verified AMD
-runtime and device identity. Its input is a trusted package's helper path,
-SHA-256 and compiled HIP runtime basename, together with a process budget.
-The acquisition caller runs outside ordinary filesystem I/O.
+FlitzFS acquires the AMD route from its Windows control plane, outside
+filesystem I/O. A package-enabled build verifies an approved AMD manifest,
+the worker and the uniform compute module. The running executable locates
+both artifacts relative to its own directory. The caller supplies the
+process budget and the discovery work limit.
 
-1. Check the request and open the helper through pinned ordinary local
-   directories. Verify the helper's exact bytes before opening the runtime.
+The build accepts `FLITZFS_INSTALLED_AMD_PACKAGE_DIR` and an independently
+approved `FLITZFS_INSTALLED_AMD_MANIFEST_SHA256`. The package layout places
+`flitzfs_hip_lz4_worker.exe` and its `hip-uniform-lz4` directory in the
+`amd` directory beside the executable. The compiled header binds file
+digests and the exact HIP ABI basename. Missing or altered package artifacts
+return before launching a worker. The explicit helper path API remains
+available for diagnostics.
+
+1. Validate the request and pin ordinary local directories. For an
+   installed package, verify and pin both the worker and the compute module
+   before opening the runtime.
 2. Open the named runtime from the operating system's System32 directory.
    Hold the file open against replacement, check cached Authenticode trust,
    and take its SHA-256. The parent performs no HIP load.
-3. Find one hardware AMD adapter in DXGI and corroborate one D3D node.
-   Require fresh Windows video-memory and host-memory headroom. Multiple
-   AMD adapter candidates currently produce an explicit refusal.
-4. Ask the bounded worker for the HIP ordinal's LUID and node mask. Compare
-   its actual LUID with DXGI. A zero HIP node mask is admissible when D3D
-   independently proves one node. A conflicting mask refuses the route.
+3. Enumerate hardware AMD adapters within the acquisition deadline.
+   Use dedicated memory capacity to order the initial topology and budget
+   checks. Use current Windows resource availability to admit the probe.
+4. Ask the worker for each bounded HIP ordinal's LUID and node mask until
+   an eligible physical adapter matches. A zero HIP node mask is admissible
+   when D3D independently proves one node on that exact adapter. Skip a
+   conflicting mask or an adapter that fails the topology check.
 5. Require confirmed worker exit and fresh headroom before returning a route.
    Query at most the caller's bounded ordinal count under one exchange
    deadline. After an abnormal exchange, return without another probe.
 
-The resulting key binds the helper and runtime bytes, LUID, node and ordinal
-for this handoff. Keep the pins alive through the intended handoff and release
-them afterward. A durable performance profile needs its own driver, OS,
-method and workload identity. The application currently uses CPU for
-ordinary writes. Automatic GPU work requires qualified performance evidence
-and integration with the recovery policy.
+The route key binds the worker, compute module and runtime digests to
+the adapter LUID, node and HIP ordinal. Its sealed token retains the file
+pins for the controller. A workload recommendation also needs matched
+write observations and independently qualified launch costs. Each CPU/AMD
+pair uses identical input bytes and independently verifies the stored
+result. Different pairs may use different inputs. Admission uses storage
+options and complete aligned request size, so ordinary writes need no
+benchmark content hash.
+
+The performance decision keeps CPU when GPU adds cost without an observed
+benefit. The storage engine still verifies and owns all publication.
+Persistent representative calibration and integration with the ordinary
+mount launcher remain release work.
+[AMD HIP runtime device identification](https://rocm.docs.amd.com/projects/HIP/en/latest/reference/hip_runtime_api/modules/initialization_and_version.html)
 
 The optional `FLITZFS_BUILD_HIP_ROUTE_PROBE` target provides a file-only
 fingerprint and a separately admitted metadata fixture. The Windows native
@@ -39,6 +58,29 @@ The observed Windows runtime DLL had file version 10.0.3683.0. AMD's public Wind
 Core and Windows release notes for supported combinations.
 [AMD Core release notes](https://rocm.docs.amd.com/en/docs-10.1.0/about/release-notes.html#hip-7-16-0) ·
 [AMD Windows SDK release notes](https://rocm.docs.amd.com/projects/install-on-windows/en/latest/about/releasenotes.html)
+
+## Matched installed-package writes — 18 November 2026
+
+A relocated test executable discovered its sibling package without worker
+path or digest arguments. One bounded identity query acquired the installed
+adapter. The absent-package and changed-module fixtures returned before
+device discovery. The hardware run matched one adapter. A system with
+multiple AMD devices still needs coverage.
+
+| Pair order | CPU callback | AMD callback | Occupied image on each path |
+| --- | ---: | ---: | ---: |
+| CPU, AMD | 1.214 ms | 1,331.102 ms | 1,835,008 bytes |
+| AMD, CPU | 1.601 ms | 956.330 ms | 1,835,008 bytes |
+| CPU, AMD | 1.265 ms | 703.106 ms | 1,835,008 bytes |
+
+Each 512 KiB write used the indexed memory image and the fast foreground
+codec policy. Timing ended when the synchronous call returned or the
+deferred response reached the sink. Each GPU write verified eight candidate
+extents and sixteen mirrored records. Independent CPU reopening verified
+both writes in every trial, and the scoped workers retired. The policy
+selected CPU for this workload. Broader corpora, longer work windows and
+mounted operation need separate measurements.
+[Package, build and execution evidence](evidence/installed-amd-routing-2026-11-18.json)
 
 ## Indexed write on 18 November 2026
 
