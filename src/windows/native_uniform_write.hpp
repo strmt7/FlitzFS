@@ -52,6 +52,7 @@ struct NativeUniformWriteResult {
   FSP_FSCTL_FILE_INFO info{};
   std::uint32_t candidate_count=0,candidate_bytes=0;
   NativeUniformAdviceReceipt advice{};
+  UniformLz4WorkerOutcome worker{};
 };
 // Explicit operation, not installed in ordinary callbacks. One serialized
 // control thread; the session must outlive this coordinator without moving,

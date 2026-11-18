@@ -1,5 +1,21 @@
 # Validation ledger
 
+## Indexed shared-base compression — 18 November 2026
+
+Eight related 64 KiB files occupied 1,204,224 bytes before grouping and
+286,720 bytes afterward in separately compacted 4 KiB model images. The
+64 KiB model went from 1,441,792 to 524,288 bytes. The indexed fault campaign
+covered 591 publication and last-reference retirement interruptions. Each
+recovered the complete prior or new checkpoint. Sixteen selected Windows
+executions passed across SDK, raw and AddressSanitizer builds.
+
+Six paired SDK trials completed CPU and AMD overwrites of a shared member.
+Each reopened the current and prior image through the CPU and verified the
+three other files. Both paths occupied 5,111,808 bytes and CPU was faster.
+An earlier trial took the CPU path after the submitted worker returned no
+admitted candidate. Its independent readback passed and the worker retired.
+[Exact sources, sizes, failure scope and trial evidence](evidence/indexed-shared-base-2026-11-18.json)
+
 ## Finite AMD exchanges — 18 November 2026
 
 The native indexed fixture admitted 1 MiB per worker with a 128 KiB

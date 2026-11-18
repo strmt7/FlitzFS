@@ -7,6 +7,7 @@
 #include "native_fs_fixture.hpp"
 #include "native_security_fixture.hpp"
 #include "flitzfs/gpu_lz4_verify.hpp"
+#include "flitzfs/volume_head.hpp"
 // Type-check the driver-independent composition fixture in the ordinary SDK
 // build too. Its execution remains in the separate runtime qualification gate.
 #include "rocm_compile/deferred_native_fixture.hpp"
@@ -89,6 +90,45 @@ void transport_required(){
   }
 }
 constexpr StoreCompressionOptions fixture_compression{StoreCompressionMode::fast,6,false};
+constexpr std::uint64_t measured_offset=32ULL*1024*1024;
+constexpr unsigned grouped_files=4;
+std::string grouped_file(unsigned member) {
+  return member?"peer-"+std::to_string(member):"target";
+}
+std::vector<std::byte> grouped_bytes(unsigned member) {
+  auto bytes=native_fixture::data(kNativeExtentBytes,997);
+  bytes[1024+member*193]^=static_cast<std::byte>(member);
+  bytes.back()=std::byte{0x7c};
+  return bytes;
+}
+std::unique_ptr<WinFspNativeWritable> seeded_group_adapter(std::shared_ptr<StoreByteIo> head,
+    StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity id,std::uint64_t capacity) {
+  const auto snapshot=[&] {
+    auto writer=NativeFilesystemWriter::initialize_indexed(
+        PagedObjectStoreWriter::create_mirrored(image,id,{capacity},fixture_compression));
+    const auto security=native_security_fixture::descriptor();
+    writer.set_basic_metadata(1,{11,22,33,44,FILE_ATTRIBUTE_DIRECTORY});
+    writer.set_security_descriptor(1,security);
+    std::array<NativeExtentSelection,grouped_files> selections{};
+    for(unsigned i=0;i<grouped_files;++i) {
+      const auto path=grouped_file(i);
+      const auto created=writer.create_inode_storage_result(path,false,{11,22,33,44,FILE_ATTRIBUTE_ARCHIVE},
+          security,measured_offset+kNativeExtentBytes);
+      native_fixture::file_apply(writer,native_fixture::file_write(path,measured_offset,grouped_bytes(i)));
+      selections[i]={created.state.info.inode,measured_offset/kNativeExtentBytes};
+    }
+    check(writer.compress_shared_base(selections.front(),selections).applied,"indexed shared-base GPU fixture");
+    auto grouped=writer.snapshot();
+    grouped.verify_all();
+    return grouped;
+  }(); // Release the image writer before the head validates ownership.
+  const auto epoch=[&] {
+    auto owned_head=NativeVolumeHeadWriter::create(head,volume,snapshot);
+    return owned_head.info().selection.epoch;
+  }(); // Release the head writer before restarting the managed adapter.
+  return WinFspNativeWritable::resume_indexed_retired(head,volume,epoch,
+      [&](const StoreIdentity& requested){return requested==id?image:nullptr;},fixture_compression);
+}
 struct Harness {
   locked_ram_fixture::WorkingSet working;
   std::shared_ptr<StoreByteIo> head=std::make_shared<locked_ram_fixture::Store>(kVolumeHeadBytes);
@@ -114,11 +154,13 @@ struct Harness {
   static VOID unmount(FSP_FILE_SYSTEM*){}
   static VOID destroy(FSP_FILE_SYSTEM* fs){fs->UserContext=nullptr;}
   static UINT32 origin(){return 0;}
-  explicit Harness(std::optional<NativeDeferredWriteOptions> options,bool indexed=false,bool observe_budget=false)
+  explicit Harness(std::optional<NativeDeferredWriteOptions> options,bool indexed=false,bool observe_budget=false,
+      bool with_grouped_target=false)
       :capacity(indexed?8U*1024*1024:4U*1024*1024),
        image(std::make_shared<locked_ram_fixture::Store>(static_cast<std::size_t>(capacity))){
     StoreIdentity volume{},id{};volume[0]=std::byte{5};id[0]=std::byte{6};
-    auto source=indexed?WinFspNativeWritable::create_managed_indexed(head,volume,image,id,{capacity},fixture_compression):
+    auto source=with_grouped_target?seeded_group_adapter(head,volume,image,id,capacity):
+        indexed?WinFspNativeWritable::create_managed_indexed(head,volume,image,id,{capacity},fixture_compression):
         WinFspNativeWritable::create_managed_hosted(head,volume,image,id,fixture_compression);
     adapter=source.get();
     if(options)adapter->enable_deferred_writes_hosted(*options);
@@ -165,6 +207,12 @@ struct Harness {
     check(fs.Interface->Create(&fs,const_cast<PWSTR>(path),FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,
         FILE_ATTRIBUTE_NORMAL,security.data(),0,&context,&info)==STATUS_SUCCESS&&context,
         "deferred callback create");return context;
+  }
+  PVOID open(PCWSTR path) {
+    PVOID context=nullptr;FSP_FSCTL_FILE_INFO info{};
+    check(fs.Interface->Open(&fs,const_cast<PWSTR>(path),(FILE_OPEN<<24)|FILE_NON_DIRECTORY_FILE,FILE_ALL_ACCESS,&context,&info)==
+        STATUS_SUCCESS && context,"deferred callback open");
+    return context;
   }
   template<class Refresh>
   FSP_FSCTL_TRANSACT_RSP reply(unsigned index,Refresh refresh,
@@ -459,7 +507,6 @@ unsigned hex_digest_digit(wchar_t c) {
   throw std::invalid_argument("expected lowercase SHA256");
 }
 constexpr ProcessBudget diagnostic_worker_budget{128,2000,5000};
-constexpr std::uint64_t measured_offset=32ULL*1024*1024;
 std::vector<std::byte> indexed_source(unsigned chunks) {
   const auto block=native_lz4_fixture::source();
   std::vector<std::byte> source;
@@ -467,12 +514,26 @@ std::vector<std::byte> indexed_source(unsigned chunks) {
   for(unsigned i=0;i<chunks;++i)source.insert(source.end(),block.begin(),block.end());
   return source;
 }
-void indexed_oracle(const Harness& h,const NativeFilesystemSnapshot& prior,const std::vector<std::byte>& expected) {
+void indexed_oracle(const Harness& h,const NativeFilesystemSnapshot& prior,const std::vector<std::byte>& expected,
+    bool grouped) {
   const auto reopened=NativeFilesystemSnapshot::open_image(h.image,{NativeImageKind::indexed_paged,h.capacity});
   reopened.verify_all();
   check(reopened.read("target",measured_offset,static_cast<std::uint32_t>(expected.size()))==expected &&
-      reopened.read("target",0,static_cast<std::uint32_t>(expected.size()))==expected &&
-      prior.read("target",measured_offset,1).empty(),"indexed image failed independent CPU readback");
+      reopened.read("target",0,static_cast<std::uint32_t>(expected.size()))==expected,
+      "indexed image failed independent CPU readback");
+  if(!grouped) {
+    check(prior.read("target",measured_offset,1).empty(),"prior image acquired future bytes");
+    return;
+  }
+  check(prior.shared_base_info().members==grouped_files &&
+      reopened.shared_base_info().members==grouped_files-1 && reopened.shared_base_info().bases==1 &&
+      prior.read("target",measured_offset,kNativeExtentBytes)==grouped_bytes(0),
+      "indexed overwrite lost the prior group or retained a stale reference");
+  for(unsigned i=1;i<grouped_files;++i)
+    check(reopened.read(grouped_file(i),measured_offset,kNativeExtentBytes)==grouped_bytes(i),
+        "indexed overwrite changed another grouped file");
+  std::cout<<"indexed_grouped_prior_members="<<grouped_files
+      <<" indexed_grouped_remaining_members="<<reopened.shared_base_info().members<<'\n';
 }
 void check_indexed_retirement() {
   check(locked_ram_fixture::locked_bytes.load()==0 && locked_ram_fixture::cleanup_ok.load() &&
@@ -481,7 +542,7 @@ void check_indexed_retirement() {
 constexpr std::uint32_t fixture_quantum_chunks=2,fixture_sweep_chunks=16;
 NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     const std::vector<std::byte>& expected,bool expect_uniform_advice,
-    bool prove_owned_input=false,NativeAmdWriteShape* shape=nullptr) {
+    bool prove_owned_input=false,NativeAmdWriteShape* shape=nullptr,bool grouped=false) {
   constexpr auto quantum_chunks=fixture_quantum_chunks;
   check(!expected.empty() && expected.size()%kNativeExtentBytes==0,"incomplete comparison extent");
   const auto chunks=static_cast<std::uint32_t>(expected.size()/kNativeExtentBytes);
@@ -489,11 +550,16 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
   if(!route) {
     NativeAmdWriteSample sample;
     {
-      Harness h(std::nullopt,true,true);
-      const auto target=h.create(L"\\target");const auto prior=h.adapter->snapshot();
+      Harness h(std::nullopt,true,true,grouped);
+      const auto target=grouped?h.open(L"\\target"):h.create(L"\\target");
+      const auto prior=h.adapter->snapshot();
       ULONG count=0;FSP_FSCTL_FILE_INFO info{};
-      check(h.fs.Interface->Write(&h.fs,target,source.data(),0,static_cast<ULONG>(source.size()),FALSE,FALSE,
-          &count,&info)==STATUS_SUCCESS && count==source.size(),"indexed CPU priming write");
+      const auto primed=h.fs.Interface->Write(&h.fs,target,source.data(),0,static_cast<ULONG>(source.size()),
+          FALSE,FALSE,&count,&info);
+      if(primed!=STATUS_SUCCESS || count!=source.size())
+        std::cerr<<"indexed_cpu_prime status="<<static_cast<std::uint32_t>(primed)
+            <<" transferred="<<count<<" image_bytes="<<h.image->extent()<<'\n';
+      check(primed==STATUS_SUCCESS && count==source.size(),"indexed CPU priming write");
       const auto started=std::chrono::steady_clock::now();
       const auto status=h.fs.Interface->Write(&h.fs,target,source.data(),measured_offset,
           static_cast<ULONG>(source.size()),FALSE,FALSE,&count,&info);
@@ -501,7 +567,7 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
       check(status==STATUS_SUCCESS && count==source.size() && info.FileSize==measured_offset+source.size(),
           "indexed CPU write outcome");
       h.close(target);
-      indexed_oracle(h,prior,expected);
+      indexed_oracle(h,prior,expected,grouped);
       if(shape)*shape={static_cast<std::uint32_t>(source.size()),
           h.image->contract().write_failure_unit_bytes,fixture_compression};
       sample={static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count()),
@@ -539,8 +605,9 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
   options.controller_route_pins=route->pins;
   NativeAmdWriteSample sample;
   {
-    Harness h(options,true,true);
-    const auto target=h.create(L"\\target");const auto prior=h.adapter->snapshot();
+    Harness h(options,true,true,grouped);
+    const auto target=grouped?h.open(L"\\target"):h.create(L"\\target");
+    const auto prior=h.adapter->snapshot();
     eventually([&]{return GetTickCount64()-route->memory.captured_ms>kGpuMaxBudgetAgeMs;},
         "initial probe should expire before testing on-demand collection");
     if(shape)check(shape->matches_storage(fixture_compression,h.image->contract().write_failure_unit_bytes) &&
@@ -567,10 +634,6 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
     if(prove_owned_input)std::fill(source.begin(),source.end(),std::byte{0xff});
     std::chrono::steady_clock::time_point completed;
     const auto response=h.reply(0,[]{},&completed);
-    eventually([&]{return h.controller->view().gpu_budget_queries==2;},
-        "verified GPU completion did not request a fresh budget");
-    const auto observations=h.controller->view();
-    check(observations.gpu_budget_refusals==0,"AMD budget observer rejected its trusted adapter");
     const auto ns=std::chrono::duration_cast<std::chrono::nanoseconds>(
         completed-started).count();
     check(response.Kind==FspFsctlTransactWriteKind && response.Hint==expected_hint &&
@@ -581,18 +644,30 @@ NativeAmdWriteSample indexed_trial(const HipDiscoveredRoute* route,bool sweep,
         "indexed HIP worker retirement deadline");
     const auto stats=h.adapter->deferred_write_stats();
     const auto receipt=h.adapter->deferred_write_receipt();
-    std::cout<<"indexed_gpu_budget_queries="<<observations.gpu_budget_queries
-        <<" refused="<<observations.gpu_budget_refusals<<'\n';
     std::cout<<"indexed_gpu_outcome submitted="<<stats.worker_submitted<<" advised="<<stats.advised
         <<" forced="<<stats.cpu_forced<<" retired="<<stats.retirement_confirmed
-        <<" candidates="<<(receipt?receipt->candidate_count:0)<<'\n';
+        <<" candidates="<<(receipt?receipt->candidate_count:0)<<" response_ns="<<ns;
+    if(receipt) {
+      std::cout<<" gate="<<static_cast<unsigned>(receipt->worker.gate);
+      if(receipt->worker.exchange)
+        std::cout<<" exchange="<<static_cast<unsigned>(*receipt->worker.exchange);
+      if(receipt->worker.exit_code)std::cout<<" worker_exit="<<*receipt->worker.exit_code;
+    }
+    std::cout<<'\n';
+    h.close(target);
+    indexed_oracle(h,prior,expected,grouped);
+    if(stats.advised)
+      eventually([&]{return h.controller->view().gpu_budget_queries==2;},
+          "verified GPU completion did not request a fresh budget");
+    const auto observations=h.controller->view();
+    std::cout<<"indexed_gpu_budget_queries="<<observations.gpu_budget_queries
+        <<" refused="<<observations.gpu_budget_refusals<<'\n';
+    check(observations.gpu_budget_refusals==0,"AMD budget observer rejected its trusted adapter");
     check(stopped==NativeDeferredStop::quiescent && stats.retirement_confirmed && stats.thread_exited &&
         stats.worker_submitted==1 && stats.advised==1 && stats.response_attempts==1 && receipt &&
         receipt->candidate_count==chunks && receipt->advice.captured &&
         (!expect_uniform_advice || receipt->advice.uniform_payloads),
         "indexed HIP verified candidacy or retirement");
-    h.close(target);
-    indexed_oracle(h,prior,expected);
     std::cout<<"indexed_gpu_write sweep="<<sweep<<" quantum_chunks="<<quantum_chunks
         <<" source_bytes="<<expected.size()<<" offset="<<measured_offset
         <<" worker_payload_bytes="<<receipt->candidate_bytes;
@@ -631,7 +706,7 @@ int gpu_indexed(const std::filesystem::path& worker,std::wstring_view digest,con
   std::cout<<"parent_peak_commit="<<controller_budget.peak_commit()<<'\n';
   return 0;
 }
-int compare_installed_amd(const std::filesystem::path& corpus={}) {
+int compare_installed_amd(const std::filesystem::path& corpus={},bool grouped=false) {
   gpu_probe_fixture::Budget controller_budget;
   std::vector<std::byte> input;
   if(corpus.empty())input=indexed_source(fixture_sweep_chunks);
@@ -651,9 +726,9 @@ int compare_installed_amd(const std::filesystem::path& corpus={}) {
   for(std::size_t i=0;i<pairs.size();++i) {
     auto& pair=pairs[i];
     pair.amd_first=i%2!=0;
-    if(pair.amd_first)pair.amd=indexed_trial(&route,true,input,corpus.empty(),false,&shape);
-    pair.cpu=indexed_trial(nullptr,true,input,false,false,&shape);
-    if(!pair.amd_first)pair.amd=indexed_trial(&route,true,input,corpus.empty(),false,&shape);
+    if(pair.amd_first)pair.amd=indexed_trial(&route,true,input,corpus.empty(),false,&shape,grouped);
+    pair.cpu=indexed_trial(nullptr,true,input,false,false,&shape,grouped);
+    if(!pair.amd_first)pair.amd=indexed_trial(&route,true,input,corpus.empty(),false,&shape,grouped);
     std::cout<<"indexed_pair="<<i+1<<" amd_first="<<pair.amd_first<<" cpu_ns="<<pair.cpu.elapsed_ns
         <<" amd_ns="<<pair.amd.elapsed_ns<<" cpu_image_bytes="<<pair.cpu.occupied_bytes
         <<" amd_image_bytes="<<pair.amd.occupied_bytes<<'\n';
@@ -673,6 +748,12 @@ int compare_installed_amd(const std::filesystem::path& corpus={}) {
 int wmain(int argc,wchar_t** argv){try{
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
   if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd")return compare_installed_amd();
+  if(argc==2 && std::wstring_view(argv[1])==L"--compare-installed-amd-grouped")
+    return compare_installed_amd({},true);
+  if(argc==2 && std::wstring_view(argv[1])==L"--verify-grouped-cpu") {
+    (void)indexed_trial(nullptr,true,indexed_source(fixture_sweep_chunks),false,false,nullptr,true);
+    return 0;
+  }
   if(argc==3 && std::wstring_view(argv[1])==L"--compare-installed-amd-corpus")
     return compare_installed_amd(argv[2]);
   if(argc==2) {

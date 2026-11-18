@@ -24,6 +24,9 @@ struct PagedStoreInfo {
   bool degraded_roots=false,degraded_metadata=false;
   bool mirrored_payloads=false,degraded_payloads=false;
 };
+struct PagedCompactedSizes {
+  std::uint64_t before=0,after_upper=0;
+};
 class PagedObjectStoreWriter;
 class PagedObjectStoreSnapshot final {
  public:
@@ -39,6 +42,12 @@ class PagedObjectStoreSnapshot final {
   // Pure layout accounting for sorted hypothetical encoded records, using this
   // image's capability/isolation. No backend I/O, root publication or encoding.
   std::uint64_t rebuilt_size(std::span<const StoreObjectInfo> records) const;
+  // Stream the verified inventory once. Preserve the encoded sizes of
+  // untouched objects and charge replacement records at their raw upper bound.
+  // When a record changes identity on copy, omit its prior encoded payload
+  // from the lower bound. Its envelope and structural costs remain charged.
+  PagedCompactedSizes rebuilt_size_after(std::span<const StoreMutation> changes,
+      std::uint64_t rebound_object=0) const;
   PagedStoreInfo info() const noexcept;
   std::optional<StoreObjectInfo> stat(std::uint64_t id) const;
   std::vector<std::byte> read(std::uint64_t id) const;

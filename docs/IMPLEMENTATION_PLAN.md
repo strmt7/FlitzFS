@@ -629,6 +629,24 @@ Record-setting ambitions remain open until comparable evidence exists.
 **Reuse:** immutable anchor objects, content tokens, CPU digest verification,
 staged selection and COW publication. **Planning effort:** 5–12 person-weeks.
 
+Indexed volumes now publish the protected shared-base codec with ordered
+member backreferences. Current members can be detached independently, and
+an anchor can grow through several bounded appends. Indexed readback,
+compaction, modeled interruption recovery and overwrite through the AMD
+SDK callback have executed. Keep comparison against complete compacted
+size and measure reads under normal Windows workloads.
+[Indexed group format and evidence](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
+
+The next slice should measure per-candidate metadata I/O at the populated
+file-count steps. Give complete-size comparison a resumable phase before
+automatic scheduling. Preserve prepared encodings across unrelated edits
+where their selected extent generations still match, and revalidate the
+size proof before publication. Compare a more localized accounting layout
+against the present packed streams before changing their format.
+Feed durable sparse candidate batches from E04 through this path, then
+measure the total cost of GPU candidate matching or encoding against the
+CPU baseline and retained space on held-out families.
+
 ### Implementation steps
 
 1. Turn the E05 selection into a closed method specification: framing, feature

@@ -4,6 +4,10 @@ Experimental native representation, explicitly selected on a **new empty mirrore
 paged store**. It is a CPU correctness and storage-accounting foundation for A04,
 not automatic learning, GPU compression or a compression record.
 
+[Indexed volumes](INDEXED_NATIVE_VOLUME.md#shared-base-extents) also
+support this delta codec. Their extent frames, backreferences and
+publication rules belong to the indexed format described there.
+
 ## Layout and compatibility
 
 `initialize_shared_bases` selects native `FLTXPN01` capability 3. This requires

@@ -9,8 +9,10 @@ unsigned checks=0,faults=0;
 void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
 template<class F>void rejects(F&& action,const char* why){++checks;try{action();}catch(const std::exception&){return;}throw std::runtime_error(why);}
 StoreIdentity next_id(unsigned value){auto id=identity();id[7]=static_cast<std::byte>(value);return id;}
-NativeFilesystemWriter fresh(const std::shared_ptr<Ram>& ram) {
-  return NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,{StoreCompressionMode::raw,1,false}));
+NativeFilesystemWriter fresh(const std::shared_ptr<Ram>& ram,bool indexed_layout=false) {
+  auto objects=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,{StoreCompressionMode::raw,1,false});
+  return indexed_layout?NativeFilesystemWriter::initialize_indexed(std::move(objects)):
+      NativeFilesystemWriter::initialize_shared_bases(std::move(objects));
 }
 Bytes family(unsigned member) {
   auto bytes=data(kNativeExtentBytes,714);
@@ -56,11 +58,12 @@ void codec() {
     require(result && detail::decode_native_group_member(*result,base)==varied,"varied sparse patch mismatch");
   }
 }
-void lifecycle_and_sizes(std::uint32_t unit) {
+void lifecycle_and_sizes(std::uint32_t unit,bool indexed_layout=false) {
   auto ram=std::make_shared<Ram>();ram->failure_unit=unit;
   std::optional<NativeFilesystemSnapshot> before;NativeSharedBaseCommit grouped;Bytes baseline_bytes;
   {
-    auto writer=fresh(ram);populate(writer,8);before=writer.snapshot();const auto keys=selections(*before,8);
+    auto writer=fresh(ram,indexed_layout);populate(writer,8);before=writer.snapshot();const auto keys=selections(*before,8);
+    if(indexed_layout)require(!before->shared_base_info().enabled,"ordinary indexed creation promoted its root");
     const auto workload=before->workload_info();const auto old_file=before->stat("f1");
     baseline_bytes=ram->stable;grouped=writer.compress_shared_base(keys.front(),keys);
     require(grouped.applied && grouped.members==8 && grouped.after_compacted_upper_bound<grouped.before_compacted_lower_bound,"beneficial family declined");
@@ -92,10 +95,12 @@ void lifecycle_and_sizes(std::uint32_t unit) {
   file_apply(current,file_write("f2",19,Bytes{std::byte{19}}));auto changed=family(2);changed[19]=std::byte{19};
   require(current.snapshot().read("f2",0,kNativeExtentBytes)==changed,"grouped write did not detach");
   for(unsigned i=2;i<8;++i)file_apply(current,file_remove("f"+std::to_string(i)));
-  require(current.snapshot().shared_base_info().members==0 && current.snapshot().shared_base_info().bases==0 &&
-      current.snapshot().storage_info().objects==3,"last group dependency was not collected");
+  const auto empty_volume=current.snapshot();
+  empty_volume.verify_all();
+  require(empty_volume.shared_base_info().members==0 && empty_volume.shared_base_info().bases==0 &&
+      empty_volume.storage_info().objects==3,"last group dependency was not collected");
   verify_family(retained,8);
-  std::cout<<"shared_base_sizes unit="<<unit<<" before_lower="<<grouped.before_compacted_lower_bound
+  std::cout<<"shared_base_sizes indexed="<<indexed_layout<<" unit="<<unit<<" before_lower="<<grouped.before_compacted_lower_bound
       <<" after_upper="<<grouped.after_compacted_upper_bound<<" actual_before="<<actual_before<<" actual_after="<<actual_after<<'\n';
 }
 void independent_and_decline() {
@@ -110,9 +115,9 @@ void independent_and_decline() {
   rejects([&]{NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter::create(legacy,identity(),limits));},"unprotected shared-base namespace admitted");
   require(legacy->calls>start,"legacy fixture did not create standalone empty storage");
 }
-void fault_matrix(std::uint32_t unit) {
+void fault_matrix(std::uint32_t unit,bool indexed_layout=false) {
   auto original=std::make_shared<Ram>();original->failure_unit=unit;
-  {auto writer=fresh(original);populate(writer,4);}
+  {auto writer=fresh(original,indexed_layout);populate(writer,4);}
   const auto keys=selections(view(original),4);
   auto resume=[&](const std::shared_ptr<Ram>& ram) {
     const auto info=PagedObjectStoreSnapshot::open(ram,limits).info();
@@ -121,6 +126,7 @@ void fault_matrix(std::uint32_t unit) {
   auto probe=image(original->stable,unit);std::size_t cuts=0;
   {auto writer=resume(probe);const auto start=probe->calls;require(writer.compress_shared_base(keys.front(),keys).applied,"fault probe no-op");cuts=probe->calls-start;}
   require(cuts>3 && cuts<256,"shared-base fault envelope");
+  unsigned prior=0,complete=0;
   for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
     auto ram=image(original->stable,unit);
     {auto writer=resume(ram);ram->failure=mode;ram->fail_at=ram->calls+cut;
@@ -128,11 +134,80 @@ void fault_matrix(std::uint32_t unit) {
     ram->live=ram->stable;ram->fail_at=(std::numeric_limits<std::size_t>::max)();
     const auto recovered=view(ram);verify_family(recovered,4);const auto info=recovered.shared_base_info();
     require((info.members==0 && info.bases==0) || (info.members==4 && info.bases==1),"partial shared group published");
+    if(info.members)++complete;else ++prior;
     auto continued=resume(ram);file_apply(continued,file_write("f1",0,Bytes{std::byte{79}}));
     auto expected=family(1);expected[0]=std::byte{79};require(continued.snapshot().read("f1",0,kNativeExtentBytes)==expected,"recovered group could not continue");++faults;
   }
-  std::cout<<"shared_base_faults unit="<<unit<<" cuts="<<cuts<<" modes=3\n";
+  require(prior && complete,"shared-base faults did not recover both roots");
+  std::cout<<"shared_base_faults indexed="<<indexed_layout<<" unit="<<unit<<" cuts="<<cuts
+      <<" modes=3 prior="<<prior<<" complete="<<complete<<'\n';
 }
+void indexed_extension_and_reclamation() {
+  auto ram=std::make_shared<Ram>();ram->failure_unit=4096;
+  NativeSharedBaseCommit extended;
+  {
+    auto writer=fresh(ram,true);populate(writer,4);
+    auto keys=selections(writer.snapshot(),4);
+    require(writer.compress_shared_base(keys.front(),keys).applied,"indexed first cohort");
+    const auto first=writer.snapshot();
+    const auto anchor=[&] {
+      const auto objects=PagedObjectStoreSnapshot::open(ram,limits);
+      for(const auto& record:objects.list_page(0,128)) {
+        if(record.logical_bytes==8+kNativeExtentBytes)return record;
+      }
+      throw std::runtime_error("missing first indexed shared base");
+    }();
+    writer.apply(std::array{file_create("f4"),file_write("f4",0,family(4))});
+    keys=selections(writer.snapshot(),5);
+    extended=writer.compress_shared_base(keys.front(),keys);
+    require(extended.applied && writer.snapshot().shared_base_info().members==5 &&
+        writer.snapshot().shared_base_info().bases==1,"indexed family did not extend");
+    const auto preserved=PagedObjectStoreSnapshot::open(ram,limits).stat(anchor.id);
+    require(preserved && preserved->generation==anchor.generation,"extension rewrote its immutable base");
+    verify_family(first,4);
+  }
+  const auto original=view(ram);
+  verify_family(original,5);
+  const std::array removals{file_remove("f0"),file_remove("f1"),file_remove("f2"),file_remove("f3"),file_remove("f4")};
+  const auto stable=ram->stable;
+  const auto resume=[&](const std::shared_ptr<Ram>& scope) {
+    return NativeFilesystemWriter::resume(PagedObjectStoreWriter::resume(scope,identity(),
+        extended.transaction.storage.generation,limits,{StoreCompressionMode::raw,1,false}));
+  };
+  auto probe=image(stable,4096);std::size_t cuts=0;
+  {
+    auto writer=resume(probe);
+    const auto calls=probe->calls;
+    writer.apply(removals);
+    cuts=probe->calls-calls;
+    const auto retired=writer.snapshot();
+    retired.verify_all();
+    require(retired.shared_base_info().bases==0 && retired.storage_info().objects==3,"indexed final base survived");
+  }
+  require(cuts>3 && cuts<256,"indexed final retirement fault envelope");
+  unsigned previous=0,complete=0;
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut) {
+    auto copy=image(stable,4096);
+    {
+      auto victim=resume(copy);
+      copy->failure=mode;copy->fail_at=copy->calls+cut;
+      rejects([&]{victim.apply(removals);},"faulted indexed final retirement acknowledged");
+      require(victim.poisoned(),"faulted indexed final retirement left a writer active");
+    }
+    const auto recovered=view(image(copy->stable,4096));
+    recovered.verify_all();
+    if(recovered.shared_base_info().members==5) {verify_family(recovered,5);++previous;}
+    else {
+      require(recovered.shared_base_info().bases==0 && recovered.shared_base_info().members==0 &&
+          recovered.storage_info().objects==3 && recovered.list().empty(),"partial indexed final retirement");
+      ++complete;
+    }
+    ++faults;
+  }
+  require(previous && complete && ram->stable==stable,"indexed fault campaign missed a root or changed its source");
+  std::cout<<"indexed_base_retirement_faults="<<previous+complete<<" previous="<<previous<<" complete="<<complete<<'\n';
+}
+
 void malformed_storage() {
   auto original=std::make_shared<Ram>();original->failure_unit=4096;
   {auto writer=fresh(original);populate(writer,4);const auto keys=selections(writer.snapshot(),4);
@@ -168,9 +243,9 @@ void malformed_storage() {
   require(writer.snapshot().read("opaque",0,kNativeExtentBytes)==plain && writer.snapshot().shared_base_info().members==0,
       "plain magic prefix misidentified as group");
 }
-void staged_group(std::uint32_t unit,bool reencode) {
+void staged_group(std::uint32_t unit,bool reencode,bool indexed_layout=false) {
   auto source=std::make_shared<Ram>(),target=std::make_shared<Ram>();source->failure_unit=target->failure_unit=unit;
-  auto writer=fresh(source);populate(writer,8);const auto keys=selections(writer.snapshot(),8);
+  auto writer=fresh(source,indexed_layout);populate(writer,8);const auto keys=selections(writer.snapshot(),8);
   require(writer.compress_shared_base(keys.front(),keys).applied,"staged fixture group");
   const auto original=source->live;const auto calls=source->calls;
   auto candidate=writer.prepare_paged_recompression(target,next_id(81),{StoreCompressionMode::raw,1,false},reencode);
@@ -182,9 +257,9 @@ void staged_group(std::uint32_t unit,bool reencode) {
   file_apply(copied,file_truncate("f2",1));require(copied.snapshot().read("f2",0,2)==Bytes{family(2).front()},"group truncate mismatch");
   verify_family(writer.snapshot(),8);
 }
-void lost_base_bank(std::uint32_t unit) {
+void lost_base_bank(std::uint32_t unit,bool indexed_layout=false) {
   auto source=std::make_shared<Ram>(),compact=std::make_shared<Ram>();source->failure_unit=compact->failure_unit=unit;
-  {auto writer=fresh(source);populate(writer,4);const auto keys=selections(writer.snapshot(),4);
+  {auto writer=fresh(source,indexed_layout);populate(writer,4);const auto keys=selections(writer.snapshot(),4);
     require(writer.compress_shared_base(keys.front(),keys).applied,"base-loss fixture group");}
   {auto copied=NativeFilesystemWriter::compact(view(source),compact,next_id(83),{StoreCompressionMode::raw,1,false});verify_family(copied.snapshot(),4);}
   const auto base=family(0);std::set<std::uint64_t> banks;std::vector<std::size_t> base_bytes;
@@ -202,7 +277,8 @@ void lost_base_bank(std::uint32_t unit) {
     require(!repaired.snapshot().storage_info().degraded_checkpoint && ram->live==damaged,"base repair changed source or stayed degraded");
   }
   auto destroyed=compact->stable;for(const auto bank:banks)std::fill_n(destroyed.begin()+bank,unit,std::byte{0});
-  rejects([&]{view(image(destroyed,unit));},"both missing base copies exposed data");
+  rejects([&]{(void)view(image(destroyed,unit)).read("f1",0,kNativeExtentBytes);},
+      "both missing base copies exposed data");
   auto active=image(compact->stable,unit);const auto objects=PagedObjectStoreSnapshot::open(active,limits);
   auto writer=NativeFilesystemWriter::resume(PagedObjectStoreWriter::resume(active,next_id(83),objects.info().generation,limits,{StoreCompressionMode::raw,1,false}));
   const auto keys=selections(writer.snapshot(),4);const auto writes=active->writes;
@@ -236,8 +312,13 @@ void layout_accounting(std::uint32_t unit,bool mirrored,unsigned count) {
 }
 }
 int main(){try {
-  codec();independent_and_decline();malformed_storage();for(auto unit:{4096U,65536U}){
-    lifecycle_and_sizes(unit);fault_matrix(unit);lost_base_bank(unit);for(bool reencode:{false,true})staged_group(unit,reencode);
+  codec();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
+  for(auto unit:{4096U,65536U}){
+    for(const auto indexed_layout:{false,true}) {
+      lifecycle_and_sizes(unit,indexed_layout);fault_matrix(unit,indexed_layout);
+      lost_base_bank(unit,indexed_layout);
+      for(bool reencode:{false,true})staged_group(unit,reencode,indexed_layout);
+    }
     for(bool mirrored:{false,true})for(unsigned count:{0U,55U,56U,1926U})layout_accounting(unit,mirrored,count);
   }
   std::cout<<"PASS: "<<checks<<" native shared-base checks; "<<faults<<" injected write/barrier cases; memory CPU only\n";return 0;

@@ -107,9 +107,9 @@ capacity and failure evidence before replacing it.
 | Component | Implemented and supported by evidence | Material remaining gap |
 | --- | --- | --- |
 | Object storage | Flat and paged stores, checked COW transactions, replicated metadata, streaming rebuild and bounded indexed selector publication | Durable segment allocation, reclamation under concurrent writes and backend qualification |
-| Native namespace | Indexed path and handle transactions, typed head selection, mounted Server 2025 fixture, scheduled retirement and staged memory compaction | Windows 11 client semantics, large live truncation and indexed collective representations |
+| Native namespace | Indexed path and handle transactions, typed head selection, mounted Server 2025 fixture, scheduled retirement and staged memory compaction | Windows 11 client semantics, large live truncation and automatic indexed collective work |
 | Populated capacity | Million-object paged inventory and 1,024 named nonempty indexed files. The indexed writer bypasses the older fixed namespace and extent model. | Larger populated external-client runs, root/open recovery budgets and scalable collective indexing |
-| Compression | Optional CPU Zstd/LZ4, exact sharing and protected shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
+| Compression | Optional CPU Zstd/LZ4, exact sharing and independently readable indexed shared-base literal-patch members | Stronger shifted/multi-reference/type-aware/learned collective representations and representative complete-size results |
 | Background work | Aligned-family discovery in the legacy engine, live Windows admission and bounded automatic indexed memory reclamation | Scalable persistent features, restartable learning, workload-driven codec selection and a lifetime write governor |
 | CPU recovery | Independent parsers/decoders, typed-head validation, surviving-copy reads and source-preserving repair/rebuild primitives | Full backend failure qualification, repair after wider dependency damage and production recovery orchestration |
 | GPU | Bounded AMD execution through the indexed WinFsp SDK callback, exact mirrored output and independent CPU reopen | Automatic selection and measurable benefit in mounted workloads, plus stronger collective GPU work |
@@ -273,6 +273,15 @@ driver to make a probe fit a document.
 [dependency policy/history](DEPENDENCY_AUDIT.md).
 
 ## Recent executed evidence
+
+Indexed volumes now publish protected cross-file shared bases. Eight related
+synthetic files occupied 76.2% less after compaction in the 4 KiB model,
+and 63.6% less in the 64 KiB model. All 591 modeled indexed interruptions
+recovered a complete checkpoint. Six paired SDK overwrites on the CPU and
+AMD device preserved the other group members, with exact CPU reopen and
+equal occupied bytes. The current foreground comparison selects CPU.
+Scalable automatic candidate selection and cooperative size accounting
+remain open. [Indexed shared-base evidence](evidence/indexed-shared-base-2026-11-18.json)
 
 The Windows controller collects GPU memory observations on demand. A
 relocated executable acquired the installed AMD package, and three 512 KiB

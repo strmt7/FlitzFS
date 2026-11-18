@@ -12,7 +12,7 @@ namespace flitzfs::detail {
 inline constexpr std::uint64_t kNativeNameIndexObject = 3ULL << 61;
 inline constexpr std::uint64_t kNativeIndexedInodeLimit = 1ULL << 61;
 inline constexpr std::uint64_t kNativeIndexedDataObject = 1ULL << 61;
-enum class NativeIndexKind : std::uint32_t { names=1, names_and_extents=2 };
+enum class NativeIndexKind : std::uint32_t { names=1, names_and_extents=2, names_extents_and_references=3 };
 
 struct NativeNameKey {
   std::uint64_t parent = 0;
@@ -36,6 +36,7 @@ struct NativeNameIndexRoot {
 };
 NativeNameKey native_extent_key(std::uint64_t inode,std::uint64_t block);
 std::uint64_t native_extent_block(std::string_view key);
+NativeNameKey native_group_reference_key(std::uint64_t base,std::uint64_t member);
 
 // Checked ordered names in one immutable paged-store snapshot. Borrow the
 // snapshot on its control thread. Names supplied here are already canonical;
@@ -48,6 +49,7 @@ class NativeNameIndex final {
   std::vector<NativeNameEntry> list(std::uint64_t parent, std::string_view after,
       std::size_t maximum) const;
   std::uint64_t extent_count(std::uint64_t inode) const;
+  std::uint64_t group_reference_count(std::uint64_t base) const;
   std::uint64_t size() const noexcept { return root_.entries; }
   NativeIndexKind kind() const noexcept { return root_.kind; }
   void verify_all() const;
@@ -60,8 +62,13 @@ class NativeNameIndex final {
   // binding requires an unused name. An absent replacement erases a name.
   static PagedStoreInfo commit(PagedObjectStoreWriter&, std::span<const NativeNameEdit>,
       std::vector<StoreMutation> accompanying = {});
+  // Prepare the identical COW mutations for size comparison before publication.
+  // The caller may promote an existing mixed index when publishing a grouped root.
+  static std::vector<StoreMutation> prepare_commit(const PagedObjectStoreSnapshot&,
+      std::span<const NativeNameEdit>,std::vector<StoreMutation>,bool promote_references=false);
 
  private:
+  std::uint64_t count_parent(std::uint64_t parent) const;
   const PagedObjectStoreSnapshot& store_;
   NativeNameIndexRoot root_;
 };

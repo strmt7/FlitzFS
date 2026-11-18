@@ -1241,6 +1241,10 @@ NativeWorkloadInfo NativeFilesystemSnapshot::workload_info() const noexcept {
   return {true,impl_->model.committed_input_bytes};
 }
 NativeSharedBaseInfo NativeFilesystemSnapshot::shared_base_info() const noexcept {
+  if(impl_ && impl_->indexed) {
+    const auto& root=impl_->indexed->root();
+    return {root.format>=3,static_cast<std::size_t>(root.shared_members),static_cast<std::size_t>(root.shared_bases)};
+  }
   return impl_?NativeSharedBaseInfo{impl_->model.shared_bases,impl_->model.members.size(),impl_->model.bases.size()}:NativeSharedBaseInfo{};
 }
 std::optional<NativeContentToken> NativeFilesystemWriter::maintenance_next(NativeExtentSelection after,bool first) const {
@@ -1653,6 +1657,10 @@ NativeSharedBaseCommit NativeFilesystemWriter::finish_shared_base(SharedBaseWork
 }
 NativeSharedBaseCommit NativeFilesystemWriter::compress_shared_base(NativeExtentSelection base,
     std::span<const NativeExtentSelection> members) {
+  if(!poisoned() && impl_->indexed)
+    return impl_->mutate_indexed([&](auto& writer,const auto& source,auto& root) {
+      return detail::compress_indexed_shared_base(writer,source,root,base,members);
+    });
   auto work=prepare_shared_base(base,members);while(!advance_shared_base(work)){}
   return finish_shared_base(work);
 }

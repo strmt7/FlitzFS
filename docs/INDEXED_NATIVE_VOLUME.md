@@ -5,22 +5,26 @@ extent records on demand. The native snapshot API provides lookup, directory
 pages, metadata and file reads. The native writer can initialize a new mirrored
 image and resume a fully verified indexed image. Its path transactions update
 the checked index and changed records together. New volumes use capability 2,
-which supports file lifetimes through `NativeFileSession`. The managed head and
-writable WinFsp SDK adapter can explicitly select indexed images. The mounted
-provider and application still need indexed lifecycle qualification.
+which supports file lifetimes through `NativeFileSession`. The first useful
+shared-base publication promotes the volume to capability 3. The managed head and
+writable WinFsp SDK adapter can select indexed images. The owned mounted
+provider passed an earlier indexed external-client fixture on disposable
+Windows Server 2025. Current Windows 11 client and mounted shared-base
+qualification remain open.
 [Managed indexed head](MANAGED_PAGED_VOLUMES.md#indexed-images) ·
 [WinFsp indexed adapter](WINFSP_PAGED_VOLUMES.md#indexed-volumes)
 
 ## Root and keys
 
 Object 1 is the little-endian native root. Capability 1 has 96 bytes.
-Capability 2 has 120 bytes and appends three lifetime counts. Older capability-1
-images remain readable and support indexed path transactions.
+Capability 2 has 120 bytes and appends three lifetime counts. Capability 3
+has 136 bytes and adds the shared-base and member counts. Readers accept
+all three root capabilities and check each against its exact length.
 
 | Offset | Bytes | Value |
 | --- | --- | --- |
 | 0 | 8 | `FLTXPV01` |
-| 8 | 4 | Indexed native capability, 1 or 2 |
+| 8 | 4 | Indexed native capability, 1, 2 or 3 |
 | 12 | 4 | Workload accounting flag, 0 or 1 |
 | 16 | 8 | Native namespace sequence |
 | 24, 32 | 8 each | Next inode ID and next extent ordinal |
@@ -28,7 +32,8 @@ images remain readable and support indexed path transactions.
 | 64 | 8 | Committed input bytes |
 | 72 | 16 | Exact paged store identity |
 | 88, 92 | 4 each | Extent length 65,536 and zero reserved field |
-| 96, 104, 112 | 8 each | Capability-2 counts for active lifetime records, detached inodes and retired inodes |
+| 96, 104, 112 | 8 each | Capability 2 and 3 counts for active lifetime records, detached inodes and retired inodes |
+| 120, 128 | 8 each | Capability 3 shared-base and member counts |
 
 The native namespace sequence preserves file provenance through a copy.
 It is independent of the new object's publication generation. A reader
@@ -37,12 +42,14 @@ requires the explicit indexed capability for `open_image`.
 Inode objects use `(1ULL << 63) | inode`. Data objects use
 `(1ULL << 61) | ordinal`. Both sequences have a positive usable 61-bit ordinal.
 The ordered index uses its existing reserved object domain at `3ULL << 61`.
-Its capability-2 root covers two key types in the same protected tree.
+The index's kind 2 covers names and extent locations. Kind 3 adds
+shared-base backreferences in the same protected tree.
 
 | Key | Value |
 | --- | --- |
 | Parent inode, canonical name bytes | Child inode |
 | `(1ULL << 61) \| inode`, 8-byte big-endian block number | Data object ID |
+| `(1ULL << 61) + base ID`, 8-byte big-endian member object ID | Member object ID |
 
 The inode body uses the canonical format-7 header, stored spelling and optional
 security descriptor. Extent locations live in the index. Capability 1 requires
@@ -53,6 +60,41 @@ remainder is a nonempty byte prefix of that extent with trailing zero bytes
 omitted. Readers check the owner, range and frame before copying. Missing
 extents and omitted tails read as zeros. Data objects retain the paged store's
 independent CPU decoders and mirrored-payload verification.
+
+## Shared-base extents
+
+Capability 3 leaves the ordinary extent frame intact. A grouped member has
+the same 24-byte owner and logical-block header with magic `FLTXPD01`,
+followed by the existing checked [shared-base delta](SHARED_BASE_GROUPS.md#exact-member-bytes).
+A base object uses the data-object allocator and starts with `FLTXPA01`,
+followed by 65,536 immutable bytes. Both records use mirrored storage.
+The member binds the base object ID, generation and decoded digests.
+The index must also contain that exact base/member pair.
+
+CPU reads decode at most one base per member extent and validate the
+result against the member digest and file bounds before slicing the
+requested range. The full scrub checks every member, the referenced
+anchors and the index and volume totals. Bases are separate from visible
+files, so removing the file used as the base leaves other files readable.
+
+Explicit grouping prepares checked member frames and index changes before
+publication. It compares the complete compacted layouts using a single
+streamed walk of the object metadata. The bound charges replacement data
+and index pages at raw size and requires a strict reduction. A declined
+candidate performs no storage writes. An existing immutable anchor can
+accept more members in bounded transactions without rewriting the group.
+
+An edit or removal detaches its old reference in the same COW transaction
+as the file change. Ordered index ranks determine whether an anchor has
+surviving references without scanning its members. The last removal
+retires the base from the current root while old snapshots keep their
+previous records. Actual occupied space is reclaimed by compaction.
+The explicit comparison walks the full metadata inventory, so background
+publication on large volumes still needs cooperative size accounting.
+A grouped volume passed six paired SDK overwrites and exact CPU recovery
+with the other three member files unchanged. The AMD worker compressed
+the incoming overwrite. Group discovery and encoding remained on CPU.
+[Shared-base evidence](evidence/indexed-shared-base-2026-11-18.json)
 
 ## Writable transactions
 

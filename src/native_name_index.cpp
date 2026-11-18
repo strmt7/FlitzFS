@@ -47,24 +47,45 @@ bool page_object(std::uint64_t id, std::uint64_t next_page) noexcept {
   return index_object(id) && (id & last_ordinal) && (id & last_ordinal) < next_page;
 }
 bool inode_id(std::uint64_t id) noexcept { return id && id < (1ULL << 62); }
+constexpr std::uint64_t reference_domain=2ULL<<61;
+bool data_id(std::uint64_t id) noexcept {return id>kNativeIndexedDataObject && id<reference_domain;}
 bool valid_kind(NativeIndexKind kind) noexcept {
-  return kind==NativeIndexKind::names || kind==NativeIndexKind::names_and_extents;
+  return kind==NativeIndexKind::names || kind==NativeIndexKind::names_and_extents ||
+      kind==NativeIndexKind::names_extents_and_references;
 }
 bool extent_key(NativeIndexKind kind,std::uint64_t parent) noexcept {
-  return kind==NativeIndexKind::names_and_extents && parent>=kNativeIndexedInodeLimit;
+  return kind!=NativeIndexKind::names && parent>kNativeIndexedInodeLimit && parent<reference_domain;
+}
+bool reference_key(NativeIndexKind kind,std::uint64_t parent) noexcept {
+  return kind==NativeIndexKind::names_extents_and_references && parent>reference_domain &&
+      parent<kNativeNameIndexObject;
+}
+bool parent_valid(NativeIndexKind kind,std::uint64_t parent) noexcept {
+  if(kind==NativeIndexKind::names)return inode_id(parent);
+  return (parent && parent<kNativeIndexedInodeLimit) || extent_key(kind,parent) || reference_key(kind,parent);
 }
 bool key_valid(NativeIndexKind kind,const NativeNameKey& key) {
-  if (!inode_id(key.parent))return false;
-  if (extent_key(kind,key.parent))
-    return key.parent>kNativeIndexedInodeLimit && key.name.size()==8 &&
-        native_extent_block(key.name)<=maximum_block;
+  if(!parent_valid(kind,key.parent))return false;
+  if(extent_key(kind,key.parent))return key.name.size()==8 && native_extent_block(key.name)<=maximum_block;
+  if(reference_key(kind,key.parent)) {
+    if(key.name.size()!=8)return false;
+    const auto id=native_extent_block(key.name);
+    return data_id(id) && id!=key.parent-kNativeIndexedInodeLimit;
+  }
   return !key.name.empty() && key.name.size() <= maximum_name_bytes &&
       key.name.find_first_of("/\\") == std::string::npos && key.name.find('\0') == std::string::npos;
 }
-bool value_valid(NativeIndexKind kind,const NativeNameKey& key,std::uint64_t value) noexcept {
+bool value_valid(NativeIndexKind kind,const NativeNameKey& key,std::uint64_t value) {
   if(kind==NativeIndexKind::names)return inode_id(value);
-  if(extent_key(kind,key.parent))return value>kNativeIndexedDataObject && value<(kNativeIndexedDataObject<<1);
+  if(extent_key(kind,key.parent))return data_id(value);
+  if(reference_key(kind,key.parent))return value==native_extent_block(key.name);
   return value && value<kNativeIndexedInodeLimit;
+}
+std::string numeric_key(std::uint64_t ordinal) {
+  std::string key(8,'\0');
+  for(std::size_t i=0;i<key.size();++i)
+    key[i]=static_cast<char>(static_cast<unsigned char>(ordinal>>(8*(key.size()-i-1))));
+  return key;
 }
 std::uint64_t add_count(std::uint64_t a, std::uint64_t b) {
   if (b > (std::numeric_limits<std::uint64_t>::max)() - a)
@@ -405,10 +426,13 @@ void validate_accompanying(std::span<const StoreMutation> records) {
 NativeNameKey native_extent_key(std::uint64_t inode,std::uint64_t block) {
   if (!inode || inode>=kNativeIndexedInodeLimit || block>maximum_block)
     fail(Error::invalid_operation,"invalid indexed extent coordinate");
-  std::string key(8,'\0');
-  for (std::size_t i=0;i<key.size();++i)
-    key[i]=static_cast<char>(static_cast<unsigned char>(block>>(8*(key.size()-i-1))));
-  return {kNativeIndexedInodeLimit|inode,std::move(key)};
+  return {kNativeIndexedInodeLimit|inode,numeric_key(block)};
+}
+
+NativeNameKey native_group_reference_key(std::uint64_t base,std::uint64_t member) {
+  if(!data_id(base) || !data_id(member) || base==member)
+    fail(Error::invalid_operation,"invalid group reference coordinate");
+  return {base+kNativeIndexedInodeLimit,numeric_key(member)};
 }
 std::uint64_t native_extent_block(std::string_view key) {
   if (key.size()!=8)fail(Error::corrupt,"indexed extent key length");
@@ -435,8 +459,7 @@ std::optional<std::uint64_t> NativeNameIndex::find(const NativeNameKey& key) con
 
 std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::string_view after,
     std::size_t maximum) const {
-  if (!inode_id(parent) || after.size()>maximum_name_bytes ||
-      (root_.kind==NativeIndexKind::names_and_extents && parent==kNativeIndexedInodeLimit))
+  if (!parent_valid(root_.kind,parent) || after.size()>maximum_name_bytes)
     fail(Error::invalid_path, "invalid name index enumeration key");
   const NativeNameKey key{parent,std::string(after)};
   if (!after.empty() && !key_valid(root_.kind,key)) fail(Error::invalid_path, "invalid name index enumeration key");
@@ -450,9 +473,18 @@ std::vector<NativeNameEntry> NativeNameIndex::list(std::uint64_t parent, std::st
 }
 
 std::uint64_t NativeNameIndex::extent_count(std::uint64_t inode) const {
-  if(root_.kind!=NativeIndexKind::names_and_extents)
+  if(root_.kind==NativeIndexKind::names)
     fail(Error::invalid_operation,"extent count requires the mixed index");
-  const auto parent=native_extent_key(inode,0).parent;
+  return count_parent(native_extent_key(inode,0).parent);
+}
+
+std::uint64_t NativeNameIndex::group_reference_count(std::uint64_t base) const {
+  if(root_.kind!=NativeIndexKind::names_extents_and_references || !data_id(base))
+    fail(Error::invalid_operation,"group count requires a protected base");
+  return count_parent(base+kNativeIndexedInodeLimit);
+}
+
+std::uint64_t NativeNameIndex::count_parent(std::uint64_t parent) const {
   const auto preceding=[&](std::uint64_t scope) {
     const NativeNameKey key{scope,{}};
     auto ref=root_reference(root_);
@@ -468,7 +500,7 @@ std::uint64_t NativeNameIndex::extent_count(std::uint64_t inode) const {
     return count;
   };
   const auto first=preceding(parent),last=preceding(parent+1);
-  if(last<first || last>root_.entries)fail(Error::corrupt,"indexed extent rank mismatch");
+  if(last<first || last>root_.entries)fail(Error::corrupt,"indexed parent rank mismatch");
   return last-first;
 }
 
@@ -508,12 +540,21 @@ PagedStoreInfo NativeNameIndex::initialize(PagedObjectStoreWriter& writer,
 
 PagedStoreInfo NativeNameIndex::commit(PagedObjectStoreWriter& writer, std::span<const NativeNameEdit> edits,
     std::vector<StoreMutation> accompanying) {
+  return writer.commit(prepare_commit(writer.snapshot(),edits,std::move(accompanying)));
+}
+
+std::vector<StoreMutation> NativeNameIndex::prepare_commit(const PagedObjectStoreSnapshot& snapshot,
+    std::span<const NativeNameEdit> edits,std::vector<StoreMutation> accompanying,bool promote_references) {
   if (edits.empty()) fail(Error::invalid_operation,"name index commit requires an edit");
   if (edits.size()>kStoreMaxObjects)
     fail(Error::limit,"name index transaction operation budget");
   validate_accompanying(accompanying);
-  const auto snapshot=writer.snapshot();
-  const auto root=read_root(snapshot);
+  auto root=read_root(snapshot);
+  if(promote_references) {
+    if(root.kind!=NativeIndexKind::names_and_extents)
+      fail(Error::invalid_operation,"group references require the mixed index");
+    root.kind=NativeIndexKind::names_extents_and_references;
+  }
   for (const auto& edit : edits) {
     if (!key_valid(root.kind,edit.key)) fail(Error::invalid_path,"invalid name index edit key");
     if ((edit.expected && !value_valid(root.kind,edit.key,*edit.expected)) ||
@@ -525,7 +566,7 @@ PagedStoreInfo NativeNameIndex::commit(PagedObjectStoreWriter& writer, std::span
   for (const auto& edit : edits) editor.apply(edit);
   require_healthy_checkpoint(snapshot);
   editor.append_to(accompanying);
-  return writer.commit(accompanying);
+  return accompanying;
 }
 
 } // namespace flitzfs::detail

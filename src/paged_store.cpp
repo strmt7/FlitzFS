@@ -752,17 +752,66 @@ bool PagedObjectStoreSnapshot::same_checkpoint(const PagedObjectStoreSnapshot& o
 }
 PagedStoreLimits PagedObjectStoreSnapshot::limits() const noexcept {return impl_?impl_->state.limits:PagedStoreLimits{};}
 std::uint32_t PagedObjectStoreSnapshot::isolation_unit() const noexcept {return impl_?impl_->state.unit:0;}
+namespace {
+void measure_record(Rebuild& build,const StoreObjectInfo& record) {
+  Entry entry{record.id,1,0,record.logical_bytes,record.stored_payload_bytes,{}};
+  build.allocation.place(build.next,entry,128ULL+entry.stored,build.cursor);
+  build.entry(entry);
+}
+}
+
 std::uint64_t PagedObjectStoreSnapshot::rebuilt_size(std::span<const StoreObjectInfo> records) const {
   if(!impl_)fail("moved-from size estimate");
   Rebuild build;build.size_only=true;build.next=impl_->state;std::uint64_t previous=0;
   for(const auto& record:records) {
     if(!record.id || record.id<=previous || record.logical_bytes>kStoreMaxObjectBytes || record.stored_payload_bytes>record.logical_bytes)
       fail("hypothetical record ordering/length");
-    Entry entry{record.id,1,0,record.logical_bytes,record.stored_payload_bytes,{}};
-    build.allocation.place(build.next,entry,128ULL+entry.stored,build.cursor);
-    build.entry(entry);previous=entry.id;
+    measure_record(build,record);
+    previous=record.id;
   }
   build.finish();return build.next.end;
+}
+PagedCompactedSizes PagedObjectStoreSnapshot::rebuilt_size_after(std::span<const StoreMutation> changes,
+    std::uint64_t rebound_object) const {
+  if(!impl_)fail("moved-from compacted size estimate");
+  if(changes.size()>kStoreMaxObjects)fail("compacted change inventory exceeds transaction budget");
+  std::vector<const StoreMutation*> ordered;
+  ordered.reserve(changes.size());
+  for(const auto& change:changes) {
+    if(!change.id || change.bytes.size()>kStoreMaxObjectBytes || (change.erase && !change.bytes.empty()))
+      fail("invalid compacted record change");
+    ordered.push_back(&change);
+  }
+  std::sort(ordered.begin(),ordered.end(),[](const auto* a,const auto* b){return a->id<b->id;});
+  if(std::adjacent_find(ordered.begin(),ordered.end(),[](const auto* a,const auto* b){return a->id==b->id;})!=ordered.end())
+    fail("duplicate compacted record change");
+  Rebuild before,after;
+  before.size_only=after.size_only=true;
+  before.next=after.next=impl_->state;
+  auto next=ordered.begin();
+  const auto add_changed=[&](const StoreMutation& change,bool present) {
+    if(change.erase) {
+      if(!present)fail("compacted erase references absent object");
+      return;
+    }
+    const auto bytes=static_cast<std::uint32_t>(change.bytes.size());
+    measure_record(after,{change.id,0,bytes,bytes});
+  };
+  bool done=false;
+  auto compare=[&](const Entry& entry) {
+    const StoreObjectInfo current{entry.id,entry.generation,entry.logical,entry.stored};
+    auto lower=current;
+    if(entry.id==rebound_object)lower.stored_payload_bytes=0;
+    measure_record(before,lower);
+    while(next!=ordered.end() && (*next)->id<entry.id)add_changed(**next++,false);
+    if(next!=ordered.end() && (*next)->id==entry.id)add_changed(**next++,true);
+    else measure_record(after,current);
+    return true;
+  };
+  walk(impl_->state,impl_->state.root,0,compare,done);
+  while(next!=ordered.end())add_changed(**next++,false);
+  before.finish();after.finish();
+  return {before.next.end,after.next.end};
 }
 PagedStoreInfo PagedObjectStoreSnapshot::info() const noexcept {return impl_?flitzfs::info(impl_->state):PagedStoreInfo{};}
 std::optional<StoreObjectInfo> PagedObjectStoreSnapshot::stat(std::uint64_t id) const {

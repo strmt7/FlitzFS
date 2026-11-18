@@ -172,6 +172,15 @@ void UniformLz4WorkerController::release_retired_buffers() noexcept {
   selected_=UniformLz4Candidates{};
   std::vector<std::uint64_t>().swap(offsets_);
 }
+UniformLz4WorkerOutcome UniformLz4WorkerController::outcome() const noexcept {
+  UniformLz4WorkerOutcome outcome;
+  outcome.gate=last_gate_;
+  if(const auto* result=session_?session_->try_result():nullptr) {
+    outcome.exchange=result->code;
+    if(result->process.exit_confirmed)outcome.exit_code=result->process.exit_code;
+  }
+  return outcome;
+}
 bool UniformLz4WorkerController::request_cancel() const noexcept{return session_ && session_->request_cancel();}
 std::uint32_t UniformLz4WorkerController::process_id() const noexcept{return session_?session_->process_id():0;}
 std::span<const std::byte> UniformLz4WorkerController::source() const noexcept{

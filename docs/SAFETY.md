@@ -33,7 +33,10 @@ kind and validates the checkpoint and namespace sequence independently.
 Compaction keeps the original image available to its existing readers. The
 indexed WinFsp restart that retires stale lifetimes requires prior dispatcher
 and context closure. Its free-space report accounts for occupied append tails
-left beyond the selected checkpoint.
+left beyond the selected checkpoint. Indexed group transactions bind each
+delta to a mirrored immutable base and update the backreferences with the
+file mappings. Group reads and recovery verify all dependencies on CPU.
+[Indexed group contract](INDEXED_NATIVE_VOLUME.md#shared-base-extents)
 
 The [shared memory factory](WINDOWS_MEMORY_VOLUME_FACTORY.md) now admits and
 retains backing for both the helper and WinFsp composition. Explicit controller

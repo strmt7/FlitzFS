@@ -12,6 +12,7 @@ struct IndexedVolumeRoot {
   NativeWorkloadInfo workload;
   std::uint32_t format=1;
   std::uint64_t active_lifetimes=0,detached_inodes=0,retiring_inodes=0;
+  std::uint64_t shared_bases=0,shared_members=0;
   bool operator==(const IndexedVolumeRoot&) const = default;
 };
 enum class IndexedLifetime : std::uint8_t { linked, pending, detached, retiring };
@@ -55,6 +56,8 @@ NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectSt
     IndexedVolumeRoot&,const IndexedVolumeEdit&,NativeInodeCommitInfo*,NativeInodeAllocationInfo*);
 void advance_indexed_retirement(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,bool closed_session);
+NativeSharedBaseCommit compress_indexed_shared_base(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
+    IndexedVolumeRoot&,NativeExtentSelection,std::span<const NativeExtentSelection>);
 NativeInodeStorageMutationCommit write_indexed_inode(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,std::uint64_t inode,std::uint64_t offset,std::span<const std::byte>,
     NativeInodeWriteOptions,const NativeAutomaticMetadata&,std::span<const NativeLz4ExtentCandidate>);

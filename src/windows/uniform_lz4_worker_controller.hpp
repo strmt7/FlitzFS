@@ -8,6 +8,11 @@ struct UniformLz4WorkerStart {
   GpuWorkerStart decision;
   bool source_adopted=false;
 };
+struct UniformLz4WorkerOutcome {
+  GpuGateCode gate=GpuGateCode::wrong_state;
+  std::optional<WorkerExchangeCode> exchange;
+  std::optional<std::uint32_t> exit_code;
+};
 // Single control thread. Persistent policy, one retiring worker and at most
 // one replacement CPU source of no greater size. Caller admits preparation
 // before allocating source. No normal operation starts this controller yet.
@@ -43,6 +48,7 @@ class UniformLz4WorkerController final {
   GpuWorkerState state() const noexcept{return state_;}
   bool awaiting_fresh_observation() const noexcept{return state_==GpuWorkerState::waiting && verified_;}
   GpuGateCode last_gate_code() const noexcept{return last_gate_;}
+  UniformLz4WorkerOutcome outcome() const noexcept;
   unsigned consecutive_failures() const noexcept{return policy_.consecutive_failures();}
  private:
   void report(GpuRecoveryOutcome) noexcept;
