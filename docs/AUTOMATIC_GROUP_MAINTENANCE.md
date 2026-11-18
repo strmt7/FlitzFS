@@ -12,12 +12,17 @@ CPU baseline for collective optimization, not a completed AI learner or GPU path
 No thread, timer, online model, driver, mount or service starts implicitly.
 
 An explicit adviser can supply a member grant on an idle opportunity. The
-controller stages one decoded member per opportunity and exposes a completed
-window of the selected bytes. A completed reply is considered on a subsequent
-admitted opportunity. Calls without a reply can continue CPU preparation
-using the staged bytes. Device, transport, and retained consumer memory
-admission belong to the adviser. The default Windows scheduling path uses
-CPU preparation.
+controller stages one decoded member per opportunity. An indexed batch can
+collect additional disjoint groups from the current discovery window within the
+aggregate member and memory grants. The budget includes each staged base and
+any window still held by a consumer.
+
+Each group keeps its own prepared source and revision checks. Advice is matched
+by immutable source-window identity. An edit invalidates the affected selection,
+and the other groups can still publish through their independent transactions.
+CPU preparation can consume the staged bytes when advice is unavailable.
+Device and transport admission remain the adviser's responsibility. Volumes
+without a qualified adviser use CPU preparation.
 
 The Windows diagnostic used the same discovery controller and coalesced AMD
 worker to publish five-file groups for synthetic and public-derived inputs.

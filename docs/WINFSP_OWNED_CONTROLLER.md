@@ -68,19 +68,21 @@ volume with no pending retirement or compaction sleeps until an event.
 A configured indexed controller can supply a qualified shared-base worker
 route and workload profile. The route binds the exact worker, anchor module,
 system runtime, adapter and node. The worker supervisor owns a reference to
-the file leases. A package-enabled indexed controller can acquire its route
-automatically when a freshly admitted group reaches the approved work range.
-One scoped control task checks the installed runtime and device while ordinary
-CPU work continues. Stop cancels acquisition and joins that task.
+the file leases. A package-enabled indexed controller starts its route
+acquisition once live observations admit a real group candidate. The qualified
+work range governs the combined member count at compute admission. One scoped
+control task checks the installed runtime and device while CPU work continues.
+Stop cancels acquisition and joins that task.
 [Installed AMD package](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile)
 
-The owner stages a verified group window under the same CPU and memory
-admission used for group preparation. It receives each completed window once.
-It checks device headroom, sizes the complete immutable request and launches
-the existing coalesced worker outside the callback lock. CPU telemetry
-continues while storage preparation waits for the optional reply. The owner
-waits on the exact supervisor handle alongside the stop and activity events.
-It holds the session that owns the handle for the duration of the wait.
+The owner can stage several independent group windows within the same CPU
+and memory admission used for group preparation. The qualified member range
+applies to their total work. The owner checks device headroom, sizes the
+complete immutable request and starts one coalesced worker outside the
+callback lock. The worker reuses its runtime, stream and device allocation
+across groups. CPU telemetry continues while storage preparation awaits the
+optional reply. The owner holds the session that owns the exact supervisor
+handle while waiting alongside the stop and activity events.
 [Windows wait contract](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
 
 A foreground callback can wake the owner at entry while a GPU request is
@@ -91,8 +93,9 @@ yield carries no device-fault conclusion. Late results cannot reenter group
 preparation. Runtime and integrity failures retain their recovery
 classification, and transient pressure retries require fresh qualified
 observations and exact retirement. Elapsed worker time separately paces later
-GPU launches. Reply verification runs during a fresh idle opportunity, and
-publication goes through the same CPU comparison and packed-size checks.
+GPU launches. Reply verification runs during a fresh idle opportunity. Every
+group consumes its own verified reply and publishes through the same revision,
+CPU byte comparison and packed-size checks.
 [Windows thread priorities](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority) ·
 [Worker ownership](WORKER_CHANNEL.md#asynchronous-sessions-and-independent-cpu-completion)
 
@@ -105,6 +108,15 @@ tree peaked at 105,611,264 bytes of commitment. The fixture supplied a 50%
 CPU-load admission profile after the standard profile deferred on measured
 load. Both trials used actual host observations and a real AMD worker with
 injected WinFsp lifecycle operations. [Source-bound owner evidence](evidence/amd-owned-group-search-2026-11-18.json)
+
+The packaged batch fixture acquired the installed route once and sent two
+independent three-file groups in one AMD exchange. Each group contributed
+two extents toward the four-member profile. The controller published both
+groups and verified their CPU readback. A separate explicit two-group trial
+yielded on a real callback event and completed both groups on CPU. The
+missing-package control finished on CPU with zero metadata queries or compute
+launches. These fixtures use the Windows host and SDK callback lifecycle.
+[Batch, cancellation and fallback evidence](evidence/amd-owned-group-batch-2026-11-18.json)
 
 ## Retirement and qualification
 

@@ -127,7 +127,11 @@ std::array<std::byte,32> artifact_digest(std::string_view input) {
 }
 int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearchOptions> options) {
   const bool installed=!options;
-  constexpr unsigned count=5;
+  const bool packed=mode=="batch" || mode=="batch-yield";
+  const unsigned files_per_group=installed && packed?3:5;
+  const unsigned groups=packed?2:1;
+  const bool yield=mode=="yield" || mode=="batch-yield";
+  const auto count=groups*files_per_group;
   const auto before=handle_count();
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
   Provider provider;Provider::active=&provider;
@@ -135,11 +139,15 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   qualification.maximum_cpu_busy_ppm=500000;
   auto adapter=WinFspNativeWritable::create_managed_indexed(
       head,id(90),image,id(1),{kStoreMaxPhysicalBytes},{StoreCompressionMode::raw,1,false},{},qualification);
-  std::vector<Bytes> originals{data(kNativeExtentBytes,714)};
-  for(unsigned i=1;i<count;++i) {
-    auto derived=anchor_search_fixture::fragmented(originals.front(),i);
-    std::copy_n(originals.front().begin(),kNativeExtentBytes/8,derived.begin());
-    originals.push_back(std::move(derived));
+  std::vector<Bytes> originals;
+  originals.reserve(count);
+  for(unsigned group=0;group<groups;++group) {
+    const auto base=data(kNativeExtentBytes,714+group*5731);
+    for(unsigned i=0;i<files_per_group;++i) {
+      auto derived=i?anchor_search_fixture::fragmented(base,i):base;
+      std::copy_n(base.begin(),kNativeExtentBytes/8,derived.begin());
+      originals.push_back(std::move(derived));
+    }
   }
   WinFspControllerView result;
   bool signalled=false;
@@ -149,16 +157,17 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     WinFspVolumeController controller(std::move(adapter),provider.api(),plan(),std::move(options));
     await([&]{return controller.view().state==SessionState::running;},5000,"AMD controller startup deadline");
     for(unsigned i=0;i<count;++i)callback_file(provider,i,originals[i]);
-    const auto deadline=GetTickCount64()+57000;
+    // Each group is staged and published across admitted idle observations.
+    const auto deadline=GetTickCount64()+57000ULL*groups;
     do {
       result=controller.view();
       if(result.maintenance_quanta!=last_quantum) {
         last_quantum=result.maintenance_quanta;
         ++deferrals.at(static_cast<std::size_t>(result.maintenance.deferral));
       }
-      if(result.maintenance.published_groups || result.retired || result.maintenance_disabled ||
+      if(result.maintenance.published_groups>=groups || result.retired || result.maintenance_disabled ||
           (mode=="stop" && result.installed_anchor_attempts))break;
-      if(mode=="yield" && result.anchor_search.submitted && !signalled) {
+      if(yield && result.anchor_search.submitted && !signalled) {
         FSP_FSCTL_VOLUME_INFO info{};
         require(provider.fs.Interface->GetVolumeInfo(&provider.fs,&info)==STATUS_SUCCESS,
             "foreground callback could not run while AMD work was outstanding");
@@ -183,6 +192,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" phase="<<static_cast<int>(result.maintenance.phase)<<" sampled="<<result.maintenance.sampled_extents
       <<" attempted="<<result.maintenance.attempted_groups<<" cpu_limit_ppm="<<qualification.maximum_cpu_busy_ppm
       <<" submitted="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
+      <<" submitted_groups="<<result.anchor_search.submitted_groups<<" verified_groups="<<result.anchor_search.verified_groups
       <<" declined="<<result.anchor_search.declined<<" yielded="<<result.anchor_search.yielded
       <<" advised_members="<<result.maintenance.advised_members_published
       <<" installed_attempts="<<result.installed_anchor_attempts
@@ -208,13 +218,15 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     require(result.installed_anchor_status==HipDiscoveryStatus::ready && result.installed_anchor_queries!=0,
         "Installed package did not acquire a verified route");
   }
-  if(mode=="yield")return signalled && result.anchor_search.yielded==1 &&
-      result.maintenance.published_groups==1 && result.maintenance.advised_members_published==0?0:2;
-  return result.anchor_search.verified==1 && result.maintenance.advised_members_published==count-1?0:2;
+  if(yield)return signalled && result.anchor_search.yielded==1 && result.anchor_search.submitted_groups==groups &&
+      result.maintenance.published_groups==groups && result.maintenance.advised_members_published==0?0:2;
+  return result.anchor_search.submitted==1 && result.anchor_search.verified==1 && result.anchor_search.verified_groups==groups &&
+      result.maintenance.published_groups==groups && result.maintenance.advised_members_published==count-groups?0:2;
 }
 int live_anchor_owner(char** argv) {
   const std::string_view mode(argv[6]);
-  require(mode=="accept" || mode=="yield" || mode=="both","Expected an AMD ownership trial");
+  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield",
+      "Expected an AMD ownership trial");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
   request.helper=argv[2];request.helper_sha256=artifact_digest(argv[3]);
@@ -223,7 +235,8 @@ int live_anchor_owner(char** argv) {
   const auto binding=discover_system_hip_route(request);
   require(binding.status==HipDiscoveryStatus::ready && binding.route && binding.route->pins->anchor_module_pinned() &&
       !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
-  const NativeAnchorSearchOptions execution{*binding.route,profile,4,4};
+  const std::uint32_t members=(mode=="batch" || mode=="batch-yield")?8:4;
+  const NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
   if(mode!="both")return run_live_anchor_owner(mode,execution);
   const auto accepted=run_live_anchor_owner("accept",execution);
   if(accepted)return accepted;
@@ -960,7 +973,8 @@ int main(int argc,char** argv){try {
   if(argc==7 && std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argv);
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
     const std::string_view mode(argv[2]);
-    require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat","Unknown installed route trial");
+    require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch",
+        "Unknown installed route trial");
     if(mode=="repeat") {
       const auto accepted=run_live_anchor_owner("accept",std::nullopt);
       if(accepted)return accepted;

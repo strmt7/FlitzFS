@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "captured_local": "2026-11-18T22:23:52+01:00",
+  "source_base": "207a11ed6e8f0ab47fb25d218d9a87c80398f5b9",
+  "source_binding": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "d42cbb6e7361c1d5ccd3f60f25a092086277d8a6",
+      "sha256": "50be0dacf5fe616b2d655b9a86ba1d2972b44134cc5d6a34b5a90dc977b18d7b"
+    },
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "294a0780d88ffee02d97a74519d7afd977b89bb0",
+      "sha256": "12b81c3f1b976e0a1ce188ce2991dfb0e1058acba8c73f7a3c22bd9119e0eecb"
+    },
+    {
+      "path": "include/flitzfs/native_maintenance.hpp",
+      "git_blob": "a2d803ce5e65958c9f3ed605b950b5bd7c4854df",
+      "sha256": "cc2f7595d4ad8e3d47a1646eda1776087b65a66e76bf4485e37b71c8fd713ed7"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "fc42664df47e7994255368dbb625c3cd8339d0aa",
+      "sha256": "11050fb32bc65df4ab7defe9ba6e84b4dd9dfd3daaa9773d836c17761f2efc74"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "cc3e355674a50c629eb10331ffbeebd5f0cec15d",
+      "sha256": "67415ec5ce50ab5a3451ab0364415890709dbfc04bacad6d86b22f6ae4374c17"
+    },
+    {
+      "path": "src/native_indexed_volume.hpp",
+      "git_blob": "b886fab46387d722d7527a99aa8f08d513731204",
+      "sha256": "33c7f614964680ae0c2c1fc4cfdb1a88c6ca9ef787d729efbf7228edbc6a516b"
+    },
+    {
+      "path": "src/native_maintenance.cpp",
+      "git_blob": "8e6020b03f89f3a925f60c3271e6e88c195ac5b0",
+      "sha256": "a921f85b689935aebe504fe50f99a413b071c46892361503ff5dfd5e5de7583a"
+    },
+    {
+      "path": "src/windows/native_anchor_search.cpp",
+      "git_blob": "df2147f4131d458c6fbdab54e3764e4f94aeb049",
+      "sha256": "901f8a23d3494546e3b5c13ec19a0a776dbb23fd377b22cf01248c1612c635eb"
+    },
+    {
+      "path": "src/windows/native_anchor_search.hpp",
+      "git_blob": "a7aaa162ffee70ce35e629d0c1a4a995ae7ef08f",
+      "sha256": "ef035f81a5e3b483c8baa9e3ed3f064c6eef84fa07c4023fb235c1fb7feb1127"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "b9a448d367a273c040ddc5835c706f1ac85a84c7",
+      "sha256": "088fc4b7b0b48c02ee4aefd5305ebce3d9c8a6d673ed1d80938ab548cd05d536"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "45d3d433065d8d5758d8244b3775375389b66cd7",
+      "sha256": "9d430fdcd6816c2f9a748edd93406da4e3fd24f9c08de91676b7c84748dbed08"
+    },
+    {
+      "path": "src/windows/winfsp_native.hpp",
+      "git_blob": "de80458f48c6dd3bca081135a4566f6428cf012e",
+      "sha256": "39c249317aff050065f51be0da8c30f252efa75ff9c8fb701102bb232bc969ba"
+    },
+    {
+      "path": "tests/test_native_group_maintenance.cpp",
+      "git_blob": "062f82615603c8fbae41cbdc9b1f746b03fd9bc1",
+      "sha256": "dd965a150bd307217d8100a21cd9c2e76972fff9dd65ec2e14420221b4c69fce"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "ba602aa143a3e872306d7a3dffcfce847d12a3ad",
+      "sha256": "fc0d6f0dc7dc90a905a380302bdbc7e9a31d4b216be0c08b8e91925ecb2c02c0"
+    }
+  ],
+  "workspace": "Local Windows host qualification with injected WinFsp lifecycle callbacks and a real AMD worker.",
+  "native_search": {
+    "commit": "207a11ed6e8f0ab47fb25d218d9a87c80398f5b9",
+    "source_files": 10,
+    "provider_version": "0.2.43",
+    "inventory_sha256": "d1a2da846f4434bed5be383c14e492d1b2fd1df09a00b1578dcf6fce47c974e4",
+    "native_response_sha256": "5345ae2be827c1c9e61c1f95e769a05173ad9e50a9c9773be7656c2bd4e5bb23",
+    "actual_searches": 1,
+    "receipt_sha256": "a2ba61d997ff8f6c3ec437cbccc05195c4864b5eb12ac0356b557821806284b1"
+  },
+  "research": {
+    "provider": "Crawl4AI 0.9.5+flitzzip.portable2",
+    "receipt_sha256": "93058bb04d35457af117d6e3008bc8c2f947fe26102ffa782fa7b460a0e24d23",
+    "pages": [
+      {
+        "url": "https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html",
+        "status": 200,
+        "capture_sha256": "66ff717789b97589de208db2c5a264f69772689954f2c9e3746fc3def023a5c3"
+      },
+      {
+        "url": "https://btrfs.readthedocs.io/en/latest/Deduplication.html",
+        "status": 200,
+        "capture_sha256": "aa7139f68959bdf5434511ec48147af24aca40c31f52db90860611a4eb306542"
+      }
+    ]
+  },
+  "host": {
+    "windows_version": "10.0.26300",
+    "adapter": "AMD Radeon RX 9070 XT",
+    "hip_runtime_sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+  },
+  "packaged_artifacts": [
+    {
+      "name": "flitzfs_winfsp_controller_tests.exe",
+      "sha256": "81489959b7967915925d59f90c7578aee76c46fb7c56d4d360327ee63f8cc0d8"
+    },
+    {
+      "name": "amd/flitzfs_hip_worker.exe",
+      "sha256": "54e86cbfbc03e436013a6f56476c43cac9acc1108d9346d1d390ddcaf5e4b678"
+    },
+    {
+      "name": "amd/hip/flitzfs_rocm_kernels.dll",
+      "sha256": "c1891af07f325c57a05455ceea9f782a62752b346f5e3d11e177470953b37511"
+    }
+  ],
+  "package_manifest_sha256": "73817fe8f2aa70b1b3923abc72e2b948de9b4dffd5079146d9a1348d7ca20c19",
+  "package_profile": {
+    "minimum_combined_members": 4,
+    "maximum_combined_members": 4,
+    "files_per_group": 3,
+    "groups": 2
+  },
+  "controlled_scenarios": [
+    "Matched source-window identities with reversed reply order.",
+    "CPU completion after receiving no reply.",
+    "A source edit invalidates one staged group while the other publishes.",
+    "A reduced memory grant drops staged work and permits later CPU completion.",
+    "One installed runtime query and one real AMD exchange cover two groups smaller than the individual minimum.",
+    "A live callback cancels a two-group exchange and CPU publication preserves all files.",
+    "A missing package permits CPU publication with zero compute launches or identity queries."
+  ],
+  "coverage_scope": {
+    "explicit_controls": "Explicit acceptance and cancellation were executed before adjusting installed-route acquisition. The packaged acceptance and missing-package controls use the final controller and changed core.",
+    "initial_short_observation": "The first two-group trial ended at the single-group deadline after one publication. The final fixture gives both groups time to complete through actual idle opportunities.",
+    "qualification": "The live checks establish route reuse, group selection, CPU continuity and process retirement for these fixtures. Mounted workloads, representative end-to-end comparisons and process-wide handle balance need separate qualification."
+  },
+  "runs": {
+    "release": {
+      "run": "local-run-36573681997e486c8170c97dfd1251a7",
+      "exit_code": 0,
+      "retired": true,
+      "active_children": 0,
+      "measured_host_available_bytes": 12509040640,
+      "memory_limit_bytes": 514850816,
+      "peak_job_commit_bytes": 109428736,
+      "summary": [
+        "100% tests passed out of 9"
+      ],
+      "receipt_sha256": "90d549fa794d2c4e7e2fdd1e849372bfd0a73a75b2265e1cdb474f62c691f671",
+      "output_sha256": "2aa4678f7193a340237d2afeabd619ea5757631a5aff29ebc59fe2952003d4d1"
+    },
+    "asan_core": {
+      "run": "local-run-42fbc446fbc54e7385882cb2ce300844",
+      "exit_code": 0,
+      "retired": true,
+      "active_children": 0,
+      "measured_host_available_bytes": 13123723264,
+      "memory_limit_bytes": 1264582656,
+      "peak_job_commit_bytes": 1135325184,
+      "summary": [
+        "100% tests passed out of 9"
+      ],
+      "receipt_sha256": "98849be8394995cbb318a5ed8f6645f7cbe83438fc16d033538f62abecfd0d31",
+      "output_sha256": "4d9be4e9566cbd600a5aea68dd485184b9e2c3fbd8f833d54efa047a437b0b14"
+    },
+    "asan_controller": {
+      "run": "local-run-b3ceb72a45a4474db259ef39a05863a8",
+      "exit_code": 0,
+      "retired": true,
+      "active_children": 0,
+      "measured_host_available_bytes": 24588451840,
+      "memory_limit_bytes": 1269825536,
+      "peak_job_commit_bytes": 402702336,
+      "summary": [
+        "100% tests passed out of 2"
+      ],
+      "receipt_sha256": "2a77bc4f6581479fa9b497b79872fb308f499baf2b60532dab6d14c1f8f41832",
+      "output_sha256": "ffeb86dc606024f22f3c01891871e7c6a793608ac75a8f5dcbd05228d0d36dcf"
+    },
+    "packaged_batch": {
+      "run": "local-run-69a77203b464405187c6273891a614d2",
+      "exit_code": 0,
+      "retired": true,
+      "active_children": 0,
+      "measured_host_available_bytes": 12779724800,
+      "memory_limit_bytes": 218103808,
+      "peak_job_commit_bytes": 107040768,
+      "summary": [
+        "anchor_owner mode=batch host=1 quanta=28 groups=2 phase=2 sampled=7 attempted=2 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_groups=2 verified_groups=2 declined=0 yielded=0 advised_members=4 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=135 handles_after=328 retired=true cpu_readback_verified=true deferrals=26,2,0,0,0,0,0,"
+      ],
+      "receipt_sha256": "96e107407ab2baff85d7ba859bef71ef48c58580ea801a043e4b337ed0181ac0",
+      "output_sha256": "c5fafed04298e6aa4da49fe323c56d0be2bcd46f09983510aba93628cdb255d7"
+    },
+    "missing_package": {
+      "run": "local-run-88552dc0a50142a2a08964460ac481fd",
+      "exit_code": 0,
+      "retired": true,
+      "active_children": 0,
+      "measured_host_available_bytes": 17502191616,
+      "memory_limit_bytes": 206569472,
+      "peak_job_commit_bytes": 25415680,
+      "summary": [
+        "anchor_owner mode=missing host=1 quanta=17 groups=1 phase=2 sampled=5 attempted=1 cpu_limit_ppm=500000 submitted=0 verified=0 submitted_groups=0 verified_groups=0 declined=0 yielded=0 advised_members=0 installed_attempts=1 metadata_queries=0 installed_status=12 handles_before=135 handles_after=157 retired=true cpu_readback_verified=true deferrals=15,2,0,0,0,0,0,"
+      ],
+      "receipt_sha256": "da8fe57846cb0b29241917928cbf8bbdc77eb1dd9eb8b2609ea4943d4d67e47a",
+      "output_sha256": "4d8ea1b855c923ef840c912ececde586515ebeec38c0fca1437630b799ccd83c"
+    },
+    "explicit_batch": {
+      "run": "local-run-8c37db6e9cf84454846c65f62b5eff18",
+      "exit_code": 0,
+      "retired": true,
+      "active_children": 0,
+      "measured_host_available_bytes": 12480696320,
+      "memory_limit_bytes": 216006656,
+      "peak_job_commit_bytes": 113131520,
+      "summary": [
+        "anchor_owner mode=batch host=1 quanta=39 groups=2 phase=2 sampled=11 attempted=2 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_groups=2 verified_groups=2 declined=0 yielded=0 advised_members=8 installed_attempts=0 metadata_queries=0 installed_status=-1 handles_before=323 handles_after=329 retired=true cpu_readback_verified=true deferrals=37,2,0,0,0,0,0,"
+      ],
+      "receipt_sha256": "8fa4e27613adef0e6703c1c4c7a6b4bb28e42a75e9cb036e238c6e64bd2708c4",
+      "output_sha256": "626e88c7a57555ffead7b04c22d19bf32ddc9861949a341befd5081aa6713238"
+    },
+    "explicit_foreground_yield": {
+      "run": "local-run-0c54a488d69244d289a9fb95b6e07cc9",
+      "exit_code": 0,
+      "retired": true,
+      "active_children": 0,
+      "measured_host_available_bytes": 12464246784,
+      "memory_limit_bytes": 214958080,
+      "peak_job_commit_bytes": 50110464,
+      "summary": [
+        "anchor_owner mode=batch-yield host=1 quanta=53 groups=2 phase=2 sampled=11 attempted=3 cpu_limit_ppm=500000 submitted=1 verified=0 submitted_groups=2 verified_groups=0 declined=0 yielded=1 advised_members=0 installed_attempts=0 metadata_queries=0 installed_status=-1 handles_before=323 handles_after=328 retired=true cpu_readback_verified=true deferrals=51,2,0,0,0,0,0,"
+      ],
+      "receipt_sha256": "dded2d68301521209e2838e55402ac572f387d52dd510c92d21b5aace6869b37",
+      "output_sha256": "2929b02871785dedf94108b464cfd8fc4ac2ed9bbbc081ed621395fd3cd88ef0"
+    },
+    "initial_short_observation": {
+      "run": "local-run-2aca45daf3a640d79b1af257952a238a",
+      "exit_code": 2,
+      "retired": true,
+      "active_children": 0,
+      "measured_host_available_bytes": 13159415808,
+      "memory_limit_bytes": 201326592,
+      "peak_job_commit_bytes": 113172480,
+      "summary": [
+        "anchor_owner mode=batch host=1 quanta=37 groups=1 phase=3 sampled=11 attempted=2 cpu_limit_ppm=500000 submitted=1 verified=1 declined=0 yielded=0 advised_members=4 installed_attempts=0 metadata_queries=0 installed_status=-1 handles_before=323 handles_after=329 retired=true cpu_readback_verified=true deferrals=35,2,0,0,0,0,0,"
+      ],
+      "receipt_sha256": "168565f02901d035dd65f94c616cc6dd0e711a3267f15887385a7452fec8b6fe",
+      "output_sha256": "8f212f853a3253e917adee0a2eb3012eebbd611f4eac96d5df3df4209faf744c"
+    }
+  }
+}

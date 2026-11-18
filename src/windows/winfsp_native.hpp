@@ -28,6 +28,8 @@ struct WinFspMaintenanceResult {
   bool reclaimed=false,compacted=false,compaction_failed=false;
   NativeSharedBaseSearchWindow search_window;
   std::size_t group_members=0;
+  std::vector<NativeSharedBaseSearchWindow> search_batch;
+  bool retained_search=false;
 };
 class WinFspNativeWritable final {
  public:

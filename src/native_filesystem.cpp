@@ -1080,7 +1080,17 @@ struct SharedBaseOwner {
   std::array<std::uint64_t,kStoreMaxObjects+1> content_revisions{};
   std::weak_ptr<const void> active;
   std::weak_ptr<const void> search_window;
-  std::weak_ptr<detail::IndexedSharedBasePreparation> indexed_work;
+  struct SearchLease {
+    std::weak_ptr<const void> window;
+    std::size_t extents;
+  };
+  std::vector<detail::IndexedPreparationWatch> indexed_work;
+  std::vector<SearchLease> batch_windows;
+  bool busy() const noexcept {
+    return !active.expired() || std::ranges::any_of(indexed_work,[](const auto& watch) {
+      return !watch.preparation.expired();
+    });
+  }
 };
 }
 struct NativeFilesystemWriter::Impl {
@@ -1118,9 +1128,10 @@ struct NativeFilesystemWriter::Impl {
   auto mutate_indexed(Commit&& commit) {
     try {
       const auto source=objects.snapshot_for_staging(true);
-      const auto watched=shared_owner->indexed_work.lock();
+      auto& watched=shared_owner->indexed_work;
+      for(auto& watch:watched)watch.changed=false;
       return std::forward<Commit>(commit)(*objects.paged_if(),*source.paged_if(),*indexed,
-          detail::IndexedContentWatch{indexed_content_sequence,watched.get()});
+          detail::IndexedContentWatch{indexed_content_sequence,watched});
     }catch(const std::bad_alloc&){fail(Code::limit,"indexed transaction allocation failure");}
     catch(const NativeFsError& error) {
       if(error.code()==Code::corrupt || error.code()==Code::storage_failure)poisoned=true;
@@ -1168,6 +1179,8 @@ struct NativeFilesystemWriter::SharedBaseWork::Impl {
   struct Binding {NativeExtentSelection selection;std::uint64_t object=0;};
   std::weak_ptr<SharedBaseOwner> owner;
   std::shared_ptr<const void> reservation;
+  std::weak_ptr<const void> batch_window;
+  bool batched=false;
   std::optional<detail::NativeObjectSnapshot> source;
   std::shared_ptr<detail::IndexedSharedBasePreparation> indexed;
   std::vector<Binding> bindings;
@@ -1312,7 +1325,7 @@ StoreIdentity NativeFilesystemWriter::maintenance_identity() const noexcept {
   return impl_->indexed?impl_->indexed->identity:impl_->model.identity;
 }
 std::uint64_t NativeFilesystemWriter::maintenance_physical_end() const noexcept{return poisoned()?0:impl_->objects.physical_end_for_staging();}
-bool NativeFilesystemWriter::maintenance_busy() const noexcept{return !poisoned() && !impl_->shared_owner->active.expired();}
+bool NativeFilesystemWriter::maintenance_busy() const noexcept{return !poisoned() && impl_->shared_owner->busy();}
 bool NativeFilesystemWriter::maintenance_supported() const noexcept{return !poisoned() && (impl_->indexed || impl_->model.shared_bases);}
 NativeFileInfo NativeFilesystemSnapshot::stat(std::string_view path) const {
   if(!impl_)fail(Code::invalid_operation,"moved-from native snapshot");
@@ -1544,13 +1557,17 @@ NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_ba
   return prepare_shared_base(base_selection,members,{});
 }
 NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_base(
-    NativeExtentSelection base_selection,std::span<const NativeExtentSelection> members,std::span<const NativeContentToken> expected) {
+    NativeExtentSelection base_selection,std::span<const NativeExtentSelection> members,
+    std::span<const NativeContentToken> expected,bool batch) {
   if(poisoned() || (!impl_->indexed && !impl_->model.shared_bases) || !impl_->objects.paged_if())
     fail(Code::invalid_operation,"shared-base work requires its explicit namespace");
   if(members.size()>kNativeMaxExtents)fail(Code::limit,"shared-base selection budget");
-  if(!impl_->shared_owner->active.expired())fail(Code::invalid_operation,"shared-base work already active");
+  auto& owner=*impl_->shared_owner;
+  if(!owner.active.expired() || (!batch && owner.busy()) ||
+      (batch && (!impl_->indexed || expected.empty())))
+    fail(Code::invalid_operation,"incompatible shared-base work reservation");
   try {
-    auto p=std::make_unique<SharedBaseWork::Impl>();p->owner=impl_->shared_owner;
+    auto p=std::make_unique<SharedBaseWork::Impl>();p->owner=impl_->shared_owner;p->batched=batch;
     p->source.emplace(impl_->objects.snapshot_for_staging(impl_->indexed.has_value()));
     if(impl_->indexed) {
       p->indexed=std::make_shared<detail::IndexedSharedBasePreparation>(
@@ -1578,8 +1595,11 @@ NativeFilesystemWriter::SharedBaseWork NativeFilesystemWriter::prepare_shared_ba
     if(p->state.total_members<2)p->retire(NativeSharedBasePhase::declined);
     else {
       p->reservation=std::make_shared<const unsigned char>(0);
-      impl_->shared_owner->indexed_work=p->indexed;
-      impl_->shared_owner->active=p->reservation;
+      if(p->indexed) {
+        std::erase_if(owner.indexed_work,[](const auto& watch){return watch.preparation.expired();});
+        owner.indexed_work.push_back({p->indexed});
+      }
+      if(!batch)owner.active=p->reservation;
     }
     return SharedBaseWork(std::move(p));
   }catch(const std::bad_alloc&){fail(Code::limit,"shared-base preparation allocation failure");}
@@ -1590,7 +1610,8 @@ void NativeFilesystemWriter::check_shared_base(SharedBaseWork& work) const {
   if(!owner || owner!=impl_->shared_owner)fail(Code::invalid_operation,"shared-base owner expired/differs");
   if(p.state.phase==NativeSharedBasePhase::declined)return;
   if((p.state.phase!=NativeSharedBasePhase::reading_base && p.state.phase!=NativeSharedBasePhase::encoding_members &&
-      p.state.phase!=NativeSharedBasePhase::ready) || !p.reservation || owner->active.lock()!=p.reservation)
+      p.state.phase!=NativeSharedBasePhase::ready) || !p.reservation ||
+      (!p.batched && owner->active.lock()!=p.reservation))
     fail(Code::invalid_operation,"shared-base work is terminal");
   if(p.indexed) {
     if(p.indexed->invalidated())fail(Code::invalid_operation,"selected indexed shared-base content changed");
@@ -1607,19 +1628,41 @@ void NativeFilesystemWriter::check_shared_base(SharedBaseWork& work) const {
   }
 }
 bool NativeFilesystemWriter::stage_shared_base_search(SharedBaseWork& work,std::size_t maximum_members) {
-  return maximum_members && shared_base_step(work,{},nullptr,maximum_members);
+  return stage_shared_base_search(work,maximum_members,0);
+}
+bool NativeFilesystemWriter::stage_shared_base_search(SharedBaseWork& work,std::size_t maximum_members,
+    std::size_t retained_extents) {
+  return maximum_members && shared_base_step(work,{},nullptr,maximum_members,retained_extents);
 }
 bool NativeFilesystemWriter::advance_shared_base(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice,
     const NativeSharedBaseSearchReply* reply) {
   return shared_base_step(work,advice,reply,0);
 }
 bool NativeFilesystemWriter::shared_base_step(SharedBaseWork& work,std::span<const NativeSharedBaseCopyRange> advice,
-    const NativeSharedBaseSearchReply* reply,std::size_t search_members) {
+    const NativeSharedBaseSearchReply* reply,std::size_t search_members,std::size_t retained_extents) {
   auto* p=work.impl_.get();
   try {
     check_shared_base(work);
     if(search_members) {
-      const auto staged=p->indexed && p->indexed->stage_search(search_members,impl_->shared_owner->search_window);
+      if(!p->indexed)return false;
+      auto& owner=*impl_->shared_owner;
+      if(p->batched && !owner.search_window.expired())return false;
+      auto& window=p->batched?p->batch_window:owner.search_window;
+      const bool new_lease=p->batched && window.expired();
+      if(new_lease || !p->batched)
+        std::erase_if(owner.batch_windows,[](const auto& lease){return lease.window.expired();});
+      if(!p->batched && !owner.batch_windows.empty())return false;
+      if(new_lease) {
+        auto remaining=retained_extents;
+        for(const auto& lease:owner.batch_windows) {
+          if(lease.extents>remaining)return false;
+          remaining-=lease.extents;
+        }
+        if(search_members>=remaining)return false;
+        owner.batch_windows.reserve(owner.batch_windows.size()+1);
+      }
+      const auto staged=p->indexed->stage_search(search_members,window);
+      if(new_lease && !window.expired())owner.batch_windows.push_back({window,search_members+1});
       if(staged)p->state=p->indexed->progress();
       return staged;
     }

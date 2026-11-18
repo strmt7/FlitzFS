@@ -474,7 +474,7 @@ class IndexedVolumeTransaction final {
     std::vector<NativeNameEdit> edits;
     RetiredGroupReferences retired;
     std::unique_ptr<std::byte[]> candidate_scratch;
-    bool selection_changed=false,content_changed=false;
+    bool content_changed=false;
     for(const auto& [key,replacement]:names_) {
       const auto expected=index_.find(key);
       if(expected!=replacement)edits.push_back({key,expected,replacement});
@@ -484,8 +484,7 @@ class IndexedVolumeTransaction final {
       const auto [id,block]=key;
       if(extent.original || !extent.payload.empty()) {
         content_changed=true;
-        if(watched_.preparation && !selection_changed)
-          selection_changed=watched_.preparation->watches_extent(id,block);
+        watch_selection([&](const auto& preparation){return preparation.watches_extent(id,block);});
       }
       auto& changed=nodes_.at(id);
       if(extent.base)retire_group_reference(extent.base,*extent.original,next_,retired,edits);
@@ -523,8 +522,7 @@ class IndexedVolumeTransaction final {
       const auto phase=changed.value?changed.value->lifetime:IndexedLifetime::linked;
       if(!changed.value || phase!=changed.original_lifetime) {
         content_changed=true;
-        if(watched_.preparation && !selection_changed)
-          selection_changed=watched_.preparation->watches_inode(id);
+        watch_selection([&](const auto& preparation){return preparation.watches_inode(id);});
       }
       if(phase!=changed.original_lifetime) {
         const auto original=marker_id(id,changed.original_lifetime);
@@ -567,11 +565,22 @@ class IndexedVolumeTransaction final {
     result.sequence=next_.sequence;
     current=next_;
     if(content_changed)watched_.sequence=result.sequence;
-    if(selection_changed)watched_.preparation->invalidate();
+    for(const auto& watch:watched_.preparations) {
+      if(watch.changed)
+        if(const auto preparation=watch.preparation.lock())preparation->invalidate();
+    }
     return result;
   }
 
  private:
+  template<class Matches>
+  void watch_selection(Matches matches) noexcept {
+    for(auto& watch:watched_.preparations) {
+      if(!watch.changed)
+        if(const auto preparation=watch.preparation.lock())watch.changed=matches(*preparation);
+    }
+  }
+
   struct InodeEdit {
     std::optional<IndexedInodeInput> value;
     std::optional<std::uint64_t> original_size,original_allocation;

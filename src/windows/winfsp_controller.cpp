@@ -179,11 +179,14 @@ struct WinFspVolumeController::Impl {
   WinFspMaintenanceResult advance(const NativeMaintenanceObservation& observed) {
     const auto now=GetTickCount64();
     if(!anchor) {
-      auto result=session->advance_background_maintenance(observed,now);
 #ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+      const bool may_acquire=installed && (!acquisition_started || acquisition_thread.joinable());
+      auto result=session->advance_background_maintenance(observed,now,{0,nullptr,may_acquire});
       begin_acquisition(result,observed);
-#endif
       return result;
+#else
+      return session->advance_background_maintenance(observed,now);
+#endif
     }
     const auto epoch=adapter->foreground_activity();
     const auto resources=detail::maintenance_resources(observed,now,adapter->group_maintenance_policy());
@@ -194,17 +197,22 @@ struct WinFspVolumeController::Impl {
     // Preserve PDH sampling while the worker runs. The storage step can wait
     // for advice without allowing the host observation window to expire.
     if(anchor->waiting())return {WinFspMaintenanceState::busy};
-    const auto reply=anchor->reply();
+    const auto replies=anchor->replies();
     auto result=session->advance_background_maintenance(observed,GetTickCount64(),
-        {idle?anchor->stage_grant(now):0,reply.window?&reply:nullptr});
-    if(reply.window && !result.search_window && result.state!=WinFspMaintenanceState::busy &&
-        result.progress.deferral==NativeMaintenanceDeferral::none)anchor->discard_reply();
-    if(!reply.window && result.search_window && !stop_requested.load(std::memory_order_acquire)) {
-      adapter->signal_foreground_for_anchor(true);
-      if(!adapter->foreground_pending() && adapter->foreground_activity()==epoch)
-        anchor->start(std::move(result.search_window),epoch);
-      anchor->observe(adapter->foreground_activity(),GetTickCount64());
-      adapter->signal_foreground_for_anchor(anchor->waiting());
+        {idle?anchor->stage_grant(now):0,nullptr,true,replies});
+    if(!replies.empty()) {
+      if(!result.retained_search && result.state!=WinFspMaintenanceState::busy &&
+          result.progress.deferral==NativeMaintenanceDeferral::none)anchor->discard_reply();
+    } else if(!stop_requested.load(std::memory_order_acquire)) {
+      auto windows=std::span<const NativeSharedBaseSearchWindow>(result.search_batch);
+      if(result.search_window)windows=std::span(&result.search_window,1);
+      if(!windows.empty()) {
+        adapter->signal_foreground_for_anchor(true);
+        if(!adapter->foreground_pending() && adapter->foreground_activity()==epoch)
+          anchor->start(windows,epoch);
+        anchor->observe(adapter->foreground_activity(),GetTickCount64());
+        adapter->signal_foreground_for_anchor(anchor->waiting());
+      }
     }
     return result;
   }
@@ -212,7 +220,7 @@ struct WinFspVolumeController::Impl {
   void begin_acquisition(const WinFspMaintenanceResult& result,const NativeMaintenanceObservation& observed) {
     if(!installed || acquisition_started || result.progress.phase!=NativeMaintenancePhase::preparing ||
         result.progress.deferral!=NativeMaintenanceDeferral::none ||
-        result.group_members<=installed->minimum_members ||
+        result.group_members<2 ||
         stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
         !WorkerExchangeSession::available())return;
     constexpr std::uint64_t mib=1024*1024;

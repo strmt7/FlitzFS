@@ -86,6 +86,89 @@ void advised_indexed_maintenance() {
     require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==original[i],
         "automatic search advice changed committed bytes");
 }
+enum class BatchOutcome {accepted,cpu_fallback,changed_source,memory_pressure};
+void batched_indexed_maintenance(BatchOutcome outcome) {
+  constexpr unsigned members=4,files=members+1,cohorts=2;
+  Fixture f(4096,0,true);
+  std::vector<Bytes> originals;
+  for(unsigned cohort=0;cohort<cohorts;++cohort) {
+    const auto base=data(kNativeExtentBytes,714+cohort*5731);
+    for(unsigned i=0;i<files;++i) {
+      auto bytes=i?anchor_search_fixture::fragmented(base,i):base;
+      std::copy_n(base.begin(),kNativeExtentBytes/8,bytes.begin());
+      put(*f.session,"f"+std::to_string(originals.size()),bytes);
+      originals.push_back(std::move(bytes));
+    }
+  }
+  NativeGroupMaintenance controller(*f.session);
+  NativeMaintenanceProgress progress;
+  for(unsigned tick=0;tick<800;++tick) {
+    const auto observed=f.clock.next();
+    progress=controller.advance(observed,f.clock.now,{cohorts*members,nullptr,true});
+    require(progress.phase!=Phase::failed && !progress.published_groups,"batch published before receiving advice");
+    if(progress.search_batch_ready)break;
+  }
+  const auto windows=controller.search_batch();
+  require(windows.size()==cohorts && controller.active_group_members()==originals.size(),
+      "independent indexed candidates did not fill the admitted batch");
+  const auto selection=f.session->snapshot().stat("f0").inode;
+  rejects([&]{(void)f.session->prepare_shared_base({selection,0},{});},
+      "exclusive writer work entered an active maintenance batch");
+
+  const std::array counts{members,members};
+  const auto quantum=anchor_match::max_members;
+  const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),cohorts*files);
+  detail::AnchorMatchBatchBuilder builder(1,plan);
+  for(std::size_t i=0;i<windows.size();++i)builder.append(i+1,windows[i]);
+  const auto request=builder.finish();
+  std::array<detail::AnchorMatchAdvice,cohorts> hints;
+  std::array<NativeSharedBaseSearchReply,cohorts> replies;
+  for(std::size_t i=0;i<windows.size();++i) {
+    const auto& group=request.groups()[i];
+    hints[i]=detail::verify_anchor_match_records(group,detail::cpu_anchor_match_records(group));
+    replies[cohorts-1-i]={windows[i],hints[i]};
+  }
+  const bool changed=outcome==BatchOutcome::changed_source;
+  if(changed) {
+    originals.front()=data(kNativeExtentBytes,32771);
+    const auto h=f.session->open("f0",{true,true,false});
+    f.session->write(h,0,originals.front());f.session->cleanup(h,false);f.session->close(h);
+    require(controller.search_batch().size()==1,"foreground edit did not invalidate exactly one staged group");
+  }
+  auto foreground=f.clock.next();
+  foreground.foreground_pending=true;
+  const auto io=f.image->calls,reads=f.image->read_calls;
+  require(controller.advance(foreground,f.clock.now,{0,nullptr,true,replies}).deferral==Defer::foreground &&
+      f.image->calls==io && f.image->read_calls==reads,"batch advice bypassed foreground admission");
+  if(outcome==BatchOutcome::memory_pressure) {
+    auto pressure=f.clock.next();
+    pressure.physical_available=pressure.physical_total/16;
+    const auto deferred=controller.advance(pressure,f.clock.now,{0,nullptr,true,replies});
+    require(deferred.deferral==Defer::memory && !deferred.owned_payload_bytes &&
+        !controller.active_group() && !controller.has_retained_search(),
+        "batch kept preparations after losing its memory grant");
+  }
+  const bool accepts=outcome==BatchOutcome::accepted || changed;
+  const auto supplied=accepts?std::span<const NativeSharedBaseSearchReply>{replies}:
+      std::span<const NativeSharedBaseSearchReply>{};
+  const auto expected=changed?1U:cohorts;
+  for(unsigned tick=0;tick<800;++tick) {
+    const auto observed=f.clock.next();
+    progress=controller.advance(observed,f.clock.now,{0,nullptr,true,supplied});
+    require(progress.phase!=Phase::failed,"staged batch failed after optional adviser completion");
+    if(!controller.active_group() && progress.published_groups==expected)break;
+  }
+  require(progress.published_groups==expected && !controller.active_group() && !controller.has_retained_search() &&
+      progress.owned_payload_bytes==0,"staged batch did not publish and retire its independent groups");
+  require(progress.advised_members_published==(supplied.empty()?0:members*expected),
+      "batch published advice for the wrong revision or group");
+  const auto snapshot=f.session->snapshot();
+  require(snapshot.shared_base_info().bases==expected,"staged groups lost independent bases");
+  snapshot.verify_all();
+  for(std::size_t i=0;i<originals.size();++i)
+    require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==originals[i],"batch readback differs");
+}
+
 void shifted_indexed_family(const Bytes& base,StoreCompressionOptions compression,bool corpus) {
   constexpr unsigned count=12;
   constexpr std::uint32_t unit=4096;
@@ -418,6 +501,11 @@ int main(int argc,char** argv){try{
     persistent_indexed_scan();indexed_scan_checkpoint_faults();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {
+    batched_indexed_maintenance(BatchOutcome::accepted);
+    batched_indexed_maintenance(BatchOutcome::cpu_fallback);
+    batched_indexed_maintenance(BatchOutcome::changed_source);
+    batched_indexed_maintenance(BatchOutcome::memory_pressure);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed") {
     for(auto unit:{4096U,65536U})automatic_and_extension(unit,true);
     indexed_scan_windows();indexed_stale_binding_and_padding();

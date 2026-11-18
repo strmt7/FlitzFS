@@ -153,6 +153,7 @@ class NativeSharedBaseSearchWindow final {
  public:
   NativeSharedBaseSearchWindow() noexcept=default;
   explicit operator bool() const noexcept{return bool(payload_);}
+  bool operator==(const NativeSharedBaseSearchWindow&) const noexcept=default;
   std::span<const std::byte> base() const & noexcept {
     return payload_?std::span<const std::byte>(payload_->base):std::span<const std::byte>{};
   }
@@ -577,7 +578,9 @@ class NativeFilesystemWriter final {
   bool maintenance_busy() const noexcept;
   bool maintenance_supported() const noexcept;
   SharedBaseWork prepare_shared_base(NativeExtentSelection,std::span<const NativeExtentSelection>,
-      std::span<const NativeContentToken>);
+      std::span<const NativeContentToken>,bool batch=false);
+  bool stage_shared_base_search(SharedBaseWork&,std::size_t maximum_members,std::size_t retained_extents);
+
   using Recompression=ObjectStoreWriter::Rewrite;
   Recompression prepare_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,StoreCheckpointOptions) const;
@@ -591,7 +594,7 @@ class NativeFilesystemWriter final {
   struct Impl;
   void check_shared_base(SharedBaseWork&) const;
   bool shared_base_step(SharedBaseWork&,std::span<const NativeSharedBaseCopyRange>,
-      const NativeSharedBaseSearchReply*,std::size_t search_members);
+      const NativeSharedBaseSearchReply*,std::size_t search_members,std::size_t retained_extents=0);
   Impl& checked_impl() const;
   detail::NativeObjectSnapshot checked_namespace() const;
   NativePathLookup inspect_path_lookup(std::string_view path) const;

@@ -465,6 +465,7 @@ if(FLITZFS_BUILD_TESTS)
   add_test(NAME bounded_native_indexed_group_maintenance COMMAND flitzfs_native_group_maintenance_tests --indexed)
   add_test(NAME bounded_native_indexed_group_resume COMMAND flitzfs_native_group_maintenance_tests --indexed-resume)
   add_test(NAME bounded_native_indexed_group_advice COMMAND flitzfs_native_group_maintenance_tests --indexed-advice)
+  add_test(NAME bounded_native_indexed_group_batch COMMAND flitzfs_native_group_maintenance_tests --indexed-batch)
   set_tests_properties(bounded_native_indexed_group_advice PROPERTIES TIMEOUT 30)
   set_tests_properties(bounded_native_automatic_group_maintenance bounded_native_indexed_group_maintenance
     bounded_native_indexed_group_resume PROPERTIES TIMEOUT 120)

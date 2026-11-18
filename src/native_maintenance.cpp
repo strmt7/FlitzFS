@@ -57,6 +57,12 @@ struct NativeGroupMaintenance::Impl {
     Digest content{};
     std::array<std::uint64_t,positional_bands+detail::kNativeGroupShiftFeatures> bands{};
   };
+  struct StagedGroup {
+    NativeFilesystemWriter::SharedBaseWork work;
+    std::vector<std::uint64_t> ids;
+    NativeExtentSelection base;
+    std::size_t member_count,search_members;
+  };
   using Band=std::pair<unsigned,std::uint64_t>;
   std::weak_ptr<detail::NativeMaintenanceSource> source;
   std::shared_ptr<const void> reservation;
@@ -79,13 +85,18 @@ struct NativeGroupMaintenance::Impl {
   std::size_t candidate_index=0,band_offset=0;
   std::set<Digest> attempted;std::deque<Digest> attempted_order;
   std::optional<NativeFilesystemWriter::SharedBaseWork> work;
+  std::deque<StagedGroup> staged_groups;
+  std::size_t staged_extents=0,staged_search_members=0;
+  bool work_batched=false,batch_draining=false;
   Digest work_key{};std::size_t work_members=0;
   Digest prospective_key{};
   std::vector<std::uint64_t> work_ids;
   std::uint64_t last_observation=0,last_capture=0,tokens=1000000,debt=0,predicted=1000000;
   explicit Impl(std::weak_ptr<detail::NativeMaintenanceSource> s,NativeMaintenancePolicy p):source(std::move(s)),policy(p){}
   void reset_index() noexcept {
-    work.reset();features.clear();buckets.clear();attempted.clear();attempted_order.clear();candidate_order.clear();
+    work.reset();staged_groups.clear();staged_extents=staged_search_members=0;
+    work_batched=batch_draining=false;
+    features.clear();buckets.clear();attempted.clear();attempted_order.clear();candidate_order.clear();
     candidate_index=band_offset=0;completed_sequence=0;phase=Phase::idle;state.owned_payload_bytes=0;pending_history=0;work_ids.clear();
     representatives.clear();refresh_base.reset();extent_scan_exhausted=false;
     checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
@@ -100,9 +111,26 @@ struct NativeGroupMaintenance::Impl {
     if(pending_history==2){attempted.erase(prospective_key);std::erase(attempted_order,prospective_key);}
     pending_history=0;
   }
+  bool active_group() const noexcept{return work.has_value() || !staged_groups.empty();}
+  std::size_t group_members() const noexcept{return staged_extents+(work?work_members:0);}
+  std::uint64_t owned_payload() const noexcept {
+    auto bytes=work?work->progress().owned_payload_bytes:0;
+    for(const auto& group:staged_groups)bytes=add(bytes,group.work.progress().owned_payload_bytes);
+    return bytes;
+  }
+  bool staged_member(std::uint64_t id) const noexcept {
+    return std::ranges::any_of(staged_groups,[id](const auto& group) {
+      return std::ranges::binary_search(group.ids,id);
+    });
+  }
+  void emit_batch() noexcept {
+    batch_draining=true;
+    state.search_batch_ready=true;
+    phase=Phase::preparing;
+  }
   NativeMaintenanceProgress defer(Defer reason,bool release=false) noexcept {
     if(release)reset_index();state.phase=Phase::deferred;state.deferral=reason;
-    state.owned_payload_bytes=work?work->progress().owned_payload_bytes:0;return state;
+    state.owned_payload_bytes=owned_payload();return state;
   }
   void begin_scan(NativeFilesystemWriter& writer) noexcept {
     scan_sequence=writer.maintenance_content_sequence();cursor={};first=true;seen.fill(false);phase=Phase::scanning;
@@ -224,7 +252,8 @@ struct NativeGroupMaintenance::Impl {
     }
     features.clear();buckets.clear();candidate_order.clear();
   }
-  void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members) {
+  void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members,
+      std::size_t remaining_extents,bool collect_batch) {
     const auto& ids=buckets.at(candidate_order[candidate_index++]);
     const auto reusable=std::ranges::find_if(ids,[&](auto id){return indexed_feature(id).token.exact_base;});
     const auto prior=std::ranges::find_if(ids,[&](auto id){return !features.contains(id);});
@@ -245,7 +274,14 @@ struct NativeGroupMaintenance::Impl {
       const auto found=features.find(id);
       if(id!=representative && found!=features.end() && !found->second.token.grouped)expected.push_back(found->second.token);
     }
-    if(expected.size()<2)return;
+    if(expected.size()<2 || std::ranges::any_of(expected,[&](const auto& token) {
+        return staged_member(token.object);
+    }))return;
+    if(expected.size()>remaining_extents) {
+      --candidate_index;
+      emit_batch();
+      return;
+    }
     std::ranges::sort(expected,{},&NativeContentToken::object);
     std::vector<NativeExtentSelection> selected;
     std::vector<std::byte> key;
@@ -263,11 +299,11 @@ struct NativeGroupMaintenance::Impl {
     for(const auto& token:expected)work_ids.push_back(token.object);
     const auto base=indexed_feature(representative).token.extent;
     remember(work_key);
-    work.emplace(writer.prepare_shared_base(base,selected,expected));
-    indexed_work_base=base;work_members=expected.size();
+    work.emplace(writer.prepare_shared_base(base,selected,expected,collect_batch));
+    indexed_work_base=base;work_members=expected.size();work_batched=collect_batch;
     ++state.attempted_groups;phase=Phase::preparing;
   }
-  void step_indexed(NativeFilesystemWriter& writer,std::size_t maximum_members) {
+  void step_indexed(NativeFilesystemWriter& writer,std::size_t maximum_members,bool collect_batch) {
     // The budget limits one trial and one scan window. Existing anchors can
     // accept further windows without rewriting earlier members.
     const auto maximum=(std::min)(maximum_members,kNativeMaxDirtyExtents);
@@ -295,7 +331,10 @@ struct NativeGroupMaintenance::Impl {
       } else {extent_scan_exhausted=true;rank_buckets(true);}
       return;
     }
-    if(candidate_index<candidate_order.size()){propose_indexed_group(writer,maximum);return;}
+    if(candidate_index<candidate_order.size()) {
+      propose_indexed_group(writer,maximum,maximum_members-staged_extents,collect_batch);
+      return;
+    }
     retain_indexed_window(maximum);
     if(extent_scan_exhausted)complete_scan(writer);
     else phase=Phase::scanning;
@@ -304,12 +343,58 @@ struct NativeGroupMaintenance::Impl {
         (phase==Phase::idle || samples>=checkpoint_window_samples);
   }
   void step(NativeFilesystemWriter& writer,std::size_t maximum_members,NativeGroupSearchOpportunity search) {
+    const bool can_batch=search.collect_batch && writer.maintenance_indexed();
+    const bool collect_batch=can_batch && search.maximum_members;
+    if(!staged_groups.empty() && !batch_draining) {
+      if(!collect_batch || staged_search_members>search.maximum_members)batch_draining=true;
+      else if(!work && (staged_search_members==search.maximum_members || maximum_members-staged_extents<2 ||
+          candidate_index>=candidate_order.size())) {
+        emit_batch();
+        return;
+      }
+    }
+    if(batch_draining && !work) {
+      if(refresh_base) {
+        if(staged_groups.empty())batch_draining=false;
+        step_indexed(writer,maximum_members,false);
+        return;
+      }
+      if(staged_groups.empty()) {
+        batch_draining=false;
+        rank_buckets(true);
+        return;
+      } else {
+        auto& next=staged_groups.front();
+        work.emplace(std::move(next.work));
+        work_ids=std::move(next.ids);indexed_work_base=next.base;
+        work_members=next.member_count;work_batched=true;
+        staged_extents-=next.member_count;staged_search_members-=next.search_members;
+        staged_groups.pop_front();
+        phase=Phase::preparing;
+      }
+    }
     if(work) {
       if(phase==Phase::preparing) {
-        const auto grant=(std::min)(search.maximum_members,maximum_members);
-        if(!search.reply && writer.stage_shared_base_search(*work,grant))
-          state.search_window_ready=static_cast<bool>(work->search_window());
-        else if(writer.advance_shared_base(*work,{},search.reply))
+        auto grant=(std::min)(search.maximum_members,maximum_members);
+        if(work_batched)grant=!batch_draining && grant>staged_search_members?
+            (std::min)(grant-staged_search_members,work_members-1):0;
+        const auto window=work->search_window();
+        const auto* reply=search.reply;
+        if(window && !search.replies.empty()) {
+          const auto found=std::ranges::find(search.replies,window,&NativeSharedBaseSearchReply::window);
+          if(found!=search.replies.end())reply=&*found;
+        }
+        if(!reply && writer.stage_shared_base_search(*work,grant,maximum_members)) {
+          const auto completed=work->search_window();
+          if(completed && work_batched) {
+            const auto searched=completed.members().size();
+            staged_groups.push_back({std::move(*work),std::move(work_ids),indexed_work_base,work_members,searched});
+            staged_extents+=work_members;staged_search_members+=searched;
+            work.reset();phase=Phase::candidates;
+            if(staged_search_members==search.maximum_members || maximum_members-staged_extents<2 ||
+                candidate_index>=candidate_order.size())emit_batch();
+          } else state.search_window_ready=static_cast<bool>(completed);
+        } else if(writer.advance_shared_base(*work,{},reply))
           phase=Phase::publishing;
       } else if(writer.maintenance_indexed()) {
         const auto previous_end=writer.maintenance_physical_end();
@@ -339,13 +424,13 @@ struct NativeGroupMaintenance::Impl {
         } else {attempted.erase(prospective_key);std::erase(attempted_order,prospective_key);++state.declined_groups;phase=Phase::candidates;}
         work.reset();work_ids.clear();
       }
-      state.owned_payload_bytes=work?work->progress().owned_payload_bytes:0;return;
+      state.owned_payload_bytes=owned_payload();return;
     }
     if(phase==Phase::idle) {
       if(completed_sequence==writer.maintenance_content_sequence())return;
       begin_scan(writer);return;
     }
-    if(writer.maintenance_indexed()){step_indexed(writer,maximum_members);return;}
+    if(writer.maintenance_indexed()){step_indexed(writer,maximum_members,can_batch && !batch_draining);return;}
     if(phase==Phase::scanning) {
       const auto next=writer.maintenance_next(cursor,first);
       if(next) {
@@ -401,17 +486,17 @@ NativeMaintenanceProgress NativeGroupMaintenance::progress() const noexcept {
   if(impl_->source.expired())state.phase=Phase::failed;return state;
 }
 bool NativeGroupMaintenance::active_group() const noexcept {
-  return impl_ && impl_->work.has_value();
+  return impl_ && impl_->active_group();
 }
 std::size_t NativeGroupMaintenance::active_group_members() const noexcept {
-  return active_group()?impl_->work_members:0;
+  return impl_?impl_->group_members():0;
 }
 bool NativeGroupMaintenance::pending() const noexcept {
   if(!impl_ || impl_->stopped)return false;
   const auto source=impl_->source.lock();
   if(!source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned())return false;
   const auto& writer=*source->writer;
-  return impl_->checkpoint_due || impl_->phase!=Phase::idle || (writer.maintenance_has_candidates() &&
+  return impl_->active_group() || impl_->checkpoint_due || impl_->phase!=Phase::idle || (writer.maintenance_has_candidates() &&
       (impl_->image!=writer.maintenance_identity() || impl_->completed_sequence!=writer.maintenance_content_sequence()));
 }
 void NativeGroupMaintenance::cancel() noexcept {
@@ -423,10 +508,28 @@ NativeSharedBaseSearchWindow NativeGroupMaintenance::search_window() const noexc
   if(!source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned())return {};
   return impl_->work->search_window();
 }
+std::vector<NativeSharedBaseSearchWindow> NativeGroupMaintenance::search_batch() const {
+  std::vector<NativeSharedBaseSearchWindow> windows;
+  if(!impl_ || !impl_->state.search_batch_ready)return windows;
+  const auto source=impl_->source.lock();
+  if(!source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned())
+    return windows;
+  windows.reserve(impl_->staged_groups.size());
+  for(const auto& group:impl_->staged_groups)
+    if(auto window=group.work.search_window())windows.push_back(std::move(window));
+  return windows;
+}
+bool NativeGroupMaintenance::has_retained_search() const noexcept {
+  return impl_ && ((impl_->work && impl_->work->search_window()) ||
+      std::ranges::any_of(impl_->staged_groups,[](const auto& group) {
+        return static_cast<bool>(group.work.search_window());
+      }));
+}
 NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanceObservation& observed,std::uint64_t now_ms,
     NativeGroupSearchOpportunity search) {
   if(!impl_)return {Phase::failed};auto& p=*impl_;
   p.state.search_window_ready=false;
+  p.state.search_batch_ready=false;
   const auto source=p.source.lock();
   if(p.stopped || !source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned()) {
     p.reset_index();p.state.phase=Phase::failed;return p.state;
@@ -440,15 +543,15 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
   p.last_capture=observed.captured_ms;
   const auto maximum_members=detail::maintenance_group_member_limit(*resources,writer.maintenance_indexed());
-  if(maximum_members<2 || (p.work && p.work_members>maximum_members))return p.defer(Defer::memory,true);
+  if(maximum_members<2 || p.group_members()>maximum_members)return p.defer(Defer::memory,true);
   if(!writer.maintenance_has_candidates())p.reset_index();
   if(!writer.maintenance_has_candidates() ||
-      (!p.work && !p.checkpoint_due && p.phase==Phase::idle && p.completed_sequence==writer.maintenance_content_sequence())) {
+      (!p.active_group() && !p.checkpoint_due && p.phase==Phase::idle && p.completed_sequence==writer.maintenance_content_sequence())) {
     p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.state;
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
   if(resources->cpu_busy)return p.defer(Defer::cpu);
-  if(!p.work && writer.maintenance_busy())return p.defer(Defer::other_maintenance);
+  if(!p.active_group() && writer.maintenance_busy())return p.defer(Defer::other_maintenance);
   // Credit only fresh idle observation intervals. Time paces pending work; it
   // never discovers a candidate or overrides contention/integrity evidence.
   const auto elapsed_ns=elapsed>(std::numeric_limits<std::uint64_t>::max)()/million?
@@ -472,7 +575,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   catch(const NativeFsError& error) {
     p.forget_pending();
     const bool was_indexed_group=writer.maintenance_indexed() && p.work.has_value();
-    p.work.reset();p.state.owned_payload_bytes=0;
+    p.work.reset();p.state.owned_payload_bytes=p.owned_payload();
     if(!writer.poisoned() && error.code()==NativeFsErrorCode::limit) {
       if(was_indexed_group) {
         p.work_ids.clear();p.phase=Phase::candidates;++p.state.declined_groups;

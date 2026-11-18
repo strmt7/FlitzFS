@@ -94,9 +94,13 @@ class IndexedSharedBasePreparation final {
   NativeSharedBaseProgress progress_{NativeSharedBasePhase::reading_base};
   bool invalidated_=false,uses_anchor_copies_=false,search_storage_unavailable_=false;
 };
+struct IndexedPreparationWatch {
+  std::weak_ptr<IndexedSharedBasePreparation> preparation;
+  bool changed=false;
+};
 struct IndexedContentWatch {
   std::uint64_t& sequence;
-  IndexedSharedBasePreparation* preparation;
+  std::span<IndexedPreparationWatch> preparations;
 };
 NativeFsCommit commit_indexed_volume(PagedObjectStoreWriter&,const PagedObjectStoreSnapshot&,
     IndexedVolumeRoot&,const IndexedVolumeEdit&,NativeInodeCommitInfo*,NativeInodeAllocationInfo*,

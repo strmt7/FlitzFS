@@ -25,12 +25,17 @@ struct NativeMaintenanceProgress {
   std::uint64_t checkpoints_restored=0,checkpoints_published=0;
   std::uint64_t advised_members_published=0;
   bool search_window_ready=false; // Newly staged by this opportunity.
+  bool search_batch_ready=false;
 };
-// An optional, separately admitted adviser can stage source incrementally
-// and supply a completed result. The maintenance step never waits for it.
+// An optional, separately admitted adviser can stage source incrementally.
+// A batch grant counts the aggregate non-base members across staged groups.
+// Supply results by immutable window identity. An empty result uses CPU
+// preparation. The maintenance step never waits for the adviser.
 struct NativeGroupSearchOpportunity {
   std::size_t maximum_members=0;
   const NativeSharedBaseSearchReply* reply=nullptr;
+  bool collect_batch=false;
+  std::span<const NativeSharedBaseSearchReply> replies{};
 };
 // Event/opportunity-driven CPU baseline. Automatically discovers related
 // content groups; no caller-supplied file list, online model or thread/timer.
@@ -45,6 +50,8 @@ class NativeGroupMaintenance final {
   NativeMaintenanceProgress advance(const NativeMaintenanceObservation&,std::uint64_t now_ms,
       NativeGroupSearchOpportunity={});
   NativeSharedBaseSearchWindow search_window() const noexcept;
+  std::vector<NativeSharedBaseSearchWindow> search_batch() const;
+  bool has_retained_search() const noexcept;
   NativeMaintenanceProgress progress() const noexcept;
   bool pending() const noexcept;
   bool active_group() const noexcept;

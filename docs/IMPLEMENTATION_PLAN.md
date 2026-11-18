@@ -744,20 +744,19 @@ Complete AMD exchange still exceeded CPU cost on those cohorts. Further
 routing qualification should measure complete costs under matched conditions.
 [Reply verification evidence](evidence/amd-anchor-reply-verification-2026-11-18.json)
 
-Indexed maintenance can now provide a verified source window from its own
-automatically discovered group. The writer stages one member per admitted
-opportunity, reuses the staged bytes on CPU fallback, and checks the group
-revision before consuming any result. One retained window per writer bounds
-the optional plaintext cache. The configured Windows owner now submits each
-complete window outside the serialized filesystem call through the existing
-single-exchange supervisor. Foreground activity or lost headroom returns the
-group to CPU preparation. The relocatable package now supplies a qualified
-runtime, device and work range to this owner automatically. Broader device
-and workload coverage needs end-to-end qualification against complete
-compacted size, read cost and total background cost.
+Indexed maintenance can combine disjoint groups from the same discovery window
+within a qualified aggregate grant. It stages one member per admitted
+opportunity and charges each base and retained source window. The Windows
+owner submits the complete batch outside the filesystem lock. Each group
+matches its reply by immutable identity and checks live revisions before
+separate publication. Foreground activity or lost headroom returns work to CPU
+preparation. The relocatable package supplies the qualified runtime, device and
+work range. Broader routing qualification still needs end-to-end measurements
+of compacted size, read cost and total background cost.
 [Group maintenance interface](AUTOMATIC_GROUP_MAINTENANCE.md) ·
 [Live discovery and fallback evidence](evidence/amd-discovered-anchor-2026-11-18.json) ·
-[Owned Windows controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)
+[Owned Windows controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search) ·
+[Packaged batch evidence](evidence/amd-owned-group-batch-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

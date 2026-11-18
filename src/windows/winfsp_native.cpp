@@ -189,6 +189,8 @@ struct WinFspNativeWritable::Impl {
     WinFspMaintenanceResult result{State::advanced,progress};
     result.group_members=groups->active_group_members();
     if(progress.search_window_ready || search.reply)result.search_window=groups->search_window();
+    if(progress.search_batch_ready)result.search_batch=groups->search_batch();
+    if(!search.replies.empty())result.retained_search=groups->has_retained_search();
     if(progress.phase==NativeMaintenancePhase::failed) {
       if(session.poisoned())offline.store(true,std::memory_order_release);
       groups.reset();

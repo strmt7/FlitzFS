@@ -17,6 +17,7 @@ struct NativeAnchorSearchOptions {
 struct NativeAnchorSearchStats {
   std::uint64_t submitted=0,verified=0,declined=0,yielded=0;
   bool retirement_confirmed=true;
+  std::uint64_t submitted_groups=0,verified_groups=0;
 };
 
 // One serialized owner, outside the filesystem control lock. The transport
@@ -29,13 +30,13 @@ class NativeAnchorSearchController final {
   NativeAnchorSearchController& operator=(const NativeAnchorSearchController&)=delete;
   std::size_t stage_grant(std::uint64_t now) const noexcept;
   bool fits_group_budget(std::size_t admitted_members) const noexcept;
-  void start(NativeSharedBaseSearchWindow,std::uint64_t activity) noexcept;
+  void start(std::span<const NativeSharedBaseSearchWindow>,std::uint64_t activity) noexcept;
   // Input validation only runs on an admitted idle opportunity.
   void observe(std::uint64_t activity,std::uint64_t now,bool collect=false) noexcept;
   bool waiting() const noexcept;
   std::uint64_t deadline() const noexcept;
   void* wake_handle() const noexcept;
-  NativeSharedBaseSearchReply reply() const noexcept;
+  std::span<const NativeSharedBaseSearchReply> replies() const noexcept;
   void discard_reply() noexcept;
   void cancel() noexcept;
   bool stop() noexcept;

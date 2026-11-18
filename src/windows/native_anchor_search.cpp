@@ -33,8 +33,9 @@ struct NativeAnchorSearchController::Impl {
   const NativeAnchorSearchOptions options;
   GpuRecoveryPolicy recovery;
   std::optional<Flight> flight;
-  NativeSharedBaseSearchWindow window;
-  detail::AnchorMatchAdvice advice;
+  std::vector<NativeSharedBaseSearchWindow> windows;
+  std::vector<detail::AnchorMatchAdvice> advice;
+  std::vector<NativeSharedBaseSearchReply> replies;
   NativeAnchorSearchStats stats;
   std::uint64_t activity=0,next_launch=0,sequence=0,unobserved_ticket=0;
   bool enabled=false;
@@ -47,8 +48,9 @@ struct NativeAnchorSearchController::Impl {
         options.worker.memory_share_divisor && valid_process_budget(options.worker);
   }
   void discard() noexcept {
-    window={};
-    detail::AnchorMatchAdvice{}.swap(advice);
+    replies.clear();
+    windows.clear();
+    std::vector<detail::AnchorMatchAdvice>{}.swap(advice);
   }
   void yield(Disposition disposition) noexcept {
     discard();
@@ -74,26 +76,38 @@ NativeAnchorSearchController::NativeAnchorSearchController(NativeAnchorSearchOpt
 NativeAnchorSearchController::~NativeAnchorSearchController(){impl_->yield(Impl::Disposition::yielded);}
 std::size_t NativeAnchorSearchController::stage_grant(std::uint64_t now) const noexcept {
   const auto& self=*impl_;
-  return self.enabled && !self.flight && !self.window && !self.unobserved_ticket && now>=self.next_launch?
+  return self.enabled && !self.flight && self.windows.empty() && !self.unobserved_ticket && now>=self.next_launch?
       self.options.maximum_members:0;
 }
 bool NativeAnchorSearchController::fits_group_budget(std::size_t admitted_members) const noexcept {
-  return admitted_members>=2 && impl_->window.members().size()<admitted_members;
+  if(admitted_members<2)return false;
+  for(const auto& window:impl_->windows) {
+    if(window.members().size()>=admitted_members)return false;
+    admitted_members-=window.members().size()+1;
+  }
+  return true;
 }
-void NativeAnchorSearchController::start(NativeSharedBaseSearchWindow source,std::uint64_t activity) noexcept {
+void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchWindow> windows,
+    std::uint64_t activity) noexcept {
   auto& self=*impl_;
   const auto& options=self.options;
-  const auto count=source.members().size();
-  if(!stage_grant(GetTickCount64()) || count<options.minimum_members || count>options.maximum_members ||
-      !WorkerExchangeSession::available())return;
+  if(!stage_grant(GetTickCount64()) || !WorkerExchangeSession::available())return;
+  std::uint32_t total=0,largest=0;
+  for(const auto& window:windows) {
+    const auto members=window.members().size();
+    if(!members || members>options.maximum_members-total)return;
+    const auto count=static_cast<std::uint32_t>(members);
+    total+=count;
+    largest=(std::max)(largest,count);
+  }
+  if(total<options.minimum_members)return;
   std::uint64_t ticket=0;
   try {
     const auto& route=options.route;
     const auto observed=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
     const auto now=GetTickCount64();
     if(observed.status!=WindowsGpuBudgetStatus::success){++self.stats.declined;return;}
-    const auto members=static_cast<std::uint32_t>(count);
-    std::uint32_t fit=0,limit=members;
+    std::uint32_t fit=0,limit=largest;
     while(fit<limit) {
       const auto test=fit+(limit-fit+1)/2;
       if(check_gpu_memory_budget(observed.snapshot,route.memory.luid,route.memory.node_mask,now,
@@ -102,8 +116,11 @@ void NativeAnchorSearchController::start(NativeSharedBaseSearchWindow source,std
     }
     if(!fit){++self.stats.declined;return;}
     const auto quantum=(std::min)(fit,anchor_match::max_members);
-    const std::array counts{members};
-    const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),members+1);
+    std::vector<std::uint32_t> counts;
+    counts.reserve(windows.size());
+    for(const auto& window:windows)counts.push_back(static_cast<std::uint32_t>(window.members().size()));
+    const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),
+        total+static_cast<std::uint32_t>(windows.size()));
     const auto transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(fit));
     const WorkerChannelCapacity capacity{plan.request_bytes,plan.reply_bytes};
     const auto variable=std::uint64_t(transfer.device_bytes)+2ULL*plan.request_bytes+2ULL*plan.reply_bytes;
@@ -122,8 +139,9 @@ void NativeAnchorSearchController::start(NativeSharedBaseSearchWindow source,std
     if(!route_decision.try_gpu()){++self.stats.declined;return;}
     ticket=route_decision.ticket;
     detail::AnchorMatchBatchBuilder builder(ticket,plan);
-    builder.append(ticket,source);
+    for(std::size_t i=0;i<windows.size();++i)builder.append(i+1,windows[i]);
     auto request=builder.finish();
+    std::vector<NativeSharedBaseSearchWindow> retained(windows.begin(),windows.end());
     const auto begun=GetTickCount64();
     auto session=WorkerExchangeSession::start_sized(route.helper,
         {L"--driver-anchor-transfer-batch",std::to_wstring(route.ordinal),hex(route.memory.luid),
@@ -133,8 +151,9 @@ void NativeAnchorSearchController::start(NativeSharedBaseSearchWindow source,std
         request.snapshot(),capacity,budget,route.pins);
     self.flight.emplace(Impl::Flight{std::move(session),std::move(request),ticket,begun,begun+budget.timeout_ms});
     self.activity=activity;
-    self.window=std::move(source);
+    self.windows=std::move(retained);
     ++self.stats.submitted;
+    self.stats.submitted_groups+=windows.size();
   }catch(...) {
     ++self.stats.declined;
     if(ticket) {
@@ -184,9 +203,13 @@ void NativeAnchorSearchController::observe(std::uint64_t activity,std::uint64_t 
       if(!collect)return;
       try {
         auto verified=detail::accept_anchor_match_batch_reply(result->response,flight.request);
-        self.advice=std::move(verified.front());
+        if(verified.size()!=self.windows.size())throw std::invalid_argument("Incomplete verified anchor batch");
+        self.replies.reserve(verified.size());
+        self.advice=std::move(verified);
+        for(std::size_t i=0;i<self.windows.size();++i)self.replies.push_back({self.windows[i],self.advice[i]});
         (void)self.recovery.finish(flight.ticket,GpuRecoveryOutcome::accepted,true);
         ++self.stats.verified;
+        self.stats.verified_groups+=self.windows.size();
       }catch(const std::bad_alloc&) {
         self.fail(flight.ticket,GpuRecoveryOutcome::temporary_pressure,true);
         self.discard();++self.stats.declined;
@@ -207,9 +230,8 @@ std::uint64_t NativeAnchorSearchController::deadline() const noexcept {
 void* NativeAnchorSearchController::wake_handle() const noexcept {
   return impl_->flight && !impl_->flight->supervisor_exited?impl_->flight->session.supervisor_wait_handle():nullptr;
 }
-NativeSharedBaseSearchReply NativeAnchorSearchController::reply() const noexcept {
-  return impl_->advice.empty()?NativeSharedBaseSearchReply{}:
-      NativeSharedBaseSearchReply{impl_->window,impl_->advice};
+std::span<const NativeSharedBaseSearchReply> NativeAnchorSearchController::replies() const noexcept {
+  return impl_->replies;
 }
 void NativeAnchorSearchController::discard_reply() noexcept {impl_->discard();}
 void NativeAnchorSearchController::cancel() noexcept {impl_->yield(Impl::Disposition::yielded);}

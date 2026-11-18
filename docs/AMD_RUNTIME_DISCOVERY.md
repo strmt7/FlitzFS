@@ -29,7 +29,7 @@ allocation and release. [DXGI adapter identifiers](https://learn.microsoft.com/e
 | --- | --- |
 | `qualification_sha256` | Exact `shared-base-qualification.json` receipt included in the verified inventory |
 | `runtime_sha256`, `vendor_id`, `device_id`, `subsystem_id`, `revision` | Runtime and hardware used for the approved measurement |
-| `minimum_members`, `maximum_members` | Non-base extents covered by the measured work range |
+| `minimum_members`, `maximum_members` | Combined non-base extents across groups covered by the measured work range |
 | `worker_memory_mib`, `memory_share_divisor`, `worker_cpu_rate`, `worker_timeout_ms` | Measured fixed child allowance and resource limits. Current geometry adds actual staging and transport charges. |
 | `maximum_identity_queries`, `duty_ppm` | Input-work and worker pacing limits |
 
@@ -45,10 +45,9 @@ cmake --install <build> --config Release --prefix <application-directory> --comp
 ```
 
 The indexed Windows owner starts one low-priority acquisition when live
-telemetry admits a group that can supply a window covered by the profile. CPU work can
-continue while the acquisition runs. Stop cancels the scoped attempt and
-joins it. The same controller composes the verified result with the measured
-worker grant for subsequent admitted group steps.
+telemetry admits a group candidate. CPU work can continue during acquisition.
+Stop cancels and joins the scoped attempt. The verified route starts compute
+only when an owned group batch meets the approved aggregate work range.
 [Owned controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search)
 
 The relocated SDK fixture made one installed metadata query and then used
