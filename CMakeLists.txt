@@ -209,6 +209,9 @@ if(MINGW)
 endif()
 
 if(FLITZFS_BUILD_TESTS)
+  if(WIN32)
+    list(APPEND CMAKE_CTEST_ARGUMENTS --interactive-debug-mode 0)
+  endif()
   enable_testing()
   find_package(Threads REQUIRED)
   add_executable(flitzfs_native_workload_tests tests/test_native_workload.cpp)
@@ -1179,4 +1182,7 @@ if(FLITZFS_BUILD_VOLUME_APP)
     # GUI qualification is explicit and separate from normal CTest.
   endif()
 endif()
+
+include(cmake/WindowsAsanRuntime.cmake)
+flitzfs_stage_msvc_asan_runtime()
 

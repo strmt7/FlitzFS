@@ -1,5 +1,25 @@
 # Validation ledger
 
+## Unattended Windows AddressSanitizer launch — 18 November 2026
+
+Five test executables reached the Windows loader without the required
+AddressSanitizer DLL. The owner observed system dialogs. CTest 4.5's
+interactive mode reset the process error mode inherited from the supervisor.
+The two overnight run logs match the five affected executable names.
+
+The build now stages the DLL from the selected MSVC toolset beside its
+instrumented executables. The supervisor and generated Windows test target
+set CTest's non-interactive mode. Direct supervised launches also inherit
+the process error mode before Windows loads executable dependencies.
+[Microsoft AddressSanitizer reference](https://learn.microsoft.com/en-us/cpp/sanitizers/asan-building?view=msvc-170) ·
+[CTest non-interactive mode](https://cmake.org/cmake/help/latest/manual/ctest.1.html#cmdoption-ctest-interactive-debug-mode)
+
+All five affected suites passed with only the Windows directories on the
+test process's `PATH`. With the DLL omitted in a disposable copy, both the
+direct and nested CTest launches reported `0xC0000135` and retired in under
+one second. The raw-build control and five launcher argument tests passed.
+[Source and execution evidence](evidence/windows-unattended-asan-2026-11-18.json)
+
 ## Cooperative indexed group preparation — 18 November 2026
 
 The 64-member indexed fixture took 65 preparation steps. The largest step

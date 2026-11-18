@@ -1,0 +1,62 @@
+function(flitzfs_stage_msvc_asan_runtime)
+  if(NOT WIN32 OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    return()
+  endif()
+
+  set(asan_flag "(^|[ \t\"])[/-]fsanitize=address([ \t\"]|$)")
+  if("${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS}" MATCHES "${asan_flag}")
+    set(stage_enabled 1)
+  else()
+    set(asan_configs)
+    foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES CMAKE_BUILD_TYPE)
+      string(TOUPPER "${config}" config_upper)
+      if("${CMAKE_C_FLAGS_${config_upper}} ${CMAKE_CXX_FLAGS_${config_upper}}" MATCHES "${asan_flag}")
+        list(APPEND asan_configs "${config}")
+      endif()
+    endforeach()
+    if(NOT asan_configs)
+      return()
+    endif()
+    string(JOIN "," asan_configs ${asan_configs})
+    set(stage_enabled "$<CONFIG:${asan_configs}>")
+  endif()
+
+  if(CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "x64")
+    set(asan_arch x86_64)
+  elseif(CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "X86")
+    set(asan_arch i386)
+  else()
+    message(FATAL_ERROR "Unsupported MSVC AddressSanitizer target: ${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}")
+  endif()
+  cmake_path(GET CMAKE_CXX_COMPILER PARENT_PATH compiler_bin)
+  set(runtime "${compiler_bin}/clang_rt.asan_dynamic-${asan_arch}.dll")
+  if(NOT EXISTS "${runtime}" OR IS_DIRECTORY "${runtime}")
+    message(FATAL_ERROR
+      "MSVC AddressSanitizer runtime missing: ${runtime}\n"
+      "Install the AddressSanitizer component for the selected Visual C++ toolset.")
+  endif()
+
+  get_property(project_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+  set(executables)
+  set(output_directories)
+  foreach(target IN LISTS project_targets)
+    get_target_property(type "${target}" TYPE)
+    if(type STREQUAL "EXECUTABLE")
+      list(APPEND executables "${target}")
+      list(APPEND output_directories "$<TARGET_FILE_DIR:${target}>")
+    endif()
+  endforeach()
+  # One staging target owns all copies for a configuration, including parallel
+  # single-target builds. App-local loading also works outside CTest.
+  set(manifest "${CMAKE_CURRENT_BINARY_DIR}/flitzfs-asan-output-$<CONFIG>.txt")
+  file(GENERATE OUTPUT "${manifest}"
+    CONTENT "$<${stage_enabled}:$<JOIN:${output_directories},\n>>\n")
+  add_custom_target(flitzfs_msvc_asan_runtime
+    COMMAND "${CMAKE_COMMAND}" "-Druntime=${runtime}" "-Dmanifest=${manifest}"
+      -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/StageWindowsAsanRuntime.cmake"
+    VERBATIM)
+  foreach(target IN LISTS executables)
+    add_dependencies("${target}" flitzfs_msvc_asan_runtime)
+  endforeach()
+  message(STATUS "MSVC AddressSanitizer runtime for this build: ${runtime}")
+endfunction()

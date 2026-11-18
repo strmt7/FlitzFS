@@ -13,12 +13,50 @@ import ctypes as C
 from ctypes import wintypes as W
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import shutil
 import subprocess
 import sys
 import time
 import uuid
+
+
+# SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX
+_UNATTENDED_ERROR_MODE = 0x0001 | 0x0002 | 0x8000
+_LOADER_ERRORS = {
+    0xC000007B: "invalid executable or DLL image",
+    0xC0000135: "required DLL not found",
+    0xC0000139: "required DLL entry point not found",
+    0xC0000142: "DLL initialization failed",
+}
+
+
+def _unattended_ctest(command: list[str]) -> None:
+    """Apply CTest's own non-interactive mode to supported launch forms."""
+    index = 0
+    if (PureWindowsPath(command[0]).name.casefold() == "cmake.exe"
+            and command[1:3] == ["-E", "env"]):
+        index = 3
+        while index < len(command):
+            argument = command[index]
+            if argument == "--":
+                index += 1
+                break
+            if argument == "--modify":
+                index += 2
+            elif "=" in argument:
+                index += 1
+            else:
+                break
+    if index >= len(command) or PureWindowsPath(command[index]).name.casefold() not in {"ctest", "ctest.exe"}:
+        return
+    # CTest's interactive mode resets the Windows error mode of its test
+    # process. The CLI override must precede arguments forwarded to other tools.
+    index += 1
+    while index < len(command) and command[index] not in {"--", "--build-options", "--test-command"}:
+        index += 1
+    if command[index - 2:index] != ["--interactive-debug-mode", "0"]:
+        command[index:index] = ["--interactive-debug-mode", "0"]
 
 
 def main() -> int:
@@ -44,6 +82,7 @@ def main() -> int:
     if not output_root.is_dir():
         parser.error("output root must already exist")
     command[0] = str(executable.resolve(strict=True))
+    _unattended_ctest(command)
     line = subprocess.list2cmdline(command)
     if len(line) >= 32767:
         parser.error("Windows command line exceeds its bound")
@@ -104,6 +143,8 @@ def main() -> int:
     update_attribute = api("UpdateProcThreadAttribute", W.BOOL, C.c_void_p, W.DWORD,
                            size_t, C.c_void_p, size_t, C.c_void_p, C.c_void_p)
     delete_attributes = api("DeleteProcThreadAttributeList", None, C.c_void_p)
+    get_error_mode = api("GetErrorMode", W.UINT)
+    set_error_mode = api("SetErrorMode", W.UINT, W.UINT)
     create_process = api("CreateProcessW", W.BOOL, W.LPCWSTR, W.LPWSTR, C.c_void_p,
                          C.c_void_p, W.BOOL, W.DWORD, C.c_void_p, W.LPCWSTR,
                          C.POINTER(StartupEx), C.POINTER(Process))
@@ -179,9 +220,20 @@ def main() -> int:
             startup.startup.d7 = 0x100  # STARTF_USESTDHANDLES
             startup.startup.stdin, startup.startup.stdout, startup.startup.stderr = null_handle, log_handle, log_handle
             startup.attributes = C.cast(attributes, C.c_void_p)
-            checked(create_process(command[0], C.create_unicode_buffer(line), None, None, True,
-                                   0x80000 | 0x4 | 0x8000000 | 0x400 | 0x4000,
-                                   environment_block, None, C.byref(startup), C.byref(process)))
+            original_mode = get_error_mode()
+            launch_mode = original_mode | _UNATTENDED_ERROR_MODE
+            # Set the inherited process mode before the child loader can run.
+            # This affects only the private supervisor and its children.
+            set_error_mode(launch_mode)
+            try:
+                if (get_error_mode() & _UNATTENDED_ERROR_MODE) != _UNATTENDED_ERROR_MODE:
+                    raise RuntimeError("could not establish unattended Windows error mode")
+                checked(create_process(command[0], C.create_unicode_buffer(line), None, None, True,
+                                       0x80000 | 0x4 | 0x8000000 | 0x400 | 0x4000,
+                                       environment_block, None, C.byref(startup), C.byref(process)))
+                report["inherited_error_mode"] = launch_mode
+            finally:
+                set_error_mode(original_mode)
             os.set_handle_inheritable(log_handle, False)
             os.set_handle_inheritable(null_handle, False)
             assigned = W.BOOL()
@@ -212,6 +264,10 @@ def main() -> int:
             code = W.DWORD()
             checked(get_exit(process.process, C.byref(code)))
             report["exit_code"] = code.value
+            if reason := _LOADER_ERRORS.get(code.value):
+                diagnostic = f"Windows loader failure (0x{code.value:08X}): {reason}"
+                report["loader_error"] = diagnostic
+                log.write(f"\n{diagnostic}\n".encode("ascii"))
             accounting = Accounting()
             # Process signalling may precede the Job's accounting decrement.
             # Observe quiescence before classifying a live descendant as stale.

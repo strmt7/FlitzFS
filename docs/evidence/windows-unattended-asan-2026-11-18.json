@@ -1,0 +1,253 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "released": false,
+  "source_base": "323a43cedd2781c60031a5cb7c24f138b31a4e9a",
+  "source_tree": "8a0b5687708f6cf60d923c6a4ec81de9a716c5ad",
+  "tested_changed_sources": [
+    {
+      "path": "CMakeLists.txt",
+      "git_blob": "02849a241d41e38336f172d12ad4c7957b112b45",
+      "worktree_sha256": "9e42d6f3f17ea2dbc19dcfb33ddff5f75988f2ddec7c043e2d64d0789bd882e2"
+    },
+    {
+      "path": "cmake/WindowsAsanRuntime.cmake",
+      "git_blob": "e68de7e905fc141864ed17e0e06329b8f66fb56a",
+      "worktree_sha256": "b3a706b129c2321dbc4ff7947b86c645f18bbd1f5e1c542e1f83dc537d50a088"
+    },
+    {
+      "path": "cmake/StageWindowsAsanRuntime.cmake",
+      "git_blob": "3c12cf16444c7e2a74b0fdaf989bdaf2bdcf1c8b",
+      "worktree_sha256": "7aab7f1c632d6b3f76cab1b4262d0ed9aead6a63bc84429ba3db7e786618cbaa"
+    },
+    {
+      "path": "tools/dev/windows_run.py",
+      "git_blob": "4842d21e0747dc9cf2e9261f1ac7e5c1e5783f4f",
+      "worktree_sha256": "d47b5a9a224b564d77f5582572aac76566319c5b4cc6f174ec040c29cd3f2b6a"
+    },
+    {
+      "path": "tools/dev/test_windows_run.py",
+      "git_blob": "7b68df115610134bea2b03c66a3eae2fb2cea49f",
+      "worktree_sha256": "e3071a2e09841ad7bfedc15725327787038df4fec9171402755eed1d0b16a631"
+    }
+  ],
+  "incident": {
+    "description": "The owner reported five system loader dialogs for MSVC ASan tests. Two earlier CTest logs match those binary names. The runs used interactive CTest and did not supply the ASan DLL search path.",
+    "release": {
+      "description": "Three Release test binaries named in dialogs",
+      "run": "local-run-be66bc0592174978b786dcfd4afa3f42",
+      "receipt_sha256": "14c4c59266d38fa6fe0fdb18b4b21224819155c190ac77bbc6aa7cbaa50abe8d",
+      "log_sha256": "b188087271d3f946f784ff2053881dc8213656e8a486a69ecfaa3a3f14a99d0f",
+      "exit_code": 4294967295,
+      "elapsed_seconds": 211.283101,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": null
+    },
+    "relwithdebinfo": {
+      "description": "Two RelWithDebInfo test binaries named in dialogs",
+      "run": "local-run-7d2204a6263d482e91d103c3adc532cb",
+      "receipt_sha256": "0a41b127f05a3192b3ef4382eea2e2ed7b845607f5a3978908cf2dfe98d8a36d",
+      "log_sha256": "e5e584ace297638593ae48464fcab9945a60cba732a1c191c55ee25798c80ff7",
+      "exit_code": 4294967295,
+      "elapsed_seconds": 198.136531,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": null
+    },
+    "observed_loader_message": "clang_rt.asan_dynamic-x86_64.dll was not found"
+  },
+  "source_reference": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "90580517a35bf307fd810f6cd16cca1326a6d0bd30e7fc0f412cc6789a265dd0",
+    "native_pages": [
+      {
+        "url": "https://learn.microsoft.com/en-us/cpp/sanitizers/asan-building?view=msvc-170",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "5ad371486918db9073550728bb77c79cfef3ed9167f85c5e45cf1b56f764f553",
+        "capture_sha256": "e18959bd01fd7f97317b726ed3c641b5fdd172aeca347f3d3c834a87570dec58"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-seterrormode",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "f546c13491b1fb1b942fb471c2c47df5b9630ceb4cf27c613c957d6efda9df73",
+        "capture_sha256": "4dde773809c3a253bd1e6bd41de129183188b58ebf3e7cbe13ff089cbcef0a70"
+      },
+      {
+        "url": "https://cmake.org/cmake/help/latest/manual/ctest.1.html",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "29c974e8cd462ee57d9d7a137e165fa5a55759b9688fec3c7a48cb96965f6e8e",
+        "capture_sha256": "6b2db0debc5928de5f0bc39ad49562e350e6016d8b9f124e481dd1665c372dc9"
+      },
+      {
+        "url": "https://cmake.org/cmake/help/latest/command/add_test.html",
+        "http_status": 200,
+        "success": true,
+        "markdown_sha256": "13006c1ea43e91bc3f8eedd9e8f9a2987f69c128e94cd8364d4bec968e8629eb",
+        "capture_sha256": "d34750b7b354df24deca68fb6beba107b5507a70ab6ede25c9f4ffbabf66390a"
+      }
+    ],
+    "ctest_version": "4.5.0",
+    "ctest_source_prefix": "https://raw.githubusercontent.com/Kitware/CMake/v4.5.0",
+    "ctest_source": [
+      {
+        "path": "Source/cmCTest.cxx",
+        "sha256": "704b222f51cc7e1037565957718191a2d8a42ae58f713f6321feadbfacc8fe66"
+      },
+      {
+        "path": "Source/CTest/cmProcess.cxx",
+        "sha256": "e88c9cc97f4fb8d2e0e0a38be728744ab2f4346493f7203e40839e20ca5a3960"
+      },
+      {
+        "path": "Utilities/cmlibuv/src/win/process.c",
+        "sha256": "d7cb22411fc25773c40d89daac3bc85034435f82194a9d606964e55a58403497"
+      }
+    ],
+    "semantic_receipt_sha256": "b00e9ec4208385a1502c34d46bc1f9e29fd599fdbc307300ffdbdb4674424694",
+    "semantic_native_sha256": "6709a618e632424d8dd4a9e0f6b7dfe53b28583bf077085260d7a414a4fd62f8"
+  },
+  "test_environment": {
+    "runtime_file": "clang_rt.asan_dynamic-x86_64.dll",
+    "selected_runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+    "configurations_with_verified_app_local_runtime": [
+      "Release",
+      "RelWithDebInfo"
+    ],
+    "positive_test_environment": "PATH contained only the Windows and System32 directories",
+    "generated_run_tests_passes_noninteractive_flag": true
+  },
+  "verification": [
+    {
+      "description": "Direct child observed Win32 error mode 0x8003",
+      "run": "local-run-e70c343d08e645f782405135da1d6914",
+      "receipt_sha256": "e2b9de937d94fcd5c09204b7eee2be371463c2ae0948c7180c2a1bb06638a3b4",
+      "log_sha256": "8db617ad3900b79e7cd258c91b00e32546437712d05626fc450c2c70578af8fb",
+      "exit_code": 0,
+      "elapsed_seconds": 0.054755,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "Before CTest argument fix, otherwise safe child observed mode 0",
+      "run": "local-run-24d5ff9edfaa4ec494ee3deda9f51bb4",
+      "receipt_sha256": "43bf86280650b8ee8ce47720783f4dc03ef9584539d70e50e0293acebe1ad9d3",
+      "log_sha256": "c0ea8d28c0268c7a01baeacea45c1c498c10a69061a939d19a9677d60ef53a64",
+      "exit_code": 8,
+      "elapsed_seconds": 0.442909,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "After fix, direct CTest child observed mode 0x3",
+      "run": "local-run-0f1a486882a0494985a73291d7d302e7",
+      "receipt_sha256": "56273605089a67ab5f6f84bba85468425ef9e6780aa6ad8ec00b879b803341b9",
+      "log_sha256": "689ca55f3c1adb7bfc1e8381781199c7ae8d7543556e0812078a71ca26237dd3",
+      "exit_code": 0,
+      "elapsed_seconds": 0.102973,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "After fix, cmake env and CTest child observed mode 0x3",
+      "run": "local-run-3f0583dd79eb437a8f4213adf3ccb5ab",
+      "receipt_sha256": "c0fe3bc95f4d4c3b68a5f67a171e2703f374f8f5ff5ad90340d6c2c97b143b47",
+      "log_sha256": "689ca55f3c1adb7bfc1e8381781199c7ae8d7543556e0812078a71ca26237dd3",
+      "exit_code": 0,
+      "elapsed_seconds": 0.109858,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "Five development argument regression tests",
+      "run": "local-run-da3c4c30433e4cc185970014dd71fae3",
+      "receipt_sha256": "aa8583ee19c05e4fac3fd9f88d923ae708ee6474ac87b331e7e27d97424ef637",
+      "log_sha256": "8fa61f64b13b63666d3d519ffb82fb05993e619cfa8a5354bc2936cc9a4c43c4",
+      "exit_code": 0,
+      "elapsed_seconds": 0.146708,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "All five affected AddressSanitizer suites passed",
+      "run": "local-run-d8b8b4a3510741b49fe8382c8444fa0d",
+      "receipt_sha256": "8c6288a71c0cfaef76b1f8b4a085ad5c69ea7dd9fcfc647f393362f081dce0b5",
+      "log_sha256": "6a9582dc0a1ebbb9b01ab32ac8705b87a95cfb3b87e4be1dec3d8dc5fdf0ed79",
+      "exit_code": 0,
+      "elapsed_seconds": 71.168753,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "Disposable missing ASan DLL. Direct launcher logged exact loader status.",
+      "run": "local-run-3b46a52d4b43411d86b616524b069e56",
+      "receipt_sha256": "2947a19ddec926c9db464fd9a14aaf0c4400227c49af3e7c5acb11d2d1d5af7c",
+      "log_sha256": "2d936fa9a68b2ee8ae77d0dc0fc102e087388ce6510ac70f4291e886aa7f7f0f",
+      "exit_code": 3221225781,
+      "elapsed_seconds": 0.07891,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "Initial disposable CTest fixture had a syntax failure. Rebuilt its configuration for the distinct confirmed loader test.",
+      "run": "local-run-7ecfcd7ace5049e694d08d9e727465a1",
+      "receipt_sha256": "cd4696e5624b46281954396ebccb674bce400365aadb328b5a29f5f51438d21c",
+      "log_sha256": "3d78af607234e8c25deb2402bfeda2505bb82098c87a2ea946493627a5dd4e3a",
+      "exit_code": 8,
+      "elapsed_seconds": 0.066642,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "Disposable CTest missing ASan DLL. Verified child mode and exact 0xC0000135 status.",
+      "run": "local-run-120c5deb39f64a1a9bb200d2594e0379",
+      "receipt_sha256": "715469683469a555e38ac43b39796e2dbf5ab3c62be4a57aa8cd6fa052082407",
+      "log_sha256": "20d6151fe77e077e3ea0adbb372c5c1a5b6907f35479ae5a68dbb7ba684b74dd",
+      "exit_code": 8,
+      "elapsed_seconds": 0.179302,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "Synthetic missing component diagnosed at CMake configuration",
+      "run": "local-run-bbdacf7e8a1a4e519469198585dc2900",
+      "receipt_sha256": "08039d4ca47e649033cc375012e0207ffd39d5e0141268e4331d775203104700",
+      "log_sha256": "38e34c002eb82bf9d604a85c4a2f8b82585b821cb6aaaa5e62c3163dc30a3045",
+      "exit_code": 1,
+      "elapsed_seconds": 0.45923,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    },
+    {
+      "description": "Raw Release control passed with no ASan staging target",
+      "run": "local-run-a1170f3295de4fee8eb7f8fca0e927df",
+      "receipt_sha256": "4b7fe4741506a22f16a6f360aa83f7612dc784ce0d13c1e3cf139651439ecd06",
+      "log_sha256": "d0afc45bac37f234406d561793add453580a235dfbaa91ab9c3436018ec26ed0",
+      "exit_code": 0,
+      "elapsed_seconds": 2.153514,
+      "retired": true,
+      "children_at_parent_exit": 0,
+      "inherited_error_mode": 32771
+    }
+  ],
+  "asan_ctest_groups": [
+    "bounded_native_filesystem",
+    "bounded_paged_object_store",
+    "bounded_native_inode_records",
+    "bounded_native_directory_index",
+    "bounded_native_indexed_volume"
+  ]
+}

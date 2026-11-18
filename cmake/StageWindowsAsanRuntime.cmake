@@ -1,0 +1,8 @@
+file(STRINGS "${manifest}" output_directories ENCODING UTF-8)
+list(REMOVE_ITEM output_directories "")
+list(REMOVE_DUPLICATES output_directories)
+cmake_path(GET runtime FILENAME runtime_name)
+foreach(directory IN LISTS output_directories)
+  file(MAKE_DIRECTORY "${directory}")
+  file(COPY_FILE "${runtime}" "${directory}/${runtime_name}" ONLY_IF_DIFFERENT)
+endforeach()
