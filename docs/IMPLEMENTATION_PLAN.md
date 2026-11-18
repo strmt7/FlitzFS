@@ -714,14 +714,17 @@ ordinary routing with prompt yielding and independent CPU progress.
 [Coalesced transfer comparison](evidence/amd-anchor-transfers-2026-11-18.json)
 [Shared request snapshot comparison](evidence/amd-anchor-snapshot-2026-11-18.json)
 
-The producer now appends each admitted group directly to the final snapshot.
-Release and AddressSanitizer fixtures verified that the new construction
-preserves the nested request format and rejects incomplete or invalid
-groups. Six public sample extents are ready for related and mixed-content
-trials. Resume the optional SDK build and fresh-worker trials when host
-headroom admits the workload. Use the observations to qualify the
-appropriate workload and device combinations for automatic selection.
-[Streaming construction and corpus evidence](evidence/amd-anchor-streamed-prep-2026-11-18.json)
+The producer now appends each admitted group directly to the final snapshot
+and provides verified views from that construction. Release and
+AddressSanitizer fixtures compared the views with independent wire parsing.
+Three alternating 1,824-extent pairs reduced median preparation from
+57.37 to 35.22 milliseconds. Live related and mixed public-derived
+workloads through 2,304 extents matched the CPU replies, with overlapping
+or worse complete AMD exchange times. The next qualification must isolate
+startup and transfer costs, amortize setup across admitted work, and
+establish a repeatable benefit before selecting AMD automatically.
+[Streaming construction and corpus evidence](evidence/amd-anchor-streamed-prep-2026-11-18.json) ·
+[Mixed-content and SDK evidence](evidence/amd-anchor-cohorts-2026-11-18.json)
 
 Packed compaction now bases total-size comparison on checked totals and
 changed lookup paths. This removes the full metadata scan from each indexed

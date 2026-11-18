@@ -317,9 +317,10 @@ child exit and before returning the reply.
 
 Shared-base producers validate the complete plan before starting the batch
 builder. Each append copies one base and its member extents directly into
-the final frame with its ordered identity and digest. The completed frame
-moves into an immutable snapshot. Both the enclosing digest and the nested
-request records retain their existing format.
+the final frame and digests the copied bytes. The builder moves the frame
+into an immutable snapshot and binds typed views to those same bytes. The
+receiving worker independently checks geometry, the enclosing digest and
+the nested request digests using the existing format.
 
 The sized transport uses distinct request/reply magic and control version 2.
 Capacities must fit the signed publication-length representation and their

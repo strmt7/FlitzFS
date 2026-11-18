@@ -56,6 +56,7 @@ class AnchorMatchBatchRequest final {
   SharedWorkerRequest snapshot() const noexcept {return snapshot_;}
  private:
   AnchorMatchBatchRequest()=default;
+  friend class AnchorMatchBatchBuilder;
   friend AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest,
       std::uint32_t,std::uint32_t,std::uint32_t,std::uint64_t,std::uint32_t);
   // Every group view is validated against this one private allocation.
@@ -102,12 +103,10 @@ class AnchorMatchBatchBuilder final {
   AnchorMatchBatchBuilder(const AnchorMatchBatchBuilder&)=delete;
   AnchorMatchBatchBuilder& operator=(const AnchorMatchBatchBuilder&)=delete;
   void append(std::uint64_t id,std::span<const std::byte> base,std::span<const std::byte> members);
-  SharedWorkerRequest finish();
+  AnchorMatchBatchRequest finish();
  private:
-  std::vector<AnchorMatchLayout> layouts_;
+  AnchorMatchBatchRequest request_;
   std::vector<std::byte> frame_;
-  std::size_t next_group_=0;
-  std::uint64_t previous_id_=0;
 };
 
 AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest snapshot,

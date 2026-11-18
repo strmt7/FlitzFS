@@ -672,8 +672,7 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
       prepare_ns+=nanos_since(start);
     }
     start=std::chrono::steady_clock::now();
-    auto request=detail::decode_anchor_match_batch_request(builder.finish(),plan.request_bytes,plan.reply_bytes,
-        plan.quantum_members,plan.device_bytes,plan.launches);
+    auto request=builder.finish();
     prepare_ns+=nanos_since(start);
     return request;
   }();

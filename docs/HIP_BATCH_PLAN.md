@@ -76,13 +76,27 @@ The opt-in cohort fixture accepts a bank with one 64 KiB sample per base.
 The related cohort shifts regions from the selected base. In the mixed
 cohort, alternate members use a different sample. Each run prepares one
 coalesced AMD exchange, obtains an independent CPU reply, and checks exact
-reply equality and retirement. Match coverage counts verified nonzero
-tile records. It measures search coverage and cost before storage encoding.
-The bank uses five decoded Silesia samples and a compressed sample. Two
-bounded SDK builds stopped under host memory pressure. The cohort fixture
-still needs a successful SDK build and live GPU measurements.
+reply equality and retirement. Match coverage counts verified nonzero tile
+records before encoding any stored representation. The bank uses five
+decoded Silesia samples and a compressed sample.
 [Silesia corpus](https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia) ·
 [zlib-ng corpus collection](https://github.com/zlib-ng/corpora)
+
+Fifteen live AMD exchanges matched the CPU replies. At 1,398 extents,
+five coalesced AMD exchanges took 1.02–1.27 seconds and the CPU reference
+took 0.87–0.96 seconds. The two cohort orders include first owned exchanges
+after 55 and 71 seconds without work from the fixture. Related cases
+matched every tile. The mixed cases matched about half.
+
+The producer now hashes the bytes it just copied and binds its typed
+group views directly to the private snapshot. The worker verifies the
+received frame independently. In three alternating 1,824-extent pairs,
+median producer preparation fell from 57.37 to 35.22 milliseconds.
+Complete AMD timings varied. At 2,304 extents the related and mixed AMD
+exchanges took 2.05 and 1.79 seconds, against CPU references of 1.59 and
+1.41 seconds. Peak owned host commitment was about 480 MiB. The tested
+workloads still lack consistent evidence for automatic AMD preference.
+[Live calibration and qualification](evidence/amd-anchor-cohorts-2026-11-18.json)
 
 ## SDK-only compression compute candidate
 

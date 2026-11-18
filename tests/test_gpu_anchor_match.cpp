@@ -189,20 +189,31 @@ void independent_batch() {
     groups.push_back(decode_anchor_match_request(encode_anchor_match_request(base,members,17+i,layout),layout));
   }
   rejects([&]{builder.append(500,{},{});});
-  auto snapshot=builder.finish();
+  auto created=builder.finish();
   rejects([&]{(void)builder.finish();});
+  rejects([&]{builder.append(500,{},{});});
+  auto snapshot=created.snapshot();
   const auto allocation=snapshot->bytes().data();
   const auto decode=[&](flitzfs::SharedWorkerRequest bytes) {
     return decode_anchor_match_batch_request(std::move(bytes),plan.request_bytes,plan.reply_bytes,3,device,plan.launches);
   };
   auto decoded=decode(snapshot);
   snapshot.reset();
-  const auto batch=std::move(decoded);
+  const auto batch=std::move(created);
   const auto wire=batch.snapshot()->bytes();
   check(batch.id()==500 && batch.plan()==plan && wire.size()==plan.request_bytes && wire.data()==allocation,
       "batch did not retain the original private frame");
-  check(decoded.groups().empty() && batch.groups().back().source.data()==wire.last(groups.back().source.size()).data(),
+  check(created.groups().empty() && batch.groups().back().source.data()==wire.last(groups.back().source.size()).data(),
       "batch group view did not stay within the shared frame");
+  check(batch.id()==decoded.id() && batch.plan()==decoded.plan() && batch.digest()==decoded.digest() &&
+      batch.groups().size()==decoded.groups().size(),"built batch differs from independently parsed wire");
+  for(std::size_t i=0;i<batch.groups().size();++i) {
+    const auto& built=batch.groups()[i];
+    const auto& parsed=decoded.groups()[i];
+    check(built.id==parsed.id && built.source_digest==parsed.source_digest &&
+        built.source.data()==parsed.source.data() && built.source.size()==parsed.source.size(),
+        "built group differs from independently parsed wire");
+  }
   Bytes corrupt(wire.begin(),wire.end());
   corrupt.back()^=std::byte{1};
   rejects([&]{(void)decode(std::make_shared<const flitzfs::WorkerRequestSnapshot>(std::move(corrupt)));});
