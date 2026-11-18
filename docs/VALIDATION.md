@@ -276,6 +276,13 @@ CPU-only ROCm header probe passed in both configurations with a Windows-only
 `PATH`. All owned process trees exited.
 [Restoration and SDK execution evidence](evidence/windows-asan-restoration-2026-11-18.json)
 
+The filtered CTest regression verifies that a missing or mismatched runtime
+blocks the dependent test and that a valid compiler copy restores execution.
+The five affected suites passed again on Windows with CMake 4.5.0. The
+AddressSanitizer run passed eight entries in 79.58 seconds and the Release
+control passed seven. Both used only Windows system directories on `PATH`
+and both process trees exited.
+
 ## Cooperative indexed group preparation — 18 November 2026
 
 The 64-member indexed fixture took 65 preparation steps. The largest step
