@@ -93,8 +93,23 @@ AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> memb
 // Transfers can span several launches. The last transfer of each group may
 // be partial, while every earlier transfer ends at a dispatch boundary.
 AnchorMatchTransferPlan plan_anchor_match_transfers(const AnchorMatchBatchPlan&,std::uint64_t maximum_device_bytes);
-std::vector<std::byte> encode_anchor_match_batch_request(std::span<const AnchorMatchRequest> groups,
-    std::uint64_t id,const AnchorMatchBatchPlan&);
+
+// After admitting the complete plan, append one owned group at a time. The
+// caller can release each source immediately after it is copied and bound.
+class AnchorMatchBatchBuilder final {
+ public:
+  AnchorMatchBatchBuilder(std::uint64_t id,const AnchorMatchBatchPlan&);
+  AnchorMatchBatchBuilder(const AnchorMatchBatchBuilder&)=delete;
+  AnchorMatchBatchBuilder& operator=(const AnchorMatchBatchBuilder&)=delete;
+  void append(std::uint64_t id,std::span<const std::byte> base,std::span<const std::byte> members);
+  SharedWorkerRequest finish();
+ private:
+  std::vector<AnchorMatchLayout> layouts_;
+  std::vector<std::byte> frame_;
+  std::size_t next_group_=0;
+  std::uint64_t previous_id_=0;
+};
+
 AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest snapshot,
     std::uint32_t request_capacity,std::uint32_t reply_capacity,std::uint32_t maximum_quantum,
     std::uint64_t maximum_device_bytes,std::uint32_t maximum_launches);

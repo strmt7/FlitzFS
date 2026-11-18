@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "date": "2026-11-18",
+  "source_base": "b55721f2284abfe60f86ee399fb945add117e186",
+  "source": [
+    {
+      "path": "src/native_group_anchor.hpp",
+      "git_blob": "dd60ad17db7f351ed6026ffb1dfd12e4e561482d",
+      "working_sha256": "cf41cfd9815387b4fe9177209928b78798a788f6982f04a983c503a185a314a6",
+      "windows_cpu_validation": true
+    },
+    {
+      "path": "src/native_group_anchor.cpp",
+      "git_blob": "72c8d45aafd5f5ebe7ff4800ff6cab4d1f8f5052",
+      "working_sha256": "71484e9a4a0dfab4b18f96f6150c3669402879bc8140c095e457c7d1af63d4b5",
+      "windows_cpu_validation": true
+    },
+    {
+      "path": "tests/test_gpu_anchor_match.cpp",
+      "git_blob": "db9809638383d9990b6366b6a0335804f659068a",
+      "working_sha256": "661cdb3441576b55cc5968135b284154b7e4e1f3635480bd183620e48907b416",
+      "windows_cpu_validation": true
+    },
+    {
+      "path": "tests/rocm_compile/lz4_runtime_probe.cpp",
+      "git_blob": "4c352f024a38c3e2fe94ac5f71d86a943b2836b8",
+      "working_sha256": "ea04bb5f9498a15a9484ef9852393e6d668b2a750fb596791bbaa54034268921",
+      "windows_cpu_validation": false
+    }
+  ],
+  "validation": [
+    {
+      "check": "Release build",
+      "run": "local-run-612160c8bff84c61945b0a2bead20a53",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 9.871,
+      "physical_available_bytes": 5701992448,
+      "memory_limit_bytes": 357564416,
+      "peak_job_bytes": 288268288,
+      "receipt_sha256": "4d978b7c565edc2d0d87cd03294d1a9ad45f03a1ef4bff463b130af58f26370b",
+      "log_sha256": "7b59ca2f3a8427626f4e0c52a79352c5a095f231aa332edf1b9e7a9043737333"
+    },
+    {
+      "check": "Release CTest: 4 passed",
+      "run": "local-run-22b49d201805430d9e8f577cc4edb3fe",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 7.537,
+      "physical_available_bytes": 5684326400,
+      "memory_limit_bytes": 353370112,
+      "peak_job_bytes": 24051712,
+      "receipt_sha256": "b58433c2199c63bbeba4ed78125c017ce5f53032020a85bb1b1cddad1faf9666",
+      "log_sha256": "adefa11bad24fd291e2a5727941e7082362c87e6514f5dac79ef5ab8870c9814"
+    },
+    {
+      "check": "MSVC AddressSanitizer build",
+      "run": "local-run-cde630b8fde1424fa9c43c502cd94b54",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 9.781,
+      "physical_available_bytes": 5641527296,
+      "memory_limit_bytes": 342884352,
+      "peak_job_bytes": 288874496,
+      "receipt_sha256": "f9b9bbb12970d098550264f5fc675dc3d2f54372b5e23a958eb75d8f13c251a9",
+      "log_sha256": "928fa929fbb82ffcbdbfd4b47ba3c4622f36a9e195a47ba9e79fc6b4d24a3966"
+    },
+    {
+      "check": "MSVC AddressSanitizer CTest: 5 passed",
+      "run": "local-run-3961d74c031c47d3a227ad28a5860ddf",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 9.3,
+      "physical_available_bytes": 5632352256,
+      "memory_limit_bytes": 340787200,
+      "peak_job_bytes": 315228160,
+      "receipt_sha256": "88394c1182bcc59e8cf99abf4c722847c4b9db68ef5628f446799c4aa827dc76",
+      "log_sha256": "10688e609302103322ce94fc7e0626ab25582ef312be954a8442a9b1982f7f3c"
+    },
+    {
+      "check": "SDK MSBuild: stopped near memory allowance",
+      "run": "local-run-835fe7c60f2b4fec8d598bbc7c3c21ef",
+      "exit_code": 1,
+      "tree_retired": true,
+      "elapsed_seconds": 1.53,
+      "physical_available_bytes": 5084323840,
+      "memory_limit_bytes": 203423744,
+      "peak_job_bytes": 203546624,
+      "receipt_sha256": "b8513849554bb41d0d3e0cf3b1fc1d04de693c4b0f2823e9be857a6a301a4abe",
+      "log_sha256": "16ec76375a422438d766a73a122dc3a8c74f53e7a5706c5ea94ef285b2033247"
+    },
+    {
+      "check": "SDK Ninja: MSVC C1002 compiling the pinned LZ4 dependency",
+      "run": "local-run-114b21b25cbf48eaab582b2028e490e6",
+      "exit_code": 1,
+      "tree_retired": true,
+      "elapsed_seconds": 9.86,
+      "physical_available_bytes": 4882268160,
+      "memory_limit_bytes": 153092096,
+      "peak_job_bytes": 204599296,
+      "receipt_sha256": "0441f1aaab5634cb87667ec4d816e17b9c5794390633a4c7b827fd454b6dae58",
+      "log_sha256": "30c6b8c6bdf744e44d768a6ca1a9e203cf0fcf9440fd524eeeabc2beb88678cd"
+    }
+  ],
+  "corpus": {
+    "size_bytes": 393216,
+    "sha256": "110d4b44ae78a793ee0bb5922e0d26a657f6966748219692282bd4f6c44986d5",
+    "source_receipt_sha256": "c0afe7f8e0d5dd9c2f2f7a595c10cdd9bc0f0411d46319837fea5fbec47a4a2e",
+    "source_names": [
+      "dickens",
+      "samba",
+      "xml",
+      "osdb",
+      "ooffice"
+    ],
+    "decoded_sample_offset": "one third of the original byte length",
+    "extra_sample": "first 65536 bytes of ooffice.bz2",
+    "acquisition": {
+      "check": "Exact HTTPS archive acquisition and bounded decoding",
+      "run": "local-run-eefdbf82f95e4297aa01da00006adaa0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "elapsed_seconds": 3.154,
+      "physical_available_bytes": 6864793600,
+      "memory_limit_bytes": 108003328,
+      "peak_job_bytes": 21704704,
+      "receipt_sha256": "41e1aeaf6cac900f45fd18567ca84846c93d7cb01624117dc4379183b9688af9",
+      "log_sha256": "ccf96d2054d6e629bcf272ca83d487074701cee238b0ee756ec4acc41d0b092f"
+    }
+  },
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "b0498190a5d4b2db7f830f2bc019ce06f1f2e73b8bab9a8b6b054358a9646514",
+    "pages": [
+      {
+        "url": "https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia",
+        "status": 200,
+        "capture_sha256": "02995ddee9516b19f63c8f65d9df78cec077e54bcf12be0f9dc1eafd36addbfe"
+      },
+      {
+        "url": "https://github.com/zlib-ng/corpora",
+        "status": 200,
+        "capture_sha256": "75e43dfe6d2194ee811da864544066560b86103ef98d97e1b04ab71b31cf370b"
+      }
+    ],
+    "semantic_binding": "b55721f2284abfe60f86ee399fb945add117e186",
+    "semantic_receipt_sha256": "f9478eb902354084bfd0b481581966beedfd969a0a11cc9cb5b045fbe88757fa",
+    "semantic_native_sha256": "8a581acdb9a45d3afbb636755ab516ee17b795a8fc536be70c4aa49e9e0db4a1"
+  },
+  "measured_amd_trial_count": 0,
+  "scope": "This checkpoint validates streaming request construction, preserved nested wire bytes and independently owned snapshots. The optional cohort probe was not built or run. These results do not establish current GPU throughput, crossover, occupied storage savings or automatic routing."
+}

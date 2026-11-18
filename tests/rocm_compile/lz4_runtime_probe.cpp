@@ -264,6 +264,20 @@ AnchorSearchInput anchor_fixture(unsigned count,const wchar_t* public_extent,uns
   }
   return input;
 }
+
+AnchorSearchInput anchor_bank_fixture(unsigned count,std::span<const std::byte> bank,unsigned group,bool mixed) {
+  const auto base=bank.subspan(std::size_t(group)*kNativeExtentBytes,kNativeExtentBytes);
+  const auto other_group=(group+1)%(bank.size()/kNativeExtentBytes);
+  const auto unrelated=bank.subspan(other_group*kNativeExtentBytes,kNativeExtentBytes);
+  AnchorSearchInput input;
+  input.base.assign(base.begin(),base.end());
+  input.members.reserve(std::size_t(count)*kNativeExtentBytes);
+  for(unsigned i=1;i<=count;++i) {
+    const auto member=anchor_search_fixture::fragmented(mixed && i%2==0?unrelated:base,i);
+    input.members.insert(input.members.end(),member.begin(),member.end());
+  }
+  return input;
+}
 struct AnchorNativeResult {
   std::uint64_t compacted_bytes=0,work_ns=0;
   std::size_t selected_members=0;
@@ -554,10 +568,14 @@ bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::ws
   return result->response==expected;
 }
 
-int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
+enum class AnchorBatchMode {separate,transfers,calibration};
+
+int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
+  const auto calibration=mode==AnchorBatchMode::calibration;
+  const auto transfers=mode!=AnchorBatchMode::separate;
   const auto corpus_argument=transfers?11:10;
-  require(argc==corpus_argument || argc==corpus_argument+1,
-      "Anchor comparison needs group count, member count, order, transfer grant when selected and optional public extent");
+  require(calibration?argc==corpus_argument+1:(argc==corpus_argument || argc==corpus_argument+1),
+      "Anchor comparison needs geometry, order or cohort, transfer grant when selected and input sample(s)");
   const fs::path worker(argv[2]);
   require(worker.is_absolute() && worker.filename()==L"flitzfs_hip_worker.exe","Trusted anchor batch worker required");
   constexpr auto max_uint=(std::numeric_limits<unsigned>::max)();
@@ -568,7 +586,9 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
       std::all_of(digest.begin(),digest.end(),[](wchar_t c){
         return (c>=L'0'&&c<=L'9')||(c>=L'a'&&c<=L'f');
       }),"Anchor batch adapter/runtime binding invalid");
-  require(order==L"batch-first" || order==(transfers?L"transfer-first":L"fresh-first"),"Invalid anchor comparison order");
+  require(calibration?(order==L"related" || order==L"mixed"):
+      (order==L"batch-first" || order==(transfers?L"transfer-first":L"fresh-first")),
+      "Invalid anchor comparison order or cohort");
   const auto group_count=number(argv[7],(std::numeric_limits<LONG>::max)()/detail::anchor_match_layout(1).request_bytes);
   const auto members=detail::anchor_match_layout(number(argv[8],max_uint)).members;
   require(group_count>=2,"Anchor comparison requires independent groups");
@@ -619,9 +639,18 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
   }
   const auto largest_request=std::ranges::max(plan.groups,{},[](const auto& group){return group.whole.request_bytes;})
       .whole.request_bytes;
-  // Charge the largest source-building phase or the completed frame and its
-  // source builders, then the comparison records and serialized replies.
-  const auto prepare_bytes=(std::max)(2ULL*plan.request_bytes,plan.request_bytes+3ULL*largest_request);
+  // Preparation retains the outgoing frame, one group's input and at most
+  // one 64-KiB member being generated. Reply comparison has a separate charge.
+  fs::path bank_path;
+  std::uint64_t bank_bytes=0;
+  if(calibration) {
+    bank_path=fs::path(argv[corpus_argument]);
+    require(bank_path.is_absolute(),"Absolute public corpus bank required");
+    bank_bytes=fs::file_size(bank_path);
+    require(bank_bytes<=32*mib && bank_bytes%kNativeExtentBytes==0 &&
+        bank_bytes/kNativeExtentBytes>=group_count,"Public corpus bank must provide one extent per base");
+  }
+  const auto prepare_bytes=std::uint64_t(plan.request_bytes)+largest_request+kNativeExtentBytes+bank_bytes;
   const auto parent_bytes=128*mib+prepare_bytes+3ULL*plan.reply_bytes;
   const auto child_bytes=transfer_budget.memory_mib*mib;
   require(valid_process_budget(plan_resource_process_budget(parent_bytes+child_bytes,memory.ullAvailPhys,
@@ -630,23 +659,27 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
 
   std::uint64_t prepare_ns=0;
   const auto batch=[&] {
-    std::vector<detail::AnchorMatchRequest> sources;
-    sources.reserve(group_count);
+    const auto bank=calibration?read(bank_path):Bytes{};
+    require(bank.size()==bank_bytes,"Public corpus bank changed");
+    auto start=std::chrono::steady_clock::now();
+    detail::AnchorMatchBatchBuilder builder(1,plan);
+    prepare_ns=nanos_since(start);
     for(unsigned i=0;i<group_count;++i) {
-      const auto input=anchor_fixture(counts[i],argc>corpus_argument?argv[corpus_argument]:nullptr,i);
-      const auto layout=plan.groups[i].whole;
-      sources.push_back(detail::decode_anchor_match_request(
-          detail::encode_anchor_match_request(input.base,input.members,i+1,layout),layout));
+      const auto input=calibration?anchor_bank_fixture(counts[i],bank,i,order==L"mixed"):
+          anchor_fixture(counts[i],argc>corpus_argument?argv[corpus_argument]:nullptr,i);
+      start=std::chrono::steady_clock::now();
+      builder.append(i+1,input.base,input.members);
+      prepare_ns+=nanos_since(start);
     }
-    const auto prepare=std::chrono::steady_clock::now();
-    auto snapshot=std::make_shared<const WorkerRequestSnapshot>(detail::encode_anchor_match_batch_request(sources,1,plan));
-    prepare_ns=nanos_since(prepare);
-    return detail::decode_anchor_match_batch_request(std::move(snapshot),plan.request_bytes,plan.reply_bytes,
+    start=std::chrono::steady_clock::now();
+    auto request=detail::decode_anchor_match_batch_request(builder.finish(),plan.request_bytes,plan.reply_bytes,
         plan.quantum_members,plan.device_bytes,plan.launches);
+    prepare_ns+=nanos_since(start);
+    return request;
   }();
   const auto groups=batch.groups();
   std::vector<Bytes> individual_replies;
-  std::uint64_t cpu_ns=0;
+  std::uint64_t cpu_ns=0,matched_tiles=0,total_tiles=0;
   const auto expected=[&] {
     const auto cpu_start=std::chrono::steady_clock::now();
     std::vector<std::vector<anchor_match::u32>> cpu;
@@ -654,6 +687,10 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
     for(const auto& group:groups)cpu.push_back(detail::cpu_anchor_match_records(group));
     auto reply=detail::encode_anchor_match_batch_reply(batch,cpu);
     cpu_ns=nanos_since(cpu_start);
+    if(calibration)for(const auto& records:cpu) {
+      matched_tiles+=static_cast<std::uint64_t>(std::ranges::count_if(records,[](auto word){return word!=0;}));
+      total_tiles+=records.size();
+    }
     if(!transfer) {
       individual_replies.reserve(groups.size());
       for(std::size_t i=0;i<groups.size();++i)individual_replies.push_back(detail::encode_anchor_match_reply(groups[i],cpu[i]));
@@ -693,13 +730,19 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,bool transfers) {
   };
   const auto compare=[&]{return transfer?run_batch(true,comparison_ns):run_fresh();};
   const auto batch_first=order==L"batch-first";
-  const auto verified=batch_first?(run_batch(false,batch_ns) && compare()):(compare() && run_batch(false,batch_ns));
-  std::cout<<std::boolalpha<<(transfer?"Direct AMD shared base transfer: {":"Direct AMD shared base batch: {")
+  const auto verified=calibration?compare():
+      (batch_first?(run_batch(false,batch_ns) && compare()):(compare() && run_batch(false,batch_ns)));
+  std::cout<<std::boolalpha<<(calibration?"Direct AMD shared base calibration: {":
+      (transfer?"Direct AMD shared base transfer: {":"Direct AMD shared base batch: {"))
       <<"\"gpu_verified\":"<<verified
-      <<",\"cpu_fallback\":"<<!verified<<",\"batch_first\":"<<batch_first
+      <<",\"cpu_fallback\":"<<!verified
       <<",\"groups\":"<<counts.size()<<",\"maximum_members\":"<<members<<",\"launches\":"<<plan.launches
       <<",\"request_bytes\":"<<plan.request_bytes<<",\"reply_bytes\":"<<plan.reply_bytes
-      <<",\"slab_bytes\":"<<plan.device_bytes<<",\"batch_ns\":"<<batch_ns;
+      <<",\"slab_bytes\":"<<plan.device_bytes<<",\"prepare_ns\":"<<prepare_ns;
+  if(calibration) {
+    std::cout<<",\"cohort\":\""<<(order==L"mixed"?"mixed":"related")<<"\""
+        <<",\"matched_tiles\":"<<matched_tiles<<",\"total_tiles\":"<<total_tiles;
+  } else std::cout<<",\"batch_first\":"<<batch_first<<",\"batch_ns\":"<<batch_ns;
   if(transfer){
     std::cout<<",\"transfer_ns\":"<<comparison_ns<<",\"transfer_members\":"<<transfer->members_per_transfer
         <<",\"transfer_slab_bytes\":"<<transfer->device_bytes<<",\"transfer_count\":"<<transfer->transfers
@@ -984,8 +1027,12 @@ int gpu_once(int argc,wchar_t** argv,const gpu_probe_fixture::Budget& controller
 int wmain(int argc,wchar_t** argv){
   try{
     const auto mode=argc>1?std::wstring_view(argv[1]):std::wstring_view{};
-    if(mode==L"--gpu-direct-anchor-batch-compare-once" || mode==L"--gpu-direct-anchor-transfer-compare-once")
-      return direct_anchor_batch_compare(argc,argv,mode==L"--gpu-direct-anchor-transfer-compare-once");
+    if(mode==L"--gpu-direct-anchor-batch-compare-once")
+      return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::separate);
+    if(mode==L"--gpu-direct-anchor-transfer-compare-once")
+      return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::transfers);
+    if(mode==L"--gpu-direct-anchor-calibrate-once")
+      return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::calibration);
     gpu_probe_fixture::Budget controller;
     if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-fixture")
       return deferred_native_fixture::run({},controller);

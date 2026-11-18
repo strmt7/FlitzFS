@@ -275,31 +275,42 @@ AnchorMatchTransferPlan plan_anchor_match_transfers(const AnchorMatchBatchPlan& 
   return {members,match::device_bytes(members),static_cast<std::uint32_t>(transfers)};
 }
 
-Bytes encode_anchor_match_batch_request(std::span<const AnchorMatchRequest> groups,std::uint64_t id,
-    const AnchorMatchBatchPlan& plan) {
-  require(id && groups.size()==plan.groups.size(),"anchor batch source count");
+AnchorMatchBatchBuilder::AnchorMatchBatchBuilder(std::uint64_t id,const AnchorMatchBatchPlan& plan) {
+  require(id!=0,"missing anchor batch identity");
   std::vector<std::uint32_t> counts;
-  counts.reserve(groups.size());
-  for(const auto& group:groups)counts.push_back(anchor_match_members(group.source));
+  counts.reserve(plan.groups.size());
+  for(const auto& group:plan.groups)counts.push_back(group.whole.members);
   require(plan==plan_anchor_match_batch(counts,plan.quantum_members,plan.device_bytes,plan.launches),
+      "invalid anchor batch construction plan");
+  layouts_.reserve(counts.size());
+  for(const auto& group:plan.groups)layouts_.push_back(group.whole);
+  frame_=header(batch_request_magic,id,static_cast<std::uint32_t>(counts.size()),plan.launches,0,
+      Digest{},plan.request_bytes-header_size);
+}
+
+void AnchorMatchBatchBuilder::append(std::uint64_t id,std::span<const std::byte> base,
+    std::span<const std::byte> members) {
+  require(next_group_<layouts_.size(),"anchor batch has no remaining group");
+  require(id>previous_id_,"unordered anchor batch group identity");
+  const auto count=layouts_[next_group_].members;
+  require(base.size()==match::extent_bytes && members.size()==std::size_t(count)*match::extent_bytes,
       "anchor batch source differs from its plan");
-  Digest digest{};
-  auto frame=header(batch_request_magic,id,static_cast<std::uint32_t>(groups.size()),plan.launches,0,
-      digest,plan.request_bytes-header_size);
-  std::uint64_t previous_id=0;
-  for(std::size_t i=0;i<groups.size();++i) {
-    const auto& group=groups[i];
-    require(group.id>previous_id,"unordered anchor batch group identity");
-    const auto source=std::span<const std::byte>(group.source);
-    const auto count=counts[i];
-    put(frame,count,group_prefix_bytes);
-    append_header(frame,request_magic,group.id,count,count*match::tiles,0,record_digest(source));
-    frame.insert(frame.end(),source.begin(),source.end());
-    previous_id=group.id;
-  }
-  digest=record_digest(std::span<const std::byte>(frame).subspan(header_size));
-  std::copy(digest.begin(),digest.end(),frame.begin()+32);
-  return frame;
+  const auto digest=record_digest(base,members);
+  put(frame_,count,group_prefix_bytes);
+  append_header(frame_,request_magic,id,count,count*match::tiles,0,digest);
+  frame_.insert(frame_.end(),base.begin(),base.end());
+  frame_.insert(frame_.end(),members.begin(),members.end());
+  previous_id_=id;
+  ++next_group_;
+}
+
+SharedWorkerRequest AnchorMatchBatchBuilder::finish() {
+  require(!frame_.empty() && next_group_==layouts_.size(),"anchor batch is incomplete or already transferred");
+  const auto digest=record_digest(std::span<const std::byte>(frame_).subspan(header_size));
+  std::copy(digest.begin(),digest.end(),frame_.begin()+32);
+  auto snapshot=std::make_shared<const WorkerRequestSnapshot>(std::move(frame_));
+  frame_.clear();
+  return snapshot;
 }
 
 AnchorMatchBatchRequest decode_anchor_match_batch_request(SharedWorkerRequest snapshot,

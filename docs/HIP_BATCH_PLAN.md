@@ -65,6 +65,25 @@ and 1.29 seconds and their paired CPU times were 1.25 and 1.31 seconds.
 These larger trials support further calibration across cold-start and
 mixed-content workloads. [Snapshot and scale evidence](evidence/amd-anchor-snapshot-2026-11-18.json)
 
+The batch builder now writes each group into the final request and releases
+its source buffers before gathering the next group. The fixture charges
+the final request plus the largest input group during construction. Windows
+Release and AddressSanitizer checks verified the nested request bytes,
+source digests, rejection of incomplete batches and snapshot ownership.
+[Builder and input evidence](evidence/amd-anchor-streamed-prep-2026-11-18.json)
+
+The opt-in cohort fixture accepts a bank with one 64 KiB sample per base.
+The related cohort shifts regions from the selected base. In the mixed
+cohort, alternate members use a different sample. Each run prepares one
+coalesced AMD exchange, obtains an independent CPU reply, and checks exact
+reply equality and retirement. Match coverage counts verified nonzero
+tile records. It measures search coverage and cost before storage encoding.
+The bank uses five decoded Silesia samples and a compressed sample. Two
+bounded SDK builds stopped under host memory pressure. The cohort fixture
+still needs a successful SDK build and live GPU measurements.
+[Silesia corpus](https://sun.aei.polsl.pl/~sdeor/index.php?page=silesia) ·
+[zlib-ng corpus collection](https://github.com/zlib-ng/corpora)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)

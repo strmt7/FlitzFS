@@ -163,6 +163,11 @@ void independent_batch() {
   const std::array<std::uint32_t,2> oversized{largest,1};
   rejects([&]{(void)plan_anchor_match_batch(oversized,3,device,20000);});
 
+  inconsistent=plan;
+  ++inconsistent.request_bytes;
+  rejects([&]{(void)AnchorMatchBatchBuilder(500,inconsistent);});
+  AnchorMatchBatchBuilder builder(500,plan);
+  rejects([&]{(void)builder.finish();});
   std::vector<AnchorMatchRequest> groups;
   for(std::size_t i=0;i<counts.size();++i) {
     Bytes base(match::extent_bytes),members;
@@ -178,11 +183,15 @@ void independent_batch() {
       members.insert(members.end(),member.begin(),member.end());
     }
     const auto layout=plan.groups[i].whole;
+    if(i)rejects([&]{builder.append(16+i,base,members);});
+    rejects([&]{builder.append(17+i,base,std::span(members).first(members.size()-1));});
+    builder.append(17+i,base,members);
     groups.push_back(decode_anchor_match_request(encode_anchor_match_request(base,members,17+i,layout),layout));
   }
-  auto frame=encode_anchor_match_batch_request(groups,500,plan);
-  const auto allocation=frame.data();
-  auto snapshot=std::make_shared<const flitzfs::WorkerRequestSnapshot>(std::move(frame));
+  rejects([&]{builder.append(500,{},{});});
+  auto snapshot=builder.finish();
+  rejects([&]{(void)builder.finish();});
+  const auto allocation=snapshot->bytes().data();
   const auto decode=[&](flitzfs::SharedWorkerRequest bytes) {
     return decode_anchor_match_batch_request(std::move(bytes),plan.request_bytes,plan.reply_bytes,3,device,plan.launches);
   };
@@ -208,8 +217,10 @@ void independent_batch() {
   rejects([&]{(void)decode({});});
   rejects([&]{(void)decode_anchor_match_batch_request(batch.snapshot(),plan.request_bytes,plan.reply_bytes-1,3,device,9);});
   rejects([&]{(void)decode_anchor_match_batch_request(batch.snapshot(),plan.request_bytes,plan.reply_bytes,3,device,8);});
-  groups.back().id=groups.front().id;
-  rejects([&]{(void)encode_anchor_match_batch_request(groups,500,plan);});
+  const auto source=std::span(groups.back().source);
+  const auto nested=encode_anchor_match_request(source.first(match::extent_bytes),
+      source.subspan(match::extent_bytes),groups.back().id,plan.groups.back().whole);
+  check(std::ranges::equal(wire.last(nested.size()),nested),"batch changed the nested request wire bytes");
 
   std::vector<std::vector<match::u32>> records;
   for(std::size_t i=0;i<groups.size();++i) {

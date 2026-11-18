@@ -315,6 +315,12 @@ The supervisor compares the original request with the mapping after confirmed
 child exit and before returning the reply.
 [Windows mapping access and coherency](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-mapviewoffile)
 
+Shared-base producers validate the complete plan before starting the batch
+builder. Each append copies one base and its member extents directly into
+the final frame with its ordered identity and digest. The completed frame
+moves into an immutable snapshot. Both the enclosing digest and the nested
+request records retain their existing format.
+
 The sized transport uses distinct request/reply magic and control version 2.
 Capacities must fit the signed publication-length representation and their
 complete accounting (three request copies, two reply copies and guards) must
