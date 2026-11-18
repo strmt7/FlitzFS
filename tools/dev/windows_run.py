@@ -31,9 +31,8 @@ _LOADER_ERRORS = {
 }
 
 
-def _unattended_ctest(command: list[str]) -> None:
-    """Apply CTest's own non-interactive mode to supported launch forms."""
-    index = 0
+def _cmake_command_index(command: list[str], index: int) -> int:
+    """Find the command launched through CMake's utility wrappers."""
     while (index + 2 < len(command)
            and PureWindowsPath(command[index]).name.casefold() in {"cmake", "cmake.exe"}
            and command[index + 1] == "-E"):
@@ -58,15 +57,35 @@ def _unattended_ctest(command: list[str]) -> None:
                 index += 1
             else:
                 break
-    if index >= len(command) or PureWindowsPath(command[index]).name.casefold() not in {"ctest", "ctest.exe"}:
-        return
-    # CTest's interactive mode resets the Windows error mode of its test
-    # process. The CLI override must precede arguments forwarded to other tools.
-    index += 1
-    while index < len(command) and command[index] not in {"--", "--build-options", "--test-command"}:
+    return index
+
+
+def _unattended_ctest(command: list[str]) -> None:
+    """Apply CTest's own non-interactive mode to supported launch forms."""
+    index = 0
+    while index < len(command):
+        index = _cmake_command_index(command, index)
+        if (index >= len(command) or
+                PureWindowsPath(command[index]).name.casefold() not in {"ctest", "ctest.exe"}):
+            return
+
+        # Interactive CTest resets the Windows error mode of its test process.
+        # Insert the override before arguments that CTest forwards unchanged.
         index += 1
-    if command[index - 2:index] != ["--interactive-debug-mode", "0"]:
-        command[index:index] = ["--interactive-debug-mode", "0"]
+        while index < len(command) and command[index] not in {"--", "--build-options", "--test-command"}:
+            index += 1
+        if command[index - 2:index] != ["--interactive-debug-mode", "0"]:
+            command[index:index] = ["--interactive-debug-mode", "0"]
+            index += 2
+
+        # --build-and-test can launch a fresh CTest process with its own mode.
+        # Follow the test command without changing the build or passthrough arguments.
+        if index < len(command) and command[index] == "--build-options":
+            while index < len(command) and command[index] != "--test-command":
+                index += 1
+        if index >= len(command) or command[index] != "--test-command":
+            return
+        index += 1
 
 
 def main() -> int:

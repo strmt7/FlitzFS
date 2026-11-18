@@ -42,9 +42,11 @@ Reconfigure and rebuild older sanitizer directories before using them. Keep
 the Windows supervisor for unattended launches and the applicable in-memory
 test fixtures.
 The supervisor keeps CTest in non-interactive mode through nested CMake
-`env`, `time`, and `chdir` commands. The Windows staging regression uses a
-filtered CTest run to verify that setup restores a missing local copy and
-blocks dependent commands when the runtime is unavailable or mismatched.
+`env`, `time`, and `chdir` commands, including CTest launched by
+`ctest --build-and-test --test-command`. The Windows staging regression
+uses a filtered CTest run to verify that setup restores a missing local
+copy and blocks dependent commands when the runtime is unavailable or
+mismatched.
 
 GPU and mount probes remain opt-in and are not
 ordinary CTest operations. A successful base build does not qualify an optional

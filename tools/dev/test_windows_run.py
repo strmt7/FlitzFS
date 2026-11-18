@@ -44,6 +44,23 @@ class CTestArguments(unittest.TestCase):
         self.assertEqual(command[4:], ["--interactive-debug-mode", "0",
                                       "--build-options", "-Dfoo=bar", "--test-command", "tool", "-V"])
 
+    def test_forwarded_ctest_is_also_noninteractive(self):
+        command = [r"C:\Tools\ctest.exe", "--build-and-test", "source", "build",
+                   "--build-options", "-Dfoo=bar", "--test-command", "cmake", "-E", "time",
+                   "ctest", "--interactive-debug-mode", "1", "--", "test-arg"]
+        override = ["--interactive-debug-mode", "0"]
+        expected = command[:4] + override + command[4:-2] + override + command[-2:]
+        _unattended_ctest(command)
+        self.assertEqual(command, expected)
+        _unattended_ctest(command)
+        self.assertEqual(command, expected)
+
+    def test_passed_through_ctest_text_is_not_a_command(self):
+        command = [r"C:\Tools\ctest.exe", "--", "--test-command", "ctest"]
+        expected = command[:1] + ["--interactive-debug-mode", "0"] + command[1:]
+        _unattended_ctest(command)
+        self.assertEqual(command, expected)
+
     def test_other_commands_are_never_rewritten(self):
         for command in (
             [r"C:\Tools\other.exe", r"C:\Tools\ctest.exe"],

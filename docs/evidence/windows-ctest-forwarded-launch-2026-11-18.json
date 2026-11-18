@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "date": "2026-11-18",
+  "experimental": true,
+  "source_base": "cffa52a3381a45c867b89c061d6cf4e5d63f9075",
+  "tested_sources": [
+    {
+      "path": "tools/dev/windows_run.py",
+      "git_blob": "87134ed8c59ce76eb9f0ceda3886822f0db27b59",
+      "worktree_sha256": "902d7af9e0dfe4c2f632ab7eb1b1e1952bbdca62251152519039f31ced1f424a"
+    },
+    {
+      "path": "tools/dev/test_windows_run.py",
+      "git_blob": "c4115d937ba6e4f1363201b59842906ace1432de",
+      "worktree_sha256": "41a486cb3f079124f4234e98cc534f5cf930f6192fccb5c0593dad65be904b3a"
+    },
+    {
+      "path": "cmake/WindowsAsanRuntime.cmake",
+      "git_blob": "9d44b0a1bcb21618245861127a5ae9647ac59012",
+      "worktree_sha256": "dbe4777503cdc4ceab21405a524a878ab85aa5a035ab4a9f0efc9daa72ebf70f"
+    },
+    {
+      "path": "cmake/StageWindowsAsanRuntime.cmake",
+      "git_blob": "ed312a539358fdbca2a2a1fdd1f4f8a5c4ba4d38",
+      "worktree_sha256": "e23c3ae96ba022c4d92fac7dd58c76e38ffe42671e08fec3771a04c9d1bf8c38"
+    }
+  ],
+  "os_build": "26300",
+  "cmake": "4.5.0",
+  "msvc_toolset": "14.52.37025",
+  "runtime_sha256": "e92ecd9a4a6cf15b3e0848600811a8b90c6d90efe34384c77635ce6dc1df73ed",
+  "research": {
+    "provider": "0.9.5+flitzzip.portable2",
+    "receipt_sha256": "58506fd3e339e55b07f4ac9d5839930d8ebf0d2602e40a3e8460777d70bb44a5",
+    "native_pages": [
+      {
+        "url": "https://cmake.org/cmake/help/v4.5/manual/ctest.1.html",
+        "http_status": 200,
+        "capture_sha256": "b2876c51f46350a815b29714e4fbcc1899666662b3fdac95a6b43bac79046846"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/cpp/sanitizers/asan-runtime?view=msvc-170",
+        "http_status": 200,
+        "capture_sha256": "048575f921516aa0075b00e79796a9fc6fed72bb9d24396b923fe8848c9c6c5d"
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-seterrormode",
+        "http_status": 200,
+        "capture_sha256": "6a70fa57db853f844f0bf72670894c611c71086f3052fb86db5697b8f2fb8d22"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "check": "Forwarded CTest before the fix",
+      "run": "local-run-a6bc03a597b0452797e9434c4d599ac4",
+      "exit_code": 1,
+      "seconds": 1.025,
+      "tree_retired": true,
+      "observation": "Test child observed Win32 error mode 0x0000.",
+      "receipt_sha256": "01a402b4507aef256ed96107badb93e119a15f6f70786cc22267bac4bda22e33",
+      "log_sha256": "37b04aa0e141f08503782cc757276a45a50cf429166093ee0019909994a0a842"
+    },
+    {
+      "check": "Forwarded CTest after the fix",
+      "run": "local-run-a188e7523adc40c9a28917363bffe33c",
+      "exit_code": 0,
+      "seconds": 1.082,
+      "tree_retired": true,
+      "observation": "Test child observed Win32 error mode 0x0003.",
+      "receipt_sha256": "7e215c55afc1a85b5d62de2439cf56f4ebd3aa241f0cefd8e82f5a0009efd381",
+      "log_sha256": "8e126682fa1d1f8928b7211949dd1b3aac18f29fc23cff7f7ff387ecbd41aef9"
+    },
+    {
+      "check": "Forwarded CTest with a missing loader dependency",
+      "run": "local-run-97ffea1000044927bdae8c622bcd8835",
+      "exit_code": 1,
+      "seconds": 1.001,
+      "tree_retired": true,
+      "observation": "With staging omitted in a disposable fixture, CTest logged Windows loader status 0xC0000135 and exited.",
+      "receipt_sha256": "396b6b350c8e4bb662361707424dbd5af56ba2e4a5f48be9276734df61207edd",
+      "log_sha256": "f57d64844af5ce2e47f03ddee10eea925bbb2d19ebcfcd0ab0818b48fac4de96"
+    },
+    {
+      "check": "Missing toolset and staged DLL",
+      "run": "local-run-7b90d46502a1426f8ea257b630ec574c",
+      "exit_code": 8,
+      "seconds": 0.117,
+      "tree_retired": true,
+      "observation": "Generated CTest setup rejected the missing runtime and blocked all five affected test binaries.",
+      "receipt_sha256": "65641af43f8f23f4f3ee6949deff58e8cb7fbf3e66ad889cbaa4bfe5f9afc1d7",
+      "log_sha256": "c0f73701ca28c5fe553dc9d6487a07a1b1fc779f44208fe5c73c0523b44c9fd5"
+    },
+    {
+      "check": "Mismatched staged DLL",
+      "run": "local-run-b2469c5ac4a445e2899457fd316abd2d",
+      "exit_code": 8,
+      "seconds": 0.114,
+      "tree_retired": true,
+      "observation": "Generated CTest setup rejected the mismatched DLL, preserved its bytes, and blocked all five affected test binaries.",
+      "receipt_sha256": "af62848065161b573073d9b97c10981695550439a5074309cb1a3b462e16a510",
+      "log_sha256": "c5d0a373989c2eb2dbbffd7012b61b78e60b5c0569e28602fd83d9e491038732"
+    },
+    {
+      "check": "Runtime restoration and AddressSanitizer test suites",
+      "run": "local-run-b4706988cbf44a678d091d9e4a777421",
+      "exit_code": 0,
+      "seconds": 84.186,
+      "tree_retired": true,
+      "observation": "On a Windows-only PATH, restored the exact toolset DLL and passed all eight selected CTest entries, including all five affected suites.",
+      "receipt_sha256": "66e3c55c27263292cf0d97d3eb2f364b9e4da4b5dbb4442a05996788e881513d",
+      "log_sha256": "e32f1893012b066d44c13bf634a800903db26bed2d66ab4018f0ddd5872d0e12"
+    },
+    {
+      "check": "Uninstrumented Release control",
+      "run": "local-run-79c650f6703344c0823ba517b3b42879",
+      "exit_code": 0,
+      "seconds": 27.324,
+      "tree_retired": true,
+      "observation": "On a Windows-only PATH, passed seven selected CTest entries without an AddressSanitizer DLL or preflight.",
+      "receipt_sha256": "1d20ee4bda1811036fa8788b991db312501d45cb1040414f0ab33a7e7ad14080",
+      "log_sha256": "01c3ea53feb2e7440098e07258d381d9fbda3c3068af404a20355e1601560d1b"
+    }
+  ]
+}

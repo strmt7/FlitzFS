@@ -283,6 +283,17 @@ AddressSanitizer run passed eight entries in 79.58 seconds and the Release
 control passed seven. Both used only Windows system directories on `PATH`
 and both process trees exited.
 
+The supervisor now applies non-interactive mode when `ctest --build-and-test`
+launches another CTest through `--test-command`. The test child observed
+Windows error mode `0x0003` after the fix. In a disposable fixture with the
+staging check omitted, a missing DLL produced loader status `0xC0000135` in
+the log and the tree exited in 1.00 second. With ordinary generated CTest
+registration, a missing or mismatched runtime blocked all five binaries.
+After restoring the exact compiler DLL, all eight selected entries passed
+in the instrumented build. The uninstrumented Release control passed
+seven entries.
+[Forwarded launch and runtime evidence](evidence/windows-ctest-forwarded-launch-2026-11-18.json)
+
 ## Cooperative indexed group preparation — 18 November 2026
 
 The 64-member indexed fixture took 65 preparation steps. The largest step
