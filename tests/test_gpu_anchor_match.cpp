@@ -40,6 +40,13 @@ void fragmented() {
       std::ranges::equal(std::span(request.source).subspan(base.size()),members),"owned source differs");
   auto records=cpu_anchor_match_records(request.view());
   const auto response=encode_anchor_match_reply(request.view(),records);
+  constexpr std::size_t header_bytes=64;
+  for(std::size_t index=0;index<records.size();++index) {
+    for(unsigned byte=0;byte<4;++byte) {
+      const auto expected=static_cast<std::byte>((records[index]>>(8*byte))&0xff);
+      check(response[header_bytes+index*4+byte]==expected,"anchor record is not little-endian");
+    }
+  }
   const auto advice=accept_anchor_match_reply(response,request.view());
   check(advice.size()==match::max_members,"reply member binding");
   for (const auto& ranges:advice) {
@@ -249,12 +256,17 @@ void independent_batch() {
   const auto last_reply=encode_anchor_match_reply(batch.groups().back(),records.back());
   check(std::ranges::equal(std::span(reply).last(last_reply.size()),last_reply),
       "batch serialization changed the nested reply bytes");
-  const auto advice=accept_anchor_match_batch_reply(reply,batch);
+  Bytes unaligned_reply(1,std::byte{0});
+  unaligned_reply.insert(unaligned_reply.end(),reply.begin(),reply.end());
+  const auto advice=accept_anchor_match_batch_reply(std::span(unaligned_reply).subspan(1),batch);
   check(advice.size()==counts.size() && reply.size()==plan.reply_bytes,"batch did not return all results");
   for(std::size_t i=0;i<counts.size();++i) {
     check(advice[i].size()==counts[i] && std::ranges::all_of(advice[i],[](const auto& ranges){return !ranges.empty();}),
         "batch did not bind coverage to each independent group");
   }
+  corrupt=reply;
+  corrupt[reply.size()-last_reply.size()+digest_offset]^=std::byte{1};
+  rejects([&]{(void)accept_anchor_match_batch_reply(corrupt,batch);});
   corrupt=reply;
   std::fill_n(corrupt.end()-sizeof(match::u32),sizeof(match::u32),std::byte{0xff});
   rejects([&]{(void)accept_anchor_match_batch_reply(corrupt,batch);});

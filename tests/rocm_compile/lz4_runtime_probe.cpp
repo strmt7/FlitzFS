@@ -19,6 +19,7 @@
 #include "../native_lz4_fixture.hpp"
 #include "../anchor_search_fixture.hpp"
 #include "../../src/native_group_anchor.hpp"
+#include "../../src/record_digest.hpp"
 #include "anchor_sweep_profile.hpp"
 #include "anchor_batch_profile.hpp"
 #include <windows.h>
@@ -593,7 +594,9 @@ bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::ws
   if(response.size()!=expected.size()+kAnchorBatchProfileBytes ||
       !std::ranges::equal(response.first(expected.size()),expected))return false;
   try {
-    profile->trace=decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),profile->binding);
+    const auto trace=decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),profile->binding);
+    if(accept)accept(response.first(expected.size()));
+    profile->trace=trace;
     return true;
   } catch(const std::invalid_argument&) {
     return false;
@@ -843,7 +846,14 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
   std::optional<AnchorBatchProfileObservation> profile;
   if(profiling)profile.emplace(AnchorBatchProfileObservation{
       anchor_batch_profile_binding(batch,*transfer,ordinal,luid,mask,dispatches_per_wait),{}});
-  std::uint64_t batch_ns=0,comparison_ns=0;
+  std::uint64_t batch_ns=0,comparison_ns=0,verify_reply_ns=0;
+  std::function<void(std::span<const std::byte>)> verify_reply;
+  if(profiling)verify_reply=[&](std::span<const std::byte> reply) {
+    const auto start=std::chrono::steady_clock::now();
+    const auto advice=detail::accept_anchor_match_batch_reply(reply,batch);
+    verify_reply_ns=nanos_since(start);
+    require(advice.size()==counts.size(),"Verified anchor batch lost a group");
+  };
   const auto run_batch=[&](bool coalesce,std::uint64_t& elapsed) {
     const auto start=std::chrono::steady_clock::now();
     std::vector<std::wstring> arguments{profiling?L"--driver-anchor-transfer-batch-profile":
@@ -855,7 +865,7 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
     if(coalesce)arguments.push_back(std::to_wstring(transfer->device_bytes));
     if(profiling)arguments.push_back(std::to_wstring(dispatches_per_wait));
     const auto verified=anchor_comparison_exchange(worker,arguments,batch.snapshot(),expected,
-        coalesce?transfer_budget:batch_budget,profile?&*profile:nullptr);
+        coalesce?transfer_budget:batch_budget,profile?&*profile:nullptr,verify_reply);
     elapsed=prepare_ns+nanos_since(start);
     if(profile && profile->trace && profile->trace->total_wall_ns>elapsed-prepare_ns) {
       profile->trace.reset();
@@ -903,7 +913,14 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
       <<",\"cpu_search_and_verify_ns\":"<<cpu_ns<<",\"job_peak_bytes\":"<<controller.peak_commit()
       <<",\"transport_quiescent\":true";
   if(profile) {
-    std::cout<<",\"dispatches_per_wait\":"<<dispatches_per_wait<<",\"cpu_reply_encode_ns\":"<<cpu_reply_encode_ns;
+    std::cout<<",\"dispatches_per_wait\":"<<dispatches_per_wait<<",\"cpu_reply_encode_ns\":"<<cpu_reply_encode_ns
+        <<",\"parent_reply_verify_ns\":"<<verify_reply_ns<<",\"reference_reply_blake3\":\"";
+    constexpr char digits[]="0123456789abcdef";
+    for(const auto byte:detail::record_digest(expected)) {
+      const auto word=std::to_integer<unsigned>(byte);
+      std::cout<<digits[word>>4]<<digits[word&15];
+    }
+    std::cout<<'"';
     write_phase_profile(profile->trace);
   }
   std::cout<<"}\n";

@@ -737,6 +737,13 @@ automatic selection.
 [Mixed-content and SDK evidence](evidence/amd-anchor-cohorts-2026-11-18.json) ·
 [Wait and admission evidence](evidence/amd-anchor-queue-phases-2026-11-18.json)
 
+Batch reply verification now reads directly from the wire and reuses the
+digest bound to each private request. Verified replies stayed byte-identical
+and median host verification time fell by 30–35% at 864 member extents.
+Complete AMD exchange still exceeded CPU cost on those cohorts. Further
+routing qualification should measure complete costs under matched conditions.
+[Reply verification evidence](evidence/amd-anchor-reply-verification-2026-11-18.json)
+
 Indexed maintenance can now provide a verified source window from its own
 automatically discovered group. The writer stages one member per admitted
 opportunity, reuses the staged bytes on CPU fallback, and checks the group

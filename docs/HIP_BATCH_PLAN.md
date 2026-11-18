@@ -125,6 +125,18 @@ queue settings at 1,686 extents. The largest GPU test peaked at about
 [AMD stream management](https://rocm.docs.amd.com/projects/HIP/en/docs-10.1.0/reference/hip_runtime_api/modules/stream_management.html) ·
 [Windows video memory budgets](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
 
+The worker appends canonical little-endian match records in one contiguous
+region per group. The controller verifies the reply in place against the
+original bytes and the digest already bound to the private request.
+
+In six matched pairs on the Windows host at 864 member extents, median
+controller verification fell from 45.54 to 32.04 ms for related data and from
+26.95 to 17.46 ms for mixed data. Worker reply encoding also improved in the
+median. Every AMD reply matched the independent CPU reply byte for byte.
+CPU matching and reply encoding still finished sooner than the complete AMD
+exchange on both cohorts. These are shared-base exchange measurements.
+[Host reply verification evidence](evidence/amd-anchor-reply-verification-2026-11-18.json)
+
 ## SDK-only compression compute candidate
 
 The [typed LZ4 compute implementation and CPU probe](HIP_LZ4_COMPUTE.md)
