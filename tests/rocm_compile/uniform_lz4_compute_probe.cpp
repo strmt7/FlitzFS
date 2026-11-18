@@ -1,4 +1,5 @@
 #include "hip_uniform_lz4_reuse.hpp"
+#include "gpu_topology.hpp"
 #include "uniform_lz4_sweep_profile.hpp"
 #include "flitzfs/uniform_lz4_sweep.hpp"
 #include "bounded_process.hpp"
@@ -312,6 +313,18 @@ int wmain(int argc,wchar_t** argv){try{
     return 0;
   }
   require(argc==1,"invalid uniform probe arguments");
+  {
+    WindowsGpuTopologyProbe invalid(std::array<std::byte,8>{});
+    require(invalid.sample().status==WindowsGpuTopologyStatus::invalid_identity,
+        "uniform topology admitted an empty identity");
+    require(invalid.retire()==0 && invalid.sample().status==WindowsGpuTopologyStatus::invalid_identity,
+        "uniform topology changed a terminal refusal");
+    WindowsGpuTopologyProbe unused(identity);
+    require(unused.retire()==0 && unused.retire()==0,"cold topology retirement failed");
+    const auto refused=unused.sample();
+    require(refused.phase==WindowsGpuTopologyPhase::retire && !verified_single_gpu_node(refused,identity),
+        "retired topology was reopened");
+  }
   if(!gpu_lz4_cpu_verification_available()){
     State state(source);refused(state,HipWorkerExit::unsupported_configuration);
     require(state.calls.empty(),"raw uniform refusal touched runtime");

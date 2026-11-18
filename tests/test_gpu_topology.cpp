@@ -23,6 +23,8 @@ int main(){
       auto value=good;value.phase=static_cast<WindowsGpuTopologyPhase>(phase);
       require(!verified_single_gpu_node(value,expected));
     }
+    auto changed=good;changed.phase=WindowsGpuTopologyPhase::topology_changed;
+    require(!verified_single_gpu_node(changed,expected));
     for(auto error:{1,-1,static_cast<std::int32_t>(0x887a0005U)}){
       auto value=good;value.native_status=error;require(!verified_single_gpu_node(value,expected));
     }

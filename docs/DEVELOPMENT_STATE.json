@@ -188,6 +188,19 @@
     "gpu_speedup_qualified": false,
     "next": "Measure topology proof inside setup, retain fresh health validation, and amortize the verified setup over finite cross-file compression work."
   },
+  "amd_topology_setup": {
+    "source_base": "aba77d484e8c43bb78894bbeb9fd92d58b635134",
+    "evidence": "docs/evidence/amd-topology-reuse-2026-11-18.json",
+    "matched_gpu_trials": 6,
+    "matched_input_bytes": 1048576,
+    "prior_median_exchange_ns": 1449369600,
+    "current_median_exchange_ns": 1261539500,
+    "topology_released_before_stream_and_slab": true,
+    "independent_cpu_readback": true,
+    "installed_callback_public_source_pairs": 3,
+    "public_source_write_preference": "cpu",
+    "next": "Use complete observed costs when admitting finite cross-file compression work."
+  },
   "native_gpu_budget_controller": {
     "source_base": "d447c7113fa0b60b2c9c5fbb74eb515d74d72ceb",
     "evidence": "docs/evidence/native-gpu-budget-controller-2026-11-18.json",

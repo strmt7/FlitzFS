@@ -1,5 +1,29 @@
 # Validation ledger
 
+## AMD topology lifetime during worker setup — 18 November 2026
+
+The uniform LZ4 worker now keeps one D3D12 device across the two HIP identity
+checks when the runtime omits the node mask. It samples topology, memory and
+device health at each use. It releases the device and library before stream
+creation and slab allocation. The Windows metadata control also returned
+the expected LUID and one node with no HIP initialization.
+
+Three alternating AMD pairs used the same kernel module, profiler and 1 MiB
+input. All six exchanges preserved prior data and passed independent CPU
+readback. The earlier worker took 1.44–1.45 s per exchange. The new worker
+took 0.92–1.43 s. Setup timings varied and two control runs spent more than
+400 ms in kernel wait, so these timings cover the complete exchange.
+The SDK CPU matrix passed 3,489 checks across 83 scenarios. Nine selected raw
+and AddressSanitizer CTest entries passed.
+
+The installed WinFsp callback fixture verified three CPU and AMD pairs using
+1 MiB from 128 tracked source files. CPU writes took 3.97–4.21 ms and occupied
+3,145,728 image bytes. AMD writes took 1.05–1.47 s and occupied 3,276,800
+image bytes. The policy selected CPU for this workload. Three callback and
+acquisition controls also passed after the targeted SDK build declared its
+worker executable dependency.
+[Source and hardware evidence](evidence/amd-topology-reuse-2026-11-18.json)
+
 ## AMD worker budget sampling — 18 November 2026
 
 The uniform AMD worker binds the exact DXGI adapter once for budget sampling

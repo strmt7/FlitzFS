@@ -434,14 +434,14 @@ worker to explore cross-file similarity and stronger representations while
 keeping foreground selection tied to workload measurements.
 [Runtime acquisition](AMD_RUNTIME_DISCOVERY.md) · [Finite exchange evidence](evidence/finite-amd-exchange-2026-11-18.json)
 
-The local worker now spends 46–56 µs on admission and completion checks across
-eight launches, with setup at 1.06–1.20 s. The installed HIP runtime returned a
-zero node mask. A separate native process verified one D3D12 node in 248–293 ms
-including process overhead. Profile both native topology checks inside the
-setup and evaluate keeping one scoped proof with a live health check at each
-use. Retire it before allocating compression buffers. Measure the whole
-exchange before widening admission for background work.
-[Matched worker and metadata evidence](evidence/amd-budget-sampler-2026-11-18.json)
+The worker now reuses a scoped D3D12 device during the zero-node-mask setup
+checks and retires it before HIP stream and slab creation. Three matched
+live pairs with the same kernel module reduced median 1 MiB exchange time
+from 1.45 s to 1.26 s. Setup timings varied. Use whole-exchange costs when
+sizing finite cross-file work. Measure complete occupied bytes, foreground
+interference and retirement, including cohorts where the stronger encoding
+does not pay for its setup.
+[Topology lifetime and matched worker evidence](evidence/amd-topology-reuse-2026-11-18.json)
 
 ### Implementation steps
 

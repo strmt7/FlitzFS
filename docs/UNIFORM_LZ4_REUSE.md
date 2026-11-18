@@ -26,6 +26,14 @@ binding and refuses the attempt. The normal recovery policy decides whether a
 later request can start a new attempt.
 [DXGI memory query contract](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_4/nf-dxgi1_4-idxgiadapter3-queryvideomemoryinfo)
 
+If HIP omits the node mask, the worker opens a D3D12 device for the exact
+adapter during setup. It reuses that device to verify identity, node count
+and health after HIP selects the device. Both observations require live
+topology and memory checks. The worker releases the D3D12 device and library
+before creating the HIP stream or allocating the compression slab. A failed
+observation or retirement refuses the attempt.
+[D3D12 device health](https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-getdeviceremovedreason)
+
 Each quantum receives fresh host/GPU memory admission against the operation's original baseline. Its active upload is fully initialized in the reusable CPU workspace; the remaining physical slab is filled with a distinct 0xd3 canary. The kernel receives the canonical ACTIVE extent, which may be smaller than its owned backing allocation.
 
 The same stream executes one quantum at a time. Full stream synchronization precedes complete peak-slab readback. All active source/alignment/output guards, candidate sizes, independent CPU bytes and the entire unused tail must pass. A fresh completion-memory check follows. Only then may the next upload replace the workspace. The maximum launch geometry was qualified for the largest admitted quantum; a shorter tail cannot increase it.

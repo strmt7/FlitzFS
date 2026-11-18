@@ -65,8 +65,9 @@ UniformLz4Candidates with_uniform_device(HMODULE runtime,int ordinal,std::array<
       require_hip_memory(current,luid,node_mask,GetTickCount64(),bytes,point);baseline=current;
     }else require_hip_memory(current,luid,node_mask,GetTickCount64(),bytes,point,&baseline);
   };
-  const auto single_node=[](auto identity){
-    return verified_single_gpu_node(query_windows_gpu_topology(identity),identity);
+  WindowsGpuTopologyProbe topology(luid);
+  const auto single_node=[&](auto identity){
+    return identity==luid && verified_single_gpu_node(topology.sample(),identity);
   };
   auto selected=targets.front();
   // execute_uniform validates a wave against the union BEFORE initialization;
@@ -80,6 +81,8 @@ UniformLz4Candidates with_uniform_device(HMODULE runtime,int ordinal,std::array<
     hip_detail::lz4_require(actual==luid && (p.luidDeviceNodeMask==node_mask ||
         (!p.luidDeviceNodeMask && node_mask==1 && single_node(luid))),
         HipWorkerExit::unsupported_configuration,"uniform device identity changed",HipWorkerStage::adapter_luid);
+    hip_detail::lz4_require(topology.retire()==0,HipWorkerExit::device_fault,
+        "retire uniform topology proof",HipWorkerStage::module_retire);
     selected=hip_detail::select_lz4_coverage(p,targets);
     return hip_detail::uniform_lz4_device_info(p,selected,maximum_chunks,priority);
   };
