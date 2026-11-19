@@ -169,6 +169,101 @@ void volume_file_callbacks() {
       cpu.filesystem().read("f0",0,static_cast<std::uint32_t>(payload.size()))==payload,
       "fresh CPU model reopen lost original or subsequent callback bytes");
 }
+void volume_file_payload_repair(bool live) {
+  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto original=data(2049,814);
+  auto file=std::make_shared<SparseVolumeRam>(4096);
+  {
+    Provider source;Provider::active=&source;
+    WinFspNativeSession writer(WinFspNativeWritable::create_file_volume(file,id(90),id(1),limits,raw),source.api());
+    require(writer.start(plan())==STATUS_SUCCESS,"repair fixture original writer startup");
+    callback_file(source,0,original);
+    writer.stop();
+    require(writer.write_restart_ready(),"repair fixture original writer retirement");
+  }
+  auto adapter=WinFspNativeWritable::resume_file_volume(file,id(90),raw);
+  constexpr auto prefix_size=64;
+  auto& body=file->io.live;
+  const auto primary=std::search(body.begin()+kNativeVolumeFileImageOffset,body.end(),
+      original.begin(),original.begin()+prefix_size);
+  require(primary!=body.end(),"repair fixture did not find its selected payload");
+  const auto at=static_cast<std::size_t>(primary-body.begin());
+  const auto peer=at+file->io.failure_unit;
+  require(peer+prefix_size<=body.size() &&
+      std::equal(original.begin(),original.begin()+prefix_size,body.begin()+peer),"repair fixture did not identify the peer");
+  body[at]^=std::byte{1};
+  file->io.stable[at]=body[at];
+  const auto damaged=body;
+  const auto calls=file->io.calls;
+
+  Provider provider;Provider::active=&provider;
+  const auto open=[&] {
+    wchar_t name[]=L"\\f0";
+    constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
+    PVOID handle=nullptr;FSP_FSCTL_FILE_INFO info{};
+    require(provider.fs.Interface->Open(&provider.fs,name,open_file,FILE_READ_DATA|FILE_WRITE_DATA,&handle,&info)==
+        STATUS_SUCCESS && handle,"repair fixture open");
+    return handle;
+  };
+  const auto read=[&](PVOID handle) {
+    Bytes bytes(original.size());ULONG count=0;
+    require(provider.fs.Interface->Read(&provider.fs,handle,bytes.data(),0,static_cast<ULONG>(bytes.size()),&count)==
+        STATUS_SUCCESS && count==bytes.size() && bytes==original,"repair callback read differs");
+  };
+  if(live) {
+    WinFspVolumeController controller(std::move(adapter),provider.api(),plan());
+    await([&]{return controller.view().state==SessionState::running || controller.view().retired;},5000,
+        "repair controller startup deadline");
+    require(controller.view().state==SessionState::running,"repair controller startup");
+    const auto handle=open();
+    read(handle);
+    const auto start=GetTickCount64();
+    await([&]{const auto view=controller.view();return view.payload_repairs || view.retired || view.maintenance_disabled;},
+        35000,"live payload repair deadline");
+    read(handle);
+    callback_cleanup_close(provider,handle);
+    controller.stop_and_join();
+    const auto status=controller.view();
+    require(status.payload_repairs==1 && status.retired && !status.offline && !status.maintenance_disabled &&
+        !status.compactions,"live repair did not publish one healthy record and retire");
+    std::cout<<"live_payload_repair elapsed_ms="<<GetTickCount64()-start<<" repairs="<<status.payload_repairs
+        <<" max_quantum_ns="<<status.maximum_quantum_ns<<'\n';
+  }else {
+    WinFspNativeSession session(std::move(adapter),provider.api());
+    require(session.start(plan())==STATUS_SUCCESS,"modeled repair controller startup");
+    const auto handle=open();
+    read(handle);
+    require(session.background_maintenance_pending() && file->io.calls==calls,"read performed a repair write");
+    auto changed=original;changed[63]^=std::byte{1};
+    ULONG written=0;FSP_FSCTL_FILE_INFO info{};
+    require(provider.fs.Interface->Write(&provider.fs,handle,changed.data(),0,static_cast<ULONG>(changed.size()),
+        FALSE,FALSE,&written,&info)==STATUS_RETRY && !written && file->io.calls==calls &&
+        session.background_maintenance_pending(),"write touching a damaged copy did not yield to repair");
+    NativeMaintenanceObservation sample{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
+    using Deferral=NativeMaintenanceDeferral;
+    require(session.advance_background_maintenance(sample,sample.captured_ms).progress.deferral==Deferral::foreground &&
+        file->io.calls==calls,"repair ran with foreground pending");
+    sample.foreground_pending=false;
+    sample.continued=true;++sample.sequence;
+    require(session.advance_background_maintenance(sample,sample.captured_ms,{},WinFspMaintenanceContinuation::compaction)
+        .progress.deferral==Deferral::observation && file->io.calls==calls,"repair ran on reused CPU evidence");
+    sample.continued=false;++sample.sequence;sample.captured_ms+=1000;
+    require(session.advance_background_maintenance(sample,sample.captured_ms).payload_repaired,
+        "fresh owner opportunity did not repair the damaged record");
+    read(handle);
+    callback_cleanup_close(provider,handle);
+    session.stop();
+    require(session.write_restart_ready(),"repair controller did not retire");
+  }
+  require(!file->range_reclaims && file->io.calls>calls &&
+      std::equal(damaged.begin()+kNativeVolumeFileImageOffset+2*kStoreCommitUnit,damaged.end(),
+          file->io.live.begin()+kNativeVolumeFileImageOffset+2*kStoreCommitUnit),"repair rewrote an existing body bank");
+  const auto reopened=NativeVolumeFile::inspect(file->replay(),id(90));
+  require(reopened.info().selection.epoch==1 && !reopened.filesystem().storage_info().degraded_checkpoint &&
+      reopened.filesystem().read("f0",0,4096)==original,"repair did not restore independently reopened copies");
+}
+
 void volume_file_idle_reclamation() {
   constexpr PagedStoreLimits limits{8ULL*1024*1024};
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
@@ -1822,9 +1917,11 @@ int main(int argc,char** argv){try {
   // use. Prove native-only stabilization before measuring factory ownership.
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
   const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
+  const bool live_payload_repair=argc==2 && std::string_view(argv[1])=="--live-indexed-repair";
   const bool reconciled_compaction=argc==2 && std::string_view(argv[1])=="--live-indexed-reconcile";
   const bool indexed_compaction=reconciled_compaction || (argc==2 && std::string_view(argv[1])=="--live-indexed-compaction");
   if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || indexed_compaction ||
+      live_payload_repair ||
       (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-grouping")))
@@ -1849,6 +1946,9 @@ int main(int argc,char** argv){try {
   }else if(volume_file) {
     volume_file_callbacks();
     volume_file_idle_reclamation();
+    volume_file_payload_repair(false);
+  }else if(live_payload_repair) {
+    volume_file_payload_repair(true);
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
   }else if(remount) {

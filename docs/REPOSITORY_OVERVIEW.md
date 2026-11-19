@@ -327,6 +327,15 @@ files after 348 interruptions across replay, publication and retirement.
 Persistent candidate restart and segment-level space reuse remain open.
 [Reconciliation evidence](evidence/indexed-compaction-reconciliation-2026-11-19.json)
 
+A verified CPU fallback on a live indexed volume now queues append-only
+repair. The Windows controller restored both payload copies with the file
+open, and independent reopen matched the acknowledged bytes. A write that
+touches a recoverable record returns a retryable status before publication.
+The repair fault model recovered the acknowledged data across 360 injected
+interruptions. Proactive scrub, startup repair and capacity-triggered
+rotation remain open.
+[Live repair evidence](evidence/indexed-live-payload-repair-2026-11-20.json)
+
 The writable controller now stays available for the owner-controlled
 lifetime. Probe time budgets belong to the external test supervisor.
 The controller wakes on a stop, dispatcher termination, deferred write

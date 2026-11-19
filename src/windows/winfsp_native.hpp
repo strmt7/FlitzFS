@@ -32,6 +32,7 @@ struct WinFspMaintenanceResult {
   std::vector<NativeSharedBaseSearchWindow> search_batch;
   bool retained_search=false;
   WinFspMaintenanceContinuation continuation=WinFspMaintenanceContinuation::none;
+  bool payload_repaired=false;
 };
 class WinFspNativeWritable final {
  public:

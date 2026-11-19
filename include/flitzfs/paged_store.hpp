@@ -40,6 +40,7 @@ struct PagedStoreWriteResult {
 struct PagedCompactedSizes {
   std::uint64_t before=0,after_upper=0;
 };
+enum class PagedPayloadRepairProgress { idle, checked, repaired, capacity };
 enum class PagedRewriteMode { exact_checkpoint, reconcile_foreground };
 class IndexedCoherenceWriter;
 class PagedObjectStoreWriter;
@@ -159,6 +160,11 @@ class PagedObjectStoreWriter final {
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset=40);
   PagedObjectStoreSnapshot snapshot_for_staging(bool query_cache=false) const;
+  // Borrowed by serialized indexed queries. Independent snapshots and staged
+  // workers do not schedule repairs on the selected writer.
+  PagedObjectStoreSnapshot snapshot_for_indexed_read() const;
+  bool payload_repair_pending() const noexcept;
+  PagedPayloadRepairProgress repair_payload();
   std::uint64_t generation_for_staging() const noexcept;
   std::uint64_t physical_end_for_staging() const noexcept;
   std::uint64_t append_floor_for_staging() const noexcept;

@@ -67,10 +67,14 @@ Complete elapsed time across the admitted steps, including wrapper and
 collector overhead, is charged against the 1% pacing target. Activity cannot
 erase the next due time. Timed waits pace pending maintenance and GPU budget
 observations.
-A reaper transaction removes at most 64 mappings. The controller checks
-foreground activity, deferred response ownership and worker retirement before
-entering the transaction. A quiet volume with no pending retirement or
-compaction sleeps until an event.
+A reaper transaction removes at most 64 mappings. An indexed query that
+recovers bytes from a peer queues one repair observation. The existing
+foreground activity event wakes the owner. Repair takes priority over
+compression preparation and uses a fresh admission before committing.
+The controller checks foreground activity, deferred response ownership and
+worker retirement before entering either transaction. The owner sleeps
+when its maintenance queues are empty.
+[Mirrored payload repair](MIRRORED_PAYLOADS.md#automatic-repair-after-a-verified-read)
 [Indexed checks](evidence/indexed-owned-windows-2026-11-18.json) ·
 [Memory reclamation](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-indexed-compaction)
 

@@ -44,6 +44,7 @@ template<class Function> NTSTATUS boundary(Function&& run) noexcept {
       case NativeFsErrorCode::not_empty:return STATUS_DIRECTORY_NOT_EMPTY;
       case NativeFsErrorCode::invalid_operation:return STATUS_INVALID_DEVICE_STATE;
       case NativeFsErrorCode::limit:return STATUS_INSUFFICIENT_RESOURCES;
+      case NativeFsErrorCode::replica_repair_pending:return STATUS_RETRY;
       case NativeFsErrorCode::corrupt:return STATUS_FILE_CORRUPT_ERROR;
       case NativeFsErrorCode::storage_failure:return STATUS_IO_DEVICE_ERROR;
     }

@@ -1,10 +1,12 @@
 #include "native_fs_fixture.hpp"
+#include "flitzfs/native_session.hpp"
 #include "record_digest.hpp"
 #include <iostream>
 #include <set>
 namespace {
 using namespace flitzfs;using namespace native_fixture;
 constexpr PagedStoreLimits limits{kStoreMaxPhysicalBytes};
+constexpr std::size_t indexed_extent_header_bytes=24;
 unsigned checks=0,faults=0;
 void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
 template<class F>void rejects(F&& action,const char* why){++checks;try{action();}catch(const std::exception&){return;}throw std::runtime_error(why);}
@@ -29,6 +31,11 @@ std::vector<Location> locations(const Ram& ram) {
 void lose_unit(Ram& ram,std::uint64_t unit) {
   const auto at=unit*ram.failure_unit;require(at<=ram.live.size() && ram.failure_unit<=ram.live.size()-at,"fixture unit bounds");
   std::fill_n(ram.live.begin()+static_cast<std::ptrdiff_t>(at),ram.failure_unit,std::byte{0});ram.stable=ram.live;
+}
+void damage_record(Ram& ram,std::uint64_t offset) {
+  require(offset<ram.live.size() && offset<ram.stable.size(),"fixture record bounds");
+  ram.live[offset]^=std::byte{1};
+  ram.stable[offset]=ram.live[offset];
 }
 NativeFilesystemWriter fresh(const std::shared_ptr<Ram>& ram,unsigned layout) {
   auto objects=PagedObjectStoreWriter::create_mirrored(ram,identity(),limits,{StoreCompressionMode::raw,1,false});
@@ -78,6 +85,127 @@ void survivor_and_rebuild(std::uint32_t unit) {
   rejects([&]{PagedObjectStoreWriter::rebuild(failed,empty,next_id(),limits);},"unrecoverable source repaired with fabricated data");
   std::cout<<"mirror_survivor unit="<<unit<<" single_unit_losses="<<2*chunks<<'\n';
 }
+void append_only_payload_repair(std::uint32_t unit) {
+  using Progress=PagedPayloadRepairProgress;
+  auto bytes=data(kNativeExtentBytes,309);
+  bytes.back()=std::byte{1};
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  std::uint64_t current_extent=0;
+  const auto run=[&](std::optional<std::size_t> cut,unsigned mode,bool tight=false) {
+    auto head=std::make_shared<Ram>(),ram=std::make_shared<Ram>();
+    head->failure_unit=ram->failure_unit=unit;
+    const auto capacity=tight?PagedStoreLimits{current_extent}:limits;
+    auto session=NativeFileSession::create_indexed_volume(head,next_id(),ram,identity(),capacity,raw);
+    session.create_entry("payload");
+    const auto handle=session.open("payload",{true,true,true});
+    session.write(handle,0,bytes);
+    current_extent=ram->extent();
+    const auto sequence=session.snapshot().sequence();
+    const auto records=locations(*ram);
+    const auto found=std::ranges::find(records,bytes.size()+indexed_extent_header_bytes,&Location::stored);
+    require(found!=records.end(),"payload repair fixture lost its raw record");
+    const auto version=PagedObjectStoreSnapshot::open(ram,limits).stat(found->id);
+    const auto retained=session.snapshot();
+    damage_record(*ram,found->primary);
+    const auto damaged=ram->live;
+    const auto calls=ram->calls,head_calls=head->calls;
+    require(retained.read("payload",0,kNativeExtentBytes)==bytes && !session.indexed_payload_repair_pending(),
+        "independently pinned reader scheduled a repair");
+    require(session.read(handle,0,kNativeExtentBytes)==bytes && session.indexed_payload_repair_pending() &&
+        ram->calls==calls,"verified indexed read did not queue repair without I/O mutation");
+    if(tight) {
+      require(session.repair_indexed_payload()==Progress::capacity &&
+          !session.indexed_payload_repair_pending() && ram->calls==calls &&
+          session.read(handle,0,kNativeExtentBytes)==bytes &&
+          session.repair_indexed_payload()==Progress::idle && ram->calls==calls,
+          "capacity refusal did not retain the readable copy or suppress a repeated attempt");
+      return std::size_t{0};
+    }
+    if(cut){ram->failure=mode;ram->fail_at=calls+*cut;}
+    if(cut) {
+      rejects([&]{(void)session.repair_indexed_payload();},"interrupted repair reported success");
+      require(session.poisoned(),"uncertain repair did not fence the writer");
+      ++faults;
+    }else {
+      require(session.repair_indexed_payload()==Progress::repaired,"localized mirror repair did not publish");
+      require(!session.indexed_payload_repair_pending(),"isolated repair left pending records");
+      require(session.snapshot().sequence()==sequence && session.volume_info().selection.epoch==1 &&
+          session.read(handle,0,kNativeExtentBytes)==bytes &&
+          retained.read("payload",0,kNativeExtentBytes)==bytes,"repair changed namespace state or pinned bytes");
+      const auto now=PagedObjectStoreSnapshot::open(ram,limits).stat(found->id);
+      require(now && version && now->generation==version->generation && now->logical_bytes==version->logical_bytes,
+          "repair changed the logical object version");
+      const auto healthy=PagedObjectStoreSnapshot::open(ram,limits);
+      healthy.verify_all();
+      require(!healthy.info().degraded_payloads,"repair did not restore both copies");
+    }
+    require(head->calls==head_calls &&
+        std::equal(damaged.begin()+2*kStoreCommitUnit,damaged.end(),ram->live.begin()+2*kStoreCommitUnit),
+        "repair wrote a pre-existing payload or metadata bank");
+    auto durable=image(ram->stable,unit);
+    const auto recovered=NativeVolumeHeadView::open(head,next_id(),[&](const auto&){return durable;});
+    require(recovered.filesystem().read("payload",0,kNativeExtentBytes)==bytes &&
+        recovered.filesystem().sequence()==sequence,"repair interruption lost acknowledged bytes");
+    return ram->calls-calls;
+  };
+  const auto cuts=run({},0);
+  require(cuts>3 && cuts<80,"payload repair exceeded an isolated transaction");
+  for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut)(void)run(cut,mode);
+  (void)run({},0,true);
+  std::cout<<"append_only_payload_repair unit="<<unit<<" operation_boundaries="<<cuts<<" modes=3\n";
+}
+
+void payload_repair_rechecks() {
+  using Progress=PagedPayloadRepairProgress;
+  auto head=std::make_shared<Ram>(),ram=std::make_shared<Ram>();
+  head->failure_unit=ram->failure_unit=4096;
+  auto session=NativeFileSession::create_indexed_volume(head,next_id(),ram,identity(),limits,{StoreCompressionMode::raw,1,false});
+  session.create_entry("payload");
+  const auto handle=session.open("payload",{true,true,true});
+  auto bytes=data(kNativeExtentBytes,528);
+  bytes.back()=std::byte{1};
+  session.write(handle,0,bytes);
+  const auto record=[&] {
+    const auto records=locations(*ram);
+    const auto found=std::ranges::find(records,bytes.size()+indexed_extent_header_bytes,&Location::stored);
+    require(found!=records.end(),"missing current payload in repair fixture");
+    return *found;
+  };
+  const auto observe=[&](const Location& entry) {
+    damage_record(*ram,entry.primary);
+    require(session.read(handle,0,kNativeExtentBytes)==bytes && session.indexed_payload_repair_pending(),
+        "repair observation lost verified data");
+  };
+
+  const auto stable=ram->stable;
+  observe(record());
+  ram->live=ram->stable=stable;
+  auto calls=ram->calls;
+  require(session.repair_indexed_payload()==Progress::checked && ram->calls==calls,
+      "healthy recheck caused unnecessary writes");
+
+  observe(record());
+  auto updated=bytes;updated[1]^=std::byte{1};
+  bool retry=false;
+  try{session.write(handle,0,updated);}
+  catch(const NativeFsError& error){retry=error.code()==NativeFsErrorCode::replica_repair_pending;}
+  require(retry && !session.poisoned() && session.indexed_payload_repair_pending() && ram->calls==calls,
+      "recoverable single-copy failure fenced a valid writer or mutated storage");
+  ram->live=ram->stable=stable;
+  bytes=std::move(updated);
+  session.write(handle,0,bytes);
+  calls=ram->calls;
+  require(session.repair_indexed_payload()==Progress::checked && ram->calls==calls &&
+      session.read(handle,0,kNativeExtentBytes)==bytes,"stale repair displaced a foreground write");
+
+  const auto last=record();
+  observe(last);
+  damage_record(*ram,last.peer);
+  calls=ram->calls;
+  rejects([&]{(void)session.repair_indexed_payload();},"repair fabricated bytes without a verified copy");
+  require(session.poisoned() && ram->calls==calls,"unrecoverable record caused extra writes");
+}
+
 void native_recovery(unsigned layout,std::uint32_t unit) {
   auto original=std::make_shared<Ram>();original->failure_unit=unit;
   {auto writer=fresh(original,layout);writer.apply(baseline());}
@@ -184,9 +312,10 @@ void native_shared_lifetime() {
 }
 }
 int main(){try {
-  forged_descriptors();native_shared_lifetime();
+  forged_descriptors();native_shared_lifetime();payload_repair_rechecks();
   for(auto unit:{4096U,65536U}) {
     packing_and_boundaries(unit);survivor_and_rebuild(unit);fresh_replica_readback(unit);
+    append_only_payload_repair(unit);
     for(unsigned layout=0;layout<3;++layout){native_recovery(layout,unit);fault_matrix(layout,unit);}
   }
   std::cout<<"PASS: "<<checks<<" mirrored payload checks; "<<faults<<" injected write/barrier cases; memory CPU only\n";return 0;

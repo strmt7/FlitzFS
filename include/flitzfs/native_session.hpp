@@ -218,6 +218,10 @@ class NativeFileSession final {
   // Uses the selected writer's aligned append boundary, including
   // trailing bytes left outside the selected checkpoint after recovery.
   NativeVolumeSpace indexed_volume_space() const;
+  // The serialized idle owner admits one verified repair. Its checkpoint
+  // preserves namespace state, file contexts and logical object generations.
+  bool indexed_payload_repair_pending() const noexcept;
+  PagedPayloadRepairProgress repair_indexed_payload();
   // One admitted idle opportunity. The identity source is invoked only when
   // starting a new image. These operations use the session's control thread.
   bool persistent_reclamation_pending() const;

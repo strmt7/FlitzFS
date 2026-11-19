@@ -1443,9 +1443,11 @@ qualification. It is not a final pass of extra assertions after design is frozen
    stale identities, damaged peers, missing records and unexpected process exit.
    Keep source fixtures and ambiguous results; do not retry until a cause/state
    change justifies a different experiment.
-5. Implement automated verified scrub/repair and clear containment of uncorrectable
-   damage. Recovery must not silently choose an older acknowledged namespace,
-   manufacture file bytes or delete material needed for later recovery.
+5. Extend automated verified scrub and repair. A verified live indexed
+   fallback schedules append-only repair from a surviving replica. Extend
+   it to latent replica damage, durable repair progress, startup recovery and
+   capacity-triggered rotation. Keep the current acknowledged namespace and
+   retain evidence when intact data cannot be reconstructed.
 6. Preserve independent CPU export/recovery tooling and useful diagnostics when
    normal mounting or the GPU path is unavailable. Backup/redundancy needs must
    match the claimed failure domains; same-memory copies do not survive power loss.

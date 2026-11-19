@@ -206,13 +206,14 @@ struct WinFspNativeWritable::Impl {
     const auto defer=[](Deferral reason) {
       return WinFspMaintenanceResult{State::advanced,{Phase::deferred,reason}};
     };
+    const bool repair=session.indexed_payload_repair_pending();
     const bool reap=session.retirement_pending();
     const bool discard_catalog=memory_backing && memory_backing->coherence_retirement_pending();
-    if(observed.continued && (reap || discard_catalog || !session.idle_compaction_preparation_pending()))
+    if(observed.continued && (repair || reap || discard_catalog || !session.idle_compaction_preparation_pending()))
       return defer(Deferral::observation);
     const bool persistent=session.persistent_reclamation_pending();
     const bool memory=memory_backing && memory_backing->compaction_pending(session);
-    if(!reap && !discard_catalog && !persistent && !memory)return {State::unchanged};
+    if(!repair && !reap && !discard_catalog && !persistent && !memory)return {State::unchanged};
     if(!observed.sequence || observed.sequence<=last_indexed_observation)
       return defer(Deferral::observation);
     last_indexed_observation=observed.sequence;
@@ -229,6 +230,13 @@ struct WinFspNativeWritable::Impl {
     constexpr auto transaction_scratch=8ULL*kStoreMaxTransactionBytes;
     if(resources->memory_allowance<transaction_scratch)return defer(Deferral::memory);
     try {
+      if(repair) {
+        const auto repaired=session.repair_indexed_payload();
+        if(repaired==PagedPayloadRepairProgress::capacity)return defer(Deferral::capacity);
+        WinFspMaintenanceResult result{State::advanced,{Phase::idle}};
+        result.payload_repaired=repaired==PagedPayloadRepairProgress::repaired;
+        return result;
+      }
       if(reap) {
         if(!session.reclaim_retired_inode())return {State::unchanged};
         return {State::advanced,{session.retirement_pending()?Phase::publishing:Phase::idle},true};
@@ -765,7 +773,8 @@ bool WinFspNativeWritable::background_maintenance_pending() const {
   if(!guard)return true;
   if(impl_->maintenance_cancelled || requires_offline() || dispatcher_stopped() || impl_->session.poisoned())
     return false;
-  return impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending() ||
+  return impl_->session.indexed_payload_repair_pending() ||
+      impl_->session.retirement_pending() || impl_->session.persistent_reclamation_pending() ||
       (impl_->memory_backing && (impl_->memory_backing->coherence_retirement_pending() ||
       impl_->memory_backing->compaction_pending(impl_->session))) ||
       (impl_->groups && (impl_->groups->pending() ||
@@ -828,8 +837,9 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     return {WinFspMaintenanceState::unavailable};
   }
   const bool indexed=impl_->info_policy==indexed_file_info;
+  const bool repair=indexed && impl_->session.indexed_payload_repair_pending();
   if(observed.continued) {
-    if(continuation==WinFspMaintenanceContinuation::group && !impl_->session.retirement_pending())
+    if(continuation==WinFspMaintenanceContinuation::group && !repair && !impl_->session.retirement_pending())
       return impl_->advance_groups(observed,now,search);
     if(continuation!=WinFspMaintenanceContinuation::compaction || !indexed)
       return {WinFspMaintenanceState::busy};
@@ -837,7 +847,7 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
   if(indexed) {
     // An admitted group pins its source image. Complete or retire it before
     // a compaction handoff. Detached-inode reclamation can still invalidate it.
-    if(!observed.continued && !impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
+    if(!observed.continued && !repair && !impl_->session.retirement_pending() && impl_->groups && impl_->groups->active_group())
       return impl_->advance_groups(observed,now,search);
     auto storage=impl_->advance_indexed_maintenance(observed,now);
     if(observed.continued || (storage.state!=WinFspMaintenanceState::unchanged &&

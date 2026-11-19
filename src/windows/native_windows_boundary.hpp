@@ -27,6 +27,7 @@ template<class Function>NativeWindowsIoOutcome boundary(NativeFileSession& sessi
       case NativeFsErrorCode::not_empty:return failure(session,STATUS_DIRECTORY_NOT_EMPTY);
       case NativeFsErrorCode::invalid_operation:return failure(session,STATUS_INVALID_PARAMETER);
       case NativeFsErrorCode::limit:return failure(session,STATUS_INSUFFICIENT_RESOURCES);
+      case NativeFsErrorCode::replica_repair_pending:return failure(session,STATUS_RETRY);
       case NativeFsErrorCode::corrupt:return failure(session,STATUS_FILE_CORRUPT_ERROR,true);
       case NativeFsErrorCode::storage_failure:return failure(session,STATUS_IO_DEVICE_ERROR,true);
     }

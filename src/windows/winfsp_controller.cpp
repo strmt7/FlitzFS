@@ -180,6 +180,7 @@ struct WinFspVolumeController::Impl {
             current.continued_preparation_steps+=continued;
             current.continued_compaction_steps+=continued_compaction;
             if(result.reclaimed)++current.reclamation_quanta;
+            if(result.payload_repaired)++current.payload_repairs;
             if(result.compacted)++current.compactions;
             if(result.compaction_failed)++current.compaction_failures;
             if(anchor)current.anchor_search=anchor->stats();

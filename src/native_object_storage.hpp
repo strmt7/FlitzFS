@@ -85,6 +85,17 @@ class NativeObjectWriter final {
     if(const auto* flat=flat_if())return flat->snapshot_for_staging();
     return std::get<PagedObjectStoreWriter>(value_).snapshot_for_staging(query_cache);
   }
+  NativeObjectSnapshot snapshot_for_indexed_read() const {
+    return std::get<PagedObjectStoreWriter>(value_).snapshot_for_indexed_read();
+  }
+  bool payload_repair_pending() const noexcept {
+    const auto* paged=paged_if();
+    return paged && paged->payload_repair_pending();
+  }
+  PagedPayloadRepairProgress repair_payload() {
+    auto* paged=paged_if();
+    return paged?paged->repair_payload():PagedPayloadRepairProgress::idle;
+  }
   std::uint64_t generation_for_staging() const noexcept {
     return std::visit([](const auto& value){return value.generation_for_staging();},value_);
   }

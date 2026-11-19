@@ -1,0 +1,349 @@
+{
+  "schema": 1,
+  "captured_local": "2026-11-20T00:22:45+01:00",
+  "source_base": "aca2a860c5f91bd405bb5c4ed34d22dbed4fec16",
+  "base_tree": "c30db2e0d5b3c46e6d059a665544a1a9564320f7",
+  "code_patch_sha256": "24289beac9179b0415e9b8017a1983fbab5589cd456726698ee22edc39974cc5",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/native_filesystem.hpp",
+      "git_blob": "2b780f3459be52329117c81de9fb45ff2bcebecc",
+      "worktree_sha256": "27aeb2118587a6513560925d286ab4c4b0f276f2bbaaed3981485358d1378869"
+    },
+    {
+      "path": "include/flitzfs/native_session.hpp",
+      "git_blob": "884f1f186774f18e194711d9483954c04995fe7a",
+      "worktree_sha256": "92f716f60e33725710095aee0ff90578a315a268089bdb8e1cfee6438ab5a83a"
+    },
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "77427eee92d7ae44b2cd3d0355f03ab4674ec07c",
+      "worktree_sha256": "9ceac6916dfbf39d54f249582724bf3089334d4ff85af2ca2102dfd131034d58"
+    },
+    {
+      "path": "src/native_filesystem.cpp",
+      "git_blob": "9417f7485515795f11d0eb5790c347e486ded4d7",
+      "worktree_sha256": "51914ac53ff2d70fb5c0f32a8e6ecd1ea1fccc27c4c97bee39761d12669bd932"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "4cccc17f5a629c2099a1b836dd103d150b276d68",
+      "worktree_sha256": "68f2c2c0c4328c9d868bc31da40c487ddf8ed2b69cfe9223b2fc54a519f017bf"
+    },
+    {
+      "path": "src/native_object_storage.hpp",
+      "git_blob": "db95a0e5bcbba3ad6f4ac0478dc0e60843ad47c3",
+      "worktree_sha256": "74f3e06344a339be8e56c34d22cb4194aeda2e030008b9973b1ff68bdcd52185"
+    },
+    {
+      "path": "src/native_session.cpp",
+      "git_blob": "856f283e6e2e5f2b4c680cb231f43e9791c817de",
+      "worktree_sha256": "e249a6340ad6a0b6cc4fba3bc26dddb85eccac0bb175118d536ef5a2dff2b4e7"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "f122b80e119755a20cc698ecb5e722441282f0bd",
+      "worktree_sha256": "36503599e89f0f8778bd4c919601e62e5371587d28a347480548d48db2f6b97f"
+    },
+    {
+      "path": "src/windows/native_windows_boundary.hpp",
+      "git_blob": "9d6b92b4249ddd4efd763c358fceed50f4ca32cb",
+      "worktree_sha256": "76f0477f090ecc231a2c6799dca5067e19841ef8352b3cd7076792b71c0998e6"
+    },
+    {
+      "path": "src/windows/winfsp_controller.cpp",
+      "git_blob": "4391018a9f5610ac681eb360c34910036454cd37",
+      "worktree_sha256": "b8ee41b45c1b4daef6b89225720ccee618cb1a4fce7aea53ca325d32b5591f9c"
+    },
+    {
+      "path": "src/windows/winfsp_controller.hpp",
+      "git_blob": "198cb478b13a55e6bc4fef8d2ce437d0eda48ba8",
+      "worktree_sha256": "e7275934277ec8a43994e3e1c0ff37133895b024406c6ece83b7593f7e017abb"
+    },
+    {
+      "path": "src/windows/winfsp_native.cpp",
+      "git_blob": "eac0c5565ed8de7e944251885a002eef0b7bb6a6",
+      "worktree_sha256": "0cceaaecac95f0425f0da1bdfdf76610e61fc94f02b30fd374e197358a032d0b"
+    },
+    {
+      "path": "src/windows/winfsp_native.hpp",
+      "git_blob": "ac745ab64b74e186ed732d3533acb456f0d2aec8",
+      "worktree_sha256": "d66ee34e2f91d2044f33f53d2904f067d2a87f54e79b183c06628f7b105691bb"
+    },
+    {
+      "path": "src/windows/winfsp_readonly.cpp",
+      "git_blob": "56f3513da45c06520b95c4d9115dd3e85c96d7fb",
+      "worktree_sha256": "38dcdd052d360a3fb0a7a1b310e6fe8a5a9d5bcf251d41a0cfe5c4514c26a557"
+    },
+    {
+      "path": "tests/test_mirrored_payloads.cpp",
+      "git_blob": "da4c0e5fc0c5730f464056dec8bfd2498dca0719",
+      "worktree_sha256": "e06926e03af53305c692a38325b81d2cf72e9ac6d38ee18600b0edd86eb063ea"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "2cb4d31aa3a98a81b85bfeb593d69191ca55c34d",
+      "worktree_sha256": "c44f41af6d320712d444d026c648353dd34b8fd2b325453f2982fd9c1f84c625"
+    }
+  ],
+  "host": {
+    "platform": "Windows 11 x64 26H2 26300.9974",
+    "cpu": "AMD Ryzen 9 9950X",
+    "gpu": "AMD Radeon RX 9070 XT"
+  },
+  "research": {
+    "semantic_provider": "0.2.43",
+    "query": "Locate CPU verified replica fallback and propagation of damage, foreground reader and writer ownership, and the managed compaction and retirement hooks for automatic source-preserving repair of a single lost replica.",
+    "semantic_receipt_sha256": "417505a5395df696d40b243072a0babebe8266c0827f32491ac564b501bd18bc",
+    "search_sha256": "ef6df82dfcfb6c1faaae579dcb2a5862665cba7ee5b4e16862d7de5fe2dfaeda",
+    "web_pages": [
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "c047f5b567c31150e4f5685a0184187b208568bb85e9d411a602e2bec0fb2295",
+        "url": "https://btrfs.readthedocs.io/en/latest/Auto-repair.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 5741,
+        "markdown_sha256": "89aea98b27f0ad8b710a3b9293f6f6885c41bb055890d6889eb9ec0006878d30",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.995,
+        "capture": "btrfs-repair.native.json",
+        "capture_sha256": "db722c6b7c4b92cd3d0dad180f6af22291f2c4e51bb9be29e7b6928dd42b8a25",
+        "name": "btrfs-repair"
+      },
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "c047f5b567c31150e4f5685a0184187b208568bb85e9d411a602e2bec0fb2295",
+        "url": "https://openzfs.github.io/openzfs-docs/Basic%20Concepts/Operations/Scrub%20and%20Resilver.html",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 9934,
+        "markdown_sha256": "614643fc6c4d9297939d91e4e80f743dcfb0f80fa0208539e503491bf168e82f",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 0.7,
+        "capture": "openzfs-repair.native.json",
+        "capture_sha256": "0228455f2b2615fb357c4006aad8c0b9d1175920595628f313beeb9420f68e5d",
+        "name": "openzfs-repair"
+      },
+      {
+        "provider_version": "0.9.5+flitzzip.portable2",
+        "receipt_sha256": "b37d4b87f8d97d95e68c3ff9b15691d95024ad244f5dfcfd525fd45113b3d4dd",
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55",
+        "success": true,
+        "native_success": true,
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_bytes": 262403,
+        "markdown_sha256": "368fa7a2993ec7d26cf2f83ed3bcda1ed0be035d5c8c8d609dc6da3ceafc024b",
+        "expected_content": true,
+        "failure_category": "",
+        "error": "",
+        "seconds": 2.321,
+        "capture": "windows-retry.native.json",
+        "capture_sha256": "b215445ee43c5ef12ee84dc7cf6228d68c9d97ccb32fd6136ddfec45ae6d4617",
+        "name": "windows-retry"
+      }
+    ],
+    "design_use": "Repair requires independently verified replica bytes. The current Windows SDK and MS-ERREF both define STATUS_RETRY. FlitzFS appends replacement banks through its existing checkpoint protocol."
+  },
+  "release_ctest": {
+    "passed": 12,
+    "receipt": {
+      "run": "local-run-16870cfef28640c7b6be42a1554297b2",
+      "receipt_sha256": "04c4e0cef258515798c8387c2206efb7dedd20180f74b81426e058dc6bfe6508",
+      "log_sha256": "c09d73805958c5730281e6e3f4be944ff1e4e2bb9f906cc75c11b07eb45b2f30",
+      "checked_output": [
+        "1/13 Test #169: bounded_winfsp_volume_file ............   Passed    0.25 sec",
+        "2/13 Test #186: bounded_winfsp_callback_test ..........***Failed    0.02 sec",
+        "FAIL: native Windows image fixture requires an explicitly qualified fixture parent",
+        "3/13 Test  #38: bounded_paged_mirrored_payloads .......   Passed    6.11 sec",
+        "4/13 Test  #39: bounded_native_shared_bases ...........   Passed   11.70 sec",
+        "5/13 Test  #36: bounded_native_indexed_volume .........   Passed    9.78 sec",
+        "6/13 Test #164: bounded_winfsp_controller .............   Passed    5.73 sec",
+        "7/13 Test #108: bounded_native_volume_file ............   Passed   10.05 sec",
+        "8/13 Test #165: bounded_winfsp_memory_volume ..........   Passed    2.30 sec",
+        "9/13 Test  #37: bounded_native_staged_paged_rebuild ...   Passed    0.64 sec",
+        "10/13 Test  #54: bounded_native_indexed_group_batch ....   Passed    0.19 sec",
+        "11/13 Test  #53: bounded_native_indexed_group_advice ...   Passed    0.04 sec",
+        "12/13 Test #185: bounded_winfsp_session_test ...........   Passed    0.04 sec",
+        "13/13 Test #167: bounded_winfsp_indexed_memory .........   Passed    3.31 sec"
+      ],
+      "exit_code": 8,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 25.498869200004265,
+      "timeout_seconds": 200.0,
+      "memory_bytes": 2606759936,
+      "peak_job_bytes": 86028288,
+      "cpu_percent": 24,
+      "physical_available_bytes": 27738652672,
+      "commit_available_bytes": 73589010432
+    },
+    "excluded_file_backed_case": "The read-only legacy callback fixture refused an unqualified file-backed parent. The indexed repair tests use owned memory providers."
+  },
+  "raw_address_sanitizer_ctest": {
+    "run": "local-run-9cfced307e544d97b8c01b3e26ac553c",
+    "receipt_sha256": "db94b35a3481ac0e7d35d9a89b44800f947600038b7446b99af2bb272172fe97",
+    "log_sha256": "ace5a7847ce1be75448a1c2038a6d97faef8b8c00a92843e7aa4f18404093ff2",
+    "checked_output": [
+      "1/11 Test #190: windows_asan_runtime_preflight ........   Passed    0.03 sec",
+      "2/11 Test #108: bounded_native_volume_file ............   Passed   29.78 sec",
+      "3/11 Test  #38: bounded_paged_mirrored_payloads .......   Passed   17.43 sec",
+      "4/11 Test  #39: bounded_native_shared_bases ...........   Passed   85.01 sec",
+      "5/11 Test  #37: bounded_native_staged_paged_rebuild ...   Passed    1.87 sec",
+      "6/11 Test  #36: bounded_native_indexed_volume .........   Passed   41.08 sec",
+      "7/11 Test #169: bounded_winfsp_volume_file ............   Passed    0.44 sec",
+      "8/11 Test #167: bounded_winfsp_indexed_memory .........   Passed    4.76 sec",
+      "9/11 Test #185: bounded_winfsp_session_test ...........   Passed    0.14 sec",
+      "10/11 Test #147: windows_asan_staging_regression .......   Passed    0.60 sec",
+      "11/11 Test #164: bounded_winfsp_controller .............   Passed   12.04 sec",
+      "100% tests passed out of 11"
+    ],
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 99.06864049999422,
+    "timeout_seconds": 215.0,
+    "memory_bytes": 2691694592,
+    "peak_job_bytes": 2035986432,
+    "cpu_percent": 24,
+    "physical_available_bytes": 25809256448,
+    "commit_available_bytes": 71748624384
+  },
+  "model": {
+    "test_log_sha256": "b89bee5e43c920355bc1f9c4f248a1c92a7dc14671706538a4d18f5b01ea53e5",
+    "checked_output": [
+      "append_only_payload_repair unit=4096 operation_boundaries=45 modes=3",
+      "append_only_payload_repair unit=65536 operation_boundaries=75 modes=3",
+      "PASS: 9691 mirrored payload checks; 2058 injected write/barrier cases; memory CPU only"
+    ],
+    "repair_interruptions": 360,
+    "checks": [
+      "4 KiB and 64 KiB failure units under three modeled interruption modes.",
+      "Acknowledged bytes and namespace sequence survived each recovered checkpoint.",
+      "The index preserves the logical object generation and length.",
+      "Pinned old readers still read the verified copy. The old body and volume selector received no writes.",
+      "Retryable foreground write, stale descriptor, healthy recheck, capacity refusal and two lost copies cause no repair write.",
+      "An unchanged full region defers repeat attempts. Reused CPU evidence cannot publish a repair."
+    ]
+  },
+  "live_windows_sdk": {
+    "executable_sha256": "87093fbe843c957bc98a736b305e3c2883745108caf26890290c4b65b188b210",
+    "repair": {
+      "run": "local-run-ad868aeb1711487fa55ed82679e6a508",
+      "receipt_sha256": "8b39b1529893d2a62cbf90a5de865d15e366dd0f46c75ead209f93a4c352ba81",
+      "log_sha256": "905a7073e7e6ba9b4d875371e58019f7e899b1fdbb174c29186bf4edc9964d0d",
+      "checked_output": [
+        "live_payload_repair elapsed_ms=1031 repairs=1 max_quantum_ns=383300",
+        "controller_handles before=161 after=161",
+        "PASS: 29 owned controller checks; real local telemetry and SDK callbacks; injected lifecycle; no mount/GPU"
+      ],
+      "exit_code": 0,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 1.3278821999992942,
+      "timeout_seconds": 70.0,
+      "memory_bytes": 1420820480,
+      "peak_job_bytes": 11423744,
+      "cpu_percent": 16,
+      "physical_available_bytes": 27004698624,
+      "commit_available_bytes": 72946479104
+    },
+    "checks": [
+      "The existing SDK handle returned exact bytes before and after the repair.",
+      "The low-priority owner executed once. Independent CPU reopen verified both fresh replicas.",
+      "The acknowledged file and selected epoch survived. The warmed controller handle count balanced."
+    ]
+  },
+  "installed_amd": {
+    "run": "local-run-04e25773a18b45bebf0e422982d57db1",
+    "receipt_sha256": "960b3e3859fe0b16fdfbd8c7f599ff9808b2d1f409d8be5898d224b726f203d4",
+    "log_sha256": "78de91a770728c4f68de7fce31091d12db9d50e21eb948e7df056f6df18da564",
+    "checked_output": [
+      "foreground_read phase=before_launch count=101 bytes_per_read=4096 p50_ns=23200 p95_ns=26400 p99_ns=26600 max_ns=36700",
+      "foreground_read phase=verified_reply count=101 bytes_per_read=4096 p50_ns=25400 p95_ns=31800 p99_ns=39400 max_ns=43400",
+      "anchor_owner mode=verified-read host=1 quanta=14 groups=1 continued_steps=34 settled_ms=32125 declined_groups=0 phase=0 sampled=12 attempted=1 cpu_limit_ppm=500000 submitted=1 verified=1 submitted_queued_batches=1 verified_queued_batches=1 dispatches_per_wait=4 submitted_groups=1 verified_groups=1 declined=0 yielded=0 integrity_failures=0 empty_xor_batches=0 advised_members=10 installed_attempts=1 metadata_queries=1 installed_status=0 handles_before=136 handles_after=329 retired=true cpu_readback_verified=true deferrals=8,2,0,0,0,4,0,0,"
+    ],
+    "exit_code": 0,
+    "tree_retired": true,
+    "residual_children": 0,
+    "elapsed_seconds": 32.21969810000155,
+    "timeout_seconds": 110.0,
+    "memory_bytes": 1422917632,
+    "peak_job_bytes": 126607360,
+    "cpu_percent": 16,
+    "physical_available_bytes": 27045175296,
+    "commit_available_bytes": 72976576512
+  },
+  "intermediate_failures": {
+    "fixture_record_framing": {
+      "run": "local-run-24df501a272a4ef08b9cb958cc6c89cf",
+      "receipt_sha256": "c27eda2681b6974c18d7ae74e51c7f7a9dc2589a1f407347ca7c12b10aa4c0ff",
+      "log_sha256": "dd74efbeb5f5e976ef920ed6dbb29e09a707c5350f8bd90982973e2377d7a2d0",
+      "checked_output": [
+        "after 15 checks: missing current payload in repair fixture"
+      ],
+      "exit_code": 8,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 0.18435809999937192,
+      "timeout_seconds": 135.0,
+      "memory_bytes": 2415919104,
+      "peak_job_bytes": 9961472,
+      "cpu_percent": 22,
+      "physical_available_bytes": 28437417984,
+      "commit_available_bytes": 74376507392
+    },
+    "prior_mutation_fence": {
+      "run": "local-run-c498b3e90fbf4e2d8d0c630b3c4e2830",
+      "receipt_sha256": "3a2a6d4608d4d4a55ef7ab7da3cbf95c41044692b158605e75c6d82f264ea421",
+      "log_sha256": "8c92646668fa70e315512ed1dd937d395dbbc614f4ff1ba4aa7bba9f7152a16d",
+      "checked_output": [
+        "after 23 checks: indexed transaction encountered degraded storage"
+      ],
+      "exit_code": 8,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 21.19140260000131,
+      "timeout_seconds": 185.0,
+      "memory_bytes": 2707423232,
+      "peak_job_bytes": 87973888,
+      "cpu_percent": 24,
+      "physical_available_bytes": 28642861056,
+      "commit_available_bytes": 74571890688
+    },
+    "fixture_scope": {
+      "run": "local-run-7b761ac7d65b47c9b668972cfa4d363c",
+      "receipt_sha256": "b1ffc6e7fcec07616b723f9cb32495416e7a6aaeaa82ce651e109aca3d75d4b4",
+      "log_sha256": "eb7239f669290429a5bd6b75ccd6627fe7eb20776bf0562a27360014bfab6021",
+      "checked_output": [
+        "after 491 checks: localized mirror repair did not settle",
+        "after 111 checks: unqualified restart FileInfo/reservation"
+      ],
+      "exit_code": 8,
+      "tree_retired": true,
+      "residual_children": 0,
+      "elapsed_seconds": 22.096641700001783,
+      "timeout_seconds": 200.0,
+      "memory_bytes": 2691694592,
+      "peak_job_bytes": 88088576,
+      "cpu_percent": 24,
+      "physical_available_bytes": 28501663744,
+      "commit_available_bytes": 74369617920
+    },
+    "corrections": "Use exact indexed record framing, isolate the damaged record in the fault fixture, and populate the restarted fixture through the actual WinFsp factory. Return a retryable status before mutation when one verified copy survives."
+  },
+  "limits": [
+    "The automatic path repairs observed live indexed payload failures when a copy verifies and space permits.",
+    "Proactive scrubbing, damaged-volume startup repair, automatic capacity-triggered repair rotation and mounted Windows qualification remain open.",
+    "The durable state and allocation tests used modeled memory-backed I/O. They do not establish physical power-loss behavior."
+  ]
+}

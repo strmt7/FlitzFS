@@ -30,7 +30,7 @@ inline constexpr std::size_t kNativeMaxExtents=kStoreMaxObjects-1;
 inline constexpr std::size_t kNativeMaxDirtyExtents=(kStoreMaxTransactionBytes-kNativeExtentBytes)/kNativeExtentBytes;
 enum class NativeFsErrorCode {
   invalid_path,not_found,already_exists,not_directory,is_directory,not_empty,
-  invalid_operation,limit,corrupt,storage_failure
+  invalid_operation,limit,corrupt,storage_failure,replica_repair_pending
 };
 class NativeFsError final:public std::runtime_error {
  public:
@@ -622,6 +622,8 @@ class NativeFilesystemWriter final {
   bool supports_file_contexts() const noexcept;
   std::uint64_t indexed_append_floor() const noexcept;
   std::uint64_t indexed_obsolete_bytes() const noexcept;
+  bool indexed_payload_repair_pending() const noexcept;
+  PagedPayloadRepairProgress repair_indexed_payload();
   using InodeAction=detail::NativeInodeAction;
   NativeFsCommit transact(std::span<const NativeFileMutation>,InodeAction,std::uint64_t,
       std::span<const NativeBasicMutation> basic={},

@@ -186,8 +186,9 @@ can recover through its bound peer and is reported as degradation. Root-only
 repair follows a fully verified, identity/generation-leased resume; orphan tails
 are fenced and retained. Damaged descendant metadata refuses in-place writable
 resume. A streaming rebuild can recover its surviving peers into a new image.
-Payloads are checked but not replicated; loss of both metadata copies or required
-payload/dependency bytes cannot be repaired by their checksums.
+Mirrored payloads in capability 2 can supply verified bytes for an append-only
+repair. Healthy source and snapshot references stay usable through the existing
+checkpoint protocol. [Mirrored payload repair](MIRRORED_PAYLOADS.md#automatic-repair-after-a-verified-read)
 
 Rebuild now refuses newly written degraded metadata before publication and
 independently reparses/scrubs the completed root pair before returning success.

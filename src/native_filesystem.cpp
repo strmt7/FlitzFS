@@ -1113,7 +1113,7 @@ struct NativeFilesystemWriter::Impl {
   template<class Read>
   auto read_indexed(Read&& read) {
     try {
-      const auto snapshot=objects.snapshot_for_staging(true);
+      const auto snapshot=objects.snapshot_for_indexed_read();
       const auto bytes=object_bytes(snapshot,kNamespaceObject,kMetadataCap);
       const detail::IndexedVolumeView view(*snapshot.paged_if(),bytes);
       if(view.root()!=*indexed)fail(Code::corrupt,"indexed writer root differs from backing");
@@ -1127,7 +1127,7 @@ struct NativeFilesystemWriter::Impl {
   template<class Commit>
   auto mutate_indexed(Commit&& commit) {
     try {
-      const auto source=objects.snapshot_for_staging(true);
+      const auto source=objects.snapshot_for_indexed_read();
       auto& watched=shared_owner->indexed_work;
       for(auto& watch:watched)watch.changed=false;
       return std::forward<Commit>(commit)(*objects.paged_if(),*source.paged_if(),*indexed,
@@ -2022,6 +2022,15 @@ bool NativeFilesystemWriter::matches_recompression(const Recompression& candidat
   return !poisoned() && impl_->objects.flat_if() && candidate.matches(*impl_->objects.flat_if());
 }
 
+bool NativeFilesystemWriter::indexed_payload_repair_pending() const noexcept {
+  return !poisoned() && impl_->indexed && impl_->objects.payload_repair_pending();
+}
+PagedPayloadRepairProgress NativeFilesystemWriter::repair_indexed_payload() {
+  if(!indexed_payload_repair_pending())return PagedPayloadRepairProgress::idle;
+  try{return impl_->objects.repair_payload();}
+  catch(const std::bad_alloc&){fail(Code::limit,"indexed repair allocation failure");}
+  catch(const std::exception&){fail(Code::storage_failure,"indexed replica repair failed");}
+}
 std::uint64_t NativeFilesystemWriter::indexed_obsolete_bytes() const noexcept {
   if(poisoned() || !impl_->indexed)return 0;
   return impl_->objects.paged_if()->obsolete_bytes();

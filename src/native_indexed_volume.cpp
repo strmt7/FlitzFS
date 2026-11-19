@@ -618,8 +618,10 @@ class IndexedVolumeTransaction final {
 
   PagedStoreInfo healthy_checkpoint() const {
     const auto info=source_.info();
-    if(info.degraded_roots || info.degraded_metadata || info.degraded_payloads)
-      fail(Code::storage_failure,"indexed transaction encountered degraded storage");
+    if(info.degraded_roots || info.degraded_metadata)
+      fail(Code::storage_failure,"indexed transaction encountered degraded metadata");
+    if(info.degraded_payloads)
+      fail(Code::replica_repair_pending,"indexed transaction needs verified payload repair");
     return info;
   }
 

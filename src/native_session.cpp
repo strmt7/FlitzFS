@@ -547,6 +547,12 @@ void NativeFileSession::bind_persistent_reclamation(std::shared_ptr<detail::Nati
   self.volume_file_bound=true;
   self.persistent_reclaimer=std::move(reclaimer);
 }
+bool NativeFileSession::indexed_payload_repair_pending() const noexcept {
+  return !poisoned() && impl_->writer.indexed_payload_repair_pending();
+}
+PagedPayloadRepairProgress NativeFileSession::repair_indexed_payload() {
+  return ready().writer.repair_indexed_payload();
+}
 bool NativeFileSession::persistent_reclamation_pending() const {
   return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this);
 }

@@ -108,6 +108,24 @@ struct Entry {
   std::uint64_t peer=0;
   bool operator==(const Entry&) const =default;
 };
+// Only observed failures use this queue. When it fills, a bounded keyset sweep
+// recovers notifications without allocating an inventory proportional to the volume.
+struct PayloadRepairQueue {
+  std::array<Entry,kStoreMaxObjects> records{};
+  std::size_t count=0;
+  std::uint64_t scan_after=0,blocked_generation=0;
+  bool scan=false;
+
+  void observe(const Entry& entry) noexcept {
+    const auto pending=std::span(records).first(count);
+    if(std::ranges::find(pending,entry)!=pending.end())return;
+    if(count<records.size())records[count++]=entry;
+    else {scan=true;scan_after=0;}
+  }
+  bool pending(std::uint64_t generation) const noexcept {
+    return blocked_generation!=generation && (count || scan);
+  }
+};
 void encode_ref(std::span<std::byte> b,std::size_t at,const Ref& r) {
   put64(b,at,r.first);put64(b,at+8,r.last);put64(b,at+16,r.count);
   put64(b,at+24,r.logical);put64(b,at+32,r.stored);put64(b,at+40,r.primary);
@@ -139,6 +157,7 @@ struct State {
   bool mirrored=false;
   mutable bool degraded_payloads=false;
   std::shared_ptr<detail::StoreCodecDecoder> decoder=std::make_shared<detail::StoreCodecDecoder>();
+  std::shared_ptr<PayloadRepairQueue> payload_repairs;
 };
 std::size_t entry_bytes(const State& s){return s.mirrored?72:64;}
 std::size_t leaf_capacity(const State& s){return (digest_at-header_bytes)/entry_bytes(s);}
@@ -273,7 +292,7 @@ std::optional<Entry> lookup(const State& s,std::uint64_t id,LookupPages* scoped=
   fail("lookup depth");
 }
 using RecordHeader=std::array<std::byte,record_header_bytes>;
-struct ObjectRecord {RecordHeader header{};Bytes payload;};
+struct ObjectRecord {RecordHeader header{};Bytes payload;bool recovered_primary=false;};
 void verify_record_header(const State& s,const Entry& e,const RecordHeader& h) {
   const auto codec=get32(h,12);
   if(!magic(h,data_magic) || get32(h,8)!=1 || get64(h,16)!=e.id || get64(h,24)!=e.generation ||
@@ -296,7 +315,10 @@ ObjectRecord read_record(const State& s,const Entry& e) {
   catch(const std::bad_alloc&){throw;}
   catch(const std::exception&) {
     if(!s.mirrored)throw;
-    s.degraded_payloads=true;return read_record_at(s,e,e.peer);
+    s.degraded_payloads=true;
+    auto survivor=read_record_at(s,e,e.peer);
+    survivor.recovered_primary=true;
+    return survivor;
   }
 }
 Bytes decode_record(const State& s,const Entry& e,const ObjectRecord& record) {
@@ -308,8 +330,9 @@ Bytes decode_record(const State& s,const Entry& e,const ObjectRecord& record) {
 }
 Bytes read_object(const State& s,const Entry& e) {
   auto record=read_record(s,e);
-  if(get32(record.header,12)==detail::kStoreRaw)return std::move(record.payload);
-  return decode_record(s,e,record);
+  auto bytes=get32(record.header,12)==detail::kStoreRaw?std::move(record.payload):decode_record(s,e,record);
+  if(record.recovered_primary && s.payload_repairs)s.payload_repairs->observe(e);
+  return bytes;
 }
 void verify_object(const State& s,const Entry& e) {
   if(!s.mirrored){(void)read_object(s,e);return;}
@@ -770,6 +793,7 @@ struct PagedObjectStoreWriter::Impl {
   bool poisoned=false;
   std::shared_ptr<const void> owner=std::make_shared<const unsigned char>(0);
   mutable std::weak_ptr<const void> pending_rebuild;
+  mutable std::shared_ptr<PayloadRepairQueue> payload_repairs;
   Impl(std::shared_ptr<StoreByteIo> image,StoreCompressionOptions options):lease(std::move(image)),encoder(options){}
 };
 struct PagedObjectStoreWriter::Rewrite::Impl {
@@ -1427,6 +1451,119 @@ PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_staging(bool query
   auto p=std::make_unique<PagedObjectStoreSnapshot::Impl>();p->state=impl_->state;
   if(query_cache)p->lookup_pages.emplace();
   return PagedObjectStoreSnapshot(std::move(p));
+}
+PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot_for_indexed_read() const {
+  auto snapshot=snapshot_for_staging(true);
+  if(impl_->state.mirrored) {
+    // Repair bookkeeping must not prevent a verified read under pressure.
+    if(!impl_->payload_repairs) {
+      try{impl_->payload_repairs=std::make_shared<PayloadRepairQueue>();}
+      catch(const std::bad_alloc&){}
+    }
+    snapshot.impl_->state.payload_repairs=impl_->payload_repairs;
+  }
+  return snapshot;
+}
+bool PagedObjectStoreWriter::payload_repair_pending() const noexcept {
+  return !poisoned() && impl_->payload_repairs && impl_->payload_repairs->pending(impl_->state.generation);
+}
+PagedPayloadRepairProgress PagedObjectStoreWriter::repair_payload() {
+  using Progress=PagedPayloadRepairProgress;
+  if(!payload_repair_pending())return Progress::idle;
+
+  auto& writer=*impl_;
+  auto& queue=*writer.payload_repairs;
+  const auto& selected=writer.state;
+  const bool queued=queue.count!=0;
+  bool writing=false;
+  try {
+    auto source=load(selected.image,selected.limits);
+    const auto contract=source.image->contract();
+    admit_contract(contract);
+    if(!same(selected,source) || source.degraded_roots || source.degraded_metadata ||
+        contract.write_failure_unit_bytes>source.unit || source.image->extent()>writer.append_floor)
+      fail("payload repair source checkpoint or backing changed");
+
+    std::optional<Entry> record;
+    if(queued) {
+      const auto& observed=queue.records[queue.count-1];
+      record=lookup(source,observed.id);
+      if(record!=observed)record.reset();
+    } else {
+      bool done=false;
+      auto first=[&](const Entry& entry){record=entry;return false;};
+      walk(source,source.root,queue.scan_after,first,done);
+    }
+    const auto settle=[&] {
+      if(queued)--queue.count;
+      else if(record)queue.scan_after=record->id;
+      else {queue.scan=false;queue.scan_after=0;}
+    };
+    if(source.degraded_metadata)fail("payload repair metadata replica lost");
+    if(!record){settle();return Progress::checked;}
+
+    const auto verified_copy=[&](std::uint64_t offset)->std::optional<ObjectRecord> {
+      try {
+        auto copy=read_record_at(source,*record,offset);
+        (void)decode_record(source,*record,copy);
+        return copy;
+      }catch(const std::bad_alloc&){throw;}
+      catch(const std::exception&){return {};}
+    };
+    auto primary=verified_copy(record->offset);
+    auto peer=verified_copy(record->peer);
+    if(primary && peer){settle();return Progress::checked;}
+    if(!primary && !peer)fail("payload repair requires an independently verified copy");
+    const auto& survivor=primary?*primary:*peer;
+
+    // Use the ordinary append and COW index planner. The source digest and
+    // object generation remain valid because only the physical address moves.
+    Plan plan{source};
+    plan.next.checkpoint=add(source.generation,1);
+    plan.next.generation=add(source.generation,2);
+    plan.changed_keys=1;
+    auto replacement=*record;
+    auto cursor=writer.append_floor;
+    PayloadAllocation allocation;
+    allocation.place(plan.next,replacement,add(record_header_bytes,replacement.stored),cursor);
+    allocation.seal();
+    plan.page_start=align(cursor,source.unit);
+    const Change change{replacement.id,false,replacement};
+    plan.finish(plan.rewrite(source,source.root,std::span(&change,1)));
+    if(source.degraded_metadata || plan.next.root.count!=source.root.count ||
+        plan.next.root.logical!=source.root.logical || plan.next.root.stored!=source.root.stored)
+      fail("payload repair inventory or metadata changed");
+    const auto obsolete=add(writer.obsolete_bytes,plan.obsolete_bytes);
+    if(obsolete>plan.next.end-start)fail("payload repair obsolete byte accounting");
+    try{source.image->admit_write(plan.next.end);}
+    catch(const std::runtime_error& error){capacity(error.what());}
+
+    writing=true;
+    write_object_record(*source.image,replacement,survivor.header,survivor.payload,source.unit);
+    allocation.write_padding(*source.image);
+    plan.write_pages(cursor);
+    verify_object(plan.next,replacement);
+    if(plan.next.degraded_payloads)fail("payload repair wrote a degraded replica");
+    publish(plan.next);
+    auto published=load(source.image,source.limits);
+    if(!same(plan.next,published) || published.degraded_roots ||
+        lookup(published,replacement.id)!=replacement || published.degraded_metadata)
+      fail("payload repair checkpoint did not retain the verified replacement");
+
+    writer.state=std::move(published);writer.append_floor=writer.state.end;writer.obsolete_bytes=obsolete;
+    settle();
+    return Progress::repaired;
+  }catch(const PagedStoreCapacityError&) {
+    if(writing){writer.poisoned=true;throw;}
+    queue.blocked_generation=selected.generation;
+    return Progress::capacity;
+  }catch(const std::bad_alloc&) {
+    if(writing)writer.poisoned=true;
+    throw;
+  }catch(...) {
+    writer.poisoned=true;
+    throw;
+  }
 }
 std::uint64_t PagedObjectStoreWriter::generation_for_staging() const noexcept {
   return poisoned()?0:impl_->state.generation;

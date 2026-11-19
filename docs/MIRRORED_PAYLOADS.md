@@ -66,18 +66,32 @@ both encoded and decoded copies, including a bad peer hidden by a healthy primar
 It retains access through one good copy; losing both refuses access, with no
 silent rollback to an older namespace or fabricated reconstruction.
 
-Writable resume fully scrubs first and refuses known damaged replicas. Repair
-streams surviving bytes into a new image, preserving the mirrored policy and
-object generations, then independently verifies both new copies. Source bytes
-and source barriers remain untouched. Native synchronous and staged maintenance
-preserve the policy; an already live native writer can provide CPU reads while a
-staged candidate reconstructs a subsequently damaged payload bank. Foreground
-commits still invalidate the staged attempt. New commits independently check
-both newly written copies before publishing their root.
+### Automatic repair after a verified read
 
-Repair is explicit and source-preserving. There is no automatic repair scheduler,
-active-volume replacement, in-place patching, payload parity code or physical
-device failure protection. Metadata replicas retain their existing protection.
+A successful primary-to-peer fallback in a live indexed query records the
+selected object descriptor. The initialized queue holds up to one ordinary
+transaction's change count. If more distinct repairs arrive, the owner
+uses a checkpoint-checked keyset sweep to inspect one record at a time.
+The read returns verified data immediately. A write that encounters the same
+recoverable degradation receives `STATUS_RETRY` before any publication.
+The Windows owner schedules repair under its existing background priority
+and fresh resource checks.
+
+A repair step compares the observation to the current exact descriptor and
+independently decodes both copies. A superseded record or a healthy retry
+settles the observation without a write. With one verified copy, the writer
+appends two verified copies and updates the index through a normal COW
+checkpoint. The encoded payload, object generation, namespace sequence and
+volume selection are preserved. Existing payload banks stay available to
+pinned readers. An indeterminate write or checkpoint fences the writer.
+If both copies fail verification, the operation refuses to publish bytes.
+A capacity refusal suspends that queue at the same storage generation.
+
+Writable resume fully scrubs and refuses known damaged payload replicas.
+An explicit independent rebuild streams verified surviving objects into a
+new image and verifies both new copies. Proactive scheduled scrubbing,
+automatic offline repair and capacity-triggered repair rotation remain open.
+Metadata replicas retain their existing protection.
 The defined separation protects against damage to a qualified write-failure
 unit; both copies are still in one image. Common-mode errors, loss of the image/
 device, dishonest flushes, lost RAM after power-off and arbitrary future bugs
@@ -92,6 +106,13 @@ native root/inode/name/data banks, surviving-copy reads, both-copy rejection,
 source-preserving repair, staged live repair, sharing/private updates, independent
 new-copy readback and all observed native transaction write/barrier cuts in three
 failure modes. [Source-bound validation](evidence/mirrored-payloads-2026-11-15.json).
+
+The live indexed repair checks preserve acknowledged bytes, pinned readers and
+object generations. The 4 KiB and 64 KiB models exercise 360 isolated repair
+interruptions. They also verify stale observations, transient reads, capacity
+refusal and loss of both copies. The Windows SDK callback fixture verifies a
+retryable write and an automatic repair with independent CPU reopen.
+[Live repair validation](evidence/indexed-live-payload-repair-2026-11-20.json)
 
 In the controlled 96-object raw fixture, one encoded stream contains 1,057,068
 bytes at U=4,096; the complete mirrored image is 2,310,144 bytes. At U=65,536,
