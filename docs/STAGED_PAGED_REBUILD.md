@@ -90,6 +90,18 @@ block; this is a bounded-work contract, not a wall-clock or zero-interference
 guarantee. A qualified controller must supply fresh headroom/contention evidence,
 low scheduling/I/O priority and foreground-yield opportunities.
 
+## Filtered advisory compaction
+
+The coherence catalog uses the same staged verifier and packed builder with
+a filter over byte-bounded posting records. Each read pass visits at most a
+quarter of a leaf per opportunity. The planner records the count, lengths
+and digest of the selected inventory, then requires the same selection during
+the copy. It reserves write credit for a strictly smaller packed target
+before writing and caps the target extent at the planned footprint. The
+candidate's typed root preserves the catalog identity. The ordinary data
+rewrite still uses a new image identity.
+[Coherence catalog](OPTIMIZATION_STATE.md#compaction-at-the-append-limit)
+
 ## Executed scope
 
 The dedicated memory suite checks all three layouts under 4-KiB and 64-KiB

@@ -75,9 +75,10 @@ funded scan checkpoint through Windows SDK callbacks. Larger advisory
 checkpoints preserve distant candidates across restart and unrelated writes
 within the existing storage and write budget. The owned Windows memory volume
 now provisions a paged sparse catalog during a funded scan, retains the exact
-writer on remount and releases discarded backing in idled steps. Stale-posting
-reclamation at scale, persistent media, mounted maintenance and useful
-collective AMD work remain required.
+writer on remount and releases discarded backing in idle steps. It also
+compacts stale postings after an append-space refusal and reclaims the old
+reservation after verification. Scale qualification, persistent media,
+mounted maintenance and useful collective AMD work remain required.
 [Shifted group validation](evidence/shifted-indexed-groups-2026-11-18.json) ·
 [Restart validation](evidence/indexed-representative-retention-2026-11-19.json)
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "memory_volume.hpp"
 #include "flitzfs/projection.hpp"
+#include <array>
 namespace flitzfs {
 class NativeFileSession;
 class IndexedCoherenceStorage;
@@ -45,7 +46,8 @@ struct MemoryVolumeBacking {
   ReadOnlyProjection seal_checked(NativeVolumeHeadView);
   enum class CompactionPhase {idle,copying,ready,uncertain,retiring};
   CompactionPhase phase_=CompactionPhase::idle;
-  std::shared_ptr<StoreByteIo> alternate_,coherence_;
+  std::shared_ptr<StoreByteIo> alternate_;
+  std::array<std::shared_ptr<StoreByteIo>,2> coherence_;
   std::shared_ptr<IndexedCoherenceStorage> coherence_storage_;
   StoreIdentity alternate_identity_{};
   std::uint64_t attempted_obsolete_=0,abandoned_bytes_=0;

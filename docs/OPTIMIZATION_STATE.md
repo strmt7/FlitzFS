@@ -327,8 +327,35 @@ The owned indexed Windows memory volume now supplies a private reservation to
 that scanner. The first useful funded batch creates the catalog in one paged
 transaction with its typed root. A healthy writer lease survives a joined
 remount of the same image. A failed or superseded catalog releases its
-reservation after the last owner drops it. Reclaiming stale postings from a
-healthy catalog at capacity requires a later compaction path.
+reservation after the last owner drops it.
 [Windows backing](WINDOWS_MEMORY_VOLUME_FACTORY.md#automatic-coherence-catalog)
+
+### Compaction at the append limit
+
+A physical-space refusal schedules a bounded compaction. The planner validates
+the typed root and walks the source catalog in key order. It checks each
+posting's inode, extent, object and physical revision against one pinned
+native snapshot. The snapshot stays valid across unrelated writes. Only
+matched postings enter the packed copy, along with the typed root. A posting
+can become stale after planning, and the lookup consumer still checks the
+current file before using it.
+
+The planner measures the complete target footprint before writing. It
+proceeds only when the replacement is smaller and can spend the necessary
+credit. The old catalog remains readable during all phases. The rebuilt store
+keeps the same volume and image identity and advances its checkpoint
+generation. A completed independent verification allows the owner to select
+the replacement and release the old writer. Sampling and reclamation share
+the same idle admission and alternate when both have pending work. A refused
+or failed copy waits for new committed input proportional to the old
+catalog's footprint before another attempt.
+
+The June 2026 RocksDB compaction analysis describes using observed space and
+read costs to limit write amplification. FlitzFS measures its own packed
+footprint and uses its native write ledger for the decision.
+[RocksDB compaction analysis](https://rocksdb.org/blog/2026/06/20/fifo-kv-ratio-compaction.html)
+
+[Compaction validation](evidence/windows-catalog-compaction-2026-11-19.json) ·
+[Staged rebuild](STAGED_PAGED_REBUILD.md#filtered-advisory-compaction)
 [Write funding](OPTIMIZATION_BUDGET.md#funded-catalog-updates) ·
 [Host validation](evidence/funded-paged-coherence-2026-11-19.json)

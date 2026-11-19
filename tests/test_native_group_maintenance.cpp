@@ -773,6 +773,113 @@ void automatic_indexed_catalog(CatalogFunding outcome) {
       user.read("second",0,kNativeExtentBytes)==second,"automatic catalog creation lost acknowledged data");
   user.verify_all();
 }
+enum class CoherenceCopyOutcome {completed,charge_cut,target_cut};
+std::size_t compact_full_indexed_catalog(CoherenceCopyOutcome outcome,std::size_t target_cut=0) {
+  Fixture f(4096,0,true);
+  auto advice=ram(4096);
+  require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "catalog copy needs funded advice");
+  // The backing holds exactly one incremental page rewrite after creation.
+  // This is fixture pressure; Windows uses a headroom-derived layout.
+  const PagedStoreLimits limits{38*4096};
+  std::vector<std::shared_ptr<Ram>> backings;
+  auto owner=std::make_shared<IndexedCoherenceStorage>(limits,[&]() -> std::shared_ptr<StoreByteIo> {
+    if(backings.size()==2)throw std::runtime_error("unexpected catalog reservation");
+    return backings.emplace_back(ram(4096));
+  });
+  f.session->configure_indexed_coherence(owner);
+  const auto stable=data(kNativeExtentBytes,1207);
+  const auto old=data(kNativeExtentBytes,373);
+  put(*f.session,"keep",stable);
+  put(*f.session,"edited",old);
+  unsigned funding=0;
+  const auto earn=[&](unsigned count) {
+    for(unsigned i=0;i<count;++i)
+      put(*f.session,"credit-"+std::to_string(funding++),Bytes(3*kOptimizationGroupScanInputBytes/4));
+  };
+  const auto edit=[&](const Bytes& bytes) {
+    const auto opened=f.session->open("edited",{true,true,false});
+    f.session->write(opened,0,bytes);f.session->cleanup(opened,false);f.session->close(opened);
+  };
+  earn(3);
+  NativeGroupMaintenance controller(*f.session);
+  finish_pending(f,controller);
+  require(backings.size()==1 && controller.progress().coherence_catalog_bytes>0,"fixture failed to create initial catalog");
+  const auto data_view=f.session->snapshot();
+  const auto first_scan=*f.session->optimization_snapshot().state.group_scan;
+  const auto find_feature=[&](std::string_view name) {
+    const auto inode=data_view.stat(name).inode;
+    const auto found=std::ranges::find(first_scan.representatives,inode,&OptimizationGroupFeature::inode);
+    if(found==first_scan.representatives.end())throw std::runtime_error("fixture lost a sampled file");
+    return *found;
+  };
+  const auto keep=find_feature("keep"),stale=find_feature("edited");
+  const auto active=backings.front();
+  edit(data(kNativeExtentBytes,57012));
+  earn(2);
+  finish_pending(f,controller);
+  const auto full=active->extent();
+  const auto before=f.session->optimization_snapshot();
+  require(backings.size()==1 && full==limits.maximum_physical_bytes,"fixture did not fill the selected catalog");
+
+  const auto latest=data(kNativeExtentBytes,27992);
+  edit(latest);
+  earn(1);
+  const auto old_writes=active->calls;
+  finish_pending(f,controller);
+  require(backings.size()==2 && !backings.back()->calls && !backings.back()->extent() &&
+      f.session->optimization_snapshot().sequence==before.sequence,
+      "blocked copy spent its charge or wrote before sufficient credit");
+  const auto candidate=backings.back();
+  const auto probe_reads=active->read_calls+candidate->read_calls;
+  for(unsigned i=0;i<10;++i)f.step(controller);
+  require(!controller.pending() && active->read_calls+candidate->read_calls==probe_reads &&
+      active->calls==old_writes && !candidate->calls,"credit wait polled the old catalog or replacement");
+
+  if(outcome==CoherenceCopyOutcome::charge_cut)advice->fail_at=advice->calls+2;
+  if(outcome==CoherenceCopyOutcome::target_cut)candidate->fail_at=target_cut;
+  const auto unrelated=data(kNativeExtentBytes,69923);
+  put(*f.session,"other",unrelated);
+  earn(2); // While the planner pins the previous, immutable file checkpoint.
+  finish_pending(f,controller);
+  const auto progress=controller.progress();
+  const auto copy_calls=candidate->calls;
+  require(backings.size()==2 && active->calls==old_writes,"compaction modified the old catalog or restarted on unrelated input");
+  const auto original=IndexedCoherenceSnapshot::open(active,id(90),id(1),limits);
+  require(original.find(0,keep.bands[0])==keep && original.find(0,stale.bands[0])==stale,
+      "compaction altered the existing catalog's live or old bindings");
+  const auto settled=read_optimization_state(*image(advice->stable,4096),id(90));
+  require(settled.code==OptimizationReadCode::available &&
+      *settled.state.settled_input_bytes>*before.state.settled_input_bytes,"copy did not settle its write budget");
+  if(outcome==CoherenceCopyOutcome::completed) {
+    const auto replacement=IndexedCoherenceSnapshot::open(candidate,id(90),id(1),limits);
+    require(progress.coherence_compactions==1 && !progress.coherence_discards &&
+        progress.coherence_compacted_bytes_saved==full-replacement.info().physical_end &&
+        replacement.info().objects==2 && replacement.find(0,keep.bands[0])==keep &&
+        !replacement.find(0,stale.bands[0]),"compaction kept stale postings or lost a current representative");
+    require(*settled.state.settled_input_bytes-*before.state.settled_input_bytes==
+        kOptimizationGroupScanInputBytes+candidate->write_bytes*kOptimizationGroupScanInputPerWriteByte,
+        "candidate grew beyond the durable write charge");
+    put(*f.session,"after-copy",data(kNativeExtentBytes,40552));
+    earn(2);
+    finish_pending(f,controller);
+    const auto newer=IndexedCoherenceSnapshot::open(candidate,id(90),id(1),limits);
+    require(newer.info().generation>replacement.info().generation &&
+        newer.find(0,keep.bands[0])==keep,"the compacted catalog did not admit a new write");
+  }else {
+    require(!progress.coherence_compactions && progress.coherence_discards==1 &&
+        progress.coherence_catalog_bytes==full,"interrupted copy displaced the checked old catalog");
+    require(outcome==CoherenceCopyOutcome::charge_cut?(!candidate->calls && settled.degraded):
+        (candidate->calls==target_cut+1 && (candidate->extent()!=0)==(target_cut!=0) && !settled.degraded),
+        "catalog started before the verified charge or retried a failed write");
+  }
+  const auto view=f.session->snapshot();
+  require(!f.session->poisoned() && view.read("keep",0,kNativeExtentBytes)==stable &&
+      view.read("edited",0,kNativeExtentBytes)==latest && view.read("other",0,kNativeExtentBytes)==unrelated,
+      "catalog copy or recovery affected acknowledged file bytes");
+  view.verify_all();
+  return copy_calls;
+}
 void indexed_scan_checkpoint_faults() {
   for(const auto unit:{4096U,65536U})for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<4;++cut) {
     Fixture f(4096,0,true);auto advice=ram(unit);
@@ -808,6 +915,11 @@ int main(int argc,char** argv){try{
       funded_indexed_catalog(outcome);
       automatic_indexed_catalog(outcome);
     }
+    const auto writes_and_barriers=compact_full_indexed_catalog(CoherenceCopyOutcome::completed);
+    require(writes_and_barriers>1,"completed catalog copy never reached the final barrier");
+    compact_full_indexed_catalog(CoherenceCopyOutcome::charge_cut);
+    compact_full_indexed_catalog(CoherenceCopyOutcome::target_cut);
+    compact_full_indexed_catalog(CoherenceCopyOutcome::target_cut,writes_and_barriers-1);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

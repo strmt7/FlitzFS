@@ -24,8 +24,21 @@ struct NativeMaintenanceSource {
   std::optional<IndexedCoherenceSnapshot> coherence;
   std::shared_ptr<IndexedCoherenceWriter> coherence_writer;
   std::shared_ptr<IndexedCoherenceStorage> coherence_storage;
+  std::optional<PagedObjectStoreWriter::Rewrite> coherence_rewrite;
+  std::optional<std::uint64_t> coherence_retry_input;
   std::uint64_t coherence_binding=0,coherence_offer_after=0;
+  std::uint64_t coherence_compactions=0,coherence_discards=0,coherence_compacted_bytes_saved=0;
+  bool coherence_full=false;
+  void cancel_coherence_work() noexcept {
+    if(!coherence_rewrite)return;
+    coherence_rewrite.reset();
+    coherence_retry_input=writer->workload_info().committed_input_bytes;
+    ++coherence_discards;
+  }
   void retire_coherence() noexcept {
+    coherence_rewrite.reset();
+    coherence_retry_input.reset();
+    coherence_full=false;
     coherence.reset();
     if(coherence_storage && coherence_storage->retained_==coherence_writer)
       coherence_storage->retained_.reset();
@@ -35,5 +48,7 @@ struct NativeMaintenanceSource {
   std::function<std::optional<OptimizationGroupScan>()> restore_scan;
   std::function<bool()> scan_funded;
   std::function<bool(OptimizationGroupScan)> publish_scan;
+  std::function<bool()> coherence_pending;
+  std::function<void()> advance_coherence;
 };
 }

@@ -53,13 +53,15 @@ automatic indexed compaction.
 ## Automatic coherence catalog
 
 Owned indexed volumes set aside up to one thirty-second of the available
-post-advice reservation for the coherence catalog when two viable data images
-still fit. Ordinary data keeps its two-image staging allowance. The scanner
-requests the single catalog store only when a useful sample is ready and credit
-can cover creation. The paged store preflights the required locked pages and
-the advisory journal settles the write allowance before initialization. A
-failed attempt can lose optional work while the selected data image and its
-CPU reader remain available.
+post-advice reservation for two equal catalog areas when two viable data
+images still fit. The second catalog area allows a full catalog to stay
+readable while its packed replacement is built. The scanner reserves each
+store as needed and locks only the pages used. The advisory journal settles
+the write allowance before catalog initialization or copying. The Windows
+provider test measured the selected catalog shrink from 155,648 to 143,360
+bytes after pruning stale postings. It verified release of the old
+155,648-byte backing and its address reservation.
+[Rotation validation](evidence/windows-catalog-compaction-2026-11-19.json)
 [Catalog contract](OPTIMIZATION_STATE.md#paged-coherence-catalog)
 
 The joined controller releases its reference to a healthy catalog. The

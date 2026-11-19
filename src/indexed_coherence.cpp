@@ -158,6 +158,16 @@ PagedStoreWriteResult IndexedCoherenceWriter::publish_reserved(
   if(mutations.empty())return {previous.info(),0};
   return store_.commit_impl(mutations,kStoreMaxObjects,kStoreMaxTransactionBytes,maximum_write_bytes,reserve);
 }
+PagedObjectStoreWriter::Rewrite IndexedCoherenceWriter::prepare_compaction(std::shared_ptr<StoreByteIo> target,
+    std::function<bool(const OptimizationGroupFeature&)> keep,std::function<bool(std::uint64_t)> charge) const {
+  const auto root=root_record(volume_,image_);
+  return store_.prepare_rebuild_retaining(std::move(target),raw_storage,{posting_bytes,
+      [root,keep=std::move(keep)](std::uint64_t key,std::span<const std::byte> bytes) {
+        if(key!=root_object)return keep(decode_posting(key,bytes).representative);
+        if(!std::ranges::equal(root,bytes))throw std::runtime_error("coherence compaction root differs");
+        return true;
+      },std::move(charge)});
+}
 IndexedCoherenceStorage::IndexedCoherenceStorage(PagedStoreLimits limits,Reserve reserve)
     :limits_(limits),reserve_(std::move(reserve)) {
   if(!limits_.maximum_physical_bytes || !reserve_)throw std::invalid_argument("coherence storage reservation");

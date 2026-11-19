@@ -12,6 +12,9 @@ namespace {
 constexpr auto unit=kStoreCommitUnit;
 constexpr auto minimum_image=3*unit; // Two root slots and the aligned first object pages.
 void require(bool ok,const char* why){if(!ok)throw std::runtime_error(why);}
+bool unselected(const std::shared_ptr<StoreByteIo>& backing) noexcept {
+  return backing && backing.use_count()==1;
+}
 }
 MemoryVolumeLayout plan_memory_volume(const MemoryVolumeObservation& m,bool indexed_coherence) {
   // This is a virtual reservation budget. Every committed page separately
@@ -21,11 +24,11 @@ MemoryVolumeLayout plan_memory_volume(const MemoryVolumeObservation& m,bool inde
   constexpr auto areas=MemoryVolumeLayout::area_capacity*(NativeFileSession::max_optimization_bindings+1);
   require(capacity>=areas+2*minimum_image,"Insufficient headroom for image roots and advisory space");
   const auto space=capacity-areas;
-  // Keep two full image reservations. Reserve address space for at most one
-  // advisory catalog, with the same proportion as the committed-input policy.
-  const auto advisory=space/kOptimizationGroupScanInputPerWriteByte/unit*unit;
-  const auto coherence=indexed_coherence && advisory>=minimum_image && advisory<=space-2*minimum_image?advisory:0;
-  return {capacity,(space-coherence)/2/unit*unit,coherence};
+  // Preserve the same total advisory share for the selected catalog and its
+  // replacement. Each store reserves and locks memory only when needed.
+  const auto advisory=space/(2*kOptimizationGroupScanInputPerWriteByte)/unit*unit;
+  const auto coherence=indexed_coherence && advisory>=minimum_image && 2*advisory<=space-2*minimum_image?advisory:0;
+  return {capacity,(space-2*coherence)/2/unit*unit,coherence};
 }
 StoreIdentity fresh_volume_identity() {
   StoreIdentity id{};
@@ -50,9 +53,10 @@ void MemoryVolumeBacking::configure_coherence(NativeFileSession& session) noexce
   try {
     if(!coherence_storage_) {
       coherence_storage_=std::make_shared<IndexedCoherenceStorage>(PagedStoreLimits{layout.coherence_capacity},[this] {
-        if(coherence_)return std::shared_ptr<StoreByteIo>{};
-        coherence_=domain->create_store(layout.coherence_capacity);
-        return coherence_;
+        const auto free=std::ranges::find_if(coherence_,[](const auto& slot){return !slot;});
+        if(free==coherence_.end())return std::shared_ptr<StoreByteIo>{};
+        *free=domain->create_store(layout.coherence_capacity);
+        return *free;
       });
     }
     session.configure_indexed_coherence(coherence_storage_);
@@ -61,10 +65,12 @@ void MemoryVolumeBacking::configure_coherence(NativeFileSession& session) noexce
   }
 }
 bool MemoryVolumeBacking::coherence_retirement_pending() const noexcept {
-  return coherence_ && coherence_.use_count()==1 && MemoryVolumeDomain::cleanup_healthy();
+  return MemoryVolumeDomain::cleanup_healthy() && std::ranges::any_of(coherence_,unselected);
 }
 void MemoryVolumeBacking::advance_coherence_retirement() {
-  if(coherence_retirement_pending())(void)domain->retire_store(coherence_);
+  if(!MemoryVolumeDomain::cleanup_healthy())return;
+  const auto old=std::ranges::find_if(coherence_,unselected);
+  if(old!=coherence_.end())(void)domain->retire_store(*old);
 }
 std::shared_ptr<StoreByteIo> MemoryVolumeBacking::resolve_image(const StoreIdentity& selected) const {
   if(selected==image_identity)return image;
@@ -146,7 +152,7 @@ void MemoryVolumeBacking::cancel_compaction(NativeFileSession& session) noexcept
     phase_=CompactionPhase::retiring;
 }
 void MemoryVolumeBacking::release_unselected_after_join() noexcept {
-  if(coherence_ && coherence_.use_count()==1)coherence_.reset();
+  for(auto& backing:coherence_)if(unselected(backing))backing.reset();
   if(phase_==CompactionPhase::uncertain)return;
   alternate_.reset();
   alternate_identity_={};
@@ -174,7 +180,7 @@ ReadOnlyProjection MemoryVolumeBacking::seal_checked(NativeVolumeHeadView checke
   const auto extent=resolve_image(checked.info().selection.image_identity)->extent();
   auto projection=ReadOnlyProjection::from_owned_volume(std::move(checked),extent);
   coherence_storage_.reset();
-  if(coherence_ && coherence_.use_count()==1)coherence_.reset();
+  for(auto& backing:coherence_)if(unselected(backing))backing.reset();
   domain->seal_read_only();
   return projection;
 }

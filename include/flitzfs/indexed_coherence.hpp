@@ -49,6 +49,15 @@ class IndexedCoherenceWriter final {
       std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve);
   PagedStoreWriteResult publish_reserved(std::span<const IndexedCoherencePosting>,
       std::uint64_t maximum_write_bytes,const std::function<bool(std::uint64_t)>& reserve);
+  // Prepare a filtered copy on separate backing. The original stays selected
+  // through complete staged verification and the funded write reservation.
+  PagedObjectStoreWriter::Rewrite prepare_compaction(std::shared_ptr<StoreByteIo>,
+      std::function<bool(const OptimizationGroupFeature&)>,
+      std::function<bool(std::uint64_t)>) const;
+  bool advance_compaction(PagedObjectStoreWriter::Rewrite& work) const {return work.advance(store_);}
+  IndexedCoherenceWriter finish_compaction(PagedObjectStoreWriter::Rewrite& work) const {
+    return IndexedCoherenceWriter(work.finish(store_),volume_,image_);
+  }
   IndexedCoherenceWriter(PagedObjectStoreWriter,StoreIdentity volume,StoreIdentity image);
   PagedObjectStoreWriter store_;
   StoreIdentity volume_,image_;

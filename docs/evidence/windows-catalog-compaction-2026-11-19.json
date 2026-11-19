@@ -1,0 +1,226 @@
+{
+  "schema": 1,
+  "date": "2026-11-19",
+  "source_base": "191493cc8b8a34f99df31c869ae99f70b32f4f1c",
+  "source_binding": {
+    "include/flitzfs/indexed_coherence.hpp": {
+      "sha256": "69ac043e14e4b46d6533d6f5e9d796f86b13fb9e416de56435ebb7f0898369f4",
+      "git_blob": "29d2735f1850bb1b5a0e0c99cf19a98bb0e2132b"
+    },
+    "include/flitzfs/native_filesystem.hpp": {
+      "sha256": "4b32b6c2f5f35e13259b7dc2bfaa37d915498f34d46725a00cfff9f6c74d066e",
+      "git_blob": "27c8f6689c0070219e1f27696577becddc375cd4"
+    },
+    "include/flitzfs/native_maintenance.hpp": {
+      "sha256": "d2e958fcf95c20a77d68d96ff15a27600f39b296afa76cd9ce34ab81040a4642",
+      "git_blob": "f359692c6e2e218947b88d63b27b7b178eaedb30"
+    },
+    "include/flitzfs/paged_store.hpp": {
+      "sha256": "1cb2d538344b7d33e0d92e92239bf1771ccdb675fc562f5cbebd7bd5a7856549",
+      "git_blob": "c7ce2bb6cf4875863e31c4e846bbad2ebe971099"
+    },
+    "src/indexed_coherence.cpp": {
+      "sha256": "bfe23b6488e02a7d756d75928d67b83616574aaa842b97161a181285326e9b35",
+      "git_blob": "60ef5f3b70a45a03b1614f8ed03a2ce95d06acfb"
+    },
+    "src/native_filesystem.cpp": {
+      "sha256": "0a83ba3616dd757d2b430dd7feca75f4c3749cac322ae78c2414c41c496b0dc9",
+      "git_blob": "8688b0cf1c3219bc3cb40ce989343045f1ab622d"
+    },
+    "src/native_maintenance.cpp": {
+      "sha256": "41fb43bd270d642ddff86c81afa9699fdd60d0292c8f15a5892a15c5c2e73ee0",
+      "git_blob": "e15cb42600d568f405bd9ecafa9392ab2ed931c5"
+    },
+    "src/native_maintenance_source.hpp": {
+      "sha256": "f7996df15ab1ca417256fbc7f367a39b264a5e380754a0b5c28fce44252f653f",
+      "git_blob": "73b6db8ecce9a75a3fc516696d8e9761ff710c23"
+    },
+    "src/native_session.cpp": {
+      "sha256": "de705d6c63c6a4a551c011cf28c6590bdd941f9575c7e70a8f9e5f666bab1e0e",
+      "git_blob": "28f3fbffe3967e4672b2cb30678c6d8c0e95d733"
+    },
+    "src/paged_store.cpp": {
+      "sha256": "f1a7f45415bd8cc630b326efcf718d7fbe46f659725333d048355f00191e5b0d",
+      "git_blob": "788563a1496a5ee9d4a131d9c9ff034712117d7a"
+    },
+    "src/windows/memory_volume_factory.cpp": {
+      "sha256": "5eb10e4b821d4676af1ba99b93d16ca3b96ec64887c78bf61ca4226c1fb7f09d",
+      "git_blob": "747fc7b9f80bab505190e668d94609151215c9cb"
+    },
+    "src/windows/memory_volume_factory.hpp": {
+      "sha256": "ee00131dd8030e5c2912a0a99f76dd2208f49d89d10d8e5bf26531ef535c2194",
+      "git_blob": "272f0a89470aa34bffaaba0ef7942435156883b6"
+    },
+    "tests/test_native_group_maintenance.cpp": {
+      "sha256": "d8abcf5c7328cede467994896f03bb7249803fb5ae4655c805e11668dfc92d28",
+      "git_blob": "3e68be47c1b11525da70701a97c6588a1eb99d79"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "sha256": "51c023582ce3902f9dfb2e5b7758ddbe05037df1a2b7c52504b09d8d84cea7e6",
+      "git_blob": "0f19b46bc95979020df6a4aba412cece891399fe"
+    }
+  },
+  "scope": "Physical Windows 11 Pro AMD64. Bounded CPU and Windows SDK fixtures, synthetic files, injected Windows lifecycle and modeled file/journal interruptions. No benchmark or power-loss claim.",
+  "builds": {
+    "winfsp_and_codec": {
+      "run": "local-run-4aefb1e7017f4ad2b374d03a4a14945f",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "bd2eb119ab3a395f280cbb10b7f4b918ac7900f59ead27cabf227651e4cb2199",
+      "log_sha256": "e689f52f005af50ba16a2d4ac13736b0535dd6907fc162662502cd3c09fdda60",
+      "peak_process_tree_commit_bytes": 303697920
+    },
+    "raw": {
+      "run": "local-run-e9706990c22a4fc3962f22bdbb06b601",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "6b2e78930d468d5ef63189c6529a49f4b97720ac9145a065faa5678ff2984d27",
+      "log_sha256": "db0630f9820f0fac95513a0eac5855f5b2323bf7e8b78f81da5e8bf12d52f788",
+      "peak_process_tree_commit_bytes": 402452480
+    },
+    "address_sanitizer": {
+      "run": "local-run-5f8fd94d03f0462594e20d6362ec8dd9",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "3dec25ea0f077556888b6b00033c9c00f4b89a9c23b23a50110bfd37b43221dd",
+      "log_sha256": "566352d121f357fecabd4498495ef6f80add52d0788cc8d157667ed0303f7b55",
+      "peak_process_tree_commit_bytes": 406245376
+    }
+  },
+  "verification": {
+    "winfsp_codec_scope": {
+      "run": "local-run-a2f801a52e494d35915f998912f5093e",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "0a578af053f5b7e3d7c3f2348c8fbb05fc4fd1a485760040e5f56622081ee4c7",
+      "log_sha256": "b802e21c30c57120b159fea7bb8d64d47327baa060875d3cd85564a862b54bd1",
+      "peak_process_tree_commit_bytes": 106348544,
+      "entries": 22
+    },
+    "raw": {
+      "run": "local-run-18ed11b12e1740769027338a5b93fbbc",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "abf3467996cfd507a6ddfa4ce4382ea7e77af3a4c5a4c97f809737219795afb3",
+      "log_sha256": "3af70c89e0c829a50afeabc560c6eb97a732ffc2c83244ed41896b476ce852d1",
+      "peak_process_tree_commit_bytes": 106733568,
+      "entries": 16
+    },
+    "rotation": {
+      "old_catalog_bytes": 155648,
+      "new_catalog_bytes": 143360,
+      "old_locked_bytes_retired": 155648
+    },
+    "final_ctest_detail_sha256": "386d8b0295d8e8293bcaedca48a0483a29ce88d318257032cdc11207354ae52c",
+    "checked_cases": [
+      "An actual append limit starts a filtered copy with an immutable native view, retaining the old lookup path.",
+      "The planner waits without catalog I/O or charge until sufficient new committed input exists.",
+      "Further native writes do not restart the plan. The resulting catalog keeps unchanged live features, drops stale postings and can accept another update.",
+      "The paired journal advances before candidate writes. A torn charge prevents all candidate writes.",
+      "Failures at the first write and final barrier keep the old selected catalog and retain the durable write charge.",
+      "The Windows memory provider retains both areas through rotation and frees the old address reservation and locked pages.",
+      "Independent CPU readers verify exact acknowledged file contents, including concurrent foreground input."
+    ],
+    "address_sanitizer": {
+      "run": "local-run-869f0fcd9115418cab83810eb4bdae7b",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "f8f0aeca648ba6fd52033fbe037bc60b78c787d71975be967f52d53e5e094910",
+      "log_sha256": "d033f912d33554f4b408bf8315cb12fd8be37afde03307e50112bb8aec774ec6",
+      "peak_process_tree_commit_bytes": 802750464,
+      "entries": 17
+    },
+    "address_sanitizer_runtime_preflight": true
+  },
+  "navigation": {
+    "scope": "catalog-rebuild-routing-ae4b2e18fef64bd588eb123a19340a83",
+    "receipt_sha256": "faf4b69da47b0bc5b23db18f0001d5e7fd18cbf9c6e0680ae22e050240393812",
+    "native_response_sha256": "89ac1b3eb144074a6c36082825aaa4f13a4ee1b4abdbb37cfd45f6f6873d4add",
+    "source_files": 8,
+    "version": "0.2.43",
+    "bounded_run": {
+      "run": "local-run-93d4d3617e4b4c3a9307146499496943",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "44d8522c044258319c199281de2b95e61c09a04dd6fe2e64fc357938e8ee7dc6",
+      "log_sha256": "63f450b509974e2f04c47a30b58e5e2d61a25d4d22b1ab2ee5e9d4534a755342",
+      "peak_process_tree_commit_bytes": 1144266752
+    }
+  },
+  "primary_sources": {
+    "scope": "catalog-rebuild-research-d8d83936d82546769d2c964a7786d1da",
+    "receipt_sha256": "f5fefc2793c002b668717105504932970e3c4d5541b816fd3e48cc31053c40ff",
+    "version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://rocksdb.org/blog/2026/06/20/fifo-kv-ratio-compaction.html",
+        "final_http_status": 200,
+        "markdown_sha256": "978a635c89f7e1d673ffc0837076d0fcc43296f60f45cb72785de8d8013bf8d4",
+        "capture_sha256": "f66d8bf06826aec1a9b37fbe427d57d44d72d18b5383b4f12dea8e6b52b3d0b2"
+      },
+      {
+        "url": "https://rocksdb.org/blog/2026/05/19/resumable-remote-compaction.html",
+        "final_http_status": 200,
+        "markdown_sha256": "ca3b8c1475afc4e327d3acd9d29ae9f79a2974fd425da8ed2963199bc21df034",
+        "capture_sha256": "13f084b1c05f1118b9b337ed6914c10e9ef2001edc36e6ce551c1f2a1044418e"
+      }
+    ],
+    "bounded_run": {
+      "run": "local-run-7ce61e524f9d46748c3ade940328bd60",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "506e2f56e1bdbf3a18788e32ac47b3aa67e0257e599847a1987b835b2232cbcc",
+      "log_sha256": "1f76f8b3dbbdf673719b3e2be5ee805f9a485fef7eb53d9c631d182be8cf41e0",
+      "peak_process_tree_commit_bytes": 1128685568
+    }
+  },
+  "remaining": [
+    "Persistent-media provider and restartable selection plus verified physical fault model",
+    "Scale, candidate recall and total retained overhead under sustained foreground changes",
+    "Normal mounted maintenance, collective AMD benefit and comparative physical-host benchmarks"
+  ],
+  "hardware": {
+    "foreground_amd": {
+      "build": {
+        "run": "local-run-0522b5b51b494f60ab8296e9d8796b89",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "e2c40976066e36b9c5c719c5cd627346fbd1d490cc9af6025e030c7854a3b2d0",
+        "log_sha256": "5fe5583b5a66ff34ef8120c23df754a9531710be67d898a4c51efb3700e84d74",
+        "peak_process_tree_commit_bytes": 405889024
+      },
+      "run": {
+        "run": "local-run-346d35d7f5c2480a9ec63da8fe97b86f",
+        "exit_code": 0,
+        "tree_retired": true,
+        "receipt_sha256": "7d2503bd20aff8fd6699cbc6cc39dccd75ee2d3826108fcf7605fcb2660c4f8e",
+        "log_sha256": "1be8652ca918c7f7475549d8503fe5a2e3571e7bd70bec72470e80ee535309d2",
+        "peak_process_tree_commit_bytes": 132214784
+      },
+      "controller_sha256": "8fcc59ccbbfd0550356bbe2c47088b5365a51524ff3ccdca61741be080b8e301",
+      "worker_sha256": "d22a19b5409d9c899dda652198a5a943a623967ed361c5f792715c80fe56a707",
+      "runtime_basename_requested": "amdhip64_7.dll",
+      "source_bytes": 131072,
+      "independently_verified_storage_copies": 4,
+      "cpu_reopen_verified": true,
+      "host_driver_service_unchanged": true
+    },
+    "collective_amd": {
+      "executed": false,
+      "reason": "Host CPU activity exceeded idle admission after all bounded test jobs retired.",
+      "observed": {
+        "sampled_at": "2026-11-19T09:48:17.1358675+01:00",
+        "cpu_busy_percent": [
+          38.379,
+          27.1,
+          26.085,
+          28.798
+        ],
+        "physical_available_bytes": 20499288064,
+        "commit_available_bytes": 53005361152,
+        "threshold_percent": 12.5,
+        "eligible": false
+      }
+    }
+  }
+}

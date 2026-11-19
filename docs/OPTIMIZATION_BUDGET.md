@@ -59,6 +59,14 @@ transaction. It checks the byte allowance and backend capacity before settlement
 No active catalog exists until that transaction and the typed-root read finish.
 Changing the selected native image retires the old catalog without refunding
 prior write charges.
+
+A full catalog can reserve a separate packed replacement. The read-only
+planning pass calculates its complete footprint. The scan journal settles
+4 MiB for the journal pair and 32 input bytes per byte of candidate write
+allowance before the candidate's first write. The copy limits its extent to
+the charged plan, which includes both root writes. An insufficient balance
+leaves the candidate empty and quiescent. A paid interrupted copy preserves
+the old selected catalog and keeps the charge spent.
 [Catalog lifecycle](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
 [Host validation](evidence/funded-paged-coherence-2026-11-19.json)
 

@@ -96,6 +96,7 @@ struct NativeGroupMaintenance::Impl {
   std::uint64_t scan_sequence=0,completed_sequence=0;
   std::uint64_t checkpoint_samples=0;
   bool checkpoint_loaded=false,checkpoint_due=false,checkpoint_unavailable=false,scan_revisit=false;
+  bool prefer_coherence=true;
   std::array<bool,kStoreMaxObjects+1> seen{};
   std::map<std::uint64_t,Feature> features;
   // Indexed discovery retains only a window and a bounded set of prior
@@ -117,6 +118,15 @@ struct NativeGroupMaintenance::Impl {
   std::vector<std::uint64_t> work_ids;
   std::uint64_t last_observation=0,last_capture=0,tokens=1000000,debt=0,predicted=1000000;
   explicit Impl(std::weak_ptr<detail::NativeMaintenanceSource> s,NativeMaintenancePolicy p):source(std::move(s)),policy(p){}
+  ~Impl(){cancel_coherence_work();}
+  void cancel_coherence_work() noexcept {
+    if(const auto owner=source.lock())owner->cancel_coherence_work();
+  }
+  bool discovery_pending(const NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner,
+      StoreIdentity image_id) const noexcept {
+    return active_group() || checkpoint_due || phase!=Phase::idle || (writer.maintenance_has_candidates() &&
+        (image!=image_id || completed_sequence!=writer.maintenance_content_sequence() || new_coherence(owner,image_id)));
+  }
   void reset_index() noexcept {
     work.reset();staged_groups.clear();staged_extents=staged_search_members=0;
     work_batched=batch_draining=false;
@@ -157,11 +167,16 @@ struct NativeGroupMaintenance::Impl {
     auto result=state;
     if(const auto owner=source.lock()) {
       if(owner->coherence)result.coherence_catalog_bytes=owner->coherence->info().physical_end;
+      result.coherence_compactions=owner->coherence_compactions;
+      result.coherence_discards=owner->coherence_discards;
+      result.coherence_compacted_bytes_saved=owner->coherence_compacted_bytes_saved;
     }else result.phase=Phase::failed;
     return result;
   }
   NativeMaintenanceProgress defer(Defer reason,bool release=false) noexcept {
-    if(release)reset_index();state.phase=Phase::deferred;state.deferral=reason;
+    if(release)reset_index();
+    if(reason==Defer::memory)cancel_coherence_work();
+    state.phase=Phase::deferred;state.deferral=reason;
     state.owned_payload_bytes=owned_payload();return progress();
   }
   void begin_scan(NativeFilesystemWriter& writer) noexcept {
@@ -576,12 +591,13 @@ bool NativeGroupMaintenance::pending() const noexcept {
   if(!source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned())return false;
   const auto& writer=*source->writer;
   const auto image=writer.maintenance_identity();
-  return impl_->active_group() || impl_->checkpoint_due || impl_->phase!=Phase::idle || (writer.maintenance_has_candidates() &&
-      (impl_->image!=image || impl_->completed_sequence!=writer.maintenance_content_sequence() ||
-       impl_->new_coherence(*source,image)));
+  return impl_->discovery_pending(writer,*source,image) || source->coherence_pending();
 }
 void NativeGroupMaintenance::cancel() noexcept {
-  if(impl_){impl_->reset_index();impl_->stopped=true;impl_->state.phase=Phase::failed;impl_->source.reset();impl_->reservation.reset();}
+  if(impl_){
+    impl_->cancel_coherence_work();impl_->reset_index();impl_->stopped=true;
+    impl_->state.phase=Phase::failed;impl_->source.reset();impl_->reservation.reset();
+  }
 }
 NativeSharedBaseSearchWindow NativeGroupMaintenance::search_window() const noexcept {
   if(!impl_ || !impl_->work || impl_->state.phase!=Phase::preparing)return {};
@@ -632,9 +648,9 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   const bool new_catalog=p.new_coherence(*source,image);
   if(!writer.maintenance_has_candidates())p.reset_index();
-  if(!writer.maintenance_has_candidates() ||
-      (!p.active_group() && !p.checkpoint_due && !new_catalog && p.phase==Phase::idle &&
-       p.completed_sequence==writer.maintenance_content_sequence())) {
+  const bool discovering=p.discovery_pending(writer,*source,image);
+  const bool reclaiming=source->coherence_pending();
+  if(!discovering && !reclaiming) {
     p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.progress();
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
@@ -655,16 +671,26 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   const auto before=std::chrono::steady_clock::now();
   try {
-    if(new_catalog) {
-      p.coherence_binding=source->coherence_binding;
-      p.coherence_after=0;
-      p.completed_sequence=0;
-      if(p.phase!=Phase::idle)p.scan_revisit=true;
+    if(reclaiming && !p.active_group() && (p.prefer_coherence || !discovering)) {
+      const auto previous=source->coherence_compactions;
+      source->advance_coherence();
+      if(source->coherence_compactions!=previous && !p.representatives.empty())p.checkpoint_due=true;
+      p.prefer_coherence=false;
+      p.state.phase=source->coherence_pending()?Phase::preparing:p.phase;
+    }else {
+      if(new_catalog) {
+        p.coherence_binding=source->coherence_binding;
+        p.coherence_after=0;
+        p.completed_sequence=0;
+        if(p.phase!=Phase::idle)p.scan_revisit=true;
+      }
+      if(!indexed || !p.checkpoint_step(writer,*source,maximum_representatives,new_catalog))
+        p.step(writer,maximum_members,maximum_representatives,search,*source);
+      if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
+      p.prefer_coherence=true;
+      p.state.phase=p.phase;
     }
-    if(!indexed || !p.checkpoint_step(writer,*source,maximum_representatives,new_catalog))
-      p.step(writer,maximum_members,maximum_representatives,search,*source);
-    if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
-    p.state.phase=p.phase;p.state.deferral=Defer::none;
+    p.state.deferral=Defer::none;
   }catch(const std::bad_alloc&){p.reset_index();p.state.phase=Phase::deferred;p.state.deferral=Defer::memory;}
   catch(const NativeFsError& error) {
     p.forget_pending();

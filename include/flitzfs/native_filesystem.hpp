@@ -331,6 +331,7 @@ class NativeFilesystemSnapshot final {
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   void verify_compacted_equivalent_for_volume_head(const NativeFilesystemSnapshot&) const;
   bool matches_indexed_checkpoint(const NativeFilesystemSnapshot&) const noexcept;
+  std::optional<NativeContentToken> indexed_extent_token(NativeExtentSelection) const;
   struct Impl;
   static NativeFilesystemSnapshot open_storage(detail::NativeObjectSnapshot);
   explicit NativeFilesystemSnapshot(std::unique_ptr<Impl>) noexcept;

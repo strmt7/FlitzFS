@@ -14,6 +14,11 @@ struct PagedStoreLimits {
 class PagedStoreCapacityError final:public std::runtime_error {
  public:
   using std::runtime_error::runtime_error;
+  PagedStoreCapacityError(const char* message,bool physical_space)
+      :std::runtime_error(message),physical_space_(physical_space){}
+  bool physical_space_exhausted() const noexcept {return physical_space_;}
+ private:
+  bool physical_space_=false;
 };
 struct PagedStoreInfo {
   // Stored payload total includes both copies in capability 2. Individual
@@ -130,6 +135,16 @@ class PagedObjectStoreWriter final {
   Rewrite prepare_rebuild_replacing(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
       std::size_t identity_offset=40) const;
+  struct RebuildRetention {
+    std::size_t maximum_object_bytes;
+    std::function<bool(std::uint64_t,std::span<const std::byte>)> keep;
+    std::function<bool(std::uint64_t)> charge;
+  };
+  // Private same-identity rotation of an advisory catalog on distinct backing.
+  Rewrite prepare_rebuild_retaining(std::shared_ptr<StoreByteIo>,StoreCompressionOptions,RebuildRetention) const;
+  Rewrite prepare_rebuild_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
+      StoreCompressionOptions,std::span<const std::byte> replacement,bool reencode,
+      std::size_t identity_offset,std::optional<RebuildRetention>) const;
   static PagedObjectStoreWriter rebuild_replacing(const PagedObjectStoreSnapshot&,
       std::shared_ptr<StoreByteIo>,StoreIdentity,PagedStoreLimits,StoreCompressionOptions,
       std::uint64_t replacement_id,std::span<const std::byte> replacement,bool reencode,
@@ -152,10 +167,10 @@ class PagedObjectStoreWriter final {
   std::unique_ptr<Impl> impl_;
 };
 enum class PagedRewritePhase {verifying_source,copying,verifying_target,publishing,
-    verifying_publication,ready,failed,building_index};
+    verifying_publication,ready,failed,building_index,awaiting_charge};
 struct PagedRewriteProgress {
   PagedRewritePhase phase=PagedRewritePhase::failed;
-  std::uint64_t objects=0,completed_in_phase=0;
+  std::uint64_t objects=0,completed_in_phase=0,required_write_bytes=0;
 };
 // One control thread. Every operation takes the current writer and checks its
 // owner/generation before I/O. Each advance handles one payload or up to a

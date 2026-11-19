@@ -22,7 +22,7 @@ constexpr std::size_t branch_capacity=(digest_at-header_bytes)/ref_bytes;
 constexpr std::uint32_t maximum_height=16;
 constexpr char root_magic[]="FLTXPG01",page_magic[]="FLTXPGN1",data_magic[]="FLTXDAT1";
 [[noreturn]] void fail(const char* why) {throw std::runtime_error(std::string("FlitzFS paged store: ")+why);}
-[[noreturn]] void capacity(const char* why) {throw PagedStoreCapacityError(why);}
+[[noreturn]] void capacity(const char* why,bool physical_space=false) {throw PagedStoreCapacityError(why,physical_space);}
 std::uint64_t add(std::uint64_t a,std::uint64_t b) {
   if(b>(std::numeric_limits<std::uint64_t>::max)()-a)fail("integer overflow");
   return a+b;
@@ -471,7 +471,7 @@ PreparedObject prepare_object(const State& state,detail::StoreCodecEncoder& enco
   e.digest=detail::record_digest(std::span<const std::byte>(h).first(96),encoded.payload);copy(h,96,e.digest);
   record.payload=std::move(encoded.payload);
   allocation.place(state,e,std::uint64_t{record_header_bytes}+e.stored,cursor);
-  if(cursor>state.limits.maximum_physical_bytes)capacity("physical capacity");
+  if(cursor>state.limits.maximum_physical_bytes)capacity("physical capacity",true);
   return record;
 }
 struct Change {std::uint64_t id;bool erase;Entry entry;};
@@ -548,7 +548,7 @@ struct Plan {
       next.root=roots.front();
     }
     next.end=add(page_start,paired_bank_bytes(multiply(pages.size(),page_bytes),next.unit));
-    if(next.end>next.limits.maximum_physical_bytes)capacity("physical capacity");
+    if(next.end>next.limits.maximum_physical_bytes)capacity("physical capacity",true);
   }
   void write_pages(std::uint64_t data_end) {
     // Initialize only padding. Each complete metadata page initializes its
@@ -662,10 +662,12 @@ struct Rebuild {
     pad_index(*next.image,next.unit,next.end,pages);
   }
 };
-void copy_rebuild_object(Rebuild& build,const State& original,const Entry& source_entry,
+bool copy_rebuild_object(Rebuild& build,const State& original,const Entry& source_entry,
     detail::StoreCodecEncoder& encoder,std::uint64_t replacement_id,
-    std::span<const std::byte> replacement,bool reencode) {
+    std::span<const std::byte> replacement,bool reencode,
+    const std::function<bool(std::uint64_t,std::span<const std::byte>)>* keep=nullptr) {
   auto source_record=read_record(original,source_entry);auto bytes=decode_record(original,source_entry,source_record);
+  if(keep && !(*keep)(source_entry.id,bytes))return false;
   if(source_entry.id==replacement_id)bytes.assign(replacement.begin(),replacement.end());
   auto encoded=[&] {
     if(reencode || source_entry.id==replacement_id)return encoder.encode(bytes);
@@ -680,12 +682,9 @@ void copy_rebuild_object(Rebuild& build,const State& original,const Entry& sourc
   if(encoded.codec!=detail::kStoreRaw)copy(header,56,encoded.decoded_digest);
   entry.digest=detail::record_digest(std::span<const std::byte>(header).first(96),encoded.payload);copy(header,96,entry.digest);
   build.append_payload(entry,header,encoded.payload,bytes);
+  return true;
 }
-std::optional<Entry> next_entry(const State& state,std::uint64_t after) {
-  std::optional<Entry> entry;bool done=false;
-  auto visitor=[&](const Entry& value){entry=value;return false;};
-  walk(state,state.root,after,visitor,done);return entry;
-}
+
 } // namespace
 
 struct PagedObjectStoreSnapshot::Impl {
@@ -717,15 +716,30 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
   Rebuild build;
   Bytes replacement;
   std::size_t replacement_identity_offset;
-  std::uint64_t source_extent=0,target_extent=0,after=0,completed=0,logical=0,stored=0;
+  std::optional<RebuildRetention> retention;
+  struct RetainedInventory {
+    std::uint64_t objects=0,logical=0,stored=0;
+    Digest digest{};
+    void include(const Entry& e) {
+      objects=add(objects,1);logical=add(logical,e.logical);stored=add(stored,e.stored);
+      digest=detail::record_digest(digest,e.digest);
+    }
+    bool operator==(const RetainedInventory&) const = default;
+  } retained,copied;
+  std::uint64_t source_extent=0,target_extent=0,after=0,completed=0,logical=0,stored=0,write_bound=0;
   PagedRewritePhase phase=PagedRewritePhase::verifying_source;
   bool reencode=true,replacement_seen=false;
 
   Impl(const PagedObjectStoreWriter::Impl& writer,std::shared_ptr<StoreByteIo> output,
       StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> root,bool encode,
-      std::size_t identity_offset)
-      :original(writer.state),owner(writer.owner),replacement_identity_offset(identity_offset),reencode(encode) {
-    if(zero(id) || id==original.id)fail("staged rebuild needs a new identity");
+      std::size_t identity_offset,std::optional<RebuildRetention> filter)
+      :original(writer.state),owner(writer.owner),replacement_identity_offset(identity_offset),
+       retention(std::move(filter)),reencode(encode) {
+    if(zero(id) || (id==original.id && !retention))fail("staged rebuild needs a new identity");
+    if(retention && (id!=original.id || !root.empty() || encode || original.mirrored ||
+        !retention->keep || !retention->charge || !retention->maximum_object_bytes ||
+        retention->maximum_object_bytes>page_bytes))
+      fail("filtered rebuild requires bounded advisory records and a charge");
     if(root.size()>kStoreMaxObjectBytes)fail("staged replacement budget");
     replacement.assign(root.begin(),root.end());
     if(!same(original,load(original.image,original.limits)))fail("staged rebuild source changed");
@@ -751,6 +765,29 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     if(completed!=state.root.count || logical!=state.root.logical || stored!=state.root.stored)
       fail("staged verification inventory differs");
   }
+  template<class Visit> bool visit_quantum(const State& input,Visit&& visit) {
+    std::size_t remaining=retention?leaf_capacity(input)/4:1;
+    const auto before=completed;
+    auto visitor=[&](const Entry& entry) {
+      if(retention && entry.logical>retention->maximum_object_bytes)fail("oversized advisory record");
+      visit(entry);
+      count(entry);
+      return --remaining!=0;
+    };
+    bool done=false;
+    walk(input,input.root,after,visitor,done);
+    return completed!=before;
+  }
+  void begin_copy() {
+    source_check();
+    build.next.image->admit_write(start+2*build.next.unit);
+    if(retention) {
+      if(!retention->charge(write_bound))return;
+      build.next.limits.maximum_physical_bytes=write_bound-2*page_bytes;
+    }
+    zeros(*build.next.image,0,start);
+    reset(PagedRewritePhase::copying);
+  }
   void compare(const Entry& entry) {
     const auto source=lookup(original,entry.id);
     if(!source || source->generation!=entry.generation || source->logical!=entry.logical)
@@ -766,9 +803,9 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
     admit_contract(image->contract());
     if(image->contract().write_failure_unit_bytes>build.next.unit)fail("staged target contract changed");
     if(phase==PagedRewritePhase::verifying_source) {
-      if(const auto entry=next_entry(original,after)) {
-        auto bytes=read_object(original,*entry);if(original.mirrored)verify_object(original,*entry);
-        if(entry->id==1 && !replacement.empty()) {
+      const bool advanced=visit_quantum(original,[&](const Entry& entry) {
+        auto bytes=read_object(original,entry);if(original.mirrored)verify_object(original,entry);
+        if(entry.id==1 && !replacement.empty()) {
           if(bytes.size()!=replacement.size() || replacement_identity_offset>bytes.size() ||
               build.next.id.size()>bytes.size()-replacement_identity_offset)
             fail("staged native root length");
@@ -776,39 +813,56 @@ struct PagedObjectStoreWriter::Rewrite::Impl {
           if(bytes!=replacement)fail("staged replacement differs beyond identity");
           replacement_seen=true;
         }
-        count(*entry);
-      } else {
+        if(retention && retention->keep(entry.id,bytes))retained.include(entry);
+      });
+      if(!advanced) {
         totals(original);
         if(!replacement.empty() && !replacement_seen)fail("staged native root missing");
-        source_check();image->admit_write(start+2*build.next.unit);zeros(*image,0,start);
-        reset(PagedRewritePhase::copying);
+        if(retention) {
+          const auto projected=packed_rebuild_size(build.next,retained.objects,retained.stored);
+          if(!retained.objects || projected>=source_extent || projected>build.next.limits.maximum_physical_bytes)
+            capacity("filtered copy cannot reduce occupied bytes");
+          write_bound=add(projected,2*page_bytes);
+          phase=PagedRewritePhase::awaiting_charge;
+        }else begin_copy();
       }
+    } else if(phase==PagedRewritePhase::awaiting_charge) {
+      begin_copy();
     } else if(phase==PagedRewritePhase::copying) {
-      if(const auto entry=next_entry(original,after)) {
-        copy_rebuild_object(build,original,*entry,target->encoder,replacement.empty()?0:1,replacement,reencode);count(*entry);
-      } else {
+      const bool advanced=visit_quantum(original,[&](const Entry& entry) {
+        const auto kept=copy_rebuild_object(build,original,entry,target->encoder,replacement.empty()?0:1,
+            replacement,reencode,retention?&retention->keep:nullptr);
+        if(retention && kept)copied.include(entry);
+      });
+      if(!advanced) {
         totals(original);
+        if(retention && retained!=copied)fail("filtered copy selection changed");
         build.finish_payloads();
         reset(PagedRewritePhase::building_index);
       }
     } else if(phase==PagedRewritePhase::building_index) {
-      const auto remaining=original.root.count-completed;
+      const auto expected_count=retention?retained.objects:original.root.count;
+      const auto expected_logical=retention?retained.logical:original.root.logical;
+      const auto remaining=expected_count-completed;
       if(remaining) {
         const auto batch=(std::min)(remaining,std::uint64_t{leaf_capacity(build.next)});
         for(std::uint64_t i=0;i<batch;++i)count(build.index_record());
       } else {
         build.finish();
         totals(build.next);
-        if(completed!=original.root.count || logical!=original.root.logical)fail("staged copy inventory differs");
+        if(completed!=expected_count || logical!=expected_logical)fail("staged copy inventory differs");
+        if(retention && (stored!=retained.stored || add(build.next.end,2*page_bytes)!=write_bound))
+          fail("filtered copy exceeded its charged plan");
         reset(PagedRewritePhase::verifying_target);
       }
     } else if(phase==PagedRewritePhase::verifying_target || phase==PagedRewritePhase::verifying_publication) {
-      if(const auto entry=next_entry(build.next,after)) {compare(*entry);count(*entry);}
-      else {
+      if(!visit_quantum(build.next,[&](const Entry& entry){compare(entry);})) {
         totals(build.next);
         if(phase==PagedRewritePhase::verifying_target)reset(PagedRewritePhase::publishing);
         else {
-          source_check();target->state=build.next;target->append_floor=build.next.end;
+          source_check();
+          build.next.limits=original.limits;
+          target->state=build.next;target->append_floor=build.next.end;
           phase=PagedRewritePhase::ready;
         }
       }
@@ -833,7 +887,7 @@ bool PagedObjectStoreWriter::Rewrite::matches(const PagedObjectStoreWriter& writ
 StoreIdentity PagedObjectStoreWriter::Rewrite::identity() const noexcept {return impl_?impl_->build.next.id:StoreIdentity{};}
 bool PagedObjectStoreWriter::Rewrite::replaces_native_root() const noexcept {return impl_ && !impl_->replacement.empty();}
 PagedRewriteProgress PagedObjectStoreWriter::Rewrite::progress() const noexcept {
-  return impl_?PagedRewriteProgress{impl_->phase,impl_->original.root.count,impl_->completed}:PagedRewriteProgress{};
+  return impl_?PagedRewriteProgress{impl_->phase,impl_->original.root.count,impl_->completed,impl_->write_bound}:PagedRewriteProgress{};
 }
 bool PagedObjectStoreWriter::Rewrite::advance(const PagedObjectStoreWriter& writer) {
   if(!matches(writer)) {impl_.reset();fail("staged rebuild source owner/generation is stale");}
@@ -853,10 +907,20 @@ PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild(std::sha
 PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_replacing(std::shared_ptr<StoreByteIo> target,
     StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
     std::size_t identity_offset) const {
+  return prepare_rebuild_impl(std::move(target),id,compression,replacement,reencode,identity_offset,{});
+}
+PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_retaining(std::shared_ptr<StoreByteIo> target,
+    StoreCompressionOptions compression,RebuildRetention keep) const {
+  if(poisoned())fail("filtered rebuild requires a healthy source writer");
+  return prepare_rebuild_impl(std::move(target),impl_->state.id,compression,{},false,0,std::move(keep));
+}
+PagedObjectStoreWriter::Rewrite PagedObjectStoreWriter::prepare_rebuild_impl(std::shared_ptr<StoreByteIo> target,
+    StoreIdentity id,StoreCompressionOptions compression,std::span<const std::byte> replacement,bool reencode,
+    std::size_t identity_offset,std::optional<RebuildRetention> retention) const {
   if(poisoned())fail("staged rebuild requires a healthy source writer");
   if(!impl_->pending_rebuild.expired())fail("source already has a staged rebuild");
   auto candidate=std::make_unique<Rewrite::Impl>(*impl_,std::move(target),id,compression,
-      replacement,reencode,identity_offset);
+      replacement,reencode,identity_offset,std::move(retention));
   impl_->pending_rebuild=candidate->reservation;return Rewrite(std::move(candidate));
 }
 PagedObjectStoreSnapshot::PagedObjectStoreSnapshot(std::unique_ptr<Impl> p) noexcept:impl_(std::move(p)){}

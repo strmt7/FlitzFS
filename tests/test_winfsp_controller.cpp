@@ -423,7 +423,7 @@ void memory_planning() {
     require(2*layout.image_capacity+areas<=layout.domain_capacity && !layout.coherence_capacity &&
         indexed.domain_capacity==layout.domain_capacity && indexed.coherence_capacity>=3*kStoreCommitUnit &&
         indexed.coherence_capacity%kStoreCommitUnit==0 && indexed.image_capacity>=3*kStoreCommitUnit &&
-        2*indexed.image_capacity+areas+indexed.coherence_capacity<=indexed.domain_capacity,
+        2*indexed.image_capacity+areas+2*indexed.coherence_capacity<=indexed.domain_capacity,
         "factory omitted candidate or optional indexed advisory reservations");
   }
   const auto roomy=plan_memory_volume({16*1024*mib,12*1024*mib,32*1024*mib,24*1024*mib});
@@ -476,6 +476,9 @@ void memory_paged_footprint() {
 void memory_coherence_lifecycle() {
   auto backing=MemoryVolumeBacking::create(true);
   const auto volume=backing.volume_identity,image=backing.image_identity;
+  const auto fixture_catalog_limit=2*kStoreCommitUnit+6ULL*backing.image->contract().write_failure_unit_bytes;
+  require(backing.layout.coherence_capacity>=fixture_catalog_limit,"insufficient catalog fixture capacity");
+  backing.layout.coherence_capacity=fixture_catalog_limit;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   std::optional<NativeFileSession> session(NativeFileSession::create_indexed_volume(backing.head,volume,
       backing.image,image,{backing.layout.image_capacity},raw));
@@ -531,6 +534,27 @@ void memory_coherence_lifecycle() {
   require(!scan().checkpoints_published && !backing.coherence_retirement_pending() &&
       backing.domain->usage().stores==catalog.stores && backing.domain->usage().resident==catalog.resident,
       "remount did not preserve the healthy catalog on unchanged input");
+
+  put("edited",data(kNativeExtentBytes,1729));
+  for(unsigned i=0;i<2;++i)put("append-input-"+std::to_string(i),Bytes(3*kOptimizationGroupScanInputBytes/4));
+  require(scan().coherence_catalog_bytes==fixture_catalog_limit,"fixture did not fill the catalog");
+  const auto edited=data(kNativeExtentBytes,17523);
+  const auto edited_file=session->open("edited",{true,true,true});
+  session->write(edited_file,0,edited);session->cleanup(edited_file,false);session->close(edited_file);
+  for(unsigned i=0;i<3;++i)put("rotation-input-"+std::to_string(i),Bytes(3*kOptimizationGroupScanInputBytes/4));
+  const auto compacted=scan();
+  const auto both=backing.domain->usage();
+  require(compacted.coherence_compactions==1 && compacted.coherence_compacted_bytes_saved>0 &&
+      both.stores==initial.stores+2 && backing.coherence_retirement_pending() &&
+      session->volume_info().selection.image_identity==image,"Windows did not select the smaller catalog on the same image");
+  while(backing.coherence_retirement_pending())backing.advance_coherence_retirement();
+  const auto rotated=backing.domain->usage();
+  require(rotated.stores==initial.stores+1 && rotated.reserved+fixture_catalog_limit==both.reserved &&
+      both.resident-rotated.resident==fixture_catalog_limit &&
+      session->snapshot().read("edited",0,kNativeExtentBytes)==edited,
+      "old catalog pages or reservation survived rotation");
+  std::cout<<"memory_catalog_rotation old_bytes="<<fixture_catalog_limit<<" new_bytes="<<compacted.coherence_catalog_bytes
+      <<" retired_bytes="<<(both.resident-rotated.resident)<<'\n';
 
   session->create_entry("overwritten");
   const auto file=session->open("overwritten",{true,true,true});

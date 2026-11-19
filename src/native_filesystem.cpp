@@ -1844,6 +1844,10 @@ bool NativeFilesystemSnapshot::matches_indexed_checkpoint(const NativeFilesystem
       impl_->indexed->root()==other.impl_->indexed->root() && image_storage()==other.image_storage() &&
       impl_->objects.paged_if()->same_checkpoint(*other.impl_->objects.paged_if());
 }
+std::optional<NativeContentToken> NativeFilesystemSnapshot::indexed_extent_token(NativeExtentSelection extent) const {
+  if(!impl_ || !impl_->indexed)fail(Code::invalid_operation,"content binding requires an indexed snapshot");
+  return impl_->indexed->content_at(extent);
+}
 void NativeFilesystemSnapshot::verify_compacted_equivalent_for_volume_head(
     const NativeFilesystemSnapshot& target) const {
   if(!impl_||!target.impl_)fail(Code::invalid_operation,"moved-from handoff image");

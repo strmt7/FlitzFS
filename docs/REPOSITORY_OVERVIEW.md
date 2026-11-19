@@ -116,7 +116,7 @@ capacity and failure evidence before replacing it.
 | Windows interface | Writable native SDK callbacks, owner ACL/time initialization, contexts, cleanup/close, metadata/security and directory operations | Current-source mounted product qualification, complete Unicode/path/Win32 behavior, caching/mapping/concurrency and deployment |
 | Application | Native helper/tray, create/save/read/optimize/discard, owned worker and GUI qualification | Explorer-facing mounted lifecycle, complete volume-management workflows and a supported installer |
 | Memory composition | Live adaptive admission beyond the old ceiling, on-demand page locking, retained backing through stop and explicit-join CPU inspection | Larger populated volumes, multiple-volume aggregate policy and broker/process-failure behavior |
-| Learning state | Budgeted scan checkpoints and a paged coherence catalog in owned indexed memory volumes | Persistent provider, stale-posting compaction and workload outcomes for a complete autonomous learner |
+| Learning state | Budgeted scan checkpoints, a paged coherence catalog and stale-posting compaction in owned indexed memory volumes | Persistent provider, large-scale validation and workload outcomes for a complete autonomous learner |
 | Compatibility | Several historical native encodings and explicit capabilities remain readable | A published support window, mixed-version migration program, rollback boundaries and exact released-reader matrix |
 
 ### The important namespace bottleneck
@@ -150,8 +150,9 @@ general learned codec or a solution for arbitrary shifted/reordered data.
 Discovery uses digests and band features. The indexed scanner extends aligned
 features with shifted samples and restores verified feature bindings from
 budgeted checkpoints. Its sparse catalog supplies point nominations outside the
-current window. Complete retained outcome policy and stale-posting reclamation
-remain open. The current representation has one-level base dependencies.
+current window. Full catalogs can drop stale postings in a verified compacted
+copy. Complete retained outcome policy remains open. The current representation
+has one-level base dependencies.
 More complex representations require explicit dependency, access-cost and
 recovery designs.
 
@@ -214,7 +215,7 @@ security vulnerabilities.
 | High | Global callback serialization and synchronous publication | Foreground requests can wait for an in-flight quantum/commit. Add immutable read views, bounded concurrency and measured interference. |
 | High | Full namespace validation and full-image opening/scrubbing costs | Startup/read/maintenance work will not scale by carrying today's checks unchanged. Replace them with checked tree paths and scheduled scrubbing, without removing integrity validation. |
 | High | Current Windows name profile is ASCII and short | Many normal Windows workloads are unsupported. Implement a specified Unicode/case/path model and test ordinary clients. |
-| High | Incomplete persistent learning | Indexed checkpoints retain features and scan progress. A persistent-media catalog, stale-posting reclamation and learned strategy across workloads remain open. |
+| High | Incomplete persistent learning | Indexed checkpoints retain features and scan progress. A persistent-media catalog, scale qualification and learned strategy across workloads remain open. |
 | High | Quiet-work policy remains an initial fixed policy | A 12.5% busy threshold and 1% elapsed pacing are mechanisms, not proof of optimal host adaptation or low interference. |
 | High | Driver/runtime qualification and historical retirement faults remain open | A valid signature or later clean fake-lifecycle test does not explain earlier failures or qualify a new native combination. |
 | High | Security claims exceed current mechanisms if read too broadly | Checksums are not authentication; owner ACLs are not volume encryption. No full hostile-media/parser/update assessment is established here. |

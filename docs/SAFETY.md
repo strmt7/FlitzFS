@@ -1176,7 +1176,9 @@ interrupted charge prevents the write. A failed catalog attempt leaves the
 charge spent and file access available. The first catalog and its postings
 also require settlement before writing. The memory owner can retain a healthy
 catalog across a joined remount. It reclaims its pages only after the writer
-and lookup references retire, including after an image switch.
+and lookup references retire, including after a catalog compaction or an
+image switch. Compaction verifies a smaller candidate on separate backing.
+A charge or output failure keeps the old selected catalog available.
 [Catalog format](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
 [Funding contract](OPTIMIZATION_BUDGET.md#funded-catalog-updates)
 

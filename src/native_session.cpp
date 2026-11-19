@@ -132,9 +132,94 @@ struct NativeFileSession::Impl {
     maintenance->coherence_writer=std::move(writer_owner);
     ++maintenance->coherence_binding;
   }
+  std::shared_ptr<StoreByteIo> reserve_coherence_backing(IndexedCoherenceStorage& storage) {
+    auto backing=storage.reserve_();
+    if(backing==volume->head_io || backing==volume->active_io ||
+        backing==volume->candidate_io || owns_optimization_backend(backing))return {};
+    return backing;
+  }
+  bool has_coherence_retry_evidence() const noexcept {
+    if(!maintenance->coherence_retry_input)return true;
+    const auto input=writer.workload_info().committed_input_bytes;
+    const auto prior=*maintenance->coherence_retry_input;
+    return input>=prior && (input-prior)/kOptimizationGroupScanInputPerWriteByte>=
+        maintenance->coherence->info().physical_end;
+  }
+  bool coherence_reserves_credit() const noexcept {
+    return maintenance && maintenance->coherence && maintenance->coherence_full &&
+        (maintenance->coherence_rewrite || has_coherence_retry_evidence());
+  }
+  bool coherence_work_pending() const noexcept {
+    if(!coherence_reserves_credit())return false;
+    const auto* advice=ready_scan_advice();
+    if(!advice)return false;
+    if(!maintenance->coherence_rewrite)return scan_advice_funded();
+    const auto progress=maintenance->coherence_rewrite->progress();
+    if(progress.phase!=PagedRewritePhase::awaiting_charge)return true;
+    const auto input=writer.workload_info().committed_input_bytes;
+    const auto settled=advice->budget_settlement();
+    return settled && input>=*settled && input-*settled>=kOptimizationGroupScanInputBytes &&
+        (input-*settled-kOptimizationGroupScanInputBytes)/kOptimizationGroupScanInputPerWriteByte>=progress.required_write_bytes;
+  }
+  void retire_failed_scan_charge(const OptimizationStateWriter& advice,std::uint64_t input) noexcept {
+    if(!advice.poisoned())return;
+    optimization->phase=NativeOptimizationPhase::terminal;
+    optimization->read_code=OptimizationReadCode::io_failure;
+    budget_loss_input=input;
+  }
+  bool charge_coherence_copy(std::uint64_t bytes) {
+    auto* advice=ready_scan_advice();
+    if(!advice)return false;
+    const auto actual=writer.snapshot().workload_info();
+    const auto state=advice->snapshot().state;
+    if(!actual.enabled || !state.group_scan || state.group_scan->image!=volume->active_id)
+      throw std::runtime_error("coherence copy has no checked current scan journal");
+    try {
+      return advice->publish_budgeted(state,actual.committed_input_bytes,true,bytes)==
+          OptimizationStateWriter::BudgetResult::published;
+    }catch(...) {
+      retire_failed_scan_charge(*advice,actual.committed_input_bytes);
+      throw;
+    }
+  }
+  void advance_coherence_work() {
+    auto& source=*maintenance;
+    auto& catalog=*source.coherence_writer;
+    try {
+      if(!source.coherence_rewrite) {
+        auto output=reserve_coherence_backing(*source.coherence_storage);
+        if(!output)throw std::runtime_error("coherence replacement storage unavailable");
+        auto pinned=std::make_shared<NativeFilesystemSnapshot>(writer.snapshot());
+        source.coherence_rewrite.emplace(catalog.prepare_compaction(std::move(output),
+            [pinned=std::move(pinned)](const OptimizationGroupFeature& feature) {
+              const auto live=pinned->indexed_extent_token({feature.inode,feature.extent_index});
+              return live && live->object==feature.object && live->revision==feature.revision;
+            },[this](std::uint64_t bytes){return charge_coherence_copy(bytes);}));
+        return;
+      }
+      if(!catalog.advance_compaction(*source.coherence_rewrite))return;
+      auto replacement=std::make_shared<IndexedCoherenceWriter>(catalog.finish_compaction(*source.coherence_rewrite));
+      auto snapshot=replacement->snapshot();
+      const auto before=source.coherence->info().physical_end;
+      const auto remaining=snapshot.info().physical_end;
+      source.coherence_rewrite.reset();
+      source.coherence.emplace(std::move(snapshot));
+      source.coherence_writer=replacement;
+      source.coherence_storage->retained_=std::move(replacement);
+      source.coherence_full=false;
+      source.coherence_retry_input.reset();
+      ++source.coherence_compactions;
+      if(before>remaining)source.coherence_compacted_bytes_saved+=before-remaining;
+    }catch(const std::exception&) {
+      // The previously selected catalog never participated in the writes.
+      source.coherence_rewrite.reset();
+      source.coherence_retry_input=writer.workload_info().committed_input_bytes;
+      ++source.coherence_discards;
+    }
+  }
   bool publish_coherence_scan(OptimizationStateWriter& advice,const OptimizationState& state,
       std::uint64_t input) {
-    if(!writer.maintenance_indexed() || !maintenance)return false;
+    if(!writer.maintenance_indexed() || !maintenance || coherence_reserves_credit())return false;
     const auto storage=maintenance->coherence_storage;
     const bool creating=!maintenance->coherence_writer;
     if(creating && !storage)return false;
@@ -161,9 +246,8 @@ struct NativeFileSession::Impl {
     };
     try {
       if(creating) {
-        auto backing=storage->reserve_();
-        if(!backing || backing==volume->head_io || backing==volume->active_io ||
-            backing==volume->candidate_io || owns_optimization_backend(backing))return false;
+        auto backing=reserve_coherence_backing(*storage);
+        if(!backing)return false;
         auto catalog=std::make_shared<IndexedCoherenceWriter>(IndexedCoherenceWriter::create_reserved(
             std::move(backing),volume->volume_id,volume->active_id,storage->limits_,postings,maximum_bytes,reserve));
         auto snapshot=catalog->snapshot();
@@ -175,9 +259,10 @@ struct NativeFileSession::Impl {
         if(result.write_bytes_upper_bound)maintenance->coherence.emplace(catalog.snapshot());
       }
       maintenance->coherence_offer_after=(end-1)->object;
-    }catch(const PagedStoreCapacityError&) {
+    }catch(const PagedStoreCapacityError& error) {
       if(advice.poisoned())throw;
       if(maintenance->coherence_writer && maintenance->coherence_writer->poisoned())maintenance->retire_coherence();
+      else if(!creating && storage && error.physical_space_exhausted())maintenance->coherence_full=true;
     }catch(const std::exception&) {
       if(advice.poisoned())throw;
       maintenance->retire_coherence();
@@ -194,13 +279,10 @@ struct NativeFileSession::Impl {
     state.group_scan=std::move(scan);
     try {
       return publish_coherence_scan(advice,state,actual.committed_input_bytes) ||
-          advice.publish_budgeted(state,actual.committed_input_bytes,true)==OptimizationStateWriter::BudgetResult::published;
+          (!coherence_reserves_credit() &&
+           advice.publish_budgeted(state,actual.committed_input_bytes,true)==OptimizationStateWriter::BudgetResult::published);
     }catch(...) {
-      if(advice.poisoned()) {
-        optimization->phase=NativeOptimizationPhase::terminal;
-        optimization->read_code=OptimizationReadCode::io_failure;
-        budget_loss_input=actual.committed_input_bytes;
-      }
+      retire_failed_scan_charge(advice,actual.committed_input_bytes);
       throw;
     }
   }
@@ -445,6 +527,8 @@ std::weak_ptr<detail::NativeMaintenanceSource> NativeFileSession::maintenance_so
     };
     source->scan_funded=[owner=&self]{return owner->scan_advice_funded();};
     source->publish_scan=[owner=&self](OptimizationGroupScan scan){return owner->publish_scan_advice(std::move(scan));};
+    source->coherence_pending=[owner=&self]{return owner->coherence_work_pending();};
+    source->advance_coherence=[owner=&self]{owner->advance_coherence_work();};
     self.maintenance=std::move(source);
   }
   return self.maintenance;
