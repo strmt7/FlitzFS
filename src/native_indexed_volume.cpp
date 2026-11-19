@@ -21,8 +21,9 @@ constexpr std::uint64_t lifetime_domain=2ULL<<61,retirement_domain=5ULL<<61;
 constexpr std::uint64_t ordinal_mask=kNativeIndexedInodeLimit-1;
 constexpr std::size_t original_root_size=96,lifetime_root_size=120,root_size=136,extent_header=24;
 constexpr std::size_t base_size=8+kNativeExtentBytes;
-constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular_delta_capability=6;
+constexpr std::uint32_t anchor_copy_capability=4,packed_xor_capability=5,modular_delta_capability=6,sparse_xor_capability=7;
 constexpr NativeGroupMethod available_group_method(std::uint32_t capability) noexcept {
+  if(capability>=sparse_xor_capability)return NativeGroupMethod::sparse_xor;
   if(capability>=modular_delta_capability)return NativeGroupMethod::modular_delta;
   if(capability>=packed_xor_capability)return NativeGroupMethod::packed_xor;
   if(capability>=anchor_copy_capability)return NativeGroupMethod::anchor_copies;
@@ -86,7 +87,7 @@ void validate_header_fields(const IndexedVolumeRoot& root) {
       root.next_extent>kNativeIndexedInodeLimit || (!root.workload.enabled && root.workload.committed_input_bytes))
     fail(Code::corrupt,"invalid indexed root identity or allocator");
   const auto non_root=root.inodes?root.inodes-1:0;
-  if(root.format<1 || root.format>modular_delta_capability || root.active_lifetimes>non_root ||
+  if(root.format<1 || root.format>sparse_xor_capability || root.active_lifetimes>non_root ||
       root.retiring_inodes>non_root-root.active_lifetimes ||
       root.detached_inodes<root.retiring_inodes ||
       root.detached_inodes-root.retiring_inodes>root.active_lifetimes ||
@@ -105,7 +106,7 @@ IndexedVolumeRoot decode_root(std::span<const std::byte> bytes) {
   IndexedVolumeRoot root;
   root.format=static_cast<std::uint32_t>(get(bytes,8,4));
   const auto expected_size=root.format==1?original_root_size:root.format==2?lifetime_root_size:root_size;
-  if(root.format<1 || root.format>modular_delta_capability || bytes.size()!=expected_size)
+  if(root.format<1 || root.format>sparse_xor_capability || bytes.size()!=expected_size)
     fail(Code::corrupt,"indexed native volume capability and length differ");
   if(root.format>=2) {
     root.active_lifetimes=get(bytes,96);root.detached_inodes=get(bytes,104);root.retiring_inodes=get(bytes,112);
@@ -1254,15 +1255,22 @@ bool IndexedSharedBasePreparation::advance(std::span<const NativeSharedBaseCopyR
     }
     const auto xor_limit=encoded?encoded->size():kNativeExtentBytes;
     const auto xor_body=body_method==NativePackedGroupMethod::xor_planes?packed_body:std::span<const std::byte>{};
-    auto checked=check_native_group_xor_body(xor_body,bytes,base_,kNativeGroupBaseBit+1,1,xor_limit);
+    auto checked=check_native_group_xor_body(xor_body,bytes,base_,kNativeGroupBaseBit+1,1,xor_limit,true);
     if(packed_check && body_method==NativePackedGroupMethod::xor_planes)*packed_check=checked.check;
     const bool checked_packed=checked.frame.has_value();
     auto packed=std::move(checked.frame);
-    if(checked.check!=NativePackedGroupCheck::verified)
+    auto xor_method=checked.method;
+    if(checked.check!=NativePackedGroupCheck::verified) {
       packed=encode_native_group_xor(bytes,base_,kNativeGroupBaseBit+1,1,xor_limit);
+      if(auto sparse=encode_native_group_sparse_xor(bytes,base_,kNativeGroupBaseBit+1,1,
+          packed?packed->size():xor_limit)) {
+        packed=std::move(sparse);
+        xor_method=NativeGroupMethod::sparse_xor;
+      }
+    }
     if(packed) {
       encoded=std::move(packed);
-      capability=packed_xor_capability;
+      capability=xor_method==NativeGroupMethod::sparse_xor?sparse_xor_capability:packed_xor_capability;
       selected_advice=checked_packed;
     }
     if(!is_base) {

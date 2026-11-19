@@ -1,4 +1,5 @@
 #pragma once
+#include "flitzfs/gpu_anchor_match.hpp"
 #include "../src/native_group_lz4.hpp"
 #include "native_fs_fixture.hpp"
 #include <algorithm>
@@ -34,11 +35,11 @@ inline constexpr auto indexed_small_extents_per_family=3*indexed_batch_extents_p
 inline constexpr auto indexed_batch_members=indexed_batch_families*(kNativeMaxDirtyExtents-1);
 inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNativeExtentBytes;
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
-enum class IndexedBatchPattern {packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference};
+enum class IndexedBatchPattern {packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,sparse_xor};
 
 inline bool small_indexed_batch(IndexedBatchPattern pattern) noexcept {
   return pattern==IndexedBatchPattern::shifted_bias || pattern==IndexedBatchPattern::xor_reference ||
-      pattern==IndexedBatchPattern::xor_tile_reference;
+      pattern==IndexedBatchPattern::xor_tile_reference || pattern==IndexedBatchPattern::sparse_xor;
 }
 
 inline void apply_reference_variation(std::span<std::byte> extent,unsigned member) {
@@ -72,6 +73,20 @@ inline void apply_tile_reference_variation(std::span<std::byte> extent,unsigned 
     extent[offset]^=variation[offset]&mask;
   }
 }
+
+inline void apply_sparse_xor_variation(std::span<std::byte> extent,unsigned member) {
+  if(!member)return;
+  constexpr auto tile_bytes=anchor_match::xor_tile_bytes;
+  for(std::size_t at=0;at<extent.size();at+=tile_bytes) {
+    auto tile=extent.subspan(at,tile_bytes);
+    if(member%2)for(auto& value:tile)value^=std::byte{0x80};
+    for(unsigned i=0;i<6;++i) {
+      // Keep the masked discovery samples and scatter the low-plane flips.
+      const auto position=64+(61*member+13*(at/tile_bytes)+31*i)%192;
+      tile[position]^=std::byte{3};
+    }
+  }
+}
 // Each scan window sees one disjoint family spread across several files.
 // The optional holdout bank also contributes unmodified unrelated extents.
 inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={},
@@ -102,6 +117,10 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
         }
         if(xor_tile_reference) {
           apply_tile_reference_variation(extent,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
+          continue;
+        }
+        if(pattern==IndexedBatchPattern::sparse_xor) {
+          apply_sparse_xor_variation(extent,static_cast<unsigned>(member));
           continue;
         }
         if(member) {

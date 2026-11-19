@@ -802,6 +802,18 @@ sooner. An admitted stream can do more useful work by evaluating competing
 representations for the same verified group.
 [Tile reference validation](evidence/packed-xor-tile-reference-2026-11-19.json)
 
+Indexed capability 7 adds a protected sparse XOR member. It chooses a bitmap
+or a short set or clear position list for each active tile plane. Two
+fixed-reference 15-file cohorts compacted to 1,753,088 bytes using the new
+encoder, compared with 4,759,552 bytes using the prior engine. Both reopened
+byte-for-byte. Each raw, WinFsp SDK and AddressSanitizer lane recovered from
+528 modeled publication interruptions. Six live AMD runs each supplied 100
+published members through the verified dense reply and CPU conversion.
+Both routes reached the same complete size. CPU was faster in these runs.
+Prepare the sparse body directly on AMD and measure complete work including
+transport. The CPU reader and fallback already support the sparse format.
+[Sparse XOR format and evidence](evidence/indexed-sparse-xor-2026-11-19.json)
+
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five

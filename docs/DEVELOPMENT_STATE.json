@@ -64,6 +64,17 @@
     "scope": "Automatic CPU selection on controlled modular shifts of public sample bytes with independent CPU reopen. Supports four word widths and per-tile signed residuals.",
     "next": "Measure catalog yield and complete storage cost on natural numeric cohorts. The equal-depth tests favor CPU for both controlled profiles. Qualify additional GPU work with useful size, resource or throughput gains before automatic preference."
   },
+  "native_sparse_xor": {
+    "evidence": "docs/evidence/indexed-sparse-xor-2026-11-19.json",
+    "indexed_capability": 7,
+    "matched_previous_compacted_bytes": 4759552,
+    "matched_sparse_compacted_bytes": 1753088,
+    "modeled_interruption_cases_per_lane": 528,
+    "independent_cpu_readback": true,
+    "amd_verified_plane_input": true,
+    "scope": "Fixed references on two controlled 15-file cohorts. The current worker supplies dense XOR planes and CPU compacts them after byte verification.",
+    "next": "Pack sparse planes directly on AMD to measure smaller transport and cover tile layouts that exceed the dense reply slot."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",

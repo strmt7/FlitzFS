@@ -37,6 +37,11 @@ Bytes xor_family(unsigned member) {
 Bytes modular_family(unsigned member) {
   return calibrated_extent(family(0),member);
 }
+Bytes sparse_xor_family(unsigned member) {
+  auto bytes=family(0);
+  anchor_search_fixture::apply_sparse_xor_variation(bytes,member);
+  return bytes;
+}
 void populate(NativeFilesystemWriter& writer,unsigned count,Bytes(*content)(unsigned)=family) {
   for(unsigned i=0;i<count;++i)writer.apply(std::array{file_create("f"+std::to_string(i)),file_write("f"+std::to_string(i),0,content(i))});
 }
@@ -135,6 +140,83 @@ void packed_xor_codec() {
     }
     rejects([&]{(void)detail::decode_native_group_member(bad,base,method);},"malformed packed XOR member decoded");
   }
+}
+void sparse_xor_codec() {
+  using detail::NativeGroupMethod;
+  constexpr auto method=NativeGroupMethod::sparse_xor;
+  constexpr auto id=detail::kNativeGroupBaseBit+1;
+  constexpr std::size_t header=128,tile_bytes=256,expected=489;
+  const auto base=family(0);
+  auto member=base;
+  for(std::size_t at=0;at<tile_bytes;++at) {
+    const bool exception=at==0 || at==17 || at==255;
+    unsigned flip=exception?1U:2U;
+    flip|=8U;
+    if(at<128)flip|=4U;
+    if(at<30)flip|=16U;
+    if(at<31)flip|=32U;
+    member[at]^=static_cast<std::byte>(flip);
+  }
+  const auto frame=detail::encode_native_group_sparse_xor(member,base,id,17,expected+1);
+  require(frame && frame->size()==expected && (*frame)[7]==std::byte{'5'} &&
+      (*frame)[128]==std::byte{0x3f} && (*frame)[129]==std::byte{0x1b} &&
+      (*frame)[130]==std::byte{3} && (*frame)[133]==std::byte{255} &&
+      (*frame)[134]==std::byte{0x83} && (*frame)[170]==std::byte{0x80} &&
+      (*frame)[171]==std::byte{30} && detail::decode_native_group_member(*frame,base,method)==member,
+      "Sparse XOR modes or strict layout did not round-trip");
+  require(!detail::encode_native_group_sparse_xor(member,base,id,17,expected) &&
+      !detail::encode_native_group_sparse_xor(base,base,id,17,kNativeExtentBytes) &&
+      !detail::encode_native_group_sparse_xor(data(kNativeExtentBytes,715),base,id,17,kNativeExtentBytes),
+      "Sparse XOR accepted an equal, unchanged or expanding frame");
+  rejects([&]{(void)detail::decode_native_group_member(*frame,base,NativeGroupMethod::modular_delta);},
+      "Capability 6 admitted a sparse XOR member");
+  auto rebound=*frame;
+  detail::bind_native_group_member(rebound,id+1,19,method);
+  const auto reference=detail::parse_native_group_member(rebound,method);
+  require(reference.method==method && reference.base_id==id+1 && reference.base_generation==19 &&
+      detail::decode_native_group_member(rebound,base,method)==member,"Rebound sparse XOR member changed");
+
+  const auto dense=detail::encode_native_group_xor(member,base,id,17,kNativeExtentBytes);
+  require(dense && dense->size()>frame->size() &&
+      detail::decode_native_group_member(*dense,base,method)==member,"Capability 7 lost the original XOR format");
+  const auto body=std::span(*dense).subspan(header);
+  const auto converted=detail::check_native_group_xor_body(body,member,base,id,17,expected+1,true);
+  require(converted.check==NativePackedGroupCheck::verified && converted.method==method &&
+      converted.frame==frame,"Verified bit planes did not produce the same compact frame");
+  const auto equal=detail::check_native_group_xor_body(body,member,base,id,17,expected,true);
+  require(equal.check==NativePackedGroupCheck::verified && !equal.frame,"Sparse advice bypassed the exclusive bound");
+  auto wrong_body=Bytes(body.begin(),body.end());
+  wrong_body[1]^=std::byte{2};
+  const auto rejected=detail::check_native_group_xor_body(wrong_body,member,base,id,17,expected+1,true);
+  require(rejected.check==NativePackedGroupCheck::invalid && !rejected.frame,"Incorrect dense advice produced sparse data");
+
+  for(unsigned variant=0;variant<11;++variant) {
+    auto bad=*frame;
+    if(variant==0)bad[97]=std::byte{};
+    if(variant==1)bad[129]|=std::byte{0x80};
+    if(variant==2)bad[130]=std::byte{31};
+    if(variant==3)bad[132]=bad[131];
+    if(variant==4)bad[131]=std::byte{20};
+    if(variant==5)bad[130]=std::byte{};
+    if(variant==6)std::fill_n(bad.begin()+138,32,std::byte{});
+    if(variant==7)bad.pop_back();
+    if(variant==8)bad.push_back(std::byte{});
+    if(variant==9)bad[132]=std::byte{18}; // Canonical shape with different bytes.
+    if(variant==10)bad[32]^=std::byte{1};
+    if(variant==7 || variant==8)
+      for(unsigned i=0;i<4;++i)bad[100+i]=static_cast<std::byte>((bad.size()-header)>>(8*i));
+    rejects([&]{(void)detail::decode_native_group_member(bad,base,method);},"Malformed sparse XOR frame decoded");
+  }
+  auto all_planes=base;
+  for(std::size_t tile=0;tile<all_planes.size();tile+=tile_bytes)
+    for(unsigned bit=0;bit<8;++bit)all_planes[tile+bit*32]^=static_cast<std::byte>(1U<<bit);
+  require(!detail::encode_native_group_xor(all_planes,base,id,17,kNativeExtentBytes),
+      "Eight active planes unexpectedly fit the dense frame");
+  const auto sparse_only=detail::encode_native_group_sparse_xor(all_planes,base,id,17,kNativeExtentBytes);
+  require(sparse_only && sparse_only->size()==4736 && detail::decode_native_group_member(*sparse_only,base,method)==all_planes,
+      "CPU sparse encoding depended on a dense frame");
+  std::cout<<"sparse_xor_codec dense_bytes="<<dense->size()<<" sparse_bytes="<<frame->size()
+      <<" sparse_only_bytes="<<sparse_only->size()<<" malformed_cases=11 byte_exact=true\n";
 }
 void modular_delta_codec() {
   using detail::NativeGroupMethod;
@@ -377,10 +459,10 @@ void independent_and_decline() {
   rejects([&]{NativeFilesystemWriter::initialize_shared_bases(PagedObjectStoreWriter::create(legacy,identity(),limits));},"unprotected shared-base namespace admitted");
   require(legacy->calls>start,"legacy fixture did not create standalone empty storage");
 }
-enum class GroupFixture { aligned, shifted, packed_xor, modular_delta };
+enum class GroupFixture { aligned, shifted, packed_xor, modular_delta, sparse_xor };
 void fault_matrix(std::uint32_t unit,bool indexed_layout=false,GroupFixture shape=GroupFixture::aligned) {
   auto original=std::make_shared<Ram>();original->failure_unit=unit;
-  const std::array methods{family,shifted_family,xor_family,modular_family};
+  const std::array methods{family,shifted_family,xor_family,modular_family,sparse_xor_family};
   const auto content=methods[static_cast<std::size_t>(shape)];
   {auto writer=fresh(original,indexed_layout);populate(writer,4,content);}
   const auto keys=selections(view(original),4);
@@ -689,6 +771,12 @@ int main(int argc,char** argv){try {
     sampled_modular_delta_codec();
     for(const auto unit:{4096U,65536U})fault_matrix(unit,true,GroupFixture::modular_delta);
     std::cout<<"PASS: "<<checks<<" modular delta checks; "<<faults<<" injected write/barrier cases\n";
+    return 0;
+  }
+  if(argc==2 && std::string_view(argv[1])=="--sparse-xor") {
+    sparse_xor_codec();
+    for(const auto unit:{4096U,65536U})fault_matrix(unit,true,GroupFixture::sparse_xor);
+    std::cout<<"PASS: "<<checks<<" sparse XOR checks; "<<faults<<" injected write/barrier cases\n";
     return 0;
   }
   require(argc==1,"unknown shared-base test mode");

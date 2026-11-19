@@ -4,6 +4,7 @@
 #include <array>
 #include <bit>
 #include <cstring>
+#include <functional>
 #include <stdexcept>
 namespace flitzfs::detail {
 namespace {
@@ -13,10 +14,13 @@ constexpr std::array<std::byte,8> aligned_magic{std::byte{'F'},std::byte{'L'},st
 constexpr auto copy_magic=[] {auto value=aligned_magic;value.back()=std::byte{'2'};return value;}();
 constexpr auto xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'3'};return value;}();
 constexpr auto delta_magic=[] {auto value=aligned_magic;value.back()=std::byte{'4'};return value;}();
-constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic,delta_magic};
+constexpr auto sparse_xor_magic=[] {auto value=aligned_magic;value.back()=std::byte{'5'};return value;}();
+constexpr std::array member_magics{aligned_magic,copy_magic,xor_magic,delta_magic,sparse_xor_magic};
 constexpr std::size_t xor_tile_bytes=256,xor_plane_bytes=xor_tile_bytes/8,xor_tiles=extent/xor_tile_bytes;
+constexpr unsigned sparse_plane_max=xor_plane_bytes-2,sparse_plane_inverse=0x80;
 static_assert(extent%xor_tile_bytes==0 && xor_tile_bytes%8==0 &&
     extent==anchor_match::extent_bytes && xor_tile_bytes==anchor_match::xor_tile_bytes);
+static_assert(xor_tile_bytes==256 && sparse_plane_max<sparse_plane_inverse);
 constexpr std::size_t window_bytes=16,anchor_stride=16;
 constexpr std::uint32_t copy_flag=1U<<31;
 constexpr std::uint64_t multiplier=0x100000001B3ULL;
@@ -123,7 +127,7 @@ void spans(std::span<const std::byte> bytes,Copy copy,Literal literal) {
   if(output!=extent || input!=bytes.size())fail();
 }
 
-template<class Apply>void packed_xor_planes(std::span<const std::byte> body,Apply apply) {
+template<class Apply>void packed_xor_tiles(std::span<const std::byte> body,Apply apply) {
   std::size_t input=0;
   bool changed=false;
   for(std::size_t tile=0;tile<xor_tiles;++tile) {
@@ -131,26 +135,148 @@ template<class Apply>void packed_xor_planes(std::span<const std::byte> body,Appl
     const auto mask=std::to_integer<unsigned>(body[input++]);
     const auto payload=static_cast<std::size_t>(std::popcount(mask))*xor_plane_bytes;
     if(payload>body.size()-input)fail();
-    for(unsigned bit=0;bit<8;++bit) {
-      if(!(mask&(1U<<bit)))continue;
-      const auto plane=body.subspan(input,xor_plane_bytes);
+    const auto planes=body.subspan(input,payload);
+    for(std::size_t at=0;at<planes.size();at+=xor_plane_bytes) {
+      const auto plane=planes.subspan(at,xor_plane_bytes);
       if(std::ranges::all_of(plane,[](auto packed){return packed==std::byte{};}))fail();
-      apply(tile*xor_tile_bytes,bit,plane);
-      input+=xor_plane_bytes;
-      changed=true;
     }
+    apply(tile,mask,planes);
+    input+=payload;
+    changed=changed || mask!=0;
   }
   if(input!=body.size() || !changed)fail();
 }
+
+void apply_dense_xor_plane(std::span<std::byte> tile,unsigned bit,std::span<const std::byte> plane) {
+  std::size_t at=0;
+  for(const auto packed:plane) {
+    const auto value=std::to_integer<unsigned>(packed);
+    for(unsigned i=0;i<8;++i)
+      tile[at+i]^=static_cast<std::byte>(((value>>i)&1U)<<bit);
+    at+=8;
+  }
+}
 void apply_packed_xor(std::span<const std::byte> body,std::span<std::byte> result) {
-  packed_xor_planes(body,[&](std::size_t output,unsigned bit,std::span<const std::byte> plane) {
-    for(const auto packed:plane) {
-      const auto value=std::to_integer<unsigned>(packed);
-      for(unsigned i=0;i<8;++i)
-        result[output+i]^=static_cast<std::byte>(((value>>i)&1U)<<bit);
-      output+=8;
+  packed_xor_tiles(body,[&](std::size_t tile,unsigned mask,std::span<const std::byte> planes) {
+    const auto output=result.subspan(tile*xor_tile_bytes,xor_tile_bytes);
+    for(unsigned bit=0;bit<8;++bit) {
+      if(!(mask&(1U<<bit)))continue;
+      apply_dense_xor_plane(output,bit,planes.first(xor_plane_bytes));
+      planes=planes.subspan(xor_plane_bytes);
     }
   });
+}
+
+unsigned plane_ones(std::span<const std::byte> plane) noexcept {
+  unsigned count=0;
+  for(const auto byte:plane)count+=std::popcount(std::to_integer<unsigned>(byte));
+  return count;
+}
+
+template<class Dense,class Sparse>
+void sparse_xor_planes(std::span<const std::byte> body,Dense dense,Sparse sparse) {
+  bool changed=false;
+  for(std::size_t tile=0;tile<xor_tiles;++tile) {
+    if(body.empty())fail();
+    const auto mask=std::to_integer<unsigned>(body.front());
+    body=body.subspan(1);
+    if(!mask)continue;
+    if(body.empty())fail();
+    const auto compact=std::to_integer<unsigned>(body.front());
+    body=body.subspan(1);
+    if(compact&~mask)fail();
+    const auto output=tile*xor_tile_bytes;
+    for(unsigned bit=0;bit<8;++bit) {
+      if(!(mask&(1U<<bit)))continue;
+      if(!(compact&(1U<<bit))) {
+        if(body.size()<xor_plane_bytes)fail();
+        const auto plane=body.first(xor_plane_bytes);
+        const auto count=plane_ones(plane);
+        if(count<=sparse_plane_max || xor_tile_bytes-count<=sparse_plane_max)fail();
+        dense(output,bit,plane);
+        body=body.subspan(xor_plane_bytes);
+      }else {
+        if(body.empty())fail();
+        const auto descriptor=std::to_integer<unsigned>(body.front());
+        const auto count=descriptor&~sparse_plane_inverse;
+        const bool invert=(descriptor&sparse_plane_inverse)!=0;
+        body=body.subspan(1);
+        if(count>sparse_plane_max || (!count && !invert) || count>body.size())fail();
+        const auto positions=body.first(count);
+        if(std::adjacent_find(positions.begin(),positions.end(),std::greater_equal<>{})!=positions.end())fail();
+        sparse(output,bit,invert,positions);
+        body=body.subspan(count);
+      }
+    }
+    changed=true;
+  }
+  if(!changed || !body.empty())fail();
+}
+
+void apply_sparse_xor(std::span<const std::byte> body,std::span<std::byte> result) {
+  sparse_xor_planes(body,[&](std::size_t at,unsigned bit,std::span<const std::byte> plane) {
+    apply_dense_xor_plane(result.subspan(at,xor_tile_bytes),bit,plane);
+  },[&](std::size_t at,unsigned bit,bool invert,std::span<const std::byte> positions) {
+    const auto mask=static_cast<std::byte>(1U<<bit);
+    if(invert)for(auto& value:result.subspan(at,xor_tile_bytes))value^=mask;
+    for(const auto pos:positions)result[at+std::to_integer<unsigned>(pos)]^=mask;
+  });
+}
+
+using XorDifferences=std::array<unsigned char,xor_tile_bytes>;
+using XorPlane=std::array<std::byte,xor_plane_bytes>;
+unsigned xor_differences(std::span<const std::byte> member,std::span<const std::byte> base,
+    std::size_t at,XorDifferences& differences) {
+  unsigned mask=0;
+  for(std::size_t i=0;i<differences.size();++i) {
+    differences[i]=std::to_integer<unsigned char>(member[at+i]^base[at+i]);
+    mask|=differences[i];
+  }
+  return mask;
+}
+
+void xor_plane(const XorDifferences& differences,unsigned bit,XorPlane& plane) {
+  for(std::size_t byte=0;byte<plane.size();++byte) {
+    unsigned packed=0;
+    for(unsigned i=0;i<8;++i)packed|=((differences[byte*8+i]>>bit)&1U)<<i;
+    plane[byte]=static_cast<std::byte>(packed);
+  }
+}
+
+template<class Plane>
+bool append_sparse_xor_tile(std::vector<std::byte>& frame,std::size_t limit,
+    std::size_t tile,unsigned mask,Plane get_plane) {
+  const auto bound=limit-(xor_tiles-1-tile);
+  const auto prefix=mask?2U:1U;
+  if(frame.size()>=bound || prefix>=bound-frame.size())return false;
+  frame.push_back(static_cast<std::byte>(mask));
+  if(!mask)return true;
+  const auto sparse_at=frame.size();
+  frame.push_back(std::byte{});
+  for(unsigned bit=0;bit<8;++bit) {
+    if(!(mask&(1U<<bit)))continue;
+    const std::span<const std::byte> plane=get_plane(bit);
+    const auto ones=plane_ones(plane);
+    const bool invert=ones>xor_tile_bytes/2;
+    const auto count=invert?xor_tile_bytes-ones:ones;
+    const bool compact=count<=sparse_plane_max;
+    const auto bytes=compact?count+1:xor_plane_bytes;
+    if(bytes>=bound-frame.size())return false;
+    if(!compact) {
+      frame.insert(frame.end(),plane.begin(),plane.end());
+      continue;
+    }
+    frame[sparse_at]|=static_cast<std::byte>(1U<<bit);
+    frame.push_back(static_cast<std::byte>(count|(invert?sparse_plane_inverse:0U)));
+    for(std::size_t byte=0;byte<plane.size();++byte) {
+      auto positions=std::to_integer<unsigned>(plane[byte])^(invert?255U:0U);
+      while(positions) {
+        frame.push_back(static_cast<std::byte>(byte*8+std::countr_zero(positions)));
+        positions&=positions-1;
+      }
+    }
+  }
+  return true;
 }
 
 template<class Word>Word load_little_endian(const std::byte* data) noexcept {
@@ -350,13 +476,17 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,
     case NativeGroupMethod::anchor_copies:spans(bytes,[](auto,auto,auto){},[](auto,auto){});break;
     case NativeGroupMethod::packed_xor:
       if(get(bytes,96,4)!=xor_tiles)fail();
-      packed_xor_planes(bytes.subspan(header),[](auto,auto,auto){});
+      packed_xor_tiles(bytes.subspan(header),[](auto,auto,auto){});
       break;
     case NativeGroupMethod::modular_delta: {
       const auto choice=delta_parameters(bytes);
       if(bytes.size()>header)visit_delta_tiles(bytes.subspan(header),choice.word_bytes,[](auto,auto,auto){});
       break;
     }
+    case NativeGroupMethod::sparse_xor:
+      if(get(bytes,96,4)!=xor_tiles)fail();
+      sparse_xor_planes(bytes.subspan(header),[](auto,auto,auto){},[](auto,auto,auto,auto){});
+      break;
   }
   return ref;
 }
@@ -375,6 +505,7 @@ std::vector<std::byte> decode_native_group_member(std::span<const std::byte> byt
     result.assign(base.begin(),base.end());
     if(ref.method==NativeGroupMethod::aligned_patches)patches(bytes,literal);
     else if(ref.method==NativeGroupMethod::packed_xor)apply_packed_xor(bytes.subspan(header),result);
+    else if(ref.method==NativeGroupMethod::sparse_xor)apply_sparse_xor(bytes.subspan(header),result);
     else apply_modular_delta(bytes.subspan(header),delta_parameters(bytes),result);
   }
   if(record_digest(result)!=ref.decoded_digest)fail();return result;
@@ -415,30 +546,42 @@ std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const st
       exclusive_limit>extent)fail();
   if(exclusive_limit<=header+xor_tiles+xor_plane_bytes)return {};
   std::vector<std::byte> frame(header);
-  std::array<unsigned char,xor_tile_bytes> differences{};
+  XorDifferences differences{};
+  XorPlane plane{};
   for(std::size_t tile=0;tile<xor_tiles;++tile) {
-    const auto output=tile*xor_tile_bytes;
-    unsigned mask=0;
-    for(std::size_t i=0;i<xor_tile_bytes;++i) {
-      differences[i]=std::to_integer<unsigned char>(member[output+i]^base[output+i]);
-      mask|=differences[i];
-    }
+    const auto mask=xor_differences(member,base,tile*xor_tile_bytes,differences);
     const auto payload=static_cast<std::size_t>(std::popcount(mask))*xor_plane_bytes;
     // Charge one mask byte for every remaining tile before retaining any planes.
     if(payload+xor_tiles-tile>=exclusive_limit-frame.size())return {};
     frame.push_back(static_cast<std::byte>(mask));
     for(unsigned bit=0;bit<8;++bit) {
       if(!(mask&(1U<<bit)))continue;
-      for(std::size_t first=0;first<xor_tile_bytes;first+=8) {
-        unsigned packed=0;
-        for(unsigned i=0;i<8;++i)
-          packed|=((differences[first+i]>>bit)&1U)<<i;
-        frame.push_back(static_cast<std::byte>(packed));
-      }
+      xor_plane(differences,bit,plane);
+      frame.insert(frame.end(),plane.begin(),plane.end());
     }
   }
   if(frame.size()==header+xor_tiles)return {};
   write_header(frame,NativeGroupMethod::packed_xor,member,base,base_id,generation,static_cast<std::uint32_t>(xor_tiles));
+  return frame;
+}
+
+std::optional<std::vector<std::byte>> encode_native_group_sparse_xor(std::span<const std::byte> member,
+    std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t generation,std::size_t exclusive_limit) {
+  if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
+      exclusive_limit>extent)fail();
+  if(exclusive_limit<=header+xor_tiles+2)return {};
+  std::vector<std::byte> frame(header);
+  XorDifferences differences{};
+  XorPlane plane{};
+  for(std::size_t tile=0;tile<xor_tiles;++tile) {
+    const auto mask=xor_differences(member,base,tile*xor_tile_bytes,differences);
+    if(!append_sparse_xor_tile(frame,exclusive_limit,tile,mask,[&](unsigned bit) {
+      xor_plane(differences,bit,plane);
+      return std::span<const std::byte>(plane);
+    }))return {};
+  }
+  if(frame.size()==header+xor_tiles)return {};
+  write_header(frame,NativeGroupMethod::sparse_xor,member,base,base_id,generation,static_cast<std::uint32_t>(xor_tiles));
   return frame;
 }
 
@@ -501,12 +644,12 @@ NativeGroupPackedCandidate check_native_group_delta_body(std::span<const std::by
       body.empty()?0:static_cast<std::uint32_t>(xor_tiles));
   frame[104]=static_cast<std::byte>(width);
   put(frame,112,bias,8);
-  return {std::move(frame),Check::verified};
+  return {std::move(frame),Check::verified,NativeGroupMethod::modular_delta};
 }
 
 NativeGroupPackedCandidate check_native_group_xor_body(std::span<const std::byte> body,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
-    std::uint64_t generation,std::size_t exclusive_limit) {
+    std::uint64_t generation,std::size_t exclusive_limit,bool include_sparse) {
   if(member.size()!=extent || base.size()!=extent || !base_id_valid(base_id) || !generation ||
       exclusive_limit>extent)fail();
   if(body.empty())return {};
@@ -519,8 +662,26 @@ NativeGroupPackedCandidate check_native_group_xor_body(std::span<const std::byte
     return {{},NativePackedXorCheck::invalid};
   }
   if(!std::ranges::equal(decoded,member))return {{},NativePackedXorCheck::invalid};
-  // The canonical body has no alternative encoding at this tile geometry.
-  // Compare the whole extent before pricing advice or adding authoritative digests.
+  // Reuse the verified dense bit planes. The final sparse frame is separately
+  // decoded and compared before the indexed writer can publish it.
+  const auto sparse_limit=(std::min)(exclusive_limit,header+body.size());
+  if(include_sparse && sparse_limit>header+xor_tiles+2) {
+    std::vector<std::byte> sparse(header);
+    bool fits=true;
+    packed_xor_tiles(body,[&](std::size_t tile,unsigned mask,std::span<const std::byte> planes) {
+      if(!fits)return;
+      fits=append_sparse_xor_tile(sparse,sparse_limit,tile,mask,[&](unsigned) {
+        const auto plane=planes.first(xor_plane_bytes);
+        planes=planes.subspan(xor_plane_bytes);
+        return plane;
+      });
+    });
+    if(fits) {
+      write_header(sparse,NativeGroupMethod::sparse_xor,member,base,base_id,generation,
+          static_cast<std::uint32_t>(xor_tiles));
+      return {std::move(sparse),NativePackedXorCheck::verified,NativeGroupMethod::sparse_xor};
+    }
+  }
   if(header+body.size()>=exclusive_limit)return {{},NativePackedXorCheck::verified};
   std::vector<std::byte> frame(header+body.size());
   std::ranges::copy(body,frame.begin()+header);

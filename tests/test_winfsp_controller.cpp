@@ -424,6 +424,7 @@ std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
   if(mode=="modular-shifted-bias")return IndexedBatchPattern::shifted_bias;
   if(mode=="xor-reference")return IndexedBatchPattern::xor_reference;
   if(mode=="xor-tile-reference")return IndexedBatchPattern::xor_tile_reference;
+  if(mode=="sparse-xor")return IndexedBatchPattern::sparse_xor;
   return {};
 }
 
@@ -432,6 +433,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
   const bool tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
+  const bool sparse_xor=pattern==IndexedBatchPattern::sparse_xor;
   const bool alternate_reference=pattern==IndexedBatchPattern::xor_reference || tile_reference;
   const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
   const auto members=anchor_search_fixture::small_indexed_batch(pattern)?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
@@ -479,7 +481,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   NativeGroupMaintenance maintenance(*session,policy);
   std::unique_ptr<NativeAnchorSearchController> anchor;
   if(options)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*options));
-  if(anchor && bank.empty() && !shifted_bias && !alternate_reference) {
+  if(anchor && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor) {
     const auto now=GetTickCount64();
     require(!anchor->stage_grant(now,members) && anchor->stage_grant(now,members+families+1)==members+families,
         "Wide route used a legacy cap or ignored its funded range");
@@ -522,7 +524,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       return !anchor->waiting();
     },8000,"Multiwindow AMD worker did not retire");
     worker_ns+=elapsed_ns(started);
-    if(modular || alternate_reference)for(const auto& reply:anchor->replies()) {
+    if(modular || alternate_reference || sparse_xor)for(const auto& reply:anchor->replies()) {
       require(reply.packed_bodies.size()==reply.window.members().size(),"Unbound packed reply");
       for(std::size_t member=0;member<reply.packed_bodies.size();++member) {
         const auto& body=reply.packed_bodies[member];
@@ -549,10 +551,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   }
   if(anchor && bank.empty() && !modular)
     require(stats.submitted==1 && stats.verified_groups==families &&
-        (tile_reference || progress.advised_members_published==members),
+        (tile_reference || sparse_xor || progress.advised_members_published==members),
         "Related AMD work did not fill one verified multiwindow batch");
-  if(tile_reference)
-    require(progress.published_groups==families,"Sampled tile reference failed to group the complete cohort");
+  if(tile_reference || sparse_xor)
+    require(progress.published_groups==families,"Packed XOR did not group the complete cohort");
   if(anchor && modular && !shifted_bias)
     require(packed_widths==15 && packed_payload_bytes,"AMD modular batch did not cover all word widths");
   const auto maintenance_ns=elapsed_ns(maintenance_start);
@@ -570,12 +572,17 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         "Large AMD batch changed independently reopened file bytes");
   const auto compact_verify_ns=elapsed_ns(verify_start);
   require(packed->extent()<baseline_bytes,"Multiwindow maintenance did not reduce complete compacted size");
-  const auto cohort=tile_reference?(bank.empty()?"xor-tile-reference-synthetic":"xor-tile-reference-public"):
+  const auto root=PagedObjectStoreSnapshot::open(packed,{kStoreMaxPhysicalBytes}).read(1);
+  const auto capability=std::to_integer<unsigned>(root[8]);
+  if(sparse_xor)require(capability==7,"Sparse XOR did not survive compaction");
+  const auto cohort=sparse_xor?(bank.empty()?"sparse-xor-synthetic":"sparse-xor-public"):
+      tile_reference?(bank.empty()?"xor-tile-reference-synthetic":"xor-tile-reference-public"):
       alternate_reference?(bank.empty()?"xor-reference-synthetic":"xor-reference-public"):
       shifted_bias?(bank.empty()?"shifted-bias-synthetic":"shifted-bias-public"):
       modular?(bank.empty()?"modular-synthetic":"modular-public"):(bank.empty()?"related":"mixed");
   std::cout<<"multiwindow_trial mode="<<(anchor?"amd":"cpu")<<" cohort="<<cohort
       <<" files="<<originals.size()<<" groups="<<progress.published_groups<<" advised_members="<<progress.advised_members_published
+      <<" capability="<<capability
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns
       <<" empty_batches="<<stats.empty_xor_batches
       <<" discovery_ns="<<discovery_ns<<" maintenance_ns="<<maintenance_ns<<" compact_verify_ns="<<compact_verify_ns

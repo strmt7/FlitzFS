@@ -10,7 +10,9 @@
 #include <vector>
 namespace flitzfs::detail {
 inline constexpr std::uint64_t kNativeGroupBaseBit=1ULL<<61;
-enum class NativeGroupMethod : std::uint32_t { aligned_patches=1,anchor_copies=2,packed_xor=3,modular_delta=4 };
+enum class NativeGroupMethod : std::uint32_t {
+  aligned_patches=1,anchor_copies=2,packed_xor=3,modular_delta=4,sparse_xor=5
+};
 struct NativeGroupReference {
   std::uint64_t base_id=0,base_generation=0;
   Digest base_digest{},decoded_digest{};
@@ -26,15 +28,18 @@ std::optional<std::vector<std::byte>> encode_native_group_member(std::span<const
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation);
 std::optional<std::vector<std::byte>> encode_native_group_xor(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
+std::optional<std::vector<std::byte>> encode_native_group_sparse_xor(std::span<const std::byte> member,
+    std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
 std::optional<std::vector<std::byte>> encode_native_group_delta(std::span<const std::byte> member,
     std::span<const std::byte> base,std::uint64_t base_id,std::uint64_t base_generation,std::size_t exclusive_limit);
 struct NativeGroupPackedCandidate {
   std::optional<std::vector<std::byte>> frame;
   NativePackedGroupCheck check=NativePackedGroupCheck::pending;
+  NativeGroupMethod method=NativeGroupMethod::packed_xor;
 };
 NativeGroupPackedCandidate check_native_group_xor_body(std::span<const std::byte> body,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
-    std::uint64_t base_generation,std::size_t exclusive_limit);
+    std::uint64_t base_generation,std::size_t exclusive_limit,bool include_sparse=false);
 NativeGroupPackedCandidate check_native_group_delta_body(std::span<const std::byte> payload,
     std::span<const std::byte> member,std::span<const std::byte> base,std::uint64_t base_id,
     std::uint64_t base_generation,std::size_t exclusive_limit);

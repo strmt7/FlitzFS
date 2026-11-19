@@ -7,8 +7,8 @@ image and resume a fully verified indexed image. Its path transactions update
 the checked index and changed records together. New volumes use capability 2,
 which supports file lifetimes through `NativeFileSession`. Shared-base
 publication selects capability 3 for aligned patches, 4 for anchor copies,
-5 for packed XOR planes or 6 for modular deltas. The managed head and
-writable WinFsp SDK adapter can select indexed images. The owned mounted
+5 for packed XOR planes, 6 for modular deltas or 7 for sparse XOR planes.
+The managed head and writable WinFsp SDK adapter can select indexed images. The owned mounted
 provider passed an earlier indexed external-client fixture on disposable
 Windows Server 2025. Current Windows 11 client and mounted shared-base
 qualification remain open.
@@ -19,14 +19,14 @@ qualification remain open.
 
 Object 1 is the little-endian native root. Capability 1 has 96 bytes.
 Capability 2 has 120 bytes and appends three lifetime counts. Capability 3
-has 136 bytes and adds the shared-base and member counts. Capabilities 4 through 6
+has 136 bytes and adds the shared-base and member counts. Capabilities 4 through 7
 keep the 136-byte root layout and permit additional group encodings. Readers
-accept all six capabilities and check each against its exact length.
+accept all seven capabilities and check each against its exact length.
 
 | Offset | Bytes | Value |
 | --- | --- | --- |
 | 0 | 8 | `FLTXPV01` |
-| 8 | 4 | Indexed native capability, 1 through 6 |
+| 8 | 4 | Indexed native capability, 1 through 7 |
 | 12 | 4 | Workload accounting flag, 0 or 1 |
 | 16 | 8 | Native namespace sequence |
 | 24, 32 | 8 each | Next inode ID and next extent ordinal |
@@ -252,6 +252,35 @@ ticket. Protected publication uses the same capability 6 member format.
 [AMD execution and CPU readback evidence](evidence/amd-modular-delta-2026-11-19.json)
 [Sampled-bias comparison](evidence/amd-sampled-bias-2026-11-19.json)
 [Equivalent CPU and AMD search](evidence/cpu-amd-modular-parity-2026-11-19.json)
+
+### Sparse XOR members
+
+Capability 7 admits `FLTXGM05` with member version 5. It uses the same
+128-byte header as packed XOR, including a tile count of 256 at offset 96
+and zero reserved bytes at 104 through 127. It references one protected
+65,536-byte base and never requires decoding a second member.
+
+Each 256-byte tile begins with its nonzero plane mask. A zero mask ends that
+tile. A nonzero mask is followed by a sparse plane mask, which is a subset
+of the first mask. Subsequent plane data follows increasing bit order.
+
+| Plane type | Payload |
+| --- | --- |
+| Dense | A 32-byte bitmap using the packed XOR bit order. The smaller of the set and clear bit counts is at least 31. |
+| Sparse set | A descriptor from 1 to 30, followed by that many strictly increasing one-byte positions to flip. |
+| Sparse clear | A descriptor from 128 to 158. Flip the entire plane except the strictly increasing positions listed in the low seven bits of the descriptor. |
+
+An empty change, extra bytes, incomplete tile or noncanonical plane fails
+validation. The decoder checks the protected base and reconstructed member
+hashes. CPU and GPU-assisted candidates compete on exact frame size, with
+ties favoring the existing representation. The writer can convert a dense
+AMD reply after CPU reconstruction matches the staged input. It decodes
+the selected sparse frame separately before one COW transaction publishes
+the member and raises the capability. The CPU encoder can form sparse
+members when packed advice is unavailable or an existing dense slot cannot
+carry a useful body. Capability 7 readers accept earlier group versions.
+Readers limited to capability 6 reject a capability 7 image.
+[Sparse XOR format and recovery evidence](evidence/indexed-sparse-xor-2026-11-19.json)
 
 ### Automatic candidate discovery
 
