@@ -284,7 +284,9 @@ struct WinFspVolumeController::Impl {
             acquisition.status=HipDiscoveryStatus::configuration_quarantined;
         } else {
           anchor=std::make_unique<NativeAnchorSearchController>(NativeAnchorSearchOptions{
-              std::move(*acquisition.route),installed->worker,installed->minimum_members,installed->maximum_members,installed->duty_ppm});
+              .route=std::move(*acquisition.route),.worker=installed->worker,.minimum_members=installed->minimum_members,
+              .maximum_members=installed->maximum_members,.duty_ppm=installed->duty_ppm,
+              .dispatches_per_wait=installed->dispatches_per_wait});
         }
       }catch(...) {acquisition.status=HipDiscoveryStatus::resource_deferred;}
     }

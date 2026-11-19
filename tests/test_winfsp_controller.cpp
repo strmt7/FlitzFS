@@ -1,6 +1,7 @@
 #include "winfsp_controller.hpp"
 #include "winfsp_native.hpp"
 #include "winfsp_memory_volume.hpp"
+#include "anchor_batch_profile.hpp"
 #include "anchor_search_fixture.hpp"
 #include "flitzfs/paged_store.hpp"
 #include "flitzfs/native_volume_file.hpp"
@@ -24,6 +25,10 @@
 namespace {
 using namespace flitzfs;using namespace native_fixture;
 unsigned checks=0;
+#ifdef FLITZFS_INDEXED_HIP_FIXTURE
+inline constexpr auto queued_anchor_members=1+(kAnchorProfileMaxQueuedDispatches-1)*
+    anchor_match::dispatch_member_limit(anchor_match::BatchOutput::anchors);
+#endif
 DWORD handle_count() {DWORD count=0;if(!GetProcessHandleCount(GetCurrentProcess(),&count))throw std::runtime_error("handle telemetry");return count;}
 void require(bool value,const char* why){++checks;if(!value)throw std::runtime_error(why);}
 template<class F>void rejected(F&& run,const char* why) {
@@ -248,14 +253,15 @@ void restore_private_anchor_package() {
 
 int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearchOptions> options) {
   const bool installed=!options;
+  const bool queued=mode=="queued" || mode=="queued-yield";
   const bool restoring=mode=="restored";
   const bool two_planes=mode=="xor-wide" || mode=="xor-narrow";
   const bool xor_encoding=two_planes || mode=="xor" || mode=="xor-cpu";
   const bool packed=mode=="batch" || mode=="batch-yield" || xor_encoding;
-  const unsigned files_per_group=installed && (packed || restoring)?3:5;
+  const unsigned files_per_group=queued?queued_anchor_members+1:installed && (packed || restoring)?3:5;
   const unsigned groups=restoring?4:packed?2:1;
   const unsigned initial_files=restoring?2*files_per_group:groups*files_per_group;
-  const bool yield=mode=="yield" || mode=="batch-yield";
+  const bool yield=mode=="yield" || mode=="batch-yield" || mode=="queued-yield";
   const auto count=groups*files_per_group;
   const auto before=handle_count();
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
@@ -292,7 +298,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
     for(unsigned i=0;i<initial_files;++i)callback_file(provider,i,originals[i]);
     // Each group is staged and published across admitted idle observations.
     const auto started=GetTickCount64();
-    const auto deadline=started+57000ULL*groups;
+    const auto deadline=started+(queued?85000ULL:57000ULL)*groups;
     do {
       result=controller.view();
       if(result.maintenance_quanta!=last_quantum) {
@@ -341,6 +347,9 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       <<" declined_groups="<<result.maintenance.declined_groups<<" phase="<<static_cast<int>(result.maintenance.phase)<<" sampled="<<result.maintenance.sampled_extents
       <<" attempted="<<result.maintenance.attempted_groups<<" cpu_limit_ppm="<<qualification.maximum_cpu_busy_ppm
       <<" submitted="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
+      <<" submitted_queued_batches="<<result.anchor_search.submitted_queued_batches
+      <<" verified_queued_batches="<<result.anchor_search.verified_queued_batches
+      <<" dispatches_per_wait="<<result.anchor_search.queued_dispatches_per_wait
       <<" submitted_groups="<<result.anchor_search.submitted_groups<<" verified_groups="<<result.anchor_search.verified_groups
       <<" declined="<<result.anchor_search.declined<<" yielded="<<result.anchor_search.yielded
       <<" integrity_failures="<<result.anchor_search.integrity_failures
@@ -392,6 +401,10 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
   if(restoring)return restored && result.anchor_search.submitted==1 && result.anchor_search.verified==1 &&
       result.anchor_search.verified_groups==2 && result.maintenance.published_groups>2 &&
       result.maintenance.advised_members_published>0?0:2;
+  if(queued)require(result.anchor_search.submitted_queued_batches==1 &&
+      (yield?result.anchor_search.verified_queued_batches==0:result.anchor_search.verified_queued_batches==1 &&
+          result.anchor_search.queued_dispatches_per_wait==kAnchorProfileMaxQueuedDispatches),
+      "Queued dispatch did not match the controller retirement and acceptance outcome");
   if(yield)return signalled && result.anchor_search.yielded==1 && result.anchor_search.submitted_groups==groups &&
       result.maintenance.published_groups==groups && result.maintenance.advised_members_published==0?0:2;
   return result.anchor_search.submitted==1 && result.anchor_search.verified==1 && result.anchor_search.verified_groups==groups &&
@@ -707,6 +720,9 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       <<" files="<<originals.size()<<" groups="<<progress.published_groups<<" advised_members="<<progress.advised_members_published
       <<" capability="<<capability
       <<" submitted="<<stats.submitted<<" verified_batches="<<stats.verified<<" worker_ns="<<worker_ns
+      <<" submitted_queued_batches="<<stats.submitted_queued_batches
+      <<" verified_queued_batches="<<stats.verified_queued_batches<<" dispatches_per_wait="<<stats.queued_dispatches_per_wait
+      <<" queued_worker_wall_ns="<<stats.queued_worker_wall_ns<<" queued_kernel_wait_ns="<<stats.queued_kernel_wait_ns
       <<" empty_batches="<<stats.empty_xor_batches
       <<" discovery_ns="<<discovery_ns<<" maintenance_ns="<<maintenance_ns<<" compact_verify_ns="<<compact_verify_ns
       <<" input_compacted_bytes="<<baseline_bytes<<" grouped_compacted_bytes="<<packed->extent()
@@ -728,9 +744,13 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
 int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
   const auto multiwindow=multiwindow_pattern(mode);
+  const bool queued=mode=="queued" || mode=="queued-yield" || argc==9;
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
-  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || xor_mode || multiwindow,
+  require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || queued ||
+      xor_mode || multiwindow,
       "Expected an AMD ownership trial");
+  require(argc!=9 || (multiwindow && revision_corpus(*multiwindow) && std::string_view(argv[8])=="queued"),
+      "A queued comparison needs a revision corpus");
   const ProcessBudget profile{128,2000,5000,16};
   HipRouteDiscoveryRequest request;
   request.helper=argv[2];request.helper_sha256=artifact_digest(argv[3]);
@@ -750,18 +770,20 @@ int live_anchor_owner(int argc,char** argv) {
         mode=="xor-sparse-reference" || mode=="xor-full-reference-sparse";
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
-    const auto minimum=argc==8 || small_batch?2U:static_cast<std::uint32_t>(members);
+    const auto minimum=argc>=8 || small_batch?2U:static_cast<std::uint32_t>(members);
     const auto output=revision_corpus(*multiwindow)?anchor_match::BatchOutput::anchors:
         mode=="xor-full-reference"?anchor_match::BatchOutput::reference_xor:
         mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
         modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,
         static_cast<std::uint32_t>(members+families),10000,
-        output,small_batch?4U:modular?16U:0U},argc==8?std::filesystem::path(argv[7]):std::filesystem::path{},
+        output,small_batch?4U:modular?16U:0U,queued?kAnchorProfileMaxQueuedDispatches:1U},
+        argc>=8?std::filesystem::path(argv[7]):std::filesystem::path{},
         discovery_ns,*multiwindow);
   }
-  const std::uint32_t members=(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
+  const std::uint32_t members=queued?queued_anchor_members:(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
+  if(queued)execution.dispatches_per_wait=kAnchorProfileMaxQueuedDispatches;
   if(xor_mode)execution.output=mode=="xor-wide"?anchor_match::BatchOutput::wide_packed_xor:
       anchor_match::BatchOutput::packed_xor;
   if(mode!="both")return run_live_anchor_owner(mode,execution);
@@ -1649,7 +1671,7 @@ void indexed_group_callback_contract() {
 int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-  if((argc==7 || (argc==8 && multiwindow_pattern(argv[6]))) &&
+  if((argc==7 || ((argc==8 || argc==9) && multiwindow_pattern(argv[6]))) &&
       std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argc,argv);
   if(argc==2 || argc==3) {
     const std::string_view command(argv[1]);
@@ -1662,7 +1684,8 @@ int main(int argc,char** argv){try {
     return run_live_anchor_owner("xor-cpu",NativeAnchorSearchOptions{});
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
     const std::string_view mode(argv[2]);
-    require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch" || mode=="restored",
+    require(mode=="accept" || mode=="missing" || mode=="changed" || mode=="stop" || mode=="repeat" || mode=="batch" ||
+        mode=="restored" || mode=="queued",
         "Unknown installed route trial");
     if(mode=="repeat") {
       const auto accepted=run_live_anchor_owner("accept",std::nullopt);

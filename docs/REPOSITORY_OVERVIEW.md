@@ -422,6 +422,13 @@ throughput and foreground interference measurements remain open.
 [Public revision reads](evidence/public-revision-reads-2026-11-19.json)
 [Matched reader and AMD hint qualification](evidence/verified-device-copy-refinement-2026-11-19.json)
 
+The installed Windows controller verified a four-dispatch copy search and
+published ten advised members in an eleven-file group. A separate live
+foreground cancellation completed on CPU. Short transfers use serial waits
+when they cannot fill the qualified queue. The small public revision pairs
+provide timing and compacted-size controls for that decision.
+[Windows queue qualification](evidence/native-anchor-wait-qualification-2026-11-19.json)
+
 The evidence covers specific CPU paths, modeled failures, SDK callbacks and
 helper behavior. Full current-source CTest, an actual mounted product, useful
 ordinary GPU operation and physical power-loss qualification remain open.

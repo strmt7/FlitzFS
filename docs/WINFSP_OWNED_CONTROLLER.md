@@ -87,6 +87,16 @@ optional reply. The owner holds the session that owns the exact supervisor
 handle while waiting alongside the stop and activity events.
 [Windows wait contract](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects)
 
+An approved copy-search profile can queue multiple dispatches within the
+same admitted transfer slab. The controller enables the approved depth
+when a slab contains a full wait group and the existing phase record fits
+in the reply budget. Other exchanges use one dispatch per wait, including
+those with a worker deadline beyond the phase record's duration range.
+The worker checks live device headroom between dispatches. After confirmed
+retirement the controller verifies the record's request digest and geometry. CPU
+validation of every returned copy range still precedes use of the reply.
+[Shared-base package profile](AMD_RUNTIME_DISCOVERY.md#shared-base-package-profile)
+
 An indexed batch can span several scan windows. The aggregate preparation
 budget follows current physical and commit headroom and the qualified worker
 grant. Each group still passes through its own bounded transaction.

@@ -15,6 +15,8 @@ struct NativeAnchorSearchOptions {
   std::uint32_t duty_ppm=10000;
   anchor_match::BatchOutput output=anchor_match::BatchOutput::anchors;
   std::uint32_t maximum_dispatch_members=0;
+  // Use a queued profile when the admitted slab contains its wait group.
+  std::uint32_t dispatches_per_wait=1;
 };
 
 struct NativeAnchorSearchStats {
@@ -23,6 +25,8 @@ struct NativeAnchorSearchStats {
   std::uint64_t submitted_groups=0,verified_groups=0,integrity_failures=0,empty_xor_batches=0;
   std::uint64_t reply_bytes=0;
   std::uint64_t reference_batches=0,reselected_groups=0;
+  std::uint64_t submitted_queued_batches=0,verified_queued_batches=0,queued_worker_wall_ns=0,queued_kernel_wait_ns=0;
+  std::uint32_t queued_dispatches_per_wait=0;
 };
 
 // One serialized owner, outside the filesystem control lock. The transport

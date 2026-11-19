@@ -918,6 +918,30 @@ and assess foreground interference before admitting the added work
 automatically. Mounted throughput remains a separate qualification.
 [Matched reader and AMD hint qualification](evidence/verified-device-copy-refinement-2026-11-19.json)
 
+The installed Windows controller can use a qualified copy-search queue when
+the admitted slab contains a full wait group. The parent verifies the bound
+phase record and the copy ranges after the worker retires. In eight pairs
+per public cohort, the preliminary two-dispatch queue produced the same
+selected members and compacted sizes as serial waits. Median complete time
+was 1.91 seconds serial and 2.16 seconds queued for raw source, and about
+2.16 seconds on both routes for Zstandard documentation. Both paired
+intervals included zero. The final controller stays serial when the slab
+cannot fill the qualified depth. Qualify larger complete workloads and
+measure foreground interference before expanding package opt-in.
+The live installed callback fixture verified four dispatches per wait,
+published ten advised members, and read all eleven files on CPU. A
+foreground callback cancelled another queued exchange and CPU completed
+its group. The short public source group retained serial waits and its
+860,160-byte image.
+[Windows queue qualification](evidence/native-anchor-wait-qualification-2026-11-19.json)
+
+The live controller samples CPU load once per second and advances one
+maintenance step per valid observation. The next scheduling change should
+allow several short steps while the observation is fresh, credit each idle
+interval once, and check foreground activity between steps. Measure
+publication completion and callback latency with and without outstanding
+AMD work.
+
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five

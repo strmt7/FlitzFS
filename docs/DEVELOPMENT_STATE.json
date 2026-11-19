@@ -156,6 +156,19 @@
     "scope": "Cold controller runs on two 20-file public-revision cohorts, two codec profiles and three routes. AMD assistance reduced raw source size and CPU completed sooner on every profile.",
     "next": "Measure larger device exchanges and separate startup, transfer and compute costs under live resource and foreground admission."
   },
+  "native_anchor_queue_qualification": {
+    "source_base": "acb0fa4def5249e8c95be8da2d591b919140fb05",
+    "evidence": "docs/evidence/native-anchor-wait-qualification-2026-11-19.json",
+    "small_public_cohort_pairs": 16,
+    "pilot_effective_dispatches_per_wait": 2,
+    "small_cohort_speed_benefit_established": false,
+    "installed_dispatches_per_wait_verified": 4,
+    "installed_files_independently_verified": 11,
+    "installed_advised_members_published": 10,
+    "foreground_cancelled_queued_exchange_and_completed_on_cpu": true,
+    "undersized_profile_used_serial_waits": true,
+    "next": "Admit multiple short maintenance steps from one fresh idle observation while charging its credit once. Measure larger workload throughput and foreground interference."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",

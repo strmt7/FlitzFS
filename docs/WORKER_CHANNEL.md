@@ -486,3 +486,15 @@ and independently verifies the input, decoder results and live identities.
 The complete protected compacted-size comparison governs publication.
 [Indexed shared-base format](INDEXED_NATIVE_VOLUME.md#automatic-candidate-discovery)
 [Full-tile reference measurements](evidence/amd-full-reference-pricing-2026-11-19.json)
+
+## Qualified waits in copy-search exchanges
+
+The indexed Windows owner can use the existing `FLHPB002` phase record
+with a qualified copy-search queue. The record is a fixed-size trailer in
+the sized reply. Its identity includes the request digest, the transfer
+geometry and the dispatch count. The controller admits the trailer within
+the same transport and resource budgets. It checks the record before
+verifying the copy ranges against the immutable request. A malformed
+record follows the existing integrity-failure path.
+[Owned controller](WINFSP_OWNED_CONTROLLER.md#amd-shared-base-search) ·
+[AMD performance guidance](https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/performance_guidelines.html)

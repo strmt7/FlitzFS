@@ -122,6 +122,8 @@ def bind(package: Path, approved: str) -> tuple[str, list[str]]:
             "worker_timeout_ms": integer(anchor, "worker_timeout_ms", 1, 40000),
             "maximum_identity_queries": integer(anchor, "maximum_identity_queries", 1, 64),
             "duty_ppm": integer(anchor, "duty_ppm", 1, 100000),
+            "dispatches_per_wait": integer(anchor, "dispatches_per_wait", 1, 4)
+            if "dispatches_per_wait" in anchor else 1,
         }
         require(fields["minimum_members"] <= fields["maximum_members"], "Inverted anchor work range")
         result += artifact(ANCHOR_WORKER, "anchor_worker_sha256", True)

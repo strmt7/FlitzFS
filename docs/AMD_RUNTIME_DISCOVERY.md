@@ -32,6 +32,7 @@ allocation and release. [DXGI adapter identifiers](https://learn.microsoft.com/e
 | `minimum_members`, `maximum_members` | Combined non-base extents across groups covered by the measured work range |
 | `worker_memory_mib`, `memory_share_divisor`, `worker_cpu_rate`, `worker_timeout_ms` | Measured fixed child allowance and resource limits. Current geometry adds actual staging and transport charges. |
 | `maximum_identity_queries`, `duty_ppm` | Input-work and worker pacing limits |
+| `dispatches_per_wait` | Optional qualified copy-search queue depth from 1 to 4. The admitted transfer must contain a full wait group at that depth. Omission selects 1. |
 
 The pinned manifest authenticates the approval and its exact artifacts.
 Qualification must establish useful size or throughput benefit for the

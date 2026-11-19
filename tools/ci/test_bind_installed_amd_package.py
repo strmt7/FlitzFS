@@ -69,6 +69,7 @@ class PackageTests(unittest.TestCase):
         header, files = self.bind()
         self.assertIn("has_uniform=false", header)
         self.assertIn("anchor_minimum_members=4U", header)
+        self.assertIn("anchor_dispatches_per_wait=1U", header)
         self.assertEqual(files, ["qualification-manifest.json", ANCHOR_EVIDENCE, ANCHOR_WORKER,
                                 ANCHOR_MODULE, "licenses/blake3/LICENSE_CC0"])
 
@@ -97,10 +98,16 @@ class PackageTests(unittest.TestCase):
             self.bind()
 
     def test_profile_can_cover_several_indexed_scan_windows(self):
-        self.anchor().update(minimum_members=512, maximum_members=2048)
+        self.anchor().update(minimum_members=512, maximum_members=2048, dispatches_per_wait=4)
         header, _ = self.bind()
         self.assertIn("anchor_minimum_members=512U", header)
         self.assertIn("anchor_maximum_members=2048U", header)
+        self.assertIn("anchor_dispatches_per_wait=4U", header)
+
+    def test_profile_refuses_an_unverified_dispatch_queue(self):
+        self.anchor()["dispatches_per_wait"] = 5
+        with self.assertRaisesRegex(RuntimeError, "Invalid anchor profile field dispatches_per_wait"):
+            self.bind()
 
     def test_install_plan_cannot_alias_windows_paths(self):
         self.anchor()
