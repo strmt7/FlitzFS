@@ -237,6 +237,9 @@ class NativeFileSession final {
   NativeOptimizationBudgetPublication publish_budgeted_optimization_state(const OptimizationState&);
   // Owned cached copy; unavailable advice returns no policy. Normal I/O never
   // calls these methods. Diagnostics do not authorize a background operation.
+  // Read-only advisory binding for the currently selected indexed image.
+  // Binding needs a separately owned catalog and leaves file data untouched.
+  void bind_indexed_coherence(std::shared_ptr<StoreByteIo>,PagedStoreLimits);
   OptimizationSnapshot optimization_snapshot() const;
   NativeOptimizationInfo optimization_info() const noexcept;
   // Trusted pre-open adapter lookup for namespace/security admission. No new

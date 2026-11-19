@@ -539,10 +539,13 @@ cooperative preparation. Funded checkpoints can now retain up to 373
 representatives in the existing advisory pair. In the distant-match fixture,
 the restarted owner found a match after sampling one new extent. It later
 reused 125 verified feature bindings and resampled the edited extent. The
-remaining scale work needs paged sparse postings and complete accounting of
-their occupied bytes and write traffic.
+paged coherence catalog now gives an indexed session a point lookup beyond
+that checkpoint window. Its writer charges the full physical append span
+and root updates. Remaining scale work includes automatic funded population,
+candidate recall and total retained overhead under continuous changes.
 [Restart validation](evidence/indexed-representative-retention-2026-11-19.json)
-[Indexed discovery](INDEXED_NATIVE_VOLUME.md#automatic-candidate-discovery)
+[Paged coherence catalog](OPTIMIZATION_STATE.md#paged-coherence-catalog) ·
+[Host validation](evidence/paged-coherence-catalog-2026-11-19.json)
 
 RubikFS provides evidence for evaluating similarity and access hotness
 together. MedFS shows why selective delta maintenance should account for write

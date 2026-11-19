@@ -1,3 +1,4 @@
+#include "flitzfs/indexed_coherence.hpp"
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/native_session.hpp"
 #include "flitzfs/read_only_file.hpp"
@@ -534,6 +535,94 @@ void retain_distant_indexed_candidate() {
       <<" minimum_compacted_bytes_saved="<<progress.minimum_compacted_bytes_saved
       <<" checkpoint_bytes="<<advice->extent()<<'\n';
 }
+class CatalogReadGate final:public StoreByteIo {
+ public:
+  explicit CatalogReadGate(std::shared_ptr<Ram> backing):backing_(std::move(backing)) {}
+  bool refuse=false;
+  std::uint64_t extent() const override{return backing_->extent();}
+  StoreIoContract contract() const noexcept override{return backing_->contract();}
+  void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
+    if(refuse)throw std::runtime_error("injected coherence catalog read failure");
+    backing_->read_exact(at,out);
+  }
+  void admit_write(std::uint64_t) override{throw std::runtime_error("read-only catalog fixture");}
+  void write_exact(std::uint64_t,std::span<const std::byte>) override{throw std::runtime_error("read-only catalog fixture");}
+  void flush() override{throw std::runtime_error("read-only catalog fixture");}
+ private:
+  std::shared_ptr<Ram> backing_;
+};
+enum class CatalogCase {available,unavailable,stale};
+void indexed_catalog_discovery(CatalogCase scenario) {
+  Fixture f(4096,0,true);
+  auto advice=ram(4096);
+  require(f.session->create_budgeted_optimization_area(advice).phase==NativeOptimizationPhase::ready,
+      "coherence discovery advice binding");
+  const auto original=family(0);
+  put(*f.session,"original",original);
+  for(unsigned i=0;i<4;++i)put(*f.session,"noise-"+std::to_string(i),data(kNativeExtentBytes,590+i));
+  put(*f.session,"funding",Bytes(kOptimizationGroupScanInputBytes-5*kNativeExtentBytes));
+  {
+    NativeGroupMaintenance initial(*f.session);
+    finish_pending(f,initial);
+    require(initial.progress().checkpoints_published==1 && initial.progress().published_groups==0,
+        "catalog feature source lacked a funded sample");
+  }
+  const auto saved=read_optimization_state(*advice,id(90));
+  const auto before_generations=f.session->snapshot();
+  require(saved.state.group_scan && !saved.state.group_scan->representatives.empty() &&
+      saved.state.group_scan->representatives.front().inode==before_generations.stat("original").inode,
+      "archive lacked an actual native extent binding");
+  auto backing=ram(4096);
+  {
+    auto writer=IndexedCoherenceWriter::create(backing,id(90),id(1),{kStoreMaxPhysicalBytes});
+    const IndexedCoherencePosting posting{0,saved.state.group_scan->representatives.front()};
+    require(writer.publish(std::span(&posting,1),256*1024).write_bytes_upper_bound>0,
+        "funded sample did not populate the paged catalog");
+  }
+  auto distant=original;
+  distant[distant.size()-91]^=std::byte{0x31};
+  put(*f.session,"distant",distant);
+  const auto edited=scenario==CatalogCase::stale;
+  const auto current_original=edited?data(kNativeExtentBytes,811):original;
+  if(edited) {
+    const auto file=f.session->open("original",{true,true,false});
+    f.session->write(file,0,current_original);f.session->cleanup(file,false);f.session->close(file);
+  }
+  f.session.reset();
+  f.session.emplace(NativeFileSession::resume_closed_indexed_volume(f.head,id(90),1,
+      [&](const auto& key)->std::shared_ptr<StoreByteIo>{return key==id(1)?f.image:nullptr;},
+      {StoreCompressionMode::raw,1,false}));
+  auto gate=std::make_shared<CatalogReadGate>(backing);
+  rejects([&]{f.session->bind_indexed_coherence(f.image,{kStoreMaxPhysicalBytes});},
+      "native image accepted as optional catalog backing");
+  NativeGroupMaintenance controller(*f.session);
+  if(edited)finish_pending(f,controller);
+  f.session->bind_indexed_coherence(gate,{kStoreMaxPhysicalBytes});
+  gate->refuse=scenario==CatalogCase::unavailable;
+  require(controller.pending(),"new catalog did not wake settled maintenance");
+  for(unsigned tick=0;tick<3000 && controller.pending();++tick) {
+    auto observation=f.clock.next();
+    // Reserve just enough modeled headroom for two ordinary members and two
+    // cached representatives, forcing the original out of the live window.
+    observation.physical_available=observation.physical_total/16+64*(33ULL*kNativeExtentBytes);
+    require(controller.advance(observation,f.clock.now).phase!=Phase::failed,
+        "optional catalog affected data maintenance health");
+  }
+  const auto progress=controller.progress();
+  require(!controller.pending() && !f.session->poisoned(),"indexed catalog maintenance did not settle");
+  if(scenario==CatalogCase::unavailable)
+    require(progress.coherence_lookups==1 && progress.coherence_failures==1 && progress.published_groups==0,
+        "failed catalog lookup retried or manufactured a group");
+  else
+    require(progress.coherence_matches==1 && !progress.coherence_failures &&
+        progress.published_groups==(edited?0U:1U) && progress.attempted_groups==(edited?0U:1U),
+        "paged candidate was missed or an edited binding entered preparation");
+  const auto view=f.session->snapshot();
+  require(view.read("original",0,kNativeExtentBytes)==current_original &&
+      view.read("distant",0,kNativeExtentBytes)==distant &&
+      view.shared_base_info().members==(scenario==CatalogCase::available?2:0),"catalog integration changed file data");
+  view.verify_all();
+}
 void indexed_scan_checkpoint_faults() {
   for(const auto unit:{4096U,65536U})for(unsigned mode=0;mode<3;++mode)for(unsigned cut=0;cut<4;++cut) {
     Fixture f(4096,0,true);auto advice=ram(unit);
@@ -561,6 +650,9 @@ void indexed_scan_checkpoint_faults() {
 int main(int argc,char** argv){try{
   if(argc==2 && std::string_view(argv[1])=="--indexed-resume") {
     persistent_indexed_scan();retain_distant_indexed_candidate();indexed_scan_checkpoint_faults();
+  } else if(argc==2 && std::string_view(argv[1])=="--indexed-coherence") {
+    for(const auto scenario:{CatalogCase::available,CatalogCase::unavailable,CatalogCase::stale})
+      indexed_catalog_discovery(scenario);
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-advice") {
     advised_indexed_maintenance();
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-batch") {

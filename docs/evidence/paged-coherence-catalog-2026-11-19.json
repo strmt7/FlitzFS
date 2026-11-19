@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "date": "2026-11-19",
+  "source_base": "49b70c418e6cea574298eedbb48cec28863334fe",
+  "tested_sources": {
+    "CMakeLists.txt": {
+      "sha256": "823abca465bfbe5a231abf4e8ce8ec99d4ce66efbb95bd12efa62ebb71b23a18",
+      "git_blob": "02161da36e8a00ae2e3299db3a86f5cfb33db506"
+    },
+    "include/flitzfs/indexed_coherence.hpp": {
+      "sha256": "03f792da04d360cb74fa822a6316358539ceed484710d554d4f1c70937a7f078",
+      "git_blob": "099bbf0d81f265a5acaa4a5853ec50fd42ae1f80"
+    },
+    "include/flitzfs/native_maintenance.hpp": {
+      "sha256": "75dd3a5466af39c8edb0d459c4e5a1549ba03692b24cd9b0c0ce3f0ebed901ad",
+      "git_blob": "34a8d3be681548311c3a8f66ef3ec117fbe2cd27"
+    },
+    "include/flitzfs/native_session.hpp": {
+      "sha256": "1e3b26a1e918255b6739ee64be163fab45da402092dae6f16fe45e80c6972369",
+      "git_blob": "4ae063157ae55471dc6b459d316f649d14f438c5"
+    },
+    "include/flitzfs/paged_store.hpp": {
+      "sha256": "f0e2d9b1d1136355f487ab811dfa20b4bf3400807bf800660cf0913b7331c1a8",
+      "git_blob": "1ce599a610e96ff715e36b0b31eb64a9be92ef55"
+    },
+    "src/indexed_coherence.cpp": {
+      "sha256": "22326a0481613bf19036a37c34b4d2efbb77699fb306e3ba41a85068594e4d52",
+      "git_blob": "a1230d11750e264b813ee296a9cdd402905a6ae2"
+    },
+    "src/native_maintenance.cpp": {
+      "sha256": "2b7f12befca2b72bff105fa300dd5d339dbcc03fcb37695483a667f5937b79b2",
+      "git_blob": "cc0b489b311e008d147965548147a0594b25227a"
+    },
+    "src/native_maintenance_source.hpp": {
+      "sha256": "5d9ae7bf5c55792678a6fe8e051e26f53ca6fb4117c32830f104ff5c0a91d641",
+      "git_blob": "e47d714cfd180aca5de7e4df29a8c391fc3ec66d"
+    },
+    "src/native_session.cpp": {
+      "sha256": "21780fbfc5108c8a77958f89f4425f0198cede20888936a3a104dc8767793b28",
+      "git_blob": "915c08afab3931c66409718196f6be0dc54d5e02"
+    },
+    "src/optimization_feature_wire.hpp": {
+      "sha256": "91dae41fc348c3a5918c7d76fa6ca8b817a3eb7f0281b9d1bcd15e624a39abdb",
+      "git_blob": "a94ad9a52b036de08c308cd51e54fe32224187f3"
+    },
+    "src/optimization_state.cpp": {
+      "sha256": "7460ea34750cd815bd0cfcb938d2ece908a49d8049ae01d7678cdffdd95fb3d1",
+      "git_blob": "698f425c1150d5ab10d72fd9781713874376971b"
+    },
+    "src/paged_store.cpp": {
+      "sha256": "bb9cf1c05f83d4741d1817bb85fc8cf8ad513bad32c880164d45d81cd30a2fec",
+      "git_blob": "41abd8c54567f9de853ce06ff6eefa791f05de34"
+    },
+    "tests/test_native_group_maintenance.cpp": {
+      "sha256": "911c083558701796372d7c0e3d005730f56369172934e3146bed7f538c64a9c3",
+      "git_blob": "480d818d6aea1a3d829b46f97e1905d6821db3ab"
+    },
+    "tests/test_paged_store.cpp": {
+      "sha256": "b5a083ae68de751fbec9e1c2a7470785d324fd9064f2463087c86652285d1100",
+      "git_blob": "453f9f012316610cc0ca2556fe2b9b4903eb8889"
+    }
+  },
+  "navigation": {
+    "scope": "sparse-postings-routing-57ac07ffd0d04cfdbd4f624c904ba820",
+    "receipt_sha256": "196413ecb646eecb187019be86c2a955fa6c922a5710579f40fc88bd8d6280a6",
+    "provider_version": "0.2.43"
+  },
+  "research": {
+    "scope": "paged-postings-research-0a03f243763448a393711b808201e2d6",
+    "receipt_sha256": "e11557b979a4ade7ab7ab9674e4886921d2cee28c9178febd55ed738930a5ec4",
+    "provider_version": "0.9.5+flitzzip.portable2",
+    "pages": [
+      {
+        "url": "https://github.com/facebook/rocksdb/wiki/Rocksdb-BlockBasedTable-Format",
+        "http_status": 301,
+        "final_http_status": 200,
+        "markdown_sha256": "968712177b38ba4c1b51a3662d3987ce877d8a16000b5cf38b4288d1e28afb5f"
+      },
+      {
+        "url": "https://github.com/facebook/rocksdb/wiki/Prefix-Seek",
+        "http_status": 301,
+        "final_http_status": 200,
+        "markdown_sha256": "fb473e010147b256b39f05a757433c2872092b9d131910d4f12d5857781238b3"
+      },
+      {
+        "url": "https://sqlite.org/fileformat2.html",
+        "http_status": 200,
+        "final_http_status": 200,
+        "markdown_sha256": "4dc1316ac13b662dc417e8ce7d190995b9c965d2110fd35cb22a9aba940a508e"
+      }
+    ]
+  },
+  "host": "Physical Windows 11 Pro AMD64",
+  "correctness": {
+    "codec_release": {
+      "run": "local-run-50993e5b47ae429ca8f907f0098f3bf6",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "d5f610e65c98641011456f670c8e769637f2eec3ba22be4ed0bdba2feec56ff6",
+      "log_sha256": "217735e1dc0f6c92c4d93a2dc1fc039504288d926f1f851a100d54bfbd27a2de",
+      "peak_process_tree_commit_bytes": 106369024
+    },
+    "raw_release": {
+      "run": "local-run-ae0cf961b02741938adddbfd3937a222",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "d2d175942b3f95a2b26c155b5ba2f4a58b5e6b7a9f7144cbeca7c540415b5223",
+      "log_sha256": "acf045123a4f9ea887e38bc48bff63dfe5e84c4e6829164e1ead2871aa86bf41",
+      "peak_process_tree_commit_bytes": 106459136
+    },
+    "raw_address_sanitizer": {
+      "run": "local-run-c5fce52060854ac08d7bdb9a5e42afa8",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "57562eba01b1e1c46380de74d533b468f4b4131ceec37d914e839bba63f08fd3",
+      "log_sha256": "b304998605134872c6bf771e4e479884d2a8e86918f3aaecddedf7b54b30b164",
+      "peak_process_tree_commit_bytes": 802803712
+    },
+    "sanitizer_runtime_preflight": true,
+    "filesystem_backing": "Modeled in-memory storage"
+  },
+  "paged_catalog": {
+    "distinct_keys_excluding_root": 769,
+    "sampled_reopened_lookup_read_limit_bytes": 65536,
+    "verified": [
+      "Multi-page inventory and stable earlier reader",
+      "Exact budget refusal before writes or flushes and actual append/root cost within charged bound",
+      "Duplicate, older, missing and wrong-image candidates",
+      "Rejected malformed typed fields inside a checksummed record",
+      "Live candidate beyond the admitted window",
+      "Wake on a new catalog with unchanged file contents",
+      "Candidate rejected after foreground mutation and one-shot catalog failure isolation",
+      "Byte-exact independent CPU verification and native session recovery"
+    ]
+  },
+  "remaining": [
+    "Automatic funded catalog population and reclaim across continuous edits",
+    "Candidate recall and full occupied storage cost across diverse workloads",
+    "Mounted and persistent-storage qualification and comparative host benchmarks"
+  ],
+  "host_amd_attempt": {
+    "run": "local-run-74433741b19a4ff8a6c7b3092562cf1c",
+    "result_sha256": "a180ab22008891787535be1fc269b4a0a7c405920e13dedf4debd07e0ec84c03",
+    "log_sha256": "48c7ac83ef61589a6d576ff7967ff29365351a9ac7b0983f8ae57e8c86cf9147",
+    "exit_code": 1,
+    "tree_retired": true,
+    "gpu_executed": false,
+    "reason": "Host memory admission refused before the installed runtime or GPU was contacted"
+  }
+}

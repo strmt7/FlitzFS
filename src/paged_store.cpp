@@ -1034,14 +1034,20 @@ PagedObjectStoreWriter PagedObjectStoreWriter::rebuild_replacing(const PagedObje
   return PagedObjectStoreWriter(std::move(p));
 }
 PagedStoreInfo PagedObjectStoreWriter::commit(std::span<const StoreMutation> mutations) {
-  return commit_impl(mutations,kStoreMaxObjects);
+  return commit_with_write_budget(mutations,(std::numeric_limits<std::uint64_t>::max)()).storage;
+}
+PagedStoreWriteResult PagedObjectStoreWriter::commit_with_write_budget(
+    std::span<const StoreMutation> mutations,std::uint64_t maximum_write_bytes) {
+  return commit_impl(mutations,kStoreMaxObjects,kStoreMaxTransactionBytes,maximum_write_bytes);
 }
 PagedStoreInfo PagedObjectStoreWriter::commit_native(std::span<const StoreMutation> mutations,bool directory_indexes,bool shared_bases) {
   return commit_impl(mutations,(shared_bases?4:directory_indexes?3:2)*kStoreMaxObjects,
-      kStoreMaxTransactionBytes+(shared_bases?131072U:directory_indexes?65536U:0U));
+      kStoreMaxTransactionBytes+(shared_bases?131072U:directory_indexes?65536U:0U),
+      (std::numeric_limits<std::uint64_t>::max)()).storage;
 }
-PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation> mutations,std::size_t maximum_operations,
-    std::uint64_t maximum_input) {
+PagedStoreWriteResult PagedObjectStoreWriter::commit_impl(
+    std::span<const StoreMutation> mutations,std::size_t maximum_operations,
+    std::uint64_t maximum_input,std::uint64_t maximum_write_bytes) {
   if(!impl_ || impl_->poisoned)fail("writer unavailable/poisoned");
   auto& p=*impl_;const auto& old=p.state;
   if(old.degraded_payloads){p.poisoned=true;fail("payload rebuild required before further writes");}
@@ -1098,6 +1104,8 @@ PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation
   plan.finish(std::move(roots));
   const auto obsolete=add(p.obsolete_bytes,plan.obsolete_bytes);
   if(obsolete>plan.next.end-start)fail("obsolete byte accounting exceeds committed history");
+  const auto write_bound=add(plan.next.end-old.end,2*page_bytes);
+  if(write_bound>maximum_write_bytes)capacity("transaction write budget");
   try{old.image->admit_write(plan.next.end);}
   catch(const std::runtime_error& error){capacity(error.what());}
   try {
@@ -1113,7 +1121,7 @@ PagedStoreInfo PagedObjectStoreWriter::commit_impl(std::span<const StoreMutation
     publish(plan.next);
   } catch(...) {p.poisoned=true;throw;}
   p.state=std::move(plan.next);p.append_floor=p.state.end;p.obsolete_bytes=obsolete;
-  return flitzfs::info(p.state);
+  return {flitzfs::info(p.state),write_bound};
 }
 PagedObjectStoreSnapshot PagedObjectStoreWriter::snapshot() const {
   if(!impl_)fail("moved-from writer");auto p=std::make_unique<PagedObjectStoreSnapshot::Impl>();

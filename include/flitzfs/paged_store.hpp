@@ -24,6 +24,10 @@ struct PagedStoreInfo {
   bool degraded_roots=false,degraded_metadata=false;
   bool mirrored_payloads=false,degraded_payloads=false;
 };
+struct PagedStoreWriteResult {
+  PagedStoreInfo storage;
+  std::uint64_t write_bytes_upper_bound=0;
+};
 struct PagedCompactedSizes {
   std::uint64_t before=0,after_upper=0;
 };
@@ -102,6 +106,9 @@ class PagedObjectStoreWriter final {
   // inventory is bounded by backing capacity, not kStoreMaxObjects.
   // Three barriers; any I/O/publication failure terminally fences this writer.
   PagedStoreInfo commit(std::span<const StoreMutation>);
+  // Charge the full appended span and both root writes before asking the
+  // backend to admit growth. A budget refusal performs no writes or flushes.
+  PagedStoreWriteResult commit_with_write_budget(std::span<const StoreMutation>,std::uint64_t maximum_write_bytes);
   // Actual backend barrier; no new records, root publication or generation.
   // Check current roots/contract/extent before and after. Any failure after
   // barrier entry fences the writer; preflight allocation pressure does not.
@@ -132,8 +139,8 @@ class PagedObjectStoreWriter final {
   // for the explicit indexed-name layout, or 1024 operations / 128 KiB extra
   // input for shared-base namespaces. Public admission is unchanged.
   PagedStoreInfo commit_native(std::span<const StoreMutation>,bool directory_indexes=false,bool shared_bases=false);
-  PagedStoreInfo commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations,
-      std::uint64_t maximum_input=kStoreMaxTransactionBytes);
+  PagedStoreWriteResult commit_impl(std::span<const StoreMutation>,std::size_t maximum_operations,
+      std::uint64_t maximum_input,std::uint64_t maximum_write_bytes);
   struct Impl;
   explicit PagedObjectStoreWriter(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

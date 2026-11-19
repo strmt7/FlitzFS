@@ -1,4 +1,5 @@
 #pragma once
+#include "flitzfs/indexed_coherence.hpp"
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/optimization_state.hpp"
 #include <functional>
@@ -18,6 +19,8 @@ struct NativeMaintenanceSource {
   NativeFilesystemWriter* writer=nullptr;
   const bool* terminal=nullptr;
   std::weak_ptr<const void> active;
+  std::optional<IndexedCoherenceSnapshot> coherence;
+  std::uint64_t coherence_binding=0;
   std::function<std::optional<OptimizationGroupScan>()> restore_scan;
   std::function<bool()> scan_funded;
   std::function<bool(OptimizationGroupScan)> publish_scan;

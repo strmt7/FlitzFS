@@ -284,3 +284,38 @@ long-running session. Explicit profile publications and repairs use their
 caller-provided allowance. Optional advice and its backing
 remain outside file-data recovery.
 [Restart and transition validation](evidence/indexed-representative-retention-2026-11-19.json)
+
+## Paged coherence catalog
+
+A managed indexed session can bind a read-only snapshot of a separately
+reserved catalog. The paged store identity binds the volume. A typed object
+at key 1 binds the selected image and feature schema. Its 32-byte record has
+`FLTZCOR1` at offset 0, the 16-byte image identity at offset 8, and schema 1
+at byte 24. Bytes 25–31 are reserved zero.
+
+A posting contains `FLTZCOE1` at offset 0, the band ordinal at byte 8,
+seven reserved zero bytes, and the original 168-byte representative at offset
+16. It occupies 184 decoded bytes. The high bit of the object key separates
+postings from metadata. Its other bits come from BLAKE3 over the one-byte band
+and eight-byte little-endian fingerprint, using the first eight digest bytes
+as a little-endian word. Lookup verifies the formatted record, its key and
+the full requested band and fingerprint. A key collision may replace an
+advisory nomination. It cannot authorize a data change.
+
+The writer batches postings under an explicit maximum write-byte allowance.
+It retains the latest observed physical revision and uses object ID to break
+ties. Exact replays and older observations consume no write allowance. The
+allowance includes appended objects, index pages, padding and both root writes.
+The read path checks one paged lookup path without loading the whole catalog.
+[Paginated object storage](PAGED_OBJECT_STORE.md#memory-and-capacity)
+
+After ordinary window candidates are exhausted, the maintenance controller
+can look up the first eligible band of an ungrouped sample. One point lookup
+runs per admitted step. A match goes through the ordinary live extent and CPU
+publication checks. An unreadable catalog is retired from active discovery
+and the ordinary window can continue. The binding and publication APIs
+currently receive an explicitly reserved backend. Binding a fresh catalog
+can wake a settled controller, and selecting another image drops the earlier
+catalog. Automatic catalog funding, population and retirement in the Windows
+providers remain separate work.
+[Host validation](evidence/paged-coherence-catalog-2026-11-19.json)

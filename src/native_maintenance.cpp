@@ -42,6 +42,11 @@ std::uint64_t add(std::uint64_t a,std::uint64_t b) noexcept {
 std::uint64_t word(std::span<const std::byte> bytes) noexcept {
   std::uint64_t result=0;for(unsigned i=0;i<8;++i)result|=std::uint64_t(std::to_integer<unsigned>(bytes[i]))<<(8*i);return result;
 }
+bool usable_indexed_band(unsigned band,std::uint64_t fingerprint) {
+  if(band>=positional_bands)return fingerprint!=0;
+  static const auto zero_band=word(detail::record_digest(std::array<std::byte,kNativeExtentBytes/positional_bands>{}));
+  return fingerprint!=zero_band;
+}
 void append(std::vector<std::byte>& bytes,std::uint64_t value) {
   for(unsigned i=0;i<8;++i)bytes.push_back(static_cast<std::byte>(value>>(8*i)));
 }
@@ -95,6 +100,7 @@ struct NativeGroupMaintenance::Impl {
   std::map<Band,std::vector<std::uint64_t>> buckets;
   std::vector<Band> candidate_order;
   std::size_t candidate_index=0,band_offset=0;
+  std::uint64_t coherence_after=0,coherence_binding=0;
   std::set<Digest> attempted;std::deque<Digest> attempted_order;
   std::optional<NativeFilesystemWriter::SharedBaseWork> work;
   std::deque<StagedGroup> staged_groups;
@@ -111,6 +117,7 @@ struct NativeGroupMaintenance::Impl {
     features.clear();buckets.clear();attempted.clear();attempted_order.clear();candidate_order.clear();
     candidate_index=band_offset=0;completed_sequence=0;phase=Phase::idle;state.owned_payload_bytes=0;pending_history=0;work_ids.clear();
     representatives.clear();refresh_base.reset();extent_scan_exhausted=false;
+    coherence_after=coherence_binding=0;
     checkpoint_loaded=checkpoint_due=false;checkpoint_samples=state.sampled_extents;scan_revisit=false;
   }
   void remember(const Digest& key) {
@@ -152,15 +159,19 @@ struct NativeGroupMaintenance::Impl {
     if(scan_revisit || writer.maintenance_content_sequence()!=scan_sequence)begin_scan(writer);
     else {completed_sequence=scan_sequence;phase=Phase::idle;}
   }
+  bool new_coherence(const detail::NativeMaintenanceSource& owner,StoreIdentity image_id) const noexcept {
+    return owner.coherence && owner.coherence->image()==image_id && owner.coherence_binding!=coherence_binding;
+  }
   bool restore_scan(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner,
-      std::size_t maximum_representatives) {
+      std::size_t maximum_representatives,bool new_catalog) {
     checkpoint_loaded=true;
     const auto saved=owner.restore_scan();
     if(!saved || saved->image!=image || saved->namespace_sequence>writer.maintenance_sequence())return false;
     const bool same=saved->namespace_sequence==writer.maintenance_sequence();
+    const bool complete=saved->complete && same && !new_catalog;
     begin_scan(writer);
-    if(!saved->complete || same) {
-      scan_revisit=saved->revisit || !same;
+    if(!saved->complete || complete) {
+      scan_revisit=saved->revisit || !same || new_catalog;
       cursor={saved->inode,saved->extent_index};first=false;
     }
     // Same-image records can span unrelated commits. The live extent binding
@@ -171,15 +182,15 @@ struct NativeGroupMaintenance::Impl {
       representatives.emplace(item.object,Feature{token,item.content,item.bands});
       trim_representatives(maximum_representatives);
     }
-    if(saved->complete && same){completed_sequence=scan_sequence;phase=Phase::idle;}
+    if(complete){completed_sequence=scan_sequence;phase=Phase::idle;}
     ++state.checkpoints_restored;
     return true;
   }
   bool checkpoint_step(NativeFilesystemWriter& writer,const detail::NativeMaintenanceSource& owner,
-      std::size_t maximum_representatives) {
+      std::size_t maximum_representatives,bool new_catalog) {
     if(checkpoint_unavailable)return false;
     try {
-      if(!checkpoint_loaded && restore_scan(writer,owner,maximum_representatives))return true;
+      if(!checkpoint_loaded && restore_scan(writer,owner,maximum_representatives,new_catalog))return true;
       if(!checkpoint_due)return false;
       checkpoint_due=false;
       if(!owner.scan_funded())return false;
@@ -221,14 +232,12 @@ struct NativeGroupMaintenance::Impl {
     return feature;
   }
   void rank_buckets(bool indexed) {
-    static const auto zero_band=word(detail::record_digest(std::array<std::byte,kNativeExtentBytes/positional_bands>{}));
     buckets.clear();
     for(const auto& [id,feature]:features) {
       if(indexed && feature.token.grouped && !feature.token.exact_base)continue;
       const auto count=indexed?feature.bands.size():positional_bands;
       for(unsigned i=0;i<count;++i) {
-        const auto empty=i<positional_bands?zero_band:0;
-        if(!indexed || feature.bands[i]!=empty)buckets[{i,feature.bands[i]}].push_back(id);
+        if(!indexed || usable_indexed_band(i,feature.bands[i]))buckets[{i,feature.bands[i]}].push_back(id);
       }
     }
     if(indexed)for(const auto& [id,feature]:representatives) {
@@ -268,7 +277,36 @@ struct NativeGroupMaintenance::Impl {
       else representatives.erase(id);
     }
     trim_representatives(maximum);
-    features.clear();buckets.clear();candidate_order.clear();
+    features.clear();buckets.clear();candidate_order.clear();coherence_after=0;
+  }
+  bool query_coherence(std::optional<IndexedCoherenceSnapshot>& catalog,std::size_t maximum_representatives) {
+    if(!catalog)return false;
+    if(catalog->image()!=image){catalog.reset();return false;}
+    for(auto sample=features.upper_bound(coherence_after);sample!=features.end();++sample) {
+      const auto& feature=sample->second;
+      coherence_after=sample->first;
+      if(feature.token.grouped)continue;
+      for(unsigned band=0;band<feature.bands.size();++band) {
+        const auto fingerprint=feature.bands[band];
+        if(!fingerprint || !usable_indexed_band(band,fingerprint))continue;
+        std::optional<OptimizationGroupFeature> hit;
+        ++state.coherence_lookups;
+        try{hit=catalog->find(band,fingerprint);}
+        catch(const std::exception&){catalog.reset();++state.coherence_failures;return true;}
+        if(hit && !features.contains(hit->object) && !representatives.contains(hit->object)) {
+          trim_representatives(maximum_representatives-1);
+          const NativeContentToken token{{hit->inode,hit->extent_index},hit->object,hit->revision,hit->revision,
+              hit->exact_base,hit->exact_base};
+          representatives.emplace(hit->object,Feature{token,hit->content,hit->bands});
+          ++state.coherence_matches;
+          // The ordinary candidate path checks the live binding and verifies
+          // selected source bytes before any publication.
+          rank_buckets(true);
+        }
+        return true; // One point lookup in an admitted opportunity.
+      }
+    }
+    return false;
   }
   void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members,
       std::size_t remaining_extents,bool collect_batch) {
@@ -322,7 +360,7 @@ struct NativeGroupMaintenance::Impl {
     ++state.attempted_groups;phase=Phase::preparing;
   }
   void step_indexed(NativeFilesystemWriter& writer,std::size_t maximum_members,
-      std::size_t maximum_representatives,bool collect_batch) {
+      std::size_t maximum_representatives,bool collect_batch,std::optional<IndexedCoherenceSnapshot>& catalog) {
     // The budget limits one trial and one scan window. Existing anchors can
     // accept further windows without rewriting earlier members.
     const auto maximum=(std::min)(maximum_members,kNativeMaxDirtyExtents);
@@ -360,6 +398,7 @@ struct NativeGroupMaintenance::Impl {
       propose_indexed_group(writer,maximum,maximum_members-staged_extents,collect_batch);
       return;
     }
+    if(query_coherence(catalog,maximum_representatives))return;
     retain_indexed_window(maximum_representatives);
     if(extent_scan_exhausted)complete_scan(writer);
     else phase=Phase::scanning;
@@ -368,7 +407,7 @@ struct NativeGroupMaintenance::Impl {
         (phase==Phase::idle || samples>=checkpoint_window_samples);
   }
   void step(NativeFilesystemWriter& writer,std::size_t maximum_members,std::size_t maximum_representatives,
-      NativeGroupSearchOpportunity search) {
+      NativeGroupSearchOpportunity search,std::optional<IndexedCoherenceSnapshot>& catalog) {
     const bool can_batch=search.collect_batch && writer.maintenance_indexed();
     const bool collect_batch=can_batch && search.maximum_members;
     if(!staged_groups.empty() && !batch_draining) {
@@ -382,7 +421,7 @@ struct NativeGroupMaintenance::Impl {
     if(batch_draining && !work) {
       if(refresh_base) {
         if(staged_groups.empty())batch_draining=false;
-        step_indexed(writer,maximum_members,maximum_representatives,false);
+        step_indexed(writer,maximum_members,maximum_representatives,false,catalog);
         return;
       }
       if(staged_groups.empty()) {
@@ -457,7 +496,7 @@ struct NativeGroupMaintenance::Impl {
       begin_scan(writer);return;
     }
     if(writer.maintenance_indexed()) {
-      step_indexed(writer,maximum_members,maximum_representatives,can_batch && !batch_draining);
+      step_indexed(writer,maximum_members,maximum_representatives,can_batch && !batch_draining,catalog);
       return;
     }
     if(phase==Phase::scanning) {
@@ -525,8 +564,10 @@ bool NativeGroupMaintenance::pending() const noexcept {
   const auto source=impl_->source.lock();
   if(!source || !source->writer || !source->terminal || *source->terminal || source->writer->poisoned())return false;
   const auto& writer=*source->writer;
+  const auto image=writer.maintenance_identity();
   return impl_->active_group() || impl_->checkpoint_due || impl_->phase!=Phase::idle || (writer.maintenance_has_candidates() &&
-      (impl_->image!=writer.maintenance_identity() || impl_->completed_sequence!=writer.maintenance_content_sequence()));
+      (impl_->image!=image || impl_->completed_sequence!=writer.maintenance_content_sequence() ||
+       impl_->new_coherence(*source,image)));
 }
 void NativeGroupMaintenance::cancel() noexcept {
   if(impl_){impl_->reset_index();impl_->stopped=true;impl_->state.phase=Phase::failed;impl_->source.reset();impl_->reservation.reset();}
@@ -578,9 +619,11 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
     if(p.phase!=Phase::idle)return p.defer(Defer::memory,true);
     p.trim_representatives(maximum_representatives);
   }
+  const bool new_catalog=p.new_coherence(*source,image);
   if(!writer.maintenance_has_candidates())p.reset_index();
   if(!writer.maintenance_has_candidates() ||
-      (!p.active_group() && !p.checkpoint_due && p.phase==Phase::idle && p.completed_sequence==writer.maintenance_content_sequence())) {
+      (!p.active_group() && !p.checkpoint_due && !new_catalog && p.phase==Phase::idle &&
+       p.completed_sequence==writer.maintenance_content_sequence())) {
     p.state.phase=Phase::idle;p.state.deferral=Defer::none;p.state.next_opportunity_delay_ms=0;return p.state;
   }
   if(observed.foreground_pending)return p.defer(Defer::foreground);
@@ -601,8 +644,14 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   const auto before=std::chrono::steady_clock::now();
   try {
-    if(!indexed || !p.checkpoint_step(writer,*source,maximum_representatives))
-      p.step(writer,maximum_members,maximum_representatives,search);
+    if(new_catalog) {
+      p.coherence_binding=source->coherence_binding;
+      p.coherence_after=0;
+      p.completed_sequence=0;
+      if(p.phase!=Phase::idle)p.scan_revisit=true;
+    }
+    if(!indexed || !p.checkpoint_step(writer,*source,maximum_representatives,new_catalog))
+      p.step(writer,maximum_members,maximum_representatives,search,source->coherence);
     if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
     p.state.phase=p.phase;p.state.deferral=Defer::none;
   }catch(const std::bad_alloc&){p.reset_index();p.state.phase=Phase::deferred;p.state.deferral=Defer::memory;}

@@ -54,6 +54,12 @@ unchanged for legacy stores. Paged transactions retain their independent
 256-operation/4-MiB-new-input/1-MiB-per-object work limits. At most 8,721 new
 metadata pages can be staged per transaction, independently of inventory size.
 
+An optional write-byte allowance charges the full planned append span and
+both root writes before admitting backing growth. A refusal leaves the
+writer usable and performs no writes or flushes. This lets advisory callers
+account for copy-on-write index pages and padding alongside their payloads.
+[Coherence catalog](OPTIMIZATION_STATE.md#paged-coherence-catalog)
+
 The tree has 62 entries per leaf and 35 references per branch. Mutations rewrite
 affected paths and split pages; empty subtrees disappear. Partially empty pages
 are not merged automatically. History remains append-only while readers retain

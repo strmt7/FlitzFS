@@ -1,3 +1,4 @@
+#include "flitzfs/indexed_coherence.hpp"
 #include "flitzfs/paged_store.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
@@ -92,6 +93,83 @@ void populate(PagedObjectStoreWriter& writer,std::uint64_t count) {
     for(auto id=first;id<=count && id<first+256;++id)batch.push_back(put(id));
     writer.commit(batch);
   }
+}
+IndexedCoherencePosting posting(std::uint64_t n) {
+  OptimizationGroupFeature feature;
+  feature.inode=n+2;
+  feature.extent_index=n;
+  feature.object=(1ULL<<61)+n+1;
+  feature.revision=n+9;
+  feature.content[0]=static_cast<std::byte>(n);
+  feature.bands[0]=n+1000;
+  return {0,feature};
+}
+void paged_coherence_catalog() {
+  auto volume=identity(),source=volume;
+  source[0]=std::byte{27};
+  auto ram=std::make_shared<Ram>();
+  constexpr std::uint64_t rows=2*kOptimizationGroupRepresentatives+23;
+  std::uint64_t generation=0;
+  {
+    auto catalog=IndexedCoherenceWriter::create(ram,volume,source,limits);
+    const auto first=posting(1);
+    const auto before=ram->calls;
+    bool refused=false;
+    try{catalog.publish(std::span(&first,1),0);}
+    catch(const PagedStoreCapacityError&){refused=true;}
+    require(refused && ram->calls==before && !catalog.poisoned(),"advice write budget touched storage");
+    for(std::uint64_t start=1;start<=rows;start+=96) {
+      std::vector<IndexedCoherencePosting> batch;
+      for(auto i=start;i<=rows && i<start+96;++i)batch.push_back(posting(i));
+      const auto prior=ram->write_bytes;
+      const auto published=catalog.publish(batch,2*1024*1024);
+      require(published.write_bytes_upper_bound && published.write_bytes_upper_bound<=2*1024*1024 &&
+          ram->write_bytes-prior<=published.write_bytes_upper_bound,"catalog undercharged physical writes");
+    }
+    auto earlier=catalog.snapshot();
+    require(earlier.info().objects==rows+1,"coherence catalog inventory differs");
+    require(earlier.info().height>0,"coherence catalog did not span multiple pages");
+    const auto writes=ram->calls;
+    require(catalog.publish(std::span(&first,1),0).write_bytes_upper_bound==0 && ram->calls==writes,
+        "replaying an identical posting wrote new history");
+    auto replacement=first;replacement.representative.revision+=rows;
+    const auto changed=catalog.publish(std::span(&replacement,1),2*1024*1024);
+    generation=changed.storage.generation;
+    require(earlier.find(0,1001)==first.representative,"new posting changed an older reader");
+    require(catalog.publish(std::span(&first,1),0).write_bytes_upper_bound==0,
+        "older observation replaced a newer binding");
+  }
+  const auto prior=ram->calls;
+  auto loaded=IndexedCoherenceSnapshot::open(ram,volume,source,limits);
+  for(const auto n:{rows/2,rows}) {
+    const auto read_start=ram->read_bytes;
+    require(loaded.find(0,n+1000)==posting(n).representative &&
+        ram->read_bytes-read_start<64*1024,"point query walked an unbounded inventory");
+  }
+  require(!loaded.find(1,1001) && !loaded.find(0,47),"unknown coherence key returned data");
+  rejects([&]{(void)IndexedCoherenceSnapshot::open(ram,source,volume,limits);},"foreign volume matched");
+  auto other=source;other[0]=std::byte{3};
+  rejects([&]{(void)IndexedCoherenceWriter::resume(ram,volume,other,generation,limits);},
+      "foreign source acquired a writer");
+  rejects([&]{(void)IndexedCoherenceWriter::resume(ram,volume,source,generation-1,limits);},
+      "stale catalog generation acquired a writer");
+  require(ram->calls==prior,"coherence read or refused reopen mutated storage");
+  {
+    auto resumed=IndexedCoherenceWriter::resume(ram,volume,source,generation,limits);
+    const auto row=resumed.snapshot().find(0,1001);
+    require(row && row->revision==posting(1).representative.revision+rows,"coherence resume lost latest binding");
+  }
+  // The generic store validates this record's digest. The typed reader must
+  // still reject an unknown reserved field without exposing a candidate.
+  auto raw=PagedObjectStoreWriter::resume(ram,volume,generation,limits,{StoreCompressionMode::raw,1,false});
+  const auto view=raw.snapshot();
+  const auto key=view.list_page(1,1).at(0).id;
+  auto record=view.read(key);
+  const auto fingerprint=get64(record,16+64);
+  record.at(9)=std::byte{1};
+  raw.commit(std::array<StoreMutation,1>{{{key,false,std::move(record)}}});
+  const auto malformed=IndexedCoherenceSnapshot::open(ram,volume,source,limits);
+  rejects([&]{(void)malformed.find(0,fingerprint);},"malformed coherence row supplied advice");
 }
 void basic_and_oracle() {
   auto ram=std::make_shared<Ram>();auto writer=create(ram);auto empty=writer.snapshot();
@@ -386,7 +464,7 @@ void scale(std::uint64_t count) {
 int main(int argc,char** argv) {
   try {
     if(argc==2 && std::string_view(argv[1])=="--million")scale(1000000);
-    else if(argc==1) {append_write_accounting();basic_and_oracle();remove_all_keys();
+    else if(argc==1) {append_write_accounting();paged_coherence_catalog();basic_and_oracle();remove_all_keys();
       failure_matrix(4096);failure_matrix(65536);
       damage_and_malformed();semantic_pages_and_units();codec_modes();rebuild_and_recovery();rebuild_failures();scale(16384);}
     else throw std::runtime_error("unsupported test arguments");

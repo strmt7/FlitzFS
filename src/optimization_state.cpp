@@ -1,6 +1,7 @@
 #include "flitzfs/optimization_state.hpp"
 #include "flitzfs/native_filesystem.hpp"
 #include "native_name_index.hpp"
+#include "optimization_feature_wire.hpp"
 #include "record_digest.hpp"
 #include <algorithm>
 #include <cstring>
@@ -13,13 +14,14 @@ namespace flitzfs {
 namespace {
 using Bytes=std::vector<std::byte>;
 constexpr std::size_t digest_at=kStoreCommitUnit-32,profile_at=64,benchmark_at=64+32*64;
-constexpr std::size_t scan_at=benchmark_at+kOptimizationMaxBenchmarks*32,feature_at=scan_at+64,feature_size=168;
+constexpr std::size_t scan_at=benchmark_at+kOptimizationMaxBenchmarks*32,feature_at=scan_at+64;
+constexpr auto feature_size=detail::kOptimizationGroupFeatureBytes;
 constexpr std::array slot_magic{"FLTOP001","FLTOP002","FLTOP003","FLTOP004"};
 constexpr std::size_t legacy_scan_capacity=63;
 static_assert(kOptimizationGroupRepresentatives==(digest_at-feature_at)/feature_size);
 [[noreturn]] void fail(const char* text){throw std::runtime_error(text);}
 void require(bool value,const char* text){if(!value)fail(text);}
-void put(Bytes& b,std::size_t at,std::uint64_t value,unsigned count=8) {
+void put(std::span<std::byte> b,std::size_t at,std::uint64_t value,unsigned count=8) {
   for(unsigned i=0;i<count;++i)b[at+i]=static_cast<std::byte>(value>>(8*i));
 }
 std::uint64_t get(std::span<const std::byte> b,std::size_t at,unsigned count=8) {
@@ -36,8 +38,7 @@ bool valid_scan(const OptimizationGroupScan& scan) noexcept {
       (scan.complete&&scan.revisit) || scan.representatives.size()>kOptimizationGroupRepresentatives)return false;
   auto previous=detail::kNativeIndexedDataObject;
   for(const auto& item:scan.representatives) {
-    if(item.object<=previous || item.object>=2*detail::kNativeIndexedDataObject ||
-        !item.revision || !extent_coordinate(item.inode,item.extent_index))return false;
+    if(item.object<=previous || !detail::valid_optimization_group_feature(item))return false;
     previous=item.object;
   }
   return true;
@@ -51,11 +52,9 @@ void encode_scan(Bytes& b,const OptimizationGroupScan& scan) {
   put(b,scan_at+44,1,4); // Aligned and shifted feature schema.
   put(b,scan_at+48,scan.representatives.size(),4);
   for(std::size_t i=0;i<scan.representatives.size();++i) {
-    const auto& item=scan.representatives[i];const auto at=feature_at+i*feature_size;
-    put(b,at,item.inode);put(b,at+8,item.extent_index);put(b,at+16,item.object);put(b,at+24,item.revision);
-    std::copy(item.content.begin(),item.content.end(),b.begin()+at+32);
-    for(std::size_t j=0;j<item.bands.size();++j)put(b,at+64+j*8,item.bands[j]);
-    put(b,at+160,item.exact_base);
+    const auto offset=feature_at+i*feature_size;
+    detail::encode_optimization_group_feature(
+        std::span<std::byte,feature_size>(b.data()+offset,feature_size),scan.representatives[i]);
   }
 }
 std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b,std::size_t capacity) {
@@ -70,13 +69,11 @@ std::optional<OptimizationGroupScan> decode_scan(std::span<const std::byte> b,st
   scan.complete=flags==1;scan.revisit=flags==2;
   scan.representatives.reserve(static_cast<std::size_t>(count));
   for(std::size_t i=0;i<count;++i) {
-    const auto at=feature_at+i*feature_size;
-    const auto base=get(b,at+160);if(base>1)return {};
-    OptimizationGroupFeature item;
-    item.inode=get(b,at);item.extent_index=get(b,at+8);item.object=get(b,at+16);item.revision=get(b,at+24);
-    std::copy_n(b.begin()+at+32,32,item.content.begin());
-    for(std::size_t j=0;j<item.bands.size();++j)item.bands[j]=get(b,at+64+j*8);
-    item.exact_base=base==1;scan.representatives.push_back(item);
+    const auto offset=feature_at+i*feature_size;
+    const auto item=detail::decode_optimization_group_feature(
+        std::span<const std::byte,feature_size>(b.data()+offset,feature_size));
+    if(!item)return {};
+    scan.representatives.push_back(*item);
   }
   if(!valid_scan(scan))return {};
   return scan;
@@ -203,6 +200,36 @@ void contract(const StoreByteIo& io) {
   require(valid_store_io_contract(io.contract()),"optimization area needs qualified persistence/failure units");
 }
 }
+bool detail::valid_optimization_group_feature(const OptimizationGroupFeature& feature) noexcept {
+  return feature.object>kNativeIndexedDataObject && feature.object<2*kNativeIndexedDataObject &&
+      feature.revision && extent_coordinate(feature.inode,feature.extent_index);
+}
+void detail::encode_optimization_group_feature(std::span<std::byte,kOptimizationGroupFeatureBytes> bytes,
+    const OptimizationGroupFeature& feature) {
+  put(bytes,0,feature.inode);
+  put(bytes,8,feature.extent_index);
+  put(bytes,16,feature.object);
+  put(bytes,24,feature.revision);
+  std::ranges::copy(feature.content,bytes.begin()+32);
+  for(std::size_t j=0;j<feature.bands.size();++j)put(bytes,64+j*8,feature.bands[j]);
+  put(bytes,160,feature.exact_base);
+}
+std::optional<OptimizationGroupFeature> detail::decode_optimization_group_feature(
+    std::span<const std::byte,kOptimizationGroupFeatureBytes> bytes) {
+  const auto base=get(bytes,160);
+  if(base>1)return {};
+  OptimizationGroupFeature feature;
+  feature.inode=get(bytes,0);
+  feature.extent_index=get(bytes,8);
+  feature.object=get(bytes,16);
+  feature.revision=get(bytes,24);
+  std::copy_n(bytes.begin()+32,32,feature.content.begin());
+  for(std::size_t j=0;j<feature.bands.size();++j)feature.bands[j]=get(bytes,64+j*8);
+  feature.exact_base=base==1;
+  if(!valid_optimization_group_feature(feature))return {};
+  return feature;
+}
+
 OptimizationSnapshot read_optimization_state(const StoreByteIo& io,StoreIdentity volume) {
   require(volume!=StoreIdentity{},"missing optimization volume identity");
   try{return load(io,volume).snapshot;}

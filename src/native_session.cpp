@@ -385,6 +385,20 @@ std::weak_ptr<detail::NativeMaintenanceSource> NativeFileSession::maintenance_so
   }
   return self.maintenance;
 }
+void NativeFileSession::bind_indexed_coherence(std::shared_ptr<StoreByteIo> backing,PagedStoreLimits limits) {
+  auto& self=ready();
+  if(!self.volume || !self.volume->head || self.volume->pending || self.recompression ||
+      !self.writer.maintenance_indexed() || !backing ||
+      backing==self.volume->head_io || backing==self.volume->active_io ||
+      backing==self.volume->candidate_io || self.owns_optimization_backend(backing))
+    fail(E::invalid_options,"coherence catalog needs separate backing and an indexed managed session");
+  auto catalog=IndexedCoherenceSnapshot::open(std::move(backing),self.volume->volume_id,self.volume->active_id,limits);
+  const auto source=maintenance_source().lock();
+  if(source->coherence_binding==(std::numeric_limits<std::uint64_t>::max)())
+    fail(E::limit,"coherence binding sequence exhausted");
+  source->coherence.emplace(std::move(catalog));
+  ++source->coherence_binding;
+}
 NativeOptimizationInfo NativeFileSession::optimization_info() const noexcept {
   NativeOptimizationInfo out;
   if(!impl_||!impl_->volume)return out;
@@ -667,6 +681,7 @@ void NativeFileSession::adopt_handoff(Impl& self,const NativeVolumeHeadInfo& pub
   auto& volume=*self.volume;
   volume.active_io=std::move(volume.candidate_io);
   volume.active_id=published.selection.image_identity;
+  if(self.maintenance)self.maintenance->coherence.reset();
   volume.epoch=published.selection.epoch;
   volume.candidate_id={};
   volume.baseline.reset();
@@ -879,6 +894,7 @@ NativeVolumeHeadInfo NativeFileSession::recover_volume() {
   volume.head.emplace(NativeVolumeHeadWriter::resume(volume.head_io,volume.volume_id,observed.epoch,checked));
   const auto restored=volume.head->info();
   self.writer=resume_image(chosen,checked,volume.foreground);
+  if(self.maintenance && observed.image_identity!=volume.active_id)self.maintenance->coherence.reset();
   volume.active_io=std::move(chosen);volume.active_id=observed.image_identity;volume.epoch=observed.epoch;
   volume.candidate_io.reset();volume.candidate_id={};volume.baseline.reset();
   volume.pending=false;self.terminal=false;return restored;

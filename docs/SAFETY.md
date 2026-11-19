@@ -1167,6 +1167,11 @@ scanner checks the live extent identity and revision before using a retained
 feature, and publication independently verifies its selected bytes.
 [Checkpoint format](OPTIMIZATION_STATE.md#indexed-discovery-checkpoints)
 
+The paged catalog binds its volume and source image and uses a separate
+backing. Its read failures disable catalog lookup while the ordinary scanner
+and file reads remain available. Candidate publication still requires current
+extent bindings and independent CPU verification. [Catalog format](OPTIMIZATION_STATE.md#paged-coherence-catalog)
+
 [OPTIMIZATION_BUDGET.md](OPTIMIZATION_BUDGET.md) requires verified native input,
 monotonic persisted settlement, charged creation/repair and fresh-input forfeiture
 after loss. Only actual NEW head/image creation can fund one initial provision;
