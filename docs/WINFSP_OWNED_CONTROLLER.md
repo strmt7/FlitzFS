@@ -49,12 +49,18 @@ and refuses queued/active foreground calls and deferred publication/retirement.
 Collector, priority, optional-controller and event failures disable optional work;
 they never enable a GPU path or reinterpret unknown headroom as idle capacity.
 
-Complete quantum elapsed time, including wrapper/collector overhead, is charged
-against a 1% elapsed-work pacing target. Activity cannot erase the next due time.
-Timed waits pace pending maintenance and GPU budget observations. The
-synchronous maintenance quantum yields after its transaction. Indexed final Close records
-retirement and signals the controller. The controller checks the cached queue
-state and requires new, recent CPU and memory observations for each transaction.
+The owner can continue preparation inside one fresh CPU sample. It releases
+the callback lock between steps, refreshes memory headroom, and checks the
+foreground generation, pending work and stop before each continuation.
+It ends the sequence on a device launch or route acquisition. Group publication,
+indexed retirement, compaction and advisory checkpoint writes each require
+a fresh CPU capture. Indexed final Close records retirement and signals the
+controller.
+
+Complete elapsed time across the admitted steps, including wrapper and
+collector overhead, is charged against the 1% pacing target. Activity cannot
+erase the next due time. Timed waits pace pending maintenance and GPU budget
+observations.
 A reaper transaction removes at most 64 mappings. The controller checks
 foreground activity, deferred response ownership and worker retirement before
 entering the transaction. The owned memory controller can then advance one justified compaction

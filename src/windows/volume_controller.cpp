@@ -115,14 +115,23 @@ void VolumeController::run() noexcept {
           }
           const auto started=std::chrono::steady_clock::now();
           const auto old=model.maintenance_progress();auto progress=old;
+          std::uint64_t continued=0;
           // No shared queue/UI lock is held while this thread has reduced
           // resource priorities. A queued command preempts the next quantum.
           MaintenanceThreadScope priority;
           if(!priority.active())maintenance_disabled=true;
           else try {
-            const auto observed=host.observe(foreground_pending_.load());
-            if(!foreground_pending_.load() && host.status()!=MaintenanceHostStatus::waiting)
-              progress=model.maintain_groups(observed,GetTickCount64());
+            auto observed=host.observe(foreground_pending_.load());
+            if(host.status()!=MaintenanceHostStatus::waiting) {
+              while(!foreground_pending_.load()) {
+                progress=model.maintain_groups(observed,GetTickCount64());
+                if(observed.continued && progress.deferral==NativeMaintenanceDeferral::none)++continued;
+                if(!can_continue_preparation(progress) || !model.maintenance_pending() || foreground_pending_.load())break;
+                const auto refreshed=host.continue_preparation(NativeMaintenancePolicy{}.maximum_age_ms);
+                if(!refreshed)break;
+                observed=*refreshed;
+              }
+            }
             if(host.status()==MaintenanceHostStatus::unavailable)maintenance_disabled=true;
           }catch(...){maintenance_disabled=true;}
           if(!priority.finish())maintenance_disabled=true;
@@ -132,10 +141,11 @@ void VolumeController::run() noexcept {
           const auto used=elapsed>0?static_cast<std::uint64_t>(elapsed):1;
           // Include collector, residency and priority overhead in the helper's
           // 1% elapsed-work pacing, beyond the core's separately charged work.
-          const auto full_delay=used/10000+(used%10000!=0);
+          const auto full_delay=maintenance_delay_ms(used);
           next_opportunity=GetTickCount64()+(std::max)(delay,full_delay);
           std::lock_guard lock(mutex_);
           ++view_.maintenance_quanta;view_.maintenance_elapsed_ns+=used;
+          view_.continued_preparation_steps+=continued;
           view_.maintenance_maximum_quantum_ns=(std::max)(view_.maintenance_maximum_quantum_ns,used);
           const bool changed=view_.maintenance_host!=host.status() || view_.maintenance_disabled!=maintenance_disabled ||
               view_.volume.maintenance.phase!=progress.phase || view_.volume.maintenance.deferral!=progress.deferral ||

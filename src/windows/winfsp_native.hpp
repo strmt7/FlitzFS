@@ -30,6 +30,7 @@ struct WinFspMaintenanceResult {
   std::size_t group_members=0;
   std::vector<NativeSharedBaseSearchWindow> search_batch;
   bool retained_search=false;
+  bool group_step=false;
 };
 class WinFspNativeWritable final {
  public:

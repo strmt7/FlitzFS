@@ -188,6 +188,7 @@ struct WinFspNativeWritable::Impl {
     if(!groups->pending())return {State::unchanged,groups->progress()};
     const auto progress=groups->advance(observed,now,search);
     WinFspMaintenanceResult result{State::advanced,progress};
+    result.group_step=true;
     result.group_members=groups->active_group_members();
     if(progress.search_window_ready || search.reply)result.search_window=groups->search_window();
     if(progress.search_batch_ready)result.search_batch=groups->search_batch();
@@ -814,6 +815,10 @@ WinFspMaintenanceResult WinFspNativeWritable::advance_background_maintenance(
     impl_->maintenance_cancelled=true;
     impl_->groups.reset();
     return {WinFspMaintenanceState::unavailable};
+  }
+  if(observed.continued) {
+    if(impl_->session.retirement_pending())return {WinFspMaintenanceState::busy};
+    return impl_->advance_groups(observed,now,search);
   }
   if(impl_->info_policy==indexed_file_info) {
     // An admitted group pins its source image. Complete or retire it before

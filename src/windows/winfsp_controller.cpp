@@ -122,15 +122,36 @@ struct WinFspVolumeController::Impl {
           }
           const auto begin=std::chrono::steady_clock::now();
           WinFspMaintenanceResult result;
+          std::uint64_t continued=0;
           MaintenanceThreadScope priority;
           if(!priority.active())disabled=true;
           else try {
-            const auto observed=host.observe(stop_requested.load(std::memory_order_acquire));
+            const auto epoch=adapter->foreground_activity();
+            const auto interrupted=[&] {
+              return stop_requested.load(std::memory_order_acquire) || adapter->foreground_pending() ||
+                  adapter->foreground_activity()!=epoch;
+            };
+            auto observed=host.observe(stop_requested.load(std::memory_order_acquire));
             if(!stop_requested.load(std::memory_order_acquire) && host.status()!=MaintenanceHostStatus::waiting) {
-              if(residency && observed.valid)residency->verify_working_set();
-              result=advance(observed);
-              if(result.state==WinFspMaintenanceState::unavailable ||
-                  result.progress.phase==NativeMaintenancePhase::failed)disabled=true;
+              for(;;) {
+                if(residency && observed.valid)residency->verify_working_set();
+                if(observed.continued && interrupted())break;
+                auto step=advance(observed);
+                if(observed.continued && step.state==WinFspMaintenanceState::busy)break;
+                result=std::move(step);
+                if(result.state==WinFspMaintenanceState::unavailable ||
+                    result.progress.phase==NativeMaintenancePhase::failed)disabled=true;
+                if(observed.continued && result.group_step &&
+                    result.progress.deferral==NativeMaintenanceDeferral::none)++continued;
+                if(disabled || !result.group_step || !can_continue_preparation(result.progress) || interrupted() ||
+                    (anchor && anchor->waiting()) || (gpu && GetTickCount64()>gpu->after_ms))break;
+#ifdef FLITZFS_ACQUIRE_INSTALLED_AMD
+                if(acquisition_thread.joinable())break;
+#endif
+                const auto refreshed=host.continue_preparation(adapter->group_maintenance_policy().maximum_age_ms);
+                if(!refreshed || interrupted())break;
+                observed=*refreshed;
+              }
             }
             if(host.status()==MaintenanceHostStatus::unavailable)
               disabled=true;
@@ -141,7 +162,7 @@ struct WinFspVolumeController::Impl {
           const auto used=elapsed>0?static_cast<std::uint64_t>(elapsed):1;
           // 1% elapsed-work share charges telemetry and wrapper work too. File
           // activity wakes the owner but never erases accumulated pacing debt.
-          const auto duty_ms=used/10000+(used%10000!=0);
+          const auto duty_ms=maintenance_delay_ms(used);
           const auto delay=(std::max)({std::uint64_t(1),host.next_delay_ms(),result.progress.next_opportunity_delay_ms,duty_ms});
           next=GetTickCount64()+(std::min)(delay,maximum_finite_wait);
           {
@@ -149,6 +170,7 @@ struct WinFspVolumeController::Impl {
             if(result.state==WinFspMaintenanceState::advanced || result.state==WinFspMaintenanceState::unchanged)
               current.maintenance=result.progress;
             ++current.maintenance_quanta;
+            current.continued_preparation_steps+=continued;
             if(result.reclaimed)++current.reclamation_quanta;
             if(result.compacted)++current.compactions;
             if(result.compaction_failed)++current.compaction_failures;

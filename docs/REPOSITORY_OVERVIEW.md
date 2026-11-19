@@ -429,6 +429,13 @@ when they cannot fill the qualified queue. The small public revision pairs
 provide timing and compacted-size controls for that decision.
 [Windows queue qualification](evidence/native-anchor-wait-qualification-2026-11-19.json)
 
+The owned Windows controller and desktop helper now reuse a fresh CPU
+observation for short preparation steps with refreshed memory. The final
+installed AMD callback fixture completed in 30.2 seconds compared with
+62.2 seconds on the previous controller. Fresh observations still govern
+publication, and an independent CPU reader verified every file.
+[Windows preparation evidence](evidence/windows-maintenance-opportunities-2026-11-19.json)
+
 The evidence covers specific CPU paths, modeled failures, SDK callbacks and
 helper behavior. Full current-source CTest, an actual mounted product, useful
 ordinary GPU operation and physical power-loss qualification remain open.

@@ -344,6 +344,7 @@ int run_live_anchor_owner(std::string_view mode,std::optional<NativeAnchorSearch
       "AMD controller changed accepted file bytes");
   std::cout<<"anchor_owner mode="<<mode<<" host="<<static_cast<int>(result.host)
       <<" quanta="<<result.maintenance_quanta<<" groups="<<result.maintenance.published_groups
+      <<" continued_steps="<<result.continued_preparation_steps<<" settled_ms="<<settled_ms
       <<" declined_groups="<<result.maintenance.declined_groups<<" phase="<<static_cast<int>(result.maintenance.phase)<<" sampled="<<result.maintenance.sampled_extents
       <<" attempted="<<result.maintenance.attempted_groups<<" cpu_limit_ppm="<<qualification.maximum_cpu_busy_ppm
       <<" submitted="<<result.anchor_search.submitted<<" verified="<<result.anchor_search.verified
@@ -912,7 +913,8 @@ void live_opportunities() {
   require(snapshot.workload_info().committed_input_bytes==2*kNativeExtentBytes,"controller minted accepted input");
   if(observed.maintenance.published_groups)require(snapshot.shared_base_info().members==2,"reported live publication not retained");
   std::cout<<"live_host host="<<static_cast<int>(observed.host)<<" disabled="<<observed.maintenance_disabled
-      <<" quanta="<<observed.maintenance_quanta<<" groups="<<observed.maintenance.published_groups
+      <<" quanta="<<observed.maintenance_quanta<<" continued_steps="<<observed.continued_preparation_steps
+      <<" groups="<<observed.maintenance.published_groups
       <<" maximum_quantum_ns="<<observed.maximum_quantum_ns<<'\n';
 }
 void memory_planning() {

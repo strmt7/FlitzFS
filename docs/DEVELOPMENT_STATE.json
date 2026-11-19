@@ -167,7 +167,19 @@
     "installed_advised_members_published": 10,
     "foreground_cancelled_queued_exchange_and_completed_on_cpu": true,
     "undersized_profile_used_serial_waits": true,
-    "next": "Admit multiple short maintenance steps from one fresh idle observation while charging its credit once. Measure larger workload throughput and foreground interference."
+    "next": "Measure larger workload throughput and foreground interference with the continued preparation scheduler."
+  },
+  "windows_maintenance_opportunities": {
+    "source_base": "67526a88803d0e89c9ab06b1a412bf82e8b7fa17",
+    "evidence": "docs/evidence/windows-maintenance-opportunities-2026-11-19.json",
+    "final_live_fixture_seconds": [62.151926, 30.187864],
+    "final_continued_preparation_steps": 32,
+    "preview_continued_preparation_steps": 23,
+    "verified_files": 11,
+    "queued_amd_and_foreground_cpu_fallback_verified": true,
+    "fresh_capture_required_for_publication": true,
+    "scope": "One matched final-source Windows SDK callback pair and two preliminary pairs. The preview used real CPU telemetry and settled under its ordinary resource policy.",
+    "next": "Measure interference and background completion under larger mixed workloads and live callback demand."
   },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",

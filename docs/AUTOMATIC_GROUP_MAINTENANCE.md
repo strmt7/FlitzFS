@@ -133,6 +133,10 @@ These estimates and observations are not an OS memory reservation.
 Fresh idle observation intervals earn work credit, defaulting to 1% elapsed
 work share. Actual steady-clock duration is charged, including overruns; a
 measured cost estimate determines subsequent deferral and the suggested delay.
+An owned caller can send another preparation opportunity from the same CPU
+capture with a new opportunity sequence and refreshed memory. The unchanged
+capture time earns zero additional credit. Group publication, advisory
+checkpoint writes and coherence reclamation require a fresh CPU capture.
 Elapsed duration is not process CPU time. Default CPU admission requires at
 most 12.5% busy ticks within the supplied observation window. Time only paces
 pending work; it never overrides resource or foreground evidence. Each call

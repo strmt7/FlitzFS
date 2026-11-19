@@ -9,6 +9,9 @@ struct NativeMaintenanceObservation {
   std::uint64_t physical_total=0,physical_available=0,commit_limit=0,commit_available=0;
   std::uint64_t cpu_total_ticks=0,cpu_busy_ticks=0,cpu_window_ms=0;
   bool valid=false,foreground_pending=false;
+  // A new admission attempt with refreshed memory and the same CPU capture.
+  // It can spend remaining idle credit on preparation only.
+  bool continued=false;
 };
 struct NativeMaintenancePolicy {
   std::uint32_t maximum_age_ms=250,memory_share_divisor=64,maximum_cpu_window_ms=2000;

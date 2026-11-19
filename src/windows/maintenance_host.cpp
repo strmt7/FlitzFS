@@ -1,13 +1,26 @@
 #include "maintenance_host.hpp"
 #include <pdh.h>
 #include <pdhmsg.h>
+#include <chrono>
 #include <cmath>
 #include <limits>
 namespace flitzfs {
+namespace {
+using Clock=std::chrono::steady_clock;
+bool observe_memory(NativeMaintenanceObservation& observation) noexcept {
+  MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
+  if(!GlobalMemoryStatusEx(&memory))return false;
+  observation.physical_total=memory.ullTotalPhys;observation.physical_available=memory.ullAvailPhys;
+  observation.commit_limit=memory.ullTotalPageFile;observation.commit_available=memory.ullAvailPageFile;
+  return true;
+}
+}
 struct WindowsMaintenanceHost::Impl {
   PDH_HQUERY query=nullptr;PDH_HCOUNTER counter=nullptr;
   MaintenanceHostStatus state=MaintenanceHostStatus::warming;
   std::uint64_t previous=0,sequence=0,next=0;
+  NativeMaintenanceObservation sample;
+  Clock::time_point started,issued;
   ~Impl(){if(query)PdhCloseQuery(query);}
   bool initialize() noexcept {
     if(state==MaintenanceHostStatus::unavailable)return false;
@@ -27,6 +40,7 @@ std::uint64_t WindowsMaintenanceHost::next_delay_ms() const noexcept {
 }
 NativeMaintenanceObservation WindowsMaintenanceHost::observe(bool foreground) noexcept {
   auto& p=*impl_;NativeMaintenanceObservation o;o.foreground_pending=foreground;
+  p.sample={};p.started=Clock::now();
   if(p.state==MaintenanceHostStatus::unavailable)return o;
   if(p.sequence==(std::numeric_limits<std::uint64_t>::max)()){p.state=MaintenanceHostStatus::unavailable;return o;}
   o.sequence=++p.sequence;const auto before=GetTickCount64();o.captured_ms=before;
@@ -44,14 +58,35 @@ NativeMaintenanceObservation WindowsMaintenanceHost::observe(bool foreground) no
       !std::isfinite(value.doubleValue) || value.doubleValue<0 || value.doubleValue>100) {
     p.state=MaintenanceHostStatus::unavailable;return o;
   }
-  MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
-  if(!GlobalMemoryStatusEx(&memory)){p.state=MaintenanceHostStatus::unavailable;return o;}
-  o.physical_total=memory.ullTotalPhys;o.physical_available=memory.ullAvailPhys;
-  o.commit_limit=memory.ullTotalPageFile;o.commit_available=memory.ullAvailPageFile;
+  if(!observe_memory(o)){p.state=MaintenanceHostStatus::unavailable;return o;}
   // Normalized ratio units; round busy upward so conversion never admits a
   // sample that was just over the requested CPU threshold.
   o.cpu_total_ticks=1000000;o.cpu_busy_ticks=static_cast<std::uint64_t>(std::ceil(value.doubleValue*10000));
-  o.cpu_window_ms=elapsed;o.valid=true;p.state=MaintenanceHostStatus::ready;return o;
+  o.cpu_window_ms=elapsed;o.valid=true;p.state=MaintenanceHostStatus::ready;
+  p.sample=o;p.issued=Clock::now();return o;
+}
+std::optional<NativeMaintenanceObservation> WindowsMaintenanceHost::continue_preparation(
+    std::uint32_t maximum_age_ms) noexcept {
+  auto& p=*impl_;
+  if(!p.sample.valid || p.sequence==(std::numeric_limits<std::uint64_t>::max)())return {};
+  const auto begin=Clock::now();
+  const auto budget=std::chrono::nanoseconds(p.sample.cpu_window_ms*maintenance_wall_share_ppm);
+  const auto used=begin-p.started;
+  // Leave room for another step of the cost just observed. The owner still
+  // charges the full duration if an individual synchronous step overruns.
+  if(used>=budget || begin-p.issued>budget-used)return {};
+  const auto fresh=[&] {
+    const auto now=GetTickCount64();
+    return now>=p.sample.captured_ms && now-p.sample.captured_ms<=maximum_age_ms;
+  };
+  auto observation=p.sample;
+  if(!fresh())return {};
+  if(!observe_memory(observation)){p.sample={};p.state=MaintenanceHostStatus::unavailable;return {};}
+  const auto refreshed=Clock::now()-p.started;
+  if(!fresh() || refreshed>=budget || begin-p.issued>budget-refreshed)return {};
+  observation.sequence=++p.sequence;observation.continued=true;
+  p.issued=begin;
+  return observation;
 }
 MaintenanceThreadScope::MaintenanceThreadScope() noexcept:
     active_(SetThreadPriority(GetCurrentThread(),THREAD_MODE_BACKGROUND_BEGIN)!=FALSE){}

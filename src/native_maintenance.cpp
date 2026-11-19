@@ -924,6 +924,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   p.last_observation=observed.sequence;
   const auto resources=detail::maintenance_resources(observed,now_ms,p.policy);
   if(!resources || observed.captured_ms<p.last_capture)return p.defer(Defer::observation,true);
+  if(observed.continued && observed.captured_ms!=p.last_capture)return p.defer(Defer::observation);
   const auto elapsed=p.last_capture?(std::min)(observed.captured_ms-p.last_capture,observed.cpu_window_ms):0;
   p.last_capture=observed.captured_ms;
   const bool indexed=writer.maintenance_indexed();
@@ -944,6 +945,9 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   if(observed.foreground_pending)return p.defer(Defer::foreground);
   if(resources->cpu_busy)return p.defer(Defer::cpu);
   if(!p.active_group() && writer.maintenance_busy())return p.defer(Defer::other_maintenance);
+  const bool service_coherence=reclaiming && !p.active_group() && (p.prefer_coherence || !discovering);
+  if(observed.continued && (p.phase==Phase::publishing || service_coherence ||
+      (indexed && !p.active_group() && p.checkpoint_due)))return p.defer(Defer::observation);
   // Credit only fresh idle observation intervals. Time paces pending work; it
   // never discovers a candidate or overrides contention/integrity evidence.
   const auto elapsed_ns=elapsed>(std::numeric_limits<std::uint64_t>::max)()/million?
@@ -959,7 +963,7 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
   }
   const auto before=std::chrono::steady_clock::now();
   try {
-    if(reclaiming && !p.active_group() && (p.prefer_coherence || !discovering)) {
+    if(service_coherence) {
       const auto previous=source->coherence_compactions;
       source->advance_coherence();
       if(source->coherence_compactions!=previous && !p.representatives.empty())p.checkpoint_due=true;
@@ -975,7 +979,8 @@ NativeMaintenanceProgress NativeGroupMaintenance::advance(const NativeMaintenanc
       }
       // Until queued groups settle, the previous cursor must remain
       // restartable. The tentative group windows only exist in this process.
-      if(!indexed || p.active_group() || !p.checkpoint_step(writer,*source,maximum_representatives,new_catalog))
+      if(!indexed || observed.continued || p.active_group() ||
+          !p.checkpoint_step(writer,*source,maximum_representatives,new_catalog))
         p.step(writer,maximum_members,maximum_representatives,search,*source);
       if(p.checkpoint_due && !source->scan_funded())p.checkpoint_due=false;
       p.prefer_coherence=true;

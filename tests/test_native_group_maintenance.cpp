@@ -623,6 +623,44 @@ void admission() {
   require(f.step(controller).deferral==Defer::other_maintenance && f.image->read_calls==before,"competing work was not deferred");
   explicit_work.cancel();f.finish(controller);f.verify(4);
 }
+void continued_preparation_admission() {
+  Fixture f(4096,8,true);
+  NativeMaintenancePolicy policy;policy.work_share_ppm=50000;
+  NativeGroupMaintenance controller(*f.session,policy);
+  auto seen=f.clock.next();
+  controller.advance(seen,f.clock.now);
+  const auto held_reads=f.image->read_calls,held_writes=f.image->calls;
+  auto invalid=f.clock.next();invalid.continued=true;
+  require(controller.advance(invalid,f.clock.now).deferral==Defer::observation &&
+      f.image->read_calls==held_reads && f.image->calls==held_writes,"Continuation advanced its CPU capture");
+
+  unsigned continued=0;
+  for(unsigned sample=0;sample<128 && controller.progress().phase!=Phase::publishing;++sample) {
+    seen=f.clock.next();
+    auto result=controller.advance(seen,f.clock.now);
+    require(result.phase!=Phase::failed,"Live group preparation failed");
+    for(unsigned step=0;step<16 && result.deferral==Defer::none &&
+        result.phase!=Phase::publishing && result.phase!=Phase::idle;++step) {
+      auto reuse=seen;reuse.sequence=++f.clock.sequence;reuse.continued=true;
+      const auto image_calls=f.image->calls,head_calls=f.head->calls;
+      result=controller.advance(reuse,f.clock.now);
+      require(result.phase!=Phase::failed && f.image->calls==image_calls && f.head->calls==head_calls,
+          "Continued preparation changed backing storage");
+      if(result.deferral==Defer::none)++continued;
+    }
+  }
+  require(continued && controller.progress().phase==Phase::publishing,"Continuation did not reach prepared group");
+  auto reuse=seen;reuse.sequence=++f.clock.sequence;reuse.continued=true;
+  const auto image_calls=f.image->calls,head_calls=f.head->calls;
+  require(controller.advance(reuse,f.clock.now).deferral==Defer::observation &&
+      f.image->calls==image_calls && f.head->calls==head_calls,"Reused CPU capture published a group");
+  reuse.sequence=++f.clock.sequence;reuse.foreground_pending=true;
+  require(controller.advance(reuse,f.clock.now).deferral==Defer::foreground &&
+      f.image->calls==image_calls && f.head->calls==head_calls,"Continued work ignored foreground activity");
+  const auto complete=f.finish(controller);
+  require(complete.published_groups==1,"Fresh observation did not publish prepared group");
+  f.verify(8);
+}
 void negative_cache_and_incompressible() {
   Fixture f(4096,2);const auto snapshot=f.session->snapshot();
   const std::array<NativeExtentSelection,2> keys{{{snapshot.stat("f0").inode,0},{snapshot.stat("f1").inode,0}}};
@@ -1528,7 +1566,8 @@ int main(int argc,char** argv){try{
     shifted_indexed_family(bytes,{StoreCompressionMode::automatic,6,true},true);
   } else if(argc==1) {
     for(auto unit:{4096U,65536U}){automatic_and_extension(unit);publication_faults(unit);}
-    admission();negative_cache_and_incompressible();ownership_and_pressure();foreground_change_during_preparation();
+    admission();continued_preparation_admission();negative_cache_and_incompressible();ownership_and_pressure();
+    foreground_change_during_preparation();
   } else throw std::invalid_argument("unknown group maintenance test mode");
   std::cout<<"PASS: "<<checks<<" automatic group maintenance checks; "<<faults<<" injected publication cases; model resource observations; memory CPU only\n";return 0;
 }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}}

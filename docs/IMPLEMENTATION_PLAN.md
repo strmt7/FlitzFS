@@ -935,12 +935,19 @@ its group. The short public source group retained serial waits and its
 860,160-byte image.
 [Windows queue qualification](evidence/native-anchor-wait-qualification-2026-11-19.json)
 
-The live controller samples CPU load once per second and advances one
-maintenance step per valid observation. The next scheduling change should
-allow several short steps while the observation is fresh, credit each idle
-interval once, and check foreground activity between steps. Measure
-publication completion and callback latency with and without outstanding
-AMD work.
+The Windows owners now admit several short preparation steps while one
+genuine CPU observation is fresh. The core credits that observation once.
+Each continuation resamples memory, checks foreground and stop, and defers
+storage publication until a fresh CPU capture. The outer owner charges its
+complete measured work against the existing background pacing. Qualify
+foreground callback tails and complete maintenance throughput across larger
+mixed workloads. The final matched 11-file installed AMD callback fixture
+completed in 30.2 seconds, compared with 62.2 seconds on the prior controller.
+Both published one group and read back every file on CPU. The final build
+ran 32 additional preparation steps within fresh observations and preserved
+CPU completion when a foreground callback cancelled the AMD exchange.
+The desktop helper used the same scheduling mechanism in its live test.
+[Windows maintenance timing and validation](evidence/windows-maintenance-opportunities-2026-11-19.json)
 
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data

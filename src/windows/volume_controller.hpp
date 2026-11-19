@@ -20,6 +20,7 @@ struct VolumeControllerView {
   MaintenanceHostStatus maintenance_host=MaintenanceHostStatus::warming;
   bool maintenance_disabled=false;
   std::uint64_t maintenance_quanta=0,maintenance_elapsed_ns=0,maintenance_maximum_quantum_ns=0;
+  std::uint64_t continued_preparation_steps=0;
   bool has_volume() const noexcept {return volume.ready || attachment.retained();}
   bool can_exit_without_discard() const noexcept {
     return !volume.ready && (!attachment.retained() ||

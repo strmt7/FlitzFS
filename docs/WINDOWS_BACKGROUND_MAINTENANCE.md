@@ -55,17 +55,23 @@ observation window by policy, default 2,000 ms, separately from the default
 An unavailable collector disables optional background execution without repeated
 discovery. File access stays on the CPU engine; no host counter/driver is changed.
 
-The existing single owned controller worker performs one opportunity outside
-queue/UI locks. Current-thread Windows resource background mode is entered for
-telemetry/residency/core work and restored before normal queue handling. A
+The existing single owned controller worker runs preparation outside queue
+and UI locks. One fresh CPU capture can fund several short preparation steps.
+The owner keeps the capture time, refreshes physical and commit headroom for
+each step, and stops when another step of the observed cost would exceed 1%
+of the sample interval. The core charges its existing idle credit once.
+Current-thread Windows resource background mode covers telemetry, residency
+and core work and is restored before normal queue handling. A
 priority failure disables optional maintenance and releases its private work;
 it is not storage authority. CPU file access and volume ownership are retained.
-Foreground requests and stop wake the condition variable and are checked before
-the next quantum. A currently executing synchronous call/publication cannot be
-preempted by this controller, so no hard foreground-stall bound is claimed.
+Foreground requests and stop signal the owner's wake event and are checked before
+each continuation. Publication requires a fresh CPU capture. A currently
+executing synchronous call or publication holds its existing boundary.
+[PDH sample intervals](https://learn.microsoft.com/en-us/windows/win32/perfctrs/collecting-performance-data) ·
+[Windows resource priorities](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority)
 
-The helper measures complete quantum elapsed time, including collection,
-residency checks and priority overhead. It paces subsequent work at a 1%
+The helper measures complete elapsed time across the admitted steps, including
+collection, residency checks and priority overhead. It paces subsequent work at a 1%
 elapsed-work target in addition to the core's own accounting. Foreground
 commands do not erase that measured pacing debt. Timed waits only pace pending,
 content-driven work; once the scan is complete the worker waits for a real

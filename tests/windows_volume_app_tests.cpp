@@ -630,7 +630,8 @@ void maintenance_tests() {
       require(controller.stop(true),"Maintenance controller stop refused");until([&]{return controller.view().stopped;},deadline);
       std::cout<<"Live idle groups="<<completed.volume.maintenance.published_groups<<" samples="<<completed.volume.maintenance.sampled_extents
           <<" control_generation="<<completed.content_generation<<" notifications="<<completed.generation
-          <<" quanta="<<completed.maintenance_quanta<<" elapsed_ns="<<completed.maintenance_elapsed_ns
+          <<" quanta="<<completed.maintenance_quanta<<" continued_steps="<<completed.continued_preparation_steps
+          <<" elapsed_ns="<<completed.maintenance_elapsed_ns
           <<" maximum_quantum_ns="<<completed.maintenance_maximum_quantum_ns<<"\n";
       std::cout<<"Live maintenance outcome="<<(settled?"settled":"resource-deferred")
           <<" preparation_interleave="<<interleaved<<" publication_exercised="<<published
