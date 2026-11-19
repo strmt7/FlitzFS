@@ -423,6 +423,7 @@ std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
   if(mode=="modular-multiwindow")return IndexedBatchPattern::modular_delta;
   if(mode=="modular-shifted-bias")return IndexedBatchPattern::shifted_bias;
   if(mode=="xor-reference")return IndexedBatchPattern::xor_reference;
+  if(mode=="xor-tile-reference")return IndexedBatchPattern::xor_tile_reference;
   return {};
 }
 
@@ -430,9 +431,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
-  const bool alternate_reference=pattern==IndexedBatchPattern::xor_reference;
+  const bool tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
+  const bool alternate_reference=pattern==IndexedBatchPattern::xor_reference || tile_reference;
   const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
-  const auto members=shifted_bias || alternate_reference?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
+  const auto members=anchor_search_fixture::small_indexed_batch(pattern)?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
       anchor_search_fixture::indexed_batch_members;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
@@ -546,8 +548,11 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     require(stats.verified && progress.advised_members_published,"Large batch lost verified advice");
   }
   if(anchor && bank.empty() && !modular)
-    require(stats.submitted==1 && stats.verified_groups==families && progress.advised_members_published==members,
+    require(stats.submitted==1 && stats.verified_groups==families &&
+        (tile_reference || progress.advised_members_published==members),
         "Related AMD work did not fill one verified multiwindow batch");
+  if(tile_reference)
+    require(progress.published_groups==families,"Sampled tile reference failed to group the complete cohort");
   if(anchor && modular && !shifted_bias)
     require(packed_widths==15 && packed_payload_bytes,"AMD modular batch did not cover all word widths");
   const auto maintenance_ns=elapsed_ns(maintenance_start);
@@ -565,7 +570,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         "Large AMD batch changed independently reopened file bytes");
   const auto compact_verify_ns=elapsed_ns(verify_start);
   require(packed->extent()<baseline_bytes,"Multiwindow maintenance did not reduce complete compacted size");
-  const auto cohort=alternate_reference?(bank.empty()?"xor-reference-synthetic":"xor-reference-public"):
+  const auto cohort=tile_reference?(bank.empty()?"xor-tile-reference-synthetic":"xor-tile-reference-public"):
+      alternate_reference?(bank.empty()?"xor-reference-synthetic":"xor-reference-public"):
       shifted_bias?(bank.empty()?"shifted-bias-synthetic":"shifted-bias-public"):
       modular?(bank.empty()?"modular-synthetic":"modular-public"):(bank.empty()?"related":"mixed");
   std::cout<<"multiwindow_trial mode="<<(anchor?"amd":"cpu")<<" cohort="<<cohort
@@ -604,7 +610,7 @@ int live_anchor_owner(int argc,char** argv) {
       !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
   if(multiwindow) {
     constexpr auto families=anchor_search_fixture::indexed_batch_families;
-    const bool small_batch=*multiwindow==IndexedBatchPattern::shifted_bias || *multiwindow==IndexedBatchPattern::xor_reference;
+    const bool small_batch=anchor_search_fixture::small_indexed_batch(*multiwindow);
     const bool modular=*multiwindow==IndexedBatchPattern::modular_delta || *multiwindow==IndexedBatchPattern::shifted_bias;
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;

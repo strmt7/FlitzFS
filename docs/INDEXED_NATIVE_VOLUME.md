@@ -270,7 +270,7 @@ projections provide no candidate key. Live revisions, byte-exact readback
 and the full packed-image bound govern publication.
 
 New masked-XOR groups can choose their immutable base using the estimated
-aggregate XOR width across sampled candidate bytes. CPU and AMD preparation
+packed cost of differing planes across sampled tiles. CPU and AMD preparation
 use the same nominated base. The indexed format and independent CPU reader
 are unchanged. [Reference selection](AUTOMATIC_GROUP_MAINTENANCE.md#discovery-and-reuse)
 

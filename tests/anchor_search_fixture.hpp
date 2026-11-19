@@ -34,7 +34,12 @@ inline constexpr auto indexed_small_extents_per_family=3*indexed_batch_extents_p
 inline constexpr auto indexed_batch_members=indexed_batch_families*(kNativeMaxDirtyExtents-1);
 inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNativeExtentBytes;
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
-enum class IndexedBatchPattern {packed_xor,modular_delta,shifted_bias,xor_reference};
+enum class IndexedBatchPattern {packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference};
+
+inline bool small_indexed_batch(IndexedBatchPattern pattern) noexcept {
+  return pattern==IndexedBatchPattern::shifted_bias || pattern==IndexedBatchPattern::xor_reference ||
+      pattern==IndexedBatchPattern::xor_tile_reference;
+}
 
 inline void apply_reference_variation(std::span<std::byte> extent,unsigned member) {
   const auto variation=native_fixture::data(extent.size(),9811+member);
@@ -45,6 +50,28 @@ inline void apply_reference_variation(std::span<std::byte> extent,unsigned membe
     extent[i]^=variation[i]&mask;
   }
 }
+
+inline void apply_tile_reference_variation(std::span<std::byte> extent,unsigned member,unsigned group_size) {
+  if(member>=2*group_size/3) {
+    // The high-plane minority shares the low planes across complete tiles.
+    // One distinct byte prevents the members from being exact duplicates.
+    for(auto& byte:extent)byte^=std::byte{0x80};
+    extent[768+member]^=std::byte{0x20};
+    return;
+  }
+  const auto variation=native_fixture::data(extent.size(),14741+member);
+  constexpr std::byte mask{0x1f};
+  for(std::size_t i=0;i<extent.size();++i) {
+    if(i%4096>=64)extent[i]^=variation[i]&mask;
+  }
+  // Keep the former single-byte sample identical within the high-plane
+  // majority. Its bit-width score then prefers the first member.
+  constexpr std::size_t samples=64,spacing=kNativeExtentBytes/samples;
+  for(std::size_t site=0;site<samples;++site) {
+    const auto offset=site*spacing+(spacing/4+site*7)%spacing;
+    extent[offset]^=variation[offset]&mask;
+  }
+}
 // Each scan window sees one disjoint family spread across several files.
 // The optional holdout bank also contributes unmodified unrelated extents.
 inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={},
@@ -52,8 +79,9 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
   if(!bank.empty() && bank.size()!=indexed_sample_bank_bytes)throw std::invalid_argument("Indexed sample bank size");
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
   const bool xor_reference=pattern==IndexedBatchPattern::xor_reference;
+  const bool xor_tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
   const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
-  const auto extent_count=shifted_bias || xor_reference?indexed_small_extents_per_family:kNativeMaxDirtyExtents;
+  const auto extent_count=small_indexed_batch(pattern)?indexed_small_extents_per_family:kNativeMaxDirtyExtents;
   std::vector<Bytes> files;
   for(std::size_t family=0;family<indexed_batch_families;++family) {
     const auto generated=bank.empty()?native_fixture::data(kNativeExtentBytes,static_cast<unsigned>(714+family*5731)):Bytes{};
@@ -70,6 +98,10 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
         std::ranges::copy(base,extent.begin());
         if(xor_reference) {
           apply_reference_variation(extent,static_cast<unsigned>(member));
+          continue;
+        }
+        if(xor_tile_reference) {
+          apply_tile_reference_variation(extent,static_cast<unsigned>(member),static_cast<unsigned>(extent_count));
           continue;
         }
         if(member) {

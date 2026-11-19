@@ -1,5 +1,6 @@
 #include "flitzfs/native_maintenance.hpp"
 #include "flitzfs/native_session.hpp"
+#include "flitzfs/gpu_anchor_match.hpp"
 #include "native_group_codec.hpp"
 #include "native_maintenance_source.hpp"
 #include "optimization_feature_wire.hpp"
@@ -16,7 +17,8 @@ namespace {
 using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=NativeMaintenanceDeferral;
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
 constexpr unsigned positional_bands=8;
-using XorReferenceSample=std::array<std::uint8_t,64>;
+constexpr std::size_t xor_reference_tiles=8,xor_planes=8;
+using XorReferenceSample=std::array<std::uint64_t,xor_reference_tiles*xor_planes>;
 static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShiftFeatures);
 static_assert(std::tuple_size_v<detail::NativeGroupDeltaSignatures> == kCoherenceModularWidths);
 // Charge extra history for its retained entry, bucket membership, and the
@@ -65,12 +67,22 @@ OptimizationXorSignatures sample_xor_signatures(std::span<const std::byte> exten
   }
   return signatures;
 }
-XorReferenceSample sample_xor_reference(std::span<const std::byte> extent) noexcept {
+XorReferenceSample sample_xor_reference(std::span<const std::byte> extent) {
   XorReferenceSample observations;
-  constexpr auto spacing=kNativeExtentBytes/std::tuple_size_v<XorReferenceSample>;
-  for(std::size_t i=0;i<observations.size();++i) {
-    const auto offset=i*spacing+(spacing/4+i*7)%spacing;
-    observations[i]=std::to_integer<std::uint8_t>(extent[offset]);
+  constexpr auto tile_bytes=anchor_match::xor_tile_bytes;
+  constexpr auto spacing=kNativeExtentBytes/(tile_bytes*xor_reference_tiles);
+  static_assert(kNativeExtentBytes%(tile_bytes*xor_reference_tiles)==0 && spacing%2==0);
+  std::array<std::byte,tile_bytes> plane{};
+  for(std::size_t i=0;i<xor_reference_tiles;++i) {
+    // Sample a complete tile in each stratum, away from the even tiles used
+    // in the discovery signature. The byte layout is irrelevant to equality.
+    const auto index=i*spacing+2*((i*7)%(spacing/2))+1;
+    const auto tile=extent.subspan(index*tile_bytes,tile_bytes);
+    for(unsigned bit=0;bit<xor_planes;++bit) {
+      const auto mask=static_cast<std::byte>(1U<<bit);
+      std::ranges::transform(tile,plane.begin(),[mask](auto value){return value&mask;});
+      observations[i*xor_planes+bit]=word(detail::record_digest(plane));
+    }
   }
   return observations;
 }
@@ -470,24 +482,27 @@ struct NativeGroupMaintenance::Impl {
       if(!sample)return group.front().object;
       samples.push_back(&*sample);
     }
-    std::vector<std::uint64_t> costs(samples.size());
+    using PlaneMember=std::pair<std::uint64_t,std::size_t>;
+    std::vector<PlaneMember> ordered(samples.size());
+    std::vector<std::size_t> matches(samples.size());
     for(std::size_t site=0;site<samples.front()->size();++site) {
-      std::array<std::size_t,257> counts{};
-      for(const auto* sample:samples)++counts[std::size_t{(*sample)[site]}+1];
-      if(counts[std::size_t{(*samples.front())[site]}+1]==samples.size())continue;
-      for(std::size_t i=1;i<counts.size();++i)counts[i]+=counts[i-1];
-      // The bit width of XOR is the number of dropped-bit counts at which
-      // two samples still differ. Price that total with prefix populations.
-      for(std::size_t i=0;i<samples.size();++i) {
-        const auto value=static_cast<unsigned>((*samples[i])[site]);
-        for(unsigned bits=0;bits<8;++bits) {
-          const auto first=(value>>bits)<<bits;
-          const auto last=first+(1U<<bits);
-          costs[i]+=samples.size()-(counts[last]-counts[first]);
-        }
+      const auto first_plane=(*samples.front())[site];
+      if(std::ranges::all_of(samples,[site,first_plane](const auto* sample){return (*sample)[site]==first_plane;}))
+        continue;
+      for(std::size_t i=0;i<samples.size();++i)ordered[i]={(*samples[i])[site],i};
+      std::ranges::sort(ordered,{},&PlaneMember::first);
+      // A matching tile plane requires zero payload bytes in packed XOR.
+      // Members in one equal-fingerprint run save the same planes, including
+      // a constant self-match. No pairwise extent matrix is needed.
+      for(auto first=ordered.begin();first!=ordered.end();) {
+        auto end=first+1;
+        while(end!=ordered.end() && end->first==first->first)++end;
+        const auto count=static_cast<std::size_t>(end-first);
+        for(auto item=first;item!=end;++item)matches[item->second]+=count;
+        first=end;
       }
     }
-    return group[static_cast<std::size_t>(std::ranges::min_element(costs)-costs.begin())].object;
+    return group[static_cast<std::size_t>(std::ranges::max_element(matches)-matches.begin())].object;
   }
   void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members,
       std::size_t remaining_extents,bool collect_batch) {

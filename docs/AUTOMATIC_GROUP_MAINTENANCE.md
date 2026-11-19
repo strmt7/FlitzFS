@@ -49,14 +49,15 @@ index maps matching features to candidates. Larger buckets are considered first,
 with deterministically ordered, memory-admitted member windows.
 
 For a new masked-XOR group with at least three sampled members, the scanner
-can choose a base from 64 distributed bytes retained per extent. At each
-position, byte prefix counts estimate the total XOR bit widths for each
-candidate in work linear in the admitted group size. This uses the same
-decoded extents as discovery and preserves a reusable protected anchor or
-previously retained representative when available. The sample stays in
-memory. The estimate is advisory, and a declined estimate leaves the first
-member eligible while the same candidate remains in the active window.
-[Matched reference-choice evidence](evidence/sampled-xor-reference-2026-11-19.json)
+can choose a base using 512 bytes of in-memory plane fingerprints per extent.
+It samples eight complete 256-byte tiles distributed through the extent.
+Every differing plane costs the same 32 payload bytes in packed XOR.
+Sorting and counting equal plane fingerprints ranks the candidates in
+`O(n log n)` work over the admitted members. It uses the same decoded bytes
+as discovery and preserves a reusable protected anchor or previously retained
+representative when available. A declined estimate leaves the first member
+eligible while the same candidate remains in the active window.
+[Packed-XOR tile reference evidence](evidence/packed-xor-tile-reference-2026-11-19.json)
 
 Band matches are advice only. The existing shared-base encoder independently
 checks content and accepts a publication only when its complete prospective

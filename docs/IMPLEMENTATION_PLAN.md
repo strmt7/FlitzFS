@@ -788,6 +788,20 @@ and compare deeper reference searches after qualifying a bounded AMD worker
 lifetime that can amortize setup.
 [Sampled reference selection and matched evidence](evidence/sampled-xor-reference-2026-11-19.json)
 
+The reference scorer now ranks using sampled complete tile planes. Every
+nonmatching plane adds the same payload cost. The previous bit-width score
+overweighted high planes and preferred the first member in a controlled
+nine-extent cohort. Matching sampled planes reduced the verified compacted
+image from 999,424 to 876,544 bytes on that input. An unsuitable sampled
+reference still falls back to the original candidate while the group
+remains active. Three alternating physical-host pairs per cohort reached
+7,823,360 compacted bytes from 13,975,552 bytes with either route and exact
+CPU reopen. AMD advice survived final size competition for 29 synthetic
+or 19 public-derived members per run. CPU completed both controlled cohorts
+sooner. An admitted stream can do more useful work by evaluating competing
+representations for the same verified group.
+[Tile reference validation](evidence/packed-xor-tile-reference-2026-11-19.json)
+
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five

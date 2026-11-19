@@ -469,7 +469,7 @@ void xor_indexed_family(bool require_xor,bool throughout=false) {
       <<" after_bytes="<<compacted->extent()<<" groups="<<result.published_groups
       <<" accounted_savings="<<result.minimum_compacted_bytes_saved<<'\n';
 }
-void xor_reference_selection() {
+void xor_reference_selection(bool tile_cost) {
   constexpr unsigned count=9,unit=4096;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   const NativeImageStorage indexed{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
@@ -477,7 +477,8 @@ void xor_reference_selection() {
   const auto base=data(kNativeExtentBytes,74181);
   for(unsigned i=0;i<count;++i) {
     originals[i]=base;
-    anchor_search_fixture::apply_reference_variation(originals[i],i);
+    if(tile_cost)anchor_search_fixture::apply_tile_reference_variation(originals[i],i,count);
+    else anchor_search_fixture::apply_reference_variation(originals[i],i);
   }
   const auto run=[&](bool automatic) {
     Fixture f(unit,0,true,raw);
@@ -489,7 +490,8 @@ void xor_reference_selection() {
       require(f.finish(controller).published_groups==1,"Sampled reference did not publish one group");
     }else {
       // Apply the same encoder and publication checks with the first extent
-      // selected as the base, as it was before sampled reference selection.
+      // selected as the base. The previous width score also selected this
+      // member for the multi-plane fixture.
       std::array<NativeExtentSelection,count> group;
       for(unsigned i=0;i<count;++i)group[i]={before.stat("r"+std::to_string(i)).inode,0};
       auto work=f.session->prepare_shared_base(group.front(),group);
@@ -514,11 +516,12 @@ void xor_reference_selection() {
   };
   const auto first=run(false),selected=run(true);
   require(selected<first,"Sampled reference did not improve the complete image");
-  std::cout<<"xor_reference members="<<count<<" first_bytes="<<first<<" selected_bytes="<<selected
+  std::cout<<(tile_cost?"xor_tile_reference":"xor_reference")<<" members="<<count
+      <<" first_bytes="<<first<<" selected_bytes="<<selected
       <<" byte_exact=true\n";
 }
 void xor_reference_decline_fallback() {
-  constexpr std::size_t count=3,sites=64,spacing=kNativeExtentBytes/sites;
+  constexpr std::size_t count=3,sites=8,tile_bytes=256,spacing=kNativeExtentBytes/(sites*tile_bytes);
   constexpr std::size_t bands=16,band_bytes=64,band_spacing=kNativeExtentBytes/bands;
   Fixture f(4096,0,true);
   const auto base=data(kNativeExtentBytes,73217);
@@ -535,12 +538,16 @@ void xor_reference_decline_fallback() {
       originals[2][offset]=originals[1][offset]^std::byte{0x80};
     }
   }
+  const auto second=data(kNativeExtentBytes,89325),third=data(kNativeExtentBytes,61773);
   for(std::size_t site=0;site<sites;++site) {
-    // The sampled distances favor the second member. Full tiles make it
-    // an unsuitable base for the third member.
-    const auto offset=site*spacing+(spacing/4+site*7)%spacing;
-    originals[1][offset]=base[offset]^(site%2?std::byte{}:std::byte{0x80});
-    originals[2][offset]=base[offset]^std::byte{0x80};
+    // The second member shares one plane with each of the other members in
+    // the sampled tiles. Those few matches cannot pay for an encoded frame
+    // between the second and third members.
+    const auto offset=(site*spacing+2*((site*7)%(spacing/2))+1)*tile_bytes;
+    for(std::size_t i=offset;i<offset+tile_bytes;++i) {
+      originals[1][i]=(second[i]&~std::byte{2})|(base[i]&std::byte{2});
+      originals[2][i]=(third[i]&~std::byte{1})|(originals[1][i]&std::byte{1});
+    }
   }
   for(std::size_t i=0;i<count;++i)put(*f.session,"r"+std::to_string(i),originals[i]);
   NativeGroupMaintenance controller(*f.session);
@@ -1462,7 +1469,8 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-xor") {
     xor_indexed_family(true);
     xor_indexed_family(true,true);
-    xor_reference_selection();
+    xor_reference_selection(false);
+    xor_reference_selection(true);
     xor_reference_decline_fallback();
   } else if(argc==2 && std::string_view(argv[1])=="--profile-projected-xor") {
     xor_indexed_family(false,true);
