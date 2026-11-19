@@ -808,12 +808,20 @@ members per batch and all four word widths. Both routes compacted from
 41,623,552 to 4,096,000 bytes and reopened every file exactly.
 Median complete times were 0.98 seconds on CPU and 3.16 seconds with AMD for
 synthetic inputs, and 1.00 and 3.17 seconds for the public-derived inputs.
-Expand the predictor search and validate larger, natural numeric cohorts
-before calibrating automatic route selection. Measure the yield and stored
-cost of the new persistent signature keys.
+The wider AMD search scores up to five distinct biases for each word width.
+Across six matched sets on two controlled inputs, it published 100 advised
+members per trial and reached 2,768,896 bytes. The previous AMD worker used
+13,836,288 bytes. The fast CPU route used 13,828,096 and 13,787,136 bytes.
+Median complete times for the wider AMD search were 2.25 and 2.28 seconds.
+The fast CPU medians were 0.28 and 0.38 seconds. The 310-member single-offset
+control kept its 4,096,000-byte result. Compare the wider search with a
+quality-matched CPU implementation and validate natural numeric cohorts
+before calibrating automatic route selection. Measure persistent signature
+yield and stored cost as part of that evaluation.
 [Modular-delta format](INDEXED_NATIVE_VOLUME.md#modular-delta-members) ·
 [Size and recovery evidence](evidence/indexed-modular-delta-2026-11-19.json) ·
-[Matched AMD evidence](evidence/amd-modular-delta-2026-11-19.json)
+[Matched AMD evidence](evidence/amd-modular-delta-2026-11-19.json) ·
+[Wider predictor evidence](evidence/amd-sampled-bias-2026-11-19.json)
 
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete

@@ -32,8 +32,13 @@ inline constexpr u32 xor_body_capacity=xor_slot_bytes-sizeof(u32);
 inline constexpr u32 xor_wide_slot_bytes=extent_bytes;
 inline constexpr u32 delta_parameters_bytes=12;
 inline constexpr u32 delta_max_payload_bytes=extent_bytes-128+delta_parameters_bytes-1;
-inline constexpr u32 delta_modes=8;
+inline constexpr u32 delta_word_widths=4;
+inline constexpr u32 delta_bias_samples=16,delta_bias_choices=5;
+inline constexpr u32 delta_modes=delta_word_widths*delta_bias_choices;
+static_assert(delta_modes<=threads);
 struct ModularDeltaScratch {
+  u64 biases[delta_modes];
+  u32 bias_counts[delta_word_widths];
   u8 widths[delta_modes][xor_tiles];
   u32 sizes[delta_modes],offsets[xor_tiles],mode;
 };
@@ -62,6 +67,40 @@ constexpr u32 device_bytes(u32 members,BatchOutput output=BatchOutput::anchors) 
   // Preserve the narrow protocol's original grant. Wide XOR needs no index.
   const auto index=wide_output(output)?0U:index_bytes;
   return (members+1)*extent_bytes+index+members*reply_member_bytes(output);
+}
+
+FLITZFS_ANCHOR_INLINE constexpr u32 modular_bias_sample_offset(u32 sample) noexcept {
+  return sample*(extent_bytes/delta_bias_samples)+(sample+1)*128;
+}
+static_assert(modular_bias_sample_offset(delta_bias_samples-1)+sizeof(u64)<=extent_bytes);
+
+// Order the sample in the signed modular interval around the first
+// difference. Unsigned arithmetic keeps every word width reversible,
+// including values straddling zero or the most significant bit.
+template<class Word>
+FLITZFS_ANCHOR_INLINE u32 modular_bias_candidates(Word first,Word (&samples)[delta_bias_samples],
+    Word (&biases)[delta_bias_choices]) noexcept {
+  constexpr auto sign=u64{1}<<(8*sizeof(Word)-1);
+  for(u32 i=0;i<delta_bias_samples;++i) {
+    const auto relative=static_cast<Word>(u64{samples[i]}-first);
+    const auto key=static_cast<Word>(u64{relative}^sign);
+    u32 at=i;
+    while(at && samples[at-1]>key) {
+      samples[at]=samples[at-1];
+      --at;
+    }
+    samples[at]=key;
+  }
+  u32 count=1;
+  biases[0]=first;
+  if(first)biases[count++]=0;
+  for(u32 rank=delta_bias_samples/4;rank<delta_bias_samples;rank+=delta_bias_samples/4) {
+    const auto candidate=static_cast<Word>((u64{samples[rank]}^sign)+first);
+    u32 at=0;
+    while(at<count && biases[at]!=candidate)++at;
+    if(at==count)biases[count++]=candidate;
+  }
+  return count;
 }
 
 FLITZFS_ANCHOR_INLINE u64 seed(const u8* bytes,u32 at) {

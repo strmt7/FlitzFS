@@ -189,30 +189,40 @@ __device__ __forceinline__ u8 modular_width(u64 value) {
   return value?static_cast<u8>(64-__builtin_clzll(value)):0;
 }
 template<class Word> __device__ __forceinline__
-void score_modular_tile(ModularDeltaScratch& scratch,u32 mode,u32 tile,const u8* base,const u8* member) {
-  const auto bias=modular_bias<Word>(base,member);
-  Word centered=0,unbiased=0;
+void select_modular_biases(ModularDeltaScratch& scratch,u32 width_index,const u8* base,const u8* member) {
+  Word sample[delta_bias_samples],biases[delta_bias_choices];
+  for(u32 i=0;i<delta_bias_samples;++i) {
+    const auto offset=modular_bias_sample_offset(i);
+    sample[i]=modular_bias<Word>(base+offset,member+offset);
+  }
+  const auto count=modular_bias_candidates(modular_bias<Word>(base,member),sample,biases);
+  scratch.bias_counts[width_index]=count;
+  for(u32 i=0;i<count;++i)scratch.biases[width_index*delta_bias_choices+i]=biases[i];
+}
+template<class Word,u32 WidthIndex> __device__ __forceinline__
+void score_modular_tile(ModularDeltaScratch& scratch,u32 tile,const u8* base,const u8* member) {
+  constexpr auto first=WidthIndex*delta_bias_choices;
+  const auto count=scratch.bias_counts[WidthIndex];
+  Word biases[delta_bias_choices]{},combined[delta_bias_choices]{};
+  #pragma unroll
+  for(u32 i=0;i<delta_bias_choices;++i) {
+    if(i<count)biases[i]=static_cast<Word>(scratch.biases[first+i]);
+  }
   const auto start=tile*xor_tile_bytes;
   for(u32 at=start;at<start+xor_tile_bytes;at+=sizeof(Word)) {
     const auto difference=modular_bias<Word>(base+at,member+at);
-    centered|=modular_residual<Word>(difference,bias);
-    unbiased|=modular_residual<Word>(difference,0);
+    #pragma unroll
+    for(u32 i=0;i<delta_bias_choices;++i) {
+      if(i<count)combined[i]|=modular_residual<Word>(difference,biases[i]);
+    }
   }
-  scratch.widths[mode][tile]=modular_width(centered);
-  scratch.widths[mode+1][tile]=modular_width(unbiased);
+  #pragma unroll
+  for(u32 i=0;i<delta_bias_choices;++i) {
+    if(i<count)scratch.widths[first+i][tile]=modular_width(combined[i]);
+  }
 }
 __device__ __forceinline__ u32 modular_word_bytes(u32 mode) {
-  return 1U<<(mode/2);
-}
-__device__ __forceinline__
-u64 selected_modular_bias(u32 mode,const u8* base,const u8* member) {
-  if(mode%2)return 0;
-  switch(modular_word_bytes(mode)) {
-    case 1:return modular_bias<u8>(base,member);
-    case 2:return modular_bias<unsigned short>(base,member);
-    case 4:return modular_bias<u32>(base,member);
-    default:return modular_bias<u64>(base,member);
-  }
+  return 1U<<(mode/delta_bias_choices);
 }
 template<class Word> __device__ __forceinline__
 void pack_modular_tile(u8* output,const u8* base,const u8* member,u32 bits,u64 bias) {
@@ -246,19 +256,30 @@ void flitzfs_anchor_modular_delta_v6(const unsigned char* base,const unsigned ch
   const auto lane=threadIdx.x;
   const auto* member=window+blockIdx.x*extent_bytes;
   auto* slot=output+blockIdx.x*(xor_wide_slot_bytes/sizeof(u32));
+  switch(lane) {
+    case 0:select_modular_biases<u8>(scratch,0,base,member);break;
+    case 1:select_modular_biases<unsigned short>(scratch,1,base,member);break;
+    case 2:select_modular_biases<u32>(scratch,2,base,member);break;
+    case 3:select_modular_biases<u64>(scratch,3,base,member);break;
+    default:break;
+  }
+  __syncthreads();
   for(u32 tile=lane;tile<xor_tiles;tile+=threads) {
-    score_modular_tile<u8>(scratch,0,tile,base,member);
-    score_modular_tile<unsigned short>(scratch,2,tile,base,member);
-    score_modular_tile<u32>(scratch,4,tile,base,member);
-    score_modular_tile<u64>(scratch,6,tile,base,member);
+    score_modular_tile<u8,0>(scratch,tile,base,member);
+    score_modular_tile<unsigned short,1>(scratch,tile,base,member);
+    score_modular_tile<u32,2>(scratch,tile,base,member);
+    score_modular_tile<u64,3>(scratch,tile,base,member);
   }
   __syncthreads();
   if(lane<delta_modes) {
-    u32 planes=0;
-    for(u32 tile=0;tile<xor_tiles;++tile)planes+=scratch.widths[lane][tile];
-    const auto size=planes?delta_parameters_bytes+xor_tiles+planes*(xor_plane_bytes/modular_word_bytes(lane)):
-        selected_modular_bias(lane,base,member)?delta_parameters_bytes:0U;
-    scratch.sizes[lane]=size<=delta_max_payload_bytes?size:0;
+    scratch.sizes[lane]=0;
+    if(lane%delta_bias_choices<scratch.bias_counts[lane/delta_bias_choices]) {
+      u32 planes=0;
+      for(u32 tile=0;tile<xor_tiles;++tile)planes+=scratch.widths[lane][tile];
+      const auto size=planes?delta_parameters_bytes+xor_tiles+planes*(xor_plane_bytes/modular_word_bytes(lane)):
+          scratch.biases[lane]?delta_parameters_bytes:0U;
+      scratch.sizes[lane]=size<=delta_max_payload_bytes?size:0;
+    }
   }
   __syncthreads();
   if(!lane) {
@@ -273,7 +294,7 @@ void flitzfs_anchor_modular_delta_v6(const unsigned char* base,const unsigned ch
     }
     if(scratch.mode<delta_modes) {
       const auto width=modular_word_bytes(scratch.mode);
-      const auto bias=selected_modular_bias(scratch.mode,base,member);
+      const auto bias=scratch.biases[scratch.mode];
       slot[1]=width;
       slot[2]=static_cast<u32>(bias);
       slot[3]=static_cast<u32>(bias>>32);
@@ -289,7 +310,7 @@ void flitzfs_anchor_modular_delta_v6(const unsigned char* base,const unsigned ch
   __syncthreads();
   const auto mode=scratch.mode;
   if(mode==delta_modes || scratch.sizes[mode]==delta_parameters_bytes)return;
-  const auto bias=selected_modular_bias(mode,base,member);
+  const auto bias=scratch.biases[mode];
   auto* body=reinterpret_cast<u8*>(slot+1)+delta_parameters_bytes;
   for(u32 tile=lane;tile<xor_tiles;tile+=threads) {
     const auto start=tile*xor_tile_bytes;

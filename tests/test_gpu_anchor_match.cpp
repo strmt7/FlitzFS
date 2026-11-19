@@ -463,6 +463,25 @@ void modular_delta_reply() {
 }
 }
 
+template<class Word>
+void sampled_modular_biases() {
+  constexpr auto first=static_cast<Word>(0);
+  const auto word=[](int value){return static_cast<Word>(value);};
+  Word samples[match::delta_bias_samples]{},biases[match::delta_bias_choices]{};
+  for(unsigned i=0;i<match::delta_bias_samples;++i)samples[i]=word(7-static_cast<int>(i));
+  const auto count=match::modular_bias_candidates(first,samples,biases);
+  check(count==3 && biases[0]==0 && biases[1]==word(-4) && biases[2]==4,
+      "Sampled bias ordering lost signed modular wrap or duplicate elimination");
+  const auto origin=word(-3);
+  std::fill_n(samples,match::delta_bias_samples,word(-2));
+  check(match::modular_bias_candidates(origin,samples,biases)==3 &&
+      biases[0]==origin && biases[1]==0 && biases[2]==word(-2),
+      "Sampled bias ordering lost the prior choices or repeated one proposal");
+  std::fill_n(samples,match::delta_bias_samples,first);
+  check(match::modular_bias_candidates(first,samples,biases)==1 && biases[0]==0,
+      "Unchanged input received redundant bias proposals");
+}
+
 int main() {
   try {
     fragmented();
@@ -472,6 +491,10 @@ int main() {
     packed_xor_reply();
     wide_xor_reply();
     modular_delta_reply();
+    sampled_modular_biases<match::u8>();
+    sampled_modular_biases<unsigned short>();
+    sampled_modular_biases<match::u32>();
+    sampled_modular_biases<match::u64>();
     std::cout<<"Direct shared base match CPU semantics and reply verification passed\n";
     return 0;
   } catch (const std::exception& error) {

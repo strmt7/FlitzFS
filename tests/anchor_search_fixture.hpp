@@ -30,19 +30,22 @@ inline std::vector<NativeSharedBaseCopyRange> fragment_ranges(unsigned member) {
 }
 
 inline constexpr std::size_t indexed_batch_families=5,indexed_batch_extents_per_file=7;
+inline constexpr auto indexed_bias_extents_per_family=3*indexed_batch_extents_per_file;
 inline constexpr auto indexed_batch_members=indexed_batch_families*(kNativeMaxDirtyExtents-1);
 inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNativeExtentBytes;
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
 
 // Each scan window sees one disjoint family spread across several files.
 // The optional holdout bank also contributes unmodified unrelated extents.
-inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={},bool modular=false) {
+inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={},bool modular=false,
+    bool shifted_bias=false) {
   if(!bank.empty() && bank.size()!=indexed_sample_bank_bytes)throw std::invalid_argument("Indexed sample bank size");
+  const auto extent_count=shifted_bias?indexed_bias_extents_per_family:kNativeMaxDirtyExtents;
   std::vector<Bytes> files;
   for(std::size_t family=0;family<indexed_batch_families;++family) {
     const auto generated=bank.empty()?native_fixture::data(kNativeExtentBytes,static_cast<unsigned>(714+family*5731)):Bytes{};
     const auto base=bank.empty()?std::span<const std::byte>(generated):bank.subspan(family*kNativeExtentBytes,kNativeExtentBytes);
-    for(std::size_t first=0;first<kNativeMaxDirtyExtents;first+=indexed_batch_extents_per_file) {
+    for(std::size_t first=0;first<extent_count;first+=indexed_batch_extents_per_file) {
       Bytes file(indexed_batch_extents_per_file*kNativeExtentBytes);
       for(std::size_t block=0;block<indexed_batch_extents_per_file;++block) {
         const auto member=first+block;
@@ -57,6 +60,7 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
             const auto width=std::size_t{1}<<(family%4);
             for(std::size_t at=0;at<extent.size();at+=width) {
               auto bias=std::uint64_t{0xc74482fa26e3bd97ULL}*member;
+              if(shifted_bias && at%4096>=64)bias+=std::uint64_t{0x39cd1329af427eedULL}*member;
               if(member%2 && at%4096>=64)bias+=(at/width+member)%3-std::uint64_t{1};
               native_fixture::add_little_endian(extent.subspan(at,width),bias);
             }

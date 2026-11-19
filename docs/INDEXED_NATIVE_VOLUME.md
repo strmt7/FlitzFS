@@ -224,10 +224,14 @@ the live revision and decoded bytes during preparation.
 #### Batched AMD modular-delta advice
 
 The configured Windows owner can send several groups to one supervised
-AMD worker. The private v6 kernel scores both biases at all four word
-widths and emits the best admitted parameter and residual payload per member.
-It uses block-wide barriers and sizes its launches from the qualified
-dispatch grant, current device geometry and live headroom.
+AMD worker. For each of four word widths, the private v6 kernel considers
+the first difference, zero and the quartiles of sixteen staggered samples.
+It orders the unsigned differences in the signed modular interval around
+the first difference, then removes duplicate biases. Every distinct bias
+gets an exact cost from all residual tiles. The kernel packs the smallest
+admitted result. Its block-wide barriers and checked shared-memory requirement
+apply independently of wave size. Launch size follows the qualified dispatch
+grant, device geometry and live headroom.
 [HIP programming model](https://rocm.docs.amd.com/projects/HIP/en/latest/understand/programming_model.html)
 
 The worker checks the device slots and sends a compact reply. Each group
@@ -242,6 +246,7 @@ the competing representations. The CPU encoder handles rejected, missing
 or uncompetitive candidates. A payload mismatch also fails the recovery
 ticket. Protected publication uses the same capability 6 member format.
 [AMD execution and CPU readback evidence](evidence/amd-modular-delta-2026-11-19.json)
+[Sampled-bias comparison](evidence/amd-sampled-bias-2026-11-19.json)
 
 ### Automatic candidate discovery
 
