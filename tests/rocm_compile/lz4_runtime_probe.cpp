@@ -19,6 +19,7 @@
 #include "../native_lz4_fixture.hpp"
 #include "../anchor_search_fixture.hpp"
 #include "../../src/native_group_anchor.hpp"
+#include "../../src/native_group_codec.hpp"
 #include "../../src/record_digest.hpp"
 #include "anchor_sweep_profile.hpp"
 #include "anchor_batch_profile.hpp"
@@ -29,6 +30,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -280,6 +282,27 @@ AnchorSearchInput anchor_bank_fixture(unsigned count,std::span<const std::byte> 
   for(unsigned i=1;i<=count;++i) {
     const auto member=anchor_search_fixture::fragmented(mixed && i%2==0?unrelated:base,i);
     input.members.insert(input.members.end(),member.begin(),member.end());
+  }
+  return input;
+}
+
+AnchorSearchInput packed_xor_bank_fixture(unsigned count,std::span<const std::byte> bank,unsigned group,bool mixed) {
+  const auto base=bank.subspan(group*kNativeExtentBytes,kNativeExtentBytes);
+  AnchorSearchInput input;
+  input.base.assign(base.begin(),base.end());
+  input.members.resize(static_cast<std::size_t>(count)*kNativeExtentBytes);
+  constexpr std::array<unsigned,4> related_masks{0x01U,0x30U,0x33U,0x7fU};
+  auto random=0x43b779bfU+group;
+  for(unsigned i=0;i<count;++i) {
+    const auto kind=i%6;
+    const auto mask=mixed && kind<2?(kind==0?0U:0xffU):related_masks[i%related_masks.size()];
+    auto member=std::span(input.members).subspan(static_cast<std::size_t>(i)*kNativeExtentBytes,kNativeExtentBytes);
+    for(std::size_t j=0;j<member.size();++j) {
+      random^=random<<13;
+      random^=random>>17;
+      random^=random<<5;
+      member[j]=base[j]^static_cast<std::byte>(random&mask);
+    }
   }
   return input;
 }
@@ -559,15 +582,13 @@ struct AnchorBatchProfileObservation {
   std::optional<HipPhaseTrace> trace;
 };
 
-bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::wstring>& args,
-    SharedWorkerRequest frame,const Bytes& expected,ProcessBudget process_budget,
-    AnchorBatchProfileObservation* profile=nullptr,
-    const std::function<void(std::span<const std::byte>)>& accept={}) {
+template<class Verify>
+bool anchor_verified_exchange(const fs::path& worker,const std::vector<std::wstring>& args,
+    SharedWorkerRequest frame,std::size_t reply_bytes,ProcessBudget process_budget,Verify&& verify) {
   std::optional<WorkerExchangeSession> session;
   const WorkerExchangeResult* result=nullptr;
   try {
-    const WorkerChannelCapacity capacity{frame->bytes().size(),
-        expected.size()+(profile?kAnchorBatchProfileBytes:0)};
+    const WorkerChannelCapacity capacity{frame->bytes().size(),reply_bytes};
     session.emplace(WorkerExchangeSession::start_sized(worker,args,std::move(frame),capacity,process_budget));
     const auto start=GetTickCount64();
     while(!(result=session->try_result()) && !session->failure() &&
@@ -585,22 +606,30 @@ bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::ws
         <<hip_worker_stage_name(hip_worker_exit_stage(result->process.exit_code))<<'\n';
     return false;
   }
-  if(!profile) {
-    if(result->response!=expected)return false;
-    if(accept)accept(result->response);
-    return true;
-  }
   const auto response=std::span<const std::byte>(result->response);
-  if(response.size()!=expected.size()+kAnchorBatchProfileBytes ||
-      !std::ranges::equal(response.first(expected.size()),expected))return false;
+  if(response.size()!=reply_bytes)return false;
   try {
-    const auto trace=decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),profile->binding);
-    if(accept)accept(response.first(expected.size()));
-    profile->trace=trace;
-    return true;
-  } catch(const std::invalid_argument&) {
+    return verify(response);
+  } catch(const std::invalid_argument& error) {
+    std::cerr<<"Anchor comparison rejected worker response: "<<error.what()<<'\n';
     return false;
   }
+}
+
+bool anchor_comparison_exchange(const fs::path& worker,const std::vector<std::wstring>& args,
+    SharedWorkerRequest frame,const Bytes& expected,ProcessBudget process_budget,
+    AnchorBatchProfileObservation* profile=nullptr,
+    const std::function<void(std::span<const std::byte>)>& accept={}) {
+  const auto reply_bytes=expected.size()+(profile?kAnchorBatchProfileBytes:0);
+  return anchor_verified_exchange(worker,args,std::move(frame),reply_bytes,process_budget,[&](auto response) {
+    const auto reply=response.first(expected.size());
+    if(!std::ranges::equal(reply,expected))return false;
+    const auto trace=profile?std::optional{
+        decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),profile->binding)}:std::nullopt;
+    if(accept)accept(reply);
+    if(profile)profile->trace=trace;
+    return true;
+  });
 }
 
 int discovered_anchor_gpu_once(wchar_t** argv,const fs::path& worker,const std::array<std::byte,8>& luid,
@@ -704,16 +733,109 @@ int discovered_anchor_gpu_once(wchar_t** argv,const fs::path& worker,const std::
   return verified?0:2;
 }
 
-enum class AnchorBatchMode {separate,transfers,calibration,profile};
+int compare_packed_xor(const fs::path& worker,const std::vector<std::wstring>& arguments,
+    const detail::AnchorMatchBatchRequest& request,const AnchorBatchProfileBinding& binding,
+    ProcessBudget transfer_budget,const gpu_probe_fixture::Budget& controller,
+    bool mixed,bool amd_first,std::uint64_t prepare_ns) {
+  const auto& plan=request.plan();
+  constexpr auto extent=kNativeExtentBytes;
+  constexpr auto base_id=detail::kNativeGroupBaseBit+1;
+  constexpr auto method=detail::NativeGroupMethod::packed_xor;
+  const auto reply_bytes=plan.reply_bytes+kAnchorBatchProfileBytes;
+  std::optional<HipPhaseTrace> trace;
+  std::vector<std::size_t> cpu_sizes,amd_sizes;
+  const auto groups=request.groups();
+  std::size_t members=0;
+  for(const auto& group:plan.groups)members+=group.whole.members;
+  cpu_sizes.reserve(members);
+  amd_sizes.reserve(members);
+  std::uint64_t cpu_ns=0,amd_ns=0,verify_ns=0;
+  const auto run_cpu=[&] {
+    const auto start=std::chrono::steady_clock::now();
+    for(const auto& group:groups) {
+      const auto base=group.source.first(extent);
+      for(std::size_t at=extent;at<group.source.size();at+=extent) {
+        const auto member=group.source.subspan(at,extent);
+        const auto frame=detail::encode_native_group_xor(member,base,base_id,1,extent);
+        if(frame)require(std::ranges::equal(detail::decode_native_group_member(*frame,base,method),member),
+            "CPU packed XOR verification failed");
+        cpu_sizes.push_back(frame?frame->size():0);
+      }
+    }
+    cpu_ns=nanos_since(start);
+  };
+  const auto run_amd=[&] {
+    const auto start=std::chrono::steady_clock::now();
+    const auto completed=anchor_verified_exchange(worker,arguments,request.snapshot(),reply_bytes,transfer_budget,
+        [&](std::span<const std::byte> response) {
+          const auto verify_start=std::chrono::steady_clock::now();
+          const auto metadata=decode_anchor_batch_profile(response.last(kAnchorBatchProfileBytes),binding);
+          const auto advice=detail::decode_anchor_xor_batch_reply(response.first(plan.reply_bytes),request);
+          for(std::size_t i=0;i<advice.size();++i) {
+            const auto source=groups[i].source;
+            const auto base=source.first(extent);
+            for(std::size_t j=0;j<advice[i].size();++j) {
+              const auto& body=advice[i][j];
+              const auto checked=detail::check_native_group_xor_body(
+                  body,source.subspan((j+1)*extent,extent),base,base_id,1,extent);
+              if(!body.empty() && checked.check!=NativePackedXorCheck::verified)return false;
+              amd_sizes.push_back(checked.frame?checked.frame->size():0);
+            }
+          }
+          verify_ns=nanos_since(verify_start);
+          trace=metadata;
+          return true;
+        });
+    amd_ns=nanos_since(start);
+    if(trace && trace->total_wall_ns>amd_ns)trace.reset();
+    return completed && trace.has_value();
+  };
+  if(!amd_first)run_cpu();
+  const auto verified=run_amd();
+  if(amd_first)run_cpu();
+  const auto cpu_accepted=std::ranges::count_if(cpu_sizes,[](auto size){return size!=0;});
+  const auto same_sizes=verified && cpu_sizes==amd_sizes;
+  require(cpu_sizes.size()==members && cpu_accepted>0 && (!mixed || std::cmp_less(cpu_accepted,members)),
+      "Packed XOR comparison did not exercise the requested cohort");
+  std::cout<<std::boolalpha<<"Direct AMD packed XOR profile: {"
+      <<"\"gpu_verified\":"<<verified<<",\"matched_candidate_costs\":"<<same_sizes
+      <<",\"cohort\":\""<<(mixed?"mixed":"related")<<"\",\"amd_first\":"<<amd_first
+      <<",\"groups\":"<<groups.size()<<",\"members\":"<<members<<",\"launches\":"<<plan.launches
+      <<",\"transfers\":"<<binding.transfer.transfers<<",\"device_bytes\":"<<binding.transfer.device_bytes
+      <<",\"request_bytes\":"<<plan.request_bytes<<",\"reply_bytes\":"<<reply_bytes
+      <<",\"cpu_candidate_count\":"<<cpu_accepted
+      <<",\"amd_candidate_count\":"<<std::ranges::count_if(amd_sizes,[](auto size){return size!=0;})
+      <<",\"cpu_candidate_bytes\":"<<std::accumulate(cpu_sizes.begin(),cpu_sizes.end(),std::uint64_t{})
+      <<",\"amd_candidate_bytes\":"<<std::accumulate(amd_sizes.begin(),amd_sizes.end(),std::uint64_t{})
+      <<",\"prepare_ns\":"<<prepare_ns<<",\"cpu_encode_and_verify_ns\":"<<cpu_ns
+      <<",\"amd_exchange_and_verify_ns\":"<<amd_ns<<",\"amd_parent_verify_ns\":"<<verify_ns
+      <<",\"job_peak_bytes\":"<<controller.peak_commit()<<",\"transport_quiescent\":true,\"request_blake3\":\"";
+  constexpr char digits[]="0123456789abcdef";
+  for(const auto byte:request.digest()) {
+    const auto word=std::to_integer<unsigned>(byte);
+    std::cout<<digits[word>>4]<<digits[word&15];
+  }
+  std::cout<<'"';
+  write_phase_profile(trace);
+  std::cout<<"}\n";
+  return same_sizes?0:2;
+}
+
+enum class AnchorBatchMode {separate,transfers,calibration,profile,wide_xor_profile};
 
 int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
-  const auto profiling=mode==AnchorBatchMode::profile;
+  const auto wide_xor=mode==AnchorBatchMode::wide_xor_profile;
+  const auto profiling=mode==AnchorBatchMode::profile || wide_xor;
   const auto calibration=mode==AnchorBatchMode::calibration || profiling;
   const auto transfers=mode!=AnchorBatchMode::separate;
   const auto corpus_argument=transfers?11:10;
-  const auto explicit_wait=profiling && argc==corpus_argument+2;
-  require(calibration?(argc==corpus_argument+1 || explicit_wait):(argc==corpus_argument || argc==corpus_argument+1),
+  const auto explicit_wait=mode==AnchorBatchMode::profile && argc==corpus_argument+2;
+  require(wide_xor?argc==corpus_argument+2:
+      calibration?(argc==corpus_argument+1 || explicit_wait):(argc==corpus_argument || argc==corpus_argument+1),
       "Anchor comparison needs geometry, order or cohort, transfer grant when selected and input sample(s)");
+  const auto comparison_order=wide_xor?std::wstring_view(argv[corpus_argument+1]):std::wstring_view{};
+  require(!wide_xor || comparison_order==L"cpu-first" || comparison_order==L"amd-first",
+      "Packed XOR comparison needs an explicit CPU/AMD order");
   const auto dispatches_per_wait=explicit_wait?number(argv[corpus_argument+1],kAnchorProfileMaxQueuedDispatches):1;
   require(dispatches_per_wait!=0,"Anchor batch wait grant");
   const fs::path worker(argv[2]);
@@ -734,26 +856,29 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
   require(group_count>=2,"Anchor comparison requires independent groups");
   std::vector<std::uint32_t> counts(group_count);
   for(unsigned i=0;i<group_count;++i)counts[i]=members-(std::min)(i%3,members-1);
+  const auto output=wide_xor?anchor_match::BatchOutput::wide_packed_xor:anchor_match::BatchOutput::anchors;
   const auto observed=query_windows_gpu_budget(luid,mask);
-  auto quantum=(std::min)(members,anchor_match::max_members);
-  while(quantum && (observed.status!=WindowsGpuBudgetStatus::success ||
-      check_gpu_memory_budget(observed.snapshot,luid,mask,GetTickCount64(),
-          anchor_match::device_bytes(quantum))!=GpuGateCode::admitted)) --quantum;
+  const auto sample_time=GetTickCount64();
+  const auto admitted_members=[&](std::uint32_t lower,std::uint32_t upper) {
+    while(lower<upper) {
+      const auto test=lower+(upper-lower+1)/2;
+      if(observed.status==WindowsGpuBudgetStatus::success &&
+          check_gpu_memory_budget(observed.snapshot,luid,mask,sample_time,anchor_match::device_bytes(test,output))==
+              GpuGateCode::admitted)lower=test;
+      else upper=test-1;
+    }
+    return lower;
+  };
+  const auto quantum=admitted_members(0,(std::min)(members,anchor_match::dispatch_member_limit(output)));
   require(quantum!=0,"Anchor comparison lacks an admitted AMD device window");
-  const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum),max_uint);
+  const auto plan=detail::plan_anchor_match_batch(counts,quantum,anchor_match::device_bytes(quantum,output),
+      max_uint,output);
   std::optional<detail::AnchorMatchTransferPlan> transfer;
   if(transfers) {
-    auto limit=std::wstring_view(argv[10])==L"auto"?members:number(argv[10],members);
+    const auto limit=std::wstring_view(argv[10])==L"auto"?members:number(argv[10],members);
     require(limit>=quantum,"Transfer grant must cover one search dispatch");
-    auto admitted=quantum;
-    const auto sample_time=GetTickCount64();
-    while(admitted<limit) {
-      const auto candidate=admitted+(limit-admitted+1)/2;
-      if(check_gpu_memory_budget(observed.snapshot,luid,mask,sample_time,
-          anchor_match::device_bytes(candidate))==GpuGateCode::admitted)admitted=candidate;
-      else limit=candidate-1;
-    }
-    transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(admitted));
+    const auto admitted=admitted_members(quantum,limit);
+    transfer=detail::plan_anchor_match_transfers(plan,anchor_match::device_bytes(admitted,output));
   }
   constexpr std::uint64_t mib=1024*1024;
   MEMORYSTATUSEX memory{};memory.dwLength=sizeof(memory);
@@ -791,7 +916,7 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
         bank_bytes/kNativeExtentBytes>=group_count,"Public corpus bank must provide one extent per base");
   }
   const auto prepare_bytes=std::uint64_t(plan.request_bytes)+largest_request+kNativeExtentBytes+bank_bytes;
-  const auto parent_bytes=128*mib+prepare_bytes+3ULL*capacity.reply_bytes;
+  const auto parent_bytes=128*mib+prepare_bytes+(wide_xor?4ULL:3ULL)*capacity.reply_bytes;
   const auto child_bytes=transfer_budget.memory_mib*mib;
   const auto available=(std::min)(memory.ullAvailPhys,memory.ullAvailPageFile);
   const auto required=required_sized_worker_headroom(capacity,transfer_budget);
@@ -809,7 +934,8 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
     detail::AnchorMatchBatchBuilder builder(1,plan);
     prepare_ns=nanos_since(start);
     for(unsigned i=0;i<group_count;++i) {
-      const auto input=calibration?anchor_bank_fixture(counts[i],bank,i,order==L"mixed"):
+      const auto input=wide_xor?packed_xor_bank_fixture(counts[i],bank,i,order==L"mixed"):
+          calibration?anchor_bank_fixture(counts[i],bank,i,order==L"mixed"):
           anchor_fixture(counts[i],argc>corpus_argument?argv[corpus_argument]:nullptr,i);
       start=std::chrono::steady_clock::now();
       builder.append(i+1,input.base,input.members);
@@ -820,6 +946,15 @@ int direct_anchor_batch_compare(int argc,wchar_t** argv,AnchorBatchMode mode) {
     prepare_ns+=nanos_since(start);
     return request;
   }();
+  if(wide_xor) {
+    const auto binding=anchor_batch_profile_binding(batch,*transfer,ordinal,luid,mask,dispatches_per_wait);
+    const std::vector<std::wstring> arguments{L"--driver-anchor-xor-wide-batch-profile",argv[3],argv[4],argv[5],
+        argv[6],std::to_wstring(plan.request_bytes),std::to_wstring(capacity.reply_bytes),
+        std::to_wstring(plan.quantum_members),std::to_wstring(plan.device_bytes),std::to_wstring(plan.launches),
+        std::to_wstring(transfer->device_bytes),std::to_wstring(dispatches_per_wait)};
+    return compare_packed_xor(worker,arguments,batch,binding,transfer_budget,controller,order==L"mixed",
+        comparison_order==L"amd-first",prepare_ns);
+  }
   const auto groups=batch.groups();
   std::vector<Bytes> individual_replies;
   std::uint64_t cpu_ns=0,cpu_reply_encode_ns=0,matched_tiles=0,total_tiles=0;
@@ -1208,6 +1343,8 @@ int wmain(int argc,wchar_t** argv){
       return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::calibration);
     if(mode==L"--gpu-direct-anchor-calibrate-profile-once")
       return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::profile);
+    if(mode==L"--gpu-direct-wide-xor-profile-once")
+      return direct_anchor_batch_compare(argc,argv,AnchorBatchMode::wide_xor_profile);
     gpu_probe_fixture::Budget controller;
     if(argc==2&&std::wstring_view(argv[1])==L"--deferred-native-cpu-fixture")
       return deferred_native_fixture::run({},controller);

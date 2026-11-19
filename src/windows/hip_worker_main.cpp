@@ -229,8 +229,9 @@ std::string runtime_digest(std::wstring_view wide) {
 
 int worker(int argc, wchar_t** argv) {
   const std::wstring_view mode = argc > 1 ? argv[1] : L"";
-  const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile";
-  const bool wide_xor=mode==L"--driver-anchor-xor-wide-batch";
+  const bool wide_xor_profile=mode==L"--driver-anchor-xor-wide-batch-profile";
+  const bool anchor_batch_profile=mode==L"--driver-anchor-transfer-batch-profile" || wide_xor_profile;
+  const bool wide_xor=mode==L"--driver-anchor-xor-wide-batch" || wide_xor_profile;
   const bool packed_xor=wide_xor || mode==L"--driver-anchor-xor-batch";
   const auto anchor_output=wide_xor?anchor_match::BatchOutput::wide_packed_xor:
       packed_xor?anchor_match::BatchOutput::packed_xor:anchor_match::BatchOutput::anchors;
@@ -500,7 +501,8 @@ int worker(int argc, wchar_t** argv) {
       anchors.emplace(detail::decode_anchor_match_batch_request(channel.take_request_snapshot(),
           static_cast<std::uint32_t>(sized_capacity->request_bytes),
           static_cast<std::uint32_t>(sized_capacity->reply_bytes-profile_bytes),
-          decimal(argv[8],anchor_match::max_members),wide_decimal(argv[9]),decimal(argv[10],max_uint),anchor_output));
+          decimal(argv[8],anchor_match::dispatch_member_limit(anchor_output)),
+          wide_decimal(argv[9]),decimal(argv[10],max_uint),anchor_output));
       allocation=anchors->plan().device_bytes;
       if(anchor_transfer) {
         transfer_grant=decimal(argv[11],max_uint);
@@ -583,7 +585,7 @@ int worker(int argc, wchar_t** argv) {
     const anchor_match::WindowSearchApi* window=nullptr;
     if(anchor_transfer) {
       const auto window_address=GetProcAddress(kernels.get(),
-          wide_xor?"flitzfs_rocm_anchor_xor_api_v4":
+          wide_xor?"flitzfs_rocm_anchor_xor_api_v5":
           packed_xor?"flitzfs_rocm_anchor_xor_api_v3":"flitzfs_rocm_anchor_window_api_v2");
       require(window_address!=nullptr,Exit::unsupported_configuration,"HIP anchor window entry unavailable",
           HipWorkerStage::kernel_entry);

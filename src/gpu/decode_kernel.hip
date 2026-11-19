@@ -84,13 +84,13 @@ __device__ flitzfs::anchor_match::u64 xor_segment(const unsigned char* base,cons
   return left^right;
 }
 
-template<unsigned abi,unsigned slot_bytes>
+template<unsigned abi,unsigned slot_bytes,unsigned member_limit=flitzfs::anchor_match::max_members>
 __device__ __forceinline__
 void pack_xor_members(const unsigned char* base,const unsigned char* window,unsigned int members,
     unsigned int* output,unsigned int version) {
   using namespace flitzfs::anchor_match;
   if(version!=abi || !base || !window || !output ||
-      !members || members>max_members || blockIdx.x>=members || blockDim.x!=threads)return;
+      !members || members>member_limit || blockIdx.x>=members || blockDim.x!=threads)return;
   constexpr unsigned lanes_per_tile=xor_plane_bytes;
   constexpr unsigned tiles_per_block=threads/lanes_per_tile;
   static_assert(lanes_per_tile==32 && xor_tiles%tiles_per_block==0);
@@ -159,6 +159,14 @@ void flitzfs_anchor_packed_xor_v4(const unsigned char* base,const unsigned char*
   pack_xor_members<wide_xor_window_abi_version,xor_wide_slot_bytes>(base,window,members,output,version);
 }
 
+extern "C" __global__ __attribute__((amdgpu_flat_work_group_size(64,64)))
+void flitzfs_anchor_packed_xor_v5(const unsigned char* base,const unsigned char* window,unsigned int members,
+    const flitzfs::anchor_match::Bucket*,unsigned int* output,unsigned int version) {
+  using namespace flitzfs::anchor_match;
+  pack_xor_members<adaptive_xor_window_abi_version,xor_wide_slot_bytes,
+      dispatch_member_limit(BatchOutput::wide_packed_xor)>(base,window,members,output,version);
+}
+
 namespace flitzfs::anchor_match {
 void bind_anchor_kernels(KernelApi& api) noexcept {
   api.index=flitzfs_anchor_index_v1;
@@ -172,5 +180,8 @@ void bind_anchor_packed_xor_window(WindowSearchApi& api) noexcept {
 }
 void bind_anchor_wide_xor_window(WindowSearchApi& api) noexcept {
   api.search=flitzfs_anchor_packed_xor_v4;
+}
+void bind_anchor_adaptive_xor_window(WindowSearchApi& api) noexcept {
+  api.search=flitzfs_anchor_packed_xor_v5;
 }
 }

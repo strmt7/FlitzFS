@@ -195,6 +195,24 @@ void anchor_batch_profile_cases() {
     rejects([&]{(void)anchor_batch_profile_binding(request,transfer,2,binding().luid,1,invalid);});
   rejects([&]{(void)decode_anchor_batch_profile(std::span(frame).first(frame.size()-1),expected);});
   rejects([&]{(void)encode_anchor_batch_profile(expected,{});});
+
+  constexpr auto wide=anchor_match::BatchOutput::wide_packed_xor;
+  const auto wide_plan=detail::plan_anchor_match_batch(counts,3,anchor_match::device_bytes(3,wide),7,wide);
+  const auto wide_transfer=detail::plan_anchor_match_transfers(wide_plan,anchor_match::device_bytes(6,wide));
+  detail::AnchorMatchBatchBuilder wide_builder(93,wide_plan);
+  wide_builder.append(14,base,std::span(members).first(4*anchor_match::extent_bytes));
+  wide_builder.append(15,base,members);
+  const auto wide_request=wide_builder.finish();
+  const auto wide_binding=anchor_batch_profile_binding(wide_request,wide_transfer,2,binding().luid,1,1);
+  const auto wide_frame=encode_anchor_batch_profile(wide_binding,trace);
+  require(frame[7]==std::byte{'2'} && wide_frame[7]==std::byte{'3'} &&
+      wide_binding.identity.lanes==11*anchor_match::xor_wide_slot_bytes/sizeof(anchor_match::u32) &&
+      decode_anchor_batch_profile(wide_frame,wide_binding).wall_ns==trace.wall_ns,
+      "Wide packed XOR profile layout mismatch");
+  auto mismatched=wide_binding;mismatched.output=anchor_match::BatchOutput::anchors;
+  rejects([&]{(void)decode_anchor_batch_profile(wide_frame,mismatched);});
+  mismatched.output=anchor_match::BatchOutput::packed_xor;
+  rejects([&]{(void)encode_anchor_batch_profile(mismatched,trace);});
 }
 }
 int main(){try{

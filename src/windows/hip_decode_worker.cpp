@@ -251,7 +251,7 @@ std::vector<std::vector<anchor_match::u32>> run_hip_anchor_groups(HMODULE runtim
   const auto slot_bytes=match::reply_member_bytes(mode);
   const auto words_per_member=slot_bytes/static_cast<match::u32>(sizeof(match::u32));
   require(runtime && match::compatible_kernel_api(kernel) && ordinal>=0 && ordinal<64 &&
-      !requests.empty() && requests.size()==plans.size() && quantum && quantum<=match::max_members &&
+      !requests.empty() && requests.size()==plans.size() && quantum && quantum<=match::dispatch_member_limit(mode) &&
       transfer_members>=quantum && dispatches_per_wait && dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches &&
       (window_search || (!packed_xor && transfer_members==quantum && dispatches_per_wait==1)),
       "invalid HIP anchor match configuration");

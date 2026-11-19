@@ -9,6 +9,7 @@ struct AnchorBatchProfileBinding {
   HipProfileBinding identity;
   std::uint32_t groups,quantum_members,launches,dispatches_per_wait;
   detail::AnchorMatchTransferPlan transfer;
+  anchor_match::BatchOutput output;
 };
 
 inline AnchorBatchProfileBinding anchor_batch_profile_binding(const detail::AnchorMatchBatchRequest& request,
@@ -16,18 +17,25 @@ inline AnchorBatchProfileBinding anchor_batch_profile_binding(const detail::Anch
     std::array<std::byte,8> luid,std::uint32_t node_mask,std::uint32_t dispatches_per_wait) {
   const auto& plan=request.plan();
   const auto groups=request.groups();
-  hip_phase_detail::require(!groups.empty() && groups.size()==plan.groups.size() &&
+  const auto wide=plan.output==anchor_match::BatchOutput::wide_packed_xor;
+  hip_phase_detail::require((wide || plan.output==anchor_match::BatchOutput::anchors) &&
+      !groups.empty() && groups.size()==plan.groups.size() &&
       transfer==detail::plan_anchor_match_transfers(plan,transfer.device_bytes) &&
       dispatches_per_wait && dispatches_per_wait<=kAnchorProfileMaxQueuedDispatches);
+  const auto words_per_member=anchor_match::reply_member_bytes(plan.output)/sizeof(anchor_match::u32);
   std::uint32_t lanes=0;
-  for(const auto& group:plan.groups)lanes+=group.whole.members*anchor_match::tiles;
+  for(const auto& group:plan.groups)lanes+=group.whole.members*static_cast<std::uint32_t>(words_per_member);
   return {{request.id(),ordinal,node_mask,plan.request_bytes,lanes,luid,request.digest()},
-      static_cast<std::uint32_t>(groups.size()),plan.quantum_members,plan.launches,dispatches_per_wait,transfer};
+      static_cast<std::uint32_t>(groups.size()),plan.quantum_members,plan.launches,dispatches_per_wait,transfer,plan.output};
 }
 
 namespace anchor_batch_profile_detail {
-inline constexpr std::array<std::byte,8> magic{std::byte{'F'},std::byte{'L'},std::byte{'H'},std::byte{'P'},
-    std::byte{'B'},std::byte{'0'},std::byte{'0'},std::byte{'2'}};
+inline std::array<std::byte,8> marker(anchor_match::BatchOutput output) {
+  const auto wide=output==anchor_match::BatchOutput::wide_packed_xor;
+  hip_phase_detail::require(wide || output==anchor_match::BatchOutput::anchors);
+  return {std::byte{'F'},std::byte{'L'},std::byte{'H'},std::byte{'P'},
+      std::byte{'B'},std::byte{'0'},std::byte{'0'},wide?std::byte{'3'}:std::byte{'2'}};
+}
 inline constexpr auto work_at=hip_phase_detail::common_bytes;
 using Work=std::array<std::uint32_t,7>;
 inline constexpr auto work_end=work_at+4*Work{}.size();
@@ -44,7 +52,7 @@ inline hip_phase_detail::Frame encode_anchor_batch_profile(const AnchorBatchProf
   using namespace anchor_batch_profile_detail;
   hip_phase_detail::identity_valid(binding.identity);
   auto frame=hip_phase_detail::encode_common({binding.identity,trace,WorkerExecution::hip},
-      magic,kAnchorSweepProfileLimitNs);
+      marker(binding.output),kAnchorSweepProfileLimitNs);
   auto at=work_at;
   for(const auto field:work(binding)) {
     hip_phase_detail::put(frame,at,field,4);
@@ -58,7 +66,7 @@ inline HipPhaseTrace decode_anchor_batch_profile(std::span<const std::byte> fram
   using namespace anchor_batch_profile_detail;
   hip_phase_detail::identity_valid(binding.identity);
   const auto profile=hip_phase_detail::decode_common(frame,binding.identity,WorkerExecution::hip,
-      magic,kAnchorSweepProfileLimitNs);
+      marker(binding.output),kAnchorSweepProfileLimitNs);
   auto at=work_at;
   for(const auto field:work(binding)) {
     hip_phase_detail::require(hip_phase_detail::get(frame,at,4)==field);

@@ -36,11 +36,12 @@
     "packed_xor_gpu_automatic_selection": false,
     "packed_xor_gpu_semantic_recovery_evidence": "docs/evidence/amd-packed-xor-verdicts-2026-11-19.json",
     "packed_xor_wide_transport_evidence": "docs/evidence/amd-wide-packed-xor-2026-11-19.json",
+    "packed_xor_dispatch_and_profile_evidence": "docs/evidence/amd-adaptive-packed-xor-2026-11-19.json",
     "masked_discovery_evidence": "docs/evidence/projected-xor-discovery-2026-11-19.json",
     "mask_fixture_previous_compacted_bytes": 1335296,
     "mask_fixture_current_compacted_bytes": 557056,
     "paged_masked_discovery_evidence": "docs/evidence/projected-coherence-catalog-2026-11-19.json",
-    "next": "Calibrate catalog posting and lookup utility under mixed workloads and qualify automatic selection using complete cost and size across runtimes and devices."
+    "next": "Amortize worker initialization across bounded, independently verified exchanges. Calibrate lookup utility and complete execution and storage cost across workload classes and devices before automatic selection."
   },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",

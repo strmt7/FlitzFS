@@ -734,13 +734,23 @@ body up to a full extent slot. In one physical two-plane pair, the 16 KiB
 layout declined all eight bodies and the 64 KiB layout supplied all eight.
 Both compacted to 896 KiB and reopened exactly on CPU. Completion took
 55.5 seconds for the narrow exchange with CPU fallback and 59.0 seconds for
-the wider exchange. Measure mixed cohorts, transfer overhead and repeated
-complete costs against independent CPU encoding before automatic selection.
+the wider exchange.
+
+The full-extent AMD worker now obtains its dispatch width from the work grant
+and live memory admission. It checks the detected device grid before launching.
+The new kernel entry preserves the earlier private entries and the CPU-readable
+on-volume format. Profiles bind the request, reply layout, adapter and geometry,
+and compare the supervised exchange with independent CPU encoding on matching
+related and mixed cohorts. Persistent learning should use complete verified
+cost, including startup and retirement, when deciding whether to use a GPU.
+Reuse a bounded worker lifetime to amortize setup and measure the result across
+device classes before enabling automatic routing.
 [Packed XOR format](INDEXED_NATIVE_VOLUME.md#packed-xor-members) ·
 [CPU size evidence](evidence/indexed-packed-xor-2026-11-19.json) ·
 [Physical AMD evidence](evidence/amd-packed-xor-batch-2026-11-19.json) ·
 [Packed XOR semantic verification](evidence/amd-packed-xor-verdicts-2026-11-19.json) ·
-[Wider paired trial](evidence/amd-wide-packed-xor-2026-11-19.json)
+[Wider paired trial](evidence/amd-wide-packed-xor-2026-11-19.json) ·
+[Dispatch and phase measurements](evidence/amd-adaptive-packed-xor-2026-11-19.json)
 
 The first collective AMD trial reused the authenticated uniform LZ4 worker.
 Copies from tiles that contain the same base produced a 600 KiB complete

@@ -120,6 +120,8 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
   if(total<options.minimum_members)return;
   std::uint64_t ticket=0;
   try {
+    // Reject an unrepresentable group before sizing a device slab.
+    (void)detail::anchor_match_layout(largest,options.output);
     const auto& route=options.route;
     const auto observed=query_windows_gpu_budget(route.memory.luid,route.memory.node_mask);
     const auto now=GetTickCount64();
@@ -142,7 +144,7 @@ void NativeAnchorSearchController::start(std::span<const NativeSharedBaseSearchW
       else limit=test-1;
     }
     if(!fit){defer();return;}
-    const auto quantum=(std::min)(fit,anchor_match::max_members);
+    const auto quantum=(std::min)(fit,anchor_match::dispatch_member_limit(options.output));
     std::vector<std::uint32_t> counts;
     counts.reserve(windows.size());
     for(const auto& window:windows)counts.push_back(static_cast<std::uint32_t>(window.members().size()));

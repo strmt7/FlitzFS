@@ -343,6 +343,15 @@ void wide_xor_reply() {
   rejects([&]{(void)plan_anchor_match_batch(counts,2,plan.device_bytes-1,2,wide);});
   check(plan_anchor_match_transfers(plan,match::device_bytes(2,wide))==
       AnchorMatchTransferPlan{2,5*match::extent_bytes,1},"wide transfer did not share one base and two full slots");
+  const std::array<std::uint32_t,2> larger_counts{96,113};
+  const auto larger_plan=plan_anchor_match_batch(larger_counts,113,match::device_bytes(96,wide),3,wide);
+  check(larger_plan.quantum_members==96 && larger_plan.device_bytes==match::device_bytes(96,wide) &&
+      larger_plan.groups[0].windows==1 && larger_plan.groups[1].windows==2 &&
+      plan_anchor_match_transfers(larger_plan,match::device_bytes(113,wide)).transfers==2,
+      "wide launches and transfers did not follow the granted geometry");
+  const auto copy_plan=plan_anchor_match_batch(larger_counts,113,match::device_bytes(96),113);
+  check(copy_plan.quantum_members==match::max_members,"existing copy launch geometry changed");
+  rejects([&]{(void)plan_anchor_match_batch(larger_counts,113,match::device_bytes(96,wide)-1,3,wide);});
 
   Bytes base(match::extent_bytes,std::byte{0x71});
   Bytes members(2*match::extent_bytes,std::byte{0x71});

@@ -119,8 +119,11 @@ AnchorMatchLayout anchor_match_layout(std::uint32_t members,match::BatchOutput o
 AnchorMatchSweepPlan plan_anchor_match_sweep(std::uint32_t members,std::uint32_t maximum_quantum,
     std::uint64_t maximum_device_bytes,std::uint32_t maximum_windows,match::BatchOutput output) {
   const auto whole=anchor_match_layout(members,output);
-  auto quantum=(std::min)({members,maximum_quantum,match::max_members});
-  while (quantum && match::device_bytes(quantum,output)>maximum_device_bytes) --quantum;
+  const auto fixed_bytes=match::device_bytes(0,output);
+  const auto per_member_bytes=match::extent_bytes+match::reply_member_bytes(output);
+  const auto demand=(std::min)({members,maximum_quantum,match::dispatch_member_limit(output)});
+  const auto fit=maximum_device_bytes>=fixed_bytes?(maximum_device_bytes-fixed_bytes)/per_member_bytes:0;
+  const auto quantum=static_cast<std::uint32_t>((std::min)(std::uint64_t(demand),fit));
   require(quantum!=0,"anchor match sweep cannot admit one search window");
   const auto windows=1+(members-1)/quantum;
   require(windows<=maximum_windows,"anchor match sweep exceeds its search window grant");
@@ -307,7 +310,7 @@ AnchorMatchBatchPlan plan_anchor_match_batch(std::span<const std::uint32_t> memb
 AnchorMatchTransferPlan plan_anchor_match_transfers(const AnchorMatchBatchPlan& batch,
     std::uint64_t maximum_device_bytes) {
   const auto quantum=batch.quantum_members;
-  require(!batch.groups.empty() && quantum && quantum<=match::max_members &&
+  require(!batch.groups.empty() && quantum && quantum<=match::dispatch_member_limit(batch.output) &&
       batch.device_bytes==match::device_bytes(quantum,batch.output) && maximum_device_bytes>=batch.device_bytes,
       "invalid anchor transfer allocation grant");
   std::uint32_t largest=0;

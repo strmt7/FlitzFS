@@ -36,6 +36,13 @@ constexpr u32 reply_member_bytes(BatchOutput output) noexcept {
   return output==BatchOutput::wide_packed_xor?xor_wide_slot_bytes:xor_slot_bytes;
 }
 
+constexpr u32 dispatch_member_limit(BatchOutput output) noexcept {
+  // One shared base and disjoint input/result slots must fit the 32-bit slab.
+  // The work grant and live memory and grid limits further constrain each launch.
+  return output==BatchOutput::wide_packed_xor?
+      (0xffffffffU-extent_bytes)/(extent_bytes+xor_wide_slot_bytes):max_members;
+}
+
 struct Bucket { u32 first,second; };
 static_assert(sizeof(Bucket)==8);
 inline constexpr u32 index_bytes=buckets*sizeof(Bucket);
