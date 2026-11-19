@@ -73,11 +73,16 @@ followed by 65,536 immutable bytes. Both records use mirrored storage.
 The member binds the base object ID, generation and decoded digests.
 The index must also contain that exact base/member pair.
 
-CPU reads decode at most one base per member extent and validate the
-result against the member digest and file bounds before slicing the
-requested range. The full scrub checks every member, the referenced
-anchors and the index and volume totals. Bases are separate from visible
-files, so removing the file used as the base leaves other files readable.
+An indexed read checks each member's index binding and loads its verified
+base through one lookup of the expected generation. It can reuse the base
+for later extents with that same identity and generation in this request.
+The decoder validates the member payload while reconstructing it. It checks
+the base digest, decoded digest and file bounds before returning the
+requested range. A new read verifies the base again. The full scrub checks
+every member, referenced anchor and the index and volume totals. Bases are
+separate from visible files, so removing the file used as the base leaves
+other files readable.
+[Public revision reads and mirror recovery](evidence/public-revision-reads-2026-11-19.json)
 
 Explicit grouping prepares independently checked member frames one extent at
 a time from a pinned checkpoint. Foreground edits can proceed between steps.

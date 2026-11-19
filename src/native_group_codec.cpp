@@ -468,7 +468,7 @@ std::uint64_t mix(std::uint64_t value) noexcept {
 }
 }
 
-NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,NativeGroupMethod maximum_method) {
+NativeGroupReference read_native_group_header(std::span<const std::byte> bytes,NativeGroupMethod maximum_method) {
   const auto method=member_method(bytes,maximum_method);
   if(get(bytes,12,4)!=extent || get(bytes,100,4)!=bytes.size()-header ||
       (method!=NativeGroupMethod::modular_delta &&
@@ -477,11 +477,15 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,
   if(!base_id_valid(ref.base_id) || !ref.base_generation)fail();
   std::copy_n(bytes.begin()+32,32,ref.base_digest.begin());std::copy_n(bytes.begin()+64,32,ref.decoded_digest.begin());
   ref.member_bytes=static_cast<std::uint32_t>(bytes.size());ref.method=method;
-  switch(method) {
+  if((method==NativeGroupMethod::packed_xor || method==NativeGroupMethod::sparse_xor) && get(bytes,96,4)!=xor_tiles)fail();
+  return ref;
+}
+NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,NativeGroupMethod maximum_method) {
+  const auto ref=read_native_group_header(bytes,maximum_method);
+  switch(ref.method) {
     case NativeGroupMethod::aligned_patches:patches(bytes,[](auto,auto){});break;
     case NativeGroupMethod::anchor_copies:spans(bytes,[](auto,auto,auto){},[](auto,auto){});break;
     case NativeGroupMethod::packed_xor:
-      if(get(bytes,96,4)!=xor_tiles)fail();
       packed_xor_tiles(bytes.subspan(header),[](auto,auto,auto){});
       break;
     case NativeGroupMethod::modular_delta: {
@@ -490,7 +494,6 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,
       break;
     }
     case NativeGroupMethod::sparse_xor:
-      if(get(bytes,96,4)!=xor_tiles)fail();
       sparse_xor_planes(bytes.subspan(header),[](auto,auto,auto){},[](auto,auto,auto,auto){});
       break;
   }
@@ -498,7 +501,7 @@ NativeGroupReference parse_native_group_member(std::span<const std::byte> bytes,
 }
 std::vector<std::byte> decode_native_group_member(std::span<const std::byte> bytes,
     std::span<const std::byte> base,NativeGroupMethod maximum_method) {
-  const auto ref=parse_native_group_member(bytes,maximum_method);
+  const auto ref=read_native_group_header(bytes,maximum_method);
   if(base.size()!=extent || record_digest(base)!=ref.base_digest)fail();
   std::vector<std::byte> result;
   const auto literal=[&](auto offset,auto input){std::copy(input.begin(),input.end(),result.begin()+offset);};

@@ -37,7 +37,7 @@ inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNati
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
 enum class IndexedBatchPattern {
   packed_xor,modular_delta,shifted_bias,xor_reference,xor_tile_reference,xor_sparse_reference,xor_full_reference,
-  sparse_xor,sparse_xor_all_planes,collective
+  sparse_xor,sparse_xor_all_planes,collective,revision_corpus,raw_revision_corpus
 };
 
 inline bool small_indexed_batch(IndexedBatchPattern pattern) noexcept {

@@ -1009,9 +1009,17 @@ Bytes PagedObjectStoreSnapshot::read(std::uint64_t id,std::size_t maximum_decode
   return std::move(*bytes);
 }
 std::optional<Bytes> PagedObjectStoreSnapshot::read_if_present(std::uint64_t id,std::size_t maximum_decoded_bytes) const {
+  return read_matching(id,maximum_decoded_bytes,std::nullopt);
+}
+std::optional<Bytes> PagedObjectStoreSnapshot::read_if_generation(std::uint64_t id,std::uint64_t generation,
+    std::size_t maximum_decoded_bytes) const {
+  return read_matching(id,maximum_decoded_bytes,generation);
+}
+std::optional<Bytes> PagedObjectStoreSnapshot::read_matching(std::uint64_t id,std::size_t maximum_decoded_bytes,
+    std::optional<std::uint64_t> expected_generation) const {
   if(!impl_)fail("moved-from snapshot");
   auto e=lookup(impl_->state,id,impl_->lookup_pages?&*impl_->lookup_pages:nullptr);
-  if(!e)return {};
+  if(!e || (expected_generation && e->generation!=*expected_generation))return {};
   if(e->logical>maximum_decoded_bytes)fail("object exceeds decoded read budget");
   return read_object(impl_->state,*e);
 }

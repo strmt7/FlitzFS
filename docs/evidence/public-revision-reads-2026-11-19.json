@@ -1,0 +1,1371 @@
+{
+  "schema": 1,
+  "experimental": true,
+  "recorded_local": "2026-11-19T21:42:49.0207113+01:00",
+  "source_base": "42eb21166d5384487e4afd49cfec8abc26e8b87f",
+  "source_binding": [
+    {
+      "path": "include/flitzfs/paged_store.hpp",
+      "git_blob": "f142ae1f545899b785fb60cc6f989cf1dcebf560",
+      "working_sha256": "493a4dbacb5c7a450c9d44528e7a976edbe7bc78c55f569e068f1f4e90c8e62b"
+    },
+    {
+      "path": "src/native_group_codec.cpp",
+      "git_blob": "6c295f30440a6b5eaa73fdf9dfad438ee7d67970",
+      "working_sha256": "8b56e27a22b4a41db7eb4182ddf2b4613f26610b84b5960d73537cc8e9c9edfa"
+    },
+    {
+      "path": "src/native_group_codec.hpp",
+      "git_blob": "cd4bf312a7f00115a3ad40842e595724ff8bbdf4",
+      "working_sha256": "799a7d80d620c95c7b6e88e15a22c617b03563ddbaa408ba0d47b7d92f3e463b"
+    },
+    {
+      "path": "src/native_indexed_volume.cpp",
+      "git_blob": "56e7c8031915b16641590c652458db016eb7d6f7",
+      "working_sha256": "cb4b6834635204d735e3c81dbe3c500d768d89d8bef7b8ab1825b71e896f3f4c"
+    },
+    {
+      "path": "src/paged_store.cpp",
+      "git_blob": "a7995f26dbbd4366ec2aabb7c08a80f83ca8e286",
+      "working_sha256": "269aac28260918fa88217d07a0a3184aad23ef1866a761e60ef389f3dafe2e68"
+    },
+    {
+      "path": "tests/anchor_search_fixture.hpp",
+      "git_blob": "2880be179b2bb9ce15815eec2434ad702c03a110",
+      "working_sha256": "a0276534f93de9be88f9f7641cc3761f6fd26923530f5aa0da45ed99f4b90515"
+    },
+    {
+      "path": "tests/test_native_shared_base.cpp",
+      "git_blob": "0fd44d71f24afbf4b5832d1e655e9172ca69ff4d",
+      "working_sha256": "43345baaf88b6e93d43ced98b2099d15a4114c420d33d8dab269a1c42446e402"
+    },
+    {
+      "path": "tests/test_paged_store.cpp",
+      "git_blob": "bd0ae5b28ad72c7c1f969da97bea5e579183cbca",
+      "working_sha256": "b585462a8be5cc42a04e00122bb535bd4029cb884a11a5c7755a3d0de23bd600"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "bd97ceb95d96bfd167c823e09136b670a632278c",
+      "working_sha256": "a677aefb74aacedd62111fa3714da16bfd2505272b1eb928f21e8b06c5386138"
+    }
+  ],
+  "baseline_harness_sources": [
+    {
+      "path": "tests/anchor_search_fixture.hpp",
+      "git_blob": "2880be179b2bb9ce15815eec2434ad702c03a110",
+      "working_sha256": "a0276534f93de9be88f9f7641cc3761f6fd26923530f5aa0da45ed99f4b90515"
+    },
+    {
+      "path": "tests/test_winfsp_controller.cpp",
+      "git_blob": "bd97ceb95d96bfd167c823e09136b670a632278c",
+      "working_sha256": "a677aefb74aacedd62111fa3714da16bfd2505272b1eb928f21e8b06c5386138"
+    }
+  ],
+  "navigation": {
+    "job": {
+      "run": "local-run-060e9f7a8898466e986e3bcce42f9780",
+      "exit_code": 0,
+      "elapsed_seconds": 62.253608,
+      "ceiling_bytes": 1133510656,
+      "peak_commit_bytes": 1109344256,
+      "physical_available_bytes": 20145963008,
+      "cpu_percent": 12,
+      "deadline_seconds": 105,
+      "timed_out": false,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "result_sha256": "0ff753b1a3ed122f73bceac01c47432b77cb5c57babf130b7feda5610221cbfd",
+      "log_sha256": "9bf8ca94f25da6b87b553fe41864bfa6d1593074f41bf7203fb8306214452f69"
+    },
+    "version": "0.2.43",
+    "source_files": 9,
+    "commit": "42eb21166d5384487e4afd49cfec8abc26e8b87f",
+    "actual_searches": 1,
+    "routing_receipt_sha256": "0ebec26299abb4cda757248d1ad06bea84e0cad88e8563ceb7ef35f421e40f3f",
+    "native_result_sha256": "0db0bd2db8373ab1db17716f302aa1cb682f4509d7c0be2257b2f2c5420140f7",
+    "live_confirmed_candidates": [
+      {
+        "file_path": "tests/test_winfsp_controller.cpp",
+        "start_line": 1330,
+        "end_line": 1348
+      },
+      {
+        "file_path": "tests/test_winfsp_controller.cpp",
+        "start_line": 632,
+        "end_line": 648
+      },
+      {
+        "file_path": "tests/test_winfsp_controller.cpp",
+        "start_line": 603,
+        "end_line": 612
+      },
+      {
+        "file_path": "tests/test_winfsp_controller.cpp",
+        "start_line": 1297,
+        "end_line": 1306
+      },
+      {
+        "file_path": "tests/test_winfsp_controller.cpp",
+        "start_line": 1491,
+        "end_line": 1507
+      }
+    ]
+  },
+  "research": {
+    "provider": "Crawl4AI",
+    "source": {
+      "job": {
+        "run": "local-run-f3e2ca3123364aef8fef0ccd2ec3405f",
+        "exit_code": 0,
+        "elapsed_seconds": 6.088846,
+        "ceiling_bytes": 1719664640,
+        "peak_commit_bytes": 1108819968,
+        "physical_available_bytes": 19751645184,
+        "cpu_percent": 12,
+        "deadline_seconds": 62,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "a84cb54b8cef89b10f0d5a61563b5d4137444db17a488c8d4a05606cec3cab09",
+        "log_sha256": "3196b87e16fc9e681fa22321903cc4a0102c8b0c57db7ca664c92527dc1a0197"
+      },
+      "version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "d3d5db2a04ba1d87179ac5b7e6d5d69f02663ff651d748beadbd2b98a41448ba",
+      "url": "https://www.usenix.org/conference/atc25/presentation/yang-jingyuan",
+      "status": 200,
+      "success": true,
+      "native_success": true,
+      "error": "",
+      "failure_category": "",
+      "markdown_bytes": 9392,
+      "markdown_sha256": "e356c56e02a2956bc566438bb6460c8c47bd4f46792c254529e3edcd409ac947",
+      "capture_sha256": "8b6b06da1d0cf4ffbf94292486b5c4907edcf89faa10991765e64eb4ef0edc73",
+      "robots_checked": true,
+      "external_llm": false
+    },
+    "challenged": {
+      "job": {
+        "run": "local-run-aa534ad9fa2943b6a1006541a82ba01b",
+        "exit_code": 0,
+        "elapsed_seconds": 7.644101,
+        "ceiling_bytes": 1587544064,
+        "peak_commit_bytes": 1080991744,
+        "physical_available_bytes": 18558803968,
+        "cpu_percent": 12,
+        "deadline_seconds": 60,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "da08b09fcf48d614d6efd23695dc1f19b301b76eacd5c7f7150c0aa706ec48ab",
+        "log_sha256": "f17413fd3eaaabcafa67367379b70791baf3680625b6dbcd7a454b71d0564491"
+      },
+      "version": "0.9.5+flitzzip.portable2",
+      "receipt_sha256": "dcef970c04a10781e95c06e0822d4f3dabb11c49cf0c82494c2d1ab7a5581155",
+      "url": "https://dl.acm.org/doi/10.1145/3721485",
+      "status": 403,
+      "success": false,
+      "native_success": false,
+      "error": "Blocked by anti-bot protection: Cloudflare JS challenge",
+      "failure_category": "access_challenge",
+      "markdown_bytes": 491,
+      "markdown_sha256": "32db58ac3e13e5f68e3b4a380ff0827699c6fed608e8c6f12b8bf1d1befca5b5",
+      "capture_sha256": "708e7e52f7040620bbd775a8a01bbf2501529bb23eba056d49f0127865381981",
+      "robots_checked": true,
+      "external_llm": false
+    }
+  },
+  "corpus": {
+    "stage": {
+      "run": "local-run-c0bfc12699d7469192f15e8139eaef0b",
+      "exit_code": 0,
+      "elapsed_seconds": 6.925258,
+      "ceiling_bytes": 773849088,
+      "peak_commit_bytes": 18378752,
+      "physical_available_bytes": 19749318656,
+      "cpu_percent": 12,
+      "deadline_seconds": 37,
+      "timed_out": false,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "result_sha256": "7ae37839076e82ec94195c3d2e97a92709ebb5ed49fa1e2c7015354241a3524b",
+      "log_sha256": "342244d9ed3786e57b438c82e936c82dae2ccb146f708cab44d19e8c01f43a34"
+    },
+    "script_sha256": "ccc08e58fbe71461202b11321a163daaa1459e69e4de6e6cd11dde3b96845d91",
+    "manifest_sha256": "496283b2994eafc06c564ec6aa00ca2d6eddf645b82bb61da136744163c92b1c",
+    "manifest": {
+      "public_baseline": "a9c28db906bbd074878bcb1b672d3d0f6ccef3ee",
+      "cohorts": {
+        "code": {
+          "file": "code.bin",
+          "aggregate_bytes": 921886,
+          "wire_bytes": 921970,
+          "sha256": "a76af508156dc6984810c6f01d2736bf7bd18112d51dcc1d431b7bfdfa1e8d57",
+          "inputs": [
+            {
+              "path": "src/gpu/decode_kernel.hip",
+              "commit": "a9c28db906bbd074878bcb1b672d3d0f6ccef3ee",
+              "blob": "644bad79980bf9f7f2f31e2fc8e76cc3b4b0ad14",
+              "bytes": 24760,
+              "sha256": "a65e81039702fae017125fe461c7ef0c7d2c4b251bf9a334ab380472910a2c51"
+            },
+            {
+              "path": "src/gpu/decode_kernel.hip",
+              "commit": "924c6083746327e76c9bcfbc6c6334d12fd77497",
+              "blob": "5df1448e95924430ef667512ec5756cc46af645b",
+              "bytes": 23638,
+              "sha256": "065a93baf8f90572b3ca904004293efc95d4746ae25b8bc3460af3c41014e921"
+            },
+            {
+              "path": "src/gpu/decode_kernel.hip",
+              "commit": "099844343bf8af3c659733e49cc7bbeec7c638fc",
+              "blob": "bf959f4d0c9ce9b86a2a5d03cffe9ba0c5e98d8d",
+              "bytes": 20602,
+              "sha256": "46ec9fcd1d15b5fae1e7df89dd9389fc53bbb468d01d77bfad01a83f89065e35"
+            },
+            {
+              "path": "src/gpu/decode_kernel.hip",
+              "commit": "6b6bb9beb74220106d86159c6dbacaff416ecb0e",
+              "blob": "c1fd09b00751d1d0a9a459bd1d0f0542e1a83190",
+              "bytes": 19105,
+              "sha256": "1c660378e7e5cf006d08deec155db1a08b534e9edab40cd50e15e7640c9c7dec"
+            },
+            {
+              "path": "src/gpu/decode_kernel.hip",
+              "commit": "1c254434a645e45f24f4736b1ff9b2ef7e34d210",
+              "blob": "bdda982790e18430642733dd1d84c3754119a4fc",
+              "bytes": 15257,
+              "sha256": "64f85261b7c60fddbaf7aa7c3e7b6b34277fa8cb8bd0d7a1f5f5059254ce9ba5"
+            },
+            {
+              "path": "src/native_maintenance.cpp",
+              "commit": "a72462f2fca1a76d4a6228209030a1e63029638d",
+              "blob": "2466f8adfbf28ec2d0ba870d1a6c28bc152307b7",
+              "bytes": 53479,
+              "sha256": "62710cc733443584f4d9b8c8e4ee220f17e254d1c3f324358fb7699ecaadb4d2"
+            },
+            {
+              "path": "src/native_maintenance.cpp",
+              "commit": "7219d0b5558fb23bd335892c5798a45c0fcf4907",
+              "blob": "6a2cbe79b020b2cbda08485eceb70d232ec7fe2d",
+              "bytes": 50753,
+              "sha256": "e17f3f4473ccc8612ef38ba746030a10b21a4f67d6cba8fee996f6dd2a7bc52d"
+            },
+            {
+              "path": "src/native_maintenance.cpp",
+              "commit": "a1574f808ab4948aeeafe70fff28ebccea6832c5",
+              "blob": "9bb7e4fa089c8a98d6fb784eba19e101879a4451",
+              "bytes": 49806,
+              "sha256": "ffb757f644a52c1fe4e91c1c121f483921f9b1aa1dd36ef3b16c910b525ace7c"
+            },
+            {
+              "path": "src/native_maintenance.cpp",
+              "commit": "fe18958f464ad902d1ea6fb5a82e927445b781d9",
+              "blob": "78b14b6cc7e66fd231ceaf89fcdf993fc8c4e30c",
+              "bytes": 46912,
+              "sha256": "994e800acf4d6b7882f0812fa25b3d25a3b6a5d7199e41b8e1cf64e5c99fe670"
+            },
+            {
+              "path": "src/native_maintenance.cpp",
+              "commit": "3caba479a8c9db6508ed3aebdcb18ddc8c83c200",
+              "blob": "478d2476f7905df0db416ea728e9f74d94d6d786",
+              "bytes": 46088,
+              "sha256": "fe1843153019d699bb6c7e859036e4f1cdc5cbd7fb291ac79617f1affdc0755e"
+            },
+            {
+              "path": "src/windows/hip_decode_worker.cpp",
+              "commit": "a9c28db906bbd074878bcb1b672d3d0f6ccef3ee",
+              "blob": "a7a8ed7a7035e29608a21313a1cbd6033b974ed3",
+              "bytes": 32448,
+              "sha256": "3769d9f3cdc073d6a0b3957ea6cecdb94b33f8511340f6b33690d2311a2984d6"
+            },
+            {
+              "path": "src/windows/hip_decode_worker.cpp",
+              "commit": "924c6083746327e76c9bcfbc6c6334d12fd77497",
+              "blob": "7958e345bc91dc3283e504bc433555b9183cde04",
+              "bytes": 28795,
+              "sha256": "66c992480b2902439a6750af3ab14a19ed231bde4113529228208efee892b899"
+            },
+            {
+              "path": "src/windows/hip_decode_worker.cpp",
+              "commit": "099844343bf8af3c659733e49cc7bbeec7c638fc",
+              "blob": "0816acce9059efda4e099edc42c82f760564afcd",
+              "bytes": 28581,
+              "sha256": "6b11e4ff5d1a35d60094b039992ebab95568688dd37e36b95aa2fafea4a46300"
+            },
+            {
+              "path": "src/windows/hip_decode_worker.cpp",
+              "commit": "6b6bb9beb74220106d86159c6dbacaff416ecb0e",
+              "blob": "dfe51d35ca706e5d24f0189369cf6d189f368d79",
+              "bytes": 24817,
+              "sha256": "677306fef1d293acaf92c653c5e4eb4fa5e7c4aafd8d9d725ec533caecfc786c"
+            },
+            {
+              "path": "src/windows/hip_decode_worker.cpp",
+              "commit": "3820ca0644aa6ad08112c218f73d182a0e3ff724",
+              "blob": "038cb08e80c1ffe19d99b0cc73692a4b1dc655d5",
+              "bytes": 24675,
+              "sha256": "949792e23f11615478c20243653aa10380e5f153e1684761eef75af04d72c063"
+            },
+            {
+              "path": "src/native_indexed_volume.cpp",
+              "commit": "a9c28db906bbd074878bcb1b672d3d0f6ccef3ee",
+              "blob": "c8dad3f925e10309e54200f000322d361b6f2ddd",
+              "bytes": 87646,
+              "sha256": "d4095ce250f5b2ee535513245cdb8fee157295a536dba85afd95c609b6cc8150"
+            },
+            {
+              "path": "src/native_indexed_volume.cpp",
+              "commit": "924c6083746327e76c9bcfbc6c6334d12fd77497",
+              "blob": "0300d7dbfcd398db9645d87abca400ee8e2fe34a",
+              "bytes": 86698,
+              "sha256": "819d4e8bec26f07f5212688fc239a5efedc9f5807e7bab5e389a37c405e7042f"
+            },
+            {
+              "path": "src/native_indexed_volume.cpp",
+              "commit": "6b6bb9beb74220106d86159c6dbacaff416ecb0e",
+              "blob": "818903411c93cb1b4f463c565f477852fa7cfae0",
+              "bytes": 86345,
+              "sha256": "80dcceacbf62a5a87e890383b9b827c305b2ac39431b75e857802645fc00f66b"
+            },
+            {
+              "path": "src/native_indexed_volume.cpp",
+              "commit": "a8527a30fffa123b33342dfa81f56dbc126cb5b0",
+              "blob": "041e251c9a7932260247d2d7093b4100c315a3cf",
+              "bytes": 85958,
+              "sha256": "6d7eb6bf9079a39d6eefe8dfdd8eb29c4ba75f64832131140d6c6fe89dbf4054"
+            },
+            {
+              "path": "src/native_indexed_volume.cpp",
+              "commit": "489d6df99cb5be8c59a440bd133b7489df8ad8e2",
+              "blob": "e599f596068a1cea481b146c091eef8169707fe2",
+              "bytes": 85523,
+              "sha256": "8aa82725906a7efe5e6428fee2d8514022ff92d548ad2beac3a69585babce350"
+            }
+          ]
+        },
+        "docs": {
+          "file": "docs.bin",
+          "aggregate_bytes": 906105,
+          "wire_bytes": 906189,
+          "sha256": "03d07a3f362d552a8563d0b7f0ff58eb4a1a424c7489a999d6a969686ea78e54",
+          "inputs": [
+            {
+              "path": "docs/IMPLEMENTATION_PLAN.md",
+              "commit": "a9c28db906bbd074878bcb1b672d3d0f6ccef3ee",
+              "blob": "cab2ac770e31c9cecff21ef8f9a2258faea98496",
+              "bytes": 109577,
+              "sha256": "07b9e2cf13130703526057d9175502d8993ee392cf780035e5d787f903d9863e"
+            },
+            {
+              "path": "docs/IMPLEMENTATION_PLAN.md",
+              "commit": "a72462f2fca1a76d4a6228209030a1e63029638d",
+              "blob": "1e16de6929ccfa9c0a7b3673a022372fda34ba51",
+              "bytes": 108663,
+              "sha256": "63789e6166d90c16f7b710227953a6cf206cc90b7918617ac1b433ec30214b3a"
+            },
+            {
+              "path": "docs/IMPLEMENTATION_PLAN.md",
+              "commit": "924c6083746327e76c9bcfbc6c6334d12fd77497",
+              "blob": "46c6bbfb14fd0ee807827b227efd880d5c4189cd",
+              "bytes": 107909,
+              "sha256": "a0714eca0185a023644669bc5146b737939a25ca0e28ab116a783f62e2d84edc"
+            },
+            {
+              "path": "docs/IMPLEMENTATION_PLAN.md",
+              "commit": "099844343bf8af3c659733e49cc7bbeec7c638fc",
+              "blob": "cb900946fa5296f2924e207b72118263595e2821",
+              "bytes": 107014,
+              "sha256": "8032d941b7bb2199394e27b4f3b6b9f0a85c0f57bc5c7833d8e7f67e5422d566"
+            },
+            {
+              "path": "docs/IMPLEMENTATION_PLAN.md",
+              "commit": "6b6bb9beb74220106d86159c6dbacaff416ecb0e",
+              "blob": "4cf1424f85c1389f32764a5bc70b59a328aab616",
+              "bytes": 106327,
+              "sha256": "8d6c89d9497f932f4074bdc56ba65266cb59f5e1ee21dfb90632a50b3d46d006"
+            },
+            {
+              "path": "docs/WORKER_CHANNEL.md",
+              "commit": "a9c28db906bbd074878bcb1b672d3d0f6ccef3ee",
+              "blob": "a38841b5c25971e56a691c4e4c06852f5a977adb",
+              "bytes": 30786,
+              "sha256": "f4b1f8d1945abd7e656f2aca7bb7e55fc4f668c5dcb1d09aa5d0782173a1badd"
+            },
+            {
+              "path": "docs/WORKER_CHANNEL.md",
+              "commit": "924c6083746327e76c9bcfbc6c6334d12fd77497",
+              "blob": "77d318d96f30fe0d48609e5ed144bcbcc387b7fc",
+              "bytes": 29193,
+              "sha256": "1d1bd344610a6ea762edc4206d300e2c5dc152fdde7a28819a437e99aff1685e"
+            },
+            {
+              "path": "docs/WORKER_CHANNEL.md",
+              "commit": "099844343bf8af3c659733e49cc7bbeec7c638fc",
+              "blob": "05e809cbb0fdc864242ac8f641668f40bdbf319c",
+              "bytes": 27727,
+              "sha256": "e70f63e5da73c259ae34b1e52a90d55784e30e77c1befb1a3ceae90d77af3ebf"
+            },
+            {
+              "path": "docs/WORKER_CHANNEL.md",
+              "commit": "6b6bb9beb74220106d86159c6dbacaff416ecb0e",
+              "blob": "09ac3717bfac4466e797f7a0b503269e145addd0",
+              "bytes": 26635,
+              "sha256": "1f8e9a374ca7eb1d7e0f2ccf40d899664596d852bd840a3c91a86e3f7f373b90"
+            },
+            {
+              "path": "docs/WORKER_CHANNEL.md",
+              "commit": "3820ca0644aa6ad08112c218f73d182a0e3ff724",
+              "blob": "09717b91c6a708266623e99a1fbc3ff665ee5b1a",
+              "bytes": 25938,
+              "sha256": "9030811ef62cd7d44ee161e482aec0ab41a4dde051b94c884685cd8b61be80af"
+            },
+            {
+              "path": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+              "commit": "a72462f2fca1a76d4a6228209030a1e63029638d",
+              "blob": "7f7f5bc40df6e2028c05ce2b0ee7268e394cd553",
+              "bytes": 10372,
+              "sha256": "85ad418674ceb4bcb629619951903865999907da115cc897d93afe68f8f79d1c"
+            },
+            {
+              "path": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+              "commit": "924c6083746327e76c9bcfbc6c6334d12fd77497",
+              "blob": "c0af2937dbe98a801cab69f38429113ec604e55f",
+              "bytes": 10078,
+              "sha256": "281119f4d046abf76b5eb60c3a3ef768fea27343a80a2c4b7334c6027c52debb"
+            },
+            {
+              "path": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+              "commit": "7219d0b5558fb23bd335892c5798a45c0fcf4907",
+              "blob": "93b77e40881fd459fc2145cb31a85bc4986694cd",
+              "bytes": 9694,
+              "sha256": "d13f635162bf51b013360fbb2f22a16b94fcf4761e2e6de4c5092ea91be1efca"
+            },
+            {
+              "path": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+              "commit": "a1574f808ab4948aeeafe70fff28ebccea6832c5",
+              "blob": "6671f519e054aa66304f6931c6dc09981fb79045",
+              "bytes": 9614,
+              "sha256": "9732fc6efcb637a571607451f7507c22af271a38154d7305171bb96d9f2bc437"
+            },
+            {
+              "path": "docs/AUTOMATIC_GROUP_MAINTENANCE.md",
+              "commit": "49b70c418e6cea574298eedbb48cec28863334fe",
+              "blob": "ace095b7df14d0519416989113ae64d835e31ace",
+              "bytes": 8945,
+              "sha256": "41c6c724f36137c7ab1f9b20d387f1834ff3dc03cd381eb720e39dc5f0258050"
+            },
+            {
+              "path": "docs/REPOSITORY_OVERVIEW.md",
+              "commit": "a9c28db906bbd074878bcb1b672d3d0f6ccef3ee",
+              "blob": "9b3fae5a0cceb4bda0c5a13d178d7991ceda95dd",
+              "bytes": 36249,
+              "sha256": "d4cfb628e358bf097d5075a49e15ff6fad972c9c23d630ecf285a9a2a5caf9f1"
+            },
+            {
+              "path": "docs/REPOSITORY_OVERVIEW.md",
+              "commit": "3caba479a8c9db6508ed3aebdcb18ddc8c83c200",
+              "blob": "b403e181bc5f0f3bf755394bf3333cacfef22044",
+              "bytes": 35695,
+              "sha256": "742f1a516aed20e864c8550492a31546540b878014dddf619ccf169d520c2e0e"
+            },
+            {
+              "path": "docs/REPOSITORY_OVERVIEW.md",
+              "commit": "fcd8fffbbfd2c62b2956f1d9df83606e200ae2cd",
+              "blob": "e534ce8fd56639e0be9ff22962f7d217f981eee8",
+              "bytes": 35679,
+              "sha256": "a1d4a3d10f35a611b04a5988c515b8628b6abdc66041d5e87bcdab1e112e6525"
+            },
+            {
+              "path": "docs/REPOSITORY_OVERVIEW.md",
+              "commit": "d324a4f8819ade3d21f3c1255034238742c1840f",
+              "blob": "1fb7252309135f6ab972e2609d29ada00e41dbdd",
+              "bytes": 35018,
+              "sha256": "1ad75990d2862cf95d72170a9ca32b0401aeaf9a66abc5141afbbff64a7c7ec9"
+            },
+            {
+              "path": "docs/REPOSITORY_OVERVIEW.md",
+              "commit": "bafafa59368493e94bf082f8785c9d70edad3f3c",
+              "blob": "072791ab44fbfb363d2b578e876be4e779a9feda",
+              "bytes": 34992,
+              "sha256": "4e702f248d56efd53ee62a50b987875cc2c1aeb855f2380c4b434be68d3d13c0"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "validation": {
+    "harness_baseline_build": {
+      "run": "local-run-b3bed8b0aed646d9906ef1bf98f67aa0",
+      "exit_code": 0,
+      "elapsed_seconds": 6.317414,
+      "ceiling_bytes": 982515712,
+      "peak_commit_bytes": 414179328,
+      "physical_available_bytes": 19997913088,
+      "cpu_percent": 17,
+      "deadline_seconds": 110,
+      "timed_out": false,
+      "inherited_error_mode": 32771,
+      "tree_retired": true,
+      "result_sha256": "50cf5cc820dac8b7fb6392aa0e8daaf83c8c6cc3ae04f1459c8d842bc25fd9b1",
+      "log_sha256": "29218dd73de2b64a7f7351fdd0fd0997ef81f231736d77e83a80b58a2c56c028"
+    },
+    "raw": {
+      "build": {
+        "run": "local-run-7c60180bb7974e8abd01e4fd1f5681bc",
+        "exit_code": 0,
+        "elapsed_seconds": 55.864188,
+        "ceiling_bytes": 963641344,
+        "peak_commit_bytes": 488112128,
+        "physical_available_bytes": 20654465024,
+        "cpu_percent": 18,
+        "deadline_seconds": 340,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "f57a2384c1de7b7a6733d6697136a5257777a94d4ba00641e0fee3ecd679ff49",
+        "log_sha256": "132bfb4cb87737bf69a570e70991cac627a39f1eefec180bf6bc67d85591967c"
+      },
+      "tests": {
+        "run": "local-run-22b952fde9fb4603868e4356f517d453",
+        "exit_code": 0,
+        "elapsed_seconds": 47.857122,
+        "ceiling_bytes": 1023410176,
+        "peak_commit_bytes": 106434560,
+        "physical_available_bytes": 20655333376,
+        "cpu_percent": 18,
+        "deadline_seconds": 420,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "b945268e4023a7b81775802624e1944f102ab5d428221fdda7991d4d9d5223ff",
+        "log_sha256": "0fe4ce74c9ae0aeeaacd4f2ce138a12167e904c91b7e24823f025dfea30aa4ab"
+      },
+      "passed": [
+        "bounded_gpu_anchor_match",
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_shared_bases",
+        "bounded_native_shared_base_packed_xor",
+        "bounded_native_shared_base_modular_delta",
+        "bounded_native_shared_base_sparse_xor",
+        "bounded_native_staged_search_window",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_xor",
+        "bounded_native_indexed_group_modular_delta",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_group_batch"
+      ],
+      "base_read_proof": {
+        "extents": 6,
+        "independent_requests": 2,
+        "primary_base_payload_reads": 2,
+        "synthetic_primary_read_failure_recovered": true,
+        "byte_exact": true
+      }
+    },
+    "winfsp_sdk": {
+      "build": {
+        "run": "local-run-788ff4df3edb4c29aac5d8bda0ba2933",
+        "exit_code": 0,
+        "elapsed_seconds": 79.302908,
+        "ceiling_bytes": 1258291200,
+        "peak_commit_bytes": 779300864,
+        "physical_available_bytes": 20640043008,
+        "cpu_percent": 22,
+        "deadline_seconds": 340,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "041cc042c35d5b1fdad06e03ce36754c7691f14be211141a50c6dbbbb10760c9",
+        "log_sha256": "cb12aa7bbfeb3b189e2e44a8afe2f4460db329aa42c764b46580cbf1f71f6a1d"
+      },
+      "tests": {
+        "run": "local-run-2d638dbbf4fa408dac38c3defdf8604c",
+        "exit_code": 0,
+        "elapsed_seconds": 70.646344,
+        "ceiling_bytes": 942669824,
+        "peak_commit_bytes": 106565632,
+        "physical_available_bytes": 19353612288,
+        "cpu_percent": 18,
+        "deadline_seconds": 420,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "a3b9fccbc38451abd22b00ef9ffcaf78edc976fcd791eac2cf39f5546a359f5f",
+        "log_sha256": "7dcbb9ed21519f39bcc533e320ebff5909591b3b32fac0b06b6fd447aba382f9"
+      },
+      "passed": [
+        "bounded_gpu_anchor_match",
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_shared_bases",
+        "bounded_native_shared_base_packed_xor",
+        "bounded_native_shared_base_modular_delta",
+        "bounded_native_shared_base_sparse_xor",
+        "bounded_native_staged_search_window",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_xor",
+        "bounded_native_indexed_group_modular_delta",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_group_batch",
+        "bounded_winfsp_controller",
+        "bounded_winfsp_indexed_memory"
+      ],
+      "base_read_proof": {
+        "extents": 6,
+        "independent_requests": 2,
+        "primary_base_payload_reads": 2,
+        "synthetic_primary_read_failure_recovered": true,
+        "byte_exact": true
+      }
+    },
+    "address_sanitizer_initial": {
+      "build": {
+        "run": "local-run-0f50231c71d940eeb9723217b26c9532",
+        "exit_code": 0,
+        "elapsed_seconds": 82.422861,
+        "ceiling_bytes": 1365245952,
+        "peak_commit_bytes": 794443776,
+        "physical_available_bytes": 20655448064,
+        "cpu_percent": 22,
+        "deadline_seconds": 340,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "fbb8b5689d6037ebcbf04e628419f3432f4b823fe8f166fc250f208115ba2a09",
+        "log_sha256": "ae630de9c00dd8e980c28aa872dbb4a223839fd50d59679de0796e15f24c002c"
+      },
+      "tests": {
+        "run": "local-run-5a03ba78129c4650ad878fbccfa511a3",
+        "exit_code": 8,
+        "elapsed_seconds": 352.161334,
+        "ceiling_bytes": 1635778560,
+        "peak_commit_bytes": 1151033344,
+        "physical_available_bytes": 20629270528,
+        "cpu_percent": 22,
+        "deadline_seconds": 420,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "1086a2fe6978a66a6f633bfb641412be7495b51a78175652af59dba02d536f3d",
+        "log_sha256": "e20415e045a2888115724b0e6469bba78ce2a299ad41593133fbdac758460e74"
+      },
+      "passed": [
+        "windows_asan_runtime_preflight",
+        "bounded_gpu_anchor_match",
+        "bounded_paged_object_store",
+        "bounded_native_indexed_volume",
+        "bounded_native_shared_bases",
+        "bounded_native_shared_base_packed_xor",
+        "bounded_native_shared_base_modular_delta",
+        "bounded_native_shared_base_sparse_xor",
+        "bounded_native_staged_search_window",
+        "bounded_native_indexed_group_maintenance",
+        "bounded_native_indexed_group_xor",
+        "bounded_native_indexed_group_modular_delta",
+        "bounded_native_indexed_group_advice",
+        "bounded_native_indexed_group_batch",
+        "windows_asan_staging_regression"
+      ],
+      "base_read_proof": {
+        "extents": 6,
+        "independent_requests": 2,
+        "primary_base_payload_reads": 2,
+        "synthetic_primary_read_failure_recovered": true,
+        "byte_exact": true
+      }
+    },
+    "after_low_headroom": {
+      "available_physical": 1274564608,
+      "available_commit": 47665270784,
+      "owned": []
+    },
+    "delayed_cases": [
+      "bounded_winfsp_controller",
+      "bounded_winfsp_indexed_memory"
+    ],
+    "later_headroom": {
+      "available_physical": 1341964288,
+      "available_commit": 47729811456,
+      "owned": []
+    },
+    "note": "The storage, codec and sanitizer runtime checks passed. Both WinFsp sanitizer children reported unavailable memory reserve before any fixture checks. The measured test peak was below its outer job allowance and the supervisor retired the whole tree."
+  },
+  "hardware": {
+    "os": "Microsoft Windows 11 Pro",
+    "version": "10.0.26300",
+    "build": "26300",
+    "adapters": [
+      {
+        "Name": "AMD Radeon RX 9070 XT",
+        "DriverVersion": "32.0.32015.16001"
+      }
+    ],
+    "artifacts": {
+      "profile_baseline": {
+        "file": "flitzfs_winfsp_controller_tests.exe",
+        "sha256": "8154bc3f196bb08c34379d1fe2698903bc1d11ff4233c3853afbd86578dba7cb"
+      },
+      "winfsp_sdk": {
+        "file": "winfsp-x64.dll",
+        "sha256": "08d7389b8d030770a4de108a60a86047d5cdd00b9ecafc6dd66e957bc51c2437"
+      },
+      "profile_candidate": {
+        "file": "flitzfs_winfsp_controller_tests.exe",
+        "sha256": "6e182d7f937b5cb8903f001ed67096a76685256deb3e623857aaa482f1b7c45d"
+      },
+      "amd_worker": {
+        "file": "flitzfs_hip_worker.exe",
+        "sha256": "3bf7a176c9cae60dfc4b3c3bf3cd4f03a525bff5360dd78a18046e4cde57a91f"
+      },
+      "amd_kernel": {
+        "file": "flitzfs_rocm_kernels.dll",
+        "sha256": "ff1b9b8879ffd7fefc50923535882602d0f7b69e36e9e087d081920c90b12f43"
+      },
+      "system_runtime": {
+        "file": "amdhip64_7.dll",
+        "sha256": "7fc6465b18ff337a80c863b6350d02d7576cfb30528f97b982a6e5723bbb9848"
+      }
+    },
+    "pilots": [
+      {
+        "cohort": "code",
+        "mode": "revision-corpus",
+        "route": "cpu",
+        "reader": "baseline",
+        "run": {
+          "job": {
+            "run": "local-run-12fef77d746442c78432f612f5c5791e",
+            "exit_code": 0,
+            "elapsed_seconds": 0.199974,
+            "ceiling_bytes": 838860800,
+            "peak_commit_bytes": 10596352,
+            "physical_available_bytes": 19384524800,
+            "cpu_percent": 16,
+            "deadline_seconds": 54,
+            "timed_out": false,
+            "inherited_error_mode": 32771,
+            "tree_retired": true,
+            "result_sha256": "7e90a9246d643e61f883b8ebe5ef66e8b8eb25209c478441bf0c97319dc0cb40",
+            "log_sha256": "61968da9cc1c2ab9c85b4daa9b1bb4e2840ec322051b0219fd0478b826828d46"
+          },
+          "profile": {
+            "mode": "cpu",
+            "cohort": "revision-corpus",
+            "sparse_device": 0,
+            "reply_bytes": 0,
+            "files": 20,
+            "groups": 1,
+            "advised_members": 0,
+            "capability": 4,
+            "submitted": 0,
+            "verified_batches": 0,
+            "worker_ns": 0,
+            "empty_batches": 0,
+            "discovery_ns": 0,
+            "maintenance_ns": 22277100,
+            "compact_verify_ns": 29863800,
+            "input_compacted_bytes": 606208,
+            "grouped_compacted_bytes": 491520,
+            "packed_widths": 0,
+            "packed_payload_bytes": 0,
+            "sampled_bias_members": 0,
+            "sparse_bodies": 0,
+            "delta_bodies": 0,
+            "reference_batches": 0,
+            "reselected_groups": 0,
+            "cpu_reference_pairs": 0,
+            "published_references_changed": 0,
+            "retired": true,
+            "independent_cpu_readback": true,
+            "modeled_idle_time": true,
+            "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+            "zstd": 10507,
+            "full_logical": 921886,
+            "full_input_backing": 1109361,
+            "full_grouped_backing": 1240279,
+            "sampled_logical": 245760,
+            "sampled_input_backing": 3070684,
+            "sampled_grouped_backing": 3333720,
+            "complete_ns": 52140900
+          }
+        }
+      },
+      {
+        "cohort": "code",
+        "mode": "revision-corpus",
+        "route": "amd",
+        "reader": "baseline",
+        "run": {
+          "job": {
+            "run": "local-run-c2bd68adadac4a0ebbd0bb47ef66f037",
+            "exit_code": 0,
+            "elapsed_seconds": 2.030709,
+            "ceiling_bytes": 836763648,
+            "peak_commit_bytes": 113082368,
+            "physical_available_bytes": 19343630336,
+            "cpu_percent": 16,
+            "deadline_seconds": 54,
+            "timed_out": false,
+            "inherited_error_mode": 32771,
+            "tree_retired": true,
+            "result_sha256": "ca23748fb005d521ad90230ec7a004270bae6ef49d3bed1bf5965382c0302b57",
+            "log_sha256": "10f40bedd5a01e0eb8d1e41627d8530a96251ba4fb02f072e50b2bfa9d89735c"
+          },
+          "profile": {
+            "mode": "amd",
+            "cohort": "revision-corpus",
+            "sparse_device": 0,
+            "reply_bytes": 328084,
+            "files": 20,
+            "groups": 1,
+            "advised_members": 0,
+            "capability": 4,
+            "submitted": 1,
+            "verified_batches": 1,
+            "worker_ns": 1554235200,
+            "empty_batches": 0,
+            "discovery_ns": 316143400,
+            "maintenance_ns": 1566383000,
+            "compact_verify_ns": 29627000,
+            "input_compacted_bytes": 606208,
+            "grouped_compacted_bytes": 491520,
+            "packed_widths": 0,
+            "packed_payload_bytes": 0,
+            "sampled_bias_members": 0,
+            "sparse_bodies": 0,
+            "delta_bodies": 0,
+            "reference_batches": 0,
+            "reselected_groups": 0,
+            "cpu_reference_pairs": 0,
+            "published_references_changed": 0,
+            "retired": true,
+            "independent_cpu_readback": true,
+            "modeled_idle_time": true,
+            "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+            "zstd": 10507,
+            "full_logical": 921886,
+            "full_input_backing": 1109361,
+            "full_grouped_backing": 1240279,
+            "sampled_logical": 245760,
+            "sampled_input_backing": 3070684,
+            "sampled_grouped_backing": 3333720,
+            "complete_ns": 1912153400
+          }
+        }
+      },
+      {
+        "cohort": "code",
+        "mode": "raw-revision-corpus",
+        "route": "cpu",
+        "reader": "baseline",
+        "run": {
+          "job": {
+            "run": "local-run-b696b9e71ac442d785a3b3906f685c83",
+            "exit_code": 0,
+            "elapsed_seconds": 0.135798,
+            "ceiling_bytes": 839909376,
+            "peak_commit_bytes": 16252928,
+            "physical_available_bytes": 19398942720,
+            "cpu_percent": 16,
+            "deadline_seconds": 54,
+            "timed_out": false,
+            "inherited_error_mode": 32771,
+            "tree_retired": true,
+            "result_sha256": "bf238162dd9431cac2a8a8089fb58386e120c516560139e784e8dac8c08e921f",
+            "log_sha256": "10ffde2b27f3fc3c74f0ccbfe13d30eb2dff496f3f58332f6ea7a35cdd33f2c5"
+          },
+          "profile": {
+            "mode": "cpu",
+            "cohort": "revision-corpus",
+            "sparse_device": 0,
+            "reply_bytes": 0,
+            "files": 20,
+            "groups": 5,
+            "advised_members": 0,
+            "capability": 4,
+            "submitted": 0,
+            "verified_batches": 0,
+            "worker_ns": 0,
+            "empty_batches": 0,
+            "discovery_ns": 0,
+            "maintenance_ns": 15668100,
+            "compact_verify_ns": 25675500,
+            "input_compacted_bytes": 2007040,
+            "grouped_compacted_bytes": 868352,
+            "packed_widths": 0,
+            "packed_payload_bytes": 0,
+            "sampled_bias_members": 0,
+            "sparse_bodies": 0,
+            "delta_bodies": 0,
+            "reference_batches": 0,
+            "reselected_groups": 0,
+            "cpu_reference_pairs": 0,
+            "published_references_changed": 0,
+            "retired": true,
+            "independent_cpu_readback": true,
+            "modeled_idle_time": true,
+            "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+            "zstd": 0,
+            "full_logical": 921886,
+            "full_input_backing": 1844296,
+            "full_grouped_backing": 3274018,
+            "sampled_logical": 245760,
+            "sampled_input_backing": 4871068,
+            "sampled_grouped_backing": 8307013,
+            "complete_ns": 41343600
+          }
+        }
+      },
+      {
+        "cohort": "code",
+        "mode": "raw-revision-corpus",
+        "route": "amd",
+        "reader": "baseline",
+        "run": {
+          "job": {
+            "run": "local-run-9a4b5ffd48194853b043adab090aba72",
+            "exit_code": 0,
+            "elapsed_seconds": 2.039517,
+            "ceiling_bytes": 843055104,
+            "peak_commit_bytes": 117186560,
+            "physical_available_bytes": 19444789248,
+            "cpu_percent": 16,
+            "deadline_seconds": 54,
+            "timed_out": false,
+            "inherited_error_mode": 32771,
+            "tree_retired": true,
+            "result_sha256": "7f048fd5af9af6237962adbc99b92d6afa8e06d53b15b007c58ad42263d7528d",
+            "log_sha256": "41adc98269c1c17decc51821bef1bbb322a567e13d8a6fd17b1f5e5d29147321"
+          },
+          "profile": {
+            "mode": "amd",
+            "cohort": "revision-corpus",
+            "sparse_device": 0,
+            "reply_bytes": 328084,
+            "files": 20,
+            "groups": 5,
+            "advised_members": 0,
+            "capability": 4,
+            "submitted": 1,
+            "verified_batches": 1,
+            "worker_ns": 1665781500,
+            "empty_batches": 0,
+            "discovery_ns": 245460500,
+            "maintenance_ns": 1678239700,
+            "compact_verify_ns": 23741200,
+            "input_compacted_bytes": 2007040,
+            "grouped_compacted_bytes": 868352,
+            "packed_widths": 0,
+            "packed_payload_bytes": 0,
+            "sampled_bias_members": 0,
+            "sparse_bodies": 0,
+            "delta_bodies": 0,
+            "reference_batches": 0,
+            "reselected_groups": 0,
+            "cpu_reference_pairs": 0,
+            "published_references_changed": 0,
+            "retired": true,
+            "independent_cpu_readback": true,
+            "modeled_idle_time": true,
+            "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+            "zstd": 0,
+            "full_logical": 921886,
+            "full_input_backing": 1844296,
+            "full_grouped_backing": 3274018,
+            "sampled_logical": 245760,
+            "sampled_input_backing": 4871068,
+            "sampled_grouped_backing": 8307013,
+            "complete_ns": 1947441400
+          }
+        }
+      },
+      {
+        "cohort": "docs",
+        "mode": "revision-corpus",
+        "route": "cpu",
+        "reader": "baseline",
+        "run": {
+          "job": {
+            "run": "local-run-7f0fb12a8a054ca382a9209ce2dd7baf",
+            "exit_code": 0,
+            "elapsed_seconds": 0.18013,
+            "ceiling_bytes": 843055104,
+            "peak_commit_bytes": 11051008,
+            "physical_available_bytes": 19450425344,
+            "cpu_percent": 16,
+            "deadline_seconds": 54,
+            "timed_out": false,
+            "inherited_error_mode": 32771,
+            "tree_retired": true,
+            "result_sha256": "fe042dc37d08b1dfc46171c4529ca568919ca03c61f0951378d48d601c96acc2",
+            "log_sha256": "0016dc4bdf9b16a1906b281599f8cdfc490a3d951fc4335c107ea0cb4491792c"
+          },
+          "profile": {
+            "mode": "cpu",
+            "cohort": "revision-corpus",
+            "sparse_device": 0,
+            "reply_bytes": 0,
+            "files": 20,
+            "groups": 2,
+            "advised_members": 0,
+            "capability": 4,
+            "submitted": 0,
+            "verified_batches": 0,
+            "worker_ns": 0,
+            "empty_batches": 0,
+            "discovery_ns": 0,
+            "maintenance_ns": 18563300,
+            "compact_verify_ns": 33054400,
+            "input_compacted_bytes": 843776,
+            "grouped_compacted_bytes": 540672,
+            "packed_widths": 0,
+            "packed_payload_bytes": 0,
+            "sampled_bias_members": 0,
+            "sparse_bodies": 0,
+            "delta_bodies": 0,
+            "reference_batches": 0,
+            "reselected_groups": 0,
+            "cpu_reference_pairs": 4,
+            "published_references_changed": 0,
+            "retired": true,
+            "independent_cpu_readback": true,
+            "modeled_idle_time": true,
+            "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+            "zstd": 10507,
+            "full_logical": 906105,
+            "full_input_backing": 1230464,
+            "full_grouped_backing": 1492358,
+            "sampled_logical": 245760,
+            "sampled_input_backing": 3285014,
+            "sampled_grouped_backing": 3681097,
+            "complete_ns": 51617700
+          }
+        }
+      },
+      {
+        "cohort": "docs",
+        "mode": "revision-corpus",
+        "route": "amd",
+        "reader": "baseline",
+        "run": {
+          "job": {
+            "run": "local-run-d4ae5bb77eee475aacf65ee36d5995fc",
+            "exit_code": 0,
+            "elapsed_seconds": 1.948185,
+            "ceiling_bytes": 839909376,
+            "peak_commit_bytes": 114024448,
+            "physical_available_bytes": 19403743232,
+            "cpu_percent": 16,
+            "deadline_seconds": 54,
+            "timed_out": false,
+            "inherited_error_mode": 32771,
+            "tree_retired": true,
+            "result_sha256": "f25dd962990786821f1af917fae62ab4c1ce08c715abd9e5b3f58f5bade99c5c",
+            "log_sha256": "8f6054e7f3b7ccb6e40d0d7ca86eca86d5495bd36ee7f04308f4309a3734e6d5"
+          },
+          "profile": {
+            "mode": "amd",
+            "cohort": "revision-corpus",
+            "sparse_device": 0,
+            "reply_bytes": 328084,
+            "files": 20,
+            "groups": 2,
+            "advised_members": 0,
+            "capability": 4,
+            "submitted": 1,
+            "verified_batches": 1,
+            "worker_ns": 1525927500,
+            "empty_batches": 0,
+            "discovery_ns": 240974200,
+            "maintenance_ns": 1539792600,
+            "compact_verify_ns": 32004000,
+            "input_compacted_bytes": 843776,
+            "grouped_compacted_bytes": 540672,
+            "packed_widths": 0,
+            "packed_payload_bytes": 0,
+            "sampled_bias_members": 0,
+            "sparse_bodies": 0,
+            "delta_bodies": 0,
+            "reference_batches": 0,
+            "reselected_groups": 0,
+            "cpu_reference_pairs": 0,
+            "published_references_changed": 0,
+            "retired": true,
+            "independent_cpu_readback": true,
+            "modeled_idle_time": true,
+            "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+            "zstd": 10507,
+            "full_logical": 906105,
+            "full_input_backing": 1230464,
+            "full_grouped_backing": 1492358,
+            "sampled_logical": 245760,
+            "sampled_input_backing": 3285014,
+            "sampled_grouped_backing": 3681097,
+            "complete_ns": 1812770800
+          }
+        }
+      },
+      {
+        "cohort": "docs",
+        "mode": "raw-revision-corpus",
+        "route": "cpu",
+        "reader": "baseline",
+        "run": {
+          "job": {
+            "run": "local-run-566726e37555434688477469db6dec43",
+            "exit_code": 0,
+            "elapsed_seconds": 0.132036,
+            "ceiling_bytes": 838860800,
+            "peak_commit_bytes": 16130048,
+            "physical_available_bytes": 19375058944,
+            "cpu_percent": 16,
+            "deadline_seconds": 54,
+            "timed_out": false,
+            "inherited_error_mode": 32771,
+            "tree_retired": true,
+            "result_sha256": "31849c1c94e3a480773ce36774da4a0ba92c3dba6323644e853d23318f1f580b",
+            "log_sha256": "19210ab9ef173b1d41b65c6c3ae6c0eb12af8efd184adc8472fe61c930551dd8"
+          },
+          "profile": {
+            "mode": "cpu",
+            "cohort": "revision-corpus",
+            "sparse_device": 0,
+            "reply_bytes": 0,
+            "files": 20,
+            "groups": 4,
+            "advised_members": 0,
+            "capability": 4,
+            "submitted": 0,
+            "verified_batches": 0,
+            "worker_ns": 0,
+            "empty_batches": 0,
+            "discovery_ns": 0,
+            "maintenance_ns": 13606300,
+            "compact_verify_ns": 22266500,
+            "input_compacted_bytes": 1974272,
+            "grouped_compacted_bytes": 811008,
+            "packed_widths": 0,
+            "packed_payload_bytes": 0,
+            "sampled_bias_members": 0,
+            "sparse_bodies": 0,
+            "delta_bodies": 0,
+            "reference_batches": 0,
+            "reselected_groups": 0,
+            "cpu_reference_pairs": 0,
+            "published_references_changed": 0,
+            "retired": true,
+            "independent_cpu_readback": true,
+            "modeled_idle_time": true,
+            "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+            "zstd": 0,
+            "full_logical": 906105,
+            "full_input_backing": 1828515,
+            "full_grouped_backing": 2844445,
+            "sampled_logical": 245760,
+            "sampled_input_backing": 4609085,
+            "sampled_grouped_backing": 7017933,
+            "complete_ns": 35872800
+          }
+        }
+      },
+      {
+        "cohort": "docs",
+        "mode": "raw-revision-corpus",
+        "route": "amd",
+        "reader": "baseline",
+        "run": {
+          "job": {
+            "run": "local-run-d2997d5db621482d91c08481ceb4fc36",
+            "exit_code": 0,
+            "elapsed_seconds": 2.02929,
+            "ceiling_bytes": 839909376,
+            "peak_commit_bytes": 116748288,
+            "physical_available_bytes": 19388145664,
+            "cpu_percent": 16,
+            "deadline_seconds": 54,
+            "timed_out": false,
+            "inherited_error_mode": 32771,
+            "tree_retired": true,
+            "result_sha256": "5a64596635c2a66551fcf7f6980eee715c7323347e8bff83205de83bb872760a",
+            "log_sha256": "379cc97197bf42824769e65a866e08c7fda4a8ac7f4ce5e72543a744c8314ff2"
+          },
+          "profile": {
+            "mode": "amd",
+            "cohort": "revision-corpus",
+            "sparse_device": 0,
+            "reply_bytes": 328084,
+            "files": 20,
+            "groups": 4,
+            "advised_members": 0,
+            "capability": 4,
+            "submitted": 1,
+            "verified_batches": 1,
+            "worker_ns": 1660657000,
+            "empty_batches": 0,
+            "discovery_ns": 240745200,
+            "maintenance_ns": 1672790000,
+            "compact_verify_ns": 20749800,
+            "input_compacted_bytes": 1974272,
+            "grouped_compacted_bytes": 811008,
+            "packed_widths": 0,
+            "packed_payload_bytes": 0,
+            "sampled_bias_members": 0,
+            "sparse_bodies": 0,
+            "delta_bodies": 0,
+            "reference_batches": 0,
+            "reselected_groups": 0,
+            "cpu_reference_pairs": 0,
+            "published_references_changed": 0,
+            "retired": true,
+            "independent_cpu_readback": true,
+            "modeled_idle_time": true,
+            "input_blake3": "024632754d73bedc236d834b4086fc4c891f265588a381f76e12cc44b007c546",
+            "zstd": 0,
+            "full_logical": 906105,
+            "full_input_backing": 1828515,
+            "full_grouped_backing": 2844445,
+            "sampled_logical": 245760,
+            "sampled_input_backing": 4609085,
+            "sampled_grouped_backing": 7017933,
+            "complete_ns": 1934285000
+          }
+        }
+      }
+    ],
+    "candidate_cpu_pilot": {
+      "job": {
+        "run": "local-run-8492ad9438ac4a25a90b66b7d7fd8334",
+        "exit_code": 0,
+        "elapsed_seconds": 0.240908,
+        "ceiling_bytes": 837812224,
+        "peak_commit_bytes": 10600448,
+        "physical_available_bytes": 19357609984,
+        "cpu_percent": 14,
+        "deadline_seconds": 45,
+        "timed_out": false,
+        "inherited_error_mode": 32771,
+        "tree_retired": true,
+        "result_sha256": "4e7d67054b45c7d0518966e75e9eaf4bf0fe9e68e496761a85ddf8179cff4ee0",
+        "log_sha256": "e5b258a9c8436e13cc12ec9adfad6a3a0ac1b81349cfcd2c862248cd6a8a0151"
+      },
+      "profile": {
+        "mode": "cpu",
+        "cohort": "revision-corpus",
+        "sparse_device": 0,
+        "reply_bytes": 0,
+        "files": 20,
+        "groups": 1,
+        "advised_members": 0,
+        "capability": 4,
+        "submitted": 0,
+        "verified_batches": 0,
+        "worker_ns": 0,
+        "empty_batches": 0,
+        "discovery_ns": 0,
+        "maintenance_ns": 22969900,
+        "compact_verify_ns": 30745500,
+        "input_compacted_bytes": 606208,
+        "grouped_compacted_bytes": 491520,
+        "packed_widths": 0,
+        "packed_payload_bytes": 0,
+        "sampled_bias_members": 0,
+        "sparse_bodies": 0,
+        "delta_bodies": 0,
+        "reference_batches": 0,
+        "reselected_groups": 0,
+        "cpu_reference_pairs": 0,
+        "published_references_changed": 0,
+        "retired": true,
+        "independent_cpu_readback": true,
+        "modeled_idle_time": true,
+        "input_blake3": "5f89cd7cbed6c82bc2507e844ab79cc116407492d35ec78ae4f658881dcd0c07",
+        "zstd": 10507,
+        "full_logical": 921886,
+        "full_input_backing": 1109361,
+        "full_grouped_backing": 1199319,
+        "sampled_logical": 245760,
+        "sampled_input_backing": 3070684,
+        "sampled_grouped_backing": 3251800,
+        "complete_ns": 53715400
+      }
+    },
+    "summary": {
+      "code": {
+        "revision-corpus": {
+          "logical_bytes": 921886,
+          "compacted_input_bytes": 606208,
+          "compacted_grouped_bytes": 491520,
+          "saving_percent": 18.919,
+          "baseline_full_input_backing_bytes": 1109361,
+          "baseline_full_grouped_backing_bytes": 1240279,
+          "baseline_sampled_input_backing_bytes": 3070684,
+          "baseline_sampled_grouped_backing_bytes": 3333720,
+          "verified_amd_batches": 1,
+          "device_suggestions_selected": 0,
+          "candidate_comparison": {
+            "calls_per_sampled_file": 3,
+            "full_read_bytes": [
+              1240279,
+              1199319
+            ],
+            "sampled_read_bytes": [
+              3333720,
+              3251800
+            ],
+            "full_read_byte_reduction_percent": 3.302,
+            "sampled_read_byte_reduction_percent": 2.457
+          }
+        },
+        "raw-revision-corpus": {
+          "logical_bytes": 921886,
+          "compacted_input_bytes": 2007040,
+          "compacted_grouped_bytes": 868352,
+          "saving_percent": 56.735,
+          "baseline_full_input_backing_bytes": 1844296,
+          "baseline_full_grouped_backing_bytes": 3274018,
+          "baseline_sampled_input_backing_bytes": 4871068,
+          "baseline_sampled_grouped_backing_bytes": 8307013,
+          "verified_amd_batches": 1,
+          "device_suggestions_selected": 0
+        }
+      },
+      "docs": {
+        "revision-corpus": {
+          "logical_bytes": 906105,
+          "compacted_input_bytes": 843776,
+          "compacted_grouped_bytes": 540672,
+          "saving_percent": 35.922,
+          "baseline_full_input_backing_bytes": 1230464,
+          "baseline_full_grouped_backing_bytes": 1492358,
+          "baseline_sampled_input_backing_bytes": 3285014,
+          "baseline_sampled_grouped_backing_bytes": 3681097,
+          "verified_amd_batches": 1,
+          "device_suggestions_selected": 0
+        },
+        "raw-revision-corpus": {
+          "logical_bytes": 906105,
+          "compacted_input_bytes": 1974272,
+          "compacted_grouped_bytes": 811008,
+          "saving_percent": 58.921,
+          "baseline_full_input_backing_bytes": 1828515,
+          "baseline_full_grouped_backing_bytes": 2844445,
+          "baseline_sampled_input_backing_bytes": 4609085,
+          "baseline_sampled_grouped_backing_bytes": 7017933,
+          "verified_amd_batches": 1,
+          "device_suggestions_selected": 0
+        }
+      }
+    },
+    "method": {
+      "files": "Two sets of twenty untouched Git blobs from local public history. Each set retains the five most recent distinct blobs of four recorded paths.",
+      "bundle": "Little-endian uint32 file count, then each file's uint32 length followed by those exact Git bytes in manifest order.",
+      "backing_reads": "Bytes requested from StoreByteIo over reopened, verified compacted images. Whole-file reads are followed by 4 KiB reads at the beginning, middle and end of each file, with exact comparisons.",
+      "storage": "Complete protected image extent. The fixture enforces Zstandard 1.5.7 for the automatic profile and uses separate raw controls.",
+      "scope": "The eight parent pilots exercise the baseline reader and verified device routing. The candidate pilot binds the new reader to the same code cohort. Mounted performance, representative application latency and repeat timing comparisons remain open.",
+      "waiting": "Two Windows app tests refused low host memory at startup. The wider candidate comparisons wait for safe physical headroom."
+    }
+  }
+}

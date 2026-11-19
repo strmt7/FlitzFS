@@ -262,6 +262,13 @@ void basic_and_oracle() {
   populate(writer,4096);auto prior=writer.snapshot();std::map<std::uint64_t,Bytes> oracle;
   for(std::uint64_t i=1;i<=4096;++i)oracle.emplace(i,payload(i));
   require(prior.info().height>=2 && prior.info().objects==4096,"multi-level tree did not grow");
+  const auto reference=prior.stat(17);
+  require(reference && prior.read_if_generation(17,reference->generation,16)==payload(17),
+      "generation-bound read lost the protected object");
+  require(!prior.read_if_generation(17,reference->generation+1,0),
+      "generation mismatch reached the stored payload");
+  rejects([&]{(void)prior.read_if_generation(17,reference->generation,0);},
+      "generation matching bypassed the decoded length budget");
   // Deterministic mixed sparse keys, replacement, insertion before/after ranges,
   // and deletes, compared against an independent ordered map.
   std::uint64_t random=0x2468beef;

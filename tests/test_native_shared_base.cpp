@@ -54,6 +54,37 @@ void verify_family(const NativeFilesystemSnapshot& snapshot,unsigned count,Bytes
   for(unsigned i=0;i<count;++i)require(snapshot.read("f"+std::to_string(i),0,kNativeExtentBytes)==content(i),"shared-base file bytes differ");
   snapshot.verify_all();
 }
+void read_grouped_extents() {
+  constexpr unsigned count=6;
+  auto ram=std::make_shared<Ram>();
+  ram->failure_unit=4096;
+  auto writer=fresh(ram,true);
+  Bytes input;
+  input.reserve(count*kNativeExtentBytes);
+  for(unsigned i=0;i<count;++i) {
+    const auto bytes=family(i);
+    input.insert(input.end(),bytes.begin(),bytes.end());
+  }
+  writer.apply(std::array{file_create("joined"),file_write("joined",0,input)});
+  const auto inode=writer.snapshot().stat("joined").inode;
+  std::array<NativeExtentSelection,count> members;
+  for(unsigned i=0;i<count;++i)members[i]={inode,i};
+  auto work=writer.prepare_shared_base(members.front(),members);
+  while(!writer.advance_shared_base(work)) {}
+  require(writer.finish_shared_base(work).applied,"Multi-extent shared base did not publish");
+  const auto reopened=view(ram);
+  const auto raw_magic=std::as_bytes(std::span("FLTXPA01",std::size_t{8}));
+  const auto base=std::ranges::search(ram->live,raw_magic);
+  require(!base.empty(),"Cannot locate the raw shared base in the memory fixture");
+  ram->corrupt_read_offset=static_cast<std::uint64_t>(base.begin()-ram->live.begin());
+  require(reopened.read("joined",0,input.size())==input && ram->matching_reads==1,
+      "A multi-extent request reread its verified shared base");
+  // An independent request verifies the primary again and can recover its peer.
+  ram->corrupt_read_number=2;
+  require(reopened.read("joined",0,input.size())==input && ram->matching_reads==2,
+      "A separate request reused the prior request's shared base");
+  std::cout<<"shared_base_request_cache extents="<<count<<" primary_reads=2 peer_recovery=true byte_exact=true\n";
+}
 void anchor_copy_codec() {
   const auto base=shifted_family(0);const auto id=detail::kNativeGroupBaseBit+1;
   const detail::NativeGroupAnchorIndex index(base);
@@ -791,6 +822,7 @@ int main(int argc,char** argv){try {
   }
   require(argc==1,"unknown shared-base test mode");
   codec();anchor_copy_codec();anchor_copy_advice();independent_and_decline();malformed_storage();indexed_extension_and_reclamation();
+  read_grouped_extents();
   indexed_group_on_populated_volume();
   for(auto unit:{4096U,65536U}){
     for(const auto indexed_layout:{false,true}) {

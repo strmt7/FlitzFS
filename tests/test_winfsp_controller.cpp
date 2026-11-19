@@ -4,6 +4,7 @@
 #include "anchor_search_fixture.hpp"
 #include "flitzfs/paged_store.hpp"
 #include "flitzfs/native_volume_file.hpp"
+#include "flitzfs/read_only_file.hpp"
 #include "native_fs_fixture.hpp"
 #include "../src/native_group_codec.hpp"
 #include "../src/native_maintenance_source.hpp"
@@ -430,12 +431,78 @@ std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
   if(mode=="sparse-xor" || mode=="sparse-xor-device")return IndexedBatchPattern::sparse_xor;
   if(mode=="sparse-xor-all-planes" || mode=="sparse-xor-all-planes-device")return IndexedBatchPattern::sparse_xor_all_planes;
   if(mode=="collective" || mode=="collective-sparse" || mode=="collective-delta")return IndexedBatchPattern::collective;
+  if(mode=="revision-corpus")return IndexedBatchPattern::revision_corpus;
+  if(mode=="raw-revision-corpus")return IndexedBatchPattern::raw_revision_corpus;
   return {};
+}
+
+bool revision_corpus(IndexedBatchPattern pattern) noexcept {
+  return pattern==IndexedBatchPattern::revision_corpus || pattern==IndexedBatchPattern::raw_revision_corpus;
+}
+
+std::vector<Bytes> read_revision_corpus(const std::filesystem::path& path) {
+  require(path.is_absolute(),"Expected the absolute revision corpus path");
+  const auto file=ReadOnlyFile::open(path);
+  require(file.size()>=4 && file.size()<=4*1024*1024,"Revision corpus exceeds fixture memory budget");
+  Bytes input(static_cast<std::size_t>(file.size()));
+  file.read_exact_at(0,input.data(),input.size());
+  std::span<const std::byte> remaining(input);
+  const auto read_size=[&] {
+    require(remaining.size()>=sizeof(std::uint32_t),"Truncated revision corpus header");
+    std::uint32_t value=0;
+    for(unsigned i=0;i<sizeof(value);++i)value|=std::to_integer<std::uint32_t>(remaining[i])<<(8*i);
+    remaining=remaining.subspan(sizeof(value));
+    return value;
+  };
+  const auto count=read_size();
+  require(count>0 && count<=64,"Revision corpus has an invalid file count");
+  std::vector<Bytes> files;
+  files.reserve(count);
+  for(std::uint32_t i=0;i<count;++i) {
+    const auto bytes=read_size();
+    require(bytes>0 && bytes<=256*1024 && bytes<=remaining.size(),"Invalid revision corpus file extent");
+    const auto data=remaining.first(bytes);
+    files.emplace_back(data.begin(),data.end());
+    remaining=remaining.subspan(bytes);
+  }
+  require(remaining.empty(),"Revision corpus contains trailing bytes");
+  return files;
+}
+
+struct RevisionReadProfile {
+  std::uint64_t full_logical=0,full_backing=0,sampled_logical=0,sampled_backing=0;
+};
+
+RevisionReadProfile profile_revision_reads(const NativeFilesystemSnapshot& snapshot,
+    const Ram& backing,std::span<const Bytes> files) {
+  RevisionReadProfile result;
+  auto read_start=backing.read_bytes;
+  for(std::size_t i=0;i<files.size();++i) {
+    const auto path="f"+std::to_string(i);
+    require(snapshot.read(path,0,files[i].size())==files[i],"Whole revision read differs");
+    result.full_logical+=files[i].size();
+  }
+  result.full_backing=backing.read_bytes-read_start;
+  read_start=backing.read_bytes;
+  for(std::size_t i=0;i<files.size();++i) {
+    const auto path="f"+std::to_string(i);
+    const auto count=(std::min)(files[i].size(),std::size_t{4096});
+    const auto last=files[i].size()-count;
+    for(const auto offset:{std::size_t{0},last/2,last}) {
+      const auto bytes=snapshot.read(path,offset,count);
+      require(std::ranges::equal(bytes,std::span(files[i]).subspan(offset,count)),
+          "Sampled revision read differs");
+      result.sampled_logical+=count;
+    }
+  }
+  result.sampled_backing=backing.read_bytes-read_start;
+  return result;
 }
 
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
+  const bool revision=revision_corpus(pattern);
   const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
   const bool tile_reference=pattern==IndexedBatchPattern::xor_tile_reference;
   const bool sparse_reference=pattern==IndexedBatchPattern::xor_sparse_reference;
@@ -451,15 +518,17 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
   const auto members=anchor_search_fixture::small_indexed_batch(pattern)?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
       anchor_search_fixture::indexed_batch_members;
-  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const auto compression=pattern==IndexedBatchPattern::revision_corpus?
+      StoreCompressionOptions{StoreCompressionMode::automatic,6,true}:
+      StoreCompressionOptions{StoreCompressionMode::raw,1,false};
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
   // Match the multiwindow CPU fixture's modeled device geometry. Leave room
   // in the 64 MiB image for both live records and independently committed COW.
   head->failure_unit=image->failure_unit=4096;
   std::optional<NativeFileSession> session(NativeFileSession::create_indexed_volume(
-      head,id(90),image,id(1),{kStoreMaxPhysicalBytes},raw));
+      head,id(90),image,id(1),{kStoreMaxPhysicalBytes},compression));
   Bytes bank;
-  if(!bank_path.empty()) {
+  if(!revision && !bank_path.empty()) {
     require(bank_path.is_absolute() && std::filesystem::file_size(bank_path)==anchor_search_fixture::indexed_sample_bank_bytes,
         "Expected the bounded public sample bank");
     std::ifstream input(bank_path,std::ios::binary);
@@ -467,7 +536,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     require(bool(input.read(reinterpret_cast<char*>(bank.data()),static_cast<std::streamsize>(bank.size()))) &&
         input.peek()==std::char_traits<char>::eof(),"Public sample bank changed");
   }
-  const auto originals=anchor_search_fixture::indexed_batch_files(bank,pattern);
+  const auto originals=revision?read_revision_corpus(bank_path):anchor_search_fixture::indexed_batch_files(bank,pattern);
   std::vector<std::byte> file_digests;
   file_digests.reserve(32*originals.size());
   for(std::size_t i=0;i<originals.size();++i) {
@@ -481,20 +550,26 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   }
   const auto resolve=[&](const auto& key)->std::shared_ptr<StoreByteIo> {return key==id(1)?image:nullptr;};
   std::uint64_t baseline_bytes=0;
+  RevisionReadProfile baseline_reads;
   session.reset();
   {
     const auto closed=NativeVolumeHeadView::open(head,id(90),resolve);
     auto copy=std::make_shared<Ram>();copy->failure_unit=image->failure_unit;
-    (void)NativeFilesystemWriter::compact(closed.filesystem(),copy,id(2),raw);
+    (void)NativeFilesystemWriter::compact(closed.filesystem(),copy,id(2),compression);
     baseline_bytes=copy->extent();
+    if(revision) {
+      const auto reopened=NativeFilesystemSnapshot::open_image(copy,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
+      reopened.verify_all();
+      baseline_reads=profile_revision_reads(reopened,*copy,originals);
+    }
   }
-  session.emplace(NativeFileSession::resume_closed_indexed_volume(head,id(90),1,resolve,raw));
+  session.emplace(NativeFileSession::resume_closed_indexed_volume(head,id(90),1,resolve,compression));
   const auto maintenance_start=std::chrono::steady_clock::now();
   const NativeMaintenancePolicy policy;
   NativeGroupMaintenance maintenance(*session,policy);
   std::unique_ptr<NativeAnchorSearchController> anchor;
   if(options)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*options));
-  if(anchor && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor && !collective) {
+  if(anchor && !revision && bank.empty() && !shifted_bias && !alternate_reference && !sparse_xor && !collective) {
     const auto now=GetTickCount64();
     require(!anchor->stage_grant(now,members) && anchor->stage_grant(now,members+families+1)==members+families,
         "Wide route used a legacy cap or ignored its funded range");
@@ -562,7 +637,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   }
   const auto stats=anchor?anchor->stats():NativeAnchorSearchStats{};
   const bool retired=(!anchor || anchor->stop()) && WorkerExchangeSession::available();
-  require(!maintenance.pending() && progress.published_groups && retired && !stats.integrity_failures,
+  require(!maintenance.pending() && (revision || progress.published_groups) && retired && !stats.integrity_failures,
       "Large batch lost protected publication or ownership");
   if(dense_overflow) {
     require(stats.submitted==1 && stats.empty_xor_batches==1 && !stats.verified &&
@@ -572,10 +647,10 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         <<" empty="<<stats.empty_xor_batches<<" published="<<progress.advised_members_published<<'\n';
     require(stats.submitted && (stats.verified || stats.empty_xor_batches || packed_payload_bytes),
         "Shifted-bias comparison lacked a completed AMD exchange");
-  } else if(anchor) {
+  } else if(anchor && !revision) {
     require(stats.verified && progress.advised_members_published,"Large batch lost verified advice");
   }
-  if(anchor && bank.empty() && !modular && !dense_overflow && !collective)
+  if(anchor && !revision && bank.empty() && !modular && !dense_overflow && !collective)
     require(stats.submitted==1 && stats.verified_groups==families &&
         (tile_reference || sparse_xor || progress.advised_members_published==members),
         "Related AMD work did not fill one verified multiwindow batch");
@@ -599,18 +674,26 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   session.reset();
   const auto closed=NativeVolumeHeadView::open(head,id(90),resolve);
   auto packed=std::make_shared<Ram>();packed->failure_unit=image->failure_unit;
-  (void)NativeFilesystemWriter::compact(closed.filesystem(),packed,id(3),raw);
+  (void)NativeFilesystemWriter::compact(closed.filesystem(),packed,id(3),compression);
   const auto reopened=NativeFilesystemSnapshot::open_image(packed,{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes});
   reopened.verify_all();
-  for(std::size_t i=0;i<originals.size();++i)
+  RevisionReadProfile grouped_reads;
+  if(revision)grouped_reads=profile_revision_reads(reopened,*packed,originals);
+  else for(std::size_t i=0;i<originals.size();++i)
     require(reopened.read("f"+std::to_string(i),0,originals[i].size())==originals[i],
         "Large AMD batch changed independently reopened file bytes");
   const auto compact_verify_ns=elapsed_ns(verify_start);
-  require(packed->extent()<baseline_bytes,"Multiwindow maintenance did not reduce complete compacted size");
+  require(revision || packed->extent()<baseline_bytes,"Multiwindow maintenance did not reduce complete compacted size");
   const auto root=PagedObjectStoreSnapshot::open(packed,{kStoreMaxPhysicalBytes}).read(1);
   const auto capability=std::to_integer<unsigned>(root[8]);
   if(sparse_xor || collective)require(capability==7,"Sparse XOR did not survive compaction");
-  const auto cohort=collective?(bank.empty()?"collective-synthetic":"collective-public"):
+  if(revision) {
+    std::cout<<"revision_reads zstd="<<(compression.mode==StoreCompressionMode::automatic?store_zstd_version():0)
+        <<" full_logical="<<grouped_reads.full_logical<<" full_input_backing="<<baseline_reads.full_backing
+        <<" full_grouped_backing="<<grouped_reads.full_backing<<" sampled_logical="<<grouped_reads.sampled_logical
+        <<" sampled_input_backing="<<baseline_reads.sampled_backing<<" sampled_grouped_backing="<<grouped_reads.sampled_backing<<'\n';
+  }
+  const auto cohort=revision?"revision-corpus":collective?(bank.empty()?"collective-synthetic":"collective-public"):
       full_reference?(bank.empty()?"xor-full-reference-synthetic":"xor-full-reference-public"):
       sparse_reference?(bank.empty()?"xor-sparse-reference-synthetic":"xor-sparse-reference-public"):
       all_planes?(bank.empty()?"sparse-xor-all-planes-synthetic":"sparse-xor-all-planes-public"):
@@ -668,7 +751,8 @@ int live_anchor_owner(int argc,char** argv) {
     const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
     const auto minimum=argc==8 || small_batch?2U:static_cast<std::uint32_t>(members);
-    const auto output=mode=="xor-full-reference"?anchor_match::BatchOutput::reference_xor:
+    const auto output=revision_corpus(*multiwindow)?anchor_match::BatchOutput::anchors:
+        mode=="xor-full-reference"?anchor_match::BatchOutput::reference_xor:
         mode=="collective"?anchor_match::BatchOutput::collective:sparse?anchor_match::BatchOutput::sparse_xor:
         modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,

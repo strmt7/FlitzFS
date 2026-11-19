@@ -878,10 +878,29 @@ Full-tile CPU medians were 226–228 ms and full-tile AMD medians were
 considered two under its launch grant. All 18 trials read back every file
 on CPU. Five published references changed per full-tile trial, and the
 controller now retains the actual selected reference for later reuse.
-Qualification on naturally related files needs equal-depth comparisons,
-read amplification, and measurements during foreground activity. Any
-automatic AMD preference also needs a workload that pays for startup.
 [CPU full-tile measurements](evidence/cpu-full-reference-pricing-2026-11-19.json)
+
+The public revision fixture uses the latest five distinct blobs of each of
+eight pinned paths, split into source and documentation cohorts. The
+Zstandard-backed images decreased from 606,208 to 491,520 bytes for
+source and from 843,776 to 540,672 bytes for documentation. They contained
+exactly the original files. The AMD copy search completed one verified
+exchange for each corpus and codec profile. The writer selected zero
+device candidates. The GPU qualification needs to compare its short
+verified seeds with the longer spans chosen by the CPU rolling index.
+
+Indexed grouped reads now check the expected anchor generation during the
+payload lookup and reuse one verified base within the request. Validation
+of a member body runs as it is decoded. On the Zstandard source cohort,
+the first candidate run reduced whole-file backing reads from 1,240,279
+to 1,199,319 bytes and sampled 4 KiB backing reads from 3,333,720 to
+3,251,800 bytes. The test reopened and matched every file. A separate
+six-extent fixture verified one primary base read per request and recovery
+from a modeled damaged primary on a later read. Repeat timing, candidate
+documentation measurements, and foreground and mounted behavior remain
+open. Two sanitizer controller cases refused startup after available
+memory dropped below the fixture reserve.
+[Public revision and read qualification](evidence/public-revision-reads-2026-11-19.json)
 
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data

@@ -62,8 +62,10 @@ std::uint64_t marker_id(std::uint64_t id,IndexedLifetime state) noexcept {
   if(state==IndexedLifetime::linked)return 0;
   return (state==IndexedLifetime::retiring?retirement_domain:lifetime_domain)|id;
 }
-std::optional<Bytes> fetch(const PagedObjectStoreSnapshot& store,std::uint64_t id,std::size_t budget) {
-  try{return store.read_if_present(id,budget);}
+std::optional<Bytes> fetch(const PagedObjectStoreSnapshot& store,std::uint64_t id,std::size_t budget,
+    std::optional<std::uint64_t> expected_generation={}) {
+  try{return expected_generation?store.read_if_generation(id,*expected_generation,budget):
+      store.read_if_present(id,budget);}
   catch(const std::bad_alloc&){throw;}
   catch(const std::exception&){fail(Code::storage_failure,"indexed object integrity or read failure");}
 }
@@ -199,9 +201,13 @@ void verify_base_frame(const Bytes& bytes) {
   if(bytes.size()!=base_size || !magic(bytes,base_magic))
     fail(Code::corrupt,"invalid indexed shared base");
 }
+struct IndexedSharedBaseRead {
+  std::uint64_t object=0,generation=0;
+  Bytes frame;
+};
 DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const NativeNameIndex& index,
     const IndexedVolumeRoot& root,std::uint64_t object,Bytes bytes,const IndexedInodeInput& inode,
-    std::uint64_t block,bool compare_anchor=false) {
+    std::uint64_t block,bool compare_anchor=false,IndexedSharedBaseRead* cached_base=nullptr) {
   if(bytes.size()<=extent_header || get(bytes,8)!=inode.inode || get(bytes,16)!=block)
     fail(Code::corrupt,"indexed extent owner or logical offset mismatch");
   if(magic(bytes,extent_magic)) {
@@ -212,18 +218,21 @@ DecodedIndexedExtent decode_extent(const PagedObjectStoreSnapshot& source,const 
   const auto member=std::span<const std::byte>(bytes).subspan(extent_header);
   try {
     const auto maximum_method=available_group_method(root.format);
-    const auto reference=parse_native_group_member(member,maximum_method);
+    const auto reference=read_native_group_header(member,maximum_method);
     if(reference.base_id==object || (reference.base_id&ordinal_mask)>=root.next_extent ||
         index.find(native_group_reference_key(reference.base_id,object))!=object)
       fail(Code::corrupt,"indexed shared-base backreference is missing");
-    const auto anchor=source.stat(reference.base_id);
-    if(!anchor || anchor->generation!=reference.base_generation)
-      fail(Code::corrupt,"indexed shared-base generation mismatch");
-    const auto base=required(source,reference.base_id,base_size);
-    verify_base_frame(base);
-    const auto anchor_payload=std::span(base).subspan(base_magic.size());
+    IndexedSharedBaseRead local_base;
+    auto& anchor=cached_base?*cached_base:local_base;
+    if(anchor.object!=reference.base_id || anchor.generation!=reference.base_generation) {
+      auto frame=fetch(source,reference.base_id,base_size,reference.base_generation);
+      if(!frame)fail(Code::corrupt,"indexed shared-base generation mismatch");
+      verify_base_frame(*frame);
+      anchor={reference.base_id,reference.base_generation,std::move(*frame)};
+    }
+    const auto anchor_payload=std::span<const std::byte>(anchor.frame).subspan(base_magic.size());
     auto decoded=decode_native_group_member(member,anchor_payload,maximum_method);
-    const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor->generation:0;
+    const auto reusable=compare_anchor && std::ranges::equal(decoded,anchor_payload)?anchor.generation:0;
     while(!decoded.empty() && decoded.back()==std::byte{})decoded.pop_back();
     validate_payload(inode,block,decoded);
     return {std::move(decoded),0,reference.base_id,reusable};
@@ -1651,13 +1660,14 @@ Bytes IndexedVolumeView::read(const IndexedInodeInput& selected,std::uint64_t of
   const auto range=index_.list(start.parent,first?std::string_view(start.name):std::string_view{},
       static_cast<std::size_t>(last-first+1));
   Bytes output(static_cast<std::size_t>(count));
+  IndexedSharedBaseRead cached_base;
   for(const auto& entry:range) {
     const auto block=native_extent_block(entry.key.name);
     if(block>last)break;
     if((entry.value&ordinal_mask)>=root_.next_extent)
       fail(Code::corrupt,"indexed extent reference exceeds allocator");
     const auto extent=decode_extent(store_,index_,root_,entry.value,
-        required(store_,entry.value,extent_header+kNativeExtentBytes),selected,block);
+        required(store_,entry.value,extent_header+kNativeExtentBytes),selected,block,false,&cached_base);
     const auto data=extent.payload();
     const auto begin=block*kNativeExtentBytes;
     const auto from=(std::max)(begin,offset),to=(std::min)(end,begin+data.size());

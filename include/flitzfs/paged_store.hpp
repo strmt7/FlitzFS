@@ -70,6 +70,9 @@ class PagedObjectStoreSnapshot final {
   // Absence is reported only for an absent verified key. Integrity or length
   // failures still throw before the caller receives decoded bytes.
   std::optional<std::vector<std::byte>> read_if_present(std::uint64_t id,std::size_t maximum_decoded_bytes) const;
+  // Check the expected generation in the same lookup, before reading any payload.
+  std::optional<std::vector<std::byte>> read_if_generation(std::uint64_t id,std::uint64_t generation,
+      std::size_t maximum_decoded_bytes) const;
   // Stable keyset pagination: strictly after id, at most limit (1..4096).
   // Uses this immutable snapshot root; no whole-volume list or keyset in RAM.
   std::vector<StoreObjectInfo> list_page(std::uint64_t after,std::size_t limit) const;
@@ -79,6 +82,8 @@ class PagedObjectStoreSnapshot final {
   friend class NativeFilesystemSnapshot;
   std::shared_ptr<StoreByteIo> backing_for_volume_head() const;
   bool same_checkpoint(const PagedObjectStoreSnapshot&) const noexcept;
+  std::optional<std::vector<std::byte>> read_matching(std::uint64_t id,std::size_t maximum_decoded_bytes,
+      std::optional<std::uint64_t> expected_generation) const;
   struct Impl;
   explicit PagedObjectStoreSnapshot(std::unique_ptr<Impl>) noexcept;
   std::unique_ptr<Impl> impl_;

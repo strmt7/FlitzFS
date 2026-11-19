@@ -20,6 +20,9 @@ struct NativeGroupReference {
   NativeGroupMethod method=NativeGroupMethod::aligned_patches;
   bool operator==(const NativeGroupReference&) const=default;
 };
+// Read the bound identity and digests from the header. The checked decoder
+// validates the payload as it reconstructs the member.
+NativeGroupReference read_native_group_header(std::span<const std::byte>,NativeGroupMethod maximum_method);
 NativeGroupReference parse_native_group_member(std::span<const std::byte>,
     NativeGroupMethod maximum_method=NativeGroupMethod::aligned_patches);
 std::vector<std::byte> decode_native_group_member(std::span<const std::byte> member,

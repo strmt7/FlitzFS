@@ -124,6 +124,19 @@
     "scope": "Two controlled 15-file cohorts using synthetic and public-derived bytes. CPU and live AMD produced equal compacted sizes with different admitted search depths.",
     "next": "Qualify on naturally related files and use measured cost, read amplification and foreground contention to admit deeper work."
   },
+  "native_grouped_read_efficiency": {
+    "source_base": "42eb21166d5384487e4afd49cfec8abc26e8b87f",
+    "evidence": "docs/evidence/public-revision-reads-2026-11-19.json",
+    "public_revision_files": 40,
+    "zstd_grouping_saved_percent_by_cohort": [18.919, 35.922],
+    "candidate_code_whole_file_backing_bytes": [1240279, 1199319],
+    "candidate_code_sampled_backing_bytes": [3333720, 3251800],
+    "amd_verified_baseline_exchanges": 4,
+    "amd_suggestions_selected": 0,
+    "independent_cpu_readback": true,
+    "sanitizer_cases_waiting_for_host_headroom": ["bounded_winfsp_controller", "bounded_winfsp_indexed_memory"],
+    "next": "Complete matched candidate comparisons and qualify longer device-assisted copy spans against CPU output on the same public revisions."
+  },
   "native_path_lookup": {
     "source_base": "700cdb31de32b847497b02cc0e113d27482e6c85",
     "evidence": "docs/evidence/native-path-lookup-2026-11-17.json",
