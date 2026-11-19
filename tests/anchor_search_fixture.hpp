@@ -30,17 +30,30 @@ inline std::vector<NativeSharedBaseCopyRange> fragment_ranges(unsigned member) {
 }
 
 inline constexpr std::size_t indexed_batch_families=5,indexed_batch_extents_per_file=7;
-inline constexpr auto indexed_bias_extents_per_family=3*indexed_batch_extents_per_file;
+inline constexpr auto indexed_small_extents_per_family=3*indexed_batch_extents_per_file;
 inline constexpr auto indexed_batch_members=indexed_batch_families*(kNativeMaxDirtyExtents-1);
 inline constexpr auto indexed_sample_bank_bytes=(indexed_batch_families+1)*kNativeExtentBytes;
 static_assert(kNativeMaxDirtyExtents%indexed_batch_extents_per_file==0 && indexed_batch_members>kNativeMaxExtents);
+enum class IndexedBatchPattern {packed_xor,modular_delta,shifted_bias,xor_reference};
 
+inline void apply_reference_variation(std::span<std::byte> extent,unsigned member) {
+  const auto variation=native_fixture::data(extent.size(),9811+member);
+  for(std::size_t i=0;i<extent.size();++i) {
+    // Keep a common masked signature. The first extent differs in a higher
+    // plane while the other extents vary in the lowest plane.
+    const auto mask=member==0?std::byte{0x40}:i%4096>=64?std::byte{1}:std::byte{};
+    extent[i]^=variation[i]&mask;
+  }
+}
 // Each scan window sees one disjoint family spread across several files.
 // The optional holdout bank also contributes unmodified unrelated extents.
-inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={},bool modular=false,
-    bool shifted_bias=false) {
+inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={},
+    IndexedBatchPattern pattern=IndexedBatchPattern::packed_xor) {
   if(!bank.empty() && bank.size()!=indexed_sample_bank_bytes)throw std::invalid_argument("Indexed sample bank size");
-  const auto extent_count=shifted_bias?indexed_bias_extents_per_family:kNativeMaxDirtyExtents;
+  const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
+  const bool xor_reference=pattern==IndexedBatchPattern::xor_reference;
+  const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
+  const auto extent_count=shifted_bias || xor_reference?indexed_small_extents_per_family:kNativeMaxDirtyExtents;
   std::vector<Bytes> files;
   for(std::size_t family=0;family<indexed_batch_families;++family) {
     const auto generated=bank.empty()?native_fixture::data(kNativeExtentBytes,static_cast<unsigned>(714+family*5731)):Bytes{};
@@ -50,11 +63,15 @@ inline std::vector<Bytes> indexed_batch_files(std::span<const std::byte> bank={}
       for(std::size_t block=0;block<indexed_batch_extents_per_file;++block) {
         const auto member=first+block;
         auto extent=std::span(file).subspan(block*kNativeExtentBytes,kNativeExtentBytes);
-        if(!modular && !bank.empty() && member%7==6) {
+        if(pattern==IndexedBatchPattern::packed_xor && !bank.empty() && member%7==6) {
           std::ranges::copy(bank.last(kNativeExtentBytes),extent.begin());
           continue;
         }
         std::ranges::copy(base,extent.begin());
+        if(xor_reference) {
+          apply_reference_variation(extent,static_cast<unsigned>(member));
+          continue;
+        }
         if(member) {
           if(modular) {
             const auto width=std::size_t{1}<<(family%4);

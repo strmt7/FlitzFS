@@ -469,6 +469,92 @@ void xor_indexed_family(bool require_xor,bool throughout=false) {
       <<" after_bytes="<<compacted->extent()<<" groups="<<result.published_groups
       <<" accounted_savings="<<result.minimum_compacted_bytes_saved<<'\n';
 }
+void xor_reference_selection() {
+  constexpr unsigned count=9,unit=4096;
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  const NativeImageStorage indexed{NativeImageKind::indexed_paged,kStoreMaxPhysicalBytes};
+  std::array<Bytes,count> originals;
+  const auto base=data(kNativeExtentBytes,74181);
+  for(unsigned i=0;i<count;++i) {
+    originals[i]=base;
+    anchor_search_fixture::apply_reference_variation(originals[i],i);
+  }
+  const auto run=[&](bool automatic) {
+    Fixture f(unit,0,true,raw);
+    for(unsigned i=0;i<count;++i)put(*f.session,"r"+std::to_string(i),originals[i]);
+    const auto before=f.session->snapshot();
+    const auto workload=f.session->workload_info();
+    if(automatic) {
+      NativeGroupMaintenance controller(*f.session);
+      require(f.finish(controller).published_groups==1,"Sampled reference did not publish one group");
+    }else {
+      // Apply the same encoder and publication checks with the first extent
+      // selected as the base, as it was before sampled reference selection.
+      std::array<NativeExtentSelection,count> group;
+      for(unsigned i=0;i<count;++i)group[i]={before.stat("r"+std::to_string(i)).inode,0};
+      auto work=f.session->prepare_shared_base(group.front(),group);
+      bool ready=false;
+      for(unsigned step=0;step<4*count && !ready;++step)ready=f.session->advance_shared_base(work);
+      require(ready && f.session->finish_shared_base(work).applied,"First-reference control failed to publish");
+    }
+    const auto after=f.session->snapshot();
+    require(after.shared_base_info().members==count && after.shared_base_info().bases==1 &&
+        f.session->workload_info()==workload,"Reference choice changed the group or its input accounting");
+    f.session.reset();
+    auto packed=ram(unit);
+    (void)NativeFilesystemWriter::compact(after,packed,id(2),raw);
+    const auto reopened=NativeFilesystemSnapshot::open_image(packed,indexed);
+    reopened.verify_all();
+    for(unsigned i=0;i<count;++i) {
+      const auto path="r"+std::to_string(i);
+      require(reopened.read(path,0,kNativeExtentBytes)==originals[i] &&
+          before.read(path,0,kNativeExtentBytes)==originals[i],"Reference choice altered current or prior bytes");
+    }
+    return packed->extent();
+  };
+  const auto first=run(false),selected=run(true);
+  require(selected<first,"Sampled reference did not improve the complete image");
+  std::cout<<"xor_reference members="<<count<<" first_bytes="<<first<<" selected_bytes="<<selected
+      <<" byte_exact=true\n";
+}
+void xor_reference_decline_fallback() {
+  constexpr std::size_t count=3,sites=64,spacing=kNativeExtentBytes/sites;
+  constexpr std::size_t bands=16,band_bytes=64,band_spacing=kNativeExtentBytes/bands;
+  Fixture f(4096,0,true);
+  const auto base=data(kNativeExtentBytes,73217);
+  std::array<Bytes,count> originals{base,base,base};
+  const auto variation=data(kNativeExtentBytes,31804);
+  for(std::size_t i=0;i<base.size();++i)
+    originals[i<base.size()/2?1:2][i]^=variation[i];
+  for(std::size_t band=0;band<bands;++band) {
+    // Preserve the shared masked signature without introducing long copies
+    // between members whose nonmatching halves contain independent bytes.
+    for(std::size_t i=0;i<band_bytes;++i) {
+      const auto offset=band*band_spacing+i;
+      originals[1][offset]=base[offset]^(i%2?std::byte{0x80}:std::byte{});
+      originals[2][offset]=originals[1][offset]^std::byte{0x80};
+    }
+  }
+  for(std::size_t site=0;site<sites;++site) {
+    // The sampled distances favor the second member. Full tiles make it
+    // an unsuitable base for the third member.
+    const auto offset=site*spacing+(spacing/4+site*7)%spacing;
+    originals[1][offset]=base[offset]^(site%2?std::byte{}:std::byte{0x80});
+    originals[2][offset]=base[offset]^std::byte{0x80};
+  }
+  for(std::size_t i=0;i<count;++i)put(*f.session,"r"+std::to_string(i),originals[i]);
+  NativeGroupMaintenance controller(*f.session);
+  const auto result=f.finish(controller);
+  const auto snapshot=f.session->snapshot();
+  require(result.published_groups==1 && result.declined_groups>=1 &&
+      snapshot.shared_base_info().members==count,"Declined estimate suppressed the first reference");
+  snapshot.verify_all();
+  for(std::size_t i=0;i<count;++i)
+    require(snapshot.read("r"+std::to_string(i),0,kNativeExtentBytes)==originals[i],
+        "Reference fallback changed file contents");
+  std::cout<<"xor_reference_fallback declined="<<result.declined_groups<<" groups="<<result.published_groups
+      <<" byte_exact=true\n";
+}
 void automatic_and_extension(std::uint32_t unit,bool indexed=false) {
   Fixture f(unit,8,indexed);const auto workload=f.session->workload_info();NativeGroupMaintenance original(*f.session);
   rejects([&]{NativeGroupMaintenance duplicate(*f.session);},"duplicate controller admitted");
@@ -1376,6 +1462,8 @@ int main(int argc,char** argv){try{
   } else if(argc==2 && std::string_view(argv[1])=="--indexed-xor") {
     xor_indexed_family(true);
     xor_indexed_family(true,true);
+    xor_reference_selection();
+    xor_reference_decline_fallback();
   } else if(argc==2 && std::string_view(argv[1])=="--profile-projected-xor") {
     xor_indexed_family(false,true);
   } else if(argc==2 && std::string_view(argv[1])=="--profile-group-xor") {

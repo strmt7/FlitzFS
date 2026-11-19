@@ -16,12 +16,13 @@ namespace {
 using Digest=detail::Digest;using Phase=NativeMaintenancePhase;using Defer=NativeMaintenanceDeferral;
 constexpr std::uint64_t million=1000000,fixed_scratch=16ULL*kNativeExtentBytes,member_scratch=8ULL*kNativeExtentBytes;
 constexpr unsigned positional_bands=8;
+using XorReferenceSample=std::array<std::uint8_t,64>;
 static_assert(kOptimizationGroupBands==positional_bands+detail::kNativeGroupShiftFeatures);
 static_assert(std::tuple_size_v<detail::NativeGroupDeltaSignatures> == kCoherenceModularWidths);
 // Charge extra history for its retained entry, bucket membership, and the
 // overlapping controller, publisher and verifier copies of checkpoint rows.
 constexpr auto representative_scratch=8*(sizeof(OptimizationGroupFeature)+sizeof(OptimizationGroupProjection)+
-    sizeof(detail::CoherenceScanKeys));
+    sizeof(detail::CoherenceScanKeys)+sizeof(std::optional<XorReferenceSample>));
 static_assert(kOptimizationGroupRepresentatives>kNativeMaxDirtyExtents);
 struct GroupMemoryBudget {std::size_t members=0,representatives=0;};
 GroupMemoryBudget group_memory_budget(const detail::MaintenanceResources& resources,bool indexed) noexcept {
@@ -64,6 +65,15 @@ OptimizationXorSignatures sample_xor_signatures(std::span<const std::byte> exten
   }
   return signatures;
 }
+XorReferenceSample sample_xor_reference(std::span<const std::byte> extent) noexcept {
+  XorReferenceSample observations;
+  constexpr auto spacing=kNativeExtentBytes/std::tuple_size_v<XorReferenceSample>;
+  for(std::size_t i=0;i<observations.size();++i) {
+    const auto offset=i*spacing+(spacing/4+i*7)%spacing;
+    observations[i]=std::to_integer<std::uint8_t>(extent[offset]);
+  }
+  return observations;
+}
 bool usable_indexed_band(unsigned band,std::uint64_t fingerprint) {
   if(band>=positional_bands)return fingerprint!=0;
   static const auto zero_band=word(detail::record_digest(std::array<std::byte,kNativeExtentBytes/positional_bands>{}));
@@ -104,6 +114,7 @@ struct NativeGroupMaintenance::Impl {
     OptimizationXorSignatures projections{};
     detail::NativeGroupDeltaSignatures deltas{};
     bool projected=false,deltas_sampled=false;
+    std::optional<XorReferenceSample> reference_sample;
   };
   struct StagedGroup {
     NativeFilesystemWriter::SharedBaseWork work;
@@ -317,6 +328,8 @@ struct NativeGroupMaintenance::Impl {
       feature.projections=sample_xor_signatures(bytes);
       feature.deltas=detail::native_group_delta_signatures(bytes);
       feature.projected=feature.deltas_sampled=true;
+      if(std::ranges::any_of(feature.projections,[](auto signature){return signature!=0;}))
+        feature.reference_sample=sample_xor_reference(bytes);
     }
     ++state.sampled_extents;
     return feature;
@@ -447,12 +460,42 @@ struct NativeGroupMaintenance::Impl {
     }
     return false;
   }
+  std::uint64_t choose_xor_reference(std::span<const NativeContentToken> group) const {
+    // With two members the sampled XOR cost is the same in either direction.
+    if(group.size()<3)return group.front().object;
+    std::vector<const XorReferenceSample*> samples;
+    samples.reserve(group.size());
+    for(const auto& member:group) {
+      const auto& sample=features.at(member.object).reference_sample;
+      if(!sample)return group.front().object;
+      samples.push_back(&*sample);
+    }
+    std::vector<std::uint64_t> costs(samples.size());
+    for(std::size_t site=0;site<samples.front()->size();++site) {
+      std::array<std::size_t,257> counts{};
+      for(const auto* sample:samples)++counts[std::size_t{(*sample)[site]}+1];
+      if(counts[std::size_t{(*samples.front())[site]}+1]==samples.size())continue;
+      for(std::size_t i=1;i<counts.size();++i)counts[i]+=counts[i-1];
+      // The bit width of XOR is the number of dropped-bit counts at which
+      // two samples still differ. Price that total with prefix populations.
+      for(std::size_t i=0;i<samples.size();++i) {
+        const auto value=static_cast<unsigned>((*samples[i])[site]);
+        for(unsigned bits=0;bits<8;++bits) {
+          const auto first=(value>>bits)<<bits;
+          const auto last=first+(1U<<bits);
+          costs[i]+=samples.size()-(counts[last]-counts[first]);
+        }
+      }
+    }
+    return group[static_cast<std::size_t>(std::ranges::min_element(costs)-costs.begin())].object;
+  }
   void propose_indexed_group(NativeFilesystemWriter& writer,std::size_t maximum_members,
       std::size_t remaining_extents,bool collect_batch) {
-    const auto& ids=buckets.at(candidate_order[candidate_index++]);
+    const auto band=candidate_order[candidate_index++];
+    const auto& ids=buckets.at(band);
     const auto reusable=std::ranges::find_if(ids,[&](auto id){return indexed_feature(id).token.exact_base;});
     const auto prior=std::ranges::find_if(ids,[&](auto id){return !features.contains(id);});
-    const auto representative=reusable!=ids.end()?*reusable:prior!=ids.end()?*prior:ids.front();
+    auto representative=reusable!=ids.end()?*reusable:prior!=ids.end()?*prior:ids.front();
     if(!features.contains(representative)) {
       const auto& token=representatives.at(representative).token;
       const auto live=writer.maintenance_token(token.extent);
@@ -484,6 +527,10 @@ struct NativeGroupMaintenance::Impl {
         return;
       }
     }
+    if(reusable==ids.end() && prior==ids.end() &&
+        band.first>=kCoherenceMaskedBand && band.first<kCoherenceModularBand)
+      representative=choose_xor_reference(expected);
+    const auto original=expected.front().object;
     std::ranges::sort(expected,{},&NativeContentToken::object);
     std::vector<NativeExtentSelection> selected;
     std::vector<std::byte> key;
@@ -496,6 +543,17 @@ struct NativeGroupMaintenance::Impl {
       key.insert(key.end(),content.begin(),content.end());
     }
     work_key=detail::record_digest(key);
+    if(representative!=original) {
+      if(attempted.contains(work_key)) {
+        representative=original;
+        for(unsigned i=0;i<8;++i)key[8+i]=static_cast<std::byte>(original>>(8*i));
+        work_key=detail::record_digest(key);
+      } else {
+        // Revisit this bucket if the estimated base declines. A successful
+        // group removes its members before the next candidate pass.
+        --candidate_index;
+      }
+    }
     if(attempted.contains(work_key))return;
     work_ids.clear();work_ids.reserve(expected.size());
     for(const auto& token:expected)work_ids.push_back(token.object);

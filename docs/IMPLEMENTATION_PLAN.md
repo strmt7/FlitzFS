@@ -762,6 +762,21 @@ device classes before enabling automatic routing.
 [Wider paired trial](evidence/amd-wide-packed-xor-2026-11-19.json) ·
 [Dispatch and phase measurements](evidence/amd-adaptive-packed-xor-2026-11-19.json)
 
+New masked-XOR groups use sampled bit widths to choose a shared base before
+either CPU or AMD encoding. The nine-extent first-reference control compacted
+to 557,056 bytes and the sampled choice to 442,368 bytes, with exact CPU
+readback. A separate input exercised refusal of a poorly estimated base and
+successful publication using the original candidate. Across three alternating
+physical-host pairs per cohort, both routes reduced the complete compacted
+image from 13,975,552 to 2,678,784 bytes. AMD supplied 100 independently
+verified members per trial. Median complete times were 0.245 seconds on CPU
+and 2.103 seconds with AMD for synthetic data, and 0.243 and 2.044 seconds for
+controlled public-derived data. Median worker intervals were 1.633 and
+1.573 seconds, respectively. Keep this workload on CPU
+and compare deeper reference searches after qualifying a bounded AMD worker
+lifetime that can amortize setup.
+[Sampled reference selection and matched evidence](evidence/sampled-xor-reference-2026-11-19.json)
+
 The indexed owner now fills a finite worker exchange across several scan
 windows under live host and exact channel admission. In the related-data
 fixture, one real AMD exchange supplied 310 verified candidates for five

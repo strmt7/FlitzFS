@@ -43,6 +43,8 @@
     "masked_discovery_evidence": "docs/evidence/projected-xor-discovery-2026-11-19.json",
     "mask_fixture_previous_compacted_bytes": 1335296,
     "mask_fixture_current_compacted_bytes": 557056,
+    "sampled_reference_evidence": "docs/evidence/sampled-xor-reference-2026-11-19.json",
+    "sampled_reference_control_complete_bytes": [557056, 442368],
     "paged_masked_discovery_evidence": "docs/evidence/projected-coherence-catalog-2026-11-19.json",
     "next": "Calibrate completed multiwindow batches and catalog lookup utility across workload classes and devices. Use actual preparation, initialization, CPU verification, protected publication, and contention costs before automatic selection."
   },

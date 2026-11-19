@@ -48,6 +48,16 @@ features for matching content after insertions and removals. The sparse inverted
 index maps matching features to candidates. Larger buckets are considered first,
 with deterministically ordered, memory-admitted member windows.
 
+For a new masked-XOR group with at least three sampled members, the scanner
+can choose a base from 64 distributed bytes retained per extent. At each
+position, byte prefix counts estimate the total XOR bit widths for each
+candidate in work linear in the admitted group size. This uses the same
+decoded extents as discovery and preserves a reusable protected anchor or
+previously retained representative when available. The sample stays in
+memory. The estimate is advisory, and a declined estimate leaves the first
+member eligible while the same candidate remains in the active window.
+[Matched reference-choice evidence](evidence/sampled-xor-reference-2026-11-19.json)
+
 Band matches are advice only. The existing shared-base encoder independently
 checks content and accepts a publication only when its complete prospective
 compacted upper size is smaller than the old lower size. This includes shared

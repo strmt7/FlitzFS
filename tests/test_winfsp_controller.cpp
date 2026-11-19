@@ -417,10 +417,23 @@ bool sampled_bias_reply(std::span<const std::byte> body,std::span<const std::byt
   return selected && selected!=first;
 }
 
+using anchor_search_fixture::IndexedBatchPattern;
+std::optional<IndexedBatchPattern> multiwindow_pattern(std::string_view mode) {
+  if(mode=="multiwindow" || mode=="xor-multiwindow")return IndexedBatchPattern::packed_xor;
+  if(mode=="modular-multiwindow")return IndexedBatchPattern::modular_delta;
+  if(mode=="modular-shifted-bias")return IndexedBatchPattern::shifted_bias;
+  if(mode=="xor-reference")return IndexedBatchPattern::xor_reference;
+  return {};
+}
+
 int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
-    const std::filesystem::path& bank_path={},std::uint64_t discovery_ns=0,bool modular=false,bool shifted_bias=false) {
+    const std::filesystem::path& bank_path,std::uint64_t discovery_ns,IndexedBatchPattern pattern) {
   constexpr auto families=anchor_search_fixture::indexed_batch_families;
-  constexpr auto members=anchor_search_fixture::indexed_batch_members;
+  const bool shifted_bias=pattern==IndexedBatchPattern::shifted_bias;
+  const bool alternate_reference=pattern==IndexedBatchPattern::xor_reference;
+  const bool modular=shifted_bias || pattern==IndexedBatchPattern::modular_delta;
+  const auto members=shifted_bias || alternate_reference?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
+      anchor_search_fixture::indexed_batch_members;
   const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
   auto head=std::make_shared<Ram>(),image=std::make_shared<Ram>();
   // Match the multiwindow CPU fixture's modeled device geometry. Leave room
@@ -437,7 +450,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
     require(bool(input.read(reinterpret_cast<char*>(bank.data()),static_cast<std::streamsize>(bank.size()))) &&
         input.peek()==std::char_traits<char>::eof(),"Public sample bank changed");
   }
-  const auto originals=anchor_search_fixture::indexed_batch_files(bank,modular,shifted_bias);
+  const auto originals=anchor_search_fixture::indexed_batch_files(bank,pattern);
   std::vector<std::byte> file_digests;
   file_digests.reserve(32*originals.size());
   for(std::size_t i=0;i<originals.size();++i) {
@@ -464,7 +477,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
   NativeGroupMaintenance maintenance(*session,policy);
   std::unique_ptr<NativeAnchorSearchController> anchor;
   if(options)anchor=std::make_unique<NativeAnchorSearchController>(std::move(*options));
-  if(anchor && bank.empty() && !shifted_bias) {
+  if(anchor && bank.empty() && !shifted_bias && !alternate_reference) {
     const auto now=GetTickCount64();
     require(!anchor->stage_grant(now,members) && anchor->stage_grant(now,members+families+1)==members+families,
         "Wide route used a legacy cap or ignored its funded range");
@@ -507,14 +520,16 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
       return !anchor->waiting();
     },8000,"Multiwindow AMD worker did not retire");
     worker_ns+=elapsed_ns(started);
-    if(modular)for(const auto& reply:anchor->replies()) {
-      require(reply.packed_bodies.size()==reply.window.members().size(),"Unbound modular reply");
+    if(modular || alternate_reference)for(const auto& reply:anchor->replies()) {
+      require(reply.packed_bodies.size()==reply.window.members().size(),"Unbound packed reply");
       for(std::size_t member=0;member<reply.packed_bodies.size();++member) {
         const auto& body=reply.packed_bodies[member];
         if(body.empty())continue;
-        packed_widths|=std::to_integer<unsigned>(body.front());
         packed_payload_bytes+=body.size();
-        if(sampled_bias_reply(body,reply.window.base(),reply.window.members()[member]))++sampled_bias_members;
+        if(modular) {
+          packed_widths|=std::to_integer<unsigned>(body.front());
+          if(sampled_bias_reply(body,reply.window.base(),reply.window.members()[member]))++sampled_bias_members;
+        }
       }
     }
   }
@@ -550,7 +565,8 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
         "Large AMD batch changed independently reopened file bytes");
   const auto compact_verify_ns=elapsed_ns(verify_start);
   require(packed->extent()<baseline_bytes,"Multiwindow maintenance did not reduce complete compacted size");
-  const auto cohort=shifted_bias?(bank.empty()?"shifted-bias-synthetic":"shifted-bias-public"):
+  const auto cohort=alternate_reference?(bank.empty()?"xor-reference-synthetic":"xor-reference-public"):
+      shifted_bias?(bank.empty()?"shifted-bias-synthetic":"shifted-bias-public"):
       modular?(bank.empty()?"modular-synthetic":"modular-public"):(bank.empty()?"related":"mixed");
   std::cout<<"multiwindow_trial mode="<<(anchor?"amd":"cpu")<<" cohort="<<cohort
       <<" files="<<originals.size()<<" groups="<<progress.published_groups<<" advised_members="<<progress.advised_members_published
@@ -572,9 +588,7 @@ int live_multiwindow_anchor(std::optional<NativeAnchorSearchOptions> options,
 
 int live_anchor_owner(int argc,char** argv) {
   const std::string_view mode(argv[6]);
-  const bool shifted_bias=mode=="modular-shifted-bias";
-  const bool modular=shifted_bias || mode=="modular-multiwindow";
-  const bool multiwindow=modular || mode=="xor-multiwindow";
+  const auto multiwindow=multiwindow_pattern(mode);
   const bool xor_mode=mode=="xor" || mode=="xor-wide" || mode=="xor-narrow";
   require(mode=="accept" || mode=="yield" || mode=="both" || mode=="batch" || mode=="batch-yield" || xor_mode || multiwindow,
       "Expected an AMD ownership trial");
@@ -590,14 +604,16 @@ int live_anchor_owner(int argc,char** argv) {
       !binding.route->pins->uniform_module_pinned(),"Shared-base worker route was not authenticated");
   if(multiwindow) {
     constexpr auto families=anchor_search_fixture::indexed_batch_families;
-    const auto members=shifted_bias?families*(anchor_search_fixture::indexed_bias_extents_per_family-1):
+    const bool small_batch=*multiwindow==IndexedBatchPattern::shifted_bias || *multiwindow==IndexedBatchPattern::xor_reference;
+    const bool modular=*multiwindow==IndexedBatchPattern::modular_delta || *multiwindow==IndexedBatchPattern::shifted_bias;
+    const auto members=small_batch?families*(anchor_search_fixture::indexed_small_extents_per_family-1):
         anchor_search_fixture::indexed_batch_members;
-    const auto minimum=argc==8 || shifted_bias?2U:static_cast<std::uint32_t>(members);
+    const auto minimum=argc==8 || small_batch?2U:static_cast<std::uint32_t>(members);
     const auto output=modular?anchor_match::BatchOutput::modular_delta:anchor_match::BatchOutput::wide_packed_xor;
     return live_multiwindow_anchor(NativeAnchorSearchOptions{*binding.route,profile,minimum,
         static_cast<std::uint32_t>(members+families),10000,
-        output,shifted_bias?4U:modular?16U:0U},argc==8?std::filesystem::path(argv[7]):std::filesystem::path{},
-        discovery_ns,modular,shifted_bias);
+        output,small_batch?4U:modular?16U:0U},argc==8?std::filesystem::path(argv[7]):std::filesystem::path{},
+        discovery_ns,*multiwindow);
   }
   const std::uint32_t members=(mode=="batch" || mode=="batch-yield" || xor_mode)?8:4;
   NativeAnchorSearchOptions execution{*binding.route,profile,members,members};
@@ -1488,13 +1504,15 @@ void indexed_group_callback_contract() {
 int main(int argc,char** argv){try {
   app_fixture::Budget budget;DWORD before=0,after=0;
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
-  if((argc==7 || (argc==8 && (std::string_view(argv[6])=="xor-multiwindow" ||
-     std::string_view(argv[6])=="modular-multiwindow" || std::string_view(argv[6])=="modular-shifted-bias"))) &&
+  if((argc==7 || (argc==8 && multiwindow_pattern(argv[6]))) &&
       std::string_view(argv[1])=="--live-anchor-owner")return live_anchor_owner(argc,argv);
-  if((argc==2 || argc==3) && (std::string_view(argv[1])=="--cpu-multiwindow" ||
-     std::string_view(argv[1])=="--cpu-modular-multiwindow" || std::string_view(argv[1])=="--cpu-modular-shifted-bias"))
-    return live_multiwindow_anchor(std::nullopt,argc==3?std::filesystem::path(argv[2]):std::filesystem::path{},0,
-        std::string_view(argv[1])!="--cpu-multiwindow",std::string_view(argv[1])=="--cpu-modular-shifted-bias");
+  if(argc==2 || argc==3) {
+    const std::string_view command(argv[1]);
+    if(command.starts_with("--cpu-")) {
+      if(const auto pattern=multiwindow_pattern(command.substr(6)))
+        return live_multiwindow_anchor(std::nullopt,argc==3?std::filesystem::path(argv[2]):std::filesystem::path{},0,*pattern);
+    }
+  }
   if(argc==2 && std::string_view(argv[1])=="--live-packed-xor-cpu")
     return run_live_anchor_owner("xor-cpu",NativeAnchorSearchOptions{});
   if(argc==3 && std::string_view(argv[1])=="--live-installed-anchor-owner") {
