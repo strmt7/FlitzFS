@@ -1,5 +1,6 @@
 #include "store_file.hpp"
 #include "flitzfs/read_only_file.hpp"
+#include "flitzfs/native_volume_file.hpp"
 #include "flitzfs/windows_path.hpp"
 #include <algorithm>
 #include <array>
@@ -16,6 +17,7 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
+#include <winioctl.h>
 #else
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -115,6 +117,21 @@ void validate_volume_storage(HANDLE file,StoreIoContract qualified) {
       fail("live storage geometry exceeds the qualified failure unit");
   }
 }
+void validate_sparse_storage(HANDLE file,const std::filesystem::path& parent) {
+  wchar_t filesystem[32]{};
+  DWORD flags=0;
+  if(!GetVolumeInformationByHandleW(file,nullptr,0,nullptr,nullptr,&flags,filesystem,static_cast<DWORD>(std::size(filesystem))) ||
+      std::wstring_view(filesystem)!=L"NTFS" || !(flags&FILE_SUPPORTS_SPARSE_FILES))
+    fail("isolated file ranges need qualified NTFS sparse storage");
+  std::wstring root(32768,L'\0');
+  DWORD sectors=0,sector_bytes=0,free_clusters=0,total_clusters=0;
+  if(!GetVolumePathNameW(parent.c_str(),root.data(),static_cast<DWORD>(root.size())) ||
+      !GetDiskFreeSpaceW(root.c_str(),&sectors,&sector_bytes,&free_clusters,&total_clusters))
+    fail("cannot verify sparse file allocation granularity");
+  const auto bytes=static_cast<std::uint64_t>(sectors)*sector_bytes;
+  if(!bytes || bytes>kStoreCommitUnit || kStoreCommitUnit%bytes)
+    fail("sparse file allocation granularity exceeds isolated range geometry");
+}
 #endif
 class Input final:public StoreByteIo {
   mutable std::mutex mutex_;
@@ -133,7 +150,7 @@ class Input final:public StoreByteIo {
   void admit_write(std::uint64_t) override { fail("read-only backing"); }
   StoreIoContract contract() const noexcept override { return {}; }
 };
-class Output final:public StoreByteIo {
+class Output final:public NativeVolumeRangeIo {
   mutable std::mutex mutex_;
   StoreIoContract contract_;
   mutable std::uint64_t extent_=0;
@@ -141,9 +158,34 @@ class Output final:public StoreByteIo {
   const std::uint64_t capacity_;
 #ifdef _WIN32
   const bool volume_file_;
+  bool sparse_=false;
   std::uint64_t admitted_extent_=0;
   PinnedDirectory parent_pin_;
   HANDLE handle_=INVALID_HANDLE_VALUE;
+  bool has_allocations(std::uint64_t begin,std::uint64_t end) const {
+    FILE_ALLOCATED_RANGE_BUFFER query{},range{};
+    query.FileOffset.QuadPart=static_cast<LONGLONG>(begin);
+    query.Length.QuadPart=static_cast<LONGLONG>(end-begin);
+    DWORD returned=0;
+    if(!DeviceIoControl(handle_,FSCTL_QUERY_ALLOCATED_RANGES,&query,sizeof(query),&range,sizeof(range),&returned,nullptr) &&
+        (GetLastError()!=ERROR_MORE_DATA || returned!=sizeof(range)))
+      fail("cannot independently query sparse allocations");
+    if(!returned)return false;
+    if(returned!=sizeof(range) || range.FileOffset.QuadPart<0 || range.Length.QuadPart<=0)
+      fail("invalid sparse allocation range");
+    const auto at=static_cast<std::uint64_t>(range.FileOffset.QuadPart);
+    const auto length=static_cast<std::uint64_t>(range.Length.QuadPart);
+    if(at>=end || (at<begin && length<=begin-at))fail("sparse allocation range does not intersect query");
+    return true;
+  }
+  void admit_windows_growth(std::uint64_t projected,std::uint64_t growth) {
+    if(projected<extent_ || projected>capacity_ || growth>capacity_)fail("projected extent outside budget");
+    memory_headroom();
+    std::error_code ec;const auto free=std::filesystem::space(parent_path_,ec);
+    if(ec || free.available==static_cast<std::uintmax_t>(-1) || free.available<kReserve || growth>free.available-kReserve)
+      fail("insufficient verified disk reserve");
+    admitted_extent_=projected;
+  }
 #else
   int fd_=-1,parent_=-1;
   bool parent_synced_=false;
@@ -195,10 +237,24 @@ class Output final:public StoreByteIo {
           static_cast<std::uint64_t>(size.QuadPart)>capacity_ || (!reopen && size.QuadPart!=0))
         fail("backing is not an admissible single-link ordinary file");
       if(volume_file_) {
-        if(attr.FileAttributes&(FILE_ATTRIBUTE_SPARSE_FILE|FILE_ATTRIBUTE_COMPRESSED|FILE_ATTRIBUTE_ENCRYPTED))
-          fail("volume-file storage requires ordinary allocation and caching semantics");
+        if(attr.FileAttributes&(FILE_ATTRIBUTE_COMPRESSED|FILE_ATTRIBUTE_ENCRYPTED))
+          fail("volume-file storage requires ordinary caching semantics");
         require_opened_path(handle_,p);
         validate_volume_storage(handle_,c);
+        sparse_=(attr.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE)!=0;
+        if(sparse_ && !c.isolated_range_reclamation)
+          fail("sparse volume file needs an isolated range contract");
+        if(sparse_ || (!reopen && c.isolated_range_reclamation)) {
+          validate_sparse_storage(handle_,parent);
+          if(!sparse_) {
+            DWORD returned=0;
+            if(!DeviceIoControl(handle_,FSCTL_SET_SPARSE,nullptr,0,nullptr,0,&returned,nullptr) ||
+                !GetFileInformationByHandleEx(handle_,FileAttributeTagInfo,&attr,sizeof(attr)) ||
+                !(attr.FileAttributes&FILE_ATTRIBUTE_SPARSE_FILE))
+              fail("cannot create the qualified sparse volume backing");
+            sparse_=true;
+          }
+        }
       }
       extent_=admitted_extent_=static_cast<std::uint64_t>(size.QuadPart);
     }catch(...) {CloseHandle(handle_);handle_=INVALID_HANDLE_VALUE;throw;}
@@ -231,6 +287,61 @@ class Output final:public StoreByteIo {
 #endif
   }
   StoreIoContract contract() const noexcept override { return contract_; }
+  bool supports_reclaimable_ranges() const noexcept override {
+#ifdef _WIN32
+    return sparse_;
+#else
+    return false;
+#endif
+  }
+  std::uint64_t allocated_extent(std::uint64_t offset,std::uint64_t bytes) const override {
+#ifdef _WIN32
+    std::lock_guard lock(mutex_);
+    if(!sparse_ || offset>capacity_ || bytes>capacity_-offset || offset%kStoreCommitUnit || bytes%kStoreCommitUnit)
+      fail("invalid sparse allocation query");
+    refresh_extent();
+    if(offset>=extent_ || !bytes)return 0;
+    const auto end=(std::min)(offset+bytes,extent_);
+    // A one-entry suffix query answers presence. Binary search bounds work
+    // independently of the number of fragments in the selected range.
+    std::uint64_t first=0,last=(end-offset+kStoreCommitUnit-1)/kStoreCommitUnit;
+    while(first<last) {
+      const auto middle=first+(last-first)/2;
+      if(has_allocations(offset+middle*kStoreCommitUnit,end))first=middle+1;
+      else last=middle;
+    }
+    return first*kStoreCommitUnit;
+#else
+    (void)offset;(void)bytes;fail("range allocation query requires Windows");
+#endif
+  }
+  void admit_range_write(std::uint64_t projected,std::uint64_t growth) override {
+#ifdef _WIN32
+    std::lock_guard lock(mutex_);refresh_extent();
+    if(!sparse_ || !has_writer())fail("range growth needs an exclusive sparse volume owner");
+    admit_windows_growth(projected,growth);
+#else
+    (void)projected;(void)growth;fail("range admission requires Windows");
+#endif
+  }
+  void reclaim_range(std::uint64_t offset,std::uint64_t bytes) override {
+#ifdef _WIN32
+    std::lock_guard lock(mutex_);
+    if(!sparse_ || !has_writer() || offset<kNativeVolumeFileImageOffset || offset>capacity_ ||
+        !bytes || bytes>capacity_-offset || offset%kStoreCommitUnit || bytes%kStoreCommitUnit)
+      fail("invalid sparse range retirement");
+    refresh_extent();
+    if(offset>=extent_)return;
+    FILE_ZERO_DATA_INFORMATION request{};
+    request.FileOffset.QuadPart=static_cast<LONGLONG>(offset);
+    request.BeyondFinalZero.QuadPart=static_cast<LONGLONG>((std::min)(offset+bytes,extent_));
+    DWORD returned=0;
+    if(!DeviceIoControl(handle_,FSCTL_SET_ZERO_DATA,&request,sizeof(request),nullptr,0,&returned,nullptr))
+      fail("sparse range retirement failed");
+#else
+    (void)offset;(void)bytes;fail("range reclamation requires Windows");
+#endif
+  }
   std::uint64_t extent() const override { std::lock_guard lock(mutex_);refresh_extent();return extent_; }
   void read_exact(std::uint64_t at,std::span<std::byte> out) const override {
     std::lock_guard lock(mutex_);
@@ -280,14 +391,12 @@ class Output final:public StoreByteIo {
     std::lock_guard lock(mutex_);
     refresh_extent();
     if(projected<extent_ || projected>capacity_)fail("projected extent outside budget");
+#ifdef _WIN32
+    if(sparse_)fail("sparse volume writes require range-based admission");
+    admit_windows_growth(projected,projected-extent_);
+#else
     memory_headroom();
     const auto needed=projected-extent_+kReserve;
-#ifdef _WIN32
-    std::error_code ec;const auto free=std::filesystem::space(parent_path_,ec);
-    if(ec || free.available==static_cast<std::uintmax_t>(-1) || free.available<needed)
-      fail("insufficient verified disk reserve");
-    admitted_extent_=projected;
-#else
     struct statvfs free{};
     if(::fstatvfs(parent_,&free)!=0 || !free.f_frsize ||
         free.f_bavail<(needed+free.f_frsize-1)/free.f_frsize) fail("insufficient verified disk reserve");

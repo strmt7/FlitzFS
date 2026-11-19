@@ -1,5 +1,10 @@
 #include "flitzfs/native_volume_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "volume_range_fixture.hpp"
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
 #include <chrono>
 #include <iostream>
 #include <string_view>
@@ -169,6 +174,142 @@ void publication_cuts() {
     std::cout<<"volume_file_cuts unit="<<unit<<" transaction_boundaries="<<cuts<<" modes=3\n";
   }
 }
+using Reclaim=NativeVolumeReclaimProgress;
+const auto witness_bytes=data(613,678);
+Bytes establish_history(NativeFileSession& session) {
+  auto latest=data(12289,81);
+  put(session,"payload",latest);put(session,"witness",witness_bytes);
+  for(unsigned i=0;i<28 && !session.persistent_reclamation_pending();++i) {
+    latest=data(latest.size(),140+i);
+    update(session,latest);
+  }
+  require(session.persistent_reclamation_pending(),"persistent history never admitted a smaller image");
+  return latest;
+}
+
+Reclaim stage_compaction(NativeFileSession& session,unsigned next=93) {
+  for(unsigned steps=0;steps<900;++steps) {
+    const auto step=session.advance_persistent_reclamation([next]{return id(next);});
+    if(step!=Reclaim::copying)return step;
+  }
+  throw std::runtime_error("persistent compaction never reached publication");
+}
+
+void release_inactive(NativeFileSession& session) {
+  for(unsigned steps=0;session.persistent_reclamation_pending();++steps) {
+    require(steps<5,"unbounded retirement steps");
+    require(session.advance_persistent_reclamation({})==Reclaim::retiring,"inactive range did not retire");
+  }
+}
+
+void reclaimed_ranges() {
+  auto io=std::make_shared<SparseVolumeRam>(4096);
+  Bytes expected;
+  {
+    auto session=NativeVolumeFile::create(io,id(90),id(91),limits,raw);
+    expected=establish_history(session);
+    const auto original=io->occupied();
+    rejects([&]{(void)session.begin_idle_compaction(empty(4096),id(94));},
+        "file authority accepted an unrelated replacement image");
+    {
+      const auto old=session.snapshot();
+      require(stage_compaction(session)==Reclaim::ready &&
+          session.advance_persistent_reclamation({})==Reclaim::published,"verified range switch did not publish");
+      require(session.volume_info().selection.epoch==2 && !session.volume_info().degraded &&
+          !io->range_reclaims && io->occupied()>original,"source range reclaimed before selection or pin release");
+      require(session.advance_persistent_reclamation({})==Reclaim::pinned &&
+          old.read("payload",0,50000)==expected && !io->range_reclaims,"live old snapshot failed to pin its physical range");
+      rejects([&]{(void)NativeVolumeFile::inspect(io);},"paired CPU read bypassed the exclusive live lease");
+    }
+    release_inactive(session);
+    require(io->occupied()<original && io->range_reclaims &&
+        !io->allocated_extent(kNativeVolumeFileImageOffset,limits.maximum_physical_bytes) &&
+        session.snapshot().read("witness",0,1000)==witness_bytes,"retired range did not reduce total occupied bytes");
+  }
+  auto stable=io->replay();
+  {
+    const auto checked=NativeVolumeFile::inspect(stable,id(90));
+    require(checked.info().selection.placement==NativeVolumePlacement::paired_file_ranges &&
+        checked.filesystem().read("payload",0,50000)==expected,"independent paired CPU reopen lost bytes");
+    rejects([&]{(void)NativeVolumeFile::resume(stable);},"active CPU view failed to pin the paired file");
+  }
+  auto linear=image(stable->io.stable,4096);
+  rejects([&]{(void)NativeVolumeFile::resume(linear);},"paired volume admitted an unqualified allocator");
+  require(NativeVolumeFile::inspect(linear).filesystem().read("payload",0,50000)==expected,
+      "CPU inspection depended on the sparse writer");
+  {
+    auto second=NativeVolumeFile::resume(stable,id(90),raw);
+    // Trigger another rotation, interrupt a candidate with a foreground edit,
+    // and keep the selected image writable through that interruption.
+    for(unsigned i=0;i<12 && !second.persistent_reclamation_pending();++i) {
+      expected=data(12289,310+i);update(second,expected);
+    }
+    require(stage_compaction(second,94)==Reclaim::ready,"second range did not stage");
+    expected=data(12289,440);update(second,expected);
+    require(second.advance_persistent_reclamation({})==Reclaim::failed && second.volume_info().selection.epoch==2,
+        "a foreground edit did not invalidate the staged file image");
+    release_inactive(second);
+    for(unsigned i=0;i<12 && !second.persistent_reclamation_pending();++i) {
+      expected=data(12289,550+i);update(second,expected);
+    }
+    require(stage_compaction(second,95)==Reclaim::ready && second.advance_persistent_reclamation({})==Reclaim::published,
+        "retired first range could not be reused");
+    release_inactive(second);
+    require(second.volume_info().selection.epoch==3 &&
+        !stable->allocated_extent(kNativeVolumeFileImageOffset+limits.maximum_physical_bytes,limits.maximum_physical_bytes),
+        "third epoch did not reclaim its inactive range");
+  }
+  require(NativeVolumeFile::inspect(stable).filesystem().read("payload",0,50000)==expected,
+      "recycled first range lost the latest acknowledged foreground data");
+}
+
+void range_publication_cuts() {
+  for(const auto unit:{4096U,65536U}) {
+    const auto run=[&](std::optional<std::size_t> cut,unsigned mode) {
+      std::size_t boundaries=0;
+      auto io=std::make_shared<SparseVolumeRam>(unit);
+      Bytes expected;
+      {
+        auto session=NativeVolumeFile::create(io,id(90),id(91),limits,raw);
+        expected=establish_history(session);
+        require(stage_compaction(session)==Reclaim::ready,"fault matrix could not stage a verified successor");
+        const auto before=io->io.calls;
+        if(cut) {
+          io->io.fail_at=before+*cut;io->io.failure=mode;
+        }
+        try {
+          const auto published=session.advance_persistent_reclamation({});
+          if(published==Reclaim::published) {
+            for(unsigned i=0;i<4 && session.persistent_reclamation_pending();++i)
+              (void)session.advance_persistent_reclamation({});
+          }
+        }catch(const NativeFsError&){if(!cut)throw;}
+        boundaries=io->io.calls-before;
+        if(!cut)require(boundaries>=6 && boundaries<35 && io->range_reclaims>0,
+            "fault matrix did not cross durable selection and reclamation");
+      }
+      auto stable=io->replay();
+      {
+        const auto observed=NativeVolumeFile::inspect(stable);
+        require(observed.info().selection.epoch>=1 && observed.info().selection.epoch<=2 &&
+            observed.filesystem().read("payload",0,50000)==expected &&
+            observed.filesystem().read("witness",0,1000)==witness_bytes,
+            "interrupted physical reclamation lost acknowledged data");
+      }
+      {
+        auto recovery=NativeVolumeFile::resume(stable,{},raw);
+        release_inactive(recovery);
+        require(!recovery.volume_info().degraded && recovery.snapshot().read("payload",0,50000)==expected,
+            "interrupted range retirement did not finish after independent reopen");
+      }
+      return boundaries;
+    };
+    const auto cuts=run({},0);
+    for(unsigned mode=0;mode<3;++mode)for(std::size_t cut=0;cut<cuts;++cut)(void)run(cut,mode);
+    std::cout<<"range_retirement_cuts unit="<<unit<<" operation_boundaries="<<cuts<<" modes=3\n";
+  }
+}
+
 #ifdef _WIN32
 void disposable_file(const std::filesystem::path& base) {
   // Only the explicit integration fixture takes this path. Retain its new,
@@ -208,6 +349,54 @@ void disposable_file(const std::filesystem::path& base) {
   require(after.filesystem().read("payload",0,100000)==second,"Windows reopen altered the durable update");
   std::cout<<"windows_volume_file bytes_before_update="<<size<<" bytes_after_update="<<std::filesystem::file_size(path)<<'\n';
 }
+std::uint64_t allocated_bytes(const std::filesystem::path& file) {
+  DWORD high=0;
+  SetLastError(ERROR_SUCCESS);
+  const auto low=GetCompressedFileSizeW(file.c_str(),&high);
+  require(low!=INVALID_FILE_SIZE || GetLastError()==ERROR_SUCCESS,"Cannot query Windows allocated bytes");
+  return (static_cast<std::uint64_t>(high)<<32)|low;
+}
+void disposable_sparse_file(const std::filesystem::path& base) {
+  const auto ticks=std::chrono::steady_clock::now().time_since_epoch().count();
+  const auto root=std::filesystem::canonical(base)/("flitzfs-sparse-volume-"+std::to_string(ticks));
+  require(std::filesystem::create_directory(root),"Could not exclusively create the sparse volume fixture");
+  const auto path=root/"reclaimable.flfs";
+  constexpr StoreIoContract isolated{65536,true,true};
+  Bytes expected;
+  {
+    auto session=NativeVolumeFile::create(path,isolated,id(90),id(91),limits,raw);
+    expected=data(12289,81);
+    put(session,"payload",expected);put(session,"witness",witness_bytes);
+    for(unsigned i=0;i<8;++i) {
+      expected=data(12289,100+i);update(session,expected);
+    }
+  }
+  auto previous=allocated_bytes(path);
+  rejects([&]{(void)NativeVolumeFile::resume(path,{65536,true});},"Sparse file accepted an unqualified overwrite path");
+  for(unsigned epoch=2;epoch<=3;++epoch) {
+    {
+      auto session=NativeVolumeFile::resume(path,isolated,id(90),raw);
+      for(unsigned i=0;i<32 && !session.persistent_reclamation_pending();++i) {
+        expected=data(12289,epoch*200+i);update(session,expected);
+      }
+      require(session.persistent_reclamation_pending(),"Windows sparse history did not admit a rewrite");
+      require(stage_compaction(session,91+epoch)==Reclaim::ready,"Windows sparse replacement did not stage");
+      require(session.advance_persistent_reclamation({})==Reclaim::published,
+          "Windows sparse replacement did not publish");
+      release_inactive(session);
+      require(session.volume_info().selection.epoch==epoch,"Unexpected selected sparse file generation");
+    }
+    const auto selected=NativeVolumeFile::inspect(path,id(90));
+    require(selected.info().selection.epoch==epoch && selected.filesystem().read("payload",0,50000)==expected &&
+        selected.filesystem().read("witness",0,1000)==witness_bytes,"Windows sparse CPU reopen lost acknowledged bytes");
+    const auto current=allocated_bytes(path);
+    if(epoch==2)require(current<previous,"Old image retirement did not release Windows disk allocation");
+    else require(current<=previous,"Recycled range retained superseded Windows allocations");
+    previous=current;
+    std::cout<<"windows_sparse_epoch verified="<<epoch<<" retired_previous=1\n";
+  }
+  std::cout<<"windows_sparse_reclamation both_slots_reused=1 independent_cpu_reopen=1 allocation_released=1\n";
+}
 #endif
 }
 int main(int argc,char** argv){
@@ -218,6 +407,11 @@ int main(int argc,char** argv){
       std::cout<<"PASS: "<<checks<<" isolated Windows file-handle checks\n";
       return 0;
     }
+    if(argc==3 && std::string_view(argv[1])=="--disposable-sparse-file") {
+      disposable_sparse_file(std::filesystem::path(argv[2]));
+      std::cout<<"PASS: "<<checks<<" isolated Windows sparse volume checks\n";
+      return 0;
+    }
 #else
     (void)argv;
 #endif
@@ -225,6 +419,8 @@ int main(int argc,char** argv){
     retired_and_reopened();
     geometry_and_advice();
     publication_cuts();
+    reclaimed_ranges();
+    range_publication_cuts();
     std::cout<<"PASS: "<<checks<<" memory-backed volume-file checks\n";
     return 0;
   }catch(const std::exception& error){std::cerr<<"after "<<checks<<" checks: "<<error.what()<<'\n';return 1;}

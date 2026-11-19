@@ -111,6 +111,9 @@ struct NativeOptimizationBudgetPublication {
   NativeOptimizationBudgetProgress progress=NativeOptimizationBudgetProgress::deferred;
   NativeOptimizationInfo state;
 };
+enum class NativeVolumeReclaimProgress {idle,copying,ready,published,retiring,pinned,failed};
+namespace detail {class NativeVolumeFileReclaimer;}
+
 class NativeFileSession final {
  public:
   static constexpr std::size_t max_contexts=256;
@@ -127,12 +130,13 @@ class NativeFileSession final {
       StoreIdentity image_identity,StoreCompressionOptions foreground={},
       StoreCheckpointOptions checkpoints={},NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
       std::optional<NativeVolumeRootMetadata> root={});
-  // NEW indexed native volume and capability-3 head on qualified backing.
+  // NEW indexed native volume on qualified backing.
   static NativeFileSession create_indexed_volume(std::shared_ptr<StoreByteIo> empty_head,
       StoreIdentity volume_identity,std::shared_ptr<StoreByteIo> empty_image,
       StoreIdentity image_identity,PagedStoreLimits,StoreCompressionOptions foreground={},
       NativeDispositionPolicy=NativeDispositionPolicy::aggregate,
-      std::optional<NativeVolumeRootMetadata> root={});
+      std::optional<NativeVolumeRootMetadata> root={},
+      NativeVolumePlacement placement=NativeVolumePlacement::external);
   // NEW explicitly bounded paged volume: mirrored payloads, indexed names and
   // shared-base capability. Legacy create_volume bytes/defaults are unchanged.
   static NativeFileSession create_paged_volume(std::shared_ptr<StoreByteIo> empty_head,
@@ -204,6 +208,11 @@ class NativeFileSession final {
   // Uses the selected writer's aligned append boundary, including
   // trailing bytes left outside the selected checkpoint after recovery.
   NativeVolumeSpace indexed_volume_space() const;
+  // One admitted idle opportunity. The identity source is invoked only when
+  // starting a new image. These operations use the session's control thread.
+  bool persistent_reclamation_pending() const;
+  NativeVolumeReclaimProgress advance_persistent_reclamation(const std::function<StoreIdentity()>&);
+  void cancel_persistent_reclamation() noexcept;
   // Explicit managed-volume control; reject pending/staged maintenance.
   // Preserve live contexts and return cached scalars without post-commit I/O.
   NativeWorkloadInfo enable_workload_accounting();
@@ -410,10 +419,16 @@ class NativeFileSession final {
       const NativeVolumeImageResolver&,StoreCompressionOptions,NativeDispositionPolicy,bool closed_indexed);
   static NativeFileSession create_volume_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,
       std::shared_ptr<StoreByteIo>,StoreIdentity,NativeImageStorage,StoreCompressionOptions,
-      StoreCheckpointOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>);
+      StoreCheckpointOptions,NativeDispositionPolicy,std::optional<NativeVolumeRootMetadata>,
+      NativeVolumePlacement=NativeVolumePlacement::external);
+  friend class NativeVolumeFile;
+  friend class WinFspNativeWritable;
+  void bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer>);
+  friend class detail::NativeVolumeFileReclaimer;
+  bool begin_idle_compaction_impl(std::shared_ptr<StoreByteIo>,StoreIdentity,bool owned_file_target);
   NativeOptimizationInfo bind_optimization_area(std::shared_ptr<StoreByteIo>,
       std::uint64_t,unsigned,bool create,bool rebuild,bool budgeted=false);
-  static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity);
+  static void admit_replacement(const Impl&,const std::shared_ptr<StoreByteIo>&,StoreIdentity,bool owned_file_target=false);
   static bool handoff_contexts_resolved(const Impl&) noexcept;
   static void admit_handoff_contexts(const Impl&);
   static void begin_handoff(Impl&,NativeFilesystemSnapshot,std::shared_ptr<StoreByteIo>,StoreIdentity);
@@ -421,7 +436,7 @@ class NativeFileSession final {
   static void adopt_handoff(Impl&,const NativeVolumeHeadInfo&) noexcept;
   bool stage_recompression(std::shared_ptr<StoreByteIo>,StoreIdentity,StoreCompressionOptions,
       StoreCheckpointOptions,bool idle);
-  std::optional<NativeVolumeHeadInfo> publish_staged_recompression(bool idle);
+  std::optional<NativeVolumeHeadInfo> publish_staged_recompression(bool idle,bool owned_file_target=false);
   NativeVolumeHeadInfo replace_volume(std::shared_ptr<StoreByteIo>,StoreIdentity,
       StoreCompressionOptions,StoreCheckpointOptions,bool reencode);
   std::size_t slot_for(const NativeFileHandle&,bool allow_provisional=false) const;

@@ -1,0 +1,349 @@
+{
+  "schema": 1,
+  "date": "2026-11-19",
+  "source_base": "7e55f79f163ab1caba230617af0e9b1ec75975bf",
+  "code_patch_sha256": "9fc600c171f3f2b406ada6dba267cebb1aed758b3a844c115d963c4a8d11c222",
+  "source_binding": {
+    "CMakeLists.txt": {
+      "git_blob": "770070d4ce78da4cc3aa47d23d8db88144fb803a",
+      "working_bytes_sha256": "820b4721b09414d592c0ec348b67e8df49f048ebf9357640f2f13b1de65f4c99"
+    },
+    "include/flitzfs/native_session.hpp": {
+      "git_blob": "489e92ca4b859738c74be05a77efcad8aaaab298",
+      "working_bytes_sha256": "031c03006b1dd428749c46d070d870fb67be2f8dc91f07d77c54c5f26d06c380"
+    },
+    "include/flitzfs/native_volume_file.hpp": {
+      "git_blob": "f7b0551ee366ef20e9ba5d44e85ddc09646f1fa5",
+      "working_bytes_sha256": "95bee84279880d5f947c165810cf5b30276f4f8c305105ec4ab52f19dabb517c"
+    },
+    "include/flitzfs/object_store.hpp": {
+      "git_blob": "8aa0b29a699bb5fae49381b1af6569e5ffb7977e",
+      "working_bytes_sha256": "a0ed92bb3c8603a83abc14ef49ea833673967275684ed3b1878379b3096811cf"
+    },
+    "include/flitzfs/volume_head.hpp": {
+      "git_blob": "28290c0f4093c5c1d0ac0dd235aa2c089839994b",
+      "working_bytes_sha256": "985502e0b2a197ad80fd7b7c1ace9b8782f540f99fb9537ccf9135ed54d1bcc0"
+    },
+    "src/native_session.cpp": {
+      "git_blob": "ac6c9456a8814debc26df7a1f7d5435bbf2d919d",
+      "working_bytes_sha256": "10f49f277ebb556f55827733a3d721920cf1a3e4cf72304844ae23fb7f91b6d2"
+    },
+    "src/native_volume_file_reclaimer.hpp": {
+      "git_blob": "096d4437fab92d8eca2a70a31e4a215c19f098d2",
+      "working_bytes_sha256": "d396f29150307be4132f483545a67248943c325e0f0b5cc1b1dc65ab7bbcb688"
+    },
+    "src/native_volume_file.cpp": {
+      "git_blob": "6ce7774fc2147c28a274ad76ca1cf4183b6b2199",
+      "working_bytes_sha256": "dae26603a044491faba40118136a85f287bb638c12316f806a90f09942430551"
+    },
+    "src/store_file.cpp": {
+      "git_blob": "793d815dcb2ae4a856ccae08507d3f64ca3f36b7",
+      "working_bytes_sha256": "90a2fb74da1006b385b0dcde404c962abdacb1db3acc2281196c38863366350d"
+    },
+    "src/volume_head.cpp": {
+      "git_blob": "9b1da4c39023c7c80f0bd70d5a19a529b0498bfc",
+      "working_bytes_sha256": "20748848e92c8103b1c2c8ae5146dc206effefd26d024b4401f20e62d85f53f6"
+    },
+    "src/windows/winfsp_native.cpp": {
+      "git_blob": "e33f490fd16e88f2f54c0167c02e8071ace0ae1f",
+      "working_bytes_sha256": "08ca4010c86325d516467d3479f99cfc18511658ddba066259797569ef657d44"
+    },
+    "src/windows/winfsp_native.hpp": {
+      "git_blob": "7601d12ee599e18442f7f5831fc75cc7f42bf643",
+      "working_bytes_sha256": "fa261a0a936b6ec5fdf5401b7f4821eab2f1cbe014de37e3af7624cfdc5b6fe1"
+    },
+    "tests/test_native_volume_file.cpp": {
+      "git_blob": "32b6d6f3c30c7abb4ef99a6c75b9f4b90df9ca8b",
+      "working_bytes_sha256": "0e545aa7a68b25244c59271412de1a814ae3d2afbb7183e12b4ab87c49cd688c"
+    },
+    "tests/test_winfsp_controller.cpp": {
+      "git_blob": "69c4ce3a9c47417131e17d88683803950a562393",
+      "working_bytes_sha256": "593d206897139834d373b638df10d97a622076d7cc3b02d16ebfff01dc8f1843"
+    },
+    "tests/volume_range_fixture.hpp": {
+      "git_blob": "f014c6b9ddf1c68006f3ebd8360efa7f663a48df",
+      "working_bytes_sha256": "b42501ab7225721e9efd4823acf69326019702dc2dc555c3d1df448f928f4930"
+    }
+  },
+  "contract": "docs/PERSISTENT_VOLUME_FILE.md#paired-sparse-image-ranges",
+  "model": {
+    "volume_file_assertions": 1247,
+    "new_interruption_cases": 42,
+    "boundary_counts": [
+      {
+        "failure_unit_bytes": 4096,
+        "boundaries": 6,
+        "failure_modes": 3
+      },
+      {
+        "failure_unit_bytes": 65536,
+        "boundaries": 8,
+        "failure_modes": 3
+      }
+    ],
+    "outcomes": [
+      "Retained old snapshots prevented physical reuse",
+      "Foreground edits invalidated staged candidates",
+      "Reopen resolved both partially published and already selected epochs",
+      "Selected bytes survived every paired-head and range-retirement cut"
+    ]
+  },
+  "local_runs": {
+    "windows_release_build": {
+      "run": "local-run-62d7141340f640d0a68414f8190c7ad3",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "16aa84a3ead2d5fac4293d7a1e227c0a29b1ac5d900fb669dc24b33093d38f79",
+      "log_sha256": "b347946913d57fd8470af6581a28e481aede25312c563b7a62e92c14067117ff",
+      "peak_process_tree_commit_bytes": 416112640
+    },
+    "windows_release": {
+      "run": "local-run-c108e6b5ee9b4c03b1d93e41231401c7",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "58d1920d87615ee35961231ee07558207b96050103b5c3b7a4a8c66a5ae1abcf",
+      "log_sha256": "bcafa6144238733b6c07d4fa896f30cd4d763afd4fe10266b32defad7ba8d66e",
+      "peak_process_tree_commit_bytes": 106397696,
+      "entries": 29
+    },
+    "windows_raw_build": {
+      "run": "local-run-8afb634417444822abd660126b3a304c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "5c9795f5901b45882bdb83a7312494f4d33427080ba8921df106d3401d14ab60",
+      "log_sha256": "c28df5c8f979173d6bceb63bcfe3e3575ee3bcc6b8c24f444edda3a95c34afac",
+      "peak_process_tree_commit_bytes": 498434048
+    },
+    "windows_raw": {
+      "run": "local-run-20b65e9a8e0445408f5d9889e4b0d2f9",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "09ec4a3957ee58fc563187a82c0b264a847d0fb5ef8adb874a0f1040f758fd25",
+      "log_sha256": "380fb8cd60f81707dc6293804503969f09a07660bce5f3c20cf6dddd78d7931c",
+      "peak_process_tree_commit_bytes": 106631168,
+      "entries": 21
+    },
+    "windows_asan_build": {
+      "run": "local-run-4e28591fa51a4dff94785066c9b77396",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "352a3b5cadee17d9b8fec4e49eeee18260fc0f4b3076b1a299a8ac6ec4617f90",
+      "log_sha256": "f78101e5a13693588421f44730bb37b3e892fc6d85eed07bfc95426478ec05eb",
+      "peak_process_tree_commit_bytes": 747343872
+    },
+    "windows_asan": {
+      "run": "local-run-2585fbb4cf4243f290fc7fca29f51fca",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "842813d687e9cb984c848153789a7c81940113289f2b483f2c00fcf43f110cdd",
+      "log_sha256": "92bd8106297cf85952c38e0a93c2546180aaf0548df1be70ea6415cd88ac31ff",
+      "peak_process_tree_commit_bytes": 551161856,
+      "entries": 5
+    },
+    "windows_verbose_model": {
+      "run": "local-run-697e3c590f7e4d869fa4b2a8ca5e062d",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "a24b085ccf5f33f9101130b600dc377952bf561ba3d48331703e24ada068babf",
+      "log_sha256": "6ea96ce48cfc7d22fee9fce92507fd03a8288996c61a165ef263338f18a2b971",
+      "peak_process_tree_commit_bytes": 78254080,
+      "entries": 1
+    },
+    "winfsp_idle_and_handle_ownership": {
+      "run": "local-run-404c6733923945b284d324902efb85d0",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "710c32ab259b4b308019162669a25a838efce188b5fdce36da2093bdfa2916da",
+      "log_sha256": "d861a8ebd8619e824c2be4e0200e1ccb71604d304040b9285c1f143a391d3ec9",
+      "peak_process_tree_commit_bytes": 78323712,
+      "entries": 5
+    },
+    "initial_high_unit_history_fixture": {
+      "run": "local-run-bd0d6e7f93bf4098a202239d2a9ead99",
+      "exit_code": 8,
+      "tree_retired": true,
+      "receipt_sha256": "1fd31d461ce44de911b5b51ea4868db4ebacb00312397d0e941da6e93c566814",
+      "log_sha256": "8444486441cb1c7a5bdd1dc61d8a390b15d63fc8628dd8796bc71f0050d9477b",
+      "peak_process_tree_commit_bytes": 78467072
+    },
+    "initial_unwarmed_native_rng": {
+      "run": "local-run-342cd5b346cd48e59799ce2aeac87c7c",
+      "exit_code": 8,
+      "tree_retired": true,
+      "receipt_sha256": "db6684c00bf392e3c90f362c9f7e1cab4466d7414db06c28e1204493b1de4dc6",
+      "log_sha256": "ff580997358dd6bd336dce5ef6db8b147c17e33dc585cbfc05936b2587447db7",
+      "peak_process_tree_commit_bytes": 78467072
+    },
+    "initial_guest_foreground_history": {
+      "run": "local-run-5de92f294bdc41a6848e477eccaefe25",
+      "exit_code": 1,
+      "tree_retired": true,
+      "receipt_sha256": "7add484529c4651c5a2ac199521373f2ea4f961d82adac77f2947dd49b2270ab",
+      "log_sha256": "2f0fd30d5693f187eb90501fe89d79b2b2a106331fb67d721327962e162dc94b",
+      "peak_process_tree_commit_bytes": 53178368
+    }
+  },
+  "windows_sparse_guest": {
+    "scope": "persistent-reclaim-sandbox-5aa481cf36e040c6ae21d5c0deb2a2f3",
+    "platform": {
+      "caption": "Microsoft Windows 11 Enterprise",
+      "version": "10.0.26100",
+      "build": "26100"
+    },
+    "receipt_sha256": "203394c38808e66990170bdf6ed656021665e9bc07e861c8713d866953d0007d",
+    "isolation_receipt_sha256": "25526eed4ebf46535a7b2ddcaddc07e81eb9356c21277ef7c50e677b8173ea13",
+    "host_run": {
+      "run": "local-run-3eb77653244144d0bbfef97354a81067",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "b9d10a8d83356ca7d58a1b0285c5fdcedc0a4b825af8becf350511de93fe90e1",
+      "log_sha256": "d0d2138713df999a379b023ca1e1897a4f9eadb7f9d721ef876514420d267bab",
+      "peak_process_tree_commit_bytes": 46489600
+    },
+    "matching_fixture_sha256": "7067f1db3d615cf3dfcaf0f6497a39dd4410daf808969461392fb199baac7d98",
+    "guest_and_process_retired": true,
+    "drivers_installed": 0,
+    "benchmark": false,
+    "result": "Both image ranges were reused, Windows allocated bytes decreased and CPU readback matched after each selection.",
+    "checks": 25
+  },
+  "windows_linear_guest": {
+    "scope": "persistent-linear-regression-sandbox-4b9892949d934247acf29036fcc9432d",
+    "platform": {
+      "caption": "Microsoft Windows 11 Enterprise",
+      "version": "10.0.26100",
+      "build": "26100"
+    },
+    "receipt_sha256": "2ba6baae34de1a67c271035c028d8c21cfa8fee6ab9dcbaf3b0e477183c3adeb",
+    "isolation_receipt_sha256": "9d737a0d3a45fc07588daa1937ae6e5add2b0a2c9a1884d3896aa8b031245e87",
+    "host_run": {
+      "run": "local-run-0810fcaaa2c841b1bb7eacd58a827b6c",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "c97686d1c07a58300b0c2e4f99773e4320705fb742904a8972a6f4e68d5699fc",
+      "log_sha256": "9c76a2ff5fac7918c59654111ad862f3f7b4858c7b569bea04069f9f3e333f9a",
+      "peak_process_tree_commit_bytes": 46706688
+    },
+    "matching_fixture_sha256": "7067f1db3d615cf3dfcaf0f6497a39dd4410daf808969461392fb199baac7d98",
+    "guest_and_process_retired": true,
+    "drivers_installed": 0,
+    "benchmark": false,
+    "checks": 9
+  },
+  "live_amd": {
+    "run": {
+      "run": "local-run-6e0dbb10ab8e4f38ab2754e8371cf75a",
+      "exit_code": 0,
+      "tree_retired": true,
+      "receipt_sha256": "a000f224ed743be699c7071d3d4e3f6462130678b505733cda484331e2310097",
+      "log_sha256": "958f1409cc55e824fd8920b0f758b5555897aa4857a7e97438f763acce494692",
+      "peak_process_tree_commit_bytes": 131371008
+    },
+    "input_bytes": 131072,
+    "matched_payload_copies": 4,
+    "scope": "Separate indexed in-memory foreground compression and independent CPU readback",
+    "gpu_driver_unchanged": true,
+    "benchmark": false
+  },
+  "navigation": {
+    "receipt_sha256": "4307118beb81f9dec928ced4d07ca3f5742b8368651c87fa516b49ef02dd3f2c",
+    "source_files": 13,
+    "provider_version": "0.2.43",
+    "native_response_sha256": "6c6a526ea24f370abe547833c8800744d4d25180c38aced40fc9a2304084b206"
+  },
+  "primary_sources": [
+    {
+      "receipt": "persistent-reclaim-research-4f2927e8efe34899af5d64a40f109f20/receipt.json",
+      "sha256": "59197de229ecd388377c5fcc16dc334bcb5a9c68cf1c7d573547c10904d9fbe1",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data",
+          "final_http_status": 200,
+          "markdown_bytes": 62191,
+          "markdown_sha256": "1adddd6966222d820833df16a9381dc5ef330878289b28c1c74ba801ed15abe0",
+          "capture_sha256": "a897bb1e72d82500ce15ba10e1bd735106fcc477d7107de38551d68a7cf87ce1"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_sparse",
+          "final_http_status": 200,
+          "markdown_bytes": 63450,
+          "markdown_sha256": "f4fe738811ba6a15259a765022631262bf37f34727ae5df6b2c6029697b509df",
+          "capture_sha256": "7780f08abd1f622c1227286bdf9c1e4eef4012b931ac311358ec2e863d2f4e44"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges",
+          "final_http_status": 200,
+          "markdown_bytes": 63317,
+          "markdown_sha256": "c5cb5dfe8c6c92572df7107a6d4c63e6459559fef1289b7fb9b6a092db61304d",
+          "capture_sha256": "901c0fe439731e0e77822f6c4ab68d15cc47ef9392c184e3fa6f9c76a3afdc60"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_standard_info",
+          "final_http_status": 200,
+          "markdown_bytes": 36592,
+          "markdown_sha256": "7c157e3f0c63db6a0f20cee7734d3322d235411c61696170c3c924529c7d60cd",
+          "capture_sha256": "10e41544d9e2ed20857af19299996cf1a89cf3d4cee8294bca6b5424da9060d2"
+        }
+      ]
+    },
+    {
+      "receipt": "persistent-reclaim-geometry-98bef8868248487daac756431a4e3cde/receipt.json",
+      "sha256": "f2f823a682abd84571d2eaeba8f87f11c72289188fce1c30e4025bb1411d17e9",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-deviceiocontrol",
+          "final_http_status": 200,
+          "markdown_bytes": 26051,
+          "markdown_sha256": "98c2e8690b1f4b9dec76cab7c1d47d6899a3cf134db5f29424c92bda59713d7f",
+          "capture_sha256": "ab736c75f4914a05e3c9d3bc6ef48b580e3251054ad310cc7ef4f77924f7224a"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getdiskfreespacew",
+          "final_http_status": 200,
+          "markdown_bytes": 35411,
+          "markdown_sha256": "68902d3a3440ad13f835513eace2a1b6cfc4fe94132ac5ad23be6d168482676c",
+          "capture_sha256": "7512180b69b34096de96b697e967cd6a8daae93a24c8718cddad1a5516a0345a"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamew",
+          "final_http_status": 200,
+          "markdown_bytes": 40029,
+          "markdown_sha256": "19fe25263c8864490bfdabd2bc6d6d49b78b77cf12dc42b26d7837b57a4090e9",
+          "capture_sha256": "eb3f5bf7123d304883cdfb8fe1943dba02b0e7fc95a501ac4e7de1232ea15459"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumeinformationbyhandlew",
+          "final_http_status": 200,
+          "markdown_bytes": 40986,
+          "markdown_sha256": "7ce8ccb55198266bd89c44a1411703479a27d8d815a8cb0f374cb12f50140fb2",
+          "capture_sha256": "eccd34db163663485e82eaf7fc08f2462f0c778f147266e49069241ace10bb47"
+        }
+      ]
+    },
+    {
+      "receipt": "persistent-reclaim-space-ae62e81f57114f32bc5b67ff4a8d98e0/receipt.json",
+      "sha256": "9900b8b99285dc548d3b5cd27029c4786b3334fd44e14e17d02d48854e2cb1d8",
+      "provider_version": "0.9.5+flitzzip.portable2",
+      "pages": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getcompressedfilesizew",
+          "final_http_status": 200,
+          "markdown_bytes": 37878,
+          "markdown_sha256": "5274f85f842bcd7ab275f810a2e8683b2e8ce37b9666c67990553a1aecda5b3f",
+          "capture_sha256": "50229e3afe7e7df447a4d625de060cc1e32d4f5b13901d79b9e1759434d803c8"
+        }
+      ]
+    }
+  ],
+  "owner_disk_backed_volume": false,
+  "physical_power_failure_tested": false,
+  "host_driver_modified": false,
+  "remaining_scope": [
+    "Physical failure isolation and durability qualification",
+    "User-facing activation and migration",
+    "Segment evacuation that retains progress under foreground changes",
+    "Persistent catalog compaction and mounted interference measurements"
+  ]
+}

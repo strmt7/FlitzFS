@@ -5,6 +5,7 @@
 #include "flitzfs/paged_store.hpp"
 #include "flitzfs/native_volume_file.hpp"
 #include "native_fs_fixture.hpp"
+#include "volume_range_fixture.hpp"
 #include "windows_app_budget.hpp"
 #include <bcrypt.h>
 #include <algorithm>
@@ -156,6 +157,58 @@ void volume_file_callbacks() {
   require(cpu.filesystem().read("f1",0,10000)==another &&
       cpu.filesystem().read("f0",0,static_cast<std::uint32_t>(payload.size()))==payload,
       "fresh CPU model reopen lost original or subsequent callback bytes");
+}
+void volume_file_idle_reclamation() {
+  constexpr PagedStoreLimits limits{8ULL*1024*1024};
+  const StoreCompressionOptions raw{StoreCompressionMode::raw,1,false};
+  Provider provider;Provider::active=&provider;
+  auto file=std::make_shared<SparseVolumeRam>(4096);
+  auto adapter=WinFspNativeWritable::create_file_volume(file,id(90),id(1),limits,raw);
+  auto* source=adapter.get();
+  WinFspNativeSession session(std::move(adapter),provider.api());
+  require(session.start(plan())==STATUS_SUCCESS,"paired-file native SDK start");
+  auto expected=data(15731,901);
+  callback_file(provider,0,expected);
+  for(unsigned i=0;i<7;++i) {
+    wchar_t name[]=L"\\f0";
+    constexpr auto open_file=FILE_NON_DIRECTORY_FILE|(1U<<24);
+    PVOID context=nullptr;FSP_FSCTL_FILE_INFO metadata{};
+    require(provider.fs.Interface->Open(&provider.fs,name,open_file,FILE_WRITE_DATA,&context,&metadata)==STATUS_SUCCESS &&
+        context,"paired-file native open before overwrite");
+    expected=data(expected.size(),250+i);
+    ULONG written=0;
+    require(provider.fs.Interface->Write(&provider.fs,context,expected.data(),0,static_cast<ULONG>(expected.size()),
+        FALSE,FALSE,&written,&metadata)==STATUS_SUCCESS && written==expected.size(),"paired-file native overwrite");
+    callback_cleanup_close(provider,context);
+  }
+  NativeMaintenanceObservation observed{1,1000,16ULL<<30,12ULL<<30,32ULL<<30,24ULL<<30,1000,0,1000,true,true};
+  const auto before=file->occupied();
+  {
+    const auto retained=source->snapshot();
+    const auto writes=file->io.calls;
+    require(session.advance_background_maintenance(observed,observed.captured_ms).progress.deferral==
+        NativeMaintenanceDeferral::foreground && file->io.calls==writes,"paired-file compaction ran under foreground load");
+    observed.foreground_pending=false;
+    bool published=false;
+    for(unsigned tick=0;!published && tick<350;++tick) {
+      ++observed.sequence;observed.captured_ms+=1000;
+      const auto step=session.advance_background_maintenance(observed,observed.captured_ms);
+      require(!step.compaction_failed,"paired-file SDK idle compaction failed");
+      published=step.compacted;
+    }
+    require(published && !file->range_reclaims &&
+        retained.read("f0",0,50000)==expected,"paired-file source was discarded while a reader held it");
+  }
+  for(unsigned tick=0;tick<8 && file->allocated_extent(kNativeVolumeFileImageOffset,limits.maximum_physical_bytes);++tick) {
+    ++observed.sequence;observed.captured_ms+=1000;
+    (void)session.advance_background_maintenance(observed,observed.captured_ms);
+  }
+  require(file->range_reclaims && file->occupied()<before,"the native idle owner did not reclaim the old range");
+  session.stop();
+  require(session.write_restart_ready(),"paired-file dispatcher did not retire");
+  require(NativeVolumeFile::inspect(file->replay()).filesystem().read("f0",0,50000)==expected,
+      "reclaimed SDK volume lost acknowledged bytes on independent CPU reopen");
+  std::cout<<"paired_file_sdk_idle published=1 prior_readers_preserved=1 reclaimed=1 cpu_reopen=1\n";
 }
 #ifdef FLITZFS_INDEXED_HIP_FIXTURE
 std::array<std::byte,32> artifact_digest(std::string_view input) {
@@ -1234,7 +1287,8 @@ int main(int argc,char** argv){try {
   // The system-preferred RNG initializes process-wide native handles on first
   // use. Prove native-only stabilization before measuring factory ownership.
   const bool remount=argc==2 && std::string_view(argv[1])=="--memory-remount";
-  if(lifetime_only || shifted_grouping || checkpoint || remount || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
+  const bool volume_file=argc==2 && std::string_view(argv[1])=="--volume-file";
+  if(lifetime_only || shifted_grouping || checkpoint || remount || volume_file || (argc==2 && (std::string_view(argv[1])=="--memory" || std::string_view(argv[1])=="--memory-handles" ||
       std::string_view(argv[1])=="--read-only-memory" || std::string_view(argv[1])=="--indexed-memory" ||
       std::string_view(argv[1])=="--live-indexed-compaction" || std::string_view(argv[1])=="--live-indexed-grouping")))
     native_rng_initialization();
@@ -1256,8 +1310,9 @@ int main(int argc,char** argv){try {
     indexed_memory_composition();
     indexed_group_callback_contract();
     memory_coherence_lifecycle();
-  }else if(argc==2 && std::string_view(argv[1])=="--volume-file") {
+  }else if(volume_file) {
     volume_file_callbacks();
+    volume_file_idle_reclamation();
   }else if(argc==2 && std::string_view(argv[1])=="--read-only-memory") {
     read_only_memory();
   }else if(remount) {

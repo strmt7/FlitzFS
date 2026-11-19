@@ -358,9 +358,13 @@ commits, durable liveness/progress, and persistent-provider qualification.
 5. Connect staged rebuild and verified handoff for bounded, quiescent migration
    or repair. Preflight peak space and use the existing exact-generation guard.
    The memory path now keeps one private candidate, charges abandoned image
-   writes and validates both anchors at selection. Persist candidate identity
-   and continuation where a provider can durably reopen it. Measure foreground
-   interference and verify selection during mounted Windows 11 activity.
+   writes and validates both anchors at selection. The paired sparse file
+   provider publishes a smaller verified image, protects the previous range
+   while snapshots pin it and releases allocation after confirmed selection.
+   Recovery identifies out-of-selection ranges from the head's epoch.
+   Persist useful staging progress across foreground changes and measure
+   interference during mounted Windows 11 activity.
+   [Persistent range evidence](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
 6. Implement steady-state segment evacuation with bounded units and a persistent
    liveness index or equivalent reverse mapping. Select a victim using its live
    bytes, pins and expected write cost. Copy verified live objects, recheck each

@@ -11,7 +11,8 @@ The [WinFsp paged factory and restart bridge](WINFSP_PAGED_VOLUMES.md) now expos
 these same sessions through the existing writable SDK callbacks, with serialized
 group opportunities. Actual mounted scheduling/qualification remains separate.
 The [indexed volume-file provider](PERSISTENT_VOLUME_FILE.md) uses the same
-selector and engine with three disjoint regions in one explicitly opened stream.
+selector and engine with disjoint metadata and data ranges in one explicitly
+opened stream.
 
 ## Creation, reading and ordinary files
 
@@ -49,7 +50,7 @@ adjacent-epoch descriptor changes reject selection. A head is not authentication
 or an anti-rollback device. Providers still qualify global ownership, durable
 nonaliasing identity mappings and distinct failure domains.
 
-Current readers accept capabilities 1, 2 and 3. Each typed checkpoint selects
+Current readers accept capabilities 1 through 4. Each typed checkpoint selects
 one declared image kind and capacity. Older readers reject a valid newer head
 whose capability they cannot interpret.
 
@@ -60,6 +61,10 @@ at offset 104. It treats the native sequence and storage checkpoint floor
 independently. The named parent checkpoint belongs to its source image.
 The initial selection and each transition retain exact identities and scope.
 Flat and paged capability-1 and capability-2 encoding remains unchanged.
+Capability 4 stores the indexed image kind and capacity using the same fields
+and declares paired backing ranges. Its capacity is a multiple of 65,536 bytes.
+The selected epoch maps the image identity to a specific range.
+[Paired file layout](PERSISTENT_VOLUME_FILE.md#paired-sparse-image-ranges)
 
 `NativeFileSession::create_indexed_volume` binds a new indexed image to its own
 head. `open_indexed_recovery` provides a checked CPU view of the selected indexed

@@ -134,6 +134,8 @@ class WinFspNativeWritable final {
  private:
   friend class WinFspMemoryVolume;
   void configure_memory_maintenance(MemoryVolumeBacking&) noexcept;
+  static std::unique_ptr<WinFspNativeWritable> from_indexed_session(
+      NativeFileSession,StoreIdentity volume,std::uint64_t created,NativeMaintenancePolicy);
   static std::unique_ptr<WinFspNativeWritable> resume_managed_impl(std::shared_ptr<StoreByteIo>,
       StoreIdentity,std::optional<std::uint64_t>,const NativeVolumeImageResolver&,StoreCompressionOptions,
       std::shared_ptr<StoreByteIo>,std::uint64_t,bool closed_indexed);

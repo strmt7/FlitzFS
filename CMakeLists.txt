@@ -608,6 +608,9 @@ if(FLITZFS_BUILD_TESTS)
     add_test(NAME isolated_native_volume_file COMMAND flitzfs_native_volume_file_tests
       --disposable-file "${CMAKE_CURRENT_BINARY_DIR}")
     set_tests_properties(isolated_native_volume_file PROPERTIES TIMEOUT 45)
+    add_test(NAME isolated_native_sparse_volume_file COMMAND flitzfs_native_volume_file_tests
+      --disposable-sparse-file "${CMAKE_CURRENT_BINARY_DIR}")
+    set_tests_properties(isolated_native_sparse_volume_file PROPERTIES TIMEOUT 60)
   endif()
   add_executable(flitzfs_native_security_tests tests/test_native_security.cpp)
   target_include_directories(flitzfs_native_security_tests PRIVATE src)

@@ -2,8 +2,10 @@
 
 The separately versioned [managed volume head](MANAGED_PAGED_VOLUMES.md) uses
 capability 3 for the indexed native paged image kind. Its selected checkpoint
-floor and the namespace sequence are independent. Earlier head capabilities
-and this chunk container retain their existing encodings.
+floor and the namespace sequence are independent. Capability 4 declares
+[paired sparse file ranges](PERSISTENT_VOLUME_FILE.md#paired-sparse-image-ranges)
+for that same indexed engine. Earlier head capabilities and this chunk
+container retain their existing encodings.
 The [indexed LZ4 path](NATIVE_WINDOWS_LZ4_ADVICE.md#indexed-native-extents)
 encodes the existing indexed extent frame in the existing store codec.
 The [owned indexed memory path](WINDOWS_MEMORY_VOLUME_FACTORY.md) selects

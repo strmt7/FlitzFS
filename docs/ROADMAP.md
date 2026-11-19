@@ -7,8 +7,11 @@ head, indexed data and funded advice together. It supports exclusive
 creation, CPU inspection and checked writable reopening through the WinFsp
 adapter. Model and SDK tests exercise recovery after interruption. The
 helper's qualified file attachment keeps the exclusive handle during detach
-and can exit after a clean join. User-facing selection, persistent reclamation
-and actual power-failure qualification remain release work.
+and can exit after a clean join. The paired sparse provider can publish
+a smaller verified image and release the old allocation after reader
+retirement. User-facing selection, incremental evacuation under concurrent
+writes and actual power-failure qualification remain release work.
+[Persistent reclamation validation](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
 
 The [repository overview](REPOSITORY_OVERVIEW.md) records the architecture
 decisions and measured baseline. The [implementation plan](IMPLEMENTATION_PLAN.md)

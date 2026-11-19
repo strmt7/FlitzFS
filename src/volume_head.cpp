@@ -12,6 +12,7 @@ using Code=NativeFsErrorCode;
 [[noreturn]] void fail(Code code,const char* message){throw NativeFsError(code,message);}
 constexpr std::size_t digest_at=kStoreCommitUnit-32;
 constexpr char magic[]="FLTVH001";
+constexpr auto paired_file_capability=4U;
 void put(Bytes& b,std::size_t at,std::uint64_t v,unsigned n=8) {
   for(unsigned i=0;i<n;++i)b[at+i]=static_cast<std::byte>(v>>(8*i));
 }
@@ -22,6 +23,10 @@ std::uint64_t get(std::span<const std::byte> b,std::size_t at,unsigned n=8) {
 bool zero(StoreIdentity id){return id==StoreIdentity{};}
 void valid(const NativeVolumeSelection& s,Code code) {
   const bool indexed=s.storage.kind==NativeImageKind::indexed_paged;
+  if(s.placement!=NativeVolumePlacement::external &&
+      (s.placement!=NativeVolumePlacement::paired_file_ranges || !indexed ||
+       s.storage.maximum_physical_bytes%kStoreCommitUnit))
+    fail(code,"invalid volume image placement");
   if(!((s.storage.kind==NativeImageKind::flat && !s.storage.maximum_physical_bytes) ||
       ((s.storage.kind==NativeImageKind::paged || indexed) && s.storage.maximum_physical_bytes)))
     fail(code,"invalid volume image storage descriptor");
@@ -43,7 +48,8 @@ void contract(const StoreByteIo& io) {
 Bytes encoded(const NativeVolumeSelection& s,unsigned slot) {
   valid(s,Code::invalid_operation);Bytes b(kStoreCommitUnit);
   const auto kind=static_cast<std::uint32_t>(s.storage.kind);
-  std::memcpy(b.data(),magic,8);put(b,8,kind+1,4);put(b,12,slot,4);put(b,16,s.epoch);
+  const auto capability=s.placement==NativeVolumePlacement::paired_file_ranges?paired_file_capability:kind+1;
+  std::memcpy(b.data(),magic,8);put(b,8,capability,4);put(b,12,slot,4);put(b,16,s.epoch);
   std::copy(s.volume_identity.begin(),s.volume_identity.end(),b.begin()+24);
   std::copy(s.image_identity.begin(),s.image_identity.end(),b.begin()+40);
   std::copy(s.parent_identity.begin(),s.parent_identity.end(),b.begin()+56);
@@ -58,15 +64,18 @@ std::optional<NativeVolumeSelection> decoded(std::span<const std::byte> b,unsign
   if(!std::equal(digest.begin(),digest.end(),b.begin()+digest_at))return {};
   // Intact unsupported/contradictory metadata is NEVER an excuse to roll back.
   const auto capability=get(b,8,4);
-  if(std::memcmp(b.data(),magic,8)||capability<1||capability>3||get(b,12,4)!=slot||
-      (capability>1 && (get(b,96,4)!=capability-1 || get(b,100,4)!=0)) ||
+  const bool paired=capability==paired_file_capability;
+  const auto kind=paired?static_cast<std::uint64_t>(NativeImageKind::indexed_paged):capability-1;
+  if(std::memcmp(b.data(),magic,8)||capability<1||capability>paired_file_capability||get(b,12,4)!=slot||
+      (capability>1 && (get(b,96,4)!=kind || get(b,100,4)!=0)) ||
       !std::all_of(b.begin()+(capability>1?112:96),b.begin()+digest_at,[](auto x){return x==std::byte{};}))
     fail(Code::corrupt,"intact volume head framing unsupported");
   NativeVolumeSelection s;s.epoch=get(b,16);
   std::copy_n(b.begin()+24,16,s.volume_identity.begin());std::copy_n(b.begin()+40,16,s.image_identity.begin());
   std::copy_n(b.begin()+56,16,s.parent_identity.begin());
   s.minimum_checkpoint=get(b,72);s.namespace_sequence=get(b,80);s.parent_checkpoint=get(b,88);
-  if(capability>1)s.storage={static_cast<NativeImageKind>(capability-1),get(b,104)};
+  if(capability>1)s.storage={static_cast<NativeImageKind>(kind),get(b,104)};
+  if(paired)s.placement=NativeVolumePlacement::paired_file_ranges;
   valid(s,Code::corrupt);
   if(expected && s.volume_identity!=*expected)fail(Code::corrupt,"volume head identity mismatch");
   return s;
@@ -86,7 +95,8 @@ Loaded load(const StoreByteIo& io,std::optional<StoreIdentity> expected) {
   }
   const unsigned newer=slots[0]->epoch>slots[1]->epoch?0:1,older=1-newer;
   const auto& n=*slots[newer];const auto& o=*slots[older];
-  if(n.volume_identity!=o.volume_identity || n.storage!=o.storage || n.epoch-o.epoch!=1||n.parent_identity!=o.image_identity||
+  if(n.volume_identity!=o.volume_identity || n.storage!=o.storage || n.placement!=o.placement ||
+      n.epoch-o.epoch!=1||n.parent_identity!=o.image_identity||
       n.parent_checkpoint<o.minimum_checkpoint||n.namespace_sequence<o.namespace_sequence)
     fail(Code::corrupt,"volume head transition is not a bound successor");
   return {{n,true},newer};
@@ -109,8 +119,9 @@ void bind(const NativeVolumeSelection& selected,const NativeFilesystemSnapshot& 
   if(writable && (verified.degraded_checkpoint || verified.degraded_root))
     fail(Code::invalid_operation,"image scrub discovered degraded protection");
 }
-NativeVolumeSelection initial(StoreIdentity volume,const NativeFilesystemSnapshot& source) {
+NativeVolumeSelection initial(StoreIdentity volume,const NativeFilesystemSnapshot& source,NativeVolumePlacement placement) {
   NativeVolumeSelection s;s.volume_identity=volume;s.image_identity=source.identity();s.epoch=1;
+  s.placement=placement;
   s.storage=source.image_storage();
   s.minimum_checkpoint=source.storage_info().checkpoint_generation;s.namespace_sequence=source.sequence();
   valid(s,Code::invalid_operation);return s;
@@ -235,8 +246,8 @@ NativeVolumeHeadWriter::NativeVolumeHeadWriter(NativeVolumeHeadWriter&&) noexcep
 NativeVolumeHeadWriter& NativeVolumeHeadWriter::operator=(NativeVolumeHeadWriter&&) noexcept=default;
 NativeVolumeHeadWriter::~NativeVolumeHeadWriter()=default;
 NativeVolumeHeadWriter NativeVolumeHeadWriter::create(std::shared_ptr<StoreByteIo> head,
-    StoreIdentity volume,const NativeFilesystemSnapshot& source) {
-  const auto next=initial(volume,source);auto image=Impl::backing(source);
+    StoreIdentity volume,const NativeFilesystemSnapshot& source,NativeVolumePlacement placement) {
+  const auto next=initial(volume,source,placement);auto image=Impl::backing(source);
   if(head==image)fail(Code::invalid_operation,"volume head aliases image");
   auto p=std::make_unique<Impl>(std::move(head));Impl::Lease image_lease(image);
   contract(*p->owner.io);contract(*image);

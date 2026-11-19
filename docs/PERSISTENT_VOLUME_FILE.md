@@ -14,12 +14,47 @@ existing 64 KiB failure-unit ceiling.
 | 128 KiB | Paired funded optimization records | 128 KiB |
 | 256 KiB | Selected indexed data image | Current file extent minus 256 KiB |
 
-All record encodings retain their existing versions. The head declares the
-volume and image identities and the indexed capacity. The file provider uses
-epoch 1 and one append stream. Each bounded metadata region and the growing
-image have disjoint write limits. File creation commits only the bytes used
-by initialization. Creation publishes the image before the paired selector.
-Missing or damaged advice leaves the data image usable.
+The linear layout has a capability-3 head at epoch 1 and one append stream.
+The head declares the volume and image identities and the indexed capacity.
+Each bounded metadata region and the growing image have disjoint write
+limits. File creation commits only the bytes used by initialization.
+Creation publishes the image before the paired selector. Missing or
+damaged advice leaves the data image usable.
+
+### Paired sparse image ranges
+
+A qualified range provider can create a capability-4 volume with two
+aligned image ranges of the same declared capacity. The head and advice
+retain the positions above. If the image capacity is C, the first image
+range begins at 256 KiB, and the second begins at 256 KiB + C. Odd epochs
+select the first range and even epochs select the second. The indexed
+object and file record encodings are shared by both layouts.
+
+The WinFsp maintenance owner stages a candidate when measured obsolete
+history justifies the copy and the host admits idle work. It copies and
+verifies the selected image incrementally and rejects a candidate when a
+foreground edit changes the source checkpoint. A smaller verified image
+is flushed before publishing the two head records. The old image remains
+allocated until both durable records select the new epoch and readers
+release the old backing. Each retirement opportunity rechecks the
+selector and retires up to 4 MiB from the inactive range.
+
+After interruption, independent CPU open follows the checked head. A
+writable reopen verifies and repairs the selected head before attempting
+to reclaim an interrupted candidate or old image. Reclamation checks
+allocation after flushing the range. A failure leaves the active data
+authority available and defers more range work until reopen. The
+exclusive backing lease also covers independent paired-file inspection
+so a retained reader cannot race a writable reopen.
+
+Physical allocation is separate from logical file length. The Windows
+provider requires an explicit isolated range reclamation contract, a
+sparse-capable NTFS volume and compatible live cluster geometry. It
+queries allocated suffixes with a bounded binary search and uses the
+Windows sparse range operation only for the checked retired region.
+[Windows sparse allocation](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_sparse) ·
+[Allocated range query](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_query_allocated_ranges) ·
+[Range retirement](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_zero_data)
 
 ## Create, inspect and resume
 
@@ -41,8 +76,8 @@ of the new directory entry require qualification for the actual storage chain.
 [Windows storage geometry](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_storage_info) ·
 [Windows flush contract](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)
 
-Open verifies both head peers and binds the selected data at the fixed image
-offset. A supplied expected volume identity must match. Without that identity,
+Open verifies both head peers and binds the selected data to the declared layout
+and epoch. A supplied expected volume identity must match. Without that identity,
 the checked peers must belong to the same volume. The independent CPU reader
 validates the entire image and can inspect the durable state of detached
 lifetimes. A writable reopen uses the same indexed session-recovery transaction
@@ -80,6 +115,13 @@ exercises the exclusive file handle and reopen after close. These helper
 checks use injected WinFsp lifecycle operations.
 [Helper validation](evidence/windows-volume-file-attachment-2026-11-19.json)
 
-User-facing persistent-volume selection and backing qualification remain
-open. Persistent generation replacement, catalog compaction and physical
-storage-failure qualification remain release gates.
+The paired-range model covers interrupted head publication and reclamation,
+pinned old readers, foreground invalidation and later reuse. The disposable
+Windows 11 fixture verified release of actual NTFS allocation, reuse of
+both image ranges and independent CPU readback after each switch.
+[Reclamation validation](evidence/windows-sparse-volume-reclamation-2026-11-19.json)
+
+User-facing persistent-volume selection, in-place migration of existing
+linear volumes, steady-state segment evacuation during concurrent writes,
+persistent catalog compaction and physical storage-failure qualification
+remain release gates.

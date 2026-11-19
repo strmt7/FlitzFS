@@ -27,6 +27,9 @@ inline constexpr std::uint64_t kStoreCommitUnit=65536;
 struct StoreIoContract {
   std::uint32_t write_failure_unit_bytes=0;
   bool successful_flush_persists=false;
+  // Range reclamation affects only the specified reserved region. Successful
+  // flush also persists its new allocation state for independent reopen.
+  bool isolated_range_reclamation=false;
 };
 
 // Pure shared admission rule; this does not qualify a device or its flushes.
@@ -56,7 +59,9 @@ class StoreByteIo {
   friend class NativeVolumeFile;
   friend class OptimizationStateWriter;
   bool acquire_writer() noexcept {
-    if(!allows_writer())return false;
+    return allows_writer() && acquire_exclusive_use();
+  }
+  bool acquire_exclusive_use() noexcept {
     bool expected=false;
     return writer_owned_.compare_exchange_strong(expected,true,std::memory_order_acquire,std::memory_order_relaxed);
   }

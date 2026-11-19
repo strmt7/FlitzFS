@@ -1,5 +1,6 @@
 #include "flitzfs/native_session.hpp"
 #include "native_maintenance_source.hpp"
+#include "native_volume_file_reclaimer.hpp"
 #include "flitzfs/catalog.hpp"
 #include "store_codec.hpp"
 #include <algorithm>
@@ -287,6 +288,8 @@ struct NativeFileSession::Impl {
     }
   }
   NativeFilesystemWriter writer;
+  std::shared_ptr<detail::NativeVolumeFileReclaimer> persistent_reclaimer;
+  bool volume_file_bound=false;
   std::shared_ptr<const void> owner=std::make_shared<const int>(0);
   std::array<Slot,max_contexts> slots{};
   std::array<std::uint64_t,kNativeMaxNodes> latched{};
@@ -397,15 +400,16 @@ NativeFileSession NativeFileSession::create_paged_volume(std::shared_ptr<StoreBy
 }
 NativeFileSession NativeFileSession::create_indexed_volume(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,PagedStoreLimits limits,
-    StoreCompressionOptions foreground,NativeDispositionPolicy policy,std::optional<NativeVolumeRootMetadata> root) {
+    StoreCompressionOptions foreground,NativeDispositionPolicy policy,std::optional<NativeVolumeRootMetadata> root,
+    NativeVolumePlacement placement) {
   if(!limits.maximum_physical_bytes)fail(E::invalid_options,"explicit indexed volume capacity required");
   return create_volume_impl(std::move(head),volume,std::move(image),image_id,
-      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root);
+      {NativeImageKind::indexed_paged,limits.maximum_physical_bytes},foreground,{},policy,root,placement);
 }
 NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByteIo> head,
     StoreIdentity volume,std::shared_ptr<StoreByteIo> image,StoreIdentity image_id,NativeImageStorage storage,
     StoreCompressionOptions foreground,StoreCheckpointOptions checkpoints,NativeDispositionPolicy policy,
-    std::optional<NativeVolumeRootMetadata> root) {
+    std::optional<NativeVolumeRootMetadata> root,NativeVolumePlacement placement) {
   admit_policy(policy);detail::validate_store_compression(foreground);
   if(volume==StoreIdentity{} || image_id==StoreIdentity{} || volume==image_id || head==image)
     fail(E::invalid_options,"distinct volume/image identities and backends required");
@@ -429,7 +433,7 @@ NativeFileSession NativeFileSession::create_volume_impl(std::shared_ptr<StoreByt
     writer.apply_with_metadata({},{&basic,1},{&security,1});
   }
   auto source=writer.snapshot();retire(writer);
-  owner->head.emplace(NativeVolumeHeadWriter::create(head,volume,source));
+  owner->head.emplace(NativeVolumeHeadWriter::create(head,volume,source,placement));
   owner->epoch=owner->head->info().selection.epoch;
   auto session=create(resume_image(image,source,foreground),policy);
   owner->budget_new=true;
@@ -502,6 +506,23 @@ NativeVolumeSpace NativeFileSession::indexed_volume_space() const {
   return {storage.maximum_physical_bytes,
       storage.maximum_physical_bytes-(std::min)(occupied,storage.maximum_physical_bytes),
       self.writer.indexed_obsolete_bytes()};
+}
+void NativeFileSession::bind_persistent_reclamation(std::shared_ptr<detail::NativeVolumeFileReclaimer> reclaimer) {
+  auto& self=ready();
+  self.volume_file_bound=true;
+  self.persistent_reclaimer=std::move(reclaimer);
+}
+bool NativeFileSession::persistent_reclamation_pending() const {
+  return !poisoned() && impl_->persistent_reclaimer && impl_->persistent_reclaimer->pending(*this);
+}
+NativeVolumeReclaimProgress NativeFileSession::advance_persistent_reclamation(
+    const std::function<StoreIdentity()>& next_identity) {
+  auto& self=ready();
+  return self.persistent_reclaimer?self.persistent_reclaimer->advance(*this,next_identity):
+      NativeVolumeReclaimProgress::idle;
+}
+void NativeFileSession::cancel_persistent_reclamation() noexcept {
+  if(impl_ && impl_->persistent_reclaimer)impl_->persistent_reclaimer->cancel(*this);
 }
 NativeWorkloadInfo NativeFileSession::enable_workload_accounting() {
   auto& self=ready();
@@ -809,7 +830,9 @@ NativeVolumeHeadInfo NativeFileSession::recompress_volume(std::shared_ptr<StoreB
   return replace_volume(std::move(target),next,compression,checkpoints,true);
 }
 void NativeFileSession::admit_replacement(const Impl& self,
-    const std::shared_ptr<StoreByteIo>& target,StoreIdentity next) {
+    const std::shared_ptr<StoreByteIo>& target,StoreIdentity next,bool owned_file_target) {
+  if(self.volume_file_bound!=owned_file_target)
+    fail(E::invalid_options,"volume file replacement requires its own image range");
   if(!self.volume || !self.volume->head)fail(E::invalid_options,"session has no volume authority");
   const auto& volume=*self.volume;
   if(self.recompression || volume.pending || next==StoreIdentity{} || next==volume.active_id ||
@@ -919,13 +942,17 @@ bool NativeFileSession::stage_recompression(std::shared_ptr<StoreByteIo> target,
 }
 
 bool NativeFileSession::begin_idle_compaction(std::shared_ptr<StoreByteIo> target,StoreIdentity next) {
+  return begin_idle_compaction_impl(std::move(target),next,false);
+}
+bool NativeFileSession::begin_idle_compaction_impl(std::shared_ptr<StoreByteIo> target,StoreIdentity next,
+    bool owned_file_target) {
   auto& self=ready();
   if(!self.volume || self.volume->head->info().selection.storage.kind!=NativeImageKind::indexed_paged)
     fail(E::invalid_options,"idle compaction requires a managed indexed image");
   const auto generation=self.writer.recompression_generation();
   if(!self.recompression && self.evaluated_image==self.volume->active_id &&
       self.evaluated_generation==generation)return false;
-  admit_replacement(self,target,next);
+  admit_replacement(self,target,next,owned_file_target);
   admit_handoff_contexts(self);
   admit_empty(target);
   auto rebuild=self.writer.prepare_paged_recompression(target,next,self.volume->foreground,false);
@@ -983,8 +1010,10 @@ std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_idle_recompressio
   return publish_staged_recompression(true);
 }
 
-std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompression(bool idle) {
+std::optional<NativeVolumeHeadInfo> NativeFileSession::publish_staged_recompression(bool idle,bool owned_file_target) {
   auto& self=ready();
+  if(self.volume_file_bound!=owned_file_target)
+    fail(E::invalid_options,"volume file publication requires its own image range");
   if(!self.recompression || self.recompression->idle!=idle)
     fail(E::invalid_options,"no matching staged recompression");
   if(!self.recompression->matches(self.writer)) {

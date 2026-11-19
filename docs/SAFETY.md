@@ -1146,6 +1146,13 @@ image validation refuses writable admission. The checked CPU inspection
 does not mutate the file. Geometry checks constrain the supplied contract,
 which still needs independent qualification on the actual storage stack.
 
+The paired sparse provider additionally requires an isolated reclamation
+contract. It waits for both checked head replicas and retirement of the
+old image's readers before issuing an aligned range operation. It keeps
+both ranges when publication is uncertain. Windows API and guest checks
+exercise allocation and reopen correctness. Physical failure isolation and
+durability remain separate qualification requirements.
+
 ## Persistent write provenance
 
 The optional [workload counter](WORKLOAD_ACCOUNTING.md) grants no optimization

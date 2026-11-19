@@ -4,10 +4,12 @@
 namespace flitzfs {
 // Experimental custom-backend control record. No path/mount/worker/deletion API.
 inline constexpr std::uint64_t kVolumeHeadBytes=2*kStoreCommitUnit;
+enum class NativeVolumePlacement {external, paired_file_ranges};
 struct NativeVolumeSelection {
   StoreIdentity volume_identity{},image_identity{},parent_identity{};
   std::uint64_t epoch=0,minimum_checkpoint=0,namespace_sequence=0,parent_checkpoint=0;
-  NativeImageStorage storage{}; // Head capabilities 1, 2 and 3 select the three storage kinds.
+  NativeImageStorage storage{};
+  NativeVolumePlacement placement=NativeVolumePlacement::external;
   bool operator==(const NativeVolumeSelection&) const = default;
 };
 struct NativeVolumeHeadInfo {NativeVolumeSelection selection;bool degraded=false;};
@@ -42,7 +44,8 @@ class NativeVolumeHeadWriter final {
   // NEW empty head; source image must already be durable and quiescent.
   // A per-instance head lease is NOT global volume/provider authentication.
   static NativeVolumeHeadWriter create(std::shared_ptr<StoreByteIo> empty_head,
-      StoreIdentity volume_identity,const NativeFilesystemSnapshot& source);
+      StoreIdentity volume_identity,const NativeFilesystemSnapshot& source,
+      NativeVolumePlacement placement=NativeVolumePlacement::external);
   // Exact epoch lease, actual old owner retirement and provider-wide exclusive
   // control required. Repair only this selected head, never an older image.
   static NativeVolumeHeadWriter resume(std::shared_ptr<StoreByteIo> head,

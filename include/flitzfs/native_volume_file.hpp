@@ -8,6 +8,17 @@ namespace flitzfs {
 // behind the two fixed metadata regions.
 inline constexpr std::uint64_t kNativeVolumeFileImageOffset=kVolumeHeadBytes+kOptimizationAreaBytes;
 
+// Explicit range-placement provider. The allocation bound is relative to the
+// requested range and aligned to kStoreCommitUnit. Failed reclamation may
+// affect only that range. A successful flush persists the resulting allocation.
+class NativeVolumeRangeIo : public StoreByteIo {
+ public:
+  virtual bool supports_reclaimable_ranges() const noexcept=0;
+  virtual std::uint64_t allocated_extent(std::uint64_t offset,std::uint64_t bytes) const=0;
+  virtual void admit_range_write(std::uint64_t projected_file_extent,std::uint64_t additional_bytes)=0;
+  virtual void reclaim_range(std::uint64_t offset,std::uint64_t bytes)=0;
+};
+
 // Composes the indexed engine over a single qualified byte-I/O owner. The
 // provider must pin the exact backing and exclude other writable handles.
 // Inspection requires stable backing and performs no recovery writes.
@@ -39,11 +50,13 @@ class NativeVolumeFile final {
  private:
   friend class WinFspNativeWritable;
   friend class WinFspVolumeAttachment;
+  friend class detail::NativeVolumeFileReclaimer;
   struct Owner;
   struct Region;
   struct Regions {
     std::shared_ptr<StoreByteIo> head,image,advice;
     NativeVolumeSelection selection;
+    std::shared_ptr<detail::NativeVolumeFileReclaimer> reclaimer;
     NativeVolumeImageResolver resolver() const;
     std::uint64_t advice_sequence() const;
   };
